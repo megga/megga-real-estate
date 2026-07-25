@@ -726,6 +726,7 @@
     "toast": {
       "disconnected": "{{name}} disconnected",
       "disconnectFailed": "Disconnect failed: {{error}}",
+      "connectFailed": "Connect failed: {{error}}",
       "unknownError": "Unknown error",
       "skribbleConnected": "Skribble connected"
     },

@@ -7,11 +7,10 @@
  * désactivée (pivot CRM-first) : ses routes redirigent vers la vitrine megga.ch.
  * Route racine « / » → /dashboard.
  */
-import { lazy, Suspense } from 'react'
+import { Fragment, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import ResponsiveRoute from '@/components/crm-mobile/shell/ResponsiveRoute'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AnimatePresence } from 'motion/react'
 import { AuthProvider } from '@/hooks/useAuth'
 import { AiPanelProvider } from '@/hooks/useAiPanel'
 
@@ -31,15 +30,16 @@ import { AiPanelProvider } from '@/hooks/useAiPanel'
 import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import ErrorBoundary from '@/components/layout/ErrorBoundary'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
-import CookieBanner from '@/components/CookieBanner'
 import { ToastProvider } from '@/components/ui/Toast'
+import { ADMIN_ENTRY_URL } from '@/lib/adminEntry'
+import ImpersonationHandoff from '@/components/admin/ImpersonationHandoff'
 import LanguageChangeOverlay from '@/components/ui/LanguageChangeOverlay'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Lazy-loaded public pages
-// Property X storefront pages were removed — the public storefront on
-// megga.ch is now the static V3 HTML site (sites/property-preview), overlaid
-// at the deploy root by the npm postbuild hook. Only the Property X icon
+// Property X storefront pages were removed — megga.ch now serves the static
+// MEGGA vitrine (sites/megga-vitrine), overlaid at the deploy root by the npm
+// postbuild hook. Only the Property X icon
 // system remains under src/components/propertyx/ (MEIcon/PxIconFont/
 // PxSocialIcon/PxWhatsAppButton + PX.* tokens), used across the CRM.
 
@@ -109,8 +109,8 @@ const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page
 const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page'))
 const BiensSugarV2Page = lazy(() => import('@/pages/agent/BiensSugarV2Page'))
 // Sprint 2 — Sugar v3 (port pixel-près handoff Bien + Deal + Visite)
-const BienDetailSugarV3Page = lazy(() => import('@/pages/agent/BienDetailSugarV3Page'))
-const DealDetailSugarV3Page = lazy(() => import('@/pages/agent/DealDetailSugarV3Page'))
+const BienDetailSugarV4Page = lazy(() => import('@/pages/agent/BienDetailSugarV4Page'))
+const DealDetailSugarV4Page = lazy(() => import('@/pages/agent/DealDetailSugarV4Page'))
 const OfferModalSugarV3Page = lazy(() => import('@/pages/agent/OfferModalSugarV3Page'))
 const VisitModalSugarV3Page = lazy(() => import('@/pages/agent/VisitModalSugarV3Page'))
 const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugarV3Page'))
@@ -138,7 +138,7 @@ const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage')
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
 const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
-// MEGGA AI — panneau docké monté AU-DESSUS des Routes keyées (key={pathname})
+// MEGGA AI — panneau docké monté AU-DESSUS de <Routes>, hors de l'arbre de routage
 // pour survivre au remount de navigation : le panneau + la conversation
 // persistent d'une page à l'autre (suivi de contexte, chantier 5).
 const CopilotPanel = lazy(() => import('@/components/ai-copilot/panel/CopilotPanel'))
@@ -153,39 +153,11 @@ const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
 // repo le 2026-06-08. /account → /dashboard. market_listings ne sert plus que
 // le Matching agent.
 
-// Lazy-loaded help center pages
-const HelpCenterPage = lazy(() => import('@/pages/public/HelpCenterPage'))
-const HelpCategoryPage = lazy(() => import('@/pages/public/HelpCategoryPage'))
-const HelpArticlePage = lazy(() => import('@/pages/public/HelpArticlePage'))
-const HelpStartPage = lazy(() => import('@/pages/public/HelpStartPage'))
-const HelpContactPage = lazy(() => import('@/pages/public/HelpContactPage'))
-const HelpStatusPage = lazy(() => import('@/pages/public/HelpStatusPage'))
-const HelpChangelogPage = lazy(() => import('@/pages/public/HelpChangelogPage'))
-const HelpShortcutsPage = lazy(() => import('@/pages/public/HelpShortcutsPage'))
-const HelpCompliancePage = lazy(() => import('@/pages/public/HelpCompliancePage'))
-const HelpLimitsPage = lazy(() => import('@/pages/public/HelpLimitsPage'))
-const HelpResourcesPage = lazy(() => import('@/pages/public/HelpResourcesPage'))
-const GlossaryPage = lazy(() => import('@/pages/public/GlossaryPage'))
-// Lazy-loaded super-admin pages
-const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
-const AdminAgenciesPage = lazy(() => import('@/pages/admin/AdminAgenciesPage'))
-const AdminAgencyDetailPage = lazy(() => import('@/pages/admin/AdminAgencyDetailPage'))
-const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
-const AdminMonitoringPage = lazy(() => import('@/pages/admin/AdminMonitoringPage'))
-const AdminMarketplacePage = lazy(() => import('@/pages/admin/AdminMarketplacePage'))
-const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage'))
-const AdminChangelogPage = lazy(() => import('@/pages/admin/AdminChangelogPage'))
-const AdminFeatureFlagsPage = lazy(() => import('@/pages/admin/AdminFeatureFlagsPage'))
-const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
-const AdminLiveFeedPage = lazy(() => import('@/pages/admin/AdminLiveFeedPage'))
-const AdminSecurityAuditPage = lazy(() => import('@/pages/admin/AdminSecurityAuditPage'))
-const AdminNpsPage = lazy(() => import('@/pages/admin/AdminNpsPage'))
-const AdminAutonomyPage = lazy(() => import('@/pages/admin/AdminAutonomyPage'))
-const AdminToolUsagePage = lazy(() => import('@/pages/admin/AdminToolUsagePage'))
-const AdminLearningPage = lazy(() => import('@/pages/admin/AdminLearningPage'))
+// Centre d'aide : plus de page SPA — tout `/help/*` redirige vers Intercom
+// (cf. HelpCenterRedirect plus bas).
+// Les pages super-admin ne sont plus dans ce bundle : elles vivent dans
+// l'application `AdminApp` (admin.megga.ch). Voir src/lib/adminEntry.ts.
 
-// Admin guard
-import SuperAdminGuard from '@/components/admin/SuperAdminGuard'
 
 // `PageLoader` (the generic centered spinner) replaced by `<SmartPageLoader>`
 // which picks a route-specific skeleton matching the page being loaded.
@@ -238,27 +210,45 @@ const queryClient = new QueryClient({
 })
 
 /**
- * `<AnimatedRoutes>` wraps `<Routes>` in `<AnimatePresence>` SOLELY so that
- * `layoutId`-based shared-element transitions work across route boundaries.
+ * `<AppRoutes>` rend la table de routage TELLE QUELLE : aucune clé sur
+ * `<Routes>`, aucun `<AnimatePresence>` au-dessus.
  *
- * As of the "remove route-level transitions" pass, pages no longer fade or
- * slide on navigation — feedback showed the 220 ms cross-fade made the CRM
- * feel sluggish and the marketplace feel app-ified. Linear / Notion /
- * Vercel / Stripe all ship with INSTANT route changes for the same reason.
+ * Les deux y ont été un temps — l'`AnimatePresence` pour interpoler des
+ * `layoutId` d'une route à l'autre (carte marketplace → hero de bien, ligne de
+ * bien → overlay). Ces composants ont été retirés avec la marketplace et la
+ * refonte Sugar ; les `layoutId` survivants sont tous INTRA-arbre (carte de deal
+ * du pipeline, photo galerie ↔ ligne galerie, indicateur d'onglet mobile) et
+ * n'ont donc besoin de rien à ce niveau.
  *
- * What remains:
- *   - Shared-element transition on the marketplace card → property hero
- *     (PxListingsGrid.tsx ↔ PxSinglePropertyHero.tsx, layoutId on the photo)
- *   - Shared-element transition on the CRM bien row → BnDetailOverlay
- *     (same render tree — overlay is a conditional mount, not a route)
- *   - Every other iOS-feel atom (Sheet, Toast, Pressable taps, segmented
- *     control pill, parallax, shimmer, etc.) — those are surface-local and
- *     don't depend on PageTransition.
+ * Ce qui restait, en revanche, coûtait cher : `key={location.pathname}`
+ * détruisait et recréait TOUT l'arbre protégé à chaque changement de page
+ * (ProtectedRoute, sa frontière Suspense, le layout, le ThemeProvider, le
+ * contexte copilote, la page). Une frontière Suspense neuve oblige React à
+ * commiter son fallback même en transition — d'où un écran de chargement plein
+ * cadre entre deux pages CRM, malgré `v7_startTransition`. Sans la clé, la
+ * frontière est PRÉSERVÉE d'une route sœur à l'autre : React garde la page
+ * précédente à l'écran pendant le téléchargement du chunk, et l'écran de
+ * chargement disparaît.
  *
- * `mode="popLayout"` keeps the exiting subtree mounted just long enough for
- * framer-motion to interpolate any `layoutId` pair between source and target.
- * It is intentionally the ONLY transition behaviour at this level.
+ * Les transitions de page (fondu/glissement) ont été retirées à part, sur retour
+ * d'usage : Linear / Notion / Vercel / Stripe changent de route instantanément.
+ * Les animations locales (Sheet, Toast, taps, voile de langue…) portent leur
+ * propre `AnimatePresence` et ne dépendent pas de ce niveau.
  */
+
+/**
+ * Force le remontage d'une feuille dont l'IDENTITÉ vient de l'URL.
+ *
+ * Sans clé sur `<Routes>`, passer de `/dashboard/contacts/a` à `.../b` garde le
+ * même élément monté : seuls les params changent, et l'état local de la page
+ * (brouillons d'édition, page du pager, défilement) survivrait d'une fiche à
+ * l'autre. On rétablit ici la sémantique d'avant — mais SEULEMENT sur la
+ * feuille, donc sans remonter le shell ni la frontière Suspense.
+ */
+function ByParam({ children }: { children: React.ReactNode }) {
+  const params = useParams()
+  return <Fragment key={Object.values(params).join('/')}>{children}</Fragment>
+}
 // Param-preserving redirects — <Navigate> doesn't interpolate :id, so wrap
 // useParams + Navigate when a legacy FR route needs to keep its dynamic segment.
 function VisitModifyRedirect() {
@@ -274,13 +264,15 @@ function PortalTokenRedirect() {
   const { token } = useParams()
   return <Navigate to={token ? `/portal/${token}` : '/portal'} replace />
 }
-function HelpCategoryRedirect() {
-  const { category } = useParams()
-  return <Navigate to={`/help/${category}`} replace />
-}
-function HelpArticleRedirect() {
-  const { category, slug } = useParams()
-  return <Navigate to={`/help/${category}/${slug}`} replace />
+// Centre d'aide : le corpus vit dans Intercom (18 articles FR+EN, maintenus via
+// `scripts/intercom-content.mjs`). Les 12 pages SPA `/help/*` étaient un second
+// corpus figé, hérité de l'ancien site public — retirées le 2026-07-20 : elles se
+// périmaient en silence et rendaient le chrome vitrine dans l'app CRM.
+// Toutes les anciennes URLs (`/help/*`, `/aide/*`) atterrissent sur le vrai centre.
+const HELP_CENTER_URL = 'https://intercom.help/megga/fr'
+function HelpCenterRedirect() {
+  if (typeof window !== 'undefined') window.location.replace(HELP_CENTER_URL)
+  return null
 }
 function DashboardVisitRedirect() {
   const { id } = useParams()
@@ -310,15 +302,26 @@ function VitrineLoginRedirect() {
   return null
 }
 
-function AnimatedRoutes() {
-  const location = useLocation()
+/**
+ * Rebond des anciennes URLs `/dashboard/admin/*` vers la console, qui a changé
+ * d'origine. Le sous-chemin est conservé : `/dashboard/admin/users` arrive sur
+ * `admin.megga.ch/users` (les routes y sont montées à la racine).
+ */
+function AdminConsoleRedirect() {
+  const { pathname, search } = useLocation()
+  if (typeof window !== 'undefined') {
+    const sub = pathname.replace(/^\/dashboard\/admin/, '')
+    window.location.replace(`${ADMIN_ENTRY_URL}${sub}${search}`)
+  }
+  return null
+}
+
+function AppRoutes() {
   return (
-    // popLayout — preserved for shared-element transitions only.
-    <AnimatePresence mode="popLayout" initial={false}>
-      <Routes location={location} key={location.pathname}>
+    <Routes>
               {/* Public storefront (home, about, properties, contact, FAQ,
                   blog, agents, property single, design-system…) is served by
-                  the static V3 HTML site (sites/property-preview) on megga.ch.
+                  the static MEGGA vitrine (sites/megga-vitrine) on megga.ch.
                   This React app is deployed separately on app.megga.ch, where
                   "/" lands on the dashboard (which bounces to login if needed). */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -413,32 +416,12 @@ function AnimatedRoutes() {
               <Route path="/account" element={<Navigate to="/dashboard" replace />} />
               <Route path="/compte" element={<Navigate to="/dashboard" replace />} />
 
-              {/* Help Center */}
-              <Route path="/help" element={<HelpCenterPage />} />
-              <Route path="/help/start" element={<HelpStartPage />} />
-              <Route path="/help/contact" element={<HelpContactPage />} />
-              <Route path="/help/status" element={<HelpStatusPage />} />
-              <Route path="/help/changelog" element={<HelpChangelogPage />} />
-              <Route path="/help/shortcuts" element={<HelpShortcutsPage />} />
-              <Route path="/help/compliance" element={<HelpCompliancePage />} />
-              <Route path="/help/limits" element={<HelpLimitsPage />} />
-              <Route path="/help/resources" element={<HelpResourcesPage />} />
-              <Route path="/help/glossary" element={<GlossaryPage />} />
-              <Route path="/help/:category" element={<HelpCategoryPage />} />
-              <Route path="/help/:category/:slug" element={<HelpArticlePage />} />
-              {/* Legacy FR help routes */}
-              <Route path="/aide" element={<Navigate to="/help" replace />} />
-              <Route path="/aide/demarrage" element={<Navigate to="/help/start" replace />} />
-              <Route path="/aide/contact" element={<Navigate to="/help/contact" replace />} />
-              <Route path="/aide/statut" element={<Navigate to="/help/status" replace />} />
-              <Route path="/aide/nouveautes" element={<Navigate to="/help/changelog" replace />} />
-              <Route path="/aide/raccourcis" element={<Navigate to="/help/shortcuts" replace />} />
-              <Route path="/aide/conformite" element={<Navigate to="/help/compliance" replace />} />
-              <Route path="/aide/limites" element={<Navigate to="/help/limits" replace />} />
-              <Route path="/aide/ressources" element={<Navigate to="/help/resources" replace />} />
-              <Route path="/aide/glossaire" element={<Navigate to="/help/glossary" replace />} />
-              <Route path="/aide/:category" element={<HelpCategoryRedirect />} />
-              <Route path="/aide/:category/:slug" element={<HelpArticleRedirect />} />
+              {/* Centre d'aide → Intercom. Le catch-all `*` couvre les anciens
+                  sous-chemins (start, glossary, :category/:slug…) ; idem pour /aide. */}
+              <Route path="/help" element={<HelpCenterRedirect />} />
+              <Route path="/help/*" element={<HelpCenterRedirect />} />
+              <Route path="/aide" element={<HelpCenterRedirect />} />
+              <Route path="/aide/*" element={<HelpCenterRedirect />} />
 
               {/* Seller portal — page unique « Votre vente » (dev/test, mock data). */}
               <Route path="/portal" element={<PortalDevWrapper />} />
@@ -500,20 +483,20 @@ function AnimatedRoutes() {
                 {/* Fiche contact — pager 2 pages (refonte Claude Design juil. 2026).
                     Sous AgentSugarLayout (chrome Sugar auto-porté) pour cohérence
                     liste↔fiche. Mobile (< 768px) : fiche détail P8/2. */}
-                <Route path="contacts/:id" element={<ResponsiveRoute desktop={<ContactDetailSugarV3Page />} mobile={<MobileContactDetailPage />} />} />
+                <Route path="contacts/:id" element={<ByParam><ResponsiveRoute desktop={<ContactDetailSugarV3Page />} mobile={<MobileContactDetailPage />} /></ByParam>} />
                 {/* Mes biens — mobile (< 768px) : galerie portefeuille (P7). */}
                 <Route path="listings" element={<ResponsiveRoute desktop={<BiensSugarV2Page />} mobile={<MobileBiensPage />} />} />
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).
                     Mobile (< 768px) : fiche lecture seule (P7). */}
-                <Route path="listings/:id" element={<ResponsiveRoute desktop={<BienDetailSugarV3Page />} mobile={<MobileBienVitrinePage />} />} />
+                <Route path="listings/:id" element={<ByParam><ResponsiveRoute desktop={<BienDetailSugarV4Page />} mobile={<MobileBienVitrinePage />} /></ByParam>} />
                 {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
-                <Route path="transactions/:id" element={<ResponsiveRoute desktop={<DealDetailSugarV3Page />} mobile={<MobileDealDetailPage />} />} />
+                <Route path="transactions/:id" element={<ByParam><ResponsiveRoute desktop={<DealDetailSugarV4Page />} mobile={<MobileDealDetailPage />} /></ByParam>} />
                 {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
-                <Route path="transactions/:id/offre/:kind" element={<OfferModalSugarV3Page />} />
+                <Route path="transactions/:id/offre/:kind" element={<ByParam><OfferModalSugarV3Page /></ByParam>} />
                 {/* Sprint 2 — Modal Planifier Visite (Sugar plein écran 3 étapes) */}
                 <Route path="visits/new" element={<VisitModalSugarV3Page />} />
                 {/* Sprint 2 — Fiche Visite (bon + rapport) */}
-                <Route path="visits/:id" element={<VisitDetailSugarV3Page />} />
+                <Route path="visits/:id" element={<ByParam><VisitDetailSugarV3Page /></ByParam>} />
                 {/* Legacy FR */}
                 <Route path="visites/nouveau" element={<Navigate to="/dashboard/visits/new" replace />} />
                 <Route path="visites/:id" element={<DashboardVisitRedirect />} />
@@ -541,7 +524,7 @@ function AnimatedRoutes() {
                   element={<ResponsiveRoute desktop={<KycOnboardingPage />} mobile={<Navigate to="/dashboard/kyc" replace />} />}
                 />
                 {/* Détail dossier KYC — fiche en overlay (desktop) ; mobile : 4 onglets (P9). */}
-                <Route path="kyc/:dossierId" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycDetailPage />} />} />
+                <Route path="kyc/:dossierId" element={<ByParam><ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycDetailPage />} /></ByParam>} />
                 {/* Réseau inter-agences — hors périmètre v1 (route neutralisée ; NetworkSugarV2Page retirée) */}
                 <Route path="network" element={<Navigate to="/dashboard" replace />} />
                 <Route path="reseau" element={<Navigate to="/dashboard" replace />} />
@@ -577,40 +560,27 @@ function AnimatedRoutes() {
                 }
               >
                 <Route path="contacts/import" element={<ContactImportPage />} />
-                <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
+                <Route path="market/:externalId" element={<ByParam><ExternalListingDetailPage /></ByParam>} />
                 <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
                 {/* Créer un bien — mobile (< 768px) : wizard 4 étapes (P7/2). */}
                 <Route path="listings/new" element={<ResponsiveRoute desktop={<WizardSugarV2Page />} mobile={<MobileWizardPage />} />} />
-                <Route path="listings/:id/edit" element={<ListingFormPage />} />
+                <Route path="listings/:id/edit" element={<ByParam><ListingFormPage /></ByParam>} />
 
-                {/* Super-Admin routes */}
-                <Route path="admin" element={<SuperAdminGuard><AdminDashboardPage /></SuperAdminGuard>} />
-                <Route path="admin/agencies" element={<SuperAdminGuard><AdminAgenciesPage /></SuperAdminGuard>} />
-                <Route path="admin/agencies/:id" element={<SuperAdminGuard><AdminAgencyDetailPage /></SuperAdminGuard>} />
-                <Route path="admin/users" element={<SuperAdminGuard><AdminUsersPage /></SuperAdminGuard>} />
-                <Route path="admin/monitoring" element={<SuperAdminGuard><AdminMonitoringPage /></SuperAdminGuard>} />
-                <Route path="admin/marketplace" element={<SuperAdminGuard><AdminMarketplacePage /></SuperAdminGuard>} />
-                <Route path="admin/compliance" element={<SuperAdminGuard><AdminCompliancePage /></SuperAdminGuard>} />
-                <Route path="admin/changelog" element={<SuperAdminGuard><AdminChangelogPage /></SuperAdminGuard>} />
-                <Route path="admin/feature-flags" element={<SuperAdminGuard><AdminFeatureFlagsPage /></SuperAdminGuard>} />
-                <Route path="admin/plans" element={<SuperAdminGuard><AdminPlansPage /></SuperAdminGuard>} />
-                <Route path="admin/live" element={<SuperAdminGuard><AdminLiveFeedPage /></SuperAdminGuard>} />
-                <Route path="admin/security" element={<SuperAdminGuard><AdminSecurityAuditPage /></SuperAdminGuard>} />
-                <Route path="admin/nps" element={<SuperAdminGuard><AdminNpsPage /></SuperAdminGuard>} />
-                <Route path="admin/autonomy" element={<SuperAdminGuard><AdminAutonomyPage /></SuperAdminGuard>} />
-                <Route path="admin/tool-usage" element={<SuperAdminGuard><AdminToolUsagePage /></SuperAdminGuard>} />
-                <Route path="admin/learning" element={<SuperAdminGuard><AdminLearningPage /></SuperAdminGuard>} />
+                {/* Console super-admin : elle vit sur SA propre origine
+                    (admin.megga.ch, build `npm run build:admin`) — son bundle
+                    n'est plus servi aux agents. Les anciens liens/favoris
+                    `/dashboard/admin/*` rebondissent vers la console. */}
+                <Route path="admin/*" element={<AdminConsoleRedirect />} />
               </Route>
 
               {/* 404 */}
               <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-    </AnimatePresence>
+    </Routes>
   )
 }
 
 // Rend le panneau MEGGA AI uniquement sur les routes CRM (/dashboard). Monté
-// HORS des Routes keyées (key={pathname}) → stable à la navigation (le panneau et
+// HORS de <Routes> → stable à la navigation (le panneau et
 // sa conversation ne se ferment plus quand on change de page). Lazy + Suspense
 // null car le panneau est invisible tant qu'il n'est pas ouvert.
 function CopilotPanelHost() {
@@ -637,18 +607,19 @@ export default function App() {
             <AiPanelProvider>
               <ErrorBoundary>
                 <Suspense fallback={<SmartPageLoader />}>
-                  <AnimatedRoutes />
+                  <AppRoutes />
                 </Suspense>
               </ErrorBoundary>
-              {/* Panneau MEGGA AI — stable au-dessus des Routes keyées (persiste à la nav). */}
+              {/* Panneau MEGGA AI — stable au-dessus de <Routes> (persiste à la nav). */}
               <CopilotPanelHost />
+              {/* Reprise d'une impersonation ouverte depuis la console admin. */}
+              <ImpersonationHandoff />
             </AiPanelProvider>
             {/* Widgets globaux : lazy avec fallback null car invisibles par défaut. */}
             <Suspense fallback={null}>
               <FavoritesLoginPrompt />
               <IntercomMessenger />
             </Suspense>
-            <CookieBanner />
           </ToastProvider>
         </AuthProvider>
       </QueryClientProvider>

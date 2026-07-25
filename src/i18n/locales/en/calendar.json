@@ -432,15 +432,10 @@
     "reactivated": "Reactivated"
   },
   "onboarding": {
-    "kicker": "First connection",
     "title": "Connect your calendar",
     "connectGoogle": "Connect Google",
     "connectOutlook": "Connect Outlook",
-    "later": "Later",
     "privacy": "Your personal events stay private.",
-    "laterTitle": "You can connect later",
-    "laterBody": "Link Google or Outlook whenever you want, from",
-    "laterPath": "Settings › Integrations",
-    "goToCalendar": "Go to calendar"
+    "connectFailed": "Connection failed: {{error}}"
   }
 }

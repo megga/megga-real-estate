@@ -218,9 +218,19 @@ jobs:
             echo
             printf '%s' "$skipped" | sed 's/^/- `/; s/$/`/'
             echo
-            echo "**A faire** : verifier qu'elles ont bien ete appliquees a la main"
-            echo "(MCP \`apply_migration\` ou SQL editor). Sinon les appliquer maintenant :"
-            echo "le schema de la prod diverge du depot tant que ce n'est pas fait."
+            echo "**A faire**, dans cet ordre de preference :"
+            echo
+            echo "1. **Re-horodater** ces fichiers au jour du merge (\`git mv\`, ordre relatif"
+            echo "   conserve) et repousser : le pipeline les applique, et les horodatages"
+            echo "   refletent enfin ce qui est reellement en base. C'est le seul remede qui"
+            echo "   garde depot et prod en phase. Exige qu'elles soient idempotentes — le"
+            echo "   date-guard les rejouera a chaque push de la journee (\`lint:migrations\`)."
+            echo "2. Les appliquer a la main (MCP \`apply_migration\` ou SQL editor) si elles"
+            echo "   ne peuvent pas etre re-datees."
+            echo
+            echo "Le schema de la prod diverge du depot tant que ce n'est pas fait — et rien"
+            echo "d'autre ne le signalera : la CI backend rejoue TOUT sur une base fraiche,"
+            echo "elle reste verte. Cas reel : PR #852 (5 migrations sautees), corrige par #959."
           } >> "$GITHUB_STEP_SUMMARY"
 
           while IFS= read -r base; do
@@ -235,7 +245,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           # Pin wrangler v4 (matches the Rockwell deploy). The V3 Basic Auth
-          # gate is sites/property-preview/_worker.js (Advanced mode), copied
+          # gate is sites/megga-vitrine/_worker.js (Advanced mode), copied
           # into dist/ by the postbuild hook — _worker.js is detected natively
           # on every deploy, so megga.ch stays behind ai/ai.
           wranglerVersion: "4.86.0"
@@ -257,8 +267,13 @@ jobs:
       - name: Link Supabase project and deploy functions
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         # Backstop : si tout le step se bloque (lien réseau, CLI figé), on le
-        # tue à 10 min au lieu de laisser le run pendre des heures.
-        timeout-minutes: 10
+        # tue au bout du délai au lieu de laisser le run pendre des heures.
+        # Relevé de 10 à 20 min pour laisser respirer la passe de rattrapage
+        # ci-dessous : sous une panne CDN PARTIELLE (esm.sh en 522 sur une partie
+        # des fonctions, ~40 s perdues par échec), 10 min ne suffisaient plus à
+        # traiter les ~65 fonctions — le step se faisait TUER par ce plafond
+        # (constaté 2× le 2026-07-21), pas sortir proprement.
+        timeout-minutes: 20
         # Tolère les échecs individuels : si une fonction plante (import
         # deno cassé, secret manquant, etc.), on log et on continue les
         # autres. Le step ne fail que si AUCUNE fonction n'a été déployée.
@@ -312,6 +327,40 @@ jobs:
               fi
             fi
           done
+
+          # ── Passe de rattrapage ──────────────────────────────────────────
+          # Les échecs de bundle viennent presque toujours d'un CDN d'imports
+          # (esm.sh / deno.land) qui renvoie un 5xx TRANSITOIRE : constaté 2× le
+          # 2026-07-21, esm.sh en 522 sur une PARTIE seulement des fonctions
+          # (37 déployées / 11 tombées). On rejoue UNIQUEMENT les fonctions
+          # tombées, UNE fois, après une pause — le temps que le CDN se rétablisse.
+          # Pas de boucle et seulement l'ensemble des échecs (petit) : la 1re passe
+          # a déjà duré quelques minutes, et le budget du step est fini. Correctif
+          # de fond (vendoriser les imports) traité séparément.
+          if [ -n "$FAILED_FNS" ]; then
+            echo "::group::Retry pass — $FAILED fonction(s) tombée(s)"
+            echo "Pause 20s avant de rejouer :$FAILED_FNS"
+            sleep 20
+            RETRY_REMAINING=""
+            for fn_name in $FAILED_FNS; do
+              echo "Retry $fn_name"
+              if echo " $JWT_PROTECTED " | grep -q " $fn_name "; then
+                timeout 180 supabase functions deploy "$fn_name"
+              else
+                timeout 180 supabase functions deploy "$fn_name" --no-verify-jwt
+              fi
+              if [ $? -eq 0 ]; then
+                SUCCESS=$((SUCCESS + 1))
+                FAILED=$((FAILED - 1))
+                echo "::notice::$fn_name déployée au 2e essai"
+              else
+                RETRY_REMAINING="$RETRY_REMAINING $fn_name"
+                echo "::warning::$fn_name échoue encore après rejeu"
+              fi
+            done
+            FAILED_FNS="$RETRY_REMAINING"
+            echo "::endgroup::"
+          fi
 
           echo ""
           echo "═══ Summary ═══"

@@ -6,6 +6,7 @@ import type { MouseEvent as ReactMouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import RechIcon from './RechIcon'
 import MrhPhoto from './MrhPhoto'
+import MrhAgencyLogo from './MrhAgencyLogo'
 import { formatCHF } from '@/lib/utils'
 import type { MrhBien } from './types'
 import type { MrhCtx } from './mrhCtx'
@@ -23,8 +24,12 @@ interface Props {
 export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }: Props) {
   const { t } = useTranslation('matching')
   const { sp, surf, dark, ACC, ONACC, line, chipBg, sel, buyer, toggleSel, onOpen, onAskAi, animate } = ctx
-  // L'entrée « sgFadeUp » ne se joue qu'au 1er affichage (capture au montage).
-  const [doAnim] = useState(() => animate)
+  // L'entrée « sgFadeUp » ne se joue qu'au 1er affichage (capture au montage), et
+  // seulement sur les premières cartes : le délai plafonne à `index 8`, donc au-delà
+  // toutes les suivantes démarreraient leur animation au même instant — à 400 cartes
+  // ça fait ~390 animations simultanées pour un effet que personne ne voit, la carte
+  // étant hors écran.
+  const [doAnim] = useState(() => animate && index < 12)
   const [hov, setHov] = useState(false)
   const photos = useMemo(() => (bien.photos.length ? bien.photos : [null]), [bien.photos])
   const [pi, setPi] = useState(0)
@@ -81,9 +86,7 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
         <div style={{ fontSize: 12.5, color: sp.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.addr}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
           <span style={{ minWidth: 0, flex: 1, fontSize: 11.5, color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.postedAt}</span>
-          {bien.agency && (
-            <span title={bien.agency} style={{ flexShrink: 0, maxWidth: 120, fontSize: 11.5, color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.agency}</span>
-          )}
+          <MrhAgencyLogo name={bien.agency} logoUrl={bien.agency_logo_url} sp={sp} line={line} />
         </div>
         {reasonText && (
           <div style={{ marginTop: 8, fontSize: 11.5, color: sp.sub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden' }}>

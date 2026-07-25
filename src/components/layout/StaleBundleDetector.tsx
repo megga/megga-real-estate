@@ -102,8 +102,8 @@ export default function StaleBundleDetector() {
     >
       <div
         className={cn(
-          'flex items-start gap-4 rounded-2xl bg-white dark:bg-gray-900',
-          'border border-gray-100 dark:border-gray-800',
+          'flex items-start gap-4 rounded-2xl bg-theme-card',
+          'border border-theme-border',
           'pl-5 pr-4 py-4 max-w-md',
           'shadow-[0_20px_40px_-15px_rgba(15,23,42,0.18)]',
         )}
@@ -112,12 +112,12 @@ export default function StaleBundleDetector() {
           <RefreshCw className="w-4 h-4 text-emerald-600 dark:text-emerald-500" strokeWidth={1.75} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+          <p className="text-sm font-semibold text-theme-primary">
             Une nouvelle version est disponible
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <p className="text-xs text-theme-tertiary mt-0.5">
             Rechargement automatique dans{' '}
-            <span className="tabular-nums font-medium text-gray-700 dark:text-gray-300">
+            <span className="tabular-nums font-medium text-theme-secondary">
               {countdown}s
             </span>
             .
@@ -126,7 +126,7 @@ export default function StaleBundleDetector() {
             <button
               onClick={reload}
               className={cn(
-                'inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-gray-900 text-white dark:bg-white dark:text-gray-900',
+                'inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full border border-theme-border text-theme-primary hover:bg-theme-hover',
                 'text-xs font-medium transition-all hover:-translate-y-0.5',
                 'hover:shadow-[0_8px_20px_-8px_rgba(15,23,42,0.3)]',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20 dark:focus-visible:ring-white/30',
@@ -137,8 +137,8 @@ export default function StaleBundleDetector() {
             <button
               onClick={() => setVisible(false)}
               className={cn(
-                'h-8 px-2.5 rounded-full text-xs font-medium text-gray-500 dark:text-gray-400',
-                'hover:text-gray-900 dark:hover:text-white transition-colors',
+                'h-8 px-2.5 rounded-full text-xs font-medium text-theme-tertiary',
+                'hover:text-theme-primary transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/10',
               )}
             >
@@ -150,8 +150,8 @@ export default function StaleBundleDetector() {
           onClick={() => setVisible(false)}
           aria-label="Fermer"
           className={cn(
-            'shrink-0 h-7 w-7 flex items-center justify-center rounded-full text-gray-400',
-            'hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
+            'shrink-0 h-7 w-7 flex items-center justify-center rounded-full text-theme-muted',
+            'hover:text-theme-primary hover:bg-theme-hover transition-colors',
           )}
         >
           <X className="w-3.5 h-3.5" />

@@ -7,8 +7,9 @@
  */
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+import BootSplash from '@/components/layout/BootSplash'
 import { supabase } from '@/lib/supabase'
+import { calendarReturnPath } from '@/lib/calendarOauth'
 import { isAgentRole } from '@/types/auth'
 import type { UserRole } from '@/types/auth'
 
@@ -20,7 +21,7 @@ function getRedirectPath(role: UserRole): string {
   return '/portal'
 }
 
-/** Écran transitoire « Connexion en cours » ; l'aiguillage réel se fait dans onAuthStateChange. */
+/** Tient l'écran d'arrivée le temps de l'aiguillage, fait dans onAuthStateChange. */
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
 
@@ -45,7 +46,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/dashboard/settings?tab=integrations&gcal=success', { replace: true })
+        navigate(calendarReturnPath(params, '/dashboard/settings?tab=integrations&gcal=success'), { replace: true })
         return
       }
 
@@ -67,7 +68,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/dashboard/settings?tab=integrations&outlook=success', { replace: true })
+        navigate(calendarReturnPath(params, '/dashboard/settings?tab=integrations&outlook=success'), { replace: true })
         return
       }
 
@@ -136,10 +137,5 @@ export default function AuthCallbackPage() {
     return () => clearTimeout(timeout)
   }, [navigate])
 
-  return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-accent mb-4" />
-      <p className="text-sm text-muted-foreground">Connexion en cours...</p>
-    </div>
-  )
+  return <BootSplash />
 }

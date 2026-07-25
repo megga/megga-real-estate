@@ -92,28 +92,74 @@ Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge au
 
 **Frontières & flux global :**
 ```
-megga.ch (site statique V3, password-gated)  ─┐
-app.megga.ch (SPA React, /dashboard/*)         ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
+megga.ch (site statique V3, password-gated)   ─┐
+app.megga.ch (SPA React CRM, /dashboard/*)     │
+admin.megga.ch (SPA React console super-admin) ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
 kyc.megga.ch (magic links KYC publics)        ─┘         ▲
                                                          └── pg_cron (flatfox-sync, monitoring…) via pg_net
 ```
+
+**🟪 Console super-admin isolée** (juil. 2026). Les 16 surfaces d'administration ont quitté le bundle du
+CRM : elles ont leur propre entrée Vite ([`index.admin.html`](../index.admin.html) → [`src/AdminApp.tsx`](../src/AdminApp.tsx),
+`npm run build:admin`), leur propre projet Pages (`megga-admin`) et leur propre origine. Conséquences —
+(1) le code d'administration n'est plus servi aux agents, (2) une session volée sur le CRM ne donne pas la
+console (origines distinctes ⇒ ni `localStorage` ni cookies partagés), (3) la console a son **propre écran de
+connexion** par mot de passe (elle ne passe pas par la vitrine), (4) les routes y sont à la **racine**
+(`/users`, `/agencies/:id`…) et `app.megga.ch/dashboard/admin/*` rebondit vers elles.
+Entrée depuis le CRM : ligne « Console admin » du dropdown profil Sugar + recherche ⌘K (les deux gatées par
+`useSuperAdminGate`, cf. [`src/lib/adminEntry.ts`](../src/lib/adminEntry.ts)). L'impersonation, qui est une vue
+DU CRM, se passe par `?impersonate=<id>` ([`ImpersonationHandoff`](../src/components/admin/ImpersonationHandoff.tsx)) :
+l'id ne donne rien par lui-même, c'est la RPC `admin_log_impersonation` (gardée `is_super_admin`) qui décide.
+⚠️ Reste **une seule action manuelle** au tableau de bord Cloudflare : poser une politique **Zero Trust /
+Access** devant `admin.megga.ch` (allow = les e-mails de `super_admin_allowlist()`). Sans elle la console
+reste protégée par la DB, mais elle est joignable — Access la rend invisible avant même le chargement du bundle.
 
 ---
 
 ## 2. Frontend — audiences & routing
 
-4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD), plus `SuperAdminGuard` pour l'admin. `PasswordGate` (« Coming Soon ») a été **retiré** (#555) : le composant n'existe plus.
+4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD) ; la console super-admin est une
+application séparée, gardée par `AdminAuthGate` (connexion + `useSuperAdminGate` → RPC `is_super_admin`). `PasswordGate` (« Coming Soon ») a été **retiré** (#555) : le composant n'existe plus.
 QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `networkMode: always`.
+
+**🟪 Arrivée post-connexion** (juil. 2026). La connexion vit sur la vitrine (cf. §4bis) : `megga-auth.js`
+passe les jetons dans le **fragment** d'URL vers `app.megga.ch/auth/callback` (deux origines ⇒ deux
+`localStorage` ; une redirection nue vers `/dashboard` arrive sans session et reboucle — bug du 19.07.2026).
+L'agent traversait ensuite 4 écrans blancs successifs avant le CRM ; ils sont remplacés par **un seul écran**
+aux tokens de la vitrine (fond `#030303`, Inter Tight, barre `#424bfb`, halo bas = le dégradé du pied de page
+vitrine réduit à 22 Ko). Il existe en **deux jumeaux** : `#megga-boot` inline dans `index.html` (peint dès la
+1<sup>re</sup> frame, avant React) et [`BootSplash.tsx`](../src/components/layout/BootSplash.tsx) qui prend le
+relais. ⚠️ Les **styles ne vivent que dans `index.html`** (`<style id="megga-boot-style">`) — le composant React
+n'en réutilise que les classes, et les deux balisages doivent rester identiques sous peine de clignotement.
+Un second temps ([`BootCurtain`](../src/components/layout/BootCurtain.tsx) + `CurtainLift` + le drapeau module
+[`crmEntry.ts`](../src/lib/crmEntry.ts)) tient l'écran **au-dessus** du CRM jusqu'à sa première peinture, pour
+que le squelette de route reste ce qu'il doit être : un état de navigation interne, pas un écran d'accueil.
+⚠️ Le drapeau est au niveau du **module** et non dans un état React, pour survivre à tout remontage de l'arbre
+protégé. Cerveau : `megga/ecran-arrivee-post-login`.
+
+**Écrans d'attente de route (refonte 25.07.2026).** `<Routes>` n'est plus keyé par `pathname` et n'est plus
+enveloppé d'`AnimatePresence` : la frontière Suspense de `ProtectedRoute` est donc **préservée** d'une route
+sœur à l'autre, et React garde la page précédente à l'écran pendant le téléchargement du chunk — plus aucun
+écran de chargement entre deux pages CRM. Les feuilles dont l'identité vient de l'URL (`contacts/:id`,
+`listings/:id`, `transactions/:id`, `visits/:id`, `kyc/:dossierId`…) sont remontées explicitement par le
+wrapper `ByParam` d'`App.tsx`. Quand un fallback est malgré tout nécessaire,
+[`SmartPageLoader`](../src/components/skeletons/SmartPageLoader.tsx) aiguille sur **deux** squelettes, car
+`/dashboard` recouvre deux chromes : [`SugarPageSkeleton`](../src/components/skeletons/SugarPageSkeleton.tsx)
+(top-nav + rail d'icônes, couleurs lues sur `megga.sugar.dark`) pour les surfaces Sugar, et `DashboardSkeleton`
+(sidebar + header) pour les routes `AgentLayout` (`/dashboard/admin*`, `contacts/import`, `listings/new`,
+`listings/:id/edit`, `market/:externalId`). ⚠️ Le nettoyage de `data-theme` dans `useTheme` est **ref-compté** :
+sans ça, le démontage de l'ancien `ThemeProvider` arrachait l'attribut que le nouveau venait de poser.
 
 | Audience | Préfixe | Pages clés |
 |---|---|---|
 | **Marketplace SPA** (app.megga.ch) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine megga.ch) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers megga.ch. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
-| **Marketing public** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` `/help*` | pages secondaires + centre d'aide |
+| **Redirections hors app** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` | → vitrine megga.ch (aucune page rendue) |
+| **Centre d'aide** | `/help*` `/aide*` | → `intercom.help/megga/fr` (SPA retirée le 20.07.2026) |
 | ~~Compte visiteur~~ | ~~`/account`~~ | **retiré au pivot CRM-first** — la route redirige vers `/dashboard` |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |
 | **Portail vendeur** | `/portal/:token` (+ `/portal` dev) | `VotreVentePage` — page unique « Votre vente » (Sugar Pure, lecture seule) : carte bien + galerie/lightbox, parcours arc 6 étapes, 3 jauges donut, offres (+modal décision), timeline, carte agent WhatsApp |
 | **CRM agent** | `/dashboard/*` | voir ci-dessous |
-| **Super-admin** | `/dashboard/admin/*` | 16 pages (accent violet), `SuperAdminGuard` v2 — **accès verrouillé** (20260705160000) : rôle + **allowlist email en dur** (2 emails opérateurs, cf. `is_super_admin()` — joint `auth.users`) + **enrôlement TOTP forcé** (`AdminMfaRequired`) ; edges admin gardées `_shared/require-super-admin.ts` (allowlist + AAL2) ; impersonation **audit-first** (RPC `admin_log_impersonation` bloquante). Échappatoire CI : `app_config.super_admin_test_domain` (`.local` only). |
+| **Super-admin** | **`admin.megga.ch`** (application séparée ; `/dashboard/admin/*` du CRM y rebondit) | 17 pages (accent violet), routes à la **racine** (`/users`, `/agencies/:id`…), **nav groupée en 5 sections** (Pilotage/Clients/Revenus/Opérations/Produit & IA, P6b) ; `AdminAuthGate` — connexion propre à la console + **accès verrouillé** (20260705160000) : rôle + **allowlist email en dur** (2 emails opérateurs, `is_super_admin()` joint `auth.users`), lue par RPC et non plus embarquée dans le bundle ; edges admin gardées `_shared/require-super-admin.ts` ; **ouverture de console auditée** (`admin_console_entered`) et impersonation **audit-first** (RPC `admin_log_impersonation` bloquante), passée au CRM par `?impersonate=<id>`. ⚠️ L'**enrôlement TOTP** décrit dans les versions précédentes n'existe plus (2FA retiré, #873) : le facteur indépendant prévu est **Cloudflare Access** devant le domaine. **Chrome Sugar (lot 0, juil. 2026)** : la console adopte la palette du CRM sans qu'aucune des 17 pages ne soit réécrite — `src/styles/admin-console.css` repointe les variables `--color-*` sur `CRM_TOKENS` (light + noir), et les pages, écrites en classes sémantiques, suivent. Même clé de thème que le CRM (`megga.sugar.dark`, cf. `AdminThemeProvider`) : plus de réglage divergent. Restent aux lots suivants les badges à fond coloré, les bentos bordés et l'iconographie lucide. Échappatoire CI : `app_config.super_admin_test_domain` (`.local` only). **Reprise 07/2026 (plan P5→P8b)** : P5 fiabilisation dette · P6a usage 360°+quotas (`agency_usage_quotas`) · P6b clients finaux (`end-users` : portails/leads/KYC publics, RPC sans token/PII) · P8a annonces in-app (`platform_announcements`) · P8b création d'agence + factures Stripe. |
 
 **CRM agent** (layout `AgentSugarLayout`, dark CRM) — pages principales :
 `dashboard` (**cockpit « Aujourd'hui »** refonte juin 2026 — voir l'encadré ci-dessous) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
@@ -129,7 +175,7 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 >
 > Cerveau : `megga/today-cockpit`, `megga/today-data-wiring`, `megga/today-write-gestures`, `megga/today-focus-algo`.
 
-**🟩 Mes biens** (`/dashboard/listings`, design final juil. 2026, **PR #871** — port du handoff Claude Design Sugar Pure). Pager vertical 2 pages dans un bento (mécanique ContactsPager), code `src/components/crm-sugar/biens/pager/`, entrée `BiensSugarV2Page.tsx`. **Page 0 Galerie** épurée (recherche · statut · tri · Galerie/Liste ; l'ex-bandeau KPI à sparklines illustratives et Export sont retirés). **Page 1 « À suivre »** = file d'actions volume-adaptative (héro / bandeau dense) sur données **réelles** : mandats à renouveler (`mandate_expires_at` ≤ 60 j, adapter enrichi) + brouillons ; bucket diffusion Immobilier.ch **dormant** (gate `idxEnabled`, go-live FTP bloqué). Renouveler → `useUpdateProperty` + audit ; Supprimer → **RPC `soft_delete_property`** (cf. §RLS) ; wizard « Créer un bien » **embarqué** dans le bento ; « Finir/Compléter » un brouillon → `/:id/edit` (édition en place). First-run = cover exacte maquette (`public/biens/`, fond `#0A0B0D` permanent, texte HTML i18n par-dessus). ⚠ Piège connu : le wizard embarqué suit `data-theme` alors que la page suit `megga.sugar.dark` → peut s'ouvrir clair sur bento sombre (unification différée). Cerveau : `megga/biens-pager`.
+**🟩 Mes biens** (`/dashboard/listings`, design final juil. 2026, **PR #871** — port du handoff Claude Design Sugar Pure). Pager vertical 2 pages dans un bento (mécanique ContactsPager), code `src/components/crm-sugar/biens/pager/`, entrée `BiensSugarV2Page.tsx`. **Page 0 Galerie** épurée (recherche · statut · tri · Galerie/Liste ; l'ex-bandeau KPI à sparklines illustratives et Export sont retirés). **Page 1 « À suivre »** = file d'actions volume-adaptative (héro / bandeau dense) sur données **réelles** : mandats à renouveler (`mandate_expires_at` ≤ 60 j, adapter enrichi) + brouillons ; bucket diffusion Immobilier.ch **dormant** (gate `idxEnabled`, go-live FTP bloqué). Renouveler → `useUpdateProperty` + audit ; Supprimer → **RPC `soft_delete_property`** (cf. §RLS) ; wizard « Créer un bien » **embarqué** dans le bento ; « Finir/Compléter » un brouillon → `/:id/edit` (édition en place). First-run = cover exacte maquette (`public/biens/`, fond `#0A0B0D` permanent, texte HTML i18n par-dessus). ⚠ Piège connu : le wizard embarqué suit `data-theme` alors que la page suit `megga.sugar.dark` → peut s'ouvrir clair sur bento sombre (unification différée). **Fiche bien** (`/:id`) = `BienDetailSugarV4Page` (refonte juil. 2026, remplace la V3) : mono-page dans un bento, **fond `pageBg` Today/Pipeline** (la V3 utilisait un dégradé vitrine local), héro galerie + **lightbox contenue** + ruban specs, bento sectionnée + pied Visites/Mandat/Diffusion (portail unique Immobilier.ch) ; câblage réel `useProperty`/`usePropertyStats`/deals/matches/`kyc_cases`/`property_syndications`. Cerveau : `megga/biens-pager`.
 
 **Onboarding : SUPPRIMÉ (18 juil. 2026).** L'ancien wizard (`/dashboard/onboarding`, onboarding-sugar)
 + Premier jour (`/dashboard/premier-jour`, calibrage D0) + gate `resolveOnboardingGate` + edge fn
@@ -147,12 +193,12 @@ court-circuite le trigger) : toute modif de `handle_new_user` se vérifie à la 
 **Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/sentry-test`.
 
 ### Composants (`src/components/`)
-- `propertyx/` — atoms Design System Property X (`Px*` : Button, Badge, Icon, Input, Avatar, Logo… — **source de vérité**, ne pas recréer) + `sections/`.
+- `propertyx/` — **système d'icônes seul** : `MEIcon`, `PxIconFont`, `PxSocialIcon`, `PxWhatsAppButton` + `tokens.ts` (`PX.*`). Les atomes de présentation (PxButton, PxBadge, PxInput, PxAvatar, PxLogo…) et `sections/` ont été retirés avec la marketplace — **ne pas les réintroduire** (cf. CLAUDE.md § Vestiges Property X).
 - `megga-x/` — **MEGGA X**, 2ᵉ design system (port 1:1 Webflow de la vitrine), scopé `.megga-x` parallèle à Sugar : `MeggaX` + 12 wrappers `Mx*`, CSS générée `src/styles/megga-x.generated.css`, route dev `/design-system/megga-x`. Règle **zéro-invention** ; résidus de marques Webflow encore présents dans la CSS/fontes. Cf. `megga/design-megga-x`.
 - `ui/` — primitives headless + Motion (modal, dialog, Sheet, Toast, Shimmer, popover, tabs…).
 - `layout/` — `ProtectedRoute`, `ConsentGate` (gate nLPD), `StaleBundleDetector`, `AgentLayout`, `AgentSugarLayout`.
 - `crm-sugar/` + `crm-sugar-v3/` — shell CRM, contact detail, KYC (**pager `kyc-pager/`** : frame + liste + vigie + fiche stricte + liseuse ; wizard `kyc-wizard/` avec voie import ; l'ancien écran `kyc/` [KycDossierDetail/KycListView] n'est plus routé, conservé transitoirement), **biens** (`biens/pager/` [BiensPager/BpTopGallery/BpFollowupPage/BpRenewModal/BiensFirstRun/followupData] + `biens/gallery/` + BnScoreBadge — les anciens BnSubmissions/BnDetailOverlay/BnPhoto/biensData/helpers sont **retirés**, superseded par le design final), tokens dark.
-- `crm-sugar-wizard/` — wizard « Créer un bien » (`/dashboard/listings/new`, `WizardShell` + 10 étapes + `StagingStudio`). **Dark mode** : `SugarV2` (`tokens.ts`) est un **Proxy** qui résout la palette light/dark à chaque lecture depuis `document.documentElement[data-theme]` (pas de mutation de global au render → robuste React 18 StrictMode/concurrent) ; helpers `sgOn()` / `sgAcc()` pour les littéraux posés **sur l'accent** (accent → near-white en dark, `onBlack` → `#0A0A0F`). Stepper retiré du header (nav Précédent/Continuer + compteur `N/8`). Système distinct du wizard KYC (`kyc-wizard/`, `KycPaletteContext`). **Embedded (juil. 2026, #871)** : prop `embedded` → `position:absolute` (au lieu de `fixed z-9000`), monté en overlay dans le bento du pager Mes biens. **Porte « Importer un mandat » désactivée** : l'ancien chemin injectait un mandat fictif (exclusif, 3.5 %, signé) en base pour n'importe quel PDF — dormante jusqu'à un vrai OCR.
+- `crm-sugar-wizard/` — wizard « Créer un bien » (`/dashboard/listings/new`, `WizardShell` + **7 étapes** — refonte « complet » juil. 2026 : Step 0 trois portes `SgPorteCard` → Vendeur/Mandat → Adresse → **Caractéristiques guidées** (10 types, 7 questions `data.specsQ` + **accordéon détails `Step3bDetails`** conditionnel au type) → **Photos couverture-héro + pellicule** (upload réel, recadrage canvas → File) → Prix/Description 2 phases (DeepSeek réel) → **Publication checklist 5 critères** bloquants en public seulement. **Pas de Staging Studio** : `crm-staging-studio.jsx` du bundle handoff est un fichier ORPHELIN, monté nulle part). **Dark mode** : `SugarV2` (`tokens.ts`) est un **Proxy** qui résout la palette light/dark à chaque lecture depuis `document.documentElement[data-theme]` (pas de mutation de global au render → robuste React 18 StrictMode/concurrent) ; helpers `sgOn()` / `sgAcc()` pour les littéraux posés **sur l'accent** (accent → near-white en dark, `onBlack` → `#0A0A0F`). Header minimal (× fermer seul, flottant) + indicateur d'autosave en footer ; nav Précédent/Continuer, le CTA de publication vit dans le Step 7. Système distinct du wizard KYC (`kyc-wizard/`, `KycPaletteContext`). **Embedded (juil. 2026, #871)** : prop `embedded` → `position:absolute` (au lieu de `fixed z-9000`), monté en overlay dans le bento du pager Mes biens. **Porte « Importer un mandat » désactivée** : l'ancien chemin injectait un mandat fictif (exclusif, 3.5 %, signé) en base pour n'importe quel PDF — dormante jusqu'à un vrai OCR.
 - Domaines : `search/` `listings/` `matching/` `transactions/` `kyc*/` `documents/` `calendar/` `messaging/` `portal/` `seller-portal/` `admin/` `directory/` `map/` `ai-copilot/` `skeletons/` `auth-bento/`.
 
 ### Hooks (`src/hooks/`, ~100, React Query)
@@ -175,22 +221,22 @@ FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, setti
 ### Tables par domaine
 - **Tenant & équipes** : `agencies` (root, plan), `profiles` (rôles agent/manager/admin/assistant/seller/buyer), `agency_profiles` / `agent_profiles` (annuaires publics, tsvector), `team_invitations`.
 - **Contacts & leads** : `contacts`, `seller_leads`, `contact_scores`.
-- **Biens** : `properties` (internes), `property_scores` (score de bien, RPC `calculate_property_scores`), `listings` (publiées), `market_listings` (marché : **Flatfox=location** ~34k + **RealAdvisor=vente** ~36k), `external_listings` (legacy). Ingestion marché = **2 surfaces séparées** : `flatfox-sync` (location, partenaire sanctionné, cron 04:00) et **`realadvisor-sync`** (vente only, `realadvisor_sync_runs`). RealAdvisor : accès accordé (Gregory), throttle Cloudflare sur les requêtes **filtrées** → détection de disparition par **oracle `id_in` en pg_net** (crons `probe-fire`/`probe-collect` + `probe-sweep`, dry-run) + `fresh` quotidien (national) + trigger `price_reduced`. Cf. brain `realadvisor-ingestion`. **Syndication SORTANTE** (juin 2026) : `property_syndications` (1 ligne par bien×portail, status `queued/published/error/withdrawn`, UNIQUE`(property_id,portal)`, RLS agence) + `agency_syndication_config` (kill-switch `idx_enabled`, token pull, transport `pull`/`ftp`, creds FTP ; write `service_role` seul) — publie les `properties` au format IDX 3.01 sur immobilier.ch. Cf. §5 + brain `megga/syndication-idx`.
+- **Biens** : `properties` (internes ; la publication est un **état de cette table** — `status` + `published_at` — il n'y a pas de table `listings` séparée), `property_scores` (score de bien, RPC `calculate_property_scores`), `market_listings` (marché — 144k lignes / 61k actives au 19 juil. 2026 : **Flatfox=location** 98k dont 35k actives, **RealAdvisor=vente** 46k dont 26k actives, + 27 lignes `megga-demo`). ⚠️ `external_listings` **n'existe plus en base** : seul le type TS `ExternalListing` survit (`useExternalMatching.ts`), et l'écran marché du CRM lit `market_listings`. Ingestion marché = **2 surfaces séparées** : `flatfox-sync` (location, partenaire sanctionné, cron 04:00) et **`realadvisor-sync`** (vente only, `realadvisor_sync_runs`). RealAdvisor : accès accordé (Gregory), throttle Cloudflare sur les requêtes **filtrées** → détection de disparition par **oracle `id_in` en pg_net** (crons `probe-fire`/`probe-collect` + `probe-sweep`, dry-run) + `fresh` quotidien (national) + trigger `price_reduced`. Cf. brain `realadvisor-ingestion`. **Syndication SORTANTE** (juin 2026) : `property_syndications` (1 ligne par bien×portail, status `queued/published/error/withdrawn`, UNIQUE`(property_id,portal)`, RLS agence) + `agency_syndication_config` (kill-switch `idx_enabled`, token pull, transport `pull`/`ftp`, creds FTP ; write `service_role` seul) — publie les `properties` au format IDX 3.01 sur immobilier.ch. Cf. §5 + brain `megga/syndication-idx`.
 - **Pipeline & transactions** : `transactions` (stages lead→…→closed), `crm_offers` (offres/contre-offres ; historique via `parent_offer_id` + audit `activity_events`, pas de table `crm_offers_history`), `visits`, `client_searches`, `matches`.
 - **KYC / compliance** : `kyc_cases`, `kyc_checklist_items`, `kyc_magic_links` + `kyc_magic_link_uploads`, `kyc_screening_decisions`, `documents` (sha256, retention).
-- **Portail vendeur** : `seller_portals` (token 6 mois), `vendor_dossiers`.
+- **Portail vendeur** : `seller_portals` (token 6 mois) + `seller_preferences`. Le portail est **stateless** — il n'a pas de table à lui : tout passe par l'edge function `seller-portal-action` authentifiée au token, qui lit `properties`, `transactions`, `crm_offers`, `visits`, `seller_leads`, `profiles` et journalise dans `activity_events`. ⚠️ `vendor_dossiers` **n'existe pas en base**.
 - **Billing** : `subscriptions` (Stripe).
-- **Messaging** : `message_threads`, `messages`, `email_messages_cache`, `message_templates`, `marketplace_inquiries`.
-- **Favoris/alertes** : `market_favorites`, `market_alerts`, `saved_searches`, `newsletter_subscribers`.
-- **Audit & monitoring** : `activity_events` (immutable, `actor_kind` user/system/ai), `auth_events`, `ticket_events`, `platform_metrics`, `flatfox_sync_runs`.
+- **Messaging** : le canal réel du CRM est **WhatsApp** — 14 tables `whatsapp_*` (`whatsapp_messages` journal, `whatsapp_agent_links` + `agency_wa_numbers` appairage numéro↔agent, `whatsapp_conversation_insights`, `whatsapp_pending_actions`, `whatsapp_confirmation_log`, `whatsapp_followup_suggestions`, `whatsapp_daily_briefs`, `whatsapp_notices`, `whatsapp_message_corrections`, `whatsapp_rejected_drafts`, `whatsapp_recent_auto_actions`, `whatsapp_tool_usage`, `whatsapp_async_jobs`, `whatsapp_cron_locks`) · `message_templates` · `contact_messages` (formulaire vitrine ; anon fermé juil. 2026). ⚠️ `message_threads`, `messages`, `email_messages_cache` (système Messages maison du CRM agent) et `marketplace_inquiries` **n'existent plus en base**.
+- **Favoris/alertes acheteur** : ❌ **plus rien en base** — `market_favorites`, `market_alerts`, `saved_searches` et `newsletter_subscribers` sont partis avec la marketplace publique. Les recherches côté CRM vivent dans `client_searches` (cf. Pipeline).
+- **Audit & monitoring** : `activity_events` (immutable, `actor_kind` user/system/ai), `auth_events`, `platform_metrics`, `flatfox_sync_runs`, `realadvisor_sync_runs`. ⚠️ `ticket_events` **n'existe plus** (parti avec le support maison, cf. Support).
 - **Admin** : `admin_feature_flags`, `admin_nps_responses`, `admin_notes`, `admin_changelog` · `user_consents` (preuves nLPD immuables user×type×version, INSERT via RPC `record_consent` seule) · `profiles.is_suspended` (miroir du ban GoTrue, écriture service/definer) · `ai_usage_logs.agency_id/module` (attribution coûts IA, historique NULL = « Plateforme »).
-- **Support** : `support_tickets`, `ticket_messages`, `ticket_canned_responses`, `chat_conversations`, `chat_messages` — ⚠️ **DORMANTES** depuis le passage à Intercom (support maison décommissionné ; tables conservées, réversibles ; `admin-monitoring` lit encore `open_tickets`→0). Cf. brain `intercom-support`.
-- **IA** : `ai_usage_logs`, `ai_balance_snapshots`, `ai_photo_labels`, `ai_generated_photos`, `translation_cache`, `ai_copilot_conversations` (persistance copilote web OPTIONNELLE double-gatée — flag `app_config.copilot_persistence_enabled` + `persist:true` client ; RLS owner-scoped ; cf. brain `megga/copilot-persistence`).
+- **Support** : `support_tickets` **seule survivante** (vide ; `admin-monitoring` lit encore `open_tickets`→0), dormante depuis le passage à Intercom. ⚠️ `ticket_messages`, `ticket_canned_responses`, `chat_conversations`, `chat_messages` et `ticket_events` ont été **supprimées de la base** : le support maison n'est pas « réversible », le rebrancher voudrait dire le reconstruire. Cf. brain `intercom-support`.
+- **IA** : `ai_usage_logs`, `ai_balance_snapshots`, `translation_cache`, `ai_copilot_conversations` (persistance copilote web OPTIONNELLE double-gatée — flag `app_config.copilot_persistence_enabled` + `persist:true` client ; RLS owner-scoped ; cf. brain `megga/copilot-persistence`). ⚠️ Les photos IA ne sont **pas des tables** mais des **colonnes de `properties`** : `photo_tags` (là où l'ancienne doc annonçait `ai_photo_labels`) et `ai_generated_photos` (colonne, pas table homonyme), à côté de `photos` / `photos_cf` / `photos_cf_processed_at` (R2). `photo-vision` et le virtual staging écrivent dans `properties`.
 
 ### RLS (modèle agency-first)
 - **Agents** : visibilité `WHERE agency_id IN (SELECT agency_id FROM profiles WHERE id = auth.uid())`.
-- **Anon (marketplace)** : `market_listings` → `SELECT WHERE status='active'` ; `marketplace_inquiries` / `newsletter_subscribers` → INSERT only.
-- **Acheteur authentifié** : ses `message_threads` (`buyer_user_id = auth.uid()`), favoris.
+- **Anon (ex-marketplace)** : plus aucune lecture publique d'annonces — `market_listings` et `market_price_history` révoqués pour `anon` (migration `20260719110000`), `contact_messages` fermé (`20260719100000`). Subsiste `seller_leads_anon_insert` (INSERT seul, borné `assigned_agency_id IS NULL` + `status='new'`), **sans écrivain** depuis la suppression du storefront (juil. 2026). Accès anon restants, hors marketplace : `article_views` / `article_feedback` → INSERT, `translation_cache` → SELECT.
+- **Acheteur authentifié** : réduit à une seule surface — `visits_select_by_buyer_email` (SELECT sur `visits` où `lower(buyer_email) = lower(auth.jwt()->>'email')`). Les `message_threads` et les tables de favoris qui portaient ce rôle n'existent plus.
 - **Vendeur** : via `seller_portals.token` (stateless, pas d'auth.users) → READ property/transaction, UPLOAD documents.
 - **service_role** (edge functions) : full access ; triggers écrivent `activity_events` (`actor_kind='system'`).
 - **super_admin** : silo séparé sur `admin_*` + impersonate audité (audit-first, RPC serveur). Depuis 20260705160000, `is_super_admin()` exige rôle **ET** email allowlisté en dur (lu dans `auth.users` — jamais `profiles.email`, auto-modifiable) : un rôle posé hors allowlist ne débloque rien.
@@ -227,15 +273,16 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ---
 
-## 4bis · Storefront public statique (megga.ch) 🌐
+## 4bis · Vitrine publique statique (megga.ch) 🌐
 
-> ⚠️ **PIVOT juin 2026 — recentrage CRM-first.** megga.ch ne sert **plus** la marketplace : il sert
-> désormais la **vitrine SaaS** [`sites/megga-vitrine/`](../sites/megga-vitrine/) (landing → CRM `app.megga.ch`).
-> Tout l'ancien storefront marketplace Property X décrit ci-dessous est **conservé en sommeil** dans
-> [`sites/_marketplace-phase-ulterieure/`](../sites/_marketplace-phase-ulterieure/) (ex-`sites/property-preview/`),
-> **rien supprimé**, réactivable en repointant `scripts/overlay-storefront.mjs`. La table `market_listings`
-> (~90k biens) **reste active** : elle nourrit le CRM (matching, estimation, stats copilote). La doc
-> ci-dessous reste valable pour ce dossier en sommeil (phase ultérieure = Sprint 7).
+> **PIVOT juin 2026 — recentrage CRM-first.** megga.ch sert la **vitrine SaaS**
+> [`sites/megga-vitrine/`](../sites/megga-vitrine/) (landing → CRM `app.megga.ch`).
+> L'ancien storefront marketplace Property X, resté en sommeil dans
+> `sites/_marketplace-phase-ulterieure/` depuis le pivot, a été **SUPPRIMÉ du dépôt**
+> (juillet 2026, 373 fichiers / 22 Mo). Il reste récupérable dans l'historique git
+> (commit `0b321bc5` et antérieurs) si la marketplace est un jour relancée — mais il
+> n'encombre plus l'arbre de travail. La table `market_listings` (~90k biens) **reste
+> active** : elle nourrit le CRM (matching, estimation, stats copilote).
 
 > **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
 > (~40 pages FR, home « Votre CRM se pilote depuis WhatsApp », logo MEGGA header+footer, assets 100%
@@ -246,22 +293,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > fondations SEO (`sitemap.xml` 21 URLs, `robots.txt`, canonical, JSON-LD) · pages légales `mentions-legales.html`
 > (12 sections) + `confidentialite.html` · About refondu (rôle Reto Brunner). **Reste** : image hero encore CodeAI.
 
-> **Marketplace (en sommeil)** : un site **Webflow Property X V3** statique dans [`sites/_marketplace-phase-ulterieure/`](../sites/_marketplace-phase-ulterieure/), distinct de la SPA React (app.megga.ch, §2). Overlay sur `dist/` au build via `scripts/overlay-storefront.mjs` (`MEGGA_BUILD_TARGET`).
-
-- **Worker** (`_worker.js`, Cloudflare Pages advanced) : Basic Auth (`ai`/`ai`, gate pré-lancement) + proxy GET **`/api/listings`** → `market_listings` / **`/api/agencies`** → `agency_profiles` (anon key côté serveur, évite CORS navigateur) + endpoint **POST `/api/seller-lead`** → insère dans `seller_leads` (cf. « Publier une annonce »).
-- **Home** `index.html` : hero (recherche `megga-search.js` + CTA) + section « Annonces en vedette » (`featured-property-item---main`) branchée par `js/megga-home.js` — annonces récentes via `/api/listings`, photo/titre/prix injectés, lien vers la fiche ; force-visible IX2 + sweep du démo, panneaux hover masqués.
-- **Grille** `company-pages/properties.html` : peuplée par `js/megga-properties.js` (clone la demo card Webflow, remplit photo/titre/prix/adresse/features ; recherche lieu via `js/megga-supabase.js` + `js/ch-cities.js`). Photos cartes pinnées **4:3** (`object-fit:cover`, fix `megga-card-image-fix`).
-- **Fiche bien** `property/luxury-loft-in-san-francisco.html` (cible unique de toutes les cartes, `?id=<uuid>`) : `js/megga-property.js` lit `?id` → fetch `/api/listings` → remplit galerie (image + miniatures + lightbox `w-json`), titre, prix CHF, adresse, détails (m²/pièces/sdb/garage), Description, équipements FR (Piscine/Ascenseur/Garage/Cheminée via `has_*`) ; retire l'agent démo + tout le « Lorem ipsum » ; `referrerpolicy=no-referrer` sur les photos (anti-hotlink Flatfox). Sans `?id` → reste la démo.
-- **Annuaire agences** `company-pages/agencies.html` (copie relabellée de la page agents) : `js/megga-agencies.js` → proxy **`/api/agencies`** (worker → `agency_profiles`, ~5662 agences) clone la carte agent, remplit logo (`object-fit:contain` sur fond blanc — pas rogné comme un avatar), nom, ville·canton, lien vers le site de l'agence ; **barre de recherche** (design du hero home), **filtre canton** et **pagination « Charger plus »** (24/page ; **chargement progressif** — 1re page affichée tout de suite, le reste en arrière-plan) ; lien nav « Agences » ajouté (index/properties/agents). Le worker expose un map `API_TABLES { listings→market_listings, agencies→agency_profiles }`.
-- **Détail agence** : la page agent-single `agent/john-carter.html?id=<agency_id>` est réutilisée comme fiche agence (`js/megga-agency-single.js`) — hero (logo, nom, ville·canton, site) + **« Annonces de l'agence »** (listings matchés par `agency_profile_id` **OU** `agency_name` ; ~1158 agences / ~20% en ont) ; masque la bio/articles démo, force-visible les sections Webflow IX2 (scopé `<section>`). Les cartes de l'annuaire y mènent.
-- **Publier une annonce** `company-pages/submit-property.html` (branché CRM) : `js/megga-submit.js` francise le formulaire Webflow + unités CH (m²/CHF), remplace les `<select>` démo par les types marketplace canoniques (`apartment…land`, `buy/rent`), injecte un select « Délai de vente » (→ `motivation`), puis **intercepte le submit** (capture-phase, neutralise le handler Webflow mort) → **POST `/api/seller-lead`**. Le worker bâtit une ligne `seller_leads` *whitelistée* côté serveur (`property_data` jsonb + `contact_*` + `motivation`, `source='marketplace'`, `status='new'`, `assigned_agency_id=NULL`) et l'insère avec l'anon key (RLS `seller_leads_anon_insert`). **Réception agent** : (1) **CRM « Biens »** → bandeau Soumissions vendeurs (`useBnSubmissions`→`useSellerLeads('new')`, RLS montre les leads non assignés à tout agent), claim via `useAcceptSellerLead` ; (2) **cloche de notifications** (`useAgentNotifications`) en temps réel — un **trigger** `notify_new_seller_lead()` (SECURITY DEFINER, scopé `source='marketplace'`) écrit un `activity_events` (`actor_kind='system'`, `action='seller_lead_received'`, `category='deal'`) car l'anon ne peut pas insérer dans `activity_events` (immuable 10 ans, LBA). Le funnel React `/vendre` (`source='website'`) reste inchangé.
-- **Contact** `company-pages/contact-v1.html` (branché CRM) : `js/megga-contact.js` francise le formulaire, corrige le label erroné du message, **injecte une case de consentement obligatoire** (RLS exige `consent_privacy=true`), **retire la colonne démo « Reach us directly »** (Lorem + fausse boîte mail + réseaux sociaux) et centre le formulaire, dé-Lorem le sous-titre + H1 « Contactez-nous », puis intercepte le submit → **POST `/api/contact-message`**. Le worker insère dans **`contact_messages`** (`source='storefront'`, anon RLS `contact_messages_anon_insert`). **Réception** : trigger `notify_new_contact_message()` (SECURITY DEFINER, scopé `source='storefront'`) → `activity_events` `action='contact_message_received'` → **cloche** (super-admins via `super_admin_read_all_events`) ; le message reste lisible en back-office (RLS super_admin). Le funnel React `/contact` (`source='contact_page'`, 2 emails Resend) reste inchangé. Worker mutualisé : helpers `insertRow()` + `readJsonBody()` partagés par `/api/seller-lead` et `/api/contact-message`.
-- **Menu « Pages » (nav + footer)** : `js/megga-nav.js` (injecté sur les 18 pages avec nav/footer) réécrit **tous** les liens démo lieu/type/catégorie → la grille **Annonces** réelle (`/company-pages/properties.html?…`). Mapping par texte : `Los Angeles/San Francisco/San Diego` → `?ville=Genève/Lausanne/Zürich` ; `Apartments/Houses/Lofts/Offices` → `?type=apartment/house/commercial/office` (types à inventaire réel — marché **rent-only**, buy≈12) ; `For sale/For rent` → `?transaction=acheter/louer` ; liens génériques (« Par localisation »…) → grille complète. Redirige aussi les 3 pages démo encore existantes (`los-angeles`/`houses`/`for-sale`) en cas d'accès direct. **Plus aucun lien mort (404) ni grille US**. Filtre `type` ajouté à `megga-supabase.js`/`megga-properties.js` (couvert par `idx_ml_active_tx_canton_type`, <1 s).
-- **Terminologie** : le storefront dit « **Annonces** » (plus « Biens ») partout — nav, CTA, filtres (« Type d'annonce »), messages JS ; `megga-search.js` matche le label « Type d'annonce ».
-- **Limite connue** : section « More properties » de la fiche **masquée** (pas encore peuplée d'annonces similaires). Formulaire de soumission : `canton`/`postalCode` non collectés (l'agent complète au claim). Pages Agents/About/FAQ/Blog encore démo ; pied de page global encore Lorem (anglais).
-
 ---
-
 ## 5. Edge functions (67) — catalogue par domaine
 
 > Deno, dans `supabase/functions/`. Déclencheurs : HTTP (défaut), `pg_cron`, webhook Stripe, hooks auth.
@@ -340,12 +372,17 @@ Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEG
 ## 8. Dev / test / CI
 
 ```
-npm run dev          # vite (localhost:5173)
+npm run dev          # vite — CRM (localhost:5173)
+npm run dev:admin    # vite — console super-admin (localhost:5174, vite.admin.config.ts)
 npm run build        # tsc -b && vite build  (+ postbuild overlay-storefront)
+npm run build:admin  # tsc -b && vite build --config vite.admin.config.ts → dist-admin/
 npm run lint         # eslint
 npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/admin/visual)
 ```
-CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy.
+CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy. **Trois cibles Pages**,
+un workflow chacune : `deploy.yml` → megga.ch (vitrine, projet `megga-real-estate`), `deploy-app.yml` →
+app.megga.ch (CRM, projet `megga-app`), `deploy-admin.yml` → admin.megga.ch (console, projet `megga-admin`).
+Les trois créent le projet, attachent le domaine et posent le CNAME s'ils manquent — rien à préparer à la main.
 
 **⚠ Asymétrie déploiement edge (source de dette)** : `deploy.yml` ne fait que **déployer** ce qu'il
 trouve dans `supabase/functions/` — rien ne supprime. Retirer une fonction du dépôt ne la retire donc
@@ -372,7 +409,7 @@ Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA — ac
 |---|---|
 | [CLAUDE.md](../CLAUDE.md) | Source de vérité : règles, conventions, design, perf, état d'implémentation |
 | [schema.md](schema.md) | Schéma DB complet |
-| [pages.md](pages.md) | 42 écrans MVP |
+| [pages.md](pages.md) | Inventaire réel des pages et routes (dérivé de `src/App.tsx`) |
 | [ai-modules.md](ai-modules.md) | Specs modules IA |
 | [design-system.md](design-system.md) / [design-system-propertyx.md](design-system-propertyx.md) | Design systems CRM / marketplace |
 | [roadmap.md](roadmap.md) · [backlog.md](backlog.md) · [CHANGELOG.md](CHANGELOG.md) | Planning & historique |

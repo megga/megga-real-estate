@@ -16,7 +16,7 @@
 > **Docs détaillés (externalisés pour économiser des tokens) :**
 > - 🧠 Carte système / rouages : [docs/system-map.md](docs/system-map.md)
 > - Schéma DB complet : [docs/schema.md](docs/schema.md)
-> - Pages MVP (42 écrans) : [docs/pages.md](docs/pages.md)
+> - Pages et routes réelles (inventaire, pas spec) : [docs/pages.md](docs/pages.md)
 > - Modules IA (specs Gregory) : [docs/ai-modules.md](docs/ai-modules.md)
 > - Design system patterns (Sugar v2 CRM) : [docs/design-system.md](docs/design-system.md)
 > - Design system Property X (Marketplace — ⚠ ARCHIVÉ, marketplace désactivée) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)
@@ -74,7 +74,8 @@ IA :           DeepSeek (deepseek-chat) pour TOUT le texte via Edge Functions �
                Vision/OCR/PDF : Gemini (Google) — DeepSeek n'a pas de vision. AUCUN Claude/Anthropic.
 Email :        Resend (megga.ch DKIM/SPF)
 Payments :     Stripe
-Hosting :      Cloudflare Pages
+Hosting :      Cloudflare Pages — 3 projets : megga-real-estate (megga.ch vitrine),
+               megga-app (app.megga.ch CRM), megga-admin (admin.megga.ch console super-admin)
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
 Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine megga.ch
@@ -97,6 +98,15 @@ npm run lint         # ESLint
 > Patterns détaillés (composants, exemples TSX) : voir [docs/design-system.md](docs/design-system.md)
 
 **Direction :** Minimal, transparent, professionnel (Linear/Notion style). Dark/light mode sur dashboard agent.
+
+**⚠ Sugar Pure (Pipeline v2, juillet 2026)** : les surfaces refondues (Pipeline
+kanban/liste/timeline, modale Nouveau deal, fiche deal V4) suivent la grammaire
+« Sugar Pure » qui PRIME sur les règles bento ci-dessous : séparation par **ombre
+douce sans bordure décorative**, accent noir unique (`sp.accent`), teinte sombre
+par défaut **noir #000000** (`SUGAR_DARK_TONE`), teintes d'étape `SG_STAGE_HUE`
++ dérivations `sgMix` figées, pilules à fond plein + texte blanc. Détails :
+[docs/design-system.md](docs/design-system.md) §Sugar Pure ; source pixel =
+handoff `design_handoff_pipeline_refonte_v2`.
 
 **Règles visuelles clés :**
 - Bentos : `rounded-xl border border-theme-border` — PAS d'ombres
@@ -290,7 +300,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 - Backend conservé intact : `market_listings` (~90k Flatfox, ~50k active), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline (14 stades DB → 8 colonnes UI), Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
 
 **Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 
@@ -298,7 +308,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Portail vendeur :** `/portail/:token` — page unique « Votre vente » (VotreVentePage, lecture seule), dev route `/portail` (PortalDevWrapper + mock data).
 
-**Super-Admin :** 16 pages (accent violet), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit.
+**Super-Admin :** application SÉPARÉE sur `admin.megga.ch` (entrée `index.admin.html` → `AdminApp`, `npm run build:admin`, projet Pages `megga-admin`) — 16 pages (accent violet), routes à la racine (`/users`, `/agencies/:id`…), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit. Le bundle admin n'est plus servi aux agents ; l'entrée se fait par la ligne « Console admin » du dropdown profil Sugar et par ⌘K (`src/lib/adminEntry.ts`), et chaque ouverture est journalisée (`admin_console_entered`).
 
 **Intégrations :** Resend, Stripe, Google/Outlook Calendar (OAuth), virtual staging (Gemini), Flatfox sync.
 

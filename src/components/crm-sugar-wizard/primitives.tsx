@@ -1,9 +1,9 @@
 // MEGGA CRM Sugar v2 Wizard — Shared primitives.
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx + step1.jsx + step3.jsx).
 
-import { useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
+import { useState, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SugarV2, sgOn, sgAcc } from './tokens'
+import { SugarV2 } from './tokens'
 
 // ─── Icons (line-style, Sugar) ──────────────────────────────────────────
 export type SgIconName =
@@ -127,83 +127,6 @@ export function SgGhostPill({
   )
 }
 
-// ─── Stepper Sugar — 8 cercles connectés ──────────────────────────────
-// ─── Carte porte (Step 0) ─────────────────────────────────────────────
-export function SgGateCard({
-  icon, title, sub, onClick, recommended, disabled,
-}: {
-  icon: ReactNode
-  title: string
-  sub: string
-  onClick?: () => void
-  recommended?: boolean
-  disabled?: boolean
-}) {
-  const { t } = useTranslation('listings')
-  const [hover, setHover] = useState(false)
-  return (
-    <button onClick={onClick} disabled={disabled}
-      onMouseEnter={() => !disabled && setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        position: 'relative',
-        width: '100%', height: '100%',
-        padding: '32px 28px 28px',
-        background: SugarV2.card,
-        border: 0, borderRadius: 28,
-        textAlign: 'left', fontFamily: 'inherit',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.55 : 1,
-        boxShadow: hover ? SugarV2.shadowHover : SugarV2.shadow,
-        transform: hover ? 'translateY(-3px)' : 'translateY(0)',
-        transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
-        display: 'flex', flexDirection: 'column', gap: 14,
-      }}>
-      {recommended && (
-        <span style={{
-          position: 'absolute', top: 18, right: 18,
-          padding: '5px 11px', borderRadius: 999,
-          background: SugarV2.black, color: SugarV2.onBlack,
-          fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-          textTransform: 'uppercase',
-        }}>{t('wizard.shell.recommended')}</span>
-      )}
-
-      <div style={{
-        width: 56, height: 56, borderRadius: 18,
-        background: SugarV2.cardSubtle, color: SugarV2.black,
-        display: 'grid', placeItems: 'center',
-        flexShrink: 0,
-      }}>{icon}</div>
-
-      <div>
-        <h3 style={{
-          margin: '0 0 6px', fontSize: 19, fontWeight: 700,
-          color: SugarV2.ink, letterSpacing: -0.3, lineHeight: 1.25,
-        }}>{title}</h3>
-        <p style={{
-          margin: 0, fontSize: 13.5, color: SugarV2.inkSoft,
-          fontWeight: 500, lineHeight: 1.55,
-        }}>{sub}</p>
-      </div>
-
-      <div style={{
-        marginTop: 'auto', paddingTop: 10,
-        display: 'flex', alignItems: 'center', gap: 8,
-        color: hover ? SugarV2.black : SugarV2.muted,
-        fontSize: 13, fontWeight: 600,
-        transition: 'color .2s',
-      }}>
-        {t('wizard.shell.choose')}
-        <span style={{
-          display: 'inline-flex', transform: hover ? 'translateX(4px)' : 'translateX(0)',
-          transition: 'transform .25s ease',
-        }}>→</span>
-      </div>
-    </button>
-  )
-}
-
 // ─── Petit input Sugar ────────────────────────────────────────────────
 export function SgInput({
   label, value, onChange, type = 'text', placeholder, autoFocus,
@@ -238,31 +161,6 @@ export function SgInput({
           transition: 'all .18s ease',
         }} />
     </label>
-  )
-}
-
-// ─── Switch Sugar ─────────────────────────────────────────────────────
-export function SgSwitch({
-  checked, onChange, dark,
-}: { checked: boolean; onChange: () => void; dark?: boolean }) {
-  return (
-    <button onClick={onChange} style={{
-      width: 48, height: 28, borderRadius: 999, border: 0,
-      background: checked
-        ? (dark ? sgOn() : SugarV2.black)
-        : (dark ? sgAcc(0.20) : SugarV2.cardSubtle),
-      cursor: 'pointer', padding: 0, position: 'relative',
-      transition: 'background .2s ease',
-      flexShrink: 0,
-    }}>
-      <span style={{
-        position: 'absolute', top: 3, left: checked ? 23 : 3,
-        width: 22, height: 22, borderRadius: 999,
-        background: checked ? (dark ? SugarV2.black : sgOn()) : sgOn(),
-        boxShadow: '0 2px 6px rgba(0,0,0,0.20)',
-        transition: 'left .2s cubic-bezier(.2,.8,.2,1)',
-      }} />
-    </button>
   )
 }
 
@@ -309,32 +207,5 @@ export function SgKycChip({ status }: { status?: 'verified' | 'pending' | 'none'
       <span style={{ width: 5, height: 5, borderRadius: 999, background: m.color }} />
       {t(`wizard.kyc.${key}`)}
     </span>
-  )
-}
-
-// ─── Section title (h2 + subtitle, used in Step 3 + others) ───────────
-export function SgSection({
-  title, subtitle, children, style,
-}: {
-  title: string
-  subtitle?: string
-  children: ReactNode
-  style?: CSSProperties
-}) {
-  return (
-    <section style={{ marginBottom: 36, ...style }}>
-      <div style={{ marginBottom: 14 }}>
-        <h2 style={{
-          margin: '0 0 4px', fontSize: 18, fontWeight: 700,
-          color: SugarV2.ink, letterSpacing: -0.3,
-        }}>{title}</h2>
-        {subtitle && (
-          <p style={{ margin: 0, fontSize: 13, color: SugarV2.muted, fontWeight: 500 }}>
-            {subtitle}
-          </p>
-        )}
-      </div>
-      {children}
-    </section>
   )
 }

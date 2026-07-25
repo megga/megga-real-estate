@@ -17,6 +17,9 @@
     "countBuyer_other": "{{count}} annonces{{tx}} dans les critères de {{name}}",
     "countMarket_one": "{{count}} annonce{{tx}} sur le marché connecté",
     "countMarket_other": "{{count}} annonces{{tx}} sur le marché connecté",
+    "countTotal": "sur {{total}} au total",
+    "clientFilterScope_one": "Ce filtre texte ne porte que sur {{count}} annonce déjà chargée, pas sur l'ensemble du marché.",
+    "clientFilterScope_other": "Ce filtre texte ne porte que sur {{count}} annonces déjà chargées, pas sur l'ensemble du marché.",
     "trans": {
       "group": "Filtrer par transaction",
       "all": "Tout",
@@ -104,14 +107,12 @@
       "factPpm2Sale": "Prix / m²",
       "factPpm2Rent": "Loyer / m²",
       "equip": "Équipements",
-      "details": "Détails",
       "location": "Localisation",
       "dType": "Type",
       "dTransaction": "Transaction",
       "dLocality": "Localité",
       "dCanton": "Canton",
       "dOnMarket": "Sur le marché",
-      "dMeggaRef": "Réf. MEGGA",
       "dPortalRef": "Réf. portail",
       "onMarketLessDay": "moins d'un jour",
       "onMarketDays_one": "{{count}} jour",
@@ -121,7 +122,33 @@
       "lbCounter": "{{index}} / {{total}}",
       "close": "Fermer",
       "prev": "Précédent",
-      "next": "Suivant"
+      "next": "Suivant",
+      "sectionDescription": "Description",
+      "sectionSpecs": "Caractéristiques",
+      "readMore": "Lire la suite",
+      "readLess": "Réduire",
+      "priceCaptionSale": "Prix de vente",
+      "priceCaptionRent": "Loyer",
+      "factBathrooms": "Salles de bain",
+      "factFloor": "Étage",
+      "factParking": "Parking",
+      "parkingSpots_one": "{{count}} place",
+      "parkingSpots_other": "{{count}} places",
+      "floorGround": "Rez",
+      "floorBasement": "Sous-sol",
+      "floorBasementN": "{{n}}ᵉ sous-sol",
+      "floorNth": "{{n}}ᵉ",
+      "dRenovated": "Rénové en",
+      "dUsableSurface": "Surface utile",
+      "dChargesRent": "Charges mensuelles",
+      "dChargesSale": "Charges (PPE)",
+      "dFurnished": "Meublé",
+      "yes": "Oui",
+      "dAvailability": "Disponibilité",
+      "dVisitContact": "Contact visite",
+      "expandMap": "Agrandir la carte",
+      "portalFallback": "portail",
+      "detailError": "Détail indisponible pour le moment."
     },
     "view": {
       "group": "Affichage des résultats",
@@ -135,7 +162,9 @@
       "zoomIn": "Zoom avant",
       "zoomOut": "Zoom arrière",
       "nearHere": "Aucune dans les critères · biens proches"
-    }
+    },
+    "slow": "La recherche prend anormalement longtemps.",
+    "blocked": "La recherche n’a pas pu démarrer."
   },
   "sendSheet": {
     "title": "Envoyer à {{name}}",
@@ -176,6 +205,22 @@
     "title": "Ajoutez des critères de recherche à vos contacts",
     "desc": "Le matching compare automatiquement les critères de vos acheteurs avec les biens disponibles.",
     "cta": "Voir mes contacts"
+  },
+  "firstRun": {
+    "title": "Votre boucle de match démarre ici",
+    "mandat": {
+      "title": "Créez votre premier mandat",
+      "sub": "Un bien à vendre ou à louer."
+    },
+    "contact": {
+      "title": "Ajoutez un contact",
+      "sub": "Budget, secteur, pièces."
+    },
+    "scores": {
+      "title": "MEGGA calcule les matchs",
+      "sub": "Rien à configurer."
+    },
+    "start": "Continuer"
   },
   "card": {
     "sendTo": "Envoyer →",
@@ -240,6 +285,10 @@
     "viewListing": "Voir l'annonce",
     "viewFullListing": "Voir l'annonce complète",
     "mainPhoto": "photo principale",
+    "noPhotoYet": "Photos à venir",
+    "nextPhoto": "Photo suivante (→)",
+    "allPhotos": "Toutes les photos",
+    "collapseFilmstrip": "Replier la pellicule",
     "photo": "photo",
     "photos": "Photos",
     "photoGallery": "Galerie photo",
@@ -260,6 +309,7 @@
     "chargesPerMonth": "+ {{value}} charges / mois",
     "priceDrop": "Baisse constatée",
     "sectionSpecs": "Caractéristiques",
+    "sectionEssential": "L'essentiel",
     "sectionFeatures": "Atouts",
     "sectionDescription": "Description",
     "sectionLocation": "Localisation",
@@ -292,7 +342,10 @@
     "marketing": "Commercialisation",
     "contactVerified": "Coordonnées vérifiées par la veille marché.",
     "proposeToBuyer": "Proposer à {{name}}",
+    "propose": "Proposer",
     "proposeToBuyers": "Proposer aux acheteurs",
+    "collapseSheet": "Réduire la fiche",
+    "expandSheet": "Rouvrir la fiche",
     "searchProfile": "Profil de recherche",
     "budget": "Budget",
     "targetZones": "Zones ciblées",
@@ -352,6 +405,21 @@
       "scanning": "Scan en cours…",
       "scanError": "Le scan a échoué, réessayez dans un instant."
     },
+    "emptyStage": {
+      "cockpitTitle": "Aucun match à trier",
+      "cockpitSub": "Le moteur n'a encore rapproché aucune annonce",
+      "queueAria": "File acheteurs",
+      "queueEyebrow": "File d'attente",
+      "sortedBy": "triée par\nforce du match",
+      "queueTitle": "Aucun acheteur en file",
+      "queueSub": "Ajoutez des critères de recherche à vos contacts : MEGGA les fait remonter ici.",
+      "listingAria": "Annonce",
+      "listingTitle": "Rien à présenter pour l'instant",
+      "listingSub": "Relancez le moteur : il recroise vos annonces avec les critères de vos contacts.",
+      "whyAria": "Pourquoi ça matche",
+      "whyTitle": "Rien à comparer",
+      "whySub": "Le détail du score s'affiche dès le premier match."
+    },
     "error": {
       "title": "Impossible de charger les matchs",
       "desc": "Une erreur est survenue lors du chargement de l'atelier. Réessayez.",
@@ -370,7 +438,29 @@
       "skipped": "{{name}} écarté·e de la file",
       "backInQueue": "{{name}} est de retour dans la file",
       "seeDeal": "Voir le deal →"
-    }
+    },
+    "sendDossier": "Envoyer le dossier",
+    "priceBefore": "Avant",
+    "queueSortedBy": "triée par",
+    "sortByMatch": "force du match",
+    "sortByRelance": "signal de relance",
+    "toSchedule": "À programmer",
+    "toScheduleCount": "À programmer · {{count}}",
+    "scheduleThisWeek": "Cette semaine",
+    "scheduleLater": "Ensuite",
+    "resume": "Reprendre",
+    "changeDate": "Changer"
+  },
+  "cockpit": {
+    "switchTitle": "Matcher une autre annonce",
+    "switchHint": "Changer d'annonce recharge la file avec ses acheteurs candidats.",
+    "switchAria": "Matcher une autre annonce",
+    "currentListing": "Annonce en cours",
+    "browseAll": "Parcourir toutes les annonces",
+    "filterAria": "Filtrer la file",
+    "processed": "{{total}} traités",
+    "progressAria": "{{done}} sur {{total}} acheteurs traités",
+    "queueDone": "File traitée"
   },
   "confirm": {
     "sendTitle": "Transmettre le dossier",

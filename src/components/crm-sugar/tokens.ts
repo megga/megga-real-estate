@@ -26,7 +26,7 @@ export interface CrmTheme {
   shadow2: string
 }
 
-export const CRM_TOKENS: { light: CrmTheme; dark: CrmTheme } = {
+export const CRM_TOKENS: { light: CrmTheme; dark: CrmTheme; noir: CrmTheme } = {
   light: {
     bg:           '#FAFBFD',
     surface:      '#FFFFFF',
@@ -77,18 +77,48 @@ export const CRM_TOKENS: { light: CrmTheme; dark: CrmTheme } = {
     shadow1:      '0 1px 2px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04)',
     shadow2:      '0 14px 36px -10px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.045)',
   },
+  // Teinte « noir » — noir pur #000000 (handoff Pipeline v2 « Sugar Pure »,
+  // juillet 2026, crm-tokens.jsx §CRM_TOKENS.noir). DÉFAUT du CRM agent depuis
+  // le pivot Sugar Pure (cf. SUGAR_DARK_TONE). Seules bg/surface/surface2/
+  // border/section divergent de `dark` ; le reste est hérité à l'identique.
+  noir: {
+    bg:           '#000000',
+    surface:      '#0C0C10',
+    surface2:     '#131319',
+    border:       '#1A1A22',
+    borderStrong: '#2E2E42',
+    ink:          '#ECEDF3',
+    soft:         '#B5B7C4',
+    muted:        '#797D90',
+    primary:      '#6F8CFF',
+    primarySoft:  '#1A1E3A',
+    primaryHover: '#8DA4FF',
+    danger:       '#F26B65',
+    dangerSoft:   '#341B1F',
+    warn:         '#F2B855',
+    warnSoft:     '#332811',
+    ok:           '#34C796',
+    okSoft:       '#0F2620',
+    section:      '#060608',
+    overlay:      'rgba(0,0,4,.68)',
+    shadow1:      '0 1px 2px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04)',
+    shadow2:      '0 14px 36px -10px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.045)',
+  },
 }
 
-// Stage colors (deal pipeline) — same across themes for recognition
+// Stage colors (deal pipeline) — same across themes for recognition.
+// Rampe grise héritée (handoff Pipeline v2) : le kanban n'utilise PLUS ces
+// couleurs — il est piloté par SG_STAGE_HUE (balayage de teinte continu).
+// `color` ne sert que de repli hors board (mobile, pastille modale).
 export const CRM_STAGES = {
-  'new-lead':           { label: 'Nouveau lead',      color: '#64748B' },
-  'to-qualify':         { label: 'À qualifier',       color: '#B7791F' },
-  'searching':          { label: 'Recherche active',  color: '#1E5BC6' },
-  'visit-scheduled':    { label: 'Visite planifiée',  color: '#0E7490' },
+  'new-lead':           { label: 'Nouveau lead',      color: '#9AA0A6' },
+  'to-qualify':         { label: 'À qualifier',       color: '#7A8088' },
+  'searching':          { label: 'Recherche active',  color: '#5A616B' },
+  'visit-scheduled':    { label: 'Visite planifiée',  color: '#4B5563' },
   'visit-done':         { label: 'Visite effectuée',  color: '#0891B2' },
-  'interest-confirmed': { label: 'Intérêt confirmé',  color: '#059669' },
+  'interest-confirmed': { label: 'Intérêt confirmé',  color: '#475569' },
   'offer':              { label: 'Offre déposée',     color: '#C45A00' },
-  'signed':             { label: 'Signé',             color: '#0B0C0E' },
+  'signed':             { label: 'Signé',             color: '#059669' },
   'lost':               { label: 'Perdu',             color: '#8E1F3D' },
 } as const
 export type StageId = keyof typeof CRM_STAGES
@@ -97,6 +127,55 @@ export const CRM_STAGE_ORDER: StageId[] = [
   'new-lead', 'to-qualify', 'searching', 'visit-scheduled',
   'visit-done', 'interest-confirmed', 'offer', 'signed',
 ]
+
+// ─── Teintes d'étape — Pipeline v2 « Sugar Pure » ───────────────────────
+// Balayage de teinte CONTINU le long du funnel (froid → chaud) : chaque étape
+// suit chromatiquement la précédente. Ce sont CES valeurs (pas les gris de
+// CRM_STAGES) qui pilotent le kanban, les pilules, les pastilles et les barres.
+// Source : handoff crm-screen-pipeline-sugar.jsx §SG_STAGE_HUE.
+export const SG_STAGE_HUE: Record<StageId, string> = {
+  'new-lead':           '#5B6BE6', // indigo
+  'to-qualify':         '#3E86E4', // bleu
+  'searching':          '#1FA3D6', // azur
+  'visit-scheduled':    '#0FB9C2', // cyan
+  'visit-done':         '#14BE93', // teal
+  'interest-confirmed': '#46C05F', // vert
+  'offer':              '#C9A31C', // or
+  'signed':             '#E8892A', // orange chaud
+  'lost':               '#C2607E', // rose sombre (hors funnel)
+}
+
+/** Mélange un hex vers une cible (#000/#fff) d'un facteur `amt` — dérive des
+ *  tons lisibles depuis les teintes d'étape saturées. Facteurs figés par le
+ *  handoff : ne pas les changer. */
+export function sgMix(hex: string, target: string, amt: number): string {
+  const h = (hex || '#000000').replace('#', '')
+  const t = (target || '#000000').replace('#', '')
+  if (h.length < 6) return hex
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16)
+  const tr = parseInt(t.slice(0, 2), 16), tg = parseInt(t.slice(2, 4), 16), tb = parseInt(t.slice(4, 6), 16)
+  const m = (a: number, bb: number) => Math.round(a + (bb - a) * amt)
+  return `rgb(${m(r, tr)}, ${m(g, tg)}, ${m(b, tb)})`
+}
+
+/** Teinte dérivée d'une colonne kanban : fond pastel (`panel`) + libellé de
+ *  compteur teinté (`tintInk`) + teinte vive (`hue`). */
+export function sgStageTint(stage: StageId, dark: boolean): { hue: string; panel: string; tintInk: string } {
+  const hue = SG_STAGE_HUE[stage] || '#8A93A5'
+  return {
+    hue,
+    panel: dark ? sgMix(hue, '#141517', 0.85) : sgMix(hue, '#FFFFFF', 0.81),
+    tintInk: dark ? sgMix(hue, '#FFFFFF', 0.35) : sgMix(hue, '#0B0C0E', 0.45),
+  }
+}
+
+/** Fond des pilules d'étape à texte blanc : teinte assombrie en clair
+ *  (contraste ≥ 4.5:1), teinte vive inchangée en sombre. Réservé aux aplats
+ *  portant du texte — pastilles 8-9 px et barres restent en SG_STAGE_HUE pur. */
+export function sgStagePillBg(stage: StageId, dark: boolean): string {
+  const h = SG_STAGE_HUE[stage] || '#8A93A5'
+  return dark ? h : sgMix(h, '#0B0C0E', 0.32)
+}
 // ─── Formatters ─────────────────────────────────────────────────────────
 export function crmFmtCHF(n: number | null | undefined): string {
   if (n == null) return '—'
@@ -109,7 +188,7 @@ export function crmInitials(name: string): string {
 
 // ─── Sugar palette (derived from the active theme) ──────────────────────
 // Light theme keeps the original cool grey-blue page bg + white floating cards.
-// Dark themes (marine / meggaAi) flip to deep surfaces, translucent frames,
+// Dark themes (marine / meggaAi / noir) flip to deep surfaces, translucent frames,
 // and a bright ink/sub for legibility on glass.
 export interface SugarPalette {
   pageBg: string
@@ -121,6 +200,11 @@ export interface SugarPalette {
   ink: string
   sub: string
   soft: string
+  /** Accent UI unique Sugar Pure : noir franc en clair, encre claire en sombre
+   *  (CTA, sélection, pilules actives). Jamais une couleur vive. */
+  accent: string
+  /** Texte posé sur `accent` (blanc en clair, quasi-noir en sombre). */
+  accentInk: string
   focusBg: string
   focusInk: string
   focusSurface: string
@@ -144,7 +228,18 @@ export interface SugarPalette {
   solidShadow: string
 }
 
-export type DarkTone = 'marine' | 'meggaAi'
+export type DarkTone = 'marine' | 'meggaAi' | 'noir'
+
+/** Teinte sombre par défaut du CRM agent — « noir » depuis le handoff Pipeline v2
+ *  (juillet 2026). Point unique de bascule : toutes les pages Sugar la consomment. */
+export const SUGAR_DARK_TONE: DarkTone = 'noir'
+
+/** Thème CrmTheme actif pour les pages Sugar : clair, sinon le thème porté par
+ *  SUGAR_DARK_TONE (marine/meggaAi partagent CRM_TOKENS.dark ; noir a le sien). */
+export function sugarThemeTokens(dark: boolean): CrmTheme {
+  if (!dark) return CRM_TOKENS.light
+  return SUGAR_DARK_TONE === 'noir' ? CRM_TOKENS.noir : CRM_TOKENS.dark
+}
 
 export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = 'marine'): SugarPalette {
   if (!dark) {
@@ -158,6 +253,8 @@ export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = 'ma
       ink:           '#0E1410',
       sub:           '#7A8079',
       soft:          '#3F4640',
+      accent:        '#0B0C0E',
+      accentInk:     '#FFFFFF',
       focusBg:       '#0E1410',
       focusInk:      '#FFFFFF',
       focusSurface:  'rgba(255,255,255,.10)',
@@ -179,7 +276,8 @@ export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = 'ma
   }
   return {
     pageBg:        t.bg,
-    frameBg:       tone === 'meggaAi' ? 'rgba(23,23,36,0.30)' : 'rgba(23,34,56,0.30)',
+    frameBg:       tone === 'noir' ? 'rgba(18,18,22,0.45)'
+                   : tone === 'meggaAi' ? 'rgba(23,23,36,0.30)' : 'rgba(23,34,56,0.30)',
     frameBorder:   'rgba(255,255,255,0.08)',
     cardBg:        'rgba(255,255,255,0.05)',
     cardBorder:    'rgba(255,255,255,0.08)',
@@ -187,6 +285,8 @@ export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = 'ma
     ink:           t.ink,
     sub:           t.muted,
     soft:          t.soft,
+    accent:        t.ink,
+    accentInk:     '#0A0A0F',
     focusBg:       t.primary,
     focusInk:      '#FFFFFF',
     focusSurface:  'rgba(255,255,255,.12)',

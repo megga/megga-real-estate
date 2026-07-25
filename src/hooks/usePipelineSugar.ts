@@ -1,13 +1,14 @@
 // MEGGA CRM Sugar v2 — Adapter Supabase → CrmDeal[] pour PipelineSugarV2Page.
-// Charge les transactions de l'agence + contacts + KYC + properties associés,
-// remplit le registry runtime (registerLiveContact/Bien) pour que les lookups
-// `crmContactById` / `crmBienById` de la page renvoient la version Supabase.
+// Charge les transactions de l'agence + contacts + KYC + properties + reminders
+// associés, remplit le registry runtime (registerLiveContact/Bien) pour que les
+// lookups `crmContactById` / `crmBienById` de la page renvoient la version Supabase.
 //
 // Pattern aligné sur useContactsSugar et useMatchingSugar : la page UI continue
 // d'appeler les helpers mock — seul le contenu retourné est désormais réel.
 
 import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useQuery as useSupabaseQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import {
@@ -22,6 +23,8 @@ import {
   contactToCrm,
   propertyToCrmBien,
   transactionToCrmDeal,
+  reminderToNextAction,
+  type PipelineReminderRow,
 } from '@/lib/sugarAdapters'
 import {
   registerLiveContact,
@@ -35,9 +38,9 @@ import {
 export interface UsePipelineSugarReturn {
   deals: CrmDeal[]
   isLoading: boolean
-  /** true si l'une des 4 queries (transactions/contacts/kyc/properties) a échoué. */
+  /** true si l'une des 5 queries (transactions/contacts/kyc/properties/reminders) a échoué. */
   isError: boolean
-  /** relance les 4 queries du pipeline (bouton « Réessayer » des surfaces). */
+  /** relance les 5 queries du pipeline (bouton « Réessayer » des surfaces). */
   refetch: () => void
   updateStage: ReturnType<typeof useUpdateTransactionStage>
   /** Index contact/bien résolus (Supabase) — items Focus auto-suffisants
@@ -93,7 +96,7 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
     enabled: !!agencyId && contactIds.length > 0,
   })
 
-  // 5. KYC dossiers acheteurs (verrou pipeline §SugarPipelineKycLock)
+  // 5. KYC dossiers acheteurs (signal NON-BLOQUANT : badge cartes, items Focus)
   const { data: kycCases = [], isLoading: kycLoading, isError: kycError, refetch: refetchKyc } = useQuery({
     queryKey: ['pipeline-sugar-kyc', agencyId, contactIds],
     queryFn: async (): Promise<KycCase[]> => {
@@ -124,6 +127,35 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
     },
     enabled: !!agencyId && propertyIds.length > 0,
   })
+
+  // 6bis. Prochaine action par deal = prochain reminder actif de la transaction
+  // (Pipeline v2). Cache-helpers pour l'auto-invalidation croisée : les mutations
+  // reminders (usePipelineNextActions, useReminders, Calendrier) invalident cette
+  // liste sans câblage manuel. L'index idx_reminders_agency_status_trigger couvre
+  // le WHERE + ORDER BY (table petite ; le .in() sur status y est acceptable —
+  // la règle CLAUDE.md §7 vise les tables volumineuses type market_listings).
+  const { data: reminderRows = [], isLoading: remindersLoading, isError: remindersError, refetch: refetchReminders } = useSupabaseQuery(
+    supabase
+      .from('reminders')
+      .select('id, transaction_id, type, kind, trigger_at, message_template')
+      .eq('agency_id', agencyId ?? '00000000-0000-0000-0000-000000000000')
+      .in('status', ['pending', 'triggered', 'snoozed'])
+      .not('transaction_id', 'is', null)
+      .order('trigger_at', { ascending: true })
+      .limit(500),
+    { enabled: !!agencyId, staleTime: 30_000 },
+  )
+
+  // Premier reminder rencontré par transaction = échéance la plus proche (ORDER BY).
+  const nextActionByTx = useMemo(() => {
+    const map = new Map<string, CrmDeal['nextAction']>()
+    for (const r of (reminderRows ?? []) as unknown as PipelineReminderRow[]) {
+      if (!r.transaction_id || map.has(r.transaction_id)) continue
+      const na = reminderToNextAction(r)
+      if (na) map.set(r.transaction_id, na)
+    }
+    return map
+  }, [reminderRows])
 
   // 7. Index KYC par contact (premier rencontré = plus récent grâce à ORDER BY)
   const kycByContact = useMemo(() => {
@@ -160,13 +192,17 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
         price_offered: t.price_offered,
         price_final: t.price_final,
         updated_at: t.updated_at,
+        assigned_to: t.assigned_to,
+        archived_at: t.archived_at,
         // useTransactions joint property (title, address, city, price, photos)
         // — c'est exactement ce que ContactTransaction attend.
         property: (t as unknown as { property: ContactTransaction['property'] }).property ?? null,
       }
-      return transactionToCrmDeal(ctLike, contactId, propertyId)
+      const deal = transactionToCrmDeal(ctLike, contactId, propertyId)
+      deal.nextAction = nextActionByTx.get(t.id) ?? null
+      return deal
     }),
-    [transactions],
+    [transactions, nextActionByTx],
   )
 
   // 11. Hydrate le registry runtime SYNCHRONEMENT pendant le render (et non dans
@@ -203,13 +239,14 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
 
   return {
     deals,
-    isLoading: txLoading || contactsLoading || kycLoading || propsLoading,
-    isError: txError || contactsError || kycError || propsError,
+    isLoading: txLoading || contactsLoading || kycLoading || propsLoading || remindersLoading,
+    isError: txError || contactsError || kycError || propsError || remindersError,
     refetch: () => {
       void refetchTx()
       void refetchContacts()
       void refetchKyc()
       void refetchProps()
+      void refetchReminders()
     },
     updateStage,
     contactsById,

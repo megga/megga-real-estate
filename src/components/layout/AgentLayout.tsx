@@ -4,10 +4,10 @@
  * création rapide de contact (⌘⇧C), bannière d'impersonation, bottom tab bar et
  * sondage NPS. Enveloppé de `ThemeProvider` (dark mode limité au dashboard) et
  * `CopilotContextProvider`. En mobile, court-circuite le chrome legacy au profit
- * du MobileShell fourni par les pages, sauf sous `/dashboard/admin`.
+ * du MobileShell fourni par les pages.
  */
 import { useState, useEffect, useCallback } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { ThemeProvider } from '@/hooks/useTheme'
@@ -18,7 +18,7 @@ import Breadcrumb from '@/components/layout/Breadcrumb'
 import NewContactDialog from '@/components/contacts/NewContactDialog'
 import BottomTabBar from '@/components/layout/BottomTabBar'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
-import NpsSurvey from '@/components/feedback/NpsSurvey'
+import AnnouncementsBanner from '@/components/layout/AnnouncementsBanner'
 
 /** Corps du layout (à l'intérieur des providers) : gère l'état du chrome et les raccourcis globaux. */
 function AgentLayoutInner() {
@@ -52,16 +52,14 @@ function AgentLayoutInner() {
 
   // Mobile (< 768px) : on neutralise le chrome legacy (Sidebar, header mobile,
   // Breadcrumb, BottomTabBar) — les pages mobiles fournissent leur propre
-  // MobileShell via ResponsiveRoute. L'admin conserve son chrome legacy (hors
-  // cible mobile V1). Desktop ≥ 768px : strictement inchangé.
+  // MobileShell via ResponsiveRoute. Desktop ≥ 768px : strictement inchangé.
   const isMobile = useIsMobile()
-  const { pathname } = useLocation()
-  if (isMobile && !pathname.startsWith('/dashboard/admin')) {
+  if (isMobile) {
     return (
       <div className="min-h-[100dvh] bg-theme-section">
         <ImpersonateBanner />
+        <AnnouncementsBanner />
         <Outlet />
-        <NpsSurvey />
       </div>
     )
   }
@@ -97,6 +95,9 @@ function AgentLayoutInner() {
         {/* Impersonate banner */}
         <ImpersonateBanner />
 
+        {/* Annonces plateforme (P8a) */}
+        <AnnouncementsBanner />
+
         {/* Page content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 pb-20 md:pb-4 overflow-y-auto">
           <Breadcrumb />
@@ -112,9 +113,6 @@ function AgentLayoutInner() {
 
       {/* Mobile bottom tab bar */}
       <BottomTabBar />
-
-      {/* NPS satisfaction survey (floating, bottom-right) */}
-      <NpsSurvey />
     </div>
   )
 }

@@ -27,12 +27,6 @@ export function sgaReturnDate(iso?: string): string {
   return d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' })
 }
 
-export const sgaDateLong = (iso: string): string =>
-  new Date(iso).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric' })
-
-export const sgaDateShort = (iso: string): string =>
-  new Date(iso).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' })
-
 /** Couleur d'un score (≥80 ink, ≥60 soft, sinon muted) */
 export const sgaScoreColor = (s: number): string =>
   s >= 80 ? 'var(--ink)' : s >= 60 ? 'var(--ink-soft)' : 'var(--ink-muted)'

@@ -2,6 +2,35 @@
 
 > Extrait de CLAUDE.md §4. Les règles de base (direction, thème, tokens) sont dans CLAUDE.md.
 
+## Sugar Pure — Pipeline v2 (handoff juillet 2026)
+
+Grammaire visuelle des surfaces refondues (Pipeline kanban/liste/timeline, modale
+« Nouveau deal », fiche deal V4 « Atelier scindé »). Elle PRIME sur les règles
+« bento à bordure sans ombre » ci-dessous pour ces écrans :
+
+- **Séparation par ombre douce**, aucune bordure décorative 1px. Beaucoup d'air.
+- **Accent UI unique = noir** `#0B0C0E` (clair) / encre `#ECEDF3` (sombre) —
+  `sp.accent` / `sp.accentInk` de `crmSugarPalette`. Aucune couleur vive en accent.
+- **Teinte sombre par défaut = « noir »** `#000000` (`SUGAR_DARK_TONE`,
+  `CRM_TOKENS.noir`, `sugarThemeTokens(dark)`) — toutes les pages Sugar la lisent.
+- **Teintes d'étape** : balayage continu `SG_STAGE_HUE` (indigo `#5B6BE6` →
+  orange `#E8892A`, `lost` rose `#C2607E` hors funnel). Dérivations `sgMix`
+  FIGÉES : fond de colonne clair `sgMix(hue,#FFF,.81)` / sombre
+  `sgMix(hue,#141517,.85)` ; compteur teinté `.45→#0B0C0E` / `.35→#FFF` ;
+  pilule à texte blanc `sgStagePillBg` = clair `sgMix(hue,#0B0C0E,.32)`,
+  sombre teinte pure. Les pastilles 8-9 px et les barres restent en teinte pure.
+- **Pilules de statut/type** : TOUJOURS fond opaque plein + texte blanc (jamais
+  fond teinté clair + texte coloré, jamais de dot dans la pilule).
+- **Rayons** : 999 pilule · 28 modal/bento panel · 26 cadre écran · 24 carte
+  fiche · 22 carte/état vide · 20 colonne kanban · 18 carte kanban · 16 inline ·
+  14 sous-carte/option · 12 input.
+- **Aucune animation au survol** (pas de transform/box-shadow animés) ; au plus
+  un changement de fond instantané. Surfaces sombres flottantes opaques gris
+  neutre (`#17181A`, sous-surfaces `#1E1F21`, hairline `rgba(255,255,255,.07)`).
+- **Typo** : Inter Tight, `font-variant-numeric: tabular-nums` sur les nombres.
+- Source de vérité pixel : handoff `design_handoff_pipeline_refonte_v2`
+  (README.md + crm-screen-pipeline-sugar.jsx et co).
+
 ### 4.2b Composants patterns
 
 **Bento (container standard) :**

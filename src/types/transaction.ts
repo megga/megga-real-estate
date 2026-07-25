@@ -20,6 +20,8 @@ export interface Transaction {
   price_final: number | null
   mandate_type: MandateType | null
   notes: string | null
+  /** Deal rangé hors pipeline (kanban/liste/timeline). NULL = visible ; undo = remise à NULL. */
+  archived_at: string | null
   created_at: string
   updated_at: string
 }

@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { calendarAuthMethod, calendarRedirectTo, type CalendarConnectOrigin } from '@/lib/calendarOauth'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
 // ── Types ──
@@ -99,17 +100,26 @@ export function useOutlookCalendar(dateRange?: { start: Date; end: Date }) {
   })
 
   // Connect Outlook Calendar (initiates OAuth via Azure provider)
-  function connectOutlookCalendar() {
-    supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        scopes: 'https://graph.microsoft.com/Calendars.ReadWrite offline_access User.Read',
-        redirectTo: `${window.location.origin}/auth/callback?outlook=1`,
-        queryParams: {
-          prompt: 'consent',
-        },
+  //
+  // Même règle que useGoogleCalendar : on lie l'identité au compte connecté
+  // (`linkIdentity`) au lieu de ré-authentifier la session, sauf si l'identité
+  // Azure est déjà celle du compte courant — auquel cas `signInWithOAuth` est
+  // sans risque de bascule et permet de re-consentir aux scopes Calendars.
+  // `from` = énumération d'écrans de retour, pas une URL (cf. useGoogleCalendar).
+  // Ne jette jamais ; exige « Manual linking » activé côté projet Supabase.
+  async function connectOutlookCalendar(opts?: { from?: CalendarConnectOrigin }): Promise<{ error: string | null }> {
+    const options = {
+      scopes: 'https://graph.microsoft.com/Calendars.ReadWrite offline_access User.Read',
+      redirectTo: calendarRedirectTo(window.location.origin, 'azure', opts?.from),
+      queryParams: {
+        prompt: 'consent',
       },
-    })
+    }
+    const { data: idData } = await supabase.auth.getUserIdentities()
+    const { error } = calendarAuthMethod('azure', idData?.identities) === 'reauth'
+      ? await supabase.auth.signInWithOAuth({ provider: 'azure', options })
+      : await supabase.auth.linkIdentity({ provider: 'azure', options })
+    return { error: error ? error.message : null }
   }
 
   // Disconnect Outlook Calendar

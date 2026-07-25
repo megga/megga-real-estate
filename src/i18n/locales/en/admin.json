@@ -667,5 +667,238 @@
   "learning.traitsPlaceholder": "e.g. concise, warm, gets to the point",
   "learning.edit": "Edit",
   "learning.save": "Save",
-  "learning.cancel": "Cancel"
+  "learning.cancel": "Cancel",
+  "featureFlags": {
+    "agencies": "Targeted agencies:",
+    "targetAgency": "Target an agency",
+    "searchAgency": "Search agencies",
+    "noAgencyFound": "No agency found",
+    "removeAgency": "Remove this agency",
+    "unknownAgency": "Deleted agency"
+  },
+  "plans": {
+    "changeDone": "Plan updated",
+    "changeError": "Plan change failed"
+  },
+  "common": {
+    "saving": "Saving...",
+    "edit": "Edit"
+  },
+  "agencyDetail": {
+    "tab": {
+      "usage": "Usage & quotas"
+    }
+  },
+  "agencies": {
+    "sub": {
+      "trialing": "Trial",
+      "pastDue": "Past due"
+    },
+    "create": "Create agency"
+  },
+  "usage": {
+    "error": "Unable to load usage.",
+    "never": "Never",
+    "lastActivity": "Last activity",
+    "card": {
+      "properties": "Active properties",
+      "contacts": "Contacts",
+      "aiCost": "AI cost (month)",
+      "aiCalls": "{{count}} AI calls",
+      "whatsapp": "WhatsApp (month)",
+      "storage": "Storage",
+      "storageEstimate": "estimate",
+      "portals": "Active portals"
+    },
+    "quota": {
+      "title": "Edit quotas",
+      "subtitle": "Empty fields = unlimited. No automatic blocking, alert only.",
+      "heading": "Usage caps",
+      "headingSub": "Alert from {{threshold}}% of the cap",
+      "edit": "Edit",
+      "aiCost": "Monthly AI cost",
+      "properties": "Active properties",
+      "whatsapp": "WhatsApp messages / month",
+      "storage": "Storage (MB)",
+      "unlimited": "Unlimited",
+      "threshold": "Alert threshold",
+      "thresholdError": "Threshold must be between 50 and 100.",
+      "note": "Note",
+      "notePlaceholder": "Reason for change (optional)",
+      "saved": "Quotas saved",
+      "saveError": "Failed to save quotas"
+    },
+    "overview": {
+      "title": "Usage by agency",
+      "empty": "No agency.",
+      "agency": "Agency",
+      "aiCost": "AI cost",
+      "properties": "Properties",
+      "whatsapp": "WhatsApp",
+      "storage": "Storage",
+      "portals": "Portals"
+    }
+  },
+  "endUsers": {
+    "title": "End users",
+    "subtitle": "Sellers, leads and KYC clients without an account.",
+    "portals": {
+      "title": "Seller portals",
+      "active": "Active",
+      "expired": "Expired",
+      "viewed7d": "Viewed (7d)",
+      "totalViews": "Total views",
+      "empty": "No portals.",
+      "col": {
+        "contact": "Seller",
+        "agency": "Agency",
+        "property": "Property",
+        "views": "Views",
+        "expires": "Expires"
+      }
+    },
+    "portalStatus": {
+      "active": "Active",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "leads": {
+      "title": "Inbound leads",
+      "total": "Seller leads",
+      "new30d": "New (30d)",
+      "messages": "Contact messages"
+    },
+    "kyc": {
+      "title": "Public KYC journeys",
+      "sent": "Sent (30d)",
+      "opened": "Opened",
+      "uploaded": "Documents uploaded",
+      "confirmed": "Confirmed",
+      "conversion": "Conversion",
+      "empty": "No journeys.",
+      "col": {
+        "contact": "Client",
+        "agency": "Agency",
+        "status": "Status",
+        "mode": "Mode",
+        "sent": "Sent"
+      }
+    },
+    "kycStatus": {
+      "pending": "Pending",
+      "opened": "Opened",
+      "uploading": "Uploading",
+      "verifying": "Verifying",
+      "submitted": "Submitted",
+      "expired": "Expired"
+    }
+  },
+  "integrations": {
+    "title": "Integrations health",
+    "emails": {
+      "title": "Emails (Resend)",
+      "sent": "{{count24}} sent (24h) · {{count7}} (7d)",
+      "errors": "{{count}} error(s) (7d)"
+    },
+    "stripe": {
+      "title": "Stripe webhooks",
+      "last": "Last event {{when}}",
+      "none": "No events received",
+      "events": "{{count}} events (7d) · {{failed}} payment failure(s)"
+    },
+    "calendar": {
+      "title": "OAuth calendars",
+      "connected": "Google {{google}} · Outlook {{outlook}}",
+      "stale": "{{count}} stale sync(s) (>48h)"
+    },
+    "realtime": {
+      "title": "Realtime",
+      "status_checking": "Checking...",
+      "status_ok": "Operational",
+      "status_slow": "Slow",
+      "status_down": "Unreachable",
+      "latency": "{{ms}} ms"
+    }
+  },
+  "billing": {
+    "mrrTrend": "Estimated MRR trend",
+    "mrrTrendDays": "{{count}} points (30d)"
+  },
+  "communication": {
+    "title": "Communication",
+    "subtitle": "Product changelog and in-app announcements.",
+    "tab": {
+      "changelog": "Changelog",
+      "announcements": "Announcements"
+    }
+  },
+  "announcements": {
+    "new": "New announcement",
+    "draft": "Draft",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "targeted": "Targeted · {{plans}} plan(s) · {{agencies}} agency(ies)",
+    "empty": {
+      "title": "No announcements",
+      "subtitle": "Create an announcement to inform agencies."
+    },
+    "severity": {
+      "info": "Info",
+      "warning": "Warning",
+      "critical": "Critical"
+    },
+    "form": {
+      "newTitle": "New announcement",
+      "editTitle": "Edit announcement",
+      "title": "Title",
+      "body": "Message",
+      "severity": "Severity",
+      "plans": "Targeted plans",
+      "allPlans": "Empty = all plans",
+      "agencies": "Targeted agencies",
+      "allAgencies": "Empty = all agencies",
+      "addAgency": "Add",
+      "searchAgency": "Search agencies",
+      "startsAt": "Starts",
+      "endsAt": "Ends (optional)",
+      "ctaLabel": "Button label",
+      "ctaHref": "Link",
+      "published": "Published",
+      "required": "Title and message required.",
+      "saved": "Announcement saved",
+      "error": "Save failed"
+    }
+  },
+  "createAgency": {
+    "title": "Create agency",
+    "name": "Agency name",
+    "city": "City",
+    "canton": "Canton",
+    "plan": "Plan",
+    "solo": "Solo agent",
+    "note": "Internal note",
+    "notePlaceholder": "Context (optional)",
+    "inviteHint": "The owner will be invited separately from the Team tab.",
+    "submit": "Create agency",
+    "nameRequired": "Name required (2 characters min).",
+    "created": "Agency created",
+    "duplicate": "An agency with this name already exists.",
+    "error": "Creation failed"
+  },
+  "invoices": {
+    "title": "Invoices",
+    "load": "Load invoices",
+    "error": "Unable to load invoices.",
+    "notConfigured": "No Stripe customer linked to this agency.",
+    "upcoming": "Upcoming: {{amount}}",
+    "empty": "No invoices.",
+    "open": "Open invoice",
+    "status": {
+      "paid": "Paid",
+      "open": "Open",
+      "draft": "Draft",
+      "void": "Void",
+      "uncollectible": "Uncollectible"
+    }
+  }
 }

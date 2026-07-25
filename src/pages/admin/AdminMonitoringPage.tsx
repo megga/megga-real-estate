@@ -1,7 +1,7 @@
 /**
  * Page super-admin — monitoring plateforme (Supabase Pro).
  *
- * Route : `/dashboard/admin/monitoring` (SuperAdminGuard, accent violet). Agrège
+ * Route : `/monitoring` (console admin.megga.ch) (accent violet). Agrège
  * santé DB/storage/edge, statut Flatfox sync, santé pg_cron, panneaux ops
  * (syndication IDX, WhatsApp), facturation IA (solde DeepSeek + coûts) et logs
  * d'erreurs dépliables. Données via `useAdminMonitoring` + hooks dédiés.
@@ -14,6 +14,7 @@ import { useDeepSeekBalance, useAIUsageSummary, useAIUsageTimeseries } from '@/h
 import { useCronHealth } from '@/hooks/useCronHealth'
 import { cronStale } from '@/lib/cronHealth'
 import { SyndicationHealthPanel, WhatsAppOpsPanel } from '@/components/admin/AdminOpsPanels'
+import IntegrationsHealthPanel from '@/components/admin/IntegrationsHealthPanel'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { cn, formatRelativeDate } from '@/lib/utils'
@@ -293,6 +294,9 @@ export default function AdminMonitoringPage() {
           </div>
         )}
       </div>
+
+      {/* Santé des intégrations critiques (P7 — Resend/Stripe/Calendriers/Realtime) */}
+      <IntegrationsHealthPanel />
 
       {/* Syndication IDX + WhatsApp ops (P3 admin — RPC 20260705172000) */}
       <SyndicationHealthPanel />

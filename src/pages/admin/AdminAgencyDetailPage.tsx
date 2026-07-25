@@ -1,7 +1,7 @@
 /**
  * Page super-admin — détail d'une agence.
  *
- * Route : `/dashboard/admin/agencies/:id` (section admin, accent violet). Vue en
+ * Route : `/agencies/:id` (accent violet). Vue en
  * lecture seule organisée en 5 onglets (infos, équipe, activité, biens,
  * transactions), chacun alimenté par un hook `useAgency*` dédié. Sert aussi de
  * point d'entrée à l'impersonation d'un membre — précédée d'un audit serveur
@@ -20,14 +20,15 @@ import {
   useAgencyActivity,
 } from '@/hooks/useAdminAgencies'
 import PageTransition from '@/components/layout/PageTransition'
-import { useImpersonate } from '@/hooks/useImpersonate'
-import { useToast } from '@/components/ui/Toast'
+import { openImpersonationInCrm } from '@/lib/adminEntry'
 import AdminBillingCard from '@/components/admin/AdminBillingCard'
+import AgencyUsagePanel from '@/components/admin/AgencyUsagePanel'
 
-type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions'
+type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions' | 'usage'
 
 const TAB_KEYS: { key: Tab; i18nKey: string }[] = [
   { key: 'infos', i18nKey: 'agencyDetail.tab.infos' },
+  { key: 'usage', i18nKey: 'agencyDetail.tab.usage' },
   { key: 'equipe', i18nKey: 'agencyDetail.tab.team' },
   { key: 'activite', i18nKey: 'agencyDetail.tab.activity' },
   { key: 'biens', i18nKey: 'agencyDetail.tab.properties' },
@@ -37,7 +38,7 @@ const TAB_KEYS: { key: Tab; i18nKey: string }[] = [
 const PLAN_I18N: Record<string, string> = {
   starter: 'common.plan.starter',
   pro: 'common.plan.pro',
-  agency: 'common.plan.agency',
+  entreprise: 'common.plan.entreprise',
 }
 
 const STATUS_I18N: Record<string, string> = {
@@ -116,7 +117,7 @@ export default function AdminAgencyDetailPage() {
       <PageTransition>
         <div className="max-w-4xl mx-auto space-y-5">
           <Link
-            to="/dashboard/admin/agencies"
+            to="/agencies"
             className="inline-flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -133,7 +134,7 @@ export default function AdminAgencyDetailPage() {
       <PageTransition>
         <div className="max-w-4xl mx-auto space-y-5">
           <Link
-            to="/dashboard/admin/agencies"
+            to="/agencies"
             className="inline-flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -153,7 +154,7 @@ export default function AdminAgencyDetailPage() {
       <div className="max-w-4xl mx-auto space-y-5">
         {/* Back link */}
         <Link
-          to="/dashboard/admin/agencies"
+          to="/agencies"
           className="inline-flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -209,7 +210,8 @@ export default function AdminAgencyDetailPage() {
         {/* Tab content */}
         <div>
           {activeTab === 'infos' && <InfosTab agency={agency} />}
-          {activeTab === 'equipe' && <EquipeTab agencyId={agency.id} agencyName={agency.name as string ?? ''} />}
+          {activeTab === 'usage' && <AgencyUsagePanel agencyId={agency.id} />}
+          {activeTab === 'equipe' && <EquipeTab agencyId={agency.id} />}
           {activeTab === 'activite' && <ActiviteTab agencyId={agency.id} />}
           {activeTab === 'biens' && <BiensTab agencyId={agency.id} />}
           {activeTab === 'transactions' && <TransactionsTab agencyId={agency.id} />}
@@ -251,14 +253,12 @@ function InfosTab({ agency }: { agency: Record<string, unknown> }) {
 
 /**
  * Onglet « Équipe » : liste des membres de l'agence. Chaque ligne expose (au
- * survol) un bouton d'impersonation qui passe par un audit serveur avant de
- * basculer sur le compte du membre.
+ * survol) un bouton qui ouvre le CRM en vue impersonée (l'audit serveur y est
+ * fait avant activation).
  */
-function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: string }) {
+function EquipeTab({ agencyId }: { agencyId: string }) {
   const { t } = useTranslation('admin')
   const { data: members, isLoading } = useAgencyMembers(agencyId)
-  const { startImpersonate } = useImpersonate()
-  const toast = useToast()
 
   if (isLoading) {
     return (
@@ -312,18 +312,9 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
           </span>
           <span className="w-10 flex justify-end">
             <button
-              onClick={async () => {
-                // Audit-first : pas d'impersonation si l'audit serveur échoue.
-                const ok = await startImpersonate({
-                  id: member.id,
-                  full_name: member.full_name ?? 'Utilisateur',
-                  email: member.email,
-                  role: member.role ?? 'agent',
-                  agency_id: agencyId,
-                  agency_name: agencyName,
-                })
-                if (!ok) toast.error(t('userDrawer.impersonateAuditFailed'))
-              }}
+              // La vue impersonée appartient au CRM (autre origine) : on l'y
+              // ouvre, et c'est lui qui journalise avant d'activer (audit-first).
+              onClick={() => openImpersonationInCrm(member.id)}
               aria-label={t('admin:agencyDetail.team.impersonate', { name: member.full_name ?? t('admin:common.user') })}
               className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-admin-accent hover:bg-admin-accent/5 transition-all"
             >

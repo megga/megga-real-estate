@@ -1,15 +1,17 @@
 // MEGGA CRM Sugar — Calendrier (refonte « façon Google »)
-// Gate d'écran : décide entre l'onboarding « Première connexion » (aucun agenda
-// connecté et jamais passé) et le calendrier. Porte l'état de thème partagé.
+// Écran d'entrée : monte le calendrier — toujours, sans condition — et décide
+// s'il faut y afficher l'invitation à connecter un agenda externe. Porte l'état
+// de thème partagé.
 
 import { useEffect, useState } from 'react'
-import { CRM_TOKENS, crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { CalendarApp } from '@/components/crm-sugar/calendar/CalendarApp'
-import { CalendarOnboarding } from '@/components/crm-sugar/calendar/CalendarOnboarding'
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
 import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
 
-const ONBOARDED_KEY = 'megga.calendar.onboarded'
+// Clé de l'ancien onboarding plein écran (retiré : il bloquait l'accès au
+// calendrier tant qu'aucun agenda n'était connecté). Conservée telle quelle
+// pour que les agents qui l'avaient déjà passé ne revoient pas l'invitation.
+const INVITE_DISMISSED_KEY = 'megga.calendar.onboarded'
 
 function useDarkPref(): [boolean, (v: boolean) => void] {
   const [dark, setDark] = useState<boolean>(() => {
@@ -30,42 +32,42 @@ export default function CalendarSugarV2Page() {
   const google = useGoogleCalendar()
   const outlook = useOutlookCalendar()
 
-  const statusLoading = google.isLoading || outlook.isLoading
   const anyConnected = google.isConnected || outlook.isConnected
 
-  const [seen, setSeen] = useState<boolean>(() =>
-    typeof window !== 'undefined' && window.localStorage.getItem(ONBOARDED_KEY) === '1',
+  const [dismissed, setDismissed] = useState<boolean>(() =>
+    typeof window !== 'undefined' && window.localStorage.getItem(INVITE_DISMISSED_KEY) === '1',
   )
 
-  // Un agenda connecté → on mémorise (l'onboarding ne se réaffiche plus au prochain
-  // montage). Le render masque déjà l'onboarding tant que `anyConnected` est vrai.
-  useEffect(() => {
-    if (anyConnected) window.localStorage.setItem(ONBOARDED_KEY, '1')
-  }, [anyConnected])
+  // On attend la résolution des deux statuts avant de proposer la connexion,
+  // sinon l'invitation clignote à chaque montage. Le calendrier, lui, s'affiche
+  // immédiatement : il ne dépend pas des agendas externes.
+  const statusResolved = !google.isLoading && !outlook.isLoading
+  const showInvite = statusResolved && !anyConnected && !dismissed
 
   const dismiss = () => {
-    window.localStorage.setItem(ONBOARDED_KEY, '1')
-    setSeen(true)
+    window.localStorage.setItem(INVITE_DISMISSED_KEY, '1')
+    setDismissed(true)
   }
 
-  // Évite le flash calendrier → onboarding pendant la résolution du statut.
-  if (statusLoading && !seen) {
-    const tk = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
-    const sp = crmSugarPalette(tk, dark, 'meggaAi')
-    return <div style={{ height: '100vh', background: sp.pageBg }} />
+  // En cas de succès le navigateur part sur l'OAuth du fournisseur : on ne
+  // repasse ici que sur échec (« Manual linking » désactivé côté projet,
+  // identité déjà liée à un autre compte…), et le bandeau le dit.
+  const [connectError, setConnectError] = useState<string | null>(null)
+  const runConnect = (start: () => Promise<{ error: string | null }>) => {
+    setConnectError(null)
+    void start().then(({ error }) => setConnectError(error))
   }
 
-  if (!anyConnected && !seen) {
-    return (
-      <CalendarOnboarding
-        dark={dark}
-        setDark={setDark}
-        onDismiss={dismiss}
-        onConnectGoogle={google.connectGoogleCalendar}
-        onConnectOutlook={outlook.connectOutlookCalendar}
-      />
-    )
-  }
-
-  return <CalendarApp dark={dark} setDark={setDark} />
+  return (
+    <CalendarApp
+      dark={dark}
+      setDark={setDark}
+      invite={showInvite ? {
+        onConnectGoogle: () => runConnect(() => google.connectGoogleCalendar({ from: 'calendar' })),
+        onConnectOutlook: () => runConnect(() => outlook.connectOutlookCalendar({ from: 'calendar' })),
+        onDismiss: dismiss,
+        error: connectError,
+      } : undefined}
+    />
+  )
 }

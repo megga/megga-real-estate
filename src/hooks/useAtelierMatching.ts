@@ -323,7 +323,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
     [rawMatches],
   )
 
-  const { data: kycCases = [], isLoading: kycLoading, isError: kycError } = useQuery({
+  const { data: kycCases = [], isError: kycError } = useQuery({
     queryKey: ['atelier-kyc', agencyId, buyerIds],
     queryFn: async (): Promise<KycCase[]> => {
       if (!agencyId || buyerIds.length === 0) return []
@@ -441,7 +441,9 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   }, [queryClient])
 
   return {
-    isLoading: matchesLoading || kycLoading,
+    // Idem useContactsSugar : le KYC n'alimente qu'un badge, il ne doit pas
+    // remettre tout l'atelier en écran de chargement quand il se rafraîchit.
+    isLoading: matchesLoading,
     isError: matchesError || kycError,
     pivots,
     pivotByKey,

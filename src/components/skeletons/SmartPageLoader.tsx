@@ -1,38 +1,35 @@
 import { useLocation } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
+import BootSplash from '@/components/layout/BootSplash'
 
 /**
- * `<SmartPageLoader>` is the Suspense fallback for the entire app. It uses
- * the current URL to render a route-appropriate skeleton instead of the
- * generic spinner the app used previously.
+ * `<SmartPageLoader>` est le fallback Suspense de l'app : il choisit, d'après
+ * l'URL, un écran d'attente qui ressemble à la page qui arrive plutôt qu'un
+ * spinner nu.
  *
- * Why per-route:
- *   - During the 200–1500 ms lazy-chunk download, the eye has time to
- *     recognize layout. A skeleton matching the destination route
- *     reduces perceived load time and increases premium feel (Linear /
- *     Notion / Vercel pattern).
- *   - Generic spinner ≈ "site is broken / slow" feeling.
- *   - Route-specific skeleton ≈ "the listings page is loading, I'm
- *     in the right place".
+ * Pourquoi par route : pendant les 200-1500 ms de téléchargement du chunk,
+ * l'œil a le temps de reconnaître une mise en page. Un squelette au bon gabarit
+ * dit « la bonne page charge » ; un spinner dit « le site est cassé ».
  *
- * The skeletons themselves are lazy-loaded so they don't bloat the main
- * bundle — they only ship if a Suspense boundary actually needs them.
+ * ⚠ `/dashboard` recouvre DEUX chromes différents (deux routes parentes dans
+ * App.tsx) — d'où l'aiguillage `isLegacyChrome()` ci-dessous. Servir le mauvais
+ * des deux fait exactement le défaut qu'on cherche à éviter : un écran d'attente
+ * qui n'a aucun rapport avec la page qui suit.
  *
- * Fallback: any route not matched by the routing rules below still shows
- * the original spinner (`<DefaultLoader>`).
+ * Les squelettes sont eux-mêmes lazy pour ne pas alourdir le bundle d'entrée :
+ * ils ne sont téléchargés que si une frontière Suspense en a besoin.
+ *
+ * Repli : toute route sans squelette dédié garde le spinner (`<DefaultLoader>`).
  */
 
-const MarketplaceListingsSkeleton = lazy(
-  () => import('@/components/skeletons/MarketplaceListingsSkeleton'),
-)
-const PropertyDetailSkeleton = lazy(
-  () => import('@/components/skeletons/PropertyDetailSkeleton'),
-)
 const DashboardSkeleton = lazy(
   () => import('@/components/skeletons/DashboardSkeleton'),
 )
+const SugarPageSkeleton = lazy(
+  () => import('@/components/skeletons/SugarPageSkeleton'),
+)
 
-/** Spinner générique — fallback pour toute route sans skeleton dédié. */
+/** Spinner générique — fallback pour toute route sans squelette dédié. */
 function DefaultLoader() {
   return (
     <div className="flex items-center justify-center h-64">
@@ -41,28 +38,43 @@ function DefaultLoader() {
   )
 }
 
+/**
+ * Routes `/dashboard` encore rendues par `AgentLayout` (vraie sidebar + header),
+ * par opposition aux surfaces Sugar qui portent leur propre chrome. Liste tenue
+ * à la main car les deux routes parentes partagent le préfixe `/dashboard` —
+ * voir la seconde `<Route path="/dashboard">` d'App.tsx.
+ *
+ * Piège de préfixe : `listings` et `listings/:id` sont Sugar, mais
+ * `listings/new` et `listings/:id/edit` sont AgentLayout.
+ */
+function isLegacyChrome(pathname: string): boolean {
+  return (
+    pathname === '/dashboard/contacts/import'
+    || pathname === '/dashboard/listings/new'
+    || /^\/dashboard\/listings\/[^/]+\/edit$/.test(pathname)
+    || pathname.startsWith('/dashboard/market/')
+    || pathname.startsWith('/dashboard/marche/')
+  )
+}
+
 export default function SmartPageLoader() {
   const { pathname } = useLocation()
 
-  const skeleton = (() => {
-    // Marketplace listings (highest-traffic public routes)
-    if (pathname === '/rent' || pathname === '/buy') {
-      return <MarketplaceListingsSkeleton />
-    }
-    // Property detail (both legacy and Property X variants)
-    if (pathname.startsWith('/propriete') || pathname.startsWith('/listing/')) {
-      return <PropertyDetailSkeleton />
-    }
-    // Agent CRM (any /dashboard sub-route)
-    if (pathname.startsWith('/dashboard')) {
-      return <DashboardSkeleton />
-    }
-    return <DefaultLoader />
-  })()
+  // Trajet post-connexion (retour de megga.ch/login) : on prolonge l'écran
+  // d'arrivée plutôt que d'ouvrir un spinner nu, sinon le fond blanc réapparaît
+  // le temps de télécharger le chunk AuthCallbackPage. Volontairement HORS du
+  // Suspense ci-dessous et non lazy : un écran d'arrivée qui attendrait son
+  // propre chunk raterait précisément le moment qu'il doit couvrir.
+  if (pathname === '/' || pathname === '/auth/callback') {
+    return <BootSplash />
+  }
 
-  // The skeletons themselves are lazy — wrap in a nested Suspense whose
-  // fallback is the default spinner. On a fast network the skeleton chunk
-  // resolves before the user sees the spinner; on slow networks the spinner
-  // appears for ~50 ms then the skeleton takes over.
+  const skeleton = pathname.startsWith('/dashboard')
+    ? (isLegacyChrome(pathname) ? <DashboardSkeleton /> : <SugarPageSkeleton />)
+    : <DefaultLoader />
+
+  // Les squelettes sont lazy — on les enveloppe d'un Suspense imbriqué dont le
+  // fallback est le spinner. Sur un réseau rapide le chunk arrive avant que le
+  // spinner ne soit perceptible ; sur un réseau lent il tient ~50 ms puis cède.
   return <Suspense fallback={<DefaultLoader />}>{skeleton}</Suspense>
 }

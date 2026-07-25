@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
@@ -25,7 +25,7 @@ import NewContactModal, {
   type NewContactData,
 } from '@/components/crm-sugar/contacts-pager/NewContactModal'
 
-const DARK_TONE: DarkTone = 'meggaAi'
+const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 export default function ContactsSugarV2Page() {
   const navigate = useNavigate()
@@ -56,7 +56,7 @@ export default function ContactsSugarV2Page() {
     if (typeof window !== 'undefined') window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
   }, [dark])
 
-  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const t = sugarThemeTokens(dark)
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
   const { contacts, isLoading, isError, refetch } = useContactsSugar()
@@ -81,7 +81,6 @@ export default function ContactsSugarV2Page() {
       case 'biens-new': navigate('/dashboard/listings/new'); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'reseau': navigate('/dashboard/network'); break
       case 'parcours': navigate('/dashboard/journey'); break
       case 'ai':
       case 'julien': navigate('/dashboard/julien'); break

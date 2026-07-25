@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { calendarAuthMethod, calendarRedirectTo, type CalendarConnectOrigin } from '@/lib/calendarOauth'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
 // ── Types ──
@@ -102,18 +103,41 @@ export function useGoogleCalendar(dateRange?: { start: Date; end: Date }) {
   })
 
   // Connect Google Calendar (initiates OAuth)
-  function connectGoogleCalendar() {
-    supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        scopes: 'https://www.googleapis.com/auth/calendar',
-        redirectTo: `${window.location.origin}/auth/callback?gcal=1`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
+  //
+  // On LIE l'identité au compte connecté (`linkIdentity`) plutôt que
+  // `signInWithOAuth` : ce dernier ré-authentifie la session entière, donc sur
+  // un compte e-mail/mot de passe dont l'adresse Google diffère de l'e-mail
+  // CRM, il bascule silencieusement l'agent sur un autre compte (rôle par
+  // défaut `particulier` → renvoyé vers /portal). `linkIdentity` ne peut pas
+  // changer de compte : si l'identité appartient à quelqu'un d'autre, il
+  // échoue au lieu de basculer.
+  // Exception : quand l'identité Google est DÉJÀ celle du compte courant, la
+  // liaison échouerait (identité déjà prise) alors que `signInWithOAuth` ne
+  // risque aucune bascule — c'est la bonne voie pour re-consentir aux scopes
+  // Calendar.
+  //
+  // `from` désigne l'écran d'où part la connexion : /auth/callback s'en sert
+  // pour y ramener l'agent au lieu de le déposer dans Réglages. C'est une
+  // énumération et non une URL — une URL de retour libre dans le callback
+  // serait une redirection ouverte. Un handler passé en référence reçoit un
+  // MouseEvent : `opts.from` y est absent, donc le défaut est conservé.
+  //
+  // Ne jette jamais : renvoie le message d'erreur à afficher par l'appelant.
+  // ⚠ `linkIdentity` exige « Manual linking » activé sur le projet Supabase.
+  async function connectGoogleCalendar(opts?: { from?: CalendarConnectOrigin }): Promise<{ error: string | null }> {
+    const options = {
+      scopes: 'https://www.googleapis.com/auth/calendar',
+      redirectTo: calendarRedirectTo(window.location.origin, 'google', opts?.from),
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
       },
-    })
+    }
+    const { data: idData } = await supabase.auth.getUserIdentities()
+    const { error } = calendarAuthMethod('google', idData?.identities) === 'reauth'
+      ? await supabase.auth.signInWithOAuth({ provider: 'google', options })
+      : await supabase.auth.linkIdentity({ provider: 'google', options })
+    return { error: error ? error.message : null }
   }
 
   // Disconnect Google Calendar

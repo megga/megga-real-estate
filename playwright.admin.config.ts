@@ -1,8 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Separate config for super-admin tests. Runs a 2nd Vite dev server on port
-// 5174 with VITE_DEV_BYPASS_ROLE=super_admin, so the MOCK profile gets the
-// super_admin role and routes under SuperAdminGuard become accessible.
+// Separate config for super-admin tests. La console est une application à part
+// (admin.megga.ch) : on lance donc SON serveur de dev (`npm run dev:admin`,
+// vite.admin.config.ts) sur le port 5174, avec VITE_DEV_BYPASS_ROLE=super_admin
+// pour que le profil MOCK passe AdminAuthGate.
 //
 // The main suite (playwright.config.ts) runs on :5173 with role=agent.
 // Both can coexist — different ports, different env, no conflict.
@@ -34,7 +35,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev -- --port 5174',
+    command: 'npm run dev:admin -- --port 5174',
     url: 'http://localhost:5174',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

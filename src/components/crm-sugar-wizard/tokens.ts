@@ -240,6 +240,57 @@ export interface WizardOptions {
   videoTour: boolean
 }
 
+// Détails du bien — Q7 « Les détails du bien » (accordéon Step 3b). Sections
+// STRICTEMENT conditionnelles au type (familles apt/house/terrain/commerce). Tous
+// les champs sauf `ref`/`ext`/`equip`/`lux` sont optionnels (remplis au fil de l'eau).
+// `ref` (MEG-2026-XXXX) est un IDENTIFIANT D'AFFICHAGE, pas la référence réelle du bien.
+export interface WizardDetails {
+  ref: string
+  // Surfaces (m²), par famille
+  sPPE?: number | null
+  sHab?: number | null
+  sUtile?: number | null
+  sPond?: number | null
+  sBalc?: number | null
+  sTerr?: number | null
+  sJard?: number | null
+  sTerrain?: number | null
+  // Informations générales
+  standing?: string | null
+  dispo?: string | null           // date « JJ.MM.AAAA » ou « À convenir »
+  renovYear?: number | null
+  charges?: number | null         // house / commerce
+  // Pièces
+  chambres?: number | null
+  sdb?: number | null
+  wc?: number | null
+  // Extérieurs
+  ext: string[]
+  expo?: string | null
+  // Stationnement
+  pInt?: number | null
+  pExt?: number | null
+  pGarage?: number | null
+  pBox?: number | null
+  pVisit?: number | null
+  borne?: boolean
+  // Équipements
+  equip: string[]
+  // Immeuble (apt)
+  etage?: number | null
+  floors?: number | null
+  chargesPPE?: number | null
+  fondsReno?: number | null
+  // Chauffage & énergie
+  heat?: string | null
+  floorHeat?: boolean
+  pv?: boolean
+  solarTherm?: boolean
+  glazing?: string | null
+  // Prestations de luxe (standing Luxe/Ultra-luxe)
+  lux: string[]
+}
+
 export interface WizardData {
   source: 'manual' | 'import' | 'submission' | null
   fromSubmissionId: string | null
@@ -268,7 +319,10 @@ export interface WizardData {
   floor?: number | null
   floorsTotal?: number | null
   cadastralId?: string
-  type: 'appartement' | 'maison' | 'villa' | 'terrain'
+  // 10 types (liste Gregory) regroupés en familles apt/house/terrain/commerce par
+  // sp4bFamily (Step 3b). Le mapping vers l'enum DB `property_type` vit dans
+  // TYPE_TO_ENUM (WizardShell) — étendre les DEUX ensemble.
+  type: 'appartement' | 'attique' | 'duplex' | 'triplex' | 'loft' | 'maison' | 'villa' | 'chalet' | 'terrain' | 'commerce'
   area: number | null
   rooms: number | null
   bedrooms: number | null
@@ -276,11 +330,17 @@ export interface WizardData {
   year: number | null
   energy: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | null
   features: string[]
+  /** Sous-parcours guidé de l'étape Caractéristiques (0→6 ; Q7 = accordéon détails). */
+  specsQ?: number
+  /** Détails du bien (Q7) — conditionnels au type, initialisés au montage du Step 3b. */
+  det?: WizardDetails
   photos: WizardPhoto[]
   description: string
   aiAssist: boolean
   descTone?: 'neutre' | 'premium' | 'famille' | 'invest'
   transaction: 'vente' | 'location'
+  /** Phase de l'étape Prix & Description (0 = prix en grand, 1 = description). */
+  priceStep?: number
   price: number | null
   rent: number | null
   charges: number | null
@@ -288,6 +348,8 @@ export interface WizardData {
   visibility: 'public' | 'network' | 'private'
   publishMode: 'now' | 'schedule' | 'draft'
   scheduledAt?: string
+  /** Reprise de brouillon : id du bien remplacé (retiré à la publication finale). */
+  _resumeBienId?: string
 }
 
 export const EMPTY_WIZARD: WizardData = {
@@ -313,7 +375,6 @@ export const SG_STEPS = [
   { id: 'specs',    get label() { return i18nSg.t('listings:wizard.steps.specs') } },
   { id: 'photos',   get label() { return i18nSg.t('listings:wizard.steps.photos') } },
   { id: 'desc',     get label() { return i18nSg.t('listings:wizard.steps.desc') } },
-  { id: 'options',  get label() { return i18nSg.t('listings:wizard.steps.options') } },
   { id: 'publish',  get label() { return i18nSg.t('listings:wizard.steps.publish') } },
 ] as const
 
@@ -322,6 +383,14 @@ export const SG_KEYFRAMES = `
   @keyframes sgFadeUp {
     from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sgPage {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sgSavePop { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.15) } 100% { transform: scale(1); opacity: 1 } }
+  @media (prefers-reduced-motion: reduce) {
+    [style*="sgPage"] { animation: none !important; opacity: 1 !important; transform: none !important; }
   }
   @keyframes sgScaleIn {
     from { opacity: 0; transform: scale(.96); }

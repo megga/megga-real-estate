@@ -1,7 +1,7 @@
 /**
  * Page super-admin — usage des outils WhatsApp de l'agent IA.
  *
- * Route : `/dashboard/admin/tool-usage` (SuperAdminGuard, accent violet). Croise la
+ * Route : `/tool-usage` (console admin.megga.ch) (accent violet). Croise la
  * RPC des appels observés avec le catalogue `WHATSAPP_TOOL_CATALOG` (outils jamais
  * appelés inclus en lignes à 0), affiche tier + taux d'erreur par outil, puis les
  * coûts IA par agence via `AiCostsSection`. Vue observe-only, aucune action.

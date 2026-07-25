@@ -9,7 +9,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import type { CrmBien } from '@/components/crm-sugar/mockData'
 import { galSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { useBiensSugar } from '@/hooks/useBiensSugar'
@@ -17,7 +17,7 @@ import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from 
 import { BiensPager } from '@/components/crm-sugar/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-sugar-wizard/WizardShell'
 
-const DARK_TONE: DarkTone = 'meggaAi'
+const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 export default function BiensSugarV2Page() {
   const navigate = useNavigate()
@@ -35,7 +35,7 @@ export default function BiensSugarV2Page() {
     }
   }, [dark])
 
-  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const t = sugarThemeTokens(dark)
   const sp = crmSugarPalette(t, dark, DARK_TONE)
   const surf = galSurfaces(sp, dark)
 
@@ -59,7 +59,6 @@ export default function BiensSugarV2Page() {
       case 'biens-new': setWizardOpen(true); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'reseau': navigate('/dashboard/network'); break
       case 'ai':
       case 'julien': navigate('/dashboard/julien'); break
       case 'chat':

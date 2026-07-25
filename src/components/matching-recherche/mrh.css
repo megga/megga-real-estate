@@ -13,6 +13,48 @@
   @media (max-width: 760px)  { .mrh-grid { grid-template-columns: 1fr; } }
 }
 
+/* Vue « Carte » (MrhMapView) — split liste ↔ carte. Ces règles sont
+   INDISPENSABLES : .mrh-split-map ne porte aucune hauteur (ni ici, ni en
+   inline) et son contenu — fond stylisé comme carte Mapbox — est en
+   position:absolute. Sans display:grid sur le parent, le conteneur retombe
+   à 0 px de haut : la vue « Carte » n'affiche alors que la colonne liste en
+   pleine largeur, ce qui la rend indistinguable de la vue « Grille ». */
+.mrh-split {
+  display: grid;
+  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 20px;
+}
+/* min-height:0 — sans ça un grid item refuse de rétrécir sous la taille de
+   son contenu et la colonne liste scrolle la page au lieu d'elle-même. */
+.mrh-split-list { min-height: 0; }
+.mrh-split-map  { min-height: 0; }
+
+/* Panneau comprimé : la liste cède d'abord, la carte garde la priorité. */
+@container (max-width: 1080px) { .mrh-split { grid-template-columns: minmax(0, 320px) minmax(0, 1fr); } }
+/* Trop étroit pour deux colonnes : carte en haut (hauteur fixe, sinon elle
+   recollapse), liste scrollable dessous. */
+@container (max-width: 640px) {
+  .mrh-split { grid-template-columns: minmax(0, 1fr); grid-template-rows: 280px minmax(0, 1fr); }
+  .mrh-split-map { order: -1; }
+}
+@supports not (container-type: inline-size) {
+  @media (max-width: 1200px) { .mrh-split { grid-template-columns: minmax(0, 320px) minmax(0, 1fr); } }
+  @media (max-width: 760px) {
+    .mrh-split { grid-template-columns: minmax(0, 1fr); grid-template-rows: 280px minmax(0, 1fr); }
+    .mrh-split-map { order: -1; }
+  }
+}
+
+/* Chrome Mapbox (logo bas-gauche, attribution bas-droite) — les conditions
+   d'utilisation Mapbox imposent qu'il reste VISIBLE. Il est posé à `bottom: 0`
+   avec 10 px de marge, soit une bande d'environ 34 px ; les pilules adresse et
+   coordonnées de la fiche annonce occupent 14 à 44 px et le recouvraient. On le
+   remonte donc au-dessus d'elles, d'une hauteur que l'appelant fixe puisque lui
+   seul connaît la taille de son propre calque. */
+.mrh-map-chrome-up .mapboxgl-ctrl-bottom-left,
+.mrh-map-chrome-up .mapboxgl-ctrl-bottom-right { bottom: var(--mrh-map-chrome-inset, 0px); }
+
 .mrh-scroll::-webkit-scrollbar { width: 9px; }
 .mrh-scroll::-webkit-scrollbar-thumb { background: var(--mrh-line, rgba(15,23,42,.1)); border-radius: 9px; }
 
@@ -44,3 +86,8 @@
 }
 
 @keyframes sgFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Bascule Grille ↔ Carte : la vue qui arrive monte d'un cran. Plus court et
+   plus discret que l'entrée des cartes (sgFadeUp), parce qu'il s'agit ici de
+   remplacer une vue entière, pas de faire apparaître des éléments un à un. */
+@keyframes mrhViewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }

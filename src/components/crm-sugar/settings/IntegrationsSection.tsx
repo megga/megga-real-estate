@@ -939,12 +939,22 @@ export function IntegrationsSection() {
 
   // Connect : vrai OAuth Supabase (Google / Microsoft) — redirection vers la page
   // officielle du provider, retour sur /auth/callback. WhatsApp passe par la modale.
-  const handleConnect = (id: string) => {
+  const handleConnect = async (id: string) => {
     const item = items.find(i => i.id === id)
     if (!item) return
-    if (item.provider === 'google') google.connectGoogleCalendar()
-    else if (item.provider === 'microsoft') outlook.connectOutlookCalendar()
-    else if (item.provider === 'whatsapp') setWaPair(true)
+    if (item.provider === 'google' || item.provider === 'microsoft') {
+      // Succès = redirection hors de l'app ; on ne revient ici que sur échec
+      // (« Manual linking » désactivé, identité déjà liée à un autre compte…).
+      const { error } = item.provider === 'google'
+        ? await google.connectGoogleCalendar()
+        : await outlook.connectOutlookCalendar()
+      if (error) {
+        setToast(t('integrations.toast.connectFailed', { error }))
+        setTimeout(() => setToast(null), 2400)
+      }
+      return
+    }
+    if (item.provider === 'whatsapp') setWaPair(true)
     else if (item.provider === 'skribble') setEsignConnect(true)
   }
 

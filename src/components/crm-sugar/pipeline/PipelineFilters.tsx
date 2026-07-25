@@ -1,50 +1,19 @@
-// MEGGA CRM Sugar v2 — Pipeline filters + KPI tiles + segmented view.
-// 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx).
+/**
+ * MEGGA CRM — Pipeline v2 « Sugar Pure » : sélecteur de vue + pilule « Filtres »
+ * unique (panneau Étape / Risque / Période) + les 3 sous-filtres.
+ * Port 1:1 du handoff crm-screen-pipeline-sugar.jsx (§SugarFilterPill,
+ * §SugarStageFilter, §SugarRiskFilter, §SugarPeriodFilter, §SugarSegmentedView).
+ * Les en-têtes de sections (« Étape », « Risque », « Période ») vivent dans le
+ * panneau composé par la page — pas dans les sous-filtres.
+ */
 
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { CRM_STAGES, CRM_STAGE_ORDER, type SugarPalette, type StageId } from '../tokens'
+import { CRM_STAGE_ORDER, SG_STAGE_HUE, type SugarPalette, type StageId } from '../tokens'
 
-// ─── KPI Tile ──────────────────────────────────────────────────────────
-interface KpiTileProps {
-  label: string
-  value: string | number
-  sub?: string
-  accent?: string
-  sp: SugarPalette
-  dark: boolean
-}
-export function SugarKpiTile({ label, value, sub, accent, sp, dark }: KpiTileProps) {
-  return (
-    <div style={{
-      background: dark ? 'transparent' : 'rgba(255,255,255,.55)',
-      border: `1px solid ${sp.cardBorder}`,
-      borderRadius: 20, padding: '16px 18px',
-      boxShadow: dark ? 'none' : sp.shadowSm,
-      backdropFilter: dark ? 'none' : 'blur(6px)',
-      WebkitBackdropFilter: dark ? 'none' : 'blur(6px)',
-      flex: 1, minWidth: 0,
-    }}>
-      <div style={{
-        fontSize: 10.5, fontWeight: 700, color: sp.sub,
-        letterSpacing: 0.4, textTransform: 'uppercase',
-      }}>{label}</div>
-      <div style={{
-        fontSize: 26, fontWeight: 800, color: accent || sp.ink,
-        letterSpacing: -0.6, marginTop: 6, fontVariantNumeric: 'tabular-nums',
-      }}>{value}</div>
-      {sub && (
-        <div style={{ fontSize: 11.5, color: sp.sub, marginTop: 4, fontWeight: 600 }}>{sub}</div>
-      )}
-    </div>
-  )
-}
-
-// ─── Segmented view (Kanban / Liste) ──────────────────────────────────
-// 'timeline' retiré : PipelineTimeline iterait CRM_DEALS mock + pas de dates
-// start/end réelles par deal. Réintroductible quand spec produit définie.
-export type PipelineView = 'kanban' | 'list'
+// ─── Segmented view (Kanban / Liste / Timeline) ───────────────────────
+export type PipelineView = 'kanban' | 'list' | 'timeline'
 
 export function SugarSegmentedView({
   value, onChange, sp,
@@ -53,17 +22,17 @@ export function SugarSegmentedView({
   return (
     <div style={{
       display: 'flex', padding: 4, background: sp.cardBg,
-      border: `1px solid ${sp.cardBorder}`, borderRadius: 999,
-      boxShadow: sp.shadowSm,
+      borderRadius: 999, boxShadow: sp.shadowSm,
     }}>
       {([
         { k: 'kanban' as const,   label: t('view.kanban') },
         { k: 'list' as const,     label: t('view.list') },
+        { k: 'timeline' as const, label: t('view.timeline') },
       ]).map(v => (
         <button key={v.k} onClick={() => onChange?.(v.k)} style={{
           padding: '9px 18px', borderRadius: 999, border: 0, cursor: 'pointer',
-          background: value === v.k ? sp.ink : 'transparent',
-          color: value === v.k ? sp.pageBg : sp.soft,
+          background: value === v.k ? sp.accent : 'transparent',
+          color: value === v.k ? sp.accentInk : sp.soft,
           fontWeight: value === v.k ? 700 : 500, fontSize: 13,
           fontFamily: 'inherit',
           boxShadow: value === v.k ? sp.focusShadow : 'none',
@@ -73,7 +42,18 @@ export function SugarSegmentedView({
   )
 }
 
-// ─── Filter pill (with popover) ────────────────────────────────────────
+// ─── Détection de thème depuis la palette (repli robuste sur `dark`) ───
+function sgFilterIsDark(sp: SugarPalette, dark?: boolean): boolean {
+  if (typeof dark === 'boolean') return dark
+  const hex = (sp.ink || '#000000').replace('#', '')
+  if (hex.length < 6) return false
+  const r = parseInt(hex.slice(0, 2), 16)
+  const g = parseInt(hex.slice(2, 4), 16)
+  const b = parseInt(hex.slice(4, 6), 16)
+  return 0.299 * r + 0.587 * g + 0.114 * b > 140
+}
+
+// ─── Pilule « Filtres » unique (label + valeur + chevron, panneau) ─────
 interface FilterPillProps {
   sp: SugarPalette
   label: string
@@ -86,6 +66,12 @@ export function SugarFilterPill({ sp, label, value, active, children, dark }: Fi
   const { t } = useTranslation('pipeline')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const isDark = sgFilterIsDark(sp, dark)
+  const panelBg = isDark ? '#17181A' : '#FFFFFF'
+  const panelBorder = isDark ? 'rgba(255,255,255,.07)' : sp.cardBorder
+  const panelShadow = isDark
+    ? '0 16px 40px -12px rgba(0,0,0,.72), 0 2px 10px rgba(0,0,0,.45)'
+    : '0 10px 30px -10px rgba(14,20,16,.18), 0 2px 8px rgba(14,20,16,.06)'
 
   useEffect(() => {
     if (!open) return
@@ -96,38 +82,30 @@ export function SugarFilterPill({ sp, label, value, active, children, dark }: Fi
     return () => document.removeEventListener('mousedown', fn)
   }, [open])
 
+  const mutedOnAccent = `color-mix(in srgb, ${sp.accentInk} 62%, transparent)`
+
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button onClick={() => setOpen(o => !o)} style={{
         height: 44, padding: '0 16px', borderRadius: 999, border: 0,
-        background: active ? sp.ink : sp.cardBg,
+        background: active ? sp.accent : sp.cardBg,
         boxShadow: sp.shadowSm,
         display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: 'inherit',
       }}>
-        <span style={{
-          fontSize: 11, color: active ? 'rgba(255,255,255,.65)' : sp.sub, fontWeight: 600,
-        }}>{label}</span>
-        <span style={{
-          fontSize: 12.5, color: active ? sp.pageBg : sp.ink, fontWeight: 700,
-        }}>{value}</span>
-        <MEIcon name="chevron-down" size={11} color={active ? 'rgba(255,255,255,.65)' : sp.sub} />
+        <span style={{ fontSize: 11, color: active ? mutedOnAccent : sp.sub, fontWeight: 600 }}>{label}</span>
+        <span style={{ fontSize: 12.5, color: active ? sp.accentInk : sp.ink, fontWeight: 700 }}>{value}</span>
+        <MEIcon name="chevron-down" size={11} color={active ? sp.accentInk : sp.sub} />
       </button>
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-          background: dark ? '#181B22' : 'rgba(255,255,255,.96)',
-          border: `1px solid ${dark ? 'rgba(255,255,255,.09)' : sp.cardBorder}`,
-          borderRadius: 16,
-          boxShadow: dark
-            ? '0 12px 34px -10px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.35)'
-            : '0 10px 30px -10px rgba(14,20,16,.18), 0 2px 8px rgba(14,20,16,.06)',
-          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-          padding: 10, zIndex: 50, minWidth: 220,
+          background: panelBg, border: `1px solid ${panelBorder}`,
+          borderRadius: 16, boxShadow: panelShadow,
+          padding: 14, zIndex: 50, minWidth: 220,
           animation: 'sfPop .16s cubic-bezier(.2,.7,.2,1)',
         }}>
-          <style>{`@keyframes sfPop { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }`}</style>
           {children}
-          <div style={{ borderTop: `1px solid ${dark ? 'rgba(255,255,255,.09)' : sp.cardBorder}`, marginTop: 8, paddingTop: 8 }}>
+          <div style={{ borderTop: `1px solid ${panelBorder}`, marginTop: 8, paddingTop: 8 }}>
             <button onClick={() => setOpen(false)} style={{
               width: '100%', padding: '8px 0', borderRadius: 10, border: 0, cursor: 'pointer',
               background: sp.focusBg, color: sp.focusInk, fontWeight: 700, fontSize: 12, fontFamily: 'inherit',
@@ -139,19 +117,17 @@ export function SugarFilterPill({ sp, label, value, active, children, dark }: Fi
   )
 }
 
-// ─── Stage filter ──────────────────────────────────────────────────────
+// ─── Stage filter (pastilles SG_STAGE_HUE) ─────────────────────────────
 export function SugarStageFilter({
   sp, value, onChange, dark,
 }: { sp: SugarPalette; value: StageId[]; onChange: (v: StageId[]) => void; dark: boolean }) {
   const { t } = useTranslation('pipeline')
+  const isDark = sgFilterIsDark(sp, dark)
+  const rowSel = isDark ? 'rgba(255,255,255,.08)' : '#F4F5F7'
+  const boxBorder = isDark ? 'rgba(255,255,255,.28)' : '#CDD3DB'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{
-        fontSize: 10.5, fontWeight: 700, color: sp.sub,
-        letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4, padding: '0 4px',
-      }}>{t('board.filter.stagesHeader')}</div>
       {CRM_STAGE_ORDER.map(s => {
-        const info = CRM_STAGES[s]
         const sel = value.includes(s)
         return (
           <button key={s}
@@ -159,17 +135,17 @@ export function SugarStageFilter({
             style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px',
               borderRadius: 10, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-              background: sel ? (dark ? 'rgba(255,255,255,.08)' : '#F4F5F7') : 'transparent', textAlign: 'left',
+              background: sel ? rowSel : 'transparent', textAlign: 'left',
             }}>
             <span style={{
               width: 16, height: 16, borderRadius: 4,
-              border: `2px solid ${sel ? sp.focusBg : (dark ? 'rgba(255,255,255,.28)' : '#CDD3DB')}`,
+              border: `2px solid ${sel ? sp.focusBg : boxBorder}`,
               background: sel ? sp.focusBg : 'transparent',
               display: 'grid', placeItems: 'center', flexShrink: 0,
             }}>
               {sel && <svg width="9" height="9" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5 4-4" stroke={sp.focusInk} strokeWidth="1.6" strokeLinecap="round" fill="none"/></svg>}
             </span>
-            <span style={{ width: 8, height: 8, borderRadius: 999, background: info.color, flexShrink: 0 }} />
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: SG_STAGE_HUE[s], flexShrink: 0 }} />
             <span style={{ fontSize: 12.5, fontWeight: sel ? 700 : 500, color: sp.ink }}>{t(`stages.${s}`)}</span>
           </button>
         )
@@ -192,6 +168,9 @@ export function SugarRiskFilter({
   sp, value, onChange, dark,
 }: { sp: SugarPalette; value: RiskFilterValue; onChange: (v: RiskFilterValue) => void; dark: boolean }) {
   const { t } = useTranslation('pipeline')
+  const isDark = sgFilterIsDark(sp, dark)
+  const rowSel = isDark ? 'rgba(255,255,255,.08)' : '#F4F5F7'
+  const boxBorder = isDark ? 'rgba(255,255,255,.28)' : '#CDD3DB'
   const opts: { k: RiskFilterValue; label: string; dot: string }[] = [
     { k: 'all',      label: t('board.risk.all'),     dot: sp.sub },
     { k: 'healthy',  label: t('board.risk.healthy'), dot: '#0E9F6E' },
@@ -200,23 +179,18 @@ export function SugarRiskFilter({
   ]
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{
-        fontSize: 10.5, fontWeight: 700, color: sp.sub,
-        letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4, padding: '0 4px',
-      }}>{t('board.filter.riskHeader')}</div>
       {opts.map(o => (
         <button key={o.k} onClick={() => onChange(o.k)} style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px',
           borderRadius: 10, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-          background: value === o.k ? (dark ? 'rgba(255,255,255,.08)' : '#F4F5F7') : 'transparent', textAlign: 'left',
+          background: value === o.k ? rowSel : 'transparent', textAlign: 'left',
         }}>
           <span style={{
             width: 16, height: 16, borderRadius: 999,
-            border: `2px solid ${value === o.k ? sp.focusBg : (dark ? 'rgba(255,255,255,.28)' : '#CDD3DB')}`,
-            background: value === o.k ? sp.focusBg : 'transparent',
+            border: `2px solid ${value === o.k ? sp.focusBg : boxBorder}`,
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>
-            {value === o.k && <span style={{ width: 6, height: 6, borderRadius: 999, background: sp.focusInk }} />}
+            {value === o.k && <span style={{ width: 6, height: 6, borderRadius: 999, background: sp.focusBg }} />}
           </span>
           <span style={{ width: 8, height: 8, borderRadius: 999, background: o.dot, flexShrink: 0 }} />
           <span style={{ fontSize: 12.5, fontWeight: value === o.k ? 700 : 500, color: sp.ink }}>{o.label}</span>
@@ -231,6 +205,9 @@ export function SugarPeriodFilter({
   sp, value, onChange, dark,
 }: { sp: SugarPalette; value: number; onChange: (v: number) => void; dark: boolean }) {
   const { t } = useTranslation('pipeline')
+  const isDark = sgFilterIsDark(sp, dark)
+  const rowSel = isDark ? 'rgba(255,255,255,.08)' : '#F4F5F7'
+  const boxBorder = isDark ? 'rgba(255,255,255,.28)' : '#CDD3DB'
   const opts = [
     { k: 7,  label: t('board.filter.lastDays', { count: 7 }) },
     { k: 30, label: t('board.filter.lastDays', { count: 30 }) },
@@ -240,23 +217,18 @@ export function SugarPeriodFilter({
   ]
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{
-        fontSize: 10.5, fontWeight: 700, color: sp.sub,
-        letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4, padding: '0 4px',
-      }}>{t('board.filter.periodHeader')}</div>
       {opts.map(o => (
         <button key={o.k} onClick={() => onChange(o.k)} style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px',
           borderRadius: 10, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-          background: value === o.k ? (dark ? 'rgba(255,255,255,.08)' : '#F4F5F7') : 'transparent', textAlign: 'left',
+          background: value === o.k ? rowSel : 'transparent', textAlign: 'left',
         }}>
           <span style={{
             width: 16, height: 16, borderRadius: 999,
-            border: `2px solid ${value === o.k ? sp.focusBg : (dark ? 'rgba(255,255,255,.28)' : '#CDD3DB')}`,
-            background: value === o.k ? sp.focusBg : 'transparent',
+            border: `2px solid ${value === o.k ? sp.focusBg : boxBorder}`,
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>
-            {value === o.k && <span style={{ width: 6, height: 6, borderRadius: 999, background: sp.focusInk }} />}
+            {value === o.k && <span style={{ width: 6, height: 6, borderRadius: 999, background: sp.focusBg }} />}
           </span>
           <span style={{ fontSize: 12.5, fontWeight: value === o.k ? 700 : 500, color: sp.ink }}>{o.label}</span>
         </button>

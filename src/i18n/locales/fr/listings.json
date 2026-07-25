@@ -17,7 +17,12 @@
     "land": "Terrain",
     "office": "Bureau",
     "parking": "Parking / Garage",
-    "storage": "Dépôt / Cave"
+    "storage": "Dépôt / Cave",
+    "attic": "Attique",
+    "duplex": "Duplex",
+    "triplex": "Triplex",
+    "loft": "Loft",
+    "chalet": "Chalet"
   },
   "column": {
     "property": "Bien",
@@ -692,7 +697,6 @@
       "title": "Acheteurs en cours",
       "pipeline": "Pipeline",
       "buyerFallback": "Acheteur",
-      "offerSuffix": " · offre {{amount}}",
       "matchAffinity": "Match MEGGA AI · {{score}}% d'affinité",
       "propose": "Proposer",
       "kycNotice": "<0>KYC à compléter</0> pour un acheteur, optionnel à ce stade, requis avant signature.",
@@ -869,11 +873,12 @@
       "subtitle": "Trois manières d'aller vite. Le contenu sera ensuite affiné étape par étape.",
       "manual": {
         "title": "Saisir manuellement",
-        "sub": "Vous remplissez chaque section. Idéal quand vous connaissez le bien et avez les éléments en main."
+        "sub": "Section par section, vous gardez la main."
       },
       "import": {
         "title": "Importer un mandat",
-        "sub": "Extraction PDF automatique, bientôt disponible."
+        "sub": "MEGGA AI extrait tout du PDF de mandat.",
+        "soon": "Bientôt"
       },
       "autosave": {
         "title": "Brouillon sauvegardé automatiquement",
@@ -884,7 +889,12 @@
         "subtitle": "{{count}} particuliers ont soumis leur bien. Sélectionnez-en un pour pré-remplir.",
         "emptyTitle": "Aucune soumission",
         "emptyBody": "Aucun particulier n'a soumis de bien pour le moment.",
-        "unknownVendor": "Vendeur inconnu"
+        "unknownVendor": "Vendeur inconnu",
+        "subtitle_one": "1 particulier a soumis son bien.",
+        "subtitle_other": "{{count}} particuliers ont soumis leur bien.",
+        "selectVendor": "Sélectionnez un vendeur",
+        "cap_one": "5 soumissions affichées au maximum ; 1 plus ancienne dans Mes biens.",
+        "cap_other": "5 soumissions affichées au maximum ; {{count}} plus anciennes dans Mes biens."
       }
     },
     "step1": {
@@ -1037,8 +1047,43 @@
         "cheminée": "Cheminée",
         "clim": "Climatisation",
         "buanderie": "Buanderie",
-        "vue": "Vue dégagée"
-      }
+        "vue": "Vue dégagée",
+        "cheminee": "Cheminée",
+        "vue_lac": "Vue lac",
+        "cuisine_agencee": "Cuisine agencée",
+        "dressing": "Dressing",
+        "parquet": "Parquet",
+        "reduit": "Réduit",
+        "cave_a_vin": "Cave à vin",
+        "pompe_chaleur": "Pompe à chaleur",
+        "solaire": "Panneaux solaires",
+        "borne_recharge": "Borne de recharge",
+        "domotique": "Domotique",
+        "fibre": "Fibre optique",
+        "triple_vitrage": "Triple vitrage",
+        "abri_pc": "Abri PC",
+        "velo": "Local vélos",
+        "conciergerie": "Conciergerie",
+        "plain_pied": "Plain-pied",
+        "mansarde": "Combles aménagés",
+        "accessible_pmr": "Accès PMR",
+        "animaux": "Animaux admis",
+        "meuble": "Meublé"
+      },
+      "q": {
+        "type": "Quel type de bien ?",
+        "surfaceHab": "Quelle surface habitable ?",
+        "surfaceTerrain": "Quelle surface de terrain ?",
+        "surfaceCommerce": "Quelle surface utile ?",
+        "rooms": "Combien de pièces ?",
+        "year": "Année de construction ?",
+        "energy": "Classe énergétique ?",
+        "features": "Équipements & atouts",
+        "details": "Les détails du bien"
+      },
+      "addFeature": "Ajouter un atout",
+      "customPlaceholder": "Ex : Sauna, box vélos…",
+      "removeFeature": "Retirer"
     },
     "txBadge": {
       "sale": "À vendre",
@@ -1126,7 +1171,21 @@
         "connecting": "Connexion en cours…",
         "connect": "Connecter mon compte",
         "readOnlyNote": "Lecture seule, MEGGA importera une copie. Vos fichiers d'origine restent intacts."
-      }
+      },
+      "count_one": "{{count}} photo",
+      "count_other": "{{count}} photos",
+      "tipFew": "8 à 12 photos = 3× plus de demandes",
+      "tipMany": "Belle série, pensez à varier les angles",
+      "dropTitle": "Déposez vos photos ici",
+      "dropHint": "ou cliquez pour parcourir · JPG, PNG · plusieurs à la fois",
+      "coverShort": "COUV.",
+      "add": "Ajouter",
+      "setCover": "Définir comme couverture",
+      "crop": "Recadrer",
+      "delete": "Supprimer",
+      "cropTitle": "Recadrer la photo",
+      "cropHint": "Glissez le cadre ou ses coins pour ajuster.",
+      "aspectFree": "Libre"
     },
     "step5": {
       "eyebrow": "Étape 6 sur 8 · Prix & Description",
@@ -1147,7 +1206,7 @@
         "above": "Au-dessus",
         "farAbove": "Très au-dessus"
       },
-      "descTitle": "Puis la description.",
+      "descTitle": "La description.",
       "descSubtitle": "Quelques lignes qui donnent envie. Laissez MEGGA AI rédiger un premier jet, ou écrivez à la main.",
       "ai": {
         "title": "MEGGA AI rédige pour vous",
@@ -1155,7 +1214,11 @@
         "thinking": "Réflexion…",
         "regenerate": "Régénérer",
         "generate": "Générer",
-        "error": "La rédaction IA a échoué. Réessayez, ou saisissez la description à la main."
+        "error": "La rédaction IA a échoué. Réessayez, ou saisissez la description à la main.",
+        "promptRefine": "Affiner : ex. rendre plus premium, raccourcir…",
+        "promptAsk": "Demander à MEGGA AI de rédiger la description…",
+        "refine": "Affiner",
+        "create": "Créer"
       },
       "tone": {
         "neutre": "Neutre",
@@ -1163,17 +1226,24 @@
         "famille": "Famille",
         "invest": "Investisseur"
       },
-      "descPlaceholder": "Écrivez ici la description du bien… ou cliquez sur Générer.",
+      "descPlaceholder": "Écrivez ici la description du bien… ou générez un premier jet avec MEGGA AI.",
       "counter": {
         "chars_one": "{{count}} caractère",
         "chars_other": "{{count}} caractères",
         "beforeMin_one": " · {{count}} avant le minimum",
         "beforeMin_other": " · {{count}} avant le minimum",
         "target": " · objectif {{target}}",
-        "ideal": " · longueur idéale ✓"
+        "ideal": " · idéal",
+        "zero": "0 caractère",
+        "min": " · min. {{count}}"
       },
       "writtenByAi": "Rédigé par MEGGA AI",
-      "editHint": "Vous pouvez librement éditer le texte généré."
+      "editHint": "Vous pouvez librement éditer le texte généré.",
+      "txSale": "Vente",
+      "txRent": "Location",
+      "qSalePrice": "Quel prix de vente ?",
+      "qMonthlyRent": "Quel loyer mensuel ?",
+      "modify": "modifier"
     },
     "step6": {
       "eyebrow": "Étape 7 sur 8 · Options",
@@ -1269,9 +1339,9 @@
         "public": "Public",
         "network": "Réseau MEGGA",
         "private": "Privé",
-        "publicDesc": "Visible sur megga.ch et les portails partenaires.",
+        "publicDesc": "Diffusé sur Immobilier.ch après vérification.",
         "networkDesc": "Visible uniquement par les agents MEGGA.",
-        "privateDesc": "Visible uniquement via lien privé."
+        "privateDesc": "Visible uniquement dans votre CRM et le Matching."
       },
       "recap": {
         "title": "Récapitulatif",
@@ -1288,7 +1358,53 @@
         "simple": "Simple",
         "co": "Co-mandat"
       },
-      "urlSlugFallback": "nouveau-bien"
+      "urlSlugFallback": "nouveau-bien",
+      "readyTitle": "Prêt à mettre en ligne ?",
+      "check": {
+        "address": "Adresse du bien",
+        "surface": "Surface ou nombre de pièces",
+        "photos": "Au moins 5 photos ({{count}}/5)",
+        "rent": "Loyer mensuel",
+        "price": "Prix de vente",
+        "description": "Description de l'annonce"
+      },
+      "checklist": {
+        "heading_one": "1 élément à compléter avant de publier",
+        "heading_other": "{{count}} éléments à compléter avant de publier",
+        "hint": "Vous pouvez aussi enregistrer en brouillon et finir plus tard.",
+        "complete": "Compléter"
+      },
+      "mandateNote": "Mandat non signé : l'annonce paraîtra sur MEGGA ; la diffusion Immobilier.ch partira dès la signature.",
+      "cta": {
+        "schedule": "Programmer la publication",
+        "draft": "Enregistrer le brouillon",
+        "private": "Enregistrer en privé",
+        "publishIdx": "Publier sur Immobilier.ch",
+        "publishMegga": "Publier sur MEGGA"
+      },
+      "blockedHint_one": "1 élément à compléter, ou passez « Quand » sur Brouillon",
+      "blockedHint_other": "{{count}} éléments à compléter, ou passez « Quand » sur Brouillon",
+      "roomsWord": "pièces",
+      "spec": {
+        "surface": "Surface",
+        "rooms": "Pièces",
+        "bedrooms": "Chambres",
+        "bathrooms": "Salles de bain",
+        "floor": "Étage",
+        "year": "Année",
+        "charges": "Charges",
+        "epc": "DPE"
+      },
+      "descriptionLabel": "Description",
+      "featuresLabel": "Équipements",
+      "agentFallback": "Votre agence",
+      "optionsTitle": "Options de publication",
+      "when": {
+        "now": "Maintenant",
+        "schedule": "Programmer",
+        "draft": "Brouillon"
+      },
+      "draftNote": "Le bien reste en brouillon dans « Mes biens », rien n'est diffusé."
     },
     "step8": {
       "eyebrow": {
@@ -1354,7 +1470,9 @@
       "publishError": "Échec de la publication : {{message}}",
       "unknownError": "Erreur inconnue",
       "recommended": "Recommandé",
-      "choose": "Choisir"
+      "choose": "Choisir",
+      "saved": "Enregistré",
+      "autosave": "Enregistrement automatique"
     },
     "kyc": {
       "verified": "KYC vérifié",
@@ -1451,6 +1569,136 @@
         "p7": "Vue",
         "p8": "Plan"
       }
+    },
+    "step3b": {
+      "section": {
+        "info": "Informations générales",
+        "surf": "Surfaces",
+        "pieces": "Pièces",
+        "ext": "Extérieurs",
+        "park": "Stationnement",
+        "equip": "Équipements",
+        "imm": "Immeuble",
+        "energy": "Chauffage & énergie",
+        "lux": "Prestations de luxe"
+      },
+      "reference": "Référence",
+      "auto": "Auto",
+      "availability": "Disponibilité",
+      "renovYear": "Année de rénovation",
+      "renovYearPlaceholder": "Ex : 2018",
+      "charges": "Charges mensuelles",
+      "standing": {
+        "label": "Standing",
+        "standard": "Standard",
+        "hautDeGamme": "Haut de gamme",
+        "luxe": "Luxe",
+        "ultraLuxe": "Ultra-luxe"
+      },
+      "unit": {
+        "m2": "m²",
+        "chfMonth": "CHF/mois",
+        "chf": "CHF"
+      },
+      "datePlaceholder": "Choisir…",
+      "toAgree": "À convenir",
+      "clear": "Effacer",
+      "surf": {
+        "ppe": "Surface PPE",
+        "hab": "Surface habitable",
+        "utile": "Surface utile",
+        "pond": "Surface pondérée",
+        "balc": "Surface des balcons",
+        "terr": "Surface des terrasses",
+        "jard": "Jardin privatif",
+        "terrain": "Surface du terrain"
+      },
+      "pieces": {
+        "chambres": "Chambres",
+        "sdb": "Salles de bains",
+        "wc": "WC visiteurs"
+      },
+      "ext": {
+        "balcon": "Balcon",
+        "terrasse": "Terrasse",
+        "jardin": "Jardin",
+        "piscine": "Piscine",
+        "jacuzzi": "Jacuzzi",
+        "vueMontagne": "Vue montagne",
+        "vueLac": "Vue lac"
+      },
+      "expo": {
+        "label": "Exposition",
+        "sud": "Sud",
+        "sudOuest": "Sud-Ouest",
+        "sudEst": "Sud-Est",
+        "est": "Est",
+        "ouest": "Ouest",
+        "nord": "Nord"
+      },
+      "park": {
+        "int": "Parking intérieur",
+        "ext": "Parking extérieur",
+        "garage": "Garage fermé",
+        "box": "Box",
+        "visit": "Places visiteurs",
+        "borne": "Borne de recharge électrique"
+      },
+      "equip": {
+        "ascenseur": "Ascenseur",
+        "clim": "Climatisation",
+        "domotique": "Domotique",
+        "cheminee": "Cheminée",
+        "caveVin": "Cave à vin",
+        "alarme": "Alarme",
+        "video": "Vidéosurveillance",
+        "concierge": "Concierge",
+        "pmr": "Accès PMR"
+      },
+      "imm": {
+        "etage": "Étage",
+        "etagePlaceholder": "Ex : 3",
+        "floors": "Nombre d'étages (immeuble)",
+        "floorsPlaceholder": "Ex : 6",
+        "chargesPPE": "Charges PPE",
+        "fondsReno": "Fonds de rénovation"
+      },
+      "energy": {
+        "heatLabel": "Type de chauffage",
+        "heat": {
+          "pac": "PAC",
+          "gaz": "Gaz",
+          "mazout": "Mazout",
+          "pellets": "Pellets",
+          "electrique": "Électrique",
+          "cad": "CAD"
+        },
+        "optionsLabel": "Options",
+        "floorHeat": "Chauffage au sol",
+        "pv": "Panneaux photovoltaïques",
+        "solarTherm": "Solaire thermique",
+        "glazingLabel": "Vitrage",
+        "glazing": {
+          "double": "Double vitrage",
+          "triple": "Triple vitrage"
+        }
+      },
+      "lux": {
+        "quai": "Quai privé",
+        "ponton": "Ponton",
+        "accesLac": "Accès lac",
+        "sauna": "Sauna",
+        "hammam": "Hammam",
+        "piscInt": "Piscine intérieure",
+        "piscExt": "Piscine extérieure",
+        "vue360": "Vue 360°",
+        "accesSecu": "Accès sécurisé",
+        "domaine": "Domaine fermé"
+      }
+    },
+    "porte": {
+      "choose": "Choisir",
+      "selected": "Sélectionné"
     }
   },
   "gallery": {
@@ -1541,5 +1789,34 @@
       "price": "Prix & publication"
     },
     "chargesUnit": "CHF / mois"
+  },
+  "fiche": {
+    "offMarket": "Off-market",
+    "edit": {
+      "titleLabel": "Titre de l'annonce",
+      "addressLabel": "Adresse"
+    },
+    "performance": {
+      "trendShort": "+{{percent}} %"
+    },
+    "buyers": {
+      "empty": "Aucun acheteur positionné pour l'instant."
+    },
+    "visits": {
+      "eyebrow": "Visites",
+      "none": "Aucune visite planifiée."
+    },
+    "mandate": {
+      "renew": "Renouveler le mandat",
+      "renewToastTitle": "Renouvellement du mandat",
+      "renewToastLine": "Préparez le renouvellement et transmettez-le au propriétaire pour signature."
+    },
+    "diffusion": {
+      "publish": "Diffuser",
+      "publicPreview": "Voir l'annonce publique",
+      "previewToastTitle": "Aperçu public",
+      "previewOnlineLine": "L'annonce est diffusée sur immobilier.ch.",
+      "previewOfflineLine": "L'annonce n'est pas encore diffusée publiquement."
+    }
   }
 }

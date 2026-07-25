@@ -4,16 +4,10 @@
   "new_deal": "New deal",
   "view": {
     "kanban": "Kanban",
-    "list": "List"
-  },
-  "kpi": {
-    "active": "Active",
-    "pipeline_value": "Pipeline value",
-    "at_risk": "At risk",
-    "conversion": "Conversion"
+    "list": "List",
+    "timeline": "Timeline"
   },
   "filter": {
-    "agent": "Agent",
     "stage": "Stage"
   },
   "column": {
@@ -66,152 +60,6 @@
     "signed": "Signed",
     "lost": "Lost"
   },
-  "newDeal": {
-    "archetype": {
-      "buyerSearch": {
-        "label": "Buyer searching",
-        "sub": "No property identified yet"
-      },
-      "buyerBien": {
-        "label": "Buyer on a property",
-        "sub": "Property already identified, visit or interest"
-      },
-      "sellerMandate": {
-        "label": "Seller mandate",
-        "sub": "New property to publish, mandate required"
-      },
-      "tenant": {
-        "label": "Tenant",
-        "sub": "Short cycle, light KYC"
-      }
-    },
-    "action": {
-      "call": {
-        "label": "Call",
-        "placeholder": "First qualification call"
-      },
-      "visit": {
-        "label": "Visit",
-        "placeholder": "Schedule the property visit"
-      },
-      "match": {
-        "label": "Matching",
-        "placeholder": "Send 3 properties from the portfolio"
-      },
-      "kyc": {
-        "label": "KYC",
-        "placeholder": "Start the AML verification file"
-      },
-      "doc": {
-        "label": "Document",
-        "placeholder": "Prepare the visit slip / mandate"
-      },
-      "scheduleLabel": "Action to schedule",
-      "dueLabel": "Due date",
-      "noteLabel": "Note"
-    },
-    "section": {
-      "dealType": "Deal type",
-      "contact": "Contact",
-      "bien": "Property",
-      "stageValue": "Stage & value",
-      "nextAction": "Next action"
-    },
-    "ai": {
-      "buttonTitle": "Pre-fill from an email/message",
-      "title": "MEGGA AI · pre-fill",
-      "placeholder": "Paste an email, a transcribed voice note or a WhatsApp message here. The AI extracts the contact, the property if any, the score and suggests a next action.",
-      "analyzing": "Analyzing…",
-      "extract": "Extract",
-      "prefilledNote": "First call following the message received"
-    },
-    "contact": {
-      "selectTitle": "Select a contact",
-      "createTitle": "Create a contact",
-      "existing": "Existing",
-      "new": "New",
-      "searchPlaceholder": "Search name, email, phone…",
-      "kycVerified": "KYC ✓",
-      "kycPending": "KYC in progress",
-      "kycTodo": "KYC to do",
-      "empty": "No results, switch to “New” to create this contact.",
-      "firstName": "First name",
-      "lastName": "Last name",
-      "email": "Email",
-      "phone": "Phone",
-      "language": "Language",
-      "duplicate": "Existing contact found: {{name}}. Switch to “Existing” to use it."
-    },
-    "bien": {
-      "toPublish": "Property to publish (can be created later)",
-      "fromPortfolio": "Property from the portfolio or MEGGA catalogue",
-      "searchPlaceholder": "Search title, reference MG-…, address",
-      "rentPerMonth": "CHF {{amount}}/month",
-      "noneIdentified": "No property identified yet"
-    },
-    "stage": {
-      "startLabel": "Starting stage",
-      "estimatedValue": "Estimated value (CHF)",
-      "autoFromRef": "Auto from {{ref}}",
-      "optional": "Optional",
-      "estimatedCommission": "Estimated commission"
-    },
-    "guard": {
-      "mandate": {
-        "title": "Mandate required before publication",
-        "body": "A mandate wizard will be offered after creation, 3 documents to sign (mandate, terms, inventory of fixtures)."
-      },
-      "kyc": {
-        "title": "KYC recommended at this stage",
-        "body": "KYC is offered as the next action, supporting AML compliance. It blocks no pipeline step; final verification rests with the notary."
-      }
-    },
-    "error": {
-      "noAgency": "No agency linked, cannot create the deal",
-      "demoBien": "The selected property is a demo example. Select a real property from the agency portfolio.",
-      "demoContact": "The selected contact is a demo example. Select a real contact.",
-      "selectContact": "Select a contact",
-      "unknown": "Unknown error"
-    },
-    "footer": {
-      "creating": "Creating…",
-      "create": "Create deal"
-    },
-    "created": {
-      "badge": "Deal created",
-      "bienLine": "Property · {{title}}",
-      "activeSearch": "Active search",
-      "typeLine": "Type · {{type}}",
-      "continue": "Continue",
-      "quickMatch": {
-        "label": "Send 3 properties",
-        "sub": "AI matching"
-      },
-      "quickVisit": {
-        "label": "Schedule visit",
-        "sub": "Calendar"
-      },
-      "quickKyc": {
-        "label": "Start KYC",
-        "sub": "AML"
-      },
-      "quickDetail": {
-        "label": "View details",
-        "sub": "Deal record"
-      },
-      "timelineNote": "The deal timeline starts here. The actions above will add an event to the record."
-    },
-    "datetime": {
-      "months": "[\"January\",\"February\",\"March\",\"April\",\"May\",\"June\",\"July\",\"August\",\"September\",\"October\",\"November\",\"December\"]",
-      "daysShort": "[\"M\",\"T\",\"W\",\"T\",\"F\",\"S\",\"S\"]",
-      "today17": "Today 5pm",
-      "tomorrow10": "Tomorrow 10am",
-      "inTwoDays": "In 2 days",
-      "nextMonday": "Next Monday",
-      "time": "Time",
-      "ok": "OK"
-    }
-  },
   "board": {
     "error": {
       "title": "Couldn't load the pipeline",
@@ -219,15 +67,9 @@
       "retry": "Try again"
     },
     "noPropertyYet": "Active search",
-    "dealsCount_one": "{{count}} deal",
-    "dealsCount_other": "{{count}} deals",
-    "dealsCountWithValue_one": "{{count}} deal · {{value}}",
-    "dealsCountWithValue_other": "{{count}} deals · {{value}}",
     "dragDealHere": "Drag a deal here",
     "dropToStage": "Drop here → {{stage}}",
     "searchPlaceholder": "Search contact, property, note…",
-    "importLead": "Import a lead",
-    "importLeadHint": "Import a lead via MEGGA AI",
     "commandPaletteComingSoon": "Search, ⌘K (coming soon)",
     "list": {
       "dealContact": "Deal / Contact",
@@ -244,17 +86,15 @@
     "filter": {
       "apply": "Apply",
       "reset": "Reset",
-      "stagesHeader": "Stages",
       "riskHeader": "Risk",
       "periodHeader": "Period",
       "deselectAll": "Deselect all",
-      "allStages": "All",
-      "stagesSelected_one": "{{count}} stage",
-      "stagesSelected_other": "{{count}} stages",
       "lastDays_one": "Last {{count}} day",
       "lastDays_other": "Last {{count}} days",
-      "daysShort": "{{count}}d",
-      "allTime": "All"
+      "allTime": "All",
+      "label": "Filters",
+      "none": "None",
+      "resetAll": "Reset filters"
     },
     "card": {
       "scheduleVisit": "Schedule a visit",
@@ -263,20 +103,61 @@
       "archive": "Archive",
       "markLost": "Mark as lost",
       "reassignTo": "Reassign to",
-      "noOtherAgents": "No other agent in the agency.",
-      "archiveDemoOnly": "Archiving is available on a real deal only (demo data).",
-      "archiveConfirm": "Archive this deal?",
-      "markLostDemoOnly": "Marking as lost is available on a real deal only (demo data).",
-      "lostReasonPrompt": "Reason for loss (optional, logged in the audit trail):",
-      "reassignDemoOnly": "Reassignment is available on a real deal only (demo data).",
       "actionFailed": "Failed: {{message}}",
-      "unknownError": "unknown error"
+      "unknownError": "unknown error",
+      "newDealInColumn": "New deal · {{stage}}",
+      "planAction": "Plan an action",
+      "overdue": "Overdue",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "sendToAi": "Send to MEGGA AI",
+      "visitReminderNote": "Viewing · {{day}} {{time}}",
+      "visitAiPrompt": "Schedule a viewing for {{name}}. Suggest time slots, draft the invitation message and add it to my calendar.",
+      "visitAiPromptWithBien": "Schedule a viewing for {{name}} at “{{bien}}”. Suggest time slots, draft the invitation message and add it to my calendar."
     },
     "toast": {
       "moveFailedTitle": "Could not move the deal",
-      "moveFailedDescription": "The stage change was not saved. Check your connection, then try again."
+      "moveFailedDescription": "The stage change was not saved. Check your connection, then try again.",
+      "archived": "Deal archived",
+      "lost": "Deal marked as lost",
+      "reassigned": "Deal reassigned to {{name}}",
+      "visitScheduled": "Viewing scheduled · {{day}} at {{time}}",
+      "undo": "Undo",
+      "created": "Deal created"
     },
-    "empty": "No deals in the pipeline yet."
+    "empty": "No deals in the pipeline yet.",
+    "sign": {
+      "sealed": "Deal signed",
+      "eyebrow": "What's next",
+      "scheduleAct": "Schedule the deed signing",
+      "scheduleActSub": "Appointment at the notary",
+      "congrats": "Congratulate {{name}}",
+      "congratsSub": "Message via their preferred channel",
+      "congratsPrompt": "Draft a congratulations message for {{name}}, who has just signed their deal. Warm, professional tone, ready to send via their preferred channel.",
+      "congratsPromptWithBien": "Draft a congratulations message for {{name}}, who has just signed for “{{bien}}”. Warm, professional tone, ready to send via their preferred channel.",
+      "openFile": "Open the file",
+      "openFileSub": "Documents and deal details",
+      "reopen": "Reopen in the pipeline",
+      "finish": "Done"
+    },
+    "lostConfirm": {
+      "title": "Mark this deal as lost?",
+      "message": "{{name}}'s deal will leave the pipeline.",
+      "messageNoName": "This deal will leave the pipeline.",
+      "cancel": "Cancel",
+      "confirm": "Mark as lost"
+    },
+    "emptyState": {
+      "filtered": {
+        "title": "No deals match",
+        "body": "Adjust the search or reset the filters to find your deals again.",
+        "cta": "Reset filters"
+      },
+      "none": {
+        "title": "No deals in progress",
+        "body": "Create your first deal. It will appear here, in its stage column."
+      }
+    }
   },
   "kyc": {
     "lock": {
@@ -405,7 +286,30 @@
       "lost": "Deal marked as lost",
       "offer_sent": "Offer sent",
       "counter_sent": "Counter-offer sent"
-    }
+    },
+    "buyer_eyebrow": "The buyer",
+    "affair_eyebrow": "The deal",
+    "next_action": "Next action",
+    "matches_title": "Properties to propose",
+    "matches_count_one": "{{count}} match",
+    "matches_count_other": "{{count}} matches",
+    "no_matches": "No portfolio property matches yet.",
+    "transmit": "Send to {{name}}",
+    "open_contact": "Open the contact profile",
+    "phone": "Phone",
+    "lang": {
+      "fr": "French",
+      "en": "English",
+      "de": "German",
+      "it": "Italian"
+    },
+    "crit": {
+      "buy": "Purchase",
+      "rent": "Rental",
+      "rooms_min": "≥ {{count}} rooms",
+      "budget_max": "≤ {{amount}}"
+    },
+    "property_line": "{{addr}} · {{area}} m² · {{rooms}} rooms"
   },
   "offerModal": {
     "cta": {
@@ -611,5 +515,78 @@
       "error": "Couldn't load",
       "retry": "Retry"
     }
+  },
+  "timeline": {
+    "kind": {
+      "call": "Call",
+      "match": "Send matches",
+      "kyc": "KYC file",
+      "visit": "Viewing",
+      "offer": "Offer",
+      "note": "Note",
+      "fallback": "Follow-up"
+    },
+    "groups": {
+      "late": "Overdue",
+      "today": "Today",
+      "week": "This week",
+      "month": "This month",
+      "later": "Later"
+    },
+    "axis": {
+      "contact": "Contact",
+      "due": "Due"
+    },
+    "todayChip": "Today · {{date}}",
+    "jMinus": "D-{{count}}",
+    "dealsCount_one": "{{count}} deal",
+    "dealsCount_other": "{{count}} deals",
+    "dragHint": "Drag to reschedule",
+    "lastActivity": "Last activity · {{date}}",
+    "emptySearch": "No deals match the search."
+  },
+  "modal": {
+    "contact": "Contact",
+    "existing": "Existing",
+    "new": "New",
+    "searchContact": "Search for a contact…",
+    "noContactsYet": "No contacts yet.",
+    "noContactFound": "No contact found.",
+    "createContact": "Create a contact",
+    "createNamed": "Create “{{name}}”",
+    "moreContacts_one": "{{count}} more · refine the search",
+    "moreContacts_other": "{{count}} more · refine the search",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "phone": "Phone",
+    "bien": "Property",
+    "removeBien": "Remove",
+    "searchBien": "Search for a property…",
+    "noActiveBiens": "No active listing in the portfolio.",
+    "noBienFound": "No property found.",
+    "moreBiens_one": "{{count}} more listing · refine the search",
+    "moreBiens_other": "{{count}} more listings · refine the search",
+    "valueFromBien": "The deal value takes the price of the chosen property.",
+    "value": "Value",
+    "close": "Close",
+    "cancel": "Cancel",
+    "create": "Create the deal",
+    "creating": "Creating…",
+    "created": "Deal created.",
+    "seePipeline": "View the pipeline",
+    "error": {
+      "noAgency": "No agency attached, the deal cannot be created",
+      "unknown": "Unknown error"
+    }
+  },
+  "inline": {
+    "searchPlaceholder": "Contact, name, email…",
+    "valuePlaceholder": "Value, optional",
+    "budgetHint": "contact's budget, editable",
+    "create": "Create",
+    "more": "More options",
+    "cancelTitle": "Cancel (Esc)",
+    "changeContact": "Change contact"
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Hook super-admin — journal d'audit sécurité (page /dashboard/admin/security).
+ * Hook super-admin — journal d'audit sécurité (page /security de la console admin).
  * Lit les événements sensibles de `activity_events` (connexion, changement de
  * rôle, KYC, impersonation, exports…), résout le nom/email de l'acteur depuis
  * `profiles`, et expose les tables de libellés + gravité que consomme la vue.
@@ -31,6 +31,7 @@ export const SENSITIVE_ACTIONS = [
   'kyc_validated',
   'kyc_screening_match',
   'kyc_risk_changed',
+  'admin_console_entered',
   'impersonate_start',
   'impersonate_stop',
   'data_exported',
@@ -53,6 +54,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   kyc_validated: 'KYC valide',
   kyc_screening_match: 'Alerte PEP/Sanctions',
   kyc_risk_changed: 'Niveau risque KYC modifie',
+  admin_console_entered: 'Console admin ouverte',
   impersonate_start: 'Impersonate demarre',
   impersonate_stop: 'Impersonate arrete',
   data_exported: 'Donnees exportees',
@@ -75,6 +77,7 @@ export const AUDIT_SEVERITY: Record<string, 'critical' | 'warning' | 'info'> = {
   kyc_validated: 'warning',
   kyc_screening_match: 'critical',
   kyc_risk_changed: 'warning',
+  admin_console_entered: 'warning',
   impersonate_start: 'critical',
   impersonate_stop: 'info',
   data_exported: 'warning',

@@ -4,16 +4,10 @@
   "new_deal": "Nuovo deal",
   "view": {
     "kanban": "Kanban",
-    "list": "Lista"
-  },
-  "kpi": {
-    "active": "Attivi",
-    "pipeline_value": "Valore pipeline",
-    "at_risk": "A rischio",
-    "conversion": "Conversione"
+    "list": "Lista",
+    "timeline": "Timeline"
   },
   "filter": {
-    "agent": "Agente",
     "stage": "Fase"
   },
   "column": {
@@ -66,163 +60,11 @@
     "signed": "Signed",
     "lost": "Lost"
   },
-  "newDeal": {
-    "archetype": {
-      "buyerSearch": {
-        "label": "Buyer searching",
-        "sub": "No property identified yet"
-      },
-      "buyerBien": {
-        "label": "Buyer on a property",
-        "sub": "Property already identified, visit or interest"
-      },
-      "sellerMandate": {
-        "label": "Seller mandate",
-        "sub": "New property to publish, mandate required"
-      },
-      "tenant": {
-        "label": "Tenant",
-        "sub": "Short cycle, light KYC"
-      }
-    },
-    "action": {
-      "call": {
-        "label": "Call",
-        "placeholder": "First qualification call"
-      },
-      "visit": {
-        "label": "Visit",
-        "placeholder": "Schedule the property visit"
-      },
-      "match": {
-        "label": "Matching",
-        "placeholder": "Send 3 properties from the portfolio"
-      },
-      "kyc": {
-        "label": "KYC",
-        "placeholder": "Start the AML verification file"
-      },
-      "doc": {
-        "label": "Document",
-        "placeholder": "Prepare the visit slip / mandate"
-      },
-      "scheduleLabel": "Action to schedule",
-      "dueLabel": "Due date",
-      "noteLabel": "Note"
-    },
-    "section": {
-      "dealType": "Deal type",
-      "contact": "Contact",
-      "bien": "Property",
-      "stageValue": "Stage & value",
-      "nextAction": "Next action"
-    },
-    "ai": {
-      "buttonTitle": "Pre-fill from an email/message",
-      "title": "MEGGA AI · pre-fill",
-      "placeholder": "Paste an email, a transcribed voice note or a WhatsApp message here. The AI extracts the contact, the property if any, the score and suggests a next action.",
-      "analyzing": "Analyzing…",
-      "extract": "Extract",
-      "prefilledNote": "First call following the message received"
-    },
-    "contact": {
-      "selectTitle": "Select a contact",
-      "createTitle": "Create a contact",
-      "existing": "Existing",
-      "new": "New",
-      "searchPlaceholder": "Search name, email, phone…",
-      "kycVerified": "KYC ✓",
-      "kycPending": "KYC in progress",
-      "kycTodo": "KYC to do",
-      "empty": "No results, switch to “New” to create this contact.",
-      "firstName": "First name",
-      "lastName": "Last name",
-      "email": "Email",
-      "phone": "Phone",
-      "language": "Language",
-      "duplicate": "Existing contact found: {{name}}. Switch to “Existing” to use it."
-    },
-    "bien": {
-      "toPublish": "Property to publish (can be created later)",
-      "fromPortfolio": "Property from the portfolio or MEGGA catalogue",
-      "searchPlaceholder": "Search title, reference MG-…, address",
-      "rentPerMonth": "CHF {{amount}}/month",
-      "noneIdentified": "No property identified yet"
-    },
-    "stage": {
-      "startLabel": "Starting stage",
-      "estimatedValue": "Estimated value (CHF)",
-      "autoFromRef": "Auto from {{ref}}",
-      "optional": "Optional",
-      "estimatedCommission": "Estimated commission"
-    },
-    "guard": {
-      "mandate": {
-        "title": "Mandate required before publication",
-        "body": "A mandate wizard will be offered after creation, 3 documents to sign (mandate, terms, inventory of fixtures)."
-      },
-      "kyc": {
-        "title": "KYC recommended at this stage",
-        "body": "KYC is offered as the next action, supporting AML compliance. It blocks no pipeline step; final verification rests with the notary."
-      }
-    },
-    "error": {
-      "noAgency": "No agency linked, cannot create the deal",
-      "demoBien": "The selected property is a demo example. Select a real property from the agency portfolio.",
-      "demoContact": "The selected contact is a demo example. Select a real contact.",
-      "selectContact": "Select a contact",
-      "unknown": "Unknown error"
-    },
-    "footer": {
-      "creating": "Creating…",
-      "create": "Create deal"
-    },
-    "created": {
-      "badge": "Deal created",
-      "bienLine": "Property · {{title}}",
-      "activeSearch": "Active search",
-      "typeLine": "Type · {{type}}",
-      "continue": "Continue",
-      "quickMatch": {
-        "label": "Send 3 properties",
-        "sub": "AI matching"
-      },
-      "quickVisit": {
-        "label": "Schedule visit",
-        "sub": "Calendar"
-      },
-      "quickKyc": {
-        "label": "Start KYC",
-        "sub": "AML"
-      },
-      "quickDetail": {
-        "label": "View details",
-        "sub": "Deal record"
-      },
-      "timelineNote": "The deal timeline starts here. The actions above will add an event to the record."
-    },
-    "datetime": {
-      "months": "[\"January\",\"February\",\"March\",\"April\",\"May\",\"June\",\"July\",\"August\",\"September\",\"October\",\"November\",\"December\"]",
-      "daysShort": "[\"M\",\"T\",\"W\",\"T\",\"F\",\"S\",\"S\"]",
-      "today17": "Today 5pm",
-      "tomorrow10": "Tomorrow 10am",
-      "inTwoDays": "In 2 days",
-      "nextMonday": "Next Monday",
-      "time": "Time",
-      "ok": "OK"
-    }
-  },
   "board": {
     "noPropertyYet": "Active search",
-    "dealsCount_one": "{{count}} deal",
-    "dealsCount_other": "{{count}} deals",
-    "dealsCountWithValue_one": "{{count}} deal · {{value}}",
-    "dealsCountWithValue_other": "{{count}} deals · {{value}}",
     "dragDealHere": "Drag a deal here",
     "dropToStage": "Drop here → {{stage}}",
     "searchPlaceholder": "Search contact, property, note…",
-    "importLead": "Import a lead",
-    "importLeadHint": "Import a lead via MEGGA AI",
     "commandPaletteComingSoon": "Search, ⌘K (coming soon)",
     "list": {
       "dealContact": "Deal / Contact",
@@ -239,17 +81,15 @@
     "filter": {
       "apply": "Apply",
       "reset": "Reset",
-      "stagesHeader": "Stages",
       "riskHeader": "Risk",
       "periodHeader": "Period",
       "deselectAll": "Deselect all",
-      "allStages": "All",
-      "stagesSelected_one": "{{count}} stage",
-      "stagesSelected_other": "{{count}} stages",
       "lastDays_one": "Last {{count}} day",
       "lastDays_other": "Last {{count}} days",
-      "daysShort": "{{count}}d",
-      "allTime": "All"
+      "allTime": "All",
+      "label": "Filtri",
+      "none": "Nessuno",
+      "resetAll": "Reimposta i filtri"
     },
     "card": {
       "scheduleVisit": "Schedule a visit",
@@ -258,20 +98,66 @@
       "archive": "Archive",
       "markLost": "Mark as lost",
       "reassignTo": "Reassign to",
-      "noOtherAgents": "No other agent in the agency.",
-      "archiveDemoOnly": "Archiving is available on a real deal only (demo data).",
-      "archiveConfirm": "Archive this deal?",
-      "markLostDemoOnly": "Marking as lost is available on a real deal only (demo data).",
-      "lostReasonPrompt": "Reason for loss (optional, logged in the audit trail):",
-      "reassignDemoOnly": "Reassignment is available on a real deal only (demo data).",
       "actionFailed": "Failed: {{message}}",
-      "unknownError": "unknown error"
+      "unknownError": "unknown error",
+      "newDealInColumn": "Nuovo deal · {{stage}}",
+      "planAction": "Pianifica un'azione",
+      "overdue": "In ritardo",
+      "today": "Oggi",
+      "tomorrow": "Domani",
+      "sendToAi": "Invia a MEGGA AI",
+      "visitReminderNote": "Visita · {{day}} {{time}}",
+      "visitAiPrompt": "Pianifichi una visita per {{name}}. Proponga degli orari, rediga il messaggio d'invito e la aggiunga alla mia agenda.",
+      "visitAiPromptWithBien": "Pianifichi una visita per {{name}} per «{{bien}}». Proponga degli orari, rediga il messaggio d'invito e la aggiunga alla mia agenda."
     },
     "toast": {
       "moveFailedTitle": "Could not move the deal",
-      "moveFailedDescription": "The stage change was not saved. Check your connection, then try again."
+      "moveFailedDescription": "The stage change was not saved. Check your connection, then try again.",
+      "archived": "Deal archiviato",
+      "lost": "Deal segnato come perso",
+      "reassigned": "Deal riassegnato a {{name}}",
+      "visitScheduled": "Visita pianificata · {{day}} alle {{time}}",
+      "undo": "Annulla",
+      "created": "Deal creato"
     },
-    "empty": "Nessuna trattativa nella pipeline per ora."
+    "empty": "Nessuna trattativa nella pipeline per ora.",
+    "error": {
+      "title": "Impossibile caricare la pipeline",
+      "message": "Si è verificato un errore. Verifichi la connessione, poi riprovi.",
+      "retry": "Riprova"
+    },
+    "sign": {
+      "sealed": "Affare firmato",
+      "eyebrow": "E adesso",
+      "scheduleAct": "Pianifica la firma dell'atto",
+      "scheduleActSub": "Appuntamento dal notaio",
+      "congrats": "Congratulati con {{name}}",
+      "congratsSub": "Messaggio sul canale preferito",
+      "congratsPrompt": "Rediga un messaggio di congratulazioni per {{name}}, che ha appena firmato il suo affare. Tono caloroso e professionale, pronto da inviare sul canale preferito.",
+      "congratsPromptWithBien": "Rediga un messaggio di congratulazioni per {{name}}, che ha appena firmato per «{{bien}}». Tono caloroso e professionale, pronto da inviare sul canale preferito.",
+      "openFile": "Apri il dossier",
+      "openFileSub": "Documenti e dettagli dell'affare",
+      "reopen": "Riapri nella pipeline",
+      "finish": "Fine"
+    },
+    "lostConfirm": {
+      "title": "Segnare questo deal come perso?",
+      "message": "Il deal di {{name}} uscirà dalla pipeline.",
+      "messageNoName": "Questo deal uscirà dalla pipeline.",
+      "cancel": "Annulla",
+      "confirm": "Segna come perso"
+    },
+    "emptyState": {
+      "filtered": {
+        "title": "Nessun deal corrisponde",
+        "body": "Modifichi la ricerca o reimposti i filtri per ritrovare i suoi deal.",
+        "cta": "Reimposta i filtri"
+      },
+      "none": {
+        "title": "Nessun deal in corso",
+        "body": "Crei il suo primo deal. Apparirà qui, nella colonna della sua fase."
+      }
+    }
   },
   "kyc": {
     "lock": {
@@ -336,7 +222,7 @@
     "buyer": "Buyer",
     "view_full_profile": "View full profile",
     "call": "Call",
-    "email": "Email",
+    "email": "E-mail",
     "message": "Message",
     "capacity": "Budget",
     "purchase_probability": "{{value}}% purchase probability",
@@ -368,10 +254,62 @@
       "accepted": "Accettata",
       "rejected": "Rifiutata",
       "expired": "Scaduta",
-      "withdrawn": "Ritirata"
+      "withdrawn": "Ritirata",
+      "current": "In corso"
     },
     "notes_cancel": "Annulla",
-    "notes_save": "Salva"
+    "notes_save": "Salva",
+    "step_counter": "fase {{index}}/{{total}}",
+    "negotiation": "Negoziazione",
+    "rounds_one": "{{count}} round",
+    "rounds_other": "{{count}} round",
+    "no_offer_hint": "Quando l'acquirente sarà pronto, inserisca qui la sua offerta.",
+    "offer_row": {
+      "offer": "Offerta · acquirente",
+      "counter": "Controfferta · venditore"
+    },
+    "cond": {
+      "financing": "Finanziamento {{days}}g",
+      "sale": "Vendita di un altro immobile",
+      "diagnostic": "Perizia"
+    },
+    "accept_offer": "Accetta l'offerta",
+    "reject": "Rifiuta",
+    "relaunch_offer": "Rilancia un'offerta",
+    "mark_lost": "Segna come persa",
+    "rejected_note": "Offerta rifiutata. Rilanci con una nuova proposta all'acquirente, oppure chiuda la trattativa.",
+    "kyc_to_complete": "KYC da completare",
+    "optional": "opzionale",
+    "toast": {
+      "accepted": "Offerta accettata, trattativa firmata",
+      "rejected": "Offerta rifiutata",
+      "lost": "Trattativa segnata come persa",
+      "offer_sent": "Offerta inviata",
+      "counter_sent": "Controfferta inviata"
+    },
+    "buyer_eyebrow": "L'acquirente",
+    "affair_eyebrow": "L'affare",
+    "next_action": "Prossima azione",
+    "matches_title": "Immobili da proporre",
+    "matches_count_one": "{{count}} match",
+    "matches_count_other": "{{count}} match",
+    "no_matches": "Nessun immobile del portafoglio corrisponde ancora.",
+    "transmit": "Invia a {{name}}",
+    "open_contact": "Apri la scheda contatto",
+    "phone": "Telefono",
+    "lang": {
+      "fr": "Francese",
+      "en": "Inglese",
+      "de": "Tedesco",
+      "it": "Italiano"
+    },
+    "crit": {
+      "buy": "Acquisto",
+      "rent": "Affitto",
+      "rooms_min": "≥ {{count}} locali",
+      "budget_max": "≤ {{amount}}"
+    },
+    "property_line": "{{addr}} · {{area}} m² · {{rooms}} locali"
   },
   "offerModal": {
     "cta": {
@@ -380,7 +318,9 @@
       "back": "Back",
       "continue": "Continue",
       "submit": "Save & send",
-      "submitting": "Sending…"
+      "submitting": "Sending…",
+      "save": "Salva",
+      "saving": "Salvataggio…"
     },
     "label": {
       "buyerFallback": "Buyer"
@@ -451,7 +391,8 @@
         "placeholder": "E.g. Purchase in a personal capacity, cash payment of 35%."
       },
       "financingShort": "Financing · {{days}}d",
-      "diagnosticShort": "Survey"
+      "diagnosticShort": "Survey",
+      "noteTitle": "Nota"
     },
     "step2": {
       "eyebrow": "Step 3 of 3 · Deadline & confirmation",
@@ -486,6 +427,15 @@
       "accept": "Accept",
       "reject": "Decline",
       "withdraw": "Withdraw"
+    },
+    "header": {
+      "fallback": "Inserisci un'offerta"
+    },
+    "section": {
+      "amount": "Importo dell'offerta",
+      "amountCounter": "Importo proposto in risposta",
+      "conditions": "Condizioni sospensive",
+      "validity": "Validità dell'offerta"
     }
   },
   "journey": {
@@ -565,5 +515,78 @@
       "error": "Caricamento non riuscito",
       "retry": "Riprova"
     }
+  },
+  "timeline": {
+    "kind": {
+      "call": "Chiamata",
+      "match": "Invio match",
+      "kyc": "Dossier KYC",
+      "visit": "Visita",
+      "offer": "Offerta",
+      "note": "Nota",
+      "fallback": "Follow-up"
+    },
+    "groups": {
+      "late": "In ritardo",
+      "today": "Oggi",
+      "week": "Questa settimana",
+      "month": "Questo mese",
+      "later": "Più tardi"
+    },
+    "axis": {
+      "contact": "Contatto",
+      "due": "Scadenza"
+    },
+    "todayChip": "Oggi · {{date}}",
+    "jMinus": "G-{{count}}",
+    "dealsCount_one": "{{count}} deal",
+    "dealsCount_other": "{{count}} deal",
+    "dragHint": "Trascini per ripianificare",
+    "lastActivity": "Ultima attività · {{date}}",
+    "emptySearch": "Nessun deal corrisponde alla ricerca."
+  },
+  "modal": {
+    "contact": "Contatto",
+    "existing": "Esistente",
+    "new": "Nuovo",
+    "searchContact": "Cerca un contatto…",
+    "noContactsYet": "Nessun contatto per ora.",
+    "noContactFound": "Nessun contatto trovato.",
+    "createContact": "Crea un contatto",
+    "createNamed": "Crea «{{name}}»",
+    "moreContacts_one": "{{count}} altro · affini la ricerca",
+    "moreContacts_other": "{{count}} altri · affini la ricerca",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "email": "Email",
+    "phone": "Telefono",
+    "bien": "Immobile",
+    "removeBien": "Rimuovi",
+    "searchBien": "Cerca un immobile…",
+    "noActiveBiens": "Nessun annuncio attivo nel portafoglio.",
+    "noBienFound": "Nessun immobile trovato.",
+    "moreBiens_one": "{{count}} altro annuncio · affini la ricerca",
+    "moreBiens_other": "{{count}} altri annunci · affini la ricerca",
+    "valueFromBien": "Il valore del deal riprende il prezzo dell'immobile scelto.",
+    "value": "Valore",
+    "close": "Chiudi",
+    "cancel": "Annulla",
+    "create": "Crea il deal",
+    "creating": "Creazione…",
+    "created": "Deal creato.",
+    "seePipeline": "Vedi la pipeline",
+    "error": {
+      "noAgency": "Nessuna agenzia collegata, impossibile creare il deal",
+      "unknown": "Errore sconosciuto"
+    }
+  },
+  "inline": {
+    "searchPlaceholder": "Contatto, nome, email…",
+    "valuePlaceholder": "Valore, opzionale",
+    "budgetHint": "budget del contatto, modificabile",
+    "create": "Crea",
+    "more": "Altre opzioni",
+    "cancelTitle": "Annulla (Esc)",
+    "changeContact": "Cambia contatto"
   }
 }
