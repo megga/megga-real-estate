@@ -1,3 +1,10 @@
+-- ⚠ RE-HORODATÉE le 26 juil. 2026 (stamp d'origine : 20260713140000).
+-- `deploy.yml` n'applique QUE les migrations dont la date est >= aujourd'hui
+-- (UTC) : celles de la PR #852, écrites les 13-14 juillet et mergées le 26,
+-- sont passées sous le radar du déploiement — objets absents en prod alors que
+-- la CI, elle, rejoue tout sur une base fraîche et restait verte. Re-datées
+-- pour que le pipeline les applique. Idempotentes (le date-guard les rejouera
+-- à chaque push de la journée).
 -- =====================================================================
 -- P6b — Supervision des « utilisateurs finaux » (clients sans compte)
 --
