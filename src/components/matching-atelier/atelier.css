@@ -549,6 +549,12 @@ button.sga-spill:hover{ filter:brightness(1.08); }
 .sgi-film .fr.on{ opacity:1; box-shadow:0 0 0 2px #fff, 0 6px 18px rgba(0,0,0,.4); }
 .sgi-film .fr.more{ display:grid; place-items:center; color:#fff; font-size:12.5px; font-weight:700;
   background:rgba(10,10,14,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); opacity:1; }
+/* Vignettes révélées au dépliage de la pellicule (au-delà de la 4e) : elles
+   montent en cascade, le décalage étant posé en inline par le composant. Sans
+   ça, une annonce à 30 photos fait apparaître 26 vignettes d'un bloc. */
+@keyframes sgiRise{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+.sgi-film .fr.xtra{ animation:sgiRise .38s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion:reduce){ .sgi-film .fr.xtra{ animation:none; } }
 
 /* ── feuille dossier ───────────────────────────────────────────────── */
 .sgi-sheet{ position:absolute; top:16px; right:16px; bottom:16px; z-index:6; width:min(478px, 44vw);
