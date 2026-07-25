@@ -6,8 +6,10 @@
 //   • capsule en verre harmonisée sur les tokens des cards Sugar (frameBg /
 //     frameBorder / shadow) + léger backdrop-filter (même matériau que le reste)
 //   • icônes line-art qui se redessinent (self-draw Framer Motion) à l'activation
-//     ET à chaque survol — pop spring + tracé manuscrit décalé par sous-tracé
-//   • bascule de thème par morph soleil ↔ lune
+//     ET au survol — pop spring + tracé manuscrit décalé par sous-tracé. Le rejeu
+//     est LOCAL au bouton survolé (même patron qu'AnimatedTopIcon) : survoler une
+//     icône ne remonte jamais l'arbre motion des 7 autres.
+//   • bascule de thème : échange d'icône soleil ↔ lune (self-draw, pas un morph)
 //   • filet anti-throttle (état final garanti même rAF gelé)
 //
 // Câblage réel (le proto utilisait des globales window.* — remplacées ici) :
@@ -22,6 +24,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, type Transition } from 'motion/react'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
 import type { SugarPalette } from './tokens'
 import { RelanceSession } from '@/components/crm-sugar/today/RelanceSession'
 import { openSugarSearch } from './search/openSearch'
@@ -131,27 +134,41 @@ interface AnimatedRailIconProps { name: string; nonce: number; tempo?: number; s
 function AnimatedRailIcon({ name, nonce, tempo = 1, size = 23, signature }: AnimatedRailIconProps) {
   const def = RAIL_ICONS[name] ?? RAIL_ICONS.search
   const isLine = def.line
+  const kidCount = def.kids.length
   const wrapRef = useRef<HTMLDivElement>(null)
-  const play = nonce > 0 // joue dès qu'un déclencheur (montage actif / survol) a eu lieu
+  const reduced = useReducedMotion()
+  // Joue dès qu'un déclencheur (montage actif / survol) a eu lieu — sauf si
+  // l'utilisateur a demandé « réduire les animations » : `play=false` rend
+  // directement l'état final (initial={false}), sans pop ni tracé.
+  const play = nonce > 0 && !reduced
 
   // Filet anti-throttle : si le rAF est gelé (onglet en arrière-plan), Framer ne
-  // commit jamais → l'icône resterait invisible. Après la durée nominale, on écrit
-  // l'état final directement dans le DOM (indépendant du rAF).
+  // commit jamais → l'icône resterait INVISIBLE (pathLength 0 ⇒ dasharray "0 1",
+  // donc un bouton vide). Après la durée nominale, on écrit l'état final dans le
+  // DOM, indépendamment du rAF.
+  // ⚠ Motion écrit opacity / stroke-dash* en ATTRIBUTS de présentation sur les
+  // enfants SVG ; un `style` inline gagnerait la cascade DÉFINITIVEMENT et
+  // gèlerait le nœud. On purge donc le style et on écrit par le même canal que
+  // motion, pour qu'il puisse toujours reprendre la main.
   useEffect(() => {
     if (!play) return
+    const drawMs = (0.5 + Math.max(0, kidCount - 1) * 0.06) * tempo * 1000
     const id = window.setTimeout(() => {
       const el = wrapRef.current
       if (!el) return
-      el.style.transform = 'none'
+      el.style.transform = 'none' // wrapper HTML : motion écrit aussi via style
       el.querySelectorAll<SVGElement>('svg > *').forEach((k) => {
-        k.style.opacity = '1'
-        k.style.strokeDasharray = 'none'
-        k.style.strokeDashoffset = '0'
+        k.style.removeProperty('opacity')
+        k.style.removeProperty('stroke-dasharray')
+        k.style.removeProperty('stroke-dashoffset')
         k.style.transform = 'none'
+        k.setAttribute('opacity', '1')
+        k.setAttribute('stroke-dasharray', 'none')
+        k.setAttribute('stroke-dashoffset', '0')
       })
-    }, 900 * tempo)
+    }, drawMs + 400)
     return () => window.clearTimeout(id)
-  }, [nonce, play, tempo])
+  }, [nonce, play, tempo, kidCount])
 
   const sig = signature ?? SIGNATURES[name] ?? { scale: 0.6 }
 
@@ -221,9 +238,11 @@ export function AnimatedTopIcon({
 }
 
 // ─── Bouton d'outil (46×46, transparent, pop au survol) ────────────────────
-// Le `nonce` est fourni par le rail (partagé). Survoler n'importe quel bouton
-// incrémente ce nonce → TOUTES les icônes du rail rejouent (comportement
-// homogène voulu par le design). `onReplay` remonte l'info au rail.
+// Le nonce de rejeu est LOCAL au bouton (même patron qu'AnimatedTopIcon) : seule
+// l'icône réellement survolée rejoue son pop + self-draw. Il repart de 1 quand le
+// bouton est actif, pour que l'icône active se dessine dès le montage. Le clic
+// l'incrémente aussi : le bouton thème échange son glyphe (lune ↔ soleil) sans
+// nouveau `mouseenter`, il faut donc relancer le tracé du nouveau glyphe.
 interface RailItem {
   id: string
   icon: string
@@ -234,15 +253,15 @@ interface RailItem {
 interface DockBtnProps {
   it: RailItem
   isActive: boolean
-  nonce: number
   idleIcon: string
   hoverIcon: string
   activeIcon: string
   sp: SugarPalette
-  onReplay: () => void
 }
-function DockBtn({ it, isActive, nonce, idleIcon, hoverIcon, activeIcon, sp, onReplay }: DockBtnProps) {
+function DockBtn({ it, isActive, idleIcon, hoverIcon, activeIcon, sp }: DockBtnProps) {
   const [hover, setHover] = useState(false)
+  const [nonce, setNonce] = useState(isActive ? 1 : 0)
+  const replay = () => setNonce((n) => n + 1)
 
   const color = isActive ? activeIcon : hover ? hoverIcon : idleIcon
 
@@ -252,8 +271,8 @@ function DockBtn({ it, isActive, nonce, idleIcon, hoverIcon, activeIcon, sp, onR
         type="button"
         title={it.label}
         aria-label={it.label}
-        onClick={it.action}
-        onMouseEnter={() => { setHover(true); onReplay() }} // relance TOUT le rail à chaque survol
+        onClick={() => { it.action(); replay() }}
+        onMouseEnter={() => { setHover(true); replay() }} // ne relance QUE cette icône
         onMouseLeave={() => setHover(false)}
         style={{
           position: 'relative', width: 46, height: 46, borderRadius: 999,
@@ -298,12 +317,8 @@ export function SugarIconRail({
   const { t } = useTranslation('common')
   const [relanceOpen, setRelanceOpen] = useState(false)
 
-  // Nonce de rejeu PARTAGÉ : un seul survol relance toutes les icônes (design
-  // « homogène sur tout le rail »). 0 au montage ⇒ seule l'icône active se
-  // dessine, les autres restent figées. Chaque incrément relance tout le rail.
-  const [nonce, setNonce] = useState(0)
-  const replay = () => setNonce((n) => n + 1)
-
+  // Pas de nonce de rejeu au niveau du rail : chaque DockBtn tient le sien. Un
+  // survol ne re-rend donc que le bouton pointé — le rail lui-même ne re-rend pas.
   const idleIcon = dark ? 'rgba(255,255,255,0.62)' : 'rgba(20,22,34,0.50)'
   const hoverIcon = dark ? 'rgba(255,255,255,0.92)' : 'rgba(11,12,14,0.85)'
   const activeIcon = dark ? '#FFFFFF' : '#0B0C0E'
@@ -327,34 +342,25 @@ export function SugarIconRail({
     { id: 'dashboard', icon: 'dashboard', label: t('nav.dashboard'), action: () => onNavigate?.('dashboard') },
   ]
   const settingsItem: RailItem = { id: 'settings', icon: 'settings', label: t('nav.settings'), action: () => onNavigate?.('settings') }
-  // Icône sun/moon selon la maquette (lune en clair, soleil en sombre). Bascule
-  // le thème ET relance l'anim pour que la nouvelle icône se dessine.
+  // Icône sun/moon selon la maquette (lune en clair, soleil en sombre). Le rejeu
+  // du tracé après bascule est assuré par le `replay()` au clic dans DockBtn.
   const darkItem: RailItem = {
     id: '__dark', icon: dark ? 'sun' : 'moon',
     label: dark ? t('nav.lightMode') : t('nav.darkMode'),
-    action: () => { setDark(!dark); replay() },
+    action: () => setDark(!dark),
   }
 
-  const renderBtn = (it: RailItem) => {
-    const isActive = it.id === active
-    // L'active se dessine au montage (nonce+1) ; les inactives attendent un
-    // survol (nonce partagé). Décalage de +1 sur l'active pour qu'elle rejoue
-    // bien elle aussi au 1er survol (sinon sa clé ne changerait pas).
-    const iconNonce = isActive ? nonce + 1 : nonce
-    return (
-      <DockBtn
-        key={it.id}
-        it={it}
-        isActive={isActive}
-        nonce={iconNonce}
-        idleIcon={idleIcon}
-        hoverIcon={hoverIcon}
-        activeIcon={activeIcon}
-        sp={sp}
-        onReplay={replay}
-      />
-    )
-  }
+  const renderBtn = (it: RailItem) => (
+    <DockBtn
+      key={it.id}
+      it={it}
+      isActive={it.id === active}
+      idleIcon={idleIcon}
+      hoverIcon={hoverIcon}
+      activeIcon={activeIcon}
+      sp={sp}
+    />
+  )
 
   return (
     <>
