@@ -158,6 +158,86 @@ jobs:
             fi
           done
 
+      # Contre-mesure au REVERS du filtre ci-dessus. `stamp >= TODAY` a deux faces :
+      # il évite de rejouer l'historique (voulu), mais il SAUTE DÉFINITIVEMENT toute
+      # migration mergée APRÈS sa propre date — une fois stamp < TODAY, aucun
+      # déploiement ultérieur ne la rattrape. Mesuré le 19 juil. 2026 : 19 migrations
+      # du dépôt sont dans ce cas. La prod n'a pas dérivé, mais uniquement parce
+      # qu'elles avaient été appliquées à la main (MCP apply_migration) avant le
+      # merge — c'est la discipline humaine qui tient, pas la CI.
+      #
+      # Cette étape n'applique rien et ne bloque rien : l'application manuelle EST
+      # le flux normal du dépôt, échouer casserait un déploiement pour une migration
+      # déjà en base. Elle rend seulement l'omission VISIBLE au lieu de silencieuse.
+      - name: Migrations sautées par le date-guard (alerte)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -e
+          TODAY=$(date -u +%Y%m%d)
+
+          # Fichiers AJOUTÉS par ce push, lus dans la charge utile de l'événement :
+          # actions/checkout ne clone qu'un commit, donc `git diff` n'a pas
+          # l'historique nécessaire. NB : GitHub plafonne `commits` à 20 entrées —
+          # au-delà l'alerte peut manquer un fichier ; le cas normal (squash merge)
+          # est un commit unique.
+          # Une alerte qui echoue en silence ne vaut rien : si la charge utile est
+          # illisible, on le DIT au lieu de conclure « rien a signaler ».
+          # jq SEUL puis tri : derriere un pipe, $? est celui de `sort` (qui reussit
+          # toujours) et l'echec de jq passerait inapercu.
+          if ! raw=$(jq -r '[.commits[]?.added[]?] | .[]' "$GITHUB_EVENT_PATH" 2>/dev/null); then
+            echo "::warning::Charge utile de l'evenement illisible — controle des migrations sautees NON effectue"
+            exit 0
+          fi
+          added=$(printf '%s' "$raw" | sort -u)
+
+          skipped=""
+          while IFS= read -r f; do
+            case "$f" in supabase/migrations/*.sql) ;; *) continue ;; esac
+            base=$(basename "$f")
+            # MÊME extraction que l'étape d'application ci-dessus : si les deux
+            # divergent un jour, cette alerte se met à mentir.
+            stamp_date="${base:0:8}"
+            case "$stamp_date" in ''|*[!0-9]*) continue ;; esac
+            if [ "$stamp_date" -lt "$TODAY" ]; then
+              skipped="${skipped}${base}
+"
+            fi
+          done <<< "$added"
+
+          if [ -z "$skipped" ]; then
+            echo "OK — aucune migration ajoutee par ce push n'a ete sautee."
+            exit 0
+          fi
+
+          {
+            echo "### Migration(s) NON appliquee(s) par la CI"
+            echo
+            echo "Ajoutees par ce push, mais horodatage anterieur a aujourd'hui (\`$TODAY\` UTC) :"
+            echo "le filtre \`stamp >= TODAY\` les a sautees, et **aucun deploiement ulterieur"
+            echo "ne les rattrapera**."
+            echo
+            printf '%s' "$skipped" | sed 's/^/- `/; s/$/`/'
+            echo
+            echo "**A faire**, dans cet ordre de preference :"
+            echo
+            echo "1. **Re-horodater** ces fichiers au jour du merge (\`git mv\`, ordre relatif"
+            echo "   conserve) et repousser : le pipeline les applique, et les horodatages"
+            echo "   refletent enfin ce qui est reellement en base. C'est le seul remede qui"
+            echo "   garde depot et prod en phase. Exige qu'elles soient idempotentes — le"
+            echo "   date-guard les rejouera a chaque push de la journee (\`lint:migrations\`)."
+            echo "2. Les appliquer a la main (MCP \`apply_migration\` ou SQL editor) si elles"
+            echo "   ne peuvent pas etre re-datees."
+            echo
+            echo "Le schema de la prod diverge du depot tant que ce n'est pas fait — et rien"
+            echo "d'autre ne le signalera : la CI backend rejoue TOUT sur une base fraiche,"
+            echo "elle reste verte. Cas reel : PR #852 (5 migrations sautees), corrige par #959."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          while IFS= read -r base; do
+            [ -z "$base" ] && continue
+            echo "::warning file=supabase/migrations/$base::$base n'a PAS ete appliquee par la CI (horodatage < $TODAY) — verifier l'application manuelle"
+          done <<< "$skipped"
+
       - name: Deploy to Cloudflare Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: cloudflare/wrangler-action@v3
