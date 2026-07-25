@@ -174,9 +174,12 @@ export default function SgaAnnonceVue({ L, buyer, onClose, onPropose }: SgaAnnon
             <div className="sgi-film">
               {(filmOpen ? G : G.slice(0, 4)).map((p, i) => (
                 <button
-                  className={'fr' + (i === idx ? ' on' : '')}
+                  // `xtra` = vignette apparue au dépliage : elle monte en cascade
+                  // (le délai est inline, la durée et la courbe sont en CSS).
+                  className={'fr' + (i === idx ? ' on' : '') + (i >= 4 ? ' xtra' : '')}
                   key={p.url + String(i)}
                   title={p.label}
+                  style={i >= 4 ? { animationDelay: `${(i - 4) * 45}ms` } : undefined}
                   onClick={() => setIdx(i)}
                 >
                   <img src={p.url} alt={p.label} loading="lazy" draggable="false" />

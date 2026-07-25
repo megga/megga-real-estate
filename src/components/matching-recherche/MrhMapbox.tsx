@@ -45,7 +45,21 @@ interface Props {
   center?: { lng: number; lat: number; zoom?: number } | null
   dark: boolean
   controls?: boolean
+  /**
+   * Coin des contrôles de zoom. À déplacer quand l'appelant pose lui-même un
+   * bouton en haut à droite : `NavigationControl` et l'overlay s'empilent dans
+   * le même contexte (z-index 2 des deux côtés) et le dernier de l'arbre gagne,
+   * donc le bouton de l'appelant volerait les clics du zoom.
+   */
+  controlsPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
   overlay?: ReactNode
+  /**
+   * Hauteur (px) dont il faut remonter le logo et l'attribution Mapbox. À
+   * renseigner dès que `overlay` pose quelque chose en bas de la carte : le
+   * chrome Mapbox vit à `bottom: 0` et les conditions d'utilisation exigent
+   * qu'il reste visible, donc c'est à l'appelant de lui laisser la place.
+   */
+  chromeInset?: number
   radius?: number
   interactive?: boolean
   /** Rendu de repli si la carte échoue (token invalide, WebGL perdu…) — pas d'écran blanc. */
@@ -71,7 +85,7 @@ function isAuthError(e: unknown): boolean {
   return err?.status === 401 || err?.status === 403 || /\b40[13]\b|unauthorized|access token|not authorized/i.test(err?.message ?? '')
 }
 
-export default function MrhMapbox({ markers, bounds, center, dark, controls, overlay, radius = 20, interactive = true, fallback }: Props) {
+export default function MrhMapbox({ markers, bounds, center, dark, controls, controlsPosition = 'top-right', overlay, chromeInset = 0, radius = 20, interactive = true, fallback }: Props) {
   const [authFailed, setAuthFailed] = useState(false)
   const mapStyle = dark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'
   const initialViewState = bounds
@@ -81,12 +95,18 @@ export default function MrhMapbox({ markers, bounds, center, dark, controls, ove
       : { longitude: 8.23, latitude: 46.82, zoom: 7 } // repli : centre Suisse
 
   const wrap: CSSProperties = { position: 'relative', width: '100%', height: '100%', borderRadius: radius, overflow: 'hidden' }
+  // `--mrh-map-chrome-inset` est consommée par mrh.css pour remonter le logo et
+  // l'attribution Mapbox au-dessus de l'`overlay` de l'appelant.
+  const wrapUp: CSSProperties = chromeInset
+    ? { ...wrap, ['--mrh-map-chrome-inset' as string]: `${chromeInset}px` }
+    : wrap
+  const wrapClass = chromeInset ? 'mrh-map-chrome-up' : undefined
 
   // Token présent mais invalide/révoqué → repli CSS (si fourni).
   if (authFailed && fallback) return <div style={wrap}>{fallback}{overlay}</div>
 
   const inner = (
-    <div style={wrap}>
+    <div className={wrapClass} style={wrapUp}>
       <Map
         mapboxAccessToken={MAPBOX_TOKEN}
         initialViewState={initialViewState}
@@ -103,7 +123,7 @@ export default function MrhMapbox({ markers, bounds, center, dark, controls, ove
           if (fallback && isAuthError(e)) setAuthFailed(true)
         }}
       >
-        {controls && <NavigationControl position="top-right" showCompass={false} />}
+        {controls && <NavigationControl position={controlsPosition} showCompass={false} />}
         {markers.map((mk) => (
           <Marker key={mk.id} longitude={mk.lng} latitude={mk.lat} anchor={mk.anchor ?? 'center'} style={{ zIndex: mk.z ?? 1 }}>
             <div

@@ -24,6 +24,7 @@ const MAP: Record<string, SgaIconName> = {
   cal: 'calendar',
   info: 'info',
   send: 'send',
+  mapPin: 'location',
 }
 
 export type RechIconName = keyof typeof MAP
