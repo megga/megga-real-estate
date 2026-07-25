@@ -33,31 +33,32 @@ describe.skipIf(!HAS_KEYS)('RPC santé ops admin — gardées super_admin/servic
     if (promoteErr) throw new Error(`promote: ${promoteErr.message}`)
 
     // Seed : un bien + une syndication en erreur (agence A).
+    // Un seed qui échoue est un BUG, pas une variation de schéma : on throw. Avec un
+    // simple console.warn, le test de comptage était sauté et passait à vide
+    // (transaction_type 'sell' violait la CHECK depuis toujours).
+    // transaction_type : la CHECK properties_transaction_type_check n'admet que
+    // 'buy' | 'rent' — 'sell' n'existe pas côté properties.
     const { data: prop, error: propErr } = await service
       .from('properties')
       .insert({
         agency_id: setup.agencyAId,
         title: `Test syndication ${setup.stamp}`,
         status: 'active',
-        transaction_type: 'sell',
+        transaction_type: 'buy',
       })
       .select('id')
       .single()
-    if (propErr) {
-      // Colonnes NOT NULL supplémentaires possibles — le test de comptage sera
-      // simplement sauté (le shape test reste complet).
-      console.warn('seed property failed:', propErr.message)
-    } else {
-      propertyId = prop.id
-      const { error: synErr } = await service.from('property_syndications').insert({
-        property_id: prop.id,
-        agency_id: setup.agencyAId,
-        portal: 'immobilier_ch',
-        status: 'error',
-        error: `test-error-${setup.stamp}`,
-      })
-      if (synErr) console.warn('seed syndication failed:', synErr.message)
-    }
+    if (propErr) throw new Error(`seed property: ${propErr.message}`)
+    propertyId = prop.id
+
+    const { error: synErr } = await service.from('property_syndications').insert({
+      property_id: prop.id,
+      agency_id: setup.agencyAId,
+      portal: 'immobilier_ch',
+      status: 'error',
+      error: `test-error-${setup.stamp}`,
+    })
+    if (synErr) throw new Error(`seed syndication: ${synErr.message}`)
   })
 
   afterAll(async () => {
@@ -105,7 +106,6 @@ describe.skipIf(!HAS_KEYS)('RPC santé ops admin — gardées super_admin/servic
   })
 
   it('une syndication en erreur seedée est visible dans la santé', async () => {
-    if (!propertyId) return // seed impossible sur ce schéma — couvert par le shape test
     const { data, error } = await setup.clientA.rpc('get_admin_syndication_health')
     if (error) throw new Error(error.message)
     const obj = data as {
