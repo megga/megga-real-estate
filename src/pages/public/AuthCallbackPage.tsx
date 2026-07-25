@@ -20,6 +20,20 @@ function getRedirectPath(role: UserRole): string {
   return '/portal'
 }
 
+// Écrans autorisés comme retour d'une connexion d'agenda (param `from`, posé par
+// useGoogleCalendar / useOutlookCalendar). Table d'aiguillage volontairement
+// fermée : le param vient de l'URL de callback, une destination libre en ferait
+// une redirection ouverte.
+const CALENDAR_RETURN_PATHS: Record<string, string> = {
+  calendar: '/dashboard/calendar',
+}
+
+/** Retour post-OAuth agenda : l'écran d'origine s'il est connu, sinon Réglages › Intégrations. */
+function calendarReturnPath(params: URLSearchParams, fallback: string): string {
+  const from = params.get('from')
+  return (from && CALENDAR_RETURN_PATHS[from]) || fallback
+}
+
 /** Tient l'écran d'arrivée le temps de l'aiguillage, fait dans onAuthStateChange. */
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
@@ -45,7 +59,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/dashboard/settings?tab=integrations&gcal=success', { replace: true })
+        navigate(calendarReturnPath(params, '/dashboard/settings?tab=integrations&gcal=success'), { replace: true })
         return
       }
 
@@ -67,7 +81,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/dashboard/settings?tab=integrations&outlook=success', { replace: true })
+        navigate(calendarReturnPath(params, '/dashboard/settings?tab=integrations&outlook=success'), { replace: true })
         return
       }
 

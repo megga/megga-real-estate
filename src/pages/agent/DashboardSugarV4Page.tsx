@@ -73,9 +73,6 @@ export default function DashboardSugarV4Page() {
       case 'biens-new':
         navigate('/dashboard/listings/new')
         break
-      case 'reseau':
-        navigate('/dashboard/network')
-        break
       default:
     }
   }

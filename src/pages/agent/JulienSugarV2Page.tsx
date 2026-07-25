@@ -304,7 +304,6 @@ export default function JulienSugarV2Page() {
       case 'parcours': navigate('/dashboard/journey'); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'reseau': navigate('/dashboard/network'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': navigate('/dashboard/settings'); break
       case 'ai':

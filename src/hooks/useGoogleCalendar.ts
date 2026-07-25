@@ -102,12 +102,19 @@ export function useGoogleCalendar(dateRange?: { start: Date; end: Date }) {
   })
 
   // Connect Google Calendar (initiates OAuth)
-  function connectGoogleCalendar() {
+  // `from` désigne l'écran d'où part la connexion : /auth/callback s'en sert
+  // pour y ramener l'agent au lieu de le déposer dans Réglages. C'est une
+  // énumération et non une URL — une URL de retour libre dans le callback
+  // serait une redirection ouverte. Un handler passé en référence
+  // (`onClick={connectGoogleCalendar}`) reçoit un MouseEvent : `opts.from` y
+  // est absent, donc le comportement par défaut est conservé.
+  function connectGoogleCalendar(opts?: { from?: 'calendar' }) {
+    const from = opts?.from === 'calendar' ? '&from=calendar' : ''
     supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         scopes: 'https://www.googleapis.com/auth/calendar',
-        redirectTo: `${window.location.origin}/auth/callback?gcal=1`,
+        redirectTo: `${window.location.origin}/auth/callback?gcal=1${from}`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',

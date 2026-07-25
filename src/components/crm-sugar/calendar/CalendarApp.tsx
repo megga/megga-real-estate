@@ -110,13 +110,57 @@ function CalToolbar({ view, onView, headerLabel, onToday, onPrev, onNext, onCrea
   )
 }
 
+// ─── Invitation « Connectez votre agenda » ──────────────────────────────────
+/** Actions de l'invitation ; `undefined` côté page = aucune invitation à montrer. */
+export interface CalendarInvite {
+  onConnectGoogle: () => void
+  onConnectOutlook: () => void
+  onDismiss: () => void
+}
+
+/**
+ * Bandeau d'amorce de connexion Google/Outlook — écartable, jamais bloquant :
+ * le calendrier reste utilisable sans agenda externe. Ne porte QUE l'amorce ;
+ * le statut, la déconnexion et la synchro restent dans Réglages › Intégrations
+ * (même partage que le rail, cf. en-tête de CalRail).
+ */
+function CalConnectBanner({ invite }: { invite: CalendarInvite }) {
+  const SP = useCalPalette()
+  const { t } = useTranslation('calendar')
+  const btn: React.CSSProperties = {
+    height: 28, padding: '0 12px', borderRadius: 999, border: `1px solid ${SP.line}`,
+    background: 'transparent', color: SP.ink, cursor: 'pointer', fontFamily: 'inherit',
+    fontSize: 11.5, fontWeight: 700, flexShrink: 0,
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: `1px solid ${SP.line}`, color: SP.ink }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700 }}>{t('onboarding.title')}</div>
+        <div style={{ fontSize: 11.5, color: SP.muted }}>{t('onboarding.privacy')}</div>
+      </div>
+      <button onClick={invite.onConnectGoogle} style={btn}>{t('onboarding.connectGoogle')}</button>
+      <button onClick={invite.onConnectOutlook} style={btn}>{t('onboarding.connectOutlook')}</button>
+      <button
+        onClick={invite.onDismiss}
+        title={t('common:actions.close', { defaultValue: 'Fermer' })}
+        aria-label={t('common:actions.close', { defaultValue: 'Fermer' })}
+        style={{ ...btn, width: 28, padding: 0, display: 'grid', placeItems: 'center', border: 0 }}
+      >
+        <CalIcon name="close" size={14} stroke={SP.muted} sw={2.2} />
+      </button>
+    </div>
+  )
+}
+
 // ─── Orchestrateur ──────────────────────────────────────────────────────────
 export interface CalendarAppProps {
   dark: boolean
   setDark: (v: boolean) => void
+  /** Invitation à connecter un agenda externe ; absente si déjà connecté ou écartée. */
+  invite?: CalendarInvite
 }
 
-export function CalendarApp({ dark, setDark }: CalendarAppProps) {
+export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const navigate = useNavigate()
   const { t } = useTranslation('calendar')
   const queryClient = useQueryClient()
@@ -391,7 +435,6 @@ export function CalendarApp({ dark, setDark }: CalendarAppProps) {
       case 'parcours': navigate('/dashboard/journey'); break
       case 'calendar': break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'reseau': navigate('/dashboard/network'); break
       case 'ai':
       case 'julien': navigate('/dashboard/julien'); break
       case 'chat':
@@ -448,6 +491,7 @@ export function CalendarApp({ dark, setDark }: CalendarAppProps) {
                       </button>
                     </div>
                   )}
+                  {invite && <CalConnectBanner invite={invite} />}
                   <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                     {view === 'day' && <CalDayView {...commonView} />}
                     {view === 'week' && <CalWeekView {...commonView} />}

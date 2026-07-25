@@ -99,12 +99,15 @@ export function useOutlookCalendar(dateRange?: { start: Date; end: Date }) {
   })
 
   // Connect Outlook Calendar (initiates OAuth via Azure provider)
-  function connectOutlookCalendar() {
+  // `from` : voir useGoogleCalendar — énumération d'écrans de retour, pas une
+  // URL, pour que /auth/callback ne puisse pas rediriger n'importe où.
+  function connectOutlookCalendar(opts?: { from?: 'calendar' }) {
+    const from = opts?.from === 'calendar' ? '&from=calendar' : ''
     supabase.auth.signInWithOAuth({
       provider: 'azure',
       options: {
         scopes: 'https://graph.microsoft.com/Calendars.ReadWrite offline_access User.Read',
-        redirectTo: `${window.location.origin}/auth/callback?outlook=1`,
+        redirectTo: `${window.location.origin}/auth/callback?outlook=1${from}`,
         queryParams: {
           prompt: 'consent',
         },

@@ -467,7 +467,6 @@ export default function PipelineSugarV2Page() {
       case 'biens-new': navigate('/dashboard/listings/new'); break
       case 'calendar':  navigate('/dashboard/calendar'); break
       case 'kyc':       navigate('/dashboard/kyc'); break
-      case 'reseau':    navigate('/dashboard/network'); break
       case 'ai':
       case 'julien':    navigate('/dashboard/julien'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
