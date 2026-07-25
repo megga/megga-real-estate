@@ -76,6 +76,48 @@ export interface MrhBien {
   photos: string[]
 }
 
+/**
+ * Champs de fiche chargés À LA DEMANDE, pour la seule annonce ouverte.
+ *
+ * Séparés de `MrhBien` volontairement : `description` pèse ~1,5 Ko en moyenne
+ * (max 9,3 Ko) et la liste en charge jusqu'à 400 — la colonne est donc bannie de
+ * `CARD_COLS` (CLAUDE.md §7). Ici on lit UNE ligne par sa PK, le coût est nul.
+ */
+export interface MrhBienDetail {
+  description: string | null
+  floor: number | null
+  parking_count: number | null
+  year_renovated: number | null
+  usable_surface: number | null
+  charges_monthly: number | null
+  is_furnished: boolean | null
+  availability_date: string | null
+  visit_contact_name: string | null
+  /** référence interne de la régie — repli quand `source_id` manque */
+  agency_reference: string | null
+}
+
+/**
+ * Filtre de plausibilité pour les champs des portails.
+ *
+ * La sync ingère ce que les portails déclarent, sans le corriger : on trouve des
+ * étages à 99, des années de construction à 3 chiffres et des dates de
+ * disponibilité en l'an 206. Ces valeurs sont rares (≤ 14 lignes par champ) mais
+ * elles s'affichent telles quelles sur la fiche. On préfère MASQUER un champ
+ * manifestement corrompu que d'imprimer une donnée fausse avec aplomb —
+ * l'omission se lit comme « non renseigné », l'aberration comme un bug.
+ */
+export function plausible(v: number | null | undefined, min: number, max: number): number | null {
+  return v == null || v < min || v > max ? null : v
+}
+
+/** Idem pour une date ISO : hors [2000, 2100] = parse cassé côté portail. */
+export function plausibleDate(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const year = Number(iso.slice(0, 4))
+  return Number.isFinite(year) && year >= 2000 && year <= 2100 ? iso : null
+}
+
 export interface MrhCriteria {
   transaction: MrhTransaction
   /** enums internes ('apartment'…) */
@@ -140,7 +182,8 @@ export function mapListingRow(row: Record<string, unknown>): MrhBien {
     beds: num(row.bedrooms),
     baths: num(row.bathrooms),
     area: num(row.surface_m2),
-    year: num(row.year_built),
+    // 12 annonces actives déclarent une année à 3 chiffres — cf `plausible`.
+    year: plausible(num(row.year_built), 1200, 2100),
     land_surface: num(row.land_surface),
     canton: (row.canton as string) ?? null,
     city: (row.city as string) ?? null,
@@ -160,6 +203,26 @@ export function mapListingRow(row: Record<string, unknown>): MrhBien {
     postedAt: relativeDays(dom),
     postedRank: dom == null ? 9999 : dom,
     photos,
+  }
+}
+
+/** row (select ciblé sur une PK) → champs de fiche. Les valeurs aberrantes des
+ *  portails sont filtrées ici, pas dans le composant (cf `plausible`). */
+export function mapListingDetailRow(row: Record<string, unknown>): MrhBienDetail {
+  const num = (v: unknown): number | null =>
+    v == null || v === '' || Number.isNaN(Number(v)) ? null : Number(v)
+  const desc = typeof row.description === 'string' ? row.description.trim() : ''
+  return {
+    description: desc || null,
+    floor: plausible(num(row.floor), -6, 40),
+    parking_count: plausible(num(row.parking_count), 1, 20),
+    year_renovated: plausible(num(row.year_renovated), 1800, 2100),
+    usable_surface: plausible(num(row.usable_surface), 1, 10000),
+    charges_monthly: plausible(num(row.charges_monthly), 1, 20000),
+    is_furnished: typeof row.is_furnished === 'boolean' ? row.is_furnished : null,
+    availability_date: plausibleDate(row.availability_date as string | null),
+    visit_contact_name: (row.visit_contact_name as string) ?? null,
+    agency_reference: (row.agency_reference as string) ?? null,
   }
 }
 

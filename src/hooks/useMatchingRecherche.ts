@@ -22,7 +22,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { mapListingRow, mapSearchRow, type MrhBien, type MrhContact } from '@/components/matching-recherche/types'
+import { mapListingRow, mapListingDetailRow, mapSearchRow, type MrhBien, type MrhBienDetail, type MrhContact } from '@/components/matching-recherche/types'
 
 // Colonnes d'affichage (JAMAIS `description` — 2 Ko/row). photos_cf = R2 (rapide,
 // sans hotlink) prioritaire sur photos (portail).
@@ -212,6 +212,42 @@ export function useMatchingBuyers() {
         const contact = Array.isArray(r.contact) ? r.contact[0] ?? null : r.contact
         return mapSearchRow(r, contact)
       })
+    },
+  })
+}
+
+/**
+ * Colonnes réservées à la FICHE d'une annonce — jamais chargées en liste.
+ * `description` fait ~1,5 Ko en moyenne (max 9,3 Ko) : sur 400 candidats ce
+ * serait ~600 Ko de payload pour un texte que personne ne lit dans la grille.
+ */
+const DETAIL_COLS =
+  'description,floor,parking_count,year_renovated,usable_surface,charges_monthly,' +
+  'is_furnished,availability_date,visit_contact_name,agency_reference'
+
+/**
+ * Champs de fiche d'UNE annonce, chargés à l'ouverture de « Voir l'annonce ».
+ *
+ * Lecture par clé primaire (index PK) : le coût est constant et sans rapport
+ * avec la taille de `market_listings` — c'est ce qui autorise `description` ici
+ * alors que la liste se l'interdit. `null` = annonce introuvable (retirée entre
+ * le chargement de la liste et l'ouverture) ; la fiche affiche alors seulement
+ * ce que la grille lui a déjà donné, sans bloquer.
+ */
+export function useMarketListingDetail(id: string | null) {
+  const { user } = useAuth()
+  return useQuery<MrhBienDetail | null>({
+    queryKey: ['mrh-listing-detail', id],
+    enabled: !!user && !!id,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('market_listings')
+        .select(DETAIL_COLS)
+        .eq('id', id as string)
+        .maybeSingle()
+      if (error) throw error
+      return data ? mapListingDetailRow(data as unknown as Record<string, unknown>) : null
     },
   })
 }

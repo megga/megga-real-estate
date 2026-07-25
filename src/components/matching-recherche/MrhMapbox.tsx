@@ -45,6 +45,13 @@ interface Props {
   center?: { lng: number; lat: number; zoom?: number } | null
   dark: boolean
   controls?: boolean
+  /**
+   * Coin des contrôles de zoom. À déplacer quand l'appelant pose lui-même un
+   * bouton en haut à droite : `NavigationControl` et l'overlay s'empilent dans
+   * le même contexte (z-index 2 des deux côtés) et le dernier de l'arbre gagne,
+   * donc le bouton de l'appelant volerait les clics du zoom.
+   */
+  controlsPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
   overlay?: ReactNode
   radius?: number
   interactive?: boolean
@@ -71,7 +78,7 @@ function isAuthError(e: unknown): boolean {
   return err?.status === 401 || err?.status === 403 || /\b40[13]\b|unauthorized|access token|not authorized/i.test(err?.message ?? '')
 }
 
-export default function MrhMapbox({ markers, bounds, center, dark, controls, overlay, radius = 20, interactive = true, fallback }: Props) {
+export default function MrhMapbox({ markers, bounds, center, dark, controls, controlsPosition = 'top-right', overlay, radius = 20, interactive = true, fallback }: Props) {
   const [authFailed, setAuthFailed] = useState(false)
   const mapStyle = dark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'
   const initialViewState = bounds
@@ -103,7 +110,7 @@ export default function MrhMapbox({ markers, bounds, center, dark, controls, ove
           if (fallback && isAuthError(e)) setAuthFailed(true)
         }}
       >
-        {controls && <NavigationControl position="top-right" showCompass={false} />}
+        {controls && <NavigationControl position={controlsPosition} showCompass={false} />}
         {markers.map((mk) => (
           <Marker key={mk.id} longitude={mk.lng} latitude={mk.lat} anchor={mk.anchor ?? 'center'} style={{ zIndex: mk.z ?? 1 }}>
             <div
