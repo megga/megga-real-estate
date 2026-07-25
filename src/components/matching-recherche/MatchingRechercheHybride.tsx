@@ -519,7 +519,7 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = SUG
       {view === 'map' && isSettled && !isError && (strict.length + near.length) > 0 ? (
         <MrhMapView strict={strict} near={near} ctx={ctx} />
       ) : (
-        <div className="mrh-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 30px 34px' }}>
+        <div className="mrh-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 30px 34px', animation: 'mrhViewIn .28s cubic-bezier(.2,.8,.2,1) both' }}>
           {isFetchingFirst ? (
             <div style={{ display: 'grid', placeItems: 'center', minHeight: 240, gap: 14, color: sp.sub, fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
               <span>{slow ? t('recherche.slow') : t('recherche.loading')}</span>

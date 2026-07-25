@@ -77,3 +77,8 @@
 }
 
 @keyframes sgFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Bascule Grille ↔ Carte : la vue qui arrive monte d'un cran. Plus court et
+   plus discret que l'entrée des cartes (sgFadeUp), parce qu'il s'agit ici de
+   remplacer une vue entière, pas de faire apparaître des éléments un à un. */
+@keyframes mrhViewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }

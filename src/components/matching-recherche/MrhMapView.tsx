@@ -21,7 +21,12 @@ const MrhMapbox = lazy(() => import('./MrhMapbox'))
 const HAS_MAPBOX = !!((import.meta.env.VITE_MAPBOX_TOKEN as string | undefined) || '')
 
 const mrhM = (n: number) => (n >= 1e6 ? String(Math.round(n / 1e5) / 10).replace('.', ',') + 'M' : Math.round(n / 1e3) + 'k')
+
+// Couleur de pastille PAR TRANSACTION — sur le segment « Tout » la carte mêle
+// vente et location, et un violet unique les rendait indistinguables.
+// Vente = violet signature MEGGA AI ; location = bleu marine.
 const VIO = '#7C63F0', VIO_HOT = '#5B44D6', VIO_NEAR = '#9B86F2'
+const RENT = '#012F9E', RENT_HOT = '#01247A', RENT_NEAR = '#3A63C4'
 
 interface Bounds { minLa: number; maxLa: number; minLo: number; maxLo: number }
 interface Pos { left: string; top: string; _x: number; _y: number; _in: boolean }
@@ -45,10 +50,13 @@ function mrhPos(b: MrhBien, bnds: Bounds): Pos {
 }
 
 // Style visuel de la pastille prix (partagé CSS ↔ marqueur Mapbox).
-function pinStyle(hot: boolean, near: boolean, on: boolean): CSSProperties {
-  return { border: 0, cursor: 'pointer', padding: '5px 10px', borderRadius: 999, fontFamily: 'inherit', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', background: hot ? VIO_HOT : near ? VIO_NEAR : VIO, color: '#FFFFFF', boxShadow: '0 3px 10px rgba(76,58,160,.42)', outline: on ? '2px solid rgba(255,255,255,.9)' : 'none', outlineOffset: -2, transition: 'background .14s' }
+function pinStyle(hot: boolean, near: boolean, on: boolean, isRent: boolean): CSSProperties {
+  const bg = isRent ? (hot ? RENT_HOT : near ? RENT_NEAR : RENT) : (hot ? VIO_HOT : near ? VIO_NEAR : VIO)
+  const glow = isRent ? '0 3px 10px rgba(1,64,215,.42)' : '0 3px 10px rgba(76,58,160,.42)'
+  return { border: 0, cursor: 'pointer', padding: '5px 10px', borderRadius: 999, fontFamily: 'inherit', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', background: bg, color: '#FFFFFF', boxShadow: glow, outline: on ? '2px solid rgba(255,255,255,.9)' : 'none', outlineOffset: -2, transition: 'background .14s' }
 }
-const priceLabel = (b: MrhBien) => { const p = b.transaction === 'location' ? b.rent : b.price; return p ? mrhM(p) : '—' }
+const isRentBien = (b: MrhBien) => b.transaction === 'location'
+const priceLabel = (b: MrhBien) => { const p = isRentBien(b) ? b.rent : b.price; return p ? mrhM(p) : '—' }
 
 function MapSurface({ dark }: { dark: boolean }) {
   const base = dark ? '#0F131A' : '#E9EDF2'
@@ -69,7 +77,7 @@ function MapSurface({ dark }: { dark: boolean }) {
 
 // Pastille prix statique (contenu d'un marqueur Mapbox — le positionnement est géré par la carte).
 function PinPill({ b, active, near, on }: { b: MrhBien; active: boolean; near: boolean; on: boolean }) {
-  return <span style={{ ...pinStyle(active || on, near, on), display: 'inline-block' }}>{priceLabel(b)}</span>
+  return <span style={{ ...pinStyle(active || on, near, on, isRentBien(b)), display: 'inline-block' }}>{priceLabel(b)}</span>
 }
 
 function PricePin({ b, pos, active, near, sel, onHover, onOpen }: { b: MrhBien; pos: Pos; active: boolean; near: boolean; sel: string[]; onHover: (id: string | null) => void; onOpen: (b: MrhBien) => void }) {
@@ -78,7 +86,7 @@ function PricePin({ b, pos, active, near, sel, onHover, onOpen }: { b: MrhBien; 
   const z = active ? 60 : on ? 40 : 14 + Math.round(pos._y / 3)
   return (
     <button onMouseEnter={() => onHover(b.id)} onMouseLeave={() => onHover(null)} onClick={(e) => { e.stopPropagation(); onOpen(b) }}
-      style={{ position: 'absolute', left: pos.left, top: pos.top, zIndex: z, transform: 'translate(-50%,-50%)', ...pinStyle(hot, near, on) }}>
+      style={{ position: 'absolute', left: pos.left, top: pos.top, zIndex: z, transform: 'translate(-50%,-50%)', ...pinStyle(hot, near, on, isRentBien(b)) }}>
       {priceLabel(b)}
     </button>
   )
@@ -88,6 +96,10 @@ function PricePin({ b, pos, active, near, sel, onHover, onOpen }: { b: MrhBien; 
 function MapPopoverCard({ b, m, ctx }: { b: MrhBien; m: MrhItem['m']; ctx: MrhCtx }) {
   const { sp, surf, dark, cardSolid } = ctx
   const price = b.transaction === 'location' ? b.rent : b.price
+  // `pi` n'est pas remis à zéro ici : les deux appelants keyent l'aperçu sur
+  // l'id de l'annonce, donc changer de pastille remonte le composant. Un
+  // `useEffect(() => setPi(0), [b.id])` ferait un rendu en cascade pour le
+  // même résultat.
   const [pi, setPi] = useState(0)
   const photos = b.photos.length ? b.photos : [null]
   const goPhoto = (e: ReactMouseEvent, d: number) => { e.stopPropagation(); setPi((i) => (i + d + photos.length) % photos.length) }
@@ -99,6 +111,11 @@ function MapPopoverCard({ b, m, ctx }: { b: MrhBien; m: MrhItem['m']; ctx: MrhCt
           <>
             <button onClick={(e) => goPhoto(e, -1)} style={{ position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(11,12,14,.55)' }}><RechIcon name="chevronL" size={14} stroke="#fff" /></button>
             <button onClick={(e) => goPhoto(e, 1)} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(11,12,14,.55)' }}><RechIcon name="chevronR" size={14} stroke="#fff" /></button>
+            <div style={{ position: 'absolute', bottom: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4, alignItems: 'center' }}>
+              {photos.map((_, i) => (
+                <span key={i} style={{ width: i === pi ? 11 : 5, height: 5, borderRadius: 999, background: i === pi ? '#fff' : 'rgba(255,255,255,.55)', transition: 'width .15s', boxShadow: '0 1px 2px rgba(0,0,0,.3)' }} />
+              ))}
+            </div>
           </>
         )}
         {m && m.score != null && <span style={{ position: 'absolute', top: 8, right: 8, display: 'inline-flex', alignItems: 'center', gap: 2, padding: '3px 8px', borderRadius: 999, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 11, fontWeight: 800, boxShadow: '0 2px 8px rgba(15,23,42,.2)' }}>{m.score}<span style={{ fontSize: 9, color: sp.sub }}>%</span></span>}
@@ -260,7 +277,7 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
   }
 
   return (
-    <div className="mrh-split" style={{ flex: 1, minHeight: 0, padding: '8px 30px 30px' }}>
+    <div className="mrh-split" style={{ flex: 1, minHeight: 0, padding: '8px 30px 30px', animation: 'mrhViewIn .28s cubic-bezier(.2,.8,.2,1) both' }}>
       <div className="mrh-split-list mrh-scroll" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 8 }}>
         {strict.length === 0 && <div style={{ ...labStyle, padding: '4px 2px 2px' }}>{t('recherche.map.nearHere')}</div>}
         {strict.map(rowOf)}
@@ -307,7 +324,9 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
               {t('recherche.map.overview')}
             </button>
           )}
-          {act && actPos && posById[act.b.id]?._in && <MapPopover b={act.b} m={act.m} pos={actPos} ctx={ctx} onOpen={ctx.onOpen} onHover={setHover} />}
+          {/* keyé sur l'annonce : passer d'une pastille à l'autre remonte l'aperçu,
+              donc son carrousel repart de la première photo. */}
+          {act && actPos && posById[act.b.id]?._in && <MapPopover key={act.b.id} b={act.b} m={act.m} pos={actPos} ctx={ctx} onOpen={ctx.onOpen} onHover={setHover} />}
         </div>
       )}
     </div>
