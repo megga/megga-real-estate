@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "postbuild": "node scripts/overlay-storefront.mjs",
+    "dev:admin": "vite --config vite.admin.config.ts",
+    "build:admin": "tsc -b && vite build --config vite.admin.config.ts",
     "lint": "eslint .",
     "lint:prose": "node scripts/check-prose-typography.mjs",
     "lint:i18n": "node scripts/lint-i18n-hardcoded.mjs",

@@ -1,7 +1,7 @@
 /**
  * Page super-admin — annuaire des agences.
  *
- * Route : `/dashboard/admin/agencies` (section admin, accent violet). Liste
+ * Route : `/agencies` (accent violet). Liste
  * paginée (10/page) avec recherche, filtre de statut, export CSV et score de
  * santé par agence. La santé s'appuie sur un résumé d'activité agrégé server-side
  * (RPC `get_agency_activity_summary`) pour éviter de scanner activity_events.
@@ -219,7 +219,7 @@ export default function AdminAgenciesPage() {
             paginated.map((agency) => (
               <Link
                 key={agency.id}
-                to={`/dashboard/admin/agencies/${agency.id}`}
+                to={`/agencies/${agency.id}`}
                 className="flex items-center gap-3 p-3 rounded-xl border border-theme-border hover:border-theme-active transition-colors"
               >
                 <AgencyAvatar name={agency.name} />
@@ -265,7 +265,7 @@ export default function AdminAgenciesPage() {
             paginated.map((agency, i) => (
               <Link
                 key={agency.id}
-                to={`/dashboard/admin/agencies/${agency.id}`}
+                to={`/agencies/${agency.id}`}
                 className={cn(
                   'flex items-center px-4 py-3 group hover:bg-theme-hover transition-colors',
                   i < paginated.length - 1 && 'border-b border-theme-border'

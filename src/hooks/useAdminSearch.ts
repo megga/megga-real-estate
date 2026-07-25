@@ -51,7 +51,7 @@ export function useAdminSearch(query: string) {
           id: t.id,
           title: t.subject ?? 'Ticket',
           subtitle: t.status ?? '',
-          href: '/dashboard/admin/support',
+          href: '/support',
         }))
       } catch {
         /* table may not exist — silently ignore */
@@ -63,21 +63,21 @@ export function useAdminSearch(query: string) {
           id: a.id,
           title: a.name,
           subtitle: a.email ?? 'Agence',
-          href: `/dashboard/admin/agencies/${a.id}`,
+          href: `/agencies/${a.id}`,
         })),
         ...(users.data ?? []).map(u => ({
           type: 'user' as const,
           id: u.id,
           title: u.full_name ?? u.email,
           subtitle: `${u.role} · ${u.email}`,
-          href: '/dashboard/admin/users',
+          href: '/users',
         })),
         ...(properties.data ?? []).map(p => ({
           type: 'property' as const,
           id: p.id,
           title: p.title ?? 'Bien',
           subtitle: p.city ?? '',
-          href: '/dashboard/admin/marketplace',
+          href: '/marketplace',
         })),
         ...ticketResults,
       ]

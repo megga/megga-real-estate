@@ -61,6 +61,7 @@
     "adminAutonomy": "Autonomie agents",
     "adminLearning": "Styles appris",
     "adminToolUsage": "Usage des outils",
+    "backToCrm": "Retour au CRM",
     "journey": "Parcours",
     "aiAgent": "Megga, Agent IA",
     "help": "Aide",
@@ -291,7 +292,8 @@
         "askMegga": "Demander à Megga",
         "meggaConvos": "Conversations Megga",
         "biens": "Biens",
-        "deals": "Deals"
+        "deals": "Deals",
+        "platform": "Plateforme"
       },
       "badge": {
         "semantic": "sémantique"
@@ -354,7 +356,8 @@
     "preferences": "Préférences",
     "security": "Sécurité & sessions",
     "billing": "Facturation & abonnement",
-    "help": "Centre d'aide"
+    "help": "Centre d'aide",
+    "adminConsole": "Console admin"
   },
   "audit": {
     "category": {

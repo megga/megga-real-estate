@@ -1,7 +1,7 @@
 /**
  * Page super-admin — gestion du changelog produit.
  *
- * Route : `/dashboard/admin/changelog` (section admin, accent violet). Liste des
+ * Route : `/changelog` (console admin.megga.ch) (accent violet). Liste des
  * entrées avec création (modale) et suppression ; chaque entrée porte version,
  * titre, contenu et un drapeau publié/brouillon (les brouillons ne sortent pas
  * vers les utilisateurs finaux).

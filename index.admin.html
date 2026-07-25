@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Console interne : rien à indexer, et rien à mesurer. Contrairement à
+         index.html (app.megga.ch), cette page ne charge NI Google Tag Manager
+         NI gtag : aucune donnée d'exploitation de la plateforme ne part chez un
+         tiers. Le robots noindex est une ceinture — la bretelle est le
+         robots.txt écrit par vite.admin.config.ts. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#14161C" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://eayczugyrvmtqnnmvjod.supabase.co" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <title>MEGGA — Console admin</title>
+    <script>
+      // Thème appliqué AVANT le premier rendu (pas de flash blanc). Ici sans
+      // condition de chemin : sur ce domaine, tout est la console.
+      (function () {
+        try {
+          if (localStorage.getItem('megga-theme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.admin.tsx"></script>
+  </body>
+</html>

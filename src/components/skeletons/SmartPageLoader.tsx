@@ -49,8 +49,7 @@ function DefaultLoader() {
  */
 function isLegacyChrome(pathname: string): boolean {
   return (
-    pathname.startsWith('/dashboard/admin')
-    || pathname === '/dashboard/contacts/import'
+    pathname === '/dashboard/contacts/import'
     || pathname === '/dashboard/listings/new'
     || /^\/dashboard\/listings\/[^/]+\/edit$/.test(pathname)
     || pathname.startsWith('/dashboard/market/')

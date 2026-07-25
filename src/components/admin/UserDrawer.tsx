@@ -15,7 +15,7 @@ import { X, Mail, Phone, Building2, Clock, Eye, FileDown, Ban, KeyRound, Trash2 
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity, useDsarExport } from '@/hooks/useAdminUsers'
 import { useAdminUserLifecycle } from '@/hooks/useAdminUserLifecycle'
-import { useImpersonate } from '@/hooks/useImpersonate'
+import { openImpersonationInCrm } from '@/lib/adminEntry'
 import { useToast } from '@/components/ui/Toast'
 
 const ROLE_OPTIONS = [
@@ -61,7 +61,6 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const { t } = useTranslation('admin')
   const { users, updateRole } = useAdminUsers()
   const { data: activity, isLoading: activityLoading } = useUserActivity(userId)
-  const { startImpersonate } = useImpersonate()
   const dsarExport = useDsarExport()
   const { lifecycle, deleteAccount } = useAdminUserLifecycle()
   const toast = useToast()
@@ -149,7 +148,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 <span className="text-sm text-theme-secondary w-20 flex-shrink-0">{t('userDrawer.agency')}</span>
                 {user.agency_name && user.agency_id ? (
                   <Link
-                    to={`/dashboard/admin/agencies/${user.agency_id}`}
+                    to={`/agencies/${user.agency_id}`}
                     onClick={onClose}
                     className="text-sm text-admin-accent hover:underline truncate"
                   >
@@ -197,21 +196,11 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
             {/* Impersonate button */}
             <button
-              onClick={async () => {
-                // Audit-first : l'impersonation ne s'active que si l'événement
-                // d'audit serveur a été journalisé (RPC admin_log_impersonation).
-                const ok = await startImpersonate({
-                  id: user.id,
-                  full_name: user.full_name ?? 'Utilisateur',
-                  email: user.email,
-                  role: user.role ?? 'agent',
-                  agency_id: user.agency_id,
-                  agency_name: user.agency_name,
-                })
-                if (!ok) {
-                  toast.error(t('userDrawer.impersonateAuditFailed'))
-                  return
-                }
+              onClick={() => {
+                // La vue impersonée est une vue du CRM, qui vit sur une AUTRE
+                // origine : on l'y ouvre. C'est le CRM qui journalise (audit-first,
+                // RPC admin_log_impersonation) avant d'activer quoi que ce soit.
+                openImpersonationInCrm(user.id)
                 onClose()
               }}
               className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-admin-accent/30 text-admin-accent rounded-lg hover:bg-admin-accent/5 transition-colors"

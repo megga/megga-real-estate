@@ -1,7 +1,7 @@
 /**
  * Page super-admin — satisfaction (NPS).
  *
- * Route : `/dashboard/admin/nps` (SuperAdminGuard, accent violet). Score NPS,
+ * Route : `/nps` (console admin.megga.ch) (accent violet). Score NPS,
  * note moyenne, répartition 1-5 étoiles et liste des réponses avec commentaires
  * (via `useAdminNps`).
  */

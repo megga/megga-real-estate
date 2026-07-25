@@ -4,10 +4,10 @@
  * création rapide de contact (⌘⇧C), bannière d'impersonation, bottom tab bar et
  * sondage NPS. Enveloppé de `ThemeProvider` (dark mode limité au dashboard) et
  * `CopilotContextProvider`. En mobile, court-circuite le chrome legacy au profit
- * du MobileShell fourni par les pages, sauf sous `/dashboard/admin`.
+ * du MobileShell fourni par les pages.
  */
 import { useState, useEffect, useCallback } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { ThemeProvider } from '@/hooks/useTheme'
@@ -51,11 +51,9 @@ function AgentLayoutInner() {
 
   // Mobile (< 768px) : on neutralise le chrome legacy (Sidebar, header mobile,
   // Breadcrumb, BottomTabBar) — les pages mobiles fournissent leur propre
-  // MobileShell via ResponsiveRoute. L'admin conserve son chrome legacy (hors
-  // cible mobile V1). Desktop ≥ 768px : strictement inchangé.
+  // MobileShell via ResponsiveRoute. Desktop ≥ 768px : strictement inchangé.
   const isMobile = useIsMobile()
-  const { pathname } = useLocation()
-  if (isMobile && !pathname.startsWith('/dashboard/admin')) {
+  if (isMobile) {
     return (
       <div className="min-h-[100dvh] bg-theme-section">
         <ImpersonateBanner />

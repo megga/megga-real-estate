@@ -1,7 +1,7 @@
 /**
  * Page super-admin — flux d'activité temps réel.
  *
- * Route : `/dashboard/admin/live` (SuperAdminGuard, accent violet). Stream des
+ * Route : `/live` (console admin.megga.ch) (accent violet). Stream des
  * `activity_events` (via `useAdminLiveFeed`) avec pause, filtres par type
  * d'entité / action, stats du jour et détail metadata dépliable par ligne.
  */
