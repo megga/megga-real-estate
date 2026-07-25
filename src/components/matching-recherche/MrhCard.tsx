@@ -6,6 +6,7 @@ import type { MouseEvent as ReactMouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import RechIcon from './RechIcon'
 import MrhPhoto from './MrhPhoto'
+import MrhAgencyLogo from './MrhAgencyLogo'
 import { formatCHF } from '@/lib/utils'
 import type { MrhBien } from './types'
 import type { MrhCtx } from './mrhCtx'
@@ -85,9 +86,7 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
         <div style={{ fontSize: 12.5, color: sp.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.addr}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
           <span style={{ minWidth: 0, flex: 1, fontSize: 11.5, color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.postedAt}</span>
-          {bien.agency && (
-            <span title={bien.agency} style={{ flexShrink: 0, maxWidth: 120, fontSize: 11.5, color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.agency}</span>
-          )}
+          <MrhAgencyLogo name={bien.agency} logoUrl={bien.agency_logo_url} sp={sp} chipBg={chipBg} line={line} />
         </div>
         {reasonText && (
           <div style={{ marginTop: 8, fontSize: 11.5, color: sp.sub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden' }}>
