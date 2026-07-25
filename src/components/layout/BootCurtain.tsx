@@ -41,10 +41,18 @@ export function CurtainLift() {
 
 /** Rideau plein cadre, monté hors du Suspense pour survivre au chargement des chunks. */
 export default function BootCurtain() {
-  // Lu au montage : les routes étant keyées par pathname, ce composant se
-  // remonte à CHAQUE navigation. Sans cette lecture synchrone du drapeau, le
-  // rideau se rejouerait à chaque changement de page.
-  const [needed] = useState(() => !hasEnteredCrm())
+  // Lu au montage, une seule fois. `hasEnteredCrm()` couvre le cas nominal (le
+  // rideau ne se rejoue pas d'une page à l'autre) ; la classe `megga-booting`
+  // borne le rideau au TRAJET D'ARRIVÉE sur le CRM — elle est posée dans le
+  // <head> (index.html) uniquement pour `/`, `/auth/callback` et `/dashboard*`.
+  // Sans elle, entrer dans le CRM depuis une page publique claire (invitation,
+  // confidentialité, 404) déroulait un rideau NOIR plein cadre au milieu d'un
+  // parcours clair : un défaut, pas une transition.
+  const [needed] = useState(() =>
+    !hasEnteredCrm()
+    && typeof document !== 'undefined'
+    && document.documentElement.classList.contains('megga-booting'),
+  )
   const [leaving, setLeaving] = useState(false)
   const [gone, setGone] = useState(false)
 

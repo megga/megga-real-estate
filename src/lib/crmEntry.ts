@@ -8,12 +8,12 @@
  *  - APRÈS, la même attente veut dire « la page se construit », et c'est le
  *    squelette de route (SmartPageLoader) qui est juste.
  *
- * Volontairement au niveau du module, pas dans un contexte React : les routes
- * sont keyées par `pathname` (cf. AnimatedRoutes), donc TOUT l'arbre protégé se
- * remonte à chaque navigation. Un état React serait remis à zéro et le rideau
- * se rejouerait à chaque changement de page — exactement ce qu'on ne veut pas.
- * Le drapeau meurt avec le document, ce qui est la bonne durée de vie : un vrai
- * rechargement est bien une nouvelle arrivée.
+ * Volontairement au niveau du module, pas dans un contexte React : le drapeau
+ * doit survivre à tout remontage de l'arbre protégé, d'où qu'il vienne (bascule
+ * entre les deux shells `/dashboard`, remontage d'une feuille par `ByParam`…).
+ * Un état React y serait remis à zéro et le rideau se rejouerait — exactement ce
+ * qu'on ne veut pas. Le drapeau meurt avec le document, ce qui est la bonne
+ * durée de vie : un vrai rechargement est bien une nouvelle arrivée.
  */
 
 let entered = false

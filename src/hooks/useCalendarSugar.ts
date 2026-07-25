@@ -155,9 +155,14 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
 
   // Fenêtre lue : ±60 jours autour d'aujourd'hui pour couvrir les vues
   // jour/semaine/mois sans tout charger.
+  //
+  // Bornée au JOUR (et non à la milliseconde) : les deux bornes entrent dans les
+  // queryKeys ci-dessous, donc un horodatage précis donnait une clé inédite à
+  // chaque montage — la tuile Agenda et la page Calendrier repartaient de zéro à
+  // chaque visite au lieu d'être servies du cache. Le jour suffit pour ±60 j.
   const range = useMemo(() => {
-    const from = new Date(); from.setDate(from.getDate() - 60)
-    const to = new Date(); to.setDate(to.getDate() + 60)
+    const from = new Date(); from.setDate(from.getDate() - 60); from.setHours(0, 0, 0, 0)
+    const to = new Date(); to.setDate(to.getDate() + 60); to.setHours(23, 59, 59, 999)
     return { from: from.toISOString(), to: to.toISOString() }
   }, [])
 

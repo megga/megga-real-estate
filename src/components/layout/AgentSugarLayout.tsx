@@ -38,7 +38,7 @@ function readSugarDark(): boolean {
  *    the app's CSS variables, even though Sugar uses its own tokens)
  *  - CopilotContextProvider (kept for cross-page MEGGA AI context)
  *  - Push du contenu quand le panneau MEGGA AI est ouvert (le panneau lui-même
- *    est monté dans App.tsx, au-dessus des Routes keyées, pour persister à la nav)
+ *    est monté dans App.tsx, au-dessus de <Routes>, pour persister à la nav)
  *  - ImpersonateBanner (super-admin must always see they are impersonating)
  */
 function AgentSugarInner() {
@@ -46,6 +46,13 @@ function AgentSugarInner() {
   const [dark, setDark] = useState(readSugarDark)
   useEffect(() => {
     const sync = () => setDark(readSugarDark())
+    // Relecture IMMÉDIATE à chaque passage : ce layout ne se remonte plus à la
+    // navigation (les routes ne sont plus keyées par pathname), donc la valeur
+    // lue au montage peut dater de plusieurs écrans — une bascule clair/sombre
+    // faite depuis le rail d'une page n'est pas notifiée dans le même onglet
+    // (`storage` ne concerne que les autres). Sans ça, la gouttière du push
+    // s'ouvrirait à l'ancienne teinte.
+    sync()
     window.addEventListener('storage', sync)
     let id: number | undefined
     if (isOpen) id = window.setInterval(sync, 400)
@@ -70,7 +77,7 @@ function AgentSugarInner() {
         <Outlet />
       </div>
       <CrmSugarSearchHost />
-      {/* Le panneau MEGGA AI est monté dans App.tsx (au-dessus des Routes keyées)
+      {/* Le panneau MEGGA AI est monté dans App.tsx (au-dessus de <Routes>)
           pour persister à la navigation ; ici on ne fait que « pousser » le contenu. */}
     </>
   )

@@ -113,9 +113,18 @@ export function useRelanceLeads(): UseRelanceLeadsResult {
   // dans agent-dashboard.spec.ts). L'initialiseur paresseux de useState garantit
   // un calcul unique au montage (contrairement à useMemo, que React peut
   // rejeter) ; la précision milliseconde n'a aucune valeur pour un seuil 14 j.
-  const [cutoff] = useState(() =>
-    new Date(Date.now() - DORMANT_DAYS * 24 * 60 * 60 * 1000).toISOString(),
-  )
+  //
+  // Le `useState` paresseux tue la BOUCLE, pas le cache froid : deux montages
+  // successifs (retour sur « Aujourd'hui ») produisaient deux horodatages
+  // différents, donc deux URL, donc deux clés — la réponse déjà en cache n'était
+  // jamais réutilisée et la colonne Focus repartait sur son écran de chargement.
+  // On arrondit donc le seuil à l'HEURE : stable d'un montage à l'autre, et sans
+  // effet métier sur une fenêtre de 14 jours.
+  const [cutoff] = useState(() => {
+    const hour = 60 * 60 * 1000
+    const bucketed = Math.floor(Date.now() / hour) * hour
+    return new Date(bucketed - DORMANT_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  })
 
   const query = supabase
     .from('contacts')
