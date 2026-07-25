@@ -77,8 +77,6 @@ export default function JourneySugarV2Page() {
         navigate('/dashboard/calendar'); break
       case 'kyc':
         navigate('/dashboard/kyc'); break
-      case 'reseau':
-        navigate('/dashboard/network'); break
       case 'ai':
       case 'julien':
         navigate('/dashboard/julien'); break

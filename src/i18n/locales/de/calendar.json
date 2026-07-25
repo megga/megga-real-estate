@@ -432,15 +432,10 @@
     "reactivated": "Reaktiviert"
   },
   "onboarding": {
-    "kicker": "Erste Verbindung",
     "title": "Verbinden Sie Ihren Kalender",
     "connectGoogle": "Google verbinden",
     "connectOutlook": "Outlook verbinden",
-    "later": "Später",
     "privacy": "Ihre persönlichen Termine bleiben privat.",
-    "laterTitle": "Sie können sich später verbinden",
-    "laterBody": "Verbinden Sie Google oder Outlook jederzeit über",
-    "laterPath": "Einstellungen › Integrationen",
-    "goToCalendar": "Zum Kalender"
+    "connectFailed": "Verbindung fehlgeschlagen: {{error}}"
   }
 }

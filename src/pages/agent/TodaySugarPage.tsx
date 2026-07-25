@@ -134,7 +134,6 @@ export default function TodaySugarPage() {
       case 'biens-new': navigate('/dashboard/listings/new'); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'reseau': navigate('/dashboard/network'); break
       case 'parcours': navigate('/dashboard/journey'); break
       case 'ai':
       case 'julien': navigate('/dashboard/julien'); break

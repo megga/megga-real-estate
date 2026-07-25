@@ -432,15 +432,10 @@
     "reactivated": "Riattivato"
   },
   "onboarding": {
-    "kicker": "Prima connessione",
     "title": "Collega la tua agenda",
     "connectGoogle": "Collega Google",
     "connectOutlook": "Collega Outlook",
-    "later": "Più tardi",
     "privacy": "I tuoi eventi personali restano privati.",
-    "laterTitle": "Puoi collegarti più tardi",
-    "laterBody": "Collega Google o Outlook quando vuoi, da",
-    "laterPath": "Impostazioni › Integrazioni",
-    "goToCalendar": "Vai al calendario"
+    "connectFailed": "Connessione non riuscita: {{error}}"
   }
 }

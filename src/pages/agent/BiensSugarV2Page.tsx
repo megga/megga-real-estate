@@ -59,7 +59,6 @@ export default function BiensSugarV2Page() {
       case 'biens-new': setWizardOpen(true); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'reseau': navigate('/dashboard/network'); break
       case 'ai':
       case 'julien': navigate('/dashboard/julien'); break
       case 'chat':

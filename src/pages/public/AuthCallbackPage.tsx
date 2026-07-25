@@ -9,6 +9,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BootSplash from '@/components/layout/BootSplash'
 import { supabase } from '@/lib/supabase'
+import { calendarReturnPath } from '@/lib/calendarOauth'
 import { isAgentRole } from '@/types/auth'
 import type { UserRole } from '@/types/auth'
 
@@ -45,7 +46,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/dashboard/settings?tab=integrations&gcal=success', { replace: true })
+        navigate(calendarReturnPath(params, '/dashboard/settings?tab=integrations&gcal=success'), { replace: true })
         return
       }
 
@@ -67,7 +68,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/dashboard/settings?tab=integrations&outlook=success', { replace: true })
+        navigate(calendarReturnPath(params, '/dashboard/settings?tab=integrations&outlook=success'), { replace: true })
         return
       }
 
