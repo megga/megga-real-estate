@@ -184,7 +184,6 @@
   },
   "firstRun": {
     "title": "Votre boucle de match démarre ici",
-    "subtitle": "Le Matching croise vos mandats avec les attentes de vos contacts, puis suit leurs retours. Deux ingrédients suffisent pour le mettre en route.",
     "mandat": {
       "title": "Créez votre premier mandat",
       "sub": "Un bien à vendre ou à louer."
