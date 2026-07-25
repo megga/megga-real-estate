@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { calendarAuthMethod, calendarRedirectTo, type CalendarConnectOrigin } from '@/lib/calendarOauth'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
 // ── Types ──
@@ -106,18 +107,16 @@ export function useOutlookCalendar(dateRange?: { start: Date; end: Date }) {
   // sans risque de bascule et permet de re-consentir aux scopes Calendars.
   // `from` = énumération d'écrans de retour, pas une URL (cf. useGoogleCalendar).
   // Ne jette jamais ; exige « Manual linking » activé côté projet Supabase.
-  async function connectOutlookCalendar(opts?: { from?: 'calendar' }): Promise<{ error: string | null }> {
-    const from = opts?.from === 'calendar' ? '&from=calendar' : ''
+  async function connectOutlookCalendar(opts?: { from?: CalendarConnectOrigin }): Promise<{ error: string | null }> {
     const options = {
       scopes: 'https://graph.microsoft.com/Calendars.ReadWrite offline_access User.Read',
-      redirectTo: `${window.location.origin}/auth/callback?outlook=1${from}`,
+      redirectTo: calendarRedirectTo(window.location.origin, 'azure', opts?.from),
       queryParams: {
         prompt: 'consent',
       },
     }
     const { data: idData } = await supabase.auth.getUserIdentities()
-    const alreadyMine = idData?.identities?.some(i => i.provider === 'azure') ?? false
-    const { error } = alreadyMine
+    const { error } = calendarAuthMethod('azure', idData?.identities) === 'reauth'
       ? await supabase.auth.signInWithOAuth({ provider: 'azure', options })
       : await supabase.auth.linkIdentity({ provider: 'azure', options })
     return { error: error ? error.message : null }

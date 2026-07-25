@@ -9,6 +9,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BootSplash from '@/components/layout/BootSplash'
 import { supabase } from '@/lib/supabase'
+import { calendarReturnPath } from '@/lib/calendarOauth'
 import { isAgentRole } from '@/types/auth'
 import type { UserRole } from '@/types/auth'
 
@@ -18,20 +19,6 @@ const VALID_ROLES: UserRole[] = ['buyer', 'seller', 'particulier', 'agent', 'man
 function getRedirectPath(role: UserRole): string {
   if (isAgentRole(role)) return '/dashboard'
   return '/portal'
-}
-
-// Écrans autorisés comme retour d'une connexion d'agenda (param `from`, posé par
-// useGoogleCalendar / useOutlookCalendar). Table d'aiguillage volontairement
-// fermée : le param vient de l'URL de callback, une destination libre en ferait
-// une redirection ouverte.
-const CALENDAR_RETURN_PATHS: Record<string, string> = {
-  calendar: '/dashboard/calendar',
-}
-
-/** Retour post-OAuth agenda : l'écran d'origine s'il est connu, sinon Réglages › Intégrations. */
-function calendarReturnPath(params: URLSearchParams, fallback: string): string {
-  const from = params.get('from')
-  return (from && CALENDAR_RETURN_PATHS[from]) || fallback
 }
 
 /** Tient l'écran d'arrivée le temps de l'aiguillage, fait dans onAuthStateChange. */

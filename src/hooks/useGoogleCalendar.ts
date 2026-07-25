@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { calendarAuthMethod, calendarRedirectTo, type CalendarConnectOrigin } from '@/lib/calendarOauth'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
 // ── Types ──
@@ -123,19 +124,17 @@ export function useGoogleCalendar(dateRange?: { start: Date; end: Date }) {
   //
   // Ne jette jamais : renvoie le message d'erreur à afficher par l'appelant.
   // ⚠ `linkIdentity` exige « Manual linking » activé sur le projet Supabase.
-  async function connectGoogleCalendar(opts?: { from?: 'calendar' }): Promise<{ error: string | null }> {
-    const from = opts?.from === 'calendar' ? '&from=calendar' : ''
+  async function connectGoogleCalendar(opts?: { from?: CalendarConnectOrigin }): Promise<{ error: string | null }> {
     const options = {
       scopes: 'https://www.googleapis.com/auth/calendar',
-      redirectTo: `${window.location.origin}/auth/callback?gcal=1${from}`,
+      redirectTo: calendarRedirectTo(window.location.origin, 'google', opts?.from),
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
       },
     }
     const { data: idData } = await supabase.auth.getUserIdentities()
-    const alreadyMine = idData?.identities?.some(i => i.provider === 'google') ?? false
-    const { error } = alreadyMine
+    const { error } = calendarAuthMethod('google', idData?.identities) === 'reauth'
       ? await supabase.auth.signInWithOAuth({ provider: 'google', options })
       : await supabase.auth.linkIdentity({ provider: 'google', options })
     return { error: error ? error.message : null }
