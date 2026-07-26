@@ -3,7 +3,7 @@
 // view-model attendu par la page « Votre vente » (porté de la shape mock du handoff).
 // Lecture seule : aucune écriture, aucune nouvelle entité.
 import i18n from '@/i18n' // libellés traduits au render (clés common:portal.* / listings:type.*) ; le consommateur (VotreVentePage) ajoute i18n.language aux deps du useMemo qui appelle toVenteVM
-import type { SellerPortalData, MandateStep, SellerOffer } from '@/lib/mockSellerData'
+import type { SellerPortalData, MandateStep, SellerOffer } from '@/lib/sellerPortalTypes'
 
 export type VenteOfferStatus = 'pending' | 'counter' | 'accepted'
 

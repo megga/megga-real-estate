@@ -4,7 +4,7 @@
  */
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext } from 'react'
-import type { SellerPortalData } from '@/lib/mockSellerData'
+import type { SellerPortalData } from '@/lib/sellerPortalTypes'
 
 const SellerPortalContext = createContext<SellerPortalData | null>(null)
 

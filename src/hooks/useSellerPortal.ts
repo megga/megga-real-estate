@@ -7,7 +7,7 @@
  */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { SellerPortalData, SellerVisit, SellerActivity, SellerOffer, MandateStep } from '@/lib/mockSellerData'
+import type { SellerPortalData, SellerVisit, SellerActivity, SellerOffer, MandateStep } from '@/lib/sellerPortalTypes'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
