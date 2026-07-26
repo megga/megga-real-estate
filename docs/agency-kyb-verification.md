@@ -254,10 +254,51 @@ Fichiers à corriger (vérifié par grep) :
 
 ---
 
+## 5bis. ⚠ AVANT DE MERGER — le piège du date-guard
+
+Les 4 migrations sont datées **`20260726`**. `deploy.yml` n'applique que les fichiers
+dont l'horodatage est `>= TODAY` (UTC). Deux conséquences :
+
+- **Mergé le 26 juil. 2026** → elles s'appliquent normalement.
+- **Mergé un jour plus tard, sans rien faire** → elles sont **sautées définitivement**
+  (aucun déploiement ultérieur ne les rattrape ; il n'y a qu'une alerte
+  `::warning::` dans le job, facile à manquer). Or `deploy-app.yml` n'a **pas** de
+  garde-fou de date : le frontend partirait en cherchant `business_registration_number`
+  et `legal_form_id`, colonnes inexistantes → **Réglages → Agence cassée durablement**,
+  pas quelques minutes.
+
+**Une des deux parades, au choix, au moment du merge :**
+
+1. **Re-dater les 4 fichiers** au jour du merge (`git mv`, puis re-lancer
+   `npm run lint:migrations`). Le dépôt l'a déjà fait deux fois en juillet 2026
+   (`debfdeea`, `674e80e9`) — c'est une pratique établie ici.
+2. **Les appliquer à la main** avant de merger. `deploy.yml` documente explicitement
+   que l'application manuelle est le flux normal du dépôt.
+
+**Fenêtre de coupure, quoi qu'il arrive :** les trois workflows de déploiement
+(`deploy.yml` migrations+vitrine, `deploy-app.yml` CRM, `deploy-admin.yml`) se
+déclenchent **en parallèle** sur le même push, sans ordre garanti entre « migration
+appliquée » et « nouveau bundle en ligne ». Réglages → Agence sera donc en erreur
+quelques minutes, dans un sens ou dans l'autre. C'est la conséquence assumée d'un
+`RENAME COLUMN` atomique : le rendre transparent demanderait le découpage en trois
+temps (ajouter la colonne + double écriture, déployer, supprimer l'ancienne plus tard),
+jugé disproportionné au vu du nombre d'agences en production.
+
+---
+
 ## 6. Prérequis avant implémentation
 
-- [ ] `npm install` dans le clone — **non fait** (npm indisponible dans Git Bash ;
-      à lancer depuis PowerShell). Nécessaire pour `npm run build`.
+- [x] ~~`npm install`~~ — fait (Node 24.18 LTS installé via scoop).
+- [x] ~~Validation d'exécution des migrations~~ — faite le 26 juil. 2026 :
+      `supabase db reset` sur Postgres 17 local, 174 migrations appliquées à neuf.
+      A révélé un vrai défaut (alias homonymes manquants, corrigé par `d4220fe2`) que
+      le linter d'idempotence ne pouvait pas voir — il ne lit que du texte.
+      Backfill : 13 cas vérifiés. RLS : agent simple 0 ligne / dirigeant 1 / autre
+      agence 0, pondérations invisibles au dirigeant, écriture de check refusée
+      (`42501`), insertion cross-agence refusée, contrainte rôle/attributs tenue.
+      Figé en non-régression dans `tests/backend/agency-kyb-verification.spec.ts`
+      (16 tests, dont l'assertion d'ambiguïté qui aurait attrapé le défaut seule —
+      vérifiée par mutation : le défaut réintroduit fait bien échouer le test).
 - [ ] Identifiants Zefix (CH) — demandés, en attente
 - [ ] Statut API UID-Register TVA (CH/LI) — en attente
 - [ ] Accès API Öffentlichkeitsregister (LI) — en attente
