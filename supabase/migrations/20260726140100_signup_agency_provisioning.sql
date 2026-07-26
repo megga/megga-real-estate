@@ -79,10 +79,16 @@ comment on function public.provision_solo_agency(uuid, text) is
   'Interne : crée l''agence solo d''un inscrit et l''en fait l''admin. Appelée par handle_new_user uniquement. Aucun EXECUTE client.';
 
 -- ── Agent invité : ne pas fabriquer d'agence qui sera aussitôt orpheline ────
--- Un invité crée d'abord son compte (le trigger lui fabriquait une agence solo),
--- puis accept-team-invite réécrit son agency_id vers la vraie agence : l'agence solo
--- restait en base, morte, une par agent invité. On ne provisionne donc pas quand une
--- invitation valide attend cet e-mail ; accept-team-invite fait le rattachement.
+-- Un invité crée d'abord son compte, puis accept-team-invite réécrit son agency_id
+-- vers la vraie agence. L'agence solo restait en base si provisionée — morte, une
+-- par agent invité. On ne provisionne donc pas quand une invitation valide attend
+-- cet e-mail ; accept-team-invite fait le rattachement.
+--
+-- Nom d'agence :  repli en cascade (uq_agencies_name_normalized = UNIQUE sur
+-- lower(btrim(name))) quand le nom saisi n'existe pas. L'ordre : agency_name
+-- (saisi à l'inscription), full_name, ou préfixe e-mail. L'e-mail est toujours
+-- normalisé (btrim) pour éviter les collisions silencieuses contre les invitations,
+-- et tout nom est approximatif — le fondateur finalize au wizard agencies.legal_name.
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -111,24 +117,26 @@ begin
     v_role
   );
 
-  select exists (
-    select 1 from public.team_invitations
-    where lower(email) = lower(coalesce(new.email, ''))
-      and status = 'pending'
-      and expires_at > now()
-  ) into v_invited;
+  if v_role in ('agent', 'manager', 'admin', 'assistant') then
+    select exists (
+      select 1 from public.team_invitations
+      where lower(btrim(email)) = lower(btrim(coalesce(new.email, '')))
+        and status = 'pending'
+        and expires_at > now()
+    ) into v_invited;
 
-  if v_role in ('agent', 'manager', 'admin', 'assistant') and not v_invited then
-    begin
-      perform public.provision_solo_agency(
-        new.id,
-        coalesce(v_agency_name,
-                 nullif(btrim(v_full_name), ''),
-                 split_part(coalesce(new.email, ''), '@', 1))
-      );
-    exception when others then
-      raise warning 'provision_solo_agency failed for %: %', new.id, sqlerrm;
-    end;
+    if not v_invited then
+      begin
+        perform public.provision_solo_agency(
+          new.id,
+          coalesce(v_agency_name,
+                   nullif(btrim(v_full_name), ''),
+                   split_part(coalesce(new.email, ''), '@', 1))
+        );
+      exception when others then
+        raise warning 'provision_solo_agency failed for %: %', new.id, sqlerrm;
+      end;
+    end if;
   end if;
 
   return new;
