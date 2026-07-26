@@ -46,3 +46,52 @@ revoke all on function public.provision_solo_agency(uuid, text) from public, ano
 
 comment on function public.provision_solo_agency(uuid, text) is
   'Interne : crée l''agence solo d''un inscrit et l''en fait l''admin. Appelée par handle_new_user uniquement. Aucun EXECUTE client.';
+
+-- ── Backfill : fondateurs déjà provisionnés par l'ancienne version ───────────
+--
+-- provision_solo_agency() existe depuis le 20260718130000 (remove_onboarding_
+-- provision_solo_agency) dans une version qui ne posait QUE agency_id, jamais
+-- role. Tout compte fondateur inscrit entre cette date et ce déploiement a donc
+-- déjà agency_id : le garde `where agency_id is null` de l'UPDATE ci-dessus ne
+-- le concerne plus, son role reste 'agent'/'assistant' et il échoue toujours à
+-- is_agency_admin(). On répare, réservé aux VRAIS fondateurs — agencies.created_by
+-- = profiles.id — jamais à un agent simplement invité dans l'agence d'un autre :
+-- ce serait une élévation de privilège silencieuse sur des données de
+-- conformité. manager/admin/super_admin existants ne sont jamais retouchés (le
+-- filtre ne cible que role in ('agent','assistant')). Extraite en fonction pour
+-- être rejouable depuis les tests (signup-provisioning.spec.ts) ; le prédicat
+-- purement déclaratif (pas de flag « déjà fait ») rend l'opération idempotente
+-- par construction — un fondateur déjà promu sort du filtre role au rejeu.
+create or replace function public.backfill_founder_admin_roles()
+returns integer
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_count integer;
+begin
+  update profiles p
+     set role = 'admin'
+    from agencies a
+   where a.id = p.agency_id
+     and a.created_by = p.id
+     and p.role in ('agent', 'assistant');
+
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+-- Comme provision_solo_agency : fermé aux rôles API. Les default privileges
+-- Supabase accordent EXECUTE à anon/authenticated explicitement (pas seulement
+-- via PUBLIC) → revoke des trois obligatoire ; service_role regrantée pour
+-- rester appelable depuis les tests (rejeu du backfill) et un service interne.
+revoke execute on function public.backfill_founder_admin_roles() from public, anon, authenticated;
+grant execute on function public.backfill_founder_admin_roles() to service_role;
+
+comment on function public.backfill_founder_admin_roles() is
+  'Interne : promeut admin les profils fondateurs (agencies.created_by = profiles.id) restés agent/assistant faute du fix de rôle ci-dessus. Idempotente, rejouable par service_role (tests). Voir 20260726140100.';
+
+-- One-shot : répare l'existant dès ce déploiement.
+select public.backfill_founder_admin_roles();

@@ -58,4 +58,59 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
     expect(prof?.agency_id, 'aucune agence provisionnée').toBeTruthy()
     expect(prof?.role, 'le fondateur doit diriger son agence, sinon is_agency_admin() le bloque').toBe('admin')
   })
+
+  // provision_solo_agency() ne posait pas le role avant le 20260726140100 : tout
+  // fondateur inscrit avant ce fix est resté 'agent' malgré son agency_id déjà posé
+  // (le garde `agency_id is null` de l'UPDATE ne le voit plus). backfill_founder_admin_roles()
+  // répare ces comptes hérités — ces deux tests en prouvent les deux bords.
+  it('backfill : un fondateur remis à agent en base (état hérité) redevient admin', async () => {
+    const id = await signUp({ full_name: 'Carla Héritage', role: 'agent' })
+    const svc = serviceRoleClient()
+
+    // Simule l'état laissé par l'ancienne version de provision_solo_agency :
+    // agency_id posé, role jamais touché. service_role contourne
+    // trg_profiles_guard_role_agency (garde réservée à authenticated/anon).
+    const { error: downgradeErr } = await svc.from('profiles').update({ role: 'agent' }).eq('id', id)
+    expect(downgradeErr).toBeNull()
+
+    const { error: backfillErr } = await svc.rpc('backfill_founder_admin_roles')
+    expect(backfillErr).toBeNull()
+
+    const { data: prof } = await svc.from('profiles').select('role').eq('id', id).maybeSingle()
+    expect(prof?.role, 'le backfill doit réparer le fondateur hérité').toBe('admin')
+  })
+
+  it('backfill : un agent rattaché à une agence dont il n\'est pas le créateur reste agent', async () => {
+    const founderId = await signUp({ full_name: 'Founder Agence', role: 'agent' })
+    // role 'buyer' : handle_new_user() ne déclenche provision_solo_agency que pour
+    // les rôles agence, donc ce profil n'a pas sa propre agence à faire fuiter.
+    const invitedId = await signUp({ full_name: 'Agent Invité', role: 'buyer' })
+    const svc = serviceRoleClient()
+
+    const { data: founderProf } = await svc
+      .from('profiles')
+      .select('agency_id')
+      .eq('id', founderId)
+      .maybeSingle()
+    expect(founderProf?.agency_id, 'agence du fondateur introuvable').toBeTruthy()
+
+    // Simule un rattachement (invite/join) : agent d'une agence qu'il n'a PAS créée
+    // — agencies.created_by reste celui du fondateur, jamais invitedId.
+    const { error: attachErr } = await svc
+      .from('profiles')
+      .update({ agency_id: founderProf!.agency_id, role: 'agent' })
+      .eq('id', invitedId)
+    expect(attachErr).toBeNull()
+
+    const { error: backfillErr } = await svc.rpc('backfill_founder_admin_roles')
+    expect(backfillErr).toBeNull()
+
+    const { data: invitedProf } = await svc
+      .from('profiles')
+      .select('role, agency_id')
+      .eq('id', invitedId)
+      .maybeSingle()
+    expect(invitedProf?.agency_id).toBe(founderProf!.agency_id)
+    expect(invitedProf?.role, 'un agent invité ne doit jamais être promu admin par le backfill').toBe('agent')
+  })
 })
