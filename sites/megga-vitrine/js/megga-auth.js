@@ -178,6 +178,45 @@
   function $(sel, root) { return (root || document).querySelector(sel); }
   function byId(id) { return document.getElementById(id); }
 
+  // Champ mot de passe de la page de connexion, re-typé au besoin.
+  //
+  // `login.html` porte désormais un vrai `type="password"`, mais il a longtemps
+  // été un `type="tel"` (id/name `Phone`, héritage du template Webflow) : un
+  // navigateur qui sert cette version depuis SON cache afficherait le mot de
+  // passe en clair à la frappe. On garde donc le rattrapage, idempotent sur le
+  // HTML corrigé. Le placeholder reste le sélecteur primaire — il n'a jamais
+  // changé, contrairement à l'id.
+  function loginPasswordField(form) {
+    var el = form.querySelector('input[placeholder*="mot de passe" i]')
+      || byId('Password') || byId('Phone');
+    if (!el) return null;
+    if (el.type !== 'password') el.type = 'password';
+    el.setAttribute('autocomplete', 'current-password');
+    return el;
+  }
+
+  // Durcissement AVANT tout appel réseau.
+  //
+  // Ces corrections vivaient dans `wire()`, donc derrière `loadSdk()` : entre la
+  // peinture de la page et l'arrivée du SDK, le mot de passe restait lisible, et
+  // si le SDK ne venait jamais il le restait pour de bon (le `.catch()` de
+  // `run()` ne retypait rien). Les liens OAuth sont neutralisés ici pour la même
+  // raison : sur une page en cache ils pointent encore sur google.com, et un clic
+  // avant l'attache des écouteurs quittait le site.
+  function hardenAuthFields() {
+    var form = byId('wf-form-Sign-In-Form');
+    if (!form) return;
+    loginPasswordField(form);
+    var email = byId('Email');
+    if (email) email.setAttribute('autocomplete', 'username');
+    Array.prototype.forEach.call(
+      document.querySelectorAll('a.app-button[href], .secondary-button.app-button[href]'),
+      function (a) {
+        if (/google|microsoft/i.test(a.textContent || '')) a.setAttribute('href', '#');
+      },
+    );
+  }
+
   // Affiche un message dans le bloc .w-form-fail / .w-form-done de la page (Webflow).
   function showError(form, msg) {
     var wrap = form.closest('.w-form') || form.parentElement;
@@ -256,11 +295,8 @@
     var loginForm = byId('wf-form-Sign-In-Form');
     if (loginForm) {
       var emailEl = byId('Email');
-      // Le champ "mot de passe" du login est mal typé dans le template
-      // (type=tel, id=Phone, placeholder "Votre mot de passe"). On le corrige.
-      var pwdEl = loginForm.querySelector('input[placeholder*="mot de passe" i]') || byId('Phone');
-      if (pwdEl) { pwdEl.type = 'password'; pwdEl.setAttribute('autocomplete', 'current-password'); }
-      if (emailEl) emailEl.setAttribute('autocomplete', 'username');
+      // Déjà durci par hardenAuthFields() au tout début ; on relit la référence.
+      var pwdEl = loginPasswordField(loginForm);
 
       loginForm.addEventListener('submit', function (e) {
         e.preventDefault(); e.stopPropagation(); clearError(loginForm);
@@ -497,6 +533,9 @@
 
   function run() {
     if (!byId('wf-form-Sign-In-Form') && !byId('wf-form-Sign-Up-Form') && !byId('wf-form-New-Password-Form')) return;
+    // Avant le réseau : un SDK lent ou absent ne doit pas laisser le mot de
+    // passe lisible ni les liens OAuth pointer hors du site.
+    hardenAuthFields();
     loadSdk().then(function () {
       var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
       wire(client);
