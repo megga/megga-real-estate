@@ -46,4 +46,16 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
     expect(prof, 'aucun profil créé : le trigger on_auth_user_created est absent').not.toBeNull()
     expect(prof?.id).toBe(id)
   })
+
+  it('le fondateur est admin de son agence et passe is_agency_admin()', async () => {
+    const id = await signUp({ full_name: 'Bob Fondateur', role: 'agent' })
+    const svc = serviceRoleClient()
+    const { data: prof } = await svc
+      .from('profiles')
+      .select('agency_id, role')
+      .eq('id', id)
+      .maybeSingle()
+    expect(prof?.agency_id, 'aucune agence provisionnée').toBeTruthy()
+    expect(prof?.role, 'le fondateur doit diriger son agence, sinon is_agency_admin() le bloque').toBe('admin')
+  })
 })
