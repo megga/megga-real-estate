@@ -9,6 +9,17 @@
 --
 -- Idempotente : CREATE OR REPLACE.
 
+-- ── Nom de l'agence : utiliser enfin ce que l'utilisateur a saisi ────────────
+-- La vitrine range le nom d'agence dans raw_user_meta_data.agency_name depuis
+-- toujours, et personne ne le lisait : l'agence portait le nom de la personne.
+--
+-- Repli en cascade obligatoire : uq_agencies_name_normalized est UNIQUE sur
+-- lower(btrim(name)), donc deux « Régie Dupont » entrent en collision. Sans repli,
+-- l'insert échoue, l'exception est avalée plus haut, et le second inscrit reste avec
+-- agency_id NULL — c'est-à-dire un CRM entièrement muet, toutes les policies RLS
+-- s'accrochant à agency_id. On préfère un nom approximatif à un compte inutilisable ;
+-- le nom définitif est de toute façon saisi au wizard (agencies.legal_name).
+
 create or replace function public.provision_solo_agency(p_user uuid, p_display_name text)
 returns uuid
 language plpgsql
@@ -16,29 +27,45 @@ security definer
 set search_path to 'public'
 as $$
 declare
-  v_name text := coalesce(nullif(btrim(p_display_name), ''), 'Mon agence');
-  v_slug text;
-  v_id   uuid;
+  v_base  text := coalesce(nullif(btrim(p_display_name), ''), 'Mon agence');
+  v_name  text;
+  v_slug  text;
+  v_id    uuid;
 begin
-  -- Même génération de slug que create_agency_and_join (cohérence).
-  v_slug := lower(regexp_replace(btrim(v_name), '\s+', '-', 'g'));
-  if exists (select 1 from agencies where slug = v_slug) then
-    v_slug := v_slug || '-' || substring(gen_random_uuid()::text, 1, 6);
-  end if;
+  -- 3 tentatives : le nom voulu, puis suffixé, puis suffixé autrement. Une collision
+  -- de nom ne doit jamais coûter son agence à l'utilisateur.
+  for i in 1..3 loop
+    v_name := case when i = 1 then v_base
+                   else v_base || ' ' || substring(gen_random_uuid()::text, 1, 4) end;
 
-  insert into agencies (name, slug, solo, plan, status, created_by)
-  values (v_name, v_slug, true, 'starter', 'active', p_user)
-  returning id into v_id;
+    if exists (select 1 from agencies where lower(btrim(name)) = lower(btrim(v_name))) then
+      continue;
+    end if;
 
-  -- Le fondateur DIRIGE l'agence qu'il vient de créer : sans 'admin' il échoue à
-  -- is_agency_admin() et ne peut pas saisir sa propre identité KYB. On ne rattache
-  -- que si le profil n'a pas encore d'agence (idempotence backfill / double trigger).
-  update profiles
-     set agency_id = v_id,
-         role = 'admin'
-   where id = p_user and agency_id is null;
+    v_slug := lower(regexp_replace(btrim(v_name), '\s+', '-', 'g'));
+    if exists (select 1 from agencies where slug = v_slug) then
+      v_slug := v_slug || '-' || substring(gen_random_uuid()::text, 1, 6);
+    end if;
 
-  return v_id;
+    begin
+      insert into agencies (name, slug, solo, plan, status, created_by)
+      values (v_name, v_slug, true, 'starter', 'active', p_user)
+      returning id into v_id;
+    exception when unique_violation then
+      -- Course entre le SELECT et l'INSERT : on retente.
+      v_id := null;
+      continue;
+    end;
+
+    update profiles
+       set agency_id = v_id,
+           role = 'admin'
+     where id = p_user and agency_id is null;
+
+    return v_id;
+  end loop;
+
+  return null;
 end;
 $$;
 
@@ -46,6 +73,51 @@ revoke all on function public.provision_solo_agency(uuid, text) from public, ano
 
 comment on function public.provision_solo_agency(uuid, text) is
   'Interne : crée l''agence solo d''un inscrit et l''en fait l''admin. Appelée par handle_new_user uniquement. Aucun EXECUTE client.';
+
+-- ── handle_new_user : lire agency_name ──────────────────────────────────────
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_full_name   text := coalesce(new.raw_user_meta_data ->> 'full_name',
+                                 new.raw_user_meta_data ->> 'name', '');
+  v_agency_name text := nullif(btrim(coalesce(new.raw_user_meta_data ->> 'agency_name', '')), '');
+  v_role        text := case
+    when (new.raw_user_meta_data ->> 'role') in
+         ('agent', 'manager', 'admin', 'assistant', 'seller', 'buyer', 'particulier')
+      then new.raw_user_meta_data ->> 'role'
+    else 'buyer'
+  end;
+begin
+  insert into public.profiles (id, email, full_name, avatar_url, role)
+  values (
+    new.id,
+    coalesce(new.email, ''),
+    v_full_name,
+    coalesce(new.raw_user_meta_data ->> 'avatar_url', new.raw_user_meta_data ->> 'picture', ''),
+    v_role
+  );
+
+  if v_role in ('agent', 'manager', 'admin', 'assistant') then
+    begin
+      -- Priorité au nom d'agence saisi ; repli sur la personne puis l'e-mail.
+      perform public.provision_solo_agency(
+        new.id,
+        coalesce(v_agency_name,
+                 nullif(btrim(v_full_name), ''),
+                 split_part(coalesce(new.email, ''), '@', 1))
+      );
+    exception when others then
+      raise warning 'provision_solo_agency failed for %: %', new.id, sqlerrm;
+    end;
+  end if;
+
+  return new;
+end;
+$$;
 
 -- ── Backfill : fondateurs déjà provisionnés par l'ancienne version ───────────
 --

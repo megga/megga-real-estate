@@ -113,4 +113,27 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
     expect(invitedProf?.agency_id).toBe(founderProf!.agency_id)
     expect(invitedProf?.role, 'un agent invité ne doit jamais être promu admin par le backfill').toBe('agent')
   })
+
+  it('nomme l’agence d’après agency_name saisi à l’inscription', async () => {
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+    const agencyName = `Régie Test ${stamp}`
+    const id = await signUp({ full_name: 'Carla Nom', role: 'agent', agency_name: agencyName })
+    const svc = serviceRoleClient()
+    const { data: prof } = await svc.from('profiles').select('agency_id').eq('id', id).maybeSingle()
+    const { data: ag } = await svc.from('agencies').select('name').eq('id', prof!.agency_id!).maybeSingle()
+    expect(ag?.name, 'le nom saisi à l’inscription doit servir, pas celui de la personne').toBe(agencyName)
+  })
+
+  it('en cas de collision de nom, replie sans jamais laisser l’utilisateur sans agence', async () => {
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+    const shared = `Régie Collision ${stamp}`
+    const first = await signUp({ full_name: 'Dan Premier', role: 'agent', agency_name: shared })
+    const second = await signUp({ full_name: 'Eve Seconde', role: 'agent', agency_name: shared })
+    const svc = serviceRoleClient()
+    const { data: p1 } = await svc.from('profiles').select('agency_id').eq('id', first).maybeSingle()
+    const { data: p2 } = await svc.from('profiles').select('agency_id').eq('id', second).maybeSingle()
+    expect(p1?.agency_id, 'le premier doit avoir son agence').toBeTruthy()
+    expect(p2?.agency_id, 'le second ne doit JAMAIS rester sans agence : CRM muet garanti').toBeTruthy()
+    expect(p2?.agency_id).not.toBe(p1?.agency_id)
+  })
 })
