@@ -24,14 +24,40 @@ export interface SuperAdminGateState {
 }
 
 /**
- * Résout l'accès super-admin côté UI. Le rôle du profil sert de pré-filtre
- * (aucun aller-retour pour les agents) ; la RPC tranche.
+ * Décide de l'état du gate. Isolée du hook pour être testable sans React ni
+ * réseau — c'est ici que vit la règle, pas dans le câblage.
+ *
+ * Le rôle décide de l'AFFICHAGE ; la RPC ne sert qu'à RETIRER l'entrée quand
+ * elle répond explicitement `false` (rôle posé sur un email hors allowlist).
+ *
+ * Ne pas conditionner l'affichage à la réussite de l'aller-retour : ce gate est
+ * UX, le mur est en DB (RLS + is_super_admin) et sur les edges. Attendre la
+ * réponse créait un mode de panne silencieux — un hoquet réseau, une RPC
+ * momentanément indisponible, et l'entrée disparaissait DÉFINITIVEMENT du menu
+ * (`retry: false`), sans rien afficher pour l'expliquer : un super-admin ne
+ * pouvait plus atteindre la console alors qu'il en avait le droit.
  */
+export function resolveSuperAdminGate(input: {
+  loading: boolean
+  roleOk: boolean
+  /** Verdict de la RPC : `undefined` tant qu'elle n'a pas répondu (ou a échoué). */
+  rpc: boolean | undefined
+  devBypass?: boolean
+}): SuperAdminGateState {
+  const { loading, roleOk, rpc, devBypass = false } = input
+  if (devBypass) return { checking: loading, allowed: !loading && roleOk }
+  if (loading) return { checking: true, allowed: false }
+  // Sans le rôle, la requête est désactivée : inutile d'attendre sa résolution.
+  if (!roleOk) return { checking: false, allowed: false }
+  return { checking: false, allowed: rpc !== false }
+}
+
+/** Résout l'accès super-admin côté UI (cf. `resolveSuperAdminGate` pour la règle). */
 export function useSuperAdminGate(): SuperAdminGateState {
   const { user, profile, loading } = useAuth()
   const roleOk = profile?.role === 'super_admin'
 
-  const { data, isPending } = useQuery({
+  const { data } = useQuery({
     queryKey: ['is-super-admin', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('is_super_admin')
@@ -43,10 +69,5 @@ export function useSuperAdminGate(): SuperAdminGateState {
     retry: false,
   })
 
-  if (DEV_BYPASS) return { checking: loading, allowed: !loading && roleOk }
-  if (loading) return { checking: true, allowed: false }
-  // Sans le rôle, la requête est désactivée : inutile d'attendre sa résolution.
-  if (!roleOk) return { checking: false, allowed: false }
-
-  return { checking: isPending, allowed: data === true }
+  return resolveSuperAdminGate({ loading, roleOk, rpc: data, devBypass: DEV_BYPASS })
 }
