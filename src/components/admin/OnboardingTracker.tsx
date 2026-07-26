@@ -5,12 +5,22 @@
  * la liste des agences triée par complétion croissante — les plus à risque en
  * tête. Étapes et statut (active / at_risk / dormant) viennent de
  * `useOnboardingTracker`.
+ *
+ * Rendu en grammaire Sugar : bento séparé par l'ombre, barres de progression en
+ * accent NOIR (`sp.accent`) — le violet plateforme n'a rien à faire sur une
+ * métrique métier —, statut en pilule pleine au lieu d'un point de couleur, et
+ * pourcentages en chiffres tabulaires pour que la colonne ne tremble pas.
  */
 import { useTranslation } from 'react-i18next'
-import { cn, formatRelativeDate } from '@/lib/utils'
+import { formatRelativeDate } from '@/lib/utils'
 import { useOnboardingTracker } from '@/hooks/useOnboardingTracker'
 import type { AgencyOnboarding } from '@/hooks/useOnboardingTracker'
 import { Building2, Check } from 'lucide-react'
+import {
+  AdminCard, AdminEmpty, AdminGroupTitle, AdminIc, AdminPill, AdminSkeleton, AdminTd, AdminTh,
+} from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 const STEP_LABEL_KEYS: { key: keyof AgencyOnboarding['steps']; i18nKey: string }[] = [
   { key: 'profile_completed', i18nKey: 'onboarding.step.registered' },
@@ -21,39 +31,37 @@ const STEP_LABEL_KEYS: { key: keyof AgencyOnboarding['steps']; i18nKey: string }
   { key: 'first_match', i18nKey: 'onboarding.step.match' },
 ]
 
-const STATUS_CONFIG: Record<AgencyOnboarding['status'], { i18nKey: string; dotClass: string }> = {
-  active: { i18nKey: 'onboarding.status.active', dotClass: 'bg-emerald-500' },
-  at_risk: { i18nKey: 'onboarding.status.atRisk', dotClass: 'bg-amber-500' },
-  dormant: { i18nKey: 'onboarding.status.dormant', dotClass: 'bg-red-500' },
+const STATUS_CONFIG: Record<AgencyOnboarding['status'], { i18nKey: string; tone: AdminToneName }> = {
+  active: { i18nKey: 'onboarding.status.active', tone: 'ok' },
+  at_risk: { i18nKey: 'onboarding.status.atRisk', tone: 'warn' },
+  dormant: { i18nKey: 'onboarding.status.dormant', tone: 'err' },
 }
 
 /** Carte funnel + table des agences, chacune avec barre de progression, pastilles d'étapes et statut. */
 export default function OnboardingTracker() {
   const { t } = useTranslation('admin')
+  const { sp, surf, tones, onTone } = useAdminSugar()
   const { data: agencies, isLoading } = useOnboardingTracker()
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-theme-border p-5">
-        <div className="h-5 bg-theme-hover rounded w-48 mb-6 animate-pulse" />
-        <div className="space-y-3">
+      <AdminCard padding="8px 12px 14px">
+        <AdminGroupTitle label={t('onboarding.title')} tone="info" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-8 bg-theme-hover rounded-lg animate-pulse" />
+            <AdminSkeleton key={i} height={32} />
           ))}
         </div>
-      </div>
+      </AdminCard>
     )
   }
 
   if (!agencies?.length) {
     return (
-      <div className="rounded-xl border border-theme-border p-5">
-        <h2 className="text-sm font-semibold text-theme-primary mb-4">{t('onboarding.title')}</h2>
-        <div className="flex flex-col items-center py-8 text-center">
-          <Building2 className="h-8 w-8 text-theme-muted mb-3" />
-          <p className="text-sm text-theme-secondary">{t('onboarding.noAgencies')}</p>
-        </div>
-      </div>
+      <AdminCard padding="8px 12px 14px">
+        <AdminGroupTitle label={t('onboarding.title')} tone="info" />
+        <AdminEmpty icon={Building2} title={t('onboarding.noAgencies')} />
+      </AdminCard>
     )
   }
 
@@ -68,112 +76,110 @@ export default function OnboardingTracker() {
   const sorted = [...agencies].sort((a, b) => a.completion - b.completion)
 
   return (
-    <div className="rounded-xl border border-theme-border p-5 space-y-6">
-      <h2 className="text-sm font-semibold text-theme-primary">{t('onboarding.title')}</h2>
+    <AdminCard padding="8px 12px 14px">
+      <AdminGroupTitle label={t('onboarding.title')} tone="info" />
 
       {/* Funnel summary */}
-      <div className="space-y-2">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0 10px 4px' }}>
         {funnelSteps.map((step) => (
-          <div key={step.key} className="flex items-center gap-3">
-            <span className="text-xs text-theme-secondary w-24 flex-shrink-0 text-right">{t(step.i18nKey)}</span>
-            <div className="flex-1 h-6 rounded bg-theme-hover overflow-hidden relative">
-              <div
-                className="h-full rounded bg-admin-accent transition-all duration-500"
-                style={{ width: `${step.pct}%` }}
-              />
-              <span className="absolute inset-0 flex items-center px-2 text-xs font-medium">
-                <span className={cn(
-                  step.pct > 40 ? 'text-white' : 'text-theme-primary',
-                  'ml-1'
-                )}>
-                  {step.count}/{total}
-                </span>
+          <div key={step.key} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            <span style={{ width: 96, flexShrink: 0, textAlign: 'right', fontSize: 11.5, fontWeight: 600, color: sp.sub }}>
+              {t(step.i18nKey)}
+            </span>
+            <div style={{ flex: 1, position: 'relative', height: 22, borderRadius: ADMIN_RADII.pill, background: surf.cardSub, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', width: `${step.pct}%`, borderRadius: ADMIN_RADII.pill,
+                background: sp.accent, transition: 'width .5s cubic-bezier(.2,.8,.2,1)',
+              }} />
+              {/* Le compteur passe en encre inversée dès qu'il repose sur la barre. */}
+              <span style={{
+                position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 11px',
+                fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                color: step.pct > 40 ? sp.accentInk : sp.ink,
+              }}>
+                {step.count}/{total}
               </span>
             </div>
-            <span className="text-xs text-theme-muted w-10 text-right">{step.pct}%</span>
+            <span style={{ width: 38, flexShrink: 0, textAlign: 'right', fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+              {step.pct}%
+            </span>
           </div>
         ))}
       </div>
 
       {/* Agency list */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div style={{ overflowX: 'auto', marginTop: 12 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr className="border-b border-theme-border">
-              <th className="text-left text-xs font-medium text-theme-secondary pb-2 pr-4">{t('onboarding.table.agency')}</th>
-              <th className="text-left text-xs font-medium text-theme-secondary pb-2 pr-4 w-36">{t('onboarding.table.progress')}</th>
-              <th className="text-center text-xs font-medium text-theme-secondary pb-2 pr-4 w-40">{t('onboarding.table.steps')}</th>
-              <th className="text-left text-xs font-medium text-theme-secondary pb-2 pr-4 w-24">{t('onboarding.table.status')}</th>
-              <th className="text-right text-xs font-medium text-theme-secondary pb-2 w-28">{t('onboarding.table.lastActivity')}</th>
+            <tr>
+              <AdminTh>{t('onboarding.table.agency')}</AdminTh>
+              <AdminTh width={150}>{t('onboarding.table.progress')}</AdminTh>
+              <AdminTh align="center" width={160}>{t('onboarding.table.steps')}</AdminTh>
+              <AdminTh width={110}>{t('onboarding.table.status')}</AdminTh>
+              <AdminTh align="right" width={120}>{t('onboarding.table.lastActivity')}</AdminTh>
             </tr>
           </thead>
           <tbody>
             {sorted.map(agency => {
               const statusCfg = STATUS_CONFIG[agency.status]
               return (
-                <tr key={agency.agency_id} className="border-b border-theme-border/50 hover:bg-theme-hover/50 transition-colors">
+                <tr key={agency.agency_id}>
                   {/* Agency name */}
-                  <td className="py-2.5 pr-4">
-                    <span className="text-sm text-theme-primary font-medium">{agency.agency_name}</span>
-                  </td>
+                  <AdminTd style={{ fontWeight: 700, letterSpacing: -0.2 }}>{agency.agency_name}</AdminTd>
 
                   {/* Progress bar */}
-                  <td className="py-2.5 pr-4">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 rounded-full bg-theme-hover overflow-hidden">
-                        <div
-                          className={cn(
-                            'h-full rounded-full transition-all',
-                            agency.completion === 100 ? 'bg-emerald-500' : 'bg-admin-accent'
-                          )}
-                          style={{ width: `${agency.completion}%` }}
-                        />
+                  <AdminTd>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ flex: 1, height: 6, borderRadius: ADMIN_RADII.pill, background: surf.cardSub, overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', width: `${agency.completion}%`, borderRadius: ADMIN_RADII.pill,
+                          background: agency.completion === 100 ? tones.ok : sp.accent,
+                          transition: 'width .4s cubic-bezier(.2,.8,.2,1)',
+                        }} />
                       </div>
-                      <span className="text-xs text-theme-muted w-8 text-right">{agency.completion}%</span>
+                      <span style={{ width: 32, textAlign: 'right', fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                        {agency.completion}%
+                      </span>
                     </div>
-                  </td>
+                  </AdminTd>
 
                   {/* Step dots */}
-                  <td className="py-2.5 pr-4">
-                    <div className="flex items-center justify-center gap-1.5">
+                  <AdminTd align="center">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                       {STEP_LABEL_KEYS.map(step => {
                         const done = agency.steps[step.key]
                         return (
-                          <div
+                          <span
                             key={step.key}
                             title={t(step.i18nKey)}
-                            className={cn(
-                              'h-4 w-4 rounded-full flex items-center justify-center',
-                              done ? 'bg-emerald-500' : 'bg-theme-hover'
-                            )}
+                            style={{
+                              width: 16, height: 16, borderRadius: ADMIN_RADII.pill, flexShrink: 0,
+                              display: 'grid', placeItems: 'center',
+                              background: done ? tones.ok : surf.cardSub,
+                            }}
                           >
-                            {done && <Check className="h-2.5 w-2.5 text-white" />}
-                          </div>
+                            {done && <AdminIc icon={Check} size={10} color={onTone} />}
+                          </span>
                         )
                       })}
                     </div>
-                  </td>
+                  </AdminTd>
 
                   {/* Status */}
-                  <td className="py-2.5 pr-4">
-                    <div className="flex items-center gap-2">
-                      <span className={cn('w-2 h-2 rounded-full', statusCfg.dotClass)} />
-                      <span className="text-xs text-theme-secondary">{t(statusCfg.i18nKey)}</span>
-                    </div>
-                  </td>
+                  <AdminTd>
+                    <AdminPill label={t(statusCfg.i18nKey)} tone={statusCfg.tone} />
+                  </AdminTd>
 
                   {/* Last activity */}
-                  <td className="py-2.5 text-right">
-                    <span className="text-xs text-theme-muted">
-                      {agency.last_activity ? formatRelativeDate(agency.last_activity) : t('onboarding.noActivity')}
-                    </span>
-                  </td>
+                  <AdminTd align="right" numeric style={{ color: sp.sub, whiteSpace: 'nowrap' }}>
+                    {agency.last_activity ? formatRelativeDate(agency.last_activity) : t('onboarding.noActivity')}
+                  </AdminTd>
                 </tr>
               )
             })}
           </tbody>
         </table>
       </div>
-    </div>
+    </AdminCard>
   )
 }

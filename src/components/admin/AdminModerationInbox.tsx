@@ -3,20 +3,60 @@
 //   * seller_leads non assignés (soumissions vendeur storefront/vitrine) →
 //     assignation à une agence (policy seller_leads_super_admin_all).
 //   * contact_messages (formulaire contact storefront) → triage de statut.
+//
+// Rendu en grammaire Sugar (kit `admin/kit`) : chaque file est un bento
+// `AdminCard` séparé par l'ombre, ses lignes par un filet — plus de
+// `rounded-xl border border-theme-border` ni de `border-theme-border-subtle`.
+// Les listes vides passent par `AdminEmpty`, le chargement par `AdminSkeleton`.
 
-import { useState } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Inbox, Mail } from 'lucide-react'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/Toast'
+import { AdminCard, AdminDivider, AdminEmpty, AdminIc, AdminSkeleton } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
+import type { LucideIcon } from 'lucide-react'
 
 function fmtDateTime(iso: string): string {
   try {
     return format(new Date(iso), 'dd.MM.yyyy HH:mm')
   } catch {
     return iso
+  }
+}
+
+/**
+ * Coque commune des deux files : en-tête à icône, filet, puis contenu.
+ *
+ * Les deux inboxes vivent côte à côte dans « Clients finaux » : sans coque
+ * partagée, leurs en-têtes divergeaient à la première retouche.
+ */
+function InboxBento({ icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
+  const { sp } = useAdminSugar()
+  return (
+    <AdminCard padding={0}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 15px' }}>
+        <AdminIc icon={icon} size={16} color={sp.sub} />
+        <h2 style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{title}</h2>
+      </div>
+      <AdminDivider />
+      {children}
+    </AdminCard>
+  )
+}
+
+/** Sélecteur Sugar : surface creuse + filet INTÉRIEUR, jamais de bordure décorative. */
+function useSelectStyle(): CSSProperties {
+  const { sp, surf, dark } = useAdminSugar()
+  return {
+    height: 32, padding: '0 10px', borderRadius: ADMIN_RADII.row, border: 0,
+    background: surf.cardSub, color: sp.ink, cursor: 'pointer',
+    fontFamily: 'inherit', fontSize: 12, fontWeight: 600, outline: 'none',
+    boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
   }
 }
 
@@ -32,11 +72,14 @@ interface SellerLead {
   assigned_agency_id: string | null
 }
 
+/** File des leads vendeurs sans agence : une ligne par lead, assignation au sélecteur. */
 export function SellerLeadsInbox() {
   const { t } = useTranslation('admin')
   const toast = useToast()
   const queryClient = useQueryClient()
   const [assigning, setAssigning] = useState<string | null>(null)
+  const { sp, surf } = useAdminSugar()
+  const selectStyle = useSelectStyle()
 
   const { data: leads, isLoading } = useQuery({
     queryKey: ['admin-seller-leads'],
@@ -79,22 +122,26 @@ export function SellerLeadsInbox() {
   })
 
   return (
-    <div className="rounded-xl border border-theme-border p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Inbox className="h-4 w-4 text-theme-secondary" />
-        <h2 className="text-sm font-semibold text-theme-primary">{t('marketplace.sellerLeads.title')}</h2>
-      </div>
+    <InboxBento icon={Inbox} title={t('marketplace.sellerLeads.title')}>
       {isLoading ? (
-        <div className="h-16 bg-theme-hover rounded-lg animate-pulse" />
+        <div style={{ padding: 14 }}><AdminSkeleton height={64} /></div>
       ) : !leads || leads.length === 0 ? (
-        <p className="text-sm text-theme-muted">{t('marketplace.sellerLeads.empty')}</p>
+        <AdminEmpty icon={Inbox} title={t('marketplace.sellerLeads.empty')} />
       ) : (
-        <div className="space-y-2">
-          {leads.map((lead) => (
-            <div key={lead.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-theme-border-subtle px-3 py-2">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-theme-primary">{lead.contact_name}</p>
-                <p className="truncate text-xs text-theme-tertiary">
+        <div>
+          {leads.map((lead, i) => (
+            <div
+              key={lead.id}
+              style={{
+                display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12,
+                padding: '10px 15px', borderTop: i === 0 ? undefined : surf.hairline,
+              }}
+            >
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {lead.contact_name}
+                </p>
+                <p style={{ margin: '1px 0 0', fontSize: 11.5, fontWeight: 500, color: sp.sub, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {lead.contact_email}{lead.contact_phone ? ` · ${lead.contact_phone}` : ''} · {lead.source} · {fmtDateTime(lead.created_at)}
                 </p>
               </div>
@@ -106,7 +153,7 @@ export function SellerLeadsInbox() {
                   assign.mutate({ leadId: lead.id, agencyId: e.target.value })
                 }}
                 disabled={assign.isPending && assigning === lead.id}
-                className="h-8 px-2 text-xs bg-transparent border border-theme-border rounded-lg text-theme-primary"
+                style={selectStyle}
               >
                 <option value="">{t('marketplace.sellerLeads.assignTo')}</option>
                 {(agencies ?? []).map((a) => (
@@ -117,7 +164,7 @@ export function SellerLeadsInbox() {
           ))}
         </div>
       )}
-    </div>
+    </InboxBento>
   )
 }
 
@@ -134,10 +181,13 @@ interface ContactMessage {
 
 const MESSAGE_STATUSES = ['new', 'answered', 'archived', 'spam'] as const
 
+/** File des messages du formulaire de contact : extrait du message + triage de statut. */
 export function ContactMessagesInbox() {
   const { t } = useTranslation('admin')
   const toast = useToast()
   const queryClient = useQueryClient()
+  const { sp, surf } = useAdminSugar()
+  const selectStyle = useSelectStyle()
 
   const { data: messages, isLoading } = useQuery({
     queryKey: ['admin-contact-messages'],
@@ -165,41 +215,41 @@ export function ContactMessagesInbox() {
   })
 
   return (
-    <div className="rounded-xl border border-theme-border p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Mail className="h-4 w-4 text-theme-secondary" />
-        <h2 className="text-sm font-semibold text-theme-primary">{t('marketplace.messages.title')}</h2>
-      </div>
+    <InboxBento icon={Mail} title={t('marketplace.messages.title')}>
       {isLoading ? (
-        <div className="h-16 bg-theme-hover rounded-lg animate-pulse" />
+        <div style={{ padding: 14 }}><AdminSkeleton height={64} /></div>
       ) : !messages || messages.length === 0 ? (
-        <p className="text-sm text-theme-muted">{t('marketplace.messages.empty')}</p>
+        <AdminEmpty icon={Mail} title={t('marketplace.messages.empty')} />
       ) : (
-        <div className="space-y-2">
-          {messages.map((msg) => (
-            <div key={msg.id} className="rounded-lg border border-theme-border-subtle px-3 py-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-theme-primary">
-                    {msg.name} <span className="font-normal text-theme-tertiary">· {msg.email}</span>
+        <div>
+          {messages.map((msg, i) => (
+            <div key={msg.id} style={{ padding: '10px 15px', borderTop: i === 0 ? undefined : surf.hairline }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {msg.name} <span style={{ fontWeight: 500, color: sp.sub }}>· {msg.email}</span>
                   </p>
-                  <p className="text-xs text-theme-tertiary">{msg.source} · {fmtDateTime(msg.created_at)}</p>
+                  <p style={{ margin: '1px 0 0', fontSize: 11.5, fontWeight: 500, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                    {msg.source} · {fmtDateTime(msg.created_at)}
+                  </p>
                 </div>
                 <select
                   value={msg.status}
                   onChange={(e) => setStatus.mutate({ id: msg.id, status: e.target.value })}
-                  className="h-8 px-2 text-xs bg-transparent border border-theme-border rounded-lg text-theme-primary"
+                  style={selectStyle}
                 >
                   {MESSAGE_STATUSES.map((s) => (
                     <option key={s} value={s}>{t(`marketplace.messages.status.${s}`)}</option>
                   ))}
                 </select>
               </div>
-              <p className="mt-1.5 text-xs text-theme-secondary line-clamp-2">{msg.message}</p>
+              <p className="line-clamp-2" style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 500, color: sp.soft, lineHeight: 1.45 }}>
+                {msg.message}
+              </p>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </InboxBento>
   )
 }

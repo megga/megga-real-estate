@@ -2,12 +2,20 @@
  * Modale de modération d'un bien en super-admin : signalement (`flag`) ou
  * retrait (`remove`). Impose un motif — pilule prédéfinie ou saisie libre —
  * avant de valider ; le motif est remonté au parent via `onConfirm`.
+ *
+ * Rendu en grammaire Sugar (kit `admin/kit`) : motifs en pilules segmentées
+ * (accent NOIR quand sélectionné), champ libre sans bordure décorative, et un
+ * bouton de validation dont le signal tient à la teinte de son icône
+ * (`tones.warn` pour signaler, `tones.err` pour retirer) — les anciennes
+ * bordures `border-amber-500/30` et `border-red-500/30` ont disparu.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Building2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { AlertTriangle, Building2, Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/modal'
+import { AdminGhostBtn, AdminIc } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 interface ModerationActionDialogProps {
   open: boolean
@@ -25,7 +33,7 @@ const REASON_KEYS = [
   'moderation.reason.inappropriate',
 ]
 
-/** Dialogue de confirmation d'une action de modération ; teinte ambre (flag) ou rouge (remove). */
+/** Dialogue de confirmation d'une action de modération ; ton ambre (flag) ou rouge (remove). */
 export default function ModerationActionDialog({
   open,
   onClose,
@@ -35,11 +43,13 @@ export default function ModerationActionDialog({
   onConfirm,
 }: ModerationActionDialogProps) {
   const { t } = useTranslation('admin')
+  const { sp, surf, dark, tones } = useAdminSugar()
   const [selectedReason, setSelectedReason] = useState<string | null>(null)
   const [customReason, setCustomReason] = useState('')
 
   const isFlag = action === 'flag'
   const actionLabel = isFlag ? t('moderation.flagTitle') : t('moderation.removeTitle')
+  const actionTone = isFlag ? tones.warn : tones.err
 
   // '__custom' = sentinelle de la pilule « autre » : le motif vient alors du textarea.
   const finalReason = selectedReason === '__custom' ? customReason.trim() : selectedReason ?? ''
@@ -57,44 +67,59 @@ export default function ModerationActionDialog({
     onClose()
   }
 
+  /** Pilule de motif : accent plein quand retenue, surface creuse sinon. */
+  function reasonPill(on: boolean) {
+    return {
+      height: 32, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+      fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' as const,
+      background: on ? sp.accent : surf.cardSub,
+      color: on ? sp.accentInk : sp.soft,
+    }
+  }
+
   return (
     <Modal open={open} onClose={handleClose} title={actionLabel} size="md">
-      <div className="p-6">
-        {/* Property preview */}
-        <div className="flex items-center gap-3 mb-5">
+      <div style={{ padding: 22 }}>
+        {/* Aperçu du bien */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
           {propertyPhoto ? (
             <img
               src={propertyPhoto}
               alt=""
-              className="h-12 w-20 rounded-lg object-cover flex-shrink-0"
               loading="lazy"
               decoding="async"
+              style={{ width: 80, height: 48, borderRadius: ADMIN_RADII.row, objectFit: 'cover', display: 'block', flexShrink: 0 }}
             />
           ) : (
-            <div className="h-12 w-20 rounded-lg bg-theme-hover flex items-center justify-center flex-shrink-0">
-              <Building2 className="h-5 w-5 text-theme-tertiary" />
+            <div style={{
+              width: 80, height: 48, borderRadius: ADMIN_RADII.row, background: surf.cardSub,
+              display: 'grid', placeItems: 'center', flexShrink: 0,
+            }}>
+              <AdminIc icon={Building2} size={17} color={sp.sub} />
             </div>
           )}
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-theme-primary truncate">{propertyTitle}</p>
-          </div>
+          <p style={{
+            margin: 0, minWidth: 0, fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2, color: sp.ink,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {propertyTitle}
+          </p>
         </div>
 
-        {/* Reason pills */}
-        <p className="text-xs text-theme-secondary mb-2">{t('moderation.reason')}</p>
-        <div className="flex flex-wrap gap-2 mb-3">
+        {/* Motifs */}
+        <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub }}>
+          {t('moderation.reason')}
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
           {REASON_KEYS.map((key) => {
             const label = t(key)
+            const on = selectedReason === label
             return (
               <button
                 key={key}
-                onClick={() => setSelectedReason(selectedReason === label ? null : label)}
-                className={cn(
-                  'h-8 px-3 rounded-lg text-xs transition-colors',
-                  selectedReason === label
-                    ? 'bg-theme-active text-theme-primary font-medium'
-                    : 'text-theme-secondary border border-theme-border hover:text-theme-primary hover:border-theme-active'
-                )}
+                onClick={() => setSelectedReason(on ? null : label)}
+                aria-pressed={on}
+                style={reasonPill(on)}
               >
                 {label}
               </button>
@@ -102,48 +127,43 @@ export default function ModerationActionDialog({
           })}
           <button
             onClick={() => setSelectedReason(selectedReason === '__custom' ? null : '__custom')}
-            className={cn(
-              'h-8 px-3 rounded-lg text-xs transition-colors',
-              selectedReason === '__custom'
-                ? 'bg-theme-active text-theme-primary font-medium'
-                : 'text-theme-secondary border border-theme-border hover:text-theme-primary hover:border-theme-active'
-            )}
+            aria-pressed={selectedReason === '__custom'}
+            style={reasonPill(selectedReason === '__custom')}
           >
             {t('moderation.reason.other')}
           </button>
         </div>
 
-        {/* Custom reason textarea */}
+        {/* Saisie libre */}
         {selectedReason === '__custom' && (
           <textarea
             value={customReason}
             onChange={(e) => setCustomReason(e.target.value)}
             placeholder={t('moderation.customReasonPlaceholder')}
             rows={3}
-            className="w-full px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none mb-3"
+            style={{
+              width: '100%', boxSizing: 'border-box', marginBottom: 12, padding: '10px 12px',
+              borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub, color: sp.ink,
+              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 500, lineHeight: 1.5,
+              outline: 'none', resize: 'none',
+              boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
+            }}
           />
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 mt-4">
-          <button
-            onClick={handleClose}
-            className="h-9 px-4 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 9, marginTop: 16 }}>
+          <AdminGhostBtn onClick={handleClose}>{t('common.cancel')}</AdminGhostBtn>
+          {/* L'icône est passée en enfant (et non via `icon`) : la prop la peindrait
+              en encre, or c'est sa teinte qui porte le signal de l'action. */}
+          <AdminGhostBtn
             onClick={handleConfirm}
             disabled={!finalReason}
-            className={cn(
-              'h-9 px-4 text-sm font-medium border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
-              isFlag
-                ? 'border-amber-500/30 text-amber-500 hover:border-amber-500'
-                : 'border-red-500/30 text-red-500 hover:border-red-500'
-            )}
+            style={{ color: actionTone }}
           >
+            <AdminIc icon={isFlag ? AlertTriangle : Trash2} size={15} color={actionTone} />
             {isFlag ? t('moderation.action.flag') : t('moderation.action.remove')}
-          </button>
+          </AdminGhostBtn>
         </div>
       </div>
     </Modal>

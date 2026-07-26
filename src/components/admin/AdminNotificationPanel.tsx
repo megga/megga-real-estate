@@ -2,14 +2,24 @@
  * Cloche + panneau de notifications super-admin (portal, z-[100]).
  * Agrège les événements sensibles (nouvelle agence, alerte PEP KYC, résiliation,
  * erreur système, ticket) via `useAdminNotifications` : badge non-lus, marquer-lu.
+ *
+ * La cloche vit dans le PIED DU RAIL du shell : sa ligne reprend donc la
+ * grammaire de nav des Réglages, exactement comme les entrées voisines (thème,
+ * retour CRM) — rayon 14, gap 12, padding 10/12, icône 17 en `sp.sub`, libellé
+ * 13/700. Le compteur de non-lus passe en pilule pleine (l'ancien
+ * `bg-red-500` en pastille flottante), et l'état « non lu » d'une ligne se dit
+ * par la surface creuse + l'accent NOIR de Sugar, plus par le violet plateforme.
  */
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { cn, formatRelativeDate } from '@/lib/utils'
+import { formatRelativeDate } from '@/lib/utils'
 import { useAdminNotifications } from '@/hooks/useAdminNotifications'
+import { AdminDivider, AdminEmpty, AdminGhostBtn, AdminPill, AdminSkeleton } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 // ─── Action type → icon + i18n key mapping ──────────────────────────────────────
 
@@ -27,6 +37,7 @@ const ACTION_CONFIG: Record<string, { icon: MEIconName; i18nKey: string }> = {
  */
 export default function AdminNotificationPanel() {
   const { t } = useTranslation('admin')
+  const { sp, surf, dark } = useAdminSugar()
   const [open, setOpen] = useState(false)
   const bellRef = useRef<HTMLButtonElement>(null)
   const focusTrapRef = useFocusTrap(open)
@@ -57,20 +68,36 @@ export default function AdminNotificationPanel() {
     return () => document.removeEventListener('keydown', handleKey)
   }, [open])
 
+  const hair = dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)'
+
   return (
     <>
-      {/* Bell button */}
+      {/* Ligne de rail — même grammaire que les entrées de nav du shell */}
       <button
         ref={bellRef}
         onClick={() => setOpen(prev => !prev)}
         aria-label="Notifications admin"
-        className="relative w-full flex items-center justify-center h-9 rounded-lg text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
+        className="adm-nav"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '10px 12px', borderRadius: ADMIN_RADII.row,
+          cursor: 'pointer', border: 0, width: '100%',
+          fontFamily: 'inherit', textAlign: 'left',
+          background: 'transparent',
+        }}
       >
-        <MEIcon name="bell" className="w-[18px] h-[18px] stroke-[1.8]" />
+        <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+          <MEIcon name="bell" size={17} color={sp.sub} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: sp.soft }}>
+          {t('notifications.title')}
+        </span>
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-xs font-semibold leading-none">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
+          <AdminPill
+            label={unreadCount > 99 ? '99+' : String(unreadCount)}
+            tone="err"
+            style={{ padding: '3px 9px', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}
+          />
         )}
       </button>
 
@@ -80,44 +107,50 @@ export default function AdminNotificationPanel() {
           ref={focusTrapRef}
           role="dialog"
           aria-modal="true"
-          className="fixed top-14 right-4 w-[380px] max-h-[500px] bg-theme-card border border-theme-border rounded-xl z-[100] flex flex-col overflow-hidden"
+          className="fixed top-14 right-4 w-[380px] max-h-[500px] z-[100] flex flex-col overflow-hidden"
+          style={{
+            background: surf.card,
+            borderRadius: ADMIN_RADII.card,
+            border: surf.hairline,
+            boxShadow: sp.shadow,
+          }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-theme-border shrink-0">
-            <span className="text-sm font-semibold text-theme-primary">{t('notifications.title')}</span>
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="flex items-center gap-1 text-xs text-theme-secondary hover:text-theme-primary transition-colors"
-                >
-                  <MEIcon name="check" className="w-3.5 h-3.5" />
-                  {t('notifications.markAllRead')}
-                </button>
-              )}
-              <button
-                onClick={() => setOpen(false)}
-                aria-label={t('notifications.close')}
-                className="p-1 rounded-md hover:bg-theme-hover transition-colors text-theme-tertiary hover:text-theme-primary"
-              >
-                <MEIcon name="close" className="w-4 h-4" />
-              </button>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', flexShrink: 0 }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+              {t('notifications.title')}
+            </span>
+            {unreadCount > 0 && (
+              <AdminGhostBtn onClick={markAllAsRead} style={{ height: 28, padding: '0 11px', fontSize: 11.5 }}>
+                <MEIcon name="check" size={13} color={sp.ink} />
+                {t('notifications.markAllRead')}
+              </AdminGhostBtn>
+            )}
+            <button
+              onClick={() => setOpen(false)}
+              aria-label={t('notifications.close')}
+              style={{
+                width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                background: 'transparent', color: sp.sub, display: 'grid', placeItems: 'center', flexShrink: 0,
+              }}
+            >
+              <MEIcon name="close" size={15} color={sp.sub} />
+            </button>
           </div>
+          <AdminDivider />
 
           {/* List */}
           <div className="flex-1 overflow-y-auto scrollbar-hide">
             {isLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="w-5 h-5 border-2 border-theme-border border-t-admin-accent rounded-full animate-spin" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12 }}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <AdminSkeleton key={i} height={44} />
+                ))}
               </div>
             ) : notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-theme-muted">
-                <MEIcon name="bell" className="w-8 h-8 mb-2 opacity-40" />
-                <span className="text-sm">{t('notifications.empty')}</span>
-              </div>
+              <AdminEmpty title={t('notifications.empty')} />
             ) : (
-              notifications.map((notif) => {
+              notifications.map((notif, i) => {
                 const cfg = ACTION_CONFIG[notif.action]
                 const Icon = cfg?.icon ?? 'bell'
                 const label = cfg ? t(cfg.i18nKey) : notif.action
@@ -125,33 +158,37 @@ export default function AdminNotificationPanel() {
                   <button
                     key={notif.id}
                     onClick={() => markAsRead(notif.id)}
-                    className={cn(
-                      'w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-theme-hover transition-colors border-b border-theme-border-subtle last:border-b-0',
-                      !notif.read && 'bg-admin-accent/5'
-                    )}
+                    className="adm-nav"
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 11, width: '100%',
+                      padding: '11px 14px', border: 0, textAlign: 'left', cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      background: notif.read ? 'transparent' : surf.cardSub,
+                      borderBottom: i < notifications.length - 1 ? `1px solid ${hair}` : '0',
+                    }}
                   >
                     {/* Icon */}
-                    <div className="mt-0.5 shrink-0">
-                      <MEIcon name={Icon as MEIconName} className={cn('w-4 h-4', !notif.read ? 'text-admin-accent' : 'text-theme-tertiary')} />
-                    </div>
+                    <span style={{ marginTop: 1, flexShrink: 0 }}>
+                      <MEIcon name={Icon as MEIconName} size={16} color={notif.read ? sp.sub : sp.ink} />
+                    </span>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={cn('text-sm', !notif.read ? 'font-medium text-theme-primary' : 'text-theme-secondary')}>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: notif.read ? 500 : 700, color: notif.read ? sp.sub : sp.ink }}>
                           {label}
                         </span>
                         {!notif.read && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-admin-accent shrink-0" />
+                          <span style={{ width: 6, height: 6, borderRadius: ADMIN_RADII.pill, background: sp.accent, flexShrink: 0 }} />
                         )}
-                      </div>
-                      <span className="text-xs text-theme-muted">
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                         {notif.entity_type}{notif.entity_id ? ` #${notif.entity_id.slice(0, 8)}` : ''}
                       </span>
-                    </div>
+                    </span>
 
                     {/* Timestamp */}
-                    <span className="text-xs text-theme-muted whitespace-nowrap shrink-0 mt-0.5">
+                    <span style={{ marginTop: 1, flexShrink: 0, whiteSpace: 'nowrap', fontSize: 11, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                       {formatRelativeDate(notif.created_at)}
                     </span>
                   </button>

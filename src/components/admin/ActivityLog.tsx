@@ -2,12 +2,23 @@
  * Flux d'activité (super-admin) : liste chronologique des `activity_events`,
  * groupée par jour et filtrable par type d'action.
  * Alimenté par `useActivityLog` (polling 30 s, pas de canal Realtime, malgré le badge « temps réel »).
+ *
+ * Rendu en grammaire Sugar : bento `AdminCard` séparé par l'ombre, badge
+ * « temps réel » en pilule pleine (le point `bg-emerald-500` et le texte
+ * `text-emerald-600` disparaissent), horodatages en chiffres tabulaires. La
+ * pastille de ligne ne porte plus le violet plateforme : seul un événement
+ * d'erreur se signale, les autres restent en encre douce.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Users, Home, GitBranch, ShieldCheck, Mail, Calendar, Shuffle, Building2, Activity } from 'lucide-react'
-import { cn, formatRelativeDate } from '@/lib/utils'
+import { Users, Home, GitBranch, ShieldCheck, Mail, Calendar, Shuffle, Building2, Activity, type LucideIcon } from 'lucide-react'
+import { formatRelativeDate } from '@/lib/utils'
 import { useActivityLog, type ActivityLogEntry } from '@/hooks/useActivityLog'
+import {
+  AdminCard, AdminEmpty, AdminGhostBtn, AdminGroupTitle, AdminIc, AdminPill, AdminSkeleton,
+} from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 const ACTION_LABEL_KEYS: Record<string, string> = {
   contact_created: 'activityLog.action.contactCreated',
@@ -28,7 +39,9 @@ const ACTION_LABEL_KEYS: Record<string, string> = {
   edge_function_error: 'activityLog.action.systemError',
 }
 
-const ENTITY_ICONS: Record<string, React.ElementType> = {
+// Typé `LucideIcon` et non `ElementType` : `AdminIc` attend une icône lucide, et
+// toutes les valeurs en sont. Le type large laissait passer une chaîne.
+const ENTITY_ICONS: Record<string, LucideIcon> = {
   contact: Users,
   property: Home,
   transaction: GitBranch,
@@ -68,69 +81,79 @@ const ACTION_TYPE_KEYS = [
 /** Bento du flux d'activité : filtre par action + pagination « charger plus » (+50). */
 export default function ActivityLog() {
   const { t } = useTranslation('admin')
+  const { sp, surf, dark, tones } = useAdminSugar()
   const [actionFilter, setActionFilter] = useState('')
   const [limit, setLimit] = useState(50)
   const { data: entries, isLoading } = useActivityLog({ action: actionFilter || undefined, limit })
 
   const grouped = groupByDate(entries ?? [], t('common.today'), t('common.yesterday'))
+  const hair = dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)'
 
   return (
-    <div className="rounded-xl border border-theme-border p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-theme-primary">{t('activityLog.title')}</h2>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs text-emerald-600 font-medium">{t('activityLog.realtime')}</span>
-          </div>
-        </div>
-        <select
-          value={actionFilter}
-          onChange={e => setActionFilter(e.target.value)}
-          className="h-8 px-2 pr-7 text-xs bg-transparent border border-theme-border rounded-lg text-theme-secondary focus:outline-none appearance-none"
-        >
-          {ACTION_TYPE_KEYS.map(at => (
-            <option key={at.value} value={at.value}>{t(at.key)}</option>
-          ))}
-        </select>
-      </div>
+    <AdminCard padding="8px 12px 14px">
+      <AdminGroupTitle
+        label={t('activityLog.title')}
+        tone="ok"
+        right={
+          <>
+            <AdminPill label={t('activityLog.realtime')} tone="ok" />
+            <select
+              value={actionFilter}
+              onChange={e => setActionFilter(e.target.value)}
+              style={{
+                height: 30, padding: '0 12px', borderRadius: ADMIN_RADII.pill, border: 0,
+                background: surf.cardSub, color: sp.ink, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+                outline: 'none', appearance: 'none',
+              }}
+            >
+              {ACTION_TYPE_KEYS.map(at => (
+                <option key={at.value} value={at.value}>{t(at.key)}</option>
+              ))}
+            </select>
+          </>
+        }
+      />
 
       {isLoading ? (
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 animate-pulse">
-              <div className="w-2 h-2 rounded-full bg-theme-hover" />
-              <div className="h-4 bg-theme-hover rounded flex-1 max-w-[200px]" />
-              <div className="h-3 bg-theme-hover rounded w-16 ml-auto" />
-            </div>
+            <AdminSkeleton key={i} height={28} />
           ))}
         </div>
       ) : (entries ?? []).length === 0 ? (
-        <p className="text-sm text-theme-secondary py-8 text-center">{t('activityLog.noActivity')}</p>
+        <AdminEmpty icon={Activity} title={t('activityLog.noActivity')} />
       ) : (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {grouped.map(group => (
             <div key={group.label}>
-              <p className="text-xs tracking-wide text-theme-tertiary font-medium mb-2">{group.label}</p>
-              <div className="space-y-0.5">
+              <p style={{ margin: '0 0 6px', padding: '0 10px', fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub }}>
+                {group.label}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {group.items.map((entry, i) => {
                   const Icon = ENTITY_ICONS[entry.entity_type] ?? Activity
                   const label = ACTION_LABEL_KEYS[entry.action] ? t(ACTION_LABEL_KEYS[entry.action]) : entry.action
                   const isError = entry.action.includes('error')
                   return (
-                    <div key={entry.id} className="flex items-center gap-3 py-1.5 group">
-                      <div className="relative flex flex-col items-center">
-                        <span className={cn(
-                          'w-2 h-2 rounded-full flex-shrink-0',
-                          isError ? 'bg-red-500' : 'bg-admin-accent'
-                        )} />
+                    <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, padding: '6px 10px' }}>
+                      {/* Filet vertical reliant les pastilles d'un même jour. */}
+                      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                        <span style={{
+                          width: 8, height: 8, borderRadius: ADMIN_RADII.pill, flexShrink: 0,
+                          background: isError ? tones.err : sp.soft,
+                        }} />
                         {i < group.items.length - 1 && (
-                          <span className="w-px h-4 bg-theme-border-subtle absolute top-3" />
+                          <span style={{ position: 'absolute', top: 12, width: 1, height: 16, background: hair }} />
                         )}
                       </div>
-                      <Icon className="h-3.5 w-3.5 text-theme-tertiary flex-shrink-0" />
-                      <p className="text-sm text-theme-primary flex-1 truncate">{label}</p>
-                      <span className="text-xs text-theme-muted flex-shrink-0">{formatRelativeDate(entry.created_at)}</span>
+                      <AdminIc icon={Icon} size={15} color={sp.sub} />
+                      <p style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {label}
+                      </p>
+                      <span style={{ flexShrink: 0, fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                        {formatRelativeDate(entry.created_at)}
+                      </span>
                     </div>
                   )
                 })}
@@ -139,15 +162,12 @@ export default function ActivityLog() {
           ))}
 
           {(entries ?? []).length >= limit && (
-            <button
-              onClick={() => setLimit(l => l + 50)}
-              className="w-full h-9 text-sm font-medium text-theme-secondary border border-theme-border rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors"
-            >
+            <AdminGhostBtn onClick={() => setLimit(l => l + 50)} style={{ width: '100%', justifyContent: 'center' }}>
               {t('activityLog.loadMore')}
-            </button>
+            </AdminGhostBtn>
           )}
         </div>
       )}
-    </div>
+    </AdminCard>
   )
 }

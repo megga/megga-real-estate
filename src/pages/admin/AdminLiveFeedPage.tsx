@@ -1,14 +1,28 @@
 /**
  * Page super-admin — flux d'activité temps réel.
  *
- * Route : `/live` (console admin.megga.ch) (accent violet). Stream des
- * `activity_events` (via `useAdminLiveFeed`) avec pause, filtres par type
- * d'entité / action, stats du jour et détail metadata dépliable par ligne.
+ * Route : `/live` (console admin.megga.ch). Stream des `activity_events` (via
+ * `useAdminLiveFeed`) avec pause, filtres par type d'entité / action, stats du
+ * jour et détail metadata dépliable par ligne.
+ *
+ * Présentation portée sur le kit `admin/kit` (grammaire des Paramètres du CRM) :
+ * bento séparé par l'ombre, indicateurs `AdminStat`, état direct/pause en pilule
+ * pleine, pastilles de type en tons du kit (teinte + forme, cf. `ENTITY_DOTS`,
+ * les tons étant moins nombreux que les types). Le flux reste une LISTE en flex et
+ * non un `<table>` — chaque ligne se déplie sur son JSON metadata, ce qu'une
+ * grille de cellules rendrait plus lourd qu'elle ne l'alignerait. Le repère
+ * « Admin MEGGA » a quitté la page : il vit une seule fois dans le rail du shell.
  */
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Radio, Pause, Play, Filter, ChevronDown } from 'lucide-react'
-import { cn, formatRelativeDate } from '@/lib/utils'
+import { Radio, Pause, Play, Filter, ChevronDown, Activity, Clock, Layers, History } from 'lucide-react'
+import { formatRelativeDate } from '@/lib/utils'
+import AdminPage from '@/components/admin/kit/AdminPage'
+import {
+  AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat,
+} from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { useAdminLiveFeed, type LiveEvent } from '@/hooks/useAdminLiveFeed'
 
 // ─── ACTION LABELS ─────────────────────────────────────────────────────────
@@ -35,24 +49,6 @@ const ACTION_KEYS: Record<string, string> = {
   logout: 'liveFeed.action.logout',
 }
 
-// ─── ENTITY TYPE COLORS ────────────────────────────────────────────────────
-
-const ENTITY_COLORS: Record<string, string> = {
-  contact: 'bg-blue-500',
-  property: 'bg-emerald-500',
-  transaction: 'bg-amber-500',
-  kyc: 'bg-red-500',
-  email: 'bg-theme-muted',
-  visit: 'bg-cyan-500',
-  match: 'bg-admin-accent',
-  agency: 'bg-purple-500',
-}
-
-/** Couleur de pastille pour un type d'entité ; gris neutre par défaut. */
-function getEntityColor(entityType: string): string {
-  return ENTITY_COLORS[entityType] ?? 'bg-theme-muted'
-}
-
 // ─── ALL ENTITY TYPES FOR FILTER ───────────────────────────────────────────
 
 const ENTITY_TYPE_KEYS: Array<{ value: string; labelKey: string }> = [
@@ -66,6 +62,19 @@ const ENTITY_TYPE_KEYS: Array<{ value: string; labelKey: string }> = [
   { value: 'match', labelKey: 'liveFeed.entityType.matches' },
   { value: 'agency', labelKey: 'liveFeed.entityType.agencies' },
 ]
+
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, monospace'
+
+/**
+ * Géométrie des colonnes du flux.
+ *
+ * L'en-tête et les lignes lisent les MÊMES valeurs — c'est la seule chose qui
+ * tient l'alignement d'une liste en flex qui se fait passer pour un tableau.
+ */
+const COL = { time: 72, dot: 8, action: 140, gap: 12, padX: 15 } as const
+
+/** Décalage du bloc metadata déplié, aligné sous la colonne « Action ». */
+const META_INDENT = COL.padX + COL.time + COL.gap + COL.dot + COL.gap
 
 /** Formate un ISO en HH:MM:SS (fuseau fr-CH) pour la colonne horodatage. */
 function formatTime(isoDate: string): string {
@@ -84,18 +93,75 @@ function summarizeMetadata(metadata: Record<string, unknown>): string {
   }).join(' | ')
 }
 
-/** Carte KPI compacte du bandeau de stats. */
-function StatCard({ label, value }: { label: string; value: string | number }) {
+/** Teintes admissibles pour une pastille : les tons du kit, plus l'encre douce. */
+type DotHue = 'info' | 'ok' | 'warn' | 'err' | 'cyan' | 'soft'
+
+/** Signal d'une pastille : une teinte, rendue en disque plein ou en anneau. */
+interface DotSignal { hue: DotHue; ring?: boolean }
+
+/**
+ * Signal de pastille par type d'entité — deux axes, teinte ET forme.
+ *
+ * Le dictionnaire d'avant (`bg-blue-500` / `bg-emerald-500` / `bg-admin-accent`…)
+ * donnait huit teintes pour huit types. Les tons Sugar n'en offrent que cinq plus
+ * l'encre douce, et le violet reste hors jeu : dans la console il ne dit qu'une
+ * chose, « tu es dans la plateforme », jamais « ceci est un match ». Réduire à
+ * six teintes coûtait donc le pouvoir discriminant de la colonne — contact et
+ * agence, bien et match rendaient un signal identique.
+ *
+ * On récupère les huit signaux avec un second axe plutôt qu'avec des teintes
+ * inventées : le disque plein porte l'entité elle-même, l'anneau porte ce qui en
+ * relie ou en englobe d'autres (une agence groupe des contacts, un match relie un
+ * contact à un bien). Chaque anneau partage donc la teinte du disque dont il est
+ * le pendant, ce qui garde la famille lisible, et le couple (teinte, forme) reste
+ * unique. Bénéfice au passage : la forme survit au daltonisme, ce qu'une
+ * neuvième teinte n'aurait pas fait.
+ */
+const ENTITY_DOTS: Record<string, DotSignal> = {
+  contact: { hue: 'info' },
+  agency: { hue: 'info', ring: true },
+  property: { hue: 'ok' },
+  match: { hue: 'ok', ring: true },
+  transaction: { hue: 'warn' },
+  kyc: { hue: 'err' },
+  visit: { hue: 'cyan' },
+  // `email` n'a pas de signal propre : encre douce, disque plein.
+  email: { hue: 'soft' },
+}
+
+/**
+ * Repli des types non répertoriés.
+ *
+ * En ANNEAU, pour ne pas se confondre avec `email` qui porte la même encre en
+ * disque plein — sinon un type nouveau ressemblerait à un e-mail.
+ */
+const UNKNOWN_DOT: DotSignal = { hue: 'soft', ring: true }
+
+/** Pastille de type d'entité : teinte du kit + forme (voir `ENTITY_DOTS`). */
+function EntityDot({ entityType, size = 8 }: { entityType: string; size?: number }) {
+  const { sp, tones } = useAdminSugar()
+  const { hue, ring } = ENTITY_DOTS[entityType] ?? UNKNOWN_DOT
+  const color = hue === 'soft' ? sp.soft : tones[hue]
   return (
-    <div className="rounded-xl border border-theme-border p-4">
-      <span className="text-xs font-medium text-theme-secondary tracking-wide">{label}</span>
-      <p className="text-lg font-bold text-theme-primary mt-1">{value}</p>
-    </div>
+    <span
+      style={{
+        width: size, height: size, borderRadius: ADMIN_RADII.pill, flexShrink: 0,
+        // L'anneau se dessine en ombre INTERNE et non en `border` : une bordure
+        // participe au modèle de boîte, donc elle grossirait la pastille hors de
+        // `COL.dot` et décalerait la colonne « Action » d'une ligne à l'autre.
+        // Même technique que la légende de MobileAnalyticsScreen. Épaisseur
+        // proportionnelle pour que le trou reste visible à 8 px (le flux) comme
+        // à 6 px (les pilules de filtre).
+        background: ring ? 'transparent' : color,
+        boxShadow: ring ? `inset 0 0 0 ${Math.max(1.5, size / 4)}px ${color}` : undefined,
+      }}
+    />
   )
 }
 
 /** Ligne d'événement ; cliquable pour déplier le JSON metadata brut si présent. */
 function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: boolean; getActionLabel: (action: string) => string }) {
+  const { sp, surf } = useAdminSugar()
   const [expanded, setExpanded] = useState(false)
   const metaSummary = summarizeMetadata(event.metadata)
   const hasMetadata = metaSummary.length > 0
@@ -105,50 +171,64 @@ function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: b
       role={hasMetadata ? 'button' : undefined}
       tabIndex={hasMetadata ? 0 : undefined}
       onKeyDown={hasMetadata ? (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded) } } : undefined}
-      className={cn(
-        'border-b border-theme-border-subtle hover:bg-theme-hover transition-colors',
-        hasMetadata && 'cursor-pointer',
-        isNew && 'animate-in slide-in-from-top-2 fade-in duration-300'
-      )}
+      className={isNew ? 'lfx-row adm-fade-up' : 'lfx-row'}
       onClick={() => hasMetadata && setExpanded(!expanded)}
+      style={{
+        borderTop: surf.hairline,
+        cursor: hasMetadata ? 'pointer' : 'default',
+        animation: isNew ? 'admFadeUp .3s cubic-bezier(.2,.8,.2,1) both' : undefined,
+      }}
     >
-      <div className="flex items-start gap-3 px-4 py-2.5">
-        {/* Timestamp */}
-        <span className="text-xs font-mono text-theme-muted shrink-0 w-[72px] pt-0.5 tabular-nums">
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: COL.gap, padding: `9px ${COL.padX}px` }}>
+        {/* Horodatage */}
+        <span style={{
+          width: COL.time, flexShrink: 0, paddingTop: 2,
+          fontFamily: MONO, fontSize: 11, color: sp.sub, fontVariantNumeric: 'tabular-nums',
+        }}>
           {formatTime(event.created_at)}
         </span>
 
-        {/* Entity dot */}
-        <span className={cn('w-2 h-2 rounded-full shrink-0 mt-1.5', getEntityColor(event.entity_type))} />
+        {/* Pastille de type */}
+        <span style={{ display: 'flex', paddingTop: 6 }}>
+          <EntityDot entityType={event.entity_type} />
+        </span>
 
         {/* Action */}
-        <span className="text-sm text-theme-primary font-medium shrink-0 min-w-[140px]">
+        <span style={{ minWidth: COL.action, flexShrink: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>
           {getActionLabel(event.action)}
         </span>
 
-        {/* Entity type badge */}
-        <span className="text-xs font-mono text-theme-secondary bg-theme-hover px-2 py-0.5 rounded shrink-0">
-          {event.entity_type}
+        {/* Type d'entité — pilule neutre : la teinte est déjà portée par la pastille */}
+        <AdminPill label={event.entity_type} tone="neutral" style={{ fontSize: 11, padding: '3px 10px' }} />
+
+        {/* Résumé metadata */}
+        <span style={{
+          flex: 1, minWidth: 0, paddingTop: 2, fontSize: 11.5, color: sp.sub,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {metaSummary || '—'}
         </span>
 
-        {/* Metadata summary */}
-        <span className="text-xs text-theme-muted truncate flex-1">
-          {metaSummary || <span className="text-theme-tertiary">-</span>}
-        </span>
-
-        {/* Expand indicator */}
+        {/* Indicateur de dépliage */}
         {hasMetadata && (
-          <ChevronDown className={cn(
-            'h-3.5 w-3.5 text-theme-tertiary shrink-0 mt-0.5 transition-transform',
-            expanded && 'rotate-180'
-          )} />
+          <span style={{
+            display: 'flex', paddingTop: 3, flexShrink: 0,
+            transform: expanded ? 'rotate(180deg)' : undefined, transition: 'transform .18s ease',
+          }}>
+            <AdminIc icon={ChevronDown} size={14} color={sp.soft} />
+          </span>
         )}
       </div>
 
-      {/* Expanded metadata */}
+      {/* Metadata dépliée */}
       {expanded && hasMetadata && (
-        <div className="px-4 pb-3 pl-[100px]" onClick={(e) => e.stopPropagation()}>
-          <pre className="text-xs font-mono text-theme-secondary bg-theme-section rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
+        <div style={{ padding: `0 ${COL.padX}px 12px ${META_INDENT}px` }} onClick={(e) => e.stopPropagation()}>
+          <pre style={{
+            margin: 0, padding: 12, borderRadius: ADMIN_RADII.row,
+            background: surf.cardSub, color: sp.sub,
+            fontFamily: MONO, fontSize: 11.5, lineHeight: 1.55,
+            overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+          }}>
             {JSON.stringify(event.metadata, null, 2)}
           </pre>
         </div>
@@ -160,6 +240,7 @@ function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: b
 /** Vue principale : bandeau stats, filtres et liste temps réel des 100 derniers events. */
 export default function AdminLiveFeedPage() {
   const { t } = useTranslation('admin')
+  const { sp, surf, dark } = useAdminSugar()
   const { events, isLoading } = useAdminLiveFeed(100)
   const [paused, setPaused] = useState(false)
   // Snapshot capturé à la mise en pause — le Realtime continue d'alimenter
@@ -236,92 +317,90 @@ export default function AdminLiveFeedPage() {
       todayCount: events.filter(e => new Date(e.created_at) >= todayStart).length,
       hourCount: events.filter(e => new Date(e.created_at) >= oneHourAgo).length,
       uniqueTypes: new Set(events.map(e => e.action)).size,
-      lastEvent: events[0] ? formatRelativeDate(events[0].created_at) : '-',
+      lastEvent: events[0] ? formatRelativeDate(events[0].created_at) : '—',
     }
   }, [events])
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="h-8 px-3 rounded-lg bg-admin-accent/10 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-admin-accent" />
-          <span className="text-xs font-semibold text-admin-accent">{t('common.adminBadge')}</span>
-        </div>
-        <h1 className="text-xl font-semibold text-theme-primary">{t('liveFeed.title')}</h1>
-        <div className="flex items-center gap-1.5 ml-1">
-          <span className={cn(
-            'w-2 h-2 rounded-full',
-            paused ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'
-          )} />
-          <span className={cn(
-            'text-xs font-medium',
-            paused ? 'text-amber-600' : 'text-emerald-600'
-          )}>
-            {paused ? t('liveFeed.paused') : t('liveFeed.realtime')}
-          </span>
-        </div>
-        <div className="ml-auto">
-          <button
-            onClick={togglePause}
-            className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
-          >
-            {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+    <AdminPage
+      title={t('liveFeed.title')}
+      width="wide"
+      actions={(
+        <>
+          <AdminPill
+            label={paused ? t('liveFeed.paused') : t('liveFeed.realtime')}
+            tone={paused ? 'warn' : 'ok'}
+            icon={paused ? Pause : Radio}
+          />
+          <AdminGhostBtn onClick={togglePause} icon={paused ? Play : Pause}>
             {paused ? t('liveFeed.resume') : t('liveFeed.pause')}
-          </button>
-        </div>
-      </div>
+          </AdminGhostBtn>
+        </>
+      )}
+    >
+      <style>{`
+        .lfx-row { transition: background .15s ease; }
+        .lfx-row:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.03)'}; }
+        .lfx-row:focus:not(:focus-visible) { outline: none; }
+        .lfx-row:focus-visible { outline: 2px solid ${sp.accent}; outline-offset: -2px; }
+      `}</style>
 
       {/* Stats */}
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-theme-border p-4 animate-pulse">
-              <div className="h-3 bg-theme-hover rounded w-24 mb-3" />
-              <div className="h-6 bg-theme-hover rounded w-16" />
-            </div>
+            <AdminSkeleton key={i} height={62} radius={ADMIN_RADII.card} />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label={t('liveFeed.stats.today')} value={todayCount} />
-          <StatCard label={t('liveFeed.stats.thisHour')} value={hourCount} />
-          <StatCard label={t('liveFeed.stats.uniqueTypes')} value={uniqueTypes} />
-          <StatCard label={t('liveFeed.stats.lastEvent')} value={lastEvent} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <AdminStat label={t('liveFeed.stats.today')} value={todayCount} icon={Activity} tone="info" />
+          <AdminStat label={t('liveFeed.stats.thisHour')} value={hourCount} icon={Clock} />
+          <AdminStat label={t('liveFeed.stats.uniqueTypes')} value={uniqueTypes} icon={Layers} />
+          <AdminStat label={t('liveFeed.stats.lastEvent')} value={lastEvent} icon={History} />
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {/* Entity type pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {ENTITY_TYPE_KEYS.map((et) => (
-            <button
-              key={et.value}
-              onClick={() => setEntityFilter(et.value)}
-              className={cn(
-                'h-7 px-3 rounded-lg text-xs transition-colors',
-                entityFilter === et.value
-                  ? 'bg-theme-active text-theme-primary font-medium'
-                  : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
-              )}
-            >
-              {et.value !== 'all' && (
-                <span className={cn('inline-block w-1.5 h-1.5 rounded-full mr-1.5', getEntityColor(et.value))} />
-              )}
-              {t(et.labelKey)}
-            </button>
-          ))}
+      {/* Filtres */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+        {/* Pilules de type d'entité */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+          {ENTITY_TYPE_KEYS.map((et) => {
+            const on = entityFilter === et.value
+            return (
+              <button
+                key={et.value}
+                onClick={() => setEntityFilter(et.value)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  height: 30, padding: '0 13px', borderRadius: ADMIN_RADII.pill, border: 0,
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                  background: on ? sp.accent : surf.cardSub, color: on ? sp.accentInk : sp.soft,
+                  transition: 'background .18s ease',
+                }}
+              >
+                {et.value !== 'all' && <EntityDot entityType={et.value} size={6} />}
+                {t(et.labelKey)}
+              </button>
+            )
+          })}
         </div>
 
-        {/* Action filter dropdown */}
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
-            <Filter className="h-3.5 w-3.5 text-theme-tertiary absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        {/* Filtre par action */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <span style={{ position: 'absolute', left: 11, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
+              <AdminIc icon={Filter} size={14} color={sp.sub} />
+            </span>
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="h-8 pl-8 pr-3 text-xs bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-secondary appearance-none cursor-pointer"
+              style={{
+                height: 30, padding: '0 13px 0 32px', borderRadius: ADMIN_RADII.pill, border: 0,
+                background: surf.cardSub, color: sp.soft,
+                fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+                appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer',
+              }}
             >
               <option value="">{t('liveFeed.filter.allActions')}</option>
               {uniqueActions.map((a) => (
@@ -329,38 +408,38 @@ export default function AdminLiveFeedPage() {
               ))}
             </select>
           </div>
-          <span className="text-xs text-theme-muted">
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
             {t('liveFeed.events', { count: filteredEvents.length })}
           </span>
         </div>
       </div>
 
-      {/* Feed */}
-      <div
-        ref={feedRef}
-        className="rounded-xl border border-theme-border overflow-hidden"
-      >
-        {/* Column headers */}
-        <div className="flex items-center gap-3 px-4 py-2 border-b border-theme-border bg-theme-section text-xs font-medium text-theme-tertiary tracking-wide">
-          <span className="w-[72px] shrink-0">{t('liveFeed.column.time')}</span>
-          <span className="w-2 shrink-0" />
-          <span className="min-w-[140px] shrink-0">{t('liveFeed.column.action')}</span>
-          <span className="shrink-0">{t('liveFeed.column.type')}</span>
-          <span className="flex-1">{t('liveFeed.column.details')}</span>
+      {/* Flux */}
+      <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+        {/* En-tête de colonnes */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: COL.gap, padding: `9px ${COL.padX}px`,
+          background: sp.tableHeadBg, fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
+        }}>
+          <span style={{ width: COL.time, flexShrink: 0 }}>{t('liveFeed.column.time')}</span>
+          <span style={{ width: COL.dot, flexShrink: 0 }} />
+          <span style={{ minWidth: COL.action, flexShrink: 0 }}>{t('liveFeed.column.action')}</span>
+          <span style={{ flexShrink: 0 }}>{t('liveFeed.column.type')}</span>
+          <span style={{ flex: 1 }}>{t('liveFeed.column.details')}</span>
         </div>
 
-        {/* Events list */}
-        <div className="max-h-[calc(100vh-380px)] overflow-y-auto scrollbar-hide">
+        {/* Liste des événements */}
+        <div
+          ref={feedRef}
+          className="scrollbar-hide"
+          style={{ maxHeight: 'calc(100vh - 380px)', overflowY: 'auto' }}
+        >
           {isLoading ? (
-            <div className="p-8 flex justify-center">
-              <div className="h-5 w-5 border-2 border-theme-border border-t-accent rounded-full animate-spin" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14 }}>
+              {[0, 1, 2, 3, 4, 5].map(i => <AdminSkeleton key={i} height={34} />)}
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="p-12 text-center">
-              <Radio className="h-8 w-8 text-theme-tertiary mx-auto mb-3" />
-              <p className="text-sm text-theme-secondary">{t('liveFeed.empty.title')}</p>
-              <p className="text-xs text-theme-muted mt-1">{t('liveFeed.empty.subtitle')}</p>
-            </div>
+            <AdminEmpty icon={Radio} title={t('liveFeed.empty.title')} hint={t('liveFeed.empty.subtitle')} />
           ) : (
             filteredEvents.map((event) => (
               <EventRow
@@ -372,7 +451,7 @@ export default function AdminLiveFeedPage() {
             ))
           )}
         </div>
-      </div>
-    </div>
+      </AdminCard>
+    </AdminPage>
   )
 }

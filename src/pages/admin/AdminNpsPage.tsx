@@ -1,84 +1,98 @@
 /**
  * Page super-admin — satisfaction (NPS).
  *
- * Route : `/nps` (console admin.megga.ch) (accent violet). Score NPS,
- * note moyenne, répartition 1-5 étoiles et liste des réponses avec commentaires
- * (via `useAdminNps`).
+ * Route : `/nps` (console admin.megga.ch). Score NPS, note moyenne, répartition
+ * 1-5 étoiles et liste des réponses avec commentaires (via `useAdminNps`).
+ *
+ * Rendu en grammaire Sugar (kit `@/components/admin/kit`) : indicateurs
+ * `AdminStat` (chiffres tabulaires, signal porté par le ton de l'icône), bentos
+ * séparés par l'ombre, échelle de notes dérivée des tons fonctionnels — les
+ * `bg-red-500` / `bg-emerald-400` d'origine ont disparu. Le repère « Admin
+ * MEGGA » a quitté la page : il ne vit plus qu'une fois, dans le rail du shell.
  */
 import { useTranslation } from 'react-i18next'
 import { Star, MessageSquare, TrendingUp, Users } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { useAdminNps } from '@/hooks/useAdminNps'
 import type { NpsResponse } from '@/hooks/useAdminNps'
 import { formatRelativeDate } from '@/lib/utils'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
+import AdminPage from '@/components/admin/kit/AdminPage'
+import { AdminCard, AdminDivider, AdminEmpty, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
-const RATING_COLORS: Record<number, string> = {
-  1: 'bg-red-500',
-  2: 'bg-orange-500',
-  3: 'bg-amber-500',
-  4: 'bg-emerald-400',
-  5: 'bg-emerald-500',
+/** Ton du score NPS : bon ≥ 50, à surveiller ≥ 0, mauvais sinon. */
+function npsScoreTone(score: number): AdminToneName {
+  if (score >= 50) return 'ok'
+  if (score >= 0) return 'warn'
+  return 'err'
 }
 
-/** Couleur du score NPS : vert ≥ 50, ambre ≥ 0, rouge sinon. */
-function NpsScoreColor(score: number): string {
-  if (score >= 50) return 'text-emerald-500'
-  if (score >= 0) return 'text-amber-500'
-  return 'text-red-500'
-}
-
-/** Ligne d'une réponse NPS : étoiles, identité, rôle, commentaire et date. */
-function ResponseCard({ response }: { response: NpsResponse }) {
+/**
+ * Ligne d'une réponse NPS : étoiles, identité, rôle, commentaire et date.
+ *
+ * `first` supprime le filet supérieur de la première ligne — Sugar sépare par un
+ * filet très discret entre les lignes, pas par une bordure autour du bloc.
+ */
+function ResponseCard({ response, first }: { response: NpsResponse; first: boolean }) {
   const { t } = useTranslation('admin')
+  const { sp, surf, tones } = useAdminSugar()
+
   return (
-    <div className="flex items-start gap-4 py-4 border-b border-theme-border last:border-b-0">
-      {/* Stars */}
-      <div className="flex items-center gap-0.5 flex-shrink-0 pt-0.5">
-        {[1, 2, 3, 4, 5].map(s => (
-          <Star
-            key={s}
-            className={cn(
-              'h-4 w-4',
-              s <= response.rating
-                ? 'fill-amber-400 text-amber-400'
-                : 'text-theme-border'
-            )}
-          />
-        ))}
+    <div
+      style={{
+        display: 'flex', alignItems: 'flex-start', gap: 14, padding: '13px 0',
+        borderTop: first ? undefined : surf.hairline,
+      }}
+    >
+      {/* Étoiles */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0, paddingTop: 1 }}>
+        {[1, 2, 3, 4, 5].map(s => {
+          const filled = s <= response.rating
+          return (
+            <AdminIc
+              key={s}
+              icon={Star}
+              size={14}
+              color={filled ? tones.warn : sp.soft}
+              style={{ fill: filled ? tones.warn : 'none', opacity: filled ? 1 : 0.35 }}
+            />
+          )
+        })}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-theme-primary">
+      {/* Contenu */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>
             {response.user_name ?? t('nps.anonymousUser')}
           </span>
           {response.user_email && (
-            <span className="text-xs text-theme-muted">{response.user_email}</span>
+            <span style={{ fontSize: 11.5, color: sp.soft }}>{response.user_email}</span>
           )}
           {response.role && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-theme-hover text-theme-secondary">
-              {response.role}
-            </span>
+            <AdminPill label={response.role} style={{ padding: '3px 9px', fontSize: 11 }} />
           )}
         </div>
         {response.comment && (
-          <p className="text-sm text-theme-secondary mt-1">{response.comment}</p>
+          <p style={{ margin: '5px 0 0', fontSize: 12.5, fontWeight: 500, color: sp.sub, lineHeight: 1.5 }}>
+            {response.comment}
+          </p>
         )}
       </div>
 
       {/* Date */}
-      <span className="text-xs text-theme-muted flex-shrink-0">
+      <span style={{ fontSize: 11.5, color: sp.soft, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
         {formatRelativeDate(response.submitted_at)}
       </span>
     </div>
   )
 }
 
-/** Vue principale : 4 cartes stats, barre de distribution empilée et liste des réponses. */
+/** Vue principale : 4 indicateurs, barre de répartition empilée et liste des réponses. */
 export default function AdminNpsPage() {
   const { t } = useTranslation('admin')
   const { data, isLoading } = useAdminNps()
+  const { sp, tones, onTone } = useAdminSugar()
 
   const stats = data?.stats
   const responses = data?.responses ?? []
@@ -91,149 +105,138 @@ export default function AdminNpsPage() {
     5: t('nps.rating.5'),
   }
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="h-8 px-3 rounded-lg bg-admin-accent/10 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-admin-accent" />
-          <span className="text-xs font-semibold text-admin-accent">{t('common.adminBadge')}</span>
-        </div>
-        <Star className="h-5 w-5 text-theme-secondary" />
-        <h1 className="text-xl font-semibold text-theme-primary">{t('nps.title')}</h1>
-      </div>
+  // Échelle des cinq crans de note. Les tons fonctionnels ne fournissent que
+  // trois signaux (err/warn/ok) : le cran neutre prend l'accent Sugar et le
+  // cran 4 le cyan, sinon 1↔2 et 4↔5 rendraient deux fois la même couleur et
+  // la barre empilée deviendrait illisible. `ink` garde le pourcentage lisible
+  // sur chaque fond, en clair comme en sombre.
+  const ratingFill: Record<number, { bg: string; ink: string }> = {
+    1: { bg: tones.err, ink: onTone },
+    2: { bg: tones.warn, ink: onTone },
+    3: { bg: sp.accent, ink: sp.accentInk },
+    4: { bg: tones.cyan, ink: onTone },
+    5: { bg: tones.ok, ink: onTone },
+  }
 
-      {/* Loading state */}
+  return (
+    <AdminPage title={t('nps.title')} width="wide">
+      {/* Chargement des indicateurs */}
       {isLoading && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-theme-border p-5 h-24 animate-pulse bg-theme-hover/30" />
+            <AdminSkeleton key={i} height={64} radius={ADMIN_RADII.card} />
           ))}
         </div>
       )}
 
-      {/* Stats cards */}
+      {/* Indicateurs */}
       {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* NPS Score */}
-          <div className="rounded-xl border border-theme-border p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-theme-muted" />
-              <span className="text-xs text-theme-secondary">{t('nps.score')}</span>
-            </div>
-            <p className={cn('text-3xl font-bold', NpsScoreColor(stats.npsScore))}>
-              {stats.npsScore > 0 ? '+' : ''}{stats.npsScore}
-            </p>
-            <p className="text-xs text-theme-muted mt-1">{t('nps.scoreRange')}</p>
-          </div>
-
-          {/* Average rating */}
-          <div className="rounded-xl border border-theme-border p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="h-4 w-4 text-theme-muted" />
-              <span className="text-xs text-theme-secondary">{t('nps.averageRating')}</span>
-            </div>
-            <div className="flex items-baseline gap-1">
-              <p className="text-3xl font-bold text-theme-primary">{stats.averageRating}</p>
-              <span className="text-sm text-theme-muted">/ 5</span>
-            </div>
-          </div>
-
-          {/* Total responses */}
-          <div className="rounded-xl border border-theme-border p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="h-4 w-4 text-theme-muted" />
-              <span className="text-xs text-theme-secondary">{t('nps.responses')}</span>
-            </div>
-            <p className="text-3xl font-bold text-theme-primary">{stats.totalResponses}</p>
-          </div>
-
-          {/* Promoters / Detractors */}
-          <div className="rounded-xl border border-theme-border p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="h-4 w-4 text-theme-muted" />
-              <span className="text-xs text-theme-secondary">{t('nps.promotersDetractors')}</span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold text-emerald-500">
-                {stats.totalResponses > 0 ? Math.round((stats.promoters / stats.totalResponses) * 100) : 0}%
-              </span>
-              <span className="text-theme-muted">/</span>
-              <span className="text-lg font-bold text-red-500">
-                {stats.totalResponses > 0 ? Math.round((stats.detractors / stats.totalResponses) * 100) : 0}%
-              </span>
-            </div>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+          <AdminStat
+            label={t('nps.score')}
+            value={`${stats.npsScore > 0 ? '+' : ''}${stats.npsScore}`}
+            icon={TrendingUp}
+            tone={npsScoreTone(stats.npsScore)}
+            hint={t('nps.scoreRange')}
+          />
+          <AdminStat
+            label={t('nps.averageRating')}
+            value={`${stats.averageRating} / 5`}
+            icon={Star}
+          />
+          <AdminStat
+            label={t('nps.responses')}
+            value={stats.totalResponses}
+            icon={MessageSquare}
+          />
+          <AdminStat
+            label={t('nps.promotersDetractors')}
+            value={`${stats.totalResponses > 0 ? Math.round((stats.promoters / stats.totalResponses) * 100) : 0}% / ${stats.totalResponses > 0 ? Math.round((stats.detractors / stats.totalResponses) * 100) : 0}%`}
+            icon={Users}
+          />
         </div>
       )}
 
-      {/* Distribution bar */}
+      {/* Répartition des notes */}
       {stats && stats.totalResponses > 0 && (
-        <div className="rounded-xl border border-theme-border p-5">
-          <p className="text-sm font-medium text-theme-primary mb-4">{t('nps.distribution')}</p>
-          {/* Stacked bar */}
-          <div className="flex h-8 rounded-lg overflow-hidden">
+        <AdminCard padding="16px 18px">
+          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+            {t('nps.distribution')}
+          </p>
+          <AdminDivider margin="12px 0 14px" />
+
+          {/* Barre empilée */}
+          <div style={{ display: 'flex', height: 30, borderRadius: ADMIN_RADII.row, overflow: 'hidden' }}>
             {[1, 2, 3, 4, 5].map(rating => {
               const count = stats.distribution[rating] ?? 0
               const pct = stats.totalResponses > 0 ? (count / stats.totalResponses) * 100 : 0
               if (pct === 0) return null
+              const fill = ratingFill[rating]
               return (
                 <div
                   key={rating}
-                  className={cn('flex items-center justify-center transition-all', RATING_COLORS[rating])}
-                  style={{ width: `${pct}%` }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: `${pct}%`, background: fill.bg, transition: 'width .25s ease',
+                  }}
                   title={`${rating} etoile${rating > 1 ? 's' : ''}: ${count} (${Math.round(pct)}%)`}
                 >
                   {pct >= 8 && (
-                    <span className="text-xs font-medium text-white">{Math.round(pct)}%</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: fill.ink, fontVariantNumeric: 'tabular-nums' }}>
+                      {Math.round(pct)}%
+                    </span>
                   )}
                 </div>
               )
             })}
           </div>
-          {/* Labels */}
-          <div className="flex mt-2 gap-4">
+
+          {/* Légende */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 11 }}>
             {[1, 2, 3, 4, 5].map(rating => (
-              <div key={rating} className="flex items-center gap-1.5">
-                <div className={cn('w-2.5 h-2.5 rounded-sm', RATING_COLORS[rating])} />
-                <span className="text-xs text-theme-muted">{ratingLabels[rating]} ({stats.distribution[rating] ?? 0})</span>
+              <div key={rating} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 9, height: 9, borderRadius: ADMIN_RADII.pill, background: ratingFill[rating].bg, flexShrink: 0 }} />
+                <span style={{ fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                  {ratingLabels[rating]} ({stats.distribution[rating] ?? 0})
+                </span>
               </div>
             ))}
           </div>
-        </div>
+        </AdminCard>
       )}
 
-      {/* Response list */}
-      <div className="rounded-xl border border-theme-border p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-medium text-theme-primary">{t('nps.recentResponses')}</p>
-          <span className="text-xs text-theme-muted">{responses.length} reponse{responses.length !== 1 ? 's' : ''}</span>
+      {/* Réponses */}
+      <AdminCard padding="16px 18px">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+            {t('nps.recentResponses')}
+          </p>
+          <span style={{ fontSize: 11.5, color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
+            {responses.length} reponse{responses.length !== 1 ? 's' : ''}
+          </span>
         </div>
+        <AdminDivider margin="12px 0 2px" />
 
         {isLoading && (
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 10 }}>
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-16 rounded-lg bg-theme-hover/30 animate-pulse" />
+              <AdminSkeleton key={i} height={54} />
             ))}
           </div>
         )}
 
         {!isLoading && responses.length === 0 && (
-          <div className="text-center py-12">
-            <Star className="h-8 w-8 text-theme-border mx-auto mb-3" />
-            <p className="text-sm text-theme-secondary">{t('nps.empty.title')}</p>
-            <p className="text-xs text-theme-muted mt-1">{t('nps.empty.subtitle')}</p>
-          </div>
+          <AdminEmpty icon={Star} title={t('nps.empty.title')} hint={t('nps.empty.subtitle')} />
         )}
 
         {!isLoading && responses.length > 0 && (
           <div>
-            {responses.map(response => (
-              <ResponseCard key={response.id} response={response} />
+            {responses.map((response, i) => (
+              <ResponseCard key={response.id} response={response} first={i === 0} />
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </AdminCard>
+    </AdminPage>
   )
 }

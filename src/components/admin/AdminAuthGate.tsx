@@ -11,6 +11,10 @@
  * Le mur réel reste la DB (RLS + is_super_admin) et les edges
  * (require-super-admin) : ce gate ne fait qu'éviter d'afficher une console qui
  * répondrait 403 partout.
+ *
+ * Ses écrans sont les seuls de la console rendus HORS du cadre du shell : ils
+ * portent donc eux-mêmes le repère plateforme (pastille violette + « Admin
+ * MEGGA ») que les pages ont abandonné au rail, faute de rail à ce stade.
  */
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
@@ -19,6 +23,9 @@ import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import { supabase } from '@/lib/supabase'
 import { Sentry } from '@/lib/sentry'
 import { CRM_APP_URL } from '@/lib/adminEntry'
+import { AdminCard, AdminGhostBtn } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 // Une seule ligne d'audit par chargement de page : sur son domaine dédié, un
 // chargement = une ouverture de console, ce qui est la granularité voulue.
@@ -54,25 +61,35 @@ async function logConsoleEntry() {
 
 /** Écran neutre pendant la résolution de session (évite un flash de formulaire). */
 function Waiting() {
+  const { sp, tones } = useAdminSugar()
   return (
-    <div className="min-h-screen flex items-center justify-center bg-theme-page">
-      <div className="h-6 w-6 rounded-full border-2 border-theme-border border-t-admin-accent animate-spin" />
+    <div className="min-h-screen flex items-center justify-center" style={{ background: sp.pageBg }}>
+      <div
+        className="animate-spin"
+        style={{
+          width: 24, height: 24, borderRadius: ADMIN_RADII.pill,
+          border: `2px solid ${sp.frameBorder}`, borderTopColor: tones.accent,
+        }}
+      />
     </div>
   )
 }
 
 /** Coquille centrée commune aux écrans de cul-de-sac (renvoi CRM, refus). */
 function Panel({ title, children }: { title: string; children: ReactNode }) {
+  const { sp, tones } = useAdminSugar()
   return (
-    <div className="min-h-screen flex items-center justify-center bg-theme-page px-6">
-      <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-2 h-2 rounded-full bg-admin-accent" />
-          <span className="text-xs font-semibold text-admin-accent">Admin MEGGA</span>
+    <div className="min-h-screen flex items-center justify-center px-6" style={{ background: sp.pageBg }}>
+      <AdminCard padding={26} radius={ADMIN_RADII.frame} className="w-full max-w-sm">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 18 }}>
+          <span style={{ width: 7, height: 7, borderRadius: ADMIN_RADII.pill, background: tones.accent, flexShrink: 0 }} />
+          <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: -0.1, color: tones.accent }}>Admin MEGGA</span>
         </div>
-        <h1 className="text-xl font-semibold text-theme-primary mb-5">{title}</h1>
+        <h1 style={{ margin: '0 0 14px', fontSize: 22, fontWeight: 800, letterSpacing: -0.6, color: sp.ink, lineHeight: 1.15 }}>
+          {title}
+        </h1>
         {children}
-      </div>
+      </AdminCard>
     </div>
   )
 }
@@ -86,15 +103,22 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
  * lien magique. Rien à hameçonner ici, et rien à essayer en force.
  */
 function FromCrmOnlyScreen() {
+  const { sp, surf } = useAdminSugar()
   return (
     <Panel title="Accès depuis le CRM">
-      <p className="text-sm text-theme-secondary">
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: sp.sub, lineHeight: 1.5 }}>
         La console n'a pas de connexion propre. Ouvrez-la depuis le CRM, par le menu de
         votre profil.
       </p>
+      {/* Lien plein (autre origine) : grammaire du bouton ghost, sans en être un. */}
       <a
         href={CRM_APP_URL}
-        className="mt-5 inline-flex h-9 items-center gap-2 rounded-lg border border-admin-accent/30 px-3 text-sm font-medium text-admin-accent transition-colors hover:bg-admin-accent/5"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 18,
+          height: 34, padding: '0 15px', borderRadius: ADMIN_RADII.pill,
+          fontSize: 12.5, fontWeight: 700, textDecoration: 'none',
+          color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
+        }}
       >
         Aller au CRM
       </a>
@@ -105,17 +129,15 @@ function FromCrmOnlyScreen() {
 /** Session valide mais sans droits : on le dit, et on propose la sortie. */
 function DeniedScreen() {
   const { signOut, profile } = useAuth()
+  const { sp } = useAdminSugar()
   return (
     <Panel title="Accès refusé">
-      <p className="text-sm text-theme-secondary">
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: sp.sub, lineHeight: 1.5 }}>
         Le compte {profile?.email ?? 'connecté'} n'a pas accès à la console.
       </p>
-      <div className="flex items-center gap-3 mt-5">
-        <button onClick={() => void signOut()}
-          className="h-9 px-3 rounded-lg border border-theme-border text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-          Se déconnecter
-        </button>
-        <a href={CRM_APP_URL} className="text-xs text-theme-tertiary hover:text-theme-secondary transition-colors">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 18 }}>
+        <AdminGhostBtn onClick={() => void signOut()}>Se déconnecter</AdminGhostBtn>
+        <a href={CRM_APP_URL} style={{ fontSize: 12, fontWeight: 600, color: sp.sub, textDecoration: 'none' }}>
           Retour au CRM
         </a>
       </div>

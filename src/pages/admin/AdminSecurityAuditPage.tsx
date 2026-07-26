@@ -1,16 +1,20 @@
 /**
  * Page super-admin — journal d'audit de sécurité.
  *
- * Route : `/security` (console admin.megga.ch) (accent violet). Liste les
- * actions sensibles d'`activity_events` (filtres sévérité/action/acteur, recherche,
- * pagination, métadonnées dépliables) avec un bandeau KPI sur 7 jours. Deux exports :
+ * Route : `/security` (console admin.megga.ch). Liste les actions sensibles
+ * d'`activity_events` (filtres sévérité/action/acteur, recherche, pagination,
+ * métadonnées dépliables) avec un bandeau KPI sur 7 jours. Deux exports :
  * CSV de la vue filtrée, et PDF juridique de la chaîne d'audit PLATEFORME complète
  * (hash-chain nLPD/LBA — volontairement non filtré).
+ *
+ * Présentation en grammaire Sugar (kit `adminKit`) : journal dans un bento séparé
+ * par l'ombre, sévérités en pilules pleines, accent NOIR sur les contrôles actifs.
+ * Le repère violet « Admin MEGGA » vit désormais une seule fois dans le rail du
+ * shell — la page n'a plus qu'un titre.
  */
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Shield, AlertTriangle, AlertCircle, Info, Download, FileDown, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { exportToCsv } from '@/lib/exportCsv'
@@ -23,8 +27,10 @@ import {
   SENSITIVE_ACTIONS,
 
 } from '@/hooks/useSecurityAudit'
-import AdminKpiCard from '@/components/admin/AdminKpiCard'
-import PageTransition from '@/components/layout/PageTransition'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
+import AdminPage from '@/components/admin/kit/AdminPage'
+import { AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
 
@@ -35,14 +41,19 @@ type SeverityFilter = 'all' | 'critical' | 'warning' | 'info'
 // Labels are resolved at render time via t() — see component body
 const SEVERITY_PILL_VALUES: SeverityFilter[] = ['all', 'critical', 'warning', 'info']
 
+/** Largeurs des colonnes du journal — partagées par l'en-tête et les lignes. */
+const COL = { time: 132, severity: 108, action: 168, actor: 172, entity: 92 } as const
+
+const TRUNCATE: CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
-/** Classe Tailwind de la pastille colorée selon la sévérité. */
-function severityDot(severity: 'critical' | 'warning' | 'info'): string {
+/** Ton de pilule Sugar selon la sévérité (fond plein, jamais un texte coloré). */
+function severityTone(severity: 'critical' | 'warning' | 'info'): AdminToneName {
   switch (severity) {
-    case 'critical': return 'bg-red-500'
-    case 'warning': return 'bg-amber-500'
-    case 'info': return 'bg-blue-500'
+    case 'critical': return 'err'
+    case 'warning': return 'warn'
+    case 'info': return 'info'
   }
 }
 
@@ -89,17 +100,11 @@ function isWithinDays(dateStr: string, days: number): boolean {
 /** Lignes squelette affichées pendant le chargement du journal. */
 function SkeletonRows() {
   return (
-    <>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px' }}>
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className={cn('flex items-center px-4 py-3.5 gap-4', i < 7 && 'border-b border-theme-border')}>
-          <div className="w-28 h-3.5 rounded bg-theme-hover animate-pulse" />
-          <div className="w-2 h-2 rounded-full bg-theme-hover animate-pulse" />
-          <div className="flex-1 h-3.5 rounded bg-theme-hover animate-pulse" />
-          <div className="w-24 h-3.5 rounded bg-theme-hover animate-pulse" />
-          <div className="w-32 h-3.5 rounded bg-theme-hover animate-pulse" />
-        </div>
+        <AdminSkeleton key={i} height={36} />
       ))}
-    </>
+    </div>
   )
 }
 
@@ -109,6 +114,7 @@ function SkeletonRows() {
 export default function AdminSecurityAuditPage() {
   const { t } = useTranslation('admin')
   const { data: entries, isLoading } = useSecurityAudit({ limit: 500 })
+  const { sp, surf, dark } = useAdminSugar()
   const toast = useToast()
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
   const [actionFilter, setActionFilter] = useState<string>('all')
@@ -205,266 +211,289 @@ export default function AdminSecurityAuditPage() {
     ])
   }
 
+  // Filet de séparation des lignes — même valeur que `AdminTd`, pour que le
+  // journal et les tableaux de la console se lisent d'un seul rythme.
+  const rowHair = dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)'
+
+  /** Bouton fléché de la pagination (précédent/suivant). */
+  const pagerArrow = (disabled: boolean): CSSProperties => ({
+    width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0, background: 'transparent',
+    cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1,
+    display: 'grid', placeItems: 'center', color: sp.sub,
+  })
+
   // ── Render ────────────────────────────────────────────────────────────
   return (
-    <PageTransition>
-      <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+    <AdminPage
+      title={t('admin:securityAudit.title')}
+      subtitle={t('admin:securityAudit.subtitle')}
+      width="wide"
+      actions={
+        <>
+          <AdminGhostBtn onClick={() => void handlePdfExport()} disabled={pdfExporting} icon={FileDown}>
+            {pdfExporting ? t('admin:securityAudit.pdfExporting') : t('admin:securityAudit.exportPdf')}
+          </AdminGhostBtn>
+          <AdminGhostBtn onClick={handleExport} disabled={!filtered.length} icon={Download}>
+            {t('admin:common.exportCsv')}
+          </AdminGhostBtn>
+        </>
+      }
+    >
+      {/* Pas de règle de survol de ligne ici : les lignes du journal portent
+          `.adm-row` (admin-console.css), dont le `:hover` est en `!important`.
+          Une règle d'auteur normale ne pouvait pas gagner contre le
+          `background` INLINE de repos de la ligne — elle ne s'appliquait jamais. */}
+      <style>{`
+        .sec-kpi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+        @media (max-width: 760px) { .sec-kpi { grid-template-columns: 1fr; } }
+        .sec-inp::placeholder { color: ${sp.sub}; }
+      `}</style>
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="h-2 w-2 rounded-full bg-admin-accent" />
-              <span className="text-xs font-medium text-admin-accent">{t('admin:common.adminBadge')}</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Shield className="h-5 w-5 text-theme-secondary" />
-              <h1 className="text-2xl font-semibold text-theme-primary">{t('admin:securityAudit.title')}</h1>
-            </div>
-            <p className="text-sm text-theme-tertiary mt-0.5">
-              {t('admin:securityAudit.subtitle')}
-            </p>
-          </div>
+      {/* Bandeau KPI (7 jours) */}
+      <div className="sec-kpi">
+        <AdminStat
+          label={t('admin:securityAudit.kpi.criticalEvents')}
+          value={isLoading ? '...' : stats.critical}
+          hint={t('admin:common.last7Days')}
+          icon={AlertTriangle}
+          tone={stats.critical > 0 ? 'err' : undefined}
+        />
+        <AdminStat
+          label={t('admin:securityAudit.kpi.warnings')}
+          value={isLoading ? '...' : stats.warning}
+          hint={t('admin:common.last7Days')}
+          icon={AlertCircle}
+        />
+        <AdminStat
+          label={t('admin:securityAudit.kpi.totalEvents')}
+          value={isLoading ? '...' : stats.total}
+          hint={t('admin:common.last7Days')}
+          icon={Info}
+        />
+      </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => void handlePdfExport()}
-              disabled={pdfExporting}
-              className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <FileDown className="h-4 w-4" />
-              {pdfExporting ? t('admin:securityAudit.pdfExporting') : t('admin:securityAudit.exportPdf')}
-            </button>
-            <button
-              onClick={handleExport}
-              disabled={!filtered.length}
-              className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              {t('admin:common.exportCsv')}
-            </button>
-          </div>
-        </div>
-
-        {/* Stats bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <AdminKpiCard
-            label={t('admin:securityAudit.kpi.criticalEvents')}
-            value={isLoading ? '...' : stats.critical}
-            subtitle={t('admin:common.last7Days')}
-            icon={AlertTriangle}
-            variant={stats.critical > 0 ? 'danger' : 'default'}
-          />
-          <AdminKpiCard
-            label={t('admin:securityAudit.kpi.warnings')}
-            value={isLoading ? '...' : stats.warning}
-            subtitle={t('admin:common.last7Days')}
-            icon={AlertCircle}
-          />
-          <AdminKpiCard
-            label={t('admin:securityAudit.kpi.totalEvents')}
-            value={isLoading ? '...' : stats.total}
-            subtitle={t('admin:common.last7Days')}
-            icon={Info}
-          />
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Severity pills */}
-          <div className="flex items-center gap-1 rounded-lg border border-theme-border p-0.5">
-            {SEVERITY_PILL_VALUES.map(val => (
+      {/* Filtres */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        {/* Sévérité — segment Sugar, accent noir sur l'option active */}
+        <div style={{
+          display: 'inline-flex', gap: 3, padding: 3, borderRadius: ADMIN_RADII.pill,
+          background: surf.cardSub, border: surf.hairline,
+        }}>
+          {SEVERITY_PILL_VALUES.map(val => {
+            const on = severityFilter === val
+            return (
               <button
                 key={val}
                 onClick={() => handleSeverityChange(val)}
-                className={cn(
-                  'h-8 px-3 rounded-md text-sm transition-colors',
-                  severityFilter === val
-                    ? 'bg-theme-active text-theme-primary font-medium'
-                    : 'text-theme-secondary hover:text-theme-primary'
-                )}
+                style={{
+                  height: 30, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
+                  background: on ? sp.accent : 'transparent', color: on ? sp.accentInk : sp.sub,
+                  transition: 'background .15s ease, color .15s ease',
+                }}
               >
                 {val === 'all' ? t('admin:common.all') : t(`admin:common.severity.${val}`)}
               </button>
+            )
+          })}
+        </div>
+
+        {/* Action dropdown */}
+        <div style={{ position: 'relative' }}>
+          <select
+            value={actionFilter}
+            onChange={e => handleActionChange(e.target.value)}
+            style={{
+              height: 34, padding: '0 34px 0 15px', borderRadius: ADMIN_RADII.pill, border: 0, outline: 'none',
+              appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
+              color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
+            }}
+          >
+            <option value="all">{t('admin:securityAudit.allActions')}</option>
+            {SENSITIVE_ACTIONS.map(action => (
+              <option key={action} value={action}>
+                {AUDIT_ACTION_LABELS[action] ?? action}
+              </option>
             ))}
-          </div>
-
-          {/* Action dropdown */}
-          <div className="relative">
-            <select
-              value={actionFilter}
-              onChange={e => handleActionChange(e.target.value)}
-              className="h-9 pl-3 pr-8 text-sm bg-transparent border border-theme-border rounded-lg text-theme-secondary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent appearance-none cursor-pointer"
-            >
-              <option value="all">{t('admin:securityAudit.allActions')}</option>
-              {SENSITIVE_ACTIONS.map(action => (
-                <option key={action} value={action}>
-                  {AUDIT_ACTION_LABELS[action] ?? action}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-tertiary pointer-events-none" />
-          </div>
-
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
-            <input
-              type="text"
-              placeholder={t('admin:securityAudit.searchPlaceholder')}
-              value={searchQuery}
-              onChange={e => handleSearchChange(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-primary placeholder:text-theme-muted"
-            />
-          </div>
+          </select>
+          <span style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', display: 'grid', pointerEvents: 'none' }}>
+            <AdminIc icon={ChevronDown} size={14} color={sp.sub} />
+          </span>
         </div>
 
-        {/* Audit table */}
-        <div className="rounded-xl border border-theme-border overflow-hidden">
-          {/* Table header */}
-          <div className="flex items-center px-4 py-2.5 bg-theme-section text-xs font-medium text-theme-secondary border-b border-theme-border">
-            <div className="w-[140px] shrink-0">{t('admin:securityAudit.table.timestamp')}</div>
-            <div className="w-[100px] shrink-0">{t('admin:securityAudit.table.severity')}</div>
-            <div className="w-[180px] shrink-0">{t('admin:securityAudit.table.action')}</div>
-            <div className="w-[180px] shrink-0">{t('admin:securityAudit.table.actor')}</div>
-            <div className="flex-1 min-w-0">{t('admin:securityAudit.table.details')}</div>
-            <div className="w-[100px] shrink-0 text-right">{t('admin:securityAudit.table.entity')}</div>
-          </div>
-
-          {/* Table body */}
-          {isLoading ? (
-            <SkeletonRows />
-          ) : paginated.length === 0 ? (
-            <div className="px-4 py-12 text-center">
-              <Shield className="h-8 w-8 text-theme-tertiary mx-auto mb-2" />
-              <p className="text-sm text-theme-secondary">{t('admin:securityAudit.empty.title')}</p>
-              <p className="text-xs text-theme-tertiary mt-1">{t('admin:securityAudit.empty.subtitle')}</p>
-            </div>
-          ) : (
-            paginated.map((entry, i) => {
-              const severity = getActionSeverity(entry.action)
-              const isExpanded = expandedRow === entry.id
-              return (
-                <div key={entry.id}>
-                  <button
-                    onClick={() => setExpandedRow(isExpanded ? null : entry.id)}
-                    className={cn(
-                      'w-full flex items-center px-4 py-3 text-left hover:bg-theme-hover transition-colors cursor-pointer',
-                      i < paginated.length - 1 && !isExpanded && 'border-b border-theme-border'
-                    )}
-                  >
-                    {/* Timestamp */}
-                    <div className="w-[140px] shrink-0 text-xs text-theme-secondary font-mono">
-                      {formatTimestamp(entry.created_at)}
-                    </div>
-
-                    {/* Severity */}
-                    <div className="w-[100px] shrink-0 flex items-center gap-2">
-                      <span className={cn('w-2 h-2 rounded-full shrink-0', severityDot(severity))} />
-                      <span className="text-xs text-theme-secondary">{t(`admin:common.severity.${severity}`)}</span>
-                    </div>
-
-                    {/* Action */}
-                    <div className="w-[180px] shrink-0">
-                      <span className="text-sm text-theme-primary">
-                        {AUDIT_ACTION_LABELS[entry.action] ?? entry.action}
-                      </span>
-                    </div>
-
-                    {/* Actor */}
-                    <div className="w-[180px] shrink-0 min-w-0">
-                      {entry.actor_name ? (
-                        <div>
-                          <p className="text-sm text-theme-primary truncate">{entry.actor_name}</p>
-                          <p className="text-xs text-theme-tertiary truncate">{entry.actor_email}</p>
-                        </div>
-                      ) : entry.actor_id === 'ai' ? (
-                        <span className="text-sm text-theme-secondary">{t('admin:securityAudit.megaAi')}</span>
-                      ) : (
-                        <span className="text-xs text-theme-tertiary">-</span>
-                      )}
-                    </div>
-
-                    {/* Details */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-theme-tertiary truncate">
-                        {summarizeMetadata(entry.metadata)}
-                      </p>
-                    </div>
-
-                    {/* Entity */}
-                    <div className="w-[100px] shrink-0 text-right">
-                      <span className="text-xs text-theme-secondary">{entry.entity_type}</span>
-                    </div>
-                  </button>
-
-                  {/* Expanded metadata */}
-                  {isExpanded && (
-                    <div className={cn(
-                      'px-4 py-3 bg-theme-section border-b border-theme-border',
-                      i < paginated.length - 1 && 'border-b border-theme-border'
-                    )}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-medium text-theme-secondary">{t('admin:securityAudit.metadataFull')}</span>
-                        <span className="text-xs text-theme-tertiary">ID: {entry.entity_id}</span>
-                      </div>
-                      <pre className="text-xs text-theme-secondary font-mono bg-theme-page rounded-lg p-3 overflow-x-auto max-h-48 scrollbar-hide">
-                        {JSON.stringify(entry.metadata, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              )
-            })
-          )}
+        {/* Recherche */}
+        <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 320 }}>
+          <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', display: 'grid', placeItems: 'center' }}>
+            <AdminIc icon={Search} size={15} color={sp.sub} />
+          </span>
+          <input
+            className="sec-inp"
+            type="text"
+            placeholder={t('admin:securityAudit.searchPlaceholder')}
+            value={searchQuery}
+            onChange={e => handleSearchChange(e.target.value)}
+            style={{
+              width: '100%', height: 34, padding: '0 14px 0 38px', borderRadius: ADMIN_RADII.pill,
+              border: 0, outline: 'none', background: surf.card, boxShadow: sp.shadowSm,
+              color: sp.ink, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
+            }}
+          />
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-theme-tertiary">
-              {t(filtered.length !== 1 ? 'admin:securityAudit.eventsTotal_plural' : 'admin:securityAudit.eventsTotal', { count: filtered.length })}
-            </p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={safePage <= 1}
-                aria-label="Page précédente"
-                className="h-7 w-7 rounded-md flex items-center justify-center text-theme-secondary hover:text-theme-primary disabled:opacity-30 transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
-                .map((p, idx, arr) => {
-                  const showEllipsis = idx > 0 && p - arr[idx - 1] > 1
-                  return (
-                    <span key={p} className="flex items-center">
-                      {showEllipsis && <span className="text-xs text-theme-tertiary px-1">...</span>}
-                      <button
-                        onClick={() => setPage(p)}
-                        className={cn(
-                          'h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors',
-                          p === safePage ? 'bg-admin-accent text-white' : 'text-theme-secondary hover:text-theme-primary'
-                        )}
-                      >
-                        {p}
-                      </button>
-                    </span>
-                  )
-                })}
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={safePage >= totalPages}
-                aria-label="Page suivante"
-                className="h-7 w-7 rounded-md flex items-center justify-center text-theme-secondary hover:text-theme-primary disabled:opacity-30 transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
-    </PageTransition>
+
+      {/* Journal d'audit */}
+      <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+        {/* En-tête de colonnes — casse normale, fond de tête de table Sugar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px',
+          background: sp.tableHeadBg, fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
+        }}>
+          <div style={{ width: COL.time, flexShrink: 0 }}>{t('admin:securityAudit.table.timestamp')}</div>
+          <div style={{ width: COL.severity, flexShrink: 0 }}>{t('admin:securityAudit.table.severity')}</div>
+          <div style={{ width: COL.action, flexShrink: 0 }}>{t('admin:securityAudit.table.action')}</div>
+          <div style={{ width: COL.actor, flexShrink: 0 }}>{t('admin:securityAudit.table.actor')}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>{t('admin:securityAudit.table.details')}</div>
+          <div style={{ width: COL.entity, flexShrink: 0, textAlign: 'right' }}>{t('admin:securityAudit.table.entity')}</div>
+        </div>
+
+        {/* Corps */}
+        {isLoading ? (
+          <SkeletonRows />
+        ) : paginated.length === 0 ? (
+          <AdminEmpty
+            icon={Shield}
+            title={t('admin:securityAudit.empty.title')}
+            hint={t('admin:securityAudit.empty.subtitle')}
+          />
+        ) : (
+          paginated.map(entry => {
+            const severity = getActionSeverity(entry.action)
+            const isExpanded = expandedRow === entry.id
+            return (
+              <div key={entry.id} style={{ borderTop: `1px solid ${rowHair}` }}>
+                <button
+                  className="adm-row"
+                  onClick={() => setExpandedRow(isExpanded ? null : entry.id)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px',
+                    border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                  }}
+                >
+                  {/* Timestamp */}
+                  <div style={{ width: COL.time, flexShrink: 0, fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                    {formatTimestamp(entry.created_at)}
+                  </div>
+
+                  {/* Severity */}
+                  <div style={{ width: COL.severity, flexShrink: 0 }}>
+                    <AdminPill label={t(`admin:common.severity.${severity}`)} tone={severityTone(severity)} />
+                  </div>
+
+                  {/* Action */}
+                  <div style={{ width: COL.action, flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, ...TRUNCATE }}>
+                    {AUDIT_ACTION_LABELS[entry.action] ?? entry.action}
+                  </div>
+
+                  {/* Actor */}
+                  <div style={{ width: COL.actor, flexShrink: 0, minWidth: 0 }}>
+                    {entry.actor_name ? (
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, lineHeight: 1.3, ...TRUNCATE }}>{entry.actor_name}</p>
+                        <p style={{ margin: 0, fontSize: 11, color: sp.sub, lineHeight: 1.3, ...TRUNCATE }}>{entry.actor_email}</p>
+                      </div>
+                    ) : entry.actor_id === 'ai' ? (
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: sp.sub }}>{t('admin:securityAudit.megaAi')}</span>
+                    ) : (
+                      <span style={{ fontSize: 12, color: sp.sub }}>-</span>
+                    )}
+                  </div>
+
+                  {/* Details */}
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: sp.sub, ...TRUNCATE }}>
+                    {summarizeMetadata(entry.metadata)}
+                  </div>
+
+                  {/* Entity */}
+                  <div style={{ width: COL.entity, flexShrink: 0, textAlign: 'right', fontSize: 11.5, color: sp.sub }}>
+                    {entry.entity_type}
+                  </div>
+                </button>
+
+                {/* Expanded metadata */}
+                {isExpanded && (
+                  <div style={{ padding: '12px 14px', background: surf.cardSub }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.ink }}>{t('admin:securityAudit.metadataFull')}</span>
+                      <span style={{ fontSize: 11, color: sp.sub }}>ID: {entry.entity_id}</span>
+                    </div>
+                    <pre
+                      className="scrollbar-hide"
+                      style={{
+                        margin: 0, padding: 12, borderRadius: ADMIN_RADII.row, background: sp.pageBg,
+                        color: sp.sub, fontSize: 11.5, lineHeight: 1.5,
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                        overflowX: 'auto', maxHeight: 192,
+                      }}
+                    >
+                      {JSON.stringify(entry.metadata, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )}
+      </AdminCard>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <p style={{ margin: 0, fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+            {t(filtered.length !== 1 ? 'admin:securityAudit.eventsTotal_plural' : 'admin:securityAudit.eventsTotal', { count: filtered.length })}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              aria-label="Page précédente"
+              style={pagerArrow(safePage <= 1)}
+            >
+              <AdminIc icon={ChevronLeft} size={15} color={sp.sub} />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
+              .map((p, idx, arr) => {
+                const showEllipsis = idx > 0 && p - arr[idx - 1] > 1
+                const on = p === safePage
+                return (
+                  <span key={p} style={{ display: 'flex', alignItems: 'center' }}>
+                    {showEllipsis && <span style={{ fontSize: 11, color: sp.sub, padding: '0 4px' }}>...</span>}
+                    <button
+                      onClick={() => setPage(p)}
+                      style={{
+                        height: 28, minWidth: 28, padding: '0 8px', borderRadius: ADMIN_RADII.pill, border: 0,
+                        cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
+                        fontVariantNumeric: 'tabular-nums',
+                        background: on ? sp.accent : 'transparent', color: on ? sp.accentInk : sp.sub,
+                        transition: 'background .15s ease, color .15s ease',
+                      }}
+                    >
+                      {p}
+                    </button>
+                  </span>
+                )
+              })}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              aria-label="Page suivante"
+              style={pagerArrow(safePage >= totalPages)}
+            >
+              <AdminIc icon={ChevronRight} size={15} color={sp.sub} />
+            </button>
+          </div>
+        </div>
+      )}
+    </AdminPage>
   )
 }

@@ -88,3 +88,74 @@ body {
 :root[data-theme='dark'] .console-shadow-lg {
   box-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.045);
 }
+
+/*
+ * WCAG 2.4.7 — anneau de focus qui SURVIT à un `outline: none` inline.
+ *
+ * La grammaire Sugar s'écrit en styles inline, et un champ Sugar pose
+ * `outline: 'none'` pour ne pas doubler son liseré interne. Or une déclaration
+ * inline l'emporte sur toute règle d'auteur non-`!important` : la règle globale
+ * `input:focus-visible` de `globals.css` était donc neutralisée sur chaque
+ * champ de la console, qui se retrouvait sans AUCUN repère de focus clavier.
+ *
+ * `!important` est ici le seul outil qui gagne contre l'inline — c'est un des
+ * rares cas où il est justifié plutôt que paresseux : on ne surcharge pas un
+ * choix de design, on garantit un plancher d'accessibilité que le style inline
+ * ne doit pas pouvoir percer. `:where()` garde la spécificité à 0 pour ne pas
+ * gêner d'éventuels styles de focus plus spécifiques.
+ *
+ * `:focus-visible` (et non `:focus`) : pas de halo au clic souris.
+ */
+:where(button, a, input, textarea, select, [tabindex], [role='button'], [role='switch'], [role='link'], [role='option'], [role='menuitem']):focus-visible {
+  outline: 2px solid rgb(var(--color-admin-accent)) !important;
+  outline-offset: 2px;
+}
+
+/*
+ * Couleur des textes indicatifs (placeholders) de la console.
+ *
+ * Les champs migrés ont abandonné `placeholder:text-theme-muted` (dernier jeton
+ * Tailwind de l'ancienne grammaire), et il n'existait AUCUNE règle globale pour
+ * la remplacer — le navigateur retombait donc sur son gris par défaut
+ * (~rgba(0,0,0,.54)), illisible sur la sous-surface quasi noire du thème sombre.
+ * Ce plancher évite d'avoir à re-déclarer un `::placeholder` par composant.
+ */
+:where(input, textarea)::placeholder {
+  color: rgb(var(--color-text-tertiary));
+  opacity: 1; /* Firefox applique un opacity < 1 par défaut. */
+}
+
+/*
+ * Survol du bouton fantôme du kit (`AdminGhostBtn`).
+ *
+ * Son fond de repos est déclaré en inline (`surf.card`), donc aucun `:hover`
+ * d'auteur ne pouvait l'atteindre : AUCUN bouton fantôme de la console n'avait
+ * de retour de survol. Même raison qu'ailleurs pour le `!important`.
+ */
+.adm-ghost {
+  transition: background-color 0.16s ease, box-shadow 0.16s ease;
+}
+.adm-ghost:hover:not(:disabled) {
+  background: #f1f4f8 !important;
+}
+:root[data-theme='dark'] .adm-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/*
+ * Survol des lignes denses (tableaux, listes, options de menu).
+ *
+ * Même cause : une ligne Sugar déclare son fond en inline, donc un
+ * `.classe:hover { background }` d'auteur ne s'applique jamais. Les surfaces
+ * qui veulent un survol portent `.adm-row` et laissent leur fond de repos en
+ * inline ; seul l'état de survol passe par cette règle.
+ */
+.adm-row {
+  transition: background-color 0.16s ease;
+}
+.adm-row:hover {
+  background: rgba(15, 23, 42, 0.035) !important;
+}
+:root[data-theme='dark'] .adm-row:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
