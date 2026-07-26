@@ -6,7 +6,7 @@
 // (l'ancienne case à cocher ne disait pas son état au lecteur d'écran), et un
 // seul accent d'action — le noir de `AdminSolidBtn`, pas le violet plateforme.
 
-import { useState, type CSSProperties } from 'react'
+import { useId, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import Modal from '@/components/ui/modal'
@@ -50,6 +50,15 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
     )
   }
 
+  // Identifiants des champs : `useId()` plutôt que des chaînes fixes, pour rester
+  // corrects si deux instances de la modale coexistaient un jour.
+  const uid = useId()
+  const nameId = `${uid}-name`
+  const cityId = `${uid}-city`
+  const cantonId = `${uid}-canton`
+  const noteId = `${uid}-note`
+  const planLabelId = `${uid}-plan-label`
+
   const labelStyle: CSSProperties = {
     display: 'block', marginBottom: 6,
     fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub,
@@ -67,18 +76,18 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
     <Modal open onClose={onClose} title={t('createAgency.title')} size="md">
       <div className="p-5 space-y-4">
         <div>
-          <label style={labelStyle}>{t('createAgency.name')}</label>
-          <input type="text" value={name} onChange={e => setName(e.target.value)} autoFocus style={fieldStyle} />
+          <label htmlFor={nameId} style={labelStyle}>{t('createAgency.name')}</label>
+          <input id={nameId} type="text" value={name} onChange={e => setName(e.target.value)} autoFocus style={fieldStyle} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label style={labelStyle}>{t('createAgency.city')}</label>
-            <input type="text" value={city} onChange={e => setCity(e.target.value)} style={fieldStyle} />
+            <label htmlFor={cityId} style={labelStyle}>{t('createAgency.city')}</label>
+            <input id={cityId} type="text" value={city} onChange={e => setCity(e.target.value)} style={fieldStyle} />
           </div>
           <div>
-            <label style={labelStyle}>{t('createAgency.canton')}</label>
-            <select value={canton} onChange={e => setCanton(e.target.value)} style={fieldStyle}>
+            <label htmlFor={cantonId} style={labelStyle}>{t('createAgency.canton')}</label>
+            <select id={cantonId} value={canton} onChange={e => setCanton(e.target.value)} style={fieldStyle}>
               <option value="">—</option>
               {CANTONS.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -86,8 +95,13 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
         </div>
 
         <div>
-          <label style={labelStyle}>{t('createAgency.plan')}</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          {/* « Plan » étiquette un GROUPE de trois boutons, pas un contrôle unique :
+              un `<label htmlFor>` y serait faux (il ne peut viser qu'un élément
+              étiquetable). D'où un `<span>` + `role="group"` porté par le conteneur,
+              qui référence ce libellé via `aria-labelledby` — le groupe a ainsi un
+              nom accessible, et chaque bouton garde son `aria-pressed`. */}
+          <span id={planLabelId} style={labelStyle}>{t('createAgency.plan')}</span>
+          <div role="group" aria-labelledby={planLabelId} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             {PLAN_IDS.map(p => (
               <button
                 key={p}
@@ -120,8 +134,8 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
         </label>
 
         <div>
-          <label style={labelStyle}>{t('createAgency.note')}</label>
-          <input type="text" value={note} onChange={e => setNote(e.target.value)}
+          <label htmlFor={noteId} style={labelStyle}>{t('createAgency.note')}</label>
+          <input id={noteId} type="text" value={note} onChange={e => setNote(e.target.value)}
             placeholder={t('createAgency.notePlaceholder')} style={fieldStyle} />
         </div>
 
