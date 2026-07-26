@@ -39,6 +39,7 @@ if (target === 'app') {
 
 // megga.ch: publish ONLY the static vitrine. Overlay it on top of the (now
 // discarded) React output; the vitrine index.html owns "/", its own _redirects
-// and _worker.js (Basic Auth ai/ai) ship with it.
+// and _worker.js (Basic Auth gate — credentials and the auth-page exemptions
+// live in that file) ship with it.
 cpSync(storefront, dist, { recursive: true, force: true });
 console.log('[postbuild] storefront target — dist/ is now the static vitrine (sites/megga-vitrine)');

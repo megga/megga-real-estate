@@ -4,7 +4,10 @@
 // Réf. doc : gotoOptions.waitUntil=networkidle0 (SPA) + waitForSelector sur la
 // sentinelle #pdf-ready (posée par la route une fois données+fontes prêtes) +
 // pdfOptions A4/printBackground/preferCSSPageSize (le template a déjà @page A4).
-// authenticate = HTTP Basic (l'app megga.ch est derrière ai/ai).
+// authenticate = HTTP Basic, passé par l'appelant depuis MEGGA_PREVIEW_BASIC_AUTH
+// et omis si le secret est absent. Le gate Basic Auth vit sur la VITRINE
+// (megga.ch, sites/megga-vitrine/_worker.js), pas sur le CRM app.megga.ch que
+// cette fonction rend : les pages visées ne sont plus gatées.
 
 export interface CfPdfRequestInput {
   url: string
