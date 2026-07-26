@@ -34,6 +34,13 @@ const DISABLED_ROUTES = [
   '/register',
   '/auth/login',
   '/auth/signup',
+  // Portail vendeur retiré (26 juil. 2026) : la fonctionnalité n'avait jamais
+  // servi (0 portail créé). Ses URLs — avec ou sans jeton, FR ou EN — partent
+  // vers la vitrine plutôt que de rendre un 404.
+  '/portal',
+  '/portal/dummy_token_mock',
+  '/portail',
+  '/portail/dummy_token_mock/visites',
 ]
 
 test.describe('Marketplace publique désactivée → vitrine megga.ch', () => {

@@ -8,8 +8,6 @@
 import { test, expect } from '@playwright/test'
 import { collectConsoleErrors } from './helpers/console'
 
-const MOCK_TOKEN = 'dummy_token_mock'
-
 interface RouteSpec {
   path: string
   label: string
@@ -39,9 +37,6 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   // /register, /auth/login… redirigent hors app → voir marketplace-disabled.
   // /reset-password reste in-app (cible des e-mails de réinitialisation).
   { path: '/reset-password', label: 'Reset password' },
-
-  // ── Routes paramétrées (mock IDs / slugs) ──────────────────────────────
-  { path: `/portal/${MOCK_TOKEN}`, label: 'Portail vendeur prod (mock token)' },
 ]
 
 test.describe('Marketplace publique — parametric route coverage', () => {
