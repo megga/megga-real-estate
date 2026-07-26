@@ -41,7 +41,7 @@
 **Client :** Gregory Lyonnet, agent immobilier à Genève
 **Développeur :** Julien (frontend — Claude Code gère le backend)
 
-**Vision :** Compliance-First Transaction OS — CRM transactionnel verticalisé + pipeline LAB/KYC + portail vendeur + copilote IA métier. La marketplace publique est désactivée depuis le pivot CRM-first (juin 2026) ; son backend Flatfox reste branché pour le matching CRM (voir §8).
+**Vision :** Compliance-First Transaction OS — CRM transactionnel verticalisé + pipeline LAB/KYC + copilote IA métier. La marketplace publique est désactivée depuis le pivot CRM-first (juin 2026) ; son backend Flatfox reste branché pour le matching CRM (voir §8).
 
 **5 objectifs (Document Maître) :** Toute fonctionnalité doit servir au moins 1 :
 1. Réduire le temps administratif
@@ -306,7 +306,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. **Inférence texte = DeepSeek partout** ; **vision/OCR/PDF = Gemini** (photo-vision, extract-property-pdf via `_shared/vision.ts`). **AUCUN Claude/Anthropic** (retiré ; kyc-screening = Dilisense déterministe seul).
 
-**Portail vendeur :** `/portail/:token` — page unique « Votre vente » (VotreVentePage, lecture seule), dev route `/portail` (PortalDevWrapper + mock data).
+**Portail vendeur : ❌ RETIRÉ (26 juillet 2026).** Il n'avait jamais servi — `seller_portals` comptait 0 ligne depuis sa création, aucun lien personnel n'a jamais été émis, et l'UI de création avait déjà disparu de la fiche contact. Retiré en entier : routes (`/portal*` et `/portail*` redirigent vers la vitrine), pages, `components/seller-portal/`, hooks, section « Portails vendeurs » de la console admin, drapeau de plan `sellerPortal`, edge `seller-portal-action`, et les tables `seller_portals` / `seller_preferences` (migration `20260726180000`).
 
 **Super-Admin :** application SÉPARÉE sur `admin.megga.ch` (entrée `index.admin.html` → `AdminApp`, `npm run build:admin`, projet Pages `megga-admin`) — 16 pages (accent violet), routes à la racine (`/users`, `/agencies/:id`…), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit. Le bundle admin n'est plus servi aux agents ; l'entrée se fait par la ligne « Console admin » du dropdown profil Sugar et par ⌘K (`src/lib/adminEntry.ts`), et chaque ouverture est journalisée (`admin_console_entered`).
 

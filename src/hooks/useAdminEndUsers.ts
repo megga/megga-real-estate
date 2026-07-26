@@ -1,28 +1,15 @@
 // P6b — Supervision des audiences sans compte (super-admin).
-// Stats agrégées (get_admin_end_user_stats) + listes portails vendeurs /
-// parcours KYC publics (RPC scopées, JAMAIS de token ni de PII IP).
+// Stats agrégées (get_admin_end_user_stats) + liste des parcours KYC publics
+// (RPC scopées, JAMAIS de token ni de PII IP).
+// Le bloc « portails vendeurs » a disparu avec la fonctionnalité (2026-07-26).
 
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 export interface EndUserStats {
-  portals: { active: number; expired: number; revoked: number; viewed_7d: number; total_views: number }
   magic_links: { total_30d: number; opened: number; uploaded: number; confirmed: number; expired: number; conversion_pct: number }
   leads: { by_status: { status: string; count: number }[]; by_source: { source: string; count: number }[]; total: number; new_30d: number }
   contact_messages: { by_status: { status: string; count: number }[]; total: number }
-}
-
-export interface SellerPortalRow {
-  id: string
-  status: string
-  created_at: string
-  expires_at: string
-  last_viewed_at: string | null
-  view_count: number
-  agency_name: string | null
-  contact_name: string | null
-  property_title: string | null
-  agent_name: string | null
 }
 
 export interface KycMagicLinkRow {
@@ -45,21 +32,6 @@ export function useEndUserStats() {
       const { data, error } = await supabase.rpc('get_admin_end_user_stats')
       if (error) throw error
       return (data as unknown as EndUserStats) ?? null
-    },
-    staleTime: 60_000,
-  })
-}
-
-export function useSellerPortals(status: string | null) {
-  return useQuery({
-    queryKey: ['admin-seller-portals', status],
-    queryFn: async (): Promise<SellerPortalRow[]> => {
-      const { data, error } = await supabase.rpc('get_admin_seller_portals', {
-        p_status: status ?? undefined,
-        p_limit: 50,
-      })
-      if (error) throw error
-      return (data as SellerPortalRow[] | null) ?? []
     },
     staleTime: 60_000,
   })

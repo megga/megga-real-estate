@@ -6,7 +6,7 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Home, Users, Sparkles, MessageCircle, HardDrive, FileText, Activity, SlidersHorizontal } from 'lucide-react'
+import { Home, Users, Sparkles, MessageCircle, HardDrive, Activity, SlidersHorizontal } from 'lucide-react'
 import { formatRelativeDate } from '@/lib/utils'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import {
@@ -114,7 +114,6 @@ export default function AgencyUsagePanel({ agencyId }: { agencyId: string }) {
           hint={t('usage.card.storageEstimate')}
           icon={HardDrive}
         />
-        <AdminStat label={t('usage.card.portals')} value={usage.portals_active} icon={FileText} />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px', fontSize: 12, color: sp.soft }}>

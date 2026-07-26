@@ -1,6 +1,6 @@
 // DEV — Atelier Matching avec les données mock du handoff design (Carouge,
 // acheteurs scorés). QA visuelle hi-fi sans session Supabase — même rôle que
-// le PortalDevWrapper du portail vendeur. Les gestes sont des stubs locaux :
+// l'ancien wrapper de démo du portail vendeur (retiré). Les gestes sont des stubs locaux :
 // AUCUNE écriture (ni base, ni e-mail). Route : /dev/matching-atelier.
 // Référence : design_handoff_matching_atelier/MEGGA Matching Atelier A - Sugar.html
 

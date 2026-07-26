@@ -707,8 +707,7 @@
       "aiCalls": "{{count}} appels IA",
       "whatsapp": "WhatsApp (mois)",
       "storage": "Stockage",
-      "storageEstimate": "estimation",
-      "portals": "Portails actifs"
+      "storageEstimate": "estimation"
     },
     "quota": {
       "title": "Modifier les quotas",
@@ -735,33 +734,12 @@
       "aiCost": "Coût IA",
       "properties": "Biens",
       "whatsapp": "WhatsApp",
-      "storage": "Stockage",
-      "portals": "Portails"
+      "storage": "Stockage"
     }
   },
   "endUsers": {
     "title": "Clients finaux",
     "subtitle": "Vendeurs, leads et clients KYC sans compte.",
-    "portals": {
-      "title": "Portails vendeurs",
-      "active": "Actifs",
-      "expired": "Expirés",
-      "viewed7d": "Vus (7j)",
-      "totalViews": "Vues totales",
-      "empty": "Aucun portail.",
-      "col": {
-        "contact": "Vendeur",
-        "agency": "Agence",
-        "property": "Bien",
-        "views": "Vues",
-        "expires": "Expire"
-      }
-    },
-    "portalStatus": {
-      "active": "Actifs",
-      "expired": "Expirés",
-      "revoked": "Révoqués"
-    },
     "leads": {
       "title": "Leads entrants",
       "total": "Leads vendeurs",

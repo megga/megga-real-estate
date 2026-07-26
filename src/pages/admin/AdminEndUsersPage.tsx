@@ -1,7 +1,8 @@
 /**
  * P6b — Clients finaux (audiences sans compte auth), en grammaire Sugar.
  *
- * 3 sections : Portails vendeurs · Leads entrants (inboxes) · Parcours KYC.
+ * 2 sections : Leads entrants (inboxes) · Parcours KYC.
+ * La section « Portails vendeurs » est partie avec la fonctionnalité (2026-07-26).
  * Aucune donnée sensible : les RPC ne renvoient ni token ni IP (voir migration
  * 20260713140000). Les vendeurs/leads/KYC publics forment une audience
  * distincte des comptes auth (AdminUsersPage) et de la modération de biens.
@@ -14,8 +15,8 @@
 
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FileText, Users, ShieldCheck, Eye, Clock } from 'lucide-react'
-import { formatDate, formatRelativeDate } from '@/lib/utils'
+import { FileText, Users, ShieldCheck } from 'lucide-react'
+import { formatRelativeDate } from '@/lib/utils'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminCard, AdminDivider, AdminEmpty, AdminGroupTitle,
@@ -24,9 +25,8 @@ import {
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { SellerLeadsInbox, ContactMessagesInbox } from '@/components/admin/AdminModerationInbox'
-import { useEndUserStats, useSellerPortals, useKycMagicLinks } from '@/hooks/useAdminEndUsers'
+import { useEndUserStats, useKycMagicLinks } from '@/hooks/useAdminEndUsers'
 
-const PORTAL_FILTERS = ['', 'active', 'expired', 'revoked'] as const
 const KYC_FILTERS = ['', 'pending', 'opened', 'uploading', 'verifying', 'submitted', 'expired'] as const
 
 /** Troncature d'une cellule de tableau (les colonnes ont une largeur fixe). */
@@ -119,52 +119,14 @@ export default function AdminEndUsersPage() {
   const { t } = useTranslation('admin')
   const { sp } = useAdminSugar()
   const { data: stats, isLoading: statsLoading } = useEndUserStats()
-  const [portalStatus, setPortalStatus] = useState<typeof PORTAL_FILTERS[number]>('')
   const [kycStatus, setKycStatus] = useState<typeof KYC_FILTERS[number]>('')
-  const { data: portals, isLoading: portalsLoading } = useSellerPortals(portalStatus || null)
   const { data: kycLinks, isLoading: kycLoading } = useKycMagicLinks(kycStatus || null)
 
   const sub = { color: sp.sub } as const
 
   return (
     <AdminPage title={t('endUsers.title')} subtitle={t('endUsers.subtitle')} width="wide">
-      {/* Section 1 — Portails vendeurs */}
-      <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <AdminGroupTitle label={t('endUsers.portals.title')} tone="info" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <AdminStat label={t('endUsers.portals.active')} value={statsLoading ? '—' : stats?.portals.active ?? 0} icon={FileText} tone="ok" />
-          <AdminStat label={t('endUsers.portals.expired')} value={statsLoading ? '—' : stats?.portals.expired ?? 0} icon={Clock} />
-          <AdminStat label={t('endUsers.portals.viewed7d')} value={statsLoading ? '—' : stats?.portals.viewed_7d ?? 0} icon={Eye} tone="info" />
-          <AdminStat label={t('endUsers.portals.totalViews')} value={statsLoading ? '—' : stats?.portals.total_views ?? 0} icon={Eye} />
-        </div>
-        <ListBento
-          minWidth={640}
-          loading={portalsLoading}
-          filters={<StatusPills options={PORTAL_FILTERS} value={portalStatus} onChange={setPortalStatus} prefix="endUsers.portalStatus" />}
-          isEmpty={(portals ?? []).length === 0}
-          empty={<AdminEmpty icon={FileText} title={t('endUsers.portals.empty')} />}
-          columns={
-            <>
-              <AdminTh width="30%">{t('endUsers.portals.col.contact')}</AdminTh>
-              <AdminTh width="24%">{t('endUsers.portals.col.agency')}</AdminTh>
-              <AdminTh>{t('endUsers.portals.col.property')}</AdminTh>
-              <AdminTh align="center" width={90}>{t('endUsers.portals.col.views')}</AdminTh>
-              <AdminTh align="right" width={120}>{t('endUsers.portals.col.expires')}</AdminTh>
-            </>
-          }
-          rows={(portals ?? []).map(p => (
-            <tr key={p.id}>
-              <AdminTd style={{ ...CLIP, fontWeight: 600 }}>{p.contact_name ?? '—'}</AdminTd>
-              <AdminTd style={{ ...CLIP, ...sub }}>{p.agency_name ?? '—'}</AdminTd>
-              <AdminTd style={{ ...CLIP, ...sub }}>{p.property_title ?? '—'}</AdminTd>
-              <AdminTd align="center" numeric style={sub}>{p.view_count}</AdminTd>
-              <AdminTd align="right" numeric style={sub}>{formatDate(p.expires_at)}</AdminTd>
-            </tr>
-          ))}
-        />
-      </section>
-
-      {/* Section 2 — Leads entrants (inboxes déménagées de la modération) */}
+      {/* Section 1 — Leads entrants (inboxes déménagées de la modération) */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <AdminGroupTitle label={t('endUsers.leads.title')} tone="cyan" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -178,7 +140,7 @@ export default function AdminEndUsersPage() {
         </div>
       </section>
 
-      {/* Section 3 — Parcours KYC publics */}
+      {/* Section 2 — Parcours KYC publics */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <AdminGroupTitle label={t('endUsers.kyc.title')} tone="ok" />
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
