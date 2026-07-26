@@ -730,7 +730,13 @@ async function updateRunChunk(supabase: any, runId: string | undefined, stats: S
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function finalizeRun(supabase: any, runId: string | undefined, final: { status: string; totalSeen?: number; removed?: number; errorMessage?: string }): Promise<void> {
+// `upserted` = lignes RÉELLEMENT écrites (insert + update confondus : l'upsert PostgREST
+// ne distingue pas les deux). Sans ce champ, un run en mode chunk finalisait avec
+// total_inserted/total_updated à 0 — le crawl rolling et les énumérations manuelles
+// paraissaient donc ne RIEN ingérer, alors que l'énumération du 25/07 avait créé 4 274
+// lignes. Le rapport de nuit en concluait « seul fresh alimente le vivier », ce qui était
+// faux. Le décompte des vraies CRÉATIONS se lit sur market_listings.created_at.
+async function finalizeRun(supabase: any, runId: string | undefined, final: { status: string; totalSeen?: number; removed?: number; upserted?: number; errorMessage?: string }): Promise<void> {
   if (!runId) return
   try {
     await supabase.from('realadvisor_sync_runs').update({
@@ -738,6 +744,7 @@ async function finalizeRun(supabase: any, runId: string | undefined, final: { st
       ended_at: new Date().toISOString(),
       total_seen: final.totalSeen ?? null,
       total_removed: final.removed ?? 0,
+      ...(final.upserted !== undefined ? { total_updated: final.upserted } : {}),
       error_message: final.errorMessage ?? null,
     }).eq('id', runId)
   } catch (err) { console.error('[run finalize] exception:', err) }
@@ -1009,6 +1016,7 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
           await finalizeRun(supabase, runId, {
             status: 'throttled',
             totalSeen: stats.fetched,
+            upserted: stats.upserted,
             errorMessage: `abandon: ${consecutiveFailures} slices consécutifs en échec au slice ${sliceIdx}/${worklist.length} — ${String(err).slice(0, 300)}`,
           })
           return
@@ -1046,6 +1054,7 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
       status: sliceFailures > 0 ? 'partial' : 'completed',
       totalSeen: stats.fetched,
       removed: 0,
+      upserted: stats.upserted,
       ...(sliceFailures > 0 ? { errorMessage: `${sliceFailures} slice(s) en échec — cycle incomplet` } : {}),
     })
   } catch (err) {
