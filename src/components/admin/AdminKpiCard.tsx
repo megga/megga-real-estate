@@ -1,58 +1,58 @@
-/** Carte KPI réutilisable de la section super-admin (accent violet). */
-import { cn } from '@/lib/utils'
+/**
+ * Carte KPI de la console super-admin — enveloppe de compatibilité sur `AdminStat`.
+ *
+ * Rendue par `AdminStat` du kit Sugar : bento séparé par l'ombre (plus de
+ * `border border-theme-border`), chiffre en `tabular-nums`, signal porté par la
+ * teinte de l'icône. La signature de props est conservée pour les surfaces qui
+ * l'appellent encore (tableau de bord, facturation, marketplace) ; les autres
+ * pages de la console composent `AdminStat` directement et n'ont plus besoin de
+ * cette enveloppe.
+ */
 import type { LucideIcon } from 'lucide-react'
+import { AdminStat } from '@/components/admin/kit/adminKit'
+import type { AdminToneName } from '@/components/admin/kit/adminKitCore'
 
 interface AdminKpiCardProps {
   label: string
   value: string | number
-  subtitle?: string
   icon: LucideIcon
   trend?: { value: number; label: string }
   variant?: 'default' | 'danger' | 'success' | 'blue'
+  /**
+   * Acceptée pour les appelants existants, mais SANS effet : Sugar n'a qu'une
+   * densité de KPI. Avant la migration, l'absence de `compact` rendait une carte
+   * franchement différente — valeur 24 px, padding 20 px, libellé posé AU-DESSUS
+   * de la valeur ; c'est de la variante dense (icône à gauche, valeur puis
+   * libellé) que `AdminStat` est proche, pas de la haute. Une surface qui veut
+   * retrouver la carte haute doit composer `AdminCard` elle-même.
+   */
   compact?: boolean
 }
 
-const VARIANT_ICON = {
-  default: 'text-theme-tertiary',
-  danger: 'text-red-500',
-  success: 'text-emerald-500',
-  blue: 'text-blue-500',
+/** `variant` → ton Sugar. `default` n'a pas de ton : l'icône reste en encre douce. */
+const VARIANT_TONE: Record<NonNullable<AdminKpiCardProps['variant']>, AdminToneName | undefined> = {
+  default: undefined,
+  danger: 'err',
+  success: 'ok',
+  blue: 'info',
 }
 
-/** Indicateur : icône colorée par `variant`, valeur, sous-titre et tendance +/−. `compact` = version ligne dense. */
-export default function AdminKpiCard({ label, value, subtitle, icon: Icon, trend, variant = 'default', compact }: AdminKpiCardProps) {
-  const iconColor = VARIANT_ICON[variant]
-
-  if (compact) {
-    return (
-      <div className="flex items-center gap-3 rounded-lg border border-theme-border px-3.5 py-2.5">
-        <Icon className={cn('h-4 w-4 flex-shrink-0', iconColor)} />
-        <div className="min-w-0">
-          <p className="text-lg font-bold text-theme-primary leading-tight">{value}</p>
-          <p className="text-xs text-theme-muted leading-tight">{label}</p>
-        </div>
-        {trend && (
-          <span className={cn('text-xs font-medium ml-auto flex-shrink-0', trend.value >= 0 ? 'text-emerald-500' : 'text-red-500')}>
-            {trend.value >= 0 ? '+' : ''}{trend.value}
-          </span>
-        )}
-      </div>
-    )
-  }
+/** Indicateur : icône teintée par `variant`, valeur tabulaire et tendance +/−. */
+export default function AdminKpiCard({ label, value, icon, trend, variant = 'default' }: AdminKpiCardProps) {
+  // `AdminStat` n'affiche que la VALEUR de la tendance : son libellé (vide chez
+  // tous les appelants actuels) est reversé dans le `hint` du bento plutôt que
+  // perdu en silence. Un appelant qui veut un vrai sous-titre passe par
+  // `AdminStat` et son `hint` — plus aucune surface ne le demandait ici.
+  const hint = trend?.label || undefined
 
   return (
-    <div className="rounded-xl border border-theme-border p-5">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-theme-secondary tracking-wide">{label}</span>
-        <Icon className={cn('h-4 w-4', iconColor)} />
-      </div>
-      <p className="text-2xl font-bold text-theme-primary">{value}</p>
-      {subtitle && <p className="text-xs text-theme-secondary mt-1">{subtitle}</p>}
-      {trend && (
-        <p className={cn('text-xs font-medium mt-1', trend.value >= 0 ? 'text-emerald-500' : 'text-red-500')}>
-          {trend.value >= 0 ? '+' : ''}{trend.value} {trend.label}
-        </p>
-      )}
-    </div>
+    <AdminStat
+      label={label}
+      value={value}
+      icon={icon}
+      tone={VARIANT_TONE[variant]}
+      hint={hint}
+      trend={trend?.value}
+    />
   )
 }

@@ -2,16 +2,22 @@
  * Bouton super-admin déclenchant l'envoi immédiat du rapport hebdomadaire
  * (edge function `weekly-report`). État transitoire sending → sent (retour à
  * l'état neutre après 5 s) ; échec silencieux si la fonction n'est pas déployée.
+ *
+ * Rendu par `AdminGhostBtn` (kit Sugar) : l'état « envoyé » n'a plus de fond
+ * teinté, il se lit à la teinte du libellé et de l'icône — Sugar ne colore pas
+ * une surface pour dire un statut.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Send, CheckCircle, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { AdminGhostBtn, AdminIc } from '@/components/admin/kit/adminKit'
 
 /** Bouton « envoyer maintenant » avec libellé/icône reflétant l'état d'envoi. */
 export default function WeeklyReportPreview() {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSugar()
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
 
@@ -29,24 +35,31 @@ export default function WeeklyReportPreview() {
   }
 
   return (
-    <button
+    <AdminGhostBtn
       onClick={handleSendNow}
       disabled={sending}
       title={t('weeklyReport.description')}
-      className={cn(
-        'h-9 px-3.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors',
-        sent
-          ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-200 dark:border-emerald-500/20'
-          : 'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active'
-      )}
+      style={{ color: sent ? tones.ok : sp.ink }}
     >
       {sending ? (
-        <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('weeklyReport.sending')}</>
+        <>
+          {/* Le spin reste une classe utilitaire : `AdminIc` prend un style, pas de className. */}
+          <span className="animate-spin" style={{ display: 'grid' }}>
+            <AdminIc icon={Loader2} size={15} color={sp.sub} />
+          </span>
+          {t('weeklyReport.sending')}
+        </>
       ) : sent ? (
-        <><CheckCircle className="h-3.5 w-3.5" /> {t('weeklyReport.sent')}</>
+        <>
+          <AdminIc icon={CheckCircle} size={15} color={tones.ok} />
+          {t('weeklyReport.sent')}
+        </>
       ) : (
-        <><Send className="h-3.5 w-3.5" /> {t('weeklyReport.sendNow')}</>
+        <>
+          <AdminIc icon={Send} size={15} color={sp.ink} />
+          {t('weeklyReport.sendNow')}
+        </>
       )}
-    </button>
+    </AdminGhostBtn>
   )
 }

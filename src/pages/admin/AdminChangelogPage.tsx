@@ -1,63 +1,73 @@
 /**
- * Page super-admin — gestion du changelog produit.
+ * Page super-admin — communication produit (changelog + annonces).
  *
- * Route : `/changelog` (console admin.megga.ch) (accent violet). Liste des
- * entrées avec création (modale) et suppression ; chaque entrée porte version,
- * titre, contenu et un drapeau publié/brouillon (les brouillons ne sortent pas
- * vers les utilisateurs finaux).
+ * Route : `/changelog` (console admin.megga.ch). Deux onglets : le changelog
+ * produit (entrées version / titre / contenu, avec création en modale et
+ * suppression ; un brouillon ne sort pas vers les utilisateurs finaux) et les
+ * annonces in-app ciblées (`AnnouncementsTab`).
+ *
+ * Rendu en grammaire Sugar (kit `@/components/admin/kit`) : bentos séparés par
+ * l'ombre, onglets et brouillon en pilules, publication en interrupteur. Le
+ * repère violet « Admin MEGGA » a quitté la page — il ne vit plus qu'une fois,
+ * dans le rail du shell.
  */
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2, Megaphone, Eye, EyeOff } from 'lucide-react'
-import { cn, formatDate } from '@/lib/utils'
+import { Plus, Trash2, Megaphone, EyeOff } from 'lucide-react'
+import { formatDate } from '@/lib/utils'
 import { useChangelog } from '@/hooks/useChangelog'
 import Modal from '@/components/ui/modal'
 import AnnouncementsTab from '@/components/admin/AnnouncementsTab'
+import AdminPage from '@/components/admin/kit/AdminPage'
+import {
+  AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill,
+  AdminSkeleton, AdminSolidBtn, AdminSwitch,
+} from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
-/** Écran « Communication » : changelog public + annonces in-app ciblées (2 onglets). */
+/** Onglets de l'écran : changelog produit / annonces in-app ciblées. */
 type Tab = 'changelog' | 'announcements'
 
+/** Écran « Communication » : changelog produit + annonces in-app ciblées (2 onglets). */
 export default function AdminCommunicationPage() {
   const { t } = useTranslation('admin')
+  const { sp, surf } = useAdminSugar()
   const [tab, setTab] = useState<Tab>('changelog')
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="h-2 w-2 rounded-full bg-admin-accent" />
-          <span className="text-xs font-medium text-admin-accent">{t('common.adminBadge')}</span>
-        </div>
-        <h1 className="text-2xl font-semibold text-theme-primary">{t('communication.title')}</h1>
-        <p className="text-sm text-theme-tertiary mt-0.5">{t('communication.subtitle')}</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-theme-border">
-        {(['changelog', 'announcements'] as const).map(key => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={cn(
-              'px-4 py-2.5 text-sm transition-colors border-b-2 -mb-px',
-              tab === key
-                ? 'text-theme-primary border-theme-primary font-medium'
-                : 'text-theme-secondary border-transparent hover:text-theme-primary'
-            )}
-          >
-            {t(`communication.tab.${key}`)}
-          </button>
-        ))}
+    <AdminPage title={t('communication.title')} subtitle={t('communication.subtitle')}>
+      {/* Onglets : pilules pleines, plus de soulignement sur une bordure décorative */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {(['changelog', 'announcements'] as const).map(key => {
+          const on = tab === key
+          return (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              aria-pressed={on}
+              style={{
+                height: 34, padding: '0 15px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
+                background: on ? sp.accent : surf.card, color: on ? sp.accentInk : sp.soft,
+                boxShadow: on ? 'none' : sp.shadowSm,
+              }}
+            >
+              {t(`communication.tab.${key}`)}
+            </button>
+          )
+        })}
       </div>
 
       {tab === 'changelog' ? <ChangelogTab /> : <AnnouncementsTab />}
-    </div>
+    </AdminPage>
   )
 }
 
+/** Onglet « Changelog » : liste des entrées, création en modale et suppression. */
 function ChangelogTab() {
   const { t } = useTranslation('admin')
+  const { sp, surf, dark, tones } = useAdminSugar()
   const { entries, isLoading, createEntry, deleteEntry } = useChangelog()
   const [showCreate, setShowCreate] = useState(false)
   const [title, setTitle] = useState('')
@@ -74,134 +84,155 @@ function ChangelogTab() {
     setVersion('')
   }
 
+  const labelStyle: CSSProperties = {
+    display: 'block', marginBottom: 6,
+    fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub,
+  }
+  // Champ Sugar : pas de bordure, une surface creuse et un filet INTÉRIEUR — le
+  // trait ne sépare rien, l'ombre du bento s'en charge.
+  const fieldStyle: CSSProperties = {
+    width: '100%', height: 38, padding: '0 12px', borderRadius: ADMIN_RADII.row, border: 0,
+    background: surf.cardSub, color: sp.ink,
+    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, outline: 'none',
+    boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
+  }
+
+  // La corbeille reste discrète et ne prend le ton d'erreur qu'au survol : les
+  // transitions vivent dans la classe, une valeur inline les figerait.
+  const hoverCss = `
+    .chg-del { color: ${sp.sub}; transition: color .16s ease, opacity .16s ease; }
+    .chg-del:hover { color: ${tones.err}; }
+  `
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowCreate(true)}
-          className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <style>{hoverCss}</style>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <AdminSolidBtn icon={Plus} onClick={() => setShowCreate(true)}>
           {t('changelog.newEntry')}
-        </button>
+        </AdminSolidBtn>
       </div>
 
-      {/* Entries */}
+      {/* Entrées */}
       {isLoading ? (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-theme-border p-5 animate-pulse">
-              <div className="h-5 bg-theme-hover rounded w-48 mb-3" />
-              <div className="h-3 bg-theme-hover rounded w-full mb-2" />
-              <div className="h-3 bg-theme-hover rounded w-2/3" />
-            </div>
+            <AdminSkeleton key={i} height={96} radius={ADMIN_RADII.card} />
           ))}
         </div>
       ) : entries.length === 0 ? (
-        <div className="rounded-xl border border-theme-border p-12 text-center">
-          <Megaphone className="h-8 w-8 text-theme-muted mx-auto mb-3" />
-          <p className="text-sm text-theme-secondary">{t('changelog.empty.title')}</p>
-          <p className="text-xs text-theme-muted mt-1">{t('changelog.empty.subtitle')}</p>
-        </div>
+        <AdminCard>
+          <AdminEmpty icon={Megaphone} title={t('changelog.empty.title')} hint={t('changelog.empty.subtitle')} />
+        </AdminCard>
       ) : (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {entries.map(entry => (
-            <div key={entry.id} className="rounded-xl border border-theme-border p-5 group">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+            <AdminCard key={entry.id} className="group" padding="16px 18px">
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 7 }}>
                     {entry.version && (
-                      <span className="text-xs font-mono text-admin-accent bg-admin-accent/10 px-2 py-0.5 rounded">
-                        v{entry.version}
-                      </span>
+                      <AdminPill
+                        label={`v${entry.version}`}
+                        style={{ padding: '3px 10px', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}
+                      />
                     )}
-                    <span className="text-xs text-theme-muted">{formatDate(entry.created_at)}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
+                      {formatDate(entry.created_at)}
+                    </span>
                     {!entry.published && (
-                      <span className="flex items-center gap-1 text-xs text-theme-muted">
-                        <EyeOff className="h-3 w-3" /> {t('changelog.modal.draft')}
-                      </span>
+                      <AdminPill
+                        label={t('changelog.modal.draft')}
+                        icon={EyeOff}
+                        style={{ padding: '3px 10px 3px 8px', fontSize: 11 }}
+                      />
                     )}
                   </div>
-                  <h3 className="text-base font-semibold text-theme-primary">{entry.title}</h3>
+                  <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+                    {entry.title}
+                  </h3>
                   {entry.content && (
-                    <p className="text-sm text-theme-secondary mt-2 whitespace-pre-line">{entry.content}</p>
+                    <p style={{ margin: '7px 0 0', fontSize: 12.5, fontWeight: 500, color: sp.sub, lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+                      {entry.content}
+                    </p>
                   )}
                 </div>
                 <button
                   onClick={() => deleteEntry.mutate(entry.id)}
                   aria-label={t('changelog.deleteEntry')}
-                  className="opacity-0 group-hover:opacity-100 h-7 w-7 rounded flex items-center justify-center text-theme-muted hover:text-red-500 transition-all"
+                  className="chg-del opacity-0 group-hover:opacity-100"
+                  style={{
+                    width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
+                    background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0,
+                  }}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <AdminIc icon={Trash2} size={15} />
                 </button>
               </div>
-            </div>
+            </AdminCard>
           ))}
         </div>
       )}
 
-      {/* Create modal */}
+      {/* Modale de création */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t('changelog.modal.title')} size="md">
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('changelog.modal.version')}</label>
+              <label style={labelStyle}>{t('changelog.modal.version')}</label>
               <input
                 type="text"
                 value={version}
                 onChange={e => setVersion(e.target.value)}
                 placeholder={t('changelog.modal.versionPlaceholder')}
-                className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent"
+                style={{ ...fieldStyle, fontVariantNumeric: 'tabular-nums' }}
               />
             </div>
-            <div className="flex items-end">
-              <button
-                onClick={() => setPublished(!published)}
-                className={cn(
-                  'h-9 px-3 rounded-lg text-sm flex items-center gap-2 transition-colors',
-                  published ? 'bg-admin-accent/10 text-admin-accent' : 'bg-theme-hover text-theme-muted'
-                )}
-              >
-                {published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                {published ? t('changelog.modal.published') : t('changelog.modal.draft')}
-              </button>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 38 }}>
+                {/* Le nom accessible doit suivre l'état, comme le faisait l'ancien
+                    bouton dont le libellé visible ÉTAIT le nom : figé sur
+                    « Publié », il annonce l'inverse du texte affiché à côté dès
+                    que l'entrée repasse en brouillon. */}
+                <AdminSwitch
+                  on={published}
+                  onClick={() => setPublished(!published)}
+                  label={published ? t('changelog.modal.published') : t('changelog.modal.draft')}
+                />
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: sp.ink }}>
+                  {published ? t('changelog.modal.published') : t('changelog.modal.draft')}
+                </span>
+              </div>
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('changelog.modal.titleLabel')}</label>
+            <label style={labelStyle}>{t('changelog.modal.titleLabel')}</label>
             <input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder={t('changelog.modal.titlePlaceholder')}
               autoFocus
-              className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent"
+              style={fieldStyle}
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('changelog.modal.description')}</label>
+            <label style={labelStyle}>{t('changelog.modal.description')}</label>
             <textarea
               value={content}
               onChange={e => setContent(e.target.value)}
               rows={5}
               placeholder={t('changelog.modal.descriptionPlaceholder')}
-              className="w-full px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent"
+              style={{ ...fieldStyle, height: 'auto', padding: '10px 12px', lineHeight: 1.5, resize: 'none' }}
             />
           </div>
 
-          <div className="flex justify-end gap-3 mt-5">
-            <button onClick={() => setShowCreate(false)} className="h-9 px-4 text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-              {t('common.cancel')}
-            </button>
-            <button
-              onClick={handleCreate}
-              disabled={!title.trim()}
-              className="h-9 px-4 text-sm font-medium border border-theme-border text-theme-primary rounded-lg hover:border-admin-accent hover:text-admin-accent transition-colors disabled:opacity-50"
-            >
-              {t('common.publish')}
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 9, paddingTop: 4 }}>
+            <AdminGhostBtn onClick={() => setShowCreate(false)}>{t('common.cancel')}</AdminGhostBtn>
+            <AdminSolidBtn onClick={handleCreate} disabled={!title.trim()}>{t('common.publish')}</AdminSolidBtn>
           </div>
         </div>
       </Modal>
