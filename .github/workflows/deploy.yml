@@ -251,7 +251,10 @@ jobs:
           # Pin wrangler v4 (matches the Rockwell deploy). The V3 Basic Auth
           # gate is sites/megga-vitrine/_worker.js (Advanced mode), copied
           # into dist/ by the postbuild hook — _worker.js is detected natively
-          # on every deploy, so megga.ch stays behind ai/ai.
+          # on every deploy, so megga.ch stays behind Basic Auth. Credentials
+          # live in that worker (single source of truth); the auth pages
+          # (/login, /signup, /reset-password) are exempt from the gate, since
+          # the CRM has no login page of its own and redirects there.
           wranglerVersion: "4.86.0"
           # `--commit-message="deploy <sha>"` court-circuite l'introspection
           # git de wrangler. Sans ça, wrangler pousse le message du HEAD vers

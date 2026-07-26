@@ -287,7 +287,11 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
 > (~40 pages FR, home « Votre CRM se pilote depuis WhatsApp », logo MEGGA header+footer, assets 100%
 > auto-hébergés — 0 CDN sauf Finsweet filter.js). CTA → `signup.html` / `login.html` : **l'inscription et la connexion vivent sur la vitrine** (inversion post-pivot), pas sur `app.megga.ch/auth`. Worker minimal (`_worker.js` = Basic Auth
-> `megga`/`preview` seul, pas de proxy Supabase).
+> `megga`/`preview` seul, pas de proxy Supabase). ⚠ Les pages d'auth (`login`, `signup`,
+> `reset-password`) et `css/ js/ images/ fonts/` sont **hors du gate** depuis le 26 juillet
+> 2026 : le CRM n'ayant plus de page de connexion, gater `/login` fermait l'accès au CRM
+> lui-même (un non-connecté de `app.megga.ch` tombait sur un 401 en texte nu), et gater
+> `/reset-password` cassait les liens envoyés par e-mail.
 > **Blog + SEO + légal (28-29 juin 2026, cf. brain `megga/vitrine-content-seo`)** : `blog.html` + 13 articles
 > dans `blog-posts/` (filtrable + recherche câblée + FAQ accordéon, angle **demand-led** avec byline experts MEGGA) ·
 > fondations SEO (`sitemap.xml` 21 URLs, `robots.txt`, canonical, JSON-LD) · pages légales `mentions-legales.html`
@@ -397,7 +401,10 @@ redéployé au merge suivant — la suppression doit partir du dépôt). Inventa
 2026 : **68 déployées ↔ 67 au dépôt**, seul écart volontaire = `sync-service-key` (déployée hors dépôt,
 self-heal de la clé service-role, PROTÉGÉE). Contrôle : diff `supabase functions list` ↔
 `git ls-tree -d --name-only origin/main:supabase/functions`.
-Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA — accès restreint"`, pré-lancement).
+Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA - acces restreint"`,
+pré-lancement) — realm en ASCII pur : un tiret cadratin sort de la plage d'un octet des valeurs
+d'en-tête HTTP, Cloudflare le tolérait mais un client strict refuse la réponse entière.
+Les pages d'auth échappent au gate (cf. §vitrine).
 
 **Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur 8 familles CRM verrouillées : crm-mobile/crm-sugar/crm-sugar-v3/crm-sugar-wizard/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
 
