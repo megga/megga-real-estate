@@ -61,3 +61,8 @@ deno.lock
 .claude-flow/harness-active-policy.json
 .claude/proven-config.json
 .claude/.proven-config-version
+
+# Sorties du skill llm-council — écrites dans le cwd à chaque session de conseil
+# (non ancrés : le skill écrit là où Claude est lancé, pas forcément à la racine)
+council-report-*.html
+council-transcript-*.md
