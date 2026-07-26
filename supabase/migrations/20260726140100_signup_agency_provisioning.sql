@@ -65,6 +65,10 @@ begin
     return v_id;
   end loop;
 
+  -- Les trois tentatives ont échoué : aucun nom n'a pu être attribué. C'est rare
+  -- (collision en cascade), mais il faut le tracer pour retrouver l'utilisateur.
+  raise warning 'provision_solo_agency: exhausted attempts for user % (base name: %)', p_user, v_base;
+
   return null;
 end;
 $$;
