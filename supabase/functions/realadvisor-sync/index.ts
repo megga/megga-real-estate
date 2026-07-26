@@ -26,6 +26,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // de 100 qui attribuaient le mauvais canton à 16 % des NPA suisses. Elle est
 // désormais dérivée du registre swisstopo et partagée — cf. _shared/npa.ts.
 import { npaToCanton } from '../_shared/npa.ts'
+import { SLUG_TO_CODE, assertSliceResolved } from '../_shared/ra-slice-resolution.ts'
 
 // ─── Config ──────────────────────────────────────────────────────
 
@@ -121,18 +122,6 @@ const CANTONS = [
   'canton-nidwald', 'canton-obwald', 'canton-uri',
 ]
 
-// slug RA → code canton 2 lettres (= market_listings.canton, dérivé du NPA). Sert au
-// sweep ENUM : relier un reçu de slice (indexé par slug) aux lignes market_listings.
-const SLUG_TO_CODE: Record<string, string> = {
-  'canton-geneve': 'GE', 'canton-vaud': 'VD', 'canton-valais': 'VS', 'canton-fribourg': 'FR',
-  'canton-neuchatel': 'NE', 'canton-jura': 'JU', 'canton-berne': 'BE', 'canton-zurich': 'ZH',
-  'canton-lucerne': 'LU', 'canton-zoug': 'ZG', 'canton-schwyz': 'SZ', 'canton-tessin': 'TI',
-  'canton-grisons': 'GR', 'canton-bale-ville': 'BS', 'canton-bale-campagne': 'BL',
-  'canton-argovie': 'AG', 'canton-soleure': 'SO', 'canton-thurgovie': 'TG', 'canton-schaffhouse': 'SH',
-  'canton-saint-gall': 'SG', 'canton-appenzell-rhodes-exterieures': 'AR',
-  'canton-appenzell-rhodes-interieures': 'AI', 'canton-glaris': 'GL', 'canton-nidwald': 'NW',
-  'canton-obwald': 'OW', 'canton-uri': 'UR',
-}
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -589,6 +578,9 @@ async function processSlice(supabase: any, offerType: string, slice: Slice, nowI
       // sinon : vide/tronquée alors qu'on attend plus → retry
     }
     if (listings.length === 0) break
+    // Sur la 1re page seulement : la suite du slice ne vaut rien si RA a ignoré
+    // le slug. Lève avant tout upsert, donc avant d'écrire quoi que ce soit.
+    if (page === 1) assertSliceResolved(slice.canton, listings)
     seen += listings.length
     stats.fetched += listings.length
     stats.pages++
