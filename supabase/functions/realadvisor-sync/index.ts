@@ -22,6 +22,10 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// La table NPA → canton vivait ici en double avec flatfox-sync, calée sur des blocs
+// de 100 qui attribuaient le mauvais canton à 16 % des NPA suisses. Elle est
+// désormais dérivée du registre swisstopo et partagée — cf. _shared/npa.ts.
+import { npaToCanton } from '../_shared/npa.ts'
 
 // ─── Config ──────────────────────────────────────────────────────
 
@@ -215,55 +219,6 @@ const TYPE_MAP: Record<string, string> = {
   COMMERCIAL: 'commercial', GASTRO: 'commercial', PROP: 'land', OTHER: 'apartment',
 }
 
-const NPA_RANGES: Array<[number, number, string]> = [
-  [1000, 1099, 'VD'], [1100, 1199, 'VD'], [1200, 1299, 'GE'], [1300, 1399, 'VD'],
-  [1400, 1499, 'VD'], [1500, 1599, 'VD'], [1600, 1699, 'FR'], [1700, 1799, 'FR'],
-  [1800, 1899, 'VD'], [1900, 1999, 'VS'], [2000, 2099, 'NE'], [2100, 2399, 'NE'],
-  [2400, 2499, 'NE'], [2500, 2549, 'BE'], [2550, 2799, 'BE'], [2800, 2999, 'JU'],
-  [3000, 3199, 'BE'], [3200, 3299, 'BE'], [3300, 3399, 'BE'], [3400, 3499, 'BE'],
-  [3500, 3599, 'BE'], [3600, 3699, 'BE'], [3700, 3799, 'BE'], [3800, 3899, 'BE'],
-  [3900, 3999, 'VS'], [4000, 4099, 'BS'], [4100, 4199, 'BL'], [4200, 4299, 'BL'],
-  [4300, 4399, 'AG'], [4400, 4499, 'BL'], [4500, 4699, 'SO'], [4700, 4899, 'BL'],
-  [4900, 4999, 'BL'], [5000, 5499, 'AG'], [5500, 5999, 'AG'], [6000, 6099, 'LU'],
-  [6100, 6299, 'LU'], [6300, 6399, 'ZG'], [6400, 6499, 'SZ'], [6500, 6599, 'TI'],
-  [6600, 6699, 'TI'], [6700, 6799, 'GR'], [6800, 6899, 'TI'], [6900, 6999, 'TI'],
-  [7000, 7599, 'GR'], [7600, 7899, 'GR'], [8000, 8099, 'ZH'], [8100, 8199, 'ZH'],
-  [8200, 8299, 'SH'], [8300, 8499, 'ZH'], [8500, 8599, 'TG'], [8600, 8699, 'ZH'],
-  [8700, 8729, 'ZH'], [8730, 8799, 'TG'], [8800, 8899, 'ZH'], [8900, 8999, 'ZH'],
-  [9000, 9099, 'SG'], [9100, 9199, 'AR'], [9200, 9299, 'SG'], [9300, 9399, 'SG'],
-  [9400, 9499, 'SG'], [9500, 9599, 'SG'], [9600, 9699, 'SG'], [9700, 9799, 'AI'],
-  [9800, 9899, 'GR'], [9900, 9999, 'SG'],
-]
-
-const STATE_MAP: Record<string, string> = {
-  'Genève': 'GE', 'Geneva': 'GE', 'Genf': 'GE',
-  'Vaud': 'VD', 'Waadt': 'VD',
-  'Valais': 'VS', 'Wallis': 'VS',
-  'Neuchâtel': 'NE', 'Fribourg': 'FR', 'Freiburg': 'FR',
-  'Jura': 'JU', 'Berne': 'BE', 'Bern': 'BE',
-  'Zurich': 'ZH', 'Zürich': 'ZH', 'Lucerne': 'LU', 'Luzern': 'LU',
-  'Zoug': 'ZG', 'Zug': 'ZG', 'Schwyz': 'SZ', 'Tessin': 'TI', 'Ticino': 'TI',
-  'Grisons': 'GR', 'Graubünden': 'GR', 'Bâle-Ville': 'BS', 'Basel-Stadt': 'BS',
-  'Bâle-Campagne': 'BL', 'Basel-Landschaft': 'BL', 'Argovie': 'AG', 'Aargau': 'AG',
-  'Soleure': 'SO', 'Solothurn': 'SO', 'Thurgovie': 'TG', 'Thurgau': 'TG',
-  'Schaffhouse': 'SH', 'Schaffhausen': 'SH', 'Saint-Gall': 'SG', 'St. Gallen': 'SG',
-  'Appenzell Rhodes-Extérieures': 'AR', 'Appenzell Ausserrhoden': 'AR',
-  'Appenzell Rhodes-Intérieures': 'AI', 'Appenzell Innerrhoden': 'AI',
-  'Glaris': 'GL', 'Glarus': 'GL', 'Nidwald': 'NW', 'Nidwalden': 'NW',
-  'Obwald': 'OW', 'Obwalden': 'OW', 'Uri': 'UR',
-}
-
-function npaToCanton(postcode: unknown, state: unknown): string | null {
-  const z = parseInt(String(postcode ?? '').trim(), 10)
-  if (z && z >= 1000 && z <= 9999) {
-    for (const [min, max, canton] of NPA_RANGES) {
-      if (z >= min && z <= max) return canton
-    }
-  }
-  const s = typeof state === 'string' ? state.trim() : ''
-  if (s && STATE_MAP[s]) return STATE_MAP[s]
-  return s || null
-}
 
 // ─── Photos / description / features ──────────────────────────────
 
