@@ -78,7 +78,12 @@ revoke all on function public.provision_solo_agency(uuid, text) from public, ano
 comment on function public.provision_solo_agency(uuid, text) is
   'Interne : crée l''agence solo d''un inscrit et l''en fait l''admin. Appelée par handle_new_user uniquement. Aucun EXECUTE client.';
 
--- ── handle_new_user : lire agency_name ──────────────────────────────────────
+-- ── Agent invité : ne pas fabriquer d'agence qui sera aussitôt orpheline ────
+-- Un invité crée d'abord son compte (le trigger lui fabriquait une agence solo),
+-- puis accept-team-invite réécrit son agency_id vers la vraie agence : l'agence solo
+-- restait en base, morte, une par agent invité. On ne provisionne donc pas quand une
+-- invitation valide attend cet e-mail ; accept-team-invite fait le rattachement.
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -95,6 +100,7 @@ declare
       then new.raw_user_meta_data ->> 'role'
     else 'buyer'
   end;
+  v_invited     boolean;
 begin
   insert into public.profiles (id, email, full_name, avatar_url, role)
   values (
@@ -105,9 +111,15 @@ begin
     v_role
   );
 
-  if v_role in ('agent', 'manager', 'admin', 'assistant') then
+  select exists (
+    select 1 from public.team_invitations
+    where lower(email) = lower(coalesce(new.email, ''))
+      and status = 'pending'
+      and expires_at > now()
+  ) into v_invited;
+
+  if v_role in ('agent', 'manager', 'admin', 'assistant') and not v_invited then
     begin
-      -- Priorité au nom d'agence saisi ; repli sur la personne puis l'e-mail.
       perform public.provision_solo_agency(
         new.id,
         coalesce(v_agency_name,

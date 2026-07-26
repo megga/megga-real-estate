@@ -136,4 +136,31 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
     expect(p2?.agency_id, 'le second ne doit JAMAIS rester sans agence : CRM muet garanti').toBeTruthy()
     expect(p2?.agency_id).not.toBe(p1?.agency_id)
   })
+
+  it('ne provisionne aucune agence quand une invitation valide attend l’e-mail', async () => {
+    const svc = serviceRoleClient()
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+
+    // Une agence hôte et son dirigeant, qui émettra l'invitation.
+    const hostId = await signUp({ full_name: 'Hôte Agence', role: 'agent', agency_name: `Hôte ${stamp}` })
+    const { data: host } = await svc.from('profiles').select('agency_id').eq('id', hostId).maybeSingle()
+    const invitedEmail = `invite-${stamp}@megga-test.local`
+
+    const { error: invErr } = await svc.from('team_invitations').insert({
+      agency_id: host!.agency_id, email: invitedEmail, role: 'agent', invited_by: hostId,
+    })
+    expect(invErr, `insert invitation: ${invErr?.message}`).toBeNull()
+
+    const { data: created, error } = await svc.auth.admin.createUser({
+      email: invitedEmail, password: PW, email_confirm: true,
+      user_metadata: { full_name: 'Invité Test', role: 'agent' },
+    })
+    if (error) throw new Error(`createUser invité: ${error.message}`)
+    userIds.push(created.user!.id)
+
+    const { data: prof } = await svc
+      .from('profiles').select('agency_id').eq('id', created.user!.id).maybeSingle()
+    expect(prof, 'le profil doit exister').not.toBeNull()
+    expect(prof?.agency_id, 'un invité ne doit PAS recevoir d’agence solo : accept-team-invite la rendrait orpheline').toBeNull()
+  })
 })
