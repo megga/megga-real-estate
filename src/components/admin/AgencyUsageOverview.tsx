@@ -14,7 +14,7 @@ import { AdminCard, AdminEmpty, AdminError, AdminIc, AdminSkeleton } from '@/com
 import { useAdminUsageOverview, type UsageOverviewRow } from '@/hooks/useAdminUsageOverview'
 
 /** Colonnes de la grille — mêmes largeurs que l'en-tête et les lignes. */
-const COLS = '1.5fr 90px 90px 90px 90px 80px'
+const COLS = '1.5fr 90px 90px 90px 90px'
 
 /** Cellule « usage / plafond » : le ton signale le seuil d'alerte puis le dépassement. */
 function CapCell({ used, cap, threshold }: { used: number; cap: number | null | undefined; threshold: number }) {
@@ -82,7 +82,6 @@ export default function AgencyUsageOverview() {
                   <span style={{ ...headCell, textAlign: 'right' }}>{t('usage.overview.properties')}</span>
                   <span style={{ ...headCell, textAlign: 'right' }}>{t('usage.overview.whatsapp')}</span>
                   <span style={{ ...headCell, textAlign: 'right' }}>{t('usage.overview.storage')}</span>
-                  <span style={{ ...headCell, textAlign: 'right' }}>{t('usage.overview.portals')}</span>
                 </div>
                 {(rows as UsageOverviewRow[]).map((r, i) => {
                   const threshold = r.caps?.alert_threshold_pct ?? 80
@@ -111,9 +110,6 @@ export default function AgencyUsageOverview() {
                       </span>
                       <span style={{ textAlign: 'right' }}>
                         <CapCell used={r.storage_est_mb} cap={r.caps?.storage_cap_mb} threshold={threshold} />
-                      </span>
-                      <span style={{ textAlign: 'right', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-                        {r.portals_active}
                       </span>
                     </Link>
                   )

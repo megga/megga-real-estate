@@ -13,7 +13,6 @@ export interface AgencyUsage {
   ai_calls_month: number
   wa_messages_month: number
   storage_est_mb: number
-  portals_active: number
   last_activity_at: string | null
 }
 

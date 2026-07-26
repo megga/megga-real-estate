@@ -37,14 +37,9 @@
 /help                                        https://intercom.help/megga/fr    301
 /help/*                                      https://intercom.help/megga/fr    301
 
-# Seller portal — liens tokenisés envoyés aux vendeurs (les variantes sans
-# jeton visaient la démo `/portal`, retirée : plus de cible).
-/portail/:token                              /portal/:token                    301
-/portail/:token/visites                      /portal/:token/visits             301
-/portail/:token/offres                       /portal/:token/offers             301
-/portail/:token/documents                    /portal/:token/documents          301
-/portail/:token/messages                     /portal/:token/messages           301
-/portail/:token/analyse                      /portal/:token/analytics          301
+# Portail vendeur retiré (2026-07-26) : plus aucune cible à réécrire. Les URLs
+# /portal* et /portail* sont prises en charge côté SPA, qui redirige vers la
+# vitrine. Aucun lien tokenisé n'avait jamais été émis.
 
 # Visit (public)
 /visite/:id/modifier                         /visit/:id/edit                   301
