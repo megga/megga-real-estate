@@ -1,13 +1,17 @@
 # Vérification d'identité des agences (KYB) — décisions de conception
 
-> **Statut (26.07.2026) : schéma + frontend livrés et vérifiés ; moteur de scoring non
-> commencé.** Branche : `feat/agency-kyb-verification`.
+> **Statut (26.07.2026) : schéma + frontend livrés et vérifiés ; parcours d'onboarding
+> conçu ; moteur, connecteurs et file de revue non commencés.**
+> Branche : `feat/agency-kyb-verification`.
 >
 > **➜ Pour reprendre le travail, commence par [agency-kyb-handoff.md](agency-kyb-handoff.md)** :
-> état exact, pièges à traiter avant de merger, montage de l'environnement, prochaine étape.
+> état exact, programme en 6 étapes exécutables, pièges à traiter avant de merger,
+> montage de l'environnement.
 >
-> Le présent document porte les **décisions et les arbitrages** — le pourquoi, pour ne pas
-> les rejouer. Il ne dit pas où on en est.
+> Le présent document porte les **décisions et les arbitrages du schéma et de la
+> vérification** : le pourquoi, pour ne pas les rejouer. Il ne dit pas où on en est.
+> La conception du **parcours utilisateur** (gate, wizard, politique d'accès) vit dans
+> [2026-07-26-onboarding-kyb-design.md](superpowers/specs/2026-07-26-onboarding-kyb-design.md).
 
 ---
 
@@ -30,6 +34,30 @@ existence légale, des organes avec pouvoir de signature, et des ayants droit
 **Comptes agents = confiance déléguée.** Une fois le représentant légal vérifié, il
 répond des employés qu'il embarque (tracé dans `activity_events`). Vérification ID +
 selfie légère suffisante — l'agent n'engage pas juridiquement l'entité.
+
+### Confirmé et précisé le 26.07.2026 (Thomas)
+
+Ce cadrage est retenu. Trois précisions le complètent.
+
+**Self-serve.** La saisie est à la charge de l'utilisateur, pas d'une équipe interne.
+`admin_create_agency` (onboarding sales-led, déjà en place) reste utilisable mais ne
+fait pas l'objet d'un parcours dédié en v1.
+
+**L'utilisateur individuel n'ouvre pas de compte en self-serve.** Un courtier
+indépendant sans structure entre par invitation d'une agence existante
+(`team_invitations`, déjà en place) et relève du KYC agent léger, pas du KYB. Cela
+évite le trou du véto n°1 : une raison individuelle suisse n'est pas toujours inscrite
+au registre du commerce, l'inscription n'étant obligatoire qu'au-delà d'un seuil de
+chiffre d'affaires. Un indépendant légitime ferait donc échouer le véto par
+construction. Le cas `sole_proprietorship` du référentiel reste utile pour les raisons
+individuelles réellement inscrites.
+
+**Le parcours décrit ci-dessus n'existait plus dans le dépôt au moment de la rédaction
+de ce document.** Le wizard post-login a été supprimé le 18 juillet 2026 (commit
+`d4cbe117`, environ 9 600 lignes), et `handle_new_user()` auto-provisionne désormais
+une agence solo nommée d'après la personne, sans aucune donnée d'identité. Le schéma
+ci-dessous reste valable ; c'est ce qui le remplit qui manquait. Voir le spec du
+parcours et le handoff §0.
 
 ---
 
@@ -66,6 +94,23 @@ Domaine email ↔ `website` · domaine ↔ **`trade_name`** (Jaro-Winkler après
 suffixes légaux SA/Sàrl/GmbH/Ltd retirés, accents, tokenisation) · WHOIS/RDAP (âge du
 domaine, MX présents) · domaine grand public (gmail/outlook) = pénalité forte mais
 compensable · téléphone (indicatif, type de ligne)
+
+> **Question posée le 26.07.2026 :** peut-on s'appuyer sur le domaine e-mail pour
+> valider l'appartenance à l'agence, en attendant Zefix ? **Réponse : non comme véto,
+> oui comme signal faible**, c'est-à-dire exactement ce que dit cette section.
+>
+> Deux choses s'y cachent. Le **contrôle de la boîte** est déjà prouvé gratuitement par
+> la confirmation d'e-mail Supabase, et c'est un vrai signal d'affiliation : recevoir du
+> courrier à `@regie-dupont.ch` rend plausible l'appartenance à Régie Dupont.
+> L'**existence et la légitimité de l'entité** ne s'en déduisent pas : un domaine coûte
+> douze francs, et un fraudeur soigneux fera correspondre son domaine à son faux nom
+> mieux qu'une agence légitime opérant sous un nom commercial distinct de sa raison
+> sociale.
+>
+> Ce que ça ne débloque pas : avec Zefix muet, le véto « existence au registre » reste
+> `unavailable`, et un véto absent ne passe pas. Tout dossier suisse ira en revue
+> humaine. Le check `domain_whois` sert au relecteur (âge et statut du domaine, signal
+> de risque autrement plus solide que la ressemblance des noms), pas à l'auto-validation.
 
 ### D. Personne physique — ancrage indépendant
 
@@ -171,10 +216,25 @@ category            -- 'corporation' | 'partnership' | 'sole_proprietorship'
 legal_form_id                  FK → legal_forms.id   (remplace legal_form text)
 trade_name                     -- nom commercial ; cible du matching flou
 business_registration_number   -- renommage de ide
-verification_status            -- 'pending' | 'auto_validated' | 'manual_review' | 'rejected'
+verification_status            -- 'pending' | 'auto_validated' | 'validated'
+                               -- | 'manual_review' | 'rejected'
 verification_score             -- numeric, cache calculé
 verified_at
+identity_submitted_at          -- ajout 26.07 : l'utilisateur a terminé la saisie
 ```
+
+*Deux ajouts du 26.07.2026, tous deux additifs :*
+
+**`validated`.** L'énumération initiale ne prévoyait rien pour un dossier validé par un
+humain après revue : `auto_validated` mentirait sur l'origine de la décision, et c'est
+précisément la distinction qu'un audit LAB regarde. `auto_validated` reste réservé au
+moteur, `validated` à la décision humaine. Le moteur ne doit pas plus écraser un
+`validated` qu'un `rejected` : même raison, un verdict humain ne se retourne pas seul.
+
+**`identity_submitted_at`.** `verification_status` répond à « que dit la vérification »
+et vaut `pending` par défaut dès la création de la ligne : il ne distingue pas « rien
+n'a été saisi » de « saisi, en attente de traitement ». C'est pourtant cette
+distinction qui pilote le gate d'onboarding. Deux faits distincts, deux colonnes.
 
 **`agency_related_persons`** (nouvelle — identité compliance, distincte de `profiles`)
 ```
@@ -288,6 +348,11 @@ quelques minutes, dans un sens ou dans l'autre. C'est la conséquence assumée d
 temps (ajouter la colonne + double écriture, déployer, supprimer l'ancienne plus tard),
 jugé disproportionné au vu du nombre d'agences en production.
 
+> **Mise à jour 26.07.2026 :** Thomas a confirmé qu'**aucun client n'est connecté et que
+> toutes les données en base sont mock**. La fenêtre de coupure ne coûte donc rien ici,
+> et aucune reprise de données n'est nécessaire nulle part dans ce chantier. Le point
+> redeviendra vrai le jour où il y aura des agences réelles.
+
 ---
 
 ## 6. Prérequis avant implémentation
@@ -303,13 +368,21 @@ jugé disproportionné au vu du nombre d'agences en production.
       Figé en non-régression dans `tests/backend/agency-kyb-verification.spec.ts`
       (16 tests, dont l'assertion d'ambiguïté qui aurait attrapé le défaut seule —
       vérifiée par mutation : le défaut réintroduit fait bien échouer le test).
+- [x] ~~Décisions produit du parcours~~ — prises le 26 juil. 2026 avec Thomas
+      (self-serve, individuel par invitation, accès complet après saisie avec gardes
+      LAB, exemption de gate limitée aux trois comptes développeurs, base mock).
+      Consignées dans le [spec du parcours](superpowers/specs/2026-07-26-onboarding-kyb-design.md).
 - [ ] Identifiants Zefix (CH) — demandés, en attente
 - [ ] Statut API UID-Register TVA (CH/LI) — en attente
 - [ ] Accès API Öffentlichkeitsregister (LI) — en attente
 - [ ] Retester GLEIF depuis une Edge Function (le sandbox d'outils ne prouve rien)
+- [ ] Vérifier si les Edge Functions Supabase permettent une résolution DNS, avant
+      d'inscrire la présence d'enregistrements MX au barème (le RDAP ne la donne pas)
 
-**L'implémentation du schéma ne dépend d'aucun de ces points** : les tables de checks
-sont agnostiques de la source. Seuls les connecteurs API en dépendent.
+**Seule l'étape 6 du programme dépend de ces points** : les tables de checks sont
+agnostiques de la source, et un check `source='manual'` se score exactement comme un
+check automatique. Les étapes 0 à 5 (correctifs, gate et wizard, moteur, connecteurs
+publics, file de revue) s'exécutent sans attendre aucune réponse.
 
 ---
 

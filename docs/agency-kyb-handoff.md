@@ -1,34 +1,119 @@
-# KYB agences — fichier de relais
+# KYB agences et onboarding — fichier de relais
 
-> **Pour qui :** la personne qui reprend ce chantier.
-> **Écrit le :** 26 juillet 2026. **Branche :** `feat/agency-kyb-verification` @ `06b91801`.
-> **Conception et raisonnement :** [agency-kyb-verification.md](agency-kyb-verification.md) —
-> ce fichier-ci ne répète pas les décisions, il dit **où on en est et quoi faire**.
+> **Pour qui :** Antoine, qui reprend ce chantier.
+> **Écrit le :** 26 juillet 2026 (Antoine). **Mis à jour le :** 26 juillet 2026, après
+> la session de cadrage de l'onboarding avec Thomas.
+> **Branche :** `feat/agency-kyb-verification` @ `276e4d5a`.
+>
+> **Trois documents, trois rôles :**
+> - celui-ci dit **où on en est et quoi faire**, étape par étape ;
+> - [agency-kyb-verification.md](agency-kyb-verification.md) porte les **décisions de
+>   conception du schéma et de la vérification** ;
+> - [2026-07-26-onboarding-kyb-design.md](superpowers/specs/2026-07-26-onboarding-kyb-design.md)
+>   porte la **conception du parcours utilisateur**, écrite après ton départ.
 
 ---
 
 ## En une minute
 
-Le **schéma** de vérification d'identité des agences est écrit, exécuté pour de vrai et
-couvert par des tests. Le **moteur** qui exploite ce schéma n'existe pas encore.
+Le schéma est livré, exécuté pour de vrai et testé. Ce qui manquait à ton départ, ce
+n'était pas seulement le moteur : c'était aussi **ce qui remplit les tables**. Le
+parcours d'onboarding est maintenant cadré et décidé.
 
 | | État |
 |---|---|
-| Schéma DB (8 tables, 4 migrations) | ✅ livré, exécuté sur Postgres 17 local, testé |
-| Frontend (saisie forme juridique + n° de registre) | ✅ livré, build + 951 tests unitaires verts |
-| Tests de non-régression | ✅ 16 tests, `tests/backend/agency-kyb-verification.spec.ts` |
-| Docs + cerveau système | ✅ à jour |
-| **Moteur de scoring** | ❌ **prochaine étape, conception déjà faite (§6)** |
-| Connecteurs registres | ❌ rien écrit ; la source suisse est bloquée (§7) |
-| File de revue manuelle (console admin) | ❌ rien écrit |
+| Schéma DB (8 tables, 4 migrations) | livré, exécuté sur Postgres 17 local, testé |
+| Frontend Réglages → Agence (forme juridique, n° de registre) | livré, build et 951 tests unitaires verts |
+| Tests de non-régression | 16 tests, `tests/backend/agency-kyb-verification.spec.ts` |
+| Docs et cerveau système | à jour |
+| Conception du parcours d'onboarding | **faite** (spec, voir en-tête) |
+| Correctifs d'existant | à faire, étape 1 |
+| Gate et wizard de saisie | à faire, étape 2 |
+| Moteur de scoring | à faire, étape 3, ta conception §7 tient telle quelle |
+| Connecteurs disponibles | à faire, étape 4 |
+| File de revue admin et gardes LAB | à faire, étape 5 |
+| Connecteurs Zefix et UID | bloqués, étape 6 |
 
-**Deux choses à faire avant de merger** (§2). **Ne pas merger sans les avoir traitées.**
+**Six étapes sur sept ne dépendent d'aucune réponse externe.** Tu peux tout enchaîner
+sans attendre Zefix.
+
+---
+
+## 0. Ce qui a changé depuis ton départ
+
+### Décisions produit (Thomas)
+
+| Sujet | Décision |
+|---|---|
+| Modèle | Self-serve, saisie à la charge de l'utilisateur, au niveau agence |
+| Utilisateur individuel | N'ouvre pas de compte en self-serve. Il entre par invitation d'une agence existante et relève du KYC agent léger, pas du KYB |
+| Accès pendant la vérification | Accès complet dès la saisie soumise, bandeau de rappel, blocage des seules actions à risque LAB |
+| Exemption de gate | Les trois comptes développeurs uniquement (Julien, Antoine, Thomas) |
+| Reprise de données | Aucune. Base entièrement mock, aucun client connecté |
+| Prestataire liveness | Aucun pour l'instant. Upload relu par un humain, le slot reste ouvert dans le schéma |
+
+Ton cadrage §1 (« un dirigeant crée un compte agence dont l'identité est vérifiée ;
+ce compte crée ensuite les comptes agents ») est confirmé. Ce qui manquait, c'est que
+**ce parcours n'existe pas dans le dépôt** : il a été supprimé le 18 juillet, huit
+jours avant que tu écrives (voir ci-dessous).
+
+### Trois découvertes en relisant le dépôt
+
+Aucune n'était visible depuis ce que tu avais sous les yeux : tes RLS sont correctes,
+le chemin d'inscription aussi, c'est leur rencontre qui ne marche pas.
+
+**a) Le fondateur ne peut pas écrire ses propres données KYB.**
+
+La vitrine envoie `role:'agent'` dans `raw_user_meta_data`, `handle_new_user()` fige
+cette valeur, et `provision_solo_agency()` ne touche pas au rôle (commentaire explicite :
+« Ne touche PAS role »). Or ton `is_agency_admin()` exige `admin` ou `manager`.
+
+Conséquence : dans l'état actuel du dépôt, le dirigeant d'une agence auto-provisionnée
+échoue à ta garde et ne peut rien insérer dans `agency_related_persons`. **Le parcours
+est structurellement bloqué avant même d'exister.** C'est le premier correctif de
+l'étape 1, et sans lui rien du reste ne tourne.
+
+À noter : `create_agency_and_join` fait pourtant l'inverse, l'appelant devient `admin`.
+L'incohérence date de la migration du 18 juillet.
+
+**b) Il manquait un statut : `validated`.**
+
+Ton énumération est `pending | auto_validated | manual_review | rejected`. Quand un
+relecteur valide un dossier parti en revue humaine, aucune valeur ne convient :
+`auto_validated` mentirait sur l'origine de la décision, et c'est exactement la
+distinction qu'un audit LAB regarde. On ajoute `validated` pour la décision humaine,
+`auto_validated` restant réservé au moteur, avec la même règle de non-écrasement que
+`rejected`.
+
+**c) Le parcours d'onboarding a été supprimé le 18 juillet.**
+
+Commit `d4cbe117` (PR #876), environ 9 600 lignes : wizard `onboarding-sugar`
+(`StepAgence`, `StepKYC`, `StepProfilAgent`, `StepProfilAgence`), Premier jour, gate
+`resolveOnboardingGate`, edge function `day0-activation-setup`. Motif consigné : le
+calibrage D0 n'avait jamais produit de donnée en prod.
+
+Remplacement : `handle_new_user()` auto-provisionne une agence solo, et les flags
+`onboarding_completed` / `first_day_done` sont passés à `DEFAULT true`.
+
+Ce n'est pas une mauvaise nouvelle. L'ancien wizard servait le calibrage, le nouveau
+sert la conformité : ils n'ont en commun que la forme. Mais **il n'existe plus aucun
+gate**, on repart de zéro sur ce point.
+
+### Défauts d'existant à corriger au passage
+
+Vérifiés par lecture du dépôt, chacun incompatible avec le parcours cible.
+
+| Défaut | Fait vérifié |
+|---|---|
+| Le nom d'agence saisi à l'inscription est jeté | La vitrine l'envoie dans `raw_user_meta_data.agency_name` ([megga-auth.js:369](../sites/megga-vitrine/js/megga-auth.js)), `handle_new_user()` nomme l'agence d'après `full_name` ou le préfixe de l'e-mail. Aucun consommateur d'`agency_name` en migrations, `src/` ou edge functions |
+| Chaque agent invité laisse une agence solo orpheline | Il doit d'abord créer un compte, ce qui déclenche `handle_new_user`, avant que `accept-team-invite` ne réécrive son `agency_id` ([index.ts:129](../supabase/functions/accept-team-invite/index.ts)) |
+| `join_agency(uuid)` ne vérifie aucune invitation | Toujours accordée à `authenticated` ([20260621130000:56](../supabase/migrations/20260621130000_fix_agency_join_role_cast.sql)). N'importe quel compte authentifié peut s'attacher à n'importe quelle agence par son UUID et devenir `agent` dessus, avec l'accès RLS aux contacts, deals et dossiers KYC. Le commentaire d'origine annonçait un remplacement par un workflow validé, jamais venu |
 
 ---
 
 ## 1. Ce que contient la branche
 
-6 commits, 20 fichiers :
+7 commits, 22 fichiers :
 
 ```
 f9b1a0ad  feat(kyb)  schéma (4 migrations, 8 tables)
@@ -37,42 +122,45 @@ dad8cc37  feat(kyb)  frontend : réglages agence adaptés
 65521bb6  docs(kyb)  schema.md + system-map.md + seed du cerveau
 d4220fe2  fix(kyb)   alias homonymes manquants (défaut trouvé à l'exécution)
 06b91801  test(kyb)  16 tests de non-régression
+276e4d5a  docs(kyb)  fichier de relais
 ```
 
-Migrations : `20260726120000` référentiel · `120100` colonnes `agencies` · `120200`
-personnes liées · `120300` journaux de checks.
+Migrations : `20260726120000` référentiel, `120100` colonnes `agencies`, `120200`
+personnes liées, `120300` journaux de checks.
 
 ---
 
-## 2. ⚠ À traiter AVANT de merger
+## 2. Étape 0 : à traiter AVANT de merger
+
+Inchangée depuis ta rédaction. **Ne pas merger sans l'avoir traitée.**
 
 ### a) Collision d'horodatage de migration
 
 `main` porte déjà `20260726120000_realadvisor_shard_map_3day.sql` (commit `b77b0c68`).
-Ma migration `20260726120000_legal_forms_reference.sql` a **le même préfixe de version**.
-La collision n'est pas encore visible dans la branche — elle apparaît au merge ou au
+La migration `20260726120000_legal_forms_reference.sql` a **le même préfixe de
+version**. La collision n'est pas visible dans la branche, elle apparaît au merge ou au
 rebase sur `main` à jour.
 
 Le dépôt a déjà corrigé ce cas deux fois en juillet 2026 (`debfdeea`, `674e80e9`) : la
 pratique établie est de re-dater. Comme le fichier de `main` est déjà mergé, ce sont
-**mes 4 fichiers** qui se re-datent.
+**les 4 fichiers de cette branche** qui se re-datent.
 
-> Je n'ai pas reproduit le mode d'échec exact du CLI Supabase avec deux versions
-> identiques — `deploy.yml`, lui, trie par nom de fichier et resterait déterministe.
+> Le mode d'échec exact du CLI Supabase avec deux versions identiques n'a pas été
+> reproduit ; `deploy.yml`, lui, trie par nom de fichier et resterait déterministe.
 > Mais le dépôt traite ça comme un défaut à corriger, pas comme un détail.
 
 ### b) Le date-guard de `deploy.yml`
 
 `deploy.yml` n'applique que les migrations dont l'horodatage est `>= TODAY` (UTC).
-Mergées un jour après leur date, **elles sont sautées définitivement** — aucun
+Mergées un jour après leur date, **elles sont sautées définitivement** : aucun
 déploiement ultérieur ne les rattrape, il n'y a qu'un `::warning::` facile à manquer.
 Or `deploy-app.yml` n'a **aucun** garde-fou de date : le frontend partirait en cherchant
-`business_registration_number` et `legal_form_id`, colonnes inexistantes → page
-Réglages → Agence cassée **durablement**, pas quelques minutes.
+`business_registration_number` et `legal_form_id`, colonnes inexistantes, et la page
+Réglages → Agence casserait **durablement**.
 
-### 👉 Une seule action règle les deux
+### Une seule action règle les deux
 
-**Re-dater les 4 migrations au jour du merge :**
+Re-dater les 4 migrations au jour du merge :
 
 ```bash
 cd supabase/migrations && for f in 20260726120*_*.sql; do git mv "$f" "$(date -u +%Y%m%d)${f:8}"; done
@@ -85,20 +173,19 @@ npm run lint:migrations && npx vitest run --config=vitest.backend.config.ts test
 L'alternative (les appliquer à la main avant de merger) est documentée dans `deploy.yml`
 comme le flux normal du dépôt, mais ne résout pas la collision.
 
-### c) Fenêtre de coupure, inévitable
+### c) Fenêtre de coupure : sans objet désormais
 
-Les trois workflows (`deploy.yml` migrations+vitrine, `deploy-app.yml` CRM,
-`deploy-admin.yml`) se déclenchent **en parallèle**, sans ordre garanti entre « migration
-appliquée » et « nouveau bundle en ligne ». Réglages → Agence sera en erreur quelques
-minutes, dans un sens ou dans l'autre. C'est la conséquence assumée d'un `RENAME COLUMN`
-atomique ; le rendre transparent demanderait le découpage en trois temps (ajouter la
-colonne + double écriture, déployer, supprimer plus tard), jugé disproportionné.
+Les trois workflows se déclenchent en parallèle, sans ordre garanti entre « migration
+appliquée » et « nouveau bundle en ligne », donc Réglages → Agence est en erreur
+quelques minutes dans un sens ou dans l'autre. **Thomas a confirmé que la base est
+entièrement mock et qu'aucun client n'est connecté** : le point ne coûte rien ici.
+Il redeviendra vrai le jour où il y aura des agences réelles.
 
 ---
 
-## 3. Monter l'environnement (Windows — compter 20 min)
+## 3. Monter l'environnement (Windows, compter 20 min)
 
-La machine d'origine n'avait **ni Node ni le CLI Supabase**. Si tu repars de zéro :
+La machine d'origine n'avait ni Node ni le CLI Supabase. Si tu repars de zéro :
 
 ```bash
 scoop install nodejs-lts
@@ -108,8 +195,8 @@ scoop install nodejs-lts
 scoop bucket add supabase https://github.com/supabase/scoop-bucket.git && scoop install supabase
 ```
 
-⚠ **Scoop modifie le PATH utilisateur, que les shells déjà ouverts ne voient pas.**
-Redémarre tes terminaux, sinon `node`/`npm`/`supabase` resteront « introuvables ».
+**Scoop modifie le PATH utilisateur, que les shells déjà ouverts ne voient pas.**
+Redémarre tes terminaux, sinon `node`, `npm` et `supabase` resteront introuvables.
 
 Ensuite, Docker Desktop **lancé** (le démon, pas seulement le binaire installé), puis :
 
@@ -137,18 +224,18 @@ Attendu : `Tests 16 passed (16)`. Si tu lis `16 skipped`, les clés ne sont pas 
 
 ## 4. Pièges d'outillage Windows (4 rencontrés, tous des faux négatifs)
 
-Aucun n'affecte la CI Linux — ils ne cassent que la validation locale, c'est-à-dire
+Aucun n'affecte la CI Linux. Ils ne cassent que la validation locale, c'est-à-dire
 exactement au moment où on veut s'en servir.
 
 | Script | Symptôme | Cause |
 |---|---|---|
 | `check-migration-idempotence.mjs` | 6 faux positifs | `/--.*$/` ne masque pas les commentaires en CRLF (`.` ne matche pas `\r`) |
 | `check-dead-exports.mjs` | 28 faux positifs | allowlist en slashes vs chemins `ts-prune` en antislash |
-| `check-edge-roster.mjs` | « dérive » fantôme | compare une chaîne en `\n` à un fichier en CRLF (67 dossiers / 67 entrées, aucun écart réel) |
+| `check-edge-roster.mjs` | dérive fantôme | compare une chaîne en `\n` à un fichier en CRLF (67 dossiers pour 67 entrées, aucun écart réel) |
 | `ruflo-seed-memory.mjs` | `spawnSync npx ENOENT` | `execFileSync('npx')` : sous Windows c'est `npx.cmd`, non résolu via PATHEXT |
 
 **Conséquence du dernier :** la mémoire sémantique locale (`.swarm/memory.db`) n'a jamais
-été construite sur cette machine. `npx ruflo memory search` répond donc **vide** — un faux
+été construite sur cette machine. `npx ruflo memory search` répond donc **vide**, un faux
 négatif silencieux qui se lit « le cerveau ne sait rien sur ce sujet ». En attendant le
 correctif, passer par [system-map.md](system-map.md) ou grepper directement
 `.claude-flow/knowledge/megga-memory.seed.json` (le fichier durable, à jour).
@@ -157,131 +244,274 @@ correctif, passer par [system-map.md](system-map.md) ou grepper directement
 
 ## 5. Ce qui est vérifié, et par quoi
 
-Rien ci-dessous n'est une supposition ; tout est reproductible.
+Rien ci-dessous n'est une supposition, tout est reproductible.
 
-- **Exécution des migrations** — `supabase db reset`, 174 migrations à neuf, exit 0.
-- **Backfill `legal_form` texte → FK** — 13 cas : sigle simple, accents, ponctuation,
-  casse et espaces multiples, libellé dans une autre langue que le pays
-  (« Aktiengesellschaft » pour une SA suisse), libellé inconnu, pays hors périmètre, et
-  les **deux ambiguïtés qui doivent être refusées** (« SA » et « Entreprise
-  individuelle » sans pays). Invariant : 0 ligne portant à la fois le texte et la FK.
-- **RLS** — agent simple : **0 ligne dans sa propre agence** · dirigeant : 1 · autre
-  agence : 0 · pondérations invisibles même au dirigeant · référentiel lisible par tous
-  (il alimente le menu) · écriture de check refusée (`42501`) · insertion cross-agence
-  refusée · contrainte rôle/attributs tenue.
-- **Le test garde vraiment ce qu'il prétend** — vérifié **par mutation** : l'alias `sa`
+- **Exécution des migrations** : `supabase db reset`, 174 migrations à neuf, exit 0.
+- **Backfill `legal_form` texte vers FK** : 13 cas (sigle simple, accents, ponctuation,
+  casse et espaces multiples, libellé dans une autre langue que le pays comme
+  « Aktiengesellschaft » pour une SA suisse, libellé inconnu, pays hors périmètre, et
+  les deux ambiguïtés qui doivent être refusées, « SA » et « Entreprise individuelle »
+  sans pays). Invariant : 0 ligne portant à la fois le texte et la FK.
+- **RLS** : agent simple 0 ligne dans sa propre agence, dirigeant 1, autre agence 0,
+  pondérations invisibles même au dirigeant, référentiel lisible par tous (il alimente
+  le menu), écriture de check refusée (`42501`), insertion cross-agence refusée,
+  contrainte rôle/attributs tenue.
+- **Le test garde vraiment ce qu'il prétend**, vérifié **par mutation** : l'alias `sa`
   de `FR_SA` retiré en base, le test « garde ambigus les sigles homonymes entre pays »
   échoue ; alias restauré, il repasse. Un test jamais vu échouer ne prouve rien.
-- **Non-régression** — suite backend complète : 619 tests / 104 fichiers, 0 échec.
+- **Non-régression** : suite backend complète, 619 tests sur 104 fichiers, 0 échec.
   Front : `npm run build`, `npm run build:admin`, 951 tests unitaires.
 
 ---
 
-## 6. Prochaine étape : le moteur de scoring
+## 6. Le programme : 6 étapes exécutables
 
-Décidée et conçue, **pas commencée**. Tout ce qui suit a été établi en lisant le dépôt —
-autant ne pas le redécouvrir.
+Une étape par PR, chacune vérifiable seule. Le détail de conception est dans le
+[spec du parcours](superpowers/specs/2026-07-26-onboarding-kyb-design.md) ; ce qui suit
+est ce qu'il faut avoir en tête pour exécuter.
+
+| # | Étape | Dépend de | Bloqué |
+|---|---|---|---|
+| 0 | Re-dater les migrations et merger (§2) | rien | non |
+| 1 | Correctifs d'existant | 0 | non |
+| 2 | Gate, wizard 5 étapes, RPC de soumission | 1 | non |
+| 3 | Moteur de scoring (§7) | 0 | non |
+| 4 | Connecteurs disponibles | 3 | non |
+| 5 | File de revue admin et gardes LAB | 3 | non |
+| 6 | Connecteurs Zefix et UID | 4 | **oui** |
+
+### Étape 1 : correctifs d'existant
+
+Quatre correctifs, chacun répond à un défaut du §0.
+
+1. `handle_new_user()` lit `raw_user_meta_data.agency_name` pour nommer l'agence.
+2. `provision_solo_agency()` pose `role='admin'` sur le fondateur, alignement sur
+   `create_agency_and_join`. **Sans ce correctif, rien du reste ne fonctionne.**
+3. `handle_new_user()` ne provisionne pas d'agence solo si une invitation valide existe
+   pour cet e-mail (fin des agences orphelines).
+4. `join_agency(uuid)` révoquée de `authenticated`. Le chemin invitation est déjà
+   couvert par `accept-team-invite`, avec vérification d'expiration et de correspondance
+   d'e-mail. Une RPC ouverte sans garde n'a pas à survivre à ce chantier.
+
+Migration additive au passage : `agencies.identity_submitted_at timestamptz` et l'ajout
+de `validated` au CHECK de `verification_status` (voir spec §6).
+
+### Étape 2 : gate et wizard
+
+**Condition d'activation du gate :**
+
+```
+gate actif si :
+      profiles.agency_id is not null
+  and profiles.role in ('admin', 'manager')        -- le dirigeant, pas l'employé
+  and agencies.identity_submitted_at is null
+  and not is_super_admin()
+```
+
+Pourquoi une colonne dédiée plutôt que `verification_status` : ce dernier vaut `pending`
+par défaut à la création de la ligne et ne distingue pas « rien n'a été saisi » de
+« saisi, en attente de traitement ». Deux faits distincts, deux colonnes.
+
+**Cinq étapes de saisie :**
+
+| Étape | Contenu | Écrit dans |
+|---|---|---|
+| 1. Signataire | Prénom, nom, date de naissance, nationalité, pouvoir de signature | `agency_related_persons` + `agency_person_roles` (`signatory`) |
+| 2. Agence | Pays du siège, forme juridique, raison sociale, nom commercial, n° de registre, TVA, adresse | `agencies.*` |
+| 3. Bénéficiaires effectifs | Personnes détenant 25 % ou plus | `agency_person_roles` (`ubo`) |
+| 4. Pièce d'identité | Recto/verso du signataire | Storage `documents` + `agency_person_verification_checks` |
+| 5. Récapitulatif | Attestation d'exactitude, soumission | `identity_submitted_at`, `activity_events` |
+
+L'étape 3 est **sautée** si `legal_forms.category = 'sole_proprietorship'`, où le
+signataire est l'entité et il n'y a pas d'UBO tiers. C'est le rôle que tu as donné à
+`category`. L'ordre 2 avant 3 n'est donc pas cosmétique : le pays filtre les formes
+juridiques (`useLegalForms`, déjà livré) et la forme juridique décide de l'étape 3.
+
+**RPC de soumission** `submit_agency_identity()` : garde `is_agency_admin()`, vérifie la
+complétude minimale (raison sociale, forme juridique, pays, au moins un signataire
+actif), pose `identity_submitted_at`, journalise dans `activity_events`.
+`GRANT authenticated`, `REVOKE anon`.
+
+**Ne pas rejouer la boucle.** Un gate bloquant a déjà causé un P0 en juillet
+(`c830f9a9`, « boucle onboarding ») et un autre chantier a dû exempter les super-admins
+après coup (`e6c26c02`). Trois garde-fous dès la première version : progression
+persistée à chaque étape et pas seulement à la fin, sortie « reprendre plus tard » qui
+mène à un écran d'attente et jamais à une redirection en boucle, test e2e du cycle
+complet login / gate / soumission / accès / relogin.
+
+**Hypothèse à valider avant merge :** le rôle `super_admin` est aujourd'hui porté par
+exactement les trois comptes développeurs. Si l'équipe MEGGA doit en compter d'autres,
+l'exemption s'élargira mécaniquement. Acceptable (un compte interne n'a pas d'agence à
+vérifier) mais ce doit rester un choix conscient.
+
+### Étape 3 : le moteur de scoring
+
+Ta conception (§7 ci-dessous) tient telle quelle. Un seul ajout : `validated` se traite
+comme `rejected`, le moteur ne l'écrase pas.
+
+### Étape 4 : connecteurs disponibles
+
+Une edge function `agency-verification-run` (service_role), appelée après soumission et
+rejouable depuis la console admin. Écrit les checks, puis appelle le moteur.
+
+| Check | Source |
+|---|---|
+| `domain_whois` | RDAP `.ch` / `.li` / `.fr` |
+| `vat_lookup` | VIES (UE) |
+| `registry_lookup` (FR) | `recherche-entreprises.api.gouv.fr` |
+| `address_geocode` | Mapbox |
+
+Sur le domaine e-mail : Thomas a demandé s'il pouvait servir à valider l'appartenance à
+l'agence en attendant Zefix. Réponse retenue, cohérente avec ton §2 : c'est un bon
+signal d'**affiliation** (le contrôle de la boîte est déjà prouvé par la confirmation
+d'e-mail Supabase) et un mauvais signal d'**existence** (un domaine coûte douze francs).
+Il reste donc un signal faible qui nourrit le score, jamais un véto.
+
+À retester avant de conclure : GLEIF, injoignable depuis ton bac à sable d'outils, ce
+qui n'est pas un fait sur GLEIF. Et la présence d'enregistrements MX, qui demande une
+résolution DNS et non du RDAP : vérifier ce que permettent les Edge Functions Supabase
+avant de l'inscrire au barème.
+
+### Étape 5 : file de revue admin et gardes LAB
+
+Sur `admin.megga.ch`, application séparée (`npm run build:admin`), pas dans le CRM agent.
+
+- Liste triée par score croissant, les plus douteux en tête. Pas de colonne de priorité
+  dérivée, ta décision.
+- Dossier détaillé : chaque check avec son type, sa source, son poids applicable à la
+  date du check, son résultat et sa réponse brute. C'est ce qui permet de justifier
+  check par check pourquoi un dossier a été validé.
+- Actions : valider (pose `validated`), rejeter avec motif, relancer la vérification.
+  Toute décision tracée dans `activity_events`, `category='kyc'`.
+
+**Gardes LAB :** un hook unique lit `verification_status` et bloque deux surfaces tant
+que le statut n'est ni `auto_validated` ni `validated` : ouverture d'un dossier KYC
+client (`/dashboard/kyc`, edge `kyc-screening`) et demande de signature électronique
+(edge `sign-document`). Le blocage explique pourquoi et pointe l'état du dossier. Liste
+exacte à figer avec Gregory : ce sont des actions métier, pas un choix technique.
+
+---
+
+## 7. Le moteur de scoring : conception
+
+Établie en lisant le dépôt, autant ne pas la redécouvrir.
 
 ### Forme : une RPC Postgres, pas une Edge Function
 
-**Tous** les moteurs de score de ce projet vivent en Postgres (`calculate_property_scores`,
-scoring contacts, focus radar). Et l'agrégation pondérée sur des lignes de checks est du
-SQL naturel : atomique avec la donnée, sans aller-retour réseau, testable par le harnais
-backend qui existe déjà. Les Edge Functions seront nécessaires pour les **connecteurs**
-(eux ont besoin du réseau), pas pour le calcul.
+**Tous** les moteurs de score de ce projet vivent en Postgres
+(`calculate_property_scores`, scoring contacts, focus radar). Et l'agrégation pondérée
+sur des lignes de checks est du SQL naturel : atomique avec la donnée, sans aller-retour
+réseau, testable par le harnais backend qui existe déjà. Les Edge Functions sont
+nécessaires pour les **connecteurs** (eux ont besoin du réseau), pas pour le calcul.
 
 ### Seuils réglables : patron `app_config`
 
-Clé `agency_verification_v1` + fonction jumelle `get_agency_verification_config()`,
+Clé `agency_verification_v1` et fonction jumelle `get_agency_verification_config()`,
 calquée sur `get_property_score_config()` (`jsonb`, `STABLE SECURITY DEFINER`,
 `search_path`). Défauts sûrs en dur : `auto_validate_min` 0.85, `review_priority_min` 0.5.
 
 ### Règles de calcul (issues de [la conception](agency-kyb-verification.md) §2)
 
 - **Dernier check par type** : les checks sont append-only, une ré-exécution ajoute une
-  ligne → `distinct on (check_type) … order by check_type, checked_at desc`.
-- **Jointure du poids TEMPORELLE** — c'est le cœur du dispositif d'auditabilité :
+  ligne, donc `distinct on (check_type) ... order by check_type, checked_at desc`.
+- **Jointure du poids TEMPORELLE**, coeur du dispositif d'auditabilité :
   `cfg.valid_from <= chk.checked_at and (cfg.valid_to is null or cfg.valid_to > chk.checked_at)`.
-- **Véto** : ne passe que sur `match`. Un véto **absent** ne passe PAS — l'absence de
+- **Véto** : ne passe que sur `match`. Un véto **absent** ne passe PAS, l'absence de
   preuve n'est pas une preuve. Exiger au moins un signataire actif, sinon blocage : on ne
   valide pas une entité dont on ignore qui l'engage.
 - **`unavailable`** exclu du numérateur ET du dénominateur (un pays sans VIES n'est pas
   pénalisé). **`pending_manual_review`** force la revue humaine.
-- Score `null` (aucun check scorable) → jamais d'auto-validation.
-- **`rejected` n'est jamais posé automatiquement** (décision humaine), et le moteur ne
-  doit **pas écraser** un `rejected` existant : un verdict humain ne se retourne pas tout
+- Score `null` (aucun check scorable) : jamais d'auto-validation.
+- **`rejected` et `validated` ne sont jamais posés automatiquement** (décision humaine),
+  et le moteur ne doit **pas les écraser** : un verdict humain ne se retourne pas tout
   seul au prochain passage.
 - **Pas de colonne de priorité** : la file admin trie par score (éviter une colonne
   dérivée, cohérent avec le reste du schéma).
 
-### ⚠ Contraintes de `activity_events` vérifiées en base (elles cassent à l'application)
+### Contraintes de `activity_events` vérifiées en base (elles cassent à l'application)
 
-- `category` ∈ `kyc | deal | contact | bien | doc | auth | settings | ai` →
+- `category` dans `kyc | deal | contact | bien | doc | auth | settings | ai`, donc
   utiliser **`'kyc'`**. `'compliance'` **fait échouer** la contrainte CHECK.
-- `severity` ∈ `info | warn | critical`.
-- `actor_kind` NOT NULL ∈ `user | ai | system`, **et** contrainte
+- `severity` dans `info | warn | critical`.
+- `actor_kind` NOT NULL dans `user | ai | system`, **et** contrainte
   `activity_events_actor_kind_coherence` : avec `actor_kind='system'`, `actor_id` **doit
   être NULL**.
 
 ### Droits
 
-`REVOKE EXECUTE` sur `anon`/`authenticated`, `GRANT` au `service_role` seul (discipline
-`20260711210000_secdef_execute_revoke`). Élargir plus tard si la console admin appelle la
-RPC directement — plutôt sous-accorder que l'inverse.
+`REVOKE EXECUTE` sur `anon` et `authenticated`, `GRANT` au `service_role` seul
+(discipline `20260711210000_secdef_execute_revoke`). Élargir plus tard si la console
+admin appelle la RPC directement : plutôt sous-accorder que l'inverse.
 
 ### Pas de cron pour l'instant
 
-Inutile avant que des connecteurs produisent des checks. À ajouter avec eux, gardé par la
-présence de `pg_cron` comme les autres.
+Inutile avant que des connecteurs produisent des checks. À ajouter avec eux, gardé par
+la présence de `pg_cron` comme les autres.
 
 ---
 
-## 7. Dépendances externes en attente
+## 8. Dépendances externes en attente
 
-**Le registre bloqué est le suisse — c'est-à-dire le marché.** Le connecteur de plus
+**Le registre bloqué est le suisse, c'est-à-dire le marché.** Le connecteur de plus
 forte valeur est celui qu'on ne peut pas écrire aujourd'hui.
 
 | Source | Statut au 26.07.2026 |
 |---|---|
-| **Zefix** (registre CH) | `401` — identifiants demandés à `zefix@bj.admin.ch`, **sans réponse** |
+| **Zefix** (registre CH) | `401`, identifiants demandés à `zefix@bj.admin.ch`, **sans réponse** |
 | Registre UID/TVA (CH/LI) | API séparée ou champ Zefix ? **non clarifié** |
-| `oera.li` (registre LI) | **aucune API publique** → revue manuelle pour ce pays |
-| Carte pro immobilier CCI (FR) | pas d'API (403 anti-bot) → revue manuelle |
-| GLEIF (LEI) | non joignable **depuis le sandbox d'outils** — à retester depuis une edge function, ce n'est pas un fait sur GLEIF |
-| `recherche-entreprises.api.gouv.fr` (FR) | ✅ public, sans clé, 7 req/s |
-| VIES (TVA UE) | ✅ public, sans clé |
-| RDAP `.ch` / `.li` / `.fr` | ✅ publics |
+| `oera.li` (registre LI) | **aucune API publique**, revue manuelle pour ce pays |
+| Carte pro immobilier CCI (FR) | pas d'API (403 anti-bot), revue manuelle |
+| GLEIF (LEI) | non joignable **depuis le sandbox d'outils**, à retester depuis une edge function ; ce n'est pas un fait sur GLEIF |
+| `recherche-entreprises.api.gouv.fr` (FR) | public, sans clé, 7 req/s |
+| VIES (TVA UE) | public, sans clé |
+| RDAP `.ch` / `.li` / `.fr` | publics |
 
-**Le moteur ne dépend d'aucune de ces réponses** : les tables de checks sont agnostiques
-de la source, et un check `source='manual'` saisi par un humain se score exactement comme
-un check automatique. C'est ce qui rend le parcours suisse exploitable dès maintenant.
+**Rien de ce programme ne dépend de ces réponses, sauf l'étape 6** : les tables de
+checks sont agnostiques de la source, et un check `source='manual'` saisi par un humain
+se score exactement comme un check automatique. C'est ce qui rend le parcours suisse
+exploitable dès maintenant, en revue humaine.
 
 ---
 
-## 8. Carte des fichiers
+## 9. Carte des fichiers
 
 | Fichier | Rôle |
 |---|---|
-| `docs/agency-kyb-verification.md` | conception, arbitrages, inventaire des sources |
-| `supabase/migrations/20260726120000_legal_forms_reference.sql` | référentiel + alias + `normalize_legal_form_text()` |
+| `docs/agency-kyb-verification.md` | conception du schéma et de la vérification, arbitrages, inventaire des sources |
+| `docs/superpowers/specs/2026-07-26-onboarding-kyb-design.md` | conception du parcours utilisateur, gate, découpage |
+| `supabase/migrations/20260726120000_legal_forms_reference.sql` | référentiel, alias, `normalize_legal_form_text()` |
 | `…120100_agencies_kyb_columns.sql` | renommage `ide`, FK forme juridique, backfill, état de vérification |
-| `…120200_agency_related_persons.sql` | personnes de conformité + rôles + `is_agency_admin()` |
+| `…120200_agency_related_persons.sql` | personnes de conformité, rôles, `is_agency_admin()` |
 | `…120300_agency_verification_checks.sql` | catalogue, config pondérée versionnée, 2 journaux |
 | `tests/backend/agency-kyb-verification.spec.ts` | 16 tests de non-régression |
 | `src/hooks/useLegalForms.ts` | options du menu, filtrées par pays du siège |
 | `src/hooks/useAgencySettings.ts` | lecture/écriture des réglages agence |
 | `src/components/crm-sugar/settings/focus/pfKit{,Core}.tsx` | mode « choix unique » ajouté à `PfEditField` |
 
+Fichiers à connaître pour l'étape 1, non modifiés à ce jour :
+
+| Fichier | Pourquoi |
+|---|---|
+| `supabase/migrations/20260718130000_remove_onboarding_provision_solo_agency.sql` | `handle_new_user()` et `provision_solo_agency()`, les deux à corriger |
+| `supabase/functions/accept-team-invite/index.ts` | rattachement de l'agent invité |
+| `supabase/migrations/20260621130000_fix_agency_join_role_cast.sql` | `join_agency()` sans garde |
+| `sites/megga-vitrine/js/megga-auth.js` | formulaire d'inscription, envoi d'`agency_name` |
+
 Le SQL de vérification manuelle (backfill et RLS) était jetable et **n'est pas dans le
 dépôt** : il a été remplacé par le spec de non-régression, qui couvre les mêmes cas.
 
 ---
 
-## 9. Ce que je ferais en arrivant
+## 10. Par où commencer
 
-1. Lire §2 et décider quand on merge (le re-datage règle collision + date-guard d'un coup).
-2. Monter l'environnement (§3) et lancer `supabase db reset` + les 16 tests — si ça passe,
-   la base est saine et tu peux faire confiance au reste de ce document.
-3. Écrire le moteur (§6). La conception est faite ; c'est du SQL et des tests.
-4. Relancer les identifiants Zefix — c'est le chemin critique du marché suisse, et
-   personne d'autre que nous ne le débloquera.
+1. Monter l'environnement (§3) et lancer `supabase db reset` plus les 16 tests. Si ça
+   passe, la base est saine et tu peux faire confiance au reste de ce document.
+2. Traiter l'étape 0 (§2) et merger. Le re-datage règle collision et date-guard d'un
+   coup.
+3. Enchaîner l'étape 1 (§6). Le correctif du rôle fondateur conditionne tout le reste :
+   sans lui, ta propre garde `is_agency_admin()` bloque le dirigeant sur ses propres
+   données.
+4. Puis étape 2, ou étape 3 si tu préfères commencer par du SQL. Elles sont
+   indépendantes l'une de l'autre.
+5. Relancer les identifiants Zefix quand tu y penses. C'est le chemin critique du marché
+   suisse, et personne d'autre que nous ne le débloquera.
