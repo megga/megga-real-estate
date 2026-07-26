@@ -31,6 +31,11 @@ import { CRM_APP_URL } from '@/lib/adminEntry'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
 import AdminNotificationPanel from '@/components/admin/AdminNotificationPanel'
 import { ADMIN_KEYFRAMES, ADMIN_RADII, ADMIN_RAIL_WIDTH } from '@/components/admin/kit/adminKitCore'
+// Le dock d'icônes du CRM, réutilisé tel quel (cf. `items` dans AdminShell).
+// SUGAR_KEYFRAMES est requis : le rail s'ouvre en `sugar-fade-up`, que
+// ADMIN_KEYFRAMES ne définit pas — sans lui le rail apparaîtrait sec.
+import { SugarIconRail, type RailItem } from '@/components/crm-sugar/LiquidGlassRail'
+import { SUGAR_KEYFRAMES } from '@/components/crm-sugar/SugarShell'
 
 interface NavItem {
   labelKey: string
@@ -87,9 +92,8 @@ const NAV_SECTIONS: NavSection[] = [
 function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation(['common', 'admin'])
   const { signOut, profile } = useAuth()
-  const { dark, toggle } = useAdminTheme()
+  const { dark } = useAdminTheme()
   const { sp, surf, tones } = useAdminSugar()
-  const [searchOpen, setSearchOpen] = useState(false)
 
   const rowBase = {
     display: 'flex', alignItems: 'center', gap: 12,
@@ -115,14 +119,10 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      <button className="adm-nav" onClick={() => setSearchOpen(true)} style={rowBase}>
-        <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-          <MEIcon name="search" size={17} color={sp.sub} />
-        </span>
-        <span style={{ ...labelStyle, color: sp.soft }}>{t('nav.search')}</span>
-      </button>
-      <AdminSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-
+      {/* Recherche et bascule de thème ne sont plus ici : elles vivent dans le
+          rail d'icônes Sugar, à gauche du cadre, exactement comme sur l'écran
+          Réglages du CRM dont cette coquille est le port. Les dupliquer dans les
+          deux rails était le signe visuel qui trahissait « autre application ». */}
       <nav aria-label="Navigation admin" className="adm-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', marginTop: 6 }}>
         {NAV_SECTIONS.map((section) => (
           <div key={section.labelKey}>
@@ -159,19 +159,6 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
         <div style={{ height: 1, background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)', margin: '0 6px 8px' }} />
 
         <AdminNotificationPanel />
-
-        <button
-          className="adm-nav"
-          onClick={toggle}
-          aria-label={dark ? 'Activer le mode clair' : 'Activer le mode sombre'}
-          data-testid="theme-toggle"
-          style={rowBase}
-        >
-          <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-            <MEIcon name={dark ? 'sun' : 'moon'} size={17} color={sp.sub} />
-          </span>
-          <span style={{ ...labelStyle, color: sp.soft }}>{dark ? t('nav.lightMode') : t('nav.darkMode')}</span>
-        </button>
 
         {/* Retour au CRM : autre origine, donc lien plein — pas de React Router. */}
         <a className="adm-nav" href={CRM_APP_URL} style={{ ...rowBase, textDecoration: 'none' }}>
@@ -217,8 +204,39 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
  */
 export default function AdminShell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const { sp, surf, dark } = useAdminSugar()
+  const { toggle } = useAdminTheme()
   const { t } = useTranslation(['common', 'admin'])
+
+  /**
+   * Outils du rail d'icônes, côté console.
+   *
+   * La liste par défaut du rail est celle du CRM et casserait ici : `import`
+   * ferait un `navigate()` React Router sur l'origine admin, `search` ouvrirait
+   * un hôte que seul `AgentSugarLayout` monte, et `relances` interrogerait des
+   * données d'agence alors que le super-admin n'en a pas. On fournit donc les
+   * outils de CETTE origine — le composant, lui, reste le même que dans le CRM.
+   *
+   * Les PAGES ne sont pas ici : elles vivent dans le rail de 300 px du cadre,
+   * comme les sections des Réglages. Le dock ne porte que le transverse.
+   */
+  const railItems: RailItem[] = [
+    { id: 'search', icon: 'search', label: t('common:nav.search'), action: () => setSearchOpen(true) },
+    // Retour au CRM : autre origine, donc navigation pleine page.
+    //
+    // Icône `dashboard` et non `external` : le registre du rail ne connaît que
+    // seize glyphes (`external` n'en fait pas partie et retombait sur la loupe,
+    // donnant deux loupes côte à côte). `dashboard` est en outre le bon signe —
+    // dans le CRM ce bouton mène au tableau de bord, ici il y ramène. Même
+    // bouton, même place, geste analogue.
+    { id: 'crm', icon: 'dashboard', label: t('common:nav.backToCrm'), action: () => { window.location.href = CRM_APP_URL } },
+  ]
+
+  /** Le rail rend toujours « Réglages » : ils vivent dans le CRM, pas ici. */
+  const onRailNavigate = (id: string) => {
+    if (id === 'settings') window.location.href = `${CRM_APP_URL}/dashboard/settings`
+  }
 
   return (
     <div
@@ -230,6 +248,7 @@ export default function AdminShell() {
       }}
     >
       <style>{ADMIN_KEYFRAMES}</style>
+      <style>{SUGAR_KEYFRAMES}</style>
       <style>{`
         /* Pas d'\`outline: none\` ici : c'est ce qui privait le rail, la palette ⌘K
            et la liste de notifications de tout repère de focus clavier. L'anneau
@@ -238,14 +257,22 @@ export default function AdminShell() {
         .adm-nav:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'} !important; }
         .adm-scroll::-webkit-scrollbar { width: 9px; }
         .adm-scroll::-webkit-scrollbar-thumb { background: ${dark ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
-        .adm-shell-main { flex: 1; min-height: 0; padding: 20px 22px 22px; }
+        /* Le dock d'icônes occupe la gouttière gauche (il porte sa propre
+           largeur de 128 px), d'où l'absence de padding-left ici — même
+           géométrie que l'écran Réglages du CRM. */
+        .adm-body { display: flex; flex: 1; min-height: 0; }
+        .adm-shell-main { flex: 1; min-width: 0; min-height: 0; padding: 20px 22px 22px 0; }
         .adm-frame { display: grid; grid-template-columns: ${ADMIN_RAIL_WIDTH}px 1fr; }
         .adm-rail { display: block; }
+        .adm-icon-rail { display: block; }
         .adm-mobile-header { display: none; }
         @media (max-width: 1023px) {
           .adm-shell-main { padding: 0; }
           .adm-frame { grid-template-columns: 1fr; border-radius: 0 !important; border: 0 !important; box-shadow: none !important; }
           .adm-rail { display: none; }
+          /* Sous lg la navigation passe par le tiroir : deux rails empilés
+             mangeraient la largeur utile. */
+          .adm-icon-rail { display: none; }
           .adm-mobile-header { display: flex; }
         }
       `}</style>
@@ -288,23 +315,42 @@ export default function AdminShell() {
         </>
       )}
 
-      <main className="adm-shell-main">
-        <div
-          className="adm-frame"
-          style={{
-            position: 'relative', height: '100%', borderRadius: ADMIN_RADII.frame, overflow: 'hidden',
-            border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.pageBg,
-          }}
-        >
-          <aside className="adm-rail adm-scroll" style={{ minHeight: 0, overflowY: 'auto' }}>
-            <ShellNav />
-          </aside>
-
-          <div className="adm-scroll" style={{ minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
-            <Outlet />
-          </div>
+      <div className="adm-body">
+        {/* Le MÊME rail que les 15 surfaces Sugar du CRM — pas une copie. C'est
+            lui qui fait qu'on ne « change pas de site » en ouvrant la console.
+            Aucun écran CRM n'étant actif ici, `active` ne matche rien : aucun
+            bouton n'est allumé à tort. */}
+        <div className="adm-icon-rail">
+          <SugarIconRail
+            active="admin"
+            items={railItems}
+            onNavigate={onRailNavigate}
+            dark={dark}
+            setDark={toggle}
+            sp={sp}
+          />
         </div>
-      </main>
+
+        <main className="adm-shell-main">
+          <div
+            className="adm-frame"
+            style={{
+              position: 'relative', height: '100%', borderRadius: ADMIN_RADII.frame, overflow: 'hidden',
+              border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.pageBg,
+            }}
+          >
+            <aside className="adm-rail adm-scroll" style={{ minHeight: 0, overflowY: 'auto' }}>
+              <ShellNav />
+            </aside>
+
+            <div className="adm-scroll" style={{ minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
+              <Outlet />
+            </div>
+          </div>
+        </main>
+      </div>
+
+      <AdminSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   )
 }
