@@ -243,7 +243,7 @@ export function AnimatedTopIcon({
 // bouton est actif, pour que l'icône active se dessine dès le montage. Le clic
 // l'incrémente aussi : le bouton thème échange son glyphe (lune ↔ soleil) sans
 // nouveau `mouseenter`, il faut donc relancer le tracé du nouveau glyphe.
-interface RailItem {
+export interface RailItem {
   id: string
   icon: string
   label: string
@@ -308,10 +308,23 @@ export interface SugarIconRailProps {
   sp: SugarPalette
   onCmd?: () => void
   extraBottomBtn?: ReactNode
+  /**
+   * Remplace les outils transverses du rail. Omis (cas des 21 surfaces CRM), la
+   * liste par défaut ci-dessous s'applique — comportement inchangé.
+   *
+   * Existe pour la console super-admin, qui vit sur une AUTRE ORIGINE : la liste
+   * par défaut y casserait (`import` fait un `navigate()` React Router, qui
+   * viserait `admin.megga.ch/dashboard/…` ; `search` ouvre un hôte monté par
+   * `AgentSugarLayout` seul ; `relances` charge des données d'agent alors que le
+   * super-admin a un `agency_id` NULL). Le rail reste donc UN composant, mais
+   * chaque origine fournit ses propres outils.
+   */
+  items?: RailItem[]
 }
 
 export function SugarIconRail({
   active = 'today', onNavigate, dark, setDark, sp, onCmd, extraBottomBtn,
+  items: itemsOverride,
 }: SugarIconRailProps) {
   const navigate = useNavigate()
   const { t } = useTranslation('common')
@@ -333,7 +346,7 @@ export function SugarIconRail({
   }
 
   // Outils transverses (la TopNav gère les PAGES — aucun doublon ici).
-  const items: RailItem[] = [
+  const defaultItems: RailItem[] = [
     { id: 'search', icon: 'search', label: t('actions.search'), action: () => openSugarSearch() },
     { id: 'add', icon: 'plus', label: t('actions.create'), action: () => onCmd?.() },
     { id: 'relances', icon: 'phone', label: t('nav.callbacksToday'), action: () => setRelanceOpen(true) },
@@ -341,6 +354,7 @@ export function SugarIconRail({
     { id: 'kyc', icon: 'shield', label: t('nav.kyc'), action: () => onNavigate?.('kyc') },
     { id: 'dashboard', icon: 'dashboard', label: t('nav.dashboard'), action: () => onNavigate?.('dashboard') },
   ]
+  const items = itemsOverride ?? defaultItems
   const settingsItem: RailItem = { id: 'settings', icon: 'settings', label: t('nav.settings'), action: () => onNavigate?.('settings') }
   // Icône sun/moon selon la maquette (lune en clair, soleil en sombre). Le rejeu
   // du tracé après bascule est assuré par le `replay()` au clic dans DockBtn.
