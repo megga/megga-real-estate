@@ -1,14 +1,18 @@
 /**
- * Porte d'entrée de la console super-admin (admin.megga.ch) : connexion, gate
- * super-admin et journal d'audit d'ouverture.
+ * Porte d'entrée de la console super-admin (admin.megga.ch) : reprise de la
+ * session passée par le CRM, gate super-admin et journal d'audit d'ouverture.
  *
- * La console ne partage RIEN avec le CRM (origine distincte = ni localStorage,
- * ni cookies, ni session Supabase) : elle porte donc son propre écran de
- * connexion, par mot de passe, sans passer par la vitrine. Le mur réel reste la
- * DB (RLS + is_super_admin) et les edges (require-super-admin) : cet écran ne
- * fait qu'éviter d'afficher une console qui répondrait 403 partout.
+ * La console N'EST PAS une porte d'entrée : elle ne porte aucun formulaire de
+ * connexion. Elle reçoit la session de qui l'ouvre depuis le CRM (passage par
+ * fragment, cf. `openAdminConsole` + `main.admin.tsx`) ; sans session, elle
+ * renvoie au CRM et s'arrête là. Il n'existe qu'un endroit où l'on
+ * s'authentifie.
+ *
+ * Le mur réel reste la DB (RLS + is_super_admin) et les edges
+ * (require-super-admin) : ce gate ne fait qu'éviter d'afficher une console qui
+ * répondrait 403 partout.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
@@ -57,7 +61,7 @@ function Waiting() {
   )
 }
 
-/** Coquille centrée commune à la connexion et au refus. */
+/** Coquille centrée commune aux écrans de cul-de-sac (renvoi CRM, refus). */
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-theme-page px-6">
@@ -73,41 +77,26 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-/** Connexion par mot de passe (pas de lien magique : aucune URL de retour à déclarer). */
-function LoginScreen() {
-  const { signInWithPassword } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    setBusy(true)
-    setError(null)
-    const { error } = await signInWithPassword(email.trim(), password)
-    setBusy(false)
-    // Message volontairement générique : la console ne dit pas si un compte existe.
-    if (error) setError('Identifiants refusés.')
-  }
-
-  const field = 'w-full h-10 px-3 text-sm bg-transparent border border-theme-border rounded-lg text-theme-primary placeholder:text-theme-muted focus:outline-none focus:border-admin-accent transition-colors'
-
+/**
+ * Aucune session : la console NE PROPOSE PAS de se connecter.
+ *
+ * Il n'existe qu'un endroit où l'on s'authentifie — le CRM — et la console
+ * reçoit la session de celui qui l'ouvre depuis là (cf. `openAdminConsole`).
+ * Cet écran est donc un cul-de-sac volontaire : ni champ, ni formulaire, ni
+ * lien magique. Rien à hameçonner ici, et rien à essayer en force.
+ */
+function FromCrmOnlyScreen() {
   return (
-    <Panel title="Connexion">
-      <form onSubmit={submit} className="space-y-3">
-        <input type="email" required autoComplete="username" placeholder="E-mail"
-          value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
-        <input type="password" required autoComplete="current-password" placeholder="Mot de passe"
-          value={password} onChange={(e) => setPassword(e.target.value)} className={field} />
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <button type="submit" disabled={busy}
-          className="w-full h-10 rounded-lg border border-admin-accent/30 text-admin-accent text-sm font-medium hover:bg-admin-accent/5 transition-colors disabled:opacity-50">
-          {busy ? 'Connexion…' : 'Se connecter'}
-        </button>
-      </form>
-      <a href={CRM_APP_URL} className="block mt-5 text-xs text-theme-tertiary hover:text-theme-secondary transition-colors">
-        ← Retour au CRM
+    <Panel title="Accès depuis le CRM">
+      <p className="text-sm text-theme-secondary">
+        La console n'a pas de connexion propre. Ouvrez-la depuis le CRM, par le menu de
+        votre profil.
+      </p>
+      <a
+        href={CRM_APP_URL}
+        className="mt-5 inline-flex h-9 items-center gap-2 rounded-lg border border-admin-accent/30 px-3 text-sm font-medium text-admin-accent transition-colors hover:bg-admin-accent/5"
+      >
+        Aller au CRM
       </a>
     </Panel>
   )
@@ -148,7 +137,7 @@ export default function AdminAuthGate({ children }: { children: ReactNode }) {
   }, [allowed])
 
   if (loading) return <Waiting />
-  if (!user) return <LoginScreen />
+  if (!user) return <FromCrmOnlyScreen />
   if (checking) return <Waiting />
   if (!allowed) return <DeniedScreen />
 

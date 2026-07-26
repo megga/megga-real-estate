@@ -10,7 +10,6 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import type { SugarPalette } from '../tokens'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
@@ -170,9 +169,8 @@ export default function SugarProfileDropdown({
   sp, onClose, onSettings, onHelp, onLogout,
 }: SugarProfileDropdownProps) {
   const { t } = useTranslation('common')
-  const { profile, user } = useAuth()
+  const { profile, user, session } = useAuth()
   const { agency: agencyData, plan } = useAgencySettings()
-  const navigate = useNavigate()
   // Seule porte d'entrée vers la console depuis le CRM refondu : le rail et la
   // TopNav ne portent aucune trace de l'admin, et la sidebar legacy qui le
   // proposait n'est plus montée sur les surfaces Sugar. Rendu uniquement pour
@@ -219,7 +217,7 @@ export default function SugarProfileDropdown({
             trail={ADMIN_IS_EXTERNAL
               ? <InlineIco name="external" size={14} stroke={sp.sub} strokeWidth={1.8} />
               : <InlineIco name="chevron" size={15} stroke={sp.sub} strokeWidth={2} />}
-            onClick={wrap(() => openAdminConsole(navigate))} />
+            onClick={wrap(() => openAdminConsole(session))} />
         </>
       )}
 

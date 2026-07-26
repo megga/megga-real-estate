@@ -19,6 +19,7 @@ import { formatCHF } from '@/lib/utils'
 import { useConversationHistory } from '@/hooks/useConversationHistory'
 import { filterConversationsByTitle, type ConversationSummary } from '@/lib/conversation-history'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
+import { useAuth } from '@/hooks/useAuth'
 import { openAdminConsole } from '@/lib/adminEntry'
 
 // ─── Données utilitaires (proto) ─────────────────────────────────────────────
@@ -250,6 +251,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
   const { data: conversations } = useConversationHistory(30)
   const convList = useMemo(() => conversations ?? [], [conversations])
   const { allowed: isSuperAdmin } = useSuperAdminGate()
+  const { session } = useAuth()
 
   const ql = q.trim().toLowerCase()
 
@@ -323,7 +325,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
       case 'contact': onClose(); navigate(`/dashboard/contacts/${item.id}`); break
       case 'bien': onClose(); navigate(`/dashboard/listings/${item.id}`); break
       case 'deal': onClose(); navigate(`/dashboard/transactions/${item.id}`); break
-      case 'admin': onClose(); openAdminConsole(navigate); break
+      case 'admin': onClose(); openAdminConsole(session); break
     }
   }, [goJulien, resumeConversation, navigate, onClose])
 
@@ -545,7 +547,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
           {!showEmpty && showAdmin && (
             <Section title={tr('search.command.section.platform')} sp={sp}>
               <button
-                onClick={() => { onClose(); openAdminConsole(navigate) }}
+                onClick={() => { onClose(); openAdminConsole(session) }}
                 onMouseEnter={() => setActiveIdx(offAdmin)}
                 style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(activeIdx === offAdmin, dark) }}
               >
