@@ -152,7 +152,7 @@
     "editLogo": "Edit logo",
     "myAgency": "My agency",
     "nameUndefined": "Name not set",
-    "ide": "UID number",
+    "businessRegistrationNumber": "UID number",
     "vat": "VAT no.",
     "headquarters": "Head office",
     "country": "Country",
@@ -1179,7 +1179,7 @@
       "fields": {
         "legal": "Ragione sociale",
         "legalForm": "Forma giuridica",
-        "ide": "Numero IDE",
+        "businessRegistrationNumber": "Numero IDE",
         "tva": "Numero IVA",
         "address": "Indirizzo",
         "postal": "NPA",
@@ -1190,7 +1190,6 @@
         "website": "Sito web",
         "about": "Informazioni sull'agenzia"
       },
-      "legalFormPlaceholder": "Società anonima (SA)",
       "logoUpdated": "Logo aggiornato"
     },
     "notifications": {

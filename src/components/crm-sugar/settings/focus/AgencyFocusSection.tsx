@@ -10,22 +10,33 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/Toast'
 import { useAgencySettings, type AgencySettingsData } from '@/hooks/useAgencySettings'
+import { useLegalForms } from '@/hooks/useLegalForms'
 import { PfIc, PfEditField, type FocusSectionProps, type PfRow, type PfColors, type PfEditLabels } from './pfKit'
 import { pfColors, PF_KEYFRAMES } from './pfKitCore'
 
 type RowKey =
-  | 'legal' | 'legalForm' | 'ide' | 'tva'
+  | 'legal' | 'legalFormId' | 'businessRegistrationNumber' | 'tva'
   | 'address' | 'postal' | 'city' | 'canton' | 'phone' | 'email' | 'website'
   | 'aboutShort'
 
-interface RowDef { key: RowKey; icon: PfRow['icon']; labelKey?: string; multiline?: boolean; placeholderKey?: string }
+interface RowDef {
+  key: RowKey
+  icon: PfRow['icon']
+  labelKey?: string
+  multiline?: boolean
+  placeholderKey?: string
+  /** Ligne à choix unique alimentée par un référentiel (au lieu d'une saisie libre). */
+  optionsSource?: 'legalForms'
+}
 interface GroupDef { id: 'legal' | 'coord' | 'presentation'; dotKey: 'blue' | 'cyan' | 'orange'; rows: RowDef[] }
 
 const AG_GROUPS: GroupDef[] = [
   { id: 'legal', dotKey: 'blue', rows: [
     { key: 'legal', icon: 'building' },
-    { key: 'legalForm', icon: 'scale', placeholderKey: 'legalFormPlaceholder' },
-    { key: 'ide', icon: 'hash' },
+    // Libellé inchangé (« Forme juridique ») : c'est la valeur qui passe d'un texte
+    // libre à une FK, pas le concept.
+    { key: 'legalFormId', icon: 'scale', labelKey: 'legalForm', optionsSource: 'legalForms' },
+    { key: 'businessRegistrationNumber', icon: 'hash' },
     { key: 'tva', icon: 'receipt' },
   ] },
   { id: 'coord', dotKey: 'cyan', rows: [
@@ -83,6 +94,9 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
   const [local, setLocal] = useState<AgencySettingsData>(agency)
   useEffect(() => { setLocal(agency) }, [agency])
 
+  // Les formes juridiques dépendent du pays du siège : changer `country` change la liste.
+  const { options: legalFormOptions } = useLegalForms(local.country)
+
   const [editKey, setEditKey] = useState<RowKey | null>(null)
   const [savedKey, setSavedKey] = useState<RowKey | null>(null)
   const [draft, setDraft] = useState('')
@@ -137,7 +151,9 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
 
   const toRow = (r: RowDef): PfRow => ({
     key: r.key, icon: r.icon, label: t(`focus.agency.fields.${r.labelKey ?? r.key}`),
-    multiline: r.multiline, placeholder: r.placeholderKey ? t(`focus.agency.${r.placeholderKey}`) : undefined,
+    multiline: r.multiline,
+    options: r.optionsSource === 'legalForms' ? legalFormOptions : undefined,
+    placeholder: r.placeholderKey ? t(`focus.agency.${r.placeholderKey}`) : undefined,
   })
 
   return (

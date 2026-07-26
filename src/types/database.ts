@@ -373,6 +373,7 @@ export type Database = {
           about_short: string | null
           address: string | null
           billing: string | null
+          business_registration_number: string | null
           canton: string | null
           city: string | null
           country: string | null
@@ -381,9 +382,9 @@ export type Database = {
           email: string | null
           founded_year: number | null
           id: string
-          ide: string | null
-          legal_name: string | null
           legal_form: string | null
+          legal_form_id: string | null
+          legal_name: string | null
           logo_url: string | null
           monthly_target: number | null
           name: string
@@ -395,7 +396,11 @@ export type Database = {
           solo: boolean | null
           status: string | null
           stripe_customer_id: string | null
+          trade_name: string | null
           tva: string | null
+          verification_score: number | null
+          verification_status: string
+          verified_at: string | null
           website: string | null
           yearly_target: number | null
         }
@@ -403,6 +408,7 @@ export type Database = {
           about_short?: string | null
           address?: string | null
           billing?: string | null
+          business_registration_number?: string | null
           canton?: string | null
           city?: string | null
           country?: string | null
@@ -411,9 +417,9 @@ export type Database = {
           email?: string | null
           founded_year?: number | null
           id?: string
-          ide?: string | null
-          legal_name?: string | null
           legal_form?: string | null
+          legal_form_id?: string | null
+          legal_name?: string | null
           logo_url?: string | null
           monthly_target?: number | null
           name: string
@@ -425,7 +431,11 @@ export type Database = {
           solo?: boolean | null
           status?: string | null
           stripe_customer_id?: string | null
+          trade_name?: string | null
           tva?: string | null
+          verification_score?: number | null
+          verification_status?: string
+          verified_at?: string | null
           website?: string | null
           yearly_target?: number | null
         }
@@ -433,6 +443,7 @@ export type Database = {
           about_short?: string | null
           address?: string | null
           billing?: string | null
+          business_registration_number?: string | null
           canton?: string | null
           city?: string | null
           country?: string | null
@@ -441,9 +452,9 @@ export type Database = {
           email?: string | null
           founded_year?: number | null
           id?: string
-          ide?: string | null
-          legal_name?: string | null
           legal_form?: string | null
+          legal_form_id?: string | null
+          legal_name?: string | null
           logo_url?: string | null
           monthly_target?: number | null
           name?: string
@@ -455,11 +466,23 @@ export type Database = {
           solo?: boolean | null
           status?: string | null
           stripe_customer_id?: string | null
+          trade_name?: string | null
           tva?: string | null
+          verification_score?: number | null
+          verification_status?: string
+          verified_at?: string | null
           website?: string | null
           yearly_target?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agencies_legal_form_id_fkey"
+            columns: ["legal_form_id"]
+            isOneToOne: false
+            referencedRelation: "legal_forms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agency_profiles: {
         Row: {
@@ -2310,6 +2333,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_forms: {
+        Row: {
+          category: string
+          code: string
+          country: string
+          created_at: string
+          id: string
+          label_de: string
+          label_en: string
+          label_fr: string
+          label_it: string
+          sort_order: number
+        }
+        Insert: {
+          category: string
+          code: string
+          country: string
+          created_at?: string
+          id?: string
+          label_de: string
+          label_en: string
+          label_fr: string
+          label_it: string
+          sort_order?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          country?: string
+          created_at?: string
+          id?: string
+          label_de?: string
+          label_en?: string
+          label_fr?: string
+          label_it?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       market_listings: {
         Row: {

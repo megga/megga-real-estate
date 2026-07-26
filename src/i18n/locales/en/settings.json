@@ -152,7 +152,7 @@
     "editLogo": "Edit logo",
     "myAgency": "My agency",
     "nameUndefined": "Name not set",
-    "ide": "UID number",
+    "businessRegistrationNumber": "UID number",
     "vat": "VAT no.",
     "headquarters": "Head office",
     "country": "Country",
@@ -1179,7 +1179,7 @@
       "fields": {
         "legal": "Legal name",
         "legalForm": "Legal form",
-        "ide": "UID number",
+        "businessRegistrationNumber": "UID number",
         "tva": "VAT number",
         "address": "Address",
         "postal": "Postal code",
@@ -1190,7 +1190,6 @@
         "website": "Website",
         "about": "About the agency"
       },
-      "legalFormPlaceholder": "Public limited company (SA)",
       "logoUpdated": "Logo updated"
     },
     "notifications": {

@@ -1,7 +1,12 @@
 // MEGGA CRM Sugar v2 — Source de vérité pour AgencySection.
 // Lit/écrit la ligne agencies du profil courant (agency_id du profile).
 // Champs persistés : name, address, city, canton, phone, email, website, logo_url,
-// legal_name, ide, tva, founded_year, postal_code, country, about_short.
+// legal_name, legal_form_id, business_registration_number, tva, founded_year,
+// postal_code, country, about_short.
+//
+// `legal_form_id` est une FK vers legal_forms (référentiel) et non plus du texte
+// libre : la forme juridique pilote le parcours de vérification KYB, une faute de
+// frappe y changerait donc les contrôles exigés. Options via useLegalForms.
 
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -20,9 +25,10 @@ export interface AgencySettingsData {
   website: string
   logoUrl: string
   legal: string
-  /** Forme juridique (SA, Sàrl…) — agencies.legal_form. */
-  legalForm: string
-  ide: string
+  /** FK legal_forms.id (chaîne vide = non renseignée) — agencies.legal_form_id. */
+  legalFormId: string
+  /** IDE/UID en CH, SIREN en FR — agencies.business_registration_number. */
+  businessRegistrationNumber: string
   tva: string
   /** Année de création — string côté form, parsée en int au save. */
   foundedYear: string
@@ -41,8 +47,8 @@ const EMPTY_AGENCY: AgencySettingsData = {
   website: '',
   logoUrl: '',
   legal: '',
-  legalForm: '',
-  ide: '',
+  legalFormId: '',
+  businessRegistrationNumber: '',
   tva: '',
   foundedYear: '',
   postal: '',
@@ -60,8 +66,8 @@ interface AgencyRow {
   website: string | null
   logo_url: string | null
   legal_name: string | null
-  legal_form: string | null
-  ide: string | null
+  legal_form_id: string | null
+  business_registration_number: string | null
   tva: string | null
   founded_year: number | null
   postal_code: string | null
@@ -104,7 +110,7 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
       if (!agencyId) return { settings: EMPTY_AGENCY, plan: null }
       const { data: row, error } = await supabase
         .from('agencies')
-        .select('name, address, city, canton, phone, email, website, logo_url, legal_name, legal_form, ide, tva, founded_year, postal_code, country, about_short, plan')
+        .select('name, address, city, canton, phone, email, website, logo_url, legal_name, legal_form_id, business_registration_number, tva, founded_year, postal_code, country, about_short, plan')
         .eq('id', agencyId)
         .single<AgencyRow>()
       if (error) throw error
@@ -119,8 +125,8 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
           website: row?.website ?? '',
           logoUrl: row?.logo_url ?? '',
           legal: row?.legal_name ?? '',
-          legalForm: row?.legal_form ?? '',
-          ide: row?.ide ?? '',
+          legalFormId: row?.legal_form_id ?? '',
+          businessRegistrationNumber: row?.business_registration_number ?? '',
           tva: row?.tva ?? '',
           foundedYear: row?.founded_year != null ? String(row.founded_year) : '',
           postal: row?.postal_code ?? '',
@@ -158,8 +164,8 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
           website: next.website || null,
           logo_url: next.logoUrl || null,
           legal_name: next.legal || null,
-          legal_form: next.legalForm || null,
-          ide: next.ide || null,
+          legal_form_id: next.legalFormId || null,
+          business_registration_number: next.businessRegistrationNumber || null,
           tva: next.tva || null,
           founded_year: foundedYear,
           postal_code: next.postal || null,

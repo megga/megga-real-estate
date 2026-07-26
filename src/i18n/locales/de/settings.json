@@ -152,7 +152,7 @@
     "editLogo": "Edit logo",
     "myAgency": "My agency",
     "nameUndefined": "Name not set",
-    "ide": "UID number",
+    "businessRegistrationNumber": "UID number",
     "vat": "VAT no.",
     "headquarters": "Head office",
     "country": "Country",
@@ -1179,7 +1179,7 @@
       "fields": {
         "legal": "Firmenname",
         "legalForm": "Rechtsform",
-        "ide": "UID-Nummer",
+        "businessRegistrationNumber": "UID-Nummer",
         "tva": "MwSt-Nummer",
         "address": "Adresse",
         "postal": "PLZ",
@@ -1190,7 +1190,6 @@
         "website": "Website",
         "about": "Über die Agentur"
       },
-      "legalFormPlaceholder": "Aktiengesellschaft (AG)",
       "logoUpdated": "Logo aktualisiert"
     },
     "notifications": {

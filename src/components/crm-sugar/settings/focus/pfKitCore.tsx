@@ -80,6 +80,12 @@ export interface PfRow {
   label: string
   multiline?: boolean
   chips?: string[]
+  /**
+   * Choix UNIQUE : la valeur persistée est un `id` opaque (typiquement une FK), pas
+   * le libellé — l'affichage hors édition résout donc l'id via cette liste. À ne pas
+   * confondre avec `chips`, qui est un choix multiple stockant les libellés eux-mêmes.
+   */
+  options?: { id: string; label: string }[]
   locked?: boolean
   hint?: string
   placeholder?: string
