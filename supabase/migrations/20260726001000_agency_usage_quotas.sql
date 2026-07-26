@@ -131,6 +131,13 @@ comment on function public.admin_set_agency_quotas(uuid, jsonb, text) is
   'Upsert des quotas d''usage d''une agence (super-admin, audité quota_changed). p_quotas : ai_monthly_cost_cap_usd, active_properties_cap, whatsapp_monthly_cap, storage_cap_mb, alert_threshold_pct. Voir 20260713100000.';
 
 -- ── Usage d'une agence (mois courant) ────────────────────────────────────────
+-- ⚠ `drop` AVANT le `create or replace` : `deploy.yml` rejoue toutes les migrations
+-- datées du jour, et la 20260726180000 (retrait du portail vendeur) change le TYPE DE
+-- RETOUR de cette fonction en retirant `portals_active`. Sans ce drop, le rejeu de ce
+-- fichier échoue en 42P13 « cannot change return type of existing function » et casse
+-- toute la chaîne de déploiement. Règle : re-tester le rejeu de CHAQUE migration contre
+-- l'état FINAL de la journée, pas contre l'état au moment de son écriture.
+drop function if exists public.get_admin_agency_usage(uuid);
 create or replace function public.get_admin_agency_usage(p_agency_id uuid)
 returns table (
   active_properties bigint,
@@ -180,6 +187,13 @@ comment on function public.get_admin_agency_usage(uuid) is
   'Usage consolidé d''une agence sur le mois courant (biens actifs, contacts, coût/appels IA, WhatsApp, storage estimé, portails actifs, dernière activité). Super-admin. Voir 20260713100000.';
 
 -- ── Vue comparative : 1 ligne par agence + caps ─────────────────────────────
+-- ⚠ `drop` AVANT le `create or replace` : `deploy.yml` rejoue toutes les migrations
+-- datées du jour, et la 20260726180000 (retrait du portail vendeur) change le TYPE DE
+-- RETOUR de cette fonction en retirant `portals_active`. Sans ce drop, le rejeu de ce
+-- fichier échoue en 42P13 « cannot change return type of existing function » et casse
+-- toute la chaîne de déploiement. Règle : re-tester le rejeu de CHAQUE migration contre
+-- l'état FINAL de la journée, pas contre l'état au moment de son écriture.
+drop function if exists public.get_admin_usage_overview();
 create or replace function public.get_admin_usage_overview()
 returns table (
   agency_id uuid,
