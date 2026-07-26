@@ -68,7 +68,6 @@ NPS, autonomie, usage des outils, apprentissage.
 | Route | Écran |
 |---|---|
 | `/portal/:token` | `PortalGateway` → page unique « Votre vente » (lecture seule) |
-| `/portal` | `PortalDevWrapper` (données de démonstration, dev) |
 | `/portal/:token/*` · `/portail/*` | Redirections vers la page unique |
 
 `PortalInvalidPage` est rendue par le gateway pour les états révoqué / expiré / introuvable.

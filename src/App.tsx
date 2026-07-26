@@ -145,8 +145,7 @@ const CopilotPanel = lazy(() => import('@/components/ai-copilot/panel/CopilotPan
 const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
 
 // Lazy-loaded seller portal — page unique « Votre vente » (lecture seule, lien personnel).
-// PortalDevWrapper (mock) et PortalGateway (token) rendent désormais VotreVentePage.
-const PortalDevWrapper = lazy(() => import('@/pages/particulier/PortalDevWrapper'))
+// PortalGateway (token) rend VotreVentePage à partir des données Supabase.
 const PortalGateway = lazy(() => import('@/pages/particulier/PortalGateway'))
 const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
 // Compte ACHETEUR retiré (pivot CRM-first) — page + composants archivés hors
@@ -424,15 +423,7 @@ function AppRoutes() {
               <Route path="/aide/*" element={<HelpCenterRedirect />} />
 
               {/* Seller portal — page unique « Votre vente » (dev/test, mock data). */}
-              <Route path="/portal" element={<PortalDevWrapper />} />
               {/* Legacy FR portal routes → page unique */}
-              <Route path="/portail" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/visites" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/offres" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/documents" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/messages" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/analyse" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/profil" element={<Navigate to="/portal" replace />} />
 
               {/* Dev showcase routes (no auth) */}
               <Route path="/design-system/megga-x" element={<MeggaXStyleGuidePage />} />
