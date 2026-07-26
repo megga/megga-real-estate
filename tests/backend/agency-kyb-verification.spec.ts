@@ -320,4 +320,37 @@ describe.skipIf(!HAS_KEYS)('regression — KYB agences (référentiel + RLS)', (
     // le texte dès qu'il a posé la FK.
     expect(data ?? []).toEqual([])
   })
+
+  it('agencies.identity_submitted_at existe et vaut NULL à la création', async () => {
+    const svc = serviceRoleClient()
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+    const { data, error } = await svc
+      .from('agencies')
+      .insert({ name: `Agence Submit ${stamp}`, slug: `agence-submit-${stamp}` })
+      .select('id, identity_submitted_at')
+      .single()
+    expect(error, `insert agence: ${error?.message}`).toBeNull()
+    expect(data?.identity_submitted_at, 'une agence neuve n’a rien soumis').toBeNull()
+    await svc.from('agencies').delete().eq('id', data!.id)
+  })
+
+  it('verification_status accepte "validated" et refuse une valeur inventée', async () => {
+    const svc = serviceRoleClient()
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+    const { data: ag } = await svc
+      .from('agencies')
+      .insert({ name: `Agence Statut ${stamp}`, slug: `agence-statut-${stamp}` })
+      .select('id')
+      .single()
+
+    const { error: okErr } = await svc
+      .from('agencies').update({ verification_status: 'validated' }).eq('id', ag!.id)
+    expect(okErr, 'la décision humaine doit être représentable').toBeNull()
+
+    const { error: koErr } = await svc
+      .from('agencies').update({ verification_status: 'approuve_par_moi' }).eq('id', ag!.id)
+    expect(koErr, 'le CHECK doit refuser une valeur hors énumération').not.toBeNull()
+
+    await svc.from('agencies').delete().eq('id', ag!.id)
+  })
 })
