@@ -20,8 +20,6 @@ describe.skipIf(!HAS_KEYS)('RPC end-users admin — gardées super_admin, zéro 
   let setup: TwoAgenciesSetup
   let contactId: string | null = null
   let propertyId: string | null = null
-  let portalSeeded = false
-  let linkSeeded = false
 
   beforeAll(async () => {
     setup = await setupTwoAgencies()
@@ -30,40 +28,40 @@ describe.skipIf(!HAS_KEYS)('RPC end-users admin — gardées super_admin, zéro 
     if (promoteErr) throw new Error(`promote: ${promoteErr.message}`)
 
     // Contact + bien (agence A) — supports des portails/liens.
-    const { data: c } = await service.from('contacts')
+    // Ces seeds sont des PRÉCONDITIONS des tests anti-fuite : sans eux, les RPC
+    // renvoient un tableau vide et les boucles d'assertion ne s'exécutent jamais
+    // (le test passerait au vert même si le token fuyait). Toute erreur throw donc.
+    // transaction_type : la CHECK properties_transaction_type_check n'admet que
+    // 'buy' | 'rent' — 'sell' n'existe pas côté properties.
+    const { data: c, error: cErr } = await service.from('contacts')
       .insert({ agency_id: setup.agencyAId, first_name: 'End', last_name: `User ${setup.stamp}`, email: `enduser-${setup.stamp}@megga-test.local` })
       .select('id').single()
-    contactId = c?.id ?? null
-    const { data: p } = await service.from('properties')
-      .insert({ agency_id: setup.agencyAId, title: `EU seed ${setup.stamp}`, status: 'active', transaction_type: 'sell' })
+    if (cErr) throw new Error(`seed contact: ${cErr.message}`)
+    contactId = c.id
+    const { data: p, error: pErr } = await service.from('properties')
+      .insert({ agency_id: setup.agencyAId, title: `EU seed ${setup.stamp}`, status: 'active', transaction_type: 'buy' })
       .select('id').single()
-    propertyId = p?.id ?? null
+    if (pErr) throw new Error(`seed property: ${pErr.message}`)
+    propertyId = p.id
 
     // Portail vendeur (token requis — on vérifie qu'il NE ressort PAS).
-    if (contactId && propertyId) {
-      const { error: portErr } = await service.from('seller_portals').insert({
-        token: `tok-portal-${setup.stamp}`, agency_id: setup.agencyAId,
-        contact_id: contactId, property_id: propertyId, agent_id: setup.agentAId, status: 'active',
-      })
-      portalSeeded = !portErr
-      if (portErr) console.warn('seed seller_portal failed:', portErr.message)
-    }
+    const { error: portErr } = await service.from('seller_portals').insert({
+      token: `tok-portal-${setup.stamp}`, agency_id: setup.agencyAId,
+      contact_id: contactId, property_id: propertyId, agent_id: setup.agentAId, status: 'active',
+    })
+    if (portErr) throw new Error(`seed seller_portal: ${portErr.message}`)
 
     // Magic link KYC (token + client_ip requis — on vérifie qu'ils NE ressortent PAS).
-    if (contactId) {
-      const { data: kc } = await service.from('kyc_cases')
-        .insert({ agency_id: setup.agencyAId, contact_id: contactId, type: 'seller_pp' })
-        .select('id').single()
-      if (kc?.id) {
-        const { error: mlErr } = await service.from('kyc_magic_links').insert({
-          token: `tok-ml-${setup.stamp}`, agency_id: setup.agencyAId, kyc_case_id: kc.id,
-          contact_id: contactId, expires_at: new Date(Date.now() + 7 * 864e5).toISOString(),
-          client_ip: '203.0.113.7', client_user_agent: 'seed-agent',
-        })
-        linkSeeded = !mlErr
-        if (mlErr) console.warn('seed kyc_magic_link failed:', mlErr.message)
-      }
-    }
+    const { data: kc, error: kcErr } = await service.from('kyc_cases')
+      .insert({ agency_id: setup.agencyAId, contact_id: contactId, type: 'seller_pp' })
+      .select('id').single()
+    if (kcErr) throw new Error(`seed kyc_case: ${kcErr.message}`)
+    const { error: mlErr } = await service.from('kyc_magic_links').insert({
+      token: `tok-ml-${setup.stamp}`, agency_id: setup.agencyAId, kyc_case_id: kc.id,
+      contact_id: contactId, expires_at: new Date(Date.now() + 7 * 864e5).toISOString(),
+      client_ip: '203.0.113.7', client_user_agent: 'seed-agent',
+    })
+    if (mlErr) throw new Error(`seed kyc_magic_link: ${mlErr.message}`)
   })
 
   afterAll(async () => {
@@ -104,10 +102,11 @@ describe.skipIf(!HAS_KEYS)('RPC end-users admin — gardées super_admin, zéro 
     const { data, error } = await setup.clientA.rpc('get_admin_seller_portals', { p_limit: 100 })
     if (error) throw new Error(error.message)
     const rows = (data ?? []) as Array<Record<string, unknown>>
-    if (portalSeeded) {
-      const mine = rows.find(r => r.property_title === `EU seed ${setup.stamp}`)
-      expect(mine, 'portail seedé présent').toBeTruthy()
-    }
+    // Non-vide obligatoire : sur un tableau vide la boucle anti-fuite ci-dessous
+    // ne s'exécuterait pas et le test passerait sans rien prouver.
+    expect(rows.length, 'jeu non vide — sinon l\'anti-fuite ne teste rien').toBeGreaterThanOrEqual(1)
+    const mine = rows.find(r => r.property_title === `EU seed ${setup.stamp}`)
+    expect(mine, 'portail seedé présent').toBeTruthy()
     for (const r of rows) {
       expect(Object.keys(r)).not.toContain('token')
     }
@@ -117,7 +116,8 @@ describe.skipIf(!HAS_KEYS)('RPC end-users admin — gardées super_admin, zéro 
     const { data, error } = await setup.clientA.rpc('get_admin_kyc_magic_links', { p_limit: 100 })
     if (error) throw new Error(error.message)
     const rows = (data ?? []) as Array<Record<string, unknown>>
-    if (linkSeeded) expect(rows.length).toBeGreaterThanOrEqual(1)
+    // Non-vide obligatoire (cf. get_admin_seller_portals) : sinon l'anti-fuite tourne à vide.
+    expect(rows.length, 'jeu non vide — sinon l\'anti-fuite ne teste rien').toBeGreaterThanOrEqual(1)
     for (const r of rows) {
       const keys = Object.keys(r)
       expect(keys).not.toContain('token')

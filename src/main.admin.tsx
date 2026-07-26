@@ -9,6 +9,9 @@ import '@/i18n'
 import { initSentry } from '@/lib/sentry'
 import AdminApp from './AdminApp'
 import './styles/globals.css'
+// APRÈS globals.css : re-teinte les variables de thème sur la palette Sugar
+// (même spécificité, l'ordre décide). Voir l'en-tête du fichier.
+import './styles/admin-console.css'
 
 initSentry()
 

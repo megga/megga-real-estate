@@ -15,7 +15,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/hooks/useAuth'
-import { ThemeProvider } from '@/hooks/useTheme'
+import { AdminThemeProvider } from '@/components/admin/AdminThemeProvider'
 import { ToastProvider } from '@/components/ui/Toast'
 import ErrorBoundary from '@/components/layout/ErrorBoundary'
 import AdminAuthGate from '@/components/admin/AdminAuthGate'
@@ -57,7 +57,7 @@ export default function AdminApp() {
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <ThemeProvider>
+          <AdminThemeProvider>
             <ToastProvider>
               <ErrorBoundary>
                 <AdminAuthGate>
@@ -90,7 +90,7 @@ export default function AdminApp() {
                 </AdminAuthGate>
               </ErrorBoundary>
             </ToastProvider>
-          </ThemeProvider>
+          </AdminThemeProvider>
         </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>

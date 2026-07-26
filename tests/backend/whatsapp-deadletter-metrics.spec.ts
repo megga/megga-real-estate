@@ -44,6 +44,13 @@ describe.skipIf(!HAS_KEYS)('WhatsApp dead-letter metrics — gardé super_admin/
     if (promoteErr) throw new Error(`promote: ${promoteErr.message}`)
 
     // Seed : une erreur copilote (24h) + un média non rejouable (dead-letter).
+    //
+    // ⚠ Insert EN LOT : PostgREST construit une seule requête avec l'UNION des clés
+    // des objets, et une clé absente d'un objet part en NULL — le DEFAULT de la
+    // colonne ne s'applique PAS (c'est ce que corrige `Prefer: missing=default`).
+    // Les deux lignes doivent donc porter exactement les mêmes clés, sinon les
+    // colonnes NOT NULL DEFAULT (processing_status, retry_count, is_agent_error)
+    // reçoivent NULL et l'insert entier échoue.
     const { data: rows, error: seedErr } = await service
       .from('whatsapp_messages')
       .insert([
@@ -52,22 +59,23 @@ describe.skipIf(!HAS_KEYS)('WhatsApp dead-letter metrics — gardé super_admin/
           wa_from: '41790000001',
           agency_id: setup.agencyAId,
           is_agent_error: true,
+          processing_status: 'done',
+          retry_count: 0,
         },
         {
           provider_message_id: `dl-proc-${setup.stamp}`,
           wa_from: '41790000002',
           agency_id: setup.agencyAId,
+          is_agent_error: false,
           processing_status: 'failed',
           retry_count: 3,
         },
       ])
       .select('id')
-    if (seedErr) {
-      // Schéma divergent → le test de comptage sera sauté ; gate + shape restent.
-      console.warn('seed whatsapp_messages failed:', seedErr.message)
-    } else {
-      for (const r of rows ?? []) seededIds.push(r.id)
-    }
+    // Un seed qui échoue est un BUG, pas une variation de schéma : on throw. Avec un
+    // simple console.warn, le test de comptage était sauté et passait à vide.
+    if (seedErr) throw new Error(`seed whatsapp_messages: ${seedErr.message}`)
+    for (const r of rows ?? []) seededIds.push(r.id)
   })
 
   afterAll(async () => {
@@ -94,7 +102,6 @@ describe.skipIf(!HAS_KEYS)('WhatsApp dead-letter metrics — gardé super_admin/
   })
 
   it('les lignes seedées font croître les compteurs', async () => {
-    if (seededIds.length < 2) return // seed impossible — couvert par le shape test
     const { data, error } = await setup.clientA.rpc('get_whatsapp_deadletter_metrics')
     if (error) throw new Error(error.message)
     const dl = data as Deadletters
