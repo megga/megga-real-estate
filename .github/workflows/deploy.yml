@@ -199,8 +199,12 @@ jobs:
             stamp_date="${base:0:8}"
             case "$stamp_date" in ''|*[!0-9]*) continue ;; esac
             if [ "$stamp_date" -lt "$TODAY" ]; then
-              skipped="${skipped}${base}
-"
+              # Saut de ligne via $'\n' (bash) et NON par une chaîne multi-lignes
+              # littérale : celle-ci refermerait le scalaire de bloc YAML, la
+              # ligne ne portant que le guillemet fermant retombant en colonne 1.
+              # Pas de $( ) non plus — la substitution de commande mange le
+              # saut de ligne final et recollerait tous les noms sur une ligne.
+              skipped="${skipped}${base}"$'\n'
             fi
           done <<< "$added"
 
