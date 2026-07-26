@@ -4,11 +4,70 @@
 
 ```sql
 -- Agences
-agencies (id, name, slug, logo_url, address, phone, email, plan, created_at)
+agencies (
+  id, name, slug, logo_url, address, postal_code, city, canton, country,
+  phone, email, website, plan, created_at,
+  -- Identité légale
+  legal_name,                    -- raison sociale : doit matcher le registre au caractère près
+  trade_name,                    -- nom commercial ; cible du rapprochement flou avec le domaine e-mail
+  legal_form_id,                 -- FK legal_forms (ex-legal_form texte libre)
+  legal_form,                    -- HÉRITÉ : saisie non appariée au référentiel, vidée dès que la FK est posée
+  business_registration_number,  -- ex-`ide` : IDE/UID en CH, SIREN en FR, générique multi-pays
+  tva, founded_year, about_short,
+  -- Vérification d'identité (KYB)
+  verification_status,           -- 'pending' | 'auto_validated' | 'manual_review' | 'rejected'
+  verification_score,            -- numeric(4,3) 0..1 — cache calculé depuis agency_verification_checks
+  verified_at
+)
 
 -- Utilisateurs (agents + admins)
 profiles (id, agency_id, email, full_name, avatar_url, role, phone, created_at)
   -- roles: 'admin' | 'manager' | 'agent' | 'assistant'
+
+-- ─── Vérification d'identité des agences (KYB) ──────────────────────────────
+-- Détail et raisonnement : docs/agency-kyb-verification.md
+-- KYB (la personne morale existe-t-elle au registre) ≠ KYC (quel humain peut
+-- l'engager). Les comptes agents relèvent de la confiance déléguée : le dirigeant
+-- vérifié répond de ses employés, pas de KYB complet par agent.
+
+-- Référentiel des formes juridiques (CH/FR/LI). `category` pilote le parcours :
+-- sole_proprietorship = pas d'UBO tiers ; foundation_or_trust = diligence renforcée.
+legal_forms (id, code, country, category, label_fr, label_de, label_en, label_it, sort_order)
+  -- category: 'corporation' | 'partnership' | 'sole_proprietorship' | 'foundation_or_trust'
+legal_form_aliases (id, legal_form_id, alias)
+  -- alias STOCKÉ NORMALISÉ (normalize_legal_form_text) : les registres renvoient la
+  -- forme dans la langue d'inscription (Zefix → « Aktiengesellschaft » pour une SA)
+
+-- Identité de CONFORMITÉ, distincte de profiles : un ayant droit économique passif
+-- n'a aucune raison d'avoir un compte CRM (d'où profile_id nullable).
+agency_related_persons (
+  id, agency_id, profile_id, first_name, last_name, date_of_birth, nationality,
+  id_document_type, id_document_number, created_at, updated_at
+)
+-- Rôles séparés de la personne : dans une petite SA le fondateur est souvent
+-- signataire ET actionnaire majoritaire — les fusionner dupliquerait son identité.
+agency_person_roles (
+  id, related_person_id, role, signature_power, ownership_pct,
+  pep_self_declared, source, valid_from, valid_to, created_at
+)
+  -- role: 'signatory' | 'ubo'  (seuil de déclaration UBO = 25 %, norme FATF)
+  -- signature_power: 'individual' | 'joint' (rôle signatory uniquement)
+  -- source: 'registry_officer_listing' | 'declared' | 'poa_document'
+
+-- Catalogue + pondération VERSIONNÉE + journal des exécutions. Le poids n'est PAS
+-- porté par la ligne de check (il dépend du type, pas de l'occurrence → 3NF) :
+-- l'audit rejoint la config en vigueur à checked_at, donc retoucher une pondération
+-- ne rend jamais un score passé inexplicable.
+verification_check_types (code, scope, label_fr, created_at)
+  -- scope: 'agency' | 'person'
+verification_check_config (id, check_type, weight, is_veto, valid_from, valid_to)
+  -- is_veto = échec bloquant HORS score, jamais compensé par un bon score ailleurs
+agency_verification_checks (id, agency_id, check_type, source, result, raw_response, checked_at)
+agency_person_verification_checks (id, related_person_id, check_type, source, result, raw_response, checked_at)
+  -- result: 'match' | 'partial' | 'mismatch' | 'unavailable' | 'pending_manual_review'
+  -- 'unavailable' est EXCLU du dénominateur du score : un pays sans VIES n'est pas
+  --   pénalisé, il est seulement moins confirmé (c'est ce qui rend le modèle transposable)
+  -- raw_response jsonb = pièce d'audit LBA, PAS une source pour la logique applicative
 
 -- Contacts (acheteurs + vendeurs + investisseurs + locataires + bailleurs)
 contacts (
@@ -199,6 +258,23 @@ CRITIQUE : Chaque table DOIT avoir des policies RLS activées.
 - Les vendeurs (portail) ne voient que leurs propres transactions
 - Les acheteurs (public) ne voient que les listings publiés (status = 'active')
 - Les relances et matchs sont filtrés par agency_id
+
+Helpers canoniques (SECURITY DEFINER) : get_my_agency_id(), is_super_admin(),
+is_agency_admin() [admin|manager].
+
+EXCEPTION — tables KYB : le filtrage par agence NE SUFFIT PAS. Elles portent la PII
+des dirigeants et actionnaires (date de naissance, n° de pièce d'identité), donc
+lecture ET écriture restreintes à is_agency_admin() + is_super_admin() : un agent
+simple n'a aucune raison de lire l'identité de l'actionnaire de son agence.
+- agency_related_persons / agency_person_roles : dirigeants de l'agence + super-admin
+- agency_verification_checks / agency_person_verification_checks : LECTURE seule côté
+  client (suivi de dossier) ; aucune policy d'écriture → seul le service_role écrit,
+  depuis l'edge function de vérification. Un client ne doit jamais pouvoir se
+  déclarer « match ».
+- verification_check_config : AUCUN accès client, même en lecture — exposer les poids
+  inviterait à optimiser sa saisie pour franchir le seuil d'auto-validation.
+- legal_forms / legal_form_aliases / verification_check_types : `using (true)` assumé
+  (données de référence, aucune PII) ; écriture sans policy → migrations seulement.
 ```
 
 ---
