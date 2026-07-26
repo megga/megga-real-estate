@@ -1,15 +1,22 @@
 // P8a — Création/édition d'une annonce in-app (super-admin).
-// Ciblage plans (pills) + agences (multi-select) + fenêtre + sévérité + CTA.
+// Ciblage plans (segments) + agences (multi-select) + fenêtre + sévérité + CTA.
 // Tableaux vides = universel. createPortal via le composant Modal partagé.
+//
+// Rendu en grammaire Sugar : champs sans bordure décorative (surface creuse +
+// filet intérieur), segments à fond plein sur l'accent NOIR (le violet reste le
+// repère plateforme, pas une couleur de sélection), publication en interrupteur
+// (l'ancienne case à cocher ne disait pas son état au lecteur d'écran).
 
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronDown, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import Modal from '@/components/ui/modal'
 import { useToast } from '@/components/ui/Toast'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import { useAnnouncementsAdmin, type Announcement, type AnnouncementInput } from '@/hooks/useAnnouncementsAdmin'
+import { AdminCard, AdminDivider, AdminGhostBtn, AdminIc, AdminSolidBtn, AdminSwitch } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 const PLAN_IDS = ['starter', 'pro', 'entreprise'] as const
 const SEVERITIES = ['info', 'warning', 'critical'] as const
@@ -20,6 +27,7 @@ function toLocalInput(iso: string | null): string {
   return iso.slice(0, 16)
 }
 
+/** Modale de création/édition d'une annonce plateforme (ciblage, fenêtre, sévérité, CTA). */
 export default function AnnouncementFormModal({ existing, onClose }: {
   existing: Announcement | null
   onClose: () => void
@@ -28,6 +36,7 @@ export default function AnnouncementFormModal({ existing, onClose }: {
   const toast = useToast()
   const { agencies } = useAdminAgencies()
   const { create, update } = useAnnouncementsAdmin()
+  const { sp, surf, dark } = useAdminSugar()
 
   const [title, setTitle] = useState(existing?.title ?? '')
   const [body, setBody] = useState(existing?.body ?? '')
@@ -71,29 +80,56 @@ export default function AnnouncementFormModal({ existing, onClose }: {
 
   const pending = create.isPending || update.isPending
 
+  const labelStyle: CSSProperties = {
+    display: 'block', marginBottom: 6,
+    fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub,
+  }
+  // Champ Sugar : pas de bordure, une surface creuse et un filet INTÉRIEUR — le
+  // trait ne sépare rien, l'ombre du bento s'en charge.
+  const fieldStyle: CSSProperties = {
+    width: '100%', height: 38, padding: '0 12px', borderRadius: ADMIN_RADII.row, border: 0,
+    background: surf.cardSub, color: sp.ink,
+    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, outline: 'none',
+    boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
+  }
+  /** Segment de sélection (sévérité, plans) — accent plein quand actif. */
+  const segmentStyle = (on: boolean): CSSProperties => ({
+    height: 32, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
+    background: on ? sp.accent : surf.cardSub, color: on ? sp.accentInk : sp.soft,
+  })
+  const hintStyle: CSSProperties = { margin: '6px 0 0', fontSize: 11.5, color: sp.soft }
+
+  // Survol des options et couleur du placeholder : deux choses qu'un style inline
+  // ne sait pas exprimer, et qui doivent suivre le thème.
+  const menuCss = `
+    .annf-opt { transition: background-color .14s ease; }
+    .annf-opt:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'}; }
+    .annf-search::placeholder { color: ${sp.soft}; }
+  `
+
   return (
     <Modal open onClose={onClose} title={existing ? t('announcements.form.editTitle') : t('announcements.form.newTitle')} size="md">
+      {/* `space-y-4` pose une marge sur tous les enfants sauf le premier : la
+          feuille de style se met en DERNIER, sinon elle décale tout le corps. */}
       <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto scrollbar-hide">
         {/* Titre + corps */}
         <div>
-          <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('announcements.form.title')}</label>
-          <input type="text" value={title} onChange={e => setTitle(e.target.value)} autoFocus
-            className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent" />
+          <label style={labelStyle}>{t('announcements.form.title')}</label>
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)} autoFocus style={fieldStyle} />
         </div>
         <div>
-          <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('announcements.form.body')}</label>
+          <label style={labelStyle}>{t('announcements.form.body')}</label>
           <textarea value={body} onChange={e => setBody(e.target.value)} rows={3}
-            className="w-full px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent" />
+            style={{ ...fieldStyle, height: 'auto', padding: '10px 12px', lineHeight: 1.5, resize: 'none' }} />
         </div>
 
         {/* Sévérité */}
         <div>
-          <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('announcements.form.severity')}</label>
-          <div className="flex items-center gap-1.5">
+          <label style={labelStyle}>{t('announcements.form.severity')}</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             {SEVERITIES.map(s => (
-              <button key={s} onClick={() => setSeverity(s)}
-                className={cn('h-8 px-3 rounded-lg text-xs font-medium transition-colors',
-                  severity === s ? 'bg-admin-accent/10 text-admin-accent' : 'bg-theme-hover text-theme-muted hover:text-theme-primary')}>
+              <button key={s} onClick={() => setSeverity(s)} aria-pressed={severity === s} style={segmentStyle(severity === s)}>
                 {t(`announcements.severity.${s}`)}
               </button>
             ))}
@@ -102,104 +138,133 @@ export default function AnnouncementFormModal({ existing, onClose }: {
 
         {/* Ciblage plans */}
         <div>
-          <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('announcements.form.plans')}</label>
-          <div className="flex items-center gap-1.5">
+          <label style={labelStyle}>{t('announcements.form.plans')}</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             {PLAN_IDS.map(p => (
-              <button key={p} onClick={() => togglePlan(p)}
-                className={cn('h-8 px-3 rounded-lg text-xs font-medium transition-colors',
-                  plans.includes(p) ? 'bg-admin-accent/10 text-admin-accent' : 'bg-theme-hover text-theme-muted hover:text-theme-primary')}>
+              <button key={p} onClick={() => togglePlan(p)} aria-pressed={plans.includes(p)} style={segmentStyle(plans.includes(p))}>
                 {t(`common.plan.${p}`)}
               </button>
             ))}
           </div>
-          <p className="text-xs text-theme-muted mt-1">{plans.length === 0 ? t('announcements.form.allPlans') : ''}</p>
+          <p style={hintStyle}>{plans.length === 0 ? t('announcements.form.allPlans') : ''}</p>
         </div>
 
         {/* Ciblage agences */}
         <div>
-          <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('announcements.form.agencies')}</label>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <label style={labelStyle}>{t('announcements.form.agencies')}</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7 }}>
             {agencyIds.map(id => (
-              <span key={id} className="flex items-center gap-1 h-7 pl-2.5 pr-1.5 rounded-lg text-xs font-medium bg-admin-accent/10 text-admin-accent">
-                <span className="truncate max-w-[140px]">{agencies.find(a => a.id === id)?.name ?? id}</span>
-                <button onClick={() => toggleAgency(id)} className="p-0.5 rounded hover:bg-admin-accent/20"><X className="h-3 w-3" /></button>
+              <span key={id} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 3, height: 28, padding: '0 5px 0 11px',
+                borderRadius: ADMIN_RADII.pill, background: surf.cardSub, color: sp.ink,
+                fontSize: 11.5, fontWeight: 700, maxWidth: '100%',
+              }}>
+                <span className="truncate" style={{ maxWidth: 140 }}>{agencies.find(a => a.id === id)?.name ?? id}</span>
+                <button onClick={() => toggleAgency(id)} style={{
+                  width: 20, height: 20, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
+                  background: 'transparent', color: sp.sub, cursor: 'pointer', display: 'grid', placeItems: 'center',
+                }}>
+                  <AdminIc icon={X} size={12} />
+                </button>
               </span>
             ))}
             <div className="relative">
-              <button onClick={() => setAgencyOpen(o => !o)}
-                className="h-7 px-2.5 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-1.5">
+              <button onClick={() => setAgencyOpen(o => !o)} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px',
+                borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
+                color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
+              }}>
                 {t('announcements.form.addAgency')}
-                <ChevronDown className={cn('h-3 w-3 transition-transform', agencyOpen && 'rotate-180')} />
+                <AdminIc icon={ChevronDown} size={13} style={{ transform: agencyOpen ? 'rotate(180deg)' : 'none', transition: 'transform .18s ease' }} />
               </button>
               {agencyOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setAgencyOpen(false)} />
-                  <div className="absolute left-0 top-full mt-1 z-20 bg-theme-card border border-theme-border rounded-lg py-1 w-60">
-                    <div className="px-2 pb-1">
+                  {/* `overflow: hidden` : sans lui, le survol d'une option déborde du rayon 18 de la carte. */}
+                  <AdminCard className="absolute left-0 top-full z-20" padding="7px 0" style={{ marginTop: 6, width: 240, overflow: 'hidden' }}>
+                    <div style={{ padding: '0 8px 6px' }}>
                       <input type="text" value={agencySearch} onChange={e => setAgencySearch(e.target.value)}
                         placeholder={t('announcements.form.searchAgency')}
-                        className="w-full h-7 px-2 rounded-md bg-theme-hover text-xs text-theme-primary placeholder:text-theme-muted outline-none" />
+                        className="annf-search"
+                        style={{
+                          width: '100%', height: 30, padding: '0 10px', borderRadius: ADMIN_RADII.row, border: 0,
+                          background: surf.cardSub, color: sp.ink, outline: 'none',
+                          fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
+                        }} />
                     </div>
                     <div className="max-h-48 overflow-y-auto scrollbar-hide">
-                      {filteredAgencies.slice(0, 40).map(a => (
-                        <button key={a.id} onClick={() => toggleAgency(a.id)}
-                          className={cn('w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between gap-2',
-                            agencyIds.includes(a.id) ? 'text-admin-accent' : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary')}>
-                          <span className="truncate">{a.name}</span>
-                          {agencyIds.includes(a.id) && <Check className="h-3 w-3 flex-shrink-0" />}
-                        </button>
-                      ))}
+                      {filteredAgencies.slice(0, 40).map(a => {
+                        const on = agencyIds.includes(a.id)
+                        return (
+                          <button key={a.id} onClick={() => toggleAgency(a.id)} className="annf-opt" style={{
+                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                            padding: '7px 12px', border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                            fontFamily: 'inherit', fontSize: 12, fontWeight: on ? 700 : 600, color: on ? sp.ink : sp.sub,
+                          }}>
+                            <span className="truncate">{a.name}</span>
+                            {on && <AdminIc icon={Check} size={13} color={sp.ink} />}
+                          </button>
+                        )
+                      })}
                     </div>
-                  </div>
+                  </AdminCard>
                 </>
               )}
             </div>
           </div>
-          <p className="text-xs text-theme-muted mt-1">{agencyIds.length === 0 ? t('announcements.form.allAgencies') : ''}</p>
+          <p style={hintStyle}>{agencyIds.length === 0 ? t('announcements.form.allAgencies') : ''}</p>
         </div>
 
         {/* Fenêtre */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('announcements.form.startsAt')}</label>
+            <label style={labelStyle}>{t('announcements.form.startsAt')}</label>
             <input type="datetime-local" value={startsAt} onChange={e => setStartsAt(e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:border-admin-accent" />
+              style={{ ...fieldStyle, fontVariantNumeric: 'tabular-nums' }} />
           </div>
           <div>
-            <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('announcements.form.endsAt')}</label>
+            <label style={labelStyle}>{t('announcements.form.endsAt')}</label>
             <input type="datetime-local" value={endsAt} onChange={e => setEndsAt(e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:border-admin-accent" />
+              style={{ ...fieldStyle, fontVariantNumeric: 'tabular-nums' }} />
           </div>
         </div>
 
         {/* CTA optionnel */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('announcements.form.ctaLabel')}</label>
-            <input type="text" value={ctaLabel} onChange={e => setCtaLabel(e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:border-admin-accent" />
+            <label style={labelStyle}>{t('announcements.form.ctaLabel')}</label>
+            <input type="text" value={ctaLabel} onChange={e => setCtaLabel(e.target.value)} style={fieldStyle} />
           </div>
           <div>
-            <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('announcements.form.ctaHref')}</label>
-            <input type="text" value={ctaHref} onChange={e => setCtaHref(e.target.value)} placeholder="/dashboard/..."
-              className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:border-admin-accent" />
+            <label style={labelStyle}>{t('announcements.form.ctaHref')}</label>
+            <input type="text" value={ctaHref} onChange={e => setCtaHref(e.target.value)} placeholder="/dashboard/..." style={fieldStyle} />
           </div>
         </div>
 
         {/* Publication + actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-theme-border-subtle">
-          <label className="flex items-center gap-2 text-sm text-theme-secondary cursor-pointer">
-            <input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} className="accent-admin-accent" />
-            {t('announcements.form.published')}
-          </label>
-          <div className="flex items-center gap-2">
-            <button onClick={onClose} className="h-9 px-4 text-sm text-theme-secondary hover:text-theme-primary transition-colors">{t('common.cancel')}</button>
-            <button onClick={handleSave} disabled={pending}
-              className="h-9 px-4 text-sm font-medium border border-admin-accent text-admin-accent rounded-lg hover:bg-admin-accent/10 transition-colors disabled:opacity-50">
-              {pending ? t('common.saving') : t('common.save')}
-            </button>
+        <div>
+          <AdminDivider margin="4px 0 0" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 14 }}>
+            {/* `<label>` et non `<div>` : `<button>` est un élément « labelable »,
+                donc le libellé nomme l'interrupteur ET lui renvoie le clic — ce que
+                faisait l'ancienne case à cocher enveloppée. D'où l'absence
+                d'`aria-label` sur l'interrupteur : il doublerait l'annonce du même
+                mot (une fois comme nom, une fois comme texte voisin). */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, cursor: 'pointer' }}>
+              <AdminSwitch on={published} onClick={() => setPublished(!published)} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: sp.ink }}>{t('announcements.form.published')}</span>
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
+              <AdminGhostBtn onClick={onClose}>{t('common.cancel')}</AdminGhostBtn>
+              <AdminSolidBtn onClick={handleSave} disabled={pending}>
+                {pending ? t('common.saving') : t('common.save')}
+              </AdminSolidBtn>
+            </div>
           </div>
         </div>
+
+        <style>{menuCss}</style>
       </div>
     </Modal>
   )

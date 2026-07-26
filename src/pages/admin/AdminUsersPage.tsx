@@ -1,20 +1,33 @@
 /**
  * Page super-admin — annuaire des utilisateurs de la plateforme.
  *
- * Route : `/users` (accent violet). Table (desktop)
- * / cartes (mobile) avec recherche, filtre par rôle, pagination et export CSV. Un clic
- * sur une ligne ouvre `UserDrawer` (détail + impersonation) ; l'agence renvoie vers sa fiche.
+ * Route : `/users`. Table (desktop) / cartes (mobile) avec recherche, filtre par
+ * rôle, pagination et export CSV. Un clic sur une ligne ouvre `UserDrawer`
+ * (détail + impersonation) ; l'agence renvoie vers sa fiche.
+ *
+ * Rendu en grammaire Sugar (kit `components/admin/kit`) : le bento se sépare du
+ * fond par l'ombre, les rôles sont des pilules pleines, l'avatar est à initiales
+ * sur fond encre, et la page active de la pagination est une pilule d'accent
+ * NOIR — le violet de la console reste le repère de contexte du rail, jamais une
+ * couleur d'action ni un statut.
  */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Search, Users, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { exportToCsv } from '@/lib/exportCsv'
-import { cn, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import type { AdminUser } from '@/hooks/useAdminUsers'
 import UserDrawer from '@/components/admin/UserDrawer'
 import PageTransition from '@/components/layout/PageTransition'
+import AdminPage from '@/components/admin/kit/AdminPage'
+import {
+  AdminAvatar, AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill,
+  AdminSkeleton, AdminTd, AdminTh,
+} from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 const ITEMS_PER_PAGE = 10
 
@@ -28,49 +41,27 @@ const ROLE_I18N: Record<string, string> = {
 
 const ROLE_FILTER_VALUES = ['', 'super_admin', 'admin', 'manager', 'agent', 'assistant']
 
-/** Avatar utilisateur : photo si `avatarUrl`, sinon initiales sur fond déterministe dérivé du nom. */
-function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
-  const initials = (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-  const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500']
-  const idx = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length
+// Ton de pilule par rôle : seuls les deux rôles à privilèges portent un signal,
+// les autres restent neutres. Pas d'accent violet ici — il ne dit que « tu es
+// dans la console », pas « ce compte a ce rôle ».
+const ROLE_TONE: Record<string, AdminToneName> = {
+  super_admin: 'info',
+  admin: 'warn',
+}
 
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={name}
-        className="h-8 w-8 rounded-full object-cover flex-shrink-0"
-        decoding="async"
-        loading="lazy"
-      />
-    )
-  }
-
-  return (
-    <div className={cn('h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0', colors[idx])}>
-      <span className="text-xs font-semibold text-white">{initials}</span>
-    </div>
-  )
+/** Initiales (2 max) tirées du nom complet — la seule entrée de l'avatar Sugar. */
+function initialsOf(name: string): string {
+  return (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
 /** Lignes squelette affichées pendant le chargement de l'annuaire. */
 function SkeletonRows() {
   return (
-    <>
+    <div style={{ display: 'grid', gap: 8, padding: 14 }}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className={cn('flex items-center px-4 py-3.5 gap-3', i < 4 && 'border-b border-theme-border')}>
-          <div className="h-8 w-8 rounded-full bg-theme-hover animate-pulse" />
-          <div className="flex-1 space-y-1.5">
-            <div className="h-3.5 w-32 rounded bg-theme-hover animate-pulse" />
-            <div className="h-2.5 w-20 rounded bg-theme-hover animate-pulse" />
-          </div>
-          <div className="h-3 w-28 rounded bg-theme-hover animate-pulse" />
-          <div className="h-3 w-24 rounded bg-theme-hover animate-pulse" />
-          <div className="h-3 w-16 rounded bg-theme-hover animate-pulse" />
-          <div className="h-3 w-20 rounded bg-theme-hover animate-pulse" />
-        </div>
+        <AdminSkeleton key={i} height={44} />
       ))}
-    </>
+    </div>
   )
 }
 
@@ -78,21 +69,18 @@ function SkeletonRows() {
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   const { t } = useTranslation('admin')
   return (
-    <div className="px-4 py-16 text-center">
-      <Users className="h-8 w-8 mx-auto text-theme-tertiary mb-3" />
-      <p className="text-sm text-theme-secondary font-medium">
-        {hasFilters ? t('admin:users.empty.titleFiltered') : t('admin:users.empty.title')}
-      </p>
-      <p className="text-xs text-theme-tertiary mt-1">
-        {hasFilters ? t('admin:users.empty.subtitleFiltered') : t('admin:users.empty.subtitle')}
-      </p>
-    </div>
+    <AdminEmpty
+      icon={Users}
+      title={hasFilters ? t('admin:users.empty.titleFiltered') : t('admin:users.empty.title')}
+      hint={hasFilters ? t('admin:users.empty.subtitleFiltered') : t('admin:users.empty.subtitle')}
+    />
   )
 }
 
 /** Page : annuaire utilisateurs filtrable/paginé + drawer de détail au clic sur une ligne. */
 export default function AdminUsersPage() {
   const { t } = useTranslation('admin')
+  const { sp, surf, dark } = useAdminSugar()
   const { users, isLoading } = useAdminUsers()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('')
@@ -119,200 +107,285 @@ export default function AdminUsersPage() {
     setSelectedUserId(user.id)
   }
 
+  const hasFilters = !!search || !!roleFilter
+  const pagerBtn = {
+    width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
+    background: 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0,
+  } as const
+
   return (
     <PageTransition>
-      <div className="max-w-5xl mx-auto space-y-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="h-2 w-2 rounded-full bg-admin-accent" />
-              <span className="text-xs font-medium text-admin-accent">{t('admin:common.adminBadge')}</span>
-            </div>
-            <h1 className="text-2xl font-semibold text-theme-primary">{t('admin:users.title')}</h1>
-            <p className="text-sm text-theme-tertiary mt-0.5">
-              {isLoading ? t('admin:common.loading') : t(users.length !== 1 ? 'admin:users.subtitle_plural' : 'admin:users.subtitle', { count: users.length })}
-            </p>
-          </div>
-          <button
+      <AdminPage
+        title={t('admin:users.title')}
+        subtitle={isLoading
+          ? t('admin:common.loading')
+          : t(users.length !== 1 ? 'admin:users.subtitle_plural' : 'admin:users.subtitle', { count: users.length })}
+        width="wide"
+        actions={(
+          <AdminGhostBtn
+            icon={Download}
             onClick={() => exportToCsv('megga-utilisateurs', users.map(u => ({
               nom: u.full_name, email: u.email, agence: u.agency_name ?? '',
               role: u.role, date: u.created_at,
             })))}
-            className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
           >
-            <Download className="h-4 w-4" />
             {t('admin:common.export')}
-          </button>
-        </div>
+          </AdminGhostBtn>
+        )}
+      >
+        <style>{`
+          .admu-row { transition: background .15s ease; }
+          .admu-row:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.03)'}; }
+          .admu-row:focus:not(:focus-visible) { outline: none; }
+          .admu-row:focus-visible { outline: 2px solid ${sp.accent}; outline-offset: -2px; }
+          .admu-search::placeholder { color: ${sp.sub}; font-weight: 500; }
+          .admu-search:focus { box-shadow: inset 0 0 0 2px ${sp.accent}; }
+          .admu-link:hover { text-decoration: underline; }
+        `}</style>
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
+        {/* Recherche + filtre par rôle */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 200, maxWidth: 320 }}>
+            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'grid', placeItems: 'center' }}>
+              <AdminIc icon={Search} size={15} color={sp.sub} />
+            </span>
             <input
               type="text"
+              className="admu-search"
               placeholder={t('admin:users.searchPlaceholder')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              className="w-full h-9 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+              style={{
+                width: '100%', height: 36, padding: '0 12px 0 35px', boxSizing: 'border-box',
+                borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub,
+                color: sp.ink, fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                outline: 'none', transition: 'box-shadow .16s ease',
+              }}
             />
           </div>
 
-          <div className="flex items-center gap-1">
-            {ROLE_FILTER_VALUES.map((value) => (
-              <button
-                key={value}
-                onClick={() => { setRoleFilter(value); setPage(1) }}
-                className={cn(
-                  'h-9 px-4 rounded-lg text-sm transition-colors',
-                  roleFilter === value
-                    ? 'bg-theme-active text-theme-primary font-medium'
-                    : 'text-theme-secondary hover:text-theme-primary'
-                )}
-              >
-                {value ? t(ROLE_I18N[value] ?? 'common.role.agent') : t('admin:common.all')}
-              </button>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {ROLE_FILTER_VALUES.map((value) => {
+              const on = roleFilter === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => { setRoleFilter(value); setPage(1) }}
+                  style={{
+                    height: 34, padding: '0 15px', borderRadius: ADMIN_RADII.pill, border: 0,
+                    cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    background: on ? sp.accent : surf.card,
+                    color: on ? sp.accentInk : sp.soft,
+                    boxShadow: on ? 'none' : sp.shadowSm,
+                  }}
+                >
+                  {value ? t(ROLE_I18N[value] ?? 'common.role.agent') : t('admin:common.all')}
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        {/* Mobile: cards */}
-        <div className="md:hidden space-y-2">
-          {isLoading ? (
-            <div className="px-4 py-12 text-center">
-              <p className="text-sm text-theme-tertiary">{t('admin:common.loading')}</p>
-            </div>
-          ) : paginated.length === 0 ? (
-            <EmptyState hasFilters={!!search || !!roleFilter} />
-          ) : (
-            paginated.map((user) => (
-              <button
-                key={user.id}
-                onClick={() => handleRowClick(user)}
-                className="flex items-center gap-3 p-3 w-full text-left rounded-xl border border-theme-border hover:border-theme-active transition-colors"
-              >
-                <UserAvatar name={user.full_name ?? t('admin:common.user')} avatarUrl={user.avatar_url} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-theme-primary truncate">{user.full_name ?? t('admin:common.noName')}</p>
-                  <p className="text-xs text-theme-tertiary mt-0.5 truncate">
-                    {t(ROLE_I18N[user.role] ?? 'common.role.agent')}
-                    {user.agency_name && ` · ${user.agency_name}`}
-                  </p>
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-
-        {/* Desktop: table */}
-        <div className="hidden md:block rounded-xl border border-theme-border">
-          {/* Header row */}
-          <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
-            <span className="flex-1">{t('admin:users.table.name')}</span>
-            <span className="w-44">{t('admin:users.table.email')}</span>
-            <span className="w-28">{t('admin:users.table.agency')}</span>
-            <span className="w-24">{t('admin:users.table.role')}</span>
-            <span className="w-24">{t('admin:users.table.registration')}</span>
-          </div>
-
-          {/* Rows */}
+        {/* Mobile : cartes dans un seul bento */}
+        <AdminCard className="md:hidden" padding={0} style={{ overflow: 'hidden' }}>
           {isLoading ? (
             <SkeletonRows />
           ) : paginated.length === 0 ? (
-            <EmptyState hasFilters={!!search || !!roleFilter} />
+            <EmptyState hasFilters={hasFilters} />
           ) : (
             paginated.map((user, i) => (
               <button
                 key={user.id}
+                className="admu-row"
                 onClick={() => handleRowClick(user)}
-                className={cn(
-                  'flex items-center px-4 py-3 w-full text-left group hover:bg-theme-hover transition-colors',
-                  i < paginated.length - 1 && 'border-b border-theme-border'
-                )}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 11, width: '100%',
+                  padding: '12px 14px', border: 0, background: 'transparent',
+                  borderTop: i === 0 ? undefined : surf.hairline,
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                }}
               >
-                {/* Name + avatar */}
-                <div className="flex-1 flex items-center gap-3 min-w-0">
-                  <UserAvatar name={user.full_name ?? t('admin:common.user')} avatarUrl={user.avatar_url} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-theme-primary truncate group-hover:text-admin-accent transition-colors">
-                      {user.full_name ?? t('admin:common.noName')}
-                    </p>
-                    {user.phone && (
-                      <p className="text-xs text-theme-tertiary truncate">{user.phone}</p>
-                    )}
+                <AdminAvatar
+                  initials={initialsOf(user.full_name ?? t('admin:common.user'))}
+                  photo={user.avatar_url}
+                  alt={user.full_name ?? t('admin:common.noName')}
+                  size={32}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {user.full_name ?? t('admin:common.noName')}
+                  </div>
+                  <div style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {t(ROLE_I18N[user.role] ?? 'common.role.agent')}
+                    {user.agency_name && ` · ${user.agency_name}`}
                   </div>
                 </div>
-
-                {/* Email */}
-                <span className="w-44 text-xs text-theme-secondary truncate">
-                  {user.email}
-                </span>
-
-                {/* Agency */}
-                <span className="w-28 text-xs text-theme-secondary truncate">
-                  {user.agency_name ? (
-                    <Link
-                      to={`/agencies/${user.agency_id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="hover:text-admin-accent transition-colors"
-                    >
-                      {user.agency_name}
-                    </Link>
-                  ) : (
-                    <span className="text-theme-tertiary">—</span>
-                  )}
-                </span>
-
-                {/* Role */}
-                <span className="w-24">
-                  <span className={cn(
-                    'text-xs font-medium',
-                    user.role === 'super_admin' ? 'text-admin-accent' :
-                    user.role === 'admin' ? 'text-amber-500' :
-                    'text-theme-secondary'
-                  )}>
-                    {t(ROLE_I18N[user.role] ?? 'common.role.agent')}
-                  </span>
-                </span>
-
-                {/* Date */}
-                <span className="w-24 text-xs text-theme-tertiary">
-                  {formatDate(user.created_at)}
-                </span>
               </button>
             ))
+          )}
+        </AdminCard>
+
+        {/* Desktop : table */}
+        <AdminCard className="hidden md:block" padding={0} style={{ overflow: 'hidden' }}>
+          {isLoading ? (
+            <SkeletonRows />
+          ) : paginated.length === 0 ? (
+            <EmptyState hasFilters={hasFilters} />
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <AdminTh>{t('admin:users.table.name')}</AdminTh>
+                    <AdminTh width={230}>{t('admin:users.table.email')}</AdminTh>
+                    <AdminTh width={170}>{t('admin:users.table.agency')}</AdminTh>
+                    <AdminTh width={130}>{t('admin:users.table.role')}</AdminTh>
+                    <AdminTh width={120}>{t('admin:users.table.registration')}</AdminTh>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map((user) => (
+                    // La ligne entière ouvre le drawer. `role="button"` + `tabIndex`
+                    // rendent à la <tr> la sémantique et l'accès clavier que portait
+                    // le <button> d'avant, `aria-label` lui donne un nom (sans lui,
+                    // un lecteur d'écran annonce « ligne » sans dire ce qu'Entrée
+                    // déclenche) et `aria-haspopup` annonce le tiroir qui s'ouvre.
+                    //
+                    // Le garde `e.target !== e.currentTarget` est indispensable : le
+                    // keydown du <Link> agence REMONTE jusqu'ici, et `preventDefault()`
+                    // y annulait le clic que le navigateur synthétise sur le <a> —
+                    // Entrée sur le lien ouvrait le tiroir au lieu de naviguer.
+                    <tr
+                      key={user.id}
+                      className="admu-row"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={user.full_name ?? t('admin:common.noName')}
+                      aria-haspopup="dialog"
+                      onClick={() => handleRowClick(user)}
+                      onKeyDown={(e) => {
+                        if (e.target !== e.currentTarget) return
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRowClick(user) }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <AdminTd>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+                          <AdminAvatar
+                            initials={initialsOf(user.full_name ?? t('admin:common.user'))}
+                            photo={user.avatar_url}
+                            alt={user.full_name ?? t('admin:common.noName')}
+                            size={30}
+                          />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {user.full_name ?? t('admin:common.noName')}
+                            </div>
+                            {user.phone && (
+                              <div style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                                {user.phone}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </AdminTd>
+
+                      {/* Le plafond de largeur est porté par un bloc INTERNE, pas par
+                          la cellule : en layout automatique, une cellule de tableau
+                          ignore `max-width` (CSS 2.1 §17.5.2) — la colonne poussait
+                          donc la table au lieu de tronquer. Sur un bloc ordinaire, la
+                          contrainte tient, et `title` garde lisible au survol ce que
+                          l'ellipsis coupe. Pas de `tableLayout: 'fixed'` ici : les
+                          quatre largeurs fixes des <th> totalisent déjà plus que la
+                          place disponible à côté du rail de 300 px, et la colonne du
+                          nom — la seule sans largeur — serait écrasée à zéro. */}
+                      <AdminTd style={{ color: sp.sub }}>
+                        <span
+                          title={user.email}
+                          style={{ display: 'block', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        >
+                          {user.email}
+                        </span>
+                      </AdminTd>
+
+                      <AdminTd>
+                        {user.agency_name ? (
+                          // Même mécanique que la colonne e-mail. Le plafond est sur le
+                          // bloc, pas sur le lien : un `<a>` passé en `block` étendrait
+                          // sa zone cliquable à toute la cellule, et naviguer prendrait
+                          // le pas sur l'ouverture du tiroir sur la partie vide.
+                          <span style={{ display: 'block', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <Link
+                              to={`/agencies/${user.agency_id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="admu-link"
+                              title={user.agency_name}
+                              style={{ color: sp.ink, fontWeight: 600, textDecoration: 'none' }}
+                            >
+                              {user.agency_name}
+                            </Link>
+                          </span>
+                        ) : (
+                          <span style={{ color: sp.sub }}>—</span>
+                        )}
+                      </AdminTd>
+
+                      <AdminTd>
+                        <AdminPill
+                          label={t(ROLE_I18N[user.role] ?? 'common.role.agent')}
+                          tone={ROLE_TONE[user.role] ?? 'neutral'}
+                        />
+                      </AdminTd>
+
+                      <AdminTd numeric style={{ color: sp.sub, whiteSpace: 'nowrap' }}>
+                        {formatDate(user.created_at)}
+                      </AdminTd>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {/* Pagination */}
           {filtered.length > ITEMS_PER_PAGE && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-theme-border">
-              <p className="text-xs text-theme-tertiary">
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+              padding: '11px 14px', borderTop: surf.hairline,
+            }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                 {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} {t('admin:common.on')} {filtered.length}
-              </p>
-              <div className="flex items-center gap-1">
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={safePage <= 1}
                   aria-label={t('admin:common.previousPage')}
-                  className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
+                  style={{ ...pagerBtn, cursor: safePage <= 1 ? 'not-allowed' : 'pointer', opacity: safePage <= 1 ? 0.4 : 1 }}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <AdminIc icon={ChevronLeft} size={15} color={sp.soft} />
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter(p => Math.abs(p - safePage) <= 2 || p === 1 || p === totalPages)
                   .map((p, idx, arr) => {
                     const prev = arr[idx - 1]
                     const showEllipsis = prev !== undefined && p - prev > 1
+                    const on = p === safePage
                     return (
-                      <span key={p} className="flex items-center">
-                        {showEllipsis && <span className="px-1 text-xs text-theme-tertiary">...</span>}
+                      <span key={p} style={{ display: 'flex', alignItems: 'center' }}>
+                        {showEllipsis && (
+                          <span style={{ padding: '0 4px', fontSize: 11.5, fontWeight: 600, color: sp.sub }}>...</span>
+                        )}
                         <button
                           onClick={() => setPage(p)}
-                          className={cn(
-                            'h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors',
-                            p === safePage ? 'bg-admin-accent text-white' : 'text-theme-secondary hover:text-theme-primary'
-                          )}
+                          style={{
+                            minWidth: 28, height: 28, padding: '0 8px', borderRadius: ADMIN_RADII.pill,
+                            border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5,
+                            fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                            background: on ? sp.accent : 'transparent',
+                            color: on ? sp.accentInk : sp.soft,
+                          }}
                         >
                           {p}
                         </button>
@@ -323,36 +396,38 @@ export default function AdminUsersPage() {
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safePage >= totalPages}
                   aria-label={t('admin:common.nextPage')}
-                  className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
+                  style={{ ...pagerBtn, cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', opacity: safePage >= totalPages ? 0.4 : 1 }}
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <AdminIc icon={ChevronRight} size={15} color={sp.soft} />
                 </button>
               </div>
             </div>
           )}
-        </div>
+        </AdminCard>
 
-        {/* Mobile pagination */}
+        {/* Pagination mobile (cible tactile 44 px) */}
         {!isLoading && filtered.length > ITEMS_PER_PAGE && (
-          <div className="md:hidden flex items-center justify-between px-2 py-3">
-            <button
+          <div className="md:hidden" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '0 2px' }}>
+            <AdminGhostBtn
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage <= 1}
-              className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
+              style={{ height: 44 }}
             >
               {t('admin:common.previous')}
-            </button>
-            <span className="text-xs text-theme-tertiary">{safePage}/{totalPages}</span>
-            <button
+            </AdminGhostBtn>
+            <span style={{ fontSize: 12, fontWeight: 700, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+              {safePage}/{totalPages}
+            </span>
+            <AdminGhostBtn
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
-              className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
+              style={{ height: 44 }}
             >
               {t('admin:common.next')}
-            </button>
+            </AdminGhostBtn>
           </div>
         )}
-      </div>
+      </AdminPage>
 
       {/* Drawer */}
       {selectedUserId && (

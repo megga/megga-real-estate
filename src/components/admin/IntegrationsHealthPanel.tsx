@@ -1,40 +1,47 @@
 // P7 — Santé des intégrations critiques : Resend, webhooks Stripe, calendriers
-// OAuth, Realtime. 4 cartes avec pastille de statut (texte coloré, pas de fond).
+// OAuth, Realtime. 4 bentos Sugar (`AdminCard`) avec une pastille de statut au
+// ton fonctionnel — les fonds `bg-emerald-500` / `bg-amber-500` / `bg-red-500`
+// de la version précédente sont remplacés par `tones.ok/warn/err`.
 
 import { useTranslation } from 'react-i18next'
 import { Mail, CreditCard, Calendar, Radio } from 'lucide-react'
-import { cn, formatRelativeDate } from '@/lib/utils'
+import { formatRelativeDate } from '@/lib/utils'
 import { useAdminIntegrationsHealth } from '@/hooks/useAdminIntegrationsHealth'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
+import { AdminCard, AdminGroupTitle, AdminIc, AdminSkeleton } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 import type { LucideIcon } from 'lucide-react'
 
 type Level = 'ok' | 'warn' | 'down' | 'idle'
 
-const DOT: Record<Level, string> = {
-  ok: 'bg-emerald-500',
-  warn: 'bg-amber-500',
-  down: 'bg-red-500',
-  idle: 'bg-theme-muted',
-}
-
 function HealthCard({ icon: Icon, title, level, lines }: {
   icon: LucideIcon; title: string; level: Level; lines: string[]
 }) {
+  const { sp, tones } = useAdminSugar()
+  // `idle` n'est pas un signal : la pastille reste encre douce, pas un ton vif.
+  const dot: Record<Level, string> = {
+    ok: tones.ok,
+    warn: tones.warn,
+    down: tones.err,
+    idle: sp.soft,
+  }
+
   return (
-    <div className="rounded-xl border border-theme-border p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="flex items-center gap-2 text-sm font-medium text-theme-primary">
-          <Icon className="h-4 w-4 text-theme-tertiary" />
-          {title}
+    <AdminCard padding="15px 17px">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 9 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <AdminIc icon={Icon} size={16} color={sp.sub} />
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{title}</span>
         </span>
-        <span className={cn('h-2 w-2 rounded-full', DOT[level])} />
+        <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: dot[level], flexShrink: 0 }} />
       </div>
-      <div className="space-y-0.5">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {lines.map((l, i) => (
-          <p key={i} className="text-xs text-theme-secondary">{l}</p>
+          <p key={i} style={{ margin: 0, fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>{l}</p>
         ))}
       </div>
-    </div>
+    </AdminCard>
   )
 }
 
@@ -47,10 +54,7 @@ export default function IntegrationsHealthPanel() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-theme-border p-4 animate-pulse">
-            <div className="h-4 bg-theme-hover rounded w-24 mb-3" />
-            <div className="h-3 bg-theme-hover rounded w-32" />
-          </div>
+          <AdminSkeleton key={i} height={92} radius={ADMIN_RADII.card} />
         ))}
       </div>
     )
@@ -69,7 +73,7 @@ export default function IntegrationsHealthPanel() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-theme-primary mb-3">{t('integrations.title')}</h2>
+      <AdminGroupTitle label={t('integrations.title')} tone="cyan" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <HealthCard
           icon={Mail}

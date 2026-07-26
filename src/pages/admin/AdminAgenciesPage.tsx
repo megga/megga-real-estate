@@ -1,17 +1,27 @@
 /**
  * Page super-admin — annuaire des agences.
  *
- * Route : `/agencies` (accent violet). Liste
- * paginée (10/page) avec recherche, filtre de statut, export CSV et score de
- * santé par agence. La santé s'appuie sur un résumé d'activité agrégé server-side
- * (RPC `get_agency_activity_summary`) pour éviter de scanner activity_events.
+ * Route : `/agencies`. Liste paginée (10/page) avec recherche, filtre de statut,
+ * export CSV et score de santé par agence. La santé s'appuie sur un résumé
+ * d'activité agrégé server-side (RPC `get_agency_activity_summary`) pour éviter de
+ * scanner activity_events.
+ *
+ * Rendu en grammaire Sugar (kit `components/admin/kit`) : l'en-tête et la largeur
+ * viennent d'`AdminPage` (la pastille violette vit désormais dans le rail, une
+ * seule fois), les bentos sont séparés par l'ombre et non par une bordure, les
+ * statuts sont des pilules pleines, les avatars n'ont plus qu'un fond — l'encre —
+ * et tous les compteurs sont en chiffres tabulaires.
+ *
+ * Le tableau desktop reste une grille de `<Link>` (et non un `<table>`) : chaque
+ * ligne EST un lien vers la fiche, ce qui préserve le clic milieu et « ouvrir
+ * dans un nouvel onglet ». Sa typographie reprend celle d'`AdminTh`/`AdminTd`.
  */
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Search, Building2, ChevronLeft, ChevronRight, Download, Plus } from 'lucide-react'
 import { exportToCsv } from '@/lib/exportCsv'
-import { cn, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
@@ -20,7 +30,12 @@ import { calculateAgencyHealth } from '@/lib/agencyHealthScore'
 import AgencyHealthBadge from '@/components/admin/AgencyHealthBadge'
 import AgencyUsageOverview from '@/components/admin/AgencyUsageOverview'
 import CreateAgencyModal from '@/components/admin/CreateAgencyModal'
-import PageTransition from '@/components/layout/PageTransition'
+import AdminPage from '@/components/admin/kit/AdminPage'
+import {
+  AdminAvatar, AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminSolidBtn,
+} from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 const ITEMS_PER_PAGE = 10
 
@@ -30,49 +45,57 @@ const PLAN_LABEL: Record<string, string> = {
   entreprise: 'Entreprise',
 }
 
-// Statuts d'abonnement à signaler (badge texte, pas de fond — règle design).
-const SUB_BADGE: Record<string, { i18nKey: string; className: string }> = {
-  trialing: { i18nKey: 'agencies.sub.trialing', className: 'text-blue-500' },
-  past_due: { i18nKey: 'agencies.sub.pastDue', className: 'text-red-500' },
+// Statuts d'abonnement à signaler. Pilule pleine plutôt que texte coloré : c'est
+// un statut, pas une nuance de prose.
+const SUB_BADGE: Record<string, { i18nKey: string; tone: AdminToneName }> = {
+  trialing: { i18nKey: 'agencies.sub.trialing', tone: 'info' },
+  past_due: { i18nKey: 'agencies.sub.pastDue', tone: 'err' },
 }
+
+// Largeurs de colonnes partagées par l'en-tête et les lignes — sans elles, les
+// deux grilles dérivent l'une de l'autre au moindre changement.
+const COL = {
+  plan: 84,
+  agents: 62,
+  properties: 62,
+  transactions: 84,
+  date: 94,
+  status: 98,
+  health: 62,
+  action: 106,
+} as const
 
 function SubscriptionBadge({ status }: { status: string | null }) {
   const { t } = useTranslation('admin')
   if (!status || !SUB_BADGE[status]) return null
   const meta = SUB_BADGE[status]
-  return <span className={cn('text-xs font-medium', meta.className)}>{t(meta.i18nKey)}</span>
+  return <AdminPill label={t(meta.i18nKey)} tone={meta.tone} style={{ padding: '3px 9px', fontSize: 10.5 }} />
 }
 
-/** Pastille initiale, couleur dérivée déterministiquement du nom (somme des char codes). */
-function AgencyAvatar({ name }: { name: string }) {
-  const letter = (name || '?')[0].toUpperCase()
-  const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500']
-  const idx = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length
-
-  return (
-    <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0', colors[idx])}>
-      <span className="text-xs font-semibold text-white">{letter}</span>
-    </div>
-  )
+/** Initiale d'agence pour l'avatar (la couleur, elle, ne dépend plus du nom). */
+function agencyInitial(name: string): string {
+  return (name || '?')[0].toUpperCase()
 }
 
-/** Placeholder pulsant du tableau desktop pendant le chargement. */
+/** Placeholder du tableau desktop pendant le chargement. */
 function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className={cn('flex items-center px-4 py-3.5 gap-3', i < 4 && 'border-b border-theme-border')}>
-          <div className="h-8 w-8 rounded-lg bg-theme-hover animate-pulse" />
-          <div className="flex-1 space-y-1.5">
-            <div className="h-3.5 w-32 rounded bg-theme-hover animate-pulse" />
-            <div className="h-2.5 w-20 rounded bg-theme-hover animate-pulse" />
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px' }}>
+          <AdminSkeleton height={34} width={34} radius={ADMIN_RADII.pill} />
+          <div style={{ flex: 1, display: 'grid', gap: 6 }}>
+            <AdminSkeleton height={11} width={150} radius={ADMIN_RADII.pill} />
+            <AdminSkeleton height={9} width={94} radius={ADMIN_RADII.pill} />
           </div>
-          <div className="h-3 w-12 rounded bg-theme-hover animate-pulse" />
-          <div className="h-3 w-8 rounded bg-theme-hover animate-pulse" />
-          <div className="h-3 w-8 rounded bg-theme-hover animate-pulse" />
-          <div className="h-3 w-8 rounded bg-theme-hover animate-pulse" />
-          <div className="h-3 w-16 rounded bg-theme-hover animate-pulse" />
-          <div className="h-2 w-2 rounded-full bg-theme-hover animate-pulse" />
+          <AdminSkeleton height={10} width={COL.plan - 24} radius={ADMIN_RADII.pill} />
+          <AdminSkeleton height={10} width={COL.agents - 30} radius={ADMIN_RADII.pill} />
+          <AdminSkeleton height={10} width={COL.properties - 30} radius={ADMIN_RADII.pill} />
+          <AdminSkeleton height={10} width={COL.transactions - 40} radius={ADMIN_RADII.pill} />
+          <AdminSkeleton height={10} width={COL.date - 30} radius={ADMIN_RADII.pill} />
+          <AdminSkeleton height={20} width={COL.status - 24} radius={ADMIN_RADII.pill} />
+          <AdminSkeleton height={20} width={COL.health - 20} radius={ADMIN_RADII.pill} />
+          <div style={{ width: COL.action }} />
         </div>
       ))}
     </>
@@ -84,6 +107,7 @@ export default function AdminAgenciesPage() {
   'use no memo'
   const { t } = useTranslation('admin')
   const { agencies, isLoading, updateStatus } = useAdminAgencies()
+  const { sp, surf, dark, tones } = useAdminSugar()
 
   // Activity data for health scores.
   // Agrégé SERVER-SIDE via RPC : l'ancien code chargeait toutes les lignes
@@ -164,285 +188,313 @@ export default function AdminAgenciesPage() {
     { value: 'suspended', label: t('common.status.suspended') },
   ]
 
+  const hair = surf.hairline
+  const num: CSSProperties = { fontVariantNumeric: 'tabular-nums' }
+  const cell: CSSProperties = { fontSize: 12, color: sp.soft }
+  const headCell: CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: sp.sub, whiteSpace: 'nowrap' }
+  // Champ Sugar : surface creuse + filet intérieur, aucune bordure décorative.
+  const fieldStyle: CSSProperties = {
+    width: '100%', height: 36, borderRadius: ADMIN_RADII.row, border: 0,
+    background: surf.cardSub, color: sp.ink,
+    fontFamily: 'inherit', fontSize: 13, fontWeight: 600, outline: 'none',
+    boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
+  }
+  const pagerBtn: CSSProperties = {
+    width: 30, height: 30, borderRadius: ADMIN_RADII.pill, border: 0, background: 'transparent',
+    display: 'grid', placeItems: 'center', cursor: 'pointer', color: sp.sub,
+  }
+
+  /** Statut d'une agence : pilule pleine (l'ancien point vert/rouge ne se lisait pas). */
+  const statusPill = (agency: AgencyWithStats) => (
+    <AdminPill
+      label={t(agency.status === 'active' ? 'common.status.active' : 'common.status.suspended')}
+      tone={agency.status === 'active' ? 'ok' : 'err'}
+      style={{ padding: '4px 10px', fontSize: 11 }}
+    />
+  )
+
   return (
-    <PageTransition>
-      <div className="max-w-5xl mx-auto space-y-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="h-2 w-2 rounded-full bg-admin-accent" />
-              <span className="text-xs font-medium text-admin-accent">{t('common.adminBadge')}</span>
-            </div>
-            <h1 className="text-2xl font-semibold text-theme-primary">{t('agencies.title')}</h1>
-            <p className="text-sm text-theme-tertiary mt-0.5">
-              {isLoading ? t('common.loading') : t(agencies.length !== 1 ? 'agencies.subtitle_plural' : 'agencies.subtitle', { count: agencies.length })}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => exportToCsv('megga-agences', agencies.map(a => ({
-                nom: a.name, plan: a.plan ?? '', agents: a.agent_count,
-                biens: a.property_count, transactions: a.transaction_count,
-                statut: a.status, date: a.created_at,
-              })))}
-              className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              {t('agencies.export')}
-            </button>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="h-9 px-3 text-sm font-medium border border-admin-accent text-admin-accent rounded-lg hover:bg-admin-accent/10 transition-colors flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              {t('agencies.create')}
-            </button>
-          </div>
-        </div>
+    <AdminPage
+      title={t('agencies.title')}
+      subtitle={isLoading ? t('common.loading') : t(agencies.length !== 1 ? 'agencies.subtitle_plural' : 'agencies.subtitle', { count: agencies.length })}
+      width="wide"
+      actions={
+        <>
+          <AdminGhostBtn
+            icon={Download}
+            onClick={() => exportToCsv('megga-agences', agencies.map(a => ({
+              nom: a.name, plan: a.plan ?? '', agents: a.agent_count,
+              biens: a.property_count, transactions: a.transaction_count,
+              statut: a.status, date: a.created_at,
+            })))}
+          >
+            {t('agencies.export')}
+          </AdminGhostBtn>
+          <AdminSolidBtn icon={Plus} onClick={() => setShowCreate(true)}>
+            {t('agencies.create')}
+          </AdminSolidBtn>
+        </>
+      }
+    >
+      {/* Survol de ligne et révélation de l'action : impossible en style inline. */}
+      <style>{`
+        .agx-row { text-decoration: none; transition: background-color .16s ease; }
+        .agx-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.025)'}; }
+        .agx-act { opacity: 0; transition: opacity .16s ease; }
+        .agx-row:hover .agx-act, .agx-row:focus-visible .agx-act { opacity: 1; }
+      `}</style>
 
-        {showCreate && <CreateAgencyModal onClose={() => setShowCreate(false)} />}
+      {showCreate && <CreateAgencyModal onClose={() => setShowCreate(false)} />}
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary" />
+      {/* Filtres */}
+      <AdminCard padding="10px 12px">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 320 }}>
+            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'grid' }}>
+              <AdminIc icon={Search} size={15} color={sp.sub} />
+            </span>
             <input
               type="text"
               placeholder={t('agencies.searchPlaceholder')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              className="w-full h-9 pl-9 pr-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
+              style={{ ...fieldStyle, padding: '0 12px 0 34px' }}
             />
           </div>
 
-          <div className="flex items-center gap-1">
-            {statusFilters.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => { setStatusFilter(f.value); setPage(1) }}
-                className={cn(
-                  'h-9 px-4 rounded-lg text-sm transition-colors',
-                  statusFilter === f.value
-                    ? 'bg-theme-active text-theme-primary font-medium'
-                    : 'text-theme-secondary hover:text-theme-primary'
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {statusFilters.map((f) => {
+              const on = statusFilter === f.value
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => { setStatusFilter(f.value); setPage(1) }}
+                  aria-pressed={on}
+                  style={{
+                    height: 32, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
+                    background: on ? sp.accent : 'transparent',
+                    color: on ? sp.accentInk : sp.soft,
+                  }}
+                >
+                  {f.label}
+                </button>
+              )
+            })}
           </div>
         </div>
+      </AdminCard>
 
-        {/* Usage consolidé par agence (repliable, chargé à la demande) */}
-        <AgencyUsageOverview />
+      {/* Usage consolidé par agence (repliable, chargé à la demande) */}
+      <AgencyUsageOverview />
 
-        {/* Mobile: cards */}
-        <div className="md:hidden space-y-2">
-          {isLoading ? (
-            <div className="px-4 py-12 text-center">
-              <p className="text-sm text-theme-tertiary">{t('common.loading')}</p>
-            </div>
-          ) : paginated.length === 0 ? (
+      {/* Mobile : cartes. Le display vient des CLASSES (un `display` inline
+          l'emporterait sur `md:hidden` et la liste resterait visible en desktop). */}
+      <div className="md:hidden space-y-2">
+        {isLoading ? (
+          <>
+            <AdminSkeleton height={62} radius={ADMIN_RADII.card} />
+            <AdminSkeleton height={62} radius={ADMIN_RADII.card} />
+            <AdminSkeleton height={62} radius={ADMIN_RADII.card} />
+          </>
+        ) : paginated.length === 0 ? (
+          <AdminCard padding={0}>
             <EmptyState hasFilters={!!search || !!statusFilter} />
-          ) : (
-            paginated.map((agency) => (
-              <Link
-                key={agency.id}
-                to={`/agencies/${agency.id}`}
-                className="flex items-center gap-3 p-3 rounded-xl border border-theme-border hover:border-theme-active transition-colors"
-              >
-                <AgencyAvatar name={agency.name} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-theme-primary truncate">{agency.name}</p>
-                  <p className="text-xs text-theme-tertiary mt-0.5">
-                    {PLAN_LABEL[agency.plan ?? ''] ?? agency.plan ?? 'Starter'}
-                    {' · '}{agency.agent_count} agent{agency.agent_count !== 1 ? 's' : ''}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className={cn(
-                    'h-2 w-2 rounded-full',
-                    agency.status === 'active' ? 'bg-emerald-500' : 'bg-red-500'
-                  )} />
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-
-        {/* Desktop: table */}
-        <div className="hidden md:block rounded-xl border border-theme-border">
-          {/* Header row */}
-          <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
-            <span className="flex-1">{t('agencies.table.name')}</span>
-            <span className="w-20">{t('agencies.table.plan')}</span>
-            <span className="w-16 text-center">{t('agencies.table.agents')}</span>
-            <span className="w-16 text-center">{t('agencies.table.properties')}</span>
-            <span className="w-20 text-center">{t('agencies.table.transactions')}</span>
-            <span className="w-24">{t('agencies.table.date')}</span>
-            <span className="w-16 text-center">{t('agencies.table.status')}</span>
-            <span className="w-16 text-center">{t('agencies.table.health')}</span>
-            <span className="w-24" />
-          </div>
-
-          {/* Rows */}
-          {isLoading ? (
-            <SkeletonRows />
-          ) : paginated.length === 0 ? (
-            <EmptyState hasFilters={!!search || !!statusFilter} />
-          ) : (
-            paginated.map((agency, i) => (
-              <Link
-                key={agency.id}
-                to={`/agencies/${agency.id}`}
-                className={cn(
-                  'flex items-center px-4 py-3 group hover:bg-theme-hover transition-colors',
-                  i < paginated.length - 1 && 'border-b border-theme-border'
-                )}
-              >
-                {/* Name + avatar */}
-                <div className="flex-1 flex items-center gap-3 min-w-0">
-                  <AgencyAvatar name={agency.name} />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-theme-primary truncate group-hover:text-admin-accent transition-colors">
-                        {agency.name}
-                      </p>
-                      <SubscriptionBadge status={agency.subscription_status} />
-                    </div>
-                    {agency.email && (
-                      <p className="text-xs text-theme-tertiary truncate">{agency.email}</p>
-                    )}
+          </AdminCard>
+        ) : (
+          paginated.map((agency) => (
+            <Link key={agency.id} to={`/agencies/${agency.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+              <AdminCard padding="12px 14px">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <AdminAvatar initials={agencyInitial(agency.name)} size={34} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {agency.name}
+                    </p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11.5, color: sp.sub, ...num }}>
+                      {PLAN_LABEL[agency.plan ?? ''] ?? agency.plan ?? 'Starter'}
+                      {' · '}{agency.agent_count} agent{agency.agent_count !== 1 ? 's' : ''}
+                    </p>
                   </div>
+                  {statusPill(agency)}
                 </div>
-
-                {/* Plan */}
-                <span className="w-20 text-xs text-theme-secondary">
-                  {PLAN_LABEL[agency.plan ?? ''] ?? agency.plan ?? 'Starter'}
-                </span>
-
-                {/* Agents */}
-                <span className="w-16 text-xs text-theme-secondary text-center">
-                  {agency.agent_count}
-                </span>
-
-                {/* Properties */}
-                <span className="w-16 text-xs text-theme-secondary text-center">
-                  {agency.property_count}
-                </span>
-
-                {/* Transactions */}
-                <span className="w-20 text-xs text-theme-secondary text-center">
-                  {agency.transaction_count}
-                </span>
-
-                {/* Date */}
-                <span className="w-24 text-xs text-theme-tertiary">
-                  {formatDate(agency.created_at)}
-                </span>
-
-                {/* Status */}
-                <div className="w-16 flex items-center justify-center">
-                  <span className={cn(
-                    'h-2 w-2 rounded-full',
-                    agency.status === 'active' ? 'bg-emerald-500' : 'bg-red-500'
-                  )} />
-                </div>
-
-                {/* Health */}
-                <div className="w-16 flex items-center justify-center">
-                  {(() => { const h = getHealth(agency); return <AgencyHealthBadge score={h.score} level={h.level} /> })()}
-                </div>
-
-                {/* Hover action */}
-                <div className="w-24 flex justify-end">
-                  <button
-                    onClick={(e) => handleToggleStatus(e, agency)}
-                    className={cn(
-                      'opacity-0 group-hover:opacity-100 transition-opacity h-7 px-2.5 rounded-md text-xs font-medium border border-theme-border hover:border-theme-active',
-                      agency.status === 'active'
-                        ? 'text-red-500 hover:text-red-600'
-                        : 'text-emerald-500 hover:text-emerald-600'
-                    )}
-                  >
-                    {agency.status === 'active' ? t('agencies.action.suspend') : t('agencies.action.activate')}
-                  </button>
-                </div>
-              </Link>
-            ))
-          )}
-
-          {/* Pagination */}
-          {filtered.length > ITEMS_PER_PAGE && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-theme-border">
-              <p className="text-xs text-theme-tertiary">
-                {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} {t('common.on')} {filtered.length}
-              </p>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={safePage <= 1}
-                  aria-label={t('common.previousPage')}
-                  className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(p => Math.abs(p - safePage) <= 2 || p === 1 || p === totalPages)
-                  .map((p, idx, arr) => {
-                    const prev = arr[idx - 1]
-                    const showEllipsis = prev !== undefined && p - prev > 1
-                    return (
-                      <span key={p} className="flex items-center">
-                        {showEllipsis && <span className="px-1 text-xs text-theme-tertiary">...</span>}
-                        <button
-                          onClick={() => setPage(p)}
-                          className={cn(
-                            'h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors',
-                            p === safePage ? 'bg-admin-accent text-white' : 'text-theme-secondary hover:text-theme-primary'
-                          )}
-                        >
-                          {p}
-                        </button>
-                      </span>
-                    )
-                  })}
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={safePage >= totalPages}
-                  aria-label={t('common.nextPage')}
-                  className="p-1.5 rounded-md text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile pagination */}
-        {!isLoading && filtered.length > ITEMS_PER_PAGE && (
-          <div className="md:hidden flex items-center justify-between px-2 py-3">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={safePage <= 1}
-              className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
-            >
-              {t('common.previous')}
-            </button>
-            <span className="text-xs text-theme-tertiary">{safePage}/{totalPages}</span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={safePage >= totalPages}
-              className="min-h-[44px] px-3 rounded-lg text-sm text-theme-secondary hover:text-theme-primary disabled:opacity-40 border border-theme-border transition-colors"
-            >
-              {t('common.next')}
-            </button>
-          </div>
+              </AdminCard>
+            </Link>
+          ))
         )}
       </div>
-    </PageTransition>
+
+      {/* Desktop : tableau */}
+      <AdminCard className="hidden md:block" padding={0} style={{ overflow: 'hidden' }}>
+        {/* Ligne d'en-tête */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '9px 16px', background: sp.tableHeadBg }}>
+          <span style={{ ...headCell, flex: 1 }}>{t('agencies.table.name')}</span>
+          <span style={{ ...headCell, width: COL.plan }}>{t('agencies.table.plan')}</span>
+          <span style={{ ...headCell, width: COL.agents, textAlign: 'center' }}>{t('agencies.table.agents')}</span>
+          <span style={{ ...headCell, width: COL.properties, textAlign: 'center' }}>{t('agencies.table.properties')}</span>
+          <span style={{ ...headCell, width: COL.transactions, textAlign: 'center' }}>{t('agencies.table.transactions')}</span>
+          <span style={{ ...headCell, width: COL.date }}>{t('agencies.table.date')}</span>
+          <span style={{ ...headCell, width: COL.status, textAlign: 'center' }}>{t('agencies.table.status')}</span>
+          <span style={{ ...headCell, width: COL.health, textAlign: 'center' }}>{t('agencies.table.health')}</span>
+          <span style={{ width: COL.action }} />
+        </div>
+
+        {/* Lignes */}
+        {isLoading ? (
+          <SkeletonRows />
+        ) : paginated.length === 0 ? (
+          <EmptyState hasFilters={!!search || !!statusFilter} />
+        ) : (
+          paginated.map((agency, i) => (
+            <Link
+              key={agency.id}
+              to={`/agencies/${agency.id}`}
+              className="agx-row"
+              style={{ display: 'flex', alignItems: 'center', padding: '11px 16px', borderTop: i === 0 ? undefined : hair }}
+            >
+              {/* Nom + avatar */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                <AdminAvatar initials={agencyInitial(agency.name)} size={34} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {agency.name}
+                    </p>
+                    <SubscriptionBadge status={agency.subscription_status} />
+                  </div>
+                  {agency.email && (
+                    <p style={{ margin: '1px 0 0', fontSize: 11.5, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {agency.email}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Plan */}
+              <span style={{ ...cell, width: COL.plan }}>
+                {PLAN_LABEL[agency.plan ?? ''] ?? agency.plan ?? 'Starter'}
+              </span>
+
+              {/* Agents */}
+              <span style={{ ...cell, ...num, width: COL.agents, textAlign: 'center' }}>
+                {agency.agent_count}
+              </span>
+
+              {/* Biens */}
+              <span style={{ ...cell, ...num, width: COL.properties, textAlign: 'center' }}>
+                {agency.property_count}
+              </span>
+
+              {/* Transactions */}
+              <span style={{ ...cell, ...num, width: COL.transactions, textAlign: 'center' }}>
+                {agency.transaction_count}
+              </span>
+
+              {/* Date */}
+              <span style={{ ...cell, ...num, width: COL.date, color: sp.sub }}>
+                {formatDate(agency.created_at)}
+              </span>
+
+              {/* Statut */}
+              <div style={{ width: COL.status, display: 'flex', justifyContent: 'center' }}>
+                {statusPill(agency)}
+              </div>
+
+              {/* Santé */}
+              <div style={{ width: COL.health, display: 'flex', justifyContent: 'center' }}>
+                {(() => { const h = getHealth(agency); return <AgencyHealthBadge score={h.score} level={h.level} /> })()}
+              </div>
+
+              {/* Action au survol */}
+              <div style={{ width: COL.action, display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  className="agx-act"
+                  onClick={(e) => handleToggleStatus(e, agency)}
+                  style={{
+                    height: 28, padding: '0 12px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
+                    background: surf.card, boxShadow: sp.shadowSm,
+                    color: agency.status === 'active' ? tones.err : tones.ok,
+                  }}
+                >
+                  {agency.status === 'active' ? t('agencies.action.suspend') : t('agencies.action.activate')}
+                </button>
+              </div>
+            </Link>
+          ))
+        )}
+
+        {/* Pagination */}
+        {filtered.length > ITEMS_PER_PAGE && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderTop: hair }}>
+            <p style={{ margin: 0, fontSize: 11.5, color: sp.sub, ...num }}>
+              {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} {t('common.on')} {filtered.length}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                aria-label={t('common.previousPage')}
+                style={{ ...pagerBtn, opacity: safePage <= 1 ? 0.4 : 1, cursor: safePage <= 1 ? 'not-allowed' : 'pointer' }}
+              >
+                <AdminIc icon={ChevronLeft} size={16} color={sp.sub} />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => Math.abs(p - safePage) <= 2 || p === 1 || p === totalPages)
+                .map((p, idx, arr) => {
+                  const prev = arr[idx - 1]
+                  const showEllipsis = prev !== undefined && p - prev > 1
+                  return (
+                    <span key={p} style={{ display: 'flex', alignItems: 'center' }}>
+                      {showEllipsis && <span style={{ padding: '0 4px', fontSize: 11.5, color: sp.sub }}>...</span>}
+                      <button
+                        onClick={() => setPage(p)}
+                        style={{
+                          height: 28, minWidth: 28, padding: '0 8px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                          fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, ...num,
+                          background: p === safePage ? sp.accent : 'transparent',
+                          color: p === safePage ? sp.accentInk : sp.soft,
+                        }}
+                      >
+                        {p}
+                      </button>
+                    </span>
+                  )
+                })}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                aria-label={t('common.nextPage')}
+                style={{ ...pagerBtn, opacity: safePage >= totalPages ? 0.4 : 1, cursor: safePage >= totalPages ? 'not-allowed' : 'pointer' }}
+              >
+                <AdminIc icon={ChevronRight} size={16} color={sp.sub} />
+              </button>
+            </div>
+          </div>
+        )}
+      </AdminCard>
+
+      {/* Pagination mobile — hauteur 44 pour rester une cible tactile confortable */}
+      {!isLoading && filtered.length > ITEMS_PER_PAGE && (
+        <div className="md:hidden flex items-center justify-between" style={{ padding: '0 4px' }}>
+          <AdminGhostBtn
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={safePage <= 1}
+            style={{ height: 44 }}
+          >
+            {t('common.previous')}
+          </AdminGhostBtn>
+          <span style={{ fontSize: 12, color: sp.sub, ...num }}>{safePage}/{totalPages}</span>
+          <AdminGhostBtn
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={safePage >= totalPages}
+            style={{ height: 44 }}
+          >
+            {t('common.next')}
+          </AdminGhostBtn>
+        </div>
+      )}
+    </AdminPage>
   )
 }
 
@@ -450,14 +502,10 @@ export default function AdminAgenciesPage() {
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   const { t } = useTranslation('admin')
   return (
-    <div className="px-4 py-16 text-center">
-      <Building2 className="h-8 w-8 mx-auto text-theme-tertiary mb-3" />
-      <p className="text-sm text-theme-secondary font-medium">
-        {hasFilters ? t('agencies.empty.titleFiltered') : t('agencies.empty.title')}
-      </p>
-      <p className="text-xs text-theme-tertiary mt-1">
-        {hasFilters ? t('agencies.empty.subtitleFiltered') : t('agencies.empty.subtitle')}
-      </p>
-    </div>
+    <AdminEmpty
+      icon={Building2}
+      title={hasFilters ? t('agencies.empty.titleFiltered') : t('agencies.empty.title')}
+      hint={hasFilters ? t('agencies.empty.subtitleFiltered') : t('agencies.empty.subtitle')}
+    />
   )
 }

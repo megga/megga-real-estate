@@ -1,23 +1,45 @@
 /**
  * Page super-admin — usage des outils WhatsApp de l'agent IA.
  *
- * Route : `/tool-usage` (console admin.megga.ch) (accent violet). Croise la
- * RPC des appels observés avec le catalogue `WHATSAPP_TOOL_CATALOG` (outils jamais
- * appelés inclus en lignes à 0), affiche tier + taux d'erreur par outil, puis les
- * coûts IA par agence via `AiCostsSection`. Vue observe-only, aucune action.
+ * Route : `/tool-usage` (console admin.megga.ch). Croise la RPC des appels
+ * observés avec le catalogue `WHATSAPP_TOOL_CATALOG` (outils jamais appelés
+ * inclus en lignes à 0), affiche tier + taux d'erreur par outil, puis les coûts
+ * IA par agence via `AiCostsSection`. Vue observe-only, aucune action.
+ *
+ * Rendu en grammaire Sugar (kit `admin/kit`) : bento séparé par l'ombre, vrai
+ * tableau `AdminTh`/`AdminTd`, chiffres tabulaires, et le `text-red-500` du
+ * taux d'erreur remplacé par le ton fonctionnel `tones.err`. Le repère « Admin
+ * MEGGA » a quitté la page — il vit une seule fois dans le rail du shell.
+ *
+ * Un échec de la RPC se dit en BANDEAU au-dessus du tableau : les lignes du
+ * catalogue sont calculées ici, elles restent exactes sans elle.
  */
 import { useTranslation } from 'react-i18next'
-import { Sparkles } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { AlertTriangle, Sparkles } from 'lucide-react'
+import AdminPage from '@/components/admin/kit/AdminPage'
+import {
+  AdminCard, AdminIc, AdminSkeleton, AdminTd, AdminTh,
+} from '@/components/admin/kit/adminKit'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { useAdminToolUsage, type ToolUsageRow } from '@/hooks/useAdminToolUsage'
 import { WHATSAPP_TOOL_CATALOG } from '@/lib/whatsapp-tools-catalog'
 import { AiCostsSection } from '@/components/admin/AdminOpsPanels'
 
 const TIER_BY_TOOL = new Map(WHATSAPP_TOOL_CATALOG.map((tt) => [tt.name, tt.tier]))
 
+/** Troncature d'une cellule : les colonnes du tableau ont une largeur figée. */
+const CLIP = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as const
+
+/** Identifiant technique (nom d'outil) — chasse fixe, pour que les noms s'alignent. */
+const MONO = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' } as const
+
+/** Seuil au-delà duquel le taux d'erreur d'un outil passe au ton d'alerte. */
+const ERROR_RATE_ALERT = 0.2
+
 /** Table d'usage des outils (observés + jamais utilisés) suivie de la section coûts IA. */
 export default function AdminToolUsagePage() {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSugar()
   const { data: observed = [], isLoading, error } = useAdminToolUsage()
 
   // La RPC ne renvoie que les outils observés. On complète avec les outils JAMAIS utilisés du
@@ -33,86 +55,104 @@ export default function AdminToolUsagePage() {
   const neverUsed = neverUsedRows.length
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <div className="h-8 px-3 rounded-lg bg-admin-accent/10 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-admin-accent" />
-            <span className="text-xs font-semibold text-admin-accent">{t('common.adminBadge')}</span>
-          </div>
-          <Sparkles className="h-5 w-5 text-theme-secondary" />
-          <h1 className="text-xl font-semibold text-theme-primary">{t('toolUsage.title')}</h1>
-        </div>
-        {!isLoading && (
-          <p className="text-sm text-theme-tertiary mt-1">
-            {t('toolUsage.subtitle', { neverUsed, total })}
+    <AdminPage
+      title={t('toolUsage.title')}
+      subtitle={isLoading ? t('common.loading') : t('toolUsage.subtitle', { neverUsed, total })}
+      width="normal"
+    >
+      {/* Note observe-only — on trace l'appel, jamais le contenu des messages */}
+      <AdminCard padding="14px 16px">
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+          <AdminIc icon={Sparkles} size={16} color={tones.info} style={{ marginTop: 2 }} />
+          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: sp.sub }}>
+            {t('toolUsage.observeNote')}
           </p>
-        )}
-      </div>
-
-      {/* Error banner */}
-      {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-400">
-          {t('toolUsage.error')}
         </div>
+      </AdminCard>
+
+      {/* Échec de la RPC : BANDEAU, jamais un remplacement du tableau. Les lignes
+          des outils jamais appelés sont calculées ici depuis WHATSAPP_TOOL_CATALOG
+          et restent valides quand la RPC tombe — les court-circuiter effaçait un
+          contenu exact. Le bandeau dit seulement que les compteurs observés
+          manquent. */}
+      {error && (
+        <AdminCard padding="14px 16px">
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+            <AdminIc icon={AlertTriangle} size={16} color={tones.err} style={{ marginTop: 2 }} />
+            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, lineHeight: 1.55, color: sp.ink }}>
+              {t('toolUsage.error')}
+            </p>
+          </div>
+        </AdminCard>
       )}
 
-      {/* Observe-only notice */}
-      <div className="rounded-xl border border-theme-border bg-admin-accent/5 px-4 py-3 flex items-start gap-2">
-        <Sparkles className="h-4 w-4 text-admin-accent mt-0.5 shrink-0" />
-        <p className="text-sm text-theme-secondary">{t('toolUsage.observeNote')}</p>
-      </div>
-
-      {/* Table */}
-      <div className="rounded-xl border border-theme-border overflow-x-auto">
-        <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary">
-          <div className="flex-1">{t('toolUsage.col.tool')}</div>
-          <div className="w-28">{t('toolUsage.col.tier')}</div>
-          <div className="w-24 text-right">{t('toolUsage.col.calls')}</div>
-          <div className="w-28 text-right">{t('toolUsage.col.errorRate')}</div>
-          <div className="w-40 text-right">{t('toolUsage.col.lastUsed')}</div>
-        </div>
-
-        {isLoading && (
-          <div className="px-4 py-12 text-center text-sm text-theme-tertiary">{t('common.loading')}</div>
+      {/* Appels par outil.
+          `overflow: hidden` sur la carte, pas sur l'enfant qui défile : le rayon
+          vit ici, et `AdminTh` peint un fond OPAQUE en `position: sticky`. Sans
+          clip sur l'élément qui porte le rayon, la bande d'en-tête déborde des
+          coins arrondis du bento. */}
+      <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+        {isLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14 }}>
+            {[0, 1, 2, 3].map((i) => <AdminSkeleton key={i} height={34} />)}
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+              <thead>
+                <tr>
+                  <AdminTh>{t('toolUsage.col.tool')}</AdminTh>
+                  <AdminTh width={130}>{t('toolUsage.col.tier')}</AdminTh>
+                  <AdminTh align="right" width={100}>{t('toolUsage.col.calls')}</AdminTh>
+                  <AdminTh align="right" width={120}>{t('toolUsage.col.errorRate')}</AdminTh>
+                  <AdminTh align="right" width={160}>{t('toolUsage.col.lastUsed')}</AdminTh>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const tier = TIER_BY_TOOL.get(r.tool)
+                  const never = r.total_calls === 0
+                  const rate = Number(r.error_rate)
+                  return (
+                    // Un outil jamais appelé reste lisible mais s'efface : c'est une ligne
+                    // synthétique du catalogue, pas une mesure.
+                    <tr key={r.tool} style={{ opacity: never ? 0.6 : undefined }}>
+                      {/* `title` : la colonne est tronquée dès la largeur minimale du
+                          tableau, et le nom d'outil est l'identifiant qu'on vient lire. */}
+                      <AdminTd style={{ ...CLIP, ...MONO }}>
+                        <span title={r.tool}>{r.tool}</span>
+                      </AdminTd>
+                      <AdminTd style={{ ...CLIP, color: sp.sub }}>
+                        {tier ? t(`toolUsage.tier.${tier}`) : t('toolUsage.tier.unknown')}
+                      </AdminTd>
+                      <AdminTd align="right" numeric style={{ color: sp.sub }}>{r.total_calls}</AdminTd>
+                      {/* Ce qui s'efface prend `sp.sub` (le plus clair), pas `sp.soft` :
+                          en clair `soft` (#3F4640) est plus SOMBRE que `sub` (#7A8079),
+                          donc l'appuyer ici mettait le tiret et la dernière utilisation
+                          en avant des colonnes qu'ils accompagnent. */}
+                      <AdminTd
+                        align="right"
+                        numeric
+                        style={{ color: !never && rate >= ERROR_RATE_ALERT ? tones.err : sp.sub }}
+                      >
+                        {never ? '—' : `${(rate * 100).toFixed(1)}%`}
+                      </AdminTd>
+                      <AdminTd align="right" numeric style={{ ...CLIP, color: sp.sub }}>
+                        {r.last_used_at
+                          ? new Date(r.last_used_at).toLocaleDateString('fr-CH')
+                          : t('toolUsage.neverUsed')}
+                      </AdminTd>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-
-        {!isLoading && rows.map((r, i) => {
-          const tier = TIER_BY_TOOL.get(r.tool)
-          const never = r.total_calls === 0
-          const rate = Number(r.error_rate)
-          return (
-            <div
-              key={r.tool}
-              className={cn(
-                'flex items-center px-4 py-3',
-                i < rows.length - 1 && 'border-b border-theme-border',
-                never && 'opacity-60'
-              )}
-            >
-              <div className="flex-1 text-sm text-theme-primary font-mono">{r.tool}</div>
-              <div className="w-28 text-sm text-theme-secondary">
-                {tier ? t(`toolUsage.tier.${tier}`) : t('toolUsage.tier.unknown')}
-              </div>
-              <div className="w-24 text-right text-sm text-theme-secondary tabular-nums">{r.total_calls}</div>
-              <div className="w-28 text-right text-sm tabular-nums">
-                {never
-                  ? <span className="text-theme-tertiary">—</span>
-                  : <span className={cn(rate >= 0.2 ? 'text-red-500' : 'text-theme-secondary')}>{(rate * 100).toFixed(1)}%</span>}
-              </div>
-              <div className="w-40 text-right text-sm text-theme-tertiary">
-                {r.last_used_at
-                  ? new Date(r.last_used_at).toLocaleDateString('fr-CH')
-                  : t('toolUsage.neverUsed')}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      </AdminCard>
 
       {/* Coûts IA par agence × provider × module (P3 admin — RPC 20260705172000) */}
       <AiCostsSection />
-    </div>
+    </AdminPage>
   )
 }

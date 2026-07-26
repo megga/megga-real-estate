@@ -1,14 +1,21 @@
 // P8b — Création d'agence (super-admin). Le propriétaire est invité SÉPARÉMENT
 // (bouton distinct, non couplé) — la création ne rattache personne.
+//
+// Rendu en grammaire Sugar : champs sans bordure décorative (surface creuse +
+// filet intérieur), plan en segments à fond plein, « solo » en interrupteur
+// (l'ancienne case à cocher ne disait pas son état au lecteur d'écran), et un
+// seul accent d'action — le noir de `AdminSolidBtn`, pas le violet plateforme.
 
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import Modal from '@/components/ui/modal'
 import { useToast } from '@/components/ui/Toast'
-import { cn } from '@/lib/utils'
 import { CANTONS } from '@/lib/constants'
 import { useAdminCreateAgency } from '@/hooks/useAdminCreateAgency'
+import { AdminGhostBtn, AdminSolidBtn, AdminSwitch } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 const PLAN_IDS = ['starter', 'pro', 'entreprise'] as const
 
@@ -17,6 +24,7 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
   const toast = useToast()
   const navigate = useNavigate()
   const createAgency = useAdminCreateAgency()
+  const { sp, surf, dark } = useAdminSugar()
 
   const [name, setName] = useState('')
   const [city, setCity] = useState('')
@@ -42,25 +50,35 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
     )
   }
 
+  const labelStyle: CSSProperties = {
+    display: 'block', marginBottom: 6,
+    fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub,
+  }
+  // Champ Sugar : pas de bordure, une surface creuse et un filet INTÉRIEUR — le
+  // trait ne participe pas à la séparation, l'ombre du bento s'en charge.
+  const fieldStyle: CSSProperties = {
+    width: '100%', height: 38, padding: '0 12px', borderRadius: ADMIN_RADII.row, border: 0,
+    background: surf.cardSub, color: sp.ink,
+    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, outline: 'none',
+    boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
+  }
+
   return (
     <Modal open onClose={onClose} title={t('createAgency.title')} size="md">
       <div className="p-5 space-y-4">
         <div>
-          <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('createAgency.name')}</label>
-          <input type="text" value={name} onChange={e => setName(e.target.value)} autoFocus
-            className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-admin-accent/20 focus:border-admin-accent" />
+          <label style={labelStyle}>{t('createAgency.name')}</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} autoFocus style={fieldStyle} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('createAgency.city')}</label>
-            <input type="text" value={city} onChange={e => setCity(e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:border-admin-accent" />
+            <label style={labelStyle}>{t('createAgency.city')}</label>
+            <input type="text" value={city} onChange={e => setCity(e.target.value)} style={fieldStyle} />
           </div>
           <div>
-            <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('createAgency.canton')}</label>
-            <select value={canton} onChange={e => setCanton(e.target.value)}
-              className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:border-admin-accent">
+            <label style={labelStyle}>{t('createAgency.canton')}</label>
+            <select value={canton} onChange={e => setCanton(e.target.value)} style={fieldStyle}>
               <option value="">—</option>
               {CANTONS.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -68,37 +86,52 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
         </div>
 
         <div>
-          <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('createAgency.plan')}</label>
-          <div className="flex items-center gap-1.5">
+          <label style={labelStyle}>{t('createAgency.plan')}</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             {PLAN_IDS.map(p => (
-              <button key={p} onClick={() => setPlan(p)}
-                className={cn('h-8 px-3 rounded-lg text-xs font-medium transition-colors',
-                  plan === p ? 'bg-admin-accent/10 text-admin-accent' : 'bg-theme-hover text-theme-muted hover:text-theme-primary')}>
+              <button
+                key={p}
+                onClick={() => setPlan(p)}
+                aria-pressed={plan === p}
+                style={{
+                  height: 32, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
+                  background: plan === p ? sp.accent : surf.cardSub,
+                  color: plan === p ? sp.accentInk : sp.soft,
+                }}
+              >
                 {t(`common.plan.${p}`)}
               </button>
             ))}
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-theme-secondary cursor-pointer">
-          <input type="checkbox" checked={solo} onChange={e => setSolo(e.target.checked)} className="accent-admin-accent" />
-          {t('createAgency.solo')}
+        {/* `<label>` ENGLOBANT, comme avant la migration : le texte redevient une
+            cible de clic. Un `<button>` est un élément étiquetable, donc il est le
+            contrôle implicite du label — le navigateur lui transfère le clic reçu
+            sur le texte, et ne rejoue RIEN quand le clic vise déjà l'interrupteur
+            (pas de double bascule). L'association nomme aussi le switch : lui
+            repasser `label` (= `aria-label`) doublerait l'annonce du même libellé. */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: sp.ink }}>
+            {t('createAgency.solo')}
+          </span>
+          <AdminSwitch on={solo} onClick={() => setSolo(!solo)} />
         </label>
 
         <div>
-          <label className="text-xs font-medium text-theme-secondary block mb-1.5">{t('createAgency.note')}</label>
-          <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder={t('createAgency.notePlaceholder')}
-            className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:border-admin-accent" />
+          <label style={labelStyle}>{t('createAgency.note')}</label>
+          <input type="text" value={note} onChange={e => setNote(e.target.value)}
+            placeholder={t('createAgency.notePlaceholder')} style={fieldStyle} />
         </div>
 
-        <p className="text-xs text-theme-muted">{t('createAgency.inviteHint')}</p>
+        <p style={{ margin: 0, fontSize: 11.5, color: sp.sub, lineHeight: 1.5 }}>{t('createAgency.inviteHint')}</p>
 
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <button onClick={onClose} className="h-9 px-4 text-sm text-theme-secondary hover:text-theme-primary transition-colors">{t('common.cancel')}</button>
-          <button onClick={handleCreate} disabled={createAgency.isPending}
-            className="h-9 px-4 text-sm font-medium border border-admin-accent text-admin-accent rounded-lg hover:bg-admin-accent/10 transition-colors disabled:opacity-50">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 9, paddingTop: 4 }}>
+          <AdminGhostBtn onClick={onClose}>{t('common.cancel')}</AdminGhostBtn>
+          <AdminSolidBtn onClick={handleCreate} disabled={createAgency.isPending}>
             {createAgency.isPending ? t('common.saving') : t('createAgency.submit')}
-          </button>
+          </AdminSolidBtn>
         </div>
       </div>
     </Modal>
