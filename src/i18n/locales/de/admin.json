@@ -707,8 +707,7 @@
       "aiCalls": "{{count}} KI-Aufrufe",
       "whatsapp": "WhatsApp (Monat)",
       "storage": "Speicher",
-      "storageEstimate": "Schätzung",
-      "portals": "Aktive Portale"
+      "storageEstimate": "Schätzung"
     },
     "quota": {
       "title": "Kontingente bearbeiten",
@@ -735,33 +734,12 @@
       "aiCost": "KI-Kosten",
       "properties": "Objekte",
       "whatsapp": "WhatsApp",
-      "storage": "Speicher",
-      "portals": "Portale"
+      "storage": "Speicher"
     }
   },
   "endUsers": {
     "title": "Endkunden",
     "subtitle": "Verkäufer, Leads und KYC-Kunden ohne Konto.",
-    "portals": {
-      "title": "Verkäuferportale",
-      "active": "Aktiv",
-      "expired": "Abgelaufen",
-      "viewed7d": "Aufgerufen (7T)",
-      "totalViews": "Aufrufe gesamt",
-      "empty": "Keine Portale.",
-      "col": {
-        "contact": "Verkäufer",
-        "agency": "Agentur",
-        "property": "Objekt",
-        "views": "Aufrufe",
-        "expires": "Läuft ab"
-      }
-    },
-    "portalStatus": {
-      "active": "Aktiv",
-      "expired": "Abgelaufen",
-      "revoked": "Widerrufen"
-    },
     "leads": {
       "title": "Eingehende Leads",
       "total": "Verkäufer-Leads",

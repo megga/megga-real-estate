@@ -551,7 +551,6 @@
       "basicSearch": "Basic search",
       "aiAssistance": "AI assistance",
       "kycPipeline": "KYC pipeline",
-      "sellerPortal": "Seller portal",
       "prioritySupport": "Priority support",
       "unlimitedProperties": "Unlimited properties",
       "unlimitedContacts": "Unlimited contacts",
@@ -1018,7 +1017,6 @@
           "properties": "3 active listings",
           "crm": "Essential CRM",
           "aiSearch": "AI search",
-          "sellerPortal": "Seller portal",
           "emailSupport": "Email support"
         }
       },

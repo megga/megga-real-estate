@@ -53,7 +53,7 @@ test.describe('Marketplace publique — parametric route coverage', () => {
       // `networkidle` wait that timed out on /agencies (Supabase realtime and
       // parallel agency-directory fetches keep the network perpetually active).
       // Public pages have no single shared shell element (PublicPageHeader vs
-      // AuthBentoApp vs PortalGateway vs NotFoundPage),
+      // AuthBentoApp vs NotFoundPage),
       // so we use the same condition that the assertion below verifies:
       // the page has meaningful text content.
       await page.waitForFunction(() => document.body.innerText.trim().length > 50, {

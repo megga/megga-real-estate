@@ -3662,122 +3662,6 @@ export type Database = {
           },
         ]
       }
-      seller_portals: {
-        Row: {
-          agency_id: string | null
-          agent_id: string
-          contact_id: string
-          created_at: string | null
-          expires_at: string | null
-          id: string
-          last_viewed_at: string | null
-          property_id: string
-          status: string
-          token: string
-          view_count: number | null
-        }
-        Insert: {
-          agency_id?: string | null
-          agent_id: string
-          contact_id: string
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          last_viewed_at?: string | null
-          property_id: string
-          status?: string
-          token: string
-          view_count?: number | null
-        }
-        Update: {
-          agency_id?: string | null
-          agent_id?: string
-          contact_id?: string
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          last_viewed_at?: string | null
-          property_id?: string
-          status?: string
-          token?: string
-          view_count?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "seller_portals_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      seller_preferences: {
-        Row: {
-          agency_id: string | null
-          canal: string
-          created_at: string
-          creneaux: string[]
-          id: string
-          jours: string[]
-          langue: string
-          notif_offre: boolean
-          notif_resume: boolean
-          notif_retour: boolean
-          notif_visite: boolean
-          portal_id: string
-          preavis: string
-          updated_at: string
-        }
-        Insert: {
-          agency_id?: string | null
-          canal?: string
-          created_at?: string
-          creneaux?: string[]
-          id?: string
-          jours?: string[]
-          langue?: string
-          notif_offre?: boolean
-          notif_resume?: boolean
-          notif_retour?: boolean
-          notif_visite?: boolean
-          portal_id: string
-          preavis?: string
-          updated_at?: string
-        }
-        Update: {
-          agency_id?: string | null
-          canal?: string
-          created_at?: string
-          creneaux?: string[]
-          id?: string
-          jours?: string[]
-          langue?: string
-          notif_offre?: boolean
-          notif_resume?: boolean
-          notif_retour?: boolean
-          notif_visite?: boolean
-          portal_id?: string
-          preavis?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "seller_preferences_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "seller_preferences_portal_id_fkey"
-            columns: ["portal_id"]
-            isOneToOne: true
-            referencedRelation: "seller_portals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       signature_requests: {
         Row: {
           agency_id: string
@@ -5154,7 +5038,6 @@ export type Database = {
           ai_calls_month: number
           wa_messages_month: number
           storage_est_mb: number
-          portals_active: number
           last_activity_at: string | null
         }[]
       }
@@ -5170,7 +5053,6 @@ export type Database = {
           ai_cost_month_usd: number
           wa_messages_month: number
           storage_est_mb: number
-          portals_active: number
           last_activity_at: string | null
           caps: Json
         }[]
@@ -5205,21 +5087,6 @@ export type Database = {
       get_admin_end_user_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
-      }
-      get_admin_seller_portals: {
-        Args: { p_status?: string; p_limit?: number; p_offset?: number }
-        Returns: {
-          id: string
-          status: string
-          created_at: string
-          expires_at: string
-          last_viewed_at: string | null
-          view_count: number
-          agency_name: string | null
-          contact_name: string | null
-          property_title: string | null
-          agent_name: string | null
-        }[]
       }
       get_admin_kyc_magic_links: {
         Args: { p_status?: string; p_limit?: number; p_offset?: number }

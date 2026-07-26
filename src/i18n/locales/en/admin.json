@@ -707,8 +707,7 @@
       "aiCalls": "{{count}} AI calls",
       "whatsapp": "WhatsApp (month)",
       "storage": "Storage",
-      "storageEstimate": "estimate",
-      "portals": "Active portals"
+      "storageEstimate": "estimate"
     },
     "quota": {
       "title": "Edit quotas",
@@ -735,33 +734,12 @@
       "aiCost": "AI cost",
       "properties": "Properties",
       "whatsapp": "WhatsApp",
-      "storage": "Storage",
-      "portals": "Portals"
+      "storage": "Storage"
     }
   },
   "endUsers": {
     "title": "End users",
     "subtitle": "Sellers, leads and KYC clients without an account.",
-    "portals": {
-      "title": "Seller portals",
-      "active": "Active",
-      "expired": "Expired",
-      "viewed7d": "Viewed (7d)",
-      "totalViews": "Total views",
-      "empty": "No portals.",
-      "col": {
-        "contact": "Seller",
-        "agency": "Agency",
-        "property": "Property",
-        "views": "Views",
-        "expires": "Expires"
-      }
-    },
-    "portalStatus": {
-      "active": "Active",
-      "expired": "Expired",
-      "revoked": "Revoked"
-    },
     "leads": {
       "title": "Inbound leads",
       "total": "Seller leads",
