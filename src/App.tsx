@@ -134,7 +134,6 @@ const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
-const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
 const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
@@ -144,10 +143,6 @@ const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
 const CopilotPanel = lazy(() => import('@/components/ai-copilot/panel/CopilotPanel'))
 const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
 
-// Lazy-loaded seller portal — page unique « Votre vente » (lecture seule, lien personnel).
-// PortalDevWrapper (mock) et PortalGateway (token) rendent désormais VotreVentePage.
-const PortalDevWrapper = lazy(() => import('@/pages/particulier/PortalDevWrapper'))
-const PortalGateway = lazy(() => import('@/pages/particulier/PortalGateway'))
 const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
 // Compte ACHETEUR retiré (pivot CRM-first) — page + composants archivés hors
 // repo le 2026-06-08. /account → /dashboard. market_listings ne sert plus que
@@ -259,10 +254,15 @@ function VisitFeedbackRedirect() {
   const { id } = useParams()
   return <Navigate to={`/visit/${id}/feedback`} replace />
 }
-function PortalTokenRedirect() {
-  // Page unique : tout sous-chemin token (legacy ou bookmark) retombe sur /portal/:token.
-  const { token } = useParams()
-  return <Navigate to={token ? `/portal/${token}` : '/portal'} replace />
+// Portail vendeur RETIRÉ (2026-07-26). La fonctionnalité n'a jamais servi : la
+// table `seller_portals` comptait 0 ligne depuis sa création, aucun lien personnel
+// n'a donc jamais été envoyé, et l'UI de création avait déjà disparu de la fiche
+// contact. Les URLs `/portal*` et `/portail*` redirigent vers la vitrine plutôt
+// que de rendre un 404, comme les routes marketplace du pivot CRM-first.
+// Redirection externe (autre domaine) → window.location, pas <Navigate>.
+function SellerPortalRemovedRedirect() {
+  if (typeof window !== 'undefined') window.location.replace(VITRINE_URL)
+  return null
 }
 // Centre d'aide : le corpus vit dans Intercom (18 articles FR+EN, maintenus via
 // `scripts/intercom-content.mjs`). Les 12 pages SPA `/help/*` étaient un second
@@ -423,36 +423,19 @@ function AppRoutes() {
               <Route path="/aide" element={<HelpCenterRedirect />} />
               <Route path="/aide/*" element={<HelpCenterRedirect />} />
 
-              {/* Seller portal — page unique « Votre vente » (dev/test, mock data). */}
-              <Route path="/portal" element={<PortalDevWrapper />} />
-              {/* Legacy FR portal routes → page unique */}
-              <Route path="/portail" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/visites" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/offres" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/documents" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/messages" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/analyse" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/profil" element={<Navigate to="/portal" replace />} />
+              {/* Portail vendeur RETIRÉ — toutes ses URLs partent vers la vitrine.
+                  Deux splats suffisent là où il y avait 13 routes. */}
+              <Route path="/portal" element={<SellerPortalRemovedRedirect />} />
+              <Route path="/portal/*" element={<SellerPortalRemovedRedirect />} />
+              <Route path="/portail" element={<SellerPortalRemovedRedirect />} />
+              <Route path="/portail/*" element={<SellerPortalRemovedRedirect />} />
 
               {/* Dev showcase routes (no auth) */}
               <Route path="/design-system/megga-x" element={<MeggaXStyleGuidePage />} />
-              <Route path="/dev/mandate-sign" element={<MandateSignDemoPage />} />
               {/* Atelier Matching — démo QA visuelle (mocks handoff, zéro écriture) */}
               <Route path="/dev/matching-atelier" element={<MatchingAtelierDemoPage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/mobile" element={<MobileShowcasePage />} />
-
-              {/* Seller portal — accès tokenisé (production), page unique « Votre vente ».
-                  Les anciens sous-chemins (visits/offers/…) retombent sur la page. */}
-              <Route path="/portal/:token" element={<PortalGateway />} />
-              <Route path="/portal/:token/*" element={<PortalTokenRedirect />} />
-              {/* Legacy FR portal tokenized routes — keep magic links in emails working. */}
-              <Route path="/portail/:token" element={<PortalTokenRedirect />} />
-              <Route path="/portail/:token/visites" element={<PortalTokenRedirect />} />
-              <Route path="/portail/:token/offres" element={<PortalTokenRedirect />} />
-              <Route path="/portail/:token/documents" element={<PortalTokenRedirect />} />
-              <Route path="/portail/:token/messages" element={<PortalTokenRedirect />} />
-              <Route path="/portail/:token/analyse" element={<PortalTokenRedirect />} />
 
 
               {/* Sprint 4.4 — Export PDF dossier KYC (protected, no layout — print-friendly) */}

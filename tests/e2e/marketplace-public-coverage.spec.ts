@@ -8,8 +8,6 @@
 import { test, expect } from '@playwright/test'
 import { collectConsoleErrors } from './helpers/console'
 
-const MOCK_TOKEN = 'dummy_token_mock'
-
 interface RouteSpec {
   path: string
   label: string
@@ -39,9 +37,6 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   // /register, /auth/login… redirigent hors app → voir marketplace-disabled.
   // /reset-password reste in-app (cible des e-mails de réinitialisation).
   { path: '/reset-password', label: 'Reset password' },
-
-  // ── Routes paramétrées (mock IDs / slugs) ──────────────────────────────
-  { path: `/portal/${MOCK_TOKEN}`, label: 'Portail vendeur prod (mock token)' },
 ]
 
 test.describe('Marketplace publique — parametric route coverage', () => {
@@ -53,7 +48,7 @@ test.describe('Marketplace publique — parametric route coverage', () => {
       // `networkidle` wait that timed out on /agencies (Supabase realtime and
       // parallel agency-directory fetches keep the network perpetually active).
       // Public pages have no single shared shell element (PublicPageHeader vs
-      // AuthBentoApp vs PortalGateway vs NotFoundPage),
+      // AuthBentoApp vs NotFoundPage),
       // so we use the same condition that the assertion below verifies:
       // the page has meaningful text content.
       await page.waitForFunction(() => document.body.innerText.trim().length > 50, {

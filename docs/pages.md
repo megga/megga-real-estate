@@ -63,19 +63,8 @@ Sous `SuperAdminGuard`, accent violet : accueil, agences, détail agence, utilis
 monitoring, marketplace, conformité, changelog, feature flags, plans, live, sécurité,
 NPS, autonomie, usage des outils, apprentissage.
 
-### 3. Portail vendeur — `/portal/*`
 
-| Route | Écran |
-|---|---|
-| `/portal/:token` | `PortalGateway` → page unique « Votre vente » (lecture seule) |
-| `/portal` | `PortalDevWrapper` (données de démonstration, dev) |
-| `/portal/:token/*` · `/portail/*` | Redirections vers la page unique |
-
-`PortalInvalidPage` est rendue par le gateway pour les états révoqué / expiré / introuvable.
-Les anciens sous-chemins (visites, offres, documents, messages, analyse, profil) ont été
-fusionnés dans la page unique.
-
-### 4. Pages publiques tokenisées
+### 3. Pages publiques tokenisées
 
 Ouvertes par un client depuis un lien e-mail, sans compte. Elles portent
 `PublicPageHeader` (marque seule, sans navigation — l'ancien `HomeStickyHeader`
@@ -89,7 +78,7 @@ Ouvertes par un client depuis un lien e-mail, sans compte. Elles portent
 | `/visit/:id/edit` · `/feedback` | Gestion et retour de visite |
 | `/accept-invite/:token` | Acceptation d'invitation |
 
-### 5. Authentification
+### 4. Authentification
 
 Le tunnel de connexion vit **sur la vitrine** (`megga.ch/login`). Dans l'app, seule
 subsiste la tuyauterie :
@@ -110,7 +99,7 @@ paraît morte, mais la liste des URL de redirection autorisées vit dans le **da
 Supabase**, hors du dépôt : aucun grep ne peut prouver qu'aucun e-mail déjà envoyé n'y
 atterrit. Vérifier là-bas avant de la retirer.
 
-### 6. Redirections hors application
+### 5. Redirections hors application
 
 - **Marketplace** → `megga.ch` : `/search`, `/buy`, `/rent`, `/acheter`, `/louer`,
   `/propriete*`, `/listing/:id`, `/about`, `/contact`, `/sell`, `/estimates`,
@@ -120,7 +109,7 @@ atterrit. Vérifier là-bas avant de la retirer.
   20.07.2026. Un 301 au bord (`public/_redirects`) évite de charger l'app React.
 - `/account` · `/compte` → `/dashboard` (compte acheteur retiré).
 
-### 7. Routes de développement — ⚠ publiques, sans authentification
+### 6. Routes de développement — ⚠ publiques, sans authentification
 
 `/design-system/megga-x` (style guide MeggaX), `/dev/mandate-sign`,
 `/dev/matching-atelier`, `/dev/sentry-test`, `/dev/mobile`.

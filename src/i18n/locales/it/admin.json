@@ -707,8 +707,7 @@
       "aiCalls": "{{count}} chiamate IA",
       "whatsapp": "WhatsApp (mese)",
       "storage": "Archiviazione",
-      "storageEstimate": "stima",
-      "portals": "Portali attivi"
+      "storageEstimate": "stima"
     },
     "quota": {
       "title": "Modifica quote",
@@ -735,33 +734,12 @@
       "aiCost": "Costo IA",
       "properties": "Immobili",
       "whatsapp": "WhatsApp",
-      "storage": "Archiviazione",
-      "portals": "Portali"
+      "storage": "Archiviazione"
     }
   },
   "endUsers": {
     "title": "Utenti finali",
     "subtitle": "Venditori, lead e clienti KYC senza account.",
-    "portals": {
-      "title": "Portali venditori",
-      "active": "Attivi",
-      "expired": "Scaduti",
-      "viewed7d": "Visti (7g)",
-      "totalViews": "Visualizzazioni totali",
-      "empty": "Nessun portale.",
-      "col": {
-        "contact": "Venditore",
-        "agency": "Agenzia",
-        "property": "Immobile",
-        "views": "Visualizzazioni",
-        "expires": "Scade"
-      }
-    },
-    "portalStatus": {
-      "active": "Attivi",
-      "expired": "Scaduti",
-      "revoked": "Revocati"
-    },
     "leads": {
       "title": "Lead in entrata",
       "total": "Lead venditori",

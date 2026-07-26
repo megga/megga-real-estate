@@ -620,11 +620,17 @@ export function AxfStyles({ dark }: { dark: boolean }) {
   const A = useAX()
   return (
     <style>{`
-      .axf-row { outline: none !important; -webkit-tap-highlight-color: transparent; }
+      /* Pas d'outline: none ici. .axf-block et .axf-seg-btn sont des <button>
+         (l'un ouvre le tiroir de détail, l'autre est un onglet role="tab") : les
+         priver d'outline les privait de tout repère de focus clavier. L'anneau
+         vient de globals.css, en :focus-visible — donc jamais au clic souris,
+         qui était le seul motif légitime de couper l'outline.
+         .axf-row est un <div> non focusable : la déclaration n'y servait à rien. */
+      .axf-row { -webkit-tap-highlight-color: transparent; }
       .axf-row:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'} !important; }
-      .axf-block { outline: none !important; -webkit-tap-highlight-color: transparent; }
+      .axf-block { -webkit-tap-highlight-color: transparent; }
       .axf-block:hover { filter: brightness(${dark ? '1.07' : '0.97'}); }
-      .axf-seg-btn { outline: none !important; -webkit-tap-highlight-color: transparent; }
+      .axf-seg-btn { -webkit-tap-highlight-color: transparent; }
       .axf-seg-btn:not([aria-selected="true"]):hover { color: ${A.inkSoft} !important; }
       @media (max-width: 1180px) {
         .axf-grid { flex-direction: column !important; overflow-y: auto !important; }
