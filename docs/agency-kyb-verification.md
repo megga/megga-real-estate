@@ -1,9 +1,13 @@
 # Vérification d'identité des agences (KYB) — décisions de conception
 
-> **Statut : conception validée, implémentation non commencée.**
-> Branche : `feat/agency-kyb-verification` (créée depuis `main` @ `7f8ea5eb`, 25.07.2026).
-> Ce document est le point de reprise : il porte les décisions prises et les arbitrages
-> déjà tranchés, pour ne pas les rejouer.
+> **Statut (26.07.2026) : schéma + frontend livrés et vérifiés ; moteur de scoring non
+> commencé.** Branche : `feat/agency-kyb-verification`.
+>
+> **➜ Pour reprendre le travail, commence par [agency-kyb-handoff.md](agency-kyb-handoff.md)** :
+> état exact, pièges à traiter avant de merger, montage de l'environnement, prochaine étape.
+>
+> Le présent document porte les **décisions et les arbitrages** — le pourquoi, pour ne pas
+> les rejouer. Il ne dit pas où on en est.
 
 ---
 
