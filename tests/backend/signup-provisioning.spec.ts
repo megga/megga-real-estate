@@ -163,4 +163,33 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
     expect(prof, 'le profil doit exister').not.toBeNull()
     expect(prof?.agency_id, 'un invité ne doit PAS recevoir d’agence solo : accept-team-invite la rendrait orpheline').toBeNull()
   })
+
+  it("ne provisionne aucune agence quand l'invitation existe avec un e-mail entoure d'espaces", async () => {
+    const svc = serviceRoleClient()
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+
+    // Une agence hote et son dirigeant, qui emettra l'invitation avec un e-mail
+    // entoure d'espaces ; l'inscription, elle, arrive avec l'e-mail propre.
+    const hostId = await signUp({ full_name: 'Hote Espaces', role: 'agent', agency_name: `Hote Espaces ${stamp}` })
+    const { data: host } = await svc.from('profiles').select('agency_id').eq('id', hostId).maybeSingle()
+    const cleanEmail = `invite-spaces-${stamp}@megga-test.local`
+    const paddedEmail = `  ${cleanEmail}  `
+
+    const { error: invErr } = await svc.from('team_invitations').insert({
+      agency_id: host!.agency_id, email: paddedEmail, role: 'agent', invited_by: hostId,
+    })
+    expect(invErr, `insert invitation: ${invErr?.message}`).toBeNull()
+
+    const { data: created, error } = await svc.auth.admin.createUser({
+      email: cleanEmail, password: PW, email_confirm: true,
+      user_metadata: { full_name: 'Invite Espaces', role: 'agent' },
+    })
+    if (error) throw new Error(`createUser invite espaces: ${error.message}`)
+    userIds.push(created.user!.id)
+
+    const { data: prof } = await svc
+      .from('profiles').select('agency_id').eq('id', created.user!.id).maybeSingle()
+    expect(prof, 'le profil doit exister').not.toBeNull()
+    expect(prof?.agency_id, "un e-mail avec espaces doit quand meme matcher l'invitation via btrim : agency_id doit rester null").toBeNull()
+  })
 })
