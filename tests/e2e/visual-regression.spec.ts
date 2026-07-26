@@ -18,10 +18,10 @@ import { test, expect } from '@playwright/test'
 // (megga.ch), not in this React app. Their old baselines no longer matched
 // reality, so they're removed from the snapshot set.
 //
-// `/portal` (espace vendeur « Votre vente ») dropped too: la page a été
-// entièrement refondue et affiche des dates relatives (« il y a 2 j ») qui
-// dérivent dans le temps → impropre au diff pixel. Couverture fonctionnelle
-// assurée par seller-portal.spec.ts.
+// `/portal` (espace vendeur « Votre vente ») dropped too: la route de démo sans
+// jeton a été RETIRÉE (elle servait des données fictives en public). Le portail
+// réel `/portal/:token` reste, mais il n'a plus de couverture fonctionnelle
+// dédiée — la rétablir demande un jeton semé contre des données réelles.
 //
 // `/dashboard` (cockpit « Aujourd'hui ») retiré pour la même raison (refonte
 // juin 2026) : page entièrement refondue, contenu dynamique (temps relatifs
