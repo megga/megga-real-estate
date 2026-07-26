@@ -363,7 +363,8 @@
     "security": "Sécurité & sessions",
     "billing": "Facturation & abonnement",
     "help": "Centre d'aide",
-    "adminConsole": "Console admin"
+    "adminConsole": "Console admin",
+    "platformSection": "Plateforme"
   },
   "audit": {
     "category": {

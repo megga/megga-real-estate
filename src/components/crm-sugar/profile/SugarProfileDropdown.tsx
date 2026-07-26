@@ -209,9 +209,16 @@ export default function SugarProfileDropdown({
     }}>
       <ProfileHeader sp={sp} name={fullName} initials={initials} subtitle={subtitle} planLabel={planLabel} />
 
+      {/* Section « Plateforme » — libellée, pour que la console se distingue des
+          réglages du compte : on ne quitte pas son agence, on change d'outil. */}
       {isSuperAdmin && (
         <>
           <Sep sp={sp} />
+          <div style={{
+            padding: '2px 10px 6px',
+            fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2,
+            color: sp.sub,
+          }}>{t('profile.platformSection')}</div>
           <Row sp={sp} iconKind="inline" icon="console"
             label={t('profile.adminConsole')}
             trail={ADMIN_IS_EXTERNAL

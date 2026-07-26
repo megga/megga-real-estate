@@ -357,7 +357,8 @@
     "security": "Security & sessions",
     "billing": "Billing & subscription",
     "help": "Help center",
-    "adminConsole": "Admin console"
+    "adminConsole": "Admin console",
+    "platformSection": "Platform"
   },
   "audit": {
     "category": {
