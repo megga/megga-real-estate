@@ -135,7 +135,12 @@ export default function SettingsSugarV2Page() {
       <style>{SUGAR_KEYFRAMES}</style>
       <style>{SETTINGS_KEYFRAMES}</style>
       <style>{`
-        .spg-nav { outline: none !important; -webkit-tap-highlight-color: transparent; border: 0; }
+        /* Pas d'\`outline: none\` : les lignes du rail sont des <button>, et le
+           supprimer les privait de tout repère de focus clavier (WCAG 2.4.7).
+           L'anneau vient de la règle \`button:focus-visible\` de globals.css ;
+           \`:focus-visible\` fait qu'il n'apparaît pas au clic souris, ce qui était
+           le seul motif légitime de couper l'outline. */
+        .spg-nav { -webkit-tap-highlight-color: transparent; border: 0; }
         .spg-nav:hover { background: ${darkR ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'}; }
         .spg-scroll::-webkit-scrollbar { width: 9px; }
         .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
