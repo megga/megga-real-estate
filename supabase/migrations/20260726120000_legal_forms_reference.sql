@@ -136,17 +136,27 @@ from (values
   ('FR_SASU',     'SASU'), ('FR_SASU', 'SAS unipersonnelle'),
   ('FR_SARL',     'SARL'), ('FR_SARL', 'S.A.R.L.'), ('FR_SARL', 'Société à responsabilité limitée'),
   ('FR_EURL',     'EURL'),
-  ('FR_SA',       'Société anonyme'),
+  -- « SA » / « Società anonima » DOIVENT figurer ici en plus de CH_SA : sans eux le
+  -- sigle ne désignerait qu'une seule forme, l'appariement serait donc jugé unique et
+  -- une agence française sans pays renseigné basculerait silencieusement en SA suisse.
+  -- Prouvé par test sur base locale (26 juil. 2026) : c'est l'ambiguïté qui protège.
+  ('FR_SA',       'SA'), ('FR_SA', 'S.A.'), ('FR_SA', 'Société anonyme'),
+  ('FR_SA',       'Società anonima'),
   ('FR_SCI',      'SCI'), ('FR_SCI', 'Société civile immobilière'), ('FR_SCI', 'Société civile'),
   ('FR_SNC',      'SNC'), ('FR_SNC', 'Société en nom collectif'),
   ('FR_EI',       'EI'), ('FR_EI', 'Entreprise individuelle'), ('FR_EI', 'Micro-entreprise'),
   ('FR_EI',       'Auto-entrepreneur'),
+  -- Même raison : les libellés FR/IT de l'AG liechtensteinoise sont homonymes de ceux
+  -- de la SA suisse et française — les omettre ferait passer l'ambiguïté pour une
+  -- certitude.
   ('LI_AG',       'AG'), ('LI_AG', 'Aktiengesellschaft'),
+  ('LI_AG',       'Société anonyme'), ('LI_AG', 'Società anonima'),
   ('LI_GMBH',     'GmbH'), ('LI_GMBH', 'Gesellschaft mit beschränkter Haftung'),
   ('LI_ANSTALT',  'Anstalt'), ('LI_ANSTALT', 'Établissement'), ('LI_ANSTALT', 'Establishment'),
   ('LI_STIFTUNG', 'Stiftung'), ('LI_STIFTUNG', 'Fondation'),
   ('LI_TRUST',    'Treuunternehmen'), ('LI_TRUST', 'Trust reg.'), ('LI_TRUST', 'Registered trust'),
-  ('LI_EU',       'Einzelunternehmen')
+  ('LI_EU',       'Einzelunternehmen'), ('LI_EU', 'Entreprise individuelle'),
+  ('LI_EU',       'Impresa individuale')
 ) as a(code, alias)
 join public.legal_forms lf on lf.code = a.code
 on conflict (legal_form_id, alias) do nothing;
