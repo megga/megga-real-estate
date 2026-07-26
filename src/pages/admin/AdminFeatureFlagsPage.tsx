@@ -14,7 +14,7 @@
  * repère « Admin MEGGA » a quitté la page : il ne vit plus qu'une fois, dans le
  * rail du shell.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Check, ChevronDown, X, Zap } from 'lucide-react'
 import { useFeatureFlags, type FeatureFlag } from '@/hooks/useFeatureFlags'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
@@ -45,6 +45,18 @@ function AgencyTargetPicker({ flag, agencies, disabled, onUpdate }: {
   const { sp, tones } = useAdminSugar()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
+
+  // Échap ferme le sélecteur. L'écoute est posée sur le DOCUMENT, pas sur le voile :
+  // un `<div>` sans `tabIndex` n'est jamais focusable, donc un `onKeyDown` dessus ne
+  // se déclenche jamais — c'est pourquoi Échap n'a jamais fonctionné ici. Le champ de
+  // recherche du menu a le focus à l'ouverture et l'évènement remonte jusqu'au
+  // document, ce qui couvre le cas réel.
+  useEffect(() => {
+    if (!open) return
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('keydown', onEsc)
+    return () => document.removeEventListener('keydown', onEsc)
+  }, [open])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -79,10 +91,11 @@ function AgencyTargetPicker({ flag, agencies, disabled, onUpdate }: {
 
       {open && (
         <>
+          {/* Voile « clic dehors » seulement : le clavier est géré par l'écoute
+              document au-dessus (un div non focusable ne reçoit pas de keydown). */}
           <div
             style={{ position: 'fixed', inset: 0, zIndex: 10 }}
             onClick={() => setOpen(false)}
-            onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}
           />
           <div
             role="listbox"

@@ -135,7 +135,12 @@ export default function AdminUsersPage() {
       >
         <style>{`
           .admu-row { transition: background .15s ease; }
-          .admu-row:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.03)'}; }
+          /* \`!important\` requis : la carte mobile est un <button> qui déclare
+             \`background: 'transparent'\` en INLINE pour neutraliser le fond par
+             défaut du navigateur, et une déclaration inline bat toute règle
+             d'auteur non-important — son survol ne s'appliquait donc jamais. La
+             <tr> desktop, elle, n'a pas de fond inline : la règle la couvrait déjà. */
+          .admu-row:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.03)'} !important; }
           .admu-row:focus:not(:focus-visible) { outline: none; }
           .admu-row:focus-visible { outline: 2px solid ${sp.accent}; outline-offset: -2px; }
           .admu-search::placeholder { color: ${sp.sub}; font-weight: 500; }
