@@ -506,7 +506,11 @@ Attendu : `2 failed | 2 passed`.
 
 - [ ] **Step 3 : étendre la migration**
 
-Ajouter à la fin de `supabase/migrations/20260726140100_signup_agency_provisioning.sql` :
+Dans `supabase/migrations/20260726140100_signup_agency_provisioning.sql`, **remplacer
+intégralement** le bloc `create or replace function public.provision_solo_agency` écrit à
+la tâche 3 par la version ci-dessous, puis ajouter le bloc `handle_new_user` à la suite.
+Le fichier doit contenir **une seule** définition de chaque fonction : deux définitions
+successives laisseraient la première morte et le fichier illisible.
 
 ```sql
 -- ── Nom de l'agence : utiliser enfin ce que l'utilisateur a saisi ────────────
@@ -698,7 +702,10 @@ Attendu : `1 failed | 4 passed`, l'échec portant sur un `agency_id` non nul.
 
 - [ ] **Step 3 : étendre la migration**
 
-Ajouter à la fin de `supabase/migrations/20260726140100_signup_agency_provisioning.sql` :
+Dans `supabase/migrations/20260726140100_signup_agency_provisioning.sql`, **remplacer
+intégralement** le bloc `create or replace function public.handle_new_user` écrit à la
+tâche 4 par la version ci-dessous. Le fichier doit rester avec **une seule** définition
+de chaque fonction.
 
 ```sql
 -- ── Agent invité : ne pas fabriquer d'agence qui sera aussitôt orpheline ────
