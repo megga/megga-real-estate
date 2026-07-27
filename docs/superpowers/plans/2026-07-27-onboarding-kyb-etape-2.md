@@ -219,8 +219,14 @@ motif `ResponsiveRoute` déjà employé partout dans `App.tsx`.
 - Créer : `src/components/crm-sugar-identity/IdentityShell.tsx`
 - Créer : `src/components/crm-sugar-identity/steps/StepSignataire.tsx`
 - Créer : `src/hooks/useAgencyIdentity.ts`
-- Créer : `src/i18n/locales/{fr,de,en,it}/onboarding.json`
+- **Étendre** : `src/i18n/locales/{fr,de,en,it}/onboarding.json`
 - Modifier : `src/pages/agent/IdentitySugarPage.tsx`
+
+⚠ **Les quatre fichiers i18n existent déjà**, créés par la tâche 2 avec les clés `gate.*`
+du gate et de l'écran mobile, et ces clés sont couvertes par des tests. Les **étendre**,
+jamais les récrire : un écrasement ferait disparaître silencieusement des chaînes déjà
+validées dans les quatre langues. Le namespace est déjà câblé dans `src/i18n/index.ts`,
+il n'y a rien à y ajouter.
 
 **Avant d'écrire :** lire `src/components/crm-sugar-wizard/WizardShell.tsx` et
 `tokens.ts`. Le mécanisme de thème (Proxy `SugarV2` réassigné par `setSugarV2Dark`) doit
