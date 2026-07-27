@@ -31,7 +31,7 @@ initSentry()
  * Posé AVANT toute écriture de jeton, sans quoi `setSession` viserait le mauvais
  * magasin.
  */
-function useTabScopedSession() {
+function scopeSessionToTab() {
   try { window.localStorage.setItem(REMEMBER_KEY, 'false') } catch { /* mode privé */ }
 }
 
@@ -59,7 +59,7 @@ async function consumeHandover(): Promise<boolean> {
 }
 
 async function boot() {
-  useTabScopedSession()
+  scopeSessionToTab()
   await consumeHandover()
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

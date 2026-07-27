@@ -18,8 +18,10 @@
  */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-
-const STORAGE_KEY = 'megga.sugar.dark'
+// Lecture de la préférence : source unique `@/lib/sugarDark`. Ce module en
+// hébergeait une copie identique, jamais importée ailleurs — deux définitions à
+// garder en phase pour rien.
+import { readSugarDark, SUGAR_DARK_KEY as STORAGE_KEY } from '@/lib/sugarDark'
 
 interface AdminThemeState {
   dark: boolean
@@ -28,15 +30,6 @@ interface AdminThemeState {
 }
 
 const AdminThemeContext = createContext<AdminThemeState | undefined>(undefined)
-
-/** Lit la préférence Sugar (repli : préférence système). Même logique que les pages CRM. */
-export function readSugarDark(): boolean {
-  if (typeof window === 'undefined') return false
-  const saved = window.localStorage.getItem(STORAGE_KEY)
-  if (saved === '1') return true
-  if (saved === '0') return false
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
 
 export function AdminThemeProvider({ children }: { children: ReactNode }) {
   const [dark, setDarkState] = useState(readSugarDark)
@@ -68,6 +61,9 @@ export function AdminThemeProvider({ children }: { children: ReactNode }) {
 }
 
 /** Accès au thème de la console. Lance si appelé hors du provider (bug de montage). */
+// Hook colocalisé avec son provider (contexte privé au module) : Fast Refresh
+// perd le state de ce fichier à chaque édition, compromis assumé — cf. useAuth.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAdminTheme(): AdminThemeState {
   const ctx = useContext(AdminThemeContext)
   if (!ctx) throw new Error('useAdminTheme doit être appelé sous <AdminThemeProvider>')

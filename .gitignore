@@ -55,6 +55,14 @@ agentdb.rvf*
 # Deno (edge functions checked via `deno check`, no lockfile tracked)
 deno.lock
 
+# Python — virtualenv local de l'outillage Playwright (webapp-testing).
+# `requirements.txt` est versionné, le venv non : ~600 fichiers vendorisés,
+# spécifiques à la machine et à la version de Python. Doublé côté ESLint
+# (globalIgnores dans eslint.config.js), sinon `npm run lint` part dedans.
+.venv/
+__pycache__/
+*.py[cod]
+
 # Claude Code / claude-flow — état runtime local (jamais versionné)
 .claude-flow/daemon-state.json
 .claude-flow/daemon.pid

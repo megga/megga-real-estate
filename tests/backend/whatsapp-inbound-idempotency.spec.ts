@@ -12,7 +12,7 @@
 //
 // Runs live in CI (SUPABASE_TEST_* keys present). Skips cleanly locally when keys are absent.
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, afterAll } from 'vitest'
 import { serviceRoleClient } from './helpers/supabase'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)

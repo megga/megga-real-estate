@@ -5,7 +5,10 @@
 
 import { useEffect, useState } from 'react'
 
-const STORAGE_KEY = 'megga.sugar.dark'
+/** Clé unique du réglage clair/sombre Sugar. Exportée : la console admin écrit
+ *  dessus (AdminThemeProvider) et doit viser EXACTEMENT la même clé. */
+export const SUGAR_DARK_KEY = 'megga.sugar.dark'
+const STORAGE_KEY = SUGAR_DARK_KEY
 
 /** Lecture ponctuelle de la préférence sombre (SSR-safe). */
 export function readSugarDark(): boolean {

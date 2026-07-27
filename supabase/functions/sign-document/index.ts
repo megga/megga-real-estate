@@ -88,7 +88,6 @@ function toCredentials(provider: string, secret: Record<string, unknown>, config
 }
 
 // Skribble exige un login (token court) ; DocuSign réutilise l'access_token.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveToken(provider: string, creds: ProviderCredentials): Promise<{ ok: boolean; token?: string; error?: string }> {
   if (provider !== 'skribble') return { ok: true, token: creds.docusignAccessToken }
   const p = getEsignProvider('skribble')

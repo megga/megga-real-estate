@@ -4,17 +4,19 @@ import { useState, type ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { ERROR_COLOR, type BentoTokens } from './tokens'
 import {
-  AlertIcon,
   BentoCTA,
   BentoInput,
   BentoLogoWordmark,
   BentoOAuth,
+} from './primitives'
+import {
+  AlertIcon,
   GoogleIcon,
   LockIcon,
   MailIcon,
   MicrosoftIcon,
   UserIcon,
-} from './primitives'
+} from './primitiveIcons'
 import type { Portail } from './toggles'
 import { useCooldown } from './useCooldown'
 import {

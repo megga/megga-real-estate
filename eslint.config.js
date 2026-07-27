@@ -7,7 +7,13 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', '.claude/worktrees']),
+  // `.venv` : virtualenv Python local (Playwright pour Deno/pytest). Il embarque
+  // ~600 fichiers JS/TS vendorisés qui font remonter des centaines d'erreurs sans
+  // rapport avec le dépôt — et des règles inconnues (`internal-playwright/*`,
+  // `notice/notice`) référencées dans leurs directives inline. Non suivi par git,
+  // donc invisible en CI : sans cette ligne, `npm run lint` est rouge en local et
+  // vert en CI, ce qui rend le garde-fou inutilisable côté dev.
+  globalIgnores(['dist', '.claude/worktrees', '.venv']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

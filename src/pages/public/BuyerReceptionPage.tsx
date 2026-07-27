@@ -21,7 +21,9 @@ const RC = {
 }
 const FONT = 'Manrope, system-ui, sans-serif'
 const MOTIFS = ['Trop cher', 'Quartier', 'Étage / luminosité', 'Trop petit', 'Pas le bon moment', 'Autre']
-const fmtCHF = (n: number) => 'CHF ' + Math.round(n).toLocaleString('fr-CH').replace(/[\s  ,]/g, "'")
+// \s couvre déjà U+202F / U+00A0 (séparateurs de milliers fr-CH) — inutile de
+// les répéter en clair dans la classe : invisibles en relecture.
+const fmtCHF = (n: number) => 'CHF ' + Math.round(n).toLocaleString('fr-CH').replace(/[\s,]/g, "'")
 const priceOf = (b: ReceptionBien) => (b.transaction === 'location' ? b.rent : b.price)
 
 const ICO = {
