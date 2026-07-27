@@ -50,7 +50,22 @@
 -- `submit_agency_identity()` deviendrait ambigu (erreur Postgres 42725, « function is
 -- not unique ») puisque les deux seraient alors invocables sans argument.
 --
+-- ⚠ Correctif revue tâche 7, point 2 — rôle de la personne visée : la garde
+-- d'appartenance à l'agence (étape 4 du corps ci-dessous) ferme la fuite INTER-agence
+-- mais ne vérifiait pas que la personne désignée porte elle-même un rôle de
+-- SIGNATAIRE ACTIF avant d'y poser une vérification de pièce d'identité. Pas
+-- exploitable aujourd'hui — le client (IdentityShell.tsx handleSubmit) ne transmet
+-- jamais que le signatoryId de CE parcours — mais un SECURITY DEFINER de conformité ne
+-- doit pas dépendre pour sa correction d'une hypothèse sur son appelant : un
+-- bénéficiaire effectif (ubo) de la MÊME agence passait la garde précédente sans
+-- jamais avoir de pouvoir de signature. Ajouté un second `not exists`, avec un message
+-- ('…is not an active signatory') distinct de celui de la garde d'agence, pour que les
+-- deux causes de refus restent identifiables côté client.
+--
 -- Idempotente : DROP FUNCTION IF EXISTS puis CREATE OR REPLACE, REVOKE/GRANT rejouables.
+-- Ce fichier est modifié SUR PLACE (jamais une nouvelle migration datée) pour les deux
+-- correctifs de revue tâche 6 ET tâche 7 : daté du jour de son écriture initiale, le
+-- pipeline rejoue son contenu complet à chaque déploiement de ce jour-là.
 
 drop function if exists public.submit_agency_identity();
 
@@ -124,6 +139,26 @@ begin
       raise exception 'forbidden: related person not in caller agency' using errcode = '42501';
     end if;
 
+    -- Correctif revue tâche 7, point 2 : la garde ci-dessus ferme la fuite
+    -- INTER-agence (bonne agence) mais ne vérifiait pas que la personne visée porte
+    -- elle-même un rôle de SIGNATAIRE ACTIF avant d'y poser une vérification de pièce
+    -- d'identité — un bénéficiaire effectif (ubo) de la MÊME agence passait cette
+    -- garde puisqu'elle ne teste que agency_id. Pas exploitable aujourd'hui : le
+    -- client (IdentityShell.tsx handleSubmit) ne transmet jamais que le signatoryId de
+    -- CE parcours. Mais SECURITY DEFINER de conformité : sa correction ne doit pas
+    -- reposer sur une hypothèse concernant son appelant. Même discipline « actif » que
+    -- _agency_identity_completeness_error (signatory, 20260727100000) : valid_to nul
+    -- ou futur, un mandat radié ne doit pas compter. Message distinct de la garde
+    -- d'agence ci-dessus, pour que les deux causes de refus restent identifiables.
+    if not exists (
+      select 1 from public.agency_person_roles
+       where related_person_id = p_related_person_id
+         and role = 'signatory'
+         and (valid_to is null or valid_to > current_date)
+    ) then
+      raise exception 'forbidden: related person is not an active signatory' using errcode = '42501';
+    end if;
+
     -- Aucun prestataire de vérification automatique à ce stade (spec de conception,
     -- §14 hors périmètre) : le recto/verso déjà déposé par le client dans Storage
     -- attend une revue humaine, comme tout dossier suisse tant que le registre du
@@ -174,7 +209,7 @@ end;
 $$;
 
 comment on function public.submit_agency_identity(uuid) is
-  'Le dirigeant déclare sa saisie d''identité KYB terminée (étape 2 onboarding). Vérifie la complétude (raison sociale, forme juridique, pays, signataire actif), pose agencies.identity_submitted_at, journalise dans activity_events (category=kyc). p_related_person_id (optionnel) : si fourni, pose aussi la ligne agency_person_verification_checks (check_type=id_document, source=manual, result=pending_manual_review) pour cette personne, APRÈS avoir vérifié qu''elle appartient à l''agence de l''appelant (42501 sinon) — y compris lors d''un appel ULTÉRIEUR à une première soumission sans argument (jamais neutralisé par le retour anticipé). Concurrence : verrou FOR UPDATE sur la ligne agencies. Idempotente : un second appel ne re-timestampe ni ne re-journalise jamais identity_submitted_at ; ne repose jamais un second check id_document pour la même personne. Voir docs/agency-kyb-verification.md et docs/superpowers/plans/2026-07-27-onboarding-kyb-etape-2.md (tâche 6).';
+  'Le dirigeant déclare sa saisie d''identité KYB terminée (étape 2 onboarding). Vérifie la complétude (raison sociale, forme juridique, pays, signataire actif), pose agencies.identity_submitted_at, journalise dans activity_events (category=kyc). p_related_person_id (optionnel) : si fourni, pose aussi la ligne agency_person_verification_checks (check_type=id_document, source=manual, result=pending_manual_review) pour cette personne, APRÈS avoir vérifié (1) qu''elle appartient à l''agence de l''appelant et (2) qu''elle porte un rôle signatory ACTIF (valid_to nul ou futur) — 42501 avec un message distinct pour chaque cause sinon — y compris lors d''un appel ULTÉRIEUR à une première soumission sans argument (jamais neutralisé par le retour anticipé). Concurrence : verrou FOR UPDATE sur la ligne agencies. Idempotente : un second appel ne re-timestampe ni ne re-journalise jamais identity_submitted_at ; ne repose jamais un second check id_document pour la même personne. Voir docs/agency-kyb-verification.md et docs/superpowers/plans/2026-07-27-onboarding-kyb-etape-2.md (tâches 6 et 7).';
 
 revoke all on function public.submit_agency_identity(uuid) from public, anon;
 grant execute on function public.submit_agency_identity(uuid) to authenticated;

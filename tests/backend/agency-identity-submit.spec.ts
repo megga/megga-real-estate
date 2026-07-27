@@ -383,6 +383,50 @@ describe.skipIf(!HAS_KEYS)('submit_agency_identity — RPC de soumission', () =>
     expect(error?.code).toBe('42501')
   })
 
+  // Revue tâche 7, point 2 : la garde d'appartenance à l'agence (ci-dessus) ferme la
+  // fuite INTER-agence, mais ne vérifiait pas que la personne visée porte un rôle de
+  // SIGNATAIRE ACTIF avant d'y poser une vérification de pièce d'identité — un
+  // bénéficiaire effectif (ubo) de la MÊME agence passait la garde puisqu'elle ne
+  // teste que agency_id. Pas exploitable aujourd'hui (le client ne transmet que
+  // signatoryId, cf. IdentityShell.tsx handleSubmit), mais une fonction SECURITY
+  // DEFINER de conformité ne doit pas dépendre pour sa correction d'une hypothèse sur
+  // son appelant.
+  it('un related_person_id qui désigne un bénéficiaire effectif (pas signataire) de la MÊME agence est refusé, avec un message distinct de la fuite inter-agences', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+
+    const svc = serviceRoleClient()
+    const { data: ubo, error: uboErr } = await svc
+      .from('agency_related_persons')
+      .insert({ agency_id: founder.agencyId, first_name: 'Marie', last_name: 'Curie' })
+      .select('id')
+      .single()
+    expect(uboErr).toBeNull()
+    const uboId = ubo!.id as string
+    const { error: roleErr } = await svc
+      .from('agency_person_roles')
+      .insert({ related_person_id: uboId, role: 'ubo', ownership_pct: 40 })
+    expect(roleErr).toBeNull()
+
+    const { error } = await founder.client.rpc('submit_agency_identity', { p_related_person_id: uboId })
+    expect(
+      error,
+      'un bénéficiaire effectif ne doit jamais pouvoir recevoir une vérification de pièce d\'identité'
+    ).not.toBeNull()
+    expect(error?.code).toBe('42501')
+    expect(
+      error?.message,
+      'message distinct de la garde inter-agence, pour ne pas confondre les deux causes de refus'
+    ).not.toContain('not in caller agency')
+
+    const { data: checksOnUbo, error: checksErr } = await svc
+      .from('agency_person_verification_checks')
+      .select('id')
+      .eq('related_person_id', uboId)
+    expect(checksErr).toBeNull()
+    expect(checksOnUbo?.length ?? 0, 'aucun check ne doit apparaître sur la personne visée').toBe(0)
+  })
+
   // Revue tâche 6, point 2 (important) : la RPC lisait identity_submitted_at puis
   // écrivait, sans verrou. Deux sessions entrelacées (ou un double clic sur le bouton
   // de soumission) pouvaient toutes deux lire v_submitted = null AVANT que l'une ou
