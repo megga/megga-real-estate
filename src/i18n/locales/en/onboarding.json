@@ -11,5 +11,44 @@
       "title": "This step is completed on a computer",
       "body": "Entering your agency's legal identity requires a larger screen. Sign in from a computer to complete it."
     }
+  },
+  "wizard": {
+    "steps": {
+      "signataire": "Signatory",
+      "agence": "Agency",
+      "beneficiaires": "Beneficial owners",
+      "pieceIdentite": "ID document",
+      "recapitulatif": "Summary"
+    },
+    "footer": {
+      "continue": "Continue",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "autosave": "Saved at every step",
+      "unknownError": "An unknown error occurred."
+    },
+    "comingSoon": {
+      "title": "This step is coming soon",
+      "body": "This part of the process is still being built. Go back to the previous step in the meantime."
+    },
+    "signataire": {
+      "eyebrow": "Authorized signatory",
+      "title": "Who is authorized to sign for the agency?",
+      "subtitle": "Provide the identity of the person authorized to commit the agency. This information is required under Swiss anti-money laundering law (AMLA).",
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "dateOfBirth": "Date of birth",
+        "nationality": "Nationality",
+        "nationalityPlaceholder": "Select a country",
+        "signaturePower": "Signing authority"
+      },
+      "signaturePower": {
+        "individual": "Sole signing authority",
+        "individualHint": "This person can commit the agency alone.",
+        "joint": "Joint signing authority",
+        "jointHint": "This person signs jointly with another authorized person."
+      }
+    }
   }
 }

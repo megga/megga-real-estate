@@ -487,6 +487,53 @@ export type Database = {
           },
         ]
       }
+      agency_person_roles: {
+        Row: {
+          created_at: string
+          id: string
+          ownership_pct: number | null
+          pep_self_declared: boolean
+          related_person_id: string
+          role: string
+          signature_power: string | null
+          source: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ownership_pct?: number | null
+          pep_self_declared?: boolean
+          related_person_id: string
+          role: string
+          signature_power?: string | null
+          source?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ownership_pct?: number | null
+          pep_self_declared?: boolean
+          related_person_id?: string
+          role?: string
+          signature_power?: string | null
+          source?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_person_roles_related_person_id_fkey"
+            columns: ["related_person_id"]
+            isOneToOne: false
+            referencedRelation: "agency_related_persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_profiles: {
         Row: {
           active_listings_count: number | null
@@ -596,6 +643,63 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_related_persons: {
+        Row: {
+          agency_id: string
+          created_at: string
+          date_of_birth: string | null
+          first_name: string
+          id: string
+          id_document_number: string | null
+          id_document_type: string | null
+          last_name: string
+          nationality: string | null
+          profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          date_of_birth?: string | null
+          first_name: string
+          id?: string
+          id_document_number?: string | null
+          id_document_type?: string | null
+          last_name: string
+          nationality?: string | null
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          date_of_birth?: string | null
+          first_name?: string
+          id?: string
+          id_document_number?: string | null
+          id_document_type?: string | null
+          last_name?: string
+          nationality?: string | null
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_related_persons_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_related_persons_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -6806,6 +6910,7 @@ export type Database = {
         Returns: unknown
       }
       storage_size_mb: { Args: never; Returns: number }
+      submit_agency_identity: { Args: never; Returns: undefined }
       team_remove_member: { Args: { p_member_id: string }; Returns: undefined }
       team_set_member_role: {
         Args: { p_member_id: string; p_role: string }

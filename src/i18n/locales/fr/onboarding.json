@@ -11,5 +11,44 @@
       "title": "Cette étape se termine sur ordinateur",
       "body": "La saisie de l'identité légale de votre agence nécessite un écran plus grand. Connectez-vous depuis un ordinateur pour la terminer."
     }
+  },
+  "wizard": {
+    "steps": {
+      "signataire": "Signataire",
+      "agence": "Agence",
+      "beneficiaires": "Bénéficiaires",
+      "pieceIdentite": "Pièce d'identité",
+      "recapitulatif": "Récapitulatif"
+    },
+    "footer": {
+      "continue": "Continuer",
+      "saving": "Enregistrement…",
+      "saved": "Enregistré",
+      "autosave": "Sauvegardé à chaque étape",
+      "unknownError": "Une erreur inconnue est survenue."
+    },
+    "comingSoon": {
+      "title": "Cette étape arrive bientôt",
+      "body": "Cette partie du parcours est en cours de construction. Revenez à l'étape précédente en attendant."
+    },
+    "signataire": {
+      "eyebrow": "Signataire autorisé",
+      "title": "Qui est autorisé à signer pour l'agence ?",
+      "subtitle": "Indiquez l'identité de la personne habilitée à engager l'agence. Ces informations sont exigées par la loi suisse sur le blanchiment d'argent (LBA).",
+      "fields": {
+        "firstName": "Prénom",
+        "lastName": "Nom",
+        "dateOfBirth": "Date de naissance",
+        "nationality": "Nationalité",
+        "nationalityPlaceholder": "Sélectionner un pays",
+        "signaturePower": "Pouvoir de signature"
+      },
+      "signaturePower": {
+        "individual": "Signature individuelle",
+        "individualHint": "Cette personne peut engager seule l'agence.",
+        "joint": "Signature collective",
+        "jointHint": "Cette personne signe conjointement avec une autre personne autorisée."
+      }
+    }
   }
 }

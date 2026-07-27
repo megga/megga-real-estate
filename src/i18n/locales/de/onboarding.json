@@ -11,5 +11,44 @@
       "title": "Dieser Schritt wird am Computer abgeschlossen",
       "body": "Die Erfassung der rechtlichen Identität Ihrer Agentur erfordert einen grösseren Bildschirm. Melden Sie sich von einem Computer aus an, um sie abzuschliessen."
     }
+  },
+  "wizard": {
+    "steps": {
+      "signataire": "Unterzeichner",
+      "agence": "Agentur",
+      "beneficiaires": "Wirtschaftlich Berechtigte",
+      "pieceIdentite": "Ausweisdokument",
+      "recapitulatif": "Zusammenfassung"
+    },
+    "footer": {
+      "continue": "Weiter",
+      "saving": "Wird gespeichert…",
+      "saved": "Gespeichert",
+      "autosave": "Bei jedem Schritt gespeichert",
+      "unknownError": "Ein unbekannter Fehler ist aufgetreten."
+    },
+    "comingSoon": {
+      "title": "Dieser Schritt folgt in Kürze",
+      "body": "Dieser Teil des Vorgangs befindet sich noch im Aufbau. Kehren Sie in der Zwischenzeit zum vorherigen Schritt zurück."
+    },
+    "signataire": {
+      "eyebrow": "Zeichnungsberechtigte Person",
+      "title": "Wer ist berechtigt, für die Agentur zu unterzeichnen?",
+      "subtitle": "Geben Sie die Identität der Person an, die berechtigt ist, die Agentur zu verpflichten. Diese Angaben sind durch das Schweizer Geldwäschereigesetz (GwG) vorgeschrieben.",
+      "fields": {
+        "firstName": "Vorname",
+        "lastName": "Nachname",
+        "dateOfBirth": "Geburtsdatum",
+        "nationality": "Staatsangehörigkeit",
+        "nationalityPlaceholder": "Land auswählen",
+        "signaturePower": "Zeichnungsberechtigung"
+      },
+      "signaturePower": {
+        "individual": "Einzelzeichnungsberechtigung",
+        "individualHint": "Diese Person kann die Agentur allein verpflichten.",
+        "joint": "Kollektivzeichnungsberechtigung",
+        "jointHint": "Diese Person unterzeichnet gemeinsam mit einer weiteren berechtigten Person."
+      }
+    }
   }
 }

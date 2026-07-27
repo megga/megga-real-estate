@@ -11,5 +11,44 @@
       "title": "Questo passaggio si completa da computer",
       "body": "L'inserimento dell'identità legale della Sua agenzia richiede uno schermo più grande. Acceda da un computer per completarlo."
     }
+  },
+  "wizard": {
+    "steps": {
+      "signataire": "Firmatario",
+      "agence": "Agenzia",
+      "beneficiaires": "Aventi diritto economico",
+      "pieceIdentite": "Documento d'identità",
+      "recapitulatif": "Riepilogo"
+    },
+    "footer": {
+      "continue": "Continua",
+      "saving": "Salvataggio…",
+      "saved": "Salvato",
+      "autosave": "Salvato a ogni passaggio",
+      "unknownError": "Si è verificato un errore sconosciuto."
+    },
+    "comingSoon": {
+      "title": "Questo passaggio arriva presto",
+      "body": "Questa parte del percorso è ancora in fase di costruzione. Nel frattempo, torni al passaggio precedente."
+    },
+    "signataire": {
+      "eyebrow": "Firmatario autorizzato",
+      "title": "Chi è autorizzato a firmare per l'agenzia?",
+      "subtitle": "Indichi l'identità della persona autorizzata a impegnare l'agenzia. Queste informazioni sono richieste dalla legge svizzera antiriciclaggio (LRD).",
+      "fields": {
+        "firstName": "Nome",
+        "lastName": "Cognome",
+        "dateOfBirth": "Data di nascita",
+        "nationality": "Nazionalità",
+        "nationalityPlaceholder": "Selezioni un Paese",
+        "signaturePower": "Potere di firma"
+      },
+      "signaturePower": {
+        "individual": "Firma individuale",
+        "individualHint": "Questa persona può impegnare da sola l'agenzia.",
+        "joint": "Firma collettiva",
+        "jointHint": "Questa persona firma congiuntamente a un'altra persona autorizzata."
+      }
+    }
   }
 }
