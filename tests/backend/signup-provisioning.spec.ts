@@ -6,10 +6,27 @@
 // le trigger disparaît. Migration : 20260726140000_auth_user_created_trigger.
 
 import { describe, it, expect, afterAll } from 'vitest'
+import fs from 'node:fs'
+import path from 'node:path'
 import { serviceRoleClient, anonClient } from './helpers/supabase'
+import { execSql } from './helpers/local-sql'
 
 const PW = 'Test-Password-123!'
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
+
+// Rejoue le fichier de migration complet plutôt que d'appeler une fonction de
+// backfill : elle n'existe plus (20260726140100 la convertit en bloc DO anonyme,
+// précisément pour qu'aucun objet ne reste appelable après coup — voir le
+// commentaire en tête de ce bloc dans la migration). Rejouable sans risque : le
+// fichier entier est idempotent (CREATE OR REPLACE FUNCTION + prédicat purement
+// déclaratif dans le DO).
+function replayBackfillMigration(): void {
+  const migrationPath = path.resolve(
+    process.cwd(),
+    'supabase/migrations/20260726140100_signup_agency_provisioning.sql'
+  )
+  execSql(fs.readFileSync(migrationPath, 'utf-8'))
+}
 
 describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
   const userIds: string[] = []
@@ -91,8 +108,7 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
     const { error: downgradeErr } = await svc.from('profiles').update({ role: 'agent' }).eq('id', id)
     expect(downgradeErr).toBeNull()
 
-    const { error: backfillErr } = await svc.rpc('backfill_founder_admin_roles')
-    expect(backfillErr).toBeNull()
+    replayBackfillMigration()
 
     const { data: prof } = await svc.from('profiles').select('role').eq('id', id).maybeSingle()
     expect(prof?.role, 'le backfill doit réparer le fondateur hérité').toBe('admin')
@@ -120,8 +136,7 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
       .eq('id', invitedId)
     expect(attachErr).toBeNull()
 
-    const { error: backfillErr } = await svc.rpc('backfill_founder_admin_roles')
-    expect(backfillErr).toBeNull()
+    replayBackfillMigration()
 
     const { data: invitedProf } = await svc
       .from('profiles')

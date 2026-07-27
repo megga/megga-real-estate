@@ -150,16 +150,26 @@ $$;
 -- = profiles.id — jamais à un agent simplement invité dans l'agence d'un autre :
 -- ce serait une élévation de privilège silencieuse sur des données de
 -- conformité. manager/admin/super_admin existants ne sont jamais retouchés (le
--- filtre ne cible que role in ('agent','assistant')). Extraite en fonction pour
--- être rejouable depuis les tests (signup-provisioning.spec.ts) ; le prédicat
--- purement déclaratif (pas de flag « déjà fait ») rend l'opération idempotente
--- par construction — un fondateur déjà promu sort du filtre role au rejeu.
-create or replace function public.backfill_founder_admin_roles()
-returns integer
-language plpgsql
-security definer
-set search_path to 'public'
-as $$
+-- filtre ne cible que role in ('agent','assistant')).
+--
+-- Bloc DO anonyme, PAS de fonction persistante : cette réparation corrige un état
+-- HÉRITÉ, borné dans le temps — ce n'est pas une règle permanente. Une fonction qui
+-- reste dans le schéma serait rejouable indéfiniment (y compris par erreur, ou par
+-- un futur appelant qui ignore ce contexte) et re-promouvrait admin un fondateur
+-- qui aurait depuis légitimement repassé la main et redemandé le rôle agent —
+-- rétrogradation silencieusement annulée à chaque rejeu. Un DO block ne laisse
+-- aucun objet appelable après lui : la réparation ne peut plus jamais se redéclencher
+-- après ce déploiement. Le prédicat reste purement déclaratif (pas de flag « déjà
+-- fait »), donc idempotent par construction si ce fichier est rejoué le même jour :
+-- un fondateur déjà promu sort du filtre role.
+--
+-- DROP défensif : si une exécution antérieure de CETTE migration, plus tôt le même
+-- jour de déploiement, a déjà créé l'ancienne fonction persistante, le rejeu du
+-- fichier doit la faire disparaître aussi — sinon elle survivrait, appelable, malgré
+-- le fix. Aucun effet sur une base qui ne l'a jamais eue.
+drop function if exists public.backfill_founder_admin_roles();
+
+do $$
 declare
   v_count integer;
 begin
@@ -171,19 +181,7 @@ begin
      and p.role in ('agent', 'assistant');
 
   get diagnostics v_count = row_count;
-  return v_count;
-end;
-$$;
-
--- Comme provision_solo_agency : fermé aux rôles API. Les default privileges
--- Supabase accordent EXECUTE à anon/authenticated explicitement (pas seulement
--- via PUBLIC) → revoke des trois obligatoire ; service_role regrantée pour
--- rester appelable depuis les tests (rejeu du backfill) et un service interne.
-revoke execute on function public.backfill_founder_admin_roles() from public, anon, authenticated;
-grant execute on function public.backfill_founder_admin_roles() to service_role;
-
-comment on function public.backfill_founder_admin_roles() is
-  'Interne : promeut admin les profils fondateurs (agencies.created_by = profiles.id) restés agent/assistant faute du fix de rôle ci-dessus. Idempotente, rejouable par service_role (tests). Voir 20260726140100.';
-
--- One-shot : répare l'existant dès ce déploiement.
-select public.backfill_founder_admin_roles();
+  if v_count > 0 then
+    raise notice 'backfill fondateurs admin : % profil(s) corrigé(s)', v_count;
+  end if;
+end $$;
