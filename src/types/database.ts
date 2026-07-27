@@ -382,6 +382,7 @@ export type Database = {
           email: string | null
           founded_year: number | null
           id: string
+          identity_submitted_at: string | null
           legal_form: string | null
           legal_form_id: string | null
           legal_name: string | null
@@ -417,6 +418,7 @@ export type Database = {
           email?: string | null
           founded_year?: number | null
           id?: string
+          identity_submitted_at?: string | null
           legal_form?: string | null
           legal_form_id?: string | null
           legal_name?: string | null
@@ -452,6 +454,7 @@ export type Database = {
           email?: string | null
           founded_year?: number | null
           id?: string
+          identity_submitted_at?: string | null
           legal_form?: string | null
           legal_form_id?: string | null
           legal_name?: string | null
