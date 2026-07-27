@@ -25,11 +25,9 @@
       "saving": "Enregistrement…",
       "saved": "Enregistré",
       "autosave": "Sauvegardé à chaque étape",
-      "unknownError": "Une erreur inconnue est survenue."
-    },
-    "comingSoon": {
-      "title": "Cette étape arrive bientôt",
-      "body": "Cette partie du parcours est en cours de construction. Revenez à l'étape précédente en attendant."
+      "unknownError": "Une erreur inconnue est survenue.",
+      "submit": "Soumettre le dossier",
+      "submitting": "Soumission en cours…"
     },
     "signataire": {
       "eyebrow": "Signataire autorisé",
@@ -116,6 +114,30 @@
         "size": "Taille maximale : 8 Mo.",
         "generic": "Le téléversement a échoué. Réessayez.",
         "loadFailed": "Le chargement des documents a échoué. Réessayez."
+      }
+    },
+    "recap": {
+      "eyebrow": "Récapitulatif",
+      "title": "Vérifiez votre dossier avant de le soumettre",
+      "subtitle": "Relisez chaque section ci-dessous. Vous pouvez encore modifier une étape avant de soumettre.",
+      "notProvided": "Non renseigné",
+      "beneficiaires": {
+        "empty": "Aucun bénéficiaire effectif déclaré.",
+        "ownership": "{{pct}} % de détention"
+      },
+      "pieceIdentite": {
+        "uploaded": "Déposé",
+        "missing": "Manquant",
+        "loading": "Vérification des documents déposés…",
+        "loadFailed": "Impossible de vérifier les documents déposés. Réessayez."
+      },
+      "attestation": "J'atteste que les informations ci-dessus sont exactes et complètes, à ma connaissance.",
+      "errors": {
+        "legalName": "La raison sociale de l'agence est manquante. Complétez l'étape Agence avant de soumettre.",
+        "legalForm": "La forme juridique de l'agence est manquante. Complétez l'étape Agence avant de soumettre.",
+        "country": "Le pays du siège de l'agence est manquant. Complétez l'étape Agence avant de soumettre.",
+        "signatory": "Aucun signataire actif n'est enregistré. Complétez l'étape Signataire avant de soumettre.",
+        "generic": "La soumission a échoué. Réessayez."
       }
     }
   }

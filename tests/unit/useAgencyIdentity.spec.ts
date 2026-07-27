@@ -24,6 +24,7 @@ import {
   findIdentityDocumentPath,
   validateIdentityDocumentFile,
   identityDocumentsQueryKey,
+  buildSubmitAgencyIdentityArgs,
   type PersonRow,
   type IdentityPersonWithRoles,
   type AgencyLegalFormFields,
@@ -536,5 +537,15 @@ describe('validateIdentityDocumentFile — format et taille avant tout envoi ré
   it('exactement 8 Mo -> encore accepté (borne inclusive)', () => {
     const exactlyAtLimit = new File([new Uint8Array(8 * 1024 * 1024)], 'piece.jpg', { type: 'image/jpeg' })
     expect(validateIdentityDocumentFile(exactlyAtLimit)).toBeNull()
+  })
+})
+
+describe('buildSubmitAgencyIdentityArgs — argument RPC de submit_agency_identity (tâche 7, câblage du dernier maillon)', () => {
+  it('un id de personne -> { p_related_person_id } posé : c\'est ce qui déclenche la pose de la ligne de vérification côté RPC (20260727120000)', () => {
+    expect(buildSubmitAgencyIdentityArgs('person-1')).toEqual({ p_related_person_id: 'person-1' })
+  })
+
+  it('aucun id (défensif, ne devrait pas arriver en pratique derrière canSubmitIdentity) -> objet vide, jamais { p_related_person_id: null } : le paramètre généré (database.ts) est optionnel mais pas nullable, seule l\'omission laisse jouer le défaut SQL (null)', () => {
+    expect(buildSubmitAgencyIdentityArgs(null)).toEqual({})
   })
 })

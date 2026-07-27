@@ -19,6 +19,9 @@ import {
   isBeneficiaireEntryComplete,
   isBeneficiairesStepComplete,
   isPieceIdentiteStepComplete,
+  identitySubmissionErrorCode,
+  identitySubmissionErrorStep,
+  canSubmitIdentity,
   EMPTY_SIGNATAIRE_DRAFT,
   EMPTY_AGENCY_DRAFT,
   EMPTY_BENEFICIAIRE_DRAFT,
@@ -445,5 +448,72 @@ describe('canAdvanceFromIdentityStep — étape 3 (pièce d\'identité, tâche 6
 
   it('recto ET verso téléversés -> navigable', () => {
     expect(canAdvanceFromIdentityStep(3, completeSignataire, completeAgency, [], completePieceIdentite)).toBe(true)
+  })
+})
+
+describe('identitySubmissionErrorCode — reconnaît le message brut renvoyé par submit_agency_identity() (tâche 1, un message distinct par cause de refus)', () => {
+  it('raison sociale manquante', () => {
+    expect(identitySubmissionErrorCode('agency_identity_incomplete: legal_name')).toBe('legalName')
+  })
+
+  it('forme juridique manquante', () => {
+    expect(identitySubmissionErrorCode('agency_identity_incomplete: legal_form')).toBe('legalForm')
+  })
+
+  it('pays du siège manquant', () => {
+    expect(identitySubmissionErrorCode('agency_identity_incomplete: country')).toBe('country')
+  })
+
+  it('aucun signataire actif', () => {
+    expect(identitySubmissionErrorCode('agency_identity_incomplete: signatory')).toBe('signatory')
+  })
+
+  it('message non reconnu (42501 forbidden, panne réseau...) -> null, jamais une correspondance approximative', () => {
+    expect(identitySubmissionErrorCode('forbidden: agency_admin required')).toBeNull()
+    expect(identitySubmissionErrorCode('forbidden: related person not in caller agency')).toBeNull()
+    expect(identitySubmissionErrorCode('Failed to fetch')).toBeNull()
+    expect(identitySubmissionErrorCode('')).toBeNull()
+  })
+
+  it('même motif que le test backend de la tâche 1 (.toContain, pas une égalité stricte) : un message qui CONTIENT la cause, pas seulement égal à elle, est reconnu', () => {
+    // tests/backend/agency-identity-submit.spec.ts asserte le message de la RPC réelle
+    // par `.toContain('legal_name')`, pas par égalité stricte — preuve que le message
+    // observé peut porter plus que le seul texte posé par `raise exception`. Cette
+    // fonction doit rester cohérente avec ce qui a été prouvé contre la base réelle.
+    expect(identitySubmissionErrorCode('some prefix agency_identity_incomplete: country some suffix')).toBe('country')
+  })
+})
+
+describe('identitySubmissionErrorStep — ramène l\'utilisateur à l\'étape fautive, une par cause de refus (brief tâche 7)', () => {
+  it('signataire manquant -> étape 0 (StepSignataire)', () => {
+    expect(identitySubmissionErrorStep('signatory')).toBe(0)
+  })
+
+  it('raison sociale, forme juridique ou pays manquant -> étape 1 (StepAgence), les trois vivent sur le même écran', () => {
+    expect(identitySubmissionErrorStep('legalName')).toBe(1)
+    expect(identitySubmissionErrorStep('legalForm')).toBe(1)
+    expect(identitySubmissionErrorStep('country')).toBe(1)
+  })
+
+  it('code non reconnu (null, ex. 42501 ou panne réseau) -> aucune navigation forcée', () => {
+    expect(identitySubmissionErrorStep(null)).toBeNull()
+  })
+})
+
+describe('canSubmitIdentity — gate le bouton Soumettre de l\'étape 4 (récapitulatif)', () => {
+  it('attestation non cochée -> jamais soumissible, même avec un signataire désigné', () => {
+    expect(canSubmitIdentity(false, 'person-1')).toBe(false)
+  })
+
+  it('attestation cochée mais aucun signataire désigné -> jamais soumissible : la pièce déposée à l\'étape précédente resterait sans preuve, faute de p_related_person_id (brief tâche 7)', () => {
+    expect(canSubmitIdentity(true, null)).toBe(false)
+  })
+
+  it('attestation cochée ET signataire désigné -> soumissible', () => {
+    expect(canSubmitIdentity(true, 'person-1')).toBe(true)
+  })
+
+  it('ni l\'un ni l\'autre -> jamais soumissible', () => {
+    expect(canSubmitIdentity(false, null)).toBe(false)
   })
 })

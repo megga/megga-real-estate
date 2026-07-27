@@ -6910,7 +6910,7 @@ export type Database = {
         Returns: unknown
       }
       storage_size_mb: { Args: never; Returns: number }
-      submit_agency_identity: { Args: never; Returns: undefined }
+      submit_agency_identity: { Args: { p_related_person_id?: string }; Returns: undefined }
       team_remove_member: { Args: { p_member_id: string }; Returns: undefined }
       team_set_member_role: {
         Args: { p_member_id: string; p_role: string }

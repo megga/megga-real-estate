@@ -25,11 +25,9 @@
       "saving": "Wird gespeichert…",
       "saved": "Gespeichert",
       "autosave": "Bei jedem Schritt gespeichert",
-      "unknownError": "Ein unbekannter Fehler ist aufgetreten."
-    },
-    "comingSoon": {
-      "title": "Dieser Schritt folgt in Kürze",
-      "body": "Dieser Teil des Vorgangs befindet sich noch im Aufbau. Kehren Sie in der Zwischenzeit zum vorherigen Schritt zurück."
+      "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
+      "submit": "Angaben einreichen",
+      "submitting": "Wird eingereicht…"
     },
     "signataire": {
       "eyebrow": "Zeichnungsberechtigte Person",
@@ -116,6 +114,30 @@
         "size": "Maximale Grösse: 8 MB.",
         "generic": "Der Upload ist fehlgeschlagen. Versuchen Sie es erneut.",
         "loadFailed": "Die Dokumente konnten nicht geladen werden. Versuchen Sie es erneut."
+      }
+    },
+    "recap": {
+      "eyebrow": "Zusammenfassung",
+      "title": "Prüfen Sie Ihre Angaben, bevor Sie sie einreichen",
+      "subtitle": "Lesen Sie jeden Abschnitt unten noch einmal durch. Sie können einen Schritt vor dem Einreichen noch bearbeiten.",
+      "notProvided": "Nicht angegeben",
+      "beneficiaires": {
+        "empty": "Kein wirtschaftlich Berechtigter angegeben.",
+        "ownership": "{{pct}} % Beteiligung"
+      },
+      "pieceIdentite": {
+        "uploaded": "Hochgeladen",
+        "missing": "Fehlt",
+        "loading": "Hochgeladene Dokumente werden geprüft…",
+        "loadFailed": "Die hochgeladenen Dokumente konnten nicht geprüft werden. Versuchen Sie es erneut."
+      },
+      "attestation": "Ich bestätige, dass die obigen Angaben nach meinem Wissen richtig und vollständig sind.",
+      "errors": {
+        "legalName": "Die Firmenbezeichnung der Agentur fehlt. Vervollständigen Sie den Schritt Agentur, bevor Sie einreichen.",
+        "legalForm": "Die Rechtsform der Agentur fehlt. Vervollständigen Sie den Schritt Agentur, bevor Sie einreichen.",
+        "country": "Der Sitzstaat der Agentur fehlt. Vervollständigen Sie den Schritt Agentur, bevor Sie einreichen.",
+        "signatory": "Es ist keine zeichnungsberechtigte Person aktiv erfasst. Vervollständigen Sie den Schritt Unterzeichner, bevor Sie einreichen.",
+        "generic": "Die Einreichung ist fehlgeschlagen. Versuchen Sie es erneut."
       }
     }
   }

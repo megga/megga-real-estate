@@ -16,10 +16,14 @@
  * vérité ; aucun stockage local parallèle (le brouillon d'étape en cours vit en
  * mémoire React le temps de la saisie, rien d'autre).
  *
- * Les étapes 0 (StepSignataire, tâche 3), 1 (StepAgence, tâche 4), 2
- * (StepBeneficiaires, tâche 5) et 3 (StepPieceIdentite, tâche 6) ont un écran réel.
- * L'étape 4 (récapitulatif) rend encore un palier honnête « à venir » jusqu'à ce que
- * la tâche 7 la remplace par son propre écran + bloc de persistance ici.
+ * Les cinq étapes ont désormais un écran réel : 0 (StepSignataire, tâche 3), 1
+ * (StepAgence, tâche 4), 2 (StepBeneficiaires, tâche 5), 3 (StepPieceIdentite, tâche 6)
+ * et 4 (StepRecapitulatif, tâche 7 — relecture de tout ce qui a été saisi, attestation
+ * d'exactitude, soumission finale). La soumission (handleSubmit, plus bas) N'EST PAS un
+ * bloc de persistCurrentStep comme les quatre précédents : c'est une action explicite
+ * distincte, déclenchée par le bouton Soumettre du pied de page, jamais par
+ * next()/prev()/goToStep() — voir le dernier cas de persistCurrentStep (étape 4 : rien
+ * à y persister) et le commentaire d'en-tête de handleSubmit.
  *
  * L'étape 3 (tâche 6) diffère des trois précédentes sur un point : elle ne porte
  * AUCUN brouillon local à sauvegarder au clic sur Continuer. Le fichier recto/verso
@@ -52,6 +56,7 @@ import { StepSignataire } from './steps/StepSignataire'
 import { StepAgence } from './steps/StepAgence'
 import { StepBeneficiaires } from './steps/StepBeneficiaires'
 import { StepPieceIdentite } from './steps/StepPieceIdentite'
+import { StepRecapitulatif } from './steps/StepRecapitulatif'
 
 /** Brouillon local de l'étape 1, contrôlé par IdentityShell (cf. en-tête de StepSignataire). */
 export interface SignataireDraft {
@@ -278,9 +283,13 @@ export function clampIdentityStep(step: number, stepCount: number): number {
  * écran réel — gate sur leur complétude respective. `beneficiaires` est optionnel
  * (défaut `[]`) : les appels antérieurs à la tâche 5 (tests des tâches 3/4) restent
  * valides sans le 4e argument, et une liste vide est de toute façon complète
- * (isBeneficiairesStepComplete). Les étapes 3 et 4 restent des paliers StepComingSoon
- * (tâches 6 et 7, aucun contenu à valider aujourd'hui) : jamais navigables en avant
- * tant qu'elles n'ont pas de contenu réel, quels que soient les brouillons en cours.
+ * (isBeneficiairesStepComplete). L'étape 3 (StepPieceIdentite) gate elle aussi sur sa
+ * propre complétude, cf. le paragraphe `pieceIdentite` plus bas. L'étape 4
+ * (récapitulatif, StepRecapitulatif, tâche 7) renvoie toujours `false` ici pour une
+ * raison différente : c'est la DERNIÈRE étape, il n'existe pas de « suivante » vers
+ * laquelle avancer — le pied de page n'y affiche d'ailleurs jamais de bouton Continuer
+ * (cf. le rendu du footer plus bas), seulement Soumettre, qui gate sur l'attestation
+ * d'exactitude et non sur ce booléen (canSubmitIdentity, plus bas).
  *
  * Revue tâche 3 : `canNext` valait `true` sans condition dès step > 0 — le bouton
  * Continuer du pied de page restait cliquable sur ces paliers vides jusqu'au
@@ -366,23 +375,65 @@ export function prevIdentityStep(step: number, stepCount: number, skipBeneficiai
   return visible[pos === -1 ? 0 : Math.max(pos - 1, 0)]
 }
 
-/** Palier honnête pour les étapes 3 et 4, pas encore livrées (tâches 6 et 7). */
-function StepComingSoon({ eyebrow }: { eyebrow: string }) {
-  const { t } = useTranslation('onboarding')
-  return (
-    <div style={{ maxWidth: 640, margin: '64px auto 0', textAlign: 'center' }}>
-      <div style={{
-        fontSize: 12, fontWeight: 600, color: SugarV2.muted,
-        letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-      }}>{eyebrow}</div>
-      <h1 style={{ margin: '0 0 10px', fontSize: 22, fontWeight: 700, color: SugarV2.ink }}>
-        {t('wizard.comingSoon.title')}
-      </h1>
-      <p style={{ margin: 0, fontSize: 14, color: SugarV2.inkSoft, lineHeight: 1.5 }}>
-        {t('wizard.comingSoon.body')}
-      </p>
-    </div>
-  )
+/**
+ * Étape 4 (récapitulatif, tâche 7) : causes de refus reconnues dans le message brut
+ * renvoyé par submit_agency_identity() (`raise exception '%', v_error`, un texte
+ * distinct par cause — migration 20260727100000). Repris en camelCase : `legalName`
+ * désigne la CAUSE de refus (raison sociale manquante), à ne pas confondre avec `legal`,
+ * le nom du champ correspondant dans AgencyDraft ci-dessus.
+ */
+export type IdentitySubmissionErrorCode = 'legalName' | 'legalForm' | 'country' | 'signatory'
+
+/**
+ * Reconnaît le message brut de submit_agency_identity() et en extrait la cause de
+ * refus, ou null si le message ne correspond à aucun des 4 cas de complétude connus
+ * (ex. 42501 « forbidden », panne réseau) — jamais une correspondance approximative.
+ * `.includes()` et non `===` : le test backend de la tâche 1
+ * (tests/backend/agency-identity-submit.spec.ts) vérifie lui-même la présence de la
+ * cause par `.toContain(...)` contre la RPC réelle, pas une égalité stricte — signe que
+ * le message effectivement observé peut porter plus que le seul texte posé par `raise
+ * exception`. Les 4 préfixes sont mutuellement exclusifs ; l'ordre des `if` est gardé
+ * identique à l'ordre de vérification du serveur pour la lisibilité, sans incidence sur
+ * le résultat.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
+export function identitySubmissionErrorCode(message: string): IdentitySubmissionErrorCode | null {
+  if (message.includes('agency_identity_incomplete: legal_name')) return 'legalName'
+  if (message.includes('agency_identity_incomplete: legal_form')) return 'legalForm'
+  if (message.includes('agency_identity_incomplete: country')) return 'country'
+  if (message.includes('agency_identity_incomplete: signatory')) return 'signatory'
+  return null
+}
+
+/**
+ * Étape à laquelle ramener l'utilisateur pour CHAQUE cause de refus reconnue — raison
+ * sociale, forme juridique et pays vivent tous les trois sur l'écran agence (index 1,
+ * StepAgence) ; signataire actif sur l'écran signataire (index 0, StepSignataire). null
+ * pour un code non reconnu : jamais de navigation vers une étape au hasard sur une
+ * erreur qu'on ne comprend pas (42501, panne réseau) — handleSubmit affiche alors
+ * seulement le message générique, sans déplacer l'utilisateur.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
+export function identitySubmissionErrorStep(code: IdentitySubmissionErrorCode | null): number | null {
+  if (code === 'signatory') return 0
+  if (code === 'legalName' || code === 'legalForm' || code === 'country') return 1
+  return null
+}
+
+/**
+ * true si le bouton Soumettre (étape 4, récapitulatif) doit être actif : l'attestation
+ * d'exactitude cochée ET un signataire réellement désigné. Ce second critère n'est pas
+ * redondant avec la garde de complétude de la RPC (qui exige déjà un signataire actif
+ * en base pour accepter le dossier) : sans lui, un signatoryId nul soumettrait quand
+ * même le dossier avec succès, mais SANS jamais transmettre p_related_person_id — la
+ * pièce d'identité déposée à l'étape précédente resterait alors sans ligne de
+ * vérification (agency_person_verification_checks), exactement le trou signalé en revue
+ * de la tâche 6 (cf. le commentaire « Point d'extension » de submit_agency_identity,
+ * migration 20260727120000) que cette tâche comble.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
+export function canSubmitIdentity(attestationChecked: boolean, signatoryId: string | null): boolean {
+  return attestationChecked && signatoryId != null
 }
 
 /** Coquille du wizard identité : chrome, navigation entre étapes, persistance au changement d'étape. */
@@ -396,13 +447,16 @@ export default function IdentityShell() {
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const {
-    agency, agencyId, persons, isLoading, savePerson, removePerson, revokeUboRole, saveAgency, uploadIdentityDocument,
+    agency, agencyId, persons, isLoading, savePerson, removePerson, revokeUboRole, saveAgency, uploadIdentityDocument, submit,
   } = useAgencyIdentity()
 
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [justSaved, setJustSaved] = useState(false)
+  // Étape 4 (récapitulatif, tâche 7) : case d'attestation d'exactitude, contrôlée ici
+  // comme tout autre brouillon de ce wizard — gate canSubmitIdentity (footer, plus bas).
+  const [attestationChecked, setAttestationChecked] = useState(false)
 
   // Flash "Enregistré" pendant 1.8s après une sauvegarde réussie (footer).
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -688,7 +742,46 @@ export default function IdentityShell() {
       // activer le bouton (garde défensive redondante, même style que les étapes 0 à 2).
       return isPieceIdentiteStepComplete(pieceIdentiteDraft)
     }
-    return true // étape 4 : rien à persister avant la tâche 7
+    // Étape 4 (récapitulatif) : rien à persister en QUITTANT l'étape — l'attestation
+    // n'est pas un brouillon à écrire en base, et la soumission elle-même est une
+    // action explicite distincte (handleSubmit, plus bas), jamais déclenchée par
+    // next()/prev()/goToStep(). C'est pourquoi prev() depuis le récapitulatif n'envoie
+    // jamais rien à submit_agency_identity() : seul un clic sur Soumettre le fait.
+    return true
+  }
+
+  /**
+   * Soumission finale (étape 4, récapitulatif) — jamais via persistCurrentStep/
+   * runPersist : contrairement aux étapes 0 à 3, un refus ici doit (1) ramener
+   * l'utilisateur à l'étape fautive (identitySubmissionErrorStep, un message Postgres
+   * distinct par cause posé par la RPC — 20260727100000) et (2) ne JAMAIS afficher ce
+   * message brut à l'écran (règle du projet) — toujours une traduction dédiée par
+   * cause, jamais le message générique de runPersist qui propagerait e.message tel quel.
+   *
+   * p_related_person_id = signatoryId : LE signataire dont la pièce d'identité a été
+   * déposée à l'étape précédente (même id que celui déjà utilisé pour le
+   * téléversement/la lecture via useIdentityDocuments, plus haut) — jamais une
+   * redérivation implicite depuis `persons`, qui pourrait désigner une autre personne si
+   * plusieurs portent un rôle signatory actif (signature_power='joint', cf. le
+   * commentaire de la RPC). Sans cet argument, la RPC soumettrait quand même le dossier
+   * mais ne poserait jamais la ligne de vérification de la pièce déposée — c'est
+   * précisément ce que cette tâche câble (cf. l'en-tête du fichier).
+   */
+  const handleSubmit = async (): Promise<void> => {
+    if (!canSubmitIdentity(attestationChecked, signatoryId) || saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      await submit(signatoryId)
+      navigate('/dashboard')
+    } catch (e) {
+      const rawMessage = e instanceof Error ? e.message : ''
+      const code = identitySubmissionErrorCode(rawMessage)
+      const targetStep = identitySubmissionErrorStep(code)
+      if (targetStep != null) setStep(targetStep)
+      setError(t(`wizard.recap.errors.${code ?? 'generic'}`))
+      setSaving(false)
+    }
   }
 
   const next = async () => {
@@ -808,9 +901,21 @@ export default function IdentityShell() {
             disabled={!signatoryId}
             onSelectFile={(side, file) => { void handleSelectIdentityFile(side, file) }}
           />
-        ) : (
-          <StepComingSoon eyebrow={SG_IDENTITY_STEPS[step].label} />
-        )}
+        ) : step === 4 ? (
+          <StepRecapitulatif
+            signataire={signataire}
+            agencyDraft={agencyDraft}
+            skipBeneficiaires={skipBeneficiaires}
+            beneficiaires={beneficiaires}
+            recto={identityDocuments?.recto ?? null}
+            verso={identityDocuments?.verso ?? null}
+            identityDocumentsLoading={identityDocumentsLoading}
+            identityDocumentsError={!!identityDocumentsError}
+            attestationChecked={attestationChecked}
+            onAttestationChange={setAttestationChecked}
+            onEditStep={(target) => { void goToStep(target) }}
+          />
+        ) : null}
       </main>
 
       <footer style={{
@@ -847,10 +952,18 @@ export default function IdentityShell() {
         </div>
 
         <div style={{ pointerEvents: 'auto' }}>
-          {step < SG_IDENTITY_STEPS.length - 1 && (
+          {step < SG_IDENTITY_STEPS.length - 1 ? (
             <SgBlackPill onClick={() => { void next() }} disabled={!canNext || saving}
               icon={<SgIcon name="arrowR" size={16} stroke={SugarV2.onBlack} />}>
               {saving ? t('wizard.footer.saving') : t('wizard.footer.continue')}
+            </SgBlackPill>
+          ) : (
+            // Dernière étape (récapitulatif) : Soumettre remplace Continuer — gate sur
+            // l'attestation ET un signataire réellement désigné (canSubmitIdentity),
+            // jamais sur canNext (qui vaut toujours false ici, cf. son en-tête).
+            <SgBlackPill onClick={() => { void handleSubmit() }} disabled={!canSubmitIdentity(attestationChecked, signatoryId) || saving}
+              icon={<SgIcon name="check" size={16} stroke={SugarV2.onBlack} />}>
+              {saving ? t('wizard.footer.submitting') : t('wizard.footer.submit')}
             </SgBlackPill>
           )}
         </div>

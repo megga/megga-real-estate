@@ -25,11 +25,9 @@
       "saving": "Salvataggio…",
       "saved": "Salvato",
       "autosave": "Salvato a ogni passaggio",
-      "unknownError": "Si è verificato un errore sconosciuto."
-    },
-    "comingSoon": {
-      "title": "Questo passaggio arriva presto",
-      "body": "Questa parte del percorso è ancora in fase di costruzione. Nel frattempo, torni al passaggio precedente."
+      "unknownError": "Si è verificato un errore sconosciuto.",
+      "submit": "Invii il fascicolo",
+      "submitting": "Invio in corso…"
     },
     "signataire": {
       "eyebrow": "Firmatario autorizzato",
@@ -116,6 +114,30 @@
         "size": "Dimensione massima: 8 MB.",
         "generic": "Il caricamento non è riuscito. Riprovi.",
         "loadFailed": "Impossibile caricare i documenti. Riprovi."
+      }
+    },
+    "recap": {
+      "eyebrow": "Riepilogo",
+      "title": "Verifichi il Suo fascicolo prima di inviarlo",
+      "subtitle": "Rilegga ogni sezione qui sotto. Può ancora modificare un passaggio prima di inviare.",
+      "notProvided": "Non indicato",
+      "beneficiaires": {
+        "empty": "Nessun avente diritto economico dichiarato.",
+        "ownership": "{{pct}}% di partecipazione"
+      },
+      "pieceIdentite": {
+        "uploaded": "Caricato",
+        "missing": "Mancante",
+        "loading": "Verifica dei documenti caricati…",
+        "loadFailed": "Impossibile verificare i documenti caricati. Riprovi."
+      },
+      "attestation": "Attesto che le informazioni sopra riportate sono esatte e complete, per quanto a mia conoscenza.",
+      "errors": {
+        "legalName": "La ragione sociale dell'agenzia è mancante. Completi il passaggio Agenzia prima di inviare.",
+        "legalForm": "La forma giuridica dell'agenzia è mancante. Completi il passaggio Agenzia prima di inviare.",
+        "country": "Il Paese della sede dell'agenzia è mancante. Completi il passaggio Agenzia prima di inviare.",
+        "signatory": "Non risulta alcun firmatario attivo registrato. Completi il passaggio Firmatario prima di inviare.",
+        "generic": "L'invio non è riuscito. Riprovi."
       }
     }
   }

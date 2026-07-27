@@ -144,8 +144,19 @@ export interface UseAgencyIdentityReturn {
    * `relatedPersonId` une fois l'upload résolu.
    */
   uploadIdentityDocument: (relatedPersonId: string, side: IdentityDocumentSide, file: File) => Promise<string>
-  /** Appelle submit_agency_identity() (RPC, tâche 1). */
-  submit: () => Promise<void>
+  /**
+   * Appelle submit_agency_identity() (RPC, tâche 1, étendue par la tâche 6 puis câblée
+   * par la tâche 7). `relatedPersonId` DOIT être LE signataire dont la pièce d'identité
+   * a été déposée à l'étape précédente (même id que celui déjà utilisé pour le
+   * téléversement, IdentityShell.tsx) — jamais une redérivation implicite : plusieurs
+   * personnes peuvent porter un rôle signatory actif simultanément
+   * (signature_power='joint', cf. le commentaire de la RPC, 20260727120000), donc il
+   * n'existe pas « le » signataire en général, seulement celui que CE parcours a fait
+   * saisir et dont CE parcours a collecté la pièce. `null` reste accepté (défensif,
+   * cf. buildSubmitAgencyIdentityArgs) : la soumission réussit quand même si l'agence
+   * est par ailleurs complète, mais aucune ligne de vérification n'est posée.
+   */
+  submit: (relatedPersonId: string | null) => Promise<void>
   /**
    * Persiste l'étape 2 (agence) — délègue L'ÉCRITURE à useAgencySettings().save(),
    * donc AUCUN second chemin d'écriture vers `agencies` (cf. en-tête du fichier pour
@@ -333,6 +344,19 @@ export function buildRolePayload(relatedPersonId: string, r: IdentityRole) {
  */
 export function buildRoleRevocationPayload(today: string = todayIsoDate()): { valid_to: string } {
   return { valid_to: today }
+}
+
+/**
+ * Tâche 7 — argument RPC de submit_agency_identity(p_related_person_id). `null` ->
+ * objet VIDE, jamais `{ p_related_person_id: null }` : le paramètre généré
+ * (src/types/database.ts, reflet de `uuid default null`) est optionnel (`?:`) mais
+ * typé `string`, pas `string | null` — seule l'omission de la clé laisse jouer le
+ * défaut SQL, une valeur `null` explicite ne passerait pas le typage strict du client.
+ * Les deux se comportent identiquement côté serveur (le défaut EST déjà null), cette
+ * fonction ne fait donc que choisir la forme que le client TypeScript accepte.
+ */
+export function buildSubmitAgencyIdentityArgs(relatedPersonId: string | null): { p_related_person_id?: string } {
+  return relatedPersonId == null ? {} : { p_related_person_id: relatedPersonId }
 }
 
 /**
@@ -727,8 +751,8 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     return path
   }
 
-  const submit = async (): Promise<void> => {
-    const { error } = await supabase.rpc('submit_agency_identity')
+  const submit = async (relatedPersonId: string | null): Promise<void> => {
+    const { error } = await supabase.rpc('submit_agency_identity', buildSubmitAgencyIdentityArgs(relatedPersonId))
     if (error) throw error
     // Contrat documenté dans useIdentityGate.ts : invalider CETTE clé avant toute
     // navigation vers /dashboard, sinon le gate relit l'ancien identity_submitted_at

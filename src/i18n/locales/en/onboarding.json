@@ -25,11 +25,9 @@
       "saving": "Saving…",
       "saved": "Saved",
       "autosave": "Saved at every step",
-      "unknownError": "An unknown error occurred."
-    },
-    "comingSoon": {
-      "title": "This step is coming soon",
-      "body": "This part of the process is still being built. Go back to the previous step in the meantime."
+      "unknownError": "An unknown error occurred.",
+      "submit": "Submit",
+      "submitting": "Submitting…"
     },
     "signataire": {
       "eyebrow": "Authorized signatory",
@@ -116,6 +114,30 @@
         "size": "Maximum size: 8 MB.",
         "generic": "The upload failed. Please try again.",
         "loadFailed": "Failed to load the documents. Please try again."
+      }
+    },
+    "recap": {
+      "eyebrow": "Summary",
+      "title": "Review your information before submitting",
+      "subtitle": "Review each section below. You can still edit a step before submitting.",
+      "notProvided": "Not provided",
+      "beneficiaires": {
+        "empty": "No beneficial owner declared.",
+        "ownership": "{{pct}}% ownership"
+      },
+      "pieceIdentite": {
+        "uploaded": "Uploaded",
+        "missing": "Missing",
+        "loading": "Checking the uploaded documents…",
+        "loadFailed": "Could not check the uploaded documents. Please try again."
+      },
+      "attestation": "I confirm that the information above is accurate and complete to the best of my knowledge.",
+      "errors": {
+        "legalName": "The agency's registered name is missing. Complete the Agency step before submitting.",
+        "legalForm": "The agency's legal form is missing. Complete the Agency step before submitting.",
+        "country": "The agency's country of registration is missing. Complete the Agency step before submitting.",
+        "signatory": "No active signatory is on file. Complete the Signatory step before submitting.",
+        "generic": "The submission failed. Please try again."
       }
     }
   }
