@@ -10,6 +10,12 @@
       "eyebrow": "Obligatorischer Schritt",
       "title": "Dieser Schritt wird am Computer abgeschlossen",
       "body": "Die Erfassung der rechtlichen Identität Ihrer Agentur erfordert einen grösseren Bildschirm. Melden Sie sich von einem Computer aus an, um sie abzuschliessen."
+    },
+    "pendingNotice": {
+      "eyebrow": "Dossier in Wartestellung",
+      "title": "Ihr Dossier bleibt in Wartestellung",
+      "body": "Nichts geht verloren: Jeder mit Weiter bestätigte Schritt ist bereits in unseren Systemen gespeichert, die massgeblich bleiben. Setzen Sie die Erfassung fort, wann immer Sie möchten. Sie finden genau das wieder, was Sie bereits angegeben haben.",
+      "resumeButton": "Erfassung fortsetzen"
     }
   },
   "wizard": {
@@ -27,7 +33,8 @@
       "autosave": "Bei jedem Schritt gespeichert",
       "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
       "submit": "Angaben einreichen",
-      "submitting": "Wird eingereicht…"
+      "submitting": "Wird eingereicht…",
+      "exit": "Später fortsetzen"
     },
     "signataire": {
       "eyebrow": "Zeichnungsberechtigte Person",

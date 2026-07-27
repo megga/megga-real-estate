@@ -29,6 +29,7 @@
     "test:e2e:report": "playwright show-report",
     "test:e2e:admin": "playwright test --config=playwright.admin.config.ts",
     "test:e2e:visual": "playwright test --config=playwright.visual.config.ts",
+    "test:e2e:kyb": "playwright test --config=playwright.kyb.config.ts",
     "ruflo:seed": "node scripts/ruflo-seed-memory.mjs",
     "lint:roster": "node scripts/check-edge-roster.mjs",
     "lint:migrations": "node scripts/check-migration-idempotence.mjs"

@@ -10,6 +10,12 @@
       "eyebrow": "Passaggio obbligatorio",
       "title": "Questo passaggio si completa da computer",
       "body": "L'inserimento dell'identità legale della Sua agenzia richiede uno schermo più grande. Acceda da un computer per completarlo."
+    },
+    "pendingNotice": {
+      "eyebrow": "Fascicolo in sospeso",
+      "title": "Il Suo fascicolo resta in sospeso",
+      "body": "Nulla va perso: ogni passaggio confermato con Continua è già salvato nei nostri sistemi, che ne restano la fonte. Riprenda la compilazione quando lo desidera, ritroverà esattamente quanto già inserito.",
+      "resumeButton": "Riprenda la compilazione"
     }
   },
   "wizard": {
@@ -27,7 +33,8 @@
       "autosave": "Salvato a ogni passaggio",
       "unknownError": "Si è verificato un errore sconosciuto.",
       "submit": "Invii il fascicolo",
-      "submitting": "Invio in corso…"
+      "submitting": "Invio in corso…",
+      "exit": "Continui più tardi"
     },
     "signataire": {
       "eyebrow": "Firmatario autorizzato",

@@ -10,6 +10,12 @@
       "eyebrow": "Étape obligatoire",
       "title": "Cette étape se termine sur ordinateur",
       "body": "La saisie de l'identité légale de votre agence nécessite un écran plus grand. Connectez-vous depuis un ordinateur pour la terminer."
+    },
+    "pendingNotice": {
+      "eyebrow": "Dossier en attente",
+      "title": "Votre dossier reste en attente",
+      "body": "Rien n'est perdu : chaque étape validée par Continuer est déjà enregistrée dans nos systèmes, qui en restent la source. Reprenez la saisie quand vous le souhaitez, vous retrouverez exactement ce que vous aviez déjà renseigné.",
+      "resumeButton": "Reprendre la saisie"
     }
   },
   "wizard": {
@@ -27,7 +33,8 @@
       "autosave": "Sauvegardé à chaque étape",
       "unknownError": "Une erreur inconnue est survenue.",
       "submit": "Soumettre le dossier",
-      "submitting": "Soumission en cours…"
+      "submitting": "Soumission en cours…",
+      "exit": "Reprendre plus tard"
     },
     "signataire": {
       "eyebrow": "Signataire autorisé",

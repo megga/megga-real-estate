@@ -38,6 +38,21 @@
  * ni comptée par le stepper, dans les deux sens de navigation — voir
  * shouldSkipBeneficiairesStep/visibleIdentitySteps/nextIdentityStep/prevIdentityStep
  * plus bas, et leur usage dans le corps du composant.
+ *
+ * Sortie de secours (tâche 8, « Reprendre plus tard ») : un dirigeant peut quitter
+ * le wizard sans le terminer. `showExitScreen` (useState) fait basculer le contenu
+ * de <main>/<footer> vers ExitPendingScreen SANS jamais changer de route — on reste
+ * sur IDENTITY_GATE_ROUTE (/dashboard/identite), la SEULE route que
+ * shouldRedirectToIdentityGate() exempte de redirection (garde-fou 2,
+ * useIdentityGate.ts). Rediriger vers /dashboard depuis cette sortie reproduirait à
+ * l'identique l'incident P0 c830f9a9 (« boucle onboarding », cf. l'en-tête de
+ * useIdentityGate.ts) : le gate y renverrait aussitôt le dirigeant ici. C'est pour
+ * cette raison que ExitPendingScreen est un ÉTAT LOCAL de ce composant, jamais une
+ * page/route séparée. handleExit persiste au mieux l'étape en cours (même geste que
+ * prev(), cf. persistCurrentStep) avant de basculer : le travail déjà VALIDÉ (un
+ * Continuer déjà cliqué) est donc dans les tables KYB, qui en restent la source de
+ * vérité — revenir (bouton Reprendre la saisie, ou une reconnexion ultérieure qui
+ * rouvre ce wizard) relit ce qui a été persisté, rien n'est perdu.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -457,6 +472,38 @@ export function shouldResetAttestationLeavingRecap(previousStep: number, nextSte
   return previousStep === recapStep && nextStep !== recapStep
 }
 
+/**
+ * Sortie de secours (tâche 8) : écran d'attente affiché à la place du contenu du
+ * wizard quand `showExitScreen` vaut vrai (cf. son point d'appel dans IdentityShell,
+ * plus bas) — jamais un composant monté par une route séparée, voir l'en-tête du
+ * fichier pour pourquoi (garde-fou anti-boucle). Purement local, non exporté : ce
+ * n'est pas une étape du parcours (SG_IDENTITY_STEPS), seulement un état de la
+ * coquille, au même titre que le spinner de chargement déjà inline dans <main>.
+ */
+function ExitPendingScreen({ onResume }: { onResume: () => void }) {
+  const { t } = useTranslation('onboarding')
+  return (
+    <div style={{ maxWidth: 560, margin: '96px auto 0', textAlign: 'center' }}>
+      <div style={{
+        fontSize: 12, fontWeight: 600, color: SugarV2.muted,
+        letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
+      }}>{t('gate.pendingNotice.eyebrow')}</div>
+      <h1 style={{
+        margin: '0 0 14px', fontSize: 28, fontWeight: 700,
+        color: SugarV2.ink, letterSpacing: -0.5, lineHeight: 1.2,
+      }}>{t('gate.pendingNotice.title')}</h1>
+      <p style={{ margin: '0 0 32px', fontSize: 14.5, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.6 }}>
+        {t('gate.pendingNotice.body')}
+      </p>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <SgBlackPill onClick={onResume} icon={<SgIcon name="arrowR" size={16} stroke={SugarV2.onBlack} />}>
+          {t('gate.pendingNotice.resumeButton')}
+        </SgBlackPill>
+      </div>
+    </div>
+  )
+}
+
 /** Coquille du wizard identité : chrome, navigation entre étapes, persistance au changement d'étape. */
 export default function IdentityShell() {
   const { t } = useTranslation('onboarding')
@@ -478,6 +525,10 @@ export default function IdentityShell() {
   // Étape 4 (récapitulatif, tâche 7) : case d'attestation d'exactitude, contrôlée ici
   // comme tout autre brouillon de ce wizard — gate canSubmitIdentity (footer, plus bas).
   const [attestationChecked, setAttestationChecked] = useState(false)
+
+  // Sortie de secours (tâche 8) : true -> <main>/<footer> affichent ExitPendingScreen
+  // à la place du wizard, SANS jamais changer de route (cf. en-tête du fichier).
+  const [showExitScreen, setShowExitScreen] = useState(false)
 
   // Correctif revue tâche 7, point 1 : réinitialise l'attestation dès qu'on QUITTE le
   // récapitulatif, quel que soit le chemin (goToStep — bouton "Modifier" ET stepper de
@@ -788,6 +839,20 @@ export default function IdentityShell() {
   }
 
   /**
+   * Sortie de secours (tâche 8) — « Reprendre plus tard ». Persiste au mieux l'étape
+   * courante, même geste que prev() (résultat ignoré : une étape incomplète n'est de
+   * toute façon jamais écrite partiellement, cf. persistCurrentStep ci-dessus), efface
+   * une éventuelle bannière d'erreur devenue hors-sujet, puis bascule sur l'écran
+   * d'attente — SANS jamais naviguer (cf. en-tête du fichier pour la raison).
+   */
+  const handleExit = async (): Promise<void> => {
+    if (saving) return
+    await persistCurrentStep()
+    setError(null)
+    setShowExitScreen(true)
+  }
+
+  /**
    * Soumission finale (étape 4, récapitulatif) — jamais via persistCurrentStep/
    * runPersist : contrairement aux étapes 0 à 3, un refus ici doit (1) ramener
    * l'utilisateur à l'étape fautive (identitySubmissionErrorStep, un message Postgres
@@ -855,7 +920,11 @@ export default function IdentityShell() {
               volet "stepper" de l'exigence de saut propre (cf. en-tête du fichier). */}
           {visibleIdentitySteps(SG_IDENTITY_STEPS.length, skipBeneficiaires).map((i, position) => {
             const s = SG_IDENTITY_STEPS[i]
-            const clickable = i < step && !saving
+            // !showExitScreen : un palier ne doit jamais paraître cliquable pendant que
+            // l'écran d'attente (sortie de secours, tâche 8) est affiché — sinon un clic
+            // changerait `step` sans jamais faire réapparaître le wizard (ExitPendingScreen
+            // reste rendu tant que showExitScreen n'est pas remis à faux), interaction morte.
+            const clickable = i < step && !saving && !showExitScreen
             return (
               <button
                 key={s.id}
@@ -878,19 +947,40 @@ export default function IdentityShell() {
             )
           })}
         </div>
-        <button
-          type="button"
-          onClick={() => { void signOut().then(() => navigate('/login')) }}
-          style={{
-            flexShrink: 0, background: 'transparent', border: 0, cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: SugarV2.muted,
-          }}
-        >
-          {t('common:logout')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0 }}>
+          {/* Sortie de secours (tâche 8) : masquée sur l'écran d'attente lui-même — on y
+              est déjà « sorti », le bouton principal de cet écran est Reprendre la saisie
+              (ExitPendingScreen). Toujours à côté de Se déconnecter, jamais dans le pied
+              de page partagé : celui-ci disparaît entièrement pendant l'écran d'attente. */}
+          {!showExitScreen && (
+            <button
+              type="button"
+              onClick={() => { void handleExit() }}
+              disabled={saving}
+              style={{
+                background: 'transparent', border: 0,
+                cursor: saving ? 'default' : 'pointer',
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                color: SugarV2.inkSoft, opacity: saving ? 0.5 : 1,
+              }}
+            >
+              {t('wizard.footer.exit')}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => { void signOut().then(() => navigate('/login')) }}
+            style={{
+              background: 'transparent', border: 0, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: SugarV2.muted,
+            }}
+          >
+            {t('common:logout')}
+          </button>
+        </div>
       </header>
 
-      <main key={step} style={{
+      <main key={showExitScreen ? 'exit' : step} style={{
         flex: 1, padding: '16px 32px 140px', animation: 'sgPage .45s cubic-bezier(.2,.8,.2,1) both',
       }}>
         {isLoading ? (
@@ -905,6 +995,8 @@ export default function IdentityShell() {
             }} />
             {t('gate.shell.preparing')}
           </div>
+        ) : showExitScreen ? (
+          <ExitPendingScreen onResume={() => setShowExitScreen(false)} />
         ) : step === 0 ? (
           <StepSignataire value={signataire} onChange={setSignataire} />
         ) : step === 1 ? (
@@ -955,6 +1047,11 @@ export default function IdentityShell() {
         ) : null}
       </main>
 
+      {/* Sortie de secours (tâche 8) : le pied de page (Continuer/Précédent/Soumettre)
+          n'a aucun sens pendant l'écran d'attente — ExitPendingScreen porte son propre
+          bouton principal (Reprendre la saisie). Header (stepper + Reprendre plus
+          tard/Se déconnecter) reste en revanche affiché dans les deux cas. */}
+      {!showExitScreen && (
       <footer style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, padding: '24px 32px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1005,6 +1102,7 @@ export default function IdentityShell() {
           )}
         </div>
       </footer>
+      )}
 
       {error && (
         <div role="alert" style={{

@@ -10,6 +10,12 @@
       "eyebrow": "Required step",
       "title": "This step is completed on a computer",
       "body": "Entering your agency's legal identity requires a larger screen. Sign in from a computer to complete it."
+    },
+    "pendingNotice": {
+      "eyebrow": "Application on hold",
+      "title": "Your application is on hold",
+      "body": "Nothing is lost: every step you confirmed with Continue is already saved in our systems, which remain the source of record. Resume whenever you're ready, you'll find exactly what you already entered.",
+      "resumeButton": "Resume"
     }
   },
   "wizard": {
@@ -27,7 +33,8 @@
       "autosave": "Saved at every step",
       "unknownError": "An unknown error occurred.",
       "submit": "Submit",
-      "submitting": "Submitting…"
+      "submitting": "Submitting…",
+      "exit": "Finish later"
     },
     "signataire": {
       "eyebrow": "Authorized signatory",
