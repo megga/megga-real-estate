@@ -1029,10 +1029,26 @@ Attendu : 0 échec. **Lire le compte de tests**, pas seulement le code de sortie
 - [ ] **Step 2 : linters et builds**
 
 ```bash
-cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && npm run lint:migrations && npm run lint && npm run build && npm run build:admin
+cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && npm run lint:migrations && npm run build && npm run build:admin
 ```
 
 Attendu : chaque commande en succès.
+
+Puis ESLint **sur les seuls fichiers de ce chantier** :
+
+```bash
+cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && npx eslint $(git diff --name-only 276e4d5a..HEAD -- '*.ts' '*.tsx')
+```
+
+Attendu : succès.
+
+> **Correction d'une exigence fautive de ce plan.** La version initiale exigeait que
+> `npm run lint` passe sur tout le dépôt. C'est impossible aujourd'hui, et sans rapport
+> avec ce chantier : `main` porte 28 erreurs ESLint réparties sur 14 fichiers, dont
+> aucun n'est touché ici (recoupement vérifié, il est nul). `deploy.yml` exécute
+> d'ailleurs ce lint en mode non bloquant. Cette dette fait l'objet d'un chantier
+> séparé ; exiger ici qu'elle soit résorbée reviendrait à mélanger dans une même
+> branche des correctifs d'onboarding et un nettoyage sans rapport.
 
 - [ ] **Step 3 : mettre le handoff à jour**
 

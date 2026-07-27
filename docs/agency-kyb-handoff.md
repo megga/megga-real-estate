@@ -27,7 +27,8 @@ parcours d'onboarding est maintenant cadré et décidé.
 | Tests de non-régression | 16 tests, `tests/backend/agency-kyb-verification.spec.ts` |
 | Docs et cerveau système | à jour |
 | Conception du parcours d'onboarding | **faite** (spec, voir en-tête) |
-| Correctifs d'existant | à faire, étape 1 |
+| Correctifs d'existant | livré, étape 1, 8 tests de non-régression |
+| Trigger d'inscription versionné | livré, il n'était dans aucune migration |
 | Gate et wizard de saisie | à faire, étape 2 |
 | Moteur de scoring | à faire, étape 3, ta conception §7 tient telle quelle |
 | Connecteurs disponibles | à faire, étape 4 |
@@ -158,17 +159,40 @@ Or `deploy-app.yml` n'a **aucun** garde-fou de date : le frontend partirait en c
 `business_registration_number` et `legal_form_id`, colonnes inexistantes, et la page
 Réglages → Agence casserait **durablement**.
 
-### Une seule action règle les deux
+### Ce qui a été fait, et ce qui reste à refaire le jour du merge
 
-Re-dater les 4 migrations au jour du merge :
+**Fait (étape 0) :** les 4 migrations ont été re-datées de `120*` vers `130*`.
+
+Attention, la commande donnée à l'origine dans ce document était inopérante le jour même
+de sa rédaction : `$(date -u +%Y%m%d)${f:8}` ne réécrit que les 8 chiffres de la date et
+conserve la composante horaire, alors que **la collision portait sur l'horodatage complet
+sur 14 chiffres**. Exécutée le 26 juillet, elle reproduisait le même nom de fichier. Le
+re-datage a donc porté sur l'heure.
+
+**À refaire le jour du merge, et cela concerne maintenant 8 migrations, pas 4.**
+
+Le garde-date de `deploy.yml` n'applique que les migrations dont l'horodatage est
+`>= TODAY` en UTC. Les 8 fichiers de ce chantier sont datés du 26 juillet 2026 : passé
+minuit UTC, ils sont déjà périmés et seraient **sautés définitivement**, sans autre trace
+qu'un `::warning::` dans le job.
 
 ```bash
-cd supabase/migrations && for f in 20260726120*_*.sql; do git mv "$f" "$(date -u +%Y%m%d)${f:8}"; done
+cd supabase/migrations && for f in 202607261[34]*_*.sql; do git mv "$f" "$(date -u +%Y%m%d)${f:8}"; done
 ```
 
+Contrôler ensuite qu'aucune version n'est en double, y compris face à `main` :
+
 ```bash
-npm run lint:migrations && npx vitest run --config=vitest.backend.config.ts tests/backend/agency-kyb-verification.spec.ts
+ls supabase/migrations/*.sql | sed 's#.*/##; s/_.*//' | sort | uniq -d
 ```
+
+Attendu : aucune sortie. Puis rejouer la base et les tests :
+
+```bash
+supabase db reset && npm run lint:migrations && npm run test:backend
+```
+
+Attendu : `629 passed`, 0 échec. Lire le compte de tests, jamais le code de sortie.
 
 L'alternative (les appliquer à la main avant de merger) est documentée dans `deploy.yml`
 comme le flux normal du dépôt, mais ne résout pas la collision.
@@ -270,15 +294,15 @@ Une étape par PR, chacune vérifiable seule. Le détail de conception est dans 
 [spec du parcours](superpowers/specs/2026-07-26-onboarding-kyb-design.md) ; ce qui suit
 est ce qu'il faut avoir en tête pour exécuter.
 
-| # | Étape | Dépend de | Bloqué |
-|---|---|---|---|
-| 0 | Re-dater les migrations et merger (§2) | rien | non |
-| 1 | Correctifs d'existant | 0 | non |
-| 2 | Gate, wizard 5 étapes, RPC de soumission | 1 | non |
-| 3 | Moteur de scoring (§7) | 0 | non |
-| 4 | Connecteurs disponibles | 3 | non |
-| 5 | File de revue admin et gardes LAB | 3 | non |
-| 6 | Connecteurs Zefix et UID | 4 | **oui** |
+| # | Étape | État | Dépend de | Bloqué |
+|---|---|---|---|---|
+| 0 | Re-dater les migrations et merger (§2) | fait | rien | non |
+| 1 | Correctifs d'existant | fait | 0 | non |
+| 2 | Gate, wizard 5 étapes, RPC de soumission | à faire | 1 | non |
+| 3 | Moteur de scoring (§7) | à faire | 0 | non |
+| 4 | Connecteurs disponibles | à faire | 3 | non |
+| 5 | File de revue admin et gardes LAB | à faire | 3 | non |
+| 6 | Connecteurs Zefix et UID | à faire | 4 | **oui** |
 
 ### Étape 1 : correctifs d'existant
 
