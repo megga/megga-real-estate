@@ -2,11 +2,12 @@
  * Wizard « Identité légale » (KYB, route /dashboard/identite) — accès aux données.
  *
  * Lit ET écrit `agencies` (via useAgencySettings, déjà câblé sur les colonnes KYB —
- * on ne réécrit pas un second chemin ; saveAgency délègue directement à son save())
- * et `agency_related_persons` + `agency_person_roles` (personnes liées à l'agence et
- * leurs rôles signatory/ubo), écrit ces deux dernières, et déclenche la RPC de
- * soumission. Sous RLS `is_agency_admin()` (20260726130200) : un agent simple qui
- * appellerait ceci recevrait 42501.
+ * on ne réécrit pas un second chemin ; saveAgency délègue L'ÉCRITURE à son save(), cf.
+ * plus bas pour ce qu'il fait EN PLUS) et `agency_related_persons` +
+ * `agency_person_roles` (personnes liées à l'agence et leurs rôles signatory/ubo),
+ * écrit ces deux dernières, et déclenche la RPC de soumission. Sous RLS
+ * `is_agency_admin()` (20260726130200) : un agent simple qui appellerait ceci
+ * recevrait 42501.
  *
  * ⚠ N'écrit JAMAIS dans agency_verification_checks ni
  * agency_person_verification_checks — ces tables n'ont aucune policy INSERT
@@ -18,32 +19,54 @@
  * saveAgency (écriture agence, étape 2) et legalFormCategory (catégorie de la forme
  * juridique COURANTE de l'agence, dérivée ici pour que la tâche 5 — étape 3,
  * bénéficiaires effectifs — n'ait qu'à la lire plutôt que de refaire la résolution
- * pays -> useLegalForms -> option elle-même).
+ * pays -> useLegalForms -> option elle-même) ; la tâche 5 y ajoute revokeUboRole
+ * (cf. plus bas, correctif revue).
  *
- * ⚠ Nuance posée par la tâche 5 : `legalFormCategory` reflète l'agence PERSISTÉE
- * (`agencySettings.agency`, alimentée par une requête React Query), pas le brouillon
- * en cours de saisie à l'étape 2. `saveAgency()` (= useAgencySettings().save) écrit en
- * base puis invalide sa query SANS l'attendre dans son onSuccess — `saveAgency()` peut
- * donc déjà avoir résolu que le cache n'a pas encore refait la requête. Un composant
- * qui lirait `legalFormCategory` immédiatement après un premier `saveAgency()` (le cas
- * exact d'un `next()` qui vient de persister l'étape agence) verrait donc encore
- * l'ancienne catégorie, potentiellement `null`. IdentityShell.tsx dérive donc sa
- * propre décision de saut pour la navigation à partir du BROUILLON agence
- * (`agencyDraft`, toujours à jour de façon synchrone) plutôt que de cette valeur —
- * voir son en-tête. `legalFormCategory` reste exposée telle quelle : fidèle à l'état
- * persisté, elle convient à un usage qui n'a pas cette contrainte de fraîcheur
- * immédiate (par ex. un futur récapitulatif, tâche 7).
+ * ⚠ Correctif revue tâche 5 — fraîcheur de `legalFormCategory` : `agencySettings.agency`
+ * vient d'une requête React Query, et `useAgencySettings().save()` invalide cette
+ * requête SANS attendre le refetch dans son onSuccess (`queryClient.invalidateQueries(...)`
+ * sans `return`/`await`) — un composant qui lisait `legalFormCategory` juste après un
+ * `saveAgency()` tout juste résolu pouvait donc encore voir l'ANCIENNE catégorie, le
+ * temps que le cache rattrape l'écriture. `saveAgency` (ci-dessous) mémorise donc,
+ * dans `lastSavedAgency`, les deux champs (country, legalFormId) du DERNIER payload
+ * envoyé — posés de façon SYNCHRONE au retour de `save()`, donc jamais périmés — et
+ * `agencyForLegalFormCategory` (pure, testée) préfère cette valeur à
+ * `agencySettings.agency` dès qu'elle existe. Le repli sur l'agence persistée ne
+ * s'applique donc plus qu'AVANT le tout premier `saveAgency()` de cette instance du
+ * hook, où c'est de toute façon la seule source disponible.
+ * IdentityShell.tsx continue néanmoins de dériver SA PROPRE décision de saut depuis le
+ * BROUILLON `agencyDraft` (voir son en-tête) : ce correctif règle la fraîcheur
+ * juste-après-un-save, pas le suivi d'une frappe pas encore sauvegardée, que
+ * `legalFormCategory` ne peut par construction pas offrir (il ne reflète que ce qui a
+ * été ENVOYÉ à saveAgency, jamais un brouillon en cours d'édition). Les deux
+ * consommateurs partagent désormais la MÊME implémentation de la dérivation
+ * (country, legalFormId) -> catégorie, `useLegalFormCategory` ci-dessous — chacun avec
+ * sa propre paire en entrée, mais plus jamais deux façons séparées de la calculer.
  *
  * Tâche 5 : savePerson/removePerson (déjà génériques sur `role` depuis la tâche 3)
- * suffisent tels quels pour écrire un rôle 'ubo' — aucune nouvelle primitive d'écriture
- * n'était nécessaire. La seule addition est `ubosToRemove` ci-dessous, un filet de
- * sécurité pure function pour la suppression (cf. son en-tête).
+ * suffisent tels quels pour ÉCRIRE un rôle 'ubo' — aucune nouvelle primitive d'écriture
+ * n'était nécessaire pour ça. `ubosToRemove` ci-dessous reste le filet de sécurité pure
+ * function pour la suppression (cf. son en-tête) : il protège l'identité et le rôle
+ * signataire d'une personne qui porte aussi un rôle ubo, en ne la supprimant jamais.
+ *
+ * ⚠ Correctif revue tâche 5 — révocation du rôle ubo : `ubosToRemove` protège une
+ * personne qui porte un autre rôle actif de la SUPPRESSION, mais ne révoquait rien de
+ * SON CÔTÉ — son rôle ubo restait actif en base indéfiniment après un retrait à
+ * l'écran, ou après un passage à une raison individuelle (l'étape qui permettrait de
+ * le retirer un par un cessant alors d'être montée). `revokeUboRole` ci-dessous comble
+ * ce trou : il pose `valid_to` sur LA ligne agency_person_roles(role='ubo') ACTIVE de
+ * la personne (trouvée par le même `findActiveRoleId` que savePerson), jamais sur
+ * agency_related_persons ni sur un rôle signatory. `ubosToRevoke` (complément exact de
+ * `ubosToRemove` : mêmes entrées, dernier prédicat inversé) et `ubosToRevokeOnSkip`
+ * (nettoyage rétroactif, sans condition de brouillon) décident QUI en a besoin —
+ * IdentityShell.tsx appelle les deux, cf. persistCurrentStep.
  *
  * Toute la logique de décision (mapping des lignes DB, construction des payloads
  * d'écriture) vit dans des fonctions pures exportées ci-dessous, testées dans
  * tests/unit/useAgencyIdentity.spec.ts sans mock Supabase — même motif que
  * resolveIdentityGateStatus dans useIdentityGate.ts.
  */
+import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -84,20 +107,35 @@ export interface UseAgencyIdentityReturn {
   /** Insère (id=null) ou met à jour une personne + ses rôles. Renvoie l'id. */
   savePerson: (p: IdentityPerson, roles: IdentityRole[]) => Promise<string>
   removePerson: (id: string) => Promise<void>
+  /**
+   * Correctif revue tâche 5 — révoque UNIQUEMENT le rôle `ubo` ACTIF d'une personne
+   * (pose `valid_to` à aujourd'hui) : jamais `agency_related_persons`, jamais un rôle
+   * `signatory` de la même personne. No-op silencieux si elle n'a déjà plus de rôle
+   * ubo actif. Voir `ubosToRevoke` / `ubosToRevokeOnSkip` ci-dessous pour qui en a
+   * besoin et pourquoi.
+   */
+  revokeUboRole: (relatedPersonId: string) => Promise<void>
   /** Appelle submit_agency_identity() (RPC, tâche 1). */
   submit: () => Promise<void>
   /**
-   * Persiste l'étape 2 (agence) — délègue à useAgencySettings().save(), donc AUCUN
-   * second chemin d'écriture vers `agencies`. L'appelant doit fournir l'objet complet
-   * (étaler `agency` courant puis écraser les champs édités), pas un patch partiel :
-   * save() écrit toutes les colonnes de AgencySettingsData à chaque appel.
+   * Persiste l'étape 2 (agence) — délègue L'ÉCRITURE à useAgencySettings().save(),
+   * donc AUCUN second chemin d'écriture vers `agencies` (cf. en-tête du fichier pour
+   * ce qu'il fait EN PLUS de save()). L'appelant doit fournir l'objet complet (étaler
+   * `agency` courant puis écraser les champs édités), pas un patch partiel : save()
+   * écrit toutes les colonnes de AgencySettingsData à chaque appel.
    */
   saveAgency: (next: AgencySettingsData) => Promise<void>
   /**
-   * Catégorie de la forme juridique COURANTE (agency.legalFormId), ou null tant
-   * qu'aucune forme n'est choisie / pas encore chargée. La tâche 5 (étape 3) la lit
-   * pour décider si l'étape bénéficiaires effectifs doit s'afficher :
-   * sole_proprietorship = le signataire EST l'entité, aucun tiers à déclarer.
+   * Catégorie de la forme juridique COURANTE : reflète le DERNIER `saveAgency()`
+   * résolu dans cette instance du hook, sinon l'agence persistée si aucun n'a encore
+   * eu lieu (jamais périmée juste après un save, cf. `agencyForLegalFormCategory` et
+   * l'en-tête du fichier — correctif revue tâche 5). `null` tant qu'aucune forme
+   * juridique n'est choisie / pas encore chargée. Ne reflète PAS un brouillon en cours
+   * d'édition pas encore sauvegardé : IdentityShell.tsx (étape 3, saut de l'étape
+   * bénéficiaires) a besoin de ce suivi EN DIRECT et dérive donc sa PROPRE décision
+   * depuis son brouillon, via le même `useLegalFormCategory` ci-dessous — voir son
+   * en-tête. Cette valeur-ci convient à un usage qui n'a pas cette contrainte de
+   * fraîcheur immédiate (ex. un futur récapitulatif, tâche 7).
    */
   legalFormCategory: LegalFormCategory | null
 }
@@ -113,6 +151,46 @@ export interface UseAgencyIdentityReturn {
 export function resolveLegalFormCategory(legalFormId: string, options: LegalFormOption[]): LegalFormCategory | null {
   if (!legalFormId) return null
   return options.find((o) => o.id === legalFormId)?.category ?? null
+}
+
+/**
+ * Les deux champs qui déterminent la catégorie de forme juridique — sous-ensemble de
+ * AgencySettingsData partagé par agencyForLegalFormCategory et useLegalFormCategory
+ * ci-dessous, pour ne pas leur faire porter tout un AgencySettingsData dont ils
+ * n'utilisent que ces deux colonnes.
+ */
+export type AgencyLegalFormFields = Pick<AgencySettingsData, 'country' | 'legalFormId'>
+
+/**
+ * Correctif revue tâche 5 — quelle paire (country, legalFormId) utiliser pour dériver
+ * `legalFormCategory` : celle du DERNIER `saveAgency()` résolu (`lastSavedAgency`,
+ * mémorisée de façon synchrone dans useAgencyIdentity dès que la mutation revient) a
+ * priorité sur l'agence persistée (`agencySettings.agency`), dont le cache React
+ * Query peut ne pas avoir encore rattrapé l'écriture — cf. l'en-tête du fichier pour
+ * le mécanisme complet. `null` tant qu'aucun `saveAgency()` n'a encore résolu dans
+ * cette instance du hook : l'agence persistée est alors la seule source disponible.
+ * Pure et testée directement (tests/unit/useAgencyIdentity.spec.ts), même motif que
+ * resolveLegalFormCategory ci-dessus.
+ */
+export function agencyForLegalFormCategory(
+  persistedAgency: AgencyLegalFormFields,
+  lastSavedAgency: AgencyLegalFormFields | null,
+): AgencyLegalFormFields {
+  return lastSavedAgency ?? persistedAgency
+}
+
+/**
+ * Catégorie de la forme juridique `legalFormId` pour le pays `country` — combine
+ * useLegalForms(country) et resolveLegalFormCategory en UNE seule implémentation,
+ * partagée par useAgencyIdentity() (paire choisie par agencyForLegalFormCategory
+ * ci-dessus) et IdentityShell.tsx (paire = le brouillon `agencyDraft` en cours de
+ * saisie, cf. son en-tête) : les deux appelants ont une bonne raison de fournir une
+ * paire différente, mais plus aucune raison d'implémenter la dérivation elle-même
+ * deux fois (correctif revue tâche 5 — « deux sources de vérité »).
+ */
+export function useLegalFormCategory(country: string, legalFormId: string): LegalFormCategory | null {
+  const { options } = useLegalForms(country)
+  return resolveLegalFormCategory(legalFormId, options)
 }
 
 // ─── Forme des lignes lues depuis Supabase (snake_case, roles imbriqués) ───────
@@ -218,6 +296,17 @@ export function buildRolePayload(relatedPersonId: string, r: IdentityRole) {
 }
 
 /**
+ * Correctif revue tâche 5 — ligne de mise à jour pour révoquer (historiser) un rôle :
+ * ne pose QUE `valid_to`, jamais une autre colonne — même convention de « actif » que
+ * isRoleActive/la RPC submit_agency_identity (valid_to non nul et non futur = plus
+ * actif). `today` injectable pour les tests, comme isRoleActive ; par défaut la date
+ * UTC du jour. Consommée par revokeUboRole, ci-dessous dans useAgencyIdentity().
+ */
+export function buildRoleRevocationPayload(today: string = todayIsoDate()): { valid_to: string } {
+  return { valid_to: today }
+}
+
+/**
  * Tâche 5 — quelles personnes `removePerson()` doit effacer pour que la table reflète
  * le retrait d'un bénéficiaire dans le brouillon de l'étape 3 : celles qui portent
  * aujourd'hui un rôle `ubo` actif mais dont l'id n'apparaît plus dans le brouillon
@@ -255,6 +344,51 @@ export function ubosToRemove(existingPersons: IdentityPersonWithRoles[], draftPe
 }
 
 /**
+ * Correctif revue tâche 5 — complément EXACT de ubosToRemove ci-dessus : personnes
+ * qui portent un rôle `ubo` actif retiré du brouillon (même définition que
+ * ubosToRemove : id absent de `draftPersonIds`) mais qu'un AUTRE rôle actif protège
+ * déjà de la suppression complète (ubosToRemove ne les renvoie jamais, cf. son
+ * en-tête) — le dernier filtre est l'exact inverse de celui de ubosToRemove. Ces
+ * personnes ne doivent PAS être supprimées, mais leur rôle ubo doit tout de même
+ * cesser d'être actif : sans ce complément, il restait actif en base indéfiniment
+ * après un retrait à l'écran — le trou signalé en revue. `revokeUboRole`
+ * (useAgencyIdentity()) consomme ce résultat : il n'historise QUE la ligne
+ * agency_person_roles(role='ubo') de la personne, jamais agency_related_persons ni un
+ * rôle signatory.
+ */
+export function ubosToRevoke(existingPersons: IdentityPersonWithRoles[], draftPersonIds: Array<string | null>): string[] {
+  const keptIds = new Set(draftPersonIds.filter((id): id is string => id != null))
+  return existingPersons
+    .filter((p): p is IdentityPersonWithRoles & { id: string } => p.id != null)
+    .filter((p) => p.roles.some((r) => r.role === 'ubo'))
+    .filter((p) => !keptIds.has(p.id))
+    .filter((p) => p.roles.some((r) => r.role !== 'ubo'))
+    .map((p) => p.id)
+}
+
+/**
+ * Correctif revue tâche 5 — nettoyage RÉTROACTIF : TOUTES les personnes qui portent
+ * aujourd'hui un rôle `ubo` actif, sans condition de brouillon (contrairement à
+ * ubosToRemove/ubosToRevoke ci-dessus). Appelée quand l'étape bénéficiaires bascule en
+ * « sautée » (raison individuelle choisie à l'étape agence, shouldSkipBeneficiairesStep
+ * dans IdentityShell.tsx) : l'écran qui permettrait normalement de les retirer un par
+ * un ne sera alors plus jamais monté, donc plus jamais l'occasion de les nettoyer par
+ * les deux fonctions ci-dessus, qui lisent un brouillon que l'utilisateur ne verra
+ * plus. Ne supprime JAMAIS personne (jamais agency_related_persons), même une
+ * personne qui ne porte QUE le rôle ubo : contrairement à un retrait explicite à
+ * l'écran, un changement de forme juridique n'est pas un signal que l'utilisateur
+ * donne sur l'identité de qui que ce soit — seule sa déclaration ubo cesse de
+ * s'appliquer. `revokeUboRole` (useAgencyIdentity()) fait le reste : valid_to
+ * seulement, jamais l'identité ni un rôle signatory.
+ */
+export function ubosToRevokeOnSkip(existingPersons: IdentityPersonWithRoles[]): string[] {
+  return existingPersons
+    .filter((p): p is IdentityPersonWithRoles & { id: string } => p.id != null)
+    .filter((p) => p.roles.some((r) => r.role === 'ubo'))
+    .map((p) => p.id)
+}
+
+/**
  * Personnes liées à l'agence courante, avec leurs rôles courants (étape 2 KYB).
  * `agencyId` vient de profile.agency_id — RLS (is_agency_admin()) refuse de toute
  * façon la lecture à un agent simple, mais on évite déjà la requête inutile.
@@ -264,13 +398,14 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
   const agencyId = profile?.agency_id ?? null
   const queryClient = useQueryClient()
   const agencySettings = useAgencySettings()
-  // Pays COURANT (persisté), pas le brouillon en cours de saisie à l'étape 2 :
-  // legalFormCategory doit refléter ce qui est réellement en base, exactement ce
-  // que la tâche 5 lira. StepAgence appelle useLegalForms(country) séparément pour
-  // peupler son propre menu sur le brouillon live — les deux appels partagent le
-  // cache React Query dès que les codes pays coïncident.
-  const legalForms = useLegalForms(agencySettings.agency.country)
-  const legalFormCategory = resolveLegalFormCategory(agencySettings.agency.legalFormId, legalForms.options)
+  // Correctif revue tâche 5 : mémorise le DERNIER payload envoyé à saveAgency() une
+  // fois résolu (seuls les 2 champs utiles ici) — posé de façon SYNCHRONE au retour de
+  // save(), donc jamais périmé, contrairement à agencySettings.agency dont le cache
+  // React Query peut ne pas avoir encore rattrapé l'écriture (cf. en-tête du fichier).
+  // null tant qu'aucun saveAgency() n'a encore résolu dans cette instance du hook.
+  const [lastSavedAgency, setLastSavedAgency] = useState<AgencyLegalFormFields | null>(null)
+  const agencyForCategory = agencyForLegalFormCategory(agencySettings.agency, lastSavedAgency)
+  const legalFormCategory = useLegalFormCategory(agencyForCategory.country, agencyForCategory.legalFormId)
 
   const personsQueryKey = ['agency-identity-persons', agencyId]
 
@@ -363,6 +498,26 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     await queryClient.invalidateQueries({ queryKey: personsQueryKey })
   }
 
+  /**
+   * Correctif revue tâche 5 — révoque UNIQUEMENT le rôle `ubo` ACTIF d'une personne :
+   * jamais agency_related_persons, jamais un rôle signatory. Réutilise
+   * findActiveRoleId (ci-dessus, même filtre `.eq('role', 'ubo')` que savePerson) pour
+   * cibler LA ligne agency_person_roles à historiser, puis ne pose que `valid_to`
+   * (buildRoleRevocationPayload) — jamais une autre colonne. No-op silencieux si la
+   * personne n'a déjà plus de rôle ubo actif : rien à révoquer n'est jamais une
+   * erreur, mêmes appelants idempotents que removePerson.
+   */
+  const revokeUboRole = async (relatedPersonId: string): Promise<void> => {
+    const activeRoleId = await findActiveRoleId(relatedPersonId, 'ubo')
+    if (!activeRoleId) return
+    const { error } = await supabase
+      .from('agency_person_roles')
+      .update(buildRoleRevocationPayload())
+      .eq('id', activeRoleId)
+    if (error) throw error
+    await queryClient.invalidateQueries({ queryKey: personsQueryKey })
+  }
+
   const submit = async (): Promise<void> => {
     const { error } = await supabase.rpc('submit_agency_identity')
     if (error) throw error
@@ -373,14 +528,27 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     await queryClient.invalidateQueries({ queryKey: ['agency-identity-status', agencyId] })
   }
 
+  /**
+   * Correctif revue tâche 5 — enveloppe agencySettings.save() (AUCUN second chemin
+   * d'écriture vers `agencies`, cf. en-tête du fichier) pour mémoriser, une fois la
+   * mutation résolue, les deux champs utiles à legalFormCategory :
+   * agencyForLegalFormCategory ci-dessus les préfère à agencySettings.agency tant que
+   * le cache React Query n'a pas rattrapé l'écriture.
+   */
+  const saveAgency = async (next: AgencySettingsData): Promise<void> => {
+    await agencySettings.save(next)
+    setLastSavedAgency({ country: next.country, legalFormId: next.legalFormId })
+  }
+
   return {
     agency: agencySettings.agency,
     persons: persons ?? [],
     isLoading: agencySettings.isLoading || personsLoading,
     savePerson,
     removePerson,
+    revokeUboRole,
     submit,
-    saveAgency: agencySettings.save,
+    saveAgency,
     legalFormCategory,
   }
 }

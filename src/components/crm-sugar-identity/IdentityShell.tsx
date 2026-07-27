@@ -36,9 +36,11 @@ import { SugarV2, setSugarV2Dark, SG_IDENTITY_STEPS, SG_IDENTITY_KEYFRAMES } fro
 import { SgIcon, SgBlackPill, SgGhostPill } from '@/components/crm-sugar-wizard/primitives'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
-import { useAgencyIdentity, resolveLegalFormCategory, ubosToRemove, type IdentityRole } from '@/hooks/useAgencyIdentity'
+import {
+  useAgencyIdentity, useLegalFormCategory, ubosToRemove, ubosToRevoke, ubosToRevokeOnSkip, type IdentityRole,
+} from '@/hooks/useAgencyIdentity'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
-import { useLegalForms, type LegalFormCategory } from '@/hooks/useLegalForms'
+import type { LegalFormCategory } from '@/hooks/useLegalForms'
 import { StepSignataire } from './steps/StepSignataire'
 import { StepAgence } from './steps/StepAgence'
 import { StepBeneficiaires } from './steps/StepBeneficiaires'
@@ -345,7 +347,7 @@ export default function IdentityShell() {
 
   const { signOut } = useAuth()
   const navigate = useNavigate()
-  const { agency, persons, isLoading, savePerson, removePerson, saveAgency } = useAgencyIdentity()
+  const { agency, persons, isLoading, savePerson, removePerson, revokeUboRole, saveAgency } = useAgencyIdentity()
 
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -412,19 +414,22 @@ export default function IdentityShell() {
   }, [agency.legalFormId])
 
   // Décision de saut de l'étape bénéficiaires (tâche 5, point central du brief) —
-  // dérivée du BROUILLON agence (agencyDraft), pas de useAgencyIdentity().legalFormCategory
-  // (qui reflète l'agence PERSISTÉE, cf. le commentaire dédié dans useAgencyIdentity.ts).
-  // Pourquoi ça compte : saveAgency() (step 1) invalide sa query sans l'attendre dans son
-  // onSuccess, donc juste après le premier persistCurrentStep() de l'étape agence — soit
-  // exactement l'instant où next() décide de sauter ou non l'étape suivante —
-  // legalFormCategory peut encore refléter l'ANCIENNE forme juridique (souvent aucune).
-  // agencyDraft, lui, est déjà à jour de façon synchrone : c'est la même valeur qui vient
-  // d'être envoyée à saveAgency(). Coût : un appel useLegalForms de plus, mais la query
-  // est partagée par clé (['legal-forms', code]) avec celles de StepAgence et du hook —
-  // pas de requête réseau supplémentaire dès que le pays coïncide (cas normal ici).
-  const { options: agencyLegalFormOptions } = useLegalForms(agencyDraft.country)
+  // dérivée du BROUILLON agence (agencyDraft) : c'est la SEULE façon de refléter un
+  // changement de forme juridique PENDANT LA SAISIE, avant même un clic sur Continuer
+  // (le stepper du header démasque/masque Bénéficiaires en direct, cf. son rendu plus
+  // bas). useAgencyIdentity().legalFormCategory ne peut pas jouer ce rôle : même
+  // redevenu fiable juste après un saveAgency() résolu (correctif revue tâche 5, cf.
+  // l'en-tête de useAgencyIdentity.ts), il ne reflète par construction que ce qui a
+  // été ENVOYÉ à saveAgency(), jamais une frappe pas encore sauvegardée.
+  // useLegalFormCategory (useAgencyIdentity.ts) porte la SEULE implémentation de la
+  // dérivation (useLegalForms + resolveLegalFormCategory) : IdentityShell et le hook
+  // l'appellent chacun avec leur propre entrée légitime (le brouillon ici, le dernier
+  // payload sauvegardé côté hook), mais plus jamais deux implémentations séparées de
+  // la même logique. Coût : un appel de plus, mais la query est partagée par clé
+  // (['legal-forms', code]) avec celles de StepAgence et du hook — pas de requête
+  // réseau supplémentaire dès que le pays coïncide (cas normal ici).
   const skipBeneficiaires = shouldSkipBeneficiairesStep(
-    resolveLegalFormCategory(agencyDraft.legalFormId, agencyLegalFormOptions),
+    useLegalFormCategory(agencyDraft.country, agencyDraft.legalFormId),
   )
 
   const existingBeneficiaires = useMemo(
@@ -508,11 +513,26 @@ export default function IdentityShell() {
     }
     if (step === 1) {
       if (!isAgencyStepComplete(agencyDraft)) return false
-      // Étale le brouillon sur `agency` chargé : les champs hors étape 2 (name,
-      // phone, email, website, logoUrl, foundedYear, aboutShort) ne sont jamais
-      // touchés par ce wizard, save() les réécrit pourtant tous à chaque appel
-      // (contrat de useAgencySettings) — d'où l'étalement plutôt qu'un patch.
-      return runPersist(() => saveAgency({ ...agency, ...agencyDraft }))
+      return runPersist(async () => {
+        // Étale le brouillon sur `agency` chargé : les champs hors étape 2 (name,
+        // phone, email, website, logoUrl, foundedYear, aboutShort) ne sont jamais
+        // touchés par ce wizard, save() les réécrit pourtant tous à chaque appel
+        // (contrat de useAgencySettings) — d'où l'étalement plutôt qu'un patch.
+        await saveAgency({ ...agency, ...agencyDraft })
+        // Nettoyage rétroactif (correctif revue tâche 5) : si la forme juridique tout
+        // juste enregistrée fait basculer l'étape bénéficiaires en « sautée », l'écran
+        // qui permettrait normalement de retirer un bénéficiaire un par un ne sera
+        // plus jamais monté — tout rôle ubo déjà actif doit donc être révoqué ICI,
+        // sinon le dossier soumis porte un bénéficiaire fantôme que l'écran ne montre
+        // plus (la RPC de soumission ne vérifie pas cette cohérence). Jamais de
+        // suppression : ubosToRevokeOnSkip ne renvoie que des ids à révoquer,
+        // l'identité et un éventuel rôle signataire restent intacts.
+        if (skipBeneficiaires) {
+          for (const id of ubosToRevokeOnSkip(persons)) {
+            await revokeUboRole(id)
+          }
+        }
+      })
     }
     if (step === 2) {
       if (!isBeneficiairesStepComplete(beneficiaires)) return false
@@ -524,7 +544,17 @@ export default function IdentityShell() {
         for (const id of ubosToRemove(persons, beneficiaires.map((b) => b.personId))) {
           await removePerson(id)
         }
-        // 2. (Ré)écrit chaque ligne du brouillon. `id: b.personId` fait toute la
+        // 2. Révoque (sans supprimer) le rôle ubo des personnes protégées ci-dessus par
+        // un autre rôle actif — correctif revue tâche 5 : ubosToRemove les excluait déjà
+        // à raison de la suppression complète, mais rien ne révoquait leur rôle ubo, qui
+        // restait actif en base indéfiniment après un retrait à l'écran. ubosToRevoke
+        // est le complément exact de ubosToRemove ; revokeUboRole ne pose que valid_to
+        // sur LEUR ligne agency_person_roles(role='ubo'), jamais agency_related_persons
+        // ni un rôle signatory.
+        for (const id of ubosToRevoke(persons, beneficiaires.map((b) => b.personId))) {
+          await revokeUboRole(id)
+        }
+        // 3. (Ré)écrit chaque ligne du brouillon. `id: b.personId` fait toute la
         // différence entre "ajouter un second rôle" et "dupliquer l'identité" (cas
         // central du brief) : reprendre le signataire transmet SON id réel, savePerson
         // met alors à jour la personne existante au lieu d'en insérer une seconde.

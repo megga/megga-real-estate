@@ -10,7 +10,8 @@
  * d'exposition politique). Contrôlée par IdentityShell (value/onChange), comme
  * StepSignataire/StepAgence : cette étape ne détient aucun état propre et n'écrit rien
  * elle-même — IdentityShell persiste le brouillon via savePerson/removePerson au
- * changement d'étape (cf. son en-tête et ubosToRemove dans useAgencyIdentity.ts).
+ * changement d'étape (cf. son en-tête, ubosToRemove et ubosToRevoke — correctif revue
+ * tâche 5 — dans useAgencyIdentity.ts).
  *
  * Différence structurelle avec les deux étapes précédentes : celles-ci portent une
  * entité UNIQUE (le brouillon est un objet). Ici le brouillon est une LISTE — 0 à N

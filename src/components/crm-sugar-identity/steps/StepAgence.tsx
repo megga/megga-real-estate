@@ -17,9 +17,13 @@
  *    qu'à un seul pays.
  * 2. La catégorie de la forme choisie décide de l'affichage de l'étape 3 (tâche 5) :
  *    une raison individuelle n'a pas de bénéficiaire effectif tiers, le signataire
- *    EST l'entité. Cette étape n'implémente pas ce saut — elle expose la catégorie
- *    proprement, via `useAgencyIdentity().legalFormCategory` (dérivée dans le hook à
- *    partir de `legal_forms.category`, cf. son en-tête), prête à être lue tâche 5.
+ *    EST l'entité. Cette étape n'implémente pas ce saut elle-même : elle se contente
+ *    d'écrire `legalFormId` dans le brouillon via `onChange`. C'est IdentityShell.tsx
+ *    qui décide, à partir de CE BROUILLON — jamais de `useAgencyIdentity().legalFormCategory`,
+ *    qui ne reflète que l'agence persistée / le dernier `saveAgency()` résolu, jamais
+ *    une frappe pas encore sauvegardée (cf. l'en-tête de useAgencyIdentity.ts). Les
+ *    deux passent par la même dérivation, `useLegalFormCategory` (useAgencyIdentity.ts,
+ *    correctif revue tâche 5) — voir son en-tête et celui d'IdentityShell.tsx.
  *
  * Champs à fournir avant de pouvoir avancer (gate : IdentityShell.isAgencyStepComplete) :
  * 9 des 10 champs ci-dessus, même logique tout-ou-rien que le signataire. Exception
