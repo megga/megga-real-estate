@@ -17,7 +17,7 @@ export function galFmtCHF(n: number | null | undefined): string {
     'CHF ' +
     Math.round(n)
       .toLocaleString('fr-CH')
-      .replace(/ /g, "'")
+      // fr-CH sépare les milliers par U+202F, déjà couvert par \s.
       .replace(/[\s,]/g, "'")
   )
 }

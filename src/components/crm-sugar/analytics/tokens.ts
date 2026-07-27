@@ -92,8 +92,10 @@ export const AXCtx = createContext<AxTheme>(AX)
 export const useAX = (): AxTheme => useContext(AXCtx)
 
 // ── Formatters ───────────────────────────────────────────────────────────────
+// fr-CH sépare les milliers par U+202F (espace fine insécable) : \s le couvre
+// déjà. Ne pas réintroduire le caractère en clair — invisible en relecture.
 export const axCHF = (n: number): string =>
-  'CHF ' + Math.round(n).toLocaleString('fr-CH').replace(/ |\s/g, "'")
+  'CHF ' + Math.round(n).toLocaleString('fr-CH').replace(/\s/g, "'")
 
 export const axShort = (n: number): string => {
   const a = Math.abs(n)

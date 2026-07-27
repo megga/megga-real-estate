@@ -676,13 +676,13 @@ async function updateRunChunk(supabase: any, runId: string | undefined, stats: S
   } catch (err) { console.error('[run chunk] exception:', err) }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 // `upserted` = lignes RÉELLEMENT écrites (insert + update confondus : l'upsert PostgREST
 // ne distingue pas les deux). Sans ce champ, un run en mode chunk finalisait avec
 // total_inserted/total_updated à 0 — le crawl rolling et les énumérations manuelles
 // paraissaient donc ne RIEN ingérer, alors que l'énumération du 25/07 avait créé 4 274
 // lignes. Le rapport de nuit en concluait « seul fresh alimente le vivier », ce qui était
 // faux. Le décompte des vraies CRÉATIONS se lit sur market_listings.created_at.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function finalizeRun(supabase: any, runId: string | undefined, final: { status: string; totalSeen?: number; removed?: number; upserted?: number; errorMessage?: string }): Promise<void> {
   if (!runId) return
   try {

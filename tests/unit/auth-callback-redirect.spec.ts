@@ -14,7 +14,7 @@
  * la panne reviendrait sans qu'aucune autre porte ne s'en aperçoive.
  */
 import { describe, it, expect } from 'vitest'
-import { getRedirectPath } from '@/pages/public/AuthCallbackPage'
+import { getRedirectPath } from '@/lib/authRedirect'
 import { AGENT_ROLES } from '@/types/auth'
 import type { UserRole } from '@/types/auth'
 

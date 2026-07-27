@@ -34,10 +34,12 @@ import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
 import {
-  vxPalette, VxIcon, vxFmtCHF, vxFmtNum, vxCompact,
-  VxGallery, VxLightbox, VxStatusPill, VxMetaPill, VxSectionHead,
-  VxSpark, VxAvatar, type VxIconName, type VxPalette,
+  VxIcon, VxGallery, VxLightbox, VxStatusPill, VxMetaPill, VxSectionHead,
+  VxSpark, VxAvatar, type VxIconName,
 } from '@/components/crm-sugar-v3/vitrine/vitrineKit'
+import {
+  vxPalette, vxFmtCHF, vxFmtNum, vxCompact, type VxPalette,
+} from '@/components/crm-sugar-v3/vitrine/vitrineTokens'
 import { fmtDateShort } from '@/components/crm-sugar-v3/tokens'
 import {
   useProperty, useUpdateProperty, type CreatePropertyInput,

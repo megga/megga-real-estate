@@ -65,6 +65,13 @@ describe('buildAIUsageRow', () => {
 })
 
 describe('logDeepSeekUsageWith', () => {
+  // Le faux client n'implémente que `from().insert()`, la seule surface que le
+  // helper touche. On le présente via le type de paramètre réel plutôt que par
+  // `any` (interdit dans le dépôt) : si la signature change, ce cast casse au
+  // lieu de masquer l'écart en silence.
+  type UsageClient = Parameters<typeof logDeepSeekUsageWith>[0]
+  const asUsageClient = (c: unknown) => c as UsageClient
+
   // Faux client : capture la ligne passée à insert(), thenable pour le fire-and-forget.
   function fakeClient() {
     const inserted: unknown[] = []
@@ -84,8 +91,7 @@ describe('logDeepSeekUsageWith', () => {
 
   it('extrait prompt_tokens/completion_tokens et insère la ligne', () => {
     const { client, inserted } = fakeClient()
-    // deno-lint-ignore no-explicit-any
-    logDeepSeekUsageWith(client as any, { prompt_tokens: 900, completion_tokens: 120 }, {
+    logDeepSeekUsageWith(asUsageClient(client), { prompt_tokens: 900, completion_tokens: 120 }, {
       edgeFunction: 'whatsapp-agent', module: 'whatsapp-agent', latencyMs: 500, agencyId: 'a1',
     })
     expect(inserted).toHaveLength(1)
@@ -103,8 +109,7 @@ describe('logDeepSeekUsageWith', () => {
   it('usage absent → 0 tokens, ne lève pas', () => {
     const { client, inserted } = fakeClient()
     expect(() =>
-      // deno-lint-ignore no-explicit-any
-      logDeepSeekUsageWith(client as any, undefined, { edgeFunction: 'ai-copilot', module: 'copilot' })
+      logDeepSeekUsageWith(asUsageClient(client), undefined, { edgeFunction: 'ai-copilot', module: 'copilot' })
     ).not.toThrow()
     expect(inserted[0]).toMatchObject({ input_tokens: 0, output_tokens: 0, latency_ms: null, agency_id: null })
   })
