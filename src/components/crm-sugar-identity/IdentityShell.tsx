@@ -519,7 +519,9 @@ export default function IdentityShell() {
   // `data` est undefined tant que la query n'a pas résolu, d'où le repli sur un
   // brouillon vide (jamais "complet" par défaut avant d'avoir vraiment vérifié).
   const signatoryId = existingSignatory?.id ?? null
-  const { data: identityDocuments, isLoading: identityDocumentsLoading } = useIdentityDocuments(agencyId, signatoryId)
+  const {
+    data: identityDocuments, isLoading: identityDocumentsLoading, error: identityDocumentsError,
+  } = useIdentityDocuments(agencyId, signatoryId)
   const pieceIdentiteDraft: PieceIdentiteDraft = {
     recto: identityDocuments?.recto?.path ?? null,
     verso: identityDocuments?.verso?.path ?? null,
@@ -802,6 +804,7 @@ export default function IdentityShell() {
             isLoading={identityDocumentsLoading}
             uploadingSide={uploadingSide}
             error={uploadError}
+            loadError={!!identityDocumentsError}
             disabled={!signatoryId}
             onSelectFile={(side, file) => { void handleSelectIdentityFile(side, file) }}
           />

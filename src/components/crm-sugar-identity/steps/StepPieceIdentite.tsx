@@ -36,6 +36,16 @@ interface StepPieceIdentiteProps {
   uploadingSide: IdentityDocumentSide | null
   /** Message d'erreur déjà traduit (format/taille/échec réseau) — IdentityShell choisit lequel. */
   error: string | null
+  /**
+   * Correctif revue tâche 6, point 5 — true si useIdentityDocuments() a échoué (ex. le
+   * bug de casse Storage du point 1, qui rendait l'étape bloquée en silence). Remplace
+   * la grille par un état d'erreur dédié : sans donnée fiable sur ce qui est déjà
+   * téléversé, montrer des tuiles vides inviterait à re-téléverser un document peut-être
+   * déjà présent. Distinct de `error` (échec d'un téléversement EN COURS), qui reste
+   * affiché sous la grille normale — les trois états requis par le projet (chargement,
+   * vide, erreur) sont ainsi tous couverts : isLoading, grille vide/remplie, loadError.
+   */
+  loadError: boolean
   /** true si aucun signataire n'est encore enregistré — ne devrait pas arriver en pratique (étape 0 bloque l'avancement avant), l'écran reste défensif. */
   disabled: boolean
   onSelectFile: (side: IdentityDocumentSide, file: File) => void
@@ -45,7 +55,7 @@ const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,application/pdf'
 
 /** Étape 4 du wizard identité : recto/verso de la pièce d'identité du signataire. */
 export function StepPieceIdentite({
-  recto, verso, isLoading, uploadingSide, error, disabled, onSelectFile,
+  recto, verso, isLoading, uploadingSide, error, loadError, disabled, onSelectFile,
 }: StepPieceIdentiteProps) {
   const { t } = useTranslation('onboarding')
 
@@ -72,6 +82,17 @@ export function StepPieceIdentite({
           fontSize: 13, fontWeight: 500, lineHeight: 1.5, textAlign: 'center',
         }}>
           {t('wizard.pieceIdentite.missingSignataire')}
+        </p>
+      ) : loadError ? (
+        // Correctif revue tâche 6, point 5 : état d'erreur dédié, jamais silencieux —
+        // même forme que le bloc `disabled` ci-dessus (case cardSubtle), mais teinté
+        // SugarV2.err pour le distinguer visuellement d'une simple information.
+        <p role="alert" style={{
+          margin: 0, padding: '16px 20px', borderRadius: 16,
+          background: SugarV2.cardSubtle, color: SugarV2.err,
+          fontSize: 13, fontWeight: 500, lineHeight: 1.5, textAlign: 'center',
+        }}>
+          {t('wizard.pieceIdentite.errors.loadFailed')}
         </p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>

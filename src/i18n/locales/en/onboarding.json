@@ -114,7 +114,8 @@
       "errors": {
         "format": "Accepted format: JPG, PNG, or PDF.",
         "size": "Maximum size: 8 MB.",
-        "generic": "The upload failed. Please try again."
+        "generic": "The upload failed. Please try again.",
+        "loadFailed": "Failed to load the documents. Please try again."
       }
     }
   }

@@ -114,7 +114,8 @@
       "errors": {
         "format": "Formato accettato: JPG, PNG o PDF.",
         "size": "Dimensione massima: 8 MB.",
-        "generic": "Il caricamento non è riuscito. Riprovi."
+        "generic": "Il caricamento non è riuscito. Riprovi.",
+        "loadFailed": "Impossibile caricare i documenti. Riprovi."
       }
     }
   }

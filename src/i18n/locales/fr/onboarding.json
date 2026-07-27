@@ -114,7 +114,8 @@
       "errors": {
         "format": "Format accepté : JPG, PNG ou PDF.",
         "size": "Taille maximale : 8 Mo.",
-        "generic": "Le téléversement a échoué. Réessayez."
+        "generic": "Le téléversement a échoué. Réessayez.",
+        "loadFailed": "Le chargement des documents a échoué. Réessayez."
       }
     }
   }
