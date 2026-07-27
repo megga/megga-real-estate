@@ -73,6 +73,31 @@
         "canton": "Canton",
         "cantonPlaceholder": "Sélectionner un canton"
       }
+    },
+    "beneficiaires": {
+      "eyebrow": "Bénéficiaires effectifs",
+      "title": "Qui sont les bénéficiaires effectifs de votre agence ?",
+      "subtitle": "Indiquez les personnes physiques qui détiennent ou contrôlent l'agence, comme l'exige la loi suisse sur le blanchiment d'argent (LBA). Le seuil de référence est de 25 % (norme du GAFI) : c'est une aide à la saisie, vous pouvez déclarer une personne même en dessous.",
+      "reuseSignataire": "Reprendre {{name}} (signataire)",
+      "addButton": "Ajouter un bénéficiaire effectif",
+      "emptyHint": "Aucun bénéficiaire effectif déclaré pour l'instant. C'est possible si aucune personne physique ne détient seule 25 % ou plus de l'agence.",
+      "removeButton": "Retirer ce bénéficiaire effectif",
+      "fields": {
+        "firstName": "Prénom",
+        "lastName": "Nom",
+        "dateOfBirth": "Date de naissance",
+        "nationality": "Nationalité",
+        "nationalityPlaceholder": "Sélectionner un pays",
+        "ownershipPct": "Pourcentage de détention",
+        "ownershipPctHint": "Seuil de référence (norme du GAFI) : 25 % ou plus. Vous pouvez indiquer une valeur inférieure."
+      },
+      "pep": {
+        "label": "Cette personne est-elle une personne politiquement exposée (PEP) ?",
+        "yes": "Oui",
+        "yesHint": "Exerce ou a exercé une fonction publique importante, en Suisse ou à l'étranger, ou est un proche d'une telle personne.",
+        "no": "Non",
+        "noHint": "N'exerce aucune fonction publique importante."
+      }
     }
   }
 }

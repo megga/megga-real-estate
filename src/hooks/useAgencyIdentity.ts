@@ -20,6 +20,25 @@
  * bénéficiaires effectifs — n'ait qu'à la lire plutôt que de refaire la résolution
  * pays -> useLegalForms -> option elle-même).
  *
+ * ⚠ Nuance posée par la tâche 5 : `legalFormCategory` reflète l'agence PERSISTÉE
+ * (`agencySettings.agency`, alimentée par une requête React Query), pas le brouillon
+ * en cours de saisie à l'étape 2. `saveAgency()` (= useAgencySettings().save) écrit en
+ * base puis invalide sa query SANS l'attendre dans son onSuccess — `saveAgency()` peut
+ * donc déjà avoir résolu que le cache n'a pas encore refait la requête. Un composant
+ * qui lirait `legalFormCategory` immédiatement après un premier `saveAgency()` (le cas
+ * exact d'un `next()` qui vient de persister l'étape agence) verrait donc encore
+ * l'ancienne catégorie, potentiellement `null`. IdentityShell.tsx dérive donc sa
+ * propre décision de saut pour la navigation à partir du BROUILLON agence
+ * (`agencyDraft`, toujours à jour de façon synchrone) plutôt que de cette valeur —
+ * voir son en-tête. `legalFormCategory` reste exposée telle quelle : fidèle à l'état
+ * persisté, elle convient à un usage qui n'a pas cette contrainte de fraîcheur
+ * immédiate (par ex. un futur récapitulatif, tâche 7).
+ *
+ * Tâche 5 : savePerson/removePerson (déjà génériques sur `role` depuis la tâche 3)
+ * suffisent tels quels pour écrire un rôle 'ubo' — aucune nouvelle primitive d'écriture
+ * n'était nécessaire. La seule addition est `ubosToRemove` ci-dessous, un filet de
+ * sécurité pure function pour la suppression (cf. son en-tête).
+ *
  * Toute la logique de décision (mapping des lignes DB, construction des payloads
  * d'écriture) vit dans des fonctions pures exportées ci-dessous, testées dans
  * tests/unit/useAgencyIdentity.spec.ts sans mock Supabase — même motif que
@@ -196,6 +215,43 @@ export function buildRolePayload(relatedPersonId: string, r: IdentityRole) {
     pep_self_declared: r.pepSelfDeclared,
     source: 'declared' as const,
   }
+}
+
+/**
+ * Tâche 5 — quelles personnes `removePerson()` doit effacer pour que la table reflète
+ * le retrait d'un bénéficiaire dans le brouillon de l'étape 3 : celles qui portent
+ * aujourd'hui un rôle `ubo` actif mais dont l'id n'apparaît plus dans le brouillon
+ * courant (`draftPersonIds`, les `personId` — nullables pour les lignes neuves pas
+ * encore enregistrées — des entrées de BeneficiaireDraft[]).
+ *
+ * Garde de sécurité, et raison d'être de cette fonction plutôt qu'un simple filtre
+ * inline dans IdentityShell : une personne qui porte AUSSI un autre rôle actif (le cas
+ * signataire+UBO explicitement visé par le brief tâche 5, très fréquent en petite SA)
+ * n'est JAMAIS renvoyée, même si son id UBO a disparu du brouillon. `removePerson`
+ * supprime la ligne `agency_related_persons` entière — `on delete cascade` emporterait
+ * alors aussi son rôle signataire (20260726130200), perdant une identité KYB pourtant
+ * toujours valide. Retirer quelqu'un de la liste des bénéficiaires ne doit revenir
+ * qu'à cesser de déclarer CE rôle-là pour lui, jamais à effacer la personne.
+ *
+ * Limite assumée : un `ubo` déjà persisté pour une personne qui porte un autre rôle
+ * n'est donc jamais révoqué (le rôle reste actif en base) si l'utilisateur la retire
+ * du brouillon puis sauvegarde — seule une historisation ciblée de CE rôle le
+ * permettrait, hors périmètre ici (la tâche 5 réutilise savePerson/removePerson tels
+ * quels, cf. en-tête du fichier). Sans conséquence destructive : aucune identité ni
+ * aucun autre rôle n'est jamais perdu.
+ */
+export function ubosToRemove(existingPersons: IdentityPersonWithRoles[], draftPersonIds: Array<string | null>): string[] {
+  const keptIds = new Set(draftPersonIds.filter((id): id is string => id != null))
+  return existingPersons
+    // IdentityPerson.id est `string | null` dans le type partagé (null = pas encore
+    // enregistrée, cf. son JSDoc) — mais tout élément de `persons` vient d'une lecture
+    // DB (mapPersonRow) et porte donc toujours un id réel. Ce filtre à predicate narrows
+    // `p.id` en `string` pour le reste de la chaîne sans jamais recourir à `any`/`!`.
+    .filter((p): p is IdentityPersonWithRoles & { id: string } => p.id != null)
+    .filter((p) => p.roles.some((r) => r.role === 'ubo'))
+    .filter((p) => !keptIds.has(p.id))
+    .filter((p) => p.roles.every((r) => r.role === 'ubo'))
+    .map((p) => p.id)
 }
 
 /**

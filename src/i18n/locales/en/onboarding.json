@@ -73,6 +73,31 @@
         "canton": "Canton",
         "cantonPlaceholder": "Select a canton"
       }
+    },
+    "beneficiaires": {
+      "eyebrow": "Beneficial owners",
+      "title": "Who are your agency's beneficial owners?",
+      "subtitle": "Provide the individuals who own or control the agency, as required under Swiss anti-money laundering law (AMLA). The reference threshold is 25% (FATF standard): this is a data-entry aid, you can still declare someone below it.",
+      "reuseSignataire": "Reuse {{name}} (signatory)",
+      "addButton": "Add a beneficial owner",
+      "emptyHint": "No beneficial owner declared yet. This is possible if no individual alone owns 25% or more of the agency.",
+      "removeButton": "Remove this beneficial owner",
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "dateOfBirth": "Date of birth",
+        "nationality": "Nationality",
+        "nationalityPlaceholder": "Select a country",
+        "ownershipPct": "Ownership percentage",
+        "ownershipPctHint": "Reference threshold (FATF standard): 25% or more. You can enter a lower value."
+      },
+      "pep": {
+        "label": "Is this person a politically exposed person (PEP)?",
+        "yes": "Yes",
+        "yesHint": "Holds or has held a prominent public function, in Switzerland or abroad, or is a close associate of such a person.",
+        "no": "No",
+        "noHint": "Does not hold any prominent public function."
+      }
     }
   }
 }

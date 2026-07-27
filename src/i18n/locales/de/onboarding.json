@@ -73,6 +73,31 @@
         "canton": "Kanton",
         "cantonPlaceholder": "Kanton auswählen"
       }
+    },
+    "beneficiaires": {
+      "eyebrow": "Wirtschaftlich Berechtigte",
+      "title": "Wer sind die wirtschaftlich Berechtigten Ihrer Agentur?",
+      "subtitle": "Geben Sie die natürlichen Personen an, die die Agentur besitzen oder kontrollieren, wie dies das Schweizer Geldwäschereigesetz (GwG) vorschreibt. Der Referenzschwellenwert liegt bei 25 % (FATF-Norm): Dies ist eine Erfassungshilfe, Sie können eine Person auch darunter angeben.",
+      "reuseSignataire": "{{name}} übernehmen (Unterzeichner)",
+      "addButton": "Wirtschaftlich Berechtigten hinzufügen",
+      "emptyHint": "Bisher kein wirtschaftlich Berechtigter angegeben. Dies ist möglich, wenn keine natürliche Person allein 25 % oder mehr der Agentur hält.",
+      "removeButton": "Diesen wirtschaftlich Berechtigten entfernen",
+      "fields": {
+        "firstName": "Vorname",
+        "lastName": "Nachname",
+        "dateOfBirth": "Geburtsdatum",
+        "nationality": "Staatsangehörigkeit",
+        "nationalityPlaceholder": "Land auswählen",
+        "ownershipPct": "Beteiligungsquote",
+        "ownershipPctHint": "Referenzschwellenwert (FATF-Norm): 25 % oder mehr. Sie können auch einen niedrigeren Wert angeben."
+      },
+      "pep": {
+        "label": "Handelt es sich bei dieser Person um eine politisch exponierte Person (PEP)?",
+        "yes": "Ja",
+        "yesHint": "Übt oder übte eine wichtige öffentliche Funktion aus, im In- oder Ausland, oder steht einer solchen Person nahe.",
+        "no": "Nein",
+        "noHint": "Übt keine wichtige öffentliche Funktion aus."
+      }
     }
   }
 }

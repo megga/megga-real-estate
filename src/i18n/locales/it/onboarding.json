@@ -73,6 +73,31 @@
         "canton": "Cantone",
         "cantonPlaceholder": "Selezioni un Cantone"
       }
+    },
+    "beneficiaires": {
+      "eyebrow": "Aventi diritto economico",
+      "title": "Chi sono gli aventi diritto economico della Sua agenzia?",
+      "subtitle": "Indichi le persone fisiche che detengono o controllano l'agenzia, come richiesto dalla legge svizzera antiriciclaggio (LRD). La soglia di riferimento è del 25% (norma GAFI): si tratta di un aiuto alla compilazione, può dichiarare una persona anche al di sotto.",
+      "reuseSignataire": "Riprenda {{name}} (firmatario)",
+      "addButton": "Aggiunga un avente diritto economico",
+      "emptyHint": "Nessun avente diritto economico dichiarato per il momento. È possibile se nessuna persona fisica detiene da sola il 25% o più dell'agenzia.",
+      "removeButton": "Rimuova questo avente diritto economico",
+      "fields": {
+        "firstName": "Nome",
+        "lastName": "Cognome",
+        "dateOfBirth": "Data di nascita",
+        "nationality": "Nazionalità",
+        "nationalityPlaceholder": "Selezioni un Paese",
+        "ownershipPct": "Percentuale di partecipazione",
+        "ownershipPctHint": "Soglia di riferimento (norma GAFI): 25% o più. Può indicare anche un valore inferiore."
+      },
+      "pep": {
+        "label": "Questa persona è una persona politicamente esposta (PEP)?",
+        "yes": "Sì",
+        "yesHint": "Esercita o ha esercitato un'importante funzione pubblica, in Svizzera o all'estero, oppure è uno stretto collaboratore di tale persona.",
+        "no": "No",
+        "noHint": "Non esercita alcuna funzione pubblica importante."
+      }
     }
   }
 }

@@ -16,10 +16,18 @@
  * vérité ; aucun stockage local parallèle (le brouillon d'étape en cours vit en
  * mémoire React le temps de la saisie, rien d'autre).
  *
- * Les étapes 0 (StepSignataire, tâche 3) et 1 (StepAgence, tâche 4) ont un écran
- * réel. Les étapes 2 à 4 rendent un palier honnête « à venir » jusqu'à ce que les
- * tâches 5 à 7 les remplacent une à une par leur propre écran + bloc de persistance
- * ici.
+ * Les étapes 0 (StepSignataire, tâche 3), 1 (StepAgence, tâche 4) et 2
+ * (StepBeneficiaires, tâche 5) ont un écran réel. Les étapes 3 et 4 rendent un
+ * palier honnête « à venir » jusqu'à ce que les tâches 6 et 7 les remplacent une à
+ * une par leur propre écran + bloc de persistance ici.
+ *
+ * L'étape 2 est en outre CONDITIONNELLE (tâche 5, point central de son brief) :
+ * sautée quand la forme juridique choisie à l'étape 1 est une raison individuelle
+ * (`legal_forms.category = 'sole_proprietorship'`) — le signataire EST l'entité,
+ * aucun bénéficiaire effectif tiers à déclarer. « Sauter » veut dire : ni affichée
+ * ni comptée par le stepper, dans les deux sens de navigation — voir
+ * shouldSkipBeneficiairesStep/visibleIdentitySteps/nextIdentityStep/prevIdentityStep
+ * plus bas, et leur usage dans le corps du composant.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -28,10 +36,12 @@ import { SugarV2, setSugarV2Dark, SG_IDENTITY_STEPS, SG_IDENTITY_KEYFRAMES } fro
 import { SgIcon, SgBlackPill, SgGhostPill } from '@/components/crm-sugar-wizard/primitives'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
-import { useAgencyIdentity } from '@/hooks/useAgencyIdentity'
+import { useAgencyIdentity, resolveLegalFormCategory, ubosToRemove, type IdentityRole } from '@/hooks/useAgencyIdentity'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
+import { useLegalForms, type LegalFormCategory } from '@/hooks/useLegalForms'
 import { StepSignataire } from './steps/StepSignataire'
 import { StepAgence } from './steps/StepAgence'
+import { StepBeneficiaires } from './steps/StepBeneficiaires'
 
 /** Brouillon local de l'étape 1, contrôlé par IdentityShell (cf. en-tête de StepSignataire). */
 export interface SignataireDraft {
@@ -131,6 +141,75 @@ export function isAgencyStepComplete(draft: AgencyDraft): boolean {
 }
 
 /**
+ * Un bénéficiaire effectif du brouillon local de l'étape 2 (tâche 5) — une liste, à la
+ * différence des deux étapes précédentes qui portent une entité unique.
+ * `personId` distingue une saisie neuve (`null`) d'une personne déjà persistée
+ * (id réel) — c'est ce même id qui, lorsqu'il coïncide avec celui du signataire, fait
+ * qu'un « second rôle » s'ajoute à une personne existante au lieu d'en dupliquer
+ * l'identité (cf. brief tâche 5, StepBeneficiaires « reprendre le signataire »).
+ * `pepSelfDeclared` est nullable ICI (contrairement à `IdentityRole.pepSelfDeclared`,
+ * `boolean` non nullable) : `null` = pas encore répondu, pour ne jamais faire de
+ * "false" un défaut silencieux sur une déclaration de conformité — même logique que
+ * `signaturePower` côté signataire. Coercé en `boolean` uniquement à l'écriture
+ * (persistCurrentStep), une fois la complétude de la ligne déjà vérifiée.
+ */
+export interface BeneficiaireDraft {
+  personId: string | null
+  firstName: string
+  lastName: string
+  dateOfBirth: string | null
+  nationality: string | null
+  ownershipPct: number | null
+  pepSelfDeclared: boolean | null
+}
+
+/** Ligne vide — état initial d'une nouvelle entrée ajoutée dans StepBeneficiaires. */
+// eslint-disable-next-line react-refresh/only-export-components -- constante partagée avec StepBeneficiaires/les tests, même motif que EMPTY_SIGNATAIRE_DRAFT.
+export const EMPTY_BENEFICIAIRE_DRAFT: BeneficiaireDraft = {
+  personId: null,
+  firstName: '',
+  lastName: '',
+  dateOfBirth: null,
+  nationality: null,
+  ownershipPct: null,
+  pepSelfDeclared: null,
+}
+
+/**
+ * true si les 6 champs d'un bénéficiaire sont renseignés — même discipline tout-ou-rien
+ * que isSignataireStepComplete/isAgencyStepComplete : jamais de ligne à moitié saisie
+ * silencieusement acceptée. `ownershipPct` n'est PAS comparé au seuil GAFI de 25 % :
+ * le brief est explicite, ce seuil est une aide à la saisie rappelée par l'interface,
+ * jamais une règle de validation — 0 % (dilution) et null (pas répondu) sont les seules
+ * valeurs distinguées ici, `!= null` couvre les deux sans confondre l'une avec l'autre.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
+export function isBeneficiaireEntryComplete(entry: BeneficiaireDraft): boolean {
+  return (
+    entry.firstName.trim() !== ''
+    && entry.lastName.trim() !== ''
+    && entry.dateOfBirth != null
+    && entry.nationality != null
+    && entry.ownershipPct != null
+    && entry.pepSelfDeclared != null
+  )
+}
+
+/**
+ * true si l'étape bénéficiaires effectifs peut être quittée en avançant. Une liste VIDE
+ * est valide (contrairement au signataire et à l'agence, qui portent chacun une entité
+ * BLOQUANTE) : aucune personne physique ne détenant seule 25 % ou plus est une réponse
+ * légitime, et la RPC de soumission (submit_agency_identity, 20260727100000) n'exige
+ * d'ailleurs aucun UBO pour accepter le dossier — seuls raison sociale, forme
+ * juridique, pays et signataire actif y sont vérifiés. Ce qui n'est en revanche jamais
+ * toléré, c'est une ligne commencée puis laissée incomplète (isBeneficiaireEntryComplete).
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isAgencyStepComplete.
+export function isBeneficiairesStepComplete(entries: BeneficiaireDraft[]): boolean {
+  return entries.every(isBeneficiaireEntryComplete)
+}
+
+/**
  * Recalcule le `legalFormId` à conserver après un changement du pays du siège
  * (dépendance d'ordre du brief tâche 4, explicitement pas cosmétique). Chaque
  * `legal_forms.id` appartient à EXACTEMENT un pays par construction (colonne
@@ -153,9 +232,12 @@ export function clampIdentityStep(step: number, stepCount: number): number {
 
 /**
  * true si l'étape `step` autorise une navigation avant (bouton Continuer du pied de
- * page). Les étapes 0 (StepSignataire) et 1 (StepAgence) ont un écran réel — gate sur
- * leur complétude respective. Les étapes 2 à 4 sont des paliers StepComingSoon
- * (tâches 5 à 7, aucun contenu à valider aujourd'hui) : jamais navigables en avant
+ * page). Les étapes 0 (StepSignataire), 1 (StepAgence) et 2 (StepBeneficiaires) ont un
+ * écran réel — gate sur leur complétude respective. `beneficiaires` est optionnel
+ * (défaut `[]`) : les appels antérieurs à la tâche 5 (tests des tâches 3/4) restent
+ * valides sans le 4e argument, et une liste vide est de toute façon complète
+ * (isBeneficiairesStepComplete). Les étapes 3 et 4 restent des paliers StepComingSoon
+ * (tâches 6 et 7, aucun contenu à valider aujourd'hui) : jamais navigables en avant
  * tant qu'elles n'ont pas de contenu réel, quels que soient les brouillons en cours.
  *
  * Revue tâche 3 : `canNext` valait `true` sans condition dès step > 0 — le bouton
@@ -165,13 +247,76 @@ export function clampIdentityStep(step: number, stepCount: number): number {
  * la tâche affirmait à tort que c'était vrai aussi du bouton du pied de page.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete/clampIdentityStep.
-export function canAdvanceFromIdentityStep(step: number, signataire: SignataireDraft, agency: AgencyDraft): boolean {
+export function canAdvanceFromIdentityStep(
+  step: number,
+  signataire: SignataireDraft,
+  agency: AgencyDraft,
+  beneficiaires: BeneficiaireDraft[] = [],
+): boolean {
   if (step === 0) return isSignataireStepComplete(signataire)
   if (step === 1) return isAgencyStepComplete(agency)
+  if (step === 2) return isBeneficiairesStepComplete(beneficiaires)
   return false
 }
 
-/** Palier honnête pour les étapes 2 à 5, pas encore livrées (tâches 4 à 7). */
+/**
+ * Index fixe de l'étape bénéficiaires effectifs dans SG_IDENTITY_STEPS (voir tokens.ts
+ * § Étapes du wizard : signataire=0, agence=1, bénéficiaires=2, pièce d'identité=3,
+ * récapitulatif=4). La SEULE étape conditionnelle du parcours — pas de paramétrage
+ * générique « quel index sauter » ici, ce serait de la généricité non demandée pour un
+ * wizard qui n'a qu'un seul palier optionnel par construction.
+ */
+const BENEFICIAIRES_STEP_INDEX = 2
+
+/**
+ * true si l'étape bénéficiaires effectifs (index 2) doit être sautée : raison
+ * individuelle, le signataire EST l'entité, aucun bénéficiaire effectif tiers à
+ * déclarer (§4 de la spec de conception, rôle explicite de `legal_forms.category`).
+ * `null` (catégorie pas encore connue, ex. aucune forme juridique choisie) -> PAS
+ * sautée : tant qu'on ignore si l'étape s'applique, mieux vaut la montrer que la
+ * masquer à tort et laisser filer un dossier KYB incomplet.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
+export function shouldSkipBeneficiairesStep(category: LegalFormCategory | null): boolean {
+  return category === 'sole_proprietorship'
+}
+
+/**
+ * Indices d'étapes VISIBLES, dans l'ordre — exclut BENEFICIAIRES_STEP_INDEX quand
+ * `skipBeneficiaires`. Alimente à la fois le rendu du stepper du header (qui ne doit
+ * jamais compter une étape que l'utilisateur ne verra pas, cf. brief tâche 5) et
+ * nextIdentityStep/prevIdentityStep ci-dessous — une seule source de vérité pour
+ * « quelles étapes existent réellement pour cette agence ».
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que clampIdentityStep.
+export function visibleIdentitySteps(stepCount: number, skipBeneficiaires: boolean): number[] {
+  const all = Array.from({ length: stepCount }, (_, i) => i)
+  return skipBeneficiaires ? all.filter((i) => i !== BENEFICIAIRES_STEP_INDEX) : all
+}
+
+/**
+ * Étape suivante VISIBLE après `step` (jamais BENEFICIAIRES_STEP_INDEX quand sautée),
+ * bornée à la dernière étape visible. Remplace un simple `clampIdentityStep(step + 1,
+ * …)` dans next() : ce dernier ignore le saut et laisserait l'utilisateur atterrir sur
+ * l'étape bénéficiaires même quand elle ne s'applique pas — exactement le bug que la
+ * tâche 5 doit éviter dans les DEUX sens de navigation (voir prevIdentityStep).
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que clampIdentityStep.
+export function nextIdentityStep(step: number, stepCount: number, skipBeneficiaires: boolean): number {
+  const visible = visibleIdentitySteps(stepCount, skipBeneficiaires)
+  const pos = visible.indexOf(step)
+  return visible[pos === -1 ? 0 : Math.min(pos + 1, visible.length - 1)]
+}
+
+/** Symétrique de nextIdentityStep pour le bouton Précédent — même garde-fou, sens inverse. */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que nextIdentityStep.
+export function prevIdentityStep(step: number, stepCount: number, skipBeneficiaires: boolean): number {
+  const visible = visibleIdentitySteps(stepCount, skipBeneficiaires)
+  const pos = visible.indexOf(step)
+  return visible[pos === -1 ? 0 : Math.max(pos - 1, 0)]
+}
+
+/** Palier honnête pour les étapes 3 et 4, pas encore livrées (tâches 6 et 7). */
 function StepComingSoon({ eyebrow }: { eyebrow: string }) {
   const { t } = useTranslation('onboarding')
   return (
@@ -200,7 +345,7 @@ export default function IdentityShell() {
 
   const { signOut } = useAuth()
   const navigate = useNavigate()
-  const { agency, persons, isLoading, savePerson, saveAgency } = useAgencyIdentity()
+  const { agency, persons, isLoading, savePerson, removePerson, saveAgency } = useAgencyIdentity()
 
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -266,7 +411,53 @@ export default function IdentityShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agency.legalFormId])
 
-  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft)
+  // Décision de saut de l'étape bénéficiaires (tâche 5, point central du brief) —
+  // dérivée du BROUILLON agence (agencyDraft), pas de useAgencyIdentity().legalFormCategory
+  // (qui reflète l'agence PERSISTÉE, cf. le commentaire dédié dans useAgencyIdentity.ts).
+  // Pourquoi ça compte : saveAgency() (step 1) invalide sa query sans l'attendre dans son
+  // onSuccess, donc juste après le premier persistCurrentStep() de l'étape agence — soit
+  // exactement l'instant où next() décide de sauter ou non l'étape suivante —
+  // legalFormCategory peut encore refléter l'ANCIENNE forme juridique (souvent aucune).
+  // agencyDraft, lui, est déjà à jour de façon synchrone : c'est la même valeur qui vient
+  // d'être envoyée à saveAgency(). Coût : un appel useLegalForms de plus, mais la query
+  // est partagée par clé (['legal-forms', code]) avec celles de StepAgence et du hook —
+  // pas de requête réseau supplémentaire dès que le pays coïncide (cas normal ici).
+  const { options: agencyLegalFormOptions } = useLegalForms(agencyDraft.country)
+  const skipBeneficiaires = shouldSkipBeneficiairesStep(
+    resolveLegalFormCategory(agencyDraft.legalFormId, agencyLegalFormOptions),
+  )
+
+  const existingBeneficiaires = useMemo(
+    () => persons.filter((p) => p.roles.some((r) => r.role === 'ubo')),
+    [persons],
+  )
+  const [beneficiaires, setBeneficiairesRaw] = useState<BeneficiaireDraft[]>([])
+  const setBeneficiaires = (next: BeneficiaireDraft[]) => setBeneficiairesRaw(next)
+
+  // Hydrate le brouillon depuis les UBO déjà persistés — UNIQUEMENT tant que le
+  // brouillon local est encore vide (garde `prev.length > 0 ? prev : …`), jamais en
+  // écrasant une saisie déjà en cours. Sans cette garde, le refetch que savePerson/
+  // removePerson attendent tous deux avant de résoudre (cf. leur JSDoc) redéclencherait
+  // cet effet PENDANT la boucle de sauvegarde de persistCurrentStep (step 2, plus bas)
+  // et écraserait les lignes que la boucle n'a pas encore traitées — même risque que la
+  // sur-hydratation évitée pour existingSignatory/agency.legalFormId ci-dessus, mais
+  // plus aigu ici : une liste se modifie à chaque save, pas une entité unique.
+  const existingBeneficiairesKey = existingBeneficiaires.map((p) => p.id).join(',')
+  useEffect(() => {
+    if (existingBeneficiaires.length === 0) return
+    setBeneficiairesRaw((prev) => (prev.length > 0 ? prev : existingBeneficiaires.map((p) => ({
+      personId: p.id,
+      firstName: p.firstName,
+      lastName: p.lastName,
+      dateOfBirth: p.dateOfBirth,
+      nationality: p.nationality,
+      ownershipPct: p.roles.find((r) => r.role === 'ubo')?.ownershipPct ?? null,
+      pepSelfDeclared: p.roles.find((r) => r.role === 'ubo')?.pepSelfDeclared ?? false,
+    }))))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingBeneficiairesKey])
+
+  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, beneficiaires)
 
   /** Enveloppe commune à chaque étape persistable : bascule saving/error/justSaved
    *  autour de l'opération d'écriture réelle (savePerson ou saveAgency selon
@@ -323,18 +514,58 @@ export default function IdentityShell() {
       // (contrat de useAgencySettings) — d'où l'étalement plutôt qu'un patch.
       return runPersist(() => saveAgency({ ...agency, ...agencyDraft }))
     }
-    return true // étapes 2 à 4 : rien à persister avant les tâches 5 à 7
+    if (step === 2) {
+      if (!isBeneficiairesStepComplete(beneficiaires)) return false
+      return runPersist(async () => {
+        // 1. Retire d'abord les UBO enlevés du brouillon — ubosToRemove protège déjà
+        // toute personne qui porte un autre rôle actif (ex. le signataire réutilisé
+        // comme bénéficiaire, cf. son en-tête dans useAgencyIdentity.ts) : jamais de
+        // cascade destructive sur une identité encore nécessaire ailleurs.
+        for (const id of ubosToRemove(persons, beneficiaires.map((b) => b.personId))) {
+          await removePerson(id)
+        }
+        // 2. (Ré)écrit chaque ligne du brouillon. `id: b.personId` fait toute la
+        // différence entre "ajouter un second rôle" et "dupliquer l'identité" (cas
+        // central du brief) : reprendre le signataire transmet SON id réel, savePerson
+        // met alors à jour la personne existante au lieu d'en insérer une seconde.
+        for (let i = 0; i < beneficiaires.length; i += 1) {
+          const b = beneficiaires[i]
+          const role: IdentityRole = {
+            role: 'ubo',
+            signaturePower: null,
+            ownershipPct: b.ownershipPct,
+            // Coercion sûre : isBeneficiairesStepComplete (garde ci-dessus) a déjà
+            // vérifié pepSelfDeclared != null pour CHAQUE entrée avant d'arriver ici.
+            pepSelfDeclared: b.pepSelfDeclared ?? false,
+          }
+          const savedId = await savePerson(
+            { id: b.personId, firstName: b.firstName, lastName: b.lastName, dateOfBirth: b.dateOfBirth, nationality: b.nationality },
+            [role],
+          )
+          // Patch synchrone du brouillon local pour une ligne neuve (personId était
+          // null) : sans ça, un aller-retour prev()/next() sur cette même étape avant
+          // qu'un futur refetch ne recharge `persons` réinsérerait cette personne une
+          // seconde fois (personId resterait null) — cf. JSDoc de l'effet d'hydratation
+          // ci-dessus, qui ne peut pas jouer ce rôle (garde "brouillon déjà non vide").
+          if (b.personId == null) {
+            const insertedIndex = i
+            setBeneficiairesRaw((prev) => prev.map((x, idx) => (idx === insertedIndex ? { ...x, personId: savedId } : x)))
+          }
+        }
+      })
+    }
+    return true // étapes 3 et 4 : rien à persister avant les tâches 6 et 7
   }
 
   const next = async () => {
     if (!canNext || saving) return
     if (!(await persistCurrentStep())) return
-    setStep((s) => clampIdentityStep(s + 1, SG_IDENTITY_STEPS.length))
+    setStep((s) => nextIdentityStep(s, SG_IDENTITY_STEPS.length, skipBeneficiaires))
   }
   const prev = async () => {
     if (saving) return
     await persistCurrentStep()
-    setStep((s) => clampIdentityStep(s - 1, SG_IDENTITY_STEPS.length))
+    setStep((s) => prevIdentityStep(s, SG_IDENTITY_STEPS.length, skipBeneficiaires))
   }
   const goToStep = async (target: number) => {
     if (target === step || target > step || saving) return // seuls les paliers déjà visités sont accessibles
@@ -355,7 +586,11 @@ export default function IdentityShell() {
         justifyContent: 'space-between', gap: 16,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 24, overflowX: 'auto' }}>
-          {SG_IDENTITY_STEPS.map((s, i) => {
+          {/* visibleIdentitySteps exclut l'étape bénéficiaires quand elle est sautée : ni
+              affichée ni comptée dans la numérotation (position + 1, pas i + 1) — c'est le
+              volet "stepper" de l'exigence de saut propre (cf. en-tête du fichier). */}
+          {visibleIdentitySteps(SG_IDENTITY_STEPS.length, skipBeneficiaires).map((i, position) => {
+            const s = SG_IDENTITY_STEPS[i]
             const clickable = i < step && !saving
             return (
               <button
@@ -374,7 +609,7 @@ export default function IdentityShell() {
                   transition: 'all .18s ease',
                 }}
               >
-                {i + 1}. {s.label}
+                {position + 1}. {s.label}
               </button>
             )
           })}
@@ -410,6 +645,24 @@ export default function IdentityShell() {
           <StepSignataire value={signataire} onChange={setSignataire} />
         ) : step === 1 ? (
           <StepAgence value={agencyDraft} onChange={setAgencyDraft} />
+        ) : step === 2 ? (
+          // N'est jamais atteinte quand skipBeneficiaires est vrai : nextIdentityStep/
+          // prevIdentityStep ne renvoient jamais 2 dans ce cas (cf. leur JSDoc).
+          <StepBeneficiaires
+            value={beneficiaires}
+            onChange={setBeneficiaires}
+            signataire={existingSignatory && existingSignatory.id ? {
+              // existingSignatory.id est `string | null` dans le type partagé
+              // (IdentityPerson.id, null = pas encore enregistrée) mais vient ici
+              // toujours d'une lecture DB (persons) : le garde ci-dessus le narrows en
+              // `string` pour StepBeneficiaires, qui a besoin d'un id réel à réutiliser.
+              personId: existingSignatory.id,
+              firstName: existingSignatory.firstName,
+              lastName: existingSignatory.lastName,
+              dateOfBirth: existingSignatory.dateOfBirth,
+              nationality: existingSignatory.nationality,
+            } : null}
+          />
         ) : (
           <StepComingSoon eyebrow={SG_IDENTITY_STEPS[step].label} />
         )}

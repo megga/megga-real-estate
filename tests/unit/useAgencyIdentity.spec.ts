@@ -13,7 +13,9 @@ import {
   buildRolePayload,
   isRoleActive,
   resolveLegalFormCategory,
+  ubosToRemove,
   type PersonRow,
+  type IdentityPersonWithRoles,
 } from '@/hooks/useAgencyIdentity'
 import type { LegalFormOption } from '@/hooks/useLegalForms'
 
@@ -216,5 +218,61 @@ describe('resolveLegalFormCategory — dérive la catégorie de la forme juridiq
 
   it('id absent des options (ex. pays changé, options pas encore rechargées) -> null, jamais une erreur', () => {
     expect(resolveLegalFormCategory('legal-form-inconnu', options)).toBeNull()
+  })
+})
+
+describe('ubosToRemove — tâche 5 : quels UBO retirés du brouillon supprimer, sans jamais toucher une personne qui porte un autre rôle actif', () => {
+  const uboOnly: IdentityPersonWithRoles = {
+    id: 'p-ubo',
+    firstName: 'Alice',
+    lastName: 'Martin',
+    dateOfBirth: '1970-01-01',
+    nationality: 'CH',
+    roles: [{ role: 'ubo', signaturePower: null, ownershipPct: 40, pepSelfDeclared: false }],
+  }
+  // Le cas qui justifie tout le découpage du schéma (brief tâche 5) : le fondateur
+  // administrateur ET actionnaire majoritaire, DEUX rôles actifs sur la MÊME personne.
+  const sharedSignatoryAndUbo: IdentityPersonWithRoles = {
+    id: 'p-shared',
+    firstName: 'Grégory',
+    lastName: 'Lyonnet',
+    dateOfBirth: '1980-05-12',
+    nationality: 'CH',
+    roles: [
+      { role: 'signatory', signaturePower: 'individual', ownershipPct: null, pepSelfDeclared: false },
+      { role: 'ubo', signaturePower: null, ownershipPct: 60, pepSelfDeclared: true },
+    ],
+  }
+  const signatoryOnly: IdentityPersonWithRoles = {
+    id: 'p-sig',
+    firstName: 'Autre',
+    lastName: 'Signataire',
+    dateOfBirth: '1985-06-15',
+    nationality: 'FR',
+    roles: [{ role: 'signatory', signaturePower: 'joint', ownershipPct: null, pepSelfDeclared: false }],
+  }
+
+  it('UBO seul absent du brouillon courant -> à supprimer', () => {
+    expect(ubosToRemove([uboOnly], [])).toEqual(['p-ubo'])
+  })
+
+  it('UBO seul toujours présent dans le brouillon (son id est gardé) -> conservé', () => {
+    expect(ubosToRemove([uboOnly], ['p-ubo'])).toEqual([])
+  })
+
+  it('personne signataire ET UBO, retirée du brouillon bénéficiaires -> JAMAIS supprimée : la suppression cascaderait sur son rôle de signataire (on delete cascade, 20260726130200)', () => {
+    expect(ubosToRemove([sharedSignatoryAndUbo], [])).toEqual([])
+  })
+
+  it('mélange : le UBO seul part, la personne partagée signataire+UBO reste protégée', () => {
+    expect(ubosToRemove([uboOnly, sharedSignatoryAndUbo], [])).toEqual(['p-ubo'])
+  })
+
+  it('personne sans rôle ubo actif (signataire seul) -> jamais renvoyée, rien à voir avec cette étape', () => {
+    expect(ubosToRemove([signatoryOnly], [])).toEqual([])
+  })
+
+  it('draftPersonIds contient des null (lignes neuves pas encore enregistrées) -> ignorés, ne protègent aucun id existant', () => {
+    expect(ubosToRemove([uboOnly], [null, null])).toEqual(['p-ubo'])
   })
 })
