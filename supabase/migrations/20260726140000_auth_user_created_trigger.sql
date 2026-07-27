@@ -16,8 +16,9 @@
 -- même NEW.id → violation de clé primaire → 500 sur TOUTE inscription (voir
 -- docs/runbooks/trigger-inscription-duplique.md, désormais historique).
 --
--- Idempotente : le DO retrouve et supprime le(s) trigger(s) existant(s), y compris
--- le canonique lui-même sur un rejeu, puis le CREATE le repose systématiquement.
+-- Idempotente : le DO retrouve et supprime tout trigger d'un AUTRE nom appelant
+-- handle_new_user, puis CREATE OR REPLACE TRIGGER (PG14+) repose le canonique quel
+-- que soit son état — absent, ou déjà présent sur un rejeu.
 
 do $$
 declare
@@ -32,12 +33,13 @@ begin
       and not t.tgisinternal          -- exclut les triggers internes (contraintes FK…)
       and pn.nspname = 'public'
       and p.proname = 'handle_new_user'
+      and t.tgname <> 'on_auth_user_created'   -- celui-ci : CREATE OR REPLACE s'en charge juste après
   loop
     execute format('drop trigger %I on auth.users', v_trigger.tgname);
   end loop;
 end $$;
 
-create trigger on_auth_user_created
+create or replace trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
