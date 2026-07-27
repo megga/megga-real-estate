@@ -439,6 +439,80 @@ describe.skipIf(!HAS_KEYS)('submit_agency_identity — RPC de soumission', () =>
     expect(agency?.identity_submitted_at).not.toBeNull()
   })
 
+  // Revue tâche 6, point 3 (important) : un appel SANS argument (chemin actuel du
+  // client — useAgencyIdentity.ts `submit()` appelle encore la RPC sans
+  // p_related_person_id) pose identity_submitted_at ; un appel ULTÉRIEUR AVEC
+  // p_related_person_id (une fois la tâche 7 câblée) doit malgré tout poser la ligne
+  // de check, pas rester sans effet à cause du retour anticipé « déjà soumis ».
+  it('un appel sans p_related_person_id puis un second AVEC pose quand même le check (retour anticipé neutralisait ce chemin)', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+    const { data: signatoryRow, error: personErr } = await serviceRoleClient()
+      .from('agency_related_persons')
+      .select('id')
+      .eq('agency_id', founder.agencyId)
+      .single()
+    expect(personErr).toBeNull()
+    const relatedPersonId = signatoryRow!.id as string
+
+    // 1er appel : sans argument — soumet le dossier, ne pose aucun check.
+    const first = await founder.client.rpc('submit_agency_identity')
+    expect(first.error, `1er appel: ${first.error?.message}`).toBeNull()
+    const { data: agencyAfterFirst } = await serviceRoleClient()
+      .from('agencies')
+      .select('identity_submitted_at')
+      .eq('id', founder.agencyId)
+      .maybeSingle()
+    expect(agencyAfterFirst?.identity_submitted_at, 'le 1er appel doit déjà soumettre le dossier').not.toBeNull()
+
+    // 2e appel : APRÈS soumission, avec p_related_person_id cette fois.
+    const second = await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    expect(second.error, `2e appel: ${second.error?.message}`).toBeNull()
+
+    const { data: check, error: checkErr } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('check_type, source, result')
+      .eq('related_person_id', relatedPersonId)
+      .maybeSingle()
+    expect(checkErr).toBeNull()
+    expect(check, 'le 2e appel doit poser la ligne de check malgré le dossier déjà soumis').not.toBeNull()
+    expect(check?.check_type).toBe('id_document')
+    expect(check?.source).toBe('manual')
+    expect(check?.result).toBe('pending_manual_review')
+
+    // identity_submitted_at ne doit pas être rejoué (toujours idempotent par ailleurs).
+    const { data: agencyAfterSecond } = await serviceRoleClient()
+      .from('agencies')
+      .select('identity_submitted_at')
+      .eq('id', founder.agencyId)
+      .maybeSingle()
+    expect(agencyAfterSecond?.identity_submitted_at).toBe(agencyAfterFirst?.identity_submitted_at)
+  })
+
+  it('un 3e appel avec le même p_related_person_id (déjà coché) reste sans effet — pas de second check pour la même personne', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+    const { data: signatoryRow } = await serviceRoleClient()
+      .from('agency_related_persons')
+      .select('id')
+      .eq('agency_id', founder.agencyId)
+      .single()
+    const relatedPersonId = signatoryRow!.id as string
+
+    await founder.client.rpc('submit_agency_identity')
+    const second = await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    expect(second.error).toBeNull()
+    const third = await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    expect(third.error, `3e appel: ${third.error?.message}`).toBeNull()
+
+    const { data: checks, error: checksErr } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('id')
+      .eq('related_person_id', relatedPersonId)
+    expect(checksErr).toBeNull()
+    expect(checks?.length, 'un 3e appel avec le même id ne doit jamais reposer une seconde ligne').toBe(1)
+  })
+
   it('l\'événement journalisé porte category=kyc (et non compliance)', async () => {
     const founder = await signUpFounder()
     await completeAgencyIdentity(founder.agencyId)

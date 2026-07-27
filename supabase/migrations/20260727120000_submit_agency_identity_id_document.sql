@@ -33,6 +33,16 @@
 -- activity_events (append-only, dix ans, jamais purgeable) pour la même personne —
 -- reproduit par un test à appels concurrents réels (Promise.all), pas une hypothèse.
 --
+-- ⚠ Correctif revue tâche 6, point 3 — sémantique du retour anticipé « déjà soumis » :
+-- l'étape 4 (pose du check) s'exécute désormais AVANT l'étape 5 (retour anticipé), pas
+-- après. Le client actuel appelle encore submit_agency_identity() SANS argument à la
+-- soumission initiale (câblage de p_related_person_id laissé à la tâche 7) : avec
+-- l'ancien ordre, un appel ultérieur AVEC p_related_person_id une fois ce câblage fait
+-- tombait dans le retour anticipé AVANT d'atteindre la pose du check, qui ne
+-- s'exécutait donc plus JAMAIS pour une agence déjà soumise — neutralisé
+-- définitivement, pas seulement retardé. L'étape 4 est gardée par `not exists` (jamais
+-- un second insert pour la même personne, quel que soit l'état de soumission).
+--
 -- ⚠ Postgres identifie une fonction par NOM + TYPES de paramètres — un DEFAULT ne
 -- change pas la signature pour la résolution de CREATE OR REPLACE. Sans le DROP
 -- explicite ci-dessous, la fonction zéro-argument de la tâche 1 et cette nouvelle
@@ -74,37 +84,37 @@ begin
     raise exception '%', v_error;
   end if;
 
-  -- 3. Idempotence métier : un second appel (double clic, retry réseau) ne doit ni
-  -- re-timestamper ni re-journaliser, ni reposer une seconde ligne de check. On sort
-  -- silencieusement plutôt que de renvoyer une erreur : du point de vue de l'appelant,
-  -- la soumission a déjà réussi.
-  --
-  -- ⚠ Correctif revue tâche 6, point 2 — FOR UPDATE indispensable, pas cosmétique : sans
-  -- lui, deux appels entrelacés (deux onglets, ou un simple double clic dont le premier
-  -- clic n'a pas encore désactivé le bouton) lisent tous les deux v_submitted = null
-  -- AVANT que l'un ou l'autre n'écrive quoi que ce soit, passent tous les deux le test
-  -- ci-dessous, et empilent chacun une ligne 'pending_manual_review' (étape 4) + un
-  -- événement activity_events (étape 6, append-only, conservé dix ans, jamais
-  -- purgeable) pour la même personne. FOR UPDATE verrouille la ligne agencies : le
+  -- 3. Verrou de concurrence (revue tâche 6, point 2) : `select ... for update` sur la
+  -- ligne agencies sérialise les appels concurrents sur la même agence (deux onglets,
+  -- un double clic dont le premier clic n'a pas encore désactivé le bouton) — le
   -- second appel BLOQUE jusqu'à ce que le premier ait committé (ou annulé), puis relit
-  -- v_submitted déjà posé et emprunte cette même branche de sortie anticipée — vrai
-  -- sous concurrence réelle, prouvé par un test à N appels simultanés
-  -- (Promise.all, jamais une boucle séquentielle), pas seulement en séquentiel.
+  -- identity_submitted_at déjà posé. Sans ce verrou, deux appels entrelacés liraient
+  -- tous deux v_submitted = null avant que l'un n'écrive, et empileraient chacun une
+  -- ligne 'pending_manual_review' (étape 4) + un événement activity_events (étape 7,
+  -- append-only, conservé dix ans, jamais purgeable) — prouvé par un test à N appels
+  -- simultanés (Promise.all, jamais une boucle séquentielle). La décision de sortie
+  -- anticipée elle-même est prise plus bas (étape 5), APRÈS l'étape 4 : voir son
+  -- en-tête pour pourquoi (revue tâche 6, point 3).
   select identity_submitted_at into v_submitted
     from public.agencies
    where id = v_agency_id
      for update;
 
-  if v_submitted is not null then
-    return;
-  end if;
-
   -- 4. Pièce d'identité (tâche 6) : si l'appelant désigne une personne, poser la ligne
-  -- de check id_document en attente de revue humaine. Garde anti-fuite inter-agences
-  -- AVANT tout insert (cf. en-tête) : v_person_agency_id reste NULL si l'id ne
-  -- correspond à personne (comportement standard de `select into` sur zéro ligne), ce
-  -- qui échoue par la même branche que « mauvaise agence » — fail-closed dans les deux
-  -- cas, jamais un id fantôme silencieusement toléré.
+  -- de check id_document en attente de revue humaine — QUE le dossier soit à sa
+  -- PREMIÈRE soumission ou déjà soumis (correctif revue tâche 6, point 3). Le client
+  -- actuel appelle encore submit_agency_identity() SANS argument à la soumission
+  -- initiale (useAgencyIdentity.ts `submit()` ; le câblage de p_related_person_id est
+  -- laissé à la tâche 7) : un appel ultérieur AVEC p_related_person_id, une fois ce
+  -- câblage fait, ne doit jamais rester sans effet à cause du retour anticipé de
+  -- l'étape 5 ci-dessous — l'ancienne version de cette RPC vérifiait cette section
+  -- APRÈS ce retour anticipé, qui neutralisait alors DÉFINITIVEMENT la pose du check
+  -- dès que l'agence était déjà soumise. Prouvé par un test qui appelle sans argument
+  -- puis avec, dans cet ordre exact. Garde anti-fuite inter-agences AVANT tout insert
+  -- (cf. en-tête), dans TOUS les cas — soumis ou non : v_person_agency_id reste NULL
+  -- si l'id ne correspond à personne (comportement standard de `select into` sur zéro
+  -- ligne), ce qui échoue par la même branche que « mauvaise agence » — fail-closed
+  -- dans les deux cas, jamais un id fantôme silencieusement toléré.
   if p_related_person_id is not null then
     select agency_id into v_person_agency_id
       from public.agency_related_persons
@@ -117,28 +127,43 @@ begin
     -- Aucun prestataire de vérification automatique à ce stade (spec de conception,
     -- §14 hors périmètre) : le recto/verso déjà déposé par le client dans Storage
     -- attend une revue humaine, comme tout dossier suisse tant que le registre du
-    -- commerce ne répond pas. Un seul insert possible par agence pour cette personne :
-    -- c'est le verrou FOR UPDATE posé à l'étape 3 ci-dessus qui l'assure sous
-    -- concurrence (deux appels entrelacés se sérialisent sur la ligne agencies, le
-    -- second relit v_submitted déjà posé et sort par le retour anticipé) — PAS le
-    -- retour anticipé seul, qui ne suffirait qu'en séquentiel. L'ancienne version de ce
-    -- commentaire l'affirmait à tort (revue tâche 6, point 2) : sans le verrou, deux
-    -- appels lisant tous deux v_submitted = null avant que l'un n'écrive empilaient
-    -- chacun une ligne 'pending_manual_review' pour la même personne, démontré par un
-    -- test à appels concurrents réels.
-    insert into public.agency_person_verification_checks
-      (related_person_id, check_type, source, result)
-    values
-      (p_related_person_id, 'id_document', 'manual', 'pending_manual_review');
+    -- commerce ne répond pas. `not exists` (et non plus seulement le retour anticipé
+    -- de l'étape 5, cf. son en-tête) garantit un seul insert par personne : idempotent
+    -- que cet appel soit le premier pour cette personne ou un rejeu (double clic,
+    -- retry réseau, nouvel appel après une première soumission sans p_related_person_id)
+    -- — jamais un second 'pending_manual_review' pour la même personne, avant ou après
+    -- soumission de l'agence. Sous concurrence, c'est le verrou FOR UPDATE de l'étape 3
+    -- qui sérialise : le perdant de la course relit ce `not exists` APRÈS que le
+    -- gagnant ait committé son insert, et le trouve alors faux.
+    if not exists (
+      select 1 from public.agency_person_verification_checks
+       where related_person_id = p_related_person_id
+         and check_type = 'id_document'
+    ) then
+      insert into public.agency_person_verification_checks
+        (related_person_id, check_type, source, result)
+      values
+        (p_related_person_id, 'id_document', 'manual', 'pending_manual_review');
+    end if;
   end if;
 
-  -- 5. Pose l'horodatage de soumission — c'est lui, pas verification_status, que lit
+  -- 5. Idempotence métier : un second appel (double clic, retry réseau, ou un appel
+  -- ultérieur avec p_related_person_id après une première soumission sans lui) ne doit
+  -- ni re-timestamper ni re-journaliser — une éventuelle ligne de check vient d'être
+  -- traitée par l'étape 4 ci-dessus, qui s'exécute que ce test soit vrai ou non. On
+  -- sort silencieusement plutôt que de renvoyer une erreur : du point de vue de
+  -- l'appelant, la soumission a déjà réussi.
+  if v_submitted is not null then
+    return;
+  end if;
+
+  -- 6. Pose l'horodatage de soumission — c'est lui, pas verification_status, que lit
   -- le gate d'onboarding (20260726140300, tâche 2).
   update public.agencies
      set identity_submitted_at = now()
    where id = v_agency_id;
 
-  -- 6. Audit LAB : category='kyc' (jamais 'compliance', absent du CHECK et qui ferait
+  -- 7. Audit LAB : category='kyc' (jamais 'compliance', absent du CHECK et qui ferait
   -- échouer l'insert — activity_events_category_check). actor_kind='user' avec
   -- actor_id posé : c'est un dirigeant qui agit, pas le système.
   insert into public.activity_events
@@ -149,7 +174,7 @@ end;
 $$;
 
 comment on function public.submit_agency_identity(uuid) is
-  'Le dirigeant déclare sa saisie d''identité KYB terminée (étape 2 onboarding). Vérifie la complétude (raison sociale, forme juridique, pays, signataire actif), pose agencies.identity_submitted_at, journalise dans activity_events (category=kyc). p_related_person_id (optionnel) : si fourni, pose aussi la ligne agency_person_verification_checks (check_type=id_document, source=manual, result=pending_manual_review) pour cette personne, APRÈS avoir vérifié qu''elle appartient à l''agence de l''appelant (42501 sinon). Idempotente : un second appel après succès ne fait rien, y compris pour le check. Voir docs/agency-kyb-verification.md et docs/superpowers/plans/2026-07-27-onboarding-kyb-etape-2.md (tâche 6).';
+  'Le dirigeant déclare sa saisie d''identité KYB terminée (étape 2 onboarding). Vérifie la complétude (raison sociale, forme juridique, pays, signataire actif), pose agencies.identity_submitted_at, journalise dans activity_events (category=kyc). p_related_person_id (optionnel) : si fourni, pose aussi la ligne agency_person_verification_checks (check_type=id_document, source=manual, result=pending_manual_review) pour cette personne, APRÈS avoir vérifié qu''elle appartient à l''agence de l''appelant (42501 sinon) — y compris lors d''un appel ULTÉRIEUR à une première soumission sans argument (jamais neutralisé par le retour anticipé). Concurrence : verrou FOR UPDATE sur la ligne agencies. Idempotente : un second appel ne re-timestampe ni ne re-journalise jamais identity_submitted_at ; ne repose jamais un second check id_document pour la même personne. Voir docs/agency-kyb-verification.md et docs/superpowers/plans/2026-07-27-onboarding-kyb-etape-2.md (tâche 6).';
 
 revoke all on function public.submit_agency_identity(uuid) from public, anon;
 grant execute on function public.submit_agency_identity(uuid) to authenticated;
