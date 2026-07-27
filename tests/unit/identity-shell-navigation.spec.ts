@@ -94,7 +94,7 @@ describe('isAgencyStepComplete — gate le bouton Continuer de l étape 2 (agenc
     expect(isAgencyStepComplete(EMPTY_AGENCY_DRAFT)).toBe(false)
   })
 
-  it('les 10 champs renseignés -> complet', () => {
+  it('les 10 champs renseignés (TVA incluse) -> complet', () => {
     expect(isAgencyStepComplete(complete)).toBe(true)
   })
 
@@ -111,9 +111,17 @@ describe('isAgencyStepComplete — gate le bouton Continuer de l étape 2 (agenc
     expect(isAgencyStepComplete({ ...complete, legalFormId: '' })).toBe(false)
   })
 
-  it('numéro de registre ou TVA manquant -> incomplet', () => {
+  it('numéro de registre manquant -> incomplet', () => {
     expect(isAgencyStepComplete({ ...complete, businessRegistrationNumber: '' })).toBe(false)
-    expect(isAgencyStepComplete({ ...complete, tva: '' })).toBe(false)
+  })
+
+  it('TVA facultative (décision produit 27.07.2026) : absente ou juste des espaces -> reste complet', () => {
+    // Seuil d'assujettissement suisse (cf. en-tête isAgencyStepComplete) : une petite
+    // raison individuelle légitime peut n'avoir aucun numéro de TVA. Contrairement à
+    // legal/tradeName ci-dessus, même une valeur "espaces uniquement" ne bloque plus
+    // rien ici — le champ est sorti du tout-ou-rien, pas juste rendu moins strict.
+    expect(isAgencyStepComplete({ ...complete, tva: '' })).toBe(true)
+    expect(isAgencyStepComplete({ ...complete, tva: '   ' })).toBe(true)
   })
 
   it('adresse, NPA, ville ou canton manquant -> incomplet', () => {
@@ -181,6 +189,10 @@ describe('canAdvanceFromIdentityStep — gate le bouton Continuer du pied de pag
 
   it('étape 1 (agence) complète -> navigable en avant', () => {
     expect(canAdvanceFromIdentityStep(1, completeSignataire, completeAgency)).toBe(true)
+  })
+
+  it('étape 1 (agence) complète SAUF la TVA -> navigable en avant quand même (décision produit 27.07.2026, TVA facultative)', () => {
+    expect(canAdvanceFromIdentityStep(1, completeSignataire, { ...completeAgency, tva: '' })).toBe(true)
   })
 
   it('étapes 2 à 4 (paliers "à venir", sans contenu réel) -> jamais navigables en avant, même avec des brouillons complets', () => {

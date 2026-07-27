@@ -66,6 +66,7 @@
         "tradeNameHint": "The name your agency is known by to clients, if different from the registered name. Used to verify your website.",
         "businessRegistrationNumber": "Registration number",
         "tva": "VAT number",
+        "tvaHint": "Optional: applies only to VAT-registered entities.",
         "address": "Address",
         "postal": "Postal code",
         "city": "City",

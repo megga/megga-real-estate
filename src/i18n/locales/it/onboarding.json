@@ -66,6 +66,7 @@
         "tradeNameHint": "Il nome con cui la Sua agenzia è conosciuta dai clienti, se diverso dalla ragione sociale. Utilizzato per verificare il Suo sito internet.",
         "businessRegistrationNumber": "Numero di registro",
         "tva": "Numero IVA",
+        "tvaHint": "Facoltativo: riguarda solo le aziende assoggettate all'IVA.",
         "address": "Indirizzo",
         "postal": "NPA",
         "city": "Città",

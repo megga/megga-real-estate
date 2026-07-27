@@ -100,10 +100,20 @@ export const EMPTY_AGENCY_DRAFT: AgencyDraft = {
 }
 
 /**
- * true si les 10 champs de l'étape agence sont renseignés. Comme
- * isSignataireStepComplete : gate à la fois le bouton Continuer ET la tentative de
- * sauvegarde (persistCurrentStep) — tout ou rien, jamais une écriture partielle de
- * l'identité légale de l'agence.
+ * true si les 9 champs BLOQUANTS de l'étape agence sont renseignés. `tva` est
+ * volontairement EXCLU de ce tout-ou-rien (décision produit du 27.07.2026) :
+ * l'assujettissement à la TVA suisse n'est obligatoire qu'au-delà d'un seuil de
+ * chiffre d'affaires, donc une raison individuelle parfaitement légitime peut n'avoir
+ * aucun numéro de TVA — l'exiger la bloquerait sans raison et la renverrait au
+ * support. Même principe que le reste du dispositif de vérification KYB
+ * (docs/agency-kyb-verification.md) : un signal absent en est exclu plutôt que
+ * pénalisé. `tva` reste un champ normal de AgencyDraft par ailleurs : saisi, il est
+ * toujours persisté (persistCurrentStep étale tout le brouillon d'un coup) — seule sa
+ * présence a cessé d'être une condition d'avancement.
+ *
+ * Comme isSignataireStepComplete : gate à la fois le bouton Continuer ET la tentative
+ * de sauvegarde (persistCurrentStep) — tout ou rien sur les 9 champs restants, jamais
+ * une écriture partielle de l'identité légale de l'agence.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
 export function isAgencyStepComplete(draft: AgencyDraft): boolean {
@@ -113,7 +123,6 @@ export function isAgencyStepComplete(draft: AgencyDraft): boolean {
     && draft.legal.trim() !== ''
     && draft.tradeName.trim() !== ''
     && draft.businessRegistrationNumber.trim() !== ''
-    && draft.tva.trim() !== ''
     && draft.address.trim() !== ''
     && draft.postal.trim() !== ''
     && draft.city.trim() !== ''

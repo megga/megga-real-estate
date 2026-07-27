@@ -66,6 +66,7 @@
         "tradeNameHint": "Der Name, unter dem Ihre Agentur bei Kundinnen und Kunden bekannt ist, falls abweichend von der Firmenbezeichnung. Wird zum Abgleich mit Ihrer Website verwendet.",
         "businessRegistrationNumber": "Handelsregisternummer",
         "tva": "MWST-Nummer",
+        "tvaHint": "Freiwillig: betrifft nur mehrwertsteuerpflichtige Unternehmen.",
         "address": "Adresse",
         "postal": "PLZ",
         "city": "Ort",

@@ -22,7 +22,11 @@
  *    partir de `legal_forms.category`, cf. son en-tête), prête à être lue tâche 5.
  *
  * Champs à fournir avant de pouvoir avancer (gate : IdentityShell.isAgencyStepComplete) :
- * les 10 champs ci-dessus, tous requis (même logique tout-ou-rien que le signataire).
+ * 9 des 10 champs ci-dessus, même logique tout-ou-rien que le signataire. Exception
+ * décidée le 27.07.2026 : la TVA reste saisissable et, si renseignée, persistée
+ * normalement — mais elle ne bloque plus l'avancement (seuil d'assujettissement
+ * suisse, cf. le commentaire d'isAgencyStepComplete pour le détail). Seule indication
+ * visuelle de ce caractère facultatif : le FieldHint sous le champ, plus bas.
  */
 import { useTranslation } from 'react-i18next'
 import { SugarV2 } from '../tokens'
@@ -179,11 +183,17 @@ export function StepAgence({ value, onChange }: StepAgenceProps) {
             value={value.businessRegistrationNumber}
             onChange={(v) => onChange({ businessRegistrationNumber: v })}
           />
-          <SgInput
-            label={t('wizard.agence.fields.tva')}
-            value={value.tva}
-            onChange={(v) => onChange({ tva: v })}
-          />
+          <div>
+            <SgInput
+              label={t('wizard.agence.fields.tva')}
+              value={value.tva}
+              onChange={(v) => onChange({ tva: v })}
+            />
+            {/* Seul champ facultatif de l'étape (décision produit 27.07.2026) : SgInput n'a
+                pas de marqueur "requis"/"facultatif" (cf. primitives.tsx), cette mention
+                sous le champ est donc la seule indication visuelle du caractère optionnel. */}
+            <FieldHint text={t('wizard.agence.fields.tvaHint')} />
+          </div>
         </div>
 
         <SgInput
