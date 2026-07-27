@@ -78,17 +78,23 @@ revoke all on function public.provision_solo_agency(uuid, text) from public, ano
 comment on function public.provision_solo_agency(uuid, text) is
   'Interne : crée l''agence solo d''un inscrit et l''en fait l''admin. Appelée par handle_new_user uniquement. Aucun EXECUTE client.';
 
--- ── Agent invité : ne pas fabriquer d'agence qui sera aussitôt orpheline ────
--- Un invité crée d'abord son compte, puis accept-team-invite réécrit son agency_id
--- vers la vraie agence. L'agence solo restait en base si provisionée — morte, une
--- par agent invité. On ne provisionne donc pas quand une invitation valide attend
--- cet e-mail ; accept-team-invite fait le rattachement.
+-- ── Agent invité : on provisionne quand même, accept-team-invite nettoiera ──
+-- Version précédente : on sautait le provisioning quand une invitation valide
+-- attendait cet e-mail, pour ne pas fabriquer une agence solo aussitôt orpheline.
+-- Mais si l'invitation n'est JAMAIS réclamée, elle expire à 7 jours, ce trigger ne
+-- repasse pas, et le compte restait à agency_id NULL pour toujours : CRM muet, sans
+-- issue, puisque le wizard de rattrapage a été supprimé et que join_agency est
+-- fermée (20260726140200). Décision produit : on provisionne SYSTÉMATIQUEMENT pour
+-- les rôles agence, invitation en attente ou pas ; c'est accept-team-invite qui
+-- supprime l'agence solo — devenue inutile — au moment où l'invité réclame pour de
+-- bon, jamais avant, jamais si l'agence porte la moindre donnée (voir
+-- supabase/functions/accept-team-invite/index.ts).
 --
--- Nom d'agence :  repli en cascade (uq_agencies_name_normalized = UNIQUE sur
+-- Nom d'agence : repli en cascade (uq_agencies_name_normalized = UNIQUE sur
 -- lower(btrim(name))) quand le nom saisi n'existe pas. L'ordre : agency_name
--- (saisi à l'inscription), full_name, ou préfixe e-mail. L'e-mail est toujours
--- normalisé (btrim) pour éviter les collisions silencieuses contre les invitations,
--- et tout nom est approximatif — le fondateur finalize au wizard agencies.legal_name.
+-- (saisi à l'inscription), full_name, ou préfixe e-mail. Tout nom est approximatif —
+-- le fondateur finalise au wizard agencies.legal_name (ou l'agence solo disparaît
+-- avant, réclamée par l'invité).
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -106,7 +112,6 @@ declare
       then new.raw_user_meta_data ->> 'role'
     else 'buyer'
   end;
-  v_invited     boolean;
 begin
   insert into public.profiles (id, email, full_name, avatar_url, role)
   values (
@@ -118,25 +123,16 @@ begin
   );
 
   if v_role in ('agent', 'manager', 'admin', 'assistant') then
-    select exists (
-      select 1 from public.team_invitations
-      where lower(btrim(email)) = lower(btrim(coalesce(new.email, '')))
-        and status = 'pending'
-        and expires_at > now()
-    ) into v_invited;
-
-    if not v_invited then
-      begin
-        perform public.provision_solo_agency(
-          new.id,
-          coalesce(v_agency_name,
-                   nullif(btrim(v_full_name), ''),
-                   split_part(coalesce(new.email, ''), '@', 1))
-        );
-      exception when others then
-        raise warning 'provision_solo_agency failed for %: %', new.id, sqlerrm;
-      end;
-    end if;
+    begin
+      perform public.provision_solo_agency(
+        new.id,
+        coalesce(v_agency_name,
+                 nullif(btrim(v_full_name), ''),
+                 split_part(coalesce(new.email, ''), '@', 1))
+      );
+    exception when others then
+      raise warning 'provision_solo_agency failed for %: %', new.id, sqlerrm;
+    end;
   end if;
 
   return new;

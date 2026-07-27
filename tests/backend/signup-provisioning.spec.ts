@@ -6,7 +6,7 @@
 // le trigger disparaît. Migration : 20260726140000_auth_user_created_trigger.
 
 import { describe, it, expect, afterAll } from 'vitest'
-import { serviceRoleClient } from './helpers/supabase'
+import { serviceRoleClient, anonClient } from './helpers/supabase'
 
 const PW = 'Test-Password-123!'
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
@@ -155,59 +155,66 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
     expect(p2?.agency_id).not.toBe(p1?.agency_id)
   })
 
-  it('ne provisionne aucune agence quand une invitation valide attend l’e-mail', async () => {
+  // Décision produit (revue finale du 27.07.2026) : un invité qui ne réclame JAMAIS
+  // son invitation (elle expire à 7 jours, le trigger ne repasse pas) restait sinon à
+  // agency_id NULL pour toujours — CRM muet, sans issue, wizard de rattrapage supprimé
+  // et join_agency fermée. handle_new_user() ne consulte donc plus team_invitations et
+  // provisionne systématiquement ; c'est accept-team-invite qui nettoie l'agence solo
+  // au moment de la réclamation réelle. Preuve de bout en bout : l'agence solo existe
+  // après le signup, puis a disparu après la réclamation, remplacée par la vraie.
+  it('invité : agence solo à l’inscription, puis vraie agence et agence solo disparue après réclamation', async () => {
     const svc = serviceRoleClient()
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
 
     // Une agence hôte et son dirigeant, qui émettra l'invitation.
-    const hostId = await signUp({ full_name: 'Hôte Agence', role: 'agent', agency_name: `Hôte ${stamp}` })
+    const hostId = await signUp({ full_name: 'Hôte E2E', role: 'agent', agency_name: `Hôte E2E ${stamp}` })
     const { data: host } = await svc.from('profiles').select('agency_id').eq('id', hostId).maybeSingle()
-    const invitedEmail = `invite-${stamp}@megga-test.local`
+    const invitedEmail = `invite-e2e-${stamp}@megga-test.local`
 
-    const { error: invErr } = await svc.from('team_invitations').insert({
-      agency_id: host!.agency_id, email: invitedEmail, role: 'agent', invited_by: hostId,
-    })
+    const { data: invitation, error: invErr } = await svc
+      .from('team_invitations')
+      .insert({ agency_id: host!.agency_id, email: invitedEmail, role: 'agent', invited_by: hostId })
+      .select('id, token')
+      .single()
     expect(invErr, `insert invitation: ${invErr?.message}`).toBeNull()
 
+    // Inscription de l'invité : reçoit une agence solo malgré l'invitation en attente.
     const { data: created, error } = await svc.auth.admin.createUser({
       email: invitedEmail, password: PW, email_confirm: true,
-      user_metadata: { full_name: 'Invité Test', role: 'agent' },
+      user_metadata: { full_name: 'Invité E2E', role: 'agent' },
     })
-    if (error) throw new Error(`createUser invité: ${error.message}`)
+    if (error) throw new Error(`createUser invité e2e: ${error.message}`)
     userIds.push(created.user!.id)
 
-    const { data: prof } = await svc
+    const { data: profAfterSignup } = await svc
       .from('profiles').select('agency_id').eq('id', created.user!.id).maybeSingle()
-    expect(prof, 'le profil doit exister').not.toBeNull()
-    expect(prof?.agency_id, 'un invité ne doit PAS recevoir d’agence solo : accept-team-invite la rendrait orpheline').toBeNull()
-  })
+    expect(profAfterSignup?.agency_id, 'l’invité doit recevoir une agence solo à l’inscription').toBeTruthy()
+    const soloAgencyId = profAfterSignup!.agency_id as string
+    expect(soloAgencyId, 'l’agence solo ne doit pas être la vraie agence hôte').not.toBe(host!.agency_id)
 
-  it("ne provisionne aucune agence quand l'invitation existe avec un e-mail entoure d'espaces", async () => {
-    const svc = serviceRoleClient()
-    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+    const { data: soloAgency } = await svc
+      .from('agencies').select('solo, created_by').eq('id', soloAgencyId).maybeSingle()
+    expect(soloAgency?.solo, 'l’agence provisionnée au signup doit être marquée solo').toBe(true)
+    expect(soloAgency?.created_by, 'l’invité doit être le créateur de son agence solo').toBe(created.user!.id)
 
-    // Une agence hote et son dirigeant, qui emettra l'invitation avec un e-mail
-    // entoure d'espaces ; l'inscription, elle, arrive avec l'e-mail propre.
-    const hostId = await signUp({ full_name: 'Hote Espaces', role: 'agent', agency_name: `Hote Espaces ${stamp}` })
-    const { data: host } = await svc.from('profiles').select('agency_id').eq('id', hostId).maybeSingle()
-    const cleanEmail = `invite-spaces-${stamp}@megga-test.local`
-    const paddedEmail = `  ${cleanEmail}  `
+    // Réclamation réelle : sign-in de l'invité + appel accept-team-invite (action claim).
+    const invitedClient = anonClient()
+    const { error: signInErr } = await invitedClient.auth.signInWithPassword({ email: invitedEmail, password: PW })
+    expect(signInErr, `signin invité: ${signInErr?.message}`).toBeNull()
 
-    const { error: invErr } = await svc.from('team_invitations').insert({
-      agency_id: host!.agency_id, email: paddedEmail, role: 'agent', invited_by: hostId,
+    const { data: claimData, error: claimErr } = await invitedClient.functions.invoke('accept-team-invite', {
+      body: { token: invitation!.token, action: 'claim' },
     })
-    expect(invErr, `insert invitation: ${invErr?.message}`).toBeNull()
+    expect(claimErr, `claim: ${JSON.stringify(claimErr)}`).toBeNull()
+    expect(claimData?.success, `claim payload: ${JSON.stringify(claimData)}`).toBe(true)
 
-    const { data: created, error } = await svc.auth.admin.createUser({
-      email: cleanEmail, password: PW, email_confirm: true,
-      user_metadata: { full_name: 'Invite Espaces', role: 'agent' },
-    })
-    if (error) throw new Error(`createUser invite espaces: ${error.message}`)
-    userIds.push(created.user!.id)
+    // Après réclamation : la VRAIE agence, et l'agence solo a disparu (nettoyée par accept-team-invite).
+    const { data: profAfterClaim } = await svc
+      .from('profiles').select('agency_id, role').eq('id', created.user!.id).maybeSingle()
+    expect(profAfterClaim?.agency_id, 'après réclamation, l’invité doit appartenir à la vraie agence').toBe(host!.agency_id)
 
-    const { data: prof } = await svc
-      .from('profiles').select('agency_id').eq('id', created.user!.id).maybeSingle()
-    expect(prof, 'le profil doit exister').not.toBeNull()
-    expect(prof?.agency_id, "un e-mail avec espaces doit quand meme matcher l'invitation via btrim : agency_id doit rester null").toBeNull()
+    const { data: soloAgencyAfter } = await svc
+      .from('agencies').select('id').eq('id', soloAgencyId).maybeSingle()
+    expect(soloAgencyAfter, 'l’agence solo devenue inutile doit avoir été supprimée par accept-team-invite').toBeNull()
   })
 })
