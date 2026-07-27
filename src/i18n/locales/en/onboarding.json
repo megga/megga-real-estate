@@ -1,0 +1,15 @@
+{
+  "gate": {
+    "shell": {
+      "eyebrow": "Required step",
+      "title": "Confirm your agency's legal identity",
+      "body": "Before you can access your MEGGA workspace, a principal must provide the agency's legal identity. This verification is required under Swiss anti-money laundering law (AMLA).",
+      "preparing": "Preparing the form…"
+    },
+    "mobileNotice": {
+      "eyebrow": "Required step",
+      "title": "This step is completed on a computer",
+      "body": "Entering your agency's legal identity requires a larger screen. Sign in from a computer to complete it."
+    }
+  }
+}

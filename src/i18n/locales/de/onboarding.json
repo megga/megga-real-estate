@@ -1,0 +1,15 @@
+{
+  "gate": {
+    "shell": {
+      "eyebrow": "Obligatorischer Schritt",
+      "title": "Bestätigen Sie die rechtliche Identität Ihrer Agentur",
+      "body": "Bevor Sie auf Ihren MEGGA-Arbeitsbereich zugreifen können, muss eine verantwortliche Person die rechtliche Identität der Agentur angeben. Diese Überprüfung ist durch das Schweizer Geldwäschereigesetz (GwG) vorgeschrieben.",
+      "preparing": "Formular wird vorbereitet…"
+    },
+    "mobileNotice": {
+      "eyebrow": "Obligatorischer Schritt",
+      "title": "Dieser Schritt wird am Computer abgeschlossen",
+      "body": "Die Erfassung der rechtlichen Identität Ihrer Agentur erfordert einen grösseren Bildschirm. Melden Sie sich von einem Computer aus an, um sie abzuschliessen."
+    }
+  }
+}

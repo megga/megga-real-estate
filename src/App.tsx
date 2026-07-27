@@ -131,6 +131,11 @@ const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
 const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
 // Sprint 4.4 — Export PDF dossier KYC (route print-friendly, hors layout agent)
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
+// Étape 2 KYB — gate identité légale (/dashboard/identite). Desktop : coquille
+// du wizard (IdentitySugarPage, tâche 3 le remplit). Mobile : invitation à
+// terminer sur ordinateur (IdentityMobileNotice), hors périmètre v1.
+const IdentitySugarPage = lazy(() => import('@/pages/agent/IdentitySugarPage'))
+const IdentityMobileNotice = lazy(() => import('@/pages/agent/IdentityMobileNotice'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
@@ -525,6 +530,10 @@ function AppRoutes() {
                 />
                 {/* Détail dossier KYC — fiche en overlay (desktop) ; mobile : 4 onglets (P9). */}
                 <Route path="kyc/:dossierId" element={<ByParam><ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycDetailPage />} /></ByParam>} />
+                {/* Étape 2 KYB — gate identité légale (useIdentityGate redirige ici depuis
+                    AgentSugarLayout tant que agencies.identity_submitted_at est nul).
+                    Mobile (< 768px) : la saisie se termine sur ordinateur uniquement. */}
+                <Route path="identite" element={<ResponsiveRoute desktop={<IdentitySugarPage />} mobile={<IdentityMobileNotice />} />} />
                 {/* Réseau inter-agences — hors périmètre v1 (route neutralisée ; NetworkSugarV2Page retirée) */}
                 <Route path="network" element={<Navigate to="/dashboard" replace />} />
                 <Route path="reseau" element={<Navigate to="/dashboard" replace />} />

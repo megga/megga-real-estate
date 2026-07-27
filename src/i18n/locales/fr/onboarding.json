@@ -1,0 +1,15 @@
+{
+  "gate": {
+    "shell": {
+      "eyebrow": "Étape obligatoire",
+      "title": "Confirmez l'identité légale de votre agence",
+      "body": "Avant d'accéder à votre espace MEGGA, un dirigeant doit renseigner l'identité légale de l'agence. Cette vérification est exigée par la loi suisse sur le blanchiment d'argent (LBA).",
+      "preparing": "Préparation du formulaire de saisie…"
+    },
+    "mobileNotice": {
+      "eyebrow": "Étape obligatoire",
+      "title": "Cette étape se termine sur ordinateur",
+      "body": "La saisie de l'identité légale de votre agence nécessite un écran plus grand. Connectez-vous depuis un ordinateur pour la terminer."
+    }
+  }
+}

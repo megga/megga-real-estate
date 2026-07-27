@@ -1,0 +1,15 @@
+{
+  "gate": {
+    "shell": {
+      "eyebrow": "Passaggio obbligatorio",
+      "title": "Confermi l'identità legale della Sua agenzia",
+      "body": "Prima di accedere al Suo spazio MEGGA, un responsabile deve indicare l'identità legale dell'agenzia. Questa verifica è richiesta dalla legge svizzera antiriciclaggio (LRD).",
+      "preparing": "Preparazione del modulo…"
+    },
+    "mobileNotice": {
+      "eyebrow": "Passaggio obbligatorio",
+      "title": "Questo passaggio si completa da computer",
+      "body": "L'inserimento dell'identità legale della Sua agenzia richiede uno schermo più grande. Acceda da un computer per completarlo."
+    }
+  }
+}
