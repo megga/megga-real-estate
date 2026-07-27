@@ -47,10 +47,19 @@ alter table public.agencies
   add column if not exists verified_at         timestamptz;
 
 -- DROP avant ADD : `add constraint` seul n'est pas idempotent.
+--
+-- 'validated' figure ici alors que cette migration ne l'utilise pas encore (il
+-- n'apparaît qu'en 20260726140300) : le pipeline rejoue INTÉGRALEMENT chaque
+-- migration datée du jour à chaque déploiement, dans l'ordre des fichiers. Une
+-- fois qu'une ligne réelle porte 'validated' (posée par 140300 lors d'un déploiement
+-- antérieur), rejouer CETTE migration avec une liste plus étroite fait échouer le
+-- DROP/ADD sur "check constraint ... is violated by some row" et casse tout le
+-- déploiement. Une contrainte, un seul propriétaire : la liste ici doit donc rester
+-- un sur-ensemble de celle de 140300, jamais plus étroite qu'un état déjà atteint.
 alter table public.agencies drop constraint if exists agencies_verification_status_chk;
 alter table public.agencies
   add constraint agencies_verification_status_chk
-  check (verification_status in ('pending', 'auto_validated', 'manual_review', 'rejected'));
+  check (verification_status in ('pending', 'auto_validated', 'validated', 'manual_review', 'rejected'));
 
 alter table public.agencies drop constraint if exists agencies_verification_score_chk;
 alter table public.agencies
