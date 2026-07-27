@@ -18,6 +18,11 @@ import {
   ubosToRemove,
   ubosToRevoke,
   ubosToRevokeOnSkip,
+  identityDocumentFolder,
+  identityDocumentFileName,
+  extensionOfFile,
+  findIdentityDocumentPath,
+  validateIdentityDocumentFile,
   type PersonRow,
   type IdentityPersonWithRoles,
   type AgencyLegalFormFields,
@@ -416,5 +421,102 @@ describe('ubosToRevokeOnSkip — correctif revue tâche 5 : nettoyage rétroacti
 
   it('mélange : toutes les personnes qui portent un rôle ubo actif sont renvoyées, qu\'elles portent un autre rôle ou non — au contraire de ubosToRevoke, aucune n\'est exclue', () => {
     expect(ubosToRevokeOnSkip([uboOnly, sharedSignatoryAndUbo, signatoryOnly])).toEqual(['p-ubo', 'p-shared'])
+  })
+})
+
+// ─── Tâche 6 : pièce d'identité — chemins Storage (bucket documents, préfixe réservé
+// kyb-identity, migration 20260727110000) ────────────────────────────────────────────
+describe('identityDocumentFolder — préfixe Storage réservé, isolé par agence ET par personne', () => {
+  it('compose agencyId/kyb-identity/relatedPersonId', () => {
+    expect(identityDocumentFolder('agency-1', 'person-1')).toBe('agency-1/kyb-identity/person-1')
+  })
+
+  it('deux personnes différentes de la même agence -> deux préfixes différents (jamais de collision de fichiers)', () => {
+    expect(identityDocumentFolder('agency-1', 'person-1')).not.toBe(identityDocumentFolder('agency-1', 'person-2'))
+  })
+})
+
+describe('identityDocumentFileName — nom de fichier stable par côté, l\'extension suit le fichier téléversé', () => {
+  it('recto avec extension jpg', () => {
+    expect(identityDocumentFileName('recto', 'jpg')).toBe('recto.jpg')
+  })
+
+  it('verso avec extension pdf', () => {
+    expect(identityDocumentFileName('verso', 'pdf')).toBe('verso.pdf')
+  })
+})
+
+describe('extensionOfFile — extension en minuscule, sans le point ; jamais une chaîne vide dans un chemin Storage', () => {
+  it('extrait l\'extension telle quelle', () => {
+    expect(extensionOfFile('carte-identite.jpg')).toBe('jpg')
+  })
+
+  it('normalise en minuscule (un fichier .JPG et un .jpg doivent produire le même chemin)', () => {
+    expect(extensionOfFile('carte-identite.JPG')).toBe('jpg')
+    expect(extensionOfFile('Scan.PDF')).toBe('pdf')
+  })
+
+  it('nom sans extension -> repli sur "bin", jamais une chaîne vide', () => {
+    expect(extensionOfFile('sansextension')).toBe('bin')
+  })
+})
+
+describe('findIdentityDocumentPath — parmi les fichiers listés à ce préfixe, le chemin complet du côté demandé', () => {
+  const folder = 'agency-1/kyb-identity/person-1'
+  const files = [{ name: 'recto.jpg' }, { name: 'verso.pdf' }]
+
+  it('recto présent -> chemin complet reconstruit', () => {
+    expect(findIdentityDocumentPath(files, folder, 'recto')).toBe('agency-1/kyb-identity/person-1/recto.jpg')
+  })
+
+  it('verso présent avec une autre extension -> chemin complet avec CETTE extension', () => {
+    expect(findIdentityDocumentPath(files, folder, 'verso')).toBe('agency-1/kyb-identity/person-1/verso.pdf')
+  })
+
+  it('côté absent de la liste -> null', () => {
+    expect(findIdentityDocumentPath([{ name: 'recto.jpg' }], folder, 'verso')).toBeNull()
+  })
+
+  it('liste vide -> null pour les deux côtés', () => {
+    expect(findIdentityDocumentPath([], folder, 'recto')).toBeNull()
+    expect(findIdentityDocumentPath([], folder, 'verso')).toBeNull()
+  })
+
+  it('ne confond jamais recto et verso (préfixe strict "side.")', () => {
+    // Un nom de fichier qui commencerait par "verso" sans le point (ex. un futur
+    // "versoTemp.jpg" égaré) ne doit jamais matcher "verso" par un simple startsWith
+    // sans séparateur — la garde `${side}.` en dépend.
+    expect(findIdentityDocumentPath([{ name: 'versoTemp.jpg' }], folder, 'verso')).toBeNull()
+  })
+})
+
+describe('validateIdentityDocumentFile — format et taille avant tout envoi réseau', () => {
+  const withinLimit = (bytes: number) => new File([new Uint8Array(bytes)], 'piece.jpg', { type: 'image/jpeg' })
+
+  it('image jpeg de taille raisonnable -> aucune erreur', () => {
+    expect(validateIdentityDocumentFile(withinLimit(1024))).toBeNull()
+  })
+
+  it('png accepté', () => {
+    expect(validateIdentityDocumentFile(new File([new Uint8Array(10)], 'piece.png', { type: 'image/png' }))).toBeNull()
+  })
+
+  it('pdf accepté (scan de passeport, pas seulement des photos)', () => {
+    expect(validateIdentityDocumentFile(new File([new Uint8Array(10)], 'piece.pdf', { type: 'application/pdf' }))).toBeNull()
+  })
+
+  it('format non accepté (ex. vidéo) -> erreur de format', () => {
+    const file = new File([new Uint8Array(10)], 'piece.mov', { type: 'video/quicktime' })
+    expect(validateIdentityDocumentFile(file)).toEqual({ type: 'format' })
+  })
+
+  it('fichier trop volumineux (> 8 Mo) -> erreur de taille', () => {
+    const tooBig = new File([new Uint8Array(8 * 1024 * 1024 + 1)], 'piece.jpg', { type: 'image/jpeg' })
+    expect(validateIdentityDocumentFile(tooBig)).toEqual({ type: 'size' })
+  })
+
+  it('exactement 8 Mo -> encore accepté (borne inclusive)', () => {
+    const exactlyAtLimit = new File([new Uint8Array(8 * 1024 * 1024)], 'piece.jpg', { type: 'image/jpeg' })
+    expect(validateIdentityDocumentFile(exactlyAtLimit)).toBeNull()
   })
 })

@@ -98,6 +98,24 @@
         "no": "Non",
         "noHint": "N'exerce aucune fonction publique importante."
       }
+    },
+    "pieceIdentite": {
+      "eyebrow": "Pièce d'identité",
+      "title": "Téléversez la pièce d'identité du signataire",
+      "subtitle": "Recto et verso d'une pièce d'identité en cours de validité (carte d'identité, passeport ou titre de séjour). Ce document est examiné par un membre de notre équipe conformité ; aucune vérification automatique n'est effectuée à ce stade.",
+      "missingSignataire": "Le signataire doit d'abord être renseigné à l'étape précédente.",
+      "sides": {
+        "recto": "Recto",
+        "verso": "Verso"
+      },
+      "dropHint": "Cliquez pour sélectionner un fichier",
+      "formatHint": "JPG, PNG ou PDF, 8 Mo maximum",
+      "replaceHint": "Cliquez pour remplacer",
+      "errors": {
+        "format": "Format accepté : JPG, PNG ou PDF.",
+        "size": "Taille maximale : 8 Mo.",
+        "generic": "Le téléversement a échoué. Réessayez."
+      }
     }
   }
 }

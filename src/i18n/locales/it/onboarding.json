@@ -98,6 +98,24 @@
         "no": "No",
         "noHint": "Non esercita alcuna funzione pubblica importante."
       }
+    },
+    "pieceIdentite": {
+      "eyebrow": "Documento d'identità",
+      "title": "Carichi il documento d'identità del firmatario",
+      "subtitle": "Fronte e retro di un documento d'identità in corso di validità (carta d'identità, passaporto o permesso di soggiorno). Questo documento viene esaminato da un membro del nostro team di conformità; in questa fase non viene effettuata alcuna verifica automatica.",
+      "missingSignataire": "Il firmatario deve prima essere indicato nel passaggio precedente.",
+      "sides": {
+        "recto": "Fronte",
+        "verso": "Retro"
+      },
+      "dropHint": "Clicchi per selezionare un file",
+      "formatHint": "JPG, PNG o PDF, massimo 8 MB",
+      "replaceHint": "Clicchi per sostituire",
+      "errors": {
+        "format": "Formato accettato: JPG, PNG o PDF.",
+        "size": "Dimensione massima: 8 MB.",
+        "generic": "Il caricamento non è riuscito. Riprovi."
+      }
     }
   }
 }

@@ -16,10 +16,16 @@
  * vérité ; aucun stockage local parallèle (le brouillon d'étape en cours vit en
  * mémoire React le temps de la saisie, rien d'autre).
  *
- * Les étapes 0 (StepSignataire, tâche 3), 1 (StepAgence, tâche 4) et 2
- * (StepBeneficiaires, tâche 5) ont un écran réel. Les étapes 3 et 4 rendent un
- * palier honnête « à venir » jusqu'à ce que les tâches 6 et 7 les remplacent une à
- * une par leur propre écran + bloc de persistance ici.
+ * Les étapes 0 (StepSignataire, tâche 3), 1 (StepAgence, tâche 4), 2
+ * (StepBeneficiaires, tâche 5) et 3 (StepPieceIdentite, tâche 6) ont un écran réel.
+ * L'étape 4 (récapitulatif) rend encore un palier honnête « à venir » jusqu'à ce que
+ * la tâche 7 la remplace par son propre écran + bloc de persistance ici.
+ *
+ * L'étape 3 (tâche 6) diffère des trois précédentes sur un point : elle ne porte
+ * AUCUN brouillon local à sauvegarder au clic sur Continuer. Le fichier recto/verso
+ * est téléversé IMMÉDIATEMENT vers Storage dès sa sélection (cf. en-tête de
+ * StepPieceIdentite.tsx) — persistCurrentStep n'y fait donc que vérifier la
+ * complétude, jamais une écriture supplémentaire.
  *
  * L'étape 2 est en outre CONDITIONNELLE (tâche 5, point central de son brief) :
  * sautée quand la forme juridique choisie à l'étape 1 est une raison individuelle
@@ -37,13 +43,15 @@ import { SgIcon, SgBlackPill, SgGhostPill } from '@/components/crm-sugar-wizard/
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  useAgencyIdentity, useLegalFormCategory, ubosToRemove, ubosToRevoke, ubosToRevokeOnSkip, type IdentityRole,
+  useAgencyIdentity, useLegalFormCategory, useIdentityDocuments, validateIdentityDocumentFile,
+  ubosToRemove, ubosToRevoke, ubosToRevokeOnSkip, type IdentityRole, type IdentityDocumentSide,
 } from '@/hooks/useAgencyIdentity'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
 import type { LegalFormCategory } from '@/hooks/useLegalForms'
 import { StepSignataire } from './steps/StepSignataire'
 import { StepAgence } from './steps/StepAgence'
 import { StepBeneficiaires } from './steps/StepBeneficiaires'
+import { StepPieceIdentite } from './steps/StepPieceIdentite'
 
 /** Brouillon local de l'étape 1, contrôlé par IdentityShell (cf. en-tête de StepSignataire). */
 export interface SignataireDraft {
@@ -212,6 +220,38 @@ export function isBeneficiairesStepComplete(entries: BeneficiaireDraft[]): boole
 }
 
 /**
+ * Brouillon local de l'étape 4 (tâche 6), contrôlé par IdentityShell comme les étapes
+ * précédentes — mais ce n'est PAS un brouillon au même sens : `recto`/`verso` sont les
+ * chemins Storage déjà téléversés (useIdentityDocuments), jamais une saisie en
+ * attente. IdentityShell le reconstruit à chaque rendu depuis ce hook plutôt que de
+ * porter un `useState` dédié : le fichier lui-même est la source de vérité, il n'y a
+ * rien d'autre à mémoriser côté client (cf. en-tête de StepPieceIdentite.tsx).
+ */
+export interface PieceIdentiteDraft {
+  recto: string | null
+  verso: string | null
+}
+
+/** Brouillon vide — aucun des deux côtés encore téléversé. */
+// eslint-disable-next-line react-refresh/only-export-components -- constante partagée avec les tests, même motif que EMPTY_SIGNATAIRE_DRAFT.
+export const EMPTY_PIECE_IDENTITE_DRAFT: PieceIdentiteDraft = {
+  recto: null,
+  verso: null,
+}
+
+/**
+ * true si RECTO ET VERSO sont tous deux téléversés — contrairement à
+ * isBeneficiairesStepComplete (une liste vide est une réponse légitime), il n'y a ici
+ * aucune valeur par défaut acceptable : l'étape existe précisément pour collecter les
+ * deux faces de la pièce d'identité du signataire, tant que l'une manque le dossier
+ * KYB reste incomplet.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isBeneficiairesStepComplete.
+export function isPieceIdentiteStepComplete(draft: PieceIdentiteDraft): boolean {
+  return draft.recto != null && draft.verso != null
+}
+
+/**
  * Recalcule le `legalFormId` à conserver après un changement du pays du siège
  * (dépendance d'ordre du brief tâche 4, explicitement pas cosmétique). Chaque
  * `legal_forms.id` appartient à EXACTEMENT un pays par construction (colonne
@@ -247,6 +287,12 @@ export function clampIdentityStep(step: number, stepCount: number): number {
  * récapitulatif, sans que rien n'ait été renseigné. Le stepper du header respectait
  * déjà la règle (goToStep refuse toute cible > step, cf. plus bas), mais le rapport de
  * la tâche affirmait à tort que c'était vrai aussi du bouton du pied de page.
+ *
+ * `pieceIdentite` (tâche 6) suit le même motif que `beneficiaires` : paramètre
+ * optionnel à défaut vide, pour que les appels antérieurs (tests des tâches 3 à 5)
+ * restent valides sans le 5e argument — mais contrairement à `beneficiaires`, un
+ * brouillon vide y est INCOMPLET (isPieceIdentiteStepComplete), jamais une réponse
+ * légitime : recto et verso sont tous deux exigés pour avancer.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete/clampIdentityStep.
 export function canAdvanceFromIdentityStep(
@@ -254,10 +300,12 @@ export function canAdvanceFromIdentityStep(
   signataire: SignataireDraft,
   agency: AgencyDraft,
   beneficiaires: BeneficiaireDraft[] = [],
+  pieceIdentite: PieceIdentiteDraft = EMPTY_PIECE_IDENTITE_DRAFT,
 ): boolean {
   if (step === 0) return isSignataireStepComplete(signataire)
   if (step === 1) return isAgencyStepComplete(agency)
   if (step === 2) return isBeneficiairesStepComplete(beneficiaires)
+  if (step === 3) return isPieceIdentiteStepComplete(pieceIdentite)
   return false
 }
 
@@ -347,7 +395,9 @@ export default function IdentityShell() {
 
   const { signOut } = useAuth()
   const navigate = useNavigate()
-  const { agency, persons, isLoading, savePerson, removePerson, revokeUboRole, saveAgency } = useAgencyIdentity()
+  const {
+    agency, agencyId, persons, isLoading, savePerson, removePerson, revokeUboRole, saveAgency, uploadIdentityDocument,
+  } = useAgencyIdentity()
 
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -462,7 +512,46 @@ export default function IdentityShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingBeneficiairesKey])
 
-  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, beneficiaires)
+  // Étape 4 (tâche 6) : signatoryId vient d'existingSignatory ci-dessus (la personne
+  // enregistrée à l'étape 0 de CE wizard) — jamais un id choisi par l'utilisateur, il
+  // n'y a qu'un seul signataire saisi par ce parcours. useIdentityDocuments lit
+  // Storage directement (aucune colonne DB, cf. son en-tête dans useAgencyIdentity.ts) ;
+  // `data` est undefined tant que la query n'a pas résolu, d'où le repli sur un
+  // brouillon vide (jamais "complet" par défaut avant d'avoir vraiment vérifié).
+  const signatoryId = existingSignatory?.id ?? null
+  const { data: identityDocuments, isLoading: identityDocumentsLoading } = useIdentityDocuments(agencyId, signatoryId)
+  const pieceIdentiteDraft: PieceIdentiteDraft = {
+    recto: identityDocuments?.recto?.path ?? null,
+    verso: identityDocuments?.verso?.path ?? null,
+  }
+  const [uploadingSide, setUploadingSide] = useState<IdentityDocumentSide | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  /**
+   * Valide puis téléverse IMMÉDIATEMENT (cf. en-tête de StepPieceIdentite.tsx) — pas
+   * de brouillon local intermédiaire : le fichier est la source de vérité, et
+   * useIdentityDocuments se réinvalide tout seul (uploadIdentityDocument) une fois
+   * résolu, ce qui repeuple recto/verso au prochain rendu.
+   */
+  const handleSelectIdentityFile = async (side: IdentityDocumentSide, file: File): Promise<void> => {
+    if (!signatoryId) return
+    const validationError = validateIdentityDocumentFile(file)
+    if (validationError) {
+      setUploadError(t(`wizard.pieceIdentite.errors.${validationError.type}`))
+      return
+    }
+    setUploadingSide(side)
+    setUploadError(null)
+    try {
+      await uploadIdentityDocument(signatoryId, side, file)
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : t('wizard.pieceIdentite.errors.generic'))
+    } finally {
+      setUploadingSide(null)
+    }
+  }
+
+  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, beneficiaires, pieceIdentiteDraft)
 
   /** Enveloppe commune à chaque étape persistable : bascule saving/error/justSaved
    *  autour de l'opération d'écriture réelle (savePerson ou saveAgency selon
@@ -584,7 +673,14 @@ export default function IdentityShell() {
         }
       })
     }
-    return true // étapes 3 et 4 : rien à persister avant les tâches 6 et 7
+    if (step === 3) {
+      // Rien à écrire ici (cf. en-tête de StepPieceIdentite.tsx) : le fichier est déjà
+      // durablement dans Storage au moment où l'utilisateur clique Continuer — cette
+      // étape ne fait que revérifier sa complétude, comme canNext l'a déjà fait pour
+      // activer le bouton (garde défensive redondante, même style que les étapes 0 à 2).
+      return isPieceIdentiteStepComplete(pieceIdentiteDraft)
+    }
+    return true // étape 4 : rien à persister avant la tâche 7
   }
 
   const next = async () => {
@@ -692,6 +788,16 @@ export default function IdentityShell() {
               dateOfBirth: existingSignatory.dateOfBirth,
               nationality: existingSignatory.nationality,
             } : null}
+          />
+        ) : step === 3 ? (
+          <StepPieceIdentite
+            recto={identityDocuments?.recto ?? null}
+            verso={identityDocuments?.verso ?? null}
+            isLoading={identityDocumentsLoading}
+            uploadingSide={uploadingSide}
+            error={uploadError}
+            disabled={!signatoryId}
+            onSelectFile={(side, file) => { void handleSelectIdentityFile(side, file) }}
           />
         ) : (
           <StepComingSoon eyebrow={SG_IDENTITY_STEPS[step].label} />

@@ -281,6 +281,108 @@ describe.skipIf(!HAS_KEYS)('submit_agency_identity — RPC de soumission', () =>
     expect(error?.message).toContain('signatory')
   })
 
+  // ── Tâche 6 : extension pour la pièce d'identité (agency_person_verification_checks) ──
+  // Le fichier recto/verso est déposé côté client dans Storage (bucket documents,
+  // préfixe kyb-identity — migration 20260727110000) ; la ligne de check ne peut venir
+  // que de CETTE RPC, puisque les tables de checks refusent l'écriture à tout rôle
+  // utilisateur (42501, 20260726130300). p_related_person_id est optionnel (défaut
+  // null) : tous les tests ci-dessus, inchangés, prouvent la rétrocompatibilité.
+
+  it('un dirigeant qui désigne son propre signataire fait poser un check id_document en attente de revue', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+    const { data: signatoryRow, error: personErr } = await serviceRoleClient()
+      .from('agency_related_persons')
+      .select('id')
+      .eq('agency_id', founder.agencyId)
+      .single()
+    expect(personErr).toBeNull()
+    const relatedPersonId = signatoryRow!.id as string
+
+    const { error } = await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    expect(error, `submit avec p_related_person_id: ${error?.message}`).toBeNull()
+
+    const { data: check, error: checkErr } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('check_type, source, result')
+      .eq('related_person_id', relatedPersonId)
+      .maybeSingle()
+    expect(checkErr).toBeNull()
+    expect(check?.check_type, 'check_type doit être id_document').toBe('id_document')
+    expect(check?.source, 'aucun prestataire à ce stade : source=manual').toBe('manual')
+    expect(check?.result, 'en attente de revue humaine, jamais un verdict auto').toBe('pending_manual_review')
+  })
+
+  it('un dirigeant qui ne désigne personne (paramètre omis) ne pose aucun check — rétrocompatibilité', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+    const { data: signatoryRow } = await serviceRoleClient()
+      .from('agency_related_persons')
+      .select('id')
+      .eq('agency_id', founder.agencyId)
+      .single()
+
+    const { error } = await founder.client.rpc('submit_agency_identity')
+    expect(error, `submit: ${error?.message}`).toBeNull()
+
+    const { data: checks, error: checkErr } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('id')
+      .eq('related_person_id', signatoryRow!.id as string)
+    expect(checkErr).toBeNull()
+    expect(checks?.length ?? 0, 'sans p_related_person_id, aucune ligne de check ne doit apparaître').toBe(0)
+  })
+
+  // Le test explicitement demandé : la garde d'appartenance à l'agence appelante.
+  it('un dirigeant ne peut pas faire poser un check sur une personne d\'une autre agence', async () => {
+    const founderA = await signUpFounder()
+    await completeAgencyIdentity(founderA.agencyId)
+
+    const founderB = await signUpFounder()
+    await completeAgencyIdentity(founderB.agencyId)
+    const { data: personB, error: personBErr } = await serviceRoleClient()
+      .from('agency_related_persons')
+      .select('id')
+      .eq('agency_id', founderB.agencyId)
+      .single()
+    expect(personBErr).toBeNull()
+    const personBId = personB!.id as string
+
+    const { error } = await founderA.client.rpc('submit_agency_identity', { p_related_person_id: personBId })
+    expect(error, 'un dirigeant de l\'agence A ne doit jamais pouvoir cibler une personne de l\'agence B').not.toBeNull()
+    expect(error?.code).toBe('42501')
+
+    // Aucune ligne de check ne doit avoir été créée pour la personne visée malgré la tentative.
+    const { data: checksOnB, error: checksOnBErr } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('id')
+      .eq('related_person_id', personBId)
+    expect(checksOnBErr).toBeNull()
+    expect(checksOnB?.length ?? 0, 'aucun check ne doit apparaître sur la personne visée').toBe(0)
+
+    // Et la soumission de l'agence A elle-même doit avoir échoué EN ENTIER (pas
+    // seulement l'insert du check) : identity_submitted_at doit rester null. La garde
+    // de personne est placée AVANT la pose de identity_submitted_at (point d'extension,
+    // 20260727100000) — un échec ici avorte toute la transaction de la fonction.
+    const { data: agencyA } = await serviceRoleClient()
+      .from('agencies')
+      .select('identity_submitted_at')
+      .eq('id', founderA.agencyId)
+      .maybeSingle()
+    expect(agencyA?.identity_submitted_at, 'la soumission entière doit échouer, pas seulement le check').toBeNull()
+  })
+
+  it('un related_person_id inexistant est refusé aussi (fail-closed, même erreur que la fuite inter-agences)', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+
+    const { error } = await founder.client.rpc('submit_agency_identity', {
+      p_related_person_id: '00000000-0000-0000-0000-000000000000',
+    })
+    expect(error, 'un id qui ne correspond à personne ne doit jamais être toléré silencieusement').not.toBeNull()
+    expect(error?.code).toBe('42501')
+  })
+
   it('l\'événement journalisé porte category=kyc (et non compliance)', async () => {
     const founder = await signUpFounder()
     await completeAgencyIdentity(founder.agencyId)

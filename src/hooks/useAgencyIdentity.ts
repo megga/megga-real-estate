@@ -65,6 +65,18 @@
  * d'écriture) vit dans des fonctions pures exportées ci-dessous, testées dans
  * tests/unit/useAgencyIdentity.spec.ts sans mock Supabase — même motif que
  * resolveIdentityGateStatus dans useIdentityGate.ts.
+ *
+ * Tâche 6 — pièce d'identité : ajoute `agencyId` et `uploadIdentityDocument` au retour
+ * (les six champs d'origine restent inchangés, cf. ci-dessus), ainsi qu'un hook
+ * AUTONOME `useIdentityDocuments(agencyId, relatedPersonId)` (même précédent que
+ * `useLegalFormCategory` : l'appelant fournit sa propre paire plutôt que de dupliquer
+ * ici la dérivation « qui est le signataire courant »). `uploadIdentityDocument`
+ * dépose le fichier dans Storage (bucket `documents`, préfixe kyb-identity — migration
+ * 20260727110000) mais n'écrit AUCUNE ligne DB : la ligne de check
+ * (agency_person_verification_checks) reste hors de portée du client pour la même
+ * raison que ci-dessus, et ne peut être posée que par submit_agency_identity()
+ * (étendue à cette fin par la même tâche, 20260727120000). Voir la section « Tâche 6 »
+ * plus bas pour les fonctions pures de chemin/validation, testées sans mock Supabase.
  */
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -102,6 +114,13 @@ export type IdentityPersonWithRoles = IdentityPerson & { roles: IdentityRole[] }
 export interface UseAgencyIdentityReturn {
   /** Réutilise le type de useAgencySettings — mêmes colonnes agencies.*. */
   agency: AgencySettingsData
+  /**
+   * Tâche 6 — même valeur que profile.agency_id, déjà calculée en interne pour
+   * agencyId/agency_id ci-dessous. Exposée pour composer useIdentityDocuments() (hook
+   * autonome, cf. plus haut) depuis IdentityShell sans dupliquer cette lecture de
+   * useAuth() — même précédent que useAgencySettings().agencyId.
+   */
+  agencyId: string | null
   persons: IdentityPersonWithRoles[]
   isLoading: boolean
   /** Insère (id=null) ou met à jour une personne + ses rôles. Renvoie l'id. */
@@ -115,6 +134,16 @@ export interface UseAgencyIdentityReturn {
    * besoin et pourquoi.
    */
   revokeUboRole: (relatedPersonId: string) => Promise<void>
+  /**
+   * Tâche 6 — téléverse (ou remplace) le recto/verso de la pièce d'identité de
+   * `relatedPersonId` dans Storage (bucket `documents`, préfixe kyb-identity,
+   * migration 20260727110000). N'écrit AUCUNE ligne DB : la ligne de check
+   * (agency_person_verification_checks) ne peut venir que de submit_agency_identity()
+   * — cf. l'en-tête de la section Storage plus haut. Renvoie le chemin Storage complet
+   * du fichier déposé ; invalide la query de useIdentityDocuments() pour ce
+   * `relatedPersonId` une fois l'upload résolu.
+   */
+  uploadIdentityDocument: (relatedPersonId: string, side: IdentityDocumentSide, file: File) => Promise<string>
   /** Appelle submit_agency_identity() (RPC, tâche 1). */
   submit: () => Promise<void>
   /**
@@ -388,6 +417,134 @@ export function ubosToRevokeOnSkip(existingPersons: IdentityPersonWithRoles[]): 
     .map((p) => p.id)
 }
 
+// ─── Tâche 6 : pièce d'identité du signataire (Storage, bucket `documents`) ────────
+//
+// Contrairement aux étapes 0 à 2 (texte, écrit dans agency_related_persons /
+// agency_person_roles / agencies sous RLS), cette étape dépose un FICHIER dans
+// Storage — préfixe réservé `kyb-identity`, migration 20260727110000
+// (documents_kyb_identity_*, is_agency_admin() seul, jamais toute l'agence comme le
+// reste du bucket documents). Aucune ligne DB n'est écrite ici : la ligne de check
+// (agency_person_verification_checks) ne peut venir QUE de submit_agency_identity()
+// (RPC SECURITY DEFINER, 20260727120000) — cf. son en-tête pour la garde anti-fuite
+// inter-agences. Cette section ne fait que déposer/lire le fichier lui-même.
+
+/** Les deux faces d'une pièce d'identité — recto puis verso, jamais l'inverse. */
+export type IdentityDocumentSide = 'recto' | 'verso'
+
+/** Un fichier déjà téléversé : son chemin Storage complet et une URL signée de prévisualisation. */
+export interface IdentityDocumentPreview {
+  path: string
+  signedUrl: string
+}
+
+/** État des deux faces pour une personne — null tant qu'un côté n'a rien reçu. */
+export interface IdentityDocumentPreviews {
+  recto: IdentityDocumentPreview | null
+  verso: IdentityDocumentPreview | null
+}
+
+/**
+ * Préfixe Storage réservé (bucket `documents`) pour la pièce d'identité de
+ * `relatedPersonId` — isolé par AGENCE (premier segment, vérifié par les 4 policies
+ * documents_kyb_identity_*) ET par PERSONNE (dernier segment) : une agence peut avoir
+ * plus d'un signataire actif (signature_power='joint', cf. le commentaire de
+ * submit_agency_identity sur « il n'existe pas "le" signataire »), donc jamais un seul
+ * dossier partagé qui mélangerait leurs pièces.
+ */
+export function identityDocumentFolder(agencyId: string, relatedPersonId: string): string {
+  return `${agencyId}/kyb-identity/${relatedPersonId}`
+}
+
+/** Nom de fichier stable par côté (`recto.<ext>`/`verso.<ext>`) — l'extension suit le fichier téléversé, jamais figée. */
+export function identityDocumentFileName(side: IdentityDocumentSide, extension: string): string {
+  return `${side}.${extension}`
+}
+
+/**
+ * Extension en minuscule, sans le point, déduite du nom de fichier choisi par
+ * l'utilisateur — 'bin' si absente (ne devrait jamais arriver via un `<input
+ * type=file>`, mais un chemin Storage ne doit jamais porter une extension vide).
+ */
+export function extensionOfFile(fileName: string): string {
+  const match = /\.([a-zA-Z0-9]+)$/.exec(fileName)
+  return (match?.[1] ?? 'bin').toLowerCase()
+}
+
+/**
+ * Parmi les fichiers listés à ce préfixe (`storage.list()`), le chemin complet du côté
+ * demandé, ou null si ce côté n'a encore rien reçu. Le préfixe de correspondance est
+ * `${side}.` (avec le point) et non un simple `startsWith(side)` : un nom de fichier
+ * fantaisiste comme `versoTemp.jpg` ne doit jamais être confondu avec `verso`.
+ * Au plus un fichier par côté par construction (uploadIdentityDocument retire l'ancien
+ * avant d'écrire sous une autre extension, cf. son JSDoc) — `.find` suffit.
+ */
+export function findIdentityDocumentPath(
+  files: Array<{ name: string }>,
+  folder: string,
+  side: IdentityDocumentSide,
+): string | null {
+  const match = files.find((f) => f.name.startsWith(`${side}.`))
+  return match ? `${folder}/${match.name}` : null
+}
+
+/** Formats acceptés : les pièces d'identité suisses sont presque toujours des photos, mais un scan PDF de passeport reste courant. */
+const ALLOWED_IDENTITY_DOCUMENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+/** 8 Mo — plus généreux que l'avatar (2 Mo, useAvatar.ts) : une pièce d'identité doit rester lisible en haute résolution. */
+const MAX_IDENTITY_DOCUMENT_BYTES = 8 * 1024 * 1024
+
+export interface IdentityDocumentValidationError {
+  type: 'format' | 'size'
+}
+
+/**
+ * Valide un fichier AVANT tout envoi réseau — format et taille, jamais l'un sans
+ * l'autre. null = valide. Pure et testée directement (tests/unit/useAgencyIdentity.spec.ts),
+ * même motif que le reste de ce fichier.
+ */
+export function validateIdentityDocumentFile(file: File): IdentityDocumentValidationError | null {
+  if (!ALLOWED_IDENTITY_DOCUMENT_TYPES.includes(file.type)) return { type: 'format' }
+  if (file.size > MAX_IDENTITY_DOCUMENT_BYTES) return { type: 'size' }
+  return null
+}
+
+/** Clé React Query partagée par useIdentityDocuments() et uploadIdentityDocument() — une seule source de vérité pour l'invalidation. */
+function identityDocumentsQueryKey(relatedPersonId: string | null) {
+  return ['agency-identity-documents', relatedPersonId] as const
+}
+
+const IDENTITY_DOCUMENT_SIDES: readonly IdentityDocumentSide[] = ['recto', 'verso']
+
+/**
+ * Les aperçus recto/verso déjà téléversés pour `relatedPersonId`, lus directement dans
+ * Storage (`list()` puis `createSignedUrl()` pour chaque côté trouvé) — aucune colonne
+ * DB ne les indexe (cf. en-tête de section). Hook AUTONOME plutôt que champ de
+ * useAgencyIdentity() : même motif que useLegalFormCategory ci-dessus, l'appelant
+ * (IdentityShell) fournit sa propre paire (agencyId, relatedPersonId) plutôt que de
+ * dupliquer ici la dérivation « qui est le signataire courant » qu'IdentityShell fait
+ * déjà pour ses propres besoins (existingSignatory).
+ */
+export function useIdentityDocuments(agencyId: string | null, relatedPersonId: string | null) {
+  return useQuery({
+    queryKey: identityDocumentsQueryKey(relatedPersonId),
+    queryFn: async (): Promise<IdentityDocumentPreviews> => {
+      const folder = identityDocumentFolder(agencyId as string, relatedPersonId as string)
+      const { data: files, error } = await supabase.storage.from('documents').list(folder)
+      if (error) throw error
+
+      const previews: IdentityDocumentPreviews = { recto: null, verso: null }
+      for (const side of IDENTITY_DOCUMENT_SIDES) {
+        const path = findIdentityDocumentPath(files ?? [], folder, side)
+        if (!path) continue
+        const { data: signed, error: signError } = await supabase.storage.from('documents').createSignedUrl(path, 300)
+        if (signError) throw signError
+        previews[side] = { path, signedUrl: signed.signedUrl }
+      }
+      return previews
+    },
+    enabled: !!agencyId && !!relatedPersonId,
+  })
+}
+
 /**
  * Personnes liées à l'agence courante, avec leurs rôles courants (étape 2 KYB).
  * `agencyId` vient de profile.agency_id — RLS (is_agency_admin()) refuse de toute
@@ -518,6 +675,43 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     await queryClient.invalidateQueries({ queryKey: personsQueryKey })
   }
 
+  /**
+   * Tâche 6 — dépose (ou remplace) le fichier `side` de `relatedPersonId` sous le
+   * préfixe réservé (identityDocumentFolder). Nom de fichier STABLE par côté
+   * (`recto.<ext>`/`verso.<ext>`) : un remplacement écrase la même clé via `upsert`,
+   * SAUF si l'extension change (ex. un premier essai en .jpg puis un .pdf) — dans ce
+   * cas l'ancien objet est retiré d'abord, sinon les deux coexisteraient sous deux
+   * clés distinctes et findIdentityDocumentPath (un seul match attendu par côté)
+   * pourrait en exposer un fantôme selon l'ordre renvoyé par `list()`.
+   */
+  const uploadIdentityDocument = async (
+    relatedPersonId: string,
+    side: IdentityDocumentSide,
+    file: File,
+  ): Promise<string> => {
+    if (!agencyId) throw new Error('Agence non chargée')
+
+    const folder = identityDocumentFolder(agencyId, relatedPersonId)
+    const { data: existingFiles, error: listError } = await supabase.storage.from('documents').list(folder)
+    if (listError) throw listError
+
+    const existingPath = findIdentityDocumentPath(existingFiles ?? [], folder, side)
+    const path = `${folder}/${identityDocumentFileName(side, extensionOfFile(file.name))}`
+
+    if (existingPath && existingPath !== path) {
+      await supabase.storage.from('documents').remove([existingPath])
+    }
+
+    const { error } = await supabase.storage.from('documents').upload(path, file, {
+      upsert: true,
+      contentType: file.type || undefined,
+    })
+    if (error) throw error
+
+    await queryClient.invalidateQueries({ queryKey: identityDocumentsQueryKey(relatedPersonId) })
+    return path
+  }
+
   const submit = async (): Promise<void> => {
     const { error } = await supabase.rpc('submit_agency_identity')
     if (error) throw error
@@ -542,11 +736,13 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
 
   return {
     agency: agencySettings.agency,
+    agencyId,
     persons: persons ?? [],
     isLoading: agencySettings.isLoading || personsLoading,
     savePerson,
     removePerson,
     revokeUboRole,
+    uploadIdentityDocument,
     submit,
     saveAgency,
     legalFormCategory,

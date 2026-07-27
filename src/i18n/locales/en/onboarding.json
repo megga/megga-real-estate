@@ -98,6 +98,24 @@
         "no": "No",
         "noHint": "Does not hold any prominent public function."
       }
+    },
+    "pieceIdentite": {
+      "eyebrow": "ID document",
+      "title": "Upload the signatory's ID document",
+      "subtitle": "Front and back of a valid ID document (identity card, passport, or residence permit). This document is reviewed by a member of our compliance team; no automated verification is performed at this stage.",
+      "missingSignataire": "The signatory must be entered in the previous step first.",
+      "sides": {
+        "recto": "Front",
+        "verso": "Back"
+      },
+      "dropHint": "Click to select a file",
+      "formatHint": "JPG, PNG, or PDF, 8 MB maximum",
+      "replaceHint": "Click to replace",
+      "errors": {
+        "format": "Accepted format: JPG, PNG, or PDF.",
+        "size": "Maximum size: 8 MB.",
+        "generic": "The upload failed. Please try again."
+      }
     }
   }
 }

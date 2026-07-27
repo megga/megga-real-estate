@@ -18,12 +18,15 @@ import {
   prevIdentityStep,
   isBeneficiaireEntryComplete,
   isBeneficiairesStepComplete,
+  isPieceIdentiteStepComplete,
   EMPTY_SIGNATAIRE_DRAFT,
   EMPTY_AGENCY_DRAFT,
   EMPTY_BENEFICIAIRE_DRAFT,
+  EMPTY_PIECE_IDENTITE_DRAFT,
   type SignataireDraft,
   type AgencyDraft,
   type BeneficiaireDraft,
+  type PieceIdentiteDraft,
 } from '@/components/crm-sugar-identity/IdentityShell'
 import { SG_IDENTITY_STEPS } from '@/components/crm-sugar-identity/tokens'
 
@@ -203,16 +206,15 @@ describe('canAdvanceFromIdentityStep — gate le bouton Continuer du pied de pag
     expect(canAdvanceFromIdentityStep(1, completeSignataire, { ...completeAgency, tva: '' })).toBe(true)
   })
 
-  it('étapes 3 et 4 (paliers "à venir", sans contenu réel) -> jamais navigables en avant, même avec des brouillons complets', () => {
+  it('étape 4 (récapitulatif, palier "à venir", sans contenu réel) -> jamais navigable en avant, même avec des brouillons complets', () => {
     // Revue tâche 3 : le bouton Continuer du pied de page restait actif sur ces
     // paliers (canNext valait `true` sans condition dès step > 0) — on pouvait
     // avancer jusqu'au récapitulatif sans rien renseigner. SG_IDENTITY_STEPS.length
     // vaut 5 (indices 0 à 4) ; les indices 0 et 1 ont un écran réel depuis la tâche 3/4.
-    // L'indice 2 (bénéficiaires) en a un depuis la tâche 5 et sort donc de cette boucle
-    // générique — sa complétude a son propre bloc de tests plus bas (4e argument).
-    for (let step = 3; step < SG_IDENTITY_STEPS.length; step += 1) {
-      expect(canAdvanceFromIdentityStep(step, completeSignataire, completeAgency)).toBe(false)
-    }
+    // L'indice 2 (bénéficiaires, tâche 5) et l'indice 3 (pièce d'identité, tâche 6) en
+    // ont un désormais et sortent donc de cette boucle générique — leur complétude a
+    // son propre bloc de tests (4e et 5e arguments) plus bas.
+    expect(canAdvanceFromIdentityStep(4, completeSignataire, completeAgency)).toBe(false)
   })
 })
 
@@ -390,5 +392,58 @@ describe('canAdvanceFromIdentityStep — étape 2 (bénéficiaires) : gate sur s
 
   it('un bénéficiaire incomplet -> pas navigable', () => {
     expect(canAdvanceFromIdentityStep(2, completeSignataire, completeAgency, [EMPTY_BENEFICIAIRE_DRAFT])).toBe(false)
+  })
+})
+
+describe('isPieceIdentiteStepComplete — gate le bouton Continuer de l\'étape 4 (pièce d\'identité, tâche 6)', () => {
+  it('brouillon vide (rien téléversé) -> incomplet', () => {
+    expect(isPieceIdentiteStepComplete(EMPTY_PIECE_IDENTITE_DRAFT)).toBe(false)
+  })
+
+  it('recto seul (verso manquant) -> incomplet : recto et verso sont tous deux exigés', () => {
+    expect(isPieceIdentiteStepComplete({ recto: 'agency-1/kyb-identity/person-1/recto.jpg', verso: null })).toBe(false)
+  })
+
+  it('verso seul (recto manquant) -> incomplet', () => {
+    expect(isPieceIdentiteStepComplete({ recto: null, verso: 'agency-1/kyb-identity/person-1/verso.jpg' })).toBe(false)
+  })
+
+  it('recto ET verso présents -> complet', () => {
+    const complete: PieceIdentiteDraft = {
+      recto: 'agency-1/kyb-identity/person-1/recto.jpg',
+      verso: 'agency-1/kyb-identity/person-1/verso.jpg',
+    }
+    expect(isPieceIdentiteStepComplete(complete)).toBe(true)
+  })
+})
+
+describe('canAdvanceFromIdentityStep — étape 3 (pièce d\'identité, tâche 6) : gate sur sa propre complétude, comme les étapes précédentes', () => {
+  const completeSignataire: SignataireDraft = {
+    firstName: 'Grégory', lastName: 'Lyonnet', dateOfBirth: '1980-05-12', nationality: 'CH', signaturePower: 'individual',
+  }
+  const completeAgency: AgencyDraft = {
+    country: 'CH', legalFormId: 'legal-form-sa', legal: 'Régie Lyonnet SA', tradeName: 'Régie Lyonnet',
+    businessRegistrationNumber: 'CHE-123.456.789', tva: 'CHE-123.456.789 TVA', address: 'Rue du Rhône 10',
+    postal: '1204', city: 'Genève', canton: 'GE',
+  }
+  const completePieceIdentite: PieceIdentiteDraft = {
+    recto: 'agency-1/kyb-identity/person-1/recto.jpg',
+    verso: 'agency-1/kyb-identity/person-1/verso.jpg',
+  }
+
+  it('5e argument omis (compat. appels existants) -> se comporte comme un brouillon vide, donc PAS navigable (contrairement aux bénéficiaires, recto/verso sont bloquants)', () => {
+    expect(canAdvanceFromIdentityStep(3, completeSignataire, completeAgency, [])).toBe(false)
+  })
+
+  it('ni recto ni verso téléversés -> pas navigable', () => {
+    expect(canAdvanceFromIdentityStep(3, completeSignataire, completeAgency, [], EMPTY_PIECE_IDENTITE_DRAFT)).toBe(false)
+  })
+
+  it('recto seul téléversé -> pas encore navigable', () => {
+    expect(canAdvanceFromIdentityStep(3, completeSignataire, completeAgency, [], { recto: completePieceIdentite.recto, verso: null })).toBe(false)
+  })
+
+  it('recto ET verso téléversés -> navigable', () => {
+    expect(canAdvanceFromIdentityStep(3, completeSignataire, completeAgency, [], completePieceIdentite)).toBe(true)
   })
 })
