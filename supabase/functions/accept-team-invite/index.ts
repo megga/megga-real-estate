@@ -115,8 +115,10 @@ serve(async (req) => {
         })
       }
 
-      // Verify email matches
-      if (user.email?.toLowerCase() !== invitation.email.toLowerCase()) {
+      // Verify email matches — .trim() des deux côtés : une invitation saisie/collée
+      // avec des espaces autour de l'e-mail refuserait sinon la réclamation avec
+      // email_mismatch alors que l'adresse est identique.
+      if (user.email?.trim().toLowerCase() !== invitation.email.trim().toLowerCase()) {
         return new Response(JSON.stringify({
           error: 'email_mismatch',
           expectedEmail: invitation.email,
