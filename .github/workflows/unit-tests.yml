@@ -45,14 +45,14 @@ jobs:
 
       - name: Lint prose typography (i18n)
         # Garde-fou « style maison MEGGA » : bloque les tells (— / –) dans l'i18n.
-        # Bloquant (contrairement à eslint dans deploy.yml qui est en `|| true`).
+        # Bloquant, comme eslint dans deploy.yml.
         run: npm run lint:prose
 
       - name: Lint i18n (texte FR en dur — surfaces agent verrouillées)
         # Garde-fou i18n : échoue si du texte FR est réintroduit en dur sur une
         # surface agent migrée (règle no-literal-string en ERROR). Cible la règle
-        # seule → ignore les ~45 erreurs eslint préexistantes hors-i18n (masquées
-        # par `|| true` dans deploy.yml).
+        # seule, ce qui donne un échec lisible sur ce seul motif ; le lint complet
+        # est de toute façon bloquant dans deploy.yml depuis la PR #981.
         run: npm run lint:i18n
 
       - name: i18n key parity (FR↔EN)

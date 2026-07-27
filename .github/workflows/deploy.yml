@@ -55,9 +55,13 @@ jobs:
         run: npx tsc -b
 
       - name: Lint
-        # Warnings are OK (react-hooks/preserve-manual-memoization etc.)
-        # Only fail on actual errors (exit code from eslint is 1 only for errors, not warnings)
-        run: npm run lint || true
+        # BLOQUANT depuis la PR #981, qui a ramené le lint à 0 erreur. Il était
+        # en `|| true` parce que la base traînait 31 erreurs : le garde-fou ne
+        # pouvait pas servir tant qu'il était rouge.
+        # Les avertissements restent tolérés — `eslint .` ne sort en 1 que sur
+        # des ERREURS (pas de --max-warnings), donc les ~131 warnings connus
+        # (react-hooks/set-state-in-effect, purity…) ne bloquent pas le déploiement.
+        run: npm run lint
 
       - name: Build
         run: npm run build
