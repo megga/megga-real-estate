@@ -97,7 +97,6 @@ export function StepPieceIdentite({
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
           <DocumentTile
-            side="recto"
             label={t('wizard.pieceIdentite.sides.recto')}
             preview={recto}
             uploading={uploadingSide === 'recto'}
@@ -105,7 +104,6 @@ export function StepPieceIdentite({
             onSelectFile={(file) => onSelectFile('recto', file)}
           />
           <DocumentTile
-            side="verso"
             label={t('wizard.pieceIdentite.sides.verso')}
             preview={verso}
             uploading={uploadingSide === 'verso'}
@@ -133,7 +131,6 @@ export function StepPieceIdentite({
 function DocumentTile({
   label, preview, uploading, isLoading, onSelectFile,
 }: {
-  side: IdentityDocumentSide
   label: string
   preview: IdentityDocumentPreview | null
   uploading: boolean

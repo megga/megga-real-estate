@@ -109,10 +109,10 @@
         "verso": "Rückseite"
       },
       "dropHint": "Klicken Sie, um eine Datei auszuwählen",
-      "formatHint": "JPG, PNG oder PDF, maximal 8 MB",
+      "formatHint": "JPG, PNG, WEBP oder PDF, maximal 8 MB",
       "replaceHint": "Klicken Sie, um zu ersetzen",
       "errors": {
-        "format": "Zulässiges Format: JPG, PNG oder PDF.",
+        "format": "Zulässiges Format: JPG, PNG, WEBP oder PDF.",
         "size": "Maximale Grösse: 8 MB.",
         "generic": "Der Upload ist fehlgeschlagen. Versuchen Sie es erneut.",
         "loadFailed": "Die Dokumente konnten nicht geladen werden. Versuchen Sie es erneut."

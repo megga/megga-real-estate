@@ -23,6 +23,7 @@ import {
   extensionOfFile,
   findIdentityDocumentPath,
   validateIdentityDocumentFile,
+  identityDocumentsQueryKey,
   type PersonRow,
   type IdentityPersonWithRoles,
   type AgencyLegalFormFields,
@@ -487,6 +488,23 @@ describe('findIdentityDocumentPath — parmi les fichiers listés à ce préfixe
     // "versoTemp.jpg" égaré) ne doit jamais matcher "verso" par un simple startsWith
     // sans séparateur — la garde `${side}.` en dépend.
     expect(findIdentityDocumentPath([{ name: 'versoTemp.jpg' }], folder, 'verso')).toBeNull()
+  })
+})
+
+describe('identityDocumentsQueryKey — correctif revue tâche 6 (point mineur) : la clé porte le couple (agence, personne), pas la personne seule', () => {
+  it('compose agencyId puis relatedPersonId, dans cet ordre', () => {
+    expect(identityDocumentsQueryKey('agency-1', 'person-1')).toEqual(['agency-identity-documents', 'agency-1', 'person-1'])
+  })
+
+  it('deux agences différentes pour la même personne -> deux clés différentes (jamais de collision de cache inter-agence)', () => {
+    // C'est exactement ce que la clé précédente (relatedPersonId seul) ne garantissait
+    // pas : le dossier Storage lu dépend du couple, la clé de cache doit donc aussi.
+    expect(identityDocumentsQueryKey('agency-1', 'person-1')).not.toEqual(identityDocumentsQueryKey('agency-2', 'person-1'))
+  })
+
+  it('agencyId ou relatedPersonId pas encore connu (null) -> conservé tel quel dans la clé', () => {
+    expect(identityDocumentsQueryKey(null, 'person-1')).toEqual(['agency-identity-documents', null, 'person-1'])
+    expect(identityDocumentsQueryKey('agency-1', null)).toEqual(['agency-identity-documents', 'agency-1', null])
   })
 })
 

@@ -109,10 +109,10 @@
         "verso": "Back"
       },
       "dropHint": "Click to select a file",
-      "formatHint": "JPG, PNG, or PDF, 8 MB maximum",
+      "formatHint": "JPG, PNG, WEBP, or PDF, 8 MB maximum",
       "replaceHint": "Click to replace",
       "errors": {
-        "format": "Accepted format: JPG, PNG, or PDF.",
+        "format": "Accepted format: JPG, PNG, WEBP, or PDF.",
         "size": "Maximum size: 8 MB.",
         "generic": "The upload failed. Please try again.",
         "loadFailed": "Failed to load the documents. Please try again."

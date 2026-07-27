@@ -109,10 +109,10 @@
         "verso": "Retro"
       },
       "dropHint": "Clicchi per selezionare un file",
-      "formatHint": "JPG, PNG o PDF, massimo 8 MB",
+      "formatHint": "JPG, PNG, WEBP o PDF, massimo 8 MB",
       "replaceHint": "Clicchi per sostituire",
       "errors": {
-        "format": "Formato accettato: JPG, PNG o PDF.",
+        "format": "Formato accettato: JPG, PNG, WEBP o PDF.",
         "size": "Dimensione massima: 8 MB.",
         "generic": "Il caricamento non è riuscito. Riprovi.",
         "loadFailed": "Impossibile caricare i documenti. Riprovi."

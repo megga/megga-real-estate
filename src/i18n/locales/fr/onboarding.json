@@ -109,10 +109,10 @@
         "verso": "Verso"
       },
       "dropHint": "Cliquez pour sélectionner un fichier",
-      "formatHint": "JPG, PNG ou PDF, 8 Mo maximum",
+      "formatHint": "JPG, PNG, WEBP ou PDF, 8 Mo maximum",
       "replaceHint": "Cliquez pour remplacer",
       "errors": {
-        "format": "Format accepté : JPG, PNG ou PDF.",
+        "format": "Format accepté : JPG, PNG, WEBP ou PDF.",
         "size": "Taille maximale : 8 Mo.",
         "generic": "Le téléversement a échoué. Réessayez.",
         "loadFailed": "Le chargement des documents a échoué. Réessayez."

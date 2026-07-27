@@ -507,9 +507,17 @@ export function validateIdentityDocumentFile(file: File): IdentityDocumentValida
   return null
 }
 
-/** Clé React Query partagée par useIdentityDocuments() et uploadIdentityDocument() — une seule source de vérité pour l'invalidation. */
-function identityDocumentsQueryKey(relatedPersonId: string | null) {
-  return ['agency-identity-documents', relatedPersonId] as const
+/**
+ * Clé React Query partagée par useIdentityDocuments() et uploadIdentityDocument() — une
+ * seule source de vérité pour l'invalidation. Correctif revue tâche 6 (point mineur) :
+ * porte le couple (agencyId, relatedPersonId), pas relatedPersonId seul — c'est ce
+ * couple qui détermine le dossier Storage lu (identityDocumentFolder ci-dessus) ;
+ * une clé plus étroite risquerait de servir depuis le cache une réponse résolue sous
+ * une AUTRE agence pour le même id de personne. Exportée et testée directement, même
+ * motif que le reste de cette section.
+ */
+export function identityDocumentsQueryKey(agencyId: string | null, relatedPersonId: string | null) {
+  return ['agency-identity-documents', agencyId, relatedPersonId] as const
 }
 
 const IDENTITY_DOCUMENT_SIDES: readonly IdentityDocumentSide[] = ['recto', 'verso']
@@ -525,9 +533,16 @@ const IDENTITY_DOCUMENT_SIDES: readonly IdentityDocumentSide[] = ['recto', 'vers
  */
 export function useIdentityDocuments(agencyId: string | null, relatedPersonId: string | null) {
   return useQuery({
-    queryKey: identityDocumentsQueryKey(relatedPersonId),
+    queryKey: identityDocumentsQueryKey(agencyId, relatedPersonId),
     queryFn: async (): Promise<IdentityDocumentPreviews> => {
-      const folder = identityDocumentFolder(agencyId as string, relatedPersonId as string)
+      // Correctif revue tâche 6 (point mineur) : `enabled` ci-dessous empêche déjà cet
+      // appel tant que l'un des deux manque, mais TypeScript ne peut pas le déduire à
+      // travers la fermeture de useQuery — ce garde narrows les deux valeurs en
+      // `string` sans jamais recourir à `as string` (contournement du mode strict).
+      if (!agencyId || !relatedPersonId) {
+        throw new Error('useIdentityDocuments: agencyId/relatedPersonId manquant')
+      }
+      const folder = identityDocumentFolder(agencyId, relatedPersonId)
       const { data: files, error } = await supabase.storage.from('documents').list(folder)
       if (error) throw error
 
@@ -708,7 +723,7 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     })
     if (error) throw error
 
-    await queryClient.invalidateQueries({ queryKey: identityDocumentsQueryKey(relatedPersonId) })
+    await queryClient.invalidateQueries({ queryKey: identityDocumentsQueryKey(agencyId, relatedPersonId) })
     return path
   }
 
