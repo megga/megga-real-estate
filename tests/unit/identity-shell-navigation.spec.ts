@@ -22,6 +22,7 @@ import {
   identitySubmissionErrorCode,
   identitySubmissionErrorStep,
   canSubmitIdentity,
+  shouldResetAttestationLeavingRecap,
   EMPTY_SIGNATAIRE_DRAFT,
   EMPTY_AGENCY_DRAFT,
   EMPTY_BENEFICIAIRE_DRAFT,
@@ -515,5 +516,62 @@ describe('canSubmitIdentity — gate le bouton Soumettre de l\'étape 4 (récapi
 
   it('ni l\'un ni l\'autre -> jamais soumissible', () => {
     expect(canSubmitIdentity(false, null)).toBe(false)
+  })
+})
+
+describe('shouldResetAttestationLeavingRecap — un seul point de reset de l\'attestation, quel que soit le chemin de sortie du récapitulatif (revue tâche 7, point 1)', () => {
+  const COUNT = SG_IDENTITY_STEPS.length // 5 -> récapitulatif = index 4 (COUNT - 1)
+
+  it('récapitulatif -> étape signataire (renvoi automatique après refus "signatory") -> reset', () => {
+    expect(shouldResetAttestationLeavingRecap(4, 0, COUNT)).toBe(true)
+  })
+
+  it('récapitulatif -> étape agence (renvoi automatique après refus "legalName"/"legalForm"/"country") -> reset', () => {
+    expect(shouldResetAttestationLeavingRecap(4, 1, COUNT)).toBe(true)
+  })
+
+  it('récapitulatif -> étape bénéficiaires (bouton "Modifier" du récapitulatif OU stepper de l\'en-tête, tous deux via goToStep) -> reset', () => {
+    expect(shouldResetAttestationLeavingRecap(4, 2, COUNT)).toBe(true)
+  })
+
+  it('récapitulatif -> étape pièce d\'identité (bouton Précédent) -> reset', () => {
+    expect(shouldResetAttestationLeavingRecap(4, 3, COUNT)).toBe(true)
+  })
+
+  it('re-clic sur le récapitulatif déjà actif (aucune navigation réelle) -> pas de reset', () => {
+    expect(shouldResetAttestationLeavingRecap(4, 4, COUNT)).toBe(false)
+  })
+
+  it('arrivée SUR le récapitulatif depuis l\'étape précédente -> pas de reset (rien à réinitialiser en y entrant)', () => {
+    expect(shouldResetAttestationLeavingRecap(3, 4, COUNT)).toBe(false)
+  })
+
+  it('navigation entre deux étapes qui ne sont ni l\'une ni l\'autre le récapitulatif -> pas de reset', () => {
+    expect(shouldResetAttestationLeavingRecap(0, 1, COUNT)).toBe(false)
+    expect(shouldResetAttestationLeavingRecap(2, 1, COUNT)).toBe(false)
+  })
+
+  it('scénario complet de la revue : coche, soumission refusée (signataire manquant), retour étape 0, correction, ré-avance jusqu\'au récapitulatif -> l\'attestation est bien redemandée, jamais remise à true automatiquement', () => {
+    let attestationChecked = true // l'utilisateur avait coché avant de soumettre
+    let step = 4 // au récapitulatif au moment du clic sur Soumettre
+
+    // handleSubmit échoue avec la cause "signatory" -> identitySubmissionErrorStep renvoie 0.
+    const targetStep = identitySubmissionErrorStep('signatory')
+    expect(targetStep).not.toBeNull()
+    if (shouldResetAttestationLeavingRecap(step, targetStep as number, COUNT)) attestationChecked = false
+    step = targetStep as number
+
+    expect(attestationChecked, 'déjà remise à zéro au moment du renvoi automatique').toBe(false)
+
+    // L'utilisateur corrige puis clique Continuer à chaque étape (next()) jusqu'à
+    // revenir au récapitulatif — rien ne doit jamais recocher l'attestation.
+    for (let i = 0; i < COUNT - 1; i += 1) {
+      const next = nextIdentityStep(step, COUNT, false)
+      if (shouldResetAttestationLeavingRecap(step, next, COUNT)) attestationChecked = false
+      step = next
+    }
+
+    expect(step, 'de retour au récapitulatif').toBe(4)
+    expect(attestationChecked, 'jamais remise à true automatiquement : l\'utilisateur doit la recocher').toBe(false)
   })
 })

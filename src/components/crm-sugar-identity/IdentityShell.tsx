@@ -436,6 +436,27 @@ export function canSubmitIdentity(attestationChecked: boolean, signatoryId: stri
   return attestationChecked && signatoryId != null
 }
 
+/**
+ * Correctif revue tâche 7, point 1 : true si le passage de `previousStep` à `nextStep`
+ * QUITTE le récapitulatif (dernière étape, index `stepCount - 1`) — c'est le SEUL
+ * moment où l'attestation d'exactitude doit être réinitialisée, quel que soit le
+ * chemin de sortie : bouton Précédent, "Modifier" du récapitulatif ET stepper de
+ * l'en-tête (les deux via goToStep), ou le renvoi automatique après un refus de la RPC
+ * dans handleSubmit. Voir l'effet qui utilise cette fonction plus bas dans le
+ * composant, seul point d'appel de setAttestationChecked(false) — une attestation qui
+ * survit à un aller-retour viderait la déclaration de sa portée : l'utilisateur
+ * pourrait corriger des données puis soumettre à nouveau sans avoir consciemment
+ * réattesté les valeurs modifiées. Rester sur place (previousStep === nextStep, ex.
+ * re-clic sur l'étape déjà active) ou naviguer entre deux étapes qui ne sont NI L'UNE
+ * NI L'AUTRE le récapitulatif ne doit jamais y toucher : il n'y a alors rien à
+ * réinitialiser.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que canSubmitIdentity.
+export function shouldResetAttestationLeavingRecap(previousStep: number, nextStep: number, stepCount: number): boolean {
+  const recapStep = stepCount - 1
+  return previousStep === recapStep && nextStep !== recapStep
+}
+
 /** Coquille du wizard identité : chrome, navigation entre étapes, persistance au changement d'étape. */
 export default function IdentityShell() {
   const { t } = useTranslation('onboarding')
@@ -457,6 +478,22 @@ export default function IdentityShell() {
   // Étape 4 (récapitulatif, tâche 7) : case d'attestation d'exactitude, contrôlée ici
   // comme tout autre brouillon de ce wizard — gate canSubmitIdentity (footer, plus bas).
   const [attestationChecked, setAttestationChecked] = useState(false)
+
+  // Correctif revue tâche 7, point 1 : réinitialise l'attestation dès qu'on QUITTE le
+  // récapitulatif, quel que soit le chemin (goToStep — bouton "Modifier" ET stepper de
+  // l'en-tête, prev() — bouton Précédent, ou le setStep de handleSubmit après un refus
+  // de la RPC) — UN SEUL point de reset plutôt que de dupliquer
+  // setAttestationChecked(false) dans chacun de ces appelants (cf. JSDoc de
+  // shouldResetAttestationLeavingRecap ci-dessus). previousStepRef porte la valeur de
+  // `step` d'AVANT la transition en cours : un useState seul ne connaît que la valeur
+  // courante, incapable à lui seul de détecter qu'on est en train de QUITTER l'étape 4.
+  const previousStepRef = useRef(step)
+  useEffect(() => {
+    if (shouldResetAttestationLeavingRecap(previousStepRef.current, step, SG_IDENTITY_STEPS.length)) {
+      setAttestationChecked(false)
+    }
+    previousStepRef.current = step
+  }, [step])
 
   // Flash "Enregistré" pendant 1.8s après une sauvegarde réussie (footer).
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
