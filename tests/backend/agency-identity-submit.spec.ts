@@ -383,6 +383,62 @@ describe.skipIf(!HAS_KEYS)('submit_agency_identity — RPC de soumission', () =>
     expect(error?.code).toBe('42501')
   })
 
+  // Revue tâche 6, point 2 (important) : la RPC lisait identity_submitted_at puis
+  // écrivait, sans verrou. Deux sessions entrelacées (ou un double clic sur le bouton
+  // de soumission) pouvaient toutes deux lire v_submitted = null AVANT que l'une ou
+  // l'autre n'écrive quoi que ce soit, et empiler chacune une ligne
+  // 'pending_manual_review' pour la même personne + un événement activity_events
+  // (append-only, conservé dix ans, jamais purgeable). N CALLS concurrents réels (fetch
+  // en parallèle, pas une boucle séquentielle attendue un par un) exercent le verrou
+  // FOR UPDATE posé sur la ligne agencies : un seul doit gagner l'écriture.
+  it('N appels concurrents (double clic) sur la même personne ne posent qu\'UN SEUL check et qu\'UN SEUL événement (verrou FOR UPDATE)', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+    const { data: signatoryRow, error: personErr } = await serviceRoleClient()
+      .from('agency_related_persons')
+      .select('id')
+      .eq('agency_id', founder.agencyId)
+      .single()
+    expect(personErr).toBeNull()
+    const relatedPersonId = signatoryRow!.id as string
+
+    const CONCURRENCY = 8
+    // Promise.all (pas de await séquentiel) : les N requêtes HTTP partent ensemble,
+    // PostgREST les sert sur des connexions/transactions distinctes — c'est ce qui
+    // rend cette course réelle, pas seulement simulée.
+    const results = await Promise.all(
+      Array.from({ length: CONCURRENCY }, () =>
+        founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+      )
+    )
+    for (const r of results) {
+      expect(r.error, `appel concurrent: ${r.error?.message}`).toBeNull()
+    }
+
+    const { data: checks, error: checksErr } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('id')
+      .eq('related_person_id', relatedPersonId)
+    expect(checksErr).toBeNull()
+    expect(checks?.length, `un seul check malgré ${CONCURRENCY} appels concurrents`).toBe(1)
+
+    const { data: events, error: evErr } = await serviceRoleClient()
+      .from('activity_events')
+      .select('id')
+      .eq('entity_type', 'agency')
+      .eq('entity_id', founder.agencyId)
+      .eq('action', 'agency_identity_submitted')
+    expect(evErr).toBeNull()
+    expect(events?.length, `un seul événement malgré ${CONCURRENCY} appels concurrents`).toBe(1)
+
+    const { data: agency } = await serviceRoleClient()
+      .from('agencies')
+      .select('identity_submitted_at')
+      .eq('id', founder.agencyId)
+      .maybeSingle()
+    expect(agency?.identity_submitted_at).not.toBeNull()
+  })
+
   it('l\'événement journalisé porte category=kyc (et non compliance)', async () => {
     const founder = await signUpFounder()
     await completeAgencyIdentity(founder.agencyId)

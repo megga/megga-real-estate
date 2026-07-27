@@ -25,6 +25,14 @@
 -- p_related_person_id est optionnel (défaut NULL) : rétrocompatible avec tout appel
 -- existant `submit_agency_identity()` sans argument (tests de la tâche 1, inchangés).
 --
+-- ⚠ Correctif revue tâche 6, point 2 — verrou de concurrence : le SELECT sur
+-- identity_submitted_at (étape 3 du corps ci-dessous) est un `select ... for update`
+-- sur la ligne agencies. Sans lui, deux appels entrelacés (deux onglets, un double
+-- clic) pouvaient tous deux lire l'ancienne valeur avant que l'un n'écrive, et
+-- empiler chacun une ligne agency_person_verification_checks + un événement
+-- activity_events (append-only, dix ans, jamais purgeable) pour la même personne —
+-- reproduit par un test à appels concurrents réels (Promise.all), pas une hypothèse.
+--
 -- ⚠ Postgres identifie une fonction par NOM + TYPES de paramètres — un DEFAULT ne
 -- change pas la signature pour la résolution de CREATE OR REPLACE. Sans le DROP
 -- explicite ci-dessous, la fonction zéro-argument de la tâche 1 et cette nouvelle
@@ -70,9 +78,22 @@ begin
   -- re-timestamper ni re-journaliser, ni reposer une seconde ligne de check. On sort
   -- silencieusement plutôt que de renvoyer une erreur : du point de vue de l'appelant,
   -- la soumission a déjà réussi.
+  --
+  -- ⚠ Correctif revue tâche 6, point 2 — FOR UPDATE indispensable, pas cosmétique : sans
+  -- lui, deux appels entrelacés (deux onglets, ou un simple double clic dont le premier
+  -- clic n'a pas encore désactivé le bouton) lisent tous les deux v_submitted = null
+  -- AVANT que l'un ou l'autre n'écrive quoi que ce soit, passent tous les deux le test
+  -- ci-dessous, et empilent chacun une ligne 'pending_manual_review' (étape 4) + un
+  -- événement activity_events (étape 6, append-only, conservé dix ans, jamais
+  -- purgeable) pour la même personne. FOR UPDATE verrouille la ligne agencies : le
+  -- second appel BLOQUE jusqu'à ce que le premier ait committé (ou annulé), puis relit
+  -- v_submitted déjà posé et emprunte cette même branche de sortie anticipée — vrai
+  -- sous concurrence réelle, prouvé par un test à N appels simultanés
+  -- (Promise.all, jamais une boucle séquentielle), pas seulement en séquentiel.
   select identity_submitted_at into v_submitted
     from public.agencies
-   where id = v_agency_id;
+   where id = v_agency_id
+     for update;
 
   if v_submitted is not null then
     return;
@@ -96,9 +117,15 @@ begin
     -- Aucun prestataire de vérification automatique à ce stade (spec de conception,
     -- §14 hors périmètre) : le recto/verso déjà déposé par le client dans Storage
     -- attend une revue humaine, comme tout dossier suisse tant que le registre du
-    -- commerce ne répond pas. Un seul insert possible par agence : le retour anticipé
-    -- de l'étape 3 ci-dessus empêche tout second appel d'atteindre cette ligne, donc
-    -- aucun risque d'empiler plusieurs 'pending_manual_review' pour la même personne.
+    -- commerce ne répond pas. Un seul insert possible par agence pour cette personne :
+    -- c'est le verrou FOR UPDATE posé à l'étape 3 ci-dessus qui l'assure sous
+    -- concurrence (deux appels entrelacés se sérialisent sur la ligne agencies, le
+    -- second relit v_submitted déjà posé et sort par le retour anticipé) — PAS le
+    -- retour anticipé seul, qui ne suffirait qu'en séquentiel. L'ancienne version de ce
+    -- commentaire l'affirmait à tort (revue tâche 6, point 2) : sans le verrou, deux
+    -- appels lisant tous deux v_submitted = null avant que l'un n'écrive empilaient
+    -- chacun une ligne 'pending_manual_review' pour la même personne, démontré par un
+    -- test à appels concurrents réels.
     insert into public.agency_person_verification_checks
       (related_person_id, check_type, source, result)
     values
