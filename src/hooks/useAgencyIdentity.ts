@@ -70,7 +70,7 @@ export interface PersonRoleRow {
   signature_power: 'individual' | 'joint' | null
   ownership_pct: number | null
   pep_self_declared: boolean
-  /** null = rôle courant. Une date passée = historisé (cf. valid_from/valid_to). */
+  /** null ou date future = rôle actif (mandat qui court encore). Une date passée = historisé (cf. valid_from/valid_to). */
   valid_to: string | null
 }
 
@@ -86,11 +86,38 @@ export interface PersonRow {
 const PERSON_SELECT =
   'id, first_name, last_name, date_of_birth, nationality, roles:agency_person_roles(id, role, signature_power, ownership_pct, pep_self_declared, valid_to)'
 
+/** Date UTC du jour au format 'YYYY-MM-DD' — même format que la colonne `date` valid_to. */
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+/**
+ * true si un rôle est actif à la date `today` (paramètre injectable pour les tests ;
+ * par défaut la date UTC du jour). Même définition d'« actif » que la RPC
+ * submit_agency_identity() : `valid_to is null or valid_to > current_date`
+ * (supabase/migrations/20260727100000_submit_agency_identity.sql, comparaison
+ * stricte). `valid_to` est une colonne `date`, pas `timestamptz` : comparaison sur
+ * la date seule, jamais l'heure.
+ *
+ * mapPersonRow et findActiveRoleId (ci-dessous) passent TOUS DEUX par cette fonction
+ * plutôt que de retester `valid_to === null` chacun de leur côté — c'était déjà le
+ * bug (revue tâche 3) : un rôle à valid_to futur (que le schéma autorise
+ * explicitement) était invisible ici alors que la RPC le compte comme actif.
+ * Conséquence concrète : savePerson ne retrouvait pas la ligne active existante, en
+ * insérait une seconde, que l'index partiel idx_agency_person_roles_active_unique ne
+ * bloque pas puisqu'il ne couvre que `valid_to is null` (20260726130200) — deux
+ * lignes actives contradictoires en base, et un signataire invisible dans le wizard
+ * alors que la RPC le comptait déjà.
+ */
+export function isRoleActive(validTo: string | null, today: string = todayIsoDate()): boolean {
+  return validTo === null || validTo > today
+}
+
 /**
  * Ligne DB (personne + ses rôles imbriqués) -> forme du contrat du hook.
- * Ne garde QUE les rôles courants (valid_to null) : un rôle historisé n'est plus
- * ce que le wizard doit relire ou proposer de modifier — l'historique existe pour
- * l'audit LAB (agency_person_roles), pas pour l'écran de saisie.
+ * Ne garde QUE les rôles actifs (isRoleActive ci-dessus) : un rôle historisé n'est
+ * plus ce que le wizard doit relire ou proposer de modifier — l'historique existe
+ * pour l'audit LAB (agency_person_roles), pas pour l'écran de saisie.
  */
 export function mapPersonRow(row: PersonRow): IdentityPersonWithRoles {
   return {
@@ -100,7 +127,7 @@ export function mapPersonRow(row: PersonRow): IdentityPersonWithRoles {
     dateOfBirth: row.date_of_birth,
     nationality: row.nationality,
     roles: row.roles
-      .filter((r) => r.valid_to === null)
+      .filter((r) => isRoleActive(r.valid_to))
       .map((r) => ({
         role: r.role,
         signaturePower: r.signature_power,
@@ -167,14 +194,26 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     staleTime: 30_000,
   })
 
-  /** related_person_id + type de rôle -> id de la ligne agency_person_roles COURANTE, ou null. */
+  /**
+   * related_person_id + type de rôle -> id de la ligne agency_person_roles ACTIVE
+   * (isRoleActive : valid_to null OU futur, même définition que la RPC
+   * submit_agency_identity), ou null. `.or()` est la syntaxe PostgREST pour combiner
+   * les deux branches dans un seul filtre (même motif que useRelanceLeads.ts).
+   */
   const findActiveRoleId = async (relatedPersonId: string, role: IdentityRole['role']): Promise<string | null> => {
     const { data, error } = await supabase
       .from('agency_person_roles')
       .select('id')
       .eq('related_person_id', relatedPersonId)
       .eq('role', role)
-      .is('valid_to', null)
+      .or(`valid_to.is.null,valid_to.gt.${todayIsoDate()}`)
+      // Défensif : l'index partiel idx_agency_person_roles_active_unique ne couvre
+      // que `valid_to is null` (20260726130200), donc rien n'empêche en base deux
+      // lignes valid_to futures actives pour la même (personne, rôle) — sans ce
+      // .limit(1), .maybeSingle() lèverait PGRST116 sur ce cas au lieu de mettre à
+      // jour une ligne existante. Le vrai correctif d'une telle donnée reste en
+      // amont (une seule ligne active) ; ceci évite seulement le crash ici.
+      .limit(1)
       .maybeSingle()
     if (error) throw error
     return data?.id ?? null

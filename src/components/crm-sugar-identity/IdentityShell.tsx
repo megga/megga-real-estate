@@ -72,6 +72,24 @@ export function clampIdentityStep(step: number, stepCount: number): number {
   return Math.min(Math.max(step, 0), stepCount - 1)
 }
 
+/**
+ * true si l'étape `step` autorise une navigation avant (bouton Continuer du pied de
+ * page). Seule l'étape 0 (StepSignataire) a un écran réel à cette tâche — gate sur
+ * isSignataireStepComplete. Les étapes 1 à 4 sont des paliers StepComingSoon (tâches
+ * 4 à 7, aucun contenu à valider aujourd'hui) : jamais navigables en avant tant
+ * qu'elles n'ont pas de contenu réel, quel que soit le brouillon signataire en cours.
+ *
+ * Revue tâche 3 : `canNext` valait `true` sans condition dès step > 0 — le bouton
+ * Continuer du pied de page restait cliquable sur ces paliers vides jusqu'au
+ * récapitulatif, sans que rien n'ait été renseigné. Le stepper du header respectait
+ * déjà la règle (goToStep refuse toute cible > step, cf. plus bas), mais le rapport de
+ * la tâche affirmait à tort que c'était vrai aussi du bouton du pied de page.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete/clampIdentityStep.
+export function canAdvanceFromIdentityStep(step: number, signataire: SignataireDraft): boolean {
+  return step === 0 ? isSignataireStepComplete(signataire) : false
+}
+
 /** Palier honnête pour les étapes 2 à 5, pas encore livrées (tâches 4 à 7). */
 function StepComingSoon({ eyebrow }: { eyebrow: string }) {
   const { t } = useTranslation('onboarding')
@@ -141,7 +159,7 @@ export default function IdentityShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingSignatory?.id])
 
-  const canNext = step === 0 ? isSignataireStepComplete(signataire) : true
+  const canNext = canAdvanceFromIdentityStep(step, signataire)
 
   /**
    * Persiste l'étape qu'on est en train de QUITTER (appelée par next(), prev() ET

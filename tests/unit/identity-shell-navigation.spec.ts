@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest'
 import {
   clampIdentityStep,
   isSignataireStepComplete,
+  canAdvanceFromIdentityStep,
   EMPTY_SIGNATAIRE_DRAFT,
   type SignataireDraft,
 } from '@/components/crm-sugar-identity/IdentityShell'
@@ -68,5 +69,33 @@ describe('isSignataireStepComplete — gate le bouton Continuer de l étape 1', 
 
   it('pouvoir de signature non choisi -> incomplet', () => {
     expect(isSignataireStepComplete({ ...complete, signaturePower: null })).toBe(false)
+  })
+})
+
+describe('canAdvanceFromIdentityStep — gate le bouton Continuer du pied de page (pas seulement le stepper du header)', () => {
+  const complete: SignataireDraft = {
+    firstName: 'Grégory',
+    lastName: 'Lyonnet',
+    dateOfBirth: '1980-05-12',
+    nationality: 'CH',
+    signaturePower: 'individual',
+  }
+
+  it('étape 0 (signataire) incomplète -> pas navigable en avant', () => {
+    expect(canAdvanceFromIdentityStep(0, EMPTY_SIGNATAIRE_DRAFT)).toBe(false)
+  })
+
+  it('étape 0 (signataire) complète -> navigable en avant', () => {
+    expect(canAdvanceFromIdentityStep(0, complete)).toBe(true)
+  })
+
+  it('étapes 1 à 4 (paliers "à venir", sans contenu réel) -> jamais navigables en avant, même avec un brouillon signataire complet', () => {
+    // Revue tâche 3 : le bouton Continuer du pied de page restait actif sur ces
+    // paliers (canNext valait `true` sans condition dès step > 0) — on pouvait
+    // avancer jusqu'au récapitulatif sans rien renseigner. SG_IDENTITY_STEPS.length
+    // vaut 5 (indices 0 à 4) ; seul l'indice 0 a un écran réel à cette tâche.
+    for (let step = 1; step < SG_IDENTITY_STEPS.length; step += 1) {
+      expect(canAdvanceFromIdentityStep(step, complete)).toBe(false)
+    }
   })
 })

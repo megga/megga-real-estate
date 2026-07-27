@@ -11,8 +11,34 @@ import {
   mapPersonRow,
   buildPersonPayload,
   buildRolePayload,
+  isRoleActive,
   type PersonRow,
 } from '@/hooks/useAgencyIdentity'
+
+// Dates relatives à "maintenant", même motif que tests/backend/agency-identity-submit.spec.ts
+// (frontière valid_to demain/aujourd'hui/hier) — une correction de fuseau ou un test qui
+// tourne à minuit ne doit pas rendre ces cas ambigus.
+const tomorrowIso = () => new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+const yesterdayIso = () => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+const todayIso = () => new Date().toISOString().slice(0, 10)
+
+describe('isRoleActive — même définition d\'actif que la RPC submit_agency_identity (valid_to null OU futur, comparaison stricte)', () => {
+  it('valid_to null -> actif', () => {
+    expect(isRoleActive(null)).toBe(true)
+  })
+
+  it('valid_to dans le futur -> actif (le mandat court encore, revue tâche 3)', () => {
+    expect(isRoleActive(tomorrowIso())).toBe(true)
+  })
+
+  it('valid_to = aujourd hui -> pas actif (comparaison stricte >, même frontière que la RPC)', () => {
+    expect(isRoleActive(todayIso())).toBe(false)
+  })
+
+  it('valid_to dans le passé -> pas actif (mandat expiré)', () => {
+    expect(isRoleActive(yesterdayIso())).toBe(false)
+  })
+})
 
 describe('mapPersonRow — lignes DB (snake_case, roles imbriqués) vers le contrat du hook (camelCase)', () => {
   const baseRow: PersonRow = {
@@ -56,6 +82,35 @@ describe('mapPersonRow — lignes DB (snake_case, roles imbriqués) vers le cont
       roles: [{
         id: 'role-old', role: 'signatory', signature_power: 'individual',
         ownership_pct: null, pep_self_declared: false, valid_to: '2020-01-01',
+      }],
+    }
+    expect(mapPersonRow(row).roles).toEqual([])
+  })
+
+  it('rôle avec valid_to dans le futur -> actif, conservé (même définition que la RPC submit_agency_identity, migration 20260727100000)', () => {
+    // Revue tâche 3 : mapPersonRow ne gardait que valid_to strictement nul, plus étroit
+    // que la RPC (valid_to is null OR valid_to > current_date). Un rôle à mandat futur
+    // devenait invisible ici alors que la RPC le compte comme actif — savePerson en
+    // insérait une seconde ligne active pour la même personne au lieu de réutiliser
+    // celle-ci.
+    const row: PersonRow = {
+      ...baseRow,
+      roles: [{
+        id: 'role-future', role: 'signatory', signature_power: 'individual',
+        ownership_pct: null, pep_self_declared: false, valid_to: tomorrowIso(),
+      }],
+    }
+    expect(mapPersonRow(row).roles).toEqual([
+      { role: 'signatory', signaturePower: 'individual', ownershipPct: null, pepSelfDeclared: false },
+    ])
+  })
+
+  it('rôle expiré (valid_to hier) -> pas actif, exclu', () => {
+    const row: PersonRow = {
+      ...baseRow,
+      roles: [{
+        id: 'role-expired', role: 'signatory', signature_power: 'individual',
+        ownership_pct: null, pep_self_declared: false, valid_to: yesterdayIso(),
       }],
     }
     expect(mapPersonRow(row).roles).toEqual([])
