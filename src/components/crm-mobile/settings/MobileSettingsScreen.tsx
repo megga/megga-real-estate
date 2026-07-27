@@ -40,7 +40,8 @@ const DEMO_AGENCY: AgencySettingsData = {
   name: 'MEGGA Genève', address: 'Rue du Rhône 100', city: 'Genève', canton: 'GE',
   phone: '+41 22 555 01 00', email: 'contact@megga.ch', website: 'megga.ch', logoUrl: '',
   // legalFormId vide en démo : c'est une FK vers legal_forms, aucun uuid stable à coder ici.
-  legal: 'MEGGA Genève SA', legalFormId: '', businessRegistrationNumber: 'CHE-409.118.221', tva: 'CHE-409.118.221 TVA',
+  legal: 'MEGGA Genève SA', legalFormId: '', tradeName: 'MEGGA Genève',
+  businessRegistrationNumber: 'CHE-409.118.221', tva: 'CHE-409.118.221 TVA',
   foundedYear: '2014', postal: '1204', country: 'Suisse', aboutShort: '',
 }
 const DEMO_NOTIF: NotifPreferences = { email: true, sms: false, whatsapp: true, inapp: true }

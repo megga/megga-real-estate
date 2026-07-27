@@ -9,14 +9,26 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 
+/**
+ * Mêmes valeurs que le CHECK de legal_forms.category (migration
+ * 20260726130000_legal_forms_reference.sql). Pilote l'étape 3 du wizard identité
+ * (bénéficiaires effectifs, tâche 5) : sole_proprietorship = le signataire EST
+ * l'entité, pas d'UBO tiers à déclarer ; foundation_or_trust = structure opaque,
+ * diligence renforcée. Décrite ici (pas seulement dans le SQL) parce que c'est la
+ * frontière TypeScript que les consommateurs (useAgencyIdentity, étape 3) lisent.
+ */
+export type LegalFormCategory = 'corporation' | 'partnership' | 'sole_proprietorship' | 'foundation_or_trust'
+
 export interface LegalFormOption {
   id: string
   label: string
+  category: LegalFormCategory
 }
 
 interface LegalFormRow {
   id: string
   country: string
+  category: LegalFormCategory
   label_fr: string
   label_de: string
   label_en: string
@@ -62,10 +74,13 @@ export function useLegalForms(country?: string | null): { options: LegalFormOpti
     queryFn: async (): Promise<LegalFormRow[]> => {
       let q = supabase
         .from('legal_forms')
-        .select('id, country, label_fr, label_de, label_en, label_it, sort_order')
+        .select('id, country, category, label_fr, label_de, label_en, label_it, sort_order')
         .order('sort_order', { ascending: true })
       if (code) q = q.eq('country', code)
-      const { data: rows, error } = await q
+      // .returns<>() : database.ts type `category` en `string` générique (généré
+      // depuis un CHECK, pas un enum Postgres) — même motif que PersonRow dans
+      // useAgencyIdentity.ts pour role/signature_power.
+      const { data: rows, error } = await q.returns<LegalFormRow[]>()
       if (error) throw error
       return rows ?? []
     },
@@ -78,6 +93,7 @@ export function useLegalForms(country?: string | null): { options: LegalFormOpti
     return rows.map((r) => ({
       id: r.id,
       label: code ? labelFor(r, i18n.language) : `${labelFor(r, i18n.language)} · ${r.country}`,
+      category: r.category,
     }))
   }, [data, code, i18n.language])
 

@@ -49,6 +49,29 @@
         "joint": "Signature collective",
         "jointHint": "Cette personne signe conjointement avec une autre personne autorisée."
       }
+    },
+    "agence": {
+      "eyebrow": "Identité de l'agence",
+      "title": "Quelle est l'identité légale de votre agence ?",
+      "subtitle": "Ces informations doivent correspondre exactement à celles de votre registre du commerce. Elles sont exigées par la loi suisse sur le blanchiment d'argent (LBA).",
+      "fields": {
+        "country": "Pays du siège",
+        "countryPlaceholder": "Sélectionner un pays",
+        "legalFormId": "Forme juridique",
+        "legalFormPlaceholder": "Sélectionner une forme juridique",
+        "legalFormPlaceholderNoCountry": "Choisissez d'abord le pays du siège",
+        "legalName": "Raison sociale",
+        "legalNameHint": "La dénomination officielle inscrite au registre du commerce.",
+        "tradeName": "Nom commercial",
+        "tradeNameHint": "Le nom sous lequel votre agence est connue de vos clients, si différent de la raison sociale. Utilisé pour vérifier votre site internet.",
+        "businessRegistrationNumber": "Numéro de registre",
+        "tva": "Numéro de TVA",
+        "address": "Adresse",
+        "postal": "NPA",
+        "city": "Ville",
+        "canton": "Canton",
+        "cantonPlaceholder": "Sélectionner un canton"
+      }
     }
   }
 }

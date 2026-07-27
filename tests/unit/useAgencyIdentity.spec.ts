@@ -12,8 +12,10 @@ import {
   buildPersonPayload,
   buildRolePayload,
   isRoleActive,
+  resolveLegalFormCategory,
   type PersonRow,
 } from '@/hooks/useAgencyIdentity'
+import type { LegalFormOption } from '@/hooks/useLegalForms'
 
 // Dates relatives à "maintenant", même motif que tests/backend/agency-identity-submit.spec.ts
 // (frontière valid_to demain/aujourd'hui/hier) — une correction de fuseau ou un test qui
@@ -190,5 +192,29 @@ describe('buildRolePayload — construit la ligne agency_person_roles à écrire
       role: 'ubo', signaturePower: null, ownershipPct: 33.33, pepSelfDeclared: true,
     })
     expect(payload.source).toBe('declared')
+  })
+})
+
+describe('resolveLegalFormCategory — dérive la catégorie de la forme juridique choisie (tâche 4 : info exposée pour l étape bénéficiaires effectifs de la tâche 5)', () => {
+  const options: LegalFormOption[] = [
+    { id: 'legal-form-sa', label: 'Société anonyme (SA)', category: 'corporation' },
+    { id: 'legal-form-ri', label: 'Raison individuelle', category: 'sole_proprietorship' },
+    { id: 'legal-form-fond', label: 'Fondation', category: 'foundation_or_trust' },
+  ]
+
+  it('id présent dans les options -> renvoie sa catégorie', () => {
+    expect(resolveLegalFormCategory('legal-form-sa', options)).toBe('corporation')
+  })
+
+  it('raison individuelle -> sole_proprietorship (le signataire est l entité, pas d UBO tiers — cf. commentaire DB legal_forms.category)', () => {
+    expect(resolveLegalFormCategory('legal-form-ri', options)).toBe('sole_proprietorship')
+  })
+
+  it('id vide (aucune forme choisie) -> null', () => {
+    expect(resolveLegalFormCategory('', options)).toBeNull()
+  })
+
+  it('id absent des options (ex. pays changé, options pas encore rechargées) -> null, jamais une erreur', () => {
+    expect(resolveLegalFormCategory('legal-form-inconnu', options)).toBeNull()
   })
 })

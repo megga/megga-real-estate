@@ -16,9 +16,10 @@
  * vérité ; aucun stockage local parallèle (le brouillon d'étape en cours vit en
  * mémoire React le temps de la saisie, rien d'autre).
  *
- * Seule l'étape 0 (StepSignataire) a un écran réel à cette tâche. Les étapes 1 à 4
- * rendent un palier honnête « à venir » jusqu'à ce que les tâches 4 à 7 les
- * remplacent une à une par leur propre écran + bloc de persistance ici.
+ * Les étapes 0 (StepSignataire, tâche 3) et 1 (StepAgence, tâche 4) ont un écran
+ * réel. Les étapes 2 à 4 rendent un palier honnête « à venir » jusqu'à ce que les
+ * tâches 5 à 7 les remplacent une à une par leur propre écran + bloc de persistance
+ * ici.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -28,7 +29,9 @@ import { SgIcon, SgBlackPill, SgGhostPill } from '@/components/crm-sugar-wizard/
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencyIdentity } from '@/hooks/useAgencyIdentity'
+import type { AgencySettingsData } from '@/hooks/useAgencySettings'
 import { StepSignataire } from './steps/StepSignataire'
+import { StepAgence } from './steps/StepAgence'
 
 /** Brouillon local de l'étape 1, contrôlé par IdentityShell (cf. en-tête de StepSignataire). */
 export interface SignataireDraft {
@@ -66,6 +69,73 @@ export function isSignataireStepComplete(draft: SignataireDraft): boolean {
   )
 }
 
+/**
+ * Brouillon local de l'étape 2, contrôlé par IdentityShell (cf. en-tête de
+ * StepAgence). Reprend délibérément les noms de champs de AgencySettingsData
+ * (`legal` = raison sociale, `postal` = NPA) plutôt que des alias plus verbeux : la
+ * persistance (persistCurrentStep) étale ce brouillon directement sur `agency`
+ * chargé, sans aucun remappage. Nommé `AgencyDraft` (anglais), pas `AgenceDraft`
+ * (français, comme SignataireDraft) : à un caractère de distance de `agency`
+ * (AgencySettingsData renvoyée par le hook), une paire agence/agency aurait été un
+ * copier-coller-typo attendant de se produire dans ce fichier précis.
+ */
+export type AgencyDraft = Pick<
+  AgencySettingsData,
+  'country' | 'legalFormId' | 'legal' | 'tradeName' | 'businessRegistrationNumber' | 'tva' | 'address' | 'postal' | 'city' | 'canton'
+>
+
+/** Brouillon vide — état initial avant hydratation depuis une agence déjà persistée. */
+// eslint-disable-next-line react-refresh/only-export-components -- constante partagée avec StepAgence/les tests, même motif que EMPTY_SIGNATAIRE_DRAFT.
+export const EMPTY_AGENCY_DRAFT: AgencyDraft = {
+  country: '',
+  legalFormId: '',
+  legal: '',
+  tradeName: '',
+  businessRegistrationNumber: '',
+  tva: '',
+  address: '',
+  postal: '',
+  city: '',
+  canton: '',
+}
+
+/**
+ * true si les 10 champs de l'étape agence sont renseignés. Comme
+ * isSignataireStepComplete : gate à la fois le bouton Continuer ET la tentative de
+ * sauvegarde (persistCurrentStep) — tout ou rien, jamais une écriture partielle de
+ * l'identité légale de l'agence.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
+export function isAgencyStepComplete(draft: AgencyDraft): boolean {
+  return (
+    draft.country.trim() !== ''
+    && draft.legalFormId.trim() !== ''
+    && draft.legal.trim() !== ''
+    && draft.tradeName.trim() !== ''
+    && draft.businessRegistrationNumber.trim() !== ''
+    && draft.tva.trim() !== ''
+    && draft.address.trim() !== ''
+    && draft.postal.trim() !== ''
+    && draft.city.trim() !== ''
+    && draft.canton.trim() !== ''
+  )
+}
+
+/**
+ * Recalcule le `legalFormId` à conserver après un changement du pays du siège
+ * (dépendance d'ordre du brief tâche 4, explicitement pas cosmétique). Chaque
+ * `legal_forms.id` appartient à EXACTEMENT un pays par construction (colonne
+ * `country`, pas de partage entre juridictions — migration 20260726130000) : tout
+ * changement de pays invalide donc systématiquement la forme choisie, jamais
+ * seulement "parfois" — inutile d'attendre le rechargement de useLegalForms(country)
+ * pour le savoir. Une forme juridique désormais incohérente avec le pays affiché
+ * n'est donc jamais laissée en place silencieusement.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isAgencyStepComplete.
+export function legalFormIdAfterCountryChange(previousCountry: string, nextCountry: string, currentLegalFormId: string): string {
+  return previousCountry === nextCountry ? currentLegalFormId : ''
+}
+
 /** Borne `step` à [0, stepCount - 1] — jamais un index hors de SG_IDENTITY_STEPS. */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que useIdentityGate.ts.
 export function clampIdentityStep(step: number, stepCount: number): number {
@@ -74,10 +144,10 @@ export function clampIdentityStep(step: number, stepCount: number): number {
 
 /**
  * true si l'étape `step` autorise une navigation avant (bouton Continuer du pied de
- * page). Seule l'étape 0 (StepSignataire) a un écran réel à cette tâche — gate sur
- * isSignataireStepComplete. Les étapes 1 à 4 sont des paliers StepComingSoon (tâches
- * 4 à 7, aucun contenu à valider aujourd'hui) : jamais navigables en avant tant
- * qu'elles n'ont pas de contenu réel, quel que soit le brouillon signataire en cours.
+ * page). Les étapes 0 (StepSignataire) et 1 (StepAgence) ont un écran réel — gate sur
+ * leur complétude respective. Les étapes 2 à 4 sont des paliers StepComingSoon
+ * (tâches 5 à 7, aucun contenu à valider aujourd'hui) : jamais navigables en avant
+ * tant qu'elles n'ont pas de contenu réel, quels que soient les brouillons en cours.
  *
  * Revue tâche 3 : `canNext` valait `true` sans condition dès step > 0 — le bouton
  * Continuer du pied de page restait cliquable sur ces paliers vides jusqu'au
@@ -86,8 +156,10 @@ export function clampIdentityStep(step: number, stepCount: number): number {
  * la tâche affirmait à tort que c'était vrai aussi du bouton du pied de page.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete/clampIdentityStep.
-export function canAdvanceFromIdentityStep(step: number, signataire: SignataireDraft): boolean {
-  return step === 0 ? isSignataireStepComplete(signataire) : false
+export function canAdvanceFromIdentityStep(step: number, signataire: SignataireDraft, agency: AgencyDraft): boolean {
+  if (step === 0) return isSignataireStepComplete(signataire)
+  if (step === 1) return isAgencyStepComplete(agency)
+  return false
 }
 
 /** Palier honnête pour les étapes 2 à 5, pas encore livrées (tâches 4 à 7). */
@@ -119,7 +191,7 @@ export default function IdentityShell() {
 
   const { signOut } = useAuth()
   const navigate = useNavigate()
-  const { persons, isLoading, savePerson } = useAgencyIdentity()
+  const { agency, persons, isLoading, savePerson, saveAgency } = useAgencyIdentity()
 
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -159,7 +231,53 @@ export default function IdentityShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingSignatory?.id])
 
-  const canNext = canAdvanceFromIdentityStep(step, signataire)
+  const [agencyDraft, setAgencyDraftRaw] = useState<AgencyDraft>(EMPTY_AGENCY_DRAFT)
+  const setAgencyDraft = (patch: Partial<AgencyDraft>) => setAgencyDraftRaw((prev) => ({ ...prev, ...patch }))
+
+  // Hydrate le brouillon dès que l'agence chargée porte une identité légale déjà
+  // saisie (retour sur le wizard après une fermeture d'onglet). Les 10 colonnes de
+  // cette étape sont écrites ENSEMBLE par persistCurrentStep (tout ou rien, comme le
+  // signataire) : n'importe laquelle suffit comme déclencheur de l'hydratation ;
+  // legalFormId est prise pour rester au plus près du motif existingSignatory?.id.
+  useEffect(() => {
+    if (agency.legalFormId) {
+      setAgencyDraftRaw({
+        country: agency.country,
+        legalFormId: agency.legalFormId,
+        legal: agency.legal,
+        tradeName: agency.tradeName,
+        businessRegistrationNumber: agency.businessRegistrationNumber,
+        tva: agency.tva,
+        address: agency.address,
+        postal: agency.postal,
+        city: agency.city,
+        canton: agency.canton,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agency.legalFormId])
+
+  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft)
+
+  /** Enveloppe commune à chaque étape persistable : bascule saving/error/justSaved
+   *  autour de l'opération d'écriture réelle (savePerson ou saveAgency selon
+   *  l'étape). Extrait de l'ancien corps inline de persistCurrentStep pour éviter de
+   *  dupliquer ce triptyque try/catch/finally à chaque étape persistable ajoutée par
+   *  les tâches 4 à 7 — comportement inchangé pour l'étape 0. */
+  const runPersist = async (save: () => Promise<unknown>): Promise<boolean> => {
+    setSaving(true)
+    setError(null)
+    try {
+      await save()
+      setJustSaved(true)
+      return true
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('wizard.footer.unknownError'))
+      return false
+    } finally {
+      setSaving(false)
+    }
+  }
 
   /**
    * Persiste l'étape qu'on est en train de QUITTER (appelée par next(), prev() ET
@@ -168,12 +286,9 @@ export default function IdentityShell() {
    * incomplète (bloque next(), n'empêche jamais prev()).
    */
   const persistCurrentStep = async (): Promise<boolean> => {
-    if (step !== 0) return true // étapes 2 à 5 : rien à persister avant les tâches 4 à 7
-    if (!isSignataireStepComplete(signataire)) return false
-    setSaving(true)
-    setError(null)
-    try {
-      await savePerson(
+    if (step === 0) {
+      if (!isSignataireStepComplete(signataire)) return false
+      return runPersist(() => savePerson(
         {
           id: existingSignatory?.id ?? null,
           firstName: signataire.firstName,
@@ -189,15 +304,17 @@ export default function IdentityShell() {
           // effectifs, étape 3 / tâche 5) — la colonne défaut déjà à false.
           pepSelfDeclared: false,
         }],
-      )
-      setJustSaved(true)
-      return true
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('wizard.footer.unknownError'))
-      return false
-    } finally {
-      setSaving(false)
+      ))
     }
+    if (step === 1) {
+      if (!isAgencyStepComplete(agencyDraft)) return false
+      // Étale le brouillon sur `agency` chargé : les champs hors étape 2 (name,
+      // phone, email, website, logoUrl, foundedYear, aboutShort) ne sont jamais
+      // touchés par ce wizard, save() les réécrit pourtant tous à chaque appel
+      // (contrat de useAgencySettings) — d'où l'étalement plutôt qu'un patch.
+      return runPersist(() => saveAgency({ ...agency, ...agencyDraft }))
+    }
+    return true // étapes 2 à 4 : rien à persister avant les tâches 5 à 7
   }
 
   const next = async () => {
@@ -282,6 +399,8 @@ export default function IdentityShell() {
           </div>
         ) : step === 0 ? (
           <StepSignataire value={signataire} onChange={setSignataire} />
+        ) : step === 1 ? (
+          <StepAgence value={agencyDraft} onChange={setAgencyDraft} />
         ) : (
           <StepComingSoon eyebrow={SG_IDENTITY_STEPS[step].label} />
         )}
@@ -302,8 +421,9 @@ export default function IdentityShell() {
               {t('common:actions.previous')}
             </SgGhostPill>
           )}
-          {/* Indicateur de sauvegarde : reflète la persistance réelle (savePerson),
-              jamais un état optimiste — il ne s'allume qu'après succès. */}
+          {/* Indicateur de sauvegarde : reflète la persistance réelle (savePerson ou
+              saveAgency selon l'étape), jamais un état optimiste — il ne s'allume
+              qu'après succès. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: SugarV2.ok }}>
             {justSaved ? (
               <span style={{

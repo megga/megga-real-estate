@@ -1,19 +1,24 @@
 /**
  * Wizard « Identité légale » (KYB, route /dashboard/identite) — accès aux données.
  *
- * Lit `agencies` (via useAgencySettings, déjà câblé sur les colonnes KYB — on ne
- * réécrit pas un second chemin) et `agency_related_persons` + `agency_person_roles`
- * (personnes liées à l'agence et leurs rôles signatory/ubo), écrit les deux
- * dernières, et déclenche la RPC de soumission. Sous RLS `is_agency_admin()`
- * (20260726130200) : un agent simple qui appellerait ceci recevrait 42501.
+ * Lit ET écrit `agencies` (via useAgencySettings, déjà câblé sur les colonnes KYB —
+ * on ne réécrit pas un second chemin ; saveAgency délègue directement à son save())
+ * et `agency_related_persons` + `agency_person_roles` (personnes liées à l'agence et
+ * leurs rôles signatory/ubo), écrit ces deux dernières, et déclenche la RPC de
+ * soumission. Sous RLS `is_agency_admin()` (20260726130200) : un agent simple qui
+ * appellerait ceci recevrait 42501.
  *
  * ⚠ N'écrit JAMAIS dans agency_verification_checks ni
  * agency_person_verification_checks — ces tables n'ont aucune policy INSERT
  * côté client (20260726130300), délibérément : seule une RPC SECURITY DEFINER
  * peut y poser un verdict, pour qu'un inscrit ne fabrique pas sa propre preuve
  * de vérification. Contrat écrit à la tâche 3 du plan étape 2, étendu par les
- * tâches 4 à 7 — les cinq champs ci-dessous (agency, persons, isLoading,
- * savePerson, removePerson, submit) ne changent jamais de signature.
+ * tâches 4 à 7 — les six champs d'origine (agency, persons, isLoading, savePerson,
+ * removePerson, submit) ne changent jamais de signature ; la tâche 4 y ajoute
+ * saveAgency (écriture agence, étape 2) et legalFormCategory (catégorie de la forme
+ * juridique COURANTE de l'agence, dérivée ici pour que la tâche 5 — étape 3,
+ * bénéficiaires effectifs — n'ait qu'à la lire plutôt que de refaire la résolution
+ * pays -> useLegalForms -> option elle-même).
  *
  * Toute la logique de décision (mapping des lignes DB, construction des payloads
  * d'écriture) vit dans des fonctions pures exportées ci-dessous, testées dans
@@ -24,6 +29,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings, type AgencySettingsData } from '@/hooks/useAgencySettings'
+import { useLegalForms, type LegalFormOption, type LegalFormCategory } from '@/hooks/useLegalForms'
 
 /** Identité d'une personne liée à l'agence — indépendante de son/ses rôle(s). */
 export interface IdentityPerson {
@@ -61,6 +67,33 @@ export interface UseAgencyIdentityReturn {
   removePerson: (id: string) => Promise<void>
   /** Appelle submit_agency_identity() (RPC, tâche 1). */
   submit: () => Promise<void>
+  /**
+   * Persiste l'étape 2 (agence) — délègue à useAgencySettings().save(), donc AUCUN
+   * second chemin d'écriture vers `agencies`. L'appelant doit fournir l'objet complet
+   * (étaler `agency` courant puis écraser les champs édités), pas un patch partiel :
+   * save() écrit toutes les colonnes de AgencySettingsData à chaque appel.
+   */
+  saveAgency: (next: AgencySettingsData) => Promise<void>
+  /**
+   * Catégorie de la forme juridique COURANTE (agency.legalFormId), ou null tant
+   * qu'aucune forme n'est choisie / pas encore chargée. La tâche 5 (étape 3) la lit
+   * pour décider si l'étape bénéficiaires effectifs doit s'afficher :
+   * sole_proprietorship = le signataire EST l'entité, aucun tiers à déclarer.
+   */
+  legalFormCategory: LegalFormCategory | null
+}
+
+/**
+ * Résout la catégorie de la forme juridique `legalFormId` dans `options` (celles
+ * renvoyées par useLegalForms pour le pays courant) — pure, testée directement, même
+ * motif que mapPersonRow/isRoleActive ci-dessous (pas de mock Supabase). null si
+ * `legalFormId` est vide (rien choisi) ou absent de `options` (ex. options pas
+ * encore rechargées après un changement de pays) : jamais une erreur, l'appelant
+ * traite l'absence d'info comme "pas encore su", pas comme un cas exceptionnel.
+ */
+export function resolveLegalFormCategory(legalFormId: string, options: LegalFormOption[]): LegalFormCategory | null {
+  if (!legalFormId) return null
+  return options.find((o) => o.id === legalFormId)?.category ?? null
 }
 
 // ─── Forme des lignes lues depuis Supabase (snake_case, roles imbriqués) ───────
@@ -175,6 +208,13 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
   const agencyId = profile?.agency_id ?? null
   const queryClient = useQueryClient()
   const agencySettings = useAgencySettings()
+  // Pays COURANT (persisté), pas le brouillon en cours de saisie à l'étape 2 :
+  // legalFormCategory doit refléter ce qui est réellement en base, exactement ce
+  // que la tâche 5 lira. StepAgence appelle useLegalForms(country) séparément pour
+  // peupler son propre menu sur le brouillon live — les deux appels partagent le
+  // cache React Query dès que les codes pays coïncident.
+  const legalForms = useLegalForms(agencySettings.agency.country)
+  const legalFormCategory = resolveLegalFormCategory(agencySettings.agency.legalFormId, legalForms.options)
 
   const personsQueryKey = ['agency-identity-persons', agencyId]
 
@@ -284,5 +324,7 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     savePerson,
     removePerson,
     submit,
+    saveAgency: agencySettings.save,
+    legalFormCategory,
   }
 }

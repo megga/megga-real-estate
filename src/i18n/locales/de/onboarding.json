@@ -49,6 +49,29 @@
         "joint": "Kollektivzeichnungsberechtigung",
         "jointHint": "Diese Person unterzeichnet gemeinsam mit einer weiteren berechtigten Person."
       }
+    },
+    "agence": {
+      "eyebrow": "Identität der Agentur",
+      "title": "Wie lautet die rechtliche Identität Ihrer Agentur?",
+      "subtitle": "Diese Angaben müssen genau mit Ihrem Handelsregistereintrag übereinstimmen. Sie sind durch das Schweizer Geldwäschereigesetz (GwG) vorgeschrieben.",
+      "fields": {
+        "country": "Sitzstaat",
+        "countryPlaceholder": "Land auswählen",
+        "legalFormId": "Rechtsform",
+        "legalFormPlaceholder": "Rechtsform auswählen",
+        "legalFormPlaceholderNoCountry": "Wählen Sie zuerst den Sitzstaat",
+        "legalName": "Firmenbezeichnung",
+        "legalNameHint": "Die offizielle Bezeichnung gemäss Handelsregistereintrag.",
+        "tradeName": "Handelsname",
+        "tradeNameHint": "Der Name, unter dem Ihre Agentur bei Kundinnen und Kunden bekannt ist, falls abweichend von der Firmenbezeichnung. Wird zum Abgleich mit Ihrer Website verwendet.",
+        "businessRegistrationNumber": "Handelsregisternummer",
+        "tva": "MWST-Nummer",
+        "address": "Adresse",
+        "postal": "PLZ",
+        "city": "Ort",
+        "canton": "Kanton",
+        "cantonPlaceholder": "Kanton auswählen"
+      }
     }
   }
 }

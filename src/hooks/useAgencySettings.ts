@@ -1,8 +1,10 @@
-// MEGGA CRM Sugar v2 — Source de vérité pour AgencySection.
+// MEGGA CRM Sugar v2 — Source de vérité pour AgencySection ET pour l'étape 2
+// (StepAgence) du wizard identité KYB, qui réutilise ce hook plutôt que d'ouvrir un
+// second chemin d'écriture vers `agencies` (cf. useAgencyIdentity.ts).
 // Lit/écrit la ligne agencies du profil courant (agency_id du profile).
 // Champs persistés : name, address, city, canton, phone, email, website, logo_url,
-// legal_name, legal_form_id, business_registration_number, tva, founded_year,
-// postal_code, country, about_short.
+// legal_name, legal_form_id, trade_name, business_registration_number, tva,
+// founded_year, postal_code, country, about_short.
 //
 // `legal_form_id` est une FK vers legal_forms (référentiel) et non plus du texte
 // libre : la forme juridique pilote le parcours de vérification KYB, une faute de
@@ -27,6 +29,13 @@ export interface AgencySettingsData {
   legal: string
   /** FK legal_forms.id (chaîne vide = non renseignée) — agencies.legal_form_id. */
   legalFormId: string
+  /**
+   * Nom commercial, distinct de `legal` (raison sociale) — agencies.trade_name.
+   * Cible du rapprochement flou avec le domaine e-mail, jamais `legal` (qui doit
+   * matcher le registre au caractère près). Cf. commentaire de la migration
+   * 20260726130100_agencies_kyb_columns.sql.
+   */
+  tradeName: string
   /** IDE/UID en CH, SIREN en FR — agencies.business_registration_number. */
   businessRegistrationNumber: string
   tva: string
@@ -48,6 +57,7 @@ const EMPTY_AGENCY: AgencySettingsData = {
   logoUrl: '',
   legal: '',
   legalFormId: '',
+  tradeName: '',
   businessRegistrationNumber: '',
   tva: '',
   foundedYear: '',
@@ -67,6 +77,7 @@ interface AgencyRow {
   logo_url: string | null
   legal_name: string | null
   legal_form_id: string | null
+  trade_name: string | null
   business_registration_number: string | null
   tva: string | null
   founded_year: number | null
@@ -110,7 +121,7 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
       if (!agencyId) return { settings: EMPTY_AGENCY, plan: null }
       const { data: row, error } = await supabase
         .from('agencies')
-        .select('name, address, city, canton, phone, email, website, logo_url, legal_name, legal_form_id, business_registration_number, tva, founded_year, postal_code, country, about_short, plan')
+        .select('name, address, city, canton, phone, email, website, logo_url, legal_name, legal_form_id, trade_name, business_registration_number, tva, founded_year, postal_code, country, about_short, plan')
         .eq('id', agencyId)
         .single<AgencyRow>()
       if (error) throw error
@@ -126,6 +137,7 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
           logoUrl: row?.logo_url ?? '',
           legal: row?.legal_name ?? '',
           legalFormId: row?.legal_form_id ?? '',
+          tradeName: row?.trade_name ?? '',
           businessRegistrationNumber: row?.business_registration_number ?? '',
           tva: row?.tva ?? '',
           foundedYear: row?.founded_year != null ? String(row.founded_year) : '',
@@ -165,6 +177,7 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
           logo_url: next.logoUrl || null,
           legal_name: next.legal || null,
           legal_form_id: next.legalFormId || null,
+          trade_name: next.tradeName || null,
           business_registration_number: next.businessRegistrationNumber || null,
           tva: next.tva || null,
           founded_year: foundedYear,

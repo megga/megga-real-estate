@@ -49,6 +49,29 @@
         "joint": "Joint signing authority",
         "jointHint": "This person signs jointly with another authorized person."
       }
+    },
+    "agence": {
+      "eyebrow": "Agency identity",
+      "title": "What is your agency's legal identity?",
+      "subtitle": "This information must match your commercial register entry exactly. It is required under Swiss anti-money laundering law (AMLA).",
+      "fields": {
+        "country": "Country of registration",
+        "countryPlaceholder": "Select a country",
+        "legalFormId": "Legal form",
+        "legalFormPlaceholder": "Select a legal form",
+        "legalFormPlaceholderNoCountry": "Choose the country of registration first",
+        "legalName": "Registered name",
+        "legalNameHint": "The official name on your commercial register entry.",
+        "tradeName": "Trade name",
+        "tradeNameHint": "The name your agency is known by to clients, if different from the registered name. Used to verify your website.",
+        "businessRegistrationNumber": "Registration number",
+        "tva": "VAT number",
+        "address": "Address",
+        "postal": "Postal code",
+        "city": "City",
+        "canton": "Canton",
+        "cantonPlaceholder": "Select a canton"
+      }
     }
   }
 }

@@ -49,6 +49,29 @@
         "joint": "Firma collettiva",
         "jointHint": "Questa persona firma congiuntamente a un'altra persona autorizzata."
       }
+    },
+    "agence": {
+      "eyebrow": "Identità dell'agenzia",
+      "title": "Qual è l'identità legale della Sua agenzia?",
+      "subtitle": "Queste informazioni devono corrispondere esattamente al Suo registro di commercio. Sono richieste dalla legge svizzera antiriciclaggio (LRD).",
+      "fields": {
+        "country": "Paese della sede",
+        "countryPlaceholder": "Selezioni un Paese",
+        "legalFormId": "Forma giuridica",
+        "legalFormPlaceholder": "Selezioni una forma giuridica",
+        "legalFormPlaceholderNoCountry": "Selezioni prima il Paese della sede",
+        "legalName": "Ragione sociale",
+        "legalNameHint": "La denominazione ufficiale iscritta nel registro di commercio.",
+        "tradeName": "Nome commerciale",
+        "tradeNameHint": "Il nome con cui la Sua agenzia è conosciuta dai clienti, se diverso dalla ragione sociale. Utilizzato per verificare il Suo sito internet.",
+        "businessRegistrationNumber": "Numero di registro",
+        "tva": "Numero IVA",
+        "address": "Indirizzo",
+        "postal": "NPA",
+        "city": "Città",
+        "canton": "Cantone",
+        "cantonPlaceholder": "Selezioni un Cantone"
+      }
     }
   }
 }
