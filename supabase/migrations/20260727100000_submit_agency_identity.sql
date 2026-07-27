@@ -128,16 +128,32 @@ begin
   end if;
 
   -- ── Point d'extension (tâche « pièce d'identité », même étape) ──────────────────
-  -- Une fois le fichier déposé côté client dans Storage, la ligne de check ira ici,
-  -- par exemple :
-  --   insert into public.agency_person_verification_checks
-  --     (related_person_id, check_type, source, result)
-  --   values (v_signatory_id, 'id_document', 'manual', 'pending_manual_review');
-  -- Ces tables refusent l'écriture à tout rôle utilisateur (RLS sans policy INSERT,
-  -- 20260726130300) : seule cette RPC SECURITY DEFINER peut la poser, ce qui garantit
-  -- qu'un inscrit ne fabrique pas sa propre preuve de vérification. Rien au-dessus de
-  -- ce commentaire n'aura à changer pour la greffer : la complétude et l'idempotence
-  -- sont déjà tranchées à ce point.
+  -- Déjà en place : le point d'insertion (complétude et idempotence tranchées
+  -- au-dessus, rien à retoucher pour ça) et le verrouillage de la table cible —
+  -- agency_person_verification_checks n'a aucune policy INSERT (RLS, 20260726130300) :
+  -- seule une RPC SECURITY DEFINER comme celle-ci peut y écrire, ce qui garantit qu'un
+  -- inscrit ne fabrique pas sa propre preuve de vérification.
+  --
+  -- PAS une greffe purement additive, en revanche : cette RPC ne reçoit aujourd'hui
+  -- aucun identifiant de personne, seulement v_agency_id. Or agency_person_roles
+  -- n'impose l'unicité que sur (related_person_id, role) — rien n'empêche plusieurs
+  -- personnes différentes de porter chacune un rôle signatory actif pour la même
+  -- agence (c'est même le cas prévu par signature_power = 'joint'). Il n'existe donc
+  -- pas « le » signataire : la tâche future devra ajouter un paramètre désignant
+  -- explicitement la personne visée (p.ex. p_related_person_id uuid).
+  --
+  -- Piège à ne pas manquer : ce paramètre viendrait du client, donc falsifiable.
+  -- Avant l'insert, vérifier qu'il désigne bien une personne de CETTE agence —
+  --   select agency_id into v_person_agency_id
+  --     from public.agency_related_persons where id = p_related_person_id;
+  --   if v_person_agency_id is distinct from v_agency_id then
+  --     raise exception 'forbidden: related person not in caller agency' using errcode = '42501';
+  --   end if;
+  -- Sans cette garde, un dirigeant de l'agence A pourrait faire poser une ligne de
+  -- vérification sur un signataire de l'agence B : le SECURITY DEFINER qui permet à
+  -- cette RPC seule d'écrire (paragraphe précédent) contourne la RLS pour le faire —
+  -- rien ne rattrape une fuite inter-agences si l'appartenance n'est pas revérifiée
+  -- explicitement ici.
 
   update public.agencies
      set identity_submitted_at = now()

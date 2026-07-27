@@ -231,6 +231,56 @@ describe.skipIf(!HAS_KEYS)('submit_agency_identity — RPC de soumission', () =>
     expect(error?.message).toContain('signatory')
   })
 
+  // Frontière valid_to : « actif » couvre aussi le futur, pas seulement NULL. Comportement
+  // vérifié en base avant d'écrire ces deux assertions (docker exec psql, transaction
+  // jetable sur _agency_identity_completeness_error) plutôt que déduit de la lecture du
+  // SQL — apr.valid_to > current_date, comparaison stricte.
+  it('un signataire dont le valid_to est demain permet la soumission', async () => {
+    const founder = await signUpFounder()
+    const legalFormId = await getChSaLegalFormId()
+    const { error: updErr } = await serviceRoleClient()
+      .from('agencies')
+      .update({ legal_name: 'Régie Mandat Futur SA', legal_form_id: legalFormId, country: 'CH' })
+      .eq('id', founder.agencyId)
+    expect(updErr).toBeNull()
+
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    await addSignatory(founder.agencyId, tomorrow)
+
+    const { error } = await founder.client.rpc('submit_agency_identity')
+    expect(error, `submit: ${error?.message}`).toBeNull()
+
+    const { data: agency } = await serviceRoleClient()
+      .from('agencies')
+      .select('identity_submitted_at')
+      .eq('id', founder.agencyId)
+      .maybeSingle()
+    expect(
+      agency?.identity_submitted_at,
+      'un mandat qui court encore (valid_to demain) doit compter comme actif'
+    ).not.toBeNull()
+  })
+
+  it('un signataire dont le valid_to est aujourd\'hui ne compte pas comme actif (comparaison stricte)', async () => {
+    const founder = await signUpFounder()
+    const legalFormId = await getChSaLegalFormId()
+    const { error: updErr } = await serviceRoleClient()
+      .from('agencies')
+      .update({ legal_name: 'Régie Mandat Limite SA', legal_form_id: legalFormId, country: 'CH' })
+      .eq('id', founder.agencyId)
+    expect(updErr).toBeNull()
+
+    const today = new Date().toISOString().slice(0, 10)
+    await addSignatory(founder.agencyId, today)
+
+    const { error } = await founder.client.rpc('submit_agency_identity')
+    expect(
+      error,
+      'un valid_to égal à aujourd\'hui ne doit pas compter comme actif (comparaison stricte >)'
+    ).not.toBeNull()
+    expect(error?.message).toContain('signatory')
+  })
+
   it('l\'événement journalisé porte category=kyc (et non compliance)', async () => {
     const founder = await signUpFounder()
     await completeAgencyIdentity(founder.agencyId)
