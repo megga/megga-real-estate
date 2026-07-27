@@ -39,6 +39,24 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
     }
   })
 
+  // Le fix ne dépend plus du nom du trigger en production (bloc DO sur pg_trigger,
+  // filtré par la fonction appelée) : ce test protège l'invariant lui-même, pas un nom
+  // précis. Un doublon fait échouer TOUTE inscription (violation de clé primaire dans
+  // profiles) — voir docs/runbooks/trigger-inscription-duplique.md (désormais
+  // historique). Preuve rouge/verte manuelle le 27.07.2026 : un second trigger
+  // 'on_auth_user_created_legacy_console' appelant handle_new_user créé à la main via
+  // psql fait passer get_signup_trigger_count() à 2 et ce test à l'échec ; supprimé, il
+  // repasse à 1 et le test repasse au vert.
+  it('un seul trigger sur auth.users appelle handle_new_user (pas de doublon silencieux)', async () => {
+    const svc = serviceRoleClient()
+    const { data, error } = await svc.rpc('get_signup_trigger_count')
+    expect(error, `get_signup_trigger_count: ${error?.message}`).toBeNull()
+    expect(
+      data,
+      'plus d’un trigger sur handle_new_user = double insert dans profiles = 500 sur toute inscription'
+    ).toBe(1)
+  })
+
   it('crée le profil sans intervention (le trigger existe)', async () => {
     const id = await signUp({ full_name: 'Alice Trigger', role: 'agent' })
     const svc = serviceRoleClient()
