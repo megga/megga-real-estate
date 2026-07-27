@@ -712,7 +712,6 @@ async function selfInvoke(body: SyncRequest): Promise<void> {
 }
 
 // Total attendu = total_count brut de l'offer_type (1 sonde), pour le ratio de sécurité du sweep.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchOfferTotal(offerType: string, ident: Identity): Promise<number> {
   try {
     const res = await fetch(`${RA_BASE}/api/listings?offerType_eq=${offerType}`, {

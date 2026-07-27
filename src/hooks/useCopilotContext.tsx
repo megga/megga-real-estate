@@ -2,7 +2,6 @@
  * Contexte React partageant l'état ambiant du copilote (page courante, contact
  * actif) pour que MEGGA AI dispose du contexte de navigation sans prop drilling.
  */
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useCallback, type ReactNode } from 'react'
 
 interface ContactContext {
