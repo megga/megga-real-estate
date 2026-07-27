@@ -544,8 +544,14 @@ export default function IdentityShell() {
     setUploadError(null)
     try {
       await uploadIdentityDocument(signatoryId, side, file)
-    } catch (e) {
-      setUploadError(e instanceof Error ? e.message : t('wizard.pieceIdentite.errors.generic'))
+    } catch {
+      // Correctif revue tâche 6, point 4 : ne JAMAIS afficher e.message brut (celui de
+      // Supabase Storage arrive en anglais) dans une interface qui existe en 4 langues
+      // — toujours le message générique déjà traduit, quelle que soit la forme de
+      // l'erreur. L'ancien `e instanceof Error ? e.message : t(...)` affichait presque
+      // toujours la branche anglaise non traduite : une erreur Storage EST une
+      // instance d'Error, donc t('errors.generic') n'était en pratique jamais atteinte.
+      setUploadError(t('wizard.pieceIdentite.errors.generic'))
     } finally {
       setUploadingSide(null)
     }
