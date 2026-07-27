@@ -17,6 +17,19 @@
 -- tableau ne compte qu'un élément et [2] vaut NULL — jamais 'kyb-identity'. Aucune
 -- collision possible avec les chemins déjà en usage.
 --
+-- ⚠ Correctif revue tâche 6, point 1 (CRITIQUE, reproduit en base réelle) : les 8
+-- policies ci-dessous comparent lower((storage.foldername(name))[2]) à 'kyb-identity',
+-- jamais le segment brut. storage.search() — qu'appelle .list() côté client — filtre
+-- sur lower(o.name) : un agent simple pouvait donc déposer sous 'KYB-IDENTITY'
+-- (n'importe quelle casse), la comparaison octet-à-octet d'origine jugeant ce segment
+-- DISTINCT de 'kyb-identity' et laissant la policy générale (qui ne vérifie que
+-- l'agence, jamais le rôle) seule décider — c'est elle qui accordait l'insert. Le
+-- dirigeant listait ensuite ce fichier étranger (recherche insensible à la casse côté
+-- Storage), reconstruisait un chemin en minuscules qui ne correspondait à AUCUN objet
+-- réel, et createSignedUrl échouait : plus aucun moyen de terminer l'étape 4. lower()
+-- des deux côtés — sur les 4 policies générales ET les 4 kyb-identity — ferme ce
+-- contournement pour toute casse, pas seulement le cas UPPERCASE reproduit.
+--
 -- Deux jeux de policies :
 --   1. Les 4 policies générales sont réécrites pour EXCLURE ce préfixe. Indispensable :
 --      Postgres combine les policies PERMISSIVES d'un même rôle/command en OR — sans
@@ -39,7 +52,7 @@ create policy "documents_bucket_select"
   using (
     bucket_id = 'documents'
     and (storage.foldername(name))[1] = public.get_user_agency_id()::text
-    and (storage.foldername(name))[2] is distinct from 'kyb-identity'
+    and lower((storage.foldername(name))[2]) is distinct from 'kyb-identity'
   );
 
 drop policy if exists "documents_bucket_insert" on storage.objects;
@@ -50,7 +63,7 @@ create policy "documents_bucket_insert"
   with check (
     bucket_id = 'documents'
     and (storage.foldername(name))[1] = public.get_user_agency_id()::text
-    and (storage.foldername(name))[2] is distinct from 'kyb-identity'
+    and lower((storage.foldername(name))[2]) is distinct from 'kyb-identity'
   );
 
 drop policy if exists "documents_bucket_update" on storage.objects;
@@ -61,7 +74,7 @@ create policy "documents_bucket_update"
   using (
     bucket_id = 'documents'
     and (storage.foldername(name))[1] = public.get_user_agency_id()::text
-    and (storage.foldername(name))[2] is distinct from 'kyb-identity'
+    and lower((storage.foldername(name))[2]) is distinct from 'kyb-identity'
   );
 
 drop policy if exists "documents_bucket_delete" on storage.objects;
@@ -72,7 +85,7 @@ create policy "documents_bucket_delete"
   using (
     bucket_id = 'documents'
     and (storage.foldername(name))[1] = public.get_user_agency_id()::text
-    and (storage.foldername(name))[2] is distinct from 'kyb-identity'
+    and lower((storage.foldername(name))[2]) is distinct from 'kyb-identity'
   );
 
 -- ── 2. Nouvelles policies : préfixe kyb-identity, dirigeant de SA propre agence seul ─
@@ -86,7 +99,7 @@ create policy "documents_kyb_identity_select"
   to authenticated
   using (
     bucket_id = 'documents'
-    and (storage.foldername(name))[2] = 'kyb-identity'
+    and lower((storage.foldername(name))[2]) = 'kyb-identity'
     and (storage.foldername(name))[1] = public.get_my_agency_id()::text
     and public.is_agency_admin()
   );
@@ -98,7 +111,7 @@ create policy "documents_kyb_identity_insert"
   to authenticated
   with check (
     bucket_id = 'documents'
-    and (storage.foldername(name))[2] = 'kyb-identity'
+    and lower((storage.foldername(name))[2]) = 'kyb-identity'
     and (storage.foldername(name))[1] = public.get_my_agency_id()::text
     and public.is_agency_admin()
   );
@@ -110,7 +123,7 @@ create policy "documents_kyb_identity_update"
   to authenticated
   using (
     bucket_id = 'documents'
-    and (storage.foldername(name))[2] = 'kyb-identity'
+    and lower((storage.foldername(name))[2]) = 'kyb-identity'
     and (storage.foldername(name))[1] = public.get_my_agency_id()::text
     and public.is_agency_admin()
   );
@@ -122,7 +135,7 @@ create policy "documents_kyb_identity_delete"
   to authenticated
   using (
     bucket_id = 'documents'
-    and (storage.foldername(name))[2] = 'kyb-identity'
+    and lower((storage.foldername(name))[2]) = 'kyb-identity'
     and (storage.foldername(name))[1] = public.get_my_agency_id()::text
     and public.is_agency_admin()
   );

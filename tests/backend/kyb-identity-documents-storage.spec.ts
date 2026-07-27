@@ -111,6 +111,26 @@ describe.skipIf(!HAS_KEYS)('storage documents/kyb-identity — dirigeant seul (2
     expect(error, 'un agent simple ne doit jamais pouvoir déposer une pièce d\'identité').toBeTruthy()
   })
 
+  // Revue tâche 6, point 1 (CRITIQUE, reproduit en base réelle) : les policies
+  // comparaient (storage.foldername(name))[2] octet à octet à 'kyb-identity', mais
+  // storage.search() (qu'appelle .list()) filtre sur lower(o.name) — un agent simple
+  // pouvait donc déposer sous 'KYB-IDENTITY' (majuscules) : la policy générale (qui ne
+  // vérifie que l'agence, jamais le rôle) restait seule à s'appliquer puisque
+  // 'KYB-IDENTITY' est syntaxiquement DISTINCT de 'kyb-identity' pour une comparaison
+  // sensible à la casse. Conséquence reproduite : le dirigeant listait ensuite ce
+  // fichier étranger (recherche insensible à la casse), reconstruisait un chemin en
+  // minuscules qui ne correspond à AUCUN objet réel, et createSignedUrl échouait —
+  // plus aucun moyen de terminer l'étape 4. lower() des deux côtés (8 policies) ferme
+  // ce contournement.
+  it('un agent simple de la MÊME agence ne peut pas contourner le préfixe réservé en changeant la casse (bug critique reproduit en base réelle)', async () => {
+    const casedPath = `${setup.agencyAId}/KYB-IDENTITY/person-test-${setup.stamp}/verso.jpg`
+    const { error } = await plainAgentClient.storage.from('documents').upload(casedPath, fakeJpeg(), { contentType: 'image/jpeg' })
+    expect(error, 'un agent simple ne doit jamais pouvoir contourner le préfixe réservé en changeant la casse du dossier').toBeTruthy()
+    // Filet de sécurité : si la policy est encore cassée (rouge), ne laisse pas
+    // l'objet traîner entre deux runs — service_role passe outre RLS.
+    await serviceRoleClient().storage.from('documents').remove([casedPath]).catch(() => {})
+  })
+
   it('un agent simple de la MÊME agence ne peut pas obtenir d\'URL signée pour ce fichier', async () => {
     const { data, error } = await plainAgentClient.storage.from('documents').createSignedUrl(pathA, 60)
     expect(data).toBeNull()
