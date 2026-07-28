@@ -161,7 +161,7 @@ describe.skipIf(!HAS_KEYS)('bump_contact_last_interaction — un bump doit être
     const { error: evErr } = await svc.from('activity_events').insert({
       agency_id: null,
       actor_kind: 'system',
-      action: 'Note ajoutée',
+      action: 'note_added',
       entity_type: 'note',
       category: 'contact',
       severity: 'info',
@@ -210,7 +210,7 @@ describe.skipIf(!HAS_KEYS)('bump_contact_last_interaction — un bump doit être
     const { error: evErr } = await svc.from('activity_events').insert({
       agency_id: ag!.id,
       actor_kind: 'system',
-      action: 'Note ajoutée',
+      action: 'note_added',
       entity_type: 'note',
       category: 'contact',
       severity: 'info',

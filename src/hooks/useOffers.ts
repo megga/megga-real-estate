@@ -3,8 +3,10 @@
 // Migration DB : 20260517_001_sprint2_crm_offers_visits.sql
 //
 // La table crm_offers a un trigger AuditEvent qui logge automatiquement
-// 'Offre créée' / 'Contre-offre envoyée' / 'Offre acceptée' / 'Offre expirée'
-// dans activity_events (category='deal'). Pas besoin de logger côté front.
+// 'offer_created' / 'offer_countered' / 'offer_accepted' / 'offer_rejected' /
+// 'offer_expired' / 'offer_withdrawn' dans activity_events (category='deal').
+// Pas besoin de logger côté front. Ces valeurs sont des clés TECHNIQUES : le
+// libellé affiché vient de `auditActionLabel()` (i18n `audit.action.*`).
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -192,7 +194,7 @@ export function useUpdateOfferStatus() {
       // 'signed'` côté trigger + garde stage-change de capture_transaction_lifecycle
       // → 0 audit en double), mais garantit le comportement sur un environnement
       // où le trigger n'est pas (encore) appliqué. Le refus ne change PAS l'étape.
-      // Audits : audit_crm_offer_event → 'Offre acceptée' ; trg_transaction_lifecycle → 'stage_change'.
+      // Audits : audit_crm_offer_event → 'offer_accepted' ; trg_transaction_lifecycle → 'stage_change'.
       if (input.status === 'accepted') {
         const { error: stageErr } = await supabase
           .from('transactions')
