@@ -1218,6 +1218,48 @@ describe('connecteur registre francais (registry_lookup / registry_legal_name_ma
       const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'Carrefour' }))
       expect(row.result).toBe('match')
     })
+
+    it(
+      'deux raisons sociales DIFFERENTES qui ne different que par la frontiere de mot (espace) ne doivent PAS ' +
+        'matcher -- faux positif demontre en revue (etape 4/tache 3, point 2) : "Est Immobilier" et ' +
+        '"ESTIM MOBILIER" se reduisaient avant correctif a la meme chaine, l espace ayant disparu comme ' +
+        'n importe quelle ponctuation',
+      async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async () => rechercheEntreprisesResponse([activeResult({ nom_raison_sociale: 'ESTIM MOBILIER' })]))
+        )
+        const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'Est Immobilier' }))
+        expect(row.result).toBe('mismatch')
+      }
+    )
+
+    it(
+      'la ligature Œ (aucune decomposition canonique Unicode, donc pas touchee par NFD) doit matcher son ' +
+        'ecriture en deux lettres -- faux negatif demontre en revue (etape 4/tache 3, point 2) : ' +
+        '"Dupont et Soeurs" vs "DUPONT ET SŒURS"',
+      async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async () => rechercheEntreprisesResponse([activeResult({ nom_raison_sociale: 'DUPONT ET SŒURS' })]))
+        )
+        const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'Dupont et Soeurs' }))
+        expect(row.result).toBe('match')
+      }
+    )
+
+    it(
+      'la ligature Æ (voisine directe de Œ, meme absence de decomposition canonique) est egalement reduite ' +
+        '-- pas seulement le cas signale (revue etape 4/tache 3, point 2)',
+      async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async () => rechercheEntreprisesResponse([activeResult({ nom_raison_sociale: 'AGENCE ÆQUITAS' })]))
+        )
+        const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'Agence Aequitas' }))
+        expect(row.result).toBe('match')
+      }
+    )
   })
 })
 

@@ -536,19 +536,56 @@ function extractSiren(businessRegistrationNumber: string | null): string {
   return digits
 }
 
+/** Ligatures latines PROPRES AU FRANCAIS -- ni Œ/œ ni Æ/æ n'ont de decomposition
+ *  canonique Unicode (verifie : 'Œ'.normalize('NFD') rend 'Œ' inchange), donc NFD
+ *  ci-dessous ne les reduit JAMAIS a leurs deux lettres composantes, contrairement a
+ *  un accent ordinaire (e accentue -> e + accent combinant, lui bien decompose).
+ *  Œ/œ (sœur, cœur, bœuf, nœud, vœu, œuvre...) est le cas frequent en raison sociale
+ *  francaise ; Æ/æ (ex æquo, curriculum vitæ) en est le voisin direct -- meme famille
+ *  de probleme Unicode, traitee de la meme facon (revue etape 4/tache 3, point 2 :
+ *  chercher les ligatures voisines plutot que de ne traiter que le seul cas signale).
+ *  Cles en MINUSCULE uniquement : la fonction s'applique APRES toLowerCase(), qui
+ *  replie deja Œ/Æ sur œ/æ (pliage de casse Unicode standard pour cette paire,
+ *  verifie en direct). Volontairement LIMITE a ces deux ligatures "linguistiques" --
+ *  les ligatures typographiques (fi/fl...) sont un artefact de rendu de police, pas
+ *  une variante orthographique du francais ; les inclure irait au-dela de
+ *  "accents...toleres" (doc de conception §2.A) que ce correctif vise a honorer
+ *  fidelement, pas a elargir. */
+const FRENCH_LIGATURES: Readonly<Record<string, string>> = {
+  'œ': 'oe',
+  'æ': 'ae',
+}
+const FRENCH_LIGATURE_RE = /[œæ]/g
+
+function expandFrenchLigatures(s: string): string {
+  return s.replace(FRENCH_LIGATURE_RE, (char) => FRENCH_LIGATURES[char])
+}
+
 /** Normalisation stricte pour le rapprochement de raison sociale : accents et casse
- *  toleres (NFD + suppression des diacritiques, minuscules), PONCTUATION ET ESPACES
- *  retires entierement -- "S.A." et "SA", "Dupont-Martin" et "Dupont Martin" doivent
- *  matcher. Volontairement SANS tolerance au-dela (doc de conception §2.A : "rien
- *  d'autre") -- ce n'est PAS le rapprochement approximatif (Jaro-Winkler) reserve a
- *  trade_name (voir l'en-tete RDAP plus haut) : deux raisons sociales qui different
- *  par autre chose qu'accent/casse/ponctuation doivent rester un mismatch. */
+ *  toleres (NFD + suppression des diacritiques, minuscules, ligatures francaises
+ *  reduites -- voir expandFrenchLigatures ci-dessus), PONCTUATION toleree en la
+ *  supprimant sans laisser de trace ("S.A." et "SA" doivent matcher) -- mais l'ESPACE
+ *  (et le tiret, equivalent : "Dupont-Martin" et "Dupont Martin" doivent matcher)
+ *  reste une FRONTIERE DE MOT, jamais une simple ponctuation : un ou plusieurs
+ *  caracteres de cette classe valent UN espace, JAMAIS rien (revue etape 4/tache 3,
+ *  point 2). Avant ce correctif l'espace disparaissait exactement comme n'importe
+ *  quelle ponctuation (aucune trace, aucune frontiere) -- deux decoupages de mots
+ *  differents pouvaient alors coincider : "Est Immobilier" et "ESTIM MOBILIER" se
+ *  reduisaient tous deux a "estimmobilier", un faux positif sur deux raisons sociales
+ *  reellement distinctes. Volontairement SANS tolerance au-dela (doc de conception
+ *  §2.A : "rien d'autre") -- ce n'est PAS le rapprochement approximatif
+ *  (Jaro-Winkler) reserve a trade_name (voir l'en-tete RDAP plus haut) : deux raisons
+ *  sociales qui different par autre chose qu'accent/casse/ponctuation/ligature
+ *  doivent rester un mismatch. */
 function normalizeLegalNameStrict(s: string): string {
-  return s
+  const lowered = s
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}]/gu, '')
+  return expandFrenchLigatures(lowered)
+    .replace(/[\s-]+/g, ' ')
+    .trim()
+    .replace(/[^\p{L}\p{N} ]/gu, '')
 }
 
 interface RechercheEntreprisesResult {
