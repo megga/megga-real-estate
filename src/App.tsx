@@ -62,7 +62,6 @@ const AuthSetNewPasswordPage = lazy(() =>
 )
 
 // Layout shells agent — lazy car ils ne wrappent que les routes dashboard
-const AgentLayout = lazy(() => import('@/components/layout/AgentLayout'))
 const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout'))
 
 // CRM mobile (responsive < 768px) — branché par écran via ResponsiveRoute
@@ -449,17 +448,21 @@ function AppRoutes() {
                     rechargeable et partageable. Le splat `*` est requis — la
                     console monte son propre <Routes> relatif dessous.
 
-                    ⚠ Sous la coquille SUGAR, jamais sous `AgentLayout` : ce
-                    dernier porte la sidebar legacy et un fil d'Ariane, qui
-                    s'empilaient sur le dock et le rail de la console — trois
-                    navigations concurrentes à l'écran. `AgentSugarLayout` ne
-                    rend aucun chrome, c'est ce qu'il faut ici. */}
+                    Sous la coquille Sugar, qui ne rend aucun chrome : la
+                    console porte le sien. */}
                 <Route path="admin/*" element={<AdminConsoleRoute />} />
                 <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelineSugarV2Page />} mobile={<MobilePipelinePage />} />} />
                 {/* Contacts — mobile (< 768px) : liste (P8). */}
                 <Route path="contacts" element={<ResponsiveRoute desktop={<ContactsSugarV2Page />} mobile={<MobileContactsListPage />} />} />
                 {/* Création contact — mobile only (desktop : modale dans le pager). */}
                 <Route path="contacts/new" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/contacts" replace />} mobile={<MobileNewContactPage />} />} />
+                {/* Import de contacts — porté sous Sugar (chrome auto-porté). */}
+                <Route path="contacts/import" element={<ContactImportPage />} />
+                {/* Portées depuis AgentLayout : elles épousent le pager Sugar. */}
+                <Route path="market/:externalId" element={<ByParam><ExternalListingDetailPage /></ByParam>} />
+                <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
+                <Route path="listings/new" element={<ResponsiveRoute desktop={<WizardSugarV2Page />} mobile={<MobileWizardPage />} />} />
+                <Route path="listings/:id/edit" element={<ByParam><ListingFormPage /></ByParam>} />
                 {/* Fiche contact — pager 2 pages (refonte Claude Design juil. 2026).
                     Sous AgentSugarLayout (chrome Sugar auto-porté) pour cohérence
                     liste↔fiche. Mobile (< 768px) : fiche détail P8/2. */}
@@ -527,24 +530,6 @@ function AppRoutes() {
                     />
                   }
                 />
-              </Route>
-
-              {/* Agent dashboard (protected) — AgentLayout chrome pour les routes
-                  partagées (import contact, wizard, docs, support, super-admin). */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <AgentLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="contacts/import" element={<ContactImportPage />} />
-                <Route path="market/:externalId" element={<ByParam><ExternalListingDetailPage /></ByParam>} />
-                <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
-                {/* Créer un bien — mobile (< 768px) : wizard 4 étapes (P7/2). */}
-                <Route path="listings/new" element={<ResponsiveRoute desktop={<WizardSugarV2Page />} mobile={<MobileWizardPage />} />} />
-                <Route path="listings/:id/edit" element={<ByParam><ListingFormPage /></ByParam>} />
               </Route>
 
               {/* 404 */}

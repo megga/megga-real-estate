@@ -7,7 +7,7 @@
  * (Resend) avec historique, et import au portefeuille. Actions déléguées à
  * `useExternalListingActions`.
  */
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useTranslation } from 'react-i18next'
@@ -15,7 +15,9 @@ import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import type { ExternalListing } from '@/hooks/useExternalMatching'
 import { useExternalListingActions } from '@/hooks/useExternalListingActions'
 import { useSendPropertyEmail } from '@/hooks/useSendEmail'
-import PageTransition from '@/components/layout/PageTransition'
+import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
 
 const TYPE_KEYS: Record<string, string> = {
   APARTMENT: 'external.types.apartment', APPT: 'external.types.apartment', HOUSE: 'external.types.house', VILLA: 'external.types.villa',
@@ -54,16 +56,56 @@ export default function ExternalListingDetailPage() {
 
   const sendPropertyEmail = useSendPropertyEmail()
 
+  const [dark, setDark] = useState<boolean>(() =>
+    typeof window !== 'undefined' && window.localStorage.getItem('megga.sugar.dark') === '1')
+
+  // Chrome Sugar porté ici : cette page vivait sous `AgentLayout`.
+  const sgT = sugarThemeTokens(dark)
+  const sgSp = useMemo(() => crmSugarPalette(sgT, dark, SUGAR_DARK_TONE as DarkTone), [sgT, dark])
+  const onSugarNav = (id: SugarScreenId | string) => {
+    switch (id) {
+      case 'today': navigate('/dashboard'); break
+      case 'pipeline': navigate('/dashboard/pipeline'); break
+      case 'contacts': navigate('/dashboard/contacts'); break
+      case 'biens': navigate('/dashboard/listings'); break
+      case 'kyc': navigate('/dashboard/kyc'); break
+      case 'calendar': navigate('/dashboard/calendar'); break
+      case 'matching': navigate('/dashboard/matching'); break
+      case 'parcours': navigate('/dashboard/journey'); break
+      case 'ai':
+      case 'julien': navigate('/dashboard/julien'); break
+      case 'settings': navigate('/dashboard/settings'); break
+      default:
+    }
+  }
+  const onSugarCmd = () => {}
+  const chromeOpen = (
+    <>
+      <style>{SUGAR_KEYFRAMES}</style>
+      <SugarTopNav active={'matching' as SugarScreenId} t={sgT} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
+    </>
+  )
+  const rail = (
+    <SugarIconRail active={'matching' as SugarScreenId} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} setDark={setDark} sp={sgSp} />
+  )
+  const shellStyle = { minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...sugarThemeVars(sgSp, dark) }
+
   if (!listing) {
     return (
-      <PageTransition>
+      <div style={shellStyle}>
+        {chromeOpen}
+        <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
+          {rail}
+          <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>
         <div className="max-w-4xl mx-auto py-20 text-center">
           <p className="text-sm text-theme-tertiary">{t('external.notFound')}</p>
           <Link to="/dashboard/matching" className="mt-3 inline-block text-xs text-accent hover:text-accent/80 transition-colors">
             ← {t('external.backToMatching')}
           </Link>
         </div>
-      </PageTransition>
+          </main>
+        </div>
+      </div>
     )
   }
 
@@ -130,7 +172,11 @@ export default function ExternalListingDetailPage() {
   const stats = statsRaw.filter(Boolean) as { label: string; value: string; icon: React.ReactNode }[]
 
   return (
-    <PageTransition>
+    <div style={shellStyle}>
+      {chromeOpen}
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
+        {rail}
+        <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>
       <div className="max-w-4xl mx-auto space-y-5">
         {/* Back + imported badge */}
         <div className="flex items-center justify-between">
@@ -488,6 +534,8 @@ export default function ExternalListingDetailPage() {
           </div>
         </div>
       </div>
-    </PageTransition>
+        </main>
+      </div>
+    </div>
   )
 }

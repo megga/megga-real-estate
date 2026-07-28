@@ -11,6 +11,9 @@
  */
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { useTranslation, Trans } from 'react-i18next'
 import i18n from '@/i18n'
@@ -2204,6 +2207,32 @@ function PdfUploadScreen({ onExtracted, onBack }: {
 export default function ListingFormPage() {
   const { t } = useTranslation('listings')
   const navigate = useNavigate()
+
+  const [dark, setDark] = useState<boolean>(() =>
+    typeof window !== 'undefined' && window.localStorage.getItem('megga.sugar.dark') === '1')
+
+  // Chrome Sugar porté ici : cette page vivait sous `AgentLayout` (sidebar
+  // legacy). Chaque surface Sugar porte son propre chrome.
+  const sgT = sugarThemeTokens(dark)
+  const sgSp = useMemo(() => crmSugarPalette(sgT, dark, SUGAR_DARK_TONE as DarkTone), [sgT, dark])
+  const onSugarNav = (id: SugarScreenId | string) => {
+    switch (id) {
+      case 'today': navigate('/dashboard'); break
+      case 'pipeline': navigate('/dashboard/pipeline'); break
+      case 'contacts': navigate('/dashboard/contacts'); break
+      case 'biens': navigate('/dashboard/listings'); break
+      case 'kyc': navigate('/dashboard/kyc'); break
+      case 'calendar': navigate('/dashboard/calendar'); break
+      case 'matching': navigate('/dashboard/matching'); break
+      case 'parcours': navigate('/dashboard/journey'); break
+      case 'ai':
+      case 'julien': navigate('/dashboard/julien'); break
+      case 'settings': navigate('/dashboard/settings'); break
+      default:
+    }
+  }
+  const onSugarCmd = () => {}
+
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
   const isEditMode = Boolean(id)
@@ -2797,6 +2826,12 @@ export default function ListingFormPage() {
   }
 
   return (
+    <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...sugarThemeVars(sgSp, dark) }}>
+      <style>{SUGAR_KEYFRAMES}</style>
+      <SugarTopNav active={'biens' as SugarScreenId} t={sgT} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
+        <SugarIconRail active={'biens' as SugarScreenId} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} setDark={setDark} sp={sgSp} />
+        <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -3145,6 +3180,9 @@ export default function ListingFormPage() {
             {isEditMode ? t('form.actions.save') : t('form.actions.publish')}
           </button>
         </div>
+      </div>
+    </div>
+        </main>
       </div>
     </div>
   )
