@@ -229,7 +229,13 @@ export function mapListingRow(row: Record<string, unknown>): MrhBien {
     ref: (row.source_id as string) ?? null,
     agency: (row.agency_name as string) ?? null,
     agency_phone: (row.agency_phone as string) ?? null,
-    agency_logo_url: (row.agency_logo_url as string) ?? null,
+    // Repli au niveau AGENCE : le portail ne sert un logo que sur une partie de
+    // ses annonces, alors que la régie en a souvent un ailleurs. L'embed
+    // `agency_profile` (cf. CARD_COLS) le rapatrie. La colonne de l'annonce
+    // reste prioritaire — elle est ce que le portail a servi POUR CE BIEN.
+    agency_logo_url:
+      (row.agency_logo_url as string | null) ??
+      ((row.agency_profile as { logo_url?: string | null } | null)?.logo_url ?? null),
     days_on_market: dom,
     postedAt: relativeDays(dom),
     postedRank: dom == null ? 9999 : dom,

@@ -26,11 +26,19 @@ import { mapListingRow, mapListingDetailRow, mapSearchRow, type MrhBien, type Mr
 
 // Colonnes d'affichage (JAMAIS `description` — 2 Ko/row). photos_cf = R2 (rapide,
 // sans hotlink) prioritaire sur photos (portail).
+//
+// `agency_profile:agency_profiles(logo_url)` = repli de logo au niveau AGENCE.
+// Les portails ne servent un logo que sur une partie de leurs annonces (31 %
+// côté RealAdvisor, 67 % côté Flatfox) : la jointure permet à une annonce sans
+// logo d'hériter de celui que la même régie porte ailleurs. On n'embarque QUE
+// `logo_url` — la jointure se fait sur la PK d'`agency_profiles` (~5,8k lignes)
+// pour les 400 candidats déjà bornés, donc à coût négligeable.
 const CARD_COLS =
   'id,title,address,city,postal_code,canton,type,transaction_type,price,current_price,' +
   'price_at_first_seen,price_per_m2,rooms,bedrooms,bathrooms,surface_m2,features,photos,photos_cf,' +
   'status,source_portal,source_url,source_id,agency_name,agency_phone,agency_logo_url,lat,lng,' +
-  'year_built,days_on_market,land_surface'
+  'year_built,days_on_market,land_surface,' +
+  'agency_profile:agency_profiles(logo_url)'
 
 /** Plafond de candidats PAR transaction (= `p_limit` de la RPC). */
 const MAX_PER_TX = 400
