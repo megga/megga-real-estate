@@ -3,8 +3,10 @@
 // Connecteurs de verification KYB (etape 4 de l'onboarding agence). Ce module posait
 // a la tache 1 le contrat que chaque connecteur (RDAP, VIES, recherche-entreprises,
 // Mapbox) doit respecter, et le harnais qui impose la regle qui gouverne toute
-// l'etape. La tache 2 y ajoute le premier connecteur reel -- RDAP (domain_whois_age,
-// plus bas) ; VIES/recherche-entreprises/Mapbox suivent a la tache 3.
+// l'etape. La tache 2 y a ajoute le premier connecteur reel -- RDAP (domain_whois_age,
+// plus bas). La tache 3 y ajoute VIES (vat_lookup), le registre francais
+// (registry_lookup + registry_legal_name_match, recherche-entreprises.api.gouv.fr) et
+// le geocodage (address_geocode, Mapbox).
 //
 //   Une source qui ne repond pas produit un check `unavailable`, JAMAIS une
 //   absence de ligne et JAMAIS un echec. Le moteur (recompute_agency_verification,
@@ -27,10 +29,15 @@
 // un connecteur ecrit ici peut lever, timeouter, renvoyer n'importe quoi --
 // runKybSource() absorbe tout et rend TOUJOURS une ligne exploitable.
 // AGENCY_KYB_SOURCES etait vide a la tache 1 par construction (brief tache 1,
-// "Tu n'ecris aucun connecteur reel dans cette tache"). La tache 2 y ajoute RDAP ; la
-// tache 3 y ajoutera VIES/recherche-entreprises/Mapbox -- sans jamais avoir a
-// toucher a agency-verification-run/index.ts ni a reimplementer la gestion
-// d'erreur/timeout : c'est precisement ce que ce registre permet.
+// "Tu n'ecris aucun connecteur reel dans cette tache"). La tache 2 y a ajoute RDAP ;
+// la tache 3 y ajoute VIES et le registre francais (aucun des trois n'a besoin d'un
+// secret) -- sans jamais avoir a toucher a agency-verification-run/index.ts ni a
+// reimplementer la gestion d'erreur/timeout : c'est precisement ce que ce registre
+// permet. SEUL le geocodage Mapbox (tache 3 egalement) fait exception : c'est le
+// premier et seul connecteur du fichier qui a besoin d'un jeton, absent au chargement
+// du module (voir createAddressGeocodeSource plus bas) -- agency-verification-run/
+// index.ts doit donc bien le construire lui-meme, la seule retouche fonctionnelle que
+// ce fichier ait jamais demandee a l'appelant.
 //
 // Module pur : aucun import, aucun Deno.env.get. Importable tel quel depuis un
 // test Node/vitest (meme motif que whatsapp-tools.ts, importe sans extension par
@@ -371,16 +378,439 @@ const rdapDomainWhoisAgeSource: KybSource = {
   run: runRdapDomainWhoisAge,
 }
 
+// ─── Connecteur VIES (vat_lookup, tache 3) ─────────────────────────────────────
+//
+// Service public de l'UE, sans cle (brief tache 3). Valide un numero de TVA
+// intracommunautaire -- jamais un numero suisse/liechtensteinois (CHE-..., hors UE,
+// non couvert par VIES : etape 6, registre UID). La TVA etant FACULTATIVE a la saisie
+// (decision produit du 27.07.2026, etape 2 tache 4 -- seuil d'assujettissement
+// suisse), son absence produit `unavailable` et non `mismatch` : une petite entite
+// sous ce seuil n'en a legitimement aucune, et le lui reprocher serait faux.
+//
+// Endpoint REST verifie en reconnaissance manuelle (voir task-3-report.md) :
+//   POST https://ec.europa.eu/taxation_customs/vies/rest-api/check-vat-number
+//   {countryCode, vatNumber} -> {valid: boolean, name, address, ...} sur un pays
+//   couvert ; {actionSucceed: false, errorWrappers: [...]} (HTTP 200 quand meme) sur
+//   un code pays que VIES ne reconnait pas -- verifie avec GR (rejete, la Grece
+//   utilise EL) et GB/CH (rejetes, hors UE) contre EL et XI (Irlande du Nord,
+//   acceptes).
+
+/** Codes pays reconnus par VIES -- les 27 Etats membres UE en ISO 3166-1 alpha-2 SAUF
+ *  la Grece (EL, pas GR -- verifie en reconnaissance manuelle : GR est rejete par le
+ *  service reel), plus XI (Irlande du Nord, regime TVA UE maintenu post-Brexit --
+ *  verifie de la meme facon, GB lui est rejete). CH/LI en sont volontairement absents :
+ *  ni l'un ni l'autre n'est dans l'UE, VIES ne les couvre pas -- c'est le registre UID
+ *  (etape 6) qui s'en chargera. */
+const EU_VIES_COUNTRY_CODES: ReadonlySet<string> = new Set([
+  'AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'EL', 'ES', 'FI', 'FR', 'HR', 'HU',
+  'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK', 'XI',
+])
+
+interface ViesVatCountryAndNumber {
+  countryCode: string
+  vatNumber: string
+}
+
+/** Extrait le prefixe pays (2 lettres) et le numero depuis la TVA saisie librement --
+ *  espaces/points/tirets courants dans la saisie humaine ("FR 10 632012100") retires
+ *  avant decoupage. Leve TOUJOURS plutot que de choisir `unavailable` elle-meme (meme
+ *  discipline que extractRdapDomain plus haut) si absent, trop court pour porter un
+ *  prefixe+numero, ou si le prefixe n'est pas un code que VIES reconnait (CHE-...
+ *  suisse par exemple) -- runKybSource() traduit le throw en `unavailable`. */
+function extractVatCountryAndNumber(tva: string | null): ViesVatCountryAndNumber {
+  const raw = tva?.trim()
+  if (!raw) throw new Error('vies: no tva declared')
+  const cleaned = raw.replace(/[\s.-]/g, '').toUpperCase()
+  if (cleaned.length < 3) throw new Error(`vies: unparseable tva "${raw}"`)
+  const countryCode = cleaned.slice(0, 2)
+  const vatNumber = cleaned.slice(2)
+  if (!EU_VIES_COUNTRY_CODES.has(countryCode)) {
+    throw new Error(`vies: country code "${countryCode}" not covered by VIES`)
+  }
+  return { countryCode, vatNumber }
+}
+
+interface ViesCheckResponse {
+  valid?: boolean
+  name?: string
+  address?: string
+  actionSucceed?: boolean
+  errorWrappers?: Array<{ error?: string }>
+}
+
+async function runVatLookup(agency: AgencyForVerification, signal: AbortSignal): Promise<KybSourceResult> {
+  const { countryCode, vatNumber } = extractVatCountryAndNumber(agency.tva)
+
+  const res = await fetch('https://ec.europa.eu/taxation_customs/vies/rest-api/check-vat-number', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ countryCode, vatNumber }),
+    signal,
+  })
+
+  if (!res.ok) {
+    const err = new Error(`vies: unexpected status ${res.status}`) as Error & { status: number }
+    err.status = res.status
+    throw err
+  }
+
+  // Une reponse illisible (JSON invalide) leve ici -- jamais rattrapee -- et
+  // runKybSource() la traduit en `unavailable` (meme discipline que RDAP).
+  const body = (await res.json()) as ViesCheckResponse
+
+  // actionSucceed:false = la requete elle-meme n'a pas abouti (code pays rejete,
+  // service du pays membre indisponible...) -- verifie en reconnaissance manuelle
+  // avec un code pays que VIES rejette (HTTP 200 malgre tout, jamais de champ `valid`
+  // en reponse dans ce cas). Jamais interprete comme un mismatch : la question posee
+  // n'a simplement pas ete traitee, ce n'est pas une reponse sur le fond.
+  if (body.actionSucceed === false || typeof body.valid !== 'boolean') {
+    throw new Error(`vies: request not processed (${JSON.stringify(body.errorWrappers ?? [])})`)
+  }
+
+  return {
+    result: body.valid ? 'match' : 'mismatch',
+    raw_response: {
+      tva: agency.tva,
+      country_code: countryCode,
+      vat_number: vatNumber,
+      vies: body,
+    },
+  }
+}
+
+const vatLookupSource: KybSource = {
+  checkType: 'vat_lookup',
+  source: 'vies',
+  run: runVatLookup,
+}
+
+// ─── Connecteur registre francais (registry_lookup / registry_legal_name_match,
+//     tache 3) ─────────────────────────────────────────────────────────────────
+//
+// recherche-entreprises.api.gouv.fr : public, sans cle, sans compte, 7 requetes/
+// seconde (brief tache 3 ; doc de conception docs/agency-kyb-verification.md §3).
+// Ne s'interroge QUE pour un siege en France (agency.country === 'FR') -- la Suisse
+// reste aveugle faute d'acces a Zefix (etape 6), le Liechtenstein n'a aucune API
+// publique connue (meme doc).
+//
+// DEUX check_type distincts pour UNE seule source (meme motif que
+// domain_whois_age/domain_generic_provider a la tache 2, revue etape 4/tache 2 point
+// 2) : le catalogue (verification_check_types, migration 20260728103000) distingue
+// registry_lookup (existence + statut actif, un seul type pour les deux -- meme
+// libelle catalogue) de registry_legal_name_match (raison sociale), CHACUN etant un
+// veto d'entite independant (doc de conception §2.A). Une seule ligne
+// KybSourceResult ne peut porter qu'UN check_type (voir KybSourceResult.check_type
+// plus haut) -- impossible de renvoyer les deux verdicts en un seul appel de
+// connecteur. D'ou DEUX entrees dans AGENCY_KYB_SOURCES, chacune interrogeant
+// independamment le meme point d'API (couplage accepte : 7 req/s suffit largement a
+// deux appels par verification, non par seconde).
+//
+// Hors perimetre de cette tache (brief tache 3, qui n'enumere que "l'existence, le
+// statut actif et la raison sociale") : registry_number_format (format/cle de
+// controle du SIREN -- calcul pur, sans reseau, catalogue mais non rempli ici) et
+// registry_country_match (ce connecteur ne s'interrogeant QUE pour un siege deja
+// declare en France, une reponse positive ne ferait jamais que confirmer
+// trivialement ce qui a deja filtre l'appel -- aucune donnee de "juridiction"
+// distincte a comparer). Les deux restent un veto absent (`unavailable`), donc un
+// dossier francais part encore en revue humaine malgre cette tache -- comportement
+// attendu, pas un defaut (meme principe que Zefix, doc de conception §3).
+
+/** Etat administratif INSEE/RNE rencontre en reconnaissance manuelle (voir rapport de
+ *  tache) : 'A' = actif. Tout le reste (notamment 'C' = cesse) contredit une agence
+ *  qui se pretend en activite -- meme logique que le statut RDAP non rassurant sur un
+ *  domaine etabli (classifyDomain plus haut). */
+const FRENCH_REGISTRY_ACTIVE_STATUS = 'A'
+
+/** Extrait un SIREN exploitable (9 chiffres) depuis business_registration_number, en
+ *  ne gardant que les chiffres -- la saisie peut porter des espaces ("510 761 505",
+ *  forme d'affichage officielle INSEE). Leve TOUJOURS plutot que de choisir
+ *  `unavailable` elle-meme (meme discipline que extractRdapDomain) : runKybSource()
+ *  se charge de traduire un throw en `unavailable`. */
+function extractSiren(businessRegistrationNumber: string | null): string {
+  const raw = businessRegistrationNumber?.trim()
+  if (!raw) throw new Error('recherche-entreprises: no business_registration_number declared')
+  const digits = raw.replace(/[^0-9]/g, '')
+  if (!/^\d{9}$/.test(digits)) {
+    throw new Error(`recherche-entreprises: unparseable SIREN "${raw}"`)
+  }
+  return digits
+}
+
+/** Normalisation stricte pour le rapprochement de raison sociale : accents et casse
+ *  toleres (NFD + suppression des diacritiques, minuscules), PONCTUATION ET ESPACES
+ *  retires entierement -- "S.A." et "SA", "Dupont-Martin" et "Dupont Martin" doivent
+ *  matcher. Volontairement SANS tolerance au-dela (doc de conception §2.A : "rien
+ *  d'autre") -- ce n'est PAS le rapprochement approximatif (Jaro-Winkler) reserve a
+ *  trade_name (voir l'en-tete RDAP plus haut) : deux raisons sociales qui different
+ *  par autre chose qu'accent/casse/ponctuation doivent rester un mismatch. */
+function normalizeLegalNameStrict(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, '')
+}
+
+interface RechercheEntreprisesResult {
+  siren?: string
+  nom_raison_sociale?: string | null
+  nom_complet?: string | null
+  etat_administratif?: string | null
+}
+
+interface RechercheEntreprisesResponse {
+  results?: RechercheEntreprisesResult[]
+}
+
+/** Appelle recherche-entreprises.api.gouv.fr par SIREN exact (le parametre `q`
+ *  accepte un identifiant numerique en recherche directe -- verifie en
+ *  reconnaissance manuelle, voir rapport de tache : `q=510761505` renvoie le meme
+ *  resultat unique que `q=l'oreal`). Ne catche RIEN elle-meme (non-2xx, JSON
+ *  illisible) -- meme discipline que le connecteur RDAP, runKybSource() traduit tout
+ *  ecart en `unavailable`. */
+async function fetchFrenchRegistry(siren: string, signal: AbortSignal): Promise<RechercheEntreprisesResponse> {
+  const res = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${siren}`, { signal })
+  if (!res.ok) {
+    const err = new Error(`recherche-entreprises: unexpected status ${res.status}`) as Error & { status: number }
+    err.status = res.status
+    throw err
+  }
+  return (await res.json()) as RechercheEntreprisesResponse
+}
+
+async function runRegistryLookup(agency: AgencyForVerification, signal: AbortSignal): Promise<KybSourceResult> {
+  if (agency.country !== 'FR') {
+    throw new Error('recherche-entreprises: siege hors France, source non interrogee')
+  }
+  const siren = extractSiren(agency.business_registration_number)
+  const body = await fetchFrenchRegistry(siren, signal)
+  const result = body.results?.[0]
+
+  if (!result) {
+    // Le registre A repondu : ce SIREN, precisement, n'existe pas -- signal decisif
+    // (meme motif que le 404 RDAP), pas une indisponibilite.
+    return { result: 'mismatch', raw_response: { siren, reason: 'siren_not_found', recherche_entreprises: body } }
+  }
+
+  const active = result.etat_administratif === FRENCH_REGISTRY_ACTIVE_STATUS
+  return {
+    result: active ? 'match' : 'mismatch',
+    raw_response: {
+      siren,
+      etat_administratif: result.etat_administratif ?? null,
+      recherche_entreprises: body,
+    },
+  }
+}
+
+async function runRegistryLegalNameMatch(agency: AgencyForVerification, signal: AbortSignal): Promise<KybSourceResult> {
+  if (agency.country !== 'FR') {
+    throw new Error('recherche-entreprises: siege hors France, source non interrogee')
+  }
+  const declaredName = agency.legal_name?.trim()
+  if (!declaredName) {
+    throw new Error('recherche-entreprises: no legal_name declared')
+  }
+  const siren = extractSiren(agency.business_registration_number)
+  const body = await fetchFrenchRegistry(siren, signal)
+  const result = body.results?.[0]
+
+  if (!result) {
+    // Aucune entite au registre -> aucune raison sociale a comparer : cette
+    // dimension-la reste indisponible (le veto d'existence, registry_lookup, porte
+    // deja ce signal pour son propre check_type -- pas de raison de dupliquer le
+    // meme mismatch ici sur une donnee qui, elle, n'existe simplement pas).
+    throw new Error('recherche-entreprises: siren not found, nothing to compare legal_name against')
+  }
+
+  const registryName = result.nom_raison_sociale ?? result.nom_complet ?? ''
+  const isMatch = normalizeLegalNameStrict(declaredName) === normalizeLegalNameStrict(registryName)
+  return {
+    result: isMatch ? 'match' : 'mismatch',
+    raw_response: {
+      siren,
+      declared_legal_name: declaredName,
+      registry_legal_name: registryName,
+      recherche_entreprises: body,
+    },
+  }
+}
+
+const registryLookupSource: KybSource = {
+  checkType: 'registry_lookup',
+  source: 'recherche_entreprises',
+  run: runRegistryLookup,
+}
+
+const registryLegalNameMatchSource: KybSource = {
+  checkType: 'registry_legal_name_match',
+  source: 'recherche_entreprises',
+  run: runRegistryLegalNameMatch,
+}
+
+// ─── Connecteur geocodage Mapbox (address_geocode, tache 3) ────────────────────
+//
+// Mapbox est deja dans la pile (frontend, VITE_MAPBOX_TOKEN -- src/lib/mapbox.ts,
+// Step2Address.tsx). Reutilise la MEME configuration (endpoint Geocoding v5, meme
+// forme de reponse `context[]` avec `id`/`short_code` deja consommee par
+// Step2Address.tsx -- chooseSuggestion()) plutot que d'en introduire une nouvelle
+// (brief tache 3). Le jeton est TOUJOURS injecte en parametre, jamais lu de l'env ici
+// (meme discipline que src/lib/mapbox.ts : "le token est TOUJOURS injecte en
+// parametre, jamais lu de l'env ici") -- ce module reste pur (aucun Deno.env.get,
+// voir l'en-tete de fichier). C'est agency-verification-run/index.ts, qui lit deja
+// SUPABASE_SERVICE_ROLE_KEY/SUPABASE_URL depuis Deno.env, qui lit le jeton Mapbox
+// (MAPBOX_TOKEN) et construit ce connecteur -- DONC UNE FACTORY
+// (createAddressGeocodeSource), pas une entree statique de AGENCY_KYB_SOURCES comme
+// les trois autres connecteurs de cette tache : c'est le SEUL connecteur de tout ce
+// module qui a besoin d'un secret, et AGENCY_KYB_SOURCES est une liste construite au
+// chargement du module, avant qu'aucun jeton ne soit connu. Meme situation que
+// DILISENSE_API_KEY/GEMINI_API_KEY (kyc-screening, _shared/vision.ts) : un secret
+// tiers reel, non fixable pour un test local (contrairement a
+// MEGGA_MAGIC_LINK_HMAC_SECRET, un secret HMAC que ce depot controle entierement) --
+// absent en local, aucune entree dediee dans supabase/config.toml.
+//
+// Ce qu'evalue le check (brief tache 3) : la coherence entre l'adresse saisie et le
+// pays OU LE CANTON declare -- pas l'existence en soi. Sans pays declare, il n'y a
+// donc rien a comparer -> `unavailable`, meme traitement que "aucune adresse".
+//
+// AUCUNE URL (donc aucun jeton) n'entre jamais dans raw_response ou dans le message
+// d'une erreur remontee au harnais -- seule la reponse Mapbox elle-meme (qui ne
+// contient jamais le jeton, seule la REQUETE le porte) y figure. Verification
+// manuelle : voir les reserves du rapport de tache -- ce connecteur n'a pas pu etre
+// exerce contre le vrai service (aucun jeton disponible dans cet environnement).
+
+interface MapboxContextEntry {
+  id?: string
+  short_code?: string
+}
+
+interface MapboxFeature {
+  place_name?: string
+  context?: MapboxContextEntry[]
+}
+
+interface MapboxGeocodeResponse {
+  features?: MapboxFeature[]
+}
+
+function findContextShortCode(context: MapboxContextEntry[] | undefined, idPrefix: string): string | null {
+  const entry = context?.find((c) => typeof c.id === 'string' && c.id.startsWith(idPrefix))
+  return typeof entry?.short_code === 'string' ? entry.short_code.toUpperCase() : null
+}
+
+/** "CH-GE" -> "GE". null si la forme ne comporte pas exactement un tiret (canton non
+ *  extractible -- jamais invente). */
+function extractCantonSuffix(regionShortCode: string | null): string | null {
+  if (!regionShortCode) return null
+  const parts = regionShortCode.split('-')
+  return parts.length === 2 ? parts[1].toUpperCase() : null
+}
+
+/** Ne pose un `mismatch` que sur une CONTRADICTION reelle (pays different, ou canton
+ *  different quand les deux sont connus) -- jamais sur une donnee simplement absente,
+ *  qui vaut `partial` (0 resultat, ou reponse dont le contexte pays est illisible :
+ *  Mapbox n'est pas un registre exhaustif comme RDAP, un resultat absent ne PROUVE
+ *  pas que l'adresse n'existe pas). Le canton ne peut que faire BASCULER un match en
+ *  mismatch (contradiction ajoutee), jamais empecher un match a lui seul quand il est
+ *  simplement absent de la reponse -- "pays OU canton declare" (brief tache 3) : le
+ *  pays a lui seul confirme deja suffisamment en l'absence de contradiction sur le
+ *  canton. */
+function classifyGeocode(
+  declaredCountry: string,
+  declaredCanton: string | null,
+  feature: MapboxFeature | undefined
+): 'match' | 'partial' | 'mismatch' {
+  if (!feature) return 'partial'
+  const geocodedCountry = findContextShortCode(feature.context, 'country')
+  if (!geocodedCountry) return 'partial'
+  if (geocodedCountry !== declaredCountry.toUpperCase()) return 'mismatch'
+
+  if (declaredCountry.toUpperCase() === 'CH' && declaredCanton) {
+    const geocodedCanton = extractCantonSuffix(findContextShortCode(feature.context, 'region'))
+    if (geocodedCanton && geocodedCanton !== declaredCanton.toUpperCase()) return 'mismatch'
+  }
+  return 'match'
+}
+
+/** Construit le connecteur de geocodage -- fonction plutot qu'instance statique
+ *  (voir l'en-tete de cette section) : le jeton n'est connu qu'a l'execution de
+ *  l'Edge Function, jamais au chargement de ce module. */
+export function createAddressGeocodeSource(mapboxToken: string): KybSource {
+  return {
+    checkType: 'address_geocode',
+    source: 'mapbox',
+    run: async (agency: AgencyForVerification, signal: AbortSignal): Promise<KybSourceResult> => {
+      if (!mapboxToken) throw new Error('mapbox: not configured')
+
+      const queryParts = [agency.address, agency.postal_code, agency.city].filter(
+        (p): p is string => !!p && p.trim() !== ''
+      )
+      if (queryParts.length === 0) throw new Error('mapbox: no address declared')
+      const declaredCountry = agency.country?.trim()
+      if (!declaredCountry) throw new Error('mapbox: no declared country to compare against')
+
+      const query = queryParts.join(', ')
+      const url =
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
+        `?access_token=${mapboxToken}&limit=1`
+
+      let res: Response
+      try {
+        res = await fetch(url, { signal })
+      } catch {
+        // Jamais le message brut de l'erreur reseau ici : l'URL ci-dessus porte le
+        // jeton Mapbox en parametre de requete, et certaines implementations de
+        // fetch() embarquent l'URL complete dans le message d'une erreur reseau (DNS,
+        // connexion refusee...). describeSourceFailure() (plus bas dans ce fichier)
+        // ne lit que .message sans le filtrer davantage -- la seule protection
+        // possible est ICI, avant que l'erreur ne quitte ce connecteur. Aucun autre
+        // connecteur de ce fichier n'a ce probleme (RDAP/VIES/recherche-entreprises
+        // sont tous sans cle).
+        throw new Error('mapbox: network error')
+      }
+
+      if (!res.ok) {
+        const err = new Error(`mapbox: unexpected status ${res.status}`) as Error & { status: number }
+        err.status = res.status
+        throw err
+      }
+
+      const body = (await res.json()) as MapboxGeocodeResponse
+      const feature = body.features?.[0]
+      const classification = classifyGeocode(declaredCountry, agency.canton, feature)
+
+      return {
+        result: classification,
+        raw_response: {
+          // `query` est un texte d'adresse, jamais l'URL (donc jamais le jeton).
+          query,
+          declared_country: declaredCountry,
+          declared_canton: agency.canton,
+          place_name: feature?.place_name ?? null,
+          mapbox: body,
+        },
+      }
+    },
+  }
+}
+
 /**
- * Registre des connecteurs actifs. VIDE a la tache 1 par construction ("Tu n'ecris
- * aucun connecteur reel dans cette tache", brief etape 4). Un check_type non
- * catalogue dans verification_check_types ferait de toute facon echouer l'insert
- * (FK, migration 20260728103000) -- une entree ici EST donc deja un connecteur pour
- * de vrai, jamais un double de test. RDAP (domain_whois_age) est le premier, ajoute
- * par la tache 2 ; la tache 3 (VIES, recherche-entreprises, Mapbox) y ajoutera les
- * siens ; agency-verification-run/index.ts n'a jamais a changer pour ca.
+ * Registre des connecteurs actifs SANS CONFIGURATION (voir createAddressGeocodeSource
+ * ci-dessus pour le seul connecteur qui en a besoin). VIDE a la tache 1 par
+ * construction ("Tu n'ecris aucun connecteur reel dans cette tache", brief etape 4).
+ * Un check_type non catalogue dans verification_check_types ferait de toute facon
+ * echouer l'insert (FK, migration 20260728103000) -- une entree ici EST donc deja un
+ * connecteur pour de vrai, jamais un double de test. RDAP (domain_whois_age) est le
+ * premier, ajoute par la tache 2 ; la tache 3 y ajoute VIES (vat_lookup) et le
+ * registre francais (registry_lookup, registry_legal_name_match) ;
+ * agency-verification-run/index.ts n'a jamais eu a changer pour ces trois-la.
  */
-export const AGENCY_KYB_SOURCES: KybSource[] = [rdapDomainWhoisAgeSource]
+export const AGENCY_KYB_SOURCES: KybSource[] = [
+  rdapDomainWhoisAgeSource,
+  vatLookupSource,
+  registryLookupSource,
+  registryLegalNameMatchSource,
+]
 
 /** Budget par source. Tres inferieur au testTimeout vitest (15s,
  *  vitest.backend.config.ts) et au budget d'execution d'une Edge Function -- une

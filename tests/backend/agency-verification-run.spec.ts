@@ -1,7 +1,8 @@
 // Backend test (live CI) -- socle de l'Edge Function agency-verification-run
 // (etape 4, tache 1 -- supabase/functions/agency-verification-run/index.ts et son
-// module partage supabase/functions/_shared/kyb-sources.ts) et connecteur RDAP
-// (etape 4, tache 2 -- domain_whois_age, premier connecteur reel du registre).
+// module partage supabase/functions/_shared/kyb-sources.ts), connecteur RDAP
+// (etape 4, tache 2 -- domain_whois_age, premier connecteur reel du registre) et
+// connecteurs VIES / recherche-entreprises / Mapbox (etape 4, tache 3).
 //
 // Principe directeur de toute l'etape 4 (voir
 // docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-4.md, « Le principe qui
@@ -13,27 +14,30 @@
 // par defaut (un `match` faute de reponse serait une preuve fabriquee par le
 // systeme lui-meme).
 //
-// Trois volets dans ce fichier :
+// Six volets dans ce fichier :
 //   1. Le harnais PUR (_shared/kyb-sources.ts) -- import direct, aucun reseau,
 //      aucune dependance Deno (ce module n'appelle jamais Deno.env.get, contrairement
 //      a _shared/magic-link-token.ts -- aucun shim globalThis.Deno necessaire, meme
 //      motif que whatsapp-antifab.spec.ts qui importe deja un _shared/*.ts sans
 //      extension de la meme facon).
 //   2. La fonction deployee (HTTP, port 54321) -- lecture agence, ecriture des
-//      checks, appel du moteur, journalisation. Un seul connecteur reel existe a ce
-//      stade (RDAP, domain_whois_age -- tache 2) ; les tests HTTP portent sur la
-//      PLOMBERIE (elle lit, ecrit, appelle le moteur, journalise, rejoue proprement)
-//      et tiennent compte de ce que CE connecteur ecrit reellement.
-//   3. Le connecteur RDAP lui-meme (describe hors skipIf, plus bas dans ce fichier)
-//      -- logique pure, fetch STUBBE (jamais de reseau reel dans la suite
-//      automatisee, meme motif que _shared/esign-finalize.test.ts qui stubbe deja
-//      fetch pour un connecteur externe). Tourne SANS Supabase local -- import
-//      direct du module, comme le volet 1.
+//      checks, appel du moteur, journalisation. Cinq connecteurs reels existent a ce
+//      stade (RDAP tache 2 ; VIES, recherche-entreprises x2, Mapbox tache 3) ; les
+//      tests HTTP portent sur la PLOMBERIE (elle lit, ecrit, appelle le moteur,
+//      journalise, rejoue proprement) et tiennent compte de ce que CES connecteurs
+//      ecrivent reellement.
+//   3-6. Chaque connecteur (describe hors skipIf, plus bas dans ce fichier) -- logique
+//      pure, fetch STUBBE (jamais de reseau reel dans la suite automatisee, meme motif
+//      que _shared/esign-finalize.test.ts qui stubbe deja fetch pour un connecteur
+//      externe). Tourne SANS Supabase local -- import direct du module, comme le
+//      volet 1. La verification CONTRE les vrais services se fait a la main, une
+//      fois, hors de cette suite -- voir docs/superpowers/sdd/task-3-report.md.
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI : ces tests tournent contre un Supabase local
 // seede et DOIVENT reellement passer -- lire le compte de tests, jamais le code de
-// sortie (meme convention que agency-verification-engine.spec.ts). Le volet 3 (fetch
-// stubbe) n'est lui-meme jamais concerne par ce skip : il ne touche ni reseau ni DB.
+// sortie (meme convention que agency-verification-engine.spec.ts). Les volets 3-6
+// (fetch stubbe) ne sont eux-memes jamais concernes par ce skip : ils ne touchent ni
+// reseau ni DB.
 
 import { describe, it, expect, afterAll, afterEach, vi } from 'vitest'
 import { serviceRoleClient } from './helpers/supabase'
@@ -41,6 +45,7 @@ import {
   runKybSource,
   runAgencyKybSources,
   AGENCY_KYB_SOURCES,
+  createAddressGeocodeSource,
   type KybSource,
   type AgencyForVerification,
 } from '../../supabase/functions/_shared/kyb-sources'
@@ -234,16 +239,22 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(rows.every((r) => r.result === 'unavailable')).toBe(true)
     }, 2_000)
 
-    it('AGENCY_KYB_SOURCES contient exactement le connecteur RDAP ajoute par cette tache (domain_whois_age)', () => {
-      // Le registre etait vide a la tache 1 ("Tu n'ecris aucun connecteur reel dans
-      // cette tache"). Cette tache (2) y ajoute le premier connecteur reel : RDAP. Un
-      // check_type non catalogue dans verification_check_types ferait de toute facon
-      // echouer l'insert (FK, 20260728103000) -- cette entree EST donc deja un vrai
-      // connecteur, jamais un double de test. La tache 3 (VIES, recherche-entreprises,
-      // Mapbox) y ajoutera les siens.
-      expect(AGENCY_KYB_SOURCES).toHaveLength(1)
-      expect(AGENCY_KYB_SOURCES[0].checkType).toBe('domain_whois_age')
-      expect(AGENCY_KYB_SOURCES[0].source).toBe('rdap')
+    it('AGENCY_KYB_SOURCES contient les 4 connecteurs sans configuration ajoutes aux taches 2 et 3 (RDAP, VIES, recherche-entreprises x2)', () => {
+      // RDAP (tache 2) puis VIES + recherche-entreprises x2 (tache 3) : quatre
+      // connecteurs qui n'ont besoin d'aucun secret, donc statiques dans ce registre
+      // construit au chargement du module. Le geocodage Mapbox (tache 3 egalement)
+      // n'y figure PAS : seul connecteur de ce fichier a avoir besoin d'un jeton, il
+      // est construit par createAddressGeocodeSource() -- voir son en-tete dans
+      // _shared/kyb-sources.ts et le describe dedie plus bas. Un check_type non
+      // catalogue dans verification_check_types ferait de toute facon echouer
+      // l'insert (FK, 20260728103000) -- ces entrees SONT donc deja de vrais
+      // connecteurs, jamais des doubles de test.
+      expect(AGENCY_KYB_SOURCES).toHaveLength(4)
+      const sourceOfCheckType = (checkType: string) => AGENCY_KYB_SOURCES.find((s) => s.checkType === checkType)?.source
+      expect(sourceOfCheckType('domain_whois_age')).toBe('rdap')
+      expect(sourceOfCheckType('vat_lookup')).toBe('vies')
+      expect(sourceOfCheckType('registry_lookup')).toBe('recherche_entreprises')
+      expect(sourceOfCheckType('registry_legal_name_match')).toBe('recherche_entreprises')
     })
 
     // Revue etape 4/tache 1, point 1 : raw_response est desormais OBLIGATOIRE dans
@@ -371,7 +382,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(res.status).toBe(404)
     })
 
-    it('ecrit le check RDAP (domain_whois_age, unavailable sans site web declare), appelle bien le moteur apres avoir ecrit, et journalise son passage', async () => {
+    it('ecrit les 5 checks (tous unavailable sans aucune donnee KYB declaree), appelle bien le moteur apres avoir ecrit, et journalise son passage', async () => {
       const agencyId = await createAgency('happy')
       await addActiveSignatory(agencyId)
 
@@ -379,15 +390,19 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       const body = await res.json()
       expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
       expect(body.ok).toBe(true)
-      // Un seul connecteur reel dans le registre a ce stade (RDAP, tache 2).
-      // createAgency() ne pose pas de website -> le connecteur n'a rien a verifier et
-      // produit `unavailable` (jamais un echec, jamais une absence de ligne).
-      expect(body.checks_written).toBe(1)
-      expect(body.results.unavailable).toBe(1)
+      // Cinq connecteurs au total depuis la tache 3 : RDAP + VIES + recherche-entreprises
+      // x2 (statiques dans AGENCY_KYB_SOURCES) + Mapbox (ajoute par la fonction
+      // elle-meme via createAddressGeocodeSource -- voir son en-tete). createAgency()
+      // ne pose ni website, ni tva, ni country/business_registration_number, ni adresse
+      // -> chaque connecteur n'a rien a verifier et produit `unavailable` (jamais un
+      // echec, jamais une absence de ligne).
+      expect(body.checks_written).toBe(5)
+      expect(body.results.unavailable).toBe(5)
 
-      // Le moteur a bien tourne : domain_whois_age est unavailable donc exclu du
-      // score (regle du moteur, 20260728130000) -> score toujours null -> jamais
-      // auto_validated, et le statut a bouge du defaut 'pending' vers 'manual_review'.
+      // Le moteur a bien tourne : aucun check scorable disponible (tous unavailable,
+      // exclus du numerateur ET du denominateur, regle du moteur 20260728130000) ->
+      // score toujours null -> jamais auto_validated, et le statut a bouge du defaut
+      // 'pending' vers 'manual_review'.
       const agency = await getAgency(agencyId)
       expect(agency.verification_status).toBe('manual_review')
       expect(num(agency.verification_score)).toBeNull()
@@ -400,9 +415,11 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(await getEvents(agencyId, 'agency_verification_run')).toHaveLength(1)
 
       const checks = await getChecks(agencyId)
-      expect(checks).toHaveLength(1)
-      expect(checks[0].check_type).toBe('domain_whois_age')
-      expect(checks[0].result).toBe('unavailable')
+      expect(checks).toHaveLength(5)
+      expect(checks.every((c) => c.result === 'unavailable')).toBe(true)
+      expect(new Set(checks.map((c) => c.check_type))).toEqual(
+        new Set(['domain_whois_age', 'vat_lookup', 'registry_lookup', 'registry_legal_name_match', 'address_geocode'])
+      )
     })
 
     it(
@@ -418,16 +435,20 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         const res = await callRun(agencyId)
         const body = await res.json()
         expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
-        expect(body.checks_written).toBe(1)
+        // 5 connecteurs au total (voir le test precedent) -- seul RDAP a de quoi
+        // repondre ici (website renseigne), les 4 autres restent unavailable.
+        expect(body.checks_written).toBe(5)
         expect(body.results.partial).toBe(1)
+        expect(body.results.unavailable).toBe(4)
 
         const checks = await getChecks(agencyId)
-        expect(checks).toHaveLength(1)
+        expect(checks).toHaveLength(5)
+        const genericProviderCheck = checks.find((c) => c.check_type === 'domain_generic_provider')
         expect(
-          checks[0].check_type,
+          genericProviderCheck,
           'la FK agency_verification_checks.check_type -> verification_check_types.code aurait rejete un code absent du catalogue -- domain_generic_provider y figure deja avec son propre poids (migration 20260728103000)'
-        ).toBe('domain_generic_provider')
-        expect(checks[0].result).toBe('partial')
+        ).toBeDefined()
+        expect(genericProviderCheck?.result).toBe('partial')
       }
     )
 
@@ -447,7 +468,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(event.entity_id).toBe(agencyId)
     })
 
-    it('rejouable : deux appels de suite ecrivent chacun leur propre check RDAP (pas de dedoublonnage cote fonction) et font tourner le moteur deux fois', async () => {
+    it('rejouable : deux appels de suite ecrivent chacun leurs propres checks (pas de dedoublonnage cote fonction) et font tourner le moteur deux fois', async () => {
       const agencyId = await createAgency('replay')
       await addActiveSignatory(agencyId)
 
@@ -457,10 +478,10 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(res2.status).toBe(200)
 
       // "Rejouable" ne veut pas dire "dedoublonne" : cette fonction insere une ligne a
-      // CHAQUE appel (le connecteur RDAP tourne a nouveau), c'est le moteur qui
-      // departage plusieurs lignes du meme type par ctid (voir le test dedie plus
-      // bas), jamais cette fonction qui filtre avant d'ecrire.
-      expect(await getChecks(agencyId)).toHaveLength(2)
+      // CHAQUE appel pour CHAQUE connecteur (5 au total depuis la tache 3), c'est le
+      // moteur qui departage plusieurs lignes du meme type par ctid (voir le test
+      // dedie plus bas), jamais cette fonction qui filtre avant d'ecrire.
+      expect(await getChecks(agencyId)).toHaveLength(10)
       // Chaque appel a reellement fait tourner le moteur -- pas seulement le
       // premier -- et journalise son propre passage a chaque fois.
       expect(await getEvents(agencyId, 'agency_verification_recomputed')).toHaveLength(2)
@@ -504,12 +525,13 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         // Rejouer une seconde fois ne doit ni faire disparaitre ce resultat ni
         // reordonner/nettoyer les 2 lignes seedees (cette fonction ne touche jamais
         // aux checks existants) : le veto reste tranche par la meme ligne mismatch,
-        // toujours manual_review. Le compte total grandit bien (RDAP ecrit sa propre
-        // ligne a chaque appel, +1 a res, +1 a res2), preuve que "rejouable" n'est pas
-        // "silencieux" -- seul le resultat DECISIF (le veto seede) ne doit pas bouger.
+        // toujours manual_review. Le compte total grandit bien (chaque connecteur reel
+        // ecrit sa propre ligne a chaque appel -- 5 depuis la tache 3, +5 a res, +5 a
+        // res2), preuve que "rejouable" n'est pas "silencieux" -- seul le resultat
+        // DECISIF (le veto seede) ne doit pas bouger.
         const res2 = await callRun(agencyId)
         expect(res2.status).toBe(200)
-        expect(await getChecks(agencyId)).toHaveLength(4)
+        expect(await getChecks(agencyId)).toHaveLength(12)
         const agencyAfter = await getAgency(agencyId)
         expect(agencyAfter.verification_status).toBe('manual_review')
       }
@@ -810,4 +832,559 @@ describe('connecteur RDAP (domain_whois_age) -- logique pure, fetch stubbe (aucu
     expect(row.result).toBe('unavailable')
     expect(row.raw_response).toMatchObject({ reason: 'timeout' })
   }, 2_000)
+})
+
+// ─── Connecteur VIES (vat_lookup, etape 4 tache 3) -- logique pure ────────────────
+//
+// Hors du describe.skipIf(!HAS_KEYS) DELIBEREMENT, meme motif que le connecteur RDAP
+// plus haut : fetch stubbe, aucun reseau reel, aucune dependance Supabase locale. La
+// verification CONTRE le vrai service VIES se fait a la main, une fois, hors de cette
+// suite -- voir docs/superpowers/sdd/task-3-report.md (endpoint REST, codes pays
+// couverts EL/XI vs GR/GB/CH, forme exacte de reponse -- tout verifie en direct).
+describe('connecteur VIES (vat_lookup) -- logique pure, fetch stubbe (aucun reseau reel)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function vatLookupSource(): KybSource {
+    const found = AGENCY_KYB_SOURCES.find((s) => s.checkType === 'vat_lookup')
+    if (!found) throw new Error('vat_lookup absent de AGENCY_KYB_SOURCES -- le connecteur VIES n est pas enregistre')
+    return found
+  }
+
+  function agencyWithTva(tva: string | null): AgencyForVerification {
+    return {
+      id: '00000000-0000-0000-0000-000000000000',
+      legal_name: 'Regie Test SA',
+      trade_name: null,
+      business_registration_number: null,
+      country: 'FR',
+      canton: null,
+      city: null,
+      postal_code: null,
+      address: null,
+      website: null,
+      tva,
+    }
+  }
+
+  function viesResponse(body: Record<string, unknown>): Response {
+    return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+
+  it('aucune TVA declaree -> unavailable, jamais mismatch (facultative a la saisie) -- et aucune requete reseau', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    const row = await runKybSource(vatLookupSource(), agencyWithTva(null))
+    expect(row.result).toBe('unavailable')
+    expect(row.check_type).toBe('vat_lookup')
+    expect(row.source).toBe('vies')
+    expect(fetchSpy, 'pas de TVA -> rien a verifier, jamais un appel VIES').not.toHaveBeenCalled()
+  })
+
+  it('TVA vide (chaine blanche) -> unavailable, meme traitement que null', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const row = await runKybSource(vatLookupSource(), agencyWithTva('   '))
+    expect(row.result).toBe('unavailable')
+  })
+
+  it(
+    'TVA suisse (CHE-...) -> unavailable, jamais un appel VIES : la Suisse est hors UE, non couverte ' +
+      '(registre UID, etape 6)',
+    async () => {
+      const fetchSpy = vi.fn()
+      vi.stubGlobal('fetch', fetchSpy)
+      const row = await runKybSource(vatLookupSource(), agencyWithTva('CHE-115.856.981 TVA'))
+      expect(row.result).toBe('unavailable')
+      expect(fetchSpy).not.toHaveBeenCalled()
+    }
+  )
+
+  it('numero valide selon VIES -> match', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => viesResponse({ valid: true, name: 'SA EXEMPLE', address: '1 RUE X' })))
+    const row = await runKybSource(vatLookupSource(), agencyWithTva('FR10632012100'))
+    expect(row.result).toBe('match')
+  })
+
+  it('numero juge invalide par VIES -> mismatch, jamais unavailable (le service A repondu)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => viesResponse({ valid: false, name: '---', address: '---' })))
+    const row = await runKybSource(vatLookupSource(), agencyWithTva('FR00000000000'))
+    expect(row.result).toBe('mismatch')
+  })
+
+  it('la TVA saisie avec espaces/tirets/points est normalisee avant l appel (pays + numero corrects)', async () => {
+    const fetchSpy = vi.fn(async () => viesResponse({ valid: true }))
+    vi.stubGlobal('fetch', fetchSpy)
+    await runKybSource(vatLookupSource(), agencyWithTva('FR 10.632-012 100'))
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    const init = fetchSpy.mock.calls[0][1] as RequestInit
+    expect(JSON.parse(init.body as string)).toEqual({ countryCode: 'FR', vatNumber: '10632012100' })
+  })
+
+  it('la Grece (EL, pas GR) est acceptee et transmise telle quelle a VIES', async () => {
+    const fetchSpy = vi.fn(async () => viesResponse({ valid: true }))
+    vi.stubGlobal('fetch', fetchSpy)
+    await runKybSource(vatLookupSource(), agencyWithTva('EL123456789'))
+    const init = fetchSpy.mock.calls[0][1] as RequestInit
+    expect(JSON.parse(init.body as string).countryCode).toBe('EL')
+  })
+
+  it('Irlande du Nord (XI) est acceptee (regime TVA UE maintenu post-Brexit)', async () => {
+    const fetchSpy = vi.fn(async () => viesResponse({ valid: true }))
+    vi.stubGlobal('fetch', fetchSpy)
+    await runKybSource(vatLookupSource(), agencyWithTva('XI123456789'))
+    const init = fetchSpy.mock.calls[0][1] as RequestInit
+    expect(JSON.parse(init.body as string).countryCode).toBe('XI')
+  })
+
+  it(
+    'VIES repond actionSucceed:false (code pays rejete ou service indisponible, HTTP 200 quand meme -- ' +
+      'verifie en direct contre le vrai service, voir rapport de tache) -> unavailable, jamais mismatch',
+    async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => viesResponse({ actionSucceed: false, errorWrappers: [{ error: 'INVALID_INPUT' }] }))
+      )
+      const row = await runKybSource(vatLookupSource(), agencyWithTva('FR10632012100'))
+      expect(row.result).toBe('unavailable')
+    }
+  )
+
+  it('erreur serveur (500) -> unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500 })))
+    const row = await runKybSource(vatLookupSource(), agencyWithTva('FR10632012100'))
+    expect(row.result).toBe('unavailable')
+  })
+
+  it('reponse illisible (JSON invalide) -> unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<html>pas du json</html>', { status: 200 })))
+    const row = await runKybSource(vatLookupSource(), agencyWithTva('FR10632012100'))
+    expect(row.result).toBe('unavailable')
+  })
+
+  it('panne reseau (fetch qui rejette) -> unavailable', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network down')
+      })
+    )
+    const row = await runKybSource(vatLookupSource(), agencyWithTva('FR10632012100'))
+    expect(row.result).toBe('unavailable')
+  })
+
+  it("timeout du connecteur -> unavailable via le harnais", async () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    const row = await runKybSource(vatLookupSource(), agencyWithTva('FR10632012100'), 50)
+    expect(row.result).toBe('unavailable')
+    expect(row.raw_response).toMatchObject({ reason: 'timeout' })
+  }, 2_000)
+
+  it('un resultat calcule joint toujours la TVA, le pays/numero extraits et la reponse VIES complete -- jamais un verdict sans preuve', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => viesResponse({ valid: true, name: 'SA EXEMPLE' })))
+    const row = await runKybSource(vatLookupSource(), agencyWithTva('FR10632012100'))
+    expect(row.raw_response.country_code).toBe('FR')
+    expect(row.raw_response.vat_number).toBe('10632012100')
+    expect(row.raw_response.vies).toMatchObject({ valid: true, name: 'SA EXEMPLE' })
+  })
+})
+
+// ─── Connecteur registre francais (registry_lookup / registry_legal_name_match,
+//     etape 4 tache 3) -- logique pure ─────────────────────────────────────────────
+//
+// Hors du describe.skipIf(!HAS_KEYS) DELIBEREMENT, meme motif que RDAP/VIES plus haut.
+// La verification CONTRE le vrai service (recherche-entreprises.api.gouv.fr) se fait a
+// la main, une fois, hors de cette suite -- voir docs/superpowers/sdd/task-3-report.md
+// (recherche par SIREN direct, forme exacte de reponse, SIREN inexistant -> 200 avec
+// results:[] -- tout verifie en direct contre le vrai service).
+describe('connecteur registre francais (registry_lookup / registry_legal_name_match) -- logique pure, fetch stubbe', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function registryLookupSource(): KybSource {
+    const found = AGENCY_KYB_SOURCES.find((s) => s.checkType === 'registry_lookup')
+    if (!found) throw new Error('registry_lookup absent de AGENCY_KYB_SOURCES')
+    return found
+  }
+
+  function registryLegalNameMatchSource(): KybSource {
+    const found = AGENCY_KYB_SOURCES.find((s) => s.checkType === 'registry_legal_name_match')
+    if (!found) throw new Error('registry_legal_name_match absent de AGENCY_KYB_SOURCES')
+    return found
+  }
+
+  function agencyFR(overrides: Partial<AgencyForVerification> = {}): AgencyForVerification {
+    return {
+      id: '00000000-0000-0000-0000-000000000000',
+      legal_name: 'Carrefour',
+      trade_name: null,
+      business_registration_number: '510761505',
+      country: 'FR',
+      canton: null,
+      city: null,
+      postal_code: null,
+      address: null,
+      website: null,
+      tva: null,
+      ...overrides,
+    }
+  }
+
+  function rechercheEntreprisesResponse(results: Record<string, unknown>[]): Response {
+    return new Response(JSON.stringify({ results, total_results: results.length }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+
+  function activeResult(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return { siren: '510761505', nom_raison_sociale: 'CARREFOUR', etat_administratif: 'A', ...overrides }
+  }
+
+  for (const label of ['registry_lookup', 'registry_legal_name_match'] as const) {
+    const sourceOf = () => (label === 'registry_lookup' ? registryLookupSource() : registryLegalNameMatchSource())
+
+    it(`${label} : siege hors France (CH) -> unavailable, jamais un appel reseau (ne s interroge que pour un siege en France)`, async () => {
+      const fetchSpy = vi.fn()
+      vi.stubGlobal('fetch', fetchSpy)
+      const row = await runKybSource(sourceOf(), agencyFR({ country: 'CH' }))
+      expect(row.result).toBe('unavailable')
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+
+    it(`${label} : aucun business_registration_number declare -> unavailable, jamais un appel reseau`, async () => {
+      const fetchSpy = vi.fn()
+      vi.stubGlobal('fetch', fetchSpy)
+      const row = await runKybSource(sourceOf(), agencyFR({ business_registration_number: null }))
+      expect(row.result).toBe('unavailable')
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+
+    it(`${label} : SIREN manifestement malforme (pas 9 chiffres) -> unavailable, jamais un appel reseau`, async () => {
+      const fetchSpy = vi.fn()
+      vi.stubGlobal('fetch', fetchSpy)
+      const row = await runKybSource(sourceOf(), agencyFR({ business_registration_number: '12345' }))
+      expect(row.result).toBe('unavailable')
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+
+    it(`${label} : erreur serveur (500) -> unavailable`, async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500 })))
+      const row = await runKybSource(sourceOf(), agencyFR())
+      expect(row.result).toBe('unavailable')
+    })
+
+    it(`${label} : reponse illisible (JSON invalide) -> unavailable`, async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('<html></html>', { status: 200 })))
+      const row = await runKybSource(sourceOf(), agencyFR())
+      expect(row.result).toBe('unavailable')
+    })
+
+    it(`${label} : panne reseau -> unavailable`, async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new Error('network down')
+        })
+      )
+      const row = await runKybSource(sourceOf(), agencyFR())
+      expect(row.result).toBe('unavailable')
+    })
+
+    it(`${label} : timeout -> unavailable via le harnais`, async () => {
+      vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+      const row = await runKybSource(sourceOf(), agencyFR(), 50)
+      expect(row.result).toBe('unavailable')
+    }, 2_000)
+  }
+
+  it('SIREN saisi avec espaces (forme d affichage officielle INSEE) -> normalise avant l appel', async () => {
+    const fetchSpy = vi.fn(async () => rechercheEntreprisesResponse([activeResult()]))
+    vi.stubGlobal('fetch', fetchSpy)
+    await runKybSource(registryLookupSource(), agencyFR({ business_registration_number: '510 761 505' }))
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(String(fetchSpy.mock.calls[0][0])).toBe('https://recherche-entreprises.api.gouv.fr/search?q=510761505')
+  })
+
+  describe('registry_lookup -- existence et statut actif', () => {
+    it('SIREN introuvable (results:[], le registre A repondu -- verifie en direct) -> mismatch, jamais unavailable', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => rechercheEntreprisesResponse([])))
+      const row = await runKybSource(registryLookupSource(), agencyFR())
+      expect(row.result).toBe('mismatch')
+      expect(row.raw_response).toMatchObject({ reason: 'siren_not_found' })
+    })
+
+    it('entreprise active (etat_administratif=A) -> match', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => rechercheEntreprisesResponse([activeResult()])))
+      const row = await runKybSource(registryLookupSource(), agencyFR())
+      expect(row.result).toBe('match')
+    })
+
+    it('entreprise existante mais cessee (etat_administratif != A) -> mismatch : contredit une agence qui se pretend en activite', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => rechercheEntreprisesResponse([activeResult({ etat_administratif: 'C' })]))
+      )
+      const row = await runKybSource(registryLookupSource(), agencyFR())
+      expect(row.result).toBe('mismatch')
+    })
+
+    it('un resultat calcule joint toujours le SIREN, le statut et la reponse complete -- jamais un verdict sans preuve', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => rechercheEntreprisesResponse([activeResult()])))
+      const row = await runKybSource(registryLookupSource(), agencyFR())
+      expect(row.raw_response.siren).toBe('510761505')
+      expect(row.raw_response.etat_administratif).toBe('A')
+      expect(row.raw_response.recherche_entreprises).toBeTruthy()
+    })
+  })
+
+  describe('registry_legal_name_match -- raison sociale (fuzzy strict : accents/casse/ponctuation)', () => {
+    it('aucune raison sociale declaree (legal_name absent) -> unavailable, jamais un appel reseau', async () => {
+      const fetchSpy = vi.fn()
+      vi.stubGlobal('fetch', fetchSpy)
+      const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: null }))
+      expect(row.result).toBe('unavailable')
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+
+    it('SIREN introuvable -> unavailable (rien a comparer), pas un doublon du mismatch de registry_lookup', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => rechercheEntreprisesResponse([])))
+      const row = await runKybSource(registryLegalNameMatchSource(), agencyFR())
+      expect(row.result).toBe('unavailable')
+    })
+
+    it('raison sociale identique au caractere pres -> match', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => rechercheEntreprisesResponse([activeResult({ nom_raison_sociale: 'CARREFOUR' })]))
+      )
+      const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'CARREFOUR' }))
+      expect(row.result).toBe('match')
+    })
+
+    it('difference de casse et d accents seulement -> match (tolere)', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => rechercheEntreprisesResponse([activeResult({ nom_raison_sociale: 'REGIE DE LA COTE' })]))
+      )
+      const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'régie de la Côte' }))
+      expect(row.result).toBe('match')
+    })
+
+    it('difference de ponctuation seulement (S.A. vs SA, tiret vs espace) -> match (tolere)', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => rechercheEntreprisesResponse([activeResult({ nom_raison_sociale: 'DUPONT MARTIN SA' })]))
+      )
+      const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'Dupont-Martin S.A.' }))
+      expect(row.result).toBe('match')
+    })
+
+    it('raison sociale reellement differente -> mismatch (rien au-dela d accent/casse/ponctuation n est tolere)', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => rechercheEntreprisesResponse([activeResult({ nom_raison_sociale: 'CARREFOUR' })]))
+      )
+      const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'Immobilier Dupont' }))
+      expect(row.result).toBe('mismatch')
+    })
+
+    it('reste correct meme si l entreprise est cessee : le nom peut matcher independamment du statut actif', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => rechercheEntreprisesResponse([activeResult({ etat_administratif: 'C', nom_raison_sociale: 'CARREFOUR' })]))
+      )
+      const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'Carrefour' }))
+      expect(row.result).toBe('match')
+    })
+  })
+})
+
+// ─── Connecteur geocodage Mapbox (address_geocode, etape 4 tache 3) -- logique pure ──
+//
+// Hors du describe.skipIf(!HAS_KEYS) DELIBEREMENT, meme motif que les connecteurs
+// precedents. PAS de verification a la main contre le vrai service Mapbox pour ce
+// connecteur precis (contrairement a VIES et recherche-entreprises) : aucun jeton
+// Mapbox n'etait disponible dans l'environnement de cette tache -- voir les reserves
+// de docs/superpowers/sdd/task-3-report.md. La forme de reponse stubbee ici reprend
+// EXACTEMENT celle deja consommee en production par src/lib/mapbox.ts et
+// src/components/crm-sugar-wizard/steps/Step2Address.tsx (Geocoding v5,
+// `features[].context[]` avec `id`/`short_code`).
+describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch stubbe (aucun reseau reel)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function agencyGeo(overrides: Partial<AgencyForVerification> = {}): AgencyForVerification {
+    return {
+      id: '00000000-0000-0000-0000-000000000000',
+      legal_name: 'Regie Test SA',
+      trade_name: null,
+      business_registration_number: null,
+      country: 'CH',
+      canton: 'GE',
+      city: 'Geneve',
+      postal_code: '1201',
+      address: 'Rue du Rhone 1',
+      website: null,
+      tva: null,
+      ...overrides,
+    }
+  }
+
+  function mapboxResponse(features: Record<string, unknown>[]): Response {
+    return new Response(JSON.stringify({ features }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+
+  function chGeFeature(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      place_name: 'Rue du Rhone 1, 1201 Geneve, Suisse',
+      context: [
+        { id: 'region.456', short_code: 'CH-GE' },
+        { id: 'country.789', short_code: 'CH' },
+      ],
+      ...overrides,
+    }
+  }
+
+  it('aucun jeton configure -> unavailable, jamais un appel reseau', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    const row = await runKybSource(createAddressGeocodeSource(''), agencyGeo())
+    expect(row.result).toBe('unavailable')
+    expect(row.check_type).toBe('address_geocode')
+    expect(row.source).toBe('mapbox')
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('aucune adresse declaree -> unavailable, jamais un appel reseau', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    const row = await runKybSource(
+      createAddressGeocodeSource('fake-token'),
+      agencyGeo({ address: null, postal_code: null, city: null })
+    )
+    expect(row.result).toBe('unavailable')
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('aucun pays declare -> unavailable, jamais un appel reseau (rien a comparer)', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo({ country: null }))
+    expect(row.result).toBe('unavailable')
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('aucun resultat de geocodage (0 feature) -> partial, jamais mismatch (Mapbox n est pas un registre exhaustif)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => mapboxResponse([])))
+    const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo())
+    expect(row.result).toBe('partial')
+  })
+
+  it('pays geocode identique au pays declare -> match', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => mapboxResponse([chGeFeature()])))
+    const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo({ country: 'CH', canton: null }))
+    expect(row.result).toBe('match')
+  })
+
+  it('canton geocode identique au canton declare (CH) -> match', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => mapboxResponse([chGeFeature()])))
+    const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo({ country: 'CH', canton: 'GE' }))
+    expect(row.result).toBe('match')
+  })
+
+  it('pays geocode DIFFERENT du pays declare -> mismatch : contradiction reelle', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => mapboxResponse([chGeFeature({ context: [{ id: 'country.1', short_code: 'FR' }] })]))
+    )
+    const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo({ country: 'CH' }))
+    expect(row.result).toBe('mismatch')
+  })
+
+  it('pays coherent mais canton geocode DIFFERENT du canton declare -> mismatch', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        mapboxResponse([
+          chGeFeature({
+            context: [
+              { id: 'region.1', short_code: 'CH-ZH' },
+              { id: 'country.2', short_code: 'CH' },
+            ],
+          }),
+        ])
+      )
+    )
+    const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo({ country: 'CH', canton: 'GE' }))
+    expect(row.result).toBe('mismatch')
+  })
+
+  it(
+    'pays coherent, canton absent de la reponse (non contredit) -> match : le canton ne fait que basculer un match ' +
+      'en mismatch, jamais l inverse a lui seul',
+    async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => mapboxResponse([chGeFeature({ context: [{ id: 'country.1', short_code: 'CH' }] })]))
+      )
+      const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo({ country: 'CH', canton: 'GE' }))
+      expect(row.result).toBe('match')
+    }
+  )
+
+  it('reponse sans contexte pays exploitable -> partial, jamais invente', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => mapboxResponse([{ place_name: 'quelque part', context: [] }])))
+    const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo())
+    expect(row.result).toBe('partial')
+  })
+
+  it('erreur serveur (500) -> unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500 })))
+    const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo())
+    expect(row.result).toBe('unavailable')
+  })
+
+  it('reponse illisible (JSON invalide) -> unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<html></html>', { status: 200 })))
+    const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo())
+    expect(row.result).toBe('unavailable')
+  })
+
+  it(
+    'panne reseau (fetch qui rejette) -> unavailable, et le message ne transporte JAMAIS le jeton ni l URL ' +
+      '(seul connecteur de ce fichier dont la requete porte un secret en parametre)',
+    async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new Error(
+            'request to https://api.mapbox.com/geocoding/v5/mapbox.places/x.json?access_token=SUPER-SECRET-TOKEN failed'
+          )
+        })
+      )
+      const row = await runKybSource(createAddressGeocodeSource('SUPER-SECRET-TOKEN'), agencyGeo())
+      expect(row.result).toBe('unavailable')
+      const serialized = JSON.stringify(row.raw_response)
+      expect(serialized).not.toContain('SUPER-SECRET-TOKEN')
+      expect(serialized).not.toContain('access_token')
+    }
+  )
+
+  it('timeout du connecteur -> unavailable via le harnais', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo(), 50)
+    expect(row.result).toBe('unavailable')
+  }, 2_000)
+
+  it('un resultat calcule ne joint jamais le jeton -- seule la requete texte (sans URL) et la reponse Mapbox figurent dans raw_response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => mapboxResponse([chGeFeature()])))
+    const row = await runKybSource(createAddressGeocodeSource('SUPER-SECRET-TOKEN'), agencyGeo())
+    const serialized = JSON.stringify(row.raw_response)
+    expect(serialized).not.toContain('SUPER-SECRET-TOKEN')
+    expect(row.raw_response.query).toBe('Rue du Rhone 1, 1201, Geneve')
+    expect(row.raw_response.mapbox).toBeTruthy()
+  })
 })

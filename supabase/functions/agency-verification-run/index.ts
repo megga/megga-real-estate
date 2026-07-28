@@ -2,8 +2,10 @@
 //
 // Socle de la verification KYB (etape 4, tache 1) : lit l'agence a verifier,
 // execute les connecteurs disponibles (_shared/kyb-sources.ts -- registre
-// AGENCY_KYB_SOURCES, vide a la tache 1, RDAP ajoute a la tache 2), puis confie
-// l'ecriture des checks produits, l'appel du moteur de scoring
+// AGENCY_KYB_SOURCES, vide a la tache 1, RDAP ajoute a la tache 2, VIES +
+// recherche-entreprises x2 a la tache 3, plus le geocodage Mapbox construit ici
+// meme -- voir le point 2 plus bas), puis confie l'ecriture des checks produits,
+// l'appel du moteur de scoring
 // (recompute_agency_verification, 20260728130000) et la journalisation de son
 // PROPRE passage (distinct du journal du moteur -- voir plus bas) a UNE SEULE RPC,
 // record_agency_verification_run (20260728140000).
@@ -40,7 +42,13 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { runAgencyKybSources, type AgencyForVerification, type KybCheckResult } from '../_shared/kyb-sources.ts'
+import {
+  runAgencyKybSources,
+  AGENCY_KYB_SOURCES,
+  createAddressGeocodeSource,
+  type AgencyForVerification,
+  type KybCheckResult,
+} from '../_shared/kyb-sources.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -112,10 +120,20 @@ serve(async (req) => {
     if (!agency) return json({ error: 'agency_not_found' }, 404)
 
     // 2. Sources -- registre AGENCY_KYB_SOURCES (voir _shared/kyb-sources.ts ; RDAP
-    // depuis la tache 2). Le harnais garantit que toute source, presente ou future,
-    // produit TOUJOURS une ligne : succes, echec ou timeout ne font jamais
-    // disparaitre un check et ne font jamais echouer cet appel.
-    const outcomes = await runAgencyKybSources(agency)
+    // depuis la tache 2, VIES + recherche-entreprises x2 depuis la tache 3). Le
+    // geocodage Mapbox (tache 3 egalement) est le SEUL connecteur qui a besoin d'un
+    // secret -- il ne peut donc pas vivre dans AGENCY_KYB_SOURCES (une liste construite
+    // au chargement du module, avant qu'aucun jeton ne soit lu) : c'est ICI, et
+    // seulement ici, que _shared/kyb-sources.ts a besoin d'un Deno.env.get pour cette
+    // tache -- le module partage lui-meme en reste totalement libre (voir son en-tete
+    // et celui de createAddressGeocodeSource). MAPBOX_TOKEN absent (non configure en
+    // local, meme situation que DILISENSE_API_KEY/GEMINI_API_KEY) -> le connecteur
+    // produit lui-meme `unavailable`, jamais un echec qui bloquerait tout le passage.
+    // Le harnais garantit que toute source, presente ou future, produit TOUJOURS une
+    // ligne : succes, echec ou timeout ne font jamais disparaitre un check et ne font
+    // jamais echouer cet appel.
+    const sources = [...AGENCY_KYB_SOURCES, createAddressGeocodeSource(Deno.env.get('MAPBOX_TOKEN') ?? '')]
+    const outcomes = await runAgencyKybSources(agency, sources)
 
     // 3-4-5. Ecriture des checks, appel du moteur et journalisation du PASSAGE de
     // cette fonction -- REGROUPES dans UNE SEULE RPC (record_agency_verification_run,
