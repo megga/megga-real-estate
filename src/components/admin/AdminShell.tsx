@@ -21,13 +21,13 @@
  * dessous (le cadre passe alors pleine largeur, sans rayon).
  */
 import { useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
-import { CRM_APP_URL } from '@/lib/adminEntry'
+import { ADMIN_CONSOLE_PATH, CRM_APP_URL } from '@/lib/adminEntry'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
 import AdminNotificationPanel from '@/components/admin/AdminNotificationPanel'
 import { ADMIN_KEYFRAMES, ADMIN_RADII, ADMIN_RAIL_WIDTH } from '@/components/admin/kit/adminKitCore'
@@ -52,10 +52,13 @@ interface NavSection {
 
 // Nav groupée en 5 sections (P6b) — une liste plate de 17 entrées était devenue
 // illisible. Ordre des sections = du pilotage quotidien au produit.
+// Chemins SANS préfixe : la base est ajoutée par `useConsoleBase()` selon le
+// point de montage. Voir ce hook pour pourquoi on ne peut pas utiliser les liens
+// relatifs de React Router ici.
 const NAV_SECTIONS: NavSection[] = [
   { labelKey: 'nav.adminSectionPilotage', items: [
     { labelKey: 'nav.adminLive', href: '/live', icon: 'broadcast' },
-    { labelKey: 'nav.adminOverview', href: '/', icon: 'dashboard', end: true },
+    { labelKey: 'nav.adminOverview', href: '', icon: 'dashboard', end: true },
   ]},
   { labelKey: 'nav.adminSectionClients', items: [
     { labelKey: 'nav.adminAgencies', href: '/agencies', icon: 'building' },
@@ -82,6 +85,36 @@ const NAV_SECTIONS: NavSection[] = [
 ]
 
 /**
+ * Préfixe des routes de la console, selon le point de montage.
+ *
+ * ⚠ Ne PAS remplacer par des liens relatifs React Router. `AdminShell` est
+ * l'`element` d'une route de mise en page SANS `path`, montée sous un splat : la
+ * résolution du relatif dépend alors du drapeau `v7_relativeSplatPath`, que
+ * l'app autonome active et le routeur du CRM non. Mesuré : sous le CRM, `to="live"`
+ * depuis `/dashboard/admin/agencies` produisait `/dashboard/admin/agencies/live`,
+ * et `to="."` pointait sur la page courante — donc « Vue d'ensemble » allumé en
+ * permanence et toute la nav cassée dès le premier clic. Une base explicite ne
+ * dépend d'aucun drapeau.
+ */
+function useConsoleBase(): string {
+  const { pathname } = useLocation()
+  return pathname.startsWith(ADMIN_CONSOLE_PATH) ? ADMIN_CONSOLE_PATH : ''
+}
+
+/**
+ * Où mène « Retour au CRM », selon le point de montage.
+ *
+ * Montée dans le CRM, la console ne doit PAS renvoyer sur une autre origine : ce
+ * serait un rechargement complet pour revenir là où l'on est déjà. Montée dans
+ * l'app autonome, il faut au contraire l'URL absolue du CRM.
+ */
+function useCrmHome(): { href: string; external: boolean } {
+  return useConsoleBase()
+    ? { href: '/dashboard', external: false }
+    : { href: CRM_APP_URL, external: true }
+}
+
+/**
  * Contenu du rail — partagé entre le rail dans le cadre et le tiroir mobile.
  *
  * Grammaire de nav reprise ligne pour ligne des Réglages : rayon 14, gap 12,
@@ -94,6 +127,9 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
   const { signOut, profile } = useAuth()
   const { dark } = useAdminTheme()
   const { sp, surf, tones } = useAdminSugar()
+  const crmHome = useCrmHome()
+  const base = useConsoleBase()
+  const navigate = useNavigate()
 
   const rowBase = {
     display: 'flex', alignItems: 'center', gap: 12,
@@ -133,7 +169,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {section.items.map((item) => (
-                <NavLink key={item.href} to={item.href} end={item.end} onClick={onNavigate} className="adm-nav" style={({ isActive }) => ({
+                <NavLink key={item.href} to={`${base}${item.href}` || "/"} end={item.end} onClick={onNavigate} className="adm-nav" style={({ isActive }) => ({
                   ...rowBase,
                   textDecoration: 'none',
                   background: isActive ? surf.card : 'transparent',
@@ -160,8 +196,9 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
 
         <AdminNotificationPanel />
 
-        {/* Retour au CRM : autre origine, donc lien plein — pas de React Router. */}
-        <a className="adm-nav" href={CRM_APP_URL} style={{ ...rowBase, textDecoration: 'none' }}>
+        {/* Montée dans le CRM, la console y revient par le routeur ; montée dans
+            l'app autonome, c'est une autre origine, donc un lien plein. */}
+        <a className="adm-nav" href={crmHome.href} onClick={crmHome.external ? undefined : (e) => { e.preventDefault(); navigate(crmHome.href) }} style={{ ...rowBase, textDecoration: 'none' }}>
           <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
             <MEIcon name="external" size={17} color={sp.sub} />
           </span>
@@ -208,6 +245,9 @@ export default function AdminShell() {
   const { sp, surf, dark } = useAdminSugar()
   const { toggle } = useAdminTheme()
   const { t } = useTranslation(['common', 'admin'])
+  const crmHome = useCrmHome()
+  const base = useConsoleBase()
+  const navigate = useNavigate()
 
   /**
    * Outils du rail d'icônes, côté console.
@@ -230,12 +270,18 @@ export default function AdminShell() {
     // donnant deux loupes côte à côte). `dashboard` est en outre le bon signe —
     // dans le CRM ce bouton mène au tableau de bord, ici il y ramène. Même
     // bouton, même place, geste analogue.
-    { id: 'crm', icon: 'dashboard', label: t('common:nav.backToCrm'), action: () => { window.location.href = CRM_APP_URL } },
+    { id: 'crm', icon: 'dashboard', label: t('common:nav.backToCrm'), action: () => {
+      if (crmHome.external) window.location.href = crmHome.href
+      else navigate(crmHome.href)
+    } },
   ]
 
   /** Le rail rend toujours « Réglages » : ils vivent dans le CRM, pas ici. */
   const onRailNavigate = (id: string) => {
-    if (id === 'settings') window.location.href = `${CRM_APP_URL}/dashboard/settings`
+    if (id !== 'settings') return
+    // Les réglages appartiennent au CRM, jamais à la console.
+    if (crmHome.external) window.location.href = `${CRM_APP_URL}/dashboard/settings`
+    else navigate('/dashboard/settings')
   }
 
   return (
@@ -292,7 +338,7 @@ export default function AdminShell() {
         >
           <MEIcon name="menu" size={19} color={sp.soft} />
         </button>
-        <Link to="/" style={{ fontSize: 13, fontWeight: 800, color: 'rgb(var(--color-admin-accent))', textDecoration: 'none' }}>
+        <Link to={base || "/"} style={{ fontSize: 13, fontWeight: 800, color: 'rgb(var(--color-admin-accent))', textDecoration: 'none' }}>
           {t('admin:common.adminBadge')}
         </Link>
       </header>

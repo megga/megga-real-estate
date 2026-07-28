@@ -1,43 +1,35 @@
 /**
- * Passage de session CRM → console (admin.megga.ch).
+ * Lecture du passage de session par fragment (app autonome `admin.megga.ch`).
  *
- * La console n'a AUCUN formulaire de connexion : elle ne s'ouvre qu'en recevant
- * la session de qui l'ouvre depuis le CRM. Ce contrat tient à deux fonctions
- * pures — l'une fabrique l'URL, l'autre la relit — et à une propriété non
- * négociable : les jetons voyagent dans le FRAGMENT, jamais dans la query
- * string, sans quoi ils partiraient dans les journaux d'accès du serveur et
- * dans l'en-tête Referer.
+ * ⚠ Le PRODUCTEUR de ce passage n'existe plus : la console est une surface du
+ * CRM depuis juillet 2026, on y va par le routeur. Seul `main.admin.tsx` lit
+ * encore un fragment, le temps que l'app autonome soit retirée — d'où une spec
+ * réduite au LECTEUR.
+ *
+ * Ce qui reste non négociable tant que ce code vit : les jetons ne se lisent que
+ * dans le FRAGMENT, jamais dans la query string, sans quoi ils partiraient dans
+ * les journaux d'accès du serveur et dans l'en-tête `Referer`.
  */
 import { describe, it, expect } from 'vitest'
 import {
-  adminConsoleUrl,
   readHandoverFromHash,
-  ADMIN_ENTRY_URL,
   HANDOVER_ACCESS,
   HANDOVER_REFRESH,
 } from '@/lib/adminEntry'
 
 const SESSION = { access_token: 'eyJhbGciOi.AAA-bbb_ccc', refresh_token: 'r3fr/esh+tok=en' }
 
-describe('passage de session vers la console admin', () => {
-  it('place les jetons dans le fragment, jamais dans la query string', () => {
-    const url = new URL(adminConsoleUrl(SESSION)!)
-    expect(url.origin).toBe(new URL(ADMIN_ENTRY_URL).origin)
-    expect(url.search).toBe('')
-    expect(url.hash).toContain(`${HANDOVER_ACCESS}=`)
-    expect(url.hash).toContain(`${HANDOVER_REFRESH}=`)
-  })
+/** Fabrique un fragment comme le faisait le CRM, sans dépendre du producteur retiré. */
+function fragmentFor(session: { access_token: string; refresh_token: string }): string {
+  return `#${new URLSearchParams({
+    [HANDOVER_ACCESS]: session.access_token,
+    [HANDOVER_REFRESH]: session.refresh_token,
+  }).toString()}`
+}
 
+describe('lecture du passage de session vers la console admin', () => {
   it('fait l\'aller-retour, y compris sur des jetons à caractères réservés', () => {
-    const url = new URL(adminConsoleUrl(SESSION)!)
-    expect(readHandoverFromHash(url.hash)).toEqual(SESSION)
-  })
-
-  it('n\'ouvre rien sans session exploitable', () => {
-    expect(adminConsoleUrl(null)).toBeNull()
-    expect(adminConsoleUrl(undefined)).toBeNull()
-    expect(adminConsoleUrl({ access_token: '', refresh_token: 'r' })).toBeNull()
-    expect(adminConsoleUrl({ access_token: 'a', refresh_token: '' })).toBeNull()
+    expect(readHandoverFromHash(fragmentFor(SESSION))).toEqual(SESSION)
   })
 
   it('rend null sur une visite directe — l\'écran « depuis le CRM » doit suivre, pas une erreur', () => {
@@ -50,7 +42,6 @@ describe('passage de session vers la console admin', () => {
   })
 
   it('accepte le fragment avec ou sans dièse de tête', () => {
-    const hash = new URL(adminConsoleUrl(SESSION)!).hash
-    expect(readHandoverFromHash(hash.slice(1))).toEqual(SESSION)
+    expect(readHandoverFromHash(fragmentFor(SESSION).slice(1))).toEqual(SESSION)
   })
 })

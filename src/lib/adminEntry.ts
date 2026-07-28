@@ -1,30 +1,36 @@
 /**
- * Adresses des deux applications MEGGA, et passage du CRM vers la console.
+ * Adresses des applications MEGGA et vestiges du passage de session.
  *
- * Le back-office vit sur SA PROPRE origine (admin.megga.ch, projet Cloudflare
- * Pages `megga-admin`, build `npm run build:admin`) : son bundle n'est pas servi
- * aux agents, et une faille XSS dans le CRM ne donne pas la main sur la console.
+ * ⚠️ ÉTAT (juillet 2026) : la console est une SURFACE DU CRM
+ * (`ADMIN_CONSOLE_PATH`). Plus rien ne fabrique le passage par fragment — le
+ * producteur `openAdminConsole` a été retiré avec les deux points d'entrée qui
+ * l'appelaient. Conséquence à connaître : l'app autonome `admin.megga.ch` reste
+ * DÉPLOYÉE mais n'a plus aucun moyen de recevoir une session. Ce n'est donc plus
+ * un repli utilisable, seulement du code en sursis.
  *
- * ⚠️ La console n'est PAS une porte d'entrée : elle ne porte aucun formulaire de
- * connexion. On n'y accède qu'en venant du CRM, qui lui transmet la session de
- * l'appelant. Taper `admin.megga.ch` à froid n'ouvre rien — juste un écran qui
- * renvoie au CRM. Décision produit : il ne doit exister qu'UN endroit où l'on
- * s'authentifie.
+ * `readHandoverFromHash` survit le temps du retrait de cette app :
+ * `main.admin.tsx` lit encore le fragment, et son contrat est couvert par
+ * `tests/unit/admin-entry-handover.spec.ts`. Le producteur est parti avec ses
+ * appelants.
  *
- * `VITE_ADMIN_URL` / `VITE_APP_URL` permettent de viser des serveurs locaux en
- * dev (ex. `VITE_ADMIN_URL=http://localhost:5174`).
+ * `VITE_APP_URL` permet de viser un CRM local en dev.
  */
 
-/** Origine de la console super-admin. */
-export const ADMIN_ENTRY_URL =
-  (import.meta.env.VITE_ADMIN_URL as string | undefined)?.trim() || 'https://admin.megga.ch'
+/**
+ * Route de la console DANS le CRM.
+ *
+ * Depuis juillet 2026 la console est une surface du CRM et non plus une
+ * application à part : on y va par le routeur, sans onglet ni passage de
+ * session. L'URL redevient rechargeable, partageable et mémorisable — ce que le
+ * passage par fragment interdisait par construction.
+ *
+ * Le passage de session ci-dessous ne sert plus qu'à l'app autonome, en sursis.
+ */
+export const ADMIN_CONSOLE_PATH = '/dashboard/admin'
 
 /** Origine du CRM agent (retour depuis la console, passage d'impersonation). */
 export const CRM_APP_URL =
   (import.meta.env.VITE_APP_URL as string | undefined)?.trim() || 'https://app.megga.ch'
-
-/** Vrai quand la console est servie par une autre origine (donc hors React Router). */
-export const ADMIN_IS_EXTERNAL = /^https?:\/\//i.test(ADMIN_ENTRY_URL)
 
 /** Noms des paramètres de passage, lus par `main.admin.tsx`. */
 export const HANDOVER_ACCESS = 'at'
@@ -34,41 +40,6 @@ export const HANDOVER_REFRESH = 'rt'
 export interface HandoverSession {
   access_token: string
   refresh_token: string
-}
-
-/**
- * Ouvre la console en lui passant la session courante.
- *
- * Les deux origines ne partagent ni localStorage ni cookies — c'est tout
- * l'intérêt de la séparation — donc la console ne peut pas voir la session du
- * CRM. Elle la reçoit dans le FRAGMENT de l'URL : contrairement à la query
- * string, un fragment n'est jamais envoyé au serveur, n'apparaît ni dans les
- * journaux d'accès ni dans l'en-tête Referer. C'est le mécanisme qu'utilise
- * Supabase lui-même pour ses retours OAuth. La console l'efface de l'historique
- * dès qu'elle l'a lu, et ne conserve la session que le temps de l'onglet.
- *
- * `session` est passée par l'appelant (elle vient de `useAuth()`), et non lue
- * ici : `window.open` doit être appelé DANS le geste utilisateur, sans `await`
- * intercalé, sinon le navigateur bloque la fenêtre.
- */
-export function openAdminConsole(session: HandoverSession | null | undefined): void {
-  const url = adminConsoleUrl(session)
-  if (!url) return
-  window.open(url, '_blank', 'noopener,noreferrer')
-}
-
-/**
- * URL d'ouverture de la console, jetons en fragment. `null` si la session est
- * inutilisable — dans ce cas on n'ouvre rien plutôt que d'exposer un écran mort.
- * Séparée d'`openAdminConsole` pour être testable sans `window`.
- */
-export function adminConsoleUrl(session: HandoverSession | null | undefined): string | null {
-  if (!session?.access_token || !session?.refresh_token) return null
-  const fragment = new URLSearchParams({
-    [HANDOVER_ACCESS]: session.access_token,
-    [HANDOVER_REFRESH]: session.refresh_token,
-  })
-  return `${ADMIN_ENTRY_URL}/#${fragment.toString()}`
 }
 
 /**

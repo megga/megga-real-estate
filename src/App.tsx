@@ -31,7 +31,7 @@ import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import ErrorBoundary from '@/components/layout/ErrorBoundary'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import { ToastProvider } from '@/components/ui/Toast'
-import { ADMIN_ENTRY_URL } from '@/lib/adminEntry'
+import AdminConsoleRoute from '@/components/admin/AdminConsoleRoute'
 import ImpersonationHandoff from '@/components/admin/ImpersonationHandoff'
 import LanguageChangeOverlay from '@/components/ui/LanguageChangeOverlay'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
@@ -302,20 +302,6 @@ function VitrineLoginRedirect() {
   return null
 }
 
-/**
- * Rebond des anciennes URLs `/dashboard/admin/*` vers la console, qui a changé
- * d'origine. Le sous-chemin est conservé : `/dashboard/admin/users` arrive sur
- * `admin.megga.ch/users` (les routes y sont montées à la racine).
- */
-function AdminConsoleRedirect() {
-  const { pathname, search } = useLocation()
-  if (typeof window !== 'undefined') {
-    const sub = pathname.replace(/^\/dashboard\/admin/, '')
-    window.location.replace(`${ADMIN_ENTRY_URL}${sub}${search}`)
-  }
-  return null
-}
-
 function AppRoutes() {
   return (
     <Routes>
@@ -458,6 +444,17 @@ function AppRoutes() {
                 }
               >
                 <Route index element={<ResponsiveRoute desktop={<TodaySugarPage />} mobile={<MobileTodayPage />} />} />
+                {/* La console vit DANS le CRM depuis juillet 2026 : plus d'onglet,
+                    plus de passage de session par fragment, et l'URL redevient
+                    rechargeable et partageable. Le splat `*` est requis — la
+                    console monte son propre <Routes> relatif dessous.
+
+                    ⚠ Sous la coquille SUGAR, jamais sous `AgentLayout` : ce
+                    dernier porte la sidebar legacy et un fil d'Ariane, qui
+                    s'empilaient sur le dock et le rail de la console — trois
+                    navigations concurrentes à l'écran. `AgentSugarLayout` ne
+                    rend aucun chrome, c'est ce qu'il faut ici. */}
+                <Route path="admin/*" element={<AdminConsoleRoute />} />
                 <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelineSugarV2Page />} mobile={<MobilePipelinePage />} />} />
                 {/* Contacts — mobile (< 768px) : liste (P8). */}
                 <Route path="contacts" element={<ResponsiveRoute desktop={<ContactsSugarV2Page />} mobile={<MobileContactsListPage />} />} />
@@ -553,7 +550,6 @@ function AppRoutes() {
                     (admin.megga.ch, build `npm run build:admin`) — son bundle
                     n'est plus servi aux agents. Les anciens liens/favoris
                     `/dashboard/admin/*` rebondissent vers la console. */}
-                <Route path="admin/*" element={<AdminConsoleRedirect />} />
               </Route>
 
               {/* 404 */}
