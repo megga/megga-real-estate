@@ -338,6 +338,50 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
         .maybeSingle()
       expect(agencyAfterSubmit?.identity_submitted_at, 'identity_submitted_at doit être posé après soumission').not.toBeNull()
 
+      // Revue finale (lot 2). handleSubmit() (IdentityShell.tsx) transmet signatoryId à
+      // submit() comme p_related_person_id : c'est cet argument, et lui seul, qui
+      // déclenche la pose de la ligne agency_person_verification_checks pour la pièce
+      // déposée à l'étape 3 (submit_agency_identity, 20260727120000). S'il devenait nul,
+      // le dossier partirait quand même soumis (pièces déposées, identity_submitted_at
+      // posé comme prouvé ci-dessus), mais sans aucune ligne de vérification : personne
+      // ne serait jamais alerté de relire la pièce. Le signataire est ici l'unique
+      // bénéficiaire effectif (reprend le signataire, étape 2 plus haut) : une seule
+      // ligne agency_related_persons existe pour cette agence, .single() la retrouve
+      // sans ambiguïté.
+      const { data: signatoryRow, error: signatoryRowErr } = await serviceRoleClient()
+        .from('agency_related_persons')
+        .select('id')
+        .eq('agency_id', founder.agencyId)
+        .single()
+      expect(signatoryRowErr).toBeNull()
+      const signatoryId = signatoryRow!.id as string
+
+      const { data: idDocumentCheck, error: idDocumentCheckErr } = await serviceRoleClient()
+        .from('agency_person_verification_checks')
+        .select('check_type, source, result')
+        .eq('related_person_id', signatoryId)
+        .maybeSingle()
+      expect(idDocumentCheckErr).toBeNull()
+      expect(
+        idDocumentCheck?.check_type,
+        'submit_agency_identity doit poser une ligne agency_person_verification_checks pour le signataire dont la pièce a été déposée',
+      ).toBe('id_document')
+      expect(idDocumentCheck?.source, 'aucun prestataire automatique à ce stade : source=manual').toBe('manual')
+      expect(idDocumentCheck?.result, 'en attente de revue humaine, jamais un verdict automatique').toBe('pending_manual_review')
+
+      // Et les deux faces déposées à l'étape 3 existent réellement dans Storage, sous le
+      // préfixe réservé (identityDocumentFolder, useAgencyIdentity.ts) : pas seulement une
+      // ligne DB, c'est le fichier lui-même que la revue humaine doit pouvoir rouvrir.
+      // Extension 'png' : idFile plus haut est 'piece-identite.png' (extensionOfFile la
+      // reprend telle quelle, useAgencyIdentity.ts).
+      const kybIdentityFolder = `${founder.agencyId}/kyb-identity/${signatoryId}`
+      const { data: storedFiles, error: storedFilesErr } = await serviceRoleClient()
+        .storage.from('documents')
+        .list(kybIdentityFolder)
+      expect(storedFilesErr).toBeNull()
+      expect(storedFiles?.some((f) => f.name === 'recto.png'), 'le recto déposé à l\'étape 3 doit exister dans Storage').toBe(true)
+      expect(storedFiles?.some((f) => f.name === 'verso.png'), 'le verso déposé à l\'étape 3 doit exister dans Storage').toBe(true)
+
       // 6. Déconnexion, reconnexion, absence de nouvelle redirection.
       await signOutLive(page)
       await signInLive(page, founder.email, PW)
