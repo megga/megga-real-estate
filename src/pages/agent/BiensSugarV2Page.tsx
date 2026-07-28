@@ -109,7 +109,7 @@ export default function BiensSugarV2Page() {
           onCreate={() => setWizardOpen(true)}
           onResumeDraft={onResumeDraft}
           wizardOpen={wizardOpen}
-          wizardSlot={<WizardShell embedded onClose={() => setWizardOpen(false)} />}
+          wizardSlot={<WizardShell embedded dark={dark} onClose={() => setWizardOpen(false)} />}
         />
       </div>
     </div>
