@@ -58,12 +58,17 @@ export function useAdminStats() {
     staleTime: 60_000,
   })
 
+  // Des ALERTES, donc les événements qui appellent un regard : `warn` et
+  // `critical`. Sans ce filtre la requête rendait les 10 derniers événements
+  // toutes sévérités confondues — une création de contact s'affichait sous le
+  // titre « Alertes », et une vraie alerte plus ancienne en était chassée.
   const alerts = useQuery({
     queryKey: ['admin-alerts'],
     queryFn: async (): Promise<AlertEvent[]> => {
       const { data, error } = await supabase
         .from('activity_events')
         .select('id, action, entity_type, entity_id, metadata, created_at')
+        .in('severity', ['warn', 'critical'])
         .order('created_at', { ascending: false })
         .limit(10)
       if (error) throw error
@@ -75,7 +80,10 @@ export function useAdminStats() {
   return {
     kpis: kpis.data,
     kpisLoading: kpis.isLoading,
+    kpisError: kpis.isError,
     alerts: alerts.data ?? [],
     alertsLoading: alerts.isLoading,
+    alertsError: alerts.isError,
+    refetch: () => { void kpis.refetch(); void alerts.refetch() },
   }
 }

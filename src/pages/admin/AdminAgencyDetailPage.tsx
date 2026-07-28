@@ -30,6 +30,7 @@ import {
   AdminCard,
   AdminDivider,
   AdminEmpty,
+  AdminError,
   AdminIc,
   AdminPill,
   AdminSkeleton,
@@ -185,7 +186,7 @@ export default function AdminAgencyDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<Tab>('infos')
 
-  const { data: agency, isLoading } = useAdminAgency(id ?? '')
+  const { data: agency, isLoading, isError, refetch } = useAdminAgency(id ?? '')
 
   const plan = agency ? t(PLAN_I18N[agency.plan ?? ''] ?? 'common.plan.starter') : null
   const statusKey = agency?.status ?? 'active'
@@ -211,6 +212,17 @@ export default function AdminAgencyDetailPage() {
     >
       {isLoading ? (
         <TabSkeleton rows={4} />
+      ) : isError && !agency ? (
+        // Passe AVANT « introuvable » : une requête en échec renvoie elle aussi
+        // `agency` vide, et annoncer une agence supprimée sur une simple panne
+        // réseau enverrait le super-admin chercher un problème qui n'existe pas.
+        <AdminCard>
+          <AdminError
+            message={t('admin:common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('admin:common.retry')}
+          />
+        </AdminCard>
       ) : !agency ? (
         <AdminCard>
           <AdminEmpty icon={Building2} title={t('admin:agencyDetail.notFound')} />
@@ -325,7 +337,9 @@ function EquipeTab({ agencyId }: { agencyId: string }) {
                     // d'activer la vue (audit-first).
                     onClick={() => openImpersonation(member.id)}
                     aria-label={t('admin:agencyDetail.team.impersonate', { name: member.full_name ?? t('admin:common.user') })}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    // `group-focus-within` en plus du survol : sans lui, ce
+                    // bouton était atteignable au clavier mais jamais visible.
+                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
                     style={{
                       width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0,
                       background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center',

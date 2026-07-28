@@ -22,7 +22,7 @@ import { useAdminCompliance, useConsentStats, useAccountDeletions } from '@/hook
 import type { ComplianceCase } from '@/hooks/useAdminCompliance'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminDivider, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
 const ITEMS_PER_PAGE = 10
@@ -231,7 +231,7 @@ function CompletionBar({ value }: { value: number }) {
 export default function AdminCompliancePage() {
   const { t } = useTranslation('admin')
   const { sp, surf, dark, tones } = useAdminSugar()
-  const { cases, isLoading, stats, statsLoading } = useAdminCompliance()
+  const { cases, isLoading, isError, refetch, stats, statsLoading } = useAdminCompliance()
   const [tab, setTab] = useState<TabValue>('all')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -392,6 +392,18 @@ export default function AdminCompliancePage() {
       <div className="md:hidden flex flex-col gap-2">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => <AdminSkeleton key={i} height={70} radius={ADMIN_RADII.card} />)
+        ) : isError && paginated.length === 0 ? (
+          // Avant l'état vide : une requête en échec laisse `paginated` vide, et
+          // l'`EmptyState` accuserait alors l'onglet de n'avoir aucun dossier.
+          // La liste est rendue deux fois (cartes mobiles / table desktop), la
+          // branche vit donc dans les deux.
+          <AdminCard>
+            <AdminError
+              message={t('common.loadError')}
+              onRetry={() => void refetch()}
+              retryLabel={t('common.retry')}
+            />
+          </AdminCard>
         ) : paginated.length === 0 ? (
           <AdminCard><EmptyState tab={tab} /></AdminCard>
         ) : (
@@ -443,6 +455,12 @@ export default function AdminCompliancePage() {
         {/* Lignes */}
         {isLoading ? (
           <SkeletonRows />
+        ) : isError && paginated.length === 0 ? (
+          <AdminError
+            message={t('common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('common.retry')}
+          />
         ) : paginated.length === 0 ? (
           <EmptyState tab={tab} />
         ) : (

@@ -24,7 +24,7 @@ import ModerationActionDialog from '@/components/admin/ModerationActionDialog'
 import PageTransition from '@/components/layout/PageTransition'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
-  AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminTd, AdminTh,
+  AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
@@ -105,7 +105,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
 export default function AdminMarketplacePage() {
   const { t } = useTranslation('admin')
   const { sp, surf, dark, tones } = useAdminSugar()
-  const { listings, isLoading, stats, statsLoading, moderate } = useAdminModeration()
+  const { listings, isLoading, isError, refetch, stats, statsLoading, moderate } = useAdminModeration()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
@@ -261,6 +261,12 @@ export default function AdminMarketplacePage() {
         <AdminCard className="md:hidden" padding={0} style={{ overflow: 'hidden' }}>
           {isLoading ? (
             <SkeletonRows />
+          ) : isError && paginated.length === 0 ? (
+            <AdminError
+              message={t('admin:common.loadError')}
+              onRetry={() => void refetch()}
+              retryLabel={t('admin:common.retry')}
+            />
           ) : paginated.length === 0 ? (
             <EmptyState hasFilters={hasFilters} />
           ) : (
@@ -295,6 +301,14 @@ export default function AdminMarketplacePage() {
         <AdminCard className="hidden md:block" padding={0} style={{ overflow: 'hidden' }}>
           {isLoading ? (
             <SkeletonRows />
+          ) : isError && paginated.length === 0 ? (
+            // Une file de modération vide se lit « rien à modérer » : la servir
+            // sur une requête en échec masquerait des annonces signalées.
+            <AdminError
+              message={t('admin:common.loadError')}
+              onRetry={() => void refetch()}
+              retryLabel={t('admin:common.retry')}
+            />
           ) : paginated.length === 0 ? (
             <EmptyState hasFilters={hasFilters} />
           ) : (

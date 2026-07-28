@@ -17,7 +17,7 @@ import type { NpsResponse } from '@/hooks/useAdminNps'
 import { formatRelativeDate } from '@/lib/utils'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminDivider, AdminEmpty, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
 /** Ton du score NPS : bon ≥ 50, à surveiller ≥ 0, mauvais sinon. */
@@ -91,7 +91,7 @@ function ResponseCard({ response, first }: { response: NpsResponse; first: boole
 /** Vue principale : 4 indicateurs, barre de répartition empilée et liste des réponses. */
 export default function AdminNpsPage() {
   const { t } = useTranslation('admin')
-  const { data, isLoading } = useAdminNps()
+  const { data, isLoading, isError, refetch } = useAdminNps()
   const { sp, tones, onTone } = useAdminSugar()
 
   const stats = data?.stats
@@ -225,10 +225,22 @@ export default function AdminNpsPage() {
           </div>
         )}
 
-        {!isLoading && responses.length === 0 && (
+        {/* La requête en échec rend `responses` vide : sans cette branche AVANT
+            l'état vide, une panne réseau se lirait « aucune réponse ». */}
+        {!isLoading && isError && responses.length === 0 && (
+          <AdminError
+            message={t('common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('common.retry')}
+          />
+        )}
+
+        {!isLoading && !isError && responses.length === 0 && (
           <AdminEmpty icon={Star} title={t('nps.empty.title')} hint={t('nps.empty.subtitle')} />
         )}
 
+        {/* Sans `!isError` : un rafraîchissement en échec garde les réponses en
+            cache, et les masquer pour cette seule raison serait une perte sèche. */}
         {!isLoading && responses.length > 0 && (
           <div>
             {responses.map((response, i) => (

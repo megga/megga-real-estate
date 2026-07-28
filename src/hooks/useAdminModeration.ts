@@ -103,6 +103,8 @@ export function useAdminModeration() {
   return {
     listings: listings.data ?? [],
     isLoading: listings.isLoading,
+    isError: listings.isError,
+    refetch: listings.refetch,
     stats: stats.data,
     statsLoading: stats.isLoading,
     moderate,

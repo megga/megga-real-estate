@@ -61,5 +61,7 @@ export function useAdminLiveFeed(limit = 50) {
   return {
     events: events.data ?? [],
     isLoading: events.isLoading,
+    isError: events.isError,
+    refetch: events.refetch,
   }
 }

@@ -66,6 +66,8 @@ export function useAnnouncementsAdmin() {
   return {
     announcements: list.data ?? [],
     isLoading: list.isLoading,
+    isError: list.isError,
+    refetch: list.refetch,
     create,
     update,
     remove,

@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAdminSearch, type AdminSearchResult } from '@/hooks/useAdminSearch'
-import { AdminDivider, AdminEmpty, AdminGroupTitle } from '@/components/admin/kit/adminKit'
+import { AdminDivider, AdminEmpty, AdminError, AdminGroupTitle } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 
@@ -38,7 +38,7 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
-  const { results, loading } = useAdminSearch(query)
+  const { results, loading, isError } = useAdminSearch(query)
   const focusTrapRef = useFocusTrap(open)
 
   // Auto-focus input when dialog opens
@@ -127,7 +127,13 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
 
         {/* Results */}
         <div className="max-h-80 overflow-y-auto scrollbar-hide">
-          {query.length >= 2 && results.length === 0 && !loading && (
+          {/* Une requête refusée ne doit pas se lire « aucun résultat » : la
+              distinction décide de la suite, réessayer ou reformuler. */}
+          {query.length >= 2 && isError && !loading && (
+            <AdminError message={t('common.loadError')} />
+          )}
+
+          {query.length >= 2 && results.length === 0 && !loading && !isError && (
             <AdminEmpty title={t('search.noResult')} />
           )}
 

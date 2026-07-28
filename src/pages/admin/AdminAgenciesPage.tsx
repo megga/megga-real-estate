@@ -33,7 +33,7 @@ import CreateAgencyModal from '@/components/admin/CreateAgencyModal'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
-  AdminAvatar, AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminSolidBtn,
+  AdminAvatar, AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminSolidBtn,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
@@ -107,7 +107,7 @@ function SkeletonRows() {
 export default function AdminAgenciesPage() {
   'use no memo'
   const { t } = useTranslation('admin')
-  const { agencies, isLoading, updateStatus } = useAdminAgencies()
+  const { agencies, isLoading, isError, refetch, updateStatus } = useAdminAgencies()
   const { sp, surf, dark, tones } = useAdminSugar()
 
   // Activity data for health scores.
@@ -298,6 +298,14 @@ export default function AdminAgenciesPage() {
             <AdminSkeleton height={62} radius={ADMIN_RADII.card} />
             <AdminSkeleton height={62} radius={ADMIN_RADII.card} />
           </>
+        ) : isError && paginated.length === 0 ? (
+          <AdminCard padding={0}>
+            <AdminError
+              message={t('common.loadError')}
+              onRetry={() => void refetch()}
+              retryLabel={t('common.retry')}
+            />
+          </AdminCard>
         ) : paginated.length === 0 ? (
           <AdminCard padding={0}>
             <EmptyState hasFilters={!!search || !!statusFilter} />
@@ -343,6 +351,12 @@ export default function AdminAgenciesPage() {
         {/* Lignes */}
         {isLoading ? (
           <SkeletonRows />
+        ) : isError && paginated.length === 0 ? (
+          <AdminError
+            message={t('common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('common.retry')}
+          />
         ) : paginated.length === 0 ? (
           <EmptyState hasFilters={!!search || !!statusFilter} />
         ) : (

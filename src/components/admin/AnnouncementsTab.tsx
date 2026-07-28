@@ -11,8 +11,10 @@ import { Plus, Trash2, Megaphone, Eye, EyeOff, Pencil } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useAnnouncementsAdmin, type Announcement } from '@/hooks/useAnnouncementsAdmin'
 import AnnouncementFormModal from '@/components/admin/AnnouncementFormModal'
+import AdminConfirm from '@/components/admin/AdminConfirm'
+import { useToast } from '@/components/ui/Toast'
 import {
-  AdminCard, AdminEmpty, AdminIc, AdminPill, AdminSkeleton, AdminSolidBtn,
+  AdminCard, AdminEmpty, AdminError, AdminIc, AdminPill, AdminSkeleton, AdminSolidBtn,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
@@ -30,7 +32,10 @@ function severityTone(severity: Announcement['severity']): AdminToneName {
 export default function AnnouncementsTab() {
   const { t } = useTranslation('admin')
   const { sp, tones } = useAdminSugar()
-  const { announcements, isLoading, update, remove } = useAnnouncementsAdmin()
+  const { announcements, isLoading, isError, refetch, update, remove } = useAnnouncementsAdmin()
+  const toast = useToast()
+  // Annonce dont la suppression attend confirmation (`null` = aucune).
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [editing, setEditing] = useState<Announcement | null>(null)
   const [creating, setCreating] = useState(false)
 
@@ -40,6 +45,11 @@ export default function AnnouncementsTab() {
     .ann-act { color: ${sp.sub}; transition: color .16s ease; }
     .ann-act:hover { color: ${sp.ink}; }
     .ann-del:hover { color: ${tones.err}; }
+    /* Révélées au survol ET au focus clavier. En \`group-hover\` seul, les trois
+       actions — dont la suppression — restaient invisibles pour qui les
+       atteignait au clavier : on tabulait sur des boutons qu'on ne voyait pas. */
+    .ann-actions { opacity: 0; }
+    .group:hover .ann-actions, .group:focus-within .ann-actions { opacity: 1; }
   `
 
   const actionBtn: CSSProperties = {
@@ -63,6 +73,14 @@ export default function AnnouncementsTab() {
             <AdminSkeleton key={i} height={92} radius={ADMIN_RADII.card} />
           ))}
         </div>
+      ) : isError && announcements.length === 0 ? (
+        <AdminCard>
+          <AdminError
+            message={t('common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('common.retry')}
+          />
+        </AdminCard>
       ) : announcements.length === 0 ? (
         <AdminCard>
           <AdminEmpty icon={Megaphone} title={t('announcements.empty.title')} hint={t('announcements.empty.subtitle')} />
@@ -109,9 +127,9 @@ export default function AnnouncementsTab() {
                     {a.body}
                   </p>
                 </div>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <div className="ann-actions transition-opacity" style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                   <button
-                    onClick={() => update.mutate({ id: a.id, patch: { published: !a.published } })}
+                    onClick={() => update.mutate({ id: a.id, patch: { published: !a.published } }, { onError: () => toast.error(t('common.actionFailed')) })}
                     aria-label={a.published ? t('announcements.unpublish') : t('announcements.publish')}
                     className="ann-act"
                     style={actionBtn}
@@ -127,7 +145,7 @@ export default function AnnouncementsTab() {
                     <AdminIc icon={Pencil} size={15} />
                   </button>
                   <button
-                    onClick={() => remove.mutate(a.id)}
+                    onClick={() => setPendingDelete(a.id)}
                     aria-label={t('common.delete')}
                     className="ann-act ann-del"
                     style={actionBtn}
@@ -144,6 +162,23 @@ export default function AnnouncementsTab() {
       {(creating || editing) && (
         <AnnouncementFormModal existing={editing} onClose={() => { setCreating(false); setEditing(null) }} />
       )}
+
+      {/* Une annonce supprimée ne se rattrape pas : elle cesse d'être diffusée
+          et son historique part avec. Le premier clic ne suffit plus. */}
+      <AdminConfirm
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        title={t('announcements.deleteTitle')}
+        message={t('announcements.deleteMessage')}
+        confirmLabel={t('common.delete')}
+        busy={remove.isPending}
+        onConfirm={() => {
+          if (pendingDelete) {
+            remove.mutate(pendingDelete, { onError: () => toast.error(t('common.actionFailed')) })
+          }
+          setPendingDelete(null)
+        }}
+      />
     </div>
   )
 }

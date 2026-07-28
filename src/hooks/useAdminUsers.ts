@@ -67,6 +67,8 @@ export function useAdminUsers() {
   return {
     users: users.data ?? [],
     isLoading: users.isLoading,
+    isError: users.isError,
+    refetch: users.refetch,
     updateRole,
   }
 }

@@ -23,7 +23,7 @@ import UserDrawer from '@/components/admin/UserDrawer'
 import PageTransition from '@/components/layout/PageTransition'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
-  AdminAvatar, AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill,
+  AdminAvatar, AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill,
   AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
@@ -82,7 +82,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
 export default function AdminUsersPage() {
   const { t } = useTranslation('admin')
   const { sp, surf, dark } = useAdminSugar()
-  const { users, isLoading } = useAdminUsers()
+  const { users, isLoading, isError, refetch } = useAdminUsers()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('')
   const [page, setPage] = useState(1)
@@ -197,6 +197,12 @@ export default function AdminUsersPage() {
         <AdminCard className="md:hidden" padding={0} style={{ overflow: 'hidden' }}>
           {isLoading ? (
             <SkeletonRows />
+          ) : isError && paginated.length === 0 ? (
+            <AdminError
+              message={t('admin:common.loadError')}
+              onRetry={() => void refetch()}
+              retryLabel={t('admin:common.retry')}
+            />
           ) : paginated.length === 0 ? (
             <EmptyState hasFilters={hasFilters} />
           ) : (
@@ -236,6 +242,12 @@ export default function AdminUsersPage() {
         <AdminCard className="hidden md:block" padding={0} style={{ overflow: 'hidden' }}>
           {isLoading ? (
             <SkeletonRows />
+          ) : isError && paginated.length === 0 ? (
+            <AdminError
+              message={t('admin:common.loadError')}
+              onRetry={() => void refetch()}
+              retryLabel={t('admin:common.retry')}
+            />
           ) : paginated.length === 0 ? (
             <EmptyState hasFilters={hasFilters} />
           ) : (

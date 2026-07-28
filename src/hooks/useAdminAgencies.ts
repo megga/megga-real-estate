@@ -87,6 +87,8 @@ export function useAdminAgencies() {
   return {
     agencies: agencies.data ?? [],
     isLoading: agencies.isLoading,
+    isError: agencies.isError,
+    refetch: agencies.refetch,
     updateStatus,
   }
 }

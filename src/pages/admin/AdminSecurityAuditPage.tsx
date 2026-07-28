@@ -29,7 +29,7 @@ import {
 } from '@/hooks/useSecurityAudit'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import { AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ function SkeletonRows() {
 /** Page : KPI 7 jours + filtres + table paginée du journal d'audit de sécurité. */
 export default function AdminSecurityAuditPage() {
   const { t } = useTranslation('admin')
-  const { data: entries, isLoading } = useSecurityAudit({ limit: 500 })
+  const { data: entries, isLoading, isError, refetch } = useSecurityAudit({ limit: 500 })
   const { sp, surf, dark } = useAdminSugar()
   const toast = useToast()
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
@@ -359,6 +359,12 @@ export default function AdminSecurityAuditPage() {
         {/* Corps */}
         {isLoading ? (
           <SkeletonRows />
+        ) : isError && paginated.length === 0 ? (
+          <AdminError
+            message={t('admin:common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('admin:common.retry')}
+          />
         ) : paginated.length === 0 ? (
           <AdminEmpty
             icon={Shield}
