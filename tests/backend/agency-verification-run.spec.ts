@@ -1403,6 +1403,25 @@ describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch s
     expect(row.result).toBe('partial')
   })
 
+  it(
+    'reponse HTTP 200 hors schema (features absent) -> unavailable, jamais partial (zero resultat invente -- ' +
+      'meme defaut/remede que le registre francais, revue etape 4/tache 3, point 3)',
+    async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          async () =>
+            new Response(JSON.stringify({ message: 'Not Found' }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            })
+        )
+      )
+      const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo())
+      expect(row.result).toBe('unavailable')
+    }
+  )
+
   it('erreur serveur (500) -> unavailable', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500 })))
     const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo())

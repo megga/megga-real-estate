@@ -828,7 +828,19 @@ export function createAddressGeocodeSource(mapboxToken: string): KybSource {
       }
 
       const body = (await res.json()) as MapboxGeocodeResponse
-      const feature = body.features?.[0]
+      // Garde de forme (meme defaut, meme remede que le registre francais plus haut --
+      // fetchFrenchRegistry -- revue etape 4/tache 3, point 3) : HTTP 200 ne garantit
+      // pas la forme. `features` absent ou d'un type inattendu n'est PAS la meme chose
+      // que "zero resultat" -- ce dernier EST une information (Mapbox a cherche et n'a
+      // rien trouve, classifyGeocode le traduit deja en `partial` ci-dessous), l'autre
+      // est une non-reponse qui ne doit jamais se lire comme un zero resultat par
+      // defaut. Toute forme hors schema leve ici -> unavailable via runKybSource().
+      // Connecteur non veto (signal moyen, doc de conception §2.B) donc moins critique
+      // que le registre francais, mais meme remede applique par coherence.
+      if (!Array.isArray(body.features)) {
+        throw new Error('mapbox: unexpected response shape (features is not an array)')
+      }
+      const feature = body.features[0]
       const classification = classifyGeocode(declaredCountry, agency.canton, feature)
 
       return {
