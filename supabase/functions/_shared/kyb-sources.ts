@@ -1,9 +1,10 @@
 // supabase/functions/_shared/kyb-sources.ts
 //
-// Socle des connecteurs de verification KYB (etape 4 de l'onboarding agence). Ce
-// module ne contient AUCUN connecteur reel -- seulement le contrat que chaque
-// connecteur (taches 2 et 3 : RDAP, VIES, recherche-entreprises, Mapbox) devra
-// respecter, et le harnais qui impose la regle qui gouverne toute l'etape :
+// Connecteurs de verification KYB (etape 4 de l'onboarding agence). Ce module posait
+// a la tache 1 le contrat que chaque connecteur (RDAP, VIES, recherche-entreprises,
+// Mapbox) doit respecter, et le harnais qui impose la regle qui gouverne toute
+// l'etape. La tache 2 y ajoute le premier connecteur reel -- RDAP (domain_whois_age,
+// plus bas) ; VIES/recherche-entreprises/Mapbox suivent a la tache 3.
 //
 //   Une source qui ne repond pas produit un check `unavailable`, JAMAIS une
 //   absence de ligne et JAMAIS un echec. Le moteur (recompute_agency_verification,
@@ -23,12 +24,13 @@
 // en-tete d'authentification (voir describeSourceFailure plus bas).
 //
 // runKybSource() est le SEUL point qui doit jamais lever ou pendre indefiniment :
-// un connecteur ecrit ici (tache 2+) peut lever, timeouter, renvoyer n'importe
-// quoi -- runKybSource() absorbe tout et rend TOUJOURS une ligne exploitable.
-// AGENCY_KYB_SOURCES reste vide dans cette tache par construction (brief tache 1,
-// "Tu n'ecris aucun connecteur reel dans cette tache") ; les taches suivantes y
-// ajoutent leurs entrees sans jamais avoir a toucher a agency-verification-run/
-// index.ts ni a reimplementer la gestion d'erreur/timeout.
+// un connecteur ecrit ici peut lever, timeouter, renvoyer n'importe quoi --
+// runKybSource() absorbe tout et rend TOUJOURS une ligne exploitable.
+// AGENCY_KYB_SOURCES etait vide a la tache 1 par construction (brief tache 1,
+// "Tu n'ecris aucun connecteur reel dans cette tache"). La tache 2 y ajoute RDAP ; la
+// tache 3 y ajoutera VIES/recherche-entreprises/Mapbox -- sans jamais avoir a
+// toucher a agency-verification-run/index.ts ni a reimplementer la gestion
+// d'erreur/timeout : c'est precisement ce que ce registre permet.
 //
 // Module pur : aucun import, aucun Deno.env.get. Importable tel quel depuis un
 // test Node/vitest (meme motif que whatsapp-tools.ts, importe sans extension par
@@ -98,16 +100,234 @@ export interface KybSource {
   run: (agency: AgencyForVerification, signal: AbortSignal) => Promise<KybSourceResult>
 }
 
+// ─── Connecteur RDAP (domain_whois_age, tache 2) ───────────────────────────────
+//
+// Extrait le domaine du site web declare par l'agence, puis interroge le serveur
+// RDAP du suffixe -- .ch et .li chez SWITCH (meme infrastructure), .fr chez AFNIC.
+// Ce que le check evalue : l'anciennete du domaine et son statut au registre (brief
+// etape 4/tache 2 ; verifie en direct a la main pour cette tache, voir
+// docs/superpowers/sdd/task-2-report.md). Services publics, sans cle, sans compte.
+//
+// Volontairement HORS PERIMETRE (arbitrage deja tranche par
+// docs/agency-kyb-verification.md §2, rappele par le brief de cette tache) : la
+// ressemblance domaine <-> raison sociale. Un domaine coute douze francs ; un
+// fraudeur soigneux assortit le sien a son faux nom mieux qu'une agence legitime
+// operant sous une enseigne distincte. Si ce rapprochement approximatif vient un
+// jour, ce sera sur trade_name, jamais sur legal_name -- pas dans ce connecteur.
+//
+// Ne PAS reutiliser _shared/safe-fetch.ts ici : cette protection SSRF cible le cas
+// d'une URL fournie par l'appelant dont l'HOTE est arbitraire (extract-property-url)
+// et repose sur Deno.resolveDns, une API Deno qui casserait la testabilite Node de
+// CE module (voir l'en-tete de fichier). Ici l'hote de la requete est TOUJOURS l'un
+// des trois registres codes en dur ci-dessous -- seul le CHEMIN varie avec le
+// domaine extrait. Le risque n'est donc pas un SSRF (redirection vers un hote
+// interne) mais une injection dans le chemin, ecartee par DOMAIN_SHAPE_RE (forme
+// stricte, deux etiquettes, verifiee AVANT toute construction d'URL) et par
+// encodeURIComponent en defense supplementaire.
+
+const RDAP_ENDPOINTS: Readonly<Record<string, string>> = {
+  ch: 'https://rdap.nic.ch',
+  li: 'https://rdap.nic.li',
+  fr: 'https://rdap.nic.fr',
+}
+
+// Domaines de messagerie grand public : un dossier qui en declare un comme "site
+// web" n'appartient a personne en particulier -- ni preuve d'existence de l'agence,
+// ni signal de fraude (beaucoup de tres petites structures n'ont pas de domaine
+// propre, brief tache 2). Liste volontairement courte et centree sur le marche vise
+// (Suisse/France/Liechtenstein) plutot qu'exhaustive : un domaine grand public absent
+// d'ici retombe simplement sur l'evaluation RDAP normale (et le plus souvent sur
+// "suffixe non couvert" -> unavailable, puisque ce sont presque tous des .com),
+// jamais sur une erreur.
+const GENERIC_EMAIL_PROVIDER_DOMAINS: ReadonlySet<string> = new Set([
+  'gmail.com', 'googlemail.com',
+  'outlook.com', 'hotmail.com', 'hotmail.fr', 'live.com', 'msn.com',
+  'yahoo.com', 'yahoo.fr',
+  'icloud.com', 'me.com', 'aol.com',
+  'protonmail.com', 'proton.me',
+  'gmx.net', 'gmx.com', 'gmx.ch', 'web.de',
+  'bluewin.ch',
+  'orange.fr', 'wanadoo.fr', 'free.fr', 'laposte.net', 'sfr.fr',
+])
+
+// Forme stricte d'un domaine a deux etiquettes (SLD.TLD), apres reduction -- rejette
+// tout ce qui contiendrait un caractere hors [a-z0-9-], donc toute tentative
+// d'injection dans le chemin RDAP construit plus bas.
+const DOMAIN_SHAPE_RE = /^[a-z0-9-]+\.[a-z0-9-]+$/
+
+// Sous ce seuil, un domaine "en dit long" contre une agence qui se pretend etablie
+// (brief tache 2, exemple "trois jours") : 30 jours reste tres court, meme pour un
+// enregistrement recent mais legitime.
+const YOUNG_DOMAIN_THRESHOLD_DAYS = 30
+
+// Au-dela, un domaine est raisonnablement "etabli". Entre les deux seuils : ni
+// alarmant ni pleinement rassurant, d'ou `partial`.
+const ESTABLISHED_DOMAIN_THRESHOLD_DAYS = 180
+
+/** Reduit un hostname a ses deux dernieres etiquettes (SLD.TLD) -- absorbe `www.`
+ *  et tout sous-domaine de la meme facon, sans regle dediee a part. Ne gere pas les
+ *  rares suffixes francais a deux niveaux herites (asso.fr, tm.fr...) : hors radar
+ *  d'une agence immobiliere, et une erreur ici ne fait au pire qu'interroger le
+ *  mauvais objet RDAP -> 404 -> mismatch, jamais un crash. */
+function lastTwoLabels(hostname: string): string {
+  const labels = hostname.toLowerCase().split('.').filter(Boolean)
+  return labels.slice(-2).join('.')
+}
+
+/** Extrait le domaine a interroger depuis le site web declare. Leve TOUJOURS plutot
+ *  que de choisir `unavailable` elle-meme (discipline du module, voir
+ *  KybSourceResult plus haut) : site absent, url illisible meme apres l'essai
+ *  `https://` par defaut, ou forme finale hors DOMAIN_SHAPE_RE -- runKybSource() se
+ *  charge de traduire ca en `unavailable` avec la raison de l'echec jointe. */
+function extractRdapDomain(website: string | null): string {
+  const raw = website?.trim()
+  if (!raw) throw new Error('rdap: no website declared')
+
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    try {
+      url = new URL(`https://${raw}`)
+    } catch {
+      throw new Error(`rdap: unparseable website "${raw}"`)
+    }
+  }
+
+  const domain = lastTwoLabels(url.hostname)
+  if (!DOMAIN_SHAPE_RE.test(domain)) {
+    throw new Error(`rdap: unparseable hostname "${url.hostname}"`)
+  }
+  return domain
+}
+
+/** Cherche l'evenement RDAP `registration` dans `events` -- absent chez de nombreux
+ *  domaines .ch (constate en verification manuelle, voir task-2-report.md), jamais
+ *  invente en son absence. */
+function extractRegistrationDate(body: unknown): string | null {
+  if (typeof body !== 'object' || body === null) return null
+  const events = (body as Record<string, unknown>).events
+  if (!Array.isArray(events)) return null
+  for (const event of events) {
+    if (event && typeof event === 'object' && (event as Record<string, unknown>).eventAction === 'registration') {
+      const date = (event as Record<string, unknown>).eventDate
+      if (typeof date === 'string') return date
+    }
+  }
+  return null
+}
+
+/** Statuts RDAP (tableau de chaines) portes par la reponse -- [] si absents ou mal
+ *  formes, jamais invente. */
+function extractStatuses(body: unknown): string[] {
+  if (typeof body !== 'object' || body === null) return []
+  const status = (body as Record<string, unknown>).status
+  if (!Array.isArray(status)) return []
+  return status.filter((s): s is string => typeof s === 'string')
+}
+
+function ageInDays(isoDate: string): number | null {
+  const registered = new Date(isoDate).getTime()
+  if (Number.isNaN(registered)) return null
+  return Math.floor((Date.now() - registered) / 86_400_000)
+}
+
+/** Absence de statut (certains registres ne le publient pas) ou 'active' explicite :
+ *  rien ne contredit un domaine sain. Le reste (inactive, pendingDelete,
+ *  redemptionPeriod, serverHold...) est traite avec prudence mais jamais en mismatch
+ *  sur ce seul indice -- le vocabulaire de statut varie trop d'un registre a l'autre
+ *  pour en tirer une conclusion tranchee a partir de ce connecteur seul. */
+function isReassuringStatus(statuses: string[]): boolean {
+  return statuses.length === 0 || statuses.includes('active')
+}
+
+function classifyDomain(statuses: string[], ageDays: number | null): 'match' | 'partial' | 'mismatch' {
+  if (ageDays !== null) {
+    if (ageDays < YOUNG_DOMAIN_THRESHOLD_DAYS) return 'mismatch'
+    if (ageDays < ESTABLISHED_DOMAIN_THRESHOLD_DAYS) return 'partial'
+    return isReassuringStatus(statuses) ? 'match' : 'partial'
+  }
+  // Anciennete indisponible (frequent chez rdap.nic.ch, verifie a la main -- voir
+  // task-2-report.md) : le statut est le seul indice qui reste, jamais suffisant a
+  // lui seul pour un `match` plein -- on confirme l'existence actuelle du domaine,
+  // pas l'anciennete que revendique un dossier "agence etablie".
+  return 'partial'
+}
+
+async function runRdapDomainWhoisAge(agency: AgencyForVerification, signal: AbortSignal): Promise<KybSourceResult> {
+  const website = agency.website
+  const domain = extractRdapDomain(website)
+
+  if (GENERIC_EMAIL_PROVIDER_DOMAINS.has(domain)) {
+    return {
+      result: 'partial',
+      raw_response: { website, domain, reason: 'generic_email_provider' },
+    }
+  }
+
+  const tld = domain.slice(domain.lastIndexOf('.') + 1)
+  const rdapBase = RDAP_ENDPOINTS[tld]
+  if (!rdapBase) {
+    throw new Error(`rdap: unsupported tld ".${tld}"`)
+  }
+
+  const res = await fetch(`${rdapBase}/domain/${encodeURIComponent(domain)}`, { signal })
+
+  if (res.status === 404) {
+    // Le registre A repondu : ce domaine, precisement, n'existe pas. Signal decisif,
+    // pas une indisponibilite -- brief tache 2, "Trois suffixes couverts... et ce
+    // sont ceux qui repondent".
+    return {
+      result: 'mismatch',
+      raw_response: { website, domain, rdap_status: 404, reason: 'domain_not_registered' },
+    }
+  }
+
+  if (!res.ok) {
+    const err = new Error(`rdap: unexpected status ${res.status}`) as Error & { status: number }
+    err.status = res.status
+    throw err
+  }
+
+  // Une reponse illisible (JSON invalide) leve ici -- jamais rattrapee dans cette
+  // fonction -- et runKybSource() la traduit en `unavailable` (brief tache 2 : "une
+  // reponse illisible" vaut indisponibilite, jamais un match invente).
+  const body: unknown = await res.json()
+
+  const statuses = extractStatuses(body)
+  const registeredOn = extractRegistrationDate(body)
+  const ageDays = registeredOn ? ageInDays(registeredOn) : null
+
+  return {
+    result: classifyDomain(statuses, ageDays),
+    raw_response: {
+      website,
+      domain,
+      rdap_status: res.status,
+      status: statuses,
+      registered_on: registeredOn,
+      age_days: ageDays,
+      rdap: body,
+    },
+  }
+}
+
+const rdapDomainWhoisAgeSource: KybSource = {
+  checkType: 'domain_whois_age',
+  source: 'rdap',
+  run: runRdapDomainWhoisAge,
+}
+
 /**
- * Registre des connecteurs actifs. VIDE dans cette tache par construction : "Tu
- * n'ecris aucun connecteur reel dans cette tache" (brief etape 4, tache 1). Un
- * check_type non catalogue dans verification_check_types ferait de toute facon
- * echouer l'insert (FK, migration 20260728103000) -- une entree ici EST donc deja
- * un connecteur pour de vrai, jamais un double de test. Les taches 2 (RDAP) et 3
- * (VIES, recherche-entreprises, Mapbox) y ajoutent leurs entrees ;
- * agency-verification-run/index.ts n'a jamais a changer pour ca.
+ * Registre des connecteurs actifs. VIDE a la tache 1 par construction ("Tu n'ecris
+ * aucun connecteur reel dans cette tache", brief etape 4). Un check_type non
+ * catalogue dans verification_check_types ferait de toute facon echouer l'insert
+ * (FK, migration 20260728103000) -- une entree ici EST donc deja un connecteur pour
+ * de vrai, jamais un double de test. RDAP (domain_whois_age) est le premier, ajoute
+ * par la tache 2 ; la tache 3 (VIES, recherche-entreprises, Mapbox) y ajoutera les
+ * siens ; agency-verification-run/index.ts n'a jamais a changer pour ca.
  */
-export const AGENCY_KYB_SOURCES: KybSource[] = []
+export const AGENCY_KYB_SOURCES: KybSource[] = [rdapDomainWhoisAgeSource]
 
 /** Budget par source. Tres inferieur au testTimeout vitest (15s,
  *  vitest.backend.config.ts) et au budget d'execution d'une Edge Function -- une

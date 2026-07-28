@@ -1,8 +1,8 @@
 // supabase/functions/agency-verification-run/index.ts
 //
 // Socle de la verification KYB (etape 4, tache 1) : lit l'agence a verifier,
-// execute les connecteurs disponibles (_shared/kyb-sources.ts -- AUCUN connecteur
-// reel dans cette tache, le registre AGENCY_KYB_SOURCES est vide), puis confie
+// execute les connecteurs disponibles (_shared/kyb-sources.ts -- registre
+// AGENCY_KYB_SOURCES, vide a la tache 1, RDAP ajoute a la tache 2), puis confie
 // l'ecriture des checks produits, l'appel du moteur de scoring
 // (recompute_agency_verification, 20260728130000) et la journalisation de son
 // PROPRE passage (distinct du journal du moteur -- voir plus bas) a UNE SEULE RPC,
@@ -111,10 +111,10 @@ serve(async (req) => {
     if (agencyErr) throw agencyErr
     if (!agency) return json({ error: 'agency_not_found' }, 404)
 
-    // 2. Sources -- registre VIDE dans cette tache (voir _shared/kyb-sources.ts).
-    // Le harnais garantit que toute source, presente ou future, produit TOUJOURS
-    // une ligne : succes, echec ou timeout ne font jamais disparaitre un check et
-    // ne font jamais echouer cet appel.
+    // 2. Sources -- registre AGENCY_KYB_SOURCES (voir _shared/kyb-sources.ts ; RDAP
+    // depuis la tache 2). Le harnais garantit que toute source, presente ou future,
+    // produit TOUJOURS une ligne : succes, echec ou timeout ne font jamais
+    // disparaitre un check et ne font jamais echouer cet appel.
     const outcomes = await runAgencyKybSources(agency)
 
     // 3-4-5. Ecriture des checks, appel du moteur et journalisation du PASSAGE de

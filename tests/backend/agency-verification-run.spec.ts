@@ -1,6 +1,7 @@
 // Backend test (live CI) -- socle de l'Edge Function agency-verification-run
 // (etape 4, tache 1 -- supabase/functions/agency-verification-run/index.ts et son
-// module partage supabase/functions/_shared/kyb-sources.ts).
+// module partage supabase/functions/_shared/kyb-sources.ts) et connecteur RDAP
+// (etape 4, tache 2 -- domain_whois_age, premier connecteur reel du registre).
 //
 // Principe directeur de toute l'etape 4 (voir
 // docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-4.md, « Le principe qui
@@ -12,25 +13,29 @@
 // par defaut (un `match` faute de reponse serait une preuve fabriquee par le
 // systeme lui-meme).
 //
-// Deux volets dans ce fichier :
+// Trois volets dans ce fichier :
 //   1. Le harnais PUR (_shared/kyb-sources.ts) -- import direct, aucun reseau,
 //      aucune dependance Deno (ce module n'appelle jamais Deno.env.get, contrairement
 //      a _shared/magic-link-token.ts -- aucun shim globalThis.Deno necessaire, meme
 //      motif que whatsapp-antifab.spec.ts qui importe deja un _shared/*.ts sans
 //      extension de la meme facon).
 //   2. La fonction deployee (HTTP, port 54321) -- lecture agence, ecriture des
-//      checks, appel du moteur, journalisation. AUCUN connecteur reel dans cette
-//      tache : le registre AGENCY_KYB_SOURCES est vide par construction (brief
-//      tache 1, « Tu n'ecris aucun connecteur reel dans cette tache »). Les tests
-//      HTTP portent donc sur la PLOMBERIE (elle lit, ecrit, appelle le moteur,
-//      journalise, rejoue proprement), jamais sur un connecteur reel -- absent
-//      jusqu'aux taches 2 et 3.
+//      checks, appel du moteur, journalisation. Un seul connecteur reel existe a ce
+//      stade (RDAP, domain_whois_age -- tache 2) ; les tests HTTP portent sur la
+//      PLOMBERIE (elle lit, ecrit, appelle le moteur, journalise, rejoue proprement)
+//      et tiennent compte de ce que CE connecteur ecrit reellement.
+//   3. Le connecteur RDAP lui-meme (describe hors skipIf, plus bas dans ce fichier)
+//      -- logique pure, fetch STUBBE (jamais de reseau reel dans la suite
+//      automatisee, meme motif que _shared/esign-finalize.test.ts qui stubbe deja
+//      fetch pour un connecteur externe). Tourne SANS Supabase local -- import
+//      direct du module, comme le volet 1.
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI : ces tests tournent contre un Supabase local
 // seede et DOIVENT reellement passer -- lire le compte de tests, jamais le code de
-// sortie (meme convention que agency-verification-engine.spec.ts).
+// sortie (meme convention que agency-verification-engine.spec.ts). Le volet 3 (fetch
+// stubbe) n'est lui-meme jamais concerne par ce skip : il ne touche ni reseau ni DB.
 
-import { describe, it, expect, afterAll } from 'vitest'
+import { describe, it, expect, afterAll, afterEach, vi } from 'vitest'
 import { serviceRoleClient } from './helpers/supabase'
 import {
   runKybSource,
@@ -229,13 +234,16 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(rows.every((r) => r.result === 'unavailable')).toBe(true)
     }, 2_000)
 
-    it("AGENCY_KYB_SOURCES est vide dans cette tache -- aucun connecteur reel n'est ecrit ici", () => {
-      // Rappel brief tache 1 : "Tu n'ecris aucun connecteur reel dans cette tache."
-      // Un check_type non catalogue dans verification_check_types ferait de toute
-      // facon echouer l'insert (FK, 20260728103000) -- une entree ici serait deja un
-      // vrai connecteur, jamais un double de test. Les taches 2 et 3 rempliront ce
-      // registre.
-      expect(AGENCY_KYB_SOURCES).toEqual([])
+    it('AGENCY_KYB_SOURCES contient exactement le connecteur RDAP ajoute par cette tache (domain_whois_age)', () => {
+      // Le registre etait vide a la tache 1 ("Tu n'ecris aucun connecteur reel dans
+      // cette tache"). Cette tache (2) y ajoute le premier connecteur reel : RDAP. Un
+      // check_type non catalogue dans verification_check_types ferait de toute facon
+      // echouer l'insert (FK, 20260728103000) -- cette entree EST donc deja un vrai
+      // connecteur, jamais un double de test. La tache 3 (VIES, recherche-entreprises,
+      // Mapbox) y ajoutera les siens.
+      expect(AGENCY_KYB_SOURCES).toHaveLength(1)
+      expect(AGENCY_KYB_SOURCES[0].checkType).toBe('domain_whois_age')
+      expect(AGENCY_KYB_SOURCES[0].source).toBe('rdap')
     })
 
     // Revue etape 4/tache 1, point 1 : raw_response est desormais OBLIGATOIRE dans
@@ -363,7 +371,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(res.status).toBe(404)
     })
 
-    it("ecrit (rien a ecrire dans cette tache), appelle bien le moteur apres avoir ecrit, et journalise son passage", async () => {
+    it('ecrit le check RDAP (domain_whois_age, unavailable sans site web declare), appelle bien le moteur apres avoir ecrit, et journalise son passage', async () => {
       const agencyId = await createAgency('happy')
       await addActiveSignatory(agencyId)
 
@@ -371,13 +379,15 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       const body = await res.json()
       expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
       expect(body.ok).toBe(true)
-      // Registre AGENCY_KYB_SOURCES vide dans cette tache -> zero check ecrit par
-      // CETTE fonction. C'est attendu, pas une absence de comportement.
-      expect(body.checks_written).toBe(0)
+      // Un seul connecteur reel dans le registre a ce stade (RDAP, tache 2).
+      // createAgency() ne pose pas de website -> le connecteur n'a rien a verifier et
+      // produit `unavailable` (jamais un echec, jamais une absence de ligne).
+      expect(body.checks_written).toBe(1)
+      expect(body.results.unavailable).toBe(1)
 
-      // Le moteur a bien tourne : sans aucun check, score null -> jamais
-      // auto_validated (regle du moteur, 20260728130000), et le statut a bouge du
-      // defaut 'pending' vers 'manual_review'.
+      // Le moteur a bien tourne : domain_whois_age est unavailable donc exclu du
+      // score (regle du moteur, 20260728130000) -> score toujours null -> jamais
+      // auto_validated, et le statut a bouge du defaut 'pending' vers 'manual_review'.
       const agency = await getAgency(agencyId)
       expect(agency.verification_status).toBe('manual_review')
       expect(num(agency.verification_score)).toBeNull()
@@ -388,6 +398,11 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       // tache 1).
       expect(await getEvents(agencyId, 'agency_verification_recomputed')).toHaveLength(1)
       expect(await getEvents(agencyId, 'agency_verification_run')).toHaveLength(1)
+
+      const checks = await getChecks(agencyId)
+      expect(checks).toHaveLength(1)
+      expect(checks[0].check_type).toBe('domain_whois_age')
+      expect(checks[0].result).toBe('unavailable')
     })
 
     it('le passage journalise respecte activity_events (category=kyc, actor_kind=system, actor_id NULL)', async () => {
@@ -406,7 +421,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(event.entity_id).toBe(agencyId)
     })
 
-    it("rejouable : deux appels de suite n'empilent aucun check propre a cette fonction et font tourner le moteur deux fois", async () => {
+    it('rejouable : deux appels de suite ecrivent chacun leur propre check RDAP (pas de dedoublonnage cote fonction) et font tourner le moteur deux fois', async () => {
       const agencyId = await createAgency('replay')
       await addActiveSignatory(agencyId)
 
@@ -415,10 +430,11 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       const res2 = await callRun(agencyId)
       expect(res2.status).toBe(200)
 
-      // Registre vide dans cette tache -> aucune ecriture propre a cette fonction,
-      // donc aucun doublon possible de son propre fait, quel que soit le nombre
-      // d'appels.
-      expect(await getChecks(agencyId)).toHaveLength(0)
+      // "Rejouable" ne veut pas dire "dedoublonne" : cette fonction insere une ligne a
+      // CHAQUE appel (le connecteur RDAP tourne a nouveau), c'est le moteur qui
+      // departage plusieurs lignes du meme type par ctid (voir le test dedie plus
+      // bas), jamais cette fonction qui filtre avant d'ecrire.
+      expect(await getChecks(agencyId)).toHaveLength(2)
       // Chaque appel a reellement fait tourner le moteur -- pas seulement le
       // premier -- et journalise son propre passage a chaque fois.
       expect(await getEvents(agencyId, 'agency_verification_recomputed')).toHaveLength(2)
@@ -434,12 +450,12 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
 
         // Simule ce qu'ecrirait un futur connecteur qui rejoue un veto : deux lignes
         // du meme check_type dans UN SEUL insert => meme checked_at (defaut = debut
-        // de transaction, cf. l'en-tete de recompute_agency_verification). Le
-        // registre de cette tache etant vide, cette fonction n'ecrit rien de son
-        // propre chef ici -- ce test verifie que sa plomberie (appel du moteur APRES
+        // de transaction, cf. l'en-tete de recompute_agency_verification). Ce test
+        // verifie que la plomberie de cette fonction (appel du moteur APRES
         // l'ecriture, sans jamais essayer de reordonner/nettoyer les checks
-        // existants elle-meme) laisse le moteur trancher correctement, et que
-        // rejouer ne casse pas ce resultat.
+        // existants elle-meme -- y compris ceux, distincts, que le connecteur RDAP
+        // ecrit a chaque appel) laisse le moteur trancher correctement sur les DEUX
+        // lignes seedees ici, et que rejouer ne casse pas ce resultat.
         const svc = serviceRoleClient()
         const { error: seedErr } = await svc.from('agency_verification_checks').insert([
           { agency_id: agencyId, check_type: 'registry_number_format', source: 'manual', result: 'match' },
@@ -460,12 +476,14 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         ).toBe('manual_review')
 
         // Rejouer une seconde fois ne doit ni faire disparaitre ce resultat ni
-        // empiler un doublon supplementaire (registre vide -> cette fonction ne
-        // touche pas aux 2 lignes deja presentes) : toujours 2 lignes, toujours
-        // manual_review.
+        // reordonner/nettoyer les 2 lignes seedees (cette fonction ne touche jamais
+        // aux checks existants) : le veto reste tranche par la meme ligne mismatch,
+        // toujours manual_review. Le compte total grandit bien (RDAP ecrit sa propre
+        // ligne a chaque appel, +1 a res, +1 a res2), preuve que "rejouable" n'est pas
+        // "silencieux" -- seul le resultat DECISIF (le veto seede) ne doit pas bouger.
         const res2 = await callRun(agencyId)
         expect(res2.status).toBe(200)
-        expect(await getChecks(agencyId)).toHaveLength(2)
+        expect(await getChecks(agencyId)).toHaveLength(4)
         const agencyAfter = await getAgency(agencyId)
         expect(agencyAfter.verification_status).toBe('manual_review')
       }
@@ -515,4 +533,211 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(await getEvents(agencyId, 'agency_verification_run')).toHaveLength(0)
     })
   })
+})
+
+// ─── Connecteur RDAP (domain_whois_age, etape 4 tache 2) -- logique pure ──────────
+//
+// Hors du describe.skipIf(!HAS_KEYS) ci-dessus DELIBEREMENT : ce volet n'a besoin ni
+// de reseau reel (fetch stubbe, meme motif que _shared/esign-finalize.test.ts) ni de
+// Supabase local (import direct du module, meme motif que le "harnais pur" plus
+// haut). Il DOIT tourner meme sans `supabase start`, et jamais dependre de la
+// disponibilite des serveurs RDAP publics (rdap.nic.ch / .li / .fr) -- une suite de
+// tests qui dependrait d'un service tiers serait aussi fragile que le systeme qu'elle
+// verifie. La verification CONTRE le vrai serveur RDAP se fait a la main, une fois,
+// hors de cette suite -- voir docs/superpowers/sdd/task-2-report.md.
+describe('connecteur RDAP (domain_whois_age) -- logique pure, fetch stubbe (aucun reseau reel)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function rdapSource(): KybSource {
+    const found = AGENCY_KYB_SOURCES.find((s) => s.checkType === 'domain_whois_age')
+    if (!found) throw new Error('domain_whois_age absent de AGENCY_KYB_SOURCES -- le connecteur RDAP n est pas enregistre')
+    return found
+  }
+
+  function agencyWithWebsite(website: string | null): AgencyForVerification {
+    return {
+      id: '00000000-0000-0000-0000-000000000000',
+      legal_name: 'Regie Test SA',
+      trade_name: null,
+      business_registration_number: null,
+      country: 'CH',
+      canton: 'GE',
+      city: null,
+      postal_code: null,
+      address: null,
+      website,
+      tva: null,
+    }
+  }
+
+  // Reponse RDAP minimale valide -- {status, events} par defaut, ecrasable au cas par
+  // cas. new Response() (global Node/Deno standard, aucun import) suffit : le
+  // connecteur ne lit que .status (HTTP) et .json().
+  function rdapResponse(body: Record<string, unknown>, httpStatus = 200): Response {
+    return new Response(JSON.stringify({ status: ['active'], events: [], ...body }), {
+      status: httpStatus,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+
+  it('aucun site web declare -> unavailable, jamais mismatch (rien a verifier) -- et aucune requete reseau', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    const row = await runKybSource(rdapSource(), agencyWithWebsite(null))
+    expect(row.result).toBe('unavailable')
+    expect(row.check_type).toBe('domain_whois_age')
+    expect(row.source).toBe('rdap')
+    expect(fetchSpy, 'pas de site web -> rien a interroger, jamais un appel RDAP').not.toHaveBeenCalled()
+  })
+
+  it('site web vide (chaine blanche) -> unavailable, meme traitement que null', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('   '))
+    expect(row.result).toBe('unavailable')
+  })
+
+  it('suffixe non couvert (.de) -> unavailable, jamais un echec qui bloque tout le passage', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://www.example.de'))
+    expect(row.result).toBe('unavailable')
+    expect(fetchSpy, 'suffixe non couvert -> aucun serveur a interroger').not.toHaveBeenCalled()
+  })
+
+  it("domaine grand public (gmail.com) -> partial, jamais mismatch : beaucoup de petites agences n'ont pas de domaine propre", async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('gmail.com'))
+    expect(row.result).toBe('partial')
+    expect(row.raw_response).toMatchObject({ domain: 'gmail.com', reason: 'generic_email_provider' })
+    expect(fetchSpy, 'un domaine grand public ne declenche meme pas de requete RDAP').not.toHaveBeenCalled()
+  })
+
+  it('outlook.com (autre domaine grand public, avec chemin) -> partial egalement', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://outlook.com/mail/inbox'))
+    expect(row.result).toBe('partial')
+    expect(row.raw_response.domain).toBe('outlook.com')
+  })
+
+  it('domaine .ch introuvable au registre (RDAP 404) -> mismatch, jamais unavailable : le serveur A repondu, sans ambiguite', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 404 })))
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://une-agence-qui-nexiste-pas-zzz.ch'))
+    expect(row.result).toBe('mismatch')
+    expect(row.raw_response).toMatchObject({
+      domain: 'une-agence-qui-nexiste-pas-zzz.ch',
+      rdap_status: 404,
+      reason: 'domain_not_registered',
+    })
+  })
+
+  it('domaine .ch enregistre il y a 3 jours -> mismatch (contredit une agence qui se pretend etablie)', async () => {
+    const threeDaysAgo = new Date(Date.now() - 3 * 86_400_000).toISOString()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => rdapResponse({ status: ['active'], events: [{ eventAction: 'registration', eventDate: threeDaysAgo }] }))
+    )
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://jeune-agence.ch'))
+    expect(row.result).toBe('mismatch')
+    expect(row.raw_response.age_days).toBeLessThan(30)
+  })
+
+  it('domaine .fr enregistre il y a plus de 6 mois, statut actif -> match', async () => {
+    const longAgo = new Date(Date.now() - 400 * 86_400_000).toISOString()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => rdapResponse({ status: ['active'], events: [{ eventAction: 'registration', eventDate: longAgo }] }))
+    )
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://www.regie-etablie.fr'))
+    expect(row.result).toBe('match')
+  })
+
+  it('domaine .li enregistre il y a 90 jours (entre les deux seuils) -> partial : ni alarmant ni pleinement rassurant', async () => {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 86_400_000).toISOString()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => rdapResponse({ status: ['active'], events: [{ eventAction: 'registration', eventDate: ninetyDaysAgo }] }))
+    )
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('agence-recente.li'))
+    expect(row.result).toBe('partial')
+  })
+
+  it("reponse RDAP sans date d'enregistrement (constate en verification manuelle sur plusieurs domaines .ch reels) mais statut actif -> partial, jamais un match invente sur une anciennete inconnue", async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => rdapResponse({ status: ['active'], events: [] })))
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://regie-sans-date.ch'))
+    expect(row.result).toBe('partial')
+  })
+
+  it('statut non-actif sans date -> partial, jamais mismatch sur ce seul indice (vocabulaire de statut trop variable d un registre a l autre)', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => rdapResponse({ status: ['inactive'], events: [] })))
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://regie-inactive.ch'))
+    expect(row.result).toBe('partial')
+  })
+
+  it('le serveur RDAP repond en erreur serveur (500) -> unavailable, jamais un echec qui bloque le dossier', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500 })))
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://regie.ch'))
+    expect(row.result).toBe('unavailable')
+  })
+
+  it('reponse illisible (JSON invalide) -> unavailable, jamais un match invente faute de savoir lire la reponse', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('<html>pas du json</html>', { status: 200, headers: { 'content-type': 'text/html' } }))
+    )
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://regie.ch'))
+    expect(row.result).toBe('unavailable')
+  })
+
+  it('panne reseau (fetch qui rejette) -> unavailable, jamais une exception qui remonte jusqu au moteur', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network down')
+      })
+    )
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://regie.ch'))
+    expect(row.result).toBe('unavailable')
+  })
+
+  it('le domaine est extrait du site web quelle que soit sa forme (https://, www., chemin, query) et interroge le bon registre selon le suffixe', async () => {
+    const fetchSpy = vi.fn(async () => rdapResponse({ status: ['active'], events: [] }))
+    vi.stubGlobal('fetch', fetchSpy)
+    await runKybSource(rdapSource(), agencyWithWebsite('https://www.regie-dupont.ch/contact?ref=1'))
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(String(fetchSpy.mock.calls[0][0])).toBe('https://rdap.nic.ch/domain/regie-dupont.ch')
+  })
+
+  it('route .li vers rdap.nic.li et .fr vers rdap.nic.fr', async () => {
+    const fetchSpy = vi.fn(async () => rdapResponse({ status: ['active'], events: [] }))
+    vi.stubGlobal('fetch', fetchSpy)
+    await runKybSource(rdapSource(), agencyWithWebsite('regie.li'))
+    await runKybSource(rdapSource(), agencyWithWebsite('regie.fr'))
+    expect(String(fetchSpy.mock.calls[0][0])).toBe('https://rdap.nic.li/domain/regie.li')
+    expect(String(fetchSpy.mock.calls[1][0])).toBe('https://rdap.nic.fr/domain/regie.fr')
+  })
+
+  it('un resultat calcule (match/partial/mismatch) joint toujours domaine, statut HTTP et payload RDAP -- jamais un verdict sans preuve (revue etape 4/tache 1, point 1)', async () => {
+    const longAgo = new Date(Date.now() - 400 * 86_400_000).toISOString()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => rdapResponse({ status: ['active'], events: [{ eventAction: 'registration', eventDate: longAgo }] }))
+    )
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://regie-etablie.ch'))
+    expect(row.result).toBe('match')
+    expect(row.raw_response.domain).toBe('regie-etablie.ch')
+    expect(row.raw_response.rdap_status).toBe(200)
+    expect(row.raw_response.rdap).toBeTruthy()
+  })
+
+  it("timeout du connecteur RDAP (signal d'annulation atteint) -> unavailable via le harnais, meme sans reponse du tout", async () => {
+    // Simule un serveur qui ne repond jamais : fetch ne se resout ni ne rejette avant
+    // le timeout externe de runKybSource (Promise.race, _shared/kyb-sources.ts).
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://regie-muette.ch'), 50)
+    expect(row.result).toBe('unavailable')
+    expect(row.raw_response).toMatchObject({ reason: 'timeout' })
+  }, 2_000)
 })
