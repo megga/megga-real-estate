@@ -3,6 +3,7 @@
 // useKycDossierByContact, useContactTimeline, useMatching), rien n'est fabriqué.
 
 import type { Contact, SearchCriteria } from '@/types/contact'
+import { auditActionLabel } from '@/lib/auditActionLabel'
 import type { KycDossierStatus } from '@/types/kyc'
 import type { MobileTokens } from '../tokens'
 import { formatCHF } from '@/lib/utils'
@@ -148,9 +149,14 @@ export function timelineCat(action: string): TimelineCat {
 }
 
 /** Action brute → titre lisible (cohérent avec le desktop qui affiche l'action). */
+/**
+ * Libellé d'une action de timeline. Délègue à la source unique
+ * (`auditActionLabel`) : cette fonction se contentait de dérider le snake_case,
+ * donc affichait « Kyc case opened » là où le journal d'audit, lui, montrait la
+ * valeur brute — deux surfaces, deux rendus, aucun traduit.
+ */
 export function prettifyAction(action: string): string {
-  const s = (action || '').replace(/[_.]+/g, ' ').trim()
-  return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
+  return auditActionLabel(action)
 }
 
 // ─── Matching (statut réel → libellé + ton) ───────────────────────────────

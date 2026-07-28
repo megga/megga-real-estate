@@ -432,6 +432,34 @@
     "footer": {
       "retention": "Events are cryptographically signed and retained for 10 years (nFADP art. 12 · AMLA art. 7).",
       "tamperLogged": "Any attempt to delete or alter a record is itself logged."
+    },
+    "action": {
+      "match_suggested": "Übereinstimmung vorgeschlagen",
+      "stage_change": "Phase geändert",
+      "status_change": "Status geändert",
+      "contact_created": "Kontakt erstellt",
+      "note_added": "Notiz hinzugefügt",
+      "reminder_created": "Erinnerung erstellt",
+      "visit_scheduled": "Besichtigung geplant",
+      "kyc_case_opened": "KYC-Dossier eröffnet",
+      "kyc_screening": "KYC-Prüfung durchgeführt",
+      "kyc_report_sent": "KYC-Bericht gesendet",
+      "lead_created_whatsapp": "Lead erstellt (WhatsApp)",
+      "lead_qualified_whatsapp": "Lead qualifiziert (WhatsApp)",
+      "seller_lead_received": "Verkäuferanfrage erhalten",
+      "contact_message_received": "Kontaktnachricht erhalten",
+      "whatsapp_agent_copilot_reply": "Antwort des WhatsApp-Copiloten",
+      "offer_created": "Angebot erstellt",
+      "offer_countered": "Gegenangebot gesendet",
+      "offer_accepted": "Angebot angenommen",
+      "offer_rejected": "Angebot abgelehnt",
+      "offer_expired": "Angebot abgelaufen",
+      "offer_withdrawn": "Angebot zurückgezogen",
+      "role_changed": "Rolle geändert",
+      "admin_console_entered": "Admin-Konsole geöffnet",
+      "contact_scores.recompute": "Kontakt-Scores neu berechnet",
+      "property_scores.recompute": "Objekt-Scores neu berechnet",
+      "rls_hardening_applied": "RLS-Härtung angewendet"
     }
   },
   "portal": {

@@ -438,6 +438,34 @@
     "footer": {
       "retention": "Events are cryptographically signed and retained for 10 years (nFADP art. 12 · AMLA art. 7).",
       "tamperLogged": "Any attempt to delete or alter a record is itself logged."
+    },
+    "action": {
+      "match_suggested": "Match suggested",
+      "stage_change": "Stage changed",
+      "status_change": "Status changed",
+      "contact_created": "Contact created",
+      "note_added": "Note added",
+      "reminder_created": "Reminder created",
+      "visit_scheduled": "Visit scheduled",
+      "kyc_case_opened": "KYC case opened",
+      "kyc_screening": "KYC screening run",
+      "kyc_report_sent": "KYC report sent",
+      "lead_created_whatsapp": "Lead created (WhatsApp)",
+      "lead_qualified_whatsapp": "Lead qualified (WhatsApp)",
+      "seller_lead_received": "Seller lead received",
+      "contact_message_received": "Contact message received",
+      "whatsapp_agent_copilot_reply": "WhatsApp copilot reply",
+      "offer_created": "Offer created",
+      "offer_countered": "Counter-offer sent",
+      "offer_accepted": "Offer accepted",
+      "offer_rejected": "Offer rejected",
+      "offer_expired": "Offer expired",
+      "offer_withdrawn": "Offer withdrawn",
+      "role_changed": "Role changed",
+      "admin_console_entered": "Admin console opened",
+      "contact_scores.recompute": "Contact scores recomputed",
+      "property_scores.recompute": "Property scores recomputed",
+      "rls_hardening_applied": "RLS hardening applied"
     }
   },
   "portal": {
