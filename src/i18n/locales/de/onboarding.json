@@ -36,7 +36,7 @@
     "signataire": {
       "eyebrow": "Zeichnungsberechtigte Person",
       "title": "Wer ist berechtigt, für die Agentur zu unterzeichnen?",
-      "subtitle": "Geben Sie die Identität der Person an, die berechtigt ist, die Agentur zu verpflichten. Diese Angaben sind durch das Schweizer Geldwäschereigesetz (GwG) vorgeschrieben.",
+      "subtitle": "Geben Sie die Identität der Person an, die berechtigt ist, die Agentur zu verpflichten. Wir erheben diese Angaben im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG).",
       "fields": {
         "firstName": "Vorname",
         "lastName": "Nachname",

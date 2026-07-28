@@ -36,7 +36,7 @@
     "signataire": {
       "eyebrow": "Firmatario autorizzato",
       "title": "Chi è autorizzato a firmare per l'agenzia?",
-      "subtitle": "Indichi l'identità della persona autorizzata a impegnare l'agenzia. Queste informazioni sono richieste dalla legge svizzera antiriciclaggio (LRD).",
+      "subtitle": "Indichi l'identità della persona autorizzata a impegnare l'agenzia. Raccogliamo queste informazioni nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD).",
       "fields": {
         "firstName": "Nome",
         "lastName": "Cognome",

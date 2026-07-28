@@ -36,7 +36,7 @@
     "signataire": {
       "eyebrow": "Signataire autorisé",
       "title": "Qui est autorisé à signer pour l'agence ?",
-      "subtitle": "Indiquez l'identité de la personne habilitée à engager l'agence. Ces informations sont exigées par la loi suisse sur le blanchiment d'argent (LBA).",
+      "subtitle": "Indiquez l'identité de la personne habilitée à engager l'agence. Nous collectons ces informations dans le cadre de nos contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA).",
       "fields": {
         "firstName": "Prénom",
         "lastName": "Nom",

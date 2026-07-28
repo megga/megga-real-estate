@@ -36,7 +36,7 @@
     "signataire": {
       "eyebrow": "Authorized signatory",
       "title": "Who is authorized to sign for the agency?",
-      "subtitle": "Provide the identity of the person authorized to commit the agency. This information is required under Swiss anti-money laundering law (AMLA).",
+      "subtitle": "Provide the identity of the person authorized to commit the agency. We collect this information as part of our compliance controls, under Swiss anti-money laundering law (AMLA).",
       "fields": {
         "firstName": "First name",
         "lastName": "Last name",
