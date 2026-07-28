@@ -455,6 +455,66 @@ describe.skipIf(!HAS_KEYS)('recompute_agency_verification — moteur de scoring 
     ).toBe('manual_review')
   })
 
+  // Checks de PERSONNE SCORABLES (signatory_registry_match poids 3.00, poa_document_review
+  // poids 2.00 -- docs/agency-kyb-verification.md §2 B, « signaux moyens ... contribuent
+  // au score »). Distincts des vetos de personne ci-dessus : ceux-ci bloquent, ceux-la
+  // pesent dans la moyenne, exactement comme les checks d'agence.
+
+  it('un signatory_registry_match et un poa_document_review en mismatch pesent dans le score (pas ignores)', async () => {
+    // Repro revue : les deux en mismatch, tout le reste parfait -> l'ancien moteur
+    // ignorait les checks de personne scorables et rendait un score de 1.000 (auto_validated).
+    const agencyId = await createAgency('person-scored-mismatch')
+    const signatoryId = await addActiveSignatory(agencyId)
+    await passAllVetoes(agencyId, signatoryId)
+    await insertAgencyCheck(agencyId, 'vat_lookup', 'match') // poids 3.00 -> 3.00
+    await insertPersonCheck(signatoryId, 'signatory_registry_match', 'mismatch') // poids 3.00 -> 0
+    await insertPersonCheck(signatoryId, 'poa_document_review', 'mismatch')      // poids 2.00 -> 0
+    // score attendu : 3.00 / (3.00+3.00+2.00) = 0.375
+
+    await recompute(agencyId)
+    const agency = await getAgency(agencyId)
+
+    expect(
+      num(agency.verification_score),
+      'les mismatch de personne scorables doivent faire baisser le score, pas etre ignores'
+    ).toBeCloseTo(0.375, 2)
+    expect(agency.verification_status).not.toBe('auto_validated')
+    expect(agency.verification_status).toBe('manual_review')
+  })
+
+  it('un unavailable sur un check personne scorable ne fait pas baisser le score, il sort du calcul', async () => {
+    const agencyId = await createAgency('person-scored-unavailable')
+    const signatoryId = await addActiveSignatory(agencyId)
+    await passAllVetoes(agencyId, signatoryId)
+    await insertAgencyCheck(agencyId, 'vat_lookup', 'match') // poids 3.00, seul contributeur si exclu
+    await insertPersonCheck(signatoryId, 'signatory_registry_match', 'unavailable') // exclu num ET denom
+
+    await recompute(agencyId)
+    const agency = await getAgency(agencyId)
+
+    // Si unavailable comptait comme un mismatch : score = 3/(3+3) = 0.5.
+    expect(num(agency.verification_score)).toBeCloseTo(1, 2)
+    expect(agency.verification_status).toBe('auto_validated')
+  })
+
+  it('deux checks personne scorables du meme type ne comptent qu une fois, le plus recent', async () => {
+    const agencyId = await createAgency('person-scored-dedup')
+    const signatoryId = await addActiveSignatory(agencyId)
+    await passAllVetoes(agencyId, signatoryId)
+    await insertAgencyCheck(agencyId, 'vat_lookup', 'match')
+    const older = new Date(Date.now() - 2000).toISOString()
+    const newer = new Date(Date.now() - 1000).toISOString()
+    await insertPersonCheck(signatoryId, 'poa_document_review', 'mismatch', older)
+    await insertPersonCheck(signatoryId, 'poa_document_review', 'match', newer)
+
+    await recompute(agencyId)
+    const agency = await getAgency(agencyId)
+
+    // Si les deux lignes comptaient (moyenne mismatch+match), le score serait < 1.
+    expect(num(agency.verification_score)).toBeCloseTo(1, 2)
+    expect(agency.verification_status).toBe('auto_validated')
+  })
+
   it('un statut rejected pose par un humain n est pas ecrase par un passage du moteur', async () => {
     const agencyId = await createAgency('rejected-frozen')
     const signatoryId = await addActiveSignatory(agencyId)

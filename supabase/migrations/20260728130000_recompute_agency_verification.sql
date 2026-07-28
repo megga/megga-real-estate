@@ -102,14 +102,23 @@ begin
     where apvc.related_person_id in (select id from active_signatories)
     order by apvc.related_person_id, apvc.check_type, apvc.checked_at desc, apvc.ctid desc
   ),
-  -- Score : moyenne pondérée sur les checks ENTITÉ non-véto, poids ET statut de véto lus
-  -- dans la configuration EN VIGUEUR À LA DATE DU CHECK (jointure temporelle) — c'est ce
-  -- qui permet de rejustifier un score passé avec le barème d'alors, jamais avec le
-  -- barème courant. unavailable et pending_manual_review sont exclus du numérateur ET du
-  -- dénominateur : ni pénalisés ni crédités, seulement moins confirmés/pas encore
-  -- tranchés. Les checks de PERSONNE n'entrent jamais dans le score — seuls les checks
-  -- d'agence l'alimentent (les checks de personne portent les vétos de personne, cf.
-  -- plan étape 3, « Les deux niveaux comptent »).
+  -- Score : moyenne pondérée sur les checks non-véto (ENTITÉ **et** PERSONNE scorables),
+  -- poids ET statut de véto lus dans la configuration EN VIGUEUR À LA DATE DU CHECK
+  -- (jointure temporelle) — c'est ce qui permet de rejustifier un score passé avec le
+  -- barème d'alors, jamais avec le barème courant. unavailable et pending_manual_review
+  -- sont exclus du numérateur ET du dénominateur : ni pénalisés ni crédités, seulement
+  -- moins confirmés/pas encore tranchés.
+  --
+  -- Checks de PERSONNE : le plan de l'étape 3 (« Les deux niveaux comptent ») simplifiait
+  -- en écrivant que seuls les checks d'agence alimentent le score. C'est faux — arbitrage
+  -- tranché en faveur de la conception de référence, docs/agency-kyb-verification.md §2 B,
+  -- qui liste explicitement « signataire listé comme organe au registre »
+  -- (signatory_registry_match) parmi les signaux moyens qui CONTRIBUENT AU SCORE, aux
+  -- côtés de poa_document_review. Revue (23 % du poids du catalogue ignoré en silence) :
+  -- les deux en mismatch, tout le reste parfait, l'agence se retrouvait auto-validée avec
+  -- un score de 1.000. latest_person_checks est déjà restreint aux SIGNATAIRES ACTIFS et
+  -- dédupliqué par (personne, type) : mêmes règles que côté entité, sans rien changer aux
+  -- vétos de personne ci-dessous, qui continuent de lire la même CTE indépendamment.
   scored as (
     select lac.result, cfg.weight
     from latest_agency_checks lac
@@ -119,6 +128,15 @@ begin
      and (cfg.valid_to is null or cfg.valid_to > lac.checked_at)
     where not cfg.is_veto
       and lac.result not in ('unavailable', 'pending_manual_review')
+    union all
+    select lpc.result, cfg.weight
+    from latest_person_checks lpc
+    join public.verification_check_config cfg
+      on cfg.check_type = lpc.check_type
+     and cfg.valid_from <= lpc.checked_at
+     and (cfg.valid_to is null or cfg.valid_to > lpc.checked_at)
+    where not cfg.is_veto
+      and lpc.result not in ('unavailable', 'pending_manual_review')
   ),
   -- Vétos : la politique EN VIGUEUR MAINTENANT (valid_to is null) dit QUELS types
   -- gatent — un type absent de la table de checks n'a pas de checked_at auquel ancrer
@@ -230,7 +248,7 @@ end;
 $$;
 
 comment on function public.recompute_agency_verification(uuid) is
-  'Moteur de scoring KYB (étape 3). Calcule agencies.verification_score (moyenne pondérée sur le dernier check ENTITÉ de chaque type, poids et statut de véto lus dans la configuration en vigueur à la date du check — jamais la configuration courante) et verification_status (auto_validated seulement si aucun véto entité/personne en échec ou absent, aucun check en pending_manual_review, un signataire actif identifié, et un score >= auto_validate_min ; manual_review sinon, y compris score NULL). Les vétos personne portent sur les signataires actifs uniquement. Un statut rejected ou validated (verdict humain) n''est jamais posé ni écrasé par cette fonction : retour anticipé sans effet de bord. Journalise un activity_events (category=kyc) à chaque passage effectif. service_role uniquement — voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-3.md.';
+  'Moteur de scoring KYB (étape 3). Calcule agencies.verification_score (moyenne pondérée sur le dernier check de chaque type, ENTITÉ et PERSONNE scorable — signatory_registry_match, poa_document_review — des seuls signataires actifs, poids et statut de véto lus dans la configuration en vigueur à la date du check — jamais la configuration courante) et verification_status (auto_validated seulement si aucun véto entité/personne en échec ou absent, aucun check en pending_manual_review, un signataire actif identifié, et un score >= auto_validate_min ; manual_review sinon, y compris score NULL). Les vétos personne portent sur les signataires actifs uniquement. Un statut rejected ou validated (verdict humain) n''est jamais posé ni écrasé par cette fonction : retour anticipé sans effet de bord. Journalise un activity_events (category=kyc) à chaque passage effectif. service_role uniquement — voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-3.md.';
 
 revoke all on function public.recompute_agency_verification(uuid) from public, anon, authenticated;
 grant execute on function public.recompute_agency_verification(uuid) to service_role;
