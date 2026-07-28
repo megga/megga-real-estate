@@ -321,7 +321,8 @@ security definer
 set search_path to 'public'
 as $$
 declare
-  v_status text;
+  v_status       text;
+  v_agency_name  text;
 begin
   if not public.is_super_admin() then
     raise exception 'forbidden: super_admin only' using errcode = '42501';
@@ -330,7 +331,7 @@ begin
   -- FOR UPDATE : même discipline que submit_agency_identity / recompute_agency_verification
   -- (verrouille la ligne le temps de la décision, sérialise un double-clic ou deux
   -- relecteurs simultanés sur le même dossier).
-  select verification_status into v_status
+  select verification_status, coalesce(legal_name, name) into v_status, v_agency_name
     from public.agencies
    where id = p_agency_id
      for update;
@@ -352,17 +353,21 @@ begin
          verified_at = now()
    where id = p_agency_id;
 
+  -- object_label : convention dépôt pour les actions administratives auditées (texte
+  -- lisible, pas seulement entity_id -- cf. object_label sur admin_create_agency,
+  -- 20260726005000). CORRECTIF REVUE point 4 : les quatre événements de cette tâche
+  -- laissaient ce champ vide, contrairement à la convention.
   insert into public.activity_events
-    (agency_id, actor_id, actor_kind, action, entity_type, entity_id, category, severity, metadata)
+    (agency_id, actor_id, actor_kind, action, entity_type, entity_id, category, severity, object_label, metadata)
   values (
     p_agency_id, auth.uid(), 'user', 'agency_verification_validated', 'agency', p_agency_id,
-    'kyc', 'info', jsonb_build_object('previous_status', v_status)
+    'kyc', 'info', v_agency_name, jsonb_build_object('previous_status', v_status)
   );
 end;
 $$;
 
 comment on function public.admin_validate_agency_review(uuid) is
-  'Décision humaine (étape 5, tâche 2) : pose verification_status=''validated'' sur un dossier en manual_review -- jamais ''auto_validated'', réservé au moteur (recompute_agency_verification). Journalise activity_events (category=kyc, actor_kind=user, actor_id=auth.uid()). super_admin uniquement, jamais service_role (une validation exige une décision humaine identifiable). 42501 si hors allowlist super-admin ; erreur explicite si le dossier n''existe pas ou n''est pas en manual_review. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md.';
+  'Décision humaine (étape 5, tâche 2) : pose verification_status=''validated'' sur un dossier en manual_review -- jamais ''auto_validated'', réservé au moteur (recompute_agency_verification). Journalise activity_events (category=kyc, actor_kind=user, actor_id=auth.uid(), object_label=nom agence). super_admin uniquement, jamais service_role (une validation exige une décision humaine identifiable). 42501 si hors allowlist super-admin ; erreur explicite si le dossier n''existe pas ou n''est pas en manual_review. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md.';
 
 revoke all on function public.admin_validate_agency_review(uuid) from public, anon, service_role;
 grant execute on function public.admin_validate_agency_review(uuid) to authenticated;
@@ -375,7 +380,8 @@ security definer
 set search_path to 'public'
 as $$
 declare
-  v_status text;
+  v_status       text;
+  v_agency_name  text;
 begin
   if not public.is_super_admin() then
     raise exception 'forbidden: super_admin only' using errcode = '42501';
@@ -389,7 +395,7 @@ begin
     raise exception 'rejection reason is required';
   end if;
 
-  select verification_status into v_status
+  select verification_status, coalesce(legal_name, name) into v_status, v_agency_name
     from public.agencies
    where id = p_agency_id
      for update;
@@ -412,17 +418,19 @@ begin
    where id = p_agency_id;
 
   -- Le motif vit dans metadata (voir en-tête de section) -- aucune colonne dédiée.
+  -- object_label : convention dépôt (voir admin_validate_agency_review ci-dessus ;
+  -- CORRECTIF REVUE point 4).
   insert into public.activity_events
-    (agency_id, actor_id, actor_kind, action, entity_type, entity_id, category, severity, metadata)
+    (agency_id, actor_id, actor_kind, action, entity_type, entity_id, category, severity, object_label, metadata)
   values (
     p_agency_id, auth.uid(), 'user', 'agency_verification_rejected', 'agency', p_agency_id,
-    'kyc', 'warn', jsonb_build_object('previous_status', v_status, 'reason', p_reason)
+    'kyc', 'warn', v_agency_name, jsonb_build_object('previous_status', v_status, 'reason', p_reason)
   );
 end;
 $$;
 
 comment on function public.admin_reject_agency_review(uuid, text) is
-  'Décision humaine (étape 5, tâche 2) : pose verification_status=''rejected'' sur un dossier en manual_review, motif OBLIGATOIRE (NULL ou blanc -> erreur), conservé dans activity_events.metadata.reason -- aucune colonne dédiée (même discipline que la file : pas de champ dérivé quand l''audit trail suffit). verified_at remis à NULL. Journalise category=kyc, severity=warn, actor_kind=user, actor_id=auth.uid(). super_admin uniquement. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md.';
+  'Décision humaine (étape 5, tâche 2) : pose verification_status=''rejected'' sur un dossier en manual_review, motif OBLIGATOIRE (NULL ou blanc -> erreur), conservé dans activity_events.metadata.reason -- aucune colonne dédiée (même discipline que la file : pas de champ dérivé quand l''audit trail suffit). verified_at remis à NULL. Journalise category=kyc, severity=warn, actor_kind=user, actor_id=auth.uid(), object_label=nom agence. super_admin uniquement. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md.';
 
 revoke all on function public.admin_reject_agency_review(uuid, text) from public, anon, service_role;
 grant execute on function public.admin_reject_agency_review(uuid, text) to authenticated;
@@ -436,6 +444,7 @@ set search_path to 'public'
 as $$
 declare
   v_submitted_at timestamptz;
+  v_agency_name  text;
 begin
   if not public.is_super_admin() then
     raise exception 'forbidden: super_admin only' using errcode = '42501';
@@ -446,7 +455,7 @@ begin
   -- l'en-tête de section pour pourquoi relancer n'exige pas manual_review mais exige quand
   -- même d'avoir été soumis -- un dossier jamais soumis est en 'pending' comme un dossier
   -- normalement en attente de saisie, rien ne les distingue par le statut seul.
-  select identity_submitted_at into v_submitted_at
+  select identity_submitted_at, coalesce(legal_name, name) into v_submitted_at, v_agency_name
     from public.agencies
    where id = p_agency_id
      for update;
@@ -468,11 +477,14 @@ begin
   -- Trace la DEMANDE humaine avant d'appeler le moteur : même si recompute_agency_verification
   -- ressort aussitôt sans rien faire (dossier déjà tranché, voir son retour anticipé), le
   -- fait qu'un super-admin ait cliqué « relancer » reste, lui, un fait digne d'audit.
+  -- object_label : convention dépôt pour les actions administratives auditées (texte
+  -- lisible, pas seulement entity_id -- cf. object_label sur admin_create_agency,
+  -- 20260726005000).
   insert into public.activity_events
-    (agency_id, actor_id, actor_kind, action, entity_type, entity_id, category, severity)
+    (agency_id, actor_id, actor_kind, action, entity_type, entity_id, category, severity, object_label)
   values (
     p_agency_id, auth.uid(), 'user', 'agency_verification_relaunch_requested', 'agency', p_agency_id,
-    'kyc', 'info'
+    'kyc', 'info', v_agency_name
   );
 
   -- Appel imbriqué : s'exécute avec les privilèges du PROPRIÉTAIRE de cette fonction (le
@@ -485,7 +497,7 @@ end;
 $$;
 
 comment on function public.admin_relaunch_agency_review(uuid) is
-  'Décision humaine (étape 5, tâche 2) : déclenche recompute_agency_verification() (20260728130000, GRANT service_role uniquement et INCHANGÉ) depuis un jeton authenticated, via un appel imbriqué qui hérite des privilèges du propriétaire de CETTE fonction -- élargissement gardé par is_super_admin(), voir l''arbitrage en tête de section pour le choix face à une Edge Function relais. Exige identity_submitted_at posé (dossier SOUMIS) -- erreur explicite sinon ; PAS manual_review (relancer un dossier ''pending'' encore non traité par le moteur, ex. net.http_post jamais parti, est l''usage nominal -- voir sweep_pending_agency_verifications, 20260728150000). CORRECTIF REVUE point 1 (CRITIQUE) : sans cette garde, un dossier jamais soumis atteignait ''validated'' en deux appels authentifiés légitimes (relancer puis valider). Journalise systématiquement la demande humaine (category=kyc, actor_kind=user) AVANT l''appel, y compris quand le moteur ressort sans effet sur un dossier déjà tranché (validated/rejected -- son propre retour anticipé, jamais dupliqué ici). super_admin uniquement. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md.';
+  'Décision humaine (étape 5, tâche 2) : déclenche recompute_agency_verification() (20260728130000, GRANT service_role uniquement et INCHANGÉ) depuis un jeton authenticated, via un appel imbriqué qui hérite des privilèges du propriétaire de CETTE fonction -- élargissement gardé par is_super_admin(), voir l''arbitrage en tête de section pour le choix face à une Edge Function relais. Exige identity_submitted_at posé (dossier SOUMIS) -- erreur explicite sinon ; PAS manual_review (relancer un dossier ''pending'' encore non traité par le moteur, ex. net.http_post jamais parti, est l''usage nominal -- voir sweep_pending_agency_verifications, 20260728150000). CORRECTIF REVUE point 1 (CRITIQUE) : sans cette garde, un dossier jamais soumis atteignait ''validated'' en deux appels authentifiés légitimes (relancer puis valider). Journalise systématiquement la demande humaine (category=kyc, actor_kind=user, object_label=nom agence) AVANT l''appel, y compris quand le moteur ressort sans effet sur un dossier déjà tranché (validated/rejected -- son propre retour anticipé, jamais dupliqué ici). super_admin uniquement. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md.';
 
 revoke all on function public.admin_relaunch_agency_review(uuid) from public, anon, service_role;
 grant execute on function public.admin_relaunch_agency_review(uuid) to authenticated;
@@ -550,6 +562,7 @@ declare
   v_check_type         text;
   v_agency_id          uuid;
   v_status             text;
+  v_agency_name        text;
 begin
   if not public.is_super_admin() then
     raise exception 'forbidden: super_admin only' using errcode = '42501';
@@ -591,7 +604,7 @@ begin
 
   -- FOR UPDATE sur agencies : même discipline que validate/reject/relaunch ci-dessus.
   -- CORRECTIF point 3, défaut 1 (dossier clos) : voir l'en-tête de section.
-  select verification_status into v_status
+  select verification_status, coalesce(legal_name, name) into v_status, v_agency_name
     from public.agencies
    where id = v_agency_id
      for update;
@@ -626,19 +639,20 @@ begin
   -- entity_type='agency' (pas 'agency_related_person') : même convention que le reste du
   -- chantier KYB (108000/110000/130000/140000/150000) malgré une action person-scoped --
   -- related_person_id et check_id vivent dans metadata, comme le fait déjà
-  -- submit_agency_identity_id_document pour ce même check_type.
+  -- submit_agency_identity_id_document pour ce même check_type. object_label : convention
+  -- dépôt (voir admin_validate_agency_review ci-dessus ; CORRECTIF REVUE point 4).
   insert into public.activity_events
-    (agency_id, actor_id, actor_kind, action, entity_type, entity_id, category, severity, metadata)
+    (agency_id, actor_id, actor_kind, action, entity_type, entity_id, category, severity, object_label, metadata)
   values (
     v_agency_id, auth.uid(), 'user', 'agency_identity_document_resolved', 'agency', v_agency_id,
-    'kyc', case when p_result = 'mismatch' then 'warn' else 'info' end,
+    'kyc', case when p_result = 'mismatch' then 'warn' else 'info' end, v_agency_name,
     jsonb_build_object('related_person_id', v_related_person_id, 'check_id', p_check_id, 'result', p_result)
   );
 end;
 $$;
 
 comment on function public.admin_resolve_agency_id_document(uuid, uuid, text) is
-  'Décision humaine (étape 5, tâche 2) : le relecteur qui a vu le document tranche si la pièce d''identité correspond à la personne déclarée. p_agency_id : assertion de l''appelant (pas un filtre de résolution) vérifiée contre l''agence RÉELLE du check -- erreur explicite (pas 42501, réservé aux refus de rôle) si elles ne correspondent pas, pour écarter un écran de détail périmé qui résoudrait la pièce d''une autre agence (CORRECTIF REVUE point 3). Exige verification_status=''manual_review'' sur cette agence, même règle que validate/reject : refuse un dossier jamais soumis ou déjà tranché (rejected/validated/auto_validated), qui ferait entrer une preuve nouvelle dans un dossier clos (CORRECTIF REVUE point 3). INSERT append-only (jamais UPDATE) dans agency_person_verification_checks -- la ligne pending_manual_review d''origine (posée par submit_agency_identity_id_document, 20260728110000) reste intacte, l''historique complet reste lisible depuis get_admin_agency_review_detail (tâche 1). p_result in (match, partial, mismatch) -- jamais unavailable ni pending_manual_review, qui ne sont pas des décisions humaines. Verrou FOR UPDATE sur agencies PUIS agency_related_persons (pas sur la ligne de check, qui ne change jamais d''état) : une pièce déjà résolue ne se laisse pas résoudre deux fois. Journalise activity_events (category=kyc, actor_kind=user, entity_type=agency -- même convention que le reste du chantier KYB malgré une action person-scoped). super_admin uniquement. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md et son §"trois obstacles" (pièce bloquée en permanence sans cette fonction).';
+  'Décision humaine (étape 5, tâche 2) : le relecteur qui a vu le document tranche si la pièce d''identité correspond à la personne déclarée. p_agency_id : assertion de l''appelant (pas un filtre de résolution) vérifiée contre l''agence RÉELLE du check -- erreur explicite (pas 42501, réservé aux refus de rôle) si elles ne correspondent pas, pour écarter un écran de détail périmé qui résoudrait la pièce d''une autre agence (CORRECTIF REVUE point 3). Exige verification_status=''manual_review'' sur cette agence, même règle que validate/reject : refuse un dossier jamais soumis ou déjà tranché (rejected/validated/auto_validated), qui ferait entrer une preuve nouvelle dans un dossier clos (CORRECTIF REVUE point 3). INSERT append-only (jamais UPDATE) dans agency_person_verification_checks -- la ligne pending_manual_review d''origine (posée par submit_agency_identity_id_document, 20260728110000) reste intacte, l''historique complet reste lisible depuis get_admin_agency_review_detail (tâche 1). p_result in (match, partial, mismatch) -- jamais unavailable ni pending_manual_review, qui ne sont pas des décisions humaines. Verrou FOR UPDATE sur agencies PUIS agency_related_persons (pas sur la ligne de check, qui ne change jamais d''état) : une pièce déjà résolue ne se laisse pas résoudre deux fois. Journalise activity_events (category=kyc, actor_kind=user, entity_type=agency -- même convention que le reste du chantier KYB malgré une action person-scoped, object_label=nom agence). super_admin uniquement. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md et son §"trois obstacles" (pièce bloquée en permanence sans cette fonction).';
 
 revoke all on function public.admin_resolve_agency_id_document(uuid, uuid, text) from public, anon, service_role;
 grant execute on function public.admin_resolve_agency_id_document(uuid, uuid, text) to authenticated;

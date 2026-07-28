@@ -771,7 +771,7 @@ describe.skipIf(!HAS_KEYS)('recompute_agency_verification — moteur de scoring 
     expect(error?.code).toBe(DENIED)
   })
 
-  it('la RPC est refusee a authenticated (moteur sensible KYB/LAB : service_role uniquement)', async () => {
+  it('la RPC directe est refusee a authenticated (service_role en direct -- une deuxieme voie existe via admin_relaunch_agency_review, gardee is_super_admin, etape 5/tache 2)', async () => {
     const user = await signUpUser()
     const { error } = await user.client.rpc('recompute_agency_verification', { p_agency_id: NIL_UUID })
     expect(error?.code).toBe(DENIED)

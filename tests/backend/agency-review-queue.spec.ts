@@ -215,6 +215,7 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
     severity: string
     entity_type: string
     entity_id: string | null
+    object_label: string | null
     metadata: Record<string, unknown> | null
   }
 
@@ -223,7 +224,7 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
     const svc = serviceRoleClient()
     const { data, error } = await svc
       .from('activity_events')
-      .select('actor_id, actor_kind, action, category, severity, entity_type, entity_id, metadata')
+      .select('actor_id, actor_kind, action, category, severity, entity_type, entity_id, object_label, metadata')
       .eq('agency_id', agencyId)
       .eq('action', action)
       .order('created_at', { ascending: false })
@@ -551,6 +552,8 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
       expect(event!.actor_id, 'la trace doit porter l identite du decideur').toBe(superAdminId)
       expect(event!.category).toBe('kyc')
       expect(event!.severity).toBe('info')
+      // Correctif revue point 4 : convention depot (object_label lisible, pas un id nu).
+      expect(event!.object_label, 'object_label doit porter un libelle humain, pas rester vide').toContain('Agence Revue')
     })
 
     it('est refusee a un utilisateur authentifie ordinaire', async () => {
@@ -652,6 +655,7 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
       expect(event!.actor_id, 'la trace doit porter l identite du decideur').toBe(superAdminId)
       expect(event!.category).toBe('kyc')
       expect((event!.metadata as Record<string, unknown> | null)?.reason, 'le motif doit etre conserve pour l audit').toBe(REASON)
+      expect(event!.object_label, 'object_label doit porter un libelle humain, pas rester vide').toContain('Agence Revue')
     })
 
     it('est refusee a un utilisateur authentifie ordinaire et a anon', async () => {
@@ -711,6 +715,7 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
       expect(humanEvent!.actor_kind).toBe('user')
       expect(humanEvent!.actor_id).toBe(superAdminId)
       expect(humanEvent!.category).toBe('kyc')
+      expect(humanEvent!.object_label, 'object_label doit porter un libelle humain, pas rester vide').toContain('Agence Revue')
     })
 
     it('est refusee a un utilisateur authentifie ordinaire et a anon', async () => {
@@ -854,6 +859,7 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
       expect(event!.actor_id, 'la trace doit porter l identite du decideur').toBe(superAdminId)
       expect(event!.category).toBe('kyc')
       expect(event!.severity, 'un mismatch est un signal de conformite qui merite un warn').toBe('warn')
+      expect(event!.object_label, 'object_label doit porter un libelle humain, pas rester vide').toContain('Agence Revue')
     })
 
     // ─── Correctif revue point 3, defaut 1 (dossier clos) ────────────────────────────
