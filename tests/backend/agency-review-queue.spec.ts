@@ -7,7 +7,7 @@
 //   - admin_validate_agency_review(agency_id)            — pose 'validated'.
 //   - admin_reject_agency_review(agency_id, reason)      — pose 'rejected', motif obligatoire.
 //   - admin_relaunch_agency_review(agency_id)            — declenche le moteur.
-//   - admin_resolve_agency_id_document(check_id, result) — tranche une piece d'identite.
+//   - admin_resolve_agency_id_document(agency_id, check_id, result) — tranche une piece d'identite.
 // Les deux lectures suivent le patron P3 (EXECUTE authenticated, garde interne
 // is_super_admin() OU is_service_role()) ; les quatre actions de la tache 2 (decision
 // humaine) sont gardees par is_super_admin() SEUL — jamais is_service_role(), une
@@ -807,13 +807,18 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
   })
 
   // ─── admin_resolve_agency_id_document (tache 2) ─────────────────────────────
+  // Signature elargie (correctif revue point 3) : (p_agency_id, p_check_id, p_result).
+  // p_agency_id est une assertion de l'appelant, pas un filtre -- voir la migration.
   describe('admin_resolve_agency_id_document', () => {
     it('un super-admin resout une piece d identite en match -- ajoute une ligne, ne modifie jamais celle en attente', async () => {
       const agencyId = await createAgency('resolve-match')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
       const personId = await createSignatory(agencyId)
       const checkId = await insertPendingIdDocumentCheck(personId)
 
-      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
+      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: checkId, p_result: 'match',
+      })
       expect(error, `rpc: ${error?.message}`).toBeNull()
 
       const svc = serviceRoleClient()
@@ -834,10 +839,13 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
 
     it('journalise la resolution avec l identite du decideur', async () => {
       const agencyId = await createAgency('resolve-trace')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
       const personId = await createSignatory(agencyId)
       const checkId = await insertPendingIdDocumentCheck(personId)
 
-      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'mismatch' })
+      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: checkId, p_result: 'mismatch',
+      })
       expect(error, `rpc: ${error?.message}`).toBeNull()
 
       const event = await getLatestEvent(agencyId, 'agency_identity_document_resolved')
@@ -848,24 +856,86 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
       expect(event!.severity, 'un mismatch est un signal de conformite qui merite un warn').toBe('warn')
     })
 
+    // ─── Correctif revue point 3, defaut 1 (dossier clos) ────────────────────────────
+    // Reproduit en base : resoudre une piece sur une agence DEJA REJETEE reussissait sans
+    // la moindre garde, faisant entrer une preuve nouvelle dans un dossier clos.
+    it('refuse de resoudre une piece sur un dossier deja tranche (rejected)', async () => {
+      const agencyId = await createAgency('resolve-closed-rejected')
+      const personId = await createSignatory(agencyId)
+      const checkId = await insertPendingIdDocumentCheck(personId)
+      await setVerification(agencyId, { status: 'rejected', submittedAt: new Date().toISOString() })
+
+      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: checkId, p_result: 'match',
+      })
+      expect(error, 'resoudre une piece sur un dossier deja tranche (rejected) doit etre refuse').not.toBeNull()
+
+      const svc = serviceRoleClient()
+      const { data, error: selErr } = await svc
+        .from('agency_person_verification_checks')
+        .select('id, result')
+        .eq('related_person_id', personId)
+        .eq('check_type', 'id_document')
+      if (selErr) throw new Error(`select checks: ${selErr.message}`)
+      expect(data, 'un refus ne doit ajouter aucune ligne -- pas de preuve nouvelle dans un dossier clos').toHaveLength(1)
+      expect(data![0].result).toBe('pending_manual_review')
+    })
+
+    // ─── Correctif revue point 3, defaut 2 (garde inter-agences) ─────────────────────
+    // Reproduit en base : rien ne rattachait l'identifiant de la verification a une
+    // agence -- un ecran de detail perime pouvait resoudre la piece d'une AUTRE agence.
+    it('refuse de resoudre une piece qui n appartient pas a l agence indiquee', async () => {
+      const ownerAgencyId = await createAgency('resolve-cross-agency-owner')
+      await setVerification(ownerAgencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+      const personId = await createSignatory(ownerAgencyId)
+      const checkId = await insertPendingIdDocumentCheck(personId)
+
+      const otherAgencyId = await createAgency('resolve-cross-agency-other')
+      await setVerification(otherAgencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+
+      // p_agency_id pointe vers otherAgencyId -- un ecran reste ouvert sur la MAUVAISE
+      // agence -- alors que le check appartient reellement a ownerAgencyId.
+      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: otherAgencyId, p_check_id: checkId, p_result: 'match',
+      })
+      expect(error, 'un check qui n appartient pas a l agence indiquee doit etre refuse').not.toBeNull()
+
+      const svc = serviceRoleClient()
+      const { data, error: selErr } = await svc
+        .from('agency_person_verification_checks')
+        .select('id, result')
+        .eq('related_person_id', personId)
+        .eq('check_type', 'id_document')
+      if (selErr) throw new Error(`select checks: ${selErr.message}`)
+      expect(data, 'un refus ne doit ajouter aucune ligne').toHaveLength(1)
+      expect(data![0].result).toBe('pending_manual_review')
+    })
+
     it('refuse un resultat qui n est pas une decision humaine valide', async () => {
       const agencyId = await createAgency('resolve-bad-result')
       const personId = await createSignatory(agencyId)
       const checkId = await insertPendingIdDocumentCheck(personId)
 
-      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'unavailable' })
+      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: checkId, p_result: 'unavailable',
+      })
       expect(error, 'unavailable n est pas une decision humaine recevable').not.toBeNull()
     })
 
     it('refuse de resoudre deux fois la meme piece', async () => {
       const agencyId = await createAgency('resolve-twice')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
       const personId = await createSignatory(agencyId)
       const checkId = await insertPendingIdDocumentCheck(personId)
 
-      const first = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
+      const first = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: checkId, p_result: 'match',
+      })
       expect(first.error, `rpc: ${first.error?.message}`).toBeNull()
 
-      const second = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'mismatch' })
+      const second = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: checkId, p_result: 'mismatch',
+      })
       expect(second.error, 'une piece deja resolue ne doit pas se laisser resoudre une seconde fois').not.toBeNull()
     })
 
@@ -880,7 +950,9 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
         .single()
       if (insErr) throw new Error(`insert poa check: ${insErr.message}`)
 
-      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: data!.id, p_result: 'match' })
+      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: data!.id, p_result: 'match',
+      })
       expect(error, 'cette fonction ne doit resoudre que des checks id_document').not.toBeNull()
     })
 
@@ -889,20 +961,27 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
       const personId = await createSignatory(agencyId)
       const checkId = await insertPendingIdDocumentCheck(personId)
 
-      const asOrdinary = await ordinaryUser.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
+      const asOrdinary = await ordinaryUser.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: checkId, p_result: 'match',
+      })
       expect(asOrdinary.error?.code, `attendu ${DENIED}, recu ${asOrdinary.error?.code}`).toBe(DENIED)
 
-      const asAnon = await anonClient().rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
+      const asAnon = await anonClient().rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: checkId, p_result: 'match',
+      })
       expect(asAnon.error?.code, `attendu ${DENIED}, recu ${asAnon.error?.code}`).toBe(DENIED)
     })
 
     // Correctif revue point 2 (voir les notes jumelles sur validate/reject).
     it('est refusee au role de service (un script ne doit jamais auto-resoudre une piece)', async () => {
       const agencyId = await createAgency('resolve-denied-service-role')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
       const personId = await createSignatory(agencyId)
       const checkId = await insertPendingIdDocumentCheck(personId)
 
-      const { error } = await serviceRoleClient().rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
+      const { error } = await serviceRoleClient().rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: checkId, p_result: 'match',
+      })
       expect(error?.code, `attendu ${DENIED}, recu ${error?.code}`).toBe(DENIED)
 
       const svc = serviceRoleClient()

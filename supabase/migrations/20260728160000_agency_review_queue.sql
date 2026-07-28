@@ -490,7 +490,7 @@ comment on function public.admin_relaunch_agency_review(uuid) is
 revoke all on function public.admin_relaunch_agency_review(uuid) from public, anon, service_role;
 grant execute on function public.admin_relaunch_agency_review(uuid) to authenticated;
 
--- ─── (6) admin_resolve_agency_id_document(check_id, result) ──────────────────────────
+-- ─── (6) admin_resolve_agency_id_document(agency_id, check_id, result) ───────────────
 --
 -- La seule voie qui fait sortir un check id_document de pending_manual_review (posé par
 -- submit_agency_identity_id_document, 20260728110000, et RIEN d'autre ne le résout
@@ -512,7 +512,34 @@ grant execute on function public.admin_relaunch_agency_review(uuid) to authentic
 -- personne ne peut de toute façon en avoir qu'une en attente à la fois (garde `not
 -- exists` de submit_agency_identity_id_document), mais ancrer l'action sur l'id exact
 -- écarte toute ambiguïté si cette hypothèse change un jour.
-create or replace function public.admin_resolve_agency_id_document(p_check_id uuid, p_result text)
+--
+-- CORRECTIF REVUE étape 5/tâche 2, point 3 -- deux défauts dans cette même fonction :
+--
+--   1. p_agency_id (paramètre AJOUTÉ) : pas un filtre de résolution -- p_check_id seul
+--      suffit à retrouver la ligne -- mais une ASSERTION de l'appelant, vérifiée avant
+--      tout effet de bord : « je m'attends à résoudre une pièce de CETTE agence-ci ».
+--      Avant ce correctif, rien ne distinguait un check_id légitime d'un check_id d'une
+--      AUTRE agence : un écran de détail périmé (onglet resté ouvert, agence changée
+--      entre-temps côté client) pouvait résoudre la pièce de n'importe quel dossier sans
+--      le moindre obstacle. Refusé explicitement (mismatch) plutôt que toléré en silence,
+--      même discipline que le reste de cette tâche.
+--
+--   2. Statut manual_review exigé : même règle que validate/reject ci-dessus, pour la
+--      même raison -- résoudre une pièce sur un dossier déjà TRANCHÉ
+--      (rejected/validated/auto_validated) ou jamais soumis (pending) ferait entrer une
+--      preuve nouvelle dans un dossier CLOS, après le verdict, ce qui n'a pas de sens
+--      métier et corrompt la piste d'audit (un dossier rejeté doit rester rejeté POUR LES
+--      RAISONS consignées à ce moment-là, jamais amendé après coup). Avant ce correctif,
+--      résoudre une pièce sur une agence déjà rejetée réussissait sans la moindre garde --
+--      reproduit en base par agency-review-queue.spec.ts avant ce correctif.
+--
+-- Signature élargie (uuid, text) -> (uuid, uuid, text) : aucun appelant existant en dehors
+-- de cette migration et de son spec (grep confirmé) -- DROP explicite de l'ancien
+-- surcharge ci-dessous pour rester idempotent même si un déploiement antérieur avait posé
+-- la version à deux arguments.
+drop function if exists public.admin_resolve_agency_id_document(uuid, text);
+
+create or replace function public.admin_resolve_agency_id_document(p_agency_id uuid, p_check_id uuid, p_result text)
 returns void
 language plpgsql
 security definer
@@ -522,6 +549,7 @@ declare
   v_related_person_id uuid;
   v_check_type         text;
   v_agency_id          uuid;
+  v_status             text;
 begin
   if not public.is_super_admin() then
     raise exception 'forbidden: super_admin only' using errcode = '42501';
@@ -549,6 +577,33 @@ begin
     raise exception 'not an id_document check (check_type=%)', v_check_type;
   end if;
 
+  select arp.agency_id into v_agency_id
+    from public.agency_related_persons arp
+   where arp.id = v_related_person_id;
+
+  -- CORRECTIF point 3, défaut 2 (garde inter-agences) : voir l'en-tête de section. Une
+  -- comparaison directe (jamais via p_agency_id dans le WHERE ci-dessus, qui resterait
+  -- muet sur un mismatch) -- IS DISTINCT FROM couvre aussi le cas défensif où l'un des
+  -- deux serait NULL.
+  if v_agency_id is distinct from p_agency_id then
+    raise exception 'verification check does not belong to the specified agency';
+  end if;
+
+  -- FOR UPDATE sur agencies : même discipline que validate/reject/relaunch ci-dessus.
+  -- CORRECTIF point 3, défaut 1 (dossier clos) : voir l'en-tête de section.
+  select verification_status into v_status
+    from public.agencies
+   where id = v_agency_id
+     for update;
+
+  if v_status is null then
+    raise exception 'agency not found';
+  end if;
+
+  if v_status <> 'manual_review' then
+    raise exception 'agency is not awaiting review (status=%)', v_status;
+  end if;
+
   -- Verrou au niveau PERSONNE (voir en-tête de section) : la ligne en attente n'est
   -- jamais modifiée, donc la verrouiller elle-même ne sérialiserait rien face à deux
   -- résolutions concurrentes sur le même check_id.
@@ -562,10 +617,6 @@ begin
   ) then
     raise exception 'id_document check already resolved for this person';
   end if;
-
-  select arp.agency_id into v_agency_id
-    from public.agency_related_persons arp
-   where arp.id = v_related_person_id;
 
   insert into public.agency_person_verification_checks
     (related_person_id, check_type, source, result)
@@ -586,8 +637,8 @@ begin
 end;
 $$;
 
-comment on function public.admin_resolve_agency_id_document(uuid, text) is
-  'Décision humaine (étape 5, tâche 2) : le relecteur qui a vu le document tranche si la pièce d''identité correspond à la personne déclarée. INSERT append-only (jamais UPDATE) dans agency_person_verification_checks -- la ligne pending_manual_review d''origine (posée par submit_agency_identity_id_document, 20260728110000) reste intacte, l''historique complet reste lisible depuis get_admin_agency_review_detail (tâche 1). p_result in (match, partial, mismatch) -- jamais unavailable ni pending_manual_review, qui ne sont pas des décisions humaines. Verrou FOR UPDATE sur agency_related_persons (pas sur la ligne de check, qui ne change jamais d''état) : une pièce déjà résolue ne se laisse pas résoudre deux fois. Journalise activity_events (category=kyc, actor_kind=user, entity_type=agency -- même convention que le reste du chantier KYB malgré une action person-scoped). super_admin uniquement. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md et son §"trois obstacles" (pièce bloquée en permanence sans cette fonction).';
+comment on function public.admin_resolve_agency_id_document(uuid, uuid, text) is
+  'Décision humaine (étape 5, tâche 2) : le relecteur qui a vu le document tranche si la pièce d''identité correspond à la personne déclarée. p_agency_id : assertion de l''appelant (pas un filtre de résolution) vérifiée contre l''agence RÉELLE du check -- erreur explicite (pas 42501, réservé aux refus de rôle) si elles ne correspondent pas, pour écarter un écran de détail périmé qui résoudrait la pièce d''une autre agence (CORRECTIF REVUE point 3). Exige verification_status=''manual_review'' sur cette agence, même règle que validate/reject : refuse un dossier jamais soumis ou déjà tranché (rejected/validated/auto_validated), qui ferait entrer une preuve nouvelle dans un dossier clos (CORRECTIF REVUE point 3). INSERT append-only (jamais UPDATE) dans agency_person_verification_checks -- la ligne pending_manual_review d''origine (posée par submit_agency_identity_id_document, 20260728110000) reste intacte, l''historique complet reste lisible depuis get_admin_agency_review_detail (tâche 1). p_result in (match, partial, mismatch) -- jamais unavailable ni pending_manual_review, qui ne sont pas des décisions humaines. Verrou FOR UPDATE sur agencies PUIS agency_related_persons (pas sur la ligne de check, qui ne change jamais d''état) : une pièce déjà résolue ne se laisse pas résoudre deux fois. Journalise activity_events (category=kyc, actor_kind=user, entity_type=agency -- même convention que le reste du chantier KYB malgré une action person-scoped). super_admin uniquement. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md et son §"trois obstacles" (pièce bloquée en permanence sans cette fonction).';
 
-revoke all on function public.admin_resolve_agency_id_document(uuid, text) from public, anon, service_role;
-grant execute on function public.admin_resolve_agency_id_document(uuid, text) to authenticated;
+revoke all on function public.admin_resolve_agency_id_document(uuid, uuid, text) from public, anon, service_role;
+grant execute on function public.admin_resolve_agency_id_document(uuid, uuid, text) to authenticated;
