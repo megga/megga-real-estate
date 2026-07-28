@@ -59,14 +59,28 @@ interface WizardShellProps {
    * + overflow) et le z-index de l'overlay.
    */
   embedded?: boolean
+  /**
+   * Force le mode sombre au lieu de le déduire de `data-theme`.
+   *
+   * ⚠ Le CRM porte DEUX clés de thème sans lien : `megga-theme` (lue par
+   * `useTheme`, donc par `data-theme`) et `megga.sugar.dark` (lue par les
+   * surfaces Sugar et basculée par leur rail). Monté dans le pager « Mes biens »,
+   * le wizard restait donc CLAIR dans un chrome sombre — sa page connaît l'état
+   * Sugar, lui non.
+   *
+   * L'hôte qui connaît l'état le transmet. Omis, le comportement d'origine tient :
+   * le wizard suit `data-theme`.
+   */
+  dark?: boolean
 }
 
-export default function WizardShell({ onClose, embedded = false }: WizardShellProps) {
+export default function WizardShell({ onClose, embedded = false, dark: darkOverride }: WizardShellProps) {
   const { t } = useTranslation('listings')
   // Le wizard suit le mode clair/sombre du CRM via useTheme → `data-theme`
-  // (source de vérité lue par le Proxy SugarV2, robuste au rendu concurrent).
+  // (source de vérité lue par le Proxy SugarV2, robuste au rendu concurrent),
+  // sauf si l'hôte impose l'état (cf. `dark` ci-dessus).
   const { theme } = useTheme()
-  const dark = theme === 'dark'
+  const dark = darkOverride ?? theme === 'dark'
   // Épingle le thème du wizard sur celui de l'app. Quand l'override est levé (cleanup),
   // le Proxy retombe sur `data-theme` — donc aucun render concurrent ne lit du périmé.
   setSugarV2Dark(dark)

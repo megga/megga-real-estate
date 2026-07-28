@@ -7,6 +7,10 @@
 //
 // Le conteneur du wizard est `position: relative` et porte une hauteur : sans
 // elle, un enfant en `position: absolute; inset: 0` s'effondrerait à zéro.
+//
+// `dark` lui est TRANSMIS : le wizard déduit sinon son thème de `data-theme`
+// (clé `megga-theme`), quand le rail Sugar bascule `megga.sugar.dark`. Sans ce
+// passage, il restait clair dans un chrome sombre.
 
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -49,7 +53,7 @@ export default function WizardSugarV2Page() {
         <SugarIconRail active={'biens' as SugarScreenId} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} setDark={setDark} sp={sgSp} />
         <main style={{ flex: 1, minWidth: 0, padding: '92px 40px 40px' }}>
           <div style={{ position: 'relative', height: 'calc(100vh - 132px)', borderRadius: 26, overflow: 'hidden' }}>
-            <WizardShell embedded onClose={onClose} />
+            <WizardShell embedded dark={dark} onClose={onClose} />
           </div>
         </main>
       </div>
