@@ -35,7 +35,7 @@ import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminAvatar, AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminPager, AdminPill,
-  AdminSearchInput, AdminSkeleton, AdminSolidBtn,
+  AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminSolidBtn,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
@@ -246,24 +246,15 @@ export default function AdminAgenciesPage() {
           />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {statusFilters.map((f) => {
-              const on = statusFilter === f.value
-              return (
-                <button
-                  key={f.value}
-                  onClick={() => { setStatusFilter(f.value); setPage(1) }}
-                  aria-pressed={on}
-                  style={{
-                    height: 32, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
-                    background: on ? sp.accent : 'transparent',
-                    color: on ? sp.accentInk : sp.soft,
-                  }}
-                >
-                  {f.label}
-                </button>
-              )
-            })}
+            {statusFilters.map((f) => (
+              <AdminSegmentBtn
+                key={f.value}
+                on={statusFilter === f.value}
+                onClick={() => { setStatusFilter(f.value); setPage(1) }}
+              >
+                {f.label}
+              </AdminSegmentBtn>
+            ))}
           </div>
         </div>
       </AdminCard>

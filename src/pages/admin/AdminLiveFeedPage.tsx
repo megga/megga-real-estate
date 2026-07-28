@@ -170,6 +170,10 @@ function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: b
     <div
       role={hasMetadata ? 'button' : undefined}
       tabIndex={hasMetadata ? 0 : undefined}
+      // Le chevron qui tourne est le seul signe du dépli : muet pour un lecteur
+      // d'écran, il laissait la ligne annoncer « bouton » sans dire si le JSON
+      // était déjà ouvert.
+      aria-expanded={hasMetadata ? expanded : undefined}
       onKeyDown={hasMetadata ? (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded) } } : undefined}
       className={isNew ? 'lfx-row adm-fade-up' : 'lfx-row'}
       onClick={() => hasMetadata && setExpanded(!expanded)}
@@ -395,6 +399,12 @@ export default function AdminLiveFeedPage() {
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
+              // Aucune étiquette visible : l'icône entonnoir ne nomme rien. On
+              // reprend l'intitulé de la colonne « Action » plutôt que celui de
+              // l'option par défaut — un lecteur d'écran annonce le nom PUIS la
+              // valeur, et `allActions` aurait donné « Toutes les actions, toutes
+              // les actions ».
+              aria-label={t('liveFeed.column.action')}
               style={{
                 height: 30, padding: '0 13px 0 32px', borderRadius: ADMIN_RADII.pill, border: 0,
                 background: surf.cardSub, color: sp.soft,

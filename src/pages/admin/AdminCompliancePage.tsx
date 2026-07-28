@@ -23,7 +23,7 @@ import type { ComplianceCase } from '@/hooks/useAdminCompliance'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { useClientPagination } from '@/hooks/useClientPagination'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
 const ITEMS_PER_PAGE = 10
@@ -343,23 +343,16 @@ export default function AdminCompliancePage() {
 
       {/* Onglets + recherche */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-        {TABS.map((tb) => {
-          const on = tab === tb.value
-          return (
-            <button
-              key={tb.value}
-              onClick={() => { setTab(tb.value); setPage(1) }}
-              style={{
-                height: 34, padding: '0 15px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
-                background: on ? sp.accent : surf.card, color: on ? sp.accentInk : sp.soft,
-                boxShadow: on ? 'none' : sp.shadowSm,
-              }}
-            >
-              {tb.label}
-            </button>
-          )
-        })}
+        {TABS.map((tb) => (
+          <AdminSegmentBtn
+            key={tb.value}
+            on={tab === tb.value}
+            onClick={() => { setTab(tb.value); setPage(1) }}
+            variant="tab"
+          >
+            {tb.label}
+          </AdminSegmentBtn>
+        ))}
 
         {/* Le champ reste poussé à droite de la rangée d'onglets : le kit ne
             porte pas de marge, elle vit donc sur l'enveloppe. */}

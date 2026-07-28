@@ -26,7 +26,7 @@ import PageTransition from '@/components/layout/PageTransition'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill,
-  AdminSearchInput, AdminSkeleton, AdminTd, AdminTh,
+  AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
@@ -216,25 +216,16 @@ export default function AdminMarketplacePage() {
           />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            {STATUS_FILTER_KEYS.map((f) => {
-              const on = statusFilter === f.value
-              return (
-                <button
-                  key={f.value}
-                  onClick={() => { setStatusFilter(f.value); setPage(1) }}
-                  style={{
-                    height: 34, padding: '0 15px', borderRadius: ADMIN_RADII.pill, border: 0,
-                    cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    background: on ? sp.accent : surf.card,
-                    color: on ? sp.accentInk : sp.soft,
-                    boxShadow: on ? 'none' : sp.shadowSm,
-                  }}
-                >
-                  {t(`admin:${f.key}`)}
-                </button>
-              )
-            })}
+            {STATUS_FILTER_KEYS.map((f) => (
+              <AdminSegmentBtn
+                key={f.value}
+                on={statusFilter === f.value}
+                onClick={() => { setStatusFilter(f.value); setPage(1) }}
+                variant="tab"
+              >
+                {t(`admin:${f.key}`)}
+              </AdminSegmentBtn>
+            ))}
           </div>
         </div>
 

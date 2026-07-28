@@ -25,9 +25,9 @@ import PageTransition from '@/components/layout/PageTransition'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminAvatar, AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminPager, AdminPill,
-  AdminSearchInput, AdminSkeleton, AdminTd, AdminTh,
+  AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
-import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
+import type { AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 
@@ -151,25 +151,16 @@ export default function AdminUsersPage() {
           />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            {ROLE_FILTER_VALUES.map((value) => {
-              const on = roleFilter === value
-              return (
-                <button
-                  key={value}
-                  onClick={() => { setRoleFilter(value); setPage(1) }}
-                  style={{
-                    height: 34, padding: '0 15px', borderRadius: ADMIN_RADII.pill, border: 0,
-                    cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    background: on ? sp.accent : surf.card,
-                    color: on ? sp.accentInk : sp.soft,
-                    boxShadow: on ? 'none' : sp.shadowSm,
-                  }}
-                >
-                  {value ? t(ROLE_I18N[value] ?? 'common.role.agent') : t('admin:common.all')}
-                </button>
-              )
-            })}
+            {ROLE_FILTER_VALUES.map((value) => (
+              <AdminSegmentBtn
+                key={value}
+                on={roleFilter === value}
+                onClick={() => { setRoleFilter(value); setPage(1) }}
+                variant="tab"
+              >
+                {value ? t(ROLE_I18N[value] ?? 'common.role.agent') : t('admin:common.all')}
+              </AdminSegmentBtn>
+            ))}
           </div>
         </div>
 

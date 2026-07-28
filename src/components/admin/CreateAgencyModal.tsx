@@ -13,7 +13,7 @@ import Modal from '@/components/ui/modal'
 import { useToast } from '@/components/ui/Toast'
 import { CANTONS } from '@/lib/constants'
 import { useAdminCreateAgency } from '@/hooks/useAdminCreateAgency'
-import { AdminGhostBtn, AdminSolidBtn, AdminSwitch } from '@/components/admin/kit/adminKit'
+import { AdminGhostBtn, AdminSegmentBtn, AdminSolidBtn, AdminSwitch } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
@@ -104,19 +104,9 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
           <span id={planLabelId} style={labelStyle}>{t('createAgency.plan')}</span>
           <div role="group" aria-labelledby={planLabelId} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             {PLAN_IDS.map(p => (
-              <button
-                key={p}
-                onClick={() => setPlan(p)}
-                aria-pressed={plan === p}
-                style={{
-                  height: 32, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
-                  background: plan === p ? sp.accent : surf.cardSub,
-                  color: plan === p ? sp.accentInk : sp.soft,
-                }}
-              >
+              <AdminSegmentBtn key={p} on={plan === p} onClick={() => setPlan(p)} variant="hollow">
                 {t(`common.plan.${p}`)}
-              </button>
+              </AdminSegmentBtn>
             ))}
           </div>
         </div>
