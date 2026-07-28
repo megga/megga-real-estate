@@ -1,8 +1,8 @@
 # KYB agences et onboarding — fichier de relais
 
 > **Pour qui :** Antoine, qui reprend ce chantier.
-> **Écrit le :** 26 juillet 2026 (Antoine). **Mis à jour le :** 26 juillet 2026, après
-> la session de cadrage de l'onboarding avec Thomas.
+> **Écrit le :** 26 juillet 2026 (Antoine). **Mis à jour le :** 28 juillet 2026, après
+> la livraison et la vérification complète de l'étape 2 (gate et wizard).
 > **Branche :** `feat/agency-kyb-verification` @ `276e4d5a`.
 >
 > **Trois documents, trois rôles :**
@@ -29,7 +29,7 @@ parcours d'onboarding est maintenant cadré et décidé.
 | Conception du parcours d'onboarding | **faite** (spec, voir en-tête) |
 | Correctifs d'existant | livré, étape 1, 8 tests de non-régression |
 | Trigger d'inscription versionné | livré, il n'était dans aucune migration |
-| Gate et wizard de saisie | à faire, étape 2 |
+| Gate et wizard de saisie | fait, étape 2 |
 | Moteur de scoring | à faire, étape 3, ta conception §7 tient telle quelle |
 | Connecteurs disponibles | à faire, étape 4 |
 | File de revue admin et gardes LAB | à faire, étape 5 |
@@ -192,7 +192,23 @@ Attendu : aucune sortie. Puis rejouer la base et les tests :
 supabase db reset && npm run lint:migrations && npm run test:backend
 ```
 
-Attendu : `629 passed`, 0 échec. Lire le compte de tests, jamais le code de sortie.
+Attendu (état du 26 juillet) : `629 passed`, 0 échec. Lire le compte de tests, jamais
+le code de sortie.
+
+**Mise à jour étape 2 (vérifiée le 28 juillet 2026) :** l'étape 2 a ajouté 3
+migrations, datées du 27 juillet 2026 (`20260727100000_submit_agency_identity.sql`,
+`20260727110000_kyb_identity_documents_storage.sql`,
+`20260727120000_submit_agency_identity_id_document.sql`). **Le total à re-dater le
+jour du merge est donc désormais de 11 migrations, pas 8.** Vérifié par `date -u` au
+moment de cette mise à jour : nous sommes le 28 juillet 2026 UTC, donc le garde-date
+de `deploy.yml` (`stamp >= TODAY`) a déjà dépassé les 11 fichiers du chantier (tous
+datés du 26 ou du 27 juillet) : mergés en l'état, ils seraient sautés définitivement,
+sans autre trace qu'un `::warning::`. La commande de re-datage ci-dessus ne couvre
+que les 8 fichiers `202607261[34]*` : le jour du merge, l'étendre aux 3 fichiers
+`20260727*` (même motif `git mv "$f" "$(date -u +%Y%m%d)${f:8}"`, ordre relatif
+conservé). Suite backend rejouée le 28 juillet sur les 189 migrations actuelles du
+dépôt (schéma inchangé par cette mise à jour) : `658 passed`, 4 skipped (secrets
+d'environnement absents en local, sans rapport avec ce chantier), 0 échec.
 
 L'alternative (les appliquer à la main avant de merger) est documentée dans `deploy.yml`
 comme le flux normal du dépôt, mais ne résout pas la collision.
@@ -283,8 +299,14 @@ Rien ci-dessous n'est une supposition, tout est reproductible.
 - **Le test garde vraiment ce qu'il prétend**, vérifié **par mutation** : l'alias `sa`
   de `FR_SA` retiré en base, le test « garde ambigus les sigles homonymes entre pays »
   échoue ; alias restauré, il repasse. Un test jamais vu échouer ne prouve rien.
-- **Non-régression** : suite backend complète, 619 tests sur 104 fichiers, 0 échec.
-  Front : `npm run build`, `npm run build:admin`, 951 tests unitaires.
+- **Non-régression** : suite backend complète, 619 tests sur 104 fichiers, 0 échec
+  (état étape 1). Front : `npm run build`, `npm run build:admin`, 951 tests
+  unitaires (état étape 1). **Après l'étape 2** (vérifié le 28 juillet 2026) :
+  backend 658 passed / 4 skipped sur 107 fichiers, 0 échec ; unitaires 1118 passed
+  sur 65 fichiers, 0 échec ; e2e KYB (`test:e2e:kyb`) 2 passed. Les 4 skips backend
+  sont deux specs gardées par des secrets absents en local
+  (`MEGGA_MAGIC_LINK_HMAC_SECRET`, `DEEPSEEK_API_KEY`), sans rapport avec ce
+  chantier ; la CI les fournit.
 
 ---
 
@@ -298,7 +320,7 @@ est ce qu'il faut avoir en tête pour exécuter.
 |---|---|---|---|---|
 | 0 | Re-dater les migrations et merger (§2) | fait | rien | non |
 | 1 | Correctifs d'existant | fait | 0 | non |
-| 2 | Gate, wizard 5 étapes, RPC de soumission | à faire | 1 | non |
+| 2 | Gate, wizard 5 étapes, RPC de soumission | fait | 1 | non |
 | 3 | Moteur de scoring (§7) | à faire | 0 | non |
 | 4 | Connecteurs disponibles | à faire | 3 | non |
 | 5 | File de revue admin et gardes LAB | à faire | 3 | non |
@@ -367,6 +389,46 @@ complet login / gate / soumission / accès / relogin.
 exactement les trois comptes développeurs. Si l'équipe MEGGA doit en compter d'autres,
 l'exemption s'élargira mécaniquement. Acceptable (un compte interne n'a pas d'agence à
 vérifier) mais ce doit rester un choix conscient.
+
+### Étape 2 : livrée
+
+Construite comme décrit ci-dessus. Route `/dashboard/identite`, redirection émise par
+`AgentSugarLayout` via `useIdentityGate()` (jamais vers elle-même), écran mobile
+(< 768 px) invitant à terminer sur ordinateur, sans échappatoire vers le CRM. Coquille
+de wizard (`IdentityShell`) à cinq étapes (signataire, agence, bénéficiaires effectifs,
+cette dernière sautée pour une raison individuelle, pièce d'identité, récapitulatif),
+persistance de l'étape à chaque navigation (pas seulement à la soumission finale), et
+sortie de secours « reprendre plus tard » : un écran d'attente local plutôt qu'une
+route séparée, pour ne pas rouvrir la boucle de l'incident P0 c830f9a9. RPC
+`submit_agency_identity()` : garde `is_agency_admin()`, quatre causes de refus à
+message distinct (raison sociale, forme juridique, pays, signataire actif, dans cet
+ordre, pour que le wizard sache où ramener l'utilisateur), idempotente (un second
+appel après succès ne fait rien), journalisée dans `activity_events`
+(`category='kyc'`). Cycle complet couvert par un test e2e Playwright
+(`tests/e2e/onboarding-identite.spec.ts`, config dédiée `playwright.kyb.config.ts`,
+authentification réelle contre un Supabase local) : connexion, gate, cinq étapes,
+soumission, accès au dashboard, déconnexion, reconnexion sans reboucle, plus la
+sortie de secours. Câblé dans `e2e.yml` (job séparé `e2e-kyb`) ; exécuté pour de vrai
+en local (`npm run test:e2e:kyb`) lors de la vérification de fin d'étape, 2 tests, 2
+passés.
+
+Deux points qui ne se devinent pas depuis le code seul, à connaître avant de toucher
+l'étape 3 :
+
+- Les tables de vérification (`agency_verification_checks`,
+  `agency_person_verification_checks`) n'ont **aucune policy INSERT** : elles
+  refusent l'écriture à tout rôle utilisateur, quel qu'il soit. Seule la RPC
+  (`SECURITY DEFINER`) pose les lignes de check, ce qui empêche un inscrit de
+  fabriquer sa propre preuve de vérification. Le moteur de scoring (étape 3) lit ces
+  mêmes tables : quiconque y touche doit savoir que le verrou est là.
+- Le préfixe de stockage des pièces d'identité (`documents/{agency_id}/kyb-identity/…`)
+  est comparé **en minuscules** dans les 8 policies du bucket `documents` (les 4
+  générales et les 4 dédiées), parce que `storage.search()`, utilisé par `.list()`
+  côté client, filtre lui-même en minuscules. Une comparaison sensible à la casse
+  laissait un agent simple déposer un fichier sous `KYB-IDENTITY` (ou toute autre
+  casse) : la policy générale (qui ne vérifie que l'agence, jamais le rôle) devenait
+  alors seule à trancher, et le dirigeant qui listait ensuite ce préfixe voyait un
+  fichier étranger dans son dossier de preuve.
 
 ### Étape 3 : le moteur de scoring
 
