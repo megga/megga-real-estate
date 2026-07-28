@@ -1,7 +1,7 @@
 /**
- * Page super-admin — modération marketplace.
+ * Page super-admin — modération moderation.
  *
- * Route : `/dashboard/admin/marketplace`.
+ * Route : `/dashboard/admin/moderation`.
  * Table paginée des annonces avec actions approuver / signaler / retirer
  * (`useAdminModeration`), recherche, filtre de statut et export CSV.
  *
@@ -34,10 +34,10 @@ import { useAdminSugar } from '@/hooks/useAdminSugar'
 const ITEMS_PER_PAGE = 15
 
 const STATUS_FILTER_KEYS = [
-  { value: '', key: 'marketplace.filter.all' },
-  { value: 'published', key: 'marketplace.filter.published' },
-  { value: 'flagged', key: 'marketplace.filter.flagged' },
-  { value: 'removed', key: 'marketplace.filter.removed' },
+  { value: '', key: 'moderation.filter.all' },
+  { value: 'published', key: 'moderation.filter.published' },
+  { value: 'flagged', key: 'moderation.filter.flagged' },
+  { value: 'removed', key: 'moderation.filter.removed' },
 ] as const
 
 /** Ton de pilule par statut de modération (remplace les pastilles colorées). */
@@ -97,14 +97,14 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
     <AdminEmpty
       icon={ShieldCheck}
-      title={hasFilters ? t('admin:marketplace.empty.titleFiltered') : t('admin:marketplace.empty.title')}
-      hint={hasFilters ? t('admin:marketplace.empty.subtitleFiltered') : t('admin:marketplace.empty.subtitle')}
+      title={hasFilters ? t('admin:moderation.empty.titleFiltered') : t('admin:moderation.empty.title')}
+      hint={hasFilters ? t('admin:moderation.empty.subtitleFiltered') : t('admin:moderation.empty.subtitle')}
     />
   )
 }
 
 /** Page de modération : recherche + filtre statut, table responsive, dialog de confirmation. */
-export default function AdminMarketplacePage() {
+export default function AdminModerationPage() {
   const { t } = useTranslation('admin')
   const { sp, surf, dark, tones } = useAdminSugar()
   const { listings, isLoading, isError, refetch, stats, statsLoading, moderate } = useAdminModeration()
@@ -163,8 +163,8 @@ export default function AdminMarketplacePage() {
   return (
     <PageTransition>
       <AdminPage
-        title={t('admin:marketplace.title')}
-        subtitle={isLoading ? t('admin:common.loading') : t('admin:marketplace.subtitle', { count: listings.length })}
+        title={t('admin:moderation.title')}
+        subtitle={isLoading ? t('admin:common.loading') : t('admin:moderation.subtitle', { count: listings.length })}
         width="wide"
         actions={(
           <AdminGhostBtn
@@ -188,18 +188,18 @@ export default function AdminMarketplacePage() {
         {/* Indicateurs */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <AdminKpiCard
-            label={t('admin:marketplace.kpi.published')}
+            label={t('admin:moderation.kpi.published')}
             value={statsLoading ? '-' : (stats?.totalPublished ?? 0)}
             icon={ShieldCheck}
           />
           <AdminKpiCard
-            label={t('admin:marketplace.kpi.flaggedThisMonth')}
+            label={t('admin:moderation.kpi.flaggedThisMonth')}
             value={statsLoading ? '-' : (stats?.flaggedThisMonth ?? 0)}
             icon={AlertTriangle}
             variant={stats?.flaggedThisMonth ? 'danger' : 'default'}
           />
           <AdminKpiCard
-            label={t('admin:marketplace.kpi.removedThisMonth')}
+            label={t('admin:moderation.kpi.removedThisMonth')}
             value={statsLoading ? '-' : (stats?.removedThisMonth ?? 0)}
             icon={Trash2}
             variant={stats?.removedThisMonth ? 'danger' : 'default'}
@@ -211,8 +211,8 @@ export default function AdminMarketplacePage() {
           <AdminSearchInput
             value={search}
             onChange={(v) => { setSearch(v); setPage(1) }}
-            placeholder={t('admin:marketplace.searchPlaceholder')}
-            label={t('admin:marketplace.searchPlaceholder')}
+            placeholder={t('admin:moderation.searchPlaceholder')}
+            label={t('admin:moderation.searchPlaceholder')}
           />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -290,12 +290,12 @@ export default function AdminMarketplacePage() {
                   <tr>
                     {/* Colonnes vignette et actions : en-tête sans libellé. */}
                     <AdminTh width={82}>{null}</AdminTh>
-                    <AdminTh>{t('admin:marketplace.table.title')}</AdminTh>
-                    <AdminTh width={140}>{t('admin:marketplace.table.agency')}</AdminTh>
-                    <AdminTh width={120} align="right">{t('admin:marketplace.table.price')}</AdminTh>
-                    <AdminTh width={74} align="center">{t('admin:marketplace.table.canton')}</AdminTh>
-                    <AdminTh width={110}>{t('admin:marketplace.table.date')}</AdminTh>
-                    <AdminTh width={124} align="center">{t('admin:marketplace.table.status')}</AdminTh>
+                    <AdminTh>{t('admin:moderation.table.title')}</AdminTh>
+                    <AdminTh width={140}>{t('admin:moderation.table.agency')}</AdminTh>
+                    <AdminTh width={120} align="right">{t('admin:moderation.table.price')}</AdminTh>
+                    <AdminTh width={74} align="center">{t('admin:moderation.table.canton')}</AdminTh>
+                    <AdminTh width={110}>{t('admin:moderation.table.date')}</AdminTh>
+                    <AdminTh width={124} align="center">{t('admin:moderation.table.status')}</AdminTh>
                     <AdminTh width={116}>{null}</AdminTh>
                   </tr>
                 </thead>
@@ -338,7 +338,7 @@ export default function AdminMarketplacePage() {
                           {listing.moderation_status !== 'published' && (
                             <button
                               onClick={(e) => handleApprove(e, listing)}
-                              title={t('admin:marketplace.action.approve')}
+                              title={t('admin:moderation.action.approve')}
                               style={actBtn}
                             >
                               <AdminIc icon={Check} size={14} color={tones.ok} />
@@ -346,14 +346,14 @@ export default function AdminMarketplacePage() {
                           )}
                           <button
                             onClick={(e) => { e.stopPropagation(); openDialog(listing, 'flag') }}
-                            title={t('admin:marketplace.action.flag')}
+                            title={t('admin:moderation.action.flag')}
                             style={actBtn}
                           >
                             <AdminIc icon={AlertTriangle} size={14} color={tones.warn} />
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); openDialog(listing, 'remove') }}
-                            title={t('admin:marketplace.action.remove')}
+                            title={t('admin:moderation.action.remove')}
                             style={actBtn}
                           >
                             <AdminIc icon={Trash2} size={14} color={tones.err} />

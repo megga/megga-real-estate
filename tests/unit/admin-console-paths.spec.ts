@@ -18,7 +18,7 @@ import { join } from 'node:path'
 
 /** Sous-chemins de la console — ceux qui n'existent PAS à la racine du CRM. */
 const ADMIN_SUBPATHS = [
-  'agencies', 'users', 'end-users', 'marketplace', 'monitoring', 'compliance',
+  'agencies', 'users', 'end-users', 'moderation', 'monitoring', 'compliance',
   'changelog', 'feature-flags', 'plans', 'live', 'security', 'nps', 'autonomy',
   'tool-usage', 'learning',
 ].join('|')
