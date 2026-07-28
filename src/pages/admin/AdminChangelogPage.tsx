@@ -1,7 +1,7 @@
 /**
  * Page super-admin — communication produit (changelog + annonces).
  *
- * Route : `/changelog` (console admin.megga.ch). Deux onglets : le changelog
+ * Route : `/dashboard/admin/changelog`. Deux onglets : le changelog
  * produit (entrées version / titre / contenu, avec création en modale et
  * suppression ; un brouillon ne sort pas vers les utilisateurs finaux) et les
  * annonces in-app ciblées (`AnnouncementsTab`).

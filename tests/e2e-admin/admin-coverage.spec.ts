@@ -1,9 +1,9 @@
-// Phase C (part 2) — Couverture super-admin (17 pages).
-// La console vit sur son PROPRE bundle (index.admin.html / AdminApp) : cette
-// suite lance donc `npm run dev:admin` sur :5174, avec
-// VITE_DEV_BYPASS_ROLE=super_admin (cf playwright.admin.config.ts). Les routes
-// y sont à la RACINE (`/users`, plus `/dashboard/admin/users`), et AdminAuthGate
-// rend un écran de refus au lieu de la console si le rôle ne passe pas.
+// Couverture super-admin (17 pages).
+// La console vit DANS le CRM depuis juillet 2026 : les routes sont sous
+// `/dashboard/admin/*` et la suite lance le serveur du CRM avec
+// VITE_DEV_BYPASS_ROLE=super_admin (cf playwright.admin.config.ts). Sans ce
+// rôle, `AdminConsoleRoute` redirige vers /dashboard et la suite testerait
+// 17 fois la même page sans rien affirmer.
 
 import { test, expect } from '@playwright/test'
 import { collectConsoleErrors } from '../e2e/helpers/console'
@@ -15,24 +15,26 @@ interface RouteSpec {
   label: string
 }
 
+const BASE = '/dashboard/admin'
+
 const ADMIN_ROUTES: RouteSpec[] = [
-  { path: '/', label: 'Admin dashboard' },
-  { path: '/agencies', label: 'Admin > Agences' },
-  { path: `/agencies/${MOCK_UUID}`, label: 'Admin > Agence detail (mock)' },
-  { path: '/users', label: 'Admin > Users' },
-  { path: '/end-users', label: 'Admin > Clients finaux' },
-  { path: '/monitoring', label: 'Admin > Monitoring' },
-  { path: '/marketplace', label: 'Admin > Marketplace' },
-  { path: '/compliance', label: 'Admin > Compliance' },
-  { path: '/changelog', label: 'Admin > Communication' },
-  { path: '/feature-flags', label: 'Admin > Feature flags' },
-  { path: '/plans', label: 'Admin > Plans / billing' },
-  { path: '/live', label: 'Admin > Live feed' },
-  { path: '/security', label: 'Admin > Security audit' },
-  { path: '/nps', label: 'Admin > NPS' },
-  { path: '/autonomy', label: 'Admin > Autonomie WhatsApp' },
-  { path: '/tool-usage', label: 'Admin > Outils IA' },
-  { path: '/learning', label: 'Admin > Apprentissage' },
+  { path: BASE, label: 'Admin dashboard' },
+  { path: `${BASE}/agencies`, label: 'Admin > Agences' },
+  { path: `${BASE}/agencies/${MOCK_UUID}`, label: 'Admin > Agence detail (mock)' },
+  { path: `${BASE}/users`, label: 'Admin > Users' },
+  { path: `${BASE}/end-users`, label: 'Admin > Clients finaux' },
+  { path: `${BASE}/monitoring`, label: 'Admin > Monitoring' },
+  { path: `${BASE}/marketplace`, label: 'Admin > Marketplace' },
+  { path: `${BASE}/compliance`, label: 'Admin > Compliance' },
+  { path: `${BASE}/changelog`, label: 'Admin > Communication' },
+  { path: `${BASE}/feature-flags`, label: 'Admin > Feature flags' },
+  { path: `${BASE}/plans`, label: 'Admin > Plans / billing' },
+  { path: `${BASE}/live`, label: 'Admin > Live feed' },
+  { path: `${BASE}/security`, label: 'Admin > Security audit' },
+  { path: `${BASE}/nps`, label: 'Admin > NPS' },
+  { path: `${BASE}/autonomy`, label: 'Admin > Autonomie WhatsApp' },
+  { path: `${BASE}/tool-usage`, label: 'Admin > Outils IA' },
+  { path: `${BASE}/learning`, label: 'Admin > Apprentissage' },
 ]
 
 test.describe('Super-admin — parametric route coverage', () => {

@@ -312,12 +312,10 @@ export interface SugarIconRailProps {
    * Remplace les outils transverses du rail. Omis (cas des 21 surfaces CRM), la
    * liste par défaut ci-dessous s'applique — comportement inchangé.
    *
-   * Existe pour la console super-admin, qui vit sur une AUTRE ORIGINE : la liste
-   * par défaut y casserait (`import` fait un `navigate()` React Router, qui
-   * viserait `admin.megga.ch/dashboard/…` ; `search` ouvre un hôte monté par
-   * `AgentSugarLayout` seul ; `relances` charge des données d'agent alors que le
-   * super-admin a un `agency_id` NULL). Le rail reste donc UN composant, mais
-   * chaque origine fournit ses propres outils.
+   * Existe pour la console super-admin : la liste par défaut y serait fausse
+   * (`import` et `relances` sont des gestes d'agence, et `search` ouvre un hôte
+   * que seul `AgentSugarLayout` monte). Le rail reste UN composant, mais chaque
+   * surface fournit ses propres outils.
    */
   items?: RailItem[]
 }

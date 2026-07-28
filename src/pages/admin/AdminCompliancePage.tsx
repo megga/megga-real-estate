@@ -1,7 +1,7 @@
 /**
  * Page super-admin — supervision compliance (LAB/KYC + nLPD).
  *
- * Route : `/compliance` (console admin.megga.ch). KPIs, table de dossiers KYC
+ * Route : `/dashboard/admin/compliance`. KPIs, table de dossiers KYC
  * filtrable par onglet (à risque / en attente / validé / tous), recherche,
  * export CSV, et deux cartes nLPD (couverture des consentements, suppressions
  * de comptes art. 32). Chaque ligne ouvre le dossier KYC agent.

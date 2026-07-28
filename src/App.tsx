@@ -151,7 +151,7 @@ const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
 // Centre d'aide : plus de page SPA — tout `/help/*` redirige vers Intercom
 // (cf. HelpCenterRedirect plus bas).
 // Les pages super-admin ne sont plus dans ce bundle : elles vivent dans
-// l'application `AdminApp` (admin.megga.ch). Voir src/lib/adminEntry.ts.
+// la console super-admin, montée sous /dashboard/admin. Voir src/lib/adminEntry.ts.
 
 
 // `PageLoader` (the generic centered spinner) replaced by `<SmartPageLoader>`
@@ -545,11 +545,6 @@ function AppRoutes() {
                 {/* Créer un bien — mobile (< 768px) : wizard 4 étapes (P7/2). */}
                 <Route path="listings/new" element={<ResponsiveRoute desktop={<WizardSugarV2Page />} mobile={<MobileWizardPage />} />} />
                 <Route path="listings/:id/edit" element={<ByParam><ListingFormPage /></ByParam>} />
-
-                {/* Console super-admin : elle vit sur SA propre origine
-                    (admin.megga.ch, build `npm run build:admin`) — son bundle
-                    n'est plus servi aux agents. Les anciens liens/favoris
-                    `/dashboard/admin/*` rebondissent vers la console. */}
               </Route>
 
               {/* 404 */}

@@ -1,7 +1,7 @@
 /**
  * Page super-admin — satisfaction (NPS).
  *
- * Route : `/nps` (console admin.megga.ch). Score NPS, note moyenne, répartition
+ * Route : `/dashboard/admin/nps`. Score NPS, note moyenne, répartition
  * 1-5 étoiles et liste des réponses avec commentaires (via `useAdminNps`).
  *
  * Rendu en grammaire Sugar (kit `@/components/admin/kit`) : indicateurs

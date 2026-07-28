@@ -3,7 +3,7 @@
  * contenu (`sidebarContent(isCol)`) : desktop pleine largeur et réductible,
  * tablette toujours réduite, overlay mobile. Navigation agent uniquement
  * (`NAV_SECTIONS`) : le mode admin qui vivait ici a suivi la console sur son
- * propre domaine (AdminShell, admin.megga.ch) — l'entrée se fait par le
+ * propre surface (AdminShell, `/dashboard/admin`) — l'entrée se fait par le
  * dropdown profil Sugar (cf. src/lib/adminEntry.ts).
  */
 import { useState } from 'react'
