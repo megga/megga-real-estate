@@ -882,6 +882,12 @@ export default function IdentityShell() {
       const targetStep = identitySubmissionErrorStep(code)
       if (targetStep != null) setStep(targetStep)
       setError(t(`wizard.recap.errors.${code ?? 'generic'}`))
+    } finally {
+      // Revue finale (lot 4) : sans ce finally, setSaving(false) ne vivait que dans le
+      // catch. Sans effet aujourd'hui (le succès démonte le composant via navigate()
+      // avant qu'un futur rendu ne lise `saving`), mais une régression qui ajouterait un
+      // chemin de sortie sans erreur laisserait le bouton Soumettre désactivé
+      // indéfiniment. Même triptyque try/catch/finally que runPersist ci-dessus.
       setSaving(false)
     }
   }

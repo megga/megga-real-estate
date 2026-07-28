@@ -407,10 +407,11 @@ appel après succès ne fait rien), journalisée dans `activity_events`
 (`category='kyc'`). Cycle complet couvert par un test e2e Playwright
 (`tests/e2e/onboarding-identite.spec.ts`, config dédiée `playwright.kyb.config.ts`,
 authentification réelle contre un Supabase local) : connexion, gate, cinq étapes,
-soumission, accès au dashboard, déconnexion, reconnexion sans reboucle, plus la
-sortie de secours. Câblé dans `e2e.yml` (job séparé `e2e-kyb`) ; exécuté pour de vrai
-en local (`npm run test:e2e:kyb`) lors de la vérification de fin d'étape, 2 tests, 2
-passés.
+soumission, accès au dashboard, déconnexion, reconnexion sans reboucle, la sortie de
+secours et, depuis la revue finale, un troisième cas dédié à la raison individuelle
+(saut de l'étape bénéficiaires effectifs, stepper, récapitulatif). Câblé dans
+`e2e.yml` (job séparé `e2e-kyb`) ; exécuté pour de vrai en local
+(`npm run test:e2e:kyb`) lors de la vérification de fin d'étape, 3 tests, 3 passés.
 
 Deux points qui ne se devinent pas depuis le code seul, à connaître avant de toucher
 l'étape 3 :
@@ -429,6 +430,24 @@ l'étape 3 :
   casse) : la policy générale (qui ne vérifie que l'agence, jamais le rôle) devenait
   alors seule à trancher, et le dirigeant qui listait ensuite ce préfixe voyait un
   fichier étranger dans son dossier de preuve.
+
+### Dettes identifiées en revue finale (étape 2)
+
+Deux points restent ouverts, relevés en revue finale de cette branche, à connaître
+avant de reprendre ce chantier :
+
+- **Pièces d'identité jamais purgées.** Le recto/verso déposé dans Storage
+  (`documents/{agency_id}/kyb-identity/{related_person_id}`) n'est supprimé par
+  aucun chemin quand la personne liée ou l'agence disparaît. Ce n'est pas une
+  exposition (les policies ci-dessus restent fermées), mais c'est de la rétention
+  sans propriétaire ni moyen de purge, dans la fonctionnalité même qui porte la
+  conformité. À traiter avant qu'une vraie pièce d'identité soit déposée.
+- **La garde anti-doublon du check `id_document` ne filtre pas sur `result`.**
+  `submit_agency_identity()` (`20260727120000_submit_agency_identity_id_document.sql`)
+  ne repose jamais une seconde ligne `agency_person_verification_checks` pour la
+  même personne dès qu'une ligne existe, quel que soit son `result`. Après un
+  verdict négatif, une pièce remplacée ne produirait donc jamais de nouvelle demande
+  de revue. Relève de l'étape 5 (file de revue admin et gardes LAB).
 
 ### Étape 3 : le moteur de scoring
 
