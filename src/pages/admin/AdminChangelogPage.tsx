@@ -11,7 +11,7 @@
  * repère violet « Admin MEGGA » a quitté la page — il ne vit plus qu'une fois,
  * dans le rail du shell.
  */
-import { useState, type CSSProperties } from 'react'
+import { useId, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, Megaphone, EyeOff } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
@@ -88,6 +88,15 @@ function ChangelogTab() {
     setContent('')
     setVersion('')
   }
+
+  // Identifiants des champs de la modale : `useId()` plutôt que des chaînes fixes,
+  // pour rester corrects si deux instances de l'onglet coexistaient un jour. Sans
+  // `htmlFor`, cliquer l'étiquette ne focalisait pas le champ et le lecteur d'écran
+  // ne les associait pas — même motif que `CreateAgencyModal`.
+  const uid = useId()
+  const versionId = `${uid}-version`
+  const titleId = `${uid}-title`
+  const contentId = `${uid}-content`
 
   const labelStyle: CSSProperties = {
     display: 'block', marginBottom: 6,
@@ -198,8 +207,9 @@ function ChangelogTab() {
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label style={labelStyle}>{t('changelog.modal.version')}</label>
+              <label htmlFor={versionId} style={labelStyle}>{t('changelog.modal.version')}</label>
               <input
+                id={versionId}
                 type="text"
                 value={version}
                 onChange={e => setVersion(e.target.value)}
@@ -226,8 +236,9 @@ function ChangelogTab() {
           </div>
 
           <div>
-            <label style={labelStyle}>{t('changelog.modal.titleLabel')}</label>
+            <label htmlFor={titleId} style={labelStyle}>{t('changelog.modal.titleLabel')}</label>
             <input
+              id={titleId}
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
@@ -238,8 +249,9 @@ function ChangelogTab() {
           </div>
 
           <div>
-            <label style={labelStyle}>{t('changelog.modal.description')}</label>
+            <label htmlFor={contentId} style={labelStyle}>{t('changelog.modal.description')}</label>
             <textarea
+              id={contentId}
               value={content}
               onChange={e => setContent(e.target.value)}
               rows={5}

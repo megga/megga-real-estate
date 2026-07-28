@@ -11,7 +11,7 @@
  * compteurs en chiffres tabulaires. Le repère violet « Admin MEGGA » a quitté la
  * page — il ne vit plus qu'une fois, dans le rail du shell.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CreditCard, Check, X, ChevronDown, Infinity as InfinityIcon } from 'lucide-react'
 import { formatCHF } from '@/lib/utils'
@@ -64,6 +64,17 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
   const toast = useToast()
   const { sp, surf } = useAdminSugar()
 
+  // Échap ferme le menu. L'écoute est posée sur le DOCUMENT et non sur le voile :
+  // un `<div>` sans `tabIndex` n'est jamais focusable, donc le `onKeyDown` qu'il
+  // portait ne se déclenchait jamais — Échap était mort sur cet écran. Même motif
+  // que `AgencyTargetPicker` (AdminFeatureFlagsPage).
+  useEffect(() => {
+    if (!open) return
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('keydown', onEsc)
+    return () => document.removeEventListener('keydown', onEsc)
+  }, [open])
+
   const changePlan = useMutation({
     mutationFn: async (newPlan: string) => {
       // La RPC upsert subscriptions avec p_status (défaut 'active') : on lit le
@@ -96,7 +107,12 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
 
   return (
     <div style={{ position: 'relative' }}>
-      <AdminGhostBtn onClick={() => setOpen(!open)} style={{ height: 30, padding: '0 13px', fontSize: 12 }}>
+      <AdminGhostBtn
+        onClick={() => setOpen(!open)}
+        expanded={open}
+        hasPopup
+        style={{ height: 30, padding: '0 13px', fontSize: 12 }}
+      >
         {t('admin:plans.changePlan')}
         <AdminIc
           icon={ChevronDown}
@@ -107,13 +123,19 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
       </AdminGhostBtn>
       {open && (
         <>
+          {/* Voile « clic dehors » seulement : le clavier passe par l'écoute
+              document ci-dessus (un div non focusable ne reçoit pas de keydown). */}
           <div
             style={{ position: 'fixed', inset: 0, zIndex: 10 }}
             onClick={() => setOpen(false)}
-            onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}
           />
+          {/* Pas de `role="listbox"` ici : les enfants sont des BOUTONS d'action —
+              cliquer écrit le plan de l'agence, ce n'est pas la sélection d'une
+              valeur dans une liste. Sans enfants `role="option"` le rôle annonçait
+              une liste vide, et un rôle faux coûte plus cher que pas de rôle. Les
+              `<button>` natifs portent déjà focus et activation clavier ; le plan
+              courant est nommé « (actuel) » dans son propre libellé. */}
           <div
-            role="listbox"
             style={{
               position: 'absolute', right: 0, top: '100%', marginTop: 5, zIndex: 20, minWidth: 152,
               background: surf.card, borderRadius: ADMIN_RADII.card, border: surf.hairline,

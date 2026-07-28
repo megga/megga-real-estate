@@ -98,8 +98,13 @@ function AgencyTargetPicker({ flag, agencies, disabled, onUpdate }: {
             style={{ position: 'fixed', inset: 0, zIndex: 10 }}
             onClick={() => setOpen(false)}
           />
+          {/* Pas de `role="listbox"` ici : le panneau contient un champ de
+              recherche, qu'une listbox n'a pas le droit d'héberger, et ses enfants
+              sont des boutons à DEUX états (on ajoute et on retire une agence),
+              pas des options. Sans enfants `role="option"` le rôle annonçait une
+              liste vide ; l'état retenu passe par `aria-pressed`, comme les
+              pilules de plan plus bas. */}
           <div
-            role="listbox"
             style={{
               position: 'absolute', left: 0, top: '100%', marginTop: 6, zIndex: 20, width: 264,
               padding: 6, borderRadius: ADMIN_RADII.card,
@@ -130,6 +135,10 @@ function AgencyTargetPicker({ flag, agencies, disabled, onUpdate }: {
                     key={a.id}
                     className="adm-row"
                     onClick={() => toggleAgency(a.id)}
+                    // La coche et la graisse sont les seuls signaux d'appartenance :
+                    // muettes pour un lecteur d'écran, elles laissaient la liste
+                    // sans état lisible.
+                    aria-pressed={active}
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
                       padding: '7px 10px', borderRadius: ADMIN_RADII.row, border: 0, background: 'transparent',

@@ -188,7 +188,7 @@ export function AdminPill({ label, tone = 'neutral', icon, title, style }: {
  * (cf. `admin-console.css`). `className` est exposée pour composer, mais la
  * classe de survol est toujours ajoutée.
  */
-export function AdminGhostBtn({ children, onClick, icon, disabled, title, style, className }: {
+export function AdminGhostBtn({ children, onClick, icon, disabled, title, style, className, expanded, hasPopup, label }: {
   children: ReactNode
   onClick?: () => void
   icon?: LucideIcon
@@ -196,11 +196,27 @@ export function AdminGhostBtn({ children, onClick, icon, disabled, title, style,
   title?: string
   style?: CSSProperties
   className?: string
+  /**
+   * État d'un déclencheur de menu (`aria-expanded`).
+   *
+   * Ces trois props existent parce que le type ci-dessus est FERMÉ et qu'aucune
+   * prop n'est propagée au `<button>` : poser `aria-expanded` directement sur ce
+   * composant ne lèverait aucune erreur — TypeScript ne contrôle pas les
+   * attributs JSX à trait d'union — et l'attribut serait silencieusement perdu.
+   * Le correctif ressemblerait à un correctif sans en être un.
+   */
+  expanded?: boolean
+  hasPopup?: boolean
+  /** Nom accessible quand le contenu visible n'en tient pas lieu. */
+  label?: string
 }) {
   const { sp, surf } = useAdminSugar()
   return (
     <button
       onClick={onClick} disabled={disabled} title={title}
+      aria-expanded={expanded}
+      aria-haspopup={hasPopup ? 'menu' : undefined}
+      aria-label={label}
       className={className ? `adm-ghost ${className}` : 'adm-ghost'}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -602,5 +618,51 @@ export function AdminPager({ page, totalPages, total, perPage, onPage }: {
         </button>
       </div>
     </div>
+  )
+}
+
+/**
+ * Pilule d'un groupe segmenté — filtre, onglet ou sélection multiple.
+ *
+ * Neuf endroits redessinaient la même pilule : même hauteur, même rayon, même
+ * bascule « accent plein quand retenue, effacée sinon ». Seul le COMPORTEMENT
+ * diffère vraiment d'un site à l'autre (mono-sélection ici, bascule multiple
+ * là, sentinelle « autre » ailleurs) — c'est donc le style qui est factorisé,
+ * pas la logique : chaque appelant garde son état.
+ *
+ * `variant` distingue les trois rendus observés, et il faut choisir celui du
+ * site remplacé plutôt que celui que son rôle suggère :
+ *   - `filter` s'efface dans une barre d'outils (transparent au repos) ;
+ *   - `tab` se pose sur la page, surface de carte et ombre pour rester lisible
+ *     hors bento ;
+ *   - `hollow` creuse la pastille dans le corps d'une modale — sur fond blanc,
+ *     `filter` la ferait disparaître au repos.
+ */
+export function AdminSegmentBtn({ on, onClick, children, variant = 'filter', title }: {
+  on: boolean
+  onClick: () => void
+  children: ReactNode
+  variant?: 'filter' | 'tab' | 'hollow'
+  title?: string
+}) {
+  const { sp, surf } = useAdminSugar()
+  const tab = variant === 'tab'
+  const restBg = tab ? surf.card : variant === 'hollow' ? surf.cardSub : 'transparent'
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={on}
+      title={title}
+      style={{
+        height: tab ? 34 : 32, padding: tab ? '0 15px' : '0 14px',
+        borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+        fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
+        background: on ? sp.accent : restBg,
+        color: on ? sp.accentInk : sp.soft,
+        boxShadow: !on && tab ? sp.shadowSm : 'none',
+      }}
+    >
+      {children}
+    </button>
   )
 }
