@@ -6,7 +6,7 @@
  * saisie manuelle. L'import déduplique sur email/téléphone (base + intra-lot, match
  * exact) et consigne un `activity_events` de synthèse par lot (piste LBA).
  */
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
@@ -15,7 +15,9 @@ import { useCreateContact } from '@/hooks/useContacts'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { ContactType } from '@/types/contact'
-import PageTransition from '@/components/layout/PageTransition'
+import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -592,8 +594,41 @@ export default function ContactImportPage() {
     setIsImporting(false)
   }, [createContact, profile, user, method])
 
+  const [dark, setDark] = useState<boolean>(() =>
+    typeof window !== 'undefined' && window.localStorage.getItem('megga.sugar.dark') === '1')
+
+  // Chrome Sugar porté ici : cette page vivait sous `AgentLayout` (sidebar
+  // legacy). Chaque surface Sugar porte son propre chrome — `AgentSugarLayout`
+  // n'en rend aucun — d'où cet échafaudage, identique aux 15 autres.
+  const t2 = sugarThemeTokens(dark)
+  const sp = useMemo(() => crmSugarPalette(t2, dark, SUGAR_DARK_TONE as DarkTone), [t2, dark])
+  const onNavigate = (id: SugarScreenId | string) => {
+    switch (id) {
+      case 'today': navigate('/dashboard'); break
+      case 'pipeline': navigate('/dashboard/pipeline'); break
+      case 'contacts': navigate('/dashboard/contacts'); break
+      case 'biens': navigate('/dashboard/listings'); break
+      case 'kyc': navigate('/dashboard/kyc'); break
+      case 'calendar': navigate('/dashboard/calendar'); break
+      case 'matching': navigate('/dashboard/matching'); break
+      case 'parcours': navigate('/dashboard/journey'); break
+      case 'ai':
+      case 'julien': navigate('/dashboard/julien'); break
+      case 'settings': navigate('/dashboard/settings'); break
+      default:
+    }
+  }
+  const onCmd = () => {}
+
   return (
-    <PageTransition>
+    // Les variables de thème suivent la palette Sugar SUR CETTE PAGE seulement :
+    // son contenu est en classes sémantiques, héritées de la coquille legacy.
+    <div style={{ minHeight: '100vh', width: '100%', background: sp.pageBg, ...sugarThemeVars(sp, dark) }}>
+      <style>{SUGAR_KEYFRAMES}</style>
+      <SugarTopNav active={'contacts' as SugarScreenId} t={t2} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
+        <SugarIconRail active={'contacts' as SugarScreenId} onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-2">
@@ -628,6 +663,8 @@ export default function ContactImportPage() {
           <TextImportScreen onImport={handleImport} onBack={() => setMethod('choose')} />
         ) : null}
       </div>
-    </PageTransition>
+        </main>
+      </div>
+    </div>
   )
 }
