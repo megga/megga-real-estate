@@ -96,6 +96,95 @@ function okSource(checkType: string, result: 'match' | 'partial' | 'mismatch' = 
 }
 
 describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)', () => {
+  // Helpers DB partages par "Edge Function deployee" ET par
+  // "record_agency_verification_run -- atomicite" (revue point 2) -- les deux
+  // sections doivent creer une agence de test et lire son etat / ses checks / ses
+  // evenements. Hisses ici (au lieu d'etre locaux a "Edge Function deployee" comme
+  // avant ce correctif) pour que les deux sections les partagent sans dupliquer la
+  // logique de nettoyage.
+  const agencyIds: string[] = []
+
+  afterAll(async () => {
+    const svc = serviceRoleClient()
+    // Best-effort HONNETE (meme motif que agency-verification-engine.spec.ts) :
+    // une agence sur laquelle le moteur a tourne journalise un activity_events
+    // append-only, ce qui peut empecher sa suppression (ON DELETE SET NULL sur
+    // agency_id declenche le trigger d'immutabilite). On rapporte nommement,
+    // jamais en silence.
+    const undeletable: { id: string; reason: string }[] = []
+    for (const id of agencyIds) {
+      const { error } = await svc.from('agencies').delete().eq('id', id)
+      if (error) undeletable.push({ id, reason: `${error.code ?? '?'} ${error.message}` })
+    }
+    if (undeletable.length > 0) {
+      console.warn(
+        `[agency-verification-run.spec.ts] ${undeletable.length}/${agencyIds.length} agence(s) de test non ` +
+          'supprimee(s) -- limite structurelle documentee dans agency-verification-engine.spec.ts ' +
+          '(activity_events est append-only, LBA art. 7), pas un echec inattendu :\n' +
+          undeletable.map((u) => `  - ${u.id} : ${u.reason}`).join('\n')
+      )
+    }
+  })
+
+  async function createAgency(label: string): Promise<string> {
+    const svc = serviceRoleClient()
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}-${label}`
+    const { data, error } = await svc
+      .from('agencies')
+      .insert({ name: `Agence Run ${stamp}`, slug: `agence-run-${stamp}` })
+      .select('id')
+      .single()
+    if (error) throw new Error(`agency: ${error.message}`)
+    agencyIds.push(data!.id as string)
+    return data!.id as string
+  }
+
+  async function addActiveSignatory(agencyId: string): Promise<string> {
+    const svc = serviceRoleClient()
+    const { data: person, error: pErr } = await svc
+      .from('agency_related_persons')
+      .insert({ agency_id: agencyId, first_name: 'Jean', last_name: 'Signataire' })
+      .select('id')
+      .single()
+    if (pErr) throw new Error(`related_person: ${pErr.message}`)
+    const { error: rErr } = await svc
+      .from('agency_person_roles')
+      .insert({ related_person_id: person!.id, role: 'signatory', signature_power: 'individual' })
+    if (rErr) throw new Error(`person_role: ${rErr.message}`)
+    return person!.id as string
+  }
+
+  async function getAgency(
+    agencyId: string
+  ): Promise<{ verification_status: string; verification_score: number | string | null }> {
+    const { data, error } = await serviceRoleClient()
+      .from('agencies')
+      .select('verification_status, verification_score')
+      .eq('id', agencyId)
+      .single()
+    if (error) throw new Error(`get agency: ${error.message}`)
+    return data as { verification_status: string; verification_score: number | string | null }
+  }
+
+  async function getChecks(agencyId: string): Promise<{ check_type: string; result: string }[]> {
+    const { data, error } = await serviceRoleClient()
+      .from('agency_verification_checks')
+      .select('check_type, result')
+      .eq('agency_id', agencyId)
+    if (error) throw new Error(`get checks: ${error.message}`)
+    return data as { check_type: string; result: string }[]
+  }
+
+  async function getEvents(agencyId: string, action: string): Promise<Record<string, unknown>[]> {
+    const { data, error } = await serviceRoleClient()
+      .from('activity_events')
+      .select('category, severity, actor_id, actor_kind, entity_type, entity_id, metadata')
+      .eq('agency_id', agencyId)
+      .eq('action', action)
+    if (error) throw new Error(`get events ${action}: ${error.message}`)
+    return data as Record<string, unknown>[]
+  }
+
   describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucune DB)', () => {
     it('une source qui echoue produit unavailable, jamais un throw', async () => {
       const row = await runKybSource(failingSource('domain_whois_age'), FAKE_AGENCY)
@@ -208,58 +297,6 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
   })
 
   describe('Edge Function deployee -- contrat HTTP', () => {
-    const agencyIds: string[] = []
-
-    afterAll(async () => {
-      const svc = serviceRoleClient()
-      // Best-effort HONNETE (meme motif que agency-verification-engine.spec.ts) :
-      // une agence sur laquelle le moteur a tourne journalise un activity_events
-      // append-only, ce qui peut empecher sa suppression (ON DELETE SET NULL sur
-      // agency_id declenche le trigger d'immutabilite). On rapporte nommement,
-      // jamais en silence.
-      const undeletable: { id: string; reason: string }[] = []
-      for (const id of agencyIds) {
-        const { error } = await svc.from('agencies').delete().eq('id', id)
-        if (error) undeletable.push({ id, reason: `${error.code ?? '?'} ${error.message}` })
-      }
-      if (undeletable.length > 0) {
-        console.warn(
-          `[agency-verification-run.spec.ts] ${undeletable.length}/${agencyIds.length} agence(s) de test non ` +
-            'supprimee(s) -- limite structurelle documentee dans agency-verification-engine.spec.ts ' +
-            '(activity_events est append-only, LBA art. 7), pas un echec inattendu :\n' +
-            undeletable.map((u) => `  - ${u.id} : ${u.reason}`).join('\n')
-        )
-      }
-    })
-
-    async function createAgency(label: string): Promise<string> {
-      const svc = serviceRoleClient()
-      const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}-${label}`
-      const { data, error } = await svc
-        .from('agencies')
-        .insert({ name: `Agence Run ${stamp}`, slug: `agence-run-${stamp}` })
-        .select('id')
-        .single()
-      if (error) throw new Error(`agency: ${error.message}`)
-      agencyIds.push(data!.id as string)
-      return data!.id as string
-    }
-
-    async function addActiveSignatory(agencyId: string): Promise<string> {
-      const svc = serviceRoleClient()
-      const { data: person, error: pErr } = await svc
-        .from('agency_related_persons')
-        .insert({ agency_id: agencyId, first_name: 'Jean', last_name: 'Signataire' })
-        .select('id')
-        .single()
-      if (pErr) throw new Error(`related_person: ${pErr.message}`)
-      const { error: rErr } = await svc
-        .from('agency_person_roles')
-        .insert({ related_person_id: person!.id, role: 'signatory', signature_power: 'individual' })
-      if (rErr) throw new Error(`person_role: ${rErr.message}`)
-      return person!.id as string
-    }
-
     async function callRun(agencyId: string, bearer: string = SERVICE_KEY): Promise<Response> {
       // apikey + Authorization avec la MEME valeur : meme motif defensif que
       // kyc-report-data.spec.ts (cette fonction n'est pas dans la liste
@@ -275,37 +312,6 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         },
         body: JSON.stringify({ agency_id: agencyId }),
       })
-    }
-
-    async function getAgency(
-      agencyId: string
-    ): Promise<{ verification_status: string; verification_score: number | string | null }> {
-      const { data, error } = await serviceRoleClient()
-        .from('agencies')
-        .select('verification_status, verification_score')
-        .eq('id', agencyId)
-        .single()
-      if (error) throw new Error(`get agency: ${error.message}`)
-      return data as { verification_status: string; verification_score: number | string | null }
-    }
-
-    async function getChecks(agencyId: string): Promise<{ check_type: string; result: string }[]> {
-      const { data, error } = await serviceRoleClient()
-        .from('agency_verification_checks')
-        .select('check_type, result')
-        .eq('agency_id', agencyId)
-      if (error) throw new Error(`get checks: ${error.message}`)
-      return data as { check_type: string; result: string }[]
-    }
-
-    async function getEvents(agencyId: string, action: string): Promise<Record<string, unknown>[]> {
-      const { data, error } = await serviceRoleClient()
-        .from('activity_events')
-        .select('category, severity, actor_id, actor_kind, entity_type, entity_id, metadata')
-        .eq('agency_id', agencyId)
-        .eq('action', action)
-      if (error) throw new Error(`get events ${action}: ${error.message}`)
-      return data as Record<string, unknown>[]
     }
 
     it('OPTIONS -> 2xx (CORS preflight)', async () => {
@@ -464,5 +470,49 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         expect(agencyAfter.verification_status).toBe('manual_review')
       }
     )
+  })
+
+  describe('record_agency_verification_run -- atomicite (revue etape 4/tache 1, point 2)', () => {
+    // Avant ce correctif, l'ecriture des checks, l'appel du moteur et la
+    // journalisation du passage de agency-verification-run etaient trois appels
+    // separes (trois transactions) -- un echec sur le DERNIER laissait le travail
+    // deja committe (voir l'en-tete d'agency-verification-run/index.ts). La RPC
+    // record_agency_verification_run (20260728140000) enveloppe desormais les trois
+    // dans UNE SEULE transaction Postgres. Preuve directe : on force un echec sur ce
+    // qui etait l'etape 3 (le journal, via un p_severity qui viole
+    // activity_events_severity_check) APRES que les deux premieres etapes (insert
+    // des checks, recompute_agency_verification) ont reellement tourne -- et on
+    // verifie qu'AUCUNE des trois n'a laisse de trace : ni le check insere, ni la
+    // decision du moteur, ni l'un ou l'autre evenement.
+    it("un echec sur la journalisation (dernier insert) annule aussi l'ecriture des checks et le passage du moteur -- rien ne reste committe", async () => {
+      const agencyId = await createAgency('atomic-rollback')
+      await addActiveSignatory(agencyId)
+
+      const svc = serviceRoleClient()
+      const before = await getAgency(agencyId)
+      expect(before.verification_status, 'statut par defaut avant tout passage').toBe('pending')
+
+      const { error } = await svc.rpc('record_agency_verification_run', {
+        p_agency_id: agencyId,
+        p_checks: [{ check_type: 'vat_lookup', source: 'manual', result: 'match', raw_response: { probe: true } }],
+        // Valeur hors activity_events_severity_check ('info' | 'warn' | 'critical')
+        // -- force un echec APRES que l'insert des checks et l'appel du moteur ont
+        // deja eu lieu dans cette meme fonction PL/pgSQL.
+        p_severity: 'not-a-valid-severity',
+        p_metadata: { probe: true },
+      })
+
+      expect(error, 'le CHECK constraint sur severity doit rejeter la valeur invalide').not.toBeNull()
+
+      // Rien ne doit avoir ete committe : ni le check insere, ni la decision du
+      // moteur (statut/score inchanges), ni son propre evenement, ni celui du
+      // moteur -- tout ou rien, jamais un etat intermediaire.
+      expect(await getChecks(agencyId)).toHaveLength(0)
+      const after = await getAgency(agencyId)
+      expect(after.verification_status, 'le moteur a bien tourne PUIS a ete annule avec le reste').toBe('pending')
+      expect(num(after.verification_score)).toBeNull()
+      expect(await getEvents(agencyId, 'agency_verification_recomputed')).toHaveLength(0)
+      expect(await getEvents(agencyId, 'agency_verification_run')).toHaveLength(0)
+    })
   })
 })

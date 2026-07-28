@@ -2,10 +2,24 @@
 //
 // Socle de la verification KYB (etape 4, tache 1) : lit l'agence a verifier,
 // execute les connecteurs disponibles (_shared/kyb-sources.ts -- AUCUN connecteur
-// reel dans cette tache, le registre AGENCY_KYB_SOURCES est vide), ecrit les
-// checks produits, appelle le moteur de scoring
-// (recompute_agency_verification, 20260728130000), puis journalise son PROPRE
-// passage (distinct du journal du moteur -- voir plus bas).
+// reel dans cette tache, le registre AGENCY_KYB_SOURCES est vide), puis confie
+// l'ecriture des checks produits, l'appel du moteur de scoring
+// (recompute_agency_verification, 20260728130000) et la journalisation de son
+// PROPRE passage (distinct du journal du moteur -- voir plus bas) a UNE SEULE RPC,
+// record_agency_verification_run (20260728140000).
+//
+// POURQUOI une seule RPC plutot que trois appels separes (revue etape 4/tache 1,
+// point 2) : ecriture des checks, appel du moteur et journalisation etaient avant
+// trois allers-retours PostgREST distincts, donc trois transactions Postgres
+// distinctes. Un echec sur le DERNIER (le journal) laissait le travail deja committe
+// -- checks ecrits, decision du moteur prise, y compris SON PROPRE evenement
+// agency_verification_recomputed -- sans que cette fonction n'ait pu journaliser son
+// propre passage : un trou de tracabilite dans le socle meme d'un dispositif LAB,
+// meme si le rejeu restait sans danger. record_agency_verification_run enveloppe les trois
+// dans une seule transaction Postgres : soit tout est committe, soit rien ne l'est.
+// Le reseau (lecture de l'agence, appel des connecteurs) reste ici, en Deno -- une
+// transaction Postgres ne doit jamais rester ouverte en attendant une reponse HTTP
+// externe ; seule la partie 100% base de donnees bascule dans la RPC.
 //
 // Auth : Bearer == cle service-role, comparaison a temps constant (meme motif que
 // kyc-screening et idx-syndicate). Aucun chemin utilisateur pour l'instant : cette
@@ -103,31 +117,15 @@ serve(async (req) => {
     // ne font jamais echouer cet appel.
     const outcomes = await runAgencyKybSources(agency)
 
-    // 3. Ecriture -- un seul insert (une seule transaction) si au moins une
-    // source a tourne. Jamais de delete/update sur les lignes existantes :
-    // append-only, voir l'en-tete de ce fichier.
-    if (outcomes.length > 0) {
-      const { error: insertErr } = await supabase
-        .from('agency_verification_checks')
-        .insert(outcomes.map((o) => ({ agency_id: agencyId, ...o })))
-      if (insertErr) throw insertErr
-    }
-
-    // 4. Le moteur -- APRES l'ecriture, jamais avant : il doit voir les lignes
-    // fraiches. RPC service_role (20260728130000).
-    const { error: recomputeErr } = await supabase.rpc('recompute_agency_verification', {
-      p_agency_id: agencyId,
-    })
-    if (recomputeErr) throw recomputeErr
-
-    // 5. Journalisation du PASSAGE de cette fonction -- distincte du journal du
-    // moteur (action='agency_verification_recomputed', pose par la RPC elle-meme,
-    // qui documente la DECISION de scoring). Celle-ci documente la couche
-    // connecteurs : combien de sources ont tourne, quelle repartition de
-    // resultats. category='kyc' (jamais 'compliance', absent du CHECK),
-    // actor_kind='system' impose actor_id NULL (contrainte
-    // activity_events_actor_kind_coherence) -- c'est cette fonction qui agit, pas
-    // un humain.
+    // 3-4-5. Ecriture des checks, appel du moteur et journalisation du PASSAGE de
+    // cette fonction -- REGROUPES dans UNE SEULE RPC (record_agency_verification_run,
+    // 20260728140000, revue point 2 -- voir l'en-tete de ce fichier). category='kyc'
+    // (jamais 'compliance', absent du CHECK), actor_kind='system' impose actor_id
+    // NULL (contrainte activity_events_actor_kind_coherence) -- c'est cette fonction
+    // qui agit, pas un humain ; ces deux champs sont poses par la RPC elle-meme, pas
+    // ici. La RPC reste inconditionnelle (meme sans aucun check) et APRES
+    // runAgencyKybSources : elle doit voir les lignes fraiches (transmises en
+    // parametre, pas relues) avant d'appeler le moteur.
     const tally: Record<KybCheckResult, number> = {
       match: 0,
       partial: 0,
@@ -137,18 +135,13 @@ serve(async (req) => {
     }
     for (const outcome of outcomes) tally[outcome.result] += 1
 
-    const { error: logErr } = await supabase.from('activity_events').insert({
-      agency_id: agencyId,
-      actor_id: null,
-      actor_kind: 'system',
-      action: 'agency_verification_run',
-      entity_type: 'agency',
-      entity_id: agencyId,
-      category: 'kyc',
-      severity: tally.unavailable > 0 ? 'warn' : 'info',
-      metadata: { sources_run: outcomes.length, results: tally },
+    const { error: runErr } = await supabase.rpc('record_agency_verification_run', {
+      p_agency_id: agencyId,
+      p_checks: outcomes,
+      p_severity: tally.unavailable > 0 ? 'warn' : 'info',
+      p_metadata: { sources_run: outcomes.length, results: tally },
     })
-    if (logErr) throw logErr
+    if (runErr) throw runErr
 
     return json({ ok: true, agency_id: agencyId, checks_written: outcomes.length, results: tally })
   } catch (err) {
