@@ -19,7 +19,7 @@ import { Radio, Pause, Play, Filter, ChevronDown, Activity, Clock, Layers, Histo
 import { formatRelativeDate } from '@/lib/utils'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
-  AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat,
+  AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
@@ -241,7 +241,7 @@ function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: b
 export default function AdminLiveFeedPage() {
   const { t } = useTranslation('admin')
   const { sp, surf, dark } = useAdminSugar()
-  const { events, isLoading } = useAdminLiveFeed(100)
+  const { events, isLoading, isError, refetch } = useAdminLiveFeed(100)
   const [paused, setPaused] = useState(false)
   // Snapshot capturé à la mise en pause — le Realtime continue d'alimenter
   // `events`, mais l'affichage reste gelé tant que frozenEvents est posé.
@@ -438,6 +438,14 @@ export default function AdminLiveFeedPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14 }}>
               {[0, 1, 2, 3, 4, 5].map(i => <AdminSkeleton key={i} height={34} />)}
             </div>
+          ) : isError && filteredEvents.length === 0 ? (
+            // Un flux muet passe pour « plateforme au calme » : sans cet état, une
+            // requête en échec ressemble à une absence d'activité.
+            <AdminError
+              message={t('common.loadError')}
+              onRetry={() => void refetch()}
+              retryLabel={t('common.retry')}
+            />
           ) : filteredEvents.length === 0 ? (
             <AdminEmpty icon={Radio} title={t('liveFeed.empty.title')} hint={t('liveFeed.empty.subtitle')} />
           ) : (

@@ -13,7 +13,7 @@
  * panneau : elle prend l'accent noir de Sugar, pas le violet de la console (qui
  * ne dit que « tu es dans la plateforme »).
  */
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { Link } from 'react-router-dom'
@@ -24,6 +24,7 @@ import { formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity, useDsarExport } from '@/hooks/useAdminUsers'
 import { useAdminUserLifecycle } from '@/hooks/useAdminUserLifecycle'
 import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
+import AdminConfirm from '@/components/admin/AdminConfirm'
 import { useToast } from '@/components/ui/Toast'
 import {
   AdminAvatar, AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill,
@@ -81,6 +82,8 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
   const user = users.find(u => u.id === userId)
   const focusTrapRef = useFocusTrap(true)
+  // Action destructive en attente de confirmation (`null` = aucune).
+  const [confirming, setConfirming] = useState<'suspend' | 'delete' | null>(null)
 
   // Close on Escape
   useEffect(() => {
@@ -261,15 +264,19 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 14, borderTop: surf.hairline }}>
               <AdminGhostBtn
                 onClick={() => {
-                  const action = user.is_suspended ? 'reactivate' : 'suspend'
-                  if (action === 'suspend' && !window.confirm(t('userDrawer.lifecycle.suspendConfirm', { email: user.email }))) return
-                  lifecycle.mutate(
-                    { action, userId: user.id },
-                    {
-                      onSuccess: () => toast.success(t('userDrawer.lifecycle.done')),
-                      onError: () => toast.error(t('userDrawer.lifecycle.error')),
-                    },
-                  )
+                  // Réactiver rend un accès, ce n'est pas destructeur : pas de
+                  // confirmation. Suspendre coupe la connexion, donc si.
+                  if (user.is_suspended) {
+                    lifecycle.mutate(
+                      { action: 'reactivate', userId: user.id },
+                      {
+                        onSuccess: () => toast.success(t('userDrawer.lifecycle.done')),
+                        onError: () => toast.error(t('userDrawer.lifecycle.error')),
+                      },
+                    )
+                    return
+                  }
+                  setConfirming('suspend')
                 }}
                 disabled={lifecycle.isPending}
                 style={{ ...fullWidthBtn, color: user.is_suspended ? sp.ink : tones.warn }}
@@ -294,25 +301,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 {t('userDrawer.lifecycle.resetPassword')}
               </AdminGhostBtn>
               <AdminGhostBtn
-                onClick={() => {
-                  // Confirmation typée : l'admin doit saisir l'email exact du compte.
-                  const typed = window.prompt(t('userDrawer.lifecycle.deletePrompt', { email: user.email }))
-                  if (typed === null) return
-                  if (typed.trim().toLowerCase() !== user.email.toLowerCase()) {
-                    toast.error(t('userDrawer.lifecycle.deleteMismatch'))
-                    return
-                  }
-                  deleteAccount.mutate(
-                    { userId: user.id },
-                    {
-                      onSuccess: () => {
-                        toast.success(t('userDrawer.lifecycle.deleted'))
-                        onClose()
-                      },
-                      onError: () => toast.error(t('userDrawer.lifecycle.error')),
-                    },
-                  )
-                }}
+                onClick={() => setConfirming('delete')}
                 disabled={deleteAccount.isPending}
                 style={{ ...fullWidthBtn, color: tones.err }}
               >
@@ -363,6 +352,58 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
           </div>
         )}
       </div>
+
+      {/* Confirmations des actions irréversibles. Montées ici, dans le portal du
+          tiroir : le tiroir reste visible derrière, donc on voit de QUI il est
+          question au moment de trancher. */}
+      {user && (
+        <>
+          <AdminConfirm
+            open={confirming === 'suspend'}
+            onClose={() => setConfirming(null)}
+            title={t('userDrawer.lifecycle.suspendTitle')}
+            message={t('userDrawer.lifecycle.suspendConfirm', { email: user.email })}
+            confirmLabel={t('userDrawer.lifecycle.suspend')}
+            tone="warn"
+            busy={lifecycle.isPending}
+            onConfirm={() => {
+              lifecycle.mutate(
+                { action: 'suspend', userId: user.id },
+                {
+                  onSuccess: () => { toast.success(t('userDrawer.lifecycle.done')); setConfirming(null) },
+                  onError: () => { toast.error(t('userDrawer.lifecycle.error')); setConfirming(null) },
+                },
+              )
+            }}
+          />
+          <AdminConfirm
+            open={confirming === 'delete'}
+            onClose={() => setConfirming(null)}
+            title={t('userDrawer.lifecycle.deleteTitle')}
+            message={t('userDrawer.lifecycle.deletePrompt', { email: user.email })}
+            confirmLabel={t('userDrawer.lifecycle.delete')}
+            // L'e-mail exact reste exigé, mais il bloque le bouton au lieu
+            // d'être reproché après coup comme le faisait `window.prompt`.
+            requireText={user.email}
+            requireTextLabel={t('userDrawer.lifecycle.deleteTypeEmail')}
+            busy={deleteAccount.isPending}
+            busyLabel={t('userDrawer.lifecycle.deleting')}
+            onConfirm={() => {
+              deleteAccount.mutate(
+                { userId: user.id },
+                {
+                  onSuccess: () => {
+                    toast.success(t('userDrawer.lifecycle.deleted'))
+                    setConfirming(null)
+                    onClose()
+                  },
+                  onError: () => { toast.error(t('userDrawer.lifecycle.error')); setConfirming(null) },
+                },
+              )
+            }}
+          />
+        </>
+      )}
     </div>,
     document.body
   )

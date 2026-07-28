@@ -17,11 +17,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, ChevronDown, X, Zap } from 'lucide-react'
 import { useFeatureFlags, type FeatureFlag } from '@/hooks/useFeatureFlags'
+import { useToast } from '@/components/ui/Toast'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import { useTranslation } from 'react-i18next'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminDivider, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminSwitch } from '@/components/admin/kit/adminKit'
+import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminSwitch } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 
 // Les plans réels de l'enum agency_plan — « agency » n'existe pas (un ciblage
@@ -151,7 +152,14 @@ function AgencyTargetPicker({ flag, agencies, disabled, onUpdate }: {
 
 /** Écran feature flags : un bento par flag, bascule globale + ciblages plan/agence. */
 export default function AdminFeatureFlagsPage() {
-  const { flags, isLoading, updateFlag } = useFeatureFlags()
+  const { flags, isLoading, isError, refetch, updateFlag } = useFeatureFlags()
+  const toast = useToast()
+
+  // Un flag qui refuse de basculer sans le dire est le pire cas de cet écran :
+  // l'exploitant repart en croyant la fonctionnalité ouverte (ou fermée) alors
+  // que rien n'a bougé. Les quatre points d'appel passent donc par ici.
+  const applyFlag = (id: string, updates: Partial<FeatureFlag>) =>
+    updateFlag.mutate({ id, updates }, { onError: () => toast.error(t('admin:common.actionFailed')) })
   const { agencies } = useAdminAgencies()
   const { t } = useTranslation('admin')
   const { sp, surf, dark, tones } = useAdminSugar()
@@ -185,6 +193,14 @@ export default function AdminFeatureFlagsPage() {
             <AdminSkeleton key={i} height={96} radius={ADMIN_RADII.card} />
           ))}
         </div>
+      ) : isError && flags.length === 0 ? (
+        <AdminCard padding={0}>
+          <AdminError
+            message={t('admin:common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('admin:common.retry')}
+          />
+        </AdminCard>
       ) : flags.length === 0 ? (
         <AdminCard padding={0}>
           <AdminEmpty icon={Zap} title={t('admin:featureFlags.empty.title')} />
@@ -227,7 +243,7 @@ export default function AdminFeatureFlagsPage() {
                 <AdminSwitch
                   on={flag.enabled_globally}
                   label={t('admin:featureFlags.toggle')}
-                  onClick={() => updateFlag.mutate({ id: flag.id, updates: { enabled_globally: !flag.enabled_globally } })}
+                  onClick={() => applyFlag(flag.id, { enabled_globally: !flag.enabled_globally })}
                 />
               </div>
 
@@ -251,7 +267,7 @@ export default function AdminFeatureFlagsPage() {
                             const newPlans = active
                               ? flag.enabled_plans.filter(p => p !== plan)
                               : [...flag.enabled_plans, plan]
-                            updateFlag.mutate({ id: flag.id, updates: { enabled_plans: newPlans } })
+                            applyFlag(flag.id, { enabled_plans: newPlans })
                           }}
                           aria-pressed={active}
                           style={{
@@ -292,7 +308,7 @@ export default function AdminFeatureFlagsPage() {
                         </span>
                         <button
                           className="adm-row"
-                          onClick={() => updateFlag.mutate({ id: flag.id, updates: { enabled_agencies: flag.enabled_agencies.filter(a => a !== id) } })}
+                          onClick={() => applyFlag(flag.id, { enabled_agencies: flag.enabled_agencies.filter(a => a !== id) })}
                           aria-label={t('admin:featureFlags.removeAgency')}
                           style={{
                             width: 18, height: 18, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
@@ -308,7 +324,7 @@ export default function AdminFeatureFlagsPage() {
                       flag={flag}
                       agencies={agencies}
                       disabled={updateFlag.isPending}
-                      onUpdate={ids => updateFlag.mutate({ id: flag.id, updates: { enabled_agencies: ids } })}
+                      onUpdate={ids => applyFlag(flag.id, { enabled_agencies: ids })}
                     />
                   </div>
                 </>

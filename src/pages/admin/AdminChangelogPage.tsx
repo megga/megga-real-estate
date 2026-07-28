@@ -16,11 +16,13 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, Megaphone, EyeOff } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useChangelog } from '@/hooks/useChangelog'
+import { useToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/modal'
 import AnnouncementsTab from '@/components/admin/AnnouncementsTab'
 import AdminPage from '@/components/admin/kit/AdminPage'
+import AdminConfirm from '@/components/admin/AdminConfirm'
 import {
-  AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill,
+  AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill,
   AdminSkeleton, AdminSolidBtn, AdminSwitch,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
@@ -68,7 +70,10 @@ export default function AdminCommunicationPage() {
 function ChangelogTab() {
   const { t } = useTranslation('admin')
   const { sp, surf, dark, tones } = useAdminSugar()
-  const { entries, isLoading, createEntry, deleteEntry } = useChangelog()
+  const { entries, isLoading, isError, refetch, createEntry, deleteEntry } = useChangelog()
+  const toast = useToast()
+  // Entrée dont la suppression attend confirmation (`null` = aucune).
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -100,7 +105,12 @@ function ChangelogTab() {
   // La corbeille reste discrète et ne prend le ton d'erreur qu'au survol : les
   // transitions vivent dans la classe, une valeur inline les figerait.
   const hoverCss = `
-    .chg-del { color: ${sp.sub}; transition: color .16s ease, opacity .16s ease; }
+    /* Révélé au survol ET au focus clavier : en opacité nulle seule, le bouton
+       restait invisible pour qui l'atteignait au clavier — on tabulait sur une
+       suppression qu'on ne voyait pas. Le \`:focus-within\` du groupe couvre le
+       parcours au clavier, que \`group-hover\` ne déclenche jamais. */
+    .chg-del { color: ${sp.sub}; opacity: 0; transition: color .16s ease, opacity .16s ease; }
+    .group:hover .chg-del, .group:focus-within .chg-del { opacity: 1; }
     .chg-del:hover { color: ${tones.err}; }
   `
 
@@ -121,6 +131,14 @@ function ChangelogTab() {
             <AdminSkeleton key={i} height={96} radius={ADMIN_RADII.card} />
           ))}
         </div>
+      ) : isError && entries.length === 0 ? (
+        <AdminCard>
+          <AdminError
+            message={t('common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('common.retry')}
+          />
+        </AdminCard>
       ) : entries.length === 0 ? (
         <AdminCard>
           <AdminEmpty icon={Megaphone} title={t('changelog.empty.title')} hint={t('changelog.empty.subtitle')} />
@@ -159,9 +177,9 @@ function ChangelogTab() {
                   )}
                 </div>
                 <button
-                  onClick={() => deleteEntry.mutate(entry.id)}
+                  onClick={() => setPendingDelete(entry.id)}
                   aria-label={t('changelog.deleteEntry')}
-                  className="chg-del opacity-0 group-hover:opacity-100"
+                  className="chg-del"
                   style={{
                     width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
                     background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0,
@@ -236,6 +254,23 @@ function ChangelogTab() {
           </div>
         </div>
       </Modal>
+
+      {/* Suppression d'une entrée : définitive, et jusqu'ici déclenchée au
+          premier clic, sans retour en arrière possible. */}
+      <AdminConfirm
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        title={t('changelog.deleteTitle')}
+        message={t('changelog.deleteMessage')}
+        confirmLabel={t('common.delete')}
+        busy={deleteEntry.isPending}
+        onConfirm={() => {
+          if (pendingDelete) {
+            deleteEntry.mutate(pendingDelete, { onError: () => toast.error(t('common.actionFailed')) })
+          }
+          setPendingDelete(null)
+        }}
+      />
     </div>
   )
 }

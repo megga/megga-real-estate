@@ -1,6 +1,9 @@
 {
   "common.adminBadge": "Admin MEGGA",
   "common.loading": "Wird geladen...",
+  "common.loadError": "Daten konnten nicht geladen werden.",
+  "common.retry": "Erneut versuchen",
+  "common.actionFailed": "Die Aktion ist fehlgeschlagen.",
   "common.export": "Exportieren",
   "common.exportCsv": "CSV exportieren",
   "common.search": "Suchen...",
@@ -401,6 +404,8 @@
   "changelog.subtitle": "Veroeffentlichen Sie Neuigkeiten fuer die Agenturen",
   "changelog.newEntry": "Neuer Eintrag",
   "changelog.deleteEntry": "Diesen Eintrag loeschen",
+  "changelog.deleteTitle": "Diesen Eintrag löschen?",
+  "changelog.deleteMessage": "Der Eintrag verschwindet aus dem Changelog. Diese Aktion ist endgültig.",
   "changelog.empty.title": "Keine Changelog-Eintraege",
   "changelog.empty.subtitle": "Veroeffentlichen Sie Ihr erstes Update",
   "changelog.modal.title": "Neuer Changelog-Eintrag",
@@ -456,7 +461,7 @@
   "securityAudit.empty.subtitle": "Passen Sie Ihre Filter an, um mehr Ergebnisse zu sehen",
   "securityAudit.megaAi": "MEGGA AI",
   "activityLog.title": "Plattform-Aktivitaet",
-  "activityLog.realtime": "Echtzeit",
+  "activityLog.autoRefresh": "Auto 30 s",
   "activityLog.loadMore": "Mehr laden",
   "activityLog.noActivity": "Keine aktuelle Aktivitaet",
   "activityLog.filter.all": "Alle",
@@ -572,7 +577,9 @@
   "userDrawer.lifecycle.deleting": "Loeschen...",
   "userDrawer.lifecycle.suspendConfirm": "Konto {{email}} sperren? Der Nutzer kann sich nicht mehr anmelden.",
   "userDrawer.lifecycle.deletePrompt": "ENDGUELTIGE Loeschung (nDSG Art. 32). Geben Sie die genaue E-Mail des Kontos ein: {{email}}",
-  "userDrawer.lifecycle.deleteMismatch": "E-Mail stimmt nicht ueberein. Loeschung abgebrochen.",
+  "userDrawer.lifecycle.suspendTitle": "Konto sperren?",
+  "userDrawer.lifecycle.deleteTitle": "Konto löschen?",
+  "userDrawer.lifecycle.deleteTypeEmail": "E-Mail des Kontos",
   "userDrawer.lifecycle.deleted": "Konto geloescht (anonymisiert, KYC-Akten 10 Jahre aufbewahrt).",
   "userDrawer.lifecycle.resetSent": "E-Mail zum Zuruecksetzen gesendet.",
   "userDrawer.lifecycle.done": "Aktion ausgefuehrt.",
@@ -607,6 +614,7 @@
   "weeklyReport.sendNow": "Jetzt senden",
   "weeklyReport.sending": "Wird gesendet...",
   "weeklyReport.sent": "Gesendet",
+  "weeklyReport.failed": "Der Versand des Berichts ist fehlgeschlagen.",
   "weeklyReport.description": "Ein automatischer Bericht wird jeden Montag um 8 Uhr an die Super-Admins gesendet. Er fasst die KPIs der Woche zusammen: Agenturen, Benutzer, Transaktionen, KYC, Fehler.",
   "weeklyReport.deployHint": "Deployen: supabase functions deploy weekly-report",
   "autonomy.title": "Agenten-Autonomie",
@@ -845,7 +853,9 @@
       "required": "Titel und Nachricht erforderlich.",
       "saved": "Ankündigung gespeichert",
       "error": "Speichern fehlgeschlagen"
-    }
+    },
+    "deleteTitle": "Diese Ankündigung löschen?",
+    "deleteMessage": "Die Ankündigung wird nicht mehr ausgespielt und ihr Verlauf geht verloren. Diese Aktion ist endgültig."
   },
   "createAgency": {
     "title": "Agentur erstellen",

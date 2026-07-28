@@ -437,6 +437,14 @@ export default function AdminMonitoringPage() {
               <AdminSkeleton key={i} height={36} />
             ))}
           </div>
+        ) : filteredFunctions.length === 0 ? (
+          // Un filtre trop étroit ne rendait RIEN : ni ligne, ni explication —
+          // juste un en-tête de colonnes suspendu au-dessus du vide.
+          <AdminEmpty
+            icon={Zap}
+            title={t('admin:common.noResult')}
+            hint={t('admin:common.modifyFilters')}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>

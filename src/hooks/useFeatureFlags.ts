@@ -59,6 +59,8 @@ export function useFeatureFlags() {
   return {
     flags: flags.data ?? [],
     isLoading: flags.isLoading,
+    isError: flags.isError,
+    refetch: flags.refetch,
     updateFlag,
   }
 }

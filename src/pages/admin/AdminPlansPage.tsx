@@ -26,6 +26,7 @@ import {
   AdminCard,
   AdminDivider,
   AdminEmpty,
+  AdminError,
   AdminGhostBtn,
   AdminGroupTitle,
   AdminIc,
@@ -155,7 +156,7 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
 /** Vue principale : grille de plans, tableau des fonctionnalités et liste des agences. */
 export default function AdminPlansPage() {
   const { t } = useTranslation('admin')
-  const { agencies, isLoading } = useAdminAgencies()
+  const { agencies, isLoading, isError, refetch } = useAdminAgencies()
   const { sp, tones } = useAdminSugar()
 
   const featureKeys = PLANS[0].features.map(f => f.key)
@@ -287,6 +288,12 @@ export default function AdminPlansPage() {
                 <AdminSkeleton key={i} height={38} />
               ))}
             </div>
+          ) : isError && agencies.length === 0 ? (
+            <AdminError
+              message={t('admin:common.loadError')}
+              onRetry={() => void refetch()}
+              retryLabel={t('admin:common.retry')}
+            />
           ) : agencies.length === 0 ? (
             <AdminEmpty icon={CreditCard} title={t('admin:plans.noAgency')} />
           ) : (

@@ -104,6 +104,8 @@ export function useAdminCompliance() {
   return {
     cases: cases.data ?? [],
     isLoading: cases.isLoading,
+    isError: cases.isError,
+    refetch: cases.refetch,
     stats: stats.data,
     statsLoading: stats.isLoading,
   }

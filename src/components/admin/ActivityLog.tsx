@@ -96,7 +96,10 @@ export default function ActivityLog() {
         tone="ok"
         right={
           <>
-            <AdminPill label={t('activityLog.realtime')} tone="ok" />
+            {/* Ce panneau interroge la base toutes les 30 s (`useActivityLog`) ;
+                il n'écoute aucun canal. Le badge disait « temps réel », ce que
+                seul le flux `/live` fait vraiment. */}
+            <AdminPill label={t('activityLog.autoRefresh')} tone="ok" />
             <select
               value={actionFilter}
               onChange={e => setActionFilter(e.target.value)}

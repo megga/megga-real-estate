@@ -1,6 +1,9 @@
 {
   "common.adminBadge": "Admin MEGGA",
   "common.loading": "Chargement...",
+  "common.loadError": "Impossible de charger les données.",
+  "common.retry": "Réessayer",
+  "common.actionFailed": "L'action a échoué.",
   "common.export": "Exporter",
   "common.exportCsv": "Exporter CSV",
   "common.search": "Rechercher...",
@@ -401,6 +404,8 @@
   "changelog.subtitle": "Publiez les nouveautes pour les agences",
   "changelog.newEntry": "Nouvelle entree",
   "changelog.deleteEntry": "Supprimer cette entree",
+  "changelog.deleteTitle": "Supprimer cette entrée ?",
+  "changelog.deleteMessage": "L'entrée disparaîtra du changelog. Cette action est définitive.",
   "changelog.empty.title": "Aucune entree changelog",
   "changelog.empty.subtitle": "Publiez votre premiere mise a jour",
   "changelog.modal.title": "Nouvelle entree changelog",
@@ -456,7 +461,7 @@
   "securityAudit.empty.subtitle": "Modifiez vos filtres pour voir plus de resultats",
   "securityAudit.megaAi": "MEGGA AI",
   "activityLog.title": "Activite plateforme",
-  "activityLog.realtime": "Temps reel",
+  "activityLog.autoRefresh": "Auto 30 s",
   "activityLog.loadMore": "Charger plus",
   "activityLog.noActivity": "Aucune activite recente",
   "activityLog.filter.all": "Tous",
@@ -572,7 +577,9 @@
   "userDrawer.lifecycle.deleting": "Suppression...",
   "userDrawer.lifecycle.suspendConfirm": "Suspendre le compte {{email}} ? L'utilisateur ne pourra plus se connecter.",
   "userDrawer.lifecycle.deletePrompt": "Suppression DÉFINITIVE (nLPD art. 32). Tapez l'email exact du compte pour confirmer : {{email}}",
-  "userDrawer.lifecycle.deleteMismatch": "L'email saisi ne correspond pas. Suppression annulée.",
+  "userDrawer.lifecycle.suspendTitle": "Suspendre le compte ?",
+  "userDrawer.lifecycle.deleteTitle": "Supprimer le compte ?",
+  "userDrawer.lifecycle.deleteTypeEmail": "E-mail du compte",
   "userDrawer.lifecycle.deleted": "Compte supprimé (anonymisé, dossiers KYC conservés 10 ans).",
   "userDrawer.lifecycle.resetSent": "Email de réinitialisation envoyé.",
   "userDrawer.lifecycle.done": "Action effectuée.",
@@ -607,6 +614,7 @@
   "weeklyReport.sendNow": "Envoyer maintenant",
   "weeklyReport.sending": "Envoi...",
   "weeklyReport.sent": "Envoye",
+  "weeklyReport.failed": "L'envoi du rapport a échoué.",
   "weeklyReport.description": "Un rapport automatique est envoye chaque lundi a 8h aux super-admins. Il resume les KPIs de la semaine : agences, utilisateurs, transactions, KYC, erreurs.",
   "weeklyReport.deployHint": "Deployer : supabase functions deploy weekly-report",
   "autonomy.title": "Autonomie des agents",
@@ -845,7 +853,9 @@
       "required": "Titre et message requis.",
       "saved": "Annonce enregistrée",
       "error": "Échec de l'enregistrement"
-    }
+    },
+    "deleteTitle": "Supprimer cette annonce ?",
+    "deleteMessage": "L'annonce ne sera plus diffusée et son historique sera perdu. Cette action est définitive."
   },
   "createAgency": {
     "title": "Créer une agence",

@@ -21,7 +21,7 @@ import WeeklyReportPreview from '@/components/admin/WeeklyReportPreview'
 import OnboardingTracker from '@/components/admin/OnboardingTracker'
 import ActivityLog from '@/components/admin/ActivityLog'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminEmpty, AdminGroupTitle, AdminIc, AdminPill, AdminSkeleton } from '@/components/admin/kit/adminKit'
+import { AdminCard, AdminEmpty, AdminError, AdminGroupTitle, AdminIc, AdminPill, AdminSkeleton } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { formatRelativeDate } from '@/lib/utils'
 
@@ -57,7 +57,7 @@ const ALERT_TONES: Record<string, AlertTone> = {
 export default function AdminDashboardPage() {
   const { t } = useTranslation('admin')
   const { sp, surf, tones } = useAdminSugar()
-  const { kpis, kpisLoading, alerts, alertsLoading } = useAdminStats()
+  const { kpis, kpisLoading, alerts, alertsLoading, alertsError, refetch } = useAdminStats()
 
   const healthStatus = (kpis?.highRiskKyc ?? 0) > 0 ? 'warning' : 'healthy'
 
@@ -112,6 +112,15 @@ export default function AdminDashboardPage() {
               <AdminSkeleton key={i} height={40} />
             ))}
           </div>
+        ) : alertsError && alerts.length === 0 ? (
+          // « Aucune alerte » est une BONNE nouvelle : la servir sur un flux qui
+          // n'a pas pu être chargé ferait passer une panne réseau pour une
+          // plateforme saine.
+          <AdminError
+            message={t('common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('common.retry')}
+          />
         ) : alerts.length === 0 ? (
           <AdminEmpty icon={CheckCircle} title={t('dashboard.noAlerts')} />
         ) : (

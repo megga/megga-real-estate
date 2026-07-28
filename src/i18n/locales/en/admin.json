@@ -1,6 +1,9 @@
 {
   "common.adminBadge": "Admin MEGGA",
   "common.loading": "Loading...",
+  "common.loadError": "Could not load the data.",
+  "common.retry": "Retry",
+  "common.actionFailed": "The action failed.",
   "common.export": "Export",
   "common.exportCsv": "Export CSV",
   "common.search": "Search...",
@@ -401,6 +404,8 @@
   "changelog.subtitle": "Publish updates for agencies",
   "changelog.newEntry": "New entry",
   "changelog.deleteEntry": "Delete this entry",
+  "changelog.deleteTitle": "Delete this entry?",
+  "changelog.deleteMessage": "The entry will disappear from the changelog. This action is permanent.",
   "changelog.empty.title": "No changelog entries",
   "changelog.empty.subtitle": "Publish your first update",
   "changelog.modal.title": "New changelog entry",
@@ -456,7 +461,7 @@
   "securityAudit.empty.subtitle": "Adjust your filters to see more results",
   "securityAudit.megaAi": "MEGGA AI",
   "activityLog.title": "Platform activity",
-  "activityLog.realtime": "Real-time",
+  "activityLog.autoRefresh": "Auto 30 s",
   "activityLog.loadMore": "Load more",
   "activityLog.noActivity": "No recent activity",
   "activityLog.filter.all": "All",
@@ -572,7 +577,9 @@
   "userDrawer.lifecycle.deleting": "Deleting...",
   "userDrawer.lifecycle.suspendConfirm": "Suspend account {{email}}? The user will no longer be able to sign in.",
   "userDrawer.lifecycle.deletePrompt": "PERMANENT deletion (nLPD art. 32). Type the exact account email to confirm: {{email}}",
-  "userDrawer.lifecycle.deleteMismatch": "Email does not match. Deletion cancelled.",
+  "userDrawer.lifecycle.suspendTitle": "Suspend the account?",
+  "userDrawer.lifecycle.deleteTitle": "Delete the account?",
+  "userDrawer.lifecycle.deleteTypeEmail": "Account email",
   "userDrawer.lifecycle.deleted": "Account deleted (anonymised, KYC files kept 10 years).",
   "userDrawer.lifecycle.resetSent": "Password reset email sent.",
   "userDrawer.lifecycle.done": "Action completed.",
@@ -607,6 +614,7 @@
   "weeklyReport.sendNow": "Send now",
   "weeklyReport.sending": "Sending...",
   "weeklyReport.sent": "Sent",
+  "weeklyReport.failed": "Sending the report failed.",
   "weeklyReport.description": "An automated report is sent every Monday at 8am to super-admins. It summarizes the week's KPIs: agencies, users, transactions, KYC, errors.",
   "weeklyReport.deployHint": "Deploy: supabase functions deploy weekly-report",
   "autonomy.title": "Agent autonomy",
@@ -845,7 +853,9 @@
       "required": "Title and message required.",
       "saved": "Announcement saved",
       "error": "Save failed"
-    }
+    },
+    "deleteTitle": "Delete this announcement?",
+    "deleteMessage": "The announcement will stop being shown and its history will be lost. This action is permanent."
   },
   "createAgency": {
     "title": "Create agency",
