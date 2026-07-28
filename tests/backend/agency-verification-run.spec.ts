@@ -405,6 +405,32 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(checks[0].result).toBe('unavailable')
     })
 
+    it(
+      'site web grand public (gmail.com) -> ecrit le check sous domain_generic_provider, jamais domain_whois_age ' +
+        '(revue etape 4/tache 2, point 2 -- verifie ici contre le catalogue REEL, pas seulement contre la lecture du connecteur)',
+      async () => {
+        const agencyId = await createAgency('generic-provider')
+        await addActiveSignatory(agencyId)
+        const svc = serviceRoleClient()
+        const { error: updErr } = await svc.from('agencies').update({ website: 'gmail.com' }).eq('id', agencyId)
+        if (updErr) throw new Error(`update website: ${updErr.message}`)
+
+        const res = await callRun(agencyId)
+        const body = await res.json()
+        expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
+        expect(body.checks_written).toBe(1)
+        expect(body.results.partial).toBe(1)
+
+        const checks = await getChecks(agencyId)
+        expect(checks).toHaveLength(1)
+        expect(
+          checks[0].check_type,
+          'la FK agency_verification_checks.check_type -> verification_check_types.code aurait rejete un code absent du catalogue -- domain_generic_provider y figure deja avec son propre poids (migration 20260728103000)'
+        ).toBe('domain_generic_provider')
+        expect(checks[0].result).toBe('partial')
+      }
+    )
+
     it('le passage journalise respecte activity_events (category=kyc, actor_kind=system, actor_id NULL)', async () => {
       const agencyId = await createAgency('audit-log')
       await addActiveSignatory(agencyId)
@@ -606,19 +632,24 @@ describe('connecteur RDAP (domain_whois_age) -- logique pure, fetch stubbe (aucu
     expect(fetchSpy, 'suffixe non couvert -> aucun serveur a interroger').not.toHaveBeenCalled()
   })
 
-  it("domaine grand public (gmail.com) -> partial, jamais mismatch : beaucoup de petites agences n'ont pas de domaine propre", async () => {
+  it("domaine grand public (gmail.com) -> check domain_generic_provider en partial, jamais domain_whois_age (revue etape 4/tache 2, point 2) : beaucoup de petites agences n'ont pas de domaine propre", async () => {
     const fetchSpy = vi.fn()
     vi.stubGlobal('fetch', fetchSpy)
     const row = await runKybSource(rdapSource(), agencyWithWebsite('gmail.com'))
     expect(row.result).toBe('partial')
+    expect(
+      row.check_type,
+      'le catalogue (verification_check_types/verification_check_config, migration 20260728103000) distingue domain_generic_provider de domain_whois_age avec un poids different (1.00 vs 0.75) -- les plier dans un seul type laisserait une ligne de config morte'
+    ).toBe('domain_generic_provider')
     expect(row.raw_response).toMatchObject({ domain: 'gmail.com', reason: 'generic_email_provider' })
     expect(fetchSpy, 'un domaine grand public ne declenche meme pas de requete RDAP').not.toHaveBeenCalled()
   })
 
-  it('outlook.com (autre domaine grand public, avec chemin) -> partial egalement', async () => {
+  it('outlook.com (autre domaine grand public, avec chemin) -> partial et check_type domain_generic_provider egalement', async () => {
     vi.stubGlobal('fetch', vi.fn())
     const row = await runKybSource(rdapSource(), agencyWithWebsite('https://outlook.com/mail/inbox'))
     expect(row.result).toBe('partial')
+    expect(row.check_type).toBe('domain_generic_provider')
     expect(row.raw_response.domain).toBe('outlook.com')
   })
 
@@ -676,6 +707,7 @@ describe('connecteur RDAP (domain_whois_age) -- logique pure, fetch stubbe (aucu
     )
     const row = await runKybSource(rdapSource(), agencyWithWebsite('https://www.regie-etablie.fr'))
     expect(row.result).toBe('match')
+    expect(row.check_type, 'chemin normal (pas fournisseur grand public) -> check_type par defaut du connecteur').toBe('domain_whois_age')
   })
 
   it(

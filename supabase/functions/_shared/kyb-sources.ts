@@ -69,6 +69,19 @@ export interface AgencyForVerification {
 export interface KybSourceResult {
   result: KybCheckResult
   raw_response: Record<string, unknown>
+  /** Ecrase, pour CETTE execution seulement, le check_type declare par le KybSource
+   *  qui enregistre ce connecteur (source.checkType plus bas). Reserve au cas ou UN
+   *  MEME connecteur peut, selon ce qu'il observe, ecrire sous plus d'un type du
+   *  catalogue (revue etape 4/tache 2, point 2) : le connecteur RDAP est enregistre
+   *  sous `domain_whois_age`, mais le cas fournisseur grand public (plus bas) doit
+   *  produire un check `domain_generic_provider` -- un type distinct du catalogue
+   *  (verification_check_types/verification_check_config, migration 20260728103000),
+   *  avec son propre poids (1.00 contre 0.75). Plier les deux dans un seul type
+   *  laisserait l'autre ligne de configuration morte et ferait porter a un type deux
+   *  signaux que le schema distingue deliberement. Absent -> runKybSource() retombe
+   *  sur source.checkType ; comportement inchange pour tout connecteur qui n'ecrit
+   *  jamais que sous un seul type (le cas courant). */
+  check_type?: string
 }
 
 /** Une ligne prete a inserer dans agency_verification_checks (moins agency_id,
@@ -80,7 +93,9 @@ export interface KybSourceResult {
  *  n'est jamais `null` ici (revue point 1) : runKybSource() fournit soit le
  *  raw_response du connecteur (obligatoire, voir KybSourceResult), soit la preuve de
  *  l'echec quand la source plante ou expire -- jamais un troisieme cas ou une valeur
- *  absente. */
+ *  absente. check_type vaut le plus souvent source.checkType (le KybSource
+ *  enregistrant le connecteur), sauf si le connecteur l'a explicitement ecrase via
+ *  KybSourceResult.check_type (revue etape 4/tache 2, point 2). */
 export interface AgencyCheckRow {
   check_type: string
   source: string
@@ -138,7 +153,11 @@ const RDAP_ENDPOINTS: Readonly<Record<string, string>> = {
 // (Suisse/France/Liechtenstein) plutot qu'exhaustive : un domaine grand public absent
 // d'ici retombe simplement sur l'evaluation RDAP normale (et le plus souvent sur
 // "suffixe non couvert" -> unavailable, puisque ce sont presque tous des .com),
-// jamais sur une erreur.
+// jamais sur une erreur. Produit un check `domain_generic_provider` (jamais
+// `domain_whois_age`, revue etape 4/tache 2 point 2 -- voir KybSourceResult.check_type
+// plus haut) : le catalogue distingue les deux signaux avec des poids differents
+// (1.00 contre 0.75, migration 20260728103000), plier l'un dans l'autre laisserait
+// une ligne de configuration morte.
 const GENERIC_EMAIL_PROVIDER_DOMAINS: ReadonlySet<string> = new Set([
   'gmail.com', 'googlemail.com',
   'outlook.com', 'hotmail.com', 'hotmail.fr', 'live.com', 'msn.com',
@@ -285,8 +304,12 @@ async function runRdapDomainWhoisAge(agency: AgencyForVerification, signal: Abor
   const domain = extractRdapDomain(website)
 
   if (GENERIC_EMAIL_PROVIDER_DOMAINS.has(domain)) {
+    // check_type explicite : ce check porte sur un signal different de
+    // domain_whois_age (l'anciennete), avec son propre poids au catalogue (revue
+    // etape 4/tache 2, point 2) -- voir KybSourceResult.check_type.
     return {
       result: 'partial',
+      check_type: 'domain_generic_provider',
       raw_response: { website, domain, reason: 'generic_email_provider' },
     }
   }
@@ -338,6 +361,10 @@ async function runRdapDomainWhoisAge(agency: AgencyForVerification, signal: Abor
   }
 }
 
+// checkType declare ici = 'domain_whois_age', le cas par defaut de ce connecteur --
+// mais son fournisseur grand public (plus haut) ecrase ce type en 'domain_generic_provider'
+// via KybSourceResult.check_type (revue etape 4/tache 2, point 2) : UN registre ici,
+// DEUX check_type possibles selon ce que le connecteur observe.
 const rdapDomainWhoisAgeSource: KybSource = {
   checkType: 'domain_whois_age',
   source: 'rdap',
@@ -433,7 +460,11 @@ export async function runKybSource(
   try {
     const outcome = await Promise.race([source.run(agency, controller.signal), timeout])
     return {
-      check_type: source.checkType,
+      // outcome.check_type prime sur source.checkType quand le connecteur l'a
+      // explicitement pose (revue etape 4/tache 2, point 2 -- voir
+      // KybSourceResult.check_type) : UN registre peut couvrir plus d'un type du
+      // catalogue selon ce que le connecteur observe a l'execution.
+      check_type: outcome.check_type ?? source.checkType,
       source: source.source,
       result: outcome.result,
       raw_response: outcome.raw_response,
@@ -442,7 +473,10 @@ export async function runKybSource(
     // Echec OU expiration : jamais un resultat fabrique (un `match` par exemple)
     // qui vaudrait preuve alors qu'aucune source n'a repondu -- corollaire du
     // principe directeur de cette etape. La preuve jointe ICI est la raison de
-    // l'echec elle-meme (revue point 1, voir describeSourceFailure).
+    // l'echec elle-meme (revue point 1, voir describeSourceFailure). Pas
+    // d'`outcome` ici (l'exception a interrompu `run` avant ou pendant son calcul) --
+    // source.checkType reste donc le seul type possible pour cette ligne, jamais un
+    // override que le connecteur n'a pas eu l'occasion de produire.
     return {
       check_type: source.checkType,
       source: source.source,
