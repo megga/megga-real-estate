@@ -79,3 +79,116 @@ jobs:
           name: test-results
           path: test-results/
           retention-days: 7
+
+  # tests/e2e/onboarding-identite.spec.ts (le SEUL test qui prouve que le gate
+  # d'identité KYB, useIdentityGate.ts, ne boucle pas — cf. son en-tête pour
+  # l'incident P0 c830f9a9) tourne en authentification RÉELLE contre un Supabase
+  # LOCAL, jamais sous VITE_DEV_BYPASS_AUTH (qui masque l'état réel de la session
+  # au gate) ni contre le projet cloud que le job `e2e` ci-dessus cible. D'où un
+  # job séparé — même raison que backend.yml est un WORKFLOW séparé de celui-ci
+  # (« Independent... different concerns, different failure modes ») : un docker
+  # Supabase qui échoue à démarrer ne doit jamais faire échouer les trois suites
+  # bypass/cloud du job `e2e`, et inversement. Motif de démarrage Supabase local
+  # repris tel quel de backend.yml (setup-cli, `supabase start` avec la même
+  # liste d'exclusions, export des identifiants via `supabase status -o env`,
+  # logs sur échec, arrêt en fin de job) plutôt que d'en inventer un nouveau.
+  e2e-kyb:
+    name: KYB onboarding gate (local Supabase, real auth)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(npm ls @playwright/test --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install system deps (cache hit only)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase local
+        # Exclusions identiques à backend.yml : Studio (UI admin), Inbucket
+        # (sink mail), imgproxy (transform images), vector (ingestion logs),
+        # pg_prove (runner pgTAP, inutilisé ici). Conserve db/auth/rest/storage,
+        # ce dont onboarding-identite.spec.ts se sert réellement (connexion,
+        # RPC submit_agency_identity, dépôt recto/verso dans Storage).
+        run: supabase start -x studio,inbucket,imgproxy,vector,pg_prove
+
+      - name: Export Supabase credentials to GITHUB_ENV
+        # Mêmes 3 variables que playwright.kyb.config.ts et
+        # tests/backend/helpers/supabase.ts (réutilisé par ce spec pour la
+        # provision/le nettoyage du dirigeant de test) attendent — même
+        # extraction que backend.yml.
+        run: |
+          eval "$(supabase status -o env)"
+          {
+            echo "SUPABASE_TEST_URL=${API_URL:-http://127.0.0.1:54321}"
+            echo "SUPABASE_TEST_ANON_KEY=$PUBLISHABLE_KEY"
+            echo "SUPABASE_TEST_SERVICE_ROLE_KEY=$SECRET_KEY"
+          } >> $GITHUB_ENV
+
+      - name: Run KYB onboarding e2e suite
+        run: npm run test:e2e:kyb
+
+      - name: Print Supabase logs on failure
+        if: failure()
+        run: |
+          echo "=== supabase status ==="
+          supabase status || true
+          echo "=== docker ps ==="
+          docker ps || true
+          echo "=== postgres logs ==="
+          docker logs supabase_db_megga-real-estate 2>&1 | tail -100 || true
+          echo "=== auth logs ==="
+          docker logs supabase_auth_megga-real-estate 2>&1 | tail -50 || true
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup || true
+
+      # Noms d'artefact distincts du job `e2e` ci-dessus (playwright-report /
+      # test-results) : actions/upload-artifact@v4 refuse deux artefacts de
+      # même nom au sein d'un même run de workflow.
+      - name: Upload Playwright report (KYB)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-kyb
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload test results (KYB, on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-kyb
+          path: test-results/
+          retention-days: 7
