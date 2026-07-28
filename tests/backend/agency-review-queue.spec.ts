@@ -1,23 +1,36 @@
-// Backend test (live CI) — couche de donnees de la file de revue KYB (etape 5,
-// tache 1 — migration 20260728160000_agency_review_queue.sql).
+// Backend test (live CI) — file de revue KYB (etape 5 : couche de donnees tache 1 +
+// decision humaine tache 2 — migration 20260728160000_agency_review_queue.sql).
 //
-// Deux fonctions testees, toutes deux reservees au super-admin (patron P3 : EXECUTE
-// authenticated, garde interne is_super_admin()) :
+// Six fonctions testees, toutes reservees au super-admin :
 //   - get_admin_agency_review_queue()           — la liste des dossiers a trancher.
 //   - get_admin_agency_review_detail(agency_id) — le detail check par check.
+//   - admin_validate_agency_review(agency_id)            — pose 'validated'.
+//   - admin_reject_agency_review(agency_id, reason)      — pose 'rejected', motif obligatoire.
+//   - admin_relaunch_agency_review(agency_id)            — declenche le moteur.
+//   - admin_resolve_agency_id_document(check_id, result) — tranche une piece d'identite.
+// Les deux lectures suivent le patron P3 (EXECUTE authenticated, garde interne
+// is_super_admin() OU is_service_role()) ; les quatre actions de la tache 2 (decision
+// humaine) sont gardees par is_super_admin() SEUL — jamais is_service_role(), une
+// decision humaine journalise auth.uid() comme decideur, un appel service_role n'a pas
+// de session. Voir le commentaire d'arbitrage en tete de la section tache 2 de la
+// migration pour le choix face a une Edge Function relais (action « relancer »).
 //
 // Contexte (docs/agency-kyb-handoff.md §7bis, docs/superpowers/plans/
 // 2026-07-28-onboarding-kyb-etape-5.md) : aucune agence ne peut etre auto-validee
 // aujourd'hui — la revue humaine est l'UNIQUE voie. Cette file est donc le seul
 // moyen pour un dossier soumis d'aboutir.
 //
-// Aucun de ces tests n'appelle recompute_agency_verification() ni
-// submit_agency_identity() : les fixtures ecrivent directement les colonnes de
+// Les tests de la tache 1 (queue/detail) n'appellent ni recompute_agency_verification()
+// ni submit_agency_identity() : leurs fixtures ecrivent directement les colonnes de
 // verification via le service_role (comme agency-kyb-verification.spec.ts, cf. son
-// test « verification_status accepte "validated" »). Consequence directe : aucune
-// des agences de ce fichier ne declenche l'ecriture activity_events append-only qui
-// rend certaines agences indeletables ailleurs (agency-verification-engine.spec.ts,
-// cf. sa note en tete de fichier) — le nettoyage ci-dessous peut donc rester simple.
+// test « verification_status accepte "validated" »). Les tests de la tache 2, EUX,
+// appellent les RPC reelles (admin_validate/reject/relaunch/resolve), qui journalisent
+// systematiquement un activity_events — append-only (trigger
+// enforce_activity_events_immutability, LBA art. 7), ce qui rend l'agence indeletable
+// par un DELETE ordinaire (ON DELETE SET NULL sur activity_events.agency_id percute le
+// meme trigger), exactement la limite deja documentee par
+// agency-verification-engine.spec.ts. Le afterAll ci-dessous rapporte donc nommement,
+// comme ce fichier voisin, ce qu'il n'a pas pu supprimer plutot que de l'avaler en silence.
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI : ces tests tournent contre un Supabase local
 // seede et DOIVENT reellement passer.
@@ -55,11 +68,12 @@ interface DetailRow {
   is_veto: boolean
 }
 
-describe.skipIf(!HAS_KEYS)('file de revue KYB — couche de donnees (etape 5, tache 1)', () => {
+describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (etape 5, taches 1-2)', () => {
   const agencyIds: string[] = []
   const userIds: string[] = []
   let superAdmin: SupabaseClient
   let ordinaryUser: SupabaseClient
+  let superAdminId: string
 
   beforeAll(async () => {
     const svc = serviceRoleClient()
@@ -74,15 +88,39 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — couche de donnees (etape 5, ta
 
     superAdmin = await createSuperAdminUser()
     ordinaryUser = await createOrdinaryUser()
+
+    // Identite du super-admin — necessaire pour verifier que la trace d'une decision
+    // humaine (tache 2) porte bien le decideur (activity_events.actor_id).
+    const { data: superAdminAuth, error: superAdminAuthErr } = await superAdmin.auth.getUser()
+    if (superAdminAuthErr || !superAdminAuth.user) {
+      throw new Error(`super admin getUser: ${superAdminAuthErr?.message}`)
+    }
+    superAdminId = superAdminAuth.user.id
   })
 
   afterAll(async () => {
     const svc = serviceRoleClient()
+    // Best-effort HONNETE (voir la note en tete de fichier) : les tests de la tache 2
+    // journalisent un activity_events reel (append-only, LBA art. 7) sur certaines de
+    // ces agences, ce qui les rend indeletables par un DELETE ordinaire — meme motif
+    // que agency-verification-engine.spec.ts. Chaque echec est collecte avec la raison
+    // exacte plutot qu'avale en silence.
+    const undeletable: { id: string; reason: string }[] = []
     for (const id of agencyIds) {
-      await svc.from('agencies').delete().eq('id', id).then(() => {}, () => {})
+      const { error } = await svc.from('agencies').delete().eq('id', id)
+      if (error) undeletable.push({ id, reason: `${error.code ?? '?'} ${error.message}` })
     }
     for (const id of userIds) {
       await svc.auth.admin.deleteUser(id).then(() => {}, () => {})
+    }
+    if (undeletable.length > 0) {
+      console.warn(
+        `[agency-review-queue.spec.ts] ${undeletable.length}/${agencyIds.length} agence(s) de test ` +
+        `non supprimee(s) -- activity_events est append-only (LBA art. 7) des qu'une decision humaine ` +
+        `(tache 2 : valider/rejeter/relancer/resoudre) y a ecrit une ligne, meme limite structurelle que ` +
+        `agency-verification-engine.spec.ts (cf. sa note en tete de fichier) :\n` +
+        undeletable.map((u) => `  - ${u.id} : ${u.reason}`).join('\n')
+      )
     }
   })
 
@@ -151,6 +189,76 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — couche de donnees (etape 5, ta
     if (fields.sweepAttempts !== undefined) row.verification_sweep_attempts = fields.sweepAttempts
     const { error } = await svc.from('agencies').update(row).eq('id', agencyId)
     if (error) throw new Error(`set verification: ${error.message}`)
+  }
+
+  /** Relit les colonnes de verification (service_role) — verifie l'effet d'une decision. */
+  async function getAgencyVerification(agencyId: string): Promise<{
+    verification_status: string
+    verification_score: number | string | null
+    verified_at: string | null
+  }> {
+    const svc = serviceRoleClient()
+    const { data, error } = await svc
+      .from('agencies')
+      .select('verification_status, verification_score, verified_at')
+      .eq('id', agencyId)
+      .single()
+    if (error) throw new Error(`get agency: ${error.message}`)
+    return data as { verification_status: string; verification_score: number | string | null; verified_at: string | null }
+  }
+
+  interface EventRow {
+    actor_id: string | null
+    actor_kind: string
+    action: string
+    category: string
+    severity: string
+    entity_type: string
+    entity_id: string | null
+    metadata: Record<string, unknown> | null
+  }
+
+  /** Dernier evenement d'une agence pour une `action` donnee (service_role, contourne RLS). */
+  async function getLatestEvent(agencyId: string, action: string): Promise<EventRow | null> {
+    const svc = serviceRoleClient()
+    const { data, error } = await svc
+      .from('activity_events')
+      .select('actor_id, actor_kind, action, category, severity, entity_type, entity_id, metadata')
+      .eq('agency_id', agencyId)
+      .eq('action', action)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (error) throw new Error(`activity_events: ${error.message}`)
+    return (data?.[0] as EventRow | undefined) ?? null
+  }
+
+  /** Signataire actif (service_role) — sert les tests de resolution de piece d'identite. */
+  async function createSignatory(agencyId: string): Promise<string> {
+    const svc = serviceRoleClient()
+    const { data, error } = await svc
+      .from('agency_related_persons')
+      .insert({ agency_id: agencyId, first_name: 'Jean', last_name: 'Signataire' })
+      .select('id')
+      .single()
+    if (error) throw new Error(`related_person: ${error.message}`)
+    const { error: rErr } = await svc
+      .from('agency_person_roles')
+      .insert({ related_person_id: data!.id, role: 'signatory', signature_power: 'individual' })
+    if (rErr) throw new Error(`person_role: ${rErr.message}`)
+    return data!.id as string
+  }
+
+  /** Pose un check id_document en attente de revue (service_role) — reproduit l'etat laisse
+   *  par submit_agency_identity_id_document (20260728110000) sans rejouer tout le parcours. */
+  async function insertPendingIdDocumentCheck(relatedPersonId: string): Promise<string> {
+    const svc = serviceRoleClient()
+    const { data, error } = await svc
+      .from('agency_person_verification_checks')
+      .insert({ related_person_id: relatedPersonId, check_type: 'id_document', source: 'manual', result: 'pending_manual_review' })
+      .select('id')
+      .single()
+    if (error) throw new Error(`insert id_document check: ${error.message}`)
+    return data!.id as string
   }
 
   // ─── get_admin_agency_review_queue ─────────────────────────────────────────
@@ -413,6 +521,303 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — couche de donnees (etape 5, ta
       const asAnon = await anonClient().rpc('get_admin_agency_review_detail', { p_agency_id: agencyId })
       expect(asAnon.error?.code, `attendu ${DENIED}, recu ${asAnon.error?.code}`).toBe(DENIED)
       expect(asAnon.data).toBeNull()
+    })
+  })
+
+  // ─── admin_validate_agency_review (tache 2) ─────────────────────────────────
+  describe('admin_validate_agency_review', () => {
+    it('un super-admin valide un dossier en manual_review -- pose validated, jamais auto_validated', async () => {
+      const agencyId = await createAgency('validate-ok')
+      await setVerification(agencyId, { status: 'manual_review', score: 0.6, submittedAt: new Date().toISOString() })
+
+      const { error } = await superAdmin.rpc('admin_validate_agency_review', { p_agency_id: agencyId })
+      expect(error, `rpc: ${error?.message}`).toBeNull()
+
+      const agency = await getAgencyVerification(agencyId)
+      expect(agency.verification_status, 'la decision humaine pose validated, jamais auto_validated').toBe('validated')
+      expect(agency.verified_at, 'verified_at doit etre pose par la validation').not.toBeNull()
+    })
+
+    it('journalise la decision avec l identite du decideur', async () => {
+      const agencyId = await createAgency('validate-trace')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+
+      const { error } = await superAdmin.rpc('admin_validate_agency_review', { p_agency_id: agencyId })
+      expect(error, `rpc: ${error?.message}`).toBeNull()
+
+      const event = await getLatestEvent(agencyId, 'agency_verification_validated')
+      expect(event, 'la decision doit etre journalisee dans activity_events').toBeTruthy()
+      expect(event!.actor_kind, 'l acteur est un humain, jamais le moteur').toBe('user')
+      expect(event!.actor_id, 'la trace doit porter l identite du decideur').toBe(superAdminId)
+      expect(event!.category).toBe('kyc')
+      expect(event!.severity).toBe('info')
+    })
+
+    it('est refusee a un utilisateur authentifie ordinaire', async () => {
+      const agencyId = await createAgency('validate-denied-user')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+
+      const { error } = await ordinaryUser.rpc('admin_validate_agency_review', { p_agency_id: agencyId })
+      expect(error?.code, `attendu ${DENIED}, recu ${error?.code}`).toBe(DENIED)
+
+      const agency = await getAgencyVerification(agencyId)
+      expect(agency.verification_status, 'un refus ne doit rien changer').toBe('manual_review')
+    })
+
+    it('est refusee a anon', async () => {
+      const agencyId = await createAgency('validate-denied-anon')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+
+      const { error } = await anonClient().rpc('admin_validate_agency_review', { p_agency_id: agencyId })
+      expect(error?.code, `attendu ${DENIED}, recu ${error?.code}`).toBe(DENIED)
+    })
+
+    it('refuse un dossier qui n est pas en manual_review', async () => {
+      const agencyId = await createAgency('validate-wrong-status')
+      await setVerification(agencyId, { status: 'pending' })
+
+      const { error } = await superAdmin.rpc('admin_validate_agency_review', { p_agency_id: agencyId })
+      expect(error, 'un dossier hors manual_review ne doit pas se laisser valider').not.toBeNull()
+
+      const agency = await getAgencyVerification(agencyId)
+      expect(agency.verification_status).toBe('pending')
+    })
+  })
+
+  // ─── admin_reject_agency_review (tache 2) ───────────────────────────────────
+  describe('admin_reject_agency_review', () => {
+    it('un super-admin rejette un dossier en manual_review avec un motif', async () => {
+      const agencyId = await createAgency('reject-ok')
+      await setVerification(agencyId, { status: 'manual_review', score: 0.1, submittedAt: new Date().toISOString() })
+
+      const { error } = await superAdmin.rpc('admin_reject_agency_review', {
+        p_agency_id: agencyId, p_reason: 'Registre du commerce introuvable, raison sociale non concordante',
+      })
+      expect(error, `rpc: ${error?.message}`).toBeNull()
+
+      const agency = await getAgencyVerification(agencyId)
+      expect(agency.verification_status).toBe('rejected')
+    })
+
+    it('exige un motif -- refuse null', async () => {
+      const agencyId = await createAgency('reject-no-reason-null')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+
+      const { error } = await superAdmin.rpc('admin_reject_agency_review', { p_agency_id: agencyId, p_reason: null })
+      expect(error, 'un rejet sans motif est irrecevable').not.toBeNull()
+
+      const agency = await getAgencyVerification(agencyId)
+      expect(agency.verification_status, 'le rejet refuse ne doit rien changer').toBe('manual_review')
+    })
+
+    it('exige un motif -- refuse une chaine vide ou blanche', async () => {
+      const agencyId = await createAgency('reject-no-reason-blank')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+
+      const blank = await superAdmin.rpc('admin_reject_agency_review', { p_agency_id: agencyId, p_reason: '   ' })
+      expect(blank.error, 'une chaine blanche n est pas un motif').not.toBeNull()
+
+      const empty = await superAdmin.rpc('admin_reject_agency_review', { p_agency_id: agencyId, p_reason: '' })
+      expect(empty.error, 'une chaine vide n est pas un motif').not.toBeNull()
+    })
+
+    it('journalise le motif et l identite du decideur', async () => {
+      const agencyId = await createAgency('reject-trace')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+      const REASON = 'Signataire introuvable au registre'
+
+      const { error } = await superAdmin.rpc('admin_reject_agency_review', { p_agency_id: agencyId, p_reason: REASON })
+      expect(error, `rpc: ${error?.message}`).toBeNull()
+
+      const event = await getLatestEvent(agencyId, 'agency_verification_rejected')
+      expect(event, 'le rejet doit etre journalise').toBeTruthy()
+      expect(event!.actor_kind).toBe('user')
+      expect(event!.actor_id, 'la trace doit porter l identite du decideur').toBe(superAdminId)
+      expect(event!.category).toBe('kyc')
+      expect((event!.metadata as Record<string, unknown> | null)?.reason, 'le motif doit etre conserve pour l audit').toBe(REASON)
+    })
+
+    it('est refusee a un utilisateur authentifie ordinaire et a anon', async () => {
+      const agencyId = await createAgency('reject-denied')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+
+      const asOrdinary = await ordinaryUser.rpc('admin_reject_agency_review', { p_agency_id: agencyId, p_reason: 'motif' })
+      expect(asOrdinary.error?.code, `attendu ${DENIED}, recu ${asOrdinary.error?.code}`).toBe(DENIED)
+
+      const asAnon = await anonClient().rpc('admin_reject_agency_review', { p_agency_id: agencyId, p_reason: 'motif' })
+      expect(asAnon.error?.code, `attendu ${DENIED}, recu ${asAnon.error?.code}`).toBe(DENIED)
+    })
+  })
+
+  // ─── admin_relaunch_agency_review (tache 2) ─────────────────────────────────
+  describe('admin_relaunch_agency_review', () => {
+    it('un super-admin relance le moteur -- declenche reellement recompute_agency_verification', async () => {
+      const agencyId = await createAgency('relaunch-ok')
+      await setVerification(agencyId, { status: 'pending' })
+
+      const before = await getLatestEvent(agencyId, 'agency_verification_recomputed')
+      expect(before, 'aucun passage moteur avant la relance').toBeNull()
+
+      const { error } = await superAdmin.rpc('admin_relaunch_agency_review', { p_agency_id: agencyId })
+      expect(error, `rpc: ${error?.message}`).toBeNull()
+
+      const engineEvent = await getLatestEvent(agencyId, 'agency_verification_recomputed')
+      expect(engineEvent, 'la relance doit reellement appeler le moteur').toBeTruthy()
+      expect(engineEvent!.actor_kind, 'cet evenement-ci est journalise par le moteur, pas par l humain').toBe('system')
+      expect(engineEvent!.actor_id).toBeNull()
+    })
+
+    it('journalise la demande humaine de relance, distincte du passage du moteur', async () => {
+      const agencyId = await createAgency('relaunch-trace')
+      await setVerification(agencyId, { status: 'pending' })
+
+      const { error } = await superAdmin.rpc('admin_relaunch_agency_review', { p_agency_id: agencyId })
+      expect(error, `rpc: ${error?.message}`).toBeNull()
+
+      const humanEvent = await getLatestEvent(agencyId, 'agency_verification_relaunch_requested')
+      expect(humanEvent, 'la demande de relance doit etre journalisee avec l identite du decideur').toBeTruthy()
+      expect(humanEvent!.actor_kind).toBe('user')
+      expect(humanEvent!.actor_id).toBe(superAdminId)
+      expect(humanEvent!.category).toBe('kyc')
+    })
+
+    it('est refusee a un utilisateur authentifie ordinaire et a anon', async () => {
+      const agencyId = await createAgency('relaunch-denied')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+
+      const asOrdinary = await ordinaryUser.rpc('admin_relaunch_agency_review', { p_agency_id: agencyId })
+      expect(asOrdinary.error?.code, `attendu ${DENIED}, recu ${asOrdinary.error?.code}`).toBe(DENIED)
+
+      const asAnon = await anonClient().rpc('admin_relaunch_agency_review', { p_agency_id: agencyId })
+      expect(asAnon.error?.code, `attendu ${DENIED}, recu ${asAnon.error?.code}`).toBe(DENIED)
+    })
+
+    it('le moteur relance apres une validation humaine ne l ecrase pas', async () => {
+      const agencyId = await createAgency('relaunch-no-override-validated')
+      await setVerification(agencyId, { status: 'manual_review', score: 0.9, submittedAt: new Date().toISOString() })
+
+      const { error: validateErr } = await superAdmin.rpc('admin_validate_agency_review', { p_agency_id: agencyId })
+      expect(validateErr, `validate: ${validateErr?.message}`).toBeNull()
+      const validated = await getAgencyVerification(agencyId)
+      expect(validated.verification_status).toBe('validated')
+
+      const { error: relaunchErr } = await superAdmin.rpc('admin_relaunch_agency_review', { p_agency_id: agencyId })
+      expect(relaunchErr, `relaunch: ${relaunchErr?.message}`).toBeNull()
+
+      const afterRelaunch = await getAgencyVerification(agencyId)
+      expect(afterRelaunch.verification_status, 'un verdict humain ne se retourne pas seul, meme relance').toBe('validated')
+      expect(afterRelaunch.verified_at, 'verified_at pose par la validation humaine ne doit pas bouger').toBe(validated.verified_at)
+      expect(num(afterRelaunch.verification_score)).toBeCloseTo(num(validated.verification_score) ?? -1, 3)
+
+      const engineEvent = await getLatestEvent(agencyId, 'agency_verification_recomputed')
+      expect(engineEvent, 'le moteur sort avant son propre insert -- aucun passage journalise sur un dossier deja tranche').toBeNull()
+    })
+
+    it('le moteur relance apres un rejet humain ne l ecrase pas non plus', async () => {
+      const agencyId = await createAgency('relaunch-no-override-rejected')
+      await setVerification(agencyId, { status: 'manual_review', score: 0.1, submittedAt: new Date().toISOString() })
+
+      const { error: rejectErr } = await superAdmin.rpc('admin_reject_agency_review', {
+        p_agency_id: agencyId, p_reason: 'Piece d identite non concordante',
+      })
+      expect(rejectErr, `reject: ${rejectErr?.message}`).toBeNull()
+
+      const { error: relaunchErr } = await superAdmin.rpc('admin_relaunch_agency_review', { p_agency_id: agencyId })
+      expect(relaunchErr, `relaunch: ${relaunchErr?.message}`).toBeNull()
+
+      const agency = await getAgencyVerification(agencyId)
+      expect(agency.verification_status, 'un rejet humain ne se retourne pas seul, meme relance').toBe('rejected')
+    })
+  })
+
+  // ─── admin_resolve_agency_id_document (tache 2) ─────────────────────────────
+  describe('admin_resolve_agency_id_document', () => {
+    it('un super-admin resout une piece d identite en match -- ajoute une ligne, ne modifie jamais celle en attente', async () => {
+      const agencyId = await createAgency('resolve-match')
+      const personId = await createSignatory(agencyId)
+      const checkId = await insertPendingIdDocumentCheck(personId)
+
+      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
+      expect(error, `rpc: ${error?.message}`).toBeNull()
+
+      const svc = serviceRoleClient()
+      const { data, error: selErr } = await svc
+        .from('agency_person_verification_checks')
+        .select('id, result, source, check_type')
+        .eq('related_person_id', personId)
+        .eq('check_type', 'id_document')
+        .order('checked_at', { ascending: true })
+      if (selErr) throw new Error(`select checks: ${selErr.message}`)
+
+      expect(data, 'append-only : la ligne en attente doit survivre, une nouvelle ligne s ajoute').toHaveLength(2)
+      expect(data![0].id).toBe(checkId)
+      expect(data![0].result, 'la ligne en attente d origine ne doit jamais etre modifiee').toBe('pending_manual_review')
+      expect(data![1].result).toBe('match')
+      expect(data![1].source).toBe('manual')
+    })
+
+    it('journalise la resolution avec l identite du decideur', async () => {
+      const agencyId = await createAgency('resolve-trace')
+      const personId = await createSignatory(agencyId)
+      const checkId = await insertPendingIdDocumentCheck(personId)
+
+      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'mismatch' })
+      expect(error, `rpc: ${error?.message}`).toBeNull()
+
+      const event = await getLatestEvent(agencyId, 'agency_identity_document_resolved')
+      expect(event, 'la resolution doit etre journalisee').toBeTruthy()
+      expect(event!.actor_kind).toBe('user')
+      expect(event!.actor_id, 'la trace doit porter l identite du decideur').toBe(superAdminId)
+      expect(event!.category).toBe('kyc')
+      expect(event!.severity, 'un mismatch est un signal de conformite qui merite un warn').toBe('warn')
+    })
+
+    it('refuse un resultat qui n est pas une decision humaine valide', async () => {
+      const agencyId = await createAgency('resolve-bad-result')
+      const personId = await createSignatory(agencyId)
+      const checkId = await insertPendingIdDocumentCheck(personId)
+
+      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'unavailable' })
+      expect(error, 'unavailable n est pas une decision humaine recevable').not.toBeNull()
+    })
+
+    it('refuse de resoudre deux fois la meme piece', async () => {
+      const agencyId = await createAgency('resolve-twice')
+      const personId = await createSignatory(agencyId)
+      const checkId = await insertPendingIdDocumentCheck(personId)
+
+      const first = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
+      expect(first.error, `rpc: ${first.error?.message}`).toBeNull()
+
+      const second = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'mismatch' })
+      expect(second.error, 'une piece deja resolue ne doit pas se laisser resoudre une seconde fois').not.toBeNull()
+    })
+
+    it('refuse un check qui n est pas de type id_document', async () => {
+      const agencyId = await createAgency('resolve-wrong-type')
+      const personId = await createSignatory(agencyId)
+      const svc = serviceRoleClient()
+      const { data, error: insErr } = await svc
+        .from('agency_person_verification_checks')
+        .insert({ related_person_id: personId, check_type: 'poa_document_review', source: 'manual', result: 'pending_manual_review' })
+        .select('id')
+        .single()
+      if (insErr) throw new Error(`insert poa check: ${insErr.message}`)
+
+      const { error } = await superAdmin.rpc('admin_resolve_agency_id_document', { p_check_id: data!.id, p_result: 'match' })
+      expect(error, 'cette fonction ne doit resoudre que des checks id_document').not.toBeNull()
+    })
+
+    it('est refusee a un utilisateur authentifie ordinaire et a anon', async () => {
+      const agencyId = await createAgency('resolve-denied')
+      const personId = await createSignatory(agencyId)
+      const checkId = await insertPendingIdDocumentCheck(personId)
+
+      const asOrdinary = await ordinaryUser.rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
+      expect(asOrdinary.error?.code, `attendu ${DENIED}, recu ${asOrdinary.error?.code}`).toBe(DENIED)
+
+      const asAnon = await anonClient().rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
+      expect(asAnon.error?.code, `attendu ${DENIED}, recu ${asAnon.error?.code}`).toBe(DENIED)
     })
   })
 })
