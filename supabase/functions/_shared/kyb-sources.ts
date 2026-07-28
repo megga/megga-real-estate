@@ -14,6 +14,14 @@
 // reponse serait une preuve fabriquee par le systeme lui-meme -- voir
 // docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-4.md.
 //
+// Meme corollaire applique a la preuve elle-meme (revue etape 4/tache 1, point 1) :
+// raw_response est OBLIGATOIRE dans KybSourceResult, jamais optionnel. Sur un
+// dispositif dont toute la valeur repose sur la preuve, un verdict sans preuve jointe
+// ne doit pas pouvoir s'ecrire -- le type contraignait jusqu'ici la FORME du resultat,
+// jamais son honnetete. L'indisponibilite joint desormais sa propre preuve : la raison
+// de l'echec (type d'erreur, message, code de statut si connu), jamais un secret ni un
+// en-tete d'authentification (voir describeSourceFailure plus bas).
+//
 // runKybSource() est le SEUL point qui doit jamais lever ou pendre indefiniment :
 // un connecteur ecrit ici (tache 2+) peut lever, timeouter, renvoyer n'importe
 // quoi -- runKybSource() absorbe tout et rend TOUJOURS une ligne exploitable.
@@ -50,11 +58,15 @@ export interface AgencyForVerification {
 
 /** Ce qu'un connecteur produit pour SON check -- jamais `unavailable` par choix :
  *  c'est runKybSource() qui le fait a sa place quand `run` echoue ou expire.
- *  raw_response est la piece d'audit LAB (reponse brute de la source) ; optionnel
- *  a l'ecriture, jamais absent en sortie de runKybSource() (voir plus bas). */
+ *  raw_response est OBLIGATOIRE (revue etape 4/tache 1, point 1), jamais `null` : un
+ *  connecteur qui pose un `match` doit montrer ce sur quoi il se fonde, pour qu'un
+ *  relecteur puisse le verifier apres coup. Avant ce correctif, raw_response etait
+ *  facultatif -- un connecteur bogue (par exemple un `catch` interne mal ecrit sur une
+ *  reponse ambigue) pouvait produire un `match` SANS aucune piece d'audit derriere ;
+ *  le type contraignait la forme du resultat, jamais son honnetete. */
 export interface KybSourceResult {
   result: KybCheckResult
-  raw_response?: Record<string, unknown> | null
+  raw_response: Record<string, unknown>
 }
 
 /** Une ligne prete a inserer dans agency_verification_checks (moins agency_id,
@@ -62,12 +74,16 @@ export interface KybSourceResult {
  *  ici : la colonne a une valeur par defaut (now(), l'heure de DEBUT de
  *  transaction) et rien dans ce module ne doit pretendre ordonner deux lignes du
  *  meme type mieux que le moteur ne le fait deja par ctid -- lire l'en-tete de
- *  recompute_agency_verification (20260728130000) avant d'y toucher. */
+ *  recompute_agency_verification (20260728130000) avant d'y toucher. raw_response
+ *  n'est jamais `null` ici (revue point 1) : runKybSource() fournit soit le
+ *  raw_response du connecteur (obligatoire, voir KybSourceResult), soit la preuve de
+ *  l'echec quand la source plante ou expire -- jamais un troisieme cas ou une valeur
+ *  absente. */
 export interface AgencyCheckRow {
   check_type: string
   source: string
   result: KybCheckResult
-  raw_response: Record<string, unknown> | null
+  raw_response: Record<string, unknown>
 }
 
 /** Le contrat que chaque connecteur reel implementera (taches 2 et 3). `run` PEUT
@@ -107,6 +123,39 @@ class KybSourceTimeoutError extends Error {
 }
 
 /**
+ * Construit la preuve d'un echec de source -- raison, type d'erreur et message, plus
+ * un code de statut si l'erreur en portait un (revue etape 4/tache 1, point 1) :
+ * l'indisponibilite doit rester exploitable par un humain qui relit le dossier, pas
+ * seulement `unavailable` nu. Cherry-pick des champs SURS uniquement -- ne JAMAIS
+ * etaler l'objet erreur tel quel (`{...err}` ou equivalent) : un connecteur
+ * fetch()-base (taches 2+) peut lever une erreur qui embarque sa requete sous-jacente,
+ * en-tetes d'authentification compris. Ce module ne connait pas la forme exacte d'une
+ * erreur qu'il n'a pas ecrite -- mieux vaut lire trop peu qu'exposer un secret dans une
+ * piece d'audit LAB.
+ */
+function describeSourceFailure(err: unknown, isTimeout: boolean): Record<string, unknown> {
+  const errorType = err instanceof Error ? err.name : typeof err
+  const message = err instanceof Error ? err.message : String(err)
+  const status = extractStatusCode(err)
+  return {
+    reason: isTimeout ? 'timeout' : 'error',
+    error_type: errorType,
+    message,
+    ...(status === undefined ? {} : { status }),
+  }
+}
+
+/** Lit UNIQUEMENT `.status` ou `.statusCode` sur l'erreur, s'il s'agit d'un nombre --
+ *  jamais le reste de l'objet (voir describeSourceFailure ci-dessus). `undefined` si
+ *  absent ou d'un type inattendu : pas de code de statut invente. */
+function extractStatusCode(err: unknown): number | undefined {
+  if (typeof err !== 'object' || err === null) return undefined
+  const record = err as Record<string, unknown>
+  const candidate = record.status ?? record.statusCode
+  return typeof candidate === 'number' ? candidate : undefined
+}
+
+/**
  * Execute UNE source de verification et retourne TOUJOURS une ligne exploitable --
  * jamais un throw, jamais indefiniment en attente. C'est cette fonction, et elle
  * seule, qui rend impossible qu'une source injoignable fasse disparaitre une
@@ -141,19 +190,18 @@ export async function runKybSource(
       check_type: source.checkType,
       source: source.source,
       result: outcome.result,
-      raw_response: outcome.raw_response ?? null,
+      raw_response: outcome.raw_response,
     }
   } catch (err) {
     // Echec OU expiration : jamais un resultat fabrique (un `match` par exemple)
     // qui vaudrait preuve alors qu'aucune source n'a repondu -- corollaire du
-    // principe directeur de cette etape.
-    const isTimeout = err instanceof KybSourceTimeoutError
-    const message = err instanceof Error ? err.message : String(err)
+    // principe directeur de cette etape. La preuve jointe ICI est la raison de
+    // l'echec elle-meme (revue point 1, voir describeSourceFailure).
     return {
       check_type: source.checkType,
       source: source.source,
       result: 'unavailable',
-      raw_response: { error: message, reason: isTimeout ? 'timeout' : 'error' },
+      raw_response: describeSourceFailure(err, err instanceof KybSourceTimeoutError),
     }
   } finally {
     clearTimeout(timer)

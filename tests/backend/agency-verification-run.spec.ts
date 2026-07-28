@@ -148,6 +148,63 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       // registre.
       expect(AGENCY_KYB_SOURCES).toEqual([])
     })
+
+    // Revue etape 4/tache 1, point 1 : raw_response est desormais OBLIGATOIRE dans
+    // KybSourceResult (voir _shared/kyb-sources.ts) -- un verdict sans preuve jointe
+    // ne doit plus pouvoir s'ecrire. Les quatre tests ci-dessous verifient que le cas
+    // `unavailable` (le seul que le harnais fabrique lui-meme) joint une preuve
+    // exploitable par un humain, jamais un objet vide, jamais l'erreur brute (donc
+    // jamais un secret ou un en-tete d'authentification).
+
+    it("le raw_response d'un echec porte le type d'erreur et le message, exploitables par un humain qui relira le dossier", async () => {
+      const row = await runKybSource(failingSource('domain_whois_age'), FAKE_AGENCY)
+      expect(row.result).toBe('unavailable')
+      expect(row.raw_response).toMatchObject({ reason: 'error', error_type: 'Error' })
+      expect(typeof row.raw_response.message).toBe('string')
+      expect(row.raw_response.message).toContain('boom-domain_whois_age')
+    })
+
+    it("le raw_response d'un timeout porte reason='timeout' et le nom de l'erreur de timeout, jamais un match par defaut", async () => {
+      const row = await runKybSource(hangingSource('vat_lookup'), FAKE_AGENCY, 50)
+      expect(row.result).toBe('unavailable')
+      expect(row.raw_response).toMatchObject({ reason: 'timeout', error_type: 'KybSourceTimeoutError' })
+      expect(row.raw_response.message).toContain('50ms')
+    }, 2_000)
+
+    it('un code de statut porte par une erreur de source est reporte dans raw_response.status, sans jamais transporter un secret ou un en-tete', async () => {
+      // Simule un connecteur fetch()-base (taches 2+) dont l'erreur embarque sa
+      // reponse HTTP -- statut ET en-tetes, Authorization compris. describeSourceFailure
+      // (kyb-sources.ts) ne doit cherry-picker QUE le statut, jamais le reste.
+      const statusSource: KybSource = {
+        checkType: 'domain_whois_age',
+        source: 'manual',
+        run: async () => {
+          const err = new Error('service unavailable') as Error & {
+            status: number
+            headers: Record<string, string>
+          }
+          err.status = 503
+          err.headers = { Authorization: 'Bearer secret-token-do-not-leak' }
+          throw err
+        },
+      }
+      const row = await runKybSource(statusSource, FAKE_AGENCY)
+      expect(row.result).toBe('unavailable')
+      expect(row.raw_response.status).toBe(503)
+      const serialized = JSON.stringify(row.raw_response)
+      expect(serialized).not.toContain('secret-token-do-not-leak')
+      expect(serialized).not.toContain('Authorization')
+    })
+
+    it('quel que soit le sort de chaque source (succes/echec/timeout), raw_response est toujours un objet non nul -- jamais absent', async () => {
+      const sources = [okSource('address_geocode'), failingSource('domain_whois_age'), hangingSource('vat_lookup')]
+      const rows = await Promise.all(sources.map((s) => runKybSource(s, FAKE_AGENCY, 50)))
+      for (const row of rows) {
+        expect(row.raw_response, `raw_response absent pour ${row.check_type}`).not.toBeNull()
+        expect(row.raw_response, `raw_response absent pour ${row.check_type}`).not.toBeUndefined()
+        expect(typeof row.raw_response).toBe('object')
+      }
+    })
   })
 
   describe('Edge Function deployee -- contrat HTTP', () => {
