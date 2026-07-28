@@ -9,7 +9,7 @@
 > **Source** : `src/App.tsx`. En cas de doute, c'est le code qui tranche, pas ce fichier.
 > Le mettre à jour quand on ajoute ou retire une route.
 
-**62 fichiers de pages** dans `src/pages/` : agent 26 · admin 16 · public 11 · dev 5 · particulier 4.
+**62 fichiers de pages** dans `src/pages/` : agent 26 · admin 17 · public 11 · dev 5 · particulier 4.
 
 ---
 
@@ -26,8 +26,8 @@ rendent plus aucune page.
 
 Monté sous `ProtectedRoute`. Deux layouts cohabitent : `AgentSugarLayout` (chrome
 courant, la majorité des routes) et `AgentLayout` (génération précédente, encore
-active sur l'import de contacts, le détail marché, le formulaire de bien et tout
-`/dashboard/admin/*`).
+active sur l'import de contacts, le détail marché et le formulaire de bien). La
+console super-admin, elle, porte son propre chrome (`AdminShell`).
 
 `ResponsiveRoute` aiguille desktop/mobile au niveau de l'élément de route (seuil
 768 px) ; quand aucun écran mobile n'est livré, il monte le desktop des deux côtés.
@@ -57,11 +57,19 @@ active sur l'import de contacts, le détail marché, le formulaire de bien et to
 → `/visits/*`, `/dashboard/marche/:id` → `/market/:id`. `/dashboard/network`,
 `/reseau`, `/onboarding`, `/premier-jour` → `/dashboard` (modules retirés).
 
-### 2. Super-admin — `/dashboard/admin/*` (16 pages)
+### 2. Super-admin — `/dashboard/admin/*` (17 pages)
 
-Sous `SuperAdminGuard`, accent violet : accueil, agences, détail agence, utilisateurs,
-monitoring, marketplace, conformité, changelog, feature flags, plans, live, sécurité,
-NPS, autonomie, usage des outils, apprentissage.
+Surface du CRM depuis le 28.07.2026 (l'application autonome `admin.megga.ch` a été
+retirée). Montée par `AdminConsoleRoute`, qui gate sur `useSuperAdminGate` et
+journalise chaque entrée ; le chrome vient d'`AdminShell`, l'accent violet ne sert
+que de repère de contexte.
+
+Accueil, agences (+ détail), utilisateurs, clients finaux, monitoring, **modération**,
+conformité, communication, feature flags, plans, live, sécurité, NPS, autonomie,
+usage des outils, apprentissage.
+
+⚠️ `/dashboard/admin/marketplace` redirige vers `/moderation` : la page a porté le nom
+du module marketplace jusqu'à son renommage, des liens le visent peut-être encore.
 
 
 ### 3. Pages publiques tokenisées
