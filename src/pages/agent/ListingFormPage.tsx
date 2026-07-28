@@ -12,7 +12,8 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { useTranslation, Trans } from 'react-i18next'
@@ -2213,8 +2214,9 @@ export default function ListingFormPage() {
 
   // Chrome Sugar porté ici : cette page vivait sous `AgentLayout` (sidebar
   // legacy). Chaque surface Sugar porte son propre chrome.
-  const sgT = sugarThemeTokens(dark)
-  const sgSp = useMemo(() => crmSugarPalette(sgT, dark, SUGAR_DARK_TONE as DarkTone), [sgT, dark])
+  const darkTone = useDarkTone()
+  const sgT = sugarThemeTokens(dark, darkTone)
+  const sgSp = useMemo(() => crmSugarPalette(sgT, dark, darkTone), [sgT, dark, darkTone])
   const onSugarNav = (id: SugarScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break

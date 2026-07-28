@@ -28,8 +28,9 @@ import {
 import { useNavigate, useParams } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
 import {
-  crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE,
+  crmSugarPalette, sugarThemeTokens,
 } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -53,7 +54,6 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types/listing'
 
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 const BF_MAXW = 1120 // largeur max de la colonne de contenu (bride le « trop large »)
 
 // ─── Interfaces locales ────────────────────────────────────────────────────
@@ -441,8 +441,9 @@ export default function BienDetailSugarV4Page() {
   useEffect(() => {
     if (typeof window !== 'undefined') window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
   }, [dark])
-  const t = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(t, dark, DARK_TONE) // cadre/shell (pageBg = Today/Pipeline)
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(t, dark, darkTone) // cadre/shell (pageBg = Today/Pipeline)
   const vx = vxPalette(dark) // intérieur des cartes (palette vitrine)
 
   // ── Données réelles (identiques à la V3) ──

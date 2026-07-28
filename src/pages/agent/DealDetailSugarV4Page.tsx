@@ -20,9 +20,9 @@ import { useTranslation } from 'react-i18next'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
 import { fmtDateTime } from '@/components/crm-sugar-v3/tokens'
 import {
-  CRM_STAGE_ORDER, crmSugarPalette, sugarThemeTokens, SUGAR_DARK_TONE,
-  type DarkTone, type StageId,
+  CRM_STAGE_ORDER, crmSugarPalette, sugarThemeTokens, type StageId,
 } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { mapTransactionStageToStepper } from '@/components/crm-sugar-v3/dealStepper'
 import OfferModalSugar from '@/components/crm-sugar-v3/offer-modal/OfferModalSugar'
 import {
@@ -38,8 +38,6 @@ import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { mapCriteria } from '@/lib/sugarAdapters'
 import type { CrmBien, CrmContact } from '@/components/crm-sugar/mockData'
 import type { Offer, OfferKind } from '@/types/offer'
-
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 // Palettes fiche V4 (DsLIGHT / DsDARK du handoff — valeurs exactes).
 interface DsPal {
@@ -264,8 +262,9 @@ export default function DealDetailSugarV4Page() {
   }, [dark])
 
   const p = dark ? DsDARK : DsLIGHT
-  const tk = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(tk, dark, DARK_TONE)
+  const darkTone = useDarkTone()
+  const tk = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(tk, dark, darkTone)
 
   const { data: deal, isLoading, isError, error } = useTransaction(id)
   const { data: contact } = useContact(deal?.contact_buyer_id ?? undefined)

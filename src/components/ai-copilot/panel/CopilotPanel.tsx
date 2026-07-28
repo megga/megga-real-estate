@@ -10,7 +10,8 @@ import {
   useState, useRef, useEffect, useMemo, useCallback,
   type ReactNode, type KeyboardEvent as ReactKeyboardEvent, type ChangeEvent as ReactChangeEvent,
 } from 'react'
-import { crmSugarPalette, crmFmtCHF, CRM_STAGES, type StageId, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, crmFmtCHF, CRM_STAGES, type StageId, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { useCopilot, type PendingActionCard } from '@/hooks/useCopilot'
 import { useUploadChatPhoto } from '@/hooks/useProperties'
 import { useAuth } from '@/hooks/useAuth'
@@ -758,10 +759,11 @@ export default function CopilotPanel() {
   const { isOpen, screen, seed, close, consumeSeed } = useAiPanel()
   const { impersonating } = useImpersonate()
   const dark = usePanelDark(isOpen)
+  const darkTone = useDarkTone()
   const sp = useMemo<AiPalette>(() => {
-    const base = crmSugarPalette(sugarThemeTokens(dark), dark, SUGAR_DARK_TONE)
+    const base = crmSugarPalette(sugarThemeTokens(dark, darkTone), dark, darkTone)
     return deriveAiPalette(base, dark)
-  }, [dark])
+  }, [dark, darkTone])
 
   // Monté à la 1re ouverture : aucune requête (usePipelineSugar) tant que MEGGA
   // AI n'a pas été ouvert ; ensuite le contenu reste monté (conversation préservée).
