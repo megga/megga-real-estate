@@ -320,6 +320,42 @@ describe.skipIf(!HAS_KEYS)('recompute_agency_verification — moteur de scoring 
     expect(agency.verification_status).toBe('auto_validated')
   })
 
+  it('deux checks du meme type ecrits dans LA MEME TRANSACTION (checked_at identique) : le plus recemment insere gagne', async () => {
+    // Bug critique (revue) : `checked_at` vaut now() par defaut, l'heure de DEBUT de
+    // transaction. Deux lignes du meme type ecrites dans la meme transaction -- ce que
+    // fait exactement un connecteur qui rejoue un check -- portent donc un checked_at
+    // IDENTIQUE. Un `distinct on (check_type) order by check_type, checked_at desc` sans
+    // autre departage retient alors une ligne non specifiee. Repro constatee : un
+    // registry_lookup en mismatch insere apres coup etait ignore au profit du plus
+    // ancien favorable -- direction inverse de ce qu'exige la conformite (un veto frais
+    // defavorable doit gagner, jamais se faire ecarter par un ancien resultat favorable).
+    //
+    // Un seul appel .insert() avec deux lignes = une seule instruction SQL = une seule
+    // transaction Postgres cote serveur -> les deux lignes recoivent le meme now().
+    // Seul l'ordre d'insertion physique (ctid) les distingue encore.
+    const agencyId = await createAgency('same-tx-tiebreak')
+    const signatoryId = await addActiveSignatory(agencyId)
+    await insertAgencyCheck(agencyId, 'registry_number_format', 'match')
+    const svc = serviceRoleClient()
+    const { error: dupErr } = await svc.from('agency_verification_checks').insert([
+      { agency_id: agencyId, check_type: 'registry_lookup', source: 'manual', result: 'match' },
+      { agency_id: agencyId, check_type: 'registry_lookup', source: 'manual', result: 'mismatch' },
+    ])
+    if (dupErr) throw new Error(`insert paire same-tx: ${dupErr.message}`)
+    await insertAgencyCheck(agencyId, 'registry_legal_name_match', 'match')
+    await insertAgencyCheck(agencyId, 'registry_country_match', 'match')
+    for (const t of PERSON_VETO_TYPES) await insertPersonCheck(signatoryId, t, 'match')
+    await insertAgencyCheck(agencyId, 'vat_lookup', 'match') // score par ailleurs parfait
+
+    await recompute(agencyId)
+    const agency = await getAgency(agencyId)
+
+    expect(
+      agency.verification_status,
+      'la ligne inseree en dernier (mismatch) doit gagner ; un veto frais defavorable ne doit jamais se faire ecarter au profit d un ancien resultat favorable'
+    ).toBe('manual_review')
+  })
+
   it('le poids applique est celui en vigueur a la date du check, pas le poids courant', async () => {
     const svc = serviceRoleClient()
     const CHECK_TYPE = 'professional_registry' // inutilisé par les autres tests de ce fichier

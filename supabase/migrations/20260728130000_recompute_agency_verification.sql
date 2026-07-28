@@ -71,10 +71,19 @@ begin
   -- personne et par type).
   with latest_agency_checks as (
     -- append-only : une ré-exécution ajoute une ligne, on ne garde que la plus récente.
+    -- Départage `ctid desc` INDISPENSABLE : checked_at vaut now() par défaut, l'heure de
+    -- DÉBUT DE TRANSACTION — deux lignes du même type écrites dans la même transaction
+    -- (un connecteur qui rejoue un check, étape 4) portent donc un checked_at identique.
+    -- Sans départage, `distinct on` retient une ligne non spécifiée parmi les ex æquo ;
+    -- constaté en revue : un registry_lookup en mismatch inséré après coup se faisait
+    -- écarter au profit du match plus ancien — direction inverse de ce qu'exige la
+    -- conformité. `ctid` (emplacement physique de la ligne) croît avec l'ordre
+    -- d'insertion au sein d'une même transaction : c'est la ligne la plus récemment
+    -- insérée qui l'emporte, jamais une ligne arbitraire.
     select distinct on (check_type) check_type, result, checked_at
     from public.agency_verification_checks
     where agency_id = p_agency_id
-    order by check_type, checked_at desc
+    order by check_type, checked_at desc, ctid desc
   ),
   active_signatories as (
     select arp.id
@@ -85,11 +94,13 @@ begin
       and (apr.valid_to is null or apr.valid_to > current_date)
   ),
   latest_person_checks as (
+    -- Même départage `ctid desc` et pour la même raison que latest_agency_checks
+    -- ci-dessus : checked_at seul ne distingue pas deux lignes de la même transaction.
     select distinct on (apvc.related_person_id, apvc.check_type)
       apvc.related_person_id, apvc.check_type, apvc.result, apvc.checked_at
     from public.agency_person_verification_checks apvc
     where apvc.related_person_id in (select id from active_signatories)
-    order by apvc.related_person_id, apvc.check_type, apvc.checked_at desc
+    order by apvc.related_person_id, apvc.check_type, apvc.checked_at desc, apvc.ctid desc
   ),
   -- Score : moyenne pondérée sur les checks ENTITÉ non-véto, poids ET statut de véto lus
   -- dans la configuration EN VIGUEUR À LA DATE DU CHECK (jointure temporelle) — c'est ce
