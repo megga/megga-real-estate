@@ -29,6 +29,7 @@ const AdminEndUsersPage = lazy(() => import('@/pages/admin/AdminEndUsersPage'))
 const AdminMonitoringPage = lazy(() => import('@/pages/admin/AdminMonitoringPage'))
 const AdminMarketplacePage = lazy(() => import('@/pages/admin/AdminMarketplacePage'))
 const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage'))
+const AdminKybReviewPage = lazy(() => import('@/pages/admin/AdminKybReviewPage'))
 const AdminChangelogPage = lazy(() => import('@/pages/admin/AdminChangelogPage'))
 const AdminFeatureFlagsPage = lazy(() => import('@/pages/admin/AdminFeatureFlagsPage'))
 const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
@@ -72,6 +73,7 @@ export default function AdminApp() {
                         <Route path="monitoring" element={<AdminMonitoringPage />} />
                         <Route path="marketplace" element={<AdminMarketplacePage />} />
                         <Route path="compliance" element={<AdminCompliancePage />} />
+                        <Route path="kyb-review" element={<AdminKybReviewPage />} />
                         <Route path="changelog" element={<AdminChangelogPage />} />
                         <Route path="feature-flags" element={<AdminFeatureFlagsPage />} />
                         <Route path="plans" element={<AdminPlansPage />} />

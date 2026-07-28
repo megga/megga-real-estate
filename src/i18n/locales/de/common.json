@@ -67,7 +67,8 @@
     "adminSectionRevenue": "Umsatz",
     "adminSectionOps": "Betrieb",
     "adminSectionProduct": "Produkt & KI",
-    "adminEndUsers": "Endkunden"
+    "adminEndUsers": "Endkunden",
+    "adminKybReview": "KYB-Prüfung"
   },
   "sections": {
     "main": "Hauptmenü",

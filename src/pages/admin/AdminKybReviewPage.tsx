@@ -1,0 +1,1012 @@
+/**
+ * Page super-admin — file de revue des dossiers de vérification d'identité KYB.
+ *
+ * Route : `/kyb-review` (console admin.megga.ch). Consomme les lectures et
+ * actions livrées par la migration `20260728160000_agency_review_queue.sql`
+ * (étape 5, tâches 1-2) : `get_admin_agency_review_queue` pour la liste,
+ * `get_admin_agency_review_detail` pour le détail d'un dossier, et les quatre
+ * RPC de décision humaine (valider / rejeter / relancer / résoudre une pièce
+ * d'identité).
+ *
+ * L'enjeu de cet écran n'est PAS l'esthétique, c'est de rendre évident, en
+ * quelques secondes, **pourquoi** un dossier est ici — cinq situations qui
+ * n'appellent pas la même décision (score faible, véto échoué, véto absent
+ * faute de source, pièce d'identité en attente, dossier abandonné par le
+ * filet de rattrapage après plusieurs échecs techniques). `qualifyReviewReasons`
+ * ci-dessous, testée directement (tests/unit/admin-kyb-review-reasons.spec.ts,
+ * même motif que IdentityShell.tsx : ce dépôt n'a pas de bibliothèque de rendu
+ * de composants, la logique testable vit dans des fonctions pures exportées),
+ * porte cette distinction.
+ *
+ * Le poids affiché pour chaque check est celui EN VIGUEUR À LA DATE DU CHECK
+ * (applicableWeight, rendu tel quel par la RPC de détail) — jamais recalculé
+ * ni substitué par un barème courant : afficher le poids d'aujourd'hui
+ * mentirait sur la décision d'hier.
+ */
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
+import { createPortal } from 'react-dom'
+import {
+  AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, CircleSlash, Clock, History,
+  IdCard, Loader2, RotateCw, ScanSearch, ShieldAlert, TrendingDown, UserX, Users, X,
+  XCircle,
+} from 'lucide-react'
+import { cn, formatDate } from '@/lib/utils'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { useToast } from '@/components/ui/Toast'
+import Modal from '@/components/ui/modal'
+import PageTransition from '@/components/layout/PageTransition'
+import {
+  useAdminKybReviewQueue, useAdminKybReviewDetail, useAdminKybReviewActions,
+  type KybReviewCheckRow, type KybReviewPerson, type KybReviewCurrentVeto, type KybReviewEvent,
+} from '@/hooks/useAdminKybReview'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Types et fonctions pures — testées directement (tests/unit/admin-kyb-review-reasons.spec.ts),
+// même motif que IdentityShell.tsx (ce dépôt n'a pas de bibliothèque de rendu de
+// composants). Chaque export de VALEUR (fonction/constante non primitive) porte son
+// propre eslint-disable-next-line ci-dessous : le linter ne suspend la règle que sur
+// la ligne qui suit, jamais une région entière.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Résultat brut d'un check, tel que renvoyé par get_admin_agency_review_detail
+ *  (contrainte CHECK de agency_verification_checks/agency_person_verification_checks,
+ *  20260728103000). */
+export type CheckResult = 'match' | 'partial' | 'mismatch' | 'unavailable' | 'pending_manual_review'
+
+/** Sous-ensemble d'une ligne de check utile à la qualification du motif de blocage. */
+export interface ReviewCheck {
+  checkType: string
+  result: CheckResult
+  /** null si la ligne de config n'a pas été retrouvée à la date du check (LEFT JOIN
+   *  LATERAL sans correspondance) — reste distinct de false, cf. le commentaire SQL
+   *  de get_admin_agency_review_detail. */
+  isVeto: boolean | null
+  relatedPersonId: string | null
+}
+
+/** Un type de véto EN VIGUEUR AUJOURD'HUI, avec sa portée (verification_check_config
+ *  filtré valid_to is null, jointe à verification_check_types.scope). */
+export interface CurrentVetoType {
+  checkType: string
+  scope: 'agency' | 'person'
+}
+
+/** Une ligne agency_person_roles, réduite à ce que la qualification a besoin de lire. */
+export interface PersonRoleRow {
+  role: 'signatory' | 'ubo'
+  validTo: string | null
+}
+
+/** Une personne liée à l'agence, avec ses rôles — pour activeSignatoryIds. */
+export interface RelatedPersonWithRoles {
+  id: string
+  roles: PersonRoleRow[]
+}
+
+/** Un événement d'activity_events (category=kyc) pertinent pour l'historique du dossier. */
+export interface AgencyKybEvent {
+  id: string
+  action: string
+  createdAt: string
+  metadata: Record<string, unknown> | null
+}
+
+export type ReviewReasonCode =
+  | 'veto_failed'
+  | 'id_document_pending'
+  | 'no_active_signatory'
+  | 'sweep_exhausted'
+  | 'veto_missing_source'
+  | 'low_score'
+
+export interface ReviewReason {
+  code: ReviewReasonCode
+}
+
+/** Ordre d'affichage — le plus actionnable/alarmant en tête. qualifyReviewReasons
+ *  trie systématiquement selon cet ordre : la première raison retournée est celle
+ *  que le relecteur doit lire en premier. */
+const REASON_PRIORITY: ReviewReasonCode[] = [
+  'veto_failed', 'id_document_pending', 'no_active_signatory', 'sweep_exhausted',
+  'veto_missing_source', 'low_score',
+]
+
+/** Borne du filet de rattrapage — DOIT rester synchronisée avec `v_max_attempts`
+ *  (sweep_pending_agency_verifications, 20260728150000). Non exposée par aucune RPC
+ *  lisible côté admin (le filet vit entièrement en PL/pgSQL) : dupliquée ici en
+ *  connaissance de cause, comme la seule façon de reconnaître le cas "abandonné" côté
+ *  écran. Un changement de cette constante côté moteur doit se répercuter ici. */
+export const SWEEP_MAX_ATTEMPTS = 5
+
+/** snake_case -> camelCase : dérive la clé i18n d'un check_type/source/result sans
+ *  dictionnaire à maintenir en double (19 check_types, 14 sources). Un type/source
+ *  futur, absent de la traduction, retombe sur `defaultValue` côté t() plutôt que de
+ *  planter — voir son usage plus bas (labelForCheckType/labelForSource/labelForResult). */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function snakeToCamel(value: string): string {
+  return value.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase())
+}
+
+/** true si `roles` porte un rôle signataire ACTIF à `today` (chaîne ISO YYYY-MM-DD) —
+ *  même règle que la CTE `active_signatories` du moteur
+ *  (recompute_agency_verification, 20260728130000) : `valid_to` nul ou strictement
+ *  futur. `>` strict (pas `>=`) : un mandat qui expire aujourd'hui même n'est déjà
+ *  plus actif, comme en SQL (`valid_to > current_date`). */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function hasActiveSignatoryRole(roles: PersonRoleRow[], today: string): boolean {
+  return roles.some((r) => r.role === 'signatory' && (r.validTo === null || r.validTo > today))
+}
+
+/** Ids des personnes qui comptent comme signataires actifs pour le moteur — même
+ *  périmètre que active_signatories. Alimente la détection d'un véto personne
+ *  totalement absent (aucune ligne pour CE signataire, cf. qualifyReviewReasons). */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function activeSignatoryIds(persons: RelatedPersonWithRoles[], today: string): string[] {
+  return persons.filter((p) => hasActiveSignatoryRole(p.roles, today)).map((p) => p.id)
+}
+
+export type CheckTone = 'positive' | 'negative' | 'neutral' | 'pending'
+
+/** Teinte d'affichage d'UNE ligne de check (table brute, pas le résumé du dossier).
+ *  `partial` bascule selon `isVeto` : sur un véto, seul `match` passe — un `partial`
+ *  y échoue donc au même titre qu'un `mismatch` (negative) ; sur un signal pondéré,
+ *  `partial` vaut un demi-crédit dans le score (recompute_agency_verification), ni
+ *  alarmant ni pleinement rassurant (neutral). */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function checkRowTone(result: CheckResult, isVeto: boolean | null): CheckTone {
+  if (result === 'pending_manual_review') return 'pending'
+  if (result === 'unavailable') return 'neutral'
+  if (result === 'match') return 'positive'
+  if (result === 'partial') return isVeto ? 'negative' : 'neutral'
+  return 'negative' // mismatch
+}
+
+/** Poids affiché pour une ligne de check. Un véto porte weight=0 en config PAR
+ *  CONSTRUCTION (hors score) : l'afficher tel quel se lirait à tort comme « un
+ *  signal qui n'a pesé pour rien » plutôt que « structurellement hors calcul » (cf.
+ *  le commentaire de get_admin_agency_review_detail, 20260728160000) — d'où
+ *  'veto' plutôt que le nombre. `null` (ligne de config introuvable à la date du
+ *  check) reste distinct : 'unknown', jamais un poids inventé. */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function displayCheckWeight(weight: number | null, isVeto: boolean | null): 'veto' | 'unknown' | number {
+  if (isVeto) return 'veto'
+  if (weight === null) return 'unknown'
+  return weight
+}
+
+/** Pièce(s) d'identité encore en attente de relecture humaine (result=
+ *  pending_manual_review, check_type=id_document) — alimente l'action "résoudre".
+ *  Ignore une ligne sans related_person_id (donnée incohérente : jamais une action
+ *  sans cible) plutôt que de planter. */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function pendingIdDocumentChecks(
+  checks: Array<{ checkId: string; checkType: string; result: CheckResult; relatedPersonId: string | null }>,
+): Array<{ checkId: string; relatedPersonId: string }> {
+  const out: Array<{ checkId: string; relatedPersonId: string }> = []
+  for (const c of checks) {
+    if (c.checkType === 'id_document' && c.result === 'pending_manual_review' && c.relatedPersonId !== null) {
+      out.push({ checkId: c.checkId, relatedPersonId: c.relatedPersonId })
+    }
+  }
+  return out
+}
+
+/**
+ * Motif d'un rejet, lu dans activity_events.metadata.reason — AUCUNE colonne
+ * dédiée (admin_reject_agency_review, 20260728160000 : « même discipline que la
+ * file elle-même — pas de champ dérivé quand l'audit trail suffit »).
+ * get_admin_agency_review_detail ne le rend PAS ; c'est pour cela que
+ * useAdminKybReviewDetail lit activity_events séparément (useKybReviewEvents,
+ * useAdminKybReview.ts) et que cette fonction en extrait le motif. Contrat non
+ * documenté ailleurs de façon durable — d'où ce commentaire, à l'endroit précis où
+ * il est lu.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function rejectionReasonFromEvent(event: AgencyKybEvent): string | null {
+  if (event.action !== 'agency_verification_rejected') return null
+  const reason = event.metadata?.reason
+  if (typeof reason !== 'string') return null
+  const trimmed = reason.trim()
+  return trimmed === '' ? null : trimmed
+}
+
+/** Signal de triage AU NIVEAU LISTE, à partir des seules colonnes que
+ *  get_admin_agency_review_queue fournit (score, tentatives du filet).
+ *  Volontairement PLUS PAUVRE que qualifyReviewReasons : sans les checks (qui ne
+ *  se chargent qu'à l'ouverture du détail), deviner un véto échoué/absent ou un
+ *  signataire manquant AFFIRMERAIT une classification sans la donnée qui la
+ *  justifie — l'erreur exacte que ce chantier veut éviter. Le détail, lui,
+ *  dispose de tout et rend le verdict complet. */
+export type QueueRowSignal = 'sweep_exhausted' | 'score_unknown' | 'score'
+
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function queueRowSignal(score: number | null, sweepAttempts: number): QueueRowSignal {
+  if (sweepAttempts >= SWEEP_MAX_ATTEMPTS) return 'sweep_exhausted'
+  if (score === null) return 'score_unknown'
+  return 'score'
+}
+
+/**
+ * Le cœur de l'écran : pourquoi CE dossier est-il en revue. Retourne un tableau
+ * (jamais un seul code forcé) parce qu'un dossier réel peut cumuler plusieurs
+ * causes à la fois (ex. un véto échoué ET un score NULL) — les cacher l'une
+ * derrière l'autre serait exactement « mettre les cas dans le même sac ». Trié
+ * selon REASON_PRIORITY, le plus actionnable en tête.
+ *
+ * `currentVetoTypes` vide (catalogue pas encore chargé, ou en erreur) dégrade
+ * proprement : aucun véto n'est alors reconnu comme "actuellement en vigueur",
+ * donc `veto_missing_source` ne se déclenche QUE sur un résultat `unavailable`
+ * explicitement observé — jamais un faux positif inventé faute de catalogue.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function qualifyReviewReasons(input: {
+  sweepAttempts: number
+  score: number | null
+  checks: ReviewCheck[]
+  currentVetoTypes: CurrentVetoType[]
+  activeSignatoryIds: string[]
+}): ReviewReason[] {
+  const reasons: ReviewReason[] = []
+  const sweepExhausted = input.sweepAttempts >= SWEEP_MAX_ATTEMPTS
+
+  if (sweepExhausted) reasons.push({ code: 'sweep_exhausted' })
+  // no_active_signatory est orthogonal aux checks (dérivé de agency_related_persons/
+  // agency_person_roles, jamais des tables de checks) : vrai indépendamment de ce que
+  // le moteur a pu, ou non, exécuter.
+  if (input.activeSignatoryIds.length === 0) reasons.push({ code: 'no_active_signatory' })
+
+  // Le moteur n'a jamais pu s'exécuter ne serait-ce qu'une fois (typiquement : le
+  // filet épuisé avant tout passage réussi, cf. sweep_pending_agency_verifications,
+  // 20260728150000 — le cas nominal où verification_score reste NULL). Dériver un
+  // véto échoué/absent ou un score à partir de ZÉRO check ferait dire à l'écran des
+  // choses que personne n'a observées : chaque véto configuré semblerait "absent",
+  // non pas parce que sa source est injoignable, mais parce que rien n'a jamais
+  // interrogé personne — un récit différent, que sweep_exhausted raconte déjà
+  // correctement. Retour anticipé : sweep_exhausted (et no_active_signatory) restent
+  // les SEULES raisons pertinentes dans ce cas précis.
+  if (sweepExhausted && input.checks.length === 0) {
+    return sortReasons(reasons)
+  }
+
+  const hasFailedVeto = input.checks.some(
+    (c) => c.isVeto === true && (c.result === 'mismatch' || c.result === 'partial'),
+  )
+  if (hasFailedVeto) reasons.push({ code: 'veto_failed' })
+
+  const hasPendingIdDocument = input.checks.some(
+    (c) => c.checkType === 'id_document' && c.result === 'pending_manual_review',
+  )
+  if (hasPendingIdDocument) reasons.push({ code: 'id_document_pending' })
+
+  const hasUnavailableVeto = input.checks.some((c) => c.isVeto === true && c.result === 'unavailable')
+
+  const agencyVetoTypes = input.currentVetoTypes.filter((v) => v.scope === 'agency').map((v) => v.checkType)
+  const agencyCheckTypesPresent = new Set(
+    input.checks.filter((c) => c.relatedPersonId === null).map((c) => c.checkType),
+  )
+  const hasMissingAgencyVeto = agencyVetoTypes.some((vt) => !agencyCheckTypesPresent.has(vt))
+
+  const personVetoTypes = input.currentVetoTypes.filter((v) => v.scope === 'person').map((v) => v.checkType)
+  const hasMissingPersonVeto = input.activeSignatoryIds.some((personId) => {
+    const presentForPerson = new Set(
+      input.checks.filter((c) => c.relatedPersonId === personId).map((c) => c.checkType),
+    )
+    return personVetoTypes.some((vt) => !presentForPerson.has(vt))
+  })
+
+  if (hasUnavailableVeto || hasMissingAgencyVeto || hasMissingPersonVeto) {
+    reasons.push({ code: 'veto_missing_source' })
+  }
+
+  // Score : le cas NULL est LE PLUS opaque (cf. commentaire NULLS FIRST de
+  // get_admin_agency_review_queue) — au moins un check existe à ce stade (le
+  // retour anticipé ci-dessus a déjà écarté le cas "zéro donnée"), donc un score
+  // NULL ici signifie "de vrais checks existent, mais aucun n'était scorable" :
+  // une information réelle, jamais redondante, toujours signalée. Un score
+  // numérique ne motive en revanche une raison que s'il ne reste sinon aucune
+  // autre explication — le nombre est de toute façon déjà affiché ailleurs à
+  // l'écran.
+  if (input.score === null) {
+    reasons.push({ code: 'low_score' })
+  } else if (reasons.length === 0) {
+    reasons.push({ code: 'low_score' })
+  }
+
+  return sortReasons(reasons)
+}
+
+/** Priorité d'affichage — la plus actionnable en tête (REASON_PRIORITY). */
+function sortReasons(reasons: ReviewReason[]): ReviewReason[] {
+  return reasons.sort((a, b) => REASON_PRIORITY.indexOf(a.code) - REASON_PRIORITY.indexOf(b.code))
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Présentation
+// ═══════════════════════════════════════════════════════════════════════════
+
+const REASON_META: Record<ReviewReasonCode, { icon: typeof AlertTriangle; tone: 'negative' | 'warn' | 'neutral' }> = {
+  veto_failed: { icon: ShieldAlert, tone: 'negative' },
+  id_document_pending: { icon: IdCard, tone: 'warn' },
+  no_active_signatory: { icon: UserX, tone: 'warn' },
+  sweep_exhausted: { icon: RotateCw, tone: 'warn' },
+  veto_missing_source: { icon: CircleSlash, tone: 'neutral' },
+  low_score: { icon: TrendingDown, tone: 'neutral' },
+}
+
+const TONE_TEXT: Record<'negative' | 'warn' | 'neutral', string> = {
+  negative: 'text-red-500',
+  warn: 'text-amber-500',
+  neutral: 'text-theme-secondary',
+}
+
+const CHECK_TONE_TEXT: Record<CheckTone, string> = {
+  positive: 'text-emerald-500',
+  negative: 'text-red-500',
+  neutral: 'text-theme-tertiary',
+  pending: 'text-amber-500',
+}
+
+const CHECK_TONE_ICON: Record<CheckTone, typeof CheckCircle2> = {
+  positive: CheckCircle2,
+  negative: XCircle,
+  neutral: CircleSlash,
+  pending: Clock,
+}
+
+/** Une carte de raison (icône + titre + description) — jamais un pill au survol :
+ *  la description reste visible en permanence, pas de dépendance à un hover. */
+function ReasonCard({ code }: { code: ReviewReasonCode }) {
+  const { t } = useTranslation('admin')
+  const meta = REASON_META[code]
+  const Icon = meta.icon
+  const key = code.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
+  return (
+    <div className="flex items-start gap-3 rounded-lg border border-theme-border p-3">
+      <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', TONE_TEXT[meta.tone])} />
+      <div className="min-w-0">
+        <p className={cn('text-sm font-medium', TONE_TEXT[meta.tone])}>{t(`kybReview.reason.${key}.title`)}</p>
+        <p className="text-xs text-theme-tertiary mt-0.5">{t(`kybReview.reason.${key}.description`)}</p>
+      </div>
+    </div>
+  )
+}
+
+/** Libellé d'un check_type/source/result — dérivé en camelCase, avec repli sur la
+ *  valeur brute si la traduction n'existe pas encore (catalogue futur). */
+function labelForCheckType(t: TFunction, checkType: string): string {
+  return t(`kybReview.checkType.${snakeToCamel(checkType)}`, checkType)
+}
+function labelForSource(t: TFunction, source: string): string {
+  return t(`kybReview.source.${snakeToCamel(source)}`, source)
+}
+function labelForResult(t: TFunction, result: CheckResult): string {
+  return t(`kybReview.result.${snakeToCamel(result)}`, result)
+}
+
+/** Nom affiché d'une personne, ou le libellé "Agence" pour un check entité
+ *  (related_person_id NULL). */
+function personLabel(
+  t: TFunction,
+  relatedPersonId: string | null,
+  persons: KybReviewPerson[],
+): string {
+  if (relatedPersonId === null) return t('kybReview.checks.forAgency')
+  const p = persons.find((x) => x.id === relatedPersonId)
+  return p ? `${p.firstName} ${p.lastName}`.trim() : '—'
+}
+
+/** Ligne + ligne d'expansion (réponse brute) d'un check — deux <tr> plutôt qu'un
+ *  <details> imbriqué dans une cellule de tableau, pour rester un tableau réel
+ *  (colSpan couvrant toutes les colonnes). */
+function CheckRow({ check, persons, expanded, onToggle }: {
+  check: KybReviewCheckRow
+  persons: KybReviewPerson[]
+  expanded: boolean
+  onToggle: () => void
+}) {
+  const { t } = useTranslation('admin')
+  const tone = checkRowTone(check.result, check.isVeto)
+  const ToneIcon = CHECK_TONE_ICON[tone]
+  const weight = displayCheckWeight(check.applicableWeight, check.isVeto)
+
+  return (
+    <>
+      <tr className="border-b border-theme-border-subtle">
+        <td className="py-2.5 pr-3 text-sm text-theme-primary">{labelForCheckType(t, check.checkType)}</td>
+        <td className="py-2.5 pr-3 text-sm text-theme-secondary whitespace-nowrap">{labelForSource(t, check.source)}</td>
+        <td className="py-2.5 pr-3 text-sm text-theme-secondary whitespace-nowrap">
+          {personLabel(t, check.relatedPersonId, persons)}
+        </td>
+        <td className="py-2.5 pr-3">
+          <span className={cn('inline-flex items-center gap-1.5 text-sm font-medium whitespace-nowrap', CHECK_TONE_TEXT[tone])}>
+            <ToneIcon className="h-3.5 w-3.5 flex-shrink-0" />
+            {labelForResult(t, check.result)}
+          </span>
+        </td>
+        <td className="py-2.5 pr-3 text-sm text-theme-secondary tabular-nums whitespace-nowrap">
+          {weight === 'veto' ? t('kybReview.checks.weightVeto')
+            : weight === 'unknown' ? t('kybReview.checks.weightUnknown')
+              : weight.toFixed(2)}
+        </td>
+        <td className="py-2.5 pr-3 text-xs text-theme-tertiary whitespace-nowrap">{formatDate(check.checkedAt)}</td>
+        <td className="py-2.5 text-right">
+          <button
+            onClick={onToggle}
+            className="text-theme-tertiary hover:text-theme-primary transition-colors"
+            aria-label={t(expanded ? 'kybReview.checks.hideRaw' : 'kybReview.checks.viewRaw')}
+            aria-expanded={expanded}
+          >
+            {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+        </td>
+      </tr>
+      {expanded && (
+        <tr className="border-b border-theme-border-subtle">
+          <td colSpan={7} className="bg-theme-hover/40 px-3 py-2.5">
+            <pre className="text-xs text-theme-secondary whitespace-pre-wrap break-all max-h-64 overflow-y-auto scrollbar-hide">
+              {JSON.stringify(check.rawResponse, null, 2) ?? '—'}
+            </pre>
+          </td>
+        </tr>
+      )}
+    </>
+  )
+}
+
+/** Table réelle des checks — chiffres tabulaires (poids), type/source/résultat
+ *  lisibles sans avoir lu ce dépôt, réponse brute consultable par ligne. */
+function ChecksTable({ checks, persons }: { checks: KybReviewCheckRow[]; persons: KybReviewPerson[] }) {
+  const { t } = useTranslation('admin')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  if (checks.length === 0) {
+    return <p className="text-sm text-theme-tertiary py-4">{t('kybReview.detail.checksEmpty')}</p>
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left">
+        <thead>
+          <tr className="border-b border-theme-border text-xs font-medium text-theme-tertiary">
+            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.type')}</th>
+            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.source')}</th>
+            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.person')}</th>
+            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.result')}</th>
+            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.weight')}</th>
+            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.checkedAt')}</th>
+            <th className="py-2" />
+          </tr>
+        </thead>
+        <tbody>
+          {checks.map((c) => (
+            <CheckRow
+              key={c.checkId}
+              check={c}
+              persons={persons}
+              expanded={expandedId === c.checkId}
+              onToggle={() => setExpandedId((cur) => (cur === c.checkId ? null : c.checkId))}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/** Personnes liées à l'agence — nom, rôle(s), et un indicateur "actif" pour les
+ *  signataires (même règle que hasActiveSignatoryRole). */
+function PersonsList({ persons }: { persons: KybReviewPerson[] }) {
+  const { t } = useTranslation('admin')
+  const today = new Date().toISOString().slice(0, 10)
+
+  if (persons.length === 0) {
+    return <p className="text-sm text-theme-tertiary py-2">{t('kybReview.detail.personsEmpty')}</p>
+  }
+
+  return (
+    <ul className="space-y-1.5">
+      {persons.map((p) => {
+        const roleLabels = p.roles.map((r) => {
+          const active = r.role === 'signatory' && hasActiveSignatoryRole([r], today)
+          const label = r.role === 'signatory' ? t('kybReview.detail.roleSignatory') : t('kybReview.detail.roleUbo')
+          return { label, active: r.role === 'signatory' ? active : true }
+        })
+        return (
+          <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
+            <span className="text-theme-primary">{p.firstName} {p.lastName}</span>
+            <span className="flex items-center gap-1.5">
+              {roleLabels.map((r, i) => (
+                <span
+                  key={i}
+                  className={cn('text-xs', r.active ? 'text-theme-secondary' : 'text-theme-tertiary line-through')}
+                >
+                  {r.label}
+                </span>
+              ))}
+            </span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/** Historique d'audit du dossier — soumission, recalculs, tentatives du filet,
+ *  décisions humaines. Le motif d'un rejet passé (rejectionReasonFromEvent) est la
+ *  seule information que get_admin_agency_review_detail ne rend pas : elle vit ici. */
+function HistoryList({ events }: { events: KybReviewEvent[] }) {
+  const { t } = useTranslation('admin')
+
+  if (events.length === 0) {
+    return <p className="text-sm text-theme-tertiary py-2">{t('kybReview.detail.historyEmpty')}</p>
+  }
+
+  return (
+    <ul className="space-y-2">
+      {events.map((e) => {
+        const reason = rejectionReasonFromEvent(e)
+        const key = e.action.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
+        return (
+          <li key={e.id} className="text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-theme-primary">{t(`kybReview.event.${key}`, e.action)}</span>
+              <span className="text-xs text-theme-tertiary whitespace-nowrap">{formatDate(e.createdAt)}</span>
+            </div>
+            {reason && (
+              <p className="text-xs text-theme-tertiary mt-0.5">
+                {t('kybReview.event.reasonPrefix')} {reason}
+              </p>
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/** Modale de rejet : motif obligatoire (même garde que btrim() côté RPC). */
+function RejectDialog({ open, onClose, onConfirm, pending }: {
+  open: boolean
+  onClose: () => void
+  onConfirm: (reason: string) => void
+  pending: boolean
+}) {
+  const { t } = useTranslation('admin')
+  const [reason, setReason] = useState('')
+  const trimmed = reason.trim()
+
+  return (
+    <Modal open={open} onClose={onClose} title={t('kybReview.rejectDialog.title')} size="md">
+      <div className="p-5 space-y-3">
+        <div>
+          <label className="text-xs text-theme-secondary mb-1.5 block">{t('kybReview.rejectDialog.reasonLabel')}</label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder={t('kybReview.rejectDialog.reasonPlaceholder')}
+            rows={4}
+            autoFocus
+            className="w-full px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
+          />
+          {reason !== '' && trimmed === '' && (
+            <p className="text-xs text-red-500 mt-1">{t('kybReview.rejectDialog.reasonRequired')}</p>
+          )}
+        </div>
+        <div className="flex justify-end gap-3 pt-1">
+          <button onClick={onClose} className="h-9 px-4 text-sm text-theme-secondary hover:text-theme-primary transition-colors">
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={() => onConfirm(trimmed)}
+            disabled={trimmed === '' || pending}
+            className="h-9 px-4 text-sm font-medium border border-red-500/30 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {pending ? t('kybReview.actions.rejecting') : t('kybReview.rejectDialog.confirm')}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+/** Les 3 boutons de résolution d'UNE pièce d'identité en attente — enchaîne
+ *  résolution + relance en un seul geste (useAdminKybReviewActions.resolveIdentityDocument). */
+function ResolveIdDocumentSection({ pending, persons, onResolve, busy }: {
+  pending: Array<{ checkId: string; relatedPersonId: string }>
+  persons: KybReviewPerson[]
+  onResolve: (checkId: string, result: 'match' | 'partial' | 'mismatch') => void
+  busy: boolean
+}) {
+  const { t } = useTranslation('admin')
+  if (pending.length === 0) return null
+
+  return (
+    <div className="space-y-3">
+      {pending.map((p) => {
+        const person = persons.find((x) => x.id === p.relatedPersonId)
+        const name = person ? `${person.firstName} ${person.lastName}`.trim() : '—'
+        return (
+          <div key={p.checkId} className="rounded-lg border border-amber-500/30 p-3">
+            <p className="text-sm font-medium text-theme-primary mb-2">
+              {t('kybReview.resolveIdDocument.title', { name })}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => onResolve(p.checkId, 'match')}
+                disabled={busy}
+                className="h-8 px-3 text-xs font-medium border border-emerald-500/30 text-emerald-500 rounded-lg hover:border-emerald-500 transition-colors disabled:opacity-40"
+              >
+                {t('kybReview.resolveIdDocument.match')}
+              </button>
+              <button
+                onClick={() => onResolve(p.checkId, 'partial')}
+                disabled={busy}
+                className="h-8 px-3 text-xs font-medium border border-amber-500/30 text-amber-500 rounded-lg hover:border-amber-500 transition-colors disabled:opacity-40"
+              >
+                {t('kybReview.resolveIdDocument.partial')}
+              </button>
+              <button
+                onClick={() => onResolve(p.checkId, 'mismatch')}
+                disabled={busy}
+                className="h-8 px-3 text-xs font-medium border border-red-500/30 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-40"
+              >
+                {t('kybReview.resolveIdDocument.mismatch')}
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Section repliable (Vérifications / Personnes liées / Historique). */
+function DetailSection({ title, icon: Icon, children }: { title: string; icon: typeof Users; children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-theme-border p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Icon className="h-4 w-4 text-theme-secondary" />
+        <h3 className="text-sm font-semibold text-theme-primary">{title}</h3>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+/** Tiroir de détail d'un dossier — createPortal(document.body), z-[100] (règle DS
+ *  « modals toujours en portail »). Assemble raisons, checks, personnes, historique
+ *  et les 4 actions. */
+function KybReviewDrawer({ agencyId, onClose }: { agencyId: string; onClose: () => void }) {
+  const { t } = useTranslation('admin')
+  const toast = useToast()
+  const drawerRef = useFocusTrap(true)
+
+  const queue = useAdminKybReviewQueue()
+  const row = queue.data?.find((r) => r.agencyId === agencyId) ?? null
+
+  const { checks, persons, currentVetoTypes, events, isLoading, isError } = useAdminKybReviewDetail(agencyId)
+  const { validate, reject, relaunch, resolveIdentityDocument } = useAdminKybReviewActions(agencyId)
+
+  const [rejectOpen, setRejectOpen] = useState(false)
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const activeSignatories = useMemo(
+    () => activeSignatoryIds(persons.data ?? [], today),
+    [persons.data, today],
+  )
+
+  const reasons = useMemo(() => qualifyReviewReasons({
+    sweepAttempts: row?.verificationSweepAttempts ?? 0,
+    score: row?.verificationScore ?? null,
+    checks: checks.data ?? [],
+    currentVetoTypes: (currentVetoTypes.data ?? []) as KybReviewCurrentVeto[],
+    activeSignatoryIds: activeSignatories,
+  }), [row, checks.data, currentVetoTypes.data, activeSignatories])
+
+  const pendingIdDocs = useMemo(() => pendingIdDocumentChecks(checks.data ?? []), [checks.data])
+
+  const anyActionPending = validate.isPending || reject.isPending || relaunch.isPending || resolveIdentityDocument.isPending
+
+  function handleError(e: unknown) {
+    toast.error(t('kybReview.actions.genericError'), {
+      description: e instanceof Error ? e.message : undefined,
+    })
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100]">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={row?.agencyName ?? t('kybReview.title')}
+        className="absolute right-0 top-0 h-full w-full max-w-xl bg-theme-card border-l border-theme-border overflow-y-auto scrollbar-hide"
+      >
+        <div className="sticky top-0 bg-theme-card border-b border-theme-border px-5 py-4 flex items-start justify-between gap-3 z-10">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-theme-primary truncate">{row?.agencyName ?? '—'}</h2>
+            <p className="text-xs text-theme-tertiary mt-0.5">
+              {row?.country ?? '—'} · {row?.identitySubmittedAt
+                ? t('kybReview.detail.submittedAt') + ' ' + formatDate(row.identitySubmittedAt)
+                : t('kybReview.detail.notSubmitted')}
+            </p>
+          </div>
+          <button onClick={onClose} aria-label={t('common.close')} className="p-1.5 rounded-lg hover:bg-theme-hover text-theme-tertiary hover:text-theme-primary transition-colors flex-shrink-0">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {isLoading ? (
+            <p className="text-sm text-theme-tertiary">{t('kybReview.detail.loading')}</p>
+          ) : isError ? (
+            <p className="text-sm text-red-500">{t('kybReview.detail.error')}</p>
+          ) : (
+            <>
+              {/* Score + tentatives du filet — les chiffres bruts, toujours visibles. */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-theme-border p-3">
+                  <p className="text-xs text-theme-tertiary">{t('kybReview.detail.score')}</p>
+                  <p className="text-lg font-semibold text-theme-primary tabular-nums mt-0.5">
+                    {row?.verificationScore != null ? row.verificationScore.toFixed(3) : t('kybReview.scoreNone')}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-theme-border p-3">
+                  <p className="text-xs text-theme-tertiary">{t('kybReview.detail.sweepAttempts')}</p>
+                  <p className="text-lg font-semibold text-theme-primary tabular-nums mt-0.5">
+                    {row?.verificationSweepAttempts ?? 0} / {SWEEP_MAX_ATTEMPTS}
+                  </p>
+                </div>
+              </div>
+
+              {/* Pourquoi ce dossier est ici — la section centrale du brief. */}
+              <div>
+                <h3 className="text-sm font-semibold text-theme-primary mb-2">{t('kybReview.detail.whySection')}</h3>
+                <div className="space-y-2">
+                  {reasons.map((r) => <ReasonCard key={r.code} code={r.code} />)}
+                </div>
+              </div>
+
+              {pendingIdDocs.length > 0 && (
+                <ResolveIdDocumentSection
+                  pending={pendingIdDocs}
+                  persons={persons.data ?? []}
+                  busy={anyActionPending}
+                  onResolve={(checkId, result) => {
+                    resolveIdentityDocument.mutate({ checkId, result }, {
+                      onSuccess: () => toast.success(t('kybReview.actions.resolveSuccess')),
+                      onError: handleError,
+                    })
+                  }}
+                />
+              )}
+
+              <DetailSection title={t('kybReview.detail.checksSection')} icon={ScanSearch}>
+                <ChecksTable checks={checks.data ?? []} persons={persons.data ?? []} />
+              </DetailSection>
+
+              <DetailSection title={t('kybReview.detail.personsSection')} icon={Users}>
+                <PersonsList persons={persons.data ?? []} />
+              </DetailSection>
+
+              <DetailSection title={t('kybReview.detail.historySection')} icon={History}>
+                <HistoryList events={events.data ?? []} />
+              </DetailSection>
+            </>
+          )}
+        </div>
+
+        {/* Actions — toujours visibles, même en erreur de chargement du détail (une
+            décision reste possible avec ce que la file elle-même a déjà montré). */}
+        <div className="sticky bottom-0 bg-theme-card border-t border-theme-border px-5 py-3 flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => validate.mutate(undefined, {
+              onSuccess: () => toast.success(t('kybReview.actions.validateSuccess')),
+              onError: handleError,
+            })}
+            disabled={anyActionPending}
+            className="h-9 px-4 text-sm font-medium border border-emerald-500/30 text-emerald-500 rounded-lg hover:border-emerald-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+          >
+            {validate.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {validate.isPending ? t('kybReview.actions.validating') : t('kybReview.actions.validate')}
+          </button>
+          <button
+            onClick={() => setRejectOpen(true)}
+            disabled={anyActionPending}
+            className="h-9 px-4 text-sm font-medium border border-red-500/30 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {t('kybReview.actions.reject')}
+          </button>
+          <button
+            onClick={() => relaunch.mutate(undefined, {
+              onSuccess: () => toast.success(t('kybReview.actions.relaunchSuccess')),
+              onError: handleError,
+            })}
+            disabled={anyActionPending}
+            className="h-9 px-4 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+          >
+            {relaunch.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {relaunch.isPending ? t('kybReview.actions.relaunching') : t('kybReview.actions.relaunch')}
+          </button>
+        </div>
+      </div>
+
+      <RejectDialog
+        open={rejectOpen}
+        onClose={() => setRejectOpen(false)}
+        pending={reject.isPending}
+        onConfirm={(reason) => {
+          reject.mutate(reason, {
+            onSuccess: () => {
+              toast.success(t('kybReview.actions.rejectSuccess'))
+              setRejectOpen(false)
+            },
+            onError: handleError,
+          })
+        }}
+      />
+    </div>,
+    document.body,
+  )
+}
+
+/** Placeholder pulsant de la file pendant le chargement. */
+function QueueSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className={cn('flex items-center px-4 py-3.5 gap-4', i < 3 && 'border-b border-theme-border')}>
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3.5 w-40 rounded bg-theme-hover animate-pulse" />
+            <div className="h-2.5 w-24 rounded bg-theme-hover animate-pulse" />
+          </div>
+          <div className="h-3 w-16 rounded bg-theme-hover animate-pulse" />
+          <div className="h-3 w-20 rounded bg-theme-hover animate-pulse" />
+        </div>
+      ))}
+    </>
+  )
+}
+
+/** État vide : aucun dossier en attente de décision. */
+function QueueEmpty() {
+  const { t } = useTranslation('admin')
+  return (
+    <div className="px-4 py-16 text-center">
+      <CheckCircle2 className="h-8 w-8 mx-auto text-theme-tertiary mb-3" />
+      <p className="text-sm text-theme-secondary font-medium">{t('kybReview.empty.title')}</p>
+      <p className="text-xs text-theme-tertiary mt-1">{t('kybReview.empty.subtitle')}</p>
+    </div>
+  )
+}
+
+/** État d'erreur de la liste, avec reprise. */
+function QueueError({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation('admin')
+  return (
+    <div className="px-4 py-16 text-center">
+      <AlertTriangle className="h-8 w-8 mx-auto text-red-500 mb-3" />
+      <p className="text-sm text-theme-secondary font-medium">{t('kybReview.error.title')}</p>
+      <p className="text-xs text-theme-tertiary mt-1 mb-3">{t('kybReview.error.subtitle')}</p>
+      <button
+        onClick={onRetry}
+        className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors"
+      >
+        {t('kybReview.error.retry')}
+      </button>
+    </div>
+  )
+}
+
+/** Une ligne de la file — score/statut du filet, jamais une classification devinée
+ *  (cf. queueRowSignal). */
+function QueueRow({ row, onOpen, isLast }: {
+  row: { agencyId: string; agencyName: string; country: string | null; verificationScore: number | null; identitySubmittedAt: string | null; verificationSweepAttempts: number }
+  onOpen: () => void
+  isLast: boolean
+}) {
+  const { t } = useTranslation('admin')
+  const signal = queueRowSignal(row.verificationScore, row.verificationSweepAttempts)
+
+  return (
+    <button
+      onClick={onOpen}
+      className={cn(
+        'flex items-center px-4 py-3.5 w-full text-left gap-4 hover:bg-theme-hover transition-colors',
+        !isLast && 'border-b border-theme-border',
+      )}
+    >
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-theme-primary truncate">{row.agencyName}</p>
+        <p className="text-xs text-theme-tertiary mt-0.5">
+          {row.country ?? '—'} · {row.identitySubmittedAt ? formatDate(row.identitySubmittedAt) : '—'}
+        </p>
+      </div>
+      <div className="w-28 text-right">
+        {signal === 'sweep_exhausted' ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-500">
+            <RotateCw className="h-3.5 w-3.5" />
+            {t('kybReview.reason.sweepExhausted.title')}
+          </span>
+        ) : (
+          <span className="text-sm font-medium text-theme-primary tabular-nums">
+            {signal === 'score_unknown' ? t('kybReview.scoreNone') : row.verificationScore!.toFixed(3)}
+          </span>
+        )}
+      </div>
+    </button>
+  )
+}
+
+/** Écran : file KYB en manual_review, triée par score, et le tiroir de détail. */
+export default function AdminKybReviewPage() {
+  const { t } = useTranslation('admin')
+  const { data, isLoading, isError, refetch } = useAdminKybReviewQueue()
+  const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(null)
+
+  // Le tiroir ne s'affiche que pour une agence encore PRÉSENTE dans la file
+  // fraîchement chargée — dérivé au rendu plutôt que réinitialisé depuis un effet
+  // (`setState` synchrone dans un effet re-déclenche un rendu en cascade,
+  // react-hooks/set-state-in-effect). Une agence validée/rejetée, ou auto-validée
+  // après une relance/résolution, quitte `data` dès l'invalidation de la file
+  // (useAdminKybReview.ts) : le tiroir se referme alors tout seul, sans mécanique
+  // dédiée par action. `selectedAgencyId` peut rester temporairement une ancienne
+  // valeur "morte" (inoffensif : elle n'est relue qu'ici, et une nouvelle sélection
+  // l'écrase).
+  const drawerAgencyId = selectedAgencyId && data?.some((r) => r.agencyId === selectedAgencyId)
+    ? selectedAgencyId
+    : null
+
+  const count = data?.length ?? 0
+
+  return (
+    <PageTransition>
+      <div className="max-w-3xl mx-auto space-y-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="h-2 w-2 rounded-full bg-admin-accent" />
+            <span className="text-xs font-medium text-admin-accent">{t('common.adminBadge')}</span>
+          </div>
+          <h1 className="text-2xl font-semibold text-theme-primary">{t('kybReview.title')}</h1>
+          <p className="text-sm text-theme-tertiary mt-0.5">
+            {isLoading ? t('common.loading') : t('kybReview.subtitle', { count })}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-theme-border">
+          {isLoading ? (
+            <QueueSkeleton />
+          ) : isError ? (
+            <QueueError onRetry={() => void refetch()} />
+          ) : count === 0 ? (
+            <QueueEmpty />
+          ) : (
+            data!.map((row, i) => (
+              <QueueRow
+                key={row.agencyId}
+                row={row}
+                isLast={i === data!.length - 1}
+                onOpen={() => setSelectedAgencyId(row.agencyId)}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
+      {drawerAgencyId && (
+        <KybReviewDrawer agencyId={drawerAgencyId} onClose={() => setSelectedAgencyId(null)} />
+      )}
+    </PageTransition>
+  )
+}

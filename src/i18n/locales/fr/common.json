@@ -73,7 +73,8 @@
     "adminSectionRevenue": "Revenus",
     "adminSectionOps": "Opérations",
     "adminSectionProduct": "Produit & IA",
-    "adminEndUsers": "Clients finaux"
+    "adminEndUsers": "Clients finaux",
+    "adminKybReview": "Vérification KYB"
   },
   "sections": {
     "main": "Principal",
