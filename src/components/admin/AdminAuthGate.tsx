@@ -4,7 +4,7 @@
  *
  * La console N'EST PAS une porte d'entrée : elle ne porte aucun formulaire de
  * connexion. Elle reçoit la session de qui l'ouvre depuis le CRM (passage par
- * fragment, cf. `openAdminConsole` + `main.admin.tsx`) ; sans session, elle
+ * fragment, cf. `adminConsoleUrl` + `main.admin.tsx`) ; sans session, elle
  * renvoie au CRM et s'arrête là. Il n'existe qu'un endroit où l'on
  * s'authentifie.
  *
@@ -65,7 +65,9 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
  * Aucune session : la console NE PROPOSE PAS de se connecter.
  *
  * Il n'existe qu'un endroit où l'on s'authentifie — le CRM — et la console
- * reçoit la session de celui qui l'ouvre depuis là (cf. `openAdminConsole`).
+ * recevait la session de qui l'ouvrait depuis là. ⚠ Plus aucun appelant ne
+ * fabrique ce passage depuis que la console vit dans le CRM : cet écran est
+ * désormais le SEUL aboutissement de cette app, en attendant son retrait.
  * Cet écran est donc un cul-de-sac volontaire : ni champ, ni formulaire, ni
  * lien magique. Rien à hameçonner ici, et rien à essayer en force.
  */
