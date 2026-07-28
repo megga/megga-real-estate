@@ -30,6 +30,7 @@ import { calculateAgencyHealth } from '@/lib/agencyHealthScore'
 import AgencyHealthBadge from '@/components/admin/AgencyHealthBadge'
 import AgencyUsageOverview from '@/components/admin/AgencyUsageOverview'
 import CreateAgencyModal from '@/components/admin/CreateAgencyModal'
+import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminAvatar, AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminSolidBtn,
@@ -303,7 +304,7 @@ export default function AdminAgenciesPage() {
           </AdminCard>
         ) : (
           paginated.map((agency) => (
-            <Link key={agency.id} to={`/agencies/${agency.id}`} style={{ textDecoration: 'none', display: 'block' }}>
+            <Link key={agency.id} to={`${ADMIN_CONSOLE_PATH}/agencies/${agency.id}`} style={{ textDecoration: 'none', display: 'block' }}>
               <AdminCard padding="12px 14px">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <AdminAvatar initials={agencyInitial(agency.name)} size={34} />
@@ -348,7 +349,7 @@ export default function AdminAgenciesPage() {
           paginated.map((agency, i) => (
             <Link
               key={agency.id}
-              to={`/agencies/${agency.id}`}
+              to={`${ADMIN_CONSOLE_PATH}/agencies/${agency.id}`}
               className="agx-row"
               style={{ display: 'flex', alignItems: 'center', padding: '11px 16px', borderTop: i === 0 ? undefined : hair }}
             >

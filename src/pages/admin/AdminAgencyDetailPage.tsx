@@ -37,7 +37,7 @@ import {
   AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { openImpersonationInCrm } from '@/lib/adminEntry'
+import { ADMIN_CONSOLE_PATH, openImpersonationInCrm } from '@/lib/adminEntry'
 import AdminBillingCard from '@/components/admin/AdminBillingCard'
 import AgencyUsagePanel from '@/components/admin/AgencyUsagePanel'
 
@@ -115,7 +115,7 @@ function BackToAgencies({ label }: { label: string }) {
   const { sp, surf } = useAdminSugar()
   return (
     <Link
-      to="/agencies"
+      to={`${ADMIN_CONSOLE_PATH}/agencies`}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 7,
         height: 34, padding: '0 15px', borderRadius: ADMIN_RADII.pill,

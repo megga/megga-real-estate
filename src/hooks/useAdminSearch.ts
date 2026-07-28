@@ -1,10 +1,13 @@
 /**
- * Recherche globale admin (palette) sur agences, utilisateurs, biens et tickets
- * de support. Débouncée 300ms, minimum 2 caractères ; la requête tickets est
- * tolérante à l'absence de la table.
+ * Recherche globale admin (palette) sur agences, utilisateurs et biens.
+ * Débouncée 300ms, minimum 2 caractères.
+ *
+ * Les `href` sont préfixés par `ADMIN_CONSOLE_PATH` : la console est montée
+ * sous `/dashboard/admin`, une cible à la racine tomberait sur le 404 du CRM.
  */
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 
 export interface AdminSearchResult {
   type: 'agency' | 'user' | 'property'
@@ -44,21 +47,21 @@ export function useAdminSearch(query: string) {
           id: a.id,
           title: a.name,
           subtitle: a.email ?? 'Agence',
-          href: `/agencies/${a.id}`,
+          href: `${ADMIN_CONSOLE_PATH}/agencies/${a.id}`,
         })),
         ...(users.data ?? []).map(u => ({
           type: 'user' as const,
           id: u.id,
           title: u.full_name ?? u.email,
           subtitle: `${u.role} · ${u.email}`,
-          href: '/users',
+          href: `${ADMIN_CONSOLE_PATH}/users`,
         })),
         ...(properties.data ?? []).map(p => ({
           type: 'property' as const,
           id: p.id,
           title: p.title ?? 'Bien',
           subtitle: p.city ?? '',
-          href: '/marketplace',
+          href: `${ADMIN_CONSOLE_PATH}/marketplace`,
         })),
       ]
 

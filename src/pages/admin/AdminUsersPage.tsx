@@ -28,6 +28,7 @@ import {
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 
 const ITEMS_PER_PAGE = 10
 
@@ -322,7 +323,7 @@ export default function AdminUsersPage() {
                           // le pas sur l'ouverture du tiroir sur la partie vide.
                           <span style={{ display: 'block', maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             <Link
-                              to={`/agencies/${user.agency_id}`}
+                              to={`${ADMIN_CONSOLE_PATH}/agencies/${user.agency_id}`}
                               onClick={(e) => e.stopPropagation()}
                               className="admu-link"
                               title={user.agency_name}

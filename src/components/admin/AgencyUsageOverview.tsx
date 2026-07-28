@@ -12,6 +12,7 @@ import { ChevronDown, BarChart3 } from 'lucide-react'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { AdminCard, AdminEmpty, AdminError, AdminIc, AdminSkeleton } from '@/components/admin/kit/adminKit'
 import { useAdminUsageOverview, type UsageOverviewRow } from '@/hooks/useAdminUsageOverview'
+import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 
 /** Colonnes de la grille — mêmes largeurs que l'en-tête et les lignes. */
 const COLS = '1.5fr 90px 90px 90px 90px'
@@ -88,7 +89,7 @@ export default function AgencyUsageOverview() {
                   return (
                     <Link
                       key={r.agency_id}
-                      to={`/agencies/${r.agency_id}`}
+                      to={`${ADMIN_CONSOLE_PATH}/agencies/${r.agency_id}`}
                       className="adm-nav"
                       style={{
                         display: 'grid', gridTemplateColumns: COLS, gap: 8, alignItems: 'center',
