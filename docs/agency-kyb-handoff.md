@@ -625,6 +625,90 @@ d'identité, et Zefix pour la Suisse.
 
 ---
 
+## 7ter. Point de reprise au 28 juillet 2026
+
+Écrit pour la session qui reprendra, et pour Julien qui décidera du merge.
+
+### Où en est le chantier
+
+Cinq étapes et demie sur sept. 90 commits depuis `276e4d5a`, 16 migrations, tout poussé
+sur `feat/agency-kyb-verification`.
+
+| Étape | État |
+|---|---|
+| 0 · Débloquer et merger les migrations d'Antoine | fait |
+| 1 · Correctifs du chemin d'inscription | fait |
+| 2 · Gate et wizard de saisie | fait |
+| 3 · Moteur de scoring | fait |
+| 4 · Connecteurs disponibles | fait |
+| 5 · File de revue et gardes LAB | **2 tâches sur 5** |
+| 6 · Connecteurs Zefix et UID | pas commencée |
+
+Fait à l'étape 5 : la couche de données de la file, et les quatre décisions humaines
+(valider, rejeter avec motif, relancer, résoudre la pièce d'identité).
+
+Reste à l'étape 5 : l'écran de la console admin, les gardes LAB dans le CRM agent, et la
+vérification d'ensemble avec la documentation.
+
+**Décision produit déjà prise pour les gardes : garde plein.** Aucune agence ne peut
+ouvrir un dossier KYC client ni lancer une signature avant qu'un humain ait validé son
+identité. Aucun interrupteur. Corollaire assumé : l'équipe MEGGA tranche chaque dossier
+avant que l'agence ne travaille.
+
+### Ce qui manque pour que cela fonctionne réellement en production
+
+Par ordre de ce qui bloque le plus.
+
+**`MAPBOX_TOKEN` n'est pas un secret du projet.** Le connecteur de géocodage le réclame,
+et il ne figure ni dans les secrets Supabase déclarés par `CLAUDE.md` ni nulle part dans
+l'environnement. Sans lui, `address_geocode` produira `unavailable` en production, ce qui
+ne casse rien mais retire un signal.
+
+**Deux vétos d'entité n'ont aucun connecteur**, `registry_number_format` et
+`registry_country_match`. Tant que c'est le cas, aucune agence d'aucun pays ne peut être
+auto-validée. Voir §7bis, où le fait est démontré en base.
+
+**Les pièces d'identité déposées ne sont supprimées par aucun chemin** quand la personne
+ou l'agence disparaît. Ce n'est pas une exposition, les politiques restent fermées, mais
+c'est de la rétention sans propriétaire dans la fonctionnalité qui porte la conformité.
+
+**Deux recettes d'intégration continue n'ont jamais tourné pour de vrai** : le job
+`e2e-kyb` ajouté à `e2e.yml`, et l'enregistrement du job planifié
+`agency-verification-sweep-hourly`, `pg_cron` étant absent du stack local. À confirmer au
+premier déploiement par
+`select * from cron.job where jobname = 'agency-verification-sweep-hourly'`.
+
+**Le gate s'appliquera rétroactivement** à tout dirigeant existant au déploiement, et sur
+mobile l'écran n'offre que la déconnexion. Sans conséquence tant que la base est mock,
+à trancher avant qu'il y ait de vraies agences.
+
+### À faire au moment du merge, impérativement
+
+Les 16 migrations sont datées du 28 juillet 2026. Le garde-date de `deploy.yml` n'applique
+que celles dont l'horodatage est supérieur ou égal à la date du jour en UTC, et il **ne
+signale un saut que par un avertissement, jamais par un échec**. Mergées un jour
+ultérieur sans rien faire, elles sont toutes sautées en silence pendant que le bundle
+frontend part quand même : tout dirigeant se retrouve alors devant un wizard dont ni les
+tables ni les RPC n'existent, avec la déconnexion pour seule sortie.
+
+Re-dater en séquence monotone, jamais en conservant la seule composante horaire :
+
+```bash
+cd supabase/migrations && i=0; for f in $(ls 202607281*.sql | sort); do git mv "$f" "$(date -u +%Y%m%d)10$(printf '%04d' $((i*1000)))_${f#*_}"; i=$((i+1)); done
+```
+
+Puis vérifier qu'aucune version n'est en double, y compris face à `main`, et rejouer :
+
+```bash
+ls supabase/migrations/*.sql | sed 's#.*/##; s/_.*//' | sort | uniq -d
+```
+
+```bash
+supabase db reset && npm run test:backend && npm run lint:migrations
+```
+
+---
+
 ## 8. Dépendances externes en attente
 
 **Le registre bloqué est le suisse, c'est-à-dire le marché.** Le connecteur de plus
