@@ -575,7 +575,22 @@ async function fetchFrenchRegistry(siren: string, signal: AbortSignal): Promise<
     err.status = res.status
     throw err
   }
-  return (await res.json()) as RechercheEntreprisesResponse
+  const body = (await res.json()) as RechercheEntreprisesResponse
+  // Garde de forme (meme discipline que VIES, runVatLookup plus haut -- il verifie le
+  // TYPE du champ attendu avant de conclure) : HTTP 200 n'est pas une garantie de
+  // forme. Un corps hors schema (`results` absent ou pas un tableau -- panne
+  // fournisseur, page d'erreur deserialisee malgre tout en JSON...) ne permet PAS de
+  // conclure a une absence : SEULE une liste vide EST cette information positive ("le
+  // registre a repondu : ce SIREN n'existe pas"). Toute autre forme leve ici ->
+  // unavailable via runKybSource() (revue etape 4/tache 3, point 1) : un corps
+  // `{"error":"service degrade"}` produisait avant ce correctif exactement le meme
+  // `mismatch` ("siren introuvable") qu'un vrai SIREN inconnu -- une panne de schema
+  // chez le fournisseur ne doit jamais s'ecrire comme une affirmation decisive sur un
+  // veto.
+  if (!Array.isArray(body.results)) {
+    throw new Error('recherche-entreprises: unexpected response shape (results is not an array)')
+  }
+  return body
 }
 
 async function runRegistryLookup(agency: AgencyForVerification, signal: AbortSignal): Promise<KybSourceResult> {

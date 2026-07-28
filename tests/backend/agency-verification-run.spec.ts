@@ -1081,6 +1081,26 @@ describe('connecteur registre francais (registry_lookup / registry_legal_name_ma
       expect(row.result).toBe('unavailable')
     })
 
+    it(
+      `${label} : reponse HTTP 200 hors schema (results absent, ex. panne fournisseur) -> unavailable, ` +
+        'jamais un verdict invente (revue etape 4/tache 3, point 1 -- meme garde que VIES : le type du champ ' +
+        'attendu est verifie avant de conclure a une absence)',
+      async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(
+            async () =>
+              new Response(JSON.stringify({ error: 'service degrade' }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              })
+          )
+        )
+        const row = await runKybSource(sourceOf(), agencyFR())
+        expect(row.result).toBe('unavailable')
+      }
+    )
+
     it(`${label} : panne reseau -> unavailable`, async () => {
       vi.stubGlobal(
         'fetch',
