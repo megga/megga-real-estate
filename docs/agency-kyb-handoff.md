@@ -30,7 +30,7 @@ parcours d'onboarding est maintenant cadré et décidé.
 | Correctifs d'existant | livré, étape 1, 8 tests de non-régression |
 | Trigger d'inscription versionné | livré, il n'était dans aucune migration |
 | Gate et wizard de saisie | fait, étape 2 |
-| Moteur de scoring | à faire, étape 3, ta conception §7 tient telle quelle |
+| Moteur de scoring | fait, étape 3, ta conception §7 reprise telle quelle |
 | Connecteurs disponibles | à faire, étape 4 |
 | File de revue admin et gardes LAB | à faire, étape 5 |
 | Connecteurs Zefix et UID | bloqués, étape 6 |
@@ -321,10 +321,44 @@ est ce qu'il faut avoir en tête pour exécuter.
 | 0 | Re-dater les migrations et merger (§2) | fait | rien | non |
 | 1 | Correctifs d'existant | fait | 0 | non |
 | 2 | Gate, wizard 5 étapes, RPC de soumission | fait | 1 | non |
-| 3 | Moteur de scoring (§7) | à faire | 0 | non |
+| 3 | Moteur de scoring (§7) | fait | 0 | non |
 | 4 | Connecteurs disponibles | à faire | 3 | non |
 | 5 | File de revue admin et gardes LAB | à faire | 3 | non |
 | 6 | Connecteurs Zefix et UID | à faire | 4 | **oui** |
+
+### Étape 3 : le moteur, tel qu'il a été livré
+
+Ta conception §7 est reprise sans écart. `recompute_agency_verification(agency_id)`
+agrège les checks en un score et un statut, `get_agency_verification_config()` porte les
+deux seuils, les deux au `service_role` seul.
+
+Trois choses que la revue a établies par mutation, et qu'il vaut mieux connaître avant
+d'y toucher :
+
+**Le départage du dernier check par type ne peut pas reposer sur la seule date.**
+`checked_at` vaut par défaut l'heure de début de transaction : deux checks du même type
+écrits dans la même transaction, ce que fera un connecteur qui rejoue, sont à égalité, et
+`distinct on` retenait alors une ligne non spécifiée. Reproduit : un véto défavorable
+frais écarté au profit d'un ancien favorable, agence restée auto-validée. Un départage
+explicite a été ajouté.
+
+**Les checks de personne scorables entrent bien dans le score.** Le premier jet ne lisait
+que les checks d'agence, ce qui rendait muets `signatory_registry_match` et
+`poa_document_review`, soit 23 % du poids du catalogue. Ton document de conception §2 B
+liste explicitement le signataire listé comme organe au registre parmi les signaux
+moyens qui contribuent au score : c'est lui qui a tranché.
+
+**Le moteur se défend contre une table de configuration sale.** Deux fenêtres fermées et
+chevauchantes faisaient compter un poids deux fois ; l'index unique ne protège que les
+fenêtres ouvertes.
+
+Rien n'appelle encore le moteur automatiquement : le déclenchement viendra avec les
+connecteurs de l'étape 4, et le cron avec eux.
+
+Un point à garder pour l'étape 5 : l'action « relancer la vérification » depuis la
+console admin appellera cette RPC depuis un navigateur, donc sous un jeton
+`authenticated`, alors qu'elle est réservée au `service_role`. Il faudra une Edge
+Function relais ou un élargissement gardé par `is_super_admin()`.
 
 ### Étape 1 : correctifs d'existant
 
