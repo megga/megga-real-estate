@@ -72,13 +72,19 @@ export function useAdminStats() {
   // super-admin qui ouvre sa propre console n'a rien à s'annoncer à lui-même.
   // Depuis que l'ouverture est journalisée à chaque entrée et non plus à chaque
   // chargement de page, ces lignes noyaient tout le reste.
+  //
+  // L'INCLUSION enfin : `agency_created` est en `info` et le restera — une
+  // agence qui arrive est une bonne nouvelle, la ranger en `warn` pour la faire
+  // remonter serait mentir sur sa gravité. C'est pourtant le seul signal de
+  // croissance de la plateforme, et le bento sait déjà le rendre en ton « ok ».
+  // On l'ajoute donc par une règle nommée plutôt qu'en gonflant sa sévérité.
   const alerts = useQuery({
     queryKey: ['admin-alerts'],
     queryFn: async (): Promise<AlertEvent[]> => {
       const { data, error } = await supabase
         .from('activity_events')
         .select('id, action, entity_type, entity_id, metadata, created_at')
-        .in('severity', ['warn', 'critical'])
+        .or('severity.in.(warn,critical),action.eq.agency_created')
         .neq('action', 'admin_console_entered')
         .order('created_at', { ascending: false })
         .limit(10)

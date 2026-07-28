@@ -465,7 +465,14 @@
       "admin_console_entered": "Admin console opened",
       "contact_scores.recompute": "Contact scores recomputed",
       "property_scores.recompute": "Property scores recomputed",
-      "rls_hardening_applied": "RLS hardening applied"
+      "rls_hardening_applied": "RLS hardening applied",
+      "agency_created": "Agency created",
+      "subscription_activated": "Subscription activated",
+      "subscription_changed": "Subscription changed",
+      "subscription_cancelled": "Subscription cancelled",
+      "payment_failed": "Payment failed",
+      "kyc_screening_match": "PEP or sanctions alert",
+      "edge_function_error": "Server function error"
     }
   },
   "portal": {

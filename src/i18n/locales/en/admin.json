@@ -85,6 +85,7 @@
   "dashboard.alert.agencyCreated": "New agency registered",
   "dashboard.alert.kycScreeningMatch": "PEP/Sanctions alert",
   "dashboard.alert.subscriptionCancelled": "Subscription cancelled",
+  "dashboard.alert.paymentFailed": "Payment failed",
   "dashboard.alert.edgeFunctionError": "Edge Function error",
   "dashboard.alert.roleChanged": "Role changed",
   "agencies.title": "Agencies",

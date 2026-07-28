@@ -30,18 +30,18 @@ import { formatRelativeDate } from '@/lib/utils'
  * prévu — elle s'affiche alors sous son nom brut, avec une cloche et une
  * pastille neutre.
  *
- * ⚠ Le vocabulaire ci-dessous est en grande partie ASPIRATIONNEL : au 28.07.2026,
- * `activity_events` n'émet aucun `agency_created`, `kyc_screening_match`,
- * `subscription_cancelled` ni `edge_function_error` — ces entrées ne servent donc
- * personne aujourd'hui. Elles sont conservées parce qu'elles décrivent ce que la
- * plateforme DEVRAIT émettre ; les aligner sur les actions réellement écrites est
- * un chantier à part. `ticket_created` a en revanche été retiré : le support
- * maison n'existe plus, cette action ne reviendra pas.
+ * Ce vocabulaire a longtemps été ASPIRATIONNEL : la console savait nommer,
+ * iconifier et colorer quatre alertes qu'aucun producteur n'écrivait. Les
+ * producteurs existent depuis le 29.07.2026 (trigger `trg_agency_created`,
+ * `kyc_screening_match` côté kyc-screening, `edge_function_error` via
+ * `_shared/audit-edge-error.ts`, gravité posée sur les événements Stripe).
+ * `ticket_created` reste retiré : le support maison n'existe plus.
  */
 const ALERT_ICONS: Record<string, typeof AlertTriangle> = {
   agency_created: Building2,
   kyc_screening_match: ShieldAlert,
   subscription_cancelled: CreditCard,
+  payment_failed: CreditCard,
   edge_function_error: AlertTriangle,
   role_changed: UserCog,
 }
@@ -50,6 +50,7 @@ const ALERT_LABEL_KEYS: Record<string, string> = {
   agency_created: 'dashboard.alert.agencyCreated',
   kyc_screening_match: 'dashboard.alert.kycScreeningMatch',
   subscription_cancelled: 'dashboard.alert.subscriptionCancelled',
+  payment_failed: 'dashboard.alert.paymentFailed',
   edge_function_error: 'dashboard.alert.edgeFunctionError',
   role_changed: 'dashboard.alert.roleChanged',
 }
@@ -62,6 +63,9 @@ const ALERT_TONES: Record<string, AlertTone> = {
   agency_created: 'ok',
   kyc_screening_match: 'err',
   subscription_cancelled: 'warn',
+  // Un paiement refusé bascule l'abonnement en `past_due` : c'est réparable,
+  // et ça se répare depuis l'agence — un avertissement, pas une panne.
+  payment_failed: 'warn',
   edge_function_error: 'err',
   // Un rôle qui change, c'est un périmètre de droits qui bouge.
   role_changed: 'err',

@@ -23,6 +23,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // cantons restent tranchés à la majorité d'adresses, faute de mieux. Tout le
 // reste est exact depuis le passage au registre swisstopo — cf. _shared/npa.ts.
 import { npaToCanton } from '../_shared/npa.ts'
+import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 
 // ─── Config ──────────────────────────────────────────────────────
 
@@ -728,6 +729,10 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
       status: 'failed',
       errorMessage: String(err).slice(0, 500),
     })
+    // `flatfox_sync_runs` garde déjà la trace détaillée du run ; l'événement
+    // d'audit sert la vue plateforme (santé par fonction, compteur 24 h, seuil
+    // e-mail) qui ne connaît pas cette table.
+    await reportEdgeError(supabase, 'flatfox-sync', err, { startedAt: startedAtMs })
   }
 }
 

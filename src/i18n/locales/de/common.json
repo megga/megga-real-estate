@@ -459,7 +459,14 @@
       "admin_console_entered": "Admin-Konsole geöffnet",
       "contact_scores.recompute": "Kontakt-Scores neu berechnet",
       "property_scores.recompute": "Objekt-Scores neu berechnet",
-      "rls_hardening_applied": "RLS-Härtung angewendet"
+      "rls_hardening_applied": "RLS-Härtung angewendet",
+      "agency_created": "Agentur erstellt",
+      "subscription_activated": "Abonnement aktiviert",
+      "subscription_changed": "Abonnement geändert",
+      "subscription_cancelled": "Abonnement gekündigt",
+      "payment_failed": "Zahlung fehlgeschlagen",
+      "kyc_screening_match": "PEP- oder Sanktionstreffer",
+      "edge_function_error": "Fehler in Serverfunktion"
     }
   },
   "portal": {
