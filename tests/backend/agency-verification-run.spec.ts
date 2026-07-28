@@ -633,16 +633,40 @@ describe('connecteur RDAP (domain_whois_age) -- logique pure, fetch stubbe (aucu
     })
   })
 
-  it('domaine .ch enregistre il y a 3 jours -> mismatch (contredit une agence qui se pretend etablie)', async () => {
-    const threeDaysAgo = new Date(Date.now() - 3 * 86_400_000).toISOString()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => rdapResponse({ status: ['active'], events: [{ eventAction: 'registration', eventDate: threeDaysAgo }] }))
-    )
-    const row = await runKybSource(rdapSource(), agencyWithWebsite('https://jeune-agence.ch'))
-    expect(row.result).toBe('mismatch')
-    expect(row.raw_response.age_days).toBeLessThan(30)
-  })
+  it(
+    'domaine .ch enregistre il y a 3 jours, statut actif -> partial, jamais mismatch : un domaine recent ' +
+      'ne contredit rien, il confirme seulement moins bien qu un domaine etabli (revue etape 4/tache 2, point 1)',
+    async () => {
+      const threeDaysAgo = new Date(Date.now() - 3 * 86_400_000).toISOString()
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => rdapResponse({ status: ['active'], events: [{ eventAction: 'registration', eventDate: threeDaysAgo }] }))
+      )
+      const row = await runKybSource(rdapSource(), agencyWithWebsite('https://jeune-agence.ch'))
+      expect(
+        row.result,
+        'une agence fondee le mois dernier a legitimement un domaine du mois dernier -- mismatch inscrirait un verdict defavorable pour un fait qui n a rien d anormal'
+      ).toBe('partial')
+      expect(row.raw_response.age_days).toBeLessThan(10)
+    }
+  )
+
+  it(
+    "domaine .ch enregistre a l'instant (age_days = 0), statut actif -> partial, jamais un verdict defavorable : " +
+      'preuve directe qu un domaine actif tres recent ne contredit jamais rien (revue etape 4/tache 2, point 1)',
+    async () => {
+      const rightNow = new Date().toISOString()
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => rdapResponse({ status: ['active'], events: [{ eventAction: 'registration', eventDate: rightNow }] }))
+      )
+      const row = await runKybSource(rdapSource(), agencyWithWebsite('https://toute-nouvelle-agence.ch'))
+      expect(row.raw_response.age_days).toBe(0)
+      expect(row.result, 'meme a age_days=0 et statut actif, jamais mismatch -- seule la contradiction (inexistant/expire/suspendu) le justifie').toBe(
+        'partial'
+      )
+    }
+  )
 
   it('domaine .fr enregistre il y a plus de 6 mois, statut actif -> match', async () => {
     const longAgo = new Date(Date.now() - 400 * 86_400_000).toISOString()
@@ -654,7 +678,21 @@ describe('connecteur RDAP (domain_whois_age) -- logique pure, fetch stubbe (aucu
     expect(row.result).toBe('match')
   })
 
-  it('domaine .li enregistre il y a 90 jours (entre les deux seuils) -> partial : ni alarmant ni pleinement rassurant', async () => {
+  it(
+    'domaine .ch etabli (plus de 6 mois) mais statut pendingDelete -> mismatch : un domaine qui a existe mais ne ' +
+      'tient plus contredit reellement une agence qui se pretend etablie ET en activite (revue etape 4/tache 2, point 1)',
+    async () => {
+      const longAgo = new Date(Date.now() - 400 * 86_400_000).toISOString()
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => rdapResponse({ status: ['pendingDelete'], events: [{ eventAction: 'registration', eventDate: longAgo }] }))
+      )
+      const row = await runKybSource(rdapSource(), agencyWithWebsite('https://regie-abandonnee.ch'))
+      expect(row.result).toBe('mismatch')
+    }
+  )
+
+  it('domaine .li enregistre il y a 90 jours (recent, sous le seuil d etablissement) -> partial : confirme moins bien qu un domaine etabli, sans jamais contredire', async () => {
     const ninetyDaysAgo = new Date(Date.now() - 90 * 86_400_000).toISOString()
     vi.stubGlobal(
       'fetch',

@@ -155,13 +155,20 @@ const GENERIC_EMAIL_PROVIDER_DOMAINS: ReadonlySet<string> = new Set([
 // d'injection dans le chemin RDAP construit plus bas.
 const DOMAIN_SHAPE_RE = /^[a-z0-9-]+\.[a-z0-9-]+$/
 
-// Sous ce seuil, un domaine "en dit long" contre une agence qui se pretend etablie
-// (brief tache 2, exemple "trois jours") : 30 jours reste tres court, meme pour un
-// enregistrement recent mais legitime.
-const YOUNG_DOMAIN_THRESHOLD_DAYS = 30
-
-// Au-dela, un domaine est raisonnablement "etabli". Entre les deux seuils : ni
-// alarmant ni pleinement rassurant, d'ou `partial`.
+// Seuil UNIQUE separant "recent" (confirme moins bien : `partial`) d'"etabli"
+// (confirme pleinement si le statut est par ailleurs sain : `match`) -- revue etape
+// 4/tache 2, point 1. `match`/`partial`/`mismatch` veulent dire confirme/confirme a
+// moitie/CONTREDIT ; un domaine recent ne contredit rien (une agence fondee le mois
+// dernier a legitimement un domaine du mois dernier), il confirme seulement moins
+// bien qu'un domaine etabli. Avant ce correctif, un second seuil ("domaine tres
+// jeune", 30 jours) faisait a lui seul basculer un domaine recent en `mismatch` --
+// un verdict defavorable pose sur un fait qui n'a rien d'anormal. Ce seuil-ci devient
+// donc beaucoup moins critique qu'avant : il ne fait plus basculer entre confirmer et
+// contredire, seulement entre confirmer et confirmer a moitie -- une valeur legerement
+// differente ne ferait plus jamais basculer un dossier honnete vers un verdict
+// defavorable, tout au plus vers `partial` au lieu de `match`. 180 jours (6 mois)
+// reste une valeur raisonnable pour "etabli" (brief tache 2 ; seuils non chiffres par
+// le brief, choisis et documentes dans task-2-report.md).
 const ESTABLISHED_DOMAIN_THRESHOLD_DAYS = 180
 
 /** Reduit un hostname a ses deux dernieres etiquettes (SLD.TLD) -- absorbe `www.`
@@ -233,25 +240,44 @@ function ageInDays(isoDate: string): number | null {
 }
 
 /** Absence de statut (certains registres ne le publient pas) ou 'active' explicite :
- *  rien ne contredit un domaine sain. Le reste (inactive, pendingDelete,
- *  redemptionPeriod, serverHold...) est traite avec prudence mais jamais en mismatch
- *  sur ce seul indice -- le vocabulaire de statut varie trop d'un registre a l'autre
- *  pour en tirer une conclusion tranchee a partir de ce connecteur seul. */
+ *  rien ne contredit un domaine sain -- `match` reste possible. Le reste (inactive,
+ *  pendingDelete, redemptionPeriod, serverHold...) n'a PAS un sens fixe dans
+ *  classifyDomain : sur un domaine RECENT ou d'anciennete inconnue, ce signal seul
+ *  reste ambigu (le vocabulaire de statut varie trop d'un registre a l'autre, et un
+ *  domaine tout juste enregistre peut traverser des etats transitoires) -- jamais de
+ *  `mismatch` sur ce seul indice la, voir la branche `ageDays === null` et la branche
+ *  "recent" ci-dessous. Mais une fois le domaine ETABLI (revue etape 4/tache 2, point
+ *  1), ce meme statut non-actif decrit un domaine qui a existe mais ne tient plus
+ *  (expire, suspendu, en attente de suppression) : ca contredit reellement une agence
+ *  qui se pretend etablie ET en activite -- voir la branche finale de
+ *  classifyDomain. */
 function isReassuringStatus(statuses: string[]): boolean {
   return statuses.length === 0 || statuses.includes('active')
 }
 
 function classifyDomain(statuses: string[], ageDays: number | null): 'match' | 'partial' | 'mismatch' {
-  if (ageDays !== null) {
-    if (ageDays < YOUNG_DOMAIN_THRESHOLD_DAYS) return 'mismatch'
-    if (ageDays < ESTABLISHED_DOMAIN_THRESHOLD_DAYS) return 'partial'
-    return isReassuringStatus(statuses) ? 'match' : 'partial'
+  if (ageDays === null) {
+    // Anciennete indisponible (frequent chez rdap.nic.ch, verifie a la main -- voir
+    // task-2-report.md) : le statut est le seul indice qui reste, jamais suffisant a
+    // lui seul pour un verdict tranche -- ni un `match` plein (on ne confirme pas
+    // l'anciennete que revendique un dossier "agence etablie"), ni un `mismatch`
+    // (isReassuringStatus ci-dessus : le vocabulaire de statut varie trop d'un
+    // registre a l'autre pour trancher sans corroboration par l'age).
+    return 'partial'
   }
-  // Anciennete indisponible (frequent chez rdap.nic.ch, verifie a la main -- voir
-  // task-2-report.md) : le statut est le seul indice qui reste, jamais suffisant a
-  // lui seul pour un `match` plein -- on confirme l'existence actuelle du domaine,
-  // pas l'anciennete que revendique un dossier "agence etablie".
-  return 'partial'
+  if (ageDays < ESTABLISHED_DOMAIN_THRESHOLD_DAYS) {
+    // Recent, quel que soit son age exact (revue etape 4/tache 2, point 1) : un
+    // domaine recent ne contredit rien, il confirme seulement moins bien qu'un
+    // domaine etabli. Jamais de `mismatch` sur ce seul critere d'age -- voir
+    // ESTABLISHED_DOMAIN_THRESHOLD_DAYS plus haut.
+    return 'partial'
+  }
+  // Etabli : actif (ou sans statut publie) confirme pleinement -- `match`. Un statut
+  // qui n'est plus actif sur un domaine par ailleurs etabli ne confirme pas "a
+  // moitie" : il contredit reellement une agence qui se pretend etablie ET en
+  // activite -- `mismatch` (revue etape 4/tache 2, point 1 ; voir isReassuringStatus
+  // plus haut pour ce qui distingue cette branche des deux precedentes).
+  return isReassuringStatus(statuses) ? 'match' : 'mismatch'
 }
 
 async function runRdapDomainWhoisAge(agency: AgencyForVerification, signal: AbortSignal): Promise<KybSourceResult> {
