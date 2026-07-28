@@ -42,8 +42,10 @@ export default function SugarPageSkeleton() {
       aria-label="Chargement"
       style={{ background: sp.pageBg, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}
     >
-      {/* Gabarit SugarTopNav — SugarShell.tsx:121-124 (padding + gap identiques). */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '24px 40px 14px 33px', gap: 24 }}>
+      {/* Gabarit SugarTopNav — SugarShell.tsx (padding + gap identiques). L'inset
+          droit suit celui du chrome réel : le désaligner ferait sauter les boutons
+          ronds de 16 px à la bascule squelette → page. */}
+      <div style={{ display: 'flex', alignItems: 'center', padding: '24px 24px 14px 33px', gap: 24 }}>
         <div style={{ width: 62, height: 38, borderRadius: 10, background: sp.iconBtnBg, flexShrink: 0 }} />
         <div style={{ display: 'flex', gap: 4, flex: 1, justifyContent: 'center' }}>
           {TAB_WIDTHS.map((w, i) => (
@@ -87,12 +89,14 @@ export default function SugarPageSkeleton() {
           </div>
         </aside>
 
-        {/* Surface de travail unique — ombre douce, aucune bordure décorative. */}
+        {/* Surface de travail unique — ombre douce, aucune bordure décorative.
+            Inset droit 24 px = `paddingRight` des <main> Sugar, pour que le bord
+            droit ne bouge pas non plus à la bascule squelette → page. */}
         <div
           style={{
             flex: 1,
             minWidth: 0,
-            margin: '24px 32px 32px 0',
+            margin: '24px 24px 32px 0',
             borderRadius: 26,
             background: sp.cardBg,
             boxShadow: sp.shadow,

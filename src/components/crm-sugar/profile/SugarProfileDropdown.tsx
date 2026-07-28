@@ -70,7 +70,8 @@ function Row({ icon, iconKind = 'crm', label, trail, onClick, sp, danger = false
         width: '100%', padding: '9px 10px',
         border: 0, background: hover ? sp.solidBgSub : 'transparent',
         cursor: 'pointer', textAlign: 'left',
-        borderRadius: 12, fontFamily: 'inherit',
+        // Concentrique avec la coque : 26 (rayon du pager) − 12 (padding) = 14.
+        borderRadius: 14, fontFamily: 'inherit',
         // ⚠️ pas de transition de fond (bug pastilles noires)
       }}>
       <div style={{
@@ -205,7 +206,11 @@ export default function SugarProfileDropdown({
       width: 304, padding: 12, zIndex: 9000,
       background: sp.solidBg,
       border: `1px solid ${sp.solidBorder}`,
-      borderRadius: 20,
+      // Rayon du pager (viewport 26 px, cf. ContactsPager/BiensPager/CalendarApp) :
+      // le popover retombe sur le coin haut-droit du pager, les deux courbures
+      // doivent se répondre. Bordure et ombre restent en tokens `solid*` — le
+      // popover est OPAQUE et surélevé, il n'emprunte pas le verre du pager.
+      borderRadius: 26,
       boxShadow: sp.solidShadow,
       animation: 'sugar-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>

@@ -193,13 +193,17 @@ export default function SugarNotificationsPopover({
       background: 'rgba(255,255,255,0.85)',
       backdropFilter: 'blur(20px) saturate(140%)',
       WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-      borderRadius: 20,
+      // Rayon du pager (26) — jumeau du dropdown profil, ancré au bouton voisin :
+      // les deux popovers de la TopNav doivent partager la même courbure.
+      borderRadius: 26,
       boxShadow: '0 32px 70px rgba(15,23,42,0.10), 0 6px 20px rgba(15,23,42,0.05)',
       animation: 'sugar-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>
+      {/* Doublure opaque — son rayon DOIT suivre celui de la coque, sinon un
+          liseré translucide réapparaît dans les coins. */}
       <div aria-hidden style={{
         position: 'absolute', inset: 0,
-        background: solidBg, borderRadius: 20,
+        background: solidBg, borderRadius: 26,
         border: dark ? '1px solid rgba(255,255,255,0.07)' : 'none',
         zIndex: 0,
       }} />
