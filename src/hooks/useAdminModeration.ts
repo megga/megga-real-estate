@@ -58,7 +58,7 @@ export function useAdminModeration() {
         photos: p.photos ?? [],
         moderation_status: p.moderation_status ?? 'published',
         agency_name: p.agency_id ? agencyMap[p.agency_id] ?? null : null,
-      })) as unknown as ModerationListing[]
+      })) as ModerationListing[]
     },
     staleTime: 30_000,
   })

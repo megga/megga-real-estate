@@ -26,6 +26,11 @@ const ALLOW_SYMBOLS = new Set([
   'src/lib/constants.ts:Canton', 'src/lib/constants.ts:KycStatus', 'src/lib/constants.ts:KycType',
   'src/lib/constants.ts:FATF_HIGH_RISK_COUNTRIES', 'src/lib/constants.ts:FATF_INCREASED_MONITORING',
   'src/lib/utils.ts:formatSurface',          // formatteur m² testé (tests/unit/utils.spec.ts)
+  // Sortie du générateur Supabase, pas du code écrit à la main : les versions
+  // récentes émettent `Constants` (valeurs des enums Postgres) que rien
+  // n'importe encore. Le retirer reviendrait à éditer un fichier auto-généré,
+  // donc à recommencer à chaque régénération.
+  'src/types/database.ts:Constants',
 ]);
 
 let raw = '';

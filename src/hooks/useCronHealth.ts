@@ -12,8 +12,7 @@ export function useCronHealth() {
     queryKey: ['admin', 'cron-health'],
     staleTime: 60_000,
     queryFn: async (): Promise<CronHealthRow[]> => {
-      const { data, error } = await (supabase.rpc as unknown as
-        (fn: string) => Promise<{ data: unknown; error: Error | null }>)('get_cron_health')
+      const { data, error } = await supabase.rpc('get_cron_health')
       if (error) throw error
       return (data ?? []) as CronHealthRow[]
     },

@@ -23,9 +23,7 @@ export function useAdminToolUsage() {
     queryKey: ['admin', 'tool-usage-stats'],
     queryFn: async (): Promise<ToolUsageRow[]> => {
       // Sans argument → p_known_tools NULL côté SQL → agrégation des seuls outils observés.
-      const { data, error } = await (supabase.rpc as unknown as
-        (fn: string) => Promise<{ data: unknown; error: Error | null }>
-      )('get_whatsapp_tool_usage_stats')
+      const { data, error } = await supabase.rpc('get_whatsapp_tool_usage_stats')
       if (error) throw error
       return (data ?? []) as ToolUsageRow[]
     },
