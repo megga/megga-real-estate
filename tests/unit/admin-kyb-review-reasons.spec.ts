@@ -19,6 +19,7 @@ import {
   checkRowTone,
   displayCheckWeight,
   pendingIdDocumentChecks,
+  latestChecksByTypeAndPerson,
   rejectionReasonFromEvent,
   qualifyReviewReasons,
   queueRowSignal,
@@ -158,33 +159,80 @@ describe('displayCheckWeight — un véto est HORS SCORE, jamais un poids à 0.0
 describe('pendingIdDocumentChecks — pièce(s) d identité en attente de relecture (action "résoudre")', () => {
   it('aucun check id_document -> liste vide', () => {
     expect(pendingIdDocumentChecks([
-      { checkId: 'c1', checkType: 'registry_lookup', result: 'match', relatedPersonId: null },
+      { checkId: 'c1', checkType: 'registry_lookup', result: 'match', relatedPersonId: null, checkedAt: '2026-07-28T10:00:00Z' },
     ])).toEqual([])
   })
 
   it('un id_document pending_manual_review -> retourné', () => {
     expect(pendingIdDocumentChecks([
-      { checkId: 'c1', checkType: 'id_document', result: 'pending_manual_review', relatedPersonId: 'p1' },
+      { checkId: 'c1', checkType: 'id_document', result: 'pending_manual_review', relatedPersonId: 'p1', checkedAt: '2026-07-28T10:00:00Z' },
     ])).toEqual([{ checkId: 'c1', relatedPersonId: 'p1' }])
   })
 
-  it('un id_document déjà résolu (match/mismatch) -> ignoré, ce n est plus une action à faire', () => {
+  // Revue étape 5/tâche 3, point 1 (CRITIQUE) : ce test donnait une fausse confiance en
+  // ne construisant qu'UNE ligne résolue. En réalité, les tables de checks sont
+  // append-only (agency_person_verification_checks, 20260728103000) : résoudre une pièce
+  // (admin_resolve_agency_id_document) INSÈRE une nouvelle ligne, elle ne remplace ni
+  // ne supprime jamais l'ancienne "pending_manual_review". Un dossier réellement résolu
+  // porte donc TOUJOURS les deux lignes en historique, celle-ci le reproduit, dans
+  // l'ordre où get_admin_agency_review_detail les rend (checked_at desc : la plus
+  // récente en tête, comme dans checks.data côté hook).
+  it('un id_document déjà résolu (match/mismatch) -> ignoré même si l ancienne ligne pending_manual_review reste dans l historique (append-only : résoudre INSÈRE, ne remplace jamais)', () => {
     expect(pendingIdDocumentChecks([
-      { checkId: 'c1', checkType: 'id_document', result: 'match', relatedPersonId: 'p1' },
+      { checkId: 'c2', checkType: 'id_document', result: 'match', relatedPersonId: 'p1', checkedAt: '2026-07-28T10:00:00Z' },
+      { checkId: 'c1', checkType: 'id_document', result: 'pending_manual_review', relatedPersonId: 'p1', checkedAt: '2026-07-20T09:00:00Z' },
     ])).toEqual([])
   })
 
   it('id_document pending mais sans personne rattachée (donnée incohérente) -> ignoré, jamais une action sans cible', () => {
     expect(pendingIdDocumentChecks([
-      { checkId: 'c1', checkType: 'id_document', result: 'pending_manual_review', relatedPersonId: null },
+      { checkId: 'c1', checkType: 'id_document', result: 'pending_manual_review', relatedPersonId: null, checkedAt: '2026-07-28T10:00:00Z' },
     ])).toEqual([])
   })
 
   it('plusieurs personnes en attente -> toutes retournées', () => {
     expect(pendingIdDocumentChecks([
-      { checkId: 'c1', checkType: 'id_document', result: 'pending_manual_review', relatedPersonId: 'p1' },
-      { checkId: 'c2', checkType: 'id_document', result: 'pending_manual_review', relatedPersonId: 'p2' },
+      { checkId: 'c1', checkType: 'id_document', result: 'pending_manual_review', relatedPersonId: 'p1', checkedAt: '2026-07-28T10:00:00Z' },
+      { checkId: 'c2', checkType: 'id_document', result: 'pending_manual_review', relatedPersonId: 'p2', checkedAt: '2026-07-28T10:00:00Z' },
     ])).toEqual([{ checkId: 'c1', relatedPersonId: 'p1' }, { checkId: 'c2', relatedPersonId: 'p2' }])
+  })
+})
+
+describe('latestChecksByTypeAndPerson — même dédoublonnage que les CTE latest_agency_checks/latest_person_checks du moteur (append-only : la ligne la plus récente par couple type+personne l emporte)', () => {
+  it('aucune ligne -> aucune ligne', () => {
+    expect(latestChecksByTypeAndPerson([])).toEqual([])
+  })
+
+  it('pas de doublon (types/personnes tous distincts) -> tout ressort, inchangé', () => {
+    const rows = [
+      { checkId: 'c1', checkType: 'registry_lookup', relatedPersonId: null, checkedAt: '2026-07-28T10:00:00Z' },
+      { checkId: 'c2', checkType: 'id_document', relatedPersonId: 'p1', checkedAt: '2026-07-28T10:00:00Z' },
+    ]
+    expect(latestChecksByTypeAndPerson(rows)).toEqual(rows)
+  })
+
+  it('deux lignes du même couple (type, personne) -> seule la plus récente (checked_at) survit, quel que soit l ordre du tableau reçu', () => {
+    const older = { checkId: 'c1', checkType: 'id_document', relatedPersonId: 'p1', checkedAt: '2026-07-20T09:00:00Z' }
+    const newer = { checkId: 'c2', checkType: 'id_document', relatedPersonId: 'p1', checkedAt: '2026-07-28T10:00:00Z' }
+    // Ordre "réaliste" (celui de get_admin_agency_review_detail : checked_at desc) ET
+    // ordre inverse doivent produire le même résultat -- la fonction ne doit JAMAIS
+    // supposer un tableau pré-trié.
+    expect(latestChecksByTypeAndPerson([newer, older])).toEqual([newer])
+    expect(latestChecksByTypeAndPerson([older, newer])).toEqual([newer])
+  })
+
+  it('même couple (type, personne), mais des personnes différentes -> pas de collision entre elles', () => {
+    const p1Doc = { checkId: 'c1', checkType: 'id_document', relatedPersonId: 'p1', checkedAt: '2026-07-28T10:00:00Z' }
+    const p2Doc = { checkId: 'c2', checkType: 'id_document', relatedPersonId: 'p2', checkedAt: '2026-07-28T10:00:00Z' }
+    expect(latestChecksByTypeAndPerson([p1Doc, p2Doc])).toEqual([p1Doc, p2Doc])
+  })
+
+  it('checked_at identique (même transaction, ex. rejeu d un connecteur) -> départage par checkId, jamais un choix arbitraire', () => {
+    const rows = [
+      { checkId: 'c1', checkType: 'registry_lookup', relatedPersonId: null, checkedAt: '2026-07-28T10:00:00Z' },
+      { checkId: 'c2', checkType: 'registry_lookup', relatedPersonId: null, checkedAt: '2026-07-28T10:00:00Z' },
+    ]
+    expect(latestChecksByTypeAndPerson(rows)).toEqual([rows[1]])
   })
 })
 
@@ -238,11 +286,22 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
   ]
   const ALL_VETO_TYPES = [...AGENCY_VETO_TYPES, ...PERSON_VETO_TYPES]
 
+  // checkId/checkedAt (nécessaires au dédoublonnage append-only, latestChecksByTypeAndPerson)
+  // : une date de référence commune pour tous les checks "passés" par défaut, largement
+  // antérieure à la date utilisée par les scénarios de résolution ci-dessous (2026-07-28).
+  const BASELINE_CHECKED_AT = '2026-07-20T08:00:00Z'
+
   function allAgencyVetosPassed(): ReviewCheck[] {
-    return AGENCY_VETO_TYPES.map((v) => ({ checkType: v.checkType, result: 'match', isVeto: true, relatedPersonId: null }))
+    return AGENCY_VETO_TYPES.map((v, i) => ({
+      checkId: `agency-veto-${i}`, checkType: v.checkType, result: 'match', isVeto: true, relatedPersonId: null,
+      checkedAt: BASELINE_CHECKED_AT,
+    }))
   }
   function allPersonVetosPassed(personId: string): ReviewCheck[] {
-    return PERSON_VETO_TYPES.map((v) => ({ checkType: v.checkType, result: 'match', isVeto: true, relatedPersonId: personId }))
+    return PERSON_VETO_TYPES.map((v, i) => ({
+      checkId: `${personId}-veto-${i}`, checkType: v.checkType, result: 'match', isVeto: true, relatedPersonId: personId,
+      checkedAt: BASELINE_CHECKED_AT,
+    }))
   }
 
   it('cas A — score faible, aucun véto en cause : signaux défavorables, pas une contradiction', () => {
@@ -262,7 +321,10 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
       score: 0.9,
       checks: [
         ...allAgencyVetosPassed().filter((c) => c.checkType !== 'registry_legal_name_match'),
-        { checkType: 'registry_legal_name_match', result: 'mismatch', isVeto: true, relatedPersonId: null },
+        {
+          checkType: 'registry_legal_name_match', result: 'mismatch', isVeto: true, relatedPersonId: null,
+          checkId: 'agency-veto-mismatch', checkedAt: BASELINE_CHECKED_AT,
+        },
         ...allPersonVetosPassed('p1'),
       ],
       currentVetoTypes: ALL_VETO_TYPES,
@@ -277,7 +339,10 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
       score: 0.9,
       checks: [
         ...allAgencyVetosPassed().filter((c) => c.checkType !== 'registry_lookup'),
-        { checkType: 'registry_lookup', result: 'unavailable', isVeto: true, relatedPersonId: null },
+        {
+          checkType: 'registry_lookup', result: 'unavailable', isVeto: true, relatedPersonId: null,
+          checkId: 'agency-veto-unavailable', checkedAt: BASELINE_CHECKED_AT,
+        },
         ...allPersonVetosPassed('p1'),
       ],
       currentVetoTypes: ALL_VETO_TYPES,
@@ -296,8 +361,8 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
       sweepAttempts: 0,
       score: 0.9,
       checks: [
-        { checkType: 'registry_lookup', result: 'match', isVeto: true, relatedPersonId: null },
-        { checkType: 'registry_legal_name_match', result: 'match', isVeto: true, relatedPersonId: null },
+        { checkType: 'registry_lookup', result: 'match', isVeto: true, relatedPersonId: null, checkId: 'agency-veto-a', checkedAt: BASELINE_CHECKED_AT },
+        { checkType: 'registry_legal_name_match', result: 'match', isVeto: true, relatedPersonId: null, checkId: 'agency-veto-b', checkedAt: BASELINE_CHECKED_AT },
         // registry_number_format, registry_country_match : aucune ligne.
         ...allPersonVetosPassed('p1'),
       ],
@@ -313,13 +378,45 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
       score: 0.9,
       checks: [
         ...allAgencyVetosPassed(),
-        { checkType: 'pep_sanctions_screening', result: 'match', isVeto: true, relatedPersonId: 'p1' },
-        { checkType: 'id_document', result: 'pending_manual_review', isVeto: true, relatedPersonId: 'p1' },
+        { checkType: 'pep_sanctions_screening', result: 'match', isVeto: true, relatedPersonId: 'p1', checkId: 'p1-pep', checkedAt: BASELINE_CHECKED_AT },
+        { checkType: 'id_document', result: 'pending_manual_review', isVeto: true, relatedPersonId: 'p1', checkId: 'p1-id', checkedAt: BASELINE_CHECKED_AT },
       ],
       currentVetoTypes: ALL_VETO_TYPES,
       activeSignatoryIds: ['p1'],
     })
     expect(reasons).toEqual([{ code: 'id_document_pending' }])
+  })
+
+  // Revue étape 5/tâche 3, point 1 (CRITIQUE, prouvé par sonde) : les tables de checks
+  // sont append-only (agency_person_verification_checks, 20260728103000) -- résoudre une
+  // pièce (admin_resolve_agency_id_document) INSÈRE une ligne, elle ne remplace ni ne
+  // supprime jamais l'ancienne "pending_manual_review". Sans dédoublonnage à la ligne la
+  // plus récente par couple (type, personne) -- même règle que les CTE
+  // latest_agency_checks/latest_person_checks du moteur, recompute_agency_verification
+  // 20260728130000 -- l'écran affichait simultanément "véto échoué" (correct, ligne
+  // récente) ET "pièce d'identité en attente" (obsolète, ligne ancienne) : exactement la
+  // confusion de catégories que cet écran existe pour éviter, et un très mauvais signal
+  // pour un relecteur pressé. Ordre du tableau volontairement "réaliste" (checked_at
+  // desc, comme le rend get_admin_agency_review_detail : la ligne la plus récente en
+  // tête de checks.data).
+  it('cas D bis — historique append-only : une résolution récente en mismatch efface la pièce en attente du même type/personne, jamais les deux motifs à la fois', () => {
+    const reasons = qualifyReviewReasons({
+      sweepAttempts: 0,
+      score: 0.9,
+      checks: [
+        ...allAgencyVetosPassed(),
+        { checkType: 'pep_sanctions_screening', result: 'match', isVeto: true, relatedPersonId: 'p1', checkId: 'p1-pep', checkedAt: BASELINE_CHECKED_AT },
+        // Ligne la plus récente : la résolution humaine, en mismatch.
+        { checkType: 'id_document', result: 'mismatch', isVeto: true, relatedPersonId: 'p1', checkId: 'p1-id-new', checkedAt: '2026-07-28T10:00:00Z' },
+        // Ancienne ligne : jamais remplacée ni supprimée (append-only). Doit être
+        // ignorée au profit de la ligne ci-dessus, plus récente, pour LE MÊME couple
+        // (id_document, p1).
+        { checkType: 'id_document', result: 'pending_manual_review', isVeto: true, relatedPersonId: 'p1', checkId: 'p1-id-old', checkedAt: '2026-07-20T08:05:00Z' },
+      ],
+      currentVetoTypes: ALL_VETO_TYPES,
+      activeSignatoryIds: ['p1'],
+    })
+    expect(reasons).toEqual([{ code: 'veto_failed' }])
   })
 
   it('cas E — dossier abandonné par le filet de rattrapage (sweep épuisé) : aucun check, score NULL', () => {
@@ -366,8 +463,8 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
       sweepAttempts: SWEEP_MAX_ATTEMPTS,
       score: 0.2,
       checks: [
-        { checkType: 'registry_legal_name_match', result: 'mismatch', isVeto: true, relatedPersonId: null },
-        { checkType: 'id_document', result: 'pending_manual_review', isVeto: true, relatedPersonId: 'p1' },
+        { checkType: 'registry_legal_name_match', result: 'mismatch', isVeto: true, relatedPersonId: null, checkId: 'c1', checkedAt: BASELINE_CHECKED_AT },
+        { checkType: 'id_document', result: 'pending_manual_review', isVeto: true, relatedPersonId: 'p1', checkId: 'c2', checkedAt: BASELINE_CHECKED_AT },
       ],
       currentVetoTypes: NO_VETO_TYPES, // catalogue pas chargé -> ne doit rien casser
       activeSignatoryIds: [],
@@ -382,7 +479,7 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
       sweepAttempts: 0,
       score: null,
       checks: [
-        { checkType: 'registry_legal_name_match', result: 'mismatch', isVeto: true, relatedPersonId: null },
+        { checkType: 'registry_legal_name_match', result: 'mismatch', isVeto: true, relatedPersonId: null, checkId: 'c1', checkedAt: BASELINE_CHECKED_AT },
       ],
       currentVetoTypes: NO_VETO_TYPES,
       activeSignatoryIds: ['p1'],
@@ -405,7 +502,7 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
     const reasons = qualifyReviewReasons({
       sweepAttempts: 0,
       score: 0.3,
-      checks: [{ checkType: 'registry_lookup', result: 'match', isVeto: true, relatedPersonId: null }],
+      checks: [{ checkType: 'registry_lookup', result: 'match', isVeto: true, relatedPersonId: null, checkId: 'c1', checkedAt: BASELINE_CHECKED_AT }],
       currentVetoTypes: [], // ni AGENCY_VETO_TYPES ni PERSON_VETO_TYPES connus pour l'instant
       activeSignatoryIds: ['p1'],
     })

@@ -55,8 +55,14 @@ import {
  *  20260728103000). */
 export type CheckResult = 'match' | 'partial' | 'mismatch' | 'unavailable' | 'pending_manual_review'
 
-/** Sous-ensemble d'une ligne de check utile à la qualification du motif de blocage. */
+/** Sous-ensemble d'une ligne de check utile à la qualification du motif de blocage.
+ *  `checkId`/`checkedAt` : pas de la décoration, INDISPENSABLES à
+ *  latestChecksByTypeAndPerson — les tables de checks sont append-only (résoudre une
+ *  pièce INSÈRE une ligne, ne remplace jamais l'ancienne), donc qualifier un dossier à
+ *  partir de son historique complet exige de savoir quelle ligne est la plus récente
+ *  par couple (type, personne), cf. son commentaire. */
 export interface ReviewCheck {
+  checkId: string
   checkType: string
   result: CheckResult
   /** null si la ligne de config n'a pas été retrouvée à la date du check (LEFT JOIN
@@ -64,6 +70,7 @@ export interface ReviewCheck {
    *  de get_admin_agency_review_detail. */
   isVeto: boolean | null
   relatedPersonId: string | null
+  checkedAt: string
 }
 
 /** Un type de véto EN VIGUEUR AUJOURD'HUI, avec sa portée (verification_check_config
@@ -176,16 +183,61 @@ export function displayCheckWeight(weight: number | null, isVeto: boolean | null
   return weight
 }
 
+/**
+ * Garde, par couple (check_type, related_person_id), UNIQUEMENT la ligne la plus
+ * récente — même dédoublonnage que les CTE `latest_agency_checks`/`latest_person_checks`
+ * du moteur (recompute_agency_verification, 20260728130000). Les tables de checks sont
+ * APPEND-ONLY (résoudre une pièce, admin_resolve_agency_id_document, INSÈRE une ligne,
+ * ne remplace ni ne supprime jamais l'ancienne) : évaluer l'historique brut ferait
+ * cohabiter, pour LE MÊME couple, un verdict à jour et un verdict périmé — la confusion
+ * de catégories que cet écran existe pour éviter (revue étape 5/tâche 3, point 1 —
+ * prouvé par sonde : une résolution en mismatch affichait simultanément "véto échoué"
+ * ET "pièce d'identité en attente"). Généralisée à TOUT check, pas seulement
+ * id_document : un correctif ponctuel laisserait la même classe de défaut resurgir dès
+ * qu'un autre type de check gagnerait une seconde ligne.
+ *
+ * Départage par `checkId` à `checkedAt` égal (deux lignes de la même transaction, cf.
+ * le commentaire ctid desc de latest_agency_checks) : le moteur départage par `ctid`,
+ * non exposé côté client ; `checkId` reprend le départage que
+ * get_admin_agency_review_detail applique déjà à SON PROPRE tri (`checked_at desc,
+ * check_id desc`, 20260728160000). Ne suppose PAS `checks` pré-trié : compare
+ * explicitement, pour rester correcte quel que soit l'ordre d'appel — pas une
+ * dépendance implicite et fragile envers le tri actuel de la RPC.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function latestChecksByTypeAndPerson<
+  T extends { checkId: string; checkType: string; relatedPersonId: string | null; checkedAt: string },
+>(checks: T[]): T[] {
+  const latest = new Map<string, T>()
+  for (const c of checks) {
+    const key = `${c.relatedPersonId ?? ''}:${c.checkType}`
+    const current = latest.get(key)
+    if (
+      !current
+      || c.checkedAt > current.checkedAt
+      || (c.checkedAt === current.checkedAt && c.checkId > current.checkId)
+    ) {
+      latest.set(key, c)
+    }
+  }
+  return Array.from(latest.values())
+}
+
 /** Pièce(s) d'identité encore en attente de relecture humaine (result=
  *  pending_manual_review, check_type=id_document) — alimente l'action "résoudre".
+ *  Déduplique D'ABORD à la ligne la plus récente par (type, personne)
+ *  (latestChecksByTypeAndPerson) : sans quoi une pièce déjà résolue (nouvelle ligne
+ *  match/partial/mismatch) referait réapparaître le bouton "résoudre" à partir de son
+ *  ancienne ligne pending_manual_review, encore présente en historique append-only — et
+ *  un clic dessus échouerait côté serveur (le check n'est plus pending_manual_review).
  *  Ignore une ligne sans related_person_id (donnée incohérente : jamais une action
  *  sans cible) plutôt que de planter. */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
 export function pendingIdDocumentChecks(
-  checks: Array<{ checkId: string; checkType: string; result: CheckResult; relatedPersonId: string | null }>,
+  checks: Array<{ checkId: string; checkType: string; result: CheckResult; relatedPersonId: string | null; checkedAt: string }>,
 ): Array<{ checkId: string; relatedPersonId: string }> {
   const out: Array<{ checkId: string; relatedPersonId: string }> = []
-  for (const c of checks) {
+  for (const c of latestChecksByTypeAndPerson(checks)) {
     if (c.checkType === 'id_document' && c.result === 'pending_manual_review' && c.relatedPersonId !== null) {
       out.push({ checkId: c.checkId, relatedPersonId: c.relatedPersonId })
     }
@@ -239,6 +291,12 @@ export function queueRowSignal(score: number | null, sweepAttempts: number): Que
  * proprement : aucun véto n'est alors reconnu comme "actuellement en vigueur",
  * donc `veto_missing_source` ne se déclenche QUE sur un résultat `unavailable`
  * explicitement observé — jamais un faux positif inventé faute de catalogue.
+ *
+ * `input.checks` est un historique COMPLET, append-only (get_admin_agency_review_detail
+ * ne déduplique volontairement pas, cf. son commentaire SQL) : toute évaluation
+ * ci-dessous lit `latestChecks` (latestChecksByTypeAndPerson), jamais `input.checks`
+ * directement, sans quoi une pièce résolue laisserait sa ligne `pending_manual_review`
+ * périmée continuer à qualifier le dossier aux côtés de son verdict à jour.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
 export function qualifyReviewReasons(input: {
@@ -270,28 +328,40 @@ export function qualifyReviewReasons(input: {
     return sortReasons(reasons)
   }
 
-  const hasFailedVeto = input.checks.some(
+  // Dédoublonnage AVANT toute évaluation qui suit (latestChecksByTypeAndPerson, même
+  // règle que latest_agency_checks/latest_person_checks côté moteur) : les tables de
+  // checks sont append-only, donc TOUTE lecture de input.checks à partir d'ici doit
+  // passer par latestChecks, jamais par input.checks directement — sans quoi une pièce
+  // résolue (nouvelle ligne) cohabiterait avec son ancienne ligne encore
+  // pending_manual_review/mismatch, et l'écran afficherait deux motifs qui se
+  // contredisent pour LE MÊME couple (type, personne). Généralisé à chaque évaluation
+  // ci-dessous, pas seulement id_document (revue étape 5/tâche 3, point 1) : un
+  // correctif ponctuel laisserait la même classe de défaut resurgir dès qu'un autre
+  // type de check gagnerait une seconde ligne.
+  const latestChecks = latestChecksByTypeAndPerson(input.checks)
+
+  const hasFailedVeto = latestChecks.some(
     (c) => c.isVeto === true && (c.result === 'mismatch' || c.result === 'partial'),
   )
   if (hasFailedVeto) reasons.push({ code: 'veto_failed' })
 
-  const hasPendingIdDocument = input.checks.some(
+  const hasPendingIdDocument = latestChecks.some(
     (c) => c.checkType === 'id_document' && c.result === 'pending_manual_review',
   )
   if (hasPendingIdDocument) reasons.push({ code: 'id_document_pending' })
 
-  const hasUnavailableVeto = input.checks.some((c) => c.isVeto === true && c.result === 'unavailable')
+  const hasUnavailableVeto = latestChecks.some((c) => c.isVeto === true && c.result === 'unavailable')
 
   const agencyVetoTypes = input.currentVetoTypes.filter((v) => v.scope === 'agency').map((v) => v.checkType)
   const agencyCheckTypesPresent = new Set(
-    input.checks.filter((c) => c.relatedPersonId === null).map((c) => c.checkType),
+    latestChecks.filter((c) => c.relatedPersonId === null).map((c) => c.checkType),
   )
   const hasMissingAgencyVeto = agencyVetoTypes.some((vt) => !agencyCheckTypesPresent.has(vt))
 
   const personVetoTypes = input.currentVetoTypes.filter((v) => v.scope === 'person').map((v) => v.checkType)
   const hasMissingPersonVeto = input.activeSignatoryIds.some((personId) => {
     const presentForPerson = new Set(
-      input.checks.filter((c) => c.relatedPersonId === personId).map((c) => c.checkType),
+      latestChecks.filter((c) => c.relatedPersonId === personId).map((c) => c.checkType),
     )
     return personVetoTypes.some((vt) => !presentForPerson.has(vt))
   })
