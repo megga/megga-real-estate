@@ -73,7 +73,7 @@ export function useAdminSearch(query: string) {
           id: p.id,
           title: p.title ?? 'Bien',
           subtitle: p.city ?? '',
-          href: `${ADMIN_CONSOLE_PATH}/marketplace`,
+          href: `${ADMIN_CONSOLE_PATH}/moderation`,
         })),
       ]
 

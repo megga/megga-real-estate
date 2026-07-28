@@ -20,9 +20,9 @@ const AdminAgencyDetailPage = lazy(() => import('@/pages/admin/AdminAgencyDetail
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
 const AdminEndUsersPage = lazy(() => import('@/pages/admin/AdminEndUsersPage'))
 const AdminMonitoringPage = lazy(() => import('@/pages/admin/AdminMonitoringPage'))
-const AdminMarketplacePage = lazy(() => import('@/pages/admin/AdminMarketplacePage'))
+const AdminModerationPage = lazy(() => import('@/pages/admin/AdminModerationPage'))
 const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage'))
-const AdminChangelogPage = lazy(() => import('@/pages/admin/AdminChangelogPage'))
+const AdminCommunicationPage = lazy(() => import('@/pages/admin/AdminCommunicationPage'))
 const AdminFeatureFlagsPage = lazy(() => import('@/pages/admin/AdminFeatureFlagsPage'))
 const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
 const AdminLiveFeedPage = lazy(() => import('@/pages/admin/AdminLiveFeedPage'))
@@ -52,9 +52,13 @@ export default function AdminConsoleRoutes() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="end-users" element={<AdminEndUsersPage />} />
             <Route path="monitoring" element={<AdminMonitoringPage />} />
-            <Route path="marketplace" element={<AdminMarketplacePage />} />
+            <Route path="moderation" element={<AdminModerationPage />} />
+            {/* La page a longtemps porté le nom du module marketplace, retiré
+                depuis : elle modère les biens des agences. L'ancien chemin
+                survit pour les favoris et les liens déjà partagés. */}
+            <Route path="marketplace" element={<Navigate to="../moderation" replace />} />
             <Route path="compliance" element={<AdminCompliancePage />} />
-            <Route path="changelog" element={<AdminChangelogPage />} />
+            <Route path="changelog" element={<AdminCommunicationPage />} />
             <Route path="feature-flags" element={<AdminFeatureFlagsPage />} />
             <Route path="plans" element={<AdminPlansPage />} />
             <Route path="live" element={<AdminLiveFeedPage />} />

@@ -24,7 +24,7 @@ const ADMIN_ROUTES: RouteSpec[] = [
   { path: `${BASE}/users`, label: 'Admin > Users' },
   { path: `${BASE}/end-users`, label: 'Admin > Clients finaux' },
   { path: `${BASE}/monitoring`, label: 'Admin > Monitoring' },
-  { path: `${BASE}/marketplace`, label: 'Admin > Marketplace' },
+  { path: `${BASE}/moderation`, label: 'Admin > Modération' },
   { path: `${BASE}/compliance`, label: 'Admin > Compliance' },
   { path: `${BASE}/changelog`, label: 'Admin > Communication' },
   { path: `${BASE}/feature-flags`, label: 'Admin > Feature flags' },
@@ -99,5 +99,13 @@ test.describe('Super-admin — navigation interne', () => {
 
     await back.click()
     await expect(page).toHaveURL(new RegExp(`${BASE}/agencies$`))
+  })
+
+  // La modération s'est appelée « marketplace » tant que le module existait.
+  // Le chemin survit pour les favoris et les liens déjà partagés — une
+  // redirection qu'aucune visite d'URL de la liste ci-dessus ne couvre.
+  test("l'ancien chemin marketplace mène à la modération", async ({ page }) => {
+    await page.goto(`${BASE}/marketplace`)
+    await expect(page).toHaveURL(new RegExp(`${BASE}/moderation$`))
   })
 })

@@ -115,18 +115,18 @@ export function SellerLeadsInbox() {
       if (error) throw error
     },
     onSuccess: () => {
-      toast.success(t('marketplace.sellerLeads.assigned'))
+      toast.success(t('endUsers.sellerLeads.assigned'))
       void queryClient.invalidateQueries({ queryKey: ['admin-seller-leads'] })
     },
-    onError: () => toast.error(t('marketplace.sellerLeads.assignError')),
+    onError: () => toast.error(t('endUsers.sellerLeads.assignError')),
   })
 
   return (
-    <InboxBento icon={Inbox} title={t('marketplace.sellerLeads.title')}>
+    <InboxBento icon={Inbox} title={t('endUsers.sellerLeads.title')}>
       {isLoading ? (
         <div style={{ padding: 14 }}><AdminSkeleton height={64} /></div>
       ) : !leads || leads.length === 0 ? (
-        <AdminEmpty icon={Inbox} title={t('marketplace.sellerLeads.empty')} />
+        <AdminEmpty icon={Inbox} title={t('endUsers.sellerLeads.empty')} />
       ) : (
         <div>
           {leads.map((lead, i) => (
@@ -155,7 +155,7 @@ export function SellerLeadsInbox() {
                 disabled={assign.isPending && assigning === lead.id}
                 style={selectStyle}
               >
-                <option value="">{t('marketplace.sellerLeads.assignTo')}</option>
+                <option value="">{t('endUsers.sellerLeads.assignTo')}</option>
                 {(agencies ?? []).map((a) => (
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
@@ -211,15 +211,15 @@ export function ContactMessagesInbox() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin-contact-messages'] })
     },
-    onError: () => toast.error(t('marketplace.messages.statusError')),
+    onError: () => toast.error(t('endUsers.messages.statusError')),
   })
 
   return (
-    <InboxBento icon={Mail} title={t('marketplace.messages.title')}>
+    <InboxBento icon={Mail} title={t('endUsers.messages.title')}>
       {isLoading ? (
         <div style={{ padding: 14 }}><AdminSkeleton height={64} /></div>
       ) : !messages || messages.length === 0 ? (
-        <AdminEmpty icon={Mail} title={t('marketplace.messages.empty')} />
+        <AdminEmpty icon={Mail} title={t('endUsers.messages.empty')} />
       ) : (
         <div>
           {messages.map((msg, i) => (
@@ -239,7 +239,7 @@ export function ContactMessagesInbox() {
                   style={selectStyle}
                 >
                   {MESSAGE_STATUSES.map((s) => (
-                    <option key={s} value={s}>{t(`marketplace.messages.status.${s}`)}</option>
+                    <option key={s} value={s}>{t(`endUsers.messages.status.${s}`)}</option>
                   ))}
                 </select>
               </div>
