@@ -58,10 +58,20 @@ export function useAdminStats() {
     staleTime: 60_000,
   })
 
-  // Des ALERTES, donc les événements qui appellent un regard : `warn` et
-  // `critical`. Sans ce filtre la requête rendait les 10 derniers événements
-  // toutes sévérités confondues — une création de contact s'affichait sous le
-  // titre « Alertes », et une vraie alerte plus ancienne en était chassée.
+  // Deux filtres, pour deux raisons distinctes.
+  //
+  // La SÉVÉRITÉ d'abord : sans elle, la requête rendait les 10 derniers
+  // événements toutes sévérités confondues — une création de contact
+  // s'affichait sous le titre « Alertes » pendant qu'une vraie alerte, plus
+  // ancienne, en était chassée. Filtrer par sévérité plutôt que par une liste
+  // d'actions est délibéré : toute action future marquée `warn`/`critical`
+  // remonte ici sans qu'on ait à y penser.
+  //
+  // L'EXCLUSION ensuite : `admin_console_entered` est en `warn` (migration
+  // 20260725220000) pour ressortir dans le journal de sécurité, mais un
+  // super-admin qui ouvre sa propre console n'a rien à s'annoncer à lui-même.
+  // Depuis que l'ouverture est journalisée à chaque entrée et non plus à chaque
+  // chargement de page, ces lignes noyaient tout le reste.
   const alerts = useQuery({
     queryKey: ['admin-alerts'],
     queryFn: async (): Promise<AlertEvent[]> => {
@@ -69,6 +79,7 @@ export function useAdminStats() {
         .from('activity_events')
         .select('id, action, entity_type, entity_id, metadata, created_at')
         .in('severity', ['warn', 'critical'])
+        .neq('action', 'admin_console_entered')
         .order('created_at', { ascending: false })
         .limit(10)
       if (error) throw error

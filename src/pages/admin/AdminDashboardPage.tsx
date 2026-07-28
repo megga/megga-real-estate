@@ -12,7 +12,7 @@
  * liseré gauche mettant du violet de plateforme sur un événement métier.
  */
 import { useTranslation } from 'react-i18next'
-import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle } from 'lucide-react'
+import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle, UserCog } from 'lucide-react'
 import { useAdminStats } from '@/hooks/useAdminStats'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
@@ -25,12 +25,26 @@ import { AdminCard, AdminEmpty, AdminError, AdminGroupTitle, AdminIc, AdminPill,
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { formatRelativeDate } from '@/lib/utils'
 
+/**
+ * Vocabulaire de RENDU, pas liste d'autorisation : la requête filtre par
+ * sévérité, donc une action inconnue de ces tables peut arriver ici. C'est
+ * prévu — elle s'affiche alors sous son nom brut, avec une cloche et une
+ * pastille neutre.
+ *
+ * ⚠ Le vocabulaire ci-dessous est en grande partie ASPIRATIONNEL : au 28.07.2026,
+ * `activity_events` n'émet aucun `agency_created`, `kyc_screening_match`,
+ * `subscription_cancelled` ni `edge_function_error` — ces entrées ne servent donc
+ * personne aujourd'hui. Elles sont conservées parce qu'elles décrivent ce que la
+ * plateforme DEVRAIT émettre ; les aligner sur les actions réellement écrites est
+ * un chantier à part. `ticket_created` a en revanche été retiré : le support
+ * maison n'existe plus, cette action ne reviendra pas.
+ */
 const ALERT_ICONS: Record<string, typeof AlertTriangle> = {
   agency_created: Building2,
   kyc_screening_match: ShieldAlert,
   subscription_cancelled: CreditCard,
   edge_function_error: AlertTriangle,
-  ticket_created: Bell,
+  role_changed: UserCog,
 }
 
 const ALERT_LABEL_KEYS: Record<string, string> = {
@@ -38,7 +52,7 @@ const ALERT_LABEL_KEYS: Record<string, string> = {
   kyc_screening_match: 'dashboard.alert.kycScreeningMatch',
   subscription_cancelled: 'dashboard.alert.subscriptionCancelled',
   edge_function_error: 'dashboard.alert.edgeFunctionError',
-  ticket_created: 'dashboard.alert.ticketCreated',
+  role_changed: 'dashboard.alert.roleChanged',
 }
 
 /** Tons de signal d'une alerte — le violet de plateforme n'est pas un statut métier. */
@@ -50,7 +64,8 @@ const ALERT_TONES: Record<string, AlertTone> = {
   kyc_screening_match: 'err',
   subscription_cancelled: 'warn',
   edge_function_error: 'err',
-  ticket_created: 'info',
+  // Un rôle qui change, c'est un périmètre de droits qui bouge.
+  role_changed: 'err',
 }
 
 /** Vue d'ensemble : dérive l'état de santé des KPIs et compose les bandeaux/sections. */

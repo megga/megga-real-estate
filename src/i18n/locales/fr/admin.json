@@ -86,7 +86,7 @@
   "dashboard.alert.kycScreeningMatch": "Alerte PEP/Sanctions",
   "dashboard.alert.subscriptionCancelled": "Abonnement annule",
   "dashboard.alert.edgeFunctionError": "Erreur Edge Function",
-  "dashboard.alert.ticketCreated": "Nouveau ticket support",
+  "dashboard.alert.roleChanged": "Rôle modifié",
   "agencies.title": "Agences",
   "agencies.subtitle": "{{count}} agence enregistree",
   "agencies.subtitle_plural": "{{count}} agences enregistrees",
