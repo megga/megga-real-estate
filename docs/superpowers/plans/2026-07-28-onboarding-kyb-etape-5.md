@@ -32,10 +32,13 @@ puisse la débloquer.
 - La console admin est une **application séparée** : entrée `index.admin.html`,
   `AdminApp`, build `npm run build:admin`, routes montées à la racine (`/compliance`, pas
   `/dashboard/compliance`). Ne mélange pas les deux bundles.
-- Grammaire visuelle : kit `@/components/admin/kit` (`AdminCard`, `AdminPill`, `AdminTh`,
-  `AdminTd`, `AdminEmpty`, `AdminSkeleton`), bentos séparés par l'ombre, statuts en
-  pilules pleines, chiffres tabulaires. Lis `AdminCompliancePage.tsx` avant d'écrire, elle
-  est le voisin le plus proche.
+- Grammaire visuelle : pas de kit dédié, `@/components/admin/kit` n'existe pas dans ce
+  dépôt. Reprend la grammaire CRM réellement en vigueur, y compris sur
+  `AdminCompliancePage.tsx` (le voisin le plus proche, à lire avant d'écrire) : bentos
+  `rounded-xl border border-theme-border` SANS ombre, boutons fantômes (`border
+  border-theme-border text-theme-secondary`, jamais `bg-accent` plein), statuts en texte
+  coloré sans fond (`text-red-500`, pas de pilule pleine), chiffres tabulaires. Voir
+  [docs/design-system.md](../../design-system.md).
 - Côté CRM agent : tokens de thème uniquement, boutons fantômes, pas d'ombre sur les
   bentos, pas de majuscules dans les titres.
 - Toute chaîne visible via `react-i18next`, dans les **quatre** langues.
