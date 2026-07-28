@@ -29,7 +29,6 @@ import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
-import AdminNotificationPanel from '@/components/admin/AdminNotificationPanel'
 import { ADMIN_KEYFRAMES, ADMIN_RADII, ADMIN_RAIL_WIDTH } from '@/components/admin/kit/adminKitCore'
 // Le dock d'icônes du CRM, réutilisé tel quel (cf. `items` dans AdminShell).
 // SUGAR_KEYFRAMES est requis : le rail s'ouvre en `sugar-fade-up`, que
@@ -172,8 +171,6 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
       {/* Pied de rail : notifications, thème, retour CRM, compte */}
       <div style={{ flexShrink: 0, marginTop: 10 }}>
         <div style={{ height: 1, background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)', margin: '0 6px 8px' }} />
-
-        <AdminNotificationPanel />
 
         {/* Montée dans le CRM, la console y revient par le routeur ; montée dans
             l'app autonome, c'est une autre origine, donc un lien plein. */}
