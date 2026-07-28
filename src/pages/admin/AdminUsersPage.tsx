@@ -14,17 +14,18 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Search, Users, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { Users, Download } from 'lucide-react'
 import { exportToCsv } from '@/lib/exportCsv'
 import { formatDate } from '@/lib/utils'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import type { AdminUser } from '@/hooks/useAdminUsers'
+import { useClientPagination } from '@/hooks/useClientPagination'
 import UserDrawer from '@/components/admin/UserDrawer'
 import PageTransition from '@/components/layout/PageTransition'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
-  AdminAvatar, AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill,
-  AdminSkeleton, AdminTd, AdminTh,
+  AdminAvatar, AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminPager, AdminPill,
+  AdminSearchInput, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
@@ -85,7 +86,6 @@ export default function AdminUsersPage() {
   const { users, isLoading, isError, refetch } = useAdminUsers()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('')
-  const [page, setPage] = useState(1)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
@@ -100,19 +100,13 @@ export default function AdminUsersPage() {
     return list
   }, [users, search, roleFilter])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const safePage = Math.min(page, totalPages)
-  const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE)
+  const { page, setPage, totalPages, paginated, perPage, total } = useClientPagination(filtered, ITEMS_PER_PAGE)
 
   function handleRowClick(user: AdminUser) {
     setSelectedUserId(user.id)
   }
 
   const hasFilters = !!search || !!roleFilter
-  const pagerBtn = {
-    width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
-    background: 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0,
-  } as const
 
   return (
     <PageTransition>
@@ -144,31 +138,17 @@ export default function AdminUsersPage() {
           .admu-row:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.03)'} !important; }
           .admu-row:focus:not(:focus-visible) { outline: none; }
           .admu-row:focus-visible { outline: 2px solid ${sp.accent}; outline-offset: -2px; }
-          .admu-search::placeholder { color: ${sp.sub}; font-weight: 500; }
-          .admu-search:focus { box-shadow: inset 0 0 0 2px ${sp.accent}; }
           .admu-link:hover { text-decoration: underline; }
         `}</style>
 
         {/* Recherche + filtre par rôle */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 200, maxWidth: 320 }}>
-            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'grid', placeItems: 'center' }}>
-              <AdminIc icon={Search} size={15} color={sp.sub} />
-            </span>
-            <input
-              type="text"
-              className="admu-search"
-              placeholder={t('admin:users.searchPlaceholder')}
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              style={{
-                width: '100%', height: 36, padding: '0 12px 0 35px', boxSizing: 'border-box',
-                borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub,
-                color: sp.ink, fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-                outline: 'none', transition: 'box-shadow .16s ease',
-              }}
-            />
-          </div>
+          <AdminSearchInput
+            value={search}
+            onChange={(v) => { setSearch(v); setPage(1) }}
+            placeholder={t('admin:users.searchPlaceholder')}
+            label={t('admin:users.searchPlaceholder')}
+          />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             {ROLE_FILTER_VALUES.map((value) => {
@@ -366,79 +346,25 @@ export default function AdminUsersPage() {
             </div>
           )}
 
-          {/* Pagination */}
-          {filtered.length > ITEMS_PER_PAGE && (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-              padding: '11px 14px', borderTop: surf.hairline,
-            }}>
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-                {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} {t('admin:common.on')} {filtered.length}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={safePage <= 1}
-                  aria-label={t('admin:common.previousPage')}
-                  style={{ ...pagerBtn, cursor: safePage <= 1 ? 'not-allowed' : 'pointer', opacity: safePage <= 1 ? 0.4 : 1 }}
-                >
-                  <AdminIc icon={ChevronLeft} size={15} color={sp.soft} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(p => Math.abs(p - safePage) <= 2 || p === 1 || p === totalPages)
-                  .map((p, idx, arr) => {
-                    const prev = arr[idx - 1]
-                    const showEllipsis = prev !== undefined && p - prev > 1
-                    const on = p === safePage
-                    return (
-                      <span key={p} style={{ display: 'flex', alignItems: 'center' }}>
-                        {showEllipsis && (
-                          <span style={{ padding: '0 4px', fontSize: 11.5, fontWeight: 600, color: sp.sub }}>...</span>
-                        )}
-                        <button
-                          onClick={() => setPage(p)}
-                          style={{
-                            minWidth: 28, height: 28, padding: '0 8px', borderRadius: ADMIN_RADII.pill,
-                            border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5,
-                            fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                            background: on ? sp.accent : 'transparent',
-                            color: on ? sp.accentInk : sp.soft,
-                          }}
-                        >
-                          {p}
-                        </button>
-                      </span>
-                    )
-                  })}
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={safePage >= totalPages}
-                  aria-label={t('admin:common.nextPage')}
-                  style={{ ...pagerBtn, cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', opacity: safePage >= totalPages ? 0.4 : 1 }}
-                >
-                  <AdminIc icon={ChevronRight} size={15} color={sp.soft} />
-                </button>
-              </div>
-            </div>
-          )}
+          <AdminPager page={page} totalPages={totalPages} total={total} perPage={perPage} onPage={setPage} />
         </AdminCard>
 
         {/* Pagination mobile (cible tactile 44 px) */}
-        {!isLoading && filtered.length > ITEMS_PER_PAGE && (
+        {!isLoading && totalPages > 1 && (
           <div className="md:hidden" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '0 2px' }}>
             <AdminGhostBtn
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={safePage <= 1}
+              disabled={page <= 1}
               style={{ height: 44 }}
             >
               {t('admin:common.previous')}
             </AdminGhostBtn>
             <span style={{ fontSize: 12, fontWeight: 700, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-              {safePage}/{totalPages}
+              {page}/{totalPages}
             </span>
             <AdminGhostBtn
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={safePage >= totalPages}
+              disabled={page >= totalPages}
               style={{ height: 44 }}
             >
               {t('admin:common.next')}

@@ -14,7 +14,7 @@
  */
 import { useState, useMemo, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Shield, AlertTriangle, AlertCircle, Info, Download, FileDown, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Shield, AlertTriangle, AlertCircle, Info, Download, FileDown, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { exportToCsv } from '@/lib/exportCsv'
@@ -28,8 +28,9 @@ import {
 
 } from '@/hooks/useSecurityAudit'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useClientPagination } from '@/hooks/useClientPagination'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import { AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
@@ -119,7 +120,6 @@ export default function AdminSecurityAuditPage() {
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
   const [actionFilter, setActionFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const [page, setPage] = useState(1)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [pdfExporting, setPdfExporting] = useState(false)
 
@@ -154,9 +154,7 @@ export default function AdminSecurityAuditPage() {
   }, [entries])
 
   // ── Pagination ────────────────────────────────────────────────────────
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const safePage = Math.min(page, totalPages)
-  const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE)
+  const { page, setPage, totalPages, paginated, perPage, total } = useClientPagination(filtered, ITEMS_PER_PAGE)
 
   // Reset page when filters change
   const handleSeverityChange = (val: SeverityFilter) => {
@@ -215,13 +213,6 @@ export default function AdminSecurityAuditPage() {
   // journal et les tableaux de la console se lisent d'un seul rythme.
   const rowHair = dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)'
 
-  /** Bouton fléché de la pagination (précédent/suivant). */
-  const pagerArrow = (disabled: boolean): CSSProperties => ({
-    width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0, background: 'transparent',
-    cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1,
-    display: 'grid', placeItems: 'center', color: sp.sub,
-  })
-
   // ── Render ────────────────────────────────────────────────────────────
   return (
     <AdminPage
@@ -246,7 +237,6 @@ export default function AdminSecurityAuditPage() {
       <style>{`
         .sec-kpi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
         @media (max-width: 760px) { .sec-kpi { grid-template-columns: 1fr; } }
-        .sec-inp::placeholder { color: ${sp.sub}; }
       `}</style>
 
       {/* Bandeau KPI (7 jours) */}
@@ -322,23 +312,12 @@ export default function AdminSecurityAuditPage() {
         </div>
 
         {/* Recherche */}
-        <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 320 }}>
-          <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', display: 'grid', placeItems: 'center' }}>
-            <AdminIc icon={Search} size={15} color={sp.sub} />
-          </span>
-          <input
-            className="sec-inp"
-            type="text"
-            placeholder={t('admin:securityAudit.searchPlaceholder')}
-            value={searchQuery}
-            onChange={e => handleSearchChange(e.target.value)}
-            style={{
-              width: '100%', height: 34, padding: '0 14px 0 38px', borderRadius: ADMIN_RADII.pill,
-              border: 0, outline: 'none', background: surf.card, boxShadow: sp.shadowSm,
-              color: sp.ink, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
-            }}
-          />
-        </div>
+        <AdminSearchInput
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder={t('admin:securityAudit.searchPlaceholder')}
+          label={t('admin:securityAudit.searchPlaceholder')}
+        />
       </div>
 
       {/* Journal d'audit */}
@@ -449,57 +428,11 @@ export default function AdminSecurityAuditPage() {
             )
           })
         )}
-      </AdminCard>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <p style={{ margin: 0, fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-            {t(filtered.length !== 1 ? 'admin:securityAudit.eventsTotal_plural' : 'admin:securityAudit.eventsTotal', { count: filtered.length })}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={safePage <= 1}
-              aria-label="Page précédente"
-              style={pagerArrow(safePage <= 1)}
-            >
-              <AdminIc icon={ChevronLeft} size={15} color={sp.sub} />
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
-              .map((p, idx, arr) => {
-                const showEllipsis = idx > 0 && p - arr[idx - 1] > 1
-                const on = p === safePage
-                return (
-                  <span key={p} style={{ display: 'flex', alignItems: 'center' }}>
-                    {showEllipsis && <span style={{ fontSize: 11, color: sp.sub, padding: '0 4px' }}>...</span>}
-                    <button
-                      onClick={() => setPage(p)}
-                      style={{
-                        height: 28, minWidth: 28, padding: '0 8px', borderRadius: ADMIN_RADII.pill, border: 0,
-                        cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
-                        fontVariantNumeric: 'tabular-nums',
-                        background: on ? sp.accent : 'transparent', color: on ? sp.accentInk : sp.sub,
-                        transition: 'background .15s ease, color .15s ease',
-                      }}
-                    >
-                      {p}
-                    </button>
-                  </span>
-                )
-              })}
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={safePage >= totalPages}
-              aria-label="Page suivante"
-              style={pagerArrow(safePage >= totalPages)}
-            >
-              <AdminIc icon={ChevronRight} size={15} color={sp.sub} />
-            </button>
-          </div>
-        </div>
-      )}
+        {/* Pagination — rejoint le bento du journal : le filet supérieur du kit
+            la sépare de la dernière ligne au lieu de flotter sous la carte. */}
+        <AdminPager page={page} totalPages={totalPages} total={total} perPage={perPage} onPage={setPage} />
+      </AdminCard>
     </AdminPage>
   )
 }
