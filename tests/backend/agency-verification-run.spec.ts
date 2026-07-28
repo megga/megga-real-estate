@@ -176,14 +176,22 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
 
   async function getAgency(
     agencyId: string
-  ): Promise<{ verification_status: string; verification_score: number | string | null }> {
+  ): Promise<{
+    verification_status: string
+    verification_score: number | string | null
+    verification_sweep_attempts: number
+  }> {
     const { data, error } = await serviceRoleClient()
       .from('agencies')
-      .select('verification_status, verification_score')
+      .select('verification_status, verification_score, verification_sweep_attempts')
       .eq('id', agencyId)
       .single()
     if (error) throw new Error(`get agency: ${error.message}`)
-    return data as { verification_status: string; verification_score: number | string | null }
+    return data as {
+      verification_status: string
+      verification_score: number | string | null
+      verification_sweep_attempts: number
+    }
   }
 
   async function getChecks(agencyId: string): Promise<{ check_type: string; result: string }[]> {
@@ -873,6 +881,18 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
             await waitUntil(async () => (await getChecks(agencyId)).length > 0)
             const agency = await getAgency(agencyId)
             expect(agency.verification_status, 'le filet a bien fait tourner le moteur').not.toBe('pending')
+
+            // Cas nominal (revue etape 4/tache 4, point 1, exigence 3) : la
+            // verification aboutit du premier coup, tres en-dessous de v_max_attempts
+            // (5) -- une seule tentative comptee, jamais le traitement d'epuisement.
+            expect(
+              agency.verification_sweep_attempts,
+              'une seule tentative suffit au cas nominal (verification aboutit du premier coup)'
+            ).toBe(1)
+            expect(
+              await getEvents(agencyId, 'agency_verification_sweep_exhausted'),
+              "le cas nominal ne doit jamais se faire passer pour un epuisement de tentatives"
+            ).toHaveLength(0)
           } finally {
             await restoreConfig('supabase_url', urlBefore)
             await restoreConfig('service_role_key', keyBefore)
@@ -942,6 +962,122 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
             expect(error, `sweep ne doit jamais echouer faute de config: ${error?.message}`).toBeNull()
           } finally {
             await restoreConfig('supabase_url', urlBefore)
+          }
+        },
+        15_000
+      )
+
+      // Revue etape 4/tache 4, point 1 -- le filet reprenait indefiniment le meme
+      // dossier, sans compteur, sans borne, et sans jamais le rendre visible
+      // autrement qu'en lisant les journaux Postgres. Les deux tests ci-dessous
+      // prouvent la borne : celui qui la franchit (le compteur atteint
+      // v_max_attempts et le dossier bascule en manual_review, journalise) et celui
+      // qui l'a deja franchie (defense en profondeur -- le filtre lui-meme exclut
+      // toute reprise, meme si le statut redevenait 'pending' par un chemin futur
+      // non prevu aujourd'hui).
+      it(
+        'un dossier qui epuise ses tentatives (v_max_attempts) cesse d etre repris et devient visible ' +
+          '(bascule verification_status=manual_review + activity_events explicite) -- jamais retente indefiniment en silence',
+        async () => {
+          const urlBefore = await readConfig('supabase_url')
+          const keyBefore = await readConfig('service_role_key')
+          try {
+            // Cible injoignable mais non vide (meme motif que le test "cible injoignable"
+            // du declenchement primaire, plus haut) : passe la garde defensive et force
+            // un vrai essai du worker pg_net, qui echoue vite par DNS (TLD .invalid,
+            // RFC 2606) sans jamais faire attendre ce test ni contaminer les requetes
+            // voisines (jamais une IP noire qui bloquerait jusqu'a son propre timeout).
+            await setConfig('supabase_url', 'http://nonexistent-host-for-agency-verification-sweep-exhaustion.invalid')
+            await setConfig('service_role_key', 'fake-service-key-unreachable-target')
+
+            const agencyId = await createAgency('sweep-exhausted')
+            await addActiveSignatory(agencyId)
+            const twentyMinAgo = new Date(Date.now() - 20 * 60_000).toISOString()
+            // Seede juste EN DESSOUS de la borne (5) : cet appel de sweep est donc la
+            // derniere tentative encore legitime -- exactement l'endroit ou le
+            // comportement doit basculer.
+            const { error: seedErr } = await serviceRoleClient()
+              .from('agencies')
+              .update({ identity_submitted_at: twentyMinAgo, verification_sweep_attempts: 4 })
+              .eq('id', agencyId)
+            if (seedErr) throw new Error(`seed attempts: ${seedErr.message}`)
+
+            const { error } = await serviceRoleClient().rpc('sweep_pending_agency_verifications')
+            expect(error, `sweep: ${error?.message}`).toBeNull()
+
+            const agency = await getAgency(agencyId)
+            expect(agency.verification_sweep_attempts, 'la derniere tentative autorisee est bien comptee').toBe(5)
+            expect(
+              agency.verification_status,
+              'borne atteinte -> visible dans la file de revue humaine (manual_review), jamais laisse en pending silencieux'
+            ).toBe('manual_review')
+
+            const exhaustedEvents = await getEvents(agencyId, 'agency_verification_sweep_exhausted')
+            expect(
+              exhaustedEvents,
+              'un activity_events explique la bascule -- un humain doit pouvoir le voir sans lire les journaux Postgres'
+            ).toHaveLength(1)
+            expect(exhaustedEvents[0]).toMatchObject({ category: 'kyc', actor_kind: 'system', actor_id: null })
+
+            // Au-dela de la borne, on cesse de retenter : un second passage ne doit
+            // plus jamais reprendre ce dossier -- ni nouvelle tentative comptee, ni
+            // nouveau dispatch. Preuve que la boucle s'est reellement arretee, pas
+            // seulement que cette fois-ci s'est bien passee.
+            const { error: secondError } = await serviceRoleClient().rpc('sweep_pending_agency_verifications')
+            expect(secondError).toBeNull()
+            const agencyAfterSecondSweep = await getAgency(agencyId)
+            expect(
+              agencyAfterSecondSweep.verification_sweep_attempts,
+              'au-dela de la borne, un second passage ne doit plus incrementer le compteur'
+            ).toBe(5)
+          } finally {
+            await restoreConfig('supabase_url', urlBefore)
+            await restoreConfig('service_role_key', keyBefore)
+          }
+        },
+        15_000
+      )
+
+      it(
+        'un dossier deja a la borne n est jamais repris ni recompte, meme redevenu pending par un chemin futur non prevu aujourd hui ' +
+          '(defense en profondeur du filtre, independante de la bascule manual_review)',
+        async () => {
+          const urlBefore = await readConfig('supabase_url')
+          const keyBefore = await readConfig('service_role_key')
+          try {
+            await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
+            await setConfig('service_role_key', SERVICE_KEY)
+
+            const agencyId = await createAgency('sweep-at-bound')
+            await addActiveSignatory(agencyId)
+            const twentyMinAgo = new Date(Date.now() - 20 * 60_000).toISOString()
+            // verification_status force a 'pending' MALGRE un compteur deja a la
+            // borne -- etat qu'aucun chemin actuel du depot ne produit (rien ne
+            // repasse verification_status a 'pending' une fois sorti), mais que le
+            // filtre doit exclure par lui-meme, sans dependre de la bascule
+            // manual_review pour rester sans boucle.
+            const { error: seedErr } = await serviceRoleClient()
+              .from('agencies')
+              .update({ identity_submitted_at: twentyMinAgo, verification_sweep_attempts: 5, verification_status: 'pending' })
+              .eq('id', agencyId)
+            if (seedErr) throw new Error(`seed attempts: ${seedErr.message}`)
+
+            const { error } = await serviceRoleClient().rpc('sweep_pending_agency_verifications')
+            expect(error, `sweep: ${error?.message}`).toBeNull()
+
+            // Marge courte (meme motif que le second appel de submit_agency_identity,
+            // plus haut) : si un dispatch partait par erreur, il aurait largement le
+            // temps d'ecrire son check avant cette assertion.
+            await new Promise((resolve) => setTimeout(resolve, 500))
+            expect(
+              await getChecks(agencyId),
+              'un dossier deja a la borne ne doit declencher aucun dispatch, meme retrouve pending'
+            ).toHaveLength(0)
+            const agency = await getAgency(agencyId)
+            expect(agency.verification_sweep_attempts, 'le filtre exclut la ligne avant meme de l atteindre -- pas de recompte').toBe(5)
+          } finally {
+            await restoreConfig('supabase_url', urlBefore)
+            await restoreConfig('service_role_key', keyBefore)
           }
         },
         15_000

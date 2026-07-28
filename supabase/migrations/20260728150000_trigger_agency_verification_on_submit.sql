@@ -301,6 +301,55 @@ grant execute on function public.submit_agency_identity(uuid) to authenticated;
 -- 'pending' longtemps après n'a donc, par construction, jamais été traité par le
 -- moteur — que la cause soit un net.http_post jamais parti, un worker pg_net en panne,
 -- ou une Edge Function qui a crashé avant d'écrire sa propre trace.
+--
+-- ─── Correctif revue (étape 4/tâche 4, point 1) : la boucle silencieuse ────────────
+--
+-- Tel quel, ce filet reprenait le MÊME dossier à chaque passage, indéfiniment, sans
+-- compteur ni borne : si l'Edge Function ou pg_net tombe durablement, le dossier
+-- reste 'pending' pour toujours, retenté toutes les heures, sans qu'aucun humain ne
+-- le sache autrement qu'en lisant les journaux Postgres (le `raise warning`
+-- ci-dessous). Angle mort réel pour un dispositif LAB : le dirigeant, lui, croit son
+-- dossier en cours de traitement.
+--
+-- Remède : verification_sweep_attempts (colonne ajoutée ci-dessous) compte les
+-- passages de CE filet pour un dossier donné — jamais le déclenchement primaire de
+-- submit_agency_identity (étape 8 ci-dessus), qui n'incrémente pas cette colonne :
+-- un dossier vérifié du premier coup (cas nominal) n'y touche jamais. Bornée à
+-- v_max_attempts (5, soit jusqu'à 5 passages horaires en plus de la grâce de 15
+-- minutes déjà en place — assez de marge pour qu'une panne TRANSITOIRE de
+-- pg_net/Edge Function, ex. un redeploy, se résorbe seule sans solliciter un humain
+-- à tort, mais borné pour qu'un dossier ne reste jamais indéfiniment invisible).
+-- Même idiome que retry_count < 3 (claim_whatsapp_jobs, 20260602090000) : un
+-- compteur seul ne suffit jamais, toujours une borne à côté.
+--
+-- Au-delà de la borne (la tentative qui porte le compteur à v_max_attempts part
+-- encore, cf. plus bas -- mais aucune suivante ne part plus jamais), le dossier
+-- bascule verification_status='manual_review' -- jamais un troisième statut. C'est
+-- la file de revue humaine DÉJÀ établie (idx_agencies_verification_review,
+-- 20260728101000, « File de revue manuelle (console admin.megga.ch) »), donc son
+-- consommateur naturel : la file de l'étape 5 y trouvera ce dossier sans qu'il
+-- faille rien construire de plus. recompute_agency_verification ne traite
+-- 'manual_review' à aucun titre spécial (seuls 'rejected'/'validated' sont
+-- terminaux pour lui — voir son étape 0) : si le dossier finit par se vérifier
+-- malgré tout (la toute dernière tentative aboutit après coup), le moteur écrase
+-- cette bascule provisoire par sa propre conclusion, sans qu'aucun état ne reste
+-- durablement faux. Un activity_events dédié
+-- (action=agency_verification_sweep_exhausted, category=kyc, actor_kind=system donc
+-- actor_id NULL) explique la bascule pour qui relit le dossier -- distinct de
+-- agency_verification_recomputed (le moteur), jamais confondu avec un verdict
+-- humain ou automatique.
+--
+-- Défense en profondeur : le filtre de la requête ci-dessous exclut LUI-MÊME
+-- verification_sweep_attempts >= v_max_attempts, indépendamment de la bascule
+-- manual_review -- un dossier qui, par un chemin futur non prévu aujourd'hui,
+-- redeviendrait 'pending' malgré un compteur déjà à la borne ne serait pas repris
+-- pour autant.
+alter table public.agencies
+  add column if not exists verification_sweep_attempts smallint not null default 0;
+
+comment on column public.agencies.verification_sweep_attempts is
+  'Nombre de passages de sweep_pending_agency_verifications pour ce dossier -- jamais incrémentée par le déclenchement primaire (submit_agency_identity), qui reste hors de ce décompte. Reste à 0 dans le cas nominal (vérification qui aboutit avant le premier passage du filet). Bornée à 5 (v_max_attempts, voir sweep_pending_agency_verifications) : au-delà, verification_status bascule ''manual_review'' plutôt que d''être retenté indéfiniment.';
+
 create or replace function public.sweep_pending_agency_verifications()
 returns void
 language plpgsql
@@ -308,9 +357,11 @@ security definer
 set search_path to 'public'
 as $$
 declare
-  v_base_url text := public.get_app_config('supabase_url');
-  v_svc_key  text := public.get_app_config('service_role_key');
-  v_agency   record;
+  v_base_url     text := public.get_app_config('supabase_url');
+  v_svc_key      text := public.get_app_config('service_role_key');
+  v_max_attempts constant smallint := 5;
+  v_attempts     smallint;
+  v_agency       record;
 begin
   -- Même garde défensive que le déclenchement primaire ci-dessus : environnement non
   -- configuré (local/CI sans app_config seedé) -> no-op silencieux plutôt qu'une
@@ -328,15 +379,54 @@ begin
   -- en cours. LIMIT 25 par passage : borne défensive (même idiome que le LIMIT 200 de
   -- la purge chat-staging, 20260714170000) — un backlog plus large repart au passage
   -- suivant, une heure plus tard, jamais un souci en usage normal.
+  --
+  -- `verification_sweep_attempts < v_max_attempts` : voir l'en-tête de cette section
+  -- pour le raisonnement complet (correctif revue étape 4/tâche 4, point 1) — un
+  -- dossier qui a déjà épuisé sa borne ne doit plus jamais être repris, quel que soit
+  -- son verification_status au moment de cette requête (défense en profondeur).
   for v_agency in
     select id
       from public.agencies
      where identity_submitted_at is not null
        and verification_status = 'pending'
        and identity_submitted_at < now() - interval '15 minutes'
+       and verification_sweep_attempts < v_max_attempts
      order by identity_submitted_at
      limit 25
   loop
+    -- Compte CETTE tentative avant de la lancer -- un compteur qui ne compterait
+    -- qu'après coup manquerait précisément les tentatives qui échouent avant
+    -- d'écrire quoi que ce soit, le cas même que ce correctif vise. UPDATE seul
+    -- (jamais lu puis réécrit depuis PL/pgSQL) : atomique et correct sous
+    -- concurrence (deux passages entrelacés de ce filet, cron + relance manuelle
+    -- par exemple) -- chacun applique son propre +1 sur la valeur déjà committée
+    -- par l'autre, jamais une mise à jour perdue.
+    update public.agencies
+       set verification_sweep_attempts = verification_sweep_attempts + 1
+     where id = v_agency.id
+    returning verification_sweep_attempts into v_attempts;
+
+    if v_attempts >= v_max_attempts then
+      -- Borne atteinte : cette tentative est la DERNIÈRE autorisée (elle part quand
+      -- même juste après, best-effort -- rien n'empêche qu'elle réussisse). On rend
+      -- DÈS MAINTENANT le dossier visible plutôt que d'attendre un hypothétique
+      -- passage suivant : le filtre ci-dessus ne le ramassera de toute façon plus
+      -- jamais. Garde `and verification_status = 'pending'` : ne jamais écraser un
+      -- verdict que le moteur aurait posé entretemps (une tentative précédente qui
+      -- aboutit pendant qu'on traite celle-ci).
+      update public.agencies
+         set verification_status = 'manual_review'
+       where id = v_agency.id
+         and verification_status = 'pending';
+
+      insert into public.activity_events
+        (agency_id, actor_id, actor_kind, action, entity_type, entity_id, category, severity, metadata)
+      values (
+        v_agency.id, null, 'system', 'agency_verification_sweep_exhausted', 'agency', v_agency.id,
+        'kyc', 'warn', jsonb_build_object('attempts', v_attempts, 'max_attempts', v_max_attempts)
+      );
+    end if;
+
     -- Best-effort PAR AGENCE : une source qui échoue pour l'une ne doit jamais
     -- empêcher les suivantes d'être ramassées dans la même passe.
     begin
@@ -357,7 +447,7 @@ end;
 $$;
 
 comment on function public.sweep_pending_agency_verifications() is
-  'Filet de rattrapage (étape 4, tâche 4) : ramasse les agences dont identity_submitted_at est posé depuis plus de 15 minutes mais dont verification_status vaut encore ''pending'' (jamais recalculé -- net.http_post est fire-and-forget, sans garantie de livraison ni de traitement par le worker pg_net) et relance agency-verification-run pour chacune (best-effort par agence, jamais bloquant). Plafonnée à 25 par passage. Planifiée toutes les heures via cron.schedule si pg_cron est présent (absent en local/CI) -- aucune urgence à rattraper en quelques minutes ce qui peut l''être en une heure. service_role uniquement.';
+  'Filet de rattrapage (étape 4, tâche 4) : ramasse les agences dont identity_submitted_at est posé depuis plus de 15 minutes mais dont verification_status vaut encore ''pending'' (jamais recalculé -- net.http_post est fire-and-forget, sans garantie de livraison ni de traitement par le worker pg_net) et relance agency-verification-run pour chacune (best-effort par agence, jamais bloquant). Correctif revue point 1 : chaque tentative incrémente verification_sweep_attempts, bornée à 5 -- au-delà, le dossier bascule verification_status=''manual_review'' (file de revue humaine déjà établie, idx_agencies_verification_review) et un activity_events (category=kyc, action=agency_verification_sweep_exhausted) explique pourquoi, plutôt que d''être retenté indéfiniment en silence. Plafonnée à 25 dossiers ÉLIGIBLES par passage (verification_sweep_attempts >= 5 exclu du filtre). Planifiée toutes les heures via cron.schedule si pg_cron est présent (absent en local/CI) -- aucune urgence à rattraper en quelques minutes ce qui peut l''être en une heure. service_role uniquement.';
 
 revoke all on function public.sweep_pending_agency_verifications() from public, anon, authenticated;
 grant execute on function public.sweep_pending_agency_verifications() to service_role;
