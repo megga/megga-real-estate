@@ -1,7 +1,7 @@
 /**
  * Page super-admin — feature flags.
  *
- * Route : `/feature-flags` (console admin.megga.ch).
+ * Route : `/dashboard/admin/feature-flags`.
  * Chaque flag est activable globalement ou restreint à certains plans
  * (starter/pro/entreprise) et à certaines agences ; les bascules écrivent
  * directement via `useFeatureFlags`.

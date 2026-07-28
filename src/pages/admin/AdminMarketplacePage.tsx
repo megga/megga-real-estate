@@ -1,7 +1,7 @@
 /**
  * Page super-admin — modération marketplace.
  *
- * Route : `/marketplace` (console admin.megga.ch).
+ * Route : `/dashboard/admin/marketplace`.
  * Table paginée des annonces avec actions approuver / signaler / retirer
  * (`useAdminModeration`), recherche, filtre de statut et export CSV.
  *

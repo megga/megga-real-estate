@@ -1,13 +1,11 @@
 /**
  * Garde de la console quand elle est montée DANS le CRM (`/dashboard/admin/*`).
  *
- * Jumelle d'`AdminAuthGate`, mais sans son cul-de-sac : sur le domaine dédié, un
- * visiteur sans session doit lire « ouvrez depuis le CRM » parce qu'il n'y a rien
- * d'autre à lui proposer. Ici il EST dans le CRM — la seule réponse sensée à un
- * non-super-admin est de le ramener à son tableau de bord, sans écran mort.
+ * Un non-super-admin est ramené à son tableau de bord — pas d'écran mort : il
+ * est déjà dans le CRM, il n'y a rien à lui expliquer.
  *
- * L'audit est le même (`admin_log_console_entry`) et vient de la même fonction :
- * l'ouverture de la console reste tracée où qu'elle se produise.
+ * L'ouverture reste tracée (`admin_log_console_entry`), comme du temps où la
+ * console avait son propre domaine.
  */
 import { useEffect } from 'react'
 import { Navigate } from 'react-router-dom'

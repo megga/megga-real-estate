@@ -1,7 +1,7 @@
 /**
  * Page super-admin — journal d'audit de sécurité.
  *
- * Route : `/security` (console admin.megga.ch). Liste les actions sensibles
+ * Route : `/dashboard/admin/security`. Liste les actions sensibles
  * d'`activity_events` (filtres sévérité/action/acteur, recherche, pagination,
  * métadonnées dépliables) avec un bandeau KPI sur 7 jours. Deux exports :
  * CSV de la vue filtrée, et PDF juridique de la chaîne d'audit PLATEFORME complète

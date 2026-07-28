@@ -1,22 +1,16 @@
 /**
  * Sous-arbre de routes de la console super-admin, montable N'IMPORTE OÙ.
  *
- * Extrait de `AdminApp` pour que la console vive DANS le CRM
- * (`/dashboard/admin/*`) sans cesser de fonctionner à la racine de l'app
- * autonome. Les deux entrées rendent ce composant ; seul le point de montage
- * change.
+ * Monté par le CRM sous `/dashboard/admin/*`. Ce fut un temps le tronc commun
+ * de deux montages — l'app autonome `admin.megga.ch` a été retirée depuis, il
+ * n'en reste qu'un.
  *
- * ⚠ Toutes les cibles de navigation sont RELATIVES (`to="agencies"`, pas
- * `to="/agencies"`). C'est ce qui rend le double montage possible : sous le CRM
- * elles se résolvent en `/dashboard/admin/agencies`, dans l'app autonome en
- * `/agencies`. Une seule cible absolue oubliée casse silencieusement l'un des
- * deux montages — et c'est le CRM qui tombe, puisque c'est lui qui n'est pas à
- * la racine.
+ * Les cibles de navigation du rail sont préfixées par `ADMIN_CONSOLE_PATH`
+ * (cf. `AdminShell`) et NON relatives : sous un splat, le relatif dépend d'un
+ * drapeau de routeur que le CRM n'active pas.
  *
  * Ce composant ne porte NI routeur NI providers : ils appartiennent à l'hôte,
- * `AdminThemeProvider` compris. Le poser ici en aurait fait DEUX dans l'app
- * autonome — `AdminAuthGate` consomme déjà le thème et vit au-dessus — donc deux
- * états indépendants, et une bascule clair/sombre qui n'en repeindrait qu'un.
+ * `AdminThemeProvider` compris (posé par `AdminConsoleRoute`).
  */
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'

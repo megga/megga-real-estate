@@ -1,7 +1,7 @@
 /**
  * Page super-admin — style appris des agents WhatsApp.
  *
- * Route : `/learning` (console admin.megga.ch). Liste par agent le style
+ * Route : `/dashboard/admin/learning`. Liste par agent le style
  * distillé (langue, registre, emoji, traits) et permet de l'activer/désactiver
  * ou d'éditer les traits à la main via `useSetLearnedStyle`.
  *

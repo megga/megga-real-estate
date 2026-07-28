@@ -1,11 +1,9 @@
 /**
  * Journal d'ouverture de la console super-admin (`admin_log_console_entry`).
  *
- * Vit dans son propre module parce que DEUX gardes l'appellent — `AdminAuthGate`
- * sur le domaine dédié, `AdminConsoleRoute` dans le CRM — et qu'un fichier de
- * composants ne peut pas exporter autre chose que des composants sans casser le
- * rafraîchissement à chaud (règle `react-refresh/only-export-components`, erreur
- * bloquante en CI).
+ * Vit dans son propre module : un fichier de composants ne peut pas exporter
+ * autre chose sans casser le rafraîchissement à chaud
+ * (`react-refresh/only-export-components`, erreur bloquante en CI).
  */
 import { supabase } from '@/lib/supabase'
 import { Sentry } from '@/lib/sentry'

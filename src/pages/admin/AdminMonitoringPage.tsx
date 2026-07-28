@@ -1,7 +1,7 @@
 /**
  * Page super-admin — monitoring plateforme (Supabase Pro).
  *
- * Route : `/monitoring` (console admin.megga.ch). Agrège santé DB/storage/edge,
+ * Route : `/dashboard/admin/monitoring`. Agrège santé DB/storage/edge,
  * statut Flatfox sync, santé pg_cron, panneaux ops (syndication IDX, WhatsApp),
  * facturation IA (solde DeepSeek + coûts) et logs d'erreurs dépliables. Données
  * via `useAdminMonitoring` + hooks dédiés.
