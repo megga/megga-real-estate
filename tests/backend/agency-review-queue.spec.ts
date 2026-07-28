@@ -572,6 +572,23 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
       expect(error?.code, `attendu ${DENIED}, recu ${error?.code}`).toBe(DENIED)
     })
 
+    // Correctif revue point 2 : la garde est_super_admin() SEUL (jamais is_service_role())
+    // n'etait verifiee par aucun test -- quatre lignes plus haut dans la migration, les
+    // deux lectures (get_admin_agency_review_queue/detail) font l'inverse en accordant ce
+    // role. Un copier-coller malheureux entre les deux sections retablirait l'auto-
+    // validation par script (service_role n'a pas de session, auth.uid() y vaut NULL) avec
+    // une suite entierement verte sans ce test.
+    it('est refusee au role de service (un script ne doit jamais auto-valider une agence)', async () => {
+      const agencyId = await createAgency('validate-denied-service-role')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+
+      const { error } = await serviceRoleClient().rpc('admin_validate_agency_review', { p_agency_id: agencyId })
+      expect(error?.code, `attendu ${DENIED}, recu ${error?.code}`).toBe(DENIED)
+
+      const agency = await getAgencyVerification(agencyId)
+      expect(agency.verification_status, 'un refus ne doit rien changer').toBe('manual_review')
+    })
+
     it('refuse un dossier qui n est pas en manual_review', async () => {
       const agencyId = await createAgency('validate-wrong-status')
       await setVerification(agencyId, { status: 'pending' })
@@ -646,6 +663,18 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
 
       const asAnon = await anonClient().rpc('admin_reject_agency_review', { p_agency_id: agencyId, p_reason: 'motif' })
       expect(asAnon.error?.code, `attendu ${DENIED}, recu ${asAnon.error?.code}`).toBe(DENIED)
+    })
+
+    // Correctif revue point 2 (voir la note jumelle sur admin_validate_agency_review).
+    it('est refusee au role de service (un script ne doit jamais auto-rejeter une agence)', async () => {
+      const agencyId = await createAgency('reject-denied-service-role')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+
+      const { error } = await serviceRoleClient().rpc('admin_reject_agency_review', { p_agency_id: agencyId, p_reason: 'motif' })
+      expect(error?.code, `attendu ${DENIED}, recu ${error?.code}`).toBe(DENIED)
+
+      const agency = await getAgencyVerification(agencyId)
+      expect(agency.verification_status, 'un refus ne doit rien changer').toBe('manual_review')
     })
   })
 
@@ -865,6 +894,26 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
 
       const asAnon = await anonClient().rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
       expect(asAnon.error?.code, `attendu ${DENIED}, recu ${asAnon.error?.code}`).toBe(DENIED)
+    })
+
+    // Correctif revue point 2 (voir les notes jumelles sur validate/reject).
+    it('est refusee au role de service (un script ne doit jamais auto-resoudre une piece)', async () => {
+      const agencyId = await createAgency('resolve-denied-service-role')
+      const personId = await createSignatory(agencyId)
+      const checkId = await insertPendingIdDocumentCheck(personId)
+
+      const { error } = await serviceRoleClient().rpc('admin_resolve_agency_id_document', { p_check_id: checkId, p_result: 'match' })
+      expect(error?.code, `attendu ${DENIED}, recu ${error?.code}`).toBe(DENIED)
+
+      const svc = serviceRoleClient()
+      const { data, error: selErr } = await svc
+        .from('agency_person_verification_checks')
+        .select('id, result')
+        .eq('related_person_id', personId)
+        .eq('check_type', 'id_document')
+      if (selErr) throw new Error(`select checks: ${selErr.message}`)
+      expect(data, 'un refus ne doit ajouter aucune ligne').toHaveLength(1)
+      expect(data![0].result).toBe('pending_manual_review')
     })
   })
 })
