@@ -1005,7 +1005,7 @@
   "kybReview.actions.resolving": "Risoluzione in corso...",
   "kybReview.actions.resolveSuccess": "Documento d'identità risolto",
   "kybReview.actions.genericError": "L'azione non è riuscita. Riprova.",
-  "kybReview.actions.closedToast": "Pratica uscita dalla coda — nuovo stato: {{status}}",
+  "kybReview.actions.closedToast": "Pratica uscita dalla coda, nuovo stato: {{status}}",
   "kybReview.rejectDialog.title": "Rifiuta questa pratica",
   "kybReview.rejectDialog.reasonLabel": "Motivo del rifiuto",
   "kybReview.rejectDialog.reasonPlaceholder": "Spiega perché questa pratica viene rifiutata...",
