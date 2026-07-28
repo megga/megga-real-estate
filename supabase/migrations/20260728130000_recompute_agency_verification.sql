@@ -119,24 +119,43 @@ begin
   -- un score de 1.000. latest_person_checks est déjà restreint aux SIGNATAIRES ACTIFS et
   -- dédupliqué par (personne, type) : mêmes règles que côté entité, sans rien changer aux
   -- vétos de personne ci-dessous, qui continuent de lire la même CTE indépendamment.
+  --
+  -- JOIN LATERAL … LIMIT 1 plutôt qu'un JOIN plat : l'index unique sur
+  -- verification_check_config ne protège que les lignes OUVERTES (where valid_to is
+  -- null), rien n'empêche deux lignes FERMÉES du même check_type de se chevaucher dans le
+  -- temps (correction de données, rejeu de migration). Un JOIN plat compterait alors le
+  -- même check deux fois, une fois par ligne de config chevauchante — constaté en revue :
+  -- score de 0.800 au lieu de 0.667. Le moteur ne suppose plus la table propre : il ne
+  -- retient qu'UNE SEULE ligne de config par check (la plus récente par valid_from, id en
+  -- dernier départage), quel que soit l'état de la table.
   scored as (
     select lac.result, cfg.weight
     from latest_agency_checks lac
-    join public.verification_check_config cfg
-      on cfg.check_type = lac.check_type
-     and cfg.valid_from <= lac.checked_at
-     and (cfg.valid_to is null or cfg.valid_to > lac.checked_at)
-    where not cfg.is_veto
-      and lac.result not in ('unavailable', 'pending_manual_review')
+    join lateral (
+      select c.weight
+      from public.verification_check_config c
+      where c.check_type = lac.check_type
+        and c.valid_from <= lac.checked_at
+        and (c.valid_to is null or c.valid_to > lac.checked_at)
+        and not c.is_veto
+      order by c.valid_from desc, c.id desc
+      limit 1
+    ) cfg on true
+    where lac.result not in ('unavailable', 'pending_manual_review')
     union all
     select lpc.result, cfg.weight
     from latest_person_checks lpc
-    join public.verification_check_config cfg
-      on cfg.check_type = lpc.check_type
-     and cfg.valid_from <= lpc.checked_at
-     and (cfg.valid_to is null or cfg.valid_to > lpc.checked_at)
-    where not cfg.is_veto
-      and lpc.result not in ('unavailable', 'pending_manual_review')
+    join lateral (
+      select c.weight
+      from public.verification_check_config c
+      where c.check_type = lpc.check_type
+        and c.valid_from <= lpc.checked_at
+        and (c.valid_to is null or c.valid_to > lpc.checked_at)
+        and not c.is_veto
+      order by c.valid_from desc, c.id desc
+      limit 1
+    ) cfg on true
+    where lpc.result not in ('unavailable', 'pending_manual_review')
   ),
   -- Vétos : la politique EN VIGUEUR MAINTENANT (valid_to is null) dit QUELS types
   -- gatent — un type absent de la table de checks n'a pas de checked_at auquel ancrer

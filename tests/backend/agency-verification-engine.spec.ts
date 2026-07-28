@@ -498,6 +498,83 @@ describe.skipIf(!HAS_KEYS)('recompute_agency_verification — moteur de scoring 
     }
   })
 
+  it('deux fenetres de configuration FERMEES et chevauchantes ne comptent le poids qu une seule fois (revue point 5)', async () => {
+    // L'index unique qui protege verification_check_config ne couvre que les lignes
+    // OUVERTES (where valid_to is null) : rien n'empeche deux lignes FERMEES du meme
+    // check_type de se chevaucher dans le temps. Repro revue : score de 0.800 au lieu de
+    // 0.667 attendu -- le moteur doit se defendre lui-meme (ne retenir qu'une seule ligne
+    // de config par check), plutot que de supposer la table propre.
+    const svc = serviceRoleClient()
+    const CHECK_TYPE = 'phone_country_match' // inutilisé par les autres tests de ce fichier
+
+    const { data: currentRow, error: curErr } = await svc
+      .from('verification_check_config')
+      .select('id')
+      .eq('check_type', CHECK_TYPE)
+      .is('valid_to', null)
+      .single()
+    if (curErr) throw new Error(`config active ${CHECK_TYPE}: ${curErr.message}`)
+
+    const now = Date.now()
+    const farPast = new Date(now - 24 * 3600 * 1000).toISOString() // ferme la version courante avant les deux fenetres du test
+    // Deux fenetres FERMEES (valid_to non-null) qui se CHEVAUCHENT toutes les deux sur
+    // "maintenant" -- exactement le scenario que l'index unique (valid_to is null
+    // uniquement) ne peut pas empecher.
+    const windowAFrom = new Date(now - 2 * 3600 * 1000).toISOString()
+    const windowATo = new Date(now + 1 * 3600 * 1000).toISOString()
+    const windowBFrom = new Date(now - 3 * 3600 * 1000).toISOString()
+    const windowBTo = new Date(now + 2 * 3600 * 1000).toISOString()
+    const DUPLICATED_WEIGHT = 3.0
+
+    let rowAId: string | null = null
+    let rowBId: string | null = null
+
+    try {
+      const { error: closeErr } = await svc
+        .from('verification_check_config')
+        .update({ valid_to: farPast })
+        .eq('id', currentRow!.id)
+      if (closeErr) throw new Error(`fermeture config: ${closeErr.message}`)
+
+      const { data: rowA, error: aErr } = await svc
+        .from('verification_check_config')
+        .insert({ check_type: CHECK_TYPE, weight: DUPLICATED_WEIGHT, is_veto: false, valid_from: windowAFrom, valid_to: windowATo })
+        .select('id')
+        .single()
+      if (aErr) throw new Error(`insert fenetre A: ${aErr.message}`)
+      rowAId = rowA!.id as string
+
+      const { data: rowB, error: bErr } = await svc
+        .from('verification_check_config')
+        .insert({ check_type: CHECK_TYPE, weight: DUPLICATED_WEIGHT, is_veto: false, valid_from: windowBFrom, valid_to: windowBTo })
+        .select('id')
+        .single()
+      if (bErr) throw new Error(`insert fenetre B: ${bErr.message}`)
+      rowBId = rowB!.id as string
+
+      const agencyId = await createAgency('overlapping-config')
+      const signatoryId = await addActiveSignatory(agencyId)
+      await passAllVetoes(agencyId, signatoryId)
+      // checked_at = maintenant -> tombe dans LES DEUX fenetres A et B a la fois.
+      await insertAgencyCheck(agencyId, CHECK_TYPE, 'match')          // poids 3.00, une seule fois si correct
+      await insertAgencyCheck(agencyId, 'address_geocode', 'mismatch') // poids 1.50 -> 0
+
+      await recompute(agencyId)
+      const agency = await getAgency(agencyId)
+
+      // Correct : 3.00/(3.00+1.50) = 0.667. Bug (poids compte deux fois) : (3+3)/(3+3+1.5) = 0.800.
+      expect(
+        num(agency.verification_score),
+        'une seule ligne de config doit compter par check, meme si deux fenetres fermees se chevauchent'
+      ).toBeCloseTo(2 / 3, 2)
+      expect(num(agency.verification_score)).not.toBeCloseTo(0.8, 2)
+    } finally {
+      if (rowBId) await svc.from('verification_check_config').delete().eq('id', rowBId).then(() => {}, () => {})
+      if (rowAId) await svc.from('verification_check_config').delete().eq('id', rowAId).then(() => {}, () => {})
+      await svc.from('verification_check_config').update({ valid_to: null }).eq('id', currentRow!.id).then(() => {}, () => {})
+    }
+  })
+
   it('un hit PEP ou sanctions au niveau personne envoie en revue', async () => {
     const agencyId = await createAgency('pep-hit')
     const signatoryId = await addActiveSignatory(agencyId)
