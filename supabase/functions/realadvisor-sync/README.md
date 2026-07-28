@@ -77,7 +77,27 @@ de run à statut terminal), donc un crawl long ne le bloque pas.
 | `realadvisor_sweep_enabled` | **`false`** | `false` ⇒ sweep en **DRY-RUN** (compte, ne supprime rien). Passer à `true` pour ARMER, après ~2 cycles de calibrage |
 | `realadvisor_user_agent` | `''` | UA dédié (vide ⇒ fallback Chrome) |
 | `realadvisor_contact_email` | `''` | `From:` envoyé si renseigné |
-| `realadvisor_shard_map` | 3 buckets | rotation cantons du rolling (éditable pour rééquilibrer, mais garder **exactement 3** entrées — l'index est `% 3`) |
+| `realadvisor_shard_map` | 3 buckets | rotation cantons du rolling (éditable pour rééquilibrer, mais garder **exactement 3** entrées — l'index est `% 3`, cf. « Coût d'un bucket » ci-dessous) |
+
+### Coût d'un bucket — ⚠ le volume d'annonces n'est PAS le coût
+
+`buildWorklist` émet **33 slices par canton** (1 non filtrée + 32 bandes de prix),
+quelle que soit sa taille : AI coûte 33 requêtes pour 26 annonces. Et la durée suit
+les **pages**, pas les annonces (~1 `sleep(PACE_MS)` par page). Calibré sur les runs
+réels (`pages_fetched` / `chunks_completed` de `realadvisor_sync_runs`) :
+
+```
+pages ≈ 33 × n_cantons + 0,020 × annonces      durée ≈ 3,2 s / page
+```
+
+Mesure qui l'illustre : la nuit du 26/07 a vu **15 267** annonces en **22 min**
+(2 cantons, 66 slices), celle du 27/07 **16 187** en **39 min** (11 cantons,
+363 slices) — 6 % d'annonces en plus, presque deux fois plus de temps.
+
+⛔ Ne pas « rééquilibrer par volume » : TI seul pèse 23 % du catalogue, aucune
+partition ne peut égaliser les volumes sans découper un canton (impossible, le
+scoping se fait par slug), et viser l'égalité des volumes déplace des cantons hors
+du bucket le plus rapide — ça aggrave l'écart de durée. Équilibrer sur `pages`.
 
 ## Déclenchement manuel
 
