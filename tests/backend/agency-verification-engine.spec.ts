@@ -17,6 +17,24 @@
 // construction aucun chemin applicatif pour en recevoir un — bloquerait toute agence
 // avec UBO en revue humaine à perpétuité, pas par un vrai défaut de conformité mais par
 // une incohérence de périmètre entre le moteur et le wizard.
+//
+// ⚠ LIMITE STRUCTURELLE DU NETTOYAGE (afterAll ci-dessous) — pourquoi ta base locale
+// grossit. Chaque test ici appelle recompute_agency_verification(), qui journalise
+// SYSTÉMATIQUEMENT un activity_events (category=kyc, actor_kind=system). Cette ligne est
+// append-only (trigger enforce_activity_events_immutability, LBA art. 7) : la seule
+// UPDATE autorisée sur une ligne actor_kind=system est l'anonymisation nLPD, qui exige
+// explicitement agency_id INCHANGÉ. Or supprimer l'agence déclenche
+// activity_events_agency_id_fkey (ON DELETE SET NULL), qui tente de mettre agency_id À
+// NULL — un changement, donc jamais l'anonymisation — et le trigger lève P0001. Résultat :
+// TOUTE agence sur laquelle le moteur a tourné au moins une fois ne peut plus JAMAIS être
+// supprimée par un DELETE ordinaire. Ce n'est pas un bug de ce fichier, c'est la garantie
+// de conformité elle-même (append-only pendant 10 ans) qu'on ne va pas affaiblir pour
+// autant. Le afterAll ci-dessous supprime ce qui peut l'être et RAPPORTE nommément,
+// avec la raison exacte renvoyée par Postgres, ce qu'il ne peut pas supprimer — plutôt que
+// d'avaler l'erreur en silence (PostgREST renvoie cette erreur dans le corps de la
+// réponse, pas en rejet de promesse : un `.then(() => {}, () => {})` qui ignore la valeur
+// résolue l'avalait sans même la lire). D'où les agences de test qui persistent en base
+// locale d'une exécution à l'autre : attendu, documenté, plus jamais silencieux.
 
 import { describe, it, expect, afterAll } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -49,13 +67,27 @@ describe.skipIf(!HAS_KEYS)('recompute_agency_verification — moteur de scoring 
 
   afterAll(async () => {
     const svc = serviceRoleClient()
+    // Best-effort HONNÊTE (voir la note en tête de fichier) : chaque échec est collecté
+    // avec la raison exacte plutôt qu'avalé, une agence qui échoue n'empêche pas les
+    // suivantes d'être tentées.
+    const undeletable: { id: string; reason: string }[] = []
     for (const id of agencyIds) {
       // cascade : agency_related_persons, agency_person_roles, agency_verification_checks,
-      // agency_person_verification_checks partent avec l'agence (ON DELETE CASCADE).
-      await svc.from('agencies').delete().eq('id', id).then(() => {}, () => {})
+      // agency_person_verification_checks partent avec l'agence (ON DELETE CASCADE) —
+      // SAUF si le moteur a tourné dessus : voir la note en tête de fichier.
+      const { error } = await svc.from('agencies').delete().eq('id', id)
+      if (error) undeletable.push({ id, reason: `${error.code ?? '?'} ${error.message}` })
     }
     for (const id of userIds) {
       await svc.auth.admin.deleteUser(id).then(() => {}, () => {})
+    }
+    if (undeletable.length > 0) {
+      console.warn(
+        `[agency-verification-engine.spec.ts] ${undeletable.length}/${agencyIds.length} agence(s) de test ` +
+        `non supprimee(s) -- limite structurelle documentee en tete de fichier ` +
+        `(activity_events est append-only, LBA art. 7), pas un echec inattendu :\n` +
+        undeletable.map((u) => `  - ${u.id} : ${u.reason}`).join('\n')
+      )
     }
   })
 
