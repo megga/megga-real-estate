@@ -166,14 +166,23 @@ jobs:
       # qu'elles avaient été appliquées à la main (MCP apply_migration) avant le
       # merge — c'est la discipline humaine qui tient, pas la CI.
       #
-      # Cette étape n'applique rien et ne bloque rien : l'application manuelle EST
-      # le flux normal du dépôt, échouer casserait un déploiement pour une migration
-      # déjà en base. Elle rend seulement l'omission VISIBLE au lieu de silencieuse.
+      # Cette étape n'applique jamais rien elle-même : l'application manuelle EST
+      # le flux normal du dépôt. Jusqu'ici elle se contentait de rendre l'omission
+      # VISIBLE, sans distinguer une migration réellement absente d'une migration
+      # déjà appliquée à la main. Depuis le 28 juil. 2026, elle vérifie chaque
+      # migration sautée contre supabase_migrations.schema_migrations avant
+      # d'avertir : présente dans cette table, elle se tait ; absente, ou
+      # vérification impossible, elle avertit comme avant. Elle n'échoue jamais.
+      # Pourquoi pas d'échec dur alors que c'était l'objectif initial : voir le
+      # raisonnement détaillé juste avant l'appel à l'API, plus bas dans ce step.
       - name: Migrations sautées par le date-guard (alerte)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          SB_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -e
           TODAY=$(date -u +%Y%m%d)
+          PROJECT_REF=eayczugyrvmtqnnmvjod
 
           # Fichiers AJOUTÉS par ce push, lus dans la charge utile de l'événement :
           # actions/checkout ne clone qu'un commit, donc `git diff` n'a pas
@@ -213,6 +222,117 @@ jobs:
             exit 0
           fi
 
+          # Vérification contre supabase_migrations.schema_migrations, la table
+          # que Supabase alimente pour suivre les versions de migration déjà
+          # appliquées.
+          #
+          # Hypothèse testée en local le 28 juil. 2026, avant d'écrire ce bloc,
+          # sur l'instance Supabase locale de ce dépôt (table inspectée
+          # directement en SQL) : si une version y figure, la migration a été
+          # appliquée par un outil qui connaît cette table (CLI `db push` ou
+          # `migration up`, ou tout outil équivalent côté Management API qui
+          # l'alimente explicitement). Cette moitié de l'hypothèse tient :
+          # trouvée veut dire appliquée, avec certitude.
+          #
+          # L'autre moitié ne tient pas. L'étape "Apply Supabase migrations"
+          # juste au-dessus, et le remède manuel qu'elle documente plus bas
+          # (l'éditeur SQL de Studio), exécutent toutes les deux une requête
+          # SQL brute contre la base sans jamais écrire dans schema_migrations :
+          # c'est déjà ce que dit son commentaire au sujet de `supabase db push`,
+          # qui échoue sur les migrations passées par l'éditeur SQL et jamais
+          # tracées là. Revérifié ici en local : rejouer du DDL par le même
+          # mécanisme (requête brute) n'ajoute aucune ligne à schema_migrations,
+          # et aucun event trigger Postgres ne fait ce lien (les seuls présents
+          # sur l'instance locale concernent pg_graphql, PostgREST, pg_cron et
+          # pg_net, rien qui touche supabase_migrations). Donc absente ne prouve
+          # pas manquante : ça peut aussi vouloir dire "appliquée par le même
+          # chemin que la CI elle-même utilise, qui ne trace rien".
+          #
+          # D'où la règle appliquée plus bas : trouvée, on se tait (preuve
+          # suffisante). Pas trouvée, ou vérification impossible (réseau,
+          # réponse illisible, token absent), on avertit comme avant, on
+          # n'échoue jamais. Un échec dur sur simple absence bloquerait le
+          # déploiement (Cloudflare Pages et Edge Functions inclus, ce step les
+          # précède) pour tout push dont le rattrapage a suivi à la lettre le
+          # remède n°2 documenté plus bas (éditeur SQL). Ce ne serait pas un
+          # garde-fou plus strict, ce serait un générateur de faux échecs sur
+          # le flux normal du dépôt. Condition précise qui rendrait un échec
+          # dur légitime : démontrer que CHAQUE chemin d'application manuelle
+          # de ce dépôt écrit dans schema_migrations, ce qui n'est démontré
+          # aujourd'hui pour aucun d'entre eux.
+          confirmed=""
+          unconfirmed="$skipped"
+          check_ok=0
+          http=000
+
+          if [ -z "$SB_TOKEN" ]; then
+            echo "::warning::SUPABASE_ACCESS_TOKEN absent - verification schema_migrations NON effectuee, avertissement standard applique a toutes les migrations sautees"
+          else
+            versions_sql=""
+            while IFS= read -r base; do
+              [ -z "$base" ] && continue
+              v="${base%%_*}"
+              case "$v" in ''|*[!0-9]*) continue ;; esac
+              versions_sql="${versions_sql}'${v}',"
+            done <<< "$skipped"
+            versions_sql="${versions_sql%,}"
+
+            if [ -n "$versions_sql" ]; then
+              query="select version from supabase_migrations.schema_migrations where version = any(array[${versions_sql}]);"
+              body=$(jq -Rs '{query: .}' <<< "$query")
+              # `if http=$(curl ...)` et non `http=$(curl ...)` seul : sous
+              # `set -e`, un curl qui echoue completement (DNS, connexion
+              # refusee) ferait avorter tout le step avec la seconde forme.
+              # Dans une condition de if, set -e ne s'applique pas a la
+              # commande testee, donc un echec reseau tombe proprement dans
+              # le else au lieu de tuer le job.
+              if http=$(curl -sS -o /tmp/sb_tracked.json -w '%{http_code}' --max-time 15 \
+                  -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+                  -H "Authorization: Bearer $SB_TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d "$body" 2>/tmp/sb_tracked.err); then
+                :
+              else
+                http=000
+              fi
+
+              case "$http" in
+                2[0-9][0-9])
+                  if jq -e 'type == "array"' /tmp/sb_tracked.json >/dev/null 2>&1; then
+                    check_ok=1
+                  fi
+                  ;;
+              esac
+            fi
+          fi
+
+          if [ "$check_ok" -eq 1 ]; then
+            found=$(jq -r '.[].version' /tmp/sb_tracked.json | sort -u)
+            confirmed=""
+            unconfirmed=""
+            while IFS= read -r base; do
+              [ -z "$base" ] && continue
+              v="${base%%_*}"
+              if printf '%s\n' "$found" | grep -qx -- "$v"; then
+                confirmed="${confirmed}${base}"$'\n'
+              else
+                unconfirmed="${unconfirmed}${base}"$'\n'
+              fi
+            done <<< "$skipped"
+          elif [ -n "$SB_TOKEN" ]; then
+            echo "::warning::Controle schema_migrations non concluant (reseau, reponse illisible, ou aucune version exploitable, dernier HTTP $http) - avertissement standard applique a toutes les migrations sautees"
+          fi
+
+          if [ -n "$confirmed" ]; then
+            echo "Confirmees dans supabase_migrations.schema_migrations (deja appliquees, rien a signaler) :"
+            printf '%s' "$confirmed" | sed 's/^/  - /'
+          fi
+
+          if [ -z "$unconfirmed" ]; then
+            echo "OK : toutes les migrations sautees par ce push sont confirmees appliquees."
+            exit 0
+          fi
+
           {
             echo "### Migration(s) NON appliquee(s) par la CI"
             echo
@@ -220,8 +340,15 @@ jobs:
             echo "le filtre \`stamp >= TODAY\` les a sautees, et **aucun deploiement ulterieur"
             echo "ne les rattrapera**."
             echo
-            printf '%s' "$skipped" | sed 's/^/- `/; s/$/`/'
+            printf '%s' "$unconfirmed" | sed 's/^/- `/; s/$/`/'
             echo
+            if [ "$check_ok" -eq 1 ]; then
+              echo "Non trouvee(s) dans \`supabase_migrations.schema_migrations\` : ni la CI ni un"
+              echo "outil qui alimente cette table ne l'a appliquee. Ca n'exclut PAS une"
+              echo "application via l'editeur SQL (option 2 ci-dessous), qui n'ecrit pas dans"
+              echo "cette table non plus : verifiez a la main avant de conclure a un manque reel."
+              echo
+            fi
             echo "**A faire**, dans cet ordre de preference :"
             echo
             echo "1. **Re-horodater** ces fichiers au jour du merge (\`git mv\`, ordre relatif"
@@ -240,7 +367,7 @@ jobs:
           while IFS= read -r base; do
             [ -z "$base" ] && continue
             echo "::warning file=supabase/migrations/$base::$base n'a PAS ete appliquee par la CI (horodatage < $TODAY) — verifier l'application manuelle"
-          done <<< "$skipped"
+          done <<< "$unconfirmed"
 
       - name: Deploy to Cloudflare Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
