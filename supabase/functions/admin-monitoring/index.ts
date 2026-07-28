@@ -217,6 +217,20 @@ serve(async (req) => {
 
     await supabaseAdmin.from('platform_metrics').insert(metrics)
 
+    // Rétention 180 jours. Cette table n'en avait AUCUNE : elle grossit d'une
+    // vingtaine de lignes par heure depuis avril 2026 et ne se vidait jamais.
+    // La purge tient ici plutôt que dans un cron dédié — ce job tourne déjà
+    // toutes les heures, et c'est lui qui écrit ces lignes. Le seul écran qui
+    // les lit (`MrrSparkline`) remonte à 30 jours : 180 laisse six fois la marge
+    // nécessaire, de quoi ouvrir une vue plus longue sans toucher à la purge.
+    // Best-effort : une purge en échec ne doit pas perdre la collecte.
+    try {
+      const cutoff = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString()
+      await supabaseAdmin.from('platform_metrics').delete().lt('recorded_at', cutoff)
+    } catch (e) {
+      console.error('[admin-monitoring] purge platform_metrics failed:', (e as Error)?.message ?? 'error')
+    }
+
     // ── Alerting proactif (P3) — seuils app_config, dédup 24h, email aux
     // admins allowlistés. Best-effort : ne casse jamais la collecte.
     try {

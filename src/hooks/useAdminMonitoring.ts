@@ -160,21 +160,6 @@ export function useAdminMonitoring() {
   })
 
   // Metrics history for sparklines
-  const metricsHistory = useQuery({
-    queryKey: ['admin-monitoring-history'],
-    queryFn: async () => {
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-      const { data, error } = await supabase
-        .from('platform_metrics')
-        .select('metric_type, metric_value, recorded_at')
-        .gte('recorded_at', weekAgo)
-        .order('recorded_at', { ascending: true })
-      if (error) throw error
-      return data ?? []
-    },
-    staleTime: 300_000, // 5 min
-  })
-
   return {
     health: health.data,
     healthLoading: health.isLoading,
@@ -183,6 +168,5 @@ export function useAdminMonitoring() {
     edgeFunctionsLoading: edgeFunctions.isLoading,
     errorLogs: errorLogs.data ?? [],
     errorLogsLoading: errorLogs.isLoading,
-    metricsHistory: metricsHistory.data ?? [],
   }
 }
