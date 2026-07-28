@@ -567,6 +567,15 @@ export default function AdminMonitoringPage() {
  * ont une (DB, storage) : mélanger les deux dépareillerait la grille. La
  * typographie est celle d'`AdminStat` (19/800/-0.6 sur le chiffre).
  */
+/**
+ * Tuile de santé — locale à cet écran, et volontairement distincte d'`AdminStat`.
+ *
+ * Même bento, même taille de chiffre, mais l'arrangement diffère (libellé
+ * AU-DESSUS de la valeur, pas à côté) et elle porte une jauge de remplissage
+ * qu'aucune autre surface n'utilise. Les fondre dans le kit donnerait un atome
+ * à sept props dont deux s'excluent — une jauge et une tendance ne cohabitent
+ * pas dans la même tuile.
+ */
 function HealthTile({ icon, label, value, valueColor, gauge, hint }: {
   icon: LucideIcon
   label: string

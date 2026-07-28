@@ -15,13 +15,12 @@ import { useTranslation } from 'react-i18next'
 import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle, UserCog } from 'lucide-react'
 import { useAdminStats } from '@/hooks/useAdminStats'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
-import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import BillingDashboard from '@/components/admin/BillingDashboard'
 import WeeklyReportPreview from '@/components/admin/WeeklyReportPreview'
 import OnboardingTracker from '@/components/admin/OnboardingTracker'
 import ActivityLog from '@/components/admin/ActivityLog'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminEmpty, AdminError, AdminGroupTitle, AdminIc, AdminPill, AdminSkeleton } from '@/components/admin/kit/adminKit'
+import { AdminCard, AdminEmpty, AdminError, AdminGroupTitle, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { formatRelativeDate } from '@/lib/utils'
 
@@ -107,14 +106,14 @@ export default function AdminDashboardPage() {
         </div>
       ) : kpis ? (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <AdminKpiCard compact label={t('dashboard.kpi.agencies')} value={kpis.activeAgencies} icon={Building2}
-            trend={kpis.newAgenciesThisMonth > 0 ? { value: kpis.newAgenciesThisMonth, label: '' } : undefined} />
-          <AdminKpiCard compact label={t('dashboard.kpi.users')} value={kpis.totalUsers} icon={Users} variant="blue"
-            trend={kpis.newUsersThisMonth > 0 ? { value: kpis.newUsersThisMonth, label: '' } : undefined} />
-          <AdminKpiCard compact label={t('dashboard.kpi.activeProperties')} value={kpis.activeProperties} icon={Home} variant="blue" />
-          <AdminKpiCard compact label={t('dashboard.kpi.transactions')} value={kpis.activeTransactions} icon={GitBranch} variant="success" />
-          <AdminKpiCard compact label={t('dashboard.kpi.kycAtRisk')} value={kpis.highRiskKyc} icon={ShieldAlert}
-            variant={kpis.highRiskKyc > 0 ? 'danger' : 'default'} />
+          <AdminStat label={t('dashboard.kpi.agencies')} value={kpis.activeAgencies} icon={Building2}
+            trend={kpis.newAgenciesThisMonth > 0 ? kpis.newAgenciesThisMonth : undefined} />
+          <AdminStat label={t('dashboard.kpi.users')} value={kpis.totalUsers} icon={Users} tone="info"
+            trend={kpis.newUsersThisMonth > 0 ? kpis.newUsersThisMonth : undefined} />
+          <AdminStat label={t('dashboard.kpi.activeProperties')} value={kpis.activeProperties} icon={Home} tone="info" />
+          <AdminStat label={t('dashboard.kpi.transactions')} value={kpis.activeTransactions} icon={GitBranch} tone="ok" />
+          <AdminStat label={t('dashboard.kpi.kycAtRisk')} value={kpis.highRiskKyc} icon={ShieldAlert}
+            tone={kpis.highRiskKyc > 0 ? 'err' : undefined} />
         </div>
       ) : null}
 
