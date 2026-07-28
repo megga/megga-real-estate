@@ -51,7 +51,18 @@ export default function AdminMonitoringPage() {
   const balance = deepseekBalance.data?.total_balance_usd ?? null
   const balanceLow = balance !== null && balance < 20
 
-  // Flatfox sync status — lightweight query to show in monitoring
+  // Santé de la synchro Flatfox.
+  //
+  // `count: 'exact'` sur `market_listings` (173k lignes) est ici une exception
+  // ASSUMÉE à la règle §7, et elle tient à un index. Sans lui, ce comptage
+  // prenait 17 s (bitmap heap scan, 19 934 blocs) — au-delà du statement_timeout
+  // de 8 s du rôle `authenticated` : la carte échouait tout simplement. Avec
+  // `idx_ml_flatfox_sync` (partiel sur flatfox, INCLUDE status), c'est un
+  // index-only scan à 166 ms, mesuré.
+  //
+  // Pourquoi pas `estimated` : l'estimation du planificateur donne 46 023 pour
+  // 35 341 lignes réelles. Sur une carte qui sert à repérer une synchro en
+  // panne, 10 000 annonces d'écart valent moins que 166 ms.
   const flatfoxStats = useQuery({
     queryKey: ['admin-flatfox-stats'],
     queryFn: async () => {

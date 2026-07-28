@@ -40,6 +40,10 @@ export function useAdminModeration() {
         .select('id, title, price, city, canton, photos, published_at, moderation_status, moderation_reason, agency_id')
         .in('status', ['active', 'reserved'])
         .order('published_at', { ascending: false })
+        // Plafond très au-delà de ce que la pagination (15/page) atteint : la
+        // requête n'était pas bornée du tout, ce qui la faisait grossir avec le
+        // portefeuille de TOUTES les agences.
+        .limit(500)
       if (error) throw error
 
       const agencyIds = [...new Set((data ?? []).map(p => p.agency_id).filter(Boolean))]
