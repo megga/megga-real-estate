@@ -316,8 +316,15 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 ```
 DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
-STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+MAPBOX_TOKEN
 ```
+
+> `MAPBOX_TOKEN` est distinct de `VITE_MAPBOX_TOKEN` (secret GitHub Actions, injecté au
+> build du bundle navigateur). Le connecteur de géocodage KYB tourne dans une Edge
+> Function, côté serveur : il lui faut le jeton dans les secrets Supabase, pas dans le
+> build. La même valeur convient. Sans lui, le check `address_geocode` produit
+> `unavailable`, ce qui ne casse rien mais retire un signal du score.
 
 ### Secrets GitHub Actions
 ```
