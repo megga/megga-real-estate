@@ -26,11 +26,29 @@
  * affirmer sur une agence qui n'existe pas, et les deux edge functions
  * refusent de toute facon un profil sans agency_id (requireAgentAuth, 403)
  * avant meme d'atteindre ce garde.
+ *
+ * Correctif revue (etape 5/tache 4, point 3, important) : le fail-closed sur une
+ * lecture en echec reste juste cote SERVEUR (agency-lab-guard.ts refuse par
+ * construction) — c'est LUI qui protege reellement. Cote CLIENT en revanche,
+ * afficher 'blocked_not_submitted' sur une simple erreur reseau/RLS AFFIRME une
+ * chose fausse ("jamais soumis") a une agence par ailleurs deja validee : verifie
+ * en conditions reelles, une agence validee s'est vue murement hors du KYC avec ce
+ * message errone. Le garde client doit se taire (retomber sur 'loading', memes
+ * ecrans neutres que l'etat non resolu) tant qu'il ne SAIT pas — d'ou le champ
+ * agencyStatusError, verifie AVANT le fail-closed "jamais soumis" ci-dessous.
  */
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { UserRole } from '@/types/auth'
+
+/** Prefixe des routes que KycLabGuard remplace par son propre ecran de blocage
+ *  (kyc, kyc/bienvenue, kyc/:dossierId — App.tsx). Consomme par LabGuardBanner pour
+ *  ne pas repeter son propre message au-dessus d'un ecran qui dit deja tout
+ *  (correctif revue, point mineur). Vit ici (pas dans KycLabGuard.tsx, charge en
+ *  lazy()) pour ne pas tirer ce module dans le chunk du bandeau, monte sur CHAQUE
+ *  page du CRM agent. */
+export const KYC_LAB_GUARD_ROUTE_PREFIX = '/dashboard/kyc'
 
 export type LabGuardStatus =
   | 'loading'
@@ -46,7 +64,16 @@ export interface ResolveLabGuardStatusInput {
   agencyId: string | null
   /** Lecture agencies.verification_status/identity_submitted_at en cours (useQuery().isLoading). */
   agencyStatusLoading: boolean
-  /** null = jamais soumis ; horodatage = soumis ; undefined = lecture non aboutie/en echec (fail-closed, traite comme null). */
+  /** Lecture agencies.verification_status/identity_submitted_at en echec (useQuery().isError).
+   *  Verifiee AVANT le fail-closed "jamais soumis" : une erreur reseau/RLS ne doit
+   *  jamais s'afficher comme un verdict ("jamais soumis"/statut perime) — cf.
+   *  correctif revue point 3 dans l'en-tete du fichier. */
+  agencyStatusError: boolean
+  /** null = jamais soumis ; horodatage = soumis ; undefined = filet defensif si la
+   *  lecture est reputee reussie (agencyStatusError=false) mais renvoie quand meme
+   *  une valeur absente — ne devrait pas survenir en pratique (AgencyLabGuardRow
+   *  n'a pas de champ optionnel), cf. agencyStatusError pour la vraie erreur de
+   *  lecture. */
   identitySubmittedAt: string | null | undefined
   /** undefined = lecture non aboutie/en echec. Sinon une des 5 valeurs de la contrainte
    *  CHECK agencies_verification_status_chk (migration 20260728107000). */
@@ -59,7 +86,7 @@ export interface ResolveLabGuardStatusInput {
  * d'abord (garde-fou anti-faux-positif), puis preuve de soumission, puis verdict.
  */
 export function resolveLabGuardStatus(input: ResolveLabGuardStatusInput): LabGuardStatus {
-  const { authLoading, agencyId, agencyStatusLoading, identitySubmittedAt, verificationStatus } = input
+  const { authLoading, agencyId, agencyStatusLoading, agencyStatusError, identitySubmittedAt, verificationStatus } = input
 
   // Garde-fou : tant que la session n'est pas resolue, on ne decide rien.
   if (authLoading) return 'loading'
@@ -73,10 +100,20 @@ export function resolveLabGuardStatus(input: ResolveLabGuardStatusInput): LabGua
 
   if (agencyStatusLoading) return 'loading'
 
-  // Fail-closed, meme motif que resolveIdentityGateStatus ("lecture en echec ->
-  // required") : identitySubmittedAt undefined (erreur reseau/RLS) n'est jamais
-  // confondu avec une preuve positive de soumission. `== null` couvre a la fois
-  // null (jamais soumis) et undefined (lecture en echec) en une seule branche.
+  // Correctif revue (point 3, important) : une lecture en echec retombe sur
+  // 'loading', PAS sur un blocage. Le fail-closed reste juste cote SERVEUR
+  // (agency-lab-guard.ts) ; cote client, afficher 'blocked_not_submitted' sur une
+  // simple erreur reseau/RLS affirmerait une chose fausse a une agence par ailleurs
+  // deja validee (verifie en conditions reelles). Verifiee AVANT le fail-closed
+  // "jamais soumis" ci-dessous : une lecture en echec ne doit jamais etre confondue
+  // avec une preuve, positive ou negative.
+  if (agencyStatusError) return 'loading'
+
+  // Filet defensif : identitySubmittedAt ne devrait etre undefined qu'en cas
+  // d'erreur de lecture (deja ecartee ci-dessus) — AgencyLabGuardRow n'a pas de
+  // champ optionnel, donc une lecture reputee reussie renvoie toujours null (jamais
+  // soumis) ou un horodatage (soumis). Si cette hypothese etait un jour violee
+  // (donnee malformee), rester fail-closed reste le choix le plus sur.
   if (identitySubmittedAt == null) return 'blocked_not_submitted'
 
   // Liste BLANCHE, jamais liste noire : seules ces deux valeurs debloquent l'agence.
@@ -123,7 +160,7 @@ export function useLabGuard(): LabGuardStatus {
   const { profile, loading: authLoading } = useAuth()
   const agencyId = profile?.agency_id ?? null
 
-  const { data, isLoading: agencyStatusLoading } = useQuery({
+  const { data, isLoading: agencyStatusLoading, isError: agencyStatusError } = useQuery({
     queryKey: ['agency-lab-guard-status', agencyId],
     queryFn: async (): Promise<AgencyLabGuardRow> => {
       const { data, error } = await supabase
@@ -142,6 +179,10 @@ export function useLabGuard(): LabGuardStatus {
     authLoading,
     agencyId,
     agencyStatusLoading,
+    // Correctif revue (point 3, important) : une lecture en echec (isError) retombe
+    // sur 'loading' dans resolveLabGuardStatus, jamais sur un blocage — cf. l'en-tete
+    // du fichier et son propre commentaire.
+    agencyStatusError,
     identitySubmittedAt: data?.identity_submitted_at,
     verificationStatus: data?.verification_status,
   })

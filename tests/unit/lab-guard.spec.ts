@@ -24,6 +24,7 @@ const base: ResolveLabGuardStatusInput = {
   authLoading: false,
   agencyId: 'agency-1',
   agencyStatusLoading: false,
+  agencyStatusError: false,
   identitySubmittedAt: '2026-07-20T08:00:00.000Z',
   verificationStatus: 'auto_validated',
 }
@@ -39,6 +40,32 @@ describe('resolveLabGuardStatus — garde-fou : jamais de blocage ni de bandeau 
 
   it('authLoading prime sur tout le reste, meme sans agence connue', () => {
     expect(resolveLabGuardStatus({ ...base, authLoading: true, agencyId: null })).toBe('loading')
+  })
+})
+
+describe('resolveLabGuardStatus — correctif revue (point 3, important) : une lecture en echec retombe sur loading, jamais un blocage', () => {
+  // Le fail-closed serveur (supabase/functions/_shared/agency-lab-guard.ts) reste
+  // correct et INCHANGE : une lecture en echec y refuse l'action, par construction —
+  // c'est LUI qui protege reellement. Cote CLIENT en revanche, afficher
+  // "blocked_not_submitted" sur une simple erreur reseau/RLS AFFIRME une chose fausse
+  // ("jamais soumis") a une agence par ailleurs deja validee : verifie en conditions
+  // reelles, une agence validee s'est vue murement hors du KYC avec ce message errone.
+  // Le garde doit se taire (rester 'loading', memes ecrans neutres que l'etat non
+  // resolu) tant qu'il ne SAIT pas — le controle qui compte reste le serveur.
+  it('agencyStatusError (useQuery().isError) -> loading, jamais blocked_not_submitted', () => {
+    expect(resolveLabGuardStatus({ ...base, agencyStatusError: true })).toBe('loading')
+  })
+
+  it('agencyStatusError prime sur un identitySubmittedAt absent (la lecture a echoue, on ne sait rien affirmer)', () => {
+    expect(
+      resolveLabGuardStatus({ ...base, agencyStatusError: true, identitySubmittedAt: undefined, verificationStatus: undefined })
+    ).toBe('loading')
+  })
+
+  it('agencyStatusError prime meme si un ancien identitySubmittedAt reste en cache (staleTime 60s) — ne pas affirmer un verdict perime', () => {
+    expect(
+      resolveLabGuardStatus({ ...base, agencyStatusError: true, verificationStatus: 'rejected' })
+    ).toBe('loading')
   })
 })
 
@@ -61,9 +88,15 @@ describe('resolveLabGuardStatus — dossier jamais soumis', () => {
     expect(resolveLabGuardStatus({ ...base, identitySubmittedAt: null })).toBe('blocked_not_submitted')
   })
 
-  it('lecture en echec (identitySubmittedAt undefined) -> blocked_not_submitted, fail-closed', () => {
-    // Meme motif que useIdentityGate.spec.ts ("lecture en echec -> required, fail-closed") :
-    // une erreur reseau/RLS n'est jamais confondue avec une preuve positive de soumission.
+  it('identitySubmittedAt undefined SANS agencyStatusError -> blocked_not_submitted, filet defensif', () => {
+    // Etat qui ne devrait jamais survenir en pratique : une lecture reussie
+    // (agencyStatusError=false, agencyStatusLoading=false) renvoie toujours une ligne
+    // complete (AgencyLabGuardRow — identity_submitted_at: string | null, jamais
+    // undefined) ou leve une erreur qui pose agencyStatusError=true. Ce test couvre
+    // uniquement le filet defensif si cette hypothese etait un jour violee (donnee
+    // malformee) : contrairement a une ERREUR DE LECTURE (couverte par
+    // agencyStatusError, cf. describe ci-dessus -> loading), une donnee reputee
+    // presente mais vide reste traitee comme une absence de preuve.
     expect(resolveLabGuardStatus({ ...base, identitySubmittedAt: undefined })).toBe('blocked_not_submitted')
   })
 
