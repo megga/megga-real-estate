@@ -1,9 +1,6 @@
 {
   "gate": {
     "shell": {
-      "eyebrow": "Étape obligatoire",
-      "title": "Confirmez l'identité légale de votre agence",
-      "body": "Avant d'accéder à votre espace MEGGA, un dirigeant doit renseigner l'identité légale de l'agence. Cette vérification est exigée par la loi suisse sur le blanchiment d'argent (LBA).",
       "preparing": "Préparation du formulaire de saisie…"
     },
     "mobileNotice": {
@@ -12,8 +9,8 @@
       "body": "La saisie de l'identité légale de votre agence nécessite un écran plus grand. Connectez-vous depuis un ordinateur pour la terminer."
     },
     "pendingNotice": {
-      "eyebrow": "Dossier en attente",
-      "title": "Votre dossier reste en attente",
+      "eyebrow": "Saisie interrompue",
+      "title": "Votre saisie a été interrompue",
       "body": "Rien n'est perdu : chaque étape validée par Continuer est déjà enregistrée dans nos systèmes, qui en restent la source. Reprenez la saisie quand vous le souhaitez, vous retrouverez exactement ce que vous aviez déjà renseigné.",
       "resumeButton": "Reprendre la saisie"
     }
@@ -58,7 +55,7 @@
     "agence": {
       "eyebrow": "Identité de l'agence",
       "title": "Quelle est l'identité légale de votre agence ?",
-      "subtitle": "Ces informations doivent correspondre exactement à celles de votre registre du commerce. Elles sont exigées par la loi suisse sur le blanchiment d'argent (LBA).",
+      "subtitle": "Ces informations doivent correspondre exactement à celles de votre registre du commerce. Nous les collectons dans le cadre de nos contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA).",
       "fields": {
         "country": "Pays du siège",
         "countryPlaceholder": "Sélectionner un pays",
@@ -82,10 +79,10 @@
     "beneficiaires": {
       "eyebrow": "Bénéficiaires effectifs",
       "title": "Qui sont les bénéficiaires effectifs de votre agence ?",
-      "subtitle": "Indiquez les personnes physiques qui détiennent ou contrôlent l'agence, comme l'exige la loi suisse sur le blanchiment d'argent (LBA). Le seuil de référence est de 25 % (norme du GAFI) : c'est une aide à la saisie, vous pouvez déclarer une personne même en dessous.",
+      "subtitle": "Indiquez les personnes physiques qui détiennent ou contrôlent l'agence. Nous recueillons ces informations dans le cadre de nos contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA). Le seuil de référence est de 25 % (norme du GAFI) : c'est une aide à la saisie, vous pouvez déclarer une personne même en dessous.",
       "reuseSignataire": "Reprendre {{name}} (signataire)",
       "addButton": "Ajouter un bénéficiaire effectif",
-      "emptyHint": "Aucun bénéficiaire effectif déclaré pour l'instant. C'est possible si aucune personne physique ne détient seule 25 % ou plus de l'agence.",
+      "emptyHint": "Aucun bénéficiaire effectif déclaré pour l'instant. C'est possible si aucune personne physique ne détient ou ne contrôle seule 25 % ou plus de l'agence : déclarez alors la personne qui la contrôle autrement, ou à défaut un membre de l'organe supérieur de direction.",
       "removeButton": "Retirer ce bénéficiaire effectif",
       "fields": {
         "firstName": "Prénom",

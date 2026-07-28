@@ -1,9 +1,6 @@
 {
   "gate": {
     "shell": {
-      "eyebrow": "Required step",
-      "title": "Confirm your agency's legal identity",
-      "body": "Before you can access your MEGGA workspace, a principal must provide the agency's legal identity. This verification is required under Swiss anti-money laundering law (AMLA).",
       "preparing": "Preparing the form…"
     },
     "mobileNotice": {
@@ -12,8 +9,8 @@
       "body": "Entering your agency's legal identity requires a larger screen. Sign in from a computer to complete it."
     },
     "pendingNotice": {
-      "eyebrow": "Application on hold",
-      "title": "Your application is on hold",
+      "eyebrow": "Entry interrupted",
+      "title": "Your entry was interrupted",
       "body": "Nothing is lost: every step you confirmed with Continue is already saved in our systems, which remain the source of record. Resume whenever you're ready, you'll find exactly what you already entered.",
       "resumeButton": "Resume"
     }
@@ -58,7 +55,7 @@
     "agence": {
       "eyebrow": "Agency identity",
       "title": "What is your agency's legal identity?",
-      "subtitle": "This information must match your commercial register entry exactly. It is required under Swiss anti-money laundering law (AMLA).",
+      "subtitle": "This information must match your commercial register entry exactly. We collect it as part of our compliance controls, under Swiss anti-money laundering law (AMLA).",
       "fields": {
         "country": "Country of registration",
         "countryPlaceholder": "Select a country",
@@ -82,10 +79,10 @@
     "beneficiaires": {
       "eyebrow": "Beneficial owners",
       "title": "Who are your agency's beneficial owners?",
-      "subtitle": "Provide the individuals who own or control the agency, as required under Swiss anti-money laundering law (AMLA). The reference threshold is 25% (FATF standard): this is a data-entry aid, you can still declare someone below it.",
+      "subtitle": "Provide the individuals who own or control the agency. We collect this information as part of our compliance controls, under Swiss anti-money laundering law (AMLA). The reference threshold is 25% (FATF standard): this is a data-entry aid, you can still declare someone below it.",
       "reuseSignataire": "Reuse {{name}} (signatory)",
       "addButton": "Add a beneficial owner",
-      "emptyHint": "No beneficial owner declared yet. This is possible if no individual alone owns 25% or more of the agency.",
+      "emptyHint": "No beneficial owner declared yet. This is possible if no individual alone owns or controls 25% or more of the agency: in that case, declare the person who controls it another way, or otherwise a member of the senior management body.",
       "removeButton": "Remove this beneficial owner",
       "fields": {
         "firstName": "First name",

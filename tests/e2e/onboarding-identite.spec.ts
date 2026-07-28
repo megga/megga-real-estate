@@ -383,7 +383,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // reste sur /dashboard/identite — écran d'attente lisible en place du wizard.
       await page.getByRole('button', { name: 'Reprendre plus tard' }).click()
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
-      await expect(page.getByText('Votre dossier reste en attente')).toBeVisible()
+      await expect(page.getByText('Votre saisie a été interrompue')).toBeVisible()
       await expect(labelField(page, 'Raison sociale')).not.toBeVisible()
 
       // Revenir (sans démonter) : le brouillon en mémoire de l'étape 1 encore en

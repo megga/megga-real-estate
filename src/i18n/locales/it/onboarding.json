@@ -1,9 +1,6 @@
 {
   "gate": {
     "shell": {
-      "eyebrow": "Passaggio obbligatorio",
-      "title": "Confermi l'identità legale della Sua agenzia",
-      "body": "Prima di accedere al Suo spazio MEGGA, un responsabile deve indicare l'identità legale dell'agenzia. Questa verifica è richiesta dalla legge svizzera antiriciclaggio (LRD).",
       "preparing": "Preparazione del modulo…"
     },
     "mobileNotice": {
@@ -12,8 +9,8 @@
       "body": "L'inserimento dell'identità legale della Sua agenzia richiede uno schermo più grande. Acceda da un computer per completarlo."
     },
     "pendingNotice": {
-      "eyebrow": "Fascicolo in sospeso",
-      "title": "Il Suo fascicolo resta in sospeso",
+      "eyebrow": "Compilazione interrotta",
+      "title": "La Sua compilazione è stata interrotta",
       "body": "Nulla va perso: ogni passaggio confermato con Continua è già salvato nei nostri sistemi, che ne restano la fonte. Riprenda la compilazione quando lo desidera, ritroverà esattamente quanto già inserito.",
       "resumeButton": "Riprenda la compilazione"
     }
@@ -58,7 +55,7 @@
     "agence": {
       "eyebrow": "Identità dell'agenzia",
       "title": "Qual è l'identità legale della Sua agenzia?",
-      "subtitle": "Queste informazioni devono corrispondere esattamente al Suo registro di commercio. Sono richieste dalla legge svizzera antiriciclaggio (LRD).",
+      "subtitle": "Queste informazioni devono corrispondere esattamente al Suo registro di commercio. Le raccogliamo nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD).",
       "fields": {
         "country": "Paese della sede",
         "countryPlaceholder": "Selezioni un Paese",
@@ -82,10 +79,10 @@
     "beneficiaires": {
       "eyebrow": "Aventi diritto economico",
       "title": "Chi sono gli aventi diritto economico della Sua agenzia?",
-      "subtitle": "Indichi le persone fisiche che detengono o controllano l'agenzia, come richiesto dalla legge svizzera antiriciclaggio (LRD). La soglia di riferimento è del 25% (norma GAFI): si tratta di un aiuto alla compilazione, può dichiarare una persona anche al di sotto.",
+      "subtitle": "Indichi le persone fisiche che detengono o controllano l'agenzia. Raccogliamo queste informazioni nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD). La soglia di riferimento è del 25% (norma GAFI): si tratta di un aiuto alla compilazione, può dichiarare una persona anche al di sotto.",
       "reuseSignataire": "Riprenda {{name}} (firmatario)",
       "addButton": "Aggiunga un avente diritto economico",
-      "emptyHint": "Nessun avente diritto economico dichiarato per il momento. È possibile se nessuna persona fisica detiene da sola il 25% o più dell'agenzia.",
+      "emptyHint": "Nessun avente diritto economico dichiarato per il momento. È possibile se nessuna persona fisica detiene o controlla da sola il 25% o più dell'agenzia: in tal caso indichi la persona che la controlla in altro modo, oppure, in mancanza, un membro dell'organo di alta direzione.",
       "removeButton": "Rimuova questo avente diritto economico",
       "fields": {
         "firstName": "Nome",
