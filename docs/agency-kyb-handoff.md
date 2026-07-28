@@ -589,6 +589,42 @@ la présence de `pg_cron` comme les autres.
 
 ---
 
+## 7bis. Aucun dossier ne peut être auto-validé aujourd'hui, et c'est normal
+
+Écrit ici plutôt que laissé à déduire, parce que c'est le genre de fait qu'on découvre
+par surprise après la mise en service.
+
+Le catalogue définit **quatre vétos d'entité** : format du numéro de registre, existence
+au registre, concordance de la raison sociale, concordance du pays. La règle du moteur
+est qu'un véto **absent ne passe pas**, l'absence de preuve n'étant pas une preuve.
+
+Or deux de ces quatre, le format du numéro et la concordance du pays, n'ont **aucun
+connecteur** dans le dépôt. Ils sont donc absents pour toute agence, de tout pays, et pas
+seulement pour la Suisse privée de Zefix.
+
+**Conséquence, démontrée en base** lors de la revue de l'étape 4 : un dossier français
+parfait, tous les checks disponibles en `match`, un signataire actif, un score de 1.000,
+reste en `manual_review` avec `veto_failed` à vrai. Les deux lignes manquantes insérées à
+la main, le même dossier bascule immédiatement en `auto_validated`. La cause est isolée
+avec certitude.
+
+Un facteur s'y ajoute côté personne : la vérification de pièce d'identité est posée en
+`pending_manual_review` de façon permanente, aucun prestataire automatique n'étant
+branché, et rien ne met encore cette ligne à jour puisque la file de revue est l'étape 5.
+Ce seul fait bloquerait l'auto-validation même si les deux vétos étaient comblés demain.
+
+**Ce n'est pas un défaut à corriger dans l'urgence.** C'est l'état souhaitable tant que
+les sources manquent : le dispositif préfère envoyer tout le monde en revue humaine
+plutôt que de valider sur une preuve qu'il n'a pas. Mais quiconque se demandera pourquoi
+l'auto-validation ne se déclenche jamais doit trouver la réponse ici, pas la reconstituer
+en assemblant trois fichiers.
+
+Pour l'atteindre un jour, il faudra : un connecteur de format de numéro de registre, un
+connecteur de concordance de pays, la file de revue de l'étape 5 pour résoudre les pièces
+d'identité, et Zefix pour la Suisse.
+
+---
+
 ## 8. Dépendances externes en attente
 
 **Le registre bloqué est le suisse, c'est-à-dire le marché.** Le connecteur de plus
