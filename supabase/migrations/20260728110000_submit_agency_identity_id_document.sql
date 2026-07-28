@@ -1,14 +1,14 @@
 -- Étape 2 du chantier KYB, tâche 6 — extension de submit_agency_identity() pour la
 -- pièce d'identité du signataire. Voir le « Point d'extension » laissé par la tâche 1
--- dans 20260727100000_submit_agency_identity.sql (fichier volontairement NON modifié
+-- dans 20260728108000_submit_agency_identity.sql (fichier volontairement NON modifié
 -- rétroactivement — convention du dépôt, cf. docs/agency-kyb-verification.md §5bis).
 --
 -- Le fichier recto/verso est déposé côté client dans Storage (bucket documents,
--- préfixe kyb-identity, migration 20260727110000) : cette RPC ne touche jamais au
+-- préfixe kyb-identity, migration 20260728109000) : cette RPC ne touche jamais au
 -- fichier lui-même. Sa seule responsabilité ici est de poser la ligne
 -- agency_person_verification_checks (check_type='id_document', source='manual',
 -- result='pending_manual_review') que le client ne peut PAS écrire lui-même — ces
--- tables n'ont aucune policy INSERT (RLS, 20260726130300), délibérément : seul un
+-- tables n'ont aucune policy INSERT (RLS, 20260728103000), délibérément : seul un
 -- SECURITY DEFINER comme celui-ci peut y écrire, pour qu'un inscrit ne fabrique pas sa
 -- propre preuve de vérification.
 --
@@ -83,7 +83,7 @@ declare
 begin
   -- 1. Garde : seul le dirigeant de SA propre agence peut clore la saisie — la même
   -- garde que celle qui protège la lecture des données de conformité
-  -- (agency_related_persons, agency_person_roles, 20260726130200).
+  -- (agency_related_persons, agency_person_roles, 20260728102000).
   if not public.is_agency_admin() then
     raise exception 'forbidden: agency_admin required' using errcode = '42501';
   end if;
@@ -147,7 +147,7 @@ begin
     -- client (IdentityShell.tsx handleSubmit) ne transmet jamais que le signatoryId de
     -- CE parcours. Mais SECURITY DEFINER de conformité : sa correction ne doit pas
     -- reposer sur une hypothèse concernant son appelant. Même discipline « actif » que
-    -- _agency_identity_completeness_error (signatory, 20260727100000) : valid_to nul
+    -- _agency_identity_completeness_error (signatory, 20260728108000) : valid_to nul
     -- ou futur, un mandat radié ne doit pas compter. Message distinct de la garde
     -- d'agence ci-dessus, pour que les deux causes de refus restent identifiables.
     if not exists (
@@ -193,7 +193,7 @@ begin
   end if;
 
   -- 6. Pose l'horodatage de soumission — c'est lui, pas verification_status, que lit
-  -- le gate d'onboarding (20260726140300, tâche 2).
+  -- le gate d'onboarding (20260728107000, tâche 2).
   update public.agencies
      set identity_submitted_at = now()
    where id = v_agency_id;

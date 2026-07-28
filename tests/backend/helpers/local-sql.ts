@@ -1,6 +1,6 @@
 // Exécution SQL directe contre la base Supabase LOCALE, pour les tests qui doivent
 // rejouer le SQL brut d'une migration plutôt qu'appeler une fonction — cas des blocs
-// DO anonymes (ex. le backfill de 20260726140100) qui, par construction, ne laissent
+// DO anonymes (ex. le backfill de 20260728105000) qui, par construction, ne laissent
 // aucun objet appelable via supabase-js une fois la migration passée.
 //
 // Passe par le conteneur Docker de `supabase start` (jamais un accès réseau direct,

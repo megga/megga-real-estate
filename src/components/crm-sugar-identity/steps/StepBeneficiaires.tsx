@@ -89,7 +89,7 @@ const SELECT_STYLE = {
 /**
  * '' -> null (champ vidé). Sinon borne à [0, 100] : la colonne DB (ownership_pct
  * numeric(5,2)) refuse toute valeur hors de cet intervalle (CHECK, migration
- * 20260726130200) — la borne ici évite un aller-retour serveur pour une saisie que
+ * 20260728102000) — la borne ici évite un aller-retour serveur pour une saisie que
  * l'utilisateur corrigerait de toute façon. NaN (texte non numérique) -> null, jamais
  * une valeur invalide silencieusement propagée.
  */

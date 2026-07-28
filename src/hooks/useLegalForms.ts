@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase'
 
 /**
  * Mêmes valeurs que le CHECK de legal_forms.category (migration
- * 20260726130000_legal_forms_reference.sql). Pilote l'étape 3 du wizard identité
+ * 20260728100000_legal_forms_reference.sql). Pilote l'étape 3 du wizard identité
  * (bénéficiaires effectifs, tâche 5) : sole_proprietorship = le signataire EST
  * l'entité, pas d'UBO tiers à déclarer ; foundation_or_trust = structure opaque,
  * diligence renforcée. Décrite ici (pas seulement dans le SQL) parce que c'est la

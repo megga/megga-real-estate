@@ -406,7 +406,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await expectNoBounceBack(page, /\/dashboard$/)
 
       // Preuve backend, pas seulement l'URL du navigateur : la RPC a réellement
-      // posé identity_submitted_at (submit_agency_identity, 20260727100000).
+      // posé identity_submitted_at (submit_agency_identity, 20260728108000).
       const { data: agencyAfterSubmit } = await serviceRoleClient()
         .from('agencies')
         .select('identity_submitted_at')
@@ -417,7 +417,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // Revue finale (lot 2). handleSubmit() (IdentityShell.tsx) transmet signatoryId à
       // submit() comme p_related_person_id : c'est cet argument, et lui seul, qui
       // déclenche la pose de la ligne agency_person_verification_checks pour la pièce
-      // déposée à l'étape 3 (submit_agency_identity, 20260727120000). S'il devenait nul,
+      // déposée à l'étape 3 (submit_agency_identity, 20260728110000). S'il devenait nul,
       // le dossier partirait quand même soumis (pièces déposées, identity_submitted_at
       // posé comme prouvé ci-dessus), mais sans aucune ligne de vérification : personne
       // ne serait jamais alerté de relire la pièce. Le signataire est ici l'unique

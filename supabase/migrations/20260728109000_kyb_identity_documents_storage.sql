@@ -39,7 +39,7 @@
 --   2. 4 nouvelles policies, strictement equivalentes, scopées SUR ce préfixe et
 --      exigeant is_agency_admin() (même garde que le reste du dispositif KYB —
 --      agency_related_persons, agency_person_roles, agency_verification_checks,
---      20260726130200/300) en plus de l'appartenance à l'agence.
+--      20260728102000/300) en plus de l'appartenance à l'agence.
 --
 -- Idempotente : chaque policy est DROP IF EXISTS puis recréée à l'identique si rejouée.
 
@@ -91,7 +91,7 @@ create policy "documents_bucket_delete"
 -- ── 2. Nouvelles policies : préfixe kyb-identity, dirigeant de SA propre agence seul ─
 -- get_my_agency_id() (et non get_user_agency_id(), alias historique au corps
 -- identique — 00000000000000_baseline_remote_schema.sql) pour rester au plus près du
--- vocabulaire des migrations KYB que ce préfixe prolonge (20260726130200/300).
+-- vocabulaire des migrations KYB que ce préfixe prolonge (20260728102000/300).
 drop policy if exists "documents_kyb_identity_select" on storage.objects;
 create policy "documents_kyb_identity_select"
   on storage.objects

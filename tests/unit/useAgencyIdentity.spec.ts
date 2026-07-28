@@ -103,7 +103,7 @@ describe('mapPersonRow — lignes DB (snake_case, roles imbriqués) vers le cont
     expect(mapPersonRow(row).roles).toEqual([])
   })
 
-  it('rôle avec valid_to dans le futur -> actif, conservé (même définition que la RPC submit_agency_identity, migration 20260727100000)', () => {
+  it('rôle avec valid_to dans le futur -> actif, conservé (même définition que la RPC submit_agency_identity, migration 20260728108000)', () => {
     // Revue tâche 3 : mapPersonRow ne gardait que valid_to strictement nul, plus étroit
     // que la RPC (valid_to is null OR valid_to > current_date). Un rôle à mandat futur
     // devenait invisible ici alors que la RPC le compte comme actif — savePerson en
@@ -305,7 +305,7 @@ describe('ubosToRemove — tâche 5 : quels UBO retirés du brouillon supprimer,
     expect(ubosToRemove([uboOnly], ['p-ubo'])).toEqual([])
   })
 
-  it('personne signataire ET UBO, retirée du brouillon bénéficiaires -> JAMAIS supprimée : la suppression cascaderait sur son rôle de signataire (on delete cascade, 20260726130200)', () => {
+  it('personne signataire ET UBO, retirée du brouillon bénéficiaires -> JAMAIS supprimée : la suppression cascaderait sur son rôle de signataire (on delete cascade, 20260728102000)', () => {
     expect(ubosToRemove([sharedSignatoryAndUbo], [])).toEqual([])
   })
 
@@ -427,7 +427,7 @@ describe('ubosToRevokeOnSkip — correctif revue tâche 5 : nettoyage rétroacti
 })
 
 // ─── Tâche 6 : pièce d'identité — chemins Storage (bucket documents, préfixe réservé
-// kyb-identity, migration 20260727110000) ────────────────────────────────────────────
+// kyb-identity, migration 20260728109000) ────────────────────────────────────────────
 describe('identityDocumentFolder — préfixe Storage réservé, isolé par agence ET par personne', () => {
   it('compose agencyId/kyb-identity/relatedPersonId', () => {
     expect(identityDocumentFolder('agency-1', 'person-1')).toBe('agency-1/kyb-identity/person-1')
@@ -541,7 +541,7 @@ describe('validateIdentityDocumentFile — format et taille avant tout envoi ré
 })
 
 describe('buildSubmitAgencyIdentityArgs — argument RPC de submit_agency_identity (tâche 7, câblage du dernier maillon)', () => {
-  it('un id de personne -> { p_related_person_id } posé : c\'est ce qui déclenche la pose de la ligne de vérification côté RPC (20260727120000)', () => {
+  it('un id de personne -> { p_related_person_id } posé : c\'est ce qui déclenche la pose de la ligne de vérification côté RPC (20260728110000)', () => {
     expect(buildSubmitAgencyIdentityArgs('person-1')).toEqual({ p_related_person_id: 'person-1' })
   })
 

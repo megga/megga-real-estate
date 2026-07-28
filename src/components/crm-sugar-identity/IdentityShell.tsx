@@ -229,7 +229,7 @@ export function isBeneficiaireEntryComplete(entry: BeneficiaireDraft): boolean {
  * true si l'étape bénéficiaires effectifs peut être quittée en avançant. Une liste VIDE
  * est valide (contrairement au signataire et à l'agence, qui portent chacun une entité
  * BLOQUANTE) : aucune personne physique ne détenant seule 25 % ou plus est une réponse
- * légitime, et la RPC de soumission (submit_agency_identity, 20260727100000) n'exige
+ * légitime, et la RPC de soumission (submit_agency_identity, 20260728108000) n'exige
  * d'ailleurs aucun UBO pour accepter le dossier — seuls raison sociale, forme
  * juridique, pays et signataire actif y sont vérifiés. Ce qui n'est en revanche jamais
  * toléré, c'est une ligne commencée puis laissée incomplète (isBeneficiaireEntryComplete).
@@ -275,7 +275,7 @@ export function isPieceIdentiteStepComplete(draft: PieceIdentiteDraft): boolean 
  * Recalcule le `legalFormId` à conserver après un changement du pays du siège
  * (dépendance d'ordre du brief tâche 4, explicitement pas cosmétique). Chaque
  * `legal_forms.id` appartient à EXACTEMENT un pays par construction (colonne
- * `country`, pas de partage entre juridictions — migration 20260726130000) : tout
+ * `country`, pas de partage entre juridictions — migration 20260728100000) : tout
  * changement de pays invalide donc systématiquement la forme choisie, jamais
  * seulement "parfois" — inutile d'attendre le rechargement de useLegalForms(country)
  * pour le savoir. Une forme juridique désormais incohérente avec le pays affiché
@@ -393,7 +393,7 @@ export function prevIdentityStep(step: number, stepCount: number, skipBeneficiai
 /**
  * Étape 4 (récapitulatif, tâche 7) : causes de refus reconnues dans le message brut
  * renvoyé par submit_agency_identity() (`raise exception '%', v_error`, un texte
- * distinct par cause — migration 20260727100000). Repris en camelCase : `legalName`
+ * distinct par cause — migration 20260728108000). Repris en camelCase : `legalName`
  * désigne la CAUSE de refus (raison sociale manquante), à ne pas confondre avec `legal`,
  * le nom du champ correspondant dans AgencyDraft ci-dessus.
  */
@@ -444,7 +444,7 @@ export function identitySubmissionErrorStep(code: IdentitySubmissionErrorCode | 
  * pièce d'identité déposée à l'étape précédente resterait alors sans ligne de
  * vérification (agency_person_verification_checks), exactement le trou signalé en revue
  * de la tâche 6 (cf. le commentaire « Point d'extension » de submit_agency_identity,
- * migration 20260727120000) que cette tâche comble.
+ * migration 20260728110000) que cette tâche comble.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
 export function canSubmitIdentity(attestationChecked: boolean, signatoryId: string | null): boolean {
@@ -856,7 +856,7 @@ export default function IdentityShell() {
    * Soumission finale (étape 4, récapitulatif) — jamais via persistCurrentStep/
    * runPersist : contrairement aux étapes 0 à 3, un refus ici doit (1) ramener
    * l'utilisateur à l'étape fautive (identitySubmissionErrorStep, un message Postgres
-   * distinct par cause posé par la RPC — 20260727100000) et (2) ne JAMAIS afficher ce
+   * distinct par cause posé par la RPC — 20260728108000) et (2) ne JAMAIS afficher ce
    * message brut à l'écran (règle du projet) — toujours une traduction dédiée par
    * cause, jamais le message générique de runPersist qui propagerait e.message tel quel.
    *

@@ -154,7 +154,7 @@ describe('legalFormIdAfterCountryChange — le pays du siège filtre les formes 
 
   it('pays changé -> remet à zéro la forme juridique choisie', () => {
     // Chaque legal_forms.id (uuid) appartient à un seul pays par construction (FK 1:1,
-    // migration 20260726130000) : une forme choisie pour la Suisse ne peut donc JAMAIS
+    // migration 20260728100000) : une forme choisie pour la Suisse ne peut donc JAMAIS
     // rester valide après un passage à la France — inutile d'attendre le rechargement
     // de useLegalForms(country) pour le savoir, la remise à zéro est inconditionnelle.
     expect(legalFormIdAfterCountryChange('CH', 'FR', 'legal-form-sa')).toBe('')
@@ -350,7 +350,7 @@ describe('isBeneficiairesStepComplete — gate le bouton Continuer de l\'étape 
     pepSelfDeclared: false,
   }
 
-  it('liste vide -> complet : 0 est une réponse légitime (aucune personne physique seule à 25 % ou plus) ; la RPC de soumission n\'exige d\'ailleurs aucun UBO (20260727100000)', () => {
+  it('liste vide -> complet : 0 est une réponse légitime (aucune personne physique seule à 25 % ou plus) ; la RPC de soumission n\'exige d\'ailleurs aucun UBO (20260728108000)', () => {
     expect(isBeneficiairesStepComplete([])).toBe(true)
   })
 

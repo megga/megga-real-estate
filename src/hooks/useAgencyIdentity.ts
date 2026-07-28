@@ -6,12 +6,12 @@
  * plus bas pour ce qu'il fait EN PLUS) et `agency_related_persons` +
  * `agency_person_roles` (personnes liées à l'agence et leurs rôles signatory/ubo),
  * écrit ces deux dernières, et déclenche la RPC de soumission. Sous RLS
- * `is_agency_admin()` (20260726130200) : un agent simple qui appellerait ceci
+ * `is_agency_admin()` (20260728102000) : un agent simple qui appellerait ceci
  * recevrait 42501.
  *
  * ⚠ N'écrit JAMAIS dans agency_verification_checks ni
  * agency_person_verification_checks — ces tables n'ont aucune policy INSERT
- * côté client (20260726130300), délibérément : seule une RPC SECURITY DEFINER
+ * côté client (20260728103000), délibérément : seule une RPC SECURITY DEFINER
  * peut y poser un verdict, pour qu'un inscrit ne fabrique pas sa propre preuve
  * de vérification. Contrat écrit à la tâche 3 du plan étape 2, étendu par les
  * tâches 4 à 7 — les six champs d'origine (agency, persons, isLoading, savePerson,
@@ -72,10 +72,10 @@
  * `useLegalFormCategory` : l'appelant fournit sa propre paire plutôt que de dupliquer
  * ici la dérivation « qui est le signataire courant »). `uploadIdentityDocument`
  * dépose le fichier dans Storage (bucket `documents`, préfixe kyb-identity — migration
- * 20260727110000) mais n'écrit AUCUNE ligne DB : la ligne de check
+ * 20260728109000) mais n'écrit AUCUNE ligne DB : la ligne de check
  * (agency_person_verification_checks) reste hors de portée du client pour la même
  * raison que ci-dessus, et ne peut être posée que par submit_agency_identity()
- * (étendue à cette fin par la même tâche, 20260727120000). Voir la section « Tâche 6 »
+ * (étendue à cette fin par la même tâche, 20260728110000). Voir la section « Tâche 6 »
  * plus bas pour les fonctions pures de chemin/validation, testées sans mock Supabase.
  */
 import { useState } from 'react'
@@ -137,7 +137,7 @@ export interface UseAgencyIdentityReturn {
   /**
    * Tâche 6 — téléverse (ou remplace) le recto/verso de la pièce d'identité de
    * `relatedPersonId` dans Storage (bucket `documents`, préfixe kyb-identity,
-   * migration 20260727110000). N'écrit AUCUNE ligne DB : la ligne de check
+   * migration 20260728109000). N'écrit AUCUNE ligne DB : la ligne de check
    * (agency_person_verification_checks) ne peut venir que de submit_agency_identity()
    * — cf. l'en-tête de la section Storage plus haut. Renvoie le chemin Storage complet
    * du fichier déposé ; invalide la query de useIdentityDocuments() pour ce
@@ -150,7 +150,7 @@ export interface UseAgencyIdentityReturn {
    * a été déposée à l'étape précédente (même id que celui déjà utilisé pour le
    * téléversement, IdentityShell.tsx) — jamais une redérivation implicite : plusieurs
    * personnes peuvent porter un rôle signatory actif simultanément
-   * (signature_power='joint', cf. le commentaire de la RPC, 20260727120000), donc il
+   * (signature_power='joint', cf. le commentaire de la RPC, 20260728110000), donc il
    * n'existe pas « le » signataire en général, seulement celui que CE parcours a fait
    * saisir et dont CE parcours a collecté la pièce. `null` reste accepté (défensif,
    * cf. buildSubmitAgencyIdentityArgs) : la soumission réussit quand même si l'agence
@@ -265,7 +265,7 @@ function todayIsoDate(): string {
  * true si un rôle est actif à la date `today` (paramètre injectable pour les tests ;
  * par défaut la date UTC du jour). Même définition d'« actif » que la RPC
  * submit_agency_identity() : `valid_to is null or valid_to > current_date`
- * (supabase/migrations/20260727100000_submit_agency_identity.sql, comparaison
+ * (supabase/migrations/20260728108000_submit_agency_identity.sql, comparaison
  * stricte). `valid_to` est une colonne `date`, pas `timestamptz` : comparaison sur
  * la date seule, jamais l'heure.
  *
@@ -275,7 +275,7 @@ function todayIsoDate(): string {
  * explicitement) était invisible ici alors que la RPC le compte comme actif.
  * Conséquence concrète : savePerson ne retrouvait pas la ligne active existante, en
  * insérait une seconde, que l'index partiel idx_agency_person_roles_active_unique ne
- * bloque pas puisqu'il ne couvre que `valid_to is null` (20260726130200) — deux
+ * bloque pas puisqu'il ne couvre que `valid_to is null` (20260728102000) — deux
  * lignes actives contradictoires en base, et un signataire invisible dans le wizard
  * alors que la RPC le comptait déjà.
  */
@@ -371,7 +371,7 @@ export function buildSubmitAgencyIdentityArgs(relatedPersonId: string | null): {
  * signataire+UBO explicitement visé par le brief tâche 5, très fréquent en petite SA)
  * n'est JAMAIS renvoyée, même si son id UBO a disparu du brouillon. `removePerson`
  * supprime la ligne `agency_related_persons` entière — `on delete cascade` emporterait
- * alors aussi son rôle signataire (20260726130200), perdant une identité KYB pourtant
+ * alors aussi son rôle signataire (20260728102000), perdant une identité KYB pourtant
  * toujours valide. Retirer quelqu'un de la liste des bénéficiaires ne doit revenir
  * qu'à cesser de déclarer CE rôle-là pour lui, jamais à effacer la personne.
  *
@@ -445,11 +445,11 @@ export function ubosToRevokeOnSkip(existingPersons: IdentityPersonWithRoles[]): 
 //
 // Contrairement aux étapes 0 à 2 (texte, écrit dans agency_related_persons /
 // agency_person_roles / agencies sous RLS), cette étape dépose un FICHIER dans
-// Storage — préfixe réservé `kyb-identity`, migration 20260727110000
+// Storage — préfixe réservé `kyb-identity`, migration 20260728109000
 // (documents_kyb_identity_*, is_agency_admin() seul, jamais toute l'agence comme le
 // reste du bucket documents). Aucune ligne DB n'est écrite ici : la ligne de check
 // (agency_person_verification_checks) ne peut venir QUE de submit_agency_identity()
-// (RPC SECURITY DEFINER, 20260727120000) — cf. son en-tête pour la garde anti-fuite
+// (RPC SECURITY DEFINER, 20260728110000) — cf. son en-tête pour la garde anti-fuite
 // inter-agences. Cette section ne fait que déposer/lire le fichier lui-même.
 
 /** Les deux faces d'une pièce d'identité — recto puis verso, jamais l'inverse. */
@@ -635,7 +635,7 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
       .eq('role', role)
       .or(`valid_to.is.null,valid_to.gt.${todayIsoDate()}`)
       // Défensif : l'index partiel idx_agency_person_roles_active_unique ne couvre
-      // que `valid_to is null` (20260726130200), donc rien n'empêche en base deux
+      // que `valid_to is null` (20260728102000), donc rien n'empêche en base deux
       // lignes valid_to futures actives pour la même (personne, rôle) — sans ce
       // .limit(1), .maybeSingle() lèverait PGRST116 sur ce cas au lieu de mettre à
       // jour une ligne existante. Le vrai correctif d'une telle donnée reste en

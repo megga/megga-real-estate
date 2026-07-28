@@ -3,7 +3,7 @@
 -- Le dirigeant clôt le wizard « Identité » en appelant cette fonction : elle vérifie
 -- que le dossier est complet, pose agencies.identity_submitted_at et journalise
 -- l'événement. C'est cet horodatage — pas verification_status, qui porte le VERDICT et
--- non l'avancement de la saisie (20260726140300) — que lira le gate d'onboarding
+-- non l'avancement de la saisie (20260728107000) — que lira le gate d'onboarding
 -- (AgentSugarLayout, tâche 2 de cette étape) pour savoir si l'agence a fini de saisir.
 --
 -- Deux fonctions plutôt qu'un corps monolithique :
@@ -11,7 +11,7 @@
 --     à court terme. Une tâche ultérieure du même chantier ajoute le téléversement de
 --     la pièce d'identité du signataire ; la ligne de check qui en résulte
 --     (agency_person_verification_checks) devra être posée par CETTE RPC, puisque ces
---     tables refusent l'écriture à tout rôle utilisateur (20260726130300) — c'est la
+--     tables refusent l'écriture à tout rôle utilisateur (20260728103000) — c'est la
 --     garantie qu'un inscrit ne fabrique pas sa propre preuve de vérification. Le point
 --     d'insertion est marqué plus bas, après que la complétude et l'idempotence sont
 --     déjà tranchées : rien au-dessus n'aura à être retouché pour la greffer.
@@ -29,7 +29,7 @@
 -- redondant tant que cette fonction n'est appelée que depuis submit_agency_identity()
 -- (qui a déjà élevé le contexte d'exécution), mais évite une exception isolée si elle
 -- est un jour invoquée autrement. Aucun EXECUTE client : REVOKE plus bas, même régime
--- que provision_solo_agency (20260726140100) — un SECURITY DEFINER appelé depuis un
+-- que provision_solo_agency (20260728105000) — un SECURITY DEFINER appelé depuis un
 -- autre SECURITY DEFINER s'exécute déjà sous le rôle propriétaire (postgres), le REVOKE
 -- sur authenticated ne gêne donc pas submit_agency_identity().
 create or replace function public._agency_identity_completeness_error(p_agency_id uuid)
@@ -102,7 +102,7 @@ declare
 begin
   -- 1. Garde : seul le dirigeant de SA propre agence peut clore la saisie — la même
   -- garde que celle qui protège la lecture des données de conformité
-  -- (agency_related_persons, agency_person_roles, 20260726130200).
+  -- (agency_related_persons, agency_person_roles, 20260728102000).
   if not public.is_agency_admin() then
     raise exception 'forbidden: agency_admin required' using errcode = '42501';
   end if;
@@ -130,7 +130,7 @@ begin
   -- ── Point d'extension (tâche « pièce d'identité », même étape) ──────────────────
   -- Déjà en place : le point d'insertion (complétude et idempotence tranchées
   -- au-dessus, rien à retoucher pour ça) et le verrouillage de la table cible —
-  -- agency_person_verification_checks n'a aucune policy INSERT (RLS, 20260726130300) :
+  -- agency_person_verification_checks n'a aucune policy INSERT (RLS, 20260728103000) :
   -- seule une RPC SECURITY DEFINER comme celle-ci peut y écrire, ce qui garantit qu'un
   -- inscrit ne fabrique pas sa propre preuve de vérification.
   --

@@ -44,7 +44,7 @@ create or replace trigger on_auth_user_created
   for each row execute function public.handle_new_user();
 
 comment on function public.handle_new_user() is
-  'Trigger AFTER INSERT sur auth.users (on_auth_user_created, versionné par 20260726140000) : crée le profil et provisionne l''agence des rôles agence. Best-effort sur l''agence, un échec ne bloque jamais l''inscription.';
+  'Trigger AFTER INSERT sur auth.users (on_auth_user_created, versionné par 20260728104000) : crée le profil et provisionne l''agence des rôles agence. Best-effort sur l''agence, un échec ne bloque jamais l''inscription.';
 
 -- ── Vérification (tests) : exactement 1 trigger doit appeler handle_new_user ────
 -- Les tests backend passent uniquement par supabase-js (aucun accès SQL direct) :

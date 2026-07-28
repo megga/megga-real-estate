@@ -49,7 +49,7 @@ alter table public.agencies
 -- DROP avant ADD : `add constraint` seul n'est pas idempotent.
 --
 -- 'validated' figure ici alors que cette migration ne l'utilise pas encore (il
--- n'apparaît qu'en 20260726140300) : le pipeline rejoue INTÉGRALEMENT chaque
+-- n'apparaît qu'en 20260728107000) : le pipeline rejoue INTÉGRALEMENT chaque
 -- migration datée du jour à chaque déploiement, dans l'ordre des fichiers. Une
 -- fois qu'une ligne réelle porte 'validated' (posée par 140300 lors d'un déploiement
 -- antérieur), rejouer CETTE migration avec une liste plus étroite fait échouer le

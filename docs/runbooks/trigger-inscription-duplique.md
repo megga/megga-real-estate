@@ -1,7 +1,7 @@
 # Runbook — inscriptions cassées après le versionnage du trigger `auth.users`
 
 > **Statut : historique, plus un risque ouvert.** Depuis la mise à jour du 27.07.2026
-> de `20260726140000_auth_user_created_trigger.sql`, la migration ne supprime plus le
+> de `20260728104000_auth_user_created_trigger.sql`, la migration ne supprime plus le
 > trigger par son seul nom canonique : elle interroge `pg_trigger` et supprime TOUS les
 > triggers non-internes de `auth.users` dont la fonction est `handle_new_user()`, quel
 > que soit leur nom, avant de reposer `on_auth_user_created`. Le scénario décrit
@@ -28,7 +28,7 @@ modifiée deux fois (`20260627120000` clamp du rôle, `20260718130000` provision
 d'agence). Le **trigger** qui l'appelle, lui, n'a jamais figuré dans aucune migration :
 il a été créé hors du contrôle de version, probablement depuis la console Supabase.
 
-La migration `20260726140000` le fait entrer au contrôle de version. **Dans sa version
+La migration `20260728104000` le fait entrer au contrôle de version. **Dans sa version
 d'origine** (avant le 27.07.2026), elle faisait `drop trigger if exists
 on_auth_user_created on auth.users` puis le recréait — un DROP qui ne couvrait que le
 nom canonique. Si le trigger de production portait un autre nom, il survivait, et la
@@ -65,7 +65,7 @@ order by t.tgname;
 | Résultat | Lecture |
 |---|---|
 | 1 ligne, `trigger_name = on_auth_user_created` | Cas nominal. |
-| 1 ligne, **autre nom**, `fonction_appelee = handle_new_user` | Cas géré automatiquement depuis le 27.07.2026 : le prochain rejeu de `20260726140000` (tant qu'elle est encore rejouée le même jour que sa création) le supprime et repose le canonique. Hors de cette fenêtre, appliquer la résolution ci-dessous. |
+| 1 ligne, **autre nom**, `fonction_appelee = handle_new_user` | Cas géré automatiquement depuis le 27.07.2026 : le prochain rejeu de `20260728104000` (tant qu'elle est encore rejouée le même jour que sa création) le supprime et repose le canonique. Hors de cette fenêtre, appliquer la résolution ci-dessous. |
 | 0 ligne | Le trigger n'existe pas non plus en prod. Les inscriptions ne créent donc aucun profil : c'est un autre problème, plus grave, à traiter avant. |
 | 2 lignes ou plus | Le doublon existe déjà (état hérité d'avant le 27.07.2026, ou créé par un autre mécanisme). Appliquer la résolution ci-dessous sans attendre. |
 
@@ -160,7 +160,7 @@ Ajouter le nom réel au `DROP` de la migration d'origine si elle n'est pas encor
 Si elle l'est déjà, écrire une migration corrective datée du jour :
 
 ```sql
--- Supprime le trigger d'inscription hérité, laissé en place par 20260726140000.
+-- Supprime le trigger d'inscription hérité, laissé en place par 20260728104000.
 -- Son nom n'était pas connu au moment d'écrire cette migration-là : le DROP ne
 -- couvrait que le nom canonique, et les deux triggers coexistaient, faisant échouer
 -- toute inscription sur une violation de clé primaire dans profiles.
@@ -174,7 +174,7 @@ drop trigger if exists <nom_du_doublon> on auth.users;
 
 ## Prévention
 
-La vraie parade est désormais dans la migration elle-même : `20260726140000` supprime
+La vraie parade est désormais dans la migration elle-même : `20260728104000` supprime
 tout trigger de `auth.users` dont la fonction est `handle_new_user()`, quel que soit
 son nom, avant de reposer le canonique — aucune étape manuelle n'est plus requise pour
 ce cas précis. Le contrôle en tête de ce document reste une vérification de confiance
@@ -186,7 +186,7 @@ tâche 2, avant ce correctif).
 Plus largement, cet incident vient d'un objet de base créé hors migration. Tout objet
 qui gouverne un comportement produit et qui ne vit que dans la console de production est
 invisible à la relecture, absent des environnements de développement, et perdu en cas de
-restauration. La migration `20260726140000` referme ce cas précis ; il vaut la peine de
+restauration. La migration `20260728104000` referme ce cas précis ; il vaut la peine de
 vérifier qu'il n'y en a pas d'autres.
 
 ```sql

@@ -10,7 +10,7 @@
 // réel. Motif de création d'utilisateur repris de signup-provisioning.spec.ts.
 //
 // Voir docs/superpowers/plans/2026-07-27-onboarding-kyb-etape-2.md (Task 1) et
-// supabase/migrations/20260727100000_submit_agency_identity.sql.
+// supabase/migrations/20260728108000_submit_agency_identity.sql.
 
 import { describe, it, expect, afterAll } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -283,9 +283,9 @@ describe.skipIf(!HAS_KEYS)('submit_agency_identity — RPC de soumission', () =>
 
   // ── Tâche 6 : extension pour la pièce d'identité (agency_person_verification_checks) ──
   // Le fichier recto/verso est déposé côté client dans Storage (bucket documents,
-  // préfixe kyb-identity — migration 20260727110000) ; la ligne de check ne peut venir
+  // préfixe kyb-identity — migration 20260728109000) ; la ligne de check ne peut venir
   // que de CETTE RPC, puisque les tables de checks refusent l'écriture à tout rôle
-  // utilisateur (42501, 20260726130300). p_related_person_id est optionnel (défaut
+  // utilisateur (42501, 20260728103000). p_related_person_id est optionnel (défaut
   // null) : tous les tests ci-dessus, inchangés, prouvent la rétrocompatibilité.
 
   it('un dirigeant qui désigne son propre signataire fait poser un check id_document en attente de revue', async () => {
@@ -363,7 +363,7 @@ describe.skipIf(!HAS_KEYS)('submit_agency_identity — RPC de soumission', () =>
     // Et la soumission de l'agence A elle-même doit avoir échoué EN ENTIER (pas
     // seulement l'insert du check) : identity_submitted_at doit rester null. La garde
     // de personne est placée AVANT la pose de identity_submitted_at (point d'extension,
-    // 20260727100000) — un échec ici avorte toute la transaction de la fonction.
+    // 20260728108000) — un échec ici avorte toute la transaction de la fonction.
     const { data: agencyA } = await serviceRoleClient()
       .from('agencies')
       .select('identity_submitted_at')

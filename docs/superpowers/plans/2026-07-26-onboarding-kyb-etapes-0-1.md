@@ -81,14 +81,14 @@ continuer** : le fichier contient des clés et partirait au commit.
 
 | Fichier | Responsabilité | Action |
 |---|---|---|
-| `supabase/migrations/20260726130000_legal_forms_reference.sql` | référentiel des formes juridiques (Antoine) | Renommer depuis `120000` |
-| `supabase/migrations/20260726130100_agencies_kyb_columns.sql` | colonnes KYB de `agencies` (Antoine) | Renommer depuis `120100` |
-| `supabase/migrations/20260726130200_agency_related_persons.sql` | personnes de conformité (Antoine) | Renommer depuis `120200` |
-| `supabase/migrations/20260726130300_agency_verification_checks.sql` | journaux de checks (Antoine) | Renommer depuis `120300` |
-| `supabase/migrations/20260726140000_auth_user_created_trigger.sql` | le trigger d'inscription entre au contrôle de version | Créer |
-| `supabase/migrations/20260726140100_signup_agency_provisioning.sql` | réécriture de `provision_solo_agency()` et `handle_new_user()` : rôle du fondateur, nom d'agence, invités | Créer, étendu par 3 tâches |
-| `supabase/migrations/20260726140200_revoke_join_agency.sql` | fermeture de `join_agency()` | Créer |
-| `supabase/migrations/20260726140300_agencies_identity_submission.sql` | `identity_submitted_at` et statut `validated` | Créer |
+| `supabase/migrations/20260728100000_legal_forms_reference.sql` | référentiel des formes juridiques (Antoine) | Renommer depuis `120000` |
+| `supabase/migrations/20260728101000_agencies_kyb_columns.sql` | colonnes KYB de `agencies` (Antoine) | Renommer depuis `120100` |
+| `supabase/migrations/20260728102000_agency_related_persons.sql` | personnes de conformité (Antoine) | Renommer depuis `120200` |
+| `supabase/migrations/20260728103000_agency_verification_checks.sql` | journaux de checks (Antoine) | Renommer depuis `120300` |
+| `supabase/migrations/20260728104000_auth_user_created_trigger.sql` | le trigger d'inscription entre au contrôle de version | Créer |
+| `supabase/migrations/20260728105000_signup_agency_provisioning.sql` | réécriture de `provision_solo_agency()` et `handle_new_user()` : rôle du fondateur, nom d'agence, invités | Créer, étendu par 3 tâches |
+| `supabase/migrations/20260728106000_revoke_join_agency.sql` | fermeture de `join_agency()` | Créer |
+| `supabase/migrations/20260728107000_agencies_identity_submission.sql` | `identity_submitted_at` et statut `validated` | Créer |
 | `tests/backend/signup-provisioning.spec.ts` | non-régression du chemin d'inscription | Créer |
 | `tests/backend/onboarding-agency-rpc.spec.ts` | tests existants de `create_agency_and_join` / `join_agency` | Modifier (tâche 7) |
 
@@ -178,7 +178,7 @@ collision intacte le 26 juillet. Re-date sur la composante horaire."
 ## Task 2 : versionner le trigger d'inscription
 
 **Files:**
-- Créer : `supabase/migrations/20260726140000_auth_user_created_trigger.sql`
+- Créer : `supabase/migrations/20260728104000_auth_user_created_trigger.sql`
 - Créer : `tests/backend/signup-provisioning.spec.ts`
 
 **Interfaces:**
@@ -207,7 +207,7 @@ Créer `tests/backend/signup-provisioning.spec.ts` :
 // Le trigger qui appelle handle_new_user() n'était dans aucune migration : en local
 // l'inscription ne créait ni profil ni agence, et en prod l'objet vivait hors du
 // contrôle de version. Ces tests exercent une vraie inscription et cassent la CI si
-// le trigger disparaît. Migration : 20260726140000_auth_user_created_trigger.
+// le trigger disparaît. Migration : 20260728104000_auth_user_created_trigger.
 
 import { describe, it, expect, afterAll } from 'vitest'
 import { serviceRoleClient } from './helpers/supabase'
@@ -264,7 +264,7 @@ absent ». Un `1 skipped` signifie que les clés manquent, ce n'est pas un éche
 
 - [ ] **Step 3 : écrire la migration**
 
-Créer `supabase/migrations/20260726140000_auth_user_created_trigger.sql` :
+Créer `supabase/migrations/20260728104000_auth_user_created_trigger.sql` :
 
 ```sql
 -- Le trigger d'inscription entre au contrôle de version.
@@ -289,7 +289,7 @@ create trigger on_auth_user_created
   for each row execute function public.handle_new_user();
 
 comment on function public.handle_new_user() is
-  'Trigger AFTER INSERT sur auth.users (on_auth_user_created, versionné par 20260726140000) : crée le profil et provisionne l''agence des rôles agence. Best-effort sur l''agence, un échec ne bloque jamais l''inscription.';
+  'Trigger AFTER INSERT sur auth.users (on_auth_user_created, versionné par 20260728104000) : crée le profil et provisionne l''agence des rôles agence. Best-effort sur l''agence, un échec ne bloque jamais l''inscription.';
 ```
 
 - [ ] **Step 4 : appliquer et vérifier que le test passe**
@@ -317,7 +317,7 @@ Attendu : `Tests 1 passed (1)`.
 - [ ] **Step 6 : commit**
 
 ```bash
-cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260726140000_auth_user_created_trigger.sql tests/backend/signup-provisioning.spec.ts && git commit -m "fix(auth): versionne le trigger d'inscription, invisible jusqu'ici
+cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260728104000_auth_user_created_trigger.sql tests/backend/signup-provisioning.spec.ts && git commit -m "fix(auth): versionne le trigger d'inscription, invisible jusqu'ici
 
 handle_new_user() etait definie dans les migrations mais le trigger qui
 l'appelle ne l'etait nulle part : en local l'inscription ne creait rien, en
@@ -329,12 +329,12 @@ prod le comportement dependait d'un objet non relisible et non restaurable."
 ## Task 3 : le fondateur devient admin de son agence
 
 **Files:**
-- Créer : `supabase/migrations/20260726140100_signup_agency_provisioning.sql`
+- Créer : `supabase/migrations/20260728105000_signup_agency_provisioning.sql`
 - Modifier : `tests/backend/signup-provisioning.spec.ts`
 
 **Interfaces:**
 - Consomme : le trigger `on_auth_user_created` (tâche 2), `public.is_agency_admin()`
-  définie par `20260726130200`.
+  définie par `20260728102000`.
 - Produit : `provision_solo_agency(p_user uuid, p_display_name text) returns uuid`, qui
   pose désormais `role='admin'` sur le fondateur.
 
@@ -371,14 +371,14 @@ Attendu : `1 failed | 1 passed`, l'échec portant sur `expected 'agent' to be 'a
 
 - [ ] **Step 3 : écrire la migration**
 
-Créer `supabase/migrations/20260726140100_signup_agency_provisioning.sql` :
+Créer `supabase/migrations/20260728105000_signup_agency_provisioning.sql` :
 
 ```sql
 -- Chemin d'inscription : le fondateur dirige son agence.
 --
 -- La vitrine envoie role:'agent' dans raw_user_meta_data, handle_new_user() fige cette
 -- valeur, et provision_solo_agency() ne touchait pas au rôle. Or is_agency_admin()
--- (20260726130200) exige admin ou manager : le dirigeant échouait donc à la garde qui
+-- (20260728102000) exige admin ou manager : le dirigeant échouait donc à la garde qui
 -- protège ses propres données de conformité, et le parcours KYB était bloqué avant
 -- d'exister. create_agency_and_join fait l'inverse depuis la baseline : l'appelant
 -- devient admin de l'agence qu'il crée. On aligne.
@@ -435,7 +435,7 @@ Attendu : `Tests 2 passed (2)`.
 - [ ] **Step 5 : commit**
 
 ```bash
-cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260726140100_signup_agency_provisioning.sql tests/backend/signup-provisioning.spec.ts && git commit -m "fix(onboarding): le fondateur dirige son agence
+cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260728105000_signup_agency_provisioning.sql tests/backend/signup-provisioning.spec.ts && git commit -m "fix(onboarding): le fondateur dirige son agence
 
 is_agency_admin() exige admin ou manager, la vitrine envoie agent et
 provision_solo_agency ne touchait pas au role : le dirigeant echouait a la
@@ -447,7 +447,7 @@ garde protegeant ses propres donnees KYB."
 ## Task 4 : le nom d'agence saisi à l'inscription est enfin utilisé
 
 **Files:**
-- Modifier : `supabase/migrations/20260726140100_signup_agency_provisioning.sql`
+- Modifier : `supabase/migrations/20260728105000_signup_agency_provisioning.sql`
 - Modifier : `tests/backend/signup-provisioning.spec.ts`
 
 **Interfaces:**
@@ -506,7 +506,7 @@ Attendu : `2 failed | 2 passed`.
 
 - [ ] **Step 3 : étendre la migration**
 
-Dans `supabase/migrations/20260726140100_signup_agency_provisioning.sql`, **remplacer
+Dans `supabase/migrations/20260728105000_signup_agency_provisioning.sql`, **remplacer
 intégralement** le bloc `create or replace function public.provision_solo_agency` écrit à
 la tâche 3 par la version ci-dessous, puis ajouter le bloc `handle_new_user` à la suite.
 Le fichier doit contenir **une seule** définition de chaque fonction : deux définitions
@@ -632,7 +632,7 @@ Attendu : `Tests 4 passed (4)`.
 - [ ] **Step 5 : commit**
 
 ```bash
-cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260726140100_signup_agency_provisioning.sql tests/backend/signup-provisioning.spec.ts && git commit -m "fix(onboarding): utilise le nom d'agence saisi a l'inscription
+cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260728105000_signup_agency_provisioning.sql tests/backend/signup-provisioning.spec.ts && git commit -m "fix(onboarding): utilise le nom d'agence saisi a l'inscription
 
 La vitrine le rangeait dans raw_user_meta_data.agency_name depuis toujours et
 personne ne le lisait. Repli en cascade sur collision : uq_agencies_name_normalized
@@ -644,7 +644,7 @@ aurait sinon laisse le second inscrit sans agence, donc avec un CRM muet."
 ## Task 5 : pas d'agence orpheline pour les agents invités
 
 **Files:**
-- Modifier : `supabase/migrations/20260726140100_signup_agency_provisioning.sql`
+- Modifier : `supabase/migrations/20260728105000_signup_agency_provisioning.sql`
 - Modifier : `tests/backend/signup-provisioning.spec.ts`
 
 **Interfaces:**
@@ -702,7 +702,7 @@ Attendu : `1 failed | 4 passed`, l'échec portant sur un `agency_id` non nul.
 
 - [ ] **Step 3 : étendre la migration**
 
-Dans `supabase/migrations/20260726140100_signup_agency_provisioning.sql`, **remplacer
+Dans `supabase/migrations/20260728105000_signup_agency_provisioning.sql`, **remplacer
 intégralement** le bloc `create or replace function public.handle_new_user` écrit à la
 tâche 4 par la version ci-dessous. Le fichier doit rester avec **une seule** définition
 de chaque fonction.
@@ -777,7 +777,7 @@ Attendu : `Tests 5 passed (5)`.
 - [ ] **Step 5 : commit**
 
 ```bash
-cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260726140100_signup_agency_provisioning.sql tests/backend/signup-provisioning.spec.ts && git commit -m "fix(onboarding): plus d'agence orpheline par agent invite
+cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260728105000_signup_agency_provisioning.sql tests/backend/signup-provisioning.spec.ts && git commit -m "fix(onboarding): plus d'agence orpheline par agent invite
 
 L'invite creait son compte, recevait une agence solo, puis accept-team-invite
 reecrivait son agency_id : l'agence restait en base, morte, une par invite."
@@ -788,7 +788,7 @@ reecrivait son agency_id : l'agence restait en base, morte, une par invite."
 ## Task 6 : fermer `join_agency`
 
 **Files:**
-- Créer : `supabase/migrations/20260726140200_revoke_join_agency.sql`
+- Créer : `supabase/migrations/20260728106000_revoke_join_agency.sql`
 - Modifier : `tests/backend/onboarding-agency-rpc.spec.ts`
 
 **Interfaces:**
@@ -839,7 +839,7 @@ réussi. C'est la faille, constatée avant d'être fermée.
 
 - [ ] **Step 3 : écrire la migration**
 
-Créer `supabase/migrations/20260726140200_revoke_join_agency.sql` :
+Créer `supabase/migrations/20260728106000_revoke_join_agency.sql` :
 
 ```sql
 -- Fermeture de join_agency(uuid).
@@ -873,7 +873,7 @@ Attendu : `Tests 3 passed (3)`.
 - [ ] **Step 5 : commit**
 
 ```bash
-cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260726140200_revoke_join_agency.sql tests/backend/onboarding-agency-rpc.spec.ts && git commit -m "fix(rls): ferme join_agency, ouverte a tout compte authentifie
+cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260728106000_revoke_join_agency.sql tests/backend/onboarding-agency-rpc.spec.ts && git commit -m "fix(rls): ferme join_agency, ouverte a tout compte authentifie
 
 La fonction ne verifiait aucune invitation : tout compte authentifie pouvait
 s'attacher a n'importe quelle agence par son UUID et lire ses contacts, deals
@@ -885,11 +885,11 @@ et dossiers KYC. Le chemin utilisateur est accept-team-invite."
 ## Task 7 : colonnes de soumission d'identité
 
 **Files:**
-- Créer : `supabase/migrations/20260726140300_agencies_identity_submission.sql`
+- Créer : `supabase/migrations/20260728107000_agencies_identity_submission.sql`
 - Modifier : `tests/backend/agency-kyb-verification.spec.ts`
 
 **Interfaces:**
-- Consomme : `agencies` avec les colonnes KYB de `20260726130100`.
+- Consomme : `agencies` avec les colonnes KYB de `20260728101000`.
 - Produit : `agencies.identity_submitted_at timestamptz`, et la valeur `validated`
   acceptée par `agencies_verification_status_chk`. L'étape 2 s'appuie sur les deux.
 
@@ -950,7 +950,7 @@ Attendu : `2 failed | 16 passed`.
 
 - [ ] **Step 3 : écrire la migration**
 
-Créer `supabase/migrations/20260726140300_agencies_identity_submission.sql` :
+Créer `supabase/migrations/20260728107000_agencies_identity_submission.sql` :
 
 ```sql
 -- Deux ajouts additifs qui préparent le gate d'onboarding (étape 2).
@@ -997,7 +997,7 @@ Attendu : `Tests 18 passed (18)`.
 - [ ] **Step 5 : commit**
 
 ```bash
-cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260726140300_agencies_identity_submission.sql tests/backend/agency-kyb-verification.spec.ts && git commit -m "feat(kyb): identity_submitted_at et statut validated
+cd /Users/thomastaillefer/dev/megga-real-estate/.claude/worktrees/kyb-handoff-update && git add supabase/migrations/20260728107000_agencies_identity_submission.sql tests/backend/agency-kyb-verification.spec.ts && git commit -m "feat(kyb): identity_submitted_at et statut validated
 
 verification_status vaut pending des la creation et ne distingue pas la
 non-saisie de l'attente de traitement, alors que le gate a besoin de cette
@@ -1077,7 +1077,7 @@ Ajouter cette entrée à la fin du tableau `entries` de
 {
   "key": "megga/signup-provisioning",
   "namespace": "megga",
-  "value": "CHEMIN D'INSCRIPTION — corrigé le 26 juil. 2026 (étape 1 de l'onboarding KYB). L'inscription se fait sur la VITRINE (sites/megga-vitrine/js/megga-auth.js), pas dans l'app : nom, e-mail, mot de passe, nom d'agence, captcha, puis data:{full_name, agency_name, role:'agent'}. Le trigger on_auth_user_created sur auth.users appelle handle_new_user() ; il n'était dans AUCUNE migration avant 20260726140000, donc absent en local et invisible en prod. handle_new_user() crée le profil puis, pour les rôles agence ET si aucune invitation valide n'attend cet e-mail, appelle provision_solo_agency(). Celle-ci nomme l'agence d'après agency_name (repli en cascade sur le nom de la personne puis un suffixe court : uq_agencies_name_normalized est UNIQUE sur lower(btrim(name)) et une collision laisserait l'utilisateur sans agence, donc avec un CRM muet) et pose role='admin' sur le fondateur — indispensable, sinon is_agency_admin() lui interdit de saisir ses propres données KYB. join_agency(uuid) est RÉVOQUÉE de authenticated depuis 20260726140200 : elle ne vérifiait aucune invitation et permettait à tout compte de rejoindre n'importe quelle agence. Le chemin utilisateur est accept-team-invite. Tests : tests/backend/signup-provisioning.spec.ts."
+  "value": "CHEMIN D'INSCRIPTION — corrigé le 26 juil. 2026 (étape 1 de l'onboarding KYB). L'inscription se fait sur la VITRINE (sites/megga-vitrine/js/megga-auth.js), pas dans l'app : nom, e-mail, mot de passe, nom d'agence, captcha, puis data:{full_name, agency_name, role:'agent'}. Le trigger on_auth_user_created sur auth.users appelle handle_new_user() ; il n'était dans AUCUNE migration avant 20260728104000, donc absent en local et invisible en prod. handle_new_user() crée le profil puis, pour les rôles agence ET si aucune invitation valide n'attend cet e-mail, appelle provision_solo_agency(). Celle-ci nomme l'agence d'après agency_name (repli en cascade sur le nom de la personne puis un suffixe court : uq_agencies_name_normalized est UNIQUE sur lower(btrim(name)) et une collision laisserait l'utilisateur sans agence, donc avec un CRM muet) et pose role='admin' sur le fondateur — indispensable, sinon is_agency_admin() lui interdit de saisir ses propres données KYB. join_agency(uuid) est RÉVOQUÉE de authenticated depuis 20260728106000 : elle ne vérifiait aucune invitation et permettait à tout compte de rejoindre n'importe quelle agence. Le chemin utilisateur est accept-team-invite. Tests : tests/backend/signup-provisioning.spec.ts."
 }
 ```
 

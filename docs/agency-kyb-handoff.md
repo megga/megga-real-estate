@@ -196,9 +196,9 @@ Attendu (état du 26 juillet) : `629 passed`, 0 échec. Lire le compte de tests,
 le code de sortie.
 
 **Mise à jour étape 2 (vérifiée le 28 juillet 2026) :** l'étape 2 a ajouté 3
-migrations, datées du 27 juillet 2026 (`20260727100000_submit_agency_identity.sql`,
-`20260727110000_kyb_identity_documents_storage.sql`,
-`20260727120000_submit_agency_identity_id_document.sql`). **Le total à re-dater le
+migrations, datées du 27 juillet 2026 (`20260728108000_submit_agency_identity.sql`,
+`20260728109000_kyb_identity_documents_storage.sql`,
+`20260728110000_submit_agency_identity_id_document.sql`). **Le total à re-dater le
 jour du merge est donc désormais de 11 migrations, pas 8.** Vérifié par `date -u` au
 moment de cette mise à jour : nous sommes le 28 juillet 2026 UTC, donc le garde-date
 de `deploy.yml` (`stamp >= TODAY`) a déjà dépassé les 11 fichiers du chantier (tous
@@ -443,7 +443,7 @@ avant de reprendre ce chantier :
   sans propriétaire ni moyen de purge, dans la fonctionnalité même qui porte la
   conformité. À traiter avant qu'une vraie pièce d'identité soit déposée.
 - **La garde anti-doublon du check `id_document` ne filtre pas sur `result`.**
-  `submit_agency_identity()` (`20260727120000_submit_agency_identity_id_document.sql`)
+  `submit_agency_identity()` (`20260728110000_submit_agency_identity_id_document.sql`)
   ne repose jamais une seconde ligne `agency_person_verification_checks` pour la
   même personne dès qu'une ligne existe, quel que soit son `result`. Après un
   verdict négatif, une pièce remplacée ne produirait donc jamais de nouvelle demande

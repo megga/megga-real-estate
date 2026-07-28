@@ -1,5 +1,5 @@
 // Storage `documents`, préfixe réservé `kyb-identity` (étape 2 KYB, tâche 6 — pièce
-// d'identité du signataire). Migration : 20260727110000_kyb_identity_documents_storage.sql.
+// d'identité du signataire). Migration : 20260728109000_kyb_identity_documents_storage.sql.
 //
 // Le reste du bucket `documents` (20260527000000) est lisible/écrivable par TOUTE
 // l'agence — il ne vérifie que le premier segment de chemin (agency_id), jamais le
@@ -12,7 +12,7 @@
 //      restriction est bien le RÔLE, pas seulement l'agence (l'objet même de
 //      cette migration, cf. son en-tête) ;
 //   3. un dirigeant d'une AUTRE agence en est exclu (isolation inter-agences,
-//      comme le reste du dispositif KYB, 20260726130200/300).
+//      comme le reste du dispositif KYB, 20260728102000/300).
 //
 // Et une non-régression : le layout plat existant ({agency_id}/{document_id}.pdf)
 // reste accessible à tout agent de l'agence, preuve que l'exclusion du préfixe
@@ -32,7 +32,7 @@ function fakeJpeg(): Blob {
   return new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], { type: 'image/jpeg' })
 }
 
-describe.skipIf(!HAS_KEYS)('storage documents/kyb-identity — dirigeant seul (20260727110000)', () => {
+describe.skipIf(!HAS_KEYS)('storage documents/kyb-identity — dirigeant seul (20260728109000)', () => {
   let setup: TwoAgenciesSetup
   let plainAgentId: string
   let plainAgentClient: SupabaseClient

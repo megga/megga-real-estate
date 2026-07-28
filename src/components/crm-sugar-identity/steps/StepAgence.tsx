@@ -47,7 +47,7 @@ interface StepAgenceProps {
 
 /**
  * Pays de siège pris en charge — les 3 juridictions couvertes par legal_forms
- * (migration 20260726130000 : Suisse/France/Liechtenstein). Sous-ensemble de
+ * (migration 20260728100000 : Suisse/France/Liechtenstein). Sous-ensemble de
  * COUNTRIES (mêmes codes/libellés — même limitation « libellés français seulement »
  * déjà acceptée par le select nationalité de StepSignataire, pas un choix nouveau
  * pris ici) : présenter les 195 pays de COUNTRIES ferait retomber la quasi-totalité

@@ -33,7 +33,7 @@ export interface AgencySettingsData {
    * Nom commercial, distinct de `legal` (raison sociale) — agencies.trade_name.
    * Cible du rapprochement flou avec le domaine e-mail, jamais `legal` (qui doit
    * matcher le registre au caractère près). Cf. commentaire de la migration
-   * 20260726130100_agencies_kyb_columns.sql.
+   * 20260728101000_agencies_kyb_columns.sql.
    */
   tradeName: string
   /** IDE/UID en CH, SIREN en FR — agencies.business_registration_number. */

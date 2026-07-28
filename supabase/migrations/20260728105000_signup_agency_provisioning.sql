@@ -2,7 +2,7 @@
 --
 -- La vitrine envoie role:'agent' dans raw_user_meta_data, handle_new_user() fige cette
 -- valeur, et provision_solo_agency() ne touchait pas au rôle. Or is_agency_admin()
--- (20260726130200) exige admin ou manager : le dirigeant échouait donc à la garde qui
+-- (20260728102000) exige admin ou manager : le dirigeant échouait donc à la garde qui
 -- protège ses propres données de conformité, et le parcours KYB était bloqué avant
 -- d'exister. create_agency_and_join fait l'inverse depuis la baseline : l'appelant
 -- devient admin de l'agence qu'il crée. On aligne.
@@ -84,7 +84,7 @@ comment on function public.provision_solo_agency(uuid, text) is
 -- Mais si l'invitation n'est JAMAIS réclamée, elle expire à 7 jours, ce trigger ne
 -- repasse pas, et le compte restait à agency_id NULL pour toujours : CRM muet, sans
 -- issue, puisque le wizard de rattrapage a été supprimé et que join_agency est
--- fermée (20260726140200). Décision produit : on provisionne SYSTÉMATIQUEMENT pour
+-- fermée (20260728106000). Décision produit : on provisionne SYSTÉMATIQUEMENT pour
 -- les rôles agence, invitation en attente ou pas ; c'est accept-team-invite qui
 -- supprime l'agence solo — devenue inutile — au moment où l'invité réclame pour de
 -- bon, jamais avant, jamais si l'agence porte la moindre donnée (voir

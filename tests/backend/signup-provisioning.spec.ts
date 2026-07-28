@@ -3,7 +3,7 @@
 // Le trigger qui appelle handle_new_user() n'était dans aucune migration : en local
 // l'inscription ne créait ni profil ni agence, et en prod l'objet vivait hors du
 // contrôle de version. Ces tests exercent une vraie inscription et cassent la CI si
-// le trigger disparaît. Migration : 20260726140000_auth_user_created_trigger.
+// le trigger disparaît. Migration : 20260728104000_auth_user_created_trigger.
 
 import { describe, it, expect, afterAll } from 'vitest'
 import fs from 'node:fs'
@@ -15,7 +15,7 @@ const PW = 'Test-Password-123!'
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 
 // Rejoue le fichier de migration complet plutôt que d'appeler une fonction de
-// backfill : elle n'existe plus (20260726140100 la convertit en bloc DO anonyme,
+// backfill : elle n'existe plus (20260728105000 la convertit en bloc DO anonyme,
 // précisément pour qu'aucun objet ne reste appelable après coup — voir le
 // commentaire en tête de ce bloc dans la migration). Rejouable sans risque : le
 // fichier entier est idempotent (CREATE OR REPLACE FUNCTION + prédicat purement
@@ -23,7 +23,7 @@ const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_T
 function replayBackfillMigration(): void {
   const migrationPath = path.resolve(
     process.cwd(),
-    'supabase/migrations/20260726140100_signup_agency_provisioning.sql'
+    'supabase/migrations/20260728105000_signup_agency_provisioning.sql'
   )
   execSql(fs.readFileSync(migrationPath, 'utf-8'))
 }
@@ -94,7 +94,7 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
     expect(prof?.role, 'le fondateur doit diriger son agence, sinon is_agency_admin() le bloque').toBe('admin')
   })
 
-  // provision_solo_agency() ne posait pas le role avant le 20260726140100 : tout
+  // provision_solo_agency() ne posait pas le role avant le 20260728105000 : tout
   // fondateur inscrit avant ce fix est resté 'agent' malgré son agency_id déjà posé
   // (le garde `agency_id is null` de l'UPDATE ne le voit plus). backfill_founder_admin_roles()
   // répare ces comptes hérités — ces deux tests en prouvent les deux bords.
