@@ -32,11 +32,20 @@ verrou singleton. **Cap d'API ~750-900/requête** → on partitionne en slices
 | Cron | Heure UTC | Mode | Rôle |
 |---|---|---|---|
 | `realadvisor-fresh-daily` | 03:30 | `fresh` | delta national `created_at_desc`, rattrape les nouvelles annonces (s'arrête sur page connue) |
-| `realadvisor-rolling-daily` | 22:00 | `chunk` scopé | re-crawle 1 bucket de cantons/nuit (rotation 7 j via `realadvisor_shard_map`, dow 0=dim) → rafraîchit `last_seen` + écrit les **reçus d'énumération** |
+| `realadvisor-rolling-daily` | 22:00 | `chunk` scopé | re-crawle 1 bucket de cantons/nuit (rotation **3 j** via `realadvisor_shard_map`) → rafraîchit `last_seen` + écrit les **reçus d'énumération** |
 | `realadvisor-sweep-enum-daily` | 01:30 | `sweep_enum` | suppression destructive **sûre** (cf ci-dessous) |
 
 `fresh` ne rafraîchit que le haut du catalogue ; le **rolling** est ce qui re-touche
-toute la longue traîne sur une fenêtre glissante de 7 jours.
+toute la longue traîne, sur une fenêtre glissante de 3 jours alignée sur la latence
+de retrait (3 absences espacées >= 20 h + gate 48 h). Sans cet alignement le vivier
+se stabilise structurellement sous le catalogue réel : un bien qui part sort en ~3 j,
+un bien qui arrive n'entre qu'au prochain passage de son bucket.
+
+Le bucket de la nuit est `shard_map[jours_depuis_2026-01-01 % 3]` — un compteur
+ABSOLU, pas `dow`. ⚠ La map et l'index sont couplés : 3 entrées indexées par `dow`
+(période 7) renvoient NULL du mercredi au samedi, et `cantons` vide fait abandonner
+la fonction sur son garde-fou anti-full-crawl **sans écrire de ligne de run** —
+panne totalement silencieuse. Les changer ensemble, dans la même migration.
 
 ## Sweep destructif sûr (`sweep_enum`)
 
@@ -68,7 +77,7 @@ de run à statut terminal), donc un crawl long ne le bloque pas.
 | `realadvisor_sweep_enabled` | **`false`** | `false` ⇒ sweep en **DRY-RUN** (compte, ne supprime rien). Passer à `true` pour ARMER, après ~2 cycles de calibrage |
 | `realadvisor_user_agent` | `''` | UA dédié (vide ⇒ fallback Chrome) |
 | `realadvisor_contact_email` | `''` | `From:` envoyé si renseigné |
-| `realadvisor_shard_map` | 7 buckets | rotation cantons du rolling (éditable pour rééquilibrer une nuit) |
+| `realadvisor_shard_map` | 3 buckets | rotation cantons du rolling (éditable pour rééquilibrer, mais garder **exactement 3** entrées — l'index est `% 3`) |
 
 ## Déclenchement manuel
 
