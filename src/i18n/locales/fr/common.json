@@ -438,6 +438,34 @@
     "footer": {
       "retention": "Les évènements sont signés cryptographiquement et conservés 10 ans (nLPD art. 12 · LBA art. 7).",
       "tamperLogged": "Toute tentative de suppression ou modification est elle-même journalisée."
+    },
+    "action": {
+      "match_suggested": "Correspondance suggérée",
+      "stage_change": "Étape modifiée",
+      "status_change": "Statut modifié",
+      "contact_created": "Contact créé",
+      "note_added": "Note ajoutée",
+      "reminder_created": "Rappel créé",
+      "visit_scheduled": "Visite planifiée",
+      "kyc_case_opened": "Dossier KYC ouvert",
+      "kyc_screening": "Contrôle KYC effectué",
+      "kyc_report_sent": "Rapport KYC envoyé",
+      "lead_created_whatsapp": "Lead créé (WhatsApp)",
+      "lead_qualified_whatsapp": "Lead qualifié (WhatsApp)",
+      "seller_lead_received": "Demande vendeur reçue",
+      "contact_message_received": "Message de contact reçu",
+      "whatsapp_agent_copilot_reply": "Réponse du copilote WhatsApp",
+      "offer_created": "Offre créée",
+      "offer_countered": "Contre-offre envoyée",
+      "offer_accepted": "Offre acceptée",
+      "offer_rejected": "Offre refusée",
+      "offer_expired": "Offre expirée",
+      "offer_withdrawn": "Offre retirée",
+      "role_changed": "Rôle modifié",
+      "admin_console_entered": "Console admin ouverte",
+      "contact_scores.recompute": "Scores de contacts recalculés",
+      "property_scores.recompute": "Scores de biens recalculés",
+      "rls_hardening_applied": "Durcissement RLS appliqué"
     }
   },
   "portal": {

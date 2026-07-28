@@ -393,7 +393,7 @@ async function qualifyLead(
     agency_id: agencyId,
     actor_id: null,
     actor_kind: 'ai',
-    action: created ? 'Lead créé (WhatsApp)' : 'Lead qualifié (WhatsApp)',
+    action: created ? 'lead_created_whatsapp' : 'lead_qualified_whatsapp',
     entity_type: 'contact',
     entity_id: leadContactId,
     object_label: note.slice(0, 500),

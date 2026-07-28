@@ -59,7 +59,7 @@ export async function execWebAddNote(ctx: WebToolCtx, a: Args): Promise<string> 
     agency_id: ctx.agencyId,
     actor_id: null,           // contrainte : actor_id NULL si actor_kind != 'user'
     actor_kind: 'ai',
-    action: 'Note ajoutée',
+    action: 'note_added',
     entity_type: 'contact',
     entity_id: contactId,
     object_label: body.slice(0, 500),
@@ -96,7 +96,7 @@ export async function execWebCreateReminder(ctx: WebToolCtx, a: Args): Promise<s
   if (contactId) {
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
-      action: 'Rappel créé', entity_type: 'contact', entity_id: contactId,
+      action: 'reminder_created', entity_type: 'contact', entity_id: contactId,
       object_label: `${body.slice(0, 120)} (${frDateTime(iso)})`, category: 'contact', severity: 'info',
       metadata: { via: 'web', profile_id: ctx.profileId, reminder_id: reminder.id },
     })
