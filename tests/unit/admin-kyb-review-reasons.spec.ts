@@ -333,6 +333,29 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
     expect(reasons).toEqual([{ code: 'veto_failed' }])
   })
 
+  // Revue étape 5/tâche 3, point 3 (branche 1) : seul le cas `mismatch` était testé
+  // ci-dessus pour déclencher "véto échoué". `partial` échoue pourtant un véto au même
+  // titre (checkRowTone le documente déjà : seul `match` passe un véto) -- sans ce test,
+  // une régression sur `hasFailedVeto` qui n'accepterait plus que `mismatch` passerait
+  // inaperçue.
+  it('cas B bis — véto échoué via un résultat PARTIAL, pas seulement mismatch (seul match passe un véto)', () => {
+    const reasons = qualifyReviewReasons({
+      sweepAttempts: 0,
+      score: 0.9,
+      checks: [
+        ...allAgencyVetosPassed().filter((c) => c.checkType !== 'registry_legal_name_match'),
+        {
+          checkType: 'registry_legal_name_match', result: 'partial', isVeto: true, relatedPersonId: null,
+          checkId: 'agency-veto-partial', checkedAt: BASELINE_CHECKED_AT,
+        },
+        ...allPersonVetosPassed('p1'),
+      ],
+      currentVetoTypes: ALL_VETO_TYPES,
+      activeSignatoryIds: ['p1'],
+    })
+    expect(reasons).toEqual([{ code: 'veto_failed' }])
+  })
+
   it('cas C — véto ABSENT faute de source (result=unavailable) : pas la même chose qu un échec', () => {
     const reasons = qualifyReviewReasons({
       sweepAttempts: 0,
@@ -365,6 +388,28 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
         { checkType: 'registry_legal_name_match', result: 'match', isVeto: true, relatedPersonId: null, checkId: 'agency-veto-b', checkedAt: BASELINE_CHECKED_AT },
         // registry_number_format, registry_country_match : aucune ligne.
         ...allPersonVetosPassed('p1'),
+      ],
+      currentVetoTypes: ALL_VETO_TYPES,
+      activeSignatoryIds: ['p1'],
+    })
+    expect(reasons).toEqual([{ code: 'veto_missing_source' }])
+  })
+
+  // Revue étape 5/tâche 3, point 3 (branche 2) : les tests existants donnaient soit tous
+  // les vétos personne présents (cas D, "aucun signataire actif" ci-dessous), soit
+  // activeSignatoryIds vide (auquel cas le .some() de hasMissingPersonVeto est
+  // trivialement faux, quel que soit son corps) -- aucun des deux ne peut prouver que la
+  // condition détecte correctement un véto personne VRAIMENT absent. Ici p1 EST un
+  // signataire actif, et id_document n'a JAMAIS produit la moindre ligne pour lui (pas
+  // même "unavailable" comme au cas C : la source ne s'est même pas exprimée).
+  it('cas C ter — véto personne TOTALEMENT absent (aucune ligne, pas même "unavailable") pour un signataire actif', () => {
+    const reasons = qualifyReviewReasons({
+      sweepAttempts: 0,
+      score: 0.9,
+      checks: [
+        ...allAgencyVetosPassed(),
+        { checkType: 'pep_sanctions_screening', result: 'match', isVeto: true, relatedPersonId: 'p1', checkId: 'p1-pep', checkedAt: BASELINE_CHECKED_AT },
+        // id_document : aucune ligne du tout pour p1.
       ],
       currentVetoTypes: ALL_VETO_TYPES,
       activeSignatoryIds: ['p1'],
