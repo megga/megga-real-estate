@@ -653,7 +653,10 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
   describe('admin_relaunch_agency_review', () => {
     it('un super-admin relance le moteur -- declenche reellement recompute_agency_verification', async () => {
       const agencyId = await createAgency('relaunch-ok')
-      await setVerification(agencyId, { status: 'pending' })
+      // submittedAt requis (correctif revue point 1) : un dossier 'pending' mais SOUMIS
+      // (net.http_post primaire jamais parti, cf. sweep_pending_agency_verifications) est
+      // l'usage nominal de la relance -- distinct du dossier jamais soumis teste plus bas.
+      await setVerification(agencyId, { status: 'pending', submittedAt: new Date().toISOString() })
 
       const before = await getLatestEvent(agencyId, 'agency_verification_recomputed')
       expect(before, 'aucun passage moteur avant la relance').toBeNull()
@@ -669,7 +672,7 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
 
     it('journalise la demande humaine de relance, distincte du passage du moteur', async () => {
       const agencyId = await createAgency('relaunch-trace')
-      await setVerification(agencyId, { status: 'pending' })
+      await setVerification(agencyId, { status: 'pending', submittedAt: new Date().toISOString() })
 
       const { error } = await superAdmin.rpc('admin_relaunch_agency_review', { p_agency_id: agencyId })
       expect(error, `rpc: ${error?.message}`).toBeNull()
@@ -727,6 +730,50 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
 
       const agency = await getAgencyVerification(agencyId)
       expect(agency.verification_status, 'un rejet humain ne se retourne pas seul, meme relance').toBe('rejected')
+    })
+
+    // ─── Correctif revue etape 5/tache 2, point 1 (CRITIQUE) ──────────────────────────
+    // Reproduit en base : une agence neuve, jamais soumise (identity_submitted_at NULL,
+    // statut par defaut 'pending'), ne doit JAMAIS pouvoir sortir de 'pending' via la
+    // relance -- recompute_agency_verification ne sait rejeter que les dossiers deja
+    // TRANCHES (rejected/validated, 20260728130000), jamais un 'pending', et un dossier
+    // vide echoue quand meme tous ses vetos entite (aucun check ne peut valoir 'match'),
+    // donc atterrit en 'manual_review' au lieu d'y rester insensible. Sans cette garde,
+    // relancer PUIS valider (deux appels authentifies parfaitement legitimes) suffisait a
+    // faire passer une agence sans la moindre piece a 'validated'.
+    it('refuse de relancer un dossier jamais soumis (identity_submitted_at NULL)', async () => {
+      const agencyId = await createAgency('relaunch-never-submitted')
+      // Pas de setVerification : statut par defaut 'pending', identity_submitted_at NULL --
+      // exactement l'etat d'une agence fraichement creee, cf. 20260728101000/107000.
+
+      const { error } = await superAdmin.rpc('admin_relaunch_agency_review', { p_agency_id: agencyId })
+      expect(error, 'un dossier jamais soumis ne doit pas se laisser relancer').not.toBeNull()
+
+      const agency = await getAgencyVerification(agencyId)
+      expect(agency.verification_status, 'un refus ne doit rien changer au statut').toBe('pending')
+
+      const engineEvent = await getLatestEvent(agencyId, 'agency_verification_recomputed')
+      expect(engineEvent, 'le moteur ne doit meme pas etre appele -- la garde precede le perform').toBeNull()
+    })
+
+    it('une agence jamais soumise ne peut pas atteindre validated (relance puis validation, deux appels legitimes)', async () => {
+      const agencyId = await createAgency('relaunch-then-validate-never-submitted')
+
+      const { error: relaunchErr } = await superAdmin.rpc('admin_relaunch_agency_review', { p_agency_id: agencyId })
+      expect(relaunchErr, 'la relance sur un dossier jamais soumis doit etre refusee').not.toBeNull()
+
+      const afterRelaunch = await getAgencyVerification(agencyId)
+      expect(afterRelaunch.verification_status, 'la relance refusee ne doit jamais faire entrer le dossier en manual_review').toBe('pending')
+
+      // Meme si la relance avait (a tort) fait passer le dossier en manual_review,
+      // admin_validate_agency_review exige lui-meme ce statut (teste separement) -- la
+      // chaine complete de l'attaque reproduite en revue est verifiee ici de bout en bout.
+      const { error: validateErr } = await superAdmin.rpc('admin_validate_agency_review', { p_agency_id: agencyId })
+      expect(validateErr, 'valider un dossier reste hors de portee sans passage prealable par manual_review').not.toBeNull()
+
+      const final = await getAgencyVerification(agencyId)
+      expect(final.verification_status, 'une agence jamais soumise ne doit jamais atteindre validated').toBe('pending')
+      expect(final.verified_at).toBeNull()
     })
   })
 

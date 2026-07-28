@@ -277,16 +277,39 @@ grant execute on function public.get_admin_agency_review_detail(uuid) to authent
 -- action humaine = interdit). La garde reste donc délibérément plus étroite que le
 -- patron P3 des lectures.
 --
--- ── validate/reject exigent manual_review, relaunch non ────────────────────────────────
+-- ── validate/reject exigent manual_review ; relaunch exige seulement d'avoir été soumis ──
 --
 -- Valider et rejeter résolvent une entrée de LA FILE (get_admin_agency_review_queue, dont
 -- le seul filtre est verification_status = 'manual_review') : agir sur un dossier jamais
 -- soumis ('pending'), ou déjà tranché ('validated'/'rejected'/'auto_validated'), n'a pas
 -- de sens métier et signale un bug d'appelant ou un écran périmé -- refusé explicitement
--- plutôt que toléré en silence. « Relancer » n'a PAS cette contrainte : elle délègue
--- entièrement à recompute_agency_verification, qui sait déjà ne rien faire sur un dossier
--- tranché (retour anticipé, 20260728130000) -- lui imposer la même restriction ici ferait
--- double emploi avec une règle qui vit déjà, correctement, dans le moteur.
+-- plutôt que toléré en silence.
+--
+-- « Relancer » n'exige PAS manual_review -- ce serait trop étroit : sa raison d'être est
+-- justement de débloquer un dossier SOUMIS mais resté 'pending' plus de 15 minutes parce
+-- que le déclenchement automatique (net.http_post fire-and-forget depuis
+-- submit_agency_identity, 20260728150000) n'est jamais parti ou a échoué -- exactement
+-- l'état que sweep_pending_agency_verifications() rattrape une fois par heure ; un
+-- super-admin doit pouvoir forcer ce même rattrapage sans attendre le prochain passage du
+-- filet. Déléguer à recompute_agency_verification la distinction tranché/pas-tranché
+-- reste correct (retour anticipé sur rejected/validated, 20260728130000) -- imposer
+-- manual_review ici ferait double emploi avec une règle qui vit déjà, correctement, dans
+-- le moteur.
+--
+-- « Relancer » exige en revanche identity_submitted_at (CORRECTIF REVUE étape 5/tâche 2,
+-- point 1, CRITIQUE, reproduit en base par le chemin réel) : recompute_agency_verification
+-- ne sait rejeter que les dossiers déjà TRANCHÉS (rejected/validated), jamais un dossier
+-- 'pending' -- et un dossier 'pending' JAMAIS SOUMIS (aucun check, aucun signataire) échoue
+-- quand même tous ses vétos entité (aucun check ne peut valoir 'match'), donc atterrit en
+-- 'manual_review' au lieu d'y rester insensible. Sans cette garde, deux appels
+-- authentifiés parfaitement légitimes -- relancer puis valider -- suffisaient à faire
+-- passer une agence de 'pending' à 'validated' sans la moindre pièce, exactement le statut
+-- qui ouvre les gardes LAB en aval (ouverture de dossiers KYC clients, signature
+-- électronique). Ce relais était le PREMIER appelant de recompute_agency_verification sans
+-- précondition de soumission -- toutes les autres voies vers manual_review (validate/
+-- reject ci-dessus) exigent déjà manual_review, donc de facto un dossier déjà passé au
+-- moins une fois par le moteur. Prouvé rouge (agence jamais soumise validée en deux
+-- appels) puis vert par agency-review-queue.spec.ts, describe admin_relaunch_agency_review.
 --
 -- Idempotente : CREATE OR REPLACE FUNCTION, REVOKE/GRANT rejouables sans effet de bord.
 
@@ -411,13 +434,35 @@ language plpgsql
 security definer
 set search_path to 'public'
 as $$
+declare
+  v_submitted_at timestamptz;
 begin
   if not public.is_super_admin() then
     raise exception 'forbidden: super_admin only' using errcode = '42501';
   end if;
 
-  if not exists (select 1 from public.agencies where id = p_agency_id) then
+  -- FOR UPDATE : même discipline que validate/reject ci-dessus (verrouille la ligne le
+  -- temps de la décision). Lit identity_submitted_at, PAS verification_status : voir
+  -- l'en-tête de section pour pourquoi relancer n'exige pas manual_review mais exige quand
+  -- même d'avoir été soumis -- un dossier jamais soumis est en 'pending' comme un dossier
+  -- normalement en attente de saisie, rien ne les distingue par le statut seul.
+  select identity_submitted_at into v_submitted_at
+    from public.agencies
+   where id = p_agency_id
+     for update;
+
+  if not found then
     raise exception 'agency not found';
+  end if;
+
+  -- CORRECTIF REVUE point 1 (CRITIQUE) : voir l'en-tête de section pour le scénario
+  -- complet. Sans cette garde, un dossier 'pending' jamais soumis atteignait
+  -- 'manual_review' au premier appel (tous ses vétos entité échouent faute du moindre
+  -- check), puis 'validated' au second (admin_validate_agency_review) -- deux appels
+  -- authentifiés légitimes en apparence. Prouvé rouge par agency-review-queue.spec.ts
+  -- avant ce correctif.
+  if v_submitted_at is null then
+    raise exception 'agency has not submitted its identity yet';
   end if;
 
   -- Trace la DEMANDE humaine avant d'appeler le moteur : même si recompute_agency_verification
@@ -440,7 +485,7 @@ end;
 $$;
 
 comment on function public.admin_relaunch_agency_review(uuid) is
-  'Décision humaine (étape 5, tâche 2) : déclenche recompute_agency_verification() (20260728130000, GRANT service_role uniquement et INCHANGÉ) depuis un jeton authenticated, via un appel imbriqué qui hérite des privilèges du propriétaire de CETTE fonction -- élargissement gardé par is_super_admin(), voir l''arbitrage en tête de section pour le choix face à une Edge Function relais. Journalise systématiquement la demande humaine (category=kyc, actor_kind=user) AVANT l''appel, y compris quand le moteur ressort sans effet sur un dossier déjà tranché (validated/rejected -- son propre retour anticipé, jamais dupliqué ici). super_admin uniquement. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md.';
+  'Décision humaine (étape 5, tâche 2) : déclenche recompute_agency_verification() (20260728130000, GRANT service_role uniquement et INCHANGÉ) depuis un jeton authenticated, via un appel imbriqué qui hérite des privilèges du propriétaire de CETTE fonction -- élargissement gardé par is_super_admin(), voir l''arbitrage en tête de section pour le choix face à une Edge Function relais. Exige identity_submitted_at posé (dossier SOUMIS) -- erreur explicite sinon ; PAS manual_review (relancer un dossier ''pending'' encore non traité par le moteur, ex. net.http_post jamais parti, est l''usage nominal -- voir sweep_pending_agency_verifications, 20260728150000). CORRECTIF REVUE point 1 (CRITIQUE) : sans cette garde, un dossier jamais soumis atteignait ''validated'' en deux appels authentifiés légitimes (relancer puis valider). Journalise systématiquement la demande humaine (category=kyc, actor_kind=user) AVANT l''appel, y compris quand le moteur ressort sans effet sur un dossier déjà tranché (validated/rejected -- son propre retour anticipé, jamais dupliqué ici). super_admin uniquement. Voir docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-5.md.';
 
 revoke all on function public.admin_relaunch_agency_review(uuid) from public, anon, service_role;
 grant execute on function public.admin_relaunch_agency_review(uuid) to authenticated;
