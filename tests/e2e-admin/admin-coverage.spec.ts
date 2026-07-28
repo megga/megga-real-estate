@@ -84,3 +84,20 @@ test.describe('Super-admin — parametric route coverage', () => {
     })
   }
 })
+
+// Visiter des URL ne prouve rien des liens que la console REND : après la
+// refusion dans le CRM, ils pointaient encore à la racine et le retour de la
+// fiche agence éjectait vers la vitrine. On cible le lien par son `href` — le
+// libellé est traduit, l'adresse est le contrat.
+test.describe('Super-admin — navigation interne', () => {
+  test('le retour de la fiche agence ramène à la liste de la console', async ({ page }) => {
+    await page.goto(`${BASE}/agencies/${MOCK_UUID}`)
+
+    // Rendu hors de la branche de chargement : présent même sans agence réelle.
+    const back = page.locator(`a[href="${BASE}/agencies"]`).first()
+    await expect(back, 'lien de retour absent ou non préfixé').toBeVisible({ timeout: 10_000 })
+
+    await back.click()
+    await expect(page).toHaveURL(new RegExp(`${BASE}/agencies$`))
+  })
+})

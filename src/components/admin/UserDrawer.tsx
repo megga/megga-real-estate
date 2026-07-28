@@ -23,7 +23,7 @@ import { X, Mail, Phone, Building2, Clock, Eye, FileDown, Ban, KeyRound, Trash2 
 import { formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity, useDsarExport } from '@/hooks/useAdminUsers'
 import { useAdminUserLifecycle } from '@/hooks/useAdminUserLifecycle'
-import { openImpersonationInCrm } from '@/lib/adminEntry'
+import { ADMIN_CONSOLE_PATH, openImpersonationInCrm } from '@/lib/adminEntry'
 import { useToast } from '@/components/ui/Toast'
 import {
   AdminAvatar, AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill,
@@ -177,7 +177,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
               <InfoRow icon={Building2} label={t('userDrawer.agency')}>
                 {user.agency_name && user.agency_id ? (
                   <Link
-                    to={`/agencies/${user.agency_id}`}
+                    to={`${ADMIN_CONSOLE_PATH}/agencies/${user.agency_id}`}
                     onClick={onClose}
                     className="audr-link"
                     style={{ color: sp.ink, fontWeight: 700, textDecoration: 'none' }}

@@ -16,6 +16,7 @@ import { useAdminCreateAgency } from '@/hooks/useAdminCreateAgency'
 import { AdminGhostBtn, AdminSolidBtn, AdminSwitch } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 
 const PLAN_IDS = ['starter', 'pro', 'entreprise'] as const
 
@@ -41,7 +42,7 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
         onSuccess: (id) => {
           toast.success(t('createAgency.created'))
           onClose()
-          navigate(`/agencies/${id}`)
+          navigate(`${ADMIN_CONSOLE_PATH}/agencies/${id}`)
         },
         onError: (e) => toast.error((e as Error).message.includes('already exists')
           ? t('createAgency.duplicate')
