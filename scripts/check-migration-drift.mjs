@@ -56,11 +56,35 @@ const DROPS = [
   ['matview', /drop\s+materialized\s+view\s+(?:if\s+exists\s+)?(?:public\.)?"?(\w+)"?/gi],
 ];
 
-/** Retire les commentaires : un exemple en commentaire n'est pas une déclaration. */
-const strip = (sql) => sql.replace(/^\s*--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+/**
+ * Retire les commentaires, puis DÉQUALIFIE les identifiants du style dump
+ * (`"public"."nom"` → `nom`). Sans cette normalisation, les motifs ci-dessus
+ * capturent le SCHÉMA au lieu de l'objet — c'est ainsi qu'un premier passage a
+ * réclamé une table nommée « public ».
+ */
+const strip = (sql) => sql
+  .replace(/^\s*--.*$/gm, '')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/"public"\s*\.\s*"(\w+)"/g, '$1')
+  .replace(/"(\w+)"/g, '$1');
+
+/**
+ * La BASELINE est exclue, et c'est le point le plus important de ce script.
+ *
+ * `00000000000000_baseline_remote_schema.sql` n'est pas une migration : c'est un
+ * `supabase db dump` de la production à un instant donné. Elle ne demande aucun
+ * changement — elle DÉCRIT un état passé. Tout ce qu'elle contient existe encore
+ * ou a été supprimé depuis, volontairement.
+ *
+ * L'inclure a produit 52 faux positifs au premier passage réel : son format de
+ * dump qualifie et cite tout (`"public"."nom"`), si bien que les expressions
+ * ci-dessus y lisaient trois objets nommés « public » et 49 index dont la table
+ * porteuse — supprimée depuis — n'a pas pu être rattachée.
+ */
+const BASELINE = /^0{14}_/;
 
 function scanMigrations() {
-  const files = readdirSync(DIR).filter(f => f.endsWith('.sql')).sort();
+  const files = readdirSync(DIR).filter(f => f.endsWith('.sql') && !BASELINE.test(f)).sort();
   const expected = new Map();   // "kind:name" -> fichier qui l'a créé en dernier
   const indexTable = new Map(); // index -> table portante
   const droppedTables = new Set();
@@ -143,7 +167,8 @@ const missing = [...expected.entries()].filter(([key]) => {
   return true;
 });
 
-console.log(`${expected.size} objets déclarés par ${readdirSync(DIR).filter(f => f.endsWith('.sql')).length} migrations.`);
+const scanned = readdirSync(DIR).filter(f => f.endsWith('.sql') && !BASELINE.test(f)).length;
+console.log(`${expected.size} objets déclarés par ${scanned} migrations (baseline exclue).`);
 
 if (missing.length === 0) {
   console.log('✓ Aucune dérive : tout ce que le dépôt déclare existe en base.');
