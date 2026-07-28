@@ -37,7 +37,7 @@ import {
   AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { ADMIN_CONSOLE_PATH, openImpersonationInCrm } from '@/lib/adminEntry'
+import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
 import AdminBillingCard from '@/components/admin/AdminBillingCard'
 import AgencyUsagePanel from '@/components/admin/AgencyUsagePanel'
 
@@ -321,9 +321,9 @@ function EquipeTab({ agencyId }: { agencyId: string }) {
                 </AdminTd>
                 <AdminTd align="right">
                   <button
-                    // La vue impersonée appartient au CRM (autre origine) : on l'y
-                    // ouvre, et c'est lui qui journalise avant d'activer (audit-first).
-                    onClick={() => openImpersonationInCrm(member.id)}
+                    // Nouvel onglet ; c'est le CRM qui journalise avant
+                    // d'activer la vue (audit-first).
+                    onClick={() => openImpersonation(member.id)}
                     aria-label={t('admin:agencyDetail.team.impersonate', { name: member.full_name ?? t('admin:common.user') })}
                     className="opacity-0 group-hover:opacity-100 transition-opacity"
                     style={{

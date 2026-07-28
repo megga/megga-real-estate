@@ -1,6 +1,6 @@
 /**
  * Palette de recherche globale super-admin (Cmd-K), rendue en portal z-[100].
- * Interroge agences / utilisateurs / biens / tickets via `useAdminSearch`
+ * Interroge agences / utilisateurs / biens via `useAdminSearch`
  * (min. 2 caractères) et regroupe les résultats par type.
  *
  * Rendu en grammaire Sugar : cadre de rayon 26 séparé par l'ombre (plus de

@@ -1,9 +1,7 @@
 /**
- * Sous-arbre de routes de la console super-admin, montable N'IMPORTE OÙ.
+ * Sous-arbre de routes de la console super-admin.
  *
- * Monté par le CRM sous `/dashboard/admin/*`. Ce fut un temps le tronc commun
- * de deux montages — l'app autonome `admin.megga.ch` a été retirée depuis, il
- * n'en reste qu'un.
+ * Monté par le CRM sous `/dashboard/admin/*`.
  *
  * Les cibles de navigation du rail sont préfixées par `ADMIN_CONSOLE_PATH`
  * (cf. `AdminShell`) et NON relatives : sous un splat, le relatif dépend d'un

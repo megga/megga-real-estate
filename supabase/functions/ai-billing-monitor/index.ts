@@ -76,7 +76,7 @@ serve(async (req: Request) => {
     // to the legacy service_role JWT, so pg_cron via get_app_config authenticates.
     const isServiceKey = serviceKey !== '' && token === serviceKey
     if (jwtRole !== 'service_role' && !isServiceKey) {
-      // Appel interactif — super_admin : rôle + allowlist email + AAL2
+      // Appel interactif — super_admin : rôle + allowlist email
       // (voir _shared/require-super-admin.ts, migration 20260705160000)
       const auth = await requireSuperAdmin(req, corsHeaders)
       if (auth instanceof Response) return auth

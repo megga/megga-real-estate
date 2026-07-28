@@ -41,7 +41,7 @@ serve(async (req) => {
     const isServiceKey = svcKey !== '' && token === svcKey
     if (jwtRole !== 'service_role' && !isServiceKey) {
       // Interactive call from dashboard — super_admin : rôle + allowlist email
-      // + AAL2 (voir _shared/require-super-admin.ts, migration 20260705160000)
+      // (voir _shared/require-super-admin.ts, migration 20260705160000)
       const auth = await requireSuperAdmin(req, corsHeaders)
       if (auth instanceof Response) return auth
     }
