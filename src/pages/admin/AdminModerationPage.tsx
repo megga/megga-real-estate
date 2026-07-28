@@ -20,13 +20,11 @@ import { formatCHF, formatDate } from '@/lib/utils'
 import { useAdminModeration } from '@/hooks/useAdminModeration'
 import type { ModerationListing } from '@/hooks/useAdminModeration'
 import { useClientPagination } from '@/hooks/useClientPagination'
-import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import ModerationActionDialog from '@/components/admin/ModerationActionDialog'
 import PageTransition from '@/components/layout/PageTransition'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
-  AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill,
-  AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminTd, AdminTh,
+  AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminStat, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
@@ -187,22 +185,22 @@ export default function AdminModerationPage() {
 
         {/* Indicateurs */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <AdminKpiCard
+          <AdminStat
             label={t('admin:moderation.kpi.published')}
             value={statsLoading ? '-' : (stats?.totalPublished ?? 0)}
             icon={ShieldCheck}
           />
-          <AdminKpiCard
+          <AdminStat
             label={t('admin:moderation.kpi.flaggedThisMonth')}
             value={statsLoading ? '-' : (stats?.flaggedThisMonth ?? 0)}
             icon={AlertTriangle}
-            variant={stats?.flaggedThisMonth ? 'danger' : 'default'}
+            tone={stats?.flaggedThisMonth ? 'err' : undefined}
           />
-          <AdminKpiCard
+          <AdminStat
             label={t('admin:moderation.kpi.removedThisMonth')}
             value={statsLoading ? '-' : (stats?.removedThisMonth ?? 0)}
             icon={Trash2}
-            variant={stats?.removedThisMonth ? 'danger' : 'default'}
+            tone={stats?.removedThisMonth ? 'err' : undefined}
           />
         </div>
 

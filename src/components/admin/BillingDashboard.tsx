@@ -14,20 +14,11 @@ import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatCHF, formatRelativeDate } from '@/lib/utils'
 import { useAdminBilling } from '@/hooks/useAdminBilling'
-import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import MrrSparkline from '@/components/admin/MrrSparkline'
 import { CreditCard, Users, TrendingDown, TrendingUp, DollarSign, AlertTriangle, Clock, Zap } from 'lucide-react'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import {
-  AdminCard,
-  AdminDivider,
-  AdminEmpty,
-  AdminGroupTitle,
-  AdminIc,
-  AdminPill,
-  AdminSkeleton,
-  AdminTd,
-  AdminTh,
+  AdminCard, AdminDivider, AdminEmpty, AdminGroupTitle, AdminIc, AdminPill, AdminSkeleton, AdminStat, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
@@ -89,15 +80,15 @@ export default function BillingDashboard() {
 
       {/* KPI grid — compact 3 columns on desktop */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <AdminKpiCard compact label={t('billing.kpi.mrr')} value={formatCHF(data.mrr)} icon={CreditCard} variant="success" />
-        <AdminKpiCard compact label={t('billing.kpi.revenue')} value={formatCHF(data.revenueThisMonth)} icon={DollarSign} variant="success"
-          trend={data.revenueGrowth !== 0 ? { value: data.revenueGrowth, label: '' } : undefined} />
-        <AdminKpiCard compact label={t('billing.kpi.subscriptions')} value={data.activeSubscriptions} icon={Users} variant="blue" />
-        <AdminKpiCard compact label={t('billing.kpi.arpu')} value={formatCHF(data.arpu)} icon={TrendingUp} />
-        <AdminKpiCard compact label={t('billing.kpi.churn')} value={data.churnedThisMonth} icon={TrendingDown}
-          variant={data.churnedThisMonth > 0 ? 'danger' : 'default'} />
-        <AdminKpiCard compact label={t('billing.kpi.failed')} value={data.failedPaymentsThisMonth + data.pastDue} icon={AlertTriangle}
-          variant={(data.failedPaymentsThisMonth + data.pastDue) > 0 ? 'danger' : 'default'} />
+        <AdminStat label={t('billing.kpi.mrr')} value={formatCHF(data.mrr)} icon={CreditCard} tone="ok" />
+        <AdminStat label={t('billing.kpi.revenue')} value={formatCHF(data.revenueThisMonth)} icon={DollarSign} tone="ok"
+          trend={data.revenueGrowth !== 0 ? data.revenueGrowth : undefined} />
+        <AdminStat label={t('billing.kpi.subscriptions')} value={data.activeSubscriptions} icon={Users} tone="info" />
+        <AdminStat label={t('billing.kpi.arpu')} value={formatCHF(data.arpu)} icon={TrendingUp} />
+        <AdminStat label={t('billing.kpi.churn')} value={data.churnedThisMonth} icon={TrendingDown}
+          tone={data.churnedThisMonth > 0 ? 'err' : undefined} />
+        <AdminStat label={t('billing.kpi.failed')} value={data.failedPaymentsThisMonth + data.pastDue} icon={AlertTriangle}
+          tone={(data.failedPaymentsThisMonth + data.pastDue) > 0 ? 'err' : undefined} />
       </div>
 
       {/* Tendance MRR estimé (P7 — platform_metrics) */}

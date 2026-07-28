@@ -44,6 +44,13 @@ function statusCountColor(status: string, tones: AdminTones, sp: SugarPalette): 
 }
 
 /** Libellé discret + chiffre tabulaire — la grille de compteurs des panneaux ops. */
+/**
+ * Chiffre d'un panneau ops — local à ce fichier, et ce n'est PAS une tuile.
+ *
+ * Pas de bento, pas d'icône, valeur plus petite : il s'aligne DANS un panneau
+ * déjà encadré, là où `AdminStat` porte sa propre carte. Le remplacer
+ * encadrerait chaque chiffre dans un panneau qui l'est déjà.
+ */
 function OpsStat({ label, value, color }: { label: string; value: string | number; color?: string }) {
   const { sp } = useAdminSugar()
   return (
