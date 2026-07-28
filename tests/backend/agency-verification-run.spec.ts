@@ -1,8 +1,9 @@
 // Backend test (live CI) -- socle de l'Edge Function agency-verification-run
 // (etape 4, tache 1 -- supabase/functions/agency-verification-run/index.ts et son
 // module partage supabase/functions/_shared/kyb-sources.ts), connecteur RDAP
-// (etape 4, tache 2 -- domain_whois_age, premier connecteur reel du registre) et
-// connecteurs VIES / recherche-entreprises / Mapbox (etape 4, tache 3).
+// (etape 4, tache 2 -- domain_whois_age, premier connecteur reel du registre),
+// connecteurs VIES / recherche-entreprises / Mapbox (etape 4, tache 3), et
+// declenchement + filet de rattrapage (etape 4, tache 4).
 //
 // Principe directeur de toute l'etape 4 (voir
 // docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-4.md, « Le principe qui
@@ -14,7 +15,7 @@
 // par defaut (un `match` faute de reponse serait une preuve fabriquee par le
 // systeme lui-meme).
 //
-// Six volets dans ce fichier :
+// Sept volets dans ce fichier :
 //   1. Le harnais PUR (_shared/kyb-sources.ts) -- import direct, aucun reseau,
 //      aucune dependance Deno (ce module n'appelle jamais Deno.env.get, contrairement
 //      a _shared/magic-link-token.ts -- aucun shim globalThis.Deno necessaire, meme
@@ -32,6 +33,14 @@
 //      externe). Tourne SANS Supabase local -- import direct du module, comme le
 //      volet 1. La verification CONTRE les vrais services se fait a la main, une
 //      fois, hors de cette suite -- voir docs/superpowers/sdd/task-3-report.md.
+//   7. Declenchement (tache 4) -- personne n'appelait agency-verification-run avant
+//      cette tache : submit_agency_identity() la declenche desormais elle-meme
+//      (net.http_post depuis PL/pgSQL, meme motif que les triggers matching-engine de
+//      la baseline et les crons realadvisor-*/whatsapp-*), best-effort et jamais
+//      bloquant, plus un filet de rattrapage planifie (sweep_pending_agency_verifications)
+//      pour les dossiers dont le declenchement primaire n'a jamais abouti (net.http_post
+//      est fire-and-forget, sans garantie de livraison). Contre un Supabase local reel,
+//      comme le volet 2.
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI : ces tests tournent contre un Supabase local
 // seede et DOIVENT reellement passer -- lire le compte de tests, jamais le code de
@@ -40,7 +49,8 @@
 // reseau ni DB.
 
 import { describe, it, expect, afterAll, afterEach, vi } from 'vitest'
-import { serviceRoleClient } from './helpers/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { serviceRoleClient, anonClient } from './helpers/supabase'
 import {
   runKybSource,
   runAgencyKybSources,
@@ -579,6 +589,363 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(num(after.verification_score)).toBeNull()
       expect(await getEvents(agencyId, 'agency_verification_recomputed')).toHaveLength(0)
       expect(await getEvents(agencyId, 'agency_verification_run')).toHaveLength(0)
+    })
+  })
+
+  // ─── Tache 4 : declenchement + filet de rattrapage ────────────────────────────
+  //
+  // Avant cette tache, rien n'appelait agency-verification-run : submit_agency_identity()
+  // posait identity_submitted_at et s'arretait la (useAgencyIdentity.ts submit() -- voir
+  // son en-tete -- n'appelle QUE cette RPC, jamais l'edge function). Motif ALIGNE sur ce
+  // que ce depot fait deja ailleurs (jamais un troisieme motif) : net.http_post depuis
+  // PL/pgSQL, comme les triggers matching-engine de la baseline
+  // (trigger_matching_on_new_search et consorts) et les crons realadvisor-*/whatsapp-*.
+  //
+  // net.http_post MET LA REQUETE EN FILE (table net.http_request_queue, videe par un
+  // worker de fond) plutot que de la jouer en ligne -- deja documente ailleurs dans ce
+  // depot comme fire-and-forget (20260714170000, purge chat-staging : « pg_net est
+  // asynchrone… un echec HTTP ponctuel est rattrape la nuit suivante » ; 20260705180000,
+  // whatsapp-morning-brief : « tick FILET… un tick primaire manque ne doit pas couter la
+  // journee »). Consequence directe pour les tests ci-dessous : AUCUNE assertion ne peut
+  // lire l'effet juste apres l'appel RPC -- waitUntil() sonde jusqu'a ce que l'effet
+  // apparaisse ou que le delai expire.
+  //
+  // Ce meme caractere fire-and-forget signifie que net.http_post peut echouer
+  // SILENCIEUSEMENT du point de vue de l'appelant (worker pg_net jamais demarre, base
+  // redemarree entre l'insertion en file et son traitement, edge function qui timeout ou
+  // crashe avant d'ecrire sa propre trace) : sweep_pending_agency_verifications est le
+  // filet de rattrapage qui ramasse les dossiers soumis dont verification_status est
+  // reste 'pending' (jamais recalcule) plus de 15 minutes apres leur soumission.
+  describe('declenchement de la verification depuis submit_agency_identity, et filet de rattrapage (etape 4, tache 4)', () => {
+    const PW = 'Test-Password-123!'
+    const founderUserIds: string[] = []
+
+    // `URL` (127.0.0.1:54321, en tete de fichier) est l'adresse depuis laquelle CE
+    // PROCESSUS NODE joint le gateway local -- c'est ce que "Edge Function deployee"
+    // plus haut utilise pour ses fetch() directs. Mais net.http_post tourne DANS le
+    // conteneur Postgres, sur un reseau Docker distinct : depuis ce conteneur,
+    // 127.0.0.1 designe le conteneur lui-meme, pas le gateway (verifie a la main --
+    // net._http_response y montre "Couldn't connect to server" pour cette URL). Le
+    // conteneur Postgres resout en revanche le gateway Kong via l'alias Docker
+    // documente par Supabase pour precisement ce scenario (Postgres -> Edge
+    // Functions locales) : api.supabase.internal:8000. Seule la config app_config
+    // posee ICI, pour que net.http_post (execute par Postgres) trouve sa cible, doit
+    // utiliser cette adresse -- jamais `URL`, qui resterait "Couldn't connect to
+    // server" du point de vue du worker pg_net.
+    const PG_NET_LOCAL_FUNCTIONS_URL = 'http://api.supabase.internal:8000'
+
+    afterAll(async () => {
+      const svc = serviceRoleClient()
+      for (const id of founderUserIds) {
+        await svc.auth.admin.deleteUser(id).then(
+          () => {},
+          () => {}
+        )
+      }
+    })
+
+    interface Founder {
+      id: string
+      agencyId: string
+      client: SupabaseClient
+    }
+
+    // Inscrit un fondateur reel (handle_new_user -> provision_solo_agency) : seule
+    // maniere de tester is_agency_admin() sans fabriquer un profil a la main, meme
+    // motif que agency-identity-submit.spec.ts (signUpFounder).
+    async function signUpFounder(): Promise<Founder> {
+      const svc = serviceRoleClient()
+      const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+      const email = `kyb-trigger-${stamp}@megga-test.local`
+      const { data, error } = await svc.auth.admin.createUser({
+        email,
+        password: PW,
+        email_confirm: true,
+        user_metadata: { full_name: `Fondateur ${stamp}`, role: 'agent' },
+      })
+      if (error) throw new Error(`createUser: ${error.message}`)
+      const id = data.user!.id
+      founderUserIds.push(id)
+
+      const { data: prof } = await svc.from('profiles').select('agency_id').eq('id', id).maybeSingle()
+      if (!prof?.agency_id) throw new Error('provisioning : aucune agence solo creee')
+      const agencyId = prof.agency_id as string
+      agencyIds.push(agencyId) // reutilise le nettoyage "honnete" de la describe englobante
+
+      const client = anonClient()
+      const { error: signInErr } = await client.auth.signInWithPassword({ email, password: PW })
+      if (signInErr) throw new Error(`signin: ${signInErr.message}`)
+
+      return { id, agencyId, client }
+    }
+
+    async function getChSaLegalFormId(): Promise<string> {
+      const { data, error } = await serviceRoleClient().from('legal_forms').select('id').eq('code', 'CH_SA').single()
+      if (error) throw new Error(`legal_forms lookup: ${error.message}`)
+      return data!.id as string
+    }
+
+    // Complete l'agence jusqu'au minimum exige par _agency_identity_completeness_error
+    // (raison sociale, forme juridique, pays, signataire actif) -- reutilise
+    // addActiveSignatory de la describe englobante, deja definie plus haut.
+    async function completeAgency(agencyId: string): Promise<void> {
+      const legalFormId = await getChSaLegalFormId()
+      const { error } = await serviceRoleClient()
+        .from('agencies')
+        .update({ legal_name: 'Regie Declenchement SA', legal_form_id: legalFormId, country: 'CH' })
+        .eq('id', agencyId)
+      if (error) throw new Error(`update agency: ${error.message}`)
+      await addActiveSignatory(agencyId)
+    }
+
+    async function readConfig(key: string): Promise<string | null> {
+      const { data } = await serviceRoleClient().from('app_config').select('value').eq('key', key).maybeSingle()
+      return (data?.value as string | null) ?? null
+    }
+
+    async function setConfig(key: string, value: string): Promise<void> {
+      const { error } = await serviceRoleClient()
+        .from('app_config')
+        .upsert({ key, value }, { onConflict: 'key' })
+      if (error) throw new Error(`set app_config ${key}: ${error.message}`)
+    }
+
+    async function restoreConfig(key: string, original: string | null): Promise<void> {
+      const svc = serviceRoleClient()
+      if (original === null) await svc.from('app_config').delete().eq('key', key)
+      else await svc.from('app_config').update({ value: original }).eq('key', key)
+    }
+
+    // Sonde une condition jusqu'a ce qu'elle devienne vraie ou que le delai expire.
+    // Indispensable ici : net.http_post est asynchrone (file + worker de fond, voir
+    // l'en-tete de cette section) -- aucune assertion ne peut lire l'effet juste apres
+    // l'appel RPC.
+    async function waitUntil(predicate: () => Promise<boolean>, timeoutMs = 10_000, intervalMs = 250): Promise<void> {
+      const deadline = Date.now() + timeoutMs
+      for (;;) {
+        if (await predicate()) return
+        if (Date.now() >= deadline) throw new Error(`waitUntil: condition jamais vraie apres ${timeoutMs}ms`)
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
+      }
+    }
+
+    describe('submit_agency_identity -- declenchement primaire', () => {
+      it(
+        'un dirigeant qui soumet une identite complete declenche reellement agency-verification-run ' +
+          '(checks ecrits, moteur execute), et un second appel (deja soumis) ne redeclenche jamais',
+        async () => {
+          const urlBefore = await readConfig('supabase_url')
+          const keyBefore = await readConfig('service_role_key')
+          try {
+            // Pointe le dispatch vers le VRAI runtime local (le meme que "Edge Function
+            // deployee" plus haut dans ce fichier) : preuve directe de bout en bout,
+            // pas seulement que la RPC "tente" un appel.
+            await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
+            await setConfig('service_role_key', SERVICE_KEY)
+
+            const founder = await signUpFounder()
+            await completeAgency(founder.agencyId)
+
+            const { error } = await founder.client.rpc('submit_agency_identity')
+            expect(error, `submit: ${error?.message}`).toBeNull()
+
+            await waitUntil(async () => (await getChecks(founder.agencyId)).length > 0)
+            await waitUntil(async () => (await getEvents(founder.agencyId, 'agency_verification_run')).length > 0)
+
+            const agency = await getAgency(founder.agencyId)
+            expect(agency.verification_status, 'le moteur a bien tourne (statut sorti de pending)').not.toBe('pending')
+
+            // Deuxieme appel : deja soumis -> retour anticipe (etape 5 de la RPC),
+            // jamais un second declenchement. Marge courte : si un second dispatch
+            // partait par erreur, il aurait largement le temps d'ecrire avant
+            // l'assertion suivante (le premier a deja mis, au pire, waitUntil() a
+            // reussir pour aboutir jusqu'ici).
+            const second = await founder.client.rpc('submit_agency_identity')
+            expect(second.error).toBeNull()
+            await new Promise((resolve) => setTimeout(resolve, 500))
+            expect(
+              await getEvents(founder.agencyId, 'agency_verification_run'),
+              'un second appel (deja soumis) ne doit jamais redeclencher la verification'
+            ).toHaveLength(1)
+          } finally {
+            await restoreConfig('supabase_url', urlBefore)
+            await restoreConfig('service_role_key', keyBefore)
+          }
+        },
+        15_000
+      )
+
+      it(
+        "sans configuration (supabase_url absent -- env local/CI non seede), le dispatch est saute " +
+          'silencieusement mais la soumission reussit quand meme',
+        async () => {
+          const urlBefore = await readConfig('supabase_url')
+          try {
+            await serviceRoleClient().from('app_config').delete().eq('key', 'supabase_url')
+
+            const founder = await signUpFounder()
+            await completeAgency(founder.agencyId)
+
+            const { error } = await founder.client.rpc('submit_agency_identity')
+            expect(error, `submit ne doit jamais echouer faute de config: ${error?.message}`).toBeNull()
+
+            const { data: agency } = await serviceRoleClient()
+              .from('agencies')
+              .select('identity_submitted_at')
+              .eq('id', founder.agencyId)
+              .maybeSingle()
+            expect(agency?.identity_submitted_at, 'la soumission reste posee malgre le dispatch saute').not.toBeNull()
+            expect(await getEvents(founder.agencyId, 'agency_identity_submitted')).toHaveLength(1)
+          } finally {
+            await restoreConfig('supabase_url', urlBefore)
+          }
+        },
+        15_000
+      )
+
+      it(
+        'un dispatch vers une cible injoignable ne bloque ni ne fait echouer la soumission ' +
+          '(best-effort, meme discipline que provision_solo_agency dans handle_new_user)',
+        async () => {
+          const urlBefore = await readConfig('supabase_url')
+          const keyBefore = await readConfig('service_role_key')
+          try {
+            // Hote garanti sans DNS (RFC 2606, TLD .invalid) : jamais de service reel
+            // derriere, mais une valeur NON VIDE -- passe donc la garde defensive
+            // (base_url/svc_key non nuls) et force un vrai essai du worker pg_net, qui
+            // echouera vite (DNS introuvable). Delibirement PAS une IP noire du genre
+            // 192.0.2.1/TEST-NET-1 : verifie a la main contre le worker pg_net local
+            // qu'une telle adresse n'echoue qu'au bout de SON PROPRE delai (jusqu'a
+            // timeout_milliseconds), ce qui occupe le worker jusque-la et retarde les
+            // requetes voisines encore en file (le worker traite par lot ; un lot ne se
+            // libere qu'une fois son membre le plus lent regle) -- ca aurait fait
+            // echouer par contagion les tests suivants de cette suite, qui dependent
+            // eux d'un dispatch reel traite a temps. Un hote qui echoue par DNS reste
+            // une cible tout aussi injoignable pour prouver ce test, sans ce cout.
+            await setConfig('supabase_url', 'http://nonexistent-host-for-agency-verification-test.invalid')
+            await setConfig('service_role_key', 'fake-service-key-unreachable-target')
+
+            const founder = await signUpFounder()
+            await completeAgency(founder.agencyId)
+
+            const startedAt = Date.now()
+            const { error } = await founder.client.rpc('submit_agency_identity')
+            const elapsedMs = Date.now() - startedAt
+
+            expect(error, `submit ne doit jamais echouer a cause d'une cible injoignable: ${error?.message}`).toBeNull()
+            expect(
+              elapsedMs,
+              `submit_agency_identity a mis ${elapsedMs}ms -- net.http_post doit mettre en FILE, ` +
+                'jamais attendre une reponse HTTP reelle'
+            ).toBeLessThan(5_000)
+            expect(await getEvents(founder.agencyId, 'agency_identity_submitted')).toHaveLength(1)
+          } finally {
+            await restoreConfig('supabase_url', urlBefore)
+            await restoreConfig('service_role_key', keyBefore)
+          }
+        },
+        15_000
+      )
+    })
+
+    describe('sweep_pending_agency_verifications -- filet de rattrapage', () => {
+      it(
+        'ramasse un dossier soumis depuis plus de 15 minutes dont la verification n a jamais tourne',
+        async () => {
+          const urlBefore = await readConfig('supabase_url')
+          const keyBefore = await readConfig('service_role_key')
+          try {
+            await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
+            await setConfig('service_role_key', SERVICE_KEY)
+
+            const agencyId = await createAgency('sweep-old')
+            await addActiveSignatory(agencyId)
+            const twentyMinAgo = new Date(Date.now() - 20 * 60_000).toISOString()
+            const { error: updErr } = await serviceRoleClient()
+              .from('agencies')
+              .update({ identity_submitted_at: twentyMinAgo })
+              .eq('id', agencyId)
+            if (updErr) throw new Error(`seed identity_submitted_at: ${updErr.message}`)
+
+            const { error } = await serviceRoleClient().rpc('sweep_pending_agency_verifications')
+            expect(error, `sweep: ${error?.message}`).toBeNull()
+
+            await waitUntil(async () => (await getChecks(agencyId)).length > 0)
+            const agency = await getAgency(agencyId)
+            expect(agency.verification_status, 'le filet a bien fait tourner le moteur').not.toBe('pending')
+          } finally {
+            await restoreConfig('supabase_url', urlBefore)
+            await restoreConfig('service_role_key', keyBefore)
+          }
+        },
+        15_000
+      )
+
+      it(
+        'respecte la grace de 15 minutes : un dossier soumis a l instant n est pas ramasse par le meme passage',
+        async () => {
+          const urlBefore = await readConfig('supabase_url')
+          const keyBefore = await readConfig('service_role_key')
+          try {
+            await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
+            await setConfig('service_role_key', SERVICE_KEY)
+
+            const oldAgencyId = await createAgency('sweep-grace-old')
+            await addActiveSignatory(oldAgencyId)
+            const twentyMinAgo = new Date(Date.now() - 20 * 60_000).toISOString()
+            await serviceRoleClient().from('agencies').update({ identity_submitted_at: twentyMinAgo }).eq('id', oldAgencyId)
+
+            const freshAgencyId = await createAgency('sweep-grace-fresh')
+            await addActiveSignatory(freshAgencyId)
+            await serviceRoleClient()
+              .from('agencies')
+              .update({ identity_submitted_at: new Date().toISOString() })
+              .eq('id', freshAgencyId)
+
+            const { error } = await serviceRoleClient().rpc('sweep_pending_agency_verifications')
+            expect(error).toBeNull()
+
+            // Attend que le dossier ELIGIBLE (soumis il y a 20 min) montre une activite
+            // reelle -- preuve que le passage a bien eu lieu -- puis verifie, a ce MEME
+            // instant, que le dossier trop recent n'en montre aucune : les deux
+            // dispatches partageraient le meme worker pg_net et la meme edge function,
+            // rien ne justifierait que l'un traine derriere l'autre si les deux avaient
+            // ete envoyes.
+            await waitUntil(async () => (await getChecks(oldAgencyId)).length > 0)
+            expect(
+              await getChecks(freshAgencyId),
+              'un dossier soumis a l instant ne doit pas etre ramasse par le filet (course avec le declenchement primaire)'
+            ).toHaveLength(0)
+            const freshAgency = await getAgency(freshAgencyId)
+            expect(freshAgency.verification_status).toBe('pending')
+          } finally {
+            await restoreConfig('supabase_url', urlBefore)
+            await restoreConfig('service_role_key', keyBefore)
+          }
+        },
+        15_000
+      )
+
+      it(
+        "sans configuration, le filet ne fait rien plutot que d echouer (meme garde que le declenchement primaire)",
+        async () => {
+          const urlBefore = await readConfig('supabase_url')
+          try {
+            await serviceRoleClient().from('app_config').delete().eq('key', 'supabase_url')
+
+            const agencyId = await createAgency('sweep-no-config')
+            await addActiveSignatory(agencyId)
+            const twentyMinAgo = new Date(Date.now() - 20 * 60_000).toISOString()
+            await serviceRoleClient().from('agencies').update({ identity_submitted_at: twentyMinAgo }).eq('id', agencyId)
+
+            const { error } = await serviceRoleClient().rpc('sweep_pending_agency_verifications')
+            expect(error, `sweep ne doit jamais echouer faute de config: ${error?.message}`).toBeNull()
+          } finally {
+            await restoreConfig('supabase_url', urlBefore)
+          }
+        },
+        15_000
+      )
     })
   })
 })
