@@ -15,7 +15,20 @@
  * dev (ex. `VITE_ADMIN_URL=http://localhost:5174`).
  */
 
-/** Origine de la console super-admin. */
+/**
+ * Route de la console DANS le CRM.
+ *
+ * Depuis juillet 2026 la console est une surface du CRM et non plus une
+ * application à part : on y va par le routeur, sans onglet ni passage de
+ * session. L'URL redevient rechargeable, partageable et mémorisable — ce que le
+ * passage par fragment interdisait par construction.
+ *
+ * `ADMIN_ENTRY_URL` et le passage de session ci-dessous restent le temps que
+ * l'app autonome (`admin.megga.ch`) soit retirée ; ils ne servent plus au CRM.
+ */
+export const ADMIN_CONSOLE_PATH = '/dashboard/admin'
+
+/** Origine de la console super-admin (app autonome, en cours de retrait). */
 export const ADMIN_ENTRY_URL =
   (import.meta.env.VITE_ADMIN_URL as string | undefined)?.trim() || 'https://admin.megga.ch'
 

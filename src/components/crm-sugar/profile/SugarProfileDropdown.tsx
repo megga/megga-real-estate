@@ -16,7 +16,8 @@ import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
-import { ADMIN_IS_EXTERNAL, openAdminConsole } from '@/lib/adminEntry'
+import { useNavigate } from 'react-router-dom'
+import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 
 // ─── Inline icons not in MEIcon ──────────────────────────────────────
 type InlineIconName = 'shield' | 'card' | 'help' | 'logout' | 'chevron' | 'spark' | 'console' | 'external'
@@ -169,7 +170,8 @@ export default function SugarProfileDropdown({
   sp, onClose, onSettings, onHelp, onLogout,
 }: SugarProfileDropdownProps) {
   const { t } = useTranslation('common')
-  const { profile, user, session } = useAuth()
+  const { profile, user } = useAuth()
+  const navigate = useNavigate()
   const { agency: agencyData, plan } = useAgencySettings()
   // Seule porte d'entrée vers la console depuis le CRM refondu : le rail et la
   // TopNav ne portent aucune trace de l'admin, et la sidebar legacy qui le
@@ -219,12 +221,12 @@ export default function SugarProfileDropdown({
             fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2,
             color: sp.sub,
           }}>{t('profile.platformSection')}</div>
+          {/* Chevron et non flèche « sortie » : la console est une surface du
+              CRM depuis juillet 2026, on n'ouvre plus d'onglet. */}
           <Row sp={sp} iconKind="inline" icon="console"
             label={t('profile.adminConsole')}
-            trail={ADMIN_IS_EXTERNAL
-              ? <InlineIco name="external" size={14} stroke={sp.sub} strokeWidth={1.8} />
-              : <InlineIco name="chevron" size={15} stroke={sp.sub} strokeWidth={2} />}
-            onClick={wrap(() => openAdminConsole(session))} />
+            trail={<InlineIco name="chevron" size={15} stroke={sp.sub} strokeWidth={2} />}
+            onClick={wrap(() => navigate(ADMIN_CONSOLE_PATH))} />
         </>
       )}
 
