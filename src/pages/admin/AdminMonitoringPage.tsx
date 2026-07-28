@@ -129,10 +129,10 @@ export default function AdminMonitoringPage() {
             <AdminIc icon={AlertTriangle} color={tones.err} style={{ marginTop: 1 }} />
             <div style={{ minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>
-                {t('admin:monitoring.errorTitle', { defaultValue: 'Données de monitoring indisponibles' })}
+                {t('admin:monitoring.errorTitle')}
               </p>
               <p style={{ margin: '3px 0 0', fontSize: 12, color: sp.sub, lineHeight: 1.45 }}>
-                {t('admin:monitoring.errorDesc', { defaultValue: 'La connexion à la base de données a échoué. Vérifiez le statut Supabase et les policies RLS.' })}
+                {t('admin:monitoring.errorDesc')}
               </p>
             </div>
           </div>
@@ -214,19 +214,19 @@ export default function AdminMonitoringPage() {
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <AdminIc icon={Home} size={16} color={sp.sub} />
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>Flatfox Sync</span>
+              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{t('admin:monitoring.flatfox.title')}</span>
             </span>
             <span style={{ fontSize: 12.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-              {flatfoxStats.data.total.toLocaleString('fr-CH')} biens actifs
+              {t('admin:monitoring.flatfox.activeListings', { count: flatfoxStats.data.total })}
             </span>
             <span style={{ fontSize: 11.5, color: sp.soft }}>
               {flatfoxLastSeen
-                ? `Dernier sync : ${formatRelativeDate(flatfoxLastSeen)}`
-                : 'Jamais synchronisé'}
+                ? t('admin:monitoring.flatfox.lastSync', { when: formatRelativeDate(flatfoxLastSeen) })
+                : t('admin:monitoring.flatfox.never')}
             </span>
             <span style={{ marginLeft: 'auto' }}>
               <AdminPill
-                label={flatfoxFresh ? 'Sync OK' : 'Sync en retard'}
+                label={flatfoxFresh ? t('admin:monitoring.flatfox.ok') : t('admin:monitoring.flatfox.late')}
                 tone={flatfoxFresh ? 'ok' : 'warn'}
               />
             </span>
@@ -245,7 +245,7 @@ export default function AdminMonitoringPage() {
             ))}
           </div>
         ) : cronHealth.isError ? (
-          <AdminError message={t('admin:monitoring.cronHealth.errorDesc', { defaultValue: 'Impossible de charger la santé des crons.' })} />
+          <AdminError message={t('admin:monitoring.cronHealth.errorDesc')} />
         ) : (cronHealth.data ?? []).length === 0 ? (
           <AdminEmpty icon={Clock} title={t('admin:monitoring.cronHealth.empty')} />
         ) : (
@@ -299,17 +299,20 @@ export default function AdminMonitoringPage() {
       <SyndicationHealthPanel />
       <WhatsAppOpsPanel />
 
-      {/* AI billing — DeepSeek balance + Claude estimated cost */}
+      {/* Consommation IA — DeepSeek seul : Anthropic a été retiré du runtime
+          (#829) et les dernières lignes `claude-*` d'`ai_usage_logs` datent
+          d'avril. Deux tuiles et une série de graphe affichaient donc un coût
+          figé, sous un nom que l'interface n'a pas le droit de porter. */}
       <AdminCard padding="6px 6px 18px">
         <AdminGroupTitle
-          label="IA — consommation et coûts"
+          label={t('admin:monitoring.ai.title')}
           tone={balanceLow ? 'err' : 'cyan'}
           right={
             <>
-              {balanceLow && <AdminPill label="Recharger DeepSeek" tone="err" icon={AlertTriangle} />}
+              {balanceLow && <AdminPill label={t('admin:monitoring.ai.topUp')} tone="err" icon={AlertTriangle} />}
               {aiUsage.data?.fallbackCount ? (
                 <AdminPill
-                  label={`${aiUsage.data.fallbackCount} fallback${aiUsage.data.fallbackCount > 1 ? 's' : ''} ce mois`}
+                  label={t('admin:monitoring.ai.fallbacks', { count: aiUsage.data.fallbackCount })}
                   tone="warn"
                 />
               ) : null}
@@ -318,72 +321,52 @@ export default function AdminMonitoringPage() {
         />
 
         <div style={{ padding: '0 10px' }}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <HealthTile
               icon={DollarSign}
-              label="DeepSeek — solde"
+              label={t('admin:monitoring.ai.balance')}
               value={balance !== null ? `$${balance.toFixed(2)}` : '—'}
               valueColor={balanceLow ? tones.err : undefined}
               hint={deepseekBalance.data?.captured_at
                 ? formatRelativeDate(deepseekBalance.data.captured_at)
-                : 'Pas encore de snapshot'}
+                : t('admin:monitoring.ai.noSnapshot')}
             />
 
             <HealthTile
               icon={Zap}
-              label="DeepSeek — tokens (mois)"
+              label={t('admin:monitoring.ai.tokensMonth')}
               value={formatTokens(aiUsage.data?.deepseekTokens ?? 0)}
               hint={`≈ $${(aiUsage.data?.deepseekCostUsd ?? 0).toFixed(2)}`}
             />
 
-            <HealthTile
-              icon={DollarSign}
-              label="Claude — coût estimé (mois)"
-              value={`$${(aiUsage.data?.claudeCostUsd ?? 0).toFixed(2)}`}
-              hint="Anthropic n'expose pas de solde"
-            />
-
-            <HealthTile
-              icon={Zap}
-              label="Claude — tokens (mois)"
-              value={formatTokens(aiUsage.data?.claudeTokens ?? 0)}
-            />
           </div>
 
           {aiTimeseries.data && aiTimeseries.data.length > 0 && (
             <>
               <AdminDivider margin="16px 0 12px" />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 9 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub }}>Tokens / jour (30 derniers jours)</span>
-                {/* Deux séries, donc deux teintes : l'encre Sugar et le bleu
-                    d'information. Le violet reste le repère « console ». */}
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub }}>{t('admin:monitoring.ai.tokensPerDay')}</span>
+                {/* Une seule série depuis le retrait d'Anthropic : la légende à
+                    deux teintes n'avait plus rien à distinguer. */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 13, fontSize: 11, color: sp.soft }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                     <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: sp.accent }} /> DeepSeek
                   </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: tones.info }} /> Claude
-                  </span>
                 </div>
               </div>
               {(() => {
-                const max = Math.max(1, ...aiTimeseries.data.map((p) => p.deepseek + p.claude))
+                const max = Math.max(1, ...aiTimeseries.data.map((p) => p.deepseek))
                 return (
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 128 }}>
                     {aiTimeseries.data.map((p) => {
-                      const total = p.deepseek + p.claude
-                      const totalPct = (total / max) * 100
-                      const deepseekShare = total > 0 ? (p.deepseek / total) * 100 : 0
+                      const totalPct = (p.deepseek / max) * 100
                       return (
                         <div
                           key={p.date}
                           style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column-reverse' }}
-                          title={`${p.date} — DeepSeek ${formatTokens(p.deepseek)} · Claude ${formatTokens(p.claude)}`}
+                          title={`${p.date} — DeepSeek ${formatTokens(p.deepseek)}`}
                         >
-                          <div style={{ width: '100%', height: `${totalPct}%`, overflow: 'hidden' }}>
-                            <div style={{ width: '100%', height: `${deepseekShare}%`, background: sp.accent }} />
-                            <div style={{ width: '100%', height: `${100 - deepseekShare}%`, background: tones.info }} />
-                          </div>
+                          <div style={{ width: '100%', height: `${totalPct}%`, background: sp.accent }} />
                         </div>
                       )
                     })}
