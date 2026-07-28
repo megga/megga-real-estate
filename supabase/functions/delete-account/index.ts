@@ -59,7 +59,7 @@ serve(async (req) => {
     // Service role client — bypasses RLS
     const admin = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Branche ADMIN (P4) : un super-admin (allowlist + AAL2 revérifiées) peut
+    // Branche ADMIN (P4) : un super-admin (rôle + allowlist revérifiés) peut
     // supprimer un compte tiers — le pipeline et TOUS ses garde-fous (KYC en
     // cours, dernier admin d'agence, rétention LBA) s'appliquent tels quels.
     const body = await req.clone().json().catch(() => ({})) as { target_user_id?: string }

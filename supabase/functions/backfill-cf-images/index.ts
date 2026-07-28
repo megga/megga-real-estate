@@ -53,7 +53,7 @@ serve(async (req: Request) => {
   // (forgeable sous --no-verify-jwt, S22). Le chemin super_admin ci-dessous est inchangé.
   const isServiceRole = await isServiceSecret(supabase, req)
   if (!isServiceRole) {
-    // Appel interactif — super_admin : rôle + allowlist email + AAL2
+    // Appel interactif — super_admin : rôle + allowlist email
     // (voir _shared/require-super-admin.ts, migration 20260705160000)
     const auth = await requireSuperAdmin(req, corsHeaders)
     if (auth instanceof Response) return auth

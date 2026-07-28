@@ -23,7 +23,7 @@ import { X, Mail, Phone, Building2, Clock, Eye, FileDown, Ban, KeyRound, Trash2 
 import { formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity, useDsarExport } from '@/hooks/useAdminUsers'
 import { useAdminUserLifecycle } from '@/hooks/useAdminUserLifecycle'
-import { ADMIN_CONSOLE_PATH, openImpersonationInCrm } from '@/lib/adminEntry'
+import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
 import { useToast } from '@/components/ui/Toast'
 import {
   AdminAvatar, AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill,
@@ -227,10 +227,10 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
             <AdminSolidBtn
               icon={Eye}
               onClick={() => {
-                // La vue impersonée est une vue du CRM, qui vit sur une AUTRE
-                // origine : on l'y ouvre. C'est le CRM qui journalise (audit-first,
-                // RPC admin_log_impersonation) avant d'activer quoi que ce soit.
-                openImpersonationInCrm(user.id)
+                // Nouvel onglet : la console reste ouverte à côté. C'est le CRM
+                // qui journalise (audit-first, RPC admin_log_impersonation)
+                // avant d'activer quoi que ce soit.
+                openImpersonation(user.id)
                 onClose()
               }}
               style={fullWidthBtn}

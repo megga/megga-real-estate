@@ -11,7 +11,7 @@
 // severity warn) AVANT que la payload ne soit renvoyée — pas d'export sans
 // trace.
 //
-// Auth : _shared/require-super-admin.ts (rôle + allowlist email + AAL2).
+// Auth : _shared/require-super-admin.ts (rôle + allowlist email).
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'

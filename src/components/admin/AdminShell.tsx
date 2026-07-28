@@ -168,12 +168,12 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
         ))}
       </nav>
 
-      {/* Pied de rail : notifications, thème, retour CRM, compte */}
+      {/* Pied de rail : retour CRM, compte */}
       <div style={{ flexShrink: 0, marginTop: 10 }}>
         <div style={{ height: 1, background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)', margin: '0 6px 8px' }} />
 
-        {/* Montée dans le CRM, la console y revient par le routeur ; montée dans
-            l'app autonome, c'est une autre origine, donc un lien plein. */}
+        {/* Une ancre, mais une navigation par le routeur : l'ancre préserve le
+            clic-milieu et le survol d'URL, le routeur évite le rechargement. */}
         <a className="adm-nav" href="/dashboard" onClick={(e) => { e.preventDefault(); navigate('/dashboard') }} style={{ ...rowBase, textDecoration: 'none' }}>
           <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
             <MEIcon name="external" size={17} color={sp.sub} />
@@ -226,18 +226,18 @@ export default function AdminShell() {
   /**
    * Outils du rail d'icônes, côté console.
    *
-   * La liste par défaut du rail est celle du CRM et casserait ici : `import`
-   * ferait un `navigate()` React Router sur l'origine admin, `search` ouvrirait
-   * un hôte que seul `AgentSugarLayout` monte, et `relances` interrogerait des
-   * données d'agence alors que le super-admin n'en a pas. On fournit donc les
-   * outils de CETTE origine — le composant, lui, reste le même que dans le CRM.
+   * La liste par défaut du rail est celle du CRM et n'a pas de sens ici :
+   * `search` ouvrirait un hôte que seul `AgentSugarLayout` monte, et `relances`
+   * interrogerait des données d'agence alors que le super-admin n'en a pas. On
+   * fournit donc les outils de la console — le composant, lui, reste le même
+   * que dans le CRM.
    *
    * Les PAGES ne sont pas ici : elles vivent dans le rail de 300 px du cadre,
    * comme les sections des Réglages. Le dock ne porte que le transverse.
    */
   const railItems: RailItem[] = [
     { id: 'search', icon: 'search', label: t('common:nav.search'), action: () => setSearchOpen(true) },
-    // Retour au CRM : autre origine, donc navigation pleine page.
+    // Retour au CRM, par le routeur : même application, aucun rechargement.
     //
     // Icône `dashboard` et non `external` : le registre du rail ne connaît que
     // seize glyphes (`external` n'en fait pas partie et retombait sur la loupe,

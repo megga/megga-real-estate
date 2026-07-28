@@ -168,11 +168,11 @@ export default function AdminBillingCard({ agencyId }: { agencyId: string }) {
 
       {editing && (
         <>
-          {/* Un `::placeholder` ne s'exprime pas en style inline, et la console n'a
-              pas de règle globale : sans cette ligne le champ retomberait sur la
-              couleur par défaut du navigateur (gris foncé), illisible sur la
-              surface sombre. Même procédé que `AgencyQuotaForm`. `sp.sub` reprend
-              exactement la valeur de l'ancien `text-theme-muted`. */}
+          {/* Un `::placeholder` ne s'exprime pas en style inline. `admin-console.css`
+              pose depuis un plancher pour toute la console (en encre tertiaire) ;
+              cette ligne le remonte au ton Sugar `sp.sub`, plus lisible sur la
+              sous-surface sombre. Même procédé que `AgencyQuotaForm` — les deux
+              sont candidats à un atome de champ du kit. */}
           <style>{`.abill-note::placeholder { color: ${sp.sub}; font-weight: 500; }`}</style>
           <AdminDivider margin="14px 0 12px" />
           <p style={{ margin: '0 0 10px', fontSize: 11.5, color: sp.sub, lineHeight: 1.45 }}>

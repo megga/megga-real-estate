@@ -1,10 +1,9 @@
 /**
  * Réception d'une impersonation démarrée depuis la console admin.
  *
- * Les deux applications ne partagent ni localStorage ni cookies (origines
- * distinctes) : la console ne peut pas armer la vue impersonée du CRM. Elle
- * ouvre `app.megga.ch/dashboard?impersonate=<id>` et c'est ce composant qui
- * finit le travail — résolution du profil cible, puis `startImpersonate`, qui
+ * La console ouvre `/dashboard?impersonate=<id>` dans un nouvel onglet ; c'est
+ * ce composant qui finit le travail, côté CRM — résolution du profil cible,
+ * puis `startImpersonate`, qui
  * n'active la vue QUE si la RPC d'audit `admin_log_impersonation` (gardée
  * `is_super_admin`) a bien écrit. Un id passé à la main dans l'URL par un agent
  * ne donne donc rien : la RPC refuse et le paramètre est simplement effacé.

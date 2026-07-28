@@ -11,17 +11,23 @@
  * (globals.css, re-teintes par admin-console.css) : même interrupteur que le
  * CRM, même noir.
  *
- * ⚠️ Les deux applications vivant sur des origines distinctes, leurs
- * `localStorage` ne sont PAS partagés : la préférence ne traverse pas, et c'est
- * assumé — c'est le prix de l'isolation. Ce qui est unifié, c'est la clé et le
- * comportement, pas la valeur.
+ * ⚠️ `data-theme` est un attribut GLOBAL, que le provider du CRM pilote depuis
+ * une autre clé (`megga-theme`). La console le pose pour que les surfaces
+ * rendues en portal — modales, toasts, hors de `.megga-admin-console` — suivent
+ * son mode ; elle le RESTAURE donc en sortant, sans quoi le CRM héritait du
+ * réglage de la console jusqu'à la prochaine bascule manuelle.
  */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 // Lecture de la préférence : source unique `@/lib/sugarDark`. Ce module en
 // hébergeait une copie identique, jamais importée ailleurs — deux définitions à
 // garder en phase pour rien.
-import { readSugarDark, SUGAR_DARK_KEY as STORAGE_KEY } from '@/lib/sugarDark'
+import {
+  applySugarThemeAttribute,
+  captureThemeAttribute,
+  readSugarDark,
+  SUGAR_DARK_KEY as STORAGE_KEY,
+} from '@/lib/sugarDark'
 
 interface AdminThemeState {
   dark: boolean
@@ -34,10 +40,13 @@ const AdminThemeContext = createContext<AdminThemeState | undefined>(undefined)
 export function AdminThemeProvider({ children }: { children: ReactNode }) {
   const [dark, setDarkState] = useState(readSugarDark)
 
+  // Rendre `data-theme` au CRM en sortant. Déclaré AVANT l'effet ci-dessous
+  // pour capturer la valeur d'origine : au montage, les effets s'exécutent dans
+  // l'ordre de déclaration.
+  useEffect(() => captureThemeAttribute(document.documentElement), [])
+
   useEffect(() => {
-    const root = document.documentElement
-    if (dark) root.setAttribute('data-theme', 'dark')
-    else root.removeAttribute('data-theme')
+    applySugarThemeAttribute(document.documentElement, dark)
     window.localStorage.setItem(STORAGE_KEY, dark ? '1' : '0')
   }, [dark])
 

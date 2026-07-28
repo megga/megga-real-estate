@@ -1,17 +1,24 @@
 /**
- * Console super-admin — alignement sur la grammaire Sugar du CRM.
+ * Console super-admin — feuille d'appoint de la grammaire Sugar.
  *
- * Les 16 pages d'administration sont écrites en classes SÉMANTIQUES
- * (`bg-theme-card`, `border-theme-border`, `text-theme-primary`…). Il suffit
- * donc de repointer les variables sous-jacentes sur la palette Sugar pour que
- * toutes adoptent la même teinte, sans toucher une seule page. C'est le
- * cœur du « lot 0 » : la couleur et le chrome, pas la mise en page.
+ * Elle fait deux choses. D'abord elle repointe les variables `--color-*` sur la
+ * palette Sugar, ce qui teinte les restes écrits en classes sémantiques
+ * (`bg-theme-card`, `text-theme-primary`…) : une poignée d'endroits seulement
+ * aujourd'hui — l'alignement Sugar a fait passer les 17 pages au style inline
+ * nourri par `useAdminSugar()`, alors qu'à l'origine ce repointage suffisait à
+ * les reteindre toutes sans en toucher une seule.
+ *
+ * Ensuite, et c'est devenu l'essentiel, elle porte ce que le style inline ne
+ * PEUT pas exprimer : l'anneau de focus, les scrollbars, `::placeholder`, et
+ * les états de survol du kit (`.adm-ghost`, `.adm-row`).
+ *
+ * ⛔ NE PAS y réintroduire `outline: none` : c'est ce qui avait privé le rail,
+ * la palette ⌘K et les listes de tout repère de focus au clavier.
  *
  * Les valeurs viennent de `CRM_TOKENS` (src/components/crm-sugar/tokens.ts) —
  * `light` et `noir`, cette dernière étant la teinte sombre par défaut du CRM
- * (SUGAR_DARK_TONE). Elles y sont dupliquées à la main parce que les pages
- * consomment du CSS, pas du JS ; toute évolution de tokens.ts doit être
- * reportée ici. En échange, aucune page n'a besoin de connaître Sugar.
+ * (SUGAR_DARK_TONE). Elles y sont dupliquées à la main parce que le CSS ne lit
+ * pas le JS ; toute évolution de tokens.ts doit être reportée ici.
  *
  * ⚠ SCOPÉ à `.megga-admin-console` (posé par `AdminShell`), et non plus à
  * `:root`. La console vit désormais DANS le CRM : repointer les variables
