@@ -703,10 +703,17 @@ const registryLegalNameMatchSource: KybSource = {
 // ─── Connecteur geocodage Mapbox (address_geocode, tache 3) ────────────────────
 //
 // Mapbox est deja dans la pile (frontend, VITE_MAPBOX_TOKEN -- src/lib/mapbox.ts,
-// Step2Address.tsx). Reutilise la MEME configuration (endpoint Geocoding v5, meme
-// forme de reponse `context[]` avec `id`/`short_code` deja consommee par
-// Step2Address.tsx -- chooseSuggestion()) plutot que d'en introduire une nouvelle
-// (brief tache 3). Le jeton est TOUJOURS injecte en parametre, jamais lu de l'env ici
+// Step2Address.tsx). Reutilise la MEME configuration que ces deux fichiers (endpoint
+// Geocoding v5, meme jeton VITE_MAPBOX_TOKEN) plutot que d'en introduire une nouvelle
+// (brief tache 3). `context[].id`/`short_code` (region/country) est le schema que
+// Mapbox documente lui-meme pour la Geocoding API v5 (context object) -- CE CHOIX-LA
+// repose sur cette documentation fournisseur, PAS sur une reprise de code existant
+// (corrige revue etape 4/tache 3, point 4 : la justification precedente affirmait a
+// tort que Step2Address.tsx consommait deja `id`/`short_code`). Ce fichier lit bien
+// `context[].id` sur les memes entrees (chooseSuggestion()), mais pour leur `.text`
+// -- postcode/place/region -- jamais `short_code` ; son canton s'y derive PAR NOM
+// (cantonShortFromName(), voir ../tokens), pas par ce champ. Le jeton est TOUJOURS
+// injecte en parametre, jamais lu de l'env ici
 // (meme discipline que src/lib/mapbox.ts : "le token est TOUJOURS injecte en
 // parametre, jamais lu de l'env ici") -- ce module reste pur (aucun Deno.env.get,
 // voir l'en-tete de fichier). C'est agency-verification-run/index.ts, qui lit deja

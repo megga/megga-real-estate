@@ -1270,9 +1270,11 @@ describe('connecteur registre francais (registry_lookup / registry_legal_name_ma
 // connecteur precis (contrairement a VIES et recherche-entreprises) : aucun jeton
 // Mapbox n'etait disponible dans l'environnement de cette tache -- voir les reserves
 // de docs/superpowers/sdd/task-3-report.md. La forme de reponse stubbee ici reprend
-// EXACTEMENT celle deja consommee en production par src/lib/mapbox.ts et
-// src/components/crm-sugar-wizard/steps/Step2Address.tsx (Geocoding v5,
-// `features[].context[]` avec `id`/`short_code`).
+// EXACTEMENT le schema que Mapbox documente pour la Geocoding v5 (`features[].context[]`
+// avec `id`/`short_code`) -- PAS un champ deja consomme tel quel ailleurs dans ce depot :
+// Step2Address.tsx lit bien `context[].id` sur les memes entrees, mais pour leur
+// `.text`, jamais `short_code` (meme correctif que le commentaire equivalent dans
+// _shared/kyb-sources.ts, revue etape 4/tache 3, point 4).
 describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch stubbe (aucun reseau reel)', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
