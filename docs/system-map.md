@@ -59,7 +59,7 @@ avoir livré une feature ou changé l'architecture :
 ## 0. En une phrase
 
 SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
-CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA + super-admin.
+CRM transactionnel agent + pipeline LAB/KYC + copilote IA + console super-admin.
 Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~90k
 `market_listings`, ~50k active) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 67 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
@@ -92,34 +92,46 @@ Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge au
 
 **Frontières & flux global :**
 ```
-megga.ch (site statique V3, password-gated)   ─┐
-app.megga.ch (SPA React CRM, /dashboard/*)     │
-admin.megga.ch (SPA React console super-admin) ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
-kyc.megga.ch (magic links KYC publics)        ─┘         ▲
+megga.ch (site statique V3, password-gated)          ─┐
+app.megga.ch (SPA React CRM, /dashboard/* —            │
+              console super-admin comprise)            ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
+kyc.megga.ch (magic links KYC publics)                ─┘         ▲
                                                          └── pg_cron (flatfox-sync, monitoring…) via pg_net
 ```
 
-**🟪 Console super-admin isolée** (juil. 2026). Les 16 surfaces d'administration ont quitté le bundle du
-CRM : elles ont leur propre entrée Vite ([`index.admin.html`](../index.admin.html) → [`src/AdminApp.tsx`](../src/AdminApp.tsx),
-`npm run build:admin`), leur propre projet Pages (`megga-admin`) et leur propre origine. Conséquences —
-(1) le code d'administration n'est plus servi aux agents, (2) une session volée sur le CRM ne donne pas la
-console (origines distinctes ⇒ ni `localStorage` ni cookies partagés), (3) la console a son **propre écran de
-connexion** par mot de passe (elle ne passe pas par la vitrine), (4) les routes y sont à la **racine**
-(`/users`, `/agencies/:id`…) et `app.megga.ch/dashboard/admin/*` rebondit vers elles.
+**🟪 Console super-admin : une SURFACE DU CRM** (28 juil. 2026). Les 17 pages d'administration vivent sous
+`/dashboard/admin/*`, dans le bundle du CRM : [`src/App.tsx`](../src/App.tsx) monte
+[`AdminConsoleRoute`](../src/components/admin/AdminConsoleRoute.tsx) → `AdminConsoleRoutes` → `AdminShell`.
+L'isolation sur `admin.megga.ch` (25-26 juil.) a été **annulée** : ni entrée Vite dédiée, ni projet Pages
+`megga-admin`, ni passage de session par fragment d'URL — une seule origine, donc plus rien à se transmettre.
+L'URL redevient au passage rechargeable, partageable et mémorisable.
+
 Entrée depuis le CRM : ligne « Console admin » du dropdown profil Sugar + recherche ⌘K (les deux gatées par
-`useSuperAdminGate`, cf. [`src/lib/adminEntry.ts`](../src/lib/adminEntry.ts)). L'impersonation, qui est une vue
-DU CRM, se passe par `?impersonate=<id>` ([`ImpersonationHandoff`](../src/components/admin/ImpersonationHandoff.tsx)) :
-l'id ne donne rien par lui-même, c'est la RPC `admin_log_impersonation` (gardée `is_super_admin`) qui décide.
-⚠️ Reste **une seule action manuelle** au tableau de bord Cloudflare : poser une politique **Zero Trust /
-Access** devant `admin.megga.ch` (allow = les e-mails de `super_admin_allowlist()`). Sans elle la console
-reste protégée par la DB, mais elle est joignable — Access la rend invisible avant même le chargement du bundle.
+`useSuperAdminGate`, cf. [`src/lib/adminEntry.ts`](../src/lib/adminEntry.ts)). L'impersonation ouvre un onglet
+sur `/dashboard?impersonate=<id>` — URL **relative** : viser un hôte en dur ouvrait la production depuis un
+poste de développement. L'id ne donne rien par lui-même, c'est la RPC `admin_log_impersonation` (gardée
+`is_super_admin`) qui décide, et [`ImpersonationHandoff`](../src/components/admin/ImpersonationHandoff.tsx)
+n'active la vue qu'après l'écriture d'audit.
+
+⛔ **Ne pas reproposer Cloudflare Access** devant la console : posé puis retiré (décision produit — il
+réclamait une seconde authentification, à l'encontre du principe « un seul endroit où l'on s'authentifie »),
+et le domaine n'existe plus.
+
+⚠️ **Piège vécu** : la règle `_redirects` qui renvoyait `/dashboard/admin/*` vers `admin.megga.ch` a survécu
+au retrait du domaine et rendait la console **injoignable** (302 vers le vide) à tout rechargement ou lien
+profond. Le serveur de dev ignore `_redirects`, donc les suites e2e restaient vertes. Garde-fou :
+[`tests/unit/redirects-guard.spec.ts`](../tests/unit/redirects-guard.spec.ts). Même famille de piège pour les
+liens internes, restés à la racine après la refusion :
+[`tests/unit/admin-console-paths.spec.ts`](../tests/unit/admin-console-paths.spec.ts).
 
 ---
 
 ## 2. Frontend — audiences & routing
 
-4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD) ; la console super-admin est une
-application séparée, gardée par `AdminAuthGate` (connexion + `useSuperAdminGate` → RPC `is_super_admin`). `PasswordGate` (« Coming Soon ») a été **retiré** (#555) : le composant n'existe plus.
+4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD) ; la console super-admin vit SOUS cette
+garde, `AdminConsoleRoute` y ajoutant `useSuperAdminGate` (→ RPC `is_super_admin`) et l'audit d'entrée.
+`AdminAuthGate` n'existe plus — il servait l'application autonome, retirée le 28.07.2026 ; `PasswordGate`
+(« Coming Soon ») a été retiré plus tôt (#555).
 QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `networkMode: always`.
 
 **🟪 Arrivée post-connexion** (juil. 2026). La connexion vit sur la vitrine (cf. §4bis) : `megga-auth.js`
@@ -158,7 +170,7 @@ sans ça, le démontage de l'ancien `ThemeProvider` arrachait l'attribut que le 
 | ~~Compte visiteur~~ | ~~`/account`~~ | **retiré au pivot CRM-first** — la route redirige vers `/dashboard` |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |
 | **CRM agent** | `/dashboard/*` | voir ci-dessous |
-| **Super-admin** | **`admin.megga.ch`** (application séparée ; `/dashboard/admin/*` du CRM y rebondit) | 17 pages (accent violet), routes à la **racine** (`/users`, `/agencies/:id`…), **nav groupée en 5 sections** (Pilotage/Clients/Revenus/Opérations/Produit & IA, P6b) ; `AdminAuthGate` — **aucune connexion propre** : la console reçoit la session de qui l'ouvre depuis le CRM (jetons en FRAGMENT d'URL, effacés de l'historique au boot, stockés en sessionStorage donc morts avec l'onglet) ; visite directe ⇒ écran « Accès depuis le CRM », sans champ. Il n'existe qu'un endroit où l'on s'authentifie. + **accès verrouillé** (20260705160000) : rôle + **allowlist email en dur** (2 emails opérateurs, `is_super_admin()` joint `auth.users`), lue par RPC et non plus embarquée dans le bundle ; edges admin gardées `_shared/require-super-admin.ts` ; **ouverture de console auditée** (`admin_console_entered`) et impersonation **audit-first** (RPC `admin_log_impersonation` bloquante), passée au CRM par `?impersonate=<id>`. ⚠️ L'**enrôlement TOTP** décrit dans les versions précédentes n'existe plus (2FA retiré, #873) : le facteur indépendant prévu est **Cloudflare Access** devant le domaine. **Chrome Sugar (lot 0, juil. 2026)** : la console adopte la palette du CRM sans qu'aucune des 17 pages ne soit réécrite — `src/styles/admin-console.css` repointe les variables `--color-*` sur `CRM_TOKENS` (light + noir), et les pages, écrites en classes sémantiques, suivent. Même clé de thème que le CRM (`megga.sugar.dark`, cf. `AdminThemeProvider`) : plus de réglage divergent. Restent aux lots suivants les badges à fond coloré, les bentos bordés et l'iconographie lucide. Échappatoire CI : `app_config.super_admin_test_domain` (`.local` only). **Reprise 07/2026 (plan P5→P8b)** : P5 fiabilisation dette · P6a usage 360°+quotas (`agency_usage_quotas`) · P6b clients finaux (`end-users` : portails/leads/KYC publics, RPC sans token/PII) · P8a annonces in-app (`platform_announcements`) · P8b création d'agence + factures Stripe. |
+| **Super-admin** | `app.megga.ch/dashboard/admin/*` (surface du CRM) | **17 pages**, accent violet réduit au repère de contexte du rail, **nav groupée en 5 sections** (Pilotage/Clients/Revenus/Opérations/Produit & IA). Gate : `AdminConsoleRoute` → `useSuperAdminGate` (UX) ; le mur réel est en base — `is_super_admin()` exige le rôle **ET** un e-mail allowlisté en dur, lu dans `auth.users` (jamais `profiles.email`, auto-modifiable) — et sur les edges via `_shared/require-super-admin.ts`. ⚠️ **Aucun contrôle AAL2** : le 2FA a été retiré (#873) ; des commentaires d'edge functions l'ont prétendu jusqu'au 28.07, ils ont été corrigés. Chaque **entrée** est auditée (`admin_console_entered` — granularité entrée, pas chargement de page) et l'impersonation reste **audit-first** (RPC `admin_log_impersonation` bloquante), via `?impersonate=<id>` en URL relative. Échappatoire CI : `app_config.super_admin_test_domain` (`.local` only). Chrome Sugar : `AdminShell` + kit `src/components/admin/kit/` (`AdminPager`, `AdminSearchInput`, `AdminSegmentBtn`, `AdminConfirm`, `AdminStat`…), palette re-teintée par `src/styles/admin-console.css` — ⛔ ne JAMAIS y remettre `outline: none`, c'est ce qui avait supprimé tout repère de focus clavier. |
 
 **CRM agent** (layout `AgentSugarLayout`, dark CRM) — pages principales :
 `dashboard` (**cockpit « Aujourd'hui »** refonte juin 2026 — voir l'encadré ci-dessous) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
@@ -375,17 +387,16 @@ Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEG
 ## 8. Dev / test / CI
 
 ```
-npm run dev          # vite — CRM (localhost:5173)
-npm run dev:admin    # vite — console super-admin (localhost:5174, vite.admin.config.ts)
+npm run dev          # vite — CRM, console super-admin comprise (localhost:5173)
 npm run build        # tsc -b && vite build  (+ postbuild overlay-storefront)
-npm run build:admin  # tsc -b && vite build --config vite.admin.config.ts → dist-admin/
-npm run lint         # eslint
+npm run lint         # eslint          ·  lint:deadcode  ·  lint:prose (⚠ i18n, hors des autres gates)
 npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/admin/visual)
+npm run i18n:parity:ci  # parité FR/DE/EN/IT — à lancer dès qu'on touche aux locales
 ```
-CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy. **Trois cibles Pages**,
-un workflow chacune : `deploy.yml` → megga.ch (vitrine, projet `megga-real-estate`), `deploy-app.yml` →
-app.megga.ch (CRM, projet `megga-app`), `deploy-admin.yml` → admin.megga.ch (console, projet `megga-admin`).
-Les trois créent le projet, attachent le domaine et posent le CNAME s'ils manquent — rien à préparer à la main.
+CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy. **Deux cibles Pages**,
+un workflow chacune : `deploy.yml` → megga.ch (vitrine, projet `megga-real-estate`) et `deploy-app.yml` →
+app.megga.ch (CRM et console, projet `megga-app`). Les deux créent le projet, attachent le domaine et posent
+le CNAME s'ils manquent — rien à préparer à la main. `deploy-admin.yml` a été retiré avec l'app autonome.
 
 **⚠ Asymétrie déploiement edge (source de dette)** : `deploy.yml` ne fait que **déployer** ce qu'il
 trouve dans `supabase/functions/` — rien ne supprime. Retirer une fonction du dépôt ne la retire donc

@@ -74,12 +74,13 @@ IA :           DeepSeek (deepseek-chat) pour TOUT le texte via Edge Functions �
                Vision/OCR/PDF : Gemini (Google) — DeepSeek n'a pas de vision. AUCUN Claude/Anthropic.
 Email :        Resend (megga.ch DKIM/SPF)
 Payments :     Stripe
-Hosting :      Cloudflare Pages — 3 projets : megga-real-estate (megga.ch vitrine),
-               megga-app (app.megga.ch CRM), megga-admin (admin.megga.ch console super-admin)
+Hosting :      Cloudflare Pages — 2 projets : megga-real-estate (megga.ch vitrine),
+               megga-app (app.megga.ch CRM, console super-admin comprise)
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
 Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine megga.ch
-               Backend conservé : market_listings ~90k Flatfox + flatfox-sync (pg_cron 04:00 UTC)
+               Backend conservé : market_listings ~173k (dont ~35k flatfox actives) + flatfox-sync
+               (pg_cron 04:00 UTC)
                sert uniquement le matching CRM, aucun affichage public dans cette app
 ```
 
@@ -308,7 +309,11 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Portail vendeur : ❌ RETIRÉ (26 juillet 2026).** Il n'avait jamais servi — `seller_portals` comptait 0 ligne depuis sa création, aucun lien personnel n'a jamais été émis, et l'UI de création avait déjà disparu de la fiche contact. Retiré en entier : routes (`/portal*` et `/portail*` redirigent vers la vitrine), pages, `components/seller-portal/`, hooks, section « Portails vendeurs » de la console admin, drapeau de plan `sellerPortal`, edge `seller-portal-action`, et les tables `seller_portals` / `seller_preferences` (migration `20260726180000`).
 
-**Super-Admin :** application SÉPARÉE sur `admin.megga.ch` (entrée `index.admin.html` → `AdminApp`, `npm run build:admin`, projet Pages `megga-admin`) — 16 pages (accent violet), routes à la racine (`/users`, `/agencies/:id`…), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit. Le bundle admin n'est plus servi aux agents ; l'entrée se fait par la ligne « Console admin » du dropdown profil Sugar et par ⌘K (`src/lib/adminEntry.ts`), et chaque ouverture est journalisée (`admin_console_entered`).
+**Super-Admin :** **surface du CRM** montée sous `/dashboard/admin/*` (`App.tsx` → `AdminConsoleRoute` → `AdminConsoleRoutes` → `AdminShell` + 17 pages lazy). L'application autonome `admin.megga.ch` a été retirée le 28.07.2026 : plus de `build:admin`, plus de projet Pages dédié, plus de passage de session par fragment d'URL. Accent violet réservé au repère de contexte du rail ; nav groupée en 5 sections ; chrome et atomes dans `src/components/admin/kit/`.
+
+Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel est en base (`is_super_admin()` = rôle **ET** e-mail allowlisté, lu dans `auth.users`) et sur les edges (`_shared/require-super-admin.ts`). ⚠️ Aucun contrôle AAL2 : le 2FA a été retiré (#873). Entrée par le dropdown profil Sugar et ⌘K (`src/lib/adminEntry.ts`) ; chaque entrée est journalisée (`admin_console_entered`) et l'impersonation reste audit-first (`admin_log_impersonation`, bloquante) via `?impersonate=<id>`.
+
+⚠️ Les cibles de navigation de la console DOIVENT être préfixées par `ADMIN_CONSOLE_PATH` — une cible nue tombe sur le 404 du CRM, voire sur une redirection publique. Garde-fous : `tests/unit/admin-console-paths.spec.ts` et `tests/unit/redirects-guard.spec.ts` (ce dernier interdit toute règle de bord qui expulserait `/dashboard/*` vers un autre hôte : c'est ce qui avait rendu la console injoignable).
 
 **Intégrations :** Resend, Stripe, Google/Outlook Calendar (OAuth), virtual staging (Gemini), Flatfox sync.
 
