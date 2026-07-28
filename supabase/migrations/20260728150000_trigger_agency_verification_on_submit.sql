@@ -50,17 +50,35 @@
 -- soit. Exactement la contrainte visée ici : le dossier est soumis, la vérification
 -- suit — jamais l'inverse.
 --
--- `timeout_milliseconds := 10000` (et non une valeur plus large) sur les deux
--- `net.http_post` ci-dessous : constaté en vérifiant cette migration contre le
--- worker pg_net local — une requête qui n'aboutit qu'au bout de son propre délai
--- (ex. cible injoignable) occupe le worker jusqu'à ce délai, et RETARDE D'AUTANT le
--- traitement des requêtes voisines encore en file (le worker traite ses requêtes en
--- lot ; un lot ne se libère qu'une fois son membre le plus lent réglé). Une valeur
--- trop généreuse ici referait, à l'échelle de la base entière, ce que cette tâche
--- cherche justement à éviter pour l'utilisateur : une attente. Sans conséquence sur
--- la vérification elle-même : l'Edge Function continue de tourner jusqu'à son terme
--- côté Deno quel que soit le moment où Postgres cesse d'attendre sa réponse — seule la
--- CONSTATATION du résultat par pg_net (jamais lue par cette RPC) est concernée.
+-- `timeout_milliseconds := 15000` (ni 10000, ni 30000) sur les deux `net.http_post`
+-- ci-dessous — corrigé en revue (étape 4/tâche 4, point 2) : voir cette section pour
+-- le raisonnement complet, et _shared/kyb-sources.ts pour le budget cité.
+--
+-- Pourquoi pas 10000 (valeur d'origine) : c'est EXACTEMENT `DEFAULT_SOURCE_TIMEOUT_MS`
+-- (_shared/kyb-sources.ts), le budget accordé à CHAQUE connecteur — et
+-- agency-verification-run les exécute tous en PARALLÈLE (runAgencyKybSources ->
+-- Promise.all), jamais en série. Le pire cas réel de l'Edge Function est donc déjà
+-- d'environ 10s (le connecteur le plus lent, pas leur somme) AVANT même le travail
+-- séquentiel qui suit (lecture de l'agence, appel à record_agency_verification_run,
+-- sérialisation de la réponse) — un aller-retour Postgres supplémentaire, plus la
+-- marge habituelle d'un cold start Deno. Sans marge, pg_net peut cesser d'attendre
+-- au moment précis où les connecteurs finissent tout juste, PENDANT que l'Edge
+-- Function fait encore ce travail-là : un faux dépassement de délai enregistré pour
+-- une vérification qui, elle, aboutit bel et bien (l'Edge Function continue de
+-- tourner jusqu'à son terme côté Deno quel que soit le moment où Postgres cesse
+-- d'attendre sa réponse — seule la CONSTATATION du résultat par pg_net, jamais lue
+-- par cette RPC, est concernée). 15000 laisse ~5s de marge sur ce pire cas des 10s.
+--
+-- Pourquoi pas une valeur plus large, par ex. 30000 (la toute première version de
+-- cette migration) : constaté en vérifiant cette migration contre le worker pg_net
+-- local — une requête qui n'aboutit qu'au bout de son propre délai (ex. cible
+-- injoignable) occupe le worker jusqu'à ce délai, et RETARDE D'AUTANT le traitement
+-- des requêtes voisines encore en file (le worker traite ses requêtes en lot ; un
+-- lot ne se libère qu'une fois son membre le plus lent réglé) — la revue a confirmé
+-- que 30000 aggravait cette contagion entre requêtes. Une valeur trop généreuse ici
+-- referait, à l'échelle de la base entière, ce que cette tâche cherche justement à
+-- éviter pour l'utilisateur : une attente. 15000 reste loin des 30000 initiaux tout
+-- en couvrant le vrai pire cas ci-dessus.
 --
 -- ─── Le point délicat : un échec de vérification ne doit jamais faire échouer la
 -- soumission ────────────────────────────────────────────────────────────────────────
@@ -274,7 +292,7 @@ begin
           'Authorization', 'Bearer ' || v_svc_key
         ),
         body := jsonb_build_object('agency_id', v_agency_id),
-        timeout_milliseconds := 10000
+        timeout_milliseconds := 15000
       );
     exception when others then
       raise warning 'submit_agency_identity: declenchement agency-verification-run echoue pour %: %', v_agency_id, sqlerrm;
@@ -437,7 +455,7 @@ begin
           'Authorization', 'Bearer ' || v_svc_key
         ),
         body := jsonb_build_object('agency_id', v_agency.id),
-        timeout_milliseconds := 10000
+        timeout_milliseconds := 15000
       );
     exception when others then
       raise warning 'sweep_pending_agency_verifications: dispatch echoue pour %: %', v_agency.id, sqlerrm;
