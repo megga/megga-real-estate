@@ -641,6 +641,20 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
       console.log(`[sweep] totalSeen=${stats.upserted} totalExpected=${totalExpected} syncStartAt=${syncStartAt}`)
       const sweep = await runSweep(supabase, syncStartAt, stats.upserted, totalExpected)
       console.log(`[sweep done] removed=${sweep.removed} skipped_safety=${sweep.skipped_safety}`)
+
+      // Dé-duplication des logos d'agence : Flatfox attribue le même logo (compte
+      // org partagé) à des agences distinctes, que l'upsert ci-dessus recopie tel
+      // quel → un faux logo s'affiche (ex. un garage avec le logo d'une régie).
+      // On re-vide les logos partagés par des agences aux noms dissemblables.
+      // Rejoué à chaque passe car l'upsert les réécrit. Non bloquant.
+      try {
+        const { data: logoNulled, error: logoErr } = await supabase.rpc('suppress_agency_logo_collisions')
+        if (logoErr) console.error('[logo dedup] error:', logoErr.message)
+        else console.log(`[logo dedup] cleared ${logoNulled ?? 0} mismatched agency logos`)
+      } catch (e) {
+        console.error('[logo dedup] threw:', String(e))
+      }
+
       await finalizeRun(supabase, runId, {
         status: sweep.skipped_safety ? 'safety_skipped' : 'completed',
         totalSeen: stats.upserted,
