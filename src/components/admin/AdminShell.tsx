@@ -36,6 +36,11 @@ import { ADMIN_KEYFRAMES, ADMIN_RADII, ADMIN_RAIL_WIDTH } from '@/components/adm
 // ADMIN_KEYFRAMES ne définit pas — sans lui le rail apparaîtrait sec.
 import { SugarIconRail, type RailItem } from '@/components/crm-sugar/LiquidGlassRail'
 import { SUGAR_KEYFRAMES } from '@/components/crm-sugar/SugarShell'
+// Palette de la console. Importée ICI et non par une entrée d'app : c'est la
+// seule façon que les DEUX montages l'obtiennent. Elle est scopée à
+// `.megga-admin-console`, posée sur la racine ci-dessous — sans quoi elle
+// reteindrait tout le CRM.
+import '@/styles/admin-console.css'
 
 interface NavItem {
   labelKey: string
@@ -286,6 +291,10 @@ export default function AdminShell() {
 
   return (
     <div
+      className="megga-admin-console"
+      // Le sombre se lit ici, pas sur `data-theme` : dans le CRM, le
+      // ThemeProvider agent pilote cet attribut depuis une autre clé et gagne.
+      data-admin-dark={dark ? 'true' : 'false'}
       style={{
         position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',

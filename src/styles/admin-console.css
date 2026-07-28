@@ -13,14 +13,21 @@
  * consomment du CSS, pas du JS ; toute évolution de tokens.ts doit être
  * reportée ici. En échange, aucune page n'a besoin de connaître Sugar.
  *
- * Chargé UNIQUEMENT par `main.admin.tsx`, après `globals.css` (même
- * spécificité, l'ordre décide) : le CRM n'est pas affecté.
+ * ⚠ SCOPÉ à `.megga-admin-console` (posé par `AdminShell`), et non plus à
+ * `:root`. La console vit désormais DANS le CRM : repointer les variables
+ * globales y aurait reteint toute l'application.
+ *
+ * Le sombre se lit sur `data-admin-dark`, PAS sur `data-theme`. Dans le CRM,
+ * deux providers pilotent `data-theme` depuis deux clés de stockage sans lien
+ * (`megga-theme` pour le CRM, `megga.sugar.dark` pour la console) et celui du
+ * CRM gagne : mesuré `data-theme="light"` alors que la console était en sombre,
+ * d'où des pages en texte quasi noir sur fond noir.
  *
  * Ce qui reste à faire dans les lots suivants : les badges à fond coloré, les
  * bentos séparés par bordure plutôt que par ombre, et l'iconographie lucide.
  */
 
-:root {
+.megga-admin-console {
   /* ── Surfaces (CRM_TOKENS.light) ── */
   --color-bg-page: 250 251 253; /* #FAFBFD — bg */
   --color-bg-card: 255 255 255; /* #FFFFFF — surface */
@@ -42,7 +49,7 @@
   --color-border-subtle: 237 240 244;
 }
 
-:root[data-theme='dark'] {
+.megga-admin-console[data-admin-dark='true'] {
   /* ── Surfaces (CRM_TOKENS.noir — noir franc, même sombre que le CRM) ── */
   --color-bg-page: 0 0 0; /* #000000 — bg */
   --color-bg-card: 12 12 16; /* #0C0C10 — surface */
@@ -68,7 +75,7 @@
  * Police du chrome CRM. Le reste de l'app est en DM Sans ; les surfaces Sugar
  * sont en Inter Tight, et c'est une part de ce qui les rend reconnaissables.
  */
-body {
+.megga-admin-console {
   font-family: 'Inter Tight', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -76,16 +83,16 @@ body {
  * Ombres Sugar (shadow1 / shadow2 de CRM_TOKENS), disponibles en classes
  * utilitaires pour le shell. Elles remplacent les bordures décoratives.
  */
-.console-shadow {
+.megga-admin-console .console-shadow {
   box-shadow: 0 1px 2px rgba(14, 20, 16, 0.04), 0 0 0 1px rgba(14, 20, 16, 0.04);
 }
-.console-shadow-lg {
+.megga-admin-console .console-shadow-lg {
   box-shadow: 0 8px 24px -8px rgba(14, 20, 16, 0.12), 0 0 0 1px rgba(14, 20, 16, 0.05);
 }
-:root[data-theme='dark'] .console-shadow {
+.megga-admin-console[data-admin-dark='true'] .console-shadow {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
-:root[data-theme='dark'] .console-shadow-lg {
+.megga-admin-console[data-admin-dark='true'] .console-shadow-lg {
   box-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.045);
 }
 
@@ -106,7 +113,7 @@ body {
  *
  * `:focus-visible` (et non `:focus`) : pas de halo au clic souris.
  */
-:where(button, a, input, textarea, select, [tabindex], [role='button'], [role='switch'], [role='link'], [role='option'], [role='menuitem']):focus-visible {
+.megga-admin-console :where(button, a, input, textarea, select, [tabindex], [role='button'], [role='switch'], [role='link'], [role='option'], [role='menuitem']):focus-visible {
   outline: 2px solid rgb(var(--color-admin-accent)) !important;
   outline-offset: 2px;
 }
@@ -120,7 +127,7 @@ body {
  * (~rgba(0,0,0,.54)), illisible sur la sous-surface quasi noire du thème sombre.
  * Ce plancher évite d'avoir à re-déclarer un `::placeholder` par composant.
  */
-:where(input, textarea)::placeholder {
+.megga-admin-console :where(input, textarea)::placeholder {
   color: rgb(var(--color-text-tertiary));
   opacity: 1; /* Firefox applique un opacity < 1 par défaut. */
 }
@@ -132,13 +139,13 @@ body {
  * d'auteur ne pouvait l'atteindre : AUCUN bouton fantôme de la console n'avait
  * de retour de survol. Même raison qu'ailleurs pour le `!important`.
  */
-.adm-ghost {
+.megga-admin-console .adm-ghost {
   transition: background-color 0.16s ease, box-shadow 0.16s ease;
 }
-.adm-ghost:hover:not(:disabled) {
+.megga-admin-console .adm-ghost:hover:not(:disabled) {
   background: #f1f4f8 !important;
 }
-:root[data-theme='dark'] .adm-ghost:hover:not(:disabled) {
+.megga-admin-console[data-admin-dark='true'] .adm-ghost:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1) !important;
 }
 
@@ -150,12 +157,12 @@ body {
  * qui veulent un survol portent `.adm-row` et laissent leur fond de repos en
  * inline ; seul l'état de survol passe par cette règle.
  */
-.adm-row {
+.megga-admin-console .adm-row {
   transition: background-color 0.16s ease;
 }
-.adm-row:hover {
+.megga-admin-console .adm-row:hover {
   background: rgba(15, 23, 42, 0.035) !important;
 }
-:root[data-theme='dark'] .adm-row:hover {
+.megga-admin-console[data-admin-dark='true'] .adm-row:hover {
   background: rgba(255, 255, 255, 0.05) !important;
 }
