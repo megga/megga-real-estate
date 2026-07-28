@@ -1,0 +1,42 @@
+name: Migration drift (prod vs dépôt)
+
+# Pourquoi un job PLANIFIÉ et non un check de PR : la dérive ne naît pas d'une
+# pull request, elle naît du DÉPLOIEMENT — le date-guard de deploy.yml saute
+# toute migration mergée après sa propre date, et ne la rattrape plus jamais.
+# Le défaut apparaît donc APRÈS le merge, quand plus personne ne regarde.
+# Même cadence et même forme que security-audit.yml.
+#
+# Il tourne aussi après chaque déploiement de main : c'est le moment exact où
+# une migration vient d'être sautée, et où la corriger coûte le moins cher.
+
+on:
+  schedule:
+    - cron: '13 7 * * 1'   # lundi 07:13 UTC, décalé de l'audit sécurité
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+
+jobs:
+  drift:
+    name: Dérive de schéma
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Le push arrive AVANT que deploy.yml n'ait appliqué les migrations du
+      # jour : sans cette pause, le contrôle signalerait comme dérive une
+      # migration en cours d'application, et crierait au loup à chaque merge.
+      - name: Laisser deploy.yml appliquer les migrations
+        if: github.event_name == 'push'
+        run: sleep 180
+
+      - name: Comparer le dépôt à la production
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/check-migration-drift.mjs

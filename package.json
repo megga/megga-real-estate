@@ -9,6 +9,7 @@
     "postbuild": "node scripts/overlay-storefront.mjs",
     "lint": "eslint .",
     "lint:prose": "node scripts/check-prose-typography.mjs",
+    "check:drift": "node scripts/check-migration-drift.mjs",
     "lint:i18n": "node scripts/lint-i18n-hardcoded.mjs",
     "lint:deadcode": "node scripts/check-dead-exports.mjs",
     "i18n:prose:fix": "node scripts/i18n-fix-typography.mjs",

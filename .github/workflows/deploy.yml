@@ -173,6 +173,13 @@ jobs:
       # Cette étape n'applique rien et ne bloque rien : l'application manuelle EST
       # le flux normal du dépôt, échouer casserait un déploiement pour une migration
       # déjà en base. Elle rend seulement l'omission VISIBLE au lieu de silencieuse.
+      #
+      # ⚠ Elle N'A PAS SUFFI : le 28 juil. 2026, deux migrations du 21 manquaient
+      # depuis une semaine (reminders.kind, transactions.archived_at), cassant
+      # quatre gestes du pipeline. Cette alerte ne parle que du push courant et ne
+      # dit rien de l'état RÉEL de la base. Le vrai filet est `migration-drift.yml`
+      # (scripts/check-migration-drift.mjs), qui compare ce que le dépôt déclare à
+      # ce que la production contient — et qui, lui, échoue.
       - name: Migrations sautées par le date-guard (alerte)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
