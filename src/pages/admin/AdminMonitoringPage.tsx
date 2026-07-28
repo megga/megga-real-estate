@@ -13,7 +13,7 @@
  */
 import { useState, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Database, Zap, Mail, CheckCircle, AlertTriangle, Search, HardDrive, Globe, Home, DollarSign, Clock } from 'lucide-react'
+import { Database, Zap, Mail, CheckCircle, AlertTriangle, HardDrive, Globe, Home, DollarSign, Clock } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAdminMonitoring } from '@/hooks/useAdminMonitoring'
 import { useDeepSeekBalance, useAIUsageSummary, useAIUsageTimeseries } from '@/hooks/useAIBilling'
@@ -24,7 +24,7 @@ import IntegrationsHealthPanel from '@/components/admin/IntegrationsHealthPanel'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGroupTitle, AdminIc,
-  AdminPill, AdminSkeleton, AdminTd, AdminTh,
+  AdminPill, AdminSearchInput, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
@@ -404,23 +404,14 @@ export default function AdminMonitoringPage() {
                   </button>
                 )
               })}
-              <div style={{ position: 'relative', marginLeft: 4 }}>
-                <AdminIc icon={Search} size={14} color={sp.soft} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
-                <input
-                  type="text"
-                  placeholder={t('admin:monitoring.edgeFunctions.filterPlaceholder')}
-                  value={fnSearch}
-                  onChange={e => setFnSearch(e.target.value)}
-                  style={{
-                    height: 28, width: 152, padding: '0 12px 0 31px', borderRadius: ADMIN_RADII.pill,
-                    // Hairline du kit (`surf.hairline`) et non un couple d'alphas local : la page
-                    // en introduisait un troisième jeu, divergent des bentos. `box-sizing:
-                    // border-box` (preflight Tailwind) garde la hauteur de pilule malgré le filet.
-                    border: surf.hairline, outline: 'none', fontFamily: 'inherit', fontSize: 11.5,
-                    background: surf.cardSub, color: sp.ink,
-                  }}
-                />
-              </div>
+              <AdminSearchInput
+              compact
+                value={fnSearch}
+                onChange={setFnSearch}
+                placeholder={t('admin:monitoring.edgeFunctions.filterPlaceholder')}
+                label={t('admin:monitoring.edgeFunctions.filterPlaceholder')}
+                maxWidth={200}
+              />
             </>
           }
         />
@@ -482,21 +473,14 @@ export default function AdminMonitoringPage() {
           label={`${t('admin:monitoring.errorLogs')} (${errorLogs.length})`}
           tone={errorLogs.length > 0 ? 'err' : 'ok'}
           right={
-            <div style={{ position: 'relative' }}>
-              <AdminIc icon={Search} size={14} color={sp.soft} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="text"
-                placeholder={t('admin:monitoring.errorLogs.filterPlaceholder')}
-                value={errorSearch}
-                onChange={(e) => setErrorSearch(e.target.value)}
-                style={{
-                  height: 30, width: 256, padding: '0 12px 0 31px', borderRadius: ADMIN_RADII.pill,
-                  // Même filet que le champ de filtre des fonctions : la valeur vient du kit.
-                  border: surf.hairline, outline: 'none', fontFamily: 'inherit', fontSize: 11.5,
-                  background: surf.cardSub, color: sp.ink,
-                }}
-              />
-            </div>
+            <AdminSearchInput
+              compact
+              value={errorSearch}
+              onChange={setErrorSearch}
+              placeholder={t('admin:monitoring.errorLogs.filterPlaceholder')}
+              label={t('admin:monitoring.errorLogs.filterPlaceholder')}
+              maxWidth={256}
+            />
           }
         />
 

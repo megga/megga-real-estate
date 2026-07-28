@@ -14,17 +14,19 @@
  */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Search, ShieldCheck, AlertTriangle, Trash2, Check, Building2, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { ShieldCheck, AlertTriangle, Trash2, Check, Building2, Download } from 'lucide-react'
 import { exportToCsv } from '@/lib/exportCsv'
 import { formatCHF, formatDate } from '@/lib/utils'
 import { useAdminModeration } from '@/hooks/useAdminModeration'
 import type { ModerationListing } from '@/hooks/useAdminModeration'
+import { useClientPagination } from '@/hooks/useClientPagination'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import ModerationActionDialog from '@/components/admin/ModerationActionDialog'
 import PageTransition from '@/components/layout/PageTransition'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
-  AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminTd, AdminTh,
+  AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill,
+  AdminSearchInput, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
@@ -108,7 +110,6 @@ export default function AdminMarketplacePage() {
   const { listings, isLoading, isError, refetch, stats, statsLoading, moderate } = useAdminModeration()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [page, setPage] = useState(1)
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -131,9 +132,7 @@ export default function AdminMarketplacePage() {
     return list
   }, [listings, search, statusFilter])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const safePage = Math.min(page, totalPages)
-  const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE)
+  const { page, setPage, totalPages, paginated, perPage, total } = useClientPagination(filtered, ITEMS_PER_PAGE)
 
   function openDialog(listing: ModerationListing, action: 'flag' | 'remove') {
     setDialogListing(listing)
@@ -155,10 +154,6 @@ export default function AdminMarketplacePage() {
 
   const hasFilters = !!search || !!statusFilter
   const sub = { color: sp.sub } as const
-  const pagerBtn = {
-    width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
-    background: 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0,
-  } as const
   // Action de ligne : pastille creuse, le signal vient de la teinte de l'icône.
   const actBtn = {
     width: 26, height: 26, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
@@ -188,8 +183,6 @@ export default function AdminMarketplacePage() {
           .admm-row:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.03)'}; }
           .admm-act { opacity: 0; transition: opacity .15s ease; }
           .admm-row:hover .admm-act, .admm-row:focus-within .admm-act { opacity: 1; }
-          .admm-search::placeholder { color: ${sp.sub}; font-weight: 500; }
-          .admm-search:focus { box-shadow: inset 0 0 0 2px ${sp.accent}; }
         `}</style>
 
         {/* Indicateurs */}
@@ -215,24 +208,12 @@ export default function AdminMarketplacePage() {
 
         {/* Recherche + filtre de statut */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 200, maxWidth: 320 }}>
-            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'grid', placeItems: 'center' }}>
-              <AdminIc icon={Search} size={15} color={sp.sub} />
-            </span>
-            <input
-              type="text"
-              className="admm-search"
-              placeholder={t('admin:marketplace.searchPlaceholder')}
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-              style={{
-                width: '100%', height: 36, padding: '0 12px 0 35px', boxSizing: 'border-box',
-                borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub,
-                color: sp.ink, fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-                outline: 'none', transition: 'box-shadow .16s ease',
-              }}
-            />
-          </div>
+          <AdminSearchInput
+            value={search}
+            onChange={(v) => { setSearch(v); setPage(1) }}
+            placeholder={t('admin:marketplace.searchPlaceholder')}
+            label={t('admin:marketplace.searchPlaceholder')}
+          />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             {STATUS_FILTER_KEYS.map((f) => {
@@ -395,65 +376,11 @@ export default function AdminMarketplacePage() {
             </div>
           )}
 
-          {/* Pagination */}
-          {filtered.length > ITEMS_PER_PAGE && (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-              padding: '11px 14px', borderTop: surf.hairline,
-            }}>
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-                {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} {t('admin:common.on')} {filtered.length}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={safePage <= 1}
-                  aria-label={t('admin:common.previousPage')}
-                  style={{ ...pagerBtn, cursor: safePage <= 1 ? 'not-allowed' : 'pointer', opacity: safePage <= 1 ? 0.4 : 1 }}
-                >
-                  <AdminIc icon={ChevronLeft} size={15} color={sp.soft} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(p => Math.abs(p - safePage) <= 2 || p === 1 || p === totalPages)
-                  .map((p, idx, arr) => {
-                    const prev = arr[idx - 1]
-                    const showEllipsis = prev !== undefined && p - prev > 1
-                    const on = p === safePage
-                    return (
-                      <span key={p} style={{ display: 'flex', alignItems: 'center' }}>
-                        {showEllipsis && (
-                          <span style={{ padding: '0 4px', fontSize: 11.5, fontWeight: 600, color: sp.sub }}>...</span>
-                        )}
-                        <button
-                          onClick={() => setPage(p)}
-                          style={{
-                            minWidth: 28, height: 28, padding: '0 8px', borderRadius: ADMIN_RADII.pill,
-                            border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5,
-                            fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                            background: on ? sp.accent : 'transparent',
-                            color: on ? sp.accentInk : sp.soft,
-                          }}
-                        >
-                          {p}
-                        </button>
-                      </span>
-                    )
-                  })}
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={safePage >= totalPages}
-                  aria-label={t('admin:common.nextPage')}
-                  style={{ ...pagerBtn, cursor: safePage >= totalPages ? 'not-allowed' : 'pointer', opacity: safePage >= totalPages ? 0.4 : 1 }}
-                >
-                  <AdminIc icon={ChevronRight} size={15} color={sp.soft} />
-                </button>
-              </div>
-            </div>
-          )}
+          <AdminPager page={page} totalPages={totalPages} total={total} perPage={perPage} onPage={setPage} />
         </AdminCard>
 
         {/* Pagination mobile (cible tactile 44 px) */}
-        {!isLoading && filtered.length > ITEMS_PER_PAGE && (
+        {!isLoading && totalPages > 1 && (
           // Le `display` reste la SEULE propriété tenue hors du style inline : une
           // déclaration inline bat toute règle de feuille de style non-`!important`,
           // donc un `display: 'flex'` inline neutralisait le `display: none` de
@@ -461,17 +388,17 @@ export default function AdminMarketplacePage() {
           <div className="flex md:hidden" style={{ alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '0 2px' }}>
             <AdminGhostBtn
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={safePage <= 1}
+              disabled={page <= 1}
               style={{ height: 44 }}
             >
               {t('admin:common.previous')}
             </AdminGhostBtn>
             <span style={{ fontSize: 12, fontWeight: 700, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-              {safePage}/{totalPages}
+              {page}/{totalPages}
             </span>
             <AdminGhostBtn
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={safePage >= totalPages}
+              disabled={page >= totalPages}
               style={{ height: 44 }}
             >
               {t('admin:common.next')}

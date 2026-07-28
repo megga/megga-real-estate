@@ -274,6 +274,11 @@ export default function AdminShell() {
            vient de la règle WCAG d'admin-console.css. */
         .adm-nav { -webkit-tap-highlight-color: transparent; transition: background-color .18s ease; }
         .adm-nav:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'} !important; }
+        /* Champ de recherche du kit (\`AdminSearchInput\`). Ces deux règles ne
+           s'expriment pas en style inline ; elles vivaient donc recopiées dans
+           chaque écran, sous une classe différente à chaque fois. */
+        .adm-search::placeholder { color: ${sp.sub}; font-weight: 500; }
+        .adm-search:focus { box-shadow: inset 0 0 0 2px ${sp.accent}; }
         .adm-scroll::-webkit-scrollbar { width: 9px; }
         .adm-scroll::-webkit-scrollbar-thumb { background: ${dark ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
         /* Le dock d'icônes occupe la gouttière gauche (il porte sa propre

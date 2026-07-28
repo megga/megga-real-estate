@@ -426,8 +426,6 @@
   "securityAudit.table.details": "Dettagli",
   "securityAudit.table.entity": "Entita",
   "securityAudit.metadataFull": "Metadata completa",
-  "securityAudit.eventsTotal": "{{count}} evento in totale",
-  "securityAudit.eventsTotal_plural": "{{count}} eventi in totale",
   "securityAudit.empty.title": "Nessun evento trovato",
   "securityAudit.empty.subtitle": "Modificate i filtri per vedere piu risultati",
   "securityAudit.megaAi": "MEGGA AI",

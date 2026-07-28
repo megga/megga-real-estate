@@ -15,6 +15,8 @@
  */
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAdminSugar, type AdminTones } from '@/hooks/useAdminSugar'
 import { ADMIN_ICON_SIZE, ADMIN_ICON_STROKE, ADMIN_RADII, type AdminToneName } from './adminKitCore'
 
@@ -470,5 +472,135 @@ export function AdminTd({ children, align = 'left', numeric, style }: {
     }}>
       {children}
     </td>
+  )
+}
+
+/* ─── Recherche et pagination ───────────────────────────────────────────────── */
+
+/**
+ * Champ de recherche à loupe intégrée.
+ *
+ * Six écrans le recopiaient — même géométrie, même surface creuse, et chacun sa
+ * classe pour la couleur du placeholder et l'anneau de focus. Ces deux règles
+ * vivent désormais une seule fois, dans le shell (`.adm-search`).
+ *
+ * `label` est le nom accessible : le champ n'a pas d'étiquette visible, la loupe
+ * ne se lit pas, et le placeholder ne fait pas office de nom.
+ */
+export function AdminSearchInput({ value, onChange, placeholder, label, maxWidth = 320, compact = false }: {
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  label: string
+  maxWidth?: number
+  /** Filtre logé dans une barre de titre : plus bas, et libre de rétrécir. */
+  compact?: boolean
+}) {
+  const { sp, surf } = useAdminSugar()
+  const height = compact ? 30 : 36
+  return (
+    <div style={{ position: 'relative', flex: `1 1 ${compact ? 140 : 220}px`, minWidth: compact ? 130 : 200, maxWidth }}>
+      <span
+        aria-hidden="true"
+        style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'grid', placeItems: 'center' }}
+      >
+        <AdminIc icon={Search} size={compact ? 14 : 15} color={sp.sub} />
+      </span>
+      <input
+        type="text"
+        className="adm-search"
+        aria-label={label}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: '100%', height, padding: `0 12px 0 ${compact ? 31 : 35}px`, boxSizing: 'border-box',
+          borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub,
+          color: sp.ink, fontFamily: 'inherit', fontSize: compact ? 12 : 13, fontWeight: 600,
+          outline: 'none', transition: 'box-shadow .16s ease',
+        }}
+      />
+    </div>
+  )
+}
+
+/**
+ * Pagination numérotée d'une liste paginée côté client.
+ *
+ * Recopiée dans cinq écrans, avec à chaque fois la même fenêtre glissante
+ * (page courante ± 2, plus la première et la dernière, ellipses comprises).
+ *
+ * Ne s'affiche pas s'il n'y a qu'une page : la barre n'apprend alors rien.
+ */
+export function AdminPager({ page, totalPages, total, perPage, onPage }: {
+  page: number
+  totalPages: number
+  total: number
+  perPage: number
+  onPage: (page: number) => void
+}) {
+  const { t } = useTranslation('admin')
+  const { sp, surf } = useAdminSugar()
+  if (totalPages <= 1) return null
+
+  const btn: CSSProperties = {
+    width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
+    background: 'transparent', display: 'grid', placeItems: 'center', flexShrink: 0,
+  }
+  // Fenêtre glissante : les pages proches, plus les deux extrémités.
+  const shown = Array.from({ length: totalPages }, (_, i) => i + 1)
+    .filter(p => Math.abs(p - page) <= 2 || p === 1 || p === totalPages)
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+      padding: '11px 14px', borderTop: surf.hairline,
+    }}>
+      <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+        {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} {t('common.on')} {total}
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <button
+          onClick={() => onPage(Math.max(1, page - 1))}
+          disabled={page <= 1}
+          aria-label={t('common.previousPage')}
+          style={{ ...btn, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.4 : 1 }}
+        >
+          <AdminIc icon={ChevronLeft} size={15} color={sp.soft} />
+        </button>
+        {shown.map((p, idx, arr) => {
+          const prev = arr[idx - 1]
+          const on = p === page
+          return (
+            <span key={p} style={{ display: 'flex', alignItems: 'center' }}>
+              {prev !== undefined && p - prev > 1 && (
+                <span style={{ padding: '0 4px', fontSize: 11.5, fontWeight: 600, color: sp.sub }}>...</span>
+              )}
+              <button
+                onClick={() => onPage(p)}
+                aria-current={on ? 'page' : undefined}
+                style={{
+                  minWidth: 28, height: 28, padding: '0 8px', borderRadius: ADMIN_RADII.pill,
+                  border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5,
+                  fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                  background: on ? sp.accent : 'transparent',
+                  color: on ? sp.accentInk : sp.soft,
+                }}
+              >
+                {p}
+              </button>
+            </span>
+          )
+        })}
+        <button
+          onClick={() => onPage(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+          aria-label={t('common.nextPage')}
+          style={{ ...btn, cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.4 : 1 }}
+        >
+          <AdminIc icon={ChevronRight} size={15} color={sp.soft} />
+        </button>
+      </div>
+    </div>
   )
 }

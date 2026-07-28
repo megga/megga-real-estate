@@ -11,18 +11,19 @@
  * violet « Admin MEGGA » a quitté la page — il ne vit plus qu'une fois, dans le
  * rail du shell.
  */
-import { useState, useMemo, type CSSProperties } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Search, ShieldCheck, AlertTriangle, FileCheck, Clock, ChevronLeft, ChevronRight, Download, Trash2, ClipboardCheck } from 'lucide-react'
+import { ShieldCheck, AlertTriangle, FileCheck, Clock, Download, Trash2, ClipboardCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { exportToCsv } from '@/lib/exportCsv'
 import { formatDate } from '@/lib/utils'
 import { useAdminCompliance, useConsentStats, useAccountDeletions } from '@/hooks/useAdminCompliance'
 import type { ComplianceCase } from '@/hooks/useAdminCompliance'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useClientPagination } from '@/hooks/useClientPagination'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
 const ITEMS_PER_PAGE = 10
@@ -234,7 +235,6 @@ export default function AdminCompliancePage() {
   const { cases, isLoading, isError, refetch, stats, statsLoading } = useAdminCompliance()
   const [tab, setTab] = useState<TabValue>('all')
   const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
 
   const TABS: { value: TabValue; label: string }[] = [
     { value: 'risk', label: t('compliance.tab.atRisk') },
@@ -285,9 +285,8 @@ export default function AdminCompliancePage() {
     return list
   }, [cases, tab, search, t])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
-  const safePage = Math.min(page, totalPages)
-  const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE)
+  // Les cartes mobiles et la table desktop consomment la MÊME tranche.
+  const { page, setPage, totalPages, paginated, perPage, total } = useClientPagination(filtered, ITEMS_PER_PAGE)
 
   // Survol : Sugar n'a pas de bordure à éclaircir, la ligne se teinte et la carte
   // mobile monte d'un cran d'ombre. Les valeurs suivent le thème, d'où le <style>.
@@ -297,13 +296,6 @@ export default function AdminCompliancePage() {
     .cmpl-card { transition: box-shadow .18s ease; }
     .cmpl-card:hover { box-shadow: ${surf.shadowHov}; }
   `
-
-  /** Bouton chevron de la pagination (même grammaire que les icônes du kit). */
-  const pagerBtn = (off: boolean): CSSProperties => ({
-    width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
-    background: 'transparent', display: 'grid', placeItems: 'center',
-    cursor: off ? 'not-allowed' : 'pointer', opacity: off ? 0.4 : 1,
-  })
 
   return (
     <AdminPage
@@ -369,21 +361,15 @@ export default function AdminCompliancePage() {
           )
         })}
 
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 190px', minWidth: 170, maxWidth: 290, marginLeft: 'auto' }}>
-          <span style={{ position: 'absolute', left: 13, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
-            <AdminIc icon={Search} size={15} color={sp.sub} />
-          </span>
-          <input
-            type="text"
-            placeholder={t('compliance.searchPlaceholder')}
-            aria-label={t('compliance.searchPlaceholder')}
+        {/* Le champ reste poussé à droite de la rangée d'onglets : le kit ne
+            porte pas de marge, elle vit donc sur l'enveloppe. */}
+        <div style={{ marginLeft: 'auto', display: 'flex' }}>
+          <AdminSearchInput
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            style={{
-              width: '100%', height: 34, borderRadius: ADMIN_RADII.pill, border: 0, outline: 'none',
-              padding: '0 14px 0 35px', background: surf.card, color: sp.ink, boxShadow: sp.shadowSm,
-              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
-            }}
+            onChange={(v) => { setSearch(v); setPage(1) }}
+            placeholder={t('compliance.searchPlaceholder')}
+            label={t('compliance.searchPlaceholder')}
+            maxWidth={290}
           />
         </div>
       </div>
@@ -523,73 +509,26 @@ export default function AdminCompliancePage() {
           ))
         )}
 
-        {/* Pagination */}
-        {filtered.length > ITEMS_PER_PAGE && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 16px', borderTop: surf.hairline }}>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-              {(safePage - 1) * ITEMS_PER_PAGE + 1}&ndash;{Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} {t('common.on')} {filtered.length}
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <button
-                onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)) }}
-                disabled={safePage <= 1}
-                aria-label={t('common.previousPage')}
-                style={pagerBtn(safePage <= 1)}
-              >
-                <AdminIc icon={ChevronLeft} size={15} color={sp.sub} />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(p => Math.abs(p - safePage) <= 2 || p === 1 || p === totalPages)
-                .map((p, idx, arr) => {
-                  const prev = arr[idx - 1]
-                  const showEllipsis = prev !== undefined && p - prev > 1
-                  return (
-                    <span key={p} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      {showEllipsis && <span style={{ padding: '0 4px', fontSize: 11.5, color: sp.soft }}>...</span>}
-                      <button
-                        onClick={(e) => { e.preventDefault(); setPage(p) }}
-                        style={{
-                          height: 28, minWidth: 28, padding: '0 8px', borderRadius: ADMIN_RADII.pill, border: 0,
-                          cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
-                          fontVariantNumeric: 'tabular-nums',
-                          background: p === safePage ? sp.accent : 'transparent',
-                          color: p === safePage ? sp.accentInk : sp.sub,
-                        }}
-                      >
-                        {p}
-                      </button>
-                    </span>
-                  )
-                })}
-              <button
-                onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPages, p + 1)) }}
-                disabled={safePage >= totalPages}
-                aria-label={t('common.nextPage')}
-                style={pagerBtn(safePage >= totalPages)}
-              >
-                <AdminIc icon={ChevronRight} size={15} color={sp.sub} />
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Pagination (desktop) — le kit s'efface de lui-même sous deux pages. */}
+        <AdminPager page={page} totalPages={totalPages} total={total} perPage={perPage} onPage={setPage} />
       </AdminCard>
 
-      {/* Pagination mobile */}
-      {!isLoading && filtered.length > ITEMS_PER_PAGE && (
+      {/* Pagination mobile — hors du kit : cibles de 44 px, pas de barre numérotée */}
+      {!isLoading && totalPages > 1 && (
         <div className="md:hidden flex items-center justify-between" style={{ padding: '0 2px' }}>
           <AdminGhostBtn
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={safePage <= 1}
+            disabled={page <= 1}
             style={{ height: 44 }}
           >
             {t('common.previous')}
           </AdminGhostBtn>
           <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-            {safePage}/{totalPages}
+            {page}/{totalPages}
           </span>
           <AdminGhostBtn
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={safePage >= totalPages}
+            disabled={page >= totalPages}
             style={{ height: 44 }}
           >
             {t('common.next')}
