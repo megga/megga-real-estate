@@ -217,6 +217,18 @@ describe.skipIf(!HAS_KEYS)('recompute_agency_verification — moteur de scoring 
     expect(agency.verification_status).toBe('manual_review')
   })
 
+  it('un resultat partial vaut 0.5 dans la moyenne ponderee (revue point 3, regle non gardee par un test)', async () => {
+    const agencyId = await createAgency('partial-result')
+    const signatoryId = await addActiveSignatory(agencyId)
+    await passAllVetoes(agencyId, signatoryId)
+    await insertAgencyCheck(agencyId, 'vat_lookup', 'partial') // seul contributeur -> 3.00*0.5/3.00 = 0.5
+
+    await recompute(agencyId)
+    const agency = await getAgency(agencyId)
+
+    expect(num(agency.verification_score), 'partial doit valoir exactement 0.5, ni 0 ni 1').toBeCloseTo(0.5, 2)
+  })
+
   it('un veto en mismatch envoie en revue quel que soit le score', async () => {
     const agencyId = await createAgency('veto-mismatch')
     const signatoryId = await addActiveSignatory(agencyId)
@@ -296,6 +308,23 @@ describe.skipIf(!HAS_KEYS)('recompute_agency_verification — moteur de scoring 
 
     expect(num(agency.verification_score)).toBeCloseTo(1, 2)
     expect(agency.verification_status).toBe('manual_review')
+  })
+
+  it('un pending_manual_review au niveau PERSONNE force la revue meme avec un score parfait (revue point 3)', async () => {
+    const agencyId = await createAgency('person-pending')
+    const signatoryId = await addActiveSignatory(agencyId)
+    await passAllVetoes(agencyId, signatoryId)
+    await insertAgencyCheck(agencyId, 'vat_lookup', 'match') // score parfait par ailleurs
+    await insertPersonCheck(signatoryId, 'poa_document_review', 'pending_manual_review') // exclu du score, force la revue
+
+    await recompute(agencyId)
+    const agency = await getAgency(agencyId)
+
+    expect(num(agency.verification_score)).toBeCloseTo(1, 2)
+    expect(
+      agency.verification_status,
+      'un pending_manual_review cote personne doit forcer la revue, exactement comme cote agence'
+    ).toBe('manual_review')
   })
 
   it('deux checks du meme type ne comptent qu une fois, le plus recent', async () => {
@@ -455,6 +484,25 @@ describe.skipIf(!HAS_KEYS)('recompute_agency_verification — moteur de scoring 
     ).toBe('manual_review')
   })
 
+  it('un veto PERSONNE ABSENT envoie en revue, exactement comme un veto agence absent (revue point 3)', async () => {
+    const agencyId = await createAgency('person-veto-absent')
+    const signatoryId = await addActiveSignatory(agencyId)
+    for (const t of AGENCY_VETO_TYPES) await insertAgencyCheck(agencyId, t, 'match')
+    await insertPersonCheck(signatoryId, 'id_document', 'match')
+    // pep_sanctions_screening n'a JAMAIS ete execute pour ce signataire : aucune ligne,
+    // pas meme un 'unavailable'.
+    await insertAgencyCheck(agencyId, 'vat_lookup', 'match')
+
+    await recompute(agencyId)
+    const agency = await getAgency(agencyId)
+
+    expect(num(agency.verification_score)).toBeCloseTo(1, 2)
+    expect(
+      agency.verification_status,
+      'un veto personne jamais execute ne doit jamais etre traite comme reussi par defaut'
+    ).toBe('manual_review')
+  })
+
   // Checks de PERSONNE SCORABLES (signatory_registry_match poids 3.00, poa_document_review
   // poids 2.00 -- docs/agency-kyb-verification.md §2 B, « signaux moyens ... contribuent
   // au score »). Distincts des vetos de personne ci-dessus : ceux-ci bloquent, ceux-la
@@ -555,6 +603,58 @@ describe.skipIf(!HAS_KEYS)('recompute_agency_verification — moteur de scoring 
 
     expect(agency.verification_score).toBeNull()
     expect(agency.verification_status).not.toBe('auto_validated')
+  })
+
+  it('verified_at repart a NULL quand le dossier retombe en manual_review (revue point 3)', async () => {
+    const agencyId = await createAgency('verified-at-reset')
+    const signatoryId = await addActiveSignatory(agencyId)
+    await passAllVetoes(agencyId, signatoryId)
+    await insertAgencyCheck(agencyId, 'vat_lookup', 'match') // score 1.0 -> auto_validated
+
+    await recompute(agencyId)
+    const first = await getAgency(agencyId)
+    expect(first.verification_status).toBe('auto_validated')
+    expect(first.verified_at, 'premier passage : auto_validated doit poser verified_at').not.toBeNull()
+
+    // Un nouveau veto agence defavorable fait retomber le dossier en revue.
+    await insertAgencyCheck(agencyId, 'registry_legal_name_match', 'mismatch')
+    await recompute(agencyId)
+    const second = await getAgency(agencyId)
+
+    expect(second.verification_status).toBe('manual_review')
+    expect(
+      second.verified_at,
+      'verified_at ne doit pas continuer a affirmer une confirmation qui n est plus valide'
+    ).toBeNull()
+  })
+
+  it('le moteur journalise son passage dans activity_events (revue point 3 : sa suppression ne casse aujourd hui aucun test)', async () => {
+    const agencyId = await createAgency('audit-log')
+    const signatoryId = await addActiveSignatory(agencyId)
+    await passAllVetoes(agencyId, signatoryId)
+    await insertAgencyCheck(agencyId, 'vat_lookup', 'match')
+
+    await recompute(agencyId)
+    const agency = await getAgency(agencyId)
+
+    const svc = serviceRoleClient()
+    const { data, error } = await svc
+      .from('activity_events')
+      .select('category, severity, actor_id, actor_kind, action, entity_type, entity_id, metadata')
+      .eq('agency_id', agencyId)
+      .eq('action', 'agency_verification_recomputed')
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (error) throw new Error(`activity_events: ${error.message}`)
+
+    expect(data, 'le moteur doit journaliser un activity_events a chaque passage effectif').toHaveLength(1)
+    const event = data![0] as Record<string, unknown>
+    expect(event.category, 'category doit valoir kyc (jamais compliance, hors CHECK)').toBe('kyc')
+    expect(event.actor_kind, 'c est le moteur qui agit, pas un humain').toBe('system')
+    expect(event.actor_id, 'actor_kind=system impose actor_id NULL').toBeNull()
+    expect(event.entity_type).toBe('agency')
+    expect(event.entity_id).toBe(agencyId)
+    expect((event.metadata as Record<string, unknown>)?.status).toBe(agency.verification_status)
   })
 
   it('la RPC est refusee a anon', async () => {
