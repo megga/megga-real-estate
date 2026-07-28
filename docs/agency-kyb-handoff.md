@@ -31,7 +31,7 @@ parcours d'onboarding est maintenant cadré et décidé.
 | Trigger d'inscription versionné | livré, il n'était dans aucune migration |
 | Gate et wizard de saisie | fait, étape 2 |
 | Moteur de scoring | fait, étape 3, ta conception §7 reprise telle quelle |
-| Connecteurs disponibles | à faire, étape 4 |
+| Connecteurs disponibles | fait, étape 4 (RDAP, VIES, registre FR, géocodage) |
 | File de revue admin et gardes LAB | à faire, étape 5 |
 | Connecteurs Zefix et UID | bloqués, étape 6 |
 
@@ -322,7 +322,7 @@ est ce qu'il faut avoir en tête pour exécuter.
 | 1 | Correctifs d'existant | fait | 0 | non |
 | 2 | Gate, wizard 5 étapes, RPC de soumission | fait | 1 | non |
 | 3 | Moteur de scoring (§7) | fait | 0 | non |
-| 4 | Connecteurs disponibles | à faire | 3 | non |
+| 4 | Connecteurs disponibles | fait | 3 | non |
 | 5 | File de revue admin et gardes LAB | à faire | 3 | non |
 | 6 | Connecteurs Zefix et UID | à faire | 4 | **oui** |
 
