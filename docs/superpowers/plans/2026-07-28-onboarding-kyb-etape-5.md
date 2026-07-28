@@ -162,10 +162,19 @@ qui laisse croire à un défaut.
 contourne en appelant l'edge function directement. Vérifie ce que ces deux fonctions
 contrôlent déjà et complète.
 
-**Attention au sens de la garde :** aujourd'hui aucun dossier ne peut être auto-validé,
-donc ce garde bloquerait **toutes** les agences. Regarde si c'est le comportement voulu à
-ce stade, et si non, propose ce qui le rendrait acceptable sans vider la garde de son
-sens. C'est un point à trancher avec un humain plutôt qu'à décider seul.
+**La portée du garde est tranchée : garde plein.** Aucune agence ne peut ouvrir un
+dossier KYC client ni lancer une signature avant qu'un humain ait validé son identité
+dans la file. Aucun interrupteur, aucune exemption transitoire.
+
+Décision de Thomas, prise en connaissance de la conséquence : puisque aucune agence ne
+peut être auto-validée aujourd'hui, cela signifie que **toutes** passent par la file, et
+que l'équipe MEGGA doit trancher chaque dossier avant que l'agence ne travaille. C'est la
+posture de conformité que le produit revendique, et la file construite aux tâches 1 à 3
+est ce qui rend ce déblocage possible.
+
+Conséquence pour toi : l'écran bloqué doit être **excellent**. C'est le premier mur que
+rencontrera chaque agence, et il doit dire sans ambiguïté ce qui se passe, ce qui est
+attendu, et de qui. Un message vague ici se paiera en appels au support.
 
 ---
 
