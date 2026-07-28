@@ -255,6 +255,93 @@ async function expectWizardShellMounted(page: Page): Promise<void> {
   ).toBeVisible()
 }
 
+/**
+ * Champs de l'étape 0 (signataire) — mêmes noms que SignataireDraft (IdentityShell.tsx).
+ * Factorisée (revue finale, lot 3) : les trois parcours de ce fichier remplissent cette
+ * étape à l'identique, seules les valeurs varient.
+ */
+interface SignataireFixture {
+  firstName: string
+  lastName: string
+  dateOfBirth: string
+  nationality: string
+  signaturePower: 'individual' | 'joint'
+}
+
+/** Remplit et valide (Continuer) l'étape 0, commune aux trois parcours de ce fichier. */
+async function fillSignataireStep(page: Page, s: SignataireFixture): Promise<void> {
+  await labelField(page, 'Prénom').fill(s.firstName)
+  await labelField(page, 'Nom').fill(s.lastName)
+  await labelField(page, 'Date de naissance').fill(s.dateOfBirth)
+  await labelField(page, 'Nationalité').selectOption(s.nationality)
+  const powerLabel = s.signaturePower === 'individual' ? /Signature individuelle/ : /Signature collective/
+  await page.getByRole('button', { name: powerLabel }).click()
+  await page.getByRole('button', { name: 'Continuer' }).click()
+}
+
+/**
+ * Champs de l'étape 1 (agence) communs aux parcours qui la remplissent en entier dans
+ * ce fichier — toujours en Suisse (seul pays exercé ici), `tva` volontairement absente
+ * (facultative depuis le 27.07.2026, cf. isAgencyStepComplete dans IdentityShell.tsx).
+ * `legalFormLabel` est le libellé AFFICHÉ dans le menu déroulant, pas un code : c'est le
+ * SEUL champ qui distingue le parcours société anonyme du parcours raison individuelle
+ * (revue finale, lot 3) — la forme juridique choisie ici décide seule si l'étape
+ * bénéficiaires effectifs suit ou est sautée (shouldSkipBeneficiairesStep).
+ */
+interface AgenceFixture {
+  legalFormLabel: string
+  legalName: string
+  tradeName: string
+  registrationNumber: string
+  address: string
+  postal: string
+  city: string
+  canton: string
+}
+
+/**
+ * Remplit et valide (Continuer) l'étape 1. N'affirme délibérément pas quelle étape suit
+ * ensuite : selon `legalFormLabel`, c'est soit les bénéficiaires effectifs, soit
+ * directement la pièce d'identité (cf. l'en-tête d'AgenceFixture) — vérifier où l'on
+ * atterrit reste la responsabilité de l'appelant.
+ */
+async function fillAgenceStep(page: Page, a: AgenceFixture): Promise<void> {
+  await labelField(page, 'Pays du siège').selectOption('CH')
+  await labelField(page, 'Forme juridique').selectOption({ label: a.legalFormLabel })
+  await labelField(page, 'Raison sociale').fill(a.legalName)
+  await labelField(page, 'Nom commercial').fill(a.tradeName)
+  await labelField(page, 'Numéro de registre').fill(a.registrationNumber)
+  await labelField(page, 'Adresse').fill(a.address)
+  await labelField(page, 'NPA').fill(a.postal)
+  await labelField(page, 'Ville').fill(a.city)
+  await labelField(page, 'Canton').selectOption(a.canton)
+  await page.getByRole('button', { name: 'Continuer' }).click()
+}
+
+/**
+ * Dépose recto puis verso (ordre fixe dans le DOM, toujours 'piece-identite.png' donc
+ * 'recto.png'/'verso.png' une fois dans Storage, cf. extensionOfFile dans
+ * useAgencyIdentity.ts) et valide (Continuer) l'étape pièce d'identité — jamais sautée,
+ * à la différence des bénéficiaires effectifs, donc commune à tout parcours qui va
+ * jusqu'à la soumission dans ce fichier.
+ */
+async function fillPieceIdentiteStep(page: Page): Promise<void> {
+  const idFile = { name: 'piece-identite.png', mimeType: 'image/png', buffer: Buffer.from(TINY_PNG_BASE64, 'base64') }
+  const fileInputs = page.locator('input[type="file"]')
+  await fileInputs.nth(0).setInputFiles(idFile)
+  await fileInputs.nth(1).setInputFiles(idFile)
+  // Attend que les DEUX tuiles confirment le dépôt avant de continuer — c'est aussi ce
+  // qui gate le bouton Continuer (isPieceIdentiteStepComplete).
+  await expect(page.getByText('Cliquez pour remplacer')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Continuer' }).click()
+}
+
+/** Coche l'attestation d'exactitude et soumet depuis le récapitulatif (dernière étape). */
+async function submitRecapitulatif(page: Page): Promise<void> {
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Soumettre le dossier' }).click()
+}
+
 test.describe('Onboarding KYB — gate et wizard identité', () => {
   test('parcours complet : connexion, gate, cinq étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
     const founder = await createFounder()
@@ -275,28 +362,25 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // 3. Saisie des cinq étapes.
 
       // Étape 0 — signataire.
-      await labelField(page, 'Prénom').fill('Jean')
-      await labelField(page, 'Nom').fill('Dupont')
-      await labelField(page, 'Date de naissance').fill('1980-05-15')
-      await labelField(page, 'Nationalité').selectOption('CH')
-      await page.getByRole('button', { name: /Signature individuelle/ }).click()
-      await page.getByRole('button', { name: 'Continuer' }).click()
+      await fillSignataireStep(page, {
+        firstName: 'Jean', lastName: 'Dupont', dateOfBirth: '1980-05-15', nationality: 'CH', signaturePower: 'individual',
+      })
 
       // Étape 1 — agence. CH_SA (« Société anonyme (SA) », catégorie corporation)
       // pour que l'étape bénéficiaires NE soit PAS sautée — le brief exige les
-      // cinq étapes, pas quatre.
+      // cinq étapes, pas quatre. (Le parcours raison individuelle, qui la saute, est
+      // couvert séparément par le troisième test de ce fichier.)
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
-      await labelField(page, 'Pays du siège').selectOption('CH')
-      await labelField(page, 'Forme juridique').selectOption({ label: 'Société anonyme (SA)' })
-      await labelField(page, 'Raison sociale').fill('Regie Immobiliere Test SA')
-      await labelField(page, 'Nom commercial').fill('Regie Test')
-      await labelField(page, 'Numéro de registre').fill('CHE-123.456.789')
-      // TVA volontairement laissée vide — décision produit du 27.07.2026 (facultative).
-      await labelField(page, 'Adresse').fill('10 Rue du Test')
-      await labelField(page, 'NPA').fill('1200')
-      await labelField(page, 'Ville').fill('Geneve')
-      await labelField(page, 'Canton').selectOption('GE')
-      await page.getByRole('button', { name: 'Continuer' }).click()
+      await fillAgenceStep(page, {
+        legalFormLabel: 'Société anonyme (SA)',
+        legalName: 'Regie Immobiliere Test SA',
+        tradeName: 'Regie Test',
+        registrationNumber: 'CHE-123.456.789',
+        address: '10 Rue du Test',
+        postal: '1200',
+        city: 'Geneve',
+        canton: 'GE',
+      })
 
       // Étape 2 — bénéficiaires effectifs. Reprend le signataire déjà saisi (cas
       // central du brief tâche 5 : la même personne peut être signataire ET
@@ -311,19 +395,11 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await page.getByRole('button', { name: 'Continuer' }).click()
 
       // Étape 3 — pièce d'identité (recto puis verso, ordre fixe dans le DOM).
-      const idFile = { name: 'piece-identite.png', mimeType: 'image/png', buffer: Buffer.from(TINY_PNG_BASE64, 'base64') }
-      const fileInputs = page.locator('input[type="file"]')
-      await fileInputs.nth(0).setInputFiles(idFile)
-      await fileInputs.nth(1).setInputFiles(idFile)
-      // Attend que les DEUX tuiles confirment le dépôt avant de continuer — c'est
-      // aussi ce qui gate le bouton Continuer (isPieceIdentiteStepComplete).
-      await expect(page.getByText('Cliquez pour remplacer')).toHaveCount(2)
-      await page.getByRole('button', { name: 'Continuer' }).click()
+      await fillPieceIdentiteStep(page)
 
       // Étape 4 — récapitulatif, attestation, soumission.
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
-      await page.getByRole('checkbox').check()
-      await page.getByRole('button', { name: 'Soumettre le dossier' }).click()
+      await submitRecapitulatif(page)
 
       // 4. Soumission — puis 5. accès au dashboard, sans redirection retour.
       // handleSubmit() navigue via useNavigate() (react-router, déjà client-side).
@@ -372,8 +448,8 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // Et les deux faces déposées à l'étape 3 existent réellement dans Storage, sous le
       // préfixe réservé (identityDocumentFolder, useAgencyIdentity.ts) : pas seulement une
       // ligne DB, c'est le fichier lui-même que la revue humaine doit pouvoir rouvrir.
-      // Extension 'png' : idFile plus haut est 'piece-identite.png' (extensionOfFile la
-      // reprend telle quelle, useAgencyIdentity.ts).
+      // Extension 'png' : fillPieceIdentiteStep dépose toujours 'piece-identite.png'
+      // (extensionOfFile la reprend telle quelle, useAgencyIdentity.ts).
       const kybIdentityFolder = `${founder.agencyId}/kyb-identity/${signatoryId}`
       const { data: storedFiles, error: storedFilesErr } = await serviceRoleClient()
         .storage.from('documents')
@@ -409,12 +485,9 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // Étape 0 — remplie et VALIDÉE (Continuer), donc persistée en base : c'est
       // ce dont ce test doit prouver la survie à un démontage/remontage complet
       // du wizard (pas seulement à un aller-retour d'état React en mémoire).
-      await labelField(page, 'Prénom').fill('Alice')
-      await labelField(page, 'Nom').fill('Martin')
-      await labelField(page, 'Date de naissance').fill('1975-02-20')
-      await labelField(page, 'Nationalité').selectOption('CH')
-      await page.getByRole('button', { name: /Signature collective/ }).click()
-      await page.getByRole('button', { name: 'Continuer' }).click()
+      await fillSignataireStep(page, {
+        firstName: 'Alice', lastName: 'Martin', dateOfBirth: '1975-02-20', nationality: 'CH', signaturePower: 'joint',
+      })
 
       // Étape 1 — saisie PARTIELLE, jamais validée par Continuer : ne doit rien
       // persister (persistCurrentStep refuse d'écrire un brouillon incomplet), à
@@ -456,6 +529,96 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await expectWizardShellMounted(page)
       await expect(labelField(page, 'Prénom')).toHaveValue('Alice')
       await expect(labelField(page, 'Nom')).toHaveValue('Martin')
+    } finally {
+      await deleteFounder(founder)
+    }
+  })
+
+  /**
+   * Revue finale (lot 3) : les deux tests ci-dessus choisissent tous deux une société
+   * anonyme (CH_SA), précisément pour que l'étape bénéficiaires effectifs ne soit
+   * JAMAIS sautée (cf. leur commentaire d'étape 1) — le chemin raison individuelle
+   * (CH_RI, category=sole_proprietorship, shouldSkipBeneficiairesStep dans
+   * IdentityShell.tsx) n'était donc exercé qu'en fonctions pures
+   * (tests/unit/identity-shell-navigation.spec.ts), jamais contre une vraie base. C'est
+   * pourtant le cas du client de référence (une agence individuelle, pas une SA).
+   *
+   * Ce test parcourt le wizard avec une raison individuelle et vérifie les trois points
+   * qui, autrement, ne sont exercés nulle part : (1) le saut d'étape lui-même, (2) le
+   * stepper de l'en-tête qui doit masquer ET ne pas compter le palier, (3) l'absence de
+   * la section correspondante au récapitulatif.
+   */
+  test('raison individuelle : bénéficiaires effectifs sauté, jamais affiché ni compté, absent du récapitulatif', async ({ page }) => {
+    const founder = await createFounder()
+    try {
+      await signInLive(page, founder.email, PW, { firstEver: true })
+      await clientSideNavigate(page, '/dashboard/contacts')
+      await expect(page).toHaveURL(/\/dashboard\/identite$/)
+      await expectWizardShellMounted(page)
+
+      // Étape 0 — signataire. Signature individuelle : cohérent avec une raison
+      // individuelle (le signataire EST l'entité, cf. shouldSkipBeneficiairesStep,
+      // IdentityShell.tsx), mais ce n'est pas ce champ qui pilote le saut : seule la
+      // forme juridique choisie à l'étape suivante en décide.
+      await fillSignataireStep(page, {
+        firstName: 'Marc', lastName: 'Bovay', dateOfBirth: '1985-11-02', nationality: 'CH', signaturePower: 'individual',
+      })
+
+      // Étape 1 — agence. CH_RI (« Raison individuelle », catégorie
+      // sole_proprietorship) : c'est ce choix, et lui seul, qui doit faire sauter
+      // l'étape bénéficiaires effectifs.
+      await expect(page).toHaveURL(/\/dashboard\/identite$/)
+      await fillAgenceStep(page, {
+        legalFormLabel: 'Raison individuelle',
+        legalName: 'Atelier Immobilier Bovay',
+        tradeName: 'Atelier Bovay',
+        registrationNumber: 'CHE-987.654.321',
+        address: '5 Chemin du Test',
+        postal: '1201',
+        city: 'Geneve',
+        canton: 'GE',
+      })
+
+      // 1. Saut d'étape, contre une vraie base : le clic sur Continuer depuis l'agence
+      // doit atterrir DIRECTEMENT sur la pièce d'identité, jamais sur les bénéficiaires
+      // effectifs (nextIdentityStep exclut BENEFICIAIRES_STEP_INDEX quand
+      // skipBeneficiaires est vrai, IdentityShell.tsx).
+      await expect(page.getByRole('heading', { name: 'Téléversez la pièce d\'identité du signataire' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Qui sont les bénéficiaires effectifs de votre agence' })).toHaveCount(0)
+
+      // 2. Le stepper de l'en-tête ne montre ni ne compte l'étape bénéficiaires
+      // (visibleIdentitySteps, IdentityShell.tsx) : quatre paliers numérotés 1 à 4,
+      // jamais cinq avec un trou, et aucun bouton « Bénéficiaires ».
+      await expect(page.getByRole('button', { name: /^\d\.\s/ })).toHaveCount(4)
+      await expect(page.getByRole('button', { name: /Bénéficiaires/ })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: '3. Pièce d\'identité' })).toBeVisible()
+      await expect(page.getByRole('button', { name: '4. Récapitulatif' })).toBeVisible()
+
+      await fillPieceIdentiteStep(page)
+
+      // 3. Récapitulatif : la section bénéficiaires effectifs est ABSENTE (pas
+      // seulement vide) — StepRecapitulatif.tsx ne la rend pas du tout quand
+      // skipBeneficiaires est vrai. `exact: true` distingue le titre de section
+      // ("Bénéficiaires" seul) du libellé numéroté du stepper ("N. Bénéficiaires",
+      // de toute façon déjà absent par le point 2 ci-dessus) : ce test isole bien la
+      // section du récapitulatif, pas seulement l'en-tête.
+      await expect(page).toHaveURL(/\/dashboard\/identite$/)
+      await expect(page.getByText('Bénéficiaires', { exact: true })).toHaveCount(0)
+
+      await submitRecapitulatif(page)
+      await expectNoBounceBack(page, /\/dashboard$/)
+
+      // Le saut d'étape ne doit jamais empêcher la soumission finale d'aboutir (même
+      // preuve backend que le premier test de ce fichier).
+      const { data: agencyAfterSubmit } = await serviceRoleClient()
+        .from('agencies')
+        .select('identity_submitted_at')
+        .eq('id', founder.agencyId)
+        .maybeSingle()
+      expect(
+        agencyAfterSubmit?.identity_submitted_at,
+        'identity_submitted_at doit être posé après soumission, y compris pour une raison individuelle',
+      ).not.toBeNull()
     } finally {
       await deleteFounder(founder)
     }
