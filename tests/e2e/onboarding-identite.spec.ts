@@ -227,6 +227,34 @@ async function expectNoBounceBack(page: Page, pattern: RegExp): Promise<void> {
   await expect(page).toHaveURL(pattern)
 }
 
+/**
+ * Assertion intermédiaire entre l'arrivée sur le wizard et la première saisie
+ * (revue tâche 8, point 1) : sans elle, casser le garde-fou 2
+ * (shouldRedirectToIdentityGate, useIdentityGate.ts) et casser un état de
+ * chargement SANS RAPPORT (ex. useAgencyIdentity().isLoading qui ne résout
+ * jamais) produisent le MÊME échec — un simple timeout générique sur le
+ * premier `.fill()` plus bas, indiscernable sans ouvrir la trace Playwright
+ * (que personne n'ouvre en pratique). Le repère choisi ici (bouton "Reprendre
+ * plus tard", header d'IdentityShell) ne dépend QUE du montage du composant,
+ * jamais de son chargement interne : `isLoading` (useAgencyIdentity) ne gate
+ * que le <main> d'IdentityShell, jamais son <header> (cf. IdentityShell.tsx,
+ * le header est rendu avant le `isLoading ? spinner : ...` du <main>). Son
+ * absence ici ne peut donc pas venir d'un chargement lent : elle signe
+ * qu'IdentityShell n'a jamais été monté du tout, ce qui n'arrive que si
+ * AgentSugarLayout rend en boucle <Navigate to={IDENTITY_GATE_ROUTE}> à la
+ * place de <Outlet/> alors que l'URL affiche déjà /dashboard/identite (cf.
+ * AgentSugarLayout.tsx) — exactement le garde-fou 2 qui aurait régressé.
+ */
+async function expectWizardShellMounted(page: Page): Promise<void> {
+  await expect(
+    page.getByRole('button', { name: 'Reprendre plus tard' }),
+    `Coquille du wizard identité absente (bouton "Reprendre plus tard" introuvable) alors que ` +
+    `l'URL affiche déjà /dashboard/identite : IdentityShell n'a probablement jamais monté -- ` +
+    `AgentSugarLayout boucle sur <Navigate to={IDENTITY_GATE_ROUTE}> au lieu de rendre <Outlet/>. ` +
+    `Vérifier le garde-fou 2 (shouldRedirectToIdentityGate) dans useIdentityGate.ts.`,
+  ).toBeVisible()
+}
+
 test.describe('Onboarding KYB — gate et wizard identité', () => {
   test('parcours complet : connexion, gate, cinq étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
     const founder = await createFounder()
@@ -240,6 +268,9 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // cas particulier de la route racine faire passer ce test à tort.
       await clientSideNavigate(page, '/dashboard/contacts')
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
+      // Revue tâche 8, point 1 : la coquille doit avoir réellement monté avant
+      // la première saisie, cf. expectWizardShellMounted ci-dessus.
+      await expectWizardShellMounted(page)
 
       // 3. Saisie des cinq étapes.
 
@@ -328,6 +359,8 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await signInLive(page, founder.email, PW, { firstEver: true })
       await clientSideNavigate(page, '/dashboard')
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
+      // Revue tâche 8, point 1 — même garde-fou que le premier test.
+      await expectWizardShellMounted(page)
 
       // Étape 0 — remplie et VALIDÉE (Continuer), donc persistée en base : c'est
       // ce dont ce test doit prouver la survie à un démontage/remontage complet
@@ -375,6 +408,8 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // quelle. L'étape 1, jamais validée, est repartie de zéro (EMPTY_AGENCY_DRAFT) :
       // ce n'est pas un manque, c'est exactement ce que persistCurrentStep garantit.
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
+      // Revue tâche 8, point 1 — même garde-fou après le démontage/remontage réel.
+      await expectWizardShellMounted(page)
       await expect(labelField(page, 'Prénom')).toHaveValue('Alice')
       await expect(labelField(page, 'Nom')).toHaveValue('Martin')
     } finally {
