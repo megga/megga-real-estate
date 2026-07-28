@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { requireAgencyLabCleared } from '../_shared/agency-lab-guard.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   partitionDilisenseHits,
@@ -68,14 +69,6 @@ serve(async (req) => {
     const providedKey = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
     const isServiceCall = serviceKey !== '' && safeEqual(providedKey, serviceKey)
 
-    const apiKey = Deno.env.get('DILISENSE_API_KEY')
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'DILISENSE_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     const { kyc_case_id, entity_type, agency_id: bodyAgencyId } = (await req.json()) as ScreeningRequest & {
       entity_type: 'individual' | 'entity'
       agency_id?: string
@@ -97,6 +90,25 @@ serve(async (req) => {
       if (auth instanceof Response) return auth
       supabaseClient = auth.supabase
       callerAgencyId = auth.profile.agency_id
+    }
+
+    // Garde LAB plein (étape 5, tâche 4) — voir _shared/agency-lab-guard.ts.
+    // Placé AVANT même la vérification de configuration (DILISENSE_API_KEY,
+    // plus bas) : une agence bloquée n'a pas à apprendre si le service est
+    // correctement configuré ni si kyc_case_id existe. Vaut pour les DEUX
+    // chemins (service-role compris) : un screening déclenché automatiquement
+    // par whatsapp-agent reste une analyse PEP/sanctions réelle sur une
+    // personne réelle, tout autant soumise à la posture de conformité que ce
+    // garde porte qu'un clic agent.
+    const labBlocked = await requireAgencyLabCleared(supabaseClient, callerAgencyId, corsHeaders)
+    if (labBlocked) return labBlocked
+
+    const apiKey = Deno.env.get('DILISENSE_API_KEY')
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'DILISENSE_API_KEY not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     if (!kyc_case_id || !entity_type) {

@@ -12,6 +12,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { requireAgencyLabCleared } from '../_shared/agency-lab-guard.ts'
 import {
   getEsignProvider,
   type CreateRequestInput,
@@ -266,6 +267,15 @@ async function handleList(ctx: AuthCtx) {
 // ── Signature ─────────────────────────────────────────────────────────────────
 
 async function handleCreate(ctx: AuthCtx, body: Record<string, unknown>) {
+  // Garde LAB plein (étape 5, tâche 4) — voir _shared/agency-lab-guard.ts. Ne
+  // porte QUE sur 'create' (lancer une signature électronique, l'action à
+  // risque nommée par le brief) : connect_provider/disconnect_provider/list/
+  // status/cancel restent ouverts, une agence en cours de vérification doit
+  // pouvoir préparer son fournisseur de signature et gérer les demandes déjà
+  // en cours.
+  const labBlocked = await requireAgencyLabCleared(ctx.supabase, ctx.agencyId, corsHeaders)
+  if (labBlocked) return labBlocked
+
   const pdfBase64 = String(body.pdf_base64 ?? '')
   const title = String(body.title ?? '').trim()
   const signersIn = Array.isArray(body.signers) ? (body.signers as Record<string, unknown>[]) : []

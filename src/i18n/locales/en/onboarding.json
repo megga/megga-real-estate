@@ -144,5 +144,43 @@
         "generic": "The submission failed. Please try again."
       }
     }
+  },
+  "labGuard": {
+    "banner": {
+      "notSubmitted": {
+        "title": "Identity verification not submitted",
+        "bodyAdmin": "Complete your agency's identity verification to unlock opening KYC files and sending electronic signatures.",
+        "bodyOther": "An administrator or manager of your agency must complete identity verification before a KYC file can be opened or an electronic signature sent."
+      },
+      "pendingReview": {
+        "title": "Verification under review",
+        "body": "The MEGGA team must validate your agency's identity before KYC files and electronic signatures become available. Check back later, the status updates automatically."
+      },
+      "rejected": {
+        "title": "Verification rejected",
+        "body": "The MEGGA team did not validate your agency's identity. Contact the MEGGA team to learn why and what to do next."
+      },
+      "cta": "Complete verification"
+    },
+    "block": {
+      "notSubmitted": {
+        "eyebrow": "Identity verification required",
+        "title": "Your agency's identity verification has not been submitted yet",
+        "bodyAdmin": "Under Swiss anti-money laundering law (AMLA), we must verify every agency's identity before a KYC client file can be opened or an electronic signature sent. As an administrator or manager, you can complete this verification now.",
+        "bodyOther": "Under Swiss anti-money laundering law (AMLA), we must verify every agency's identity before a KYC client file can be opened or an electronic signature sent. Only an administrator or manager of your agency can complete this verification."
+      },
+      "pendingReview": {
+        "eyebrow": "Verification in progress",
+        "title": "Your agency's verification file is under review",
+        "body": "Your file has been sent to the MEGGA team. A team member must validate your agency's identity before you can open KYC files or send electronic signatures. Check back on this screen later, the status updates as soon as a decision is made."
+      },
+      "rejected": {
+        "eyebrow": "Verification rejected",
+        "title": "Your agency's verification file was rejected",
+        "body": "The MEGGA team did not validate your agency's identity. Contact the MEGGA team to understand why and to learn the next steps."
+      },
+      "cta": "Complete verification",
+      "back": "Back to dashboard"
+    }
   }
 }

@@ -144,5 +144,43 @@
         "generic": "L'invio non è riuscito. Riprovi."
       }
     }
+  },
+  "labGuard": {
+    "banner": {
+      "notSubmitted": {
+        "title": "Verifica d'identità non inviata",
+        "bodyAdmin": "Completi la verifica d'identità della Sua agenzia per sbloccare l'apertura di pratiche KYC e l'invio di firme elettroniche.",
+        "bodyOther": "Un amministratore o un manager della Sua agenzia deve completare la verifica d'identità prima che sia possibile aprire una pratica KYC o inviare una firma elettronica."
+      },
+      "pendingReview": {
+        "title": "Verifica in fase di revisione",
+        "body": "Il team MEGGA deve convalidare l'identità della Sua agenzia prima che le pratiche KYC e le firme elettroniche diventino disponibili. Torni più tardi, lo stato si aggiorna automaticamente."
+      },
+      "rejected": {
+        "title": "Verifica respinta",
+        "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Contatti il team MEGGA per conoscere il motivo e i prossimi passi."
+      },
+      "cta": "Completa la verifica"
+    },
+    "block": {
+      "notSubmitted": {
+        "eyebrow": "Verifica d'identità richiesta",
+        "title": "La verifica d'identità della Sua agenzia non è ancora stata inviata",
+        "bodyAdmin": "Ai sensi della legge svizzera antiriciclaggio (LRD), dobbiamo verificare l'identità di ogni agenzia prima che una pratica KYC cliente possa essere aperta o una firma elettronica inviata. In qualità di amministratore o manager, può completare questa verifica adesso.",
+        "bodyOther": "Ai sensi della legge svizzera antiriciclaggio (LRD), dobbiamo verificare l'identità di ogni agenzia prima che una pratica KYC cliente possa essere aperta o una firma elettronica inviata. Solo un amministratore o un manager della Sua agenzia può completare questa verifica."
+      },
+      "pendingReview": {
+        "eyebrow": "Verifica in corso",
+        "title": "La pratica di verifica della Sua agenzia è in fase di revisione",
+        "body": "La Sua pratica è stata trasmessa al team MEGGA. Un membro del team deve convalidare l'identità della Sua agenzia prima che sia possibile aprire pratiche KYC o inviare firme elettroniche. Torni a consultare questa schermata più tardi, lo stato si aggiorna non appena viene presa una decisione."
+      },
+      "rejected": {
+        "eyebrow": "Verifica respinta",
+        "title": "La pratica di verifica della Sua agenzia è stata respinta",
+        "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Contatti il team MEGGA per comprendere il motivo e conoscere i prossimi passi."
+      },
+      "cta": "Completa la verifica",
+      "back": "Torna alla dashboard"
+    }
   }
 }

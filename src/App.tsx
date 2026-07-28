@@ -64,6 +64,8 @@ const AuthSetNewPasswordPage = lazy(() =>
 // Layout shells agent — lazy car ils ne wrappent que les routes dashboard
 const AgentLayout = lazy(() => import('@/components/layout/AgentLayout'))
 const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout'))
+// Étape 5 KYB, tâche 4 — garde LAB plein sur les routes kyc/* (layout-route, aucun path propre).
+const KycLabGuard = lazy(() => import('@/components/layout/KycLabGuard'))
 
 // CRM mobile (responsive < 768px) — branché par écran via ResponsiveRoute
 const MobileMorePage = lazy(() => import('@/components/crm-mobile/more/MobileMorePage'))
@@ -521,15 +523,21 @@ function AppRoutes() {
                 {/* Réglages — mobile (< 768px) : hub de réglages (P9). */}
                 <Route path="settings" element={<ResponsiveRoute desktop={<SettingsSugarV2Page />} mobile={<MobileSettingsPage />} />} />
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
-                {/* KYC — pager 2 pages (Dossiers · Vigie). Mobile (< 768px) : liste (P9). */}
-                <Route path="kyc" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycListPage />} />} />
-                {/* Onboarding « Première ouverture » (desktop) — refonte KYC. */}
-                <Route
-                  path="kyc/bienvenue"
-                  element={<ResponsiveRoute desktop={<KycOnboardingPage />} mobile={<Navigate to="/dashboard/kyc" replace />} />}
-                />
-                {/* Détail dossier KYC — fiche en overlay (desktop) ; mobile : 4 onglets (P9). */}
-                <Route path="kyc/:dossierId" element={<ByParam><ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycDetailPage />} /></ByParam>} />
+                {/* Étape 5 KYB, tâche 4 — garde LAB plein : KycLabGuard (layout-route, aucun
+                    path propre) remplace ces trois routes par un écran de blocage tant que
+                    agencies.verification_status n'est ni auto_validated ni validated.
+                    Regroupées sous un seul <Route> parent pour ne monter le garde qu'une fois. */}
+                <Route element={<KycLabGuard />}>
+                  {/* KYC — pager 2 pages (Dossiers · Vigie). Mobile (< 768px) : liste (P9). */}
+                  <Route path="kyc" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycListPage />} />} />
+                  {/* Onboarding « Première ouverture » (desktop) — refonte KYC. */}
+                  <Route
+                    path="kyc/bienvenue"
+                    element={<ResponsiveRoute desktop={<KycOnboardingPage />} mobile={<Navigate to="/dashboard/kyc" replace />} />}
+                  />
+                  {/* Détail dossier KYC — fiche en overlay (desktop) ; mobile : 4 onglets (P9). */}
+                  <Route path="kyc/:dossierId" element={<ByParam><ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycDetailPage />} /></ByParam>} />
+                </Route>
                 {/* Étape 2 KYB — gate identité légale (useIdentityGate redirige ici depuis
                     AgentSugarLayout tant que agencies.identity_submitted_at est nul).
                     Mobile (< 768px) : la saisie se termine sur ordinateur uniquement. */}

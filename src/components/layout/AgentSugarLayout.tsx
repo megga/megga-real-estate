@@ -3,8 +3,10 @@
  * dépouillé : ni sidebar, ni breadcrumb, ni bottom bar — les pages Sugar portent
  * leur propre chrome. Fournit thème + contexte copilote, la bannière
  * d'impersonation, le « push » du contenu quand le panneau MEGGA AI est ouvert,
- * et le gate identité légale (étape 2 KYB) qui redirige vers /dashboard/identite
- * tant que le dirigeant n'a pas soumis l'identité de son agence.
+ * le gate identité légale (étape 2 KYB) qui redirige vers /dashboard/identite
+ * tant que le dirigeant n'a pas soumis l'identité de son agence, et le bandeau
+ * du garde LAB (étape 5, tâche 4, LabGuardBanner) qui rappelle sur toutes les
+ * pages tant que l'agence n'est pas vérifiée.
  */
 import { useState, useEffect } from 'react'
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
@@ -14,6 +16,7 @@ import { useAiPanel } from '@/hooks/useAiPanel'
 import { COPILOT_WIDTH } from '@/components/ai-copilot/panel/aiPanel'
 import { crmSugarPalette, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
+import LabGuardBanner from '@/components/layout/LabGuardBanner'
 import CrmSugarSearchHost from '@/components/crm-sugar/search/CrmSugarSearchHost'
 import { useIdentityGate, shouldRedirectToIdentityGate, IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 
@@ -83,6 +86,7 @@ function AgentSugarInner() {
   return (
     <>
       <ImpersonateBanner />
+      <LabGuardBanner />
       {/* Le panneau MEGGA AI « pousse » le contenu de travail vers la gauche
           quand il est ouvert (COPILOT_WIDTH = panneau + gouttières). */}
       <div

@@ -144,5 +144,43 @@
         "generic": "La soumission a échoué. Réessayez."
       }
     }
+  },
+  "labGuard": {
+    "banner": {
+      "notSubmitted": {
+        "title": "Vérification d'identité non soumise",
+        "bodyAdmin": "Complétez la vérification d'identité de votre agence pour débloquer l'ouverture de dossiers KYC et les signatures électroniques.",
+        "bodyOther": "Un administrateur ou un gérant de votre agence doit compléter la vérification d'identité avant l'ouverture d'un dossier KYC ou l'envoi d'une signature électronique."
+      },
+      "pendingReview": {
+        "title": "Vérification en cours de revue",
+        "body": "L'équipe MEGGA doit valider l'identité de votre agence avant l'ouverture de dossiers KYC et les signatures électroniques. Revenez plus tard, le statut se met à jour automatiquement."
+      },
+      "rejected": {
+        "title": "Vérification refusée",
+        "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Contactez l'équipe MEGGA pour connaître le motif et la marche à suivre."
+      },
+      "cta": "Compléter la vérification"
+    },
+    "block": {
+      "notSubmitted": {
+        "eyebrow": "Vérification d'identité requise",
+        "title": "La vérification d'identité de votre agence n'a pas encore été soumise",
+        "bodyAdmin": "La loi suisse sur le blanchiment d'argent (LBA) nous oblige à vérifier l'identité de chaque agence avant l'ouverture d'un dossier KYC client ou l'envoi d'une signature électronique. En tant qu'administrateur ou gérant, vous pouvez compléter cette vérification maintenant.",
+        "bodyOther": "La loi suisse sur le blanchiment d'argent (LBA) nous oblige à vérifier l'identité de chaque agence avant l'ouverture d'un dossier KYC client ou l'envoi d'une signature électronique. Seul un administrateur ou un gérant de votre agence peut compléter cette vérification."
+      },
+      "pendingReview": {
+        "eyebrow": "Vérification en cours",
+        "title": "Le dossier de vérification de votre agence est en cours de revue",
+        "body": "Votre dossier a été transmis à l'équipe MEGGA. Un membre de l'équipe doit valider l'identité de votre agence avant que l'ouverture de dossiers KYC et les signatures électroniques soient possibles. Revenez consulter cet écran plus tard, le statut se met à jour dès qu'une décision est prise."
+      },
+      "rejected": {
+        "eyebrow": "Vérification refusée",
+        "title": "Le dossier de vérification de votre agence a été refusé",
+        "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Contactez l'équipe MEGGA pour comprendre le motif et connaître la marche à suivre."
+      },
+      "cta": "Compléter la vérification",
+      "back": "Retour au tableau de bord"
+    }
   }
 }

@@ -144,5 +144,43 @@
         "generic": "Die Einreichung ist fehlgeschlagen. Versuchen Sie es erneut."
       }
     }
+  },
+  "labGuard": {
+    "banner": {
+      "notSubmitted": {
+        "title": "Identitätsprüfung nicht eingereicht",
+        "bodyAdmin": "Schliessen Sie die Identitätsprüfung Ihrer Agentur ab, um das Öffnen von KYC-Dossiers und den Versand elektronischer Signaturen freizuschalten.",
+        "bodyOther": "Ein Admin oder Manager Ihrer Agentur muss die Identitätsprüfung abschliessen, bevor ein KYC-Dossier geöffnet oder eine elektronische Signatur versendet werden kann."
+      },
+      "pendingReview": {
+        "title": "Prüfung wird begutachtet",
+        "body": "Das MEGGA-Team muss die Identität Ihrer Agentur bestätigen, bevor KYC-Dossiers und elektronische Signaturen verfügbar werden. Schauen Sie später wieder vorbei, der Status aktualisiert sich automatisch."
+      },
+      "rejected": {
+        "title": "Prüfung abgelehnt",
+        "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Wenden Sie sich an das MEGGA-Team, um den Grund und die weiteren Schritte zu erfahren."
+      },
+      "cta": "Prüfung abschliessen"
+    },
+    "block": {
+      "notSubmitted": {
+        "eyebrow": "Identitätsprüfung erforderlich",
+        "title": "Die Identitätsprüfung Ihrer Agentur wurde noch nicht eingereicht",
+        "bodyAdmin": "Im Sinne des Schweizer Geldwäschereigesetzes (GwG) müssen wir die Identität jeder Agentur prüfen, bevor ein KYC-Kundendossier geöffnet oder eine elektronische Signatur versendet werden kann. Als Admin oder Manager können Sie diese Prüfung jetzt abschliessen.",
+        "bodyOther": "Im Sinne des Schweizer Geldwäschereigesetzes (GwG) müssen wir die Identität jeder Agentur prüfen, bevor ein KYC-Kundendossier geöffnet oder eine elektronische Signatur versendet werden kann. Nur ein Admin oder Manager Ihrer Agentur kann diese Prüfung abschliessen."
+      },
+      "pendingReview": {
+        "eyebrow": "Prüfung läuft",
+        "title": "Das Prüfdossier Ihrer Agentur wird derzeit begutachtet",
+        "body": "Ihr Dossier wurde an das MEGGA-Team übermittelt. Ein Teammitglied muss die Identität Ihrer Agentur bestätigen, bevor Sie KYC-Dossiers öffnen oder elektronische Signaturen versenden können. Schauen Sie später wieder auf diesem Bildschirm vorbei, der Status aktualisiert sich, sobald eine Entscheidung getroffen wurde."
+      },
+      "rejected": {
+        "eyebrow": "Prüfung abgelehnt",
+        "title": "Das Prüfdossier Ihrer Agentur wurde abgelehnt",
+        "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Wenden Sie sich an das MEGGA-Team, um den Grund zu verstehen und die weiteren Schritte zu erfahren."
+      },
+      "cta": "Prüfung abschliessen",
+      "back": "Zurück zum Dashboard"
+    }
   }
 }
