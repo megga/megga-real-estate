@@ -459,7 +459,14 @@
       "admin_console_entered": "Console admin aperta",
       "contact_scores.recompute": "Punteggi contatti ricalcolati",
       "property_scores.recompute": "Punteggi immobili ricalcolati",
-      "rls_hardening_applied": "Rafforzamento RLS applicato"
+      "rls_hardening_applied": "Rafforzamento RLS applicato",
+      "agency_created": "Agenzia creata",
+      "subscription_activated": "Abbonamento attivato",
+      "subscription_changed": "Abbonamento modificato",
+      "subscription_cancelled": "Abbonamento disdetto",
+      "payment_failed": "Pagamento rifiutato",
+      "kyc_screening_match": "Allerta PEP o sanzioni",
+      "edge_function_error": "Errore di funzione server"
     }
   },
   "portal": {

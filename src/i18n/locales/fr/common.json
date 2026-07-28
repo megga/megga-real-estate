@@ -465,7 +465,14 @@
       "admin_console_entered": "Console admin ouverte",
       "contact_scores.recompute": "Scores de contacts recalculés",
       "property_scores.recompute": "Scores de biens recalculés",
-      "rls_hardening_applied": "Durcissement RLS appliqué"
+      "rls_hardening_applied": "Durcissement RLS appliqué",
+      "agency_created": "Agence créée",
+      "subscription_activated": "Abonnement activé",
+      "subscription_changed": "Abonnement modifié",
+      "subscription_cancelled": "Abonnement résilié",
+      "payment_failed": "Paiement refusé",
+      "kyc_screening_match": "Alerte PEP ou sanctions",
+      "edge_function_error": "Erreur de fonction serveur"
     }
   },
   "portal": {

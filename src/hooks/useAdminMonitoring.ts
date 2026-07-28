@@ -45,10 +45,18 @@ interface ErrorLog {
 //
 // SÉMANTIQUE (honnêteté) : ce tableau est PASSIF — aucune fonction n'est
 // pingée. Les statuts agrègent les activity_events `edge_function_invoked` /
-// `edge_function_error` sur 24 h ; aujourd'hui AUCUNE fonction n'émet ces
-// événements (0 ligne en prod) → tout affiche « sans télémétrie » (unknown),
-// ce qui est la vérité. Brancher une vraie télémétrie (logs plateforme via
-// Management API, ou émission par les fns) = chantier produit séparé.
+// `edge_function_error` sur 24 h.
+//
+// Depuis le 29.07.2026, `edge_function_error` est émis par les fonctions dont
+// la panne coûte le plus cher (stripe-webhook, kyc-screening, flatfox-sync),
+// via `_shared/audit-edge-error.ts` : une fonction en échec passe donc en
+// « error » avec son message et sa durée.
+//
+// `edge_function_invoked` reste volontairement NON émis : une ligne d'audit par
+// appel réussi noierait la piste LBA et ferait grossir la table sans borne. Une
+// fonction qui tourne bien reste donc « sans télémétrie », ce qui est la vérité
+// — le tableau signale les pannes, il ne prouve pas la santé. Un vrai signal de
+// vivacité (logs plateforme via Management API) reste un chantier séparé.
 const EDGE_FUNCTION_NAMES: readonly string[] = EDGE_FUNCTION_ROSTER
 
 /** Santé plateforme, statuts Edge Functions, logs d'erreurs et historique de métriques pour le dashboard monitoring. */
