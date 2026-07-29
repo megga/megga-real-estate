@@ -878,11 +878,23 @@ async function runRegistryLegalNameMatch(agency: AgencyForVerification, signal: 
 }
 
 /** Juridiction commune aux DEUX connecteurs du registre francais (meme predicat, deux
- *  check_type distincts). Meme valeur testee que leurs gardes internes (`=== 'FR'`,
- *  voir runRegistryLookup ci-dessus) -- seul le MOMENT du test change : ici avant
- *  execution, ce qui laisse le check_type libre pour Zefix sur un siege suisse. Ces
- *  gardes internes restent en place : runAgencyKybSources() peut recevoir la source
- *  sans etre passee par selectApplicableSources(), son contrat le permet. */
+ *  check_type distincts), testee ici AVANT execution : c'est ce qui laisse le check_type
+ *  libre pour Zefix sur un siege suisse. Leurs gardes internes restent en place :
+ *  runAgencyKybSources() peut recevoir la source sans etre passee par
+ *  selectApplicableSources(), son contrat le permet.
+ *
+ *  Ce predicat ne teste PAS tout a fait la meme valeur que ces gardes internes : il lit
+ *  declaredHeadOfficeCountry() (trim + majuscules) la ou runRegistryLookup et
+ *  runRegistryLegalNameMatch comparent `agency.country !== 'FR'` BRUT. L'ecart est reel
+ *  (` fr ` satisfait le predicat et fait lever la garde interne) mais il ne peut pas
+ *  couter un verdict, PARCE QU'IL VA DANS CE SENS-LA : tout siege que la garde interne
+ *  laisse passer (`'FR'` exactement) satisfait aussi le predicat, donc
+ *  selectApplicableSources() n'ecarte jamais une source qui avait quelque chose a
+ *  repondre. Le seul cas couvert par le predicat et refuse par la garde produit un
+ *  `unavailable` -- exactement ce que ces connecteurs produisaient deja sur cette saisie
+ *  avant l'etape 6. Aligner les deux lectures reste souhaitable ; ce n'est pas ce qui
+ *  fonde l'exclusivite du check_type (voir vatLookupOwner : un point de decision unique).
+ */
 function hasFrenchHeadOffice(agency: AgencyForVerification): boolean {
   return declaredHeadOfficeCountry(agency) === 'FR'
 }
