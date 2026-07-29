@@ -32,7 +32,12 @@ function clipAncestor(node: HTMLElement | null): HTMLElement | null {
   return null
 }
 
-// ─── Round icon button (44x44, glass) ──────────────────────────────────
+// ─── Icon button (glyphe nu, cible 44×44) ──────────────────────────────
+// Plus de pastille de verre : le glyphe est posé directement sur la barre. La
+// boîte de 44 reste — c'est la cible de clic (et l'empreinte que le spacer du
+// dock réserve), seule sa peinture disparaît.
+const TOPNAV_ICON = 22
+
 interface SugarRoundIconBtnProps {
   children: ReactNode
   dot?: boolean
@@ -43,16 +48,15 @@ interface SugarRoundIconBtnProps {
 export function SugarRoundIconBtn({ children, dot, onClick, sp, title }: SugarRoundIconBtnProps) {
   return (
     <button onClick={onClick} title={title} aria-label={title} style={{
-      width: 44, height: 44, borderRadius: 999, border: 0, background: sp.iconBtnBg,
-      boxShadow: sp.shadow, display: 'grid', placeItems: 'center', cursor: 'pointer',
-      position: 'relative',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
+      width: 44, height: 44, borderRadius: 999, border: 0, background: 'transparent',
+      boxShadow: 'none', display: 'grid', placeItems: 'center', cursor: 'pointer',
+      position: 'relative', padding: 0,
     }}>
       {children}
       {dot && <span style={{
         position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 999,
-        background: '#E53935', border: `2px solid ${sp.iconBtnBg}`,
+        // Le liseré détourait la pastille ; sans elle, il se cale sur le fond de page.
+        background: '#E53935', border: `2px solid ${sp.pageBg}`,
       }} />}
     </button>
   )
@@ -251,10 +255,10 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
         })}
       </nav>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <SugarRoundIconBtn sp={sp} title={tc('nav.search')} onClick={() => openSugarSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={18} /></SugarRoundIconBtn>
+        <SugarRoundIconBtn sp={sp} title={tc('nav.search')} onClick={() => openSugarSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={TOPNAV_ICON} /></SugarRoundIconBtn>
         {/* Aide contextuelle : ouvre l'article Help Center de l'écran courant (ou le
             Centre d'aide à défaut, public si Intercom n'est pas configuré). */}
-        <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => openHelpFor(active)}><AnimatedTopIcon name="help" color={sp.soft} size={18} /></SugarRoundIconBtn>
+        <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => openHelpFor(active)}><AnimatedTopIcon name="help" color={sp.soft} size={TOPNAV_ICON} /></SugarRoundIconBtn>
         {/* Bouton Megga — ouvre le panneau MEGGA AI docké (ou la page Julien en repli) */}
         <button
           onClick={() => {
@@ -264,14 +268,15 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
           title={tc('nav.aiAgent')}
           aria-expanded={ai.enabled ? ai.isOpen : undefined}
           style={{
-            width: 44, height: 44, borderRadius: 999, border: 0,
-            background: aiActive ? sp.ink : sp.iconBtnBg,
-            boxShadow: aiActive ? '0 6px 20px rgba(11,12,14,0.25)' : sp.shadow,
+            width: 44, height: 44, borderRadius: 999, border: 0, padding: 0,
+            background: 'transparent', boxShadow: 'none',
             display: 'grid', placeItems: 'center', cursor: 'pointer',
-            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            transition: 'all .2s ease',
+            // Sans pastille, l'état actif se lit sur l'encre du glyphe (règle Sugar
+            // Pure : monochrome, jamais d'aplat d'accent). Transition de couleur
+            // seule — pas de transform/ombre animés au survol.
+            transition: 'color .2s ease',
           }}>
-          <AnimatedTopIcon name="sparkle" color={aiActive ? sp.pageBg : sp.soft} size={18} active={aiActive} />
+          <AnimatedTopIcon name="sparkle" color={aiActive ? sp.ink : sp.soft} size={TOPNAV_ICON} active={aiActive} />
         </button>
         <div ref={notifAnchorRef} style={{ position: 'relative' }}>
           <button
@@ -279,24 +284,24 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
             onClick={() => setNotifOpen(o => !o)}
             title={tc('nav.notifications')}
             style={{
-              width: 44, height: 44, borderRadius: 999, border: 0,
-              background: notifOpen ? sp.ink : sp.iconBtnBg,
-              boxShadow: sp.shadow,
+              width: 44, height: 44, borderRadius: 999, border: 0, padding: 0,
+              background: 'transparent', boxShadow: 'none',
               display: 'grid', placeItems: 'center', cursor: 'pointer',
               position: 'relative',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              transition: 'background 160ms ease',
+              transition: 'color 160ms ease',
             }}>
-            <AnimatedTopIcon name="bell" color={notifOpen ? sp.pageBg : sp.soft} size={18} />
+            <AnimatedTopIcon name="bell" color={notifOpen ? sp.ink : sp.soft} size={TOPNAV_ICON} />
             {unreadCount > 0 && (
               <span style={{
-                position: 'absolute', top: 7, right: 7,
+                // Remonté d'un cran (top/right 7 → 4) : le glyphe agrandi occupe
+                // désormais la boîte, la pastille se posait sur son tracé.
+                position: 'absolute', top: 4, right: 4,
                 minWidth: 16, height: 16, borderRadius: 999,
                 background: '#E53935', color: '#fff',
                 fontSize: 9.5, fontWeight: 800,
                 display: 'grid', placeItems: 'center', padding: '0 4px',
-                border: `2px solid ${notifOpen ? sp.ink : sp.iconBtnBg}`,
+                // Détourage sur le fond de page, la pastille de verre ayant disparu.
+                border: `2px solid ${sp.pageBg}`,
                 fontVariantNumeric: 'tabular-nums',
                 lineHeight: 1,
               }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
