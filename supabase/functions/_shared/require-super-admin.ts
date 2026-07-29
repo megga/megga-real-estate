@@ -17,6 +17,7 @@
 //   const { user, supabase } = auth
 
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isNonUserToken } from './bearer-token.ts'
 
 export interface SuperAdminContext {
   user: { id: string; email: string }
@@ -48,6 +49,13 @@ export async function requireSuperAdmin(
   const token = authHeader.slice('bearer '.length).trim()
   if (!token) {
     return json(401, { error: 'Authentication required' }, corsHeaders)
+  }
+
+  // Clé d'API du projet (anon / service_role) = JWT sans `sub`, que GoTrue
+  // refuse à coup sûr. Même réponse qu'en dessous, sans l'aller-retour ni la
+  // ligne d'erreur dans les journaux d'auth.
+  if (isNonUserToken(token)) {
+    return json(401, { error: 'Invalid or expired session' }, corsHeaders)
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
