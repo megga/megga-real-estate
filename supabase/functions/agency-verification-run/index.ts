@@ -3,9 +3,9 @@
 // Socle de la verification KYB (etape 4, tache 1) : lit l'agence a verifier,
 // execute les connecteurs disponibles (_shared/kyb-sources.ts -- registre
 // AGENCY_KYB_SOURCES, vide a la tache 1, RDAP ajoute a la tache 2, VIES +
-// recherche-entreprises x2 a la tache 3, plus le geocodage Mapbox construit ici
-// meme -- voir le point 2 plus bas), puis confie l'ecriture des checks produits,
-// l'appel du moteur de scoring
+// recherche-entreprises x2 a la tache 3, plus le geocodage Mapbox et le squelette
+// Zefix construits ici meme -- voir le point 2 plus bas), puis confie l'ecriture des
+// checks produits, l'appel du moteur de scoring
 // (recompute_agency_verification, 20260728130000) et la journalisation de son
 // PROPRE passage (distinct du journal du moteur -- voir plus bas) a UNE SEULE RPC,
 // record_agency_verification_run (20260728140000).
@@ -47,6 +47,7 @@ import {
   selectApplicableSources,
   AGENCY_KYB_SOURCES,
   createAddressGeocodeSource,
+  createZefixSources,
   type AgencyForVerification,
   type KybCheckResult,
 } from '../_shared/kyb-sources.ts'
@@ -121,19 +122,34 @@ serve(async (req) => {
     if (!agency) return json({ error: 'agency_not_found' }, 404)
 
     // 2. Sources -- registre AGENCY_KYB_SOURCES (voir _shared/kyb-sources.ts ; RDAP
-    // depuis la tache 2, VIES + recherche-entreprises x2 depuis la tache 3). Le
-    // geocodage Mapbox (tache 3 egalement) est le SEUL connecteur qui a besoin d'un
-    // secret -- il ne peut donc pas vivre dans AGENCY_KYB_SOURCES (une liste construite
-    // au chargement du module, avant qu'aucun jeton ne soit lu) : c'est ICI, et
-    // seulement ici, que _shared/kyb-sources.ts a besoin d'un Deno.env.get pour cette
-    // tache -- le module partage lui-meme en reste totalement libre (voir son en-tete
-    // et celui de createAddressGeocodeSource). MAPBOX_TOKEN absent (non configure en
-    // local, meme situation que DILISENSE_API_KEY/GEMINI_API_KEY) -> le connecteur
-    // produit lui-meme `unavailable`, jamais un echec qui bloquerait tout le passage.
-    // Le harnais garantit que toute source, presente ou future, produit TOUJOURS une
-    // ligne : succes, echec ou timeout ne font jamais disparaitre un check et ne font
-    // jamais echouer cet appel.
-    const sources = [...AGENCY_KYB_SOURCES, createAddressGeocodeSource(Deno.env.get('MAPBOX_TOKEN') ?? '')]
+    // depuis la tache 2, VIES + recherche-entreprises x2 depuis la tache 3). Un
+    // connecteur qui a besoin d'une CONFIGURATION ne peut pas vivre dans
+    // AGENCY_KYB_SOURCES (une liste construite au chargement du module, avant qu'aucun
+    // secret ne soit lu) : c'est ICI, et seulement ici, que _shared/kyb-sources.ts a
+    // besoin d'un Deno.env.get -- le module partage lui-meme en reste totalement libre
+    // (voir son en-tete). Deux fabriques dans ce cas aujourd'hui, le geocodage et Zefix.
+    //
+    // Mapbox (tache 3 de l'etape 4) : MAPBOX_TOKEN absent en local, meme situation que
+    // DILISENSE_API_KEY/GEMINI_API_KEY -> le connecteur produit lui-meme `unavailable`,
+    // jamais un echec qui bloquerait tout le passage. Le harnais garantit que toute
+    // source, presente ou future, produit TOUJOURS une ligne : succes, echec ou timeout
+    // ne font jamais disparaitre un check et ne font jamais echouer cet appel.
+    //
+    // Zefix (etape 6, tache 2) est du meme cote pour la meme raison, mais son statut
+    // differe et le restera un moment : ses deux variables sont VIDES partout, la demande
+    // d'identifiants faite a zefix@bj.admin.ch etant sans reponse (handoff §8). Ses trois
+    // sources produisent donc `unavailable` en signalant LAQUELLE des deux situations on
+    // vit -- identifiants attendus, ou secrets poses sans connecteur ecrit -- voir la
+    // section « Squelette Zefix » de _shared/kyb-sources.ts. Le cablage est fait UNE
+    // FOIS, ici : le jour ou les identifiants arrivent, ce fichier n'a plus a changer.
+    const sources = [
+      ...AGENCY_KYB_SOURCES,
+      createAddressGeocodeSource(Deno.env.get('MAPBOX_TOKEN') ?? ''),
+      ...createZefixSources({
+        baseUrl: Deno.env.get('ZEFIX_API_URL') ?? '',
+        credential: Deno.env.get('ZEFIX_API_CREDENTIAL') ?? '',
+      }),
+    ]
 
     // Filtre de JURIDICTION (etape 6, tache 1) -- ICI, sur le registre complet compose
     // juste au-dessus, et jamais dans runAgencyKybSources() (qui doit continuer de

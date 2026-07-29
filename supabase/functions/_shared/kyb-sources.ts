@@ -9,7 +9,10 @@
 // le geocodage (address_geocode, Mapbox). L'etape 6 (tache 1) y ajoute la JURIDICTION
 // d'une source -- `appliesTo` + selectApplicableSources(), section dediee plus bas :
 // deux sources qui se partagent un check_type ne doivent jamais etre interrogees pour
-// le meme siege, sans quoi la derniere ligne inseree masquerait l'autre au moteur.
+// le meme siege, sans quoi la derniere ligne inseree masquerait l'autre au moteur. Sa
+// tache 2 y ajoute le SQUELETTE Zefix (registre du commerce suisse) : trois sources
+// cablees de bout en bout mais sans connecteur, faute d'identifiants -- section
+// « Squelette Zefix » plus bas, et les deux erreurs qui la precedent.
 //
 //   Une source qui ne repond pas produit un check `unavailable`, JAMAIS une
 //   absence de ligne et JAMAIS un echec. Le moteur (recompute_agency_verification,
@@ -138,15 +141,14 @@ export interface KybSource {
 // (valeur par defaut = heure de DEBUT de transaction) -- c'est donc la DERNIERE INSEREE
 // qui gagne, autrement dit l'ordre du tableau passe a record_agency_verification_run.
 //
-// Aujourd'hui aucun check_type n'a deux proprietaires : la question ne se pose pas.
-// L'etape 6 en donne un second a registry_lookup, registry_legal_name_match et
-// vat_lookup -- Zefix (registre du commerce suisse) et le registre UID couvriront CH/LI
-// la ou recherche-entreprises couvre la France et VIES l'UE. Sans regle, le jour ou
-// Zefix repondrait `match`, l'`unavailable` que le connecteur francais produit deja
-// pour tout siege hors de France pourrait s'inserer apres lui et le masquer : un veto
-// reellement satisfait se lirait comme un veto absent -- l'inverse exact de ce que la
-// preuve dit. Departager cette collision serait deja trop tard ; la regle ci-dessous la
-// rend IMPOSSIBLE.
+// La tache 2 de l'etape 6 donne un second proprietaire a registry_lookup et
+// registry_legal_name_match (le squelette Zefix, CH, la ou recherche-entreprises couvre
+// la France), et sa tache 3 en donnera un a vat_lookup (registre UID, CH/LI, la ou VIES
+// couvre l'UE). Sans regle, le jour ou Zefix repondrait `match`, l'`unavailable` que le
+// connecteur francais produit deja pour tout siege hors de France pourrait s'inserer
+// apres lui et le masquer : un veto reellement satisfait se lirait comme un veto absent
+// -- l'inverse exact de ce que la preuve dit. Departager cette collision serait deja
+// trop tard ; la regle ci-dessous la rend IMPOSSIBLE.
 //
 // La regle : une source declare la juridiction qu'elle couvre (`appliesTo`), et
 // selectApplicableSources() (plus bas) ecarte AVANT execution celles qui ne couvrent pas
@@ -600,6 +602,12 @@ const vatLookupSource: KybSource = {
 // distincte a comparer). Les deux restent un veto absent (`unavailable`), donc un
 // dossier francais part encore en revue humaine malgre cette tache -- comportement
 // attendu, pas un defaut (meme principe que Zefix, doc de conception §3).
+//
+// Sur registry_country_match, le squelette Zefix (etape 6, tache 2, plus bas) a tranche
+// l'INVERSE, et deliberement : y trouver le numero declare confirme reellement quelque
+// chose. L'asymetrie est assumee et connue -- combler ce veto pour CH seulement laisse
+// FR sans lui, donc toujours non auto-validable (handoff §7bis). A traiter hors de
+// l'etape 6 : ce serait un connecteur francais de plus, pas une retouche de celui-ci.
 
 /** Etat administratif INSEE/RNE rencontre en reconnaissance manuelle (voir rapport de
  *  tache) : 'A' = actif. Tout le reste (notamment 'C' = cesse) contredit une agence
@@ -963,9 +971,188 @@ export function createAddressGeocodeSource(mapboxToken: string): KybSource {
   }
 }
 
+// ─── Sources en attente d'identifiants (etape 6) ──────────────────────────────
+//
+// Deux erreurs, et c'est le coeur de ces squelettes plutot qu'un detail : elles
+// appellent deux GESTES DIFFERENTS. `KybSourcePendingCredentialsError` attend une
+// reponse d'un tiers, hors de ce depot ; `KybSourceNotWiredError` dit que les secrets
+// sont poses et que c'est du CODE qui manque -- la seule des deux qui se corrige ici.
+// Les confondre en une seule erreur ferait de la seconde situation un `unavailable`
+// silencieux et PERMANENT : celui qui vient de poser les secrets verrait le dossier
+// rester exactement comme avant, sans aucun signal reliant l'un a l'autre.
+//
+// Le nom porte par ces classes n'est pas cosmetique : describeSourceFailure() (plus bas)
+// ne lit QUE `err.name` pour remplir `raw_response.error_type`, et c'est ce champ-la que
+// lit un relecteur de la file admin. Sans le `this.name = ...` explicite de chaque
+// constructeur, `name` vaudrait 'Error' (herite) et les deux cas deviendraient
+// indistinguables dans la piece d'audit -- meme discipline que KybSourceTimeoutError.
+
+/** La configuration manque : la source ne PEUT PAS etre interrogee, et le geste attendu
+ *  n'est pas dans ce depot (voir docs/agency-kyb-handoff.md §8 pour l'etat des demandes
+ *  en cours). Cas nominal d'aujourd'hui pour Zefix. */
+export class KybSourcePendingCredentialsError extends Error {
+  constructor(label: string) {
+    super(`${label}: en attente d'identifiants, source non interrogee (voir docs/agency-kyb-handoff.md §8)`)
+    this.name = 'KybSourcePendingCredentialsError'
+  }
+}
+
+/** La configuration EST presente, mais le connecteur n'a jamais ete ecrit. Signale a
+ *  celui qui vient de poser les secrets que le travail restant est du code, ici -- sans
+ *  ce garde-fou, il ne verrait qu'un `unavailable` identique a celui de la veille. */
+export class KybSourceNotWiredError extends Error {
+  constructor(label: string) {
+    super(`${label}: identifiants presents mais connecteur non ecrit -- reste a brancher (URL, authentification, parsing)`)
+    this.name = 'KybSourceNotWiredError'
+  }
+}
+
+/** Configuration d'une source dont les identifiants ne sont pas encore obtenus. Les deux
+ *  champs sont vides aujourd'hui, et pour deux raisons distinctes : `credential` parce
+ *  que la demande est sans reponse, `baseUrl` parce qu'on ne connait PAS l'URL a appeler
+ *  -- un 401 apprend qu'un service existe et exige une authentification, jamais a quoi
+ *  ressemble un appel autorise. Ecrire ici une URL « la plus probable » se paierait le
+ *  jour J : une URL fausse se decouvre en production, une valeur vide se decouvre a la
+ *  lecture. Lus depuis Deno.env par agency-verification-run/index.ts et injectes ici en
+ *  parametre -- ce module reste pur (voir son en-tete). */
+export interface PendingSourceConfig {
+  baseUrl: string
+  credential: string
+}
+
 /**
- * Registre des connecteurs actifs SANS CONFIGURATION (voir createAddressGeocodeSource
- * ci-dessus pour le seul connecteur qui en a besoin). VIDE a la tache 1 par
+ * Construit UNE source dont le connecteur reste a ecrire. Fabrique INTERNE et PARTAGEE :
+ * les trois sources Zefix ci-dessous n'en different que par leur check_type et leur
+ * libelle, et ce qui reste a ecrire le jour ou les identifiants arrivent (URL,
+ * authentification, analyse de la reponse) ne doit exister qu'a UN SEUL endroit, jamais
+ * en trois exemplaires a recopier -- c'est tout l'objet de cette etape.
+ *
+ * `run` ne recoit deliberement ni `agency` ni `signal` : il n'y a rien a lire dans le
+ * dossier ni rien a annuler tant qu'aucune requete n'est construite. Le jour ou l'une
+ * des trois est ecrite, elle reprend la signature complete du contrat KybSource et cette
+ * fabrique ne sert plus qu'aux autres -- la transition se fait source par source, sans
+ * rien casser.
+ *
+ * Ni le credential ni la baseUrl n'entrent JAMAIS dans le message d'erreur : le premier
+ * est un secret, et la seconde peut en porter un en parametre de requete (le connecteur
+ * Mapbox de ce meme fichier en est la demonstration). describeSourceFailure() recopie
+ * `.message` tel quel dans la piece d'audit -- la seule protection possible est ici.
+ */
+function createPendingCredentialsSource(params: {
+  checkType: string
+  source: string
+  /** Ce que la source apportera, en clair -- c'est ce que lira un relecteur de la file
+   *  admin devant un `unavailable`, jamais le nom d'une variable d'environnement. */
+  label: string
+  appliesTo: (agency: AgencyForVerification) => boolean
+  config: PendingSourceConfig
+}): KybSource {
+  const { checkType, source, label, appliesTo, config } = params
+  return {
+    checkType,
+    source,
+    appliesTo,
+    run: async (): Promise<KybSourceResult> => {
+      // trim() : une variable d'environnement posee a "   " est vide en pratique ; la
+      // traiter comme configuree ferait mentir le garde-fou dans la direction la plus
+      // couteuse (« du code manque » alors qu'il manque un identifiant).
+      if (!config.baseUrl.trim() || !config.credential.trim()) {
+        throw new KybSourcePendingCredentialsError(label)
+      }
+      throw new KybSourceNotWiredError(label)
+    },
+  }
+}
+
+// ─── Squelette Zefix (registre du commerce suisse, etape 6 tache 2) ────────────
+//
+// Zefix (Zentraler Firmenindex) est LE registre du marche vise, et le connecteur de plus
+// forte valeur qu'on ne peut PAS ecrire aujourd'hui : son API PublicREST repond `401
+// Unauthorized` (verifie en direct le 25.07.2026, doc de conception §3), les identifiants
+// ont ete demandes a zefix@bj.admin.ch et la demande reste sans reponse (handoff §8).
+//
+// Ce qui suit est donc un SQUELETTE, pas un connecteur : il cable tout ce qui peut l'etre
+// sans identifiants -- les trois check_type, la juridiction, la place dans le registre,
+// la forme de l'indisponibilite et la preuve qui l'accompagne. Le jour ou les
+// identifiants arrivent, il ne reste que TROIS gestes, dans cet ordre :
+//
+//   1. Poser les secrets ZEFIX_API_URL et ZEFIX_API_CREDENTIAL (lus par
+//      agency-verification-run/index.ts, deja cable -- rien a y changer).
+//   2. Ecrire l'authentification et l'URL : l'en-tete exact qu'attend Zefix reste
+//      inconnu tant que le 401 n'est pas leve.
+//   3. Ecrire l'analyse de la reponse, une par check_type.
+//
+// Le point 3 est le seul des trois qui soit par nature en trois exemplaires (existence,
+// raison sociale, juridiction sont trois lectures differentes d'une meme reponse), et le
+// registre francais plus haut donne deja la forme a reprendre : UN helper de requete
+// partage (fetchFrenchRegistry) et DEUX `run` qui n'en lisent pas la meme chose. Les
+// points 1 et 2, eux, restent a un seul endroit -- ce helper de requete, qui reprendra du
+// meme coup la garde de configuration de createPendingCredentialsSource ci-dessus (une
+// baseUrl ou un credential vide reste un KybSourcePendingCredentialsError le jour ou le
+// connecteur existe : un secret efface par accident ne doit pas devenir une panne muette).
+//
+// RIEN n'est ecrit « au plus probable » ici : ni URL, ni schema de reponse, ni en-tete.
+// Ce qui n'est pas connu reste une valeur de configuration vide et un commentaire qui dit
+// quoi y mettre -- une URL inventee se decouvrirait en production, une valeur vide se
+// decouvre a la lecture, et le garde-fou ci-dessus la signale de lui-meme.
+//
+// TROIS sources et non une, pour la meme raison que le registre francais en a deux (voir
+// sa section plus haut) : une KybSourceResult ne porte qu'UN check_type. Couplage
+// accepte -- une poignee d'appels par verification, pas par seconde.
+//
+// registry_country_match merite d'etre justifie plutot que subi. Le connecteur francais
+// l'a laisse de cote au motif qu'il n'interroge que des sieges DEJA declares en France :
+// une reponse positive n'y confirmerait rien qu'on ne sache. L'arbitrage est INVERSE ici,
+// et c'est delibere : trouver le numero declare dans le registre de la juridiction
+// declaree est une confirmation reelle, pas une tautologie -- c'est la seule chose qui
+// distingue « cette entite est enregistree en Suisse » de « cette agence pretend etre
+// suisse ». C'est aussi l'un des deux vetos que le handoff §7bis designe comme bloquant
+// l'auto-validation de TOUT dossier, de tout pays. Asymetrie assumee, a traiter hors de
+// cette etape : le combler pour CH seulement laisse FR sans lui, donc toujours non
+// auto-validable.
+//
+// AUCUN VERDICT NE BOUGE pour autant. Ces trois lignes sont des vetos (weight 0,
+// is_veto true, migration 20260728103000) et elles sortent toutes `unavailable` : le
+// moteur (20260728130000) fait echouer un veto `unavailable` EXACTEMENT comme un veto
+// absent (« Ne passe que sur 'match' »), et exclut `unavailable` du numerateur ET du
+// denominateur du score. Un dossier suisse part donc en revue humaine apres cette etape
+// exactement comme avant -- c'est le critere de non-regression, pas un effet de bord.
+
+/** Juridiction des trois sources Zefix : le registre du commerce suisse, et lui seul.
+ *  Le Liechtenstein en est EXCLU bien qu'il partage le systeme UID (voir
+ *  UID_REGISTRY_COUNTRIES plus haut) : son registre est `oera.li`, sans aucune API
+ *  publique connue (doc de conception §3) -- un dossier LI reste en revue manuelle, il ne
+ *  doit pas se voir opposer une indisponibilite Zefix qui laisserait croire qu'une source
+ *  suisse aurait pu le couvrir. Meme valeur comparee et meme helper que le registre
+ *  francais (declaredHeadOfficeCountry) : c'est ce qui rend l'exclusivite des deux
+ *  check_type partages une propriete du code et non une coincidence. */
+function hasSwissHeadOffice(agency: AgencyForVerification): boolean {
+  return declaredHeadOfficeCountry(agency) === 'CH'
+}
+
+/**
+ * Construit les trois sources Zefix. Fabrique (et non entrees statiques de
+ * AGENCY_KYB_SOURCES) pour la meme raison que createAddressGeocodeSource : ce registre
+ * est construit au chargement du module, avant qu'aucun secret ne soit lu, et ce module
+ * reste pur. Rend un TABLEAU plutot que trois exports : ajouter un quatrieme type servi
+ * par Zefix plus tard (le champ TVA du registre UID, si la question tranchee a la tache
+ * suivante l'y renvoie) ne changera alors rien a la facon dont index.ts l'appelle.
+ */
+export function createZefixSources(config: PendingSourceConfig): KybSource[] {
+  const zefixSource = (checkType: string, label: string): KybSource =>
+    createPendingCredentialsSource({ checkType, source: 'zefix', label, appliesTo: hasSwissHeadOffice, config })
+
+  return [
+    zefixSource('registry_lookup', 'zefix (existence et statut actif au registre du commerce suisse)'),
+    zefixSource('registry_legal_name_match', 'zefix (raison sociale declaree contre raison sociale du registre)'),
+    zefixSource('registry_country_match', 'zefix (juridiction du registre contre pays declare)'),
+  ]
+}
+
+/**
+ * Registre des connecteurs actifs SANS CONFIGURATION -- les connecteurs qui en ont
+ * besoin passent par une fabrique appelee depuis agency-verification-run/index.ts
+ * (createAddressGeocodeSource, createZefixSources ci-dessus). VIDE a la tache 1 par
  * construction ("Tu n'ecris aucun connecteur reel dans cette tache", brief etape 4).
  * Un check_type non catalogue dans verification_check_types ferait de toute facon
  * echouer l'insert (FK, migration 20260728103000) -- une entree ici EST donc deja un
