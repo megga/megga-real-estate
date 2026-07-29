@@ -10,6 +10,8 @@
 // re-render sur le changement de `dark`, donc lire le singleton muté au render
 // renvoie toujours l'ambiance courante (comportement identique au proto).
 
+import { crmStep } from '@/components/crm-sugar/tokens'
+
 export interface TkTone {
   bg: string
   fg: string
@@ -43,16 +45,19 @@ export interface Tk {
   mode: 'dark' | 'light'
 }
 
+// Surfaces en GETTERS : `applyTK` les recopie par `Object.assign` à chaque
+// rendu du cockpit, donc elles sont relues — la palette suit la teinte active
+// sans figer sa valeur au chargement du module.
 const TK_DARK: Omit<Tk, 'mode'> = {
-  bg: '#0A0B0D',
-  bgGrad: '#0A0B0D',
-  frame: '#15161A',
-  frameSolid: '#17181C',
-  frameHi: '#1B1C21',
+  get bg() { return crmStep('s0', '#0A0B0D') },
+  get bgGrad() { return crmStep('s0', '#0A0B0D') },
+  get frame() { return crmStep('s1', '#15161A') },
+  get frameSolid() { return crmStep('s1', '#17181C') },
+  get frameHi() { return crmStep('s2', '#1B1C21') },
   border: 'rgba(255,255,255,0.08)',
   borderHi: 'rgba(255,255,255,0.14)',
-  card: 'rgba(255,255,255,0.035)',
-  cardHi: 'rgba(255,255,255,0.06)',
+  get card() { return crmStep('s2', 'rgba(255,255,255,0.035)') },
+  get cardHi() { return crmStep('s3', 'rgba(255,255,255,0.06)') },
   cardBorder: 'rgba(255,255,255,0.07)',
   ink: '#ECEDF3',
   inkDim: '#B5B7C4',

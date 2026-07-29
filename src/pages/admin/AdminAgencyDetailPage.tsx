@@ -1,17 +1,21 @@
 /**
  * Page super-admin — détail d'une agence.
  *
- * Route : `/agencies/:id` (accent violet). Vue en
- * lecture seule organisée en 5 onglets (infos, équipe, activité, biens,
- * transactions), chacun alimenté par un hook `useAgency*` dédié. Sert aussi de
- * point d'entrée à l'impersonation d'un membre — précédée d'un audit serveur
- * (cf. `EquipeTab`).
+ * Route : `/agencies/:id`. Vue en lecture seule organisée en 6 onglets (infos,
+ * usage, équipe, activité, biens, transactions), chacun alimenté par un hook
+ * `useAgency*` dédié. Sert aussi de point d'entrée à l'impersonation d'un
+ * membre — précédée d'un audit serveur (cf. `EquipeTab`).
+ *
+ * Rendu en grammaire Sugar (kit `components/admin/kit`) : bentos séparés par
+ * l'ombre et non par une bordure, statuts en pilules pleines, tableaux réels
+ * (`AdminTh`/`AdminTd`) au lieu de grilles de `<span>`. Le repère « console
+ * admin » vit désormais une seule fois, dans le rail du shell.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Building2, Mail, Phone, Clock, Eye } from 'lucide-react'
-import { cn, formatDate, formatRelativeDate, formatCHF } from '@/lib/utils'
+import { formatDate, formatRelativeDate, formatCHF } from '@/lib/utils'
 import {
   useAdminAgency,
   useAgencyMembers,
@@ -19,8 +23,22 @@ import {
   useAgencyTransactions,
   useAgencyActivity,
 } from '@/hooks/useAdminAgencies'
-import PageTransition from '@/components/layout/PageTransition'
-import { openImpersonationInCrm } from '@/lib/adminEntry'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
+import AdminPage from '@/components/admin/kit/AdminPage'
+import {
+  AdminAvatar,
+  AdminCard,
+  AdminDivider,
+  AdminEmpty,
+  AdminError,
+  AdminIc,
+  AdminPill,
+  AdminSkeleton,
+  AdminTd,
+  AdminTh,
+} from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
+import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
 import AdminBillingCard from '@/components/admin/AdminBillingCard'
 import AgencyUsagePanel from '@/components/admin/AgencyUsagePanel'
 
@@ -73,30 +91,88 @@ const STAGE_I18N: Record<string, string> = {
   to_recontact: 'agencyDetail.stage.toRecontact',
 }
 
-/** Pastille ronde avec les initiales d'un membre ; couleur déterministe dérivée du nom. */
-function MemberAvatar({ name }: { name: string }) {
-  const initials = (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-  const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500']
-  const idx = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length
+/**
+ * Tons de pilule des statuts de bien et d'affaire.
+ *
+ * `sold` / `completed` étaient en violet : le violet est le repère « tu es dans
+ * la console », jamais un statut métier — ils passent donc en `info`. Les
+ * statuts non listés restent neutres, comme avant (ils n'avaient pas de signal).
+ */
+const PROPERTY_TONE: Record<string, AdminToneName> = { active: 'ok', sold: 'info' }
+const TRANSACTION_TONE: Record<string, AdminToneName> = { active: 'ok', completed: 'info', cancelled: 'err' }
+
+/** Deux initiales à partir d'un nom complet (« Marie Dupont » → « MD »). */
+function initialsOf(name: string): string {
+  return (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
+/**
+ * Retour à la liste des agences.
+ *
+ * Reprend la grammaire d'`AdminGhostBtn` mais reste une ancre : un `<button>`
+ * perdrait le clic-milieu, le survol d'URL et l'ouverture en nouvel onglet.
+ */
+function BackToAgencies({ label }: { label: string }) {
+  const { sp, surf } = useAdminSugar()
   return (
-    <div className={cn('h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0', colors[idx])}>
-      <span className="text-xs font-semibold text-white">{initials}</span>
-    </div>
+    <Link
+      to={`${ADMIN_CONSOLE_PATH}/agencies`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        height: 34, padding: '0 15px', borderRadius: ADMIN_RADII.pill,
+        fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', textDecoration: 'none',
+        color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
+      }}
+    >
+      <AdminIc icon={ArrowLeft} size={15} color={sp.ink} />
+      {label}
+    </Link>
   )
 }
 
-/** Placeholder animé affiché pendant le chargement du détail de l'agence. */
-function SkeletonDetail() {
+/** Empilement de lignes fantômes pendant le chargement d'un onglet. */
+function TabSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="space-y-4 animate-pulse">
-      <div className="h-6 w-48 rounded bg-theme-hover" />
-      <div className="h-4 w-32 rounded bg-theme-hover" />
-      <div className="h-px bg-theme-border my-4" />
-      <div className="space-y-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-4 w-64 rounded bg-theme-hover" />
+    <AdminCard padding={14}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {Array.from({ length: rows }).map((_, i) => (
+          <AdminSkeleton key={i} height={38} />
         ))}
       </div>
+    </AdminCard>
+  )
+}
+
+/** Barre d'onglets monochrome : soulignement à l'accent, pas de pastille colorée. */
+function TabBar({ active, onSelect }: { active: Tab; onSelect: (tab: Tab) => void }) {
+  const { t } = useTranslation('admin')
+  const { sp, dark } = useAdminSugar()
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'center', gap: 2, overflowX: 'auto',
+        boxShadow: `inset 0 -1px 0 ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.07)'}`,
+      }}
+    >
+      {TAB_KEYS.map((tab) => {
+        const on = active === tab.key
+        return (
+          <button
+            key={tab.key}
+            onClick={() => onSelect(tab.key)}
+            style={{
+              border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+              padding: '9px 14px 11px', whiteSpace: 'nowrap',
+              fontSize: 12.5, fontWeight: on ? 800 : 600, letterSpacing: -0.1,
+              color: on ? sp.ink : sp.sub,
+              boxShadow: on ? `inset 0 -2px 0 ${sp.accent}` : undefined,
+              transition: 'color .18s ease',
+            }}
+          >
+            {t(tab.i18nKey)}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -110,120 +186,67 @@ export default function AdminAgencyDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<Tab>('infos')
 
-  const { data: agency, isLoading } = useAdminAgency(id ?? '')
+  const { data: agency, isLoading, isError, refetch } = useAdminAgency(id ?? '')
 
-  if (isLoading) {
-    return (
-      <PageTransition>
-        <div className="max-w-4xl mx-auto space-y-5">
-          <Link
-            to="/agencies"
-            className="inline-flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('admin:agencyDetail.back')}
-          </Link>
-          <SkeletonDetail />
-        </div>
-      </PageTransition>
-    )
-  }
-
-  if (!agency) {
-    return (
-      <PageTransition>
-        <div className="max-w-4xl mx-auto space-y-5">
-          <Link
-            to="/agencies"
-            className="inline-flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('admin:agencyDetail.back')}
-          </Link>
-          <div className="px-4 py-16 text-center">
-            <Building2 className="h-8 w-8 mx-auto text-theme-tertiary mb-3" />
-            <p className="text-sm text-theme-secondary">{t('admin:agencyDetail.notFound')}</p>
-          </div>
-        </div>
-      </PageTransition>
-    )
-  }
+  const plan = agency ? t(PLAN_I18N[agency.plan ?? ''] ?? 'common.plan.starter') : null
+  const statusKey = agency?.status ?? 'active'
 
   return (
-    <PageTransition>
-      <div className="max-w-4xl mx-auto space-y-5">
-        {/* Back link */}
-        <Link
-          to="/agencies"
-          className="inline-flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Agences
-        </Link>
+    <AdminPage
+      // Le nom n'est connu qu'après chargement ; « — » est le placeholder de
+      // valeur absente déjà utilisé par les tableaux de cette page.
+      title={agency?.name ?? '—'}
+      subtitle={agency ? `${plan} · ${formatDate(agency.created_at)}` : undefined}
+      width="wide"
+      actions={
+        <>
+          {agency && (
+            <AdminPill
+              label={t(STATUS_I18N[statusKey] ?? 'common.status.active')}
+              tone={agency.status === 'active' ? 'ok' : 'err'}
+            />
+          )}
+          <BackToAgencies label={t('admin:agencyDetail.back')} />
+        </>
+      }
+    >
+      {isLoading ? (
+        <TabSkeleton rows={4} />
+      ) : isError && !agency ? (
+        // Passe AVANT « introuvable » : une requête en échec renvoie elle aussi
+        // `agency` vide, et annoncer une agence supprimée sur une simple panne
+        // réseau enverrait le super-admin chercher un problème qui n'existe pas.
+        <AdminCard>
+          <AdminError
+            message={t('admin:common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('admin:common.retry')}
+          />
+        </AdminCard>
+      ) : !agency ? (
+        <AdminCard>
+          <AdminEmpty icon={Building2} title={t('admin:agencyDetail.notFound')} />
+        </AdminCard>
+      ) : (
+        <>
+          <TabBar active={activeTab} onSelect={setActiveTab} />
 
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="h-2 w-2 rounded-full bg-admin-accent" />
-              <span className="text-xs font-medium text-admin-accent">{t('admin:common.adminBadge')}</span>
-            </div>
-            <h1 className="text-2xl font-semibold text-theme-primary">{agency.name}</h1>
-            <div className="flex items-center gap-3 mt-1.5">
-              <span className="text-xs font-medium text-theme-secondary">
-                {t(PLAN_I18N[agency.plan ?? ''] ?? 'common.plan.starter')}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className={cn(
-                  'h-2 w-2 rounded-full',
-                  agency.status === 'active' ? 'bg-emerald-500' : 'bg-red-500'
-                )} />
-                <span className="text-xs text-theme-secondary">
-                  {t(STATUS_I18N[agency.status ?? 'active'] ?? 'common.status.active')}
-                </span>
-              </span>
-              <span className="text-xs text-theme-tertiary">
-                {formatDate(agency.created_at)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex items-center gap-1 border-b border-theme-border">
-          {TAB_KEYS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                'px-4 py-2.5 text-sm transition-colors border-b-2 -mb-px',
-                activeTab === tab.key
-                  ? 'text-theme-primary border-theme-primary font-medium'
-                  : 'text-theme-secondary border-transparent hover:text-theme-primary'
-              )}
-            >
-              {t(tab.i18nKey)}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
-        <div>
           {activeTab === 'infos' && <InfosTab agency={agency} />}
           {activeTab === 'usage' && <AgencyUsagePanel agencyId={agency.id} />}
           {activeTab === 'equipe' && <EquipeTab agencyId={agency.id} />}
           {activeTab === 'activite' && <ActiviteTab agencyId={agency.id} />}
           {activeTab === 'biens' && <BiensTab agencyId={agency.id} />}
           {activeTab === 'transactions' && <TransactionsTab agencyId={agency.id} />}
-        </div>
-      </div>
-    </PageTransition>
+        </>
+      )}
+    </AdminPage>
   )
 }
 
 /** Onglet « Infos » : coordonnées de l'agence + carte d'abonnement (override manuel du plan). */
 function InfosTab({ agency }: { agency: Record<string, unknown> }) {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSugar()
   const fields = [
     { icon: Building2, label: t('admin:agencyDetail.info.address'), value: agency.address as string | null },
     { icon: Phone, label: t('admin:agencyDetail.info.phone'), value: agency.phone as string | null },
@@ -232,18 +255,21 @@ function InfosTab({ agency }: { agency: Record<string, unknown> }) {
   ]
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-theme-border divide-y divide-theme-border">
-        {fields.map((f) => (
-          <div key={f.label} className="flex items-center gap-3 px-4 py-3.5">
-            <f.icon className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-            <span className="text-sm text-theme-secondary w-24 flex-shrink-0">{f.label}</span>
-            <span className="text-sm text-theme-primary">
-              {f.value || <span className="text-theme-tertiary">{t('admin:common.notProvided')}</span>}
-            </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <AdminCard padding={8}>
+        {fields.map((f, i) => (
+          <div key={f.label}>
+            {i > 0 && <AdminDivider margin="0 6px" />}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', minWidth: 0 }}>
+              <AdminIc icon={f.icon} size={16} color={sp.soft} />
+              <span style={{ width: 96, flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: sp.sub }}>{f.label}</span>
+              <span style={{ minWidth: 0, fontSize: 13, fontWeight: 600, color: f.value ? sp.ink : sp.soft, letterSpacing: -0.1 }}>
+                {f.value || t('admin:common.notProvided')}
+              </span>
+            </div>
           </div>
         ))}
-      </div>
+      </AdminCard>
 
       {/* Abonnement + override manuel de plan (P4 admin) */}
       <AdminBillingCard agencyId={agency.id as string} />
@@ -258,250 +284,225 @@ function InfosTab({ agency }: { agency: Record<string, unknown> }) {
  */
 function EquipeTab({ agencyId }: { agencyId: string }) {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSugar()
   const { data: members, isLoading } = useAgencyMembers(agencyId)
 
-  if (isLoading) {
-    return (
-      <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">{t('admin:common.loading')}</p>
-      </div>
-    )
-  }
+  if (isLoading) return <TabSkeleton />
 
   if (!members || members.length === 0) {
     return (
-      <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">{t('admin:agencyDetail.team.noMembers')}</p>
-      </div>
+      <AdminCard>
+        <AdminEmpty title={t('admin:agencyDetail.team.noMembers')} />
+      </AdminCard>
     )
   }
 
   return (
-    <div className="rounded-xl border border-theme-border">
-      {/* Header */}
-      <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
-        <span className="flex-1">{t('admin:agencyDetail.team.table.name')}</span>
-        <span className="w-40">{t('admin:agencyDetail.team.table.email')}</span>
-        <span className="w-24">{t('admin:agencyDetail.team.table.role')}</span>
-        <span className="w-24 text-right">{t('admin:agencyDetail.team.table.registration')}</span>
-        <span className="w-10" />
+    <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+      <div style={{ overflowX: 'auto' }} className="scrollbar-hide">
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
+          <thead>
+            <tr>
+              <AdminTh>{t('admin:agencyDetail.team.table.name')}</AdminTh>
+              <AdminTh width={180}>{t('admin:agencyDetail.team.table.email')}</AdminTh>
+              <AdminTh width={110}>{t('admin:agencyDetail.team.table.role')}</AdminTh>
+              <AdminTh width={110} align="right">{t('admin:agencyDetail.team.table.registration')}</AdminTh>
+              {/* Colonne d'action (impersonation) : en-tête sans libellé. */}
+              <AdminTh width={54}>{null}</AdminTh>
+            </tr>
+          </thead>
+          <tbody>
+            {members.map((member) => (
+              <tr key={member.id} className="group">
+                <AdminTd>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <AdminAvatar initials={initialsOf(member.full_name ?? t('admin:common.user'))} size={28} />
+                    <span style={{ fontWeight: 700, letterSpacing: -0.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {member.full_name ?? t('admin:common.noName')}
+                    </span>
+                  </span>
+                </AdminTd>
+                <AdminTd style={{ color: sp.sub, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {member.email}
+                </AdminTd>
+                <AdminTd style={{ color: sp.sub, textTransform: 'capitalize' }}>
+                  {member.role ?? 'agent'}
+                </AdminTd>
+                <AdminTd align="right" numeric style={{ color: sp.soft }}>
+                  {formatDate(member.created_at ?? '')}
+                </AdminTd>
+                <AdminTd align="right">
+                  <button
+                    // Nouvel onglet ; c'est le CRM qui journalise avant
+                    // d'activer la vue (audit-first).
+                    onClick={() => openImpersonation(member.id)}
+                    aria-label={t('admin:agencyDetail.team.impersonate', { name: member.full_name ?? t('admin:common.user') })}
+                    // `group-focus-within` en plus du survol : sans lui, ce
+                    // bouton était atteignable au clavier mais jamais visible.
+                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+                    style={{
+                      width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0,
+                      background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center',
+                    }}
+                  >
+                    <AdminIc icon={Eye} size={15} color={sp.soft} />
+                  </button>
+                </AdminTd>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      {members.map((member, i) => (
-        <div
-          key={member.id}
-          className={cn(
-            'group flex items-center px-4 py-3',
-            i < members.length - 1 && 'border-b border-theme-border'
-          )}
-        >
-          <div className="flex-1 flex items-center gap-2.5 min-w-0">
-            <MemberAvatar name={member.full_name ?? t('admin:common.user')} />
-            <span className="text-sm font-medium text-theme-primary truncate">
-              {member.full_name ?? t('admin:common.noName')}
-            </span>
-          </div>
-          <span className="w-40 text-xs text-theme-secondary truncate">
-            {member.email}
-          </span>
-          <span className="w-24 text-xs text-theme-secondary capitalize">
-            {member.role ?? 'agent'}
-          </span>
-          <span className="w-24 text-xs text-theme-tertiary text-right">
-            {formatDate(member.created_at ?? '')}
-          </span>
-          <span className="w-10 flex justify-end">
-            <button
-              // La vue impersonée appartient au CRM (autre origine) : on l'y
-              // ouvre, et c'est lui qui journalise avant d'activer (audit-first).
-              onClick={() => openImpersonationInCrm(member.id)}
-              aria-label={t('admin:agencyDetail.team.impersonate', { name: member.full_name ?? t('admin:common.user') })}
-              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-admin-accent hover:bg-admin-accent/5 transition-all"
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-          </span>
-        </div>
-      ))}
-    </div>
+    </AdminCard>
   )
 }
 
 /** Onglet « Activité » : flux chronologique des événements de l'agence. */
 function ActiviteTab({ agencyId }: { agencyId: string }) {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSugar()
   const { data: events, isLoading } = useAgencyActivity(agencyId)
 
-  if (isLoading) {
-    return (
-      <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">{t('admin:common.loading')}</p>
-      </div>
-    )
-  }
+  if (isLoading) return <TabSkeleton />
 
   if (!events || events.length === 0) {
     return (
-      <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">{t('admin:agencyDetail.activity.noActivity')}</p>
-      </div>
+      <AdminCard>
+        <AdminEmpty title={t('admin:agencyDetail.activity.noActivity')} />
+      </AdminCard>
     )
   }
 
   return (
-    <div className="space-y-1">
+    <AdminCard padding={8}>
       {events.map((event) => (
-        <div
-          key={event.id}
-          className="flex items-start gap-3 px-4 py-3 rounded-lg hover:bg-theme-hover transition-colors"
-        >
-          <div className="h-2 w-2 rounded-full bg-admin-accent mt-1.5 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-theme-primary">
-              <span className="font-medium">{event.action}</span>
+        <div key={event.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '10px 10px' }}>
+          {/* Puce de repère chronologique : aucun signal, donc encre douce et pas de couleur vive. */}
+          <span style={{ width: 6, height: 6, borderRadius: ADMIN_RADII.pill, background: sp.soft, marginTop: 6, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 12.5, color: sp.ink }}>
+              <span style={{ fontWeight: 700 }}>{event.action}</span>
               {event.entity_type && (
-                <span className="text-theme-secondary"> {t('admin:agencyDetail.activity.on')} {event.entity_type}</span>
+                <span style={{ color: sp.sub }}> {t('admin:agencyDetail.activity.on')} {event.entity_type}</span>
               )}
             </p>
-            <p className="text-xs text-theme-tertiary mt-0.5">
+            <p style={{ margin: '2px 0 0', fontSize: 11.5, color: sp.soft }}>
               {formatRelativeDate(event.created_at)}
             </p>
           </div>
         </div>
       ))}
-    </div>
+    </AdminCard>
   )
 }
 
 /** Onglet « Biens » : tableau des annonces de l'agence (titre, statut, prix, ville, date). */
 function BiensTab({ agencyId }: { agencyId: string }) {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSugar()
   const { data: properties, isLoading } = useAgencyProperties(agencyId)
 
-  if (isLoading) {
-    return (
-      <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">{t('admin:common.loading')}</p>
-      </div>
-    )
-  }
+  if (isLoading) return <TabSkeleton />
 
   if (!properties || properties.length === 0) {
     return (
-      <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">{t('admin:agencyDetail.properties.noProperties')}</p>
-      </div>
+      <AdminCard>
+        <AdminEmpty title={t('admin:agencyDetail.properties.noProperties')} />
+      </AdminCard>
     )
   }
 
   return (
-    <div className="rounded-xl border border-theme-border">
-      {/* Header */}
-      <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
-        <span className="flex-1">{t('admin:agencyDetail.properties.table.title')}</span>
-        <span className="w-24">{t('admin:agencyDetail.properties.table.status')}</span>
-        <span className="w-28 text-right">{t('admin:agencyDetail.properties.table.price')}</span>
-        <span className="w-24">{t('admin:agencyDetail.properties.table.city')}</span>
-        <span className="w-24 text-right">{t('admin:agencyDetail.properties.table.date')}</span>
+    <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+      <div style={{ overflowX: 'auto' }} className="scrollbar-hide">
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
+          <thead>
+            <tr>
+              <AdminTh>{t('admin:agencyDetail.properties.table.title')}</AdminTh>
+              <AdminTh width={120}>{t('admin:agencyDetail.properties.table.status')}</AdminTh>
+              <AdminTh width={130} align="right">{t('admin:agencyDetail.properties.table.price')}</AdminTh>
+              <AdminTh width={110}>{t('admin:agencyDetail.properties.table.city')}</AdminTh>
+              <AdminTh width={110} align="right">{t('admin:agencyDetail.properties.table.date')}</AdminTh>
+            </tr>
+          </thead>
+          <tbody>
+            {properties.map((prop) => (
+              <tr key={prop.id}>
+                <AdminTd style={{ fontWeight: 600, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {prop.title || t('admin:common.noTitle')}
+                </AdminTd>
+                <AdminTd>
+                  <AdminPill
+                    label={t(PROPERTY_STATUS_I18N[prop.status] ?? 'common.status.draft')}
+                    tone={PROPERTY_TONE[prop.status] ?? 'neutral'}
+                  />
+                </AdminTd>
+                <AdminTd align="right" numeric style={{ fontWeight: 700 }}>
+                  {prop.price ? formatCHF(prop.price) : '—'}
+                </AdminTd>
+                <AdminTd style={{ color: sp.sub }}>{prop.city ?? '—'}</AdminTd>
+                <AdminTd align="right" numeric style={{ color: sp.soft }}>
+                  {formatDate(prop.created_at)}
+                </AdminTd>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      {properties.map((prop, i) => (
-        <div
-          key={prop.id}
-          className={cn(
-            'flex items-center px-4 py-3',
-            i < properties.length - 1 && 'border-b border-theme-border'
-          )}
-        >
-          <span className="flex-1 text-sm text-theme-primary truncate">
-            {prop.title || t('admin:common.noTitle')}
-          </span>
-          <span className="w-24">
-            <span className={cn(
-              'text-xs font-medium',
-              prop.status === 'active' ? 'text-emerald-500' :
-              prop.status === 'sold' ? 'text-admin-accent' :
-              'text-theme-secondary'
-            )}>
-              {t(PROPERTY_STATUS_I18N[prop.status] ?? 'common.status.draft')}
-            </span>
-          </span>
-          <span className="w-28 text-sm text-theme-primary text-right font-medium">
-            {prop.price ? formatCHF(prop.price) : '—'}
-          </span>
-          <span className="w-24 text-xs text-theme-secondary">
-            {prop.city ?? '—'}
-          </span>
-          <span className="w-24 text-xs text-theme-tertiary text-right">
-            {formatDate(prop.created_at)}
-          </span>
-        </div>
-      ))}
-    </div>
+    </AdminCard>
   )
 }
 
 /** Onglet « Transactions » : tableau des affaires (stade pipeline, statut, montant, date). */
 function TransactionsTab({ agencyId }: { agencyId: string }) {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSugar()
   const { data: transactions, isLoading } = useAgencyTransactions(agencyId)
 
-  if (isLoading) {
-    return (
-      <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">{t('admin:common.loading')}</p>
-      </div>
-    )
-  }
+  if (isLoading) return <TabSkeleton />
 
   if (!transactions || transactions.length === 0) {
     return (
-      <div className="px-4 py-12 text-center">
-        <p className="text-sm text-theme-tertiary">{t('admin:agencyDetail.transactions.noTransactions')}</p>
-      </div>
+      <AdminCard>
+        <AdminEmpty title={t('admin:agencyDetail.transactions.noTransactions')} />
+      </AdminCard>
     )
   }
 
   return (
-    <div className="rounded-xl border border-theme-border">
-      {/* Header */}
-      <div className="flex items-center px-4 py-2.5 border-b border-theme-border text-xs font-medium text-theme-tertiary tracking-wide">
-        <span className="flex-1">{t('admin:agencyDetail.transactions.table.stage')}</span>
-        <span className="w-20">{t('admin:agencyDetail.transactions.table.status')}</span>
-        <span className="w-28 text-right">{t('admin:agencyDetail.transactions.table.amount')}</span>
-        <span className="w-24 text-right">{t('admin:agencyDetail.transactions.table.date')}</span>
+    <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+      <div style={{ overflowX: 'auto' }} className="scrollbar-hide">
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+          <thead>
+            <tr>
+              <AdminTh>{t('admin:agencyDetail.transactions.table.stage')}</AdminTh>
+              <AdminTh width={120}>{t('admin:agencyDetail.transactions.table.status')}</AdminTh>
+              <AdminTh width={130} align="right">{t('admin:agencyDetail.transactions.table.amount')}</AdminTh>
+              <AdminTh width={110} align="right">{t('admin:agencyDetail.transactions.table.date')}</AdminTh>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.map((tx) => (
+              <tr key={tx.id}>
+                <AdminTd style={{ fontWeight: 600 }}>
+                  {STAGE_I18N[tx.stage] ? t(STAGE_I18N[tx.stage]) : tx.stage ?? '—'}
+                </AdminTd>
+                <AdminTd>
+                  {tx.status
+                    ? <AdminPill label={tx.status} tone={TRANSACTION_TONE[tx.status] ?? 'neutral'} />
+                    : <span style={{ color: sp.soft }}>—</span>}
+                </AdminTd>
+                <AdminTd align="right" numeric style={{ fontWeight: 700 }}>
+                  {tx.price_offered ? formatCHF(tx.price_offered) : '—'}
+                </AdminTd>
+                <AdminTd align="right" numeric style={{ color: sp.soft }}>
+                  {formatDate(tx.created_at)}
+                </AdminTd>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      {transactions.map((tx, i) => (
-        <div
-          key={tx.id}
-          className={cn(
-            'flex items-center px-4 py-3',
-            i < transactions.length - 1 && 'border-b border-theme-border'
-          )}
-        >
-          <span className="flex-1 text-sm text-theme-primary">
-            {STAGE_I18N[tx.stage] ? t(STAGE_I18N[tx.stage]) : tx.stage ?? '—'}
-          </span>
-          <span className="w-20">
-            <span className={cn(
-              'text-xs font-medium',
-              tx.status === 'active' ? 'text-emerald-500' :
-              tx.status === 'completed' ? 'text-admin-accent' :
-              tx.status === 'cancelled' ? 'text-red-500' :
-              'text-theme-secondary'
-            )}>
-              {tx.status ?? '—'}
-            </span>
-          </span>
-          <span className="w-28 text-sm text-theme-primary text-right font-medium">
-            {tx.price_offered ? formatCHF(tx.price_offered) : '—'}
-          </span>
-          <span className="w-24 text-xs text-theme-tertiary text-right">
-            {formatDate(tx.created_at)}
-          </span>
-        </div>
-      ))}
-    </div>
+    </AdminCard>
   )
 }

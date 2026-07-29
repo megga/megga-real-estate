@@ -15,7 +15,6 @@ export interface UsageOverviewRow {
   ai_cost_month_usd: number
   wa_messages_month: number
   storage_est_mb: number
-  portals_active: number
   last_activity_at: string | null
   caps: {
     ai_monthly_cost_cap_usd?: number | null

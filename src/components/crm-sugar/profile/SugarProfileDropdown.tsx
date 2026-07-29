@@ -10,14 +10,14 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import type { SugarPalette } from '../tokens'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
-import { ADMIN_IS_EXTERNAL, openAdminConsole } from '@/lib/adminEntry'
+import { useNavigate } from 'react-router-dom'
+import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 
 // ─── Inline icons not in MEIcon ──────────────────────────────────────
 type InlineIconName = 'shield' | 'card' | 'help' | 'logout' | 'chevron' | 'spark' | 'console' | 'external'
@@ -70,7 +70,8 @@ function Row({ icon, iconKind = 'crm', label, trail, onClick, sp, danger = false
         width: '100%', padding: '9px 10px',
         border: 0, background: hover ? sp.solidBgSub : 'transparent',
         cursor: 'pointer', textAlign: 'left',
-        borderRadius: 12, fontFamily: 'inherit',
+        // Concentrique avec la coque : 26 (rayon du pager) − 12 (padding) = 14.
+        borderRadius: 14, fontFamily: 'inherit',
         // ⚠️ pas de transition de fond (bug pastilles noires)
       }}>
       <div style={{
@@ -171,8 +172,8 @@ export default function SugarProfileDropdown({
 }: SugarProfileDropdownProps) {
   const { t } = useTranslation('common')
   const { profile, user } = useAuth()
-  const { agency: agencyData, plan } = useAgencySettings()
   const navigate = useNavigate()
+  const { agency: agencyData, plan } = useAgencySettings()
   // Seule porte d'entrée vers la console depuis le CRM refondu : le rail et la
   // TopNav ne portent aucune trace de l'admin, et la sidebar legacy qui le
   // proposait n'est plus montée sur les surfaces Sugar. Rendu uniquement pour
@@ -205,21 +206,32 @@ export default function SugarProfileDropdown({
       width: 304, padding: 12, zIndex: 9000,
       background: sp.solidBg,
       border: `1px solid ${sp.solidBorder}`,
-      borderRadius: 20,
+      // Rayon du pager (viewport 26 px, cf. ContactsPager/BiensPager/CalendarApp) :
+      // le popover retombe sur le coin haut-droit du pager, les deux courbures
+      // doivent se répondre. Bordure et ombre restent en tokens `solid*` — le
+      // popover est OPAQUE et surélevé, il n'emprunte pas le verre du pager.
+      borderRadius: 26,
       boxShadow: sp.solidShadow,
       animation: 'sugar-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>
       <ProfileHeader sp={sp} name={fullName} initials={initials} subtitle={subtitle} planLabel={planLabel} />
 
+      {/* Section « Plateforme » — libellée, pour que la console se distingue des
+          réglages du compte : on ne quitte pas son agence, on change d'outil. */}
       {isSuperAdmin && (
         <>
           <Sep sp={sp} />
+          <div style={{
+            padding: '2px 10px 6px',
+            fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2,
+            color: sp.sub,
+          }}>{t('profile.platformSection')}</div>
+          {/* Chevron et non flèche « sortie » : la console est une surface du
+              CRM depuis juillet 2026, on n'ouvre plus d'onglet. */}
           <Row sp={sp} iconKind="inline" icon="console"
             label={t('profile.adminConsole')}
-            trail={ADMIN_IS_EXTERNAL
-              ? <InlineIco name="external" size={14} stroke={sp.sub} strokeWidth={1.8} />
-              : <InlineIco name="chevron" size={15} stroke={sp.sub} strokeWidth={2} />}
-            onClick={wrap(() => openAdminConsole(navigate))} />
+            trail={<InlineIco name="chevron" size={15} stroke={sp.sub} strokeWidth={2} />}
+            onClick={wrap(() => navigate(ADMIN_CONSOLE_PATH))} />
         </>
       )}
 

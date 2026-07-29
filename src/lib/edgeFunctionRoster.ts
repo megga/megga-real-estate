@@ -55,7 +55,6 @@ export const EDGE_FUNCTION_ROSTER = [
   'property-photo-r2',
   'realadvisor-sync',
   'revoke-device-session',
-  'seller-portal-action',
   'send-email',
   'send-property-email',
   'send-relance-email',

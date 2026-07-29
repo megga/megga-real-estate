@@ -18,14 +18,13 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
 import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
-
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 const MATCHING_PAGES = [
   { id: 'score', labelKey: 'pager.score' },
@@ -121,8 +120,9 @@ export default function MatchingPagerPage() {
     }
   }, [dark])
 
-  const t = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(t, dark, DARK_TONE)
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(t, dark, darkTone)
   const lightMode = !dark
 
   const onCmd = () => openSugarSearch()
@@ -335,7 +335,7 @@ export default function MatchingPagerPage() {
                 <MatchingAtelierPage embedded dark={dark} onOpenRecherche={() => goTo(LANDING_PAGE)} />
               </div>
               <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-                <MatchingRechercheHybride t={t} dark={dark} darkTone={DARK_TONE} />
+                <MatchingRechercheHybride t={t} dark={dark} darkTone={darkTone} />
               </div>
             </div>
             <MatchingPageDots page={page} onGo={goTo} lightMode={lightMode} />

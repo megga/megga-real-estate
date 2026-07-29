@@ -15,10 +15,10 @@ import {
   SUGAR_KEYFRAMES,
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { markKycOnboarded } from '@/lib/kycOnboarding'
 
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 function ArrowGlyph({ color = '#FFFFFF' }: { color?: string }) {
   return (
@@ -38,8 +38,9 @@ export default function KycOnboardingPage() {
     if (saved === '0') return false
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
-  const t = sugarThemeTokens(dark)
-  const sp = useMemo(() => crmSugarPalette(t, dark, DARK_TONE), [t, dark])
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = useMemo(() => crmSugarPalette(t, dark, darkTone), [t, dark, darkTone])
 
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {

@@ -198,7 +198,7 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
           <button onClick={send} disabled={!canSend} style={{
             height: 40, padding: '0 20px', borderRadius: 999, border: 0,
             cursor: canSend ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-            background: canSend ? sp.accent : (dark ? 'rgba(255,255,255,0.12)' : '#E6E9EE'),
+            background: canSend ? sp.accent : (dark ? sp.fillStrong : '#E6E9EE'),
             color: canSend ? sp.onAccent : sp.sub, display: 'flex', alignItems: 'center', gap: 7,
           }}>
             <CpIcon name={scheduleMode ? 'calendar' : 'send'} size={15} color={canSend ? sp.onAccent : sp.sub} sw={2} />

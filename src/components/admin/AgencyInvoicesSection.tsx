@@ -1,8 +1,21 @@
 // P8b — Factures Stripe d'une agence (chargées à la demande via l'edge).
+// Grammaire Sugar : bento séparé par l'ombre, statut de facture en pilule pleine
+// (fond plein + texte blanc, plus de texte teinté), montants en chiffres tabulaires.
 
 import { useTranslation } from 'react-i18next'
 import { FileText, ExternalLink } from 'lucide-react'
 import { formatCHF } from '@/lib/utils'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
+import {
+  AdminCard,
+  AdminDivider,
+  AdminEmpty,
+  AdminError,
+  AdminGhostBtn,
+  AdminIc,
+  AdminPill,
+} from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAgencyInvoices } from '@/hooks/useAgencyInvoices'
 
 function fmtAmount(cents: number, currency: string): string {
@@ -11,66 +24,83 @@ function fmtAmount(cents: number, currency: string): string {
   return currency.toLowerCase() === 'chf' ? formatCHF(v) : `${v.toFixed(2)} ${currency.toUpperCase()}`
 }
 
+/** Ton de pilule par statut Stripe ; tout le reste (draft, void…) reste sans signal. */
+const STATUS_TONE: Record<string, AdminToneName> = { paid: 'ok', open: 'warn' }
+
+/** Bento « Factures » : bouton de chargement à la demande puis liste des factures Stripe. */
 export default function AgencyInvoicesSection({ agencyId }: { agencyId: string }) {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSugar()
   const { data, isFetching, isError, refetch } = useAgencyInvoices(agencyId)
 
   return (
-    <div className="rounded-xl border border-theme-border p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-theme-primary flex items-center gap-2">
-          <FileText className="h-4 w-4 text-theme-tertiary" />
+    <AdminCard>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+        <AdminIc icon={FileText} size={16} color={sp.soft} />
+        <h3 style={{ flex: 1, margin: 0, fontSize: 13, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
           {t('invoices.title')}
         </h3>
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50"
-        >
+        <AdminGhostBtn onClick={() => refetch()} disabled={isFetching}>
           {isFetching ? t('common.loading') : t('invoices.load')}
-        </button>
+        </AdminGhostBtn>
       </div>
 
-      {isError && <p className="text-sm text-theme-tertiary">{t('invoices.error')}</p>}
+      {isError && <AdminError message={t('invoices.error')} onRetry={() => refetch()} retryLabel={t('invoices.load')} />}
 
-      {data && !data.configured && (
-        <p className="text-sm text-theme-tertiary">{t('invoices.notConfigured')}</p>
-      )}
+      {data && !data.configured && <AdminEmpty title={t('invoices.notConfigured')} />}
 
       {data?.configured && (
         <>
           {data.upcoming && (
-            <p className="text-xs text-theme-secondary mb-3">
+            <p style={{ margin: '0 0 10px', fontSize: 12, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
               {t('invoices.upcoming', { amount: fmtAmount(data.upcoming.amount_due, data.upcoming.currency) })}
             </p>
           )}
           {data.invoices.length === 0 ? (
-            <p className="text-sm text-theme-tertiary">{t('invoices.empty')}</p>
+            <AdminEmpty title={t('invoices.empty')} />
           ) : (
-            <div className="divide-y divide-theme-border-subtle">
-              {data.invoices.map(inv => (
-                <div key={inv.id} className="flex items-center justify-between py-2 text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-theme-primary font-medium">{inv.number ?? inv.id.slice(-8)}</span>
-                    <span className={inv.status === 'paid' ? 'text-emerald-500' : inv.status === 'open' ? 'text-amber-500' : 'text-theme-muted'}>
-                      {t(`invoices.status.${inv.status}`, { defaultValue: inv.status ?? '' })}
+            data.invoices.map((inv, i) => (
+              <div key={inv.id}>
+                {i > 0 && <AdminDivider />}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+                      {inv.number ?? inv.id.slice(-8)}
                     </span>
+                    {/* Statut absent → libellé vide → `AdminPill` ne rend rien du tout
+                        (et non un rectangle de couleur vide). Rien ici ne dépend de la
+                        présence de la pilule : le `gap` du conteneur ne crée pas d'espace
+                        fantôme pour un enfant absent, le numéro reste simplement seul. */}
+                    <AdminPill
+                      label={t(`invoices.status.${inv.status}`, { defaultValue: inv.status ?? '' })}
+                      tone={STATUS_TONE[inv.status ?? ''] ?? 'neutral'}
+                    />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-theme-secondary font-medium">{fmtAmount(inv.amount_paid || inv.amount_due, inv.currency)}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                      {fmtAmount(inv.amount_paid || inv.amount_due, inv.currency)}
+                    </span>
                     {inv.hosted_invoice_url && (
-                      <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer"
-                        className="text-theme-tertiary hover:text-admin-accent" aria-label={t('invoices.open')}>
-                        <ExternalLink className="h-3.5 w-3.5" />
+                      <a
+                        href={inv.hosted_invoice_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={t('invoices.open')}
+                        style={{
+                          display: 'grid', placeItems: 'center', width: 26, height: 26,
+                          borderRadius: ADMIN_RADII.pill, color: sp.soft,
+                        }}
+                      >
+                        <AdminIc icon={ExternalLink} size={14} color={sp.soft} />
                       </a>
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           )}
         </>
       )}
-    </div>
+    </AdminCard>
   )
 }

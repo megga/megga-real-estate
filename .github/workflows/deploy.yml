@@ -55,9 +55,13 @@ jobs:
         run: npx tsc -b
 
       - name: Lint
-        # Warnings are OK (react-hooks/preserve-manual-memoization etc.)
-        # Only fail on actual errors (exit code from eslint is 1 only for errors, not warnings)
-        run: npm run lint || true
+        # BLOQUANT depuis la PR #981, qui a ramené le lint à 0 erreur. Il était
+        # en `|| true` parce que la base traînait 31 erreurs : le garde-fou ne
+        # pouvait pas servir tant qu'il était rouge.
+        # Les avertissements restent tolérés — `eslint .` ne sort en 1 que sur
+        # des ERREURS (pas de --max-warnings), donc les ~131 warnings connus
+        # (react-hooks/set-state-in-effect, purity…) ne bloquent pas le déploiement.
+        run: npm run lint
 
       - name: Build
         run: npm run build
@@ -175,6 +179,14 @@ jobs:
       # vérification impossible, elle avertit comme avant. Elle n'échoue jamais.
       # Pourquoi pas d'échec dur alors que c'était l'objectif initial : voir le
       # raisonnement détaillé juste avant l'appel à l'API, plus bas dans ce step.
+      #
+      # ⚠ Et elle ne suffit pas, quoi qu'elle vérifie : le 28 juil. 2026, deux
+      # migrations du 21 manquaient depuis une semaine (reminders.kind,
+      # transactions.archived_at), cassant quatre gestes du pipeline. Cette alerte
+      # ne parle que du PUSH COURANT et ne dit rien de l'état réel de la base au
+      # fil du temps. Le vrai filet est `migration-drift.yml`
+      # (scripts/check-migration-drift.mjs), qui compare ce que le dépôt déclare à
+      # ce que la production contient — et qui, lui, échoue.
       - name: Migrations sautées par le date-guard (alerte)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
@@ -378,7 +390,10 @@ jobs:
           # Pin wrangler v4 (matches the Rockwell deploy). The V3 Basic Auth
           # gate is sites/megga-vitrine/_worker.js (Advanced mode), copied
           # into dist/ by the postbuild hook — _worker.js is detected natively
-          # on every deploy, so megga.ch stays behind ai/ai.
+          # on every deploy, so megga.ch stays behind Basic Auth. Credentials
+          # live in that worker (single source of truth); the auth pages
+          # (/login, /signup, /reset-password) are exempt from the gate, since
+          # the CRM has no login page of its own and redirects there.
           wranglerVersion: "4.86.0"
           # `--commit-message="deploy <sha>"` court-circuite l'introspection
           # git de wrangler. Sans ça, wrangler pousse le message du HEAD vers

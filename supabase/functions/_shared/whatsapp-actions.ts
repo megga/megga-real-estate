@@ -194,7 +194,7 @@ export async function execCreateContact(ctx: ActionCtx, a: Args): Promise<string
     .select('id, first_name, last_name')
     .single()
   if (error) return `Erreur création contact: ${error.message}`
-  await logTimeline(ctx, 'Contact créé', `${data.first_name ?? ''} ${data.last_name ?? ''} (via WhatsApp)`.trim(), data.id)
+  await logTimeline(ctx, 'contact_created', `${data.first_name ?? ''} ${data.last_name ?? ''} (via WhatsApp)`.trim(), data.id)
   const undoOk = await recordAutoUndo(ctx, 'create_contact', { contact_id: data.id })
   const base = `Contact créé: ${data.first_name ?? ''} ${data.last_name ?? ''} (id ${data.id}).`
   return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
@@ -212,7 +212,7 @@ export async function execAddNote(ctx: ActionCtx, a: Args): Promise<string> {
     .eq('agency_id', ctx.agencyId)
     .maybeSingle()
   if (!c) return 'Erreur: contact introuvable dans votre agence.'
-  const ok = await logTimeline(ctx, 'Note ajoutée', body, contactId)
+  const ok = await logTimeline(ctx, 'note_added', body, contactId)
   if (!ok) return "Erreur: impossible d'enregistrer la note."
   // Écho du contact + extrait du body : le modèle a les faits exacts sous la main et n'a plus
   // à deviner le destinataire ni reformuler/inventer le contenu noté (anti-fabrication).
@@ -454,7 +454,7 @@ export async function execScheduleVisit(ctx: ActionCtx, a: Args): Promise<string
   if (visitType === 'video') row.video_platform = 'google_meet'
   const { data: visit, error } = await ctx.supabase.from('visits').insert(row).select('id').single()
   if (error) return `Erreur planification: ${error.message}`
-  await logTimeline(ctx, 'Visite planifiée', `${propTitle} — ${frDateTime(iso)}`, contactId)
+  await logTimeline(ctx, 'visit_scheduled', `${propTitle} — ${frDateTime(iso)}`, contactId)
   const undoOk = await recordAutoUndo(ctx, 'schedule_visit', { visit_id: visit.id })
   const base = `Visite planifiée le ${frDateTime(iso)} pour ${buyerName ?? 'le contact'} (bien : ${propTitle}).`
   return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
@@ -475,7 +475,7 @@ export async function execCreateReminder(ctx: ActionCtx, a: Args): Promise<strin
     trigger_at: iso, message_template: body.slice(0, 500),
   }).select('id').single()
   if (error) return `Erreur rappel: ${error.message}`
-  if (contactId) await logTimeline(ctx, 'Rappel créé', `${body.slice(0, 120)} (${frDateTime(iso)})`, contactId)
+  if (contactId) await logTimeline(ctx, 'reminder_created', `${body.slice(0, 120)} (${frDateTime(iso)})`, contactId)
   const undoOk = await recordAutoUndo(ctx, 'create_reminder', { reminder_id: reminder.id })
   const base = `Rappel noté pour le ${frDateTime(iso)} : « ${body.slice(0, 120)} ».`
   return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
@@ -612,7 +612,7 @@ export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> 
     criteria.type, (criteria.zones ?? []).join('/') || null,
     criteria.budget_max ? `budget ${criteria.budget_max}` : null,
   ].filter(Boolean).join(' · ')
-  await logTimeline(ctx, 'Lead qualifié (WhatsApp)',
+  await logTimeline(ctx, 'lead_qualified_whatsapp',
     `Lead qualifié par l’agent.${critTxt ? ` ${critTxt}.` : ''}${missing.length ? ` À compléter : ${missing.join(', ')}.` : ''}`, contactId)
 
   const parts = ['Lead qualifié.']
@@ -675,7 +675,7 @@ export async function execCreateDeal(ctx: ActionCtx, a: Args): Promise<string> {
 
   const label = stageLabel(stage, ctx.lang ?? 'fr')
   const partyFr = party === 'seller' ? 'vendeur' : 'acheteur'
-  await logTimeline(ctx, 'Dossier ouvert', `${partyFr === 'vendeur' ? 'Vendeur' : 'Acheteur'} — ${label} (via WhatsApp)`, contactId)
+  await logTimeline(ctx, 'kyc_case_opened', `${partyFr === 'vendeur' ? 'Vendeur' : 'Acheteur'} — ${label} (via WhatsApp)`, contactId)
   return `Dossier ouvert pour ${name} (${partyFr}, étape ${label}). Tu peux maintenant enregistrer une offre ou faire avancer le pipeline.`
 }
 
@@ -1193,7 +1193,7 @@ export async function executeOpenKycCase(ctx: ActionCtx, a: Args): Promise<strin
   })
   if (error) return `Erreur ouverture KYC: ${error.message}`
 
-  await logTimeline(ctx, 'Dossier KYC ouvert', 'via WhatsApp', contactId)
+  await logTimeline(ctx, 'kyc_case_opened', 'via WhatsApp', contactId)
   return openKycResult(ctx.lang ?? 'fr', vigilance)
 }
 

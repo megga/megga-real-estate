@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import type { SugarPalette } from '../tokens'
+import { crmStep, type SugarPalette } from '../tokens'
 import type { CrmDeal } from '../mockData'
 import { useTeamMembers } from '@/hooks/useTeam'
 
@@ -73,10 +73,10 @@ export function SugarCardQuickActions({
     .filter(m => m.id !== deal.ownerAgentId)
     .map(m => ({ id: m.id, name: m.full_name }))
 
-  const btnBg = dark ? '#26272A' : '#EDF0F4'
-  const btnHover = dark ? '#33353A' : '#E1E6EC'
+  const btnBg = dark ? crmStep('s3', '#26272A') : '#EDF0F4'
+  const btnHover = dark ? crmStep('s2', '#33353A') : '#E1E6EC'
   const btnFg = sp.ink
-  const rowHover = dark ? '#26272A' : '#F4F5F8'
+  const rowHover = dark ? crmStep('s3', '#26272A') : '#F4F5F8'
   const btn = (extra: React.CSSProperties = {}): React.CSSProperties => ({
     width: 28, height: 28, borderRadius: 999, border: 0,
     background: btnBg, color: btnFg, cursor: 'pointer', fontFamily: 'inherit',
@@ -85,7 +85,7 @@ export function SugarCardQuickActions({
     ...extra,
   })
   const panelHair = dark ? 'rgba(255,255,255,.07)' : 'rgba(15,23,42,.08)'
-  const panelBg = dark ? '#17181A' : '#FFFFFF'
+  const panelBg = dark ? crmStep('s4', '#17181A') : '#FFFFFF'
   const panelStyle: React.CSSProperties = {
     position: 'absolute', top: 32, right: 0, minWidth: 200,
     background: panelBg, border: dark ? `1px solid ${panelHair}` : 0, borderRadius: 14,
@@ -104,7 +104,7 @@ export function SugarCardQuickActions({
     <div onClick={stop} style={{
       position: 'absolute', top: 8, right: 8, display: 'flex', gap: 3, zIndex: 5,
       padding: 3, borderRadius: 999,
-      background: dark ? '#17181A' : '#FFFFFF',
+      background: dark ? crmStep('s4', '#17181A') : '#FFFFFF',
       boxShadow: dark ? '0 6px 20px rgba(0,0,0,.55)' : '0 3px 12px rgba(15,23,42,.16), 0 1px 4px rgba(15,23,42,.08)',
       animation: 'qaFade .14s ease-out',
     }}>
@@ -202,7 +202,7 @@ function SugarAgentItem({ sp, member, onClick, dark }: {
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         width: '100%', padding: '7px 8px', borderRadius: 10, border: 0,
-        background: hov ? (dark ? '#26272A' : '#F4F5F8') : 'transparent',
+        background: hov ? (dark ? crmStep('s3', '#26272A') : '#F4F5F8') : 'transparent',
         color: sp.ink, cursor: 'pointer', fontFamily: 'inherit',
         display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
       }}>
@@ -236,7 +236,7 @@ function SugarMenuItem({ sp, icon, label, tone, onClick, dark, chevron }: {
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         width: '100%', padding: '8px 10px', borderRadius: 10, border: 0,
-        background: hov ? (danger ? 'rgba(242,107,101,0.14)' : (dark ? '#26272A' : '#F4F5F8')) : 'transparent',
+        background: hov ? (danger ? 'rgba(242,107,101,0.14)' : (dark ? crmStep('s3', '#26272A') : '#F4F5F8')) : 'transparent',
         color: dangerInk, cursor: 'pointer', fontFamily: 'inherit',
         display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontWeight: 600,
         textAlign: 'left',

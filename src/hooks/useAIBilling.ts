@@ -16,15 +16,12 @@ export interface BalanceSnapshot {
 export interface AIUsageSummary {
   deepseekTokens: number
   deepseekCostUsd: number
-  claudeTokens: number
-  claudeCostUsd: number
   fallbackCount: number
 }
 
 export interface AIUsageDailyPoint {
   date: string
   deepseek: number
-  claude: number
 }
 
 /** Dernier instantané de solde DeepSeek (ligne la plus récente de `ai_balance_snapshots`). */
@@ -66,8 +63,6 @@ export function useAIUsageSummary(period: 'month' | '30d' = 'month') {
       const summary: AIUsageSummary = {
         deepseekTokens: 0,
         deepseekCostUsd: 0,
-        claudeTokens: 0,
-        claudeCostUsd: 0,
         fallbackCount: 0,
       }
 
@@ -77,9 +72,6 @@ export function useAIUsageSummary(period: 'month' | '30d' = 'month') {
         if (row.provider === 'deepseek') {
           summary.deepseekTokens += tokens
           summary.deepseekCostUsd += cost
-        } else if (row.provider?.startsWith('claude')) {
-          summary.claudeTokens += tokens
-          summary.claudeCostUsd += cost
         }
         if (row.was_fallback) summary.fallbackCount++
       }
@@ -102,21 +94,20 @@ export function useAIUsageTimeseries(days = 30) {
         .gte('created_at', since)
       if (error) throw error
 
-      const buckets = new Map<string, { deepseek: number; claude: number }>()
+      const buckets = new Map<string, { deepseek: number }>()
       for (const row of data ?? []) {
         const day = (row.created_at as string).slice(0, 10)
-        const bucket = buckets.get(day) ?? { deepseek: 0, claude: 0 }
+        const bucket = buckets.get(day) ?? { deepseek: 0 }
         const tokens = (row.input_tokens ?? 0) + (row.output_tokens ?? 0)
         if (row.provider === 'deepseek') bucket.deepseek += tokens
-        else if (row.provider?.startsWith('claude')) bucket.claude += tokens
         buckets.set(day, bucket)
       }
 
       const out: AIUsageDailyPoint[] = []
       for (let i = days - 1; i >= 0; i--) {
         const d = new Date(Date.now() - i * 24 * 3600 * 1000).toISOString().slice(0, 10)
-        const bucket = buckets.get(d) ?? { deepseek: 0, claude: 0 }
-        out.push({ date: d, deepseek: bucket.deepseek, claude: bucket.claude })
+        const bucket = buckets.get(d) ?? { deepseek: 0 }
+        out.push({ date: d, deepseek: bucket.deepseek })
       }
       return out
     },

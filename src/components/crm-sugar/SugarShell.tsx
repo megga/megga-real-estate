@@ -117,9 +117,13 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
   // ✦ actif = page Julien OU panneau MEGGA AI ouvert (quand le provider est monté).
   const aiActive = isJulien || (ai.enabled && ai.isOpen)
 
+  // Inset droit = 24 px, la MÊME valeur que le `paddingRight` de tous les <main>
+  // Sugar : le bord droit des boutons ronds — et donc des popovers ancrés dessus
+  // en `right: 0` — tombe pile sur le bord droit du pager. Ne pas le remonter à
+  // 40 : le popover profil repartirait 16 px en retrait du pager.
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', padding: '24px 40px 14px 33px',
+      display: 'flex', alignItems: 'center', padding: '24px 24px 14px 33px',
       gap: 24,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, height: 44 }}>

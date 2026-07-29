@@ -1,12 +1,16 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Separate config for super-admin tests. La console est une application à part
-// (admin.megga.ch) : on lance donc SON serveur de dev (`npm run dev:admin`,
-// vite.admin.config.ts) sur le port 5174, avec VITE_DEV_BYPASS_ROLE=super_admin
-// pour que le profil MOCK passe AdminAuthGate.
+// Config séparée pour la couverture super-admin. La console n'est plus une
+// application à part : elle vit dans le CRM sous `/dashboard/admin/*`. On lance
+// donc le serveur du CRM, mais sur un AUTRE PORT et avec
+// VITE_DEV_BYPASS_ROLE=super_admin — c'est le RÔLE qui distingue cette suite de
+// la principale, plus le bundle.
 //
-// The main suite (playwright.config.ts) runs on :5173 with role=agent.
-// Both can coexist — different ports, different env, no conflict.
+// Sans ce rôle, `AdminConsoleRoute` redirige vers /dashboard : la suite
+// passerait à vide en testant 17 fois la même page.
+//
+// La suite principale (playwright.config.ts) tourne sur :5173 en role=agent.
+// Les deux coexistent — ports et env distincts, aucun conflit.
 //
 // Run with: npm run test:e2e:admin
 
@@ -35,7 +39,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev:admin -- --port 5174',
+    command: 'npm run dev -- --port 5174',
     url: 'http://localhost:5174',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

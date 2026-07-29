@@ -551,7 +551,6 @@
       "basicSearch": "Recherche basique",
       "aiAssistance": "Assistance IA",
       "kycPipeline": "Pipeline KYC",
-      "sellerPortal": "Portail vendeur",
       "prioritySupport": "Support prioritaire",
       "unlimitedProperties": "Biens illimités",
       "unlimitedContacts": "Contacts illimités",
@@ -1018,7 +1017,6 @@
           "properties": "3 biens actifs",
           "crm": "CRM essentiel",
           "aiSearch": "Recherche IA",
-          "sellerPortal": "Portail vendeur",
           "emailSupport": "Support par email"
         }
       },

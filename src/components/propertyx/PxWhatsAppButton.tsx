@@ -18,6 +18,7 @@
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { buildWaMeUrl } from '@/lib/waMeUrl'
 import { PX } from './tokens'
 import PxSocialIcon from './PxSocialIcon'
 
@@ -44,17 +45,6 @@ interface PxWhatsAppButtonProps {
   className?: string
   /** aria-label personnalisé (sinon dérivé du libellé). */
   ariaLabel?: string
-}
-
-/**
- * Construit l'URL wa.me. `phone` peut contenir +, espaces, tirets, parenthèses
- * — on ne garde que les chiffres (wa.me veut le format international sans +).
- */
-export function buildWaMeUrl(phone: string, message?: string): string {
-  const digits = (phone || '').replace(/\D/g, '')
-  const base = `https://wa.me/${digits}`
-  const text = message?.trim()
-  return text ? `${base}?text=${encodeURIComponent(text)}` : base
 }
 
 function palette(variant: PxWhatsAppVariant) {

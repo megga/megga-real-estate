@@ -139,8 +139,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 /** Accède au thème courant ; lève si utilisé hors d'un <ThemeProvider>. */
+// Hook colocalisé avec son provider (contexte privé au module) : Fast Refresh
+// perd le state de ce fichier à chaque édition, compromis assumé — cf. useAuth.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext)
   if (!ctx) throw new Error('useTheme must be used within <ThemeProvider>')

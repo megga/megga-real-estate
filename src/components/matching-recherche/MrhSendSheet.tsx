@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { buildWaMeUrl } from '@/components/propertyx/PxWhatsAppButton'
+import { buildWaMeUrl } from '@/lib/waMeUrl'
 import RechIcon from './RechIcon'
 import type { MrhCtx } from './mrhCtx'
 import type { SendSelectionResult } from '@/hooks/useSendReceptionSelection'

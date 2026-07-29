@@ -58,12 +58,34 @@ export function useAdminStats() {
     staleTime: 60_000,
   })
 
+  // Deux filtres, pour deux raisons distinctes.
+  //
+  // La SÉVÉRITÉ d'abord : sans elle, la requête rendait les 10 derniers
+  // événements toutes sévérités confondues — une création de contact
+  // s'affichait sous le titre « Alertes » pendant qu'une vraie alerte, plus
+  // ancienne, en était chassée. Filtrer par sévérité plutôt que par une liste
+  // d'actions est délibéré : toute action future marquée `warn`/`critical`
+  // remonte ici sans qu'on ait à y penser.
+  //
+  // L'EXCLUSION ensuite : `admin_console_entered` est en `warn` (migration
+  // 20260725220000) pour ressortir dans le journal de sécurité, mais un
+  // super-admin qui ouvre sa propre console n'a rien à s'annoncer à lui-même.
+  // Depuis que l'ouverture est journalisée à chaque entrée et non plus à chaque
+  // chargement de page, ces lignes noyaient tout le reste.
+  //
+  // L'INCLUSION enfin : `agency_created` est en `info` et le restera — une
+  // agence qui arrive est une bonne nouvelle, la ranger en `warn` pour la faire
+  // remonter serait mentir sur sa gravité. C'est pourtant le seul signal de
+  // croissance de la plateforme, et le bento sait déjà le rendre en ton « ok ».
+  // On l'ajoute donc par une règle nommée plutôt qu'en gonflant sa sévérité.
   const alerts = useQuery({
     queryKey: ['admin-alerts'],
     queryFn: async (): Promise<AlertEvent[]> => {
       const { data, error } = await supabase
         .from('activity_events')
         .select('id, action, entity_type, entity_id, metadata, created_at')
+        .or('severity.in.(warn,critical),action.eq.agency_created')
+        .neq('action', 'admin_console_entered')
         .order('created_at', { ascending: false })
         .limit(10)
       if (error) throw error
@@ -75,7 +97,10 @@ export function useAdminStats() {
   return {
     kpis: kpis.data,
     kpisLoading: kpis.isLoading,
+    kpisError: kpis.isError,
     alerts: alerts.data ?? [],
     alertsLoading: alerts.isLoading,
+    alertsError: alerts.isError,
+    refetch: () => { void kpis.refetch(); void alerts.refetch() },
   }
 }

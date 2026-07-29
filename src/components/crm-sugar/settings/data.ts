@@ -2,6 +2,7 @@
 // 1:1 port from `crm-screen-settings-sugar.jsx`.
 // i18n : labels de nav (sections/groupes) via getters singleton — cf §6 conventions.
 import i18n from '@/i18n'
+import { crmStep } from '@/components/crm-sugar/tokens'
 
 // 'team' + 'brand' supprimés en PR #455 (BrandSection + TeamSection 100% mock,
 // pas de tables agency_branding ni agency_members en prod). Suivi via les
@@ -168,13 +169,16 @@ export const SET_LIGHT: SettingsPalette = {
   bad: '#EF4444',
 }
 
+// Surfaces en GETTERS : `applySetTheme` les recopie par `Object.assign` avant
+// chaque rendu de la page, donc elles suivent la teinte sombre active.
 export const SET_DARK: SettingsPalette = {
-  bg: '#0A0A0F',
-  bgGradient:
-    'radial-gradient(ellipse 120% 80% at 50% 100%, #1A1C26 0%, #101019 48%, #0A0A0F 100%)',
-  card: '#16171F',
-  cardSubtle: '#1E1F2A',
-  inputFocusBg: '#1E1F2A',
+  get bg() { return crmStep('s0', '#0A0A0F') },
+  get bgGradient() {
+    return `radial-gradient(ellipse 120% 80% at 50% 100%, ${crmStep('s3', '#1A1C26')} 0%, ${crmStep('s1', '#101019')} 48%, ${crmStep('s0', '#0A0A0F')} 100%)`
+  },
+  get card() { return crmStep('s2', '#16171F') },
+  get cardSubtle() { return crmStep('s3', '#1E1F2A') },
+  get inputFocusBg() { return crmStep('s3', '#1E1F2A') },
   black: '#ECEDF3',
   blackHover: '#FFFFFF',
   blackInk: '#14161C',

@@ -1,7 +1,12 @@
 /**
  * Palette de recherche globale super-admin (Cmd-K), rendue en portal z-[100].
- * Interroge agences / utilisateurs / biens / tickets via `useAdminSearch`
+ * Interroge agences / utilisateurs / biens via `useAdminSearch`
  * (min. 2 caractères) et regroupe les résultats par type.
+ *
+ * Rendu en grammaire Sugar : cadre de rayon 26 séparé par l'ombre (plus de
+ * `border border-theme-border`), en-têtes de groupe en pastille + libellé
+ * (`AdminGroupTitle`), et lignes de résultat sur la même mécanique de survol que
+ * le rail (`adm-nav`).
  */
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
@@ -9,8 +14,10 @@ import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { cn } from '@/lib/utils'
 import { useAdminSearch, type AdminSearchResult } from '@/hooks/useAdminSearch'
+import { AdminDivider, AdminEmpty, AdminError, AdminGroupTitle } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 interface AdminSearchDialogProps {
   open: boolean
@@ -27,10 +34,11 @@ const TYPE_META: Record<AdminSearchResult['type'], { icon: MEIconName; i18nKey: 
 export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogProps) {
   'use no memo'
   const { t } = useTranslation('admin')
+  const { sp, surf, dark } = useAdminSugar()
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
-  const { results, loading } = useAdminSearch(query)
+  const { results, loading, isError } = useAdminSearch(query)
   const focusTrapRef = useFocusTrap(open)
 
   // Auto-focus input when dialog opens
@@ -69,44 +77,68 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]">
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0"
         onClick={onClose}
+        style={{
+          background: dark ? 'rgba(0,0,4,.68)' : 'rgba(14,20,16,.42)',
+          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+        }}
       />
 
       {/* Dialog */}
-      <div ref={focusTrapRef} className="relative bg-theme-card rounded-xl border border-theme-border w-full max-w-lg mx-4 overflow-hidden">
+      <div
+        ref={focusTrapRef}
+        className="relative w-full max-w-lg mx-4 overflow-hidden"
+        style={{
+          background: surf.card,
+          borderRadius: ADMIN_RADII.frame,
+          border: surf.hairline,
+          boxShadow: sp.shadow,
+        }}
+      >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 h-12 border-b border-theme-border">
-          {loading ? (
-            <MEIcon name="spinner" className="h-4 w-4 text-theme-tertiary animate-spin flex-shrink-0" />
-          ) : (
-            <MEIcon name="search" className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 18px' }}>
+          <MEIcon
+            name={loading ? 'spinner' : 'search'}
+            size={17}
+            color={sp.sub}
+            className={loading ? 'animate-spin' : undefined}
+          />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={t('search.placeholder')}
-            className="flex-1 bg-transparent text-theme-primary text-sm placeholder:text-theme-muted outline-none"
+            className="flex-1 placeholder:text-theme-muted"
+            style={{
+              background: 'transparent', border: 0, outline: 'none', minWidth: 0,
+              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, color: sp.ink,
+            }}
           />
-          <kbd className="text-xs bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">
+          <kbd style={{
+            flexShrink: 0, padding: '3px 9px', borderRadius: ADMIN_RADII.pill,
+            background: surf.cardSub, color: sp.sub, fontFamily: 'inherit', fontSize: 11, fontWeight: 700,
+          }}>
             Esc
           </kbd>
         </div>
+        <AdminDivider />
 
         {/* Results */}
         <div className="max-h-80 overflow-y-auto scrollbar-hide">
-          {query.length >= 2 && results.length === 0 && !loading && (
-            <div className="px-4 py-8 text-center text-sm text-theme-muted">
-              {t('search.noResult')}
-            </div>
+          {/* Une requête refusée ne doit pas se lire « aucun résultat » : la
+              distinction décide de la suite, réessayer ou reformuler. */}
+          {query.length >= 2 && isError && !loading && (
+            <AdminError message={t('common.loadError')} />
+          )}
+
+          {query.length >= 2 && results.length === 0 && !loading && !isError && (
+            <AdminEmpty title={t('search.noResult')} />
           )}
 
           {query.length < 2 && (
-            <div className="px-4 py-8 text-center text-sm text-theme-muted">
-              {t('search.minChars')}
-            </div>
+            <AdminEmpty title={t('search.minChars')} />
           )}
 
           {(['agency', 'user', 'property'] as const).map(type => {
@@ -116,31 +148,29 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
 
             return (
               <div key={type}>
-                <div className="px-4 pt-3 pb-1">
-                  <span className="text-xs tracking-wide text-theme-tertiary font-medium">
-                    {t(meta.i18nKey)}
-                  </span>
-                </div>
+                <AdminGroupTitle label={t(meta.i18nKey)} />
                 {items.map(item => {
                   const Icon = meta.icon
                   return (
                     <button
                       key={item.id}
                       onClick={() => handleSelect(item)}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-4 py-2 text-left',
-                        'hover:bg-theme-hover transition-colors'
-                      )}
+                      className="adm-nav"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                        padding: '9px 16px', border: 0, background: 'transparent',
+                        textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                      }}
                     >
-                      <MEIcon name={Icon as MEIconName} className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-theme-primary truncate">
+                      <MEIcon name={Icon as MEIconName} size={16} color={sp.sub} />
+                      <span style={{ minWidth: 0, flex: 1 }}>
+                        <span style={{ display: 'block', fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.title}
-                        </p>
-                        <p className="text-xs text-theme-muted truncate">
+                        </span>
+                        <span style={{ display: 'block', fontSize: 11.5, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.subtitle}
-                        </p>
-                      </div>
+                        </span>
+                      </span>
                     </button>
                   )
                 })}

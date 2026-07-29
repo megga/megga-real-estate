@@ -62,6 +62,9 @@ interface ToastApi {
 const ToastCtx = createContext<ToastApi | null>(null)
 
 /** Accès à l'API toast depuis le contexte. Hors provider : no-op (évite le crash en arbre sans provider / Storybook). */
+// Hook colocalisé avec son provider (contexte privé au module) : Fast Refresh
+// perd le state de ce fichier à chaque édition, compromis assumé — cf. useAuth.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast(): ToastApi {
   const api = useContext(ToastCtx)
   if (!api) {

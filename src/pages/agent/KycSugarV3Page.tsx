@@ -20,7 +20,8 @@ import {
   SUGAR_KEYFRAMES,
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
 import {
   KycPaletteContext,
@@ -31,8 +32,6 @@ import { KycPagerFrame, type KycWizardControl } from '@/components/crm-sugar-v3/
 import { kypSurf, KYP_KEYFRAMES } from '@/components/crm-sugar-v3/kyc-pager/kypTokens'
 import { isKycOnboarded, markKycOnboarded } from '@/lib/kycOnboarding'
 import { useKycDossiers, useKycDossierByContact } from '@/hooks/useKycDossier'
-
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 export default function KycSugarV3Page() {
   const navigate = useNavigate()
@@ -48,8 +47,9 @@ export default function KycSugarV3Page() {
     if (saved === '0') return false
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
-  const t = sugarThemeTokens(dark)
-  const sp = useMemo(() => crmSugarPalette(t, dark, DARK_TONE), [t, dark])
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = useMemo(() => crmSugarPalette(t, dark, darkTone), [t, dark, darkTone])
   const kycSp = useMemo(() => buildKycPalette(dark, sp, t), [dark, sp, t])
   const surf = useMemo(() => kypSurf(dark), [dark])
 

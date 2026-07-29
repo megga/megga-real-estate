@@ -1,50 +1,43 @@
 /**
- * Adresses des deux applications MEGGA, et porte d'entrée vers la console.
+ * Adresse de la console super-admin dans le CRM.
  *
- * Le back-office vit sur SA PROPRE origine (admin.megga.ch, projet Cloudflare
- * Pages `megga-admin`, build `npm run build:admin`) : son bundle n'est pas servi
- * aux agents, et une faille XSS dans le CRM ne donne pas la main sur la console.
- * Toutes les surfaces qui traversent la frontière — bouton du dropdown profil,
- * recherche ⌘K, retour console → CRM, passage d'impersonation — passent par ici.
- *
- * `VITE_ADMIN_URL` / `VITE_APP_URL` permettent de viser des serveurs locaux en
- * dev (ex. `VITE_ADMIN_URL=http://localhost:5174`).
+ * Une seule application, une seule origine : la console est une SURFACE du CRM.
+ * L'application autonome `admin.megga.ch`, son écran d'accès et son passage de
+ * session par fragment d'URL ont été retirés en juillet 2026.
  */
-
-/** Origine de la console super-admin. */
-export const ADMIN_ENTRY_URL =
-  (import.meta.env.VITE_ADMIN_URL as string | undefined)?.trim() || 'https://admin.megga.ch'
-
-/** Origine du CRM agent (retour depuis la console, passage d'impersonation). */
-export const CRM_APP_URL =
-  (import.meta.env.VITE_APP_URL as string | undefined)?.trim() || 'https://app.megga.ch'
-
-/** Vrai quand la console est servie par une autre origine (donc hors React Router). */
-export const ADMIN_IS_EXTERNAL = /^https?:\/\//i.test(ADMIN_ENTRY_URL)
 
 /**
- * Ouvre la console admin. Origine dédiée → nouvel onglet (`noopener` : la page
- * ouverte ne garde aucune référence sur le CRM), sinon navigation React Router.
+ * Route de la console.
+ *
+ * On y entre par le routeur, sans onglet ni transfert de session : l'URL est
+ * rechargeable, partageable et mémorisable.
+ *
+ * ⚠️ Toute cible de navigation de la console DOIT être préfixée par cette
+ * constante. Les routes ont vécu à la racine (`/agencies/:id`, `/users`) le
+ * temps de l'isolation, et une cible restée nue ne lève aucune erreur : elle
+ * tombe sur le 404 du CRM, voire sur une route publique — `/agencies` est une
+ * redirection marketplace, qui éjecte hors de l'application. Garde-fou :
+ * `tests/unit/admin-console-paths.spec.ts`.
  */
-export function openAdminConsole(navigate: (to: string) => void): void {
-  if (ADMIN_IS_EXTERNAL) {
-    window.open(ADMIN_ENTRY_URL, '_blank', 'noopener,noreferrer')
-    return
-  }
-  navigate(ADMIN_ENTRY_URL)
-}
+export const ADMIN_CONSOLE_PATH = '/dashboard/admin'
 
 /**
- * Ouvre le CRM en vue impersonée depuis la console.
+ * Ouvre le CRM en vue impersonée, dans un nouvel onglet.
  *
- * Les deux applications ne partagent NI localStorage NI cookies (c'est tout
- * l'intérêt de la séparation d'origine) : la console ne peut donc pas armer
- * elle-même la vue impersonée du CRM. Elle passe l'id cible en paramètre, et
- * c'est le CRM qui journalise (RPC `admin_log_impersonation`, gardée
- * `is_super_admin`) avant d'activer quoi que ce soit. Un id dans une URL ne
- * donne aucun droit : c'est la RPC qui décide.
+ * L'onglet séparé est délibéré : la console reste ouverte à côté, on garde sa
+ * place dans la liste d'utilisateurs pendant qu'on regarde ce que voit la
+ * personne.
+ *
+ * L'URL est RELATIVE. Elle a longtemps visé un hôte en dur, du temps où la
+ * console vivait sur une autre origine et ne pouvait pas armer elle-même la vue
+ * du CRM ; depuis la refusion, ce même code ouvrait la PRODUCTION depuis un
+ * poste de développement.
+ *
+ * L'identifiant ne donne aucun droit par lui-même : côté CRM,
+ * `ImpersonationHandoff` n'active la vue qu'une fois l'audit écrit (RPC
+ * `admin_log_impersonation`, gardée `is_super_admin`).
  */
-export function openImpersonationInCrm(targetUserId: string): void {
-  const url = `${CRM_APP_URL}/dashboard?impersonate=${encodeURIComponent(targetUserId)}`
+export function openImpersonation(targetUserId: string): void {
+  const url = `/dashboard?impersonate=${encodeURIComponent(targetUserId)}`
   window.open(url, '_blank', 'noopener,noreferrer')
 }

@@ -14,8 +14,8 @@
 //   auth : Bearer <user_jwt> (agent de l'agence demandée)
 //   returns : { pdf: base64, hash: string, chain_hash: string, count: number }
 //
-// Branche SUPER-ADMIN (20260705…, P2 admin) : un super-admin (allowlist + AAL2
-// revérifiées par _shared/require-super-admin.ts) exporte la piste d'audit
+// Branche SUPER-ADMIN (20260705…, P2 admin) : un super-admin (rôle + allowlist
+// revérifiés par _shared/require-super-admin.ts) exporte la piste d'audit
 // PLATEFORME entière (body sans agency_id) ou celle d'une agence précise
 // (body.agency_id). Le chemin agent est inchangé.
 
@@ -266,8 +266,8 @@ serve(async (req) => {
       .eq('id', user.id)
       .single()
 
-    // Scope : agent = SA propre agence ; super-admin (allowlist + AAL2
-    // revérifiées) = plateforme entière ou body.agency_id.
+    // Scope : agent = SA propre agence ; super-admin (rôle + allowlist
+    // revérifiés) = plateforme entière ou body.agency_id.
     let scopeAgencyId: string | null
     let agencyName: string
     if (profile?.role === 'super_admin') {

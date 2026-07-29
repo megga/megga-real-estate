@@ -14,7 +14,6 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  MLK,
   MlkAgentAvatar,
   MlkBlackPill,
   MlkFooter,
@@ -23,6 +22,7 @@ import {
   MlkShell,
   MlkWordmark,
 } from './MlkPrimitives'
+import { MLK } from './mlkTokens'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 

@@ -7,6 +7,7 @@ import {
   calculateRiskScore,
   type DilisenseRecord,
 } from '../_shared/kyc-screening-core.ts'
+import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,6 +47,7 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  const startedAt = Date.now()
   try {
     // ── Auth + agency check (red-team P0 — voir audit 2026-05-19) ─────────
     // Avant : `if (authHeader?.startsWith('Bearer '))` — string-match seul,
@@ -103,6 +105,14 @@ serve(async (req) => {
     const labBlocked = await requireAgencyLabCleared(supabaseClient, callerAgencyId, corsHeaders)
     if (labBlocked) return labBlocked
 
+    // La vérification de configuration ci-dessous est APRÈS l'authentification,
+    // délibérément. Elle passait avant, et elle répond 500 : un appelant anonyme
+    // obtenait donc « DILISENSE_API_KEY not configured » sans jamais
+    // s'authentifier — l'état de configuration d'un service de conformité n'a pas
+    // à fuiter, et un refus d'accès doit se lire 401. Personne ne s'en
+    // apercevait : sous la passerelle locale l'appel n'arrivait pas jusqu'ici, et
+    // en production la clé est présente. Le garde LAB s'insère encore avant elle,
+    // pour la raison distincte donnée juste au-dessus.
     const apiKey = Deno.env.get('DILISENSE_API_KEY')
     if (!apiKey) {
       return new Response(
@@ -314,6 +324,37 @@ serve(async (req) => {
           ai_patterns_detected: null,
         },
       })
+
+      // Un screening qui trouve quelque chose n'est pas le même événement qu'un
+      // screening qui tourne. `kyc_screening` reste la trace « ça a tourné »
+      // (gravité info, complétude de la piste LBA) ; le match sort à part, en
+      // `critical`, parce que c'est lui qu'un super-admin doit voir sans le
+      // chercher — la console le connaît depuis toujours sous ce nom mais rien
+      // ne l'émettait.
+      //
+      // Aucune décision n'est prise ici : un match Dilisense est un signalement
+      // à réviser par le MLRO, pas un verdict. Le screening reste facultatif et
+      // non bloquant.
+      const hits = pepRecords.length + sanctionRecords.length
+      if (hits > 0) {
+        await supabaseClient.from('activity_events').insert({
+          agency_id: kycCase.agency_id,
+          actor_id: null,
+          actor_kind: 'ai',
+          action: 'kyc_screening_match',
+          entity_type: 'kyc',
+          entity_id: kyc_case_id,
+          category: 'kyc',
+          severity: 'critical',
+          metadata: {
+            pep_hits: pepRecords.length,
+            sanctions_hits: sanctionRecords.length,
+            pep_status: pepStatus,
+            sanctions_status: sanctionsStatus,
+            quant_risk_level: riskLevel,
+          },
+        })
+      }
     }
 
     return new Response(
@@ -331,6 +372,19 @@ serve(async (req) => {
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
+
+    // Les deux chemins d'authentification sortent en `return` (clé service
+    // comparée à temps constant, ou requireAgentAuth qui RENVOIE sa Response) :
+    // un appelant non autorisé n'atteint jamais ce catch et ne peut donc pas
+    // faire écrire de ligne d'audit. `supabaseClient` est déclaré dans le try,
+    // hors de portée ici — on rouvre un client service-role.
+    await reportEdgeError(
+      createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''),
+      'kyc-screening',
+      err,
+      { startedAt },
+    )
+
     return new Response(
       JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -274,8 +274,10 @@ export function useCreateKycDossier() {
           transaction_amount: input.transactionAmount ?? null,
           risk_level:
             input.vigilance === 'renforced' ? 'medium' : 'low',
-          // dossier_status default 'none', le trigger seed_kyc_lba_checks
-          // crée 5 kyc_checklist_items + log AuditEvent "Dossier KYC ouvert".
+          // dossier_status default 'none', le trigger seed_kyc_lba_checks amorce
+          // la checklist LBA + logge l'AuditEvent 'kyc_case_opened'. Le nombre
+          // d'items dépend du type : 9 pour une personne morale, 7 pour une
+          // personne physique — ne pas le supposer côté front.
         })
         .select('*')
         .single()

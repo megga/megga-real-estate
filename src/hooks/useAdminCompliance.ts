@@ -38,6 +38,9 @@ export function useAdminCompliance() {
         .from('kyc_cases')
         .select('id, type, risk_level, risk_score, status, completion_pct, screening_status, created_at, contact_id, agency_id')
         .order('created_at', { ascending: false })
+        // Idem : plafond loin devant la pagination, pour que la supervision
+        // plateforme ne charge pas dix ans de dossiers LBA d'un coup.
+        .limit(500)
       if (error) throw error
 
       const contactIds = [...new Set((data ?? []).map(c => c.contact_id).filter((x): x is string => x !== null))]
@@ -104,6 +107,8 @@ export function useAdminCompliance() {
   return {
     cases: cases.data ?? [],
     isLoading: cases.isLoading,
+    isError: cases.isError,
+    refetch: cases.refetch,
     stats: stats.data,
     statsLoading: stats.isLoading,
   }

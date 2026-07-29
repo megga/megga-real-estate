@@ -37,20 +37,9 @@
 /help                                        https://intercom.help/megga/fr    301
 /help/*                                      https://intercom.help/megga/fr    301
 
-# Seller portal
-/portail                                     /portal                           301
-/portail/visites                             /portal/visits                    301
-/portail/offres                              /portal/offers                    301
-/portail/documents                           /portal/documents                 301
-/portail/messages                            /portal/messages                  301
-/portail/analyse                             /portal/analytics                 301
-/portail/profil                              /portal/profile                   301
-/portail/:token                              /portal/:token                    301
-/portail/:token/visites                      /portal/:token/visits             301
-/portail/:token/offres                       /portal/:token/offers             301
-/portail/:token/documents                    /portal/:token/documents          301
-/portail/:token/messages                     /portal/:token/messages           301
-/portail/:token/analyse                      /portal/:token/analytics          301
+# Portail vendeur retiré (2026-07-26) : plus aucune cible à réécrire. Les URLs
+# /portal* et /portail* sont prises en charge côté SPA, qui redirige vers la
+# vitrine. Aucun lien tokenisé n'avait jamais été émis.
 
 # Visit (public)
 /visite/:id/modifier                         /visit/:id/edit                   301
@@ -63,12 +52,12 @@
 /dashboard/reseau                            /dashboard/network                301
 /dashboard/marche/:externalId                /dashboard/market/:externalId     301
 
-# Console super-admin — a changé d'origine (admin.megga.ch). Traité AU BORD,
-# donc un ancien favori marche même déconnecté : sans cette règle il faudrait
-# charger le CRM, passer la connexion, puis rebondir (AdminConsoleRedirect, qui
-# reste le filet pour les navigations internes).
-/dashboard/admin                             https://admin.megga.ch/           302
-/dashboard/admin/*                           https://admin.megga.ch/:splat     302
+# Console super-admin : AUCUNE règle ici. Elle est redevenue une surface du CRM
+# (/dashboard/admin/*, cf. src/App.tsx), donc le fallback SPA ci-dessous suffit.
+# Une réécriture vers un autre hôte est évaluée AU BORD, avant ce fallback :
+# celle qui pointait vers admin.megga.ch a survécu au retrait de ce domaine et
+# renvoyait tout rechargement de la console vers le vide. Garde-fou :
+# tests/unit/redirects-guard.spec.ts.
 
 # SPA fallback — MUST stay last
 /*                                           /index.html                       200

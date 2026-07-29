@@ -1,45 +1,59 @@
 /**
  * Page super-admin — plans et abonnements.
  *
- * Route : `/plans` (console admin.megga.ch) (accent violet). Grille
- * comparative des plans (`PLANS`), tableau détaillé des fonctionnalités et
- * gestion de l'abonnement par agence (changement de plan écrit sur `agencies`).
+ * Route : `/dashboard/admin/plans`. Grille comparative des plans
+ * (`PLANS`), tableau détaillé des fonctionnalités et gestion de l'abonnement par
+ * agence (changement de plan écrit sur `agencies` via `admin_set_agency_plan`).
+ *
+ * Rendu en grammaire Sugar (kit `@/components/admin/kit`) : bentos séparés par
+ * l'ombre, en-têtes de plan sans fond teinté (une pastille de ton suffit à
+ * distinguer les trois offres), plan d'agence en pilule pleine, prix et
+ * compteurs en chiffres tabulaires. Le repère violet « Admin MEGGA » a quitté la
+ * page — il ne vit plus qu'une fois, dans le rail du shell.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CreditCard, Check, X, ChevronDown, Infinity as InfinityIcon } from 'lucide-react'
-import { cn, formatCHF } from '@/lib/utils'
+import { formatCHF } from '@/lib/utils'
 import { PLANS } from '@/lib/plans'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import { supabase } from '@/lib/supabase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/Toast'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
+import AdminPage from '@/components/admin/kit/AdminPage'
+import {
+  AdminCard,
+  AdminDivider,
+  AdminEmpty,
+  AdminError,
+  AdminGhostBtn,
+  AdminGroupTitle,
+  AdminIc,
+  AdminPill,
+  AdminSkeleton,
+  AdminTd,
+  AdminTh,
+} from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
-const PLAN_COLORS: Record<string, { header: string; badge: string }> = {
-  starter: {
-    header: 'bg-theme-hover text-theme-primary',
-    badge: 'bg-theme-hover text-theme-secondary',
-  },
-  pro: {
-    header: 'bg-blue-500/10 text-blue-600',
-    badge: 'bg-blue-500/10 text-blue-600',
-  },
-  entreprise: {
-    header: 'bg-violet-500/10 text-violet-600',
-    badge: 'bg-violet-500/10 text-violet-600',
-  },
+/**
+ * Ton de pilule par plan.
+ *
+ * Le violet est exclu : il ne signale que « tu es dans la console », jamais une
+ * offre commerciale. Starter n'a pas de signal, d'où `neutral`.
+ */
+const PLAN_TONE: Record<string, AdminToneName> = {
+  starter: 'neutral',
+  pro: 'info',
+  entreprise: 'cyan',
 }
 
-/** Pastille colorée du plan d'une agence ; libellé résolu depuis `PLANS`. */
+/** Pilule du plan d'une agence ; libellé résolu depuis `PLANS`. */
 function PlanBadge({ plan }: { plan: string }) {
   const normalized = (plan ?? 'starter').toLowerCase()
-  const colors = PLAN_COLORS[normalized] ?? PLAN_COLORS.starter
   const label = PLANS.find(p => p.id === normalized)?.name ?? plan
-  return (
-    <span className={cn('text-xs font-medium px-2 py-0.5 rounded-md', colors.badge)}>
-      {label}
-    </span>
-  )
+  return <AdminPill label={label} tone={PLAN_TONE[normalized] ?? 'neutral'} />
 }
 
 /** Menu de changement de plan d'une agence ; mutation directe sur `agencies.plan`. */
@@ -48,6 +62,18 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const toast = useToast()
+  const { sp, surf } = useAdminSugar()
+
+  // Échap ferme le menu. L'écoute est posée sur le DOCUMENT et non sur le voile :
+  // un `<div>` sans `tabIndex` n'est jamais focusable, donc le `onKeyDown` qu'il
+  // portait ne se déclenchait jamais — Échap était mort sur cet écran. Même motif
+  // que `AgencyTargetPicker` (AdminFeatureFlagsPage).
+  useEffect(() => {
+    if (!open) return
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('keydown', onEsc)
+    return () => document.removeEventListener('keydown', onEsc)
+  }, [open])
 
   const changePlan = useMutation({
     mutationFn: async (newPlan: string) => {
@@ -80,36 +106,68 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
   const normalized = (currentPlan ?? 'starter').toLowerCase()
 
   return (
-    <div className="relative">
-      <button
+    <div style={{ position: 'relative' }}>
+      <AdminGhostBtn
         onClick={() => setOpen(!open)}
-        className="h-8 px-3 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-1.5"
+        expanded={open}
+        hasPopup
+        style={{ height: 30, padding: '0 13px', fontSize: 12 }}
       >
         {t('admin:plans.changePlan')}
-        <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
-      </button>
+        <AdminIc
+          icon={ChevronDown}
+          size={13}
+          color={sp.sub}
+          style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform .18s ease' }}
+        />
+      </AdminGhostBtn>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-theme-card border border-theme-border rounded-lg py-1 min-w-[140px]" role="listbox">
-            {PLANS.map(plan => (
-              <button
-                key={plan.id}
-                disabled={plan.id === normalized || changePlan.isPending}
-                onClick={() => changePlan.mutate(plan.id)}
-                className={cn(
-                  'w-full text-left px-3 py-1.5 text-xs transition-colors',
-                  plan.id === normalized
-                    ? 'text-theme-muted cursor-default'
-                    : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary cursor-pointer'
-                )}
-              >
-                {plan.name}
-                {plan.id === normalized && (
-                  <span className="ml-1.5 text-theme-muted">({t('admin:common.current')})</span>
-                )}
-              </button>
-            ))}
+          {/* Voile « clic dehors » seulement : le clavier passe par l'écoute
+              document ci-dessus (un div non focusable ne reçoit pas de keydown). */}
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+            onClick={() => setOpen(false)}
+          />
+          {/* Pas de `role="listbox"` ici : les enfants sont des BOUTONS d'action —
+              cliquer écrit le plan de l'agence, ce n'est pas la sélection d'une
+              valeur dans une liste. Sans enfants `role="option"` le rôle annonçait
+              une liste vide, et un rôle faux coûte plus cher que pas de rôle. Les
+              `<button>` natifs portent déjà focus et activation clavier ; le plan
+              courant est nommé « (actuel) » dans son propre libellé. */}
+          <div
+            style={{
+              position: 'absolute', right: 0, top: '100%', marginTop: 5, zIndex: 20, minWidth: 152,
+              background: surf.card, borderRadius: ADMIN_RADII.card, border: surf.hairline,
+              boxShadow: sp.shadow, padding: 6,
+            }}
+          >
+            {PLANS.map(plan => {
+              const current = plan.id === normalized
+              return (
+                <button
+                  key={plan.id}
+                  // Le fond de repos est déclaré en INLINE (`transparent`) : aucune
+                  // règle `:hover` de feuille de style ne peut le battre, sauf en
+                  // `!important` — c'est ce que fait `.adm-row` (admin-console.css).
+                  // Le plan courant en est exclu : il est désactivé et ne doit pas
+                  // se signaler comme cliquable.
+                  className={current ? undefined : 'adm-row'}
+                  disabled={current || changePlan.isPending}
+                  onClick={() => changePlan.mutate(plan.id)}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left',
+                    padding: '7px 12px', borderRadius: ADMIN_RADII.pill, border: 0, background: 'transparent',
+                    fontFamily: 'inherit', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                    color: current ? sp.sub : sp.ink,
+                    cursor: current ? 'default' : 'pointer',
+                  }}
+                >
+                  {plan.name}
+                  {current && <span style={{ marginLeft: 6, color: sp.sub }}>({t('admin:common.current')})</span>}
+                </button>
+              )
+            })}
           </div>
         </>
       )}
@@ -120,200 +178,195 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
 /** Vue principale : grille de plans, tableau des fonctionnalités et liste des agences. */
 export default function AdminPlansPage() {
   const { t } = useTranslation('admin')
-  const { agencies, isLoading } = useAdminAgencies()
+  const { agencies, isLoading, isError, refetch } = useAdminAgencies()
+  const { sp, tones } = useAdminSugar()
 
   const featureKeys = PLANS[0].features.map(f => f.key)
 
-  return (
-    <div className="p-6 max-w-6xl mx-auto space-y-8">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="h-2 w-2 rounded-full bg-admin-accent" />
-          <span className="text-xs font-medium text-admin-accent">{t('admin:common.adminBadge')}</span>
-        </div>
-        <h1 className="text-2xl font-semibold text-theme-primary">{t('admin:plans.title')}</h1>
-        <p className="text-sm text-theme-tertiary mt-0.5">
-          {t('admin:plans.subtitle')}
-        </p>
-      </div>
+  /** Couleur de la pastille d'en-tête d'un plan (même hiérarchie que `PLAN_TONE`). */
+  const planDot = (id: string): string => {
+    switch (PLAN_TONE[id]) {
+      case 'info': return tones.info
+      case 'cyan': return tones.cyan
+      default: return sp.soft
+    }
+  }
 
+  return (
+    <AdminPage title={t('admin:plans.title')} subtitle={t('admin:plans.subtitle')} width="wide">
       {/* Plan comparison grid */}
-      <div>
-        <h2 className="text-lg font-semibold text-theme-primary mb-4">{t('admin:plans.comparison')}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {PLANS.map(plan => {
-            const colors = PLAN_COLORS[plan.id] ?? PLAN_COLORS.starter
-            return (
-              <div key={plan.id} className="rounded-xl border border-theme-border overflow-hidden">
-                {/* Plan header */}
-                <div className={cn('px-5 py-4', colors.header)}>
-                  <h3 className="text-base font-semibold">{plan.name}</h3>
-                  <div className="mt-1">
-                    {plan.price_monthly === 0 ? (
-                      <span className="text-xl font-bold">{t('admin:plans.free')}</span>
-                    ) : (
-                      <div>
-                        <span className="text-xl font-bold">{formatCHF(plan.price_monthly)}</span>
-                        <span className="text-xs opacity-70">{t('admin:plans.perMonth')}</span>
-                        <div className="text-xs opacity-60 mt-0.5">
-                          {t('admin:plans.annual', { price: formatCHF(plan.price_yearly) })}
-                        </div>
-                      </div>
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <AdminGroupTitle label={t('admin:plans.comparison')} tone="info" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {PLANS.map(plan => (
+            <AdminCard key={plan.id} padding={0}>
+              {/* Plan header */}
+              <div style={{ padding: '16px 18px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: planDot(plan.id), flexShrink: 0 }} />
+                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -0.3, color: sp.ink }}>{plan.name}</h3>
+                </div>
+                {plan.price_monthly === 0 ? (
+                  <div style={{ marginTop: 8, fontSize: 20, fontWeight: 800, letterSpacing: -0.7, color: sp.ink }}>
+                    {t('admin:plans.free')}
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 8 }}>
+                    <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.7, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+                      {formatCHF(plan.price_monthly)}
+                    </span>
+                    <span style={{ marginLeft: 4, fontSize: 11.5, color: sp.sub }}>{t('admin:plans.perMonth')}</span>
+                    <div style={{ marginTop: 3, fontSize: 11, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                      {t('admin:plans.annual', { price: formatCHF(plan.price_yearly) })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <AdminDivider />
+
+              {/* Features list */}
+              <div style={{ padding: '13px 18px 16px', display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {plan.features.map(feature => (
+                  <div key={feature.key} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <AdminIc
+                      icon={feature.included ? Check : X}
+                      size={14}
+                      color={feature.included ? tones.ok : tones.err}
+                    />
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: feature.included ? sp.ink : sp.sub }}>
+                      {feature.label}
+                    </span>
+                    {feature.included && feature.limit !== undefined && (
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                        {feature.limit}
+                      </span>
+                    )}
+                    {feature.included && feature.limit === undefined && (
+                      <AdminIc icon={InfinityIcon} size={13} color={sp.sub} />
                     )}
                   </div>
-                </div>
-
-                {/* Features list */}
-                <div className="p-4 space-y-2.5">
-                  {plan.features.map(feature => (
-                    <div key={feature.key} className="flex items-center gap-2.5 text-sm">
-                      {feature.included ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
-                      ) : (
-                        <X className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
-                      )}
-                      <span className={cn(
-                        'flex-1',
-                        feature.included ? 'text-theme-primary' : 'text-theme-muted'
-                      )}>
-                        {feature.label}
-                      </span>
-                      {feature.included && feature.limit !== undefined && (
-                        <span className="text-xs text-theme-tertiary font-mono">
-                          {feature.limit}
-                        </span>
-                      )}
-                      {feature.included && feature.limit === undefined && (
-                        <InfinityIcon className="h-3 w-3 text-theme-tertiary" />
-                      )}
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
-            )
-          })}
+            </AdminCard>
+          ))}
         </div>
-      </div>
+      </section>
 
       {/* Feature comparison table (aligned rows) */}
-      <div>
-        <h2 className="text-lg font-semibold text-theme-primary mb-4">{t('admin:plans.featureDetail')}</h2>
-        <div className="rounded-xl border border-theme-border overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-4 bg-theme-hover text-xs font-medium text-theme-secondary">
-            <div className="px-4 py-3">{t('admin:plans.feature')}</div>
-            {PLANS.map(plan => (
-              <div key={plan.id} className="px-4 py-3 text-center">{plan.name}</div>
-            ))}
-          </div>
-
-          {/* Table rows */}
-          {featureKeys.map((key, i) => {
-            const label = PLANS[0].features.find(f => f.key === key)?.label ?? key
-            return (
-              <div
-                key={key}
-                className={cn(
-                  'grid grid-cols-4 text-sm',
-                  i % 2 === 0 ? 'bg-theme-card' : 'bg-theme-page'
-                )}
-              >
-                <div className="px-4 py-2.5 text-theme-primary">{label}</div>
-                {PLANS.map(plan => {
-                  const feature = plan.features.find(f => f.key === key)
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <AdminGroupTitle label={t('admin:plans.featureDetail')} tone="cyan" />
+        <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 540, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+              <thead>
+                <tr>
+                  <AdminTh>{t('admin:plans.feature')}</AdminTh>
+                  {PLANS.map(plan => (
+                    <AdminTh key={plan.id} align="center" width={116}>{plan.name}</AdminTh>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {featureKeys.map(key => {
+                  const label = PLANS[0].features.find(f => f.key === key)?.label ?? key
                   return (
-                    <div key={plan.id} className="px-4 py-2.5 text-center">
-                      {!feature || !feature.included ? (
-                        <X className="h-3.5 w-3.5 text-red-400 mx-auto" />
-                      ) : feature.limit !== undefined ? (
-                        <span className="text-xs font-mono text-theme-primary">{feature.limit}</span>
-                      ) : (
-                        <Check className="h-3.5 w-3.5 text-emerald-500 mx-auto" />
-                      )}
-                    </div>
+                    <tr key={key}>
+                      <AdminTd>{label}</AdminTd>
+                      {PLANS.map(plan => {
+                        const feature = plan.features.find(f => f.key === key)
+                        return (
+                          <AdminTd key={plan.id} align="center">
+                            {!feature || !feature.included ? (
+                              <AdminIc icon={X} size={14} color={tones.err} style={{ margin: '0 auto' }} />
+                            ) : feature.limit !== undefined ? (
+                              <span style={{ fontSize: 12, fontWeight: 700, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+                                {feature.limit}
+                              </span>
+                            ) : (
+                              <AdminIc icon={Check} size={14} color={tones.ok} style={{ margin: '0 auto' }} />
+                            )}
+                          </AdminTd>
+                        )
+                      })}
+                    </tr>
                   )
                 })}
-              </div>
-            )
-          })}
-        </div>
-      </div>
+              </tbody>
+            </table>
+          </div>
+        </AdminCard>
+      </section>
 
       {/* Agency plan management */}
-      <div>
-        <h2 className="text-lg font-semibold text-theme-primary mb-4">{t('admin:plans.agencySubscriptions')}</h2>
-        <div className="rounded-xl border border-theme-border overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-[1fr_120px_100px_100px] bg-theme-hover text-xs font-medium text-theme-secondary">
-            <div className="px-4 py-3">{t('admin:plans.table.agency')}</div>
-            <div className="px-4 py-3 text-center">{t('admin:plans.table.plan')}</div>
-            <div className="px-4 py-3 text-center">{t('admin:plans.table.agents')}</div>
-            <div className="px-4 py-3 text-center">{t('admin:plans.table.actions')}</div>
-          </div>
-
-          {/* Loading state */}
-          {isLoading && (
-            <div className="divide-y divide-theme-border">
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <AdminGroupTitle label={t('admin:plans.agencySubscriptions')} tone="ok" />
+        {/* Pas de conteneur défilant ici : le menu « changer de plan » s'ouvre en
+            absolu et serait rogné par un `overflow` sur la carte. */}
+        <AdminCard padding={0}>
+          {isLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14 }}>
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-[1fr_120px_100px_100px] animate-pulse">
-                  <div className="px-4 py-3">
-                    <div className="h-4 bg-theme-hover rounded w-32" />
-                  </div>
-                  <div className="px-4 py-3 flex justify-center">
-                    <div className="h-5 bg-theme-hover rounded w-16" />
-                  </div>
-                  <div className="px-4 py-3 flex justify-center">
-                    <div className="h-4 bg-theme-hover rounded w-6" />
-                  </div>
-                  <div className="px-4 py-3 flex justify-center">
-                    <div className="h-7 bg-theme-hover rounded w-20" />
-                  </div>
-                </div>
+                <AdminSkeleton key={i} height={38} />
               ))}
             </div>
+          ) : isError && agencies.length === 0 ? (
+            <AdminError
+              message={t('admin:common.loadError')}
+              onRetry={() => void refetch()}
+              retryLabel={t('admin:common.retry')}
+            />
+          ) : agencies.length === 0 ? (
+            <AdminEmpty icon={CreditCard} title={t('admin:plans.noAgency')} />
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <AdminTh>{t('admin:plans.table.agency')}</AdminTh>
+                  <AdminTh align="center" width={148}>{t('admin:plans.table.plan')}</AdminTh>
+                  <AdminTh align="center" width={96}>{t('admin:plans.table.agents')}</AdminTh>
+                  <AdminTh align="right" width={168}>{t('admin:plans.table.actions')}</AdminTh>
+                </tr>
+              </thead>
+              <tbody>
+                {agencies.map(agency => (
+                  // `.adm-row` : le survol de ligne passe par la feuille de style
+                  // (`!important`), les cellules gardant leurs fonds inline.
+                  <tr key={agency.id} className="adm-row">
+                    <AdminTd>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {agency.name}
+                      </div>
+                      {agency.email && (
+                        <div style={{ fontSize: 11, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {agency.email}
+                        </div>
+                      )}
+                    </AdminTd>
+                    <AdminTd align="center">
+                      <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                        <PlanBadge plan={agency.plan ?? 'starter'} />
+                        {agency.subscription_status === 'trialing' && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: tones.info }}>{t('agencies.sub.trialing')}</span>
+                        )}
+                        {agency.subscription_status === 'past_due' && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: tones.err }}>{t('agencies.sub.pastDue')}</span>
+                        )}
+                      </div>
+                    </AdminTd>
+                    <AdminTd align="center" numeric style={{ color: sp.sub }}>{agency.agent_count}</AdminTd>
+                    <AdminTd align="right">
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <PlanChangeDropdown currentPlan={agency.plan ?? 'starter'} agencyId={agency.id} />
+                      </div>
+                    </AdminTd>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
-
-          {/* Empty state */}
-          {!isLoading && agencies.length === 0 && (
-            <div className="px-4 py-12 text-center">
-              <CreditCard className="h-8 w-8 text-theme-muted mx-auto mb-3" />
-              <p className="text-sm text-theme-secondary">{t('admin:plans.noAgency')}</p>
-            </div>
-          )}
-
-          {/* Agency rows */}
-          {!isLoading && agencies.length > 0 && (
-            <div className="divide-y divide-theme-border">
-              {agencies.map(agency => (
-                <div key={agency.id} className="grid grid-cols-[1fr_120px_100px_100px] items-center hover:bg-theme-hover transition-colors">
-                  <div className="px-4 py-3">
-                    <p className="text-sm font-medium text-theme-primary truncate">{agency.name}</p>
-                    {agency.email && (
-                      <p className="text-xs text-theme-tertiary truncate">{agency.email}</p>
-                    )}
-                  </div>
-                  <div className="px-4 py-3 flex flex-col items-center gap-0.5">
-                    <PlanBadge plan={agency.plan ?? 'starter'} />
-                    {agency.subscription_status === 'trialing' && (
-                      <span className="text-xs font-medium text-blue-500">{t('agencies.sub.trialing')}</span>
-                    )}
-                    {agency.subscription_status === 'past_due' && (
-                      <span className="text-xs font-medium text-red-500">{t('agencies.sub.pastDue')}</span>
-                    )}
-                  </div>
-                  <div className="px-4 py-3 text-center">
-                    <span className="text-sm text-theme-secondary">{agency.agent_count}</span>
-                  </div>
-                  <div className="px-4 py-3 flex justify-center">
-                    <PlanChangeDropdown currentPlan={agency.plan ?? 'starter'} agencyId={agency.id} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+        </AdminCard>
+      </section>
+    </AdminPage>
   )
 }

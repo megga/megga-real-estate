@@ -1,146 +1,179 @@
 /**
  * Page super-admin — tableau de bord plateforme (accueil de la section admin).
  *
- * Route : `/` (console admin.megga.ch) (accent violet). Empile un pouls de santé, 5 KPIs
+ * Route : `/dashboard/admin` (accent violet). Empile un pouls de santé, 5 KPIs
  * (agences, users, biens, transactions, KYC à risque), le flux d'alertes, le
  * journal d'activité, le suivi d'onboarding et le dashboard de facturation.
+ *
+ * Grammaire Sugar : le titre et l'action « rapport hebdo » vivent dans
+ * `AdminPage` (la pastille violette + le badge Admin sont désormais dans le rail,
+ * une seule fois) ; le pouls de santé est une carte NEUTRE dont le signal passe
+ * par des pilules ; une alerte est repérée par une pastille de ton, l'ancien
+ * liseré gauche mettant du violet de plateforme sur un événement métier.
  */
 import { useTranslation } from 'react-i18next'
-import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle } from 'lucide-react'
+import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle, UserCog } from 'lucide-react'
 import { useAdminStats } from '@/hooks/useAdminStats'
-import AdminKpiCard from '@/components/admin/AdminKpiCard'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 import BillingDashboard from '@/components/admin/BillingDashboard'
 import WeeklyReportPreview from '@/components/admin/WeeklyReportPreview'
 import OnboardingTracker from '@/components/admin/OnboardingTracker'
 import ActivityLog from '@/components/admin/ActivityLog'
-import { cn, formatRelativeDate } from '@/lib/utils'
+import AdminPage from '@/components/admin/kit/AdminPage'
+import { AdminCard, AdminEmpty, AdminError, AdminGroupTitle, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { formatRelativeDate } from '@/lib/utils'
 
+/**
+ * Vocabulaire de RENDU, pas liste d'autorisation : la requête filtre par
+ * sévérité, donc une action inconnue de ces tables peut arriver ici. C'est
+ * prévu — elle s'affiche alors sous son nom brut, avec une cloche et une
+ * pastille neutre.
+ *
+ * Ce vocabulaire a longtemps été ASPIRATIONNEL : la console savait nommer,
+ * iconifier et colorer quatre alertes qu'aucun producteur n'écrivait. Les
+ * producteurs existent depuis le 29.07.2026 (trigger `trg_agency_created`,
+ * `kyc_screening_match` côté kyc-screening, `edge_function_error` via
+ * `_shared/audit-edge-error.ts`, gravité posée sur les événements Stripe).
+ * `ticket_created` reste retiré : le support maison n'existe plus.
+ */
 const ALERT_ICONS: Record<string, typeof AlertTriangle> = {
   agency_created: Building2,
   kyc_screening_match: ShieldAlert,
   subscription_cancelled: CreditCard,
+  payment_failed: CreditCard,
   edge_function_error: AlertTriangle,
-  ticket_created: Bell,
+  role_changed: UserCog,
 }
 
 const ALERT_LABEL_KEYS: Record<string, string> = {
   agency_created: 'dashboard.alert.agencyCreated',
   kyc_screening_match: 'dashboard.alert.kycScreeningMatch',
   subscription_cancelled: 'dashboard.alert.subscriptionCancelled',
+  payment_failed: 'dashboard.alert.paymentFailed',
   edge_function_error: 'dashboard.alert.edgeFunctionError',
-  ticket_created: 'dashboard.alert.ticketCreated',
+  role_changed: 'dashboard.alert.roleChanged',
 }
 
-const ALERT_BORDER_COLORS: Record<string, string> = {
-  agency_created: 'border-l-admin-accent',
-  kyc_screening_match: 'border-l-red-500',
-  subscription_cancelled: 'border-l-amber-500',
-  edge_function_error: 'border-l-red-500',
-  ticket_created: 'border-l-blue-500',
+/** Tons de signal d'une alerte — le violet de plateforme n'est pas un statut métier. */
+type AlertTone = 'ok' | 'warn' | 'err' | 'info'
+
+/** `agency_created` était en violet ; c'est une bonne nouvelle, donc un ton « ok ». */
+const ALERT_TONES: Record<string, AlertTone> = {
+  agency_created: 'ok',
+  kyc_screening_match: 'err',
+  subscription_cancelled: 'warn',
+  // Un paiement refusé bascule l'abonnement en `past_due` : c'est réparable,
+  // et ça se répare depuis l'agence — un avertissement, pas une panne.
+  payment_failed: 'warn',
+  edge_function_error: 'err',
+  // Un rôle qui change, c'est un périmètre de droits qui bouge.
+  role_changed: 'err',
 }
 
 /** Vue d'ensemble : dérive l'état de santé des KPIs et compose les bandeaux/sections. */
 export default function AdminDashboardPage() {
   const { t } = useTranslation('admin')
-  const { kpis, kpisLoading, alerts, alertsLoading } = useAdminStats()
+  const { sp, surf, tones } = useAdminSugar()
+  const { kpis, kpisLoading, alerts, alertsLoading, alertsError, refetch } = useAdminStats()
 
   const healthStatus = (kpis?.highRiskKyc ?? 0) > 0 ? 'warning' : 'healthy'
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-5">
-      {/* ── Header + Weekly Report action ── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-8 px-3 rounded-lg bg-admin-accent/10 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-admin-accent" />
-            <span className="text-xs font-semibold text-admin-accent">{t('common.adminBadge')}</span>
-          </div>
-          <h1 className="text-xl font-semibold text-theme-primary">{t('dashboard.title')}</h1>
-        </div>
-        <WeeklyReportPreview />
-      </div>
-
-      {/* ── Health Pulse (simplified — no redundant counts) ── */}
+    <AdminPage title={t('dashboard.title')} width="wide" actions={<WeeklyReportPreview />}>
+      {/* ── Pouls de santé — carte neutre, le signal est dans les pilules ── */}
       {kpis && (
-        <div className={cn(
-          'flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-colors',
-          healthStatus === 'healthy'
-            ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5'
-            : 'border-amber-200 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-500/5'
-        )}>
-          {healthStatus === 'healthy' ? (
-            <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-          ) : (
-            <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0" />
-          )}
-          <p className="text-sm">
-            <span className={cn('font-medium', healthStatus === 'healthy' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')}>
-              {healthStatus === 'healthy' ? t('dashboard.platformHealthy') : t('dashboard.attentionRequired')}
-            </span>
+        <AdminCard padding="12px 14px">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
+            <AdminPill
+              tone={healthStatus === 'healthy' ? 'ok' : 'warn'}
+              icon={healthStatus === 'healthy' ? CheckCircle : AlertCircle}
+              label={healthStatus === 'healthy' ? t('dashboard.platformHealthy') : t('dashboard.attentionRequired')}
+            />
             {kpis.highRiskKyc > 0 && (
-              <span className="text-red-500 font-medium ml-2">{kpis.highRiskKyc} KYC {t('dashboard.kpi.kycAtRisk').toLowerCase()}</span>
+              <AdminPill
+                tone="err"
+                label={`${kpis.highRiskKyc} KYC ${t('dashboard.kpi.kycAtRisk').toLowerCase()}`}
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              />
             )}
-          </p>
-        </div>
+          </div>
+        </AdminCard>
       )}
 
       {/* ── KPIs (5 cards) ── */}
       {kpisLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="rounded-lg border border-theme-border px-3.5 py-2.5 animate-pulse">
-              <div className="flex items-center gap-3">
-                <div className="h-4 w-4 rounded bg-theme-hover" />
-                <div><div className="h-5 bg-theme-hover rounded w-10 mb-1" /><div className="h-2.5 bg-theme-hover rounded w-16" /></div>
-              </div>
-            </div>
+            <AdminSkeleton key={i} height={64} radius={ADMIN_RADII.card} />
           ))}
         </div>
       ) : kpis ? (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <AdminKpiCard compact label={t('dashboard.kpi.agencies')} value={kpis.activeAgencies} icon={Building2}
-            trend={kpis.newAgenciesThisMonth > 0 ? { value: kpis.newAgenciesThisMonth, label: '' } : undefined} />
-          <AdminKpiCard compact label={t('dashboard.kpi.users')} value={kpis.totalUsers} icon={Users} variant="blue"
-            trend={kpis.newUsersThisMonth > 0 ? { value: kpis.newUsersThisMonth, label: '' } : undefined} />
-          <AdminKpiCard compact label={t('dashboard.kpi.activeProperties')} value={kpis.activeProperties} icon={Home} variant="blue" />
-          <AdminKpiCard compact label={t('dashboard.kpi.transactions')} value={kpis.activeTransactions} icon={GitBranch} variant="success" />
-          <AdminKpiCard compact label={t('dashboard.kpi.kycAtRisk')} value={kpis.highRiskKyc} icon={ShieldAlert}
-            variant={kpis.highRiskKyc > 0 ? 'danger' : 'default'} />
+          <AdminStat label={t('dashboard.kpi.agencies')} value={kpis.activeAgencies} icon={Building2}
+            trend={kpis.newAgenciesThisMonth > 0 ? kpis.newAgenciesThisMonth : undefined} />
+          <AdminStat label={t('dashboard.kpi.users')} value={kpis.totalUsers} icon={Users} tone="info"
+            trend={kpis.newUsersThisMonth > 0 ? kpis.newUsersThisMonth : undefined} />
+          <AdminStat label={t('dashboard.kpi.activeProperties')} value={kpis.activeProperties} icon={Home} tone="info" />
+          <AdminStat label={t('dashboard.kpi.transactions')} value={kpis.activeTransactions} icon={GitBranch} tone="ok" />
+          <AdminStat label={t('dashboard.kpi.kycAtRisk')} value={kpis.highRiskKyc} icon={ShieldAlert}
+            tone={kpis.highRiskKyc > 0 ? 'err' : undefined} />
         </div>
       ) : null}
 
       {/* ── Alerts (full-width) ── */}
-      <div className="rounded-xl border border-theme-border p-5">
-        <h2 className="text-sm font-semibold text-theme-primary mb-3">{t('dashboard.alerts')}</h2>
+      <AdminCard padding="8px 12px 14px">
+        <AdminGroupTitle label={t('dashboard.alerts')} tone="warn" />
         {alertsLoading ? (
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-10 bg-theme-hover rounded-lg animate-pulse" />
+              <AdminSkeleton key={i} height={40} />
             ))}
           </div>
+        ) : alertsError && alerts.length === 0 ? (
+          // « Aucune alerte » est une BONNE nouvelle : la servir sur un flux qui
+          // n'a pas pu être chargé ferait passer une panne réseau pour une
+          // plateforme saine.
+          <AdminError
+            message={t('common.loadError')}
+            onRetry={() => void refetch()}
+            retryLabel={t('common.retry')}
+          />
         ) : alerts.length === 0 ? (
-          <div className="flex items-center gap-2 py-4 justify-center">
-            <CheckCircle className="h-4 w-4 text-emerald-500" />
-            <p className="text-sm text-emerald-600 dark:text-emerald-400">{t('dashboard.noAlerts')}</p>
-          </div>
+          <AdminEmpty icon={CheckCircle} title={t('dashboard.noAlerts')} />
         ) : (
-          <div className="space-y-1.5">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {alerts.map((alert) => {
               const Icon = ALERT_ICONS[alert.action] ?? Bell
-              const borderColor = ALERT_BORDER_COLORS[alert.action] ?? 'border-l-theme-border'
+              const tone = ALERT_TONES[alert.action]
               const labelKey = ALERT_LABEL_KEYS[alert.action]
               const label = labelKey ? t(labelKey) : alert.action
               return (
-                <div key={alert.id} className={`flex items-center gap-3 p-2.5 rounded-lg border-l-4 ${borderColor} bg-theme-hover/30`}>
-                  <Icon className="h-3.5 w-3.5 text-theme-secondary flex-shrink-0" />
-                  <p className="text-sm text-theme-primary flex-1 truncate">{label}</p>
-                  <span className="text-xs text-theme-muted flex-shrink-0">{formatRelativeDate(alert.created_at)}</span>
+                <div
+                  key={alert.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 11, minWidth: 0,
+                    padding: '10px 12px', borderRadius: ADMIN_RADII.row, background: surf.cardSub,
+                  }}
+                >
+                  {/* La pastille remplace le liseré de 4 px : seul repère coloré autorisé. */}
+                  <span style={{
+                    width: 8, height: 8, borderRadius: ADMIN_RADII.pill, flexShrink: 0,
+                    background: tone ? tones[tone] : sp.soft,
+                  }} />
+                  <AdminIc icon={Icon} size={15} color={sp.sub} />
+                  <p style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {label}
+                  </p>
+                  <span style={{ flexShrink: 0, fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                    {formatRelativeDate(alert.created_at)}
+                  </span>
                 </div>
               )
             })}
           </div>
         )}
-      </div>
+      </AdminCard>
 
       {/* ── Activity (full-width) ── */}
       <ActivityLog />
@@ -150,6 +183,6 @@ export default function AdminDashboardPage() {
 
       {/* ── Billing (full-width, dense) ── */}
       <BillingDashboard />
-    </div>
+    </AdminPage>
   )
 }

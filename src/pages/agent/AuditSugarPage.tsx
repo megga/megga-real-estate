@@ -15,7 +15,8 @@ import {
   SUGAR_KEYFRAMES,
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import {
   SugarV3,
   SUGAR_V3_KEYFRAMES,
@@ -34,8 +35,6 @@ import { downloadAuditCsv } from '@/lib/auditCsvExport'
 import { downloadAuditPdf } from '@/lib/auditPdfExport'
 import type { AuditCategory, AuditSeverity, AuditEvent } from '@/types/kyc'
 
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
-
 export default function AuditSugarPage() {
   const navigate = useNavigate()
   const { t: tr } = useTranslation('common')
@@ -43,8 +42,9 @@ export default function AuditSugarPage() {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem('megga.sugar.dark') === '1'
   })
-  const t = sugarThemeTokens(dark)
-  const sp = useMemo(() => crmSugarPalette(t, dark, DARK_TONE), [t, dark])
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = useMemo(() => crmSugarPalette(t, dark, darkTone), [t, dark, darkTone])
 
   const [filterCat, setFilterCat] = useState<AuditCategory | 'all'>('all')
   const [filterSev, setFilterSev] = useState<AuditSeverity | 'all'>('all')

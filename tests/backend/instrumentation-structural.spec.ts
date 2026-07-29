@@ -39,7 +39,7 @@ describe.skipIf(!HAS_KEYS)('instrumentation structurelle PR1 — triggers (live 
 
   // contacts (porteurs / cibles recency)
   let cBuyer = ''     // buyer des transactions de test
-  let cNote = ''      // bump via activity_events 'Note ajoutée'
+  let cNote = ''      // bump via activity_events 'note_added'
   let cClean = ''     // ne doit JAMAIS être bumpé (anti-corruption match_suggested)
   let cWa = ''        // bump via whatsapp_messages
   let cMt = ''        // multi-tenant (event agence B ne le touche pas)
@@ -244,15 +244,15 @@ describe.skipIf(!HAS_KEYS)('instrumentation structurelle PR1 — triggers (live 
   })
 
   it('I9 — last_interaction_at (activity_events) : bump GREATEST ; match_suggested NON ; pas de régression', async () => {
-    // (a) event allowlisté 'Note ajoutée' → bump
+    // (a) event allowlisté 'note_added' → bump
     const noteTs = new Date().toISOString()
     const { error: e1 } = await svc.from('activity_events').insert({
-      agency_id: setup.agencyAId, action: 'Note ajoutée', entity_type: 'contact', entity_id: cNote,
+      agency_id: setup.agencyAId, action: 'note_added', entity_type: 'contact', entity_id: cNote,
       created_at: noteTs,
     })
     if (e1) throw new Error(`note event: ${e1.message}`)
     const after = await lastInteraction(cNote)
-    expect(after, 'contact bumpé par Note ajoutée').not.toBeNull()
+    expect(after, 'contact bumpé par note_added').not.toBeNull()
     expect(new Date(after!).getTime()).toBe(new Date(noteTs).getTime())
 
     // (b) anti-corruption : match_suggested (ai + metadata.contact_id) NE bump PAS
@@ -266,7 +266,7 @@ describe.skipIf(!HAS_KEYS)('instrumentation structurelle PR1 — triggers (live 
 
     // (c) GREATEST : un event PLUS ANCIEN ne régresse pas la valeur
     const { error: e3 } = await svc.from('activity_events').insert({
-      agency_id: setup.agencyAId, action: 'Note ajoutée', entity_type: 'contact', entity_id: cNote,
+      agency_id: setup.agencyAId, action: 'note_added', entity_type: 'contact', entity_id: cNote,
       created_at: '2020-01-01T00:00:00Z',
     })
     if (e3) throw new Error(`old note event: ${e3.message}`)
@@ -291,7 +291,7 @@ describe.skipIf(!HAS_KEYS)('instrumentation structurelle PR1 — triggers (live 
   it('I11 — multi-tenant : un event d\'une AUTRE agence ne bump pas le contact', async () => {
     // event entity=contact A mais agency_id = agence B → le scope (c.agency_id=NEW.agency_id) bloque
     const { error } = await svc.from('activity_events').insert({
-      agency_id: setup.agencyBId, action: 'Note ajoutée', entity_type: 'contact', entity_id: cMt,
+      agency_id: setup.agencyBId, action: 'note_added', entity_type: 'contact', entity_id: cMt,
     })
     if (error) throw new Error(`mt event: ${error.message}`)
     expect(await lastInteraction(cMt), 'event agence B ne doit pas bumper un contact agence A').toBeNull()

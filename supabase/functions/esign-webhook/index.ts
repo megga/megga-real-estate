@@ -46,7 +46,6 @@ function toCredentials(provider: string, secret: Record<string, unknown>, config
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveToken(provider: string, creds: ProviderCredentials): Promise<string | undefined> {
   if (provider !== 'skribble') return creds.docusignAccessToken
   const p = getEsignProvider('skribble')

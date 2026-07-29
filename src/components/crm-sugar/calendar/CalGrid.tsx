@@ -326,7 +326,6 @@ export function CalAllDayBand({ days, events, selectedId, onSelect }: CalAllDayB
   const lanes: BandSeg[][] = []
   segs.forEach(seg => {
     let li = 0
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       const lane = lanes[li] || (lanes[li] = [])
       if (lane.every(o => seg.sC > o.eC || seg.eC < o.sC)) { lane.push(seg); seg.lane = li; break }

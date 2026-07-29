@@ -15,7 +15,8 @@ import { type ReactNode, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
@@ -35,8 +36,6 @@ import ContactDetailPager, {
 import { useContactNextAction } from '@/hooks/useContactNextAction'
 import { nbaToI18n } from '@/lib/contactNba'
 
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
-
 export default function ContactDetailSugarV3Page() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
@@ -50,8 +49,9 @@ export default function ContactDetailSugarV3Page() {
     if (saved === '0') return false
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
-  const t = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(t, dark, DARK_TONE)
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(t, dark, darkTone)
 
   const { data: fetched, isLoading } = useContact(id)
   // La suppression retire la ligne du cache : sans cet instantané pris juste avant

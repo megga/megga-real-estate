@@ -39,11 +39,12 @@
     "collapseSidebar": "Comprimi barra laterale",
     "expandSidebar": "Espandi barra laterale",
     "mainAgent": "Agente principale",
+    "adminConsole": "Console",
     "adminOverview": "Panoramica",
     "adminAgencies": "Agenzie",
     "adminUsers": "Utenti",
     "adminMonitoring": "Monitoraggio",
-    "adminMarketplace": "Moderazione",
+    "adminModeration": "Moderazione",
     "adminCompliance": "Conformita",
     "adminSupport": "Supporto",
     "adminChangelog": "Changelog",
@@ -358,7 +359,8 @@
     "security": "Security & sessions",
     "billing": "Billing & subscription",
     "help": "Help center",
-    "adminConsole": "Admin console"
+    "adminConsole": "Admin console",
+    "platformSection": "Platform"
   },
   "audit": {
     "category": {
@@ -431,6 +433,41 @@
     "footer": {
       "retention": "Events are cryptographically signed and retained for 10 years (nFADP art. 12 · AMLA art. 7).",
       "tamperLogged": "Any attempt to delete or alter a record is itself logged."
+    },
+    "action": {
+      "match_suggested": "Corrispondenza suggerita",
+      "stage_change": "Fase modificata",
+      "status_change": "Stato modificato",
+      "contact_created": "Contatto creato",
+      "note_added": "Nota aggiunta",
+      "reminder_created": "Promemoria creato",
+      "visit_scheduled": "Visita pianificata",
+      "kyc_case_opened": "Pratica KYC aperta",
+      "kyc_screening": "Controllo KYC eseguito",
+      "kyc_report_sent": "Rapporto KYC inviato",
+      "lead_created_whatsapp": "Lead creato (WhatsApp)",
+      "lead_qualified_whatsapp": "Lead qualificato (WhatsApp)",
+      "seller_lead_received": "Richiesta venditore ricevuta",
+      "contact_message_received": "Messaggio di contatto ricevuto",
+      "whatsapp_agent_copilot_reply": "Risposta del copilota WhatsApp",
+      "offer_created": "Offerta creata",
+      "offer_countered": "Controfferta inviata",
+      "offer_accepted": "Offerta accettata",
+      "offer_rejected": "Offerta rifiutata",
+      "offer_expired": "Offerta scaduta",
+      "offer_withdrawn": "Offerta ritirata",
+      "role_changed": "Ruolo modificato",
+      "admin_console_entered": "Console admin aperta",
+      "contact_scores.recompute": "Punteggi contatti ricalcolati",
+      "property_scores.recompute": "Punteggi immobili ricalcolati",
+      "rls_hardening_applied": "Rafforzamento RLS applicato",
+      "agency_created": "Agenzia creata",
+      "subscription_activated": "Abbonamento attivato",
+      "subscription_changed": "Abbonamento modificato",
+      "subscription_cancelled": "Abbonamento disdetto",
+      "payment_failed": "Pagamento rifiutato",
+      "kyc_screening_match": "Allerta PEP o sanzioni",
+      "edge_function_error": "Errore di funzione server"
     }
   },
   "portal": {

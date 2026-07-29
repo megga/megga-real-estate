@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import SgaIcon from './SgaIcon'
 import { sgaFmtCHF, sgaInitials } from './format'
 import { useCreateReceptionLink } from '@/hooks/useCreateReceptionLink'
-import { buildWaMeUrl } from '@/components/propertyx/PxWhatsAppButton'
+import { buildWaMeUrl } from '@/lib/waMeUrl'
 import type { AtelierBuyer, AtelierListing } from './types'
 
 interface Props {

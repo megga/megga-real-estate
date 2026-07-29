@@ -87,6 +87,8 @@ export function useAdminAgencies() {
   return {
     agencies: agencies.data ?? [],
     isLoading: agencies.isLoading,
+    isError: agencies.isError,
+    refetch: agencies.refetch,
     updateStatus,
   }
 }
@@ -137,6 +139,7 @@ export function useAgencyProperties(agencyId: string) {
         .select('id, title, status, price, city, canton, created_at')
         .eq('agency_id', agencyId)
         .order('created_at', { ascending: false })
+        .limit(200)
       if (error) throw error
       return data ?? []
     },
@@ -155,6 +158,7 @@ export function useAgencyTransactions(agencyId: string) {
         .select('id, stage, status, price_offered, created_at')
         .eq('agency_id', agencyId)
         .order('created_at', { ascending: false })
+        .limit(200)
       if (error) throw error
       return data ?? []
     },

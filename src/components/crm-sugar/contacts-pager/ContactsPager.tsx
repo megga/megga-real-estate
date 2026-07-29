@@ -18,7 +18,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CrmContact } from '@/components/crm-sugar/mockData'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { crmStep, type SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmInitials } from '@/components/crm-sugar/tokens'
 
 // ── Couleurs fonctionnelles (données métier — jamais accent UI) ─────────
@@ -318,6 +318,56 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
 // ═══════════════════════════════════════════════════════════════════════
 //   PAGE 1 — SANTÉ DU PORTEFEUILLE
 // ═══════════════════════════════════════════════════════════════════════
+/**
+ * Panneau et ligne de segment de la page Santé.
+ *
+ * Définis au niveau module, PAS dans le corps de CtpHealthPage : un composant
+ * créé pendant le rendu change d'identité à chaque passe, donc React démonte et
+ * remonte tout son sous-arbre au lieu de le mettre à jour — état interne perdu,
+ * focus perdu, transitions CSS rejouées. Les valeurs dérivées (surface, ombre)
+ * se recalculent ici à partir de `sp`/`dark`, comme les autres Ctp*.
+ */
+function CtpCard({ title, children, sp, dark }: {
+  title: string
+  children: ReactNode
+  sp: SugarPalette
+  dark: boolean
+}) {
+  const surface = dark ? sp.cardBg : '#FFFFFF'
+  const panelSh = dark ? `inset 0 0 0 1px ${sp.cardBorder}, ${sp.shadow}` : sp.shadow
+  return (
+    <section style={{ background: surface, borderRadius: 22, boxShadow: panelSh, padding: '20px 22px' }}>
+      <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>{title}</h3>
+      {children}
+    </section>
+  )
+}
+
+function CtpSegRow({ dot, label, count, pct, color, seg, sp, dark, onSegment }: {
+  dot: string
+  label: string
+  count: number
+  pct: number
+  color: string
+  seg?: Filter
+  sp: SugarPalette
+  dark: boolean
+  onSegment: (f: Filter) => void
+}) {
+  return (
+    <button className="ctp-seg-row" onClick={() => seg && onSegment(seg)} style={{
+      display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: seg ? 'pointer' : 'default', fontFamily: 'inherit',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 999, background: dot }} />
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, flex: 1 }}>{label}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+      </div>
+      <CtpBar pct={pct} color={color} dark={dark} />
+    </button>
+  )
+}
+
 function CtpHealthPage({ contacts, sp, dark, onSegment }: {
   contacts: CrmContact[]
   sp: SugarPalette
@@ -326,7 +376,6 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
 }) {
   const { t } = useTranslation('contacts')
   const surface = dark ? sp.cardBg : '#FFFFFF'
-  const panelSh = dark ? `inset 0 0 0 1px ${sp.cardBorder}, ${sp.shadow}` : sp.shadow
   const panelShSm = dark ? `inset 0 0 0 1px ${sp.cardBorder}, ${sp.shadowSm}` : sp.shadowSm
   const n = contacts.length || 1
 
@@ -363,26 +412,6 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
     { label: t('health.kpi.relance'), val: toRelance, seg: { type: 'stale', value: 'stale', label: t('health.seg.stale') } as Filter },
   ]
 
-  const Card = ({ title, children }: { title: string; children: ReactNode }) => (
-    <section style={{ background: surface, borderRadius: 22, boxShadow: panelSh, padding: '20px 22px' }}>
-      <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>{title}</h3>
-      {children}
-    </section>
-  )
-
-  const SegRow = ({ dot, label, count, pct, color, seg }: { dot: string; label: string; count: number; pct: number; color: string; seg?: Filter }) => (
-    <button className="ctp-seg-row" onClick={() => seg && onSegment(seg)} style={{
-      display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: seg ? 'pointer' : 'default', fontFamily: 'inherit',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 999, background: dot }} />
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, flex: 1 }}>{label}</span>
-        <span style={{ fontSize: 12.5, fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
-      </div>
-      <CtpBar pct={pct} color={color} dark={dark} />
-    </button>
-  )
-
   return (
     <div style={{ position: 'absolute', inset: 0, padding: '34px 36px', boxSizing: 'border-box', overflowY: 'auto', background: sp.pageBg, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
       <div style={{ width: '100%', maxWidth: 1000, margin: 'auto 0' }}>
@@ -406,29 +435,29 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 16, alignItems: 'stretch' }}>
           <div className="ctp-seg">
-            <Card title={t('health.byAudience')}>
+            <CtpCard title={t('health.byAudience')} sp={sp} dark={dark}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {byAud.map(r => (
-                  <SegRow key={r.a} dot={CTP_FN[r.a]} label={audLabel[r.a]} count={r.n} pct={(r.n / n) * 100} color={CTP_FN[r.a]}
-                    seg={{ type: 'audience', value: r.a, label: audLabel[r.a] }} />
+                  <CtpSegRow key={r.a} dot={CTP_FN[r.a]} label={audLabel[r.a]} count={r.n} pct={(r.n / n) * 100} color={CTP_FN[r.a]}
+                    seg={{ type: 'audience', value: r.a, label: audLabel[r.a] }} sp={sp} dark={dark} onSegment={onSegment} />
                 ))}
               </div>
-            </Card>
+            </CtpCard>
           </div>
 
           <div className="ctp-seg">
-            <Card title={t('health.kycCoverage')}>
+            <CtpCard title={t('health.kycCoverage')} sp={sp} dark={dark}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {kyc.map(r => (
-                  <SegRow key={r.val} dot={r.col} label={r.k} count={r.n} pct={(r.n / n) * 100} color={r.col}
-                    seg={{ type: 'kyc', value: r.val, label: t('health.seg.kyc', { status: r.k }) }} />
+                  <CtpSegRow key={r.val} dot={r.col} label={r.k} count={r.n} pct={(r.n / n) * 100} color={r.col}
+                    seg={{ type: 'kyc', value: r.val, label: t('health.seg.kyc', { status: r.k }) }} sp={sp} dark={dark} onSegment={onSegment} />
                 ))}
               </div>
-            </Card>
+            </CtpCard>
           </div>
 
           <div className="ctp-seg">
-            <Card title={t('health.sources')}>
+            <CtpCard title={t('health.sources')} sp={sp} dark={dark}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {bySrc.map(r => (
                   <button key={r.k} className="ctp-seg-row" onClick={() => onSegment({ type: 'source', value: r.k, label: t('health.seg.source', { source: srcLabel(r.k) }) })} style={{
@@ -440,7 +469,7 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
                   </button>
                 ))}
               </div>
-            </Card>
+            </CtpCard>
           </div>
         </div>
       </div>
@@ -708,7 +737,7 @@ export default function ContactsPager({
         .ctp-scroll-hint:hover, .ctp-scroll-hint:focus-visible { opacity: 1; }
         .ctp-scroll-hint:hover .ctp-hint-label, .ctp-scroll-hint:focus-visible .ctp-hint-label { max-width: 220px !important; opacity: 1 !important; transform: translateX(0) !important; }
         .ctp-row { transition: background .15s ease; }
-        .ctp-row:hover { background: ${dark ? 'rgba(255,255,255,.04)' : 'rgba(15,23,42,.03)'}; }
+        .ctp-row:hover { background: ${dark ? crmStep('s3', 'rgba(255,255,255,.04)') : 'rgba(15,23,42,.03)'}; }
         .ctp-seg, .ctp-seg-row, .ctp-row, .ctp-scroll-hint { -webkit-tap-highlight-color: transparent; }
         /* Pas d'anneau à la souris ; anneau visible au clavier (a11y). */
         .ctp-seg:focus:not(:focus-visible), .ctp-seg-row:focus:not(:focus-visible), .ctp-row:focus:not(:focus-visible), .ctp-scroll-hint:focus:not(:focus-visible) { outline: none; }

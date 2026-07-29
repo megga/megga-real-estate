@@ -6,6 +6,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
+import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2023-10-16',
@@ -40,6 +41,7 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  const startedAt = Date.now()
   try {
     const body = await req.text()
     const signature = req.headers.get('stripe-signature')!
@@ -222,6 +224,12 @@ serve(async (req) => {
             action: 'subscription_cancelled',
             entity_type: 'agency',
             entity_id: agencyId,
+            // La gravité manquait, donc la colonne retombait sur `info` — et le
+            // bento d'alertes ne lit que `warn`/`critical`. L'événement était
+            // donc écrit correctement depuis toujours, mais invisible là où il
+            // comptait. Une agence qui résilie mérite un regard.
+            category: 'settings',
+            severity: 'warn',
             metadata: { previous_customer_id: customerId },
           })
 
@@ -258,6 +266,10 @@ serve(async (req) => {
             action: 'payment_failed',
             entity_type: 'agency',
             entity_id: agencyId,
+            // Même correction de gravité : l'abonnement passe en `past_due`
+            // juste au-dessus, c'est actionnable — ça n'a rien d'une info.
+            category: 'settings',
+            severity: 'warn',
             metadata: { invoice_id: invoice.id },
           })
 
@@ -303,6 +315,17 @@ serve(async (req) => {
     })
   } catch (err) {
     console.error('Stripe webhook error:', err)
+    // Ce catch n'est atteint qu'APRÈS la vérification de signature Stripe (qui
+    // sort en 400 plus haut) : un appelant qui n'a pas le secret ne peut donc
+    // pas provoquer d'écriture ici. `supabaseAdmin` est déclaré dans le `try`,
+    // hors de portée — on rouvre un client plutôt que de restructurer.
+    await reportEdgeError(
+      createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!),
+      'stripe-webhook',
+      err,
+      { startedAt },
+    )
+
     return new Response(JSON.stringify({ error: 'Webhook processing failed' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

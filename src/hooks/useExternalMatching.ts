@@ -36,4 +36,3 @@ export interface ExternalListing {
   visit_contact: string | null
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any

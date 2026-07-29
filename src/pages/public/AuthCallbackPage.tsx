@@ -10,16 +10,10 @@ import { useNavigate } from 'react-router-dom'
 import BootSplash from '@/components/layout/BootSplash'
 import { supabase } from '@/lib/supabase'
 import { calendarReturnPath } from '@/lib/calendarOauth'
-import { isAgentRole } from '@/types/auth'
+import { getRedirectPath } from '@/lib/authRedirect'
 import type { UserRole } from '@/types/auth'
 
 const VALID_ROLES: UserRole[] = ['buyer', 'seller', 'particulier', 'agent', 'manager', 'admin', 'assistant']
-
-/** Destination post-login selon le rôle : agents vers le CRM, particuliers vers le portail. */
-function getRedirectPath(role: UserRole): string {
-  if (isAgentRole(role)) return '/dashboard'
-  return '/portal'
-}
 
 /** Tient l'écran d'arrivée le temps de l'aiguillage, fait dans onAuthStateChange. */
 export default function AuthCallbackPage() {

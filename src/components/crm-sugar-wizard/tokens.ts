@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 Wizard — Design tokens (palette unique, distinct from Today).
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx).
 import i18nSg from '@/i18n' // labels d'étapes i18n (getters SG_STEPS)
+import { CRM_GRAPHITE, crmDarkTone, crmStep } from '@/components/crm-sugar/tokens'
 //
 // Deux thèmes (light + dark). `SugarV2` n'est PAS un objet figé : c'est un Proxy
 // qui lit le thème actif (`__sgActive`) au moment de l'accès. Le shell réassigne
@@ -13,7 +14,8 @@ import i18nSg from '@/i18n' // labels d'étapes i18n (getters SG_STEPS)
 // capture (`const SP = SugarV2`) ne se retrouve figée sur l'ancien objet.
 //
 // Light : fond gris radial → bleu pâle, cards blanches, ombres douces, accent NOIR pur.
-// Dark  : fond plat #0A0A0F (= bg du CRM), surfaces #15151F, accent NEAR-WHITE #ECEDF3.
+// Dark  : surfaces prises sur l'échelle sombre active (Graphite S0→S3 par défaut,
+//   littéraux historiques en Noir pur), accent NEAR-WHITE #ECEDF3.
 //   ⚠ Inversion clé : en dark l'accent `black` devient near-white, donc tout ce qui
 //   est « posé sur l'accent » (texte d'un CTA, ✓ d'une case) passe en `onBlack` sombre.
 //   Ne jamais hardcoder `#fff` sur l'accent → utiliser `sgOn()` / `onBlack`.
@@ -76,14 +78,24 @@ const SUGARV2_LIGHT = {
 
 export type SugarV2Palette = typeof SUGARV2_LIGHT
 
+// Surfaces en GETTERS : elles suivent la teinte sombre active. Un objet monté
+// une seule fois figerait la valeur au chargement du module — et comme ce
+// fichier alimente les 8 étapes du wizard, elles se retinteraient toutes de
+// travers. Le littéral passé à `crmStep` est la valeur historique, servie
+// telle quelle en Noir pur : zéro régression sur cette teinte.
 const SUGARV2_DARK: SugarV2Palette = {
-  bg: '#0A0A0F',
-  bgGradient: 'radial-gradient(ellipse 130% 95% at 50% -12%, #1B1C28 0%, #10111B 48%, #08080C 100%)',
+  get bg() { return crmStep('s0', '#0A0A0F') },
+  get bgGradient() {
+    const G = CRM_GRAPHITE
+    return crmDarkTone() === 'graphite'
+      ? `radial-gradient(ellipse 130% 95% at 50% -12%, ${G.s3} 0%, ${G.s1} 48%, ${G.s0} 100%)`
+      : 'radial-gradient(ellipse 130% 95% at 50% -12%, #1B1C28 0%, #10111B 48%, #08080C 100%)'
+  },
 
-  card: '#15151F',
-  cardSubtle: '#212233',
-  rail: '#15151F',
-  railHover: '#1C1D29',
+  get card() { return crmStep('s2', '#15151F') },
+  get cardSubtle() { return crmStep('s3', '#212233') },
+  get rail() { return crmStep('s1', '#15151F') },
+  get railHover() { return crmStep('s2', '#1C1D29') },
 
   black: '#ECEDF3',             // accent → near-white en dark
   blackHover: '#FFFFFF',
@@ -104,7 +116,12 @@ const SUGARV2_DARK: SugarV2Palette = {
   pillShadow: '0 8px 20px -6px rgba(0,0,0,0.6)',
   pillShadowHover: '0 14px 34px -8px rgba(0,0,0,0.72)',
   ringSoft: 'rgba(255,255,255,0.10)',
-  footerFade: 'linear-gradient(180deg, transparent 0%, rgba(10,10,15,0.82) 55%, rgba(8,8,12,1) 100%)',
+  get footerFade() {
+    const G = CRM_GRAPHITE
+    return crmDarkTone() === 'graphite'
+      ? `linear-gradient(180deg, transparent 0%, ${G.s0}D1 55%, ${G.s0} 100%)`
+      : 'linear-gradient(180deg, transparent 0%, rgba(10,10,15,0.82) 55%, rgba(8,8,12,1) 100%)'
+  },
 
   ok:   '#34C796',
   warn: '#F2B855',

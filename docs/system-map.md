@@ -59,7 +59,7 @@ avoir livré une feature ou changé l'architecture :
 ## 0. En une phrase
 
 SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
-CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA + super-admin.
+CRM transactionnel agent + pipeline LAB/KYC + copilote IA + console super-admin.
 Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~90k
 `market_listings`, ~50k active) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 67 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
@@ -92,34 +92,46 @@ Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge au
 
 **Frontières & flux global :**
 ```
-megga.ch (site statique V3, password-gated)   ─┐
-app.megga.ch (SPA React CRM, /dashboard/*)     │
-admin.megga.ch (SPA React console super-admin) ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
-kyc.megga.ch (magic links KYC publics)        ─┘         ▲
+megga.ch (site statique V3, password-gated)          ─┐
+app.megga.ch (SPA React CRM, /dashboard/* —            │
+              console super-admin comprise)            ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
+kyc.megga.ch (magic links KYC publics)                ─┘         ▲
                                                          └── pg_cron (flatfox-sync, monitoring…) via pg_net
 ```
 
-**🟪 Console super-admin isolée** (juil. 2026). Les 16 surfaces d'administration ont quitté le bundle du
-CRM : elles ont leur propre entrée Vite ([`index.admin.html`](../index.admin.html) → [`src/AdminApp.tsx`](../src/AdminApp.tsx),
-`npm run build:admin`), leur propre projet Pages (`megga-admin`) et leur propre origine. Conséquences —
-(1) le code d'administration n'est plus servi aux agents, (2) une session volée sur le CRM ne donne pas la
-console (origines distinctes ⇒ ni `localStorage` ni cookies partagés), (3) la console a son **propre écran de
-connexion** par mot de passe (elle ne passe pas par la vitrine), (4) les routes y sont à la **racine**
-(`/users`, `/agencies/:id`…) et `app.megga.ch/dashboard/admin/*` rebondit vers elles.
+**🟪 Console super-admin : une SURFACE DU CRM** (28 juil. 2026). Les 17 pages d'administration vivent sous
+`/dashboard/admin/*`, dans le bundle du CRM : [`src/App.tsx`](../src/App.tsx) monte
+[`AdminConsoleRoute`](../src/components/admin/AdminConsoleRoute.tsx) → `AdminConsoleRoutes` → `AdminShell`.
+L'isolation sur `admin.megga.ch` (25-26 juil.) a été **annulée** : ni entrée Vite dédiée, ni projet Pages
+`megga-admin`, ni passage de session par fragment d'URL — une seule origine, donc plus rien à se transmettre.
+L'URL redevient au passage rechargeable, partageable et mémorisable.
+
 Entrée depuis le CRM : ligne « Console admin » du dropdown profil Sugar + recherche ⌘K (les deux gatées par
-`useSuperAdminGate`, cf. [`src/lib/adminEntry.ts`](../src/lib/adminEntry.ts)). L'impersonation, qui est une vue
-DU CRM, se passe par `?impersonate=<id>` ([`ImpersonationHandoff`](../src/components/admin/ImpersonationHandoff.tsx)) :
-l'id ne donne rien par lui-même, c'est la RPC `admin_log_impersonation` (gardée `is_super_admin`) qui décide.
-⚠️ Reste **une seule action manuelle** au tableau de bord Cloudflare : poser une politique **Zero Trust /
-Access** devant `admin.megga.ch` (allow = les e-mails de `super_admin_allowlist()`). Sans elle la console
-reste protégée par la DB, mais elle est joignable — Access la rend invisible avant même le chargement du bundle.
+`useSuperAdminGate`, cf. [`src/lib/adminEntry.ts`](../src/lib/adminEntry.ts)). L'impersonation ouvre un onglet
+sur `/dashboard?impersonate=<id>` — URL **relative** : viser un hôte en dur ouvrait la production depuis un
+poste de développement. L'id ne donne rien par lui-même, c'est la RPC `admin_log_impersonation` (gardée
+`is_super_admin`) qui décide, et [`ImpersonationHandoff`](../src/components/admin/ImpersonationHandoff.tsx)
+n'active la vue qu'après l'écriture d'audit.
+
+⛔ **Ne pas reproposer Cloudflare Access** devant la console : posé puis retiré (décision produit — il
+réclamait une seconde authentification, à l'encontre du principe « un seul endroit où l'on s'authentifie »),
+et le domaine n'existe plus.
+
+⚠️ **Piège vécu** : la règle `_redirects` qui renvoyait `/dashboard/admin/*` vers `admin.megga.ch` a survécu
+au retrait du domaine et rendait la console **injoignable** (302 vers le vide) à tout rechargement ou lien
+profond. Le serveur de dev ignore `_redirects`, donc les suites e2e restaient vertes. Garde-fou :
+[`tests/unit/redirects-guard.spec.ts`](../tests/unit/redirects-guard.spec.ts). Même famille de piège pour les
+liens internes, restés à la racine après la refusion :
+[`tests/unit/admin-console-paths.spec.ts`](../tests/unit/admin-console-paths.spec.ts).
 
 ---
 
 ## 2. Frontend — audiences & routing
 
-4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD) ; la console super-admin est une
-application séparée, gardée par `AdminAuthGate` (connexion + `useSuperAdminGate` → RPC `is_super_admin`). `PasswordGate` (« Coming Soon ») a été **retiré** (#555) : le composant n'existe plus.
+4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD) ; la console super-admin vit SOUS cette
+garde, `AdminConsoleRoute` y ajoutant `useSuperAdminGate` (→ RPC `is_super_admin`) et l'audit d'entrée.
+`AdminAuthGate` n'existe plus — il servait l'application autonome, retirée le 28.07.2026 ; `PasswordGate`
+(« Coming Soon ») a été retiré plus tôt (#555).
 QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `networkMode: always`.
 
 **🟪 Arrivée post-connexion** (juil. 2026). La connexion vit sur la vitrine (cf. §4bis) : `megga-auth.js`
@@ -157,9 +169,8 @@ sans ça, le démontage de l'ancien `ThemeProvider` arrachait l'attribut que le 
 | **Centre d'aide** | `/help*` `/aide*` | → `intercom.help/megga/fr` (SPA retirée le 20.07.2026) |
 | ~~Compte visiteur~~ | ~~`/account`~~ | **retiré au pivot CRM-first** — la route redirige vers `/dashboard` |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |
-| **Portail vendeur** | `/portal/:token` (+ `/portal` dev) | `VotreVentePage` — page unique « Votre vente » (Sugar Pure, lecture seule) : carte bien + galerie/lightbox, parcours arc 6 étapes, 3 jauges donut, offres (+modal décision), timeline, carte agent WhatsApp |
 | **CRM agent** | `/dashboard/*` | voir ci-dessous |
-| **Super-admin** | **`admin.megga.ch`** (application séparée ; `/dashboard/admin/*` du CRM y rebondit) | 17 pages (accent violet), routes à la **racine** (`/users`, `/agencies/:id`…), **nav groupée en 5 sections** (Pilotage/Clients/Revenus/Opérations/Produit & IA, P6b) ; `AdminAuthGate` — connexion propre à la console + **accès verrouillé** (20260705160000) : rôle + **allowlist email en dur** (2 emails opérateurs, `is_super_admin()` joint `auth.users`), lue par RPC et non plus embarquée dans le bundle ; edges admin gardées `_shared/require-super-admin.ts` ; **ouverture de console auditée** (`admin_console_entered`) et impersonation **audit-first** (RPC `admin_log_impersonation` bloquante), passée au CRM par `?impersonate=<id>`. ⚠️ L'**enrôlement TOTP** décrit dans les versions précédentes n'existe plus (2FA retiré, #873) : le facteur indépendant prévu est **Cloudflare Access** devant le domaine. **Chrome Sugar (lot 0, juil. 2026)** : la console adopte la palette du CRM sans qu'aucune des 17 pages ne soit réécrite — `src/styles/admin-console.css` repointe les variables `--color-*` sur `CRM_TOKENS` (light + noir), et les pages, écrites en classes sémantiques, suivent. Même clé de thème que le CRM (`megga.sugar.dark`, cf. `AdminThemeProvider`) : plus de réglage divergent. Restent aux lots suivants les badges à fond coloré, les bentos bordés et l'iconographie lucide. Échappatoire CI : `app_config.super_admin_test_domain` (`.local` only). **Reprise 07/2026 (plan P5→P8b)** : P5 fiabilisation dette · P6a usage 360°+quotas (`agency_usage_quotas`) · P6b clients finaux (`end-users` : portails/leads/KYC publics, RPC sans token/PII) · P8a annonces in-app (`platform_announcements`) · P8b création d'agence + factures Stripe. |
+| **Super-admin** | `app.megga.ch/dashboard/admin/*` (surface du CRM) | **17 pages**, accent violet réduit au repère de contexte du rail, **nav groupée en 5 sections** (Pilotage/Clients/Revenus/Opérations/Produit & IA). Gate : `AdminConsoleRoute` → `useSuperAdminGate` (UX) ; le mur réel est en base — `is_super_admin()` exige le rôle **ET** un e-mail allowlisté en dur, lu dans `auth.users` (jamais `profiles.email`, auto-modifiable) — et sur les edges via `_shared/require-super-admin.ts`. ⚠️ **Aucun contrôle AAL2** : le 2FA a été retiré (#873) ; des commentaires d'edge functions l'ont prétendu jusqu'au 28.07, ils ont été corrigés. Chaque **entrée** est auditée (`admin_console_entered` — granularité entrée, pas chargement de page) et l'impersonation reste **audit-first** (RPC `admin_log_impersonation` bloquante), via `?impersonate=<id>` en URL relative. Échappatoire CI : `app_config.super_admin_test_domain` (`.local` only). Chrome Sugar : `AdminShell` + kit `src/components/admin/kit/` (`AdminPager`, `AdminSearchInput`, `AdminSegmentBtn`, `AdminConfirm`, `AdminStat`…), palette re-teintée par `src/styles/admin-console.css` — ⛔ ne JAMAIS y remettre `outline: none`, c'est ce qui avait supprimé tout repère de focus clavier. |
 
 **CRM agent** (layout `AgentSugarLayout`, dark CRM) — pages principales :
 `dashboard` (**cockpit « Aujourd'hui »** refonte juin 2026 — voir l'encadré ci-dessous) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
@@ -199,7 +210,7 @@ court-circuite le trigger) : toute modif de `handle_new_user` se vérifie à la 
 - `layout/` — `ProtectedRoute`, `ConsentGate` (gate nLPD), `StaleBundleDetector`, `AgentLayout`, `AgentSugarLayout`.
 - `crm-sugar/` + `crm-sugar-v3/` — shell CRM, contact detail, KYC (**pager `kyc-pager/`** : frame + liste + vigie + fiche stricte + liseuse ; wizard `kyc-wizard/` avec voie import ; l'ancien écran `kyc/` [KycDossierDetail/KycListView] n'est plus routé, conservé transitoirement), **biens** (`biens/pager/` [BiensPager/BpTopGallery/BpFollowupPage/BpRenewModal/BiensFirstRun/followupData] + `biens/gallery/` + BnScoreBadge — les anciens BnSubmissions/BnDetailOverlay/BnPhoto/biensData/helpers sont **retirés**, superseded par le design final), tokens dark.
 - `crm-sugar-wizard/` — wizard « Créer un bien » (`/dashboard/listings/new`, `WizardShell` + **7 étapes** — refonte « complet » juil. 2026 : Step 0 trois portes `SgPorteCard` → Vendeur/Mandat → Adresse → **Caractéristiques guidées** (10 types, 7 questions `data.specsQ` + **accordéon détails `Step3bDetails`** conditionnel au type) → **Photos couverture-héro + pellicule** (upload réel, recadrage canvas → File) → Prix/Description 2 phases (DeepSeek réel) → **Publication checklist 5 critères** bloquants en public seulement. **Pas de Staging Studio** : `crm-staging-studio.jsx` du bundle handoff est un fichier ORPHELIN, monté nulle part). **Dark mode** : `SugarV2` (`tokens.ts`) est un **Proxy** qui résout la palette light/dark à chaque lecture depuis `document.documentElement[data-theme]` (pas de mutation de global au render → robuste React 18 StrictMode/concurrent) ; helpers `sgOn()` / `sgAcc()` pour les littéraux posés **sur l'accent** (accent → near-white en dark, `onBlack` → `#0A0A0F`). Header minimal (× fermer seul, flottant) + indicateur d'autosave en footer ; nav Précédent/Continuer, le CTA de publication vit dans le Step 7. Système distinct du wizard KYC (`kyc-wizard/`, `KycPaletteContext`). **Embedded (juil. 2026, #871)** : prop `embedded` → `position:absolute` (au lieu de `fixed z-9000`), monté en overlay dans le bento du pager Mes biens. **Porte « Importer un mandat » désactivée** : l'ancien chemin injectait un mandat fictif (exclusif, 3.5 %, signé) en base pour n'importe quel PDF — dormante jusqu'à un vrai OCR.
-- Domaines : `search/` `listings/` `matching/` `transactions/` `kyc*/` `documents/` `calendar/` `messaging/` `portal/` `seller-portal/` `admin/` `directory/` `map/` `ai-copilot/` `skeletons/` `auth-bento/`.
+- Domaines : `search/` `listings/` `matching/` `transactions/` `kyc*/` `documents/` `calendar/` `messaging/` `admin/` `directory/` `map/` `ai-copilot/` `skeletons/` `auth-bento/`.
 
 ### Hooks (`src/hooks/`, ~100, React Query)
 Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`useContacts`, `useContactsSugar`, `useContactTimeline`…) · **biens** (`useListings`, `useBiensSugar`, `useProperties`, `usePropertyScores`, `usePropertyStats`) · **transactions** (`useTransactions`, `useUpdateTransactionStage`, `usePipelineSugar`) · **KYC** (`useKycDossiers`, `useKycVigie` [dérivation Vigie + décisions], `useMarkKycCheck`, `useCreateKycDossier`) · **matching** (`useMatching`, `useExternalMatching`) · **dashboard** (`useAxDashboardData` [analytics live, 3 RPC], `useAgencyTargets`, `useDailyBrief`, `useContactNextAction`) · **calendrier** (`useCalendarSugar`, `useGoogleCalendar`, `useOutlookCalendar`) · **IA** (`useCopilot`, `useExtractLead`, `useTranslatedDescription`) · **admin** (`useAdminUsers/Agencies/Monitoring/Compliance`, `useAuditLog`, `useAdminLiveFeed`).
@@ -225,7 +236,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, setti
 - **Pipeline & transactions** : `transactions` (stages lead→…→closed), `crm_offers` (offres/contre-offres ; historique via `parent_offer_id` + audit `activity_events`, pas de table `crm_offers_history`), `visits`, `client_searches`, `matches`.
 - **KYC / compliance (clients)** : `kyc_cases`, `kyc_checklist_items`, `kyc_magic_links` + `kyc_magic_link_uploads`, `kyc_screening_decisions`, `documents` (sha256, retention).
 - **KYB / vérification des agences** (schéma 26 juil. 2026 ; moteur, connecteurs disponibles et file de revue 28 juil. ; Zefix/UID = **squelette seul** 29 juil.) : ne pas confondre avec le KYC ci-dessus, qui porte sur les *clients* de l'agence. Ici on vérifie l'agence elle-même à l'onboarding. `legal_forms` + `legal_form_aliases` (référentiel 21 formes CH/FR/LI ; `category` pilote le parcours — `sole_proprietorship` = pas d'UBO tiers, `foundation_or_trust` = diligence renforcée) · `agencies` enrichie (`legal_form_id` FK, `business_registration_number` ex-`ide` — le terme IDE est suisse et mentait dès qu'un SIREN arrive —, `trade_name` cible du rapprochement flou avec le domaine e-mail, `verification_status`/`verification_score`/`verified_at`) · `agency_related_persons` + `agency_person_roles` (`signatory`/`ubo`, historisés ; **distincts de `profiles`** : un ayant droit économique passif n'a pas de compte CRM) · `verification_check_types` + `verification_check_config` (poids **versionné**, jamais figé sur la ligne de check) + `agency_verification_checks` / `agency_person_verification_checks` (`raw_response` jsonb = pièce d'audit LBA). Score normalisé sur les checks **disponibles** → un pays sans VIES n'est pas pénalisé, ce qui rend le modèle transposable ; les vétos (registre, PEP/sanctions, pièce d'identité) sont **hors score** et ne se compensent jamais. **Moteur écrit** : `recompute_agency_verification` (migration `20260728130000`, `service_role` seul) pose score et statut ; l'edge `agency-verification-run` fait tourner **4 connecteurs réels** — RDAP (`domain_whois_age`), VIES (`vat_lookup`), `recherche-entreprises.api.gouv.fr` FR (`registry_lookup` + `registry_legal_name_match`), géocodage Mapbox (`address_geocode`, réclame le secret `MAPBOX_TOKEN` qui n'est pas posé). **File de revue admin livrée** (`20260728160000` + `/dashboard/admin/kyb-review`) : valider, rejeter avec motif, relancer, résoudre la pièce d'identité. **Zefix et registre UID = squelette seul** (29 juil. 2026, `createZefixSources` / `createUidRegisterSources`) — aucun connecteur écrit, aucun identifiant posé (Zefix a répondu `401`, demande restée sans réponse ; l'API du registre UID n'a jamais été testée), les deux sortent `unavailable`. `oera.li` sans API (LI en revue manuelle), carte pro CCI FR sans API. ⚠️ **Aucun dossier, d'aucun pays, ne peut être auto-validé aujourd'hui** : deux vétos d'entité (`registry_number_format`, `registry_country_match`) n'ont aucun connecteur, et la pièce d'identité reste en `pending_manual_review` jusqu'à décision humaine — état voulu tant que les preuves manquent. Cf. [agency-kyb-verification.md](agency-kyb-verification.md) (conception), [agency-kyb-handoff.md](agency-kyb-handoff.md) §7bis (pourquoi rien ne s'auto-valide) + brains `megga/agency-kyb-verification` et `megga/agency-verification-pending-sources`.
-- **Portail vendeur** : `seller_portals` (token 6 mois) + `seller_preferences`. Le portail est **stateless** — il n'a pas de table à lui : tout passe par l'edge function `seller-portal-action` authentifiée au token, qui lit `properties`, `transactions`, `crm_offers`, `visits`, `seller_leads`, `profiles` et journalise dans `activity_events`. ⚠️ `vendor_dossiers` **n'existe pas en base**.
+- **Portail vendeur** : ❌ retiré le 26 juillet 2026. Les tables `seller_portals` et `seller_preferences` ont été droppées (0 ligne depuis leur création) avec l'edge function `seller-portal-action`. ⚠️ `vendor_dossiers` n'existait déjà pas en base.
 - **Billing** : `subscriptions` (Stripe).
 - **Messaging** : le canal réel du CRM est **WhatsApp** — 14 tables `whatsapp_*` (`whatsapp_messages` journal, `whatsapp_agent_links` + `agency_wa_numbers` appairage numéro↔agent, `whatsapp_conversation_insights`, `whatsapp_pending_actions`, `whatsapp_confirmation_log`, `whatsapp_followup_suggestions`, `whatsapp_daily_briefs`, `whatsapp_notices`, `whatsapp_message_corrections`, `whatsapp_rejected_drafts`, `whatsapp_recent_auto_actions`, `whatsapp_tool_usage`, `whatsapp_async_jobs`, `whatsapp_cron_locks`) · `message_templates` · `contact_messages` (formulaire vitrine ; anon fermé juil. 2026). ⚠️ `message_threads`, `messages`, `email_messages_cache` (système Messages maison du CRM agent) et `marketplace_inquiries` **n'existent plus en base**.
 - **Favoris/alertes acheteur** : ❌ **plus rien en base** — `market_favorites`, `market_alerts`, `saved_searches` et `newsletter_subscribers` sont partis avec la marketplace publique. Les recherches côté CRM vivent dans `client_searches` (cf. Pipeline).
@@ -289,7 +300,11 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
 > (~40 pages FR, home « Votre CRM se pilote depuis WhatsApp », logo MEGGA header+footer, assets 100%
 > auto-hébergés — 0 CDN sauf Finsweet filter.js). CTA → `signup.html` / `login.html` : **l'inscription et la connexion vivent sur la vitrine** (inversion post-pivot), pas sur `app.megga.ch/auth`. Worker minimal (`_worker.js` = Basic Auth
-> `megga`/`preview` seul, pas de proxy Supabase).
+> `megga`/`preview` seul, pas de proxy Supabase). ⚠ Les pages d'auth (`login`, `signup`,
+> `reset-password`) et `css/ js/ images/ fonts/` sont **hors du gate** depuis le 26 juillet
+> 2026 : le CRM n'ayant plus de page de connexion, gater `/login` fermait l'accès au CRM
+> lui-même (un non-connecté de `app.megga.ch` tombait sur un 401 en texte nu), et gater
+> `/reset-password` cassait les liens envoyés par e-mail.
 > **Blog + SEO + légal (28-29 juin 2026, cf. brain `megga/vitrine-content-seo`)** : `blog.html` + 13 articles
 > dans `blog-posts/` (filtrable + recherche câblée + FAQ accordéon, angle **demand-led** avec byline experts MEGGA) ·
 > fondations SEO (`sitemap.xml` 21 URLs, `robots.txt`, canonical, JSON-LD) · pages légales `mentions-legales.html`
@@ -335,7 +350,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 **B · Contact → pipeline → closing** : lead (import IA / web / portal) → `contacts` → qualif (score) → `visits` → offres (`crm_offers` + contre-offres, trigger audit) → `transactions` stages (lead→qualified→visit→offer→negotiation→reserved→financing→notary→signed→closed) → gate KYC (LBA art.7, **warn non bloquant**, revu MLRO) → closing + `activity_events` complet.
 
-**C · Portail vendeur (token)** : agent crée `seller_portals` (token 6 mois) → vendeur `/portal/:token` (sans login) → **page unique « Votre vente »** (`VotreVentePage` + `components/seller-portal/votre-vente/`, Sugar Pure, lecture seule ; remplace l'ancien mini-CRM 8 pages) → RLS via token (READ property/transac, UPLOAD documents) → updates visibles côté CRM → expiry révoque. Décisions d'offre + paramètres : edge function `seller-portal-action` (token validé, `--no-verify-jwt`) → `offer_decision` journalise un `activity_event` (`actor_kind='system'`) **transmis à l'agent** (jamais de mutation directe `crm_offers`/`transactions`) ; `save/get_preferences` → table `seller_preferences`.
+**C · Portail vendeur (token)** : ❌ **flux supprimé le 26 juillet 2026.** Il n'a jamais tourné une seule fois — aucun portail n'a jamais été créé, donc aucun lien personnel envoyé. Les URLs `/portal*` et `/portail*` redirigent désormais vers la vitrine ; page, composants, hooks, edge function et tables sont partis (migration `20260726180000`).
 
 **D · KYC (Dilisense)** : transaction reserved/negotiation → `kyc_cases` (vigilance standard/renforcée selon montant + source des fonds) → magic link upload (`kyc_magic_link_uploads`, OCR, sha256) → screening async Dilisense → `kyc_screening_decisions` (PEP/sanctions) → **revue humaine MLRO** (fin de flux). L'ancienne **analyse qualitative Claude** a été **retirée du code**, pas seulement désactivée par flag : `ai_analysis` est forcé à `null` en dur (`kyc-screening/index.ts:251`, retrait #794/#829 — Claude banni au runtime). Le rapport masque la section « Analyse de risque » quand `ai_analysis` est null. Socle = screening factuel Dilisense + revue MLRO. **Canal WhatsApp (livré, cf. brain `kyc-whatsapp-spec`)** : l'agent ouvre/joint/screene depuis sa conversation via **6 outils copilote KYC** (`get_kyc_status` *read* ; `attach_kyc_document` *auto* ; `open_kyc_case`/`send_kyc_link` *confirm* ; `run_kyc_screening`/`send_kyc_report` *slow_async*) ; même moteur, le MLRO valide toujours (jamais `is_completed`/`verified` côté IA). **Rapport KYC en PDF par WhatsApp (livré, cf. brain `kyc-report-pdf-whatsapp`)** : `send_kyc_report` (tier *slow_async*, ~60 s → hors boucle) → edge `kyc-report-pdf` mint un token HMAC court → Cloudflare Browser Rendering (REST API, pas de Worker) rend la route publique `/kyc-report/:token` (même template `PdfPage1/2/3` que le CRM) → PDF officiel uploadé en média Meta éphémère et envoyé en document **qu'à l'agent** ; lecture seule (seul write = audit `kyc_report_sent`), aucune migration. **Import d'un rapport externe (PR #853)** : wizard voie import (dépôt PDF ≤7 Mo) → edge `kyc-report-import` (Gemini, `_shared/kyc-extract.ts`) → contrôles identité/PEP/sanctions **proposés, jamais auto-validés** (garde-fou MLRO) + PDF attaché au dossier en catégorie compliance.
 
@@ -374,17 +389,16 @@ Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEG
 ## 8. Dev / test / CI
 
 ```
-npm run dev          # vite — CRM (localhost:5173)
-npm run dev:admin    # vite — console super-admin (localhost:5174, vite.admin.config.ts)
+npm run dev          # vite — CRM, console super-admin comprise (localhost:5173)
 npm run build        # tsc -b && vite build  (+ postbuild overlay-storefront)
-npm run build:admin  # tsc -b && vite build --config vite.admin.config.ts → dist-admin/
-npm run lint         # eslint
+npm run lint         # eslint          ·  lint:deadcode  ·  lint:prose (⚠ i18n, hors des autres gates)
 npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/admin/visual)
+npm run i18n:parity:ci  # parité FR/DE/EN/IT — à lancer dès qu'on touche aux locales
 ```
-CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy. **Trois cibles Pages**,
-un workflow chacune : `deploy.yml` → megga.ch (vitrine, projet `megga-real-estate`), `deploy-app.yml` →
-app.megga.ch (CRM, projet `megga-app`), `deploy-admin.yml` → admin.megga.ch (console, projet `megga-admin`).
-Les trois créent le projet, attachent le domaine et posent le CNAME s'ils manquent — rien à préparer à la main.
+CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy. **Deux cibles Pages**,
+un workflow chacune : `deploy.yml` → megga.ch (vitrine, projet `megga-real-estate`) et `deploy-app.yml` →
+app.megga.ch (CRM et console, projet `megga-app`). Les deux créent le projet, attachent le domaine et posent
+le CNAME s'ils manquent — rien à préparer à la main. `deploy-admin.yml` a été retiré avec l'app autonome.
 
 **⚠ Asymétrie déploiement edge (source de dette)** : `deploy.yml` ne fait que **déployer** ce qu'il
 trouve dans `supabase/functions/` — rien ne supprime. Retirer une fonction du dépôt ne la retire donc
@@ -399,7 +413,10 @@ redéployé au merge suivant — la suppression doit partir du dépôt). Inventa
 2026 : **68 déployées ↔ 67 au dépôt**, seul écart volontaire = `sync-service-key` (déployée hors dépôt,
 self-heal de la clé service-role, PROTÉGÉE). Contrôle : diff `supabase functions list` ↔
 `git ls-tree -d --name-only origin/main:supabase/functions`.
-Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA — accès restreint"`, pré-lancement).
+Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA - acces restreint"`,
+pré-lancement) — realm en ASCII pur : un tiret cadratin sort de la plage d'un octet des valeurs
+d'en-tête HTTP, Cloudflare le tolérait mais un client strict refuse la réponse entière.
+Les pages d'auth échappent au gate (cf. §vitrine).
 
 **Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur 8 familles CRM verrouillées : crm-mobile/crm-sugar/crm-sugar-v3/crm-sugar-wizard/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
 

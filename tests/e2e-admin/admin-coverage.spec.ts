@@ -1,9 +1,9 @@
-// Phase C (part 2) — Couverture super-admin (17 pages).
-// La console vit sur son PROPRE bundle (index.admin.html / AdminApp) : cette
-// suite lance donc `npm run dev:admin` sur :5174, avec
-// VITE_DEV_BYPASS_ROLE=super_admin (cf playwright.admin.config.ts). Les routes
-// y sont à la RACINE (`/users`, plus `/dashboard/admin/users`), et AdminAuthGate
-// rend un écran de refus au lieu de la console si le rôle ne passe pas.
+// Couverture super-admin (17 pages).
+// La console vit DANS le CRM depuis juillet 2026 : les routes sont sous
+// `/dashboard/admin/*` et la suite lance le serveur du CRM avec
+// VITE_DEV_BYPASS_ROLE=super_admin (cf playwright.admin.config.ts). Sans ce
+// rôle, `AdminConsoleRoute` redirige vers /dashboard et la suite testerait
+// 17 fois la même page sans rien affirmer.
 
 import { test, expect } from '@playwright/test'
 import { collectConsoleErrors } from '../e2e/helpers/console'
@@ -15,24 +15,26 @@ interface RouteSpec {
   label: string
 }
 
+const BASE = '/dashboard/admin'
+
 const ADMIN_ROUTES: RouteSpec[] = [
-  { path: '/', label: 'Admin dashboard' },
-  { path: '/agencies', label: 'Admin > Agences' },
-  { path: `/agencies/${MOCK_UUID}`, label: 'Admin > Agence detail (mock)' },
-  { path: '/users', label: 'Admin > Users' },
-  { path: '/end-users', label: 'Admin > Clients finaux' },
-  { path: '/monitoring', label: 'Admin > Monitoring' },
-  { path: '/marketplace', label: 'Admin > Marketplace' },
-  { path: '/compliance', label: 'Admin > Compliance' },
-  { path: '/changelog', label: 'Admin > Communication' },
-  { path: '/feature-flags', label: 'Admin > Feature flags' },
-  { path: '/plans', label: 'Admin > Plans / billing' },
-  { path: '/live', label: 'Admin > Live feed' },
-  { path: '/security', label: 'Admin > Security audit' },
-  { path: '/nps', label: 'Admin > NPS' },
-  { path: '/autonomy', label: 'Admin > Autonomie WhatsApp' },
-  { path: '/tool-usage', label: 'Admin > Outils IA' },
-  { path: '/learning', label: 'Admin > Apprentissage' },
+  { path: BASE, label: 'Admin dashboard' },
+  { path: `${BASE}/agencies`, label: 'Admin > Agences' },
+  { path: `${BASE}/agencies/${MOCK_UUID}`, label: 'Admin > Agence detail (mock)' },
+  { path: `${BASE}/users`, label: 'Admin > Users' },
+  { path: `${BASE}/end-users`, label: 'Admin > Clients finaux' },
+  { path: `${BASE}/monitoring`, label: 'Admin > Monitoring' },
+  { path: `${BASE}/moderation`, label: 'Admin > Modération' },
+  { path: `${BASE}/compliance`, label: 'Admin > Compliance' },
+  { path: `${BASE}/changelog`, label: 'Admin > Communication' },
+  { path: `${BASE}/feature-flags`, label: 'Admin > Feature flags' },
+  { path: `${BASE}/plans`, label: 'Admin > Plans / billing' },
+  { path: `${BASE}/live`, label: 'Admin > Live feed' },
+  { path: `${BASE}/security`, label: 'Admin > Security audit' },
+  { path: `${BASE}/nps`, label: 'Admin > NPS' },
+  { path: `${BASE}/autonomy`, label: 'Admin > Autonomie WhatsApp' },
+  { path: `${BASE}/tool-usage`, label: 'Admin > Outils IA' },
+  { path: `${BASE}/learning`, label: 'Admin > Apprentissage' },
 ]
 
 test.describe('Super-admin — parametric route coverage', () => {
@@ -81,4 +83,29 @@ test.describe('Super-admin — parametric route coverage', () => {
       ).toEqual([])
     })
   }
+})
+
+// Visiter des URL ne prouve rien des liens que la console REND : après la
+// refusion dans le CRM, ils pointaient encore à la racine et le retour de la
+// fiche agence éjectait vers la vitrine. On cible le lien par son `href` — le
+// libellé est traduit, l'adresse est le contrat.
+test.describe('Super-admin — navigation interne', () => {
+  test('le retour de la fiche agence ramène à la liste de la console', async ({ page }) => {
+    await page.goto(`${BASE}/agencies/${MOCK_UUID}`)
+
+    // Rendu hors de la branche de chargement : présent même sans agence réelle.
+    const back = page.locator(`a[href="${BASE}/agencies"]`).first()
+    await expect(back, 'lien de retour absent ou non préfixé').toBeVisible({ timeout: 10_000 })
+
+    await back.click()
+    await expect(page).toHaveURL(new RegExp(`${BASE}/agencies$`))
+  })
+
+  // La modération s'est appelée « marketplace » tant que le module existait.
+  // Le chemin survit pour les favoris et les liens déjà partagés — une
+  // redirection qu'aucune visite d'URL de la liste ci-dessus ne couvre.
+  test("l'ancien chemin marketplace mène à la modération", async ({ page }) => {
+    await page.goto(`${BASE}/marketplace`)
+    await expect(page).toHaveURL(new RegExp(`${BASE}/moderation$`))
+  })
 })

@@ -22,8 +22,7 @@ export function useAdminAutonomy() {
   return useQuery({
     queryKey: ['admin', 'autonomy-suggestions'],
     queryFn: async (): Promise<AutonomyRow[]> => {
-      const { data, error } = await (supabase.rpc as unknown as
-        (fn: string) => Promise<{ data: unknown; error: Error | null }>)('get_whatsapp_autonomy_suggestions')
+      const { data, error } = await supabase.rpc('get_whatsapp_autonomy_suggestions')
       if (error) throw error
       return (data ?? []) as AutonomyRow[]
     },

@@ -8,7 +8,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmStep, crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { galSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
@@ -21,7 +22,6 @@ import { PreferencesFocusSection } from '@/components/crm-sugar/settings/focus/P
 import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm-sugar/settings/data'
 import { SETTINGS_KEYFRAMES } from '@/components/crm-sugar/settings/atoms'
 
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte']
 const ALLOWED: SectionId[] = ['profile', 'agency', 'notifications', 'preferences', 'integrations', 'security', 'billing']
 
@@ -60,8 +60,9 @@ export default function SettingsSugarV2Page() {
     }
   }, [dark])
 
-  const t = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(t, dark, DARK_TONE)
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(t, dark, darkTone)
   const surf = galSurfaces(sp, dark)
 
   // Les sections conservées (Integrations/Billing/Security) lisent SET_PALETTE :
@@ -119,7 +120,7 @@ export default function SettingsSugarV2Page() {
   // sombre ; le contenu Facturation est transparent pour laisser passer le dégradé.
   const immersive = active === 'billing'
   const BILL_GRAD = '/billing/gradient.png'
-  const spR = immersive ? crmSugarPalette(sugarThemeTokens(true), true, DARK_TONE) : sp
+  const spR = immersive ? crmSugarPalette(sugarThemeTokens(true, darkTone), true, darkTone) : sp
   const surfR = immersive ? galSurfaces(spR, true) : surf
   const darkR = dark || immersive
 
@@ -135,7 +136,12 @@ export default function SettingsSugarV2Page() {
       <style>{SUGAR_KEYFRAMES}</style>
       <style>{SETTINGS_KEYFRAMES}</style>
       <style>{`
-        .spg-nav { outline: none !important; -webkit-tap-highlight-color: transparent; border: 0; }
+        /* Pas d'\`outline: none\` : les lignes du rail sont des <button>, et le
+           supprimer les privait de tout repère de focus clavier (WCAG 2.4.7).
+           L'anneau vient de la règle \`button:focus-visible\` de globals.css ;
+           \`:focus-visible\` fait qu'il n'apparaît pas au clic souris, ce qui était
+           le seul motif légitime de couper l'outline. */
+        .spg-nav { -webkit-tap-highlight-color: transparent; border: 0; }
         .spg-nav:hover { background: ${darkR ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'}; }
         .spg-scroll::-webkit-scrollbar { width: 9px; }
         .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
@@ -150,7 +156,9 @@ export default function SettingsSugarV2Page() {
           <div style={{
             position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
             border: `1px solid ${immersive ? 'rgba(255,255,255,0.08)' : sp.frameBorder}`, boxShadow: sp.shadow,
-            background: immersive ? `#0B0C0E url("${BILL_GRAD}") no-repeat bottom center / 140% auto` : sp.pageBg,
+            // Couleur SOUS l'image de dégradé : elle suit le canvas, sinon la
+            // facturation garde une zone quasi-noire au milieu du graphite.
+            background: immersive ? `${crmStep('s0', '#0B0C0E')} url("${BILL_GRAD}") no-repeat bottom center / 140% auto` : sp.pageBg,
             display: 'grid', gridTemplateColumns: '300px 1fr',
           }}>
             {/* RAIL — titre + nav des sections (grammaire « À suivre ») */}

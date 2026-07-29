@@ -138,7 +138,7 @@ export default function PublishReviewModal({ open, sp, dark, pending, onClose, e
           <button onClick={confirm} disabled={busy} style={{
             height: 40, padding: '0 20px', borderRadius: 999, border: 0,
             cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-            background: busy ? (dark ? 'rgba(255,255,255,0.12)' : '#E6E9EE') : sp.accent,
+            background: busy ? (dark ? sp.fillStrong : '#E6E9EE') : sp.accent,
             color: busy ? sp.sub : sp.onAccent, display: 'flex', alignItems: 'center', gap: 7,
           }}>
             <CpIcon name={busy ? 'draft' : 'check'} size={15} color={busy ? sp.sub : sp.onAccent} sw={2.2} />

@@ -66,6 +66,8 @@ export function useChangelog() {
   return {
     entries: entries.data ?? [],
     isLoading: entries.isLoading,
+    isError: entries.isError,
+    refetch: entries.refetch,
     createEntry,
     deleteEntry,
   }

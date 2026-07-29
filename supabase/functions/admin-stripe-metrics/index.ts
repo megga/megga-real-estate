@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    // Super-admin only : rôle + allowlist email + AAL2 (voir _shared/require-super-admin.ts)
+    // Super-admin only : rôle + allowlist email (voir _shared/require-super-admin.ts)
     const auth = await requireSuperAdmin(req, corsHeaders)
     if (auth instanceof Response) return auth
 

@@ -2,7 +2,8 @@
 // Port 1:1 de crm-screen-audit-sugar.jsx lignes 136-241 (AudEventRow).
 
 import { useState } from 'react'
-import i18n from '@/i18n' // libellés acteur/sévérité/détails traduits au render (common:audit.*) ; event.action reste la valeur DB stockée
+import i18n from '@/i18n' // libellés acteur/sévérité/détails traduits au render (common:audit.*)
+import { auditActionLabel } from '@/lib/auditActionLabel'
 import { SugarV3, AUDIT_CATEGORIES, AUDIT_CAT_ICONS } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycCircleBtn } from '../primitives'
@@ -121,7 +122,7 @@ export function AudEventRow({ event, last }: Props) {
               whiteSpace: 'nowrap',
             }}
           >
-            {event.action}
+            {auditActionLabel(event.action)}
           </span>
           {sev !== 'info' && (
             <span

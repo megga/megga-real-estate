@@ -22,6 +22,11 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// La table NPA → canton vivait ici en double avec flatfox-sync, calée sur des blocs
+// de 100 qui attribuaient le mauvais canton à 16 % des NPA suisses. Elle est
+// désormais dérivée du registre swisstopo et partagée — cf. _shared/npa.ts.
+import { npaToCanton } from '../_shared/npa.ts'
+import { SLUG_TO_CODE, assertSliceResolved } from '../_shared/ra-slice-resolution.ts'
 
 // ─── Config ──────────────────────────────────────────────────────
 
@@ -117,18 +122,6 @@ const CANTONS = [
   'canton-nidwald', 'canton-obwald', 'canton-uri',
 ]
 
-// slug RA → code canton 2 lettres (= market_listings.canton, dérivé du NPA). Sert au
-// sweep ENUM : relier un reçu de slice (indexé par slug) aux lignes market_listings.
-const SLUG_TO_CODE: Record<string, string> = {
-  'canton-geneve': 'GE', 'canton-vaud': 'VD', 'canton-valais': 'VS', 'canton-fribourg': 'FR',
-  'canton-neuchatel': 'NE', 'canton-jura': 'JU', 'canton-berne': 'BE', 'canton-zurich': 'ZH',
-  'canton-lucerne': 'LU', 'canton-zoug': 'ZG', 'canton-schwyz': 'SZ', 'canton-tessin': 'TI',
-  'canton-grisons': 'GR', 'canton-bale-ville': 'BS', 'canton-bale-campagne': 'BL',
-  'canton-argovie': 'AG', 'canton-soleure': 'SO', 'canton-thurgovie': 'TG', 'canton-schaffhouse': 'SH',
-  'canton-saint-gall': 'SG', 'canton-appenzell-rhodes-exterieures': 'AR',
-  'canton-appenzell-rhodes-interieures': 'AI', 'canton-glaris': 'GL', 'canton-nidwald': 'NW',
-  'canton-obwald': 'OW', 'canton-uri': 'UR',
-}
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -196,6 +189,8 @@ interface RawHit {
   agency_logo_url?: string | null
   agency_reference?: string | null
   agency_contact_phone_number?: string | null
+  agency_contact_address?: string | null
+  agency_portal_id?: string | null
   visit_contact_person?: string | null
   visit_contact_phone_number?: string | null
   bullet_points?: unknown
@@ -215,55 +210,6 @@ const TYPE_MAP: Record<string, string> = {
   COMMERCIAL: 'commercial', GASTRO: 'commercial', PROP: 'land', OTHER: 'apartment',
 }
 
-const NPA_RANGES: Array<[number, number, string]> = [
-  [1000, 1099, 'VD'], [1100, 1199, 'VD'], [1200, 1299, 'GE'], [1300, 1399, 'VD'],
-  [1400, 1499, 'VD'], [1500, 1599, 'VD'], [1600, 1699, 'FR'], [1700, 1799, 'FR'],
-  [1800, 1899, 'VD'], [1900, 1999, 'VS'], [2000, 2099, 'NE'], [2100, 2399, 'NE'],
-  [2400, 2499, 'NE'], [2500, 2549, 'BE'], [2550, 2799, 'BE'], [2800, 2999, 'JU'],
-  [3000, 3199, 'BE'], [3200, 3299, 'BE'], [3300, 3399, 'BE'], [3400, 3499, 'BE'],
-  [3500, 3599, 'BE'], [3600, 3699, 'BE'], [3700, 3799, 'BE'], [3800, 3899, 'BE'],
-  [3900, 3999, 'VS'], [4000, 4099, 'BS'], [4100, 4199, 'BL'], [4200, 4299, 'BL'],
-  [4300, 4399, 'AG'], [4400, 4499, 'BL'], [4500, 4699, 'SO'], [4700, 4899, 'BL'],
-  [4900, 4999, 'BL'], [5000, 5499, 'AG'], [5500, 5999, 'AG'], [6000, 6099, 'LU'],
-  [6100, 6299, 'LU'], [6300, 6399, 'ZG'], [6400, 6499, 'SZ'], [6500, 6599, 'TI'],
-  [6600, 6699, 'TI'], [6700, 6799, 'GR'], [6800, 6899, 'TI'], [6900, 6999, 'TI'],
-  [7000, 7599, 'GR'], [7600, 7899, 'GR'], [8000, 8099, 'ZH'], [8100, 8199, 'ZH'],
-  [8200, 8299, 'SH'], [8300, 8499, 'ZH'], [8500, 8599, 'TG'], [8600, 8699, 'ZH'],
-  [8700, 8729, 'ZH'], [8730, 8799, 'TG'], [8800, 8899, 'ZH'], [8900, 8999, 'ZH'],
-  [9000, 9099, 'SG'], [9100, 9199, 'AR'], [9200, 9299, 'SG'], [9300, 9399, 'SG'],
-  [9400, 9499, 'SG'], [9500, 9599, 'SG'], [9600, 9699, 'SG'], [9700, 9799, 'AI'],
-  [9800, 9899, 'GR'], [9900, 9999, 'SG'],
-]
-
-const STATE_MAP: Record<string, string> = {
-  'Genève': 'GE', 'Geneva': 'GE', 'Genf': 'GE',
-  'Vaud': 'VD', 'Waadt': 'VD',
-  'Valais': 'VS', 'Wallis': 'VS',
-  'Neuchâtel': 'NE', 'Fribourg': 'FR', 'Freiburg': 'FR',
-  'Jura': 'JU', 'Berne': 'BE', 'Bern': 'BE',
-  'Zurich': 'ZH', 'Zürich': 'ZH', 'Lucerne': 'LU', 'Luzern': 'LU',
-  'Zoug': 'ZG', 'Zug': 'ZG', 'Schwyz': 'SZ', 'Tessin': 'TI', 'Ticino': 'TI',
-  'Grisons': 'GR', 'Graubünden': 'GR', 'Bâle-Ville': 'BS', 'Basel-Stadt': 'BS',
-  'Bâle-Campagne': 'BL', 'Basel-Landschaft': 'BL', 'Argovie': 'AG', 'Aargau': 'AG',
-  'Soleure': 'SO', 'Solothurn': 'SO', 'Thurgovie': 'TG', 'Thurgau': 'TG',
-  'Schaffhouse': 'SH', 'Schaffhausen': 'SH', 'Saint-Gall': 'SG', 'St. Gallen': 'SG',
-  'Appenzell Rhodes-Extérieures': 'AR', 'Appenzell Ausserrhoden': 'AR',
-  'Appenzell Rhodes-Intérieures': 'AI', 'Appenzell Innerrhoden': 'AI',
-  'Glaris': 'GL', 'Glarus': 'GL', 'Nidwald': 'NW', 'Nidwalden': 'NW',
-  'Obwald': 'OW', 'Obwalden': 'OW', 'Uri': 'UR',
-}
-
-function npaToCanton(postcode: unknown, state: unknown): string | null {
-  const z = parseInt(String(postcode ?? '').trim(), 10)
-  if (z && z >= 1000 && z <= 9999) {
-    for (const [min, max, canton] of NPA_RANGES) {
-      if (z >= min && z <= max) return canton
-    }
-  }
-  const s = typeof state === 'string' ? state.trim() : ''
-  if (s && STATE_MAP[s]) return STATE_MAP[s]
-  return s || null
-}
 
 // ─── Photos / description / features ──────────────────────────────
 
@@ -369,7 +315,127 @@ function fitNumeric(raw: unknown, cap: number): number | null {
   return n
 }
 
-function mapHit(h: RawHit, offerType: string, nowIso: string): Record<string, unknown> | null {
+// ─── Annuaire d'agences ───────────────────────────────────────────
+
+// Réplique EXACTE du slugifyName() de flatfox-sync, et de la fonction SQL
+// megga_agency_slug() (migration 20260729120000). Les trois doivent produire
+// le même slug : c'est ce qui fait converger une régie présente sur les deux
+// portails vers UN seul profil au lieu d'en créer un doublon par source.
+function slugifyName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+// "Brünigstrasse 20, 6005, Luzern" → { npa: '6005', city: 'Luzern' }
+function parseAgencyAddress(raw: string | null | undefined): { npa: string | null; city: string | null } {
+  if (!raw) return { npa: null, city: null }
+  const parts = raw.split(',').map((p) => p.trim()).filter(Boolean)
+  if (parts.length === 0) return { npa: null, city: null }
+  const npaIdx = parts.findIndex((p) => /^\d{4}$/.test(p))
+  return {
+    npa: npaIdx >= 0 ? parts[npaIdx] : null,
+    city: npaIdx >= 0 && npaIdx + 1 < parts.length ? parts[npaIdx + 1] : null,
+  }
+}
+
+// Crée les profils d'agence absents pour un lot d'annonces et renvoie la carte
+// slug → id. Appelée une fois par chunk, avant le mapping des lignes.
+//
+// ⚠ INSERT-ONLY (`ignoreDuplicates: true`). RealAdvisor ne doit jamais écraser
+// un profil existant : les profils Flatfox portent un logo mieux couvert (67 %
+// contre 31 %) et l'enrichissement Zefix (uid_che, téléphone, site) y est
+// posé à la main. Le remplissage des logos manquants passe par l'RPC
+// realadvisor_fill_agency_logos(), qui ne touche que les logo_url à NULL.
+//
+// ⚠ La clé est le slug du NOM, jamais `agency_portal_id` : mesuré sur le
+// vivier complet, 406 portal_id portent plusieurs agences (`tuttifill` en
+// couvre 471, `anibisfill` 323). C'est l'identifiant du flux, pas de la régie.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function upsertAgencyProfiles(supabase: any, listings: RawHit[]): Promise<Map<string, string> | undefined> {
+  const map = new Map<string, string>()
+  const uniqueBySlug = new Map<string, {
+    slug: string; name: string; logo_url: string | null; phone: string | null;
+    city: string | null; canton: string | null;
+  }>()
+
+  for (const h of listings) {
+    const name = (h.agency_name || '').trim()
+    if (!name) continue
+    const slug = slugifyName(name)
+    if (!slug || uniqueBySlug.has(slug)) continue
+    const { npa, city } = parseAgencyAddress(h.agency_contact_address)
+    uniqueBySlug.set(slug, {
+      slug,
+      name,
+      logo_url: h.agency_logo_url || null,
+      phone: h.agency_contact_phone_number || null,
+      city,
+      canton: npaToCanton(npa, null),
+    })
+  }
+  if (uniqueBySlug.size === 0) return map
+
+  const slugs = Array.from(uniqueBySlug.keys())
+
+  // On insère d'abord (sans écraser), puis on relit : le select d'un upsert
+  // ignoreDuplicates ne renvoie que les lignes RÉELLEMENT insérées, pas les
+  // profils déjà en place — dont on a justement besoin pour rattacher.
+  const rows = Array.from(uniqueBySlug.values()).map((a) => ({
+    slug: a.slug,
+    name: a.name,
+    logo_url: a.logo_url,
+    phone: a.phone,
+    city: a.city,
+    canton: a.canton,
+    source: 'realadvisor',
+    status: 'unclaimed',
+  }))
+
+  const { error: insErr } = await supabase
+    .from('agency_profiles')
+    .upsert(rows, { onConflict: 'slug', ignoreDuplicates: true })
+  if (insErr) console.error('[agency_profiles insert] error:', insErr.message)
+
+  const { data, error } = await supabase
+    .from('agency_profiles')
+    .select('id, slug')
+    .in('slug', slugs)
+  if (error) {
+    // Échec dur : on renvoie undefined pour que mapHit N'ÉCRIVE PAS la colonne
+    // de rattachement, plutôt que d'effacer les liens existants avec des null.
+    console.error('[agency_profiles select] error:', error.message)
+    return undefined
+  }
+  for (const row of (data || []) as Array<{ id: string; slug: string }>) {
+    map.set(row.slug, row.id)
+  }
+  return map
+}
+
+// Remplit les logos d'agence manquants après une passe. Ne remplace jamais un
+// logo existant (cf. la RPC). Best-effort : un échec ne doit pas faire tomber
+// le run, le prochain repassera.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fillAgencyLogos(supabase: any): Promise<void> {
+  try {
+    const { data, error } = await supabase.rpc('realadvisor_fill_agency_logos')
+    if (error) console.error('[fill_agency_logos] error:', error.message)
+    else console.log(`[fill_agency_logos] ${data ?? 0} logo(s) complété(s)`)
+  } catch (e) {
+    console.error('[fill_agency_logos] threw:', String(e))
+  }
+}
+
+function mapHit(
+  h: RawHit,
+  offerType: string,
+  nowIso: string,
+  agencyProfileIdMap?: Map<string, string>,
+): Record<string, unknown> | null {
   if (h.id === undefined || h.id === null || h.id === '') return null
   const sourceId = String(h.id)
   // On garde TOUT, même les "prix sur demande" (price=0, convention flatfox pour
@@ -422,6 +488,9 @@ function mapHit(h: RawHit, offerType: string, nowIso: string): Record<string, un
     agency_phone: h.agency_contact_phone_number || null,
     agency_logo_url: h.agency_logo_url || null,
     agency_reference: h.agency_reference || null,
+    // Provenance du flux (tuttifill, anibisfill, compte agence…) — PAS une
+    // identité d'agence, cf. le commentaire d'upsertAgencyProfiles.
+    agency_portal_id: h.agency_portal_id || null,
     visit_contact_name: h.visit_contact_person || null,
     visit_contact_phone: h.visit_contact_phone_number || null,
     charges_monthly: offerType === 'rent' && h.rent_extra ? Number(h.rent_extra) : null,
@@ -440,6 +509,17 @@ function mapHit(h: RawHit, offerType: string, nowIso: string): Record<string, un
     absent_probe_count: 0,
     absent_first_at: null,
     source_payload: h,
+  }
+  // ⚠ Écrit UNIQUEMENT si l'étape annuaire a abouti. L'upsert PostgREST prend
+  // l'UNION des clés du lot : une clé absente d'une seule ligne est écrite à
+  // NULL pour elle. Impossible donc d'omettre le champ ligne par ligne — c'est
+  // tout le lot ou rien. Si upsertAgencyProfiles a échoué (map undefined), on
+  // ne touche pas la colonne, sinon un chunk en erreur effacerait les
+  // rattachements déjà posés.
+  if (agencyProfileIdMap) {
+    row.agency_profile_id = h.agency_name
+      ? agencyProfileIdMap.get(slugifyName(h.agency_name)) ?? null
+      : null
   }
   if (parking != null && parking > 0) row.has_parking = true
   const { quality_score, quality_flags } = computeQualityScore(row, offerType)
@@ -634,12 +714,16 @@ async function processSlice(supabase: any, offerType: string, slice: Slice, nowI
       // sinon : vide/tronquée alors qu'on attend plus → retry
     }
     if (listings.length === 0) break
+    // Sur la 1re page seulement : la suite du slice ne vaut rien si RA a ignoré
+    // le slug. Lève avant tout upsert, donc avant d'écrire quoi que ce soit.
+    if (page === 1) assertSliceResolved(slice.canton, listings)
     seen += listings.length
     stats.fetched += listings.length
     stats.pages++
+    const agencyMap = await upsertAgencyProfiles(supabase, listings)
     const rows: Record<string, unknown>[] = []
     for (const hit of listings) {
-      const row = mapHit(hit, offerType, nowIso)
+      const row = mapHit(hit, offerType, nowIso, agencyMap)
       if (row === null) { stats.skipped++; continue }
       rows.push(row)
     }
@@ -729,8 +813,14 @@ async function updateRunChunk(supabase: any, runId: string | undefined, stats: S
   } catch (err) { console.error('[run chunk] exception:', err) }
 }
 
+// `upserted` = lignes RÉELLEMENT écrites (insert + update confondus : l'upsert PostgREST
+// ne distingue pas les deux). Sans ce champ, un run en mode chunk finalisait avec
+// total_inserted/total_updated à 0 — le crawl rolling et les énumérations manuelles
+// paraissaient donc ne RIEN ingérer, alors que l'énumération du 25/07 avait créé 4 274
+// lignes. Le rapport de nuit en concluait « seul fresh alimente le vivier », ce qui était
+// faux. Le décompte des vraies CRÉATIONS se lit sur market_listings.created_at.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function finalizeRun(supabase: any, runId: string | undefined, final: { status: string; totalSeen?: number; removed?: number; errorMessage?: string }): Promise<void> {
+async function finalizeRun(supabase: any, runId: string | undefined, final: { status: string; totalSeen?: number; removed?: number; upserted?: number; errorMessage?: string }): Promise<void> {
   if (!runId) return
   try {
     await supabase.from('realadvisor_sync_runs').update({
@@ -738,6 +828,7 @@ async function finalizeRun(supabase: any, runId: string | undefined, final: { st
       ended_at: new Date().toISOString(),
       total_seen: final.totalSeen ?? null,
       total_removed: final.removed ?? 0,
+      ...(final.upserted !== undefined ? { total_updated: final.upserted } : {}),
       error_message: final.errorMessage ?? null,
     }).eq('id', runId)
   } catch (err) { console.error('[run finalize] exception:', err) }
@@ -758,7 +849,6 @@ async function selfInvoke(body: SyncRequest): Promise<void> {
 }
 
 // Total attendu = total_count brut de l'offer_type (1 sonde), pour le ratio de sécurité du sweep.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchOfferTotal(offerType: string, ident: Identity): Promise<number> {
   try {
     const res = await fetch(`${RA_BASE}/api/listings?offerType_eq=${offerType}`, {
@@ -899,10 +989,11 @@ async function runFresh(body: SyncRequest, supabase: any): Promise<void> {
       const { data: existRows } = await supabase.from('market_listings')
         .select('source_id').eq('source_portal', 'realadvisor').in('source_id', ids)
       const known = new Set((existRows || []).map((r: { source_id: string }) => String(r.source_id)))
+      const agencyMap = await upsertAgencyProfiles(supabase, listings)
       const rows: Record<string, unknown>[] = []
       let newInPage = 0
       for (const hit of listings) {
-        const row = mapHit(hit, offerType, nowIso)
+        const row = mapHit(hit, offerType, nowIso, agencyMap)
         if (row === null) { s.skipped++; continue }
         if (!known.has(String(hit.id))) newInPage++
         rows.push(row)
@@ -917,6 +1008,7 @@ async function runFresh(body: SyncRequest, supabase: any): Promise<void> {
       if (newInPage === 0) break
     }
     await updateFreshRun(supabase, runId, s, totalExpected)
+    await fillAgencyLogos(supabase)
     await finalizeRun(supabase, runId, { status: 'completed', totalSeen: s.fetched, removed: 0 })
     console.log(`[fresh] done — inserted=${s.inserted} updated=${s.updated} pages=${s.pages}`)
   } catch (err) {
@@ -1009,6 +1101,7 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
           await finalizeRun(supabase, runId, {
             status: 'throttled',
             totalSeen: stats.fetched,
+            upserted: stats.upserted,
             errorMessage: `abandon: ${consecutiveFailures} slices consécutifs en échec au slice ${sliceIdx}/${worklist.length} — ${String(err).slice(0, 300)}`,
           })
           return
@@ -1042,10 +1135,12 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
     // min(1200, 3 % du live), gated realadvisor_probe_apply) et runSweepEnum (piloté par les
     // reçus fully_enumerated, double plafond, gated realadvisor_sweep_enabled).
     console.log(`[chunk] worklist done — upserted=${stats.upserted} slices=${stats.slices} capped=${stats.capped} failures=${sliceFailures}`)
+    await fillAgencyLogos(supabase)
     await finalizeRun(supabase, runId, {
       status: sliceFailures > 0 ? 'partial' : 'completed',
       totalSeen: stats.fetched,
       removed: 0,
+      upserted: stats.upserted,
       ...(sliceFailures > 0 ? { errorMessage: `${sliceFailures} slice(s) en échec — cycle incomplet` } : {}),
     })
   } catch (err) {

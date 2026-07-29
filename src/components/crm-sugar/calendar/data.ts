@@ -9,6 +9,7 @@ import { createContext, useContext } from 'react'
 // singleton à l'accès → traduit + réactif au changement de langue, sans changer
 // les sites d'appel `CAL_EVENT_TYPES[x].label`). Cf docs/i18n-conventions §6.
 import i18n from '@/i18n'
+import { CRM_GRAPHITE, crmDarkTone, crmStep } from '@/components/crm-sugar/tokens'
 
 export interface CalEventTypeColors {
   bg: string
@@ -200,6 +201,10 @@ export interface CalSugarPalette {
   bg: string
   bgGradient: string
   card: string
+  /** Surfaces flottantes du calendrier (popovers d'heure/date/recherche,
+   *  modale d'événement) : palier haut de l'échelle, jamais le palier « card »
+   *  — sinon le popover se confond avec la carte posée dessous. */
+  popBg: string
   cardSubtle: string
   cardHover: string
   hoverSubtle: string
@@ -239,6 +244,7 @@ export const CAL_LIGHT: CalSugarPalette = {
   bg: '#EDEFF3',
   bgGradient: 'radial-gradient(ellipse 120% 80% at 50% 100%, #C8D5E0 0%, #E2E5EB 50%, #EDEFF3 100%)',
   card: '#FFFFFF',
+  popBg: '#FFFFFF',
   cardSubtle: '#F4F6F9',
   cardHover: '#FAFBFD',
   hoverSubtle: '#EBEEF2',
@@ -275,9 +281,15 @@ export const CAL_LIGHT: CalSugarPalette = {
 
 export const CAL_DARK: CalSugarPalette = {
   bg: '#0A0A0F',
-  bgGradient: 'radial-gradient(ellipse 120% 80% at 50% 0%, #14141F 0%, #0D0D14 55%, #0A0A0F 100%)',
+  get bgGradient() {
+    const G = CRM_GRAPHITE
+    return crmDarkTone() === 'graphite'
+      ? `radial-gradient(ellipse 120% 80% at 50% 0%, ${G.s2} 0%, ${G.s1} 55%, ${G.s0} 100%)`
+      : 'radial-gradient(ellipse 120% 80% at 50% 0%, #14141F 0%, #0D0D14 55%, #0A0A0F 100%)'
+  },
   // Surfaces NEUTRES (gris quasi-noir) alignées sur Matching / Contacts — voir buildCalPalette.
   card: '#17181A',
+  popBg: '#1E1F21',
   cardSubtle: '#1E1F21',
   cardHover: '#26272A',
   hoverSubtle: '#1E1F21',
@@ -293,7 +305,12 @@ export const CAL_DARK: CalSugarPalette = {
   black: '#ECEDF3',
   todayCol: 'rgba(255,255,255,0.03)',
   nowColor: '#FF6A52',
-  heroBg: 'linear-gradient(135deg, #24262C 0%, #181A1F 100%)',
+  get heroBg() {
+    const G = CRM_GRAPHITE
+    return crmDarkTone() === 'graphite'
+      ? `linear-gradient(135deg, ${G.s4} 0%, ${G.s2} 100%)`
+      : 'linear-gradient(135deg, #24262C 0%, #181A1F 100%)'
+  },
   heroInk: '#ECEDF3',
   heroChip: 'rgba(255,255,255,0.06)',
   heroChipStrong: 'rgba(255,255,255,0.10)',
@@ -324,7 +341,15 @@ export function buildCalPalette(
   if (!dark) return CAL_LIGHT
   const p: CalSugarPalette = { ...CAL_DARK }
   if (t) {
-    if (t.bg) p.bg = t.bg
+    if (t.bg) p.bg = t.bg // fond bento = canvas S0
+    // Surfaces OPAQUES alignées sur l'échelle de la teinte active (littéraux
+    // neutres conservés pour Noir pur). On n'utilise PAS `t.surface`/`t.border`,
+    // qui teintaient tout en bleu-violet.
+    p.card = crmStep('s2', '#17181A') // carte grille
+    p.cardSubtle = crmStep('s3', '#1E1F21') // remplis subtils (boutons toolbar…)
+    p.hoverSubtle = crmStep('s3', '#1E1F21')
+    p.cardHover = crmStep('s4', '#26272A')
+    p.popBg = crmStep('s4', '#1E1F21')
     if (t.ink) p.ink = t.ink
     if (t.soft) p.inkSoft = t.soft
     if (t.muted) p.muted = t.muted

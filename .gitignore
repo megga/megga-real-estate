@@ -9,7 +9,6 @@ lerna-debug.log*
 
 node_modules
 dist
-dist-admin
 dist-ssr
 *.local
 
@@ -55,9 +54,22 @@ agentdb.rvf*
 # Deno (edge functions checked via `deno check`, no lockfile tracked)
 deno.lock
 
+# Python — virtualenv local de l'outillage Playwright (webapp-testing).
+# `requirements.txt` est versionné, le venv non : ~600 fichiers vendorisés,
+# spécifiques à la machine et à la version de Python. Doublé côté ESLint
+# (globalIgnores dans eslint.config.js), sinon `npm run lint` part dedans.
+.venv/
+__pycache__/
+*.py[cod]
+
 # Claude Code / claude-flow — état runtime local (jamais versionné)
 .claude-flow/daemon-state.json
 .claude-flow/daemon.pid
 .claude-flow/harness-active-policy.json
 .claude/proven-config.json
 .claude/.proven-config-version
+
+# Sorties du skill llm-council — écrites dans le cwd à chaque session de conseil
+# (non ancrés : le skill écrit là où Claude est lancé, pas forcément à la racine)
+council-report-*.html
+council-transcript-*.md

@@ -3,26 +3,42 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkMetaToken, tokenDaysMetric, tokenNeedsAlert } from '../_shared/whatsapp-token.ts'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 import { evaluateAndSendAlerts, type WhatsAppDeadletters } from '../_shared/admin-alerts.ts'
+import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+/**
+ * Requête non authentifiée.
+ *
+ * Un TYPE plutôt qu'un message : le catch de tête comparait `err.message` à
+ * « Forbidden » pour choisir entre 403 et 401, alors qu'aucun chemin ne lève
+ * jamais ce message exact (`requireSuperAdmin` RENVOIE ses Response, avec
+ * « Forbidden: super_admin required »). La branche 403 était donc morte, et
+ * toute panne interne — une RPC de santé en erreur, un timeout — repartait en
+ * 401 « Unauthorized ». Chercher un problème d'authentification là où la base
+ * ne répond plus coûte cher.
+ */
+class Unauthorized extends Error {}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+  // Hors du `try` : le catch en a besoin pour journaliser la panne.
+  const startedAt = Date.now()
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
 
+  try {
     // Auth: accept service_role JWT (pg_cron) OR super_admin user JWT (dashboard)
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('Unauthorized')
+    if (!authHeader) throw new Unauthorized('Unauthorized')
 
     const token = authHeader.replace('Bearer ', '')
 
@@ -41,7 +57,7 @@ serve(async (req) => {
     const isServiceKey = svcKey !== '' && token === svcKey
     if (jwtRole !== 'service_role' && !isServiceKey) {
       // Interactive call from dashboard — super_admin : rôle + allowlist email
-      // + AAL2 (voir _shared/require-super-admin.ts, migration 20260705160000)
+      // (voir _shared/require-super-admin.ts, migration 20260705160000)
       const auth = await requireSuperAdmin(req, corsHeaders)
       if (auth instanceof Response) return auth
     }
@@ -217,6 +233,20 @@ serve(async (req) => {
 
     await supabaseAdmin.from('platform_metrics').insert(metrics)
 
+    // Rétention 180 jours. Cette table n'en avait AUCUNE : elle grossit d'une
+    // vingtaine de lignes par heure depuis avril 2026 et ne se vidait jamais.
+    // La purge tient ici plutôt que dans un cron dédié — ce job tourne déjà
+    // toutes les heures, et c'est lui qui écrit ces lignes. Le seul écran qui
+    // les lit (`MrrSparkline`) remonte à 30 jours : 180 laisse six fois la marge
+    // nécessaire, de quoi ouvrir une vue plus longue sans toucher à la purge.
+    // Best-effort : une purge en échec ne doit pas perdre la collecte.
+    try {
+      const cutoff = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString()
+      await supabaseAdmin.from('platform_metrics').delete().lt('recorded_at', cutoff)
+    } catch (e) {
+      console.error('[admin-monitoring] purge platform_metrics failed:', (e as Error)?.message ?? 'error')
+    }
+
     // ── Alerting proactif (P3) — seuils app_config, dédup 24h, email aux
     // admins allowlistés. Best-effort : ne casse jamais la collecte.
     try {
@@ -243,9 +273,26 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    const status = (err as Error).message === 'Forbidden' ? 403 : 401
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status,
+    // Un rejet d'authentification n'est pas une panne : il ne s'audite pas.
+    // Sans cette distinction, n'importe quel appelant anonyme ferait écrire une
+    // ligne dans `activity_events` — un moyen trivial de noyer la piste d'audit.
+    if (err instanceof Unauthorized) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Tout le reste est une panne interne : une RPC de santé qui échoue, un
+    // timeout, un bug de collecte. La fonction qui surveille la plateforme est
+    // justement celle dont la panne doit se voir — d'autant qu'elle tourne sans
+    // spectateur (cron horaire `platform-metrics-hourly`).
+    const message = (err as Error)?.message ?? 'monitoring failed'
+    console.error('[admin-monitoring] collecte en échec:', message)
+    await reportEdgeError(supabaseAdmin, 'admin-monitoring', err, { startedAt })
+
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }

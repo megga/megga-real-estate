@@ -11,15 +11,23 @@
  * (globals.css, re-teintes par admin-console.css) : même interrupteur que le
  * CRM, même noir.
  *
- * ⚠️ Les deux applications vivant sur des origines distinctes, leurs
- * `localStorage` ne sont PAS partagés : la préférence ne traverse pas, et c'est
- * assumé — c'est le prix de l'isolation. Ce qui est unifié, c'est la clé et le
- * comportement, pas la valeur.
+ * ⚠️ `data-theme` est un attribut GLOBAL, que le provider du CRM pilote depuis
+ * une autre clé (`megga-theme`). La console le pose pour que les surfaces
+ * rendues en portal — modales, toasts, hors de `.megga-admin-console` — suivent
+ * son mode ; elle le RESTAURE donc en sortant, sans quoi le CRM héritait du
+ * réglage de la console jusqu'à la prochaine bascule manuelle.
  */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-
-const STORAGE_KEY = 'megga.sugar.dark'
+// Lecture de la préférence : source unique `@/lib/sugarDark`. Ce module en
+// hébergeait une copie identique, jamais importée ailleurs — deux définitions à
+// garder en phase pour rien.
+import {
+  applySugarThemeAttribute,
+  captureThemeAttribute,
+  readSugarDark,
+  SUGAR_DARK_KEY as STORAGE_KEY,
+} from '@/lib/sugarDark'
 
 interface AdminThemeState {
   dark: boolean
@@ -29,22 +37,16 @@ interface AdminThemeState {
 
 const AdminThemeContext = createContext<AdminThemeState | undefined>(undefined)
 
-/** Lit la préférence Sugar (repli : préférence système). Même logique que les pages CRM. */
-export function readSugarDark(): boolean {
-  if (typeof window === 'undefined') return false
-  const saved = window.localStorage.getItem(STORAGE_KEY)
-  if (saved === '1') return true
-  if (saved === '0') return false
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
 export function AdminThemeProvider({ children }: { children: ReactNode }) {
   const [dark, setDarkState] = useState(readSugarDark)
 
+  // Rendre `data-theme` au CRM en sortant. Déclaré AVANT l'effet ci-dessous
+  // pour capturer la valeur d'origine : au montage, les effets s'exécutent dans
+  // l'ordre de déclaration.
+  useEffect(() => captureThemeAttribute(document.documentElement), [])
+
   useEffect(() => {
-    const root = document.documentElement
-    if (dark) root.setAttribute('data-theme', 'dark')
-    else root.removeAttribute('data-theme')
+    applySugarThemeAttribute(document.documentElement, dark)
     window.localStorage.setItem(STORAGE_KEY, dark ? '1' : '0')
   }, [dark])
 
@@ -68,6 +70,9 @@ export function AdminThemeProvider({ children }: { children: ReactNode }) {
 }
 
 /** Accès au thème de la console. Lance si appelé hors du provider (bug de montage). */
+// Hook colocalisé avec son provider (contexte privé au module) : Fast Refresh
+// perd le state de ce fichier à chaque édition, compromis assumé — cf. useAuth.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAdminTheme(): AdminThemeState {
   const ctx = useContext(AdminThemeContext)
   if (!ctx) throw new Error('useAdminTheme doit être appelé sous <AdminThemeProvider>')

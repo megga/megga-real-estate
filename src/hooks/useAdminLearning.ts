@@ -26,8 +26,7 @@ export function useAdminLearning() {
   return useQuery({
     queryKey: ['admin', 'learned-styles'],
     queryFn: async (): Promise<LearnedStyleRow[]> => {
-      const { data, error } = await (supabase.rpc as unknown as
-        (fn: string) => Promise<{ data: unknown; error: Error | null }>)('get_agent_learned_styles')
+      const { data, error } = await supabase.rpc('get_agent_learned_styles')
       if (error) throw error
       return (data ?? []) as LearnedStyleRow[]
     },
@@ -40,12 +39,11 @@ export function useSetLearnedStyle() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (v: { agent_id: string; status: string; traits?: string }) => {
-      const { error } = await (supabase.rpc as unknown as
-        (fn: string, args: unknown) => Promise<{ error: Error | null }>)('set_agent_learned_style', {
-          p_agent_id: v.agent_id,
-          p_status: v.status,
-          p_traits: v.traits ?? null,
-        })
+      const { error } = await supabase.rpc('set_agent_learned_style', {
+        p_agent_id: v.agent_id,
+        p_status: v.status,
+        p_traits: v.traits ?? undefined,
+      })
       if (error) throw error
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin', 'learned-styles'] }) },

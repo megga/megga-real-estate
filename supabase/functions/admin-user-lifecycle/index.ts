@@ -11,7 +11,7 @@
 //              Resend au compte cible.
 //
 // Garde-fous :
-//   * Auth : _shared/require-super-admin.ts (rôle + allowlist + AAL2).
+//   * Auth : _shared/require-super-admin.ts (rôle + allowlist).
 //   * ANTI-AUTO-LOCKOUT : refuse d'agir sur un compte dont l'email est
 //     allowlisté super-admin (on ne peut pas se suspendre entre admins).
 //   * Chaque action est journalisée dans activity_events (severity warn).

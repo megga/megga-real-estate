@@ -161,162 +161,6 @@ export type Database = {
         }
         Relationships: []
       }
-      agency_usage_quotas: {
-        Row: {
-          agency_id: string
-          ai_monthly_cost_cap_usd: number | null
-          active_properties_cap: number | null
-          whatsapp_monthly_cap: number | null
-          storage_cap_mb: number | null
-          alert_threshold_pct: number
-          note: string | null
-          updated_by: string | null
-          updated_at: string
-        }
-        Insert: {
-          agency_id: string
-          ai_monthly_cost_cap_usd?: number | null
-          active_properties_cap?: number | null
-          whatsapp_monthly_cap?: number | null
-          storage_cap_mb?: number | null
-          alert_threshold_pct?: number
-          note?: string | null
-          updated_by?: string | null
-          updated_at?: string
-        }
-        Update: {
-          agency_id?: string
-          ai_monthly_cost_cap_usd?: number | null
-          active_properties_cap?: number | null
-          whatsapp_monthly_cap?: number | null
-          storage_cap_mb?: number | null
-          alert_threshold_pct?: number
-          note?: string | null
-          updated_by?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agency_usage_quotas_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: true
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      platform_announcements: {
-        Row: {
-          id: string
-          title: string
-          body: string
-          severity: string
-          audience_plans: string[]
-          audience_agencies: string[]
-          starts_at: string
-          ends_at: string | null
-          cta_label: string | null
-          cta_href: string | null
-          published: boolean
-          created_by: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          title: string
-          body: string
-          severity?: string
-          audience_plans?: string[]
-          audience_agencies?: string[]
-          starts_at?: string
-          ends_at?: string | null
-          cta_label?: string | null
-          cta_href?: string | null
-          published?: boolean
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string
-          body?: string
-          severity?: string
-          audience_plans?: string[]
-          audience_agencies?: string[]
-          starts_at?: string
-          ends_at?: string | null
-          cta_label?: string | null
-          cta_href?: string | null
-          published?: boolean
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      platform_announcement_dismissals: {
-        Row: {
-          announcement_id: string
-          user_id: string
-          dismissed_at: string
-        }
-        Insert: {
-          announcement_id: string
-          user_id: string
-          dismissed_at?: string
-        }
-        Update: {
-          announcement_id?: string
-          user_id?: string
-          dismissed_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "platform_announcement_dismissals_announcement_id_fkey"
-            columns: ["announcement_id"]
-            isOneToOne: false
-            referencedRelation: "platform_announcements"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_notes: {
-        Row: {
-          author_id: string | null
-          content: string
-          created_at: string | null
-          entity_id: string
-          entity_type: string
-          id: string
-        }
-        Insert: {
-          author_id?: string | null
-          content: string
-          created_at?: string | null
-          entity_id: string
-          entity_type: string
-          id?: string
-        }
-        Update: {
-          author_id?: string | null
-          content?: string
-          created_at?: string | null
-          entity_id?: string
-          entity_type?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_notes_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       admin_nps_responses: {
         Row: {
           agency_id: string | null
@@ -760,12 +604,90 @@ export type Database = {
           },
         ]
       }
+      agency_usage_quotas: {
+        Row: {
+          active_properties_cap: number | null
+          agency_id: string
+          ai_monthly_cost_cap_usd: number | null
+          alert_threshold_pct: number
+          note: string | null
+          storage_cap_mb: number | null
+          updated_at: string
+          updated_by: string | null
+          whatsapp_monthly_cap: number | null
+        }
+        Insert: {
+          active_properties_cap?: number | null
+          agency_id: string
+          ai_monthly_cost_cap_usd?: number | null
+          alert_threshold_pct?: number
+          note?: string | null
+          storage_cap_mb?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp_monthly_cap?: number | null
+        }
+        Update: {
+          active_properties_cap?: number | null
+          agency_id?: string
+          ai_monthly_cost_cap_usd?: number | null
+          alert_threshold_pct?: number
+          note?: string | null
+          storage_cap_mb?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp_monthly_cap?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_usage_quotas_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_wa_numbers: {
+        Row: {
+          agency_id: string
+          created_at: string
+          id: string
+          label: string | null
+          wa_number: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          wa_number: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          wa_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_wa_numbers_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_ai_profiles: {
         Row: {
           agency_id: string | null
           agent_id: string
           brief: Json
           generated_at: string
+          hot_contact_at: string | null
+          hot_contact_id: string | null
           learned_style: Json | null
           model: string | null
           preferences: Json
@@ -778,6 +700,8 @@ export type Database = {
           agent_id: string
           brief?: Json
           generated_at?: string
+          hot_contact_at?: string | null
+          hot_contact_id?: string | null
           learned_style?: Json | null
           model?: string | null
           preferences?: Json
@@ -790,6 +714,8 @@ export type Database = {
           agent_id?: string
           brief?: Json
           generated_at?: string
+          hot_contact_at?: string | null
+          hot_contact_id?: string | null
           learned_style?: Json | null
           model?: string | null
           preferences?: Json
@@ -812,6 +738,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "agent_ai_profiles_hot_contact_id_fkey"
+            columns: ["hot_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       agent_profiles: {
@@ -830,6 +763,7 @@ export type Database = {
           id: string
           languages: string[] | null
           last_name: string
+          linkedin_url: string | null
           meta_description: string | null
           meta_title: string | null
           phone: string | null
@@ -850,7 +784,6 @@ export type Database = {
           updated_at: string | null
           verified_at: string | null
           website_url: string | null
-          linkedin_url: string | null
         }
         Insert: {
           agency_profile_id?: string | null
@@ -867,6 +800,7 @@ export type Database = {
           id?: string
           languages?: string[] | null
           last_name: string
+          linkedin_url?: string | null
           meta_description?: string | null
           meta_title?: string | null
           phone?: string | null
@@ -887,7 +821,6 @@ export type Database = {
           updated_at?: string | null
           verified_at?: string | null
           website_url?: string | null
-          linkedin_url?: string | null
         }
         Update: {
           agency_profile_id?: string | null
@@ -904,6 +837,7 @@ export type Database = {
           id?: string
           languages?: string[] | null
           last_name?: string
+          linkedin_url?: string | null
           meta_description?: string | null
           meta_title?: string | null
           phone?: string | null
@@ -924,7 +858,6 @@ export type Database = {
           updated_at?: string | null
           verified_at?: string | null
           website_url?: string | null
-          linkedin_url?: string | null
         }
         Relationships: [
           {
@@ -1076,54 +1009,6 @@ export type Database = {
         Update: {
           key?: string
           value?: string
-        }
-        Relationships: []
-      }
-      article_feedback: {
-        Row: {
-          article_slug: string
-          comment: string | null
-          created_at: string | null
-          helpful: boolean
-          id: string
-          user_id: string | null
-        }
-        Insert: {
-          article_slug: string
-          comment?: string | null
-          created_at?: string | null
-          helpful: boolean
-          id?: string
-          user_id?: string | null
-        }
-        Update: {
-          article_slug?: string
-          comment?: string | null
-          created_at?: string | null
-          helpful?: boolean
-          id?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      article_views: {
-        Row: {
-          article_slug: string
-          created_at: string | null
-          id: string
-          user_id: string | null
-        }
-        Insert: {
-          article_slug: string
-          created_at?: string | null
-          id?: string
-          user_id?: string | null
-        }
-        Update: {
-          article_slug?: string
-          created_at?: string | null
-          id?: string
-          user_id?: string | null
         }
         Relationships: []
       }
@@ -1281,17 +1166,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "buyer_reception_links_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "buyer_reception_links_agent_id_fkey"
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_reception_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
           {
@@ -1542,25 +1427,25 @@ export type Database = {
       contacts: {
         Row: {
           agency_id: string | null
+          birth_date: string | null
           created_at: string | null
           deleted_user_id: string | null
           email: string | null
           entity_type: string
           first_name: string
           form_data: Json | null
+          home_address: string | null
           id: string
           import_raw_text: string | null
           import_raw_text_received_at: string | null
           last_interaction_at: string | null
           last_name: string
+          nationality: string | null
           notes: string | null
           phone: string | null
+          residence_country: string | null
           score: string | null
           search_criteria: Json | null
-          birth_date: string | null
-          nationality: string | null
-          residence_country: string | null
-          home_address: string | null
           source: string
           tags: string[] | null
           type: string
@@ -1569,25 +1454,25 @@ export type Database = {
         }
         Insert: {
           agency_id?: string | null
+          birth_date?: string | null
           created_at?: string | null
           deleted_user_id?: string | null
           email?: string | null
           entity_type?: string
           first_name: string
           form_data?: Json | null
+          home_address?: string | null
           id?: string
           import_raw_text?: string | null
           import_raw_text_received_at?: string | null
           last_interaction_at?: string | null
           last_name: string
+          nationality?: string | null
           notes?: string | null
           phone?: string | null
+          residence_country?: string | null
           score?: string | null
           search_criteria?: Json | null
-          birth_date?: string | null
-          nationality?: string | null
-          residence_country?: string | null
-          home_address?: string | null
           source?: string
           tags?: string[] | null
           type?: string
@@ -1596,32 +1481,94 @@ export type Database = {
         }
         Update: {
           agency_id?: string | null
+          birth_date?: string | null
           created_at?: string | null
           deleted_user_id?: string | null
           email?: string | null
           entity_type?: string
           first_name?: string
           form_data?: Json | null
+          home_address?: string | null
           id?: string
           import_raw_text?: string | null
           import_raw_text_received_at?: string | null
           last_interaction_at?: string | null
           last_name?: string
+          nationality?: string | null
           notes?: string | null
           phone?: string | null
+          residence_country?: string | null
           score?: string | null
           search_criteria?: Json | null
-          birth_date?: string | null
-          nationality?: string | null
-          residence_country?: string | null
-          home_address?: string | null
           source?: string
           tags?: string[] | null
           type?: string
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_pending_actions: {
+        Row: {
+          agency_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          kind: string
+          payload: Json
+          preview: string
+          title: string | null
+          tool: string
+          user_id: string
+        }
+        Insert: {
+          agency_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          preview: string
+          title?: string | null
+          tool: string
+          user_id: string
+        }
+        Update: {
+          agency_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          preview?: string
+          title?: string | null
+          tool?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_pending_actions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copilot_pending_actions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crm_offers: {
         Row: {
@@ -1795,6 +1742,13 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "documents_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "documents_contact_id_fkey"
             columns: ["contact_id"]
@@ -1982,6 +1936,66 @@ export type Database = {
           token_expires_at?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      knowledge_snippets: {
+        Row: {
+          applies_to_actions: string[]
+          body_md: string
+          canton: string | null
+          created_at: string
+          domain: string
+          id: string
+          keywords: string[]
+          lang: string
+          priority: number
+          review_after: string | null
+          slug: string
+          source_ref: string | null
+          source_url: string
+          status: string
+          title: string
+          updated_at: string
+          verified_at: string
+        }
+        Insert: {
+          applies_to_actions?: string[]
+          body_md: string
+          canton?: string | null
+          created_at?: string
+          domain: string
+          id?: string
+          keywords?: string[]
+          lang?: string
+          priority?: number
+          review_after?: string | null
+          slug: string
+          source_ref?: string | null
+          source_url: string
+          status?: string
+          title: string
+          updated_at?: string
+          verified_at: string
+        }
+        Update: {
+          applies_to_actions?: string[]
+          body_md?: string
+          canton?: string | null
+          created_at?: string
+          domain?: string
+          id?: string
+          keywords?: string[]
+          lang?: string
+          priority?: number
+          review_after?: string | null
+          slug?: string
+          source_ref?: string | null
+          source_url?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          verified_at?: string
         }
         Relationships: []
       }
@@ -3058,6 +3072,83 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          dismissed_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          dismissed_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          dismissed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "platform_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_announcements: {
+        Row: {
+          audience_agencies: string[]
+          audience_plans: string[]
+          body: string
+          created_at: string
+          created_by: string | null
+          cta_href: string | null
+          cta_label: string | null
+          ends_at: string | null
+          id: string
+          published: boolean
+          severity: string
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience_agencies?: string[]
+          audience_plans?: string[]
+          body: string
+          created_at?: string
+          created_by?: string | null
+          cta_href?: string | null
+          cta_label?: string | null
+          ends_at?: string | null
+          id?: string
+          published?: boolean
+          severity?: string
+          starts_at?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience_agencies?: string[]
+          audience_plans?: string[]
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          cta_href?: string | null
+          cta_label?: string | null
+          ends_at?: string | null
+          id?: string
+          published?: boolean
+          severity?: string
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_metrics: {
         Row: {
           id: string
@@ -3109,6 +3200,7 @@ export type Database = {
           role: string
           signature_mode: string | null
           spoken_languages: string[] | null
+          weekly_digest_opt_out: boolean
         }
         Insert: {
           activation_checklist?: Json | null
@@ -3136,6 +3228,7 @@ export type Database = {
           role?: string
           signature_mode?: string | null
           spoken_languages?: string[] | null
+          weekly_digest_opt_out?: boolean
         }
         Update: {
           activation_checklist?: Json | null
@@ -3163,8 +3256,17 @@ export type Database = {
           role?: string
           signature_mode?: string | null
           spoken_languages?: string[] | null
+          weekly_digest_opt_out?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       properties: {
         Row: {
@@ -3533,18 +3635,21 @@ export type Database = {
       realadvisor_probe_inflight: {
         Row: {
           fired_at: string
+          kind: string
           offer_type: string
           request_id: number
           source_ids: string[]
         }
         Insert: {
           fired_at?: string
+          kind?: string
           offer_type?: string
           request_id: number
           source_ids: string[]
         }
         Update: {
           fired_at?: string
+          kind?: string
           offer_type?: string
           request_id?: number
           source_ids?: string[]
@@ -3657,6 +3762,7 @@ export type Database = {
           completed_at: string | null
           contact_id: string | null
           created_at: string | null
+          draft_message: string | null
           id: string
           kind: string | null
           match_id: string | null
@@ -3675,6 +3781,7 @@ export type Database = {
           completed_at?: string | null
           contact_id?: string | null
           created_at?: string | null
+          draft_message?: string | null
           id?: string
           kind?: string | null
           match_id?: string | null
@@ -3693,6 +3800,7 @@ export type Database = {
           completed_at?: string | null
           contact_id?: string | null
           created_at?: string | null
+          draft_message?: string | null
           id?: string
           kind?: string | null
           match_id?: string | null
@@ -3827,122 +3935,6 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      seller_portals: {
-        Row: {
-          agency_id: string | null
-          agent_id: string
-          contact_id: string
-          created_at: string | null
-          expires_at: string | null
-          id: string
-          last_viewed_at: string | null
-          property_id: string
-          status: string
-          token: string
-          view_count: number | null
-        }
-        Insert: {
-          agency_id?: string | null
-          agent_id: string
-          contact_id: string
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          last_viewed_at?: string | null
-          property_id: string
-          status?: string
-          token: string
-          view_count?: number | null
-        }
-        Update: {
-          agency_id?: string | null
-          agent_id?: string
-          contact_id?: string
-          created_at?: string | null
-          expires_at?: string | null
-          id?: string
-          last_viewed_at?: string | null
-          property_id?: string
-          status?: string
-          token?: string
-          view_count?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "seller_portals_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      seller_preferences: {
-        Row: {
-          agency_id: string | null
-          canal: string
-          created_at: string
-          creneaux: string[]
-          id: string
-          jours: string[]
-          langue: string
-          notif_offre: boolean
-          notif_resume: boolean
-          notif_retour: boolean
-          notif_visite: boolean
-          portal_id: string
-          preavis: string
-          updated_at: string
-        }
-        Insert: {
-          agency_id?: string | null
-          canal?: string
-          created_at?: string
-          creneaux?: string[]
-          id?: string
-          jours?: string[]
-          langue?: string
-          notif_offre?: boolean
-          notif_resume?: boolean
-          notif_retour?: boolean
-          notif_visite?: boolean
-          portal_id: string
-          preavis?: string
-          updated_at?: string
-        }
-        Update: {
-          agency_id?: string | null
-          canal?: string
-          created_at?: string
-          creneaux?: string[]
-          id?: string
-          jours?: string[]
-          langue?: string
-          notif_offre?: boolean
-          notif_resume?: boolean
-          notif_retour?: boolean
-          notif_visite?: boolean
-          portal_id?: string
-          preavis?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "seller_preferences_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "seller_preferences_portal_id_fkey"
-            columns: ["portal_id"]
-            isOneToOne: true
-            referencedRelation: "seller_portals"
             referencedColumns: ["id"]
           },
         ]
@@ -4642,6 +4634,7 @@ export type Database = {
           agency_id: string | null
           created_at: string
           id: string
+          morning_brief_enabled: boolean
           pairing_code: string | null
           pairing_expires_at: string | null
           profile_id: string
@@ -4653,6 +4646,7 @@ export type Database = {
           agency_id?: string | null
           created_at?: string
           id?: string
+          morning_brief_enabled?: boolean
           pairing_code?: string | null
           pairing_expires_at?: string | null
           profile_id: string
@@ -4664,6 +4658,7 @@ export type Database = {
           agency_id?: string | null
           created_at?: string
           id?: string
+          morning_brief_enabled?: boolean
           pairing_code?: string | null
           pairing_expires_at?: string | null
           profile_id?: string
@@ -4740,7 +4735,15 @@ export type Database = {
           tool?: string
           wa_agent_phone?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_async_jobs_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_confirmation_log: {
         Row: {
@@ -4767,56 +4770,79 @@ export type Database = {
           profile_id?: string
           tool?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_confirmation_log_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_conversation_insights: {
         Row: {
           agency_id: string
           commitments: Json
           contact_id: string
+          crm_summary: string | null
+          crm_summary_updated_at: string | null
           entities: Json
           generated_at: string
           id: string
           intent: string | null
+          language: string | null
           model: string | null
           next_action: Json | null
+          objections: Json
           rolling_summary: string | null
           sentiment: string | null
           source_last_message_at: string | null
           source_message_count: number
           summary: string | null
+          urgency: string | null
         }
         Insert: {
           agency_id: string
           commitments?: Json
           contact_id: string
+          crm_summary?: string | null
+          crm_summary_updated_at?: string | null
           entities?: Json
           generated_at?: string
           id?: string
           intent?: string | null
+          language?: string | null
           model?: string | null
           next_action?: Json | null
+          objections?: Json
           rolling_summary?: string | null
           sentiment?: string | null
           source_last_message_at?: string | null
           source_message_count?: number
           summary?: string | null
+          urgency?: string | null
         }
         Update: {
           agency_id?: string
           commitments?: Json
           contact_id?: string
+          crm_summary?: string | null
+          crm_summary_updated_at?: string | null
           entities?: Json
           generated_at?: string
           id?: string
           intent?: string | null
+          language?: string | null
           model?: string | null
           next_action?: Json | null
+          objections?: Json
           rolling_summary?: string | null
           sentiment?: string | null
           source_last_message_at?: string | null
           source_message_count?: number
           summary?: string | null
+          urgency?: string | null
         }
         Relationships: [
           {
@@ -4835,6 +4861,172 @@ export type Database = {
           },
         ]
       }
+      whatsapp_cron_locks: {
+        Row: {
+          job: string
+          locked_until: string
+        }
+        Insert: {
+          job: string
+          locked_until?: string
+        }
+        Update: {
+          job?: string
+          locked_until?: string
+        }
+        Relationships: []
+      }
+      whatsapp_daily_briefs: {
+        Row: {
+          brief_date: string
+          confirmed_at: string | null
+          profile_id: string
+          sent_at: string
+        }
+        Insert: {
+          brief_date: string
+          confirmed_at?: string | null
+          profile_id: string
+          sent_at?: string
+        }
+        Update: {
+          brief_date?: string
+          confirmed_at?: string | null
+          profile_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_daily_briefs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_followup_suggestions: {
+        Row: {
+          action: string
+          agency_id: string
+          contact_id: string
+          created_at: string
+          dedup_key: string
+          due_at: string | null
+          id: string
+          kind: string
+          owner: string
+          reminder_id: string | null
+          source_insight_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          agency_id: string
+          contact_id: string
+          created_at?: string
+          dedup_key: string
+          due_at?: string | null
+          id?: string
+          kind?: string
+          owner?: string
+          reminder_id?: string | null
+          source_insight_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          agency_id?: string
+          contact_id?: string
+          created_at?: string
+          dedup_key?: string
+          due_at?: string | null
+          id?: string
+          kind?: string
+          owner?: string
+          reminder_id?: string | null
+          source_insight_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_followup_suggestions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_followup_suggestions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_followup_suggestions_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "reminders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_message_corrections: {
+        Row: {
+          agency_id: string | null
+          agent_final: string
+          contact_id: string | null
+          created_at: string
+          id: string
+          megga_draft: string
+          profile_id: string
+        }
+        Insert: {
+          agency_id?: string | null
+          agent_final: string
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          megga_draft: string
+          profile_id: string
+        }
+        Update: {
+          agency_id?: string | null
+          agent_final?: string
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          megga_draft?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_message_corrections_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_message_corrections_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_message_corrections_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_messages: {
         Row: {
           agency_id: string | null
@@ -4846,8 +5038,10 @@ export type Database = {
           direction: string
           id: string
           is_agent_error: boolean
+          is_automated: boolean
           last_error: string | null
           media_id: string | null
+          media_kind: string | null
           media_mime: string | null
           media_r2_key: string | null
           media_type: string | null
@@ -4857,6 +5051,7 @@ export type Database = {
           provider_message_id: string
           raw: Json | null
           retry_count: number
+          sent_by_profile_id: string | null
           session_id: string | null
           status: string
           status_updated_at: string | null
@@ -4877,8 +5072,10 @@ export type Database = {
           direction?: string
           id?: string
           is_agent_error?: boolean
+          is_automated?: boolean
           last_error?: string | null
           media_id?: string | null
+          media_kind?: string | null
           media_mime?: string | null
           media_r2_key?: string | null
           media_type?: string | null
@@ -4888,6 +5085,7 @@ export type Database = {
           provider_message_id: string
           raw?: Json | null
           retry_count?: number
+          sent_by_profile_id?: string | null
           session_id?: string | null
           status?: string
           status_updated_at?: string | null
@@ -4908,8 +5106,10 @@ export type Database = {
           direction?: string
           id?: string
           is_agent_error?: boolean
+          is_automated?: boolean
           last_error?: string | null
           media_id?: string | null
+          media_kind?: string | null
           media_mime?: string | null
           media_r2_key?: string | null
           media_type?: string | null
@@ -4919,6 +5119,7 @@ export type Database = {
           provider_message_id?: string
           raw?: Json | null
           retry_count?: number
+          sent_by_profile_id?: string | null
           session_id?: string | null
           status?: string
           status_updated_at?: string | null
@@ -4942,6 +5143,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_sent_by_profile_id_fkey"
+            columns: ["sent_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -5057,7 +5265,61 @@ export type Database = {
           undo_until?: string
           undone_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_recent_auto_actions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_rejected_drafts: {
+        Row: {
+          agency_id: string | null
+          contact_id: string
+          created_at: string
+          draft: string
+          profile_id: string
+        }
+        Insert: {
+          agency_id?: string | null
+          contact_id: string
+          created_at?: string
+          draft: string
+          profile_id: string
+        }
+        Update: {
+          agency_id?: string | null
+          contact_id?: string
+          created_at?: string
+          draft?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_rejected_drafts_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_rejected_drafts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_rejected_drafts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_tool_usage: {
         Row: {
@@ -5087,7 +5349,15 @@ export type Database = {
           tier?: string
           tool?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_tool_usage_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -5254,6 +5524,7 @@ export type Database = {
         Returns: unknown
       }
       _st_within: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      accept_followup_suggestion: { Args: { p_id: string }; Returns: string }
       addauth: { Args: { "": string }; Returns: boolean }
       addgeometrycolumn:
         | {
@@ -5292,157 +5563,42 @@ export type Database = {
             }
             Returns: string
           }
-      admin_log_console_entry: {
-        Args: { p_metadata?: Json }
+      admin_create_agency: {
+        Args: {
+          p_canton?: string
+          p_city?: string
+          p_name: string
+          p_note?: string
+          p_plan?: string
+          p_solo?: boolean
+        }
         Returns: string
       }
+      admin_log_console_entry: { Args: { p_metadata?: Json }; Returns: string }
       admin_log_impersonation: {
         Args: { p_action: string; p_metadata?: Json; p_target_id: string }
         Returns: string
       }
-      get_admin_ai_costs: {
-        Args: { p_months?: number }
-        Returns: {
-          month: string
-          agency_id: string | null
-          agency_name: string
-          provider: string
-          module: string
-          calls: number
-          tokens_in: number
-          tokens_out: number
-          cost_usd: number
-        }[]
-      }
-      get_admin_agency_usage: {
-        Args: { p_agency_id: string }
-        Returns: {
-          active_properties: number
-          contacts_count: number
-          ai_cost_month_usd: number
-          ai_calls_month: number
-          wa_messages_month: number
-          storage_est_mb: number
-          portals_active: number
-          last_activity_at: string | null
-        }[]
-      }
-      get_admin_usage_overview: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          agency_id: string
-          agency_name: string
-          plan: string
-          status: string
-          active_properties: number
-          contacts_count: number
-          ai_cost_month_usd: number
-          wa_messages_month: number
-          storage_est_mb: number
-          portals_active: number
-          last_activity_at: string | null
-          caps: Json
-        }[]
-      }
-      get_admin_quota_breaches: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          agency_id: string
-          agency_name: string
-          metric: string
-          usage: number
-          cap: number
-          threshold_pct: number
-        }[]
+      admin_set_agency_plan: {
+        Args: {
+          p_agency_id: string
+          p_note?: string
+          p_plan: string
+          p_status?: string
+        }
+        Returns: undefined
       }
       admin_set_agency_quotas: {
-        Args: { p_agency_id: string; p_quotas: Json; p_note?: string }
+        Args: { p_agency_id: string; p_note?: string; p_quotas: Json }
         Returns: undefined
-      }
-      get_admin_integrations_health: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      compute_platform_mrr_estimate: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      get_my_agency_plan: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_admin_end_user_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_admin_seller_portals: {
-        Args: { p_status?: string; p_limit?: number; p_offset?: number }
-        Returns: {
-          id: string
-          status: string
-          created_at: string
-          expires_at: string
-          last_viewed_at: string | null
-          view_count: number
-          agency_name: string | null
-          contact_name: string | null
-          property_title: string | null
-          agent_name: string | null
-        }[]
-      }
-      get_admin_kyc_magic_links: {
-        Args: { p_status?: string; p_limit?: number; p_offset?: number }
-        Returns: {
-          id: string
-          status: string
-          mode: string
-          sent_at: string
-          opened_at: string | null
-          uploaded_at: string | null
-          confirmed_at: string | null
-          expires_at: string
-          agency_name: string | null
-          contact_name: string | null
-        }[]
-      }
-      get_admin_consent_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_admin_syndication_health: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_admin_whatsapp_health: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      purge_activity_events_retention: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      record_consent: {
-        Args: { p_type: string; p_version: string }
-        Returns: undefined
-      }
-      admin_set_agency_plan: {
-        Args: { p_agency_id: string; p_plan: string; p_status?: string; p_note?: string }
-        Returns: undefined
-      }
-      admin_create_agency: {
-        Args: {
-          p_name: string
-          p_city?: string
-          p_canton?: string
-          p_plan?: string
-          p_solo?: boolean
-          p_note?: string
-        }
-        Returns: string
       }
       admin_set_user_role: {
         Args: { p_role: string; p_user_id: string }
         Returns: undefined
+      }
+      agency_for_wa_business_number: {
+        Args: { p_wa_to: string }
+        Returns: string
       }
       analytics_cockpit: {
         Args: { p_period?: string; p_scope?: string }
@@ -5461,6 +5617,10 @@ export type Database = {
         Args: { p_agency_id: string; p_property_id: string; p_url: string }
         Returns: number
       }
+      backlink_whatsapp_orphans_for_contact: {
+        Args: { p_contact_id: string }
+        Returns: number
+      }
       calculate_contact_scores: { Args: { p_agency?: string }; Returns: number }
       calculate_property_scores: {
         Args: { p_agency?: string }
@@ -5477,6 +5637,7 @@ export type Database = {
         Args: { p_action_type: string; p_agent_id: string }
         Returns: boolean
       }
+      cancel_visit_by_token: { Args: { p_token: string }; Returns: boolean }
       check_email_exists: { Args: { p_email: string }; Returns: boolean }
       claim_pending_role: { Args: never; Returns: string }
       claim_whatsapp_async_jobs: {
@@ -5517,8 +5678,10 @@ export type Database = {
           direction: string
           id: string
           is_agent_error: boolean
+          is_automated: boolean
           last_error: string | null
           media_id: string | null
+          media_kind: string | null
           media_mime: string | null
           media_r2_key: string | null
           media_type: string | null
@@ -5528,6 +5691,7 @@ export type Database = {
           provider_message_id: string
           raw: Json | null
           retry_count: number
+          sent_by_profile_id: string | null
           session_id: string | null
           status: string
           status_updated_at: string | null
@@ -5547,6 +5711,11 @@ export type Database = {
       }
       cleanup_orphan_property_drafts: { Args: never; Returns: number }
       compute_agent_preferences: { Args: { p_agent_id: string }; Returns: Json }
+      compute_platform_mrr_estimate: { Args: never; Returns: number }
+      contact_next_action: {
+        Args: { p_agency: string; p_contact: string }
+        Returns: Json
+      }
       count_market_by_canton: {
         Args: { p_context?: string }
         Returns: {
@@ -5560,6 +5729,19 @@ export type Database = {
           count: number
           type: string
         }[]
+      }
+      count_market_listings: {
+        Args: {
+          p_budget_max?: number
+          p_budget_min?: number
+          p_cantons?: string[]
+          p_city?: string
+          p_margin?: number
+          p_min_quality?: number
+          p_tx: string
+          p_types?: string[]
+        }
+        Returns: number
       }
       create_agency_and_join: {
         Args: {
@@ -5689,6 +5871,18 @@ export type Database = {
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
+      ensure_wa_inbound_lead: {
+        Args: {
+          p_agency_id: string
+          p_first_name: string
+          p_last_name: string
+          p_phone: string
+        }
+        Returns: {
+          contact_id: string
+          created: boolean
+        }[]
+      }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       esign_secret_delete: { Args: { p_id: string }; Returns: undefined }
       esign_secret_read: { Args: { p_id: string }; Returns: string }
@@ -5706,6 +5900,7 @@ export type Database = {
         Returns: Json
       }
       expire_crm_offers_now: { Args: never; Returns: number }
+      expire_knowledge_snippets: { Args: never; Returns: number }
       find_contact_duplicates: {
         Args: {
           p_email?: string
@@ -5845,6 +6040,32 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_admin_agency_usage: {
+        Args: { p_agency_id: string }
+        Returns: {
+          active_properties: number
+          ai_calls_month: number
+          ai_cost_month_usd: number
+          contacts_count: number
+          last_activity_at: string
+          storage_est_mb: number
+          wa_messages_month: number
+        }[]
+      }
+      get_admin_ai_costs: {
+        Args: { p_months?: number }
+        Returns: {
+          agency_id: string
+          agency_name: string
+          calls: number
+          cost_usd: number
+          module: string
+          month: string
+          provider: string
+          tokens_in: number
+          tokens_out: number
+        }[]
+      }
       get_admin_compliance_stats: {
         Args: never
         Returns: {
@@ -5854,6 +6075,7 @@ export type Database = {
           total: number
         }[]
       }
+      get_admin_consent_stats: { Args: never; Returns: Json }
       get_admin_dashboard_stats: {
         Args: never
         Returns: {
@@ -5864,6 +6086,23 @@ export type Database = {
           new_agencies_this_month: number
           new_users_this_month: number
           total_users: number
+        }[]
+      }
+      get_admin_end_user_stats: { Args: never; Returns: Json }
+      get_admin_integrations_health: { Args: never; Returns: Json }
+      get_admin_kyc_magic_links: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: {
+          agency_name: string
+          confirmed_at: string
+          contact_name: string
+          expires_at: string
+          id: string
+          mode: string
+          opened_at: string
+          sent_at: string
+          status: string
+          uploaded_at: string
         }[]
       }
       get_admin_moderation_stats: {
@@ -5878,22 +6117,44 @@ export type Database = {
         Args: never
         Returns: {
           api_requests_today: number
+          db_limit_mb: number
           db_size_mb: number
           emails_sent_today: number
           errors_last_24h: number
           last_scraping_at: string
+          storage_limit_mb: number
           storage_used_mb: number
         }[]
       }
-      get_admin_support_stats: {
+      get_admin_quota_breaches: {
         Args: never
         Returns: {
-          new_count: number
-          open_count: number
-          resolved_this_week: number
-          sla_breached_open: number
+          agency_id: string
+          agency_name: string
+          cap: number
+          metric: string
+          threshold_pct: number
+          usage: number
         }[]
       }
+      get_admin_syndication_health: { Args: never; Returns: Json }
+      get_admin_usage_overview: {
+        Args: never
+        Returns: {
+          active_properties: number
+          agency_id: string
+          agency_name: string
+          ai_cost_month_usd: number
+          caps: Json
+          contacts_count: number
+          last_activity_at: string
+          plan: string
+          status: string
+          storage_est_mb: number
+          wa_messages_month: number
+        }[]
+      }
+      get_admin_whatsapp_health: { Args: never; Returns: Json }
       get_agency_activity_summary: {
         Args: { agency_ids: string[]; since_days?: number }
         Returns: {
@@ -5928,6 +6189,7 @@ export type Database = {
           count: number
         }[]
       }
+      get_contact_next_action: { Args: { p_contact: string }; Returns: Json }
       get_contact_score_config: { Args: never; Returns: Json }
       get_cron_health: {
         Args: never
@@ -5964,6 +6226,7 @@ export type Database = {
       }
       get_market_rent_reference_config: { Args: never; Returns: Json }
       get_my_agency_id: { Args: never; Returns: string }
+      get_my_agency_plan: { Args: never; Returns: string }
       get_onboarding_milestones: {
         Args: { agency_ids: string[] }
         Returns: {
@@ -5974,13 +6237,6 @@ export type Database = {
           has_property: boolean
           has_transaction: boolean
           last_activity_at: string
-        }[]
-      }
-      get_popular_articles: {
-        Args: { limit_count?: number }
-        Returns: {
-          article_slug: string
-          view_count: number
         }[]
       }
       get_price_hexagons: {
@@ -6007,6 +6263,7 @@ export type Database = {
       get_today_focus_config: { Args: never; Returns: Json }
       get_user_agency_id: { Args: never; Returns: string }
       get_user_role: { Args: never; Returns: string }
+      get_visit_by_token: { Args: { p_token: string }; Returns: Json }
       get_whatsapp_autonomy_suggestions: {
         Args: never
         Returns: {
@@ -6021,6 +6278,7 @@ export type Database = {
           yes_count: number
         }[]
       }
+      get_whatsapp_deadletter_metrics: { Args: never; Returns: Json }
       get_whatsapp_tool_usage_stats: {
         Args: { p_known_tools?: string[] }
         Returns: {
@@ -6043,6 +6301,8 @@ export type Database = {
           id: string
           market_listing_id: string | null
           property_id: string | null
+          reaction_motif: string | null
+          reaction_note: string | null
           reasons: Json | null
           response_at: string | null
           score: number
@@ -6070,6 +6330,8 @@ export type Database = {
           id: string
           market_listing_id: string | null
           property_id: string | null
+          reaction_motif: string | null
+          reaction_note: string | null
           reasons: Json | null
           response_at: string | null
           score: number
@@ -6087,6 +6349,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      is_service_role: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       is_within_sla_window: {
         Args: { p_agent_id: string; p_at?: string }
@@ -6176,46 +6439,7 @@ export type Database = {
           type: string
         }[]
       }
-      search_cities: {
-        Args: { p_prefix: string; p_tx?: string; p_limit?: number }
-        Returns: {
-          city: string
-          canton: string
-          n: number
-        }[]
-      }
-      search_market_listings: {
-        Args: {
-          p_tx: string
-          p_budget_min?: number
-          p_budget_max?: number
-          p_margin?: number
-          p_cantons?: string[]
-          p_types?: string[]
-          p_min_quality?: number
-          p_limit?: number
-          p_city?: string
-        }
-        Returns: {
-          id: string
-          created_at: string
-        }[]
-      }
-      count_market_listings: {
-        Args: {
-          p_tx: string
-          p_budget_min?: number
-          p_budget_max?: number
-          p_margin?: number
-          p_cantons?: string[]
-          p_types?: string[]
-          p_min_quality?: number
-          p_city?: string
-        }
-        Returns: number
-      }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
-      soft_delete_property: { Args: { p_property_id: string }; Returns: boolean }
       pg_database_size_mb: { Args: never; Returns: number }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -6257,7 +6481,13 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      provision_solo_agency: {
+        Args: { p_display_name: string; p_user: string }
+        Returns: string
+      }
+      purge_activity_events_retention: { Args: never; Returns: number }
       purge_expired_import_raw_text: { Args: never; Returns: number }
+      purge_stale_market_matches: { Args: never; Returns: number }
       realadvisor_health_check: { Args: never; Returns: Json }
       realadvisor_probe_bookkeep: {
         Args: {
@@ -6283,6 +6513,19 @@ export type Database = {
         }
         Returns: Json
       }
+      realadvisor_revive_collect: {
+        Args: { p_max_revive?: number }
+        Returns: Json
+      }
+      realadvisor_revive_fire: {
+        Args: {
+          p_batches?: number
+          p_min_gap_days?: number
+          p_offer_type?: string
+          p_window_days?: number
+        }
+        Returns: number
+      }
       realadvisor_sweep_enum: {
         Args: {
           p_apply?: boolean
@@ -6292,6 +6535,24 @@ export type Database = {
           p_window_days?: number
         }
         Returns: Json
+      }
+      record_buyer_reaction: {
+        Args: {
+          p_link_id: string
+          p_match_id: string
+          p_motif?: string
+          p_note?: string
+          p_reaction: string
+        }
+        Returns: undefined
+      }
+      record_consent: {
+        Args: { p_type: string; p_version: string }
+        Returns: undefined
+      }
+      reschedule_visit_by_token: {
+        Args: { p_new_at: string; p_token: string }
+        Returns: boolean
       }
       resolve_contact_by_phone: {
         Args: { p_phone: string }
@@ -6304,9 +6565,13 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string }
         Returns: undefined
       }
-      provision_solo_agency: {
-        Args: { p_display_name: string; p_user: string }
-        Returns: string
+      search_cities: {
+        Args: { p_limit?: number; p_prefix: string; p_tx?: string }
+        Returns: {
+          canton: string
+          city: string
+          n: number
+        }[]
       }
       search_directory: {
         Args: {
@@ -6323,11 +6588,32 @@ export type Database = {
         }
         Returns: Json
       }
+      search_market_listings: {
+        Args: {
+          p_budget_max?: number
+          p_budget_min?: number
+          p_cantons?: string[]
+          p_city?: string
+          p_limit?: number
+          p_margin?: number
+          p_min_quality?: number
+          p_tx: string
+          p_types?: string[]
+        }
+        Returns: {
+          created_at: string
+          id: string
+        }[]
+      }
       set_agent_learned_style: {
         Args: { p_agent_id: string; p_status: string; p_traits?: string }
         Returns: undefined
       }
       slugify: { Args: { input: string }; Returns: string }
+      soft_delete_property: {
+        Args: { p_property_id: string }
+        Returns: boolean
+      }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
@@ -6911,6 +7197,24 @@ export type Database = {
       }
       storage_size_mb: { Args: never; Returns: number }
       submit_agency_identity: { Args: { p_related_person_id?: string }; Returns: undefined }
+      submit_visit_feedback_by_token: {
+        Args: {
+          p_ai: Json
+          p_comment: string
+          p_rating: number
+          p_token: string
+        }
+        Returns: boolean
+      }
+      super_admin_allowlist: { Args: never; Returns: string[] }
+      super_admin_allowlist_match: {
+        Args: { p_email: string }
+        Returns: boolean
+      }
+      suppress_agency_logo_collisions: {
+        Args: { sim_threshold?: number }
+        Returns: number
+      }
       team_remove_member: { Args: { p_member_id: string }; Returns: undefined }
       team_set_member_role: {
         Args: { p_member_id: string; p_role: string }
@@ -6937,6 +7241,18 @@ export type Database = {
           p_transaction_id: string
         }
         Returns: number
+      }
+      wa_msg_is_foreign_agent_thread: {
+        Args: { p_wa_from: string; p_wa_to: string }
+        Returns: boolean
+      }
+      weekly_digest_scan: { Args: never; Returns: undefined }
+      whatsapp_median_response_hour: {
+        Args: { p_contact_id: string }
+        Returns: {
+          median_hour: number
+          n: number
+        }[]
       }
       whatsapp_pending_notices: {
         Args: { p_limit?: number }
@@ -6992,12 +7308,6 @@ export type Database = {
         | "review"
         | "validated"
         | "rejected"
-        | "wrong_price"
-        | "already_taken"
-        | "wrong_photos"
-        | "inaccurate_description"
-        | "spam_fraud"
-        | "other"
       mandate_type: "simple" | "semi_exclusive" | "exclusive"
       property_status: "draft" | "active" | "reserved" | "sold" | "archived"
       property_type: "apartment" | "house" | "villa" | "commercial" | "land"
@@ -7159,3 +7469,70 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      agency_plan: ["starter", "pro", "agency", "enterprise"],
+      crm_offer_kind: ["offer", "counter"],
+      crm_offer_party: ["buyer", "seller"],
+      crm_offer_status: [
+        "pending",
+        "accepted",
+        "rejected",
+        "expired",
+        "withdrawn",
+      ],
+      invitation_status: ["pending", "accepted", "cancelled", "expired"],
+      kyc_magic_link_mode: ["libre", "verifiee"],
+      kyc_magic_link_status: [
+        "pending",
+        "opened",
+        "uploading",
+        "verifying",
+        "submitted",
+        "expired",
+      ],
+      kyc_magic_link_upload_type: ["identity", "address", "funds", "other"],
+      kyc_person_type: ["buyer_pp", "buyer_pm", "seller_pp", "seller_pm"],
+      kyc_risk_level: ["low", "medium", "high", "unassessed"],
+      kyc_source_of_funds_type: [
+        "salary",
+        "sale_property",
+        "sale_business",
+        "inheritance",
+        "investment",
+        "crypto",
+        "loan",
+        "mixed",
+        "other",
+      ],
+      kyc_status: ["pending", "in_progress", "review", "validated", "rejected"],
+      mandate_type: ["simple", "semi_exclusive", "exclusive"],
+      property_status: ["draft", "active", "reserved", "sold", "archived"],
+      property_type: ["apartment", "house", "villa", "commercial", "land"],
+      transaction_stage: [
+        "lead",
+        "qualified",
+        "visit_planned",
+        "offer",
+        "negotiation",
+        "reserved",
+        "financing",
+        "notary",
+        "signed",
+        "closed",
+        "new_lead",
+        "to_qualify",
+        "active_search",
+        "visit_done",
+        "interest_confirmed",
+        "lost",
+        "to_recontact",
+        "visit_planned_legacy",
+      ],
+      transaction_status: ["active", "on_hold", "cancelled", "completed"],
+      user_role: ["buyer", "seller", "agent", "manager", "admin", "assistant"],
+    },
+  },
+} as const

@@ -11,20 +11,12 @@ import BootSplash from '@/components/layout/BootSplash'
  * l'œil a le temps de reconnaître une mise en page. Un squelette au bon gabarit
  * dit « la bonne page charge » ; un spinner dit « le site est cassé ».
  *
- * ⚠ `/dashboard` recouvre DEUX chromes différents (deux routes parentes dans
- * App.tsx) — d'où l'aiguillage `isLegacyChrome()` ci-dessous. Servir le mauvais
- * des deux fait exactement le défaut qu'on cherche à éviter : un écran d'attente
- * qui n'a aucun rapport avec la page qui suit.
- *
  * Les squelettes sont eux-mêmes lazy pour ne pas alourdir le bundle d'entrée :
  * ils ne sont téléchargés que si une frontière Suspense en a besoin.
  *
  * Repli : toute route sans squelette dédié garde le spinner (`<DefaultLoader>`).
  */
 
-const DashboardSkeleton = lazy(
-  () => import('@/components/skeletons/DashboardSkeleton'),
-)
 const SugarPageSkeleton = lazy(
   () => import('@/components/skeletons/SugarPageSkeleton'),
 )
@@ -35,25 +27,6 @@ function DefaultLoader() {
     <div className="flex items-center justify-center h-64">
       <div className="h-5 w-5 border-2 border-theme-border border-t-accent rounded-full animate-spin" />
     </div>
-  )
-}
-
-/**
- * Routes `/dashboard` encore rendues par `AgentLayout` (vraie sidebar + header),
- * par opposition aux surfaces Sugar qui portent leur propre chrome. Liste tenue
- * à la main car les deux routes parentes partagent le préfixe `/dashboard` —
- * voir la seconde `<Route path="/dashboard">` d'App.tsx.
- *
- * Piège de préfixe : `listings` et `listings/:id` sont Sugar, mais
- * `listings/new` et `listings/:id/edit` sont AgentLayout.
- */
-function isLegacyChrome(pathname: string): boolean {
-  return (
-    pathname === '/dashboard/contacts/import'
-    || pathname === '/dashboard/listings/new'
-    || /^\/dashboard\/listings\/[^/]+\/edit$/.test(pathname)
-    || pathname.startsWith('/dashboard/market/')
-    || pathname.startsWith('/dashboard/marche/')
   )
 }
 
@@ -69,8 +42,11 @@ export default function SmartPageLoader() {
     return <BootSplash />
   }
 
+  // Toutes les surfaces `/dashboard` portent désormais le chrome Sugar : la
+  // coquille legacy `AgentLayout` a été retirée, et avec elle la liste de routes
+  // tenue à la main qui distinguait les deux squelettes.
   const skeleton = pathname.startsWith('/dashboard')
-    ? (isLegacyChrome(pathname) ? <DashboardSkeleton /> : <SugarPageSkeleton />)
+    ? <SugarPageSkeleton />
     : <DefaultLoader />
 
   // Les squelettes sont lazy — on les enveloppe d'un Suspense imbriqué dont le

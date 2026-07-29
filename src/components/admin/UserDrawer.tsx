@@ -5,18 +5,33 @@
  * Affiche l'identité, permet le changement de rôle, l'impersonation (audit-first),
  * l'export DSAR (nLPD art. 25) et les actions de cycle de vie
  * (suspendre / réinitialiser le mot de passe / supprimer), plus la timeline d'activité.
+ *
+ * Habillage en grammaire Sugar (kit `admin/kit`) : panneau posé sur son ombre
+ * sans bordure, bento d'identité séparé par des filets, statuts en pilules
+ * pleines et tons fonctionnels (`tones.warn` / `tones.err`) au lieu des
+ * `text-amber-500` / `text-red-500`. L'impersonation est l'action PRINCIPALE du
+ * panneau : elle prend l'accent noir de Sugar, pas le violet de la console (qui
+ * ne dit que « tu es dans la plateforme »).
  */
-import { useEffect } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import type { LucideIcon } from 'lucide-react'
 import { X, Mail, Phone, Building2, Clock, Eye, FileDown, Ban, KeyRound, Trash2 } from 'lucide-react'
-import { cn, formatRelativeDate } from '@/lib/utils'
+import { formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity, useDsarExport } from '@/hooks/useAdminUsers'
 import { useAdminUserLifecycle } from '@/hooks/useAdminUserLifecycle'
-import { openImpersonationInCrm } from '@/lib/adminEntry'
+import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
+import AdminConfirm from '@/components/admin/AdminConfirm'
 import { useToast } from '@/components/ui/Toast'
+import {
+  AdminAvatar, AdminCard, AdminEmpty, AdminGhostBtn, AdminIc, AdminPill,
+  AdminSkeleton, AdminSolidBtn,
+} from '@/components/admin/kit/adminKit'
+import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
+import { useAdminSugar } from '@/hooks/useAdminSugar'
 
 const ROLE_OPTIONS = [
   { value: 'super_admin', i18nKey: 'common.role.superAdmin' },
@@ -31,27 +46,26 @@ interface UserDrawerProps {
   onClose: () => void
 }
 
-/** Avatar utilisateur : photo si fournie, sinon initiales sur fond de couleur déterministe dérivée du nom. */
-function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
-  const initials = (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-  const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500']
-  const idx = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length
+/** Initiales (2 max) tirées du nom complet — la seule entrée de l'avatar Sugar. */
+function initialsOf(name: string): string {
+  return (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
 
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={name}
-        className="h-16 w-16 rounded-full object-cover"
-        decoding="async"
-        loading="lazy"
-      />
-    )
-  }
-
+/** Ligne du bento d'identité : icône, libellé, valeur. Filet au-dessus sauf la première. */
+function InfoRow({ icon, label, first, children }: {
+  icon: LucideIcon
+  label: string
+  first?: boolean
+  children: ReactNode
+}) {
+  const { sp, surf } = useAdminSugar()
   return (
-    <div className={cn('h-16 w-16 rounded-full flex items-center justify-center', colors[idx])}>
-      <span className="text-lg font-semibold text-white">{initials}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 14px', borderTop: first ? undefined : surf.hairline }}>
+      <AdminIc icon={icon} size={15} color={sp.sub} />
+      <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub, width: 76, flexShrink: 0 }}>{label}</span>
+      <span style={{ minWidth: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {children}
+      </span>
     </div>
   )
 }
@@ -59,6 +73,7 @@ function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
 /** Panneau de détail/gestion d'un compte, résolu depuis la liste `useAdminUsers` par `userId`. */
 export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const { t } = useTranslation('admin')
+  const { sp, surf, dark, tones } = useAdminSugar()
   const { users, updateRole } = useAdminUsers()
   const { data: activity, isLoading: activityLoading } = useUserActivity(userId)
   const dsarExport = useDsarExport()
@@ -67,6 +82,8 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
   const user = users.find(u => u.id === userId)
   const focusTrapRef = useFocusTrap(true)
+  // Action destructive en attente de confirmation (`null` = aucune).
+  const [confirming, setConfirming] = useState<'suspend' | 'delete' | null>(null)
 
   // Close on Escape
   useEffect(() => {
@@ -87,130 +104,146 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
     updateRole.mutate({ id: userId, role: newRole })
   }
 
+  const fullWidthBtn = { width: '100%', justifyContent: 'center' } as const
+
   return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex justify-end">
+      <style>{`
+        .audr-ev { transition: background .15s ease; }
+        .audr-ev:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.03)'}; }
+        .audr-sel:focus { box-shadow: inset 0 0 0 2px ${sp.accent}; }
+        .audr-link:hover { text-decoration: underline; }
+      `}</style>
+
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
+        style={{
+          position: 'absolute', inset: 0,
+          background: dark ? 'rgba(0,0,4,.68)' : 'rgba(14,20,16,.42)',
+          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+        }}
       />
 
       {/* Drawer panel */}
-      <div ref={focusTrapRef} className="relative w-[380px] max-w-full bg-theme-card border-l border-theme-border h-full overflow-y-auto scrollbar-hide">
+      <div
+        ref={focusTrapRef}
+        className="relative w-[380px] max-w-full h-full overflow-y-auto scrollbar-hide"
+        style={{
+          background: sp.pageBg, boxShadow: sp.shadow,
+          // Le drawer est porté sur `document.body`, hors du conteneur du shell :
+          // il doit redéclarer la police et les chiffres tabulaires de la console.
+          fontFamily: '"Inter Tight", system-ui, sans-serif', fontVariantNumeric: 'tabular-nums',
+        }}
+      >
         {/* Close button */}
         <button
           onClick={onClose}
           aria-label={t('userDrawer.close')}
-          className="absolute top-4 right-4 p-1.5 rounded-md text-theme-secondary hover:text-theme-primary transition-colors"
+          style={{
+            position: 'absolute', top: 14, right: 14, width: 30, height: 30,
+            borderRadius: ADMIN_RADII.pill, border: 0, background: surf.cardSub,
+            cursor: 'pointer', display: 'grid', placeItems: 'center', zIndex: 1,
+          }}
         >
-          <X className="h-4 w-4" />
+          <AdminIc icon={X} size={14} color={sp.sub} />
         </button>
 
         {!user ? (
-          <div className="px-6 py-16 text-center">
-            <p className="text-sm text-theme-tertiary">{t('userDrawer.notFound')}</p>
-          </div>
+          <AdminEmpty title={t('userDrawer.notFound')} />
         ) : (
-          <div className="px-6 py-6 space-y-6">
+          <div style={{ padding: '22px 18px 26px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* User header */}
-            <div className="flex flex-col items-center text-center pt-2">
-              <UserAvatar name={user.full_name ?? 'Utilisateur'} avatarUrl={user.avatar_url} />
-              <h2 className="text-lg font-semibold text-theme-primary mt-3">
-                {user.full_name ?? t('common.noName')}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10, paddingTop: 8 }}>
+              <AdminAvatar initials={initialsOf(user.full_name ?? 'Utilisateur')} photo={user.avatar_url} size={64} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
+                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: -0.5, color: sp.ink, lineHeight: 1.2 }}>
+                  {user.full_name ?? t('common.noName')}
+                </h2>
                 {user.is_suspended && (
-                  <span className="ml-2 text-xs font-medium text-red-500">{t('common.status.suspended')}</span>
+                  <AdminPill label={t('common.status.suspended')} tone="err" />
                 )}
-              </h2>
-              <p className="text-sm text-theme-secondary mt-0.5">{user.email}</p>
+                <p style={{ margin: 0, fontSize: 12.5, fontWeight: 500, color: sp.sub, wordBreak: 'break-all' }}>{user.email}</p>
+              </div>
             </div>
 
             {/* Info fields */}
-            <div className="rounded-xl border border-theme-border divide-y divide-theme-border">
-              {/* Phone */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Phone className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">{t('userDrawer.phone')}</span>
-                <span className="text-sm text-theme-primary">
-                  {user.phone || <span className="text-theme-tertiary">{t('common.notProvided')}</span>}
-                </span>
-              </div>
+            <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+              <InfoRow icon={Phone} label={t('userDrawer.phone')} first>
+                {user.phone || <span style={{ color: sp.sub, fontWeight: 500 }}>{t('common.notProvided')}</span>}
+              </InfoRow>
 
-              {/* Email */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Mail className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">{t('userDrawer.email')}</span>
-                <span className="text-sm text-theme-primary truncate">{user.email}</span>
-              </div>
+              <InfoRow icon={Mail} label={t('userDrawer.email')}>
+                {user.email}
+              </InfoRow>
 
-              {/* Agency */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Building2 className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">{t('userDrawer.agency')}</span>
+              <InfoRow icon={Building2} label={t('userDrawer.agency')}>
                 {user.agency_name && user.agency_id ? (
                   <Link
-                    to={`/agencies/${user.agency_id}`}
+                    to={`${ADMIN_CONSOLE_PATH}/agencies/${user.agency_id}`}
                     onClick={onClose}
-                    className="text-sm text-admin-accent hover:underline truncate"
+                    className="audr-link"
+                    style={{ color: sp.ink, fontWeight: 700, textDecoration: 'none' }}
                   >
                     {user.agency_name}
                   </Link>
                 ) : (
-                  <span className="text-sm text-theme-tertiary">{t('common.none')}</span>
+                  <span style={{ color: sp.sub, fontWeight: 500 }}>{t('common.none')}</span>
                 )}
-              </div>
+              </InfoRow>
 
-              {/* Created at */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Clock className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-                <span className="text-sm text-theme-secondary w-20 flex-shrink-0">{t('userDrawer.registration')}</span>
-                <span className="text-sm text-theme-primary">
-                  {formatRelativeDate(user.created_at)}
-                </span>
-              </div>
-            </div>
+              <InfoRow icon={Clock} label={t('userDrawer.registration')}>
+                {formatRelativeDate(user.created_at)}
+              </InfoRow>
+            </AdminCard>
 
             {/* Role selector */}
             <div>
-              <label className="text-xs font-medium text-theme-secondary mb-1.5 block">
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: 0.2, color: sp.sub, marginBottom: 7 }}>
                 {t('userDrawer.role')}
               </label>
               <select
                 value={user.role ?? 'agent'}
                 onChange={(e) => handleRoleChange(e.target.value)}
                 disabled={updateRole.isPending}
-                className={cn(
-                  'w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg',
-                  'focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors',
-                  'text-theme-primary',
-                  updateRole.isPending && 'opacity-60'
-                )}
+                className="audr-sel"
+                style={{
+                  width: '100%', height: 38, padding: '0 11px', boxSizing: 'border-box',
+                  borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub,
+                  color: sp.ink, fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                  outline: 'none', cursor: updateRole.isPending ? 'not-allowed' : 'pointer',
+                  opacity: updateRole.isPending ? 0.6 : 1,
+                }}
               >
                 {ROLE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{t(opt.i18nKey)}</option>
                 ))}
               </select>
               {updateRole.isError && (
-                <p className="text-xs text-red-500 mt-1">{t('userDrawer.roleUpdateError')}</p>
+                <p style={{ margin: '6px 0 0', fontSize: 11.5, fontWeight: 600, color: tones.err }}>
+                  {t('userDrawer.roleUpdateError')}
+                </p>
               )}
             </div>
 
             {/* Impersonate button */}
-            <button
+            <AdminSolidBtn
+              icon={Eye}
               onClick={() => {
-                // La vue impersonée est une vue du CRM, qui vit sur une AUTRE
-                // origine : on l'y ouvre. C'est le CRM qui journalise (audit-first,
-                // RPC admin_log_impersonation) avant d'activer quoi que ce soit.
-                openImpersonationInCrm(user.id)
+                // Nouvel onglet : la console reste ouverte à côté. C'est le CRM
+                // qui journalise (audit-first, RPC admin_log_impersonation)
+                // avant d'activer quoi que ce soit.
+                openImpersonation(user.id)
                 onClose()
               }}
-              className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-admin-accent/30 text-admin-accent rounded-lg hover:bg-admin-accent/5 transition-colors"
+              style={fullWidthBtn}
             >
-              <Eye className="h-4 w-4" />
               {t('userDrawer.impersonate')}
-            </button>
+            </AdminSolidBtn>
 
             {/* Export DSAR (nLPD art. 25) — JSON journalisé côté serveur */}
-            <button
+            <AdminGhostBtn
+              icon={FileDown}
               onClick={() =>
                 dsarExport.mutate(
                   { userId: user.id, email: user.email },
@@ -218,118 +251,96 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 )
               }
               disabled={dsarExport.isPending}
-              className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:bg-theme-hover transition-colors disabled:opacity-50"
+              style={fullWidthBtn}
             >
-              <FileDown className="h-4 w-4" />
               {dsarExport.isPending ? t('userDrawer.dsarExporting') : t('userDrawer.dsarExport')}
-            </button>
+            </AdminGhostBtn>
 
             {/* Cycle de vie du compte (P4) — actions journalisées serveur ;
                 les comptes allowlistés sont refusés par l'edge (anti-lockout). */}
-            <div className="space-y-2 border-t border-theme-border-subtle pt-3">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => {
-                    const action = user.is_suspended ? 'reactivate' : 'suspend'
-                    if (action === 'suspend' && !window.confirm(t('userDrawer.lifecycle.suspendConfirm', { email: user.email }))) return
+            {/* Les trois actions sont empilées pleine largeur : à 380 px de
+                panneau, deux colonnes ne tiennent pas « Reset mot de passe »
+                (et encore moins sa traduction allemande) sans débordement. */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 14, borderTop: surf.hairline }}>
+              <AdminGhostBtn
+                onClick={() => {
+                  // Réactiver rend un accès, ce n'est pas destructeur : pas de
+                  // confirmation. Suspendre coupe la connexion, donc si.
+                  if (user.is_suspended) {
                     lifecycle.mutate(
-                      { action, userId: user.id },
+                      { action: 'reactivate', userId: user.id },
                       {
                         onSuccess: () => toast.success(t('userDrawer.lifecycle.done')),
                         onError: () => toast.error(t('userDrawer.lifecycle.error')),
                       },
                     )
-                  }}
-                  disabled={lifecycle.isPending}
-                  className={cn(
-                    'h-9 flex items-center justify-center gap-2 text-sm font-medium border rounded-lg transition-colors disabled:opacity-50',
-                    user.is_suspended
-                      ? 'border-theme-border text-theme-secondary hover:bg-theme-hover'
-                      : 'border-amber-500/30 text-amber-500 hover:bg-amber-500/5',
-                  )}
-                >
-                  <Ban className="h-4 w-4" />
-                  {user.is_suspended ? t('userDrawer.lifecycle.reactivate') : t('userDrawer.lifecycle.suspend')}
-                </button>
-                <button
-                  onClick={() =>
-                    lifecycle.mutate(
-                      { action: 'force_password_reset', userId: user.id },
-                      {
-                        onSuccess: () => toast.success(t('userDrawer.lifecycle.resetSent')),
-                        onError: () => toast.error(t('userDrawer.lifecycle.error')),
-                      },
-                    )
-                  }
-                  disabled={lifecycle.isPending}
-                  className="h-9 flex items-center justify-center gap-2 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:bg-theme-hover transition-colors disabled:opacity-50"
-                >
-                  <KeyRound className="h-4 w-4" />
-                  {t('userDrawer.lifecycle.resetPassword')}
-                </button>
-              </div>
-              <button
-                onClick={() => {
-                  // Confirmation typée : l'admin doit saisir l'email exact du compte.
-                  const typed = window.prompt(t('userDrawer.lifecycle.deletePrompt', { email: user.email }))
-                  if (typed === null) return
-                  if (typed.trim().toLowerCase() !== user.email.toLowerCase()) {
-                    toast.error(t('userDrawer.lifecycle.deleteMismatch'))
                     return
                   }
-                  deleteAccount.mutate(
-                    { userId: user.id },
+                  setConfirming('suspend')
+                }}
+                disabled={lifecycle.isPending}
+                style={{ ...fullWidthBtn, color: user.is_suspended ? sp.ink : tones.warn }}
+              >
+                <AdminIc icon={Ban} size={15} color={user.is_suspended ? sp.ink : tones.warn} />
+                {user.is_suspended ? t('userDrawer.lifecycle.reactivate') : t('userDrawer.lifecycle.suspend')}
+              </AdminGhostBtn>
+              <AdminGhostBtn
+                icon={KeyRound}
+                onClick={() =>
+                  lifecycle.mutate(
+                    { action: 'force_password_reset', userId: user.id },
                     {
-                      onSuccess: () => {
-                        toast.success(t('userDrawer.lifecycle.deleted'))
-                        onClose()
-                      },
+                      onSuccess: () => toast.success(t('userDrawer.lifecycle.resetSent')),
                       onError: () => toast.error(t('userDrawer.lifecycle.error')),
                     },
                   )
-                }}
-                disabled={deleteAccount.isPending}
-                className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-red-500/30 text-red-500 rounded-lg hover:bg-red-500/5 transition-colors disabled:opacity-50"
+                }
+                disabled={lifecycle.isPending}
+                style={fullWidthBtn}
               >
-                <Trash2 className="h-4 w-4" />
+                {t('userDrawer.lifecycle.resetPassword')}
+              </AdminGhostBtn>
+              <AdminGhostBtn
+                onClick={() => setConfirming('delete')}
+                disabled={deleteAccount.isPending}
+                style={{ ...fullWidthBtn, color: tones.err }}
+              >
+                <AdminIc icon={Trash2} size={15} color={tones.err} />
                 {deleteAccount.isPending ? t('userDrawer.lifecycle.deleting') : t('userDrawer.lifecycle.delete')}
-              </button>
+              </AdminGhostBtn>
             </div>
 
             {/* Activity timeline */}
             <div>
-              <h3 className="text-xs font-medium text-theme-secondary mb-3">{t('userDrawer.recentActivity')}</h3>
+              <h3 style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, letterSpacing: 0.2, color: sp.sub }}>
+                {t('userDrawer.recentActivity')}
+              </h3>
 
               {activityLoading ? (
-                <div className="space-y-2">
+                <div style={{ display: 'grid', gap: 8 }}>
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <div className="h-2 w-2 rounded-full bg-theme-hover animate-pulse mt-1.5" />
-                      <div className="flex-1 space-y-1">
-                        <div className="h-3 w-40 rounded bg-theme-hover animate-pulse" />
-                        <div className="h-2.5 w-20 rounded bg-theme-hover animate-pulse" />
-                      </div>
-                    </div>
+                    <AdminSkeleton key={i} height={38} />
                   ))}
                 </div>
               ) : !activity || activity.length === 0 ? (
-                <p className="text-xs text-theme-tertiary py-4 text-center">{t('userDrawer.noActivity')}</p>
+                <AdminEmpty title={t('userDrawer.noActivity')} />
               ) : (
-                <div className="space-y-0.5">
+                <div style={{ display: 'grid', gap: 2 }}>
                   {activity.map((event) => (
                     <div
                       key={event.id}
-                      className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg hover:bg-theme-hover transition-colors"
+                      className="audr-ev"
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 11px', borderRadius: ADMIN_RADII.row }}
                     >
-                      <div className="h-2 w-2 rounded-full bg-admin-accent mt-1.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-theme-primary">
-                          <span className="font-medium">{event.action}</span>
+                      <span style={{ width: 6, height: 6, borderRadius: ADMIN_RADII.pill, background: sp.accent, marginTop: 5, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 12, color: sp.ink, lineHeight: 1.4 }}>
+                          <span style={{ fontWeight: 700 }}>{event.action}</span>
                           {event.entity_type && (
-                            <span className="text-theme-secondary"> {t('userDrawer.actionOn')} {event.entity_type}</span>
+                            <span style={{ color: sp.sub }}> {t('userDrawer.actionOn')} {event.entity_type}</span>
                           )}
                         </p>
-                        <p className="text-xs text-theme-tertiary mt-0.5">
+                        <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 500, color: sp.sub }}>
                           {formatRelativeDate(event.created_at)}
                         </p>
                       </div>
@@ -341,6 +352,58 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
           </div>
         )}
       </div>
+
+      {/* Confirmations des actions irréversibles. Montées ici, dans le portal du
+          tiroir : le tiroir reste visible derrière, donc on voit de QUI il est
+          question au moment de trancher. */}
+      {user && (
+        <>
+          <AdminConfirm
+            open={confirming === 'suspend'}
+            onClose={() => setConfirming(null)}
+            title={t('userDrawer.lifecycle.suspendTitle')}
+            message={t('userDrawer.lifecycle.suspendConfirm', { email: user.email })}
+            confirmLabel={t('userDrawer.lifecycle.suspend')}
+            tone="warn"
+            busy={lifecycle.isPending}
+            onConfirm={() => {
+              lifecycle.mutate(
+                { action: 'suspend', userId: user.id },
+                {
+                  onSuccess: () => { toast.success(t('userDrawer.lifecycle.done')); setConfirming(null) },
+                  onError: () => { toast.error(t('userDrawer.lifecycle.error')); setConfirming(null) },
+                },
+              )
+            }}
+          />
+          <AdminConfirm
+            open={confirming === 'delete'}
+            onClose={() => setConfirming(null)}
+            title={t('userDrawer.lifecycle.deleteTitle')}
+            message={t('userDrawer.lifecycle.deletePrompt', { email: user.email })}
+            confirmLabel={t('userDrawer.lifecycle.delete')}
+            // L'e-mail exact reste exigé, mais il bloque le bouton au lieu
+            // d'être reproché après coup comme le faisait `window.prompt`.
+            requireText={user.email}
+            requireTextLabel={t('userDrawer.lifecycle.deleteTypeEmail')}
+            busy={deleteAccount.isPending}
+            busyLabel={t('userDrawer.lifecycle.deleting')}
+            onConfirm={() => {
+              deleteAccount.mutate(
+                { userId: user.id },
+                {
+                  onSuccess: () => {
+                    toast.success(t('userDrawer.lifecycle.deleted'))
+                    setConfirming(null)
+                    onClose()
+                  },
+                  onError: () => { toast.error(t('userDrawer.lifecycle.error')); setConfirming(null) },
+                },
+              )
+            }}
+          />
+        </>
+      )}
     </div>,
     document.body
   )

@@ -4,6 +4,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -158,6 +159,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+
+    // ── Auth ────────────────────────────────────────────────────────────────
+    // Cette fonction n'avait AUCUNE garde. Elle est déployée --no-verify-jwt
+    // comme toutes les autres, travaille en service-role (donc hors RLS), et
+    // prend `reminder_id` / `agency_id` dans le corps de la requête : n'importe
+    // qui pouvait donc déclencher l'envoi d'un e-mail à un contact. Seul le
+    // caractère non devinable d'un UUID limitait la casse — ce n'est pas une
+    // garde. Même famille que le relais ouvert fermé dans send-email.
+    //
+    // Le seul appelant légitime est automation-engine, qui forwarde déjà la clé
+    // service-role en Bearer : la garde ne change donc rien au chemin nominal.
+    if (!(await isServiceSecret(supabase, req))) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (!RESEND_API_KEY) {

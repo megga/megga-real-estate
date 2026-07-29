@@ -49,7 +49,7 @@ interface PlanDef {
 const PLANS: PlanDef[] = [
   {
     id: 'free', icon: '/billing/plan-free.png', nameKey: 'billing.plans.free.name', taglineKey: 'billing.plans.free.tagline', monthly: 0,
-    featureKeys: ['billing.plans.free.features.properties', 'billing.plans.free.features.crm', 'billing.plans.free.features.aiSearch', 'billing.plans.free.features.sellerPortal', 'billing.plans.free.features.emailSupport'],
+    featureKeys: ['billing.plans.free.features.properties', 'billing.plans.free.features.crm', 'billing.plans.free.features.aiSearch', 'billing.plans.free.features.emailSupport'],
   },
   {
     id: 'pro', icon: '/billing/plan-pro.png', nameKey: 'billing.plans.pro.name', taglineKey: 'billing.plans.pro.tagline', monthly: 49, popular: true,

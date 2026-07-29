@@ -4,7 +4,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -15,8 +16,6 @@ import {
   type Urgency,
 } from '@/components/crm-sugar/journey/journeyData'
 import { useParcoursSugar } from '@/hooks/useParcoursSugar'
-
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 export default function JourneySugarV2Page() {
   const { t: tr } = useTranslation('pipeline')
@@ -35,8 +34,9 @@ export default function JourneySugarV2Page() {
     }
   }, [dark])
 
-  const t = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(t, dark, DARK_TONE)
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(t, dark, darkTone)
 
   // Source de vérité : transactions actives Supabase (1 dossier = 1 transaction).
   // Filtre Agent retiré (pas de table profiles/teammates wire) — réintroduit avec RBAC.
