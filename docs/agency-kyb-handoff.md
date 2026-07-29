@@ -834,47 +834,154 @@ tout `supabase/functions/`. Couverture : `tests/backend/open-kyc-case-lab-guard.
 
 ### À faire au moment du merge, impérativement
 
-Les 18 migrations (`ls supabase/migrations/202607281*.sql | wc -l`) sont datées du 28
-juillet 2026. Le garde-date de `deploy.yml` n'applique que celles dont l'horodatage est
-supérieur ou égal à la date du jour en UTC, et il **ne signale un saut que par un
-avertissement, jamais par un échec**. Mergées un jour ultérieur sans rien faire, elles sont
-toutes sautées en silence pendant que le bundle frontend part quand même : tout dirigeant
-se retrouve alors devant un wizard dont ni les tables ni les RPC n'existent, avec la
-déconnexion pour seule sortie.
+Les 18 migrations du chantier sont datées du 28 juillet 2026. Le garde-date de `deploy.yml`
+n'applique que celles dont l'horodatage est supérieur ou égal à la date du jour en UTC, et
+il **ne signale un saut que par un avertissement, jamais par un échec**. Mergées un jour
+ultérieur sans rien faire, elles sont toutes sautées en silence pendant que le bundle
+frontend part quand même : tout dirigeant se retrouve alors devant un wizard dont ni les
+tables ni les RPC n'existent, avec la déconnexion pour seule sortie. Il faut donc les
+re-dater, et c'est là que tout se joue.
 
-Re-dater en séquence monotone, jamais en conservant la seule composante horaire. Le
-compteur va dans les **minutes** (`10<MM>00`), jamais multiplié dans un `printf` :
+#### Ce que la branche ne voit pas
+
+Mesuré le 29.07.2026 : la branche a **106 commits de retard** sur `main`, qui a touché
+**11 fichiers de migration** depuis la base commune (10 ajouts, 1 modification). Trois
+horodatages sont **déjà** en collision, aujourd'hui, avant toute manipulation :
+
+| Horodatage | Branche | `main` |
+|---|---|---|
+| `20260728100000` | `legal_forms_reference` | `realadvisor_rolling_true_3day_rotation` |
+| `20260728110000` | `submit_agency_identity_id_document` | `realadvisor_shard_map_rebalance` |
+| `20260728120000` | `agency_verification_config` | `suppress_agency_logo_collisions` |
+
+Trois pièges en découlent, et ils condamnent l'ancienne commande (`ls 202607281*.sql`,
+compteur dans les minutes à partir de `<jour>100000`) :
+
+1. **Le glob déborde sur `main`.** Une fois `main` intégré, `ls 202607281*.sql` rend 22
+   fichiers, pas 18 : il attrape aussi les trois ci-dessus **côté `main`** plus
+   `20260728190000_admin_console_perf_cleanup`. Ces quatre migrations ont été mergées sur
+   `main` le 28 juillet, donc appliquées par le déploiement du jour même (le garde-date les
+   couvrait). Les re-dater les ferait rejouer, et surtout changerait la version sous
+   laquelle `supabase_migrations.schema_migrations` les connaît. **La liste des fichiers à
+   renommer ne se dérive jamais d'un motif de nom** ; elle se dérive de `git`.
+2. **Re-dater avant d'intégrer `main` échange trois collisions contre une.** Le premier
+   fichier sort en `<jour>100000_legal_forms_reference.sql` ; re-daté le 29 juillet 2026,
+   c'est `20260729100000`, que `main` porte déjà
+   (`20260729100000_activity_events_technical_actions.sql`). Plus généralement, la borne
+   basse se lit sur l'arbre de la branche seule et vaut alors `20260726005000`, alors que
+   l'arbre fusionné monte à `20260729140000` : les migrations du chantier se retrouveraient
+   *avant* celles de `main`, pas après. L'horodatage de départ ne peut se choisir
+   qu'**après** avoir vu l'arbre fusionné.
+3. **Le contrôle de doublons documenté était aveugle, et bruyant.** `ls
+   supabase/migrations/*.sql` ne lit que l'arbre de la BRANCHE, qui ignore ce que `main` a
+   ajouté : joué sur la branche re-datée, il ne remonte rien alors que la collision du
+   point 2 existe. Et `sed 's/_.*//'` rend **31 lignes** sur l'arbre fusionné, dont 28 sont
+   des répétitions parfaitement légitimes : 120 des 323 migrations suivent un nommage
+   historique sans horodatage à 14 chiffres (`20260322_001_*.sql`, `002_core_tables.sql`)
+   et leur préfixe tronqué se répète. Trois lignes seulement sont de vraies collisions.
+
+#### La procédure : six temps, et c'est leur ordre qui la rend sûre
+
+**1. Intégrer `main` d'abord.** Rien ne se re-date avant : l'horodatage de départ se
+calcule sur l'arbre fusionné, et la liste des fichiers du chantier doit être opposée à un
+`main` à jour.
 
 ```bash
-cd supabase/migrations && i=0; for f in $(ls 202607281*.sql | sort); do git mv "$f" "$(date -u +%Y%m%d)10$(printf '%02d' $i)00_${f#*_}"; i=$((i+1)); done
+git fetch origin && git merge origin/main   # résoudre les conflits, puis seulement continuer
+```
+
+**2. Établir la liste par `git`, jamais par un glob.** Ce que `HEAD` a et que `main` n'a
+pas. La commande rend les mêmes 18 fichiers avant comme après le merge, et **par
+construction elle ne peut désigner aucun fichier de `main`**, quel que soit son horodatage.
+
+```bash
+git diff --name-only --diff-filter=A origin/main HEAD -- supabase/migrations | LC_ALL=C sort > /tmp/kyb-mine.txt
+wc -l < /tmp/kyb-mine.txt   # doit valoir 18
+```
+
+**3. Choisir l'horodatage de départ au-dessus de tout ce qui reste.** Deux contraintes :
+strictement supérieur au plus haut horodatage des migrations qui NE sont pas renommées
+(nos migrations sont les plus récentes, elles peuvent dépendre de tout ce qui précède et
+rien ne dépend d'elles), et jamais antérieur au jour du merge en UTC (sinon le garde-date
+de `deploy.yml` les saute). Le compteur va dans les **minutes**, jamais multiplié dans un
+`printf`.
+
+```bash
+ls supabase/migrations/*.sql | LC_ALL=C sort > /tmp/kyb-all.txt
+KEPT_MAX=$(comm -23 /tmp/kyb-all.txt /tmp/kyb-mine.txt | sed 's#.*/##' | grep -E '^[0-9]{14}_' | cut -c1-14 | LC_ALL=C sort | tail -1)
+TODAY=$(date -u +%Y%m%d); DAY=$TODAY
+if [ "${KEPT_MAX:0:8}" -gt "$DAY" ]; then DAY="${KEPT_MAX:0:8}"; fi
+if [ "${KEPT_MAX:0:8}" -eq "$DAY" ]; then HH=$(( 10#${KEPT_MAX:8:2} + 1 )); else HH=0; fi
+[ "$HH" -le 23 ] || echo "STOP : plus d'heure libre le $DAY, prendre le jour suivant a la main"
+echo "reste au plus haut : $KEPT_MAX  ->  depart $DAY$(printf '%02d' $HH)0000"
+```
+
+**4. Écrire un plan de renommage, le relire, puis l'appliquer.** Le plan est l'essai à
+blanc : il n'affiche que l'ancien et le nouveau nom, aucun fichier ne bouge.
+
+```bash
+i=0; : > /tmp/kyb-plan.txt
+while read -r p; do b="${p##*/}"; printf '%s\tsupabase/migrations/%s%02d%02d00_%s\n' "$p" "$DAY" "$HH" "$i" "${b#*_}" >> /tmp/kyb-plan.txt; i=$((i+1)); done < /tmp/kyb-mine.txt
+awk -F'\t' '{ sub(".*/","",$1); sub(".*/","",$2); s=$2; sub("_.*","",s); printf "%-58s -> %-58s [%d chiffres]\n", $1, $2, length(s) }' /tmp/kyb-plan.txt
+```
+
+Trois contrôles **avant** de renommer. Chacun doit être muet ou dire `OK` :
+
+```bash
+awk -F'\t' '{ s=$2; sub(".*/","",s); sub("_.*","",s); if (length(s)!=14) print "HORODATAGE NON CONFORME : "s }' /tmp/kyb-plan.txt
+diff <(awk -F'\t' '{print $2}' /tmp/kyb-plan.txt) <(awk -F'\t' '{print $2}' /tmp/kyb-plan.txt | LC_ALL=C sort) >/dev/null && echo "OK ordre lexicographique preserve"
+comm -12 <(sed 's#.*/##' /tmp/kyb-mine.txt) <(git ls-tree -r --name-only origin/main -- supabase/migrations | sed 's#.*/##' | LC_ALL=C sort)
+```
+
+Puis seulement, appliquer le plan tel quel :
+
+```bash
+while IFS=$'\t' read -r old new; do git mv "$old" "$new"; done < /tmp/kyb-plan.txt
+```
+
+**5. Vérifier les doublons sur l'arbre FUSIONNÉ**, restreint au nommage à 14 chiffres pour
+que le nommage historique n'ajoute pas ses 28 faux positifs. Doit être muet :
+
+```bash
+ls supabase/migrations/*.sql | sed 's#.*/##' | grep -E '^[0-9]{14}_' | cut -c1-14 | LC_ALL=C sort | uniq -d
+```
+
+**6. Corriger la seule référence porteuse.** `tests/backend/signup-provisioning.spec.ts`
+**lit un fichier de migration par son chemin** (`replayBackfillMigration()`, il rejoue
+`20260728105000_signup_agency_provisioning.sql` en entier). Le renommage le casse par
+`ENOENT`, et seulement dans la CI backend, puisque le bloc est `skipIf(!HAS_KEYS)`. Toutes
+les autres occurrences d'un horodatage du chantier sont des commentaires : elles vieillissent,
+elles ne cassent rien.
+
+```bash
+grep -rn "supabase/migrations/2026072[0-9]\{7\}" tests/ scripts/ src/
+```
+
+Au 29.07.2026 il rend deux lignes : celle-ci, et un commentaire de
+`src/hooks/useAgencyIdentity.ts`.
+
+Enfin, rejouer :
+
+```bash
+supabase db reset && npm run test:backend && npm run lint:migrations
 ```
 
 > **Piège corrigé en revue finale.** La commande portait `printf '%04d' $((i*1000))`.
 > `%04d` est une largeur **minimale**, pas une troncature : à partir de `i=10` elle rend
 > cinq chiffres, donc un horodatage à **15 chiffres** au lieu de 14. Essai à blanc sur ces
-> 18 fichiers : 8 d'entre eux sortaient à 15 chiffres, et le tri lexicographique plaçait
-> alors `202607291010000` entre `20260729101000` et `20260729102000` :
-> `submit_agency_identity_id_document` serait passée **avant** `agency_related_persons` et
+> 18 fichiers : 8 d'entre eux sortaient à 15 chiffres, et le tri lexicographique des noms
+> **complets** de fichiers, celui que font `deploy.yml` et la commande elle-même, plaçait
+> alors `202607291010000_submit_agency_identity_id_document.sql` en **deuxième position**,
+> juste après `20260729100000_legal_forms_reference.sql` et **avant**
+> `20260729101000_agencies_kyb_columns.sql` : les deux partagent leurs 14 premiers
+> caractères, et le suivant est `0` (0x30) d'un côté contre `_` (0x5F) de l'autre. Mesuré
+> en collation `C`, celle des runners GitHub Actions ; sous une collation qui ignore la
+> ponctuation (`en_US.UTF-8`) il glisse en troisième position, jamais plus loin. Dans les
+> deux cas `submit_agency_identity_id_document` passe **avant** `agency_related_persons` et
 > `agency_verification_checks`, donc `supabase db reset` en échec, et poussée sans reset la
-> catastrophe décrite ci-dessus. La forme ci-dessus tient jusqu'à 60 fichiers (`MM` va de
-> `00` à `59`) ; au-delà, passer le compteur aux secondes plutôt que d'élargir le `printf`.
-
-Toujours faire l'essai à blanc avant de renommer. Il n'affiche que l'ancien et le nouveau
-nom, plus le compte de chiffres :
-
-```bash
-cd supabase/migrations && i=0; for f in $(ls 202607281*.sql | sort); do n="$(date -u +%Y%m%d)10$(printf '%02d' $i)00_${f#*_}"; s="${n%%_*}"; printf '%-56s -> %-16s [%s chiffres]\n' "$f" "$s" "${#s}"; i=$((i+1)); done
-```
-
-Puis vérifier qu'aucune version n'est en double, y compris face à `main`, et rejouer :
-
-```bash
-ls supabase/migrations/*.sql | sed 's#.*/##; s/_.*//' | sort | uniq -d
-```
-
-```bash
-supabase db reset && npm run test:backend && npm run lint:migrations
-```
+> catastrophe décrite ci-dessus. La forme retenue ci-dessus tient jusqu'à 60 fichiers (`MM`
+> va de `00` à `59`) ; au-delà, passer le compteur aux secondes plutôt que d'élargir le
+> `printf`.
 
 ---
 
