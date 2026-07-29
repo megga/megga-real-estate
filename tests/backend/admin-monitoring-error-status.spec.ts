@@ -71,6 +71,18 @@ describe.skipIf(!HAS_KEYS)('admin-monitoring — refus d\'accès vs panne', () =
     })
     expect(res.status, `attendu 401, reçu ${res.status}`).toBe(401)
 
+    // Le STATUT seul ne prouverait rien : la passerelle Supabase renvoie elle
+    // aussi 401 quand elle applique verify_jwt. C'est le CORPS qui distingue —
+    // « Unauthorized » vient du gestionnaire, la passerelle répondrait
+    // « Missing authorization header » sous une clé `message`/`msg`. Sans cette
+    // assertion, tout le test ci-dessous serait creux : il vérifierait qu'un
+    // code jamais exécuté n'écrit rien.
+    const body = await res.json().catch(() => ({}))
+    expect(
+      body,
+      `réponse du gestionnaire attendue, reçu ${JSON.stringify(body)}`,
+    ).toEqual({ error: 'Unauthorized' })
+
     // La fonction est publique (déployée --no-verify-jwt) : si un refus
     // d'authentification produisait une ligne d'audit, cette boucle suffirait à
     // remplir la table.
