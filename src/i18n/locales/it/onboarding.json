@@ -164,6 +164,7 @@
       "contactSupport": "Contatta il supporto"
     },
     "block": {
+      "checking": "Verifica dello stato della Sua agenzia prima di aprire una pratica KYC…",
       "notSubmitted": {
         "eyebrow": "Verifica d'identità richiesta",
         "title": "La verifica d'identità della Sua agenzia non è ancora stata inviata",
@@ -179,6 +180,12 @@
         "eyebrow": "Verifica respinta",
         "title": "La pratica di verifica della Sua agenzia è stata respinta",
         "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Reinviare il modulo non avvia un nuovo esame: contatti il supporto MEGGA per comprendere il motivo e conoscere i prossimi passi."
+      },
+      "unavailable": {
+        "eyebrow": "Stato della verifica non disponibile",
+        "title": "Non è stato possibile leggere lo stato di verifica della Sua agenzia",
+        "body": "Non si tratta di una decisione sulla Sua pratica: la lettura dello stato non è riuscita, probabilmente a causa di una connessione interrotta o di un servizio momentaneamente non disponibile. Finché questo stato non è confermato, non è possibile aprire pratiche KYC. Riprovi tra un istante; se il problema persiste, contatti il supporto MEGGA.",
+        "retry": "Riprova"
       },
       "cta": "Completa la verifica",
       "back": "Torna alla dashboard",

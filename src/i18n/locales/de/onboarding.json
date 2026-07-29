@@ -164,6 +164,7 @@
       "contactSupport": "Support kontaktieren"
     },
     "block": {
+      "checking": "Prüfung des Status Ihrer Agentur vor dem Öffnen eines KYC-Dossiers…",
       "notSubmitted": {
         "eyebrow": "Identitätsprüfung erforderlich",
         "title": "Die Identitätsprüfung Ihrer Agentur wurde noch nicht eingereicht",
@@ -179,6 +180,12 @@
         "eyebrow": "Prüfung abgelehnt",
         "title": "Das Prüfdossier Ihrer Agentur wurde abgelehnt",
         "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Das erneute Absenden des Formulars löst keine neue Prüfung aus: Wenden Sie sich an den MEGGA-Support, um den Grund zu verstehen und die weiteren Schritte zu erfahren."
+      },
+      "unavailable": {
+        "eyebrow": "Prüfstatus nicht verfügbar",
+        "title": "Der Prüfstatus Ihrer Agentur konnte nicht gelesen werden",
+        "body": "Dies ist keine Entscheidung über Ihr Dossier: Das Lesen des Status ist fehlgeschlagen, vermutlich wegen einer unterbrochenen Verbindung oder eines vorübergehend nicht verfügbaren Dienstes. Solange dieser Status nicht bestätigt ist, kann kein KYC-Dossier geöffnet werden. Versuchen Sie es gleich noch einmal; falls das Problem bestehen bleibt, wenden Sie sich an den MEGGA-Support.",
+        "retry": "Erneut versuchen"
       },
       "cta": "Prüfung abschliessen",
       "back": "Zurück zum Dashboard",

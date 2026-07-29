@@ -6,8 +6,12 @@
  * se branche lui-même sur son hook).
  *
  * Ne rend RIEN tant que useLabGuard() n'a pas résolu positivement un statut
- * bloqué ('loading'/'clear' → null) — garde-fou hérité de useIdentityGate.ts :
- * un faux positif ici alarmerait une agence légitime sans raison. Complément
+ * bloqué ('loading'/'unavailable'/'clear' → null) — garde-fou hérité de
+ * useIdentityGate.ts : un faux positif ici alarmerait une agence légitime sans
+ * raison. 'unavailable' (lecture du statut en échec) reste muet ICI par le même
+ * raisonnement : une coupure réseau ne doit pas semer un bandeau d'alerte sur
+ * toutes les pages du CRM. Seul l'écran plein de /dashboard/kyc en parle, au
+ * moment où l'échec empêche réellement d'avancer. Complément
  * du contrôle serveur (kyc-screening, sign-document via
  * supabase/functions/_shared/agency-lab-guard.ts), qui protège réellement ;
  * ce bandeau évite seulement de laisser l'agence découvrir le blocage en
@@ -26,7 +30,7 @@ import { useLabGuard, canActOnLabGuard, KYC_LAB_GUARD_ROUTE_PREFIX, type LabGuar
 import { IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 import { showIntercomSpace } from '@/lib/intercom'
 
-type BlockedStatus = Exclude<LabGuardStatus, 'loading' | 'clear'>
+type BlockedStatus = Exclude<LabGuardStatus, 'loading' | 'clear' | 'unavailable'>
 
 const SEVERITY: Record<BlockedStatus, { icon: typeof AlertTriangle; color: string }> = {
   blocked_not_submitted: { icon: AlertTriangle, color: 'text-amber-500' },
@@ -41,7 +45,7 @@ export default function LabGuardBanner() {
   const location = useLocation()
   const status = useLabGuard()
 
-  if (status === 'loading' || status === 'clear') return null
+  if (status === 'loading' || status === 'unavailable' || status === 'clear') return null
 
   // /dashboard/kyc* affiche déjà l'écran plein (KycLabGuard) qui dit exactement la
   // même chose — le bandeau reste utile PARTOUT AILLEURS (rappel persistant sur les

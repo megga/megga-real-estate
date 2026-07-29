@@ -164,6 +164,7 @@
       "contactSupport": "Contacter le support"
     },
     "block": {
+      "checking": "Vérification du statut de votre agence avant l'ouverture d'un dossier KYC…",
       "notSubmitted": {
         "eyebrow": "Vérification d'identité requise",
         "title": "La vérification d'identité de votre agence n'a pas encore été soumise",
@@ -179,6 +180,12 @@
         "eyebrow": "Vérification refusée",
         "title": "Le dossier de vérification de votre agence a été refusé",
         "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Renvoyer le formulaire ne relance pas d'examen : contactez le support MEGGA pour comprendre le motif et connaître la marche à suivre."
+      },
+      "unavailable": {
+        "eyebrow": "Statut de vérification indisponible",
+        "title": "Impossible de lire le statut de vérification de votre agence",
+        "body": "Ce n'est pas une décision concernant votre dossier : la lecture du statut a échoué, probablement à cause d'une connexion interrompue ou d'un service momentanément indisponible. L'ouverture d'un dossier KYC reste impossible tant que ce statut n'est pas confirmé. Réessayez dans un instant ; si le problème persiste, contactez le support MEGGA.",
+        "retry": "Réessayer"
       },
       "cta": "Compléter la vérification",
       "back": "Retour au tableau de bord",

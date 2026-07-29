@@ -43,29 +43,54 @@ describe('resolveLabGuardStatus — garde-fou : jamais de blocage ni de bandeau 
   })
 })
 
-describe('resolveLabGuardStatus — correctif revue (point 3, important) : une lecture en echec retombe sur loading, jamais un blocage', () => {
+describe('resolveLabGuardStatus — correctif revue (point 3, important) : une lecture en echec ne rend aucun verdict', () => {
   // Le fail-closed serveur (supabase/functions/_shared/agency-lab-guard.ts) reste
   // correct et INCHANGE : une lecture en echec y refuse l'action, par construction —
   // c'est LUI qui protege reellement. Cote CLIENT en revanche, afficher
   // "blocked_not_submitted" sur une simple erreur reseau/RLS AFFIRME une chose fausse
   // ("jamais soumis") a une agence par ailleurs deja validee : verifie en conditions
   // reelles, une agence validee s'est vue murement hors du KYC avec ce message errone.
-  // Le garde doit se taire (rester 'loading', memes ecrans neutres que l'etat non
-  // resolu) tant qu'il ne SAIT pas — le controle qui compte reste le serveur.
-  it('agencyStatusError (useQuery().isError) -> loading, jamais blocked_not_submitted', () => {
-    expect(resolveLabGuardStatus({ ...base, agencyStatusError: true })).toBe('loading')
+  //
+  // Ce correctif renvoyait d'abord 'loading' : plus de faux verdict, mais un echec
+  // DURABLE (colonne absente, RLS, agency_id malforme, reseau coupe) laissait alors
+  // KycLabGuard sur son spinner pour toujours, page entierement muette. D'ou
+  // 'unavailable' : toujours aucun verdict sur le dossier, mais un etat terminal que
+  // l'ecran plein peut enoncer et reprendre. L'invariant teste ici n'est donc pas la
+  // valeur pour elle-meme, c'est qu'une lecture en echec ne devienne JAMAIS ni un
+  // 'blocked_*' (verdict faux) ni 'clear' (le garde s'ouvrirait sur une non-lecture).
+  it('agencyStatusError (useQuery().isError) -> unavailable, jamais blocked_not_submitted', () => {
+    expect(resolveLabGuardStatus({ ...base, agencyStatusError: true })).toBe('unavailable')
   })
 
   it('agencyStatusError prime sur un identitySubmittedAt absent (la lecture a echoue, on ne sait rien affirmer)', () => {
     expect(
       resolveLabGuardStatus({ ...base, agencyStatusError: true, identitySubmittedAt: undefined, verificationStatus: undefined })
-    ).toBe('loading')
+    ).toBe('unavailable')
   })
 
   it('agencyStatusError prime meme si un ancien identitySubmittedAt reste en cache (staleTime 60s) — ne pas affirmer un verdict perime', () => {
     expect(
       resolveLabGuardStatus({ ...base, agencyStatusError: true, verificationStatus: 'rejected' })
-    ).toBe('loading')
+    ).toBe('unavailable')
+  })
+
+  it('une lecture en echec n ouvre jamais le garde, quel que soit le reste de l etat', () => {
+    // 'unavailable' cache le contenu KYC au meme titre qu'un blocage : le seul moyen
+    // d'obtenir 'clear' reste une lecture REUSSIE sur un dossier soumis et valide.
+    const cases: Partial<ResolveLabGuardStatusInput>[] = [
+      {},
+      { verificationStatus: 'auto_validated' },
+      { verificationStatus: 'validated' },
+      { identitySubmittedAt: null },
+    ]
+    for (const c of cases) {
+      expect(resolveLabGuardStatus({ ...base, agencyStatusError: true, ...c })).not.toBe('clear')
+    }
+  })
+
+  it('une lecture en echec ne se fait plus passer pour une attente (spinner sans fin)', () => {
+    // Le defaut corrige : 'loading' promettait une resolution qui ne venait jamais.
+    expect(resolveLabGuardStatus({ ...base, agencyStatusError: true })).not.toBe('loading')
   })
 })
 

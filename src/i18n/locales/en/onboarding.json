@@ -164,6 +164,7 @@
       "contactSupport": "Contact support"
     },
     "block": {
+      "checking": "Checking your agency's verification status before opening a KYC file…",
       "notSubmitted": {
         "eyebrow": "Identity verification required",
         "title": "Your agency's identity verification has not been submitted yet",
@@ -179,6 +180,12 @@
         "eyebrow": "Verification rejected",
         "title": "Your agency's verification file was rejected",
         "body": "The MEGGA team did not validate your agency's identity. Resubmitting the form will not trigger a new review: contact MEGGA support to understand why and to learn the next steps."
+      },
+      "unavailable": {
+        "eyebrow": "Verification status unavailable",
+        "title": "We could not read your agency's verification status",
+        "body": "This is not a decision about your file: reading the status failed, most likely because of an interrupted connection or a temporarily unavailable service. KYC files cannot be opened until this status is confirmed. Try again in a moment; if the problem persists, contact MEGGA support.",
+        "retry": "Retry"
       },
       "cta": "Complete verification",
       "back": "Back to dashboard",

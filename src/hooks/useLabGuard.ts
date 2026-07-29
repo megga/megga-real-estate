@@ -33,9 +33,19 @@
  * afficher 'blocked_not_submitted' sur une simple erreur reseau/RLS AFFIRME une
  * chose fausse ("jamais soumis") a une agence par ailleurs deja validee : verifie
  * en conditions reelles, une agence validee s'est vue murement hors du KYC avec ce
- * message errone. Le garde client doit se taire (retomber sur 'loading', memes
- * ecrans neutres que l'etat non resolu) tant qu'il ne SAIT pas — d'ou le champ
- * agencyStatusError, verifie AVANT le fail-closed "jamais soumis" ci-dessous.
+ * message errone. Le garde client ne doit donc rendre AUCUN verdict tant qu'il ne
+ * SAIT pas — d'ou le champ agencyStatusError, verifie AVANT le fail-closed
+ * "jamais soumis" ci-dessous.
+ *
+ * Ce meme correctif renvoyait d'abord 'loading', ce qui reglait le faux verdict mais
+ * en creait un autre defaut : une lecture qui echoue DURABLEMENT (colonne absente,
+ * RLS, agency_id malforme, reseau coupe) laissait KycLabGuard sur son spinner
+ * indefiniment — page muette, sans explication ni issue, pire qu'une porte fermee
+ * avec un motif lisible. D'ou le quatrieme etat 'unavailable' : il ne dit rien du
+ * dossier de l'agence (ni bloque, ni clear — le contenu KYC reste cache), il dit
+ * seulement que la LECTURE a echoue, ce qui est vrai et actionnable. La discipline
+ * du correctif est intacte : 'unavailable' n'est jamais un 'blocked_*', le bandeau
+ * global reste muet dessus, et seul l'ecran plein en parle.
  */
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
@@ -50,8 +60,16 @@ import type { UserRole } from '@/types/auth'
  *  page du CRM agent. */
 export const KYC_LAB_GUARD_ROUTE_PREFIX = '/dashboard/kyc'
 
+/** Cle de la lecture agence de ce garde (prefixe : l'agencyId suit). Exportee pour
+ *  que l'ecran « statut indisponible » puisse relancer la lecture sans dupliquer
+ *  la chaine ni redecouvrir l'agencyId. */
+export const LAB_GUARD_STATUS_QUERY_KEY = 'agency-lab-guard-status'
+
 export type LabGuardStatus =
   | 'loading'
+  /** Lecture du statut en echec : on ne sait rien du dossier, on le DIT (cf. en-tete).
+   *  Ni un verdict ni un feu vert — le contenu KYC reste cache. */
+  | 'unavailable'
   | 'clear'
   | 'blocked_not_submitted'
   | 'blocked_pending_review'
@@ -67,7 +85,9 @@ export interface ResolveLabGuardStatusInput {
   /** Lecture agencies.verification_status/identity_submitted_at en echec (useQuery().isError).
    *  Verifiee AVANT le fail-closed "jamais soumis" : une erreur reseau/RLS ne doit
    *  jamais s'afficher comme un verdict ("jamais soumis"/statut perime) — cf.
-   *  correctif revue point 3 dans l'en-tete du fichier. */
+   *  correctif revue point 3 dans l'en-tete du fichier. Donne 'unavailable', pas
+   *  'loading' : une lecture en echec est un etat TERMINAL (React Query a epuise ses
+   *  reprises), pas une attente, et un spinner sans fin ne dit rien a personne. */
   agencyStatusError: boolean
   /** null = jamais soumis ; horodatage = soumis ; undefined = filet defensif si la
    *  lecture est reputee reussie (agencyStatusError=false) mais renvoie quand meme
@@ -100,14 +120,18 @@ export function resolveLabGuardStatus(input: ResolveLabGuardStatusInput): LabGua
 
   if (agencyStatusLoading) return 'loading'
 
-  // Correctif revue (point 3, important) : une lecture en echec retombe sur
-  // 'loading', PAS sur un blocage. Le fail-closed reste juste cote SERVEUR
-  // (agency-lab-guard.ts) ; cote client, afficher 'blocked_not_submitted' sur une
-  // simple erreur reseau/RLS affirmerait une chose fausse a une agence par ailleurs
-  // deja validee (verifie en conditions reelles). Verifiee AVANT le fail-closed
-  // "jamais soumis" ci-dessous : une lecture en echec ne doit jamais etre confondue
-  // avec une preuve, positive ou negative.
-  if (agencyStatusError) return 'loading'
+  // Correctif revue (point 3, important) : une lecture en echec ne rend AUCUN verdict.
+  // Le fail-closed reste juste cote SERVEUR (agency-lab-guard.ts) ; cote client,
+  // afficher 'blocked_not_submitted' sur une simple erreur reseau/RLS affirmerait une
+  // chose fausse a une agence par ailleurs deja validee (verifie en conditions
+  // reelles). Verifiee AVANT le fail-closed "jamais soumis" ci-dessous : une lecture
+  // en echec ne doit jamais etre confondue avec une preuve, positive ou negative.
+  //
+  // 'unavailable' et non 'loading' : l'echec est terminal (React Query n'essaiera plus
+  // rien de lui-meme), donc l'annoncer comme une attente condamnait la page au spinner
+  // eternel. 'unavailable' garde le contenu KYC cache — il n'ouvre rien — mais permet a
+  // l'ecran plein de dire ce qui se passe et d'offrir une reprise.
+  if (agencyStatusError) return 'unavailable'
 
   // Filet defensif : identitySubmittedAt ne devrait etre undefined qu'en cas
   // d'erreur de lecture (deja ecartee ci-dessus) — AgencyLabGuardRow n'a pas de
@@ -161,7 +185,7 @@ export function useLabGuard(): LabGuardStatus {
   const agencyId = profile?.agency_id ?? null
 
   const { data, isLoading: agencyStatusLoading, isError: agencyStatusError } = useQuery({
-    queryKey: ['agency-lab-guard-status', agencyId],
+    queryKey: [LAB_GUARD_STATUS_QUERY_KEY, agencyId],
     queryFn: async (): Promise<AgencyLabGuardRow> => {
       const { data, error } = await supabase
         .from('agencies')
@@ -179,9 +203,9 @@ export function useLabGuard(): LabGuardStatus {
     authLoading,
     agencyId,
     agencyStatusLoading,
-    // Correctif revue (point 3, important) : une lecture en echec (isError) retombe
-    // sur 'loading' dans resolveLabGuardStatus, jamais sur un blocage — cf. l'en-tete
-    // du fichier et son propre commentaire.
+    // Correctif revue (point 3, important) : une lecture en echec (isError) donne
+    // 'unavailable' dans resolveLabGuardStatus, jamais un blocage — cf. l'en-tete du
+    // fichier et son propre commentaire.
     agencyStatusError,
     identitySubmittedAt: data?.identity_submitted_at,
     verificationStatus: data?.verification_status,
