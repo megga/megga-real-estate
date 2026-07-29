@@ -90,14 +90,29 @@ const MOCK_PROFILE: UserProfile = {
   created_at: '2026-01-01T00:00:00Z',
 }
 
+/**
+ * Plafond de lecture du profil. supabase-js ne borne aucun appel REST : sans ce
+ * plafond, une lecture qui ne revient jamais retient tout le démarrage (cf. le
+ * commentaire du filet de sécurité plus bas).
+ */
+const PROFILE_READ_MS = 4000
+
 /** Charge le profil depuis `profiles` ; un retry à 500 ms couvre la race « trigger de création pas encore passé », sinon repli minimal construit depuis user_metadata. */
 async function fetchProfile(userId: string, user?: User | null, retry = true): Promise<UserProfile | null> {
   try {
-    const { data, error } = await supabase
+    const read = supabase
       .from('profiles')
       .select('id, agency_id, email, full_name, avatar_url, role, phone, canton, created_at')
       .eq('id', userId)
       .single()
+    // Une lecture hors délai est traitée comme une lecture vide : on retombe sur
+    // le repli user_metadata au lieu d'attendre indéfiniment.
+    const { data, error } = await Promise.race([
+      read,
+      new Promise<{ data: null; error: { message: string } }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: { message: 'profile read timeout' } }), PROFILE_READ_MS),
+      ),
+    ])
     if (error || !data) {
       // Profile may not exist yet (first login, trigger pending)
       // Retry once after 500ms to handle race condition
@@ -146,18 +161,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (DEV_BYPASS_AUTH) return
 
-    // Safety timeout: if getSession hangs (lock conflicts), force loading to false
+    // Filet de sécurité : `loading` commande un écran d'attente SANS ISSUE
+    // (ProtectedRoute rend BootSplash tant qu'il vaut true), donc il doit
+    // retomber quoi qu'il arrive.
+    //
+    // ⚠ Le minuteur couvre la séquence ENTIÈRE, pas seulement `getSession()`.
+    // Il était désarmé dès que la session arrivait, donc juste AVANT le
+    // `fetchProfile` — or c'est lui qui peut traîner (aucun délai sur les appels
+    // REST de supabase-js, et un `getSession()` interne qui rejette au bout de
+    // 5 s si un autre onglet tient le verrou de l'origine). Une lecture de
+    // profil qui s'éternisait laissait donc `loading` à true pour toujours :
+    // même écran « Ouverture de votre espace », figé sur /dashboard cette fois.
     const safetyTimeout = setTimeout(() => setLoading(false), 3000)
 
     supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      clearTimeout(safetyTimeout)
       setSession(s)
       if (s?.user) {
         const p = await fetchProfile(s.user.id, s.user)
         setProfile(p)
       }
-      setLoading(false)
     }).catch(() => {
+      // Le verrou peut rejeter (conflit entre onglets) — on démarre déconnecté
+      // plutôt que de retenir l'app.
+    }).finally(() => {
       clearTimeout(safetyTimeout)
       setLoading(false)
     })
