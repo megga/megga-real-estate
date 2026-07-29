@@ -456,3 +456,17 @@ verify_jwt = false
 # role, comparaison à temps constant). cf. flatfox-sync / learn-agent-style.
 [functions.idx-syndicate]
 verify_jwt = false
+
+# Métriques plateforme : appelée par pg_cron (`platform-metrics-hourly`, clé
+# service-role en Bearer) et par la console. L'auth se fait DANS la fonction
+# (clé service-role, sinon requireSuperAdmin).
+#
+# ⚠ Cette entrée décrit la RÉALITÉ du déploiement, elle ne la change pas :
+# deploy.yml déploie TOUTES les fonctions avec `--no-verify-jwt` (allowlist
+# `JWT_PROTECTED` volontairement vide — la plateforme rejette la clé
+# service-role legacy quand verify_jwt=true). Sans cette ligne, la pile locale
+# appliquait le défaut `true` et se comportait autrement que la production :
+# un test d'appel non authentifié était intercepté par la passerelle et ne
+# touchait jamais le code de la fonction, donc ne prouvait rien.
+[functions.admin-monitoring]
+verify_jwt = false
