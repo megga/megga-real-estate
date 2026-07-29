@@ -686,9 +686,13 @@ la main, le même dossier bascule immédiatement en `auto_validated`. La cause e
 avec certitude.
 
 Un facteur s'y ajoute côté personne : la vérification de pièce d'identité est posée en
-`pending_manual_review` de façon permanente, aucun prestataire automatique n'étant
-branché, et rien ne met encore cette ligne à jour puisque la file de revue est l'étape 5.
-Ce seul fait bloquerait l'auto-validation même si les deux vétos étaient comblés demain.
+`pending_manual_review` par la RPC de soumission, aucun prestataire automatique n'étant
+branché, et le moteur refuse l'auto-validation tant qu'un check reste dans cet état.
+L'étape 5 y a changé une chose, et une seule : un chemin existe désormais pour l'en
+sortir (`admin_resolve_agency_id_document`, migration `20260728160000`). C'est un geste
+humain, à poser dossier par dossier ; aucune ligne ne se résout d'elle-même. Ce seul fait
+tiendrait donc encore chaque dossier hors de l'auto-validation même si les deux vétos
+étaient comblés demain.
 
 **Ce n'est pas un défaut à corriger dans l'urgence.** C'est l'état souhaitable tant que
 les sources manquent : le dispositif préfère envoyer tout le monde en revue humaine
@@ -722,8 +726,10 @@ et l'étape 6 n'y a rien changé : c'était son critère de non-régression.**
 
 ### Où en est le chantier
 
-Cinq étapes et demie sur sept. 90 commits depuis `276e4d5a`, 16 migrations, tout poussé
-sur `feat/agency-kyb-verification`.
+Six étapes sur sept : les étapes 0 à 5 sont livrées, l'étape 6 n'est qu'un squelette.
+Plus de 110 commits depuis `276e4d5a`. Attention, `feat/agency-kyb-verification` ne porte
+plus tout : la branche distante s'arrête à `1b2cb9eb`, dernier commit de l'étape 5.
+L'étape 6 et les correctifs de sa revue ne vivent qu'en local.
 
 | Étape | État |
 |---|---|
@@ -735,11 +741,14 @@ sur `feat/agency-kyb-verification`.
 | 5 · File de revue et gardes LAB | fait |
 | 6 · Connecteurs Zefix et UID | squelette posé, connecteurs à écrire (§6) |
 
-Fait à l'étape 5 : la couche de données de la file, et les quatre décisions humaines
-(valider, rejeter avec motif, relancer, résoudre la pièce d'identité).
+Fait à l'étape 5 : la couche de données de la file, les quatre décisions humaines
+(valider, rejeter avec motif, relancer, résoudre la pièce d'identité), l'écran de la
+console admin et les gardes LAB du CRM agent.
 
-Reste à l'étape 5 : l'écran de la console admin, les gardes LAB dans le CRM agent, et la
-vérification d'ensemble avec la documentation.
+Reste à l'étape 6 : les connecteurs eux-mêmes. Le squelette Zefix et celui du registre
+UID sont posés et couverts par des tests, mais aucun des deux n'interroge quoi que ce
+soit : ils sortent `unavailable` tant qu'il manque des identifiants et le code qui va
+avec (§6, et §8 pour l'état de la demande).
 
 **Décision produit déjà prise pour les gardes : garde plein.** Aucune agence ne peut
 ouvrir un dossier KYC client ni lancer une signature avant qu'un humain ait validé son
@@ -750,10 +759,11 @@ avant que l'agence ne travaille.
 
 Par ordre de ce qui bloque le plus.
 
-**`MAPBOX_TOKEN` n'est pas un secret du projet.** Le connecteur de géocodage le réclame,
-et il ne figure ni dans les secrets Supabase déclarés par `CLAUDE.md` ni nulle part dans
-l'environnement. Sans lui, `address_geocode` produira `unavailable` en production, ce qui
-ne casse rien mais retire un signal.
+**`MAPBOX_TOKEN` est déclaré, pas posé.** Le connecteur de géocodage le réclame.
+`CLAUDE.md` le liste depuis l'étape 5 dans les secrets Supabase attendus, mais rien ne l'a
+jamais posé côté serveur : seul `VITE_MAPBOX_TOKEN` existe, injecté au build du bundle
+navigateur. Sans lui, `address_geocode` produira `unavailable` en production, ce qui ne
+casse rien mais retire un signal.
 
 **Deux vétos d'entité n'ont aucun connecteur**, `registry_number_format` et
 `registry_country_match`. Tant que c'est le cas, aucune agence d'aucun pays ne peut être

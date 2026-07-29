@@ -213,16 +213,31 @@ function fullKybRegistryBody(): string {
 }
 
 /** Motif exigeant que `producer` soit reference DANS LA MEME FORME que l'emploie la
- *  fonction deployee : appele (`nom(`) si index.ts l'appelle, simplement nomme sinon
- *  (AGENCY_KYB_SOURCES est une liste qu'on etale, pas une fabrique qu'on invoque).
+ *  fonction deployee, la forme etant lue dans sa composition reelle : appele (`nom(`)
+ *  quand index.ts l'appelle, ETALE (`...nom`) quand il l'etale sans l'appeler, et a
+ *  defaut simplement nomme.
  *
  *  Les BORNES DE MOT sont le coeur du correctif (revue etape 6/tache 3, verifie par
  *  mutation) : `body.includes('createXSources')` est vrai quand le registre teste compose
  *  `createXSourcesV2` -- une sous-chaine suffisait, si bien qu'un registre DIVERGENT de la
- *  composition deployee restait vert. */
-function producerReferenceRe(producer: string, calledByEdgeFunction: boolean): RegExp {
+ *  composition deployee restait vert.
+ *
+ *  La branche ETALEE ferme l'angle mort symetrique (revue etape 6/tache 4, verifie par la
+ *  mutation correspondante) : exiger la forme d'appel sans condition rendrait le garde-fou
+ *  rouge en permanence -- AGENCY_KYB_SOURCES est une constante qu'on etale, pas une
+ *  fabrique qu'on invoque -- mais retomber sur la simple mention pour ce cas-la rendait
+ *  justement au producteur etale la faiblesse que le durcissement retirait aux autres :
+ *  `const oublie = AGENCY_KYB_SOURCES` dans le corps de fullKybRegistry() sort QUATRE
+ *  sources du registre teste et satisfaisait encore le garde-fou. Il n'y a pas de raison
+ *  d'etre plus indulgent avec l'etalement qu'avec l'appel : la forme est presente des deux
+ *  cotes, on l'exige des deux cotes. */
+function producerReferenceRe(producer: string, composition: string): RegExp {
   const name = producer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(calledByEdgeFunction ? `\\b${name}\\s*\\(` : `\\b${name}\\b`)
+  const call = new RegExp(`\\b${name}\\s*\\(`)
+  if (call.test(composition)) return call
+  const spread = new RegExp(`\\.\\.\\.\\s*${name}\\b`)
+  if (spread.test(composition)) return spread
+  return new RegExp(`\\b${name}\\b`)
 }
 
 /** Configuration Zefix telle qu'agency-verification-run/index.ts la lit AUJOURD'HUI :
@@ -545,16 +560,20 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
       // producteur y est cherche sur BORNES DE MOT, dans la forme meme qu'index.ts
       // emploie -- sans quoi un registre composant `createXSourcesV2` resterait vert
       // pendant qu'index.ts compose `createXSources`, la sous-chaine suffisant a l'un
-      // comme a l'autre. Voir fullKybRegistryBody() et producerReferenceRe() plus haut.
+      // comme a l'autre. La forme exigee couvre l'ETALEMENT autant que l'appel depuis la
+      // revue de la tache 4 : `const oublie = AGENCY_KYB_SOURCES` sortait quatre sources
+      // du registre sans faire rougir ce test-ci. Voir fullKybRegistryBody() et
+      // producerReferenceRe() plus haut.
       const registryBody = fullKybRegistryBody()
       for (const producer of producers) {
         expect(
           registryBody,
           `${producer} construit des sources dans ${AGENCY_VERIFICATION_RUN_INDEX} mais n apparait pas dans le ` +
-            'corps de fullKybRegistry() -- ou y apparait en commentaire, ou sous un nom dont il n est qu un ' +
-            'prefixe : la matrice d exclusivite ne verrait jamais ces sources-la. L inscrire a ' +
+            'corps de fullKybRegistry() sous la forme meme qu y emploie la fonction deployee -- ou y apparait ' +
+            'en commentaire, ou sous un nom dont il n est qu un prefixe, ou nomme sans etre appele ni etale : ' +
+            'la matrice d exclusivite ne verrait jamais ces sources-la. L inscrire a ' +
             'EDGE_FUNCTION_SOURCE_IMPORTS ne suffit pas -- il faut l ajouter au registre lui-meme.'
-        ).toMatch(producerReferenceRe(producer, composition.includes(`${producer}(`)))
+        ).toMatch(producerReferenceRe(producer, composition))
       }
     }
   )
