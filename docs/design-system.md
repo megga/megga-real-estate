@@ -11,8 +11,13 @@ Grammaire visuelle des surfaces refondues (Pipeline kanban/liste/timeline, modal
 - **Séparation par ombre douce**, aucune bordure décorative 1px. Beaucoup d'air.
 - **Accent UI unique = noir** `#0B0C0E` (clair) / encre `#ECEDF3` (sombre) —
   `sp.accent` / `sp.accentInk` de `crmSugarPalette`. Aucune couleur vive en accent.
-- **Teinte sombre par défaut = « noir »** `#000000` (`SUGAR_DARK_TONE`,
-  `CRM_TOKENS.noir`, `sugarThemeTokens(dark)`) — toutes les pages Sugar la lisent.
+- **Teinte sombre par défaut = « Graphite »** — échelle de surfaces OPAQUES
+  `#12161C` → `#21242F` en 5 paliers (`CRM_GRAPHITE`, `CRM_TOKENS.graphite`).
+  Noir pur `#000000` reste offert. La teinte est **vivante** : `useDarkTone()`
+  côté React (`crmDarkTone()` hors React), choisie dans Réglages › Préférences ›
+  Apparence. Un littéral local passe par `crmStep('s3', '<valeur historique>')`,
+  et une palette montée une fois doit exposer des **getters**, sinon elle fige sa
+  valeur au chargement. Barème et règles : `CLAUDE.md` §Échelle sombre.
 - **Teintes d'étape** : balayage continu `SG_STAGE_HUE` (indigo `#5B6BE6` →
   orange `#E8892A`, `lost` rose `#C2607E` hors funnel). Dérivations `sgMix`
   FIGÉES : fond de colonne clair `sgMix(hue,#FFF,.81)` / sombre

@@ -15,7 +15,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  CRM_GRAPHITE, CRM_TOKENS, crmStep, crmSugarPalette,
+  CRM_GRAPHITE, CRM_TOKENS, CRM_DARK_TONES, crmStep, crmSugarPalette,
   sugarThemeTokens, DEFAULT_DARK_TONE, type DarkTone,
 } from '@/components/crm-sugar/tokens'
 import { SugarV2, setSugarV2Dark } from '@/components/crm-sugar-wizard/tokens'
@@ -155,7 +155,8 @@ describe('palettes d’écran dérivées', () => {
 })
 
 describe('teintes offertes et repli', () => {
-  it('prend Graphite par défaut', () => {
+  it("n'offre que Graphite et Noir pur, Graphite par défaut", () => {
+    expect(CRM_DARK_TONES.map((tone) => tone.id)).toEqual(['graphite', 'noir'])
     expect(DEFAULT_DARK_TONE).toBe('graphite')
   })
 
