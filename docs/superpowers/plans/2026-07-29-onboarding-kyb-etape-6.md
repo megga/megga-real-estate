@@ -224,6 +224,22 @@ Une agence française, seul pays réellement couvert aujourd'hui, ne change en r
 | `registry_legal_name_match` | raison sociale déclarée ↔ raison sociale du registre | oui |
 | `registry_country_match` | juridiction du registre ↔ pays déclaré | oui |
 
+> **Ce que cette étape ignorait quand elle a été planifiée.** Le plan tient les trois
+> sources pour bloquées par le même mur, l'absence d'identifiants OFJ. C'est faux pour deux
+> d'entre elles. Les données Zefix sont aussi publiées en Open Data par LINDAS, l'endpoint
+> SPARQL de la Confédération (`https://lindas.admin.ch/query`, graphe
+> `<https://lindas.admin.ch/foj/zefix>`), public et sans authentification — et le dépôt
+> l'utilisait déjà le jour où ce plan a été écrit : `scripts/zefix-enrich-agencies.mjs`
+> l'interroge pour retrouver l'IDE d'une agence, l'ayant choisi *plutôt que* l'API REST
+> « qui exige des identifiants OFJ + throttle ». Vérifié en direct le 29.07.2026 : un `POST`
+> filtrant `schema:legalName` rend `HTTP 200` et les raisons sociales attendues, sans clé.
+> Donc `registry_legal_name_match` et `registry_country_match` sont servables **aujourd'hui**
+> pour la Suisse, et `registry_lookup` seulement à moitié — LINDAS donne l'existence, pas le
+> statut actif/radié, qui reste sur PublicREST. Ce que l'étape a livré ne s'en trouve pas
+> invalidé : le squelette reste la bonne structure, et PublicREST reste la source du statut.
+> Ce qui change, c'est qu'il n'y a plus à attendre `zefix@bj.admin.ch` pour deux vétos sur
+> trois. Détail à l'usage du connecteur : commentaire de section de `_shared/kyb-sources.ts`.
+
 Trois sources et non une : une `KybSourceResult` ne porte qu'un `check_type`, et le
 registre français a déjà tranché ce point de la même façon — deux entrées interrogeant le
 même point d'API, couplage accepté (une poignée d'appels par vérification).

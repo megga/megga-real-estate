@@ -1178,6 +1178,38 @@ function createPendingCredentialsSource(params: {
 // Unauthorized` (verifie en direct le 25.07.2026, doc de conception §3), les identifiants
 // ont ete demandes a zefix@bj.admin.ch et la demande reste sans reponse (handoff §8).
 //
+// UNE VOIE PUBLIQUE EXISTE POURTANT, et elle retrecit le blocage a UNE des trois sources.
+// Les donnees Zefix sont aussi publiees en Open Data par LINDAS, l'endpoint SPARQL de la
+// Confederation : https://lindas.admin.ch/query, graphe <https://lindas.admin.ch/foj/zefix>,
+// PUBLIC, sans authentification, ~790k organisations d'apres l'en-tete du script. Ce
+// depot s'en sert DEJA -- scripts/zefix-enrich-agencies.mjs interroge LINDAS pour retrouver
+// l'IDE d'une agence, et dit l'avoir choisi plutot que l'API REST Zefix, « qui exige des
+// identifiants OFJ + throttle ». Verifie en direct le 29.07.2026 : un POST sur
+// https://lindas.admin.ch/query filtrant schema:legalName rend HTTP 200 et les raisons
+// sociales attendues, sans aucune cle.
+//
+// Ce que ca change, check_type par check_type -- a lire avant de commencer :
+//
+//   1. registry_legal_name_match -- SERVABLE AUJOURD'HUI, sans identifiants. LINDAS expose
+//      schema:legalName ; comparer la raison sociale declaree a celle du registre ne
+//      demande rien de plus que cet endpoint public.
+//   2. registry_country_match -- SERVABLE AUJOURD'HUI, sans identifiants. Trouver l'entite
+//      dans le graphe Zefix etablit qu'elle est inscrite au registre du commerce suisse,
+//      c'est-a-dire exactement ce que ce veto oppose au pays declare.
+//   3. registry_lookup -- A MOITIE seulement, et c'est le seul qui depende vraiment des
+//      identifiants. LINDAS donne l'EXISTENCE, mais PAS le statut actif/radie : l'en-tete
+//      du script le dit sans detour, la presence dans le graphe vaut inscription au RC, pas
+//      inscription ACTIVE. Le statut reste suspendu a PublicREST.
+//
+// Autrement dit, ce qui est bloque n'est pas « le registre suisse », c'est le STATUT ACTIF.
+// Deux vetos sur trois se livrent sans attendre zefix@bj.admin.ch. Le squelette ci-dessous
+// ne perd rien pour autant : sa structure -- trois sources, une juridiction, un point de
+// configuration unique -- est celle qu'il faut dans les deux cas, et PublicREST reste la
+// source du statut. Le registre UID (section suivante) n'est PAS concerne : LINDAS ne le
+// remplace pas. Et cela ne rend aucun dossier suisse auto-validable : registry_number_format
+// n'a toujours aucun connecteur et la piece d'identite reste en revue humaine (handoff
+// §7bis). Ce qui suit reste donc a ecrire ; ce qui change, c'est ce qu'il faut attendre.
+//
 // Ce qui suit est donc un SQUELETTE, pas un connecteur : il cable tout ce qui peut l'etre
 // sans identifiants -- les trois check_type, la juridiction, la place dans le registre,
 // la forme de l'indisponibilite et la preuve qui l'accompagne. Le jour ou les

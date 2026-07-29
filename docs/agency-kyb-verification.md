@@ -157,7 +157,8 @@ Statuts **testés en direct le 25.07.2026** sauf mention contraire.
 | Donnée | Source | Statut | Action |
 |---|---|---|---|
 | Registre entreprise | Zefix PublicREST | ⚠ `401 Unauthorized` confirmé | Identifiants demandés à `zefix@bj.admin.ch` — **en attente** |
-| TVA | UID-Register (`uid.admin.ch`) | ⚠ non testé en API | Clarifier : API séparée ou champ Zefix ? — **en attente** |
+| Registre entreprise (voie publique) | **LINDAS SPARQL** (`lindas.admin.ch/query`, graphe `foj/zefix`) | ✅ **public, sans clé** — vérifié en direct le 29.07.2026 (`HTTP 200` sur un filtre `schema:legalName`) ; déjà utilisé par `scripts/zefix-enrich-agencies.mjs` | Sert `registry_legal_name_match` et `registry_country_match` **sans identifiants**. Ne donne **pas** le statut actif/radié : `registry_lookup` n'y trouve que l'existence, le statut reste sur PublicREST |
+| TVA | UID-Register (`uid.admin.ch`) | ⚠ non testé en API | Clarifier : API séparée ou champ Zefix ? — **en attente** (LINDAS ne le remplace pas) |
 | Registre courtiers (RCC) | Cantonal (ex. Genève) | Aucune API trouvée | Signal optionnel, faible priorité |
 | WHOIS domaine `.ch` | RDAP `rdap.nic.ch` | ✅ répond, public, sans clé | Aucune |
 

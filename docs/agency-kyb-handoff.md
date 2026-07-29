@@ -161,6 +161,13 @@ Réglages → Agence casserait **durablement**.
 
 ### Ce qui a été fait, et ce qui reste à refaire le jour du merge
 
+> **Périmé, conservé comme historique.** Tout ce qui suit dans cette sous-section décrit
+> l'état des 26-28 juillet. Le re-datage a été **exécuté le 29.07.2026** sur 19 migrations,
+> par une procédure qui remplace les commandes ci-dessous (les globs `202607261[34]*` et
+> `20260727*` ne désignent plus rien du chantier). Aller directement au **§7ter, « Le merge :
+> ce qui a été fait le 29 juillet 2026 »**, y compris pour savoir quoi refaire si le merge
+> glisse d'un jour.
+
 **Fait (étape 0) :** les 4 migrations ont été re-datées de `120*` vers `130*`.
 
 Attention, la commande donnée à l'origine dans ce document était inopérante le jour même
@@ -751,16 +758,19 @@ et l'étape 6 n'y a rien changé : c'était son critère de non-régression.**
 
 ---
 
-## 7ter. Point de reprise au 28 juillet 2026
+## 7ter. Point de reprise au 29 juillet 2026
 
 Écrit pour la session qui reprendra, et pour Julien qui décidera du merge.
 
 ### Où en est le chantier
 
 Six étapes sur sept : les étapes 0 à 5 sont livrées, l'étape 6 n'est qu'un squelette.
-Plus de 110 commits depuis `276e4d5a`. Attention, `feat/agency-kyb-verification` ne porte
-plus tout : la branche distante s'arrête à `1b2cb9eb`, dernier commit de l'étape 5.
-L'étape 6 et les correctifs de sa revue ne vivent qu'en local.
+122 commits de chantier depuis `276e4d5a`, 228 en comptant les 106 que `main` a apportés
+en s'intégrant. Attention, `feat/agency-kyb-verification` ne porte plus tout : la branche
+distante s'arrête à `1b2cb9eb`, dernier commit de l'étape 5, et le travail la dépasse
+désormais de **124 commits**. L'étape 6, les correctifs de sa revue, l'intégration de
+`main` et le re-datage des migrations ne vivent qu'en local, sur `kyb-handoff-update`
+(le re-datage est le commit `856076ce`).
 
 | Étape | État |
 |---|---|
@@ -771,6 +781,7 @@ L'étape 6 et les correctifs de sa revue ne vivent qu'en local.
 | 4 · Connecteurs disponibles | fait |
 | 5 · File de revue et gardes LAB | fait |
 | 6 · Connecteurs Zefix et UID | squelette posé, connecteurs à écrire (§6) |
+| Préparation du merge (intégrer `main`, re-dater les migrations) | **faite le 29.07.2026**, mais **datée**, donc périssable (voir ci-dessous) |
 
 Fait à l'étape 5 : la couche de données de la file, les quatre décisions humaines
 (valider, rejeter avec motif, relancer, résoudre la pièce d'identité), l'écran de la
@@ -832,21 +843,33 @@ survit à un changement de statut de l'agence. C'est le seul `insert` sur `kyc_c
 tout `supabase/functions/`. Couverture : `tests/backend/open-kyc-case-lab-guard.spec.ts`
 (9 tests live, dont les statuts intermédiaires et le fail-closed sur agence introuvable).
 
-### À faire au moment du merge, impérativement
+### Le merge : ce qui a été fait le 29 juillet 2026
 
-Les 18 migrations du chantier sont datées du 28 juillet 2026. Le garde-date de `deploy.yml`
-n'applique que celles dont l'horodatage est supérieur ou égal à la date du jour en UTC, et
-il **ne signale un saut que par un avertissement, jamais par un échec**. Mergées un jour
-ultérieur sans rien faire, elles sont toutes sautées en silence pendant que le bundle
-frontend part quand même : tout dirigeant se retrouve alors devant un wizard dont ni les
-tables ni les RPC n'existent, avec la déconnexion pour seule sortie. Il faut donc les
-re-dater, et c'est là que tout se joue.
+Cette section était écrite au futur. Elle raconte désormais ce qui a été **exécuté**, parce
+que la procédure garde toute sa valeur pour la prochaine fois : c'est elle qui explique
+pourquoi la liste des fichiers se dérive de `git` et pas d'un glob, et pourquoi
+l'horodatage de départ ne se calcule qu'après l'intégration de `main`.
 
-#### Ce que la branche ne voit pas
+**Fait :** `main` est intégré (commit de merge `5587e0f2`, 106 commits, **0 de retard**), et
+les 18 migrations du chantier ont été re-datées de `20260728*` vers `20260729150000` à
+`20260729151700`. Une **19e** s'y est ajoutée, `20260729151800_activity_events_allow_agency_detach.sql`
+(voir plus bas). `agency-verification-run` est déclarée dans `supabase/config.toml`.
 
-Mesuré le 29.07.2026 : la branche a **106 commits de retard** sur `main`, qui a touché
-**11 fichiers de migration** depuis la base commune (10 ajouts, 1 modification). Trois
-horodatages sont **déjà** en collision, aujourd'hui, avant toute manipulation :
+> **⚠ La fenêtre se referme à minuit UTC le 29 juillet 2026.** Les 19 migrations portent
+> cette date. Le garde-date de `deploy.yml` n'applique que celles dont l'horodatage est
+> supérieur ou égal à la date du jour en UTC, et il **ne signale un saut que par un
+> avertissement, jamais par un échec**. **Mergées un jour ultérieur, elles sont toutes
+> sautées en silence pendant que le bundle frontend part quand même** : tout dirigeant se
+> retrouve alors devant un wizard dont ni les tables ni les RPC n'existent, avec la
+> déconnexion pour seule sortie. Si le merge glisse au lendemain, il faut **re-dater à
+> nouveau**, par la même procédure, au jour du merge. Ce n'est pas une formalité : c'est la
+> seule chose de cette section qui périme.
+
+#### Ce que la branche ne voyait pas, et pourquoi la procédure est ce qu'elle est
+
+Mesuré le 29.07.2026 avant le merge : la branche avait **106 commits de retard** sur `main`,
+qui avait touché **11 fichiers de migration** depuis la base commune (10 ajouts, 1
+modification). Trois horodatages étaient **déjà** en collision, avant toute manipulation :
 
 | Horodatage | Branche | `main` |
 |---|---|---|
@@ -854,8 +877,9 @@ horodatages sont **déjà** en collision, aujourd'hui, avant toute manipulation 
 | `20260728110000` | `submit_agency_identity_id_document` | `realadvisor_shard_map_rebalance` |
 | `20260728120000` | `agency_verification_config` | `suppress_agency_logo_collisions` |
 
-Trois pièges en découlent, et ils condamnent l'ancienne commande (`ls 202607281*.sql`,
-compteur dans les minutes à partir de `<jour>100000`) :
+Trois pièges en découlaient, et ils condamnaient l'ancienne commande (`ls 202607281*.sql`,
+compteur dans les minutes à partir de `<jour>100000`). Ils restent la raison d'être de la
+procédure ci-dessous :
 
 1. **Le glob déborde sur `main`.** Une fois `main` intégré, `ls 202607281*.sql` rend 22
    fichiers, pas 18 : il attrape aussi les trois ci-dessus **côté `main`** plus
@@ -865,22 +889,24 @@ compteur dans les minutes à partir de `<jour>100000`) :
    laquelle `supabase_migrations.schema_migrations` les connaît. **La liste des fichiers à
    renommer ne se dérive jamais d'un motif de nom** ; elle se dérive de `git`.
 2. **Re-dater avant d'intégrer `main` échange trois collisions contre une.** Le premier
-   fichier sort en `<jour>100000_legal_forms_reference.sql` ; re-daté le 29 juillet 2026,
-   c'est `20260729100000`, que `main` porte déjà
+   fichier serait sorti en `<jour>100000_legal_forms_reference.sql` ; re-daté le 29 juillet
+   2026, c'est `20260729100000`, que `main` porte déjà
    (`20260729100000_activity_events_technical_actions.sql`). Plus généralement, la borne
-   basse se lit sur l'arbre de la branche seule et vaut alors `20260726005000`, alors que
-   l'arbre fusionné monte à `20260729140000` : les migrations du chantier se retrouveraient
-   *avant* celles de `main`, pas après. L'horodatage de départ ne peut se choisir
-   qu'**après** avoir vu l'arbre fusionné.
+   basse se lit sur l'arbre de la branche seule et valait alors `20260726005000`, alors que
+   l'arbre fusionné monte à `20260729140000` : les migrations du chantier se seraient
+   retrouvées *avant* celles de `main`, pas après. L'horodatage de départ ne peut se choisir
+   qu'**après** avoir vu l'arbre fusionné. C'est bien ce que le résultat montre : le départ
+   retenu est `20260729150000`, juste au-dessus de `20260729140000`.
 3. **Le contrôle de doublons documenté était aveugle, et bruyant.** `ls
    supabase/migrations/*.sql` ne lit que l'arbre de la BRANCHE, qui ignore ce que `main` a
    ajouté : joué sur la branche re-datée, il ne remonte rien alors que la collision du
-   point 2 existe. Et `sed 's/_.*//'` rend **31 lignes** sur l'arbre fusionné, dont 28 sont
-   des répétitions parfaitement légitimes : 120 des 323 migrations suivent un nommage
-   historique sans horodatage à 14 chiffres (`20260322_001_*.sql`, `002_core_tables.sql`)
-   et leur préfixe tronqué se répète. Trois lignes seulement sont de vraies collisions.
+   point 2 existe. Et tronquer au premier `_` (`sed 's/_.*//'`) répète le nommage
+   historique : **120 fichiers sur 324** n'ont pas d'horodatage à 14 chiffres (3 au premier
+   niveau, `20260522_003_*.sql` et deux voisins, plus les 117 de `_archived`), et leur
+   préfixe tronqué se confond. D'où la forme retenue au temps 5, restreinte à
+   `^[0-9]{14}_`.
 
-#### La procédure : six temps, et c'est leur ordre qui la rend sûre
+#### La procédure, telle qu'elle a été exécutée : six temps, et c'est leur ordre qui la rend sûre
 
 **1. Intégrer `main` d'abord.** Rien ne se re-date avant : l'horodatage de départ se
 calcule sur l'arbre fusionné, et la liste des fichiers du chantier doit être opposée à un
@@ -890,13 +916,16 @@ calcule sur l'arbre fusionné, et la liste des fichiers du chantier doit être o
 git fetch origin && git merge origin/main   # résoudre les conflits, puis seulement continuer
 ```
 
+Résultat : merge `5587e0f2`, 106 commits repris, `git rev-list --count HEAD..origin/main`
+vaut **0**.
+
 **2. Établir la liste par `git`, jamais par un glob.** Ce que `HEAD` a et que `main` n'a
-pas. La commande rend les mêmes 18 fichiers avant comme après le merge, et **par
+pas. La commande a rendu les mêmes 18 fichiers avant comme après le merge, et **par
 construction elle ne peut désigner aucun fichier de `main`**, quel que soit son horodatage.
 
 ```bash
 git diff --name-only --diff-filter=A origin/main HEAD -- supabase/migrations | LC_ALL=C sort > /tmp/kyb-mine.txt
-wc -l < /tmp/kyb-mine.txt   # doit valoir 18
+wc -l < /tmp/kyb-mine.txt   # valait 18 ; vaut 19 depuis l'ajout d'activity_events_allow_agency_detach
 ```
 
 **3. Choisir l'horodatage de départ au-dessus de tout ce qui reste.** Deux contraintes :
@@ -904,7 +933,8 @@ strictement supérieur au plus haut horodatage des migrations qui NE sont pas re
 (nos migrations sont les plus récentes, elles peuvent dépendre de tout ce qui précède et
 rien ne dépend d'elles), et jamais antérieur au jour du merge en UTC (sinon le garde-date
 de `deploy.yml` les saute). Le compteur va dans les **minutes**, jamais multiplié dans un
-`printf`.
+`printf`. Le calcul a rendu `20260729140000` comme plus haut horodatage conservé, donc
+`20260729150000` comme départ.
 
 ```bash
 ls supabase/migrations/*.sql | LC_ALL=C sort > /tmp/kyb-all.txt
@@ -940,31 +970,56 @@ while IFS=$'\t' read -r old new; do git mv "$old" "$new"; done < /tmp/kyb-plan.t
 ```
 
 **5. Vérifier les doublons sur l'arbre FUSIONNÉ**, restreint au nommage à 14 chiffres pour
-que le nommage historique n'ajoute pas ses 28 faux positifs. Doit être muet :
+que le nommage historique n'ajoute pas ses faux positifs (point 3 ci-dessus). Doit être
+muet, et l'est :
 
 ```bash
 ls supabase/migrations/*.sql | sed 's#.*/##' | grep -E '^[0-9]{14}_' | cut -c1-14 | LC_ALL=C sort | uniq -d
 ```
 
-**6. Corriger la seule référence porteuse.** `tests/backend/signup-provisioning.spec.ts`
-**lit un fichier de migration par son chemin** (`replayBackfillMigration()`, il rejoue
-`20260728105000_signup_agency_provisioning.sql` en entier). Le renommage le casse par
-`ENOENT`, et seulement dans la CI backend, puisque le bloc est `skipIf(!HAS_KEYS)`. Toutes
-les autres occurrences d'un horodatage du chantier sont des commentaires : elles vieillissent,
-elles ne cassent rien.
+**6. Corriger la seule référence porteuse.** Faite.
+`tests/backend/signup-provisioning.spec.ts` **lit un fichier de migration par son chemin**
+(`replayBackfillMigration()`, il rejoue le provisionnement d'inscription en entier) : il
+pointe désormais sur `20260729150500_signup_agency_provisioning.sql`. Sans cette correction
+le renommage le cassait par `ENOENT`, et seulement dans la CI backend, puisque le bloc est
+`skipIf(!HAS_KEYS)`. Toutes les autres occurrences d'un horodatage du chantier sont des
+commentaires : elles vieillissent, elles ne cassent rien.
 
 ```bash
 grep -rn "supabase/migrations/2026072[0-9]\{7\}" tests/ scripts/ src/
 ```
 
-Au 29.07.2026 il rend deux lignes : celle-ci, et un commentaire de
-`src/hooks/useAgencyIdentity.ts`.
+Au 29.07.2026, après re-datage, il rend trois lignes : celle-ci, plus deux commentaires
+(`tests/backend/agency-identity-submit.spec.ts` et `src/hooks/useAgencyIdentity.ts`), tous
+deux à jour.
 
-Enfin, rejouer :
+#### Une 19e migration, née du merge lui-même
+
+`20260729151800_activity_events_allow_agency_detach.sql` n'appartient pas au chantier : elle
+a été écrite **en intégrant `main`**, parce que l'intégration a rendu atteignable un défaut
+que deux gardes du dépôt se disputaient depuis toujours. `activity_events.agency_id` porte
+une FK `ON DELETE SET NULL` (un événement d'audit survit à l'agence qu'il concerne), et
+`enforce_activity_events_immutability()` refusait exactement l'`UPDATE` que cette FK émet.
+Tant qu'aucune agence ne portait d'événement, personne ne s'en apercevait ;
+`20260729140000_agency_created_event.sql`, mergée sur `main` le matin même, journalise
+`agency_created` à **chaque** création d'agence, donc rendait **toute agence nouvelle
+définitivement non supprimable**. Le garde a été élargi de façon volontairement étroite :
+seul `agency_id` peut bouger, seulement vers `NULL`, et seulement si tout le reste est
+inchangé. Son en-tête porte le raisonnement complet, y compris pourquoi la LBA n'y perd
+rien. Le chantier KYB n'a fait que l'exposer, étant le seul chemin du dépôt qui supprime une
+agence.
+
+#### Vérification sur base neuve
 
 ```bash
 supabase db reset && npm run test:backend && npm run lint:migrations
 ```
+
+Rejoué le 29.07.2026 : `supabase db reset` passe (204 migrations à horodatage à 14 chiffres,
+3 historiques exclues par `lint:migrations`), backend **912 verts, 4 sautés, 0 échec** sur
+916, unitaire **1313 verts**, et `lint:migrations`, `lint:roster`, `lint:prose`, `lint:i18n`
+et `build` tous verts. `lint:roster` confirme au passage que `supabase/config.toml` déclare
+bien les 67 fonctions du tree, `agency-verification-run` comprise.
 
 > **Piège corrigé en revue finale.** La commande portait `printf '%04d' $((i*1000))`.
 > `%04d` est une largeur **minimale**, pas une troncature : à partir de `i=10` elle rend
@@ -982,6 +1037,10 @@ supabase db reset && npm run test:backend && npm run lint:migrations
 > catastrophe décrite ci-dessus. La forme retenue ci-dessus tient jusqu'à 60 fichiers (`MM`
 > va de `00` à `59`) ; au-delà, passer le compteur aux secondes plutôt que d'élargir le
 > `printf`.
+>
+> Les noms cités ici sortent d'un essai à blanc mené avec un départ à `2026072910` ; le
+> départ finalement appliqué est `20260729150000` (temps 3, calculé sur l'arbre fusionné).
+> La démonstration ne dépend pas de l'heure, elle vaut telle quelle.
 
 ---
 
@@ -992,7 +1051,8 @@ forte valeur est celui qu'on ne peut pas écrire aujourd'hui.
 
 | Source | Statut au 26.07.2026 |
 |---|---|
-| **Zefix** (registre CH) | `401`, identifiants demandés à `zefix@bj.admin.ch`, **sans réponse** |
+| **Zefix PublicREST** (registre CH) | `401`, identifiants demandés à `zefix@bj.admin.ch`, **sans réponse** |
+| **Zefix par LINDAS** (SPARQL Open Data) | ✅ **public, sans clé** (vérifié le 29.07.2026), mais **pas** le statut actif/radié |
 | Registre UID/TVA (CH/LI) | API séparée ou champ Zefix ? **non clarifié** |
 | `oera.li` (registre LI) | **aucune API publique**, revue manuelle pour ce pays |
 | Carte pro immobilier CCI (FR) | pas d'API (403 anti-bot), revue manuelle |
@@ -1000,6 +1060,21 @@ forte valeur est celui qu'on ne peut pas écrire aujourd'hui.
 | `recherche-entreprises.api.gouv.fr` (FR) | public, sans clé, 7 req/s |
 | VIES (TVA UE) | public, sans clé |
 | RDAP `.ch` / `.li` / `.fr` | publics |
+
+**Le blocage suisse ne porte que sur le statut actif.** Les données Zefix sont aussi
+publiées en Open Data par LINDAS, l'endpoint SPARQL de la Confédération
+(`https://lindas.admin.ch/query`, graphe `<https://lindas.admin.ch/foj/zefix>`), public et
+sans authentification. Ce dépôt s'en sert déjà : `scripts/zefix-enrich-agencies.mjs`
+l'interroge pour retrouver l'IDE d'une agence, et dit l'avoir choisi plutôt que l'API REST
+« qui exige des identifiants OFJ + throttle ». Vérifié en direct le 29.07.2026 : un `POST`
+filtrant `schema:legalName` rend `HTTP 200` et les raisons sociales attendues, sans clé.
+Conséquence, check par check : `registry_legal_name_match` et `registry_country_match` sont
+**servables aujourd'hui** pour la Suisse ; `registry_lookup` ne l'est qu'à moitié, LINDAS
+donnant l'existence mais **pas** le statut actif/radié, qui reste suspendu à PublicREST.
+Le registre UID/TVA n'est pas concerné, LINDAS ne le remplace pas. Cela ne rend pour autant
+aucun dossier suisse auto-validable : `registry_number_format` n'a toujours aucun connecteur
+et la pièce d'identité reste en revue humaine (§7bis). Détail dans le commentaire de section
+de `_shared/kyb-sources.ts`, écrit pour qui branchera le connecteur.
 
 **Rien de ce programme ne dépend de ces réponses, sauf l'étape 6** : les tables de
 checks sont agnostiques de la source, et un check `source='manual'` saisi par un humain
@@ -1034,8 +1109,11 @@ sous `VITE_MAPBOX_TOKEN`), il n'a simplement jamais été posé côté serveur. 
 ## 9. Carte des fichiers
 
 État réel de la branche (chaque chemin vérifié par un `ls`). Les migrations ont été
-re-datées au 28 juillet ; les noms en `2026072612xxxx` cités dans les versions précédentes
-de cette section **n'existent plus**.
+re-datées **au 29 juillet** en préparant le merge (§7ter) ; les noms en `2026072612xxxx`
+puis en `20260728*` cités dans les versions précédentes de cette section **n'existent
+plus**. Les occurrences de ces anciens horodatages qui subsistent ailleurs dans ce document
+et dans les commentaires du code sont des références historiques : elles vieillissent, elles
+ne cassent rien.
 
 **Conception et suivi**
 
@@ -1047,28 +1125,29 @@ de cette section **n'existent plus**.
 | `docs/superpowers/plans/2026-07-2{6,7,8,9}-onboarding-kyb-etape*.md` | 6 plans d'implémentation, un par étape (`etapes-0-1`, `etape-2` … `etape-6`) |
 | `docs/runbooks/trigger-inscription-duplique.md` | rétablissement si le trigger d'inscription se retrouve en double |
 
-**Migrations** : les 18, dans l'ordre d'application (`supabase/migrations/`)
+**Migrations** : les 19, dans l'ordre d'application (`supabase/migrations/`)
 
 | Fichier | Rôle |
 |---|---|
-| `20260728100000_legal_forms_reference.sql` | référentiel, alias, `normalize_legal_form_text()` |
-| `20260728101000_agencies_kyb_columns.sql` | renommage `ide`, FK forme juridique, backfill, état de vérification |
-| `20260728102000_agency_related_persons.sql` | personnes de conformité, rôles, `is_agency_admin()` |
-| `20260728103000_agency_verification_checks.sql` | catalogue, config pondérée versionnée, 2 journaux de checks |
-| `20260728104000_auth_user_created_trigger.sql` | `on_auth_user_created` versionné (il n'était dans aucune migration) |
-| `20260728105000_signup_agency_provisioning.sql` | `handle_new_user()` / `provision_solo_agency()` corrigés, backfill des fondateurs |
-| `20260728106000_revoke_join_agency.sql` | `join_agency(uuid)` révoquée d'`authenticated` |
-| `20260728107000_agencies_identity_submission.sql` | `identity_submitted_at`, statut `validated` |
-| `20260728108000_submit_agency_identity.sql` | RPC de soumission, garde de complétude, verrou `FOR UPDATE` |
-| `20260728109000_kyb_identity_documents_storage.sql` | préfixe Storage `kyb-identity` et ses 4 policies dédiées |
-| `20260728110000_submit_agency_identity_id_document.sql` | pièce d'identité du signataire, check `id_document` |
-| `20260728120000_agency_verification_config.sql` | `get_agency_verification_config()`, seuils réglables |
-| `20260728130000_recompute_agency_verification.sql` | **le moteur** : score, vétos, statut |
-| `20260728140000_record_agency_verification_run.sql` | écriture des checks + moteur + journal, en une transaction |
-| `20260728150000_trigger_agency_verification_on_submit.sql` | déclenchement depuis la soumission + `sweep_pending_agency_verifications` |
-| `20260728160000_agency_review_queue.sql` | file de revue admin et ses quatre décisions humaines |
-| `20260728170000_lock_agency_verification_columns.sql` | écriture des colonnes de vérification révoquée aux rôles utilisateur |
-| `20260728171000_kyc_cases_insert_lab_guard.sql` | garde LAB dans le `WITH CHECK` de `kyc_cases_insert` |
+| `20260729150000_legal_forms_reference.sql` | référentiel, alias, `normalize_legal_form_text()` |
+| `20260729150100_agencies_kyb_columns.sql` | renommage `ide`, FK forme juridique, backfill, état de vérification |
+| `20260729150200_agency_related_persons.sql` | personnes de conformité, rôles, `is_agency_admin()` |
+| `20260729150300_agency_verification_checks.sql` | catalogue, config pondérée versionnée, 2 journaux de checks |
+| `20260729150400_auth_user_created_trigger.sql` | `on_auth_user_created` versionné (il n'était dans aucune migration) |
+| `20260729150500_signup_agency_provisioning.sql` | `handle_new_user()` / `provision_solo_agency()` corrigés, backfill des fondateurs |
+| `20260729150600_revoke_join_agency.sql` | `join_agency(uuid)` révoquée d'`authenticated` |
+| `20260729150700_agencies_identity_submission.sql` | `identity_submitted_at`, statut `validated` |
+| `20260729150800_submit_agency_identity.sql` | RPC de soumission, garde de complétude, verrou `FOR UPDATE` |
+| `20260729150900_kyb_identity_documents_storage.sql` | préfixe Storage `kyb-identity` et ses 4 policies dédiées |
+| `20260729151000_submit_agency_identity_id_document.sql` | pièce d'identité du signataire, check `id_document` |
+| `20260729151100_agency_verification_config.sql` | `get_agency_verification_config()`, seuils réglables |
+| `20260729151200_recompute_agency_verification.sql` | **le moteur** : score, vétos, statut |
+| `20260729151300_record_agency_verification_run.sql` | écriture des checks + moteur + journal, en une transaction |
+| `20260729151400_trigger_agency_verification_on_submit.sql` | déclenchement depuis la soumission + `sweep_pending_agency_verifications` |
+| `20260729151500_agency_review_queue.sql` | file de revue admin et ses quatre décisions humaines |
+| `20260729151600_lock_agency_verification_columns.sql` | écriture des colonnes de vérification révoquée aux rôles utilisateur |
+| `20260729151700_kyc_cases_insert_lab_guard.sql` | garde LAB dans le `WITH CHECK` de `kyc_cases_insert` |
+| `20260729151800_activity_events_allow_agency_detach.sql` | née du merge : le `SET NULL` de la FK devient un cas autorisé du journal append-only |
 
 **Backend applicatif**
 
