@@ -3291,7 +3291,7 @@ describe('squelette du registre UID (vat_lookup) -- aucun reseau', () => {
     'proprietaire de vat_lookup selon (siege, prefixe declare) : au plus un a chaque fois, et jamais ZERO ' +
       'la ou le code d avant l etape 6 rendait un verdict',
     () => {
-      // Les huit combinaisons de la revue, et pour chacune ce que produisait le code
+      // Les dix combinaisons de la revue, et pour chacune ce que produisait le code
       // d'avant l'etape 6 (36f90582 : vatLookupSource sans aucun appliesTo, donc VIES
       // interrogee pour TOUT siege). `owners` vide est acceptable UNIQUEMENT la ou VIES
       // levait d'elle-meme -- sa ligne valait alors `unavailable`, que le moteur traite
@@ -3306,7 +3306,7 @@ describe('squelette du registre UID (vat_lookup) -- aucun reseau', () => {
         { country: 'FR', tva: null, owners: ['vies'], avant: 'VIES levait : unavailable' },
         { country: 'DE', tva: null, owners: ['vies'], avant: 'VIES levait : unavailable' },
         { country: 'DE', tva: 'DE123456789', owners: ['vies'], avant: 'VIES repondait' },
-        // Pays absent : le seul des huit cas ou la ligne change de FORME. Sans prefixe
+        // Pays absent : le seul des dix cas ou la ligne change de FORME. Sans prefixe
         // couvert, plus personne n'ecrit rien (avant : `unavailable`) -- meme portee pour
         // le moteur. Avec un prefixe couvert, VIES reste proprietaire et rend son verdict.
         { country: null, tva: null, owners: [], avant: 'VIES levait : unavailable' },

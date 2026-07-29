@@ -186,7 +186,7 @@ Une agence française, seul pays réellement couvert aujourd'hui, ne change en r
 > monter le score, jusqu'à basculer en `auto_validated` un dossier qui partait en revue
 > humaine — mesuré contre le moteur : 0.200 puis 1.000. Le correctif fait porter la
 > propriété de `vat_lookup` par le **préfixe de TVA déclaré** avant le pays du siège, de
-> sorte que le verdict d'avant l'étape soit rendu à l'identique dans les huit
+> sorte que le verdict d'avant l'étape soit rendu à l'identique dans les dix
 > combinaisons. La leçon vaut au-delà de ce cas : « le moteur traite `unavailable` et
 > ligne absente à l'identique » ne dit rien du verdict qu'une source aurait rendu si on
 > l'avait laissée répondre.
