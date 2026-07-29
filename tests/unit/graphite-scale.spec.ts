@@ -18,6 +18,12 @@ import {
   CRM_GRAPHITE, CRM_TOKENS, crmStep, crmSugarPalette,
   sugarThemeTokens, DEFAULT_DARK_TONE, type DarkTone,
 } from '@/components/crm-sugar/tokens'
+import { SugarV2, setSugarV2Dark } from '@/components/crm-sugar-wizard/tokens'
+import { TK, applyTK } from '@/components/crm-sugar/today/tk'
+import { SET_PALETTE, applySetTheme } from '@/components/crm-sugar/settings/data'
+import { buildCalPalette } from '@/components/crm-sugar/calendar/data'
+import { VxSP_DARK } from '@/components/crm-sugar-v3/vitrine/vitrineTokens'
+import { MT_DARK } from '@/components/crm-mobile/tokens'
 
 /** Luminance relative WCAG — sert à vérifier la monotonie de l'échelle. */
 function luminance(hex: string): number {
@@ -102,6 +108,49 @@ describe('crmStep', () => {
     expect(graphite.ramp).toBe(CRM_GRAPHITE)
     expect(crmSugarPalette(CRM_TOKENS.noir, true, 'noir').ramp).toBeUndefined()
     expect(crmSugarPalette(CRM_TOKENS.light, false, 'graphite').ramp).toBeUndefined()
+  })
+})
+
+describe('palettes d’écran dérivées', () => {
+  // Le piège du handoff : une palette montée UNE fois fige la valeur au
+  // chargement du module. Ces palettes doivent rester vivantes — on bascule la
+  // teinte à chaud et on vérifie qu'elles suivent, dans les deux sens.
+  const cases: { name: string; read: () => string; graphite: string; noir: string }[] = [
+    // `SugarV2` résout clair/sombre sur `data-theme` — absent ici, d'où le forçage.
+    { name: 'wizard SugarV2.card', read: () => { setSugarV2Dark(true); return SugarV2.card }, graphite: CRM_GRAPHITE.s2, noir: '#15151F' },
+    { name: 'wizard SugarV2.rail', read: () => { setSugarV2Dark(true); return SugarV2.rail }, graphite: CRM_GRAPHITE.s1, noir: '#15151F' },
+    { name: 'cockpit TK.frame', read: () => { applyTK(true); return TK.frame }, graphite: CRM_GRAPHITE.s1, noir: '#15161A' },
+    { name: 'cockpit TK.cardHi', read: () => { applyTK(true); return TK.cardHi }, graphite: CRM_GRAPHITE.s3, noir: 'rgba(255,255,255,0.06)' },
+    { name: 'réglages SET.card', read: () => { applySetTheme(true); return SET_PALETTE.card }, graphite: CRM_GRAPHITE.s2, noir: '#16171F' },
+    { name: 'calendrier popBg', read: () => buildCalPalette(true, { bg: '#000' }).popBg, graphite: CRM_GRAPHITE.s4, noir: '#1E1F21' },
+    { name: 'fiche bien VxSP.cardSub', read: () => VxSP_DARK.cardSub, graphite: CRM_GRAPHITE.s3, noir: 'rgba(255,255,255,0.045)' },
+    { name: 'mobile MT.pageBg', read: () => MT_DARK.pageBg, graphite: CRM_GRAPHITE.s0, noir: '#030303' },
+    { name: 'mobile MT.card', read: () => MT_DARK.card, graphite: CRM_GRAPHITE.s2, noir: '#17181A' },
+    { name: 'mobile MT.tabBarBg', read: () => MT_DARK.tabBarBg, graphite: CRM_GRAPHITE.s4, noir: '#17181A' },
+    // Voile de chrome : la teinte du cadre (S1 = #161A21) à l'alpha demandé.
+    { name: 'mobile MT.headerBg', read: () => MT_DARK.headerBg, graphite: 'rgba(22,26,33,0.82)', noir: 'rgba(15,15,16,0.82)' },
+  ]
+
+  function withTone<T>(tone: DarkTone, fn: () => T): T {
+    const w = window as Window & { __meggaDarkTone?: DarkTone }
+    const previous = w.__meggaDarkTone
+    w.__meggaDarkTone = tone
+    try { return fn() } finally { w.__meggaDarkTone = previous }
+  }
+
+  it.each(cases)('$name suit la teinte active', ({ read, graphite, noir }) => {
+    // Ordre volontaire : noir D'ABORD, pour qu'un getter figé au chargement
+    // (donc figé sur graphite, la teinte par défaut) échoue au lieu de passer.
+    expect(withTone('noir', read)).toBe(noir)
+    expect(withTone('graphite', read)).toBe(graphite)
+    expect(withTone('noir', read)).toBe(noir)
+  })
+
+  it('garde le wizard en clair intact quelle que soit la teinte', () => {
+    setSugarV2Dark(false)
+    const light = withTone('graphite', () => SugarV2.card)
+    expect(light).toBe('#FFFFFF')
+    setSugarV2Dark(null)
   })
 })
 

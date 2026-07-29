@@ -9,7 +9,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import type { SugarPalette } from '../tokens'
+import { crmStep, type SugarPalette } from '../tokens'
 
 interface Props {
   sp: SugarPalette
@@ -37,7 +37,7 @@ export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm }:
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         width: 400, maxWidth: 'calc(100vw - 48px)',
-        background: dark ? '#17181A' : '#FFFFFF', borderRadius: 28,
+        background: dark ? crmStep('s4', '#17181A') : '#FFFFFF', borderRadius: 28,
         boxShadow: '0 40px 100px rgba(15,23,42,0.20), 0 8px 24px rgba(15,23,42,0.10)',
         padding: '26px 26px 22px',
         fontFamily: '"Inter Tight", system-ui, sans-serif',
@@ -54,7 +54,7 @@ export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm }:
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
           <button onClick={onCancel} style={{
             height: 42, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer',
-            background: dark ? '#26272A' : '#F1F4F8', color: sp.ink,
+            background: dark ? crmStep('s3', '#26272A') : '#F1F4F8', color: sp.ink,
             fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
           }}>{t('board.lostConfirm.cancel')}</button>
           <button onClick={onConfirm} style={{

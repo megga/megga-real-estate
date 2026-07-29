@@ -4,7 +4,7 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import type { SugarPalette } from '../tokens'
+import { crmStep, type SugarPalette } from '../tokens'
 import { PCBentoShape } from './PCBentoShape'
 import { PCColumn } from './PCColumn'
 import {
@@ -42,7 +42,7 @@ export function PCDossierFrame({
   const teamCount = dossier.team.length > 0 ? dossier.team.length + 1 : 0
   const NOTCH_W = teamCount > 0 ? teamCount * AVATAR + (teamCount - 1) * AVATAR_GAP + 40 : 0
 
-  const bentoFill = dark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.55)'
+  const bentoFill = dark ? crmStep('s2', 'rgba(255,255,255,0.04)') : 'rgba(255,255,255,0.55)'
   const bentoStroke = sp.frameBorder
 
   return (
@@ -184,7 +184,7 @@ export function PCDossierFrame({
                   width: AVATAR,
                   height: AVATAR,
                   borderRadius: 999,
-                  background: dark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+                  background: dark ? crmStep('s2', 'rgba(255,255,255,0.04)') : '#FFFFFF',
                   border: `2px dashed ${
                     dark ? 'rgba(255,255,255,0.22)' : 'rgba(15,23,42,0.20)'
                   }`,

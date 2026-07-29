@@ -18,7 +18,7 @@
 //   ringTrack          → piste de l'anneau de progression.
 
 import { createContext, useContext } from 'react'
-import type { CrmTheme, SugarPalette } from '@/components/crm-sugar/tokens'
+import { crmDarkTone, crmStep, type CrmTheme, type SugarPalette } from '@/components/crm-sugar/tokens'
 
 export interface KycPalette {
   // Fond
@@ -127,9 +127,11 @@ export function buildKycPalette(
   return {
     bg: t.bg,
     bgGradient: t.bg,
-    card: 'rgba(255,255,255,0.04)',
-    cardSubtle: 'rgba(255,255,255,0.06)',
-    cardBorder: 'rgba(255,255,255,0.12)',
+    card: crmStep('s2', 'rgba(255,255,255,0.04)'),
+    cardSubtle: crmStep('s3', 'rgba(255,255,255,0.06)'),
+    // En graphite la card est OPAQUE : le « tour blanc » redescend au filet,
+    // sinon la bordure devient le seul relief visible et durcit le bento.
+    cardBorder: crmDarkTone() === 'graphite' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.12)',
     black: sp.ink, // pilule claire en sombre
     blackHover: '#FFFFFF',
     onAccent: sp.pageBg, // texte sombre posé sur la pilule claire

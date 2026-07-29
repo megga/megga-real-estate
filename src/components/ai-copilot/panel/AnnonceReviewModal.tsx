@@ -143,7 +143,7 @@ export default function AnnonceReviewModal({ open, sp, dark, annonce, listingId,
           <button onClick={save} disabled={!canSave} style={{
             height: 40, padding: '0 20px', borderRadius: 999, border: 0,
             cursor: canSave ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-            background: canSave ? sp.accent : (dark ? 'rgba(255,255,255,0.12)' : '#E6E9EE'),
+            background: canSave ? sp.accent : (dark ? sp.fillStrong : '#E6E9EE'),
             color: canSave ? sp.onAccent : sp.sub, display: 'flex', alignItems: 'center', gap: 7,
           }}>
             <CpIcon name={updateProperty.isPending ? 'draft' : 'check'} size={15} color={canSave ? sp.onAccent : sp.sub} sw={2.2} />

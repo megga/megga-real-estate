@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette, type CrmTheme, type DarkTone } from '@/components/crm-sugar/tokens'
+import { crmStep, crmSugarPalette, type CrmTheme, type DarkTone } from '@/components/crm-sugar/tokens'
 import { useDarkTone } from '@/hooks/useDarkTone'
 import { useToast } from '@/components/ui/Toast'
 import { useAiPanel } from '@/hooks/useAiPanel'
@@ -80,8 +80,9 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone }: Pr
   const activeTone = useDarkTone()
   const sp = crmSugarPalette(crmT, dark, darkTone ?? activeTone)
   const surf: MrhSurf = {
-    card: dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
-    cardSub: dark ? 'rgba(255,255,255,0.04)' : '#F4F6F9',
+    card: dark ? crmStep('s2', 'rgba(255,255,255,0.05)') : '#FFFFFF',
+    // `cardSub` = fond des vignettes photo (et leur repli) → palier « sous-card ».
+    cardSub: dark ? crmStep('s3', 'rgba(255,255,255,0.04)') : '#F4F6F9',
     hairline: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(15,23,42,0.05)',
     shadow: sp.shadow,
     shadowHov: dark ? '0 1px 2px rgba(0,0,0,.5), 0 18px 44px -14px rgba(0,0,0,.7)' : '0 1px 2px rgba(15,23,42,.06), 0 22px 48px -16px rgba(15,23,42,.2)',

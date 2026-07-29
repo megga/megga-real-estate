@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { crmStep, crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
 import { useDarkTone } from '@/hooks/useDarkTone'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { galSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
@@ -156,7 +156,9 @@ export default function SettingsSugarV2Page() {
           <div style={{
             position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
             border: `1px solid ${immersive ? 'rgba(255,255,255,0.08)' : sp.frameBorder}`, boxShadow: sp.shadow,
-            background: immersive ? `#0B0C0E url("${BILL_GRAD}") no-repeat bottom center / 140% auto` : sp.pageBg,
+            // Couleur SOUS l'image de dégradé : elle suit le canvas, sinon la
+            // facturation garde une zone quasi-noire au milieu du graphite.
+            background: immersive ? `${crmStep('s0', '#0B0C0E')} url("${BILL_GRAD}") no-repeat bottom center / 140% auto` : sp.pageBg,
             display: 'grid', gridTemplateColumns: '300px 1fr',
           }}>
             {/* RAIL — titre + nav des sections (grammaire « À suivre ») */}
