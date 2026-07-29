@@ -14,7 +14,7 @@
  * la panne reviendrait sans qu'aucune autre porte ne s'en aperçoive.
  */
 import { describe, it, expect } from 'vitest'
-import { getRedirectPath } from '@/lib/authRedirect'
+import { getRedirectPath, getRedirectPathWithoutProfile } from '@/lib/authRedirect'
 import { AGENT_ROLES } from '@/types/auth'
 import type { UserRole } from '@/types/auth'
 
@@ -41,5 +41,47 @@ describe('destination post-connexion selon le rôle', () => {
     for (const role of rolesCrm) {
       expect(getRedirectPath(role)).not.toMatch(/^\/port(al|ail)/)
     }
+  })
+})
+
+/**
+ * Repli quand la lecture du profil n'aboutit pas. Ce chemin existe parce que la
+ * page de callback n'a QUE l'écran d'arrivée à afficher : sans destination de
+ * repli elle attendait la lecture indéfiniment, et l'agent restait sur
+ * « Ouverture de votre espace » sans message ni bouton (panne du 29 juil. 2026).
+ *
+ * Le piège à verrouiller : le repli ne doit pas retomber sur la branche par
+ * défaut `/portal`. Un agent dont la lecture de profil expire sur un aléa réseau
+ * serait alors éjecté vers la vitrine, sans retour — une panne pire que celle
+ * qu'on corrige, et invisible en relecture puisque `getRedirectPath` a l'air
+ * parfaitement correct.
+ */
+describe('repli d’aiguillage quand le profil est illisible', () => {
+  it('fait entrer dans le CRM quand aucun rôle n’est déclaré', () => {
+    expect(getRedirectPathWithoutProfile(null)).toBe('/dashboard')
+    expect(getRedirectPathWithoutProfile(undefined)).toBe('/dashboard')
+    expect(getRedirectPathWithoutProfile('')).toBe('/dashboard')
+  })
+
+  it('n’éjecte JAMAIS vers le portail retiré faute de profil lu', () => {
+    for (const meta of [null, undefined, '', 'super_admin', 'inconnu', 'AGENT']) {
+      expect(getRedirectPathWithoutProfile(meta)).not.toMatch(/^\/port(al|ail)/)
+    }
+  })
+
+  it('respecte le rôle déclaré à l’inscription quand il est exploitable', () => {
+    for (const role of AGENT_ROLES) {
+      expect(getRedirectPathWithoutProfile(role)).toBe('/dashboard')
+    }
+    // Un particulier déclaré n'a rien à faire dans le CRM, même en dégradé.
+    expect(getRedirectPathWithoutProfile('buyer')).toBe('/portal')
+    expect(getRedirectPathWithoutProfile('particulier')).toBe('/portal')
+  })
+
+  it('ne laisse pas un rôle plateforme s’auto-déclarer dans les métadonnées', () => {
+    // `super_admin` se lit en base, jamais dans user_metadata (que le client
+    // contrôle). Il tombe donc dans le cas « rôle non exploitable » — dont la
+    // destination se trouve être la bonne, mais pour la bonne raison.
+    expect(getRedirectPathWithoutProfile('super_admin')).toBe('/dashboard')
   })
 })

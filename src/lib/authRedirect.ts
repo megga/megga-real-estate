@@ -28,3 +28,26 @@ export function getRedirectPath(role: UserRole): string {
   if (isAgentRole(role) || role === 'super_admin') return '/dashboard'
   return '/portal'
 }
+
+/**
+ * Destination quand le rôle du profil n'a PAS pu être lu (REST hors délai,
+ * verrou `navigator.locks` tenu par un autre onglet, coupure).
+ *
+ * On entre alors dans le CRM au lieu de retomber sur la branche par défaut
+ * `/portal` : le portail est un cul-de-sac depuis son retrait, donc y envoyer un
+ * agent sur un simple aléa réseau l'éjecte de l'app sans retour — et l'alternative
+ * (tenir l'écran d'arrivée jusqu'à la lecture) est précisément la panne du
+ * 29 juil. 2026. Aucune surface du CRM n'est gatée par ce rôle-là de toute façon :
+ * c'est RLS qui décide de ce qui s'affiche.
+ *
+ * Le rôle porté par `user_metadata` reste prioritaire quand il est exploitable —
+ * un `buyer` déclaré à l'inscription n'a rien à faire dans le CRM, même en
+ * dégradé. `super_admin` en est exclu à dessein : il n'est jamais auto-déclaré,
+ * il se lit en base.
+ */
+export function getRedirectPathWithoutProfile(metadataRole: string | null | undefined): string {
+  const claimable: UserRole[] = ['buyer', 'seller', 'particulier', 'agent', 'manager', 'admin', 'assistant']
+  return claimable.includes(metadataRole as UserRole)
+    ? getRedirectPath(metadataRole as UserRole)
+    : '/dashboard'
+}
