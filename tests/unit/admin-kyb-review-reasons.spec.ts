@@ -375,11 +375,15 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
   })
 
   it('cas C bis — véto absent car AUCUN connecteur câblé (aucune ligne du tout, pas même "unavailable") : le cas suisse dominant en pratique', () => {
-    // registry_number_format et registry_country_match n'ont aucun connecteur
-    // (agency-verification-run/_shared/kyb-sources.ts, AGENCY_KYB_SOURCES) : ils
-    // n'apparaissent JAMAIS dans les checks retournés, contrairement à
+    // registry_country_match n'a aucun connecteur
+    // (agency-verification-run/_shared/kyb-sources.ts, AGENCY_KYB_SOURCES) : il
+    // n'apparaît JAMAIS dans les checks retournés, contrairement à
     // registry_lookup/registry_legal_name_match qui produisent toujours une ligne
-    // (au pire "unavailable").
+    // (au pire "unavailable"). registry_number_format était dans le même cas jusqu'au
+    // chantier LINDAS (tâche 1) : il a désormais son connecteur — un calcul de clé de
+    // contrôle, source `internal` — et produit lui aussi toujours une ligne. La fixture
+    // ci-dessous garde les deux absents : c'est la forme d'entrée que cette fonction
+    // doit savoir qualifier, pas un inventaire du registre.
     const reasons = qualifyReviewReasons({
       sweepAttempts: 0,
       score: 0.9,

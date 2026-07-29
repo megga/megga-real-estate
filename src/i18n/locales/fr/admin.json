@@ -933,6 +933,7 @@
   "kybReview.source.oeraLi": "OERA (Liechtenstein)",
   "kybReview.source.rdap": "RDAP",
   "kybReview.source.gleif": "GLEIF",
+  "kybReview.source.internal": "Contrôle interne (calcul)",
   "kybReview.source.mapbox": "Mapbox",
   "kybReview.source.cciImmobilier": "CCI immobilier",
   "kybReview.source.manual": "Revue manuelle",

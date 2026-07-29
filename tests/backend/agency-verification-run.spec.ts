@@ -19,7 +19,7 @@
 // par defaut (un `match` faute de reponse serait une preuve fabriquee par le
 // systeme lui-meme).
 //
-// Neuf volets dans ce fichier :
+// Dix volets dans ce fichier :
 //   1. Le harnais PUR (_shared/kyb-sources.ts, describe hors skipIf juste sous cet
 //      en-tete) -- import direct, aucun reseau, aucune dependance Deno (ce module
 //      n'appelle jamais Deno.env.get, contrairement a _shared/magic-link-token.ts --
@@ -57,6 +57,11 @@
 //      « API separee ou champ Zefix ? » n'est pas tranchee (doc de conception §3). Sa
 //      contrepartie en base -- les quatre lignes zefix/uid_register retiennent un dossier
 //      suisse par ailleurs parfait, et elles seules -- vit dans le volet 2.
+//  10. Controle du numero de registre (chantier LINDAS, tache 1 -- registry_number_format,
+//      tout en bas). Le seul connecteur du fichier qui ne touche AUCUN reseau, pas meme
+//      stubbe : une cle de controle se calcule. Il remplit le premier des quatre vetos
+//      d'entite a avoir un proprietaire pour de bon -- sa contrepartie en base (un numero
+//      faux retient le dossier, un numero vrai le laisse passer) vit dans le volet 2.
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI : ces tests tournent contre un Supabase local
 // seede et DOIVENT reellement passer -- lire le compte de tests, jamais le code de
@@ -76,6 +81,9 @@ import {
   createAddressGeocodeSource,
   createZefixSources,
   createUidRegisterSources,
+  registryNumberFormatSource,
+  isValidSwissUid,
+  isValidFrenchSiren,
   type KybSource,
   type AgencyForVerification,
   type PendingSourceConfig,
@@ -293,6 +301,13 @@ function fullKybRegistry(): KybSource[] {
  *  'DE' n'est pas decoratif : il prouve que le gabarit de VIES est bien « tout sauf
  *  CH/LI » et non la seule France, sans qu'aucune liste d'Etats membres n'ait a etre
  *  maintenue. */
+//
+//  `registry_number_format` figure sur TOUTES les lignes, y compris celles des pays
+//  qu'il ne sait pas lire (LI, DE, pays absent), et ce n'est pas un oubli : ce
+//  connecteur ne declare AUCUNE juridiction (voir son volet en fin de fichier). Seul
+//  proprietaire de son check_type, il n'a rien a departager -- et l'ecarter supprimerait
+//  la ligne `unavailable` qui dit au relecteur POURQUOI le veto n'est pas satisfait,
+//  alors que le principe directeur de tout le chantier veut une ligne, jamais un silence.
 const JURISDICTION_MATRIX: { country: string | null; applicable: string[] }[] = [
   {
     country: 'FR',
@@ -301,6 +316,7 @@ const JURISDICTION_MATRIX: { country: string | null; applicable: string[] }[] = 
       'vat_lookup',
       'registry_lookup',
       'registry_legal_name_match',
+      'registry_number_format',
       'address_geocode',
     ],
   },
@@ -318,6 +334,7 @@ const JURISDICTION_MATRIX: { country: string | null; applicable: string[] }[] = 
       'registry_lookup',
       'registry_legal_name_match',
       'registry_country_match',
+      'registry_number_format',
     ],
   },
   // Le Liechtenstein n'est PAS couvert par Zefix (registre `oera.li`, aucune API
@@ -326,9 +343,15 @@ const JURISDICTION_MATRIX: { country: string | null; applicable: string[] }[] = 
   // systeme suisse par l'union douaniere et porte le meme prefixe CHE (doc de conception
   // §3). Registre du commerce et TVA ne se decoupent donc PAS sur la meme frontiere, et
   // cette ligne est le seul endroit ou la difference se lit d'un coup d'oeil.
-  { country: 'LI', applicable: ['domain_whois_age', 'address_geocode', 'vat_lookup'] },
-  { country: 'DE', applicable: ['domain_whois_age', 'vat_lookup', 'address_geocode'] },
-  { country: null, applicable: ['domain_whois_age', 'address_geocode'] },
+  {
+    country: 'LI',
+    applicable: ['domain_whois_age', 'address_geocode', 'vat_lookup', 'registry_number_format'],
+  },
+  {
+    country: 'DE',
+    applicable: ['domain_whois_age', 'vat_lookup', 'address_geocode', 'registry_number_format'],
+  },
+  { country: null, applicable: ['domain_whois_age', 'address_geocode', 'registry_number_format'] },
 ]
 
 // ─── Harnais pur (_shared/kyb-sources.ts) -- etape 4 tache 1, juridiction etape 6 tache 1 ──
@@ -396,22 +419,29 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
     expect(rows.every((r) => r.result === 'unavailable')).toBe(true)
   }, 2_000)
 
-  it('AGENCY_KYB_SOURCES contient les 4 connecteurs sans configuration ajoutes aux taches 2 et 3 (RDAP, VIES, recherche-entreprises x2)', () => {
-    // RDAP (tache 2) puis VIES + recherche-entreprises x2 (tache 3) : quatre
-    // connecteurs qui n'ont besoin d'aucun secret, donc statiques dans ce registre
-    // construit au chargement du module. Le geocodage Mapbox (tache 3 egalement)
-    // n'y figure PAS : seul connecteur de ce fichier a avoir besoin d'un jeton, il
-    // est construit par createAddressGeocodeSource() -- voir son en-tete dans
-    // _shared/kyb-sources.ts et le describe dedie plus bas. Un check_type non
-    // catalogue dans verification_check_types ferait de toute facon echouer
-    // l'insert (FK, 20260728103000) -- ces entrees SONT donc deja de vrais
+  it('AGENCY_KYB_SOURCES contient les 5 connecteurs sans configuration (RDAP, VIES, recherche-entreprises x2, format du numero)', () => {
+    // RDAP (tache 2) puis VIES + recherche-entreprises x2 (tache 3), plus le controle
+    // du numero de registre (chantier LINDAS, tache 1) : cinq connecteurs qui n'ont
+    // besoin d'aucun secret, donc statiques dans ce registre construit au chargement
+    // du module. Le dernier n'a meme besoin d'aucun RESEAU -- c'est un calcul, d'ou
+    // sa source `internal` (voir le volet dedie en fin de fichier). Le geocodage
+    // Mapbox (tache 3 egalement) n'y figure PAS : seul connecteur de ce fichier a
+    // avoir besoin d'un jeton, il est construit par createAddressGeocodeSource() --
+    // voir son en-tete dans _shared/kyb-sources.ts et le describe dedie plus bas. Un
+    // check_type non catalogue dans verification_check_types ferait de toute facon
+    // echouer l'insert (FK, 20260728103000) -- ces entrees SONT donc deja de vrais
     // connecteurs, jamais des doubles de test.
-    expect(AGENCY_KYB_SOURCES).toHaveLength(4)
+    expect(AGENCY_KYB_SOURCES).toHaveLength(5)
     const sourceOfCheckType = (checkType: string) => AGENCY_KYB_SOURCES.find((s) => s.checkType === checkType)?.source
     expect(sourceOfCheckType('domain_whois_age')).toBe('rdap')
     expect(sourceOfCheckType('vat_lookup')).toBe('vies')
     expect(sourceOfCheckType('registry_lookup')).toBe('recherche_entreprises')
     expect(sourceOfCheckType('registry_legal_name_match')).toBe('recherche_entreprises')
+    expect(sourceOfCheckType('registry_number_format')).toBe('internal')
+    // Par IDENTITE, et pas seulement par check_type : c'est LA constante exportee qui
+    // doit etre enregistree, pas un homonyme. Sans cette ligne, un second objet du meme
+    // check_type satisferait encore l'assertion ci-dessus.
+    expect(AGENCY_KYB_SOURCES).toContain(registryNumberFormatSource)
   })
 
   // Revue etape 4/tache 1, point 1 : raw_response est desormais OBLIGATOIRE dans
@@ -636,7 +666,14 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
   it('le pays declare est compare apres trim et passage en majuscules', () => {
     const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country: '  fr  ' }, fullKybRegistry())
     expect(applicable.map((s) => s.checkType).sort()).toEqual(
-      ['address_geocode', 'domain_whois_age', 'registry_legal_name_match', 'registry_lookup', 'vat_lookup'].sort()
+      [
+        'address_geocode',
+        'domain_whois_age',
+        'registry_legal_name_match',
+        'registry_lookup',
+        'registry_number_format',
+        'vat_lookup',
+      ].sort()
     )
   })
 
@@ -938,18 +975,21 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       const body = await res.json()
       expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
       expect(body.ok).toBe(true)
-      // Cinq connecteurs existent depuis la tache 3 de l'etape 4 : RDAP + VIES +
-      // recherche-entreprises x2 (statiques dans AGENCY_KYB_SOURCES) + Mapbox (ajoute
-      // par la fonction elle-meme via createAddressGeocodeSource -- voir son en-tete).
+      // Six connecteurs : RDAP + VIES + recherche-entreprises x2 + le controle du numero
+      // de registre (statiques dans AGENCY_KYB_SOURCES) + Mapbox (ajoute par la fonction
+      // elle-meme via createAddressGeocodeSource -- voir son en-tete).
       // createAgency() ne declare AUCUN pays : depuis la regle de juridiction (etape 6,
       // tache 1), les trois sources qui exigent un siege (VIES, recherche-entreprises
       // x2) sont ecartees AVANT execution -- elles ecrivaient jusque-la trois lignes
       // `unavailable` que le moteur excluait deja du numerateur ET du denominateur,
       // d'ou un statut et un score rigoureusement identiques (verifies plus bas). Les
-      // deux qui restent n'ont rien a verifier (ni website, ni adresse) et produisent
-      // `unavailable` -- jamais un echec, jamais une absence de ligne.
-      expect(body.checks_written).toBe(2)
-      expect(body.results.unavailable).toBe(2)
+      // TROIS qui restent n'ont rien a verifier (ni website, ni adresse, ni numero de
+      // registre) et produisent `unavailable` -- jamais un echec, jamais une absence de
+      // ligne. La troisieme est le controle du numero (chantier LINDAS, tache 1) : il ne
+      // declare aucune juridiction, donc il n'est jamais ecarte et ecrit toujours sa
+      // ligne, y compris -- comme ici -- pour dire qu'il n'a rien pu lire.
+      expect(body.checks_written).toBe(3)
+      expect(body.results.unavailable).toBe(3)
 
       // Le moteur a bien tourne : aucun check scorable disponible (tous unavailable,
       // exclus du numerateur ET du denominateur, regle du moteur 20260728130000) ->
@@ -967,9 +1007,11 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(await getEvents(agencyId, 'agency_verification_run')).toHaveLength(1)
 
       const checks = await getChecks(agencyId)
-      expect(checks).toHaveLength(2)
+      expect(checks).toHaveLength(3)
       expect(checks.every((c) => c.result === 'unavailable')).toBe(true)
-      expect(new Set(checks.map((c) => c.check_type))).toEqual(new Set(['domain_whois_age', 'address_geocode']))
+      expect(new Set(checks.map((c) => c.check_type))).toEqual(
+        new Set(['domain_whois_age', 'address_geocode', 'registry_number_format'])
+      )
     })
 
     // ─── Juridiction d'une source, bout en bout (etape 6, tache 1) ──────────────
@@ -991,7 +1033,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
     }
 
     it(
-      'une agence francaise ecrit toujours ses cinq checks : le seul pays reellement couvert aujourd hui ' +
+      'une agence francaise ecrit toujours ses six checks : le seul pays reellement couvert aujourd hui ' +
         "ne change en rien, et rien n'est ecarte",
       async () => {
         const agencyId = await createAgency('jurisdiction-fr')
@@ -1001,11 +1043,21 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         const res = await callRun(agencyId)
         const body = await res.json()
         expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
-        expect(body.checks_written).toBe(5)
+        // Cinq jusqu'au chantier LINDAS ; six depuis que le controle du numero de registre
+        // (tache 1) ecrit sa propre ligne. Ce dossier ne declare aucun numero, la sienne
+        // vaut donc `unavailable` -- le compte change, le verdict non (verifie plus bas).
+        expect(body.checks_written).toBe(6)
 
         const checks = await getChecks(agencyId)
         expect(new Set(checks.map((c) => c.check_type))).toEqual(
-          new Set(['domain_whois_age', 'vat_lookup', 'registry_lookup', 'registry_legal_name_match', 'address_geocode'])
+          new Set([
+            'domain_whois_age',
+            'vat_lookup',
+            'registry_lookup',
+            'registry_legal_name_match',
+            'registry_number_format',
+            'address_geocode',
+          ])
         )
         // Le squelette Zefix (etape 6, tache 2) couvre la Suisse et elle seule : ses
         // trois sources sont donc ECARTEES pour un siege francais, et c'est exactement ce
@@ -1023,11 +1075,12 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
 
         // NON-REGRESSION, le critere de cette tache : la France est le seul pays
         // reellement couvert aujourd'hui, et l'etape 6 ne doit pas l'avoir deplace d'un
-        // pouce. Cinq lignes, toutes `unavailable` faute de la moindre donnee KYB
+        // pouce. Six lignes, toutes `unavailable` faute de la moindre donnee KYB
         // declaree, donc aucun check scorable -> score NULL, et les quatre vetos d'entite
         // absents ou indisponibles -> manual_review. Exactement l'etat ou l'etape 4 avait
-        // laisse ce dossier.
-        expect(body.results.unavailable).toBe(5)
+        // laisse ce dossier -- la ligne de plus (le numero de registre) ne dit rien de
+        // plus qu'une absence, faute de numero a lire.
+        expect(body.results.unavailable).toBe(6)
         const agency = await getAgency(agencyId)
         expect(agency.verification_status).toBe('manual_review')
         expect(num(agency.verification_score)).toBeNull()
@@ -1045,13 +1098,16 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         const res = await callRun(agencyId)
         const body = await res.json()
         expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
-        // Six sources applicables : RDAP, geocodage, les trois entrees de registre
-        // suisses (squelette Zefix, tache 2) et la TVA suisse (squelette du registre UID,
-        // tache 3). Ces quatre dernieres n'ont AUCUN identifiant et sortent donc
-        // `unavailable` -- la ligne existe, le relecteur voit pourquoi elle est vide, et
-        // rien n'est invente.
-        expect(body.checks_written).toBe(6)
-        expect(body.results.unavailable).toBe(6)
+        // Sept sources applicables : RDAP, geocodage, les trois entrees de registre
+        // suisses (squelette Zefix, tache 2), la TVA suisse (squelette du registre UID,
+        // tache 3) et le controle du numero de registre (chantier LINDAS, tache 1). Les
+        // quatre squelettes n'ont AUCUN identifiant et sortent donc `unavailable` ; le
+        // controle du numero, lui, sort `unavailable` pour une raison qui n'est PAS la
+        // meme -- il n'attend rien de personne, ce dossier ne declare simplement aucun
+        // numero. Dans les deux cas la ligne existe, le relecteur voit pourquoi elle est
+        // vide, et rien n'est invente.
+        expect(body.checks_written).toBe(7)
+        expect(body.results.unavailable).toBe(7)
         expect(new Set((await getChecks(agencyId)).map((c) => c.check_type))).toEqual(
           new Set([
             'domain_whois_age',
@@ -1060,6 +1116,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
             'registry_lookup',
             'registry_legal_name_match',
             'registry_country_match',
+            'registry_number_format',
           ])
         )
 
@@ -1270,6 +1327,108 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       }
     )
 
+    // ─── Le veto du numero de registre, mesure en base (chantier LINDAS, tache 1) ──
+    //
+    // Le cas qui compte pour la conformite, et il ne se prouve QU'ICI : un numero faux
+    // doit retenir le dossier. Les tests du volet 10 mesurent le calcul ; ceux-ci
+    // mesurent ce que le calcul FAIT au dossier, contre le vrai moteur et la vraie
+    // contrainte de source.
+    //
+    // Meme motif de PAIRE que la demonstration Zefix juste au-dessus : le premier test
+    // seul montrerait un dossier retenu, ce qui peut avoir dix causes ; le second isole
+    // la cause en ne changeant QUE le numero. Les trois AUTRES vetos d'entite sont poses
+    // a la main dans les deux cas -- registry_number_format, lui, n'est jamais pose a la
+    // main : c'est le connecteur qui l'ecrit, et c'est tout l'objet de la mesure.
+
+    /** Nestle, dont l'UID (CHE-105.909.036) a servi a la conception du chantier, et le
+     *  MEME numero avec sa seule cle de controle changee. Un chiffre d'ecart, et c'est
+     *  exactement la faute de frappe qu'un veto de format existe pour attraper. */
+    const VALID_SWISS_UID = 'CHE-105.909.036'
+    const INVALID_SWISS_UID = 'CHE-105.909.037'
+
+    /** Les trois autres vetos d'entite -- derives d'AGENCY_VETO_TYPES et non recopies :
+     *  un cinquieme veto ajoute au catalogue demain doit entrer ici tout seul. */
+    const OTHER_AGENCY_VETO_TYPES = AGENCY_VETO_TYPES.filter((t) => t !== 'registry_number_format')
+
+    async function setBusinessRegistrationNumber(agencyId: string, value: string): Promise<void> {
+      const { error } = await serviceRoleClient()
+        .from('agencies')
+        .update({ business_registration_number: value })
+        .eq('id', agencyId)
+      if (error) throw new Error(`update business_registration_number: ${error.message}`)
+    }
+
+    async function runThenPassOtherVetos(agencyId: string): Promise<void> {
+      const res = await callRun(agencyId)
+      expect(res.status, `attendu 200 sur ${agencyId}`).toBe(200)
+      // Poses APRES le passage : plus recents que les `unavailable` des squelettes, ils
+      // gagnent le `distinct on (check_type)` du moteur. La ligne registry_number_format,
+      // elle, vient du connecteur et de lui seul.
+      await insertAgencyChecks(agencyId, OTHER_AGENCY_VETO_TYPES, 'match')
+      await recompute(agencyId)
+    }
+
+    /** La ligne registry_number_format telle qu'elle a ete ECRITE EN BASE -- source
+     *  comprise : c'est la contrainte CHECK reelle (migration 20260729160000) qui doit
+     *  accepter `internal`, pas seulement le module qui doit le retourner. */
+    async function registryNumberFormatCheck(agencyId: string): Promise<StoredCheck> {
+      const rows = (await getChecks(agencyId)).filter((c) => c.check_type === 'registry_number_format')
+      expect(rows, 'une ligne registry_number_format et une seule par passage').toHaveLength(1)
+      return rows[0]
+    }
+
+    it(
+      'un numero de registre faux pose le veto registry_number_format en echec (source internal) et envoie le ' +
+        'dossier en revue humaine, alors que tous les autres vetos passent',
+      async () => {
+        const agencyId = await createPerfectSwissAgency('numero-faux')
+        await setBusinessRegistrationNumber(agencyId, INVALID_SWISS_UID)
+
+        await runThenPassOtherVetos(agencyId)
+
+        const check = await registryNumberFormatCheck(agencyId)
+        expect(check.result, 'la forme est parfaitement lisible, seule la cle ne tombe pas').toBe('mismatch')
+        expect(
+          check.source,
+          '`internal` et jamais `manual` : un relecteur doit lire « la machine a calcule », pas « un humain a tranche »'
+        ).toBe('internal')
+
+        const agency = await getAgency(agencyId)
+        expect(
+          agency.verification_status,
+          'un veto en echec envoie en revue humaine quel que soit le score -- c est toute la definition d un veto'
+        ).toBe('manual_review')
+        expect(num(agency.verification_score), 'le score reste plein : un veto ne se lit pas dans le score').toBeCloseTo(
+          1,
+          3
+        )
+        expect(await lastVetoFailed(agencyId), 'c est bien un VETO qui retient ce dossier').toBe(true)
+      }
+    )
+
+    it(
+      'le controle qui rend la mesure concluante : le MEME dossier avec le numero REEL bascule en auto_validated, ' +
+        'et le veto est satisfait par le connecteur lui-meme -- jamais par une ligne posee a la main',
+      async () => {
+        const agencyId = await createPerfectSwissAgency('numero-vrai')
+        await setBusinessRegistrationNumber(agencyId, VALID_SWISS_UID)
+
+        await runThenPassOtherVetos(agencyId)
+
+        const check = await registryNumberFormatCheck(agencyId)
+        expect(check.result).toBe('match')
+        expect(check.source).toBe('internal')
+
+        const agency = await getAgency(agencyId)
+        expect(
+          agency.verification_status,
+          'si ce dossier ne bascule pas, c est qu autre chose que le numero le retenait -- et le test precedent ne ' +
+            'prouverait alors rien sur le veto de format'
+        ).toBe('auto_validated')
+        expect(await lastVetoFailed(agencyId)).toBe(false)
+      }
+    )
+
     // ─── Non-regression du VERDICT : le dossier CH a TVA europeenne (revue finale
     //     etape 6) ────────────────────────────────────────────────────────────────
     //
@@ -1416,14 +1575,15 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         const res = await callRun(agencyId)
         const body = await res.json()
         expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
-        // 2 sources applicables faute de pays declare (voir le test precedent) -- seul
-        // RDAP a de quoi repondre ici (website renseigne), le geocodage reste unavailable.
-        expect(body.checks_written).toBe(2)
+        // 3 sources applicables faute de pays declare (voir le test precedent) -- seul
+        // RDAP a de quoi repondre ici (website renseigne) ; le geocodage et le controle du
+        // numero de registre restent unavailable.
+        expect(body.checks_written).toBe(3)
         expect(body.results.partial).toBe(1)
-        expect(body.results.unavailable).toBe(1)
+        expect(body.results.unavailable).toBe(2)
 
         const checks = await getChecks(agencyId)
-        expect(checks).toHaveLength(2)
+        expect(checks).toHaveLength(3)
         const genericProviderCheck = checks.find((c) => c.check_type === 'domain_generic_provider')
         expect(
           genericProviderCheck,
@@ -1459,11 +1619,11 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(res2.status).toBe(200)
 
       // "Rejouable" ne veut pas dire "dedoublonne" : cette fonction insere une ligne a
-      // CHAQUE appel pour CHAQUE connecteur APPLICABLE (2 ici, faute de pays declare --
+      // CHAQUE appel pour CHAQUE connecteur APPLICABLE (3 ici, faute de pays declare --
       // voir la regle de juridiction, etape 6 tache 1), c'est le moteur qui departage
       // plusieurs lignes du meme type par ctid (voir le test dedie plus bas), jamais
       // cette fonction qui filtre avant d'ecrire.
-      expect(await getChecks(agencyId)).toHaveLength(4)
+      expect(await getChecks(agencyId)).toHaveLength(6)
       // Chaque appel a reellement fait tourner le moteur -- pas seulement le
       // premier -- et journalise son propre passage a chaque fois.
       expect(await getEvents(agencyId, 'agency_verification_recomputed')).toHaveLength(2)
@@ -1485,17 +1645,26 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         // existants elle-meme -- y compris ceux, distincts, que le connecteur RDAP
         // ecrit a chaque appel) laisse le moteur trancher correctement sur les DEUX
         // lignes seedees ici, et que rejouer ne casse pas ce resultat.
+        //
+        // Le type seede est registry_lookup depuis le chantier LINDAS (tache 1), et le
+        // changement n'est pas cosmetique : c'etait registry_number_format, qui a
+        // desormais un connecteur ecrivant SA propre ligne a chaque passage. Cette
+        // ligne-la, plus recente, gagnerait legitimement le departage -- le test serait
+        // reste vert en ne prouvant plus rien sur l'ordre d'insertion. registry_lookup
+        // est un veto que ce dossier n'ecrit PAS (aucun pays declare : les sources de
+        // registre sont ecartees), donc les deux lignes seedees restent les seules de
+        // leur type.
         const svc = serviceRoleClient()
         const { error: seedErr } = await svc.from('agency_verification_checks').insert([
-          { agency_id: agencyId, check_type: 'registry_number_format', source: 'manual', result: 'match' },
-          { agency_id: agencyId, check_type: 'registry_number_format', source: 'manual', result: 'mismatch' },
+          { agency_id: agencyId, check_type: 'registry_lookup', source: 'manual', result: 'match' },
+          { agency_id: agencyId, check_type: 'registry_lookup', source: 'manual', result: 'mismatch' },
         ])
         if (seedErr) throw new Error(`seed same-tx: ${seedErr.message}`)
 
         const res = await callRun(agencyId)
         expect(res.status).toBe(200)
 
-        // Veto registry_number_format tranche sur la ligne inseree EN DERNIER
+        // Veto registry_lookup tranche sur la ligne inseree EN DERNIER
         // (mismatch) -- jamais sur l'egalite de date -- donc revue humaine, jamais
         // auto_validated.
         const agency = await getAgency(agencyId)
@@ -1508,12 +1677,12 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         // reordonner/nettoyer les 2 lignes seedees (cette fonction ne touche jamais
         // aux checks existants) : le veto reste tranche par la meme ligne mismatch,
         // toujours manual_review. Le compte total grandit bien (chaque connecteur
-        // APPLICABLE ecrit sa propre ligne a chaque appel -- 2 ici faute de pays
-        // declare, +2 a res, +2 a res2), preuve que "rejouable" n'est pas "silencieux"
+        // APPLICABLE ecrit sa propre ligne a chaque appel -- 3 ici faute de pays
+        // declare, +3 a res, +3 a res2), preuve que "rejouable" n'est pas "silencieux"
         // -- seul le resultat DECISIF (le veto seede) ne doit pas bouger.
         const res2 = await callRun(agencyId)
         expect(res2.status).toBe(200)
-        expect(await getChecks(agencyId)).toHaveLength(6)
+        expect(await getChecks(agencyId)).toHaveLength(8)
         const agencyAfter = await getAgency(agencyId)
         expect(agencyAfter.verification_status).toBe('manual_review')
       }
@@ -3396,4 +3565,298 @@ describe('squelette du registre UID (vat_lookup) -- aucun reseau', () => {
       expect(rows[0]).toMatchObject({ check_type: 'vat_lookup', source: 'vies', result: 'mismatch' })
     }
   )
+})
+
+// ─── Controle du numero de registre (registry_number_format) -- chantier LINDAS,
+//     tache 1 : volet 10 ──────────────────────────────────────────────────────────
+//
+// Hors du describe.skipIf(!HAS_KEYS), meme motif que les volets de connecteurs qui
+// precedent -- et ici la raison est plus forte encore : ce connecteur ne touche AUCUN
+// reseau, pas meme stubbe. C'est un calcul, et un calcul de conformite doit pouvoir se
+// verifier sans rien demarrer.
+//
+// Les numeros ci-dessous sont REELS et FIGES. Reels parce qu'une cle de controle se juge
+// sur ce que les registres emettent vraiment, jamais sur des numeros fabriques qui
+// pourraient partager un biais avec l'algorithme teste ; figes parce qu'un test qui
+// appellerait LINDAS ou recherche-entreprises dependrait de la sante d'un service tiers
+// (meme discipline que les quatre volets precedents). La reconnaissance qui les a
+// produits, elle, a bien interroge les vrais services -- voir .superpowers/sdd/task-1-report.md :
+// 200 UID tires de LINDAS (200 valides, 0 rejete a tort) et 15 SIREN tires de
+// recherche-entreprises (15 valides), plus 17 415 alterations d'un chiffre, toutes
+// rejetees. Ce volet en garde un echantillon suffisant pour mordre en cas de regression.
+describe('controle du numero de registre (registry_number_format) -- calcul pur, aucun reseau', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  /** UID suisses reels, tires du graphe Zefix de LINDAS (schema:value "CHE105909036",
+   *  sans separateurs -- c'est la forme que le registre publie). CHE105909036 est celui
+   *  de Nestle, mesure a la main lors de la conception du chantier. */
+  const REAL_SWISS_UIDS = [
+    'CHE105909036',
+    'CHE105840918',
+    'CHE105832037',
+    'CHE105833663',
+    'CHE103247810',
+    'CHE105814683',
+    'CHE106369697',
+    'CHE101682164',
+    'CHE102748297',
+    'CHE106946703',
+    'CHE103814732',
+    'CHE102475946',
+    'CHE101926797',
+    'CHE102403680',
+    'CHE101892069',
+    'CHE102445336',
+  ]
+
+  /** SIREN reels, tires de recherche-entreprises.api.gouv.fr. Les cinq derniers sont des
+   *  reseaux immobiliers (Foncia, Nexity, Century 21, Guy Hoquet, Orpi) : c'est le marche
+   *  que ce check verra vraiment. 356000000 est celui de La Poste, contre-exemple classique
+   *  du SIREN qui « ne passerait pas Luhn » -- verifie en direct, il le PASSE : l'exception
+   *  francaise porte sur le SIRET des etablissements, jamais sur le SIREN. */
+  const REAL_FRENCH_SIRENS = [
+    '356000000',
+    '632012100',
+    '106731474',
+    '510761505',
+    '380129866',
+    '982770919',
+    '424622884',
+    '552032534',
+    '306138900',
+    '552049447',
+    '890441223',
+    '444346795',
+    '339510695',
+    '432945525',
+    '301857041',
+  ]
+
+  function agencyWithNumber(country: string | null, businessRegistrationNumber: string | null): AgencyForVerification {
+    return { ...FAKE_AGENCY, country, business_registration_number: businessRegistrationNumber }
+  }
+
+  /** Toutes les alterations d'UN chiffre d'un numero : les 9 positions x les 9
+   *  substitutions possibles. Une cle de controle qui laisserait passer l'une d'elles ne
+   *  servirait a rien -- c'est exactement la faute de frappe qu'elle existe pour attraper. */
+  function singleDigitAlterations(digits: string): string[] {
+    const out: string[] = []
+    for (let i = 0; i < digits.length; i++) {
+      for (const replacement of '0123456789') {
+        if (replacement === digits[i]) continue
+        out.push(digits.slice(0, i) + replacement + digits.slice(i + 1))
+      }
+    }
+    return out
+  }
+
+  it('la source est enregistree telle quelle, sans juridiction declaree et sans fabrique', () => {
+    expect(registryNumberFormatSource.checkType).toBe('registry_number_format')
+    // `internal` et jamais `manual` : `manual` designe une saisie HUMAINE, et un relecteur
+    // qui lirait `manual` sur un check calcule croirait qu'un humain l'a pose -- sur une
+    // piste d'audit LAB, c'est un contresens. La valeur est admise par la contrainte CHECK
+    // de agency_verification_checks.source depuis la migration de cette tache.
+    expect(registryNumberFormatSource.source).toBe('internal')
+    // AUCUNE juridiction declaree, et c'est un choix (voir JURISDICTION_MATRIX plus haut) :
+    // seul proprietaire de son check_type, ce connecteur n'a rien a departager, et
+    // l'ecarter d'un pays qu'il ne sait pas lire supprimerait la ligne `unavailable` qui
+    // dit POURQUOI le veto n'est pas satisfait.
+    expect(registryNumberFormatSource.appliesTo).toBeUndefined()
+  })
+
+  it('les UID suisses reels valent match, sans un seul appel reseau', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    for (const uid of REAL_SWISS_UIDS) {
+      const row = await runKybSource(registryNumberFormatSource, agencyWithNumber('CH', uid))
+      expect(row.result, `${uid} est un UID reel du registre du commerce suisse`).toBe('match')
+      expect(row.check_type).toBe('registry_number_format')
+      expect(row.source).toBe('internal')
+    }
+    expect(fetchSpy, 'ce connecteur est un calcul : il ne sort jamais du processus').not.toHaveBeenCalled()
+  })
+
+  it('les SIREN francais reels valent match, La Poste (356000000) comprise', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    for (const siren of REAL_FRENCH_SIRENS) {
+      const row = await runKybSource(registryNumberFormatSource, agencyWithNumber('FR', siren))
+      expect(row.result, `${siren} est un SIREN reel`).toBe('match')
+    }
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('aucune alteration d un seul chiffre ne passe la cle de controle suisse (16 UID x 81 alterations)', () => {
+    let tested = 0
+    for (const uid of REAL_SWISS_UIDS) {
+      for (const altered of singleDigitAlterations(uid.slice(3))) {
+        tested++
+        expect(isValidSwissUid(`CHE${altered}`), `CHE${altered} derive de ${uid} par un seul chiffre`).toBe(false)
+      }
+    }
+    expect(tested, 'la boucle doit vraiment avoir teste les 9 positions x 9 substitutions').toBe(
+      REAL_SWISS_UIDS.length * 81
+    )
+  })
+
+  it('aucune alteration d un seul chiffre ne passe Luhn (15 SIREN x 81 alterations)', () => {
+    let tested = 0
+    for (const siren of REAL_FRENCH_SIRENS) {
+      for (const altered of singleDigitAlterations(siren)) {
+        tested++
+        expect(isValidFrenchSiren(altered), `${altered} derive de ${siren} par un seul chiffre`).toBe(false)
+      }
+    }
+    expect(tested).toBe(REAL_FRENCH_SIRENS.length * 81)
+  })
+
+  it('un numero altere passe par le connecteur vaut mismatch -- la source A conclu, ce n est pas une indisponibilite', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    // CHE105909036 avec son dernier chiffre change : la forme reste parfaitement lisible,
+    // seule la cle ne tombe pas. C'est le SEUL cas ou ce connecteur pose un `mismatch`.
+    const row = await runKybSource(registryNumberFormatSource, agencyWithNumber('CH', 'CHE-105.909.037'))
+    expect(row.result).toBe('mismatch')
+    const siren = await runKybSource(registryNumberFormatSource, agencyWithNumber('FR', '403265452'))
+    expect(siren.result, '403265452 est un SIREN fabrique -- forme valide, cle fausse').toBe('mismatch')
+  })
+
+  it('les separateurs de saisie sont retires avant calcul : CHE-105.909.036 vaut CHE105909036', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    // La saisie humaine porte la forme d'affichage officielle ; le registre, lui, publie
+    // le numero nu. Les deux doivent conclure a l'identique, casse comprise.
+    for (const saisie of ['CHE-105.909.036', 'CHE 105 909 036', 'che-105.909.036', '  CHE105909036  ']) {
+      const row = await runKybSource(registryNumberFormatSource, agencyWithNumber('CH', saisie))
+      expect(row.result, `saisie "${saisie}"`).toBe('match')
+    }
+    for (const saisie of ['510 761 505', '510.761.505', '510-761-505']) {
+      const row = await runKybSource(registryNumberFormatSource, agencyWithNumber('FR', saisie))
+      expect(row.result, `saisie "${saisie}"`).toBe('match')
+    }
+  })
+
+  it('un CHE mal forme leve -> unavailable, jamais mismatch : ne pas savoir lire un numero n est pas constater qu il est faux', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    // Trop court, trop long, prefixe tronque, prefixe absent, lettres au milieu : aucune
+    // de ces saisies ne se LIT comme un UID -- et ce check est un VETO, qui bloque un
+    // dossier. Un `mismatch` affirmerait que le numero est faux ; on n'en sait rien.
+    for (const saisie of ['CHE-12.34', 'CHE1059090366', 'CH105909036', '105909036X', 'CHE10590903A']) {
+      const row = await runKybSource(registryNumberFormatSource, agencyWithNumber('CH', saisie))
+      expect(row.result, `saisie "${saisie}"`).toBe('unavailable')
+      expect(row.raw_response.reason).toBe('error')
+    }
+  })
+
+  it('numero absent ou blanc -> unavailable, jamais mismatch', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    for (const saisie of [null, '', '   ']) {
+      for (const pays of ['CH', 'FR']) {
+        const row = await runKybSource(registryNumberFormatSource, agencyWithNumber(pays, saisie))
+        expect(row.result, `pays ${pays}, saisie ${JSON.stringify(saisie)}`).toBe('unavailable')
+      }
+    }
+  })
+
+  it('pays non couvert -> unavailable, et la preuve nomme le pays : une ligne, jamais un silence', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    // La source n'est PAS ecartee pour autant (voir le premier test de ce volet) : elle
+    // ecrit une ligne qui dit au relecteur que ce veto reste sans reponse parce que la
+    // juridiction n'est pas couverte, et non parce que le numero serait faux.
+    const row = await runKybSource(registryNumberFormatSource, agencyWithNumber('DE', 'HRB 12345'))
+    expect(row.result).toBe('unavailable')
+    expect(String(row.raw_response.message)).toContain('DE')
+    for (const pays of ['LI', 'IT', null]) {
+      const autre = await runKybSource(registryNumberFormatSource, agencyWithNumber(pays, '510761505'))
+      expect(autre.result, `pays ${pays ?? 'non declare'}`).toBe('unavailable')
+    }
+  })
+
+  it('le pays declare est lu apres trim et passage en majuscules, comme partout ailleurs dans le module', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    expect((await runKybSource(registryNumberFormatSource, agencyWithNumber('  ch  ', 'CHE105909036'))).result).toBe(
+      'match'
+    )
+    expect((await runKybSource(registryNumberFormatSource, agencyWithNumber('fr', '510761505'))).result).toBe('match')
+  })
+
+  it('un numero de la mauvaise juridiction leve -> unavailable, jamais mismatch', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    // Un SIREN sur un dossier suisse, un UID sur un dossier francais : dans les deux cas le
+    // numero est parfaitement valide AILLEURS. Ce n'est donc pas « faux », c'est illisible
+    // ici -- et la concordance entre le pays declare et le registre est le travail d'un
+    // AUTRE veto (registry_country_match), jamais de celui-ci.
+    const suisse = await runKybSource(registryNumberFormatSource, agencyWithNumber('CH', '510761505'))
+    expect(suisse.result).toBe('unavailable')
+    const francais = await runKybSource(registryNumberFormatSource, agencyWithNumber('FR', 'CHE105909036'))
+    expect(francais.result).toBe('unavailable')
+  })
+
+  it('un SIRET (14 chiffres) leve -> unavailable : ce check porte sur le SIREN, pas sur l etablissement', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const row = await runKybSource(registryNumberFormatSource, agencyWithNumber('FR', '35600000000048'))
+    expect(row.result).toBe('unavailable')
+  })
+
+  it('un reste de 1 (cle qui vaudrait 10) rend le numero invalide, quel que soit le dernier chiffre', () => {
+    // 10000016 donne une somme de 34, soit un reste de 1 modulo 11 : la cle vaudrait 10,
+    // qui ne tient pas sur un chiffre. Le registre n'emet donc jamais un tel numero, et
+    // AUCUN dernier chiffre ne peut le valider -- c'est la seule branche de l'algorithme
+    // qu'un jeu de numeros reels ne peut pas exercer, par construction.
+    for (const dernier of '0123456789') {
+      expect(isValidSwissUid(`CHE10000016${dernier}`), `CHE10000016${dernier}`).toBe(false)
+    }
+    // Et le temoin qui rend la mesure concluante : un reste de 0 donne bien une cle de 0
+    // (« 11 vaut 0 »), branche voisine et elle aussi jamais exercee par un numero au
+    // hasard. 10000007 pese 44, soit un reste de 0 : le dernier chiffre doit valoir 0.
+    expect(isValidSwissUid('CHE100000070'), 'somme 44, reste 0 -> cle 0').toBe(true)
+    expect(isValidSwissUid('CHE100000071'), 'la meme, cle 1 : le reste de 0 ne vaut PAS 11').toBe(false)
+  })
+
+  it('isValidSwissUid et isValidFrenchSiren refusent tout ce qui n a pas la forme attendue, sans jamais lever', () => {
+    // Ces deux fonctions sont exportees parce qu'un calcul de conformite doit pouvoir se
+    // verifier isolement. Elles rendent `false` sur une forme illisible ; c'est le
+    // CONNECTEUR, lui, qui distingue « illisible » (leve -> unavailable) de « cle fausse »
+    // (mismatch) -- les deux tests precedents le verifient.
+    for (const illisible of ['', '   ', 'CHE', 'CHE12345678', 'CHE1234567890', 'ABC105909036', 'CHE-105.909.03']) {
+      expect(isValidSwissUid(illisible), `isValidSwissUid(${JSON.stringify(illisible)})`).toBe(false)
+    }
+    for (const illisible of ['', '   ', '12345678', '1234567890', 'FR510761505', '510761505X']) {
+      expect(isValidFrenchSiren(illisible), `isValidFrenchSiren(${JSON.stringify(illisible)})`).toBe(false)
+    }
+  })
+
+  it('un verdict calcule joint toujours sa preuve : numero declare, numero normalise et juridiction retenue', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const row = await runKybSource(registryNumberFormatSource, agencyWithNumber('CH', 'CHE-105.909.036'))
+    expect(row.result).toBe('match')
+    // Un verdict sans preuve jointe ne doit pas pouvoir s'ecrire (revue etape 4/tache 1,
+    // point 1) -- et sur un check CALCULE, la preuve est le calcul lui-meme : ce qui a ete
+    // lu, ce qui en a ete fait, et sous quelle juridiction.
+    expect(row.raw_response).toMatchObject({
+      declared: 'CHE-105.909.036',
+      normalized: 'CHE105909036',
+      jurisdiction: 'CH',
+    })
+    const francais = await runKybSource(registryNumberFormatSource, agencyWithNumber('FR', '510 761 505'))
+    expect(francais.raw_response).toMatchObject({
+      declared: '510 761 505',
+      normalized: '510761505',
+      jurisdiction: 'FR',
+    })
+  })
+
+  it('exclusivite : registry_number_format n a qu un proprietaire, quel que soit le pays du siege', () => {
+    // Le troisieme point de la regle de juridiction (etape 6, tache 1) applique a ce
+    // check_type : deux sources applicables au meme siege pour un meme type feraient
+    // dependre un VETO de l'ordre d'insertion. Un seul pretendant aujourd'hui -- ce test
+    // mord le jour ou un second apparaitrait sans qu'on ait pense a les departager.
+    for (const country of ['CH', 'FR', 'LI', 'DE', null]) {
+      const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country }, fullKybRegistry())
+      expect(
+        applicable.filter((s) => s.checkType === 'registry_number_format').map((s) => s.source),
+        `pays ${country ?? 'non declare'}`
+      ).toEqual(['internal'])
+    }
+  })
 })

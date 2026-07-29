@@ -17,7 +17,10 @@
 // « Squelette Zefix » plus bas, et les deux erreurs qui la precedent. Sa tache 3 y ajoute
 // le SQUELETTE DU REGISTRE UID (TVA suisse et liechtensteinoise, vat_lookup pour CH/LI),
 // sur le meme motif mais dans une situation qui n'est PAS la meme -- voir la section
-// « Squelette du registre UID », juste apres celle de Zefix.
+// « Squelette du registre UID », juste apres celle de Zefix. Le chantier LINDAS (tache 1)
+// y ajoute le CONTROLE DU NUMERO DE REGISTRE (registry_number_format) : le seul connecteur
+// du fichier qui ne sorte pas du processus -- ni reseau, ni cle, ni juridiction declaree --
+// et le premier des quatre vetos d'entite a avoir un proprietaire pour de bon.
 //
 //   Une source qui ne repond pas produit un check `unavailable`, JAMAIS une
 //   absence de ligne et JAMAIS un echec. Le moteur (recompute_agency_verification,
@@ -690,13 +693,16 @@ const vatLookupSource: KybSource = {
 //
 // Hors perimetre de cette tache (brief tache 3, qui n'enumere que "l'existence, le
 // statut actif et la raison sociale") : registry_number_format (format/cle de
-// controle du SIREN -- calcul pur, sans reseau, catalogue mais non rempli ici) et
-// registry_country_match (ce connecteur ne s'interrogeant QUE pour un siege deja
-// declare en France, une reponse positive ne ferait jamais que confirmer
-// trivialement ce qui a deja filtre l'appel -- aucune donnee de "juridiction"
-// distincte a comparer). Les deux restent un veto absent (`unavailable`), donc un
-// dossier francais part encore en revue humaine malgre cette tache -- comportement
-// attendu, pas un defaut (meme principe que Zefix, doc de conception §3).
+// controle du SIREN -- calcul pur, sans reseau) et registry_country_match (ce
+// connecteur ne s'interrogeant QUE pour un siege deja declare en France, une reponse
+// positive ne ferait jamais que confirmer trivialement ce qui a deja filtre l'appel
+// -- aucune donnee de "juridiction" distincte a comparer). Le PREMIER a depuis son
+// connecteur -- section « Controle du numero de registre » juste apres celle-ci, et
+// c'est une source a part (`internal`), jamais une extension de celle-ci : il ne lit
+// pas le registre francais, il calcule. Le second reste un veto absent
+// (`unavailable`), donc un dossier francais part encore en revue humaine malgre cette
+// tache -- comportement attendu, pas un defaut (meme principe que Zefix, doc de
+// conception §3).
 //
 // Sur registry_country_match, le squelette Zefix (etape 6, tache 2, plus bas) a tranche
 // l'INVERSE, et deliberement : y trouver le numero declare confirme reellement quelque
@@ -911,6 +917,178 @@ const registryLegalNameMatchSource: KybSource = {
   source: 'recherche_entreprises',
   appliesTo: hasFrenchHeadOffice,
   run: runRegistryLegalNameMatch,
+}
+
+// ─── Controle du numero de registre (registry_number_format, chantier LINDAS
+//     tache 1) ────────────────────────────────────────────────────────────────
+//
+// Le seul des quatre vetos d'entite qui ne depende d'AUCUN tiers : la cle de controle
+// d'un numero de registre se calcule. Pas de reseau, pas de cle, pas de quota -- d'ou
+// une source `internal` (valeur ouverte par la migration 20260729160000) et non
+// `manual` : `manual` designe une saisie HUMAINE, et un relecteur qui verrait `manual`
+// sur un check calcule croirait qu'un humain l'a pose. Sur une piste d'audit LAB, c'est
+// un contresens.
+//
+// AUCUNE JURIDICTION DECLAREE (pas d'`appliesTo`), et c'est un choix, pas un oubli.
+// Trois raisons, dans cet ordre :
+//
+//   1. Ce connecteur est SEUL proprietaire de registry_number_format. `appliesTo`
+//      n'existe que pour rendre impossible la collision de deux sources sur un meme
+//      check_type (voir « Juridiction d'une source » plus haut) -- il n'y a rien a
+//      departager ici, exactement comme pour RDAP et le geocodage.
+//   2. Ecarter une source SUPPRIME sa ligne. Sur un pays dont on ne sait pas lire le
+//      numero, le dossier n'aurait alors plus rien qui dise POURQUOI ce veto n'est pas
+//      satisfait -- alors que le principe directeur de tout le chantier veut une ligne
+//      `unavailable` avec sa raison, jamais un silence. Le cout d'ecrire cette ligne est
+//      nul : le moteur (20260728130000) fait echouer un veto `unavailable` exactement
+//      comme un veto absent.
+//   3. Un predicat de plus serait un second point de decision a tenir d'accord avec ce
+//      que `run` lit vraiment -- la faute exacte que la revue finale de l'etape 6 a du
+//      corriger sur vat_lookup (« Qui possede vat_lookup » plus haut).
+//
+// La juridiction vit donc DANS le calcul : CH (IDE) et FR (SIREN), les deux seuls
+// registres dont ce depot connaisse la cle. Tout le reste leve -- pays non couvert,
+// numero absent, forme illisible -- et runKybSource() traduit ces levees en
+// `unavailable`. JAMAIS `mismatch` : ne pas savoir lire un numero n'est pas constater
+// qu'il est faux, et ce check-ci BLOQUE un dossier. `mismatch` est reserve au seul cas
+// ou la forme est parfaitement lisible et ou la cle, elle, ne tombe pas.
+//
+// Ce que ce check ne fait PAS : verifier que le numero EXISTE au registre
+// (registry_lookup), que la raison sociale correspond (registry_legal_name_match), ni
+// que le pays declare est bien celui du registre (registry_country_match). Un numero
+// bien forme peut n'avoir jamais ete attribue -- d'ou QUATRE vetos d'entite et non un
+// seul, dont celui-ci est le moins couteux et le moins concluant a la fois.
+// Corollaire assume : un SIREN declare par un dossier suisse leve ici (il n'a pas la
+// forme attendue de la juridiction declaree) plutot que d'etre valide comme SIREN ; la
+// concordance pays/registre appartient a registry_country_match, jamais a ce calcul.
+
+/** Poids de la cle de controle de l'IDE suisse, appliques aux HUIT premiers chiffres
+ *  (le neuvieme EST la cle). Eprouve sur 200 UID reels tires du graphe Zefix de LINDAS :
+ *  200 valides, 0 rejete a tort, et aucune des 16 200 alterations d'un seul chiffre
+ *  acceptee -- voir .superpowers/sdd/task-1-report.md. */
+const SWISS_UID_WEIGHTS: readonly number[] = [5, 4, 3, 2, 7, 6, 5, 4]
+
+/** Separateurs de la saisie humaine, retires avant tout calcul : une agence saisit
+ *  `CHE-105.909.036` ou `510 761 505` (formes d'affichage officielles), la ou les
+ *  registres publient `CHE105909036` et `510761505`. */
+const REGISTRY_NUMBER_SEPARATORS_RE = /[\s.-]/g
+
+/** Formes STRICTES, verifiees AVANT le calcul de la cle -- c'est cette verification-la,
+ *  et elle seule, qui distingue « illisible » (leve -> unavailable) de « cle fausse »
+ *  (mismatch). Sans separateur : les deux motifs s'appliquent au numero deja normalise. */
+const SWISS_UID_RE = /^CHE\d{9}$/
+const FRENCH_SIREN_RE = /^\d{9}$/
+
+/** Les deux juridictions dont ce depot connait la cle de controle. Pas de liste a
+ *  maintenir ailleurs : le pays retenu ici decide AUSSI de la forme attendue et de
+ *  l'algorithme, en un seul point. */
+const REGISTRY_NUMBER_FORMAT_COUNTRIES: ReadonlySet<string> = new Set(['CH', 'FR'])
+
+function normalizeRegistryNumber(raw: string): string {
+  return raw.replace(REGISTRY_NUMBER_SEPARATORS_RE, '').toUpperCase()
+}
+
+/**
+ * Cle de controle de l'IDE suisse (CHE + 9 chiffres). `false` aussi bien sur une forme
+ * illisible que sur une cle fausse : c'est le CONNECTEUR qui distingue les deux, cette
+ * fonction repond seulement « est-ce un IDE valide ? ». Ne leve jamais.
+ *
+ * Somme ponderee des huit premiers chiffres modulo 11, cle = 11 - reste. Deux cas de
+ * bord que des numeros reels n'exercent jamais, et qui sont pourtant la moitie de
+ * l'algorithme : un reste de 1 donnerait une cle de 10, qui ne tient pas sur un chiffre
+ * -- le registre n'emet donc JAMAIS un tel numero, il est invalide quel que soit son
+ * dernier chiffre ; un reste de 0 donne 11, qui vaut 0.
+ */
+export function isValidSwissUid(raw: string): boolean {
+  const cleaned = normalizeRegistryNumber(raw)
+  if (!SWISS_UID_RE.test(cleaned)) return false
+
+  const digits = cleaned.slice(3)
+  let sum = 0
+  for (let i = 0; i < SWISS_UID_WEIGHTS.length; i++) {
+    sum += Number(digits[i]) * SWISS_UID_WEIGHTS[i]
+  }
+  const key = 11 - (sum % 11)
+  if (key === 10) return false
+  return (key === 11 ? 0 : key) === Number(digits[8])
+}
+
+/**
+ * Cle de controle du SIREN francais (9 chiffres, Luhn). Meme contrat que
+ * isValidSwissUid : `false` sur une forme illisible comme sur une cle fausse, jamais de
+ * levee.
+ *
+ * AUCUN traitement particulier pour La Poste, contre-exemple classique que tout le monde
+ * recopie : son SIREN `356000000` PASSE Luhn -- verifie en direct contre
+ * recherche-entreprises. L'exception francaise porte sur le SIRET de ses etablissements,
+ * jamais sur le SIREN. Coder cette exception ici ouvrirait un trou : n'importe quel
+ * numero fabrique pourrait s'en reclamer.
+ */
+export function isValidFrenchSiren(raw: string): boolean {
+  const cleaned = normalizeRegistryNumber(raw)
+  if (!FRENCH_SIREN_RE.test(cleaned)) return false
+
+  let sum = 0
+  for (let i = 0; i < cleaned.length; i++) {
+    let digit = Number(cleaned[i])
+    // Un rang sur deux EN PARTANT DE LA DROITE est double (Luhn) : sur neuf chiffres, ce
+    // sont les rangs de gauche pairs -- d'ou le calcul de la position depuis la fin
+    // plutot qu'une parite d'index, qui dependrait de la longueur.
+    if ((cleaned.length - i) % 2 === 0) {
+      digit *= 2
+      if (digit > 9) digit -= 9
+    }
+    sum += digit
+  }
+  return sum % 10 === 0
+}
+
+/** Ne recoit pas de `signal` : aucune requete a annuler, ce connecteur ne sort pas du
+ *  processus. Les squelettes plus bas ont la meme signature reduite, pour une raison
+ *  differente (eux n'ont pas encore de connecteur du tout). Leve TOUJOURS plutot que de
+ *  choisir `unavailable` lui-meme -- discipline du module, voir KybSourceResult. */
+async function runRegistryNumberFormat(agency: AgencyForVerification): Promise<KybSourceResult> {
+  const country = declaredHeadOfficeCountry(agency)
+  if (country === null || !REGISTRY_NUMBER_FORMAT_COUNTRIES.has(country)) {
+    throw new Error(
+      `registry_number_format: juridiction "${country ?? 'non declaree'}" non couverte (CH et FR seulement)`
+    )
+  }
+
+  const declared = agency.business_registration_number?.trim()
+  if (!declared) throw new Error('registry_number_format: aucun numero de registre declare')
+
+  const normalized = normalizeRegistryNumber(declared)
+  const swiss = country === 'CH'
+  if (!(swiss ? SWISS_UID_RE : FRENCH_SIREN_RE).test(normalized)) {
+    // Illisible, donc rien a conclure -- pas meme un doute defavorable. Le message dit ce
+    // qui etait attendu : devant un `unavailable`, un relecteur de la file admin doit
+    // pouvoir corriger la saisie sans ouvrir le code.
+    throw new Error(
+      `registry_number_format: "${declared}" n'a pas la forme d'un ` +
+        `${swiss ? 'IDE suisse (CHE + 9 chiffres)' : 'SIREN francais (9 chiffres)'}`
+    )
+  }
+
+  const valid = swiss ? isValidSwissUid(normalized) : isValidFrenchSiren(normalized)
+  return {
+    result: valid ? 'match' : 'mismatch',
+    raw_response: {
+      declared,
+      normalized,
+      jurisdiction: country,
+      // La preuve d'un check CALCULE, c'est le calcul : ce qui a ete lu, sous quelle
+      // regle, et ce qu'elle a donne. Un relecteur doit pouvoir le refaire a la main.
+      scheme: swiss ? 'IDE suisse (CHE, cle modulo 11)' : 'SIREN francais (Luhn)',
+      check_digit_valid: valid,
+    },
+  }
+}
+
+export const registryNumberFormatSource: KybSource = {
+  checkType: 'registry_number_format',
+  source: 'internal',
+  run: runRegistryNumberFormat,
 }
 
 // ─── Connecteur geocodage Mapbox (address_geocode, tache 3) ────────────────────
@@ -1206,9 +1384,12 @@ function createPendingCredentialsSource(params: {
 // ne perd rien pour autant : sa structure -- trois sources, une juridiction, un point de
 // configuration unique -- est celle qu'il faut dans les deux cas, et PublicREST reste la
 // source du statut. Le registre UID (section suivante) n'est PAS concerne : LINDAS ne le
-// remplace pas. Et cela ne rend aucun dossier suisse auto-validable : registry_number_format
-// n'a toujours aucun connecteur et la piece d'identite reste en revue humaine (handoff
-// §7bis). Ce qui suit reste donc a ecrire ; ce qui change, c'est ce qu'il faut attendre.
+// remplace pas. Et cela ne rend aucun dossier suisse auto-validable : les trois vetos de
+// registre ci-dessous restent `unavailable` et la piece d'identite reste en revue humaine
+// (handoff §7bis). Le QUATRIEME veto d'entite, registry_number_format, a depuis son
+// connecteur -- section « Controle du numero de registre » plus haut -- ce qui ne debloque
+// aucun dossier a lui seul, mais retire un des quatre obstacles. Ce qui suit reste donc a
+// ecrire ; ce qui change, c'est ce qu'il faut attendre.
 //
 // Ce qui suit est donc un SQUELETTE, pas un connecteur : il cable tout ce qui peut l'etre
 // sans identifiants -- les trois check_type, la juridiction, la place dans le registre,
@@ -1397,14 +1578,17 @@ export function createUidRegisterSources(config: PendingSourceConfig): KybSource
  * echouer l'insert (FK, migration 20260728103000) -- une entree ici EST donc deja un
  * connecteur pour de vrai, jamais un double de test. RDAP (domain_whois_age) est le
  * premier, ajoute par la tache 2 ; la tache 3 y ajoute VIES (vat_lookup) et le
- * registre francais (registry_lookup, registry_legal_name_match) ;
- * agency-verification-run/index.ts n'a jamais eu a changer pour ces trois-la.
+ * registre francais (registry_lookup, registry_legal_name_match) ; le chantier LINDAS
+ * (tache 1) y ajoute le controle du numero de registre (registry_number_format), qui
+ * n'a besoin ni de secret NI DE RESEAU -- agency-verification-run/index.ts n'a jamais
+ * eu a changer pour aucun des cinq.
  */
 export const AGENCY_KYB_SOURCES: KybSource[] = [
   rdapDomainWhoisAgeSource,
   vatLookupSource,
   registryLookupSource,
   registryLegalNameMatchSource,
+  registryNumberFormatSource,
 ]
 
 /**
