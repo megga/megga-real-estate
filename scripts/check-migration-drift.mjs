@@ -109,6 +109,19 @@ function scanMigrations() {
       for (const c of stmt.matchAll(/drop\s+column\s+(?:if\s+exists\s+)?"?(\w+)"?/gi)) {
         expected.delete(`column:${t[1]}.${c[1]}`);
       }
+      // RENAME COLUMN : même raisonnement que DROP juste au-dessus, et il
+      // manquait. Une colonne renommée par une migration ULTÉRIEURE restait
+      // attendue sous son ancien nom, que la production n'a évidemment plus —
+      // une dérive rapportée à tort, et qui ne s'éteint jamais, puisque la
+      // migration d'origine, elle, ne bougera plus. Constaté le 29.07.2026 sur
+      // `agencies.ide`, renommée `business_registration_number` par le chantier
+      // KYB (`20260729150100`) : le contrôle est passé au rouge en permanence le
+      // jour du merge, sur une production pourtant conforme. Un garde-fou qui
+      // crie sans raison finit ignoré, donc muet le jour où il a raison.
+      for (const c of stmt.matchAll(/rename\s+column\s+"?(\w+)"?\s+to\s+"?(\w+)"?/gi)) {
+        expected.delete(`column:${t[1]}.${c[1]}`);
+        expected.set(`column:${t[1]}.${c[2]}`, file);
+      }
     }
 
     // Les DROP viennent APRÈS, dans l'ordre des fichiers : un objet supprimé
