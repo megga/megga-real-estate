@@ -738,19 +738,33 @@ const vatLookupSource: KybSource = {
  *  domaine etabli (classifyDomain plus haut). */
 const FRENCH_REGISTRY_ACTIVE_STATUS = 'A'
 
-/** Extrait un SIREN exploitable (9 chiffres) depuis business_registration_number, en
- *  ne gardant que les chiffres -- la saisie peut porter des espaces ("510 761 505",
- *  forme d'affichage officielle INSEE). Leve TOUJOURS plutot que de choisir
- *  `unavailable` elle-meme (meme discipline que extractRdapDomain) : runKybSource()
- *  se charge de traduire un throw en `unavailable`. */
+/** Extrait un SIREN exploitable depuis business_registration_number, par la MEME lecture
+ *  que le controle de la cle (registry_number_format, section plus bas) : les seuls
+ *  separateurs de SAISIE sont retires (normalizeRegistryNumber, `[\s.-]` -- "510 761 505"
+ *  et "510.761.505" sont des formes d'affichage officielles INSEE), puis FRENCH_SIREN_RE
+ *  exige neuf chiffres et RIEN d'autre. Les deux sont declarees plus bas, avec ce
+ *  controle : c'est deliberement le meme point de normalisation, pas une copie -- deux
+ *  lectures du meme champ finissent par diverger, et ce module condamne cette divergence
+ *  ailleurs.
+ *
+ *  Ce que cette lecture refuse et que la precedente acceptait (revue finale de branche,
+ *  point 4) : elle retirait TOUTES les non-chiffres, si bien que "CHE-123456782" se lisait
+ *  ici comme le SIREN 123456782 (present a l'index, cle de Luhn valide -- verifie en
+ *  direct) alors que le controle de cle, lui, voyait "CHE123456782" et sortait
+ *  `unavailable`. Meme champ, deux lectures : registry_country_match posait un `match` sur
+ *  une entite derivee d'un numero de forme SUISSE, dans un dossier declare francais.
+ *
+ *  Leve TOUJOURS plutot que de choisir `unavailable` elle-meme (meme discipline que
+ *  extractRdapDomain et extractZefixUid) : runKybSource() se charge de traduire un throw
+ *  en `unavailable`. */
 function extractSiren(businessRegistrationNumber: string | null): string {
   const raw = businessRegistrationNumber?.trim()
   if (!raw) throw new Error('recherche-entreprises: no business_registration_number declared')
-  const digits = raw.replace(/[^0-9]/g, '')
-  if (!/^\d{9}$/.test(digits)) {
+  const normalized = normalizeRegistryNumber(raw)
+  if (!FRENCH_SIREN_RE.test(normalized)) {
     throw new Error(`recherche-entreprises: unparseable SIREN "${raw}"`)
   }
-  return digits
+  return normalized
 }
 
 /** Ligatures latines PROPRES AU FRANCAIS -- ni Œ/œ ni Æ/æ n'ont de decomposition
@@ -817,8 +831,11 @@ interface RechercheEntreprisesResponse {
 }
 
 /** Appelle recherche-entreprises.api.gouv.fr par SIREN (le parametre `q` accepte un
- *  identifiant numerique en recherche directe -- verifie en reconnaissance manuelle, voir
- *  rapport de tache : `q=510761505` renvoie le meme resultat unique que `q=l'oreal`).
+ *  identifiant numerique en recherche directe -- verifie en direct : `q=510761505` rend UN
+ *  seul resultat, CARREFOUR, la ou une recherche par nom en rend une page entiere
+ *  -- `q=l'oreal` : 321 resultats, dont le premier porte le SIREN 632012100. C'est cet
+ *  ecart-la qui rend la recherche par numero exploitable, pas une quelconque egalite entre
+ *  les deux formes de requete).
  *  GARANTIT a ses trois appelants que le premier resultat, s'il y en a un, porte bien le
  *  SIREN demande -- voir la garde d'identite plus bas : `q=` reste une recherche plein
  *  texte. Ne catche RIEN elle-meme (non-2xx, JSON illisible, corps hors schema, resultat
@@ -910,6 +927,16 @@ async function runRegistryLegalNameMatch(agency: AgencyForVerification, signal: 
   if (!declaredName) {
     throw new Error('recherche-entreprises: no legal_name declared')
   }
+  // Une raison sociale sans lettre ni chiffre ("-", ".", "&", "@@@") se reduit a la chaine
+  // VIDE apres normalizeLegalNameStrict : il ne reste alors RIEN a comparer. On leve avant
+  // l'appel reseau -- interroger le registre ne rendrait pas comparable ce qui ne l'est
+  // pas (revue finale de branche, point 1 ; meme garde cote suisse).
+  const normalizedDeclared = normalizeLegalNameStrict(declaredName)
+  if (normalizedDeclared === '') {
+    throw new Error(
+      `recherche-entreprises: la raison sociale declaree "${declaredName}" ne porte ni lettre ni chiffre, rien a comparer`
+    )
+  }
   const siren = extractSiren(agency.business_registration_number)
   const body = await fetchFrenchRegistry(siren, signal)
   const result = body.results?.[0]
@@ -922,8 +949,24 @@ async function runRegistryLegalNameMatch(agency: AgencyForVerification, signal: 
     throw new Error('recherche-entreprises: siren not found, nothing to compare legal_name against')
   }
 
+  // « AUCUN NOM AU REGISTRE » N'EST PAS « LE NOM CONCORDE » (revue finale de branche,
+  // point 1). `??` ne rattrape que null/undefined : un enregistrement dont les DEUX champs
+  // de nom sont nuls donnait `registryName = ''`, et l'egalite tenait alors face a toute
+  // raison sociale declaree qui se reduit elle aussi a vide -- le veto PASSAIT sur une
+  // comparaison de deux chaines vides, c'est-a-dire sur aucune preuve. Le cas d'entree est
+  // reel : q=123456789, q=333333333 et q=999999999 rendent chacun un enregistrement
+  // `{nom_raison_sociale: null, nom_complet: null}` (mesure en direct le 29.07.2026). On
+  // leve, donc `unavailable` -- jamais `mismatch` : l'entite EXISTE au registre, c'est sa
+  // seule raison sociale qui n'y est pas lisible, et registry_lookup porte deja, pour son
+  // propre check_type, ce que le registre dit de son existence. Meme arbitrage et meme
+  // formulation que runZefixRegistryLegalNameMatch (`legalNames.length === 0`).
   const registryName = result.nom_raison_sociale ?? result.nom_complet ?? ''
-  const isMatch = normalizeLegalNameStrict(declaredName) === normalizeLegalNameStrict(registryName)
+  const normalizedRegistry = normalizeLegalNameStrict(registryName)
+  if (normalizedRegistry === '') {
+    throw new Error(`recherche-entreprises: aucune raison sociale au registre pour ${siren}, rien a comparer`)
+  }
+
+  const isMatch = normalizedDeclared === normalizedRegistry
   return {
     result: isMatch ? 'match' : 'mismatch',
     raw_response: {
@@ -1553,15 +1596,18 @@ function createPendingCredentialsSource(params: {
 const LINDAS_SPARQL_ENDPOINT = 'https://lindas.admin.ch/query'
 const LINDAS_ZEFIX_GRAPH = 'https://lindas.admin.ch/foj/zefix'
 
-/** Borne du nombre de lignes rendues pour UN numero. Un meme UID en rend plusieurs -- les
- *  versions linguistiques officielles, toutes inscrites (CHE105909036 rend « Nestlé S.A. »
- *  a Vevey et « Nestlé AG » a Cham). Volontairement TRES au-dessus du besoin : le maximum
- *  sur TOUT le graphe vaut 2, mesure en direct le 29.07.2026 par un GROUP BY sur les 2,37 M
- *  d'identifiants (17 s, hors budget d'un connecteur -- d'ou une mesure faite une fois, a la
+/** Borne du nombre de lignes rendues pour UN numero. Un meme UID peut en rendre plus d'une,
+ *  mais c'est RARE et ce n'est pas une affaire de langue : 3 UID sur 791 068 rendent plus
+ *  d'un noeud, chacun pour un DOUBLE SIEGE STATUTAIRE -- deux inscriptions cantonales de la
+ *  meme entite (CHE105909036 rend « Nestlé AG » a Cham et « Nestlé S.A. » a Vevey ;
+ *  CHE105944570 et CHE101329561 rendent deux fois la MEME raison sociale). Volontairement
+ *  TRES au-dessus du besoin : le maximum de lignes pour un UID vaut 2 sur TOUT le graphe --
+ *  les deux mesures faites en direct le 29.07.2026, par GROUP BY sur les identifiants du
+ *  graphe (14 a 20 s, hors budget d'un connecteur : d'ou une mesure faite une fois, a la
  *  main, et une constante figee ici). Tronquer ne couterait rien a registry_lookup ni a
  *  registry_country_match (une seule ligne suffit a etablir la presence), mais ferait perdre
- *  a registry_legal_name_match une version linguistique -- donc un `mismatch` sur une raison
- *  sociale pourtant inscrite, sur un veto qui bloque un dossier. */
+ *  a registry_legal_name_match l'inscription de l'autre siege -- donc un `mismatch` sur une
+ *  raison sociale pourtant inscrite, sur un veto qui bloque un dossier. */
 const ZEFIX_UID_RESULT_LIMIT = 50
 
 /** Juridiction des trois sources Zefix : le registre du commerce suisse, et lui seul.
@@ -1687,9 +1733,9 @@ async function fetchZefixByUid(uid: string, signal: AbortSignal): Promise<ZefixG
   // ZEFIX_UID_RESULT_LIMIT, et une troncature silencieuse ferait sortir
   // registry_legal_name_match en `mismatch` sur une raison sociale pourtant inscrite --
   // un veto qui bloque un dossier sur une liste incomplete, sans que rien ne le dise. Le
-  // maximum observe vaut 2 (les versions linguistiques d'une meme entite), la marge est
-  // donc large ; mais un relecteur doit pouvoir constater que la liste etait entiere,
-  // pas le supposer.
+  // maximum observe vaut 2 (le double siege statutaire, voir ZEFIX_UID_RESULT_LIMIT), la
+  // marge est donc large ; mais un relecteur doit pouvoir constater que la liste etait
+  // entiere, pas le supposer.
   return {
     uid,
     legalNames,
@@ -1775,6 +1821,19 @@ async function runZefixRegistryLegalNameMatch(
   if (!declaredName) {
     throw new Error('zefix/lindas: aucune raison sociale declaree, rien a comparer au registre')
   }
+  // MEME garde que le registre francais, sur le cote DECLARE de la comparaison : une
+  // raison sociale sans lettre ni chiffre se reduit a la chaine vide, et il ne reste alors
+  // rien a comparer. Ce connecteur-ci ne pouvait pas en tirer un `match`, mais par une
+  // propriete des DONNEES et non par une garde : 0 raison sociale du graphe Zefix ne se
+  // reduit a vide (mesure en direct le 29.07.2026, FILTER sans lettre ni chiffre sur les
+  // 791 071 entrees). Une barriere accidentelle n'est pas une garde -- surtout sur un veto
+  // qui, cote francais, avait deja fait passer une identite sur aucune preuve.
+  const normalizedDeclared = normalizeLegalNameStrict(declaredName)
+  if (normalizedDeclared === '') {
+    throw new Error(
+      `zefix/lindas: la raison sociale declaree "${declaredName}" ne porte ni lettre ni chiffre, rien a comparer`
+    )
+  }
   const entries = await fetchZefixByUid(uid, signal)
 
   if (entries.legalNames.length === 0) {
@@ -1784,14 +1843,30 @@ async function runZefixRegistryLegalNameMatch(
     throw new Error(`zefix/lindas: aucune raison sociale au registre pour ${uid}, rien a comparer`)
   }
 
-  // TOUTES les raisons sociales rendues sont acceptables, et c'est juste : un meme UID en
-  // rend plusieurs -- les versions linguistiques officielles, toutes inscrites au registre
-  // (CHE105909036 rend « Nestlé S.A. » et « Nestlé AG »). Comparees a `schema:legalName`
-  // UNIQUEMENT, jamais a `schema:name` : mesure en direct, `schema:name` porte sur chaque
-  // entree les denominations des AUTRES entrees -- des valeurs qui ne sont pas la raison
-  // sociale de l'entree lue. Les y meler fabriquerait des `match` sur autre chose que ce que
-  // ce veto verifie. La requete ne demande donc jamais `schema:name`.
-  const normalizedDeclared = normalizeLegalNameStrict(declaredName)
+  // TOUTES les raisons sociales rendues sont acceptables : elles sont toutes inscrites au
+  // registre pour ce numero. Ce n'est PAS le cas courant, et la justification longtemps
+  // ecrite ici (« les versions linguistiques officielles ») etait fausse -- mesure sur le
+  // graphe vivant le 29.07.2026 : 3 UID seulement, sur 791 068, rendent plus d'un noeud
+  // (CHE105909036 Nestle, CHE105944570 BNS, CHE101329561 UBS), et dans les trois cas c'est
+  // un DOUBLE SIEGE STATUTAIRE -- deux inscriptions cantonales de la meme entite. Un seul
+  // de ces trois porte deux raisons sociales differentes (« Nestlé AG » a Cham, « Nestlé
+  // S.A. » a Vevey) ; les deux autres portent la MEME sur leurs deux noeuds.
+  //
+  // `schema:legalName` est MONO-VALUE par entreprise (0 noeud sur 791 071 en porte plus
+  // d'un, meme mesure) : la boucle ci-dessous n'existe donc que pour le double siege.
+  //
+  // Compare a `schema:legalName` UNIQUEMENT, jamais a `schema:name` -- et c'est LA que
+  // vivent les traductions officielles (« UBS SA »/« UBS Inc. » pour l'entite dont le
+  // legalName est « UBS AG » ; les quatre langues nationales pour la BNS). Ce connecteur
+  // refuse deliberement de les lire : `schema:name` porte aussi, sur chaque entree, les
+  // denominations des AUTRES entrees -- les y meler fabriquerait des `match` sur autre
+  // chose que ce que ce veto verifie.
+  //
+  // CONSEQUENCE POUR L'AGENCE, a dire sans l'arrondir : une agence suisse qui declare la
+  // traduction officielle de son nom plutot que la raison sociale INSCRITE recoit un
+  // `mismatch` sur un veto, donc un dossier bloque -- alors meme que la traduction figure
+  // au registre. C'est le prix assume de la seule comparaison qui prouve quelque chose ; la
+  // saisie attendue est la raison sociale telle que le registre la publie.
   const isMatch = entries.legalNames.some((name) => normalizeLegalNameStrict(name) === normalizedDeclared)
 
   return {

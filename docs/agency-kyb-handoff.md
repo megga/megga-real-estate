@@ -1167,10 +1167,23 @@ Check par check, ce qui en résulte :
 
 | Check | Servi par LINDAS ? |
 |---|---|
-| `registry_legal_name_match` | oui, `match` ou `mismatch` selon la raison sociale déclarée. Comparé à `schema:legalName` **uniquement** ; un même IDE en rend plusieurs, ce sont les versions linguistiques officielles |
+| `registry_legal_name_match` | oui, `match` ou `mismatch` selon la raison sociale déclarée. Comparé à `schema:legalName` **uniquement**, jamais à `schema:name` (voir juste après : c'est là que vivent les traductions officielles) |
 | `registry_country_match` | oui, `match` : trouvé dans le registre suisse, et la juridiction ne dépend d'aucun statut (une entité radiée reste une entité inscrite **en Suisse**) |
 | `registry_lookup` | **à moitié** : `mismatch` si l'IDE est absent du graphe, `partial` s'il y est. **Jamais `match`**, faute de statut publié, donc le véto ne passe pas |
 | `vat_lookup` (CH/LI) | non, et jamais : le graphe ne porte aucune donnée de TVA (prédicats mesurés : `legalName`, `name`, `address`, `municipality`, `additionalType`, `description`, `identifier`) |
+
+**Une agence suisse doit déclarer sa raison sociale telle que le registre la publie, et pas
+sa traduction.** `schema:legalName` est mono-valué par entité (mesure du 29.07.2026 : 0
+nœud sur 791 071 en porte plusieurs). Les traductions officielles, pourtant inscrites,
+vivent dans `schema:name` (« UBS SA » et « UBS Inc. » pour l'entité dont le `legalName` est
+« UBS AG » ; les quatre langues nationales pour la BNS), et le connecteur refuse
+délibérément de le lire : `schema:name` porte aussi, sur chaque entrée, les dénominations
+des *autres* entrées, si bien que le comparer fabriquerait des `match` sur autre chose que
+ce que le véto vérifie. Conséquence à dire au client sans l'arrondir : déclarer la
+traduction donne un `mismatch` sur un véto, donc un dossier bloqué. Les rares IDE qui
+rendent plusieurs raisons sociales (3 sur 791 068 UID, même mesure) sont des **doubles
+sièges statutaires**, deux inscriptions cantonales de la même entité, pas des versions
+linguistiques.
 
 **Ce qui reste suspendu aux identifiants PublicREST, et rien d'autre : le statut actif.**
 Il ne manque plus que là, et il ne manque qu'à un seul check. Le jour où les identifiants

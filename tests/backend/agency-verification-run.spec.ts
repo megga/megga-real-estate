@@ -1499,8 +1499,9 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
     // `match` -- PublicREST apporte le statut, rien d'autre -- et le dossier s'auto-valide.
 
     /** L'une des deux raisons sociales que LINDAS publie pour CHE105909036 (l'autre est
-     *  « Nestlé AG », meme numero, autre commune). Le dossier en declare une ; le connecteur
-     *  les accepte toutes, ce sont les versions linguistiques officielles. */
+     *  « Nestlé AG », meme numero, autre commune : un double siege statutaire). Le dossier
+     *  en declare une ; le connecteur les accepte toutes, elles sont toutes deux inscrites
+     *  au registre pour ce numero. */
     const NESTLE_LEGAL_NAME = 'Nestlé S.A.'
 
     async function setLegalName(agencyId: string, value: string): Promise<void> {
@@ -3189,6 +3190,25 @@ describe('connecteur registre francais (registry_lookup / registry_legal_name_ma
       expect(fetchSpy).not.toHaveBeenCalled()
     })
 
+    it(
+      `${label} : numero de forme SUISSE ("CHE-123456782") sur un dossier francais -> unavailable, jamais un appel ` +
+        'reseau : le MEME champ se lit de la MEME facon que le controle de cle (registry_number_format)',
+      async () => {
+        // Avant ce correctif, extractSiren retirait TOUTES les non-chiffres : ce numero se
+        // lisait ici comme le SIREN 123456782 (present a l'index, Luhn valide -- verifie en
+        // direct), et comme illisible pour registry_number_format, qui ne retire que
+        // [\s.-] et voit donc "CHE123456782". Meme champ, deux lectures -- exactement la
+        // divergence que ce module condamne ailleurs (« UN SEUL point de normalisation »).
+        // registry_country_match posait alors un `match` sur une entite derivee d'un numero
+        // de forme suisse, sur un dossier qui se declare francais.
+        const fetchSpy = vi.fn(async () => rechercheEntreprisesResponse([activeResult({ siren: '123456782' })]))
+        vi.stubGlobal('fetch', fetchSpy)
+        const row = await runKybSource(sourceOf(), agencyFR({ business_registration_number: 'CHE-123456782' }))
+        expect(row.result).toBe('unavailable')
+        expect(fetchSpy).not.toHaveBeenCalled()
+      }
+    )
+
     it(`${label} : erreur serveur (500) -> unavailable`, async () => {
       vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500 })))
       const row = await runKybSource(sourceOf(), agencyFR())
@@ -3321,6 +3341,78 @@ describe('connecteur registre francais (registry_lookup / registry_legal_name_ma
       const row = await runKybSource(registryLegalNameMatchSource(), agencyFR())
       expect(row.result).toBe('unavailable')
     })
+
+    // ── Une comparaison SANS MATIERE ne conclut rien (revue finale de branche, point 1) ──
+    //
+    // Ce veto passait sur une comparaison de DEUX CHAINES VIDES. `??` ne rattrape que
+    // null/undefined : un enregistrement sans aucun nom donnait `registryName = ''`, et
+    // normalizeLegalNameStrict reduit a '' toute raison sociale declaree sans lettre ni
+    // chiffre ('-', '.', '&', '@@@'). Les deux cotes valaient '', l'egalite tenait, le veto
+    // passait -- il affirmait une identite prouvee sur aucune preuve. L'entree n'est pas
+    // hypothetique : q=123456789, q=333333333 et q=999999999 rendent chacun un
+    // enregistrement `{nom_raison_sociale: null, nom_complet: null}` (fantomes du jeu SIRENE,
+    // mesure en direct le 29.07.2026). Aucune des 12 fixtures francaises n'exercait ce corps
+    // -- toutes posaient un `nom_raison_sociale`. Le pendant suisse levait deja sur son cote
+    // registre (`entries.legalNames.length === 0`) : les deux connecteurs disent desormais la
+    // meme chose des deux cotes de la comparaison.
+    it(
+      'enregistrement SANS AUCUN NOM (nom_raison_sociale ET nom_complet a null) -> unavailable : ' +
+        '« aucun nom au registre » n est pas « le nom concorde »',
+      async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async () =>
+            rechercheEntreprisesResponse([activeResult({ nom_raison_sociale: null, nom_complet: null })])
+          )
+        )
+        const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'Carrefour' }))
+        expect(row.result).toBe('unavailable')
+      }
+    )
+
+    it(
+      'raison sociale declaree faite de seule ponctuation -> unavailable, et jamais un appel reseau : ' +
+        'rien a comparer avant meme d avoir interroge le registre',
+      async () => {
+        const fetchSpy = vi.fn(async () => rechercheEntreprisesResponse([activeResult()]))
+        vi.stubGlobal('fetch', fetchSpy)
+        for (const declaree of ['-', '.', '&', '@@@', "'''"]) {
+          const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: declaree }))
+          expect(row.result, `legal_name ${JSON.stringify(declaree)}`).toBe('unavailable')
+        }
+        expect(fetchSpy).not.toHaveBeenCalled()
+      }
+    )
+
+    it(
+      'les DEUX a la fois (raison sociale declaree de seule ponctuation ET enregistrement sans nom) -> unavailable, ' +
+        'JAMAIS match : deux chaines vides ne sont pas une identite prouvee',
+      async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async () =>
+            rechercheEntreprisesResponse([activeResult({ nom_raison_sociale: null, nom_complet: null })])
+          )
+        )
+        const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: '-' }))
+        expect(row.result, 'c est exactement le corps qui faisait passer le veto').toBe('unavailable')
+      }
+    )
+
+    it(
+      'nom_complet reste la retombee quand nom_raison_sociale est absent -- le correctif ci-dessus ne ferme que ' +
+        'le cas ou il ne reste RIEN a comparer',
+      async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async () =>
+            rechercheEntreprisesResponse([activeResult({ nom_raison_sociale: null, nom_complet: 'CARREFOUR' })])
+          )
+        )
+        const row = await runKybSource(registryLegalNameMatchSource(), agencyFR({ legal_name: 'Carrefour' }))
+        expect(row.result).toBe('match')
+      }
+    )
 
     it('raison sociale identique au caractere pres -> match', async () => {
       vi.stubGlobal(
@@ -3760,10 +3852,12 @@ describe('connecteur Zefix par LINDAS (registry_lookup / registry_legal_name_mat
     )
   }
 
-  /** La reponse REELLE de LINDAS pour CHE105909036, mesuree en direct le 29.07.2026 (voir
-   *  .superpowers/sdd/task-2-report.md). DEUX entrees pour UN SEUL UID, avec des communes
-   *  differentes : ce sont les versions linguistiques officielles, toutes deux inscrites au
-   *  registre. Ce n'est pas un cas de bord, c'est le cas nominal d'une entite suisse. */
+  /** La reponse REELLE de LINDAS pour CHE105909036, mesuree en direct le 29.07.2026. DEUX
+   *  entrees pour UN SEUL UID, avec des communes differentes : c'est un DOUBLE SIEGE
+   *  STATUTAIRE (deux inscriptions cantonales de la meme entite), et les deux raisons
+   *  sociales sont inscrites. Ce n'est pas le cas nominal -- 3 UID sur 791 068 seulement
+   *  rendent plus d'un noeud (mesure du 29.07.2026, voir ZEFIX_UID_RESULT_LIMIT dans
+   *  _shared/kyb-sources.ts) -- mais c'est le seul cas ou la boucle du connecteur sert. */
   const NESTLE_BINDINGS = [binding('Nestlé AG', 'Cham'), binding('Nestlé S.A.', 'Vevey')]
 
   function stubLindas(bindings: Record<string, unknown>[]): ReturnType<typeof vi.fn> {
@@ -3983,11 +4077,11 @@ describe('connecteur Zefix par LINDAS (registry_lookup / registry_legal_name_mat
     }
   )
 
-  // ── registry_legal_name_match : toutes les versions linguistiques, et elles seules ──
+  // ── registry_legal_name_match : toutes les raisons sociales INSCRITES, et elles seules ──
 
   it(
     'registry_legal_name_match : la raison sociale declaree correspond a la SECONDE entree rendue -> match ' +
-      '(un meme UID rend plusieurs legalName, ce sont les versions linguistiques officielles)',
+      '(un double siege statutaire rend deux legalName, tous deux inscrits pour ce meme UID)',
     async () => {
       stubLindas(NESTLE_BINDINGS)
       const row = await runKybSource(zefixSource('registry_legal_name_match'), agencyCH({ legal_name: 'Nestlé S.A.' }))
@@ -4050,6 +4144,25 @@ describe('connecteur Zefix par LINDAS (registry_lookup / registry_legal_name_mat
     }
     expect(fetchSpy).not.toHaveBeenCalled()
   })
+
+  it(
+    'registry_legal_name_match : raison sociale declaree faite de seule ponctuation -> unavailable, jamais un ' +
+      'appel reseau (revue finale de branche, point 1 : meme remede que le registre francais)',
+    async () => {
+      // Ce cote-ci de la comparaison n'etait garde par AUCUN des deux connecteurs. Cote
+      // suisse, il ne pouvait pas produire de `match` -- mais par une propriete des DONNEES,
+      // pas par une garde : 0 raison sociale du graphe Zefix ne se reduit a vide (mesure en
+      // direct le 29.07.2026, FILTER sans lettre ni chiffre sur les 791 071 entrees). Une
+      // barriere accidentelle n'est pas une garde ; les deux connecteurs levent desormais.
+      const fetchSpy = vi.fn(async () => lindasResponse(NESTLE_BINDINGS))
+      vi.stubGlobal('fetch', fetchSpy)
+      for (const declaree of ['-', '.', '&', '@@@']) {
+        const row = await runKybSource(zefixSource('registry_legal_name_match'), agencyCH({ legal_name: declaree }))
+        expect(row.result, `legal_name ${JSON.stringify(declaree)}`).toBe('unavailable')
+      }
+      expect(fetchSpy).not.toHaveBeenCalled()
+    }
+  )
 
   // ── registry_country_match : l inscription au registre suisse ─────────────────
 

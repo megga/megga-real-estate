@@ -374,16 +374,19 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
     expect(reasons).toEqual([{ code: 'veto_missing_source' }])
   })
 
-  it('cas C bis — véto absent car AUCUN connecteur câblé (aucune ligne du tout, pas même "unavailable") : le cas suisse dominant en pratique', () => {
-    // registry_country_match n'a aucun connecteur
-    // (agency-verification-run/_shared/kyb-sources.ts, AGENCY_KYB_SOURCES) : il
-    // n'apparaît JAMAIS dans les checks retournés, contrairement à
-    // registry_lookup/registry_legal_name_match qui produisent toujours une ligne
-    // (au pire "unavailable"). registry_number_format était dans le même cas jusqu'au
-    // chantier LINDAS (tâche 1) : il a désormais son connecteur — un calcul de clé de
-    // contrôle, source `internal` — et produit lui aussi toujours une ligne. La fixture
-    // ci-dessous garde les deux absents : c'est la forme d'entrée que cette fonction
-    // doit savoir qualifier, pas un inventaire du registre.
+  it('cas C bis — véto absent car AUCUNE source applicable (aucune ligne du tout, pas même "unavailable") : ce que produit une juridiction hors CH/FR', () => {
+    // Ce commentaire a été deux fois périmé par le chantier LINDAS, et deux fois pour la
+    // même raison : les vétos d'entité y ont gagné des propriétaires. registry_number_format
+    // a le sien depuis la tâche 1 (un calcul de clé de contrôle, source `internal`, sans
+    // juridiction déclarée : il produit TOUJOURS une ligne, au pire "unavailable") ;
+    // registry_country_match en a DEUX depuis les tâches 2 et 3 (`zefix` pour un siège
+    // suisse, `recherche_entreprises` pour un siège français). Aucun des deux n'est donc
+    // encore "sans connecteur", et le cas suisse n'est plus celui que cette fixture décrit.
+    // Ce qui produit aujourd'hui l'absence TOTALE de ligne, c'est un siège hors CH/FR : les
+    // trois sources de registre déclarent leur juridiction (`appliesTo`) et sont écartées
+    // avant exécution, donc sans laisser de ligne. La fixture ci-dessous garde deux vétos
+    // absents : c'est la forme d'entrée que cette fonction doit savoir qualifier, pas un
+    // inventaire du registre.
     const reasons = qualifyReviewReasons({
       sweepAttempts: 0,
       score: 0.9,
