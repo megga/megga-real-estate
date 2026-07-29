@@ -168,12 +168,16 @@ serve(async (req) => {
     // Filtre de JURIDICTION (etape 6, tache 1) -- ICI, sur le registre complet compose
     // juste au-dessus, et jamais dans runAgencyKybSources() (qui doit continuer de
     // rendre une ligne par source qu'on lui donne : son contrat). Deux sources qui se
-    // partagent un check_type ne doivent jamais etre interrogees pour le meme siege,
+    // partagent un check_type ne doivent jamais etre interrogees pour le meme dossier,
     // sans quoi la derniere ligne inseree masquerait l'autre au moteur -- voir la
-    // section « Juridiction d'une source » de _shared/kyb-sources.ts. Aucun verdict ne
-    // bouge pour autant : le moteur traite `unavailable` et « ligne absente » a
-    // l'identique (exclus du numerateur ET du denominateur) ; ce qui n'a pas ete
+    // section « Juridiction d'une source » de _shared/kyb-sources.ts. Ce qui n'a pas ete
     // interroge passe dans sources_skipped ci-dessous, jamais dans un silence.
+    //
+    // Ecarter n'est neutre pour le verdict QUE si la source ecartee n'avait rien a
+    // repondre sur ce dossier (le moteur traite alors `unavailable` et « ligne absente »
+    // a l'identique). Une source ecartee qui aurait rendu un verdict emporte ce verdict :
+    // c'est ce qui est arrive a VIES sur un siege CH declarant une TVA a prefixe UE,
+    // corrige en revue finale (section « Qui possede vat_lookup » du module partage).
     const { applicable, skipped } = selectApplicableSources(agency, sources)
     const outcomes = await runAgencyKybSources(agency, applicable)
 

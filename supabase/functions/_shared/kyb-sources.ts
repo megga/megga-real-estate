@@ -9,7 +9,9 @@
 // le geocodage (address_geocode, Mapbox). L'etape 6 (tache 1) y ajoute la JURIDICTION
 // d'une source -- `appliesTo` + selectApplicableSources(), section dediee plus bas :
 // deux sources qui se partagent un check_type ne doivent jamais etre interrogees pour
-// le meme siege, sans quoi la derniere ligne inseree masquerait l'autre au moteur. Sa
+// le meme dossier, sans quoi la derniere ligne inseree masquerait l'autre au moteur --
+// mais ecarter une source qui aurait eu un verdict a rendre coute ce verdict, ce que la
+// revue finale a du corriger sur vat_lookup (section « Qui possede vat_lookup »). Sa
 // tache 2 y ajoute le SQUELETTE Zefix (registre du commerce suisse) : trois sources
 // cablees de bout en bout mais sans connecteur, faute d'identifiants -- section
 // « Squelette Zefix » plus bas, et les deux erreurs qui la precedent. Sa tache 3 y ajoute
@@ -151,14 +153,28 @@ export interface KybSource {
 // connecteur francais produit deja pour tout siege hors de France pourrait s'inserer
 // apres lui et le masquer : un veto reellement satisfait se lirait comme un veto absent
 // -- l'inverse exact de ce que la preuve dit. Departager cette collision serait deja
-// trop tard ; la regle ci-dessous la rend IMPOSSIBLE.
+// trop tard ; la regle ci-dessous la rend impossible.
+//
+// Impossible POUR LE check_type QU'UNE SOURCE DECLARE (source.checkType), et c'est la
+// totalite de ce que la regle promet -- la reserve merite d'etre ici, pas seulement dans
+// un commentaire de test. Un connecteur peut ecraser son type A L'EXECUTION via
+// KybSourceResult.check_type (c'est ce que fait RDAP, plus bas, pour
+// domain_generic_provider) : cette ecriture-la ne passe par aucun filtre, puisqu'elle
+// n'existe qu'une fois la source deja executee. Aucun type PARTAGE n'est produit de cette
+// facon aujourd'hui ; celui qui ecrira le parsing Zefix doit le verifier avant d'y recourir.
 //
 // La regle : une source declare la juridiction qu'elle couvre (`appliesTo`), et
-// selectApplicableSources() (plus bas) ecarte AVANT execution celles qui ne couvrent pas
-// le siege declare. Deux sources qui se partagent un check_type ne sont donc jamais
-// applicables au meme pays -- ni quand leur juridiction est INDETERMINABLE (predicat qui
-// leve) : elles sont alors ecartees toutes les deux, jamais gardees toutes les deux (voir
+// selectApplicableSources() (plus bas) ecarte AVANT execution celles qui ne couvrent pas le
+// dossier. Deux sources qui se partagent un check_type ne sont donc jamais applicables au
+// meme dossier -- ni quand leur juridiction est INDETERMINABLE (predicat qui leve) : elles
+// sont alors ecartees toutes les deux, jamais gardees toutes les deux (voir
 // selectApplicableSources, revue etape 6/tache 1).
+//
+// « Juridiction » ne veut PAS dire « pays du siege » par principe : c'est la source qui
+// declare ce qu'elle couvre. Les registres du commerce se departagent bien sur le siege
+// (Zefix/CH, recherche-entreprises/FR), mais vat_lookup se departage sur le PREFIXE DE TVA
+// DECLARE -- voir la section « Qui possede vat_lookup », et pourquoi confondre les deux a
+// coute un verdict.
 //
 // Ou le filtre vit : dans agency-verification-run/index.ts, JAMAIS dans
 // runAgencyKybSources(), qui doit continuer de rendre une ligne par source QU'ON LUI
@@ -166,10 +182,20 @@ export interface KybSource {
 // connecteurs (« siege hors France, source non interrogee ») restent la derniere ligne
 // de defense pour un appelant qui lui passerait une source sans filtrer.
 //
-// AUCUN VERDICT NE BOUGE : le moteur traite deja `unavailable` et « ligne absente » a
-// l'identique (exclus du numerateur ET du denominateur). Une source ecartee n'ecrit
-// simplement plus sa ligne `unavailable` -- elle passe dans `sources_skipped` du journal
-// du passage, pour que la trace dise ce qui n'a pas ete interroge, et pourquoi.
+// CE QU'ECARTER COUTE, ET LA OU IL FAUT REGARDER (corrige en revue finale de l'etape 6 --
+// ce paragraphe affirmait qu'aucun verdict ne bougeait, et c'etait faux). Ecarter une
+// source est neutre A UNE CONDITION : que la source ecartee n'ait rien eu a repondre sur
+// ce dossier, c'est-a-dire qu'elle aurait produit `unavailable`. La seule chose que le
+// moteur traite reellement a l'identique, c'est `unavailable` et « ligne absente » (exclus
+// du numerateur ET du denominateur, et un veto `unavailable` echoue comme un veto absent).
+// Quand la source ecartee AURAIT RENDU UN VERDICT, l'ecarter jette ce verdict -- et le
+// dossier ne vaut plus la meme chose. Mesure en base sur un dossier CH declarant une TVA a
+// prefixe UE : 0.200/manual_review avec le `mismatch` de VIES, 1.000/auto_validated sans.
+// Regle a retenir en ajoutant une juridiction : un predicat ne doit ecarter QUE des sources
+// qui n'auraient rien pu dire du dossier -- ce qui exige de regarder la donnee qu'elles
+// lisent (ici le prefixe de TVA), pas seulement le pays du siege. Ce qui est ecarte passe
+// dans `sources_skipped` du journal du passage, pour que la trace dise ce qui n'a pas ete
+// interroge, et pourquoi.
 
 /** Une source qu'aucune juridiction declaree ne rend applicable au dossier. Jointe
  *  telle quelle au journal du passage (p_metadata.sources_skipped, voir
@@ -488,17 +514,31 @@ interface ViesVatCountryAndNumber {
   vatNumber: string
 }
 
-/** Extrait le prefixe pays (2 lettres) et le numero depuis la TVA saisie librement --
- *  espaces/points/tirets courants dans la saisie humaine ("FR 10 632012100") retires
- *  avant decoupage. Leve TOUJOURS plutot que de choisir `unavailable` elle-meme (meme
- *  discipline que extractRdapDomain plus haut) si absent, trop court pour porter un
- *  prefixe+numero, ou si le prefixe n'est pas un code que VIES reconnait (CHE-...
- *  suisse par exemple) -- runKybSource() traduit le throw en `unavailable`. */
+/** Reduit la TVA saisie librement a une forme comparable -- espaces/points/tirets
+ *  courants dans la saisie humaine ("FR 10 632012100") retires, majuscules. `null` quand
+ *  il n'y a rien a lire, ou quand la saisie est trop courte pour porter un prefixe ET un
+ *  numero.
+ *
+ *  UN SEUL point de normalisation, et c'est delibere (revue finale etape 6) : le
+ *  connecteur VIES ci-dessous et le departage de juridiction de vat_lookup
+ *  (vatLookupOwner, plus bas) doivent lire EXACTEMENT le meme prefixe. S'ils divergeaient,
+ *  une source pourrait etre retenue sur un prefixe que son propre connecteur refuse -- ou
+ *  ecartee sur un prefixe qu'il aurait su traiter. */
+function normalizeDeclaredVat(tva: string | null): string | null {
+  const cleaned = tva?.replace(/[\s.-]/g, '').toUpperCase()
+  return cleaned && cleaned.length >= 3 ? cleaned : null
+}
+
+/** Extrait le prefixe pays (2 lettres) et le numero depuis la TVA saisie librement.
+ *  Leve TOUJOURS plutot que de choisir `unavailable` elle-meme (meme discipline que
+ *  extractRdapDomain plus haut) si absent, trop court pour porter un prefixe+numero, ou
+ *  si le prefixe n'est pas un code que VIES reconnait (CHE-... suisse par exemple) --
+ *  runKybSource() traduit le throw en `unavailable`. */
 function extractVatCountryAndNumber(tva: string | null): ViesVatCountryAndNumber {
   const raw = tva?.trim()
   if (!raw) throw new Error('vies: no tva declared')
-  const cleaned = raw.replace(/[\s.-]/g, '').toUpperCase()
-  if (cleaned.length < 3) throw new Error(`vies: unparseable tva "${raw}"`)
+  const cleaned = normalizeDeclaredVat(raw)
+  if (!cleaned) throw new Error(`vies: unparseable tva "${raw}"`)
   const countryCode = cleaned.slice(0, 2)
   const vatNumber = cleaned.slice(2)
   if (!EU_VIES_COUNTRY_CODES.has(countryCode)) {
@@ -555,23 +595,75 @@ async function runVatLookup(agency: AgencyForVerification, signal: AbortSignal):
   }
 }
 
+// ─── Qui possede vat_lookup -- le prefixe declare, PAS le seul pays du siege ───
+//
+// Corrige en revue finale de l'etape 6, et le defaut vaut d'etre ecrit ici plutot que
+// resume : `agencies.tva` est du TEXTE LIBRE -- ni le wizard
+// (src/components/crm-sugar-identity/steps/StepAgence.tsx) ni la base ne verifient que le
+// prefixe declare s'accorde avec le pays du siege. Un dossier CH peut donc porter une TVA
+// a prefixe UE, et VIES sait repondre sur ce numero-la : elle le faisait avant l'etape 6,
+// ou vatLookupSource n'avait AUCUN appliesTo et etait interrogee pour tout siege.
+//
+// Departager les deux proprietaires de vat_lookup sur le SEUL pays du siege ecartait donc
+// VIES d'un dossier sur lequel elle avait un verdict a rendre. Mesure en base sur ce
+// dossier exact, tous vetos poses a la main : `mismatch` (VIES interrogee) -> score 0.200,
+// manual_review ; `unavailable` (VIES ecartee, registre UID sans identifiants) -> score
+// 1.000, auto_validated. Un signal defavorable de poids 3.00 disparaissait du calcul, et
+// avec lui le passage oblige par la revue humaine -- donc par les gardes LAB
+// (_shared/agency-lab-guard.ts), qu'`auto_validated` ouvre.
+//
+// La regle : le PREFIXE prime, le siege ne tranche que ce que le prefixe ne tranche pas.
+// UN SEUL point de decision (vatLookupOwner) rend UNE valeur ; les deux `appliesTo` ne
+// font que la comparer a la leur. Il n'y a donc pas deux predicats a tenir d'accord :
+// l'exclusivite du type reste une propriete du code, y compris si la regle change.
+
 /** Pays dont la TVA releve du registre UID (etape 6) et jamais de VIES : ni la Suisse
  *  ni le Liechtenstein ne sont dans l'UE. Volontairement une EXCLUSION plutot que la
  *  liste des 27 Etats membres : seule la disjonction avec le registre UID est
  *  necessaire a l'exclusivite de vat_lookup, et une agence allemande doit rester
  *  interrogeable sans qu'on ait a maintenir une liste qui se perimerait. Ne PAS
  *  confondre avec EU_VIES_COUNTRY_CODES ci-dessus : celle-la porte des prefixes de TVA
- *  (EL pour la Grece, XI pour l'Irlande du Nord), pas des codes pays de siege -- et le
- *  connecteur rejette deja lui-meme un prefixe que VIES ne couvre pas. */
+ *  (EL pour la Grece, XI pour l'Irlande du Nord), pas des codes pays de siege -- et c'est
+ *  bien elle, pas celle-ci, que lit le premier temps de vatLookupOwner. */
 const UID_REGISTRY_COUNTRIES: ReadonlySet<string> = new Set(['CH', 'LI'])
+
+/** Les deux valeurs sont litteralement les `source` des deux KybSource proprietaires du
+ *  type (`vies` plus bas, `uid_register` dans la section « Squelette du registre UID ») --
+ *  verifie par la matrice de proprietaires de tests/backend/agency-verification-run.spec.ts. */
+type VatLookupOwner = 'vies' | 'uid_register'
+
+/**
+ * Qui, du connecteur VIES ou du registre UID, doit interroger la TVA de CE dossier.
+ * `null` quand ni l'un ni l'autre ne peut rien en dire. AU PLUS UN proprietaire par
+ * construction : une valeur unique ne peut pas en designer deux.
+ *
+ * Ordre delibere, et chacun des trois temps repond a un cas mesure (revue finale etape 6) :
+ *
+ *   1. Le PREFIXE d'abord. C'est lui, jamais le siege, qui dit quel registre PEUT
+ *      repondre : une TVA a prefixe UE se verifie chez VIES meme declaree par une agence
+ *      suisse -- exactement ce que faisait le code d'avant l'etape 6.
+ *   2. Le SIEGE ensuite, et lui seul, pour tout ce que le prefixe ne tranche pas (TVA
+ *      absente, prefixe CHE, saisie illisible) : CH/LI au registre UID, tout le reste a
+ *      VIES -- qui produira alors elle-meme l'`unavailable` qu'elle produisait deja avant
+ *      l'etape 6 sur une TVA qu'elle ne sait pas lire.
+ *   3. Sans pays declare ET sans prefixe couvert, personne. Une juridiction ne se devine
+ *      pas ; vat_lookup reste simplement absent du dossier, et c'est le SEUL des cas ou la
+ *      ligne change de forme par rapport a l'etat d'avant l'etape 6 (`unavailable`) --
+ *      jamais de portee : le moteur exclut les deux du numerateur ET du denominateur.
+ */
+function vatLookupOwner(agency: AgencyForVerification): VatLookupOwner | null {
+  const declaredVat = normalizeDeclaredVat(agency.tva)
+  if (declaredVat !== null && EU_VIES_COUNTRY_CODES.has(declaredVat.slice(0, 2))) return 'vies'
+
+  const country = declaredHeadOfficeCountry(agency)
+  if (country === null) return null
+  return UID_REGISTRY_COUNTRIES.has(country) ? 'uid_register' : 'vies'
+}
 
 const vatLookupSource: KybSource = {
   checkType: 'vat_lookup',
   source: 'vies',
-  appliesTo: (agency) => {
-    const country = declaredHeadOfficeCountry(agency)
-    return country !== null && !UID_REGISTRY_COUNTRIES.has(country)
-  },
+  appliesTo: (agency) => vatLookupOwner(agency) === 'vies',
   run: runVatLookup,
 }
 
@@ -1183,32 +1275,46 @@ export function createZefixSources(config: PendingSourceConfig): KybSource[] {
 // (vat_lookup, migration 20260728103000), et rien a lire dans une reponse qu'on ne connait
 // pas ne justifierait d'en decouper deux.
 //
-// AUCUN VERDICT NE BOUGE, et pour une raison DIFFERENTE de celle de Zefix -- la nuance
-// merite d'etre dite plutot que recopiee. Les trois lignes Zefix sont des VETOS : le
-// moteur (20260728130000) fait echouer un veto `unavailable` exactement comme un veto
-// ABSENT. vat_lookup n'est pas un veto mais un SIGNAL SCORABLE (weight 3.00, is_veto
-// false, meme migration) : ce qui le rend neutre, c'est que le moteur exclut `unavailable`
-// du numerateur ET du denominateur -- le score vaut donc EXACTEMENT ce qu'il valait quand
-// la ligne etait absente. Cette source ne retient aucun dossier et n'en debloque aucun ;
+// AUCUN VERDICT NE BOUGE LA OU CETTE SOURCE S'APPLIQUE -- et la PORTEE de cette phrase est
+// exactement ce que la revue finale de l'etape 6 a du corriger, l'affirmation valant
+// jusque-la pour tout dossier CH/LI. Cette source ne possede vat_lookup que sur une TVA
+// dont le prefixe n'est PAS couvert par VIES (voir « Qui possede vat_lookup » plus haut) ;
+// or sur une telle TVA, le connecteur VIES d'avant l'etape 6 levait de lui-meme (« country
+// code ... not covered », « no tva declared ») et produisait deja `unavailable`. Cette
+// source prend donc la place d'un `unavailable`, pour le meme resultat.
+//
+// Ce qui la rend neutre n'est PAS ce qui rend Zefix neutre, et la nuance merite d'etre dite
+// plutot que recopiee. Les trois lignes Zefix sont des VETOS : le moteur (20260728130000)
+// fait echouer un veto `unavailable` exactement comme un veto ABSENT. vat_lookup n'est pas
+// un veto mais un SIGNAL SCORABLE (weight 3.00, is_veto false, meme migration) : ce qui le
+// rend neutre, c'est l'exclusion de `unavailable` du numerateur ET du denominateur. Meme
+// conclusion, deux mecanismes.
+//
+// CE QUI SERAIT FAUX, et l'a ete : en conclure que le pays du siege pouvait a lui seul
+// decider qui interroge la TVA. Ecarter VIES d'un dossier CH qui declare une TVA a prefixe
+// UE lui retirait un `mismatch` de poids 3.00 -- mesure en base : 0.200/manual_review avec,
+// 1.000/auto_validated sans. Cette source ne retient aucun dossier et n'en debloque aucun ;
 // elle rend seulement lisible, dans le dossier, qu'une TVA suisse ou liechtensteinoise n'a
 // ete confirmee par personne. Verifie en base, pas suppose : voir les deux tests de preuve
-// du volet 2 de tests/backend/agency-verification-run.spec.ts.
+// du volet 2 de tests/backend/agency-verification-run.spec.ts, et le test de non-regression
+// du verdict qui les suit.
 
-/** Juridiction du registre UID : la Suisse ET le Liechtenstein. Le FL-UID liechtensteinois
- *  derive du systeme suisse par l'union douaniere et porte le meme prefixe CHE (doc de
- *  conception §3) -- la frontiere n'est donc PAS celle du registre du commerce, ou le
- *  Liechtenstein a le sien (`oera.li`) et sort de la juridiction Zefix (voir
- *  hasSwissHeadOffice plus haut). Deux decoupages differents pour deux registres
- *  differents, et c'est volontaire.
+/** Juridiction du registre UID : un siege en Suisse OU au Liechtenstein, et une TVA que
+ *  VIES ne couvre pas. Le FL-UID liechtensteinois derive du systeme suisse par l'union
+ *  douaniere et porte le meme prefixe CHE (doc de conception §3) -- la frontiere n'est donc
+ *  PAS celle du registre du commerce, ou le Liechtenstein a le sien (`oera.li`) et sort de
+ *  la juridiction Zefix (voir hasSwissHeadOffice plus haut). Deux decoupages differents
+ *  pour deux registres differents, et c'est volontaire.
  *
- *  Lit le MEME ensemble que VIES exclut (UID_REGISTRY_COUNTRIES, defini avec le connecteur
- *  VIES plus haut), jamais une copie : c'est ce qui fait de l'exclusivite sur vat_lookup
- *  une propriete du code et non une coincidence entretenue a la main. Les deux
- *  proprietaires du type se partagent litteralement la meme constante, l'un en inclusion,
- *  l'autre en exclusion -- aucun ne peut deriver sans que l'autre derive du meme geste. */
-function hasUidRegistryHeadOffice(agency: AgencyForVerification): boolean {
-  const country = declaredHeadOfficeCountry(agency)
-  return country !== null && UID_REGISTRY_COUNTRIES.has(country)
+ *  Ne reimplemente RIEN : lit vatLookupOwner (defini avec le connecteur VIES plus haut),
+ *  le point de decision unique du proprietaire de ce check_type. Les deux proprietaires
+ *  interrogent litteralement la meme fonction et comparent son unique valeur a la leur --
+ *  c'est ce qui fait de l'exclusivite sur vat_lookup une propriete du code, et non deux
+ *  predicats a tenir d'accord a la main. La TVA compte autant que le pays ici : un dossier
+ *  suisse qui declare une TVA a prefixe UE revient a VIES, qui sait y repondre (revue
+ *  finale etape 6). */
+function uidRegisterOwnsVatLookup(agency: AgencyForVerification): boolean {
+  return vatLookupOwner(agency) === 'uid_register'
 }
 
 /**
@@ -1232,7 +1338,7 @@ export function createUidRegisterSources(config: PendingSourceConfig): KybSource
       // jamais ete etabli et ou l'on ignore encore s'il existe une API a interroger. C'est
       // ce texte que lira un relecteur de la file admin devant deux `unavailable`.
       label: 'registre UID (numero de TVA suisse/liechtensteinois -- API jamais testee, acces non etabli)',
-      appliesTo: hasUidRegistryHeadOffice,
+      appliesTo: uidRegisterOwnsVatLookup,
       config,
     }),
   ]
@@ -1274,12 +1380,19 @@ export const AGENCY_KYB_SOURCES: KybSource[] = [
  * 'jurisdiction_undeterminable'. Le besoin reste le meme -- un predicat bogue ne doit
  * jamais faire echouer tout le passage, d'ou le catch -- mais sa DIRECTION est celle de
  * l'invariant (revue etape 6/tache 1) : garder la source rendrait la collision de
- * check_type de nouveau atteignable, puisque deux proprietaires du meme type sont
- * discrimines par le MEME helper de pays (declaredHeadOfficeCountry) et tomberaient
- * ensemble dans le catch -- deux lignes du meme type dans la meme transaction, dont la
- * derniere inseree masquerait l'autre. Ecarter est NEUTRE pour le verdict (le moteur
- * traite `unavailable` et « ligne absente » a l'identique, et un veto absent ne passe
- * pas) ; garder produirait un verdict FAUX. Entre les deux, on ecarte.
+ * check_type de nouveau atteignable, puisque deux proprietaires du meme type se decident
+ * sur le MEME point (declaredHeadOfficeCountry pour les registres, vatLookupOwner pour la
+ * TVA) et tomberaient ensemble dans le catch -- deux lignes du meme type dans la meme
+ * transaction, dont la derniere inseree masquerait l'autre.
+ *
+ * Ecarter n'est pas gratuit pour autant, et le dire ainsi est le correctif de la revue
+ * finale : une source ecartee qui aurait rendu un verdict emporte ce verdict avec elle
+ * (voir « Qui possede vat_lookup » plus haut, ou confondre juridiction et pays du siege
+ * avait fait passer un dossier de manual_review a auto_validated). Mais garder poserait une
+ * ligne CONCURRENTE du meme type : un verdict non seulement perdu, mais REMPLACE par un
+ * autre, sans trace. Entre perdre un verdict en le disant -- 'jurisdiction_undeterminable'
+ * est le seul signal qu'un predicat est bogue, et il atterrit dans p_metadata -- et en
+ * poser un faux en silence, on ecarte.
  */
 export function selectApplicableSources(
   agency: AgencyForVerification,

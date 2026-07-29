@@ -602,7 +602,9 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
     // Ecartee AVANT execution : le harnais ne voit meme pas la source, donc aucune
     // ligne -- ni `unavailable`, ni rien d'autre. C'est bien une absence de ligne,
     // que le moteur traite a l'identique d'un `unavailable` (exclu du numerateur ET
-    // du denominateur) : aucun verdict ne bouge.
+    // du denominateur). Le verdict ne bouge donc QUE si la source ecartee n'avait rien
+    // a repondre : ce qu'elle aurait rendu, elle ne le rend plus (revue finale etape 6,
+    // voir la matrice de proprietaires de vat_lookup en fin de fichier).
     const rows = await runAgencyKybSources(FAKE_AGENCY, applicable)
     expect(rows.map((r) => r.check_type)).toEqual(['address_geocode'])
   })
@@ -1212,6 +1214,139 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         ).toBe('auto_validated')
         expect(num(agency.verification_score)).toBeCloseTo(1, 3)
         expect(await lastVetoFailed(agencyId)).toBe(false)
+      }
+    )
+
+    // ─── Non-regression du VERDICT : le dossier CH a TVA europeenne (revue finale
+    //     etape 6) ────────────────────────────────────────────────────────────────
+    //
+    // L'etape 6 s'etait donne un critere explicite : aucun verdict ne devait changer. Le
+    // seul test qui pretendait le prouver n'assertait que `result === 'unavailable'`,
+    // jamais un score. Il en manquait donc un, et c'est celui-ci : il mesure le VERDICT
+    // contre le vrai moteur, sur le dossier exact ou le critere etait faux.
+    //
+    // Le routage vient du MODULE (selectApplicableSources sur le registre complet), pas
+    // d'une valeur ecrite a la main : c'est ce qui fait echouer ce test tant que la
+    // juridiction de vat_lookup se lit sur le seul pays du siege. Le passage complet n'est
+    // pas rejoue par l'Edge Function ici -- elle appellerait VIES pour de vrai depuis le
+    // runtime edge, un reseau reel dans la suite automatisee (discipline de ce fichier).
+
+    /** TVA a prefixe UE portee par un dossier suisse. agencies.tva est du TEXTE LIBRE :
+     *  ni le wizard (StepAgence.tsx) ni la base ne verifient l'accord prefixe/pays. Le
+     *  numero est invalide, VIES repond donc `valid:false` -> mismatch. */
+    const EU_PREFIXED_INVALID_TVA = 'FR00000000000'
+
+    async function setTva(agencyId: string, tva: string): Promise<void> {
+      const { error } = await serviceRoleClient().from('agencies').update({ tva }).eq('id', agencyId)
+      if (error) throw new Error(`update tva: ${error.message}`)
+    }
+
+    /** L'agence telle que l'Edge Function la donne aux connecteurs -- memes colonnes, lues
+     *  EN BASE et non fabriquees a la main : c'est la donnee reelle du dossier qui doit
+     *  designer le proprietaire de vat_lookup. */
+    async function readAgencyForVerification(agencyId: string): Promise<AgencyForVerification> {
+      const { data, error } = await serviceRoleClient()
+        .from('agencies')
+        .select(
+          'id, legal_name, trade_name, business_registration_number, country, canton, city, postal_code, address, website, tva'
+        )
+        .eq('id', agencyId)
+        .single()
+      if (error) throw new Error(`read agency for verification: ${error.message}`)
+      return data as unknown as AgencyForVerification
+    }
+
+    /** Le dossier du scenario : siege CH, TVA a prefixe UE, les quatre vetos d'entite et
+     *  les deux vetos de personne poses a la main en `match`, et UN SEUL signal scorable
+     *  (domain_whois_age, poids 0.75). Ce dosage n'est pas decoratif : avec ce seul signal,
+     *  la ligne vat_lookup (poids 3.00) fait a elle seule basculer le score de 1.000 a
+     *  0.75/3.75 = 0.200, donc le statut de auto_validated a manual_review. C'est ce qui
+     *  rend la difference MESURABLE plutot que theorique -- memes chiffres que la mesure de
+     *  la revue finale. */
+    async function createSwissDossierWithEuVatPrefix(label: string): Promise<string> {
+      const agencyId = await createAgency(label)
+      const signatoryId = await addActiveSignatory(agencyId)
+      await setCountry(agencyId, 'CH')
+      await setTva(agencyId, EU_PREFIXED_INVALID_TVA)
+      await insertAgencyChecks(agencyId, AGENCY_VETO_TYPES, 'match')
+      await insertAgencyChecks(agencyId, ['domain_whois_age'], 'match')
+      await insertPersonChecks(signatoryId, PERSON_VETO_TYPES, 'match')
+      return agencyId
+    }
+
+    it(
+      'un siege CH qui declare une TVA a prefixe UE reste interroge par VIES : son mismatch retient le dossier ' +
+        'en manual_review (0.200), la ou un unavailable l aurait auto-valide (1.000)',
+      async () => {
+        const agencyId = await createSwissDossierWithEuVatPrefix('nonreg-tva-ue')
+        const agency = await readAgencyForVerification(agencyId)
+
+        // Le registre COMPLET, filtre par le module lui-meme -- exactement ce que fait
+        // l'Edge Function avant d'executer quoi que ce soit.
+        const { applicable } = selectApplicableSources(agency, fullKybRegistry())
+        const vatSources = applicable.filter((s) => s.checkType === 'vat_lookup')
+
+        // VIES stubbe le temps de l'appel, et RIEN d'autre : le client Supabase se sert du
+        // meme fetch global, d'ou le retrait immediat du stub avant toute requete en base.
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async () => new Response(JSON.stringify({ valid: false }), { status: 200 }))
+        )
+        let rows: Awaited<ReturnType<typeof runAgencyKybSources>>
+        try {
+          rows = await runAgencyKybSources(agency, vatSources)
+        } finally {
+          vi.unstubAllGlobals()
+        }
+
+        expect(rows, 'un seul proprietaire de vat_lookup, jamais deux ni zero').toHaveLength(1)
+        expect(rows[0], 'le prefixe declare designe VIES, et VIES a un verdict a rendre').toMatchObject({
+          check_type: 'vat_lookup',
+          source: 'vies',
+          result: 'mismatch',
+        })
+
+        const { error: insErr } = await serviceRoleClient()
+          .from('agency_verification_checks')
+          .insert(rows.map((r) => ({ agency_id: agencyId, ...r })))
+        if (insErr) throw new Error(`seed vat_lookup row: ${insErr.message}`)
+        await recompute(agencyId)
+
+        const after = await getAgency(agencyId)
+        expect(
+          num(after.verification_score),
+          'un seul signal scorable en match (0.75) contre le mismatch de la TVA (3.00)'
+        ).toBeCloseTo(0.2, 3)
+        expect(
+          after.verification_status,
+          'le seul signal defavorable du dossier doit continuer de le retenir en revue humaine'
+        ).toBe('manual_review')
+        expect(await lastVetoFailed(agencyId), 'aucun veto ne retient ce dossier : c est bien le SCORE').toBe(false)
+
+        // Le temoin qui rend la mesure concluante : le MEME dossier, avec la ligne
+        // `unavailable` que produisait l'etape 6 avant ce correctif (VIES ecartee, registre
+        // UID sans identifiants). Le signal defavorable sort du numerateur ET du
+        // denominateur, le score remonte a 1.000 et le dossier s'auto-valide -- sans qu'un
+        // relecteur, qui ne regarde pas la TVA, voie jamais passer la difference.
+        const temoinId = await createSwissDossierWithEuVatPrefix('nonreg-tva-ue-temoin')
+        const { error: temoinErr } = await serviceRoleClient()
+          .from('agency_verification_checks')
+          .insert({
+            agency_id: temoinId,
+            check_type: 'vat_lookup',
+            source: 'uid_register',
+            result: 'unavailable',
+            raw_response: { reason: 'error', error_type: 'KybSourcePendingCredentialsError' },
+          })
+        if (temoinErr) throw new Error(`seed temoin row: ${temoinErr.message}`)
+        await recompute(temoinId)
+
+        const temoin = await getAgency(temoinId)
+        expect(num(temoin.verification_score)).toBeCloseTo(1, 3)
+        expect(
+          temoin.verification_status,
+          'si le temoin ne s auto-valide pas, la mesure ci-dessus ne prouve rien sur le verdict'
+        ).toBe('auto_validated')
       }
     )
 
@@ -3113,20 +3248,96 @@ describe('squelette du registre UID (vat_lookup) -- aucun reseau', () => {
   )
 
   it(
-    'aucun verdict ne bouge : la ligne vat_lookup `unavailable` vaut exactement la ligne ABSENTE d avant ' +
-      '(vat_lookup est un signal SCORABLE, pas un veto -- exclu du numerateur ET du denominateur)',
+    'la ligne vat_lookup du registre UID est `unavailable`, jamais un verdict fabrique -- et elle prend la ' +
+      'place d un `unavailable` (le connecteur VIES levait deja sur une TVA a prefixe CHE avant l etape 6)',
     async () => {
-      // Nuance qui distingue cette source des trois de Zefix, et qu'il serait faux de
-      // recopier : les trois lignes Zefix sont des VETOS, neutres parce que le moteur fait
-      // echouer un veto `unavailable` exactement comme un veto absent. vat_lookup, lui,
-      // porte weight 3.00 / is_veto false (20260728103000) : ce qui le rend neutre, c'est
-      // l'exclusion de `unavailable` du numerateur ET du denominateur. Meme conclusion,
-      // deux mecanismes -- la contrepartie en base est le couple de tests de preuve du
-      // volet 2, ou le score reste a 1.000 malgre cette ligne.
+      // Ce que ce test prouve, et RIEN DE PLUS (revue finale etape 6) : la forme de la
+      // ligne. Son intitule pretendait avant « aucun verdict ne bouge » sans jamais
+      // comparer un score -- l'egalite des verdicts se mesure contre le vrai moteur, et
+      // c'est le test de non-regression du volet 2 qui la mesure, chiffres a l'appui.
+      // La nuance qui distingue cette source des trois de Zefix reste vraie et vaut d'etre
+      // dite : les lignes Zefix sont des VETOS, neutres parce que le moteur fait echouer un
+      // veto `unavailable` exactement comme un veto absent ; vat_lookup porte weight 3.00 /
+      // is_veto false (20260728103000) et n'est neutre que parce que `unavailable` sort du
+      // numerateur ET du denominateur. Meme conclusion, deux mecanismes.
       vi.stubGlobal('fetch', vi.fn())
       const rows = await runAgencyKybSources(agencyIn('CH'), createUidRegisterSources(UID_REGISTER_PENDING_CONFIG))
       expect(rows).toHaveLength(1)
       expect(rows[0].result, 'jamais match, jamais partial, jamais mismatch').toBe('unavailable')
+    }
+  )
+
+  // ─── Qui possede vat_lookup : le prefixe declare, pas le seul pays du siege
+  //     (revue finale etape 6) ────────────────────────────────────────────────────
+  //
+  // agencies.tva est du TEXTE LIBRE (ni StepAgence.tsx ni la base ne verifient que le
+  // prefixe s'accorde avec le pays du siege). Departager les deux proprietaires de
+  // vat_lookup sur le seul pays du siege ecartait donc VIES d'un dossier CH declarant une
+  // TVA a prefixe UE -- un dossier sur lequel elle avait pourtant un verdict a rendre, et
+  // le rendait avant l'etape 6. Les deux tests qui suivent verrouillent le departage ;
+  // c'est le volet 2 qui en mesure la consequence sur le verdict.
+
+  /** TVA a prefixe UE et numero invalide -- exactement le dossier du scenario : VIES
+   *  reconnait le prefixe, interroge son service, et repond `valid:false`. */
+  const EU_PREFIXED_INVALID_TVA = 'FR00000000000'
+  const SWISS_TVA = 'CHE-123.456.789'
+
+  function vatLookupOwners(country: string | null, tva: string | null): string[] {
+    const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country, tva }, fullKybRegistry())
+    return applicable.filter((s) => s.checkType === 'vat_lookup').map((s) => s.source)
+  }
+
+  it(
+    'proprietaire de vat_lookup selon (siege, prefixe declare) : au plus un a chaque fois, et jamais ZERO ' +
+      'la ou le code d avant l etape 6 rendait un verdict',
+    () => {
+      // Les huit combinaisons de la revue, et pour chacune ce que produisait le code
+      // d'avant l'etape 6 (36f90582 : vatLookupSource sans aucun appliesTo, donc VIES
+      // interrogee pour TOUT siege). `owners` vide est acceptable UNIQUEMENT la ou VIES
+      // levait d'elle-meme -- sa ligne valait alors `unavailable`, que le moteur traite
+      // exactement comme la ligne absente. Partout ou elle rendait un VERDICT, un
+      // proprietaire doit rester, et ce doit etre VIES.
+      const matrix: { country: string | null; tva: string | null; owners: string[]; avant: string }[] = [
+        { country: 'CH', tva: EU_PREFIXED_INVALID_TVA, owners: ['vies'], avant: 'VIES repondait : mismatch' },
+        { country: 'CH', tva: SWISS_TVA, owners: ['uid_register'], avant: 'VIES levait : unavailable' },
+        { country: 'CH', tva: null, owners: ['uid_register'], avant: 'VIES levait : unavailable' },
+        { country: 'FR', tva: EU_PREFIXED_INVALID_TVA, owners: ['vies'], avant: 'VIES repondait : mismatch' },
+        { country: 'FR', tva: SWISS_TVA, owners: ['vies'], avant: 'VIES levait : unavailable' },
+        { country: 'FR', tva: null, owners: ['vies'], avant: 'VIES levait : unavailable' },
+        { country: 'DE', tva: null, owners: ['vies'], avant: 'VIES levait : unavailable' },
+        { country: 'DE', tva: 'DE123456789', owners: ['vies'], avant: 'VIES repondait' },
+        // Pays absent : le seul des huit cas ou la ligne change de FORME. Sans prefixe
+        // couvert, plus personne n'ecrit rien (avant : `unavailable`) -- meme portee pour
+        // le moteur. Avec un prefixe couvert, VIES reste proprietaire et rend son verdict.
+        { country: null, tva: null, owners: [], avant: 'VIES levait : unavailable' },
+        { country: null, tva: EU_PREFIXED_INVALID_TVA, owners: ['vies'], avant: 'VIES repondait : mismatch' },
+      ]
+
+      for (const row of matrix) {
+        expect(
+          vatLookupOwners(row.country, row.tva),
+          `siege=${row.country ?? 'absent'} tva=${row.tva ?? 'absente'} (avant l etape 6 : ${row.avant})`
+        ).toEqual(row.owners)
+      }
+    }
+  )
+
+  it(
+    'siege CH declarant une TVA a prefixe UE : VIES est bien interrogee et rend le meme mismatch qu avant ' +
+      'l etape 6, jamais un unavailable qui retirerait du dossier son seul signal defavorable',
+    async () => {
+      const agency: AgencyForVerification = { ...FAKE_AGENCY, country: 'CH', tva: EU_PREFIXED_INVALID_TVA }
+      const { applicable } = selectApplicableSources(agency, fullKybRegistry())
+      const vatSources = applicable.filter((s) => s.checkType === 'vat_lookup')
+      expect(vatSources.map((s) => s.source), 'le prefixe declare designe VIES, pas le registre UID').toEqual(['vies'])
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response(JSON.stringify({ valid: false }), { status: 200 }))
+      )
+      const rows = await runAgencyKybSources(agency, vatSources)
+      expect(rows).toHaveLength(1)
+      expect(rows[0]).toMatchObject({ check_type: 'vat_lookup', source: 'vies', result: 'mismatch' })
     }
   )
 })
