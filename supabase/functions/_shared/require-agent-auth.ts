@@ -12,6 +12,7 @@
 //   // profile.agency_id is the only trusted source of agency identity.
 
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isNonUserToken } from './bearer-token.ts'
 
 export interface AgentAuthContext {
   user: { id: string; email?: string }
@@ -45,6 +46,16 @@ export async function requireAgentAuth(
   if (!token) {
     return new Response(
       JSON.stringify({ error: 'Authentication required' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
+  }
+
+  // Une clé d'API du projet (anon / service_role) est un JWT sans `sub` : GoTrue
+  // la refuse à coup sûr. On tranche donc ici — même réponse qu'en dessous, mais
+  // sans l'aller-retour ni la ligne d'erreur dans les journaux d'auth.
+  if (isNonUserToken(token)) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid or expired session' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
