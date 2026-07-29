@@ -103,11 +103,42 @@ npm run lint         # ESLint
 **⚠ Sugar Pure (Pipeline v2, juillet 2026)** : les surfaces refondues (Pipeline
 kanban/liste/timeline, modale Nouveau deal, fiche deal V4) suivent la grammaire
 « Sugar Pure » qui PRIME sur les règles bento ci-dessous : séparation par **ombre
-douce sans bordure décorative**, accent noir unique (`sp.accent`), teinte sombre
-par défaut **noir #000000** (`SUGAR_DARK_TONE`), teintes d'étape `SG_STAGE_HUE`
-+ dérivations `sgMix` figées, pilules à fond plein + texte blanc. Détails :
-[docs/design-system.md](docs/design-system.md) §Sugar Pure ; source pixel =
-handoff `design_handoff_pipeline_refonte_v2`.
+douce sans bordure décorative**, accent noir unique (`sp.accent`), teintes d'étape
+`SG_STAGE_HUE` + dérivations `sgMix` figées, pilules à fond plein + texte blanc.
+Détails : [docs/design-system.md](docs/design-system.md) §Sugar Pure ; source
+pixel = handoff `design_handoff_pipeline_refonte_v2`.
+
+**🌒 Échelle sombre « Graphite » (défaut produit, handoff du 29 juil. 2026)** —
+le sombre des surfaces Sugar n'empile plus des blancs translucides : c'est une
+échelle de surfaces **OPAQUES** entre `#12161C` et `#21242F`, 5 paliers d'écart
+de luminance constant, source unique `CRM_GRAPHITE`
+([tokens.ts](src/components/crm-sugar/tokens.ts)).
+
+| Palier | Valeur | Rôle | Token |
+|---|---|---|---|
+| S0 | `#12161C` | canvas — pages, pagers, fiches | `sp.pageBg` |
+| S1 | `#161A21` | cadre bento, rail, top nav | `sp.frameBg` |
+| S2 | `#1A1D26` | cards, colonnes, lignes | `sp.cardBg` |
+| S3 | `#1D212A` | sous-cards, inputs, chips, hover | `sp.cardSubBg` |
+| S4 | `#21242F` | **plafond** — modales, popovers, menus, ⌘K | `sp.solidBg` |
+
+1. **Jamais de blanc translucide en REMPLISSAGE.** `rgba(255,255,255,α)` ne sert
+   plus que de filet ou de voile SUR l'accent.
+2. **On ne monte jamais au-dessus de S4.** Une sous-surface de modale se CREUSE
+   (`solidBgSub` = S3). Toute surface flottante — menu, popover, tiroir — prend
+   `sp.solidBg` + `sp.solidBorder` + `sp.solidShadow`, jamais le palier « card »
+   ni le canvas.
+3. **Consommer `sp.*` d'abord.** Pour un littéral local, `crmStep('s3', '<valeur
+   historique>')`, uniquement dans une branche déjà gardée par `dark ? … : …`.
+   Pour une palette montée une fois, **un getter** (`get card() { return
+   crmStep('s2', '#17181A') }`) — sinon la valeur se fige au chargement.
+4. **Teinte choisie par l'agent** (Réglages › Préférences › Apparence) :
+   Graphite par défaut, Noir pur conservé ; `useDarkTone()` côté React,
+   `crmDarkTone()` hors React, persistance `localStorage['megga.darkTone']`.
+   `marine`/`meggaAi` sont retirés de l'offre mais restent résolvables.
+
+Garde-fou : [tests/unit/graphite-scale.spec.ts](tests/unit/graphite-scale.spec.ts)
+(plage étanche, AA de `muted`, bascule à chaud des palettes dérivées).
 
 **Règles visuelles clés :**
 - Bentos : `rounded-xl border border-theme-border` — PAS d'ombres
