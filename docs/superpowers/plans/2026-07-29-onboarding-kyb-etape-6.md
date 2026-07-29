@@ -175,9 +175,21 @@ rejette déjà lui-même un préfixe de TVA que VIES ne couvre pas.
 ne reçoit plus de lignes `registry_lookup`, `registry_legal_name_match` ni `vat_lookup`
 (elle en recevait trois, toutes `unavailable`). Une agence suisse n'en reçoit plus deux
 « siège hors France ». Le moteur traite déjà `unavailable` et « ligne absente » à
-l'identique — aucun score, aucun statut ne bouge — et la trace de ce qui n'a pas été
-interrogé passe dans `sources_skipped`. Une agence française, seul pays réellement couvert
-aujourd'hui, ne change en rien.
+l'identique, et la trace de ce qui n'a pas été interrogé passe dans `sources_skipped`.
+Une agence française, seul pays réellement couvert aujourd'hui, ne change en rien.
+
+> **Corrigé après la revue finale.** Ce paragraphe affirmait ici qu'aucun score ni statut
+> ne bougeait. C'était vrai d'une source qui aurait de toute façon produit `unavailable`,
+> et faux d'une source **écartée qui aurait tranché** : VIES n'avait aucune juridiction
+> avant cette étape, donc elle répondait aussi pour un siège CH ou sans pays déclarant
+> une TVA à préfixe européen, et son verdict pesait 3.00 au score. L'écarter faisait
+> monter le score, jusqu'à basculer en `auto_validated` un dossier qui partait en revue
+> humaine — mesuré contre le moteur : 0.200 puis 1.000. Le correctif fait porter la
+> propriété de `vat_lookup` par le **préfixe de TVA déclaré** avant le pays du siège, de
+> sorte que le verdict d'avant l'étape soit rendu à l'identique dans les huit
+> combinaisons. La leçon vaut au-delà de ce cas : « le moteur traite `unavailable` et
+> ligne absente à l'identique » ne dit rien du verdict qu'une source aurait rendu si on
+> l'avait laissée répondre.
 
 **Tests :**
 - Matrice d'exclusivité, le test qui porte toute la tâche : pour chaque pays de
