@@ -25,6 +25,14 @@
 
 -- ─── (1) get_admin_agency_review_queue() : la liste ─────────────────────────────────
 --
+-- ⚠ REMPLACEE par 20260729160000_agency_review_queue_pagination.sql (correctif de revue,
+-- etape 6) : la version ci-dessous ne porte AUCUN limit, et PostgREST tronque toute
+-- reponse a max_rows (1000) en silence -- passe 1000 dossiers en manual_review, les MIEUX
+-- notes tombaient hors de la file et devenaient intranchables. La signature qui fait foi
+-- est desormais (p_limit integer, p_offset integer), avec une colonne total_count et un
+-- departage de tri par id. Tout ce qui suit reste exact SAUF ces trois points ; le
+-- raisonnement complet vit dans la migration de correctif.
+--
 -- Un seul filtre : verification_status = 'manual_review'. Volontairement SANS colonne
 -- de priorite derivee (decision de conception d'Antoine, docs/superpowers/specs/
 -- 2026-07-26-onboarding-kyb-design.md §10) : le tri sur le score suffit.

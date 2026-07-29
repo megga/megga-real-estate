@@ -524,6 +524,12 @@ Sur `admin.megga.ch`, application séparée (`npm run build:admin`), pas dans le
 
 - Liste triée par score croissant, les plus douteux en tête. Pas de colonne de priorité
   dérivée, ta décision.
+- Liste **paginée**, et l'écran affiche toujours **combien de dossiers attendent au
+  total**. Ce n'est pas du confort : sans limite explicite, PostgREST coupait la réponse
+  à 1 000 lignes sans le dire, et comme le tri est croissant, ce sont les dossiers les
+  **mieux notés** qui disparaissaient de la file. Invisibles, donc jamais tranchés, alors
+  que la revue humaine est l'unique voie de sortie (§7bis). Reproduit en base à 1 448
+  dossiers avant correction.
 - Dossier détaillé : chaque check avec son type, sa source, son poids applicable à la
   date du check, son résultat et sa réponse brute. C'est ce qui permet de justifier
   check par check pourquoi un dossier a été validé.

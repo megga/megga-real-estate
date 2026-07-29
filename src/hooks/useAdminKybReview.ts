@@ -1,8 +1,9 @@
 /**
  * Hooks super-admin — file de revue KYB (étape 5, tâche 3).
  *
- * `useAdminKybReviewQueue` liste les dossiers en `manual_review`
- * (get_admin_agency_review_queue, 20260728160000). `useAdminKybReviewDetail`
+ * `useAdminKybReviewQueue` liste UNE PAGE des dossiers en `manual_review`, avec le
+ * nombre total en attente (get_admin_agency_review_queue, 20260728160000 — paginée
+ * par le correctif de revue étape 6, voir son en-tête). `useAdminKybReviewDetail`
  * assemble, pour UN dossier, quatre lectures : les checks eux-mêmes
  * (get_admin_agency_review_detail), les personnes liées + leurs rôles (pour
  * légender les checks « personne » avec un nom plutôt qu'un UUID, et calculer
@@ -27,7 +28,7 @@
  * juste après. À nettoyer (retirer `db`, repasser sur `supabase` typé) à la
  * prochaine régénération (`supabase gen types typescript --local`).
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { CheckResult, PersonRoleRow } from '@/pages/admin/AdminKybReviewPage'
@@ -48,6 +49,11 @@ export interface KybReviewQueueRow {
 
 const QUEUE_KEY = ['admin-kyb-review-queue'] as const
 
+/** Dossiers par page. Reprend le défaut de la RPC (patron des RPC admin voisines,
+ *  20260726002000). La RPC plafonne de toute façon à 1000 = `max_rows` de PostgREST
+ *  (supabase/config.toml) : au-delà, la réponse serait tronquée en silence. */
+export const KYB_REVIEW_PAGE_SIZE = 50
+
 interface QueueRpcRow {
   agency_id: string
   agency_name: string
@@ -56,30 +62,95 @@ interface QueueRpcRow {
   verification_score: number | null
   identity_submitted_at: string | null
   verification_sweep_attempts: number
+  /** Nombre TOTAL de dossiers en attente, répété sur chaque ligne (sous-requête scalaire
+   *  côté RPC). `bigint` en SQL : PostgREST peut le rendre en nombre ou en texte, d'où
+   *  le `Number()` plutôt qu'une confiance aveugle au type. */
+  total_count: number | string
 }
 
-/** File des dossiers `manual_review`, déjà triée par score croissant (NULLS FIRST) côté RPC. */
-export function useAdminKybReviewQueue() {
+export interface KybReviewQueuePage {
+  rows: KybReviewQueueRow[]
+  /** Dossiers en attente TOUTES pages confondues — jamais `rows.length`, qui ne dit
+   *  que la taille de la fenêtre courante. */
+  total: number
+  /** Décalage RÉELLEMENT servi, qui peut différer de celui demandé quand la file a
+   *  rétréci sous le relecteur (voir `useAdminKybReviewQueue`). L'écran numérote la
+   *  page à partir d'ICI, jamais à partir de ce qu'il a demandé. */
+  servedOffset: number
+}
+
+/** Une lecture de la RPC paginée, remise en forme camelCase. `limit` n'est explicite
+ *  que pour la sonde d'une seule ligne du repli ci-dessous ; tout le reste lit une page
+ *  entière. */
+async function fetchQueuePage(offset: number, limit = KYB_REVIEW_PAGE_SIZE): Promise<KybReviewQueuePage> {
+  const res = await db.rpc('get_admin_agency_review_queue', { p_limit: limit, p_offset: offset })
+  const { data, error } = res as unknown as { data: QueueRpcRow[] | null; error: { message: string } | null }
+  if (error) throw new Error(error.message)
+  const rpcRows = data ?? []
+  return {
+    rows: rpcRows.map((r) => ({
+      agencyId: r.agency_id,
+      agencyName: r.agency_name,
+      country: r.country,
+      verificationStatus: r.verification_status,
+      verificationScore: r.verification_score,
+      identitySubmittedAt: r.identity_submitted_at,
+      verificationSweepAttempts: r.verification_sweep_attempts,
+    })),
+    // `total_count` est répété sur chaque ligne : une page vide n'en porte donc aucun,
+    // d'où le 0 — que l'appelant ne doit jamais lire comme « la file est vide » sans
+    // avoir vérifié (cf. le repli de useAdminKybReviewQueue).
+    total: rpcRows.length > 0 ? Number(rpcRows[0]!.total_count) : 0,
+    servedOffset: offset,
+  }
+}
+
+/**
+ * Une PAGE de la file `manual_review`, déjà triée par score croissant (NULLS FIRST)
+ * côté RPC, accompagnée du total réel.
+ *
+ * Paginée depuis le correctif de revue étape 6 : sans `p_limit`/`p_offset`, PostgREST
+ * coupait la réponse à `max_rows` (1000, supabase/config.toml) sans le dire, et comme
+ * le tri est croissant, ce sont les dossiers les MIEUX notés qui disparaissaient —
+ * invisibles, donc jamais tranchés, sur un dispositif où la revue humaine est l'unique
+ * voie de sortie (docs/agency-kyb-handoff.md §7bis).
+ *
+ * Se replie sur la DERNIÈRE page réelle quand `offset` tombe au-delà de la fin. Ce cas
+ * n'a rien d'exotique : un relecteur qui tranche les derniers dossiers de la dernière
+ * page la vide sous ses propres pieds. Le repli vit ici, dans la fonction de lecture,
+ * plutôt que dans un effet côté écran qui corrigerait un `useState` après coup —
+ * `setState` synchrone dans un effet déclenche un rendu en cascade
+ * (react-hooks/set-state-in-effect), que ce fichier et AdminKybReviewPage évitent
+ * partout ailleurs. `servedOffset` dit ensuite à l'écran quelle page il regarde
+ * VRAIMENT ; il n'a plus rien à corriger.
+ */
+export function useAdminKybReviewQueue(offset = 0) {
   return useQuery({
-    queryKey: QUEUE_KEY,
-    queryFn: async (): Promise<KybReviewQueueRow[]> => {
-      const res = await db.rpc('get_admin_agency_review_queue')
-      const { data, error } = res as unknown as { data: QueueRpcRow[] | null; error: { message: string } | null }
-      if (error) throw new Error(error.message)
-      return (data ?? []).map((r) => ({
-        agencyId: r.agency_id,
-        agencyName: r.agency_name,
-        country: r.country,
-        verificationStatus: r.verification_status,
-        verificationScore: r.verification_score,
-        identitySubmittedAt: r.identity_submitted_at,
-        verificationSweepAttempts: r.verification_sweep_attempts,
-      }))
+    // L'offset entre dans la clé, QUEUE_KEY restant le préfixe : chaque page se cache
+    // séparément, et une invalidation sur QUEUE_KEY les atteint toutes d'un coup.
+    queryKey: [...QUEUE_KEY, offset],
+    queryFn: async (): Promise<KybReviewQueuePage> => {
+      const page = await fetchQueuePage(offset)
+      if (page.rows.length > 0 || offset === 0) return page
+
+      // Fenêtre au-delà de la fin : une page vide ne porte AUCUN total (la colonne vit
+      // sur les lignes), donc impossible de savoir d'ici si la file est terminée ou si
+      // elle a simplement rétréci. Une lecture d'une seule ligne tranche la question
+      // sans ramener de données inutiles.
+      const head = await fetchQueuePage(0, 1)
+      if (head.total === 0) return { rows: [], total: 0, servedOffset: 0 }
+
+      const lastOffset = Math.floor((head.total - 1) / KYB_REVIEW_PAGE_SIZE) * KYB_REVIEW_PAGE_SIZE
+      return await fetchQueuePage(lastOffset)
     },
     // File de travail partagée entre relecteurs : fraîcheur courte plutôt que le
     // défaut habituel, pour qu'un dossier tranché par un collègue ne traîne pas
     // trop longtemps dans la liste d'un autre.
     staleTime: 15_000,
+    // Garde la page précédente affichée pendant le chargement de la suivante : sans
+    // cela, chaque changement de page repasse par le squelette et fait « sauter » la
+    // liste sous le curseur du relecteur.
+    placeholderData: keepPreviousData,
   })
 }
 
