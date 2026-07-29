@@ -33,7 +33,7 @@ parcours d'onboarding est maintenant cadré et décidé.
 | Moteur de scoring | fait, étape 3, ta conception §7 reprise telle quelle |
 | Connecteurs disponibles | fait, étape 4 (RDAP, VIES, registre FR, géocodage) |
 | File de revue admin et gardes LAB | fait, étape 5 |
-| Connecteurs Zefix et UID | bloqués, étape 6 |
+| Connecteurs Zefix et UID | squelette posé, étape 6 — reste l'URL, l'authentification, le parsing |
 
 **Six étapes sur sept ne dépendent d'aucune réponse externe.** Tu peux tout enchaîner
 sans attendre Zefix.
