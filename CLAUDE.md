@@ -323,7 +323,6 @@ DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
 MAPBOX_TOKEN,
-ZEFIX_API_URL, ZEFIX_API_CREDENTIAL,
 UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 ```
 
@@ -333,16 +332,21 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 > build. La même valeur convient. Sans lui, le check `address_geocode` produit
 > `unavailable`, ce qui ne casse rien mais retire un signal du score.
 
-> ⚠ **Les quatre variables Zefix / UID ne sont PAS encore configurées** (aucun secret
-> Supabase, aucune entrée `supabase/config.toml`). Zefix répond `401` et les identifiants
-> demandés à `zefix@bj.admin.ch` sont sans réponse ; pour le registre UID, on ignore encore
-> s'il existe une API séparée. Les squelettes de connecteurs (étape 6 du KYB agences,
-> `supabase/functions/_shared/kyb-sources.ts`) les lisent déjà : vides, les checks
-> `registry_lookup`, `registry_legal_name_match`, `registry_country_match` (CH) et
-> `vat_lookup` (CH/LI) produisent `unavailable`, ce qui ne casse rien et ne change aucun
-> verdict. Les poser **sans écrire le connecteur** ne débloque rien non plus, et le signale
-> explicitement (`KybSourceNotWiredError`). Détail et état de la demande :
-> [docs/agency-kyb-handoff.md](docs/agency-kyb-handoff.md) §6 étape 6 et §8.
+> ⚠ **Les deux variables du registre UID ne sont PAS configurées** (aucun secret Supabase,
+> aucune entrée `supabase/config.toml`) : on ignore encore s'il existe une API séparée pour
+> la TVA suisse/liechtensteinoise, ou si ce n'est qu'un champ Zefix. Le squelette de
+> connecteur (étape 6 du KYB agences, `supabase/functions/_shared/kyb-sources.ts`) les lit
+> déjà : vides, le check `vat_lookup` (CH/LI) produit `unavailable`, ce qui ne casse rien et
+> ne change aucun verdict. Les poser **sans écrire le connecteur** ne débloque rien non
+> plus, et le signale explicitement (`KybSourceNotWiredError`).
+>
+> `ZEFIX_API_URL` et `ZEFIX_API_CREDENTIAL` **ont été retirées de cette liste le
+> 29.07.2026** : elles ne sont plus lues nulle part. Le registre du commerce suisse est
+> interrogé par **LINDAS**, l'endpoint SPARQL public de la Confédération, sans clé ni
+> compte. Il ne manque plus que le **statut actif/radié**, absent de LINDAS, qui plafonne le
+> check `registry_lookup` à `partial` et empêche donc un dossier suisse de s'auto-valider.
+> Détail : [docs/agency-kyb-handoff.md](docs/agency-kyb-handoff.md) §7bis (ce que chaque
+> pays peut auto-valider) et §8 (ce qui reste suspendu).
 
 ### Secrets GitHub Actions
 ```

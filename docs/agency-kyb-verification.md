@@ -107,8 +107,10 @@ compensable · téléphone (indicatif, type de ligne)
 > mieux qu'une agence légitime opérant sous un nom commercial distinct de sa raison
 > sociale.
 >
-> Ce que ça ne débloque pas : avec Zefix muet, le véto « existence au registre » reste
-> `unavailable`, et un véto absent ne passe pas. Tout dossier suisse ira en revue
+> Ce que ça ne débloque pas : le véto « existence au registre » ne passe pas pour autant.
+> **Mis à jour le 29.07.2026 :** Zefix n'est plus muet, LINDAS répond — mais sans le statut
+> actif, donc `registry_lookup` vaut `partial`, et un véto ne passe que sur `match`. La
+> conclusion tient donc, pour une raison plus précise : tout dossier suisse ira en revue
 > humaine. Le check `domain_whois` sert au relecteur (âge et statut du domaine, signal
 > de risque autrement plus solide que la ressemblance des noms), pas à l'auto-validation.
 
@@ -145,20 +147,25 @@ LAB/KYC il faut pouvoir justifier check par check pourquoi un dossier a été au
 
 Statuts **testés en direct le 25.07.2026** sauf mention contraire.
 
-> **Depuis l'étape 6 (29.07.2026) :** Zefix et le registre UID ont un **squelette câblé**
-> dans `_shared/kyb-sources.ts` — sources déclarées, juridiction (`CH` pour Zefix,
-> `CH`/`LI` pour l'UID), place dans le registre et forme de l'indisponibilité. Leur statut
-> ci-dessous est inchangé : aucune requête n'est émise, les quatre checks sortent
-> `unavailable`. Ne restent à écrire, le jour où les identifiants arrivent, que l'URL,
-> l'authentification et l'analyse de la réponse (handoff §6 étape 6, variables au §8).
+> **Depuis le chantier LINDAS (29.07.2026) :** le squelette Zefix REST a été **retiré** et
+> remplacé par trois connecteurs réels qui interrogent **LINDAS**, l'endpoint SPARQL public
+> de la Confédération, sans clé ni compte. Le registre du commerce suisse répond donc
+> aujourd'hui ; il ne publie simplement pas le statut actif/radié, ce qui plafonne
+> `registry_lookup` à `partial`. S'y ajoute `registry_number_format`, qui vérifie la clé de
+> contrôle du numéro déclaré sans sortir du processus (`source='internal'`, CH et FR).
+> **Seul le squelette du registre UID** (`vat_lookup`, CH/LI) reste sans requête et sort
+> `unavailable` : sa configuration manque toujours, et la question « API séparée ou champ
+> Zefix ? » n'est pas tranchée. Voir le handoff §7bis (ce que chaque pays peut
+> auto-valider) et §8.
 
 ### 🇨🇭 Suisse
 
 | Donnée | Source | Statut | Action |
 |---|---|---|---|
-| Registre entreprise | Zefix PublicREST | ⚠ `401 Unauthorized` confirmé | Identifiants demandés à `zefix@bj.admin.ch` — **en attente** |
-| Registre entreprise (voie publique) | **LINDAS SPARQL** (`lindas.admin.ch/query`, graphe `foj/zefix`) | ✅ **public, sans clé** — vérifié en direct le 29.07.2026 (`HTTP 200` sur un filtre `schema:legalName`) ; déjà utilisé par `scripts/zefix-enrich-agencies.mjs` | Sert `registry_legal_name_match` et `registry_country_match` **sans identifiants**. Ne donne **pas** le statut actif/radié : `registry_lookup` n'y trouve que l'existence, le statut reste sur PublicREST |
-| TVA | UID-Register (`uid.admin.ch`) | ⚠ non testé en API | Clarifier : API séparée ou champ Zefix ? — **en attente** (LINDAS ne le remplace pas) |
+| Registre entreprise | **LINDAS SPARQL** (`lindas.admin.ch/query`, graphe `foj/zefix`) | ✅ **public, sans clé, et BRANCHÉ** — trois connecteurs livrés le 29.07.2026, exercés contre le vrai service depuis le runtime edge (4 dossiers, 84 à 225 ms) ; déjà utilisé par ailleurs dans `scripts/zefix-enrich-agencies.mjs` | Sert `registry_legal_name_match` et `registry_country_match` en `match`/`mismatch`, **sans identifiants**. **Sa limite :** aucun statut actif/radié dans le graphe, une société radiée y figure comme une active — `registry_lookup` plafonne donc à `partial`, et un véto ne passe que sur `match` |
+| Registre entreprise (statut actif) | Zefix PublicREST | ⚠ `401 Unauthorized` confirmé (25.07.2026) | Identifiants demandés à `zefix@bj.admin.ch` — **en attente**. N'apporte plus qu'une chose, mais elle est bloquante : le statut. Le jour où il arrive, `registry_lookup` passe de `partial` à `match` |
+| N° de registre (forme et clé) | **calcul interne**, aucun réseau | ✅ **livré** le 29.07.2026 (`source='internal'`) — clé de l'IDE `CHE` modulo 11, poids `[5,4,3,2,7,6,5,4]` | Sert `registry_number_format`. Éprouvé sur 200 IDE réels tirés de LINDAS, 0 rejeté à tort |
+| TVA | UID-Register (`uid.admin.ch`) | ⚠ non testé en API | Clarifier : API séparée ou champ Zefix ? — **en attente** (LINDAS ne le remplace pas : le graphe ne porte aucune donnée de TVA) |
 | Registre courtiers (RCC) | Cantonal (ex. Genève) | Aucune API trouvée | Signal optionnel, faible priorité |
 | WHOIS domaine `.ch` | RDAP `rdap.nic.ch` | ✅ répond, public, sans clé | Aucune |
 
@@ -166,7 +173,8 @@ Statuts **testés en direct le 25.07.2026** sauf mention contraire.
 
 | Donnée | Source | Statut | Action |
 |---|---|---|---|
-| Registre entreprise | `oera.li` (Amt für Justiz) | ⚠ aucune API publique trouvée | Confirmé auprès de l'Amt für Justiz — **en attente** ; sinon revue manuelle pour ce pays |
+| Registre entreprise | `oera.li` (Amt für Justiz) | ⚠ aucune API publique trouvée, **et pas dans LINDAS** (le graphe de la Confédération publie le registre suisse) | Confirmé auprès de l'Amt für Justiz — **en attente** ; sinon revue manuelle pour ce pays |
+| N° de registre (forme et clé) | — | ⚠ **non couvert** : `registry_number_format` ne connaît que `CH` et `FR`, un dossier `LI` sort `unavailable` | Le FL-UID porte le même préfixe `CHE`, mais la clé n'a **jamais été éprouvée** sur des numéros liechtensteinois réels. Coder l'hypothèse risquerait un `mismatch` sur une agence légitime, c'est-à-dire un véto **échoué**. Dette explicite, voir handoff §7bis |
 | TVA | FL-UID (dérivé du système suisse, union douanière, préfixe CHE) | ⚠ non testé | Dépend de la réponse UID-Register |
 | WHOIS domaine `.li` | RDAP `rdap.nic.li` | ✅ répond (même infra SWITCH que `.ch`) | Aucune |
 | Registre professionnel immobilier | — | Inexistant | Signal absent — le score le tolère par construction |
@@ -175,7 +183,8 @@ Statuts **testés en direct le 25.07.2026** sauf mention contraire.
 
 | Donnée | Source | Statut | Action |
 |---|---|---|---|
-| Registre entreprise | `recherche-entreprises.api.gouv.fr` | ✅ **public, sans clé, sans compte**, 7 req/s | **À privilégier** |
+| Registre entreprise | `recherche-entreprises.api.gouv.fr` | ✅ **public, sans clé, sans compte**, 7 req/s, **branché** | Sert **trois** vétos : `registry_lookup`, `registry_legal_name_match` et, depuis le 29.07.2026, `registry_country_match` — trouver le SIREN déclaré dans le registre de la juridiction déclarée est une confirmation réelle du pays, le même argument que côté suisse |
+| N° de registre (forme et clé) | **calcul interne**, aucun réseau | ✅ **livré** le 29.07.2026 (`source='internal'`) — SIREN à 9 chiffres, Luhn | Sert `registry_number_format`. Aucune exception pour La Poste : son SIREN `356000000` passe Luhn, l'exception française porte sur le SIRET |
 | Alternative riche | API Sirene INSEE | Compte + clé OAuth gratuits | Seulement si champs manquants |
 | TVA | VIES (UE) | ✅ public, sans clé | Aucune |
 | Carte pro (loi Hoguet) | CCI France | ⚠ **pas d'API**, formulaire web, 403 anti-bot | Revue humaine — pas d'automatisation fiable |
@@ -380,17 +389,22 @@ jugé disproportionné au vu du nombre d'agences en production.
       (self-serve, individuel par invitation, accès complet après saisie avec gardes
       LAB, exemption de gate limitée aux trois comptes développeurs, base mock).
       Consignées dans le [spec du parcours](superpowers/specs/2026-07-26-onboarding-kyb-design.md).
-- [ ] Identifiants Zefix (CH) — demandés, en attente
+- [ ] Identifiants Zefix (CH) — demandés, en attente. **Ne bloquent plus que le statut
+      actif/radié** depuis que LINDAS sert le registre suisse (29.07.2026) : c'est ce seul
+      fait qui tient un dossier suisse hors de l'auto-validation
 - [ ] Statut API UID-Register TVA (CH/LI) — en attente
-- [ ] Accès API Öffentlichkeitsregister (LI) — en attente
+- [ ] Accès API Öffentlichkeitsregister (LI) — en attente. **Le Liechtenstein n'est servi
+      par rien** : ni registre, ni clé de numéro (voir sa table au §3), alors qu'il est l'un
+      des trois pays sélectionnables au wizard. Dette à trancher
 - [ ] Retester GLEIF depuis une Edge Function (le sandbox d'outils ne prouve rien)
 - [ ] Vérifier si les Edge Functions Supabase permettent une résolution DNS, avant
       d'inscrire la présence d'enregistrements MX au barème (le RDAP ne la donne pas)
 
-**Seule l'étape 6 du programme dépend de ces points** : les tables de checks sont
-agnostiques de la source, et un check `source='manual'` se score exactement comme un
-check automatique. Les étapes 0 à 5 (correctifs, gate et wizard, moteur, connecteurs
-publics, file de revue) s'exécutent sans attendre aucune réponse.
+**Aucune étape du programme n'attend plus ces points pour s'exécuter** : les tables de
+checks sont agnostiques de la source, et un check `source='manual'` se score exactement
+comme un check automatique. Ce que ces réponses changeraient, ce n'est plus la faisabilité
+d'une étape, c'est **quels dossiers peuvent s'auto-valider** : la France le peut déjà, la
+Suisse attend le statut Zefix, le Liechtenstein attend tout (handoff §7bis).
 
 ---
 
