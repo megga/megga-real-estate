@@ -3,8 +3,9 @@
 // Socle de la verification KYB (etape 4, tache 1) : lit l'agence a verifier,
 // execute les connecteurs disponibles (_shared/kyb-sources.ts -- registre
 // AGENCY_KYB_SOURCES, vide a la tache 1, RDAP ajoute a la tache 2, VIES +
-// recherche-entreprises x2 a la tache 3, plus le geocodage Mapbox et les squelettes
-// Zefix et registre UID construits ici meme -- voir le point 2 plus bas), puis confie
+// recherche-entreprises x2 a la tache 3, le format du numero de registre et les trois
+// sources Zefix par LINDAS au chantier LINDAS, plus le geocodage Mapbox et le squelette
+// du registre UID construits ici meme -- voir le point 2 plus bas), puis confie
 // l'ecriture des checks produits, l'appel du moteur de scoring
 // (recompute_agency_verification, 20260728130000) et la journalisation de son
 // PROPRE passage (distinct du journal du moteur -- voir plus bas) a UNE SEULE RPC,
@@ -47,7 +48,6 @@ import {
   selectApplicableSources,
   AGENCY_KYB_SOURCES,
   createAddressGeocodeSource,
-  createZefixSources,
   createUidRegisterSources,
   type AgencyForVerification,
   type KybCheckResult,
@@ -123,13 +123,14 @@ serve(async (req) => {
     if (!agency) return json({ error: 'agency_not_found' }, 404)
 
     // 2. Sources -- registre AGENCY_KYB_SOURCES (voir _shared/kyb-sources.ts ; RDAP
-    // depuis la tache 2, VIES + recherche-entreprises x2 depuis la tache 3). Un
-    // connecteur qui a besoin d'une CONFIGURATION ne peut pas vivre dans
+    // depuis la tache 2, VIES + recherche-entreprises x2 depuis la tache 3, le format du
+    // numero de registre et les trois sources Zefix par LINDAS depuis le chantier LINDAS).
+    // Un connecteur qui a besoin d'une CONFIGURATION ne peut pas vivre dans
     // AGENCY_KYB_SOURCES (une liste construite au chargement du module, avant qu'aucun
     // secret ne soit lu) : c'est ICI, et seulement ici, que _shared/kyb-sources.ts a
     // besoin d'un Deno.env.get -- le module partage lui-meme en reste totalement libre
-    // (voir son en-tete). Trois fabriques dans ce cas aujourd'hui : le geocodage, Zefix et
-    // le registre UID.
+    // (voir son en-tete). DEUX fabriques dans ce cas aujourd'hui : le geocodage et le
+    // registre UID.
     //
     // Mapbox (tache 3 de l'etape 4) : MAPBOX_TOKEN absent en local, meme situation que
     // DILISENSE_API_KEY/GEMINI_API_KEY -> le connecteur produit lui-meme `unavailable`,
@@ -137,28 +138,28 @@ serve(async (req) => {
     // source, presente ou future, produit TOUJOURS une ligne : succes, echec ou timeout
     // ne font jamais disparaitre un check et ne font jamais echouer cet appel.
     //
-    // Zefix (etape 6, tache 2) est du meme cote pour la meme raison, mais son statut
-    // differe et le restera un moment : ses deux variables sont VIDES partout, la demande
-    // d'identifiants faite a zefix@bj.admin.ch etant sans reponse (handoff §8). Ses trois
-    // sources produisent donc `unavailable` en signalant LAQUELLE des deux situations on
-    // vit -- identifiants attendus, ou secrets poses sans connecteur ecrit -- voir la
-    // section « Squelette Zefix » de _shared/kyb-sources.ts. Le cablage est fait UNE
-    // FOIS, ici : le jour ou les identifiants arrivent, ce fichier n'a plus a changer.
+    // ZEFIX A QUITTE CETTE LISTE au chantier LINDAS (tache 2), et c'est un gain, pas une
+    // perte : ses trois sources etaient construites ici parce qu'un squelette attendait
+    // des identifiants (ZEFIX_API_URL / ZEFIX_API_CREDENTIAL, vides partout, demande a
+    // zefix@bj.admin.ch sans reponse). Le registre du commerce suisse est en fait publie
+    // en SPARQL par LINDAS, sans authentification -- ces trois sources n'ont donc plus
+    // aucun secret a lire et sont redevenues des entrees statiques de AGENCY_KYB_SOURCES.
+    // Les deux variables d'environnement ne sont plus lues nulle part. Le jour ou les
+    // identifiants PublicREST arriveront, c'est le seul check registry_lookup qui en aura
+    // besoin (pour le STATUT actif, la seule chose que LINDAS ne publie pas) : il
+    // redeviendra alors une fabrique, et c'est ici que sa configuration sera lue.
     //
-    // Le registre UID (etape 6, tache 3) est cable de la meme facon, mais son statut
-    // DIFFERE de celui de Zefix : Zefix a repondu 401, on sait donc qu'il existe et ce
-    // qu'il attend ; le registre UID n'a JAMAIS ete teste en API, et la question « API
-    // separee ou champ Zefix ? » n'est pas tranchee (doc de conception §3). Ses deux
-    // variables sont vides pour cette raison-la, pas faute d'un identifiant demande. Sa
-    // fabrique rend un TABLEAU pour UNE source, et l'appel ci-dessous l'etale : si la
-    // reponse est « champ Zefix », la source disparaitra sans que ce fichier change.
+    // Le registre UID (etape 6, tache 3) reste cable ici, et son statut DIFFERE de celui
+    // qu'avait Zefix : Zefix a repondu 401, on savait donc qu'il existe et ce qu'il
+    // attend ; le registre UID n'a JAMAIS ete teste en API, et la question « API separee
+    // ou champ Zefix ? » n'est pas tranchee (doc de conception §3) -- LINDAS n'y change
+    // rien, le graphe Zefix ne porte aucune donnee de TVA. Ses deux variables sont vides
+    // pour cette raison-la, pas faute d'un identifiant demande. Sa fabrique rend un
+    // TABLEAU pour UNE source, et l'appel ci-dessous l'etale : si la reponse est « champ
+    // Zefix », la source disparaitra sans que ce fichier change.
     const sources = [
       ...AGENCY_KYB_SOURCES,
       createAddressGeocodeSource(Deno.env.get('MAPBOX_TOKEN') ?? ''),
-      ...createZefixSources({
-        baseUrl: Deno.env.get('ZEFIX_API_URL') ?? '',
-        credential: Deno.env.get('ZEFIX_API_CREDENTIAL') ?? '',
-      }),
       ...createUidRegisterSources({
         baseUrl: Deno.env.get('UID_REGISTER_API_URL') ?? '',
         credential: Deno.env.get('UID_REGISTER_API_CREDENTIAL') ?? '',

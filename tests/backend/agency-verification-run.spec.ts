@@ -4,10 +4,11 @@
 // (etape 4, tache 2 -- domain_whois_age, premier connecteur reel du registre),
 // connecteurs VIES / recherche-entreprises / Mapbox (etape 4, tache 3),
 // declenchement + filet de rattrapage (etape 4, tache 4), juridiction d'une source
-// (etape 6, tache 1 -- appliesTo / selectApplicableSources, volets 1 et 2 ci-dessous) et
-// squelette Zefix (etape 6, tache 2 -- volet 8, en fin de fichier) et squelette du
-// registre UID (etape 6, tache 3 -- volet 9, tout en bas, plus la preuve en base du
-// volet 2).
+// (etape 6, tache 1 -- appliesTo / selectApplicableSources, volets 1 et 2 ci-dessous),
+// connecteur Zefix par LINDAS (chantier LINDAS, tache 2 -- volet 8, en fin de fichier ;
+// il REMPLACE le squelette de l'etape 6, qui revendiquait les memes trois check_type sans
+// jamais pouvoir repondre) et squelette du registre UID (etape 6, tache 3 -- volet 9, tout
+// en bas, plus la preuve en base du volet 2).
 //
 // Principe directeur de toute l'etape 4 (voir
 // docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-4.md, « Le principe qui
@@ -26,8 +27,9 @@
 //      aucun shim globalThis.Deno necessaire, meme motif que whatsapp-antifab.spec.ts
 //      qui importe deja un _shared/*.ts sans extension de la meme facon).
 //   2. La fonction deployee (HTTP, port 54321) -- lecture agence, ecriture des
-//      checks, appel du moteur, journalisation. Cinq connecteurs reels existent a ce
-//      stade (RDAP tache 2 ; VIES, recherche-entreprises x2, Mapbox tache 3) ; les
+//      checks, appel du moteur, journalisation. Neuf connecteurs reels existent a ce
+//      stade (RDAP tache 2 ; VIES, recherche-entreprises x2, Mapbox tache 3 ; le format
+//      du numero et les trois sources Zefix/LINDAS du chantier LINDAS) ; les
 //      tests HTTP portent sur la PLOMBERIE (elle lit, ecrit, appelle le moteur,
 //      journalise, rejoue proprement) et tiennent compte de ce que CES connecteurs
 //      ecrivent reellement.
@@ -45,11 +47,13 @@
 //      pour les dossiers dont le declenchement primaire n'a jamais abouti (net.http_post
 //      est fire-and-forget, sans garantie de livraison). Contre un Supabase local reel,
 //      comme le volet 2.
-//   8. Squelette Zefix (etape 6, tache 2 -- describe hors skipIf, tout en bas). Ce n'est
-//      PAS un connecteur : Zefix repond 401 et les identifiants sont sans reponse
-//      (docs/agency-kyb-handoff.md §8). Ce volet verrouille le CABLAGE et la GESTION
-//      D'ERREUR -- trois check_type, juridiction CH, aucun reseau, `unavailable` dont la
-//      preuve dit s'il manque une reponse d'un tiers ou du code.
+//   8. Connecteur Zefix par LINDAS (chantier LINDAS, tache 2 -- describe hors skipIf,
+//      tout en bas). C'est un CONNECTEUR, la ou l'etape 6 n'avait pu poser qu'un
+//      squelette : le registre du commerce suisse est publie en SPARQL par LINDAS, sans
+//      authentification. Ce que ce volet verrouille en plus du cablage, c'est le
+//      PLAFOND du verdict -- registry_lookup ne peut JAMAIS valoir `match`, parce que le
+//      graphe ne publie pas le statut actif/radie ; sa contrepartie en base (un dossier
+//      suisse parfait retenu par ce seul `partial`) vit dans le volet 2.
 //   9. Squelette du registre UID (etape 6, tache 3 -- meme place, meme forme que le
 //      volet 8, dont il reprend le motif). Statut DIFFERENT de Zefix, et c'est ce que ce
 //      volet verifie autant que le cablage : Zefix a repondu 401 (il existe, il exige une
@@ -79,7 +83,6 @@ import {
   selectApplicableSources,
   AGENCY_KYB_SOURCES,
   createAddressGeocodeSource,
-  createZefixSources,
   createUidRegisterSources,
   registryNumberFormatSource,
   isValidSwissUid,
@@ -181,7 +184,6 @@ const EDGE_FUNCTION_SOURCE_IMPORTS = [
   'AGENCY_KYB_SOURCES',
   'createAddressGeocodeSource',
   'createUidRegisterSources',
-  'createZefixSources',
   'runAgencyKybSources',
   'selectApplicableSources',
 ]
@@ -264,13 +266,6 @@ function producerReferenceRe(producer: string, composition: string): RegExp {
   return new RegExp(`\\b${name}\\b`)
 }
 
-/** Configuration Zefix telle qu'agency-verification-run/index.ts la lit AUJOURD'HUI :
- *  ZEFIX_API_URL et ZEFIX_API_CREDENTIAL sont absents de l'environnement (aucun secret
- *  Supabase, aucune entree de supabase/config.toml), donc vides. C'est l'etat NOMINAL de
- *  l'etape, pas un artefact de test -- la demande faite a zefix@bj.admin.ch est sans
- *  reponse (docs/agency-kyb-handoff.md §8). */
-const ZEFIX_PENDING_CONFIG: PendingSourceConfig = { baseUrl: '', credential: '' }
-
 /** Configuration du registre UID telle qu'index.ts la lit AUJOURD'HUI : UID_REGISTER_API_URL
  *  et UID_REGISTER_API_CREDENTIAL sont absents de l'environnement, donc vides -- et pour une
  *  raison qui n'est pas celle de Zefix : cette API n'a jamais ete testee, et la question
@@ -279,20 +274,25 @@ const UID_REGISTER_PENDING_CONFIG: PendingSourceConfig = { baseUrl: '', credenti
 
 /** Le registre COMPLET tel qu'agency-verification-run/index.ts le compose : les entrees
  *  statiques de AGENCY_KYB_SOURCES PLUS les connecteurs que la fonction construit
- *  elle-meme faute de pouvoir lire une configuration depuis le module pur (le geocodage,
- *  le squelette Zefix et le squelette du registre UID). Une matrice qui ne couvrirait que
- *  AGENCY_KYB_SOURCES ne protegerait pas ce qu'elle pretend proteger -- verifie par
- *  mutation a la tache 2 : cabler Zefix dans index.ts sans l'ajouter ici laisse la matrice
+ *  elle-meme faute de pouvoir lire une configuration depuis le module pur (le geocodage et
+ *  le squelette du registre UID). Une matrice qui ne couvrirait que AGENCY_KYB_SOURCES ne
+ *  protegerait pas ce qu'elle pretend proteger -- verifie par mutation a la tache 2 de
+ *  l'etape 6 : cabler une fabrique dans index.ts sans l'ajouter ici laisse la matrice
  *  AVEUGLE (elle reste verte), et c'est le test d'imports juste apres la matrice qui mord.
  *  Ce test-la a ete DURCI a la tache 3 pour lire le CORPS de cette fonction et non plus une
  *  simple liste de noms, puis a la tache 4 pour cesser de comparer du texte BRUT : corps relu
  *  commentaires retires, producteurs cherches sur bornes de mot et dans la forme meme
- *  qu'index.ts emploie -- voir fullKybRegistryBody() et producerReferenceRe() plus haut. */
+ *  qu'index.ts emploie -- voir fullKybRegistryBody() et producerReferenceRe() plus haut.
+ *
+ *  Les trois sources Zefix/LINDAS (chantier LINDAS, tache 2) n'apparaissent PLUS ici en
+ *  propre : LINDAS etant public, elles n'ont besoin d'aucune configuration et sont des
+ *  entrees statiques de AGENCY_KYB_SOURCES, deja etale ci-dessus. La matrice les voit donc
+ *  par ce spread -- verifie par mutation (les retirer d'AGENCY_KYB_SOURCES, ou leur retirer
+ *  leur `appliesTo`, fait rougir la matrice). */
 function fullKybRegistry(): KybSource[] {
   return [
     ...AGENCY_KYB_SOURCES,
     createAddressGeocodeSource('fake-token'),
-    ...createZefixSources(ZEFIX_PENDING_CONFIG),
     ...createUidRegisterSources(UID_REGISTER_PENDING_CONFIG),
   ]
 }
@@ -321,11 +321,13 @@ const JURISDICTION_MATRIX: { country: string | null; applicable: string[] }[] = 
     ],
   },
   {
-    // Les trois entrees de registre viennent du squelette Zefix (etape 6, tache 2) :
-    // elles produisent `unavailable` faute d'identifiants, mais elles sont bel et bien
-    // APPLICABLES -- c'est ce qui les rend exclusives de leurs homonymes francaises.
-    // vat_lookup y figure aussi depuis la tache 3, mais servi par le registre UID et non
-    // par VIES : la Suisse n'est pas dans l'UE, VIES ne la couvre pas.
+    // Les trois entrees de registre viennent des sources Zefix/LINDAS (chantier LINDAS,
+    // tache 2) -- des connecteurs pour de bon depuis qu'elles interrogent l'endpoint
+    // SPARQL public de la Confederation, la ou l'etape 6 n'avait qu'un squelette. Ce qui
+    // compte ici est inchange : elles sont APPLICABLES, et c'est ce qui les rend
+    // exclusives de leurs homonymes francaises. vat_lookup y figure aussi depuis la tache
+    // 3 de l'etape 6, mais servi par le registre UID et non par VIES : la Suisse n'est pas
+    // dans l'UE, VIES ne la couvre pas, et LINDAS ne dit rien de la TVA.
     country: 'CH',
     applicable: [
       'domain_whois_age',
@@ -419,25 +421,36 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
     expect(rows.every((r) => r.result === 'unavailable')).toBe(true)
   }, 2_000)
 
-  it('AGENCY_KYB_SOURCES contient les 5 connecteurs sans configuration (RDAP, VIES, recherche-entreprises x2, format du numero)', () => {
+  it('AGENCY_KYB_SOURCES contient les 8 connecteurs sans configuration (RDAP, VIES, recherche-entreprises x2, format du numero, Zefix/LINDAS x3)', () => {
     // RDAP (tache 2) puis VIES + recherche-entreprises x2 (tache 3), plus le controle
-    // du numero de registre (chantier LINDAS, tache 1) : cinq connecteurs qui n'ont
-    // besoin d'aucun secret, donc statiques dans ce registre construit au chargement
-    // du module. Le dernier n'a meme besoin d'aucun RESEAU -- c'est un calcul, d'ou
-    // sa source `internal` (voir le volet dedie en fin de fichier). Le geocodage
-    // Mapbox (tache 3 egalement) n'y figure PAS : seul connecteur de ce fichier a
-    // avoir besoin d'un jeton, il est construit par createAddressGeocodeSource() --
-    // voir son en-tete dans _shared/kyb-sources.ts et le describe dedie plus bas. Un
-    // check_type non catalogue dans verification_check_types ferait de toute facon
-    // echouer l'insert (FK, 20260728103000) -- ces entrees SONT donc deja de vrais
-    // connecteurs, jamais des doubles de test.
-    expect(AGENCY_KYB_SOURCES).toHaveLength(5)
-    const sourceOfCheckType = (checkType: string) => AGENCY_KYB_SOURCES.find((s) => s.checkType === checkType)?.source
-    expect(sourceOfCheckType('domain_whois_age')).toBe('rdap')
-    expect(sourceOfCheckType('vat_lookup')).toBe('vies')
-    expect(sourceOfCheckType('registry_lookup')).toBe('recherche_entreprises')
-    expect(sourceOfCheckType('registry_legal_name_match')).toBe('recherche_entreprises')
-    expect(sourceOfCheckType('registry_number_format')).toBe('internal')
+    // du numero de registre et les trois sources Zefix/LINDAS (chantier LINDAS, taches
+    // 1 et 2) : huit connecteurs qui n'ont besoin d'aucun secret, donc statiques dans
+    // ce registre construit au chargement du module. LINDAS est PUBLIC -- c'est ce qui
+    // sort Zefix de la fabrique a configuration qu'il occupait a l'etape 6. Le controle
+    // du numero, lui, n'a meme besoin d'aucun RESEAU -- c'est un calcul, d'ou sa source
+    // `internal` (voir le volet dedie en fin de fichier). Le geocodage Mapbox (tache 3
+    // egalement) n'y figure PAS : seul connecteur de ce fichier a avoir besoin d'un
+    // jeton, il est construit par createAddressGeocodeSource() -- voir son en-tete dans
+    // _shared/kyb-sources.ts et le describe dedie plus bas. Un check_type non catalogue
+    // dans verification_check_types ferait de toute facon echouer l'insert (FK,
+    // 20260728103000) -- ces entrees SONT donc deja de vrais connecteurs, jamais des
+    // doubles de test.
+    expect(AGENCY_KYB_SOURCES).toHaveLength(8)
+    // Paires (check_type, source) et non check_type seul : registry_lookup et
+    // registry_legal_name_match ont chacun DEUX proprietaires dans ce registre (la
+    // France et la Suisse), que seule la juridiction departage.
+    expect(AGENCY_KYB_SOURCES.map((s) => `${s.source}:${s.checkType}`).sort()).toEqual(
+      [
+        'rdap:domain_whois_age',
+        'vies:vat_lookup',
+        'recherche_entreprises:registry_lookup',
+        'recherche_entreprises:registry_legal_name_match',
+        'internal:registry_number_format',
+        'zefix:registry_lookup',
+        'zefix:registry_legal_name_match',
+        'zefix:registry_country_match',
+      ].sort()
+    )
     // Par IDENTITE, et pas seulement par check_type : c'est LA constante exportee qui
     // doit etre enregistree, pas un homonyme. Sans cette ligne, un second objet du meme
     // check_type satisferait encore l'assertion ci-dessus.
@@ -1088,8 +1101,8 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
     )
 
     it(
-      'une agence suisse ecrit les checks suisses (Zefix compris, tous unavailable), son journal nomme les ' +
-        'sources francaises ecartees, et AUCUN verdict ne bouge pour autant',
+      'une agence suisse ecrit les checks suisses (Zefix compris, tous unavailable faute de numero declare), son ' +
+        'journal nomme les sources francaises ecartees, et AUCUN verdict ne bouge pour autant',
       async () => {
         const agencyId = await createAgency('jurisdiction-ch')
         await addActiveSignatory(agencyId)
@@ -1099,13 +1112,15 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         const body = await res.json()
         expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
         // Sept sources applicables : RDAP, geocodage, les trois entrees de registre
-        // suisses (squelette Zefix, tache 2), la TVA suisse (squelette du registre UID,
-        // tache 3) et le controle du numero de registre (chantier LINDAS, tache 1). Les
-        // quatre squelettes n'ont AUCUN identifiant et sortent donc `unavailable` ; le
-        // controle du numero, lui, sort `unavailable` pour une raison qui n'est PAS la
-        // meme -- il n'attend rien de personne, ce dossier ne declare simplement aucun
-        // numero. Dans les deux cas la ligne existe, le relecteur voit pourquoi elle est
-        // vide, et rien n'est invente.
+        // suisses (Zefix par LINDAS, chantier LINDAS tache 2), la TVA suisse (squelette du
+        // registre UID, etape 6 tache 3) et le controle du numero de registre (chantier
+        // LINDAS, tache 1). Ce dossier ne declare AUCUN numero de registre : les quatre
+        // sources qui en ont besoin sortent donc `unavailable` sans meme sortir du
+        // processus -- les trois suisses parce qu'il n'y a rien a chercher dans le graphe,
+        // le controle du numero parce qu'il n'y a rien a calculer. Le squelette du registre
+        // UID sort `unavailable` pour une raison qui n'est PAS la meme : celle-la attend
+        // toujours une reponse d'un tiers. Dans tous les cas la ligne existe, le relecteur
+        // voit pourquoi elle est vide, et rien n'est invente.
         expect(body.checks_written).toBe(7)
         expect(body.results.unavailable).toBe(7)
         expect(new Set((await getChecks(agencyId)).map((c) => c.check_type))).toEqual(
@@ -1121,20 +1136,28 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         )
 
         // La raison est LISIBLE dans la preuve, jamais un `unavailable` nu : c'est ce qui
-        // distingue « on attend une reponse d'un tiers » de « le connecteur est casse ».
-        // Verifie ici contre la base reelle, pas seulement contre le module. Les DEUX
-        // squelettes sont lus ensemble : ils partagent la meme erreur, et c'est leur
-        // libelle -- pas leur type d'erreur -- qui dit ce qu'on attend au juste de chacun.
-        const pendingChecks = (await getChecks(agencyId)).filter(
-          (c) => c.source === 'zefix' || c.source === 'uid_register'
-        )
-        expect(pendingChecks).toHaveLength(4)
-        for (const check of pendingChecks) {
+        // distingue « ce dossier ne declare pas de numero » de « on attend une reponse d'un
+        // tiers » et de « le connecteur est casse ». Verifie ici contre la base reelle, pas
+        // seulement contre le module -- et les deux familles sont lues SEPAREMENT, parce que
+        // depuis le chantier LINDAS elles ne disent plus la meme chose.
+        const storedChecks = await getChecks(agencyId)
+        const zefixChecks = storedChecks.filter((c) => c.source === 'zefix')
+        expect(zefixChecks).toHaveLength(3)
+        for (const check of zefixChecks) {
           expect(check.result).toBe('unavailable')
-          expect((check.raw_response as { error_type?: string }).error_type).toBe(
-            'KybSourcePendingCredentialsError'
-          )
+          // Une erreur ORDINAIRE, et c'est le changement que le chantier LINDAS apporte
+          // ici : ces trois lignes n'attendent plus d'identifiants (LINDAS est public), il
+          // leur manque seulement le numero a chercher. Le message doit le dire.
+          expect((check.raw_response as { error_type?: string }).error_type).toBe('Error')
+          expect(String((check.raw_response as { message?: string }).message)).toContain('numero de registre')
         }
+
+        const uidChecks = storedChecks.filter((c) => c.source === 'uid_register')
+        expect(uidChecks).toHaveLength(1)
+        expect(uidChecks[0].result).toBe('unavailable')
+        expect((uidChecks[0].raw_response as { error_type?: string }).error_type).toBe(
+          'KybSourcePendingCredentialsError'
+        )
 
         // Ce qui n'a pas ete interroge reste LISIBLE dans la trace -- une source
         // ecartee ne doit jamais se lire comme une source oubliee.
@@ -1176,10 +1199,16 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
     // constatees, TROIS retiennent reellement le dossier (les vetos Zefix, `unavailable`
     // vaut veto non passe) ; la quatrieme, vat_lookup servie par le registre UID, n'est
     // pas un veto -- elle ne retient rien et ne debloque rien, elle rend seulement lisible
-    // qu'aucune source n'a confirme la TVA. Un quatrieme veto, registry_number_format, n'a
-    // par ailleurs AUCUN connecteur dans le depot (handoff §7bis) : il est absent, pas
-    // indisponible, d'ou sa presence dans les quatre lignes posees a la main au second
-    // temps.
+    // qu'aucune source n'a confirme la TVA. Le quatrieme veto d'entite,
+    // registry_number_format, ecrit lui aussi sa ligne `unavailable` sur ce dossier depuis
+    // le chantier LINDAS (tache 1) : il a un connecteur, mais ce dossier ne declare aucun
+    // numero -- d'ou sa presence dans les quatre vetos poses a la main au second temps.
+    //
+    // Depuis la tache 2 du chantier LINDAS, les trois lignes zefix ne sont plus
+    // `unavailable` faute d'IDENTIFIANTS mais faute de NUMERO DECLARE : ce dossier-ci n'en
+    // porte pas. La paire de tests qui suit celle-ci mesure l'autre situation -- celle qui
+    // porte tout le chantier -- ou le numero EST declare, ou le registre repond, et ou le
+    // dossier reste malgre tout en revue humaine.
 
     const SCORABLE_AGENCY_SIGNALS = [
       'vat_lookup',
@@ -1425,6 +1454,186 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
           'si ce dossier ne bascule pas, c est qu autre chose que le numero le retenait -- et le test precedent ne ' +
             'prouverait alors rien sur le veto de format'
         ).toBe('auto_validated')
+        expect(await lastVetoFailed(agencyId)).toBe(false)
+      }
+    )
+
+    // ─── LE FAIT QUI PORTE LE CHANTIER LINDAS : un dossier suisse autrement PARFAIT,
+    //     dont le registre A REPONDU, reste en manual_review parce que registry_lookup
+    //     vaut `partial` et qu'un veto ne passe que sur `match` (tache 2) ─────────────
+    //
+    // Les deux paires precedentes montraient un dossier suisse retenu par des sources qui
+    // n'avaient RIEN pu dire (identifiants absents, puis numero non declare). Celle-ci
+    // montre l'inverse, et c'est ce qui rend le chantier LINDAS lisible : le registre
+    // suisse repond, il confirme l'existence de l'entite, sa raison sociale et sa
+    // juridiction -- trois des quatre vetos d'entite passent pour de bon, sans qu'aucune
+    // ligne ne soit posee a la main -- et le dossier reste malgre tout en revue humaine.
+    //
+    // La cause est UNE et elle est desormais precise : LINDAS ne publie AUCUN statut. Une
+    // societe radiee y figure exactement comme une active. `match` signifierait « existe ET
+    // active » sur une preuve qui n'en porte que la moitie ; `partial` est le verdict
+    // honnete, et le moteur (20260729151200) fait echouer un veto `partial` exactement
+    // comme un veto absent (« Ne passe que sur 'match' »).
+    //
+    // Le second test isole cette cause, et il vaut aussi comme REPETITION du jour ou les
+    // identifiants Zefix PublicREST arriveront : cette seule ligne passe de `partial` a
+    // `match` -- PublicREST apporte le statut, rien d'autre -- et le dossier s'auto-valide.
+
+    /** L'une des deux raisons sociales que LINDAS publie pour CHE105909036 (l'autre est
+     *  « Nestlé AG », meme numero, autre commune). Le dossier en declare une ; le connecteur
+     *  les accepte toutes, ce sont les versions linguistiques officielles. */
+    const NESTLE_LEGAL_NAME = 'Nestlé S.A.'
+
+    async function setLegalName(agencyId: string, value: string): Promise<void> {
+      const { error } = await serviceRoleClient().from('agencies').update({ legal_name: value }).eq('id', agencyId)
+      if (error) throw new Error(`update legal_name: ${error.message}`)
+    }
+
+    /** La reponse REELLE de LINDAS pour CHE105909036, mesuree en direct le 29.07.2026 (voir
+     *  .superpowers/sdd/task-2-report.md) : deux entrees pour un seul UID, communes
+     *  differentes. Figee ici comme partout ailleurs dans ce fichier -- un test qui
+     *  dependrait de la sante d'un service tiers ne mesurerait plus ce qu'il pretend. */
+    function lindasNestleResponse(): Response {
+      return new Response(
+        JSON.stringify({
+          head: { vars: ['legalName', 'municipality'] },
+          results: {
+            bindings: [
+              { legalName: { type: 'literal', value: 'Nestlé AG' }, municipality: { type: 'literal', value: 'Cham' } },
+              { legalName: { type: 'literal', value: 'Nestlé S.A.' }, municipality: { type: 'literal', value: 'Vevey' } },
+            ],
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'application/sparql-results+json' } }
+      )
+    }
+
+    /** Le dossier suisse irreprochable ET complet : tout ce que createPerfectSwissAgency
+     *  pose, plus le numero de registre reel et la raison sociale du registre. Il ne lui
+     *  manque donc RIEN de ce qu'un veto de registre sait verifier. */
+    async function createCompleteSwissAgency(label: string): Promise<string> {
+      const agencyId = await createPerfectSwissAgency(label)
+      await setBusinessRegistrationNumber(agencyId, VALID_SWISS_UID)
+      await setLegalName(agencyId, NESTLE_LEGAL_NAME)
+      return agencyId
+    }
+
+    /**
+     * Execute les sources de REGISTRE que le module juge applicables a ce dossier, contre un
+     * LINDAS stubbe, et insere leurs lignes telles quelles.
+     *
+     * En processus et non par l'Edge Function, pour la meme raison que le test de
+     * non-regression de la TVA juste apres : la fonction deployee appellerait le VRAI LINDAS
+     * depuis le runtime edge, c'est-a-dire du reseau reel dans la suite automatisee. Le
+     * ROUTAGE, lui, vient bien du module (selectApplicableSources sur le registre complet,
+     * exactement ce que fait l'Edge Function avant d'executer quoi que ce soit) : c'est ce
+     * qui fait mordre ce test si les sources Zefix cessaient d'etre applicables a la Suisse.
+     */
+    async function runRegistrySourcesAgainstStubbedLindas(
+      agency: AgencyForVerification,
+      agencyId: string
+    ): Promise<Awaited<ReturnType<typeof runAgencyKybSources>>> {
+      const { applicable } = selectApplicableSources(agency, fullKybRegistry())
+      const registrySources = applicable.filter((s) => s.checkType.startsWith('registry_'))
+      expect(
+        registrySources.map((s) => `${s.source}:${s.checkType}`).sort(),
+        'les quatre vetos d entite doivent avoir un proprietaire applicable a un siege suisse'
+      ).toEqual(
+        [
+          'internal:registry_number_format',
+          'zefix:registry_country_match',
+          'zefix:registry_legal_name_match',
+          'zefix:registry_lookup',
+        ].sort()
+      )
+
+      // LINDAS stubbe le temps de l'appel, et RIEN d'autre : le client Supabase se sert du
+      // meme fetch global, d'ou le retrait immediat du stub avant toute requete en base.
+      vi.stubGlobal('fetch', vi.fn(async () => lindasNestleResponse()))
+      let rows: Awaited<ReturnType<typeof runAgencyKybSources>>
+      try {
+        rows = await runAgencyKybSources(agency, registrySources)
+      } finally {
+        vi.unstubAllGlobals()
+      }
+
+      const { error } = await serviceRoleClient()
+        .from('agency_verification_checks')
+        .insert(rows.map((r) => ({ agency_id: agencyId, ...r })))
+      if (error) throw new Error(`seed registry rows: ${error.message}`)
+      return rows
+    }
+
+    it(
+      'un dossier suisse autrement parfait, dont le registre A REPONDU, reste en manual_review : registry_lookup ' +
+        'vaut partial (LINDAS ne publie pas le statut actif) et un veto ne passe que sur match',
+      async () => {
+        const agencyId = await createCompleteSwissAgency('lindas-partial-retient')
+        const agency = await readAgencyForVerification(agencyId)
+
+        const rows = await runRegistrySourcesAgainstStubbedLindas(agency, agencyId)
+        await recompute(agencyId)
+
+        // Trois vetos sur quatre passent POUR DE BON -- aucune ligne posee a la main.
+        expect(rows.map((r) => `${r.source}:${r.check_type}=${r.result}`).sort()).toEqual(
+          [
+            'internal:registry_number_format=match',
+            'zefix:registry_country_match=match',
+            'zefix:registry_legal_name_match=match',
+            'zefix:registry_lookup=partial',
+          ].sort()
+        )
+
+        // Ecrites en base, `partial` compris : c'est la contrainte CHECK reelle sur
+        // agency_verification_checks.source qui doit accepter `zefix`, pas seulement le
+        // module qui doit le retourner.
+        const stored = (await getChecks(agencyId))
+          .filter((c) => c.source === 'zefix')
+          .map((c) => `${c.check_type}=${c.result}`)
+          .sort()
+        expect(stored).toEqual(
+          ['registry_country_match=match', 'registry_legal_name_match=match', 'registry_lookup=partial'].sort()
+        )
+
+        const after = await getAgency(agencyId)
+        expect(
+          num(after.verification_score),
+          'un veto ne se lit JAMAIS dans le score : les vetos portent weight 0 et sortent du calcul'
+        ).toBeCloseTo(1, 3)
+        expect(
+          after.verification_status,
+          'score plein, signataire actif, trois vetos de registre satisfaits -- et pourtant la revue humaine'
+        ).toBe('manual_review')
+        expect(await lastVetoFailed(agencyId), 'c est bien un VETO qui retient ce dossier, pas le score').toBe(true)
+      }
+    )
+
+    it(
+      'le controle qui isole la cause -- et la repetition du jour ou Zefix PublicREST arrivera : la SEULE ligne ' +
+        'registry_lookup passee de partial a match, le MEME dossier bascule en auto_validated',
+      async () => {
+        const agencyId = await createCompleteSwissAgency('lindas-partial-controle')
+        const agency = await readAgencyForVerification(agencyId)
+
+        await runRegistrySourcesAgainstStubbedLindas(agency, agencyId)
+        await recompute(agencyId)
+        expect((await getAgency(agencyId)).verification_status).toBe('manual_review')
+
+        // UNE SEULE ligne change, et c'est exactement celle que PublicREST apportera : le
+        // statut actif, la seule moitie de preuve qui manque a LINDAS. Posee APRES le
+        // passage, elle est plus recente et gagne le `distinct on (check_type)` du moteur.
+        // Ni le score, ni le signataire, ni les checks de personne, ni les trois autres
+        // vetos ne bougent.
+        await insertAgencyChecks(agencyId, ['registry_lookup'], 'match')
+        await recompute(agencyId)
+
+        const after = await getAgency(agencyId)
+        expect(
+          after.verification_status,
+          'si le dossier ne bascule pas ici, c est qu autre chose que registry_lookup le retenait -- et le test ' +
+            'precedent ne prouverait alors rien sur le plafond du verdict de LINDAS'
+        ).toBe('auto_validated')
+        expect(num(after.verification_score)).toBeCloseTo(1, 3)
         expect(await lastVetoFailed(agencyId)).toBe(false)
       }
     )
@@ -3111,150 +3320,396 @@ describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch s
   })
 })
 
-// ─── Squelette Zefix (registre du commerce suisse, etape 6 tache 2) ────────────
+// ─── Connecteur Zefix par LINDAS (registre du commerce suisse, chantier LINDAS
+//     tache 2) : volet 8 ──────────────────────────────────────────────────────────
 //
-// Hors du describe.skipIf(!HAS_KEYS) DELIBEREMENT, meme motif que les quatre volets de
-// connecteurs precedents : ni reseau ni Supabase local. Volet DEDIE plutot qu'ajout au
-// « harnais pur » du haut de fichier, pour la meme raison que RDAP/VIES/registre
-// francais/Mapbox en ont un : ce volet stubbe `fetch` (afterEach + unstubAllGlobals),
-// machinerie que le volet « harnais pur » se declare explicitement ne PAS avoir
-// (« aucun fetch, pas meme stubbe » dans son en-tete). Ce que ce volet-la porte de
-// l'etape 6, en revanche, reste chez lui : les fixtures de la matrice d'exclusivite
-// (fullKybRegistry / JURISDICTION_MATRIX, en tete de fichier).
+// Hors du describe.skipIf(!HAS_KEYS) DELIBEREMENT, meme motif que les volets de
+// connecteurs precedents : ni Supabase local, ni reseau REEL -- `fetch` est stubbe, les
+// valeurs sont figees. Ce qui a ete mesure contre le vrai endpoint, une fois, hors de
+// cette suite, est consigne dans .superpowers/sdd/task-2-report.md.
 //
-// Ce qui est verifie ici n'est PAS un connecteur : c'est un SQUELETTE. Zefix repond 401
-// et les identifiants demandes a zefix@bj.admin.ch sont sans reponse depuis le
-// 26.07.2026 (docs/agency-kyb-handoff.md §8). Aucune URL, aucun schema de reponse,
-// aucun en-tete d'authentification n'est ecrit « au plus probable » -- une URL inventee
-// qui se revelerait fausse le jour J couterait plus cher que pas d'URL du tout. Ce que
-// ces tests verrouillent, c'est donc le CABLAGE et la GESTION D'ERREUR : les trois
-// sources existent, portent les bons check_type, ne s'appliquent qu'a la Suisse,
-// n'appellent JAMAIS le reseau, produisent `unavailable` (jamais un `match` par defaut)
-// et joignent a leur preuve la raison exacte -- laquelle distingue « on attend une
-// reponse d'un tiers » de « quelqu'un a pose les secrets sans brancher le connecteur ».
-describe('squelette Zefix (registry_lookup / registry_legal_name_match / registry_country_match) -- aucun reseau', () => {
+// Ce volet remplace celui du SQUELETTE Zefix (etape 6, tache 2), qui revendiquait les
+// memes trois check_type sans jamais pouvoir repondre : Zefix PublicREST exige des
+// identifiants, demandes a zefix@bj.admin.ch et sans reponse. La voie publique existait
+// pourtant -- LINDAS, l'entrepot de donnees liees de la Confederation, publie le graphe
+// Zefix en SPARQL sans authentification, et ce depot s'en servait deja
+// (scripts/zefix-enrich-agencies.mjs).
+//
+// LE PLAFOND DU VERDICT est ce que ce volet verrouille en plus du cablage, et c'est le
+// coeur du sujet : registry_lookup ne peut JAMAIS valoir `match`. Le graphe ne publie
+// AUCUN statut -- une societe radiee y figure exactement comme une active (predicats
+// mesures : legalName, name, address, municipality, additionalType, description,
+// identifier, et rien d'autre). Poser `match` signifierait « existe ET active » sur une
+// preuve qui n'en porte que la moitie. La Suisse reste donc non auto-validable, mais pour
+// une raison desormais precise -- sa contrepartie en base (un dossier suisse parfait
+// retenu par ce seul `partial`) vit dans le volet 2.
+//
+// LA RAISON SOCIALE SE COMPARE A `schema:legalName`, JAMAIS A `schema:name`, et le cas
+// Nestle mesure ci-dessous dit pourquoi mieux qu'un principe : les deux entrees que rend
+// CHE105909036 portent chacune, en `schema:name`, la raison sociale DE L'AUTRE (« Nestlé
+// S.A. » et « Nestlé Ltd. » sur l'entree dont le legalName est « Nestlé AG »). Meler les
+// deux fabriquerait des `match` sur autre chose que ce que le veto verifie.
+describe('connecteur Zefix par LINDAS (registry_lookup / registry_legal_name_match / registry_country_match)', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  /** Configuration COMPLETE et fictive -- le cas « les secrets sont poses ». Ces valeurs
-   *  ne designent aucun service reel : elles n'ont pas a le faire, puisque aucun code de
-   *  ce squelette ne les utilise pour construire quoi que ce soit. Le credential est
-   *  volontairement reconnaissable pour que les assertions de non-fuite mordent. */
-  const ZEFIX_WIRED_CONFIG: PendingSourceConfig = {
-    baseUrl: 'https://exemple.invalid/zefix',
-    credential: 'SUPER-SECRET-ZEFIX-CREDENTIAL',
-  }
-
+  const LINDAS_ENDPOINT = 'https://lindas.admin.ch/query'
   const ZEFIX_CHECK_TYPES = ['registry_lookup', 'registry_legal_name_match', 'registry_country_match']
 
-  function agencyCH(overrides: Partial<AgencyForVerification> = {}): AgencyForVerification {
-    return { ...FAKE_AGENCY, country: 'CH', business_registration_number: 'CHE-123.456.789', ...overrides }
-  }
-
-  function zefixSource(checkType: string, config: PendingSourceConfig): KybSource {
-    const found = createZefixSources(config).find((s) => s.checkType === checkType)
-    if (!found) throw new Error(`${checkType} absent de createZefixSources()`)
+  /** Recuperee dans AGENCY_KYB_SOURCES et non depuis une fabrique : LINDAS etant public,
+   *  ces trois sources n'ont besoin d'AUCUNE configuration -- elles sont donc des entrees
+   *  statiques du registre, comme RDAP, VIES et le registre francais. Chercher sur la PAIRE
+   *  (check_type, source) et non sur le seul check_type : deux des trois types ont aussi un
+   *  proprietaire francais dans ce meme registre. */
+  function zefixSource(checkType: string): KybSource {
+    const found = AGENCY_KYB_SOURCES.find((s) => s.checkType === checkType && s.source === 'zefix')
+    if (!found) throw new Error(`${checkType} (source zefix) absent de AGENCY_KYB_SOURCES`)
     return found
   }
 
-  it('rend exactement trois sources, toutes de source zefix, une par veto de registre du catalogue', () => {
-    // Trois sources et non une : une KybSourceResult ne porte qu'UN check_type (voir
-    // _shared/kyb-sources.ts), et le registre francais a deja tranche ce point de la
-    // meme facon -- deux entrees interrogeant le meme point d'API. Les trois codes sont
-    // deja catalogues (verification_check_types, migration 20260728103000) et tous trois
-    // vetos (weight 0, is_veto true) : aucune migration n'est necessaire.
-    const sources = createZefixSources(ZEFIX_PENDING_CONFIG)
-    expect(sources).toHaveLength(3)
-    expect(sources.map((s) => s.checkType).sort()).toEqual([...ZEFIX_CHECK_TYPES].sort())
-    expect(sources.every((s) => s.source === 'zefix')).toBe(true)
-  })
+  /** Le dossier suisse de reference : l'UID de Nestle sous sa forme de SAISIE HUMAINE
+   *  (separateurs compris, comme le wizard la recoit), et la raison sociale de l'une des
+   *  deux entrees que le registre publie pour ce numero. */
+  function agencyCH(overrides: Partial<AgencyForVerification> = {}): AgencyForVerification {
+    return {
+      ...FAKE_AGENCY,
+      country: 'CH',
+      legal_name: 'Nestlé S.A.',
+      business_registration_number: 'CHE-105.909.036',
+      ...overrides,
+    }
+  }
 
-  for (const checkType of ['registry_lookup', 'registry_legal_name_match', 'registry_country_match']) {
-    it(
-      `${checkType} : sans identifiants -> unavailable avec error_type=KybSourcePendingCredentialsError, ` +
-        'et AUCUNE requete reseau',
-      async () => {
-        const fetchSpy = vi.fn()
-        vi.stubGlobal('fetch', fetchSpy)
+  function binding(legalName: string, municipality?: string): Record<string, unknown> {
+    return {
+      legalName: { type: 'literal', value: legalName },
+      ...(municipality === undefined ? {} : { municipality: { type: 'literal', value: municipality } }),
+    }
+  }
 
-        const row = await runKybSource(zefixSource(checkType, ZEFIX_PENDING_CONFIG), agencyCH())
-
-        expect(row.result, 'jamais un match par defaut : aucune source n a repondu').toBe('unavailable')
-        expect(row.check_type).toBe(checkType)
-        expect(row.source).toBe('zefix')
-        expect(
-          row.raw_response,
-          'un relecteur de la file admin doit lire « en attente d identifiants », pas un unavailable nu'
-        ).toMatchObject({ reason: 'error', error_type: 'KybSourcePendingCredentialsError' })
-        expect(String(row.raw_response.message)).toContain('identifiants')
-        expect(fetchSpy, 'aucune URL Zefix n est connue -- rien a appeler').not.toHaveBeenCalled()
-      }
-    )
-
-    it(
-      `${checkType} : configuration PRESENTE -> unavailable avec error_type=KybSourceNotWiredError ` +
-        '(le garde-fou : sans lui, poser les secrets produirait un unavailable silencieux et permanent)',
-      async () => {
-        const fetchSpy = vi.fn()
-        vi.stubGlobal('fetch', fetchSpy)
-
-        const row = await runKybSource(zefixSource(checkType, ZEFIX_WIRED_CONFIG), agencyCH())
-
-        expect(row.result).toBe('unavailable')
-        expect(row.check_type).toBe(checkType)
-        expect(
-          row.raw_response,
-          'les deux erreurs appellent deux gestes differents : attendre zefix@bj.admin.ch, ou brancher le connecteur'
-        ).toMatchObject({ reason: 'error', error_type: 'KybSourceNotWiredError' })
-        expect(fetchSpy, 'le squelette ne fabrique aucune requete, meme configure').not.toHaveBeenCalled()
-      }
+  function lindasResponse(bindings: Record<string, unknown>[]): Response {
+    return new Response(
+      JSON.stringify({ head: { vars: ['legalName', 'municipality'] }, results: { bindings } }),
+      { status: 200, headers: { 'content-type': 'application/sparql-results+json' } }
     )
   }
 
-  it('le credential n apparait JAMAIS dans raw_response serialise, configuration absente comme presente', async () => {
-    vi.stubGlobal('fetch', vi.fn())
-    for (const config of [ZEFIX_PENDING_CONFIG, ZEFIX_WIRED_CONFIG]) {
-      for (const checkType of ZEFIX_CHECK_TYPES) {
-        const row = await runKybSource(zefixSource(checkType, config), agencyCH())
-        const serialized = JSON.stringify(row.raw_response)
-        expect(serialized, `${checkType} / baseUrl="${config.baseUrl}"`).not.toContain('SUPER-SECRET-ZEFIX-CREDENTIAL')
-        // Ni l'URL : une baseUrl peut porter une cle en parametre de requete (le
-        // connecteur Mapbox de ce meme fichier en est la preuve), et rien ne garantit
-        // qu'elle n'en portera pas le jour ou elle sera connue.
-        expect(serialized, `${checkType} / baseUrl="${config.baseUrl}"`).not.toContain('exemple.invalid')
+  /** La reponse REELLE de LINDAS pour CHE105909036, mesuree en direct le 29.07.2026 (voir
+   *  .superpowers/sdd/task-2-report.md). DEUX entrees pour UN SEUL UID, avec des communes
+   *  differentes : ce sont les versions linguistiques officielles, toutes deux inscrites au
+   *  registre. Ce n'est pas un cas de bord, c'est le cas nominal d'une entite suisse. */
+  const NESTLE_BINDINGS = [binding('Nestlé AG', 'Cham'), binding('Nestlé S.A.', 'Vevey')]
+
+  function stubLindas(bindings: Record<string, unknown>[]): ReturnType<typeof vi.fn> {
+    const spy = vi.fn(async () => lindasResponse(bindings))
+    vi.stubGlobal('fetch', spy)
+    return spy
+  }
+
+  /** Le texte SPARQL reellement envoye, decode depuis le corps form-urlencoded. Sert aux
+   *  assertions qui portent sur CE QUI A ETE DEMANDE, pas seulement sur ce qui a ete lu. */
+  function sentSparql(spy: ReturnType<typeof vi.fn>): string {
+    const init = spy.mock.calls[0][1] as RequestInit
+    const body = String(init.body)
+    expect(body.startsWith('query='), `corps inattendu : ${body.slice(0, 40)}`).toBe(true)
+    return decodeURIComponent(body.slice('query='.length).replace(/\+/g, ' '))
+  }
+
+  it('les trois sources sont enregistrees dans AGENCY_KYB_SOURCES, de source zefix, sans fabrique ni configuration', () => {
+    // LINDAS est PUBLIC : aucun secret a lire, donc aucune raison de passer par une
+    // fabrique appelee depuis index.ts (c'est ce que la configuration vide du squelette
+    // imposait a l'etape 6). Les trois codes sont deja catalogues (verification_check_types,
+    // migration 20260729150300) et tous trois VETOS (weight 0, is_veto true), et `zefix` est
+    // deja une valeur admise par la contrainte CHECK sur agency_verification_checks.source :
+    // aucune migration n'est necessaire, verifie et non suppose.
+    const sources = AGENCY_KYB_SOURCES.filter((s) => s.source === 'zefix')
+    expect(sources).toHaveLength(3)
+    expect(sources.map((s) => s.checkType).sort()).toEqual([...ZEFIX_CHECK_TYPES].sort())
+  })
+
+  // ── Ce qui ne sort jamais du processus : les gardes d'entree ──────────────────
+
+  for (const checkType of ZEFIX_CHECK_TYPES) {
+    it(`${checkType} : siege hors Suisse -> unavailable, jamais un appel reseau`, async () => {
+      const fetchSpy = vi.fn()
+      vi.stubGlobal('fetch', fetchSpy)
+      const row = await runKybSource(zefixSource(checkType), agencyCH({ country: 'FR' }))
+      expect(row.result).toBe('unavailable')
+      expect(row.source).toBe('zefix')
+      expect(fetchSpy, 'la garde interne reste la derniere ligne de defense du filtre').not.toHaveBeenCalled()
+    })
+
+    it(`${checkType} : aucun numero de registre declare -> unavailable, jamais un appel reseau`, async () => {
+      const fetchSpy = vi.fn()
+      vi.stubGlobal('fetch', fetchSpy)
+      const row = await runKybSource(zefixSource(checkType), agencyCH({ business_registration_number: null }))
+      expect(row.result).toBe('unavailable')
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+
+    it(`${checkType} : numero qui n a pas la forme d un IDE -> unavailable, jamais un appel reseau`, async () => {
+      // Un SIREN francais, un UID tronque, un prefixe absent, une lettre au milieu : rien
+      // de tout cela ne se LIT comme un IDE. La forme est verifiee AVANT de construire la
+      // requete -- c'est aussi ce qui rend l'interpolation du numero dans le SPARQL sure.
+      const fetchSpy = vi.fn()
+      vi.stubGlobal('fetch', fetchSpy)
+      for (const saisie of ['510761505', 'CHE-12.34', 'CHE1059090366', 'CH105909036', 'CHE10590903A']) {
+        const row = await runKybSource(zefixSource(checkType), agencyCH({ business_registration_number: saisie }))
+        expect(row.result, `saisie "${saisie}"`).toBe('unavailable')
       }
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+
+    it(`${checkType} : erreur serveur (503) -> unavailable, avec le code de statut joint a la preuve`, async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 503 })))
+      const row = await runKybSource(zefixSource(checkType), agencyCH())
+      expect(row.result).toBe('unavailable')
+      expect(row.raw_response.status, 'un relecteur doit pouvoir distinguer une panne d un verdict').toBe(503)
+    })
+
+    it(`${checkType} : corps illisible (JSON invalide) -> unavailable`, async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('<html>bad gateway</html>', { status: 200 })))
+      const row = await runKybSource(zefixSource(checkType), agencyCH())
+      expect(row.result).toBe('unavailable')
+    })
+
+    it(
+      `${checkType} : reponse HTTP 200 hors schema (results.bindings absent) -> unavailable, jamais ` +
+        'un verdict invente -- SEULE une liste VIDE est l information « ce numero n y est pas »',
+      async () => {
+        // Meme garde, meme raison que le registre francais et Mapbox (revue etape 4/tache 3) :
+        // HTTP 200 ne garantit pas la forme. Un corps hors schema ne permet PAS de conclure a
+        // une absence, et ce check-ci est un VETO -- confondre les deux ecrirait une
+        // affirmation decisive sur une panne de schema.
+        for (const body of [{}, { results: {} }, { results: { bindings: 'nope' } }, { results: null }]) {
+          vi.stubGlobal(
+            'fetch',
+            vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }))
+          )
+          const row = await runKybSource(zefixSource(checkType), agencyCH())
+          expect(row.result, `corps ${JSON.stringify(body)}`).toBe('unavailable')
+        }
+      }
+    )
+
+    it(`${checkType} : panne reseau -> unavailable`, async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new Error('network down')
+        })
+      )
+      const row = await runKybSource(zefixSource(checkType), agencyCH())
+      expect(row.result).toBe('unavailable')
+    })
+
+    it(`${checkType} : timeout -> unavailable via le harnais`, async () => {
+      vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+      const row = await runKybSource(zefixSource(checkType), agencyCH(), 50)
+      expect(row.result).toBe('unavailable')
+      expect(row.raw_response).toMatchObject({ reason: 'timeout' })
+    }, 2_000)
+  }
+
+  // ── La requete : la forme INDEXEE, et elle seule ──────────────────────────────
+
+  it(
+    'interroge LINDAS en POST form-urlencoded sur le litteral schema:value, la seule forme qui tienne ' +
+      'sous le budget de 10 s du harnais',
+    async () => {
+      const spy = stubLindas(NESTLE_BINDINGS)
+      await runKybSource(zefixSource('registry_lookup'), agencyCH())
+
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(String(spy.mock.calls[0][0])).toBe(LINDAS_ENDPOINT)
+      const init = spy.mock.calls[0][1] as RequestInit
+      expect(init.method).toBe('POST')
+      const headers = init.headers as Record<string, string>
+      expect(headers['Content-Type']).toBe('application/x-www-form-urlencoded')
+      expect(headers.Accept).toBe('application/sparql-results+json')
+
+      const sparql = sentSparql(spy)
+      // Le litteral `schema:value "CHE105909036"` est mesure a 0,147 s ; filtrer par
+      // STRENDS sur l'URI de l'identifiant met 14 s (scan de 2,37 M d'identifiants) et ne
+      // tiendrait PAS sous DEFAULT_SOURCE_TIMEOUT_MS. La forme de la requete decide de sa
+      // vitesse, pas seulement de sa justesse.
+      expect(sparql).toContain('schema:value "CHE105909036"')
+      expect(sparql, "l'identifiant LINDAS est un NOEUD, pas une chaine portee par l entite").toContain(
+        'schema:name "CompanyUID"'
+      )
+      expect(sparql, 'jamais un filtre sur l URI : 14 s mesures contre 0,147 s').not.toContain('STRENDS')
+    }
+  )
+
+  it('le numero saisi avec separateurs est normalise avant la requete : le registre publie CHE105909036', async () => {
+    // La saisie humaine porte la forme d'affichage officielle (CHE-105.909.036) ; le graphe,
+    // lui, ne porte AUCUN separateur. Envoyer la saisie telle quelle ne rendrait jamais rien
+    // -- et un `mismatch` sur registry_lookup, c'est-a-dire un dossier accuse a tort.
+    for (const saisie of ['CHE-105.909.036', 'CHE 105 909 036', 'che-105.909.036', '  CHE105909036  ']) {
+      const spy = stubLindas(NESTLE_BINDINGS)
+      await runKybSource(zefixSource('registry_lookup'), agencyCH({ business_registration_number: saisie }))
+      expect(sentSparql(spy), `saisie "${saisie}"`).toContain('schema:value "CHE105909036"')
+      vi.unstubAllGlobals()
     }
   })
 
+  // ── registry_lookup : le plafond du verdict ───────────────────────────────────
+
   it(
-    'configuration a MOITIE posee (URL seule, ou credential seul) -> en attente d identifiants, ' +
-      'jamais « non branche » : il manque toujours une reponse du tiers',
+    'registry_lookup : UID present dans le graphe -> partial, JAMAIS match -- LINDAS ne publie pas le statut ' +
+      'actif/radie, et poser match affirmerait « existe ET active » sur la moitie d une preuve',
     async () => {
-      vi.stubGlobal('fetch', vi.fn())
-      const moities: PendingSourceConfig[] = [
-        { baseUrl: ZEFIX_WIRED_CONFIG.baseUrl, credential: '' },
-        { baseUrl: '', credential: ZEFIX_WIRED_CONFIG.credential },
-        // Blanc typographique : une variable d'environnement posee a "   " est vide en
-        // pratique, la traiter comme configuree ferait mentir le garde-fou.
-        { baseUrl: '   ', credential: '   ' },
+      stubLindas(NESTLE_BINDINGS)
+      const row = await runKybSource(zefixSource('registry_lookup'), agencyCH())
+      expect(row.result).toBe('partial')
+      expect(row.check_type).toBe('registry_lookup')
+      expect(row.source).toBe('zefix')
+      // La preuve doit dire au relecteur CE QUI MANQUE, pas seulement ce qui a ete trouve :
+      // c'est un veto qui ne passera pas, et il doit pouvoir lire pourquoi sans ouvrir le code.
+      expect(row.raw_response).toMatchObject({
+        uid: 'CHE105909036',
+        reason: 'existence_confirmed_status_not_published',
+      })
+    }
+  )
+
+  it(
+    'registry_lookup : UID absent du graphe (bindings vides, le registre A repondu) -> mismatch, jamais unavailable',
+    async () => {
+      // Une liste VIDE est une information positive : le registre a cherche ce numero et ne
+      // l'a pas. Meme motif que le 404 RDAP et le `results:[]` du registre francais.
+      stubLindas([])
+      const row = await runKybSource(zefixSource('registry_lookup'), agencyCH())
+      expect(row.result).toBe('mismatch')
+      expect(row.raw_response).toMatchObject({ reason: 'uid_not_found' })
+    }
+  )
+
+  it(
+    'registry_lookup ne vaut JAMAIS match, quelle que soit la reponse -- c est la propriete qui porte toute la tache',
+    async () => {
+      // Le jour ou les identifiants Zefix PublicREST arriveront, c'est CE check, et lui seul,
+      // qui passera de `partial` a `match` : PublicREST apporte le statut que LINDAS n'a pas.
+      // D'ici la, aucune reponse du graphe ne doit pouvoir produire un `match`.
+      const reponses: Record<string, unknown>[][] = [
+        [],
+        [binding('Nestlé S.A.')],
+        NESTLE_BINDINGS,
+        [binding('Nestlé S.A.', 'Vevey'), binding('Nestlé S.A.', 'Vevey'), binding('Nestlé AG', 'Cham')],
       ]
-      for (const config of moities) {
-        const row = await runKybSource(zefixSource('registry_lookup', config), agencyCH())
-        expect(row.raw_response.error_type).toBe('KybSourcePendingCredentialsError')
+      for (const bindings of reponses) {
+        stubLindas(bindings)
+        const row = await runKybSource(zefixSource('registry_lookup'), agencyCH())
+        expect(row.result, `${bindings.length} entree(s)`).not.toBe('match')
+        vi.unstubAllGlobals()
       }
     }
   )
 
+  // ── registry_legal_name_match : toutes les versions linguistiques, et elles seules ──
+
+  it(
+    'registry_legal_name_match : la raison sociale declaree correspond a la SECONDE entree rendue -> match ' +
+      '(un meme UID rend plusieurs legalName, ce sont les versions linguistiques officielles)',
+    async () => {
+      stubLindas(NESTLE_BINDINGS)
+      const row = await runKybSource(zefixSource('registry_legal_name_match'), agencyCH({ legal_name: 'Nestlé S.A.' }))
+      expect(row.result, 'les accepter toutes est juste : toutes sont inscrites au registre').toBe('match')
+      expect(row.raw_response).toMatchObject({
+        declared_legal_name: 'Nestlé S.A.',
+        registry_legal_names: ['Nestlé AG', 'Nestlé S.A.'],
+      })
+    }
+  )
+
+  it('registry_legal_name_match : accents, casse et ponctuation restent toleres (normalizeLegalNameStrict)', async () => {
+    for (const declaree of ['Nestlé S.A.', 'NESTLE SA', 'nestle s.a.', 'Nestlé AG', 'nestle ag']) {
+      stubLindas(NESTLE_BINDINGS)
+      const row = await runKybSource(zefixSource('registry_legal_name_match'), agencyCH({ legal_name: declaree }))
+      expect(row.result, `raison sociale declaree "${declaree}"`).toBe('match')
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('registry_legal_name_match : raison sociale reellement differente -> mismatch', async () => {
+    stubLindas(NESTLE_BINDINGS)
+    const row = await runKybSource(zefixSource('registry_legal_name_match'), agencyCH({ legal_name: 'Regie du Lac SA' }))
+    expect(row.result).toBe('mismatch')
+  })
+
+  it(
+    'registry_legal_name_match : `schema:name` n est JAMAIS compare -- il porte des denominations qui ne sont ' +
+      'pas la raison sociale, et les y meler fabriquerait des match sur autre chose que ce que le veto verifie',
+    async () => {
+      // Mesure en direct sur CHE105909036 : l'entree dont le legalName est « Nestlé AG »
+      // porte en `schema:name` « Nestlé S.A. » ET « Nestlé Ltd. », c'est-a-dire les
+      // denominations des AUTRES entrees. Un connecteur qui lirait `name` declarerait
+      // identiques deux raisons sociales que le registre distingue.
+      stubLindas([
+        {
+          legalName: { type: 'literal', value: 'Nestlé AG' },
+          name: { type: 'literal', value: 'Regie du Lac SA' },
+        },
+      ])
+      const row = await runKybSource(zefixSource('registry_legal_name_match'), agencyCH({ legal_name: 'Regie du Lac SA' }))
+      expect(row.result, 'seul schema:legalName fait foi').toBe('mismatch')
+    }
+  )
+
+  it('registry_legal_name_match : UID absent du graphe -> unavailable (rien a comparer), jamais mismatch', async () => {
+    // Le constat d'absence est deja porte par registry_lookup, pour son propre check_type :
+    // rien a dupliquer ici sur une donnee qui, elle, n'existe simplement pas.
+    stubLindas([])
+    const row = await runKybSource(zefixSource('registry_legal_name_match'), agencyCH())
+    expect(row.result).toBe('unavailable')
+  })
+
+  it('registry_legal_name_match : aucune raison sociale declaree -> unavailable, jamais un appel reseau', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    for (const declaree of [null, '', '   ']) {
+      const row = await runKybSource(zefixSource('registry_legal_name_match'), agencyCH({ legal_name: declaree }))
+      expect(row.result, `legal_name ${JSON.stringify(declaree)}`).toBe('unavailable')
+    }
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  // ── registry_country_match : l inscription au registre suisse ─────────────────
+
+  it(
+    'registry_country_match : UID trouve dans le graphe Zefix -> match, l entite est inscrite au registre suisse',
+    async () => {
+      // L'arbitrage est l'INVERSE de celui du connecteur francais, et c'est delibere (voir
+      // sa section dans _shared/kyb-sources.ts) : trouver le numero declare dans le registre
+      // de la juridiction declaree distingue reellement « cette entite est enregistree en
+      // Suisse » de « cette agence pretend etre suisse ».
+      stubLindas(NESTLE_BINDINGS)
+      const row = await runKybSource(zefixSource('registry_country_match'), agencyCH())
+      expect(row.result).toBe('match')
+      expect(row.raw_response).toMatchObject({ uid: 'CHE105909036', registry_country: 'CH' })
+    }
+  )
+
+  it('registry_country_match : UID absent du graphe -> unavailable (rien a opposer au pays declare)', async () => {
+    stubLindas([])
+    const row = await runKybSource(zefixSource('registry_country_match'), agencyCH())
+    expect(row.result).toBe('unavailable')
+  })
+
+  // ── Juridiction et exclusivite ────────────────────────────────────────────────
+
   it('juridiction : les trois sources s appliquent a CH, a aucun autre pays, ni a un pays absent', () => {
-    const sources = createZefixSources(ZEFIX_PENDING_CONFIG)
-    for (const source of sources) {
-      expect(source.appliesTo, `${source.checkType} doit declarer sa juridiction`).toBeDefined()
-      expect(source.appliesTo!(agencyCH()), `${source.checkType} / CH`).toBe(true)
+    for (const checkType of ZEFIX_CHECK_TYPES) {
+      const source = zefixSource(checkType)
+      expect(source.appliesTo, `${checkType} doit declarer sa juridiction`).toBeDefined()
+      expect(source.appliesTo!(agencyCH()), `${checkType} / CH`).toBe(true)
       // Minuscules et blancs : agencies.country est du texte libre cote base.
-      expect(source.appliesTo!(agencyCH({ country: '  ch  ' })), `${source.checkType} / "  ch  "`).toBe(true)
+      expect(source.appliesTo!(agencyCH({ country: '  ch  ' })), `${checkType} / "  ch  "`).toBe(true)
+      // Le Liechtenstein est EXCLU bien qu'il partage le systeme UID : son registre du
+      // commerce est `oera.li`, absent de LINDAS.
       for (const country of ['FR', 'LI', 'DE', null]) {
-        expect(source.appliesTo!(agencyCH({ country })), `${source.checkType} / ${country ?? 'non declare'}`).toBe(false)
+        expect(source.appliesTo!(agencyCH({ country })), `${checkType} / ${country ?? 'non declare'}`).toBe(false)
       }
     }
   })
@@ -3263,11 +3718,11 @@ describe('squelette Zefix (registry_lookup / registry_legal_name_match / registr
     'exclusivite avec le registre francais : registry_lookup et registry_legal_name_match ne sont jamais ' +
       'revendiques par zefix ET recherche_entreprises pour le meme siege',
     () => {
-      // Le point de rupture que toute la regle de juridiction (tache 1) existe pour
-      // rendre impossible : le moteur (20260728130000) ne garde qu'UNE ligne par
-      // check_type et departage deux lignes de la meme transaction par ctid, donc par
-      // ordre d'insertion. Deux proprietaires applicables au meme dossier, et
-      // l'`unavailable` insere en dernier masquerait l'autre verdict.
+      // Le point de rupture que toute la regle de juridiction (etape 6, tache 1) existe pour
+      // rendre impossible : le moteur (20260729151200) ne garde qu'UNE ligne par check_type
+      // et departage deux lignes de la meme transaction par ctid, donc par ordre
+      // d'insertion. Deux proprietaires applicables au meme dossier, et la derniere ligne
+      // inseree masquerait l'autre verdict -- un veto dependrait alors de l'ordre du tableau.
       for (const country of ['CH', 'FR', 'LI', 'DE', null]) {
         const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country }, fullKybRegistry())
         for (const checkType of ['registry_lookup', 'registry_legal_name_match']) {
@@ -3280,30 +3735,36 @@ describe('squelette Zefix (registry_lookup / registry_legal_name_match / registr
   )
 
   it(
-    'aucun verdict ne bouge : trois vetos `unavailable` valent exactement les trois vetos ABSENTS d avant ' +
-      '(le moteur les traite a l identique -- exclus du numerateur ET du denominateur, veto non passe)',
+    'les trois sources interrogent le meme point d API sans se coordonner : un appel chacune, couplage assume',
     async () => {
-      // Verifie ici sur ce que le squelette ECRIT (la moitie de la propriete qui vit en
-      // TypeScript) ; l'autre moitie -- que le moteur en tire le meme statut et le meme
-      // score qu'avant -- est verifiee en base par le volet HTTP plus haut
-      // (« une agence suisse ... AUCUN verdict ne bouge pour autant »).
-      vi.stubGlobal('fetch', vi.fn())
-      const rows = await runAgencyKybSources(agencyCH(), createZefixSources(ZEFIX_PENDING_CONFIG))
+      // Meme arbitrage que le registre francais (deux entrees, deux appels) : une
+      // KybSourceResult ne porte qu'UN check_type, il faut donc une source par type. Le
+      // cout est une poignee d'appels par verification, jamais par seconde.
+      const spy = stubLindas(NESTLE_BINDINGS)
+      const rows = await runAgencyKybSources(
+        agencyCH(),
+        ZEFIX_CHECK_TYPES.map((t) => zefixSource(t))
+      )
       expect(rows).toHaveLength(3)
-      expect(rows.every((r) => r.result === 'unavailable'), 'jamais match, jamais partial, jamais mismatch').toBe(true)
+      expect(spy).toHaveBeenCalledTimes(3)
+      expect(rows.map((r) => `${r.check_type}=${r.result}`).sort()).toEqual(
+        ['registry_country_match=match', 'registry_legal_name_match=match', 'registry_lookup=partial'].sort()
+      )
     }
   )
 })
 
 // ─── Squelette du registre UID (vat_lookup CH/LI, etape 6 tache 3) ─────────────
 //
-// Meme place et meme forme que le volet Zefix ci-dessus, dont ce volet reprend le motif --
-// mais PAS le meme statut, et c'est ce que verifient autant les tests que les
-// commentaires. Zefix a REPONDU `401 Unauthorized` : on sait qu'il existe et qu'il attend
-// une authentification, il ne manque qu'un identifiant. Le registre UID (uid.admin.ch)
-// n'a JAMAIS ete teste en API, et la question posee par la doc de conception §3 -- « API
-// separee ou champ Zefix ? » -- n'est pas tranchee : il manque ici une reponse sur CE
-// QU'ON DOIT APPELER, pas seulement de quoi s'y authentifier.
+// Le SEUL squelette qui reste dans ce fichier, et LINDAS n'y change rien : le graphe Zefix
+// ne publie pas la TVA. Ce que ce volet verrouille est donc inchange par le chantier
+// LINDAS -- cablage, gestion d'erreur, juridiction -- et son statut reste distinct de celui
+// de Zefix. Zefix PublicREST a REPONDU `401 Unauthorized` : on sait qu'il existe et qu'il
+// attend une authentification, il ne manque qu'un identifiant (et c'est le STATUT ACTIF
+// qu'il apporterait, la seule chose que LINDAS ne donne pas). Le registre UID
+// (uid.admin.ch) n'a JAMAIS ete teste en API, et la question posee par la doc de conception
+// §3 -- « API separee ou champ Zefix ? » -- n'est pas tranchee : il manque ici une reponse
+// sur CE QU'ON DOIT APPELER, pas seulement de quoi s'y authentifier.
 //
 // Consequence assumee sur la forme, et raison d'etre de ces tests : si la reponse est
 // « champ Zefix », cette source DISPARAIT au profit d'un quatrieme type servi par le
@@ -3415,21 +3876,21 @@ describe('squelette du registre UID (vat_lookup) -- aucun reseau', () => {
   })
 
   it(
-    'la preuve nomme LAQUELLE des sources en attente a manque : un relecteur de la file admin ne peut pas ' +
-      'confondre le registre UID avec Zefix devant deux unavailable identiques',
+    'la preuve nomme CE QUI MANQUE AU JUSTE : un relecteur de la file admin doit lire « registre UID, acces ' +
+      'non etabli », jamais un unavailable nu ni un « en attente d identifiants » a moitie faux',
     async () => {
+      // Ce test comparait jusqu'ici le message du registre UID a celui de Zefix, pour
+      // prouver que deux `unavailable` partageant la MEME erreur restaient distinguables. Ce
+      // contraste a disparu avec le squelette Zefix (chantier LINDAS, tache 2) : ce squelette
+      // est desormais le seul, et l'erreur ne porte donc plus a confusion. Ce qui reste vrai,
+      // et vaut d'etre tenu, c'est que `error_type` seul ne dit PAS ce qu'on attend -- le
+      // libelle doit le dire, et c'est lui que lit un humain.
       vi.stubGlobal('fetch', vi.fn())
       const uidRow = await runKybSource(uidSource(UID_REGISTER_PENDING_CONFIG), agencyIn('CH'))
-      const zefixRow = await runKybSource(
-        createZefixSources(ZEFIX_PENDING_CONFIG).find((s) => s.checkType === 'registry_lookup')!,
-        agencyIn('CH')
-      )
 
-      expect(String(uidRow.raw_response.message)).toContain('registre UID')
-      expect(
-        String(uidRow.raw_response.message),
-        'les deux squelettes partagent la MEME erreur : seul le libelle distingue ce qu on attend de chacun'
-      ).not.toBe(String(zefixRow.raw_response.message))
+      const message = String(uidRow.raw_response.message)
+      expect(message).toContain('registre UID')
+      expect(message, "« acces non etabli » n'est pas « en attente d'identifiants »").toContain('acces non etabli')
     }
   )
 

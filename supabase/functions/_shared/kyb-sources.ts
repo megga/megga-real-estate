@@ -12,15 +12,18 @@
 // le meme dossier, sans quoi la derniere ligne inseree masquerait l'autre au moteur --
 // mais ecarter une source qui aurait eu un verdict a rendre coute ce verdict, ce que la
 // revue finale a du corriger sur vat_lookup (section « Qui possede vat_lookup »). Sa
-// tache 2 y ajoute le SQUELETTE Zefix (registre du commerce suisse) : trois sources
-// cablees de bout en bout mais sans connecteur, faute d'identifiants -- section
-// « Squelette Zefix » plus bas, et les deux erreurs qui la precedent. Sa tache 3 y ajoute
-// le SQUELETTE DU REGISTRE UID (TVA suisse et liechtensteinoise, vat_lookup pour CH/LI),
-// sur le meme motif mais dans une situation qui n'est PAS la meme -- voir la section
-// « Squelette du registre UID », juste apres celle de Zefix. Le chantier LINDAS (tache 1)
-// y ajoute le CONTROLE DU NUMERO DE REGISTRE (registry_number_format) : le seul connecteur
-// du fichier qui ne sorte pas du processus -- ni reseau, ni cle, ni juridiction declaree --
-// et le premier des quatre vetos d'entite a avoir un proprietaire pour de bon.
+// tache 3 y ajoute le SQUELETTE DU REGISTRE UID (TVA suisse et liechtensteinoise,
+// vat_lookup pour CH/LI) : une source cablee de bout en bout mais sans connecteur, faute de
+// savoir ce qu'il faudrait appeler -- voir la section « Squelette du registre UID » et les
+// deux erreurs qui la precedent. Le chantier LINDAS y ajoute le CONTROLE DU NUMERO DE
+// REGISTRE (tache 1, registry_number_format) : le seul connecteur du fichier qui ne sorte
+// pas du processus -- ni reseau, ni cle, ni juridiction declaree -- puis les TROIS SOURCES
+// ZEFIX PAR LINDAS (tache 2, registry_lookup / registry_legal_name_match /
+// registry_country_match), qui REMPLACENT le squelette Zefix de l'etape 6 : le registre du
+// commerce suisse est publie en SPARQL par la Confederation, sans authentification. Trois
+// des quatre vetos d'entite ont donc desormais un proprietaire qui repond ; le quatrieme,
+// registry_lookup, repond aussi mais ne peut jamais valoir `match` faute de statut publie --
+// section « Connecteur Zefix par LINDAS ».
 //
 //   Une source qui ne repond pas produit un check `unavailable`, JAMAIS une
 //   absence de ligne et JAMAIS un echec. Le moteur (recompute_agency_verification,
@@ -150,13 +153,15 @@ export interface KybSource {
 // qui gagne, autrement dit l'ordre du tableau passe a record_agency_verification_run.
 //
 // La tache 2 de l'etape 6 donne un second proprietaire a registry_lookup et
-// registry_legal_name_match (le squelette Zefix, CH, la ou recherche-entreprises couvre
-// la France), et sa tache 3 en donnera un a vat_lookup (registre UID, CH/LI, la ou VIES
-// couvre l'UE). Sans regle, le jour ou Zefix repondrait `match`, l'`unavailable` que le
-// connecteur francais produit deja pour tout siege hors de France pourrait s'inserer
-// apres lui et le masquer : un veto reellement satisfait se lirait comme un veto absent
-// -- l'inverse exact de ce que la preuve dit. Departager cette collision serait deja
-// trop tard ; la regle ci-dessous la rend impossible.
+// registry_legal_name_match (Zefix, CH, la ou recherche-entreprises couvre la France), et
+// sa tache 3 en donne un a vat_lookup (registre UID, CH/LI, la ou VIES couvre l'UE). Sans
+// regle, l'`unavailable` que le connecteur francais produit deja pour tout siege hors de
+// France pourrait s'inserer apres le verdict suisse et le masquer : un veto reellement
+// satisfait se lirait comme un veto absent -- l'inverse exact de ce que la preuve dit.
+// Departager cette collision serait deja trop tard ; la regle ci-dessous la rend
+// impossible. Le risque a cesse d'etre theorique au chantier LINDAS (tache 2) : les
+// sources suisses repondent desormais pour de bon, elles ecrivent `match`, `partial` et
+// `mismatch` -- ce qu'aurait masque une ligne francaise inseree apres elles.
 //
 // Impossible POUR LE check_type QU'UNE SOURCE DECLARE (source.checkType), et c'est la
 // totalite de ce que la regle promet -- la reserve merite d'etre ici, pas seulement dans
@@ -675,9 +680,9 @@ const vatLookupSource: KybSource = {
 //
 // recherche-entreprises.api.gouv.fr : public, sans cle, sans compte, 7 requetes/
 // seconde (brief tache 3 ; doc de conception docs/agency-kyb-verification.md §3).
-// Ne s'interroge QUE pour un siege en France (agency.country === 'FR') -- la Suisse
-// reste aveugle faute d'acces a Zefix (etape 6), le Liechtenstein n'a aucune API
-// publique connue (meme doc).
+// Ne s'interroge QUE pour un siege en France (agency.country === 'FR') -- la Suisse a
+// desormais ses propres sources de registre (Zefix par LINDAS, chantier LINDAS tache 2),
+// le Liechtenstein n'a toujours aucune API publique connue (meme doc).
 //
 // DEUX check_type distincts pour UNE seule source (meme motif que
 // domain_whois_age/domain_generic_provider a la tache 2, revue etape 4/tache 2 point
@@ -704,11 +709,12 @@ const vatLookupSource: KybSource = {
 // tache -- comportement attendu, pas un defaut (meme principe que Zefix, doc de
 // conception §3).
 //
-// Sur registry_country_match, le squelette Zefix (etape 6, tache 2, plus bas) a tranche
-// l'INVERSE, et deliberement : y trouver le numero declare confirme reellement quelque
-// chose. L'asymetrie est assumee et connue -- combler ce veto pour CH seulement laisse
-// FR sans lui, donc toujours non auto-validable (handoff §7bis). A traiter hors de
-// l'etape 6 : ce serait un connecteur francais de plus, pas une retouche de celui-ci.
+// Sur registry_country_match, le connecteur Zefix par LINDAS (chantier LINDAS, tache 2,
+// plus bas) a tranche l'INVERSE, et deliberement : y trouver le numero declare confirme
+// reellement quelque chose. L'asymetrie est assumee et connue -- combler ce veto pour CH
+// seulement laisse FR sans lui, donc toujours non auto-validable (handoff §7bis). A
+// traiter hors de cette section : ce serait un connecteur francais de plus, pas une
+// retouche de celui-ci.
 
 /** Etat administratif INSEE/RNE rencontre en reconnaissance manuelle (voir rapport de
  *  tache) : 'A' = actif. Tout le reste (notamment 'C' = cesse) contredit une agence
@@ -1264,7 +1270,15 @@ export function createAddressGeocodeSource(mapboxToken: string): KybSource {
 
 // ─── Sources en attente d'identifiants (etape 6) ──────────────────────────────
 //
-// Deux erreurs, et c'est le coeur de ces squelettes plutot qu'un detail : elles
+// Cette machinerie servait DEUX squelettes ; il n'en reste qu'UN, celui du registre UID.
+// Le squelette Zefix, qui l'employait pour ses trois check_type, a disparu au profit d'un
+// connecteur reel (chantier LINDAS, tache 2 -- section « Connecteur Zefix par LINDAS »
+// plus bas) : le registre du commerce suisse est publie sans authentification, il n'y a
+// plus d'identifiants a attendre pour l'interroger. Ce qui reste suspendu a
+// zefix@bj.admin.ch n'est plus une SOURCE mais un CHAMP, le statut actif/radie, et il se
+// greffera dans ce connecteur-la, pas ici.
+//
+// Deux erreurs, et c'est le coeur de ce squelette plutot qu'un detail : elles
 // appellent deux GESTES DIFFERENTS. `KybSourcePendingCredentialsError` attend une
 // reponse d'un tiers, hors de ce depot ; `KybSourceNotWiredError` dit que les secrets
 // sont poses et que c'est du CODE qui manque -- la seule des deux qui se corrige ici.
@@ -1280,7 +1294,8 @@ export function createAddressGeocodeSource(mapboxToken: string): KybSource {
 
 /** La configuration manque : la source ne PEUT PAS etre interrogee, et le geste attendu
  *  n'est pas dans ce depot (voir docs/agency-kyb-handoff.md §8 pour l'etat des demandes
- *  en cours). Cas nominal d'aujourd'hui pour Zefix. */
+ *  en cours). Cas nominal d'aujourd'hui pour le registre UID, seule source du fichier
+ *  encore dans cette situation. */
 export class KybSourcePendingCredentialsError extends Error {
   constructor(label: string) {
     super(`${label}: en attente d'identifiants, source non interrogee (voir docs/agency-kyb-handoff.md §8)`)
@@ -1312,17 +1327,21 @@ export interface PendingSourceConfig {
 }
 
 /**
- * Construit UNE source dont le connecteur reste a ecrire. Fabrique INTERNE et PARTAGEE :
- * les trois sources Zefix ci-dessous n'en different que par leur check_type et leur
- * libelle, et ce qui reste a ecrire le jour ou les identifiants arrivent (URL,
- * authentification, analyse de la reponse) ne doit exister qu'a UN SEUL endroit, jamais
- * en trois exemplaires a recopier -- c'est tout l'objet de cette etape.
+ * Construit UNE source dont le connecteur reste a ecrire. Fabrique INTERNE, PARAMETREE
+ * plutot que recopiee : elle servait trois sources Zefix ET celle du registre UID, et ce
+ * qui reste a ecrire le jour ou les identifiants arrivent (URL, authentification, analyse
+ * de la reponse) ne devait exister qu'a UN SEUL endroit. Un seul appelant lui reste
+ * aujourd'hui (createUidRegisterSources) -- Zefix a trouve une voie publique et n'attend
+ * plus rien. Conservee telle quelle : sa valeur n'a jamais tenu au NOMBRE d'appelants mais
+ * a la discipline qu'elle impose (deux erreurs distinctes, aucun secret dans le message,
+ * aucune requete construite), et la replier dans son unique appelant ferait perdre cette
+ * discipline au prochain squelette.
  *
  * `run` ne recoit deliberement ni `agency` ni `signal` : il n'y a rien a lire dans le
- * dossier ni rien a annuler tant qu'aucune requete n'est construite. Le jour ou l'une
- * des trois est ecrite, elle reprend la signature complete du contrat KybSource et cette
- * fabrique ne sert plus qu'aux autres -- la transition se fait source par source, sans
- * rien casser.
+ * dossier ni rien a annuler tant qu'aucune requete n'est construite. Le jour ou une source
+ * qu'elle sert est ecrite, celle-ci reprend la signature complete du contrat KybSource et
+ * quitte cette fabrique -- c'est exactement ce que les trois sources Zefix viennent de
+ * faire, une transition source par source, sans rien casser.
  *
  * Ni le credential ni la baseUrl n'entrent JAMAIS dans le message d'erreur : le premier
  * est un secret, et la seconde peut en porter un en parametre de requete (le connecteur
@@ -1355,124 +1374,358 @@ function createPendingCredentialsSource(params: {
   }
 }
 
-// ─── Squelette Zefix (registre du commerce suisse, etape 6 tache 2) ────────────
+// ─── Connecteur Zefix par LINDAS (registry_lookup / registry_legal_name_match /
+//     registry_country_match, chantier LINDAS tache 2) ─────────────────────────
 //
-// Zefix (Zentraler Firmenindex) est LE registre du marche vise, et le connecteur de plus
-// forte valeur qu'on ne peut PAS ecrire aujourd'hui : son API PublicREST repond `401
-// Unauthorized` (verifie en direct le 25.07.2026, doc de conception §3), les identifiants
-// ont ete demandes a zefix@bj.admin.ch et la demande reste sans reponse (handoff §8).
+// Zefix (Zentraler Firmenindex) est LE registre du marche vise. Son API PublicREST repond
+// `401 Unauthorized` (verifie en direct le 25.07.2026, doc de conception §3) et les
+// identifiants demandes a zefix@bj.admin.ch sont sans reponse -- c'est ce qui avait reduit
+// l'etape 6 a un squelette. UNE VOIE PUBLIQUE existe pourtant, et c'est elle qu'on emprunte
+// ici : LINDAS, l'entrepot de donnees liees de la Confederation, publie le graphe Zefix
+// <https://lindas.admin.ch/foj/zefix> en SPARQL, sans aucune authentification. Ce depot s'en
+// servait deja (scripts/zefix-enrich-agencies.mjs, qui l'avait choisi contre PublicREST
+// « qui exige des identifiants OFJ + throttle »).
 //
-// UNE VOIE PUBLIQUE EXISTE POURTANT, et elle retrecit le blocage a UNE des trois sources.
-// Les donnees Zefix sont aussi publiees en Open Data par LINDAS, l'endpoint SPARQL de la
-// Confederation : https://lindas.admin.ch/query, graphe <https://lindas.admin.ch/foj/zefix>,
-// PUBLIC, sans authentification, ~790k organisations d'apres l'en-tete du script. Ce
-// depot s'en sert DEJA -- scripts/zefix-enrich-agencies.mjs interroge LINDAS pour retrouver
-// l'IDE d'une agence, et dit l'avoir choisi plutot que l'API REST Zefix, « qui exige des
-// identifiants OFJ + throttle ». Verifie en direct le 29.07.2026 : un POST sur
-// https://lindas.admin.ch/query filtrant schema:legalName rend HTTP 200 et les raisons
-// sociales attendues, sans aucune cle.
+// Consequence de forme : ces trois sources n'ont besoin d'AUCUN secret, donc d'aucune
+// fabrique appelee depuis agency-verification-run/index.ts. Ce sont des entrees STATIQUES
+// de AGENCY_KYB_SOURCES, comme RDAP, VIES et le registre francais.
 //
-// Ce que ca change, check_type par check_type -- a lire avant de commencer :
+// CE QUE LE GRAPHE NE PORTE PAS, ET CE QUE CA COUTE. Les predicats d'une entite Zefix dans
+// LINDAS sont, mesures en direct sur CHE105909036 : legalName, name, address, municipality,
+// additionalType, description, identifier. AUCUN STATUT. Une societe radiee y figure
+// exactement comme une active. `registry_lookup` ne peut donc JAMAIS valoir `match` :
+// `match` signifierait « existe ET active » sur une preuve qui n'en porte que la moitie.
+// Present dans le graphe -> `partial` ; absent -> `mismatch` (le registre a repondu, ce
+// numero n'y est pas : c'est decisif, meme motif que le 404 RDAP et le `results:[]` du
+// registre francais). Un veto ne passe que sur `match` (recompute_agency_verification,
+// 20260729151200) : la Suisse reste donc non auto-validable, mais pour une raison desormais
+// precise et mesuree -- verifiee en base, pas supposee, par la paire de tests
+// « un dossier suisse autrement parfait ... reste en manual_review » de
+// tests/backend/agency-verification-run.spec.ts.
 //
-//   1. registry_legal_name_match -- SERVABLE AUJOURD'HUI, sans identifiants. LINDAS expose
-//      schema:legalName ; comparer la raison sociale declaree a celle du registre ne
-//      demande rien de plus que cet endpoint public.
-//   2. registry_country_match -- SERVABLE AUJOURD'HUI, sans identifiants. Trouver l'entite
-//      dans le graphe Zefix etablit qu'elle est inscrite au registre du commerce suisse,
-//      c'est-a-dire exactement ce que ce veto oppose au pays declare.
-//   3. registry_lookup -- A MOITIE seulement, et c'est le seul qui depende vraiment des
-//      identifiants. LINDAS donne l'EXISTENCE, mais PAS le statut actif/radie : l'en-tete
-//      du script le dit sans detour, la presence dans le graphe vaut inscription au RC, pas
-//      inscription ACTIVE. Le statut reste suspendu a PublicREST.
+// C'EST ICI, ET NULLE PART AILLEURS, QUE L'APPEL REST ZEFIX VIENDRA SE GREFFER le jour ou
+// les identifiants arrivent. PublicREST apporte le STATUT, et rien d'autre que LINDAS ne
+// donne deja : seul `runZefixRegistryLookup` ci-dessous change alors, et ce seul check passe
+// de `partial` a `match` quand le statut est actif (`mismatch` s'il est radie, ce que LINDAS
+// ne sait pas dire aujourd'hui). Les deux autres connecteurs n'ont rien a y gagner. Ce
+// jour-la, ce connecteur-ci aura besoin d'un secret et redeviendra donc une FABRIQUE
+// (meme motif que createAddressGeocodeSource), la lecture de l'environnement restant dans
+// agency-verification-run/index.ts : ce module reste pur.
 //
-// Autrement dit, ce qui est bloque n'est pas « le registre suisse », c'est le STATUT ACTIF.
-// Deux vetos sur trois se livrent sans attendre zefix@bj.admin.ch. Le squelette ci-dessous
-// ne perd rien pour autant : sa structure -- trois sources, une juridiction, un point de
-// configuration unique -- est celle qu'il faut dans les deux cas, et PublicREST reste la
-// source du statut. Le registre UID (section suivante) n'est PAS concerne : LINDAS ne le
-// remplace pas. Et cela ne rend aucun dossier suisse auto-validable : les trois vetos de
-// registre ci-dessous restent `unavailable` et la piece d'identite reste en revue humaine
-// (handoff §7bis). Le QUATRIEME veto d'entite, registry_number_format, a depuis son
-// connecteur -- section « Controle du numero de registre » plus haut -- ce qui ne debloque
-// aucun dossier a lui seul, mais retire un des quatre obstacles. Ce qui suit reste donc a
-// ecrire ; ce qui change, c'est ce qu'il faut attendre.
+// LA FORME DE LA REQUETE DECIDE DE SA VITESSE, et ce n'est pas une optimisation mais une
+// condition d'existence du connecteur. L'identifiant LINDAS est un NOEUD, pas une chaine
+// portee par l'entite : `?company schema:identifier ?identifier`, puis `?identifier
+// schema:name "CompanyUID" ; schema:value "CHE105909036"`. Filtrer par STRENDS sur l'URI de
+// ce noeud met 14 s (scan des 2,37 M d'identifiants du graphe) ; interroger le LITTERAL
+// `schema:value` met 0,147 s -- mesures en direct le 29.07.2026. Seule la seconde tient sous
+// DEFAULT_SOURCE_TIMEOUT_MS (10 s). Ne jamais « simplifier » cette requete en un filtre sur
+// l'URI : le connecteur deviendrait un `unavailable` permanent par timeout.
 //
-// Ce qui suit est donc un SQUELETTE, pas un connecteur : il cable tout ce qui peut l'etre
-// sans identifiants -- les trois check_type, la juridiction, la place dans le registre,
-// la forme de l'indisponibilite et la preuve qui l'accompagne. Le jour ou les
-// identifiants arrivent, il ne reste que TROIS gestes, dans cet ordre :
+// La valeur publiee ne porte AUCUN separateur (`CHE105909036`) la ou la saisie humaine en
+// porte (`CHE-105.909.036`, forme d'affichage officielle) -- d'ou normalizeRegistryNumber(),
+// partagee avec le controle du numero de registre plus haut. Ce controle-la, lui, VERIFIE LA
+// CLE ; celui-ci ne verifie que la FORME (SWISS_UID_RE), et deliberement : un numero a la
+// cle fausse n'existera pas dans le graphe, et c'est `mismatch` sur registry_lookup qui le
+// dira -- refuser de le chercher reviendrait a faire deux fois le travail d'un autre veto.
 //
-//   1. Poser les secrets ZEFIX_API_URL et ZEFIX_API_CREDENTIAL (lus par
-//      agency-verification-run/index.ts, deja cable -- rien a y changer).
-//   2. Ecrire l'authentification et l'URL : l'en-tete exact qu'attend Zefix reste
-//      inconnu tant que le 401 n'est pas leve.
-//   3. Ecrire l'analyse de la reponse, une par check_type.
+// La forme est verifiee AVANT toute construction de requete, et c'est aussi ce qui rend
+// l'interpolation du numero dans le texte SPARQL sure : SWISS_UID_RE n'admet que `CHE` suivi
+// de neuf chiffres, donc ni guillemet ni contre-oblique ne peut atteindre le litteral (meme
+// discipline que DOMAIN_SHAPE_RE pour le chemin RDAP plus haut).
 //
-// Le point 3 est le seul des trois qui soit par nature en trois exemplaires (existence,
-// raison sociale, juridiction sont trois lectures differentes d'une meme reponse), et le
-// registre francais plus haut donne deja la forme a reprendre : UN helper de requete
-// partage (fetchFrenchRegistry) et DEUX `run` qui n'en lisent pas la meme chose. Les
-// points 1 et 2, eux, restent a un seul endroit -- ce helper de requete, qui reprendra du
-// meme coup la garde de configuration de createPendingCredentialsSource ci-dessus (une
-// baseUrl ou un credential vide reste un KybSourcePendingCredentialsError le jour ou le
-// connecteur existe : un secret efface par accident ne doit pas devenir une panne muette).
+// TROIS sources et non une, pour la meme raison que le registre francais en a deux (voir sa
+// section) : une KybSourceResult ne porte qu'UN check_type. Les trois interrogent donc le
+// meme point d'API sans se coordonner -- couplage assume, une poignee d'appels par
+// verification et non par seconde, exactement l'arbitrage deja retenu pour la France.
 //
-// RIEN n'est ecrit « au plus probable » ici : ni URL, ni schema de reponse, ni en-tete.
-// Ce qui n'est pas connu reste une valeur de configuration vide et un commentaire qui dit
-// quoi y mettre -- une URL inventee se decouvrirait en production, une valeur vide se
-// decouvre a la lecture, et le garde-fou ci-dessus la signale de lui-meme.
-//
-// TROIS sources et non une, pour la meme raison que le registre francais en a deux (voir
-// sa section plus haut) : une KybSourceResult ne porte qu'UN check_type. Couplage
-// accepte -- une poignee d'appels par verification, pas par seconde.
-//
-// registry_country_match merite d'etre justifie plutot que subi. Le connecteur francais
-// l'a laisse de cote au motif qu'il n'interroge que des sieges DEJA declares en France :
-// une reponse positive n'y confirmerait rien qu'on ne sache. L'arbitrage est INVERSE ici,
-// et c'est delibere : trouver le numero declare dans le registre de la juridiction
-// declaree est une confirmation reelle, pas une tautologie -- c'est la seule chose qui
-// distingue « cette entite est enregistree en Suisse » de « cette agence pretend etre
-// suisse ». C'est aussi l'un des deux vetos que le handoff §7bis designe comme bloquant
-// l'auto-validation de TOUT dossier, de tout pays. Asymetrie assumee, a traiter hors de
-// cette etape : le combler pour CH seulement laisse FR sans lui, donc toujours non
-// auto-validable.
-//
-// AUCUN VERDICT NE BOUGE pour autant. Ces trois lignes sont des vetos (weight 0,
-// is_veto true, migration 20260728103000) et elles sortent toutes `unavailable` : le
-// moteur (20260728130000) fait echouer un veto `unavailable` EXACTEMENT comme un veto
-// absent (« Ne passe que sur 'match' »), et exclut `unavailable` du numerateur ET du
-// denominateur du score. Un dossier suisse part donc en revue humaine apres cette etape
-// exactement comme avant -- c'est le critere de non-regression, pas un effet de bord.
+// registry_country_match merite d'etre justifie plutot que subi, et l'arbitrage est
+// l'INVERSE de celui du connecteur francais. Celui-ci l'avait laisse de cote au motif qu'il
+// n'interroge que des sieges DEJA declares en France : une reponse positive n'y confirmerait
+// rien qu'on ne sache. Ici, trouver le numero declare dans le registre de la juridiction
+// declaree est une confirmation reelle -- c'est la seule chose qui distingue « cette entite
+// est enregistree en Suisse » de « cette agence pretend etre suisse ».
+
+const LINDAS_SPARQL_ENDPOINT = 'https://lindas.admin.ch/query'
+const LINDAS_ZEFIX_GRAPH = 'https://lindas.admin.ch/foj/zefix'
+
+/** Borne du nombre de lignes rendues pour UN numero. Un meme UID en rend plusieurs -- les
+ *  versions linguistiques officielles, toutes inscrites (CHE105909036 rend « Nestlé S.A. »
+ *  a Vevey et « Nestlé AG » a Cham). Volontairement TRES au-dessus du besoin : le maximum
+ *  sur TOUT le graphe vaut 2, mesure en direct le 29.07.2026 par un GROUP BY sur les 2,37 M
+ *  d'identifiants (17 s, hors budget d'un connecteur -- d'ou une mesure faite une fois, a la
+ *  main, et une constante figee ici). Tronquer ne couterait rien a registry_lookup ni a
+ *  registry_country_match (une seule ligne suffit a etablir la presence), mais ferait perdre
+ *  a registry_legal_name_match une version linguistique -- donc un `mismatch` sur une raison
+ *  sociale pourtant inscrite, sur un veto qui bloque un dossier. */
+const ZEFIX_UID_RESULT_LIMIT = 50
 
 /** Juridiction des trois sources Zefix : le registre du commerce suisse, et lui seul.
  *  Le Liechtenstein en est EXCLU bien qu'il partage le systeme UID (voir
- *  UID_REGISTRY_COUNTRIES plus haut) : son registre est `oera.li`, sans aucune API
- *  publique connue (doc de conception §3) -- un dossier LI reste en revue manuelle, il ne
- *  doit pas se voir opposer une indisponibilite Zefix qui laisserait croire qu'une source
- *  suisse aurait pu le couvrir. Meme valeur comparee et meme helper que le registre
- *  francais (declaredHeadOfficeCountry) : c'est ce qui rend l'exclusivite des deux
+ *  UID_REGISTRY_COUNTRIES plus haut) : son registre est `oera.li`, absent de LINDAS et sans
+ *  aucune API publique connue (doc de conception §3) -- un dossier LI reste en revue
+ *  manuelle, il ne doit pas se voir opposer une indisponibilite suisse qui laisserait croire
+ *  qu'une source suisse aurait pu le couvrir. Meme valeur comparee et meme helper que le
+ *  registre francais (declaredHeadOfficeCountry) : c'est ce qui rend l'exclusivite des deux
  *  check_type partages une propriete du code et non une coincidence. */
 function hasSwissHeadOffice(agency: AgencyForVerification): boolean {
   return declaredHeadOfficeCountry(agency) === 'CH'
 }
 
-/**
- * Construit les trois sources Zefix. Fabrique (et non entrees statiques de
- * AGENCY_KYB_SOURCES) pour la meme raison que createAddressGeocodeSource : ce registre
- * est construit au chargement du module, avant qu'aucun secret ne soit lu, et ce module
- * reste pur. Rend un TABLEAU plutot que trois exports : ajouter un quatrieme type servi
- * par Zefix plus tard (le champ TVA du registre UID, si la question tranchee a la tache
- * suivante l'y renvoie) ne changera alors rien a la facon dont index.ts l'appelle.
- */
-export function createZefixSources(config: PendingSourceConfig): KybSource[] {
-  const zefixSource = (checkType: string, label: string): KybSource =>
-    createPendingCredentialsSource({ checkType, source: 'zefix', label, appliesTo: hasSwissHeadOffice, config })
+/** Le numero a chercher dans le graphe, sous la forme que LINDAS publie (sans separateur).
+ *  Leve TOUJOURS plutot que de choisir `unavailable` elle-meme (discipline du module, voir
+ *  KybSourceResult) : numero absent, ou forme qui n'est pas celle d'un IDE. Le message dit ce
+ *  qui etait attendu -- devant un `unavailable`, un relecteur de la file admin doit pouvoir
+ *  corriger la saisie sans ouvrir le code. */
+function extractZefixUid(businessRegistrationNumber: string | null): string {
+  const raw = businessRegistrationNumber?.trim()
+  if (!raw) throw new Error('zefix/lindas: aucun numero de registre declare')
+  const normalized = normalizeRegistryNumber(raw)
+  if (!SWISS_UID_RE.test(normalized)) {
+    throw new Error(
+      `zefix/lindas: le numero de registre "${raw}" n'a pas la forme d'un IDE suisse (CHE + 9 chiffres)`
+    )
+  }
+  return normalized
+}
 
-  return [
-    zefixSource('registry_lookup', 'zefix (existence et statut actif au registre du commerce suisse)'),
-    zefixSource('registry_legal_name_match', 'zefix (raison sociale declaree contre raison sociale du registre)'),
-    zefixSource('registry_country_match', 'zefix (juridiction du registre contre pays declare)'),
-  ]
+/** La requete envoyee, sur la forme INDEXEE (litteral `schema:value`) -- voir l'en-tete de
+ *  section pour les 14 s contre 0,147 s que ce choix vaut. `uid` a deja passe SWISS_UID_RE :
+ *  aucun caractere d'echappement ne peut atteindre le litteral. */
+function buildZefixUidQuery(uid: string): string {
+  return `PREFIX schema: <http://schema.org/>
+SELECT ?legalName ?municipality WHERE {
+  GRAPH <${LINDAS_ZEFIX_GRAPH}> {
+    ?company schema:identifier ?identifier ; schema:legalName ?legalName .
+    ?identifier schema:name "CompanyUID" ; schema:value "${uid}" .
+    OPTIONAL { ?company schema:address/schema:addressLocality ?municipality . }
+  }
+} LIMIT ${ZEFIX_UID_RESULT_LIMIT}`
+}
+
+/** Une valeur de la reponse SPARQL JSON : `{ "type": "literal", "value": "Nestlé AG" }`.
+ *  `value` est deliberement `unknown` -- son type est verifie a la lecture, jamais suppose. */
+interface LindasSparqlValue {
+  value?: unknown
+}
+
+interface LindasSparqlBinding {
+  legalName?: LindasSparqlValue
+  municipality?: LindasSparqlValue
+}
+
+interface LindasSparqlResponse {
+  results?: { bindings?: LindasSparqlBinding[] } | null
+}
+
+/** Ce que le graphe dit d'UN numero. `found` se lit sur le nombre de LIGNES rendues et non
+ *  sur les raisons sociales lues : une ligne existe, donc le numero est inscrit -- meme si
+ *  sa raison sociale s'averait illisible. Les deux questions sont distinctes, et les
+ *  confondre ferait dire « ce numero n'existe pas » a un defaut de lecture. */
+interface ZefixGraphEntries {
+  uid: string
+  legalNames: string[]
+  municipalities: string[]
+  rows: number
+  bindings: LindasSparqlBinding[]
+}
+
+/** Interroge LINDAS pour UN numero. Ne catche RIEN elle-meme (non-2xx, JSON illisible, corps
+ *  hors schema) -- meme discipline que fetchFrenchRegistry plus haut : runKybSource() traduit
+ *  tout ecart en `unavailable` avec la raison jointe. */
+async function fetchZefixByUid(uid: string, signal: AbortSignal): Promise<ZefixGraphEntries> {
+  const res = await fetch(LINDAS_SPARQL_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/sparql-results+json',
+    },
+    body: `query=${encodeURIComponent(buildZefixUidQuery(uid))}`,
+    signal,
+  })
+
+  if (!res.ok) {
+    const err = new Error(`zefix/lindas: unexpected status ${res.status}`) as Error & { status: number }
+    err.status = res.status
+    throw err
+  }
+
+  // Une reponse illisible (JSON invalide) leve ici -- jamais rattrapee.
+  const body = (await res.json()) as LindasSparqlResponse | null
+
+  // Garde de forme (meme defaut, meme remede que le registre francais et Mapbox, revue
+  // etape 4/tache 3) : HTTP 200 ne garantit pas la forme. SEULE une liste VIDE est
+  // l'information positive « ce numero n'est pas au registre » ; un corps hors schema
+  // (panne fournisseur, page d'erreur deserialisee malgre tout) est une NON-REPONSE, et ces
+  // trois check_type sont des VETOS -- l'ecrire comme une absence serait une affirmation
+  // decisive posee sur une panne.
+  const bindings = body?.results?.bindings
+  if (!Array.isArray(bindings)) {
+    throw new Error('zefix/lindas: unexpected response shape (results.bindings is not an array)')
+  }
+
+  // Dedoublonne en preservant l'ordre : OPTIONAL sur la commune peut rendre la meme raison
+  // sociale sur plusieurs lignes, et la preuve doit rester lisible par un humain.
+  const legalNames: string[] = []
+  const municipalities: string[] = []
+  for (const binding of bindings) {
+    const legalName = binding?.legalName?.value
+    if (typeof legalName === 'string' && !legalNames.includes(legalName)) legalNames.push(legalName)
+    const municipality = binding?.municipality?.value
+    if (typeof municipality === 'string' && !municipalities.includes(municipality)) municipalities.push(municipality)
+  }
+
+  return { uid, legalNames, municipalities, rows: bindings.length, bindings }
+}
+
+/** Le numero a chercher pour CE dossier, apres la garde de juridiction. Cette garde-ci fait
+ *  double emploi avec `appliesTo` quand l'appelant a filtre (selectApplicableSources) -- et
+ *  c'est voulu : runAgencyKybSources() peut recevoir la source sans filtrage, son contrat le
+ *  permet explicitement. Lit la MEME valeur que hasSwissHeadOffice (declaredHeadOfficeCountry,
+ *  donc trim + majuscules), a la difference des connecteurs francais qui comparent `country`
+ *  brut -- l'ecart y est documente comme souhaitable a corriger, il n'y a aucune raison de le
+ *  reproduire ici. */
+function requireSwissUid(agency: AgencyForVerification): string {
+  if (!hasSwissHeadOffice(agency)) {
+    throw new Error('zefix/lindas: siege hors de Suisse, source non interrogee')
+  }
+  return extractZefixUid(agency.business_registration_number)
+}
+
+/** La preuve commune aux trois checks : ce qui a ete demande, a qui, et ce qui est revenu.
+ *  Aucun secret ne peut y transiter -- LINDAS est public, l'URL ne porte aucun parametre. */
+function zefixEvidence(entries: ZefixGraphEntries, declared: string | null): Record<string, unknown> {
+  return {
+    uid: entries.uid,
+    declared,
+    endpoint: LINDAS_SPARQL_ENDPOINT,
+    graph: LINDAS_ZEFIX_GRAPH,
+    registry_legal_names: entries.legalNames,
+    municipalities: entries.municipalities,
+    rows: entries.rows,
+    lindas_bindings: entries.bindings,
+  }
+}
+
+async function runZefixRegistryLookup(
+  agency: AgencyForVerification,
+  signal: AbortSignal
+): Promise<KybSourceResult> {
+  const uid = requireSwissUid(agency)
+  const entries = await fetchZefixByUid(uid, signal)
+  const declared = agency.business_registration_number
+
+  if (entries.rows === 0) {
+    // Le registre A repondu : ce numero, precisement, n'y est pas. Signal decisif, pas une
+    // indisponibilite -- meme motif que le 404 RDAP et le `results:[]` du registre francais.
+    return {
+      result: 'mismatch',
+      raw_response: { ...zefixEvidence(entries, declared), reason: 'uid_not_found' },
+    }
+  }
+
+  // JAMAIS `match`, et c'est le coeur du chantier : l'existence est etablie, le statut
+  // actif/radie ne l'est PAS (voir l'en-tete de section). `reason` le dit dans la piece
+  // d'audit elle-meme -- un relecteur devant un veto non passe doit lire ce qui manque sans
+  // ouvrir le code. C'est cette ligne, et elle seule, que l'appel REST Zefix fera passer a
+  // `match` le jour ou les identifiants arriveront.
+  return {
+    result: 'partial',
+    raw_response: {
+      ...zefixEvidence(entries, declared),
+      reason: 'existence_confirmed_status_not_published',
+    },
+  }
+}
+
+async function runZefixRegistryLegalNameMatch(
+  agency: AgencyForVerification,
+  signal: AbortSignal
+): Promise<KybSourceResult> {
+  // Juridiction, puis numero, puis raison sociale : le MEME ordre que les deux autres
+  // connecteurs de cette section, et ce n'est pas cosmetique. Sur un dossier auquel il
+  // manque plusieurs champs, les trois lignes `unavailable` disent alors la MEME chose --
+  // un relecteur de la file admin lit « ce dossier ne declare pas de numero de registre »
+  // d'un coup d'oeil, au lieu de trois raisons differentes a rapprocher lui-meme.
+  const uid = requireSwissUid(agency)
+  const declaredName = agency.legal_name?.trim()
+  if (!declaredName) {
+    throw new Error('zefix/lindas: aucune raison sociale declaree, rien a comparer au registre')
+  }
+  const entries = await fetchZefixByUid(uid, signal)
+
+  if (entries.legalNames.length === 0) {
+    // Aucune raison sociale a comparer -- numero absent du graphe, ou lignes dont le
+    // legalName ne se lit pas. Le constat d'absence est deja porte par registry_lookup pour
+    // son propre check_type : rien a dupliquer ici sur une donnee qui, elle, n'existe pas.
+    throw new Error(`zefix/lindas: aucune raison sociale au registre pour ${uid}, rien a comparer`)
+  }
+
+  // TOUTES les raisons sociales rendues sont acceptables, et c'est juste : un meme UID en
+  // rend plusieurs -- les versions linguistiques officielles, toutes inscrites au registre
+  // (CHE105909036 rend « Nestlé S.A. » et « Nestlé AG »). Comparees a `schema:legalName`
+  // UNIQUEMENT, jamais a `schema:name` : mesure en direct, `schema:name` porte sur chaque
+  // entree les denominations des AUTRES entrees -- des valeurs qui ne sont pas la raison
+  // sociale de l'entree lue. Les y meler fabriquerait des `match` sur autre chose que ce que
+  // ce veto verifie. La requete ne demande donc jamais `schema:name`.
+  const normalizedDeclared = normalizeLegalNameStrict(declaredName)
+  const isMatch = entries.legalNames.some((name) => normalizeLegalNameStrict(name) === normalizedDeclared)
+
+  return {
+    result: isMatch ? 'match' : 'mismatch',
+    raw_response: {
+      ...zefixEvidence(entries, agency.business_registration_number),
+      declared_legal_name: declaredName,
+    },
+  }
+}
+
+async function runZefixRegistryCountryMatch(
+  agency: AgencyForVerification,
+  signal: AbortSignal
+): Promise<KybSourceResult> {
+  const uid = requireSwissUid(agency)
+  const entries = await fetchZefixByUid(uid, signal)
+
+  if (entries.rows === 0) {
+    // Rien a opposer au pays declare. L'absence elle-meme est deja le `mismatch` de
+    // registry_lookup ; la reporter ici ferait compter DEUX fois le meme constat, sur deux
+    // vetos que la conception veut independants.
+    throw new Error(`zefix/lindas: ${uid} absent du registre suisse, aucune juridiction a comparer`)
+  }
+
+  // Trouve dans le graphe Zefix : l'entite est inscrite au registre du commerce SUISSE.
+  // C'est exactement ce que ce veto oppose au pays declare -- et la juridiction, elle, ne
+  // depend d'aucun statut, contrairement a registry_lookup : une entite radiee reste une
+  // entite qui a ete inscrite EN SUISSE. Ce check-ci n'a donc aucun plafond a subir.
+  return {
+    result: 'match',
+    raw_response: {
+      ...zefixEvidence(entries, agency.business_registration_number),
+      declared_country: agency.country,
+      registry_country: 'CH',
+    },
+  }
+}
+
+const zefixRegistryLookupSource: KybSource = {
+  checkType: 'registry_lookup',
+  source: 'zefix',
+  appliesTo: hasSwissHeadOffice,
+  run: runZefixRegistryLookup,
+}
+
+const zefixRegistryLegalNameMatchSource: KybSource = {
+  checkType: 'registry_legal_name_match',
+  source: 'zefix',
+  appliesTo: hasSwissHeadOffice,
+  run: runZefixRegistryLegalNameMatch,
+}
+
+const zefixRegistryCountryMatchSource: KybSource = {
+  checkType: 'registry_country_match',
+  source: 'zefix',
+  appliesTo: hasSwissHeadOffice,
+  run: runZefixRegistryCountryMatch,
 }
 
 // ─── Squelette du registre UID (vat_lookup CH/LI, etape 6 tache 3) ─────────────
@@ -1489,10 +1742,14 @@ export function createZefixSources(config: PendingSourceConfig): KybSource[] {
 // Consequence directe sur la FORME, et arbitrage de cette tache : si la reponse est
 // « champ Zefix », cette source DISPARAIT au profit d'un quatrieme type servi par le
 // connecteur Zefix. C'est pourquoi la fabrique rend un TABLEAU alors qu'elle n'a qu'une
-// source a rendre, exactement comme createZefixSources -- agency-verification-run/index.ts
-// l'etale (`...`), si bien que ni la disparition de cette source, ni l'ajout d'un second
-// type UID plus tard, ne changera la facon dont il l'appelle. Une fabrique rendant UNE
-// source obligerait a retoucher l'appelant dans les deux cas.
+// source a rendre -- agency-verification-run/index.ts l'etale (`...`), si bien que ni la
+// disparition de cette source, ni l'ajout d'un second type UID plus tard, ne changera la
+// facon dont il l'appelle. Une fabrique rendant UNE source obligerait a retoucher
+// l'appelant dans les deux cas. Ce que LINDAS a change n'est PAS cette question : le
+// graphe Zefix publie par la Confederation ne porte aucune donnee de TVA (predicats
+// mesures : legalName, name, address, municipality, additionalType, description,
+// identifier), il ne remplace donc pas le registre UID et ne tranche pas davantage ce qu'il
+// faudrait appeler.
 //
 // RIEN n'est ecrit « au plus probable », et l'interdit pese plus lourd ici qu'a la tache
 // precedente : sur Zefix, un 401 avait au moins etabli l'existence du service ; ici, meme
@@ -1514,12 +1771,14 @@ export function createZefixSources(config: PendingSourceConfig): KybSource[] {
 // code ... not covered », « no tva declared ») et produisait deja `unavailable`. Cette
 // source prend donc la place d'un `unavailable`, pour le meme resultat.
 //
-// Ce qui la rend neutre n'est PAS ce qui rend Zefix neutre, et la nuance merite d'etre dite
-// plutot que recopiee. Les trois lignes Zefix sont des VETOS : le moteur (20260728130000)
-// fait echouer un veto `unavailable` exactement comme un veto ABSENT. vat_lookup n'est pas
-// un veto mais un SIGNAL SCORABLE (weight 3.00, is_veto false, meme migration) : ce qui le
-// rend neutre, c'est l'exclusion de `unavailable` du numerateur ET du denominateur. Meme
-// conclusion, deux mecanismes.
+// Ce qui la rend neutre n'est PAS ce qui rendait neutres les trois lignes du squelette
+// Zefix, et la nuance merite d'etre dite plutot que recopiee. Celles-la etaient des VETOS
+// `unavailable`, et le moteur (recompute_agency_verification) fait echouer un veto
+// `unavailable` exactement comme un veto ABSENT. vat_lookup n'est pas un veto mais un
+// SIGNAL SCORABLE (weight 3.00, is_veto false) : ce qui le rend neutre, c'est l'exclusion
+// de `unavailable` du numerateur ET du denominateur. Meme conclusion, deux mecanismes. Les
+// trois lignes suisses, elles, ont cesse d'etre neutres au chantier LINDAS : elles rendent
+// desormais de vrais verdicts (voir « Connecteur Zefix par LINDAS » plus haut).
 //
 // CE QUI SERAIT FAUX, et l'a ete : en conclure que le pays du siege pouvait a lui seul
 // decider qui interroge la TVA. Ecarter VIES d'un dossier CH qui declare une TVA a prefixe
@@ -1555,9 +1814,9 @@ function uidRegisterOwnsVatLookup(agency: AgencyForVerification): boolean {
  * se dedoubler si le registre sert un jour un second type. Dans les deux cas,
  * agency-verification-run/index.ts n'a rien a changer.
  *
- * Meme constructeur interne que Zefix (createPendingCredentialsSource), donc memes deux
- * erreurs et memes interdits : le credential et la baseUrl n'entrent JAMAIS dans le message
- * d'erreur, et aucune requete n'est construite.
+ * Seule cliente qui reste de createPendingCredentialsSource depuis que Zefix a trouve sa
+ * voie publique -- donc memes deux erreurs et memes interdits : le credential et la baseUrl
+ * n'entrent JAMAIS dans le message d'erreur, et aucune requete n'est construite.
  */
 export function createUidRegisterSources(config: PendingSourceConfig): KybSource[] {
   return [
@@ -1578,16 +1837,27 @@ export function createUidRegisterSources(config: PendingSourceConfig): KybSource
 /**
  * Registre des connecteurs actifs SANS CONFIGURATION -- les connecteurs qui en ont
  * besoin passent par une fabrique appelee depuis agency-verification-run/index.ts
- * (createAddressGeocodeSource, createZefixSources ci-dessus). VIDE a la tache 1 par
+ * (createAddressGeocodeSource, createUidRegisterSources ci-dessus). VIDE a la tache 1 par
  * construction ("Tu n'ecris aucun connecteur reel dans cette tache", brief etape 4).
  * Un check_type non catalogue dans verification_check_types ferait de toute facon
- * echouer l'insert (FK, migration 20260728103000) -- une entree ici EST donc deja un
+ * echouer l'insert (FK, migration 20260729150300) -- une entree ici EST donc deja un
  * connecteur pour de vrai, jamais un double de test. RDAP (domain_whois_age) est le
  * premier, ajoute par la tache 2 ; la tache 3 y ajoute VIES (vat_lookup) et le
  * registre francais (registry_lookup, registry_legal_name_match) ; le chantier LINDAS
- * (tache 1) y ajoute le controle du numero de registre (registry_number_format), qui
- * n'a besoin ni de secret NI DE RESEAU -- agency-verification-run/index.ts n'a jamais
- * eu a changer pour aucun des cinq.
+ * y ajoute le controle du numero de registre (tache 1, registry_number_format -- ni
+ * secret NI RESEAU) puis les trois sources Zefix par LINDAS (tache 2 -- du reseau, mais
+ * un endpoint PUBLIC, donc toujours aucun secret). agency-verification-run/index.ts n'a
+ * jamais eu a changer pour aucun des huit ; il a en revanche CESSE de construire les
+ * sources Zefix a la tache 2, l'endpoint public les ayant sorties de la fabrique a
+ * configuration ou le squelette de l'etape 6 les avait laissees.
+ *
+ * DEUX proprietaires pour registry_lookup et registry_legal_name_match dans cette seule
+ * liste (la France et la Suisse), et c'est SANS DANGER par construction : leurs
+ * `appliesTo` s'excluent (declaredHeadOfficeCountry, un seul point de decision), et
+ * selectApplicableSources() les departage AVANT execution -- voir la section
+ * « Juridiction d'une source » en tete de fichier, et la matrice d'exclusivite du volet
+ * « harnais pur » de tests/backend/agency-verification-run.spec.ts, qui verifie cette
+ * propriete sur le registre COMPLET.
  */
 export const AGENCY_KYB_SOURCES: KybSource[] = [
   rdapDomainWhoisAgeSource,
@@ -1595,6 +1865,9 @@ export const AGENCY_KYB_SOURCES: KybSource[] = [
   registryLookupSource,
   registryLegalNameMatchSource,
   registryNumberFormatSource,
+  zefixRegistryLookupSource,
+  zefixRegistryLegalNameMatchSource,
+  zefixRegistryCountryMatchSource,
 ]
 
 /**
