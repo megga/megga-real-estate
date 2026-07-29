@@ -29,6 +29,20 @@ const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_T
 const URL = process.env.SUPABASE_TEST_URL ?? 'http://127.0.0.1:54321'
 const ANON_KEY = process.env.SUPABASE_TEST_ANON_KEY ?? ''
 const SERVICE_KEY = process.env.SUPABASE_TEST_SERVICE_ROLE_KEY ?? ''
+// Deux variables service-role, et c'est DELIBERE -- ne jamais les reunifier.
+// Supabase expose la meme identite service_role sous deux formats, tous deux
+// valides pour PostgREST/createClient : le JWT legacy (eyJ...) et la cle
+// `sb_secret_...`. Mais kyc-screening compare litteralement le Bearer recu a son
+// Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), et le runtime edge n'y injecte JAMAIS
+// que le JWT legacy (la cle sb_secret_ atterrit dans SUPABASE_INTERNAL_SECRET_KEY).
+// Un Bearer au nouveau format est donc un credential parfaitement valide que la
+// fonction refuse quand meme -- 401 avant toute logique metier.
+// C'est exactement ce qui distinguait le local de la CI : .env.test.local porte le
+// JWT legacy, tandis que backend.yml exporte SECRET_KEY (nouveau format) dans
+// SUPABASE_TEST_SERVICE_ROLE_KEY. D'ou cette variable dediee, lue pour les SEULS
+// appels d'edge functions, avec repli sur la variable historique (cas local).
+// `||` et non `??` : une variable posee mais VIDE doit aussi retomber sur le repli.
+const SERVICE_ROLE_JWT = process.env.SUPABASE_TEST_SERVICE_ROLE_JWT || SERVICE_KEY
 const KYC_SCREENING_ENDPOINT = `${URL}/functions/v1/kyc-screening`
 const SIGN_DOCUMENT_ENDPOINT = `${URL}/functions/v1/sign-document`
 
@@ -98,7 +112,7 @@ describe.skipIf(!HAS_KEYS)('garde LAB plein — kyc-screening et sign-document r
   it('chemin service-role, agence non verifiee -> 403 agency_not_verified', async () => {
     const res = await fetch(KYC_SCREENING_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_KEY}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE_JWT}` },
       body: JSON.stringify({
         entity_type: 'individual',
         agency_id: setup.agencyAId,
@@ -112,7 +126,7 @@ describe.skipIf(!HAS_KEYS)('garde LAB plein — kyc-screening et sign-document r
   it('chemin service-role, agence verifiee -> depasse le garde (jamais 403)', async () => {
     const res = await fetch(KYC_SCREENING_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_KEY}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE_JWT}` },
       body: JSON.stringify({
         kyc_case_id: '00000000-0000-0000-0000-000000000000',
         entity_type: 'individual',
@@ -187,7 +201,7 @@ describe.skipIf(!HAS_KEYS)('garde LAB plein — kyc-screening et sign-document r
     // reseau) : on ne SAIT pas si l'agence est cleared").
     const res = await fetch(KYC_SCREENING_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_KEY}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE_JWT}` },
       body: JSON.stringify({
         entity_type: 'individual',
         agency_id: '00000000-0000-0000-0000-000000000000',

@@ -85,6 +85,22 @@ const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_T
 const URL = process.env.SUPABASE_TEST_URL ?? 'http://127.0.0.1:54321'
 const SERVICE_KEY = process.env.SUPABASE_TEST_SERVICE_ROLE_KEY ?? ''
 const ANON_KEY = process.env.SUPABASE_TEST_ANON_KEY ?? ''
+// Deux variables service-role, et c'est DELIBERE -- ne jamais les reunifier.
+// Supabase expose la meme identite service_role sous deux formats, tous deux
+// valides pour PostgREST/createClient : le JWT legacy (eyJ...) et la cle
+// `sb_secret_...`. Mais agency-verification-run compare litteralement le Bearer recu
+// a son Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), et le runtime edge n'y injecte
+// JAMAIS que le JWT legacy (la cle sb_secret_ atterrit dans
+// SUPABASE_INTERNAL_SECRET_KEY). Un Bearer au nouveau format est donc un credential
+// parfaitement valide que la fonction refuse quand meme -- 401 avant toute logique.
+// C'est exactement ce qui distinguait le local de la CI : .env.test.local porte le
+// JWT legacy, tandis que backend.yml exporte SECRET_KEY (nouveau format) dans
+// SUPABASE_TEST_SERVICE_ROLE_KEY. D'ou cette variable dediee, lue pour les SEULS
+// appels d'edge functions -- y compris ceux declenches INDIRECTEMENT, via la config
+// app_config.service_role_key que net.http_post rejoue en Bearer (volet 7 plus bas) --
+// avec repli sur la variable historique (cas local).
+// `||` et non `??` : une variable posee mais VIDE doit aussi retomber sur le repli.
+const SERVICE_ROLE_JWT = process.env.SUPABASE_TEST_SERVICE_ROLE_JWT || SERVICE_KEY
 const ENDPOINT = `${URL}/functions/v1/agency-verification-run`
 const NIL_UUID = '00000000-0000-0000-0000-000000000000'
 
@@ -811,7 +827,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
   }
 
   describe('Edge Function deployee -- contrat HTTP', () => {
-    async function callRun(agencyId: string, bearer: string = SERVICE_KEY): Promise<Response> {
+    async function callRun(agencyId: string, bearer: string = SERVICE_ROLE_JWT): Promise<Response> {
       // apikey + Authorization avec la MEME valeur : meme motif defensif que
       // kyc-report-data.spec.ts (cette fonction n'est pas dans la liste
       // verify_jwt=false de config.toml -- le passage par la passerelle locale
@@ -859,8 +875,8 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          apikey: SERVICE_KEY,
-          Authorization: `Bearer ${SERVICE_KEY}`,
+          apikey: SERVICE_ROLE_JWT,
+          Authorization: `Bearer ${SERVICE_ROLE_JWT}`,
         },
         body: JSON.stringify({}),
       })
@@ -1659,8 +1675,11 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
             // Pointe le dispatch vers le VRAI runtime local (le meme que "Edge Function
             // deployee" plus haut dans ce fichier) : preuve directe de bout en bout,
             // pas seulement que la RPC "tente" un appel.
+            // La cle posee ici finit en Bearer du net.http_post, donc face a la MEME
+            // comparaison litterale que les fetch() directs : SERVICE_ROLE_JWT, jamais
+            // SERVICE_KEY (voir le bloc de declaration en tete de fichier).
             await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
-            await setConfig('service_role_key', SERVICE_KEY)
+            await setConfig('service_role_key', SERVICE_ROLE_JWT)
 
             const founder = await signUpFounder()
             await completeAgency(founder.agencyId)
@@ -1775,7 +1794,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
           const keyBefore = await readConfig('service_role_key')
           try {
             await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
-            await setConfig('service_role_key', SERVICE_KEY)
+            await setConfig('service_role_key', SERVICE_ROLE_JWT)
 
             const agencyId = await createAgency('sweep-old')
             await addActiveSignatory(agencyId)
@@ -1819,7 +1838,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
           const keyBefore = await readConfig('service_role_key')
           try {
             await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
-            await setConfig('service_role_key', SERVICE_KEY)
+            await setConfig('service_role_key', SERVICE_ROLE_JWT)
 
             const oldAgencyId = await createAgency('sweep-grace-old')
             await addActiveSignatory(oldAgencyId)
@@ -1957,7 +1976,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
           const keyBefore = await readConfig('service_role_key')
           try {
             await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
-            await setConfig('service_role_key', SERVICE_KEY)
+            await setConfig('service_role_key', SERVICE_ROLE_JWT)
 
             const agencyId = await createAgency('sweep-at-bound')
             await addActiveSignatory(agencyId)
