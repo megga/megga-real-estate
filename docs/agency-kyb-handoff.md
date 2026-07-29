@@ -1279,7 +1279,7 @@ ne cassent rien.
 | `20260729151600_lock_agency_verification_columns.sql` | écriture des colonnes de vérification révoquée aux rôles utilisateur |
 | `20260729151700_kyc_cases_insert_lab_guard.sql` | garde LAB dans le `WITH CHECK` de `kyc_cases_insert` |
 | `20260729151800_activity_events_allow_agency_detach.sql` | née du merge : le `SET NULL` de la FK devient un cas autorisé du journal append-only |
-| `20260729160000_agency_check_source_internal.sql` | chantier LINDAS : valeur de source `internal` pour un contrôle calculé sans sortir du processus (à ne pas confondre avec `manual`, qui affirme qu'un humain a tranché) |
+| `20260729180000_agency_check_source_internal.sql` | chantier LINDAS : valeur de source `internal` pour un contrôle calculé sans sortir du processus (à ne pas confondre avec `manual`, qui affirme qu'un humain a tranché) |
 
 **Backend applicatif**
 
