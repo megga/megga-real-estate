@@ -525,11 +525,14 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
   // ─── Juridiction d'une source (etape 6, tache 1) ────────────────────────────
   //
   // Le moteur (20260728130000) ne garde qu'UNE ligne par check_type et departage
-  // deux lignes de la meme transaction par ctid, donc par ordre d'insertion. Depuis la
-  // tache 2 de cette etape, registry_lookup et registry_legal_name_match ont DEUX
-  // proprietaires (recherche_entreprises en FR, zefix en CH) ; la tache 3 en donnera un
-  // second a vat_lookup (registre UID, CH/LI). Sans regle, l'`unavailable` que le
-  // connecteur francais produit deja pour tout siege hors de France pourrait masquer le
+  // deux lignes de la meme transaction par ctid, donc par ordre d'insertion. QUATRE
+  // check_type ont aujourd'hui DEUX proprietaires chacun : les TROIS de registre --
+  // registry_lookup, registry_legal_name_match et registry_country_match -- partages
+  // entre recherche_entreprises (FR) et zefix (CH), et vat_lookup, partage entre VIES et
+  // le registre UID (CH/LI). Chronologie : les deux premiers depuis la tache 2 de cette
+  // etape, vat_lookup depuis sa tache 3, registry_country_match depuis le chantier LINDAS
+  // (Zefix a sa tache 2, le registre francais a sa tache 3). Sans regle, l'`unavailable`
+  // que le connecteur francais produit deja pour tout siege hors de France pourrait masquer le
   // `match` de Zefix : un veto reellement satisfait se lirait comme un veto absent. La
   // matrice ci-dessous rend cette collision impossible plutot que departagee.
   //
@@ -3234,6 +3237,34 @@ describe('connecteur registre francais (registry_lookup / registry_legal_name_ma
       const row = await runKybSource(sourceOf(), agencyFR(), 50)
       expect(row.result).toBe('unavailable')
     }, 2_000)
+
+    it(
+      `${label} : le resultat retenu porte un AUTRE SIREN que celui demande -> unavailable, et JAMAIS ` +
+        'un verdict sur une entite qu on n a pas demandee',
+      async () => {
+        // `q=` est une recherche PLEIN TEXTE : rien dans le contrat de l'API ne promet que
+        // le premier resultat porte le SIREN demande. Sonde en direct (8 requetes a neuf
+        // chiffres -- SIREN reel, inexistant, Luhn-invalide, 123456789, 999999999), le
+        // service le rend toujours ; mais c'est une propriete du TIERS, pas du code, et le
+        // pendant suisse, lui, lie l'UID exactement dans le litteral SPARQL. Ce test rend
+        // l'invariant LOCAL. Sans lui, ces trois vetos concluent sur l'entite rendue au lieu
+        // de l'entite demandee -- et depuis que registry_country_match a un proprietaire
+        // francais, un dossier francais dont les quatre vetos passent n'attend plus qu'une
+        // decision humaine sur la piece d'identite.
+        vi.stubGlobal(
+          'fetch',
+          // SIREN de Danone, une entite REELLE mais qui n'est pas celle du dossier (Carrefour).
+          vi.fn(async () => rechercheEntreprisesResponse([activeResult({ siren: '552032534' })]))
+        )
+        const row = await runKybSource(sourceOf(), agencyFR())
+        // `unavailable` et non `mismatch` : se tromper d'entite n'est pas constater que
+        // l'entite declaree est fausse.
+        expect(row.result).toBe('unavailable')
+        // La raison est jointe : un relecteur de la file admin doit voir QUEL SIREN est
+        // revenu sans ouvrir le code.
+        expect(String(row.raw_response.message)).toContain('552032534')
+      }
+    )
   }
 
   it('SIREN saisi avec espaces (forme d affichage officielle INSEE) -> normalise avant l appel', async () => {
@@ -3693,8 +3724,9 @@ describe('connecteur Zefix par LINDAS (registry_lookup / registry_legal_name_mat
   /** Recuperee dans AGENCY_KYB_SOURCES et non depuis une fabrique : LINDAS etant public,
    *  ces trois sources n'ont besoin d'AUCUNE configuration -- elles sont donc des entrees
    *  statiques du registre, comme RDAP, VIES et le registre francais. Chercher sur la PAIRE
-   *  (check_type, source) et non sur le seul check_type : deux des trois types ont aussi un
-   *  proprietaire francais dans ce meme registre. */
+   *  (check_type, source) et non sur le seul check_type : les TROIS types ont aussi un
+   *  proprietaire francais dans ce meme registre (registry_country_match l'a rejoint a la
+   *  tache 3 du chantier LINDAS). */
   function zefixSource(checkType: string): KybSource {
     const found = AGENCY_KYB_SOURCES.find((s) => s.checkType === checkType && s.source === 'zefix')
     if (!found) throw new Error(`${checkType} (source zefix) absent de AGENCY_KYB_SOURCES`)

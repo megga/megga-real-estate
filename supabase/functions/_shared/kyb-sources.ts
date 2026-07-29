@@ -816,12 +816,14 @@ interface RechercheEntreprisesResponse {
   results?: RechercheEntreprisesResult[]
 }
 
-/** Appelle recherche-entreprises.api.gouv.fr par SIREN exact (le parametre `q`
- *  accepte un identifiant numerique en recherche directe -- verifie en
- *  reconnaissance manuelle, voir rapport de tache : `q=510761505` renvoie le meme
- *  resultat unique que `q=l'oreal`). Ne catche RIEN elle-meme (non-2xx, JSON
- *  illisible) -- meme discipline que le connecteur RDAP, runKybSource() traduit tout
- *  ecart en `unavailable`. */
+/** Appelle recherche-entreprises.api.gouv.fr par SIREN (le parametre `q` accepte un
+ *  identifiant numerique en recherche directe -- verifie en reconnaissance manuelle, voir
+ *  rapport de tache : `q=510761505` renvoie le meme resultat unique que `q=l'oreal`).
+ *  GARANTIT a ses trois appelants que le premier resultat, s'il y en a un, porte bien le
+ *  SIREN demande -- voir la garde d'identite plus bas : `q=` reste une recherche plein
+ *  texte. Ne catche RIEN elle-meme (non-2xx, JSON illisible, corps hors schema, resultat
+ *  d'une autre entite) -- meme discipline que le connecteur RDAP, runKybSource() traduit
+ *  tout ecart en `unavailable`. */
 async function fetchFrenchRegistry(siren: string, signal: AbortSignal): Promise<RechercheEntreprisesResponse> {
   const res = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${siren}`, { signal })
   if (!res.ok) {
@@ -844,6 +846,34 @@ async function fetchFrenchRegistry(siren: string, signal: AbortSignal): Promise<
   if (!Array.isArray(body.results)) {
     throw new Error('recherche-entreprises: unexpected response shape (results is not an array)')
   }
+
+  // L'IDENTITE du resultat retenu est VERIFIEE, jamais supposee. `q=` est une recherche
+  // PLEIN TEXTE : rien dans le contrat de l'API ne promet que le premier resultat porte le
+  // SIREN demande. Sonde en direct (8 requetes a neuf chiffres -- SIREN reel, inexistant,
+  // Luhn-invalide, 123456789, 999999999), le service le rend toujours ; mais c'est une
+  // propriete du TIERS, qui peut changer sans nous prevenir, pas une propriete du code. Le
+  // pendant suisse, lui, ne PEUT pas se tromper d'entite : il lie l'UID exactement dans le
+  // litteral SPARQL (`schema:value "${uid}"`), son rapprochement est exact par construction.
+  // On rend donc l'invariant local ici, en un seul point, pour les trois connecteurs.
+  //
+  // On LEVE -- donc `unavailable` via runKybSource() -- plutot que de conclure sur une
+  // entite qu'on n'a pas demandee. JAMAIS `mismatch` : se tromper d'entite n'est pas
+  // constater que l'entite declaree est fausse. L'enjeu a change avec la concordance de pays
+  // francaise : les QUATRE vetos d'entite ont desormais, pour la France, un proprietaire qui
+  // peut valoir `match`, si bien qu'un dossier francais complet n'attend plus qu'une decision
+  // humaine sur la piece d'identite -- un verdict pris sur la mauvaise entite ne serait plus
+  // rattrape par un autre veto.
+  //
+  // Une liste VIDE ne passe pas par ici, et c'est voulu : elle reste l'information positive
+  // « ce SIREN n'existe pas », que registry_lookup ecrit en `mismatch`.
+  const first = body.results[0]
+  if (first !== undefined && first.siren !== siren) {
+    throw new Error(
+      `recherche-entreprises: le resultat rendu porte le SIREN ${first.siren ?? '(absent)'}, ` +
+        `pas le ${siren} demande -- aucune conclusion possible sur une autre entite`
+    )
+  }
+
   return body
 }
 
@@ -1492,17 +1522,33 @@ function createPendingCredentialsSource(params: {
 // de neuf chiffres, donc ni guillemet ni contre-oblique ne peut atteindre le litteral (meme
 // discipline que DOMAIN_SHAPE_RE pour le chemin RDAP plus haut).
 //
-// TROIS sources et non une, pour la meme raison que le registre francais en a deux (voir sa
-// section) : une KybSourceResult ne porte qu'UN check_type. Les trois interrogent donc le
-// meme point d'API sans se coordonner -- couplage assume, une poignee d'appels par
-// verification et non par seconde, exactement l'arbitrage deja retenu pour la France.
+// TROIS sources et non une, pour la meme raison que le registre francais en a trois lui
+// aussi (voir sa section) : une KybSourceResult ne porte qu'UN check_type. Les trois
+// interrogent donc le meme point d'API sans se coordonner -- couplage assume, une poignee
+// d'appels par verification et non par seconde, exactement l'arbitrage deja retenu pour la
+// France.
 //
-// registry_country_match merite d'etre justifie plutot que subi, et l'arbitrage est
-// l'INVERSE de celui du connecteur francais. Celui-ci l'avait laisse de cote au motif qu'il
-// n'interroge que des sieges DEJA declares en France : une reponse positive n'y confirmerait
-// rien qu'on ne sache. Ici, trouver le numero declare dans le registre de la juridiction
-// declaree est une confirmation reelle -- c'est la seule chose qui distingue « cette entite
-// est enregistree en Suisse » de « cette agence pretend etre suisse ».
+// registry_country_match merite d'etre justifie plutot que subi, et LES DEUX REGISTRES le
+// revendiquent, chacun pour SA juridiction : `zefix` ici pour un siege suisse,
+// `recherche_entreprises` pour un siege francais. Les deux ne peuvent jamais repondre sur le
+// meme dossier -- leurs `appliesTo` lisent le MEME declaredHeadOfficeCountry, qui ne rend pas
+// 'CH' et 'FR' a la fois (c'est ce que verifie la matrice d'exclusivite de
+// tests/backend/agency-verification-run.spec.ts).
+//
+// L'ARGUMENT QUI LES FONDE EST LE MEME, et il a ete formule ici avant d'etre repris pour la
+// France : le filtre de juridiction dit d'ou vient la QUESTION, jamais que la REPONSE est
+// acquise. Une agence peut parfaitement declarer un numero que le registre de son propre pays
+// ne porte pas ; trouver le numero declare DANS LE REGISTRE DE LA JURIDICTION DECLAREE est
+// donc la seule chose qui distingue « cette entite est enregistree en Suisse » de « cette
+// agence pretend etre suisse » -- et, mot pour mot, la France de la pretention d'etre
+// francaise.
+//
+// La section francaise avait d'abord ECARTE ce type, au motif qu'elle n'interroge que des
+// sieges deja declares en France et qu'une reponse positive n'y confirmerait rien qu'on ne
+// sache. Cet arbitrage-la n'a plus cours : tenir les deux raisonnements a la fois etait
+// intenable, et il laissait la France seule non auto-validable pour un motif que plus
+// personne ne defendait. Les deux sections disent desormais la meme chose ; si l'une des
+// deux change, l'autre doit changer avec elle.
 
 const LINDAS_SPARQL_ENDPOINT = 'https://lindas.admin.ch/query'
 const LINDAS_ZEFIX_GRAPH = 'https://lindas.admin.ch/foj/zefix'
