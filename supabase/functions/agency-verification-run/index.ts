@@ -3,9 +3,9 @@
 // Socle de la verification KYB (etape 4, tache 1) : lit l'agence a verifier,
 // execute les connecteurs disponibles (_shared/kyb-sources.ts -- registre
 // AGENCY_KYB_SOURCES, vide a la tache 1, RDAP ajoute a la tache 2, VIES +
-// recherche-entreprises x2 a la tache 3, plus le geocodage Mapbox et le squelette
-// Zefix construits ici meme -- voir le point 2 plus bas), puis confie l'ecriture des
-// checks produits, l'appel du moteur de scoring
+// recherche-entreprises x2 a la tache 3, plus le geocodage Mapbox et les squelettes
+// Zefix et registre UID construits ici meme -- voir le point 2 plus bas), puis confie
+// l'ecriture des checks produits, l'appel du moteur de scoring
 // (recompute_agency_verification, 20260728130000) et la journalisation de son
 // PROPRE passage (distinct du journal du moteur -- voir plus bas) a UNE SEULE RPC,
 // record_agency_verification_run (20260728140000).
@@ -48,6 +48,7 @@ import {
   AGENCY_KYB_SOURCES,
   createAddressGeocodeSource,
   createZefixSources,
+  createUidRegisterSources,
   type AgencyForVerification,
   type KybCheckResult,
 } from '../_shared/kyb-sources.ts'
@@ -127,7 +128,8 @@ serve(async (req) => {
     // AGENCY_KYB_SOURCES (une liste construite au chargement du module, avant qu'aucun
     // secret ne soit lu) : c'est ICI, et seulement ici, que _shared/kyb-sources.ts a
     // besoin d'un Deno.env.get -- le module partage lui-meme en reste totalement libre
-    // (voir son en-tete). Deux fabriques dans ce cas aujourd'hui, le geocodage et Zefix.
+    // (voir son en-tete). Trois fabriques dans ce cas aujourd'hui : le geocodage, Zefix et
+    // le registre UID.
     //
     // Mapbox (tache 3 de l'etape 4) : MAPBOX_TOKEN absent en local, meme situation que
     // DILISENSE_API_KEY/GEMINI_API_KEY -> le connecteur produit lui-meme `unavailable`,
@@ -142,12 +144,24 @@ serve(async (req) => {
     // vit -- identifiants attendus, ou secrets poses sans connecteur ecrit -- voir la
     // section « Squelette Zefix » de _shared/kyb-sources.ts. Le cablage est fait UNE
     // FOIS, ici : le jour ou les identifiants arrivent, ce fichier n'a plus a changer.
+    //
+    // Le registre UID (etape 6, tache 3) est cable de la meme facon, mais son statut
+    // DIFFERE de celui de Zefix : Zefix a repondu 401, on sait donc qu'il existe et ce
+    // qu'il attend ; le registre UID n'a JAMAIS ete teste en API, et la question « API
+    // separee ou champ Zefix ? » n'est pas tranchee (doc de conception §3). Ses deux
+    // variables sont vides pour cette raison-la, pas faute d'un identifiant demande. Sa
+    // fabrique rend un TABLEAU pour UNE source, et l'appel ci-dessous l'etale : si la
+    // reponse est « champ Zefix », la source disparaitra sans que ce fichier change.
     const sources = [
       ...AGENCY_KYB_SOURCES,
       createAddressGeocodeSource(Deno.env.get('MAPBOX_TOKEN') ?? ''),
       ...createZefixSources({
         baseUrl: Deno.env.get('ZEFIX_API_URL') ?? '',
         credential: Deno.env.get('ZEFIX_API_CREDENTIAL') ?? '',
+      }),
+      ...createUidRegisterSources({
+        baseUrl: Deno.env.get('UID_REGISTER_API_URL') ?? '',
+        credential: Deno.env.get('UID_REGISTER_API_CREDENTIAL') ?? '',
       }),
     ]
 

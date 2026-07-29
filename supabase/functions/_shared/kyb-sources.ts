@@ -12,7 +12,10 @@
 // le meme siege, sans quoi la derniere ligne inseree masquerait l'autre au moteur. Sa
 // tache 2 y ajoute le SQUELETTE Zefix (registre du commerce suisse) : trois sources
 // cablees de bout en bout mais sans connecteur, faute d'identifiants -- section
-// « Squelette Zefix » plus bas, et les deux erreurs qui la precedent.
+// « Squelette Zefix » plus bas, et les deux erreurs qui la precedent. Sa tache 3 y ajoute
+// le SQUELETTE DU REGISTRE UID (TVA suisse et liechtensteinoise, vat_lookup pour CH/LI),
+// sur le meme motif mais dans une situation qui n'est PAS la meme -- voir la section
+// « Squelette du registre UID », juste apres celle de Zefix.
 //
 //   Une source qui ne repond pas produit un check `unavailable`, JAMAIS une
 //   absence de ligne et JAMAIS un echec. Le moteur (recompute_agency_verification,
@@ -1146,6 +1149,92 @@ export function createZefixSources(config: PendingSourceConfig): KybSource[] {
     zefixSource('registry_lookup', 'zefix (existence et statut actif au registre du commerce suisse)'),
     zefixSource('registry_legal_name_match', 'zefix (raison sociale declaree contre raison sociale du registre)'),
     zefixSource('registry_country_match', 'zefix (juridiction du registre contre pays declare)'),
+  ]
+}
+
+// ─── Squelette du registre UID (vat_lookup CH/LI, etape 6 tache 3) ─────────────
+//
+// Le statut de cette source N'EST PAS celui de Zefix, et les presenter comme deux cas
+// identiques serait la seule erreur vraiment couteuse de cette section. Zefix a REPONDU :
+// `401 Unauthorized`, verifie en direct le 25.07.2026 (doc de conception §3) -- on sait
+// donc qu'il existe, qu'il exige une authentification, et qu'il ne manque qu'un
+// identifiant pour l'obtenir. Le registre UID (uid.admin.ch), lui, n'a JAMAIS ete teste
+// en API, et la question que pose la meme doc -- « API separee ou champ Zefix ? » -- n'est
+// pas tranchee. Ce qui manque ici n'est donc pas seulement de quoi s'authentifier : c'est
+// la reponse a « qu'est-ce qu'on appelle, et est-ce que ca existe separement ? ».
+//
+// Consequence directe sur la FORME, et arbitrage de cette tache : si la reponse est
+// « champ Zefix », cette source DISPARAIT au profit d'un quatrieme type servi par le
+// connecteur Zefix. C'est pourquoi la fabrique rend un TABLEAU alors qu'elle n'a qu'une
+// source a rendre, exactement comme createZefixSources -- agency-verification-run/index.ts
+// l'etale (`...`), si bien que ni la disparition de cette source, ni l'ajout d'un second
+// type UID plus tard, ne changera la facon dont il l'appelle. Une fabrique rendant UNE
+// source obligerait a retoucher l'appelant dans les deux cas.
+//
+// RIEN n'est ecrit « au plus probable », et l'interdit pese plus lourd ici qu'a la tache
+// precedente : sur Zefix, un 401 avait au moins etabli l'existence du service ; ici, meme
+// l'existence d'une API separee reste une hypothese. Aucune URL, aucun schema de reponse,
+// aucun en-tete d'authentification. Ce qui n'est pas su reste une configuration vide
+// (UID_REGISTER_API_URL / UID_REGISTER_API_CREDENTIAL, lues par index.ts) et un commentaire
+// qui dit quoi y mettre -- une URL inventee se decouvrirait en production, une valeur vide
+// se decouvre a la lecture, et createPendingCredentialsSource la signale d'elle-meme.
+//
+// UNE seule source, la ou Zefix en a trois : le catalogue ne porte qu'un type de TVA
+// (vat_lookup, migration 20260728103000), et rien a lire dans une reponse qu'on ne connait
+// pas ne justifierait d'en decouper deux.
+//
+// AUCUN VERDICT NE BOUGE, et pour une raison DIFFERENTE de celle de Zefix -- la nuance
+// merite d'etre dite plutot que recopiee. Les trois lignes Zefix sont des VETOS : le
+// moteur (20260728130000) fait echouer un veto `unavailable` exactement comme un veto
+// ABSENT. vat_lookup n'est pas un veto mais un SIGNAL SCORABLE (weight 3.00, is_veto
+// false, meme migration) : ce qui le rend neutre, c'est que le moteur exclut `unavailable`
+// du numerateur ET du denominateur -- le score vaut donc EXACTEMENT ce qu'il valait quand
+// la ligne etait absente. Cette source ne retient aucun dossier et n'en debloque aucun ;
+// elle rend seulement lisible, dans le dossier, qu'une TVA suisse ou liechtensteinoise n'a
+// ete confirmee par personne. Verifie en base, pas suppose : voir les deux tests de preuve
+// du volet 2 de tests/backend/agency-verification-run.spec.ts.
+
+/** Juridiction du registre UID : la Suisse ET le Liechtenstein. Le FL-UID liechtensteinois
+ *  derive du systeme suisse par l'union douaniere et porte le meme prefixe CHE (doc de
+ *  conception §3) -- la frontiere n'est donc PAS celle du registre du commerce, ou le
+ *  Liechtenstein a le sien (`oera.li`) et sort de la juridiction Zefix (voir
+ *  hasSwissHeadOffice plus haut). Deux decoupages differents pour deux registres
+ *  differents, et c'est volontaire.
+ *
+ *  Lit le MEME ensemble que VIES exclut (UID_REGISTRY_COUNTRIES, defini avec le connecteur
+ *  VIES plus haut), jamais une copie : c'est ce qui fait de l'exclusivite sur vat_lookup
+ *  une propriete du code et non une coincidence entretenue a la main. Les deux
+ *  proprietaires du type se partagent litteralement la meme constante, l'un en inclusion,
+ *  l'autre en exclusion -- aucun ne peut deriver sans que l'autre derive du meme geste. */
+function hasUidRegistryHeadOffice(agency: AgencyForVerification): boolean {
+  const country = declaredHeadOfficeCountry(agency)
+  return country !== null && UID_REGISTRY_COUNTRIES.has(country)
+}
+
+/**
+ * Construit la (les) source(s) du registre UID. Fabrique, et fabrique rendant un TABLEAU
+ * meme pour une source unique -- voir l'en-tete de cette section pour les deux raisons :
+ * cette source peut disparaitre si la TVA s'avere n'etre qu'un champ Zefix, et elle peut
+ * se dedoubler si le registre sert un jour un second type. Dans les deux cas,
+ * agency-verification-run/index.ts n'a rien a changer.
+ *
+ * Meme constructeur interne que Zefix (createPendingCredentialsSource), donc memes deux
+ * erreurs et memes interdits : le credential et la baseUrl n'entrent JAMAIS dans le message
+ * d'erreur, et aucune requete n'est construite.
+ */
+export function createUidRegisterSources(config: PendingSourceConfig): KybSource[] {
+  return [
+    createPendingCredentialsSource({
+      checkType: 'vat_lookup',
+      source: 'uid_register',
+      // Le libelle dit ce qui manque AU JUSTE, parce que l'erreur, elle, est partagee avec
+      // Zefix : « en attente d'identifiants » serait a moitie faux ici, ou l'acces n'a
+      // jamais ete etabli et ou l'on ignore encore s'il existe une API a interroger. C'est
+      // ce texte que lira un relecteur de la file admin devant deux `unavailable`.
+      label: 'registre UID (numero de TVA suisse/liechtensteinois -- API jamais testee, acces non etabli)',
+      appliesTo: hasUidRegistryHeadOffice,
+      config,
+    }),
   ]
 }
 
