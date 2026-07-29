@@ -46,7 +46,9 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
         background: 'transparent', borderRadius: 10, color: sp.ink,
         fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap',
       }}
-      onMouseEnter={e => { e.currentTarget.style.background = sp.cardSubBg }}
+      // Option survolée : elle se CREUSE sous le plafond du menu (S3) au lieu
+      // de monter — la plage reste étanche.
+      onMouseEnter={e => { e.currentTarget.style.background = sp.solidBgSub }}
       onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
       <MEIcon name={icon} size={15} color={sp.ink} />
       {label}
@@ -126,9 +128,11 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
           right: Math.max(12, window.innerWidth - menuRect.right - 2),
           zIndex: 9999,
           minWidth: 232, padding: 6, borderRadius: 14,
-          background: sp.pageBg,
-          border: `1px solid ${dark ? 'rgba(255,255,255,0.09)' : (sp.frameBorder || 'rgba(15,23,42,0.08)')}`,
-          boxShadow: '0 16px 40px -12px rgba(15,23,42,0.30), 0 4px 12px rgba(15,23,42,0.12)',
+          // Menu flottant : palier haut, pas le canvas — au fond de page il ne
+          // se détachait pas de la liste qu'il recouvre.
+          background: sp.solidBg,
+          border: `1px solid ${dark ? (sp.solidBorder || 'rgba(255,255,255,0.09)') : (sp.frameBorder || 'rgba(15,23,42,0.08)')}`,
+          boxShadow: sp.solidShadow,
         }}>
           {menuItem('check', n.read ? t('notifications.markUnread') : t('notifications.markRead'), () => onMarkRead(!n.read))}
           {menuItem('eye', t('notifications.hideOne'), () => onHide())}
