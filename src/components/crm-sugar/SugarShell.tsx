@@ -16,7 +16,28 @@ import { openHelpFor } from '@/lib/help-articles'
 import { openSugarSearch } from './search/openSearch'
 import { useAiPanel } from '@/hooks/useAiPanel'
 
-// ─── Round icon button (44x44, glass) ──────────────────────────────────
+// ─── Détachement de la barre pendant le dock MEGGA AI ──────────────────
+// Hauteur de repli de la barre (24 + 44 + 14) — c'est aussi le `navH` dont part
+// le panneau. Sert de valeur initiale au spacer avant la première mesure.
+const NAV_H = 82
+
+/** Premier ancêtre qui rogne son contenu (`overflow: hidden|clip`), ou null. */
+function clipAncestor(node: HTMLElement | null): HTMLElement | null {
+  let n = node?.parentElement ?? null
+  while (n && n !== document.body) {
+    const o = getComputedStyle(n)
+    if (/(hidden|clip)/.test(o.overflow + o.overflowX)) return n
+    n = n.parentElement
+  }
+  return null
+}
+
+// ─── Icon button (glyphe nu, cible 44×44) ──────────────────────────────
+// Plus de pastille de verre : le glyphe est posé directement sur la barre. La
+// boîte de 44 reste — c'est la cible de clic (et l'empreinte que le spacer du
+// dock réserve), seule sa peinture disparaît.
+const TOPNAV_ICON = 22
+
 interface SugarRoundIconBtnProps {
   children: ReactNode
   dot?: boolean
@@ -27,16 +48,15 @@ interface SugarRoundIconBtnProps {
 export function SugarRoundIconBtn({ children, dot, onClick, sp, title }: SugarRoundIconBtnProps) {
   return (
     <button onClick={onClick} title={title} aria-label={title} style={{
-      width: 44, height: 44, borderRadius: 999, border: 0, background: sp.iconBtnBg,
-      boxShadow: sp.shadow, display: 'grid', placeItems: 'center', cursor: 'pointer',
-      position: 'relative',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
+      width: 44, height: 44, borderRadius: 999, border: 0, background: 'transparent',
+      boxShadow: 'none', display: 'grid', placeItems: 'center', cursor: 'pointer',
+      position: 'relative', padding: 0,
     }}>
       {children}
       {dot && <span style={{
         position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 999,
-        background: '#E53935', border: `2px solid ${sp.iconBtnBg}`,
+        // Le liseré détourait la pastille ; sans elle, il se cale sur le fond de page.
+        background: '#E53935', border: `2px solid ${sp.pageBg}`,
       }} />}
     </button>
   )
@@ -117,14 +137,101 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
   // ✦ actif = page Julien OU panneau MEGGA AI ouvert (quand le provider est monté).
   const aiActive = isJulien || (ai.enabled && ai.isOpen)
 
+  // ─── Dock MEGGA AI : la barre du haut ne bouge pas ─────────────────────
+  // `AgentSugarLayout` comprime le contenu de travail par `paddingRight` quand le
+  // panneau est ouvert. La barre, elle, est du chrome : elle doit rester pleine
+  // largeur et immobile. Or elle vit DANS la racine d'écran (100vh +
+  // overflow:hidden), qui rétrécit avec le push et rogne tout ce qui dépasse —
+  // c'est ce qui faisait disparaître le cluster d'icônes « comme balayé par une
+  // ligne horizontale ». On sort donc la barre entière du flux tant que le dock
+  // occupe de la place ; un spacer conserve son empreinte pour que rien ne bouge
+  // en dessous. Même source que le wrapper (`ai.isOpen`) : les deux ne peuvent
+  // pas diverger. Hors provider (`enabled: false`), rien ne change.
+  //
+  // Pourquoi la barre ENTIÈRE et pas seulement le cluster d'icônes (comme dans le
+  // handoff) : ici la barre porte 7 onglets + 5 boutons ronds. Ne détacher que le
+  // cluster laisse les onglets centrés dans la barre pleine largeur, donc au-delà
+  // du bord de clip — « Calendrier » se faisait rogner de 51 px dès que le
+  // viewport passait sous ~1383 px (mesuré à 1280 px). Détacher la barre entière
+  // règle les deux d'un coup, avec les mêmes invariants (coordonnées identiques
+  // au flux, z 75 en fixed / auto en flux, re-pose par sonde de layout).
+  const docked = ai.enabled && ai.isOpen
+  const [barLifted, setBarLifted] = useState(docked)
+  const barRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (docked) { setBarLifted(true); return }
+    // Fermeture : on ne repose la barre QUE lorsque le layout a réellement fini de
+    // s'élargir. Une minuterie perd la course — le re-rendu de fermeture bloque le
+    // main thread (~500 ms) et retarde d'autant la transition `padding-right`, si
+    // bien que la barre retomberait alors que le bord de clip est encore à sa
+    // gauche : re-rognage transitoire (bande sombre qui balaie les boutons). On
+    // sonde donc le layout réel à chaque frame. Invariant : le bord de clip
+    // grandit de façon monotone et la position en flux de la barre est constante
+    // → une fois « inside », toujours inside, quel que soit le stall.
+    let raf = 0
+    let ok = 0
+    const t0 = performance.now()
+    const probe = () => {
+      const bar = barRef.current
+      const clip = clipAncestor(bar)
+      const inside = !bar || !clip
+        || bar.getBoundingClientRect().right <= clip.getBoundingClientRect().right + 1
+      ok = inside ? ok + 1 : 0
+      if (ok >= 3 || performance.now() - t0 > 1500) { setBarLifted(false); return }
+      raf = requestAnimationFrame(probe)
+    }
+    raf = requestAnimationFrame(probe)
+    return () => cancelAnimationFrame(raf)
+  }, [docked])
+  const lifted = barLifted || docked
+  // Boîte de la barre EN FLUX — `top` sert de coordonnée au détachement, `height`
+  // d'empreinte au spacer. Mesurée, jamais déduite : `AgentSugarLayout` empile
+  // au-dessus du contenu des bandeaux de hauteur variable (impersonation, garde
+  // LAB, et ceux à venir), et une langue plus longue peut faire grandir la barre.
+  // Coder ces hauteurs en dur ferait sauter la barre à l'ouverture du dock.
+  // On observe aussi `document.body` : un bandeau qui apparaît déplace la barre
+  // sans la redimensionner, donc l'observer posé sur elle seule ne verrait rien.
+  const [barBox, setBarBox] = useState({ top: 0, h: NAV_H })
+  useEffect(() => {
+    const el = barRef.current
+    if (lifted || !el) return
+    // La 1re livraison de l'observer fait office de mesure initiale (pas de
+    // setState synchrone dans le corps de l'effet).
+    const measure = () => {
+      const r = el.getBoundingClientRect()
+      const next = { top: Math.round(r.top), h: Math.round(r.height) }
+      setBarBox(prev => (prev.top === next.top && prev.h === next.h ? prev : next))
+    }
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    ro.observe(document.body)
+    return () => ro.disconnect()
+  }, [lifted])
+
   // Inset droit = 24 px, la MÊME valeur que le `paddingRight` de tous les <main>
   // Sugar : le bord droit des boutons ronds — et donc des popovers ancrés dessus
   // en `right: 0` — tombe pile sur le bord droit du pager. Ne pas le remonter à
   // 40 : le popover profil repartirait 16 px en retrait du pager.
   return (
-    <div style={{
+    <>
+    {/* Spacer en flux : réserve l'empreinte de la barre pendant qu'elle est
+        détachée, pour que le contenu en dessous ne remonte pas d'un pixel. */}
+    {lifted && <div aria-hidden style={{ height: barBox.h, flexShrink: 0 }} />}
+    <div ref={barRef} style={{
       display: 'flex', alignItems: 'center', padding: '24px 24px 14px 33px',
       gap: 24,
+      // Coordonnées `fixed` = coordonnées en flux (la barre est pleine largeur
+      // dans les deux cas) → aucun saut visuel au basculement. Dock fermé, on
+      // laisse la barre `static` (et non `relative`) : positionner un élément le
+      // fait peindre au-dessus de ses frères non positionnés, ce qui changerait
+      // l'ordre de rendu des pages alors qu'on ne touche à rien.
+      position: lifted ? 'fixed' : undefined,
+      top: lifted ? barBox.top : undefined, left: lifted ? 0 : undefined, right: lifted ? 0 : undefined,
+      // `position:fixed` crée un stacking context : il faut passer au-dessus du
+      // panneau (z 70) pour que les popovers cloche/profil restent visibles dock
+      // ouvert. En flux, z `auto` — sinon la barre piégerait ses propres popovers
+      // (z 9000) dans un stacking context passant SOUS le panneau.
+      zIndex: lifted ? 75 : 'auto',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, height: 44 }}>
         <svg viewBox="0 0 694.81 419.02" width="62" height="38" style={{ display: 'block' }} aria-label="MEGGA">
@@ -148,10 +255,10 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
         })}
       </nav>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <SugarRoundIconBtn sp={sp} title={tc('nav.search')} onClick={() => openSugarSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={18} /></SugarRoundIconBtn>
+        <SugarRoundIconBtn sp={sp} title={tc('nav.search')} onClick={() => openSugarSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={TOPNAV_ICON} /></SugarRoundIconBtn>
         {/* Aide contextuelle : ouvre l'article Help Center de l'écran courant (ou le
             Centre d'aide à défaut, public si Intercom n'est pas configuré). */}
-        <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => openHelpFor(active)}><AnimatedTopIcon name="help" color={sp.soft} size={18} /></SugarRoundIconBtn>
+        <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => openHelpFor(active)}><AnimatedTopIcon name="help" color={sp.soft} size={TOPNAV_ICON} /></SugarRoundIconBtn>
         {/* Bouton Megga — ouvre le panneau MEGGA AI docké (ou la page Julien en repli) */}
         <button
           onClick={() => {
@@ -161,14 +268,18 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
           title={tc('nav.aiAgent')}
           aria-expanded={ai.enabled ? ai.isOpen : undefined}
           style={{
-            width: 44, height: 44, borderRadius: 999, border: 0,
-            background: aiActive ? sp.ink : sp.iconBtnBg,
-            boxShadow: aiActive ? '0 6px 20px rgba(11,12,14,0.25)' : sp.shadow,
+            width: 44, height: 44, borderRadius: 999, border: 0, padding: 0,
+            // Seul bouton de la barre à reprendre un aplat, et seulement ACTIF :
+            // MEGGA AI ouvert est un mode persistant, pas un survol — il mérite un
+            // repère que l'encre seule ne portait pas. Au repos, glyphe nu comme
+            // ses voisins. `sp.ink` est le token d'accent Sugar : noir franc en
+            // clair, encre claire en sombre.
+            background: aiActive ? sp.ink : 'transparent',
+            boxShadow: aiActive ? '0 6px 20px rgba(11,12,14,0.25)' : 'none',
             display: 'grid', placeItems: 'center', cursor: 'pointer',
-            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-            transition: 'all .2s ease',
+            transition: 'background .2s ease, box-shadow .2s ease',
           }}>
-          <AnimatedTopIcon name="sparkle" color={aiActive ? sp.pageBg : sp.soft} size={18} active={aiActive} />
+          <AnimatedTopIcon name="sparkle" color={aiActive ? sp.pageBg : sp.soft} size={TOPNAV_ICON} active={aiActive} />
         </button>
         <div ref={notifAnchorRef} style={{ position: 'relative' }}>
           <button
@@ -176,24 +287,24 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
             onClick={() => setNotifOpen(o => !o)}
             title={tc('nav.notifications')}
             style={{
-              width: 44, height: 44, borderRadius: 999, border: 0,
-              background: notifOpen ? sp.ink : sp.iconBtnBg,
-              boxShadow: sp.shadow,
+              width: 44, height: 44, borderRadius: 999, border: 0, padding: 0,
+              background: 'transparent', boxShadow: 'none',
               display: 'grid', placeItems: 'center', cursor: 'pointer',
               position: 'relative',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              transition: 'background 160ms ease',
+              transition: 'color 160ms ease',
             }}>
-            <AnimatedTopIcon name="bell" color={notifOpen ? sp.pageBg : sp.soft} size={18} />
+            <AnimatedTopIcon name="bell" color={notifOpen ? sp.ink : sp.soft} size={TOPNAV_ICON} />
             {unreadCount > 0 && (
               <span style={{
-                position: 'absolute', top: 7, right: 7,
+                // Remonté d'un cran (top/right 7 → 4) : le glyphe agrandi occupe
+                // désormais la boîte, la pastille se posait sur son tracé.
+                position: 'absolute', top: 4, right: 4,
                 minWidth: 16, height: 16, borderRadius: 999,
                 background: '#E53935', color: '#fff',
                 fontSize: 9.5, fontWeight: 800,
                 display: 'grid', placeItems: 'center', padding: '0 4px',
-                border: `2px solid ${notifOpen ? sp.ink : sp.iconBtnBg}`,
+                // Détourage sur le fond de page, la pastille de verre ayant disparu.
+                border: `2px solid ${sp.pageBg}`,
                 fontVariantNumeric: 'tabular-nums',
                 lineHeight: 1,
               }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
@@ -251,6 +362,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
         </div>
       </div>
     </div>
+    </>
   )
 }
 

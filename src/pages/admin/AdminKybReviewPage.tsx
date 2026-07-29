@@ -18,6 +18,11 @@
  * de composants, la logique testable vit dans des fonctions pures exportées),
  * porte cette distinction.
  *
+ * La file est PAGINÉE (correctif de revue étape 6) et affiche toujours le nombre
+ * total de dossiers en attente, pas la seule taille de la page : sans ce total, une
+ * page pleine est indiscernable d'une file terminée — c'est précisément ce qui
+ * rendait invisible la troncature silencieuse de PostgREST à `max_rows`.
+ *
  * Le poids affiché pour chaque check est celui EN VIGUEUR À LA DATE DU CHECK
  * (applicableWeight, rendu tel quel par la RPC de détail) — jamais recalculé
  * ni substitué par un barème courant : afficher le poids d'aujourd'hui
@@ -28,8 +33,8 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { createPortal } from 'react-dom'
 import {
-  AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, CircleSlash, Clock, History,
-  IdCard, Loader2, RotateCw, ScanSearch, ShieldAlert, TrendingDown, UserX, Users, X,
+  AlertTriangle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleSlash, Clock,
+  History, IdCard, Loader2, RotateCw, ScanSearch, ShieldAlert, TrendingDown, UserX, Users, X,
   XCircle,
 } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
@@ -39,7 +44,9 @@ import Modal from '@/components/ui/modal'
 import PageTransition from '@/components/layout/PageTransition'
 import {
   useAdminKybReviewQueue, useAdminKybReviewDetail, useAdminKybReviewActions,
+  KYB_REVIEW_PAGE_SIZE,
   type KybReviewCheckRow, type KybReviewPerson, type KybReviewCurrentVeto, type KybReviewEvent,
+  type KybReviewQueueRow,
 } from '@/hooks/useAdminKybReview'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -278,6 +285,51 @@ export function queueRowSignal(score: number | null, sweepAttempts: number): Que
   if (sweepAttempts >= SWEEP_MAX_ATTEMPTS) return 'sweep_exhausted'
   if (score === null) return 'score_unknown'
   return 'score'
+}
+
+/** Ce que le pager doit afficher : la fenêtre courante, et surtout ce qu'il RESTE. */
+export interface QueuePagerView {
+  /** Index 0-based de la page réellement affichée. */
+  page: number
+  pageCount: number
+  /** Rang 1-based du premier dossier affiché ; 0 quand la file est vide. */
+  rangeStart: number
+  /** Rang 1-based du dernier dossier affiché. */
+  rangeEnd: number
+  hasPrev: boolean
+  hasNext: boolean
+}
+
+/**
+ * Arithmétique du pager, à partir du décalage RÉELLEMENT servi par la RPC (jamais de
+ * celui demandé : le hook se replie sur la dernière page réelle quand la file rétrécit
+ * sous le relecteur — voir useAdminKybReview.ts).
+ *
+ * Isolée en fonction pure parce que c'est elle qui porte la promesse de l'écran :
+ * « voici où vous en êtes, et voici combien il reste ». Une erreur ici redonnerait
+ * exactement la maladie que la pagination soigne — un relecteur convaincu d'avoir tout
+ * vu alors que des dossiers l'attendent encore.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
+export function queuePagerView(
+  servedOffset: number,
+  rowCount: number,
+  total: number,
+  pageSize: number,
+): QueuePagerView {
+  const page = pageSize > 0 ? Math.floor(Math.max(0, servedOffset) / pageSize) : 0
+  const pageCount = Math.max(1, Math.ceil(Math.max(0, total) / Math.max(1, pageSize)))
+  const pageStart = page * pageSize
+  return {
+    page,
+    pageCount,
+    // Une file vide n'a pas de « premier dossier » : 0, pas 1 — sinon l'écran
+    // annoncerait « 1-0 sur 0 ».
+    rangeStart: total === 0 || rowCount === 0 ? 0 : pageStart + 1,
+    rangeEnd: pageStart + rowCount,
+    hasPrev: page > 0,
+    hasNext: page < pageCount - 1,
+  }
 }
 
 /**
@@ -748,13 +800,17 @@ function DetailSection({ title, icon: Icon, children }: { title: string; icon: t
 /** Tiroir de détail d'un dossier — createPortal(document.body), z-[100] (règle DS
  *  « modals toujours en portail »). Assemble raisons, checks, personnes, historique
  *  et les 4 actions. */
-function KybReviewDrawer({ agencyId, onClose }: { agencyId: string; onClose: () => void }) {
+function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: () => void }) {
   const { t } = useTranslation('admin')
   const toast = useToast()
   const drawerRef = useFocusTrap(true)
 
-  const queue = useAdminKybReviewQueue()
-  const row = queue.data?.find((r) => r.agencyId === agencyId) ?? null
+  // `row` vient de la page courante de la file plutôt que d'une seconde lecture de la
+  // RPC : depuis la pagination (correctif étape 6), re-interroger la file ici ne
+  // rendrait qu'UNE page, et le dossier ouvert pourrait très bien ne pas s'y trouver —
+  // l'en-tête du tiroir retomberait alors sur « — » pour un dossier parfaitement
+  // valide. Le parent le détient déjà ; le passer évite la lecture ET l'incohérence.
+  const agencyId = row.agencyId
 
   const { checks, persons, currentVetoTypes, events, isLoading, isError } = useAdminKybReviewDetail(agencyId)
   const { validate, reject, relaunch, resolveIdentityDocument } = useAdminKybReviewActions(agencyId)
@@ -776,8 +832,8 @@ function KybReviewDrawer({ agencyId, onClose }: { agencyId: string; onClose: () 
   )
 
   const reasons = useMemo(() => qualifyReviewReasons({
-    sweepAttempts: row?.verificationSweepAttempts ?? 0,
-    score: row?.verificationScore ?? null,
+    sweepAttempts: row.verificationSweepAttempts,
+    score: row.verificationScore,
     checks: checks.data ?? [],
     currentVetoTypes: (currentVetoTypes.data ?? []) as KybReviewCurrentVeto[],
     activeSignatoryIds: activeSignatories,
@@ -800,14 +856,14 @@ function KybReviewDrawer({ agencyId, onClose }: { agencyId: string; onClose: () 
         ref={drawerRef}
         role="dialog"
         aria-modal="true"
-        aria-label={row?.agencyName ?? t('kybReview.title')}
+        aria-label={row.agencyName}
         className="absolute right-0 top-0 h-full w-full max-w-xl bg-theme-card border-l border-theme-border overflow-y-auto scrollbar-hide"
       >
         <div className="sticky top-0 bg-theme-card border-b border-theme-border px-5 py-4 flex items-start justify-between gap-3 z-10">
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-theme-primary truncate">{row?.agencyName ?? '—'}</h2>
+            <h2 className="text-base font-semibold text-theme-primary truncate">{row.agencyName}</h2>
             <p className="text-xs text-theme-tertiary mt-0.5">
-              {row?.country ?? '—'} · {row?.identitySubmittedAt
+              {row.country ?? '—'} · {row.identitySubmittedAt
                 ? t('kybReview.detail.submittedAt') + ' ' + formatDate(row.identitySubmittedAt)
                 : t('kybReview.detail.notSubmitted')}
             </p>
@@ -829,13 +885,13 @@ function KybReviewDrawer({ agencyId, onClose }: { agencyId: string; onClose: () 
                 <div className="rounded-xl border border-theme-border p-3">
                   <p className="text-xs text-theme-tertiary">{t('kybReview.detail.score')}</p>
                   <p className="text-lg font-semibold text-theme-primary tabular-nums mt-0.5">
-                    {row?.verificationScore != null ? row.verificationScore.toFixed(3) : t('kybReview.scoreNone')}
+                    {row.verificationScore != null ? row.verificationScore.toFixed(3) : t('kybReview.scoreNone')}
                   </p>
                 </div>
                 <div className="rounded-xl border border-theme-border p-3">
                   <p className="text-xs text-theme-tertiary">{t('kybReview.detail.sweepAttempts')}</p>
                   <p className="text-lg font-semibold text-theme-primary tabular-nums mt-0.5">
-                    {row?.verificationSweepAttempts ?? 0} / {SWEEP_MAX_ATTEMPTS}
+                    {row.verificationSweepAttempts} / {SWEEP_MAX_ATTEMPTS}
                   </p>
                 </div>
               </div>
@@ -1019,26 +1075,76 @@ function QueueRow({ row, onOpen, isLast }: {
   )
 }
 
-/** Écran : file KYB en manual_review, triée par score, et le tiroir de détail. */
+/** Pager de la file — la fenêtre affichée et le total, jamais l'un sans l'autre.
+ *  Sans ce total, une page pleine est indiscernable d'une file terminée : c'est
+ *  exactement ce qui rendait la troncature invisible avant le correctif étape 6. */
+function QueuePager({ view, total, onPrev, onNext }: {
+  view: QueuePagerView
+  total: number
+  onPrev: () => void
+  onNext: () => void
+}) {
+  const { t } = useTranslation('admin')
+  const { page, pageCount, rangeStart, rangeEnd, hasPrev, hasNext } = view
+
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-theme-border">
+      <p className="text-xs text-theme-tertiary tabular-nums">
+        {t('kybReview.pager.range', { from: rangeStart, to: rangeEnd, total })}
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onPrev}
+          disabled={!hasPrev}
+          className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          {t('kybReview.pager.previous')}
+        </button>
+        <span className="text-xs text-theme-tertiary tabular-nums whitespace-nowrap">
+          {t('kybReview.pager.page', { page: page + 1, pageCount })}
+        </span>
+        <button
+          onClick={onNext}
+          disabled={!hasNext}
+          className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+        >
+          {t('kybReview.pager.next')}
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** Écran : file KYB en manual_review, triée par score, paginée, et le tiroir de détail. */
 export default function AdminKybReviewPage() {
   const { t } = useTranslation('admin')
-  const { data, isLoading, isError, refetch } = useAdminKybReviewQueue()
+  const [requestedPage, setRequestedPage] = useState(0)
+  const { data, isLoading, isError, refetch } = useAdminKybReviewQueue(requestedPage * KYB_REVIEW_PAGE_SIZE)
   const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(null)
 
-  // Le tiroir ne s'affiche que pour une agence encore PRÉSENTE dans la file
+  const rows = data?.rows ?? []
+  // Le TOTAL, jamais `rows.length` : c'est la seule information qui distingue « il ne
+  // reste que ceux-là » de « la liste s'arrête ici parce que la page est pleine ».
+  const total = data?.total ?? 0
+
+  // Calculé depuis le décalage RÉELLEMENT servi, pas depuis celui demandé : trancher
+  // les derniers dossiers de la dernière page la vide, et le hook se replie alors sur
+  // la dernière page réelle (useAdminKybReview.ts). L'écran n'a donc aucun état à
+  // recorriger après coup.
+  const pager = queuePagerView(data?.servedOffset ?? 0, rows.length, total, KYB_REVIEW_PAGE_SIZE)
+
+  // Le tiroir ne s'affiche que pour une agence encore PRÉSENTE dans la page
   // fraîchement chargée — dérivé au rendu plutôt que réinitialisé depuis un effet
   // (`setState` synchrone dans un effet re-déclenche un rendu en cascade,
   // react-hooks/set-state-in-effect). Une agence validée/rejetée, ou auto-validée
-  // après une relance/résolution, quitte `data` dès l'invalidation de la file
+  // après une relance/résolution, quitte `rows` dès l'invalidation de la file
   // (useAdminKybReview.ts) : le tiroir se referme alors tout seul, sans mécanique
   // dédiée par action. `selectedAgencyId` peut rester temporairement une ancienne
   // valeur "morte" (inoffensif : elle n'est relue qu'ici, et une nouvelle sélection
   // l'écrase).
-  const drawerAgencyId = selectedAgencyId && data?.some((r) => r.agencyId === selectedAgencyId)
-    ? selectedAgencyId
-    : null
-
-  const count = data?.length ?? 0
+  const drawerRow = rows.find((r) => r.agencyId === selectedAgencyId) ?? null
 
   return (
     <PageTransition>
@@ -1050,7 +1156,7 @@ export default function AdminKybReviewPage() {
           </div>
           <h1 className="text-2xl font-semibold text-theme-primary">{t('kybReview.title')}</h1>
           <p className="text-sm text-theme-tertiary mt-0.5">
-            {isLoading ? t('common.loading') : t('kybReview.subtitle', { count })}
+            {isLoading ? t('common.loading') : t('kybReview.subtitle', { count: total })}
           </p>
         </div>
 
@@ -1059,23 +1165,36 @@ export default function AdminKybReviewPage() {
             <QueueSkeleton />
           ) : isError ? (
             <QueueError onRetry={() => void refetch()} />
-          ) : count === 0 ? (
+          ) : total === 0 ? (
             <QueueEmpty />
           ) : (
-            data!.map((row, i) => (
-              <QueueRow
-                key={row.agencyId}
-                row={row}
-                isLast={i === data!.length - 1}
-                onOpen={() => setSelectedAgencyId(row.agencyId)}
+            <>
+              {rows.map((row, i) => (
+                <QueueRow
+                  key={row.agencyId}
+                  row={row}
+                  isLast={i === rows.length - 1}
+                  onOpen={() => setSelectedAgencyId(row.agencyId)}
+                />
+              ))}
+              {/* Toujours rendu dès qu'il y a des dossiers, même sur une file d'une
+                  seule page : le relecteur doit pouvoir lire « 1-12 sur 12 » et savoir
+                  qu'il les a tous vus, pas le déduire d'une absence de bouton. */}
+              <QueuePager
+                view={pager}
+                total={total}
+                // Repart de la page SERVIE, jamais de celle demandée : après un repli,
+                // les deux diffèrent, et naviguer depuis la demande ferait sauter une page.
+                onPrev={() => setRequestedPage(Math.max(0, pager.page - 1))}
+                onNext={() => setRequestedPage(Math.min(pager.pageCount - 1, pager.page + 1))}
               />
-            ))
+            </>
           )}
         </div>
       </div>
 
-      {drawerAgencyId && (
-        <KybReviewDrawer agencyId={drawerAgencyId} onClose={() => setSelectedAgencyId(null)} />
+      {drawerRow && (
+        <KybReviewDrawer row={drawerRow} onClose={() => setSelectedAgencyId(null)} />
       )}
     </PageTransition>
   )

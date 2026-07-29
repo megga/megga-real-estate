@@ -6,7 +6,10 @@
 > Une cartographie vivante de TOUS les rouages (archi, KYC, WhatsApp, matching, pipeline,
 > copilote IA, marketplace, intégrations, signatures…) existe et doit être utilisée.
 > 1. Carte lisible (point d'entrée) : [docs/system-map.md](docs/system-map.md)
-> 2. Mémoire sémantique locale (0 API) : `npx ruflo memory search -q "<sujet>" -n megga`
+> 2. Mémoire sémantique locale (0 API) :
+>    `CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "<sujet>" -n megga`
+>    (⚠ le flag ET la version épinglée sont nécessaires — sans eux la recherche répond
+>    « no results » sur un cerveau plein ; cf. « Maintenir le cerveau » de docs/system-map.md)
 > 3. Source de la mémoire : [.claude-flow/knowledge/megga-memory.seed.json](.claude-flow/knowledge/megga-memory.seed.json)
 >
 > **APRÈS avoir livré une feature / un changement d'archi :** mettre le cerveau à jour
@@ -103,11 +106,42 @@ npm run lint         # ESLint
 **⚠ Sugar Pure (Pipeline v2, juillet 2026)** : les surfaces refondues (Pipeline
 kanban/liste/timeline, modale Nouveau deal, fiche deal V4) suivent la grammaire
 « Sugar Pure » qui PRIME sur les règles bento ci-dessous : séparation par **ombre
-douce sans bordure décorative**, accent noir unique (`sp.accent`), teinte sombre
-par défaut **noir #000000** (`SUGAR_DARK_TONE`), teintes d'étape `SG_STAGE_HUE`
-+ dérivations `sgMix` figées, pilules à fond plein + texte blanc. Détails :
-[docs/design-system.md](docs/design-system.md) §Sugar Pure ; source pixel =
-handoff `design_handoff_pipeline_refonte_v2`.
+douce sans bordure décorative**, accent noir unique (`sp.accent`), teintes d'étape
+`SG_STAGE_HUE` + dérivations `sgMix` figées, pilules à fond plein + texte blanc.
+Détails : [docs/design-system.md](docs/design-system.md) §Sugar Pure ; source
+pixel = handoff `design_handoff_pipeline_refonte_v2`.
+
+**🌒 Échelle sombre « Graphite » (défaut produit, handoff du 29 juil. 2026)** —
+le sombre des surfaces Sugar n'empile plus des blancs translucides : c'est une
+échelle de surfaces **OPAQUES** entre `#12161C` et `#21242F`, 5 paliers d'écart
+de luminance constant, source unique `CRM_GRAPHITE`
+([tokens.ts](src/components/crm-sugar/tokens.ts)).
+
+| Palier | Valeur | Rôle | Token |
+|---|---|---|---|
+| S0 | `#12161C` | canvas — pages, pagers, fiches | `sp.pageBg` |
+| S1 | `#161A21` | cadre bento, rail, top nav | `sp.frameBg` |
+| S2 | `#1A1D26` | cards, colonnes, lignes | `sp.cardBg` |
+| S3 | `#1D212A` | sous-cards, inputs, chips, hover | `sp.cardSubBg` |
+| S4 | `#21242F` | **plafond** — modales, popovers, menus, ⌘K | `sp.solidBg` |
+
+1. **Jamais de blanc translucide en REMPLISSAGE.** `rgba(255,255,255,α)` ne sert
+   plus que de filet ou de voile SUR l'accent.
+2. **On ne monte jamais au-dessus de S4.** Une sous-surface de modale se CREUSE
+   (`solidBgSub` = S3). Toute surface flottante — menu, popover, tiroir — prend
+   `sp.solidBg` + `sp.solidBorder` + `sp.solidShadow`, jamais le palier « card »
+   ni le canvas.
+3. **Consommer `sp.*` d'abord.** Pour un littéral local, `crmStep('s3', '<valeur
+   historique>')`, uniquement dans une branche déjà gardée par `dark ? … : …`.
+   Pour une palette montée une fois, **un getter** (`get card() { return
+   crmStep('s2', '#17181A') }`) — sinon la valeur se fige au chargement.
+4. **Teinte choisie par l'agent** (Réglages › Préférences › Apparence) :
+   Graphite par défaut, Noir pur conservé ; `useDarkTone()` côté React,
+   `crmDarkTone()` hors React, persistance `localStorage['megga.darkTone']`.
+   `marine`/`meggaAi` sont retirés de l'offre mais restent résolvables.
+
+Garde-fou : [tests/unit/graphite-scale.spec.ts](tests/unit/graphite-scale.spec.ts)
+(plage étanche, AA de `muted`, bascule à chaud des palettes dérivées).
 
 **Règles visuelles clés :**
 - Bentos : `rounded-xl border border-theme-border` — PAS d'ombres
@@ -283,10 +317,22 @@ Fichiers concernés : `useAdminNotifications.ts`, `useAdminLiveFeed.ts`, `useMes
 `formatCHF(amount)` et `formatRent(amount)` acceptent `number | string | null | undefined`. Retournent `'CHF —'` pour les valeurs invalides. Ne JAMAIS appeler `.toFixed()` directement sur une valeur de formulaire.
 
 ### pg_cron actifs
-| Job | Schedule | Edge Function |
+
+**41 jobs actifs** au 29 juil. 2026 (relevés dans `cron.job`) — cette section n'en listait que 2.
+Inventaire complet et à jour dans le cerveau : `megga/pg-cron`. Les plus structurants :
+
+| Job | Schedule | Cible |
 |---|---|---|
-| `flatfox-sync-daily` | `0 4 * * *` (04:00 UTC) | flatfox-sync |
+| `flatfox-sync-daily` | `0 4 * * *` | flatfox-sync (location) |
+| `realadvisor-fresh-daily` | `30 3 * * *` | realadvisor-sync (vente, national) |
+| `realadvisor-rolling-daily` | `0 22 * * *` | realadvisor-sync (1 bucket de cantons/nuit) |
+| `realadvisor-probe-fire` / `-collect` | `0 * * * *` / `10 * * * *` | RPC pg_net (détection de disparition) |
+| `realadvisor-probe-sweep` | `30 1 * * *` | RPC (retrait des absents confirmés) |
+| `realadvisor-revive-fire` / `-collect` | `30 2 * * *` / `45 2 * * *` | RPC (résurrection) |
+| `realadvisor-health-daily` | `0 9 * * *` | RPC `realadvisor_health_check` |
 | `platform-metrics-hourly` | `15 * * * *` | admin-monitoring |
+
+⚠ Identifier un job par son **jobname**, jamais par son `jobid` : il change à chaque recréation.
 
 ---
 

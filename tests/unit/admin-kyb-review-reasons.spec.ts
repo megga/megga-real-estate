@@ -23,6 +23,7 @@ import {
   rejectionReasonFromEvent,
   qualifyReviewReasons,
   queueRowSignal,
+  queuePagerView,
   type ReviewCheck,
   type CurrentVetoType,
 } from '@/pages/admin/AdminKybReviewPage'
@@ -562,5 +563,71 @@ describe('qualifyReviewReasons — le cœur du brief : pourquoi CE dossier est e
     // un "véto absent" à partir d'un catalogue vide ; la vraie raison (score faible)
     // reste seule.
     expect(reasons).toEqual([{ code: 'low_score' }])
+  })
+})
+
+// ─── Pagination de la file (correctif revue étape 6) ────────────────────────────
+//
+// Avant ce correctif, la RPC ne portait aucun limit : PostgREST coupait la réponse à
+// max_rows (1000) EN SILENCE, et comme la file est triée par score croissant, les
+// dossiers les MIEUX notés tombaient hors de la fenêtre — invisibles, donc jamais
+// tranchés. L'arithmétique ci-dessous porte la contrepartie visible de la correction :
+// dire au relecteur où il en est ET combien il reste. Une erreur ici redonnerait la
+// même maladie (se croire au bout d'une file qui continue), d'où ces cas.
+describe('queuePagerView — la fenêtre affichée et ce qu\'il reste derrière', () => {
+  const SIZE = 50
+
+  it('première page d\'une file plus longue : annonce la suite', () => {
+    const v = queuePagerView(0, 50, 1448, SIZE)
+    expect(v.page).toBe(0)
+    expect(v.pageCount).toBe(29) // ceil(1448 / 50)
+    expect(v.rangeStart).toBe(1)
+    expect(v.rangeEnd).toBe(50)
+    expect(v.hasPrev).toBe(false)
+    expect(v.hasNext, 'il reste 1398 dossiers derrière : le pas suivant doit exister').toBe(true)
+  })
+
+  it('dernière page partielle : ferme la file, sans promettre une page de plus', () => {
+    // 1448 dossiers, pages de 50 -> la 29e (index 28) ne porte que 48 lignes.
+    const v = queuePagerView(1400, 48, 1448, SIZE)
+    expect(v.page).toBe(28)
+    expect(v.rangeStart).toBe(1401)
+    expect(v.rangeEnd).toBe(1448)
+    expect(v.hasNext, 'aucun dossier au-delà : proposer une page suivante mentirait').toBe(false)
+    expect(v.hasPrev).toBe(true)
+  })
+
+  it('file tenant sur une seule page : le relecteur doit pouvoir lire qu\'il a tout vu', () => {
+    const v = queuePagerView(0, 12, 12, SIZE)
+    expect(v).toEqual({ page: 0, pageCount: 1, rangeStart: 1, rangeEnd: 12, hasPrev: false, hasNext: false })
+  })
+
+  it('file vide : aucun rang inventé (jamais « 1-0 sur 0 »)', () => {
+    const v = queuePagerView(0, 0, 0, SIZE)
+    expect(v.rangeStart).toBe(0)
+    expect(v.rangeEnd).toBe(0)
+    expect(v.pageCount).toBe(1)
+    expect(v.hasPrev).toBe(false)
+    expect(v.hasNext).toBe(false)
+  })
+
+  // Le cas qui a fait retirer un useEffect correcteur au profit d'un repli côté hook :
+  // trancher les derniers dossiers de la dernière page la vide sous le relecteur. Le
+  // hook sert alors la dernière page RÉELLE, et la numérotation suit ce décalage-là.
+  it('numérote d\'après le décalage réellement servi, pas celui demandé', () => {
+    // Le relecteur avait demandé la page 4 (offset 150) ; la file a fondu à 120
+    // dossiers, le hook a servi l'offset 100.
+    const v = queuePagerView(100, 20, 120, SIZE)
+    expect(v.page, 'la page affichée est celle qui a vraiment été servie').toBe(2)
+    expect(v.pageCount).toBe(3)
+    expect(v.rangeStart).toBe(101)
+    expect(v.rangeEnd).toBe(120)
+    expect(v.hasNext).toBe(false)
+  })
+
+  it('taille de page qui ne divise pas le total : compte la page entamée', () => {
+    expect(queuePagerView(0, 50, 51, SIZE).pageCount, 'ceil, jamais floor -- sinon le 51e dossier n\'a aucune page').toBe(2)
+    expect(queuePagerView(0, 50, 100, SIZE).pageCount).toBe(2)
+    expect(queuePagerView(0, 1, 1, SIZE).pageCount).toBe(1)
   })
 })

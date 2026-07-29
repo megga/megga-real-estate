@@ -393,14 +393,14 @@ function CdMenu({ P, dark, onEditId, onEditCoord, onEditCrit, onDelete }: {
       {items.map((it, i) => (
         <button key={it.label} role="menuitem" onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(-1)} onClick={it.act}
           style={{ ...rowBase, background: hi === i ? menuHov : 'transparent' }}>
-          <FcpIcon name={it.icon} size={16} stroke={P.inkSoft} />
+          <FcpIcon name={it.icon} size={19} stroke={P.inkSoft} />
           <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: P.ink }}>{it.label}</span>
         </button>
       ))}
       <div style={{ height: 1, background: P.hairline, margin: '6px 8px' }} />
       <button role="menuitem" onMouseEnter={() => setHi(99)} onMouseLeave={() => setHi(-1)} onClick={onDelete}
         style={{ ...rowBase, background: hi === 99 ? P.danger + (dark ? '22' : '14') : 'transparent' }}>
-        <FcpIcon name="trash" size={16} stroke={P.danger} />
+        <FcpIcon name="trash" size={19} stroke={P.danger} />
         <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: P.danger }}>{t('fiche.menu.delete')}</span>
       </button>
     </div>

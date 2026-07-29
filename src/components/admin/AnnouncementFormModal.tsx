@@ -182,7 +182,10 @@ export default function AnnouncementFormModal({ existing, onClose }: {
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setAgencyOpen(false)} />
                   {/* `overflow: hidden` : sans lui, le survol d'une option déborde du rayon 18 de la carte. */}
-                  <AdminCard className="absolute left-0 top-full z-20" padding="7px 0" style={{ marginTop: 6, width: 240, overflow: 'hidden' }}>
+                  {/* Menu déroulant = surface flottante : palier haut opaque,
+                      sinon il se confond avec la carte de la modale dessous. */}
+                  <AdminCard className="absolute left-0 top-full z-20" padding="7px 0"
+                    style={{ marginTop: 6, width: 240, overflow: 'hidden', background: sp.solidBg, boxShadow: sp.solidShadow }}>
                     <div style={{ padding: '0 8px 6px' }}>
                       <input type="text" value={agencySearch} onChange={e => setAgencySearch(e.target.value)}
                         placeholder={t('announcements.form.searchAgency')}

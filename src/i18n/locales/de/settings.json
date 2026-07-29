@@ -1199,6 +1199,11 @@
       "banner": "Diese Einstellungen gelten nur für Ihr Konto, sie betreffen keine anderen Teammitglieder.",
       "aiAssistLabel": "MEGGA-AI-Unterstützung",
       "accent": "Akzentfarbe",
+      "darkTone": "Dunkler Farbton",
+      "darkTones": {
+        "graphite": "Graphit",
+        "noir": "Schwarz"
+      },
       "aiTone": "Antwortton",
       "units": {
         "metric": "m² · m",

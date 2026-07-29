@@ -66,13 +66,25 @@ export interface ResolutionCheck {
  * Vérifie que la première page d'une slice parle bien du canton demandé.
  *
  * Renvoie `resolu: true` — sans juger — quand il n'y a rien à vérifier :
- * requête nationale (slug vide), slug hors table, ou échantillon trop maigre.
- * Un doute n'est jamais traité comme une panne.
+ * requête nationale (slug vide) ou échantillon trop maigre. Un doute n'est
+ * jamais traité comme une panne. Un slug hors table, lui, N'EST PAS un doute
+ * (cf. ci-dessous).
  */
 export function checkSliceResolution(slugCanton: string, listings: SliceHit[]): ResolutionCheck {
   if (!slugCanton) return { resolu: true, attendu: null, bons: 0, classables: 0, raison: 'requête nationale' }
   const attendu = SLUG_TO_CODE[slugCanton]
-  if (!attendu) return { resolu: true, attendu: null, bons: 0, classables: 0, raison: 'slug hors table' }
+  // Un slug hors table est un ÉCHEC, pas une abstention. Il n'existe aucun appel
+  // légitime : les callers passent soit '' (national, runFresh), soit un slug de
+  // `realadvisor_shard_map`, qui n'en contient que des connus. Ce qui atterrit
+  // ici est donc un code canton passé à la place d'un slug ('JU' au lieu de
+  // 'canton-jura') ou un slug que RA a renommé — deux cas où RA sert le
+  // catalogue NATIONAL. Mesuré le 29/07/2026 : un run manuel lancé avec des
+  // codes a écrit 32 reçus estampillés « JU » sur des données nationales, dont
+  // 16 `fully_enumerated`, sans que rien ne bronche. S'abstenir ici, c'est
+  // désarmer le garde-fou exactement quand il sert.
+  if (!attendu) {
+    return { resolu: false, attendu: null, bons: 0, classables: 0, raison: 'slug hors table' }
+  }
   if (listings.length < RESOLUTION_MIN_SAMPLE) {
     return { resolu: true, attendu, bons: 0, classables: 0, raison: 'échantillon insuffisant' }
   }
@@ -104,6 +116,13 @@ export function checkSliceResolution(slugCanton: string, listings: SliceHit[]): 
 export function assertSliceResolved(slugCanton: string, listings: SliceHit[]): void {
   const r = checkSliceResolution(slugCanton, listings)
   if (r.resolu) return
+  if (r.raison === 'slug hors table') {
+    throw new Error(
+      `slug hors table: ${slugCanton} n'est pas un slug RA connu — attendu l'une des ` +
+      `${Object.keys(SLUG_TO_CODE).length} valeurs de SLUG_TO_CODE (p.ex. 'canton-jura', PAS 'JU'). ` +
+      `RA ignore un slug inconnu et sert le catalogue national`
+    )
+  }
   throw new Error(
     `slug non résolu: ${slugCanton} attendait ${r.attendu} mais ${r.bons}/${r.classables} ` +
     `annonces de la 1re page y sont — RA sert une recherche nationale sur un slug inconnu`

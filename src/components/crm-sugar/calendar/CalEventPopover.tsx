@@ -151,7 +151,9 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
         ref={ref}
         style={{
           position: 'absolute', left: pos.left, top: pos.top, width: W,
-          background: SP.card, borderRadius: 18, boxShadow: SP.shadowHover || SP.shadow,
+          // Popover = surface flottante : palier haut, comme les 3 autres du
+          // calendrier. Au palier « card » il se confondait avec la grille.
+          background: SP.popBg, borderRadius: 18, boxShadow: SP.shadowHover || SP.shadow,
           padding: 18, animation: 'calPopIn .16s cubic-bezier(.2,.8,.2,1) both',
           maxHeight: 'calc(100vh - 28px)', overflowY: 'auto',
         }}

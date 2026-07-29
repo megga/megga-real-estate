@@ -238,12 +238,12 @@ function SugarMenuItem({ sp, icon, label, tone, onClick, dark, chevron }: {
         width: '100%', padding: '8px 10px', borderRadius: 10, border: 0,
         background: hov ? (danger ? 'rgba(242,107,101,0.14)' : (dark ? crmStep('s3', '#26272A') : '#F4F5F8')) : 'transparent',
         color: dangerInk, cursor: 'pointer', fontFamily: 'inherit',
-        display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontWeight: 600,
+        display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, fontWeight: 600,
         textAlign: 'left',
       }}>
-      <MEIcon name={icon} size={12} color={danger ? dangerInk : sp.soft} />
+      <MEIcon name={icon} size={18} strokeWidth={1.6} color={danger ? dangerInk : sp.soft} />
       <span style={{ flex: 1 }}>{label}</span>
-      {chevron && <MEIcon name="chevron-right" size={12} color={sp.sub} />}
+      {chevron && <MEIcon name="chevron-right" size={14} color={sp.sub} />}
     </button>
   )
 }

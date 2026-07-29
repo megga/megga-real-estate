@@ -54,6 +54,10 @@ interface QueueRow {
   verification_score: number | string | null
   identity_submitted_at: string | null
   verification_sweep_attempts: number
+  /** Nombre TOTAL de dossiers en attente, repete sur chaque ligne (sous-requete scalaire) —
+   *  la page seule ne dit pas combien il en reste derriere. `bigint` cote SQL, rendu en
+   *  nombre ou en texte selon PostgREST, d'ou le passage par num(). */
+  total_count: number | string
 }
 
 interface DetailRow {
@@ -191,6 +195,26 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
     if (error) throw new Error(`set verification: ${error.message}`)
   }
 
+  /** Parcourt TOUTE la file, page par page, au lieu de supposer qu'elle tient dans une
+   *  seule reponse -- l'hypothese exacte qui rendait la troncature invisible (cf. le
+   *  describe « pagination de la file »). Les tests qui cherchent LEURS fixtures dans
+   *  cette file PARTAGEE passent par ici : ni les dossiers laisses par un autre fichier
+   *  de specs, ni le volume seede plus bas ne doivent pouvoir les faire echouer. */
+  async function fetchWholeQueue(): Promise<QueueRow[]> {
+    const PAGE = 1000 // = max_rows : la plus grande page que la RPC accepte de rendre
+    const all: QueueRow[] = []
+    for (let offset = 0; ; offset += PAGE) {
+      const { data, error } = await superAdmin.rpc('get_admin_agency_review_queue', {
+        p_limit: PAGE, p_offset: offset,
+      })
+      if (error) throw new Error(`rpc queue: ${error.message}`)
+      const rows = (data ?? []) as QueueRow[]
+      all.push(...rows)
+      const total = rows.length > 0 ? Number(rows[0]!.total_count) : all.length
+      if (rows.length < PAGE || all.length >= total) return all
+    }
+  }
+
   /** Relit les colonnes de verification (service_role) — verifie l'effet d'une decision. */
   async function getAgencyVerification(agencyId: string): Promise<{
     verification_status: string
@@ -271,9 +295,7 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
         submittedAt: new Date().toISOString(),
       })
 
-      const { data, error } = await superAdmin.rpc('get_admin_agency_review_queue', {})
-      expect(error, `rpc: ${error?.message}`).toBeNull()
-      const row = (data as QueueRow[] | null)?.find((r) => r.agency_id === agencyId)
+      const row = (await fetchWholeQueue()).find((r) => r.agency_id === agencyId)
       expect(row, 'le dossier manual_review doit figurer dans la file').toBeTruthy()
       expect(row!.verification_status).toBe('manual_review')
       expect(num(row!.verification_score)).toBeCloseTo(0.42, 2)
@@ -314,9 +336,7 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
         status: 'rejected', score: 0.1, submittedAt: new Date().toISOString(),
       })
 
-      const { data, error } = await superAdmin.rpc('get_admin_agency_review_queue', {})
-      expect(error, `rpc: ${error?.message}`).toBeNull()
-      const ids = new Set((data as QueueRow[] | null)?.map((r) => r.agency_id))
+      const ids = new Set((await fetchWholeQueue()).map((r) => r.agency_id))
       for (const excluded of [pending, autoValidated, validated, rejected]) {
         expect(ids.has(excluded), `${excluded} ne doit pas figurer dans la file`).toBe(false)
       }
@@ -337,10 +357,8 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
       const unscored = await createAgency('score-null')
       await setVerification(unscored, { status: 'manual_review', submittedAt: new Date().toISOString() })
 
-      const { data, error } = await superAdmin.rpc('get_admin_agency_review_queue', {})
-      expect(error, `rpc: ${error?.message}`).toBeNull()
       const mine = new Set([high, low, mid, unscored])
-      const ordered = (data as QueueRow[] | null)?.filter((r) => mine.has(r.agency_id)).map((r) => r.agency_id)
+      const ordered = (await fetchWholeQueue()).filter((r) => mine.has(r.agency_id)).map((r) => r.agency_id)
       expect(
         ordered,
         'ordre attendu : NULL (le plus opaque) puis les scores connus, du plus bas au plus haut'
@@ -359,13 +377,177 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
         submittedAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
       })
 
-      const { data, error } = await superAdmin.rpc('get_admin_agency_review_queue', {})
-      expect(error, `rpc: ${error?.message}`).toBeNull()
-      const row = (data as QueueRow[] | null)?.find((r) => r.agency_id === abandoned)
+      const row = (await fetchWholeQueue()).find((r) => r.agency_id === abandoned)
       expect(row, 'un dossier abandonne par le filet doit rester visible dans la file').toBeTruthy()
       expect(row!.verification_sweep_attempts).toBe(5)
       expect(row!.verification_score).toBeNull()
       expect(row!.verification_status).toBe('manual_review')
+    })
+  })
+
+  // ─── Pagination de la file (correctif revue etape 6) ────────────────────────
+  //
+  // Defaut corrige : la RPC ne portait AUCUN limit/offset. PostgREST tronque toute
+  // reponse a max_rows (supabase/config.toml, [api] max_rows = 1000) -- en silence,
+  // sans erreur ni indicateur. Passe 1000 agences en manual_review, la file se
+  // coupait donc d'elle-meme, et comme le tri est `verification_score asc nulls
+  // first`, la troncature emportait la QUEUE de la liste : les dossiers les MIEUX
+  // notes devenaient invisibles et personne ne pouvait plus les trancher. Sur un
+  // dispositif ou la revue humaine est l'UNIQUE voie de sortie (aucune agence ne
+  // peut etre auto-validee, docs/agency-kyb-handoff.md §7bis), un dossier invisible
+  // est un dossier bloque indefiniment.
+  //
+  // Reproduit en base avant correctif : 1448 agences en manual_review, la RPC rendait
+  // exactement 1000 lignes, score le plus haut visible 0.652 pour un maximum reel de
+  // 1.000 -- 448 dossiers hors d'atteinte.
+  describe('pagination de la file', () => {
+    // Volume > max_rows : le SEUL moyen de prouver qu'un dossier situe au-dela de la
+    // borne PostgREST reste joignable. Insere et supprime en UNE requete (filtre sur
+    // le prefixe de slug) plutot qu'en 1010 allers-retours ; ces agences ne recoivent
+    // aucune decision humaine, donc aucun activity_events ne les rend indeletables
+    // (contrairement aux fixtures de la tache 2, cf. la note du afterAll global).
+    const VOLUME = 1010
+    const volumePrefix = `agence-volume-${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+    // Score haut ET date identiques sur toutes les lignes de volume : elles se placent
+    // donc en FIN de file (la ou la troncature frappait) et sont toutes a EGALITE sur
+    // les deux cles de tri metier -- ce qui met aussi a l'epreuve le departage
+    // deterministe sans lequel une pagination par offset saute ou repete des lignes.
+    const VOLUME_SCORE = 0.99
+    const VOLUME_SUBMITTED_AT = new Date('2026-07-28T12:00:00.000Z').toISOString()
+
+    beforeAll(async () => {
+      const svc = serviceRoleClient()
+      const rows = Array.from({ length: VOLUME }, (_, i) => ({
+        name: `Agence Volume ${i}`,
+        slug: `${volumePrefix}-${i}`,
+        country: 'CH',
+        verification_status: 'manual_review',
+        verification_score: VOLUME_SCORE,
+        identity_submitted_at: VOLUME_SUBMITTED_AT,
+      }))
+      const { error } = await svc.from('agencies').insert(rows)
+      if (error) throw new Error(`seed volume: ${error.message}`)
+    })
+
+    afterAll(async () => {
+      const svc = serviceRoleClient()
+      const { error } = await svc.from('agencies').delete().like('slug', `${volumePrefix}-%`)
+      if (error) console.warn(`[agency-review-queue.spec.ts] purge volume: ${error.message}`)
+    })
+
+    /** Vrai nombre de dossiers en attente, lu hors RPC (service_role, contourne la
+     *  garde) — l'etalon contre lequel total_count est confronte. */
+    async function trueManualReviewCount(): Promise<number> {
+      const svc = serviceRoleClient()
+      const { count, error } = await svc
+        .from('agencies')
+        .select('id', { count: 'exact', head: true })
+        .eq('verification_status', 'manual_review')
+      if (error) throw new Error(`count manual_review: ${error.message}`)
+      return count ?? 0
+    }
+
+    it('annonce le nombre TOTAL de dossiers en attente, pas la seule taille de la page', async () => {
+      const { data, error } = await superAdmin.rpc('get_admin_agency_review_queue', {
+        p_limit: 5, p_offset: 0,
+      })
+      expect(error, `rpc: ${error?.message}`).toBeNull()
+
+      const rows = (data ?? []) as QueueRow[]
+      expect(rows.length, 'la page doit etre bornee a p_limit').toBe(5)
+
+      const total = num(rows[0]!.total_count)
+      const expected = await trueManualReviewCount()
+      expect(total, 'total_count doit compter TOUS les dossiers en attente, pas la page').toBe(expected)
+      expect(total!, 'le volume seede doit depasser max_rows, sinon ce test ne prouve rien')
+        .toBeGreaterThan(1000)
+    })
+
+    it('decale la fenetre avec p_offset, sans trou ni recouvrement', async () => {
+      const first = await superAdmin.rpc('get_admin_agency_review_queue', { p_limit: 4, p_offset: 0 })
+      expect(first.error, `rpc: ${first.error?.message}`).toBeNull()
+      const second = await superAdmin.rpc('get_admin_agency_review_queue', { p_limit: 2, p_offset: 2 })
+      expect(second.error, `rpc: ${second.error?.message}`).toBeNull()
+
+      const firstIds = ((first.data ?? []) as QueueRow[]).map((r) => r.agency_id)
+      const secondIds = ((second.data ?? []) as QueueRow[]).map((r) => r.agency_id)
+
+      expect(firstIds).toHaveLength(4)
+      expect(
+        secondIds,
+        'la page [offset 2, limit 2] doit reprendre EXACTEMENT les 3e et 4e lignes de la file'
+      ).toEqual(firstIds.slice(2, 4))
+    })
+
+    // ─── Le defaut d'origine, reproduit ────────────────────────────────────────
+    // Sans pagination, tout dossier au-dela du 1000e etait purement inatteignable :
+    // la RPC ne proposait aucun moyen d'aller le chercher, et PostgREST coupait la
+    // reponse sans le dire. Ce test echoue en rouge sur la version d'avant.
+    it('rend joignable un dossier situe au-dela de max_rows (1000)', async () => {
+      const total = await trueManualReviewCount()
+      expect(total, 'pre-requis du test').toBeGreaterThan(1000)
+
+      // La toute derniere ligne de la file : celle qu'un tri par score croissant
+      // relegue le plus loin, donc la premiere sacrifiee par la troncature.
+      const last = await superAdmin.rpc('get_admin_agency_review_queue', {
+        p_limit: 1, p_offset: total - 1,
+      })
+      expect(last.error, `rpc: ${last.error?.message}`).toBeNull()
+      const lastRows = (last.data ?? []) as QueueRow[]
+      expect(lastRows, 'le dernier dossier de la file doit rester atteignable').toHaveLength(1)
+
+      // Et il etait bien hors de portee avant : absent des 1000 premieres lignes,
+      // seule fenetre que l'ancienne RPC savait rendre.
+      const firstPage = await superAdmin.rpc('get_admin_agency_review_queue', {
+        p_limit: 1000, p_offset: 0,
+      })
+      expect(firstPage.error, `rpc: ${firstPage.error?.message}`).toBeNull()
+      const firstPageIds = new Set(((firstPage.data ?? []) as QueueRow[]).map((r) => r.agency_id))
+      expect(
+        firstPageIds.has(lastRows[0]!.agency_id),
+        'ce dossier tombe hors des 1000 premieres lignes -- exactement ce que l ancienne RPC rendait invisible'
+      ).toBe(false)
+    })
+
+    it('ne rend jamais plus de lignes que PostgREST ne peut en delivrer', async () => {
+      // Un p_limit superieur a max_rows ramenerait la troncature silencieuse par la
+      // fenetre : la RPC doit borner elle-meme, pour que « j'ai tout recu » reste vrai.
+      const { data, error } = await superAdmin.rpc('get_admin_agency_review_queue', {
+        p_limit: 5000, p_offset: 0,
+      })
+      expect(error, `rpc: ${error?.message}`).toBeNull()
+      expect(
+        ((data ?? []) as QueueRow[]).length,
+        'la RPC doit plafonner a max_rows plutot que laisser PostgREST couper en silence'
+      ).toBeLessThanOrEqual(1000)
+    })
+
+    it('garde un ordre deterministe a score et date identiques (pagination stable)', async () => {
+      // Les 1010 lignes de volume partagent score ET date : sans departage explicite,
+      // Postgres est libre de les rendre dans un ordre different a chaque appel, et une
+      // pagination par offset se met alors a sauter ou repeter des dossiers -- le meme
+      // defaut (un dossier qu'on ne voit jamais), en plus discret.
+      const page = (offset: number) =>
+        superAdmin.rpc('get_admin_agency_review_queue', { p_limit: 3, p_offset: offset })
+
+      const total = await trueManualReviewCount()
+      const deepOffset = total - 6 // au coeur du bloc a egalite parfaite
+
+      const runA = await page(deepOffset)
+      expect(runA.error, `rpc: ${runA.error?.message}`).toBeNull()
+      const runB = await page(deepOffset)
+      expect(runB.error, `rpc: ${runB.error?.message}`).toBeNull()
+
+      const idsA = ((runA.data ?? []) as QueueRow[]).map((r) => r.agency_id)
+      const idsB = ((runB.data ?? []) as QueueRow[]).map((r) => r.agency_id)
+      expect(idsA, 'deux lectures de la meme fenetre doivent rendre les memes dossiers').toEqual(idsB)
+
+      // Deux fenetres adjacentes ne doivent partager aucun dossier.
+      const next = await page(deepOffset + 3)
+      expect(next.error, `rpc: ${next.error?.message}`).toBeNull()
+      const idsNext = ((next.data ?? []) as QueueRow[]).map((r) => r.agency_id)
+      const overlap = idsA.filter((id) => idsNext.includes(id))
+      expect(overlap, 'deux fenetres adjacentes ne doivent jamais se recouvrir').toEqual([])
     })
   })
 
