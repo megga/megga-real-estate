@@ -25,6 +25,13 @@
 -- authenticated; select claim_token …` renvoyait toujours le jeton. Il faut
 -- révoquer le privilège de TABLE puis re-granter colonne par colonne.
 --
+-- ⚠ CONSÉQUENCE À CONNAÎTRE : avec des privilèges de COLONNE, un `SELECT *`
+-- échoue (il faut le SELECT sur la table, ou sur TOUTES les colonnes). Côté
+-- client, écrire `.from('agency_profiles').select()` ou `.select('*')` renverra
+-- donc un 42501 — il faut énumérer les colonnes voulues. Idem pour toute
+-- colonne ajoutée plus tard à la table : elle devra être ajoutée au GRANT
+-- ci-dessous, sinon elle sera invisible (et cassera les `select *`).
+--
 -- Portée volontairement limitée à `authenticated` : `anon` n'a aucun SELECT sur
 -- cette table (vérifié dans information_schema.table_privileges) et n'en reçoit
 -- pas ici. L'écran Matching est derrière login.

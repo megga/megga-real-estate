@@ -177,6 +177,18 @@ export interface MrhContact {
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s)
 const isCantonCode = (z: string) => /^[A-Z]{2}$/.test(z)
 
+/**
+ * Logo porté par l'embed `agency_profile` (cf. CARD_COLS), quelle que soit la
+ * forme rendue par PostgREST — objet pour un many-to-one, tableau à un élément
+ * dans les cas où la relation est résolue autrement. Même garde que celle déjà
+ * posée sur `contact:contacts(...)` dans useMatchingRecherche.
+ */
+function embeddedLogoUrl(embed: unknown): string | null {
+  const one = Array.isArray(embed) ? embed[0] : embed
+  const url = (one as { logo_url?: string | null } | null | undefined)?.logo_url
+  return url || null
+}
+
 /** row (RPC/select market_listings) → MrhBien. */
 export function mapListingRow(row: Record<string, unknown>): MrhBien {
   const num = (v: unknown): number | null =>
@@ -233,9 +245,15 @@ export function mapListingRow(row: Record<string, unknown>): MrhBien {
     // ses annonces, alors que la régie en a souvent un ailleurs. L'embed
     // `agency_profile` (cf. CARD_COLS) le rapatrie. La colonne de l'annonce
     // reste prioritaire — elle est ce que le portail a servi POUR CE BIEN.
+    //
+    // ⚠ L'embed peut arriver en OBJET ou en TABLEAU. PostgREST rend un objet
+    // pour un lien many-to-one, mais pas dans toutes les versions ni dès que la
+    // relation est devinée autrement — `useMatchingRecherche` porte déjà la même
+    // garde sur `contact:contacts(...)`. Sans elle, `.logo_url` sur un tableau
+    // vaut `undefined`, le repli ne se déclenche JAMAIS et l'échec est muet :
+    // la carte retombe sur le nom, exactement comme avant la jointure.
     agency_logo_url:
-      (row.agency_logo_url as string | null) ??
-      ((row.agency_profile as { logo_url?: string | null } | null)?.logo_url ?? null),
+      (row.agency_logo_url as string | null) ?? embeddedLogoUrl(row.agency_profile),
     days_on_market: dom,
     postedAt: relativeDays(dom),
     postedRank: dom == null ? 9999 : dom,
