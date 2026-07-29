@@ -151,7 +151,9 @@ export interface KybSource {
 // La regle : une source declare la juridiction qu'elle couvre (`appliesTo`), et
 // selectApplicableSources() (plus bas) ecarte AVANT execution celles qui ne couvrent pas
 // le siege declare. Deux sources qui se partagent un check_type ne sont donc jamais
-// applicables au meme pays.
+// applicables au meme pays -- ni quand leur juridiction est INDETERMINABLE (predicat qui
+// leve) : elles sont alors ecartees toutes les deux, jamais gardees toutes les deux (voir
+// selectApplicableSources, revue etape 6/tache 1).
 //
 // Ou le filtre vit : dans agency-verification-run/index.ts, JAMAIS dans
 // runAgencyKybSources(), qui doit continuer de rendre une ligne par source QU'ON LUI
@@ -167,11 +169,20 @@ export interface KybSource {
 /** Une source qu'aucune juridiction declaree ne rend applicable au dossier. Jointe
  *  telle quelle au journal du passage (p_metadata.sources_skipped, voir
  *  agency-verification-run/index.ts) : « pas interrogee » doit rester lisible dans la
- *  trace d'un dispositif LAB, jamais devenir un silence. */
+ *  trace d'un dispositif LAB, jamais devenir un silence.
+ *
+ *  DEUX raisons distinctes, et la distinction n'est pas cosmetique (revue etape 6/tache
+ *  1) : 'jurisdiction_not_covered' dit « cette source ne couvre pas ce pays » -- le cas
+ *  nominal, attendu, sans rien a corriger ; 'jurisdiction_undeterminable' dit « on n'a
+ *  pas pu determiner si elle le couvre », c'est-a-dire que son `appliesTo` a leve. Cette
+ *  seconde valeur est le SEUL signal qu'un predicat est bogue, et elle atterrit dans
+ *  p_metadata de record_agency_verification_run, donc dans activity_events : les
+ *  confondre reviendrait a enterrer un defaut de code dans le bruit du fonctionnement
+ *  normal. */
 export interface SkippedKybSource {
   check_type: string
   source: string
-  reason: 'jurisdiction_not_covered'
+  reason: 'jurisdiction_not_covered' | 'jurisdiction_undeterminable'
 }
 
 /** Pays du siege sous la forme que comparent les juridictions declarees plus bas --
@@ -983,11 +994,16 @@ export const AGENCY_KYB_SOURCES: KybSource[] = [
  * createAddressGeocodeSource). C'est bien le registre COMPLET qui doit passer ici --
  * filtrer la moitie du registre ne garantirait rien.
  *
- * Un `appliesTo` qui leve laisse la source APPLICABLE plutot que de la faire
- * disparaitre : un predicat bogue ne doit jamais faire echouer tout le passage ni
- * escamoter une ligne. La source part alors en execution normale et runKybSource() la
- * ramene, au pire, a `unavailable` avec la raison jointe -- exactement ce qu'elle
- * produisait avant cette regle.
+ * Un `appliesTo` qui leve ECARTE la source, avec la raison
+ * 'jurisdiction_undeterminable'. Le besoin reste le meme -- un predicat bogue ne doit
+ * jamais faire echouer tout le passage, d'ou le catch -- mais sa DIRECTION est celle de
+ * l'invariant (revue etape 6/tache 1) : garder la source rendrait la collision de
+ * check_type de nouveau atteignable, puisque deux proprietaires du meme type sont
+ * discrimines par le MEME helper de pays (declaredHeadOfficeCountry) et tomberaient
+ * ensemble dans le catch -- deux lignes du meme type dans la meme transaction, dont la
+ * derniere inseree masquerait l'autre. Ecarter est NEUTRE pour le verdict (le moteur
+ * traite `unavailable` et « ligne absente » a l'identique, et un veto absent ne passe
+ * pas) ; garder produirait un verdict FAUX. Entre les deux, on ecarte.
  */
 export function selectApplicableSources(
   agency: AgencyForVerification,
@@ -997,14 +1013,18 @@ export function selectApplicableSources(
   const skipped: SkippedKybSource[] = []
 
   for (const source of sources) {
-    // `true` par defaut ET dans le catch : pas de juridiction declaree, ou predicat qui
-    // leve, valent tous deux "applicable" (voir la docstring ci-dessus).
+    // `true` par defaut : pas de juridiction declaree = rien a departager, la source
+    // s'applique toujours. Le catch, lui, ecarte -- avec sa propre raison, pour que la
+    // trace ne confonde pas un predicat bogue avec un pays simplement non couvert (voir
+    // la docstring ci-dessus et SkippedKybSource).
     let covers = true
+    let reason: SkippedKybSource['reason'] = 'jurisdiction_not_covered'
     if (source.appliesTo) {
       try {
         covers = source.appliesTo(agency)
       } catch {
-        covers = true
+        covers = false
+        reason = 'jurisdiction_undeterminable'
       }
     }
 
@@ -1014,7 +1034,7 @@ export function selectApplicableSources(
       skipped.push({
         check_type: source.checkType,
         source: source.source,
-        reason: 'jurisdiction_not_covered',
+        reason,
       })
     }
   }

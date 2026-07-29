@@ -17,11 +17,11 @@
 // systeme lui-meme).
 //
 // Sept volets dans ce fichier :
-//   1. Le harnais PUR (_shared/kyb-sources.ts) -- import direct, aucun reseau,
-//      aucune dependance Deno (ce module n'appelle jamais Deno.env.get, contrairement
-//      a _shared/magic-link-token.ts -- aucun shim globalThis.Deno necessaire, meme
-//      motif que whatsapp-antifab.spec.ts qui importe deja un _shared/*.ts sans
-//      extension de la meme facon).
+//   1. Le harnais PUR (_shared/kyb-sources.ts, describe hors skipIf juste sous cet
+//      en-tete) -- import direct, aucun reseau, aucune dependance Deno (ce module
+//      n'appelle jamais Deno.env.get, contrairement a _shared/magic-link-token.ts --
+//      aucun shim globalThis.Deno necessaire, meme motif que whatsapp-antifab.spec.ts
+//      qui importe deja un _shared/*.ts sans extension de la meme facon).
 //   2. La fonction deployee (HTTP, port 54321) -- lecture agence, ecriture des
 //      checks, appel du moteur, journalisation. Cinq connecteurs reels existent a ce
 //      stade (RDAP tache 2 ; VIES, recherche-entreprises x2, Mapbox tache 3) ; les
@@ -45,9 +45,9 @@
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI : ces tests tournent contre un Supabase local
 // seede et DOIVENT reellement passer -- lire le compte de tests, jamais le code de
-// sortie (meme convention que agency-verification-engine.spec.ts). Les volets 3-6
-// (fetch stubbe) ne sont eux-memes jamais concernes par ce skip : ils ne touchent ni
-// reseau ni DB.
+// sortie (meme convention que agency-verification-engine.spec.ts). Les volets 1 et 3-6
+// ne sont eux-memes jamais concernes par ce skip : ils ne touchent ni reseau ni DB.
+// Seuls les volets 2 et 7 en dependent reellement.
 
 import { describe, it, expect, afterAll, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -169,6 +169,344 @@ const JURISDICTION_MATRIX: { country: string | null; applicable: string[] }[] = 
   { country: null, applicable: ['domain_whois_age', 'address_geocode'] },
 ]
 
+// ─── Harnais pur (_shared/kyb-sources.ts) -- etape 4 tache 1, juridiction etape 6 tache 1 ──
+//
+// Hors du describe.skipIf(!HAS_KEYS) ci-dessous DELIBEREMENT, meme motif que les quatre
+// volets de connecteurs en fin de fichier : ce volet n'a besoin ni de reseau (aucun
+// fetch, pas meme stubbe) ni de Supabase local (import direct du module pur, qui
+// n'appelle jamais Deno.env.get). Il DOIT tourner meme sans `supabase start`.
+//
+// Ce n'est pas une preference de rangement (revue etape 6/tache 1) : la matrice
+// d'exclusivite ci-dessous est le garde-fou annonce des connecteurs Zefix et du registre
+// UID (etape 6, taches 2 et 3) -- un agent qui ajouterait Zefix sans l'inscrire au
+// registre COMPLET doit voir sa suite rougir. Sous le skipIf, elle etait sautee des que
+// les cles SUPABASE_TEST_* manquaient, c'est-a-dire exactement dans la configuration ou
+// l'on compte sur elle.
+describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucune DB)', () => {
+  it('une source qui echoue produit unavailable, jamais un throw', async () => {
+    const row = await runKybSource(failingSource('domain_whois_age'), FAKE_AGENCY)
+    expect(row.result).toBe('unavailable')
+    expect(row.check_type).toBe('domain_whois_age')
+    expect(row.source).toBe('manual')
+    expect(row.raw_response).not.toBeNull()
+  })
+
+  it('une source qui expire produit unavailable (jamais un hang indefini)', async () => {
+    const row = await runKybSource(hangingSource('vat_lookup'), FAKE_AGENCY, 50)
+    expect(row.result).toBe('unavailable')
+    expect(row.check_type).toBe('vat_lookup')
+  }, 2_000)
+
+  it('une source qui reussit renvoie son propre resultat, inchange par le harnais', async () => {
+    const row = await runKybSource(okSource('address_geocode', 'partial'), FAKE_AGENCY)
+    expect(row.result).toBe('partial')
+    expect(row.raw_response).toEqual({ probe: true })
+  })
+
+  it("aucune source ne produit jamais l'absence de ligne, quel que soit le sort de chacune", async () => {
+    const sources = [okSource('address_geocode'), failingSource('domain_whois_age'), hangingSource('vat_lookup')]
+    const rows = await Promise.all(sources.map((s) => runKybSource(s, FAKE_AGENCY, 50)))
+
+    expect(rows).toHaveLength(sources.length)
+    for (const row of rows) {
+      expect(['match', 'partial', 'mismatch', 'unavailable', 'pending_manual_review']).toContain(row.result)
+    }
+    expect(rows[0].result).toBe('match')
+    expect(rows[1].result, 'echec reseau -> unavailable, jamais absent').toBe('unavailable')
+    expect(rows[2].result, 'timeout -> unavailable, jamais absent').toBe('unavailable')
+  })
+
+  it('runAgencyKybSources ne rejette jamais, meme si toutes les sources echouent ou expirent', async () => {
+    const sources = [failingSource('domain_whois_age'), hangingSource('vat_lookup')]
+    // Timeout court (50ms) : sans cet override, hangingSource attendrait
+    // DEFAULT_SOURCE_TIMEOUT_MS (10s) avant de se resoudre -- correct mais inutilement
+    // lent pour un test.
+    const rows = await runAgencyKybSources(FAKE_AGENCY, sources, 50)
+    expect(rows).toHaveLength(2)
+    expect(rows.every((r) => r.result === 'unavailable')).toBe(true)
+  }, 2_000)
+
+  it('AGENCY_KYB_SOURCES contient les 4 connecteurs sans configuration ajoutes aux taches 2 et 3 (RDAP, VIES, recherche-entreprises x2)', () => {
+    // RDAP (tache 2) puis VIES + recherche-entreprises x2 (tache 3) : quatre
+    // connecteurs qui n'ont besoin d'aucun secret, donc statiques dans ce registre
+    // construit au chargement du module. Le geocodage Mapbox (tache 3 egalement)
+    // n'y figure PAS : seul connecteur de ce fichier a avoir besoin d'un jeton, il
+    // est construit par createAddressGeocodeSource() -- voir son en-tete dans
+    // _shared/kyb-sources.ts et le describe dedie plus bas. Un check_type non
+    // catalogue dans verification_check_types ferait de toute facon echouer
+    // l'insert (FK, 20260728103000) -- ces entrees SONT donc deja de vrais
+    // connecteurs, jamais des doubles de test.
+    expect(AGENCY_KYB_SOURCES).toHaveLength(4)
+    const sourceOfCheckType = (checkType: string) => AGENCY_KYB_SOURCES.find((s) => s.checkType === checkType)?.source
+    expect(sourceOfCheckType('domain_whois_age')).toBe('rdap')
+    expect(sourceOfCheckType('vat_lookup')).toBe('vies')
+    expect(sourceOfCheckType('registry_lookup')).toBe('recherche_entreprises')
+    expect(sourceOfCheckType('registry_legal_name_match')).toBe('recherche_entreprises')
+  })
+
+  // Revue etape 4/tache 1, point 1 : raw_response est desormais OBLIGATOIRE dans
+  // KybSourceResult (voir _shared/kyb-sources.ts) -- un verdict sans preuve jointe
+  // ne doit plus pouvoir s'ecrire. Les quatre tests ci-dessous verifient que le cas
+  // `unavailable` (le seul que le harnais fabrique lui-meme) joint une preuve
+  // exploitable par un humain, jamais un objet vide, jamais l'erreur brute (donc
+  // jamais un secret ou un en-tete d'authentification).
+
+  it("le raw_response d'un echec porte le type d'erreur et le message, exploitables par un humain qui relira le dossier", async () => {
+    const row = await runKybSource(failingSource('domain_whois_age'), FAKE_AGENCY)
+    expect(row.result).toBe('unavailable')
+    expect(row.raw_response).toMatchObject({ reason: 'error', error_type: 'Error' })
+    expect(typeof row.raw_response.message).toBe('string')
+    expect(row.raw_response.message).toContain('boom-domain_whois_age')
+  })
+
+  it("le raw_response d'un timeout porte reason='timeout' et le nom de l'erreur de timeout, jamais un match par defaut", async () => {
+    const row = await runKybSource(hangingSource('vat_lookup'), FAKE_AGENCY, 50)
+    expect(row.result).toBe('unavailable')
+    expect(row.raw_response).toMatchObject({ reason: 'timeout', error_type: 'KybSourceTimeoutError' })
+    expect(row.raw_response.message).toContain('50ms')
+  }, 2_000)
+
+  it('un code de statut porte par une erreur de source est reporte dans raw_response.status, sans jamais transporter un secret ou un en-tete', async () => {
+    // Simule un connecteur fetch()-base (taches 2+) dont l'erreur embarque sa
+    // reponse HTTP -- statut ET en-tetes, Authorization compris. describeSourceFailure
+    // (kyb-sources.ts) ne doit cherry-picker QUE le statut, jamais le reste.
+    const statusSource: KybSource = {
+      checkType: 'domain_whois_age',
+      source: 'manual',
+      run: async () => {
+        const err = new Error('service unavailable') as Error & {
+          status: number
+          headers: Record<string, string>
+        }
+        err.status = 503
+        err.headers = { Authorization: 'Bearer secret-token-do-not-leak' }
+        throw err
+      },
+    }
+    const row = await runKybSource(statusSource, FAKE_AGENCY)
+    expect(row.result).toBe('unavailable')
+    expect(row.raw_response.status).toBe(503)
+    const serialized = JSON.stringify(row.raw_response)
+    expect(serialized).not.toContain('secret-token-do-not-leak')
+    expect(serialized).not.toContain('Authorization')
+  })
+
+  it('quel que soit le sort de chaque source (succes/echec/timeout), raw_response est toujours un objet non nul -- jamais absent', async () => {
+    const sources = [okSource('address_geocode'), failingSource('domain_whois_age'), hangingSource('vat_lookup')]
+    const rows = await Promise.all(sources.map((s) => runKybSource(s, FAKE_AGENCY, 50)))
+    for (const row of rows) {
+      expect(row.raw_response, `raw_response absent pour ${row.check_type}`).not.toBeNull()
+      expect(row.raw_response, `raw_response absent pour ${row.check_type}`).not.toBeUndefined()
+      expect(typeof row.raw_response).toBe('object')
+    }
+  })
+
+  // ─── Juridiction d'une source (etape 6, tache 1) ────────────────────────────
+  //
+  // Le moteur (20260728130000) ne garde qu'UNE ligne par check_type et departage
+  // deux lignes de la meme transaction par ctid, donc par ordre d'insertion. Aucun
+  // check_type n'ayant deux proprietaires aujourd'hui, la question ne se pose pas
+  // encore -- les taches 2 et 3 de cette etape en donnent un second a
+  // registry_lookup, registry_legal_name_match et vat_lookup (Zefix et le registre
+  // UID couvrant CH/LI). Sans regle, l'`unavailable` que le connecteur francais
+  // produit deja pour tout siege hors de France pourrait masquer le `match` de Zefix :
+  // un veto reellement satisfait se lirait comme un veto absent. La matrice ci-dessous
+  // rend cette collision impossible plutot que departagee.
+  //
+  // Portee : les check_type DECLARES par les sources. Un connecteur peut encore en
+  // ecraser un a l'execution selon ce qu'il observe (KybSourceResult.check_type --
+  // RDAP le fait pour domain_generic_provider), et cette matrice-la ne le voit pas.
+  // Sans objet aujourd'hui (aucun type ecrase n'est declare par une autre source) ;
+  // a reprendre le jour ou une source declarerait un type qu'une autre ecrase.
+
+  it(
+    'matrice d exclusivite : sur le registre COMPLET (celui qu index.ts compose), deux sources ' +
+      'applicables au meme siege ne partagent jamais un check_type',
+    () => {
+      for (const { country } of JURISDICTION_MATRIX) {
+        const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country }, fullKybRegistry())
+        const ownerOfCheckType = new Map<string, string>()
+        for (const source of applicable) {
+          const previousOwner = ownerOfCheckType.get(source.checkType)
+          expect(
+            previousOwner,
+            `pays ${country ?? 'non declare'} : ${source.checkType} revendique a la fois par ` +
+              `${previousOwner} et par ${source.source} -- la derniere ligne inseree masquerait l'autre`
+          ).toBeUndefined()
+          ownerOfCheckType.set(source.checkType, source.source)
+        }
+      }
+    }
+  )
+
+  it('la matrice n est pas vide : chaque pays garde exactement les sources qui couvrent sa juridiction', () => {
+    for (const { country, applicable: expected } of JURISDICTION_MATRIX) {
+      const { applicable, skipped } = selectApplicableSources({ ...FAKE_AGENCY, country }, fullKybRegistry())
+      expect(applicable.map((s) => s.checkType).sort(), `pays ${country ?? 'non declare'}`).toEqual(
+        [...expected].sort()
+      )
+      // Aucune source ne disparait : applicable + skipped rend toujours le registre
+      // entier -- une source ecartee est ecartee EXPLICITEMENT, jamais perdue.
+      expect(applicable.length + skipped.length).toBe(fullKybRegistry().length)
+    }
+  })
+
+  it(
+    'la matrice couvre bien le registre qu index.ts compose : toute source construite par la fonction ' +
+      'deployee (donc importee par elle) doit passer par fullKybRegistry()',
+    () => {
+      // Un connecteur qui a besoin d'un secret ne peut pas etre une entree statique de
+      // AGENCY_KYB_SOURCES (la matrice la couvre deja par construction) : index.ts
+      // importe SA FABRIQUE et le compose lui-meme. Ce test lit la liste d'imports
+      // reelle pour qu'ajouter une source de cette facon sans l'ajouter a
+      // fullKybRegistry() echoue ici, plutot que de sortir silencieusement la nouvelle
+      // source du champ de la matrice.
+      const src = readFileSync(AGENCY_VERIFICATION_RUN_INDEX, 'utf8')
+      // [^}] plutot que [\s\S] : la liste d'imports nommes n'en contient jamais, et
+      // une classe permissive ferait demarrer le match sur le PREMIER `import {` du
+      // fichier, avalant les imports voisins jusqu'ici.
+      const importBlock = src.match(/import\s*\{([^}]*)\}\s*from\s*'\.\.\/_shared\/kyb-sources\.ts'/)
+      expect(importBlock, `aucun import de _shared/kyb-sources.ts trouve dans ${AGENCY_VERIFICATION_RUN_INDEX}`)
+        .not.toBeNull()
+      const imported = importBlock![1]
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && !s.startsWith('type '))
+        .sort()
+      expect(
+        imported,
+        'index.ts importe des valeurs de _shared/kyb-sources.ts que ce fichier ne connait pas -- si c est une ' +
+          'nouvelle fabrique de connecteur, ajoute-la a fullKybRegistry() PUIS a EDGE_FUNCTION_SOURCE_IMPORTS'
+      ).toEqual([...EDGE_FUNCTION_SOURCE_IMPORTS].sort())
+    }
+  )
+
+  it('une source sans appliesTo n est jamais ecartee, quel que soit le pays', () => {
+    const sansJuridiction = okSource('domain_whois_age')
+    for (const { country } of JURISDICTION_MATRIX) {
+      const { applicable, skipped } = selectApplicableSources({ ...FAKE_AGENCY, country }, [sansJuridiction])
+      expect(applicable, `pays ${country ?? 'non declare'}`).toHaveLength(1)
+      expect(skipped, `pays ${country ?? 'non declare'}`).toHaveLength(0)
+    }
+  })
+
+  it('une source ecartee ne produit AUCUNE ligne de check, et figure dans skipped avec son type, sa source et sa raison', async () => {
+    const horsJuridiction: KybSource = {
+      ...okSource('registry_lookup'),
+      source: 'recherche_entreprises',
+      appliesTo: () => false,
+    }
+    const { applicable, skipped } = selectApplicableSources(FAKE_AGENCY, [horsJuridiction, okSource('address_geocode')])
+
+    expect(skipped).toEqual([
+      { check_type: 'registry_lookup', source: 'recherche_entreprises', reason: 'jurisdiction_not_covered' },
+    ])
+
+    // Ecartee AVANT execution : le harnais ne voit meme pas la source, donc aucune
+    // ligne -- ni `unavailable`, ni rien d'autre. C'est bien une absence de ligne,
+    // que le moteur traite a l'identique d'un `unavailable` (exclu du numerateur ET
+    // du denominateur) : aucun verdict ne bouge.
+    const rows = await runAgencyKybSources(FAKE_AGENCY, applicable)
+    expect(rows.map((r) => r.check_type)).toEqual(['address_geocode'])
+  })
+
+  it('selectApplicableSources travaille sur AGENCY_KYB_SOURCES par defaut', () => {
+    const { applicable, skipped } = selectApplicableSources({ ...FAKE_AGENCY, country: 'CH' })
+    expect(applicable.length + skipped.length).toBe(AGENCY_KYB_SOURCES.length)
+    expect(skipped.map((s) => s.check_type).sort()).toEqual(
+      ['registry_legal_name_match', 'registry_lookup', 'vat_lookup'].sort()
+    )
+  })
+
+  it('le pays declare est compare apres trim et passage en majuscules', () => {
+    const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country: '  fr  ' }, fullKybRegistry())
+    expect(applicable.map((s) => s.checkType).sort()).toEqual(
+      ['address_geocode', 'domain_whois_age', 'registry_legal_name_match', 'registry_lookup', 'vat_lookup'].sort()
+    )
+  })
+
+  it(
+    'runAgencyKybSources reste inchangee : elle rend une ligne par source QU ON LUI DONNE, ' +
+      'y compris une source hors juridiction (le filtre vit dans index.ts, jamais ici)',
+    async () => {
+      const rows = await runAgencyKybSources({ ...FAKE_AGENCY, country: 'CH' }, fullKybRegistry())
+      expect(rows).toHaveLength(fullKybRegistry().length)
+    }
+  )
+
+  it(
+    'un appliesTo qui leve ECARTE la source, sans jamais faire echouer le passage ' +
+      '(revue etape 6/tache 1 : le besoin etait legitime, la direction etait fausse)',
+    async () => {
+      const predicatBogue: KybSource = {
+        ...failingSource('vat_lookup'),
+        appliesTo: () => {
+          throw new Error('predicat bogue')
+        },
+      }
+      // Le voisin sans juridiction est la moitie qui compte du test : « un predicat
+      // bogue ne doit jamais faire echouer tout le passage » reste vrai -- le bogue
+      // n'emporte que SA source, les autres sont selectionnees normalement.
+      const voisin = okSource('domain_whois_age')
+      const { applicable, skipped } = selectApplicableSources(FAKE_AGENCY, [predicatBogue, voisin])
+
+      expect(applicable.map((s) => s.checkType)).toEqual(['domain_whois_age'])
+      expect(skipped).toEqual([
+        { check_type: 'vat_lookup', source: 'manual', reason: 'jurisdiction_undeterminable' },
+      ])
+
+      // Ecarter est NEUTRE pour le verdict : le moteur (20260728130000) traite « ligne
+      // absente » exactement comme l'`unavailable` que cette source produisait avant
+      // (exclus du numerateur ET du denominateur), et un veto absent ne passe pas.
+      // Garder la source, elle, produit un verdict FAUX des que deux sources se
+      // partagent un check_type -- voir le test suivant.
+      const rows = await runAgencyKybSources(FAKE_AGENCY, applicable)
+      expect(rows.map((r) => r.check_type)).toEqual(['domain_whois_age'])
+    }
+  )
+
+  it(
+    'deux sources du MEME check_type dont les predicats levent tous les deux : aucune ne ressort ' +
+      'applicable, et les deux figurent dans skipped -- la collision reste impossible',
+    async () => {
+      // Reproduction exacte du scenario que l'etape 6 rend atteignable : apres la tache
+      // 2, registry_lookup aura DEUX proprietaires (recherche_entreprises en FR, zefix
+      // en CH), tous deux discrimines par le MEME helper de pays. Ce helper peut lever
+      // -- agency.country n'est pas garanti d'etre une chaine a l'execution,
+      // maybeSingle<AgencyForVerification>() (index.ts) etant un cast NON verifie. Un
+      // fail-open rendrait alors les deux sources applicables : deux lignes
+      // registry_lookup dans la meme transaction, et l'`unavailable` francais, insere en
+      // dernier, masquerait le `match` de Zefix -- un veto reellement satisfait se lirait
+      // comme un veto absent. Un seul predicat bogue suffirait ; on leve ici des deux
+      // cotes pour tenir le pire cas.
+      const predicatQuiLeve = (): boolean => {
+        throw new TypeError('agency.country.trim is not a function')
+      }
+      const francais: KybSource = {
+        ...okSource('registry_lookup'),
+        source: 'recherche_entreprises',
+        appliesTo: predicatQuiLeve,
+      }
+      const suisse: KybSource = { ...okSource('registry_lookup'), source: 'zefix', appliesTo: predicatQuiLeve }
+
+      const { applicable, skipped } = selectApplicableSources(FAKE_AGENCY, [francais, suisse])
+
+      expect(
+        applicable,
+        'un predicat bogue ne doit jamais rendre applicables deux sources du meme check_type'
+      ).toHaveLength(0)
+      expect(skipped).toEqual([
+        { check_type: 'registry_lookup', source: 'recherche_entreprises', reason: 'jurisdiction_undeterminable' },
+        { check_type: 'registry_lookup', source: 'zefix', reason: 'jurisdiction_undeterminable' },
+      ])
+
+      // Corollaire : aucune ligne ecrite du tout, donc aucune collision a departager.
+      const rows = await runAgencyKybSources(FAKE_AGENCY, applicable)
+      expect(rows).toHaveLength(0)
+    }
+  )
+})
+
 describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)', () => {
   // Helpers DB partages par "Edge Function deployee" ET par
   // "record_agency_verification_run -- atomicite" (revue point 2) -- les deux
@@ -266,276 +604,6 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
     if (error) throw new Error(`get events ${action}: ${error.message}`)
     return data as Record<string, unknown>[]
   }
-
-  describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucune DB)', () => {
-    it('une source qui echoue produit unavailable, jamais un throw', async () => {
-      const row = await runKybSource(failingSource('domain_whois_age'), FAKE_AGENCY)
-      expect(row.result).toBe('unavailable')
-      expect(row.check_type).toBe('domain_whois_age')
-      expect(row.source).toBe('manual')
-      expect(row.raw_response).not.toBeNull()
-    })
-
-    it('une source qui expire produit unavailable (jamais un hang indefini)', async () => {
-      const row = await runKybSource(hangingSource('vat_lookup'), FAKE_AGENCY, 50)
-      expect(row.result).toBe('unavailable')
-      expect(row.check_type).toBe('vat_lookup')
-    }, 2_000)
-
-    it('une source qui reussit renvoie son propre resultat, inchange par le harnais', async () => {
-      const row = await runKybSource(okSource('address_geocode', 'partial'), FAKE_AGENCY)
-      expect(row.result).toBe('partial')
-      expect(row.raw_response).toEqual({ probe: true })
-    })
-
-    it("aucune source ne produit jamais l'absence de ligne, quel que soit le sort de chacune", async () => {
-      const sources = [okSource('address_geocode'), failingSource('domain_whois_age'), hangingSource('vat_lookup')]
-      const rows = await Promise.all(sources.map((s) => runKybSource(s, FAKE_AGENCY, 50)))
-
-      expect(rows).toHaveLength(sources.length)
-      for (const row of rows) {
-        expect(['match', 'partial', 'mismatch', 'unavailable', 'pending_manual_review']).toContain(row.result)
-      }
-      expect(rows[0].result).toBe('match')
-      expect(rows[1].result, 'echec reseau -> unavailable, jamais absent').toBe('unavailable')
-      expect(rows[2].result, 'timeout -> unavailable, jamais absent').toBe('unavailable')
-    })
-
-    it('runAgencyKybSources ne rejette jamais, meme si toutes les sources echouent ou expirent', async () => {
-      const sources = [failingSource('domain_whois_age'), hangingSource('vat_lookup')]
-      // Timeout court (50ms) : sans cet override, hangingSource attendrait
-      // DEFAULT_SOURCE_TIMEOUT_MS (10s) avant de se resoudre -- correct mais inutilement
-      // lent pour un test.
-      const rows = await runAgencyKybSources(FAKE_AGENCY, sources, 50)
-      expect(rows).toHaveLength(2)
-      expect(rows.every((r) => r.result === 'unavailable')).toBe(true)
-    }, 2_000)
-
-    it('AGENCY_KYB_SOURCES contient les 4 connecteurs sans configuration ajoutes aux taches 2 et 3 (RDAP, VIES, recherche-entreprises x2)', () => {
-      // RDAP (tache 2) puis VIES + recherche-entreprises x2 (tache 3) : quatre
-      // connecteurs qui n'ont besoin d'aucun secret, donc statiques dans ce registre
-      // construit au chargement du module. Le geocodage Mapbox (tache 3 egalement)
-      // n'y figure PAS : seul connecteur de ce fichier a avoir besoin d'un jeton, il
-      // est construit par createAddressGeocodeSource() -- voir son en-tete dans
-      // _shared/kyb-sources.ts et le describe dedie plus bas. Un check_type non
-      // catalogue dans verification_check_types ferait de toute facon echouer
-      // l'insert (FK, 20260728103000) -- ces entrees SONT donc deja de vrais
-      // connecteurs, jamais des doubles de test.
-      expect(AGENCY_KYB_SOURCES).toHaveLength(4)
-      const sourceOfCheckType = (checkType: string) => AGENCY_KYB_SOURCES.find((s) => s.checkType === checkType)?.source
-      expect(sourceOfCheckType('domain_whois_age')).toBe('rdap')
-      expect(sourceOfCheckType('vat_lookup')).toBe('vies')
-      expect(sourceOfCheckType('registry_lookup')).toBe('recherche_entreprises')
-      expect(sourceOfCheckType('registry_legal_name_match')).toBe('recherche_entreprises')
-    })
-
-    // Revue etape 4/tache 1, point 1 : raw_response est desormais OBLIGATOIRE dans
-    // KybSourceResult (voir _shared/kyb-sources.ts) -- un verdict sans preuve jointe
-    // ne doit plus pouvoir s'ecrire. Les quatre tests ci-dessous verifient que le cas
-    // `unavailable` (le seul que le harnais fabrique lui-meme) joint une preuve
-    // exploitable par un humain, jamais un objet vide, jamais l'erreur brute (donc
-    // jamais un secret ou un en-tete d'authentification).
-
-    it("le raw_response d'un echec porte le type d'erreur et le message, exploitables par un humain qui relira le dossier", async () => {
-      const row = await runKybSource(failingSource('domain_whois_age'), FAKE_AGENCY)
-      expect(row.result).toBe('unavailable')
-      expect(row.raw_response).toMatchObject({ reason: 'error', error_type: 'Error' })
-      expect(typeof row.raw_response.message).toBe('string')
-      expect(row.raw_response.message).toContain('boom-domain_whois_age')
-    })
-
-    it("le raw_response d'un timeout porte reason='timeout' et le nom de l'erreur de timeout, jamais un match par defaut", async () => {
-      const row = await runKybSource(hangingSource('vat_lookup'), FAKE_AGENCY, 50)
-      expect(row.result).toBe('unavailable')
-      expect(row.raw_response).toMatchObject({ reason: 'timeout', error_type: 'KybSourceTimeoutError' })
-      expect(row.raw_response.message).toContain('50ms')
-    }, 2_000)
-
-    it('un code de statut porte par une erreur de source est reporte dans raw_response.status, sans jamais transporter un secret ou un en-tete', async () => {
-      // Simule un connecteur fetch()-base (taches 2+) dont l'erreur embarque sa
-      // reponse HTTP -- statut ET en-tetes, Authorization compris. describeSourceFailure
-      // (kyb-sources.ts) ne doit cherry-picker QUE le statut, jamais le reste.
-      const statusSource: KybSource = {
-        checkType: 'domain_whois_age',
-        source: 'manual',
-        run: async () => {
-          const err = new Error('service unavailable') as Error & {
-            status: number
-            headers: Record<string, string>
-          }
-          err.status = 503
-          err.headers = { Authorization: 'Bearer secret-token-do-not-leak' }
-          throw err
-        },
-      }
-      const row = await runKybSource(statusSource, FAKE_AGENCY)
-      expect(row.result).toBe('unavailable')
-      expect(row.raw_response.status).toBe(503)
-      const serialized = JSON.stringify(row.raw_response)
-      expect(serialized).not.toContain('secret-token-do-not-leak')
-      expect(serialized).not.toContain('Authorization')
-    })
-
-    it('quel que soit le sort de chaque source (succes/echec/timeout), raw_response est toujours un objet non nul -- jamais absent', async () => {
-      const sources = [okSource('address_geocode'), failingSource('domain_whois_age'), hangingSource('vat_lookup')]
-      const rows = await Promise.all(sources.map((s) => runKybSource(s, FAKE_AGENCY, 50)))
-      for (const row of rows) {
-        expect(row.raw_response, `raw_response absent pour ${row.check_type}`).not.toBeNull()
-        expect(row.raw_response, `raw_response absent pour ${row.check_type}`).not.toBeUndefined()
-        expect(typeof row.raw_response).toBe('object')
-      }
-    })
-
-    // ─── Juridiction d'une source (etape 6, tache 1) ────────────────────────────
-    //
-    // Le moteur (20260728130000) ne garde qu'UNE ligne par check_type et departage
-    // deux lignes de la meme transaction par ctid, donc par ordre d'insertion. Aucun
-    // check_type n'ayant deux proprietaires aujourd'hui, la question ne se pose pas
-    // encore -- les taches 2 et 3 de cette etape en donnent un second a
-    // registry_lookup, registry_legal_name_match et vat_lookup (Zefix et le registre
-    // UID couvrant CH/LI). Sans regle, l'`unavailable` que le connecteur francais
-    // produit deja pour tout siege hors de France pourrait masquer le `match` de Zefix :
-    // un veto reellement satisfait se lirait comme un veto absent. La matrice ci-dessous
-    // rend cette collision impossible plutot que departagee.
-    //
-    // Portee : les check_type DECLARES par les sources. Un connecteur peut encore en
-    // ecraser un a l'execution selon ce qu'il observe (KybSourceResult.check_type --
-    // RDAP le fait pour domain_generic_provider), et cette matrice-la ne le voit pas.
-    // Sans objet aujourd'hui (aucun type ecrase n'est declare par une autre source) ;
-    // a reprendre le jour ou une source declarerait un type qu'une autre ecrase.
-
-    it(
-      'matrice d exclusivite : sur le registre COMPLET (celui qu index.ts compose), deux sources ' +
-        'applicables au meme siege ne partagent jamais un check_type',
-      () => {
-        for (const { country } of JURISDICTION_MATRIX) {
-          const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country }, fullKybRegistry())
-          const ownerOfCheckType = new Map<string, string>()
-          for (const source of applicable) {
-            const previousOwner = ownerOfCheckType.get(source.checkType)
-            expect(
-              previousOwner,
-              `pays ${country ?? 'non declare'} : ${source.checkType} revendique a la fois par ` +
-                `${previousOwner} et par ${source.source} -- la derniere ligne inseree masquerait l'autre`
-            ).toBeUndefined()
-            ownerOfCheckType.set(source.checkType, source.source)
-          }
-        }
-      }
-    )
-
-    it('la matrice n est pas vide : chaque pays garde exactement les sources qui couvrent sa juridiction', () => {
-      for (const { country, applicable: expected } of JURISDICTION_MATRIX) {
-        const { applicable, skipped } = selectApplicableSources({ ...FAKE_AGENCY, country }, fullKybRegistry())
-        expect(applicable.map((s) => s.checkType).sort(), `pays ${country ?? 'non declare'}`).toEqual(
-          [...expected].sort()
-        )
-        // Aucune source ne disparait : applicable + skipped rend toujours le registre
-        // entier -- une source ecartee est ecartee EXPLICITEMENT, jamais perdue.
-        expect(applicable.length + skipped.length).toBe(fullKybRegistry().length)
-      }
-    })
-
-    it(
-      'la matrice couvre bien le registre qu index.ts compose : toute source construite par la fonction ' +
-        'deployee (donc importee par elle) doit passer par fullKybRegistry()',
-      () => {
-        // Un connecteur qui a besoin d'un secret ne peut pas etre une entree statique de
-        // AGENCY_KYB_SOURCES (la matrice la couvre deja par construction) : index.ts
-        // importe SA FABRIQUE et le compose lui-meme. Ce test lit la liste d'imports
-        // reelle pour qu'ajouter une source de cette facon sans l'ajouter a
-        // fullKybRegistry() echoue ici, plutot que de sortir silencieusement la nouvelle
-        // source du champ de la matrice.
-        const src = readFileSync(AGENCY_VERIFICATION_RUN_INDEX, 'utf8')
-        // [^}] plutot que [\s\S] : la liste d'imports nommes n'en contient jamais, et
-        // une classe permissive ferait demarrer le match sur le PREMIER `import {` du
-        // fichier, avalant les imports voisins jusqu'ici.
-        const importBlock = src.match(/import\s*\{([^}]*)\}\s*from\s*'\.\.\/_shared\/kyb-sources\.ts'/)
-        expect(importBlock, `aucun import de _shared/kyb-sources.ts trouve dans ${AGENCY_VERIFICATION_RUN_INDEX}`)
-          .not.toBeNull()
-        const imported = importBlock![1]
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0 && !s.startsWith('type '))
-          .sort()
-        expect(
-          imported,
-          'index.ts importe des valeurs de _shared/kyb-sources.ts que ce fichier ne connait pas -- si c est une ' +
-            'nouvelle fabrique de connecteur, ajoute-la a fullKybRegistry() PUIS a EDGE_FUNCTION_SOURCE_IMPORTS'
-        ).toEqual([...EDGE_FUNCTION_SOURCE_IMPORTS].sort())
-      }
-    )
-
-    it('une source sans appliesTo n est jamais ecartee, quel que soit le pays', () => {
-      const sansJuridiction = okSource('domain_whois_age')
-      for (const { country } of JURISDICTION_MATRIX) {
-        const { applicable, skipped } = selectApplicableSources({ ...FAKE_AGENCY, country }, [sansJuridiction])
-        expect(applicable, `pays ${country ?? 'non declare'}`).toHaveLength(1)
-        expect(skipped, `pays ${country ?? 'non declare'}`).toHaveLength(0)
-      }
-    })
-
-    it('une source ecartee ne produit AUCUNE ligne de check, et figure dans skipped avec son type, sa source et sa raison', async () => {
-      const horsJuridiction: KybSource = {
-        ...okSource('registry_lookup'),
-        source: 'recherche_entreprises',
-        appliesTo: () => false,
-      }
-      const { applicable, skipped } = selectApplicableSources(FAKE_AGENCY, [horsJuridiction, okSource('address_geocode')])
-
-      expect(skipped).toEqual([
-        { check_type: 'registry_lookup', source: 'recherche_entreprises', reason: 'jurisdiction_not_covered' },
-      ])
-
-      // Ecartee AVANT execution : le harnais ne voit meme pas la source, donc aucune
-      // ligne -- ni `unavailable`, ni rien d'autre. C'est bien une absence de ligne,
-      // que le moteur traite a l'identique d'un `unavailable` (exclu du numerateur ET
-      // du denominateur) : aucun verdict ne bouge.
-      const rows = await runAgencyKybSources(FAKE_AGENCY, applicable)
-      expect(rows.map((r) => r.check_type)).toEqual(['address_geocode'])
-    })
-
-    it('selectApplicableSources travaille sur AGENCY_KYB_SOURCES par defaut', () => {
-      const { applicable, skipped } = selectApplicableSources({ ...FAKE_AGENCY, country: 'CH' })
-      expect(applicable.length + skipped.length).toBe(AGENCY_KYB_SOURCES.length)
-      expect(skipped.map((s) => s.check_type).sort()).toEqual(
-        ['registry_legal_name_match', 'registry_lookup', 'vat_lookup'].sort()
-      )
-    })
-
-    it('le pays declare est compare apres trim et passage en majuscules', () => {
-      const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country: '  fr  ' }, fullKybRegistry())
-      expect(applicable.map((s) => s.checkType).sort()).toEqual(
-        ['address_geocode', 'domain_whois_age', 'registry_legal_name_match', 'registry_lookup', 'vat_lookup'].sort()
-      )
-    })
-
-    it(
-      'runAgencyKybSources reste inchangee : elle rend une ligne par source QU ON LUI DONNE, ' +
-        'y compris une source hors juridiction (le filtre vit dans index.ts, jamais ici)',
-      async () => {
-        const rows = await runAgencyKybSources({ ...FAKE_AGENCY, country: 'CH' }, fullKybRegistry())
-        expect(rows).toHaveLength(fullKybRegistry().length)
-      }
-    )
-
-    it('un appliesTo qui leve n ecarte pas la source : le passage ne doit jamais echouer a cause d un predicat bogue', async () => {
-      const predicatBogue: KybSource = {
-        ...failingSource('vat_lookup'),
-        appliesTo: () => {
-          throw new Error('predicat bogue')
-        },
-      }
-      const { applicable, skipped } = selectApplicableSources(FAKE_AGENCY, [predicatBogue])
-      expect(applicable).toHaveLength(1)
-      expect(skipped).toHaveLength(0)
-
-      // Retombe exactement sur le comportement d'avant cette regle : la source est
-      // interrogee et le harnais la ramene a `unavailable` avec la raison jointe.
-      const rows = await runAgencyKybSources(FAKE_AGENCY, applicable)
-      expect(rows[0].result).toBe('unavailable')
-    })
-  })
 
   describe('Edge Function deployee -- contrat HTTP', () => {
     async function callRun(agencyId: string, bearer: string = SERVICE_KEY): Promise<Response> {
