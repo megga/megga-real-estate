@@ -77,10 +77,27 @@ describe('checkSliceResolution — tolérance aux cas légitimes', () => {
     expect(r.raison).toBe('requête nationale')
   })
 
-  it('laisse passer un slug absent de la table', () => {
+})
+
+describe('checkSliceResolution — slug hors table = échec, pas abstention', () => {
+  // Aucun caller légitime n'atterrit ici : runFresh passe '', le rolling passe
+  // un slug de realadvisor_shard_map. Un slug hors table trahit donc un appel
+  // fautif, et RA répond national — le pire cas silencieux.
+  it('refuse un slug inconnu', () => {
     const r = checkSliceResolution('canton-inexistant-xyz-99', national)
-    expect(r.resolu).toBe(true)
+    expect(r.resolu).toBe(false)
     expect(r.raison).toBe('slug hors table')
+  })
+
+  it('refuse un CODE canton passé à la place du slug (le run manuel du 29/07)', () => {
+    const r = checkSliceResolution('JU', national)
+    expect(r.resolu).toBe(false)
+    expect(r.raison).toBe('slug hors table')
+  })
+
+  it('refuse même sur un échantillon maigre — le slug seul suffit à juger', () => {
+    const r = checkSliceResolution('JU', national.slice(0, 2))
+    expect(r.resolu).toBe(false)
   })
 })
 
@@ -107,6 +124,15 @@ describe('assertSliceResolved', () => {
   it('lève avec un message qui nomme le canton et le compte', () => {
     expect(() => assertSliceResolved('canton-uri', national))
       .toThrow(/slug non résolu: canton-uri attendait UR mais 0\/12/)
+  })
+
+  it('lève sur un code canton, et le message dit quoi passer à la place', () => {
+    expect(() => assertSliceResolved('JU', national)).toThrow(/slug hors table: JU/)
+    expect(() => assertSliceResolved('JU', national)).toThrow(/canton-jura', PAS 'JU'/)
+  })
+
+  it('ne lève toujours pas sur la requête nationale de runFresh', () => {
+    expect(() => assertSliceResolved('', national)).not.toThrow()
   })
 })
 
