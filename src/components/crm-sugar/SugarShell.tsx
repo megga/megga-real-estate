@@ -269,14 +269,17 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
           aria-expanded={ai.enabled ? ai.isOpen : undefined}
           style={{
             width: 44, height: 44, borderRadius: 999, border: 0, padding: 0,
-            background: 'transparent', boxShadow: 'none',
+            // Seul bouton de la barre à reprendre un aplat, et seulement ACTIF :
+            // MEGGA AI ouvert est un mode persistant, pas un survol — il mérite un
+            // repère que l'encre seule ne portait pas. Au repos, glyphe nu comme
+            // ses voisins. `sp.ink` est le token d'accent Sugar : noir franc en
+            // clair, encre claire en sombre.
+            background: aiActive ? sp.ink : 'transparent',
+            boxShadow: aiActive ? '0 6px 20px rgba(11,12,14,0.25)' : 'none',
             display: 'grid', placeItems: 'center', cursor: 'pointer',
-            // Sans pastille, l'état actif se lit sur l'encre du glyphe (règle Sugar
-            // Pure : monochrome, jamais d'aplat d'accent). Transition de couleur
-            // seule — pas de transform/ombre animés au survol.
-            transition: 'color .2s ease',
+            transition: 'background .2s ease, box-shadow .2s ease',
           }}>
-          <AnimatedTopIcon name="sparkle" color={aiActive ? sp.ink : sp.soft} size={TOPNAV_ICON} active={aiActive} />
+          <AnimatedTopIcon name="sparkle" color={aiActive ? sp.pageBg : sp.soft} size={TOPNAV_ICON} active={aiActive} />
         </button>
         <div ref={notifAnchorRef} style={{ position: 'relative' }}>
           <button
