@@ -23,7 +23,7 @@ const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_T
 function replayBackfillMigration(): void {
   const migrationPath = path.resolve(
     process.cwd(),
-    'supabase/migrations/20260728105000_signup_agency_provisioning.sql'
+    'supabase/migrations/20260729150500_signup_agency_provisioning.sql'
   )
   execSql(fs.readFileSync(migrationPath, 'utf-8'))
 }

@@ -10,7 +10,7 @@
 // réel. Motif de création d'utilisateur repris de signup-provisioning.spec.ts.
 //
 // Voir docs/superpowers/plans/2026-07-27-onboarding-kyb-etape-2.md (Task 1) et
-// supabase/migrations/20260728108000_submit_agency_identity.sql.
+// supabase/migrations/20260729150800_submit_agency_identity.sql.
 
 import { describe, it, expect, afterAll } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'

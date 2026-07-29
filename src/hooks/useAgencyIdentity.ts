@@ -265,7 +265,7 @@ function todayIsoDate(): string {
  * true si un rôle est actif à la date `today` (paramètre injectable pour les tests ;
  * par défaut la date UTC du jour). Même définition d'« actif » que la RPC
  * submit_agency_identity() : `valid_to is null or valid_to > current_date`
- * (supabase/migrations/20260728108000_submit_agency_identity.sql, comparaison
+ * (supabase/migrations/20260729150800_submit_agency_identity.sql, comparaison
  * stricte). `valid_to` est une colonne `date`, pas `timestamptz` : comparaison sur
  * la date seule, jamais l'heure.
  *
