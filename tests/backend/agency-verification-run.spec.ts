@@ -3538,6 +3538,17 @@ describe('connecteur Zefix par LINDAS (registry_lookup / registry_legal_name_mat
       expect(sparql, "l'identifiant LINDAS est un NOEUD, pas une chaine portee par l entite").toContain(
         'schema:name "CompanyUID"'
       )
+      // Le predicat qui lie ?legalName est verrouille ICI, dans la REQUETE, et pas
+      // seulement dans la lecture de la reponse (revue tache 2, point Important) : un
+      // lecteur ne peut pas savoir quel predicat a produit une liaison, donc aucun test
+      // adosse a une reponse figee ne peut distinguer legalName de name. Mesure : passer
+      // la requete a `schema:name ?legalName` laissait les 199 tests VERTS, et une agence
+      // declarant « Nestle Ltd. » -- une denomination que le registre porte en name mais
+      // JAMAIS en legalName -- obtenait alors un veto `match`. C'est exactement ce que la
+      // conception interdit : la raison sociale se compare a la raison sociale.
+      expect(sparql, 'la raison sociale se lit sur schema:legalName, jamais sur schema:name').toContain(
+        'schema:legalName ?legalName'
+      )
       expect(sparql, 'jamais un filtre sur l URI : 14 s mesures contre 0,147 s').not.toContain('STRENDS')
     }
   )

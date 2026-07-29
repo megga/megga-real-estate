@@ -1526,6 +1526,9 @@ interface ZefixGraphEntries {
   legalNames: string[]
   municipalities: string[]
   rows: number
+  /** La reponse a-t-elle bute sur ZEFIX_UID_RESULT_LIMIT ? Joint a la preuve : sans lui,
+   *  une troncature ferait conclure un veto sur une liste incomplete, en silence. */
+  truncated: boolean
   bindings: LindasSparqlBinding[]
 }
 
@@ -1574,7 +1577,21 @@ async function fetchZefixByUid(uid: string, signal: AbortSignal): Promise<ZefixG
     if (typeof municipality === 'string' && !municipalities.includes(municipality)) municipalities.push(municipality)
   }
 
-  return { uid, legalNames, municipalities, rows: bindings.length, bindings }
+  // `truncated` joint a la preuve (revue tache 2, mineur) : la requete borne a
+  // ZEFIX_UID_RESULT_LIMIT, et une troncature silencieuse ferait sortir
+  // registry_legal_name_match en `mismatch` sur une raison sociale pourtant inscrite --
+  // un veto qui bloque un dossier sur une liste incomplete, sans que rien ne le dise. Le
+  // maximum observe vaut 2 (les versions linguistiques d'une meme entite), la marge est
+  // donc large ; mais un relecteur doit pouvoir constater que la liste etait entiere,
+  // pas le supposer.
+  return {
+    uid,
+    legalNames,
+    municipalities,
+    rows: bindings.length,
+    truncated: bindings.length >= ZEFIX_UID_RESULT_LIMIT,
+    bindings,
+  }
 }
 
 /** Le numero a chercher pour CE dossier, apres la garde de juridiction. Cette garde-ci fait
@@ -1602,6 +1619,7 @@ function zefixEvidence(entries: ZefixGraphEntries, declared: string | null): Rec
     registry_legal_names: entries.legalNames,
     municipalities: entries.municipalities,
     rows: entries.rows,
+    truncated: entries.truncated,
     lindas_bindings: entries.bindings,
   }
 }

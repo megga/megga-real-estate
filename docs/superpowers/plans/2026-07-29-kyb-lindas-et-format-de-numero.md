@@ -219,6 +219,10 @@ contraire, devra être réécrit — c'est la tâche 4.
       du blocage Zefix, et ce qui reste suspendu aux identifiants.
 - [ ] `docs/agency-kyb-verification.md` §3 : la ligne « Registre entreprise » suisse passe de
       bloquée à servie par LINDAS, avec sa limite.
+- [ ] `CLAUDE.md` : `ZEFIX_API_URL` et `ZEFIX_API_CREDENTIAL` sortent des secrets attendus.
+      Plus personne ne les lit depuis que LINDAS remplace le squelette REST, et le handoff
+      affirme encore qu'elles pilotent le comportement en production. Ajouté à cette liste
+      après la revue de la tâche 2, qui a constaté qu'elles n'avaient aucun propriétaire.
 - [ ] `docs/system-map.md` et `.claude-flow/knowledge/megga-memory.seed.json` (entrées
       `megga/agency-verification-connectors` et `megga/agency-verification-pending-sources`),
       puis `npm run ruflo:seed` après validation du JSON.
