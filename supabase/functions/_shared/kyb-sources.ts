@@ -1009,6 +1009,12 @@ export function isValidSwissUid(raw: string): boolean {
     sum += Number(digits[i]) * SWISS_UID_WEIGHTS[i]
   }
   const key = 11 - (sum % 11)
+  // Une cle de 10 ne tient pas sur un chiffre : le registre n'emet jamais un tel numero.
+  // Garde volontairement REDONDANTE (revue : elle est morte, aucun test ne la couvre et
+  // la retirer ne change rien) -- `digits[8]` vient de SWISS_UID_RE, donc de [0,9], et la
+  // comparaison finale rejetterait deja une cle de 10. Conservee parce qu'elle enonce la
+  // regle du registre a l'endroit ou on la cherche, plutot que de la laisser deduire
+  // d'une inegalite. La supprimer serait aussi correct ; la commenter faussement, non.
   if (key === 10) return false
   return (key === 11 ? 0 : key) === Number(digits[8])
 }

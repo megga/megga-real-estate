@@ -3799,17 +3799,23 @@ describe('controle du numero de registre (registry_number_format) -- calcul pur,
   })
 
   it('un reste de 1 (cle qui vaudrait 10) rend le numero invalide, quel que soit le dernier chiffre', () => {
-    // 10000016 donne une somme de 34, soit un reste de 1 modulo 11 : la cle vaudrait 10,
-    // qui ne tient pas sur un chiffre. Le registre n'emet donc jamais un tel numero, et
-    // AUCUN dernier chiffre ne peut le valider -- c'est la seule branche de l'algorithme
-    // qu'un jeu de numeros reels ne peut pas exercer, par construction.
+    // 10000016 pese 34 (1x5 + 1x5 + 6x4), soit un reste de 1 modulo 11 : la cle vaudrait
+    // 10, qui ne tient pas sur un chiffre. Le registre n'emet donc jamais un tel numero,
+    // et AUCUN dernier chiffre ne peut le valider. C'est le seul cas d'entree qu'un jeu
+    // de numeros reels ne peut pas contenir -- mais ce n'est PAS une branche de code
+    // distincte : le rejet vient de la comparaison finale, une cle de 10 ne pouvant
+    // egaler un chiffre. Voir isValidSwissUid, ou la garde explicite ne fait que dire la
+    // regle (revue : elle est morte, et ce test-ci ne la couvre pas -- il couvre le
+    // comportement, qui est le sujet).
     for (const dernier of '0123456789') {
       expect(isValidSwissUid(`CHE10000016${dernier}`), `CHE10000016${dernier}`).toBe(false)
     }
-    // Et le temoin qui rend la mesure concluante : un reste de 0 donne bien une cle de 0
-    // (« 11 vaut 0 »), branche voisine et elle aussi jamais exercee par un numero au
-    // hasard. 10000007 pese 44, soit un reste de 0 : le dernier chiffre doit valoir 0.
-    expect(isValidSwissUid('CHE100000070'), 'somme 44, reste 0 -> cle 0').toBe(true)
+    // Le temoin de la branche voisine : un reste de 0 donne une cle de 0 (« 11 vaut 0 »).
+    // 10000007 pese 33 (1x5 + 7x4), soit un reste de 0 : le dernier chiffre doit valoir 0.
+    // Contrairement au cas ci-dessus, celui-la EST exerce par de vrais numeros -- deux
+    // des seize UID reels figes plus haut y tombent (CHE103247810 pese 132, CHE102403680
+    // pese 99, tous deux multiples de 11).
+    expect(isValidSwissUid('CHE100000070'), 'somme 33, reste 0 -> cle 0').toBe(true)
     expect(isValidSwissUid('CHE100000071'), 'la meme, cle 1 : le reste de 0 ne vaut PAS 11').toBe(false)
   })
 
