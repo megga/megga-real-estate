@@ -25,9 +25,16 @@
 // tirent sur une base de CI sans crons).
 //
 // realadvisor_health_check() lit l'état GLOBAL de realadvisor_sync_runs sur des
-// fenêtres de 26-74h. Sur une base de CI neuve, d'autres règles (cron_inactive,
-// fresh_stalled, probe_stopped…) tirent forcément : on n'assert donc jamais sur
-// le NOMBRE de codes, seulement sur la présence/absence de ceux qu'on teste.
+// fenêtres de 26-74h. Sur une base de CI neuve, d'autres règles (fresh_stalled,
+// probe_stopped…) tirent forcément : on n'assert donc jamais sur le NOMBRE de
+// codes, seulement sur la présence/absence de ceux qu'on teste.
+//
+// ⚠ `cron_inactive` n'en fait PAS partie : pg_cron n'est pas installé sur la base
+// de CI (contrairement à ce qu'affirme le commentaire d'en-tête de
+// cron-health.spec.ts, dont le test se garde de toute façon). C'est ce qui a fait
+// échouer la première version de cette spec — la fonction levait « relation
+// "cron.job" does not exist » avant d'arriver à ses règles. La même migration
+// garde donc cette règle derrière un test d'existence du schéma `cron`.
 //
 // La fonction poste un mail via net.http_post quand il y a au moins une alerte.
 // pg_net met la requête en FILE et ne la joue pas en ligne (même motif que
@@ -136,11 +143,12 @@ describe.skipIf(!HAS_KEYS)('realadvisor_health_check — règles E (retirée) et
     // peut plus produire ce code.
     expect(res.codes ?? []).not.toContain('mass_removal')
     // Garde anti-test-creux : la fonction a bien évalué ses règles sur ce jeu de
-    // données et renvoyé une liste vivante (base de CI sans crons → cron_inactive
-    // au minimum). Sans ça, les deux `not.toContain` ci-dessus passeraient aussi
-    // sur une fonction muette.
+    // données et renvoyé une liste vivante. Sans ça, les deux `not.toContain`
+    // ci-dessus passeraient aussi sur une fonction muette. On s'ancre sur
+    // `fresh_stalled` — vrai sur une base de CI (aucun run cron-fresh) et
+    // indépendant de pg_cron, absent ici.
     expect(res.status).toBe('alert')
-    expect((res.codes ?? []).length).toBeGreaterThan(0)
+    expect(res.codes ?? []).toContain('fresh_stalled')
   })
 
   it('taux à 20 % mais 100 sondés → silencieux (plancher de 200)', async () => {

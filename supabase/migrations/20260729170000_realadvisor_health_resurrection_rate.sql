@@ -99,15 +99,24 @@ begin
     v_lines := array_append(v_lines, '⚠️ Probe throttlé : les 6 derniers cycles sont 100% ambigus (ok=0). IP pg_net probablement flaggée → détection en pause (aucune fausse écriture).');
   end if;
 
-  for r in
-    select v.jobname from (values ('realadvisor-fresh-daily'),('realadvisor-probe-fire'),('realadvisor-probe-collect'),('realadvisor-probe-sweep'),('realadvisor-revive-fire'),('realadvisor-revive-collect')) as v(jobname)
-    where not exists (select 1 from cron.job j where j.jobname = v.jobname and j.active)
-  loop
-    v_missing := array_append(v_missing, r.jobname);
-  end loop;
-  if coalesce(array_length(v_missing,1),0) > 0 then
-    v_alerts := array_append(v_alerts, 'cron_inactive');
-    v_lines := array_append(v_lines, '🛑 Cron(s) RealAdvisor désactivé(s)/absent(s) : ' || array_to_string(v_missing, ', ') || '.');
+  -- La règle cron_inactive ne s'évalue que si pg_cron est installé. Sans le garde,
+  -- `cron.job` est résolu à l'exécution et la fonction ENTIÈRE lève « relation
+  -- "cron.job" does not exist » sur toute base qui n'a pas l'extension — c'est le
+  -- cas de la base de CI, et de toute reconstruction d'environnement. Le health
+  -- check devenait alors inappelable, donc intestable, au lieu de dégrader.
+  -- Même motif que get_cron_health(), qui se garde déjà ainsi.
+  -- En prod le schéma existe : comportement inchangé.
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    for r in
+      select v.jobname from (values ('realadvisor-fresh-daily'),('realadvisor-probe-fire'),('realadvisor-probe-collect'),('realadvisor-probe-sweep'),('realadvisor-revive-fire'),('realadvisor-revive-collect')) as v(jobname)
+      where not exists (select 1 from cron.job j where j.jobname = v.jobname and j.active)
+    loop
+      v_missing := array_append(v_missing, r.jobname);
+    end loop;
+    if coalesce(array_length(v_missing,1),0) > 0 then
+      v_alerts := array_append(v_alerts, 'cron_inactive');
+      v_lines := array_append(v_lines, '🛑 Cron(s) RealAdvisor désactivé(s)/absent(s) : ' || array_to_string(v_missing, ', ') || '.');
+    end if;
   end if;
 
   -- NOUVEAU (#901 bis) — F) Revive en échec : le cron a tourné mais la nuit n'a
