@@ -58,7 +58,11 @@ export function deriveAiPalette(base: SugarPalette, dark: boolean): AiPalette {
       cardBg2: crmStep(base, 's2', 'rgba(255,255,255,0.05)'),
       cardShadow: 'none',
       cardHovShadow: '0 0 0 1px rgba(255,255,255,0.10) inset',
-      composerBg: crmStep(base, 's2', 'rgba(255,255,255,0.05)'),
+      // Le composer prend le MÊME palier que le panneau (S1) : il affleure la
+      // surface et ne se lit que par son liseré interne — grammaire Sugar Pure,
+      // pas de remplissage contrasté pour marquer un champ. À S2 il formait une
+      // dalle plus claire au bas du panneau.
+      composerBg: crmStep(base, 's1', 'rgba(255,255,255,0.05)'),
       composerShadow: 'inset 0 0 0 1px rgba(255,255,255,0.07)',
       rowHov: crmStep(base, 's2', 'rgba(255,255,255,0.05)'),
       cardInk: '#16161E',
