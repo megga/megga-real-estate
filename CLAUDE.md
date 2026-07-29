@@ -317,10 +317,22 @@ Fichiers concernés : `useAdminNotifications.ts`, `useAdminLiveFeed.ts`, `useMes
 `formatCHF(amount)` et `formatRent(amount)` acceptent `number | string | null | undefined`. Retournent `'CHF —'` pour les valeurs invalides. Ne JAMAIS appeler `.toFixed()` directement sur une valeur de formulaire.
 
 ### pg_cron actifs
-| Job | Schedule | Edge Function |
+
+**41 jobs actifs** au 29 juil. 2026 (relevés dans `cron.job`) — cette section n'en listait que 2.
+Inventaire complet et à jour dans le cerveau : `megga/pg-cron`. Les plus structurants :
+
+| Job | Schedule | Cible |
 |---|---|---|
-| `flatfox-sync-daily` | `0 4 * * *` (04:00 UTC) | flatfox-sync |
+| `flatfox-sync-daily` | `0 4 * * *` | flatfox-sync (location) |
+| `realadvisor-fresh-daily` | `30 3 * * *` | realadvisor-sync (vente, national) |
+| `realadvisor-rolling-daily` | `0 22 * * *` | realadvisor-sync (1 bucket de cantons/nuit) |
+| `realadvisor-probe-fire` / `-collect` | `0 * * * *` / `10 * * * *` | RPC pg_net (détection de disparition) |
+| `realadvisor-probe-sweep` | `30 1 * * *` | RPC (retrait des absents confirmés) |
+| `realadvisor-revive-fire` / `-collect` | `30 2 * * *` / `45 2 * * *` | RPC (résurrection) |
+| `realadvisor-health-daily` | `0 9 * * *` | RPC `realadvisor_health_check` |
 | `platform-metrics-hourly` | `15 * * * *` | admin-monitoring |
+
+⚠ Identifier un job par son **jobname**, jamais par son `jobid` : il change à chaque recréation.
 
 ---
 
