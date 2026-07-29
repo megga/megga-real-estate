@@ -44,6 +44,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   runAgencyKybSources,
+  selectApplicableSources,
   AGENCY_KYB_SOURCES,
   createAddressGeocodeSource,
   type AgencyForVerification,
@@ -133,7 +134,18 @@ serve(async (req) => {
     // ligne : succes, echec ou timeout ne font jamais disparaitre un check et ne font
     // jamais echouer cet appel.
     const sources = [...AGENCY_KYB_SOURCES, createAddressGeocodeSource(Deno.env.get('MAPBOX_TOKEN') ?? '')]
-    const outcomes = await runAgencyKybSources(agency, sources)
+
+    // Filtre de JURIDICTION (etape 6, tache 1) -- ICI, sur le registre complet compose
+    // juste au-dessus, et jamais dans runAgencyKybSources() (qui doit continuer de
+    // rendre une ligne par source qu'on lui donne : son contrat). Deux sources qui se
+    // partagent un check_type ne doivent jamais etre interrogees pour le meme siege,
+    // sans quoi la derniere ligne inseree masquerait l'autre au moteur -- voir la
+    // section « Juridiction d'une source » de _shared/kyb-sources.ts. Aucun verdict ne
+    // bouge pour autant : le moteur traite `unavailable` et « ligne absente » a
+    // l'identique (exclus du numerateur ET du denominateur) ; ce qui n'a pas ete
+    // interroge passe dans sources_skipped ci-dessous, jamais dans un silence.
+    const { applicable, skipped } = selectApplicableSources(agency, sources)
+    const outcomes = await runAgencyKybSources(agency, applicable)
 
     // 3-4-5. Ecriture des checks, appel du moteur et journalisation du PASSAGE de
     // cette fonction -- REGROUPES dans UNE SEULE RPC (record_agency_verification_run,
@@ -157,7 +169,10 @@ serve(async (req) => {
       p_agency_id: agencyId,
       p_checks: outcomes,
       p_severity: tally.unavailable > 0 ? 'warn' : 'info',
-      p_metadata: { sources_run: outcomes.length, results: tally },
+      // sources_skipped TOUJOURS present, tableau vide compris : « rien n'a ete ecarte »
+      // et « la question ne s'est pas posee » doivent se lire pareil dans la trace, sans
+      // qu'un relecteur ait a deviner ce qu'un champ absent signifie.
+      p_metadata: { sources_run: outcomes.length, sources_skipped: skipped, results: tally },
     })
     if (runErr) throw runErr
 

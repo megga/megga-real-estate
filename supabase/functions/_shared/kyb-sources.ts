@@ -6,7 +6,10 @@
 // l'etape. La tache 2 y a ajoute le premier connecteur reel -- RDAP (domain_whois_age,
 // plus bas). La tache 3 y ajoute VIES (vat_lookup), le registre francais
 // (registry_lookup + registry_legal_name_match, recherche-entreprises.api.gouv.fr) et
-// le geocodage (address_geocode, Mapbox).
+// le geocodage (address_geocode, Mapbox). L'etape 6 (tache 1) y ajoute la JURIDICTION
+// d'une source -- `appliesTo` + selectApplicableSources(), section dediee plus bas :
+// deux sources qui se partagent un check_type ne doivent jamais etre interrogees pour
+// le meme siege, sans quoi la derniere ligne inseree masquerait l'autre au moteur.
 //
 //   Une source qui ne repond pas produit un check `unavailable`, JAMAIS une
 //   absence de ligne et JAMAIS un echec. Le moteur (recompute_agency_verification,
@@ -119,7 +122,65 @@ export interface AgencyCheckRow {
 export interface KybSource {
   checkType: string
   source: string
+  /** Juridiction couverte par ce connecteur -- voir la section « Juridiction d'une
+   *  source » ci-dessous. FACULTATIF : une source qui n'en declare pas s'applique
+   *  toujours, ce qui est le cas de tout connecteur seul proprietaire de son
+   *  check_type (RDAP, geocodage) -- il n'y a alors rien a departager. */
+  appliesTo?: (agency: AgencyForVerification) => boolean
   run: (agency: AgencyForVerification, signal: AbortSignal) => Promise<KybSourceResult>
+}
+
+// ─── Juridiction d'une source, et l'exclusivite qu'elle garantit (etape 6, tache 1) ──
+//
+// Le moteur (recompute_agency_verification, 20260728130000) ne garde qu'UNE ligne par
+// check_type : `distinct on (check_type) ... order by check_type, checked_at desc,
+// ctid desc`. Deux lignes ecrites dans la MEME transaction portent le meme checked_at
+// (valeur par defaut = heure de DEBUT de transaction) -- c'est donc la DERNIERE INSEREE
+// qui gagne, autrement dit l'ordre du tableau passe a record_agency_verification_run.
+//
+// Aujourd'hui aucun check_type n'a deux proprietaires : la question ne se pose pas.
+// L'etape 6 en donne un second a registry_lookup, registry_legal_name_match et
+// vat_lookup -- Zefix (registre du commerce suisse) et le registre UID couvriront CH/LI
+// la ou recherche-entreprises couvre la France et VIES l'UE. Sans regle, le jour ou
+// Zefix repondrait `match`, l'`unavailable` que le connecteur francais produit deja
+// pour tout siege hors de France pourrait s'inserer apres lui et le masquer : un veto
+// reellement satisfait se lirait comme un veto absent -- l'inverse exact de ce que la
+// preuve dit. Departager cette collision serait deja trop tard ; la regle ci-dessous la
+// rend IMPOSSIBLE.
+//
+// La regle : une source declare la juridiction qu'elle couvre (`appliesTo`), et
+// selectApplicableSources() (plus bas) ecarte AVANT execution celles qui ne couvrent pas
+// le siege declare. Deux sources qui se partagent un check_type ne sont donc jamais
+// applicables au meme pays.
+//
+// Ou le filtre vit : dans agency-verification-run/index.ts, JAMAIS dans
+// runAgencyKybSources(), qui doit continuer de rendre une ligne par source QU'ON LUI
+// DONNE -- c'est son contrat documente (voir sa docstring), et les gardes internes des
+// connecteurs (« siege hors France, source non interrogee ») restent la derniere ligne
+// de defense pour un appelant qui lui passerait une source sans filtrer.
+//
+// AUCUN VERDICT NE BOUGE : le moteur traite deja `unavailable` et « ligne absente » a
+// l'identique (exclus du numerateur ET du denominateur). Une source ecartee n'ecrit
+// simplement plus sa ligne `unavailable` -- elle passe dans `sources_skipped` du journal
+// du passage, pour que la trace dise ce qui n'a pas ete interroge, et pourquoi.
+
+/** Une source qu'aucune juridiction declaree ne rend applicable au dossier. Jointe
+ *  telle quelle au journal du passage (p_metadata.sources_skipped, voir
+ *  agency-verification-run/index.ts) : « pas interrogee » doit rester lisible dans la
+ *  trace d'un dispositif LAB, jamais devenir un silence. */
+export interface SkippedKybSource {
+  check_type: string
+  source: string
+  reason: 'jurisdiction_not_covered'
+}
+
+/** Pays du siege sous la forme que comparent les juridictions declarees plus bas --
+ *  agencies.country est du texte libre cote base, d'ou trim() + majuscules. `null`
+ *  quand rien n'est declare : une juridiction ne se devine pas, et une source qui en
+ *  exige une ne s'applique donc a aucun dossier sans pays. */
+function declaredHeadOfficeCountry(agency: AgencyForVerification): string | null {
+  const country = agency.country?.trim().toUpperCase()
+  return country ? country : null
 }
 
 // ─── Connecteur RDAP (domain_whois_age, tache 2) ───────────────────────────────
@@ -478,9 +539,23 @@ async function runVatLookup(agency: AgencyForVerification, signal: AbortSignal):
   }
 }
 
+/** Pays dont la TVA releve du registre UID (etape 6) et jamais de VIES : ni la Suisse
+ *  ni le Liechtenstein ne sont dans l'UE. Volontairement une EXCLUSION plutot que la
+ *  liste des 27 Etats membres : seule la disjonction avec le registre UID est
+ *  necessaire a l'exclusivite de vat_lookup, et une agence allemande doit rester
+ *  interrogeable sans qu'on ait a maintenir une liste qui se perimerait. Ne PAS
+ *  confondre avec EU_VIES_COUNTRY_CODES ci-dessus : celle-la porte des prefixes de TVA
+ *  (EL pour la Grece, XI pour l'Irlande du Nord), pas des codes pays de siege -- et le
+ *  connecteur rejette deja lui-meme un prefixe que VIES ne couvre pas. */
+const UID_REGISTRY_COUNTRIES: ReadonlySet<string> = new Set(['CH', 'LI'])
+
 const vatLookupSource: KybSource = {
   checkType: 'vat_lookup',
   source: 'vies',
+  appliesTo: (agency) => {
+    const country = declaredHeadOfficeCountry(agency)
+    return country !== null && !UID_REGISTRY_COUNTRIES.has(country)
+  },
   run: runVatLookup,
 }
 
@@ -688,15 +763,27 @@ async function runRegistryLegalNameMatch(agency: AgencyForVerification, signal: 
   }
 }
 
+/** Juridiction commune aux DEUX connecteurs du registre francais (meme predicat, deux
+ *  check_type distincts). Meme valeur testee que leurs gardes internes (`=== 'FR'`,
+ *  voir runRegistryLookup ci-dessus) -- seul le MOMENT du test change : ici avant
+ *  execution, ce qui laisse le check_type libre pour Zefix sur un siege suisse. Ces
+ *  gardes internes restent en place : runAgencyKybSources() peut recevoir la source
+ *  sans etre passee par selectApplicableSources(), son contrat le permet. */
+function hasFrenchHeadOffice(agency: AgencyForVerification): boolean {
+  return declaredHeadOfficeCountry(agency) === 'FR'
+}
+
 const registryLookupSource: KybSource = {
   checkType: 'registry_lookup',
   source: 'recherche_entreprises',
+  appliesTo: hasFrenchHeadOffice,
   run: runRegistryLookup,
 }
 
 const registryLegalNameMatchSource: KybSource = {
   checkType: 'registry_legal_name_match',
   source: 'recherche_entreprises',
+  appliesTo: hasFrenchHeadOffice,
   run: runRegistryLegalNameMatch,
 }
 
@@ -883,6 +970,58 @@ export const AGENCY_KYB_SOURCES: KybSource[] = [
   registryLegalNameMatchSource,
 ]
 
+/**
+ * Separe les sources applicables au dossier de celles qu'aucune juridiction declaree ne
+ * couvre -- POINT DE FILTRAGE UNIQUE de l'exclusivite des check_type (voir la section
+ * « Juridiction d'une source » plus haut pour ce que cette separation rend impossible).
+ * Appelee par agency-verification-run/index.ts AVANT runAgencyKybSources(), jamais par
+ * cette derniere.
+ *
+ * Le registre est un parametre (AGENCY_KYB_SOURCES par defaut) parce que la fonction
+ * deployee compose sa propre liste : les connecteurs qui ont besoin d'un secret ne
+ * peuvent pas etre des entrees statiques de ce module pur (voir
+ * createAddressGeocodeSource). C'est bien le registre COMPLET qui doit passer ici --
+ * filtrer la moitie du registre ne garantirait rien.
+ *
+ * Un `appliesTo` qui leve laisse la source APPLICABLE plutot que de la faire
+ * disparaitre : un predicat bogue ne doit jamais faire echouer tout le passage ni
+ * escamoter une ligne. La source part alors en execution normale et runKybSource() la
+ * ramene, au pire, a `unavailable` avec la raison jointe -- exactement ce qu'elle
+ * produisait avant cette regle.
+ */
+export function selectApplicableSources(
+  agency: AgencyForVerification,
+  sources: KybSource[] = AGENCY_KYB_SOURCES
+): { applicable: KybSource[]; skipped: SkippedKybSource[] } {
+  const applicable: KybSource[] = []
+  const skipped: SkippedKybSource[] = []
+
+  for (const source of sources) {
+    // `true` par defaut ET dans le catch : pas de juridiction declaree, ou predicat qui
+    // leve, valent tous deux "applicable" (voir la docstring ci-dessus).
+    let covers = true
+    if (source.appliesTo) {
+      try {
+        covers = source.appliesTo(agency)
+      } catch {
+        covers = true
+      }
+    }
+
+    if (covers) {
+      applicable.push(source)
+    } else {
+      skipped.push({
+        check_type: source.checkType,
+        source: source.source,
+        reason: 'jurisdiction_not_covered',
+      })
+    }
+  }
+
+  return { applicable, skipped }
+}
+
 /** Budget par source. Tres inferieur au testTimeout vitest (15s,
  *  vitest.backend.config.ts) et au budget d'execution d'une Edge Function -- une
  *  source qui traine ne doit jamais faire echouer TOUT le passage de
@@ -995,7 +1134,11 @@ export async function runKybSource(
  *  moins : aucune source ne peut faire disparaitre une ligne, meme collectivement.
  *  `timeoutMs` est transmis tel quel a chaque runKybSource() -- expose ici pour
  *  qu'un appelant (test compris) puisse le raccourcir sans devoir reimplementer
- *  la boucle. */
+ *  la boucle.
+ *
+ *  N'applique JAMAIS le filtre de juridiction (etape 6, tache 1) : une ligne par source
+ *  qu'on lui donne, sans exception -- c'est l'appelant qui choisit ce qu'il donne, via
+ *  selectApplicableSources(). Deplacer le filtre ici casserait ce contrat. */
 export async function runAgencyKybSources(
   agency: AgencyForVerification,
   sources: KybSource[] = AGENCY_KYB_SOURCES,

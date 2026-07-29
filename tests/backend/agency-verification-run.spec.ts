@@ -2,8 +2,9 @@
 // (etape 4, tache 1 -- supabase/functions/agency-verification-run/index.ts et son
 // module partage supabase/functions/_shared/kyb-sources.ts), connecteur RDAP
 // (etape 4, tache 2 -- domain_whois_age, premier connecteur reel du registre),
-// connecteurs VIES / recherche-entreprises / Mapbox (etape 4, tache 3), et
-// declenchement + filet de rattrapage (etape 4, tache 4).
+// connecteurs VIES / recherche-entreprises / Mapbox (etape 4, tache 3),
+// declenchement + filet de rattrapage (etape 4, tache 4), et juridiction d'une source
+// (etape 6, tache 1 -- appliesTo / selectApplicableSources, volets 1 et 2 ci-dessous).
 //
 // Principe directeur de toute l'etape 4 (voir
 // docs/superpowers/plans/2026-07-28-onboarding-kyb-etape-4.md, « Le principe qui
@@ -49,11 +50,13 @@
 // reseau ni DB.
 
 import { describe, it, expect, afterAll, afterEach, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { serviceRoleClient, anonClient } from './helpers/supabase'
 import {
   runKybSource,
   runAgencyKybSources,
+  selectApplicableSources,
   AGENCY_KYB_SOURCES,
   createAddressGeocodeSource,
   type KybSource,
@@ -114,6 +117,57 @@ function okSource(checkType: string, result: 'match' | 'partial' | 'mismatch' = 
     run: async () => ({ result, raw_response: { probe: true } }),
   }
 }
+
+// ─── Juridiction d'une source (etape 6, tache 1) ──────────────────────────────
+//
+// Fixtures de la matrice d'exclusivite, hissees au niveau du fichier pour que les
+// taches suivantes (connecteurs Zefix et registre UID) n'aient qu'un seul endroit a
+// completer.
+
+const AGENCY_VERIFICATION_RUN_INDEX = 'supabase/functions/agency-verification-run/index.ts'
+
+/** Valeurs importees de _shared/kyb-sources.ts par la fonction deployee. Sert de
+ *  declencheur a fullKybRegistry() ci-dessous : un connecteur qui a besoin d'un secret
+ *  ne peut pas vivre dans AGENCY_KYB_SOURCES (liste construite au chargement du
+ *  module), index.ts doit donc importer SA FABRIQUE pour le composer lui-meme -- ajouter
+ *  une source de cette facon sans l'ajouter aussi a fullKybRegistry() sortirait la
+ *  nouvelle source du champ de la matrice sans que rien ne le signale. */
+const EDGE_FUNCTION_SOURCE_IMPORTS = [
+  'AGENCY_KYB_SOURCES',
+  'createAddressGeocodeSource',
+  'runAgencyKybSources',
+  'selectApplicableSources',
+]
+
+/** Le registre COMPLET tel qu'agency-verification-run/index.ts le compose : les entrees
+ *  statiques de AGENCY_KYB_SOURCES PLUS les connecteurs que la fonction construit
+ *  elle-meme faute de pouvoir lire un secret depuis le module pur (le geocodage
+ *  aujourd'hui ; Zefix et le registre UID s'ajouteront ici). Une matrice qui ne
+ *  couvrirait que AGENCY_KYB_SOURCES ne protegerait pas ce qu'elle pretend proteger. */
+function fullKybRegistry(): KybSource[] {
+  return [...AGENCY_KYB_SOURCES, createAddressGeocodeSource('fake-token')]
+}
+
+/** Pays de la matrice, et ce que le registre complet doit rendre applicable pour chacun.
+ *  'DE' n'est pas decoratif : il prouve que le gabarit de VIES est bien « tout sauf
+ *  CH/LI » et non la seule France, sans qu'aucune liste d'Etats membres n'ait a etre
+ *  maintenue. */
+const JURISDICTION_MATRIX: { country: string | null; applicable: string[] }[] = [
+  {
+    country: 'FR',
+    applicable: [
+      'domain_whois_age',
+      'vat_lookup',
+      'registry_lookup',
+      'registry_legal_name_match',
+      'address_geocode',
+    ],
+  },
+  { country: 'CH', applicable: ['domain_whois_age', 'address_geocode'] },
+  { country: 'LI', applicable: ['domain_whois_age', 'address_geocode'] },
+  { country: 'DE', applicable: ['domain_whois_age', 'vat_lookup', 'address_geocode'] },
+  { country: null, applicable: ['domain_whois_age', 'address_geocode'] },
+]
 
 describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)', () => {
   // Helpers DB partages par "Edge Function deployee" ET par
@@ -331,6 +385,156 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         expect(typeof row.raw_response).toBe('object')
       }
     })
+
+    // ─── Juridiction d'une source (etape 6, tache 1) ────────────────────────────
+    //
+    // Le moteur (20260728130000) ne garde qu'UNE ligne par check_type et departage
+    // deux lignes de la meme transaction par ctid, donc par ordre d'insertion. Aucun
+    // check_type n'ayant deux proprietaires aujourd'hui, la question ne se pose pas
+    // encore -- les taches 2 et 3 de cette etape en donnent un second a
+    // registry_lookup, registry_legal_name_match et vat_lookup (Zefix et le registre
+    // UID couvrant CH/LI). Sans regle, l'`unavailable` que le connecteur francais
+    // produit deja pour tout siege hors de France pourrait masquer le `match` de Zefix :
+    // un veto reellement satisfait se lirait comme un veto absent. La matrice ci-dessous
+    // rend cette collision impossible plutot que departagee.
+    //
+    // Portee : les check_type DECLARES par les sources. Un connecteur peut encore en
+    // ecraser un a l'execution selon ce qu'il observe (KybSourceResult.check_type --
+    // RDAP le fait pour domain_generic_provider), et cette matrice-la ne le voit pas.
+    // Sans objet aujourd'hui (aucun type ecrase n'est declare par une autre source) ;
+    // a reprendre le jour ou une source declarerait un type qu'une autre ecrase.
+
+    it(
+      'matrice d exclusivite : sur le registre COMPLET (celui qu index.ts compose), deux sources ' +
+        'applicables au meme siege ne partagent jamais un check_type',
+      () => {
+        for (const { country } of JURISDICTION_MATRIX) {
+          const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country }, fullKybRegistry())
+          const ownerOfCheckType = new Map<string, string>()
+          for (const source of applicable) {
+            const previousOwner = ownerOfCheckType.get(source.checkType)
+            expect(
+              previousOwner,
+              `pays ${country ?? 'non declare'} : ${source.checkType} revendique a la fois par ` +
+                `${previousOwner} et par ${source.source} -- la derniere ligne inseree masquerait l'autre`
+            ).toBeUndefined()
+            ownerOfCheckType.set(source.checkType, source.source)
+          }
+        }
+      }
+    )
+
+    it('la matrice n est pas vide : chaque pays garde exactement les sources qui couvrent sa juridiction', () => {
+      for (const { country, applicable: expected } of JURISDICTION_MATRIX) {
+        const { applicable, skipped } = selectApplicableSources({ ...FAKE_AGENCY, country }, fullKybRegistry())
+        expect(applicable.map((s) => s.checkType).sort(), `pays ${country ?? 'non declare'}`).toEqual(
+          [...expected].sort()
+        )
+        // Aucune source ne disparait : applicable + skipped rend toujours le registre
+        // entier -- une source ecartee est ecartee EXPLICITEMENT, jamais perdue.
+        expect(applicable.length + skipped.length).toBe(fullKybRegistry().length)
+      }
+    })
+
+    it(
+      'la matrice couvre bien le registre qu index.ts compose : toute source construite par la fonction ' +
+        'deployee (donc importee par elle) doit passer par fullKybRegistry()',
+      () => {
+        // Un connecteur qui a besoin d'un secret ne peut pas etre une entree statique de
+        // AGENCY_KYB_SOURCES (la matrice la couvre deja par construction) : index.ts
+        // importe SA FABRIQUE et le compose lui-meme. Ce test lit la liste d'imports
+        // reelle pour qu'ajouter une source de cette facon sans l'ajouter a
+        // fullKybRegistry() echoue ici, plutot que de sortir silencieusement la nouvelle
+        // source du champ de la matrice.
+        const src = readFileSync(AGENCY_VERIFICATION_RUN_INDEX, 'utf8')
+        // [^}] plutot que [\s\S] : la liste d'imports nommes n'en contient jamais, et
+        // une classe permissive ferait demarrer le match sur le PREMIER `import {` du
+        // fichier, avalant les imports voisins jusqu'ici.
+        const importBlock = src.match(/import\s*\{([^}]*)\}\s*from\s*'\.\.\/_shared\/kyb-sources\.ts'/)
+        expect(importBlock, `aucun import de _shared/kyb-sources.ts trouve dans ${AGENCY_VERIFICATION_RUN_INDEX}`)
+          .not.toBeNull()
+        const imported = importBlock![1]
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0 && !s.startsWith('type '))
+          .sort()
+        expect(
+          imported,
+          'index.ts importe des valeurs de _shared/kyb-sources.ts que ce fichier ne connait pas -- si c est une ' +
+            'nouvelle fabrique de connecteur, ajoute-la a fullKybRegistry() PUIS a EDGE_FUNCTION_SOURCE_IMPORTS'
+        ).toEqual([...EDGE_FUNCTION_SOURCE_IMPORTS].sort())
+      }
+    )
+
+    it('une source sans appliesTo n est jamais ecartee, quel que soit le pays', () => {
+      const sansJuridiction = okSource('domain_whois_age')
+      for (const { country } of JURISDICTION_MATRIX) {
+        const { applicable, skipped } = selectApplicableSources({ ...FAKE_AGENCY, country }, [sansJuridiction])
+        expect(applicable, `pays ${country ?? 'non declare'}`).toHaveLength(1)
+        expect(skipped, `pays ${country ?? 'non declare'}`).toHaveLength(0)
+      }
+    })
+
+    it('une source ecartee ne produit AUCUNE ligne de check, et figure dans skipped avec son type, sa source et sa raison', async () => {
+      const horsJuridiction: KybSource = {
+        ...okSource('registry_lookup'),
+        source: 'recherche_entreprises',
+        appliesTo: () => false,
+      }
+      const { applicable, skipped } = selectApplicableSources(FAKE_AGENCY, [horsJuridiction, okSource('address_geocode')])
+
+      expect(skipped).toEqual([
+        { check_type: 'registry_lookup', source: 'recherche_entreprises', reason: 'jurisdiction_not_covered' },
+      ])
+
+      // Ecartee AVANT execution : le harnais ne voit meme pas la source, donc aucune
+      // ligne -- ni `unavailable`, ni rien d'autre. C'est bien une absence de ligne,
+      // que le moteur traite a l'identique d'un `unavailable` (exclu du numerateur ET
+      // du denominateur) : aucun verdict ne bouge.
+      const rows = await runAgencyKybSources(FAKE_AGENCY, applicable)
+      expect(rows.map((r) => r.check_type)).toEqual(['address_geocode'])
+    })
+
+    it('selectApplicableSources travaille sur AGENCY_KYB_SOURCES par defaut', () => {
+      const { applicable, skipped } = selectApplicableSources({ ...FAKE_AGENCY, country: 'CH' })
+      expect(applicable.length + skipped.length).toBe(AGENCY_KYB_SOURCES.length)
+      expect(skipped.map((s) => s.check_type).sort()).toEqual(
+        ['registry_legal_name_match', 'registry_lookup', 'vat_lookup'].sort()
+      )
+    })
+
+    it('le pays declare est compare apres trim et passage en majuscules', () => {
+      const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country: '  fr  ' }, fullKybRegistry())
+      expect(applicable.map((s) => s.checkType).sort()).toEqual(
+        ['address_geocode', 'domain_whois_age', 'registry_legal_name_match', 'registry_lookup', 'vat_lookup'].sort()
+      )
+    })
+
+    it(
+      'runAgencyKybSources reste inchangee : elle rend une ligne par source QU ON LUI DONNE, ' +
+        'y compris une source hors juridiction (le filtre vit dans index.ts, jamais ici)',
+      async () => {
+        const rows = await runAgencyKybSources({ ...FAKE_AGENCY, country: 'CH' }, fullKybRegistry())
+        expect(rows).toHaveLength(fullKybRegistry().length)
+      }
+    )
+
+    it('un appliesTo qui leve n ecarte pas la source : le passage ne doit jamais echouer a cause d un predicat bogue', async () => {
+      const predicatBogue: KybSource = {
+        ...failingSource('vat_lookup'),
+        appliesTo: () => {
+          throw new Error('predicat bogue')
+        },
+      }
+      const { applicable, skipped } = selectApplicableSources(FAKE_AGENCY, [predicatBogue])
+      expect(applicable).toHaveLength(1)
+      expect(skipped).toHaveLength(0)
+
+      // Retombe exactement sur le comportement d'avant cette regle : la source est
+      // interrogee et le harnais la ramene a `unavailable` avec la raison jointe.
+      const rows = await runAgencyKybSources(FAKE_AGENCY, applicable)
+      expect(rows[0].result).toBe('unavailable')
+    })
   })
 
   describe('Edge Function deployee -- contrat HTTP', () => {
@@ -400,7 +604,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(res.status).toBe(404)
     })
 
-    it('ecrit les 5 checks (tous unavailable sans aucune donnee KYB declaree), appelle bien le moteur apres avoir ecrit, et journalise son passage', async () => {
+    it('ecrit les checks des sources applicables (tous unavailable sans aucune donnee KYB declaree), appelle bien le moteur apres avoir ecrit, et journalise son passage', async () => {
       const agencyId = await createAgency('happy')
       await addActiveSignatory(agencyId)
 
@@ -408,14 +612,18 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       const body = await res.json()
       expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
       expect(body.ok).toBe(true)
-      // Cinq connecteurs au total depuis la tache 3 : RDAP + VIES + recherche-entreprises
-      // x2 (statiques dans AGENCY_KYB_SOURCES) + Mapbox (ajoute par la fonction
-      // elle-meme via createAddressGeocodeSource -- voir son en-tete). createAgency()
-      // ne pose ni website, ni tva, ni country/business_registration_number, ni adresse
-      // -> chaque connecteur n'a rien a verifier et produit `unavailable` (jamais un
-      // echec, jamais une absence de ligne).
-      expect(body.checks_written).toBe(5)
-      expect(body.results.unavailable).toBe(5)
+      // Cinq connecteurs existent depuis la tache 3 de l'etape 4 : RDAP + VIES +
+      // recherche-entreprises x2 (statiques dans AGENCY_KYB_SOURCES) + Mapbox (ajoute
+      // par la fonction elle-meme via createAddressGeocodeSource -- voir son en-tete).
+      // createAgency() ne declare AUCUN pays : depuis la regle de juridiction (etape 6,
+      // tache 1), les trois sources qui exigent un siege (VIES, recherche-entreprises
+      // x2) sont ecartees AVANT execution -- elles ecrivaient jusque-la trois lignes
+      // `unavailable` que le moteur excluait deja du numerateur ET du denominateur,
+      // d'ou un statut et un score rigoureusement identiques (verifies plus bas). Les
+      // deux qui restent n'ont rien a verifier (ni website, ni adresse) et produisent
+      // `unavailable` -- jamais un echec, jamais une absence de ligne.
+      expect(body.checks_written).toBe(2)
+      expect(body.results.unavailable).toBe(2)
 
       // Le moteur a bien tourne : aucun check scorable disponible (tous unavailable,
       // exclus du numerateur ET du denominateur, regle du moteur 20260728130000) ->
@@ -433,12 +641,83 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(await getEvents(agencyId, 'agency_verification_run')).toHaveLength(1)
 
       const checks = await getChecks(agencyId)
-      expect(checks).toHaveLength(5)
+      expect(checks).toHaveLength(2)
       expect(checks.every((c) => c.result === 'unavailable')).toBe(true)
-      expect(new Set(checks.map((c) => c.check_type))).toEqual(
-        new Set(['domain_whois_age', 'vat_lookup', 'registry_lookup', 'registry_legal_name_match', 'address_geocode'])
-      )
+      expect(new Set(checks.map((c) => c.check_type))).toEqual(new Set(['domain_whois_age', 'address_geocode']))
     })
+
+    // ─── Juridiction d'une source, bout en bout (etape 6, tache 1) ──────────────
+
+    async function setCountry(agencyId: string, country: string): Promise<void> {
+      const { error } = await serviceRoleClient().from('agencies').update({ country }).eq('id', agencyId)
+      if (error) throw new Error(`update country: ${error.message}`)
+    }
+
+    /** Sources ecartees telles que le journal du passage les porte
+     *  (p_metadata.sources_skipped), triees pour ne pas dependre de l'ordre du registre. */
+    async function getSkippedSources(agencyId: string): Promise<Record<string, unknown>[]> {
+      const events = await getEvents(agencyId, 'agency_verification_run')
+      expect(events, 'le passage doit avoir ete journalise').toHaveLength(1)
+      const metadata = events[0].metadata as { sources_skipped?: Record<string, unknown>[] }
+      return [...(metadata.sources_skipped ?? [])].sort((a, b) =>
+        String(a.check_type).localeCompare(String(b.check_type))
+      )
+    }
+
+    it(
+      'une agence francaise ecrit toujours ses cinq checks : le seul pays reellement couvert aujourd hui ' +
+        "ne change en rien, et rien n'est ecarte",
+      async () => {
+        const agencyId = await createAgency('jurisdiction-fr')
+        await addActiveSignatory(agencyId)
+        await setCountry(agencyId, 'FR')
+
+        const res = await callRun(agencyId)
+        const body = await res.json()
+        expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
+        expect(body.checks_written).toBe(5)
+
+        const checks = await getChecks(agencyId)
+        expect(new Set(checks.map((c) => c.check_type))).toEqual(
+          new Set(['domain_whois_age', 'vat_lookup', 'registry_lookup', 'registry_legal_name_match', 'address_geocode'])
+        )
+        expect(await getSkippedSources(agencyId)).toEqual([])
+      }
+    )
+
+    it(
+      'une agence suisse ecrit moins de checks, son journal nomme les sources francaises ecartees, ' +
+        'et AUCUN verdict ne bouge pour autant',
+      async () => {
+        const agencyId = await createAgency('jurisdiction-ch')
+        await addActiveSignatory(agencyId)
+        await setCountry(agencyId, 'CH')
+
+        const res = await callRun(agencyId)
+        const body = await res.json()
+        expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
+        expect(body.checks_written).toBe(2)
+        expect(new Set((await getChecks(agencyId)).map((c) => c.check_type))).toEqual(
+          new Set(['domain_whois_age', 'address_geocode'])
+        )
+
+        // Ce qui n'a pas ete interroge reste LISIBLE dans la trace -- une source
+        // ecartee ne doit jamais se lire comme une source oubliee.
+        expect(await getSkippedSources(agencyId)).toEqual([
+          { check_type: 'registry_legal_name_match', source: 'recherche_entreprises', reason: 'jurisdiction_not_covered' },
+          { check_type: 'registry_lookup', source: 'recherche_entreprises', reason: 'jurisdiction_not_covered' },
+          { check_type: 'vat_lookup', source: 'vies', reason: 'jurisdiction_not_covered' },
+        ])
+
+        // Non-regression, le critere de toute cette tache : ces trois sources ecrivaient
+        // jusque-la trois lignes `unavailable`, que le moteur excluait deja du
+        // numerateur ET du denominateur. Les ecarter ne change donc rien a ce que le
+        // dossier vaut -- meme statut, meme score (aucun) qu'avant la regle.
+        const agency = await getAgency(agencyId)
+        expect(agency.verification_status).toBe('manual_review')
+        expect(num(agency.verification_score)).toBeNull()
+      }
+    )
 
     it(
       'site web grand public (gmail.com) -> ecrit le check sous domain_generic_provider, jamais domain_whois_age ' +
@@ -453,14 +732,14 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         const res = await callRun(agencyId)
         const body = await res.json()
         expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
-        // 5 connecteurs au total (voir le test precedent) -- seul RDAP a de quoi
-        // repondre ici (website renseigne), les 4 autres restent unavailable.
-        expect(body.checks_written).toBe(5)
+        // 2 sources applicables faute de pays declare (voir le test precedent) -- seul
+        // RDAP a de quoi repondre ici (website renseigne), le geocodage reste unavailable.
+        expect(body.checks_written).toBe(2)
         expect(body.results.partial).toBe(1)
-        expect(body.results.unavailable).toBe(4)
+        expect(body.results.unavailable).toBe(1)
 
         const checks = await getChecks(agencyId)
-        expect(checks).toHaveLength(5)
+        expect(checks).toHaveLength(2)
         const genericProviderCheck = checks.find((c) => c.check_type === 'domain_generic_provider')
         expect(
           genericProviderCheck,
@@ -496,10 +775,11 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(res2.status).toBe(200)
 
       // "Rejouable" ne veut pas dire "dedoublonne" : cette fonction insere une ligne a
-      // CHAQUE appel pour CHAQUE connecteur (5 au total depuis la tache 3), c'est le
-      // moteur qui departage plusieurs lignes du meme type par ctid (voir le test
-      // dedie plus bas), jamais cette fonction qui filtre avant d'ecrire.
-      expect(await getChecks(agencyId)).toHaveLength(10)
+      // CHAQUE appel pour CHAQUE connecteur APPLICABLE (2 ici, faute de pays declare --
+      // voir la regle de juridiction, etape 6 tache 1), c'est le moteur qui departage
+      // plusieurs lignes du meme type par ctid (voir le test dedie plus bas), jamais
+      // cette fonction qui filtre avant d'ecrire.
+      expect(await getChecks(agencyId)).toHaveLength(4)
       // Chaque appel a reellement fait tourner le moteur -- pas seulement le
       // premier -- et journalise son propre passage a chaque fois.
       expect(await getEvents(agencyId, 'agency_verification_recomputed')).toHaveLength(2)
@@ -543,13 +823,13 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         // Rejouer une seconde fois ne doit ni faire disparaitre ce resultat ni
         // reordonner/nettoyer les 2 lignes seedees (cette fonction ne touche jamais
         // aux checks existants) : le veto reste tranche par la meme ligne mismatch,
-        // toujours manual_review. Le compte total grandit bien (chaque connecteur reel
-        // ecrit sa propre ligne a chaque appel -- 5 depuis la tache 3, +5 a res, +5 a
-        // res2), preuve que "rejouable" n'est pas "silencieux" -- seul le resultat
-        // DECISIF (le veto seede) ne doit pas bouger.
+        // toujours manual_review. Le compte total grandit bien (chaque connecteur
+        // APPLICABLE ecrit sa propre ligne a chaque appel -- 2 ici faute de pays
+        // declare, +2 a res, +2 a res2), preuve que "rejouable" n'est pas "silencieux"
+        // -- seul le resultat DECISIF (le veto seede) ne doit pas bouger.
         const res2 = await callRun(agencyId)
         expect(res2.status).toBe(200)
-        expect(await getChecks(agencyId)).toHaveLength(12)
+        expect(await getChecks(agencyId)).toHaveLength(6)
         const agencyAfter = await getAgency(agencyId)
         expect(agencyAfter.verification_status).toBe('manual_review')
       }
