@@ -2,7 +2,7 @@
 // 1:1 port from `crm-screen-parcours-sugar.jsx` (PCColumn + ColLabel).
 
 import { Fragment } from 'react'
-import type { SugarPalette } from '../tokens'
+import { crmStep, type SugarPalette } from '../tokens'
 import { parcoursAgentById, type ParcoursStage, type ParcoursTask } from './journeyData'
 import { PCBigCard, PCColConnector, PCGridCard, PCMiniRow } from './PCCards'
 
@@ -54,7 +54,7 @@ export function PCColumn({ stage, tasks, sp, dark, onTaskClick }: PCColumnProps)
     >
       <div
         style={{
-          background: dark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+          background: dark ? crmStep('s2', 'rgba(255,255,255,0.04)') : '#FFFFFF',
           border: `1px solid ${sp.cardBorder}`,
           borderRadius: 22,
           padding: '14px 14px',

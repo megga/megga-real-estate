@@ -4,6 +4,7 @@
 // Un fichier mixte composants + constantes casse le Fast Refresh de Vite —
 // toute édition recharge la page au lieu de préserver l'état (galerie ouverte,
 // lightbox, scroll de la fiche).
+import { CRM_GRAPHITE, crmDarkTone, crmStep } from '@/components/crm-sugar/tokens'
 
 // ─── Palettes (light/dark) ───────────────────────────────────────────────
 export interface VxPalette {
@@ -57,13 +58,20 @@ export const VxSP_LIGHT: VxPalette = {
   infoBg: 'rgba(30,91,198,.12)',
 }
 
+// Surfaces en GETTERS : elles suivent la teinte sombre active (cf. tokens.ts).
+// ⚠ `cardSub2` empile au PLAFOND s4 : si un bloc de la fiche paraît trop clair
+// face à une modale ouverte par-dessus, le redescendre à s3 (noté au handoff).
 export const VxSP_DARK: VxPalette = {
-  bg: '#0A0A0F',
-  bgGradient:
-    'radial-gradient(ellipse 120% 80% at 50% 100%, #1A1D27 0%, #111219 55%, #0A0A0F 100%)',
-  card: 'rgba(255,255,255,0.05)',
-  cardSub: 'rgba(255,255,255,0.045)',
-  cardSub2: 'rgba(255,255,255,0.07)',
+  get bg() { return crmStep('s0', '#0A0A0F') },
+  get bgGradient() {
+    const G = CRM_GRAPHITE
+    return crmDarkTone() === 'graphite'
+      ? `radial-gradient(ellipse 120% 80% at 50% 100%, ${G.s3} 0%, ${G.s1} 55%, ${G.s0} 100%)`
+      : 'radial-gradient(ellipse 120% 80% at 50% 100%, #1A1D27 0%, #111219 55%, #0A0A0F 100%)'
+  },
+  get card() { return crmStep('s2', 'rgba(255,255,255,0.05)') },
+  get cardSub() { return crmStep('s3', 'rgba(255,255,255,0.045)') },
+  get cardSub2() { return crmStep('s4', 'rgba(255,255,255,0.07)') },
   ink: '#F4F6F8',
   inkSoft: '#C4C8D2',
   muted: '#878D9A',

@@ -18,7 +18,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CrmContact } from '@/components/crm-sugar/mockData'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { crmStep, type SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmInitials } from '@/components/crm-sugar/tokens'
 
 // ── Couleurs fonctionnelles (données métier — jamais accent UI) ─────────
@@ -737,7 +737,7 @@ export default function ContactsPager({
         .ctp-scroll-hint:hover, .ctp-scroll-hint:focus-visible { opacity: 1; }
         .ctp-scroll-hint:hover .ctp-hint-label, .ctp-scroll-hint:focus-visible .ctp-hint-label { max-width: 220px !important; opacity: 1 !important; transform: translateX(0) !important; }
         .ctp-row { transition: background .15s ease; }
-        .ctp-row:hover { background: ${dark ? 'rgba(255,255,255,.04)' : 'rgba(15,23,42,.03)'}; }
+        .ctp-row:hover { background: ${dark ? crmStep('s3', 'rgba(255,255,255,.04)') : 'rgba(15,23,42,.03)'}; }
         .ctp-seg, .ctp-seg-row, .ctp-row, .ctp-scroll-hint { -webkit-tap-highlight-color: transparent; }
         /* Pas d'anneau à la souris ; anneau visible au clavier (a11y). */
         .ctp-seg:focus:not(:focus-visible), .ctp-seg-row:focus:not(:focus-visible), .ctp-row:focus:not(:focus-visible), .ctp-scroll-hint:focus:not(:focus-visible) { outline: none; }

@@ -106,7 +106,7 @@ function CalTimeSelect({ value, onChange }: { value: string; onChange: (v: strin
         </span>
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40, maxHeight: 200, overflowY: 'auto', background: SP.card, borderRadius: 12, boxShadow: SP.shadow, padding: 6 }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40, maxHeight: 200, overflowY: 'auto', background: SP.popBg, borderRadius: 12, boxShadow: SP.shadow, padding: 6 }}>
           {opts.map(o => {
             const active = o === value
             return (
@@ -191,7 +191,7 @@ function CalDatePicker({ value, onChange }: { value: Date; onChange: (ymd: strin
 
   const pop = open
     ? createPortal(
-        <div ref={popRef} style={{ position: 'fixed', left: pos.left, top: pos.top, width: 292, zIndex: 4300, background: SP.card, borderRadius: 16, boxShadow: SP.shadow, padding: 12, fontFamily: 'inherit', animation: 'calPopIn .14s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div ref={popRef} style={{ position: 'fixed', left: pos.left, top: pos.top, width: 292, zIndex: 4300, background: SP.popBg, borderRadius: 16, boxShadow: SP.shadow, padding: 12, fontFamily: 'inherit', animation: 'calPopIn .14s cubic-bezier(.2,.8,.2,1) both' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             {navBtn('chevL', () => setViewM(new Date(viewM.getFullYear(), viewM.getMonth() - 1, 1)))}
             <span style={{ fontSize: 14, fontWeight: 800, color: SP.ink }}>{months[viewM.getMonth()]} {viewM.getFullYear()}</span>
@@ -322,7 +322,7 @@ function CalLinkPicker({
 
   const pop = open
     ? createPortal(
-        <div ref={popRef} style={{ position: 'fixed', left: pos.left, top: pos.top, width: pos.width, zIndex: 4300, background: SP.card, borderRadius: 16, boxShadow: SP.shadow, padding: 8, fontFamily: 'inherit', animation: 'calPopIn .14s cubic-bezier(.2,.8,.2,1) both', display: 'flex', flexDirection: 'column', maxHeight: 320 }}>
+        <div ref={popRef} style={{ position: 'fixed', left: pos.left, top: pos.top, width: pos.width, zIndex: 4300, background: SP.popBg, borderRadius: 16, boxShadow: SP.shadow, padding: 8, fontFamily: 'inherit', animation: 'calPopIn .14s cubic-bezier(.2,.8,.2,1) both', display: 'flex', flexDirection: 'column', maxHeight: 320 }}>
           <div style={{ marginBottom: 6, flexShrink: 0 }}>
             <input
               ref={inputRef} value={q} onChange={e => setQ(e.target.value)} placeholder={t('modal.search')}
@@ -537,7 +537,7 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
         ref={ref}
         style={{
           position: 'fixed', left: pos.left, top: pos.top, width: 460, maxWidth: 'calc(100vw - 24px)', maxHeight: '88vh',
-          background: SP.card, borderRadius: 20, boxShadow: modalShadow,
+          background: SP.popBg, borderRadius: 20, boxShadow: modalShadow,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
           animation: 'calPopIn .18s cubic-bezier(.2,.8,.2,1) both',
         }}

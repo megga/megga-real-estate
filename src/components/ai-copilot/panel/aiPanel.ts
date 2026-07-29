@@ -3,7 +3,7 @@
 // Port fidèle du handoff `crm-copilot-panel.jsx` (chantiers 1,4,5,6), adapté à la
 // vraie stack : zéro `window.*`, tokens issus du vrai `SugarPalette`.
 
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { crmStep, type SugarPalette } from '@/components/crm-sugar/tokens'
 
 // ── Géométrie ───────────────────────────────────────────────────────────────
 export const PANEL_W = 372
@@ -25,6 +25,11 @@ export interface AiPalette {
   onAccent: string
   panelBg: string
   panelShadow: string
+  /** Remplissages posés SUR le panneau — pastilles d'icône, tuiles de pièce
+   *  jointe, toggles. `fillStrong` est le cran au-dessus (état actif, bouton
+   *  d'envoi inactif). Deux tokens plutôt qu'une dizaine d'alphas dispersés. */
+  fill: string
+  fillStrong: string
   cardBg2: string
   cardShadow: string
   cardHovShadow: string
@@ -43,15 +48,19 @@ export function deriveAiPalette(base: SugarPalette, dark: boolean): AiPalette {
       sub: base.sub,
       accent: base.ink || '#ECEDF3',
       onAccent: '#0B0C0E',
-      panelBg: '#0B0C0E',
+      // Le dock prend le palier « cadre » (S1) et se détache du canvas par
+      // l'ombre. Les autres teintes gardent le noir pur historique.
+      panelBg: crmStep(base, 's1', '#0B0C0E'),
       panelShadow:
         '0 24px 70px -10px rgba(0,0,0,.7), 0 6px 22px -8px rgba(0,0,0,.55)',
-      cardBg2: 'rgba(255,255,255,0.05)',
+      fill: crmStep(base, 's2', 'rgba(255,255,255,0.07)'),
+      fillStrong: crmStep(base, 's3', 'rgba(255,255,255,0.12)'),
+      cardBg2: crmStep(base, 's2', 'rgba(255,255,255,0.05)'),
       cardShadow: 'none',
       cardHovShadow: '0 0 0 1px rgba(255,255,255,0.10) inset',
-      composerBg: 'rgba(255,255,255,0.05)',
+      composerBg: crmStep(base, 's2', 'rgba(255,255,255,0.05)'),
       composerShadow: 'inset 0 0 0 1px rgba(255,255,255,0.07)',
-      rowHov: 'rgba(255,255,255,0.05)',
+      rowHov: crmStep(base, 's2', 'rgba(255,255,255,0.05)'),
       cardInk: '#16161E',
     }
   }
@@ -65,6 +74,8 @@ export function deriveAiPalette(base: SugarPalette, dark: boolean): AiPalette {
     panelBg: '#FFFFFF',
     panelShadow:
       '0 28px 80px -16px rgba(15,23,42,.22), 0 8px 26px -12px rgba(15,23,42,.12)',
+    fill: 'rgba(11,12,14,0.05)',
+    fillStrong: 'rgba(11,12,14,0.06)',
     cardBg2: '#F7F8FA',
     cardShadow: '0 2px 10px rgba(15,23,42,0.04)',
     cardHovShadow: '0 10px 26px rgba(15,23,42,0.10)',

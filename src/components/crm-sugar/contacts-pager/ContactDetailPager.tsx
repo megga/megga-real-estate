@@ -25,7 +25,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import type { CriteriaInput } from '@/lib/contactCriteria'
 import { COUNTRIES, countryName } from '@/lib/countries'
 import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/lib/contactIdentity'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { crmStep, type SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmFmtCHF } from '@/components/crm-sugar/tokens'
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -125,7 +125,7 @@ function buildPal(sp: SugarPalette, dark: boolean): FichePal {
     sp,
     pageBg: sp.pageBg,
     card: dark ? sp.cardBg : '#FFFFFF',
-    sub: dark ? 'rgba(255,255,255,0.07)' : '#F7F8FA',
+    sub: dark ? crmStep('s3', 'rgba(255,255,255,0.07)') : '#F7F8FA',
     ink: sp.ink,
     inkSoft: sp.soft,
     muted: sp.sub,
@@ -380,8 +380,8 @@ function CdMenu({ P, dark, onEditId, onEditCoord, onEditCrit, onDelete }: {
   const [hi, setHi] = useState(-1)
   const menuShadow = dark ? `inset 0 0 0 1px ${P.hairline}, ${P.sp.shadow}` : P.sp.shadow
   // Fond neutre dédié en sombre (même famille que la modale destructive), pas la carte.
-  const menuBg = dark ? '#17181A' : P.card
-  const menuHov = dark ? '#26272A' : P.sub
+  const menuBg = dark ? crmStep('s4', '#17181A') : P.card
+  const menuHov = dark ? crmStep('s3', '#26272A') : P.sub
   const items = [
     { icon: 'pencil', label: t('fiche.menu.editIdentity'), act: onEditId },
     { icon: 'msg', label: t('fiche.menu.editCoord'), act: onEditCoord },
@@ -418,7 +418,7 @@ function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
   P: FichePal; dark: boolean; name: string; done?: boolean; error: string | null; onCancel: () => void; onConfirm: () => void
 }) {
   const { t } = useTranslation('contacts')
-  const modalBg = dark ? '#17181A' : '#FFFFFF'
+  const modalBg = dark ? crmStep('s4', '#17181A') : '#FFFFFF'
   const veil: CSSProperties = { position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: "'Inter Tight', system-ui, sans-serif" }
 
   if (done) {
@@ -460,7 +460,7 @@ function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
 
 function CdKycWarn({ P, dark, name, onCancel, onConfirm }: { P: FichePal; dark: boolean; name: string; onCancel: () => void; onConfirm: () => void }) {
   const { t } = useTranslation('contacts')
-  const modalBg = dark ? '#202124' : '#FFFFFF'
+  const modalBg = dark ? crmStep('s4', '#202124') : '#FFFFFF'
   const [consent, setConsent] = useState(false)
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 90, display: 'grid', placeItems: 'center', background: 'rgba(15,20,30,0.42)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease' }}>
@@ -501,7 +501,7 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
   P: FichePal; dark: boolean; draft: NmDraft; setDraft: (fn: (s: NmDraft) => NmDraft) => void; verified: boolean; error: string | null; onCancel: () => void; onSave: () => void
 }) {
   const { t } = useTranslation('contacts')
-  const modalBg = dark ? '#202124' : '#FFFFFF'
+  const modalBg = dark ? crmStep('s4', '#202124') : '#FFFFFF'
   const birthKo = isInvalidSwissDate(draft.birth)
   const canSave = !!draft.firstName.trim() && !!draft.lastName.trim() && !birthKo
   const countryOpts = [{ v: '', l: t('fiche.identity.countryNone') }, ...COUNTRIES.map((c) => ({ v: c.code, l: c.name }))]

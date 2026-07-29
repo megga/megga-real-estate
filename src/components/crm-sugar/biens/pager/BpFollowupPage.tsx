@@ -15,7 +15,7 @@ import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { CrmBien } from '@/components/crm-sugar/mockData'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { crmStep, type SugarPalette } from '@/components/crm-sugar/tokens'
 import type { GalSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { GalPhoto } from '@/components/crm-sugar/biens/gallery/GalleryAtoms'
 import { BpRenewModal } from './BpRenewModal'
@@ -161,7 +161,7 @@ export function BpFollowupPage({
   return (
     <div style={{ position: 'absolute', inset: 0, background: sp.pageBg, display: 'grid', gridTemplateColumns: '324px 1fr', overflow: 'hidden' }}>
       <style>{`
-        .bpf-row:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'}; }
+        .bpf-row:hover { background: ${dark ? crmStep('s3', 'rgba(255,255,255,0.05)') : 'rgba(15,23,42,0.035)'}; }
         .bpf-feed::-webkit-scrollbar { width: 9px; }
         .bpf-feed::-webkit-scrollbar-thumb { background: ${dark ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
         .bpf-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; align-items: start; }

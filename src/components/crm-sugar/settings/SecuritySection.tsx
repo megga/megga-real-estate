@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ui/Toast'
 import { SetIcon } from './atoms'
 import { SET_PALETTE, SET_DARK } from './data'
+import { crmStep } from '@/components/crm-sugar/tokens'
 import { SSOConnectionsCard } from './SSOConnectionsCard'
 import { useUserDevices, type UserDevice } from '@/hooks/useUserDevices'
 
@@ -757,7 +758,8 @@ const ghostInline: React.CSSProperties = {
 // ════════════════════════════════════════════════════════════════════════
 function HeroSecurity() {
   const { t } = useTranslation('settings')
-  const heroBg = isDark() ? '#16171F' : '#0B0C0E'
+  // En sombre le héro prend la couleur des cards ; le bloc immersif clair reste noir.
+  const heroBg = isDark() ? crmStep('s2', '#16171F') : '#0B0C0E'
   return (
     <div
       style={{

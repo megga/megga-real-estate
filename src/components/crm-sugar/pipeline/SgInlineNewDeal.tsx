@@ -12,7 +12,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { StageId, SugarPalette } from '../tokens'
+import { crmStep, type StageId, type SugarPalette } from '../tokens'
 import { useAuth } from '@/hooks/useAuth'
 import { useContactsSugar } from '@/hooks/useContactsSugar'
 import { useCreateTransaction } from '@/hooks/useTransactions'
@@ -110,7 +110,7 @@ export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore }
       {selected ? (
         <div onClick={() => { setContactId(null); setQ('') }} title={t('inline.changeContact')} style={{
           display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 11,
-          background: dark ? 'rgba(255,255,255,.05)' : '#F7F8FA', cursor: 'pointer', minWidth: 0,
+          background: dark ? crmStep('s3', 'rgba(255,255,255,.05)') : '#F7F8FA', cursor: 'pointer', minWidth: 0,
         }}>
           <span style={{
             width: 26, height: 26, borderRadius: 999, background: selected.avatarBg || sp.ink,

@@ -2,7 +2,7 @@
 // 1:1 port from `crm-screen-parcours-sugar.jsx` (PCFilters).
 
 import { useTranslation } from 'react-i18next'
-import type { SugarPalette } from '../tokens'
+import { crmStep, type SugarPalette } from '../tokens'
 import {
   PARCOURS_STAGES,
   URGENCY_MAP,
@@ -38,7 +38,7 @@ export function PCFilters({
     borderRadius: 999,
     border: 0,
     cursor: 'pointer',
-    background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.6)',
+    background: dark ? crmStep('s2', 'rgba(255,255,255,0.06)') : 'rgba(255,255,255,0.6)',
     color: sp.ink,
     fontSize: 13,
     fontWeight: 600,
@@ -160,7 +160,7 @@ export function PCFilters({
           fontWeight: 600,
           padding: '6px 12px',
           borderRadius: 999,
-          background: dark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.5)',
+          background: dark ? crmStep('s2', 'rgba(255,255,255,0.04)') : 'rgba(255,255,255,0.5)',
         }}
       >
         {tr('journey.filters.activeCount', { count })}

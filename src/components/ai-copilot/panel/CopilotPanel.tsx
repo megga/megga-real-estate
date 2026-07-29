@@ -106,7 +106,7 @@ function cpInline(text: string, sp: AiPalette, kb: string): ReactNode[] {
       out.push(<code key={kb + 'c' + k++} style={{
         fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: '0.86em',
         padding: '1.5px 5px', borderRadius: 6, color: sp.ink,
-        background: sp.dark ? 'rgba(255,255,255,0.08)' : 'rgba(11,12,14,0.05)',
+        background: sp.fill,
       }}>{m[2]}</code>)
     }
     last = re.lastIndex
@@ -266,7 +266,7 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGene
           <button onClick={copy} style={{
             display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
             fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 13px',
-            borderRadius: 999, color: copied ? sp.ink : sp.soft, background: sp.dark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+            borderRadius: 999, color: copied ? sp.ink : sp.soft, background: sp.dark ? sp.fill : '#FFFFFF',
             boxShadow: sp.dark ? 'none' : '0 1px 4px rgba(15,23,42,0.06)', transition: 'background .14s',
           }}>
             <CpIcon name={copied ? 'check' : 'copy'} size={13} color={copied ? sp.ink : sp.soft} sw={2} />
@@ -315,7 +315,7 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, margin: '4px 0 18px', animation: 'cpCtxIn .4s cubic-bezier(.2,.8,.2,1) both' }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999,
-          background: sp.dark ? 'rgba(255,255,255,0.06)' : 'rgba(11,12,14,0.05)',
+          background: sp.fill,
         }}>
           <CpIcon name="eye" size={13} color={sp.sub} sw={1.9} />
           <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.sub, letterSpacing: 0.1 }}>
@@ -422,7 +422,7 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string, photos?: string
           {photos.map((p) => (
             <div key={p.id} style={{
               position: 'relative', width: 46, height: 46, borderRadius: 9, overflow: 'hidden',
-              background: sp.dark ? 'rgba(255,255,255,0.08)' : '#E9ECF1', display: 'grid', placeItems: 'center',
+              background: sp.dark ? sp.fillStrong : '#E9ECF1', display: 'grid', placeItems: 'center',
             }}>
               {p.url
                 ? <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -447,7 +447,7 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string, photos?: string
         <button onClick={() => fileRef.current?.click()} title="Joindre des photos" aria-label="Joindre des photos"
           style={{
             width: 34, height: 34, borderRadius: 999, border: 0, cursor: 'pointer',
-            background: sp.dark ? 'rgba(255,255,255,0.06)' : 'rgba(11,12,14,0.05)',
+            background: sp.fill,
             display: 'grid', placeItems: 'center',
           }}>
           <CpIcon name="image" size={18} color={sp.sub} sw={1.9} />
@@ -457,7 +457,7 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string, photos?: string
         <button onClick={submit} disabled={!canSend} title="Envoyer" aria-label="Envoyer"
           style={{
             width: 36, height: 36, borderRadius: 999, border: 0, cursor: canSend ? 'pointer' : 'default',
-            background: canSend ? (sp.dark ? '#FFFFFF' : sp.ink) : (sp.dark ? 'rgba(255,255,255,0.12)' : '#E6E9EE'),
+            background: canSend ? (sp.dark ? '#FFFFFF' : sp.ink) : (sp.dark ? sp.fillStrong : '#E6E9EE'),
             display: 'grid', placeItems: 'center', transition: 'background .16s',
           }}>
           <CpIcon name="send" size={18} color={canSend ? (sp.dark ? '#0B0C0E' : '#fff') : (sp.dark ? 'rgba(255,255,255,0.4)' : sp.sub)} sw={2} />

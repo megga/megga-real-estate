@@ -13,7 +13,7 @@ import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'motion/react'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { SG_STAGE_HUE, crmFmtCHF, type SugarPalette } from '../tokens'
+import { SG_STAGE_HUE, crmFmtCHF, crmStep, type SugarPalette } from '../tokens'
 import { crmContactById, type CrmDeal } from '../mockData'
 import { SugarCardQuickActions, type VisitSlot } from './SugarCardQuickActions'
 
@@ -105,9 +105,11 @@ function SugarDealCardImpl({
         onDragEnd={onDragEnd}
         onClick={!isDragging && !signing ? onClick : undefined}
         style={{
+          // Carte de deal : trois paliers selon l'état — au repos S2, au survol
+          // S3, et S1 (creusée) quand elle n'a pas d'action suivante.
           background: na
-            ? (dark ? (hover ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.05)') : '#FFFFFF')
-            : (dark ? 'rgba(255,255,255,.03)' : sp.cardSubBg),
+            ? (dark ? (hover ? crmStep('s3', 'rgba(255,255,255,.07)') : crmStep('s2', 'rgba(255,255,255,.05)')) : '#FFFFFF')
+            : (dark ? crmStep('s1', 'rgba(255,255,255,.03)') : sp.cardSubBg),
           borderRadius: 18,
           padding: '12px 14px',
           boxShadow: isDragging ? 'none' : sp.shadowSm,
