@@ -32,23 +32,33 @@ avoir livré une feature ou changé l'architecture :
 2. **Vérifier les faits contre le code** avant d'écrire (ne jamais committer une affirmation non vérifiée).
 3. Ajouter/corriger les entrées dans le seed JSON (clé stable `megga/<sujet>`, valeur dense ≤ ~600 car., `tags`).
 4. Mettre à jour la section correspondante de **ce document** si l'archi a bougé.
-5. `npm run ruflo:seed` (recharge), puis vérifier : `npx ruflo memory search -q "<sujet>" -n megga`.
+5. `npm run ruflo:seed` (recharge), puis vérifier avec la commande d'interrogation ci-dessous.
 6. Commit + push.
 
-**Interroger :** `npx ruflo memory search -q "comment fonctionne le gate KYC" -n megga`
-**Lister :** `npx ruflo memory list -n megga` · **Recharger :** `npm run ruflo:seed`
+**Interroger :**
+```bash
+CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "comment fonctionne le gate KYC" -n megga
+```
+**Lister :** même préfixe + `memory list -n megga` · **Recharger :** `npm run ruflo:seed`
 
 > 🛠️ **Construire/refondre un algorithme** (matching, analytics, Focus…) : suivre la **méthode des 3 vagues**
 > (comprendre → concevoir → implémenter+revue+tests live → entretenir le cerveau), orchestrée via le tool
 > `Workflow`. Détail dans le nœud cerveau `megga/methode-algo-vagues`. La qualité vient de la discipline de
 > vérification (ancrage code/DB + revue adversariale + tests backend live en CI), pas du nombre de vagues.
 
-> ⚠️ **Écritures directes** (`ruflo memory store`/`import` hors script) : préfixer
-> `CLAUDE_FLOW_DISABLE_BRIDGE=1`, sinon ruflo (3.10.x) annonce un succès mais ne persiste rien —
-> son bridge AgentDB garde les lignes dans un SQLite en mémoire que le CLI quitte sans flusher.
-> Le script `npm run ruflo:seed` pose ce flag lui-même et vérifie le rappel par une sonde de
-> recherche après import (le « Vectors: 0 » affiché par l'import est un compteur factice upstream).
-> La lecture (`search`/`list`) n'a pas besoin du flag.
+> ⚠️ **`CLAUDE_FLOW_DISABLE_BRIDGE=1` + version épinglée : sur TOUTE commande ruflo, lecture comprise.**
+> Le flag choisit le magasin. Sans lui, le bridge AgentDB travaille sur un SQLite en mémoire /
+> `ruvector.db` que le CLI quitte sans flusher : une **écriture** annonce un succès et ne persiste
+> rien, et une **lecture** interroge un magasin vide. Le script `npm run ruflo:seed` pose le flag
+> lui-même et vérifie le rappel par une sonde de recherche après import (le « Vectors: 0 » affiché
+> par l'import est un compteur factice upstream).
+>
+> Épingler `ruflo@3.10.46` (la version du script de seed) pour deux raisons, mesurées le 29/07/2026 :
+> `npx ruflo` non épinglé résout aujourd'hui **3.32.30**, où la lecture SANS le flag renvoie
+> **« No results found » sur un cerveau plein** — un faux négatif silencieux qui se lit comme un
+> cerveau vide (3.10.46 tombait, lui, sur le chemin sql.js legacy par défaut, ce qui masquait le
+> problème) ; et l'invoquer **réécrit `.claude/helpers/`** au passage (~900 lignes, 3.25.6 → 3.32.30),
+> un diff parasite à annuler avant de committer.
 
 > ⚠️ **Fiabilité** : les entrées reflètent le code à leur date d'écriture. En cas de doute, le **code
 > fait foi** — re-vérifier puis corriger le seed. Plusieurs entrées portent des `NUANCE`/`ATTENTION`
