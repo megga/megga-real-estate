@@ -564,8 +564,8 @@ aucune URL, aucun en-tête, aucun schéma de réponse n'est écrit « au plus pr
 URL inventée se découvrirait en production, une valeur vide se découvre à la lecture.
 
 **La règle de juridiction, et pourquoi elle vient avec cette étape.** Une source déclare
-désormais le pays qu'elle couvre (`KybSource.appliesTo`) ; `selectApplicableSources()`
-écarte avant exécution celles qui ne le couvrent pas, et `index.ts` joint les écartées à
+désormais ce qu'elle couvre (`KybSource.appliesTo`) ; `selectApplicableSources()` écarte
+avant exécution celles qui ne couvrent pas le dossier, et `index.ts` joint les écartées à
 `p_metadata.sources_skipped` pour que la trace dise ce qui n'a pas été interrogé.
 
 Elle existe pour rendre **impossible** que deux sources écrivent le même `check_type` pour
@@ -576,22 +576,53 @@ Ajouter Zefix donnait un second propriétaire à `registry_lookup` et
 répondrait `match`, l'`unavailable` que le connecteur français produit déjà pour tout
 siège hors de France pouvait s'insérer après lui et le masquer : **un véto réellement
 satisfait se serait lu comme un véto absent**, et cela le jour même où quelqu'un aurait
-cru ne toucher qu'au parsing. Zefix couvre `CH`, le registre français `FR`, le registre
-UID `CH`/`LI`, VIES tout le reste : deux propriétaires d'un même type ne peuvent plus
-s'appliquer à la même agence, et l'ordre d'insertion cesse de porter du sens.
+cru ne toucher qu'au parsing. Zefix couvre `CH`, le registre français `FR` ; `vat_lookup`
+se départage sur le **préfixe de TVA déclaré** et non sur le pays du siège (voir plus bas).
+Deux propriétaires d'un même type ne peuvent plus s'appliquer au même dossier, et l'ordre
+d'insertion cesse de porter du sens.
+
+**La portée exacte de cet « impossible ».** Le filtre lit le `check_type` que la source
+**déclare** (`source.checkType`). Un connecteur peut écraser le sien **à l'exécution** via
+`KybSourceResult.check_type` (c'est ce que fait RDAP pour `domain_generic_provider`), et
+cette écriture-là ne passe par aucun filtre, puisqu'elle n'existe qu'une fois la source
+déjà exécutée. Aucun type partagé n'est produit de cette façon aujourd'hui ; à vérifier
+avant d'y recourir en écrivant le parsing Zefix.
 
 Écarté délibérément : faire préférer au moteur un résultat tranché à un `unavailable`. Ce
 serait laisser un `match` d'hier survivre à la panne d'aujourd'hui. « La dernière ligne
 gagne, sans exception » reste la bonne règle pour une piste d'audit ; c'est en amont qu'il
 faut éviter d'écrire deux lignes concurrentes.
 
-**Changement de comportement assumé** : une agence sans pays déclaré ne reçoit plus de
-lignes `registry_lookup`, `registry_legal_name_match` ni `vat_lookup` (elle en recevait
-trois, toutes `unavailable`), et une agence suisse n'en reçoit plus deux « siège hors
-France ». Aucun score, aucun statut ne bouge pour autant, le moteur traitant `unavailable`
-et « ligne absente » à l'identique. Vérifié en base et non supposé : un dossier suisse par
-ailleurs parfait reste en `manual_review` avec `veto_failed` à vrai, et bascule en
-`auto_validated` dès que les quatre vétos sont posés à la main.
+**Changement de comportement assumé** : une agence sans pays déclaré ni TVA à préfixe
+européen ne reçoit plus de lignes `registry_lookup`, `registry_legal_name_match` ni
+`vat_lookup` (elle en recevait trois, toutes `unavailable`), et une agence suisse n'en
+reçoit plus deux « siège hors France ». Ces lignes-là valaient `unavailable`, que le moteur
+traite exactement comme une ligne absente : ni score ni statut ne bougent. Vérifié en base
+et non supposé : un dossier suisse par ailleurs parfait reste en `manual_review` avec
+`veto_failed` à vrai, et bascule en `auto_validated` dès que les quatre vétos sont posés à
+la main.
+
+**Ce qu'écarter coûte quand la source avait un verdict à rendre** (défaut trouvé en revue
+finale, corrigé). Écarter n'est neutre **qu'à la condition** que la source écartée n'ait
+rien eu à répondre sur ce dossier. `agencies.tva` est du texte libre : ni `StepAgence.tsx`
+ni la base ne vérifient l'accord entre le préfixe et le pays du siège, et un dossier `CH`
+peut donc déclarer une TVA à préfixe européen. Avant l'étape 6, VIES était interrogée pour
+tout siège et rendait sur ce numéro un `mismatch` (poids 3.00). Départager sur le seul pays
+du siège l'écartait : le signal défavorable disparaissait au profit d'un `unavailable` du
+registre UID, exclu du numérateur **et** du dénominateur. Mesuré en base, mêmes vétos posés
+à la main : **0.200 → `manual_review` avec le `mismatch`, 1.000 → `auto_validated` sans**.
+Un dossier qui devait passer par la revue humaine s'auto-validait, et ouvrait donc les
+gardes LAB, sans que le relecteur, qui ne regarde pas la TVA, voie jamais la différence.
+
+Corrigé par un **point de décision unique**, `vatLookupOwner(agency)` : le préfixe déclaré
+prime (une TVA à préfixe UE revient à VIES, quel que soit le siège), le siège ne tranche
+que ce que le préfixe ne tranche pas (`CH`/`LI` au registre UID, tout le reste à VIES), et
+sans l'un ni l'autre personne n'écrit, le moteur traitant cette absence comme
+l'`unavailable` d'alors. Les deux `appliesTo` comparent la même valeur unique à la leur :
+l'exclusivité reste une propriété du code, pas deux prédicats à tenir d'accord. Les dix
+combinaisons (siège × préfixe) sont vérifiées contre le code d'avant l'étape 6 dans
+`tests/backend/agency-verification-run.spec.ts` (matrice de propriétaires, volet 9) et le
+verdict lui-même contre le vrai moteur (volet 2).
 
 **Hors périmètre, et pourquoi.** `registry_number_format` ne dépend d'aucun identifiant
 (clé de contrôle du numéro `CHE` et du SIREN, un calcul pur) : il n'est pas bloqué, donc il
@@ -803,17 +834,36 @@ tout `supabase/functions/`. Couverture : `tests/backend/open-kyc-case-lab-guard.
 
 ### À faire au moment du merge, impérativement
 
-Les 16 migrations sont datées du 28 juillet 2026. Le garde-date de `deploy.yml` n'applique
-que celles dont l'horodatage est supérieur ou égal à la date du jour en UTC, et il **ne
-signale un saut que par un avertissement, jamais par un échec**. Mergées un jour
-ultérieur sans rien faire, elles sont toutes sautées en silence pendant que le bundle
-frontend part quand même : tout dirigeant se retrouve alors devant un wizard dont ni les
-tables ni les RPC n'existent, avec la déconnexion pour seule sortie.
+Les 18 migrations (`ls supabase/migrations/202607281*.sql | wc -l`) sont datées du 28
+juillet 2026. Le garde-date de `deploy.yml` n'applique que celles dont l'horodatage est
+supérieur ou égal à la date du jour en UTC, et il **ne signale un saut que par un
+avertissement, jamais par un échec**. Mergées un jour ultérieur sans rien faire, elles sont
+toutes sautées en silence pendant que le bundle frontend part quand même : tout dirigeant
+se retrouve alors devant un wizard dont ni les tables ni les RPC n'existent, avec la
+déconnexion pour seule sortie.
 
-Re-dater en séquence monotone, jamais en conservant la seule composante horaire :
+Re-dater en séquence monotone, jamais en conservant la seule composante horaire. Le
+compteur va dans les **minutes** (`10<MM>00`), jamais multiplié dans un `printf` :
 
 ```bash
-cd supabase/migrations && i=0; for f in $(ls 202607281*.sql | sort); do git mv "$f" "$(date -u +%Y%m%d)10$(printf '%04d' $((i*1000)))_${f#*_}"; i=$((i+1)); done
+cd supabase/migrations && i=0; for f in $(ls 202607281*.sql | sort); do git mv "$f" "$(date -u +%Y%m%d)10$(printf '%02d' $i)00_${f#*_}"; i=$((i+1)); done
+```
+
+> **Piège corrigé en revue finale.** La commande portait `printf '%04d' $((i*1000))`.
+> `%04d` est une largeur **minimale**, pas une troncature : à partir de `i=10` elle rend
+> cinq chiffres, donc un horodatage à **15 chiffres** au lieu de 14. Essai à blanc sur ces
+> 18 fichiers : 8 d'entre eux sortaient à 15 chiffres, et le tri lexicographique plaçait
+> alors `202607291010000` entre `20260729101000` et `20260729102000` :
+> `submit_agency_identity_id_document` serait passée **avant** `agency_related_persons` et
+> `agency_verification_checks`, donc `supabase db reset` en échec, et poussée sans reset la
+> catastrophe décrite ci-dessus. La forme ci-dessus tient jusqu'à 60 fichiers (`MM` va de
+> `00` à `59`) ; au-delà, passer le compteur aux secondes plutôt que d'élargir le `printf`.
+
+Toujours faire l'essai à blanc avant de renommer. Il n'affiche que l'ancien et le nouveau
+nom, plus le compte de chiffres :
+
+```bash
+cd supabase/migrations && i=0; for f in $(ls 202607281*.sql | sort); do n="$(date -u +%Y%m%d)10$(printf '%02d' $i)00_${f#*_}"; s="${n%%_*}"; printf '%-56s -> %-16s [%s chiffres]\n' "$f" "$s" "${#s}"; i=$((i+1)); done
 ```
 
 Puis vérifier qu'aucune version n'est en double, y compris face à `main`, et rejouer :
@@ -876,27 +926,94 @@ sous `VITE_MAPBOX_TOKEN`), il n'a simplement jamais été posé côté serveur. 
 
 ## 9. Carte des fichiers
 
+État réel de la branche (chaque chemin vérifié par un `ls`). Les migrations ont été
+re-datées au 28 juillet ; les noms en `2026072612xxxx` cités dans les versions précédentes
+de cette section **n'existent plus**.
+
+**Conception et suivi**
+
 | Fichier | Rôle |
 |---|---|
 | `docs/agency-kyb-verification.md` | conception du schéma et de la vérification, arbitrages, inventaire des sources |
 | `docs/superpowers/specs/2026-07-26-onboarding-kyb-design.md` | conception du parcours utilisateur, gate, découpage |
-| `supabase/migrations/20260726120000_legal_forms_reference.sql` | référentiel, alias, `normalize_legal_form_text()` |
-| `…120100_agencies_kyb_columns.sql` | renommage `ide`, FK forme juridique, backfill, état de vérification |
-| `…120200_agency_related_persons.sql` | personnes de conformité, rôles, `is_agency_admin()` |
-| `…120300_agency_verification_checks.sql` | catalogue, config pondérée versionnée, 2 journaux |
-| `tests/backend/agency-kyb-verification.spec.ts` | 16 tests de non-régression |
-| `src/hooks/useLegalForms.ts` | options du menu, filtrées par pays du siège |
-| `src/hooks/useAgencySettings.ts` | lecture/écriture des réglages agence |
-| `src/components/crm-sugar/settings/focus/pfKit{,Core}.tsx` | mode « choix unique » ajouté à `PfEditField` |
+| `docs/agency-kyb-handoff.md` | ce document |
+| `docs/superpowers/plans/2026-07-2{6,7,8,9}-onboarding-kyb-etape*.md` | 6 plans d'implémentation, un par étape (`etapes-0-1`, `etape-2` … `etape-6`) |
+| `docs/runbooks/trigger-inscription-duplique.md` | rétablissement si le trigger d'inscription se retrouve en double |
 
-Fichiers à connaître pour l'étape 1, non modifiés à ce jour :
+**Migrations** : les 18, dans l'ordre d'application (`supabase/migrations/`)
+
+| Fichier | Rôle |
+|---|---|
+| `20260728100000_legal_forms_reference.sql` | référentiel, alias, `normalize_legal_form_text()` |
+| `20260728101000_agencies_kyb_columns.sql` | renommage `ide`, FK forme juridique, backfill, état de vérification |
+| `20260728102000_agency_related_persons.sql` | personnes de conformité, rôles, `is_agency_admin()` |
+| `20260728103000_agency_verification_checks.sql` | catalogue, config pondérée versionnée, 2 journaux de checks |
+| `20260728104000_auth_user_created_trigger.sql` | `on_auth_user_created` versionné (il n'était dans aucune migration) |
+| `20260728105000_signup_agency_provisioning.sql` | `handle_new_user()` / `provision_solo_agency()` corrigés, backfill des fondateurs |
+| `20260728106000_revoke_join_agency.sql` | `join_agency(uuid)` révoquée d'`authenticated` |
+| `20260728107000_agencies_identity_submission.sql` | `identity_submitted_at`, statut `validated` |
+| `20260728108000_submit_agency_identity.sql` | RPC de soumission, garde de complétude, verrou `FOR UPDATE` |
+| `20260728109000_kyb_identity_documents_storage.sql` | préfixe Storage `kyb-identity` et ses 4 policies dédiées |
+| `20260728110000_submit_agency_identity_id_document.sql` | pièce d'identité du signataire, check `id_document` |
+| `20260728120000_agency_verification_config.sql` | `get_agency_verification_config()`, seuils réglables |
+| `20260728130000_recompute_agency_verification.sql` | **le moteur** : score, vétos, statut |
+| `20260728140000_record_agency_verification_run.sql` | écriture des checks + moteur + journal, en une transaction |
+| `20260728150000_trigger_agency_verification_on_submit.sql` | déclenchement depuis la soumission + `sweep_pending_agency_verifications` |
+| `20260728160000_agency_review_queue.sql` | file de revue admin et ses quatre décisions humaines |
+| `20260728170000_lock_agency_verification_columns.sql` | écriture des colonnes de vérification révoquée aux rôles utilisateur |
+| `20260728171000_kyc_cases_insert_lab_guard.sql` | garde LAB dans le `WITH CHECK` de `kyc_cases_insert` |
+
+**Backend applicatif**
+
+| Fichier | Rôle |
+|---|---|
+| `supabase/functions/agency-verification-run/index.ts` | le passage de vérification : lit l'agence, compose et filtre le registre, appelle la RPC |
+| `supabase/functions/_shared/kyb-sources.ts` | contrat des connecteurs, harnais, RDAP / VIES / recherche-entreprises / Mapbox, juridiction, squelettes Zefix et UID |
+| `supabase/functions/_shared/agency-lab-guard.ts` | garde LAB côté edge (`requireAgencyLabCleared`, `isAgencyLabClearedInDb`) |
+| `supabase/functions/kyc-screening/index.ts`, `sign-document/index.ts`, `_shared/whatsapp-actions.ts` | les trois surfaces que le garde LAB ferme |
+| `src/lib/edgeFunctionRoster.ts` | inventaire des edge functions (y compris `agency-verification-run`) |
+
+**Frontend**
+
+| Fichier | Rôle |
+|---|---|
+| `src/hooks/useIdentityGate.ts` | gate d'identité légale, `resolveIdentityGateStatus` (pure, testée hors React) |
+| `src/hooks/useAgencyIdentity.ts` | lecture/écriture du wizard, upload des pièces |
+| `src/hooks/useLegalForms.ts` | options du menu, filtrées par pays du siège |
+| `src/hooks/useLabGuard.ts` | garde LAB côté CRM agent |
+| `src/hooks/useAdminKybReview.ts` | file de revue de la console admin |
+| `src/hooks/useAgencySettings.ts` | lecture/écriture des réglages agence |
+| `src/components/crm-sugar-identity/IdentityShell.tsx` + `tokens.ts` | coquille du wizard, navigation et persistance |
+| `src/components/crm-sugar-identity/steps/Step{Signataire,Agence,Beneficiaires,PieceIdentite,Recapitulatif}.tsx` | les 5 étapes |
+| `src/pages/agent/IdentitySugarPage.tsx`, `IdentityMobileNotice.tsx` | route `/dashboard/identite`, desktop et mobile |
+| `src/pages/admin/AdminKybReviewPage.tsx` | écran de la file de revue |
+| `src/components/layout/KycLabGuard.tsx`, `LabGuardBanner.tsx` | blocage et bandeau de rappel |
+| `src/components/crm-sugar/settings/focus/pfKit{,Core}.tsx` | mode « choix unique » ajouté à `PfEditField` |
+| `src/i18n/locales/{fr,de,en,it}/onboarding.json` | libellés du wizard, 4 langues |
+
+**Tests**
+
+| Fichier | Rôle |
+|---|---|
+| `tests/backend/agency-kyb-verification.spec.ts` | non-régression du schéma : référentiel, backfill, policies |
+| `tests/backend/agency-identity-submit.spec.ts` | RPC de soumission, complétude, idempotence |
+| `tests/backend/kyb-identity-documents-storage.spec.ts` | les 8 policies du préfixe `kyb-identity` |
+| `tests/backend/signup-provisioning.spec.ts`, `onboarding-agency-rpc.spec.ts` | chemin d'inscription |
+| `tests/backend/agency-verification-config.spec.ts`, `agency-verification-engine.spec.ts` | barème et moteur |
+| `tests/backend/agency-verification-run.spec.ts` | Edge Function, connecteurs, juridiction, squelettes, non-régression du verdict |
+| `tests/backend/agency-review-queue.spec.ts` | file de revue et décisions humaines |
+| `tests/backend/agency-lab-guard.spec.ts`, `kyc-cases-insert-lab-guard.spec.ts`, `open-kyc-case-lab-guard.spec.ts` | gardes LAB (edge, RLS, WhatsApp) |
+| `tests/backend/agencies-verification-columns-lockdown.spec.ts` | colonnes de vérification en lecture seule pour les rôles utilisateur |
+| `tests/unit/identity-gate.spec.ts`, `identity-shell-navigation.spec.ts`, `useAgencyIdentity.spec.ts`, `lab-guard.spec.ts`, `admin-kyb-review-reasons.spec.ts` | unitaires |
+| `tests/e2e/onboarding-identite.spec.ts` + `playwright.kyb.config.ts` | cycle complet, authentification réelle, job CI `e2e-kyb` (`.github/workflows/e2e.yml`) |
+
+Fichiers à connaître, **non modifiés** par le chantier :
 
 | Fichier | Pourquoi |
 |---|---|
-| `supabase/migrations/20260718130000_remove_onboarding_provision_solo_agency.sql` | `handle_new_user()` et `provision_solo_agency()`, les deux à corriger |
-| `supabase/functions/accept-team-invite/index.ts` | rattachement de l'agent invité |
-| `supabase/migrations/20260621130000_fix_agency_join_role_cast.sql` | `join_agency()` sans garde |
-| `sites/megga-vitrine/js/megga-auth.js` | formulaire d'inscription, envoi d'`agency_name` |
+| `supabase/migrations/20260718130000_remove_onboarding_provision_solo_agency.sql` | version d'origine de `handle_new_user()` et `provision_solo_agency()`, remplacée par `…105000` |
+| `supabase/migrations/20260621130000_fix_agency_join_role_cast.sql` | `join_agency()` d'origine, révoquée par `…106000` |
+| `sites/megga-vitrine/js/megga-auth.js` | formulaire d'inscription de la vitrine, envoi d'`agency_name` |
 
 Le SQL de vérification manuelle (backfill et RLS) était jetable et **n'est pas dans le
 dépôt** : il a été remplacé par le spec de non-régression, qui couvre les mêmes cas.
@@ -905,14 +1022,22 @@ dépôt** : il a été remplacé par le spec de non-régression, qui couvre les 
 
 ## 10. Par où commencer
 
-1. Monter l'environnement (§3) et lancer `supabase db reset` plus les 16 tests. Si ça
-   passe, la base est saine et tu peux faire confiance au reste de ce document.
-2. Traiter l'étape 0 (§2) et merger. Le re-datage règle collision et date-guard d'un
-   coup.
-3. Enchaîner l'étape 1 (§6). Le correctif du rôle fondateur conditionne tout le reste :
-   sans lui, ta propre garde `is_agency_admin()` bloque le dirigeant sur ses propres
-   données.
-4. Puis étape 2, ou étape 3 si tu préfères commencer par du SQL. Elles sont
-   indépendantes l'une de l'autre.
-5. Relancer les identifiants Zefix quand tu y penses. C'est le chemin critique du marché
-   suisse, et personne d'autre que nous ne le débloquera.
+Les étapes 0 à 5 sont livrées, l'étape 6 pose des squelettes (§7ter pour le tableau
+d'avancement). Il n'y a donc plus d'étape à « traiter » : il reste un merge à faire, et des
+suites à décider.
+
+1. Monter l'environnement (§3), puis `supabase db reset && npm run test:backend`. Si la
+   suite backend passe, la base est saine et tu peux faire confiance au reste de ce
+   document. Deux échecs connus, non liés au chantier, dans
+   `tests/backend/agency-review-queue.spec.ts` : la file n'a pas de `LIMIT`, PostgREST
+   tronque à 1000 lignes et une base locale chargée dépasse ce seuil.
+2. **Re-dater les 18 migrations le jour du merge** (§7ter, « À faire au moment du merge »).
+   C'est la seule action obligatoire, et l'oublier casse silencieusement le déploiement.
+   Faire l'essai à blanc avant de renommer.
+3. Poser `MAPBOX_TOKEN` côté serveur (§7ter) : déclaré dans `CLAUDE.md`, jamais posé.
+4. Relancer les identifiants Zefix. C'est le chemin critique du marché suisse, et personne
+   d'autre que nous ne le débloquera (§8). Le jour où ils arrivent, il ne reste que l'URL,
+   l'authentification et l'analyse de la réponse (§6, étape 6).
+5. `registry_number_format` est le travail court qui rapporte le plus : c'est un calcul pur
+   (clé de contrôle `CHE` et SIREN), sans réseau ni identifiant, et le dernier véto qui
+   empêche un dossier suisse par ailleurs complet d'être auto-validé (§7bis).
