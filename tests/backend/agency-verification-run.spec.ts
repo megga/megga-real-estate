@@ -64,7 +64,7 @@
 // ne sont eux-memes jamais concernes par ce skip : ils ne touchent ni reseau ni DB.
 // Seuls les volets 2 et 7 en dependent reellement.
 
-import { describe, it, expect, afterAll, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { serviceRoleClient, anonClient } from './helpers/supabase'
@@ -827,12 +827,31 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
   }
 
   describe('Edge Function deployee -- contrat HTTP', () => {
+    // Demarrage a froid du worker, paye UNE fois ici plutot que par la premiere
+    // assertion venue. Tant que la fonction n'etait pas declaree dans
+    // config.toml, la passerelle locale lui appliquait verify_jwt=true et
+    // rejetait elle-meme les appels non authentifies : ils repondaient en
+    // quelques millisecondes sans jamais reveiller le worker, et les deux
+    // premiers tests de ce bloc -- ceux qui verifient justement un REFUS --
+    // passaient sans avoir rien exerce. Depuis la declaration verify_jwt=false
+    // (etape 6, integration de main), ces deux appels atteignent vraiment le
+    // runtime et paient le demarrage : mesure en CI, 15 s, soit au-dela du
+    // testTimeout. Le hookTimeout (30 s) couvre ce cas, pas le testTimeout.
+    // Echec ignore volontairement : ce ping n'affirme rien, il rechauffe.
+    beforeAll(async () => {
+      try {
+        await fetch(ENDPOINT, { method: 'OPTIONS' })
+      } catch {
+        // Runtime injoignable : les tests du bloc le diront bien mieux que ce ping.
+      }
+    }, 30_000)
+
     async function callRun(agencyId: string, bearer: string = SERVICE_ROLE_JWT): Promise<Response> {
       // apikey + Authorization avec la MEME valeur : meme motif defensif que
-      // kyc-report-data.spec.ts (cette fonction n'est pas dans la liste
-      // verify_jwt=false de config.toml -- le passage par la passerelle locale
-      // depend d'une cle reconnue, l'autorisation reelle est verifiee PAR la
-      // fonction elle-meme, pas par la passerelle).
+      // kyc-report-data.spec.ts. L'autorisation reelle est verifiee PAR la
+      // fonction elle-meme (comparaison a temps constant avec la cle
+      // service-role), jamais par la passerelle -- qui la laisse desormais
+      // passer, la fonction etant declaree verify_jwt=false dans config.toml.
       return fetch(ENDPOINT, {
         method: 'POST',
         headers: {
