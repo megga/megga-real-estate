@@ -32,7 +32,7 @@ parcours d'onboarding est maintenant cadré et décidé.
 | Gate et wizard de saisie | fait, étape 2 |
 | Moteur de scoring | fait, étape 3, ta conception §7 reprise telle quelle |
 | Connecteurs disponibles | fait, étape 4 (RDAP, VIES, registre FR, géocodage) |
-| File de revue admin et gardes LAB | à faire, étape 5 |
+| File de revue admin et gardes LAB | fait, étape 5 |
 | Connecteurs Zefix et UID | bloqués, étape 6 |
 
 **Six étapes sur sept ne dépendent d'aucune réponse externe.** Tu peux tout enchaîner
@@ -323,7 +323,7 @@ est ce qu'il faut avoir en tête pour exécuter.
 | 2 | Gate, wizard 5 étapes, RPC de soumission | fait | 1 | non |
 | 3 | Moteur de scoring (§7) | fait | 0 | non |
 | 4 | Connecteurs disponibles | fait | 3 | non |
-| 5 | File de revue admin et gardes LAB | à faire | 3 | non |
+| 5 | File de revue admin et gardes LAB | fait | 3 | non |
 | 6 | Connecteurs Zefix et UID | à faire | 4 | **oui** |
 
 ### Étape 3 : le moteur, tel qu'il a été livré
@@ -641,7 +641,7 @@ sur `feat/agency-kyb-verification`.
 | 2 · Gate et wizard de saisie | fait |
 | 3 · Moteur de scoring | fait |
 | 4 · Connecteurs disponibles | fait |
-| 5 · File de revue et gardes LAB | **2 tâches sur 5** |
+| 5 · File de revue et gardes LAB | fait |
 | 6 · Connecteurs Zefix et UID | pas commencée |
 
 Fait à l'étape 5 : la couche de données de la file, et les quatre décisions humaines
@@ -681,6 +681,13 @@ premier déploiement par
 **Le gate s'appliquera rétroactivement** à tout dirigeant existant au déploiement, et sur
 mobile l'écran n'offre que la déconnexion. Sans conséquence tant que la base est mock,
 à trancher avant qu'il y ait de vraies agences.
+
+### Trou de même classe encore ouvert, hors périmètre du chantier
+
+Le tool WhatsApp `open_kyc_case` insère dans `kyc_cases` sous `service_role`, qui
+contourne inconditionnellement les policies. Le garde LAB posé sur l'insertion ne le
+couvre donc pas : une agence non vérifiée peut encore faire ouvrir un dossier KYC par ce
+chemin. Trouvé en corrigeant l'étape 5, signalé séparément, non traité ici.
 
 ### À faire au moment du merge, impérativement
 
