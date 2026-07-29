@@ -835,16 +835,30 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
     // premiers tests de ce bloc -- ceux qui verifient justement un REFUS --
     // passaient sans avoir rien exerce. Depuis la declaration verify_jwt=false
     // (etape 6, integration de main), ces deux appels atteignent vraiment le
-    // runtime et paient le demarrage : mesure en CI, 15 s, soit au-dela du
-    // testTimeout. Le hookTimeout (30 s) couvre ce cas, pas le testTimeout.
-    // Echec ignore volontairement : ce ping n'affirme rien, il rechauffe.
+    // runtime et paient le demarrage.
+    //
+    // Ce hook ne peut PAS faire echouer la suite, et c'est deliberé : un premier
+    // jet le laissait simplement attendre `fetch`, sous le hookTimeout de 30 s --
+    // mesure en CI, le demarrage vaut ~15 s d'ordinaire mais depasse 30 s sur un
+    // runner charge, et le hook expirait alors en emportant tout le bloc. Un
+    // rechauffement n'affirme rien : il ne doit jamais etre le motif d'un echec.
+    // D'ou la course contre une echeance qui RESOUT (jamais ne rejette), et un
+    // plafond de hook tres au-dessus d'elle. Si le worker n'est toujours pas
+    // pret, ce sont les tests eux-memes qui le diront, avec leur propre budget.
     beforeAll(async () => {
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const deadline = new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, 60_000)
+      })
       try {
-        await fetch(ENDPOINT, { method: 'OPTIONS' })
-      } catch {
-        // Runtime injoignable : les tests du bloc le diront bien mieux que ce ping.
+        await Promise.race([
+          fetch(ENDPOINT, { method: 'OPTIONS' }).then(() => undefined, () => undefined),
+          deadline,
+        ])
+      } finally {
+        clearTimeout(timer)
       }
-    }, 30_000)
+    }, 120_000)
 
     async function callRun(agencyId: string, bearer: string = SERVICE_ROLE_JWT): Promise<Response> {
       // apikey + Authorization avec la MEME valeur : meme motif defensif que
@@ -875,6 +889,10 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       expect(res.status >= 200 && res.status < 300, `CORS preflight got ${res.status}`).toBe(true)
     })
 
+    // Budget elargi sur ces deux-la SEULEMENT : ce sont les premiers appels du
+    // bloc, donc ceux qui heritent du demarrage a froid si le rechauffement
+    // ci-dessus n'a pas suffi (runner charge). Les suivants trouvent le worker
+    // deja debout et gardent le testTimeout ordinaire de 15 s.
     it('sans Authorization -> 401', async () => {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
@@ -882,12 +900,12 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         body: JSON.stringify({ agency_id: NIL_UUID }),
       })
       expect(res.status).toBe(401)
-    })
+    }, 60_000)
 
     it("un Bearer valide mais qui n'est pas la cle service-role -> 401 (le jeton anon ne doit jamais suffire)", async () => {
       const res = await callRun(NIL_UUID, ANON_KEY)
       expect(res.status).toBe(401)
-    })
+    }, 60_000)
 
     it('agency_id absent du corps -> 400', async () => {
       const res = await fetch(ENDPOINT, {
