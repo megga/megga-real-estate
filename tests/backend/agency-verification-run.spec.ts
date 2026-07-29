@@ -191,14 +191,38 @@ function edgeFunctionSourcesComposition(src: string): string {
   throw new Error(`composition \`${marker}\` non terminee dans ${AGENCY_VERIFICATION_RUN_INDEX}`)
 }
 
-/** Le CORPS de fullKybRegistry() ci-dessous, relu dans ce fichier meme. Le garde-fou doit
- *  verifier ce que la fonction CONTIENT, pas seulement qu'un nom figure dans une liste --
- *  voir le test « la matrice couvre bien le registre qu index.ts compose ». */
+/** Le CORPS de fullKybRegistry() ci-dessous, relu dans ce fichier meme, COMMENTAIRES
+ *  RETIRES. Le garde-fou doit verifier ce que la fonction CONTIENT, pas seulement qu'un
+ *  nom figure dans une liste -- voir le test « la matrice couvre bien le registre qu
+ *  index.ts compose ».
+ *
+ *  Le retrait des commentaires n'est pas cosmetique (revue etape 6/tache 3, verifie par
+ *  mutation) : sur du TEXTE BRUT, mettre l'appel d'une fabrique en commentaire satisfait
+ *  encore le garde-fou, alors que la source correspondante a bel et bien quitte le
+ *  registre teste. La matrice redevient alors aveugle sans que rien ne le signale --
+ *  exactement ce que ce garde-fou existe pour empecher.
+ *
+ *  Retrait naif (aucune analyse de chaines) : suffisant parce que ce corps-ci ne contient
+ *  ni URL ni litteral portant `//`, et un faux retrait ne pourrait de toute facon que
+ *  faire ROUGIR le garde-fou, jamais le rendre aveugle. */
 function fullKybRegistryBody(): string {
   const src = readFileSync(THIS_SPEC, 'utf8')
   const body = src.match(/function fullKybRegistry\(\): KybSource\[\] \{([\s\S]*?)\n\}/)
   if (!body) throw new Error(`corps de fullKybRegistry() introuvable dans ${THIS_SPEC} -- garde-fou aveugle`)
-  return body[1]
+  return body[1].replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+}
+
+/** Motif exigeant que `producer` soit reference DANS LA MEME FORME que l'emploie la
+ *  fonction deployee : appele (`nom(`) si index.ts l'appelle, simplement nomme sinon
+ *  (AGENCY_KYB_SOURCES est une liste qu'on etale, pas une fabrique qu'on invoque).
+ *
+ *  Les BORNES DE MOT sont le coeur du correctif (revue etape 6/tache 3, verifie par
+ *  mutation) : `body.includes('createXSources')` est vrai quand le registre teste compose
+ *  `createXSourcesV2` -- une sous-chaine suffisait, si bien qu'un registre DIVERGENT de la
+ *  composition deployee restait vert. */
+function producerReferenceRe(producer: string, calledByEdgeFunction: boolean): RegExp {
+  const name = producer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(calledByEdgeFunction ? `\\b${name}\\s*\\(` : `\\b${name}\\b`)
 }
 
 /** Configuration Zefix telle qu'agency-verification-run/index.ts la lit AUJOURD'HUI :
@@ -222,7 +246,9 @@ const UID_REGISTER_PENDING_CONFIG: PendingSourceConfig = { baseUrl: '', credenti
  *  mutation a la tache 2 : cabler Zefix dans index.ts sans l'ajouter ici laisse la matrice
  *  AVEUGLE (elle reste verte), et c'est le test d'imports juste apres la matrice qui mord.
  *  Ce test-la a ete DURCI a la tache 3 pour lire le CORPS de cette fonction et non plus une
- *  simple liste de noms -- voir sa docstring. */
+ *  simple liste de noms, puis a la tache 4 pour cesser de comparer du texte BRUT : corps relu
+ *  commentaires retires, producteurs cherches sur bornes de mot et dans la forme meme
+ *  qu'index.ts emploie -- voir fullKybRegistryBody() et producerReferenceRe() plus haut. */
 function fullKybRegistry(): KybSource[] {
   return [
     ...AGENCY_KYB_SOURCES,
@@ -513,14 +539,22 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
           `${AGENCY_VERIFICATION_RUN_INDEX} -- le garde-fou lit-il encore le bon fichier ?`
       ).toBeGreaterThan(0)
 
+      // Comparaison de TEXTE, mais plus de texte BRUT (revue etape 6/tache 3, les deux
+      // angles morts verifies par mutation) : le corps est relu commentaires retires --
+      // sans quoi un appel mis en commentaire satisfait encore le garde-fou -- et chaque
+      // producteur y est cherche sur BORNES DE MOT, dans la forme meme qu'index.ts
+      // emploie -- sans quoi un registre composant `createXSourcesV2` resterait vert
+      // pendant qu'index.ts compose `createXSources`, la sous-chaine suffisant a l'un
+      // comme a l'autre. Voir fullKybRegistryBody() et producerReferenceRe() plus haut.
       const registryBody = fullKybRegistryBody()
       for (const producer of producers) {
         expect(
           registryBody,
           `${producer} construit des sources dans ${AGENCY_VERIFICATION_RUN_INDEX} mais n apparait pas dans le ` +
-            'corps de fullKybRegistry() : la matrice d exclusivite ne verrait jamais ces sources-la. L inscrire ' +
-            'a EDGE_FUNCTION_SOURCE_IMPORTS ne suffit pas -- il faut l ajouter au registre lui-meme.'
-        ).toContain(producer)
+            'corps de fullKybRegistry() -- ou y apparait en commentaire, ou sous un nom dont il n est qu un ' +
+            'prefixe : la matrice d exclusivite ne verrait jamais ces sources-la. L inscrire a ' +
+            'EDGE_FUNCTION_SOURCE_IMPORTS ne suffit pas -- il faut l ajouter au registre lui-meme.'
+        ).toMatch(producerReferenceRe(producer, composition.includes(`${producer}(`)))
       }
     }
   )

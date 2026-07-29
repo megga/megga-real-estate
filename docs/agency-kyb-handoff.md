@@ -324,7 +324,7 @@ est ce qu'il faut avoir en tête pour exécuter.
 | 3 | Moteur de scoring (§7) | fait | 0 | non |
 | 4 | Connecteurs disponibles | fait | 3 | non |
 | 5 | File de revue admin et gardes LAB | fait | 3 | non |
-| 6 | Connecteurs Zefix et UID | à faire | 4 | **oui** |
+| 6 | Connecteurs Zefix et UID | squelette posé, connecteurs à écrire | 4 | **oui** |
 
 ### Étape 3 : le moteur, tel qu'il a été livré
 
@@ -529,6 +529,83 @@ client (`/dashboard/kyc`, edge `kyc-screening`) et demande de signature électro
 (edge `sign-document`). Le blocage explique pourquoi et pointe l'état du dossier. Liste
 exacte à figer avec Gregory : ce sont des actions métier, pas un choix technique.
 
+### Étape 6 : squelettes Zefix et registre UID
+
+**Squelette posé, connecteurs absents.** Ne pas lire cette étape comme « Zefix est
+branché » : aucune requête n'est émise vers Zefix ni vers le registre UID, et aucun
+dossier n'a changé de verdict. Ce qui a été fait, c'est tout ce qui pouvait l'être sans
+identifiants, pour qu'il ne reste, le jour où ils arrivent, que trois choses à écrire.
+
+**Ce qui est câblé** (`supabase/functions/_shared/kyb-sources.ts`, construit par
+`agency-verification-run/index.ts`) :
+
+| Fabrique | Sources | `source` | Juridiction |
+|---|---|---|---|
+| `createZefixSources(config)` | `registry_lookup`, `registry_legal_name_match`, `registry_country_match` | `zefix` | `CH` |
+| `createUidRegisterSources(config)` | `vat_lookup` | `uid_register` | `CH` et `LI` |
+
+Les quatre `check_type` et les deux valeurs de `source` étaient déjà au catalogue
+(`20260728103000`) : **aucune migration dans cette étape.** Les configurations viennent
+de quatre variables d'environnement, toutes vides aujourd'hui (§8).
+
+Tant qu'elles le sont, chaque source lève `KybSourcePendingCredentialsError`, que le
+harnais traduit en `unavailable` avec la raison jointe. Si les secrets sont posés sans que
+le connecteur ait été écrit, elle lève `KybSourceNotWiredError` à la place. Deux erreurs
+et non une, parce qu'elles appellent deux gestes différents : la première attend une
+réponse de `zefix@bj.admin.ch`, la seconde dit que le travail restant est du code, ici.
+Sans cette distinction, celui qui vient de poser les secrets ne verrait qu'un
+`unavailable` identique à celui de la veille. Le type d'erreur est lisible dans
+`raw_response.error_type`, donc dans la file de revue.
+
+**Ce qui reste le jour où les identifiants arrivent : l'URL, l'authentification, l'analyse
+de la réponse. Rien d'autre.** Ni migration, ni retouche de `index.ts`, ni place à trouver
+dans le registre, ni gestion d'erreur ou de timeout à réécrire. Rien n'a été deviné :
+aucune URL, aucun en-tête, aucun schéma de réponse n'est écrit « au plus probable ». Une
+URL inventée se découvrirait en production, une valeur vide se découvre à la lecture.
+
+**La règle de juridiction, et pourquoi elle vient avec cette étape.** Une source déclare
+désormais le pays qu'elle couvre (`KybSource.appliesTo`) ; `selectApplicableSources()`
+écarte avant exécution celles qui ne le couvrent pas, et `index.ts` joint les écartées à
+`p_metadata.sources_skipped` pour que la trace dise ce qui n'a pas été interrogé.
+
+Elle existe pour rendre **impossible** que deux sources écrivent le même `check_type` pour
+une même agence. Le moteur ne garde qu'une ligne par type, et deux lignes écrites dans la
+même transaction portent le même `checked_at` : c'est la dernière insérée qui gagne.
+Ajouter Zefix donnait un second propriétaire à `registry_lookup` et
+`registry_legal_name_match`, le registre UID un second à `vat_lookup`. Le jour où Zefix
+répondrait `match`, l'`unavailable` que le connecteur français produit déjà pour tout
+siège hors de France pouvait s'insérer après lui et le masquer : **un véto réellement
+satisfait se serait lu comme un véto absent**, et cela le jour même où quelqu'un aurait
+cru ne toucher qu'au parsing. Zefix couvre `CH`, le registre français `FR`, le registre
+UID `CH`/`LI`, VIES tout le reste : deux propriétaires d'un même type ne peuvent plus
+s'appliquer à la même agence, et l'ordre d'insertion cesse de porter du sens.
+
+Écarté délibérément : faire préférer au moteur un résultat tranché à un `unavailable`. Ce
+serait laisser un `match` d'hier survivre à la panne d'aujourd'hui. « La dernière ligne
+gagne, sans exception » reste la bonne règle pour une piste d'audit ; c'est en amont qu'il
+faut éviter d'écrire deux lignes concurrentes.
+
+**Changement de comportement assumé** : une agence sans pays déclaré ne reçoit plus de
+lignes `registry_lookup`, `registry_legal_name_match` ni `vat_lookup` (elle en recevait
+trois, toutes `unavailable`), et une agence suisse n'en reçoit plus deux « siège hors
+France ». Aucun score, aucun statut ne bouge pour autant, le moteur traitant `unavailable`
+et « ligne absente » à l'identique. Vérifié en base et non supposé : un dossier suisse par
+ailleurs parfait reste en `manual_review` avec `veto_failed` à vrai, et bascule en
+`auto_validated` dès que les quatre vétos sont posés à la main.
+
+**Hors périmètre, et pourquoi.** `registry_number_format` ne dépend d'aucun identifiant
+(clé de contrôle du numéro `CHE` et du SIREN, un calcul pur) : il n'est pas bloqué, donc il
+n'avait rien à faire dans une étape qui prépare ce qui attend une réponse de l'extérieur.
+C'est un travail court, à mener séparément, et c'est le dernier véto qui empêche un dossier
+suisse par ailleurs complet d'être auto-validé. `signatory_registry_match`, que Zefix
+pourrait pourtant alimenter, est un check de **personne** : `record_agency_verification_run`
+n'écrit que dans `agency_verification_checks`, l'accueillir demanderait d'étendre la RPC.
+`address_registry_match` et `activity_code_match` sont deux signaux moyens à rouvrir quand
+les sources répondront et qu'on saura ce qu'elles renvoient. GLEIF reste à retester depuis
+une Edge Function réelle. `oera.li` n'a aucune API publique connue : le Liechtenstein reste
+en revue manuelle pour son registre du commerce, seul son numéro de TVA étant couvert par
+le squelette UID.
+
 ---
 
 ## 7. Le moteur de scoring : conception
@@ -619,9 +696,23 @@ plutôt que de valider sur une preuve qu'il n'a pas. Mais quiconque se demandera
 l'auto-validation ne se déclenche jamais doit trouver la réponse ici, pas la reconstituer
 en assemblant trois fichiers.
 
-Pour l'atteindre un jour, il faudra : un connecteur de format de numéro de registre, un
-connecteur de concordance de pays, la file de revue de l'étape 5 pour résoudre les pièces
-d'identité, et Zefix pour la Suisse.
+Pour l'atteindre un jour, il faudra quatre choses. Deux ont bougé depuis que ce paragraphe
+a été écrit, et aucune des quatre n'est acquise. **Rien n'est auto-validable aujourd'hui,
+et l'étape 6 n'y a rien changé : c'était son critère de non-régression.**
+
+- **Un connecteur de format de numéro de registre.** Inchangé : toujours aucun, et il
+  n'attend rien de personne (calcul pur, laissé hors de l'étape 6 délibérément, voir §6).
+- **Un connecteur de concordance de pays.** A désormais un propriétaire déclaré pour la
+  Suisse (le squelette Zefix), mais **muet** : il produit `unavailable`, ce qui ne passe
+  pas plus qu'un véto absent. Et toujours personne pour la France : le connecteur français
+  a laissé ce type de côté, n'interrogeant que des sièges déjà déclarés en France. Un
+  propriétaire déclaré n'est pas une preuve.
+- **La file de revue pour résoudre les pièces d'identité.** Livrée (étape 5) : la
+  vérification de pièce d'identité n'est plus bloquée par l'absence d'un chemin, seulement
+  par le geste humain qu'il faut poser dossier par dossier.
+- **Zefix pour la Suisse.** Câblé, sans identifiants (§6 étape 6, et §8 pour l'état de la
+  demande). Le squelette ne rapproche pas de l'auto-validation : il rend seulement le
+  branchement futur court et lisible.
 
 ---
 
@@ -642,7 +733,7 @@ sur `feat/agency-kyb-verification`.
 | 3 · Moteur de scoring | fait |
 | 4 · Connecteurs disponibles | fait |
 | 5 · File de revue et gardes LAB | fait |
-| 6 · Connecteurs Zefix et UID | pas commencée |
+| 6 · Connecteurs Zefix et UID | squelette posé, connecteurs à écrire (§6) |
 
 Fait à l'étape 5 : la couche de données de la file, et les quatre décisions humaines
 (valider, rejeter avec motif, relancer, résoudre la pièce d'identité).
@@ -747,6 +838,29 @@ forte valeur est celui qu'on ne peut pas écrire aujourd'hui.
 checks sont agnostiques de la source, et un check `source='manual'` saisi par un humain
 se score exactement comme un check automatique. C'est ce qui rend le parcours suisse
 exploitable dès maintenant, en revue humaine.
+
+### Où poser les identifiants quand ils arriveront
+
+Les squelettes de l'étape 6 lisent quatre variables d'environnement, toutes **absentes
+aujourd'hui**, aucune n'étant déclarée en secret Supabase ni dans `supabase/config.toml`.
+Elles sont lues par `agency-verification-run/index.ts` et injectées dans les fabriques ;
+le message d'indisponibilité que voit un relecteur de la file renvoie ici.
+
+| Variable | Ce qu'elle porte | Sans elle |
+|---|---|---|
+| `ZEFIX_API_URL` | l'URL de base de Zefix PublicREST, **inconnue** : un `401` apprend qu'un service existe et exige une authentification, jamais à quoi ressemble un appel autorisé | `registry_lookup`, `registry_legal_name_match` et `registry_country_match` sortent `unavailable` pour toute agence suisse |
+| `ZEFIX_API_CREDENTIAL` | de quoi s'authentifier auprès de Zefix, en attente de `zefix@bj.admin.ch` | idem |
+| `UID_REGISTER_API_URL` | l'URL du registre UID, **plus incertaine encore** : on ignore s'il existe une API séparée ou si la TVA n'est qu'un champ Zefix | `vat_lookup` sort `unavailable` pour une agence suisse ou liechtensteinoise |
+| `UID_REGISTER_API_CREDENTIAL` | de quoi s'y authentifier, si tant est qu'il faille le faire | idem |
+
+**Les poser sans écrire le connecteur ne débloque rien**, et le dit : la source lève alors
+`KybSourceNotWiredError` au lieu de `KybSourcePendingCredentialsError`, ce qui distingue
+« il manque un identifiant » de « il manque du code » dans la pièce d'audit. Voir §6,
+étape 6.
+
+`MAPBOX_TOKEN` relève de la même famille (secret Supabase attendu, absent aujourd'hui)
+mais pas de la même cause : ce jeton-là, le dépôt l'a déjà (il est utilisé côté navigateur
+sous `VITE_MAPBOX_TOKEN`), il n'a simplement jamais été posé côté serveur. Voir `CLAUDE.md`.
 
 ---
 

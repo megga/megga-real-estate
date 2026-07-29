@@ -145,6 +145,13 @@ LAB/KYC il faut pouvoir justifier check par check pourquoi un dossier a été au
 
 Statuts **testés en direct le 25.07.2026** sauf mention contraire.
 
+> **Depuis l'étape 6 (29.07.2026) :** Zefix et le registre UID ont un **squelette câblé**
+> dans `_shared/kyb-sources.ts` — sources déclarées, juridiction (`CH` pour Zefix,
+> `CH`/`LI` pour l'UID), place dans le registre et forme de l'indisponibilité. Leur statut
+> ci-dessous est inchangé : aucune requête n'est émise, les quatre checks sortent
+> `unavailable`. Ne restent à écrire, le jour où les identifiants arrivent, que l'URL,
+> l'authentification et l'analyse de la réponse (handoff §6 étape 6, variables au §8).
+
 ### 🇨🇭 Suisse
 
 | Donnée | Source | Statut | Action |
