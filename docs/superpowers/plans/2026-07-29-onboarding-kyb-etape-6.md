@@ -103,11 +103,14 @@ export interface KybSource {
 }
 
 /** Une source écartée avant exécution : trace pour le journal du passage, jamais une
- *  ligne de check (rien n'a été demandé à cette source). */
+ *  ligne de check (rien n'a été demandé à cette source). `jurisdiction_undeterminable`
+ *  est posée quand le prédicat lui-même a levé (revue tâche 1) : on écarte plutôt que
+ *  d'inclure, sans quoi deux sources d'un même type redeviendraient applicables
+ *  ensemble — exactement la collision que cette règle existe pour interdire. */
 export interface SkippedKybSource {
   check_type: string
   source: string
-  reason: 'jurisdiction_not_covered'
+  reason: 'jurisdiction_not_covered' | 'jurisdiction_undeterminable'
 }
 
 export function selectApplicableSources(
