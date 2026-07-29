@@ -1570,8 +1570,9 @@ const ZEFIX_UID_RESULT_LIMIT = 50
  *  aucune API publique connue (doc de conception §3) -- un dossier LI reste en revue
  *  manuelle, il ne doit pas se voir opposer une indisponibilite suisse qui laisserait croire
  *  qu'une source suisse aurait pu le couvrir. Meme valeur comparee et meme helper que le
- *  registre francais (declaredHeadOfficeCountry) : c'est ce qui rend l'exclusivite des deux
- *  check_type partages une propriete du code et non une coincidence. */
+ *  registre francais (declaredHeadOfficeCountry) : c'est ce qui rend l'exclusivite des trois
+ *  check_type partages (registry_lookup, registry_legal_name_match, registry_country_match)
+ *  une propriete du code et non une coincidence. */
 function hasSwissHeadOffice(agency: AgencyForVerification): boolean {
   return declaredHeadOfficeCountry(agency) === 'CH'
 }
