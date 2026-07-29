@@ -16,9 +16,14 @@
  * la palette ⌘K et les listes de tout repère de focus au clavier.
  *
  * Les valeurs viennent de `CRM_TOKENS` (src/components/crm-sugar/tokens.ts) —
- * `light` et `noir`, cette dernière étant la teinte sombre par défaut du CRM
- * (SUGAR_DARK_TONE). Elles y sont dupliquées à la main parce que le CSS ne lit
- * pas le JS ; toute évolution de tokens.ts doit être reportée ici.
+ * `light` et `graphite`, cette dernière étant la teinte sombre par DÉFAUT du
+ * CRM. Elles y sont dupliquées à la main parce que le CSS ne lit pas le JS ;
+ * toute évolution de tokens.ts doit être reportée ici.
+ *
+ * ⚠ Le CSS ne suit PAS la teinte choisie par l'agent : il est figé sur le
+ * défaut. Passer en Noir pur reteint les 17 pages (elles sont en style inline
+ * nourri par `useAdminSugar()`, qui lui est vivant) mais laisse en graphite la
+ * poignée de classes sémantiques restantes — 6 occurrences dans 4 fichiers.
  *
  * ⚠ SCOPÉ à `.megga-admin-console` (posé par `AdminShell`), et non plus à
  * `:root`. La console vit désormais DANS le CRM : repointer les variables
@@ -57,25 +62,25 @@
 }
 
 .megga-admin-console[data-admin-dark='true'] {
-  /* ── Surfaces (CRM_TOKENS.noir — noir franc, même sombre que le CRM) ── */
-  --color-bg-page: 0 0 0; /* #000000 — bg */
-  --color-bg-card: 12 12 16; /* #0C0C10 — surface */
-  --color-bg-section: 6 6 8; /* #060608 — section */
-  --color-bg-sidebar: 12 12 16;
-  --color-bg-elevated: 19 19 25; /* #131319 — surface2 */
-  --color-bg-input: 19 19 25;
-  --color-bg-hover: 19 19 25;
-  --color-bg-active: 26 26 34; /* #1A1A22 */
+  /* ── Surfaces (CRM_TOKENS.graphite — échelle opaque S0→S4) ── */
+  --color-bg-page: 18 22 28; /* #12161C — bg / S0 */
+  --color-bg-card: 26 29 38; /* #1A1D26 — surface / S2 */
+  --color-bg-section: 22 26 33; /* #161A21 — section / S1 */
+  --color-bg-sidebar: 26 29 38;
+  --color-bg-elevated: 29 33 42; /* #1D212A — surface2 / S3 */
+  --color-bg-input: 29 33 42;
+  --color-bg-hover: 29 33 42;
+  --color-bg-active: 37 42 54; /* #252A36 — border */
 
   /* ── Encre ── */
   --color-text-primary: 236 237 243; /* #ECEDF3 — ink */
   --color-text-secondary: 181 183 196; /* #B5B7C4 — soft */
-  --color-text-tertiary: 121 125 144; /* #797D90 — muted */
-  --color-text-muted: 121 125 144;
+  --color-text-tertiary: 134 138 156; /* #868A9C — muted (remonté pour AA) */
+  --color-text-muted: 134 138 156;
 
   /* ── Bordures ── */
-  --color-border: 26 26 34; /* #1A1A22 — border */
-  --color-border-subtle: 19 19 25;
+  --color-border: 37 42 54; /* #252A36 — border */
+  --color-border-subtle: 29 33 42;
 }
 
 /*

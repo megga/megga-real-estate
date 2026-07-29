@@ -20,7 +20,8 @@
  * seulement le cadre, qui est commun.
  */
 import { readSugarDark } from '@/lib/sugarDark'
-import { crmSugarPalette, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 
 /** Largeurs des 7 onglets, calées sur les libellés FR (Aujourd'hui → Agenda). */
 const TAB_WIDTHS = [104, 82, 84, 84, 84, 62, 78]
@@ -33,7 +34,8 @@ const RAIL_ITEMS = 8
 
 export default function SugarPageSkeleton() {
   const dark = readSugarDark()
-  const sp = crmSugarPalette(sugarThemeTokens(dark), dark, SUGAR_DARK_TONE)
+  const darkTone = useDarkTone()
+  const sp = crmSugarPalette(sugarThemeTokens(dark, darkTone), dark, darkTone)
 
   return (
     <div

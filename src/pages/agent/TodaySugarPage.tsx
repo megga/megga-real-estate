@@ -16,7 +16,8 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
@@ -24,8 +25,6 @@ import { TK, applyTK } from '@/components/crm-sugar/today/tk'
 import { TodayNavProvider } from '@/components/crm-sugar/today/TodayNavContext'
 import { PageAujourdhui } from '@/components/crm-sugar/today/PageAujourdhui'
 import { PageCatalogue } from '@/components/crm-sugar/today/PageCatalogue'
-
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 // `labelKey` = clé i18n stable (namespace dashboard) ; le libellé est traduit
 // chez le consommateur (cf. § conventions i18n — module statique, pas de hook).
@@ -116,8 +115,9 @@ export default function TodaySugarPage() {
     }
   }, [dark])
 
-  const t = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(t, dark, DARK_TONE)
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(t, dark, darkTone)
   // « allume » / éteint tout le cockpit selon l'ambiance (singleton muté en place).
   applyTK(dark)
   const lightMode = TK.frameSolid === '#FFFFFF'

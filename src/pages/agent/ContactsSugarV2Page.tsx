@@ -12,7 +12,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
@@ -24,8 +25,6 @@ import ContactsFirstRun from '@/components/crm-sugar/contacts-pager/ContactsFirs
 import NewContactModal, {
   type NewContactData,
 } from '@/components/crm-sugar/contacts-pager/NewContactModal'
-
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 export default function ContactsSugarV2Page() {
   const navigate = useNavigate()
@@ -56,8 +55,9 @@ export default function ContactsSugarV2Page() {
     if (typeof window !== 'undefined') window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
   }, [dark])
 
-  const t = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(t, dark, DARK_TONE)
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(t, dark, darkTone)
 
   const { contacts, isLoading, isError, refetch } = useContactsSugar()
   // `fresh` = compte réellement neuf. Un échec de chargement laisse aussi

@@ -26,7 +26,55 @@ export interface CrmTheme {
   shadow2: string
 }
 
-export const CRM_TOKENS: { light: CrmTheme; dark: CrmTheme; noir: CrmTheme } = {
+/**
+ * Échelle sombre « Graphite » — source unique (handoff Teinte sombre Graphite,
+ * 29 juil. 2026). 5 paliers OPAQUES entre le canvas et le plafond, d'écart de
+ * luminance constant (~1,04) : l'élévation se lit sans bordure décorative.
+ *
+ * Lue aussi hors palette par `crmStep()`. Ne jamais monter au-dessus de `s4` :
+ * une sous-surface de modale se CREUSE (`solidBgSub` = s3) au lieu de monter.
+ */
+export const CRM_GRAPHITE = {
+  s0: '#12161C', // canvas — fond de toutes les pages, pagers, fiches
+  s1: '#161A21', // cadre bento, rail d'icônes, top nav
+  s2: '#1A1D26', // cards, colonnes kanban, lignes de liste
+  s3: '#1D212A', // sous-cards, inputs, chips, hover de card
+  s4: '#21242F', // plafond — modales, popovers, menus, palette de commandes
+} as const
+
+export type GraphiteStep = keyof typeof CRM_GRAPHITE
+
+// Dark mode — cohérence avec MEGGA AI : quasi-noir NEUTRE, aligné sur le
+// cockpit Today (#0A0B0D). Fond unifié (handoff « Unification du fond sombre »)
+// pour que Today, Pipeline, fiche Deal et modale offre partagent EXACTEMENT le
+// même noir. Ne pas réintroduire de teinte bleue (#0A0A0F portait un B=15).
+// Hoisté hors de CRM_TOKENS : `graphite` en dérive par spread (cf. le proto, où
+// CRM_TOKENS.graphite = { ...CRM_TOKENS.dark, … }).
+const CRM_DARK_BASE: CrmTheme = {
+  bg:           '#0A0B0D',
+  surface:      '#101019',
+  surface2:     '#171724',
+  border:       '#1F1F2E',
+  borderStrong: '#2E2E42',
+  ink:          '#ECEDF3',
+  soft:         '#B5B7C4',
+  muted:        '#797D90',
+  primary:      '#6F8CFF',
+  primarySoft:  '#1A1E3A',
+  primaryHover: '#8DA4FF',
+  danger:       '#F26B65',
+  dangerSoft:   '#341B1F',
+  warn:         '#F2B855',
+  warnSoft:     '#332811',
+  ok:           '#34C796',
+  okSoft:       '#0F2620',
+  section:      '#0D0D14',
+  overlay:      'rgba(0,0,4,.68)',
+  shadow1:      '0 1px 2px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04)',
+  shadow2:      '0 14px 36px -10px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.045)',
+}
+
+export const CRM_TOKENS: { light: CrmTheme; dark: CrmTheme; noir: CrmTheme; graphite: CrmTheme } = {
   light: {
     bg:           '#FAFBFD',
     surface:      '#FFFFFF',
@@ -50,37 +98,12 @@ export const CRM_TOKENS: { light: CrmTheme; dark: CrmTheme; noir: CrmTheme } = {
     shadow1:      '0 1px 2px rgba(14,20,16,.04), 0 0 0 1px rgba(14,20,16,.04)',
     shadow2:      '0 8px 24px -8px rgba(14,20,16,.12), 0 0 0 1px rgba(14,20,16,.05)',
   },
-  // Dark mode — cohérence avec MEGGA AI : quasi-noir NEUTRE, aligné sur le
-  // cockpit Today (#0A0B0D). Fond unifié (handoff « Unification du fond sombre »)
-  // pour que Today, Pipeline, fiche Deal et modale offre partagent EXACTEMENT le
-  // même noir. Ne pas réintroduire de teinte bleue (#0A0A0F portait un B=15).
-  dark: {
-    bg:           '#0A0B0D',
-    surface:      '#101019',
-    surface2:     '#171724',
-    border:       '#1F1F2E',
-    borderStrong: '#2E2E42',
-    ink:          '#ECEDF3',
-    soft:         '#B5B7C4',
-    muted:        '#797D90',
-    primary:      '#6F8CFF',
-    primarySoft:  '#1A1E3A',
-    primaryHover: '#8DA4FF',
-    danger:       '#F26B65',
-    dangerSoft:   '#341B1F',
-    warn:         '#F2B855',
-    warnSoft:     '#332811',
-    ok:           '#34C796',
-    okSoft:       '#0F2620',
-    section:      '#0D0D14',
-    overlay:      'rgba(0,0,4,.68)',
-    shadow1:      '0 1px 2px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04)',
-    shadow2:      '0 14px 36px -10px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.045)',
-  },
+  dark: CRM_DARK_BASE,
   // Teinte « noir » — noir pur #000000 (handoff Pipeline v2 « Sugar Pure »,
-  // juillet 2026, crm-tokens.jsx §CRM_TOKENS.noir). DÉFAUT du CRM agent depuis
-  // le pivot Sugar Pure (cf. SUGAR_DARK_TONE). Seules bg/surface/surface2/
-  // border/section divergent de `dark` ; le reste est hérité à l'identique.
+  // juillet 2026, crm-tokens.jsx §CRM_TOKENS.noir). Reste offerte à l'agent
+  // (contraste maximal, OLED) mais n'est plus le défaut depuis Graphite.
+  // Seules bg/surface/surface2/border/section divergent de `dark` ; le reste
+  // est hérité à l'identique.
   noir: {
     bg:           '#000000',
     surface:      '#0C0C10',
@@ -103,6 +126,21 @@ export const CRM_TOKENS: { light: CrmTheme; dark: CrmTheme; noir: CrmTheme } = {
     overlay:      'rgba(0,0,4,.68)',
     shadow1:      '0 1px 2px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04)',
     shadow2:      '0 14px 36px -10px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.045)',
+  },
+  // Teinte « Graphite » — DÉFAUT PRODUIT (handoff du 29 juil. 2026). Échelle
+  // opaque CRM_GRAPHITE : bg = s0, section = s1, surface = s2, surface2 = s3.
+  // `border` est hors plage par nature — c'est un trait, pas une surface.
+  // `muted` remonte à #868A9C : #797D90 tombait à 4,45:1 sur s0 (sous AA).
+  graphite: {
+    ...CRM_DARK_BASE,
+    bg:           CRM_GRAPHITE.s0,
+    section:      CRM_GRAPHITE.s1,
+    surface:      CRM_GRAPHITE.s2,
+    surface2:     CRM_GRAPHITE.s3,
+    border:       '#252A36',
+    borderStrong: '#333949',
+    muted:        '#868A9C',
+    overlay:      'rgba(6,8,11,.66)',
   },
 }
 
@@ -188,8 +226,9 @@ export function crmInitials(name: string): string {
 
 // ─── Sugar palette (derived from the active theme) ──────────────────────
 // Light theme keeps the original cool grey-blue page bg + white floating cards.
-// Dark themes (marine / meggaAi / noir) flip to deep surfaces, translucent frames,
-// and a bright ink/sub for legibility on glass.
+// Graphite (défaut) pose une échelle de surfaces OPAQUES ; les teintes
+// historiques (marine / meggaAi / noir) gardent leurs cadres translucides et
+// une encre claire pour rester lisibles sur le verre.
 export interface SugarPalette {
   pageBg: string
   frameBg: string
@@ -226,22 +265,76 @@ export interface SugarPalette {
   solidBgSub2: string
   solidBorder: string
   solidShadow: string
+  /** Échelle sombre active, exposée uniquement par la teinte Graphite. Sa
+   *  présence est LE test « suis-je en graphite ? » pour les composants qui
+   *  reçoivent `sp` sans connaître la teinte (cf. `crmStep(sp, …)`). */
+  ramp?: typeof CRM_GRAPHITE
 }
 
-export type DarkTone = 'marine' | 'meggaAi' | 'noir'
+export type DarkTone = 'marine' | 'meggaAi' | 'noir' | 'graphite'
 
-/** Teinte sombre par défaut du CRM agent — « noir » depuis le handoff Pipeline v2
- *  (juillet 2026). Point unique de bascule : toutes les pages Sugar la consomment. */
-export const SUGAR_DARK_TONE: DarkTone = 'noir'
+/** Teinte sombre par défaut du CRM agent — « graphite » depuis le handoff
+ *  Teinte sombre Graphite (29 juil. 2026). Sert de repli à `crmDarkTone()`
+ *  quand rien n'est stocké. */
+export const DEFAULT_DARK_TONE: DarkTone = 'graphite'
 
-/** Thème CrmTheme actif pour les pages Sugar : clair, sinon le thème porté par
- *  SUGAR_DARK_TONE (marine/meggaAi partagent CRM_TOKENS.dark ; noir a le sien). */
-export function sugarThemeTokens(dark: boolean): CrmTheme {
+/** Clé de persistance du choix de teinte (calquée sur `megga.accent` du proto). */
+export const DARK_TONE_KEY = 'megga.darkTone'
+
+/**
+ * Teinte sombre active — `window.__meggaDarkTone` d'abord (posé par le hook à
+ * chaque changement, donc lu à chaud), puis localStorage, sinon Graphite.
+ *
+ * Lecture PONCTUELLE : elle ne déclenche aucun rendu. Un composant qui doit se
+ * re-teinter sans rechargement passe par `useDarkTone()`.
+ */
+export function crmDarkTone(): DarkTone {
+  if (typeof window === 'undefined') return DEFAULT_DARK_TONE
+  const live = (window as Window & { __meggaDarkTone?: DarkTone }).__meggaDarkTone
+  if (live) return live
+  try {
+    return (window.localStorage.getItem(DARK_TONE_KEY) as DarkTone | null) || DEFAULT_DARK_TONE
+  } catch {
+    return DEFAULT_DARK_TONE
+  }
+}
+
+/**
+ * Palier de l'échelle sombre active, sinon la valeur historique du littéral.
+ *
+ * Deux signatures, au choix selon ce qu'on a sous la main :
+ * - `crmStep('s3', 'rgba(255,255,255,.08)')` — lit la teinte active, aucune
+ *   dépendance de scope ;
+ * - `crmStep(sp, 's3', 'rgba(255,255,255,.08)')` — lit `sp.ramp`.
+ *
+ * ⚠️ À n'utiliser QUE dans une branche déjà gardée par `dark ? … : …` : la
+ * fonction ne teste pas le mode clair, seulement la teinte.
+ */
+export function crmStep(step: GraphiteStep, fallback: string): string
+export function crmStep(sp: SugarPalette | undefined, step: GraphiteStep, fallback: string): string
+export function crmStep(
+  a: GraphiteStep | SugarPalette | undefined,
+  b: string,
+  c?: string,
+): string {
+  if (typeof a === 'string') return crmDarkTone() === 'graphite' ? CRM_GRAPHITE[a] : b
+  return a?.ramp?.[b as GraphiteStep] ?? (c as string)
+}
+
+/**
+ * Thème CrmTheme actif pour les pages Sugar : clair, sinon le thème de la teinte
+ * demandée (par défaut la teinte active).
+ *
+ * `marine` et `meggaAi` n'ont pas d'entrée dans `CRM_TOKENS` : ils retombent sur
+ * Graphite, comme le repli `CRM_TOKENS[darkTone] || CRM_TOKENS.graphite` du
+ * proto — un réglage déjà stocké sur ces teintes continue donc de résoudre.
+ */
+export function sugarThemeTokens(dark: boolean, tone: DarkTone = crmDarkTone()): CrmTheme {
   if (!dark) return CRM_TOKENS.light
-  return SUGAR_DARK_TONE === 'noir' ? CRM_TOKENS.noir : CRM_TOKENS.dark
+  return (CRM_TOKENS as Partial<Record<DarkTone, CrmTheme>>)[tone] ?? CRM_TOKENS.graphite
 }
 
-export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = 'marine'): SugarPalette {
+export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = crmDarkTone()): SugarPalette {
   if (!dark) {
     return {
       pageBg:        '#EEF1F5',
@@ -272,6 +365,47 @@ export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = 'ma
       solidBgSub2:   '#E6EAF0',
       solidBorder:   'rgba(15,23,42,0.10)',
       solidShadow:   '0 1px 2px rgba(14,20,16,.05), 0 18px 48px -12px rgba(40,55,90,.30)',
+    }
+  }
+  // ── Teinte Graphite : échelle OPAQUE, jamais de blanc translucide en
+  // remplissage. Les rgba blancs ne servent plus que de FILETS (α ≤ .06). Les
+  // sous-surfaces d'une modale se CREUSENT (solidBgSub < solidBg) au lieu de
+  // monter : la plage reste étanche entre s0 et s4.
+  if (tone === 'graphite') {
+    const G = CRM_GRAPHITE
+    return {
+      ramp:          G,
+      pageBg:        G.s0,
+      frameBg:       G.s1,
+      frameBorder:   'rgba(255,255,255,0.05)',
+      cardBg:        G.s2,
+      cardBorder:    'rgba(255,255,255,0.06)',
+      cardSubBg:     G.s3,
+      ink:           t.ink,
+      sub:           t.muted,
+      soft:          t.soft,
+      // Le proto lit ces 4 slots dans son sélecteur d'accent (`crmAccent(true)` /
+      // `crmAccentInk(true)`), jamais porté ici. Valeurs résolues à l'accent
+      // « black » — le défaut du proto, seul accent que ce dépôt connaisse.
+      accent:        t.ink,     // #ECEDF3
+      accentInk:     '#0B0C0E',
+      focusBg:       t.ink,
+      focusInk:      '#0B0C0E',
+      focusSurface:  'rgba(255,255,255,.10)',
+      focusShadow:   '0 8px 28px -8px rgba(0,0,0,.7)',
+      shadow:        '0 1px 2px rgba(0,0,0,.45), 0 10px 28px -12px rgba(0,0,0,.65)',
+      shadowSm:      '0 1px 2px rgba(0,0,0,.4), 0 6px 18px -10px rgba(0,0,0,.6)',
+      tableHeadBg:   G.s1,
+      avatarBorder:  G.s2,
+      iconBtnBg:     G.s3,
+      iconRailBg:    G.s1,
+      dotBorder:     G.s2,
+      kbdBg:         G.s3,
+      solidBg:       G.s4,
+      solidBgSub:    G.s3,
+      solidBgSub2:   G.s2,
+      solidBorder:   'rgba(255,255,255,0.08)',
+      solidShadow:   '0 28px 64px -14px rgba(0,0,0,.72), 0 8px 22px -10px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05)',
     }
   }
   return {

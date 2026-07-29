@@ -15,11 +15,10 @@ import {
   SUGAR_KEYFRAMES,
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import AxDashboardBody from '@/components/crm-sugar/analytics/AxDashboard'
 import { AXCtx, AX, AX_DARK } from '@/components/crm-sugar/analytics/tokens'
-
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 export default function DashboardSugarV4Page() {
   const navigate = useNavigate()
@@ -27,8 +26,9 @@ export default function DashboardSugarV4Page() {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem('megga.sugar.dark') === '1'
   })
-  const t = sugarThemeTokens(dark)
-  const sp = useMemo(() => crmSugarPalette(t, dark, DARK_TONE), [t, dark])
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = useMemo(() => crmSugarPalette(t, dark, darkTone), [t, dark, darkTone])
   const axTheme = dark ? AX_DARK : AX
 
   const onNavigate = (id: SugarScreenId | string) => {

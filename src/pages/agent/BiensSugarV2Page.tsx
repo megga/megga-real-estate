@@ -9,15 +9,14 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import type { CrmBien } from '@/components/crm-sugar/mockData'
 import { galSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { BiensPager } from '@/components/crm-sugar/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-sugar-wizard/WizardShell'
-
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 export default function BiensSugarV2Page() {
   const navigate = useNavigate()
@@ -35,8 +34,9 @@ export default function BiensSugarV2Page() {
     }
   }, [dark])
 
-  const t = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(t, dark, DARK_TONE)
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(t, dark, darkTone)
   const surf = galSurfaces(sp, dark)
 
   // Source de vérité : Supabase via useBiensSugar (RLS agency-scopée).

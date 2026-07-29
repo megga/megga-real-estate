@@ -9,7 +9,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { CalIcon } from './CalIcon'
 import { CalCircleBtn, CalViewToggle, type CalViewId } from './CalToolbar'
@@ -30,7 +31,6 @@ import { useVisits } from '@/hooks/useVisits'
 import { useReminders } from '@/hooks/useReminders'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
-const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 // Marge (jours) sous la fenêtre de lecture de useCalendarSugar (today ±60 j) :
 // en-deçà, un événement créé est forcément refetché → on peut retirer l'override.
 const CAL_READ_WINDOW_DAYS = 55
@@ -169,8 +169,9 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const { t } = useTranslation('calendar')
   const queryClient = useQueryClient()
 
-  const tk = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(tk, dark, DARK_TONE)
+  const darkTone = useDarkTone()
+  const tk = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(tk, dark, darkTone)
   const SP: CalSugarPalette = buildCalPalette(dark, tk)
 
   // ── Données ──

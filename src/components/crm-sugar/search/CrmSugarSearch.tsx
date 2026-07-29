@@ -10,7 +10,8 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { crmSugarPalette, CRM_STAGES, type SugarPalette, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, CRM_STAGES, type SugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { useContacts } from '@/hooks/useContacts'
 import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
@@ -225,8 +226,9 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
     if (saved === '0') return false
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   }, [])
-  const t = sugarThemeTokens(dark)
-  const sp = crmSugarPalette(t, dark, SUGAR_DARK_TONE)
+  const darkTone = useDarkTone()
+  const t = sugarThemeTokens(dark, darkTone)
+  const sp = crmSugarPalette(t, dark, darkTone)
   const accentBlue = dark ? '#A5C0FF' : '#0041D9'
 
   const [q, setQ] = useState('')

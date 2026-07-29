@@ -13,7 +13,8 @@
  */
 import { useMemo } from 'react'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
-import { crmSugarPalette, sugarThemeTokens, SUGAR_DARK_TONE, type SugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens, type SugarPalette } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 
 /**
  * Surfaces Sugar Pure : blanc opaque en clair, verre subtil en sombre.
@@ -82,10 +83,11 @@ export interface AdminSugar {
  */
 export function useAdminSugar(): AdminSugar {
   const { dark } = useAdminTheme()
+  const darkTone = useDarkTone()
 
   return useMemo(() => {
-    const t = sugarThemeTokens(dark)
-    const sp = crmSugarPalette(t, dark, SUGAR_DARK_TONE)
+    const t = sugarThemeTokens(dark, darkTone)
+    const sp = crmSugarPalette(t, dark, darkTone)
     const surf = adminSurfaces(dark)
 
     const tones: AdminTones = {
@@ -100,5 +102,5 @@ export function useAdminSugar(): AdminSugar {
     }
 
     return { sp, surf, dark, tones, onTone: '#FFFFFF' }
-  }, [dark])
+  }, [dark, darkTone])
 }

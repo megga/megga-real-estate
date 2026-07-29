@@ -14,7 +14,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette, type CrmTheme, type DarkTone, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, type CrmTheme, type DarkTone } from '@/components/crm-sugar/tokens'
+import { useDarkTone } from '@/hooks/useDarkTone'
 import { useToast } from '@/components/ui/Toast'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useAuth } from '@/hooks/useAuth'
@@ -65,17 +66,19 @@ function scoreBien(c: MrhContact, b: MrhBien): MrhScore {
 interface Props {
   t: CrmTheme
   dark: boolean
+  /** Teinte imposée par l'appelant ; à défaut, la teinte active de l'agent. */
   darkTone?: DarkTone
 }
 
-export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = SUGAR_DARK_TONE }: Props) {
+export default function MatchingRechercheHybride({ t: crmT, dark, darkTone }: Props) {
   const { t } = useTranslation('matching')
   const navigate = useNavigate()
   const toast = useToast()
   const { profile } = useAuth()
   const sendSel = useSendReceptionSelection()
   const ai = useAiPanel()
-  const sp = crmSugarPalette(crmT, dark, darkTone)
+  const activeTone = useDarkTone()
+  const sp = crmSugarPalette(crmT, dark, darkTone ?? activeTone)
   const surf: MrhSurf = {
     card: dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
     cardSub: dark ? 'rgba(255,255,255,0.04)' : '#F4F6F9',
