@@ -23,7 +23,11 @@
 // commerce suisse est publie en SPARQL par la Confederation, sans authentification. Trois
 // des quatre vetos d'entite ont donc desormais un proprietaire qui repond ; le quatrieme,
 // registry_lookup, repond aussi mais ne peut jamais valoir `match` faute de statut publie --
-// section « Connecteur Zefix par LINDAS ».
+// section « Connecteur Zefix par LINDAS ». Sa tache 3 donne enfin a registry_country_match
+// un proprietaire FRANCAIS (recherche_entreprises), en retenant pour la France l'argument
+// que la tache 2 avait retenu pour la Suisse -- et c'est ce qui fait de la France le
+// PREMIER pays dont les quatre vetos d'entite peuvent valoir `match` sans intervention
+// humaine sur les vetos eux-memes.
 //
 //   Une source qui ne repond pas produit un check `unavailable`, JAMAIS une
 //   absence de ligne et JAMAIS un echec. Le moteur (recompute_agency_verification,
@@ -154,8 +158,11 @@ export interface KybSource {
 //
 // La tache 2 de l'etape 6 donne un second proprietaire a registry_lookup et
 // registry_legal_name_match (Zefix, CH, la ou recherche-entreprises couvre la France), et
-// sa tache 3 en donne un a vat_lookup (registre UID, CH/LI, la ou VIES couvre l'UE). Sans
-// regle, l'`unavailable` que le connecteur francais produit deja pour tout siege hors de
+// sa tache 3 en donne un a vat_lookup (registre UID, CH/LI, la ou VIES couvre l'UE). Le
+// chantier LINDAS acheve la symetrie sur les registres : sa tache 2 fait revendiquer
+// registry_country_match par Zefix, sa tache 3 par recherche-entreprises -- les TROIS
+// check_type de registre ont donc desormais deux proprietaires chacun. Sans regle,
+// l'`unavailable` que le connecteur francais produit deja pour tout siege hors de
 // France pourrait s'inserer apres le verdict suisse et le masquer : un veto reellement
 // satisfait se lirait comme un veto absent -- l'inverse exact de ce que la preuve dit.
 // Departager cette collision serait deja trop tard ; la regle ci-dessous la rend
@@ -675,8 +682,8 @@ const vatLookupSource: KybSource = {
   run: runVatLookup,
 }
 
-// ─── Connecteur registre francais (registry_lookup / registry_legal_name_match,
-//     tache 3) ─────────────────────────────────────────────────────────────────
+// ─── Connecteur registre francais (registry_lookup / registry_legal_name_match /
+//     registry_country_match, tache 3) ───────────────────────────────────────────
 //
 // recherche-entreprises.api.gouv.fr : public, sans cle, sans compte, 7 requetes/
 // seconde (brief tache 3 ; doc de conception docs/agency-kyb-verification.md §3).
@@ -684,37 +691,46 @@ const vatLookupSource: KybSource = {
 // desormais ses propres sources de registre (Zefix par LINDAS, chantier LINDAS tache 2),
 // le Liechtenstein n'a toujours aucune API publique connue (meme doc).
 //
-// DEUX check_type distincts pour UNE seule source (meme motif que
+// TROIS check_type distincts pour UNE seule source (meme motif que
 // domain_whois_age/domain_generic_provider a la tache 2, revue etape 4/tache 2 point
 // 2) : le catalogue (verification_check_types, migration 20260728103000) distingue
 // registry_lookup (existence + statut actif, un seul type pour les deux -- meme
-// libelle catalogue) de registry_legal_name_match (raison sociale), CHACUN etant un
-// veto d'entite independant (doc de conception §2.A). Une seule ligne
-// KybSourceResult ne peut porter qu'UN check_type (voir KybSourceResult.check_type
-// plus haut) -- impossible de renvoyer les deux verdicts en un seul appel de
-// connecteur. D'ou DEUX entrees dans AGENCY_KYB_SOURCES, chacune interrogeant
-// independamment le meme point d'API (couplage accepte : 7 req/s suffit largement a
-// deux appels par verification, non par seconde).
+// libelle catalogue), registry_legal_name_match (raison sociale) et
+// registry_country_match (juridiction), CHACUN etant un veto d'entite independant
+// (doc de conception §2.A). Une seule ligne KybSourceResult ne peut porter qu'UN
+// check_type (voir KybSourceResult.check_type plus haut) -- impossible de renvoyer
+// plusieurs verdicts en un seul appel de connecteur. D'ou TROIS entrees dans
+// AGENCY_KYB_SOURCES, chacune interrogeant independamment le meme point d'API
+// (couplage accepte : 7 req/s suffit largement a trois appels par verification, non
+// par seconde).
 //
-// Hors perimetre de cette tache (brief tache 3, qui n'enumere que "l'existence, le
-// statut actif et la raison sociale") : registry_number_format (format/cle de
-// controle du SIREN -- calcul pur, sans reseau) et registry_country_match (ce
-// connecteur ne s'interrogeant QUE pour un siege deja declare en France, une reponse
-// positive ne ferait jamais que confirmer trivialement ce qui a deja filtre l'appel
-// -- aucune donnee de "juridiction" distincte a comparer). Le PREMIER a depuis son
-// connecteur -- section « Controle du numero de registre » juste apres celle-ci, et
-// c'est une source a part (`internal`), jamais une extension de celle-ci : il ne lit
-// pas le registre francais, il calcule. Le second reste un veto absent
-// (`unavailable`), donc un dossier francais part encore en revue humaine malgre cette
-// tache -- comportement attendu, pas un defaut (meme principe que Zefix, doc de
-// conception §3).
+// POURQUOI registry_country_match EST ICI ALORS QUE L'ETAPE 4 L'AVAIT ECARTE. Cette
+// section a longtemps porte l'arbitrage inverse : ce connecteur n'interrogeant QUE des
+// sieges deja declares en France, une reponse positive n'aurait
+// fait que confirmer trivialement ce qui avait filtre l'appel. Le chantier LINDAS
+// (tache 2) a tranche l'INVERSE pour la Suisse, et l'argument y est meilleur : le filtre
+// de juridiction dit d'ou vient la QUESTION, jamais que la REPONSE est acquise. Une
+// agence francaise peut parfaitement declarer un numero que le registre francais ne
+// porte pas ; trouver le numero declare DANS LE REGISTRE DE LA JURIDICTION DECLAREE est
+// donc la seule chose qui distingue « cette entite est immatriculee en France » de
+// « cette agence pretend etre francaise ». Tenir les deux raisonnements a la fois etait
+// intenable -- et laissait la France seule non auto-validable, pour un motif que plus
+// personne ne defendait.
 //
-// Sur registry_country_match, le connecteur Zefix par LINDAS (chantier LINDAS, tache 2,
-// plus bas) a tranche l'INVERSE, et deliberement : y trouver le numero declare confirme
-// reellement quelque chose. L'asymetrie est assumee et connue -- combler ce veto pour CH
-// seulement laisse FR sans lui, donc toujours non auto-validable (handoff §7bis). A
-// traiter hors de cette section : ce serait un connecteur francais de plus, pas une
-// retouche de celui-ci.
+// CE QUE CE VETO NE FAIT PAS, et c'est ce qui l'empeche d'etre un doublon : il ne lit
+// JAMAIS etat_administratif. Une entreprise radiee reste une entreprise immatriculee en
+// France -- la juridiction ne depend d'aucun statut, contrairement a registry_lookup.
+// Symetriquement, un SIREN introuvable ne s'ecrit PAS `mismatch` ici mais leve, donc
+// `unavailable` : l'absence est deja le `mismatch` de registry_lookup, et la reporter
+// ferait compter DEUX fois le meme constat sur deux vetos que la conception veut
+// independants (meme arbitrage, mot pour mot, que runZefixRegistryCountryMatch).
+//
+// Le quatrieme veto d'entite, registry_number_format, a lui aussi son connecteur --
+// section « Controle du numero de registre » juste apres celle-ci. C'est une source a
+// part (`internal`), jamais une extension de celle-ci : il ne lit pas le registre
+// francais, il calcule. Les QUATRE vetos d'entite ont donc desormais, pour la France, un
+// proprietaire qui repond ET qui peut valoir `match` -- ce qui n'est vrai d'aucun autre
+// pays (la Suisse bute sur le plafond de registry_lookup, voir la section LINDAS).
 
 /** Etat administratif INSEE/RNE rencontre en reconnaissance manuelle (voir rapport de
  *  tache) : 'A' = actif. Tout le reste (notamment 'C' = cesse) contredit une agence
@@ -889,18 +905,50 @@ async function runRegistryLegalNameMatch(agency: AgencyForVerification, signal: 
   }
 }
 
-/** Juridiction commune aux DEUX connecteurs du registre francais (meme predicat, deux
+async function runRegistryCountryMatch(agency: AgencyForVerification, signal: AbortSignal): Promise<KybSourceResult> {
+  if (agency.country !== 'FR') {
+    throw new Error('recherche-entreprises: siege hors France, source non interrogee')
+  }
+  const siren = extractSiren(agency.business_registration_number)
+  const body = await fetchFrenchRegistry(siren, signal)
+  const result = body.results?.[0]
+
+  if (!result) {
+    // Rien a opposer au pays declare. L'absence elle-meme est deja le `mismatch` de
+    // registry_lookup ; la reporter ici ferait compter DEUX fois le meme constat, sur deux
+    // vetos que la conception veut independants (meme arbitrage que
+    // runZefixRegistryCountryMatch).
+    throw new Error(`recherche-entreprises: ${siren} absent du registre francais, aucune juridiction a comparer`)
+  }
+
+  // Trouve au registre du commerce FRANCAIS : l'entite y est immatriculee, et c'est
+  // exactement ce que ce veto oppose au pays declare. `etat_administratif` n'est
+  // deliberement PAS lu -- une entreprise radiee reste une entreprise immatriculee EN
+  // FRANCE. Le statut est l'affaire de registry_lookup, et lui faire porter les deux
+  // questions ferait de ce veto-ci son doublon.
+  return {
+    result: 'match',
+    raw_response: {
+      siren,
+      declared_country: agency.country,
+      registry_country: 'FR',
+      recherche_entreprises: body,
+    },
+  }
+}
+
+/** Juridiction commune aux TROIS connecteurs du registre francais (meme predicat, trois
  *  check_type distincts), testee ici AVANT execution : c'est ce qui laisse le check_type
  *  libre pour Zefix sur un siege suisse. Leurs gardes internes restent en place :
  *  runAgencyKybSources() peut recevoir la source sans etre passee par
  *  selectApplicableSources(), son contrat le permet.
  *
  *  Ce predicat ne teste PAS tout a fait la meme valeur que ces gardes internes : il lit
- *  declaredHeadOfficeCountry() (trim + majuscules) la ou runRegistryLookup et
- *  runRegistryLegalNameMatch comparent `agency.country !== 'FR'` BRUT. L'ecart est reel
- *  (` fr ` satisfait le predicat et fait lever la garde interne) mais il ne peut pas
- *  couter un verdict, PARCE QU'IL VA DANS CE SENS-LA : tout siege que la garde interne
- *  laisse passer (`'FR'` exactement) satisfait aussi le predicat, donc
+ *  declaredHeadOfficeCountry() (trim + majuscules) la ou runRegistryLookup,
+ *  runRegistryLegalNameMatch et runRegistryCountryMatch comparent `agency.country !== 'FR'`
+ *  BRUT. L'ecart est reel (` fr ` satisfait le predicat et fait lever la garde interne)
+ *  mais il ne peut pas couter un verdict, PARCE QU'IL VA DANS CE SENS-LA : tout siege
+ *  que la garde interne laisse passer (`'FR'` exactement) satisfait aussi le predicat, donc
  *  selectApplicableSources() n'ecarte jamais une source qui avait quelque chose a
  *  repondre. Le seul cas couvert par le predicat et refuse par la garde produit un
  *  `unavailable` -- exactement ce que ces connecteurs produisaient deja sur cette saisie
@@ -923,6 +971,17 @@ const registryLegalNameMatchSource: KybSource = {
   source: 'recherche_entreprises',
   appliesTo: hasFrenchHeadOffice,
   run: runRegistryLegalNameMatch,
+}
+
+/** MEME `appliesTo` que ses deux voisines, et c'est ce qui rend l'exclusivite avec
+ *  zefixRegistryCountryMatchSource une propriete du code : les deux proprietaires du type
+ *  se decident sur le MEME point (declaredHeadOfficeCountry), qui ne peut pas rendre 'FR'
+ *  et 'CH' a la fois. */
+const registryCountryMatchSource: KybSource = {
+  checkType: 'registry_country_match',
+  source: 'recherche_entreprises',
+  appliesTo: hasFrenchHeadOffice,
+  run: runRegistryCountryMatch,
 }
 
 // ─── Controle du numero de registre (registry_number_format, chantier LINDAS
@@ -1864,14 +1923,16 @@ export function createUidRegisterSources(config: PendingSourceConfig): KybSource
  * registre francais (registry_lookup, registry_legal_name_match) ; le chantier LINDAS
  * y ajoute le controle du numero de registre (tache 1, registry_number_format -- ni
  * secret NI RESEAU) puis les trois sources Zefix par LINDAS (tache 2 -- du reseau, mais
- * un endpoint PUBLIC, donc toujours aucun secret). agency-verification-run/index.ts n'a
- * jamais eu a changer pour aucun des huit ; il a en revanche CESSE de construire les
- * sources Zefix a la tache 2, l'endpoint public les ayant sorties de la fabrique a
- * configuration ou le squelette de l'etape 6 les avait laissees.
+ * un endpoint PUBLIC, donc toujours aucun secret), et sa tache 3 la concordance de pays
+ * pour la France (registry_country_match, recherche_entreprises -- meme point d'API que
+ * ses deux voisines francaises). agency-verification-run/index.ts n'a jamais eu a changer
+ * pour aucune des neuf ; il a en revanche CESSE de construire les sources Zefix a la
+ * tache 2, l'endpoint public les ayant sorties de la fabrique a configuration ou le
+ * squelette de l'etape 6 les avait laissees.
  *
- * DEUX proprietaires pour registry_lookup et registry_legal_name_match dans cette seule
- * liste (la France et la Suisse), et c'est SANS DANGER par construction : leurs
- * `appliesTo` s'excluent (declaredHeadOfficeCountry, un seul point de decision), et
+ * DEUX proprietaires pour CHACUN des trois check_type de registre dans cette seule liste
+ * (la France et la Suisse), et c'est SANS DANGER par construction : leurs `appliesTo`
+ * s'excluent (declaredHeadOfficeCountry, un seul point de decision), et
  * selectApplicableSources() les departage AVANT execution -- voir la section
  * « Juridiction d'une source » en tete de fichier, et la matrice d'exclusivite du volet
  * « harnais pur » de tests/backend/agency-verification-run.spec.ts, qui verifie cette
@@ -1882,6 +1943,7 @@ export const AGENCY_KYB_SOURCES: KybSource[] = [
   vatLookupSource,
   registryLookupSource,
   registryLegalNameMatchSource,
+  registryCountryMatchSource,
   registryNumberFormatSource,
   zefixRegistryLookupSource,
   zefixRegistryLegalNameMatchSource,

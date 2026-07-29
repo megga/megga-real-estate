@@ -310,12 +310,18 @@ function fullKybRegistry(): KybSource[] {
 //  alors que le principe directeur de tout le chantier veut une ligne, jamais un silence.
 const JURISDICTION_MATRIX: { country: string | null; applicable: string[] }[] = [
   {
+    // `registry_country_match` y figure depuis la tache 3 du chantier LINDAS : le
+    // connecteur francais le revendique desormais, comme Zefix le revendique pour la
+    // Suisse. C'est cette ligne-ci qui rend la France couverte sur ses QUATRE vetos
+    // d'entite -- et qui met les deux proprietaires du type en concurrence, d'ou la
+    // matrice d'exclusivite juste en dessous.
     country: 'FR',
     applicable: [
       'domain_whois_age',
       'vat_lookup',
       'registry_lookup',
       'registry_legal_name_match',
+      'registry_country_match',
       'registry_number_format',
       'address_geocode',
     ],
@@ -421,10 +427,11 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
     expect(rows.every((r) => r.result === 'unavailable')).toBe(true)
   }, 2_000)
 
-  it('AGENCY_KYB_SOURCES contient les 8 connecteurs sans configuration (RDAP, VIES, recherche-entreprises x2, format du numero, Zefix/LINDAS x3)', () => {
+  it('AGENCY_KYB_SOURCES contient les 9 connecteurs sans configuration (RDAP, VIES, recherche-entreprises x3, format du numero, Zefix/LINDAS x3)', () => {
     // RDAP (tache 2) puis VIES + recherche-entreprises x2 (tache 3), plus le controle
-    // du numero de registre et les trois sources Zefix/LINDAS (chantier LINDAS, taches
-    // 1 et 2) : huit connecteurs qui n'ont besoin d'aucun secret, donc statiques dans
+    // du numero de registre, les trois sources Zefix/LINDAS et la concordance de pays
+    // francaise (chantier LINDAS, taches 1 a 3) : neuf connecteurs qui n'ont besoin
+    // d'aucun secret, donc statiques dans
     // ce registre construit au chargement du module. LINDAS est PUBLIC -- c'est ce qui
     // sort Zefix de la fabrique a configuration qu'il occupait a l'etape 6. Le controle
     // du numero, lui, n'a meme besoin d'aucun RESEAU -- c'est un calcul, d'ou sa source
@@ -435,16 +442,17 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
     // dans verification_check_types ferait de toute facon echouer l'insert (FK,
     // 20260728103000) -- ces entrees SONT donc deja de vrais connecteurs, jamais des
     // doubles de test.
-    expect(AGENCY_KYB_SOURCES).toHaveLength(8)
-    // Paires (check_type, source) et non check_type seul : registry_lookup et
-    // registry_legal_name_match ont chacun DEUX proprietaires dans ce registre (la
-    // France et la Suisse), que seule la juridiction departage.
+    expect(AGENCY_KYB_SOURCES).toHaveLength(9)
+    // Paires (check_type, source) et non check_type seul : les TROIS check_type de
+    // registre ont chacun DEUX proprietaires dans ce registre (la France et la Suisse),
+    // que seule la juridiction departage.
     expect(AGENCY_KYB_SOURCES.map((s) => `${s.source}:${s.checkType}`).sort()).toEqual(
       [
         'rdap:domain_whois_age',
         'vies:vat_lookup',
         'recherche_entreprises:registry_lookup',
         'recherche_entreprises:registry_legal_name_match',
+        'recherche_entreprises:registry_country_match',
         'internal:registry_number_format',
         'zefix:registry_lookup',
         'zefix:registry_legal_name_match',
@@ -671,8 +679,10 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
   it('selectApplicableSources travaille sur AGENCY_KYB_SOURCES par defaut', () => {
     const { applicable, skipped } = selectApplicableSources({ ...FAKE_AGENCY, country: 'CH' })
     expect(applicable.length + skipped.length).toBe(AGENCY_KYB_SOURCES.length)
+    // Les TROIS types de registre partages sont ecartes cote francais sur un siege
+    // suisse -- registry_country_match compris depuis la tache 3 du chantier LINDAS.
     expect(skipped.map((s) => s.check_type).sort()).toEqual(
-      ['registry_legal_name_match', 'registry_lookup', 'vat_lookup'].sort()
+      ['registry_country_match', 'registry_legal_name_match', 'registry_lookup', 'vat_lookup'].sort()
     )
   })
 
@@ -682,6 +692,7 @@ describe('harnais pur -- runKybSource / runAgencyKybSources (aucun reseau, aucun
       [
         'address_geocode',
         'domain_whois_age',
+        'registry_country_match',
         'registry_legal_name_match',
         'registry_lookup',
         'registry_number_format',
@@ -1046,7 +1057,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
     }
 
     it(
-      'une agence francaise ecrit toujours ses six checks : le seul pays reellement couvert aujourd hui ' +
+      'une agence francaise ecrit toujours ses sept checks : le seul pays reellement couvert aujourd hui ' +
         "ne change en rien, et rien n'est ecarte",
       async () => {
         const agencyId = await createAgency('jurisdiction-fr')
@@ -1057,9 +1068,11 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         const body = await res.json()
         expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
         // Cinq jusqu'au chantier LINDAS ; six depuis que le controle du numero de registre
-        // (tache 1) ecrit sa propre ligne. Ce dossier ne declare aucun numero, la sienne
-        // vaut donc `unavailable` -- le compte change, le verdict non (verifie plus bas).
-        expect(body.checks_written).toBe(6)
+        // (tache 1) ecrit sa propre ligne ; sept depuis que la concordance de pays a un
+        // proprietaire francais (tache 3). Ce dossier ne declare aucun numero, ces
+        // lignes-la valent donc `unavailable` -- le compte change, le verdict non
+        // (verifie plus bas).
+        expect(body.checks_written).toBe(7)
 
         const checks = await getChecks(agencyId)
         expect(new Set(checks.map((c) => c.check_type))).toEqual(
@@ -1068,17 +1081,18 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
             'vat_lookup',
             'registry_lookup',
             'registry_legal_name_match',
+            'registry_country_match',
             'registry_number_format',
             'address_geocode',
           ])
         )
-        // Le squelette Zefix (etape 6, tache 2) couvre la Suisse et elle seule : ses
-        // trois sources sont donc ECARTEES pour un siege francais, et c'est exactement ce
-        // qui laisse registry_lookup et registry_legal_name_match au registre francais
-        // sans collision possible. Le registre UID (tache 3) est ecarte de la meme facon
-        // et pour la meme raison, ce qui laisse vat_lookup a VIES : c'est l'exclusivite du
-        // TROISIEME check_type partage, verifiee ici sur le dossier reel. Le dossier
-        // francais lui-meme ne change en rien : cinq checks, les memes qu'avant l'etape 6.
+        // Zefix par LINDAS couvre la Suisse et elle seule : ses trois sources sont donc
+        // ECARTEES pour un siege francais, et c'est exactement ce qui laisse les TROIS
+        // check_type de registre au registre francais sans collision possible -- y compris
+        // registry_country_match, que les deux revendiquent depuis la tache 3. Le registre
+        // UID (etape 6, tache 3) est ecarte de la meme facon et pour la meme raison, ce qui
+        // laisse vat_lookup a VIES : c'est l'exclusivite du QUATRIEME check_type partage,
+        // verifiee ici sur le dossier reel.
         expect(await getSkippedSources(agencyId)).toEqual([
           { check_type: 'registry_country_match', source: 'zefix', reason: 'jurisdiction_not_covered' },
           { check_type: 'registry_legal_name_match', source: 'zefix', reason: 'jurisdiction_not_covered' },
@@ -1086,14 +1100,14 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
           { check_type: 'vat_lookup', source: 'uid_register', reason: 'jurisdiction_not_covered' },
         ])
 
-        // NON-REGRESSION, le critere de cette tache : la France est le seul pays
-        // reellement couvert aujourd'hui, et l'etape 6 ne doit pas l'avoir deplace d'un
-        // pouce. Six lignes, toutes `unavailable` faute de la moindre donnee KYB
-        // declaree, donc aucun check scorable -> score NULL, et les quatre vetos d'entite
-        // absents ou indisponibles -> manual_review. Exactement l'etat ou l'etape 4 avait
-        // laisse ce dossier -- la ligne de plus (le numero de registre) ne dit rien de
-        // plus qu'une absence, faute de numero a lire.
-        expect(body.results.unavailable).toBe(6)
+        // NON-REGRESSION : sept lignes, toutes `unavailable` faute de la moindre donnee
+        // KYB declaree, donc aucun check scorable -> score NULL, et les quatre vetos
+        // d'entite indisponibles -> manual_review. Exactement l'etat ou l'etape 4 avait
+        // laisse ce dossier -- les deux lignes de plus (numero de registre, concordance de
+        // pays) ne disent rien de plus qu'une absence, faute de numero a lire. C'est bien
+        // sur un dossier COMPLET, et lui seul, que la tache 3 change le verdict : voir la
+        // paire de tests « un dossier francais complet ... » plus bas.
+        expect(body.results.unavailable).toBe(7)
         const agency = await getAgency(agencyId)
         expect(agency.verification_status).toBe('manual_review')
         expect(num(agency.verification_score)).toBeNull()
@@ -1162,13 +1176,15 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         // Ce qui n'a pas ete interroge reste LISIBLE dans la trace -- une source
         // ecartee ne doit jamais se lire comme une source oubliee.
         expect(await getSkippedSources(agencyId)).toEqual([
+          { check_type: 'registry_country_match', source: 'recherche_entreprises', reason: 'jurisdiction_not_covered' },
           { check_type: 'registry_legal_name_match', source: 'recherche_entreprises', reason: 'jurisdiction_not_covered' },
           { check_type: 'registry_lookup', source: 'recherche_entreprises', reason: 'jurisdiction_not_covered' },
           { check_type: 'vat_lookup', source: 'vies', reason: 'jurisdiction_not_covered' },
         ])
 
-        // Non-regression, le critere des trois taches : les trois sources FRANCAISES
-        // ecrivaient jusque-la trois lignes `unavailable` que le moteur excluait deja du
+        // Non-regression, le critere des trois taches : les sources FRANCAISES (quatre
+        // depuis la tache 3, la concordance de pays comprise)
+        // ecrivaient jusque-la des lignes `unavailable` que le moteur excluait deja du
         // numerateur ET du denominateur (tache 1), et les trois lignes ZEFIX qui les
         // remplacent sont `unavailable` a leur tour -- or le moteur fait echouer un veto
         // `unavailable` exactement comme un veto ABSENT (« Ne passe que sur 'match' »,
@@ -1635,6 +1651,236 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         ).toBe('auto_validated')
         expect(num(after.verification_score)).toBeCloseTo(1, 3)
         expect(await lastVetoFailed(agencyId)).toBe(false)
+      }
+    )
+
+    // ─── LE CHANGEMENT DE REGIME QUE PORTE LA TACHE 3 : la France devient
+    //     auto-validable des qu'un humain resout la piece d'identite ───────────────
+    //
+    // Jusqu'ici, AUCUN dossier d'AUCUN pays ne pouvait aboutir sans qu'on intervienne sur
+    // les vetos d'entite eux-memes : les paires precedentes le montrent toutes les trois,
+    // chacune n'obtenant l'auto-validation qu'en posant a la main une ligne de veto que
+    // nul connecteur ne savait produire. Avec le quatrieme proprietaire francais
+    // (registry_country_match, recherche_entreprises), un dossier francais complet voit
+    // ses QUATRE vetos d'entite satisfaits PAR DES CONNECTEURS -- et il n'est plus retenu
+    // que par la piece d'identite, un veto de PERSONNE qu'aucun prestataire automatique
+    // ne resout et que la RPC de soumission pose en `pending_manual_review`.
+    //
+    // Trois tests, et ils ne valent qu'ensemble :
+    //   (a) piece non resolue -> manual_review, les quatre vetos d'entite en `match` ;
+    //   (b) la MEME, piece resolue -> auto_validated : le geste humain suffit desormais ;
+    //   (c) le controle qui rend la mesure concluante -- le meme dossier prive de la SEULE
+    //       source que cette tache ajoute ne bascule pas, piece resolue comprise. Sans
+    //       (c), (b) ne prouverait rien : il resterait possible que la bascule vienne de
+    //       la piece et non du veto comble.
+    //
+    // La Suisse, elle, ne bascule PAS, et c'est mesure juste au-dessus (« un dossier
+    // suisse autrement parfait ... reste en manual_review ») : son registry_lookup vaut
+    // `partial` faute de statut publie par LINDAS, et un veto ne passe que sur `match` --
+    // sur un dossier dont la piece d'identite est POURTANT resolue. Le plafond de la
+    // tache 2 tient donc, et la difference entre les deux pays est desormais lisible dans
+    // ce fichier sans rien reconstituer.
+
+    /** Carrefour : SIREN reel (il passe Luhn, donc le veto de format aussi) et raison
+     *  sociale telle que le registre la publie. Meme fixture que le volet du connecteur
+     *  francais, pour que la mesure en base et la mesure de logique parlent du meme cas. */
+    const CARREFOUR_SIREN = '510761505'
+    const CARREFOUR_LEGAL_NAME = 'CARREFOUR'
+
+    /** Les vetos de personne AUTRES que la piece d'identite -- derives et non recopies,
+     *  comme OTHER_AGENCY_VETO_TYPES : un troisieme veto de personne ajoute au catalogue
+     *  demain doit entrer ici tout seul, sans quoi ces tests mesureraient la piece
+     *  d'identite en laissant un autre veto retenir le dossier a sa place. */
+    const OTHER_PERSON_VETO_TYPES = PERSON_VETO_TYPES.filter((t) => t !== 'id_document')
+
+    /** La reponse de recherche-entreprises.api.gouv.fr pour ce SIREN, figee (forme exacte
+     *  verifiee en direct a l'etape 4, voir le volet du connecteur francais). Un test qui
+     *  dependrait de la sante d'un service tiers ne mesurerait plus ce qu'il pretend. */
+    function rechercheEntreprisesCarrefourResponse(): Response {
+      return new Response(
+        JSON.stringify({
+          results: [
+            {
+              siren: CARREFOUR_SIREN,
+              nom_raison_sociale: CARREFOUR_LEGAL_NAME,
+              nom_complet: CARREFOUR_LEGAL_NAME,
+              etat_administratif: 'A',
+            },
+          ],
+          total_results: 1,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      )
+    }
+
+    /** Le dossier francais irreprochable ET complet : signataire actif, signaux scorables
+     *  en `match`, veto PEP en `match`, numero de registre et raison sociale que le
+     *  registre porte reellement. Une SEULE chose y reste en suspens, et c'est le sujet :
+     *  la piece d'identite, posee en `pending_manual_review` exactement comme
+     *  submit_agency_identity la pose (20260729151000), faute de prestataire automatique. */
+    async function createCompleteFrenchAgency(label: string): Promise<{ agencyId: string; signatoryId: string }> {
+      const agencyId = await createAgency(label)
+      const signatoryId = await addActiveSignatory(agencyId)
+      await setCountry(agencyId, 'FR')
+      await setBusinessRegistrationNumber(agencyId, CARREFOUR_SIREN)
+      await setLegalName(agencyId, CARREFOUR_LEGAL_NAME)
+      await insertAgencyChecks(agencyId, SCORABLE_AGENCY_SIGNALS, 'match')
+      await insertPersonChecks(signatoryId, [...OTHER_PERSON_VETO_TYPES, ...SCORABLE_PERSON_SIGNALS], 'match')
+      await insertPersonChecks(signatoryId, ['id_document'], 'pending_manual_review')
+      return { agencyId, signatoryId }
+    }
+
+    /**
+     * Les sources de REGISTRE que LE MODULE juge applicables a ce dossier francais -- pas
+     * une liste ecrite a la main : c'est selectApplicableSources() sur le registre complet,
+     * exactement ce que fait l'Edge Function avant d'executer quoi que ce soit. C'est ce
+     * qui fait mordre ces tests le jour ou la source francaise de registry_country_match
+     * cesserait d'etre applicable a la France, ou se ferait doubler par Zefix.
+     */
+    function applicableFrenchRegistrySources(agency: AgencyForVerification): KybSource[] {
+      const { applicable } = selectApplicableSources(agency, fullKybRegistry())
+      const registrySources = applicable.filter((s) => s.checkType.startsWith('registry_'))
+      expect(
+        registrySources.map((s) => `${s.source}:${s.checkType}`).sort(),
+        'les QUATRE vetos d entite doivent avoir un proprietaire applicable a un siege francais'
+      ).toEqual(
+        [
+          'internal:registry_number_format',
+          'recherche_entreprises:registry_country_match',
+          'recherche_entreprises:registry_legal_name_match',
+          'recherche_entreprises:registry_lookup',
+        ].sort()
+      )
+      return registrySources
+    }
+
+    /** Execute les sources donnees contre un registre francais stubbe et insere leurs
+     *  lignes telles quelles. En processus et non par l'Edge Function, meme raison que la
+     *  demonstration LINDAS juste au-dessus : la fonction deployee appellerait le VRAI
+     *  service depuis le runtime edge, c'est-a-dire du reseau reel dans la suite. */
+    async function runFrenchRegistrySources(
+      agency: AgencyForVerification,
+      agencyId: string,
+      sources: KybSource[]
+    ): Promise<Awaited<ReturnType<typeof runAgencyKybSources>>> {
+      // Le registre francais stubbe le temps de l'appel, et RIEN d'autre : le client
+      // Supabase se sert du meme fetch global, d'ou le retrait immediat du stub.
+      vi.stubGlobal('fetch', vi.fn(async () => rechercheEntreprisesCarrefourResponse()))
+      let rows: Awaited<ReturnType<typeof runAgencyKybSources>>
+      try {
+        rows = await runAgencyKybSources(agency, sources)
+      } finally {
+        vi.unstubAllGlobals()
+      }
+
+      const { error } = await serviceRoleClient()
+        .from('agency_verification_checks')
+        .insert(rows.map((r) => ({ agency_id: agencyId, ...r })))
+      if (error) throw new Error(`seed registry rows: ${error.message}`)
+      return rows
+    }
+
+    /** Les vetos d'ENTITE tels qu'ils ont ete ECRITS EN BASE -- source comprise : c'est la
+     *  contrainte CHECK reelle qui doit accepter `recherche_entreprises` sur ce type-la,
+     *  pas seulement le module qui doit le retourner. */
+    async function storedAgencyVetos(agencyId: string): Promise<string[]> {
+      return (await getChecks(agencyId))
+        .filter((c) => AGENCY_VETO_TYPES.includes(c.check_type))
+        .map((c) => `${c.source}:${c.check_type}=${c.result}`)
+        .sort()
+    }
+
+    const FRENCH_VETOS_ALL_MATCHED = [
+      'internal:registry_number_format=match',
+      'recherche_entreprises:registry_country_match=match',
+      'recherche_entreprises:registry_legal_name_match=match',
+      'recherche_entreprises:registry_lookup=match',
+    ].sort()
+
+    it(
+      'un dossier francais complet voit ses QUATRE vetos d entite satisfaits PAR DES CONNECTEURS, et n est plus ' +
+        'retenu que par la piece d identite : manual_review tant qu aucun humain ne la tranche',
+      async () => {
+        const { agencyId } = await createCompleteFrenchAgency('fr-quatre-vetos')
+        const agency = await readAgencyForVerification(agencyId)
+
+        const rows = await runFrenchRegistrySources(agency, agencyId, applicableFrenchRegistrySources(agency))
+        await recompute(agencyId)
+
+        // Les quatre en `match`, aucune ligne posee a la main -- c'est le fait nouveau.
+        expect(rows.map((r) => `${r.source}:${r.check_type}=${r.result}`).sort()).toEqual(FRENCH_VETOS_ALL_MATCHED)
+        expect(await storedAgencyVetos(agencyId)).toEqual(FRENCH_VETOS_ALL_MATCHED)
+
+        const after = await getAgency(agencyId)
+        expect(num(after.verification_score), 'tout le reste est parfait').toBeCloseTo(1, 3)
+        expect(
+          after.verification_status,
+          'quatre vetos d entite satisfaits, score plein, signataire actif -- et pourtant la revue humaine'
+        ).toBe('manual_review')
+        expect(
+          await lastVetoFailed(agencyId),
+          'ce qui retient n est plus un veto d ENTITE mais la piece d identite, veto de PERSONNE en attente'
+        ).toBe(true)
+      }
+    )
+
+    it(
+      'la meme, piece d identite resolue -> auto_validated : la France devient auto-validable des qu un humain ' +
+        'tranche la piece, ce qu aucun dossier d aucun pays ne pouvait faire avant cette tache',
+      async () => {
+        const { agencyId, signatoryId } = await createCompleteFrenchAgency('fr-piece-resolue')
+        const agency = await readAgencyForVerification(agencyId)
+
+        await runFrenchRegistrySources(agency, agencyId, applicableFrenchRegistrySources(agency))
+        await recompute(agencyId)
+        expect((await getAgency(agencyId)).verification_status).toBe('manual_review')
+
+        // LE GESTE HUMAIN, et lui seul : une ligne id_document plus recente en `match`,
+        // ce que pose admin_resolve_agency_id_document (20260729151500). Rien d'autre ne
+        // bouge -- ni le score, ni le signataire, ni la moindre ligne de connecteur.
+        await insertPersonChecks(signatoryId, ['id_document'], 'match')
+        await recompute(agencyId)
+
+        const after = await getAgency(agencyId)
+        expect(
+          after.verification_status,
+          'si ce dossier ne bascule pas, c est qu autre chose que la piece d identite le retenait'
+        ).toBe('auto_validated')
+        expect(num(after.verification_score)).toBeCloseTo(1, 3)
+        expect(await lastVetoFailed(agencyId)).toBe(false)
+      }
+    )
+
+    it(
+      'le controle qui rend la mesure concluante : le MEME dossier prive de la SEULE source que cette tache ' +
+        'ajoute reste en manual_review, piece d identite resolue comprise -- le veto registry_country_match manque',
+      async () => {
+        const { agencyId, signatoryId } = await createCompleteFrenchAgency('fr-controle-sans-source')
+        const agency = await readAgencyForVerification(agencyId)
+
+        // Le registre d'AVANT cette tache : les memes sources, moins celle qu'elle ajoute.
+        // Un veto absent ne passe pas -- c'est la regle du moteur, et c'est ce qui tenait
+        // la France hors de l'auto-validation jusqu'ici.
+        const sansLaNouvelleSource = applicableFrenchRegistrySources(agency).filter(
+          (s) => s.checkType !== 'registry_country_match'
+        )
+        await runFrenchRegistrySources(agency, agencyId, sansLaNouvelleSource)
+        await insertPersonChecks(signatoryId, ['id_document'], 'match')
+        await recompute(agencyId)
+
+        expect(
+          (await getChecks(agencyId)).filter((c) => c.check_type === 'registry_country_match'),
+          'aucune ligne de ce type : c est bien un veto ABSENT que le moteur rencontre'
+        ).toHaveLength(0)
+
+        const after = await getAgency(agencyId)
+        expect(
+          after.verification_status,
+          'si ce dossier basculait, la paire precedente ne prouverait rien sur la source ajoutee : la bascule ' +
+            'viendrait de la piece d identite, pas du quatrieme veto comble'
+        ).toBe('manual_review')
+        expect(num(after.verification_score)).toBeCloseTo(1, 3)
+        expect(await lastVetoFailed(agencyId)).toBe(true)
       }
     )
 
@@ -2837,29 +3083,47 @@ describe('connecteur VIES (vat_lookup) -- logique pure, fetch stubbe (aucun rese
   })
 })
 
-// ─── Connecteur registre francais (registry_lookup / registry_legal_name_match,
-//     etape 4 tache 3) -- logique pure ─────────────────────────────────────────────
+// ─── Connecteur registre francais (registry_lookup / registry_legal_name_match /
+//     registry_country_match, etape 4 tache 3 puis chantier LINDAS tache 3) --
+//     logique pure ────────────────────────────────────────────────────────────────
 //
 // Hors du describe.skipIf(!HAS_KEYS) DELIBEREMENT, meme motif que RDAP/VIES plus haut.
 // La verification CONTRE le vrai service (recherche-entreprises.api.gouv.fr) se fait a
 // la main, une fois, hors de cette suite -- voir docs/superpowers/sdd/task-3-report.md
 // (recherche par SIREN direct, forme exacte de reponse, SIREN inexistant -> 200 avec
 // results:[] -- tout verifie en direct contre le vrai service).
-describe('connecteur registre francais (registry_lookup / registry_legal_name_match) -- logique pure, fetch stubbe', () => {
+//
+// Le TROISIEME check_type est arrive au chantier LINDAS (tache 3) : ce connecteur avait
+// ecarte registry_country_match, la tache 2 a retenu l'argument inverse pour la Suisse, et
+// tenir les deux a la fois etait intenable -- voir la section dediee plus bas dans ce
+// volet, et l'en-tete de section de _shared/kyb-sources.ts.
+describe('connecteur registre francais (registry_lookup / registry_legal_name_match / registry_country_match) -- logique pure, fetch stubbe', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  function registryLookupSource(): KybSource {
-    const found = AGENCY_KYB_SOURCES.find((s) => s.checkType === 'registry_lookup')
-    if (!found) throw new Error('registry_lookup absent de AGENCY_KYB_SOURCES')
+  /** Cherche sur la PAIRE (check_type, source) et jamais sur le seul check_type : les
+   *  TROIS types que ce connecteur revendique ont aussi un proprietaire suisse dans le meme
+   *  registre. Chercher par type seul rendait le bon connecteur par l'ORDRE du tableau
+   *  (les entrees francaises precedent les suisses) -- une coincidence, pas une propriete,
+   *  et un test qui mesurerait alors le mauvais connecteur sans rien signaler. Meme helper
+   *  et meme raison que zefixSource() dans le volet Zefix. */
+  function frenchSource(checkType: string): KybSource {
+    const found = AGENCY_KYB_SOURCES.find((s) => s.checkType === checkType && s.source === 'recherche_entreprises')
+    if (!found) throw new Error(`${checkType} (source recherche_entreprises) absent de AGENCY_KYB_SOURCES`)
     return found
   }
 
+  function registryLookupSource(): KybSource {
+    return frenchSource('registry_lookup')
+  }
+
   function registryLegalNameMatchSource(): KybSource {
-    const found = AGENCY_KYB_SOURCES.find((s) => s.checkType === 'registry_legal_name_match')
-    if (!found) throw new Error('registry_legal_name_match absent de AGENCY_KYB_SOURCES')
-    return found
+    return frenchSource('registry_legal_name_match')
+  }
+
+  function registryCountryMatchSource(): KybSource {
+    return frenchSource('registry_country_match')
   }
 
   function agencyFR(overrides: Partial<AgencyForVerification> = {}): AgencyForVerification {
@@ -2890,8 +3154,13 @@ describe('connecteur registre francais (registry_lookup / registry_legal_name_ma
     return { siren: '510761505', nom_raison_sociale: 'CARREFOUR', etat_administratif: 'A', ...overrides }
   }
 
-  for (const label of ['registry_lookup', 'registry_legal_name_match'] as const) {
-    const sourceOf = () => (label === 'registry_lookup' ? registryLookupSource() : registryLegalNameMatchSource())
+  // Les gardes d'entree et la traduction des pannes valent pour les TROIS check_type que
+  // ce connecteur revendique -- registry_country_match compris depuis la tache 3 du
+  // chantier LINDAS : un troisieme veto qui sortirait du processus sans passer par la
+  // meme discipline (jamais d'appel hors juridiction, jamais un verdict sur une panne)
+  // serait le seul du fichier a en etre dispense.
+  for (const label of ['registry_lookup', 'registry_legal_name_match', 'registry_country_match'] as const) {
+    const sourceOf = () => frenchSource(label)
 
     it(`${label} : siege hors France (CH) -> unavailable, jamais un appel reseau (ne s interroge que pour un siege en France)`, async () => {
       const fetchSpy = vi.fn()
@@ -3108,6 +3377,70 @@ describe('connecteur registre francais (registry_lookup / registry_legal_name_ma
         expect(row.result).toBe('match')
       }
     )
+  })
+
+  // ── registry_country_match : l immatriculation au registre francais (tache 3) ──
+  //
+  // Ce connecteur avait ECARTE ce check, au motif qu'il n'interroge que des sieges deja
+  // declares en France : une reponse positive n'y confirmerait rien qu'on ne sache. La
+  // tache 2 a retenu l'argument INVERSE pour la Suisse, et garder les deux en meme temps
+  // etait intenable -- trouver le numero declare DANS LE REGISTRE DE LA JURIDICTION
+  // DECLAREE distingue reellement « cette entite est immatriculee en France » de « cette
+  // agence pretend etre francaise ». Le filtre de juridiction dit d'ou vient la question,
+  // jamais que la reponse est acquise : une agence francaise peut parfaitement declarer
+  // un numero que le registre francais ne porte pas.
+  describe('registry_country_match -- l immatriculation au registre francais', () => {
+    it('SIREN trouve au registre francais -> match, l entite est immatriculee en France', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => rechercheEntreprisesResponse([activeResult()])))
+      const row = await runKybSource(registryCountryMatchSource(), agencyFR())
+      expect(row.result).toBe('match')
+      expect(row.source).toBe('recherche_entreprises')
+      expect(row.raw_response).toMatchObject({
+        siren: '510761505',
+        declared_country: 'FR',
+        registry_country: 'FR',
+      })
+    })
+
+    it(
+      'SIREN introuvable (results:[]) -> unavailable, JAMAIS mismatch : l existence est deja portee par ' +
+        'registry_lookup, et la reporter ici compterait deux fois le meme constat sur deux vetos independants',
+      async () => {
+        // Exactement l'arbitrage de runZefixRegistryCountryMatch cote suisse. Un mismatch
+        // ici ferait payer DEUX vetos pour UNE seule absence -- la conception les veut
+        // independants, et un dossier ne doit pas etre accuse deux fois du meme fait.
+        vi.stubGlobal('fetch', vi.fn(async () => rechercheEntreprisesResponse([])))
+        const row = await runKybSource(registryCountryMatchSource(), agencyFR())
+        expect(row.result).toBe('unavailable')
+      }
+    )
+
+    it(
+      'entreprise cessee (etat_administratif != A) -> match quand meme : la juridiction ne depend d aucun statut, ' +
+        'une entreprise radiee reste une entreprise immatriculee EN FRANCE',
+      async () => {
+        // Meme raisonnement que cote suisse, et c'est ce qui distingue ce veto de
+        // registry_lookup : celui-la lit le statut, celui-ci ne le lit jamais. Les
+        // confondre ferait de registry_country_match un doublon du veto d'existence.
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async () => rechercheEntreprisesResponse([activeResult({ etat_administratif: 'C' })]))
+        )
+        const row = await runKybSource(registryCountryMatchSource(), agencyFR())
+        expect(row.result).toBe('match')
+      }
+    )
+
+    it('juridiction : la source declare la France, et ne s applique a aucun autre pays', () => {
+      const source = registryCountryMatchSource()
+      expect(source.appliesTo, 'registry_country_match a DEUX proprietaires : il doit declarer sa juridiction').toBeDefined()
+      expect(source.appliesTo!(agencyFR())).toBe(true)
+      // Minuscules et blancs : agencies.country est du texte libre cote base.
+      expect(source.appliesTo!(agencyFR({ country: '  fr  ' }))).toBe(true)
+      for (const country of ['CH', 'LI', 'DE', null]) {
+        expect(source.appliesTo!(agencyFR({ country })), `pays ${country ?? 'non declare'}`).toBe(false)
+      }
+    })
   })
 })
 
@@ -3726,17 +4059,22 @@ describe('connecteur Zefix par LINDAS (registry_lookup / registry_legal_name_mat
   })
 
   it(
-    'exclusivite avec le registre francais : registry_lookup et registry_legal_name_match ne sont jamais ' +
-      'revendiques par zefix ET recherche_entreprises pour le meme siege',
+    'exclusivite avec le registre francais : aucun des TROIS check_type de ce connecteur n est jamais ' +
+      'revendique par zefix ET recherche_entreprises pour le meme siege',
     () => {
       // Le point de rupture que toute la regle de juridiction (etape 6, tache 1) existe pour
       // rendre impossible : le moteur (20260729151200) ne garde qu'UNE ligne par check_type
       // et departage deux lignes de la meme transaction par ctid, donc par ordre
       // d'insertion. Deux proprietaires applicables au meme dossier, et la derniere ligne
       // inseree masquerait l'autre verdict -- un veto dependrait alors de l'ordre du tableau.
+      //
+      // Les TROIS types sont desormais partages, registry_country_match compris (tache 3
+      // du chantier LINDAS, qui lui donne un proprietaire francais) : la boucle derive donc
+      // de ZEFIX_CHECK_TYPES au lieu d'enumerer, pour qu'un quatrieme type revendique par
+      // ce connecteur entre ici tout seul.
       for (const country of ['CH', 'FR', 'LI', 'DE', null]) {
         const { applicable } = selectApplicableSources({ ...FAKE_AGENCY, country }, fullKybRegistry())
-        for (const checkType of ['registry_lookup', 'registry_legal_name_match']) {
+        for (const checkType of ZEFIX_CHECK_TYPES) {
           const owners = applicable.filter((s) => s.checkType === checkType).map((s) => s.source)
           expect(owners.length, `pays ${country ?? 'non declare'} : ${checkType} revendique par ${owners.join(' + ')}`)
             .toBeLessThanOrEqual(1)
