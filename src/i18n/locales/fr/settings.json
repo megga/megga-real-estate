@@ -1199,6 +1199,11 @@
       "banner": "Ces préférences sont personnelles à votre compte, elles n'affectent pas les autres membres de l'équipe.",
       "aiAssistLabel": "Assistance MEGGA AI",
       "accent": "Couleur d'accent",
+      "darkTone": "Teinte sombre",
+      "darkTones": {
+        "graphite": "Graphite",
+        "noir": "Noir"
+      },
       "aiTone": "Ton des réponses",
       "units": {
         "metric": "m² · m",

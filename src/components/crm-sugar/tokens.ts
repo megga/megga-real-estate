@@ -281,6 +281,14 @@ export const DEFAULT_DARK_TONE: DarkTone = 'graphite'
 /** Clé de persistance du choix de teinte (calquée sur `megga.accent` du proto). */
 export const DARK_TONE_KEY = 'megga.darkTone'
 
+/** Teintes offertes à l'agent dans Réglages › Préférences › Apparence.
+ *  `marine` et `meggaAi` sont retirés de l'offre mais restent RÉSOLVABLES par
+ *  `CRM_TOKENS[tone]` pour les réglages déjà stockés — ne pas les supprimer. */
+export const CRM_DARK_TONES: ReadonlyArray<{ id: DarkTone; label: string; sub: string; swatch: string }> = [
+  { id: 'graphite', label: 'Graphite', sub: 'Gris profond, lecture longue', swatch: '#12161C' },
+  { id: 'noir',     label: 'Noir pur', sub: 'Contraste maximal, OLED',      swatch: '#000000' },
+]
+
 /**
  * Teinte sombre active — `window.__meggaDarkTone` d'abord (posé par le hook à
  * chaque changement, donc lu à chaud), puis localStorage, sinon Graphite.

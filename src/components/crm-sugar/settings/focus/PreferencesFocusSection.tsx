@@ -13,7 +13,8 @@ import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
 import { useToast } from '@/components/ui/Toast'
 import { useUiPreferences } from '@/hooks/useUiPreferences'
-import { crmStep } from '@/components/crm-sugar/tokens'
+import { CRM_DARK_TONES, crmStep, type DarkTone } from '@/components/crm-sugar/tokens'
+import { setDarkTone, useDarkTone } from '@/hooks/useDarkTone'
 import type { PrefsData } from '../PreferencesSection.types'
 import { pfColors, PF_KEYFRAMES, type FocusSectionProps, type PfColors } from './pfKitCore'
 
@@ -140,8 +141,11 @@ function PxfSelect({ c, value, onChange, options }: { c: PfColors; value: string
 
 /* ─── Structure des groupes (labels résolus via i18n) ───────────────────────── */
 type PrefKey = keyof PrefsData
+/** `darkTone` n'est PAS une préférence serveur (cf. `applyDarkTone`) — d'où une
+ *  clé de ligne un peu plus large que `PrefsData`. */
+type RowKey = PrefKey | 'darkTone'
 type CtrlType = 'select' | 'seg' | 'swatch' | 'toggle'
-interface RowDef { key: PrefKey; icon: PxfIconName; labelKey: string; type: CtrlType; options?: Opt[] }
+interface RowDef { key: RowKey; icon: PxfIconName; labelKey: string; type: CtrlType; options?: Opt[] }
 interface GroupDef { id: string; titleKey: string; dot: 'blue' | 'cyan' | 'orange' | 'green'; layout: 'grid' | 'stack'; rows: RowDef[] }
 
 // Endonymes de langue (affichés dans leur propre langue — invariants).
@@ -157,6 +161,7 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
   const [local, setLocal] = useState<PrefsData>(preferences)
   useEffect(() => { setLocal(preferences) }, [preferences])
   const [savedKey, setSavedKey] = useState<PrefKey | null>(null)
+  const darkTone = useDarkTone()
 
   // Garde la pilule Thème synchro si l'utilisateur bascule via le rail (local only).
   useEffect(() => {
@@ -181,6 +186,7 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
       ] },
       { id: 'appearance', titleKey: 'preferences.appearance.title', dot: 'orange', layout: 'stack', rows: [
         { key: 'theme', icon: 'theme', labelKey: 'preferences.appearance.theme', type: 'seg', options: opt(['light', 'dark', 'system'], (id) => `preferences.appearance.themes.${id}.label`) },
+        { key: 'darkTone', icon: 'theme', labelKey: 'focus.preferences.darkTone', type: 'seg', options: CRM_DARK_TONES.map((x) => ({ id: x.id, label: t(`focus.preferences.darkTones.${x.id}`) })) },
         { key: 'accent', icon: 'palette', labelKey: 'focus.preferences.accent', type: 'swatch' },
       ] },
       { id: 'assist', titleKey: 'preferences.editing.title', dot: 'green', layout: 'stack', rows: [
@@ -197,6 +203,17 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
     if (v === 'light') setDark(false)
     else if (v === 'dark') setDark(true)
     else setDark(!!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches))
+  }
+
+  /**
+   * Teinte sombre — persistée en LOCAL (`megga.darkTone`), pas dans les
+   * préférences serveur : `crmStep()` doit pouvoir la lire hors React et de
+   * façon synchrone, et une seconde source côté backend divergerait.
+   */
+  const applyDarkTone = (v: string) => {
+    setDarkTone(v as DarkTone)
+    // Choisir une teinte depuis le clair n'aurait aucun effet visible.
+    if (setDark && !dark) setDark(true)
   }
 
   const commit = async (key: PrefKey, value: string | boolean) => {
@@ -225,10 +242,14 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
   const themeSeg = local.theme === 'system' ? 'system' : (dark ? 'dark' : 'light')
 
   const control = (r: RowDef): ReactNode => {
-    if (r.type === 'toggle') return <PxfSwitch c={c} accent={accentCol} knobDark={knobDark} on={Boolean(local[r.key])} onClick={() => commit(r.key, !local[r.key])} />
-    if (r.type === 'seg') return <PxfSeg c={c} accent={accentCol} onAccent={onAccent} value={r.key === 'theme' ? themeSeg : String(local[r.key])} onChange={(v) => commit(r.key, v)} options={r.options ?? []} />
-    if (r.type === 'swatch') return <PxfSwatch c={c} dark={dark} value={String(local[r.key])} onChange={(v) => commit(r.key, v)} labelOf={accentLabel} />
-    return <PxfSelect c={c} value={String(local[r.key])} onChange={(v) => commit(r.key, v)} options={r.options ?? []} />
+    if (r.key === 'darkTone') {
+      return <PxfSeg c={c} accent={accentCol} onAccent={onAccent} value={darkTone} onChange={applyDarkTone} options={r.options ?? []} />
+    }
+    const k = r.key as PrefKey
+    if (r.type === 'toggle') return <PxfSwitch c={c} accent={accentCol} knobDark={knobDark} on={Boolean(local[k])} onClick={() => commit(k, !local[k])} />
+    if (r.type === 'seg') return <PxfSeg c={c} accent={accentCol} onAccent={onAccent} value={k === 'theme' ? themeSeg : String(local[k])} onChange={(v) => commit(k, v)} options={r.options ?? []} />
+    if (r.type === 'swatch') return <PxfSwatch c={c} dark={dark} value={String(local[k])} onChange={(v) => commit(k, v)} labelOf={accentLabel} />
+    return <PxfSelect c={c} value={String(local[k])} onChange={(v) => commit(k, v)} options={r.options ?? []} />
   }
 
   const Row = (r: RowDef) => (
