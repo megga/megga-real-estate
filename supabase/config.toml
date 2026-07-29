@@ -508,6 +508,9 @@ verify_jwt = false
 [functions.admin-user-lifecycle]
 verify_jwt = false
 
+[functions.agency-verification-run]
+verify_jwt = false
+
 [functions.ai-billing-monitor]
 verify_jwt = false
 

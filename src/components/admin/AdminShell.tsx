@@ -83,6 +83,7 @@ const NAV_SECTIONS: NavSection[] = [
     { labelKey: 'nav.adminMonitoring', href: '/monitoring', icon: 'broadcast' },
     { labelKey: 'nav.adminSecurity', href: '/security', icon: 'shield' },
     { labelKey: 'nav.adminCompliance', href: '/compliance', icon: 'shield' },
+    { labelKey: 'nav.adminKybReview', href: '/kyb-review', icon: 'eye' },
   ]},
   { labelKey: 'nav.adminSectionProduct', items: [
     { labelKey: 'nav.adminChangelog', href: '/changelog', icon: 'megaphone' },

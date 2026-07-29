@@ -1,0 +1,195 @@
+{
+  "gate": {
+    "shell": {
+      "preparing": "Preparing the form…"
+    },
+    "mobileNotice": {
+      "eyebrow": "Required step",
+      "title": "This step is completed on a computer",
+      "body": "Entering your agency's legal identity requires a larger screen. Sign in from a computer to complete it."
+    },
+    "pendingNotice": {
+      "eyebrow": "Entry interrupted",
+      "title": "Your entry was interrupted",
+      "body": "Nothing is lost: every step you confirmed with Continue is already saved in our systems, which remain the source of record. Resume whenever you're ready, you'll find exactly what you already entered.",
+      "resumeButton": "Resume"
+    }
+  },
+  "wizard": {
+    "steps": {
+      "signataire": "Signatory",
+      "agence": "Agency",
+      "beneficiaires": "Beneficial owners",
+      "pieceIdentite": "ID document",
+      "recapitulatif": "Summary"
+    },
+    "footer": {
+      "continue": "Continue",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "autosave": "Saved at every step",
+      "unknownError": "An unknown error occurred.",
+      "submit": "Submit",
+      "submitting": "Submitting…",
+      "exit": "Finish later"
+    },
+    "signataire": {
+      "eyebrow": "Authorized signatory",
+      "title": "Who is authorized to sign for the agency?",
+      "subtitle": "Provide the identity of the person authorized to commit the agency. We collect this information as part of our compliance controls, under Swiss anti-money laundering law (AMLA).",
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "dateOfBirth": "Date of birth",
+        "nationality": "Nationality",
+        "nationalityPlaceholder": "Select a country",
+        "signaturePower": "Signing authority"
+      },
+      "signaturePower": {
+        "individual": "Sole signing authority",
+        "individualHint": "This person can commit the agency alone.",
+        "joint": "Joint signing authority",
+        "jointHint": "This person signs jointly with another authorized person."
+      }
+    },
+    "agence": {
+      "eyebrow": "Agency identity",
+      "title": "What is your agency's legal identity?",
+      "subtitle": "This information must match your commercial register entry exactly. We collect it as part of our compliance controls, under Swiss anti-money laundering law (AMLA).",
+      "fields": {
+        "country": "Country of registration",
+        "countryPlaceholder": "Select a country",
+        "legalFormId": "Legal form",
+        "legalFormPlaceholder": "Select a legal form",
+        "legalFormPlaceholderNoCountry": "Choose the country of registration first",
+        "legalName": "Registered name",
+        "legalNameHint": "The official name on your commercial register entry.",
+        "tradeName": "Trade name",
+        "tradeNameHint": "The name your agency is known by to clients, if different from the registered name. Used to verify your website.",
+        "businessRegistrationNumber": "Registration number",
+        "tva": "VAT number",
+        "tvaHint": "Optional: applies only to VAT-registered entities.",
+        "address": "Address",
+        "postal": "Postal code",
+        "city": "City",
+        "canton": "Canton",
+        "cantonPlaceholder": "Select a canton"
+      }
+    },
+    "beneficiaires": {
+      "eyebrow": "Beneficial owners",
+      "title": "Who are your agency's beneficial owners?",
+      "subtitle": "Provide the individuals who own or control the agency. We collect this information as part of our compliance controls, under Swiss anti-money laundering law (AMLA). The reference threshold is 25% (FATF standard): this is a data-entry aid, you can still declare someone below it.",
+      "reuseSignataire": "Reuse {{name}} (signatory)",
+      "addButton": "Add a beneficial owner",
+      "emptyHint": "No beneficial owner declared yet. This is possible if no individual alone owns or controls 25% or more of the agency: in that case, declare the person who controls it another way, or otherwise a member of the senior management body.",
+      "removeButton": "Remove this beneficial owner",
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "dateOfBirth": "Date of birth",
+        "nationality": "Nationality",
+        "nationalityPlaceholder": "Select a country",
+        "ownershipPct": "Ownership percentage",
+        "ownershipPctHint": "Reference threshold (FATF standard): 25% or more. You can enter a lower value."
+      },
+      "pep": {
+        "label": "Is this person a politically exposed person (PEP)?",
+        "yes": "Yes",
+        "yesHint": "Holds or has held a prominent public function, in Switzerland or abroad, or is a close associate of such a person.",
+        "no": "No",
+        "noHint": "Does not hold any prominent public function."
+      }
+    },
+    "pieceIdentite": {
+      "eyebrow": "ID document",
+      "title": "Upload the signatory's ID document",
+      "subtitle": "Front and back of a valid ID document (identity card, passport, or residence permit). This document is reviewed by a member of our compliance team; no automated verification is performed at this stage.",
+      "missingSignataire": "The signatory must be entered in the previous step first.",
+      "sides": {
+        "recto": "Front",
+        "verso": "Back"
+      },
+      "dropHint": "Click to select a file",
+      "formatHint": "JPG, PNG, WEBP, or PDF, 8 MB maximum",
+      "replaceHint": "Click to replace",
+      "errors": {
+        "format": "Accepted format: JPG, PNG, WEBP, or PDF.",
+        "size": "Maximum size: 8 MB.",
+        "generic": "The upload failed. Please try again.",
+        "loadFailed": "Failed to load the documents. Please try again."
+      }
+    },
+    "recap": {
+      "eyebrow": "Summary",
+      "title": "Review your information before submitting",
+      "subtitle": "Review each section below. You can still edit a step before submitting.",
+      "notProvided": "Not provided",
+      "beneficiaires": {
+        "empty": "No beneficial owner declared.",
+        "ownership": "{{pct}}% ownership"
+      },
+      "pieceIdentite": {
+        "uploaded": "Uploaded",
+        "missing": "Missing",
+        "loading": "Checking the uploaded documents…",
+        "loadFailed": "Could not check the uploaded documents. Please try again."
+      },
+      "attestation": "I confirm that the information above is accurate and complete to the best of my knowledge.",
+      "errors": {
+        "legalName": "The agency's registered name is missing. Complete the Agency step before submitting.",
+        "legalForm": "The agency's legal form is missing. Complete the Agency step before submitting.",
+        "country": "The agency's country of registration is missing. Complete the Agency step before submitting.",
+        "signatory": "No active signatory is on file. Complete the Signatory step before submitting.",
+        "generic": "The submission failed. Please try again."
+      }
+    }
+  },
+  "labGuard": {
+    "banner": {
+      "notSubmitted": {
+        "title": "Identity verification not submitted",
+        "bodyAdmin": "Complete your agency's identity verification to unlock opening KYC files and sending electronic signatures.",
+        "bodyOther": "An administrator or manager of your agency must complete identity verification before a KYC file can be opened or an electronic signature sent."
+      },
+      "pendingReview": {
+        "title": "Verification under review",
+        "body": "The MEGGA team must validate your agency's identity before KYC files and electronic signatures become available. Check back later, the status updates automatically."
+      },
+      "rejected": {
+        "title": "Verification rejected",
+        "body": "The MEGGA team did not validate your agency's identity. Resubmitting the form will not trigger a new review: contact MEGGA support to learn why and what to do next."
+      },
+      "cta": "Complete verification",
+      "contactSupport": "Contact support"
+    },
+    "block": {
+      "checking": "Checking your agency's verification status before opening a KYC file…",
+      "notSubmitted": {
+        "eyebrow": "Identity verification required",
+        "title": "Your agency's identity verification has not been submitted yet",
+        "bodyAdmin": "MEGGA verifies every agency's identity before a KYC client file can be opened or an electronic signature sent, as part of our compliance controls, under Swiss anti-money laundering law (AMLA). As an administrator or manager, you can complete this verification now.",
+        "bodyOther": "MEGGA verifies every agency's identity before a KYC client file can be opened or an electronic signature sent, as part of our compliance controls, under Swiss anti-money laundering law (AMLA). Only an administrator or manager of your agency can complete this verification."
+      },
+      "pendingReview": {
+        "eyebrow": "Verification in progress",
+        "title": "Your agency's verification file is under review",
+        "body": "Your file has been sent to the MEGGA team. A team member must validate your agency's identity before you can open KYC files or send electronic signatures. Check back on this screen later, the status updates as soon as a decision is made."
+      },
+      "rejected": {
+        "eyebrow": "Verification rejected",
+        "title": "Your agency's verification file was rejected",
+        "body": "The MEGGA team did not validate your agency's identity. Resubmitting the form will not trigger a new review: contact MEGGA support to understand why and to learn the next steps."
+      },
+      "unavailable": {
+        "eyebrow": "Verification status unavailable",
+        "title": "We could not read your agency's verification status",
+        "body": "This is not a decision about your file: reading the status failed, most likely because of an interrupted connection or a temporarily unavailable service. KYC files cannot be opened until this status is confirmed. Try again in a moment; if the problem persists, contact MEGGA support.",
+        "retry": "Retry"
+      },
+      "cta": "Complete verification",
+      "back": "Back to dashboard",
+      "contactSupport": "Contact support"
+    }
+  }
+}

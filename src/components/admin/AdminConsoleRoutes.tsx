@@ -22,6 +22,7 @@ const AdminEndUsersPage = lazy(() => import('@/pages/admin/AdminEndUsersPage'))
 const AdminMonitoringPage = lazy(() => import('@/pages/admin/AdminMonitoringPage'))
 const AdminModerationPage = lazy(() => import('@/pages/admin/AdminModerationPage'))
 const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage'))
+const AdminKybReviewPage = lazy(() => import('@/pages/admin/AdminKybReviewPage'))
 const AdminCommunicationPage = lazy(() => import('@/pages/admin/AdminCommunicationPage'))
 const AdminFeatureFlagsPage = lazy(() => import('@/pages/admin/AdminFeatureFlagsPage'))
 const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
@@ -58,6 +59,12 @@ export default function AdminConsoleRoutes() {
                 survit pour les favoris et les liens déjà partagés. */}
             <Route path="marketplace" element={<Navigate to="../moderation" replace />} />
             <Route path="compliance" element={<AdminCompliancePage />} />
+            {/* File de revue KYB (étape 5 du chantier d'onboarding agence). La
+                route vivait dans `AdminApp.tsx`, l'application autonome retirée
+                le 28.07 — remontée ici au merge, sans quoi l'entrée de rail
+                `nav.adminKybReview` d'`AdminShell` tomberait sur le 404 du CRM et
+                les quatre décisions humaines de conformité seraient injoignables. */}
+            <Route path="kyb-review" element={<AdminKybReviewPage />} />
             <Route path="changelog" element={<AdminCommunicationPage />} />
             <Route path="feature-flags" element={<AdminFeatureFlagsPage />} />
             <Route path="plans" element={<AdminPlansPage />} />

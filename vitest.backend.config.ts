@@ -14,6 +14,12 @@ import path from 'path'
 //        SUPABASE_TEST_URL=http://127.0.0.1:54321
 //        SUPABASE_TEST_ANON_KEY=<from `supabase status`>
 //        SUPABASE_TEST_SERVICE_ROLE_KEY=<from `supabase status`>
+//      Optionnel : SUPABASE_TEST_SERVICE_ROLE_JWT=<SERVICE_ROLE_KEY, le JWT legacy>
+//      Obligatoire uniquement si SUPABASE_TEST_SERVICE_ROLE_KEY porte le NOUVEAU
+//      format (sb_secret_...) : les edge functions gardees par une comparaison
+//      litterale au SUPABASE_SERVICE_ROLE_KEY du runtime n'acceptent que le JWT
+//      legacy. C'est le cas en CI (.github/workflows/backend.yml) ; en local,
+//      .env.test.local porte deja le JWT legacy et le repli suffit.
 //
 // Run with: npm run test:backend
 

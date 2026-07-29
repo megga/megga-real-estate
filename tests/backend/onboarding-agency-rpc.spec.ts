@@ -107,7 +107,7 @@ describe.skipIf(!HAS_KEYS)('regression — onboarding agency RPCs (create_agency
     expect(id).toBeTruthy()
   })
 
-  it('un second agent rejoint une agence existante via join_agency (aucune erreur de type)', async () => {
+  it('join_agency n’est plus exécutable par un compte authentifié (faille cross-agence fermée)', async () => {
     const { client: owner } = await freshAgent('owner')
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
     const { data: agencyId, error: cErr } = await owner.rpc('create_agency_and_join', {
@@ -116,17 +116,12 @@ describe.skipIf(!HAS_KEYS)('regression — onboarding agency RPCs (create_agency
     expect(cErr).toBeNull()
     agencyIds.push(agencyId as string)
 
-    const { client: joiner, id: joinerId } = await freshAgent('joiner')
-    const { error: jErr } = await joiner.rpc('join_agency', { p_agency_id: agencyId })
-    expect(jErr, `join_agency a échoué: ${jErr?.message}`).toBeNull()
+    const { client: intruder, id: intruderId } = await freshAgent('intrus')
+    const { error: jErr } = await intruder.rpc('join_agency', { p_agency_id: agencyId })
+    expect(jErr, 'join_agency doit être refusée : sans garde, tout compte rejoignait toute agence').not.toBeNull()
 
     const svc = serviceRoleClient()
-    const { data: prof } = await svc
-      .from('profiles')
-      .select('agency_id, role')
-      .eq('id', joinerId)
-      .single()
-    expect(prof?.agency_id).toBe(agencyId)
-    expect(prof?.role).toBe('agent')
+    const { data: prof } = await svc.from('profiles').select('agency_id').eq('id', intruderId).maybeSingle()
+    expect(prof?.agency_id, 'l’intrus ne doit pas avoir rejoint l’agence').not.toBe(agencyId)
   })
 })

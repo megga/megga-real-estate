@@ -39,7 +39,9 @@ const DEMO_PROFILE: ProfileData = {
 const DEMO_AGENCY: AgencySettingsData = {
   name: 'MEGGA Genève', address: 'Rue du Rhône 100', city: 'Genève', canton: 'GE',
   phone: '+41 22 555 01 00', email: 'contact@megga.ch', website: 'megga.ch', logoUrl: '',
-  legal: 'MEGGA Genève SA', legalForm: 'Société anonyme (SA)', ide: 'CHE-409.118.221', tva: 'CHE-409.118.221 TVA',
+  // legalFormId vide en démo : c'est une FK vers legal_forms, aucun uuid stable à coder ici.
+  legal: 'MEGGA Genève SA', legalFormId: '', tradeName: 'MEGGA Genève',
+  businessRegistrationNumber: 'CHE-409.118.221', tva: 'CHE-409.118.221 TVA',
   foundedYear: '2014', postal: '1204', country: 'Suisse', aboutShort: '',
 }
 const DEMO_NOTIF: NotifPreferences = { email: true, sms: false, whatsapp: true, inapp: true }
@@ -594,7 +596,7 @@ function AgencySection({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Field tk={tk} label={t('settings:agency.legalName')} value={form.legal} disabled={!editable} onChange={(v) => onChange({ legal: v })} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field tk={tk} label={t('settings:agency.ide')} value={form.ide} disabled={!editable} onChange={(v) => onChange({ ide: v })} />
+            <Field tk={tk} label={t('settings:agency.businessRegistrationNumber')} value={form.businessRegistrationNumber} disabled={!editable} onChange={(v) => onChange({ businessRegistrationNumber: v })} />
             <Field tk={tk} label={t('settings:agency.foundedYear')} value={form.foundedYear} inputMode="numeric" disabled={!editable} onChange={(v) => onChange({ foundedYear: v })} />
           </div>
           <Field tk={tk} label={t('settings:agency.vat')} value={form.tva} disabled={!editable} onChange={(v) => onChange({ tva: v })} />

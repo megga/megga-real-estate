@@ -74,13 +74,19 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
   useEffect(() => {
     if (editing && inputRef.current) { inputRef.current.focus(); inputRef.current.select?.() }
   }, [editing])
-  const empty = !value
+  // Ligne à choix unique : `value` est un id opaque, le libellé se résout via options.
+  // Un id absent des options (p. ex. forme juridique d'un autre pays que celui déclaré)
+  // est traité comme vide → la ligne propose de la renseigner plutôt que d'afficher un
+  // libellé introuvable. La donnée en base n'est écrasée que si l'utilisateur enregistre.
+  const selected = row.options ? row.options.find((o) => o.id === value) ?? null : null
+  const empty = row.options ? !selected : !value
+  const blockEdit = (row.multiline || row.chips || row.options) && editing
   const onKey = (e: ReactKeyboardEvent) => {
     if (e.key === 'Escape') { e.preventDefault(); onCancel() }
     else if (e.key === 'Enter' && !(row.multiline && e.shiftKey)) { e.preventDefault(); onSave() }
   }
   return (
-    <div className="pfx-row" style={{ display: 'flex', alignItems: (row.multiline || row.chips) && editing ? 'flex-start' : 'center', gap: 13, padding: '10px 10px', borderRadius: 12, minWidth: 0, background: editing ? c.editBg : 'transparent' }}>
+    <div className="pfx-row" style={{ display: 'flex', alignItems: blockEdit ? 'flex-start' : 'center', gap: 13, padding: '10px 10px', borderRadius: 12, minWidth: 0, background: editing ? c.editBg : 'transparent' }}>
       <PfChip name={row.icon} c={c} size={34} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.2, textTransform: 'uppercase', color: c.sub }}>{row.label}</div>
@@ -100,6 +106,16 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
                 )
               })}
             </div>
+          ) : row.options ? (
+            <div className="pfx-edit-in" style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 7 }}>
+              {row.options.map((o) => {
+                const on = o.id === draft
+                return (
+                  <button key={o.id} onClick={() => setDraft(o.id)}
+                    style={{ height: 32, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, textAlign: 'left', background: on ? c.ink : c.cardSub, color: on ? c.onInk : c.soft }}>{o.label}</button>
+                )
+              })}
+            </div>
           ) : (
             <input ref={inputRef as RefObject<HTMLInputElement>} className="pfx-inp pfx-edit-in" value={draft} placeholder={row.placeholder} type="text"
               onChange={(e) => setDraft(e.target.value)} onKeyDown={onKey}
@@ -108,6 +124,7 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
         ) : !empty ? (
           <div style={{ fontSize: row.multiline ? 13 : 14, fontWeight: row.multiline ? 500 : 700, letterSpacing: -0.2, color: row.multiline ? c.sub : c.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: row.multiline ? 3 : 1, maxWidth: row.multiline ? 420 : 'none' }}>
             {(() => {
+              if (row.options) return selected?.label ?? ''
               if (row.multiline) return value.length > 58 ? value.replace(/\s+/g, ' ').slice(0, 58).trimEnd() + '…' : value
               if (row.chips) {
                 const set = value.split(',').map((s) => s.trim()).filter(Boolean)
@@ -121,7 +138,7 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
         ) : null}
       </div>
       {editing ? (
-        <div className="pfx-ctrl-in" style={{ display: 'flex', alignItems: 'center', gap: 8, alignSelf: (row.multiline || row.chips) ? 'flex-start' : 'center', marginTop: (row.multiline || row.chips) ? 6 : 0 }}>
+        <div className="pfx-ctrl-in" style={{ display: 'flex', alignItems: 'center', gap: 8, alignSelf: blockEdit ? 'flex-start' : 'center', marginTop: blockEdit ? 6 : 0 }}>
           <button onClick={onCancel} title={labels.cancel} style={{ width: 34, height: 34, borderRadius: 999, border: 0, cursor: 'pointer', background: c.card, color: c.sub, display: 'grid', placeItems: 'center', boxShadow: c.shadowSm }}>
             <PfIc name="x" size={15} stroke={c.sub} sw={1.9} />
           </button>

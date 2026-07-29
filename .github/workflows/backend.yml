@@ -61,17 +61,29 @@ jobs:
         run: supabase start -x studio,inbucket,imgproxy,vector,pg_prove
 
       - name: Export Supabase credentials to GITHUB_ENV
-        # `supabase status -o env` exposes both key formats:
-        #   - ANON_KEY / SERVICE_ROLE_KEY     (legacy JWT)
-        #   - PUBLISHABLE_KEY / SECRET_KEY    (new sb_publishable_*/sb_secret_*)
-        # .env.test.local uses the new format → match it here for consistency.
-        # Both formats are accepted by createClient at runtime.
+        # `supabase status -o env` expose les DEUX formats de cle :
+        #   - ANON_KEY / SERVICE_ROLE_KEY     (JWT legacy, eyJ...)
+        #   - PUBLISHABLE_KEY / SECRET_KEY    (nouveau, sb_publishable_*/sb_secret_*)
+        # PostgREST et createClient acceptent les deux -> les deux premieres
+        # variables ci-dessous exportent le NOUVEAU format.
+        # Mais une edge function qui compare litteralement son Bearer a
+        # Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ne voit, elle, QUE le JWT legacy :
+        # c'est ce que le runtime edge injecte sous ce nom (la cle sb_secret_ y
+        # atterrit dans SUPABASE_INTERNAL_SECRET_KEY). Lui envoyer le nouveau format,
+        # c'est lui envoyer un credential valide mais different -> 401.
+        # D'ou la troisieme variable, lue par les specs qui APPELLENT une telle
+        # fonction (tests/backend/agency-verification-run.spec.ts,
+        # tests/backend/agency-lab-guard.spec.ts).
+        # NB : contrairement a ce que disait ce commentaire, .env.test.local porte le
+        # JWT LEGACY dans SUPABASE_TEST_SERVICE_ROLE_KEY -- c'est precisement pourquoi
+        # ce trou etait invisible en local et n'echouait qu'en CI.
         run: |
           eval "$(supabase status -o env)"
           {
             echo "SUPABASE_TEST_URL=${API_URL:-http://127.0.0.1:54321}"
             echo "SUPABASE_TEST_ANON_KEY=$PUBLISHABLE_KEY"
             echo "SUPABASE_TEST_SERVICE_ROLE_KEY=$SECRET_KEY"
+            echo "SUPABASE_TEST_SERVICE_ROLE_JWT=$SERVICE_ROLE_KEY"
           } >> $GITHUB_ENV
           # MEGGA_MAGIC_LINK_HMAC_SECRET is already in the job env (above),
           # so it is visible to all subsequent steps including npm run test:backend.

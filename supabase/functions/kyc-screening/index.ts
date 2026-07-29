@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { requireAgencyLabCleared } from '../_shared/agency-lab-guard.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   partitionDilisenseHits,
@@ -93,12 +94,25 @@ serve(async (req) => {
       callerAgencyId = auth.profile.agency_id
     }
 
-    // APRÈS l'authentification, délibérément. Ce contrôle passait avant, et il
-    // répond 500 : un appelant anonyme obtenait donc « DILISENSE_API_KEY not
-    // configured » sans jamais s'authentifier — l'état de configuration d'un
-    // service de conformité n'a pas à fuiter, et un refus d'accès doit se lire
-    // 401. Personne ne s'en apercevait : sous la passerelle locale l'appel
-    // n'arrivait pas jusqu'ici, et en production la clé est présente.
+    // Garde LAB plein (étape 5, tâche 4) — voir _shared/agency-lab-guard.ts.
+    // Placé AVANT même la vérification de configuration (DILISENSE_API_KEY,
+    // plus bas) : une agence bloquée n'a pas à apprendre si le service est
+    // correctement configuré ni si kyc_case_id existe. Vaut pour les DEUX
+    // chemins (service-role compris) : un screening déclenché automatiquement
+    // par whatsapp-agent reste une analyse PEP/sanctions réelle sur une
+    // personne réelle, tout autant soumise à la posture de conformité que ce
+    // garde porte qu'un clic agent.
+    const labBlocked = await requireAgencyLabCleared(supabaseClient, callerAgencyId, corsHeaders)
+    if (labBlocked) return labBlocked
+
+    // La vérification de configuration ci-dessous est APRÈS l'authentification,
+    // délibérément. Elle passait avant, et elle répond 500 : un appelant anonyme
+    // obtenait donc « DILISENSE_API_KEY not configured » sans jamais
+    // s'authentifier — l'état de configuration d'un service de conformité n'a pas
+    // à fuiter, et un refus d'accès doit se lire 401. Personne ne s'en
+    // apercevait : sous la passerelle locale l'appel n'arrivait pas jusqu'ici, et
+    // en production la clé est présente. Le garde LAB s'insère encore avant elle,
+    // pour la raison distincte donnée juste au-dessus.
     const apiKey = Deno.env.get('DILISENSE_API_KEY')
     if (!apiKey) {
       return new Response(

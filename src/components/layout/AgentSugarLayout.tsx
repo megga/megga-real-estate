@@ -2,10 +2,14 @@
  * Layout des pages CRM Sugar v2 (route parente des surfaces agent). Volontairement
  * dépouillé : ni sidebar, ni breadcrumb, ni bottom bar — les pages Sugar portent
  * leur propre chrome. Fournit thème + contexte copilote, la bannière
- * d'impersonation et le « push » du contenu quand le panneau MEGGA AI est ouvert.
+ * d'impersonation, le « push » du contenu quand le panneau MEGGA AI est ouvert,
+ * le gate identité légale (étape 2 KYB) qui redirige vers /dashboard/identite
+ * tant que le dirigeant n'a pas soumis l'identité de son agence, et le bandeau
+ * du garde LAB (étape 5, tâche 4, LabGuardBanner) qui rappelle sur toutes les
+ * pages tant que l'agence n'est pas vérifiée.
  */
 import { useState, useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { CopilotContextProvider } from '@/hooks/useCopilotContext'
 import { useAiPanel } from '@/hooks/useAiPanel'
@@ -13,7 +17,9 @@ import { COPILOT_WIDTH } from '@/components/ai-copilot/panel/aiPanel'
 import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
 import { useDarkTone } from '@/hooks/useDarkTone'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
+import LabGuardBanner from '@/components/layout/LabGuardBanner'
 import CrmSugarSearchHost from '@/components/crm-sugar/search/CrmSugarSearchHost'
+import { useIdentityGate, shouldRedirectToIdentityGate, IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 
 /** Lit la préférence de thème sombre Sugar (fallback : préférence système). */
 // Mode sombre Sugar (même clé localStorage que les pages). Réactif : `storage`
@@ -41,9 +47,16 @@ function readSugarDark(): boolean {
  *  - Push du contenu quand le panneau MEGGA AI est ouvert (le panneau lui-même
  *    est monté dans App.tsx, au-dessus de <Routes>, pour persister à la nav)
  *  - ImpersonateBanner (super-admin must always see they are impersonating)
+ *  - Identity gate (useIdentityGate) — swaps <Outlet/> for a <Navigate> to
+ *    /dashboard/identite while status === 'required'. Never redirects on an
+ *    unresolved ('loading') status, and never redirects the identity route
+ *    to itself (shouldRedirectToIdentityGate) — see the P0 incident notes on
+ *    the gate call below.
  */
 function AgentSugarInner() {
   const { isOpen } = useAiPanel()
+  const { status: identityGateStatus } = useIdentityGate()
+  const location = useLocation()
   const [dark, setDark] = useState(readSugarDark)
   useEffect(() => {
     const sync = () => setDark(readSugarDark())
@@ -63,9 +76,32 @@ function AgentSugarInner() {
   // (sinon elle laisserait voir le fond `body` blanc, dépareillé en mode sombre).
   const darkTone = useDarkTone()
   const pageBg = crmSugarPalette(sugarThemeTokens(dark, darkTone), dark, darkTone).pageBg
+
+  // Gate identité légale (étape 2 KYB) : tant que useIdentityGate() n'a pas
+  // positivement résolu l'état à 'required', on NE redirige PAS — garde-fou 1
+  // de l'incident P0 c830f9a9 (« boucle onboarding »). shouldRedirectToIdentityGate
+  // refuse en plus de rediriger /dashboard/identite vers elle-même (garde-fou 2) :
+  // sans ce second garde-fou, la page qui doit justement lever le statut 'required'
+  // ne pourrait jamais se monter.
+  const mustRedirectToIdentity = shouldRedirectToIdentityGate(identityGateStatus, location.pathname)
+
   return (
-    <>
+    // flex column pleine hauteur (correctif revue, point mineur) : les bandeaux
+    // (Impersonate/LabGuard) et la zone de contenu se PARTAGENT 100vh au lieu de
+    // s'empiler chacun leur propre ancrage minimal indépendant — un bandeau (qui a
+    // sa propre hauteur) suivi d'une zone de contenu qui réclamait ELLE AUSSI
+    // min-height:100vh dépassait la fenêtre et produisait un ascenseur de page
+    // parasite sur un écran par ailleurs court (KycLabGuard bloqué, cf. son
+    // en-tête). flex:'1 1 auto' sur la zone de contenu lui donne une hauteur
+    // DÉFINIE (règle flexbox : un flex-item résout une taille définie même quand
+    // son conteneur n'a qu'un min-height) — c'est ce qui permet à
+    // KycBlockedScreen/LoadingScreen d'utiliser min-h-full plutôt que min-h-screen
+    // et de s'ajuster sous un bandeau au lieu de l'ignorer. Comportement inchangé
+    // en l'absence de bandeau (cas courant) : un seul enfant flexible occupe toute
+    // la hauteur, comme avant.
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <ImpersonateBanner />
+      <LabGuardBanner />
       {/* Le panneau MEGGA AI « pousse » le contenu de travail vers la gauche
           quand il est ouvert (COPILOT_WIDTH = panneau + gouttières). */}
       <div
@@ -73,15 +109,15 @@ function AgentSugarInner() {
           transition: 'padding-right .42s cubic-bezier(.2,.8,.2,1)',
           paddingRight: isOpen ? COPILOT_WIDTH : 0,
           background: pageBg,
-          minHeight: '100vh',
+          flex: '1 1 auto',
         }}
       >
-        <Outlet />
+        {mustRedirectToIdentity ? <Navigate to={IDENTITY_GATE_ROUTE} replace /> : <Outlet />}
       </div>
       <CrmSugarSearchHost />
       {/* Le panneau MEGGA AI est monté dans App.tsx (au-dessus de <Routes>)
           pour persister à la navigation ; ici on ne fait que « pousser » le contenu. */}
-    </>
+    </div>
   )
 }
 

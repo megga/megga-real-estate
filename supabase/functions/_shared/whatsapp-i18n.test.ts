@@ -40,6 +40,23 @@ describe('t (chaînes statiques)', () => {
     expect(t('fr', 'busy')).toMatch(/action en attente/)
     expect(t('en', 'busy')).toMatch(/pending action/)
   })
+
+  // Refus du garde LAB sur open_kyc_case (§7ter). Le volet live (chemin
+  // service-role, INSERT réellement empêché) est dans
+  // tests/backend/open-kyc-case-lab-guard.spec.ts et ne tourne qu'en FR — la
+  // version EN n'a que ce test-ci pour la tenir.
+  it("refus LAB : dit POURQUOI (identité d'agence à valider), sans jargon de statut, FR/EN", () => {
+    const fr = t('fr', 'kycAgencyNotVerified')
+    expect(fr).toMatch(/identité de ton agence/i)
+    expect(fr).toMatch(/KYC/)
+    const en = t('en', 'kycAgencyNotVerified')
+    expect(en).toMatch(/agency/i)
+    expect(en).toMatch(/KYC/)
+    expect(en).not.toBe(fr)
+    // Le statut brut (auto_validated, manual_review…) reste une notion interne :
+    // l'agent lit un message humain, pas un état de machine.
+    for (const m of [fr, en]) expect(m).not.toMatch(/auto_validated|manual_review|verification_status/)
+  })
 })
 
 describe('confirmSuffix', () => {

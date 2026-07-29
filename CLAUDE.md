@@ -321,8 +321,28 @@ Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel e
 ```
 DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
-STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+MAPBOX_TOKEN,
+ZEFIX_API_URL, ZEFIX_API_CREDENTIAL,
+UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 ```
+
+> `MAPBOX_TOKEN` est distinct de `VITE_MAPBOX_TOKEN` (secret GitHub Actions, injecté au
+> build du bundle navigateur). Le connecteur de géocodage KYB tourne dans une Edge
+> Function, côté serveur : il lui faut le jeton dans les secrets Supabase, pas dans le
+> build. La même valeur convient. Sans lui, le check `address_geocode` produit
+> `unavailable`, ce qui ne casse rien mais retire un signal du score.
+
+> ⚠ **Les quatre variables Zefix / UID ne sont PAS encore configurées** (aucun secret
+> Supabase, aucune entrée `supabase/config.toml`). Zefix répond `401` et les identifiants
+> demandés à `zefix@bj.admin.ch` sont sans réponse ; pour le registre UID, on ignore encore
+> s'il existe une API séparée. Les squelettes de connecteurs (étape 6 du KYB agences,
+> `supabase/functions/_shared/kyb-sources.ts`) les lisent déjà : vides, les checks
+> `registry_lookup`, `registry_legal_name_match`, `registry_country_match` (CH) et
+> `vat_lookup` (CH/LI) produisent `unavailable`, ce qui ne casse rien et ne change aucun
+> verdict. Les poser **sans écrire le connecteur** ne débloque rien non plus, et le signale
+> explicitement (`KybSourceNotWiredError`). Détail et état de la demande :
+> [docs/agency-kyb-handoff.md](docs/agency-kyb-handoff.md) §6 étape 6 et §8.
 
 ### Secrets GitHub Actions
 ```

@@ -115,8 +115,10 @@ serve(async (req) => {
         })
       }
 
-      // Verify email matches
-      if (user.email?.toLowerCase() !== invitation.email.toLowerCase()) {
+      // Verify email matches — .trim() des deux côtés : une invitation saisie/collée
+      // avec des espaces autour de l'e-mail refuserait sinon la réclamation avec
+      // email_mismatch alors que l'adresse est identique.
+      if (user.email?.trim().toLowerCase() !== invitation.email.trim().toLowerCase()) {
         return new Response(JSON.stringify({
           error: 'email_mismatch',
           expectedEmail: invitation.email,
@@ -125,6 +127,19 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
+
+      // Ancienne agence AVANT réécriture : handle_new_user() provisionne toujours une
+      // agence solo pour les rôles agence, y compris pour un invité (sans ça, un
+      // invité qui ne réclame jamais reste agency_id NULL pour toujours — le wizard de
+      // rattrapage a été supprimé et join_agency est fermée). Capturer l'ancien id ICI,
+      // avant l'UPDATE qui suit, sinon il est perdu.
+      const { data: priorProfile, error: priorProfileError } = await supabaseAdmin
+        .from('profiles')
+        .select('agency_id')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (priorProfileError) throw priorProfileError
+      const priorAgencyId = priorProfile?.agency_id ?? null
 
       // Update profile: assign to agency + role
       const { error: profileError } = await supabaseAdmin
@@ -136,6 +151,48 @@ serve(async (req) => {
         .eq('id', user.id)
 
       if (profileError) throw profileError
+
+      // ─── Nettoyage de l'agence solo devenue inutile ───
+      // Une fois la réclamation faite, l'agence solo auto-provisionnée à l'inscription
+      // est une ligne morte. Suppression strictement conditionnelle : solo=true, créée
+      // PAR CET utilisateur, et plus aucun membre (le sien vient de partir ci-dessus —
+      // 0 membre restant veut donc dire qu'il n'y a jamais eu personne d'autre). Le
+      // moindre doute → on garde la ligne mais on journalise : perdre une agence qui
+      // porte des données serait bien pire qu'une ligne morte. Ne bloque jamais la
+      // réclamation elle-même (erreurs journalisées, jamais throw).
+      if (priorAgencyId && priorAgencyId !== agency?.id) {
+        const { data: staleAgency, error: staleAgencyError } = await supabaseAdmin
+          .from('agencies')
+          .select('id, solo, created_by')
+          .eq('id', priorAgencyId)
+          .maybeSingle()
+
+        if (staleAgencyError) {
+          console.error('[accept-team-invite] solo agency lookup failed:', staleAgencyError.message, { priorAgencyId })
+        } else if (staleAgency?.solo === true && staleAgency.created_by === user.id) {
+          const { data: remainingMembers, error: remainingError } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('agency_id', priorAgencyId)
+            .limit(1)
+
+          if (remainingError) {
+            console.error('[accept-team-invite] solo agency member check failed:', remainingError.message, { priorAgencyId })
+          } else if ((remainingMembers?.length ?? 0) === 0) {
+            const { error: deleteError } = await supabaseAdmin
+              .from('agencies')
+              .delete()
+              .eq('id', priorAgencyId)
+            if (deleteError) {
+              console.error('[accept-team-invite] solo agency delete failed:', deleteError.message, { priorAgencyId })
+            }
+          } else {
+            console.warn('[accept-team-invite] solo agency still has members, not deleting', { priorAgencyId })
+          }
+        }
+        // staleAgency introuvable, ou solo=false, ou created_by différent : jamais
+        // l'agence auto-provisionnée de CET invité — on n'y touche pas.
+      }
 
       // Mark invitation as accepted
       const { error: inviteError } = await supabaseAdmin

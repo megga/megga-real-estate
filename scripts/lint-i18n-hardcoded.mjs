@@ -18,6 +18,7 @@ const LOCKED_GLOBS = [
   'src/components/crm-sugar/**/*.{ts,tsx}',
   'src/components/crm-sugar-v3/**/*.{ts,tsx}',
   'src/components/crm-sugar-wizard/**/*.{ts,tsx}',
+  'src/components/crm-sugar-identity/**/*.{ts,tsx}',
   'src/components/matching-atelier/**/*.{ts,tsx}',
   'src/components/ai-copilot/**/*.{ts,tsx}',
   'src/components/kyc-report/**/*.{ts,tsx}',

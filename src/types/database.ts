@@ -217,6 +217,7 @@ export type Database = {
           about_short: string | null
           address: string | null
           billing: string | null
+          business_registration_number: string | null
           canton: string | null
           city: string | null
           country: string | null
@@ -225,8 +226,9 @@ export type Database = {
           email: string | null
           founded_year: number | null
           id: string
-          ide: string | null
+          identity_submitted_at: string | null
           legal_form: string | null
+          legal_form_id: string | null
           legal_name: string | null
           logo_url: string | null
           monthly_target: number | null
@@ -239,7 +241,11 @@ export type Database = {
           solo: boolean | null
           status: string | null
           stripe_customer_id: string | null
+          trade_name: string | null
           tva: string | null
+          verification_score: number | null
+          verification_status: string
+          verified_at: string | null
           website: string | null
           yearly_target: number | null
         }
@@ -247,6 +253,7 @@ export type Database = {
           about_short?: string | null
           address?: string | null
           billing?: string | null
+          business_registration_number?: string | null
           canton?: string | null
           city?: string | null
           country?: string | null
@@ -255,8 +262,9 @@ export type Database = {
           email?: string | null
           founded_year?: number | null
           id?: string
-          ide?: string | null
+          identity_submitted_at?: string | null
           legal_form?: string | null
+          legal_form_id?: string | null
           legal_name?: string | null
           logo_url?: string | null
           monthly_target?: number | null
@@ -269,7 +277,11 @@ export type Database = {
           solo?: boolean | null
           status?: string | null
           stripe_customer_id?: string | null
+          trade_name?: string | null
           tva?: string | null
+          verification_score?: number | null
+          verification_status?: string
+          verified_at?: string | null
           website?: string | null
           yearly_target?: number | null
         }
@@ -277,6 +289,7 @@ export type Database = {
           about_short?: string | null
           address?: string | null
           billing?: string | null
+          business_registration_number?: string | null
           canton?: string | null
           city?: string | null
           country?: string | null
@@ -285,8 +298,9 @@ export type Database = {
           email?: string | null
           founded_year?: number | null
           id?: string
-          ide?: string | null
+          identity_submitted_at?: string | null
           legal_form?: string | null
+          legal_form_id?: string | null
           legal_name?: string | null
           logo_url?: string | null
           monthly_target?: number | null
@@ -299,11 +313,70 @@ export type Database = {
           solo?: boolean | null
           status?: string | null
           stripe_customer_id?: string | null
+          trade_name?: string | null
           tva?: string | null
+          verification_score?: number | null
+          verification_status?: string
+          verified_at?: string | null
           website?: string | null
           yearly_target?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agencies_legal_form_id_fkey"
+            columns: ["legal_form_id"]
+            isOneToOne: false
+            referencedRelation: "legal_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_person_roles: {
+        Row: {
+          created_at: string
+          id: string
+          ownership_pct: number | null
+          pep_self_declared: boolean
+          related_person_id: string
+          role: string
+          signature_power: string | null
+          source: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ownership_pct?: number | null
+          pep_self_declared?: boolean
+          related_person_id: string
+          role: string
+          signature_power?: string | null
+          source?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ownership_pct?: number | null
+          pep_self_declared?: boolean
+          related_person_id?: string
+          role?: string
+          signature_power?: string | null
+          source?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_person_roles_related_person_id_fkey"
+            columns: ["related_person_id"]
+            isOneToOne: false
+            referencedRelation: "agency_related_persons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agency_profiles: {
         Row: {
@@ -414,6 +487,63 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_related_persons: {
+        Row: {
+          agency_id: string
+          created_at: string
+          date_of_birth: string | null
+          first_name: string
+          id: string
+          id_document_number: string | null
+          id_document_type: string | null
+          last_name: string
+          nationality: string | null
+          profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          date_of_birth?: string | null
+          first_name: string
+          id?: string
+          id_document_number?: string | null
+          id_document_type?: string | null
+          last_name: string
+          nationality?: string | null
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          date_of_birth?: string | null
+          first_name?: string
+          id?: string
+          id_document_number?: string | null
+          id_document_type?: string | null
+          last_name?: string
+          nationality?: string | null
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_related_persons_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_related_persons_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2324,6 +2454,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_forms: {
+        Row: {
+          category: string
+          code: string
+          country: string
+          created_at: string
+          id: string
+          label_de: string
+          label_en: string
+          label_fr: string
+          label_it: string
+          sort_order: number
+        }
+        Insert: {
+          category: string
+          code: string
+          country: string
+          created_at?: string
+          id?: string
+          label_de: string
+          label_en: string
+          label_fr: string
+          label_it: string
+          sort_order?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          country?: string
+          created_at?: string
+          id?: string
+          label_de?: string
+          label_en?: string
+          label_fr?: string
+          label_it?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       market_listings: {
         Row: {
@@ -7027,6 +7196,7 @@ export type Database = {
         Returns: unknown
       }
       storage_size_mb: { Args: never; Returns: number }
+      submit_agency_identity: { Args: { p_related_person_id?: string }; Returns: undefined }
       submit_visit_feedback_by_token: {
         Args: {
           p_ai: Json
