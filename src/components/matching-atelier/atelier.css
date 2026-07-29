@@ -690,18 +690,27 @@ button.sga-spill:hover{ filter:brightness(1.08); }
   padding:0 10px 0 4px; background:transparent; border-radius:0; box-shadow:none; }
 .sga .sgk-div{ width:1px; height:30px; background:var(--hairline); flex-shrink:0; }
 
-/* menu de bascule d'annonce (bento gris neutre — aucune teinte bleue) */
+/* menu de bascule d'annonce — AUCUNE palette locale : il hérite des tokens de
+   `.sga` (encres + surfaces). Il redéfinissait sa propre échelle neutre
+   (--ink/--cardsub/--surface-2 + fonds #FFFFFF / #171719), donc un gris hors
+   échelle, visiblement différent du reste du CRM. Le fond suit désormais le
+   canvas de l'atelier : le menu se fond avec la page.
+
+   `--megga-canvas-now` n'est volontairement PAS posé pour l'instant : l'atelier
+   Matching n'est pas encore migré à l'échelle Graphite (son canvas reste
+   `--surface-solid` #17181A, cf. les tokens `.sga` plus haut). Y injecter le
+   canvas du CRM — crmStep('s0') = #12161C — rendrait le menu plus SOMBRE que le
+   plateau sur lequel il flotte, soit l'inverse du but recherché. La référence
+   `var(--megga-canvas-now, …)` reste en place : le jour où l'atelier passera à
+   Graphite, il suffira de poser le hook, sans retoucher cette règle. */
 .sga .sgk-menu{ position:absolute; top:calc(100% + 8px); left:-6px; z-index:3; width:404px;
-  --ink:#1A1A1C; --ink-soft:#3B3B3D; --ink-muted:#7E7E82; --ink-dim:#B3B3B5;
-  --cardsub:#EAEAEB; --surface-2:#EAEAEB;
-  background:#FFFFFF; border-radius:22px; padding:9px;
+  background:var(--surface-solid); border-radius:22px; padding:9px;
   box-shadow:0 24px 60px rgba(0,0,0,.14), 0 4px 16px rgba(0,0,0,.08);
   animation:sgaFadeUp .35s cubic-bezier(.2,.8,.2,1) both;
   max-height:min(70vh, 520px); overflow-y:auto; }
 .sga[data-theme="dark"] .sgk-menu{
-  --ink:#F2F2F3; --ink-soft:#C9C9CB; --ink-muted:#8C8C90; --ink-dim:#5C5C5E;
-  --cardsub:rgba(255,255,255,.07); --surface-2:#2C2C2E;
-  background:#171719; box-shadow:0 24px 60px rgba(0,0,0,.55), 0 4px 16px rgba(0,0,0,.45); }
+  background:var(--megga-canvas-now, var(--surface-solid));
+  box-shadow:0 24px 60px rgba(0,0,0,.55), 0 4px 16px rgba(0,0,0,.45); }
 .sga .sgk-menu-h{ padding:9px 12px 11px; }
 .sga .sgk-menu-sub{ margin:4px 0 0; font-size:12.5px; font-weight:500; line-height:1.45; color:var(--ink-muted); }
 .sga .sgk-menu-row{ display:flex; align-items:center; gap:12px; width:100%; border:0;

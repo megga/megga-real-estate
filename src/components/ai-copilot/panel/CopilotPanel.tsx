@@ -412,7 +412,10 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string, photos?: string
       onDragLeave={() => setDragOver(false)}
       onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files) }}
       style={{
-        background: sp.dark ? '#0B0C0E' : sp.composerBg, borderRadius: 22, padding: '10px 10px 10px 16px',
+        // Le composer lit son token dans LES DEUX modes. Il forçait auparavant le
+        // fond de canvas du panneau en sombre (`#0B0C0E`), ce qui le sortait de
+        // l'échelle : champ d'une teinte différente du reste du panneau.
+        background: sp.composerBg, borderRadius: 22, padding: '10px 10px 10px 16px',
         boxShadow: dragOver ? `inset 0 0 0 2px ${sp.accent}` : (sp.dark ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : sp.composerShadow),
         display: 'flex', flexDirection: 'column', gap: 8, transition: 'box-shadow .14s',
       }}
@@ -770,6 +773,21 @@ export default function CopilotPanel() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => { if (isOpen) setMounted(true) }, [isOpen])
 
+  // Chorégraphie d'entrée : `transform`/`opacity` sont animés par le compositeur,
+  // qui continue de tourner pendant que le main thread est bloqué par le gros
+  // re-rendu d'ouverture — alors que le push (`padding-right`, du layout) ne peut
+  // pas avancer. Le panneau glissait donc PAR-DESSUS le contenu pas encore
+  // comprimé, puis « se remettait ». On découple l'état visuel : la glissade ne
+  // part qu'à la frame peinte suivante (double rAF, qui ne tire pas pendant un
+  // stall), donc toujours après le push. Sortie synchrone à la fermeture.
+  const [shown, setShown] = useState(isOpen)
+  useEffect(() => {
+    if (!isOpen) { setShown(false); return }
+    let r2 = 0
+    const r1 = requestAnimationFrame(() => { r2 = requestAnimationFrame(() => setShown(true)) })
+    return () => { cancelAnimationFrame(r1); if (r2) cancelAnimationFrame(r2) }
+  }, [isOpen])
+
   const margin = 16
   const navH = 82
   const cardShadow = dark
@@ -788,10 +806,14 @@ export default function CopilotPanel() {
           width: PANEL_W, maxWidth: 'calc(100vw - 24px)',
           background: sp.panelBg, borderRadius: 22, border: 'none', boxShadow: cardShadow,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          transform: isOpen ? 'translateX(0)' : `translateX(${PANEL_W + margin + 8}px)`,
-          opacity: isOpen ? 1 : 0,
-          transition: 'transform .42s cubic-bezier(.2,.8,.2,1), opacity .3s ease',
-          pointerEvents: isOpen ? 'auto' : 'none',
+          // Ces trois propriétés SEULES lisent `shown` (cf. chorégraphie ci-dessus) ;
+          // tout le reste continue de lire `open`.
+          transform: shown ? 'translateX(0)' : `translateX(${PANEL_W + margin + 8}px)`,
+          opacity: shown ? 1 : 0,
+          // Fondu aligné sur l'horloge unique du mouvement (le `.3s ease` d'avant
+          // finissait avant la glissade et le push).
+          transition: 'transform .42s cubic-bezier(.2,.8,.2,1), opacity .42s cubic-bezier(.2,.8,.2,1)',
+          pointerEvents: shown ? 'auto' : 'none',
           fontFamily: "'Inter Tight', system-ui, sans-serif",
         }}
       >
