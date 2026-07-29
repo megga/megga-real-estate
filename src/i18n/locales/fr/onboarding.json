@@ -158,16 +158,17 @@
       },
       "rejected": {
         "title": "Vérification refusée",
-        "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Contactez l'équipe MEGGA pour connaître le motif et la marche à suivre."
+        "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Renvoyer le formulaire ne relance pas d'examen : contactez le support MEGGA pour connaître le motif et la marche à suivre."
       },
-      "cta": "Compléter la vérification"
+      "cta": "Compléter la vérification",
+      "contactSupport": "Contacter le support"
     },
     "block": {
       "notSubmitted": {
         "eyebrow": "Vérification d'identité requise",
         "title": "La vérification d'identité de votre agence n'a pas encore été soumise",
-        "bodyAdmin": "La loi suisse sur le blanchiment d'argent (LBA) nous oblige à vérifier l'identité de chaque agence avant l'ouverture d'un dossier KYC client ou l'envoi d'une signature électronique. En tant qu'administrateur ou gérant, vous pouvez compléter cette vérification maintenant.",
-        "bodyOther": "La loi suisse sur le blanchiment d'argent (LBA) nous oblige à vérifier l'identité de chaque agence avant l'ouverture d'un dossier KYC client ou l'envoi d'une signature électronique. Seul un administrateur ou un gérant de votre agence peut compléter cette vérification."
+        "bodyAdmin": "MEGGA vérifie l'identité de chaque agence avant l'ouverture d'un dossier KYC client ou l'envoi d'une signature électronique, dans le cadre de ses contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA). En tant qu'administrateur ou gérant, vous pouvez compléter cette vérification maintenant.",
+        "bodyOther": "MEGGA vérifie l'identité de chaque agence avant l'ouverture d'un dossier KYC client ou l'envoi d'une signature électronique, dans le cadre de ses contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA). Seul un administrateur ou un gérant de votre agence peut compléter cette vérification."
       },
       "pendingReview": {
         "eyebrow": "Vérification en cours",
@@ -177,10 +178,11 @@
       "rejected": {
         "eyebrow": "Vérification refusée",
         "title": "Le dossier de vérification de votre agence a été refusé",
-        "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Contactez l'équipe MEGGA pour comprendre le motif et connaître la marche à suivre."
+        "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Renvoyer le formulaire ne relance pas d'examen : contactez le support MEGGA pour comprendre le motif et connaître la marche à suivre."
       },
       "cta": "Compléter la vérification",
-      "back": "Retour au tableau de bord"
+      "back": "Retour au tableau de bord",
+      "contactSupport": "Contacter le support"
     }
   }
 }

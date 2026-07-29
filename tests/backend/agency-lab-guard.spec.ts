@@ -167,4 +167,54 @@ describe.skipIf(!HAS_KEYS)('garde LAB plein — kyc-screening et sign-document r
     expect(body.ok).toBe(true)
     expect(Array.isArray(body.connections)).toBe(true)
   })
+
+  // ── Points mineurs (revue) : le fail-closed serveur n'etait teste ni pour une
+  // lecture en echec, ni pour les statuts intermediaires (seul le defaut 'pending'
+  // etait couvert ci-dessus) — requireAgencyLabCleared (agency-lab-guard.ts) traite
+  // pourtant les deux comme le meme cas fail-closed (verificationStatus undefined :
+  // agence introuvable OU valeur hors liste blanche). Places APRES les tests
+  // ci-dessus (jamais avant) : ceux-la dependent d'agencyA reste au defaut 'pending'
+  // jusqu'ici — ces tests-ci le font ensuite evoluer, execution sequentielle du
+  // fichier (fileParallelism: false, vitest.backend.config.ts).
+
+  it('agence introuvable (lecture en echec) -> 403 agency_not_verified, fail-closed', async () => {
+    // Chemin service-role (agency_id vient du corps, pas d'une session) : le seul des
+    // deux chemins ou l'on peut fournir un agency_id qui n'existe PAS sans devoir
+    // supprimer l'agence d'un utilisateur reel en cours de test. requireAgencyLabCleared
+    // lit agencies.verification_status pour cet id ; .single() echoue (aucune ligne),
+    // verificationStatus reste undefined -> meme branche fail-closed qu'une panne
+    // reseau (agency-lab-guard.ts : "Lecture impossible (agence introuvable, panne
+    // reseau) : on ne SAIT pas si l'agence est cleared").
+    const res = await fetch(KYC_SCREENING_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_KEY}` },
+      body: JSON.stringify({
+        entity_type: 'individual',
+        agency_id: '00000000-0000-0000-0000-000000000000',
+      }),
+    })
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.error).toBe('agency_not_verified')
+  })
+
+  it.each(['manual_review', 'rejected'])(
+    "agence au statut intermediaire '%s' -> 403 agency_not_verified (liste blanche, pas liste noire)",
+    async (status) => {
+      const { error: setErr } = await serviceRoleClient()
+        .from('agencies')
+        .update({ verification_status: status })
+        .eq('id', setup.agencyAId)
+      expect(setErr, `poser verification_status=${status} sur agencyA`).toBeNull()
+
+      const res = await fetch(KYC_SCREENING_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${blockedToken}` },
+        body: JSON.stringify({ kyc_case_id: '00000000-0000-0000-0000-000000000000', entity_type: 'individual' }),
+      })
+      expect(res.status, `verification_status='${status}' ne doit jamais suffire a debloquer kyc-screening`).toBe(403)
+      const body = await res.json()
+      expect(body.error).toBe('agency_not_verified')
+    }
+  )
 })

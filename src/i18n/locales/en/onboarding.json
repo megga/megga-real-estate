@@ -158,16 +158,17 @@
       },
       "rejected": {
         "title": "Verification rejected",
-        "body": "The MEGGA team did not validate your agency's identity. Contact the MEGGA team to learn why and what to do next."
+        "body": "The MEGGA team did not validate your agency's identity. Resubmitting the form will not trigger a new review: contact MEGGA support to learn why and what to do next."
       },
-      "cta": "Complete verification"
+      "cta": "Complete verification",
+      "contactSupport": "Contact support"
     },
     "block": {
       "notSubmitted": {
         "eyebrow": "Identity verification required",
         "title": "Your agency's identity verification has not been submitted yet",
-        "bodyAdmin": "Under Swiss anti-money laundering law (AMLA), we must verify every agency's identity before a KYC client file can be opened or an electronic signature sent. As an administrator or manager, you can complete this verification now.",
-        "bodyOther": "Under Swiss anti-money laundering law (AMLA), we must verify every agency's identity before a KYC client file can be opened or an electronic signature sent. Only an administrator or manager of your agency can complete this verification."
+        "bodyAdmin": "MEGGA verifies every agency's identity before a KYC client file can be opened or an electronic signature sent, as part of our compliance controls, under Swiss anti-money laundering law (AMLA). As an administrator or manager, you can complete this verification now.",
+        "bodyOther": "MEGGA verifies every agency's identity before a KYC client file can be opened or an electronic signature sent, as part of our compliance controls, under Swiss anti-money laundering law (AMLA). Only an administrator or manager of your agency can complete this verification."
       },
       "pendingReview": {
         "eyebrow": "Verification in progress",
@@ -177,10 +178,11 @@
       "rejected": {
         "eyebrow": "Verification rejected",
         "title": "Your agency's verification file was rejected",
-        "body": "The MEGGA team did not validate your agency's identity. Contact the MEGGA team to understand why and to learn the next steps."
+        "body": "The MEGGA team did not validate your agency's identity. Resubmitting the form will not trigger a new review: contact MEGGA support to understand why and to learn the next steps."
       },
       "cta": "Complete verification",
-      "back": "Back to dashboard"
+      "back": "Back to dashboard",
+      "contactSupport": "Contact support"
     }
   }
 }

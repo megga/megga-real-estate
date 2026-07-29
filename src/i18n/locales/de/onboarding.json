@@ -158,16 +158,17 @@
       },
       "rejected": {
         "title": "Prüfung abgelehnt",
-        "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Wenden Sie sich an das MEGGA-Team, um den Grund und die weiteren Schritte zu erfahren."
+        "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Das erneute Absenden des Formulars löst keine neue Prüfung aus: Wenden Sie sich an den MEGGA-Support, um den Grund und die weiteren Schritte zu erfahren."
       },
-      "cta": "Prüfung abschliessen"
+      "cta": "Prüfung abschliessen",
+      "contactSupport": "Support kontaktieren"
     },
     "block": {
       "notSubmitted": {
         "eyebrow": "Identitätsprüfung erforderlich",
         "title": "Die Identitätsprüfung Ihrer Agentur wurde noch nicht eingereicht",
-        "bodyAdmin": "Im Sinne des Schweizer Geldwäschereigesetzes (GwG) müssen wir die Identität jeder Agentur prüfen, bevor ein KYC-Kundendossier geöffnet oder eine elektronische Signatur versendet werden kann. Als Admin oder Manager können Sie diese Prüfung jetzt abschliessen.",
-        "bodyOther": "Im Sinne des Schweizer Geldwäschereigesetzes (GwG) müssen wir die Identität jeder Agentur prüfen, bevor ein KYC-Kundendossier geöffnet oder eine elektronische Signatur versendet werden kann. Nur ein Admin oder Manager Ihrer Agentur kann diese Prüfung abschliessen."
+        "bodyAdmin": "MEGGA prüft die Identität jeder Agentur, bevor ein KYC-Kundendossier geöffnet oder eine elektronische Signatur versendet werden kann, im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Als Admin oder Manager können Sie diese Prüfung jetzt abschliessen.",
+        "bodyOther": "MEGGA prüft die Identität jeder Agentur, bevor ein KYC-Kundendossier geöffnet oder eine elektronische Signatur versendet werden kann, im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Nur ein Admin oder Manager Ihrer Agentur kann diese Prüfung abschliessen."
       },
       "pendingReview": {
         "eyebrow": "Prüfung läuft",
@@ -177,10 +178,11 @@
       "rejected": {
         "eyebrow": "Prüfung abgelehnt",
         "title": "Das Prüfdossier Ihrer Agentur wurde abgelehnt",
-        "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Wenden Sie sich an das MEGGA-Team, um den Grund zu verstehen und die weiteren Schritte zu erfahren."
+        "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Das erneute Absenden des Formulars löst keine neue Prüfung aus: Wenden Sie sich an den MEGGA-Support, um den Grund zu verstehen und die weiteren Schritte zu erfahren."
       },
       "cta": "Prüfung abschliessen",
-      "back": "Zurück zum Dashboard"
+      "back": "Zurück zum Dashboard",
+      "contactSupport": "Support kontaktieren"
     }
   }
 }

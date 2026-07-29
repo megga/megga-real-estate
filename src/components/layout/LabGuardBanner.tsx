@@ -12,14 +12,19 @@
  * supabase/functions/_shared/agency-lab-guard.ts), qui protège réellement ;
  * ce bandeau évite seulement de laisser l'agence découvrir le blocage en
  * pleine action.
+ *
+ * Ne rend RIEN non plus sur les routes gardées par KycLabGuard (correctif
+ * revue, point mineur) : cet écran plein dit déjà tout, répéter le bandeau
+ * au-dessus double le message sans rien ajouter.
  */
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AlertTriangle, Info, AlertOctagon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
-import { useLabGuard, canActOnLabGuard, type LabGuardStatus } from '@/hooks/useLabGuard'
+import { useLabGuard, canActOnLabGuard, KYC_LAB_GUARD_ROUTE_PREFIX, type LabGuardStatus } from '@/hooks/useLabGuard'
 import { IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
+import { showIntercomSpace } from '@/lib/intercom'
 
 type BlockedStatus = Exclude<LabGuardStatus, 'loading' | 'clear'>
 
@@ -33,11 +38,20 @@ export default function LabGuardBanner() {
   const { t } = useTranslation('onboarding')
   const { profile } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const status = useLabGuard()
 
   if (status === 'loading' || status === 'clear') return null
 
+  // /dashboard/kyc* affiche déjà l'écran plein (KycLabGuard) qui dit exactement la
+  // même chose — le bandeau reste utile PARTOUT AILLEURS (rappel persistant sur les
+  // pages non gardées), pas ici.
+  if (location.pathname.startsWith(KYC_LAB_GUARD_ROUTE_PREFIX)) return null
+
   const canAct = profile != null && canActOnLabGuard(profile.role)
+  // Jamais proposer de naviguer vers la page d'identité depuis la page d'identité
+  // elle-même — même motif que shouldRedirectToIdentityGate (useIdentityGate.ts).
+  const onIdentityPage = location.pathname === IDENTITY_GATE_ROUTE
   const { icon: Icon, color } = SEVERITY[status]
 
   const title = status === 'blocked_not_submitted'
@@ -60,13 +74,22 @@ export default function LabGuardBanner() {
           <p className="text-sm font-medium text-theme-primary">{title}</p>
           <p className="text-xs text-theme-secondary mt-0.5">{body}</p>
         </div>
-        {status === 'blocked_not_submitted' && canAct && (
+        {status === 'blocked_not_submitted' && canAct && !onIdentityPage && (
           <button
             type="button"
             onClick={() => navigate(IDENTITY_GATE_ROUTE)}
             className="flex-shrink-0 text-xs font-medium text-theme-secondary border border-theme-border rounded-md px-2.5 py-1 hover:bg-theme-hover transition-colors"
           >
             {t('labGuard.banner.cta')}
+          </button>
+        )}
+        {status === 'blocked_rejected' && (
+          <button
+            type="button"
+            onClick={() => showIntercomSpace('messages')}
+            className="flex-shrink-0 text-xs font-medium text-theme-secondary border border-theme-border rounded-md px-2.5 py-1 hover:bg-theme-hover transition-colors"
+          >
+            {t('labGuard.banner.contactSupport')}
           </button>
         )}
       </div>

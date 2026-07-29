@@ -84,7 +84,20 @@ function AgentSugarInner() {
   const mustRedirectToIdentity = shouldRedirectToIdentityGate(identityGateStatus, location.pathname)
 
   return (
-    <>
+    // flex column pleine hauteur (correctif revue, point mineur) : les bandeaux
+    // (Impersonate/LabGuard) et la zone de contenu se PARTAGENT 100vh au lieu de
+    // s'empiler chacun leur propre ancrage minimal indépendant — un bandeau (qui a
+    // sa propre hauteur) suivi d'une zone de contenu qui réclamait ELLE AUSSI
+    // min-height:100vh dépassait la fenêtre et produisait un ascenseur de page
+    // parasite sur un écran par ailleurs court (KycLabGuard bloqué, cf. son
+    // en-tête). flex:'1 1 auto' sur la zone de contenu lui donne une hauteur
+    // DÉFINIE (règle flexbox : un flex-item résout une taille définie même quand
+    // son conteneur n'a qu'un min-height) — c'est ce qui permet à
+    // KycBlockedScreen/LoadingScreen d'utiliser min-h-full plutôt que min-h-screen
+    // et de s'ajuster sous un bandeau au lieu de l'ignorer. Comportement inchangé
+    // en l'absence de bandeau (cas courant) : un seul enfant flexible occupe toute
+    // la hauteur, comme avant.
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <ImpersonateBanner />
       <LabGuardBanner />
       {/* Le panneau MEGGA AI « pousse » le contenu de travail vers la gauche
@@ -94,7 +107,7 @@ function AgentSugarInner() {
           transition: 'padding-right .42s cubic-bezier(.2,.8,.2,1)',
           paddingRight: isOpen ? COPILOT_WIDTH : 0,
           background: pageBg,
-          minHeight: '100vh',
+          flex: '1 1 auto',
         }}
       >
         {mustRedirectToIdentity ? <Navigate to={IDENTITY_GATE_ROUTE} replace /> : <Outlet />}
@@ -102,7 +115,7 @@ function AgentSugarInner() {
       <CrmSugarSearchHost />
       {/* Le panneau MEGGA AI est monté dans App.tsx (au-dessus de <Routes>)
           pour persister à la navigation ; ici on ne fait que « pousser » le contenu. */}
-    </>
+    </div>
   )
 }
 

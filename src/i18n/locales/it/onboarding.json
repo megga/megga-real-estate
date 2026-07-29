@@ -158,16 +158,17 @@
       },
       "rejected": {
         "title": "Verifica respinta",
-        "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Contatti il team MEGGA per conoscere il motivo e i prossimi passi."
+        "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Reinviare il modulo non avvia un nuovo esame: contatti il supporto MEGGA per conoscere il motivo e i prossimi passi."
       },
-      "cta": "Completa la verifica"
+      "cta": "Completa la verifica",
+      "contactSupport": "Contatta il supporto"
     },
     "block": {
       "notSubmitted": {
         "eyebrow": "Verifica d'identità richiesta",
         "title": "La verifica d'identità della Sua agenzia non è ancora stata inviata",
-        "bodyAdmin": "Ai sensi della legge svizzera antiriciclaggio (LRD), dobbiamo verificare l'identità di ogni agenzia prima che una pratica KYC cliente possa essere aperta o una firma elettronica inviata. In qualità di amministratore o manager, può completare questa verifica adesso.",
-        "bodyOther": "Ai sensi della legge svizzera antiriciclaggio (LRD), dobbiamo verificare l'identità di ogni agenzia prima che una pratica KYC cliente possa essere aperta o una firma elettronica inviata. Solo un amministratore o un manager della Sua agenzia può completare questa verifica."
+        "bodyAdmin": "MEGGA verifica l'identità di ogni agenzia prima che una pratica KYC cliente possa essere aperta o una firma elettronica inviata, nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD). In qualità di amministratore o manager, può completare questa verifica adesso.",
+        "bodyOther": "MEGGA verifica l'identità di ogni agenzia prima che una pratica KYC cliente possa essere aperta o una firma elettronica inviata, nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD). Solo un amministratore o un manager della Sua agenzia può completare questa verifica."
       },
       "pendingReview": {
         "eyebrow": "Verifica in corso",
@@ -177,10 +178,11 @@
       "rejected": {
         "eyebrow": "Verifica respinta",
         "title": "La pratica di verifica della Sua agenzia è stata respinta",
-        "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Contatti il team MEGGA per comprendere il motivo e conoscere i prossimi passi."
+        "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Reinviare il modulo non avvia un nuovo esame: contatti il supporto MEGGA per comprendere il motivo e conoscere i prossimi passi."
       },
       "cta": "Completa la verifica",
-      "back": "Torna alla dashboard"
+      "back": "Torna alla dashboard",
+      "contactSupport": "Contatta il supporto"
     }
   }
 }

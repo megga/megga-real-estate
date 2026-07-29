@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useLabGuard, canActOnLabGuard, type LabGuardStatus } from '@/hooks/useLabGuard'
 import { IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
+import { showIntercomSpace } from '@/lib/intercom'
 
 type BlockedStatus = Exclude<LabGuardStatus, 'loading' | 'clear'>
 
@@ -37,10 +38,17 @@ const SEVERITY: Record<BlockedStatus, { icon: typeof AlertTriangle; color: strin
   blocked_rejected: { icon: AlertOctagon, color: 'text-red-500' },
 }
 
-/** État 'loading' — écran neutre, jamais le blocage ni le contenu réel (cf. en-tête du fichier). */
+/** État 'loading' — écran neutre, jamais le blocage ni le contenu réel (cf. en-tête du fichier).
+ *
+ * min-h-full (pas min-h-screen, correctif revue, point mineur) : AgentSugarLayout
+ * enveloppe déjà l'Outlet dans un conteneur flex qui occupe toute la hauteur
+ * disponible sous les bandeaux (ImpersonateBanner/LabGuardBanner) — un second
+ * ancrage indépendant sur 100vh ICI ignorait la hauteur déjà prise par ces
+ * bandeaux et produisait un ascenseur de page parasite (bandeau + 100vh > hauteur
+ * de la fenêtre). min-h-full se cale sur l'espace réellement disponible. */
 function LoadingScreen() {
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex items-center justify-center min-h-full">
       <div className="h-5 w-5 border-2 border-theme-border border-t-accent rounded-full animate-spin" />
     </div>
   )
@@ -72,7 +80,9 @@ function KycBlockedScreen({ status }: { status: BlockedStatus }) {
       : t('labGuard.block.rejected.body')
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-4 py-12">
+    // min-h-full, pas min-h-screen : voir le commentaire equivalent sur LoadingScreen
+    // ci-dessus (correctif revue, point mineur — ascenseur de page parasite).
+    <div className="flex items-center justify-center min-h-full px-4 py-12">
       <div className="w-full max-w-lg rounded-xl border border-theme-border bg-theme-card p-6 md:p-8">
         <Icon className={cn('h-6 w-6', color)} />
         <p className={cn('mt-4 text-xs font-medium uppercase tracking-wide', color)}>{eyebrow}</p>
@@ -86,6 +96,15 @@ function KycBlockedScreen({ status }: { status: BlockedStatus }) {
               className="text-sm font-medium text-theme-secondary border border-theme-border rounded-md px-3.5 py-2 hover:bg-theme-hover transition-colors"
             >
               {t('labGuard.block.cta')}
+            </button>
+          )}
+          {status === 'blocked_rejected' && (
+            <button
+              type="button"
+              onClick={() => showIntercomSpace('messages')}
+              className="text-sm font-medium text-theme-secondary border border-theme-border rounded-md px-3.5 py-2 hover:bg-theme-hover transition-colors"
+            >
+              {t('labGuard.block.contactSupport')}
             </button>
           )}
           <button
