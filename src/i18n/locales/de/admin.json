@@ -937,6 +937,7 @@
   "kybReview.source.oeraLi": "OERA (Liechtenstein)",
   "kybReview.source.rdap": "RDAP",
   "kybReview.source.gleif": "GLEIF",
+  "kybReview.source.internal": "Interne Prüfung (Berechnung)",
   "kybReview.source.mapbox": "Mapbox",
   "kybReview.source.cciImmobilier": "IHK Immobilien",
   "kybReview.source.manual": "Manuelle Prüfung",

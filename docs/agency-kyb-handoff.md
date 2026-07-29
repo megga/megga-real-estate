@@ -1,9 +1,11 @@
 # KYB agences et onboarding — fichier de relais
 
 > **Pour qui :** Antoine, qui reprend ce chantier.
-> **Écrit le :** 26 juillet 2026 (Antoine). **Mis à jour le :** 28 juillet 2026, après
-> la livraison et la vérification complète de l'étape 2 (gate et wizard).
-> **Branche :** `feat/agency-kyb-verification` @ `276e4d5a`.
+> **Écrit le :** 26 juillet 2026 (Antoine). **Mis à jour le :** 29 juillet 2026, après le
+> chantier LINDAS (contrôle du numéro de registre, trois connecteurs suisses par LINDAS,
+> concordance de pays française). C'est cette mise à jour qui a rendu le **§7bis** faux et
+> l'a fait réécrire pays par pays.
+> **Branche :** `feat/kyb-lindas-format`.
 >
 > **Trois documents, trois rôles :**
 > - celui-ci dit **où on en est et quoi faire**, étape par étape ;
@@ -33,10 +35,14 @@ parcours d'onboarding est maintenant cadré et décidé.
 | Moteur de scoring | fait, étape 3, ta conception §7 reprise telle quelle |
 | Connecteurs disponibles | fait, étape 4 (RDAP, VIES, registre FR, géocodage) |
 | File de revue admin et gardes LAB | fait, étape 5 |
-| Connecteurs Zefix et UID | squelette posé, étape 6 — reste l'URL, l'authentification, le parsing |
+| Registre suisse (Zefix) | **branché** par LINDAS (SPARQL public), 29 juil. — sans identifiants, mais sans le statut actif |
+| Format du numéro de registre (CH, FR) | **livré**, calcul sans réseau, 29 juil. |
+| Registre UID (TVA CH/LI) | squelette seul, étape 6 — reste l'URL, l'authentification, le parsing |
 
-**Six étapes sur sept ne dépendent d'aucune réponse externe.** Tu peux tout enchaîner
-sans attendre Zefix.
+**Aucune étape ne dépend plus d'une réponse externe.** Ce qui attend encore un tiers,
+c'est le **statut actif** d'une entité suisse (identifiants Zefix PublicREST) et le
+**registre UID** de la TVA suisse et liechtensteinoise. Voir §7bis pour ce que chaque pays
+peut ou ne peut pas auto-valider.
 
 ---
 
@@ -331,7 +337,7 @@ est ce qu'il faut avoir en tête pour exécuter.
 | 3 | Moteur de scoring (§7) | fait | 0 | non |
 | 4 | Connecteurs disponibles | fait | 3 | non |
 | 5 | File de revue admin et gardes LAB | fait | 3 | non |
-| 6 | Connecteurs Zefix et UID | squelette posé, connecteurs à écrire | 4 | **oui** |
+| 6 | Connecteurs Zefix et UID | Zefix **livré** par LINDAS (29 juil.) ; UID reste un squelette | 4 | partiellement |
 
 ### Étape 3 : le moteur, tel qu'il a été livré
 
@@ -542,39 +548,44 @@ client (`/dashboard/kyc`, edge `kyc-screening`) et demande de signature électro
 (edge `sign-document`). Le blocage explique pourquoi et pointe l'état du dossier. Liste
 exacte à figer avec Gregory : ce sont des actions métier, pas un choix technique.
 
-### Étape 6 : squelettes Zefix et registre UID
+### Étape 6 : la règle de juridiction, et un squelette dont il ne reste que la moitié
 
-**Squelette posé, connecteurs absents.** Ne pas lire cette étape comme « Zefix est
-branché » : aucune requête n'est émise vers Zefix ni vers le registre UID, et aucun
-dossier n'a changé de verdict. Ce qui a été fait, c'est tout ce qui pouvait l'être sans
-identifiants, pour qu'il ne reste, le jour où ils arrivent, que trois choses à écrire.
+> **Ce que cette section décrivait n'existe plus qu'à moitié.** L'étape 6 avait posé
+> **deux** squelettes en attendant des identifiants. Celui de Zefix a été **retiré** le
+> 29.07.2026 et remplacé par trois connecteurs LINDAS qui fonctionnent : le registre du
+> commerce suisse est publié en SPARQL public, ce que l'étape 6 ignorait alors même que le
+> dépôt s'en servait déjà (`scripts/zefix-enrich-agencies.mjs`). Seul le squelette du
+> registre UID subsiste. Ce qui reste vrai et important de cette étape, c'est la **règle de
+> juridiction** qu'elle a posée, décrite plus bas : elle sert désormais à départager des
+> connecteurs réels des deux côtés, ce qui la rend plus utile, pas moins.
 
-**Ce qui est câblé** (`supabase/functions/_shared/kyb-sources.ts`, construit par
-`agency-verification-run/index.ts`) :
+**Ce qui est câblé aujourd'hui** (`supabase/functions/_shared/kyb-sources.ts`) :
 
-| Fabrique | Sources | `source` | Juridiction |
-|---|---|---|---|
-| `createZefixSources(config)` | `registry_lookup`, `registry_legal_name_match`, `registry_country_match` | `zefix` | `CH` |
-| `createUidRegisterSources(config)` | `vat_lookup` | `uid_register` | `CH` et `LI` |
+| Entrée du registre | Sources | `source` | Juridiction | État |
+|---|---|---|---|---|
+| entrées statiques de `AGENCY_KYB_SOURCES` | `registry_lookup`, `registry_legal_name_match`, `registry_country_match` | `zefix` (par LINDAS) | `CH` | **connecteurs réels**, aucun secret, endpoint public |
+| `createUidRegisterSources(config)` | `vat_lookup` | `uid_register` | `CH` et `LI`, et seulement sur une TVA que VIES ne couvre pas | squelette, en attente (§8) |
 
-Les quatre `check_type` et les deux valeurs de `source` étaient déjà au catalogue
-(`20260728103000`) : **aucune migration dans cette étape.** Les configurations viennent
-de quatre variables d'environnement, toutes vides aujourd'hui (§8).
+Les `check_type` et les valeurs de `source` étaient déjà au catalogue (`20260728103000`,
+re-datée `20260729150300`) : **aucune migration dans cette étape.** Le chantier LINDAS en a
+ajouté une seule, `20260729160000`, pour ouvrir la valeur de source `internal` du contrôle
+de numéro (qui n'interroge personne).
 
-Tant qu'elles le sont, chaque source lève `KybSourcePendingCredentialsError`, que le
-harnais traduit en `unavailable` avec la raison jointe. Si les secrets sont posés sans que
-le connecteur ait été écrit, elle lève `KybSourceNotWiredError` à la place. Deux erreurs
-et non une, parce qu'elles appellent deux gestes différents : la première attend une
-réponse de `zefix@bj.admin.ch`, la seconde dit que le travail restant est du code, ici.
-Sans cette distinction, celui qui vient de poser les secrets ne verrait qu'un
-`unavailable` identique à celui de la veille. Le type d'erreur est lisible dans
-`raw_response.error_type`, donc dans la file de revue.
+Le squelette UID lève `KybSourcePendingCredentialsError`, que le harnais traduit en
+`unavailable` avec la raison jointe. Si les secrets sont posés sans que le connecteur ait
+été écrit, il lève `KybSourceNotWiredError` à la place. Deux erreurs et non une, parce
+qu'elles appellent deux gestes différents : la première attend une réponse de l'extérieur,
+la seconde dit que le travail restant est du code, ici. Sans cette distinction, celui qui
+vient de poser les secrets ne verrait qu'un `unavailable` identique à celui de la veille.
+Le type d'erreur est lisible dans `raw_response.error_type`, donc dans la file de revue.
 
-**Ce qui reste le jour où les identifiants arrivent : l'URL, l'authentification, l'analyse
-de la réponse. Rien d'autre.** Ni migration, ni retouche de `index.ts`, ni place à trouver
-dans le registre, ni gestion d'erreur ou de timeout à réécrire. Rien n'a été deviné :
-aucune URL, aucun en-tête, aucun schéma de réponse n'est écrit « au plus probable ». Une
-URL inventée se découvrirait en production, une valeur vide se découvre à la lecture.
+**Le statut du registre UID n'est pas celui qu'avait Zefix, et c'est ce qui a fait la
+différence.** Zefix avait répondu (`401`) : on savait qu'il existe et ce qu'il attend, et
+il s'est finalement avéré joignable par une autre porte. Le registre UID, lui, n'a **jamais
+été testé en API**, et la question « API séparée ou champ Zefix ? » n'est pas tranchée.
+LINDAS n'y change rien : le graphe ne porte aucune donnée de TVA. Rien n'y est deviné,
+aucune URL ni schéma de réponse écrit « au plus probable » : une URL inventée se
+découvrirait en production, une valeur vide se découvre à la lecture.
 
 **La règle de juridiction, et pourquoi elle vient avec cette étape.** Une source déclare
 désormais ce qu'elle couvre (`KybSource.appliesTo`) ; `selectApplicableSources()` écarte
@@ -599,7 +610,7 @@ d'insertion cesse de porter du sens.
 `KybSourceResult.check_type` (c'est ce que fait RDAP pour `domain_generic_provider`), et
 cette écriture-là ne passe par aucun filtre, puisqu'elle n'existe qu'une fois la source
 déjà exécutée. Aucun type partagé n'est produit de cette façon aujourd'hui ; à vérifier
-avant d'y recourir en écrivant le parsing Zefix.
+avant d'y recourir en branchant PublicREST sur `registry_lookup`.
 
 Écarté délibérément : faire préférer au moteur un résultat tranché à un `unavailable`. Ce
 serait laisser un `match` d'hier survivre à la panne d'aujourd'hui. « La dernière ligne
@@ -611,9 +622,12 @@ européen ne reçoit plus de lignes `registry_lookup`, `registry_legal_name_matc
 `vat_lookup` (elle en recevait trois, toutes `unavailable`), et une agence suisse n'en
 reçoit plus deux « siège hors France ». Ces lignes-là valaient `unavailable`, que le moteur
 traite exactement comme une ligne absente : ni score ni statut ne bougent. Vérifié en base
-et non supposé : un dossier suisse par ailleurs parfait reste en `manual_review` avec
-`veto_failed` à vrai, et bascule en `auto_validated` dès que les quatre vétos sont posés à
-la main.
+et non supposé : un dossier suisse par ailleurs parfait **mais sans numéro de registre
+déclaré** reste en `manual_review` avec `veto_failed` à vrai, et bascule en
+`auto_validated` dès que les quatre vétos sont posés à la main. Un dossier suisse qui
+déclare un numéro, lui, ne relève plus de ce cas depuis le chantier LINDAS : trois de ses
+vétos sont réellement satisfaits, et c'est `registry_lookup` en `partial` qui le retient
+(§7bis).
 
 **Ce qu'écarter coûte quand la source avait un verdict à rendre** (défaut trouvé en revue
 finale, corrigé). Écarter n'est neutre **qu'à la condition** que la source écartée n'ait
@@ -637,18 +651,20 @@ combinaisons (siège × préfixe) sont vérifiées contre le code d'avant l'éta
 `tests/backend/agency-verification-run.spec.ts` (matrice de propriétaires, volet 9) et le
 verdict lui-même contre le vrai moteur (volet 2).
 
-**Hors périmètre, et pourquoi.** `registry_number_format` ne dépend d'aucun identifiant
-(clé de contrôle du numéro `CHE` et du SIREN, un calcul pur) : il n'est pas bloqué, donc il
-n'avait rien à faire dans une étape qui prépare ce qui attend une réponse de l'extérieur.
-C'est un travail court, à mener séparément, et c'est le dernier véto qui empêche un dossier
-suisse par ailleurs complet d'être auto-validé. `signatory_registry_match`, que Zefix
-pourrait pourtant alimenter, est un check de **personne** : `record_agency_verification_run`
-n'écrit que dans `agency_verification_checks`, l'accueillir demanderait d'étendre la RPC.
-`address_registry_match` et `activity_code_match` sont deux signaux moyens à rouvrir quand
-les sources répondront et qu'on saura ce qu'elles renvoient. GLEIF reste à retester depuis
-une Edge Function réelle. `oera.li` n'a aucune API publique connue : le Liechtenstein reste
-en revue manuelle pour son registre du commerce, seul son numéro de TVA étant couvert par
-le squelette UID.
+**Hors périmètre de l'étape 6, et ce qu'il en reste.** `registry_number_format` en avait
+été laissé de côté délibérément : il ne dépend d'aucun identifiant (clé de contrôle du
+numéro `CHE` et du SIREN, un calcul pur), donc il n'avait rien à faire dans une étape qui
+préparait ce qui attend une réponse de l'extérieur. **Il a été livré depuis** par le
+chantier LINDAS (`source='internal'`, migration `20260729160000`), pour la Suisse et pour
+la France. `signatory_registry_match`, que LINDAS pourrait pourtant alimenter, est un check
+de **personne** : `record_agency_verification_run` n'écrit que dans
+`agency_verification_checks`, l'accueillir demanderait d'étendre la RPC.
+`address_registry_match` et `activity_code_match` sont deux signaux moyens que LINDAS
+pourrait servir (`schema:address`, `municipality`, `additionalType`) : rouverts le jour où
+l'on traitera autre chose que des vétos. GLEIF reste à retester depuis une Edge Function
+réelle. `oera.li` n'a toujours aucune API publique connue et n'est pas dans LINDAS : le
+Liechtenstein reste en revue manuelle pour **tous** ses vétos d'entité, y compris le format
+de son numéro (§7bis).
 
 ---
 
@@ -710,57 +726,112 @@ la présence de `pg_cron` comme les autres.
 
 ---
 
-## 7bis. Aucun dossier ne peut être auto-validé aujourd'hui, et c'est normal
+## 7bis. Ce qui peut s'auto-valider, et ce qui ne le peut pas, pays par pays
 
-Écrit ici plutôt que laissé à déduire, parce que c'est le genre de fait qu'on découvre
-par surprise après la mise en service.
+Écrit ici plutôt que laissé à déduire, parce que c'est le genre de fait qu'on découvre par
+surprise après la mise en service.
 
-Le catalogue définit **quatre vétos d'entité** : format du numéro de registre, existence
-au registre, concordance de la raison sociale, concordance du pays. La règle du moteur
-est qu'un véto **absent ne passe pas**, l'absence de preuve n'étant pas une preuve.
+> **Cette section disait exactement le contraire jusqu'au 29 juillet 2026.** Elle
+> démontrait qu'aucun dossier, d'aucun pays, ne pouvait être auto-validé, deux vétos
+> d'entité n'ayant aucun connecteur. Le chantier LINDAS (`registry_number_format`, les
+> trois connecteurs LINDAS, la concordance de pays française) a comblé les deux. Il n'y a
+> plus **une** réponse mais **trois**, une par pays sélectionnable, et ce sont trois
+> raisons différentes qu'il faut lire séparément.
 
-Or deux de ces quatre, le format du numéro et la concordance du pays, n'ont **aucun
-connecteur** dans le dépôt. Ils sont donc absents pour toute agence, de tout pays, et pas
-seulement pour la Suisse privée de Zefix.
+Le catalogue définit **quatre vétos d'entité** : `registry_number_format` (forme et clé de
+contrôle du numéro), `registry_lookup` (existence au registre),
+`registry_legal_name_match` (concordance de la raison sociale), `registry_country_match`
+(concordance du pays). La règle du moteur n'a pas bougé, et c'est elle qui décide de tout
+ce qui suit : **un véto ne passe que sur `match`.** Un véto absent ne passe pas, l'absence
+de preuve n'étant pas une preuve ; un véto `partial` ne passe pas davantage.
 
-**Conséquence, démontrée en base** lors de la revue de l'étape 4 : un dossier français
-parfait, tous les checks disponibles en `match`, un signataire actif, un score de 1.000,
-reste en `manual_review` avec `veto_failed` à vrai. Les deux lignes manquantes insérées à
-la main, le même dossier bascule immédiatement en `auto_validated`. La cause est isolée
-avec certitude.
+S'y ajoute un véto de **personne** que rien n'automatise : la pièce d'identité, posée en
+`pending_manual_review` par la RPC de soumission, aucun prestataire de liveness n'étant
+branché. L'étape 5 lui a donné un chemin de sortie (`admin_resolve_agency_id_document`,
+migration `20260729151500`) ; c'est un geste humain, à poser dossier par dossier, et
+aucune ligne ne se résout d'elle-même.
 
-Un facteur s'y ajoute côté personne : la vérification de pièce d'identité est posée en
-`pending_manual_review` par la RPC de soumission, aucun prestataire automatique n'étant
-branché, et le moteur refuse l'auto-validation tant qu'un check reste dans cet état.
-L'étape 5 y a changé une chose, et une seule : un chemin existe désormais pour l'en
-sortir (`admin_resolve_agency_id_document`, migration `20260728160000`). C'est un geste
-humain, à poser dossier par dossier ; aucune ligne ne se résout d'elle-même. Ce seul fait
-tiendrait donc encore chaque dossier hors de l'auto-validation même si les deux vétos
-étaient comblés demain.
+Les trois états ci-dessous sont **mesurés contre le vrai moteur**, chacun avec son
+contrôle, dans `tests/backend/agency-verification-run.spec.ts`. Ils ne sont pas déduits de
+la lecture du code.
 
-**Ce n'est pas un défaut à corriger dans l'urgence.** C'est l'état souhaitable tant que
-les sources manquent : le dispositif préfère envoyer tout le monde en revue humaine
-plutôt que de valider sur une preuve qu'il n'a pas. Mais quiconque se demandera pourquoi
-l'auto-validation ne se déclenche jamais doit trouver la réponse ici, pas la reconstituer
-en assemblant trois fichiers.
+### France : les quatre vétos d'entité sont servis, et une seule décision humaine reste
 
-Pour l'atteindre un jour, il faudra quatre choses. Deux ont bougé depuis que ce paragraphe
-a été écrit, et aucune des quatre n'est acquise. **Rien n'est auto-validable aujourd'hui,
-et l'étape 6 n'y a rien changé : c'était son critère de non-régression.**
+`registry_lookup`, `registry_legal_name_match` et `registry_country_match` sont servis par
+`recherche-entreprises.api.gouv.fr` (le troisième depuis le chantier LINDAS) ;
+`registry_number_format` par un calcul qui ne sort pas du processus (`source='internal'`).
+Aucun des quatre n'attend plus rien de personne.
 
-- **Un connecteur de format de numéro de registre.** Inchangé : toujours aucun, et il
-  n'attend rien de personne (calcul pur, laissé hors de l'étape 6 délibérément, voir §6).
-- **Un connecteur de concordance de pays.** A désormais un propriétaire déclaré pour la
-  Suisse (le squelette Zefix), mais **muet** : il produit `unavailable`, ce qui ne passe
-  pas plus qu'un véto absent. Et toujours personne pour la France : le connecteur français
-  a laissé ce type de côté, n'interrogeant que des sièges déjà déclarés en France. Un
-  propriétaire déclaré n'est pas une preuve.
-- **La file de revue pour résoudre les pièces d'identité.** Livrée (étape 5) : la
-  vérification de pièce d'identité n'est plus bloquée par l'absence d'un chemin, seulement
-  par le geste humain qu'il faut poser dossier par dossier.
-- **Zefix pour la Suisse.** Câblé, sans identifiants (§6 étape 6, et §8 pour l'état de la
-  demande). Le squelette ne rapproche pas de l'auto-validation : il rend seulement le
-  branchement futur court et lisible.
+Mesuré en base sur un dossier Carrefour (SIREN réel `510761505`, raison sociale telle que
+le registre la publie, signataire actif, tous les signaux scorables en `match`) :
+
+| Vétos d'entité | Pièce d'identité | Verdict |
+|---|---|---|
+| Les quatre en `match`, posés **par les connecteurs** | `pending_manual_review` | `manual_review`, score 1.000, `veto_failed` vrai |
+| Les mêmes, une seule ligne changée | `match` (geste humain) | **`auto_validated`**, score 1.000, `veto_failed` faux |
+| Contrôle : les mêmes **privés de la seule source** `registry_country_match` | `match` (geste humain) | `manual_review`, score 1.000, `veto_failed` vrai |
+
+La troisième ligne est ce qui rend la deuxième concluante : sans elle, il resterait
+possible que la bascule vienne de la pièce d'identité et non du quatrième véto comblé.
+
+**Ce que cela veut dire, et il faut le dire sans l'arrondir :** une agence française
+obtient l'accès aux gestes que ferment les gardes LAB (ouverture d'un dossier KYC client,
+demande de signature électronique) **sur une seule décision humaine**, celle qui tranche
+la pièce d'identité. Plus aucun véto n'est à poser à la main. La décision produit « garde
+plein » (§7ter) tient toujours, puisque cette décision-là reste humaine, mais elle ne
+porte désormais que sur un point, et c'est un régime différent de celui d'avant.
+
+### Suisse : trois vétos sur quatre, et le quatrième plafonne faute de statut
+
+LINDAS sert `registry_legal_name_match` et `registry_country_match` en `match`, le calcul
+interne sert `registry_number_format`. `registry_lookup`, lui, **ne peut pas valoir
+`match`** : LINDAS ne publie aucun statut, une société radiée y figure exactement comme
+une société active. Poser `match` affirmerait « existe et active » sur une preuve qui n'en
+porte que la moitié. `partial` est le verdict honnête, et un véto ne passe pas sur
+`partial`.
+
+Mesuré en base sur un dossier suisse par ailleurs complet (IDE réel `CHE-105.909.036`,
+raison sociale du registre, signataire actif, score 1.000) et **dont la pièce d'identité
+est résolue** : il reste en `manual_review`, `veto_failed` à vrai. Le contrôle qui isole la
+cause vaut aussi comme répétition du jour où PublicREST arrivera : cette seule ligne
+`registry_lookup` passée de `partial` à `match`, rien d'autre ne bougeant, le même dossier
+bascule en `auto_validated`.
+
+Un dossier suisse ne peut donc **pas** s'auto-valider aujourd'hui, quoi qu'un humain
+tranche sur la pièce d'identité. Ce qui manque n'est plus un connecteur : c'est une
+donnée, le statut actif ou radié, que la voie publique ne publie pas (§8).
+
+### Liechtenstein : servi par rien, et c'est une dette à porter
+
+Le Liechtenstein est l'un des **trois seuls pays sélectionnables** au wizard
+(`StepAgence.tsx` retient `CH`, `FR`, `LI`), et **aucun de ses quatre vétos d'entité ne
+peut être satisfait**, pour deux raisons distinctes :
+
+- `oera.li` n'a aucune API publique connue et n'est pas dans LINDAS, qui publie le
+  registre **suisse**. Les trois vétos de registre ne reçoivent donc même pas de ligne :
+  leurs sources ne sont applicables qu'à un siège `CH` (LINDAS) ou `FR`
+  (`recherche-entreprises`), et `selectApplicableSources()` les écarte avant exécution,
+  vers `p_metadata.sources_skipped`.
+- `registry_number_format` **ne couvre pas `LI`** et produit un `unavailable` nommant le
+  pays. Le FL-UID liechtensteinois porte pourtant le même préfixe `CHE` que l'IDE suisse
+  (union douanière), mais la conception le marque « non testé » (§3 de
+  [agency-kyb-verification.md](agency-kyb-verification.md)) : appliquer la clé suisse sans
+  l'avoir éprouvée sur des numéros réels risquerait un `mismatch` sur une agence légitime,
+  c'est-à-dire un véto **échoué** et pas seulement absent. Rester en `unavailable` est le
+  choix prudent, pas un oubli.
+
+Une agence liechtensteinoise part donc en revue humaine sur ses quatre vétos, et rien de
+ce qui est prévu ne l'en sortira. **À trancher**, dans un sens ou dans l'autre : éprouver
+la clé FL-UID sur des numéros réels (ce que ce dépôt n'a pas fait), ou retirer `LI` de la
+liste du wizard tant que rien ne le sert.
+
+### Ce que le dispositif préfère, et pourquoi ce n'est pas à « corriger »
+
+Là où une preuve manque, il envoie en revue humaine plutôt que de valider sur ce qu'il n'a
+pas. C'est voulu, et c'était déjà l'argument de la version précédente de cette section. Ce
+qui a changé le 29 juillet, ce n'est pas la règle : c'est le nombre de preuves
+disponibles. Quiconque se demandera pourquoi tel dossier ne s'auto-valide jamais doit
+trouver la réponse ici, pas la reconstituer en assemblant trois fichiers.
 
 ---
 
@@ -786,17 +857,20 @@ désormais de **124 commits**. L'étape 6, les correctifs de sa revue, l'intégr
 | 3 · Moteur de scoring | fait |
 | 4 · Connecteurs disponibles | fait |
 | 5 · File de revue et gardes LAB | fait |
-| 6 · Connecteurs Zefix et UID | squelette posé, connecteurs à écrire (§6) |
+| 6 · Connecteurs Zefix et UID | Zefix **livré** par LINDAS le 29.07.2026, sans le statut actif ; le squelette UID reste à écrire (§6) |
+| Chantier LINDAS · format du numéro et concordance de pays FR | fait le 29.07.2026 (§7bis pour ce qu'il change) |
 | Préparation du merge (intégrer `main`, re-dater les migrations) | **faite le 29.07.2026**, mais **datée**, donc périssable (voir ci-dessous) |
 
 Fait à l'étape 5 : la couche de données de la file, les quatre décisions humaines
 (valider, rejeter avec motif, relancer, résoudre la pièce d'identité), l'écran de la
 console admin et les gardes LAB du CRM agent.
 
-Reste à l'étape 6 : les connecteurs eux-mêmes. Le squelette Zefix et celui du registre
-UID sont posés et couverts par des tests, mais aucun des deux n'interroge quoi que ce
-soit : ils sortent `unavailable` tant qu'il manque des identifiants et le code qui va
-avec (§6, et §8 pour l'état de la demande).
+Reste à l'étape 6 : le **registre UID** seul. Son squelette est posé et couvert par des
+tests, mais il n'interroge rien et sort `unavailable` tant qu'il manque une URL, de quoi
+s'authentifier et le code qui va avec (§6, et §8 pour l'état de la question). Le squelette
+Zefix, lui, a été **retiré** le 29.07.2026 : le registre du commerce suisse répond par
+LINDAS, sans identifiants. Ne reste suspendu qu'un seul fait, le **statut actif ou radié**
+d'une entité suisse, qui plafonne `registry_lookup` à `partial` (§7bis, §8).
 
 **Décision produit déjà prise pour les gardes : garde plein.** Aucune agence ne peut
 ouvrir un dossier KYC client ni lancer une signature avant qu'un humain ait validé son
@@ -813,9 +887,11 @@ jamais posé côté serveur : seul `VITE_MAPBOX_TOKEN` existe, injecté au build
 navigateur. Sans lui, `address_geocode` produira `unavailable` en production, ce qui ne
 casse rien mais retire un signal.
 
-**Deux vétos d'entité n'ont aucun connecteur**, `registry_number_format` et
-`registry_country_match`. Tant que c'est le cas, aucune agence d'aucun pays ne peut être
-auto-validée. Voir §7bis, où le fait est démontré en base.
+**Tous les vétos d'entité ont désormais un connecteur pour la France, trois sur quatre
+pour la Suisse, aucun pour le Liechtenstein.** Une agence française s'auto-valide dès qu'un
+humain tranche sa pièce d'identité ; une agence suisse ne le peut pas, `registry_lookup`
+plafonnant à `partial` faute de statut publié ; une agence liechtensteinoise n'est servie
+par rien. Voir §7bis, où les trois cas sont mesurés en base.
 
 **Les pièces d'identité déposées ne sont supprimées par aucun chemin** quand la personne
 ou l'agence disparaît. Ce n'est pas une exposition, les politiques restent fermées, mais
@@ -1027,6 +1103,19 @@ Rejoué le 29.07.2026 : `supabase db reset` passe (204 migrations à horodatage 
 et `build` tous verts. `lint:roster` confirme au passage que `supabase/config.toml` déclare
 bien les 67 fonctions du tree, `agency-verification-run` comprise.
 
+**Rejoué à nouveau le 29.07.2026, après le chantier LINDAS** (`supabase db reset` d'abord,
+puis la suite entière) : 208 migrations appliquées à neuf, backend **980 verts, 4 sautés,
+0 échec** sur 984 pour 116 fichiers, unitaire **1315 verts** sur 77 fichiers, `eslint`
+0 erreur (130 avertissements préexistants), `lint:prose` 52 fichiers i18n / 0 tell,
+`lint:i18n` 0 texte en dur, `lint:roster` 67 fonctions déclarées, `lint:migrations` 205
+vérifiées (3 historiques exclues), `build` vert. Les 4 sauts sont les deux specs gardées
+par des secrets absents en local, sans rapport avec ce chantier.
+
+> **Toujours faire le `db reset` en premier.** Sans lui,
+> `tests/backend/whatsapp-messages-rls.spec.ts` échoue en `beforeAll` sur une pile locale
+> polluée (`idx_wa_agent_links_verified_number`, ligne résiduelle) : un faux négatif sans
+> aucun rapport avec le KYB, qui disparaît dès que la base est rejouée à neuf.
+
 > **Piège corrigé en revue finale.** La commande portait `printf '%04d' $((i*1000))`.
 > `%04d` est une largeur **minimale**, pas une troncature : à partir de `i=10` elle rend
 > cinq chiffres, donc un horodatage à **15 chiffres** au lieu de 14. Essai à blanc sur ces
@@ -1052,14 +1141,16 @@ bien les 67 fonctions du tree, `agency-verification-run` comprise.
 
 ## 8. Dépendances externes en attente
 
-**Le registre bloqué est le suisse, c'est-à-dire le marché.** Le connecteur de plus
-forte valeur est celui qu'on ne peut pas écrire aujourd'hui.
+**LINDAS a levé l'essentiel du blocage suisse, et ce qui reste suspendu aux identifiants
+Zefix tient en une donnée : le statut actif ou radié d'une entité suisse.** Le registre du
+commerce suisse répond désormais, par la voie publique ; il ne dit simplement pas si
+l'entité qu'il décrit est encore inscrite.
 
-| Source | Statut au 26.07.2026 |
+| Source | Statut (au 29.07.2026 sauf mention) |
 |---|---|
-| **Zefix PublicREST** (registre CH) | `401`, identifiants demandés à `zefix@bj.admin.ch`, **sans réponse** |
-| **Zefix par LINDAS** (SPARQL Open Data) | ✅ **public, sans clé** (vérifié le 29.07.2026), mais **pas** le statut actif/radié |
-| Registre UID/TVA (CH/LI) | API séparée ou champ Zefix ? **non clarifié** |
+| **Zefix PublicREST** (registre CH) | `401`, identifiants demandés à `zefix@bj.admin.ch`, **sans réponse** (26.07.2026). N'apporte plus qu'**une** chose : le statut actif/radié |
+| **Zefix par LINDAS** (SPARQL Open Data) | ✅ **public, sans clé**, et **branché** : trois connecteurs livrés (`registry_lookup`, `registry_legal_name_match`, `registry_country_match`, juridiction `CH`). Ne publie **aucun** statut |
+| Registre UID/TVA (CH/LI) | API séparée ou champ Zefix ? **non clarifié**. LINDAS ne le remplace pas : le graphe ne porte aucune donnée de TVA |
 | `oera.li` (registre LI) | **aucune API publique**, revue manuelle pour ce pays |
 | Carte pro immobilier CCI (FR) | pas d'API (403 anti-bot), revue manuelle |
 | GLEIF (LEI) | non joignable **depuis le sandbox d'outils**, à retester depuis une edge function ; ce n'est pas un fait sur GLEIF |
@@ -1067,44 +1158,78 @@ forte valeur est celui qu'on ne peut pas écrire aujourd'hui.
 | VIES (TVA UE) | public, sans clé |
 | RDAP `.ch` / `.li` / `.fr` | publics |
 
-**Le blocage suisse ne porte que sur le statut actif.** Les données Zefix sont aussi
-publiées en Open Data par LINDAS, l'endpoint SPARQL de la Confédération
+**Ce que LINDAS a levé, et ce qu'il n'a pas levé.** Les données Zefix sont aussi publiées
+en Open Data par LINDAS, l'endpoint SPARQL de la Confédération
 (`https://lindas.admin.ch/query`, graphe `<https://lindas.admin.ch/foj/zefix>`), public et
-sans authentification. Ce dépôt s'en sert déjà : `scripts/zefix-enrich-agencies.mjs`
-l'interroge pour retrouver l'IDE d'une agence, et dit l'avoir choisi plutôt que l'API REST
-« qui exige des identifiants OFJ + throttle ». Vérifié en direct le 29.07.2026 : un `POST`
-filtrant `schema:legalName` rend `HTTP 200` et les raisons sociales attendues, sans clé.
-Conséquence, check par check : `registry_legal_name_match` et `registry_country_match` sont
-**servables aujourd'hui** pour la Suisse ; `registry_lookup` ne l'est qu'à moitié, LINDAS
-donnant l'existence mais **pas** le statut actif/radié, qui reste suspendu à PublicREST.
-Le registre UID/TVA n'est pas concerné, LINDAS ne le remplace pas. Cela ne rend pour autant
-aucun dossier suisse auto-validable : `registry_number_format` n'a toujours aucun connecteur
-et la pièce d'identité reste en revue humaine (§7bis). Détail dans le commentaire de section
-de `_shared/kyb-sources.ts`, écrit pour qui branchera le connecteur.
+sans authentification. Ce dépôt s'en servait déjà ailleurs :
+`scripts/zefix-enrich-agencies.mjs` l'interroge pour retrouver l'IDE d'une agence, et dit
+l'avoir choisi plutôt que l'API REST « qui exige des identifiants OFJ + throttle ». Le
+squelette Zefix REST de l'étape 6 a donc été **remplacé** par trois connecteurs LINDAS,
+livrés le 29.07.2026 et exercés contre le vrai service depuis le runtime edge (4 dossiers,
+84 à 225 ms, verdicts justes, y compris le cas négatif : un IDE bien formé mais absent du
+graphe donne `mismatch`, pas `unavailable`).
 
-**Rien de ce programme ne dépend de ces réponses, sauf l'étape 6** : les tables de
-checks sont agnostiques de la source, et un check `source='manual'` saisi par un humain
-se score exactement comme un check automatique. C'est ce qui rend le parcours suisse
-exploitable dès maintenant, en revue humaine.
+Check par check, ce qui en résulte :
+
+| Check | Servi par LINDAS ? |
+|---|---|
+| `registry_legal_name_match` | oui, `match` ou `mismatch` selon la raison sociale déclarée. Comparé à `schema:legalName` **uniquement**, jamais à `schema:name` (voir juste après : c'est là que vivent les traductions officielles) |
+| `registry_country_match` | oui, `match` : trouvé dans le registre suisse, et la juridiction ne dépend d'aucun statut (une entité radiée reste une entité inscrite **en Suisse**) |
+| `registry_lookup` | **à moitié** : `mismatch` si l'IDE est absent du graphe, `partial` s'il y est. **Jamais `match`**, faute de statut publié, donc le véto ne passe pas |
+| `vat_lookup` (CH/LI) | non, et jamais : le graphe ne porte aucune donnée de TVA (prédicats mesurés : `legalName`, `name`, `address`, `municipality`, `additionalType`, `description`, `identifier`) |
+
+**Une agence suisse doit déclarer sa raison sociale telle que le registre la publie, et pas
+sa traduction.** `schema:legalName` est mono-valué par entité (mesure du 29.07.2026 : 0
+nœud sur 791 071 en porte plusieurs). Les traductions officielles, pourtant inscrites,
+vivent dans `schema:name` (« UBS SA » et « UBS Inc. » pour l'entité dont le `legalName` est
+« UBS AG » ; les quatre langues nationales pour la BNS), et le connecteur refuse
+délibérément de le lire : `schema:name` porte aussi, sur chaque entrée, les dénominations
+des *autres* entrées, si bien que le comparer fabriquerait des `match` sur autre chose que
+ce que le véto vérifie. Conséquence à dire au client sans l'arrondir : déclarer la
+traduction donne un `mismatch` sur un véto, donc un dossier bloqué. Les rares IDE qui
+rendent plusieurs raisons sociales (3 sur 791 068 UID, même mesure) sont des **doubles
+sièges statutaires**, deux inscriptions cantonales de la même entité, pas des versions
+linguistiques.
+
+**Ce qui reste suspendu aux identifiants PublicREST, et rien d'autre : le statut actif.**
+Il ne manque plus que là, et il ne manque qu'à un seul check. Le jour où les identifiants
+arrivent, c'est `registry_lookup` seul qui passe de `partial` à `match`, et un dossier
+suisse complet devient auto-validable comme l'est déjà un dossier français (§7bis, où la
+bascule est mesurée en base). Détail dans le commentaire de section de
+`_shared/kyb-sources.ts`, écrit à l'endroit exact où l'appel REST viendra se greffer.
+
+**Aucune étape du programme n'attend plus ces réponses pour s'exécuter** : les tables de
+checks sont agnostiques de la source, et un check `source='manual'` saisi par un humain se
+score exactement comme un check automatique. C'est ce qui rend le parcours suisse et le
+parcours liechtensteinois exploitables dès maintenant, en revue humaine. Ce que ces
+réponses changeraient, ce n'est plus la faisabilité d'une étape, c'est **quels dossiers
+peuvent s'auto-valider** (§7bis).
 
 ### Où poser les identifiants quand ils arriveront
 
-Les squelettes de l'étape 6 lisent quatre variables d'environnement, toutes **absentes
-aujourd'hui**, aucune n'étant déclarée en secret Supabase ni dans `supabase/config.toml`.
-Elles sont lues par `agency-verification-run/index.ts` et injectées dans les fabriques ;
-le message d'indisponibilité que voit un relecteur de la file renvoie ici.
+**Deux variables, pas quatre.** `ZEFIX_API_URL` et `ZEFIX_API_CREDENTIAL` ont disparu avec
+le squelette qui les lisait : depuis que les trois sources suisses passent par LINDAS,
+elles ne sont **lues nulle part** dans le dépôt. Elles ont donc été retirées des secrets
+attendus de `CLAUDE.md`, où elles laissaient croire qu'elles pilotaient un comportement en
+production. Les deux qui restent sont lues par `agency-verification-run/index.ts` et
+injectées dans la fabrique du registre UID ; toutes deux **absentes aujourd'hui**, ni
+secret Supabase, ni entrée `supabase/config.toml`. Le message d'indisponibilité que voit un
+relecteur de la file renvoie ici.
 
 | Variable | Ce qu'elle porte | Sans elle |
 |---|---|---|
-| `ZEFIX_API_URL` | l'URL de base de Zefix PublicREST, **inconnue** : un `401` apprend qu'un service existe et exige une authentification, jamais à quoi ressemble un appel autorisé | `registry_lookup`, `registry_legal_name_match` et `registry_country_match` sortent `unavailable` pour toute agence suisse |
-| `ZEFIX_API_CREDENTIAL` | de quoi s'authentifier auprès de Zefix, en attente de `zefix@bj.admin.ch` | idem |
-| `UID_REGISTER_API_URL` | l'URL du registre UID, **plus incertaine encore** : on ignore s'il existe une API séparée ou si la TVA n'est qu'un champ Zefix | `vat_lookup` sort `unavailable` pour une agence suisse ou liechtensteinoise |
+| `UID_REGISTER_API_URL` | l'URL du registre UID, **incertaine** : on ignore s'il existe une API séparée ou si la TVA n'est qu'un champ Zefix | `vat_lookup` sort `unavailable` pour une agence suisse ou liechtensteinoise |
 | `UID_REGISTER_API_CREDENTIAL` | de quoi s'y authentifier, si tant est qu'il faille le faire | idem |
 
 **Les poser sans écrire le connecteur ne débloque rien**, et le dit : la source lève alors
 `KybSourceNotWiredError` au lieu de `KybSourcePendingCredentialsError`, ce qui distingue
-« il manque un identifiant » de « il manque du code » dans la pièce d'audit. Voir §6,
-étape 6.
+« il manque un identifiant » de « il manque du code » dans la pièce d'audit.
+
+**Et le jour où Zefix PublicREST répond ?** Il n'y a plus de variable à remplir : il faudra
+les réintroduire (une URL, de quoi s'authentifier) et rendre `registry_lookup` à une
+fabrique lue depuis `index.ts`, comme le sont déjà le géocodage et le registre UID. Les
+deux autres `check_type` suisses n'en ont pas besoin, LINDAS les sert entièrement. Le
+commentaire de `index.ts` porte ce raisonnement à l'endroit où le code changera.
 
 `MAPBOX_TOKEN` relève de la même famille (secret Supabase attendu, absent aujourd'hui)
 mais pas de la même cause : ce jeton-là, le dépôt l'a déjà (il est utilisé côté navigateur
@@ -1131,7 +1256,7 @@ ne cassent rien.
 | `docs/superpowers/plans/2026-07-2{6,7,8,9}-onboarding-kyb-etape*.md` | 6 plans d'implémentation, un par étape (`etapes-0-1`, `etape-2` … `etape-6`) |
 | `docs/runbooks/trigger-inscription-duplique.md` | rétablissement si le trigger d'inscription se retrouve en double |
 
-**Migrations** : les 19, dans l'ordre d'application (`supabase/migrations/`)
+**Migrations** : les 20, dans l'ordre d'application (`supabase/migrations/`)
 
 | Fichier | Rôle |
 |---|---|
@@ -1154,13 +1279,14 @@ ne cassent rien.
 | `20260729151600_lock_agency_verification_columns.sql` | écriture des colonnes de vérification révoquée aux rôles utilisateur |
 | `20260729151700_kyc_cases_insert_lab_guard.sql` | garde LAB dans le `WITH CHECK` de `kyc_cases_insert` |
 | `20260729151800_activity_events_allow_agency_detach.sql` | née du merge : le `SET NULL` de la FK devient un cas autorisé du journal append-only |
+| `20260729180000_agency_check_source_internal.sql` | chantier LINDAS : valeur de source `internal` pour un contrôle calculé sans sortir du processus (à ne pas confondre avec `manual`, qui affirme qu'un humain a tranché) |
 
 **Backend applicatif**
 
 | Fichier | Rôle |
 |---|---|
 | `supabase/functions/agency-verification-run/index.ts` | le passage de vérification : lit l'agence, compose et filtre le registre, appelle la RPC |
-| `supabase/functions/_shared/kyb-sources.ts` | contrat des connecteurs, harnais, RDAP / VIES / recherche-entreprises / Mapbox, juridiction, squelettes Zefix et UID |
+| `supabase/functions/_shared/kyb-sources.ts` | contrat des connecteurs, harnais, RDAP / VIES / recherche-entreprises x3 / Mapbox / LINDAS x3 / clé du numéro de registre, règle de juridiction, squelette du registre UID |
 | `supabase/functions/_shared/agency-lab-guard.ts` | garde LAB côté edge (`requireAgencyLabCleared`, `isAgencyLabClearedInDb`) |
 | `supabase/functions/kyc-screening/index.ts`, `sign-document/index.ts`, `_shared/whatsapp-actions.ts` | les trois surfaces que le garde LAB ferme |
 | `src/lib/edgeFunctionRoster.ts` | inventaire des edge functions (y compris `agency-verification-run`) |
@@ -1192,7 +1318,7 @@ ne cassent rien.
 | `tests/backend/kyb-identity-documents-storage.spec.ts` | les 8 policies du préfixe `kyb-identity` |
 | `tests/backend/signup-provisioning.spec.ts`, `onboarding-agency-rpc.spec.ts` | chemin d'inscription |
 | `tests/backend/agency-verification-config.spec.ts`, `agency-verification-engine.spec.ts` | barème et moteur |
-| `tests/backend/agency-verification-run.spec.ts` | Edge Function, connecteurs, juridiction, squelettes, non-régression du verdict |
+| `tests/backend/agency-verification-run.spec.ts` | Edge Function, connecteurs, juridiction, squelette UID, non-régression du verdict, et les trois mesures pays par pays du §7bis (217 tests au 29.07.2026) |
 | `tests/backend/agency-review-queue.spec.ts` | file de revue et décisions humaines |
 | `tests/backend/agency-lab-guard.spec.ts`, `kyc-cases-insert-lab-guard.spec.ts`, `open-kyc-case-lab-guard.spec.ts` | gardes LAB (edge, RLS, WhatsApp) |
 | `tests/backend/agencies-verification-columns-lockdown.spec.ts` | colonnes de vérification en lecture seule pour les rôles utilisateur |
@@ -1214,22 +1340,24 @@ dépôt** : il a été remplacé par le spec de non-régression, qui couvre les 
 
 ## 10. Par où commencer
 
-Les étapes 0 à 5 sont livrées, l'étape 6 pose des squelettes (§7ter pour le tableau
-d'avancement). Il n'y a donc plus d'étape à « traiter » : il reste un merge à faire, et des
-suites à décider.
+Les étapes 0 à 5 sont livrées, l'étape 6 est livrée pour la Suisse et reste un squelette
+pour le registre UID (§7ter pour le tableau d'avancement). Il n'y a donc plus d'étape à
+« traiter » : il reste un merge à faire, et des suites à décider.
 
 1. Monter l'environnement (§3), puis `supabase db reset && npm run test:backend`. Si la
    suite backend passe, la base est saine et tu peux faire confiance au reste de ce
-   document. Deux échecs connus, non liés au chantier, dans
-   `tests/backend/agency-review-queue.spec.ts` : la file n'a pas de `LIMIT`, PostgREST
-   tronque à 1000 lignes et une base locale chargée dépasse ce seuil.
-2. **Re-dater les 18 migrations le jour du merge** (§7ter, « À faire au moment du merge »).
+   document. **Toujours faire le `db reset` d'abord** : une pile locale chargée produit des
+   échecs qui n'existent nulle part ailleurs (résidus de lignes uniques, seuil de 1000
+   lignes de PostgREST sur des listes sans `LIMIT`).
+2. **Re-dater les 20 migrations le jour du merge** (§7ter, « À faire au moment du merge »).
    C'est la seule action obligatoire, et l'oublier casse silencieusement le déploiement.
    Faire l'essai à blanc avant de renommer.
 3. Poser `MAPBOX_TOKEN` côté serveur (§7ter) : déclaré dans `CLAUDE.md`, jamais posé.
-4. Relancer les identifiants Zefix. C'est le chemin critique du marché suisse, et personne
-   d'autre que nous ne le débloquera (§8). Le jour où ils arrivent, il ne reste que l'URL,
-   l'authentification et l'analyse de la réponse (§6, étape 6).
-5. `registry_number_format` est le travail court qui rapporte le plus : c'est un calcul pur
-   (clé de contrôle `CHE` et SIREN), sans réseau ni identifiant, et le dernier véto qui
-   empêche un dossier suisse par ailleurs complet d'être auto-validé (§7bis).
+4. Relancer les identifiants Zefix PublicREST. Ce n'est plus le chemin critique du marché
+   suisse, LINDAS ayant pris trois vétos sur quatre, mais c'est **la seule chose** qui
+   rendra un dossier suisse auto-validable : `registry_lookup` restera `partial` tant que
+   personne ne publie le statut actif (§7bis, §8).
+5. **Trancher le cas liechtensteinois.** `LI` est sélectionnable au wizard et n'est servi
+   par rien : ou bien on éprouve la clé du FL-UID sur des numéros réels et on l'ajoute à
+   `registry_number_format`, ou bien on retire `LI` de la liste tant que rien ne le sert
+   (§7bis).
