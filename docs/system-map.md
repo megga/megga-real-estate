@@ -32,23 +32,33 @@ avoir livré une feature ou changé l'architecture :
 2. **Vérifier les faits contre le code** avant d'écrire (ne jamais committer une affirmation non vérifiée).
 3. Ajouter/corriger les entrées dans le seed JSON (clé stable `megga/<sujet>`, valeur dense ≤ ~600 car., `tags`).
 4. Mettre à jour la section correspondante de **ce document** si l'archi a bougé.
-5. `npm run ruflo:seed` (recharge), puis vérifier : `npx ruflo memory search -q "<sujet>" -n megga`.
+5. `npm run ruflo:seed` (recharge), puis vérifier avec la commande d'interrogation ci-dessous.
 6. Commit + push.
 
-**Interroger :** `npx ruflo memory search -q "comment fonctionne le gate KYC" -n megga`
-**Lister :** `npx ruflo memory list -n megga` · **Recharger :** `npm run ruflo:seed`
+**Interroger :**
+```bash
+CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "comment fonctionne le gate KYC" -n megga
+```
+**Lister :** même préfixe + `memory list -n megga` · **Recharger :** `npm run ruflo:seed`
 
 > 🛠️ **Construire/refondre un algorithme** (matching, analytics, Focus…) : suivre la **méthode des 3 vagues**
 > (comprendre → concevoir → implémenter+revue+tests live → entretenir le cerveau), orchestrée via le tool
 > `Workflow`. Détail dans le nœud cerveau `megga/methode-algo-vagues`. La qualité vient de la discipline de
 > vérification (ancrage code/DB + revue adversariale + tests backend live en CI), pas du nombre de vagues.
 
-> ⚠️ **Écritures directes** (`ruflo memory store`/`import` hors script) : préfixer
-> `CLAUDE_FLOW_DISABLE_BRIDGE=1`, sinon ruflo (3.10.x) annonce un succès mais ne persiste rien —
-> son bridge AgentDB garde les lignes dans un SQLite en mémoire que le CLI quitte sans flusher.
-> Le script `npm run ruflo:seed` pose ce flag lui-même et vérifie le rappel par une sonde de
-> recherche après import (le « Vectors: 0 » affiché par l'import est un compteur factice upstream).
-> La lecture (`search`/`list`) n'a pas besoin du flag.
+> ⚠️ **`CLAUDE_FLOW_DISABLE_BRIDGE=1` + version épinglée : sur TOUTE commande ruflo, lecture comprise.**
+> Le flag choisit le magasin. Sans lui, le bridge AgentDB travaille sur un SQLite en mémoire /
+> `ruvector.db` que le CLI quitte sans flusher : une **écriture** annonce un succès et ne persiste
+> rien, et une **lecture** interroge un magasin vide. Le script `npm run ruflo:seed` pose le flag
+> lui-même et vérifie le rappel par une sonde de recherche après import (le « Vectors: 0 » affiché
+> par l'import est un compteur factice upstream).
+>
+> Épingler `ruflo@3.10.46` (la version du script de seed) pour deux raisons, mesurées le 29/07/2026 :
+> `npx ruflo` non épinglé résout aujourd'hui **3.32.30**, où la lecture SANS le flag renvoie
+> **« No results found » sur un cerveau plein** — un faux négatif silencieux qui se lit comme un
+> cerveau vide (3.10.46 tombait, lui, sur le chemin sql.js legacy par défaut, ce qui masquait le
+> problème) ; et l'invoquer **réécrit `.claude/helpers/`** au passage (~900 lignes, 3.25.6 → 3.32.30),
+> un diff parasite à annuler avant de committer.
 
 > ⚠️ **Fiabilité** : les entrées reflètent le code à leur date d'écriture. En cas de doute, le **code
 > fait foi** — re-vérifier puis corriger le seed. Plusieurs entrées portent des `NUANCE`/`ATTENTION`
@@ -232,7 +242,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, setti
 ### Tables par domaine
 - **Tenant & équipes** : `agencies` (root, plan), `profiles` (rôles agent/manager/admin/assistant/seller/buyer), `agency_profiles` / `agent_profiles` (annuaires publics, tsvector), `team_invitations`.
 - **Contacts & leads** : `contacts`, `seller_leads`, `contact_scores`.
-- **Biens** : `properties` (internes ; la publication est un **état de cette table** — `status` + `published_at` — il n'y a pas de table `listings` séparée), `property_scores` (score de bien, RPC `calculate_property_scores`), `market_listings` (marché — 144k lignes / 61k actives au 19 juil. 2026 : **Flatfox=location** 98k dont 35k actives, **RealAdvisor=vente** 46k dont 26k actives, + 27 lignes `megga-demo`). ⚠️ `external_listings` **n'existe plus en base** : seul le type TS `ExternalListing` survit (`useExternalMatching.ts`), et l'écran marché du CRM lit `market_listings`. Ingestion marché = **2 surfaces séparées** : `flatfox-sync` (location, partenaire sanctionné, cron 04:00) et **`realadvisor-sync`** (vente only, `realadvisor_sync_runs`). RealAdvisor : accès accordé (Gregory), throttle Cloudflare sur les requêtes **filtrées** → détection de disparition par **oracle `id_in` en pg_net** (crons `probe-fire`/`probe-collect` + `probe-sweep`, dry-run) + `fresh` quotidien (national) + trigger `price_reduced`. Cf. brain `realadvisor-ingestion`. **Syndication SORTANTE** (juin 2026) : `property_syndications` (1 ligne par bien×portail, status `queued/published/error/withdrawn`, UNIQUE`(property_id,portal)`, RLS agence) + `agency_syndication_config` (kill-switch `idx_enabled`, token pull, transport `pull`/`ftp`, creds FTP ; write `service_role` seul) — publie les `properties` au format IDX 3.01 sur immobilier.ch. Cf. §5 + brain `megga/syndication-idx`.
+- **Biens** : `properties` (internes ; la publication est un **état de cette table** — `status` + `published_at` — il n'y a pas de table `listings` séparée), `property_scores` (score de bien, RPC `calculate_property_scores`), `market_listings` (marché — 144k lignes / 61k actives au 19 juil. 2026 : **Flatfox=location** 98k dont 35k actives, **RealAdvisor=vente** 46k dont 26k actives, + 27 lignes `megga-demo`). ⚠️ `external_listings` **n'existe plus en base** : seul le type TS `ExternalListing` survit (`useExternalMatching.ts`), et l'écran marché du CRM lit `market_listings`. Ingestion marché = **2 surfaces séparées** : `flatfox-sync` (location, partenaire sanctionné, cron 04:00) et **`realadvisor-sync`** (vente only, `realadvisor_sync_runs`). RealAdvisor : accès accordé (Gregory), throttle Cloudflare sur les requêtes **filtrées** → détection de disparition par **oracle `id_in` en pg_net** (crons `probe-fire`/`probe-collect` + `probe-sweep`, dry-run) + `fresh` quotidien (national) + trigger `price_reduced`. Cf. brain `realadvisor-ingestion`. ⚠️ Toute slice scopée sur un canton passe par le **garde-fou de résolution de slug** (`_shared/ra-slice-resolution.ts`) : RA ignore un slug inconnu et sert le catalogue **national**, ce qui produirait un reçu `realadvisor_slice_coverage` `fully_enumerated` mensonger — le contrôle lève avant l'écriture du reçu. Cf. brain `megga/realadvisor-slice-resolution-guard`. **Syndication SORTANTE** (juin 2026) : `property_syndications` (1 ligne par bien×portail, status `queued/published/error/withdrawn`, UNIQUE`(property_id,portal)`, RLS agence) + `agency_syndication_config` (kill-switch `idx_enabled`, token pull, transport `pull`/`ftp`, creds FTP ; write `service_role` seul) — publie les `properties` au format IDX 3.01 sur immobilier.ch. Cf. §5 + brain `megga/syndication-idx`.
 - **Pipeline & transactions** : `transactions` (stages lead→…→closed), `crm_offers` (offres/contre-offres ; historique via `parent_offer_id` + audit `activity_events`, pas de table `crm_offers_history`), `visits`, `client_searches`, `matches`.
 - **KYC / compliance (clients)** : `kyc_cases`, `kyc_checklist_items`, `kyc_magic_links` + `kyc_magic_link_uploads`, `kyc_screening_decisions`, `documents` (sha256, retention).
 - **KYB / vérification des agences** (schéma 26 juil. 2026 ; moteur, connecteurs disponibles et file de revue 28 juil. ; Zefix/UID = **squelette seul** 29 juil.) : ne pas confondre avec le KYC ci-dessus, qui porte sur les *clients* de l'agence. Ici on vérifie l'agence elle-même à l'onboarding. `legal_forms` + `legal_form_aliases` (référentiel 21 formes CH/FR/LI ; `category` pilote le parcours — `sole_proprietorship` = pas d'UBO tiers, `foundation_or_trust` = diligence renforcée) · `agencies` enrichie (`legal_form_id` FK, `business_registration_number` ex-`ide` — le terme IDE est suisse et mentait dès qu'un SIREN arrive —, `trade_name` cible du rapprochement flou avec le domaine e-mail, `verification_status`/`verification_score`/`verified_at`) · `agency_related_persons` + `agency_person_roles` (`signatory`/`ubo`, historisés ; **distincts de `profiles`** : un ayant droit économique passif n'a pas de compte CRM) · `verification_check_types` + `verification_check_config` (poids **versionné**, jamais figé sur la ligne de check) + `agency_verification_checks` / `agency_person_verification_checks` (`raw_response` jsonb = pièce d'audit LBA). Score normalisé sur les checks **disponibles** → un pays sans VIES n'est pas pénalisé, ce qui rend le modèle transposable ; les vétos (registre, PEP/sanctions, pièce d'identité) sont **hors score** et ne se compensent jamais. **Moteur écrit** : `recompute_agency_verification` (migration `20260728130000`, `service_role` seul) pose score et statut ; l'edge `agency-verification-run` fait tourner **4 connecteurs réels** — RDAP (`domain_whois_age`), VIES (`vat_lookup`), `recherche-entreprises.api.gouv.fr` FR (`registry_lookup` + `registry_legal_name_match`), géocodage Mapbox (`address_geocode`, réclame le secret `MAPBOX_TOKEN` qui n'est pas posé). **File de revue admin livrée** (`20260728160000` + `/dashboard/admin/kyb-review`) : valider, rejeter avec motif, relancer, résoudre la pièce d'identité. **Zefix et registre UID = squelette seul** (29 juil. 2026, `createZefixSources` / `createUidRegisterSources`) — aucun connecteur écrit, aucun identifiant posé (Zefix a répondu `401`, demande restée sans réponse ; l'API du registre UID n'a jamais été testée), les deux sortent `unavailable`. `oera.li` sans API (LI en revue manuelle), carte pro CCI FR sans API. ⚠️ **Aucun dossier, d'aucun pays, ne peut être auto-validé aujourd'hui** : deux vétos d'entité (`registry_number_format`, `registry_country_match`) n'ont aucun connecteur, et la pièce d'identité reste en `pending_manual_review` jusqu'à décision humaine — état voulu tant que les preuves manquent. Cf. [agency-kyb-verification.md](agency-kyb-verification.md) (conception), [agency-kyb-handoff.md](agency-kyb-handoff.md) §7bis (pourquoi rien ne s'auto-valide) + brains `megga/agency-kyb-verification` et `megga/agency-verification-pending-sources`.

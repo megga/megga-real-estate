@@ -6,7 +6,10 @@
 > Une cartographie vivante de TOUS les rouages (archi, KYC, WhatsApp, matching, pipeline,
 > copilote IA, marketplace, intégrations, signatures…) existe et doit être utilisée.
 > 1. Carte lisible (point d'entrée) : [docs/system-map.md](docs/system-map.md)
-> 2. Mémoire sémantique locale (0 API) : `npx ruflo memory search -q "<sujet>" -n megga`
+> 2. Mémoire sémantique locale (0 API) :
+>    `CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "<sujet>" -n megga`
+>    (⚠ le flag ET la version épinglée sont nécessaires — sans eux la recherche répond
+>    « no results » sur un cerveau plein ; cf. « Maintenir le cerveau » de docs/system-map.md)
 > 3. Source de la mémoire : [.claude-flow/knowledge/megga-memory.seed.json](.claude-flow/knowledge/megga-memory.seed.json)
 >
 > **APRÈS avoir livré une feature / un changement d'archi :** mettre le cerveau à jour
