@@ -470,3 +470,183 @@ verify_jwt = false
 # touchait jamais le code de la fonction, donc ne prouvait rien.
 [functions.admin-monitoring]
 verify_jwt = false
+
+# Vérification C2PA d'une photo : publique PAR CONCEPTION et sans aucune garde
+# interne — c'est la seule fonction du dépôt dans ce cas. Elle est en lecture
+# seule (elle lit une URL d'image et répond si la signature est valide), ne
+# touche pas la base, et passe par `safe-fetch` contre le SSRF. Vérifier une
+# preuve d'authenticité n'aurait pas de sens derrière un mur.
+[functions.c2pa-verify]
+verify_jwt = false
+
+# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──
+# Régénérer : node scripts/check-edge-roster.mjs --write
+#
+# Ces fonctions sont publiques comme toutes les autres (deploy.yml déploie en
+# --no-verify-jwt) ; leur garde d'accès est écrite DANS la fonction. Ce bloc
+# n'ajoute aucune permission : il aligne la pile locale sur la production et
+# empêche le fichier de laisser croire que ces fonctions exigent un JWT.
+#
+# Une fonction qui mérite une explication SORT d'ici : rédige son bloc plus
+# haut, avec la raison, et régénère.
+
+[functions.accept-team-invite]
+verify_jwt = false
+
+[functions.admin-agency-lifecycle]
+verify_jwt = false
+
+[functions.admin-dsar-export]
+verify_jwt = false
+
+[functions.admin-stripe-agency-billing]
+verify_jwt = false
+
+[functions.admin-stripe-metrics]
+verify_jwt = false
+
+[functions.admin-user-lifecycle]
+verify_jwt = false
+
+[functions.ai-billing-monitor]
+verify_jwt = false
+
+[functions.ai-copilot]
+verify_jwt = false
+
+[functions.audit-pdf-export]
+verify_jwt = false
+
+[functions.automation-engine]
+verify_jwt = false
+
+[functions.backfill-cf-images]
+verify_jwt = false
+
+[functions.buyer-reception-create]
+verify_jwt = false
+
+[functions.buyer-reception-get]
+verify_jwt = false
+
+[functions.buyer-reception-react]
+verify_jwt = false
+
+[functions.c2pa-sign]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
+
+[functions.detect-new-device]
+verify_jwt = false
+
+[functions.extract-lead]
+verify_jwt = false
+
+[functions.extract-property-pdf]
+verify_jwt = false
+
+[functions.extract-property-url]
+verify_jwt = false
+
+[functions.flatfox-sync]
+verify_jwt = false
+
+[functions.google-calendar-sync]
+verify_jwt = false
+
+[functions.kyc-report-data]
+verify_jwt = false
+
+[functions.kyc-report-import]
+verify_jwt = false
+
+[functions.kyc-report-pdf]
+verify_jwt = false
+
+[functions.kyc-screening]
+verify_jwt = false
+
+[functions.log-auth-event]
+verify_jwt = false
+
+[functions.magic-link-confirm]
+verify_jwt = false
+
+[functions.magic-link-create]
+verify_jwt = false
+
+[functions.magic-link-get]
+verify_jwt = false
+
+[functions.magic-link-send-email]
+verify_jwt = false
+
+[functions.magic-link-upload]
+verify_jwt = false
+
+[functions.market-scraper]
+verify_jwt = false
+
+[functions.matching-engine]
+verify_jwt = false
+
+[functions.outlook-calendar-sync]
+verify_jwt = false
+
+[functions.photo-processor]
+verify_jwt = false
+
+[functions.property-photo-r2]
+verify_jwt = false
+
+[functions.realadvisor-sync]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.send-property-email]
+verify_jwt = false
+
+[functions.send-relance-email]
+verify_jwt = false
+
+[functions.send-reminder-email]
+verify_jwt = false
+
+[functions.send-team-invite]
+verify_jwt = false
+
+[functions.send-visit-email]
+verify_jwt = false
+
+[functions.speech-to-text]
+verify_jwt = false
+
+[functions.stripe-checkout]
+verify_jwt = false
+
+[functions.stripe-portal]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.translate-on-demand]
+verify_jwt = false
+
+[functions.virtual-staging]
+verify_jwt = false
+
+[functions.weekly-digest]
+verify_jwt = false
+
+[functions.weekly-report]
+verify_jwt = false
+
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — fin ──

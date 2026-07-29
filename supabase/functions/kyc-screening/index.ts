@@ -70,14 +70,6 @@ serve(async (req) => {
     const providedKey = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
     const isServiceCall = serviceKey !== '' && safeEqual(providedKey, serviceKey)
 
-    const apiKey = Deno.env.get('DILISENSE_API_KEY')
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'DILISENSE_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     const { kyc_case_id, entity_type, agency_id: bodyAgencyId } = (await req.json()) as ScreeningRequest & {
       entity_type: 'individual' | 'entity'
       agency_id?: string
@@ -99,6 +91,20 @@ serve(async (req) => {
       if (auth instanceof Response) return auth
       supabaseClient = auth.supabase
       callerAgencyId = auth.profile.agency_id
+    }
+
+    // APRÈS l'authentification, délibérément. Ce contrôle passait avant, et il
+    // répond 500 : un appelant anonyme obtenait donc « DILISENSE_API_KEY not
+    // configured » sans jamais s'authentifier — l'état de configuration d'un
+    // service de conformité n'a pas à fuiter, et un refus d'accès doit se lire
+    // 401. Personne ne s'en apercevait : sous la passerelle locale l'appel
+    // n'arrivait pas jusqu'ici, et en production la clé est présente.
+    const apiKey = Deno.env.get('DILISENSE_API_KEY')
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'DILISENSE_API_KEY not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     if (!kyc_case_id || !entity_type) {
