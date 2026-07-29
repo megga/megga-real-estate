@@ -682,12 +682,23 @@ premier déploiement par
 mobile l'écran n'offre que la déconnexion. Sans conséquence tant que la base est mock,
 à trancher avant qu'il y ait de vraies agences.
 
-### Trou de même classe encore ouvert, hors périmètre du chantier
+### Trou de même classe, refermé depuis
 
 Le tool WhatsApp `open_kyc_case` insère dans `kyc_cases` sous `service_role`, qui
-contourne inconditionnellement les policies. Le garde LAB posé sur l'insertion ne le
-couvre donc pas : une agence non vérifiée peut encore faire ouvrir un dossier KYC par ce
-chemin. Trouvé en corrigeant l'étape 5, signalé séparément, non traité ici.
+contourne inconditionnellement les policies : ni le garde posé sur `kyc_cases_insert` ni
+celui des edge functions ne couvraient ce chemin, et une agence non vérifiée pouvait
+encore faire ouvrir un dossier KYC par WhatsApp. Trouvé en corrigeant l'étape 5, signalé
+séparément.
+
+Refermé depuis, avec le même garde : `isAgencyLabClearedInDb`
+(`supabase/functions/_shared/agency-lab-guard.ts` — même lecture, même liste blanche,
+même fail-closed que `requireAgencyLabCleared`) est appelé dans les **deux** étages du
+tier confirm de `_shared/whatsapp-actions.ts`. `prepareOpenKycCase` n'arme plus une
+confirmation vouée au refus ; `executeOpenKycCase` relit le garde au moment du « oui »,
+puisque c'est là que l'INSERT a lieu et que le payload figé d'une action en attente
+survit à un changement de statut de l'agence. C'est le seul `insert` sur `kyc_cases` de
+tout `supabase/functions/`. Couverture : `tests/backend/open-kyc-case-lab-guard.spec.ts`
+(9 tests live, dont les statuts intermédiaires et le fail-closed sur agence introuvable).
 
 ### À faire au moment du merge, impérativement
 

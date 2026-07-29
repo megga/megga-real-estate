@@ -19,7 +19,8 @@ import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDe
 import { validateIdxProperty, toNum, type IdxProperty } from './idx-mapper.ts'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
-import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint, confirmDeleteContact, deleteContactPreview } from './whatsapp-i18n.ts'
+import { type WaLang, t, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint, confirmDeleteContact, deleteContactPreview } from './whatsapp-i18n.ts'
+import { isAgencyLabClearedInDb } from './agency-lab-guard.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { meggaProse } from './megga-prose.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
@@ -69,6 +70,24 @@ function usageChannel(ctx: ActionCtx): { edgeFunction: string; modulePrefix: str
 const NO_AGENCY = 'Erreur: ton compte n’est rattaché à aucune agence. Contacte un administrateur.'
 function hasAgency(ctx: ActionCtx): boolean {
   return typeof ctx.agencyId === 'string' && ctx.agencyId.length > 0
+}
+
+/** Garde LAB plein (étape 5, tâche 4) pour les exécuteurs qui ouvrent un dossier KYC
+ *  client. Renvoie le message à rendre à l'agent, ou null si l'agence est cleared.
+ *
+ *  Pourquoi un garde EN PROPRE ici, alors que la table et les edge functions sont déjà
+ *  gardées : les exécuteurs tournent avec le client service_role, qui contourne
+ *  INCONDITIONNELLEMENT les policies — le WITH CHECK de kyc_cases_insert (migration
+ *  20260728171000) ne les voit jamais, et l'appel ne passe ni par kyc-screening ni par
+ *  sign-document. Sans ce contrôle, WhatsApp restait le chemin par lequel une agence non
+ *  vérifiée ouvrait quand même un dossier KYC (docs/agency-kyb-handoff.md §7ter).
+ *
+ *  Agence absente = refus, au même titre qu'une lecture en échec : le fail-closed ne
+ *  dépend pas de l'appel préalable à hasAgency. */
+async function labGuardRefusal(ctx: ActionCtx): Promise<string | null> {
+  const agencyId = ctx.agencyId
+  if (agencyId && (await isAgencyLabClearedInDb(ctx.supabase, agencyId))) return null
+  return t(ctx.lang ?? 'fr', 'kycAgencyNotVerified')
 }
 
 // Embed PostgREST d'une visite : noms de contact + bien RÉSOLUS (FK visits_contact_id_fkey /
@@ -1117,6 +1136,10 @@ export async function executeDeleteContact(ctx: ActionCtx, payload: Args): Promi
 /** Confirm-tier : valide le contact + dérive le typage, construit le prompt + payload figé. */
 export async function prepareOpenKycCase(ctx: ActionCtx, a: Args): Promise<Prepared> {
   if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  // Avant toute logique métier : ne pas armer une confirmation vouée au refus, et ne
+  // rien apprendre à une agence bloquée sur l'existence du contact visé.
+  const labBlocked = await labGuardRefusal(ctx)
+  if (labBlocked) return { ok: false, error: labBlocked }
   const contactId = s(a.contact_id)
   if (!contactId) return { ok: false, error: 'Erreur: contact_id requis (via search_contacts).' }
   const { data: contact } = await ctx.supabase
@@ -1152,6 +1175,11 @@ export async function prepareOpenKycCase(ctx: ActionCtx, a: Args): Promise<Prepa
 /** Post-« oui » : INSERT kyc_cases (le trigger seed_kyc_lba_checks crée les 5 checks). */
 export async function executeOpenKycCase(ctx: ActionCtx, a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
+  // Relu ICI et pas seulement à la préparation : c'est le seul point où l'INSERT a
+  // lieu, et le payload figé d'une action en attente survit à un changement de statut
+  // de l'agence entre la question et le « oui ».
+  const labBlocked = await labGuardRefusal(ctx)
+  if (labBlocked) return labBlocked
   const contactId = s(a.contact_id), type = s(a.type), vigilance = s(a.vigilance) ?? 'standard'
   if (!contactId || !type) return 'Action incomplète, dossier non créé.'
   if (!(await contactInAgency(ctx, contactId))) return 'Erreur: contact introuvable dans votre agence.'

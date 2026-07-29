@@ -90,6 +90,14 @@ const STR = {
     fr: "Petit raccroc de ma part : je n'ai pas réellement lancé cette action KYC. Redis-moi le contact (« screen Dupont » ou « envoie le rapport de Dupont ») et je l'exécute pour de bon.",
     en: "My bad — I didn't actually run that KYC action. Tell me the contact again (« screen Dupont » / « send Dupont's report ») and I'll run it for real.",
   },
+  // Garde LAB plein (étape 5, tâche 4) sur open_kyc_case : ouvrir un dossier KYC
+  // client reste interdit tant que l'identité de l'agence n'a pas été validée. Dit
+  // POURQUOI et QUOI FAIRE — un simple « impossible » enverrait l'agent réessayer.
+  // Jamais le statut brut (auto_validated, manual_review…) : notion interne.
+  kycAgencyNotVerified: {
+    fr: "Je ne peux pas ouvrir de dossier KYC tant que l'identité de ton agence n'a pas été validée par l'équipe MEGGA. Termine la vérification depuis le CRM, je m'en occupe juste après.",
+    en: "I can't open a KYC file until your agency's identity has been validated by the MEGGA team. Finish the verification from the CRM and I'll take care of it right after.",
+  },
   ok: { fr: 'OK.', en: 'OK.' },
   noAgencySend: {
     fr: "Ton compte n'a pas d'agence, envoi impossible.",

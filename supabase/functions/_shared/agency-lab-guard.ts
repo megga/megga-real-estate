@@ -35,6 +35,46 @@ export function isAgencyLabCleared(verificationStatus: string | null | undefined
 }
 
 /**
+ * Lit agencies.verification_status pour `agencyId`. `undefined` = lecture
+ * impossible (agence introuvable, panne reseau) : on ne SAIT alors pas si l'agence
+ * est cleared, et c'est isAgencyLabCleared qui traite cette absence de preuve comme
+ * un blocage. Le fail-closed vit donc dans la liste blanche, jamais chez l'appelant.
+ *
+ * `supabase` doit etre un client service_role (celui deja utilise par l'appelant,
+ * jamais un nouveau client anon) : cette lecture n'a pas a passer par RLS, au
+ * meme titre que le reste de kyc-screening/sign-document/whatsapp-webhook.
+ */
+async function readVerificationStatus(
+  supabase: SupabaseClient,
+  agencyId: string,
+): Promise<string | null | undefined> {
+  const { data, error } = await supabase
+    .from('agencies')
+    .select('verification_status')
+    .eq('id', agencyId)
+    .single()
+  return error || !data ? undefined : data.verification_status
+}
+
+/**
+ * Variante booleenne de requireAgencyLabCleared, pour les appelants qui ne
+ * repondent PAS en HTTP : les executeurs d'outils du copilote
+ * (_shared/whatsapp-actions.ts) rendent un texte court reinjecte dans la boucle IA,
+ * pas une Response. Meme lecture, meme liste blanche, meme fail-closed.
+ *
+ * Le chemin WhatsApp a besoin de son garde en propre : il ecrit dans kyc_cases avec
+ * le client service_role, qui contourne INCONDITIONNELLEMENT les policies — ni le
+ * WITH CHECK de kyc_cases_insert (migration 20260728171000) ni le garde des edge
+ * functions ne couvrent cette insertion (docs/agency-kyb-handoff.md §7ter).
+ */
+export async function isAgencyLabClearedInDb(
+  supabase: SupabaseClient,
+  agencyId: string,
+): Promise<boolean> {
+  return isAgencyLabCleared(await readVerificationStatus(supabase, agencyId))
+}
+
+/**
  * Lit agencies.verification_status pour `agencyId` et renvoie une Response 403
  * JSON si l'agence n'est pas cleared, ou `null` si l'appel peut continuer. A
  * appeler juste apres avoir resolu l'agence appelante (requireAgentAuth ou le
@@ -43,26 +83,16 @@ export function isAgencyLabCleared(verificationStatus: string | null | undefined
  * a apprendre si la ressource visee existe ni si le service est correctement
  * configure.
  *
- * `supabase` doit etre un client service_role (celui deja utilise par l'appelant,
- * jamais un nouveau client anon) : cette lecture n'a pas a passer par RLS, au
- * meme titre que le reste de kyc-screening/sign-document.
+ * Meme contrainte que readVerificationStatus sur `supabase` : client service_role.
  */
 export async function requireAgencyLabCleared(
   supabase: SupabaseClient,
   agencyId: string,
   corsHeaders: Record<string, string>,
 ): Promise<Response | null> {
-  const { data, error } = await supabase
-    .from('agencies')
-    .select('verification_status')
-    .eq('id', agencyId)
-    .single()
-
-  // Lecture impossible (agence introuvable, panne reseau) : on ne SAIT pas si
-  // l'agence est cleared. Fail-closed, meme posture que le cote client
-  // (resolveLabGuardStatus traite une lecture en echec comme une absence de
-  // preuve, jamais comme un laissez-passer).
-  const verificationStatus: string | null | undefined = error || !data ? undefined : data.verification_status
+  // Une lecture en echec vaut absence de preuve, jamais laissez-passer (meme
+  // posture que le cote client : resolveLabGuardStatus, src/hooks/useLabGuard.ts).
+  const verificationStatus = await readVerificationStatus(supabase, agencyId)
   if (isAgencyLabCleared(verificationStatus)) return null
 
   return new Response(
