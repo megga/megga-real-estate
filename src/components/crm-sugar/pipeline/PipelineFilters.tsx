@@ -67,10 +67,12 @@ export function SugarFilterPill({ sp, label, value, active, children, dark }: Fi
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const isDark = sgFilterIsDark(sp, dark)
+  // Surface flottante : bordure et ombre viennent de la palette plutôt que
+  // d'être recodées ici — elles suivent alors la teinte comme le fond.
   const panelBg = isDark ? crmStep('s4', '#17181A') : '#FFFFFF'
-  const panelBorder = isDark ? 'rgba(255,255,255,.07)' : sp.cardBorder
+  const panelBorder = isDark ? (sp.solidBorder || 'rgba(255,255,255,.07)') : sp.cardBorder
   const panelShadow = isDark
-    ? '0 16px 40px -12px rgba(0,0,0,.72), 0 2px 10px rgba(0,0,0,.45)'
+    ? (sp.solidShadow || '0 16px 40px -12px rgba(0,0,0,.72), 0 2px 10px rgba(0,0,0,.45)')
     : '0 10px 30px -10px rgba(14,20,16,.18), 0 2px 8px rgba(14,20,16,.06)'
 
   useEffect(() => {

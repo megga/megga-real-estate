@@ -130,7 +130,9 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
         ref={focusTrapRef}
         className="relative w-[380px] max-w-full h-full overflow-y-auto scrollbar-hide"
         style={{
-          background: sp.pageBg, boxShadow: sp.shadow,
+          // Tiroir = surface flottante : palier haut, pas le canvas — au fond de
+          // page il ne se détachait pas de ce qu'il recouvre.
+          background: sp.solidBg, boxShadow: sp.solidShadow,
           // Le drawer est porté sur `document.body`, hors du conteneur du shell :
           // il doit redéclarer la police et les chiffres tabulaires de la console.
           fontFamily: '"Inter Tight", system-ui, sans-serif', fontVariantNumeric: 'tabular-nums',

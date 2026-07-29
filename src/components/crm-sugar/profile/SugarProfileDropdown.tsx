@@ -74,15 +74,15 @@ function Row({ icon, iconKind = 'crm', label, trail, onClick, sp, danger = false
         borderRadius: 14, fontFamily: 'inherit',
         // ⚠️ pas de transition de fond (bug pastilles noires)
       }}>
+      {/* Pas de pastille derrière l'icône : le survol ne colore que la ligne,
+          et l'icône seule à 20 px porte mieux que 15 px dans un carré. */}
       <div style={{
-        width: 30, height: 30, borderRadius: 10,
-        background: hover ? (danger ? 'rgba(229,72,77,0.12)' : sp.solidBgSub2) : sp.solidBgSub,
+        width: 26, height: 26,
         display: 'grid', placeItems: 'center', flexShrink: 0,
-        // ⚠️ pas de transition de fond
       }}>
         {iconKind === 'crm'
-          ? <MEIcon name={icon as MEIconName} size={15} color={tint} strokeWidth={1.7} />
-          : <InlineIco name={icon as InlineIconName} size={15} stroke={tint} strokeWidth={1.7} />
+          ? <MEIcon name={icon as MEIconName} size={20} color={tint} strokeWidth={1.6} />
+          : <InlineIco name={icon as InlineIconName} size={20} stroke={tint} strokeWidth={1.6} />
         }
       </div>
       <span style={{

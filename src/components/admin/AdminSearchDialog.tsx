@@ -90,10 +90,12 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
         ref={focusTrapRef}
         className="relative w-full max-w-lg mx-4 overflow-hidden"
         style={{
-          background: surf.card,
+          // Surface flottante posée sur l'overlay : palier haut OPAQUE. La
+          // carte translucide du kit s'y lisait comme un bento sans fond.
+          background: sp.solidBg,
           borderRadius: ADMIN_RADII.frame,
           border: surf.hairline,
-          boxShadow: sp.shadow,
+          boxShadow: sp.solidShadow,
         }}
       >
         {/* Search input */}
