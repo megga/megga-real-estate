@@ -9,6 +9,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+/**
+ * Refus d'authentification, en 401.
+ *
+ * Les deux contrôles d'accès sortaient par `throw`, et le catch de tête répond
+ * 400 : une session absente ou expirée se présentait donc comme une requête
+ * malformée. Le client ne pouvait pas distinguer « reconnecte-toi » de
+ * « ta requête est fausse ».
+ */
+function unauthorized(message: string): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status: 401,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
 type Action = 'save_tokens' | 'list_events' | 'create_event' | 'update_event' | 'delete_event' | 'sync_all' | 'disconnect'
 
 interface SyncRequest {
@@ -168,14 +183,14 @@ serve(async (req: Request) => {
   try {
     const body: SyncRequest = await req.json()
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('Missing authorization header')
+    if (!authHeader) return unauthorized('Missing authorization header')
 
     // Get the user from the JWT
     const supabaseUser = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
       global: { headers: { Authorization: authHeader } },
     })
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser()
-    if (userError || !user) throw new Error('Unauthorized')
+    if (userError || !user) return unauthorized('Unauthorized')
 
     const userId = user.id
     const db = supabaseAdmin()
