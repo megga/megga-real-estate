@@ -2,8 +2,13 @@
 // Wired via useAgencySettings hook : read row of profile.agency_id, update
 // name/address/city/canton/phone/email/website/logo_url.
 //
-// RLS isolation : agent A peut update SA propre agence, agent B ne peut pas
-// toucher agence A.
+// RLS : seul un dirigeant (role admin|manager) de l'agence peut écrire sa ligne — depuis
+// l'étape 7/tâche 3/écart 1 (migration 20260730170000_agencies_members_update_rbac.sql),
+// agencies_members_update exige is_agency_admin(). setupTwoAgencies() attache les deux
+// agents avec role='agent' par défaut : la promotion en admin est donc explicite ci-dessous,
+// là où l'ancienne version de ce fichier écrivait avec le rôle par défaut. Isolation
+// inter-agences inchangée : agent B ne peut pas toucher agence A, MÊME dirigeant de sa
+// propre agence B (pour ne pas confondre la preuve d'isolation avec la preuve de RBAC).
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
@@ -32,7 +37,37 @@ describe.skipIf(!HAS_KEYS)('regression — agencies settings wire (RLS)', () => 
     expect(data?.id).toBe(setup.agencyAId)
   })
 
-  it('agent A updates their own agency (name/address/city)', async () => {
+  // Étape 7, tâche 3, écart 1 : setupTwoAgencies() attache agent A avec role='agent' — la
+  // policy exige désormais is_agency_admin(), donc cette écriture doit être un no-op.
+  it('agent A (role agent, par défaut) ne peut plus mettre à jour sa propre agence — RBAC', async () => {
+    const before = await serviceRoleClient()
+      .from('agencies')
+      .select('name, address, city, canton')
+      .eq('id', setup.agencyAId)
+      .single()
+
+    const { error } = await setup.clientA
+      .from('agencies')
+      .update({ name: `LEAK AGENT ${setup.stamp}`, address: 'Fraud St', city: 'Nowhere', canton: 'GE' })
+      .eq('id', setup.agencyAId)
+    // USING exclut la ligne (is_agency_admin() faux) : 0 ligne touchée, pas de refus explicite.
+    expect(error).toBeNull()
+
+    const { data } = await serviceRoleClient()
+      .from('agencies')
+      .select('name, address, city, canton')
+      .eq('id', setup.agencyAId)
+      .single()
+    expect(data, 'un agent simple ne dirige pas l\'agence : rien n\'a dû bouger').toEqual(before.data)
+  })
+
+  it('un dirigeant (role admin) de l\'agence A met à jour sa propre agence (name/address/city)', async () => {
+    const { error: promoteErr } = await serviceRoleClient()
+      .from('profiles')
+      .update({ role: 'admin' })
+      .eq('id', setup.agentAId)
+    expect(promoteErr, 'promotion role=admin (fixture)').toBeNull()
+
     const newName = `Agence A ${setup.stamp}`
     const { error } = await setup.clientA
       .from('agencies')
@@ -58,7 +93,16 @@ describe.skipIf(!HAS_KEYS)('regression — agencies settings wire (RLS)', () => 
     expect(data?.canton).toBe('GE')
   })
 
-  it('agent B CANNOT update agency A (RLS isolation)', async () => {
+  it('agent B (dirigeant de SA PROPRE agence) CANNOT update agency A (RLS isolation)', async () => {
+    // Promu admin lui aussi : la preuve d'isolation ne doit rien devoir au RBAC de l'écart 1,
+    // sans quoi ce test échouerait pour la mauvaise raison (B pas dirigeant) plutôt que pour
+    // la bonne (B dirigeant, mais d'une AUTRE agence).
+    const { error: promoteErr } = await serviceRoleClient()
+      .from('profiles')
+      .update({ role: 'admin' })
+      .eq('id', setup.agentBId)
+    expect(promoteErr, 'promotion role=admin (fixture)').toBeNull()
+
     const before = await serviceRoleClient()
       .from('agencies')
       .select('name')
