@@ -2457,6 +2457,24 @@ interface DilisenseScreeningResponse {
   total_hits?: number
 }
 
+/** Garde de forme -- LE correctif du fail-open releve en revue (tache 4, constat 1) :
+ *  `Array.isArray(data.found_records) ? data.found_records : []` traitait TOUTE reponse
+ *  sans `found_records` en tableau -- derive de schema, enveloppe d'erreur rendue en 200,
+ *  quota depasse, mauvais endpoint -- comme "aucun enregistrement", donc `match`, donc veto
+ *  SATISFAIT sur une preuve qu'on n'a pas (invariant 1). `total_hits` est le signal positif
+ *  qui manquait pour distinguer les deux cas : un vrai screening Dilisense le porte
+ *  toujours (meme a zero), une enveloppe d'erreur ou un corps hors sujet ne le porte pas.
+ *  `found_records` reste tolere absent OU null (Dilisense omet parfois le tableau quand le
+ *  compte est nul -- meme tolerance que partitionDilisenseHits cote KYC client, voir
+ *  kyc-screening-core.ts), mais jamais d'un autre type : une chaine ou un objet a la place
+ *  du tableau est tout aussi inattendu qu'une absence totale. */
+function isWellFormedDilisenseResponse(data: unknown): data is DilisenseScreeningResponse {
+  if (typeof data !== 'object' || data === null) return false
+  const rec = data as Record<string, unknown>
+  if (typeof rec.total_hits !== 'number') return false
+  return rec.found_records === undefined || rec.found_records === null || Array.isArray(rec.found_records)
+}
+
 /** Nom interrogeable, ou null si la personne n'en porte pas d'exploitable. Interroger un
  *  registre de sanctions sur une chaine vide rendrait « aucun resultat », c'est-a-dire un
  *  faux blanchiment -- le mode de defaillance le plus grave possible pour ce check. */
@@ -2504,7 +2522,16 @@ export function createPepSanctionsSources(config: PepSanctionsConfig): KybPerson
         throw new Error(`pep_sanctions_screening: Dilisense a repondu ${res.status}`)
       }
 
-      const data = (await res.json()) as DilisenseScreeningResponse
+      const data: unknown = await res.json()
+      if (!isWellFormedDilisenseResponse(data)) {
+        // Jamais `unavailable` choisi ici (regle 5 du contrat de connecteur) : on leve, et
+        // runKybPersonSource() (le harnais) traduit en `unavailable`. Le message ne recopie
+        // pas le corps de la reponse -- meme raison que le rejet HTTP juste au-dessus : il
+        // pourrait porter un echo de la requete.
+        throw new Error(
+          'pep_sanctions_screening: reponse Dilisense de forme inattendue (total_hits absent ou found_records invalide)'
+        )
+      }
       const records = Array.isArray(data.found_records) ? data.found_records : []
       const pep = records.filter((r) => r.source_type === 'PEP')
       const sanctions = records.filter((r) => r.source_type === 'SANCTION')

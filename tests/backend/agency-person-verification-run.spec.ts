@@ -21,7 +21,7 @@
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI : lire le compte de tests, jamais le code de sortie.
 
-import { describe, it, expect, afterAll } from 'vitest'
+import { describe, it, expect, afterAll, afterEach, vi } from 'vitest'
 import { serviceRoleClient } from './helpers/supabase'
 import {
   runAgencyKybPersonSources,
@@ -130,6 +130,154 @@ describe('harnais de sources de PERSONNE (module pur, sans base)', () => {
       JSON.stringify(rows[0].raw_response),
       'raw_response est conservé dix ans et lu par un relecteur : un secret ne doit pas y entrer'
     ).not.toContain(secret)
+  })
+})
+
+// ─── Connecteur PEP et sanctions (Dilisense) — logique de décision, fetch stubbé ──────
+//
+// Volet ajouté par la revue de la tâche 4 (constat 1 + constat 2 — voir
+// .superpowers/sdd/progress.md « Revue tâches 4 + 5 »). Les tests du describe précédent
+// n'exercent que les chemins où `run` LÈVE (clé absente, nom inexploitable, non-fuite du
+// secret) : rien ne faisait jamais tourner `createPepSanctionsSources` contre une réponse
+// Dilisense, donc rien ne vérifiait la règle de décision elle-même (0 enregistrement ->
+// `match`, >=1 -> `mismatch`), la partition PEP/SANCTION, le `slice(0, 5)`, ni — surtout —
+// la garde de forme qui doit REJETER (lever) une réponse 200 dont le corps ne ressemble pas
+// à un vrai screening Dilisense. C'est ce trou de couverture qui a laissé passer le
+// fail-open du constat 1 : `Array.isArray(data.found_records) ? data.found_records : []`
+// traite silencieusement toute forme inattendue comme "aucun enregistrement", donc `match`,
+// donc véto satisfait sur une preuve qu'on n'a pas (invariant 1).
+//
+// fetch STUBBÉ (jamais de réseau réel), même motif que le describe RDAP de
+// agency-verification-run.spec.ts. Passe par `runAgencyKybPersonSources` + la vraie
+// fabrique — jamais un faux `KybPersonSource` — précisément parce que c'est la fabrique
+// elle-même qui est sous revue ici.
+describe('connecteur PEP et sanctions (Dilisense) — logique de décision, fetch stubbé (aucun réseau réel)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const signatory: PersonForVerification = {
+    id: '33333333-3333-3333-3333-333333333333',
+    first_name: 'Jean',
+    last_name: 'Signataire',
+    date_of_birth: '1980-01-01',
+    nationality: 'CH',
+  }
+
+  function dilisenseResponse(body: Record<string, unknown>, httpStatus = 200): Response {
+    return new Response(JSON.stringify(body), {
+      status: httpStatus,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+
+  /** Fait tourner LE connecteur réel (pas un double) contre un corps HTTP donné, et rend
+   *  la ligne unique produite pour `signatory`. */
+  async function runDilisense(body: Record<string, unknown>, httpStatus = 200) {
+    vi.stubGlobal('fetch', vi.fn(async () => dilisenseResponse(body, httpStatus)))
+    const rows = await runAgencyKybPersonSources(
+      [signatory],
+      createPepSanctionsSources({ apiKey: 'clef-de-test-non-secrete' })
+    )
+    return rows[0]
+  }
+
+  it(
+    '0 enregistrement (réponse bien formée) -> `match` : le véto est satisfait, la personne ' +
+    'n\'est ni PEP ni sanctionnée',
+    async () => {
+      const row = await runDilisense({ total_hits: 0, found_records: [] })
+      expect(row.check_type).toBe('pep_sanctions_screening')
+      expect(row.source).toBe('dilisense')
+      expect(row.related_person_id).toBe(signatory.id)
+      expect(row.result).toBe('match')
+    }
+  )
+
+  it(
+    'found_records null (Dilisense omet le tableau quand le compte est nul) -> `match` ' +
+    'quand même, jamais levé : tolérance délibérée, même motif que partitionDilisenseHits ' +
+    'côté KYC client',
+    async () => {
+      const row = await runDilisense({ total_hits: 0, found_records: null })
+      expect(row.result).toBe('match')
+    }
+  )
+
+  it('>= 1 enregistrement -> `mismatch` : le véto ÉCHOUE, dossier en revue humaine', async () => {
+    const row = await runDilisense({
+      total_hits: 1,
+      found_records: [{ source_type: 'SANCTION', name: 'Jean Signataire', source_id: 'ofac-1' }],
+    })
+    expect(row.result).toBe('mismatch')
+  })
+
+  it('partitionne PEP et SANCTION séparément dans la preuve jointe', async () => {
+    const row = await runDilisense({
+      total_hits: 3,
+      found_records: [
+        { source_type: 'PEP', name: 'Jean Signataire', source_id: 'pep-1' },
+        { source_type: 'PEP', name: 'Jean Signataire', source_id: 'pep-2' },
+        { source_type: 'SANCTION', name: 'Jean Signataire', source_id: 'ofac-1' },
+      ],
+    })
+    expect(row.result).toBe('mismatch')
+    expect(row.raw_response).toMatchObject({
+      total_records: 3,
+      pep_records: 2,
+      sanction_records: 1,
+    })
+  })
+
+  it(
+    'ne joint jamais plus de 5 enregistrements dans la preuve, même si Dilisense en rend ' +
+    'davantage — le compte réel (total_records) reste, lui, non tronqué',
+    async () => {
+      const found_records = Array.from({ length: 8 }, (_, i) => ({
+        source_type: 'SANCTION',
+        name: `Homonyme ${i}`,
+        source_id: `id-${i}`,
+      }))
+      const row = await runDilisense({ total_hits: 8, found_records })
+      expect(row.result).toBe('mismatch')
+      const raw = row.raw_response as Record<string, unknown>
+      expect(raw.total_records).toBe(8)
+      expect(Array.isArray(raw.records) && (raw.records as unknown[]).length).toBe(5)
+    }
+  )
+
+  it(
+    'réponse 200 de forme inattendue (enveloppe d\'erreur, aucun total_hits) -> LÈVE, ' +
+    'jamais un `match` fabriqué — c\'est l\'invariant 1 : un véto ne passe que sur un match ' +
+    'venant d\'une réponse effectivement comprise',
+    async () => {
+      const row = await runDilisense({ error: 'quota exceeded' })
+      expect(
+        row.result,
+        'une enveloppe d\'erreur rendue en 200 ne doit jamais se lire comme "aucun ' +
+        'enregistrement" : le véto serait satisfait sur une preuve qu\'on n\'a pas'
+      ).toBe('unavailable')
+      expect(row.raw_response, 'invariant 4 : raw_response ne doit jamais être nul, même ici').toBeTruthy()
+    }
+  )
+
+  it(
+    'réponse 200 avec found_records d\'un type inattendu (pas un tableau, malgré ' +
+    'total_hits présent) -> LÈVE également, jamais un `match` fabriqué',
+    async () => {
+      const row = await runDilisense({ total_hits: 1, found_records: 'oops' })
+      expect(row.result).toBe('unavailable')
+    }
+  )
+
+  it('la clé API n\'apparaît jamais dans la preuve, même sur une réponse bien formée avec des hits', async () => {
+    const secret = 'CLEF-SECRETE-CONNECTEUR-AVEC-HITS'
+    vi.stubGlobal('fetch', vi.fn(async () => dilisenseResponse({
+      total_hits: 1,
+      found_records: [{ source_type: 'PEP', name: 'Jean Signataire', source_id: 'pep-1' }],
+    })))
+    const rows = await runAgencyKybPersonSources([signatory], createPepSanctionsSources({ apiKey: secret }))
+    expect(JSON.stringify(rows[0].raw_response)).not.toContain(secret)
   })
 })
 
