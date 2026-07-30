@@ -66,6 +66,32 @@ const EMPTY_AGENCY: AgencySettingsData = {
   aboutShort: '',
 }
 
+/**
+ * Pourquoi les champs d'identité légale sont en lecture seule, ou `null` s'ils ne le sont
+ * pas. Deux raisons, jamais confondues : elles se disent différemment à l'utilisateur et
+ * appellent deux gestes différents.
+ *
+ * Miroir EXACT du garde serveur `agencies_guard_identity_columns()`
+ * (migration 20260730130000), y compris son ORDRE : le rôle d'abord, la soumission
+ * ensuite. Un employé d'une agence soumise doit lire « ce n'est pas à vous de le faire »,
+ * pas « attendez la fin de la vérification » — c'est le premier refus qu'il rencontrerait
+ * côté serveur.
+ *
+ * Ce n'est pas la sécurité (elle est en base, et elle y reste) : c'est l'honnêteté de
+ * l'écran. Sans cela, l'utilisateur voit un bouton « Modifier », saisit, enregistre, et
+ * reçoit un 42501 opaque.
+ */
+export type LegalIdentityLock = null | 'role' | 'submitted'
+
+export function resolveLegalIdentityLock(input: {
+  role: string | null | undefined
+  identitySubmittedAt: string | null | undefined
+}): LegalIdentityLock {
+  if (input.role !== 'admin' && input.role !== 'manager') return 'role'
+  if (input.identitySubmittedAt) return 'submitted'
+  return null
+}
+
 interface AgencyRow {
   name: string | null
   address: string | null
@@ -85,11 +111,13 @@ interface AgencyRow {
   country: string | null
   about_short: string | null
   plan: AgencyPlan | null
+  identity_submitted_at: string | null
 }
 
 interface AgencyQueryResult {
   settings: AgencySettingsData
   plan: AgencyPlan | null
+  identitySubmittedAt: string | null
 }
 
 export interface UseAgencySettingsReturn {
@@ -101,6 +129,9 @@ export interface UseAgencySettingsReturn {
   hasBackend: boolean
   agencyId: string | null
   save: (next: AgencySettingsData) => Promise<void>
+  /** Pourquoi l'identité légale est en lecture seule, ou `null`. Voir
+   *  resolveLegalIdentityLock : miroir du garde serveur, à l'ordre près. */
+  legalIdentityLock: LegalIdentityLock
 }
 
 /**
@@ -118,10 +149,14 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
   const { data, isLoading } = useQuery({
     queryKey: ['agency-settings', agencyId],
     queryFn: async (): Promise<AgencyQueryResult> => {
-      if (!agencyId) return { settings: EMPTY_AGENCY, plan: null }
+      if (!agencyId) return { settings: EMPTY_AGENCY, plan: null, identitySubmittedAt: null }
       const { data: row, error } = await supabase
         .from('agencies')
-        .select('name, address, city, canton, phone, email, website, logo_url, legal_name, legal_form_id, trade_name, business_registration_number, tva, founded_year, postal_code, country, about_short, plan')
+        // identity_submitted_at : lu ici plutôt que par une seconde requête. C'est la même
+        // ligne, et c'est lui qui gèle les champs d'identité légale (cf.
+        // resolveLegalIdentityLock). La colonne est en LECTURE libre pour un membre ; seule
+        // son écriture est révoquée (20260729151600).
+        .select('name, address, city, canton, phone, email, website, logo_url, legal_name, legal_form_id, trade_name, business_registration_number, tva, founded_year, postal_code, country, about_short, plan, identity_submitted_at')
         .eq('id', agencyId)
         .single<AgencyRow>()
       if (error) throw error
@@ -146,6 +181,7 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
           aboutShort: row?.about_short ?? '',
         },
         plan: row?.plan ?? null,
+        identitySubmittedAt: row?.identity_submitted_at ?? null,
       }
     },
     enabled: enabled && !!agencyId,
@@ -201,5 +237,9 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
     hasBackend: !!agencyId,
     agencyId,
     save: async (next) => { await mutation.mutateAsync(next) },
+    legalIdentityLock: resolveLegalIdentityLock({
+      role: profile?.role,
+      identitySubmittedAt: data?.identitySubmittedAt,
+    }),
   }
 }

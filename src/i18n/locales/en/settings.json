@@ -1188,7 +1188,11 @@
         "website": "Website",
         "about": "About the agency"
       },
-      "logoUpdated": "Logo updated"
+      "logoUpdated": "Logo updated",
+      "identityLocked": {
+        "role": "Only an agency director can change the legal identity.",
+        "submitted": "Identity submitted for verification: request a correction to change it."
+      }
     },
     "notifications": {
       "banner": "MEGGA notifies you on the enabled channels, client messages, offers, viewings, signatures.",
