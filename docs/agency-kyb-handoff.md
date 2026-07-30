@@ -526,7 +526,9 @@ avant de l'inscrire au barème.
 
 ### Étape 5 : file de revue admin et gardes LAB
 
-Sur `admin.megga.ch`, application séparée (`npm run build:admin`), pas dans le CRM agent.
+Sur la console admin, montée sous `ADMIN_CONSOLE_PATH` + `/kyb-review` dans le CRM.
+(Cette section disait « sur `admin.megga.ch`, application séparée, `npm run build:admin` » :
+l'application autonome a été retirée le 28.07.2026, il n'y a plus de `build:admin`.)
 
 - Liste triée par score croissant, les plus douteux en tête. Pas de colonne de priorité
   dérivée, ta décision.
@@ -777,9 +779,37 @@ possible que la bascule vienne de la pièce d'identité et non du quatrième vé
 **Ce que cela veut dire, et il faut le dire sans l'arrondir :** une agence française
 obtient l'accès aux gestes que ferment les gardes LAB (ouverture d'un dossier KYC client,
 demande de signature électronique) **sur une seule décision humaine**, celle qui tranche
-la pièce d'identité. Plus aucun véto n'est à poser à la main. La décision produit « garde
-plein » (§7ter) tient toujours, puisque cette décision-là reste humaine, mais elle ne
-porte désormais que sur un point, et c'est un régime différent de celui d'avant.
+la pièce d'identité. Plus aucun véto **d'entité** n'est à poser à la main. La décision
+produit « garde plein » (§7ter) tient toujours, puisque cette décision-là reste humaine,
+mais elle ne porte désormais que sur un point, et c'est un régime différent de celui
+d'avant.
+
+> **⚠ Cette conclusion était FAUSSE jusqu'au 30 juillet 2026, et il faut savoir pourquoi
+> pour ne pas refaire l'erreur.** Le tableau ci-dessus ne mesure que les vétos d'ENTITÉ et
+> la pièce d'identité. Un cinquième véto existait, de PERSONNE, et il n'avait aucune
+> source : `pep_sanctions_screening`. Aucun chemin de production ne lui écrivait jamais de
+> ligne — les trois `insert into agency_person_verification_checks` du dépôt étaient tous
+> scopés à `id_document`, `record_agency_verification_run` n'écrivait que la portée agence,
+> et `admin_resolve_agency_id_document` refusait tout autre type. Un véto sans ligne échoue
+> comme un véto défavorable : **aucun dossier, d'aucun pays, ne pouvait donc atteindre
+> `auto_validated` en production.** La branche était du code mort.
+>
+> Si la mesure ci-dessus affichait pourtant `auto_validated`, c'est que **sa fixture posait
+> ce véto à la main** (`PERSON_VETO_TYPES` en `source='manual'`,
+> `tests/backend/agency-verification-run.spec.ts`). Un test qui seede lui-même ce qu'il
+> prétend mesurer ne mesure pas la production. C'est resté invisible six étapes durant.
+>
+> **Corrigé le 30.07.2026** (étape 7, tâche 4) : le véto est branché sur Dilisense, déjà
+> dans la pile pour le KYC client, et `record_agency_verification_run` accepte désormais des
+> checks de portée personne (migration `20260730140000`). La conclusion ci-dessus est
+> redevenue vraie, cette fois sans fixture — mesuré par
+> `tests/backend/agency-person-verification-run.spec.ts`, « un dossier français complet
+> atteint auto_validated SANS fixture posant le véto PEP », avec son contrôle.
+>
+> Et pour que cela ne puisse pas se reproduire, un invariant l'interdit désormais :
+> `tests/backend/agency-veto-coverage.spec.ts` échoue si un seul type déclaré véto n'a ni
+> connecteur ni voie de sortie humaine. La liste des vétos y est lue **dans la table**,
+> jamais écrite en dur.
 
 ### Suisse : trois vétos sur quatre, et le quatrième plafonne faute de statut
 
@@ -859,7 +889,8 @@ désormais de **124 commits**. L'étape 6, les correctifs de sa revue, l'intégr
 | 5 · File de revue et gardes LAB | fait |
 | 6 · Connecteurs Zefix et UID | Zefix **livré** par LINDAS le 29.07.2026, sans le statut actif ; le squelette UID reste à écrire (§6) |
 | Chantier LINDAS · format du numéro et concordance de pays FR | fait le 29.07.2026 (§7bis pour ce qu'il change) |
-| Préparation du merge (intégrer `main`, re-dater les migrations) | **faite le 29.07.2026**, mais **datée**, donc périssable (voir ci-dessous) |
+| Préparation du merge (intégrer `main`, re-dater les migrations) | **faite le 29.07.2026**, et **mergée** : les 20 migrations sont appliquées en production |
+| 7 · Boucle de remédiation (véto PEP, rejet réversible, gel de l'identité, notification) | **livrée le 30.07.2026** — voir le plan de l'étape 7 |
 
 Fait à l'étape 5 : la couche de données de la file, les quatre décisions humaines
 (valider, rejeter avec motif, relancer, résoudre la pièce d'identité), l'écran de la
@@ -1340,9 +1371,21 @@ dépôt** : il a été remplacé par le spec de non-régression, qui couvre les 
 
 ## 10. Par où commencer
 
+> **Mis à jour le 30 juillet 2026.** Ce paragraphe disait « il reste un merge à faire » :
+> **il n'en reste aucun.** Toutes les branches du chantier sont à 0 commit d'avance sur
+> `main`, les 20 migrations sont appliquées en production (`HTTP 201` sur chacune, run de
+> déploiement `30435386705`), et `agency-verification-run` est déployée. Le point 2
+> ci-dessous — re-dater les migrations — est **fait** ; il reste valable pour la prochaine
+> fois, pas pour maintenant.
+>
+> **Une étape 7 a été livrée depuis** : la boucle de remédiation. Elle ferme cinq trous que
+> ce document ne connaissait pas, dont deux critiques — le véto sans source (§7bis) et le
+> cul-de-sac du rejet. Voir
+> [docs/handoff/onboarding-api/HANDOFF_ONBOARDING_API.md](handoff/onboarding-api/HANDOFF_ONBOARDING_API.md)
+> et [le plan de l'étape 7](superpowers/plans/2026-07-30-onboarding-kyb-etape-7-remediation.md).
+
 Les étapes 0 à 5 sont livrées, l'étape 6 est livrée pour la Suisse et reste un squelette
-pour le registre UID (§7ter pour le tableau d'avancement). Il n'y a donc plus d'étape à
-« traiter » : il reste un merge à faire, et des suites à décider.
+pour le registre UID (§7ter pour le tableau d'avancement).
 
 1. Monter l'environnement (§3), puis `supabase db reset && npm run test:backend`. Si la
    suite backend passe, la base est saine et tu peux faire confiance au reste de ce
