@@ -820,7 +820,7 @@ réel :** un incident support par dossier rejeté.
 
 ### C. CRITIQUE : une pièce d'identité refusée ne peut pas être remplacée
 
-> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 2, migration `20260730120000`).** Les deux
+> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 2, migration `20260730121000`).** Les deux
 > impasses sont levées par un point de décision unique, `_latest_person_verification_check`,
 > qui départage les lignes **exactement comme le moteur** (`checked_at desc, ctid desc`) :
 > `submit_agency_identity` repose une demande dès que le dernier verdict n'est ni `pending`
