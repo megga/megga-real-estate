@@ -134,6 +134,23 @@ profond. Le serveur de dev ignore `_redirects`, donc les suites e2e restaient ve
 liens internes, restés à la racine après la refusion :
 [`tests/unit/admin-console-paths.spec.ts`](../tests/unit/admin-console-paths.spec.ts).
 
+**📎 Assets servis à la racine (`public/`).** Vite recopie ce dossier **verbatim, sans hash** : le nom d'un
+fichier posé là est un contrat d'URL. C'est ce qui héberge les images des e-mails transactionnels —
+`public/email/megga-logo-white.png` (wordmark blanc, 600 × 131) et `megga-gg-indigo.png` (sigle `#424bfb`,
+la primaire vitrine, 136 × 82) — référencées en **URL absolue** par les gabarits Supabase Auth, qui vivent
+dans le dashboard (Authentication → Email Templates) et **pas dans le dépôt**. Un client mail n'accepte ni
+chemin relatif ni base64 (Outlook Windows ne rend pas le base64), d'où l'hébergement.
+[`public/_headers`](../public/_headers) (30 juil. 2026, PR #1035) fige `/email/*` à un an immuable, au lieu
+du défaut Pages `max-age=14400, must-revalidate` ; la vitrine megga.ch le recopie mais l'**ignore**, ce
+projet tournant en mode avancé (`_worker.js`), où Cloudflare n'évalue ni `_headers` ni `_redirects`.
+
+⚠️ **Un asset ABSENT répond quand même `200`.** Le fallback SPA (`/*  /index.html  200`, dernière ligne de
+`_redirects`) attrape aussi les fichiers manquants : la réponse est un `200` en **`text/html`**. Un contrôle
+`curl -I … | grep 200` est donc creux — regarder le `content-type`, et pour un binaire comparer la **somme
+SHA-256** des octets servis à la source (ce qui prouve en prime que Cloudflare ne recompresse pas). Vécu le
+30 juil. 2026 : `/email/megga-gg-indigo.png` répondait `200` sans exister, et les e-mails partaient sans le
+sigle.
+
 ---
 
 ## 2. Frontend — audiences & routing
