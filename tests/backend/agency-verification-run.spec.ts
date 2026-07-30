@@ -186,6 +186,19 @@ const EDGE_FUNCTION_SOURCE_IMPORTS = [
   'createUidRegisterSources',
   'runAgencyKybSources',
   'selectApplicableSources',
+  // Portee PERSONNE (etape 7, tache 4). Ces deux-la sont dans la liste mais N'ONT RIEN A
+  // FAIRE dans fullKybRegistry(), et ce n'est pas un contournement du garde-fou : la
+  // matrice d'exclusivite qu'il protege porte sur les collisions de check_type entre
+  // sources d'AGENCE, departagees par selectApplicableSources() avant d'ecrire dans
+  // agency_verification_checks. Une source de personne ecrit dans une AUTRE table, sur une
+  // autre cle (related_person_id), et pep_sanctions_screening n'a qu'un seul proprietaire :
+  // il n'y a rien a departager. Le durcissement plus bas le voit d'ailleurs tout seul --
+  // « producteur » se lit dans la composition `const sources = [...]` d'index.ts, ou
+  // createPepSanctionsSources n'apparait pas (les sources de personne sont composees
+  // separement, avec leur propre harnais). Le jour ou DEUX sources de personne se
+  // partageront un check_type, il faudra une matrice jumelle, pas etendre celle-ci.
+  'createPepSanctionsSources',
+  'runAgencyKybPersonSources',
 ]
 
 /**

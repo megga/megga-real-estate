@@ -2264,3 +2264,271 @@ export async function runAgencyKybSources(
 ): Promise<AgencyCheckRow[]> {
   return Promise.all(sources.map((source) => runKybSource(source, agency, timeoutMs)))
 }
+
+// ─── Sources de PERSONNE (etape 7, tache 4) ───────────────────────────────────────────
+//
+// POURQUOI UN SECOND CONTRAT, ET NON UN ELARGISSEMENT DU PREMIER. Le catalogue distingue
+// deux PORTEES (verification_check_types.scope : 'agency' | 'person'), et le moteur les lit
+// dans DEUX TABLES differentes -- agency_verification_checks et
+// agency_person_verification_checks. Un check de personne n'est pas un check d'agence avec
+// un champ de plus : sa cle n'est pas la meme (related_person_id, pas agency_id), et le
+// moteur exige que CHAQUE signataire actif passe CHAQUE veto de personne, individuellement.
+// Faire porter les deux par KybSource obligerait chaque connecteur d'agence a ignorer un
+// parametre qui ne le concerne pas, et surtout laisserait une ligne mal typee partir dans
+// la mauvaise table sans que rien ne l'arrete. Deux contrats, deux tables, aucune confusion
+// possible a l'ecriture.
+//
+// CE QUE CETTE SECTION FERME. `pep_sanctions_screening` etait declare veto de personne
+// depuis la migration du catalogue et AUCUN chemin de production ne lui ecrivait jamais de
+// ligne : record_agency_verification_run n'ecrivait que la portee agence, les trois inserts
+// de agency_person_verification_checks du depot etaient tous scopes a 'id_document', et
+// admin_resolve_agency_id_document refusait tout autre type. Un veto sans ligne echoue comme
+// un veto defavorable -- donc AUCUN dossier ne pouvait atteindre `auto_validated`, dans
+// aucun pays, quoi qu'un humain tranche. La branche etait du code mort en production, et les
+// mesures pays par pays qui affichaient un `auto_validated` posaient ce veto A LA MAIN dans
+// leur fixture. Voir tests/backend/agency-veto-coverage.spec.ts, qui interdit desormais ce
+// mode de defaillance pour tout veto, present ou futur.
+//
+// Le reste de la discipline du module est INCHANGE et s'applique mot pour mot : un
+// connecteur ne choisit jamais `unavailable` (il leve, le harnais traduit), raw_response est
+// obligatoire, aucun secret n'entre jamais dans raw_response ni dans un message d'erreur, et
+// le module reste pur (aucun Deno.env.get -- la cle vient d'une fabrique appelee depuis
+// agency-verification-run/index.ts, exactement comme le geocodage Mapbox).
+
+/** Sous-ensemble des colonnes de agency_related_persons utile a un connecteur de PERSONNE.
+ *  Jamais la ligne complete : id_document_number est de la PII sensible (LPD) qu'aucun
+ *  connecteur de screening n'a besoin de lire. */
+export interface PersonForVerification {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  date_of_birth: string | null
+  nationality: string | null
+}
+
+/** Une ligne prete a inserer dans agency_person_verification_checks. La cle est
+ *  related_person_id, la ou AgencyCheckRow porte agency_id (ajoute par l'appelant) : c'est
+ *  cette difference qui justifie un type distinct plutot qu'un champ optionnel. */
+export interface PersonCheckRow {
+  related_person_id: string
+  check_type: string
+  source: string
+  result: KybCheckResult
+  raw_response: Record<string, unknown>
+}
+
+/** Le contrat d'un connecteur de PERSONNE. `agency` est fourni en second parametre parce
+ *  qu'un screening peut avoir besoin du contexte de l'entite (pays du siege pour departager
+ *  des homonymes, par exemple) sans que la personne ne le porte elle-meme. */
+export interface KybPersonSource {
+  checkType: string
+  source: string
+  appliesTo?: (person: PersonForVerification, agency: AgencyForVerification | null) => boolean
+  run: (
+    person: PersonForVerification,
+    agency: AgencyForVerification | null,
+    signal: AbortSignal
+  ) => Promise<KybSourceResult>
+}
+
+/** Jumeau exact de runKybSource pour la portee personne : meme course contre le timeout,
+ *  meme absorption des echecs, meme refus de fabriquer un verdict. Duplique volontairement
+ *  plutot que generalise : les deux fonctions rendent des TYPES differents (AgencyCheckRow
+ *  contre PersonCheckRow) et une abstraction commune ne gagnerait que trois lignes au prix
+ *  d'un generique que personne ne relirait avec plaisir. */
+export async function runKybPersonSource(
+  source: KybPersonSource,
+  person: PersonForVerification,
+  agency: AgencyForVerification | null,
+  timeoutMs: number = DEFAULT_SOURCE_TIMEOUT_MS
+): Promise<PersonCheckRow> {
+  const controller = new AbortController()
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort()
+      reject(new KybSourceTimeoutError(timeoutMs))
+    }, timeoutMs)
+  })
+
+  try {
+    const outcome = await Promise.race([source.run(person, agency, controller.signal), timeout])
+    return {
+      related_person_id: person.id,
+      check_type: outcome.check_type ?? source.checkType,
+      source: source.source,
+      result: outcome.result,
+      raw_response: outcome.raw_response,
+    }
+  } catch (err) {
+    return {
+      related_person_id: person.id,
+      check_type: source.checkType,
+      source: source.source,
+      result: 'unavailable',
+      raw_response: describeSourceFailure(err, err instanceof KybSourceTimeoutError),
+    }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Execute chaque source pour CHAQUE personne : le PRODUIT, pas une ligne par source. Le
+ *  moteur exige que chaque signataire actif passe chaque veto de personne individuellement
+ *  (un second signataire non blanchi ne doit pas se cacher derriere le premier), donc
+ *  rendre une seule ligne pour l'ensemble des signataires laisserait le veto passer sur une
+ *  moyenne. Ne rejette jamais, meme garantie que le harnais d'agence : la longueur du
+ *  tableau vaut TOUJOURS persons.length x sources.length.
+ *
+ *  Aucune personne -> tableau vide, jamais une ligne orpheline. C'est le cas nominal d'une
+ *  agence dont la saisie est incomplete, et le moteur le traite deja (il exige un signataire
+ *  actif pour auto-valider). */
+export async function runAgencyKybPersonSources(
+  persons: PersonForVerification[],
+  sources: KybPersonSource[],
+  timeoutMs: number = DEFAULT_SOURCE_TIMEOUT_MS,
+  agency: AgencyForVerification | null = null
+): Promise<PersonCheckRow[]> {
+  const pairs: Promise<PersonCheckRow>[] = []
+  for (const person of persons) {
+    for (const source of sources) {
+      if (source.appliesTo) {
+        let applicable: boolean
+        try {
+          applicable = source.appliesTo(person, agency)
+        } catch {
+          // Meme direction que selectApplicableSources : un predicat bogue ECARTE la
+          // source. Ici il n'y a pas de collision de check_type a craindre (un seul
+          // proprietaire de pep_sanctions_screening), mais la coherence de traitement vaut
+          // mieux qu'une exception qui ferait echouer tout le passage.
+          applicable = false
+        }
+        if (!applicable) continue
+      }
+      pairs.push(runKybPersonSource(source, person, agency, timeoutMs))
+    }
+  }
+  return Promise.all(pairs)
+}
+
+// ─── Connecteur PEP et sanctions (Dilisense) ──────────────────────────────────────────
+//
+// Dilisense est DEJA dans la pile : kyc-screening l'interroge pour le KYC des clients
+// finaux, avec la meme cle (DILISENSE_API_KEY) et le meme endpoint. Ce connecteur reprend
+// litteralement sa forme d'appel -- meme URL, meme en-tete x-api-key, meme fuzzy_search=1,
+// meme timeout de 15 s -- plutot que d'en inventer une seconde. Ce qui change est
+// l'INTERPRETATION : le KYC client range les correspondances en `pep_status` /
+// `sanctions_status` et laisse un MLRO trancher ; ici il faut un verdict de veto, donc une
+// seule valeur dans le vocabulaire du catalogue.
+//
+// LA REGLE D'INTERPRETATION, ET POURQUOI ELLE PENCHE AINSI :
+//   - aucune correspondance          -> `match`  (le veto est SATISFAIT : rien a signaler)
+//   - au moins une correspondance    -> `mismatch` (le veto ECHOUE, dossier en revue humaine)
+//   - impossible d'interroger        -> leve, le harnais traduit en `unavailable`
+//
+// Le sens de `match` demande un mot, parce qu'il est contre-intuitif la premiere fois : dans
+// ce catalogue, `match` veut dire « le controle est concluant », pas « on a trouve
+// quelqu'un ». C'est la meme convention que registry_legal_name_match (`match` = la raison
+// sociale CONCORDE) ; ici le controle qui concorde est « cette personne n'apparait sur
+// aucune liste ». Un hit est donc un `mismatch`, et il envoie le dossier en revue humaine
+// sans jamais le rejeter tout seul : c'est un humain qui decide ce qu'un homonyme vaut.
+//
+// fuzzy_search=1 est conserve DELIBEREMENT malgre ses faux positifs. Un screening de
+// sanctions qui rate un nom translitere differemment est pire qu'un screening qui en signale
+// un de trop : le premier laisse passer, le second fait travailler un relecteur. Le
+// dispositif entier est construit sur ce penchant (voir la regle des vetos), et c'est aussi
+// ce que fait deja kyc-screening.
+
+/** Configuration du connecteur PEP -- une fabrique, comme le geocodage Mapbox, parce que la
+ *  cle n'est connue qu'a l'execution de l'Edge Function et que ce module reste pur. */
+export interface PepSanctionsConfig {
+  apiKey: string
+}
+
+interface DilisenseFoundRecord {
+  source_type?: string
+  name?: string
+  source_id?: string
+}
+
+interface DilisenseScreeningResponse {
+  found_records?: DilisenseFoundRecord[] | null
+  total_hits?: number
+}
+
+/** Nom interrogeable, ou null si la personne n'en porte pas d'exploitable. Interroger un
+ *  registre de sanctions sur une chaine vide rendrait « aucun resultat », c'est-a-dire un
+ *  faux blanchiment -- le mode de defaillance le plus grave possible pour ce check. */
+function screenableName(person: PersonForVerification): string | null {
+  const full = [person.first_name, person.last_name]
+    .map((part) => (part ?? '').trim())
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+  return full.length >= 2 ? full : null
+}
+
+/** Construit la source de screening PEP et sanctions. Rend un TABLEAU pour une source
+ *  unique, meme motif que createUidRegisterSources : le jour ou l'on separera PEP et
+ *  sanctions en deux check_type distincts, agency-verification-run/index.ts n'aura rien a
+ *  changer. */
+export function createPepSanctionsSources(config: PepSanctionsConfig): KybPersonSource[] {
+  return [{
+    checkType: 'pep_sanctions_screening',
+    source: 'dilisense',
+    run: async (person, _agency, signal) => {
+      // La cle absente n'est PAS un cas d'erreur du connecteur mais une source
+      // injoignable : on leve, le harnais traduit en `unavailable`, et le dossier part en
+      // revue humaine. Meme situation que MAPBOX_TOKEN. Le message nomme la variable
+      // attendue -- jamais sa valeur -- pour qu'un relecteur de la file sache quoi faire.
+      if (!config.apiKey) {
+        throw new Error('pep_sanctions_screening: DILISENSE_API_KEY absente, screening non effectue')
+      }
+
+      const name = screenableName(person)
+      if (!name) {
+        throw new Error(
+          'pep_sanctions_screening: personne sans nom exploitable, aucune interrogation possible'
+        )
+      }
+
+      const url =
+        `https://api.dilisense.com/v1/checkIndividual` +
+        `?names=${encodeURIComponent(name)}&fuzzy_search=1`
+
+      const res = await fetch(url, { headers: { 'x-api-key': config.apiKey }, signal })
+      if (!res.ok) {
+        // Le corps de la reponse peut porter un echo de la requete : on ne joint que le
+        // statut, jamais le texte, pour qu'aucune cle ne puisse transiter par cette voie.
+        throw new Error(`pep_sanctions_screening: Dilisense a repondu ${res.status}`)
+      }
+
+      const data = (await res.json()) as DilisenseScreeningResponse
+      const records = Array.isArray(data.found_records) ? data.found_records : []
+      const pep = records.filter((r) => r.source_type === 'PEP')
+      const sanctions = records.filter((r) => r.source_type === 'SANCTION')
+      const hit = records.length > 0
+
+      return {
+        // `match` = controle concluant, personne sur aucune liste. Voir l'en-tete de section.
+        result: hit ? 'mismatch' : 'match',
+        raw_response: {
+          screened_name: name,
+          fuzzy_search: true,
+          total_records: records.length,
+          pep_records: pep.length,
+          sanction_records: sanctions.length,
+          // Au plus cinq entrees, comme le fait deja partitionDilisenseHits pour le KYC
+          // client : de quoi justifier le verdict sans recopier tout un registre dans une
+          // table conservee dix ans.
+          records: records.slice(0, 5).map((r) => ({
+            source_type: r.source_type ?? null,
+            name: r.name ?? null,
+            source_id: r.source_id ?? null,
+          })),
+        },
+      }
+    },
+  }]
+}
