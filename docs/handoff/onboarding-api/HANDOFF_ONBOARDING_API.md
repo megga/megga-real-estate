@@ -22,9 +22,22 @@
 > | G · dépendance de test non déclarée | **non traité** (hors périmètre onboarding) |
 > | F · KYC agent léger | **non traité** : lot 4, à cadrer produit |
 >
-> **Vérification au 30.07.2026, base locale réinitialisée :** 121 fichiers backend,
-> **1048 tests passés**, 4 skippés (secrets absents en local), 0 échec. Unitaires : 1349
-> passés. Lint : 0 erreur. i18n : 0 clé manquante sur 4 langues.
+> **Vérification au 30.07.2026, suite backend seule (`npm run test:backend`), sur une base
+> locale FRAÎCHEMENT réinitialisée et non contendue au moment du run :** 121/121 fichiers
+> backend exécutés, 1052 tests (**1048 passés**, 4 ignorés -- secrets d'environnement
+> absents en local, sans rapport avec ce chantier), **0 échec**. Unitaires : 1354 passés
+> (mesuré deux fois ; une suite, `tests/unit/workflows-yaml.spec.ts`, ne se collecte pas --
+> dépendance `yaml` non déclarée, c'est le constat G, pré-existant et hors périmètre).
+> Lint : 0 erreur. i18n : 0 clé manquante sur 4 langues.
+>
+> ⚠ **Cette mesure ne se reproduit que sur une base saine.** Le Postgres local de ce dépôt
+> est partagé avec une dizaine d'autres sessions qui le réinitialisent sans prévenir.
+> Relancer cette même suite pendant qu'une autre session réinitialise la base partagée
+> montre des échecs qui n'appartiennent pas à cette branche -- `contact-nba.spec.ts`
+> notamment, instable sous charge concurrente alors qu'il passe 23/23 lancé seul. Un échec
+> observé sur ce fichier (ou sur des erreurs du type « Database error checking email »,
+> tables absentes) signale une contamination d'environnement, pas une régression :
+> relancer isolément avant de conclure quoi que ce soit.
 
 > **Pour qui :** l'équipe qui reprend et poursuit le développement de l'API d'onboarding
 > (Edge Functions, RPC Postgres, connecteurs de registres).

@@ -182,12 +182,17 @@ conserve la composante horaire, alors que **la collision portait sur l'horodatag
 sur 14 chiffres**. Exécutée le 26 juillet, elle reproduisait le même nom de fichier. Le
 re-datage a donc porté sur l'heure.
 
-**À refaire le jour du merge, et cela concerne maintenant 8 migrations, pas 4.**
+**Ce qui restait à refaire le jour du merge** (26-28 juillet 2026), et qui concernait
+alors 8 migrations, pas 4 :
 
 Le garde-date de `deploy.yml` n'applique que les migrations dont l'horodatage est
-`>= TODAY` en UTC. Les 8 fichiers de ce chantier sont datés du 26 juillet 2026 : passé
-minuit UTC, ils sont déjà périmés et seraient **sautés définitivement**, sans autre trace
-qu'un `::warning::` dans le job.
+`>= TODAY` en UTC. Les 8 fichiers de ce chantier étaient datés du 26 juillet 2026 : passé
+minuit UTC, ils devenaient périmés et auraient été **sautés définitivement**, sans autre
+trace qu'un `::warning::` dans le job.
+
+**Historique -- ne plus exécuter cette commande.** Le glob `202607261[34]*` ne désigne
+plus aucun fichier de ce chantier : le re-datage réel du 29.07.2026 est décrit au §7ter,
+« La procédure, telle qu'elle a été exécutée ».
 
 ```bash
 cd supabase/migrations && for f in 202607261[34]*_*.sql; do git mv "$f" "$(date -u +%Y%m%d)${f:8}"; done
@@ -208,20 +213,21 @@ supabase db reset && npm run lint:migrations && npm run test:backend
 Attendu (état du 26 juillet) : `629 passed`, 0 échec. Lire le compte de tests, jamais
 le code de sortie.
 
-**Mise à jour étape 2 (vérifiée le 28 juillet 2026) :** l'étape 2 a ajouté 3
+**Mise à jour étape 2, historique (vérifiée le 28 juillet 2026 -- ne décrit plus rien
+d'actionnable, voir le rappel en tête de sous-section) :** l'étape 2 avait ajouté 3
 migrations, datées du 27 juillet 2026 (`20260728108000_submit_agency_identity.sql`,
 `20260728109000_kyb_identity_documents_storage.sql`,
-`20260728110000_submit_agency_identity_id_document.sql`). **Le total à re-dater le
-jour du merge est donc désormais de 11 migrations, pas 8.** Vérifié par `date -u` au
-moment de cette mise à jour : nous sommes le 28 juillet 2026 UTC, donc le garde-date
-de `deploy.yml` (`stamp >= TODAY`) a déjà dépassé les 11 fichiers du chantier (tous
-datés du 26 ou du 27 juillet) : mergés en l'état, ils seraient sautés définitivement,
-sans autre trace qu'un `::warning::`. La commande de re-datage ci-dessus ne couvre
-que les 8 fichiers `202607261[34]*` : le jour du merge, l'étendre aux 3 fichiers
-`20260727*` (même motif `git mv "$f" "$(date -u +%Y%m%d)${f:8}"`, ordre relatif
-conservé). Suite backend rejouée le 28 juillet sur les 189 migrations actuelles du
-dépôt (schéma inchangé par cette mise à jour) : `658 passed`, 4 skipped (secrets
-d'environnement absents en local, sans rapport avec ce chantier), 0 échec.
+`20260728110000_submit_agency_identity_id_document.sql`), portant à 11 migrations (pas
+8) le total qui restait à re-dater à ce moment-là. Vérifié par `date -u` le 28 juillet
+2026 UTC : le garde-date de `deploy.yml` (`stamp >= TODAY`) avait déjà dépassé ces 11
+fichiers (tous datés du 26 ou du 27 juillet) -- mergés en l'état, ils auraient été
+sautés définitivement, sans autre trace qu'un `::warning::`. La commande de re-datage
+plus haut ne couvrait que les 8 fichiers `202607261[34]*` : il aurait alors fallu
+l'étendre aux 3 fichiers `20260727*`. **Ni l'un ni l'autre glob ne désigne quoi que ce
+soit aujourd'hui** -- le re-datage réel, exécuté le lendemain sur 19 migrations, est au
+§7ter. Suite backend rejouée le 28 juillet sur les 189 migrations d'alors (schéma
+inchangé par cette mise à jour) : `658 passed`, 4 skipped (secrets d'environnement
+absents en local, sans rapport avec ce chantier), 0 échec.
 
 L'alternative (les appliquer à la main avant de merger) est documentée dans `deploy.yml`
 comme le flux normal du dépôt, mais ne résout pas la collision.
@@ -871,13 +877,21 @@ trouver la réponse ici, pas la reconstituer en assemblant trois fichiers.
 
 ### Où en est le chantier
 
+> **Mis à jour le 30 juillet 2026.** Le paragraphe qui suit datait d'avant le merge et
+> comparait la branche distante `feat/agency-kyb-verification` (arrêtée à `1b2cb9eb`,
+> dernier commit de l'étape 5) au travail local, en avance de **124 commits** à l'époque.
+> Cette comparaison ne désigne plus rien : **tout est intégré**. `main` a été fusionné
+> (commit de merge `5587e0f2`, voir « Le merge : ce qui a été fait le 29 juillet 2026 »
+> plus bas) et les étapes 6 et 7 ont depuis été livrées sur cette même base. Il n'existe
+> plus de branche distante en retard à rattraper.
+
 Six étapes sur sept : les étapes 0 à 5 sont livrées, l'étape 6 n'est qu'un squelette.
 122 commits de chantier depuis `276e4d5a`, 228 en comptant les 106 que `main` a apportés
-en s'intégrant. Attention, `feat/agency-kyb-verification` ne porte plus tout : la branche
-distante s'arrête à `1b2cb9eb`, dernier commit de l'étape 5, et le travail la dépasse
-désormais de **124 commits**. L'étape 6, les correctifs de sa revue, l'intégration de
-`main` et le re-datage des migrations ne vivent qu'en local, sur `kyb-handoff-update`
-(le re-datage est le commit `856076ce`).
+en s'intégrant. Attention, `feat/agency-kyb-verification` ne portait plus tout : la
+branche distante s'arrêtait à `1b2cb9eb`, dernier commit de l'étape 5, et le travail la
+dépassait alors de **124 commits**. L'étape 6, les correctifs de sa revue, l'intégration
+de `main` et le re-datage des migrations n'ont vécu qu'en local, sur `kyb-handoff-update`,
+que le temps du merge (le re-datage était le commit `856076ce`).
 
 | Étape | État |
 |---|---|
@@ -1397,9 +1411,12 @@ pour le registre UID (§7ter pour le tableau d'avancement).
    Faire l'essai à blanc avant de renommer.
 3. Poser `MAPBOX_TOKEN` côté serveur (§7ter) : déclaré dans `CLAUDE.md`, jamais posé.
 4. Relancer les identifiants Zefix PublicREST. Ce n'est plus le chemin critique du marché
-   suisse, LINDAS ayant pris trois vétos sur quatre, mais c'est **la seule chose** qui
-   rendra un dossier suisse auto-validable : `registry_lookup` restera `partial` tant que
-   personne ne publie le statut actif (§7bis, §8).
+   suisse, LINDAS ayant pris trois vétos sur quatre, mais c'est **nécessaire, pas
+   suffisant** : `registry_lookup` restera `partial` tant que personne ne publie le statut
+   actif (§7bis, §8), et même une fois ce dernier véto d'entité comblé, le véto de
+   *personne* `pep_sanctions_screening` reste une condition séparée que chaque dossier
+   suisse doit aussi satisfaire (branché sur Dilisense depuis l'étape 7, tâche 4 -- §7bis).
+   Zefix seul ne suffira donc pas à faire de la Suisse un pays auto-validable.
 5. **Trancher le cas liechtensteinois.** `LI` est sélectionnable au wizard et n'est servi
    par rien : ou bien on éprouve la clé du FL-UID sur des numéros réels et on l'ajoute à
    `registry_number_format`, ou bien on retire `LI` de la liste tant que rien ne le sert
