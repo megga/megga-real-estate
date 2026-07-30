@@ -161,7 +161,11 @@
         "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Reinviare il modulo non avvia un nuovo esame: contatti il supporto MEGGA per conoscere il motivo e i prossimi passi."
       },
       "cta": "Completa la verifica",
-      "contactSupport": "Contatta il supporto"
+      "contactSupport": "Contatta il supporto",
+      "correctionRequested": {
+        "title": "Correzione richiesta",
+        "body": "Il team MEGGA ti chiede di correggere i dati di identità prima di proseguire. I dettagli ti sono stati inviati per e-mail. Riapri il modulo, poi invia di nuovo."
+      }
     },
     "block": {
       "checking": "Verifica dello stato della Sua agenzia prima di aprire una pratica KYC…",
@@ -189,7 +193,12 @@
       },
       "cta": "Completa la verifica",
       "back": "Torna alla dashboard",
-      "contactSupport": "Contatta il supporto"
+      "contactSupport": "Contatta il supporto",
+      "correctionRequested": {
+        "eyebrow": "Correzione richiesta",
+        "title": "I tuoi dati di identità devono essere corretti",
+        "body": "Il team MEGGA ha esaminato il tuo fascicolo e chiede una correzione prima di convalidarlo. Ciò che deve cambiare ti è stato comunicato per e-mail. Riapri il modulo di identità, correggilo e invialo di nuovo: l'esame riprenderà automaticamente."
+      }
     }
   }
 }

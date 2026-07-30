@@ -974,5 +974,14 @@
   "kybReview.event.agencyVerificationRejected": "Dossier rejeté par un super-admin",
   "kybReview.event.agencyIdentityDocumentResolved": "Pièce d'identité résolue",
   "kybReview.event.reasonPrefix": "Motif :",
-  "common.status.autoValidated": "Auto-validé"
+  "common.status.autoValidated": "Auto-validé",
+  "kybReview.correctionDialog.title": "Demander une correction",
+  "kybReview.correctionDialog.reasonLabel": "Ce qui doit être corrigé",
+  "kybReview.correctionDialog.reasonPlaceholder": "Ex. : le numéro de registre comporte un chiffre de trop ; la raison sociale déclarée est la traduction et non celle du registre.",
+  "kybReview.correctionDialog.reasonRequired": "Un motif est requis : le dirigeant ne verra que ce texte.",
+  "kybReview.correctionDialog.confirm": "Renvoyer pour correction",
+  "kybReview.actions.requestCorrection": "Demander une correction",
+  "kybReview.actions.requestingCorrection": "Envoi…",
+  "kybReview.actions.requestCorrectionSuccess": "Dossier renvoyé au dirigeant pour correction",
+  "kybReview.event.agencyVerificationCorrectionRequested": "Correction demandée au dirigeant"
 }

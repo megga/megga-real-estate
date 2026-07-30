@@ -974,5 +974,14 @@
   "kybReview.event.agencyVerificationRejected": "Case rejected by a super admin",
   "kybReview.event.agencyIdentityDocumentResolved": "ID document resolved",
   "kybReview.event.reasonPrefix": "Reason:",
-  "common.status.autoValidated": "Auto-validated"
+  "common.status.autoValidated": "Auto-validated",
+  "kybReview.correctionDialog.title": "Request a correction",
+  "kybReview.correctionDialog.reasonLabel": "What needs correcting",
+  "kybReview.correctionDialog.reasonPlaceholder": "E.g. the registration number has one digit too many; the legal name given is the translation, not the registry entry.",
+  "kybReview.correctionDialog.reasonRequired": "A reason is required: the director will only see this text.",
+  "kybReview.correctionDialog.confirm": "Send back for correction",
+  "kybReview.actions.requestCorrection": "Request a correction",
+  "kybReview.actions.requestingCorrection": "Sending…",
+  "kybReview.actions.requestCorrectionSuccess": "File sent back to the director for correction",
+  "kybReview.event.agencyVerificationCorrectionRequested": "Correction requested from the director"
 }

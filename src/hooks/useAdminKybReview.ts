@@ -308,7 +308,7 @@ interface EventRpcRow {
  *  recalculs, tentatives du filet, décisions humaines passées. C'est la SEULE lecture
  *  qui porte le motif d'un rejet (metadata.reason sous action=agency_verification_rejected) :
  *  get_admin_agency_review_detail ne le rend pas, contrat non documenté ailleurs de
- *  façon durable — voir rejectionReasonFromEvent (AdminKybReviewPage.tsx) qui le lit.
+ *  façon durable — voir decisionReasonFromEvent (AdminKybReviewPage.tsx) qui le lit.
  *  `activity_events` est dans les types générés (client `supabase` normal). */
 function useKybReviewEvents(agencyId: string) {
   return useQuery({
@@ -378,8 +378,8 @@ async function callRpc(fn: string, args: Record<string, unknown>): Promise<void>
   if (error) throw new Error(error.message)
 }
 
-/** Les quatre actions de décision humaine sur UN dossier. `agencyId` requis, même
- *  raison que useAdminKybReviewDetail. */
+/** Les cinq actions de décision humaine sur UN dossier (la cinquième, `requestCorrection`,
+ *  vient de l'étape 7/tâche 5). `agencyId` requis, même raison que useAdminKybReviewDetail. */
 export function useAdminKybReviewActions(agencyId: string) {
   const invalidate = useInvalidateKybReview(agencyId)
 
@@ -398,6 +398,16 @@ export function useAdminKybReviewActions(agencyId: string) {
     onSuccess: invalidate,
   })
 
+  // Cinquième décision (étape 7, tâche 5) : renvoyer au dirigeant plutôt que rejeter. Le
+  // motif est OBLIGATOIRE côté RPC, et pour une raison de fond : le dirigeant ne voit pas la
+  // file, il ne sait de la demande que ce que ce texte lui dit. Un motif vide le ferait
+  // resoumettre à l'identique.
+  const requestCorrection = useMutation({
+    mutationFn: (reason: string) =>
+      callRpc('admin_request_agency_correction', { p_agency_id: agencyId, p_reason: reason }),
+    onSuccess: invalidate,
+  })
+
   // Résoudre PUIS relancer, deux appels distincts (voir en-tête de fichier) : si la
   // résolution échoue, la relance ne part jamais (callRpc lève avant la ligne suivante).
   const resolveIdentityDocument = useMutation({
@@ -408,5 +418,5 @@ export function useAdminKybReviewActions(agencyId: string) {
     onSuccess: invalidate,
   })
 
-  return { validate, reject, relaunch, resolveIdentityDocument }
+  return { validate, reject, relaunch, requestCorrection, resolveIdentityDocument }
 }

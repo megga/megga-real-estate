@@ -6,10 +6,11 @@
  * explique pourquoi, tant que useLabGuard() renvoie un statut bloqué.
  *
  * « Une porte fermée avec un motif lisible vaut mieux qu'un bouton absent » —
- * ce n'est donc pas un simple message d'erreur : trois raisons distinctes
- * (jamais soumis, en attente de revue, rejeté) reçoivent chacune leur propre
- * titre et corps de texte, avec un renvoi vers /dashboard/identite quand
- * l'utilisateur courant (admin/manager) peut lui-même agir.
+ * ce n'est donc pas un simple message d'erreur : quatre raisons distinctes
+ * (jamais soumis, en attente de revue, rejeté, correction demandée) reçoivent
+ * chacune leur propre titre et corps de texte, avec un renvoi vers
+ * /dashboard/identite quand l'utilisateur courant (admin/manager) peut lui-même
+ * agir — ce qui est le cas des deux motifs où la balle est dans son camp.
  *
  * Ne rend JAMAIS le blocage ni le contenu réel tant que le statut n'est pas
  * connu ('loading') — même garde-fou anti-faux-positif que useLabGuard.ts et
@@ -36,18 +37,23 @@ import { useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Info, AlertOctagon, AlertCircle, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
-import { useLabGuard, canActOnLabGuard, LAB_GUARD_STATUS_QUERY_KEY, type LabGuardStatus } from '@/hooks/useLabGuard'
+import { useLabGuard, canActOnLabGuard, LAB_GUARD_STATUS_QUERY_KEY, LAB_GUARD_LABEL_KEY, type LabGuardStatus } from '@/hooks/useLabGuard'
 import { IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 import { showIntercomSpace } from '@/lib/intercom'
 
-/** Les trois MOTIFS de blocage. 'unavailable' en est exclu à dessein : ce n'est pas un
- *  verdict sur le dossier mais un échec de lecture, et il a son propre écran. */
+/** Les MOTIFS de blocage. 'unavailable' en est exclu à dessein : ce n'est pas un verdict
+ *  sur le dossier mais un échec de lecture, et il a son propre écran. Dérivé par Exclude
+ *  plutôt qu'énuméré : le compilateur exige alors une entrée SEVERITY pour tout nouveau
+ *  statut, ce qui a fait remonter 'blocked_correction_requested' de lui-même. */
 type BlockedStatus = Exclude<LabGuardStatus, 'loading' | 'clear' | 'unavailable'>
 
 const SEVERITY: Record<BlockedStatus, { icon: typeof AlertTriangle; color: string }> = {
   blocked_not_submitted: { icon: AlertTriangle, color: 'text-amber-500' },
   blocked_pending_review: { icon: Info, color: 'text-blue-500' },
   blocked_rejected: { icon: AlertOctagon, color: 'text-red-500' },
+  // Ambre, pas rouge : une correction demandée attend un geste de l'agence, ce n'est pas
+  // un verdict.
+  blocked_correction_requested: { icon: AlertTriangle, color: 'text-amber-500' },
 }
 
 /** État 'loading' — écran neutre, jamais le blocage ni le contenu réel (cf. en-tête du fichier).
@@ -135,23 +141,13 @@ function KycBlockedScreen({ status }: { status: BlockedStatus }) {
   const canAct = profile != null && canActOnLabGuard(profile.role)
   const { icon: Icon, color } = SEVERITY[status]
 
-  const eyebrow = status === 'blocked_not_submitted'
-    ? t('labGuard.block.notSubmitted.eyebrow')
-    : status === 'blocked_pending_review'
-      ? t('labGuard.block.pendingReview.eyebrow')
-      : t('labGuard.block.rejected.eyebrow')
-
-  const title = status === 'blocked_not_submitted'
-    ? t('labGuard.block.notSubmitted.title')
-    : status === 'blocked_pending_review'
-      ? t('labGuard.block.pendingReview.title')
-      : t('labGuard.block.rejected.title')
-
+  // Table de segments i18n plutôt que chaînes de ternaires : voir LAB_GUARD_LABEL_KEY.
+  const ns = LAB_GUARD_LABEL_KEY[status]
+  const eyebrow = t(`labGuard.block.${ns}.eyebrow`)
+  const title = t(`labGuard.block.${ns}.title`)
   const body = status === 'blocked_not_submitted'
     ? t(canAct ? 'labGuard.block.notSubmitted.bodyAdmin' : 'labGuard.block.notSubmitted.bodyOther')
-    : status === 'blocked_pending_review'
-      ? t('labGuard.block.pendingReview.body')
-      : t('labGuard.block.rejected.body')
+    : t(`labGuard.block.${ns}.body`)
 
   return (
     // min-h-full, pas min-h-screen : voir le commentaire equivalent sur LoadingScreen
@@ -163,7 +159,7 @@ function KycBlockedScreen({ status }: { status: BlockedStatus }) {
         <h1 className="mt-2 text-lg font-semibold text-theme-primary">{title}</h1>
         <p className="mt-3 text-sm text-theme-secondary leading-relaxed">{body}</p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          {status === 'blocked_not_submitted' && canAct && (
+          {(status === 'blocked_not_submitted' || status === 'blocked_correction_requested') && canAct && (
             <button
               type="button"
               onClick={() => navigate(IDENTITY_GATE_ROUTE)}
