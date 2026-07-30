@@ -250,17 +250,28 @@ serve(async (req) => {
       unavailable: 0,
       pending_manual_review: 0,
     }
-    // Le tally couvre les DEUX portees : c'est lui qui decide de la severite du journal, et
-    // un `unavailable` de personne (screening injoignable) merite le meme `warn` qu'un
-    // `unavailable` d'agence -- dans les deux cas un veto restera absent.
+    // DEUX tallys, un par PORTEE, et jamais un seul (correctif : les fondre changeait le
+    // SENS de `results`, qui accompagne `checks_written` -- lui-meme d'agence -- depuis
+    // l'etape 4 ; un appelant lisant `results.unavailable` se serait retrouve avec un
+    // compte de deux tables melangees, sans moyen de savoir laquelle). La severite du
+    // journal, elle, regarde bien les deux : un screening injoignable merite le meme
+    // `warn` qu'un registre injoignable, dans les deux cas un veto restera absent.
     for (const outcome of outcomes) tally[outcome.result] += 1
-    for (const outcome of personOutcomes) tally[outcome.result] += 1
+
+    const personTally: Record<KybCheckResult, number> = {
+      match: 0,
+      partial: 0,
+      mismatch: 0,
+      unavailable: 0,
+      pending_manual_review: 0,
+    }
+    for (const outcome of personOutcomes) personTally[outcome.result] += 1
 
     const { error: runErr } = await supabase.rpc('record_agency_verification_run', {
       p_agency_id: agencyId,
       p_checks: outcomes,
       p_person_checks: personOutcomes,
-      p_severity: tally.unavailable > 0 || personReadError ? 'warn' : 'info',
+      p_severity: tally.unavailable > 0 || personTally.unavailable > 0 || personReadError ? 'warn' : 'info',
       // sources_skipped TOUJOURS present, tableau vide compris : « rien n'a ete ecarte »
       // et « la question ne s'est pas posee » doivent se lire pareil dans la trace, sans
       // qu'un relecteur ait a deviner ce qu'un champ absent signifie. Meme raison pour
@@ -271,6 +282,7 @@ serve(async (req) => {
         sources_skipped: skipped,
         person_read_error: personReadError,
         results: tally,
+        person_results: personTally,
       },
     })
     if (runErr) throw runErr
@@ -281,6 +293,7 @@ serve(async (req) => {
       checks_written: outcomes.length,
       person_checks_written: personOutcomes.length,
       results: tally,
+      person_results: personTally,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown_error'
