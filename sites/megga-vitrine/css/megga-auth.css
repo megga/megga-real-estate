@@ -66,14 +66,20 @@
   border-radius: 100%;
   background: transparent;
   color: var(--neutral-colors--700);
-  font-family: inherit;
-  font-size: 22px;
-  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: color 0.2s, border-color 0.2s;
+}
+
+/* La croix est un SVG, plus le caractère « × ».
+   Centrer un glyphe ne centre que sa BOÎTE : l'encre du signe multiplication
+   se pose sur l'axe mathématique de la police, au-dessus du milieu de la ligne,
+   d'où une croix visiblement décalée dans un bouton rond. Deux traits
+   symétriques dans un viewBox carré n'ont pas ce biais. */
+.megga-modal__close svg {
+  display: block;
 }
 
 .megga-modal__close:hover {
