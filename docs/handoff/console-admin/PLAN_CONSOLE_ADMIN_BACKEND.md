@@ -70,7 +70,7 @@
 | 11 | Live : pagination serveur 14/page + Realtime INSERT + fallback polling 30 s | §5.2 §10.9 | M | 6 |
 | 12 | Monitoring lecture : `cron_runs` (heartbeats), `integration_health` (cron 5 min), `deployments` (webhook CI signé), incidents dérivés + corrélation déploiement | §5.8 | M | 5 |
 | 13 | `v_kyc_funnel_30d` — agrégat seul, zéro nom (revue de code : aucune colonne nominative) | §5.5 | S | 5 |
-| 14 | Sécurité lecture : `v_security_journal`, recherche normalisée, routine repliée | §5.9 | S | 2 |
+| 14 ✅ | **FAIT** — migration livrée le 31.07, **tests écrits le 01.08** (`admin-security-read.spec.ts`). Éprouvés : la fenêtre **Europe/Zurich** (Zurich n'est jamais à UTC+0, l'écart existe donc en toute saison), la neutralisation des **jokers** `%`/`_` (un `%` tapé ne doit pas se comporter comme « tout »), la recherche **unaccent**, la partition routine / non-routine, l'arbitrage « compteurs sur la liste principale » (chaque puce non nulle DOIT ouvrir une liste non vide), les **paires ordonnées** de metadata (WITH ORDINALITY) et le NULL sur tableau vide (`[]` est truthy en JS), l'ordre total `ts desc, seq desc`. Au passage : `admin_security_window` et `admin_security_entity` étaient exécutables par **anon** faute de REVOKE — le balayage de gardes ne les voit pas, il ne filtre que les SECURITY DEFINER. | §5.9 | S | 2 |
 | 14b | **Revue KYB en lecture** : brancher `get_admin_agency_review_queue` + `get_admin_agency_review_detail` (RPC existantes) sur la surface actée P5 | §5.13 | M | P5, G0 |
 | 15 | Brancher les 10 écrans sur les vues (retrait de `admin-data.jsx`) + **seed staging synthétique versionné** (14 agences / 56 comptes / 2 échelles Diffusion) | §10.8 | M | 9-14 |
 

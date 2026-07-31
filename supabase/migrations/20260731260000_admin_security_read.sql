@@ -54,6 +54,13 @@ comment on function public.admin_security_window(text) is
   'un now() en borne haute exclurait une ligne écrite pendant la requête. Rend NULL sur une '
   'valeur inconnue — l''appelant lève, plutôt qu''un repli silencieux sur toute la table.';
 
+-- Sans garde ne veut pas dire ouverte à tous. Une fonction créée sans rien révoquer est
+-- exécutable par PUBLIC, donc par `anon` — et le balayage de gardes ne la verrait pas : il
+-- ne filtre que les SECURITY DEFINER. Celle-ci ne divulgue rien (elle ne lit aucune table),
+-- mais laisser une entrée publique par inadvertance est le patron du footgun du dépôt.
+revoke all on function public.admin_security_window(text) from public, anon;
+grant execute on function public.admin_security_window(text) to authenticated, service_role;
+
 -- ── 2. Composition de l'entité ───────────────────────────────────────────────────────
 
 drop function if exists public.admin_security_entity(text, text, text);
@@ -92,6 +99,9 @@ comment on function public.admin_security_entity(text, text, text) is
   'passer STABLE, sous peine de rejouer le mensonge de volatilité de public.slugify(). '
   'La chaîne CHERCHÉE et la chaîne AFFICHÉE doivent rester la même : ne pas dupliquer '
   'cette composition dans les appelants.';
+
+revoke all on function public.admin_security_entity(text, text, text) from public, anon;
+grant execute on function public.admin_security_entity(text, text, text) to authenticated, service_role;
 
 -- ── 3. Le journal (liste principale) ─────────────────────────────────────────────────
 

@@ -39,7 +39,7 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
 
 **Lot 1 — 9 étapes sur 11.** 5 ✅ socle §4.2 · 6 ⚠️ partielle · 7 ✅ Stripe · 8 ✅ activation ·
 **9 ✅ vues** · **10 ✅ `admin_overview`** · 11 ✅ Live · 12 ✅ crons · 13 ✅ tunnel KYC ·
-14 ✅ Sécurité (migration livrée, **tests non écrits**). Reste **15** (branchement + seed).
+**14 ✅ Sécurité (tests écrits)**. Reste **15** (branchement + seed).
 
 **L'étape 9 a surtout consisté à NE PAS créer.** §4.3 énumère douze vues ; six seulement
 manquaient. `v_admin_kpis` n'a pas été créée — `get_admin_dashboard_stats()` rend déjà, en
@@ -180,20 +180,14 @@ cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/audit-backend-admin-
 git fetch origin && git rebase origin/main   # main a bougé (PR vitrine de Thomas/Antoine)
 ```
 
-Prochaine action, au choix — les deux sont indépendantes :
+Prochaine action : **étape 15** — brancher les dix écrans sur les vues (retrait de
+`admin-data.jsx`) + **seed staging synthétique versionné** (14 agences / 56 comptes). C'est
+elle qui ferme le Lot 1 et ouvre le gate **G1**. C'est aussi elle qui apporte la base de
+recette (100 agences / 1 M d'événements) sans laquelle le critère **p95 < 300 ms** de
+l'étape 9 n'est toujours pas mesuré.
 
-- **Étape 15** (branchement des écrans sur les vues + seed staging versionné). C'est elle
-  qui ferme le Lot 1 et ouvre le gate **G1**. C'est aussi elle qui apporte la base de
-  recette (100 agences / 1 M d'événements) sans laquelle le critère **p95 < 300 ms** de
-  l'étape 9 n'est toujours pas mesuré.
-- **Tests de l'étape 14** (écran Sécurité) : la migration `260000` est livrée depuis le
-  31.07, ses tests n'ont jamais été écrits. Ne dépendent de rien. Les fonctions à éprouver :
-  `admin_security_window` (fenêtre Europe/Zurich, deux heures d'écart avec un
-  `date_trunc` UTC en été), `admin_security_entity`, `get_admin_security_journal`
-  (neutralisation des jokers `%`/`_`, recherche unaccent, ordre total `ts desc, seq desc`),
-  `get_admin_security_routine`, `get_admin_security_counters` (l'arbitrage « compteurs sur
-  la liste principale »). Le seed passe par `admin_log_write`, dont la garde admet
-  `session_user in ('postgres','supabase_admin')` — contrairement aux fonctions de lecture.
+⚠ C'est la seule étape du Lot 1 dont le plan AUTORISE un diff des `admin-*.jsx` (§5 du
+plan : exceptions 4, 15, 31). Toutes les autres exigent un diff vide.
 
 ⚠ **Neuvième piège, mesuré à l'étape 9** : une RPC dont le nom ne commence ni par `admin_`
 ni par `get_admin` sort du balayage de gardes par son seul nom. `agency_mrr` — nommée ainsi
