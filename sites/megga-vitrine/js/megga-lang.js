@@ -10,18 +10,17 @@
  * mieux à un site statique — un dossier par langue, aucune règle de serveur à
  * écrire, et un `hreflang` évident le jour où les pages traduites existent.
  *
- * ⚠ ÉTAT AU 31 JUIL. 2026 : FR et DE existent ; EN et IT sont listés mais
- * inertes (`disponible: false`) — servir un lien vers une page absente vaudrait
- * moins que l'annoncer. Le jour où `/en/` est peuplé, passer son drapeau à
- * `true` suffit. ⚠ Le palier 1 ne traduit PAS le blog ni les pages légales :
- * les liens vers ces pages restent en français, c'est voulu.
+ * ÉTAT AU 31 JUIL. 2026 : les quatre langues existent. `disponible: false`
+ * reste le moyen de retirer une langue de l'offre sans toucher au reste.
+ * ⚠ Le palier 1 ne traduit PAS le blog ni les pages légales : les liens vers
+ * ces pages restent en français depuis toutes les langues, c'est voulu.
  */
 (function () {
   var LANGUES = [
     { code: 'fr', nom: 'Français', disponible: true },
     { code: 'de', nom: 'Deutsch', disponible: true },
     { code: 'en', nom: 'English', disponible: true },
-    { code: 'it', nom: 'Italiano', disponible: false },
+    { code: 'it', nom: 'Italiano', disponible: true },
   ];
 
   // Même clé que le CRM (`src/i18n/index.ts`). ⚠ localStorage est cloisonné par
