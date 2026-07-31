@@ -2455,6 +2455,24 @@ export type Database = {
           },
         ]
       }
+      legal_document_versions: {
+        Row: {
+          consent_type: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          consent_type: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          consent_type?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       legal_forms: {
         Row: {
           category: string
@@ -6440,6 +6458,13 @@ export type Database = {
         }[]
       }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
+      pending_consents: {
+        Args: never
+        Returns: {
+          consent_type: string
+          version: string
+        }[]
+      }
       pg_database_size_mb: { Args: never; Returns: number }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -6547,7 +6572,7 @@ export type Database = {
         Returns: undefined
       }
       record_consent: {
-        Args: { p_type: string; p_version: string }
+        Args: { p_type: string; p_version?: string }
         Returns: undefined
       }
       reschedule_visit_by_token: {

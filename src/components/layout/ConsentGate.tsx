@@ -1,166 +1,240 @@
-// Gate de consentement nLPD — monté par ProtectedRoute autour du contenu
-// protégé. Si l'utilisateur n'a pas accepté les versions COURANTES des CGU +
-// politique de confidentialité (src/lib/consents.ts), une modal bloquante
-// s'affiche à la session ; l'acceptation écrit la preuve immuable via la RPC
-// record_consent (migration 20260705170000). Couvre le stock d'utilisateurs
-// existants comme les nouveaux, sans toucher au flux de signup.
-//
-// Fail-open assumé : si la lecture échoue (bypass dev, réseau), on ne bloque
-// pas l'app — la preuve manquante sera redemandée à la prochaine session.
+/**
+ * Écran de consentement nLPD — monté par ProtectedRoute autour du contenu
+ * protégé. Quand un document attend une acceptation, il REMPLACE ce contenu au
+ * lieu de se poser dessus : c'était une modale lâchée par-dessus le wizard
+ * d'identité à moitié visible, ce qui se lisait comme une interruption plutôt
+ * que comme une étape.
+ *
+ * Il ne se déclenche plus au premier passage du cas courant : la case cochée
+ * sur megga.ch/signup est désormais enregistrée à la création du compte
+ * (trigger `handle_new_user`, migration 20260731140000). Restent deux cas, tous
+ * deux légitimes :
+ *   * inscription par Google/Microsoft — le parcours quitte megga.ch avant que
+ *     le compte existe et `signInWithOAuth` ne transporte pas de métadonnées,
+ *     la preuve ne peut donc pas être écrite à la création ;
+ *   * bump de version d'un document sur un compte existant.
+ *
+ * Ce qui manque est calculé EN BASE (`pending_consents()`), versions comprises :
+ * le bundle n'en tient plus la liste. L'acceptation écrit la preuve immuable
+ * via `record_consent`.
+ *
+ * Fail-open assumé : si la lecture échoue (bypass dev, réseau), on ne bloque
+ * pas l'app — la preuve manquante sera redemandée à la prochaine session.
+ */
 
 import { useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ShieldCheck, ExternalLink } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { CURRENT_CONSENT_VERSIONS, LEGAL_URLS, type RequiredConsentType } from '@/lib/consents'
+import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { LEGAL_URLS, type RequiredConsentType } from '@/lib/consents'
 
-const REQUIRED: RequiredConsentType[] = ['terms', 'privacy']
+interface PendingConsent {
+  consent_type: RequiredConsentType
+  version: string
+}
 
 // Dev/CI auth bypass (cf. useAuth.tsx) : la session est mockée, il n'y a pas
-// de vraie identité GoTrue. La lecture user_consents part alors en anon et
-// réussit à vide → `missing` non vide → la modale bloque *toutes* les pages
-// (E2E fonctionnels + baselines visuelles). Le fail-open documenté en tête de
-// fichier ne se déclenche pas car la lecture ne *échoue* pas, elle renvoie [].
-// On saute donc explicitement la gate sous bypass — inerte en prod
-// (import.meta.env.DEV=false, et useAuth throw si bypass sous PROD).
+// de vraie identité GoTrue. La lecture part alors en anon et réussit à vide →
+// l'écran bloquerait *toutes* les pages (E2E fonctionnels + baselines
+// visuelles). Le fail-open documenté en tête de fichier ne se déclenche pas car
+// la lecture n'*échoue* pas, elle renvoie []. On saute donc explicitement la
+// gate sous bypass — inerte en prod (import.meta.env.DEV=false, et useAuth
+// throw si bypass sous PROD).
 const DEV_BYPASS_AUTH =
   import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
+
+/**
+ * Thème lu sur le document, pas par `useTheme()` : le ThemeProvider vit dans
+ * AgentSugarLayout, donc DANS le contenu que cet écran remplace — le hook
+ * lèverait. `data-theme` est posé par le script d'amorçage d'index.html, avant
+ * même React ; sans attribut, on suit la préférence système comme lui.
+ */
+function isDarkTheme(): boolean {
+  if (typeof document === 'undefined') return false
+  const attr = document.documentElement.getAttribute('data-theme')
+  if (attr === 'dark') return true
+  if (attr === 'light') return false
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+}
 
 export default function ConsentGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation('common')
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
-  const [checked, setChecked] = useState<Record<RequiredConsentType, boolean>>({
-    terms: false,
-    privacy: false,
-  })
+  const dark = isDarkTheme()
+  const darkTone = useDarkTone()
+  const theme = sugarThemeTokens(dark, darkTone)
+  const sp = useMemo(() => crmSugarPalette(theme, dark, darkTone), [theme, dark, darkTone])
+
+  const [checked, setChecked] = useState<Record<string, boolean>>({})
   const [marketing, setMarketing] = useState(false)
 
-  const { data: rows, isSuccess } = useQuery({
-    queryKey: ['user-consents', user?.id],
+  const { data: pending, isSuccess } = useQuery({
+    queryKey: ['pending-consents', user?.id],
     enabled: !!user?.id && !DEV_BYPASS_AUTH,
     staleTime: 24 * 60 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_consents')
-        .select('consent_type, version')
+      const { data, error } = await supabase.rpc('pending_consents')
       if (error) throw error
-      return data
+      return (data ?? []) as PendingConsent[]
     },
   })
 
-  const missing = useMemo(() => {
-    if (!isSuccess || !rows) return []
-    return REQUIRED.filter(
-      (type) => !rows.some((r) => r.consent_type === type && r.version === CURRENT_CONSENT_VERSIONS[type]),
-    )
-  }, [isSuccess, rows])
-
   const accept = useMutation({
     mutationFn: async () => {
-      for (const type of missing) {
+      for (const row of pending ?? []) {
         const { error } = await supabase.rpc('record_consent', {
-          p_type: type,
-          p_version: CURRENT_CONSENT_VERSIONS[type],
+          p_type: row.consent_type,
+          p_version: row.version,
         })
         if (error) throw error
       }
       if (marketing) {
-        // Optionnel — même version que les CGU courantes.
-        const { error } = await supabase.rpc('record_consent', {
-          p_type: 'marketing',
-          p_version: CURRENT_CONSENT_VERSIONS.terms,
-        })
+        // Opt-in sans document propre : `p_version` omis, le serveur l'aligne
+        // sur la version courante des CGU (migration 20260731140000).
+        const { error } = await supabase.rpc('record_consent', { p_type: 'marketing' })
         if (error) throw error
       }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['user-consents', user?.id] })
+      void queryClient.invalidateQueries({ queryKey: ['pending-consents', user?.id] })
     },
   })
 
-  const allChecked = missing.every((type) => checked[type])
-  const showModal = !DEV_BYPASS_AUTH && !!user && isSuccess && missing.length > 0
+  const showGate = !DEV_BYPASS_AUTH && !!user && isSuccess && (pending?.length ?? 0) > 0
+  if (!showGate) return <>{children}</>
+
+  const rows = pending ?? []
+  const allChecked = rows.every((row) => checked[row.consent_type])
+  const canSubmit = allChecked && !accept.isPending
 
   return (
-    <>
-      {children}
-      {showModal &&
-        createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4">
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="consent-gate-title"
-              className="w-full max-w-lg rounded-xl border border-theme-border bg-theme-card p-6"
+    <main
+      style={{
+        minHeight: '100vh',
+        background: sp.pageBg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+      }}
+    >
+      <section
+        aria-labelledby="consent-gate-title"
+        style={{
+          width: '100%',
+          maxWidth: 460,
+          background: sp.cardBg,
+          border: `1px solid ${sp.cardBorder}`,
+          borderRadius: 24,
+          padding: '32px 28px',
+          boxShadow: sp.shadow,
+          textAlign: 'center',
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            background: sp.accent,
+            color: sp.accentInk,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <ShieldCheck size={22} strokeWidth={2} />
+        </div>
+
+        <h1
+          id="consent-gate-title"
+          style={{ margin: '16px 0 0', fontSize: 22, fontWeight: 600, letterSpacing: -0.4, color: sp.ink }}
+        >
+          {t('consentGate.title')}
+        </h1>
+        <p style={{ margin: '8px 0 0', fontSize: 14.5, lineHeight: 1.5, color: sp.sub }}>
+          {t('consentGate.subtitle')}
+        </p>
+
+        {/* Les cases s'alignent à gauche : un libellé cochable centré se lit mal
+            et laisse la case flotter loin de son texte. */}
+        <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' }}>
+          {rows.map((row) => (
+            <label
+              key={row.consent_type}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 13.5, lineHeight: 1.5, color: sp.ink, cursor: 'pointer' }}
             >
-              <div className="flex items-center gap-3">
-                <ShieldCheck className="h-5 w-5 text-accent" aria-hidden />
-                <h1 id="consent-gate-title" className="text-lg font-semibold text-theme-primary">
-                  {t('consentGate.title')}
-                </h1>
-              </div>
-              <p className="mt-2 text-sm text-theme-secondary">{t('consentGate.subtitle')}</p>
+              <input
+                type="checkbox"
+                checked={!!checked[row.consent_type]}
+                onChange={(e) => setChecked((prev) => ({ ...prev, [row.consent_type]: e.target.checked }))}
+                style={{ marginTop: 2, width: 18, height: 18, flexShrink: 0, accentColor: sp.accent, cursor: 'pointer' }}
+              />
+              <span>
+                {t(`consentGate.${row.consent_type}Label`)}{' '}
+                <a
+                  href={LEGAL_URLS[row.consent_type]}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: sp.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}
+                >
+                  {t(`consentGate.${row.consent_type}Link`)}
+                  <ExternalLink size={12} style={{ display: 'inline', marginLeft: 4, verticalAlign: -1 }} aria-hidden />
+                </a>{' '}
+                <span style={{ color: sp.soft }}>
+                  ({t('consentGate.version')} {row.version})
+                </span>
+              </span>
+            </label>
+          ))}
 
-              <div className="mt-5 space-y-3">
-                {missing.map((type) => (
-                  <label key={type} className="flex items-start gap-3 text-sm text-theme-primary">
-                    <input
-                      type="checkbox"
-                      checked={checked[type]}
-                      onChange={(e) => setChecked((prev) => ({ ...prev, [type]: e.target.checked }))}
-                      className="mt-0.5 h-4 w-4 accent-current"
-                    />
-                    <span>
-                      {t(`consentGate.${type}Label`)}{' '}
-                      <a
-                        href={LEGAL_URLS[type]}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-theme-secondary underline underline-offset-2 hover:text-theme-primary"
-                      >
-                        {t(`consentGate.${type}Link`)}
-                        <ExternalLink className="h-3 w-3" aria-hidden />
-                      </a>{' '}
-                      <span className="text-theme-muted">
-                        ({t('consentGate.version')} {CURRENT_CONSENT_VERSIONS[type]})
-                      </span>
-                    </span>
-                  </label>
-                ))}
-                <label className="flex items-start gap-3 text-sm text-theme-secondary">
-                  <input
-                    type="checkbox"
-                    checked={marketing}
-                    onChange={(e) => setMarketing(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 accent-current"
-                  />
-                  <span>{t('consentGate.marketingLabel')}</span>
-                </label>
-              </div>
+          <label
+            style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 13.5, lineHeight: 1.5, color: sp.sub, cursor: 'pointer' }}
+          >
+            <input
+              type="checkbox"
+              checked={marketing}
+              onChange={(e) => setMarketing(e.target.checked)}
+              style={{ marginTop: 2, width: 18, height: 18, flexShrink: 0, accentColor: sp.accent, cursor: 'pointer' }}
+            />
+            <span>{t('consentGate.marketingLabel')}</span>
+          </label>
+        </div>
 
-              {accept.isError && (
-                <p className="mt-3 text-sm text-red-500" role="alert">
-                  {t('consentGate.error')}
-                </p>
-              )}
-
-              <button
-                type="button"
-                disabled={!allChecked || accept.isPending}
-                onClick={() => accept.mutate()}
-                className="mt-5 w-full rounded-lg border border-theme-border px-4 py-2 text-sm font-medium text-theme-secondary hover:bg-theme-hover disabled:opacity-50"
-              >
-                {accept.isPending ? t('consentGate.saving') : t('consentGate.accept')}
-              </button>
-            </div>
-          </div>,
-          document.body,
+        {accept.isError && (
+          <p role="alert" style={{ margin: '16px 0 0', fontSize: 13, color: '#EF4444' }}>
+            {t('consentGate.error')}
+          </p>
         )}
-    </>
+
+        <button
+          type="button"
+          disabled={!canSubmit}
+          onClick={() => accept.mutate()}
+          style={{
+            marginTop: 26,
+            width: '100%',
+            height: 44,
+            borderRadius: 999,
+            border: 'none',
+            background: sp.accent,
+            color: sp.accentInk,
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: canSubmit ? 'pointer' : 'not-allowed',
+            opacity: canSubmit ? 1 : 0.45,
+          }}
+        >
+          {accept.isPending ? t('consentGate.saving') : t('consentGate.accept')}
+        </button>
+      </section>
+    </main>
   )
 }

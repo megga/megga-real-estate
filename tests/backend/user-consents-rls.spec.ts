@@ -11,6 +11,7 @@
 //    (0 ligne affectée — pas de policy).
 //  Test 5 — insert direct refusé (pas de policy INSERT) ; type invalide refusé.
 //  Test 6 — super_admin (domaine de test CI) lit tout.
+//  Test 7 — version inconnue refusée (migration 20260731140000).
 //
 // Runs live in CI (SUPABASE_TEST_* keys present). Skips locally without keys.
 
@@ -19,12 +20,27 @@ import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
 import { serviceRoleClient } from './helpers/supabase'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
-const VERSION = 'test-2026-07'
+
+// Depuis 20260731140000, record_consent refuse une version absente de
+// legal_document_versions : un littéral de test (« test-2026-07 ») serait
+// désormais rejeté, et le test aurait mesuré ce refus au lieu de l'insertion.
+// On lit donc la version courante en base — ce qui vaut aussi contrôle : si la
+// table n'est pas semée, tout le fichier échoue au lieu de passer à vide.
+let VERSION = ''
 
 describe.skipIf(!HAS_KEYS)('user_consents — RLS + record_consent (preuve immuable)', () => {
   let setup: TwoAgenciesSetup
 
   beforeAll(async () => {
+    const { data, error } = await serviceRoleClient()
+      .from('legal_document_versions')
+      .select('version')
+      .eq('consent_type', 'terms')
+      .maybeSingle()
+    if (error) throw new Error(`legal_document_versions: ${error.message}`)
+    if (!data?.version) throw new Error('legal_document_versions vide — migration 20260731140000 non appliquée ?')
+    VERSION = data.version
+
     setup = await setupTwoAgencies()
   })
 
@@ -114,6 +130,24 @@ describe.skipIf(!HAS_KEYS)('user_consents — RLS + record_consent (preuve immua
       p_version: VERSION,
     })
     expect(typeErr, 'type de consentement invalide doit échouer').not.toBeNull()
+  })
+
+  // La preuve porte sur une version PUBLIÉE. Sans ce garde-fou, un client
+  // pouvait se déclarer à jour d'un document qui n'a jamais existé — et
+  // ConsentGate, qui compare à la version courante, l'aurait laissé passer si
+  // la valeur inventée tombait juste.
+  it('une version absente de legal_document_versions est refusée', async () => {
+    const { error } = await setup.clientA.rpc('record_consent', {
+      p_type: 'terms',
+      p_version: '1999-01',
+    })
+    expect(error, 'version inconnue doit échouer').not.toBeNull()
+
+    const { data } = await setup.clientA
+      .from('user_consents')
+      .select('id')
+      .eq('version', '1999-01')
+    expect(data?.length ?? 0).toBe(0)
   })
 
   it('un super_admin (domaine de test) lit les consentements de tous', async () => {

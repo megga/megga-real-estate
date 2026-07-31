@@ -512,7 +512,19 @@
               // role:'agent' — cohérence avec le signup interne de l'app
               // (AuthBentoApp). Sans ça, le trigger handle_new_user retombe sur
               // 'buyer' et l'inscrit vitrine part dans le mauvais parcours.
-              data: { full_name: name, agency_name: agency, role: 'agent' },
+              //
+              // legal_consent : la case obligatoire ci-dessus, vérifiée juste
+              // avant. Le trigger en fait une preuve datée dans user_consents
+              // (migration 20260731140000) avec LA VERSION QU'IL CONNAÎT — sans
+              // elle, le CRM redemandait la même acceptation à la première
+              // session, trente secondes plus tard. On déclare que l'agent a
+              // accepté, jamais ce qu'il aurait accepté.
+              data: {
+                full_name: name,
+                agency_name: agency,
+                role: 'agent',
+                legal_consent: true,
+              },
             },
           });
         }).then(function (res) {

@@ -49,18 +49,17 @@ import { serviceRoleClient } from '../backend/helpers/supabase'
 
 const PW = 'Test-Password-123!'
 
-// Versions COURANTES des CGU/confidentialité (src/lib/consents.ts,
-// CURRENT_CONSENT_VERSIONS) — à garder synchronisées avec ce fichier, pas
-// d'import direct depuis ici (module app, résolu par Vite, pas par le
-// bundler de tests Playwright). Sans consentement déjà enregistré aux
-// versions courantes, ConsentGate (monté par ProtectedRoute, migration
-// 20260705170000) affiche une modale bloquante à la toute première session
-// d'un utilisateur neuf — hors sujet de ce test (gate IDENTITÉ, pas
-// consentement) : createFounder() enregistre le consentement à l'avance,
-// en écriture directe (service_role, qui contourne RLS comme le reste de
-// l'arrangement de ce test — record_consent() exige auth.uid(), donc un
-// appelant authentifié, pas service_role), pour ne jamais avoir à composer
-// avec cette modale ici.
+// Version COURANTE des CGU/confidentialité — celle de la table
+// `legal_document_versions` (migration 20260731140000), à garder synchronisée
+// avec ce fichier : pas d'import possible depuis ici, et une lecture en base
+// alourdirait un helper qui tourne pour chaque fondateur. Sans consentement
+// déjà enregistré à cette version, ConsentGate (monté par ProtectedRoute)
+// prend tout l'écran à la toute première session d'un utilisateur neuf — hors
+// sujet de ce test (gate IDENTITÉ, pas consentement) : createFounder()
+// enregistre le consentement à l'avance, en écriture directe (service_role,
+// qui contourne RLS comme le reste de l'arrangement de ce test —
+// record_consent() exige auth.uid(), donc un appelant authentifié, pas
+// service_role), pour ne jamais avoir à composer avec cet écran ici.
 const CURRENT_CONSENT_VERSION = '2026-07'
 
 // Page interne SANS authentification (cf. "Dev showcase routes (no auth)" dans
