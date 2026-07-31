@@ -109,5 +109,63 @@ git fetch origin && git rebase origin/main   # main a bougé (PR vitrine de Thom
 ```
 
 Prochaine action au choix : **tests de l'étape 14** (ne dépendent de rien), ou **étape 9**
-une fois les décisions 1 et 2 prises. Et si le gate G0 glisse au-delà du 31.07 UTC,
-**re-dater les six migrations** avant de merger.
+une fois les décisions 1 et 2 prises.
+
+## 8. Re-dater les migrations le jour du merge — procédure
+
+**Pourquoi.** `deploy.yml` (lignes 108-160) n'applique que les migrations dont l'horodatage
+est `>= TODAY` en **UTC**, et ne signale un saut que par un `::warning::`, jamais par un
+échec. Une migration datée du 31.07 mergée le 01.08 est donc **sautée définitivement** :
+aucun déploiement ultérieur ne la rattrape, le dépôt et la CI restent verts, et le schéma
+n'existe pas en production. C'est l'invariant 16 du relais KYB, et le dépôt s'est déjà fait
+avoir sur 19 migrations en juillet.
+
+Ce n'est **pas une échéance sur le travail** : la CI valide chaque push indépendamment de
+la date. C'est une corvée au moment du merge.
+
+**Quand.** Dès que le jour UTC du merge diffère du jour d'écriture. Vérifier :
+`date -u +%Y-%m-%d`.
+
+```bash
+cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/audit-backend-admin-a43be4
+git fetch origin && git rebase origin/main
+
+# Re-date au jour courant en conservant l'ORDRE relatif (les 6 chiffres d'heure ne bougent pas).
+# Le test d'égalité n'est pas décoratif : lancée le jour même, la boucle produirait un nom
+# identique et `git mv` échouerait, ce qui ferait croire à un problème alors qu'il n'y a
+# simplement rien à re-dater.
+for f in supabase/migrations/20260731{21,22,23,24,25,26}0000_*.sql; do
+  [ -e "$f" ] || continue
+  dst="supabase/migrations/$(date -u +%Y%m%d)$(basename "$f" | cut -c9-)"
+  [ "$f" = "$dst" ] && { echo "déjà à la bonne date : $(basename "$f")"; continue; }
+  git mv "$f" "$dst"
+done
+
+node scripts/check-migration-idempotence.mjs   # doit rester vert
+git commit -m "chore(admin): re-date les migrations du Lot 0/1 au jour du merge"
+git push
+```
+
+**Trois précautions, par ordre d'importance :**
+
+1. **Jamais de date future.** On date au jour du merge, pas en anticipation : une migration
+   datée de demain serait sautée aujourd'hui, et personne ne la rattraperait.
+2. **Le renommage n'est permis que parce qu'aucune de ces six migrations n'est mergée.** La
+   règle du dépôt interdit la reprise sur place d'une migration **déjà en production** — une
+   correction se fait alors par un NOUVEAU fichier.
+3. **Laisser la CI rejouer avant de merger.** Elle applique toutes les migrations sur une
+   base fraîche à chaque push : c'est elle qui prouve que le rejeu tient contre l'état
+   **final** de la journée, y compris si Thomas ou Antoine ont mergé des migrations entre-temps.
+
+**Après le merge**, vérifier les OBJETS en base, pas le statut du workflow — c'est la
+discipline du dépôt, et c'est ainsi que #1044 a été confirmée :
+
+```sql
+select to_regclass('public.admin_log') is not null                  as admin_log,
+       to_regclass('public.agency_activation') is not null          as activation,
+       (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public'
+           and p.proname in ('admin_log_write','admin_log_verify_chain',
+                             'get_admin_live_feed','get_admin_security_journal',
+                             'get_admin_cron_runs','recompute_agency_activation')) as fonctions;
+```
