@@ -60,7 +60,10 @@ Livrées : `agency_mrr` (+ sa règle pure `agency_mrr_rule`), `get_admin_agencie
 `260000_admin_security_read` · `270000_admin_agency_note_and_invitations` ·
 `280000_admin_console_read_views`.
 
-**Tests** : 46 specs dédiées à la console.
+**Tests** : 46 specs dédiées à la console. CI complète verte sur `4d8fe0ab` — **132 fichiers,
+1 172 tests passés, 1 ignoré** (celui-là est hérité : `whatsapp-comprehension-golden`).
+`admin-console-read-views.spec.ts` y a bien exécuté ses **19 tests** : c'est le compte qui le
+prouve, pas le statut vert.
 
 ## 4. Décisions PO qui bloquent la suite
 
