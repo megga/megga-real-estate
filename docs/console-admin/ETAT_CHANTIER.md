@@ -139,15 +139,30 @@ cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/audit-backend-admin-
 git fetch origin && git rebase origin/main
 
 # Re-date au jour courant en conservant l'ORDRE relatif (les 6 chiffres d'heure ne bougent pas).
-# Le test d'égalité n'est pas décoratif : lancée le jour même, la boucle produirait un nom
-# identique et `git mv` échouerait, ce qui ferait croire à un problème alors qu'il n'y a
-# simplement rien à re-dater.
-for f in supabase/migrations/20260731{21,22,23,24,25,26,27}0000_*.sql; do
-  [ -e "$f" ] || continue
-  dst="supabase/migrations/$(date -u +%Y%m%d)$(basename "$f" | cut -c9-)"
-  [ "$f" = "$dst" ] && { echo "déjà à la bonne date : $(basename "$f")"; continue; }
+# Liste EXPLICITE, jamais un glob sur la date : d'autres personnes déposent des migrations le
+# même jour — main en portait déjà une à 20260731210000, ce qui a forcé le décalage d'admin_log
+# à 210500. Un glob emporterait leurs fichiers.
+NOTRES="
+  20260731210500_admin_log.sql
+  20260731220000_admin_console_session.sql
+  20260731230000_admin_console_lot1_socle.sql
+  20260731240000_admin_live_and_kyc_funnel.sql
+  20260731250000_activation_and_cron_runs.sql
+  20260731260000_admin_security_read.sql
+  20260731270000_admin_agency_note_and_invitations.sql
+"
+for n in $NOTRES; do
+  f="supabase/migrations/$n"
+  [ -e "$f" ] || { echo "absent (déjà re-daté ?) : $n"; continue; }
+  dst="supabase/migrations/$(date -u +%Y%m%d)${n:8}"
+  [ "$f" = "$dst" ] && { echo "déjà à la bonne date : $n"; continue; }
+  # Refuser d'écraser un fichier existant : un stamp peut être pris par quelqu'un d'autre.
+  [ -e "$dst" ] && { echo "STAMP DÉJÀ PRIS, décaler d'une minute : $dst"; continue; }
   git mv "$f" "$dst"
 done
+
+# Contrôle : aucun stamp en double dans l'index.
+git ls-files supabase/migrations | xargs -n1 basename | cut -c1-14 | sort | uniq -d
 
 node scripts/check-migration-idempotence.mjs   # doit rester vert
 git commit -m "chore(admin): re-date les migrations du Lot 0/1 au jour du merge"
