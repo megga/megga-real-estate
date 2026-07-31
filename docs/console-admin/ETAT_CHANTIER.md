@@ -39,7 +39,11 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
 
 **Lot 1 — 9 étapes sur 11.** 5 ✅ socle §4.2 · 6 ⚠️ partielle · 7 ✅ Stripe · 8 ✅ activation ·
 **9 ✅ vues** · **10 ✅ `admin_overview`** · 11 ✅ Live · 12 ✅ crons · 13 ✅ tunnel KYC ·
-**14 ✅ Sécurité (tests écrits)**. Reste **15** (branchement + seed).
+**14 ✅ Sécurité (tests écrits)** · **15 ✅ branchement + seed**.
+
+**Le Lot 1 est livré côté code.** Ce qui reste avant de déclarer le gate **G1** ne dépend
+plus de moi : la base de recette pour mesurer le p95, la démo PO, et **14b** (revue KYB en
+lecture), suspendue à la dépendance **P5** — une maquette, pas du code.
 
 **L'étape 9 a surtout consisté à NE PAS créer.** §4.3 énumère douze vues ; six seulement
 manquaient. `v_admin_kpis` n'a pas été créée — `get_admin_dashboard_stats()` rend déjà, en
@@ -74,10 +78,11 @@ par ligne comme au registre.
 `260000_admin_security_read` · `270000_admin_agency_note_and_invitations` ·
 `280000_admin_console_read_views` · `290000_admin_overview`.
 
-**Tests** : 48 specs dédiées à la console. CI complète verte sur `38058ec7` — **134 fichiers,
-1 202 tests passés, 1 ignoré** (celui-là est hérité : `whatsapp-comprehension-golden`).
-Les trois specs des étapes 9, 10 et 14 y exécutent respectivement **19**, **12** et **18**
-tests : c'est le compte qui le prouve, pas le statut vert.
+**Tests** : 49 specs dédiées à la console. CI complète verte sur `0e54fcdb` — **134 fichiers,
+1 202 tests passés, 1 ignoré** en backend (celui-là est hérité :
+`whatsapp-comprehension-golden`), plus les **7 tests unitaires** du seed. Les specs des
+étapes 9, 10 et 14 exécutent respectivement **19**, **12** et **18** tests : c'est le compte
+qui le prouve, pas le statut vert.
 
 ## 4. Décisions PO qui bloquent la suite
 
