@@ -180,11 +180,25 @@ cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/audit-backend-admin-
 git fetch origin && git rebase origin/main   # main a bougé (PR vitrine de Thomas/Antoine)
 ```
 
-Prochaine action : **étape 15** — brancher les dix écrans sur les vues (retrait de
-`admin-data.jsx`) + **seed staging synthétique versionné** (14 agences / 56 comptes). C'est
-elle qui ferme le Lot 1 et ouvre le gate **G1**. C'est aussi elle qui apporte la base de
-recette (100 agences / 1 M d'événements) sans laquelle le critère **p95 < 300 ms** de
-l'étape 9 n'est toujours pas mesuré.
+**Étape 15 — premier volet livré : le seed.** `scripts/seed-admin-staging.mjs` applique un
+jeu **pur et déterministe** (`scripts/_shared/admin-staging-seed.mjs`) : 14 agences,
+56 comptes, les **trois** plans C2. Éprouvé par 7 tests unitaires, sans base.
+
+- ⚠ **Deux verrous, dont un non négociable** : la référence du projet de PRODUCTION est
+  refusée EN DUR avant toute écriture, et `--confirm` est obligatoire. Le script crée des
+  agences fictives ; en production elles apparaîtraient dans le CRM d'un client et dans le
+  MRR, et `activity_events` refuse le DELETE — il n'y aurait pas de retour en arrière
+  propre. Les trois chemins de refus sortent en `exit=1`, vérifié.
+- ⚠ **Amendement — les « 2 échelles Diffusion » de l'étape 15 ne sont pas seedées.** Elles
+  supposent `listing_signals`, qui n'existe pas : la Diffusion est du **Lot 3** (étape 24).
+  Rien à semer avant que la table existe.
+- Le jeu couvre délibérément tous les états d'écran : essai, impayé, résilié, sans
+  abonnement, agence suspendue (la règle de MRR §4.3), agence assez ancienne pour être
+  dormante, « invité jamais connecté », compte inactif au-delà de 30 jours, les 4 rôles.
+
+**Reste de l'étape 15** : brancher les écrans sur les nouvelles RPC. C'est ce volet qui
+ferme le Lot 1 et ouvre le gate **G1**. Il apportera aussi la base de recette (100 agences /
+1 M d'événements) sans laquelle le critère **p95 < 300 ms** de l'étape 9 n'est pas mesuré.
 
 ⚠ C'est la seule étape du Lot 1 dont le plan AUTORISE un diff des `admin-*.jsx` (§5 du
 plan : exceptions 4, 15, 31). Toutes les autres exigent un diff vide.
