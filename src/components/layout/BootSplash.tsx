@@ -1,7 +1,7 @@
 /**
  * Écran d'arrivée sur le CRM — habillage de la vitrine (megga.ch).
  *
- * L'agent qui revient de megga.ch/connexion traversait quatre écrans différents
+ * L'agent qui revient de megga.ch/login traversait quatre écrans différents
  * (page blanche du bundle, spinner nu, « Connexion en cours… » sur fond blanc,
  * squelette) avant de voir le CRM. Cet écran les remplace par UN seul, tenu de
  * bout en bout, dans les couleurs et la typo de la vitrine.

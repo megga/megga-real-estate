@@ -33,7 +33,7 @@ function DefaultLoader() {
 export default function SmartPageLoader() {
   const { pathname } = useLocation()
 
-  // Trajet post-connexion (retour de megga.ch/connexion) : on prolonge l'écran
+  // Trajet post-connexion (retour de megga.ch/login) : on prolonge l'écran
   // d'arrivée plutôt que d'ouvrir un spinner nu, sinon le fond blanc réapparaît
   // le temps de télécharger le chunk AuthCallbackPage. Volontairement HORS du
   // Suspense ci-dessous et non lazy : un écran d'arrivée qui attendrait son

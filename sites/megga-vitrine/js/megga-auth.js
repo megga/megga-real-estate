@@ -21,12 +21,9 @@
   // cet écran ne renvoyait de toute façon PAS vers le dashboard mais vers
   // megga.ch/login une fois le mot de passe changé — le détour par l'app ne
   // servait donc qu'à traverser un second domaine dans une autre peau.
-  // ⚠ Reste l'ancienne URL ANGLAISE alors que la page s'appelle désormais
-  // nouveau-mot-de-passe.html : cette valeur doit figurer telle quelle dans
-  // l'allowlist Supabase (Auth → URL Configuration), qu'un déploiement ne met
-  // pas à jour. Le worker 301 vers la page française et le navigateur
-  // ré-attache le fragment (jetons) à la cible. Pour la passer en français :
-  // ajouter la nouvelle URL à l'allowlist D'ABORD, puis changer ici.
+  // ⚠ Cette valeur doit correspondre EXACTEMENT à une entrée de l'allowlist
+  // Supabase (Auth → URL Configuration), qu'un déploiement ne met pas à jour :
+  // la changer ici sans l'ajouter là-bas d'abord casse tous les liens envoyés.
   var RESET_REDIRECT = 'https://megga.ch/reset-password.html';
 
   // Cloudflare Turnstile — Supabase exige un token captcha sur chaque appel auth
@@ -186,19 +183,19 @@
   function byId(id) { return document.getElementById(id); }
 
   /**
-   * Case « J'accepte les conditions… » de inscription.html, ou `null` ailleurs.
+   * Case « J'accepte les conditions… » de signup.html, ou `null` ailleurs.
    *
    * ⚠ Surtout PAS par son id : le template Webflow a nommé `checkbox-3` la
-   * première case de chaque page, et sur connexion.html c'est « Rester connecté ».
+   * première case de chaque page, et sur login.html c'est « Rester connecté ».
    * Chercher par id ferait dépendre la connexion Google d'une case « rester
    * connecté » décochée. On passe donc par la ligne de consentement, qui
-   * n'existe que sur inscription.html.
+   * n'existe que sur signup.html.
    */
   function consentCheckbox() { return $('.megga-signup__consent input[type="checkbox"]'); }
 
   // Champ mot de passe de la page de connexion, re-typé au besoin.
   //
-  // `connexion.html` porte désormais un vrai `type="password"`, mais il a longtemps
+  // `login.html` porte désormais un vrai `type="password"`, mais il a longtemps
   // été un `type="tel"` (id/name `Phone`, héritage du template Webflow) : un
   // navigateur qui sert cette version depuis SON cache afficherait le mot de
   // passe en clair à la frappe. On garde donc le rattrapage, idempotent sur le
@@ -243,7 +240,7 @@
   // Affiche un message dans le bloc .w-form-fail / .w-form-done de la page (Webflow).
   //
   // Webflow place ce bloc APRÈS le formulaire entier — donc sous les boutons
-  // OAuth et le lien « Se connecter ». Sur inscription.html il tombe hors de l'écran :
+  // OAuth et le lien « Se connecter ». Sur signup.html il tombe hors de l'écran :
   // affiché seul, il donne un bouton qui paraît mort. On l'amène dans le champ
   // de vision quand il n'y est pas.
   function showError(form, msg) {
@@ -321,7 +318,7 @@
         // compte sans passer par le formulaire : sans ce test, « Continuer avec
         // Google » ouvrait la seule porte d'inscription sans consentement, et
         // l'obligation posée sur le formulaire n'aurait été qu'un décor. La case
-        // n'existe que sur inscription.html — connexion.html n'est pas concerné.
+        // n'existe que sur signup.html — login.html n'est pas concerné.
         var consentement = consentCheckbox();
         if (consentement && !consentement.checked) {
           var hote = btn.closest('form');
@@ -499,7 +496,7 @@
       }, true);
     }
 
-    // ── NOUVEAU MOT DE PASSE (nouveau-mot-de-passe.html) ─────────────────────
+    // ── NOUVEAU MOT DE PASSE (reset-password.html) ─────────────────────
     //
     // Cible du lien reçu par e-mail. Le lien passe par /auth/v1/verify, qui
     // renvoie ici avec les jetons dans le FRAGMENT d'URL (flux implicite — le

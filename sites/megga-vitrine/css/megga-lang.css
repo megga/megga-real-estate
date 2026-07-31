@@ -1,0 +1,204 @@
+/* Vitrine MEGGA — sélecteur de langue : pastille en pied de page + dialogue.
+ *
+ * Fichier SÉPARÉ de css/styles.css à dessein : styles.css est l'export Webflow
+ * et sert de source à la transcription de l'app (scripts/build-megga-x-css.mjs).
+ * Y écrire à la main polluerait le design system côté CRM.
+ *
+ * Aucune couleur n'est réinventée : tout lit les variables `--neutral-colors--*`
+ * de la vitrine, pour que le dialogue soit de la même matière que les cartes du
+ * site (fond profond, filet discret, rayon généreux).
+ */
+
+/* Le bouton se range avec le copyright, à gauche de la barre de pied de page :
+   même famille d'information, et le bord droit reste au sigle Swiss Made — un
+   contrôle discret n'a rien à gagner à se coller contre un logo de couleur.
+   `wrap` parce que sous 480 px la barre passe en colonne : le couple copyright +
+   bouton ne tient plus sur une ligne et se replie proprement, centré. */
+.megga-lang-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.megga-lang-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: 100px;
+  background: transparent;
+  color: var(--neutral-colors--700);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.megga-lang-button:hover {
+  color: var(--neutral-colors--1000);
+  border-color: var(--neutral-colors--600);
+}
+
+.megga-lang-button svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.megga-lang-modal[hidden] {
+  display: none;
+}
+
+.megga-lang-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.megga-lang-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 3, 3, 0.72);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: meggaLangFade 0.2s ease both;
+}
+
+.megga-lang-modal__dialog {
+  position: relative;
+  width: min(420px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 32px;
+  border: 1px solid var(--neutral-colors--300);
+  border-radius: 24px;
+  background: var(--neutral-colors--100);
+  animation: meggaLangRise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.megga-lang-modal__title {
+  margin: 0 0 20px;
+  color: var(--neutral-colors--1000);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.megga-lang-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: 100%;
+  background: transparent;
+  color: var(--neutral-colors--700);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.megga-lang-modal__close:hover {
+  color: var(--neutral-colors--1000);
+  border-color: var(--neutral-colors--600);
+}
+
+.megga-lang-modal__close svg {
+  display: block;
+}
+
+.megga-lang-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.megga-lang-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid var(--neutral-colors--300);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--neutral-colors--900);
+  font-family: inherit;
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background-color 0.2s;
+}
+
+.megga-lang-option:hover {
+  border-color: var(--neutral-colors--600);
+  color: var(--neutral-colors--1000);
+}
+
+/* Langue courante : le filet suffit à la désigner, sans aplat de couleur. */
+.megga-lang-option[aria-current='true'] {
+  border-color: var(--neutral-colors--1000);
+  color: var(--neutral-colors--1000);
+}
+
+/* Une langue dont les pages n'existent pas encore reste lisible mais inerte —
+   mieux vaut l'annoncer que servir un lien mort. */
+.megga-lang-option[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.megga-lang-option[aria-disabled='true']:hover {
+  border-color: var(--neutral-colors--300);
+  color: var(--neutral-colors--900);
+}
+
+.megga-lang-option__note {
+  font-size: 13px;
+  color: var(--neutral-colors--600);
+}
+
+body.megga-lang-open {
+  overflow: hidden;
+}
+
+@keyframes meggaLangFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes meggaLangRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .megga-lang-modal__backdrop,
+  .megga-lang-modal__dialog {
+    animation: none;
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .megga-lang-modal {
+    padding: 16px;
+  }
+
+  .megga-lang-modal__dialog {
+    padding: 24px;
+  }
+}

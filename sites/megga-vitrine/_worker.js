@@ -38,42 +38,39 @@ const PASS = 'preview';
 const PUBLIC_PAGES = new Set([
   '/',
   '/index',
-  '/connexion',
-  '/inscription',
-  '/nouveau-mot-de-passe',
-  '/mentions-legales',
-  '/confidentialite',
-  '/conditions-generales',
+  '/login',
+  '/signup',
+  '/reset-password',
+  '/legal',
+  '/privacy',
+  '/terms',
 ]);
 
 /**
- * Anciennes URLs anglaises → pages renommées en français (31 juil. 2026).
+ * Slugs français servis quelques heures le 31 juil. 2026 → URLs anglaises
+ * courtes, qui sont la forme définitive.
  *
- * Deux consommateurs pointent encore sur les anciennes formes et ne se mettent
- * pas à jour d'un simple déploiement de la vitrine :
- *  - le CRM déjà servi aux navigateurs redirige les non-connectés sur
- *    megga.ch/login (ProtectedRoute / VITRINE_LOGIN_URL) ;
- *  - les e-mails de réinitialisation Supabase renvoient sur
- *    /reset-password.html (RESET_REDIRECT, listée dans l'allowlist Auth), avec
- *    les jetons dans le FRAGMENT — un 301 même origine le préserve : le
- *    navigateur ré-attache le fragment à la cible.
- * La redirection passe AVANT le gate : un 401 sur /login couperait l'entrée du
- * produit (incident du 26 juil. 2026).
+ * Les pages ont d'abord été renommées en français, puis ramenées à l'anglais
+ * court le jour même. Ces 301 couvrent l'intervalle : liens partagés, onglets
+ * restés ouverts, éventuel passage d'un robot. La redirection s'exécute AVANT
+ * le gate — un 401 sur un chemin d'auth couperait l'entrée du produit
+ * (incident du 26 juil. 2026).
+ *
+ * Le CRM (VITRINE_LOGIN_URL, ProtectedRoute) et les e-mails de
+ * réinitialisation Supabase (RESET_REDIRECT, dans l'allowlist Auth) visent
+ * `/login` et `/reset-password.html` : ces deux chemins sont de nouveau les
+ * vrais fichiers, donc plus aucune redirection dans ce sens.
  */
 const LEGACY_REDIRECTS = new Map([
-  ['/login', '/connexion'],
-  ['/signup', '/inscription'],
-  ['/reset-password', '/nouveau-mot-de-passe'],
-  ['/pricing', '/tarifs'],
-  ['/about', '/a-propos'],
-  ['/careers', '/carrieres'],
-  // Alias anglais attendus par des tiers. La console Google Cloud pointait sa
-  // « privacy policy URL » sur /privacy, qui n'existait pas : le gate répondait
-  // 401 avec le MÊME corps que sur l'accueil, d'où le diagnostic « votre URL de
-  // politique de confidentialité est identique à votre page d'accueil ».
-  ['/privacy', '/confidentialite'],
-  ['/terms', '/conditions-generales'],
-  ['/legal', '/mentions-legales'],
+  ['/connexion', '/login'],
+  ['/inscription', '/signup'],
+  ['/nouveau-mot-de-passe', '/reset-password'],
+  ['/tarifs', '/pricing'],
+  ['/a-propos', '/about'],
+  ['/carrieres', '/careers'],
+  ['/mentions-legales', '/legal'],
+  ['/confidentialite', '/privacy'],
+  ['/conditions-generales', '/terms'],
 ]);
 
 /**
@@ -114,11 +111,26 @@ function canonicalPage(path) {
   return trimmed.replace(/\.html$/, '');
 }
 
+/**
+ * Retire le préfixe de langue d'un chemin (`/de/signup` → `/signup`).
+ *
+ * Le gate raisonne sur la PAGE, pas sur la langue : une page publique en
+ * français l'est dans toutes ses traductions. Sans ce retrait, `/de/` aurait
+ * répondu 401 au robot de Google alors que `/` lui est ouvert, et la version
+ * allemande de l'inscription aurait été murée.
+ */
+const LANGUES = ['de', 'en', 'it'];
+function sansLangue(path) {
+  const m = path.match(/^\/(de|en|it)(\/.*)?$/i);
+  if (!m) return path;
+  return m[2] || '/';
+}
+
 /** Vrai si la requête doit passer sans mot de passe. */
 function isPublic(pathname) {
   const path = safePath(pathname);
   if (path === null) return false;
-  if (PUBLIC_PAGES.has(canonicalPage(path))) return true;
+  if (PUBLIC_PAGES.has(canonicalPage(sansLangue(path)))) return true;
   const lower = path.toLowerCase();
   return PUBLIC_PREFIXES.some((prefix) => lower.startsWith(prefix));
 }
