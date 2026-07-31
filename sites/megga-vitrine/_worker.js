@@ -22,12 +22,22 @@ const PASS = 'preview';
  * Pages servies sans mot de passe : le gate protège le contenu marketing, pas la
  * porte d'entrée du produit.
  *
- * Les deux pages légales suivent les pages d'auth pour la même raison : la case
- * de consentement de /inscription renvoie vers elles. Derrière le gate, on
+ * Les pages légales suivent les pages d'auth pour la même raison : la case de
+ * consentement de /inscription renvoie vers elles. Derrière le gate, on
  * demandait d'accepter des conditions que le visiteur reçoit en 401 — un
  * consentement à un texte illisible.
+ *
+ * ⚠ L'ACCUEIL est ouvert depuis le 31 juil. 2026, et ce n'est pas un
+ * relâchement du gate : Google exige, pour vérifier l'écran de consentement
+ * OAuth (« Continuer avec Google »), une page d'accueil consultable SANS
+ * connexion, qui explique l'objet de l'app, porte son nom et lie la politique
+ * de confidentialité. Son robot recevait 401 et rejetait la demande sur cinq
+ * points d'un coup. Fermer `/` revient donc à casser la connexion Google.
+ * Le reste du marketing — tarifs, blog, à-propos, intégrations… — reste gaté.
  */
 const PUBLIC_PAGES = new Set([
+  '/',
+  '/index',
   '/connexion',
   '/inscription',
   '/nouveau-mot-de-passe',
@@ -57,6 +67,13 @@ const LEGACY_REDIRECTS = new Map([
   ['/pricing', '/tarifs'],
   ['/about', '/a-propos'],
   ['/careers', '/carrieres'],
+  // Alias anglais attendus par des tiers. La console Google Cloud pointait sa
+  // « privacy policy URL » sur /privacy, qui n'existait pas : le gate répondait
+  // 401 avec le MÊME corps que sur l'accueil, d'où le diagnostic « votre URL de
+  // politique de confidentialité est identique à votre page d'accueil ».
+  ['/privacy', '/confidentialite'],
+  ['/terms', '/conditions-generales'],
+  ['/legal', '/mentions-legales'],
 ]);
 
 /**
