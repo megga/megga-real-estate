@@ -83,11 +83,15 @@ const LEGACY_REDIRECTS = new Map([
 
 /**
  * Dossiers de ressources laissés libres. Sans eux les pages d'auth arrivent nues
- * (styles, script de connexion, client Supabase, logo, polices). Aucune copie
- * marketing ne vit dans ces dossiers — `blog-posts/` et `mockups/`, qui en
- * portent, restent volontairement derrière le gate.
+ * (styles, script de connexion, client Supabase, logo, polices).
+ *
+ * `mockups/` a rejoint la liste : l'accueil — page PUBLIQUE depuis l'ouverture
+ * à Google — embarque deux de ces maquettes en iframe. Gatées, elles arrivaient
+ * en 401 au milieu de la page, dans les quatre langues. Ce sont des captures
+ * d'interface, pas de la copie marketing. `blog-posts/`, qui en porte, reste
+ * derrière le gate.
  */
-const PUBLIC_PREFIXES = ['/css/', '/js/', '/images/', '/fonts/'];
+const PUBLIC_PREFIXES = ['/css/', '/js/', '/images/', '/fonts/', '/mockups/'];
 
 /**
  * Chemin décodé, ou `null` s'il cherche à remonter l'arborescence.
@@ -128,10 +132,62 @@ function canonicalPage(path) {
  * allemande de l'inscription aurait été murée.
  */
 const LANGUES = ['de', 'en', 'it'];
+
+/**
+ * Slugs des pages traduites, par langue. Doit rester le miroir de `PAGES` dans
+ * `scripts/_shared/vitrine-i18n.mjs` — `tests/unit/vitrine-slugs.spec.ts` échoue
+ * si les deux divergent.
+ *
+ * ⚠ Sans cette table, le gate comparait `/de/anmelden` à `/anmelden`, absent de
+ * PUBLIC_PAGES : la connexion allemande aurait répondu 401, et l'entrée du
+ * produit aurait été murée dans trois langues sur quatre.
+ */
+const SLUGS_PAR_LANGUE = {
+  de: {
+    '/about': '/ueber-uns', '/contact': '/kontakt', '/integrations': '/integrationen',
+    '/login': '/anmelden', '/pricing': '/preise', '/reset-password': '/neues-passwort',
+    '/signup': '/registrieren', '/integration-google-agenda': '/integration-google-kalender',
+  },
+  en: {
+    '/integration-google-agenda': '/integration-google-calendar',
+  },
+  it: {
+    '/about': '/chi-siamo', '/contact': '/contatto', '/integrations': '/integrazioni',
+    '/login': '/accedi', '/pricing': '/prezzi', '/reset-password': '/nuova-password',
+    '/signup': '/registrazione', '/integration-google-agenda': '/integrazione-google-calendar',
+    '/integration-intercom': '/integrazione-intercom',
+    '/integration-microsoft-outlook': '/integrazione-microsoft-outlook',
+    '/integration-skribble': '/integrazione-skribble',
+    '/integration-whatsapp': '/integrazione-whatsapp',
+  },
+};
+
+/** Sens inverse : slug traduit → page canonique, toutes langues confondues. */
+const SLUGS = new Map(
+  Object.values(SLUGS_PAR_LANGUE).flatMap((m) => Object.entries(m).map(([page, slug]) => [slug, page]))
+);
+
+/**
+ * `/de/pricing` → `/de/preise`.
+ *
+ * Les pages traduites ont d'abord été servies sous leur nom anglais, avant que
+ * les slugs ne soient localisés le même jour. Ces 301 couvrent l'intervalle, et
+ * rattrapent le visiteur qui devine une URL depuis une autre langue.
+ */
+function slugTraduit(path) {
+  const m = path.match(/^\/(de|en|it)(\/.*)?$/i);
+  if (!m) return undefined;
+  const langue = m[1].toLowerCase();
+  const page = canonicalPage(m[2] || '/');
+  const slug = SLUGS_PAR_LANGUE[langue]?.[page];
+  return slug ? '/' + langue + slug : undefined;
+}
+
 function sansLangue(path) {
   const m = path.match(/^\/(de|en|it)(\/.*)?$/i);
   if (!m) return path;
-  return m[2] || '/';
+  const reste = m[2] || '/';
+  return SLUGS.get(canonicalPage(reste)) || reste;
 }
 
 /** Vrai si la requête doit passer sans mot de passe. */
@@ -148,11 +204,11 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
 
-    // Anciennes URLs → françaises, AVANT le gate (voir LEGACY_REDIRECTS).
+    // Anciennes URLs → forme définitive, AVANT le gate (voir LEGACY_REDIRECTS).
     // La query est conservée ; le fragment n'atteint jamais le serveur et le
     // navigateur le ré-attache lui-même après un 301 même origine.
     const path = safePath(pathname);
-    const cible = path === null ? undefined : LEGACY_REDIRECTS.get(canonicalPage(path));
+    const cible = path === null ? undefined : (LEGACY_REDIRECTS.get(canonicalPage(path)) || slugTraduit(path));
     if (cible) {
       return new Response(null, {
         status: 301,

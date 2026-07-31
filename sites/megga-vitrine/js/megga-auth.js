@@ -36,14 +36,117 @@
   var CAPTCHA_TIMEOUT_MS = 20000;
   var CAPTCHA_INTERACTIVE_TIMEOUT_MS = 120000;
 
-  // Messages réutilisés. Le message « compte existant » oriente vers la
-  // connexion ET vers Google : un compte OAuth-only n'a pas de mot de passe,
-  // donc « e-mail déjà pris » sans cette précision laisse l'utilisateur bloqué.
-  var CAPTCHA_FAIL_MSG = 'La vérification de sécurité n’a pas abouti. Réessayez dans un instant ; si cela se reproduit, écrivez-nous à hello@megga.ch.';
-  var CAPTCHA_INTERACTIVE_MSG = 'Confirmez que vous n’êtes pas un robot pour continuer.';
-  var SERVICE_FAIL_MSG = 'Connexion au service impossible. Vérifiez votre connexion, puis réessayez.';
-  var EXISTING_ACCOUNT_MSG = 'Un compte existe déjà avec cet e-mail. Connectez-vous via « Se connecter » — et si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google » (dans ce cas, aucun mot de passe n’a été défini).';
-  var CONSENT_MSG = 'Cochez la case pour accepter les conditions générales et la politique de confidentialité.';
+  /**
+   * Messages de l'auth, par langue.
+   *
+   * ⚠ Ce fichier est servi TEL QUEL aux pages traduites : le générateur i18n
+   * ignore le contenu des <script>. Sans cette table, une inscription ratée sur
+   * /de/registrieren répondait en français, sur une page par ailleurs entièrement
+   * allemande. La langue est lue dans `<html lang>`, que le build a posé.
+   */
+  var T = {
+    fr: {
+      captchaFail: "La vérification de sécurité n’a pas abouti. Réessayez dans un instant ; si cela se reproduit, écrivez-nous à hello@megga.ch.",
+      captchaInteractive: "Confirmez que vous n’êtes pas un robot pour continuer.",
+      serviceFail: "Connexion au service impossible. Vérifiez votre connexion, puis réessayez.",
+      existingAccount: "Un compte existe déjà avec cet e-mail. Connectez-vous via « Se connecter » — et si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google » (dans ce cas, aucun mot de passe n’a été défini).",
+      consent: "Cochez la case pour accepter les conditions générales et la politique de confidentialité.",
+      patientez: "Patientez…",
+      loginRequis: "E-mail et mot de passe requis.",
+      emailRequis: "Indiquez votre e-mail.",
+      signupRequis: "Nom, e-mail et mot de passe requis.",
+      motDePasseCourt: "Le mot de passe doit faire au moins 8 caractères.",
+      compteCree: "Compte créé ! Vérifiez votre e-mail pour confirmer, puis connectez-vous.",
+      lienExpire: "Lien expiré. Demandez-en un nouveau depuis la page de connexion.",
+      motsDePasseDifferents: "Les deux mots de passe ne correspondent pas.",
+      identifiantsInvalides: "E-mail ou mot de passe incorrect. Si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google ».",
+      emailNonConfirme: "E-mail pas encore confirmé. Vérifiez votre boîte de réception (pensez aux spams).",
+      tropDeTentatives: "Trop de tentatives. Réessayez dans quelques minutes.",
+      lienPerime: "Votre lien de réinitialisation a expiré. Retournez à la page de connexion pour en demander un nouveau.",
+      memeMotDePasse: "Ce mot de passe est déjà le vôtre. Choisissez-en un autre.",
+      motDePasseFaible: "Mot de passe trop court ou trop simple. Allongez-le et mélangez lettres, chiffres et symboles.",
+      serviceIndisponible: "Service d’authentification indisponible. Réessayez.",
+      erreur: "Une erreur est survenue.",
+    },
+    de: {
+      captchaFail: "Die Sicherheitsprüfung ist fehlgeschlagen. Versuchen Sie es gleich noch einmal; wenn es erneut auftritt, schreiben Sie uns an hello@megga.ch.",
+      captchaInteractive: "Bestätigen Sie, dass Sie kein Roboter sind, um fortzufahren.",
+      serviceFail: "Verbindung zum Dienst nicht möglich. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      existingAccount: "Mit dieser E-Mail-Adresse besteht bereits ein Konto. Melden Sie sich über «Anmelden» an — und falls Sie sich mit Google registriert haben, nutzen Sie «Weiter mit Google» (in diesem Fall wurde kein Passwort festgelegt).",
+      consent: "Kreuzen Sie das Kästchen an, um die Allgemeinen Geschäftsbedingungen und die Datenschutzerklärung zu akzeptieren.",
+      patientez: "Einen Moment…",
+      loginRequis: "E-Mail und Passwort erforderlich.",
+      emailRequis: "Geben Sie Ihre E-Mail-Adresse an.",
+      signupRequis: "Name, E-Mail und Passwort erforderlich.",
+      motDePasseCourt: "Das Passwort muss mindestens 8 Zeichen lang sein.",
+      compteCree: "Konto erstellt! Prüfen Sie Ihre E-Mails zur Bestätigung und melden Sie sich anschliessend an.",
+      lienExpire: "Link abgelaufen. Fordern Sie auf der Anmeldeseite einen neuen an.",
+      motsDePasseDifferents: "Die beiden Passwörter stimmen nicht überein.",
+      identifiantsInvalides: "E-Mail oder Passwort ist falsch. Falls Sie sich mit Google registriert haben, nutzen Sie «Weiter mit Google».",
+      emailNonConfirme: "E-Mail noch nicht bestätigt. Prüfen Sie Ihren Posteingang (auch den Spam-Ordner).",
+      tropDeTentatives: "Zu viele Versuche. Versuchen Sie es in einigen Minuten erneut.",
+      lienPerime: "Ihr Link zum Zurücksetzen ist abgelaufen. Fordern Sie auf der Anmeldeseite einen neuen an.",
+      memeMotDePasse: "Dieses Passwort ist bereits Ihres. Wählen Sie ein anderes.",
+      motDePasseFaible: "Passwort zu kurz oder zu einfach. Verlängern Sie es und mischen Sie Buchstaben, Zahlen und Symbole.",
+      serviceIndisponible: "Authentifizierungsdienst nicht verfügbar. Versuchen Sie es erneut.",
+      erreur: "Es ist ein Fehler aufgetreten.",
+    },
+    en: {
+      captchaFail: "The security check did not go through. Try again in a moment; if it happens again, write to us at hello@megga.ch.",
+      captchaInteractive: "Confirm that you are not a robot to continue.",
+      serviceFail: "Cannot reach the service. Check your connection, then try again.",
+      existingAccount: "An account already exists with this email address. Sign in via “Sign in” — and if you signed up with Google, use “Continue with Google” (in that case no password was set).",
+      consent: "Tick the box to accept the terms and conditions and the privacy policy.",
+      patientez: "One moment…",
+      loginRequis: "Email and password required.",
+      emailRequis: "Enter your email address.",
+      signupRequis: "Name, email and password required.",
+      motDePasseCourt: "The password must be at least 8 characters long.",
+      compteCree: "Account created! Check your email to confirm, then sign in.",
+      lienExpire: "Link expired. Request a new one from the sign-in page.",
+      motsDePasseDifferents: "The two passwords do not match.",
+      identifiantsInvalides: "Incorrect email or password. If you signed up with Google, use “Continue with Google”.",
+      emailNonConfirme: "Email not confirmed yet. Check your inbox (and your spam folder).",
+      tropDeTentatives: "Too many attempts. Try again in a few minutes.",
+      lienPerime: "Your reset link has expired. Go back to the sign-in page to request a new one.",
+      memeMotDePasse: "This password is already yours. Choose a different one.",
+      motDePasseFaible: "Password too short or too simple. Make it longer and mix letters, numbers and symbols.",
+      serviceIndisponible: "Authentication service unavailable. Please try again.",
+      erreur: "An error occurred.",
+    },
+    it: {
+      captchaFail: "La verifica di sicurezza non è andata a buon fine. Riprovi tra un istante; se si ripete, ci scriva a hello@megga.ch.",
+      captchaInteractive: "Confermi di non essere un robot per continuare.",
+      serviceFail: "Impossibile raggiungere il servizio. Verifichi la connessione e riprovi.",
+      existingAccount: "Esiste già un account con questo indirizzo e-mail. Acceda tramite «Accedi» — e se si è registrato con Google, usi «Continua con Google» (in tal caso non è stata definita alcuna password).",
+      consent: "Spunti la casella per accettare le condizioni generali e l'informativa sulla privacy.",
+      patientez: "Un istante…",
+      loginRequis: "E-mail e password obbligatorie.",
+      emailRequis: "Indichi il suo indirizzo e-mail.",
+      signupRequis: "Nome, e-mail e password obbligatori.",
+      motDePasseCourt: "La password deve contenere almeno 8 caratteri.",
+      compteCree: "Account creato! Controlli la sua e-mail per confermare, poi acceda.",
+      lienExpire: "Link scaduto. Ne richieda uno nuovo dalla pagina di accesso.",
+      motsDePasseDifferents: "Le due password non corrispondono.",
+      identifiantsInvalides: "E-mail o password errata. Se si è registrato con Google, usi «Continua con Google».",
+      emailNonConfirme: "E-mail non ancora confermata. Controlli la posta in arrivo (anche lo spam).",
+      tropDeTentatives: "Troppi tentativi. Riprovi tra qualche minuto.",
+      lienPerime: "Il suo link per reimpostare la password è scaduto. Torni alla pagina di accesso per richiederne uno nuovo.",
+      memeMotDePasse: "Questa password è già la sua. Ne scelga un'altra.",
+      motDePasseFaible: "Password troppo corta o troppo semplice. La allunghi e mescoli lettere, numeri e simboli.",
+      serviceIndisponible: "Servizio di autenticazione non disponibile. Riprovi.",
+      erreur: "Si è verificato un errore.",
+    },
+  };
+
+  /** Langue de la page, posée par le build dans `<html lang>`. */
+  function langue() {
+    var l = (document.documentElement.getAttribute('lang') || 'fr').slice(0, 2).toLowerCase();
+    return T[l] ? l : 'fr';
+  }
+  /** Message dans la langue de la page. */
+  function m(cle) { return T[langue()][cle] || T.fr[cle]; }
+
 
   var scriptPromises = {};
 
@@ -263,16 +366,16 @@
     var fail = wrap && wrap.querySelector('.w-form-fail');
     if (fail) fail.style.display = 'none';
   }
-  function showCaptchaPrompt(form) { showError(form, CAPTCHA_INTERACTIVE_MSG); }
+  function showCaptchaPrompt(form) { showError(form, m('captchaInteractive')); }
   // N'accuse la vérification que si le rejet vient bien d'elle : un réseau coupé
   // pendant l'appel Supabase n'est pas un problème de captcha.
   function failFrom(form, err) {
-    showError(form, err && err.captcha ? CAPTCHA_FAIL_MSG : SERVICE_FAIL_MSG);
+    showError(form, err && err.captcha ? m('captchaFail') : m('serviceFail'));
   }
   function setBusy(form, busy, original) {
     var btn = form.querySelector('input[type="submit"], button[type="submit"]');
     if (!btn) return original;
-    if (busy) { var o = btn.value || btn.textContent; btn.dataset.orig = o; if ('value' in btn) btn.value = 'Patientez…'; else btn.textContent = 'Patientez…'; btn.disabled = true; return o; }
+    if (busy) { var o = btn.value || btn.textContent; btn.dataset.orig = o; if ('value' in btn) btn.value = m('patientez'); else btn.textContent = m('patientez'); btn.disabled = true; return o; }
     if ('value' in btn) btn.value = btn.dataset.orig || original; else btn.textContent = btn.dataset.orig || original;
     btn.disabled = false;
   }
@@ -322,7 +425,7 @@
         var consentement = consentCheckbox();
         if (consentement && !consentement.checked) {
           var hote = btn.closest('form');
-          if (hote) return showError(hote, CONSENT_MSG);
+          if (hote) return showError(hote, m('consent'));
         }
         client.auth.signInWithOAuth({
           provider: provider,
@@ -342,7 +445,7 @@
         e.preventDefault(); e.stopPropagation(); clearError(loginForm);
         var email = (emailEl && emailEl.value || '').trim();
         var pwd = (pwdEl && pwdEl.value) || '';
-        if (!email || !pwd) return showError(loginForm, 'E-mail et mot de passe requis.');
+        if (!email || !pwd) return showError(loginForm, m('loginRequis'));
         setBusy(loginForm, true);
         getCaptchaToken(loginForm, function () { showCaptchaPrompt(loginForm); }).then(function (captchaToken) {
           clearError(loginForm);
@@ -408,7 +511,7 @@
       resetForm.addEventListener('submit', function (e) {
         e.preventDefault(); e.stopPropagation(); clearError(resetForm);
         var email = (resetEmail && resetEmail.value || '').trim();
-        if (!email) return showError(resetForm, 'Indiquez votre e-mail.');
+        if (!email) return showError(resetForm, m('emailRequis'));
         setBusy(resetForm, true);
         getCaptchaToken(resetForm, function () { showCaptchaPrompt(resetForm); }).then(function (captchaToken) {
           clearError(resetForm);
@@ -440,7 +543,7 @@
       // réaction visible. `invalid` est émis avant la bulle, sur la case elle-même.
       var caseConsentement = consentCheckbox();
       if (caseConsentement) {
-        caseConsentement.addEventListener('invalid', function () { showError(signupForm, CONSENT_MSG); });
+        caseConsentement.addEventListener('invalid', function () { showError(signupForm, m('consent')); });
       }
       signupForm.addEventListener('submit', function (e) {
         e.preventDefault(); e.stopPropagation(); clearError(signupForm);
@@ -449,13 +552,13 @@
         var pwd = (byId('Password') && byId('Password').value) || '';
         var agency = (byId('Phone') && byId('Phone').value || '').trim(); // 4e champ = "Nom de votre agence"
         var consentement = consentCheckbox();
-        if (!name || !email || !pwd) return showError(signupForm, 'Nom, e-mail et mot de passe requis.');
-        if (pwd.length < 8) return showError(signupForm, 'Le mot de passe doit faire au moins 8 caractères.');
+        if (!name || !email || !pwd) return showError(signupForm, m('signupRequis'));
+        if (pwd.length < 8) return showError(signupForm, m('motDePasseCourt'));
         // Le `required` du HTML porte déjà le blocage natif ; ce test le double
         // côté script parce que la page et ce fichier sont mis en cache
         // séparément — un HTML servi depuis un cache d'avant l'attribut
         // laisserait passer l'inscription sans consentement.
-        if (consentement && !consentement.checked) return showError(signupForm, CONSENT_MSG);
+        if (consentement && !consentement.checked) return showError(signupForm, m('consent'));
         setBusy(signupForm, true);
         getCaptchaToken(signupForm, function () { showCaptchaPrompt(signupForm); }).then(function (captchaToken) {
           clearError(signupForm);
@@ -490,7 +593,7 @@
           var wrap = signupForm.closest('.w-form') || signupForm.parentElement;
           var done = wrap.querySelector('.w-form-done');
           signupForm.style.display = 'none';
-          if (done) { done.style.display = 'block'; var d = done.querySelector('div'); if (d) d.textContent = 'Compte créé ! Vérifiez votre e-mail pour confirmer, puis connectez-vous.'; }
+          if (done) { done.style.display = 'block'; var d = done.querySelector('div'); if (d) d.textContent = m('compteCree'); }
           else { goToCrm(res.data && res.data.session); }
         }).catch(function (err) { setBusy(signupForm, false); failFrom(signupForm, err); });
       }, true);
@@ -512,7 +615,7 @@
       // On le dit au lieu de laisser saisir un mot de passe qui serait refusé.
       function refuserLienMort() {
         newPwdForm.style.display = 'none';
-        showError(newPwdForm, 'Lien expiré. Demandez-en un nouveau depuis la page de connexion.');
+        showError(newPwdForm, m('lienExpire'));
       }
 
       client.auth.getSession().then(function (res) {
@@ -535,8 +638,8 @@
         e.preventDefault(); e.stopPropagation(); clearError(newPwdForm);
         var a = (pwd1 && pwd1.value) || '';
         var b = (pwd2 && pwd2.value) || '';
-        if (a.length < 8) return showError(newPwdForm, 'Le mot de passe doit faire au moins 8 caractères.');
-        if (a !== b) return showError(newPwdForm, 'Les deux mots de passe ne correspondent pas.');
+        if (a.length < 8) return showError(newPwdForm, m('motDePasseCourt'));
+        if (a !== b) return showError(newPwdForm, m('motsDePasseDifferents'));
         setBusy(newPwdForm, true);
         // updateUser est un endpoint AUTHENTIFIÉ : aucun captcha ici,
         // contrairement à /recover et /token qui sont gatés au niveau du projet.
@@ -557,7 +660,7 @@
   }
 
   // Compte déjà existant : on NE crée rien, on oriente vers la connexion.
-  function showExistingAccount(form) { showError(form, EXISTING_ACCOUNT_MSG); }
+  function showExistingAccount(form) { showError(form, m('existingAccount')); }
   function looksExistingAccount(msg) {
     var m = (msg || '').toLowerCase();
     return m.indexOf('already') >= 0 || m.indexOf('exists') >= 0 || m.indexOf('registered') >= 0;
@@ -570,22 +673,22 @@
   // Messages d'erreur Supabase courants → FR.
   function traduire(msg) {
     var m = (msg || '').toLowerCase();
-    if (m.indexOf('invalid login') >= 0) return 'E-mail ou mot de passe incorrect. Si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google ».';
-    if (m.indexOf('email not confirmed') >= 0) return 'E-mail pas encore confirmé. Vérifiez votre boîte de réception (pensez aux spams).';
-    if (looksExistingAccount(m)) return EXISTING_ACCOUNT_MSG;
-    if (m.indexOf('rate limit') >= 0) return 'Trop de tentatives. Réessayez dans quelques minutes.';
+    if (m.indexOf('invalid login') >= 0) return m('identifiantsInvalides');
+    if (m.indexOf('email not confirmed') >= 0) return m('emailNonConfirme');
+    if (looksExistingAccount(m)) return m('existingAccount');
+    if (m.indexOf('rate limit') >= 0) return m('tropDeTentatives');
     // Le jeton du lien de réinitialisation a expiré ou a déjà servi entre
     // l'ouverture de la page et l'envoi du formulaire.
     if (m.indexOf('session missing') >= 0 || m.indexOf('session_not_found') >= 0 || m.indexOf('session from session_id') >= 0) {
-      return 'Votre lien de réinitialisation a expiré. Retournez à la page de connexion pour en demander un nouveau.';
+      return m('lienPerime');
     }
     if (m.indexOf('should be different from the old password') >= 0 || m.indexOf('same_password') >= 0) {
-      return 'Ce mot de passe est déjà le vôtre. Choisissez-en un autre.';
+      return m('memeMotDePasse');
     }
     if (m.indexOf('password should be at least') >= 0 || m.indexOf('weak_password') >= 0) {
-      return 'Mot de passe trop court ou trop simple. Allongez-le et mélangez lettres, chiffres et symboles.';
+      return m('motDePasseFaible');
     }
-    return msg || 'Une erreur est survenue.';
+    return msg || m('erreur');
   }
 
   function run() {
@@ -599,7 +702,7 @@
     }).catch(function () {
       // SDK indisponible : on ne casse pas la page, on prévient au submit.
       var f = byId('wf-form-Sign-In-Form') || byId('wf-form-Sign-Up-Form') || byId('wf-form-New-Password-Form');
-      if (f) f.addEventListener('submit', function (e) { e.preventDefault(); showError(f, 'Service d’authentification indisponible. Réessayez.'); }, true);
+      if (f) f.addEventListener('submit', function (e) { e.preventDefault(); showError(f, m('serviceIndisponible')); }, true);
     });
   }
 
