@@ -74,10 +74,10 @@ par ligne comme au registre.
 `260000_admin_security_read` · `270000_admin_agency_note_and_invitations` ·
 `280000_admin_console_read_views` · `290000_admin_overview`.
 
-**Tests** : 47 specs dédiées à la console. CI complète verte sur `48c63e26` — **133 fichiers,
-1 184 tests passés, 1 ignoré** (celui-là est hérité : `whatsapp-comprehension-golden`).
-`admin-console-read-views.spec.ts` y exécute **19 tests** et `admin-overview.spec.ts` **12** :
-c'est le compte qui le prouve, pas le statut vert.
+**Tests** : 48 specs dédiées à la console. CI complète verte sur `38058ec7` — **134 fichiers,
+1 202 tests passés, 1 ignoré** (celui-là est hérité : `whatsapp-comprehension-golden`).
+Les trois specs des étapes 9, 10 et 14 y exécutent respectivement **19**, **12** et **18**
+tests : c'est le compte qui le prouve, pas le statut vert.
 
 ## 4. Décisions PO qui bloquent la suite
 
