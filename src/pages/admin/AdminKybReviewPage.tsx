@@ -263,8 +263,11 @@ export function pendingIdDocumentChecks(
  * il est lu.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/admin-kyb-review-reasons.spec.ts), même motif que IdentityShell.tsx.
-export function rejectionReasonFromEvent(event: AgencyKybEvent): string | null {
-  if (event.action !== 'agency_verification_rejected') return null
+export function decisionReasonFromEvent(event: AgencyKybEvent): string | null {
+  if (
+    event.action !== 'agency_verification_rejected'
+    && event.action !== 'agency_verification_correction_requested'
+  ) return null
   const reason = event.metadata?.reason
   if (typeof reason !== 'string') return null
   const trimmed = reason.trim()
@@ -656,7 +659,7 @@ function PersonsList({ persons }: { persons: KybReviewPerson[] }) {
 }
 
 /** Historique d'audit du dossier — soumission, recalculs, tentatives du filet,
- *  décisions humaines. Le motif d'un rejet passé (rejectionReasonFromEvent) est la
+ *  décisions humaines. Le motif d'une décision motivée (decisionReasonFromEvent) est la
  *  seule information que get_admin_agency_review_detail ne rend pas : elle vit ici. */
 function HistoryList({ events }: { events: KybReviewEvent[] }) {
   const { t } = useTranslation('admin')
@@ -668,7 +671,7 @@ function HistoryList({ events }: { events: KybReviewEvent[] }) {
   return (
     <ul className="space-y-2">
       {events.map((e) => {
-        const reason = rejectionReasonFromEvent(e)
+        const reason = decisionReasonFromEvent(e)
         const key = e.action.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
         return (
           <li key={e.id} className="text-sm">
@@ -688,32 +691,46 @@ function HistoryList({ events }: { events: KybReviewEvent[] }) {
   )
 }
 
-/** Modale de rejet : motif obligatoire (même garde que btrim() côté RPC). */
-function RejectDialog({ open, onClose, onConfirm, pending }: {
+/** Modale à motif obligatoire (même garde que btrim() côté RPC), partagée par le REJET et la
+ *  DEMANDE DE CORRECTION (étape 7, tâche 5). Une seule modale pour deux décisions : la forme
+ *  est identique — un motif libre, obligatoire, puis une confirmation — et seuls les mots et
+ *  la teinte changent. En dupliquer une seconde aurait fait deux endroits à corriger le jour
+ *  où la garde de motif évolue.
+ *
+ *  Le motif est obligatoire dans les deux cas, mais pas pour la même raison : un rejet doit
+ *  être justifiable devant un audit, une demande de correction doit être ACTIONNABLE par un
+ *  dirigeant qui ne voit pas la file et ne sait de la demande que ce que ce texte lui dit. */
+function ReasonDialog({ open, onClose, onConfirm, pending, variant }: {
   open: boolean
   onClose: () => void
   onConfirm: (reason: string) => void
   pending: boolean
+  variant: 'reject' | 'correction'
 }) {
   const { t } = useTranslation('admin')
   const [reason, setReason] = useState('')
   const trimmed = reason.trim()
+  const ns = variant === 'reject' ? 'kybReview.rejectDialog' : 'kybReview.correctionDialog'
+  const busyKey = variant === 'reject' ? 'kybReview.actions.rejecting' : 'kybReview.actions.requestingCorrection'
+  const confirmTone = variant === 'reject'
+    ? 'border-red-500/30 text-red-500 hover:border-red-500'
+    : 'border-amber-500/30 text-amber-500 hover:border-amber-500'
 
   return (
-    <Modal open={open} onClose={onClose} title={t('kybReview.rejectDialog.title')} size="md">
+    <Modal open={open} onClose={onClose} title={t(`${ns}.title`)} size="md">
       <div className="p-5 space-y-3">
         <div>
-          <label className="text-xs text-theme-secondary mb-1.5 block">{t('kybReview.rejectDialog.reasonLabel')}</label>
+          <label className="text-xs text-theme-secondary mb-1.5 block">{t(`${ns}.reasonLabel`)}</label>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder={t('kybReview.rejectDialog.reasonPlaceholder')}
+            placeholder={t(`${ns}.reasonPlaceholder`)}
             rows={4}
             autoFocus
             className="w-full px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
           />
           {reason !== '' && trimmed === '' && (
-            <p className="text-xs text-red-500 mt-1">{t('kybReview.rejectDialog.reasonRequired')}</p>
+            <p className="text-xs text-red-500 mt-1">{t(`${ns}.reasonRequired`)}</p>
           )}
         </div>
         <div className="flex justify-end gap-3 pt-1">
@@ -723,9 +740,12 @@ function RejectDialog({ open, onClose, onConfirm, pending }: {
           <button
             onClick={() => onConfirm(trimmed)}
             disabled={trimmed === '' || pending}
-            className="h-9 px-4 text-sm font-medium border border-red-500/30 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className={cn(
+              'h-9 px-4 text-sm font-medium border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+              confirmTone,
+            )}
           >
-            {pending ? t('kybReview.actions.rejecting') : t('kybReview.rejectDialog.confirm')}
+            {pending ? t(busyKey) : t(`${ns}.confirm`)}
           </button>
         </div>
       </div>
@@ -813,9 +833,10 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
   const agencyId = row.agencyId
 
   const { checks, persons, currentVetoTypes, events, isLoading, isError } = useAdminKybReviewDetail(agencyId)
-  const { validate, reject, relaunch, resolveIdentityDocument } = useAdminKybReviewActions(agencyId)
+  const { validate, reject, relaunch, requestCorrection, resolveIdentityDocument } = useAdminKybReviewActions(agencyId)
 
   const [rejectOpen, setRejectOpen] = useState(false)
+  const [correctionOpen, setCorrectionOpen] = useState(false)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -841,7 +862,8 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
 
   const pendingIdDocs = useMemo(() => pendingIdDocumentChecks(checks.data ?? []), [checks.data])
 
-  const anyActionPending = validate.isPending || reject.isPending || relaunch.isPending || resolveIdentityDocument.isPending
+  const anyActionPending = validate.isPending || reject.isPending || relaunch.isPending
+    || requestCorrection.isPending || resolveIdentityDocument.isPending
 
   function handleError(e: unknown) {
     toast.error(t('kybReview.actions.genericError'), {
@@ -955,6 +977,13 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
             {t('kybReview.actions.reject')}
           </button>
           <button
+            onClick={() => setCorrectionOpen(true)}
+            disabled={anyActionPending}
+            className="h-9 px-4 text-sm font-medium border border-amber-500/30 text-amber-500 rounded-lg hover:border-amber-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {t('kybReview.actions.requestCorrection')}
+          </button>
+          <button
             onClick={() => relaunch.mutate(undefined, {
               onSuccess: () => toast.success(t('kybReview.actions.relaunchSuccess')),
               onError: handleError,
@@ -968,7 +997,14 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
         </div>
       </div>
 
-      <RejectDialog
+      {/* `key` qui change à l'ouverture : React remonte la modale, donc son champ de motif
+          repart vide. Sans cela il faudrait un setState dans un effet (rendu en cascade,
+          react-hooks/set-state-in-effect), motif que ce fichier évite partout ailleurs — et
+          sans remise à zéro du tout, le motif d'un rejet abandonné réapparaîtrait dans la
+          demande de correction du dossier suivant. */}
+      <ReasonDialog
+        key={`reject-${rejectOpen}`}
+        variant="reject"
         open={rejectOpen}
         onClose={() => setRejectOpen(false)}
         pending={reject.isPending}
@@ -977,6 +1013,23 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
             onSuccess: () => {
               toast.success(t('kybReview.actions.rejectSuccess'))
               setRejectOpen(false)
+            },
+            onError: handleError,
+          })
+        }}
+      />
+
+      <ReasonDialog
+        key={`correction-${correctionOpen}`}
+        variant="correction"
+        open={correctionOpen}
+        onClose={() => setCorrectionOpen(false)}
+        pending={requestCorrection.isPending}
+        onConfirm={(reason) => {
+          requestCorrection.mutate(reason, {
+            onSuccess: () => {
+              toast.success(t('kybReview.actions.requestCorrectionSuccess'))
+              setCorrectionOpen(false)
             },
             onError: handleError,
           })

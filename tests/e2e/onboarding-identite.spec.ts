@@ -623,4 +623,135 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await deleteFounder(founder)
     }
   })
+  // ─── 4e cas : la boucle de rémédiation (étape 7, tâche 5) ───────────────────────────
+  //
+  // POURQUOI CE CAS EXISTE, ET POURQUOI IL EST E2E ET NON BACKEND. Le backend prouve déjà
+  // que admin_request_agency_correction rouvre le gate et que la resoumission rend la main
+  // au moteur (tests/backend/agency-correction-requested.spec.ts). Ce qu'il ne peut PAS
+  // prouver, c'est l'absence de reboucle : rouvrir le gate rouvre le chemin de l'incident
+  // P0 c830f9a9 (« boucle onboarding »), et une boucle de redirection ne se voit que dans un
+  // vrai navigateur. C'est le seul endroit du dépôt qui l'éprouve sur ce chemin-là.
+  test('correction demandée : le gate se réouvre, la resoumission aboutit, aucune reboucle', async ({ page }) => {
+    const founder = await createFounder()
+    try {
+      // 1. Un dossier complet, soumis pour de vrai par le wizard — jamais un état posé en
+      // service_role : ce test doit partir de ce que le parcours produit réellement.
+      await signInLive(page, founder.email, PW, { firstEver: true })
+      await clientSideNavigate(page, '/dashboard/contacts')
+      await expect(page).toHaveURL(/\/dashboard\/identite$/)
+      await expectWizardShellMounted(page)
+
+      await fillSignataireStep(page, {
+        firstName: 'Jean', lastName: 'Dupont', dateOfBirth: '1980-05-15', nationality: 'CH', signaturePower: 'individual',
+      })
+      await fillAgenceStep(page, {
+        legalFormLabel: 'Raison individuelle',
+        legalName: 'Regie Correction Test',
+        tradeName: 'Regie Correction',
+        registrationNumber: 'CHE-123.456.789',
+        address: '10 Rue du Test',
+        postal: '1200',
+        city: 'Geneve',
+        canton: 'GE',
+      })
+      await fillPieceIdentiteStep(page)
+      await submitRecapitulatif(page)
+      await expect(page).toHaveURL(/\/dashboard$/)
+
+      // 2. Le relecteur renvoie le dossier. Posé en service_role plutôt qu'en montant une
+      // session super-admin dans le navigateur : la console admin a ses propres tests, et
+      // ce qui est éprouvé ici est le CRM agent, pas l'écran de revue.
+      const svc = serviceRoleClient()
+      // Le moteur a pu laisser le dossier en 'pending' (net.http_post ne part pas en local,
+      // pg_net absent) : la RPC exige 'manual_review', l'état dans lequel un relecteur le
+      // trouve réellement.
+      const { error: setStatusErr } = await svc
+        .from('agencies')
+        .update({ verification_status: 'manual_review' })
+        .eq('id', founder.agencyId)
+      expect(setStatusErr).toBeNull()
+
+      // L'EFFET de la RPC, écrit directement, et non la RPC elle-même : elle est gardée par
+      // is_super_admin(), ce qui demanderait de monter une session super-admin dans ce
+      // navigateur pour un test dont le sujet est le CRM AGENT. Son contrat — ce qu'elle
+      // écrit, ce qu'elle refuse, ce qu'elle journalise — est vérifié ligne par ligne dans
+      // tests/backend/agency-correction-requested.spec.ts. Ce qui est éprouvé ICI, et
+      // nulle part ailleurs, c'est ce que le navigateur fait de cet état.
+      const { error: correctionErr } = await svc
+        .from('agencies')
+        .update({
+          verification_status: 'correction_requested',
+          identity_submitted_at: null,
+          verified_at: null,
+        })
+        .eq('id', founder.agencyId)
+      expect(correctionErr, `mise en correction_requested : ${correctionErr?.message}`).toBeNull()
+
+      // 3. Le gate se réouvre — et c'est ICI que la reboucle se verrait. Rechargement dur
+      // volontaire : le hook lit identity_submitted_at avec un staleTime de 60 s, un simple
+      // clientSideNavigate pourrait servir la valeur d'avant la correction.
+      await page.goto('/dashboard/contacts')
+      await expect(page).toHaveURL(/\/dashboard\/identite$/)
+      await expectWizardShellMounted(page)
+
+      // 3bis. Le bandeau dit CE QUI SE PASSE, et pas « vous n'avez rien soumis ».
+      // C'est le fond du nouveau cas de useLabGuard : identity_submitted_at étant remis à
+      // NULL, la branche « jamais soumis » répondrait la première si l'ordre des tests du
+      // resolveur régressait, et l'écran mentirait à une agence qui a bel et bien soumis.
+      await expect(
+        page.getByText('Correction demandée', { exact: false }).first(),
+        'le bandeau doit annoncer une correction demandée, jamais « non soumise »',
+      ).toBeVisible()
+
+      // 4. Resoumission. Le wizard repart de la PREMIÈRE étape — l'étape atteinte n'est pas
+      // restaurée après une soumission — mais les données saisies, elles, le sont. Le
+      // dirigeant reparcourt donc les écrans, ce qui est aussi l'occasion de relire ce qu'il
+      // avait déclaré. Reparcours complet, sans raccourci par le stepper : ses paliers ne
+      // sont cliquables qu'en arrière (i < step), donc aucun ne l'est à l'étape 1.
+      await expectWizardShellMounted(page)
+      await fillSignataireStep(page, {
+        firstName: 'Jean', lastName: 'Dupont', dateOfBirth: '1980-05-15', nationality: 'CH', signaturePower: 'individual',
+      })
+      await fillAgenceStep(page, {
+        legalFormLabel: 'Raison individuelle',
+        legalName: 'Regie Correction Test',
+        tradeName: 'Regie Correction',
+        // LE champ corrigé : c'est ce que le relecteur avait demandé.
+        registrationNumber: 'CHE-105.909.036',
+        address: '10 Rue du Test',
+        postal: '1200',
+        city: 'Geneve',
+        canton: 'GE',
+      })
+      await fillPieceIdentiteStep(page)
+      await submitRecapitulatif(page)
+
+      // 5. Retour au CRM, et AUCUNE reboucle : c'est la vérification que ce cas existe pour
+      // faire. Si le gate régressait sur ce chemin, cette navigation finirait au wizard.
+      await expect(page).toHaveURL(/\/dashboard$/)
+      await expectNoBounceBack(page, /\/dashboard$/)
+
+      // 6. Et le dossier a bien rendu la main au moteur.
+      const { data: agencyAfter, error: agencyAfterErr } = await serviceRoleClient()
+        .from('agencies')
+        .select('verification_status, identity_submitted_at')
+        .eq('id', founder.agencyId)
+        .maybeSingle()
+      expect(agencyAfterErr).toBeNull()
+      expect(agencyAfter?.identity_submitted_at, 'la resoumission repose l\'horodatage').not.toBeNull()
+      expect(
+        agencyAfter?.verification_status,
+        'sans le retour en pending, le moteur (qui n\'écrase jamais correction_requested) ne '
+        + 'recalculerait plus jamais ce dossier',
+      ).toBe('pending')
+
+      // 7. Une déconnexion/reconnexion ne renvoie pas au wizard non plus.
+      await signOutLive(page)
+      await signInLive(page, founder.email, PW)
+      await clientSideNavigate(page, '/dashboard')
+      await expectNoBounceBack(page, /\/dashboard$/)
+    } finally {
+      await deleteFounder(founder)
+    }
+  })
 })

@@ -1188,7 +1188,11 @@
         "website": "Site web",
         "about": "À propos de l'agence"
       },
-      "logoUpdated": "Logo mis à jour"
+      "logoUpdated": "Logo mis à jour",
+      "identityLocked": {
+        "role": "Seul un dirigeant de l'agence modifie l'identité légale.",
+        "submitted": "Identité soumise à vérification : demandez une correction pour la modifier."
+      }
     },
     "notifications": {
       "banner": "MEGGA vous prévient sur les canaux activés, messages clients, offres, visites, signatures.",

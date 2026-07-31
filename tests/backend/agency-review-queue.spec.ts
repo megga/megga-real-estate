@@ -1127,6 +1127,76 @@ describe.skipIf(!HAS_KEYS)('file de revue KYB — donnees et decision humaine (e
       expect(second.error, 'une piece deja resolue ne doit pas se laisser resoudre une seconde fois').not.toBeNull()
     })
 
+    // ─── Remediation : le relecteur doit pouvoir trancher la piece REMPLACEE ────────
+    //
+    // La garde « deja resolue pour cette personne » regardait s'il existait UNE ligne non
+    // pending, quelle qu'elle soit. Apres un mismatch, la pièce remplacee produisait bien
+    // une nouvelle demande de revue (etape 7, tache 2, cote submit) mais le relecteur ne
+    // pouvait plus la trancher : la garde voyait l'ancien verdict et refusait. Les deux
+    // impasses se tenaient l'une l'autre, et c'est leur combinaison qui rendait un
+    // mismatch definitif.
+    //
+    // La regle voulue : on ne tranche que la ligne LA PLUS RECENTE, et seulement si elle
+    // est en attente. Meme departage que le moteur (checked_at desc, ctid desc), sans quoi
+    // la RPC pourrait trancher une ligne que le moteur ne regarde pas.
+    it('tranche la piece REMPLACEE apres un mismatch (cycle complet de remediation)', async () => {
+      const agencyId = await createAgency('resolve-after-mismatch')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+      const personId = await createSignatory(agencyId)
+      const firstCheckId = await insertPendingIdDocumentCheck(personId)
+
+      // 1er verdict : defavorable.
+      const first = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: firstCheckId, p_result: 'mismatch',
+      })
+      expect(first.error, `1er verdict: ${first.error?.message}`).toBeNull()
+
+      // L'agence redepose : une NOUVELLE demande de revue (ce que fait desormais
+      // submit_agency_identity ; posee ici en service_role, ce test porte sur la file).
+      const replacementCheckId = await insertPendingIdDocumentCheck(personId)
+
+      // 2e verdict, sur la piece remplacee : DOIT aboutir.
+      const second = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: replacementCheckId, p_result: 'match',
+      })
+      expect(
+        second.error,
+        `une piece REMPLACEE doit pouvoir etre tranchee : ${second.error?.message}`
+      ).toBeNull()
+
+      // Ce que le moteur lira : la ligne la plus recente, donc le 'match'.
+      const { data: checks } = await serviceRoleClient()
+        .from('agency_person_verification_checks')
+        .select('result, checked_at')
+        .eq('related_person_id', personId)
+        .eq('check_type', 'id_document')
+        .order('checked_at', { ascending: false })
+      expect(checks?.length, 'quatre lignes : pending, mismatch, pending, match').toBe(4)
+      expect(checks?.[0].result, 'le dernier verdict doit etre celui du remplacement').toBe('match')
+    })
+
+    it('refuse de trancher une ligne pending qui n est PAS la plus recente (verdict deja rendu apres elle)', async () => {
+      const agencyId = await createAgency('resolve-stale-pending')
+      await setVerification(agencyId, { status: 'manual_review', submittedAt: new Date().toISOString() })
+      const personId = await createSignatory(agencyId)
+      const stalePendingId = await insertPendingIdDocumentCheck(personId)
+
+      // Un verdict est rendu (par un autre onglet, un autre relecteur) : la ligne pending
+      // ci-dessus n'est plus celle qui attend.
+      const { error: verdictErr } = await serviceRoleClient()
+        .from('agency_person_verification_checks')
+        .insert({ related_person_id: personId, check_type: 'id_document', source: 'manual', result: 'match' })
+      expect(verdictErr).toBeNull()
+
+      const stale = await superAdmin.rpc('admin_resolve_agency_id_document', {
+        p_agency_id: agencyId, p_check_id: stalePendingId, p_result: 'mismatch',
+      })
+      expect(
+        stale.error,
+        'un ecran perime ne doit pas pouvoir retrancher une demande deja depassee par un verdict'
+      ).not.toBeNull()
+    })
+
     it('refuse un check qui n est pas de type id_document', async () => {
       const agencyId = await createAgency('resolve-wrong-type')
       const personId = await createSignatory(agencyId)

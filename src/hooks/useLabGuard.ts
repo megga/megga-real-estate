@@ -74,6 +74,34 @@ export type LabGuardStatus =
   | 'blocked_not_submitted'
   | 'blocked_pending_review'
   | 'blocked_rejected'
+  /** Un relecteur a renvoye le dossier pour correction (etape 7, tache 5). Distinct de
+   *  'blocked_not_submitted' bien que identity_submitted_at soit nul dans les deux cas :
+   *  dire « vous n'avez rien soumis » a quelqu'un qui a soumis et dont on attend une
+   *  correction precise serait faux, et le renverrait au wizard sans savoir quoi reprendre.
+   *  Le MOTIF de la demande voyage par e-mail (etape 7, tache 6) et vit dans
+   *  activity_events.metadata ; l'afficher dans le bandeau demanderait une lecture de plus,
+   *  laissee volontairement de cote ici. */
+  | 'blocked_correction_requested'
+
+/**
+ * Segment i18n de chaque statut bloque, partage par le bandeau et l'ecran plein
+ * (`labGuard.banner.<segment>.*` et `labGuard.block.<segment>.*`).
+ *
+ * Une table plutot que des chaines de ternaires dans chaque composant : le 4e cas bloque
+ * (etape 7, tache 5) aurait porte la chaine a quatre niveaux sur trois libelles, dans deux
+ * fichiers. Ici un statut de plus est une ligne de plus, et le typage `Record` sur un
+ * `Exclude` du type de statut REFUSE d'oublier un cas -- c'est le compilateur qui tient la
+ * liste a jour, pas la relecture.
+ */
+export const LAB_GUARD_LABEL_KEY: Record<
+  Exclude<LabGuardStatus, 'loading' | 'clear' | 'unavailable'>,
+  string
+> = {
+  blocked_not_submitted: 'notSubmitted',
+  blocked_pending_review: 'pendingReview',
+  blocked_rejected: 'rejected',
+  blocked_correction_requested: 'correctionRequested',
+}
 
 export interface ResolveLabGuardStatusInput {
   /** useAuth().loading — session/profil en cours de resolution. */
@@ -132,6 +160,14 @@ export function resolveLabGuardStatus(input: ResolveLabGuardStatusInput): LabGua
   // eternel. 'unavailable' garde le contenu KYC cache — il n'ouvre rien — mais permet a
   // l'ecran plein de dire ce qui se passe et d'offrir une reprise.
   if (agencyStatusError) return 'unavailable'
+
+  // Correction demandee (etape 7, tache 5) : teste AVANT le fail-closed « jamais soumis »
+  // ci-dessous, et cet ordre est le fond du cas. admin_request_agency_correction remet
+  // identity_submitted_at a NULL -- c'est ainsi qu'elle rouvre le gate et degele la saisie --
+  // donc la branche suivante rendrait 'blocked_not_submitted' et l'ecran dirait « vous n'avez
+  // rien soumis » a une agence qui a soumis et dont on attend une correction nommee. Reste
+  // fail-closed : ce statut bloque, comme tout ce qui n'est ni auto_validated ni validated.
+  if (verificationStatus === 'correction_requested') return 'blocked_correction_requested'
 
   // Filet defensif : identitySubmittedAt ne devrait etre undefined qu'en cas
   // d'erreur de lecture (deja ecartee ci-dessus) — AgencyLabGuardRow n'a pas de

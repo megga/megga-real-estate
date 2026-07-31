@@ -1,5 +1,31 @@
 # Onboarding client (KYB agences) : relais vers l'équipe API
 
+> **⚠ MIS À JOUR LE 30 JUILLET 2026, APRÈS LIVRAISON DE L'ÉTAPE 7.** Ce document a été écrit
+> comme un audit ; six des sept constats du §9 ont été **corrigés le jour même**, dans la
+> foulée, par l'étape 7 (« la boucle de remédiation »). Le §9 conserve la description
+> complète de chaque défaut — c'est ce qui permet de comprendre le code qui les ferme — et
+> porte désormais, pour chacun, ce qui a été livré et où le vérifier. La feuille de route du
+> §10 est réordonnée en conséquence.
+>
+> **Plan d'exécution :**
+> [docs/superpowers/plans/2026-07-30-onboarding-kyb-etape-7-remediation.md](../../superpowers/plans/2026-07-30-onboarding-kyb-etape-7-remediation.md)
+>
+> **Ce qui est livré, en une ligne chacun :**
+>
+> | Constat | Livré |
+> |---|---|
+> | A · aucun dossier ne pouvait s'auto-valider | véto PEP branché sur Dilisense, RPC élargie à la portée personne, invariant qui interdit tout véto orphelin |
+> | B · le rejet était un cul-de-sac | cinquième décision `correction_requested`, gate et saisie rouverts, resoumission qui rend la main au moteur |
+> | C · une pièce refusée était irremplaçable | garde anti-doublon filtrée sur le dernier verdict, relecteur capable de trancher la pièce remplacée |
+> | D · l'identité restait modifiable après validation | gel après soumission, écriture réservée aux dirigeants, journalisation de tout changement |
+> | E · aucune notification | courriel Resend sur les quatre décisions, avec le motif |
+> | G · dépendance de test non déclarée | **non traité** (hors périmètre onboarding) |
+> | F · KYC agent léger | **non traité** : lot 4, à cadrer produit |
+>
+> **Vérification au 30.07.2026, base locale réinitialisée :** 121 fichiers backend,
+> **1048 tests passés**, 4 skippés (secrets absents en local), 0 échec. Unitaires : 1349
+> passés. Lint : 0 erreur. i18n : 0 clé manquante sur 4 langues.
+
 > **Pour qui :** l'équipe qui reprend et poursuit le développement de l'API d'onboarding
 > (Edge Functions, RPC Postgres, connecteurs de registres).
 > **Écrit le :** 30 juillet 2026, après audit du dépôt à `main` = `401928cc`.
@@ -169,8 +195,12 @@ Deux réserves, honnêtement posées :
   ```sql
   select jobname, schedule, active from cron.job where jobname = 'agency-verification-sweep-hourly';
   ```
-- **Le job CI `e2e-kyb`** n'a jamais tourné pour de vrai sur `main` : il a été exercé en
-  local (`npm run test:e2e:kyb`, 3 tests, 3 passés) mais jamais déclenché par la CI.
+- **Le job CI `e2e-kyb`** n'avait jamais tourné pour de vrai. **Résolu le 30.07.2026** : il
+  a été déclenché par la PR de l'étape 7 et passe, avec 4 cas. Une leçon en est sortie, et
+  elle vaut d'être retenue : le runtime edge local sert les fonctions du **dépôt principal**,
+  jamais celles d'un worktree, donc les tests de contrat HTTP d'une Edge Function modifiée
+  en worktree **ne sont vérifiables qu'en CI**. Six échecs réels y ont été trouvés que la
+  suite locale déclarait verts.
 
 ---
 
@@ -705,6 +735,15 @@ ailleurs. Les suivants étaient déjà connus et sont repris ici pour que la lis
 
 ### A. CRITIQUE : aucun dossier ne peut s'auto-valider en production, dans aucun pays
 
+> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâches 1 et 4).** Le véto est branché sur Dilisense
+> (`createPepSanctionsSources`, `_shared/kyb-sources.ts`), `record_agency_verification_run`
+> accepte des checks de portée personne (`20260731140000`), et
+> `agency-verification-run/index.ts` interroge les signataires actifs. Un dossier français
+> complet atteint `auto_validated` **sans qu'aucune fixture ne pose de check à la main** :
+> `tests/backend/agency-person-verification-run.spec.ts`, avec son contrôle. Et l'invariant
+> `tests/backend/agency-veto-coverage.spec.ts` interdit désormais tout véto orphelin, présent
+> ou futur, la liste étant lue **dans la table**.
+
 **Le fait.** `pep_sanctions_screening` est déclaré **véto de personne** dans le catalogue
 ([20260729150300:40](../../../supabase/migrations/20260729150300_agency_verification_checks.sql#L40),
 `is_veto = true`). Le moteur construit `veto_types_person` depuis la configuration active et
@@ -757,6 +796,15 @@ l'ancien handoff. Tant que ce véto n'est pas résolu, Zefix ne débloquerait ri
 
 ### B. CRITIQUE : un dossier rejeté est un cul-de-sac définitif
 
+> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 5).** Cinquième décision humaine,
+> `admin_request_agency_correction` (`20260731150000`) : elle pose le nouveau statut
+> `correction_requested`, remet `identity_submitted_at` à NULL — ce qui rouvre le gate ET
+> dégèle la saisie — et exige un motif. `rejected` reste **terminal**, ce qui n'est cohérent
+> que parce que la correction existe. Le moteur n'écrase pas ce statut, et une resoumission
+> le repasse en `pending` : sans ce couple, le dossier serait enfermé dans l'autre sens.
+> Couvert par `tests/backend/agency-correction-requested.spec.ts` (11 tests) et par un
+> quatrième cas e2e qui vérifie l'absence de reboucle.
+
 **Le fait, en trois lignes de code.** `admin_reject_agency_review` pose
 `verification_status = 'rejected'` et **ne touche pas** `identity_submitted_at`
 ([20260729151500:424](../../../supabase/migrations/20260729151500_agency_review_queue.sql#L424)).
@@ -776,6 +824,13 @@ réel :** un incident support par dossier rejeté.
 
 ### C. CRITIQUE : une pièce d'identité refusée ne peut pas être remplacée
 
+> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 2, migration `20260731121000`).** Les deux
+> impasses sont levées par un point de décision unique, `_latest_person_verification_check`,
+> qui départage les lignes **exactement comme le moteur** (`checked_at desc, ctid desc`) :
+> `submit_agency_identity` repose une demande dès que le dernier verdict n'est ni `pending`
+> ni `match`, et `admin_resolve_agency_id_document` tranche la ligne la plus récente si elle
+> attend. Le départage par `ctid` est lui-même éprouvé par mutation.
+
 Deux défauts se combinent, et c'est leur combinaison qui rend le cas insoluble :
 
 1. La garde anti-doublon de `submit_agency_identity` **ne filtre pas sur `result`** : elle ne
@@ -794,6 +849,13 @@ Le premier point était consigné comme dette de l'étape 2 et attribué à l'é
 été traité. Les deux autres n'étaient pas identifiés.
 
 ### D. IMPORTANT : les données légales sont modifiables après validation, sans revérification ni trace
+
+> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 3, migration `20260731130000`).** Deux triggers :
+> l'un refuse l'écriture des 5 colonnes d'identité à un agent simple, et à quiconque une fois
+> le dossier soumis (le gel se lève quand `identity_submitted_at` repasse à NULL, ce qui est
+> la charnière avec la tâche 5) ; l'autre journalise tout changement dans `activity_events`
+> avec la liste des colonnes touchées. Côté écran, `resolveLegalIdentityLock` met les champs
+> en lecture seule avec un motif, plutôt que de laisser l'utilisateur saisir pour rien.
 
 Trois faits qui, mis ensemble, vident une partie du dispositif de sa substance.
 
@@ -820,6 +882,12 @@ toute action ».
 
 ### E. IMPORTANT : aucune notification de décision
 
+> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 6).** Un trigger sur la TRANSITION de
+> `verification_status` (`20260731160000`) déclenche `agency-verification-notify`, qui relit
+> le motif dans le journal — les RPC l'écrivent après l'UPDATE, et le corps d'un
+> `net.http_post` vit en clair dans la file — et envoie par Resend aux **dirigeants** de
+> l'agence. Dans un trigger et non depuis l'écran : un appel côté client serait skippable.
+
 Ni validation ni rejet n'émet quoi que ce soit. Resend est dans la pile et n'est appelé par
 aucun chemin KYB (vérifié : aucune Edge Function ne référence `agency_verification_validated`
 ni `agency_verification_rejected`). L'agence découvre la décision en se reconnectant et en
@@ -831,6 +899,10 @@ notification n'est pas un confort, c'est le seul canal par lequel une agence peu
 qu'elle est désormais autorisée à travailler.
 
 ### F. IMPORTANT : le KYC agent léger n'existe pas
+
+> **⏳ NON TRAITÉ, et c'est délibéré.** Ce n'est pas un défaut d'implémentation mais une
+> décision de conformité sur qui répond de l'identité d'un agent invité. Lot 4, à cadrer avec
+> Thomas et Gregory.
 
 La décision produit dit que l'utilisateur individuel n'ouvre pas de compte en self-serve : il
 entre par invitation d'une agence existante et relève d'un **KYC agent léger**, pas du KYB.
@@ -858,7 +930,7 @@ attente.
 | I | **`registry_lookup` plafonne à `partial` pour la Suisse** | LINDAS ne publie aucun statut actif/radié. Débloqué par les identifiants Zefix PublicREST, mais **cela ne suffira pas** à rendre un dossier suisse auto-validable tant que A n'est pas résolu |
 | J | **`LI` est sélectionnable au wizard et servi par rien** | à trancher : éprouver la clé FL-UID sur des numéros réels, ou retirer `LI` de la liste tant que rien ne le sert |
 | K | **`MAPBOX_TOKEN` n'est pas posé côté serveur** | `address_geocode` sort `unavailable` en production |
-| L | **Le job `e2e-kyb` n'a jamais tourné en CI** | exercé en local seulement, 3 tests, 3 passés |
+| L | ~~Le job `e2e-kyb` n'a jamais tourné en CI~~ | **✅ RÉSOLU le 30.07.2026** : il a tourné pour la première fois sur la PR de l'étape 7 et passe (`KYB onboarding gate (local Supabase, real auth)`, 3 min 16 s), avec ses **4** cas — les 3 d'origine plus celui de la remédiation |
 | M | **L'enregistrement du cron `agency-verification-sweep-hourly` n'est pas confirmé en production** | `pg_cron` absent en local et en CI, MCP Supabase indisponible depuis cette session |
 | N | **Le gate s'appliquera rétroactivement** à tout dirigeant existant au déploiement, et sur mobile l'écran n'offre que la déconnexion | sans conséquence tant que la base est mock, à trancher avant qu'il y ait de vraies agences |
 | O | **10 des 19 `check_type` du catalogue n'ont aucun connecteur** : `pep_sanctions_screening` (véto, voir A), plus 9 signaux scorables (`signatory_registry_match`, `address_registry_match`, `activity_code_match`, `professional_registry`, `poa_document_review`, `lei_lookup`, `domain_website_match`, `domain_trade_name_similarity`, `phone_country_match`) | arithmétique vérifiée : **15.25 des 21.50 points de poids scorable, soit 71 %, n'ont aucune source**. Le score est normalisé sur les seuls checks disponibles, donc rien ne casse, mais il ne repose en réalité que sur 6.25 points, et sur **4.75** tant que `MAPBOX_TOKEN` est absent : `vat_lookup` (3.00), `domain_generic_provider` (1.00) et `domain_whois_age` (0.75). Un seul `mismatch` sur `vat_lookup` fait alors tomber le score sous 0.85 |
@@ -869,11 +941,16 @@ attente.
 
 ## 10. Feuille de route
 
+> **Les lots 0 et 1 sont LIVRÉS** (30.07.2026, étape 7). Ce qui suit conserve leur détail
+> parce qu'il dit ce que le code fait et pourquoi ; les deux tableaux portent l'état réel.
+> **Le lot 2 est le prochain**, et il ne demande presque pas de code : ce sont trois gestes
+> d'exploitation et une décision de rétention.
+
 Cinq lots, dans cet ordre. L'ordre n'est pas négociable pour les trois premiers : le lot 0
 décide si l'auto-validation existe, le lot 1 ferme des trous qui rendraient toute mise en
 service impossible, le lot 2 conditionne la première vraie agence.
 
-### Lot 0 : rendre le véto sans source réel (défaut A)
+### Lot 0 ✅ LIVRÉ : rendre le véto sans source réel (défaut A)
 
 Il commande tout le reste : tant qu'il n'est pas fait, la branche `auto_validated` est morte et
 la valeur de tous les connecteurs déjà livrés reste théorique.
@@ -885,7 +962,7 @@ la valeur de tous les connecteurs déjà livrés reste théorique.
 | 0.3 | **Repli, seulement si 0.2 échoue pour une raison externe** : RPC `admin_resolve_agency_person_check`, généralisation de `admin_resolve_agency_id_document` à tout véto de personne. **Ne pas retirer `is_veto`** : le repli est une voie de sortie humaine, pas un renoncement au contrôle | un relecteur peut trancher le screening comme il tranche la pièce d'identité |
 | 0.4 | **Un test de non-régression qui interdit le retour du problème** : pour chaque type déclaré véto, ou bien un connecteur le sert, ou bien une RPC de décision humaine peut le résoudre. La liste des vétos se lit **dans la table**, jamais en dur | il devient impossible d'ajouter un véto orphelin sans le savoir |
 
-### Lot 1 : la boucle de remédiation (défauts B, C, D, E)
+### Lot 1 ✅ LIVRÉ : la boucle de remédiation (défauts B, C, D, E)
 
 C'est le lot qui manque pour que le dispositif soit utilisable par un humain.
 
@@ -904,13 +981,13 @@ P0 `c830f9a9` avait causée. Les trois garde-fous existants (progression persist
 vers elle-même) doivent tenir sur ce nouveau chemin, et le test e2e doit couvrir le cycle
 soumission, correction demandée, resoumission, sans reboucle.
 
-### Lot 2 : mise en service (défauts H, K, L, M, N)
+### Lot 2 ⬅ PROCHAIN : mise en service (défauts H, K, L, M, N)
 
 | Tâche | Contenu | Critère de sortie |
 |---|---|---|
 | 2.1 | Poser `MAPBOX_TOKEN` dans les secrets Supabase (même valeur que `VITE_MAPBOX_TOKEN`) | `address_geocode` rend un verdict en production |
 | 2.2 | Confirmer le cron : `select jobname, schedule, active from cron.job where jobname = 'agency-verification-sweep-hourly'` | le filet de rattrapage tourne réellement |
-| 2.3 | Faire tourner `e2e-kyb` en CI, une fois, sur une PR | le job est vert sur `main`, pas seulement en local |
+| 2.3 | ~~Faire tourner `e2e-kyb` en CI~~ | **fait** : vert sur la PR de l'étape 7 |
 | 2.4 | **Purge des pièces d'identité** : `on delete` en cascade côté Storage, ou job de purge. Décider la durée de rétention avec le DPO (voir `docs/compliance/`) | aucune pièce d'identité ne survit à la personne ou à l'agence qui la portait |
 | 2.5 | Trancher le gate rétroactif et l'écran mobile | décision écrite, comportement conforme |
 

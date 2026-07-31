@@ -108,6 +108,47 @@ describe('resolveLabGuardStatus — pas d agence a garder', () => {
   })
 })
 
+describe('resolveLabGuardStatus — correction demandee (etape 7, tache 5)', () => {
+  // LE FOND DU CAS EST L ORDRE. admin_request_agency_correction remet
+  // identity_submitted_at a NULL -- c est ainsi qu elle rouvre le gate d onboarding et
+  // degele les colonnes d identite legale. La branche « jamais soumis » viendrait donc
+  // repondre la premiere, et l ecran dirait « vous n avez rien soumis » a une agence qui a
+  // soumis et dont on attend une correction NOMMEE. Deux messages, deux gestes, et c est le
+  // second qui est vrai.
+  it('correction_requested prime sur le fail-closed « jamais soumis »', () => {
+    expect(resolveLabGuardStatus({
+      ...base,
+      identitySubmittedAt: null,
+      verificationStatus: 'correction_requested',
+    })).toBe('blocked_correction_requested')
+  })
+
+  it('reste bloque : ce statut n est ni auto_validated ni validated', () => {
+    const status = resolveLabGuardStatus({
+      ...base, identitySubmittedAt: null, verificationStatus: 'correction_requested',
+    })
+    expect(status).not.toBe('clear')
+  })
+
+  it('ne prime PAS sur une lecture en echec — une erreur reseau ne rend aucun verdict', () => {
+    expect(resolveLabGuardStatus({
+      ...base,
+      agencyStatusError: true,
+      identitySubmittedAt: null,
+      verificationStatus: 'correction_requested',
+    })).toBe('unavailable')
+  })
+
+  it('ni sur authLoading ni sur agencyId nul — les garde-fous amont restent devant', () => {
+    expect(resolveLabGuardStatus({
+      ...base, authLoading: true, verificationStatus: 'correction_requested',
+    })).toBe('loading')
+    expect(resolveLabGuardStatus({
+      ...base, agencyId: null, verificationStatus: 'correction_requested',
+    })).toBe('clear')
+  })
+})
+
 describe('resolveLabGuardStatus — dossier jamais soumis', () => {
   it('identitySubmittedAt null -> blocked_not_submitted', () => {
     expect(resolveLabGuardStatus({ ...base, identitySubmittedAt: null })).toBe('blocked_not_submitted')

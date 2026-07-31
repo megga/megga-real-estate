@@ -53,6 +53,11 @@ const AG_GROUPS: GroupDef[] = [
   ] },
 ]
 
+/** Les quatre champs que les VÉTOS d'entité comparent au registre du commerce, donc ceux que
+ *  le garde serveur gèle (agencies_guard_identity_columns, 20260731130000). `address` et ses
+ *  voisines n'y sont pas : elles ne nourrissent qu'address_geocode, un signal scorable. */
+const LEGAL_IDENTITY_KEYS: RowKey[] = ['legal', 'legalFormId', 'businessRegistrationNumber', 'tva']
+
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (!parts.length) return 'AG'
@@ -89,7 +94,7 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
   const { t } = useTranslation('settings')
   const c: PfColors = pfColors(sp, surf, dark)
   const toast = useToast()
-  const { agency, hasBackend, agencyId, save } = useAgencySettings()
+  const { agency, hasBackend, agencyId, save, legalIdentityLock } = useAgencySettings()
 
   const [local, setLocal] = useState<AgencySettingsData>(agency)
   useEffect(() => { setLocal(agency) }, [agency])
@@ -149,12 +154,22 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
     if (ok) toast.success(t('focus.agency.logoUpdated'))
   }
 
-  const toRow = (r: RowDef): PfRow => ({
-    key: r.key, icon: r.icon, label: t(`focus.agency.fields.${r.labelKey ?? r.key}`),
-    multiline: r.multiline,
-    options: r.optionsSource === 'legalForms' ? legalFormOptions : undefined,
-    placeholder: r.placeholderKey ? t(`focus.agency.${r.placeholderKey}`) : undefined,
-  })
+  const toRow = (r: RowDef): PfRow => {
+    // Verrou d'identité légale (étape 7, tâche 3) : les quatre champs que les vétos d'entité
+    // comparent au registre passent en lecture seule quand le garde serveur les refuserait
+    // (agencies_guard_identity_columns, 20260731130000). Sans cela l'utilisateur voit
+    // « Modifier », saisit, enregistre, et reçoit un 42501 opaque. Le cadenas de pfKit porte
+    // déjà l'affordance et son infobulle : aucun composant à inventer.
+    const locked = LEGAL_IDENTITY_KEYS.includes(r.key) && legalIdentityLock !== null
+    return {
+      key: r.key, icon: r.icon, label: t(`focus.agency.fields.${r.labelKey ?? r.key}`),
+      multiline: r.multiline,
+      options: r.optionsSource === 'legalForms' ? legalFormOptions : undefined,
+      placeholder: r.placeholderKey ? t(`focus.agency.${r.placeholderKey}`) : undefined,
+      locked,
+      hint: locked ? t(`focus.agency.identityLocked.${legalIdentityLock}`) : undefined,
+    }
+  }
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>

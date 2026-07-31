@@ -20,7 +20,7 @@ import {
   displayCheckWeight,
   pendingIdDocumentChecks,
   latestChecksByTypeAndPerson,
-  rejectionReasonFromEvent,
+  decisionReasonFromEvent,
   qualifyReviewReasons,
   queueRowSignal,
   queuePagerView,
@@ -237,36 +237,43 @@ describe('latestChecksByTypeAndPerson — même dédoublonnage que les CTE lates
   })
 })
 
-describe('rejectionReasonFromEvent — le motif de rejet vit dans activity_events.metadata, jamais une colonne (admin_reject_agency_review, 20260728160000)', () => {
+describe('decisionReasonFromEvent — le motif d une decision motivee vit dans activity_events.metadata, jamais une colonne (admin_reject_agency_review et admin_request_agency_correction)', () => {
   it('événement de rejet avec un motif texte -> le motif', () => {
-    expect(rejectionReasonFromEvent({
+    expect(decisionReasonFromEvent({
       id: 'e1', action: 'agency_verification_rejected', createdAt: '2026-07-28T10:00:00Z',
       metadata: { previous_status: 'manual_review', reason: 'Raison sociale ne correspond pas au registre' },
     })).toBe('Raison sociale ne correspond pas au registre')
   })
 
+  it('événement de DEMANDE DE CORRECTION avec un motif -> le motif (étape 7, tâche 5)', () => {
+    expect(decisionReasonFromEvent({
+      id: 'e1', action: 'agency_verification_correction_requested', createdAt: '2026-07-30T10:00:00Z',
+      metadata: { previous_status: 'manual_review', reason: 'Le numéro de registre comporte un chiffre de trop' },
+    })).toBe('Le numéro de registre comporte un chiffre de trop')
+  })
+
   it('un autre type d événement -> null, même si metadata porte une clé reason par coïncidence', () => {
-    expect(rejectionReasonFromEvent({
+    expect(decisionReasonFromEvent({
       id: 'e1', action: 'agency_verification_recomputed', createdAt: '2026-07-28T10:00:00Z',
       metadata: { reason: 'ne devrait jamais être lu' },
     })).toBeNull()
   })
 
   it('événement de rejet sans metadata -> null, jamais un crash', () => {
-    expect(rejectionReasonFromEvent({
+    expect(decisionReasonFromEvent({
       id: 'e1', action: 'agency_verification_rejected', createdAt: '2026-07-28T10:00:00Z', metadata: null,
     })).toBeNull()
   })
 
   it('événement de rejet avec reason non-string -> null (donnée corrompue, jamais affichée telle quelle)', () => {
-    expect(rejectionReasonFromEvent({
+    expect(decisionReasonFromEvent({
       id: 'e1', action: 'agency_verification_rejected', createdAt: '2026-07-28T10:00:00Z',
       metadata: { reason: 42 },
     })).toBeNull()
   })
 
   it('événement de rejet avec reason blanche -> null (même garde que btrim() côté RPC)', () => {
-    expect(rejectionReasonFromEvent({
+    expect(decisionReasonFromEvent({
       id: 'e1', action: 'agency_verification_rejected', createdAt: '2026-07-28T10:00:00Z',
       metadata: { reason: '   ' },
     })).toBeNull()

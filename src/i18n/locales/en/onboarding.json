@@ -161,7 +161,11 @@
         "body": "The MEGGA team did not validate your agency's identity. Resubmitting the form will not trigger a new review: contact MEGGA support to learn why and what to do next."
       },
       "cta": "Complete verification",
-      "contactSupport": "Contact support"
+      "contactSupport": "Contact support",
+      "correctionRequested": {
+        "title": "Correction requested",
+        "body": "The MEGGA team has asked you to correct your identity details before continuing. The specifics were sent to you by email. Reopen the form, then submit again."
+      }
     },
     "block": {
       "checking": "Checking your agency's verification status before opening a KYC file…",
@@ -189,7 +193,12 @@
       },
       "cta": "Complete verification",
       "back": "Back to dashboard",
-      "contactSupport": "Contact support"
+      "contactSupport": "Contact support",
+      "correctionRequested": {
+        "eyebrow": "Correction requested",
+        "title": "Your identity details need correcting",
+        "body": "The MEGGA team reviewed your file and is asking for a correction before validating it. What needs to change was sent to you by email. Reopen the identity form, correct it, then submit again: the review will resume automatically."
+      }
     }
   }
 }

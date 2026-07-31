@@ -1188,7 +1188,11 @@
         "website": "Website",
         "about": "Über die Agentur"
       },
-      "logoUpdated": "Logo aktualisiert"
+      "logoUpdated": "Logo aktualisiert",
+      "identityLocked": {
+        "role": "Nur eine Geschäftsleitung der Agentur ändert die rechtliche Identität.",
+        "submitted": "Identität zur Prüfung eingereicht: fordern Sie eine Korrektur an, um sie zu ändern."
+      }
     },
     "notifications": {
       "banner": "MEGGA benachrichtigt Sie über die aktivierten Kanäle, Kundennachrichten, Angebote, Besichtigungen, Unterschriften.",

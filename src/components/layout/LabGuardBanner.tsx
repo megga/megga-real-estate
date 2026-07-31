@@ -26,7 +26,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { AlertTriangle, Info, AlertOctagon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
-import { useLabGuard, canActOnLabGuard, KYC_LAB_GUARD_ROUTE_PREFIX, type LabGuardStatus } from '@/hooks/useLabGuard'
+import { useLabGuard, canActOnLabGuard, KYC_LAB_GUARD_ROUTE_PREFIX, LAB_GUARD_LABEL_KEY, type LabGuardStatus } from '@/hooks/useLabGuard'
 import { IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 import { showIntercomSpace } from '@/lib/intercom'
 
@@ -36,6 +36,9 @@ const SEVERITY: Record<BlockedStatus, { icon: typeof AlertTriangle; color: strin
   blocked_not_submitted: { icon: AlertTriangle, color: 'text-amber-500' },
   blocked_pending_review: { icon: Info, color: 'text-blue-500' },
   blocked_rejected: { icon: AlertOctagon, color: 'text-red-500' },
+  // Ambre comme « non soumis » et non rouge comme « refusé » : la balle est dans le camp de
+  // l'agence, il y a quelque chose à faire, ce n'est pas un verdict.
+  blocked_correction_requested: { icon: AlertTriangle, color: 'text-amber-500' },
 }
 
 export default function LabGuardBanner() {
@@ -58,17 +61,16 @@ export default function LabGuardBanner() {
   const onIdentityPage = location.pathname === IDENTITY_GATE_ROUTE
   const { icon: Icon, color } = SEVERITY[status]
 
-  const title = status === 'blocked_not_submitted'
-    ? t('labGuard.banner.notSubmitted.title')
-    : status === 'blocked_pending_review'
-      ? t('labGuard.banner.pendingReview.title')
-      : t('labGuard.banner.rejected.title')
-
+  // Un i18n key par statut (LAB_GUARD_LABEL_KEY, pfKit voisin) plutôt qu'une chaîne de
+  // ternaires par libellé : l'ajout du 4e cas bloqué (étape 7, tâche 5) portait la chaîne à
+  // quatre niveaux sur trois libellés, dans deux composants. Le seul libellé qui reste
+  // conditionnel est le corps de « non soumis », qui se dit différemment à un dirigeant et à
+  // un employé.
+  const ns = LAB_GUARD_LABEL_KEY[status]
+  const title = t(`labGuard.banner.${ns}.title`)
   const body = status === 'blocked_not_submitted'
     ? t(canAct ? 'labGuard.banner.notSubmitted.bodyAdmin' : 'labGuard.banner.notSubmitted.bodyOther')
-    : status === 'blocked_pending_review'
-      ? t('labGuard.banner.pendingReview.body')
-      : t('labGuard.banner.rejected.body')
+    : t(`labGuard.banner.${ns}.body`)
 
   return (
     <div className="border-b border-theme-border bg-theme-card">
@@ -78,7 +80,7 @@ export default function LabGuardBanner() {
           <p className="text-sm font-medium text-theme-primary">{title}</p>
           <p className="text-xs text-theme-secondary mt-0.5">{body}</p>
         </div>
-        {status === 'blocked_not_submitted' && canAct && !onIdentityPage && (
+        {(status === 'blocked_not_submitted' || status === 'blocked_correction_requested') && canAct && !onIdentityPage && (
           <button
             type="button"
             onClick={() => navigate(IDENTITY_GATE_ROUTE)}

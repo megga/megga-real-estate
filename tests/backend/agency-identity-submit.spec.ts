@@ -557,6 +557,186 @@ describe.skipIf(!HAS_KEYS)('submit_agency_identity — RPC de soumission', () =>
     expect(checks?.length, 'un 3e appel avec le même id ne doit jamais reposer une seconde ligne').toBe(1)
   })
 
+  // ─── Remédiation : une pièce refusée doit pouvoir être remplacée (étape 7, tâche 2) ───
+  //
+  // La garde anti-doublon ne filtrait pas sur `result` : dès qu'UNE ligne existait, quel
+  // qu'en soit le verdict, aucune seconde ligne n'était jamais posée. Après un `mismatch`,
+  // une pièce remplacée ne produisait donc jamais de nouvelle demande de revue, et le
+  // dossier restait bloqué pour toujours sur un véto de personne échoué.
+  //
+  // La règle voulue distingue les deux cas par le résultat de la ligne LA PLUS RÉCENTE, et
+  // « la plus récente » se départage EXACTEMENT comme le fait le moteur (checked_at desc,
+  // ctid desc) : deux lignes écrites dans la même transaction portent le même checked_at,
+  // et une RPC qui ordonnerait autrement que le moteur pourrait trancher une ligne que le
+  // moteur, lui, ne regarde pas.
+  it('après un mismatch, un nouvel appel repose une ligne pending — la pièce redevient remplaçable', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+    const { data: signatoryRow } = await serviceRoleClient()
+      .from('agency_related_persons')
+      .select('id')
+      .eq('agency_id', founder.agencyId)
+      .single()
+    const relatedPersonId = signatoryRow!.id as string
+
+    // 1er dépôt : la ligne en attente de revue.
+    const first = await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    expect(first.error, `1er appel: ${first.error?.message}`).toBeNull()
+
+    // Le relecteur tranche défavorablement. Posé en service_role (append-only, comme le
+    // fait admin_resolve_agency_id_document) plutôt qu'en rejouant toute la file : ce test
+    // porte sur la RPC de soumission, pas sur la file de revue.
+    const { error: verdictErr } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .insert({
+        related_person_id: relatedPersonId,
+        check_type: 'id_document',
+        source: 'manual',
+        result: 'mismatch',
+      })
+    expect(verdictErr, `verdict: ${verdictErr?.message}`).toBeNull()
+
+    // 2e dépôt, après le refus : DOIT reposer une demande de revue.
+    const retry = await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    expect(retry.error, `appel après mismatch: ${retry.error?.message}`).toBeNull()
+
+    const { data: checks, error: checksErr } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('result')
+      .eq('related_person_id', relatedPersonId)
+      .eq('check_type', 'id_document')
+      .order('checked_at', { ascending: true })
+    expect(checksErr).toBeNull()
+    expect(
+      checks?.length,
+      'après un verdict défavorable, une pièce remplacée doit produire une NOUVELLE demande de revue'
+    ).toBe(3)
+    expect(
+      checks?.filter((c) => c.result === 'pending_manual_review').length,
+      'deux demandes de revue au total : celle d\'origine et celle du remplacement'
+    ).toBe(2)
+  })
+
+  it('après un partial, la pièce est aussi remplaçable (un doute n\'est pas une décision)', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+    const { data: signatoryRow } = await serviceRoleClient()
+      .from('agency_related_persons')
+      .select('id')
+      .eq('agency_id', founder.agencyId)
+      .single()
+    const relatedPersonId = signatoryRow!.id as string
+
+    await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .insert({
+        related_person_id: relatedPersonId, check_type: 'id_document', source: 'manual', result: 'partial',
+      })
+
+    const retry = await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    expect(retry.error, `appel après partial: ${retry.error?.message}`).toBeNull()
+
+    const { data: checks } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('result')
+      .eq('related_person_id', relatedPersonId)
+      .eq('check_type', 'id_document')
+    expect(checks?.length, 'un `partial` laisse le doute entier : la pièce reste remplaçable').toBe(3)
+  })
+
+  it('après un match, aucune nouvelle ligne — une pièce acceptée ne se redemande pas', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+    const { data: signatoryRow } = await serviceRoleClient()
+      .from('agency_related_persons')
+      .select('id')
+      .eq('agency_id', founder.agencyId)
+      .single()
+    const relatedPersonId = signatoryRow!.id as string
+
+    await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .insert({
+        related_person_id: relatedPersonId, check_type: 'id_document', source: 'manual', result: 'match',
+      })
+
+    const retry = await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    expect(retry.error, `appel après match: ${retry.error?.message}`).toBeNull()
+
+    const { data: checks } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('result')
+      .eq('related_person_id', relatedPersonId)
+      .eq('check_type', 'id_document')
+    expect(
+      checks?.length,
+      'un `match` clôt la question : rejouer la RPC ne doit pas rouvrir une revue déjà tranchée en faveur'
+    ).toBe(2)
+  })
+
+  // Le départage par ctid, la seule affirmation de la migration que rien d'autre ne
+  // vérifie. checked_at vaut l'heure de DÉBUT de transaction : deux lignes écrites dans la
+  // même transaction sont à égalité sur cette colonne, et c'est ctid (l'ordre d'insertion
+  // physique) qui doit trancher -- exactement comme le fait recompute_agency_verification.
+  // Un `insert` PostgREST avec un tableau de deux lignes EST une seule transaction : c'est
+  // ce qui rend ce cas reproductible sans SQL brut.
+  //
+  // Réserve honnête sur ce test : sans `ctid desc`, Postgres rend les lignes dans l'ordre
+  // physique du parcours séquentiel, donc `limit 1` donnerait la PREMIÈRE insérée -- le
+  // test échoue alors de façon déterministe sur une table de cette taille. Sur une table
+  // assez grosse pour changer de plan, il deviendrait indéterminé. Il vaut donc comme garde
+  // du code, pas comme preuve d'une garantie du moteur de base.
+  it('deux lignes de la MÊME transaction se départagent par ordre d\'insertion, pas par checked_at', async () => {
+    const founder = await signUpFounder()
+    await completeAgencyIdentity(founder.agencyId)
+    const { data: signatoryRow } = await serviceRoleClient()
+      .from('agency_related_persons')
+      .select('id')
+      .eq('agency_id', founder.agencyId)
+      .single()
+    const relatedPersonId = signatoryRow!.id as string
+
+    // UN SEUL insert, donc UNE SEULE transaction, donc un checked_at IDENTIQUE sur les deux
+    // lignes. La dernière du tableau est la plus récente au sens du moteur.
+    const { error: seedErr } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .insert([
+        { related_person_id: relatedPersonId, check_type: 'id_document', source: 'manual', result: 'mismatch' },
+        { related_person_id: relatedPersonId, check_type: 'id_document', source: 'manual', result: 'match' },
+      ])
+    expect(seedErr, `seed: ${seedErr?.message}`).toBeNull()
+
+    // Les deux lignes portent bien le même checked_at : sans cela, le test ne prouverait
+    // rien sur le départage.
+    const { data: seeded } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('checked_at, result')
+      .eq('related_person_id', relatedPersonId)
+      .eq('check_type', 'id_document')
+    expect(seeded?.length).toBe(2)
+    expect(
+      new Set(seeded!.map((r) => r.checked_at)).size,
+      'les deux lignes doivent partager le même checked_at pour que le départage soit en jeu'
+    ).toBe(1)
+
+    // La plus récente est le `match` (dernière insérée) -> la RPC ne doit RIEN reposer.
+    const retry = await founder.client.rpc('submit_agency_identity', { p_related_person_id: relatedPersonId })
+    expect(retry.error, `appel: ${retry.error?.message}`).toBeNull()
+
+    const { data: after } = await serviceRoleClient()
+      .from('agency_person_verification_checks')
+      .select('id')
+      .eq('related_person_id', relatedPersonId)
+      .eq('check_type', 'id_document')
+    expect(
+      after?.length,
+      'la ligne la plus récente est le `match` (dernière insérée) : lire le mismatch à la place ' +
+      'ferait rouvrir une revue déjà tranchée en faveur'
+    ).toBe(2)
+  })
+
   it('l\'événement journalisé porte category=kyc (et non compliance)', async () => {
     const founder = await signUpFounder()
     await completeAgencyIdentity(founder.agencyId)

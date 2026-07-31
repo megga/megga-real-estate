@@ -974,5 +974,14 @@
   "kybReview.event.agencyVerificationRejected": "Dossier von einem Super-Admin abgelehnt",
   "kybReview.event.agencyIdentityDocumentResolved": "Ausweisdokument geklärt",
   "kybReview.event.reasonPrefix": "Grund:",
-  "common.status.autoValidated": "Automatisch validiert"
+  "common.status.autoValidated": "Automatisch validiert",
+  "kybReview.correctionDialog.title": "Korrektur anfordern",
+  "kybReview.correctionDialog.reasonLabel": "Was korrigiert werden muss",
+  "kybReview.correctionDialog.reasonPlaceholder": "Z. B.: die Registernummer hat eine Ziffer zu viel; der angegebene Firmenname ist die Übersetzung und nicht der Registereintrag.",
+  "kybReview.correctionDialog.reasonRequired": "Ein Grund ist erforderlich: die Geschäftsleitung sieht nur diesen Text.",
+  "kybReview.correctionDialog.confirm": "Zur Korrektur zurücksenden",
+  "kybReview.actions.requestCorrection": "Korrektur anfordern",
+  "kybReview.actions.requestingCorrection": "Wird gesendet…",
+  "kybReview.actions.requestCorrectionSuccess": "Dossier zur Korrektur zurückgesendet",
+  "kybReview.event.agencyVerificationCorrectionRequested": "Korrektur bei der Geschäftsleitung angefordert"
 }

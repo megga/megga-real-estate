@@ -15,6 +15,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'admin-stripe-agency-billing',
   'admin-stripe-metrics',
   'admin-user-lifecycle',
+  'agency-verification-notify',
   'agency-verification-run',
   'ai-billing-monitor',
   'ai-copilot',

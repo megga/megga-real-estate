@@ -161,7 +161,11 @@
         "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Renvoyer le formulaire ne relance pas d'examen : contactez le support MEGGA pour connaître le motif et la marche à suivre."
       },
       "cta": "Compléter la vérification",
-      "contactSupport": "Contacter le support"
+      "contactSupport": "Contacter le support",
+      "correctionRequested": {
+        "title": "Correction demandée",
+        "body": "L'équipe MEGGA vous demande de corriger votre saisie d'identité avant de poursuivre. Le détail vous a été envoyé par e-mail. Reprenez le formulaire, puis soumettez à nouveau."
+      }
     },
     "block": {
       "checking": "Vérification du statut de votre agence avant l'ouverture d'un dossier KYC…",
@@ -189,7 +193,12 @@
       },
       "cta": "Compléter la vérification",
       "back": "Retour au tableau de bord",
-      "contactSupport": "Contacter le support"
+      "contactSupport": "Contacter le support",
+      "correctionRequested": {
+        "eyebrow": "Correction demandée",
+        "title": "Votre saisie d'identité doit être corrigée",
+        "body": "L'équipe MEGGA a examiné votre dossier et vous demande une correction avant de valider. Le détail de ce qui doit changer vous a été envoyé par e-mail. Reprenez le formulaire d'identité, corrigez, puis soumettez à nouveau : l'examen reprendra automatiquement."
+      }
     }
   }
 }

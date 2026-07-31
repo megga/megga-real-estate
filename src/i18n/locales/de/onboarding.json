@@ -161,7 +161,11 @@
         "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Das erneute Absenden des Formulars löst keine neue Prüfung aus: Wenden Sie sich an den MEGGA-Support, um den Grund und die weiteren Schritte zu erfahren."
       },
       "cta": "Prüfung abschliessen",
-      "contactSupport": "Support kontaktieren"
+      "contactSupport": "Support kontaktieren",
+      "correctionRequested": {
+        "title": "Korrektur angefordert",
+        "body": "Das MEGGA-Team bittet Sie, Ihre Identitätsangaben zu korrigieren, bevor Sie fortfahren. Die Einzelheiten wurden Ihnen per E-Mail zugesandt. Öffnen Sie das Formular erneut und senden Sie es anschliessend nochmals ab."
+      }
     },
     "block": {
       "checking": "Prüfung des Status Ihrer Agentur vor dem Öffnen eines KYC-Dossiers…",
@@ -189,7 +193,12 @@
       },
       "cta": "Prüfung abschliessen",
       "back": "Zurück zum Dashboard",
-      "contactSupport": "Support kontaktieren"
+      "contactSupport": "Support kontaktieren",
+      "correctionRequested": {
+        "eyebrow": "Korrektur angefordert",
+        "title": "Ihre Identitätsangaben müssen korrigiert werden",
+        "body": "Das MEGGA-Team hat Ihr Dossier geprüft und bittet um eine Korrektur vor der Freigabe. Was geändert werden muss, wurde Ihnen per E-Mail mitgeteilt. Öffnen Sie das Identitätsformular, korrigieren Sie es und senden Sie es erneut ab: die Prüfung wird automatisch fortgesetzt."
+      }
     }
   }
 }

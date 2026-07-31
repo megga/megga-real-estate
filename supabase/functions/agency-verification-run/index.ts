@@ -45,12 +45,15 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   runAgencyKybSources,
+  runAgencyKybPersonSources,
   selectApplicableSources,
   AGENCY_KYB_SOURCES,
   createAddressGeocodeSource,
   createUidRegisterSources,
+  createPepSanctionsSources,
   type AgencyForVerification,
   type KybCheckResult,
+  type PersonForVerification,
 } from '../_shared/kyb-sources.ts'
 
 const corsHeaders = {
@@ -182,6 +185,55 @@ serve(async (req) => {
     const { applicable, skipped } = selectApplicableSources(agency, sources)
     const outcomes = await runAgencyKybSources(agency, applicable)
 
+    // 2bis. Sources de PERSONNE (etape 7, tache 4) -- le veto pep_sanctions_screening.
+    //
+    // POURQUOI SEULS LES SIGNATAIRES ACTIFS. Le moteur n'evalue les vetos de personne que
+    // sur eux (recompute_agency_verification, CTE active_signatories), et
+    // submit_agency_identity refuse deja de poser un check sur une personne qui ne porte
+    // pas un role signatory actif. Interroger un UBO passif ecrirait des lignes que le
+    // moteur ne regarde jamais, et ferait payer un appel Dilisense pour rien. « Actif » se
+    // lit comme partout ailleurs dans ce chantier : valid_to nul ou futur.
+    //
+    // Une lecture qui echoue n'interrompt PAS le passage : les checks d'agence viennent
+    // d'etre produits et doivent etre ecrits. On journalise l'echec dans les metadonnees
+    // (person_read_error) plutot que de perdre le travail deja fait -- le veto restera
+    // absent, donc echoue, donc le dossier partira en revue humaine. C'est le penchant du
+    // dispositif : faute de preuve, un humain tranche.
+    let personOutcomes: Awaited<ReturnType<typeof runAgencyKybPersonSources>> = []
+    let personReadError: string | null = null
+    try {
+      const { data: signatories, error: personsErr } = await supabase
+        .from('agency_related_persons')
+        .select('id, first_name, last_name, date_of_birth, nationality, agency_person_roles!inner(role, valid_to)')
+        .eq('agency_id', agencyId)
+        .eq('agency_person_roles.role', 'signatory')
+      if (personsErr) throw personsErr
+
+      const active: PersonForVerification[] = (signatories ?? [])
+        .filter((row) => {
+          const roles = (row as unknown as { agency_person_roles?: { valid_to: string | null }[] })
+            .agency_person_roles ?? []
+          return roles.some((r) => r.valid_to === null || new Date(r.valid_to) > new Date())
+        })
+        .map((row) => ({
+          id: (row as unknown as { id: string }).id,
+          first_name: (row as unknown as { first_name: string | null }).first_name,
+          last_name: (row as unknown as { last_name: string | null }).last_name,
+          date_of_birth: (row as unknown as { date_of_birth: string | null }).date_of_birth,
+          nationality: (row as unknown as { nationality: string | null }).nationality,
+        }))
+
+      personOutcomes = await runAgencyKybPersonSources(
+        active,
+        createPepSanctionsSources({ apiKey: Deno.env.get('DILISENSE_API_KEY') ?? '' }),
+        undefined,
+        agency
+      )
+    } catch (personErr) {
+      personReadError = personErr instanceof Error ? personErr.message : 'unknown_error'
+      console.error('[agency-verification-run] lecture des signataires', personReadError)
+    }
+
     // 3-4-5. Ecriture des checks, appel du moteur et journalisation du PASSAGE de
     // cette fonction -- REGROUPES dans UNE SEULE RPC (record_agency_verification_run,
     // 20260728140000, revue point 2 -- voir l'en-tete de ce fichier). category='kyc'
@@ -198,20 +250,51 @@ serve(async (req) => {
       unavailable: 0,
       pending_manual_review: 0,
     }
+    // DEUX tallys, un par PORTEE, et jamais un seul (correctif : les fondre changeait le
+    // SENS de `results`, qui accompagne `checks_written` -- lui-meme d'agence -- depuis
+    // l'etape 4 ; un appelant lisant `results.unavailable` se serait retrouve avec un
+    // compte de deux tables melangees, sans moyen de savoir laquelle). La severite du
+    // journal, elle, regarde bien les deux : un screening injoignable merite le meme
+    // `warn` qu'un registre injoignable, dans les deux cas un veto restera absent.
     for (const outcome of outcomes) tally[outcome.result] += 1
+
+    const personTally: Record<KybCheckResult, number> = {
+      match: 0,
+      partial: 0,
+      mismatch: 0,
+      unavailable: 0,
+      pending_manual_review: 0,
+    }
+    for (const outcome of personOutcomes) personTally[outcome.result] += 1
 
     const { error: runErr } = await supabase.rpc('record_agency_verification_run', {
       p_agency_id: agencyId,
       p_checks: outcomes,
-      p_severity: tally.unavailable > 0 ? 'warn' : 'info',
+      p_person_checks: personOutcomes,
+      p_severity: tally.unavailable > 0 || personTally.unavailable > 0 || personReadError ? 'warn' : 'info',
       // sources_skipped TOUJOURS present, tableau vide compris : « rien n'a ete ecarte »
       // et « la question ne s'est pas posee » doivent se lire pareil dans la trace, sans
-      // qu'un relecteur ait a deviner ce qu'un champ absent signifie.
-      p_metadata: { sources_run: outcomes.length, sources_skipped: skipped, results: tally },
+      // qu'un relecteur ait a deviner ce qu'un champ absent signifie. Meme raison pour
+      // person_read_error, toujours present : `null` dit « la lecture a abouti ».
+      p_metadata: {
+        sources_run: outcomes.length,
+        person_sources_run: personOutcomes.length,
+        sources_skipped: skipped,
+        person_read_error: personReadError,
+        results: tally,
+        person_results: personTally,
+      },
     })
     if (runErr) throw runErr
 
-    return json({ ok: true, agency_id: agencyId, checks_written: outcomes.length, results: tally })
+    return json({
+      ok: true,
+      agency_id: agencyId,
+      checks_written: outcomes.length,
+      person_checks_written: personOutcomes.length,
+      results: tally,
+      person_results: personTally,
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown_error'
     console.error('[agency-verification-run]', message)
