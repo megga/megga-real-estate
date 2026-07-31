@@ -124,6 +124,6 @@ END;
 $$;
 
 comment on function public.analytics_set_target(numeric) is
-  'Persiste l''objectif commercial annuel de l''agence de l''appelant (dérive /4 et /12) + audit atomique dans activity_events. SECURITY DEFINER depuis le 30 juillet 2026 (étape 7, tâche 3, écart 1) : dépendait auparavant de la policy RLS agencies_members_update, resserrée aux rôles admin/manager par cette même migration (20260730170000) — cette fonction, elle, reste ouverte à tout membre authentifié (AxGate, le geste obligatoire du premier login, et Réglages > objectif n''ont aucun garde de rôle côté écran), strictement scopée à sa PROPRE agence via get_my_agency_id() (lit auth.uid(), inchangé par le mode SECURITY) : aucun élargissement de privilège, seulement un découplage de la policy resserrée.';
+  'Persiste l''objectif commercial annuel de l''agence de l''appelant (dérive /4 et /12) + audit atomique dans activity_events. SECURITY DEFINER depuis le 30 juillet 2026 (étape 7, tâche 3, écart 1) : dépendait auparavant de la policy RLS agencies_members_update, resserrée aux rôles admin/manager par cette même migration (20260731170000) — cette fonction, elle, reste ouverte à tout membre authentifié (AxGate, le geste obligatoire du premier login, et Réglages > objectif n''ont aucun garde de rôle côté écran), strictement scopée à sa PROPRE agence via get_my_agency_id() (lit auth.uid(), inchangé par le mode SECURITY) : aucun élargissement de privilège, seulement un découplage de la policy resserrée.';
 
 commit;

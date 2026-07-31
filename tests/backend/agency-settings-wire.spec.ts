@@ -3,7 +3,7 @@
 // name/address/city/canton/phone/email/website/logo_url.
 //
 // RLS : seul un dirigeant (role admin|manager) de l'agence peut écrire sa ligne — depuis
-// l'étape 7/tâche 3/écart 1 (migration 20260730170000_agencies_members_update_rbac.sql),
+// l'étape 7/tâche 3/écart 1 (migration 20260731170000_agencies_members_update_rbac.sql),
 // agencies_members_update exige is_agency_admin(). setupTwoAgencies() attache les deux
 // agents avec role='agent' par défaut : la promotion en admin est donc explicite ci-dessous,
 // là où l'ancienne version de ce fichier écrivait avec le rôle par défaut. Isolation

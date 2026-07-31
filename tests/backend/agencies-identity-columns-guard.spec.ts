@@ -32,7 +32,7 @@
 //
 // CORRECTIFS DU 30 JUILLET 2026 (deux écarts au brief de la tâche 3, fermés dans ce fichier) :
 //
-//   Écart 1 (migration 20260730170000_agencies_members_update_rbac.sql) — le trigger
+//   Écart 1 (migration 20260731170000_agencies_members_update_rbac.sql) — le trigger
 //   ci-dessus ne protège que 5 colonnes NOMMÉES ; `agencies_members_update` (20260527010000)
 //   restait ouverte à TOUT membre pour TOUTES les autres (dont `plan`, que rien d'autre ne
 //   protégeait — TODO RBAC jamais fermé). Cette policy exige désormais is_agency_admin() :
@@ -43,7 +43,7 @@
 //   analytics_set_target (feature Analytics, hors chantier KYB) dépendait de cette policy en
 //   SECURITY INVOKER — passée SECURITY DEFINER pour ne plus en dépendre.
 //
-//   Écart 2 (migration 20260730180000_agencies_address_columns_audit.sql) — le brief nomme
+//   Écart 2 (migration 20260731180000_agencies_address_columns_audit.sql) — le brief nomme
 //   9 colonnes (5 d'identité + address/city/canton/postal_code) ; seules les 5 étaient
 //   gelées ET journalisées. Arbitrage (Thomas, 30 juillet 2026) : les 4 colonnes d'adresse
 //   rejoignent la JOURNALISATION (aucune raison de conformité de ne pas savoir qu'une
@@ -72,7 +72,7 @@ const IDENTITY_COLUMNS: [string, unknown][] = [
 ]
 
 /** Étape 7, tâche 3 — correctif écart 2 (30 juillet 2026, migration
- *  20260730180000_agencies_address_columns_audit.sql). `address`, `city`, `canton`,
+ *  20260731180000_agencies_address_columns_audit.sql). `address`, `city`, `canton`,
  *  `postal_code` ne nourrissent qu'un signal scorable (address_geocode, poids 1.50), jamais
  *  un véto : elles restent donc HORS du trigger de gel ci-dessus, y compris après soumission
  *  — un agent a une raison légitime de corriger une adresse (arbitrage Thomas, 30 juillet
@@ -131,7 +131,7 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes d\'identité légale sur a
     // ÉTAPE 7, TÂCHE 3 — correctif écart 1 (30 juillet 2026). Avant ce correctif, un agent
     // simple ATTEIGNAIT la ligne (agencies_members_update ne posait aucune condition de
     // rôle) et se faisait refuser PAR LE TRIGGER, avec un 42501 explicite. Depuis
-    // 20260730170000, agencies_members_update exige is_agency_admin() dans sa clause USING :
+    // 20260731170000, agencies_members_update exige is_agency_admin() dans sa clause USING :
     // la ligne est désormais invisible pour un agent simple AVANT que le trigger n'ait la
     // moindre chance de s'exécuter — 0 ligne touchée, pas de refus explicite, même mécanique
     // que l'isolation inter-agences plus bas. Le trigger reste la défense qui tiendrait si
@@ -158,7 +158,7 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes d\'identité légale sur a
     }
 
     // ÉTAPE 7, TÂCHE 3 — correctif écart 1 (30 juillet 2026, migration
-    // 20260730170000_agencies_members_update_rbac.sql). Les deux tests ci-dessous
+    // 20260731170000_agencies_members_update_rbac.sql). Les deux tests ci-dessous
     // affirmaient qu'un agent simple pouvait toujours écrire les colonnes MUNDAINES : c'était
     // vrai tant que seul le trigger par colonne protégeait agencies (il ne nomme que les 5
     // d'identité). Le TODO RBAC de 20260527010000 restait ouvert : agencies_members_update
@@ -244,7 +244,7 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes d\'identité légale sur a
 
   // ── analytics_set_target ne dépend plus de cette policy (effet de bord corrigé) ────
 
-  describe('analytics_set_target résiste au RBAC (RPC SECURITY DEFINER depuis 20260730170000)', () => {
+  describe('analytics_set_target résiste au RBAC (RPC SECURITY DEFINER depuis 20260731170000)', () => {
     it('un agent simple peut toujours définir l\'objectif commercial de son agence', async () => {
       await setRoleA('agent')
       const { error } = await setup.clientA.rpc('analytics_set_target', { p_yearly: 900000 })
@@ -254,7 +254,7 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes d\'identité légale sur a
         `agencies_members_update ouverte à tout membre. La restreindre à admin/manager sans ` +
         `ajuster cette fonction l'aurait cassée EN SILENCE (RLS filtre par USING : 0 ligne, ` +
         `aucune erreur) pour tout agent simple — porte AxGate du premier login comprise. ` +
-        `Corrigée en SECURITY DEFINER (20260730170000), comme les autres écrivains légitimes.`
+        `Corrigée en SECURITY DEFINER (20260731170000), comme les autres écrivains légitimes.`
       ).toBeNull()
 
       const { data } = await serviceRoleClient()
@@ -477,7 +477,7 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes d\'identité légale sur a
       expect((ev?.metadata as { changed?: string[] } | null)?.changed).toContain('legal_name')
     })
 
-    // ── Écart 2 (30 juillet 2026, migration 20260730180000) : address/city/canton/
+    // ── Écart 2 (30 juillet 2026, migration 20260731180000) : address/city/canton/
     // postal_code rejoignent la journalisation, MAIS jamais le gel — même après soumission.
 
     for (const [column, value] of ADDRESS_COLUMNS) {

@@ -33,7 +33,7 @@
 -- agencies_guard_identity_columns() (le trigger BEFORE UPDATE qui gèle, 20260730130000)
 -- N'EST PAS touché par cette migration : il continue de ne verrouiller QUE les 5 colonnes
 -- d'identité légale. Un agent simple reste malgré tout incapable d'écrire address (RBAC de
--- 20260730170000, policy agencies_members_update réservée aux dirigeants) : la LIGNE lui est
+-- 20260731170000, policy agencies_members_update réservée aux dirigeants) : la LIGNE lui est
 -- fermée avant même que ce trigger AFTER UPDATE n'ait la moindre chance de s'exécuter.
 --
 -- Idempotente : CREATE OR REPLACE FUNCTION, DROP TRIGGER IF EXISTS avant CREATE.
@@ -112,7 +112,7 @@ end;
 $$;
 
 comment on function public.agencies_audit_identity_columns() is
-  'Étape 7, tâche 3 : journalise dans activity_events (action=agency_legal_identity_updated, category=kyc) tout changement des 5 colonnes d''identité légale de agencies (legal_name, legal_form_id, business_registration_number, country, tva) ET, depuis le 30 juillet 2026 (correctif écart 2, migration 20260730180000), des 4 colonnes d''adresse (address, city, canton, postal_code) — journalisées au même titre, mais JAMAIS gelées (agencies_guard_identity_columns ne les liste pas : aucun véto ne les compare au registre, un agent a une raison légitime de les corriger même après soumission). actor_kind=''user'' avec actor_id quand auth.uid() existe, ''system'' avec actor_id NULL sinon. severity=''warn'' si le dossier avait déjà été soumis. metadata.changed porte la LISTE des colonnes changées parmi les 9 (jamais leurs valeurs — activity_events est append-only et conservé dix ans).';
+  'Étape 7, tâche 3 : journalise dans activity_events (action=agency_legal_identity_updated, category=kyc) tout changement des 5 colonnes d''identité légale de agencies (legal_name, legal_form_id, business_registration_number, country, tva) ET, depuis le 30 juillet 2026 (correctif écart 2, migration 20260731180000), des 4 colonnes d''adresse (address, city, canton, postal_code) — journalisées au même titre, mais JAMAIS gelées (agencies_guard_identity_columns ne les liste pas : aucun véto ne les compare au registre, un agent a une raison légitime de les corriger même après soumission). actor_kind=''user'' avec actor_id quand auth.uid() existe, ''system'' avec actor_id NULL sinon. severity=''warn'' si le dossier avait déjà été soumis. metadata.changed porte la LISTE des colonnes changées parmi les 9 (jamais leurs valeurs — activity_events est append-only et conservé dix ans).';
 
 drop trigger if exists agencies_audit_identity_columns_trg on public.agencies;
 create trigger agencies_audit_identity_columns_trg

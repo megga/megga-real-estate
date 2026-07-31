@@ -59,7 +59,7 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes de vérification LAB sur a
   // ── 1. Un agent simple ne peut plus toucher ces colonnes ────────────────────────
 
   // Étape 7, tâche 3 (écart 1, 30 juillet 2026, migration
-  // 20260730170000_agencies_members_update_rbac.sql) : agencies_members_update exige
+  // 20260731170000_agencies_members_update_rbac.sql) : agencies_members_update exige
   // désormais is_agency_admin() dans sa clause USING. Pour un agent simple, cette clause
   // exclut maintenant la ligne AVANT que Postgres n'ait la moindre chance de vérifier le
   // REVOKE colonne par colonne ci-dessous (vérifié empiriquement : 0 ligne touchée, error
@@ -84,7 +84,7 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes de vérification LAB sur a
   // Étape 7, tâche 3 (écart 1, 30 juillet 2026) : cette assertion prouvait que le verrou de
   // CE fichier (le trigger de vérification) ne fermait QUE les colonnes protégées, rien
   // d'autre — vrai avant le 30 juillet, et ça n'a pas changé (voir plus bas, une fois promu
-  // dirigeant, où la même écriture passe). Mais depuis 20260730170000,
+  // dirigeant, où la même écriture passe). Mais depuis 20260731170000,
   // agencies_members_update elle-même exige is_agency_admin() : un agent simple ne peut plus
   // écrire AUCUNE colonne de agencies en direct, protégée ou non. La preuve "le verrou est
   // précis" se fait donc désormais dirigeant, plus bas ; ici on prouve que le RBAC ferme name
@@ -116,7 +116,7 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes de vérification LAB sur a
 
   it('un dirigeant (role admin) peut toujours écrire name — le verrou de CE fichier est précis', async () => {
     // Rôle déjà admin (promu par le it.each ci-dessus) : is_agency_admin() passe côté RLS
-    // (agencies_members_update, 20260730170000), donc cette écriture atteint réellement la
+    // (agencies_members_update, 20260731170000), donc cette écriture atteint réellement la
     // table — c'est ICI, pas côté agent, que « le trigger de vérification ne ferme QUE les
     // colonnes protégées » se prouve désormais.
     const newName = `Agency A dirigeant ${setup.stamp}`
