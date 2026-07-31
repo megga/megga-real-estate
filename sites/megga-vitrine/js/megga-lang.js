@@ -20,7 +20,7 @@
   var LANGUES = [
     { code: 'fr', nom: 'Français', disponible: true },
     { code: 'de', nom: 'Deutsch', disponible: true },
-    { code: 'en', nom: 'English', disponible: false },
+    { code: 'en', nom: 'English', disponible: true },
     { code: 'it', nom: 'Italiano', disponible: false },
   ];
 
