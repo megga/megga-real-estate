@@ -52,11 +52,11 @@
 | # | Étape | § | Effort | Dépend de |
 |---|---|---|---|---|
 | 1 ✅ | **Inventaire du socle existant (§4.1)** : rôle/allowlist, handover, RPC admin déjà en prod (ops health, lifecycle & billing, end users, integrations health, create agency, quotas/usage, revue KYB) — écrire le delta réel repo ↔ spec — **FAIT (PR #1043, 31.07.2026)** : [docs/console-admin/INVENTAIRE_SOCLE.md](../../console-admin/INVENTAIRE_SOCLE.md), 245 ressources mesurées en base. Lire son §7 (amendements à porter à la spec) et §13 (étapes à requalifier) avant l'étape 2. | §1 §4.1 | S | — |
-| 2 | `admin_log` : table, trigger append-only (REFUSE update/delete), chaîne de hash, insert sérialisé, cron de vérification | §4 §5.9 §10.4 | **L** | 1 |
-| 3 | Entrée console journalisée (famille `session`, migration `admin_console_entry_audit`), TTL 8 h, révocation hors allowlist | §1 §10.3 | M | 2 |
-| 4 | Front : focus clavier visible (`admin-kit.jsx`) | §1 | XS | — |
+| 2 ✅ | **FAIT** — `admin_log` réduit (family + chaîne stockée), tête en O(1), 4 triggers dont TRUNCATE, 17 tests. Design passé en revue adversariale : 24 défauts, 7 bloquants. `admin_log` : table, trigger append-only (REFUSE update/delete), chaîne de hash, insert sérialisé, cron de vérification | §4 §5.9 §10.4 | **L** | 1 |
+| 3 ✅ | **FAIT** — rien à migrer (`admin_console_entry_audit` est un nom de fichier) : la fonction écrit dans les deux journaux. IP/user-agent depuis `auth.sessions`. TTL 8 h EXPOSÉ, pas imposé (décision PO). Entrée console journalisée (famille `session`, migration `admin_console_entry_audit`), TTL 8 h, révocation hors allowlist | §1 §10.3 | M | 2 |
+| 4 ✅ | **FAIT** — l'anneau existait déjà (`admin-console.css`) ; ce qui manquait était le garde-fou. Test vérifié par mutation dans trois directions. | §1 | XS | — |
 
-**G0 — critères de sortie** : un JWT agent reçoit `unauthorized` sur toute route admin · une entrée console apparaît dans `admin_log` avec hash chaîné · test « ligne altérée en SQL brut → vérification échoue » vert.
+**G0 — critères de sortie** (état au 31.07.2026, tous couverts par des tests permanents ; balayage de la surface RPC : 32 fonctions et non 27 — les 5 sans préfixe `admin_` sont précisément celles où les fuites se trouvaient) : un JWT agent reçoit `unauthorized` sur toute route admin · une entrée console apparaît dans `admin_log` avec hash chaîné · test « ligne altérée en SQL brut → vérification échoue » vert.
 
 ### Phase 1 — La console qui regarde (S2-S3, lecture seule) → **Gate G1**
 | # | Étape | § | Effort | Dépend de |
