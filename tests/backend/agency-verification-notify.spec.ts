@@ -1,0 +1,316 @@
+// Backend test (live CI) -- trigger agencies_notify_verification_decision_trg et Edge
+// Function agency-verification-notify (étape 7, tâche 6, constat E : « une décision sur
+// un dossier prévient enfin l'agence »).
+//
+// CE QUE CE FICHIER FERME. Le critère de sortie de la tâche 6 était explicite : « un test
+// backend qui prouve l'appel ». Avant ce fichier, seul un test UNITAIRE du module pur
+// existait (tests/unit/agency-verification-notice.spec.ts) -- il vérifie la composition du
+// courriel (sujet, motif échappé, destinataires) mais n'exécute ni le trigger Postgres
+// (agencies_notify_verification_decision_trg, migration 20260730160000) ni l'Edge Function
+// déployée (supabase/functions/agency-verification-notify/index.ts). Rien ne prouvait que
+// le trigger déclenche réellement l'appel.
+//
+// LE PATRON REPRIS, ET D'OÙ. agency-verification-run.spec.ts (section « déclenchement de la
+// vérification depuis submit_agency_identity ») exerce déjà le MÊME genre de dispatch --
+// un trigger PL/pgSQL qui pose un net.http_post vers une Edge Function locale, en
+// fire-and-forget. Ce fichier reprend tel quel : la config app_config (supabase_url pointé
+// sur PG_NET_LOCAL_FUNCTIONS_URL, l'alias Docker par lequel LE CONTENEUR POSTGRES joint le
+// gateway Kong local -- 127.0.0.1 y désignerait le conteneur lui-même, pas le gateway),
+// service_role_key posé à SERVICE_ROLE_JWT (le format que le runtime edge compare
+// littéralement, jamais la clé sb_secret_...), et waitUntil() pour sonder l'effet après le
+// commit -- net.http_post MET LA REQUÊTE EN FILE (net.http_request_queue, vidée par un
+// worker de fond), aucune assertion ne peut lire l'effet juste après la transition.
+//
+// CE QUE CES TESTS PROUVENT, TROIS POINTS (revue du constat, explicitement demandés) :
+//   1. LA TRANSITION EST DÉTECTÉE -- pas l'état : une écriture qui ne CHANGE PAS
+//      verification_status ne redéclenche jamais (guard `is distinct from` du trigger).
+//   2. LES STATUTS SONT FILTRÉS -- liste BLANCHE (NOTIFIABLE_STATUSES : validated,
+//      auto_validated, rejected, correction_requested). pending et manual_review sont des
+//      états d'ATTENTE et ne déclenchent rien, quoi que fasse le moteur en repassant dessus.
+//   3. LE DISPATCH EST EFFECTIF -- pas seulement tenté : la cible est le VRAI runtime edge
+//      local (même cible que « Edge Function déployée » dans agency-verification-run.spec.ts),
+//      et l'effet lu est celui que l'Edge Function écrit RÉELLEMENT dans activity_events
+//      (agency_verification_notice_sent / _undeliverable), jamais une supposition sur ce que
+//      le trigger a « dû » faire.
+//
+// SANS RESEND_API_KEY EN LOCAL (même situation que DILISENSE_API_KEY / MAPBOX_TOKEN -- non
+// posée dans ce worktree, vérifié par `docker exec ... env`), l'Edge Function va jusqu'au
+// bout de sa logique -- destinataire trouvé (agencies.email, repli documenté dans
+// _shared/agency-verification-notice.ts), courriel composé -- et s'arrête honnêtement au
+// dernier geste : `agency_verification_notice_undeliverable`, cause `resend_key_missing`,
+// JAMAIS un `_sent` fabriqué. C'est la preuve la PLUS complète disponible sans poser de
+// secret, et elle couvre l'intégralité du chemin sauf l'appel HTTP sortant vers Resend
+// lui-même.
+//
+// skipIf(!HAS_KEYS) ne SKIP PAS en CI : lire le compte de tests, jamais le code de sortie
+// (même convention que tout tests/backend/agency-*.spec.ts).
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { serviceRoleClient } from './helpers/supabase'
+
+const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
+const URL = process.env.SUPABASE_TEST_URL ?? 'http://127.0.0.1:54321'
+const SERVICE_KEY = process.env.SUPABASE_TEST_SERVICE_ROLE_KEY ?? ''
+// Même choix, même motif que agency-verification-run.spec.ts (voir son en-tête) : le
+// runtime edge n'injecte jamais que le JWT legacy dans SUPABASE_SERVICE_ROLE_KEY -- jamais
+// la clé sb_secret_..., même quand SUPABASE_TEST_SERVICE_ROLE_KEY la porte (cas CI).
+const SERVICE_ROLE_JWT = process.env.SUPABASE_TEST_SERVICE_ROLE_JWT || SERVICE_KEY
+const NOTIFY_ENDPOINT = `${URL}/functions/v1/agency-verification-notify`
+
+// Alias Docker documenté par Supabase pour Postgres -> Edge Functions locales. net.http_post
+// tourne DANS le conteneur Postgres, sur un réseau Docker distinct de celui de ce process
+// Node : depuis ce conteneur, 127.0.0.1 désigne le conteneur lui-même, jamais le gateway
+// Kong (vérifié à la main dans agency-verification-run.spec.ts -- net._http_response y
+// montre "Couldn't connect to server" pour 127.0.0.1). host.docker.internal n'est PAS non
+// plus la bonne cible malgré les apparences : rien n'écoute le port hôte 8000 (Kong publie
+// son port CONTENEUR 8000 sur le port HÔTE 54321, jamais sur 8000), donc cette route échoue
+// tout aussi silencieusement -- "Couldn't connect to server" côté net._http_response,
+// reproduit ici à la main via `select net.http_get(...)` avant ce correctif. C'est ce qui
+// rendait la suite fragile : AUCUNE transition notifiable n'atteignait jamais le runtime
+// edge, quel que soit l'état de charge -- seule la même adresse qu'agency-verification-run.spec.ts,
+// api.supabase.internal:8000 (alias Docker réellement documenté par Supabase pour ce
+// scénario), livre effectivement la requête -- confirmé ici par la même sonde manuelle
+// (HTTP 404 au lieu d'une erreur de connexion : Kong répond, la route existe).
+const PG_NET_LOCAL_FUNCTIONS_URL = 'http://api.supabase.internal:8000'
+
+const NOTICE_ACTIONS = ['agency_verification_notice_sent', 'agency_verification_notice_undeliverable']
+
+describe.skipIf(!HAS_KEYS)('trigger agencies_notify_verification_decision -- dispatch réel (étape 7, tâche 6)', () => {
+  const agencyIds: string[] = []
+
+  // Démarrage à froid du worker agency-verification-notify, payé UNE fois ici -- même
+  // motif, même forme que « Edge Function déployée » dans agency-verification-run.spec.ts :
+  // ce hook ne peut PAS faire échouer la suite (course contre une échéance qui RÉSOUT
+  // jamais ne rejette), et le budget de warm-up est largement au-dessus du démarrage
+  // habituel (~15 s) pour ne jamais être lui-même la cause d'un échec.
+  beforeAll(async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const deadline = new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, 60_000)
+    })
+    try {
+      await Promise.race([
+        fetch(NOTIFY_ENDPOINT, { method: 'OPTIONS' }).then(() => undefined, () => undefined),
+        deadline,
+      ])
+    } finally {
+      clearTimeout(timer)
+    }
+  }, 120_000)
+
+  afterAll(async () => {
+    const svc = serviceRoleClient()
+    // Best-effort HONNÊTE (même motif que agency-verification-run.spec.ts) : une agence
+    // dont le trigger a écrit un activity_events append-only peut refuser sa suppression
+    // (ON DELETE SET NULL déclenche le trigger d'immutabilité). On rapporte nommément,
+    // jamais en silence.
+    const undeletable: { id: string; reason: string }[] = []
+    for (const id of agencyIds) {
+      const { error } = await svc.from('agencies').delete().eq('id', id)
+      if (error) undeletable.push({ id, reason: `${error.code ?? '?'} ${error.message}` })
+    }
+    if (undeletable.length > 0) {
+      console.warn(
+        `[agency-verification-notify.spec.ts] ${undeletable.length}/${agencyIds.length} agence(s) de test non ` +
+          'supprimée(s) -- limite structurelle déjà documentée (activity_events append-only, LBA art. 7), ' +
+          'pas un échec inattendu :\n' +
+          undeletable.map((u) => `  - ${u.id} : ${u.reason}`).join('\n')
+      )
+    }
+  })
+
+  async function createAgency(label: string, email: string): Promise<string> {
+    const svc = serviceRoleClient()
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}-${label}`
+    const { data, error } = await svc
+      .from('agencies')
+      .insert({ name: `Agence Notify ${stamp}`, slug: `agence-notify-${stamp}`, email })
+      .select('id')
+      .single()
+    if (error) throw new Error(`agency: ${error.message}`)
+    agencyIds.push(data!.id as string)
+    return data!.id as string
+  }
+
+  async function setStatus(agencyId: string, status: string): Promise<void> {
+    const { error } = await serviceRoleClient()
+      .from('agencies')
+      .update({ verification_status: status })
+      .eq('id', agencyId)
+    if (error) throw new Error(`set verification_status=${status}: ${error.message}`)
+  }
+
+  type NoticeEvent = { action: string; severity: string; metadata: Record<string, unknown>; created_at: string }
+
+  async function getNoticeEvents(agencyId: string): Promise<NoticeEvent[]> {
+    const { data, error } = await serviceRoleClient()
+      .from('activity_events')
+      .select('action, severity, metadata, created_at')
+      .eq('agency_id', agencyId)
+      .in('action', NOTICE_ACTIONS)
+      .order('created_at', { ascending: true })
+    if (error) throw new Error(`get notice events: ${error.message}`)
+    return data as NoticeEvent[]
+  }
+
+  async function readConfig(key: string): Promise<string | null> {
+    const { data } = await serviceRoleClient().from('app_config').select('value').eq('key', key).maybeSingle()
+    return (data?.value as string | null) ?? null
+  }
+
+  async function setConfig(key: string, value: string): Promise<void> {
+    const { error } = await serviceRoleClient().from('app_config').upsert({ key, value }, { onConflict: 'key' })
+    if (error) throw new Error(`set app_config ${key}: ${error.message}`)
+  }
+
+  async function restoreConfig(key: string, original: string | null): Promise<void> {
+    const svc = serviceRoleClient()
+    if (original === null) await svc.from('app_config').delete().eq('key', key)
+    else await svc.from('app_config').update({ value: original }).eq('key', key)
+  }
+
+  // Sonde une condition jusqu'à ce qu'elle devienne vraie ou que le délai expire --
+  // indispensable ici pour la même raison que agency-verification-run.spec.ts : net.http_post
+  // est asynchrone (file + worker de fond), aucune assertion ne peut lire l'effet juste après
+  // la transition qui l'a déclenché.
+  async function waitUntil(predicate: () => Promise<boolean>, timeoutMs = 10_000, intervalMs = 250): Promise<void> {
+    const deadline = Date.now() + timeoutMs
+    for (;;) {
+      if (await predicate()) return
+      if (Date.now() >= deadline) throw new Error(`waitUntil: condition jamais vraie après ${timeoutMs}ms`)
+      await new Promise((resolve) => setTimeout(resolve, intervalMs))
+    }
+  }
+
+  it(
+    'une transition vers un statut NOTIFIABLE (validated) déclenche réellement le dispatch, là où la transition ' +
+      'PRÉCÉDENTE vers un état d\'attente (manual_review) n\'a rien déclenché -- transition détectée ET statuts filtrés',
+    async () => {
+      const urlBefore = await readConfig('supabase_url')
+      const keyBefore = await readConfig('service_role_key')
+      try {
+        // Pointe le dispatch vers le VRAI runtime local -- preuve directe de bout en bout,
+        // pas seulement que le trigger "tente" un appel (même motif que "Edge Function
+        // déployée" dans agency-verification-run.spec.ts).
+        await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
+        await setConfig('service_role_key', SERVICE_ROLE_JWT)
+
+        const agencyId = await createAgency('validated', 'dirigeant-notify@megga-test.local')
+
+        // 1) pending -> manual_review : ÉTAT D'ATTENTE, hors NOTIFIABLE_STATUSES. Délai fixe
+        // avant l'assertion : si le trigger dispatchait ici par erreur, il aurait largement
+        // le temps d'écrire avant qu'on ne regarde (mesuré ailleurs dans ce fichier : un
+        // dispatch réel aboutit en quelques centaines de ms).
+        await setStatus(agencyId, 'manual_review')
+        await new Promise((resolve) => setTimeout(resolve, 1_000))
+        expect(
+          await getNoticeEvents(agencyId),
+          'manual_review est un état d\'attente -- NOTIFIABLE_STATUSES ne le contient pas, prévenir à chaque ' +
+            'passage du moteur ferait du bruit sans information'
+        ).toHaveLength(0)
+
+        // 2) manual_review -> validated : DÉCIDÉ, notifiable. Cible le runtime edge réel.
+        await setStatus(agencyId, 'validated')
+        await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 0)
+
+        const events = await getNoticeEvents(agencyId)
+        expect(events, 'une seule transition notifiable, un seul événement').toHaveLength(1)
+        // Sans RESEND_API_KEY en local, l'Edge Function va jusqu'au bout de sa logique --
+        // destinataire trouvé, courriel composé -- et s'arrête honnêtement au dernier geste :
+        // jamais un `_sent` fabriqué qui prétendrait un envoi qui n'a pas eu lieu.
+        expect(events[0].action).toBe('agency_verification_notice_undeliverable')
+        expect(events[0].severity).toBe('warn')
+        expect(events[0].metadata).toMatchObject({ status: 'validated', cause: 'resend_key_missing' })
+      } finally {
+        await restoreConfig('supabase_url', urlBefore)
+        await restoreConfig('service_role_key', keyBefore)
+      }
+    },
+    15_000
+  )
+
+  it(
+    'un second statut notifiable (rejected) déclenche aussi : NOTIFIABLE_STATUSES n\'est pas câblée sur un seul cas',
+    async () => {
+      const urlBefore = await readConfig('supabase_url')
+      const keyBefore = await readConfig('service_role_key')
+      try {
+        await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
+        await setConfig('service_role_key', SERVICE_ROLE_JWT)
+
+        const agencyId = await createAgency('rejected', 'dirigeant-rejet@megga-test.local')
+        await setStatus(agencyId, 'manual_review')
+        await setStatus(agencyId, 'rejected')
+
+        await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 0)
+        const events = await getNoticeEvents(agencyId)
+        expect(events).toHaveLength(1)
+        expect(events[0].metadata).toMatchObject({ status: 'rejected', cause: 'resend_key_missing' })
+      } finally {
+        await restoreConfig('supabase_url', urlBefore)
+        await restoreConfig('service_role_key', keyBefore)
+      }
+    },
+    15_000
+  )
+
+  it(
+    'une réécriture qui NE CHANGE PAS verification_status ne redéclenche jamais -- sur la TRANSITION, jamais sur l\'état',
+    async () => {
+      const urlBefore = await readConfig('supabase_url')
+      const keyBefore = await readConfig('service_role_key')
+      try {
+        await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
+        await setConfig('service_role_key', SERVICE_ROLE_JWT)
+
+        const agencyId = await createAgency('idempotent', 'dirigeant-idem@megga-test.local')
+        await setStatus(agencyId, 'manual_review')
+        await setStatus(agencyId, 'validated')
+        await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 0)
+        expect(await getNoticeEvents(agencyId)).toHaveLength(1)
+
+        // Réécrit EXACTEMENT la même valeur -- un UPDATE sans changement réel de la colonne
+        // suivie, cas ordinaire (un formulaire qui resauvegarde la ligne). Sans le
+        // `is distinct from` du trigger, ce second UPDATE renverrait un second courriel.
+        await setStatus(agencyId, 'validated')
+        await new Promise((resolve) => setTimeout(resolve, 1_000))
+        expect(
+          await getNoticeEvents(agencyId),
+          'réécrire la MÊME valeur ne doit jamais redéclencher : ce serait relancer un courriel à chaque ' +
+            'sauvegarde de la ligne, sans rapport avec une nouvelle décision'
+        ).toHaveLength(1)
+      } finally {
+        await restoreConfig('supabase_url', urlBefore)
+        await restoreConfig('service_role_key', keyBefore)
+      }
+    },
+    15_000
+  )
+
+  it(
+    'sans configuration (supabase_url absent -- env local/CI non seedé), le dispatch est sauté silencieusement, ' +
+      'même garde que le déclenchement primaire de agency-verification-run',
+    async () => {
+      const urlBefore = await readConfig('supabase_url')
+      try {
+        await serviceRoleClient().from('app_config').delete().eq('key', 'supabase_url')
+
+        const agencyId = await createAgency('no-config', 'dirigeant-noconf@megga-test.local')
+        await setStatus(agencyId, 'manual_review')
+        await setStatus(agencyId, 'validated')
+
+        // Pas de waitUntil ici : on prouve une ABSENCE. Délai fixe, largement au-dessus du
+        // temps qu'un dispatch réel prendrait s'il avait été tenté (quelques centaines de ms,
+        // mesuré par les tests précédents de ce fichier).
+        await new Promise((resolve) => setTimeout(resolve, 1_500))
+        expect(
+          await getNoticeEvents(agencyId),
+          'sans supabase_url, le trigger doit se taire -- jamais une exception qui ferait échouer la décision elle-même'
+        ).toHaveLength(0)
+      } finally {
+        await restoreConfig('supabase_url', urlBefore)
+      }
+    },
+    15_000
+  )
+})

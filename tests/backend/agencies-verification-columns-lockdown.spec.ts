@@ -58,11 +58,21 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes de vérification LAB sur a
 
   // ── 1. Un agent simple ne peut plus toucher ces colonnes ────────────────────────
 
+  // Étape 7, tâche 3 (écart 1, 30 juillet 2026, migration
+  // 20260731170000_agencies_members_update_rbac.sql) : agencies_members_update exige
+  // désormais is_agency_admin() dans sa clause USING. Pour un agent simple, cette clause
+  // exclut maintenant la ligne AVANT que Postgres n'ait la moindre chance de vérifier le
+  // REVOKE colonne par colonne ci-dessous (vérifié empiriquement : 0 ligne touchée, error
+  // null, status 204 — même mécanique que l'exclusion inter-agences par USING, déjà connue
+  // de ce fichier pour un id qui ne correspond pas). Le refus explicite (42501, ex-preuve de
+  // ce test) ne disparaît pas : il reste observable pour un DIRIGEANT (ci-dessous), pour qui
+  // USING passe et qui atteint donc réellement le REVOKE. La preuve qui compte ici — la
+  // valeur ne bouge pas — est inchangée et reste l'assertion forte de ce test.
   it.each(PROTECTED_COLUMNS)('un agent simple ne peut pas écrire %s directement sur sa propre agence', async (column, value) => {
     const before = await serviceRoleClient().from('agencies').select(column).eq('id', setup.agencyAId).single()
 
     const { error } = await setup.clientA.from('agencies').update({ [column]: value }).eq('id', setup.agencyAId)
-    expect(error, `un agent ne doit jamais pouvoir poser ${column} lui-même`).not.toBeNull()
+    expect(error, `RLS (agencies_members_update) exclut déjà la ligne pour un agent simple : 0 ligne, pas de refus explicite`).toBeNull()
 
     const after = await serviceRoleClient().from('agencies').select(column).eq('id', setup.agencyAId).single()
     expect(
@@ -71,12 +81,26 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes de vérification LAB sur a
     ).toEqual((before.data as Record<string, unknown> | null)?.[column])
   })
 
-  it('un agent peut toujours écrire une colonne NON protégée (name) sur sa propre agence — le verrou est précis', async () => {
+  // Étape 7, tâche 3 (écart 1, 30 juillet 2026) : cette assertion prouvait que le verrou de
+  // CE fichier (le trigger de vérification) ne fermait QUE les colonnes protégées, rien
+  // d'autre — vrai avant le 30 juillet, et ça n'a pas changé (voir plus bas, une fois promu
+  // dirigeant, où la même écriture passe). Mais depuis 20260731170000,
+  // agencies_members_update elle-même exige is_agency_admin() : un agent simple ne peut plus
+  // écrire AUCUNE colonne de agencies en direct, protégée ou non. La preuve "le verrou est
+  // précis" se fait donc désormais dirigeant, plus bas ; ici on prouve que le RBAC ferme name
+  // aussi, pour ne pas laisser un test qui reste vert par accident (0 ligne silencieuse) sans
+  // vérifier l'état persisté.
+  it('un agent simple ne peut plus écrire name non plus — RBAC de agencies_members_update, pas ce trigger-ci', async () => {
+    const before = await serviceRoleClient().from('agencies').select('name').eq('id', setup.agencyAId).single()
+
     const { error } = await setup.clientA
       .from('agencies')
       .update({ name: `Agency A renamed ${setup.stamp}` })
       .eq('id', setup.agencyAId)
-    expect(error, 'le verrou ne doit fermer QUE les colonnes de vérification, rien d\'autre').toBeNull()
+    expect(error).toBeNull()
+
+    const after = await serviceRoleClient().from('agencies').select('name').eq('id', setup.agencyAId).single()
+    expect(after.data?.name, 'name ne doit pas avoir bougé : un agent simple ne dirige pas l\'agence').toBe(before.data?.name)
   })
 
   // ── 2. Un dirigeant (role admin) de l'agence non plus ────────────────────────────
@@ -88,6 +112,22 @@ describe.skipIf(!HAS_KEYS)('verrouillage des colonnes de vérification LAB sur a
 
     const { error } = await setup.clientA.from('agencies').update({ [column]: value }).eq('id', setup.agencyAId)
     expect(error, `un dirigeant ne doit jamais pouvoir poser ${column} lui-même, même admin de sa propre agence`).not.toBeNull()
+  })
+
+  it('un dirigeant (role admin) peut toujours écrire name — le verrou de CE fichier est précis', async () => {
+    // Rôle déjà admin (promu par le it.each ci-dessus) : is_agency_admin() passe côté RLS
+    // (agencies_members_update, 20260731170000), donc cette écriture atteint réellement la
+    // table — c'est ICI, pas côté agent, que « le trigger de vérification ne ferme QUE les
+    // colonnes protégées » se prouve désormais.
+    const newName = `Agency A dirigeant ${setup.stamp}`
+    const { error } = await setup.clientA
+      .from('agencies')
+      .update({ name: newName })
+      .eq('id', setup.agencyAId)
+    expect(error, 'le verrou de vérification ne doit fermer QUE les colonnes protégées, rien d\'autre').toBeNull()
+
+    const { data } = await serviceRoleClient().from('agencies').select('name').eq('id', setup.agencyAId).single()
+    expect(data?.name).toBe(newName)
   })
 
   // ── 3. Deuxième défense (trigger) : tient même si la première (REVOKE) régresse ──
