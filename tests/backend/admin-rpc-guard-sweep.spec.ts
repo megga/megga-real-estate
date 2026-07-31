@@ -27,12 +27,21 @@ import { execSql } from './helpers/local-sql'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 
-/** Le périmètre : préfixes admin + les quatre surfaces admin sans préfixe (inventaire §3). */
+/**
+ * Le périmètre : préfixes admin + les surfaces admin sans préfixe (inventaire §3).
+ *
+ * `agency_mrr` rejoint la liste à l'étape 9 : la spec la NOMME ainsi (§4.3), elle est
+ * SECURITY DEFINER et accordée à `authenticated` — sans cette ligne elle sortirait du
+ * balayage par son seul nom. C'est le geste conscient que ce fichier exige de l'ajout d'une
+ * exception, appliqué dans l'autre sens.
+ * `agency_mrr_rule` n'y est PAS, et c'est délibéré : elle n'est pas SECURITY DEFINER, ne lit
+ * aucune table et ne rend que ce qu'on lui passe — il n'y a rien derrière quoi garder.
+ */
 const SCOPE = `(
   p.proname ~ '^(admin_|get_admin)'
   or p.proname in ('get_agency_stats', 'get_onboarding_milestones',
                    'get_agency_activity_summary', 'get_cron_health',
-                   'compute_platform_mrr_estimate')
+                   'compute_platform_mrr_estimate', 'agency_mrr')
 )`
 
 /** Ce qui compte comme garde : l'un des deux prédicats du patron maison. */

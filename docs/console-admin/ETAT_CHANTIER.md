@@ -37,18 +37,30 @@ production** : 0.1 et 0.3 l'étaient déjà, 0.2 et 0.4 par #1044.
 session · 4 ✅ focus clavier · plus un **balayage de gardes** couvrant les 32 RPC admin.
 Les trois critères de sortie **G0** sont couverts par des tests permanents.
 
-**Lot 1 — 7 étapes sur 11.** 5 ✅ socle §4.2 · 6 ⚠️ partielle · 7 ✅ Stripe · 8 ✅ activation ·
-11 ✅ Live · 12 ✅ crons · 13 ✅ tunnel KYC · 14 ✅ Sécurité (migration livrée, **tests non
-écrits**). Restent **9** (vues), **10** (`admin_overview`, dépend de 9), **15** (branchement
-+ seed). **Les décisions 1 et 2 sont prises : l'étape 9 n'est plus bloquée.**
+**Lot 1 — 8 étapes sur 11.** 5 ✅ socle §4.2 · 6 ⚠️ partielle · 7 ✅ Stripe · 8 ✅ activation ·
+**9 ✅ vues** · 11 ✅ Live · 12 ✅ crons · 13 ✅ tunnel KYC · 14 ✅ Sécurité (migration livrée,
+**tests non écrits**). Restent **10** (`admin_overview`, désormais débloquée), **15**
+(branchement + seed).
 
-**Sept migrations en attente**, toutes datées `20260731` :
-`210000_admin_log` · `220000_admin_console_session` · `230000_admin_console_lot1_socle` ·
+**L'étape 9 a surtout consisté à NE PAS créer.** §4.3 énumère douze vues ; six seulement
+manquaient. `v_admin_kpis` n'a pas été créée — `get_admin_dashboard_stats()` rend déjà, en
+production, les sept champs d'`ADMIN_KPIS` et rien d'autre, correspondance 1:1 avec la
+maquette. `v_monitoring_board` non plus : `get_admin_monitoring_health()` +
+`get_admin_ops_health_rpcs()` + `get_admin_cron_runs()` couvrent tout `ADMIN_HEALTH`.
+`v_kyc_funnel_30d` et `v_security_journal` étaient déjà posées en fonctions (240000, 260000) ;
+`v_diffusion_board`, `v_ai_month` et `v_changelog` appartiennent aux lots 2 et 3.
+Livrées : `agency_mrr` (+ sa règle pure `agency_mrr_rule`), `get_admin_agencies`,
+`get_admin_agency_detail`, `get_admin_users`, `get_admin_user_activity`,
+`get_admin_plans_board`.
+
+**Huit migrations en attente**, toutes datées `20260731` :
+`210500_admin_log` (⚠ **210500**, pas 210000 : main portait déjà ce numéro) ·
+`220000_admin_console_session` · `230000_admin_console_lot1_socle` ·
 `240000_admin_live_and_kyc_funnel` · `250000_activation_and_cron_runs` ·
-`260000_admin_security_read` · `270000_admin_agency_note_and_invitations`.
+`260000_admin_security_read` · `270000_admin_agency_note_and_invitations` ·
+`280000_admin_console_read_views`.
 
-**Tests** : 45 specs dédiées à la console, CI complète verte sur `f4cde647`
-(130 fichiers, 1 144 tests).
+**Tests** : 46 specs dédiées à la console.
 
 ## 4. Décisions PO qui bloquent la suite
 
@@ -77,6 +89,30 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
 - **§4.3 « vues »** : `v_kyc_funnel_30d` et `v_security_journal` sont des FONCTIONS.
   PostgreSQL n'applique pas de RLS aux vues ; `security_invoker` rendrait à chaque agent les
   agrégats de son agence, et sans, tout `authenticated` lirait la plateforme entière.
+  **Étendu à toutes les vues de l'étape 9** : le nom `v_*` de la spec désigne un contrat de
+  lecture, jamais un `CREATE VIEW`.
+- **§4.3 : deux des douze vues n'étaient pas à créer.** `v_admin_kpis` =
+  `get_admin_dashboard_stats()`, déjà en production, dont les sept colonnes correspondent
+  1:1 aux sept champs d'`ADMIN_KPIS`. `v_monitoring_board` = `get_admin_monitoring_health()`
+  + `get_admin_ops_health_rpcs()` + `get_admin_cron_runs()`. Les chercher avant d'écrire a
+  retiré deux objets du périmètre.
+- **§5.7 : trois chiffres de la maquette n'ont AUCUNE source.** `ADMIN_BILLING.mrrTrend`
+  (14 points d'historique), `revenue30d` et `churn` ne sont pas dérivables : le dépôt ne
+  garde aucun historique de MRR — `subscriptions` ne conserve que l'état courant, sans
+  versions, et aucune table de revenu n'existe. Les fabriquer aurait produit une courbe
+  crédible et fausse. `get_admin_plans_board()` les NOMME dans son champ `unavailable`
+  plutôt que de les taire (un champ absent se lit « bug », un champ qui se nomme se lit
+  « pas encore »). Même geste que la bande 24 h de Monitoring, déjà amendée faute de source.
+- **§5.7 : la file « sièges saturés » n'est pas calculée**, et c'est délibéré — elle exige un
+  plafond de sièges, objet de la décision PO n° 4 (encore ouverte), et §5.7 dit lui-même
+  « plafond de sièges APRÈS arbitrage ». En choisir un aurait tranché en silence une
+  question posée au PO. `seats_used` est rendu par agence : le jour de l'arbitrage, la file
+  se calcule sans nouvelle mesure.
+- **§4.3 « MRR » : deux objets et non un.** `agency_mrr_rule(...)` porte la règle, pure et
+  IMMUTABLE ; `agency_mrr(uuid)` est l'entrée nommée par la spec, qui garde puis délègue.
+  Motif : la garde appelle `is_super_admin()`, qui joint `profiles` à `auth.users` — une
+  jointure d'authentification par agence affichée, pour un verdict déjà rendu à l'entrée de
+  la fonction appelante. La règle reste écrite une seule fois, ce qu'exige §4.3.
 
 ## 6. Pièges du dépôt, mesurés dans ce chantier
 
@@ -114,10 +150,22 @@ cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/audit-backend-admin-
 git fetch origin && git rebase origin/main   # main a bougé (PR vitrine de Thomas/Antoine)
 ```
 
-Prochaine action : **étape 9** (les vues `v_admin_*`), désormais débloquée — la note se lit
-dans `admin_agency_notes`, les invitations par `get_admin_agency_invitations`. Puis **10**
-(`admin_overview`, un objet un fetch) et **15**. Les **tests de l'étape 14** restent à
-écrire et ne dépendent de rien.
+Prochaine action : **étape 10** (`admin_overview()`, un objet un fetch), débloquée par
+l'étape 9. Ses sept blocs ont tous leur source, aucune n'est à créer : `kpis` →
+`get_admin_dashboard_stats()` · `activation` → `agency_activation` · `kyc_funnel` →
+`get_admin_kyc_funnel_30d()` · `revenue` → `get_admin_plans_board()` · `journal` →
+`get_admin_live_feed()` (filtré `category <> 'kyc'`, §5.1) · `signals` → dossiers KYB en
+revue (`get_admin_agency_review_queue`), impayés (plans board), fonctions en erreur
+(`get_admin_ops_health_rpcs`). Puis **15** (branchement + seed).
+
+Les **tests de l'étape 14** (écran Sécurité) restent à écrire et ne dépendent de rien.
+
+⚠ **Neuvième piège, mesuré à l'étape 9** : une RPC dont le nom ne commence ni par `admin_`
+ni par `get_admin` sort du balayage de gardes par son seul nom. `agency_mrr` — nommée ainsi
+par la spec — a dû être ajoutée à la main au `SCOPE` de
+[admin-rpc-guard-sweep.spec.ts](../../tests/backend/admin-rpc-guard-sweep.spec.ts). Toute
+future RPC de console au nom non préfixé doit y entrer explicitement, sinon elle est
+protégée sans que rien ne le vérifie.
 
 ## 8. Re-dater les migrations le jour du merge — procédure
 
@@ -150,6 +198,7 @@ NOTRES="
   20260731250000_activation_and_cron_runs.sql
   20260731260000_admin_security_read.sql
   20260731270000_admin_agency_note_and_invitations.sql
+  20260731280000_admin_console_read_views.sql
 "
 for n in $NOTRES; do
   f="supabase/migrations/$n"
