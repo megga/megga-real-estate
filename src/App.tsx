@@ -51,7 +51,7 @@ const BuyerReceptionPage = lazy(() => import('@/pages/public/BuyerReceptionPage'
 const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
 // Auth — lazy car secondary path.
-// Le MODAL DE CONNEXION est désormais servi par la vitrine (megga.ch/login,
+// Le MODAL DE CONNEXION est désormais servi par la vitrine (megga.ch/connexion,
 // câblé Supabase). L'app ne garde que la TUYAUTERIE du flux : /auth/callback
 // (retour OAuth/e-mail) et /auth/forgot-password/reset (cible des e-mails de
 // réinitialisation envoyés par la vitrine). Les écrans de login/signup internes
@@ -299,10 +299,10 @@ function MarketplaceDisabledRedirect() {
   if (typeof window !== 'undefined') window.location.replace(VITRINE_URL)
   return null
 }
-// Le modèle de connexion vit sur la vitrine (megga.ch/login, câblé Supabase).
+// Le modèle de connexion vit sur la vitrine (megga.ch/connexion, câblé Supabase).
 // Les écrans de login/signup internes (ancienne direction) y redirigent. La
 // tuyauterie (/auth/callback, /auth/forgot-password/reset) reste dans l'app.
-const VITRINE_LOGIN_URL = 'https://megga.ch/login'
+const VITRINE_LOGIN_URL = 'https://megga.ch/connexion'
 function VitrineLoginRedirect() {
   if (typeof window !== 'undefined') window.location.replace(VITRINE_LOGIN_URL)
   return null
@@ -334,7 +334,7 @@ function AppRoutes() {
               <Route path="/listing/:id" element={<MarketplaceDisabledRedirect />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
                   Old code/CTA still works; the new modal owns the experience. */}
-              {/* Connexion = vitrine (megga.ch/login). Tous les écrans de login /
+              {/* Connexion = vitrine (megga.ch/connexion). Tous les écrans de login /
                   inscription internes (ancienne direction) y redirigent. */}
               <Route path="/login" element={<VitrineLoginRedirect />} />
               <Route path="/register" element={<VitrineLoginRedirect />} />

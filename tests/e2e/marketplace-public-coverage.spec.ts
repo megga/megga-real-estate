@@ -33,7 +33,7 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   // Intercom depuis le 2026-07-20 ; les 12 pages SPA ont été retirées.
 
   // ── Auth ───────────────────────────────────────────────────────────────
-  // Le modal de connexion vit sur la vitrine (megga.ch/login) : /login,
+  // Le modal de connexion vit sur la vitrine (megga.ch/connexion) : /login,
   // /register, /auth/login… redirigent hors app → voir marketplace-disabled.
   // /reset-password reste in-app (cible des e-mails de réinitialisation).
   { path: '/reset-password', label: 'Reset password' },

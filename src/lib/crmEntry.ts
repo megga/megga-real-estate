@@ -2,7 +2,7 @@
  * Drapeau « on est entré dans le CRM » pour le chargement de la page courante.
  *
  * Sert à distinguer les deux sens d'une même attente :
- *  - AVANT la première peinture du CRM, l'agent arrive de megga.ch/login et
+ *  - AVANT la première peinture du CRM, l'agent arrive de megga.ch/connexion et
  *    doit voir l'écran d'arrivée ([[BootCurtain]]) — un squelette gris ne lui
  *    apprendrait rien, il casserait juste la transition ;
  *  - APRÈS, la même attente veut dire « la page se construit », et c'est le
