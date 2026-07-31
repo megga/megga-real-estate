@@ -23,16 +23,39 @@ const PASS = 'preview';
  * porte d'entrée du produit.
  *
  * Les deux pages légales suivent les pages d'auth pour la même raison : la case
- * de consentement de /signup renvoie vers elles. Derrière le gate, on demandait
- * d'accepter des conditions que le visiteur reçoit en 401 — un consentement à un
- * texte illisible.
+ * de consentement de /inscription renvoie vers elles. Derrière le gate, on
+ * demandait d'accepter des conditions que le visiteur reçoit en 401 — un
+ * consentement à un texte illisible.
  */
 const PUBLIC_PAGES = new Set([
-  '/login',
-  '/signup',
-  '/reset-password',
+  '/connexion',
+  '/inscription',
+  '/nouveau-mot-de-passe',
   '/mentions-legales',
   '/confidentialite',
+]);
+
+/**
+ * Anciennes URLs anglaises → pages renommées en français (31 juil. 2026).
+ *
+ * Deux consommateurs pointent encore sur les anciennes formes et ne se mettent
+ * pas à jour d'un simple déploiement de la vitrine :
+ *  - le CRM déjà servi aux navigateurs redirige les non-connectés sur
+ *    megga.ch/login (ProtectedRoute / VITRINE_LOGIN_URL) ;
+ *  - les e-mails de réinitialisation Supabase renvoient sur
+ *    /reset-password.html (RESET_REDIRECT, listée dans l'allowlist Auth), avec
+ *    les jetons dans le FRAGMENT — un 301 même origine le préserve : le
+ *    navigateur ré-attache le fragment à la cible.
+ * La redirection passe AVANT le gate : un 401 sur /login couperait l'entrée du
+ * produit (incident du 26 juil. 2026).
+ */
+const LEGACY_REDIRECTS = new Map([
+  ['/login', '/connexion'],
+  ['/signup', '/inscription'],
+  ['/reset-password', '/nouveau-mot-de-passe'],
+  ['/pricing', '/tarifs'],
+  ['/about', '/a-propos'],
+  ['/careers', '/carrieres'],
 ]);
 
 /**
@@ -84,7 +107,20 @@ function isPublic(pathname) {
 
 export default {
   async fetch(request, env) {
-    const { pathname } = new URL(request.url);
+    const url = new URL(request.url);
+    const { pathname } = url;
+
+    // Anciennes URLs → françaises, AVANT le gate (voir LEGACY_REDIRECTS).
+    // La query est conservée ; le fragment n'atteint jamais le serveur et le
+    // navigateur le ré-attache lui-même après un 301 même origine.
+    const path = safePath(pathname);
+    const cible = path === null ? undefined : LEGACY_REDIRECTS.get(canonicalPage(path));
+    if (cible) {
+      return new Response(null, {
+        status: 301,
+        headers: { Location: cible + url.search, 'Cache-Control': 'no-store' },
+      });
+    }
 
     if (!isPublic(pathname)) {
       const expected = 'Basic ' + btoa(`${USER}:${PASS}`);

@@ -5,7 +5,7 @@
  * Sans lui, le démarrage à froid montrait deux régimes visuels à la suite —
  * écran d'arrivée, puis squelette gris du dashboard, puis contenu. Le squelette
  * est juste en navigation interne (« la page se construit ») mais faux à
- * l'arrivée : il n'apprend rien et casse la transition depuis megga.ch/login.
+ * l'arrivée : il n'apprend rien et casse la transition depuis megga.ch/connexion.
  * Le rideau le masque donc pendant l'arrivée, et le laisse faire son travail
  * ensuite.
  *
