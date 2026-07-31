@@ -44,6 +44,8 @@ describe.skipIf(!HAS_KEYS)('vues de lecture de la console (étape 9)', () => {
   let setup: TwoAgenciesSetup
   let superClient: SupabaseClient
   const extraUserIds: string[] = []
+  /** Identifiant Stripe reconnaissable : sa PRÉSENCE dans une réponse est la fuite. */
+  const STRIPE_CUS = `cus_ne_doit_jamais_sortir_${Date.now()}`
 
   /** Applique la règle de MRR à des arguments nus, sans toucher à la moindre table. */
   const rule = async (
@@ -82,18 +84,28 @@ describe.skipIf(!HAS_KEYS)('vues de lecture de la console (étape 9)', () => {
     // Agence A : abonnement Pro mensuel actif → 89 attendus de bout en bout.
     // Agence B : aucun abonnement → 0, et c'est le cas le plus fréquent en production
     // (la table `subscriptions` y est vide).
+    //
+    // ⚠ `stripe_customer_id` est NOT NULL SANS défaut : l'omettre fait échouer l'insert,
+    // donc le beforeAll, donc toute la suite — qui se lirait « N ignorés ». La valeur est
+    // rendue reconnaissable à dessein : le test de non-fuite cherche la VALEUR, pas
+    // seulement le nom de colonne.
     const { error: subErr } = await svc.from('subscriptions').insert({
       agency_id: setup.agencyAId, plan: 'pro', billing_period: 'monthly', status: 'active',
+      stripe_customer_id: STRIPE_CUS,
     })
     if (subErr) throw new Error(`subscription: ${subErr.message}`)
 
     // Un événement ANCIEN pour l'agent A : c'est lui qui donne un `stale_days` mesurable.
     // Semé en psql : activity_events refuse l'UPDATE comme le DELETE (append-only), on ne
     // pourra donc pas le retoucher ensuite — d'où une date posée juste une fois.
+    // ⚠ `category` est sous CHECK : kyc|deal|contact|bien|doc|auth|settings|ai. La maquette
+    // du Live parle de « contacts » au pluriel — la base veut le SINGULIER, et un insert
+    // invalide ici ferait échouer le beforeAll, donc SKIPPER toute la suite : « N ignorés »
+    // au lieu de « N échecs ».
     runSql(`begin
       insert into public.activity_events (agency_id, actor_id, action, entity_type, category, created_at)
         values ('${setup.agencyAId}'::uuid, '${setup.agentAId}'::uuid, 'contact_created',
-                'contact', 'contacts', now() - interval '45 days');
+                'contact', 'contact', now() - interval '45 days');
       insert into public.team_invitations (agency_id, email, role, status, expires_at, invited_by)
         values ('${setup.agencyBId}'::uuid, 'agent-b-${setup.stamp}@megga-test.local',
                 'agent', 'pending', now() + interval '7 days', '${setup.agentAId}'::uuid);`)
@@ -242,10 +254,14 @@ describe.skipIf(!HAS_KEYS)('vues de lecture de la console (étape 9)', () => {
     // Le jeton d'invitation est un secret de porteur : le rendre, c'est permettre de
     // rejoindre l'agence depuis la console.
     expect(brut, 'aucun jeton d\'invitation dans la fiche').not.toContain('"token"')
-    // §5.7 : la console constate le paiement, elle ne le manipule pas.
+    // §5.7 : la console constate le paiement, elle ne le manipule pas. On cherche le nom de
+    // colonne ET la valeur : une projection qui renommerait la colonne en « customer »
+    // passerait le premier contrôle tout en fuyant l'identifiant.
     for (const k of ['stripe_customer_id', 'stripe_subscription_id', 'stripe_price_id']) {
       expect(brut, `« ${k} » n'a rien à faire dans la fiche agence`).not.toContain(k)
     }
+    expect(brut, 'l\'identifiant client Stripe a fuité sous un autre nom')
+      .not.toContain(STRIPE_CUS.toLowerCase())
     // §5.3 : « JAMAIS : contacts, leads, dossiers KYC clients finaux ». La fiche parle de
     // l'agence cliente, pas des clients de l'agence.
     for (const k of ['kyc_case', 'contact_id', 'lead_id', 'risk_level']) {
@@ -283,23 +299,34 @@ describe.skipIf(!HAS_KEYS)('vues de lecture de la console (étape 9)', () => {
     expect(b?.invited_at, 'l\'invitation en attente de l\'agent B est vue').not.toBeNull()
   })
 
-  it('les comptes supprimés restent comptés — sinon la Vue d\'ensemble se contredit', async () => {
+  it('un compte supprimé reste au registre — sinon la Vue d\'ensemble se contredit', async () => {
     // Critère de sortie du gate G1 : « compteurs Vue d'ensemble = sommes des tables, zéro
     // contradiction ». get_admin_dashboard_stats().total_users compte `profiles` SANS
     // filtre ; masquer les supprimés ici ferait diverger les deux écrans.
+    //
+    // Éprouvé en supprimant VRAIMENT un compte, plutôt qu'en comparant les deux compteurs :
+    // cette suite tourne en parallèle d'autres specs qui créent des comptes, et une égalité
+    // entre deux appels successifs serait un flake, pas une preuve. Ici il n'y a pas de
+    // course : on connaît la ligne qu'on vient de marquer.
     const svc = serviceRoleClient()
-    const { data: stats } = await svc.rpc('get_admin_dashboard_stats')
-    const total = Number((stats as Row[])[0].total_users)
-    const { data: users } = await svc.rpc('get_admin_users', { p_limit: 2000 })
-    const rows = users as Row[]
+    const { error: delErr } = await svc.from('profiles')
+      .update({ deleted_at: new Date().toISOString() }).eq('id', setup.agentBId)
+    if (delErr) throw new Error(`soft delete: ${delErr.message}`)
 
-    expect(Object.keys(rows[0]), 'la date de suppression est exposée, pas la ligne masquée')
-      .toContain('deleted_at')
-    // Comparaison bornée : au-delà de 2000 comptes le registre est paginé, et l'égalité
-    // ne vaudrait plus. En deçà, elle doit être exacte.
-    if (total <= 2000) {
-      expect(rows.length, 'le registre et le compteur de la Vue d\'ensemble doivent s\'accorder')
-        .toBe(total)
+    try {
+      const { data } = await svc.rpc('get_admin_users', { p_limit: 2000 })
+      const b = (data as Row[]).find((r) => r.id === setup.agentBId)
+      expect(b, 'un compte supprimé DOIT rester au registre').toBeTruthy()
+      expect(b!.deleted_at, 'sa date de suppression est exposée, pour que l\'écran filtre')
+        .not.toBeNull()
+
+      // Le pendant : le REGISTRE des agences, lui, ne compte pas les sièges supprimés.
+      // Les deux sont volontairement différents — l'un réconcilie un total, l'autre
+      // mesure une équipe réelle.
+      const { data: ag } = await svc.rpc('get_admin_agencies', { p_agency_id: setup.agencyBId })
+      expect(Number((ag as Row[])[0].agents), 'un compte supprimé n\'occupe plus de siège').toBe(0)
+    } finally {
+      await svc.from('profiles').update({ deleted_at: null }).eq('id', setup.agentBId)
     }
   })
 
