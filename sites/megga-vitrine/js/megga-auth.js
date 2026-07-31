@@ -351,11 +351,13 @@
    * voyage donc par l'URL, comme la session — et le CRM la grave chez lui
    * (src/i18n/index.ts, adoptLanguageFromUrl).
    *
-   * ⚠ Uniquement sur NOS redirections. Le `redirectTo` d'un signInWithOAuth
-   * est comparé à l'allowlist Supabase (Auth → URL Configuration) : y ajouter
-   * un paramètre sans inscrire la variante là-bas ferait retomber le retour
-   * OAuth sur la Site URL. Les connexions Google/Microsoft n'emportent donc
-   * pas encore la langue.
+   * ⚠ Sert AUSSI aux redirections que Supabase valide — `redirectTo` d'un
+   * signInWithOAuth, `emailRedirectTo` d'un signUp. Elles sont comparées à
+   * l'allowlist (Auth → URL Configuration), qui porte depuis le 31 juil. 2026
+   * l'entrée `https://app.megga.ch/auth/callback*`. Retirer cette entrée ne
+   * casserait rien de visible ici : Supabase ignorerait simplement la cible et
+   * renverrait sur la Site URL, donc les connexions Google/Microsoft
+   * atterriraient hors du CRM.
    */
   function langueQuery() { return '?lang=' + langueCourante(); }
 
@@ -395,7 +397,7 @@
         }
         client.auth.signInWithOAuth({
           provider: provider,
-          options: { redirectTo: AUTH_REDIRECT },
+          options: { redirectTo: AUTH_REDIRECT + langueQuery() },
         });
       });
     });
@@ -531,7 +533,10 @@
             email: email,
             password: pwd,
             options: {
-              emailRedirectTo: AUTH_REDIRECT,
+              // Le lien de confirmation ouvre le CRM dans la langue de la page
+              // d'inscription — c'est le trajet exact où l'agent tombait sur un
+              // CRM en anglais après avoir tout lu en français.
+              emailRedirectTo: AUTH_REDIRECT + langueQuery(),
               captchaToken: captchaToken,
               // role:'agent' — cohérence avec le signup interne de l'app
               // (AuthBentoApp). Sans ça, le trigger handle_new_user retombe sur
