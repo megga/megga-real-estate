@@ -10,15 +10,16 @@
  * mieux à un site statique — un dossier par langue, aucune règle de serveur à
  * écrire, et un `hreflang` évident le jour où les pages traduites existent.
  *
- * ⚠ ÉTAT AU 31 JUIL. 2026 : seules les pages FR existent. Les trois autres
- * langues sont donc listées mais inertes (`disponible: false`) — servir un lien
- * vers une page absente vaudrait moins que l'annoncer. Le jour où `/de/` est
- * peuplé, passer son drapeau à `true` suffit : tout le reste est déjà câblé.
+ * ⚠ ÉTAT AU 31 JUIL. 2026 : FR et DE existent ; EN et IT sont listés mais
+ * inertes (`disponible: false`) — servir un lien vers une page absente vaudrait
+ * moins que l'annoncer. Le jour où `/en/` est peuplé, passer son drapeau à
+ * `true` suffit. ⚠ Le palier 1 ne traduit PAS le blog ni les pages légales :
+ * les liens vers ces pages restent en français, c'est voulu.
  */
 (function () {
   var LANGUES = [
     { code: 'fr', nom: 'Français', disponible: true },
-    { code: 'de', nom: 'Deutsch', disponible: false },
+    { code: 'de', nom: 'Deutsch', disponible: true },
     { code: 'en', nom: 'English', disponible: false },
     { code: 'it', nom: 'Italiano', disponible: false },
   ];
@@ -59,25 +60,18 @@
   }
 
   /**
-   * Garde les liens internes dans la langue courante.
+   * Libellés du dialogue, par langue.
    *
-   * Sans ça, un visiteur arrivé sur `/de/pricing.html` repartirait en français
-   * au premier clic : les pages traduites sont des copies, leurs liens restent
-   * écrits à la racine. Inerte tant qu'on est en français.
+   * Le dialogue est construit en JavaScript : ses propres textes ne passent pas
+   * par le générateur, il faut donc les porter ici. Une modale française sur une
+   * page allemande signalerait que la traduction s'arrête à la surface.
    */
-  function suivreLaLangue(code) {
-    if (code === 'fr') return;
-    var liens = document.querySelectorAll('a[href]');
-    for (var i = 0; i < liens.length; i++) {
-      var brut = liens[i].getAttribute('href');
-      // Uniquement les chemins internes : on ne touche ni aux ancres, ni aux
-      // mailto/tel, ni aux domaines tiers.
-      if (!brut || brut.charAt(0) === '#' || /^[a-z]+:/i.test(brut)) continue;
-      var url = new URL(brut, location.href);
-      if (url.origin !== location.origin) continue;
-      liens[i].setAttribute('href', cheminLocalise(url.pathname, code) + url.search + url.hash);
-    }
-  }
+  var LIBELLES = {
+    fr: { titre: 'Choisir la langue', actuelle: 'Langue actuelle', bientot: 'Bientôt', fermer: 'Fermer' },
+    de: { titre: 'Sprache wählen', actuelle: 'Aktuelle Sprache', bientot: 'Demnächst', fermer: 'Schliessen' },
+    en: { titre: 'Choose language', actuelle: 'Current language', bientot: 'Soon', fermer: 'Close' },
+    it: { titre: 'Scegli la lingua', actuelle: 'Lingua attuale', bientot: 'Presto', fermer: 'Chiudi' },
+  };
 
   function icone(nom) {
     if (nom === 'globe') {
@@ -92,6 +86,7 @@
   }
 
   function construireDialogue(code) {
+    var mots = LIBELLES[code] || LIBELLES.fr;
     var modal = document.createElement('div');
     modal.className = 'megga-lang-modal';
     modal.id = 'megga-lang-modal';
@@ -102,17 +97,17 @@
       var attrs = 'class="megga-lang-option" data-langue="' + l.code + '"'
         + ' aria-current="' + (courante ? 'true' : 'false') + '"'
         + (l.disponible ? '' : ' aria-disabled="true"');
-      var note = courante ? '<span class="megga-lang-option__note">Langue actuelle</span>'
-        : (l.disponible ? '' : '<span class="megga-lang-option__note">Bientôt</span>');
+      var note = courante ? '<span class="megga-lang-option__note">' + mots.actuelle + '</span>'
+        : (l.disponible ? '' : '<span class="megga-lang-option__note">' + mots.bientot + '</span>');
       return '<li><button type="button" ' + attrs + '><span>' + l.nom + '</span>' + note + '</button></li>';
     }).join('');
 
     modal.innerHTML =
       '<div class="megga-lang-modal__backdrop" data-megga-lang-close></div>'
       + '<div class="megga-lang-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="megga-lang-titre">'
-      + '<button class="megga-lang-modal__close" type="button" aria-label="Fermer" data-megga-lang-close>'
+      + '<button class="megga-lang-modal__close" type="button" aria-label="' + mots.fermer + '" data-megga-lang-close>'
       + icone('croix') + '</button>'
-      + '<h2 class="megga-lang-modal__title" id="megga-lang-titre">Choisir la langue</h2>'
+      + '<h2 class="megga-lang-modal__title" id="megga-lang-titre">' + mots.titre + '</h2>'
       + '<ul class="megga-lang-list">' + options + '</ul>'
       + '</div>';
     return modal;
@@ -126,7 +121,11 @@
 
     var code = langueCourante();
     document.documentElement.setAttribute('lang', code);
-    suivreLaLangue(code);
+    // Le bouton nomme la langue courante dans SA propre langue (endonyme) :
+    // « Deutsch » sur une page allemande, jamais « Allemand » ni « Französisch ».
+    var etiquette = bouton.querySelector('span');
+    var actuelle = LANGUES.filter(function (l) { return l.code === code; })[0];
+    if (etiquette && actuelle) etiquette.textContent = actuelle.nom;
 
     var modal = construireDialogue(code);
     document.body.appendChild(modal);

@@ -17,6 +17,7 @@
 // Les données market_listings restent actives (elles nourrissent le CRM).
 
 import { existsSync, cpSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -43,3 +44,13 @@ if (target === 'app') {
 // live in that file) ship with it.
 cpSync(storefront, dist, { recursive: true, force: true });
 console.log('[postbuild] storefront target — dist/ is now the static vitrine (sites/megga-vitrine)');
+
+// Les langues sont GÉNÉRÉES, jamais versionnées : le dépôt ne garde que le
+// français et un dictionnaire par langue. Enchaîné ici pour qu'un déploiement
+// ne puisse pas publier une vitrine française sans ses traductions — ou pire,
+// des traductions figées d'un build précédent.
+const i18n = spawnSync(process.execPath, [resolve(root, 'scripts/vitrine-i18n.mjs'), '--build'], { stdio: 'inherit' });
+if (i18n.status !== 0) {
+  console.error('[postbuild] génération des langues en échec');
+  process.exit(i18n.status ?? 1);
+}

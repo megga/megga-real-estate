@@ -111,11 +111,26 @@ function canonicalPage(path) {
   return trimmed.replace(/\.html$/, '');
 }
 
+/**
+ * Retire le préfixe de langue d'un chemin (`/de/signup` → `/signup`).
+ *
+ * Le gate raisonne sur la PAGE, pas sur la langue : une page publique en
+ * français l'est dans toutes ses traductions. Sans ce retrait, `/de/` aurait
+ * répondu 401 au robot de Google alors que `/` lui est ouvert, et la version
+ * allemande de l'inscription aurait été murée.
+ */
+const LANGUES = ['de', 'en', 'it'];
+function sansLangue(path) {
+  const m = path.match(/^\/(de|en|it)(\/.*)?$/i);
+  if (!m) return path;
+  return m[2] || '/';
+}
+
 /** Vrai si la requête doit passer sans mot de passe. */
 function isPublic(pathname) {
   const path = safePath(pathname);
   if (path === null) return false;
-  if (PUBLIC_PAGES.has(canonicalPage(path))) return true;
+  if (PUBLIC_PAGES.has(canonicalPage(sansLangue(path)))) return true;
   const lower = path.toLowerCase();
   return PUBLIC_PREFIXES.some((prefix) => lower.startsWith(prefix));
 }
