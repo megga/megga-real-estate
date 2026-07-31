@@ -38,9 +38,13 @@ const SCOPE = `(
 /** Ce qui compte comme garde : l'un des deux prédicats du patron maison. */
 const GUARDED = `(p.prosrc ilike '%is_super_admin%' or p.prosrc ilike '%is_service_role%')`
 
-function assertSql(body: string): void {
+/** Lève si l'assertion SQL échoue : `execSql` ne rend rien, c'est le SQL qui juge. */
+function runSql(body: string): void {
   execSql(`do $$\n${body}\nend $$;`)
 }
+
+/** Enveloppe pour que l'échec passe par vitest plutôt que par une exception nue. */
+const assertSql = (body: string) => expect(() => runSql(body), 'assertion SQL').not.toThrow()
 
 describe.skipIf(!HAS_KEYS)('G0 — aucune RPC admin n\'est joignable par un agent', () => {
   it('le balayage porte sur un périmètre non vide (garde anti-test creux)', () => {
