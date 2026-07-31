@@ -40,9 +40,9 @@
 --      jamais recalculé. Les deux vont ensemble ou pas du tout.
 --
 -- Les deux fonctions recopiées l'ont été par EXTRACTION MÉCANIQUE de leur dernière version
--- (20260729151200 pour le moteur, 20260730121000 pour la soumission), puis substitution du
+-- (20260729151200 pour le moteur, 20260731121000 pour la soumission), puis substitution du
 -- seul fragment concerné -- jamais retapées. Le moteur a été redéfini une fois, la soumission
--- quatre fois (20260729150800, 20260729151000, 20260729151400, 20260730121000) : une
+-- quatre fois (20260729150800, 20260729151000, 20260729151400, 20260731121000) : une
 -- transcription à la main y aurait perdu le déclenchement net.http_post ou la garde de
 -- remplacement de la pièce d'identité, en silence.
 --
@@ -117,7 +117,7 @@ begin
   --   verification_status : ferme le garde LAB (liste blanche) et dit POURQUOI ;
   --   identity_submitted_at = null : rouvre le gate d'onboarding (useIdentityGate ne lit que
   --     cette colonne) ET dégèle les colonnes d'identité légale
-  --     (agencies_guard_identity_columns, 20260730130000, qui gèle sur cette même colonne) --
+  --     (agencies_guard_identity_columns, 20260731130000, qui gèle sur cette même colonne) --
   --     un seul fait porte les deux, ce n'est pas une coïncidence mais la charnière voulue ;
   --   verified_at = null : un dossier renvoyé n'est jamais « vérifié depuis » (défensif, comme
   --     le fait déjà admin_reject_agency_review).
@@ -391,7 +391,7 @@ end;
 $$;
 -- ─── 4. Une resoumission rend la main au moteur ────────────────────────────────────
 --
--- RECOPIE MÉCANIQUE de 20260730121000, un seul bloc ajouté (voir son commentaire en place).
+-- RECOPIE MÉCANIQUE de 20260731121000, un seul bloc ajouté (voir son commentaire en place).
 create or replace function public.submit_agency_identity(p_related_person_id uuid default null)
 returns void
 language plpgsql
@@ -559,7 +559,7 @@ $$;
 -- ─── 5. Les deux commentaires que la recopie ne portait pas ─────────────────────────
 --
 -- `create or replace function` conserve les privilèges (contrairement à DROP + CREATE) : les
--- GRANT posés par 20260729151200 et 20260730121000 restent en place, rien à redonner. Les
+-- GRANT posés par 20260729151200 et 20260731121000 restent en place, rien à redonner. Les
 -- COMMENT, eux, survivraient PÉRIMÉS -- ils décrivent un comportement qui vient de changer.
 comment on function public.recompute_agency_verification(uuid) is
   'Moteur de scoring KYB (étape 3). Calcule agencies.verification_score (moyenne pondérée sur le dernier check de chaque type, ENTITÉ et PERSONNE scorable — signatory_registry_match, poa_document_review — des seuls signataires actifs, poids et statut de véto lus dans la configuration en vigueur À LA DATE DU CHECK, jamais la configuration courante) et verification_status (auto_validated seulement si aucun véto entité/personne en échec ou absent, aucun check en pending_manual_review, un signataire actif identifié, et un score >= auto_validate_min ; manual_review sinon, y compris score NULL). Les vétos personne portent sur les signataires actifs uniquement. Un VERDICT HUMAIN n''est jamais posé ni écrasé par cette fonction — retour anticipé sans effet de bord : rejected, validated, et depuis l''étape 7/tâche 5 correction_requested. Cette liste est un ÉNONCÉ de ce qui relève de l''humain, pas une optimisation : aucun chemin ne déclenche le moteur sur un dossier correction_requested aujourd''hui, mais « aucun chemin aujourd''hui » est le raisonnement qui avait laissé pep_sanctions_screening sans source pendant six étapes. Journalise un activity_events (category=kyc) à chaque passage effectif. service_role uniquement.';

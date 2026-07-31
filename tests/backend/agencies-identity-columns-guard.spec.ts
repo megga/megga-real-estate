@@ -1,6 +1,6 @@
 // Backend integration spec (live CI) — verrouillage et journalisation des colonnes
 // d'identité légale sur agencies (étape 7, tâche 3 — migration
-// 20260730130000_agencies_identity_columns_guard.sql).
+// 20260731130000_agencies_identity_columns_guard.sql).
 //
 // LE DÉFAUT. `agencies_members_update` (20260527010000) autorise TOUT membre à écrire
 // n'importe quelle colonne de la ligne de son agence, et son propre commentaire dit que la

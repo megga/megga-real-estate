@@ -737,7 +737,7 @@ ailleurs. Les suivants étaient déjà connus et sont repris ici pour que la lis
 
 > **✅ CORRIGÉ le 30.07.2026 (étape 7, tâches 1 et 4).** Le véto est branché sur Dilisense
 > (`createPepSanctionsSources`, `_shared/kyb-sources.ts`), `record_agency_verification_run`
-> accepte des checks de portée personne (`20260730140000`), et
+> accepte des checks de portée personne (`20260731140000`), et
 > `agency-verification-run/index.ts` interroge les signataires actifs. Un dossier français
 > complet atteint `auto_validated` **sans qu'aucune fixture ne pose de check à la main** :
 > `tests/backend/agency-person-verification-run.spec.ts`, avec son contrôle. Et l'invariant
@@ -797,7 +797,7 @@ l'ancien handoff. Tant que ce véto n'est pas résolu, Zefix ne débloquerait ri
 ### B. CRITIQUE : un dossier rejeté est un cul-de-sac définitif
 
 > **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 5).** Cinquième décision humaine,
-> `admin_request_agency_correction` (`20260730150000`) : elle pose le nouveau statut
+> `admin_request_agency_correction` (`20260731150000`) : elle pose le nouveau statut
 > `correction_requested`, remet `identity_submitted_at` à NULL — ce qui rouvre le gate ET
 > dégèle la saisie — et exige un motif. `rejected` reste **terminal**, ce qui n'est cohérent
 > que parce que la correction existe. Le moteur n'écrase pas ce statut, et une resoumission
@@ -824,7 +824,7 @@ réel :** un incident support par dossier rejeté.
 
 ### C. CRITIQUE : une pièce d'identité refusée ne peut pas être remplacée
 
-> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 2, migration `20260730121000`).** Les deux
+> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 2, migration `20260731121000`).** Les deux
 > impasses sont levées par un point de décision unique, `_latest_person_verification_check`,
 > qui départage les lignes **exactement comme le moteur** (`checked_at desc, ctid desc`) :
 > `submit_agency_identity` repose une demande dès que le dernier verdict n'est ni `pending`
@@ -850,7 +850,7 @@ Le premier point était consigné comme dette de l'étape 2 et attribué à l'é
 
 ### D. IMPORTANT : les données légales sont modifiables après validation, sans revérification ni trace
 
-> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 3, migration `20260730130000`).** Deux triggers :
+> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 3, migration `20260731130000`).** Deux triggers :
 > l'un refuse l'écriture des 5 colonnes d'identité à un agent simple, et à quiconque une fois
 > le dossier soumis (le gel se lève quand `identity_submitted_at` repasse à NULL, ce qui est
 > la charnière avec la tâche 5) ; l'autre journalise tout changement dans `activity_events`
@@ -883,7 +883,7 @@ toute action ».
 ### E. IMPORTANT : aucune notification de décision
 
 > **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 6).** Un trigger sur la TRANSITION de
-> `verification_status` (`20260730160000`) déclenche `agency-verification-notify`, qui relit
+> `verification_status` (`20260731160000`) déclenche `agency-verification-notify`, qui relit
 > le motif dans le journal — les RPC l'écrivent après l'UPDATE, et le corps d'un
 > `net.http_post` vit en clair dans la file — et envoie par Resend aux **dirigeants** de
 > l'agence. Dans un trigger et non depuis l'écran : un appel côté client serait skippable.

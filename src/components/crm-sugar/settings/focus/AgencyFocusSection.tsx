@@ -54,7 +54,7 @@ const AG_GROUPS: GroupDef[] = [
 ]
 
 /** Les quatre champs que les VÉTOS d'entité comparent au registre du commerce, donc ceux que
- *  le garde serveur gèle (agencies_guard_identity_columns, 20260730130000). `address` et ses
+ *  le garde serveur gèle (agencies_guard_identity_columns, 20260731130000). `address` et ses
  *  voisines n'y sont pas : elles ne nourrissent qu'address_geocode, un signal scorable. */
 const LEGAL_IDENTITY_KEYS: RowKey[] = ['legal', 'legalFormId', 'businessRegistrationNumber', 'tva']
 
@@ -157,7 +157,7 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
   const toRow = (r: RowDef): PfRow => {
     // Verrou d'identité légale (étape 7, tâche 3) : les quatre champs que les vétos d'entité
     // comparent au registre passent en lecture seule quand le garde serveur les refuserait
-    // (agencies_guard_identity_columns, 20260730130000). Sans cela l'utilisateur voit
+    // (agencies_guard_identity_columns, 20260731130000). Sans cela l'utilisateur voit
     // « Modifier », saisit, enregistre, et reçoit un 42501 opaque. Le cadenas de pfKit porte
     // déjà l'affordance et son infobulle : aucun composant à inventer.
     const locked = LEGAL_IDENTITY_KEYS.includes(r.key) && legalIdentityLock !== null

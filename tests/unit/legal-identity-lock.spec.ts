@@ -5,7 +5,7 @@
 // un arbre de composants.
 //
 // Ce qu'elle doit être : le MIROIR EXACT du garde serveur agencies_guard_identity_columns()
-// (migration 20260730130000), y compris son ORDRE. Le garde teste le rôle d'abord, la
+// (migration 20260731130000), y compris son ORDRE. Le garde teste le rôle d'abord, la
 // soumission ensuite ; un écran qui inverserait les deux dirait à un employé d'agence soumise
 // « attendez la fin de la vérification » alors que le serveur lui répondrait « ce n'est pas à
 // vous de le faire ». Deux messages, deux gestes, et c'est le second qui est vrai.
