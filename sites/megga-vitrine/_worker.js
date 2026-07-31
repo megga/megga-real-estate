@@ -21,8 +21,60 @@ const PASS = 'preview';
 /**
  * Pages servies sans mot de passe : le gate protège le contenu marketing, pas la
  * porte d'entrée du produit.
+ *
+ * Les pages légales suivent les pages d'auth pour la même raison : la case de
+ * consentement de /inscription renvoie vers elles. Derrière le gate, on
+ * demandait d'accepter des conditions que le visiteur reçoit en 401 — un
+ * consentement à un texte illisible.
+ *
+ * ⚠ L'ACCUEIL est ouvert depuis le 31 juil. 2026, et ce n'est pas un
+ * relâchement du gate : Google exige, pour vérifier l'écran de consentement
+ * OAuth (« Continuer avec Google »), une page d'accueil consultable SANS
+ * connexion, qui explique l'objet de l'app, porte son nom et lie la politique
+ * de confidentialité. Son robot recevait 401 et rejetait la demande sur cinq
+ * points d'un coup. Fermer `/` revient donc à casser la connexion Google.
+ * Le reste du marketing — tarifs, blog, à-propos, intégrations… — reste gaté.
  */
-const PUBLIC_PAGES = new Set(['/login', '/signup', '/reset-password']);
+const PUBLIC_PAGES = new Set([
+  '/',
+  '/index',
+  '/connexion',
+  '/inscription',
+  '/nouveau-mot-de-passe',
+  '/mentions-legales',
+  '/confidentialite',
+  '/conditions-generales',
+]);
+
+/**
+ * Anciennes URLs anglaises → pages renommées en français (31 juil. 2026).
+ *
+ * Deux consommateurs pointent encore sur les anciennes formes et ne se mettent
+ * pas à jour d'un simple déploiement de la vitrine :
+ *  - le CRM déjà servi aux navigateurs redirige les non-connectés sur
+ *    megga.ch/login (ProtectedRoute / VITRINE_LOGIN_URL) ;
+ *  - les e-mails de réinitialisation Supabase renvoient sur
+ *    /reset-password.html (RESET_REDIRECT, listée dans l'allowlist Auth), avec
+ *    les jetons dans le FRAGMENT — un 301 même origine le préserve : le
+ *    navigateur ré-attache le fragment à la cible.
+ * La redirection passe AVANT le gate : un 401 sur /login couperait l'entrée du
+ * produit (incident du 26 juil. 2026).
+ */
+const LEGACY_REDIRECTS = new Map([
+  ['/login', '/connexion'],
+  ['/signup', '/inscription'],
+  ['/reset-password', '/nouveau-mot-de-passe'],
+  ['/pricing', '/tarifs'],
+  ['/about', '/a-propos'],
+  ['/careers', '/carrieres'],
+  // Alias anglais attendus par des tiers. La console Google Cloud pointait sa
+  // « privacy policy URL » sur /privacy, qui n'existait pas : le gate répondait
+  // 401 avec le MÊME corps que sur l'accueil, d'où le diagnostic « votre URL de
+  // politique de confidentialité est identique à votre page d'accueil ».
+  ['/privacy', '/confidentialite'],
+  ['/terms', '/conditions-generales'],
+  ['/legal', '/mentions-legales'],
+]);
 
 /**
  * Dossiers de ressources laissés libres. Sans eux les pages d'auth arrivent nues
@@ -73,7 +125,20 @@ function isPublic(pathname) {
 
 export default {
   async fetch(request, env) {
-    const { pathname } = new URL(request.url);
+    const url = new URL(request.url);
+    const { pathname } = url;
+
+    // Anciennes URLs → françaises, AVANT le gate (voir LEGACY_REDIRECTS).
+    // La query est conservée ; le fragment n'atteint jamais le serveur et le
+    // navigateur le ré-attache lui-même après un 301 même origine.
+    const path = safePath(pathname);
+    const cible = path === null ? undefined : LEGACY_REDIRECTS.get(canonicalPage(path));
+    if (cible) {
+      return new Response(null, {
+        status: 301,
+        headers: { Location: cible + url.search, 'Cache-Control': 'no-store' },
+      });
+    }
 
     if (!isPublic(pathname)) {
       const expected = 'Basic ' + btoa(`${USER}:${PASS}`);
