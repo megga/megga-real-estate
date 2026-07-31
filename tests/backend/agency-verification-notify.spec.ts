@@ -60,9 +60,18 @@ const NOTIFY_ENDPOINT = `${URL}/functions/v1/agency-verification-notify`
 // Alias Docker documenté par Supabase pour Postgres -> Edge Functions locales. net.http_post
 // tourne DANS le conteneur Postgres, sur un réseau Docker distinct de celui de ce process
 // Node : depuis ce conteneur, 127.0.0.1 désigne le conteneur lui-même, jamais le gateway
-// Kong. Vérifié à la main dans agency-verification-run.spec.ts (net._http_response y montre
-// "Couldn't connect to server" pour 127.0.0.1).
-const PG_NET_LOCAL_FUNCTIONS_URL = 'http://host.docker.internal:8000' // TEMP MANUAL VERIF ONLY -- revert before commit
+// Kong (vérifié à la main dans agency-verification-run.spec.ts -- net._http_response y
+// montre "Couldn't connect to server" pour 127.0.0.1). host.docker.internal n'est PAS non
+// plus la bonne cible malgré les apparences : rien n'écoute le port hôte 8000 (Kong publie
+// son port CONTENEUR 8000 sur le port HÔTE 54321, jamais sur 8000), donc cette route échoue
+// tout aussi silencieusement -- "Couldn't connect to server" côté net._http_response,
+// reproduit ici à la main via `select net.http_get(...)` avant ce correctif. C'est ce qui
+// rendait la suite fragile : AUCUNE transition notifiable n'atteignait jamais le runtime
+// edge, quel que soit l'état de charge -- seule la même adresse qu'agency-verification-run.spec.ts,
+// api.supabase.internal:8000 (alias Docker réellement documenté par Supabase pour ce
+// scénario), livre effectivement la requête -- confirmé ici par la même sonde manuelle
+// (HTTP 404 au lieu d'une erreur de connexion : Kong répond, la route existe).
+const PG_NET_LOCAL_FUNCTIONS_URL = 'http://api.supabase.internal:8000'
 
 const NOTICE_ACTIONS = ['agency_verification_notice_sent', 'agency_verification_notice_undeliverable']
 
