@@ -36,14 +36,19 @@
   var CAPTCHA_TIMEOUT_MS = 20000;
   var CAPTCHA_INTERACTIVE_TIMEOUT_MS = 120000;
 
-  // Messages réutilisés. Le message « compte existant » oriente vers la
-  // connexion ET vers Google : un compte OAuth-only n'a pas de mot de passe,
-  // donc « e-mail déjà pris » sans cette précision laisse l'utilisateur bloqué.
-  var CAPTCHA_FAIL_MSG = 'La vérification de sécurité n’a pas abouti. Réessayez dans un instant ; si cela se reproduit, écrivez-nous à hello@megga.ch.';
-  var CAPTCHA_INTERACTIVE_MSG = 'Confirmez que vous n’êtes pas un robot pour continuer.';
-  var SERVICE_FAIL_MSG = 'Connexion au service impossible. Vérifiez votre connexion, puis réessayez.';
-  var EXISTING_ACCOUNT_MSG = 'Un compte existe déjà avec cet e-mail. Connectez-vous via « Se connecter » — et si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google » (dans ce cas, aucun mot de passe n’a été défini).';
-  var CONSENT_MSG = 'Cochez la case pour accepter les conditions générales et la politique de confidentialité.';
+  // Messages réutilisés. Une ligne chacun : ils s'affichent au-dessus du bouton,
+  // dans la grille des champs — un paragraphe y pousse le formulaire hors de
+  // l'écran et se lit moins bien qu'une phrase.
+  //
+  // Le cas Google n'est plus expliqué ici : un compte créé par OAuth n'a pas de
+  // mot de passe, mais l'agent ne l'apprend utilement qu'au moment où sa
+  // connexion échoue — c'est le message « e-mail ou mot de passe incorrect »
+  // (traduire()) qui l'y renvoie, et il arrive là une étape plus tard.
+  var CAPTCHA_FAIL_MSG = 'Vérification de sécurité impossible. Réessayez.';
+  var CAPTCHA_INTERACTIVE_MSG = 'Confirmez que vous n’êtes pas un robot.';
+  var SERVICE_FAIL_MSG = 'Connexion impossible. Réessayez.';
+  var EXISTING_ACCOUNT_MSG = 'Un compte existe déjà avec cet e-mail.';
+  var CONSENT_MSG = 'Acceptez les conditions pour continuer.';
 
   var scriptPromises = {};
 
@@ -237,14 +242,18 @@
     );
   }
 
-  // Webflow place les blocs .w-form-fail / .w-form-done APRÈS le formulaire
-  // entier — donc sous les boutons OAuth et le lien « Se connecter ». Sur
-  // signup.html ils tombent hors de l'écran : affichés seuls, ils donnent un
-  // bouton qui paraît mort. On les amène dans le champ de vision.
+  // Filet de sécurité : un bloc affiché hors de l'écran donne un bouton qui
+  // paraît mort. Le message d'erreur vit désormais au-dessus du bouton d'envoi
+  // (cf. `.megga-form-error`), donc ce déplacement ne sert plus qu'aux cas
+  // limites — petite fenêtre, page déjà défilée, bloc de confirmation long.
+  //
+  // Défilement INSTANTANÉ, pas `smooth` : une animation de défilement qui part
+  // pendant que l'utilisateur fait tourner sa molette se dispute la page avec
+  // lui, et donne exactement la sensation d'un écran qui refuse de bouger.
   function amenerDansLaVue(el) {
     var box = el.getBoundingClientRect();
     if (box.top >= 0 && box.bottom <= (window.innerHeight || 0)) return;
-    try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+    try { el.scrollIntoView({ block: 'center' }); }
     catch (e) { el.scrollIntoView(); } // options non supportées (vieux Safari)
   }
 
@@ -600,20 +609,20 @@
   // Messages d'erreur Supabase courants → FR.
   function traduire(msg) {
     var m = (msg || '').toLowerCase();
-    if (m.indexOf('invalid login') >= 0) return 'E-mail ou mot de passe incorrect. Si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google ».';
-    if (m.indexOf('email not confirmed') >= 0) return 'E-mail pas encore confirmé. Vérifiez votre boîte de réception (pensez aux spams).';
+    if (m.indexOf('invalid login') >= 0) return 'E-mail ou mot de passe incorrect. Inscrit avec Google ? Utilisez « Continuer avec Google ».';
+    if (m.indexOf('email not confirmed') >= 0) return 'E-mail pas encore confirmé. Cliquez sur le lien reçu.';
     if (looksExistingAccount(m)) return EXISTING_ACCOUNT_MSG;
     if (m.indexOf('rate limit') >= 0) return 'Trop de tentatives. Réessayez dans quelques minutes.';
     // Le jeton du lien de réinitialisation a expiré ou a déjà servi entre
     // l'ouverture de la page et l'envoi du formulaire.
     if (m.indexOf('session missing') >= 0 || m.indexOf('session_not_found') >= 0 || m.indexOf('session from session_id') >= 0) {
-      return 'Votre lien de réinitialisation a expiré. Retournez à la page de connexion pour en demander un nouveau.';
+      return 'Lien expiré. Demandez-en un nouveau depuis la connexion.';
     }
     if (m.indexOf('should be different from the old password') >= 0 || m.indexOf('same_password') >= 0) {
       return 'Ce mot de passe est déjà le vôtre. Choisissez-en un autre.';
     }
     if (m.indexOf('password should be at least') >= 0 || m.indexOf('weak_password') >= 0) {
-      return 'Mot de passe trop court ou trop simple. Allongez-le et mélangez lettres, chiffres et symboles.';
+      return 'Mot de passe trop simple. Allongez-le et mélangez lettres et chiffres.';
     }
     return msg || 'Une erreur est survenue.';
   }

@@ -52,6 +52,17 @@
   margin-right: auto;
 }
 
+/* Le message d'erreur vit DANS la grille des champs, juste au-dessus du bouton
+   d'envoi. Webflow le pose après le formulaire entier — sous les boutons OAuth
+   et le lien « Se connecter » — donc hors de l'écran sur l'inscription : la
+   page devait sauter jusqu'à lui, l'utilisateur perdait ses champs de vue et se
+   retrouvait au bas d'une page qu'il n'avait pas demandé à quitter.
+   `1 / -1` comme la ligne de consentement : en une colonne (< 767 px), un
+   `span 2` créerait une colonne implicite qui rétrécirait tous les champs. */
+.megga-form-error {
+  grid-column: 1 / -1;
+}
+
 .megga-modal[hidden] {
   display: none;
 }
