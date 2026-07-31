@@ -196,11 +196,16 @@
   // été un `type="tel"` (id/name `Phone`, héritage du template Webflow) : un
   // navigateur qui sert cette version depuis SON cache afficherait le mot de
   // passe en clair à la frappe. On garde donc le rattrapage, idempotent sur le
-  // HTML corrigé. Le placeholder reste le sélecteur primaire — il n'a jamais
-  // changé, contrairement à l'id.
+  // HTML corrigé.
+  //
+  // L'ordre a changé le 31 juil. 2026 : les placeholders ont été retirés des
+  // formulaires, donc la recherche par placeholder ne rend plus rien sur le
+  // HTML courant. Elle reste en second — une page encore en cache la porte,
+  // elle, et c'est précisément celle qu'il faut rattraper.
   function loginPasswordField(form) {
-    var el = form.querySelector('input[placeholder*="mot de passe" i]')
-      || byId('Password') || byId('Phone');
+    var el = byId('Password')
+      || form.querySelector('input[placeholder*="mot de passe" i]')
+      || byId('Phone');
     if (!el) return null;
     if (el.type !== 'password') el.type = 'password';
     el.setAttribute('autocomplete', 'current-password');
@@ -400,7 +405,7 @@
       resetForm.addEventListener('submit', function (e) {
         e.preventDefault(); e.stopPropagation(); clearError(resetForm);
         var email = (resetEmail && resetEmail.value || '').trim();
-        if (!email) return showError(resetForm, 'Indiquez votre e-mail professionnel.');
+        if (!email) return showError(resetForm, 'Indiquez votre e-mail.');
         setBusy(resetForm, true);
         getCaptchaToken(resetForm, function () { showCaptchaPrompt(resetForm); }).then(function (captchaToken) {
           clearError(resetForm);
@@ -504,7 +509,7 @@
       // On le dit au lieu de laisser saisir un mot de passe qui serait refusé.
       function refuserLienMort() {
         newPwdForm.style.display = 'none';
-        showError(newPwdForm, 'Ce lien n’est plus valable : il expire après 1 h et ne sert qu’une fois. Retournez à la page de connexion pour en demander un nouveau.');
+        showError(newPwdForm, 'Lien expiré. Demandez-en un nouveau depuis la page de connexion.');
       }
 
       client.auth.getSession().then(function (res) {
