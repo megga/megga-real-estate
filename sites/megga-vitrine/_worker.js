@@ -34,6 +34,13 @@ const PASS = 'preview';
  * de confidentialité. Son robot recevait 401 et rejetait la demande sur cinq
  * points d'un coup. Fermer `/` revient donc à casser la connexion Google.
  * Le reste du marketing — tarifs, blog, à-propos, intégrations… — reste gaté.
+ *
+ * `/sitemap.xml` est ouvert bien qu'il liste des pages encore gatées : un
+ * sitemap muré est un sitemap illisible, et il porte les 156 alternates
+ * hreflang des quatre langues. Ouvrir le fichier n'ouvre pas les pages —
+ * un robot qui suit ces URLs reçoit toujours 401 tant que le gate est là,
+ * mais le jour du lancement le référencement multilingue démarre voyant.
+ * (`robots.txt` passe déjà : Cloudflare Pages le sert avant le worker.)
  */
 const PUBLIC_PAGES = new Set([
   '/',
@@ -44,6 +51,7 @@ const PUBLIC_PAGES = new Set([
   '/legal',
   '/privacy',
   '/terms',
+  '/sitemap.xml',
 ]);
 
 /**
