@@ -31,6 +31,47 @@
   grid-column: 1 / -1;
 }
 
+/* Écran de confirmation des pages d'authentification (.w-form-done).
+   Le gabarit Webflow neutralise le fond ET la bordure de cette carte
+   (`.success-message-card.sign-up-form` et `.sign-in-form` posent
+   `--transparent` et `border-style: none`), puis lui réserve 613 px de haut
+   pour occuper la place du formulaire masqué. Une fois le compte créé, il ne
+   restait donc qu'un paragraphe flottant au milieu du noir, sans rien qui le
+   tienne. On lui rend le cadre des cartes de la vitrine — les variables de
+   `.card`, aucune couleur inventée — et il épouse son contenu.
+
+   Trois classes pour peser autant que la règle du gabarit : cette feuille est
+   chargée après styles.css, donc à poids égal c'est elle qui tranche. */
+.card.success-message-card.megga-auth__done {
+  background-color: var(--neutral-colors--300);
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: var(--main-border-radius--br-large);
+  min-height: 0;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Sauf quand elle est DÉJÀ dans une carte — c'est le cas de reset-password,
+   dont le formulaire vit au centre d'un `sign-in-card`. Un cadre dans un cadre
+   se lit comme une erreur de gabarit ; la carte n'y garde que ce qui manquait,
+   à savoir cesser de réserver 613 px de vide sous quatre lignes de texte. */
+.card .card.success-message-card.megga-auth__done {
+  background-color: var(--transparent);
+  border-style: none;
+}
+
+/* Le message d'erreur vit DANS la grille des champs, juste au-dessus du bouton
+   d'envoi. Webflow le pose après le formulaire entier — sous les boutons OAuth
+   et le lien « Se connecter » — donc hors de l'écran sur l'inscription : la
+   page devait sauter jusqu'à lui, l'utilisateur perdait ses champs de vue et se
+   retrouvait au bas d'une page qu'il n'avait pas demandé à quitter.
+   `1 / -1` comme la ligne de consentement : en une colonne (< 767 px), un
+   `span 2` créerait une colonne implicite qui rétrécirait tous les champs. */
+.megga-form-error {
+  grid-column: 1 / -1;
+}
+
 .megga-modal[hidden] {
   display: none;
 }

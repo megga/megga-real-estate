@@ -11,20 +11,30 @@
   var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVheWN6dWd5cnZtdHFubm12am9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM4ODgsImV4cCI6MjA4OTE4OTg4OH0.T257g0ws-PmTTBSDBcUQF6WFvVRLmTFHUwIYMgmCrMw';
   var CRM_URL = 'https://app.megga.ch/dashboard';
   var AUTH_REDIRECT = 'https://app.megga.ch/auth/callback'; // l'app gère le retour OAuth/email
-  // Cible du lien de réinitialisation.
-  //
-  // ⚠ Cette URL doit figurer dans Supabase → Authentication → URL Configuration
-  // → Redirect URLs. Sans quoi Supabase l'ignore et renvoie sur la Site URL :
-  // le lien du mail n'atterrit alors nulle part d'utile.
-  //
-  // Elle vivait sur app.megga.ch (ancienne coquille auth du CRM). Rapatriée ici :
-  // cet écran ne renvoyait de toute façon PAS vers le dashboard mais vers
-  // megga.ch/login une fois le mot de passe changé — le détour par l'app ne
-  // servait donc qu'à traverser un second domaine dans une autre peau.
-  // ⚠ Cette valeur doit correspondre EXACTEMENT à une entrée de l'allowlist
-  // Supabase (Auth → URL Configuration), qu'un déploiement ne met pas à jour :
-  // la changer ici sans l'ajouter là-bas d'abord casse tous les liens envoyés.
-  var RESET_REDIRECT = 'https://megga.ch/reset-password.html';
+  /**
+   * Cible du lien de réinitialisation, dans la langue de la demande.
+   *
+   * Elle vivait sur app.megga.ch (ancienne coquille auth du CRM). Rapatriée ici :
+   * cet écran ne renvoyait de toute façon PAS vers le dashboard mais vers
+   * megga.ch/login une fois le mot de passe changé — le détour par l'app ne
+   * servait donc qu'à traverser un second domaine dans une autre peau.
+   *
+   * Les slugs sont ceux du générateur (scripts/_shared/vitrine-i18n.mjs, PAGES)
+   * et du gate (_worker.js, SLUGS_PAR_LANGUE) : une demande faite sur
+   * /de/anmelden renvoie sur /de/neues-passwort, pas sur la page française.
+   *
+   * ⚠ Chaque valeur doit figurer TELLE QUELLE dans l'allowlist Supabase
+   * (Auth → URL Configuration → Redirect URLs), qu'aucun déploiement ne met à
+   * jour : en ajouter une ici sans l'inscrire là-bas ne casse rien de visible —
+   * Supabase ignore la cible et renvoie sur la Site URL, donc le lien reçu par
+   * e-mail n'atterrit nulle part d'utile.
+   */
+  var RESET_REDIRECT_PAR_LANGUE = {
+    fr: 'https://megga.ch/reset-password',
+    de: 'https://megga.ch/de/neues-passwort',
+    en: 'https://megga.ch/en/reset-password',
+    it: 'https://megga.ch/it/nuova-password',
+  };
 
   // Cloudflare Turnstile — Supabase exige un token captcha sur chaque appel auth
   // (signin / signup / reset). Site key publique (même projet que l'app).
@@ -46,98 +56,113 @@
    */
   var T = {
     fr: {
-      captchaFail: "La vérification de sécurité n’a pas abouti. Réessayez dans un instant ; si cela se reproduit, écrivez-nous à hello@megga.ch.",
-      captchaInteractive: "Confirmez que vous n’êtes pas un robot pour continuer.",
-      serviceFail: "Connexion au service impossible. Vérifiez votre connexion, puis réessayez.",
-      existingAccount: "Un compte existe déjà avec cet e-mail. Connectez-vous via « Se connecter » — et si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google » (dans ce cas, aucun mot de passe n’a été défini).",
-      consent: "Cochez la case pour accepter les conditions générales et la politique de confidentialité.",
+      captchaFail: "Vérification de sécurité impossible. Réessayez.",
+      captchaInteractive: "Confirmez que vous n’êtes pas un robot.",
+      serviceFail: "Connexion impossible. Réessayez.",
+      existingAccount: "Un compte existe déjà avec cet e-mail.",
+      consent: "Acceptez les conditions pour continuer.",
       patientez: "Patientez…",
       loginRequis: "E-mail et mot de passe requis.",
       emailRequis: "Indiquez votre e-mail.",
       signupRequis: "Nom, e-mail et mot de passe requis.",
       motDePasseCourt: "Le mot de passe doit faire au moins 8 caractères.",
-      compteCree: "Compte créé ! Vérifiez votre e-mail pour confirmer, puis connectez-vous.",
       lienExpire: "Lien expiré. Demandez-en un nouveau depuis la page de connexion.",
       motsDePasseDifferents: "Les deux mots de passe ne correspondent pas.",
-      identifiantsInvalides: "E-mail ou mot de passe incorrect. Si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google ».",
-      emailNonConfirme: "E-mail pas encore confirmé. Vérifiez votre boîte de réception (pensez aux spams).",
+      identifiantsInvalides: "E-mail ou mot de passe incorrect. Inscrit avec Google ? Utilisez « Continuer avec Google ».",
+      emailNonConfirme: "E-mail pas encore confirmé. Cliquez sur le lien reçu.",
       tropDeTentatives: "Trop de tentatives. Réessayez dans quelques minutes.",
-      lienPerime: "Votre lien de réinitialisation a expiré. Retournez à la page de connexion pour en demander un nouveau.",
+      lienPerime: "Lien expiré. Demandez-en un nouveau depuis la connexion.",
       memeMotDePasse: "Ce mot de passe est déjà le vôtre. Choisissez-en un autre.",
-      motDePasseFaible: "Mot de passe trop court ou trop simple. Allongez-le et mélangez lettres, chiffres et symboles.",
+      motDePasseFaible: "Mot de passe trop simple. Allongez-le et mélangez lettres et chiffres.",
       serviceIndisponible: "Service d’authentification indisponible. Réessayez.",
       erreur: "Une erreur est survenue.",
     },
     de: {
-      captchaFail: "Die Sicherheitsprüfung ist fehlgeschlagen. Versuchen Sie es gleich noch einmal; wenn es erneut auftritt, schreiben Sie uns an hello@megga.ch.",
-      captchaInteractive: "Bestätigen Sie, dass Sie kein Roboter sind, um fortzufahren.",
-      serviceFail: "Verbindung zum Dienst nicht möglich. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
-      existingAccount: "Mit dieser E-Mail-Adresse besteht bereits ein Konto. Melden Sie sich über «Anmelden» an — und falls Sie sich mit Google registriert haben, nutzen Sie «Weiter mit Google» (in diesem Fall wurde kein Passwort festgelegt).",
-      consent: "Kreuzen Sie das Kästchen an, um die Allgemeinen Geschäftsbedingungen und die Datenschutzerklärung zu akzeptieren.",
+      captchaFail: "Sicherheitsprüfung nicht möglich. Versuchen Sie es erneut.",
+      captchaInteractive: "Bestätigen Sie, dass Sie kein Roboter sind.",
+      serviceFail: "Verbindung nicht möglich. Versuchen Sie es erneut.",
+      existingAccount: "Mit dieser E-Mail-Adresse besteht bereits ein Konto.",
+      consent: "Akzeptieren Sie die Bedingungen, um fortzufahren.",
       patientez: "Einen Moment…",
       loginRequis: "E-Mail und Passwort erforderlich.",
       emailRequis: "Geben Sie Ihre E-Mail-Adresse an.",
       signupRequis: "Name, E-Mail und Passwort erforderlich.",
       motDePasseCourt: "Das Passwort muss mindestens 8 Zeichen lang sein.",
-      compteCree: "Konto erstellt! Prüfen Sie Ihre E-Mails zur Bestätigung und melden Sie sich anschliessend an.",
       lienExpire: "Link abgelaufen. Fordern Sie auf der Anmeldeseite einen neuen an.",
       motsDePasseDifferents: "Die beiden Passwörter stimmen nicht überein.",
-      identifiantsInvalides: "E-Mail oder Passwort ist falsch. Falls Sie sich mit Google registriert haben, nutzen Sie «Weiter mit Google».",
-      emailNonConfirme: "E-Mail noch nicht bestätigt. Prüfen Sie Ihren Posteingang (auch den Spam-Ordner).",
+      identifiantsInvalides: "E-Mail oder Passwort ist falsch. Mit Google registriert? Nutzen Sie «Weiter mit Google».",
+      emailNonConfirme: "E-Mail noch nicht bestätigt. Klicken Sie auf den erhaltenen Link.",
       tropDeTentatives: "Zu viele Versuche. Versuchen Sie es in einigen Minuten erneut.",
-      lienPerime: "Ihr Link zum Zurücksetzen ist abgelaufen. Fordern Sie auf der Anmeldeseite einen neuen an.",
+      lienPerime: "Link abgelaufen. Fordern Sie über die Anmeldung einen neuen an.",
       memeMotDePasse: "Dieses Passwort ist bereits Ihres. Wählen Sie ein anderes.",
-      motDePasseFaible: "Passwort zu kurz oder zu einfach. Verlängern Sie es und mischen Sie Buchstaben, Zahlen und Symbole.",
+      motDePasseFaible: "Passwort zu einfach. Verlängern Sie es und mischen Sie Buchstaben und Zahlen.",
       serviceIndisponible: "Authentifizierungsdienst nicht verfügbar. Versuchen Sie es erneut.",
       erreur: "Es ist ein Fehler aufgetreten.",
     },
     en: {
-      captchaFail: "The security check did not go through. Try again in a moment; if it happens again, write to us at hello@megga.ch.",
-      captchaInteractive: "Confirm that you are not a robot to continue.",
-      serviceFail: "Cannot reach the service. Check your connection, then try again.",
-      existingAccount: "An account already exists with this email address. Sign in via “Sign in” — and if you signed up with Google, use “Continue with Google” (in that case no password was set).",
-      consent: "Tick the box to accept the terms and conditions and the privacy policy.",
+      captchaFail: "Security check failed. Try again.",
+      captchaInteractive: "Confirm that you are not a robot.",
+      serviceFail: "Connection failed. Try again.",
+      existingAccount: "An account already exists with this email address.",
+      consent: "Accept the terms to continue.",
       patientez: "One moment…",
       loginRequis: "Email and password required.",
       emailRequis: "Enter your email address.",
       signupRequis: "Name, email and password required.",
       motDePasseCourt: "The password must be at least 8 characters long.",
-      compteCree: "Account created! Check your email to confirm, then sign in.",
       lienExpire: "Link expired. Request a new one from the sign-in page.",
       motsDePasseDifferents: "The two passwords do not match.",
-      identifiantsInvalides: "Incorrect email or password. If you signed up with Google, use “Continue with Google”.",
-      emailNonConfirme: "Email not confirmed yet. Check your inbox (and your spam folder).",
+      identifiantsInvalides: "Incorrect email or password. Signed up with Google? Use “Continue with Google”.",
+      emailNonConfirme: "Email not confirmed yet. Click the link you received.",
       tropDeTentatives: "Too many attempts. Try again in a few minutes.",
-      lienPerime: "Your reset link has expired. Go back to the sign-in page to request a new one.",
+      lienPerime: "Link expired. Request a new one from the sign-in page.",
       memeMotDePasse: "This password is already yours. Choose a different one.",
-      motDePasseFaible: "Password too short or too simple. Make it longer and mix letters, numbers and symbols.",
+      motDePasseFaible: "Password too simple. Make it longer and mix letters and numbers.",
       serviceIndisponible: "Authentication service unavailable. Please try again.",
       erreur: "An error occurred.",
     },
     it: {
-      captchaFail: "La verifica di sicurezza non è andata a buon fine. Riprovi tra un istante; se si ripete, ci scriva a hello@megga.ch.",
-      captchaInteractive: "Confermi di non essere un robot per continuare.",
-      serviceFail: "Impossibile raggiungere il servizio. Verifichi la connessione e riprovi.",
-      existingAccount: "Esiste già un account con questo indirizzo e-mail. Acceda tramite «Accedi» — e se si è registrato con Google, usi «Continua con Google» (in tal caso non è stata definita alcuna password).",
-      consent: "Spunti la casella per accettare le condizioni generali e l'informativa sulla privacy.",
+      captchaFail: "Verifica di sicurezza non riuscita. Riprovi.",
+      captchaInteractive: "Confermi di non essere un robot.",
+      serviceFail: "Connessione non riuscita. Riprovi.",
+      existingAccount: "Esiste già un account con questa e-mail.",
+      consent: "Accetti le condizioni per continuare.",
       patientez: "Un istante…",
       loginRequis: "E-mail e password obbligatorie.",
       emailRequis: "Indichi il suo indirizzo e-mail.",
       signupRequis: "Nome, e-mail e password obbligatori.",
       motDePasseCourt: "La password deve contenere almeno 8 caratteri.",
-      compteCree: "Account creato! Controlli la sua e-mail per confermare, poi acceda.",
       lienExpire: "Link scaduto. Ne richieda uno nuovo dalla pagina di accesso.",
       motsDePasseDifferents: "Le due password non corrispondono.",
-      identifiantsInvalides: "E-mail o password errata. Se si è registrato con Google, usi «Continua con Google».",
-      emailNonConfirme: "E-mail non ancora confermata. Controlli la posta in arrivo (anche lo spam).",
+      identifiantsInvalides: "E-mail o password errati. Registrato con Google? Usi «Continua con Google».",
+      emailNonConfirme: "E-mail non ancora confermata. Clicchi sul link ricevuto.",
       tropDeTentatives: "Troppi tentativi. Riprovi tra qualche minuto.",
-      lienPerime: "Il suo link per reimpostare la password è scaduto. Torni alla pagina di accesso per richiederne uno nuovo.",
+      lienPerime: "Link scaduto. Ne richieda uno nuovo dalla pagina di accesso.",
       memeMotDePasse: "Questa password è già la sua. Ne scelga un'altra.",
-      motDePasseFaible: "Password troppo corta o troppo semplice. La allunghi e mescoli lettere, numeri e simboli.",
+      motDePasseFaible: "Password troppo semplice. La allunghi e mescoli lettere e numeri.",
       serviceIndisponible: "Servizio di autenticazione non disponibile. Riprovi.",
       erreur: "Si è verificato un errore.",
     },
   };
+
+  /**
+   * `?lang=` à accrocher aux URLs du CRM.
+   *
+   * megga.ch et app.megga.ch ont des stockages cloisonnés : sans ce paramètre,
+   * un agent qui lisait la vitrine en allemand atterrissait dans un CRM en
+   * français — ou en anglais si un vieux réglage traînait. Le CRM le grave chez
+   * lui (src/i18n/index.ts, seedLanguageFromUrl).
+   *
+   * ⚠ Sert aussi aux redirections que Supabase valide (`redirectTo` d'un
+   * signInWithOAuth, `emailRedirectTo` d'un signUp) : l'allowlist porte depuis
+   * le 31 juil. 2026 l'entrée `https://app.megga.ch/auth/callback*`.
+   */
+  function langueQuery() { return '?lang=' + langue(); }
+
+  /** Page « nouveau mot de passe » de la langue courante. */
+  function resetRedirect() {
+    return RESET_REDIRECT_PAR_LANGUE[langue()] || RESET_REDIRECT_PAR_LANGUE.fr;
+  }
 
   /** Langue de la page, posée par le build dans `<html lang>`. */
   function langue() {
@@ -340,23 +365,29 @@
     );
   }
 
-  // Affiche un message dans le bloc .w-form-fail / .w-form-done de la page (Webflow).
+  // Filet de sécurité : un bloc affiché hors de l'écran donne un bouton qui
+  // paraît mort. Le message d'erreur vit désormais au-dessus du bouton d'envoi
+  // (cf. `.megga-form-error`), donc ce déplacement ne sert plus qu'aux cas
+  // limites — petite fenêtre, page déjà défilée, bloc de confirmation long.
   //
-  // Webflow place ce bloc APRÈS le formulaire entier — donc sous les boutons
-  // OAuth et le lien « Se connecter ». Sur signup.html il tombe hors de l'écran :
-  // affiché seul, il donne un bouton qui paraît mort. On l'amène dans le champ
-  // de vision quand il n'y est pas.
+  // Défilement INSTANTANÉ, pas `smooth` : une animation de défilement qui part
+  // pendant que l'utilisateur fait tourner sa molette se dispute la page avec
+  // lui, et donne exactement la sensation d'un écran qui refuse de bouger.
+  function amenerDansLaVue(el) {
+    var box = el.getBoundingClientRect();
+    if (box.top >= 0 && box.bottom <= (window.innerHeight || 0)) return;
+    try { el.scrollIntoView({ block: 'center' }); }
+    catch (e) { el.scrollIntoView(); } // options non supportées (vieux Safari)
+  }
+
+  // Affiche un message dans le bloc .w-form-fail de la page (Webflow).
   function showError(form, msg) {
     var wrap = form.closest('.w-form') || form.parentElement;
     var fail = wrap && wrap.querySelector('.w-form-fail');
     if (fail) {
       var d = fail.querySelector('div'); if (d) d.textContent = msg;
       fail.style.display = 'block';
-      var box = fail.getBoundingClientRect();
-      if (box.top < 0 || box.bottom > (window.innerHeight || 0)) {
-        try { fail.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-        catch (e) { fail.scrollIntoView(); } // options non supportées (vieux Safari)
-      }
+      amenerDansLaVue(fail);
     } else {
       alert(msg);
     }
@@ -366,6 +397,39 @@
     var fail = wrap && wrap.querySelector('.w-form-fail');
     if (fail) fail.style.display = 'none';
   }
+
+  /**
+   * Bascule un formulaire sur le bloc de confirmation écrit dans la page.
+   *
+   * Le bloc est affiché TEL QUEL — sa carte, son icône, son titre, son
+   * paragraphe. L'inscription y injectait naguère sa propre phrase par
+   * `textContent` sur le premier `<div>` du bloc, c'est-à-dire sur la carte
+   * entière : icône et titre étaient effacés au passage et il ne restait qu'une
+   * ligne de texte au milieu de la page. Le texte de la page est en outre déjà
+   * traduit par le générateur, ce qu'une phrase injectée d'ici ne serait pas.
+   *
+   * Les éléments marqués `data-megga-hide-on-done` disparaissent avec le
+   * formulaire : le titre de la page annonce une action à faire (« Créez votre
+   * compte »), il n'a plus lieu d'être une fois la chose faite.
+   *
+   * Renvoie false si la page n'a pas de bloc de confirmation — à l'appelant de
+   * décider de la suite plutôt que de laisser un écran vide.
+   */
+  function showDone(form) {
+    var wrap = form.closest('.w-form') || form.parentElement;
+    var done = wrap && wrap.querySelector('.w-form-done');
+    if (!done) return false;
+    clearError(form);
+    form.style.display = 'none';
+    Array.prototype.forEach.call(
+      document.querySelectorAll('[data-megga-hide-on-done]'),
+      function (el) { el.style.display = 'none'; },
+    );
+    done.style.display = 'block';
+    amenerDansLaVue(done);
+    return true;
+  }
+
   function showCaptchaPrompt(form) { showError(form, m('captchaInteractive')); }
   // N'accuse la vérification que si le rejet vient bien d'elle : un réseau coupé
   // pendant l'appel Supabase n'est pas un problème de captcha.
@@ -397,7 +461,7 @@
     if (!session || !session.access_token || !session.refresh_token) {
       // Pas de session exploitable : redirection nue plutôt qu'un écran vide —
       // le CRM renverra proprement au login.
-      window.location.href = CRM_URL;
+      window.location.href = CRM_URL + langueQuery();
       return;
     }
     var frag = [
@@ -406,7 +470,7 @@
       'expires_in=' + (session.expires_in || 3600),
       'token_type=' + (session.token_type || 'bearer'),
     ].join('&');
-    window.location.href = AUTH_REDIRECT + '#' + frag;
+    window.location.href = AUTH_REDIRECT + langueQuery() + '#' + frag;
   }
 
   function wire(client) {
@@ -429,7 +493,7 @@
         }
         client.auth.signInWithOAuth({
           provider: provider,
-          options: { redirectTo: AUTH_REDIRECT },
+          options: { redirectTo: AUTH_REDIRECT + langueQuery() },
         });
       });
     });
@@ -463,7 +527,14 @@
       // confirmation s'affichait dans le bloc de succès du formulaire de
       // connexion. Le modal donne un endroit à soi à cette demande.
       Array.prototype.forEach.call(loginForm.querySelectorAll('a'), function (a) {
-        if (!/oubli/i.test(a.textContent)) return;
+        // Repère par ATTRIBUT, pas par libellé : « oubli » ne reconnaissait que
+        // la page française, et sur /de/anmelden, /en/login et /it/accedi le
+        // lien gardait son href — un agent qui avait perdu son mot de passe
+        // atterrissait sur le formulaire de contact. Le test sur le texte reste
+        // en repli, dans les quatre langues, pour une page servie d'un cache
+        // antérieur à l'attribut.
+        if (!a.hasAttribute('data-megga-reset')
+            && !/oubli|vergessen|forgot|dimenticat/i.test(a.textContent)) return;
         a.setAttribute('href', '#');
         a.addEventListener('click', function (e) { e.preventDefault(); openReset(); });
       });
@@ -516,7 +587,7 @@
         getCaptchaToken(resetForm, function () { showCaptchaPrompt(resetForm); }).then(function (captchaToken) {
           clearError(resetForm);
           return client.auth.resetPasswordForEmail(email, {
-            redirectTo: RESET_REDIRECT,
+            redirectTo: resetRedirect(),
             captchaToken: captchaToken,
           });
         }).then(function (res) {
@@ -525,8 +596,7 @@
           // Supabase ne révèle jamais si l'adresse est connue (anti-énumération) :
           // le message reste donc conditionnel — affirmer « e-mail envoyé »
           // serait faux une fois sur deux.
-          resetForm.style.display = 'none';
-          if (resetDone) resetDone.style.display = 'block';
+          showDone(resetForm);
         }).catch(function (err) { setBusy(resetForm, false); failFrom(resetForm, err); });
       }, true);
     }
@@ -566,12 +636,27 @@
             email: email,
             password: pwd,
             options: {
-              emailRedirectTo: AUTH_REDIRECT,
+              // Le lien de confirmation ouvre le CRM dans la langue de la page
+              // d'inscription — c'est le trajet exact où l'agent tombait sur un
+              // CRM en anglais après avoir tout lu en français.
+              emailRedirectTo: AUTH_REDIRECT + langueQuery(),
               captchaToken: captchaToken,
               // role:'agent' — cohérence avec le signup interne de l'app
               // (AuthBentoApp). Sans ça, le trigger handle_new_user retombe sur
               // 'buyer' et l'inscrit vitrine part dans le mauvais parcours.
-              data: { full_name: name, agency_name: agency, role: 'agent' },
+              //
+              // legal_consent : la case obligatoire ci-dessus, vérifiée juste
+              // avant. Le trigger en fait une preuve datée dans user_consents
+              // (migration 20260731210000) avec LA VERSION QU'IL CONNAÎT — sans
+              // elle, le CRM redemandait la même acceptation à la première
+              // session, trente secondes plus tard. On déclare que l'agent a
+              // accepté, jamais ce qu'il aurait accepté.
+              data: {
+                full_name: name,
+                agency_name: agency,
+                role: 'agent',
+                legal_consent: true,
+              },
             },
           });
         }).then(function (res) {
@@ -589,12 +674,10 @@
             setBusy(signupForm, false);
             return showExistingAccount(signupForm);
           }
-          // Vrai nouveau compte → confirmation e-mail.
-          var wrap = signupForm.closest('.w-form') || signupForm.parentElement;
-          var done = wrap.querySelector('.w-form-done');
-          signupForm.style.display = 'none';
-          if (done) { done.style.display = 'block'; var d = done.querySelector('div'); if (d) d.textContent = m('compteCree'); }
-          else { goToCrm(res.data && res.data.session); }
+          // Vrai nouveau compte → l'écran de confirmation de la page prend la
+          // main. Il porte déjà la consigne, dans la langue de la page ;
+          // rien à injecter ici. Sans ce bloc, on enchaîne sur le CRM.
+          if (!showDone(signupForm)) goToCrm(res.data && res.data.session);
         }).catch(function (err) { setBusy(signupForm, false); failFrom(signupForm, err); });
       }, true);
     }
@@ -646,10 +729,7 @@
         client.auth.updateUser({ password: a }).then(function (res) {
           setBusy(newPwdForm, false);
           if (res && res.error) return showError(newPwdForm, traduire(res.error.message));
-          var wrap = newPwdForm.closest('.w-form') || newPwdForm.parentElement;
-          var done = wrap && wrap.querySelector('.w-form-done');
-          newPwdForm.style.display = 'none';
-          if (done) done.style.display = 'block';
+          showDone(newPwdForm);
           // La session de récupération a fait son office : on la referme pour ne
           // pas laisser traîner un jeton sur le domaine vitrine. L'agent se
           // reconnecte avec son nouveau mot de passe.
@@ -662,8 +742,8 @@
   // Compte déjà existant : on NE crée rien, on oriente vers la connexion.
   function showExistingAccount(form) { showError(form, m('existingAccount')); }
   function looksExistingAccount(msg) {
-    var m = (msg || '').toLowerCase();
-    return m.indexOf('already') >= 0 || m.indexOf('exists') >= 0 || m.indexOf('registered') >= 0;
+    var brut = (msg || '').toLowerCase();
+    return brut.indexOf('already') >= 0 || brut.indexOf('exists') >= 0 || brut.indexOf('registered') >= 0;
   }
   function showExistingOrError(form, msg) {
     if (looksExistingAccount(msg)) return showExistingAccount(form);
@@ -671,21 +751,26 @@
   }
 
   // Messages d'erreur Supabase courants → FR.
+  // ⚠ Le texte examiné s'appelle `brut`, PAS `m` : `m(clé)` est la fonction qui
+  // rend les messages traduits, et une variable locale du même nom la masquait —
+  // chaque branche levait alors « m is not a function ». L'exception remontait
+  // au .catch() du formulaire, qui accuse le réseau : un mot de passe faux
+  // s'affichait « Connexion impossible ». (Corrigé le 31 juil. 2026.)
   function traduire(msg) {
-    var m = (msg || '').toLowerCase();
-    if (m.indexOf('invalid login') >= 0) return m('identifiantsInvalides');
-    if (m.indexOf('email not confirmed') >= 0) return m('emailNonConfirme');
-    if (looksExistingAccount(m)) return m('existingAccount');
-    if (m.indexOf('rate limit') >= 0) return m('tropDeTentatives');
+    var brut = (msg || '').toLowerCase();
+    if (brut.indexOf('invalid login') >= 0) return m('identifiantsInvalides');
+    if (brut.indexOf('email not confirmed') >= 0) return m('emailNonConfirme');
+    if (looksExistingAccount(brut)) return m('existingAccount');
+    if (brut.indexOf('rate limit') >= 0) return m('tropDeTentatives');
     // Le jeton du lien de réinitialisation a expiré ou a déjà servi entre
     // l'ouverture de la page et l'envoi du formulaire.
-    if (m.indexOf('session missing') >= 0 || m.indexOf('session_not_found') >= 0 || m.indexOf('session from session_id') >= 0) {
+    if (brut.indexOf('session missing') >= 0 || brut.indexOf('session_not_found') >= 0 || brut.indexOf('session from session_id') >= 0) {
       return m('lienPerime');
     }
-    if (m.indexOf('should be different from the old password') >= 0 || m.indexOf('same_password') >= 0) {
+    if (brut.indexOf('should be different from the old password') >= 0 || brut.indexOf('same_password') >= 0) {
       return m('memeMotDePasse');
     }
-    if (m.indexOf('password should be at least') >= 0 || m.indexOf('weak_password') >= 0) {
+    if (brut.indexOf('password should be at least') >= 0 || brut.indexOf('weak_password') >= 0) {
       return m('motDePasseFaible');
     }
     return msg || m('erreur');

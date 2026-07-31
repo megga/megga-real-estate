@@ -1,17 +1,22 @@
-// Versions courantes des documents légaux (nLPD). Bumper une version ici →
-// ConsentGate redemande l'acceptation à toute la base à la session suivante.
-// La preuve est en DB (user_consents, migration 20260705170000) : 1 ligne
-// immuable par (user, type, version), écrite par la RPC record_consent.
+// Documents légaux exigés par le CRM (nLPD).
+//
+// ⚠ Les VERSIONS ne vivent plus ici. Elles sont en base — table
+// `legal_document_versions`, migration 20260731210000 — et remontent par la RPC
+// `pending_consents()`. Une constante de bundle ne pouvait pas servir de source
+// de vérité : le trigger d'inscription (`handle_new_user`), qui écrit désormais
+// la preuve dès la création du compte, ne la voyait pas, et un client pouvait
+// déclarer la version de son choix à `record_consent`.
 
-export const CURRENT_CONSENT_VERSIONS = {
-  terms: '2026-07',
-  privacy: '2026-07',
-} as const
+export type RequiredConsentType = 'terms' | 'privacy'
 
-export type RequiredConsentType = keyof typeof CURRENT_CONSENT_VERSIONS
-
-// Pages légales servies par la vitrine (sites/megga-vitrine).
+/**
+ * Pages légales servies par la vitrine (sites/megga-vitrine).
+ *
+ * `terms` pointait sur `/mentions-legales.html`, qui redirige vers `/legal` —
+ * les mentions légales, pas les conditions générales. Le libellé de la case
+ * promettait donc un document et le lien en ouvrait un autre.
+ */
 export const LEGAL_URLS: Record<RequiredConsentType, string> = {
-  terms: 'https://megga.ch/mentions-legales.html',
-  privacy: 'https://megga.ch/confidentialite.html',
+  terms: 'https://megga.ch/terms',
+  privacy: 'https://megga.ch/privacy',
 }
