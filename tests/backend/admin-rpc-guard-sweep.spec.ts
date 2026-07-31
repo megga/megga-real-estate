@@ -90,13 +90,33 @@ describe.skipIf(!HAS_KEYS)('G0 — aucune RPC admin n\'est joignable par un agen
     // Les arguments sont passés à NULL, typés : la garde étant la première instruction,
     // elle doit lever AVANT que le corps ne regarde ses paramètres. Une RPC qui répond
     // quand même est le défaut qu'on cherche.
+    //
+    // ⚠ LIMITE STRUCTURELLE DU HARNAIS, mesurée en CI plutôt que devinée. `execSql` passe
+    // par psql EN TANT QUE postgres : `set local role authenticated` change `current_user`,
+    // jamais `session_user`, qui reste `postgres`. Une garde qui admet délibérément
+    // `session_user in ('postgres','supabase_admin')` — celle qui laisse pg_cron écrire —
+    // passe donc, et le harnais la signale à tort. Ces fonctions sont écartées par
+    // PRÉDICAT sur leur corps, jamais par une liste de noms qu'on allongerait à chaque
+    // gêne. Leur refus d'un vrai JWT agent est prouvé ailleurs, par un client
+    // authentifié : admin-log-chain.spec.ts et secdef-agency-readers-guard.spec.ts.
     assertSql(`
     declare
       r          record;
       v_args     text;
       v_repondu  text := '';
+      v_ecartees int;
       v_sqlstate text;
     begin
+      -- L'écart doit rester une exception. S'il s'élargit, c'est que le harnais ne
+      -- prouve plus grand-chose et il faut le dire, pas l'accommoder.
+      select count(*) into v_ecartees
+        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and ${SCOPE} and p.prosecdef
+         and (p.prosrc ilike '%session_user%' or p.proname = 'admin_console_session_state');
+      if v_ecartees > 4 then
+        raise exception '% fonctions ecartees du balayage comportemental : le harnais ne prouve plus rien', v_ecartees;
+      end if;
+
       for r in
         select p.oid, p.oid::regprocedure::text as sig,
                pg_get_function_identity_arguments(p.oid) as ident
@@ -107,6 +127,11 @@ describe.skipIf(!HAS_KEYS)('G0 — aucune RPC admin n\'est joignable par un agen
            and p.prokind = 'f'
            and p.prosecdef
            and has_function_privilege('authenticated', p.oid, 'EXECUTE')
+           -- Gardes que le harnais ne peut pas éprouver (voir ci-dessus).
+           and p.prosrc not ilike '%session_user%'
+           -- Rend un verdict au lieu de lever, par conception : la console doit pouvoir
+           -- distinguer « refusé » de « indisponible ».
+           and p.proname <> 'admin_console_session_state'
          order by p.proname
       loop
         -- « nom type, nom type » → « null::type, null::type »
