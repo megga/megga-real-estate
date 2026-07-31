@@ -54,33 +54,40 @@ describe.skipIf(!HAS_KEYS)('activation des agences et historique des crons (éta
   })
 
   it('le statut suit la dernière activité, pas le nombre de jalons', () => {
-    // Agence DÉDIÉE, créée ici : celle de la fixture porte déjà des événements récents
-    // (provisioning, invitations), et `last_activity_at` étant un max(), le plus récent
-    // gagne toujours. Un test qui insère un événement ancien dans une agence vivante
-    // n'éprouve rien — il l'a d'ailleurs prouvé en passant au vert sur 'active'.
+    // Contrôler `last_activity_at` demande deux précautions, apprises en CI :
+    //  · l'agence de fixture porte des événements récents, et last_activity_at est un
+    //    max() : le plus récent gagne toujours. D'où une agence dédiée.
+    //  · créer une agence ÉMET elle-même un activity_events (trg_agency_created), daté de
+    //    maintenant. Et il est impossible de le vieillir ou de l'effacer après coup :
+    //    activity_events refuse l'UPDATE comme le DELETE. Le trigger est donc neutralisé
+    //    le temps de l'insertion, seul moyen d'obtenir une agence sans activité récente.
     assertSql(`
     declare v_id uuid;
     begin
+      alter table public.agencies disable trigger trg_agency_created;
       insert into public.agencies (name, slug)
-        values ('Activation atRisk probe', 'activation-atrisk-probe-' || gen_random_uuid())
+        values ('Activation probe', 'activation-probe-' || gen_random_uuid())
         returning id into v_id;
+      alter table public.agencies enable trigger trg_agency_created;
+
       insert into public.activity_events (agency_id, actor_kind, action, entity_type, created_at)
         values (v_id, 'system', 'test_activation', 'test', now() - interval '15 days');
-
       perform public.recompute_agency_activation(v_id);
       if (select status from public.agency_activation where agency_id = v_id) <> 'atRisk' then
         raise exception '15 jours d inactivite doivent donner atRisk, pas %',
           (select status from public.agency_activation where agency_id = v_id);
       end if;
 
-      -- Aucune activité du tout : dormant, et non 'atRisk' par défaut.
-      update public.activity_events set created_at = now() - interval '90 days' where agency_id = v_id;
+      -- Un événement récent bascule la même agence en 'active' : c'est bien la RÉCENCE
+      -- qui décide, pas le nombre de jalons, qui n'a pas bougé.
+      insert into public.activity_events (agency_id, actor_kind, action, entity_type)
+        values (v_id, 'system', 'test_activation_recent', 'test');
       perform public.recompute_agency_activation(v_id);
-      if (select status from public.agency_activation where agency_id = v_id) <> 'dormant' then
-        raise exception '90 jours doivent donner dormant';
+      if (select status from public.agency_activation where agency_id = v_id) <> 'active' then
+        raise exception 'un evenement recent doit donner active';
       end if;
 
-      delete from public.agencies where id = v_id;   -- cascade sur activation et evenements
+      delete from public.agencies where id = v_id;
     `)
   })
 
@@ -160,16 +167,15 @@ describe.skipIf(!HAS_KEYS)('activation des agences et historique des crons (éta
     expect(agent.error?.code, 'un agent est refusé').toBe(DENIED)
   })
 
-  it('une limite démesurée est ramenée au plafond, jamais honorée', () => {
+  it('une limite démesurée est ramenée au plafond, jamais honorée', async () => {
     // Le piège relevé sur get_admin_kyc_magic_links : un `greatest()` seul est un plancher,
     // et un appelant demandant un million de lignes obtient la table entière.
-    assertSql(`
-    declare v_n int;
-    begin
-      select count(*) into v_n from public.get_admin_cron_runs(null, 1000000);
-      if v_n > 200 then
-        raise exception 'plafond non applique : % lignes rendues', v_n;
-      end if;
-    `)
+    // Appel en service_role : la garde n'admet pas session_user = postgres, donc psql ne
+    // peut pas l'exercer.
+    const { data, error } = await serviceRoleClient().rpc('get_admin_cron_runs', {
+      p_jobname: null, p_limit: 1_000_000,
+    })
+    expect(error).toBeNull()
+    expect((data as unknown[] ?? []).length, 'plafond à 200 lignes').toBeLessThanOrEqual(200)
   })
 })
