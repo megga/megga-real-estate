@@ -22,10 +22,12 @@
 // seedé et DOIVENT réellement passer — lire le compte de tests, jamais le code de sortie.
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { serviceRoleClient } from './helpers/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { serviceRoleClient, anonClient } from './helpers/supabase'
 import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
+const PW = 'Test-Password-123!'
 const DENIED = '42501'
 
 /** Une valeur VALIDE par colonne gelée — seul compte le refus, jamais une erreur de type.
@@ -38,17 +40,47 @@ const FROZEN_COLUMNS: [string, unknown][] = [
 
 describe.skipIf(!HAS_KEYS)('gel des colonnes de facturation d\'agencies (bloquant 0.4)', () => {
   let setup: TwoAgenciesSetup
+  let superClient: SupabaseClient
+  const extraUserIds: string[] = []
 
   beforeAll(async () => {
     setup = await setupTwoAgencies()
+    const svc = serviceRoleClient()
+
     // Le trou visé n'existe QUE pour un dirigeant : is_agency_admin() est la condition
     // d'entrée de agencies_members_update depuis 20260731170000.
-    const { error } = await serviceRoleClient().from('profiles').update({ role: 'admin' }).eq('id', setup.agentAId)
+    const { error } = await svc.from('profiles').update({ role: 'admin' }).eq('id', setup.agentAId)
     if (error) throw new Error(`promotion role=admin (fixture): ${error.message}`)
+
+    // admin_set_agency_plan est gardée par is_super_admin() SEUL — jamais
+    // is_service_role(). Or is_super_admin() lit auth.uid(), nul pour une clé de service :
+    // la RPC est donc INAPPELABLE en service_role (mesuré, elle rend 42501 « forbidden:
+    // super_admin required »). Elle exige un vrai JWT super-admin, d'où cette fixture.
+    // Conséquence à retenir hors de ce test : aucun cron ni aucune edge en service_role ne
+    // peut rejouer un changement de plan — à intégrer au design de l'outbox (§10.2).
+    const email = `billing-guard-super-${setup.stamp}@megga-test.local`
+    const { data, error: createErr } = await svc.auth.admin.createUser({
+      email, password: PW, email_confirm: true,
+      user_metadata: { full_name: `Super ${setup.stamp}`, role: 'agent' },
+    })
+    if (createErr) throw new Error(`createUser super_admin: ${createErr.message}`)
+    extraUserIds.push(data.user!.id)
+    const { error: pErr } = await svc
+      .from('profiles')
+      .upsert(
+        { id: data.user!.id, email, full_name: `Super ${setup.stamp}`, role: 'super_admin', agency_id: null },
+        { onConflict: 'id' }
+      )
+    if (pErr) throw new Error(`profile super_admin: ${pErr.message}`)
+    superClient = anonClient()
+    const { error: signInErr } = await superClient.auth.signInWithPassword({ email, password: PW })
+    if (signInErr) throw new Error(`signin super_admin: ${signInErr.message}`)
   })
 
   afterAll(async () => {
     if (setup) await setup.cleanup()
+    const svc = serviceRoleClient()
+    for (const id of extraUserIds) await svc.auth.admin.deleteUser(id).then(() => {}, () => {})
   })
 
   // ── 1. Le refus ────────────────────────────────────────────────────────────────
@@ -98,10 +130,13 @@ describe.skipIf(!HAS_KEYS)('gel des colonnes de facturation d\'agencies (bloquan
   })
 
   it('admin_set_agency_plan change le plan malgré le trigger — le chemin gardé reste ouvert', async () => {
-    // SECURITY DEFINER appartenant à postgres : current_user y vaut 'postgres', jamais
-    // 'authenticated'. C'est ce qui fait de cette RPC le seul écrivain humain légitime.
+    // Appelée avec un JWT super-admin (voir beforeAll) : la RPC est gardée par
+    // is_super_admin() seul et refuse le service_role. Une fois entrée, elle est SECURITY
+    // DEFINER appartenant à postgres, donc `current_user` y vaut 'postgres' et jamais
+    // 'authenticated' — c'est ce qui la fait passer devant le trigger de gel, et ce qui en
+    // fait le seul écrivain humain légitime de agencies.plan.
     const svc = serviceRoleClient()
-    const { error } = await svc.rpc('admin_set_agency_plan', {
+    const { error } = await superClient.rpc('admin_set_agency_plan', {
       p_agency_id: setup.agencyAId,
       p_plan: 'pro',
       p_status: 'active',
@@ -114,6 +149,21 @@ describe.skipIf(!HAS_KEYS)('gel des colonnes de facturation d\'agencies (bloquan
 
     // Nettoyage de la ligne subscriptions créée par la RPC (stripe_customer_id = manual_<uuid>).
     await svc.from('subscriptions').delete().eq('agency_id', setup.agencyAId).then(() => {}, () => {})
+  })
+
+  it('admin_set_agency_plan refuse le service_role — sa garde est is_super_admin() SEUL', async () => {
+    // Constat mesuré en écrivant ce fichier, contre-intuitif et à ne pas perdre : contrairement
+    // aux RPC de lecture du socle admin (gardées `is_super_admin() OR is_service_role()`),
+    // celle-ci n'admet que le premier terme. is_super_admin() lit auth.uid(), nul sous une clé
+    // de service. Aucune edge, aucun cron, aucun worker d'outbox ne peut donc rejouer un
+    // changement de plan : il faudra porter le JWT de l'opérateur ou étendre la garde.
+    const { error } = await serviceRoleClient().rpc('admin_set_agency_plan', {
+      p_agency_id: setup.agencyAId,
+      p_plan: 'starter',
+      p_status: 'active',
+      p_note: 'tentative service_role',
+    })
+    expect(error?.code, 'la garde doit refuser une clé de service').toBe(DENIED)
   })
 
   // ── 3. L'agent simple : fermé en amont, à ne pas confondre avec ce verrou ───────
