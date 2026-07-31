@@ -21,8 +21,19 @@ const PASS = 'preview';
 /**
  * Pages servies sans mot de passe : le gate protège le contenu marketing, pas la
  * porte d'entrée du produit.
+ *
+ * Les deux pages légales suivent les pages d'auth pour la même raison : la case
+ * de consentement de /signup renvoie vers elles. Derrière le gate, on demandait
+ * d'accepter des conditions que le visiteur reçoit en 401 — un consentement à un
+ * texte illisible.
  */
-const PUBLIC_PAGES = new Set(['/login', '/signup', '/reset-password']);
+const PUBLIC_PAGES = new Set([
+  '/login',
+  '/signup',
+  '/reset-password',
+  '/mentions-legales',
+  '/confidentialite',
+]);
 
 /**
  * Dossiers de ressources laissés libres. Sans eux les pages d'auth arrivent nues

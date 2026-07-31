@@ -1,14 +1,25 @@
-/* Vitrine MEGGA — habillage du modal « mot de passe oublié » (login.html).
+/* Vitrine MEGGA — retouches manuscrites des écrans d'authentification :
+ * le modal « mot de passe oublié » (login.html) et la grille du formulaire
+ * d'inscription (signup.html).
  *
- * Ce fichier ne contient QUE le chrome du dialogue : voile, cadre, bouton de
- * fermeture, animations. Tout ce qui est à l'intérieur réutilise les classes de
- * la vitrine (card sign-in-card, input, primary-button, display-*, w-form-*) —
- * aucune couleur ni typo n'est réinventée, on lit les variables de :root.
+ * Pour le modal, ce fichier ne contient QUE le chrome du dialogue : voile,
+ * cadre, bouton de fermeture, animations. Tout ce qui est à l'intérieur
+ * réutilise les classes de la vitrine (card sign-in-card, input,
+ * primary-button, display-*, w-form-*) — aucune couleur ni typo n'est
+ * réinventée, on lit les variables de :root.
  *
  * Fichier SÉPARÉ de css/styles.css à dessein : styles.css est l'export Webflow
  * et sert de source à la transcription de l'app (scripts/build-megga-x-css.mjs).
  * Y écrire à la main polluerait le design system côté CRM.
  */
+
+/* signup.html — la case de consentement occupe sa propre ligne sous les quatre
+   champs (Nom | E-mail / Mot de passe | Agence). `1 / -1` plutôt que `span 2` :
+   sous 767px la grille passe à une colonne, et un `span 2` y créerait une
+   colonne implicite qui rétrécirait tous les autres champs de moitié. */
+.megga-signup__consent {
+  grid-column: 1 / -1;
+}
 
 .megga-modal[hidden] {
   display: none;
