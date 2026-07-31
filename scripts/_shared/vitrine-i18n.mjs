@@ -1,5 +1,5 @@
 /**
- * Socle i18n de la vitrine : périmètre des pages, extraction et traduction du HTML.
+ * Socle i18n de la vitrine : périmètre des pages, slugs, extraction et URLs.
  *
  * La vitrine est un export Webflow SANS build : traduire en dupliquant les
  * fichiers ferait vivre 4 copies de chaque page, et chaque changement de
@@ -15,33 +15,50 @@
  * --extract` le signalerait.
  */
 
+/** Langues générées. Le français reste à la racine. */
+export const LANGUES = ['de', 'en', 'it'];
+
 /**
- * Pages traduites (palier 1 — le parcours de conversion).
+ * Pages traduites (palier 1 — le parcours de conversion) et leur slug par langue.
  *
  * Volontairement PAS le blog (60 % du volume, et un article traduit se
  * positionne mal : mieux vaut des articles natifs plus tard), PAS les pages
  * légales (un contrat mal traduit est un risque ; la version française fait
  * foi), PAS `careers` ni `changelog`.
+ *
+ * Le slug fait partie de la traduction : `/de/pricing.html` trahissait que
+ * l'effort s'arrêtait au contenu. Les marques ne se traduisent pas (Intercom,
+ * Outlook, Skribble, WhatsApp), et le produit reste nommé dans le slug de son
+ * intégration — la page « Gmail » annoncée sur /integrations rendrait un
+ * `integration-google` ambigu. Google localise lui-même son calendrier en
+ * « Google Kalender » (de) et le garde en « Google Calendar » (en, it).
  */
-export const PAGES_TRADUITES = [
-  '404.html',
-  'about.html',
-  'contact.html',
-  'index.html',
-  'integration-google-agenda.html',
-  'integration-intercom.html',
-  'integration-microsoft-outlook.html',
-  'integration-skribble.html',
-  'integration-whatsapp.html',
-  'integrations.html',
-  'login.html',
-  'pricing.html',
-  'reset-password.html',
-  'signup.html',
-];
+export const PAGES = {
+  '404.html': { de: '404', en: '404', it: '404' },
+  'about.html': { de: 'ueber-uns', en: 'about', it: 'chi-siamo' },
+  'contact.html': { de: 'kontakt', en: 'contact', it: 'contatto' },
+  'index.html': { de: 'index', en: 'index', it: 'index' },
+  'integration-google-agenda.html': {
+    de: 'integration-google-kalender',
+    en: 'integration-google-calendar',
+    it: 'integrazione-google-calendar',
+  },
+  'integration-intercom.html': { de: 'integration-intercom', en: 'integration-intercom', it: 'integrazione-intercom' },
+  'integration-microsoft-outlook.html': {
+    de: 'integration-microsoft-outlook',
+    en: 'integration-microsoft-outlook',
+    it: 'integrazione-microsoft-outlook',
+  },
+  'integration-skribble.html': { de: 'integration-skribble', en: 'integration-skribble', it: 'integrazione-skribble' },
+  'integration-whatsapp.html': { de: 'integration-whatsapp', en: 'integration-whatsapp', it: 'integrazione-whatsapp' },
+  'integrations.html': { de: 'integrationen', en: 'integrations', it: 'integrazioni' },
+  'login.html': { de: 'anmelden', en: 'login', it: 'accedi' },
+  'pricing.html': { de: 'preise', en: 'pricing', it: 'prezzi' },
+  'reset-password.html': { de: 'neues-passwort', en: 'reset-password', it: 'nuova-password' },
+  'signup.html': { de: 'registrieren', en: 'signup', it: 'registrazione' },
+};
 
-/** Langues générées. Le français reste à la racine. */
-export const LANGUES = ['de', 'en', 'it'];
+export const PAGES_TRADUITES = Object.keys(PAGES);
 
 /** Balises dont le contenu textuel n'est jamais de la copy. */
 const BALISES_OPAQUES = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'CODE', 'PRE']);
@@ -88,27 +105,56 @@ export function parcourirTextes(document, visiter) {
   }
 
   // Métadonnées : titre, description, Open Graph, Twitter.
+  // `property^="twitter:"` autant que `name^=` : les deux formes circulent dans
+  // l'export, et n'en couvrir qu'une laissait des cartes Twitter en français.
   const titre = document.querySelector('title');
   if (titre && estTraduisible(titre.textContent)) {
     visiter({ type: 'texte', noeud: titre.firstChild, valeur: titre.textContent });
   }
-  for (const el of document.querySelectorAll('meta[name="description"], meta[property^="og:"], meta[name^="twitter:"]')) {
+  for (const el of document.querySelectorAll(
+    'meta[name="description"], meta[property^="og:"], meta[name^="twitter:"], meta[property^="twitter:"]'
+  )) {
     const v = el.getAttribute('content');
     if (v && estTraduisible(v)) visiter({ type: 'attribut', element: el, attribut: 'content', valeur: v });
   }
 }
 
+/** Nom du fichier écrit sur le disque pour une page dans une langue. */
+export function fichierLocalise(fichier, langue) {
+  if (langue === 'fr') return fichier;
+  const slug = PAGES[fichier]?.[langue];
+  return slug ? slug + '.html' : fichier;
+}
+
 /**
- * Le chemin d'une page dans une langue donnée.
+ * URL CANONIQUE d'une page dans une langue — sans extension.
  *
- * ⚠ Ne préfixe QUE les pages effectivement traduites. Sans ce test, la
- * navigation allemande enverrait vers `/de/blog.html`, qui n'existe pas : un
- * lien mort vaut moins qu'un lien vers la version française.
+ * Cloudflare Pages sert `/pricing.html` mais redirige en 308 vers `/pricing` :
+ * annoncer la forme `.html` dans un canonical, un hreflang ou un sitemap revient
+ * à désigner à Google une URL qui n'est pas la finale. On n'émet donc que la
+ * forme servie. `index` disparaît : la racine de langue est `/de/`.
+ *
+ * ⚠ Ne traduit QUE les pages du palier 1. Pour les autres — blog, pages
+ * légales, carrières — le chemin français est renvoyé tel quel : un lien vers
+ * la version française vaut mieux qu'un 404 dans la bonne langue.
  */
-export function cheminLocalise(chemin, langue) {
-  const nu = chemin.replace(/^\//, '');
-  const fichier = nu === '' ? 'index.html' : nu;
-  if (langue === 'fr') return '/' + (nu === 'index.html' ? '' : nu);
-  if (!PAGES_TRADUITES.includes(fichier)) return '/' + nu; // reste en français
-  return '/' + langue + '/' + (fichier === 'index.html' ? '' : fichier);
+export function urlLocalisee(chemin, langue) {
+  const nu = chemin.replace(/^\//, '') || 'index.html';
+  const fichier = nu.endsWith('.html') ? nu : nu + '.html';
+  const traduite = Object.prototype.hasOwnProperty.call(PAGES, fichier);
+
+  if (langue === 'fr' || !traduite) {
+    if (!traduite) return '/' + nu.replace(/\.html$/, '');
+    return fichier === 'index.html' ? '/' : '/' + fichier.replace(/\.html$/, '');
+  }
+  const slug = PAGES[fichier][langue];
+  return slug === 'index' ? '/' + langue + '/' : '/' + langue + '/' + slug;
+}
+
+/** Vrai si la page existe dans cette langue (base d'un lien qui ne meurt pas). */
+export function pageExiste(chemin, langue) {
+  if (langue === 'fr') return true;
+  const nu = chemin.replace(/^\//, '') || 'index.html';
+  const fichier = nu.endsWith('.html') ? nu : nu + '.html';
+  return Object.prototype.hasOwnProperty.call(PAGES, fichier);
 }

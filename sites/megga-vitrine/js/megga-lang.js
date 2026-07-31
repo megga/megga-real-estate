@@ -5,15 +5,19 @@
  * langue emmène sur la version correspondante de LA PAGE COURANTE, pas sur
  * l'accueil : on ne perd pas sa lecture en changeant de langue.
  *
- * STRUCTURE DES URLS : le français vit à la racine (`/pricing.html`), les autres
- * langues sous un préfixe (`/de/pricing.html`). C'est la forme qui se prête au
- * mieux à un site statique — un dossier par langue, aucune règle de serveur à
- * écrire, et un `hreflang` évident le jour où les pages traduites existent.
+ * STRUCTURE DES URLS : le français vit à la racine (`/pricing`), les autres
+ * langues sous un préfixe ET un slug traduit (`/de/preise`, `/it/prezzi`).
  *
- * ÉTAT AU 31 JUIL. 2026 : les quatre langues existent. `disponible: false`
- * reste le moyen de retirer une langue de l'offre sans toucher au reste.
- * ⚠ Le palier 1 ne traduit PAS le blog ni les pages légales : les liens vers
- * ces pages restent en français depuis toutes les langues, c'est voulu.
+ * ⚠ LA PAGE FAIT FOI, PAS UNE RÈGLE DE CALCUL. Ce script lisait autrefois le
+ * chemin courant et y collait un préfixe de langue. Il produisait donc des URLs
+ * pour des pages qui n'existent pas : depuis le blog, les pages légales, les
+ * carrières ou un article, « Deutsch » envoyait sur un 404 — 57 cibles mortes.
+ * Désormais il lit les `<link rel="alternate" hreflang>` que le build a posés
+ * dans le head : une langue sans alternate sur CETTE page n'est simplement pas
+ * proposée. Les deux ne peuvent plus diverger, puisqu'il n'y a qu'une source.
+ *
+ * Le palier 1 ne traduit ni le blog ni les pages légales : sur ces pages, seul
+ * le français est proposé, et c'est voulu.
  */
 (function () {
   var LANGUES = [
@@ -28,34 +32,25 @@
   // posée ici ne vaut donc que pour la vitrine ; la porter jusqu'au CRM
   // demanderait de la passer dans l'URL, comme la session.
   var CLE = 'megga-language';
-  var PREFIXES = LANGUES.filter(function (l) { return l.code !== 'fr'; })
-    .map(function (l) { return '/' + l.code; });
 
   function $(sel, racine) { return (racine || document).querySelector(sel); }
 
-  /** Langue de la page courante : le CHEMIN fait foi, le stockage n'est qu'un repli. */
+  /** Langue de la page : `<html lang>`, posé par le build. */
   function langueCourante() {
-    var segment = location.pathname.split('/')[1];
-    for (var i = 0; i < LANGUES.length; i++) {
-      if (LANGUES[i].code !== 'fr' && LANGUES[i].code === segment) return LANGUES[i].code;
-    }
+    var declaree = (document.documentElement.getAttribute('lang') || 'fr').slice(0, 2).toLowerCase();
+    for (var i = 0; i < LANGUES.length; i++) if (LANGUES[i].code === declaree) return declaree;
     return 'fr';
   }
 
-  /** Chemin sans son préfixe de langue (`/de/pricing.html` → `/pricing.html`). */
-  function cheminNeutre(chemin) {
-    for (var i = 0; i < PREFIXES.length; i++) {
-      var p = PREFIXES[i];
-      if (chemin === p) return '/';
-      if (chemin.indexOf(p + '/') === 0) return chemin.slice(p.length);
-    }
-    return chemin;
-  }
-
-  /** Même page, autre langue. */
-  function cheminLocalise(chemin, code) {
-    var neutre = cheminNeutre(chemin);
-    return code === 'fr' ? neutre : '/' + code + (neutre === '/' ? '/' : neutre);
+  /**
+   * URL de la page courante dans une autre langue, ou null si elle n'existe pas.
+   *
+   * Lue dans les alternates du head : c'est le build qui sait quelles pages sont
+   * traduites, et lui seul. Deviner ici rouvrirait la porte aux liens morts.
+   */
+  function urlDansLaLangue(code) {
+    var lien = $('link[rel="alternate"][hreflang="' + code + '"]');
+    return lien ? lien.getAttribute('href') : null;
   }
 
   /**
@@ -66,10 +61,10 @@
    * page allemande signalerait que la traduction s'arrête à la surface.
    */
   var LIBELLES = {
-    fr: { titre: 'Choisir la langue', actuelle: 'Langue actuelle', bientot: 'Bientôt', fermer: 'Fermer' },
-    de: { titre: 'Sprache wählen', actuelle: 'Aktuelle Sprache', bientot: 'Demnächst', fermer: 'Schliessen' },
-    en: { titre: 'Choose language', actuelle: 'Current language', bientot: 'Soon', fermer: 'Close' },
-    it: { titre: 'Scegli la lingua', actuelle: 'Lingua attuale', bientot: 'Presto', fermer: 'Chiudi' },
+    fr: { titre: 'Choisir la langue', actuelle: 'Langue actuelle', indisponible: 'Indisponible ici', fermer: 'Fermer' },
+    de: { titre: 'Sprache wählen', actuelle: 'Aktuelle Sprache', indisponible: 'Hier nicht verfügbar', fermer: 'Schliessen' },
+    en: { titre: 'Choose language', actuelle: 'Current language', indisponible: 'Not available here', fermer: 'Close' },
+    it: { titre: 'Scegli la lingua', actuelle: 'Lingua attuale', indisponible: 'Non disponibile qui', fermer: 'Chiudi' },
   };
 
   function icone(nom) {
@@ -93,11 +88,16 @@
 
     var options = LANGUES.map(function (l) {
       var courante = l.code === code;
+      // Atteignable = le build a posé un alternate pour cette langue sur cette
+      // page. Sur le blog ou une page légale, il n'y en a qu'un : le français.
+      var cible = courante ? null : urlDansLaLangue(l.code);
+      var atteignable = courante || (l.disponible && !!cible);
       var attrs = 'class="megga-lang-option" data-langue="' + l.code + '"'
+        + (cible ? ' data-cible="' + cible + '"' : '')
         + ' aria-current="' + (courante ? 'true' : 'false') + '"'
-        + (l.disponible ? '' : ' aria-disabled="true"');
+        + (atteignable ? '' : ' aria-disabled="true"');
       var note = courante ? '<span class="megga-lang-option__note">' + mots.actuelle + '</span>'
-        : (l.disponible ? '' : '<span class="megga-lang-option__note">' + mots.bientot + '</span>');
+        : (atteignable ? '' : '<span class="megga-lang-option__note">' + mots.indisponible + '</span>');
       return '<li><button type="button" ' + attrs + '><span>' + l.nom + '</span>' + note + '</button></li>';
     }).join('');
 
@@ -159,9 +159,16 @@
       el.addEventListener('click', function () {
         if (el.getAttribute('aria-disabled') === 'true') return;
         var choix = el.getAttribute('data-langue');
+        var cible = el.getAttribute('data-cible');
         try { localStorage.setItem(CLE, choix); } catch (err) { /* navigation privée */ }
-        if (choix === code) return fermer();
-        location.href = cheminLocalise(location.pathname, choix) + location.search;
+        if (choix === code || !cible) return fermer();
+        // Les alternates sont absolus (https://megga.ch/…) parce que Google les
+        // veut ainsi. On ne garde que le chemin : sinon, depuis une préversion ou
+        // un domaine de test, changer de langue sauterait vers la production.
+        // L'ancre suit — changer de langue au milieu d'une page doit ramener au
+        // même endroit, pas en haut.
+        var url = new URL(cible, location.href);
+        location.href = url.pathname + location.search + location.hash;
       });
     });
   }
