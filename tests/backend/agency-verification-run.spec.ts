@@ -1308,12 +1308,43 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
      *  personne (vetos et signaux scorables) en `match`, tous les signaux d'entite
      *  scorables en `match`. Rien ne manque a ce dossier que les registres. */
     async function createPerfectSwissAgency(label: string): Promise<string> {
+      return (await createPerfectSwissAgencyWithSignatory(label)).agencyId
+    }
+
+    /** Meme fixture, mais qui rend AUSSI le signataire. Necessaire depuis que
+     *  pep_sanctions_screening a un connecteur (etape 7, tache 4) : les controles qui
+     *  posent des vetos APRES le passage doivent pouvoir reposer celui-la aussi, voir
+     *  repostPepVeto(). */
+    async function createPerfectSwissAgencyWithSignatory(
+      label: string
+    ): Promise<{ agencyId: string; signatoryId: string }> {
       const agencyId = await createAgency(label)
       const signatoryId = await addActiveSignatory(agencyId)
       await setCountry(agencyId, 'CH')
       await insertAgencyChecks(agencyId, SCORABLE_AGENCY_SIGNALS, 'match')
       await insertPersonChecks(signatoryId, [...PERSON_VETO_TYPES, ...SCORABLE_PERSON_SIGNALS], 'match')
-      return agencyId
+      return { agencyId, signatoryId }
+    }
+
+    /**
+     * Repose pep_sanctions_screening en `match` APRES un passage de l'Edge Function.
+     *
+     * POURQUOI CE GESTE EXISTE, et il n'existait pas avant l'etape 7. Ce veto n'avait
+     * AUCUN connecteur : le poser dans la fixture suffisait, rien ne venait ecrire par
+     * dessus. Il en a un depuis (Dilisense), et sans DILISENSE_API_KEY -- le cas de la CI
+     * comme du poste de developpement -- ce connecteur produit `unavailable`. Cette ligne
+     * est ecrite PENDANT le passage, donc plus recente que celle de la fixture, et le
+     * moteur ne garde que la plus recente : le veto pose a la main etait masque, et les
+     * controles ci-dessous echouaient sur une cause qui n'avait rien a voir avec ce
+     * qu'ils mesurent.
+     *
+     * Reposer APRES le passage est le meme geste que celui deja fait pour les vetos
+     * d'entite, et pour la meme raison. Ce n'est pas un contournement : c'est ce qu'un
+     * relecteur humain ferait, et c'est la seule facon d'isoler la cause que ces
+     * controles veulent isoler.
+     */
+    async function repostPepVeto(signatoryId: string): Promise<void> {
+      await insertPersonChecks(signatoryId, ['pep_sanctions_screening'], 'match')
     }
 
     it(
@@ -1325,6 +1356,20 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         const res = await callRun(agencyId)
         const body = await res.json()
         expect(res.status, `attendu 200, recu ${res.status}: ${JSON.stringify(body)}`).toBe(200)
+
+        // LA PORTEE PERSONNE, ajoutee a la reponse par l'etape 7/tache 4. Comptee A PART
+        // de `results`, et c'est deliberé : `results` accompagne `checks_written`, qui est
+        // d'AGENCE depuis l'etape 4 ; les fondre aurait donne a un appelant un compte de
+        // deux tables melangees sans moyen de savoir laquelle. Un signataire actif, une
+        // source de personne, donc exactement une ligne -- `unavailable` faute de
+        // DILISENSE_API_KEY dans cet environnement, ce qui est le comportement voulu :
+        // le connecteur ne fabrique jamais de verdict.
+        expect(body.person_checks_written, 'un signataire actif x une source de personne').toBe(1)
+        expect(body.person_results.unavailable).toBe(1)
+        expect(
+          body.results.unavailable + body.person_results.unavailable,
+          'les deux portees se comptent separement, jamais dans le meme seau'
+        ).toBe(body.results.unavailable + 1)
 
         // AUCUNE ABSENTE : c'est la moitie de la preuve. Une source injoignable doit
         // laisser une ligne `unavailable`, jamais un silence -- le principe directeur de
@@ -1364,7 +1409,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       'le controle qui rend la preuve concluante : les quatre vetos d entite poses a la main en match, le MEME ' +
         'dossier bascule en auto_validated -- rien d autre n a change',
       async () => {
-        const agencyId = await createPerfectSwissAgency('preuve-ch-controle')
+        const { agencyId, signatoryId } = await createPerfectSwissAgencyWithSignatory('preuve-ch-controle')
 
         const res = await callRun(agencyId)
         expect(res.status).toBe(200)
@@ -1372,9 +1417,12 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
 
         // Les quatre vetos d'entite, poses APRES le passage : ils sont donc plus recents
         // que les `unavailable` de Zefix et gagnent le `distinct on (check_type)` du
-        // moteur. Rien d'autre ne bouge -- ni le score, ni le signataire, ni les checks de
-        // personne, ni la moindre ligne des connecteurs.
+        // moteur. Rien d'autre ne bouge -- ni le score, ni le signataire, ni la moindre
+        // ligne des connecteurs.
         await insertAgencyChecks(agencyId, AGENCY_VETO_TYPES, 'match')
+        // Et le veto de PERSONNE que le passage vient de couvrir d'un `unavailable`, faute
+        // de cle Dilisense -- voir repostPepVeto pour pourquoi ce geste est apparu.
+        await repostPepVeto(signatoryId)
         await recompute(agencyId)
 
         const agency = await getAgency(agencyId)
@@ -1419,13 +1467,18 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       if (error) throw new Error(`update business_registration_number: ${error.message}`)
     }
 
-    async function runThenPassOtherVetos(agencyId: string): Promise<void> {
+    async function runThenPassOtherVetos(agencyId: string, signatoryId?: string): Promise<void> {
       const res = await callRun(agencyId)
       expect(res.status, `attendu 200 sur ${agencyId}`).toBe(200)
       // Poses APRES le passage : plus recents que les `unavailable` des squelettes, ils
       // gagnent le `distinct on (check_type)` du moteur. La ligne registry_number_format,
       // elle, vient du connecteur et de lui seul.
       await insertAgencyChecks(agencyId, OTHER_AGENCY_VETO_TYPES, 'match')
+      // Meme geste pour le veto de PERSONNE que le passage vient de couvrir d'un
+      // `unavailable` faute de cle Dilisense (etape 7, tache 4) -- voir repostPepVeto.
+      // Optionnel : les appelants qui ne mesurent QUE la retenue du dossier n'en ont pas
+      // besoin, seuls ceux qui attendent une BASCULE doivent reposer ce veto.
+      if (signatoryId) await repostPepVeto(signatoryId)
       await recompute(agencyId)
     }
 
@@ -1471,10 +1524,10 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       'le controle qui rend la mesure concluante : le MEME dossier avec le numero REEL bascule en auto_validated, ' +
         'et le veto est satisfait par le connecteur lui-meme -- jamais par une ligne posee a la main',
       async () => {
-        const agencyId = await createPerfectSwissAgency('numero-vrai')
+        const { agencyId, signatoryId } = await createPerfectSwissAgencyWithSignatory('numero-vrai')
         await setBusinessRegistrationNumber(agencyId, VALID_SWISS_UID)
 
-        await runThenPassOtherVetos(agencyId)
+        await runThenPassOtherVetos(agencyId, signatoryId)
 
         const check = await registryNumberFormatCheck(agencyId)
         expect(check.result).toBe('match')

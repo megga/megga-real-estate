@@ -1,5 +1,5 @@
 // Backend spec (live CI) — la boucle de remédiation (étape 7, tâche 5, migration
-// 20260730150000_agency_correction_requested.sql).
+// 20260731150000_agency_correction_requested.sql).
 //
 // LE DÉFAUT QUE CETTE TÂCHE FERME. `admin_reject_agency_review` posait
 // verification_status='rejected' sans toucher identity_submitted_at. Le gate d'onboarding ne

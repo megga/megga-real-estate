@@ -208,8 +208,12 @@ Deux réserves, honnêtement posées :
   ```sql
   select jobname, schedule, active from cron.job where jobname = 'agency-verification-sweep-hourly';
   ```
-- **Le job CI `e2e-kyb`** n'a jamais tourné pour de vrai sur `main` : il a été exercé en
-  local (`npm run test:e2e:kyb`, 3 tests, 3 passés) mais jamais déclenché par la CI.
+- **Le job CI `e2e-kyb`** n'avait jamais tourné pour de vrai. **Résolu le 30.07.2026** : il
+  a été déclenché par la PR de l'étape 7 et passe, avec 4 cas. Une leçon en est sortie, et
+  elle vaut d'être retenue : le runtime edge local sert les fonctions du **dépôt principal**,
+  jamais celles d'un worktree, donc les tests de contrat HTTP d'une Edge Function modifiée
+  en worktree **ne sont vérifiables qu'en CI**. Six échecs réels y ont été trouvés que la
+  suite locale déclarait verts.
 
 ---
 
@@ -746,7 +750,7 @@ ailleurs. Les suivants étaient déjà connus et sont repris ici pour que la lis
 
 > **✅ CORRIGÉ le 30.07.2026 (étape 7, tâches 1 et 4).** Le véto est branché sur Dilisense
 > (`createPepSanctionsSources`, `_shared/kyb-sources.ts`), `record_agency_verification_run`
-> accepte des checks de portée personne (`20260730140000`), et
+> accepte des checks de portée personne (`20260731140000`), et
 > `agency-verification-run/index.ts` interroge les signataires actifs. Un dossier français
 > complet atteint `auto_validated` **sans qu'aucune fixture ne pose de check à la main** :
 > `tests/backend/agency-person-verification-run.spec.ts`, avec son contrôle. Et l'invariant
@@ -806,7 +810,7 @@ l'ancien handoff. Tant que ce véto n'est pas résolu, Zefix ne débloquerait ri
 ### B. CRITIQUE : un dossier rejeté est un cul-de-sac définitif
 
 > **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 5).** Cinquième décision humaine,
-> `admin_request_agency_correction` (`20260730150000`) : elle pose le nouveau statut
+> `admin_request_agency_correction` (`20260731150000`) : elle pose le nouveau statut
 > `correction_requested`, remet `identity_submitted_at` à NULL — ce qui rouvre le gate ET
 > dégèle la saisie — et exige un motif. `rejected` reste **terminal**, ce qui n'est cohérent
 > que parce que la correction existe. Le moteur n'écrase pas ce statut, et une resoumission
@@ -833,7 +837,7 @@ réel :** un incident support par dossier rejeté.
 
 ### C. CRITIQUE : une pièce d'identité refusée ne peut pas être remplacée
 
-> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 2, migration `20260730120000`).** Les deux
+> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 2, migration `20260731121000`).** Les deux
 > impasses sont levées par un point de décision unique, `_latest_person_verification_check`,
 > qui départage les lignes **exactement comme le moteur** (`checked_at desc, ctid desc`) :
 > `submit_agency_identity` repose une demande dès que le dernier verdict n'est ni `pending`
@@ -859,7 +863,7 @@ Le premier point était consigné comme dette de l'étape 2 et attribué à l'é
 
 ### D. IMPORTANT : les données légales sont modifiables après validation, sans revérification ni trace
 
-> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 3, migration `20260730130000`).** Deux triggers :
+> **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 3, migration `20260731130000`).** Deux triggers :
 > l'un refuse l'écriture des 5 colonnes d'identité à un agent simple, et à quiconque une fois
 > le dossier soumis (le gel se lève quand `identity_submitted_at` repasse à NULL, ce qui est
 > la charnière avec la tâche 5) ; l'autre journalise tout changement dans `activity_events`
@@ -892,7 +896,7 @@ toute action ».
 ### E. IMPORTANT : aucune notification de décision
 
 > **✅ CORRIGÉ le 30.07.2026 (étape 7, tâche 6).** Un trigger sur la TRANSITION de
-> `verification_status` (`20260730160000`) déclenche `agency-verification-notify`, qui relit
+> `verification_status` (`20260731160000`) déclenche `agency-verification-notify`, qui relit
 > le motif dans le journal — les RPC l'écrivent après l'UPDATE, et le corps d'un
 > `net.http_post` vit en clair dans la file — et envoie par Resend aux **dirigeants** de
 > l'agence. Dans un trigger et non depuis l'écran : un appel côté client serait skippable.
@@ -939,7 +943,7 @@ attente.
 | I | **`registry_lookup` plafonne à `partial` pour la Suisse** | LINDAS ne publie aucun statut actif/radié. Débloqué par les identifiants Zefix PublicREST, mais **cela ne suffira pas** à rendre un dossier suisse auto-validable tant que A n'est pas résolu |
 | J | **`LI` est sélectionnable au wizard et servi par rien** | à trancher : éprouver la clé FL-UID sur des numéros réels, ou retirer `LI` de la liste tant que rien ne le sert |
 | K | **`MAPBOX_TOKEN` n'est pas posé côté serveur** | `address_geocode` sort `unavailable` en production |
-| L | **Le job `e2e-kyb` n'a jamais tourné en CI** | exercé en local seulement, 3 tests, 3 passés |
+| L | ~~Le job `e2e-kyb` n'a jamais tourné en CI~~ | **✅ RÉSOLU le 30.07.2026** : il a tourné pour la première fois sur la PR de l'étape 7 et passe (`KYB onboarding gate (local Supabase, real auth)`, 3 min 16 s), avec ses **4** cas — les 3 d'origine plus celui de la remédiation |
 | M | **L'enregistrement du cron `agency-verification-sweep-hourly` n'est pas confirmé en production** | `pg_cron` absent en local et en CI, MCP Supabase indisponible depuis cette session |
 | N | **Le gate s'appliquera rétroactivement** à tout dirigeant existant au déploiement, et sur mobile l'écran n'offre que la déconnexion | sans conséquence tant que la base est mock, à trancher avant qu'il y ait de vraies agences |
 | O | **10 des 19 `check_type` du catalogue n'ont aucun connecteur** : `pep_sanctions_screening` (véto, voir A), plus 9 signaux scorables (`signatory_registry_match`, `address_registry_match`, `activity_code_match`, `professional_registry`, `poa_document_review`, `lei_lookup`, `domain_website_match`, `domain_trade_name_similarity`, `phone_country_match`) | arithmétique vérifiée : **15.25 des 21.50 points de poids scorable, soit 71 %, n'ont aucune source**. Le score est normalisé sur les seuls checks disponibles, donc rien ne casse, mais il ne repose en réalité que sur 6.25 points, et sur **4.75** tant que `MAPBOX_TOKEN` est absent : `vat_lookup` (3.00), `domain_generic_provider` (1.00) et `domain_whois_age` (0.75). Un seul `mismatch` sur `vat_lookup` fait alors tomber le score sous 0.85 |
@@ -996,7 +1000,7 @@ soumission, correction demandée, resoumission, sans reboucle.
 |---|---|---|
 | 2.1 | Poser `MAPBOX_TOKEN` dans les secrets Supabase (même valeur que `VITE_MAPBOX_TOKEN`) | `address_geocode` rend un verdict en production |
 | 2.2 | Confirmer le cron : `select jobname, schedule, active from cron.job where jobname = 'agency-verification-sweep-hourly'` | le filet de rattrapage tourne réellement |
-| 2.3 | Faire tourner `e2e-kyb` en CI, une fois, sur une PR | le job est vert sur `main`, pas seulement en local |
+| 2.3 | ~~Faire tourner `e2e-kyb` en CI~~ | **fait** : vert sur la PR de l'étape 7 |
 | 2.4 | **Purge des pièces d'identité** : `on delete` en cascade côté Storage, ou job de purge. Décider la durée de rétention avec le DPO (voir `docs/compliance/`) | aucune pièce d'identité ne survit à la personne ou à l'agence qui la portait |
 | 2.5 | Trancher le gate rétroactif et l'écran mobile | décision écrite, comportement conforme |
 

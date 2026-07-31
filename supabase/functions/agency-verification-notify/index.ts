@@ -11,7 +11,7 @@
 // POURQUOI DECLENCHEE PAR UN TRIGGER, ET NON PAR L'ECRAN DE REVUE. Un appel depuis la console
 // admin apres chaque decision serait skippable : un onglet ferme entre les deux appels, et la
 // decision est prise sans que personne ne l'apprenne. Le trigger
-// (agencies_notify_verification_decision, 20260730160000) attrape TOUTES les transitions,
+// (agencies_notify_verification_decision, 20260731160000) attrape TOUTES les transitions,
 // y compris celles du moteur (auto_validated) et toute decision future, sans que la RPC
 // correspondante ait a y penser. Meme motif que le declenchement de agency-verification-run
 // depuis submit_agency_identity : net.http_post best-effort, jamais bloquant.

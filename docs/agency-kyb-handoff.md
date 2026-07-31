@@ -807,7 +807,7 @@ d'avant.
 >
 > **Corrigé le 30.07.2026** (étape 7, tâche 4) : le véto est branché sur Dilisense, déjà
 > dans la pile pour le KYC client, et `record_agency_verification_run` accepte désormais des
-> checks de portée personne (migration `20260730140000`). La conclusion ci-dessus est
+> checks de portée personne (migration `20260731140000`). La conclusion ci-dessus est
 > redevenue vraie, cette fois sans fixture — mesuré par
 > `tests/backend/agency-person-verification-run.spec.ts`, « un dossier français complet
 > atteint auto_validated SANS fixture posant le véto PEP », avec son contrôle.

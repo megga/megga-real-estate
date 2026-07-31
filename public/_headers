@@ -1,0 +1,17 @@
+# En-têtes de réponse Cloudflare Pages (app.megga.ch).
+#
+# Vite recopie `public/` tel quel dans `dist/`, donc ce fichier est publié à la
+# racine du déploiement et lu par le bord. Le build vitrine (megga.ch) le
+# recopie aussi, mais l'ignore : ce projet tourne en mode avancé (`_worker.js`),
+# où Cloudflare n'évalue ni `_headers` ni `_redirects`.
+
+# Images des e-mails transactionnels (gabarits Supabase Auth).
+#
+# Les clients mail exigent des URL absolues — ni chemin relatif, ni base64
+# (Outlook Windows ne rend pas le base64). Ces fichiers sont donc servis ici et
+# référencés en dur par les gabarits. Leur nom fait partie du contrat : ne pas
+# les renommer, ne pas les recompresser. Le défaut de Pages est
+# `max-age=14400, must-revalidate` ; un an immuable évite un aller-retour
+# réseau par ouverture d'e-mail, pour des assets qui ne changent pas.
+/email/*
+  Cache-Control: public, max-age=31536000, immutable

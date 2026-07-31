@@ -72,7 +72,7 @@ const EMPTY_AGENCY: AgencySettingsData = {
  * appellent deux gestes différents.
  *
  * Miroir EXACT du garde serveur `agencies_guard_identity_columns()`
- * (migration 20260730130000), y compris son ORDRE : le rôle d'abord, la soumission
+ * (migration 20260731130000), y compris son ORDRE : le rôle d'abord, la soumission
  * ensuite. Un employé d'une agence soumise doit lire « ce n'est pas à vous de le faire »,
  * pas « attendez la fin de la vérification » — c'est le premier refus qu'il rencontrerait
  * côté serveur.

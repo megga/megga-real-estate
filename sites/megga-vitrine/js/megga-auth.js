@@ -21,6 +21,12 @@
   // cet écran ne renvoyait de toute façon PAS vers le dashboard mais vers
   // megga.ch/login une fois le mot de passe changé — le détour par l'app ne
   // servait donc qu'à traverser un second domaine dans une autre peau.
+  // ⚠ Reste l'ancienne URL ANGLAISE alors que la page s'appelle désormais
+  // nouveau-mot-de-passe.html : cette valeur doit figurer telle quelle dans
+  // l'allowlist Supabase (Auth → URL Configuration), qu'un déploiement ne met
+  // pas à jour. Le worker 301 vers la page française et le navigateur
+  // ré-attache le fragment (jetons) à la cible. Pour la passer en français :
+  // ajouter la nouvelle URL à l'allowlist D'ABORD, puis changer ici.
   var RESET_REDIRECT = 'https://megga.ch/reset-password.html';
 
   // Cloudflare Turnstile — Supabase exige un token captcha sur chaque appel auth
@@ -40,6 +46,7 @@
   var CAPTCHA_INTERACTIVE_MSG = 'Confirmez que vous n’êtes pas un robot pour continuer.';
   var SERVICE_FAIL_MSG = 'Connexion au service impossible. Vérifiez votre connexion, puis réessayez.';
   var EXISTING_ACCOUNT_MSG = 'Un compte existe déjà avec cet e-mail. Connectez-vous via « Se connecter » — et si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google » (dans ce cas, aucun mot de passe n’a été défini).';
+  var CONSENT_MSG = 'Cochez la case pour accepter les conditions générales et la politique de confidentialité.';
 
   var scriptPromises = {};
 
@@ -178,17 +185,33 @@
   function $(sel, root) { return (root || document).querySelector(sel); }
   function byId(id) { return document.getElementById(id); }
 
+  /**
+   * Case « J'accepte les conditions… » de inscription.html, ou `null` ailleurs.
+   *
+   * ⚠ Surtout PAS par son id : le template Webflow a nommé `checkbox-3` la
+   * première case de chaque page, et sur connexion.html c'est « Rester connecté ».
+   * Chercher par id ferait dépendre la connexion Google d'une case « rester
+   * connecté » décochée. On passe donc par la ligne de consentement, qui
+   * n'existe que sur inscription.html.
+   */
+  function consentCheckbox() { return $('.megga-signup__consent input[type="checkbox"]'); }
+
   // Champ mot de passe de la page de connexion, re-typé au besoin.
   //
-  // `login.html` porte désormais un vrai `type="password"`, mais il a longtemps
+  // `connexion.html` porte désormais un vrai `type="password"`, mais il a longtemps
   // été un `type="tel"` (id/name `Phone`, héritage du template Webflow) : un
   // navigateur qui sert cette version depuis SON cache afficherait le mot de
   // passe en clair à la frappe. On garde donc le rattrapage, idempotent sur le
-  // HTML corrigé. Le placeholder reste le sélecteur primaire — il n'a jamais
-  // changé, contrairement à l'id.
+  // HTML corrigé.
+  //
+  // L'ordre a changé le 31 juil. 2026 : les placeholders ont été retirés des
+  // formulaires, donc la recherche par placeholder ne rend plus rien sur le
+  // HTML courant. Elle reste en second — une page encore en cache la porte,
+  // elle, et c'est précisément celle qu'il faut rattraper.
   function loginPasswordField(form) {
-    var el = form.querySelector('input[placeholder*="mot de passe" i]')
-      || byId('Password') || byId('Phone');
+    var el = byId('Password')
+      || form.querySelector('input[placeholder*="mot de passe" i]')
+      || byId('Phone');
     if (!el) return null;
     if (el.type !== 'password') el.type = 'password';
     el.setAttribute('autocomplete', 'current-password');
@@ -218,12 +241,22 @@
   }
 
   // Affiche un message dans le bloc .w-form-fail / .w-form-done de la page (Webflow).
+  //
+  // Webflow place ce bloc APRÈS le formulaire entier — donc sous les boutons
+  // OAuth et le lien « Se connecter ». Sur inscription.html il tombe hors de l'écran :
+  // affiché seul, il donne un bouton qui paraît mort. On l'amène dans le champ
+  // de vision quand il n'y est pas.
   function showError(form, msg) {
     var wrap = form.closest('.w-form') || form.parentElement;
     var fail = wrap && wrap.querySelector('.w-form-fail');
     if (fail) {
       var d = fail.querySelector('div'); if (d) d.textContent = msg;
       fail.style.display = 'block';
+      var box = fail.getBoundingClientRect();
+      if (box.top < 0 || box.bottom > (window.innerHeight || 0)) {
+        try { fail.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        catch (e) { fail.scrollIntoView(); } // options non supportées (vieux Safari)
+      }
     } else {
       alert(msg);
     }
@@ -284,6 +317,16 @@
       if (!provider) return;
       btn.addEventListener('click', function (e) {
         e.preventDefault();
+        // La case de consentement gouverne AUSSI ces boutons. Ils créent un
+        // compte sans passer par le formulaire : sans ce test, « Continuer avec
+        // Google » ouvrait la seule porte d'inscription sans consentement, et
+        // l'obligation posée sur le formulaire n'aurait été qu'un décor. La case
+        // n'existe que sur inscription.html — connexion.html n'est pas concerné.
+        var consentement = consentCheckbox();
+        if (consentement && !consentement.checked) {
+          var hote = btn.closest('form');
+          if (hote) return showError(hote, CONSENT_MSG);
+        }
         client.auth.signInWithOAuth({
           provider: provider,
           options: { redirectTo: AUTH_REDIRECT },
@@ -368,7 +411,7 @@
       resetForm.addEventListener('submit', function (e) {
         e.preventDefault(); e.stopPropagation(); clearError(resetForm);
         var email = (resetEmail && resetEmail.value || '').trim();
-        if (!email) return showError(resetForm, 'Indiquez votre e-mail professionnel.');
+        if (!email) return showError(resetForm, 'Indiquez votre e-mail.');
         setBusy(resetForm, true);
         getCaptchaToken(resetForm, function () { showCaptchaPrompt(resetForm); }).then(function (captchaToken) {
           clearError(resetForm);
@@ -391,14 +434,31 @@
     // ── SIGNUP (Sign-Up) : nom + email + password (+ agence) ──
     var signupForm = byId('wf-form-Sign-Up-Form');
     if (signupForm) {
+      // Message dans la page quand le consentement manque.
+      //
+      // La validation native bloque l'envoi mais ancre sa bulle sur l'`input`
+      // de la case, invisible (opacity 0) sous la case dessinée de Webflow : ce
+      // que le navigateur affiche là n'est ni garanti ni identique d'un moteur à
+      // l'autre. Sans ce relais, le bouton principal aurait pu rester sans
+      // réaction visible. `invalid` est émis avant la bulle, sur la case elle-même.
+      var caseConsentement = consentCheckbox();
+      if (caseConsentement) {
+        caseConsentement.addEventListener('invalid', function () { showError(signupForm, CONSENT_MSG); });
+      }
       signupForm.addEventListener('submit', function (e) {
         e.preventDefault(); e.stopPropagation(); clearError(signupForm);
         var name = (byId('Name') && byId('Name').value || '').trim();
         var email = (byId('Email') && byId('Email').value || '').trim();
         var pwd = (byId('Password') && byId('Password').value) || '';
         var agency = (byId('Phone') && byId('Phone').value || '').trim(); // 4e champ = "Nom de votre agence"
+        var consentement = consentCheckbox();
         if (!name || !email || !pwd) return showError(signupForm, 'Nom, e-mail et mot de passe requis.');
         if (pwd.length < 8) return showError(signupForm, 'Le mot de passe doit faire au moins 8 caractères.');
+        // Le `required` du HTML porte déjà le blocage natif ; ce test le double
+        // côté script parce que la page et ce fichier sont mis en cache
+        // séparément — un HTML servi depuis un cache d'avant l'attribut
+        // laisserait passer l'inscription sans consentement.
+        if (consentement && !consentement.checked) return showError(signupForm, CONSENT_MSG);
         setBusy(signupForm, true);
         getCaptchaToken(signupForm, function () { showCaptchaPrompt(signupForm); }).then(function (captchaToken) {
           clearError(signupForm);
@@ -439,7 +499,7 @@
       }, true);
     }
 
-    // ── NOUVEAU MOT DE PASSE (reset-password.html) ─────────────────────
+    // ── NOUVEAU MOT DE PASSE (nouveau-mot-de-passe.html) ─────────────────────
     //
     // Cible du lien reçu par e-mail. Le lien passe par /auth/v1/verify, qui
     // renvoie ici avec les jetons dans le FRAGMENT d'URL (flux implicite — le
@@ -455,7 +515,7 @@
       // On le dit au lieu de laisser saisir un mot de passe qui serait refusé.
       function refuserLienMort() {
         newPwdForm.style.display = 'none';
-        showError(newPwdForm, 'Ce lien n’est plus valable : il expire après 1 h et ne sert qu’une fois. Retournez à la page de connexion pour en demander un nouveau.');
+        showError(newPwdForm, 'Lien expiré. Demandez-en un nouveau depuis la page de connexion.');
       }
 
       client.auth.getSession().then(function (res) {
