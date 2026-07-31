@@ -36,6 +36,26 @@ function getBillingPeriod(priceId: string): string {
   return yearlyPrices.includes(priceId) ? 'yearly' : 'monthly'
 }
 
+/**
+ * MRR mensuel d'une ligne d'abonnement, en CHF, selon la règle de comptage §4.3 de la
+ * console : un essai, un impayé, un abonnement annulé et le plan Starter (0 CHF) comptent
+ * ZÉRO. Le montant vient du prix Stripe, jamais d'un catalogue recopié — un écart entre le
+ * prix facturé et le prix affiché serait invisible autrement.
+ */
+function monthlyRevenue(
+  subscription: Stripe.Subscription,
+  status: string,
+  plan: string,
+): number {
+  if (status !== 'active' || plan === 'starter') return 0
+  const price = subscription.items?.data?.[0]?.price
+  const cents = price?.unit_amount ?? 0
+  if (!cents) return 0
+  // Un abonnement annuel est ramené au mois : sans cela, décembre pèserait douze fois.
+  const perMonth = price?.recurring?.interval === 'year' ? cents / 12 : cents
+  return Math.round(perMonth) / 100
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -93,6 +113,14 @@ serve(async (req) => {
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             cancel_at_period_end: subscription.cancel_at_period_end,
+            // Étape 7 (console §5.7) : les files « essais qui finissent » et « impayés »
+            // lisent ces colonnes. `trial_end` vient de Stripe, jamais d'un calcul local.
+            trial_end: subscription.trial_end
+              ? new Date(subscription.trial_end * 1000).toISOString()
+              : null,
+            // Règle de comptage §4.3, appliquée À L'ÉCRITURE pour que le MRR ne soit jamais
+            // recalculé côté front : essai, impayé, annulé et Starter (0 CHF) comptent ZÉRO.
+            mrr_chf: monthlyRevenue(subscription, 'active', getPlanFromPriceId(priceId)),
             updated_at: new Date().toISOString(),
           }, { onConflict: 'agency_id' })
 
@@ -168,6 +196,10 @@ serve(async (req) => {
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             cancel_at_period_end: subscription.cancel_at_period_end,
+            trial_end: subscription.trial_end
+              ? new Date(subscription.trial_end * 1000).toISOString()
+              : null,
+            mrr_chf: monthlyRevenue(subscription, status, plan),
             updated_at: new Date().toISOString(),
           }, { onConflict: 'agency_id' })
 
@@ -239,6 +271,33 @@ serve(async (req) => {
       }
 
       // ─── Payment failed ───
+      // §5.7, file « essais qui finissent ». L'événement n'était PAS traité : la colonne
+      // trial_end ne se remplissait qu'au prochain subscription.updated, c'est-à-dire
+      // souvent après la fin de l'essai — donc trop tard pour la file qui la lit.
+      case 'customer.subscription.trial_will_end': {
+        const subscription = event.data.object as Stripe.Subscription
+        const customerId = subscription.customer as string
+
+        const { data: sub } = await supabaseAdmin
+          .from('subscriptions')
+          .select('agency_id')
+          .eq('stripe_customer_id', customerId)
+          .maybeSingle()
+
+        if (sub?.agency_id) {
+          await supabaseAdmin
+            .from('subscriptions')
+            .update({
+              trial_end: subscription.trial_end
+                ? new Date(subscription.trial_end * 1000).toISOString()
+                : null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('agency_id', sub.agency_id)
+        }
+        break
+      }
+
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
         const customerId = invoice.customer as string
@@ -255,6 +314,10 @@ serve(async (req) => {
             .from('subscriptions')
             .update({
               status: 'past_due',
+              last_invoice_status: 'payment_failed',
+              // Un impayé sort du MRR (§4.3) : la valeur affichée ne doit pas survivre à
+              // l'échec de paiement qui la rend caduque.
+              mrr_chf: 0,
               updated_at: new Date().toISOString(),
             })
             .eq('agency_id', agencyId)
@@ -296,6 +359,7 @@ serve(async (req) => {
             .from('subscriptions')
             .update({
               status: 'active',
+              last_invoice_status: 'paid',
               current_period_start: new Date(period.start * 1000).toISOString(),
               current_period_end: new Date(period.end * 1000).toISOString(),
               updated_at: new Date().toISOString(),
