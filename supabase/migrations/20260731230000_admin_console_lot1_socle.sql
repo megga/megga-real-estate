@@ -62,7 +62,11 @@ create index if not exists agency_activation_status_idx on public.agency_activat
 
 alter table public.agency_activation enable row level security;
 revoke all on table public.agency_activation from public, anon, authenticated, service_role;
-grant select on table public.agency_activation to authenticated;
+-- SELECT au service_role, contrairement au registre admin_log : cette table est de la
+-- donnee DERIVEE, recalculable a tout moment, pas un scelle. La lui fermer n'apportait
+-- aucune garantie et obligeait les edges a passer par une fonction pour une simple lecture.
+-- L'ECRITURE, elle, reste fermee a tous : seule la RPC de recalcul y touche.
+grant select on table public.agency_activation to authenticated, service_role;
 
 drop policy if exists agency_activation_select_super_admin on public.agency_activation;
 create policy agency_activation_select_super_admin on public.agency_activation

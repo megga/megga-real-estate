@@ -53,43 +53,64 @@ describe.skipIf(!HAS_KEYS)('activation des agences et historique des crons (éta
     expect(data?.computed_at, 'un score sans date de calcul ne se distingue pas d\'un score nul').toBeTruthy()
   })
 
-  it('le statut suit la dernière activité, pas le nombre de jalons', async () => {
-    // Une agence peut avoir six jalons et être dormante : ce sont deux axes distincts, et
-    // l'écran les affiche séparément (score et pilule de statut).
+  it('le statut suit la dernière activité, pas le nombre de jalons', () => {
+    // Agence DÉDIÉE, créée ici : celle de la fixture porte déjà des événements récents
+    // (provisioning, invitations), et `last_activity_at` étant un max(), le plus récent
+    // gagne toujours. Un test qui insère un événement ancien dans une agence vivante
+    // n'éprouve rien — il l'a d'ailleurs prouvé en passant au vert sur 'active'.
     assertSql(`
+    declare v_id uuid;
     begin
+      insert into public.agencies (name, slug)
+        values ('Activation atRisk probe', 'activation-atrisk-probe-' || gen_random_uuid())
+        returning id into v_id;
       insert into public.activity_events (agency_id, actor_kind, action, entity_type, created_at)
-        values ('${'$'}{AGENCY}'::uuid, 'system', 'test_activation', 'test', now() - interval '15 days');
-      perform public.recompute_agency_activation('${'$'}{AGENCY}'::uuid);
-      if (select status from public.agency_activation where agency_id = '${'$'}{AGENCY}'::uuid) <> 'atRisk' then
+        values (v_id, 'system', 'test_activation', 'test', now() - interval '15 days');
+
+      perform public.recompute_agency_activation(v_id);
+      if (select status from public.agency_activation where agency_id = v_id) <> 'atRisk' then
         raise exception '15 jours d inactivite doivent donner atRisk, pas %',
-          (select status from public.agency_activation where agency_id = '${'$'}{AGENCY}'::uuid);
+          (select status from public.agency_activation where agency_id = v_id);
       end if;
-    `.replace(/\$\{AGENCY\}/g, setup.agencyAId))
+
+      -- Aucune activité du tout : dormant, et non 'atRisk' par défaut.
+      update public.activity_events set created_at = now() - interval '90 days' where agency_id = v_id;
+      perform public.recompute_agency_activation(v_id);
+      if (select status from public.agency_activation where agency_id = v_id) <> 'dormant' then
+        raise exception '90 jours doivent donner dormant';
+      end if;
+
+      delete from public.agencies where id = v_id;   -- cascade sur activation et evenements
+    `)
   })
 
-  it('le calcul ne diverge pas de get_onboarding_milestones — même source', () => {
+  it('le calcul ne diverge pas de get_onboarding_milestones — même source', async () => {
     // Si les deux calculs se séparaient, l'écran Agences et le tracker de la Vue d'ensemble
     // afficheraient deux vérités sur la même agence, sans qu'aucune erreur ne le dise.
-    assertSql(`
-    declare r record;
-    begin
-      perform public.recompute_agency_activation('${'$'}{AGENCY}'::uuid);
-      select m.has_contact, m.has_property, m.has_kyc, m.has_transaction, m.has_match,
-             a.first_contact_at, a.first_property_at, a.first_kyc_at,
-             a.first_deal_at, a.first_match_at
-        into r
-        from public.get_onboarding_milestones(array['${'$'}{AGENCY}'::uuid]) m
-        join public.agency_activation a on a.agency_id = '${'$'}{AGENCY}'::uuid;
+    //
+    // Appel en service_role, jamais depuis psql : get_onboarding_milestones porte depuis
+    // 20260731190000 une garde `is_super_admin() OR is_service_role()` qui n'admet PAS
+    // session_user = postgres — délibérément, aucun cron ne l'appelle.
+    const svc = serviceRoleClient()
+    await svc.rpc('recompute_agency_activation', { p_agency_id: setup.agencyAId })
 
-      if r.has_contact     <> (r.first_contact_at  is not null)
-      or r.has_property    <> (r.first_property_at is not null)
-      or r.has_kyc         <> (r.first_kyc_at      is not null)
-      or r.has_transaction <> (r.first_deal_at     is not null)
-      or r.has_match       <> (r.first_match_at    is not null) then
-        raise exception 'divergence entre get_onboarding_milestones et agency_activation';
-      end if;
-    `.replace(/\$\{AGENCY\}/g, setup.agencyAId))
+    const { data: milestones, error: mErr } = await svc.rpc('get_onboarding_milestones', {
+      agency_ids: [setup.agencyAId],
+    })
+    expect(mErr, 'le service_role passe la garde').toBeNull()
+    const m = (milestones as Record<string, boolean>[])[0]
+
+    const { data: a } = await svc
+      .from('agency_activation')
+      .select('first_contact_at, first_property_at, first_kyc_at, first_deal_at, first_match_at')
+      .eq('agency_id', setup.agencyAId)
+      .single()
+
+    expect(m.has_contact, 'contacts').toBe(a!.first_contact_at !== null)
+    expect(m.has_property, 'biens').toBe(a!.first_property_at !== null)
+    expect(m.has_kyc, 'KYC').toBe(a!.first_kyc_at !== null)
+    expect(m.has_transaction, 'transactions').toBe(a!.first_deal_at !== null)
+    expect(m.has_match, 'matchs').toBe(a!.first_match_at !== null)
   })
 
   it('un agent ne peut ni déclencher le calcul ni lire la table', async () => {
