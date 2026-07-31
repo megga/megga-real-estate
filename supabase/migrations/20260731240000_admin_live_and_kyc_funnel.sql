@@ -143,8 +143,17 @@ begin
       where l.created_at >= now() - interval '30 days' and l.status = 'submitted'),
     (select count(*) from public.kyc_magic_links l
       where l.created_at >= now() - interval '30 days' and l.status = 'expired'),
-    (select percentile_cont(0.5) within group (
-              order by extract(epoch from (now() - k.created_at)) / 3600)
+    -- ⚠ Le cast est OBLIGATOIRE, pas cosmétique. `extract(epoch …)` rend un `numeric`, mais
+    -- `percentile_cont` n'accepte que `double precision` (ou un intervalle) : PostgreSQL
+    -- convertit l'entrée et rend donc un `double precision`, là où cette colonne est
+    -- déclarée `numeric`. Sans le cast, la fonction lève `42804 — structure of query does
+    -- not match function result type` à CHAQUE appel.
+    --
+    -- Rien ne l'avait vu : aucune spec n'appelait cette fonction avant l'étape 10. Une
+    -- migration qui s'applique prouve seulement que le corps est syntaxiquement valide —
+    -- plpgsql ne vérifie les TYPES qu'à l'exécution.
+    (select round((percentile_cont(0.5) within group (
+              order by extract(epoch from (now() - k.created_at)) / 3600))::numeric, 1)
        from public.kyc_cases k
       where k.created_at >= now() - interval '30 days'
         and k.status not in ('validated', 'rejected'));

@@ -202,6 +202,18 @@ par la spec — a dû être ajoutée à la main au `SCOPE` de
 future RPC de console au nom non préfixé doit y entrer explicitement, sinon elle est
 protégée sans que rien ne le vérifie.
 
+⚠ **Onzième piège — « ✅ » ne voulait pas dire « éprouvé ».** Les étapes 11 et 13 étaient
+cochées sur des migrations qui s'appliquent, pas sur des fonctions qui répondent :
+**aucune spec du dépôt n'appelait `get_admin_kyc_funnel_30d` ni `get_admin_live_feed`**
+avant l'étape 10. Or `get_admin_kyc_funnel_30d` levait `42804` à CHAQUE appel —
+`percentile_cont` rend un `double precision` là où la colonne était déclarée `numeric`.
+Une migration qui s'applique ne prouve que la **syntaxe** : plpgsql ne vérifie les types du
+corps qu'à l'exécution. Corrigé dans `240000` (non mergée, donc reprise sur place), et les
+deux fonctions ont désormais un test d'appel DIRECT dans
+[admin-overview.spec.ts](../../tests/backend/admin-overview.spec.ts) — les couvrir
+incidemment aurait montré la panne sans la situer. **À vérifier pour toute étape cochée :
+une spec l'appelle-t-elle vraiment ?**
+
 ⚠ **Dixième piège, mesuré à l'étape 10** : `category` étant NULL sur 95 % d'`activity_events`
 (décision 6), un filtre écrit `category <> 'kyc'` écarte **aussi tous les NULL** — le
 journal se vide en silence en croyant ne retirer que la conformité des clients finaux. La

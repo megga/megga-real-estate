@@ -207,7 +207,45 @@ describe.skipIf(!HAS_KEYS)('admin_overview() — un objet, un fetch (étape 10)'
     expect(Number(f.conversion_pct)).toBeLessThanOrEqual(100)
   })
 
-  // ── 6. La porte ────────────────────────────────────────────────────────────────
+  // ── 6. Les deux sources jamais appelées avant (étapes 11 et 13) ────────────────
+  //
+  // Ces deux tests ne relèvent pas de l'étape 10, et ils sont ici quand même. En écrivant
+  // admin_overview(), on a découvert qu'AUCUNE spec du dépôt n'appelait
+  // get_admin_kyc_funnel_30d ni get_admin_live_feed : les étapes 11 et 13 étaient cochées
+  // sur des migrations qui s'appliquent, pas sur des fonctions qui répondent. Or une
+  // migration qui s'applique ne prouve que la SYNTAXE — plpgsql ne vérifie les types du
+  // corps qu'à l'exécution. get_admin_kyc_funnel_30d levait 42804 à chaque appel.
+  // Les couvrir incidemment par admin_overview() suffirait à voir la panne, mais pas à la
+  // situer : un appel direct nomme le coupable.
+
+  it('get_admin_kyc_funnel_30d() RÉPOND — et sans une seule colonne nominative', async () => {
+    const { data, error } = await serviceRoleClient().rpc('get_admin_kyc_funnel_30d')
+    expect(error, 'la fonction levait 42804 : percentile_cont rend un double, la colonne est numeric')
+      .toBeNull()
+    const r = (data as Row[])[0]
+    expect(Number(r.window_days)).toBe(30)
+
+    // §5.5 et le principe 1 : un dossier de client final ne remonte jamais à la plateforme.
+    for (const k of Object.keys(r)) {
+      expect(k, `colonne « ${k} » : le tunnel ne porte que des comptes`)
+        .not.toMatch(/name|email|phone|contact|label|agency_id/)
+    }
+  })
+
+  it('get_admin_live_feed() RÉPOND, et ses bornes tiennent', async () => {
+    const { data, error } = await serviceRoleClient().rpc('get_admin_live_feed', { p_limit: 1_000_000 })
+    expect(error).toBeNull()
+    expect((data as unknown[]).length, 'plafond à 100').toBeLessThanOrEqual(100)
+
+    // Les jokers d'un `like` doivent être neutralisés : un « % » tapé par l'agent ne doit
+    // pas se comporter comme « tout ». La recherche est ignorée sous 3 caractères, donc
+    // « %%% » se réduit à la chaîne vide et ne filtre rien — mais ne doit pas non plus
+    // faire lever la fonction.
+    const { error: joker } = await serviceRoleClient().rpc('get_admin_live_feed', { p_search: '%%%' })
+    expect(joker, 'un joker nu ne doit pas casser la recherche').toBeNull()
+  })
+
+  // ── 7. La porte ────────────────────────────────────────────────────────────────
 
   it('LA NON-FUITE — un JWT agent est refusé, un super-admin passe', async () => {
     const { error } = await setup.clientA.rpc('admin_overview')
