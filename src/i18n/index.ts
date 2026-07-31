@@ -104,6 +104,57 @@ async function loadLanguage(lng: SupportedLang): Promise<Record<Namespace, unkno
   }
 }
 
+/** Clé du détecteur, partagée avec la vitrine (même nom, autre origine). */
+const LANG_KEY = 'megga-language'
+
+/**
+ * Langue transmise dans l'URL par la vitrine (`?lang=de`), validée.
+ *
+ * ⚠ Valeur venue de l'URL : jamais utilisée telle quelle, seulement si elle
+ * figure dans les langues du produit. La forme régionale est acceptée
+ * (`de-CH` → `de`).
+ */
+export function languageFromUrl(search?: string): string | null {
+  if (typeof window === 'undefined' && search === undefined) return null
+  const asked = new URLSearchParams(search ?? window.location.search).get('lang')
+  if (!asked) return null
+  const lng = asked.slice(0, 2).toLowerCase()
+  return ['fr', 'de', 'en', 'it'].includes(lng) ? lng : null
+}
+
+/**
+ * Reprise de la langue de la vitrine — AVANT `init()`, à dessein.
+ *
+ * megga.ch et app.megga.ch sont deux origines : leurs stockages locaux sont
+ * cloisonnés, un agent qui lisait la vitrine en allemand atterrissait donc dans
+ * un CRM en français — ou en anglais si un vieux réglage traînait. La langue
+ * voyage par l'URL de reprise, comme la session (`goToCrm`,
+ * sites/megga-vitrine/js/megga-auth.js).
+ *
+ * On l'écrit dans la clé du détecteur plutôt que d'appeler `changeLanguage()`
+ * après coup : semée avant, la langue de l'URL EST la langue détectée, et tout
+ * ce qui suit (chargement du bundle au démarrage, mise en cache) en découle
+ * d'une seule pièce. Basculer après l'init laisserait deux bascules
+ * asynchrones se croiser — celle de la langue détectée, déclenchée par
+ * `languageChanged` à l'init, et la nôtre — sans ordre garanti entre elles.
+ *
+ * Elle prime sur la valeur stockée : c'est celle que l'agent lisait il y a
+ * trois secondes. Le réglage de Réglages reste maître ensuite — jusqu'à la
+ * prochaine arrivée depuis la vitrine, qui re-synchronise.
+ */
+function seedLanguageFromUrl(): void {
+  const lng = languageFromUrl()
+  if (!lng) return
+  try {
+    window.localStorage.setItem(LANG_KEY, lng)
+  } catch {
+    // Stockage refusé (navigation privée stricte) : le détecteur retombera sur
+    // le français, ce qui reste un CRM utilisable.
+  }
+}
+
+seedLanguageFromUrl()
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)

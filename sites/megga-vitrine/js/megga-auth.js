@@ -335,11 +335,35 @@
   // client Supabase du CRM le consomme à son initialisation (detectSessionInUrl),
   // posant la session dans le storage de app.megga.ch AVANT de router vers le
   // dashboard. C'est exactement le mécanisme du retour OAuth, qui fonctionne.
+  // Langue de la page courante. `<html lang>` est réécrit par la génération
+  // multilingue (scripts/vitrine-i18n.mjs), donc il dit toujours la vérité —
+  // contrairement au stockage local, qui ne vaut que pour la vitrine.
+  function langueCourante() {
+    var l = (document.documentElement.getAttribute('lang') || 'fr').slice(0, 2).toLowerCase();
+    return ['fr', 'de', 'en', 'it'].indexOf(l) >= 0 ? l : 'fr';
+  }
+
+  /**
+   * `?lang=` à accrocher à l'URL du CRM.
+   *
+   * Les deux domaines ont des stockages cloisonnés : un agent qui lisait
+   * megga.ch en allemand atterrissait dans un CRM en français. La langue
+   * voyage donc par l'URL, comme la session — et le CRM la grave chez lui
+   * (src/i18n/index.ts, adoptLanguageFromUrl).
+   *
+   * ⚠ Uniquement sur NOS redirections. Le `redirectTo` d'un signInWithOAuth
+   * est comparé à l'allowlist Supabase (Auth → URL Configuration) : y ajouter
+   * un paramètre sans inscrire la variante là-bas ferait retomber le retour
+   * OAuth sur la Site URL. Les connexions Google/Microsoft n'emportent donc
+   * pas encore la langue.
+   */
+  function langueQuery() { return '?lang=' + langueCourante(); }
+
   function goToCrm(session) {
     if (!session || !session.access_token || !session.refresh_token) {
       // Pas de session exploitable : redirection nue plutôt qu'un écran vide —
       // le CRM renverra proprement au login.
-      window.location.href = CRM_URL;
+      window.location.href = CRM_URL + langueQuery();
       return;
     }
     var frag = [
@@ -348,7 +372,7 @@
       'expires_in=' + (session.expires_in || 3600),
       'token_type=' + (session.token_type || 'bearer'),
     ].join('&');
-    window.location.href = AUTH_REDIRECT + '#' + frag;
+    window.location.href = AUTH_REDIRECT + langueQuery() + '#' + frag;
   }
 
   function wire(client) {
