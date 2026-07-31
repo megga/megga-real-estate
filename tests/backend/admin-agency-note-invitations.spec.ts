@@ -46,13 +46,16 @@ describe.skipIf(!HAS_KEYS)('note interne d\'agence et invitations (étape 9)', (
     if (sErr) throw new Error(`signin: ${sErr.message}`)
 
     // Une note et une invitation en attente sur l'agence A.
+    // `invited_by` est NOT NULL : une invitation sans invitant n'existe pas dans ce
+    // modèle, et l'omettre fait échouer le beforeAll — donc SKIPPER toute la suite,
+    // ce qui se lit « 9 ignorés » et non « 7 échecs ».
     await svc.from('admin_agency_notes').delete().eq('agency_id', setup.agencyAId).then(() => {}, () => {})
     runSql(`begin
       insert into public.admin_agency_notes (agency_id, note)
         values ('${setup.agencyAId}'::uuid, 'Note interne de test');
-      insert into public.team_invitations (agency_id, email, role, status, expires_at)
+      insert into public.team_invitations (agency_id, email, role, status, expires_at, invited_by)
         values ('${setup.agencyAId}'::uuid, 'invite-${setup.stamp}@megga-test.local',
-                'agent', 'pending', now() + interval '7 days');`)
+                'agent', 'pending', now() + interval '7 days', '${setup.agentAId}'::uuid);`)
   })
 
   afterAll(async () => {
