@@ -1,12 +1,33 @@
 /**
  * Hook super-admin — métriques de facturation Stripe (MRR, churn, ARPU, plans).
  * Tente d'abord l'Edge Function `admin-stripe-metrics` (API Stripe live) ; si elle
- * est absente ou Stripe non configuré, retombe sur un calcul dérivé de la table
- * `subscriptions`. Le champ `source` indique laquelle a répondu.
+ * est absente ou Stripe non configuré, retombe sur la RPC `get_admin_plans_board()`.
+ * Le champ `source` indique laquelle a répondu.
+ *
+ * Étape 15 : le repli ne RECALCULE plus le MRR en TypeScript. §4.3 exige « une seule
+ * fonction SQL `agency_mrr`, jamais recalculée côté front » — et les deux calculs
+ * avaient déjà divergé (voir le commentaire du repli).
+ *
+ * ⚠ Client casté : `get_admin_plans_board` n'est pas encore dans src/types/database.ts
+ * (auto-généré, en retard sur ces migrations — cf. son en-tête). Même motif que
+ * useAdminKybReview.ts. À nettoyer à la prochaine régénération.
  */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { PLANS } from '@/lib/plans'
+
+const rpcUntyped = supabase.rpc as unknown as
+  (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>
+
+/** Forme rendue par `get_admin_plans_board()`, re-typée à la main. */
+interface PlansBoard {
+  mrr: number | string
+  subscriptions: number
+  arpu: number | string
+  portfolio: Array<{ plan: string | null; sub_status: string | null; state: string }>
+  queues: { unpaid: unknown[]; trials: unknown[] }
+  plans: Array<{ plan: string; count: number; mrr: number | string }>
+  unavailable: string[]
+}
 
 interface PlanBreakdown {
   plan: string
@@ -66,51 +87,40 @@ export function useAdminBilling() {
         // Edge Function not deployed yet or Stripe not configured — fallback
       }
 
-      // Fallback : table subscriptions (miroir stripe-webhook). Elle ne stocke
-      // aucun montant — le prix mensuel est dérivé du catalogue PLANS selon
-      // billing_period (price_yearly = prix mensuel en facturation annuelle).
-      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
-      const { data: subs, error: subsError } = await supabase
-        .from('subscriptions')
-        .select('id, agency_id, plan, status, billing_period, created_at, updated_at')
-        .order('created_at', { ascending: false })
-      if (subsError) throw subsError
+      // Repli : le poste de triage serveur (§5.7). Le MRR n'est PLUS recalculé ici.
+      //
+      // Ce qu'il y avait avant : le même calcul, en TypeScript, à partir du catalogue
+      // PLANS. Il n'était pas faux par ses prix — il lisait bien C2 — mais il avait
+      // DÉJÀ divergé de la règle serveur : il ne comptait que `subscriptions.status`
+      // et ignorait les agences SUSPENDUES, qu'agency_mrr_rule met à zéro. Une agence
+      // suspendue avec un abonnement actif était donc facturée à l'écran et pas en base.
+      // C'est exactement ce que §4.3 interdit : « une seule fonction SQL, jamais
+      // recalculée côté front ».
+      const { data: board, error: boardError } = await rpcUntyped('get_admin_plans_board', {})
+      if (boardError) throw boardError
+      const b = board as PlansBoard
 
-      const monthlyPrice = (plan: string | null, billingPeriod: string | null) => {
-        const config = PLANS.find(p => p.id === plan)
-        if (!config) return 0
-        return billingPeriod === 'yearly' ? config.price_yearly : config.price_monthly
-      }
-
-      const allSubs = subs ?? []
-      const activeSubs = allSubs.filter(s => s.status === 'active')
-
-      const mrr = activeSubs.reduce((sum, s) => sum + monthlyPrice(s.plan, s.billing_period), 0)
-
-      // Annulations du mois : updated_at porte la bascule de statut posée par
-      // stripe-webhook (created_at = date de souscription, pas d'annulation).
-      const churned = allSubs.filter(s => s.status === 'canceled' && (s.updated_at ?? '') >= monthStart).length
-      const pastDue = allSubs.filter(s => s.status === 'past_due').length
-
-      const planMap = new Map<string, { count: number; mrr: number }>()
-      for (const sub of activeSubs) {
-        const plan = sub.plan ?? 'unknown'
-        const existing = planMap.get(plan) ?? { count: 0, mrr: 0 }
-        planMap.set(plan, { count: existing.count + 1, mrr: existing.mrr + monthlyPrice(sub.plan, sub.billing_period) })
-      }
+      const portefeuille = b.portfolio ?? []
+      const impayes = b.queues?.unpaid?.length ?? 0
+      const resilies = portefeuille.filter(p => p.sub_status === 'canceled').length
 
       return {
-        mrr: Math.round(mrr),
-        activeSubscriptions: activeSubs.length,
-        totalSubscriptions: allSubs.length,
-        churnedThisMonth: churned,
-        pastDue,
-        failedPaymentsThisMonth: 0,
+        mrr: Math.round(Number(b.mrr ?? 0)),
+        activeSubscriptions: Number(b.subscriptions ?? 0),
+        totalSubscriptions: portefeuille.filter(p => p.plan != null).length,
+        churnedThisMonth: resilies,
+        pastDue: impayes,
+        failedPaymentsThisMonth: impayes,
+        // Sans source : le dépôt ne garde AUCUN historique de MRR (amendement §5.7,
+        // nommé par le serveur dans `unavailable`). Les fabriquer donnerait une courbe
+        // crédible et fausse.
         revenueThisMonth: 0,
         revenuePrevMonth: 0,
         revenueGrowth: 0,
-        arpu: activeSubs.length > 0 ? Math.round(mrr / activeSubs.length) : 0,
-        planBreakdown: Array.from(planMap.entries()).map(([plan, data]) => ({ plan, ...data, mrr: Math.round(data.mrr) })),
+        arpu: Math.round(Number(b.arpu ?? 0)),
+        planBreakdown: (b.plans ?? []).map(p => ({
+          plan: p.plan, count: Number(p.count), mrr: Math.round(Number(p.mrr)),
+        })),
         revenueHistory: [],
         upcomingRenewals: [],
         recentPayments: [],

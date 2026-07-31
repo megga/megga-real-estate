@@ -193,11 +193,13 @@ describe.skipIf(!HAS_KEYS)('vues de lecture de la console (étape 9)', () => {
     expect(rows.length, 'le filtre par agence rend une ligne').toBe(1)
     const r = rows[0]
 
-    // Les seize colonnes d'ADMIN_AGENCIES. Les nommer une par une plutôt que compter :
-    // une colonne renommée casserait l'écran sans changer le total.
+    // Les seize colonnes d'ADMIN_AGENCIES, plus les quatre que l'écran RÉEL affiche
+    // (étape 15 : slug, logo, téléphone, échéance). Les nommer une par une plutôt que
+    // compter : une colonne renommée casserait l'écran sans changer le total.
     for (const k of ['id', 'name', 'email', 'city', 'canton', 'plan', 'agents', 'properties',
-                     'deals', 'mrr', 'status', 'sub', 'score', 'since', 'last', 'verification_status']) {
-      expect(Object.keys(r), `colonne « ${k} » attendue par la maquette`).toContain(k)
+                     'deals', 'mrr', 'status', 'sub', 'score', 'since', 'last', 'verification_status',
+                     'slug', 'logo_url', 'phone', 'current_period_end']) {
+      expect(Object.keys(r), `colonne « ${k} » attendue par l'écran`).toContain(k)
     }
     expect(Number(r.mrr), 'le MRR de la ligne = celui d\'agency_mrr()').toBe(C2.pro_monthly)
     expect(r.sub, 'le statut d\'abonnement vient du miroir').toBe('active')
@@ -279,6 +281,9 @@ describe.skipIf(!HAS_KEYS)('vues de lecture de la console (étape 9)', () => {
     expect(a, 'l\'agent A est au registre').toBeTruthy()
     expect(a!.agency, 'le nom de l\'agence est joint').toContain('Agency A')
     expect(Array.isArray(a!.consents), 'les consentements sont une liste, même vide').toBe(true)
+    // `avatar_url` est servie ici (étape 15) pour que le registre n'ait pas à relire
+    // `profiles` une seconde fois juste pour une vignette.
+    expect(Object.keys(a!), 'la vignette est servie par la RPC').toContain('avatar_url')
 
     // `stale_days` est éprouvé comme DÉRIVÉE de `last`, jamais contre une valeur attendue.
     // Première version de ce test : semer un événement de 45 jours et attendre 45. Faux —

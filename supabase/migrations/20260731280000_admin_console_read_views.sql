@@ -161,7 +161,15 @@ returns table (
   score               smallint,
   since               timestamptz,
   last                timestamptz,
-  verification_status text
+  verification_status text,
+  -- Quatre colonnes au-delà de la liste de §4.3, parce que l'écran RÉEL les affiche :
+  -- le registre montre un logo et un slug, la fiche un téléphone, et les badges d'essai
+  -- ont besoin de l'échéance. Les servir ici est ce qui fait de cette RPC « un fetch » ;
+  -- les laisser dehors obligeait le hook à garder une seconde requête sur `agencies`.
+  slug                text,
+  logo_url            text,
+  phone               text,
+  current_period_end  timestamptz
 )
 language plpgsql
 stable
@@ -203,7 +211,11 @@ begin
          -- Le coût est nul : idx_activity_events_audit_filters (agency_id, created_at desc)
          -- rend ce max par un parcours d'index inversé, pas par un balayage.
          ev.last_at,
-         a.verification_status
+         a.verification_status,
+         a.slug,
+         a.logo_url,
+         a.phone,
+         s.current_period_end
     from public.agencies a
     left join public.subscriptions s   on s.agency_id = a.id
     left join public.agency_activation act on act.agency_id = a.id
@@ -342,7 +354,10 @@ returns table (
   never       boolean,
   invited_at  timestamptz,
   marketing   boolean,
-  consents    jsonb
+  consents    jsonb,
+  -- Au-delà de la liste de §5.4, parce que le registre RÉEL affiche une vignette.
+  -- La servir ici est ce qui évite au hook une seconde requête sur `profiles`.
+  avatar_url  text
 )
 language plpgsql
 stable
@@ -386,7 +401,8 @@ begin
          (inv.invited_at is not null and ev.last_at is null),
          inv.invited_at,
          (cons.marketing_at is not null),
-         coalesce(cons.all_consents, '[]'::jsonb)
+         coalesce(cons.all_consents, '[]'::jsonb),
+         p.avatar_url
     from public.profiles p
     left join public.agencies a on a.id = p.agency_id
     left join lateral (select max(e.created_at) as last_at from public.activity_events e

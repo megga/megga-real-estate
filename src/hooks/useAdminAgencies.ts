@@ -1,10 +1,27 @@
 /**
  * Hooks React Query de la console super-admin des agences : liste enrichie de
- * compteurs (via RPC `get_agency_stats`), détail d'une agence et ses sous-ressources
- * (membres, biens, transactions, activité). Alimente AdminAgencyDetailPage.
+ * compteurs, détail d'une agence et ses sous-ressources (membres, biens,
+ * transactions, activité). Alimente AdminAgencyDetailPage.
+ *
+ * Étape 15 : la liste passe par la RPC `get_admin_agencies()` — UN appel là où il en
+ * fallait trois (select agencies + get_agency_stats + select subscriptions). Elle
+ * apporte en plus le MRR, le score d'activation et le statut de vérification KYB, que
+ * cette liste ne savait pas afficher.
+ *
+ * ⚠ Le MRR vient du SERVEUR et n'est jamais recalculé ici (§4.3). C'est la même règle
+ * qui sert l'écran Plans : deux calculs séparés divergent, et ils divergeaient déjà —
+ * l'ancien calcul de useAdminBilling ignorait les agences SUSPENDUES.
+ *
+ * ⚠ Client casté : `get_admin_agencies` n'est pas encore dans src/types/database.ts
+ * (auto-généré, en retard sur ces migrations — cf. son en-tête). Même motif que
+ * useAdminKybReview.ts : entrées/sorties re-typées à la main juste après. À nettoyer à
+ * la prochaine régénération (`supabase gen types typescript`).
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+
+const db = supabase as unknown as SupabaseClient
 
 export interface AgencyWithStats {
   id: string
@@ -23,6 +40,24 @@ export interface AgencyWithStats {
   // Statut d'abonnement Stripe (miroir subscriptions) — pour badges trials/past_due.
   subscription_status: string | null
   current_period_end: string | null
+  /** MRR serveur (§4.3). Essai, impayé et agence suspendue comptent zéro. */
+  mrr: number
+  /** Score d'activation 0-100 (`agency_activation`), null tant que le cron n'a pas tourné. */
+  score: number | null
+  /** Statut de vérification KYB (C9) — pour le renvoi vers la revue (§5.13). */
+  verification_status: string | null
+  /** Dernière activité, dérivée d'`activity_events`. */
+  last_activity_at: string | null
+}
+
+/** Ligne brute de `get_admin_agencies()`, re-typée à la main faute de types générés. */
+interface AdminAgencyRow {
+  id: string; name: string; email: string | null; city: string | null; canton: string | null
+  plan: string | null; agents: number; properties: number; deals: number; mrr: number | string
+  status: string | null; sub: string | null; score: number | null
+  since: string; last: string | null; verification_status: string | null
+  slug: string; logo_url: string | null; phone: string | null
+  current_period_end: string | null
 }
 
 /** Liste des agences + compteurs agrégés côté serveur, et mutation suspend/réactive (via edge `admin-agency-lifecycle`). */
@@ -32,38 +67,32 @@ export function useAdminAgencies() {
   const agencies = useQuery({
     queryKey: ['admin-agencies'],
     queryFn: async (): Promise<AgencyWithStats[]> => {
-      const { data, error } = await supabase
-        .from('agencies')
-        .select('id, name, slug, logo_url, address, phone, email, plan, status, created_at')
-        .order('created_at', { ascending: false })
+      const { data, error } = await db.rpc('get_admin_agencies', { p_limit: 2000, p_offset: 0 })
       if (error) throw error
 
-      const agencyIds = (data ?? []).map(a => a.id)
-      if (agencyIds.length === 0) return []
-
-      // Use RPC for server-side counting (single SQL query instead of fetching all rows)
-      // + abonnements en une passe (policy super_admin_read_all_subscriptions) pour les badges trials.
-      const [{ data: stats }, { data: subs }] = await Promise.all([
-        supabase.rpc('get_agency_stats', { agency_ids: agencyIds }),
-        supabase.from('subscriptions').select('agency_id, status, current_period_end').in('agency_id', agencyIds),
-      ])
-      const statsMap: Record<string, { agent_count: number; property_count: number; transaction_count: number }> = {}
-      for (const s of stats ?? []) {
-        statsMap[s.agency_id] = { agent_count: Number(s.agent_count), property_count: Number(s.property_count), transaction_count: Number(s.transaction_count) }
-      }
-      const subMap: Record<string, { status: string | null; current_period_end: string | null }> = {}
-      for (const s of subs ?? []) {
-        subMap[s.agency_id] = { status: s.status ?? null, current_period_end: s.current_period_end ?? null }
-      }
-
-      return (data ?? []).map(agency => ({
-        ...agency,
-        status: agency.status ?? 'active',
-        agent_count: statsMap[agency.id]?.agent_count ?? 0,
-        property_count: statsMap[agency.id]?.property_count ?? 0,
-        transaction_count: statsMap[agency.id]?.transaction_count ?? 0,
-        subscription_status: subMap[agency.id]?.status ?? null,
-        current_period_end: subMap[agency.id]?.current_period_end ?? null,
+      return ((data ?? []) as AdminAgencyRow[]).map(r => ({
+        id: r.id,
+        name: r.name,
+        slug: r.slug,
+        logo_url: r.logo_url,
+        // `address` n'est pas servie par la RPC : le registre ne l'affiche pas, et la
+        // fiche la relit en entier via useAdminAgency(). L'ajouter au registre aurait
+        // chargé une colonne pour personne.
+        address: null,
+        phone: r.phone,
+        email: r.email,
+        plan: r.plan,
+        status: r.status ?? 'active',
+        created_at: r.since,
+        agent_count: Number(r.agents),
+        property_count: Number(r.properties),
+        transaction_count: Number(r.deals),
+        subscription_status: r.sub,
+        current_period_end: r.current_period_end,
+        mrr: Number(r.mrr),
+        score: r.score,
+        verification_status: r.verification_status,
+        last_activity_at: r.last,
       }))
     },
     staleTime: 30_000,

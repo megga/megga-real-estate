@@ -196,9 +196,36 @@ jeu **pur et déterministe** (`scripts/_shared/admin-staging-seed.mjs`) : 14 age
   abonnement, agence suspendue (la règle de MRR §4.3), agence assez ancienne pour être
   dormante, « invité jamais connecté », compte inactif au-delà de 30 jours, les 4 rôles.
 
-**Reste de l'étape 15** : brancher les écrans sur les nouvelles RPC. C'est ce volet qui
-ferme le Lot 1 et ouvre le gate **G1**. Il apportera aussi la base de recette (100 agences /
-1 M d'événements) sans laquelle le critère **p95 < 300 ms** de l'étape 9 n'est pas mesuré.
+**Étape 15 — second volet : le branchement.** Trois hooks passent aux RPC consolidées, en
+gardant leur forme exportée pour ne pas churner les pages :
+
+| Hook | Avant | Après |
+|---|---|---|
+| `useAdminAgencies` | 3 allers-retours (`agencies` + `get_agency_stats` + `subscriptions`) | **1** — `get_admin_agencies()`, plus MRR / score / statut KYB |
+| `useAdminUsers` | 2 allers-retours (`profiles` puis `agencies`) | **1** — `get_admin_users()`, plus les champs §5.4 |
+| `useAdminBilling` | **MRR recalculé en TypeScript** | `get_admin_plans_board()` |
+
+⚠ **Une divergence réelle, fermée.** L'ancien `useAdminBilling` ne comptait que
+`subscriptions.status` et **ignorait les agences suspendues**, qu'`agency_mrr_rule` met à
+zéro. Une agence suspendue à l'abonnement actif était donc facturée à l'écran et pas en
+base. C'est précisément ce que §4.3 interdit — « une seule fonction SQL, jamais recalculée
+côté front ». Ses prix n'étaient pas faux (il lisait bien C2) ; c'est la RÈGLE qui était
+dupliquée, et les deux copies avaient déjà divergé.
+
+⚠ **Client casté, volontairement.** Les nouvelles RPC ne sont pas dans
+`src/types/database.ts` (auto-généré, en retard sur des migrations non mergées — son en-tête
+interdit l'édition à la main). Patron déjà en usage : `useAdminKybReview.ts`,
+`useAgencyFollowupSuggestions.ts`. **À nettoyer à la première régénération après le merge**
+(`supabase gen types typescript`).
+
+**Ce qui n'est PAS branché, et pourquoi.** `useAdminStats` passe déjà par une RPC unique et
+ne viole rien : le rebrancher sur `admin_overview()` ferait payer le journal, le poste de
+triage et le tunnel KYC à une page qui ne demande que sept compteurs. La Vue d'ensemble
+consomme donc encore `get_admin_dashboard_stats` + une requête d'alertes séparée ; la brancher
+sur `admin_overview()` est un travail de PAGE, pas de hook, et appartient à la passe UI.
+
+**Reste** : la base de recette (100 agences / 1 M d'événements) pour mesurer le
+**p95 < 300 ms** de l'étape 9, et la démo PO du gate **G1**.
 
 ⚠ C'est la seule étape du Lot 1 dont le plan AUTORISE un diff des `admin-*.jsx` (§5 du
 plan : exceptions 4, 15, 31). Toutes les autres exigent un diff vide.
