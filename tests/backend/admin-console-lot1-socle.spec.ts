@@ -95,16 +95,24 @@ describe.skipIf(!HAS_KEYS)('socle de lecture du Lot 1 (étape 5)', () => {
     `)
   })
 
-  it('le statut n\'admet que les trois valeurs de la maquette', async () => {
-    const svc = serviceRoleClient()
-    const ok = await svc.from('agency_activation').insert({ agency_id: setup.agencyAId, status: 'atRisk' })
-    expect(ok.error, 'atRisk est une valeur de la maquette (ADMIN_ONBOARDING.status)').toBeNull()
-
-    const ko = await svc.from('agency_activation')
-      .update({ status: 'en_retard' }).eq('agency_id', setup.agencyAId)
-    expect(ko.error, 'une valeur hors maquette doit être refusée').not.toBeNull()
-
-    await svc.from('agency_activation').delete().eq('agency_id', setup.agencyAId)
+  it('le statut n\'admet que les trois valeurs de la maquette', () => {
+    // Écriture en `postgres`, jamais en service_role : celui-ci s'est vu révoquer l'INSERT,
+    // délibérément. Conséquence pour l'étape 8 — le calcul nocturne du score écrira sous
+    // pg_cron (postgres) ou par une fonction SECURITY DEFINER, jamais avec la clé de service.
+    assertSql(`
+    declare v_sqlstate text;
+    begin
+      insert into public.agency_activation (agency_id, status)
+        values ('${'$'}{AGENCY}'::uuid, 'atRisk');
+      begin
+        update public.agency_activation set status = 'en_retard' where agency_id = '${'$'}{AGENCY}'::uuid;
+        raise exception 'une valeur hors maquette a ete acceptee';
+      exception when others then
+        get stacked diagnostics v_sqlstate = returned_sqlstate;
+        if v_sqlstate <> '23514' then raise exception 'attendu 23514, recu %', v_sqlstate; end if;
+      end;
+      delete from public.agency_activation where agency_id = '${'$'}{AGENCY}'::uuid;
+    `.replace(/\$\{AGENCY\}/g, setup.agencyAId))
   })
 
   it('la table est fermée en écriture et en lecture aux agents', () => {

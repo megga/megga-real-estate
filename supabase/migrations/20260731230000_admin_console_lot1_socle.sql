@@ -104,8 +104,11 @@ declare
   v_base jsonb;
   v_ecarts jsonb;
 begin
-  if not (public.is_super_admin() or public.is_service_role()
-          or session_user in ('postgres', 'supabase_admin')) then
+  -- PAS de branche `session_user` ici, contrairement aux fonctions du registre : celle-ci
+  -- n'est appelée par aucun cron, seulement par un test en service_role. Recopier la
+  -- branche par habitude aurait élargi d'une unité l'ensemble que le balayage de gardes
+  -- doit écarter — et c'est précisément ce que son seuil interdit.
+  if not (public.is_super_admin() or public.is_service_role()) then
     raise exception 'forbidden: super_admin or service only' using errcode = '42501';
   end if;
 

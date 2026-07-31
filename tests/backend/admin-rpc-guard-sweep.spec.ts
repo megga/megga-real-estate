@@ -112,6 +112,10 @@ describe.skipIf(!HAS_KEYS)('G0 — aucune RPC admin n\'est joignable par un agen
       select count(*) into v_ecartees
         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and ${SCOPE} and p.prosecdef
+         -- Ne compter que ce qui serait SINON dans la boucle : une fonction non accordee a
+         -- authenticated n'y entre pas, l'ecarter ne coute donc aucune couverture.
+         -- (Pas d'accent grave dans ce bloc : il est dans un litteral de gabarit JS.)
+         and has_function_privilege('authenticated', p.oid, 'EXECUTE')
          and (p.prosrc ilike '%session_user%' or p.proname = 'admin_console_session_state');
       if v_ecartees > 4 then
         raise exception '% fonctions ecartees du balayage comportemental : le harnais ne prouve plus rien', v_ecartees;
