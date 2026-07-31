@@ -13,6 +13,16 @@
  * Y écrire à la main polluerait le design system côté CRM.
  */
 
+/* La case elle-même ne se laisse pas écraser.
+   `.checkbox-field` est un conteneur flex et `.checkbox` un carré de 18 px sans
+   `flex-shrink` : dès que le libellé passe à la ligne — donc sur mobile, et sur
+   l'inscription où le texte est long — la case est comprimée à ~12,8 px de large
+   pour 18 de haut, et se lit comme un trait vertical. Le carré est un dessin,
+   pas une colonne de texte : il ne rétrécit jamais. */
+.checkbox-field .w-checkbox-input {
+  flex-shrink: 0;
+}
+
 /* signup.html — la case de consentement occupe sa propre ligne sous les quatre
    champs (Nom | E-mail / Mot de passe | Agence). `1 / -1` plutôt que `span 2` :
    sous 767px la grille passe à une colonne, et un `span 2` y créerait une
