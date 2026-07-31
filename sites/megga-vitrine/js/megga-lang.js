@@ -54,6 +54,18 @@
   }
 
   /**
+   * Où aller quand la page courante n'existe pas dans la langue demandée.
+   *
+   * Le blog, les pages légales et les carrières ne sont pas traduits. Les
+   * langues y étaient d'abord affichées inertes — mais un sélecteur qui refuse
+   * de sélectionner est une impasse : on emmène à l'accueil de la langue, en
+   * l'annonçant dans le dialogue plutôt qu'en téléportant sans prévenir.
+   */
+  function accueilDeLaLangue(code) {
+    return code === 'fr' ? '/' : '/' + code + '/';
+  }
+
+  /**
    * Libellés du dialogue, par langue.
    *
    * Le dialogue est construit en JavaScript : ses propres textes ne passent pas
@@ -61,10 +73,10 @@
    * page allemande signalerait que la traduction s'arrête à la surface.
    */
   var LIBELLES = {
-    fr: { titre: 'Choisir la langue', actuelle: 'Langue actuelle', indisponible: 'Indisponible ici', fermer: 'Fermer' },
-    de: { titre: 'Sprache wählen', actuelle: 'Aktuelle Sprache', indisponible: 'Hier nicht verfügbar', fermer: 'Schliessen' },
-    en: { titre: 'Choose language', actuelle: 'Current language', indisponible: 'Not available here', fermer: 'Close' },
-    it: { titre: 'Scegli la lingua', actuelle: 'Lingua attuale', indisponible: 'Non disponibile qui', fermer: 'Chiudi' },
+    fr: { titre: 'Choisir la langue', actuelle: 'Langue actuelle', versAccueil: 'Vers l’accueil', fermer: 'Fermer' },
+    de: { titre: 'Sprache wählen', actuelle: 'Aktuelle Sprache', versAccueil: 'Zur Startseite', fermer: 'Schliessen' },
+    en: { titre: 'Choose language', actuelle: 'Current language', versAccueil: 'To the home page', fermer: 'Close' },
+    it: { titre: 'Scegli la lingua', actuelle: 'Lingua attuale', versAccueil: 'Alla pagina iniziale', fermer: 'Chiudi' },
   };
 
   function icone(nom) {
@@ -90,14 +102,16 @@
       var courante = l.code === code;
       // Atteignable = le build a posé un alternate pour cette langue sur cette
       // page. Sur le blog ou une page légale, il n'y en a qu'un : le français.
-      var cible = courante ? null : urlDansLaLangue(l.code);
-      var atteignable = courante || (l.disponible && !!cible);
+      var traduite = courante ? null : urlDansLaLangue(l.code);
+      // Pas de traduction de CETTE page → l'accueil de la langue, plutôt qu'une
+      // option morte. Le dialogue le dit, on n'y arrive pas par surprise.
+      var cible = courante ? null : (traduite || accueilDeLaLangue(l.code));
       var attrs = 'class="megga-lang-option" data-langue="' + l.code + '"'
         + (cible ? ' data-cible="' + cible + '"' : '')
         + ' aria-current="' + (courante ? 'true' : 'false') + '"'
-        + (atteignable ? '' : ' aria-disabled="true"');
+        + (l.disponible || courante ? '' : ' aria-disabled="true"');
       var note = courante ? '<span class="megga-lang-option__note">' + mots.actuelle + '</span>'
-        : (atteignable ? '' : '<span class="megga-lang-option__note">' + mots.indisponible + '</span>');
+        : (traduite ? '' : '<span class="megga-lang-option__note">' + mots.versAccueil + '</span>');
       return '<li><button type="button" ' + attrs + '><span>' + l.nom + '</span>' + note + '</button></li>';
     }).join('');
 
