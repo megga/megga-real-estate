@@ -26,7 +26,7 @@ Thomas et Antoine travaillent en parallèle sur le même dépôt. Méthode reten
 |---|---|---|
 | #1043 | Inventaire du socle (245 ressources mesurées) | **mergée**, déployée |
 | #1044 | Bloquants pré-lancement 0.2 et 0.4 | **mergée**, gardes vérifiées en base ET en comportement |
-| **#1046** | **Lot 0 complet + Lot 1 partiel** | **brouillon, CI verte**, 6 migrations en attente |
+| **#1046** | **Lot 0 complet + Lot 1 partiel** | **brouillon**, 7 migrations en attente |
 
 Les quatre bloquants pré-lancement (dépendance **P6**) sont **fermés et vérifiés en
 production** : 0.1 et 0.3 l'étaient déjà, 0.2 et 0.4 par #1044.
@@ -40,12 +40,12 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
 **Lot 1 — 7 étapes sur 11.** 5 ✅ socle §4.2 · 6 ⚠️ partielle · 7 ✅ Stripe · 8 ✅ activation ·
 11 ✅ Live · 12 ✅ crons · 13 ✅ tunnel KYC · 14 ✅ Sécurité (migration livrée, **tests non
 écrits**). Restent **9** (vues), **10** (`admin_overview`, dépend de 9), **15** (branchement
-+ seed).
++ seed). **Les décisions 1 et 2 sont prises : l'étape 9 n'est plus bloquée.**
 
-**Six migrations en attente**, toutes datées `20260731` :
+**Sept migrations en attente**, toutes datées `20260731` :
 `210000_admin_log` · `220000_admin_console_session` · `230000_admin_console_lot1_socle` ·
 `240000_admin_live_and_kyc_funnel` · `250000_activation_and_cron_runs` ·
-`260000_admin_security_read`.
+`260000_admin_security_read` · `270000_admin_agency_note_and_invitations`.
 
 **Tests** : 45 specs dédiées à la console, CI complète verte sur `f4cde647`
 (130 fichiers, 1 144 tests).
@@ -54,8 +54,8 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
 
 | # | Décision | Ce qu'elle bloque | Reco |
 |---|---|---|---|
-| 1 | **Support de la note d'agence** — `admin_notes` a été supprimée le 28.07, trois jours avant la rédaction de la spec qui l'utilise (§5.3, §4.3) | étape 9 (`v_admin_agency_detail`), donc 10 | colonne `agencies.admin_note`, plus simple qu'une table ressuscitée |
-| 2 | **Policy super-admin sur `team_invitations`** — un super-admin a `agency_id` NULL et ne voit AUCUNE invitation | étape 9 (« invité, jamais connecté ») | RPC `SECURITY DEFINER` plutôt qu'une policy, cohérent avec le reste |
+| ~~1~~ | ~~Support de la note d'agence~~ — **TRANCHÉE le 31.07** : table `admin_agency_notes` (migration `20260731270000`). ⚠ **Pas** une colonne `agencies.admin_note` comme d'abord recommandé : `agencies_members_select` donne à chaque membre la lecture de toute sa ligne, avec un GRANT de table, et un REVOKE de colonne ne protégerait rien (défaut mesuré sur `verification_*`). La note aurait été lue par l'agence. | ✅ débloquée | — |
+| ~~2~~ | ~~Accès du super-admin aux invitations~~ — **TRANCHÉE le 31.07** : RPC `get_admin_agency_invitations(agency_id, limit)`, gardée, qui sert la fiche agence (argument fourni) ET le registre Utilisateurs (argument NULL). Ne rend jamais le `token`. | ✅ débloquée | — |
 | 3 | **Enum `agency_plan`** = `starter\|pro\|agency\|enterprise` quand le catalogue dit `entreprise` → **`22P02` en production** sur toute création d'agence Entreprise | Lot 2 (étape 17) | convertir `agencies.plan` en `text` + CHECK, comme `subscriptions.plan` l'est déjà : supprime le 3ᵉ vocabulaire au lieu d'en ajouter un 4ᵉ. Colonne partagée avec le CRM. |
 | 4 | **Q5 sièges** — divergence **TRIPLE** : `PLANS.team_members` 1/5/∞ · `PLAN_LIMITS.maxAgents` 1/1/10 · `send-team-invite` en dur 1/3/10/50 (**la seule qui s'applique**) | étape 17 | — |
 | 5 | **Périmètre à démonter** — changement de plan et impersonation sont **livrés et branchés** alors que la spec les exclut ; 4 pages (Feature flags, Autonomie, Outils, Styles appris) sont hors carte sans décision écrite | Lot 2 et plan de nettoyage | — |
@@ -108,8 +108,10 @@ cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/audit-backend-admin-
 git fetch origin && git rebase origin/main   # main a bougé (PR vitrine de Thomas/Antoine)
 ```
 
-Prochaine action au choix : **tests de l'étape 14** (ne dépendent de rien), ou **étape 9**
-une fois les décisions 1 et 2 prises.
+Prochaine action : **étape 9** (les vues `v_admin_*`), désormais débloquée — la note se lit
+dans `admin_agency_notes`, les invitations par `get_admin_agency_invitations`. Puis **10**
+(`admin_overview`, un objet un fetch) et **15**. Les **tests de l'étape 14** restent à
+écrire et ne dépendent de rien.
 
 ## 8. Re-dater les migrations le jour du merge — procédure
 
@@ -134,7 +136,7 @@ git fetch origin && git rebase origin/main
 # Le test d'égalité n'est pas décoratif : lancée le jour même, la boucle produirait un nom
 # identique et `git mv` échouerait, ce qui ferait croire à un problème alors qu'il n'y a
 # simplement rien à re-dater.
-for f in supabase/migrations/20260731{21,22,23,24,25,26}0000_*.sql; do
+for f in supabase/migrations/20260731{21,22,23,24,25,26,27}0000_*.sql; do
   [ -e "$f" ] || continue
   dst="supabase/migrations/$(date -u +%Y%m%d)$(basename "$f" | cut -c9-)"
   [ "$f" = "$dst" ] && { echo "déjà à la bonne date : $(basename "$f")"; continue; }
