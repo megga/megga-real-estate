@@ -365,8 +365,12 @@ begin
          -- « stale » se compare à 30 jours dans la maquette (usxFlag). Un compte sans
          -- aucune activité n'est pas « périmé depuis 0 jour » : il est NULL, et l'écran
          -- l'affiche « jamais connecté » par le drapeau `never`.
+         --
+         -- `floor`, PAS un cast direct : `::integer` ARRONDIT en PostgreSQL. Un compte
+         -- inactif depuis 29,6 jours serait rendu à 30 et franchirait le seuil de la
+         -- maquette un tiers de journée trop tôt. Un âge se compte en journées RÉVOLUES.
          case when ev.last_at is null then null
-              else greatest(0, (extract(epoch from (now() - ev.last_at)) / 86400)::integer) end,
+              else greatest(0, floor(extract(epoch from (now() - ev.last_at)) / 86400)::integer) end,
          coalesce(p.is_suspended, false),
          -- Les comptes supprimés RESTENT dans le registre, avec leur date. Les masquer
          -- ferait diverger ce compte de `get_admin_dashboard_stats().total_users`, qui

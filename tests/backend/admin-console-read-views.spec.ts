@@ -278,9 +278,29 @@ describe.skipIf(!HAS_KEYS)('vues de lecture de la console (étape 9)', () => {
     const a = rows.find((r) => r.id === setup.agentAId)
     expect(a, 'l\'agent A est au registre').toBeTruthy()
     expect(a!.agency, 'le nom de l\'agence est joint').toContain('Agency A')
-    // L'événement semé a 45 jours : au-delà du seuil de 30 de la maquette (usxFlag).
-    expect(Number(a!.stale_days), 'l\'événement semé date de 45 jours').toBeGreaterThanOrEqual(44)
     expect(Array.isArray(a!.consents), 'les consentements sont une liste, même vide').toBe(true)
+
+    // `stale_days` est éprouvé comme DÉRIVÉE de `last`, jamais contre une valeur attendue.
+    // Première version de ce test : semer un événement de 45 jours et attendre 45. Faux —
+    // `last` est un MAXIMUM, et se connecter écrit un événement de catégorie `auth`. Le
+    // simple fait que le harnais authentifie l'agent rendait son activité fraîche. La
+    // fonction avait raison ; l'assertion avait tort. Une connexion EST une activité, et
+    // c'est précisément ce que la colonne « Dernière activité » de la maquette affiche.
+    //
+    // Reformulé sur le contrat, le test attrape ce qu'il doit attraper : une unité fausse
+    // (heures prises pour des jours), un signe inversé, un décalage d'ordre de grandeur.
+    // Tolérance d'UN jour, et pas moins : `now()` est l'horloge de la base, `Date.now()`
+    // celle du runner, et un franchissement de minuit entre les deux décalerait le plancher
+    // d'une unité. Une tolérance plus large ne prouverait plus rien sur l'unité.
+    for (const r of rows) {
+      if (r.last === null) continue
+      const attendu = Math.floor((Date.now() - new Date(r.last as string).getTime()) / 86_400_000)
+      const mesure = Number(r.stale_days)
+      expect(mesure, `stale_days (${mesure}) incohérent avec last sur ${r.email}`)
+        .toBeGreaterThanOrEqual(attendu - 1)
+      expect(mesure, `stale_days (${mesure}) incohérent avec last sur ${r.email}`)
+        .toBeLessThanOrEqual(attendu + 1)
+    }
   })
 
   it('« jamais connecté » vaut exactement « invité ET aucune activité »', async () => {
