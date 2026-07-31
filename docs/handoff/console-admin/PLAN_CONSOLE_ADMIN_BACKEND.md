@@ -41,7 +41,8 @@
 | ~~P2~~ | **RÉSOLUE (31.07)** — `activity_events` existe (append-only, clés techniques + i18n `audit.action.*`) ; reste à compléter le vocabulaire manquant (étape 6) | — | — | — |
 | P3 | **Contrat webhook portail** (codes de refus → mapping causes, HMAC, §5.6) | Étapes 24-26 (Lot 3 uniquement) | Équipe intégration | fin S4 |
 | P4 | Décisions Q4 (rollback : reco deep-link CI) et Q8 (dernier admin : reco refus serveur) | Étapes 18, 29 | PO | avant Lot 2 |
-| **P5** | **Design de la surface Revue KYB** (Q9, §5.13) — le backend existe (7 RPC en prod), la maquette console manque | Étapes 14b, 19b | PO (+ maquette Omelette) | fin S1 |
+| **P5** | **Design de la surface Revue KYB** (Q9, §5.13) — le backend existe (7 RPC en prod), la maquette console manque. ⚠ **Requalifiée par l'inventaire (31.07)** : la surface EXISTE au repo (`AdminKybReviewPage.tsx`, routée, 7 RPC branchées). P5 ne bloque plus le Lot 1 fonctionnellement — il manque l'habillage Sugar Pure. | Étapes 14b, 19b | PO (+ maquette Omelette) | fin S1 |
+| **P6** | **Bloquants pré-lancement 0.1→0.4** (`HANDOFF_PRELANCEMENT_ADMIN.md`). **Mesurés le 31.07** (inventaire §6) : 0.1 fermé autrement, 0.3 fermé, **0.2 et 0.4 partiels**. Les deux migrations de fermeture sont livrées : `20260731190000` (garde super-admin sur `get_onboarding_milestones` / `get_agency_activity_summary` + revoke anon des 2 RPC logos) et `20260731200000` (gel de `agencies.plan` / `billing` / `stripe_customer_id`). | G1 | Julien / CC | avant G1 |
 
 ---
 
@@ -50,7 +51,7 @@
 ### Phase 0 — La porte (S1) → **Gate G0**
 | # | Étape | § | Effort | Dépend de |
 |---|---|---|---|---|
-| 1 | **Inventaire du socle existant (§4.1)** : rôle/allowlist, handover, RPC admin déjà en prod (ops health, lifecycle & billing, end users, integrations health, create agency, quotas/usage, revue KYB) — écrire le delta réel repo ↔ spec | §1 §4.1 | S | — |
+| 1 ✅ | **Inventaire du socle existant (§4.1)** : rôle/allowlist, handover, RPC admin déjà en prod (ops health, lifecycle & billing, end users, integrations health, create agency, quotas/usage, revue KYB) — écrire le delta réel repo ↔ spec — **FAIT (PR #1043, 31.07.2026)** : [docs/console-admin/INVENTAIRE_SOCLE.md](../../console-admin/INVENTAIRE_SOCLE.md), 245 ressources mesurées en base. Lire son §7 (amendements à porter à la spec) et §13 (étapes à requalifier) avant l'étape 2. | §1 §4.1 | S | — |
 | 2 | `admin_log` : table, trigger append-only (REFUSE update/delete), chaîne de hash, insert sérialisé, cron de vérification | §4 §5.9 §10.4 | **L** | 1 |
 | 3 | Entrée console journalisée (famille `session`, migration `admin_console_entry_audit`), TTL 8 h, révocation hors allowlist | §1 §10.3 | M | 2 |
 | 4 | Front : focus clavier visible (`admin-kit.jsx`) | §1 | XS | — |

@@ -188,6 +188,7 @@ Aucun n'est imputable à ce chantier ; tous tombent dans son périmètre d'inven
 10. **`get_admin_kyc_magic_links`** rend `contact_name` en liste paginée sans motif ni plafond réel (`greatest()` est un plancher). C'est une liste nominative cross-agences, contraire au principe 1.
 11. **`audit-pdf-export` tronque à 10 000 lignes** sur un tri décroissant : la chaîne de hash ne couvre que les événements les plus récents du périmètre filtré. Pour un registre à 10 ans, deux exports du même intervalle peuvent produire deux `chain_hash` différents.
 12. **`verify_jwt = false` sur les 68 edges** du projet, sans exception. La garde applicative doit être la toute première instruction de toute nouvelle edge console.
+13. **Les gestes mutants ne sont pas rejouables par un worker.** Les 5 RPC de décision KYB n'ont pas de `GRANT` à `service_role`, et `admin_set_agency_plan` est gardée par `is_super_admin()` **seul** — jamais `is_super_admin() OR is_service_role()` comme les 18 RPC de lecture. `is_super_admin()` lit `auth.uid()`, nul sous une clé de service : mesuré le 31.07 en CI, un appel `service_role` rend `42501 forbidden: super_admin required`. Aucun cron, aucune edge, aucun worker d'outbox ne peut donc rejouer une décision KYB ni un changement de plan. À trancher avant d'écrire l'outbox de l'étape 16 : porter le JWT de l'opérateur jusqu'au worker, ou étendre les gardes.
 
 ---
 
