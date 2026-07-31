@@ -10,9 +10,14 @@
 --     new_agencies_this_month, new_users_this_month. La correspondance avec la maquette est
 --     1:1. Une vue de plus n'aurait été qu'un second nom pour la même requête.
 --   · `v_monitoring_board`  → NON CRÉÉE. ADMIN_HEALTH (dbPct, storagePct, errors24h,
---     requests24h, emailsToday) sort de `get_admin_monitoring_health()` ; functionsOk /
---     functionsErr de `get_admin_ops_health_rpcs()` ; cronsLate de `get_admin_cron_runs()`
---     (étape 12, migration 20260731250000). Les trois existent.
+--     requests24h, emailsToday) sort de `get_admin_monitoring_health()` ; l'état des crons
+--     de `get_cron_health()` et de `get_admin_cron_runs()` (étape 12, 20260731250000).
+--     ⚠ Rectifié à l'étape 10 : une première rédaction citait ici `get_admin_ops_health_rpcs()`
+--     comme source de functionsOk/functionsErr. CETTE FONCTION N'EXISTE PAS — ni en base, ni
+--     dans le dépôt ; le nom vient du plan, qui désignait ainsi 20260705172000, laquelle a en
+--     réalité créé get_admin_syndication_health, _whatsapp_health et _ai_costs. Le compte
+--     d'erreurs vient de get_admin_monitoring_health() ; le compte de FONCTIONS distinctes en
+--     erreur se dérive dans admin_overview() (20260731290000).
 --   · `v_kyc_funnel_30d`    → DÉJÀ POSÉE en fonction (`get_admin_kyc_funnel_30d`, 240000).
 --   · `v_security_journal`  → DÉJÀ POSÉE en fonction (`get_admin_security_journal`, 260000).
 --   · `v_diffusion_board`   → Lot 3. `listing_signals` n'existe pas (étape 24).

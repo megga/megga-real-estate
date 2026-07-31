@@ -37,10 +37,9 @@ production** : 0.1 et 0.3 l'étaient déjà, 0.2 et 0.4 par #1044.
 session · 4 ✅ focus clavier · plus un **balayage de gardes** couvrant les 32 RPC admin.
 Les trois critères de sortie **G0** sont couverts par des tests permanents.
 
-**Lot 1 — 8 étapes sur 11.** 5 ✅ socle §4.2 · 6 ⚠️ partielle · 7 ✅ Stripe · 8 ✅ activation ·
-**9 ✅ vues** · 11 ✅ Live · 12 ✅ crons · 13 ✅ tunnel KYC · 14 ✅ Sécurité (migration livrée,
-**tests non écrits**). Restent **10** (`admin_overview`, désormais débloquée), **15**
-(branchement + seed).
+**Lot 1 — 9 étapes sur 11.** 5 ✅ socle §4.2 · 6 ⚠️ partielle · 7 ✅ Stripe · 8 ✅ activation ·
+**9 ✅ vues** · **10 ✅ `admin_overview`** · 11 ✅ Live · 12 ✅ crons · 13 ✅ tunnel KYC ·
+14 ✅ Sécurité (migration livrée, **tests non écrits**). Reste **15** (branchement + seed).
 
 **L'étape 9 a surtout consisté à NE PAS créer.** §4.3 énumère douze vues ; six seulement
 manquaient. `v_admin_kpis` n'a pas été créée — `get_admin_dashboard_stats()` rend déjà, en
@@ -53,12 +52,27 @@ Livrées : `agency_mrr` (+ sa règle pure `agency_mrr_rule`), `get_admin_agencie
 `get_admin_agency_detail`, `get_admin_users`, `get_admin_user_activity`,
 `get_admin_plans_board`.
 
-**Huit migrations en attente**, toutes datées `20260731` :
+⚠ **Une erreur de l'étape 9, corrigée à l'étape 10** : le commentaire de `20260731280000`
+citait `get_admin_ops_health_rpcs()` comme source de « fonctions en erreur ». **Cette
+fonction n'existe pas** — ni en base, ni dans le dépôt. Le nom vient du plan, qui désigne
+ainsi `20260705172000`, laquelle a en réalité créé `get_admin_syndication_health`,
+`get_admin_whatsapp_health` et `get_admin_ai_costs`. Le fichier a été rectifié sur place
+(il n'est ni mergé ni déployé). **Leçon** : citer une fonction sans l'avoir vue dans
+`pg_proc` reproduit l'erreur du document qu'on recopie.
+
+**L'étape 10 assemble, elle ne crée rien.** `admin_overview()` appelle
+`get_admin_monitoring_health`, `get_admin_dashboard_stats`, `get_admin_kyc_funnel_30d`,
+`get_admin_plans_board`, `get_admin_live_feed`, `get_cron_health` et
+`get_admin_agency_review_queue` — jamais une requête recopiée, pour qu'une correction faite
+une fois vaille partout. Le surcoût est leur garde rejouée cinq ou six fois, pas cent fois
+par ligne comme au registre.
+
+**Neuf migrations en attente**, toutes datées `20260731` :
 `210500_admin_log` (⚠ **210500**, pas 210000 : main portait déjà ce numéro) ·
 `220000_admin_console_session` · `230000_admin_console_lot1_socle` ·
 `240000_admin_live_and_kyc_funnel` · `250000_activation_and_cron_runs` ·
 `260000_admin_security_read` · `270000_admin_agency_note_and_invitations` ·
-`280000_admin_console_read_views`.
+`280000_admin_console_read_views` · `290000_admin_overview`.
 
 **Tests** : 46 specs dédiées à la console. CI complète verte sur `4d8fe0ab` — **132 fichiers,
 1 172 tests passés, 1 ignoré** (celui-là est hérité : `whatsapp-comprehension-golden`).
@@ -111,6 +125,19 @@ prouve, pas le statut vert.
   « plafond de sièges APRÈS arbitrage ». En choisir un aurait tranché en silence une
   question posée au PO. `seats_used` est rendu par agence : le jour de l'arbitrage, la file
   se calcule sans nouvelle mesure.
+- **§5.1 : deux des quatre signaux « À traiter » n'ont pas de source telle quelle.** Il
+  n'existe **aucun système de tickets** (ni table, ni un seul `activity_events` d'action
+  `ticket_created` depuis la création de la table) : le signal est déclaré manquant, pas
+  simulé. Et le « retard » d'un cron exigerait d'interpréter une expression cron en SQL ;
+  ce qui se mesure sans rien interpréter, c'est le dernier **statut** — d'où `crons_failed`,
+  sur lequel le pouls se fonde. Les deux manques sont nommés dans `unavailable`.
+- **§5.1 : le signal KYB est AJOUTÉ à la maquette**, qui précède le module. La spec tranche
+  qu'il « a droit de cité » ici parce qu'il concerne les agences **clientes**, pas les
+  clients finaux des agences — la frontière que tout cet écran défend.
+- **§5.1 : `errors_24h` et `functions_err` vaudront 0 tant que l'étape 6 n'aura pas fini.**
+  L'action `edge_function_error` que `get_admin_monitoring_health()` compte n'est émise
+  **nulle part** aujourd'hui (zéro ligne mesurée). La plomberie est juste, la source se
+  remplira — ce n'est pas une panne à diagnostiquer.
 - **§4.3 « MRR » : deux objets et non un.** `agency_mrr_rule(...)` porte la règle, pure et
   IMMUTABLE ; `agency_mrr(uuid)` est l'entrée nommée par la spec, qui garde puis délègue.
   Motif : la garde appelle `is_super_admin()`, qui joint `profiles` à `auth.users` — une
@@ -153,15 +180,20 @@ cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/audit-backend-admin-
 git fetch origin && git rebase origin/main   # main a bougé (PR vitrine de Thomas/Antoine)
 ```
 
-Prochaine action : **étape 10** (`admin_overview()`, un objet un fetch), débloquée par
-l'étape 9. Ses sept blocs ont tous leur source, aucune n'est à créer : `kpis` →
-`get_admin_dashboard_stats()` · `activation` → `agency_activation` · `kyc_funnel` →
-`get_admin_kyc_funnel_30d()` · `revenue` → `get_admin_plans_board()` · `journal` →
-`get_admin_live_feed()` (filtré `category <> 'kyc'`, §5.1) · `signals` → dossiers KYB en
-revue (`get_admin_agency_review_queue`), impayés (plans board), fonctions en erreur
-(`get_admin_ops_health_rpcs`). Puis **15** (branchement + seed).
+Prochaine action, au choix — les deux sont indépendantes :
 
-Les **tests de l'étape 14** (écran Sécurité) restent à écrire et ne dépendent de rien.
+- **Étape 15** (branchement des écrans sur les vues + seed staging versionné). C'est elle
+  qui ferme le Lot 1 et ouvre le gate **G1**. C'est aussi elle qui apporte la base de
+  recette (100 agences / 1 M d'événements) sans laquelle le critère **p95 < 300 ms** de
+  l'étape 9 n'est toujours pas mesuré.
+- **Tests de l'étape 14** (écran Sécurité) : la migration `260000` est livrée depuis le
+  31.07, ses tests n'ont jamais été écrits. Ne dépendent de rien. Les fonctions à éprouver :
+  `admin_security_window` (fenêtre Europe/Zurich, deux heures d'écart avec un
+  `date_trunc` UTC en été), `admin_security_entity`, `get_admin_security_journal`
+  (neutralisation des jokers `%`/`_`, recherche unaccent, ordre total `ts desc, seq desc`),
+  `get_admin_security_routine`, `get_admin_security_counters` (l'arbitrage « compteurs sur
+  la liste principale »). Le seed passe par `admin_log_write`, dont la garde admet
+  `session_user in ('postgres','supabase_admin')` — contrairement aux fonctions de lecture.
 
 ⚠ **Neuvième piège, mesuré à l'étape 9** : une RPC dont le nom ne commence ni par `admin_`
 ni par `get_admin` sort du balayage de gardes par son seul nom. `agency_mrr` — nommée ainsi
@@ -169,6 +201,12 @@ par la spec — a dû être ajoutée à la main au `SCOPE` de
 [admin-rpc-guard-sweep.spec.ts](../../tests/backend/admin-rpc-guard-sweep.spec.ts). Toute
 future RPC de console au nom non préfixé doit y entrer explicitement, sinon elle est
 protégée sans que rien ne le vérifie.
+
+⚠ **Dixième piège, mesuré à l'étape 10** : `category` étant NULL sur 95 % d'`activity_events`
+(décision 6), un filtre écrit `category <> 'kyc'` écarte **aussi tous les NULL** — le
+journal se vide en silence en croyant ne retirer que la conformité des clients finaux. La
+forme correcte est `is distinct from`. Le même piège attend tout filtre d'exclusion posé sur
+une colonne majoritairement nulle.
 
 ## 8. Re-dater les migrations le jour du merge — procédure
 
@@ -202,6 +240,7 @@ NOTRES="
   20260731260000_admin_security_read.sql
   20260731270000_admin_agency_note_and_invitations.sql
   20260731280000_admin_console_read_views.sql
+  20260731290000_admin_overview.sql
 "
 for n in $NOTRES; do
   f="supabase/migrations/$n"
