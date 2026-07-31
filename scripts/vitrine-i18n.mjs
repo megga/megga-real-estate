@@ -20,7 +20,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
-import { PAGES_TRADUITES, LANGUES, parcourirTextes, cheminLocalise } from './_shared/vitrine-i18n.mjs';
+import { PAGES_TRADUITES, LANGUES, parcourirTextes, urlLocalisee, fichierLocalise, pageExiste } from './_shared/vitrine-i18n.mjs';
 
 const racine = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = resolve(racine, 'sites/megga-vitrine');
@@ -79,18 +79,65 @@ function extraire() {
   console.log(`[i18n] ${chaines.size} chaînes uniques sur ${PAGES_TRADUITES.length} pages`);
 }
 
-/** Réécrit un href interne vers sa version dans la langue, si elle existe. */
+/**
+ * Réécrit un href interne vers sa version dans la langue.
+ *
+ * Émet la forme CANONIQUE, sans `.html` : Cloudflare Pages redirige `/preise.html`
+ * en 308 vers `/preise`, et faire naviguer tout le site à travers des redirections
+ * coûte un aller-retour par clic. Les pages hors palier 1 (blog, légales) gardent
+ * leur chemin français : mieux vaut la bonne page dans l'autre langue qu'un 404.
+ */
 function localiserHref(href, langue) {
   if (!href || href.startsWith('#') || /^[a-z]+:/i.test(href) || href.startsWith('//')) return href;
   const [chemin, ...reste] = href.split(/(?=[#?])/);
   const suffixe = reste.join('');
-  if (chemin.startsWith('/')) return cheminLocalise(chemin, langue) + suffixe;
-  if (chemin === '' || chemin.startsWith('blog-posts/')) return href;
-  return cheminLocalise('/' + chemin, langue) + suffixe;
+  if (chemin === '') return href;
+  const absolu = chemin.startsWith('/') ? chemin : '/' + chemin;
+  if (absolu.startsWith('/blog-posts/')) return absolu.replace(/\.html$/, '') + suffixe;
+  return urlLocalisee(absolu, langue) + suffixe;
+}
+
+/**
+ * Canonical + alternates hreflang d'une page, dans une langue.
+ *
+ * ⚠ Google n'honore les annotations que si elles sont RÉCIPROQUES : si la page
+ * allemande désigne la française comme alternative, la française doit désigner
+ * l'allemande en retour. Sans ça il les ignore TOUTES, et le multilingue devient
+ * invisible — c'est pourquoi cette fonction tourne aussi sur les pages FR.
+ * `x-default` va au français : c'est la langue servie quand aucune ne correspond.
+ */
+function poserAlternates(doc, page, langue) {
+  const canonical = doc.querySelector('link[rel="canonical"]');
+  const url = SITE + urlLocalisee('/' + page, langue);
+  if (canonical) canonical.setAttribute('href', url);
+
+  for (const vieux of doc.querySelectorAll('link[rel="alternate"][hreflang]')) vieux.remove();
+  const tete = doc.querySelector('head');
+  for (const code of ['fr', ...LANGUES, 'x-default']) {
+    const cible = code === 'x-default' ? 'fr' : code;
+    if (!pageExiste('/' + page, cible)) continue;
+    const l = doc.createElement('link');
+    l.setAttribute('rel', 'alternate');
+    l.setAttribute('hreflang', code);
+    l.setAttribute('href', SITE + urlLocalisee('/' + page, cible));
+    tete.appendChild(l);
+  }
 }
 
 function construire() {
   if (!existsSync(dist)) { console.error('[i18n] pas de dist/ — lancer après le build'); process.exit(0); }
+
+  // Le français en premier : il doit déclarer ses alternates comme les autres.
+  let fr = 0;
+  for (const page of PAGES_TRADUITES) {
+    const chemin = join(dist, page);
+    if (!existsSync(chemin)) continue;
+    const dom = new JSDOM(readFileSync(chemin, 'utf8'));
+    poserAlternates(dom.window.document, page, 'fr');
+    writeFileSync(chemin, dom.serialize());
+    fr++;
+  }
+  console.log(`[i18n] fr: ${fr} pages annotées (canonical + alternates)`);
 
   for (const langue of LANGUES) {
     const dico = lireDictionnaire(langue);
@@ -141,24 +188,14 @@ function construire() {
 
       doc.documentElement.setAttribute('lang', langue);
 
-      const url = SITE + cheminLocalise('/' + page, langue);
-      const canonical = doc.querySelector('link[rel="canonical"]');
-      if (canonical) canonical.setAttribute('href', url);
-
-      // Alternates : chaque langue déclare toutes les autres, plus x-default
-      // sur le français — sans quoi Google traite les versions comme des
-      // doublons et n'en indexe qu'une.
-      for (const vieux of doc.querySelectorAll('link[rel="alternate"][hreflang]')) vieux.remove();
-      const tete = doc.querySelector('head');
-      for (const code of ['fr', ...LANGUES, 'x-default']) {
-        const l = doc.createElement('link');
-        l.setAttribute('rel', 'alternate');
-        l.setAttribute('hreflang', code === 'x-default' ? 'x-default' : code);
-        l.setAttribute('href', SITE + cheminLocalise('/' + page, code === 'x-default' ? 'fr' : code));
-        tete.appendChild(l);
+      // Le JSON-LD porte sa propre déclaration de langue : laissée à "fr", une
+      // page allemande annonçait aux moteurs un contenu français.
+      for (const script of doc.querySelectorAll('script[type="application/ld+json"]')) {
+        script.textContent = script.textContent.replace(/"inLanguage"\s*:\s*"[a-z-]+"/gi, `"inLanguage":"${langue}"`);
       }
 
-      writeFileSync(join(sortie, page), dom.serialize());
+      poserAlternates(doc, page, langue);
+      writeFileSync(join(sortie, fichierLocalise(page, langue)), dom.serialize());
     }
     console.log(`[i18n] ${langue}: ${PAGES_TRADUITES.length} pages générées` + (manquantes ? ` (${manquantes} occurrences laissées en français — noms propres et marques)` : ''));
   }
@@ -167,36 +204,58 @@ function construire() {
 }
 
 /**
- * Ajoute au sitemap les pages générées, chacune avec ses alternates.
+ * Réécrit le sitemap à partir de ce que dist/ contient RÉELLEMENT.
  *
- * Une langue absente du sitemap n'est pas explorée : c'est la moitié du
- * bénéfice d'une traduction qui se perd. On ne liste QUE les langues dont le
- * dictionnaire est rempli, et que les pages du palier 1.
+ * L'ancien était tenu à la main : les cinq pages d'intégration et les trois
+ * pages légales n'y ont jamais figuré, et les entrées françaises ne portaient
+ * aucun alternate — un cluster hreflang à sens unique, que Google ignore.
+ * Le construire depuis les fichiers rend l'oubli impossible.
+ *
+ * Deux exclusions : les pages en `noindex` (on ne demande pas l'indexation de
+ * ce qu'on a marqué comme non indexable) et la 404.
  */
 function ecrireSitemap() {
   const f = join(dist, 'sitemap.xml');
   if (!existsSync(f)) return;
   const languesPretes = LANGUES.filter((l) => Object.values(lireDictionnaire(l)).some(Boolean));
-  if (!languesPretes.length) return;
 
-  let xml = readFileSync(f, 'utf8');
-  if (xml.includes('hreflang=')) return; // déjà enrichi
-  if (!xml.includes('xmlns:xhtml')) {
-    xml = xml.replace('<urlset ', '<urlset xmlns:xhtml="http://www.w3.org/1999/xhtml" ');
-  }
+  const nonIndexable = (chemin) =>
+    !existsSync(chemin) || /<meta[^>]+content="noindex"|<meta[^>]+name="robots"[^>]*noindex/i.test(readFileSync(chemin, 'utf8'));
+
+  // Toutes les pages françaises servies, plus les articles du blog.
+  const pagesFr = readdirSync(dist)
+    .filter((n) => n.endsWith('.html') && n !== '404.html')
+    .sort();
+  const articles = existsSync(join(dist, 'blog-posts'))
+    ? readdirSync(join(dist, 'blog-posts')).filter((n) => n.endsWith('.html')).sort().map((n) => 'blog-posts/' + n)
+    : [];
 
   const entrees = [];
-  for (const langue of languesPretes) {
-    for (const page of PAGES_TRADUITES) {
-      if (page === '404.html' || !existsSync(join(dist, langue, page))) continue;
-      const alternates = ['fr', ...languesPretes]
-        .map((l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${SITE}${cheminLocalise('/' + page, l)}"/>`)
-        .join('\n');
-      entrees.push(`  <url>\n    <loc>${SITE}${cheminLocalise('/' + page, langue)}</loc>\n${alternates}\n  </url>`);
+  const ajouter = (loc, alternates) => {
+    const liens = alternates.map(
+      (a) => `    <xhtml:link rel="alternate" hreflang="${a.code}" href="${SITE}${a.href}"/>`
+    );
+    entrees.push(`  <url>\n    <loc>${SITE}${loc}</loc>\n${liens.join('\n')}${liens.length ? '\n' : ''}  </url>`);
+  };
+
+  for (const page of [...pagesFr, ...articles]) {
+    if (nonIndexable(join(dist, page))) continue;
+    const langues = ['fr', ...languesPretes].filter((l) => pageExiste('/' + page, l));
+    const alternates = langues.length > 1
+      ? [...langues, 'x-default'].map((c) => ({ code: c, href: urlLocalisee('/' + page, c === 'x-default' ? 'fr' : c) }))
+      : [];
+    ajouter(urlLocalisee('/' + page, 'fr'), alternates);
+
+    for (const langue of langues.filter((l) => l !== 'fr')) {
+      ajouter(urlLocalisee('/' + page, langue), alternates);
     }
   }
-  writeFileSync(f, xml.replace('</urlset>', entrees.join('\n') + '\n</urlset>'));
-  console.log(`[i18n] sitemap: ${entrees.length} URLs traduites ajoutées`);
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n`
+    + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n`
+    + entrees.join('\n') + `\n</urlset>\n`;
+  writeFileSync(f, xml);
+  console.log(`[i18n] sitemap: ${entrees.length} URLs (${languesPretes.length + 1} langues, noindex exclues)`);
 }
 
 const mode = process.argv[2];

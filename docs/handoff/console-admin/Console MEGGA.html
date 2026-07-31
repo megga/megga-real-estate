@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Console MEGGA — maquette autonome (package handoff)</title>
+<meta name="viewport" content="width=1440">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>html,body{margin:0;padding:0;font-family:'Inter Tight',system-ui,sans-serif;font-variant-numeric:tabular-nums}*{box-sizing:border-box}button,input,select,textarea{font-family:inherit}a{color:#0B0C0E}a:hover{color:#1F2024}</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="front/crm-tokens.jsx"></script>
+<script type="text/babel" src="front/admin-kit.jsx"></script>
+<script type="text/babel" src="front/admin-data.jsx"></script>
+<script type="text/babel" src="front/admin-overview.jsx"></script>
+<script type="text/babel" src="front/admin-live.jsx"></script>
+<script type="text/babel" src="front/admin-agency-detail.jsx"></script>
+<script type="text/babel" src="front/admin-agencies.jsx"></script>
+<script type="text/babel" src="front/admin-users.jsx"></script>
+<script type="text/babel" src="front/admin-kyc-diagnostic.jsx"></script>
+<script type="text/babel" src="front/admin-diffusion.jsx"></script>
+<script type="text/babel" src="front/admin-plans.jsx"></script>
+<script type="text/babel" src="front/admin-monitoring.jsx"></script>
+<script type="text/babel" src="front/admin-security.jsx"></script>
+<script type="text/babel" src="front/admin-communications.jsx"></script>
+<script type="text/babel" src="front/admin-copilot.jsx"></script>
+<script type="text/babel" src="front/crm-screen-admin-proto.jsx"></script>
+<script type="text/babel" data-presets="react">
+// Chrome CRM simplifiée pour le package (le vrai shell vit dans MEGGA CRM.html —
+// SugarTopNav / SugarIconRail hors périmètre backend). La console elle-même est
+// 100 % la maquette réelle, non modifiée.
+const { AdmIcon } = window;
+if (!window.SugarTopNav) window.SugarTopNav = ({ sp, dark }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 12, height: 54, padding: "0 24px", color: sp.ink }}>
+    <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: 2.5 }}>MEGGA</span>
+    <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub }}>Console super-admin — maquette autonome du package handoff (chrome CRM simplifiée)</span>
+  </div>
+);
+if (!window.SugarIconRail) window.SugarIconRail = ({ sp, dark, setDark }) => (
+  <div style={{ width: 64, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 22 }}>
+    <div style={{ flex: 1 }}></div>
+    <button onClick={() => setDark && setDark(!dark)} title={dark ? "Mode clair" : "Mode sombre"} style={{
+      width: 40, height: 40, borderRadius: 999, border: 0, cursor: "pointer", display: "grid", placeItems: "center",
+      background: dark ? "rgba(255,255,255,0.07)" : "#FFFFFF", boxShadow: sp.shadowSm || "0 4px 16px rgba(15,23,42,0.08)",
+    }}>{AdmIcon ? <AdmIcon name={dark ? "star" : "clock"} size={16} color={sp.ink} /> : <span style={{ fontSize: 11, fontWeight: 800, color: sp.ink }}>{dark ? "C" : "S"}</span>}</button>
+  </div>
+);
+const ConsoleStandaloneApp = () => {
+  const [dark, setDark] = React.useState(false);
+  const darkTone = (window.crmDarkTone && window.crmDarkTone()) || "graphite";
+  const T = window.CRM_TOKENS || {};
+  const t = dark ? (T[darkTone] || T.graphite || T.dark || T.light) : T.light;
+  return <window.CRMScreenAdminProto t={t} dark={dark} darkTone={darkTone} setDark={setDark}
+    onNavigate={() => {}} onCmd={() => {}} screen="admin" aiOpen={false} />;
+};
+ReactDOM.createRoot(document.getElementById("root")).render(<ConsoleStandaloneApp />);
+</script>
+</body>
+</html>
