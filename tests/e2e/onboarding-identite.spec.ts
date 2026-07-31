@@ -18,7 +18,7 @@
  * avec `npm run test:e2e:kyb` (nécessite `supabase start`).
  *
  * Second motif : le formulaire de connexion interne a été retiré de cette app (le
- * login vit sur la vitrine externe megga.ch/connexion, cf. VitrineLoginRedirect dans
+ * login vit sur la vitrine externe megga.ch/login, cf. VitrineLoginRedirect dans
  * App.tsx) — il n'y a donc plus d'écran /login à remplir dans ce navigateur. La
  * connexion/déconnexion se fait ici via le client Supabase RÉEL déjà bundlé par
  * l'app (import dynamique du module Vite servi en dev — même singleton que
@@ -68,7 +68,7 @@ const CURRENT_CONSENT_VERSION = '2026-07'
 // /src/lib/supabase.ts) sans jamais passer par ProtectedRoute — se connecter ou
 // se déconnecter alors qu'on est monté SOUS /dashboard/* déclencherait la
 // redirection externe de ProtectedRoute (window.location.replace vers
-// megga.ch/connexion dès que `user` devient nul), qui ne peut pas aboutir dans cet
+// megga.ch/login dès que `user` devient nul), qui ne peut pas aboutir dans cet
 // environnement de test. signInLive/signOutLive s'y replient donc TOUJOURS
 // (via navigation client-side, cf. en-tête) avant de toucher à la session.
 const NEUTRAL_PAGE = '/design-system/megga-x'

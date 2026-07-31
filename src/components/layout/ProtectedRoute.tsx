@@ -1,7 +1,7 @@
 /**
  * Garde de route de toute surface `/dashboard/*`. Enchaîne les gates dans
  * l'ordre : session en cours de résolution → non authentifié (redirige vers
- * megga.ch/connexion) → consentements nLPD (`ConsentGate`), puis rend le contenu
+ * megga.ch/login) → consentements nLPD (`ConsentGate`), puis rend le contenu
  * protégé. (L'ancien gate onboarding/premier-jour a été retiré : l'agence est
  * désormais auto-provisionnée au signup — migration 20260718130000.)
  */
@@ -28,14 +28,14 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <BootSplash />
   }
 
-  // 2. Non authentifié → connexion sur la VITRINE (megga.ch/connexion, câblé
+  // 2. Non authentifié → connexion sur la VITRINE (megga.ch/login, câblé
   //    Supabase). Le modal de connexion interne (ancienne direction) a été
   //    retiré ; le retour se fait via /auth/callback. (En bypass dev,
   //    user = MOCK_USER, donc on n'est jamais redirigé à tort.)
   //    On tient l'écran d'arrivée pendant le rebond plutôt que de rendre `null` :
   //    la vitrine est sombre elle aussi, donc la bascule ne montre plus de blanc.
   if (!user) {
-    if (typeof window !== 'undefined') window.location.replace('https://megga.ch/connexion')
+    if (typeof window !== 'undefined') window.location.replace('https://megga.ch/login')
     return <BootSplash />
   }
 
