@@ -64,8 +64,11 @@ describe.skipIf(!HAS_KEYS)('admin_log — registre chaîné append-only (étape 
   // ── 1. Écriture et chaînage ────────────────────────────────────────────────────
 
   it('un super-admin écrit une ligne, chaînée sur la tête précédente', async () => {
-    const svc = serviceRoleClient()
-    const before = await svc.from('admin_log_chain_head').select('seq_max, rows_count, head_hash').single()
+    // Lecture par `superClient`, jamais par le service_role : celui-ci s'est vu révoquer
+    // SELECT sur les quatre tables du registre. `rolbypassrls` ne contourne que la RLS,
+    // jamais un GRANT — c'est délibéré, la console lit en authenticated sous RLS.
+    const before = await superClient.from('admin_log_chain_head').select('seq_max, rows_count, head_hash').single()
+    expect(before.error, 'un super-admin lit la tête de chaîne').toBeNull()
 
     const { data: id, error } = await superClient.rpc('admin_log_write', {
       p_family: 'ops', p_action: 'test_write', p_severity: 'info',
@@ -75,13 +78,13 @@ describe.skipIf(!HAS_KEYS)('admin_log — registre chaîné append-only (étape 
     expect(error, 'un super-admin doit pouvoir écrire').toBeNull()
     expect(id).toBeTruthy()
 
-    const { data: row } = await svc.from('admin_log').select('*').eq('id', id).single()
+    const { data: row } = await superClient.from('admin_log').select('*').eq('id', id).single()
     expect(row?.seq, 'le rang suit la tête précédente').toBe(Number(before.data!.seq_max) + 1)
     expect(row?.prev_hash, 'la ligne chaîne sur le hash de tête').toBe(before.data!.head_hash)
     expect(row?.hash).toMatch(/^[0-9a-f]{64}$/)
     expect(row?.actor_label, 'le libellé est un nom, jamais un e-mail brut').toBe(`Super ${setup.stamp}`)
 
-    const after = await svc.from('admin_log_chain_head').select('seq_max, rows_count, head_hash, last_event_ts').single()
+    const after = await superClient.from('admin_log_chain_head').select('seq_max, rows_count, head_hash, last_event_ts').single()
     expect(after.data!.head_hash, 'la tête avance').toBe(row?.hash)
     expect(Number(after.data!.rows_count)).toBe(Number(before.data!.rows_count) + 1)
   })
@@ -99,7 +102,7 @@ describe.skipIf(!HAS_KEYS)('admin_log — registre chaîné append-only (étape 
       p_family: 'ops', p_action: 'test_metadata_order', p_metadata: pairs,
     })
     expect(error).toBeNull()
-    const { data: row } = await serviceRoleClient().from('admin_log').select('metadata').eq('id', id).single()
+    const { data: row } = await superClient.from('admin_log').select('metadata').eq('id', id).single()
     expect(row?.metadata, 'l\'ordre écrit est l\'ordre relu').toEqual(pairs)
   })
 
@@ -198,21 +201,37 @@ describe.skipIf(!HAS_KEYS)('admin_log — registre chaîné append-only (étape 
     `)
   })
 
-  it('deux lignes dans une seule INSTRUCTION ne peuvent pas partager un prev_hash', () => {
-    // Le rétro-branchement des gestes existants s'écrit naturellement `insert … select` :
-    // les deux lignes ne se voient pas et hériteraient de la même tête. La contrainte
-    // d'unicité transforme la fourche silencieuse en 23505.
+  it('deux lignes dans une seule INSTRUCTION se chaînent correctement, sans fourche', () => {
+    // Le rétro-branchement des gestes existants s'écrit naturellement `insert … select`, et
+    // les lignes d'une même instruction ne se voient pas : avec une tête lue par
+    // `order by seq desc limit 1` sur la table, elles hériteraient TOUTES du même prev_hash.
+    // Ici la tête vit dans admin_log_chain_head, que le trigger de la première ligne a déjà
+    // avancée quand la seconde le lit — la fourche n'existe pas par construction. Ce test
+    // prouve la propriété plutôt que le garde-fou, et `unique(prev_hash)` reste le filet
+    // qui la ferait échouer bruyamment si quelqu'un revenait un jour à la lecture sur table.
     assertSql(`
-      declare v_sqlstate text;
+      declare
+        v_a record;
+        v_b record;
       begin
-        begin
-          insert into public.admin_log (severity, family, action, actor_label)
-            select 'info', 'ops', a, 'Système' from (values ('fork_a'), ('fork_b')) t(a);
-          raise exception 'la fourche a ete acceptee';
-        exception when others then
-          get stacked diagnostics v_sqlstate = returned_sqlstate;
-          if v_sqlstate <> '23505' then raise exception 'attendu 23505, recu %', v_sqlstate; end if;
-        end;
+        insert into public.admin_log (severity, family, action, actor_label)
+          select 'info', 'ops', a, 'Système' from (values ('fork_probe_a'), ('fork_probe_b')) t(a);
+
+        select seq, prev_hash, hash into v_a from public.admin_log where action = 'fork_probe_a';
+        select seq, prev_hash, hash into v_b from public.admin_log where action = 'fork_probe_b';
+
+        if v_a.prev_hash = v_b.prev_hash then
+          raise exception 'FOURCHE : deux lignes d une meme instruction partagent prev_hash';
+        end if;
+        if v_b.seq <> v_a.seq + 1 then
+          raise exception 'rangs non consecutifs : % puis %', v_a.seq, v_b.seq;
+        end if;
+        if v_b.prev_hash <> v_a.hash then
+          raise exception 'la seconde ligne ne chaine pas sur la premiere';
+        end if;
+        if public.admin_log_verify_chain()->>'status' <> 'ok' then
+          raise exception 'la chaine est rompue apres un insert multi-lignes';
+        end if;
       end;
     `)
   })
@@ -296,19 +315,19 @@ describe.skipIf(!HAS_KEYS)('admin_log — registre chaîné append-only (étape 
   // ── 5. Contrat d'écran ─────────────────────────────────────────────────────────
 
   it('la vérification planifiée ne devient pas « le dernier événement »', async () => {
-    const svc = serviceRoleClient()
-    const before = await svc.from('admin_log_chain_head').select('last_event_ts, rows_count').single()
+    const before = await superClient.from('admin_log_chain_head').select('last_event_ts, rows_count').single()
+    expect(before.error).toBeNull()
 
     // Le job tourne en session_user = postgres sans JWT : c'est le contexte de pg_cron,
     // celui qu'une garde is_super_admin() OR is_service_role() refuserait.
     execSql('select public.admin_log_chain_verify_job();')
 
-    const after = await svc.from('admin_log_chain_head').select('last_event_ts, rows_count').single()
+    const after = await superClient.from('admin_log_chain_head').select('last_event_ts, rows_count').single()
     expect(Number(after.data!.rows_count), 'la ligne ops a bien été écrite').toBe(Number(before.data!.rows_count) + 1)
     expect(after.data!.last_event_ts, '`last` doit rester le dernier GESTE, pas la vérification')
       .toBe(before.data!.last_event_ts)
 
-    const { data: row } = await svc
+    const { data: row } = await superClient
       .from('admin_log')
       .select('family, action, routine, severity')
       .order('seq', { ascending: false })
@@ -316,6 +335,19 @@ describe.skipIf(!HAS_KEYS)('admin_log — registre chaîné append-only (étape 
       .single()
     expect(row?.action).toBe('admin_log_chain_verified')
     expect(row?.routine, 'une vérification saine est de la routine — elle se replie en pied').toBe(true)
+  })
+
+  it('le service_role ne lit PAS le registre — posture délibérée', () => {
+    // rolbypassrls ne contourne que la RLS, jamais un GRANT. Les edges qui auraient besoin
+    // du registre passent par une fonction SECURITY DEFINER, jamais par un SELECT direct.
+    assertSql(`
+      if has_table_privilege('service_role', 'public.admin_log', 'SELECT') then
+        raise exception 'service_role a retrouve SELECT sur le registre';
+      end if;
+      if has_table_privilege('service_role', 'public.admin_log_chain_head', 'SELECT') then
+        raise exception 'service_role a retrouve SELECT sur la tete de chaine';
+      end if;
+    `)
   })
 
   it('les vocabulaires sévérité et famille sont disjoints — l\'écran n\'a qu\'un filtre', () => {
