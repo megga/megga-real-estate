@@ -7,7 +7,7 @@
  *
  * Il ne se déclenche plus au premier passage du cas courant : la case cochée
  * sur megga.ch/signup est désormais enregistrée à la création du compte
- * (trigger `handle_new_user`, migration 20260731140000). Restent deux cas, tous
+ * (trigger `handle_new_user`, migration 20260731210000). Restent deux cas, tous
  * deux légitimes :
  *   * inscription par Google/Microsoft — le parcours quitte megga.ch avant que
  *     le compte existe et `signInWithOAuth` ne transporte pas de métadonnées,
@@ -96,7 +96,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
       }
       if (marketing) {
         // Opt-in sans document propre : `p_version` omis, le serveur l'aligne
-        // sur la version courante des CGU (migration 20260731140000).
+        // sur la version courante des CGU (migration 20260731210000).
         const { error } = await supabase.rpc('record_consent', { p_type: 'marketing' })
         if (error) throw error
       }

@@ -11,7 +11,7 @@
 //    (0 ligne affectée — pas de policy).
 //  Test 5 — insert direct refusé (pas de policy INSERT) ; type invalide refusé.
 //  Test 6 — super_admin (domaine de test CI) lit tout.
-//  Test 7 — version inconnue refusée (migration 20260731140000).
+//  Test 7 — version inconnue refusée (migration 20260731210000).
 //
 // Runs live in CI (SUPABASE_TEST_* keys present). Skips locally without keys.
 
@@ -21,7 +21,7 @@ import { serviceRoleClient } from './helpers/supabase'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 
-// Depuis 20260731140000, record_consent refuse une version absente de
+// Depuis 20260731210000, record_consent refuse une version absente de
 // legal_document_versions : un littéral de test (« test-2026-07 ») serait
 // désormais rejeté, et le test aurait mesuré ce refus au lieu de l'insertion.
 // On lit donc la version courante en base — ce qui vaut aussi contrôle : si la
@@ -38,7 +38,7 @@ describe.skipIf(!HAS_KEYS)('user_consents — RLS + record_consent (preuve immua
       .eq('consent_type', 'terms')
       .maybeSingle()
     if (error) throw new Error(`legal_document_versions: ${error.message}`)
-    if (!data?.version) throw new Error('legal_document_versions vide — migration 20260731140000 non appliquée ?')
+    if (!data?.version) throw new Error('legal_document_versions vide — migration 20260731210000 non appliquée ?')
     VERSION = data.version
 
     setup = await setupTwoAgencies()

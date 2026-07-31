@@ -647,7 +647,7 @@
               //
               // legal_consent : la case obligatoire ci-dessus, vérifiée juste
               // avant. Le trigger en fait une preuve datée dans user_consents
-              // (migration 20260731140000) avec LA VERSION QU'IL CONNAÎT — sans
+              // (migration 20260731210000) avec LA VERSION QU'IL CONNAÎT — sans
               // elle, le CRM redemandait la même acceptation à la première
               // session, trente secondes plus tard. On déclare que l'agent a
               // accepté, jamais ce qu'il aurait accepté.

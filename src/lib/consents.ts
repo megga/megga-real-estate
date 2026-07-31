@@ -1,7 +1,7 @@
 // Documents légaux exigés par le CRM (nLPD).
 //
 // ⚠ Les VERSIONS ne vivent plus ici. Elles sont en base — table
-// `legal_document_versions`, migration 20260731140000 — et remontent par la RPC
+// `legal_document_versions`, migration 20260731210000 — et remontent par la RPC
 // `pending_consents()`. Une constante de bundle ne pouvait pas servir de source
 // de vérité : le trigger d'inscription (`handle_new_user`), qui écrit désormais
 // la preuve dès la création du compte, ne la voyait pas, et un client pouvait

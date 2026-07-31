@@ -34,7 +34,7 @@ create table if not exists public.legal_document_versions (
 );
 
 comment on table public.legal_document_versions is
-  'Version courante de chaque document légal (source de vérité SERVEUR). Bumper une ligne ici redemande l''acceptation à toute la base via pending_consents(). Voir 20260731140000.';
+  'Version courante de chaque document légal (source de vérité SERVEUR). Bumper une ligne ici redemande l''acceptation à toute la base via pending_consents(). Voir 20260731210000.';
 
 -- Aligné sur les documents publiés (megga.ch/terms, megga.ch/privacy —
 -- « Dernière mise à jour : 31 juillet 2026 ») et sur les preuves déjà
@@ -76,7 +76,7 @@ as $$
 $$;
 
 comment on function public.pending_consents() is
-  'Documents que l''utilisateur courant n''a pas encore acceptés dans leur version courante. Vide = rien à demander. Voir 20260731140000.';
+  'Documents que l''utilisateur courant n''a pas encore acceptés dans leur version courante. Vide = rien à demander. Voir 20260731210000.';
 
 revoke all on function public.pending_consents() from public, anon;
 grant execute on function public.pending_consents() to authenticated;
@@ -148,7 +148,7 @@ end;
 $$;
 
 comment on function public.record_consent(text, text) is
-  'Enregistre un consentement versionné pour l''utilisateur courant (nLPD). user_id + ip_hash déterminés côté serveur ; version validée contre legal_document_versions. Idempotent par (user, type, version). Voir 20260705170000 puis 20260731140000.';
+  'Enregistre un consentement versionné pour l''utilisateur courant (nLPD). user_id + ip_hash déterminés côté serveur ; version validée contre legal_document_versions. Idempotent par (user, type, version). Voir 20260705170000 puis 20260731210000.';
 
 revoke all on function public.record_consent(text, text) from public, anon;
 grant execute on function public.record_consent(text, text) to authenticated;
@@ -226,4 +226,4 @@ end;
 $$;
 
 comment on function public.handle_new_user() is
-  'Trigger auth.users : profil + agence solo + preuves de consentement quand l''inscription les porte (raw_user_meta_data.legal_consent). Voir 20260731140000.';
+  'Trigger auth.users : profil + agence solo + preuves de consentement quand l''inscription les porte (raw_user_meta_data.legal_consent). Voir 20260731210000.';

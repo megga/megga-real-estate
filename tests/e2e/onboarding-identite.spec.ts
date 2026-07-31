@@ -50,7 +50,7 @@ import { serviceRoleClient } from '../backend/helpers/supabase'
 const PW = 'Test-Password-123!'
 
 // Version COURANTE des CGU/confidentialité — celle de la table
-// `legal_document_versions` (migration 20260731140000), à garder synchronisée
+// `legal_document_versions` (migration 20260731210000), à garder synchronisée
 // avec ce fichier : pas d'import possible depuis ici, et une lecture en base
 // alourdirait un helper qui tourne pour chaque fondateur. Sans consentement
 // déjà enregistré à cette version, ConsentGate (monté par ProtectedRoute)
