@@ -33,6 +33,7 @@ const PUBLIC_PAGES = new Set([
   '/nouveau-mot-de-passe',
   '/mentions-legales',
   '/confidentialite',
+  '/conditions-generales',
 ]);
 
 /**

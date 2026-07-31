@@ -46,7 +46,7 @@
   var CAPTCHA_INTERACTIVE_MSG = 'Confirmez que vous n’êtes pas un robot pour continuer.';
   var SERVICE_FAIL_MSG = 'Connexion au service impossible. Vérifiez votre connexion, puis réessayez.';
   var EXISTING_ACCOUNT_MSG = 'Un compte existe déjà avec cet e-mail. Connectez-vous via « Se connecter » — et si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google » (dans ce cas, aucun mot de passe n’a été défini).';
-  var CONSENT_MSG = 'Cochez la case pour accepter les conditions d’utilisation et la politique de confidentialité.';
+  var CONSENT_MSG = 'Cochez la case pour accepter les conditions générales et la politique de confidentialité.';
 
   var scriptPromises = {};
 
