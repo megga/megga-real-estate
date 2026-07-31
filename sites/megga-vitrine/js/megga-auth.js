@@ -237,23 +237,25 @@
     );
   }
 
-  // Affiche un message dans le bloc .w-form-fail / .w-form-done de la page (Webflow).
-  //
-  // Webflow place ce bloc APRÈS le formulaire entier — donc sous les boutons
-  // OAuth et le lien « Se connecter ». Sur signup.html il tombe hors de l'écran :
-  // affiché seul, il donne un bouton qui paraît mort. On l'amène dans le champ
-  // de vision quand il n'y est pas.
+  // Webflow place les blocs .w-form-fail / .w-form-done APRÈS le formulaire
+  // entier — donc sous les boutons OAuth et le lien « Se connecter ». Sur
+  // signup.html ils tombent hors de l'écran : affichés seuls, ils donnent un
+  // bouton qui paraît mort. On les amène dans le champ de vision.
+  function amenerDansLaVue(el) {
+    var box = el.getBoundingClientRect();
+    if (box.top >= 0 && box.bottom <= (window.innerHeight || 0)) return;
+    try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+    catch (e) { el.scrollIntoView(); } // options non supportées (vieux Safari)
+  }
+
+  // Affiche un message dans le bloc .w-form-fail de la page (Webflow).
   function showError(form, msg) {
     var wrap = form.closest('.w-form') || form.parentElement;
     var fail = wrap && wrap.querySelector('.w-form-fail');
     if (fail) {
       var d = fail.querySelector('div'); if (d) d.textContent = msg;
       fail.style.display = 'block';
-      var box = fail.getBoundingClientRect();
-      if (box.top < 0 || box.bottom > (window.innerHeight || 0)) {
-        try { fail.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-        catch (e) { fail.scrollIntoView(); } // options non supportées (vieux Safari)
-      }
+      amenerDansLaVue(fail);
     } else {
       alert(msg);
     }
@@ -263,6 +265,40 @@
     var fail = wrap && wrap.querySelector('.w-form-fail');
     if (fail) fail.style.display = 'none';
   }
+
+  /**
+   * Bascule un formulaire sur le bloc de confirmation écrit dans la page.
+   *
+   * Le bloc est affiché TEL QUEL — sa carte, son icône, son titre, son
+   * paragraphe. L'inscription y injectait naguère sa propre phrase par
+   * `textContent` sur le premier `<div>` du bloc, c'est-à-dire sur la carte
+   * entière : icône et titre étaient effacés au passage et il ne restait qu'une
+   * ligne de texte au milieu de la page. Cette phrase était de surcroît en
+   * français en dur, alors que les pages /de /en /it sont générées à partir du
+   * HTML (scripts/vitrine-i18n.mjs) : elle y aurait remplacé la traduction.
+   *
+   * Les éléments marqués `data-megga-hide-on-done` disparaissent avec le
+   * formulaire : le titre de la page annonce une action à faire (« Créez votre
+   * compte »), il n'a plus lieu d'être une fois la chose faite.
+   *
+   * Renvoie false si la page n'a pas de bloc de confirmation — à l'appelant de
+   * décider de la suite plutôt que de laisser un écran vide.
+   */
+  function showDone(form) {
+    var wrap = form.closest('.w-form') || form.parentElement;
+    var done = wrap && wrap.querySelector('.w-form-done');
+    if (!done) return false;
+    clearError(form);
+    form.style.display = 'none';
+    Array.prototype.forEach.call(
+      document.querySelectorAll('[data-megga-hide-on-done]'),
+      function (el) { el.style.display = 'none'; },
+    );
+    done.style.display = 'block';
+    amenerDansLaVue(done);
+    return true;
+  }
+
   function showCaptchaPrompt(form) { showError(form, CAPTCHA_INTERACTIVE_MSG); }
   // N'accuse la vérification que si le rejet vient bien d'elle : un réseau coupé
   // pendant l'appel Supabase n'est pas un problème de captcha.
@@ -422,8 +458,7 @@
           // Supabase ne révèle jamais si l'adresse est connue (anti-énumération) :
           // le message reste donc conditionnel — affirmer « e-mail envoyé »
           // serait faux une fois sur deux.
-          resetForm.style.display = 'none';
-          if (resetDone) resetDone.style.display = 'block';
+          showDone(resetForm);
         }).catch(function (err) { setBusy(resetForm, false); failFrom(resetForm, err); });
       }, true);
     }
@@ -486,12 +521,10 @@
             setBusy(signupForm, false);
             return showExistingAccount(signupForm);
           }
-          // Vrai nouveau compte → confirmation e-mail.
-          var wrap = signupForm.closest('.w-form') || signupForm.parentElement;
-          var done = wrap.querySelector('.w-form-done');
-          signupForm.style.display = 'none';
-          if (done) { done.style.display = 'block'; var d = done.querySelector('div'); if (d) d.textContent = 'Compte créé ! Vérifiez votre e-mail pour confirmer, puis connectez-vous.'; }
-          else { goToCrm(res.data && res.data.session); }
+          // Vrai nouveau compte → l'écran de confirmation de la page prend la
+          // main. Il porte déjà la consigne (« Vérifiez votre e-mail… ») ;
+          // rien à injecter ici. Sans ce bloc, on enchaîne sur le CRM.
+          if (!showDone(signupForm)) goToCrm(res.data && res.data.session);
         }).catch(function (err) { setBusy(signupForm, false); failFrom(signupForm, err); });
       }, true);
     }
@@ -543,10 +576,7 @@
         client.auth.updateUser({ password: a }).then(function (res) {
           setBusy(newPwdForm, false);
           if (res && res.error) return showError(newPwdForm, traduire(res.error.message));
-          var wrap = newPwdForm.closest('.w-form') || newPwdForm.parentElement;
-          var done = wrap && wrap.querySelector('.w-form-done');
-          newPwdForm.style.display = 'none';
-          if (done) done.style.display = 'block';
+          showDone(newPwdForm);
           // La session de récupération a fait son office : on la referme pour ne
           // pas laisser traîner un jeton sur le domaine vitrine. L'agent se
           // reconnecte avec son nouveau mot de passe.
