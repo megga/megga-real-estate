@@ -154,20 +154,22 @@ describe.skipIf(!HAS_KEYS)('note interne d\'agence et invitations (étape 9)', (
     expect(data ?? [], 'l\'agence B ne voit pas les invitations de l\'agence A').toHaveLength(0)
   })
 
-  it('une invitation acceptée n\'est plus une invitation', () => {
-    // Elle devient un membre, et l'équipe l'affiche déjà : la faire apparaître dans les
-    // deux endroits ferait compter deux fois la même personne.
-    assertSql(`
-    declare v_n int;
-    begin
-      update public.team_invitations set status = 'accepted'
-       where agency_id = '${setup.agencyAId}'::uuid;
-      select count(*) into v_n from public.get_admin_agency_invitations('${setup.agencyAId}'::uuid, 50);
-      if v_n <> 0 then
-        raise exception 'une invitation acceptee est encore listee (% lignes)', v_n;
-      end if;
-      update public.team_invitations set status = 'pending'
-       where agency_id = '${setup.agencyAId}'::uuid;
-    `)
+  it('une invitation acceptée n\'est plus une invitation', async () => {
+    // Elle devient un membre, et l'équipe l'affiche déjà : la faire apparaître aux deux
+    // endroits ferait compter deux fois la même personne.
+    //
+    // Appel en service_role, jamais depuis psql. La garde de la RPC est
+    // `is_super_admin() OR is_service_role()` et n'admet PAS session_user = postgres : c'est
+    // le piège documenté au §6 d'ETAT_CHANTIER, et j'y suis retombé en écrivant ce test.
+    const svc = serviceRoleClient()
+    await svc.from('team_invitations').update({ status: 'accepted' }).eq('agency_id', setup.agencyAId)
+
+    const { data, error } = await svc.rpc('get_admin_agency_invitations', {
+      p_agency_id: setup.agencyAId,
+    })
+    expect(error).toBeNull()
+    expect((data as unknown[]).length, 'une invitation acceptée ne doit plus être listée').toBe(0)
+
+    await svc.from('team_invitations').update({ status: 'pending' }).eq('agency_id', setup.agencyAId)
   })
 })

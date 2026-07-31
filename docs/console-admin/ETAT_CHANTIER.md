@@ -84,6 +84,12 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
    `session_user`. Une RPC gardée ne s'éprouve depuis psql que si sa garde admet `postgres`
    — c'est-à-dire les fonctions de **cron** seulement. Les autres se testent avec un client
    authentifié ou `service_role`.
+   **Piège le plus récurrent du chantier : quatre passes de CI perdues dessus**, dont une
+   APRÈS l'avoir écrit dans ce document. Réflexe à prendre : avant d'appeler une RPC dans un
+   bloc `assertSql`, vérifier que sa garde contient `session_user`. Sinon, `serviceRoleClient()`.
+   Contrôle rapide sur un fichier de spec :
+   `grep -n "public\.\(get_\|admin_\)" tests/backend/<fichier>.spec.ts` — chaque appel
+   dans un gabarit SQL est suspect.
 2. **`service_role` n'échappe pas aux GRANT.** `rolbypassrls` ne contourne que la RLS : un
    `revoke` retire réellement le SELECT, et la lecture rend `null` **sans erreur**.
 3. **Créer une agence émet un `activity_events`** (`trg_agency_created`), et la table refuse
