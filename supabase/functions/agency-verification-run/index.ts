@@ -99,28 +99,28 @@ function safeEqual(a: string, b: string): boolean {
  *  fire-and-forget et que personne ne lit net._http_response.
  *
  *  Ordre delibere : la variable d'environnement d'abord, parce qu'elle est en memoire et
- *  qu'elle suffit dans le cas nominal. app_config n'est lu qu'en repli, donc le chemin
- *  passant ne paie aucun aller-retour SQL supplementaire. Un echec de lecture d'app_config
- *  (table absente en local, RLS) vaut « pas de second credential », jamais une 500 : la
- *  garde reste fermee, elle ne s'ouvre pas sur une erreur. */
+ *  qu'elle suffit dans le cas nominal. Le second credential n'est LU qu'en repli (d'ou le
+ *  thunk plutot que la valeur), donc le chemin passant ne paie aucun aller-retour SQL
+ *  supplementaire. Un echec de lecture (table absente en local, RLS) vaut « pas de second
+ *  credential », jamais une 500 : la garde reste fermee, elle ne s'ouvre pas sur une erreur.
+ *
+ *  POURQUOI UN THUNK ET NON LE CLIENT SUPABASE en parametre : annoter ce parametre est un
+ *  piege. `ReturnType<typeof createClient>` instancie les generiques sur leurs valeurs par
+ *  defaut -- le schema y vaut `never`, si bien que `.from('app_config')` rend une ligne
+ *  `never` et que `cfg?.value` ne compile pas (TS2339), tandis que le client reel
+ *  (`SupabaseClient<any, "public", ...>`) n'est plus assignable au parametre (TS2345).
+ *  Constate en CI le 01.08.2026, invisible en local faute de Deno. Le thunk laisse
+ *  l'inference faire son travail la ou le client est cree, et garde cette fonction pure. */
 async function isTrustedServiceCaller(
-  supabase: ReturnType<typeof createClient>,
   provided: string,
   envServiceRoleKey: string,
+  readConfigSecret: () => Promise<string>,
 ): Promise<boolean> {
   if (safeEqual(provided, envServiceRoleKey)) return true
   if (!provided) return false
 
   try {
-    // Meme forme d'acces que whatsapp-process (garde service-role deja en production sur
-    // cette table) : pas de generique sur maybeSingle, valeur elargie a l'usage.
-    const { data: cfg } = await supabase
-      .from('app_config')
-      .select('value')
-      .eq('key', 'service_role_key')
-      .maybeSingle()
-
-    return safeEqual(provided, (cfg?.value as string | undefined) ?? '')
+    return safeEqual(provided, await readConfigSecret())
   } catch {
     return false
   }
@@ -152,7 +152,18 @@ serve(async (req) => {
     auth: { persistSession: false },
   })
 
-  if (!(await isTrustedServiceCaller(supabase, provided, serviceRoleKey))) {
+  // La lecture vit ICI, ou `supabase` porte son type infere : meme forme d'acces que
+  // whatsapp-process (garde service-role deja en production sur cette table).
+  const readConfigSecret = async (): Promise<string> => {
+    const { data: cfg } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'service_role_key')
+      .maybeSingle()
+    return (cfg?.value as string | undefined) ?? ''
+  }
+
+  if (!(await isTrustedServiceCaller(provided, serviceRoleKey, readConfigSecret))) {
     return json({ error: 'unauthorized' }, 401)
   }
 
