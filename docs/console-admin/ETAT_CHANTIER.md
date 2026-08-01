@@ -345,6 +345,19 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
     `anon` n'y lit rien. Une policy « ouverte » n'est donc PAS une fuite — c'est la clause
     `USING` qui tranche, et il faut la lire branche par branche (celle d'`admin_changelog`
     était `published = true OR is_super_admin()` : la première branche suffisait).
+    ✅ **FERMÉ le 01.08** — `scripts/check-privilege-drift.mjs`, branché sur
+    `migration-drift.yml` (le seul workflow qui interroge la PRODUCTION ; un test sur base
+    fraîche ne peut pas voir une dérive de prod, par construction). Propriété étroite à
+    dessein : **aucune table interne n'accorde quoi que ce soit à `anon`** — pas de
+    comparaison déclaré/présent (79 tables sont anon-lisibles au sens du GRANT, crier sur
+    les 79 serait crier au loup), pas de lecture des clauses `USING`. Prédicat structurel
+    (`admin\_%` + courte liste) + garde anti-contrôle creux (< 10 tables = échec).
+    ⚠ **Ce que la porte a trouvé en la posant** : SIX tables internes accordaient des droits
+    à `anon`, dont **CINQ avec `DELETE, INSERT, UPDATE, TRUNCATE`** — y compris `app_config`,
+    qui porte `service_role_key`. Aucune migration ne les accordait : droits par défaut de
+    Supabase, jamais révoqués. Révoqués par `20260801410000`, après avoir vérifié qu'aucune
+    surface publique ne lit ces tables (une lecture bloquée par la RLS rend `[]`, bloquée par
+    le GRANT elle rend une ERREUR — révoquer transforme un silence en erreur visible).
 
 ## 7. Reprendre
 
