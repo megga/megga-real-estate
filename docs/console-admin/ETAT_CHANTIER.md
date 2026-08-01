@@ -550,21 +550,65 @@ et les contraintes `status`/`published` du changelog.
 
 **Deux constats laissés OUVERTS parce que ce sont des décisions, pas des correctifs :**
 
-- **`admin_kyc_link_regenerate` détruit le lien et rien ne le réémet.** La RPC passe le lien
-  à `expired`, dépose un job dans l'outbox, journalise et rend un succès. Or **aucun
-  consommateur d'outbox n'existe** — vérifié dans tout le dépôt : `outbox` n'apparaît que
-  dans les tests, les docs, les migrations et le seed du cerveau. Le seul cron outbox est une
-  purge, et `outbox_jobs` compte 0 ligne. Aucune étape du plan (16→30) ne construit le
-  worker. Effet : le lien de la cliente cesse de fonctionner, le remplaçant ne part jamais,
-  l'écran annonce un succès. Pas déclenchable aujourd'hui (aucun appelant dans `src/`), mais
-  l'étape 19 est cochée ✅ alors que sa seconde moitié n'existe pas. **À trancher** : bâtir le
-  worker, ou ne plus expirer le lien tant que l'émission est impossible.
+- ~~**`admin_kyc_link_regenerate` détruit le lien et rien ne le réémet.**~~ **TRANCHÉ le
+  01.08, migration `20260801370000`.** La RPC n'expire plus. Elle dépose le job avec
+  `expire_previous: true` — l'invalidation n'est pas abandonnée, elle est **déplacée** chez
+  celui qui frappera le nouveau jeton, pour arriver dans le même souffle. Le registre écrit
+  désormais `kyc_link_regenerate_requested` et la réponse dit `emission: 'pending'`.
+  La décision s'appuie sur une **mesure**, pas sur un goût : les sept documents de spec ne
+  décrivent QU'UN scénario, « la cliente n'a jamais reçu son lien » ; aucun ne parle d'un
+  lien compromis à tuer, et « invalider » n'y apparaît qu'une fois, comme conséquence de la
+  réémission. Sous ce scénario, expirer sans remplacer est le pire des trois états.
+  ⚠ **Le worker d'outbox reste à bâtir** — la réémission est donc EN ATTENTE, mais plus rien
+  n'est détruit et plus rien de faux n'est scellé. Mesuré : le worker coûte bien moins cher
+  qu'estimé, `executeSendKycLink` (`_shared/whatsapp-actions.ts`) frappant déjà un jeton et
+  créant une ligne **en service-role, hors UI** — c'est le patron d'un consommateur. Le vrai
+  travail est d'extraire en helper partagé le doublon (deux copies identiques de la séquence
+  insert-placeholder → signer → update existent).
 - **Le plafond 3 compte des LIENS, pas des personnes.** Un contact portant 4 liens déclenche
   `too_many`, alors que la justification du plafond est de ne pas nommer de **personnes**.
   C'est le cas d'usage central qui saute : une cliente qui n'a jamais reçu son lien est
   exactement celle à qui on l'a réémis plusieurs fois. Le test du plafond sème 4 contacts
   DISTINCTS — il prouve qu'on arrête 4 personnes, jamais qu'on laisse passer une personne à
   4 liens. **À trancher** : « correspondance » désigne-t-elle un lien ou une personne ?
+
+### Cinq défauts du chemin KYC, trouvés en instruisant la décision ci-dessus
+
+Hors périmètre de la revue — ils vivent dans le tunnel KYC agent, pas dans la console — mais
+ils décident de ce que l'étape 19 peut réellement faire. **Aucun n'est corrigé.**
+
+1. **`sent_at` ne veut pas dire « envoyé ».** C'est un `DEFAULT now()` posé à l'INSERT, et
+   **aucun code ne le met jamais à jour** (grep exhaustif sur `supabase/`). Il vaut donc la
+   même chose que Resend ait répondu 200, 502, ou n'ait jamais été appelé. Or
+   `admin_kyc_link_lookup` le rend parmi ses sept champs, et l'étape 19 existe pour répondre
+   à « où en est ce lien ? ». **Le champ censé porter la preuve d'envoi ne distingue pas
+   « envoyé » de « jamais parti ».** Réparer l'outbox ne répare pas ça : c'est le vrai
+   plafond de ce que le diagnostic peut affirmer.
+2. **La spec et le code se contredisent sur le canal.** Le handoff écrit « le lien part en
+   WhatsApp / SMS — zéro e-mail » ; le code ne sait envoyer **que** par e-mail (Resend, via
+   `magic-link-send-email`). Personne ne lit `'sms'` : la valeur est validée par
+   `magic-link-create`, autorisée par le CHECK, proposée dans `MlkAgentModal` — et consommée
+   par rien. **Cocher SMS seul produit un lien que rien n'envoie.**
+3. **La défense « ancien jeton invalidé » est inatteignable.** `magic-link-get` teste
+   `link.token !== token` sous un commentaire promettant « si l'agent regénère un lien,
+   l'ancien token doit être invalidé ». Mais créer un lien **insère une nouvelle ligne** et
+   ne réécrit jamais le token d'une ligne existante : aucun chemin ne peut déclencher la
+   garde.
+4. **Les deux rollbacks sont inopérants.** `magic-link-create` et `executeSendKycLink` font
+   un `delete` de rollback si la signature HMAC échoue. Le trigger
+   `enforce_kyc_magic_links_retention` lève une exception sur toute suppression de moins de
+   10 ans **sauf pour un `super_admin`** — or l'un tourne sous JWT d'agent, l'autre en
+   service-role (`auth.uid()` NULL, donc `coalesce(role,'') <> 'super_admin'` est vrai).
+   Une signature ratée laisse donc une **ligne orpheline** dont le `token` est l'UUID
+   bouche-trou, qui ne vérifiera jamais. Elle compte dans l'entonnoir KYC et dans le plafond
+   de 3 de la recherche.
+5. **Rien ne balaie les liens périmés.** L'expiration est PARESSEUSE : elle n'arrive que
+   dans `magic-link-get` / `-upload` / `-confirm`, au moment où quelqu'un touche le lien. Un
+   lien dépassé que personne ne clique reste `pending` indéfiniment, et les compteurs qui
+   filtrent `status = 'expired'` le sous-comptent. L'index partiel
+   `idx_kyc_magic_links_expires` a exactement la forme qu'un balayeur utiliserait ; le
+   balayeur n'existe pas. Contraste mesuré dans le même dépôt : `mark_stale_kyc_dossiers()`
+   + cron `kyc-stale-daily` existent pour les **dossiers**, rien pour les **liens**.
 
 ## 8. Re-dater les migrations le jour du merge — procédure
 
