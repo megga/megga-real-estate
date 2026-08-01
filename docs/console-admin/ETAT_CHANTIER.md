@@ -47,7 +47,7 @@ Thomas et Antoine travaillent en parallèle sur le même dépôt. Méthode reten
 | #1049 | Revue du Lot 1 — deux défauts d'affichage juste (Plans, Vue d'ensemble) | **mergée**, déployée |
 | #1050 | Étape 23 — le contrat des gestes devient un balayage | **mergée** |
 | #1051 | Cerveau — les huit gestes hors chaîne, et la méthode | **mergée** |
-| — | Revue du Lot 2 — 4 défauts corrigés, 2 constats ouverts (§7bis) | **en cours** |
+| #1054 | Revue du Lot 2 — **8 défauts corrigés** (dont 2 de sécurité), 2 garde-fous posés, 6 migrations. Détail au §7bis | **prête, CI verte** |
 
 Les quatre bloquants pré-lancement (dépendance **P6**) sont **fermés et vérifiés en
 production** : 0.1 et 0.3 l'étaient déjà, 0.2 et 0.4 par #1044.
