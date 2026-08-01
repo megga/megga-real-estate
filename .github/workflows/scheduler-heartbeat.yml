@@ -1,0 +1,48 @@
+name: 💓 Battement de l'ordonnanceur — veilleur hors Supabase
+
+# Pourquoi ce workflow existe, et pourquoi il ne peut PAS vivre dans Supabase.
+# §10.9 demande une alerte pour le cas où la plateforme devient muette. Le mécanisme
+# d'alerte du produit existe et il est bon (_shared/admin-alerts.ts, 11 règles) — mais il
+# est déclenché par pg_cron et envoyé par une Edge Function. Mesuré : les 46 crons de
+# santé sont dans `cron.job`, sans exception. Si Supabase tombe, ils se taisent TOUS
+# ensemble, celui qui devait prévenir compris.
+#
+# Ce veilleur-ci tourne sur l'infrastructure GitHub, comme security-audit.yml le fait
+# déjà chaque semaine. Il ne manquait pas un canal, il manquait un signal.
+#
+# ⚠ CADENCE : toutes les 30 minutes. GitHub Actions ne garantit pas l'heure exacte d'un
+# `schedule` (retards de plusieurs minutes fréquents en heure de pointe), d'où un seuil
+# de silence à 10 min côté script et un passage deux fois plus fréquent : on préfère
+# constater tard que ne pas constater.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+# Un seul veilleur à la fois : deux passages simultanés enverraient deux alertes pour
+# la même panne. `cancel-in-progress: false` — on laisse finir celui qui parle.
+concurrency:
+  group: scheduler-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  heartbeat:
+    name: L'ordonnanceur de production bat-il encore ?
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Le script sort en 1 dès qu'il alerte : le workflow rouge est le second canal,
+      # visible sans e-mail — et il reste visible si Resend est lui-même en panne.
+      - name: Sonder le battement
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: node scripts/check-scheduler-heartbeat.mjs
