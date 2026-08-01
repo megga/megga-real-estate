@@ -45,8 +45,31 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
 plus de moi : la base de recette pour mesurer le p95, la démo PO, et **14b** (revue KYB en
 lecture), suspendue à la dépendance **P5** — une maquette, pas du code.
 
-**Lot 2 — 3 étapes sur 9.** **16 ✅ socle des gestes** · **19 ✅ diagnostic de lien KYC** ·
-**20 ✅ relevé IA et dérives**.
+**Lot 2 — 4 étapes sur 9.** **16 ✅ socle des gestes** · **19 ✅ diagnostic de lien KYC** ·
+**20 ✅ relevé IA et dérives** · **21 ✅ changelog « What's new »**.
+
+⚠ **Deux défauts de l'existant corrigés à l'étape 21.** (a) `admin_changelog.published` avait
+`DEFAULT TRUE` — sur un journal de nouveautés, une ligne insérée sans y penser était visible
+de TOUS les agents. (b) Les deux policies testaient `profiles.role = 'super_admin'` **en
+dur**, pas `is_super_admin()` : elles rataient donc la moitié **allowlist** du mur réel du
+dépôt. La brèche était étroite (`profiles.role` n'est pas écrivable par le client) mais elle
+divergeait de la règle que toute la console applique.
+
+⚠ **`status` et `published` ne peuvent plus diverger** : c'est une CONTRAINTE, pas une
+convention. `published` reste la vérité de la RLS et de la page Aujourd'hui, `status` porte
+le workflow — « publié sans être publié » n'est pas représentable, et le test l'attaque en
+écriture directe pour vérifier que c'est bien la BASE qui refuse.
+
+⚠ **Amendement — une 5ᵉ RPC, `admin_changelog_delete`.** §5.10 en liste quatre
+(save/publish/schedule/unpublish), sans suppression. Mais `useChangelog.ts` exposait déjà une
+suppression par DELETE direct, que la fermeture de la table casserait. Retirer une capacité
+qui marche n'était pas le sujet : la RPC la remplace, gardée et journalisée — strictement
+mieux que de laisser passer un GRANT.
+
+⚠ **Une seule clé d'idempotence sur cinq gestes, et c'est voulu.** `save` en prend une : sans
+elle, un double-clic sur « Créer » produit deux entrées que rien ne distingue. Les quatre
+transitions vérifient leur état de départ — l'ÉTAT est la clé, et il est plus juste qu'un
+jeton d'appelant : deux super-admins qui publient la même entrée convergent.
 
 ⚠ **Amendement mesuré à l'étape 20 — la moitié « par compte » de §5.11 n'a AUCUNE source.**
 §5.11 demande « médiane par COMPTE », « comptes à zéro appel avec raison », et la maquette
@@ -83,15 +106,16 @@ deux fois et déposerait deux demandes — l'agence recevrait deux liens pour un
 
 ⚠ **Le plafond de débit ne s'éprouve qu'avec un vrai super-admin.** Il compte les lignes
 d'`admin_log` où `actor_user_id = auth.uid()` ; sous `service_role`, `auth.uid()` est NULL et
-`colonne = NULL` n'est jamais vrai — le compteur rendrait toujours 0 et le test serait creux. Quatre primitives, aucun bouton
-activé : enveloppe d'erreur §10.1 (`admin_error` / `admin_ok`, vocabulaire FERMÉ de 8 codes),
-verrou advisory par entité (`admin_lock_entity`), idempotence (`rpc_receipts` +
-`admin_receipt_try` / `_seal`), outbox (`outbox_jobs` + `enqueue` / `claim` / `settle`, backoff
-exponentiel borné et dead-letter). **17 tests, verts du premier coup.**
+`colonne = NULL` n'est jamais vrai — le compteur rendrait toujours 0 et le test serait creux.
 
-Les étapes 17, 18 et 19b restent **bloquées par les décisions PO n° 3, 4, 5 et P4**. Sont
-faisables sans elles : **19** (KYC, dépend de 16), **20** (copilote, RPC existantes),
-**21** (changelog), **22** (exports).
+**Ce que l'étape 16 a posé** — quatre primitives, aucun bouton activé : enveloppe d'erreur
+§10.1 (`admin_error` / `admin_ok`, vocabulaire FERMÉ de 8 codes), verrou advisory par entité
+(`admin_lock_entity`), idempotence (`rpc_receipts` + `admin_receipt_try` / `_seal`), outbox
+(`outbox_jobs` + `enqueue` / `claim` / `settle`, backoff exponentiel borné et dead-letter).
+**17 tests, verts du premier coup.** Les étapes 19, 20 et 21 s'en servent déjà.
+
+Les étapes 17, 18 et 19b restent **bloquées par les décisions PO n° 3, 4, 5 et P4**. Reste
+faisable sans elles : **22** (exports DSAR + PDF signé).
 
 **L'étape 9 a surtout consisté à NE PAS créer.** §4.3 énumère douze vues ; six seulement
 manquaient. `v_admin_kpis` n'a pas été créée — `get_admin_dashboard_stats()` rend déjà, en
@@ -362,6 +386,7 @@ NOTRES="
   20260731300000_admin_gestures_socle.sql
   20260731310000_admin_kyc_diagnostic.sql
   20260731320000_admin_ai_month_and_drift.sql
+  20260731330000_admin_changelog_workflow.sql
 "
 for n in $NOTRES; do
   f="supabase/migrations/$n"
