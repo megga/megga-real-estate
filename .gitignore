@@ -66,6 +66,7 @@ __pycache__/
 .claude-flow/daemon-state.json
 .claude-flow/daemon.pid
 .claude-flow/harness-active-policy.json
+.claude-flow/policy/
 .claude/proven-config.json
 .claude/.proven-config-version
 
