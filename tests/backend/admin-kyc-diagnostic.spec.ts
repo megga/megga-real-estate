@@ -29,8 +29,12 @@ const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_T
 const PW = 'Test-Password-123!'
 const DENIED = '42501'
 
-/** Les SEPT champs autorisés par §4 du handoff, plus l'identifiant que l'écran doit cibler. */
-const CHAMPS_AUTORISES = ['link_id', 'contact', 'email', 'phone', 'agency', 'status', 'mode', 'sent_at']
+/**
+ * Les SEPT champs autorisés par §4 du handoff, plus l'identifiant que l'écran doit cibler.
+ * ⚠ `email_sent_at` a REMPLACÉ `sent_at` le 01.08 — même nombre de champs, mais celui-ci
+ * dit la vérité : `sent_at` est un DEFAULT now() posé à l'INSERT que rien ne met à jour.
+ */
+const CHAMPS_AUTORISES = ['link_id', 'contact', 'email', 'phone', 'agency', 'status', 'mode', 'email_sent_at']
 /** Ce que §2 interdit nommément. */
 const CHAMPS_INTERDITS = ['token', 'link_url', 'url', 'documents', 'ip', 'client_ip', 'user_agent',
                           'client_user_agent', 'kyc_case_id', 'custom_message']
@@ -133,6 +137,32 @@ describe.skipIf(!HAS_KEYS)('diagnostic d\'un lien KYC (étape 19)', () => {
     for (const interdit of CHAMPS_INTERDITS) {
       expect(Object.keys(m), `« ${interdit} » est interdit par §2`).not.toContain(interdit)
     }
+  })
+
+  it('LA PREUVE D\'ENVOI EN EST UNE — « créé mais jamais parti » devient lisible', async () => {
+    // Le diagnostic remettait `sent_at`, et toute l'étape 19 existe pour répondre à « où en
+    // est ce lien ? » quand une agence signale que sa cliente ne l'a jamais reçu. Or
+    // `sent_at` est un `DEFAULT now()` posé à l'INSERT que RIEN ne met jamais à jour (grep
+    // exhaustif : aucun UPDATE ne le touche). Il vaut donc la même chose que Resend ait
+    // répondu 200, 502, ou n'ait jamais été appelé — le cas quand le canal choisi est
+    // `sms`, que personne ne consomme. Le champ censé porter la preuve d'envoi ne
+    // distinguait pas « envoyé » de « jamais parti ».
+    //
+    // ⚠ POURQUOI ON N'A PAS CORRIGÉ `sent_at` EN PLACE : le rendre nullable casserait la
+    // contrainte `expires_at > sent_at`, et surtout `get_admin_end_user_stats` filtre
+    // `where sent_at >= v_month_start` — une cohorte MENSUELLE qui aurait perdu des lignes
+    // en silence. On ajoute une colonne qui dit vrai plutôt que de déplacer le défaut.
+    //
+    // Le lien semé par ce fichier est inséré directement en base : rien ne l'a jamais
+    // envoyé. C'est exactement le cas que l'opérateur doit pouvoir constater.
+    const r = await chercher(`Sophie${stamp}`)
+    const m = ((r.data as Row).matches as Row[])[0]
+
+    expect(Object.keys(m), 'la preuve d\'envoi est remise').toContain('email_sent_at')
+    expect(Object.keys(m), '`sent_at` ne dit rien d\'un envoi — il ne doit plus être remis')
+      .not.toContain('sent_at')
+    expect(m.email_sent_at, 'un lien jamais envoyé se lit comme tel, et non comme envoyé')
+      .toBeNull()
   })
 
   it('LA NON-FUITE — ni le jeton, ni l\'IP, ni le user-agent, sous AUCUN nom', async () => {
