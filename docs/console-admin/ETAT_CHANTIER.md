@@ -46,7 +46,26 @@ plus de moi : la base de recette pour mesurer le p95, la démo PO, et **14b** (r
 lecture), suspendue à la dépendance **P5** — une maquette, pas du code.
 
 **Lot 2 — 4 étapes sur 9.** **16 ✅ socle des gestes** · **19 ✅ diagnostic de lien KYC** ·
-**20 ✅ relevé IA et dérives** · **21 ✅ changelog « What's new »**.
+**20 ✅ relevé IA et dérives** · **21 ✅ changelog « What's new »** · **22 ✅ exports**.
+
+⚠ **L'étape 22 a trouvé la décision « aucun CSV » NON APPLIQUÉE.** §5.2 l'acte le 31 juil.
+et le répète deux fois ; les maquettes n'en portent aucun. La console réelle en avait
+**cinq** — Agences, Utilisateurs, Modération, Conformité, Sécurité — via `src/lib/exportCsv.ts`.
+Personne n'avait menti : les boutons précédaient la décision, et rien ne rougissait. Les cinq
+sont retirés, le helper supprimé, et un **garde-fou statique** défend désormais la décision
+(muté : il rougit si un `.csv` réapparaît). Les deux exports autorisés restent, et le test
+vérifie aussi leur PRÉSENCE — un garde-fou qui se contenterait d'interdire serait satisfait
+par une console sans aucun export, ce qui n'est pas la décision.
+
+⚠ **`admin_log_export` est distinct d'`audit-pdf-export`.** Le second exporte
+`activity_events` — ce que font les AGENCES. Le premier exporte `admin_log` — ce que fait
+MEGGA. Deux registres, deux publics ; le second n'avait pas à toucher au premier.
+
+⚠ **L'extraction PRÉCÈDE la journalisation, et un test le prouve sans lire le code** : deux
+extraits successifs sur la même fenêtre doivent différer d'exactement UNE ligne, celle que le
+premier a écrite. Dans l'autre ordre, la ligne d'export entrerait dans son propre extrait
+selon la seconde où elle tombe, et la même demande rendrait deux empreintes différentes —
+une empreinte qui change toute seule ne signe rien.
 
 ⚠ **Deux défauts de l'existant corrigés à l'étape 21.** (a) `admin_changelog.published` avait
 `DEFAULT TRUE` — sur un journal de nouveautés, une ligne insérée sans y penser était visible
@@ -387,6 +406,7 @@ NOTRES="
   20260731310000_admin_kyc_diagnostic.sql
   20260731320000_admin_ai_month_and_drift.sql
   20260731330000_admin_changelog_workflow.sql
+  20260731340000_admin_log_export.sql
 "
 for n in $NOTRES; do
   f="supabase/migrations/$n"

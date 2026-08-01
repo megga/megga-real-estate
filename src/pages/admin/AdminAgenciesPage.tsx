@@ -2,7 +2,7 @@
  * Page super-admin — annuaire des agences.
  *
  * Route : `/agencies`. Liste paginée (10/page) avec recherche, filtre de statut,
- * export CSV et score de santé par agence. La santé s'appuie sur un résumé
+ * score de santé par agence. La santé s'appuie sur un résumé
  * d'activité agrégé server-side (RPC `get_agency_activity_summary`) pour éviter de
  * scanner activity_events.
  *
@@ -19,8 +19,7 @@
 import { useState, useMemo, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Building2, Download, Plus } from 'lucide-react'
-import { exportToCsv } from '@/lib/exportCsv'
+import { Building2, Plus } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -208,21 +207,9 @@ export default function AdminAgenciesPage() {
       subtitle={isLoading ? t('common.loading') : t(agencies.length !== 1 ? 'agencies.subtitle_plural' : 'agencies.subtitle', { count: agencies.length })}
       width="wide"
       actions={
-        <>
-          <AdminGhostBtn
-            icon={Download}
-            onClick={() => exportToCsv('megga-agences', agencies.map(a => ({
-              nom: a.name, plan: a.plan ?? '', agents: a.agent_count,
-              biens: a.property_count, transactions: a.transaction_count,
-              statut: a.status, date: a.created_at,
-            })))}
-          >
-            {t('agencies.export')}
-          </AdminGhostBtn>
-          <AdminSolidBtn icon={Plus} onClick={() => setShowCreate(true)}>
-            {t('agencies.create')}
-          </AdminSolidBtn>
-        </>
+        <AdminSolidBtn icon={Plus} onClick={() => setShowCreate(true)}>
+          {t('agencies.create')}
+        </AdminSolidBtn>
       }
     >
       {/* Survol de ligne et révélation de l'action : impossible en style inline. */}

@@ -3,8 +3,11 @@
  *
  * Route : `/dashboard/admin/compliance`. KPIs, table de dossiers KYC
  * filtrable par onglet (à risque / en attente / validé / tous), recherche,
- * export CSV, et deux cartes nLPD (couverture des consentements, suppressions
- * de comptes art. 32). Chaque ligne ouvre le dossier KYC agent.
+ * et deux cartes nLPD (couverture des consentements, suppressions de comptes
+ * art. 32). Chaque ligne ouvre le dossier KYC agent.
+ *
+ * Aucun export : les seuls du produit sont le DSAR (JSON, §5.4) et l'extrait
+ * signé du registre (PDF, §5.9) — décision actée le 31 juillet 2026.
  *
  * Rendu en grammaire Sugar (kit `@/components/admin/kit`) : bentos séparés par
  * l'ombre, risque et statut en pilules pleines, chiffres tabulaires. Le repère
@@ -14,9 +17,8 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { ShieldCheck, AlertTriangle, FileCheck, Clock, Download, Trash2, ClipboardCheck } from 'lucide-react'
+import { ShieldCheck, AlertTriangle, FileCheck, Clock, Trash2, ClipboardCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { exportToCsv } from '@/lib/exportCsv'
 import { formatDate } from '@/lib/utils'
 import { useAdminCompliance, useConsentStats, useAccountDeletions } from '@/hooks/useAdminCompliance'
 import type { ComplianceCase } from '@/hooks/useAdminCompliance'
@@ -302,17 +304,6 @@ export default function AdminCompliancePage() {
       title={t('compliance.title')}
       subtitle={isLoading ? t('common.loading') : t('compliance.subtitle', { count: cases.length })}
       width="wide"
-      actions={
-        <AdminGhostBtn
-          icon={Download}
-          onClick={() => exportToCsv('megga-compliance', cases.map(c => ({
-            contact: c.contact_name, agence: c.agency_name ?? '', type: c.type,
-            risque: c.risk_level, completion: c.completion_pct, statut: c.status, date: c.created_at,
-          })))}
-        >
-          {t('common.export')}
-        </AdminGhostBtn>
-      }
     >
       <style>{hoverCss}</style>
 

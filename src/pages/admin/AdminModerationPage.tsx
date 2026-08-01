@@ -3,7 +3,7 @@
  *
  * Route : `/dashboard/admin/moderation`.
  * Table paginée des annonces avec actions approuver / signaler / retirer
- * (`useAdminModeration`), recherche, filtre de statut et export CSV.
+ * (`useAdminModeration`), recherche et filtre de statut.
  *
  * Rendu en grammaire Sugar (kit `components/admin/kit`) : bentos séparés par
  * l'ombre, statut en pilule pleine (les pastilles `bg-emerald-500` /
@@ -14,8 +14,7 @@
  */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ShieldCheck, AlertTriangle, Trash2, Check, Building2, Download } from 'lucide-react'
-import { exportToCsv } from '@/lib/exportCsv'
+import { ShieldCheck, AlertTriangle, Trash2, Check, Building2 } from 'lucide-react'
 import { formatCHF, formatDate } from '@/lib/utils'
 import { useAdminModeration } from '@/hooks/useAdminModeration'
 import type { ModerationListing } from '@/hooks/useAdminModeration'
@@ -164,17 +163,6 @@ export default function AdminModerationPage() {
         title={t('admin:moderation.title')}
         subtitle={isLoading ? t('admin:common.loading') : t('admin:moderation.subtitle', { count: listings.length })}
         width="wide"
-        actions={(
-          <AdminGhostBtn
-            icon={Download}
-            onClick={() => exportToCsv('megga-moderation', listings.map(l => ({
-              titre: l.title, agence: l.agency_name ?? '', prix: l.price,
-              canton: l.canton ?? '', statut: l.moderation_status, date: l.published_at ?? '',
-            })))}
-          >
-            {t('admin:common.export')}
-          </AdminGhostBtn>
-        )}
       >
         <style>{`
           .admm-row { transition: background .15s ease; }

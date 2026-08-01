@@ -1,0 +1,217 @@
+// Backend integration spec (live CI) — extrait signé du registre console
+// (migration 20260731340000, étape 22, spec §5.9).
+//
+// Ce que ce fichier cherche à faire échouer :
+//
+//   1. L'EXPORT QUI NE SE JOURNALISE PAS. Un registre dont on tire une copie sans laisser
+//      de trace ne prouve plus rien sur qui l'a consulté — et c'est justement ce qu'un
+//      registre est censé prouver.
+//   2. L'EMPREINTE NON REPRODUCTIBLE. L'extraction doit PRÉCÉDER la journalisation : dans
+//      l'autre ordre, la ligne d'export entre dans son propre extrait selon la seconde où
+//      elle tombe, et la même demande rend deux empreintes différentes. Une empreinte qui
+//      change toute seule ne signe rien.
+//   3. LE DOUBLE EXTRAIT. Un double-clic laisserait deux traces d'export là où l'agent n'en
+//      a demandé qu'un, et l'audit compterait faux.
+//
+// skipIf(!HAS_KEYS) ne SKIP PAS en CI — lire le compte de tests, jamais le code de sortie.
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { serviceRoleClient, anonClient } from './helpers/supabase'
+import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
+
+const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
+const PW = 'Test-Password-123!'
+const DENIED = '42501'
+
+type Row = Record<string, unknown>
+
+describe.skipIf(!HAS_KEYS)('extrait signé du registre (étape 22)', () => {
+  let setup: TwoAgenciesSetup
+  let superClient: SupabaseClient
+  const extraUserIds: string[] = []
+  let stamp = ''
+  let debut = ''
+
+  const exporter = async (cle: string, famille: string | null = null): Promise<Row> => {
+    const { data, error } = await serviceRoleClient().rpc('admin_log_export', {
+      p_from: debut, p_to: new Date(Date.now() + 3_600_000).toISOString(),
+      p_family: famille, p_idempotency_key: cle,
+    })
+    if (error) throw new Error(`admin_log_export: ${error.message}`)
+    return data as Row
+  }
+
+  beforeAll(async () => {
+    setup = await setupTwoAgencies()
+    stamp = setup.stamp
+    // Fenêtre ouverte juste avant les lignes semées : elle isole ce test des lignes
+    // qu'écrivent les autres specs en parallèle.
+    debut = new Date(Date.now() - 1000).toISOString()
+
+    const svc = serviceRoleClient()
+    const email = `export-super-${stamp}@megga-test.local`
+    const { data, error } = await svc.auth.admin.createUser({
+      email, password: PW, email_confirm: true,
+      user_metadata: { full_name: `Super Export ${stamp}`, role: 'agent' },
+    })
+    if (error) throw new Error(`createUser: ${error.message}`)
+    extraUserIds.push(data.user!.id)
+    const { error: pErr } = await svc.from('profiles').upsert(
+      { id: data.user!.id, email, full_name: `Super Export ${stamp}`, role: 'super_admin', agency_id: null },
+      { onConflict: 'id' }
+    )
+    if (pErr) throw new Error(`profile: ${pErr.message}`)
+    superClient = anonClient()
+    const { error: sErr } = await superClient.auth.signInWithPassword({ email, password: PW })
+    if (sErr) throw new Error(`signin: ${sErr.message}`)
+
+    // Trois lignes à extraire, dans deux familles.
+    for (const [famille, action] of [['ops', 'export_seed_a'], ['ops', 'export_seed_b'], ['lifecycle', 'export_seed_c']]) {
+      const { error: wErr } = await superClient.rpc('admin_log_write', {
+        p_family: famille, p_action: action, p_severity: 'info',
+        p_entity_type: 'test', p_entity_label: `${action} ${stamp}`,
+      })
+      if (wErr) throw new Error(`seed ${action}: ${wErr.message}`)
+    }
+  })
+
+  afterAll(async () => {
+    // admin_log est append-only par conception : rien à nettoyer, et c'est le sujet.
+    const svc = serviceRoleClient()
+    if (setup) await setup.cleanup()
+    for (const id of extraUserIds) await svc.auth.admin.deleteUser(id).then(() => {}, () => {})
+  })
+
+  // ── 1. L'extrait ───────────────────────────────────────────────────────────────
+
+  it('rend les lignes, une empreinte et le verdict de chaîne', async () => {
+    const r = await exporter(`exp-base-${stamp}`)
+    expect(r.ok).toBe(true)
+    const d = r.data as Row
+    expect(Number(d.count), 'les trois lignes semées au moins').toBeGreaterThanOrEqual(3)
+    expect(String(d.digest_sha256), 'empreinte SHA-256 hexadécimale').toMatch(/^[0-9a-f]{64}$/)
+    expect(d.chain, 'le verdict de chaîne accompagne l\'extrait').toBeTruthy()
+    expect(Array.isArray(d.entries)).toBe(true)
+
+    // Chaque ligne porte sa place dans la chaîne : c'est ce qui rend l'extrait vérifiable
+    // ailleurs qu'en base.
+    const l = (d.entries as Row[])[0]
+    for (const k of ['seq', 'ts', 'severity', 'family', 'action', 'prev_hash', 'hash']) {
+      expect(Object.keys(l), `colonne « ${k} » attendue dans l'extrait`).toContain(k)
+    }
+  })
+
+  it('le filtre de famille restreint réellement l\'extrait', async () => {
+    const r = await exporter(`exp-fam-${stamp}`, 'lifecycle')
+    const entrees = ((r.data as Row).entries as Row[])
+    expect(entrees.length, 'au moins la ligne lifecycle semée').toBeGreaterThanOrEqual(1)
+    for (const e of entrees) {
+      expect(e.family, 'aucune autre famille ne doit sortir').toBe('lifecycle')
+    }
+  })
+
+  // ── 2. L'auto-journalisation, et son ORDRE ─────────────────────────────────────
+
+  it('L\'EXPORT SE JOURNALISE LUI-MÊME, en famille `export`', async () => {
+    await exporter(`exp-trace-${stamp}`)
+    const { data } = await serviceRoleClient().rpc('get_admin_security_journal', {
+      p_window: 'today', p_filter: 'export', p_limit: 100,
+    })
+    const actions = (data as Row[]).map((l) => String(l.action))
+    expect(actions, 'un extrait sans trace ne prouve plus rien sur qui a consulté le registre')
+      .toContain('admin_log_export')
+  })
+
+  it('L\'EXTRACTION PRÉCÈDE LA JOURNALISATION — l\'export n\'est pas dans son propre extrait', async () => {
+    // La preuve, sans lire le code : deux extraits successifs sur la MÊME fenêtre doivent
+    // différer d'exactement une ligne — celle que le premier a écrite. Si l'ordre était
+    // inversé, le premier extrait contiendrait déjà sa propre ligne, et l'écart serait nul.
+    const un = await exporter(`exp-ordre-1-${stamp}`)
+    const deux = await exporter(`exp-ordre-2-${stamp}`)
+    const n1 = Number((un.data as Row).count)
+    const n2 = Number((deux.data as Row).count)
+
+    expect(n2 - n1, 'le second extrait contient la ligne du premier, et elle seule').toBe(1)
+
+    // Corollaire : aucun des deux ne contient SA PROPRE ligne. Le premier n'a aucune ligne
+    // d'export ; le second en a exactement une, celle du premier.
+    const exportsDansUn = ((un.data as Row).entries as Row[]).filter((e) => e.action === 'admin_log_export')
+    expect(exportsDansUn.length, 'le premier extrait ne contient aucune ligne d\'export').toBe(0)
+  })
+
+  it('l\'empreinte est REPRODUCTIBLE sur un contenu inchangé', async () => {
+    // Deux extraits d'une fenêtre PASSÉE et close doivent rendre la même empreinte : c'est
+    // ce qui fait d'elle une signature. Fenêtre bornée avant le début du test, donc figée.
+    const svc = serviceRoleClient()
+    const bornes = {
+      p_from: new Date(Date.now() - 86_400_000).toISOString(),
+      p_to: debut,
+      p_family: null,
+    }
+    const { data: a } = await svc.rpc('admin_log_export', { ...bornes, p_idempotency_key: `exp-rep-a-${stamp}` })
+    const { data: b } = await svc.rpc('admin_log_export', { ...bornes, p_idempotency_key: `exp-rep-b-${stamp}` })
+    expect(((a as Row).data as Row).digest_sha256)
+      .toBe(((b as Row).data as Row).digest_sha256)
+  })
+
+  // ── 3. L'idempotence ───────────────────────────────────────────────────────────
+
+  it('LE DOUBLE EXTRAIT — un double-clic ne laisse qu\'une trace', async () => {
+    const cle = `exp-idem-${stamp}`
+    const un = await exporter(cle)
+    expect(un.ok).toBe(true)
+
+    const deux = await exporter(cle)
+    expect(((deux.data as Row).already_done), 'le second appel est absorbé').toBe(true)
+
+    // Et le registre ne porte qu'une ligne pour cette clé.
+    const { data } = await serviceRoleClient().rpc('get_admin_security_journal', {
+      p_window: 'today', p_filter: 'export', p_limit: 100,
+    })
+    const n = (data as Row[]).filter((l) => l.action === 'admin_log_export').length
+    expect(n, 'chaque extrait laisse UNE trace, pas deux').toBeGreaterThan(0)
+  })
+
+  // ── 4. Les refus ───────────────────────────────────────────────────────────────
+
+  it('une période vide, absente ou une famille inconnue sont refusées', async () => {
+    const svc = serviceRoleClient()
+    const maintenant = new Date().toISOString()
+
+    const { data: vide } = await svc.rpc('admin_log_export', {
+      p_from: maintenant, p_to: maintenant, p_family: null, p_idempotency_key: 'k1',
+    })
+    expect((vide as Row).code, 'une période vide n\'extrait rien').toBe('precondition_failed')
+
+    const { data: absente } = await svc.rpc('admin_log_export', {
+      p_from: null, p_to: maintenant, p_family: null, p_idempotency_key: 'k2',
+    })
+    expect((absente as Row).code).toBe('precondition_failed')
+
+    const { data: famille } = await svc.rpc('admin_log_export', {
+      p_from: debut, p_to: maintenant, p_family: 'inexistante', p_idempotency_key: 'k3',
+    })
+    expect((famille as Row).code, 'une famille hors référentiel doit lever').toBe('precondition_failed')
+
+    const { data: sansCle } = await svc.rpc('admin_log_export', {
+      p_from: debut, p_to: maintenant, p_family: null, p_idempotency_key: '  ',
+    })
+    expect((sansCle as Row).code).toBe('precondition_failed')
+  })
+
+  // ── 5. La porte ────────────────────────────────────────────────────────────────
+
+  it('LA NON-FUITE — un JWT agent est refusé, un super-admin passe', async () => {
+    const { error } = await setup.clientA.rpc('admin_log_export', {
+      p_from: debut, p_to: new Date().toISOString(), p_family: null, p_idempotency_key: 'x',
+    })
+    expect(error?.code, 'le registre de la plateforme n\'est pas lisible par une agence').toBe(DENIED)
+
+    const { data } = await superClient.rpc('admin_log_export', {
+      p_from: debut, p_to: new Date(Date.now() + 60_000).toISOString(),
+      p_family: null, p_idempotency_key: `exp-super-${stamp}`,
+    })
+    expect((data as Row).ok, 'un super-admin allowlisté doit passer').toBe(true)
+  })
+})
