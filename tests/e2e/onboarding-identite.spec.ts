@@ -245,6 +245,24 @@ async function expectNoBounceBack(page: Page, pattern: RegExp): Promise<void> {
  * AgentSugarLayout.tsx) — exactement le garde-fou 2 qui aurait régressé.
  */
 async function expectWizardShellMounted(page: Page): Promise<void> {
+  // Écran d'arrivée (01.08.2026) : depuis IdentityWelcomeScreen, un dirigeant qui
+  // n'a RIEN saisi voit d'abord une explication à la place de la coquille, et le
+  // wizard ne monte qu'après « Identifier mon agence ». Les parcours qui reviennent
+  // avec des données déjà validées ne le voient pas — d'où un franchissement
+  // CONDITIONNEL (cf. shouldShowIdentityWelcome dans IdentityShell.tsx).
+  //
+  // On attend l'UN OU L'AUTRE des deux repères avant de trancher : tester la
+  // visibilité tout de suite lirait un écran encore en chargement (le gate tient
+  // l'écran d'arrivée tant qu'il n'a pas résolu son statut) et conclurait à tort
+  // qu'il n'y a pas d'écran à franchir.
+  const commencer = page.getByRole('button', { name: 'Identifier mon agence' })
+  const coquille = page.getByRole('button', { name: 'Reprendre plus tard' })
+  await expect(
+    commencer.or(coquille),
+    'ni l\'écran d\'arrivée ni la coquille du wizard ne se sont montrés sur /dashboard/identite',
+  ).toBeVisible()
+  if (await commencer.isVisible()) await commencer.click()
+
   await expect(
     page.getByRole('button', { name: 'Reprendre plus tard' }),
     `Coquille du wizard identité absente (bouton "Reprendre plus tard" introuvable) alors que ` +

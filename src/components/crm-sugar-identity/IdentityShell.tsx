@@ -59,6 +59,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { SugarV2, setSugarV2Dark, SG_IDENTITY_STEPS, SG_IDENTITY_KEYFRAMES } from './tokens'
 import { SgIcon, SgBlackPill, SgGhostPill } from '@/components/crm-sugar-wizard/primitives'
+import { MeggaX, MxButton, MxLink } from '@/components/megga-x'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
 import {
@@ -473,6 +474,197 @@ export function shouldResetAttestationLeavingRecap(previousStep: number, nextSte
 }
 
 /**
+ * Écran d'arrivée : ce wizard s'ouvre-t-il sur une explication, ou droit sur la
+ * première étape ?
+ *
+ * Le dirigeant qui vient d'activer son compte tombait sur « Signataire » sans un
+ * mot : ni pourquoi on lui demande son identité avant de lui ouvrir le CRM, ni
+ * combien de temps ça prend, ni qu'une pièce d'identité lui sera réclamée en
+ * cours de route. Un mur se traverse mieux quand il annonce ce qu'il y a
+ * derrière.
+ *
+ * `personsCount` est le signal de fraîcheur : l'étape 0 écrit dans
+ * `agency_related_persons`, donc zéro personne veut dire que rien n'a jamais été
+ * validé. Un dirigeant qui revient reprendre sa saisie a déjà lu l'écran et a des
+ * données : on ne le lui remontre pas. Celui qui est reparti avant d'avoir rien
+ * saisi le revoit, ce qui est juste puisqu'il n'a jamais commencé.
+ *
+ * ⚠ `isRevalidating` n'est pas une redondance d'`isLoading`. React Query sert
+ * d'abord le CACHE — `isLoading` faux, liste encore vide de la visite précédente
+ * — puis revalide. Sans cette seconde garde, un dirigeant qui a déjà saisi son
+ * signataire, quitte le wizard et revient, revoyait l'écran d'arrivée le temps
+ * d'un aller-retour réseau. Attrapé par la suite E2E KYB le 01.08.2026 : elle
+ * voyait le bouton « Identifier mon agence », le perdait avant de pouvoir
+ * cliquer, et n'avait plus ni écran d'arrivée ni coquille sous la main. C'est
+ * exactement le flash qu'on est venu corriger sur le tableau de bord, à un autre
+ * étage.
+ *
+ * Pur (pas de React) pour la même raison que les autres règles de ce fichier :
+ * la décision se teste sans monter la coquille.
+ */
+/**
+ * Ce que la route rend, en TROIS états mutuellement exclusifs.
+ *
+ * `welcomeDecision` vaut `null` tant que la question « ce dirigeant a-t-il déjà
+ * saisi quelque chose ? » n'a pas de réponse arrêtée. Elle se pose UNE fois, sur
+ * des données stabilisées, et ne se repose jamais.
+ *
+ * Pourquoi trois états et pas deux : tant qu'on n'a pas décidé, il ne faut rendre
+ * NI l'écran d'arrivée NI la coquille. Rendre la coquille « en attendant » la
+ * faisait remplacer par l'écran d'arrivée une fraction de seconde plus tard —
+ * c'est ce clignotement, et non un mauvais sélecteur, qui a fait tomber la suite
+ * E2E KYB trois fois de suite le 01.08.2026 : elle attrapait un repère qui
+ * disparaissait sous elle. Un écran d'attente neutre ne porte aucun des deux
+ * repères, donc rien à attraper trop tôt.
+ */
+export type IdentityScreen = 'preparing' | 'welcome' | 'wizard'
+
+/**
+ * La question est-elle seulement posable ? Tant qu'une lecture est en cours —
+ * premier chargement (`isLoading`) ou revalidation d'un cache déjà servi
+ * (`isRevalidating`) — la liste des personnes n'est pas un verdict, et trancher
+ * dessus revient à décider sur un état qui va changer.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldShowIdentityWelcome.
+export function shouldDecideIdentityWelcome(isLoading: boolean, isRevalidating: boolean): boolean {
+  return !isLoading && !isRevalidating
+}
+
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldShowIdentityWelcome.
+export function resolveIdentityScreen(
+  welcomeDecision: boolean | null,
+  welcomeDismissed: boolean,
+  showExitScreen: boolean,
+): IdentityScreen {
+  if (welcomeDecision === null) return 'preparing'
+  if (welcomeDecision && !welcomeDismissed && !showExitScreen) return 'welcome'
+  return 'wizard'
+}
+
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldResetAttestationLeavingRecap.
+export function shouldShowIdentityWelcome(
+  personsCount: number,
+  isLoading: boolean,
+  isRevalidating: boolean,
+): boolean {
+  return !isLoading && !isRevalidating && personsCount === 0
+}
+
+/**
+ * Écran d'arrivée, rendu À LA PLACE de toute la coquille Sugar tant qu'il n'a pas
+ * été franchi (cf. son point d'appel dans IdentityShell). Jamais une route : la
+ * route du gate est la seule que shouldRedirectToIdentityGate exempte, en sortir
+ * renverrait ici (incident P0 c830f9a9). Même statut qu'ExitPendingScreen, donc,
+ * mais pas la même peau.
+ *
+ * Habillé en MEGGA X, pas en Sugar, et c'est délibéré : l'agent vient de
+ * megga.ch, il a lu « Compte créé » sur la vitrine, il a cliqué un lien reçu par
+ * e-mail. Cet écran est le dernier de ce parcours-là, pas le premier du CRM —
+ * il en garde donc la peau, et la bascule vers Sugar se fait au clic sur
+ * Commencer, quand le wizard commence vraiment. Même raisonnement que BootSplash,
+ * qui porte lui aussi l'habillage de la vitrine.
+ *
+ * Rien n'est réinventé : le gabarit est celui des écrans d'authentification de la
+ * vitrine (`card sign-in-card` > `pd---content-inside-card` > `inner-container
+ * _464px center`), la pastille de validation est la même que « Lien envoyé » de
+ * la modale mot de passe oublié (`success-message-icon-top` + le glyphe U+E805 de
+ * la police Mega Custom Icons), et les boutons sont les composants MEGGA X.
+ * La feuille est la transcription verbatim de la vitrine, scopée `.megga-x`.
+ */
+/**
+ * Écran d'attente, rendu tant que la décision n'est pas prise (cf.
+ * resolveIdentityScreen). Ne porte AUCUN des repères des deux autres écrans —
+ * c'est tout son intérêt : rien ne peut y être attrapé trop tôt, ni par un
+ * utilisateur ni par un test. Même habillage que l'écran d'arrivée, pour que la
+ * bascule ne se voie pas.
+ */
+function IdentityPreparingScreen() {
+  const { t } = useTranslation('onboarding')
+  return (
+    <MeggaX>
+      <div className="page-wrapper full-height-page">
+        <div className="header pd-medium-top-and-bottom">
+          <div className="container-default w-container">
+            <div className="flex-horizontal">
+              <div className="header-logo">
+                <img src="/megga-logo.svg" alt="MEGGA" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <section className="section hero---br pd-top-64px---bottom-108p">
+          <div className="container-default w-container">
+            <div className="inner-container _506px center">
+              <div className="text-center" role="status" aria-live="polite">
+                <p className="paragraph-large">{t('gate.shell.preparing')}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </MeggaX>
+  )
+}
+
+function IdentityWelcomeScreen({ onStart, onLater }: { onStart: () => void; onLater: () => void }) {
+  const { t } = useTranslation('onboarding')
+  return (
+    <MeggaX>
+      <div className="page-wrapper full-height-page">
+        {/* Même en-tête que signup.html / login.html, sans lien : l'agent est
+            déjà connecté, le logo n'est plus une porte vers la vitrine. */}
+        <div className="header pd-medium-top-and-bottom">
+          <div className="container-default w-container">
+            <div className="flex-horizontal">
+              {/* `.header-logo img` porte le `filter: brightness(0) invert(1)` de la
+                  vitrine, qui blanchit le tracé noir sur fond sombre, et sa taille.
+                  Un <div> plutôt qu'un <a> : l'agent est connecté, le logo ne
+                  ramène nulle part. */}
+              <div className="header-logo">
+                <img src="/megga-logo.svg" alt="MEGGA" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <section className="section hero---br pd-top-64px---bottom-108p">
+          <div className="container-default position-relative---z-index-1 w-container">
+            <div className="inner-container _634px center">
+              <div className="card sign-in-card">
+                <div className="pd---content-inside-card pd---vertical-side-104px">
+                  <div className="inner-container _464px center">
+                    <div className="text-center">
+                      {/* Glyphe de la police Mega Custom Icons, comme dans la vitrine :
+                          la classe porte déjà la pastille dégradée et la font-family. */}
+                      <div className="success-message-icon-top">{''}</div>
+                      <h1 className="display-6">{t('gate.welcome.title')}</h1>
+                      <div className="mg-top-4x-extra-small">
+                        <p className="paragraph-large">{t('gate.welcome.body')}</p>
+                      </div>
+                    </div>
+                    <div className="mg-top-large text-center">
+                      <MxButton className="app-button" onClick={onStart}>
+                        {t('gate.welcome.startButton')}
+                      </MxButton>
+                    </div>
+                    <div className="mg-top-small">
+                      <div className="text-center">
+                        <MxLink href="#" onClick={(e) => { e.preventDefault(); onLater() }}>
+                          {t('wizard.footer.exit')}
+                        </MxLink>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </MeggaX>
+  )
+}
+
+/**
  * Sortie de secours (tâche 8) : écran d'attente affiché à la place du contenu du
  * wizard quand `showExitScreen` vaut vrai (cf. son point d'appel dans IdentityShell,
  * plus bas) — jamais un composant monté par une route séparée, voir l'en-tête du
@@ -515,7 +707,7 @@ export default function IdentityShell() {
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const {
-    agency, agencyId, persons, isLoading, savePerson, removePerson, revokeUboRole, saveAgency, uploadIdentityDocument, submit,
+    agency, agencyId, persons, isLoading, isRevalidating, savePerson, removePerson, revokeUboRole, saveAgency, uploadIdentityDocument, submit,
   } = useAgencyIdentity()
 
   const [step, setStep] = useState(0)
@@ -529,6 +721,22 @@ export default function IdentityShell() {
   // Sortie de secours (tâche 8) : true -> <main>/<footer> affichent ExitPendingScreen
   // à la place du wizard, SANS jamais changer de route (cf. en-tête du fichier).
   const [showExitScreen, setShowExitScreen] = useState(false)
+
+  // Écran d'arrivée : franchi par le bouton Commencer, et seulement pour la durée
+  // de la visite. Rien n'est écrit en base pour s'en souvenir — c'est la présence
+  // de données (personsCount) qui fait office de mémoire d'un parcours entamé,
+  // cf. shouldShowIdentityWelcome.
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false)
+  // Prise UNE fois, sur des données stabilisées, et jamais reposée : `persons`
+  // repasse par une liste vide à chaque revalidation, et rejuger à chaque rendu
+  // faisait réapparaître l'écran d'arrivée sous les doigts de l'utilisateur.
+  const [welcomeDecision, setWelcomeDecision] = useState<boolean | null>(null)
+  useEffect(() => {
+    if (welcomeDecision !== null) return
+    if (!shouldDecideIdentityWelcome(isLoading, isRevalidating)) return
+    setWelcomeDecision(shouldShowIdentityWelcome(persons.length, isLoading, isRevalidating))
+  }, [welcomeDecision, isLoading, isRevalidating, persons.length])
+  const ecran = resolveIdentityScreen(welcomeDecision, welcomeDismissed, showExitScreen)
 
   // Correctif revue tâche 7, point 1 : réinitialise l'attestation dès qu'on QUITTE le
   // récapitulatif, quel que soit le chemin (goToStep — bouton "Modifier" ET stepper de
@@ -906,6 +1114,20 @@ export default function IdentityShell() {
     if (target === step || target > step || saving) return // seuls les paliers déjà visités sont accessibles
     await persistCurrentStep()
     setStep(clampIdentityStep(target, SG_IDENTITY_STEPS.length))
+  }
+
+  // L'écran d'arrivée remplace la coquille ENTIÈRE : ni stepper, ni pied de page,
+  // ni fond Sugar. Il porte la peau de la vitrine (cf. son en-tête), et la bascule
+  // vers Sugar se fait au clic sur Commencer. Placé APRÈS tous les hooks — un
+  // retour anticipé au-dessus d'eux changerait leur ordre d'un rendu à l'autre.
+  if (ecran === 'preparing') return <IdentityPreparingScreen />
+  if (ecran === 'welcome') {
+    return (
+      <IdentityWelcomeScreen
+        onStart={() => setWelcomeDismissed(true)}
+        onLater={() => setShowExitScreen(true)}
+      />
+    )
   }
 
   return (

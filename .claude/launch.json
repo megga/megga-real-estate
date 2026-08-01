@@ -19,6 +19,14 @@
         "export PATH=/usr/local/bin:$PATH && npm run preview"
       ],
       "port": 4173
+    },
+    {
+      "name": "vitrine",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/serve-vitrine.mjs"
+      ],
+      "port": 4180
     }
   ]
 }

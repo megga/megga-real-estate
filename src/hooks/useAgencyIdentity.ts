@@ -123,6 +123,14 @@ export interface UseAgencyIdentityReturn {
   agencyId: string | null
   persons: IdentityPersonWithRoles[]
   isLoading: boolean
+  /**
+   * Une lecture est EN COURS, cache déjà servi compris. Distinct de `isLoading`,
+   * qui ne vaut vrai qu'au tout premier chargement : React Query sert d'abord un
+   * cache périmé (`isLoading` faux) puis revalide. Qui décide quelque chose sur
+   * « la liste est vide » doit attendre cette revalidation, sinon il tranche sur
+   * un état qui va changer sous lui.
+   */
+  isRevalidating: boolean
   /** Insère (id=null) ou met à jour une personne + ses rôles. Renvoie l'id. */
   savePerson: (p: IdentityPerson, roles: IdentityRole[]) => Promise<string>
   removePerson: (id: string) => Promise<void>
@@ -605,7 +613,7 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
 
   const personsQueryKey = ['agency-identity-persons', agencyId]
 
-  const { data: persons, isLoading: personsLoading } = useQuery({
+  const { data: persons, isLoading: personsLoading, isFetching: personsFetching } = useQuery({
     queryKey: personsQueryKey,
     queryFn: async (): Promise<IdentityPersonWithRoles[]> => {
       const { data, error } = await supabase
@@ -778,6 +786,7 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     agencyId,
     persons: persons ?? [],
     isLoading: agencySettings.isLoading || personsLoading,
+    isRevalidating: personsFetching,
     savePerson,
     removePerson,
     revokeUboRole,
