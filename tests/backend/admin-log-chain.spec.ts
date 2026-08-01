@@ -148,7 +148,7 @@ describe.skipIf(!HAS_KEYS)('admin_log — registre chaîné append-only (étape 
       if has_function_privilege('anon', 'public.admin_log_write(text,text,text,text,text,uuid,text,uuid,jsonb,jsonb,boolean,inet,text,text)', 'EXECUTE') then
         raise exception 'admin_log_write est appelable sans authentification';
       end if;
-      if has_function_privilege('authenticated', 'public.admin_log_verify_chain(bigint)', 'EXECUTE') then
+      if has_function_privilege('authenticated', 'public.admin_log_verify_chain(bigint, bigint)', 'EXECUTE') then
         raise exception 'verify_chain est exposee a la console';
       end if;
     `)

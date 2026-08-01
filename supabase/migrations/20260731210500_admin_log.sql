@@ -436,8 +436,17 @@ comment on function public.admin_log_write is
 
 -- ── 7. Vérification ──────────────────────────────────────────────────────────────────
 
+-- L'ancienne signature à un seul argument est déposée : sans ce drop, la version bornée
+-- ci-dessous coexisterait avec elle et un appel sans argument deviendrait AMBIGU (les deux
+-- acceptent zéro paramètre), donc 42725 sur le cron de vérification.
 drop function if exists public.admin_log_verify_chain(bigint);
-create or replace function public.admin_log_verify_chain(p_from bigint default null)
+create or replace function public.admin_log_verify_chain(
+  p_from bigint default null,
+  -- Borne HAUTE, ajoutée après revue. Sans elle, vérifier « à partir de » revenait à
+  -- vérifier jusqu'à la fin du registre : le coût croissait avec l'ÂGE de la fenêtre, et
+  -- un extrait signé portait un verdict couvrant des lignes qu'il ne contenait pas.
+  p_to   bigint default null
+)
 returns jsonb
 language plpgsql
 stable security definer
@@ -463,7 +472,8 @@ begin
 
   for r in
     select * from public.admin_log
-     where p_from is null or seq >= p_from
+     where (p_from is null or seq >= p_from)
+       and (p_to   is null or seq <= p_to)
      order by seq asc
   loop
     if r.payload_version <> 1 then
@@ -502,6 +512,9 @@ begin
     'head',         v_head,
     'break_at',     v_break,
     'anchored',     (p_from is null),
+    -- Un verdict doit dire SUR QUOI il porte : `bounded` false signale que la marche est
+    -- allée jusqu'à la tête du registre, et non jusqu'à la fin d'une fenêtre demandée.
+    'bounded',      (p_to is not null),
     -- check:drift ne couvre ni les triggers, ni les policies, ni les GRANT : la
     -- vérification les asserte elle-même.
     'triggers',     (select count(*) from pg_trigger t
@@ -520,7 +533,11 @@ $function$;
 comment on function public.admin_log_verify_chain is
   'Rend un verdict, jamais un booléen. `no_rows` n''est PAS `ok` : une chaîne vue sur zéro '
   'ligne (RLS, FORCE RLS, table amputée) ne prouve rien. Ne détecte pas la troncature de '
-  'queue — c''est le rôle de l''ancre externe (rows_count publié hors Postgres).';
+  'queue — c''est le rôle de l''ancre externe (rows_count publié hors Postgres). '
+  'La marche est bornée AUX DEUX BOUTS : `p_to` a été ajouté après revue, parce qu''un '
+  'verdict qui court jusqu''à la tête du registre coûte proportionnellement à l''ÂGE de la '
+  'fenêtre et décrit des lignes que l''appelant n''a pas demandées. `bounded` dit lequel des '
+  'deux cas a eu lieu.';
 
 -- ── 8. Privilèges ────────────────────────────────────────────────────────────────────
 -- Les privilèges par défaut de Supabase accordent arwdDxtm à anon/authenticated/service_role
@@ -567,8 +584,8 @@ grant execute on function public.admin_log_write(text, text, text, text, text, u
   to authenticated, service_role;
 
 -- La console n'appelle pas la vérification : elle lit la ligne `ops` déposée par le cron.
-revoke all on function public.admin_log_verify_chain(bigint) from public, anon, authenticated;
-grant execute on function public.admin_log_verify_chain(bigint) to service_role;
+revoke all on function public.admin_log_verify_chain(bigint, bigint) from public, anon, authenticated;
+grant execute on function public.admin_log_verify_chain(bigint, bigint) to service_role;
 
 revoke all on function public.admin_log_payload_v1(bigint, uuid, timestamptz, text, text, text, jsonb, boolean, uuid, text, text, uuid, text, uuid, inet, text, text, jsonb)
   from public, anon, authenticated;

@@ -180,6 +180,50 @@ describe.skipIf(!HAS_KEYS)('extrait signé du registre (étape 22)', () => {
     expect(n, 'chaque extrait laisse UNE trace, pas deux').toBeGreaterThan(0)
   })
 
+  // ── 3bis. Le verdict porte sur l'extrait, et sur rien d'autre ──────────────────
+
+  it('le verdict de chaîne est BORNÉ à l\'extrait', async () => {
+    // `admin_log_verify_chain` n'avait qu'une borne basse : la marche courait jusqu'à la
+    // TÊTE du registre. Deux conséquences, toutes deux fausses pour une pièce d'audit — le
+    // coût croissait avec l'ÂGE de la fenêtre, et le verdict décrivait des lignes que
+    // l'extrait ne contenait pas. On vérifie donc l'intervalle relu, pas seulement sa
+    // présence : sans borne haute, `last_seq` vaut la tête du registre et non la dernière
+    // ligne remise (les autres specs écrivent en parallèle, il y en a toujours après).
+    const d = (await exporter(`exp-borne-${stamp}`)).data as Row
+    const lignes = d.entries as Row[]
+    const chaine = d.chain as Row
+
+    expect(lignes.length, 'l\'extrait n\'est pas vide').toBeGreaterThan(0)
+    expect(chaine.bounded, 'la marche annonce qu\'elle était bornée').toBe(true)
+    expect(Number(chaine.first_seq), 'la relecture commence à la première ligne remise')
+      .toBe(Number(lignes[0].seq))
+    expect(Number(chaine.last_seq), 'et s\'arrête à la DERNIÈRE ligne remise')
+      .toBe(Number(lignes[lignes.length - 1].seq))
+  })
+
+  it('une fenêtre valide mais VIDE ne relit pas le registre entier', async () => {
+    // `min(seq)` sur zéro ligne vaut NULL, et la borne basse disparaissait avec lui : la
+    // vérification repartait de la genèse et relisait TOUT le registre, un SHA-256 par
+    // ligne. C'est exactement ce que le plafond de 5000 lignes existe pour éviter, et à
+    // dix ans de rétention LBA ça finit en statement timeout. Cas courant : une famille
+    // filtrée sur une période calme.
+    //
+    // ⚠ À ne pas confondre avec la période INVERSÉE (p_from >= p_to) testée plus bas :
+    // celle-là est refusée par précondition et n'atteint jamais la vérification.
+    const { data, error } = await serviceRoleClient().rpc('admin_log_export', {
+      p_from: '2020-01-01T00:00:00Z', p_to: '2020-01-02T00:00:00Z',
+      p_family: null, p_idempotency_key: `exp-vide-${stamp}`,
+    })
+    expect(error).toBeNull()
+    const d = (data as Row).data as Row
+    const chaine = d.chain as Row
+
+    expect(Number(d.count), 'aucune ligne dans cette fenêtre').toBe(0)
+    expect(chaine.status, 'une fenêtre vide n\'a pas de chaîne à vérifier').toBe('no_rows')
+    expect(Number(chaine.rows_checked), 'AUCUNE ligne relue : sans borne, tout le registre y passait')
+      .toBe(0)
+  })
+
   // ── 4. Les refus ───────────────────────────────────────────────────────────────
 
   it('une période vide, absente ou une famille inconnue sont refusées', async () => {

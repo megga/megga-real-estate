@@ -273,6 +273,30 @@ describe.skipIf(!HAS_KEYS)('diagnostic d\'un lien KYC (étape 19)', () => {
     expect((jobs as Row[]).length, 'toujours UN seul job d\'émission').toBe(1)
   })
 
+  it('un REFUS ne consomme pas la clé d\'idempotence', async () => {
+    // Un `return admin_error` n'annule rien : la transaction COMMITTE. La clé réservée
+    // AVANT les contrôles restait donc consommée par un geste qui n'avait rien fait, et le
+    // réessai avec la même clé — ce à quoi sert exactement une clé d'idempotence — répondait
+    // `already_done` : une forme de SUCCÈS pour un lien jamais réémis. L'écran aurait
+    // annoncé une régénération alors que rien n'était parti dans l'outbox.
+    const svc = serviceRoleClient()
+    const cle = `regen-refus-${stamp}`
+    const inconnu = '00000000-0000-0000-0000-000000000000'
+    const appel = () => svc.rpc('admin_kyc_link_regenerate', {
+      p_link_id: inconnu, p_motive_agency_id: setup.agencyAId,
+      p_motive_ref: `TICKET-refus-${stamp}`, p_idempotency_key: cle,
+    })
+
+    const { data: premier } = await appel()
+    expect((premier as Row).code, 'un lien inconnu est refusé').toBe('not_found')
+
+    // LE POINT DU TEST : le même appel doit rendre le MÊME refus, jamais « déjà fait ».
+    const { data: second } = await appel()
+    expect((second as Row).ok, 'un refus reste un refus au réessai').toBe(false)
+    expect((second as Row).code, 'la clé a été consommée par un geste qui n\'a rien fait')
+      .toBe('not_found')
+  })
+
   it('un parcours déjà terminé ne se régénère pas', async () => {
     const svc = serviceRoleClient()
     const { data: c } = await svc.from('contacts').insert({

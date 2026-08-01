@@ -220,11 +220,6 @@ begin
   -- lien — et admin_log_write prend la chaîne, donc l'appeler avant serait l'erreur.
   perform public.admin_lock_entity('kyc_link', p_link_id);
 
-  if not public.admin_receipt_try(p_idempotency_key, 'admin_kyc_link_regenerate') then
-    -- Déjà fait : ce n'est pas une erreur, c'est le double-clic qu'on absorbe.
-    return public.admin_ok(jsonb_build_object('already_done', true));
-  end if;
-
   select l.id, l.status, l.agency_id, l.kyc_case_id, l.contact_id
     into v_lien
     from public.kyc_magic_links l
@@ -238,6 +233,18 @@ begin
     -- a fini. Le handoff décrit un lien « jamais reçu », pas un dossier complet.
     return public.admin_error('precondition_failed',
       'Ce parcours est déjà terminé : il n''y a pas de lien à réémettre.');
+  end if;
+
+  -- ── La clé d'idempotence, prise APRÈS les refus et non avant ───────────────────
+  -- Les deux refus ci-dessus sont des `return` : la transaction COMMITTE. La clé réservée
+  -- plus haut restait donc consommée, non scellée, par un geste qui n'a rien fait — et le
+  -- réessai avec la même clé (ce à quoi sert une clé d'idempotence) répondait `already_done`.
+  -- Sur cette RPC-là, l'écran aurait annoncé un lien réémis alors que rien n'est parti dans
+  -- l'outbox. Le verrou d'entité au-dessus tient déjà la course entre deux appels simultanés ;
+  -- la clé ne protège que du rejeu, et n'a de sens qu'une fois le geste engagé.
+  if not public.admin_receipt_try(p_idempotency_key, 'admin_kyc_link_regenerate') then
+    -- Déjà fait : ce n'est pas une erreur, c'est le double-clic qu'on absorbe.
+    return public.admin_ok(jsonb_build_object('already_done', true));
   end if;
 
   -- Invalidation de l'ancien : c'est la seule partie que la transaction peut faire.
