@@ -134,10 +134,17 @@ describe.skipIf(!HAS_KEYS)('extrait signé du registre (étape 22)', () => {
 
     expect(n2 - n1, 'le second extrait contient la ligne du premier, et elle seule').toBe(1)
 
-    // Corollaire : aucun des deux ne contient SA PROPRE ligne. Le premier n'a aucune ligne
-    // d'export ; le second en a exactement une, celle du premier.
-    const exportsDansUn = ((un.data as Row).entries as Row[]).filter((e) => e.action === 'admin_log_export')
-    expect(exportsDansUn.length, 'le premier extrait ne contient aucune ligne d\'export').toBe(0)
+    // Le même constat, vu du côté des lignes d'export elles-mêmes.
+    //
+    // ⚠ Une première version affirmait « le premier extrait ne contient AUCUNE ligne
+    // d'export » — faux, et le test l'a montré : les extraits des tests PRÉCÉDENTS de ce
+    // fichier tombent dans la même fenêtre. Ce qu'on prouve n'est pas l'absence d'exports,
+    // c'est qu'un extrait ne contient jamais LE SIEN : l'écart entre les deux vaut donc
+    // exactement un, quel que soit le nombre d'exports déjà présents.
+    const nbExports = (r: Row) =>
+      ((r.data as Row).entries as Row[]).filter((e) => e.action === 'admin_log_export').length
+    expect(nbExports(deux) - nbExports(un),
+      'le second voit la ligne du premier ; aucun ne voit la sienne').toBe(1)
   })
 
   it('l\'empreinte est REPRODUCTIBLE sur un contenu inchangé', async () => {
