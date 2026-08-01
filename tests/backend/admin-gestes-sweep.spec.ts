@@ -168,7 +168,14 @@ describe.skipIf(!HAS_KEYS)('contrat des gestes de console (étape 23)', () => {
         select p.proname
           from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef
-           and p.proname ~ '^admin_'
+           -- ⚠ ELARGI par la revue du Lot 2. Ce predicat portait sur le seul prefixe du
+           -- NOM, alors que tout le reste de ce fichier definit ses perimetres par une
+           -- PROPRIETE. Le cout etait reel et mesure : changelog_publish_due publie une
+           -- nouveaute a TOUS les agents sans laisser de ligne au registre, et passait
+           -- sous le cliquet parce qu elle ne s appelle pas admin_*. Une fonction de la
+           -- console se reconnait a ce qu elle TOUCHE, pas a la facon dont on l a nommee.
+           and (p.proname ~ '^admin_'
+                or p.prosrc ~* '(insert into|update) public\\.(admin_|rpc_receipts|outbox_jobs)')
            and p.prosrc ~* '(insert into|update) public\\.'
            and p.prosrc not like '%admin_log_write%'
            -- Le registre lui-meme et ses outils : ils SONT le journal, ils ne s y ecrivent pas.

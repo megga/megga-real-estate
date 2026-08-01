@@ -247,6 +247,54 @@ describe.skipIf(!HAS_KEYS)('changelog « What\'s new » (étape 21)', () => {
     expect(parId[pasEncore], 'celle de la semaine prochaine ne bouge pas').toBe('scheduled')
   })
 
+  it('UNE PUBLICATION PROGRAMMÉE LAISSE UNE TRACE AU REGISTRE', async () => {
+    // Trouvé par la revue du Lot 2. `changelog_publish_due` rendait une nouveauté visible
+    // de TOUS les agents sans écrire une seule ligne au registre, alors que le geste manuel
+    // identique (`admin_changelog_publish`) journalise en `warn`. Le seul chemin de
+    // publication qui atteint tout le monde était donc aussi le seul invisible à l'écran
+    // Sécurité — et hors chaîne d'empreintes.
+    //
+    // Le cliquet de l'étape 23 ne pouvait pas le voir : son périmètre s'écrivait
+    // `proname ~ '^admin_'`, une convention de NOM, là où le reste du fichier définit ses
+    // périmètres par une PROPRIÉTÉ. Le périmètre est élargi dans le même passage — ce
+    // test-ci éprouve le comportement, celui-là empêche la récidive ailleurs.
+    const svc = serviceRoleClient()
+    const id = await creer(`trace-prog-${stamp}`)
+    await svc.rpc('admin_changelog_schedule', {
+      p_id: id, p_when: new Date(Date.now() + 60_000).toISOString(),
+    })
+    runSql(`begin
+      update public.admin_changelog set scheduled_for = now() - interval '1 minute'
+       where id = '${id}'::uuid;`)
+    const { error } = await svc.rpc('changelog_publish_due')
+    expect(error).toBeNull()
+
+    // Lecture en SQL direct, pas via supabase-js : un REVOKE sur `admin_log` rendrait une
+    // lecture service_role VIDE SANS erreur, et l'assertion passerait sur zéro ligne.
+    assertSql(`
+    declare v_n int; v_routine boolean; v_sev text;
+    begin
+      select count(*), bool_or(l.routine), min(l.severity)
+        into v_n, v_routine, v_sev
+        from public.admin_log l
+       where l.entity_id = '${id}'::uuid and l.action = 'changelog_published';
+
+      if v_n < 1 then
+        raise exception E'Publication PROGRAMMEE sans ligne au registre MEGGA.\\n'
+          '  Le geste manuel equivalent journalise, celui-ci non : la seule publication\\n'
+          '  qui atteint tous les agents serait la seule sans trace.';
+      end if;
+      if v_routine then
+        raise exception E'Ligne marquee "routine".\\n'
+          '  get_admin_security_journal filtre "not routine" : la trace existerait en base\\n'
+          '  mais resterait invisible a l ecran Securite. Une trace pour personne.';
+      end if;
+      if v_sev is distinct from 'warn' then
+        raise exception 'severite "%" : le geste manuel identique journalise en warn', v_sev;
+      end if;
+    `)
+  })
+
   // ── 4. Ce que voit un agent ────────────────────────────────────────────────────
 
   it('UN AGENT NE VOIT QUE LE PUBLIÉ — jamais un brouillon', async () => {
