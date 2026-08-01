@@ -49,7 +49,7 @@ lecture), suspendue à la dépendance **P5** — une maquette, pas du code.
 activé : enveloppe d'erreur §10.1 (`admin_error` / `admin_ok`, vocabulaire FERMÉ de 8 codes),
 verrou advisory par entité (`admin_lock_entity`), idempotence (`rpc_receipts` +
 `admin_receipt_try` / `_seal`), outbox (`outbox_jobs` + `enqueue` / `claim` / `settle`, backoff
-exponentiel borné et dead-letter). 15 tests.
+exponentiel borné et dead-letter). **17 tests, verts du premier coup.**
 
 Les étapes 17, 18 et 19b restent **bloquées par les décisions PO n° 3, 4, 5 et P4**. Sont
 faisables sans elles : **19** (KYC, dépend de 16), **20** (copilote, RPC existantes),
@@ -88,8 +88,8 @@ par ligne comme au registre.
 `260000_admin_security_read` · `270000_admin_agency_note_and_invitations` ·
 `280000_admin_console_read_views` · `290000_admin_overview`.
 
-**Tests** : 50 specs dédiées à la console. CI complète verte sur `80418ece` — **134 fichiers**
-en backend, **86 fichiers / 1 402 tests** en unitaire. Les specs des étapes 9, 10 et 14
+**Tests** : 51 specs dédiées à la console. CI complète verte sur `a9e2d71f` — **135 fichiers /
+1 219 tests** en backend, **86 fichiers / 1 402 tests** en unitaire. Les specs des étapes 9, 10 et 14
 exécutent respectivement **19**, **12** et **18** tests, le seed **7** et le garde-fou
 d'instrumentation **3** : c'est le compte qui le prouve, pas le statut vert.
 
