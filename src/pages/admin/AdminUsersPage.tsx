@@ -2,7 +2,7 @@
  * Page super-admin — annuaire des utilisateurs de la plateforme.
  *
  * Route : `/users`. Table (desktop) / cartes (mobile) avec recherche, filtre par
- * rôle, pagination et export CSV. Un clic sur une ligne ouvre `UserDrawer`
+ * rôle et pagination. Un clic sur une ligne ouvre `UserDrawer`
  * (détail + impersonation) ; l'agence renvoie vers sa fiche.
  *
  * Rendu en grammaire Sugar (kit `components/admin/kit`) : le bento se sépare du
@@ -14,8 +14,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Users, Download } from 'lucide-react'
-import { exportToCsv } from '@/lib/exportCsv'
+import { Users } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import type { AdminUser } from '@/hooks/useAdminUsers'
@@ -116,17 +115,6 @@ export default function AdminUsersPage() {
           ? t('admin:common.loading')
           : t(users.length !== 1 ? 'admin:users.subtitle_plural' : 'admin:users.subtitle', { count: users.length })}
         width="wide"
-        actions={(
-          <AdminGhostBtn
-            icon={Download}
-            onClick={() => exportToCsv('megga-utilisateurs', users.map(u => ({
-              nom: u.full_name, email: u.email, agence: u.agency_name ?? '',
-              role: u.role, date: u.created_at,
-            })))}
-          >
-            {t('admin:common.export')}
-          </AdminGhostBtn>
-        )}
       >
         <style>{`
           .admu-row { transition: background .15s ease; }

@@ -3,9 +3,10 @@
  *
  * Route : `/dashboard/admin/security`. Liste les actions sensibles
  * d'`activity_events` (filtres sévérité/action/acteur, recherche, pagination,
- * métadonnées dépliables) avec un bandeau KPI sur 7 jours. Deux exports :
- * CSV de la vue filtrée, et PDF juridique de la chaîne d'audit PLATEFORME complète
- * (hash-chain nLPD/LBA — volontairement non filtré).
+ * métadonnées dépliables) avec un bandeau KPI sur 7 jours. UN seul export : le
+ * PDF juridique de la chaîne d'audit PLATEFORME complète (hash-chain nLPD/LBA —
+ * volontairement non filtré). L'export CSV de la vue filtrée a été retiré :
+ * « aucun export CSV, nulle part dans la console » (décision du 31 juillet 2026).
  *
  * Présentation en grammaire Sugar (kit `adminKit`) : journal dans un bento séparé
  * par l'ombre, sévérités en pilules pleines, accent NOIR sur les contrôles actifs.
@@ -14,10 +15,9 @@
  */
 import { useState, useMemo, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Shield, AlertTriangle, AlertCircle, Info, Download, FileDown, ChevronDown } from 'lucide-react'
+import { Shield, AlertTriangle, AlertCircle, Info, FileDown, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { exportToCsv } from '@/lib/exportCsv'
 import { downloadAuditPdf } from '@/lib/auditPdfExport'
 import { useToast } from '@/components/ui/Toast'
 import {
@@ -185,30 +185,6 @@ export default function AdminSecurityAuditPage() {
     }
   }
 
-  // ── CSV Export ─────────────────────────────────────────────────────────
-  function handleExport() {
-    if (!filtered.length) return
-    exportToCsv('audit-securite', filtered.map(e => ({
-      timestamp: formatTimestamp(e.created_at),
-      severite: t(`admin:common.severity.${getActionSeverity(e.action)}`),
-      action: AUDIT_ACTION_LABELS[e.action] ?? e.action,
-      acteur_nom: e.actor_name ?? '',
-      acteur_email: e.actor_email ?? '',
-      entity_type: e.entity_type,
-      entity_id: e.entity_id,
-      details: summarizeMetadata(e.metadata),
-    })), [
-      { key: 'timestamp', label: t('admin:securityAudit.table.timestamp') },
-      { key: 'severite', label: t('admin:securityAudit.table.severity') },
-      { key: 'action', label: t('admin:securityAudit.table.action') },
-      { key: 'acteur_nom', label: t('admin:securityAudit.table.actor') },
-      { key: 'acteur_email', label: 'Email' },
-      { key: 'entity_type', label: t('admin:securityAudit.table.entity') },
-      { key: 'entity_id', label: 'ID' },
-      { key: 'details', label: t('admin:securityAudit.table.details') },
-    ])
-  }
-
   // Filet de séparation des lignes — même valeur que `AdminTd`, pour que le
   // journal et les tableaux de la console se lisent d'un seul rythme.
   const rowHair = dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)'
@@ -223,9 +199,6 @@ export default function AdminSecurityAuditPage() {
         <>
           <AdminGhostBtn onClick={() => void handlePdfExport()} disabled={pdfExporting} icon={FileDown}>
             {pdfExporting ? t('admin:securityAudit.pdfExporting') : t('admin:securityAudit.exportPdf')}
-          </AdminGhostBtn>
-          <AdminGhostBtn onClick={handleExport} disabled={!filtered.length} icon={Download}>
-            {t('admin:common.exportCsv')}
           </AdminGhostBtn>
         </>
       }

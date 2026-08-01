@@ -101,7 +101,15 @@ async function logAiCopilotInteraction(params: {
       agency_id: params.agencyId,
       actor_id: null,
       actor_kind: 'ai',
+      // ⚠ CLÉ D'ACTION EN FRANÇAIS, et interpolée. Le dépôt l'interdit en base
+      // (20260729100000 fait foi) et §5.2 exige des clés techniques snake_case : celle-ci
+      // échappe au mapping i18n `audit.action.*` et pollue le filtre « action » du Live
+      // d'autant de valeurs distinctes qu'il y a d'actions de copilote.
+      // NON CORRIGÉE ICI, délibérément : changer une clé d'action orpheline les lignes
+      // déjà écrites et les libellés i18n qui les visent. C'est une décision de contrat,
+      // pas une correction de passage — signalée à l'étape 6.
       action: `MEGGA AI — ${params.action}`,
+      category: 'ai',
       entity_type: resolved?.entityType ?? 'ai_chat',
       entity_id: resolved?.entityId ?? null,
       metadata,
@@ -834,7 +842,8 @@ ${snapshot}`
   try {
     await params.auth.supabase.from('activity_events').insert({
       agency_id: params.auth.profile.agency_id, actor_id: null, actor_kind: 'ai',
-      action: 'MEGGA AI — daily_brief', entity_type: 'ai_chat', entity_id: null,
+      // Même clé française que ci-dessus, même raison de ne pas y toucher ici.
+      action: 'MEGGA AI — daily_brief', category: 'ai', entity_type: 'ai_chat', entity_id: null,
       metadata: { copilot_action: 'daily_brief', generated, priorities: itemCount },
     })
   } catch { /* best-effort */ }

@@ -280,6 +280,15 @@
   );
 
   // ─── Champs (Sugar : pas de bordure, surface creuse + filet intérieur) ─
+  //
+  // ⚠ ACCESSIBILITÉ — `outline: "none"` ci-dessous est un style INLINE, qui gagne contre
+  // toute feuille de style. Seul, il rend la console inutilisable au clavier, sans qu'aucune
+  // erreur ne le signale. Au portage, emporter la contre-mesure avec le style :
+  // `src/styles/admin-console.css` pose un `outline … !important` sur `:focus-visible`,
+  // scopé à `.megga-admin-console` (classe posée par AdminShell). Les trois éléments
+  // tiennent ensemble — l'anneau, sa force, et la classe de portée : en perdre un suffit à
+  // éteindre le focus. Garde-fou : tests/unit/admin-console-focus.spec.ts.
+  // (Étape 4 du plan, l'une des trois retouches de maquette autorisées.)
   const admFieldStyle = (sp, surf, dark, h = 38) => ({
     width: "100%", height: h, padding: "0 12px", borderRadius: ADM_R.row, border: 0,
     background: surf.cardSub, color: sp.ink, fontFamily: "inherit", fontSize: 13, fontWeight: 600,

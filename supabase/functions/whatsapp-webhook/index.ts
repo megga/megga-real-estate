@@ -846,7 +846,8 @@ async function rollbackAutoAction(
   const audit = async (category: string, entityType: string, entityId: string | null, label: string) => {
     await admin.from('activity_events').insert({
       agency_id: agencyId, actor_id: null, actor_kind: 'ai',
-      action: 'wa_undo', entity_type: entityType, entity_id: entityId,
+      action: 'wa_undo',
+      entity_type: entityType, entity_id: entityId,
       object_label: label.slice(0, 500), category, severity: 'info',
       metadata: { via: 'whatsapp', mode: 'undo', profile_id: agentLink.profile_id, tool: row.tool },
     })

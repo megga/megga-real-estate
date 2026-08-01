@@ -184,6 +184,7 @@ serve(async (req) => {
         agency_id: profile.agency_id,
         actor_id: user.id,
         action: 'team_invite_cancelled',
+      category: 'auth',
         entity_type: 'team',
         entity_id: body.invitationId,
       })
@@ -254,6 +255,7 @@ serve(async (req) => {
         agency_id: profile.agency_id,
         actor_id: user.id,
         action: 'team_invite_resent',
+      category: 'auth',
         entity_type: 'team',
         entity_id: body.invitationId,
         metadata: { email: invitation.email },
@@ -374,6 +376,9 @@ serve(async (req) => {
       agency_id: profile.agency_id,
       actor_id: user.id,
       action: 'team_invite_sent',
+      // `auth` : une invitation est un geste d'IDENTITÉ (qui a accès à l'agence), pas un
+      // réglage. Les trois actions d'invitation de ce fichier portent donc la même famille.
+      category: 'auth',
       entity_type: 'team',
       entity_id: invitation.id,
       metadata: { email: body.email, role: body.role },

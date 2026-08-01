@@ -7,7 +7,10 @@
  * l'export DSAR (nLPD art. 25) journalisé côté serveur.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+
+const db = supabase as unknown as SupabaseClient
 
 export interface AdminUser {
   id: string
@@ -20,6 +23,26 @@ export interface AdminUser {
   agency_id: string | null
   agency_name: string | null
   is_suspended: boolean
+  /** Dernière activité (`activity_events`), null si le compte n'en a aucune. */
+  last_activity_at: string | null
+  /** Jours révolus depuis la dernière activité ; null sans activité (§5.4). */
+  stale_days: number | null
+  /** Invité mais jamais connecté (`team_invitations` pending, C3). */
+  never: boolean
+  /** Consentements : type × version × date (`user_consents`). */
+  consents: Array<{ type: string; version: string; accepted_at: string }>
+  /** Marketing = présence d'une ligne de consentement (§5.4). */
+  marketing: boolean
+}
+
+/** Ligne brute de `get_admin_users()`, re-typée à la main faute de types générés. */
+interface AdminUserRow {
+  id: string; name: string | null; email: string; phone: string | null; role: string
+  agency_id: string | null; agency: string | null; since: string; last: string | null
+  stale_days: number | null; suspended: boolean; deleted_at: string | null
+  never: boolean; invited_at: string | null; marketing: boolean
+  consents: Array<{ type: string; version: string; accepted_at: string }>
+  avatar_url: string | null
 }
 
 /** Liste des profils (récents d'abord) avec nom d'agence résolu, plus la mutation de rôle (RPC super-admin). */
@@ -29,26 +52,29 @@ export function useAdminUsers() {
   const users = useQuery({
     queryKey: ['admin-users'],
     queryFn: async (): Promise<AdminUser[]> => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, avatar_url, role, phone, created_at, agency_id, is_suspended')
-        .order('created_at', { ascending: false })
+      // Étape 15 : UN appel là où il en fallait deux (profiles, puis agencies pour
+      // résoudre les noms). La RPC joint côté serveur et apporte en plus les champs de
+      // §5.4 que ce registre ne savait pas afficher : dernière activité, ancienneté
+      // d'inactivité, « invité jamais connecté » et consentements.
+      const { data, error } = await db.rpc('get_admin_users', { p_limit: 2000, p_offset: 0 })
       if (error) throw error
 
-      const agencyIds = [...new Set((data ?? []).map(u => u.agency_id).filter(Boolean))]
-      let agencyMap: Record<string, string> = {}
-      if (agencyIds.length > 0) {
-        const { data: agencies } = await supabase
-          .from('agencies')
-          .select('id, name')
-          .in('id', agencyIds as string[])
-        agencyMap = Object.fromEntries((agencies ?? []).map(a => [a.id, a.name]))
-      }
-
-      return (data ?? []).map(u => ({
-        ...u,
-        created_at: u.created_at ?? '',
-        agency_name: u.agency_id ? agencyMap[u.agency_id] ?? null : null,
+      return ((data ?? []) as AdminUserRow[]).map(u => ({
+        id: u.id,
+        full_name: u.name ?? '',
+        email: u.email,
+        avatar_url: u.avatar_url,
+        role: u.role,
+        phone: u.phone,
+        created_at: u.since,
+        agency_id: u.agency_id,
+        agency_name: u.agency,
+        is_suspended: u.suspended,
+        last_activity_at: u.last,
+        stale_days: u.stale_days === null ? null : Number(u.stale_days),
+        never: u.never,
+        consents: u.consents ?? [],
+        marketing: u.marketing,
       }))
     },
     staleTime: 30_000,
