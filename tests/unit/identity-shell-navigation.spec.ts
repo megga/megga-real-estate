@@ -583,12 +583,20 @@ describe('shouldResetAttestationLeavingRecap — un seul point de reset de l\'at
 // l'explication, et surtout qui ne la revoit pas.
 describe('shouldShowIdentityWelcome - qui voit l\'écran d\'arrivée', () => {
   it('rien n\'a jamais été validé -> on explique avant de demander', () => {
-    expect(shouldShowIdentityWelcome(0, false)).toBe(true)
+    expect(shouldShowIdentityWelcome(0, false, false)).toBe(true)
   })
 
   it('une personne déjà enregistrée -> saisie entamée, on reprend où on en était', () => {
-    expect(shouldShowIdentityWelcome(1, false)).toBe(false)
-    expect(shouldShowIdentityWelcome(3, false)).toBe(false)
+    expect(shouldShowIdentityWelcome(1, false, false)).toBe(false)
+    expect(shouldShowIdentityWelcome(3, false, false)).toBe(false)
+  })
+
+  // LA régression du 01.08.2026 : React Query sert le cache AVANT de revalider,
+  // donc `isLoading` est faux alors que la liste est encore celle de la visite
+  // précédente. Trancher là-dessus faisait clignoter l'écran d'arrivée chez un
+  // dirigeant qui avait déjà saisi son signataire.
+  it('liste vide mais revalidation en cours -> on ne tranche pas', () => {
+    expect(shouldShowIdentityWelcome(0, false, true)).toBe(false)
   })
 
   it('lecture en cours -> ni l\'écran d\'arrivée ni le wizard, la coquille tient son spinner', () => {
@@ -596,7 +604,7 @@ describe('shouldShowIdentityWelcome - qui voit l\'écran d\'arrivée', () => {
     // un dirigeant qui a déjà tout saisi verrait l\'écran de bienvenue clignoter
     // avant que ses données n\'arrivent - la même classe de faux positif que le
     // flash du CRM corrigé le même jour dans AgentSugarLayout.
-    expect(shouldShowIdentityWelcome(0, true)).toBe(false)
-    expect(shouldShowIdentityWelcome(2, true)).toBe(false)
+    expect(shouldShowIdentityWelcome(0, true, false)).toBe(false)
+    expect(shouldShowIdentityWelcome(2, true, false)).toBe(false)
   })
 })

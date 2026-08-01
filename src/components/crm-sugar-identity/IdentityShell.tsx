@@ -489,12 +489,26 @@ export function shouldResetAttestationLeavingRecap(previousStep: number, nextSte
  * données : on ne le lui remontre pas. Celui qui est reparti avant d'avoir rien
  * saisi le revoit, ce qui est juste puisqu'il n'a jamais commencé.
  *
+ * ⚠ `isRevalidating` n'est pas une redondance d'`isLoading`. React Query sert
+ * d'abord le CACHE — `isLoading` faux, liste encore vide de la visite précédente
+ * — puis revalide. Sans cette seconde garde, un dirigeant qui a déjà saisi son
+ * signataire, quitte le wizard et revient, revoyait l'écran d'arrivée le temps
+ * d'un aller-retour réseau. Attrapé par la suite E2E KYB le 01.08.2026 : elle
+ * voyait le bouton « Identifier mon agence », le perdait avant de pouvoir
+ * cliquer, et n'avait plus ni écran d'arrivée ni coquille sous la main. C'est
+ * exactement le flash qu'on est venu corriger sur le tableau de bord, à un autre
+ * étage.
+ *
  * Pur (pas de React) pour la même raison que les autres règles de ce fichier :
  * la décision se teste sans monter la coquille.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldResetAttestationLeavingRecap.
-export function shouldShowIdentityWelcome(personsCount: number, isLoading: boolean): boolean {
-  return !isLoading && personsCount === 0
+export function shouldShowIdentityWelcome(
+  personsCount: number,
+  isLoading: boolean,
+  isRevalidating: boolean,
+): boolean {
+  return !isLoading && !isRevalidating && personsCount === 0
 }
 
 /**
@@ -619,7 +633,7 @@ export default function IdentityShell() {
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const {
-    agency, agencyId, persons, isLoading, savePerson, removePerson, revokeUboRole, saveAgency, uploadIdentityDocument, submit,
+    agency, agencyId, persons, isLoading, isRevalidating, savePerson, removePerson, revokeUboRole, saveAgency, uploadIdentityDocument, submit,
   } = useAgencyIdentity()
 
   const [step, setStep] = useState(0)
@@ -639,7 +653,8 @@ export default function IdentityShell() {
   // de données (personsCount) qui fait office de mémoire d'un parcours entamé,
   // cf. shouldShowIdentityWelcome.
   const [welcomeDismissed, setWelcomeDismissed] = useState(false)
-  const showWelcome = !welcomeDismissed && !showExitScreen && shouldShowIdentityWelcome(persons.length, isLoading)
+  const showWelcome = !welcomeDismissed && !showExitScreen
+    && shouldShowIdentityWelcome(persons.length, isLoading, isRevalidating)
 
   // Correctif revue tâche 7, point 1 : réinitialise l'attestation dès qu'on QUITTE le
   // récapitulatif, quel que soit le chemin (goToStep — bouton "Modifier" ET stepper de
