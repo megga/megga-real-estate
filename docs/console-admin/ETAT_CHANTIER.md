@@ -45,7 +45,24 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
 plus de moi : la base de recette pour mesurer le p95, la démo PO, et **14b** (revue KYB en
 lecture), suspendue à la dépendance **P5** — une maquette, pas du code.
 
-**Lot 2 — 1 étape sur 9.** **16 ✅ socle des gestes.** Quatre primitives, aucun bouton
+**Lot 2 — 2 étapes sur 9.** **16 ✅ socle des gestes** · **19 ✅ diagnostic de lien KYC**.
+
+⚠ **Amendement mesuré à l'étape 19 — la régénération ne peut PAS émettre le lien en SQL.**
+Le handoff dit « en émet un nouveau ». Mesuré : le jeton final est un **HMAC-SHA256 signé en
+Edge Function** (`signMagicLinkToken`, secret ≥ 32 car.), et la création se fait en trois
+temps — insert d'un placeholder, signature qui inclut l'UUID de la ligne, update. Aucune
+fonction SQL ne peut produire cette signature ; le secret n'est pas en base et n'a rien à y
+faire. La RPC fait donc ce qu'une transaction peut faire — invalider, journaliser — et dépose
+l'émission dans l'**outbox de l'étape 16**. C'est §10.2 appliqué à une signature plutôt qu'à
+un appel HTTP. La réponse reste celle du handoff : succès + horodatage, jamais le lien.
+
+⚠ **Quatrième argument ajouté à `admin_kyc_link_regenerate`** (`p_idempotency_key`), absent
+du handoff : §10.2 l'impose sur toute RPC mutante. Sans elle, un double-clic invaliderait
+deux fois et déposerait deux demandes — l'agence recevrait deux liens pour un signalement.
+
+⚠ **Le plafond de débit ne s'éprouve qu'avec un vrai super-admin.** Il compte les lignes
+d'`admin_log` où `actor_user_id = auth.uid()` ; sous `service_role`, `auth.uid()` est NULL et
+`colonne = NULL` n'est jamais vrai — le compteur rendrait toujours 0 et le test serait creux. Quatre primitives, aucun bouton
 activé : enveloppe d'erreur §10.1 (`admin_error` / `admin_ok`, vocabulaire FERMÉ de 8 codes),
 verrou advisory par entité (`admin_lock_entity`), idempotence (`rpc_receipts` +
 `admin_receipt_try` / `_seal`), outbox (`outbox_jobs` + `enqueue` / `claim` / `settle`, backoff
@@ -322,6 +339,7 @@ NOTRES="
   20260731280000_admin_console_read_views.sql
   20260731290000_admin_overview.sql
   20260731300000_admin_gestures_socle.sql
+  20260731310000_admin_kyc_diagnostic.sql
 "
 for n in $NOTRES; do
   f="supabase/migrations/$n"
