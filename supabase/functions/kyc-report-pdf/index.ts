@@ -124,6 +124,8 @@ serve(async (req) => {
       actor_id: null,
       actor_kind: 'ai',
       action: 'kyc_report_sent',
+      // `category` manquait — même omission que kyc_screening.
+      category: 'kyc',
       entity_type: 'kyc',
       entity_id: kyc_case_id,
       metadata: { reference, channel: 'whatsapp', profile_id: profile_id ?? null },

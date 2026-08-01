@@ -138,6 +138,9 @@ serve(async (req) => {
           actor_id: null,
           actor_kind: 'system',
           action: 'subscription_activated',
+      // `settings` faute de mieux : le CHECK n'a pas de famille « facturation ». C'est
+      // celle qu'`agency_created` utilise déjà pour les événements de niveau agence.
+      category: 'settings',
           entity_type: 'agency',
           entity_id: agencyId,
           metadata: {
@@ -209,6 +212,7 @@ serve(async (req) => {
           actor_id: null,
           actor_kind: 'system',
           action: 'subscription_changed',
+      category: 'settings',
           entity_type: 'agency',
           entity_id: agencyId,
           metadata: { plan, status, billing_period: getBillingPeriod(priceId) },

@@ -146,6 +146,7 @@ serve(async (req) => {
       agency_id: profile.agency_id,
       actor_id: userId,
       action: 'account_deleted',
+      category: 'auth',
       entity_type: 'profile',
       entity_id: userId,
       metadata: {

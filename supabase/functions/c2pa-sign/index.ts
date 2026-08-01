@@ -210,7 +210,11 @@ serve(async (req: Request) => {
         agency_id: property.agency_id,
         actor_id: null,
         actor_kind: 'system',
+        // ⚠ Clé d'action en français, comme ai-copilot. Non corrigée ici pour la même
+        // raison (contrat), et d'autant moins que le C2PA est hors périmètre MVP
+        // (plan §6, acté le 31 juil.) : cette fonction est dormante.
         action: 'Photos certifiées C2PA',
+        category: 'bien',
         entity_type: 'property',
         entity_id: propertyId,
         metadata: {

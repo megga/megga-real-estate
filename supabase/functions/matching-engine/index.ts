@@ -126,6 +126,18 @@ serve(async (req) => {
             actor_id: null,
             actor_kind: 'ai',
             action: 'match_suggested',
+            // `category` manquait ici, et cette seule omission faisait 95 % des lignes
+            // sans catégorie de toute la table (4 616 sur 4 858, mesuré à l'étape 6) —
+            // ce que la décision PO n° 6 décrivait comme un héritage diffus alors que
+            // c'était UN émetteur. Le passé reste nul (activity_events refuse l'UPDATE),
+            // mais le futur est classé.
+            //
+            // `contact` et non `ai` : un match est suggéré À un contact, c'est sa famille
+            // MÉTIER. Que l'IA en soit l'auteur est déjà porté par `actor_kind`, et le
+            // redire ici ferait de la catégorie `ai` deux choses à la fois. La puce
+            // « Matchs » de l'écran vient du couple category + entity_type (§5.2), et
+            // `entity_type: 'match'` la désigne déjà sans ambiguïté.
+            category: 'contact',
             entity_type: 'match',
             entity_id: m.id,
             metadata: {

@@ -308,6 +308,9 @@ serve(async (req) => {
         actor_id: null,
         actor_kind: 'ai',
         action: 'kyc_screening',
+        // `category` manquait : la ligne sortait donc des puces du Live et des filtres
+        // de la console, alors qu'un screening est précisément ce qu'on veut y retrouver.
+        category: 'kyc',
         entity_type: 'kyc',
         entity_id: kyc_case_id,
         metadata: {

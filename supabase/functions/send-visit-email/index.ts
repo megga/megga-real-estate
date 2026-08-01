@@ -190,6 +190,8 @@ serve(async (req) => {
     await supabaseAdmin.from('activity_events').insert({
       agency_id,
       action: `visit_email_${type}`,
+      // Une visite est une étape de transaction : `deal`, comme stage_change.
+      category: 'deal',
       entity_type: 'visit',
       entity_id: visit_id,
       metadata: { to, subject, email_id: resendData.id },

@@ -212,6 +212,7 @@ serve(async (req) => {
     // Log the report sending
     await supabaseAdmin.from('activity_events').insert({
       action: 'weekly_report_sent',
+      category: 'settings',
       entity_type: 'system',
       entity_id: 'weekly-report',
       metadata: {

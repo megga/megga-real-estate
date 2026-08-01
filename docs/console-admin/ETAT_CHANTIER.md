@@ -37,7 +37,7 @@ production** : 0.1 et 0.3 l'étaient déjà, 0.2 et 0.4 par #1044.
 session · 4 ✅ focus clavier · plus un **balayage de gardes** couvrant les 32 RPC admin.
 Les trois critères de sortie **G0** sont couverts par des tests permanents.
 
-**Lot 1 — 9 étapes sur 11.** 5 ✅ socle §4.2 · 6 ⚠️ partielle · 7 ✅ Stripe · 8 ✅ activation ·
+**Lot 1 — 10 étapes sur 11.** 5 ✅ socle §4.2 · **6 ✅ instrumentation** · 7 ✅ Stripe · 8 ✅ activation ·
 **9 ✅ vues** · **10 ✅ `admin_overview`** · 11 ✅ Live · 12 ✅ crons · 13 ✅ tunnel KYC ·
 **14 ✅ Sécurité (tests écrits)** · **15 ✅ branchement + seed**.
 
@@ -93,7 +93,7 @@ qui le prouve, pas le statut vert.
 | 3 | **Enum `agency_plan`** = `starter\|pro\|agency\|enterprise` quand le catalogue dit `entreprise` → **`22P02` en production** sur toute création d'agence Entreprise | Lot 2 (étape 17) | convertir `agencies.plan` en `text` + CHECK, comme `subscriptions.plan` l'est déjà : supprime le 3ᵉ vocabulaire au lieu d'en ajouter un 4ᵉ. Colonne partagée avec le CRM. |
 | 4 | **Q5 sièges** — divergence **TRIPLE** : `PLANS.team_members` 1/5/∞ · `PLAN_LIMITS.maxAgents` 1/1/10 · `send-team-invite` en dur 1/3/10/50 (**la seule qui s'applique**) | étape 17 | — |
 | 5 | **Périmètre à démonter** — changement de plan et impersonation sont **livrés et branchés** alors que la spec les exclut ; 4 pages (Feature flags, Autonomie, Outils, Styles appris) sont hors carte sans décision écrite | Lot 2 et plan de nettoyage | — |
-| 6 | **`category` NULL sur 95 % d'`activity_events`** — non rattrapable, la table refuse l'UPDATE | étape 6, filtres du Live | chip « non catégorisé », ou filtre limité aux événements postérieurs |
+| ~~6~~ | ~~**`category` NULL sur 95 %**~~ — **REQUALIFIÉE le 01.08** : ce n'était PAS un héritage diffus. 4 616 lignes sur 4 858 venaient d'**un seul émetteur**, `match_suggested` (matching-engine), qui ne posait pas de catégorie. Corrigé, avec 14 autres émetteurs trouvés par garde-fou statique. Le passé reste nul (la table refuse l'UPDATE) : la reco « filtre limité aux événements postérieurs » tient, et devient propre. | ✅ le futur est classé | — |
 | 7 | **Q3 rétention Live 30 j** — un trigger interdit toute suppression < 10 ans (LBA art. 7 al. 3) | — | ce n'est pas un réglage mais un arbitrage de conformité ; le levier réel est la fenêtre d'AFFICHAGE |
 
 ## 5. Amendements de spec à porter
@@ -241,6 +241,14 @@ par la spec — a dû être ajoutée à la main au `SCOPE` de
 [admin-rpc-guard-sweep.spec.ts](../../tests/backend/admin-rpc-guard-sweep.spec.ts). Toute
 future RPC de console au nom non préfixé doit y entrer explicitement, sinon elle est
 protégée sans que rien ne le vérifie.
+
+⚠ **Douzième piège — une fenêtre de test qui déborde rend le test creux.** Le garde-fou
+d'instrumentation cherchait `category` dans les 1 400 caractères suivant un insert. Dans
+`kyc-screening`, deux inserts se suivent de plus près : la catégorie du SECOND satisfaisait
+la fenêtre du PREMIER, et retirer celle du premier laissait le test vert. **Seule la
+mutation l'a montré** — le test passait, sur du code sain comme sur du code cassé. La
+fenêtre s'arrête désormais au prochain émetteur. Corollaire : muter n'est pas optionnel, et
+il faut vérifier que la mutation a bien MODIFIÉ le fichier avant de conclure.
 
 ⚠ **Onzième piège — « ✅ » ne voulait pas dire « éprouvé ».** Les étapes 11 et 13 étaient
 cochées sur des migrations qui s'appliquent, pas sur des fonctions qui répondent :

@@ -307,6 +307,10 @@ serve(async (req) => {
       actor_id: null,
       actor_kind: 'ai',
       action: 'auto_email_sent',
+      // Pas de famille « emails » au CHECK : un courriel automatique est classé par ce
+      // dont il parle — ici un contact. La puce « Emails » de l'écran se dérive du couple
+      // category + entity_type (§5.2), pas de la seule catégorie.
+      category: 'contact',
       entity_type: 'reminder',
       entity_id: reminder_id,
       metadata: {

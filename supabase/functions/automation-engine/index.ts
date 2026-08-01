@@ -193,6 +193,9 @@ serve(async (req) => {
           actor_id: null,
           actor_kind: 'ai',
           action: 'reminder_created',
+      // Même famille que les deux autres émetteurs de `reminder_created`
+      // (copilot-actions, whatsapp-actions) : un rappel porte sur un contact.
+      category: 'contact',
           entity_type: 'reminder',
           entity_id: inserted.id,
           metadata: {

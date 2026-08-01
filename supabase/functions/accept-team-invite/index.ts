@@ -211,6 +211,7 @@ serve(async (req) => {
         agency_id: agency?.id,
         actor_id: user.id,
         action: 'team_invite_accepted',
+      category: 'auth',
         entity_type: 'team',
         entity_id: invitation.id,
         metadata: { email: invitation.email, role: invitation.role },
