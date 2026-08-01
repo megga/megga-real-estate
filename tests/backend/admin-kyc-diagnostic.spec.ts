@@ -155,14 +155,32 @@ describe.skipIf(!HAS_KEYS)('diagnostic d\'un lien KYC (étape 19)', () => {
     //
     // Le lien semé par ce fichier est inséré directement en base : rien ne l'a jamais
     // envoyé. C'est exactement le cas que l'opérateur doit pouvoir constater.
-    const r = await chercher(`Sophie${stamp}`)
-    const m = ((r.data as Row).matches as Row[])[0]
-
-    expect(Object.keys(m), 'la preuve d\'envoi est remise').toContain('email_sent_at')
-    expect(Object.keys(m), '`sent_at` ne dit rien d\'un envoi — il ne doit plus être remis')
+    // ⚠ MESURÉ : `admin_ok` applique `jsonb_strip_nulls`, et c'est RÉCURSIF — une valeur
+    // nulle disparaît jusque dans les objets imbriqués de `matches`. Le contrat du dépôt est
+    // donc « clé absente = null », et `contact`, `email` et `phone` s'y conforment déjà.
+    // On asserte le COMPORTEMENT, pas la forme de la clé : un test qui exigerait
+    // `email_sent_at: null` échouerait sur une enveloppe pourtant correcte.
+    const jamais = ((await chercher(`Sophie${stamp}`)).data as Row).matches as Row[]
+    expect(jamais[0].email_sent_at, 'un lien jamais envoyé ne porte AUCUN horodatage d\'envoi')
+      .toBeFalsy()
+    expect(Object.keys(jamais[0]), '`sent_at` ne dit rien d\'un envoi — il ne doit plus sortir')
       .not.toContain('sent_at')
-    expect(m.email_sent_at, 'un lien jamais envoyé se lit comme tel, et non comme envoyé')
-      .toBeNull()
+
+    // L'autre moitié du contrat, et la seule qui prouve que la colonne est vraiment
+    // projetée : quand un envoi a eu lieu, le diagnostic le REMET. On pose l'horodatage en
+    // base plutôt que d'envoyer un e-mail — Resend n'a pas sa place dans une suite de tests.
+    const svc = serviceRoleClient()
+    const quand = new Date(Date.now() - 3_600_000).toISOString()
+    await svc.from('kyc_magic_links').update({ email_sent_at: quand }).eq('id', linkId)
+    try {
+      const envoye = ((await chercher(`Sophie${stamp}`)).data as Row).matches as Row[]
+      expect(envoye[0].email_sent_at, 'un envoi réel est remis, et daté').toBeTruthy()
+      expect(new Date(String(envoye[0].email_sent_at)).getTime(),
+        'et c\'est bien CET horodatage, pas un autre').toBe(new Date(quand).getTime())
+    } finally {
+      // Remise à l'état semé : les tests suivants partagent ce lien.
+      await svc.from('kyc_magic_links').update({ email_sent_at: null }).eq('id', linkId)
+    }
   })
 
   it('LA NON-FUITE — ni le jeton, ni l\'IP, ni le user-agent, sous AUCUN nom', async () => {

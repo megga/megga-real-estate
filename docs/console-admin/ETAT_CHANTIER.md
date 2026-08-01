@@ -594,13 +594,23 @@ et les contraintes `status`/`published` du changelog.
 Hors périmètre de la revue — ils vivent dans le tunnel KYC agent, pas dans la console — mais
 ils décident de ce que l'étape 19 peut réellement faire. **Aucun n'est corrigé.**
 
-1. **`sent_at` ne veut pas dire « envoyé ».** C'est un `DEFAULT now()` posé à l'INSERT, et
-   **aucun code ne le met jamais à jour** (grep exhaustif sur `supabase/`). Il vaut donc la
-   même chose que Resend ait répondu 200, 502, ou n'ait jamais été appelé. Or
-   `admin_kyc_link_lookup` le rend parmi ses sept champs, et l'étape 19 existe pour répondre
-   à « où en est ce lien ? ». **Le champ censé porter la preuve d'envoi ne distingue pas
-   « envoyé » de « jamais parti ».** Réparer l'outbox ne répare pas ça : c'est le vrai
-   plafond de ce que le diagnostic peut affirmer.
+1. ~~**`sent_at` ne veut pas dire « envoyé ».**~~ **CORRIGÉ le 01.08, migration
+   `20260801400000`.** `sent_at` est un `DEFAULT now()` posé à l'INSERT qu'aucun code ne met
+   jamais à jour : il valait la même chose que Resend ait répondu 200, 502, ou n'ait jamais
+   été appelé. Le champ que le diagnostic remettait comme preuve d'envoi ne distinguait pas
+   « envoyé » de « jamais parti ».
+   **La correction est ADDITIVE, et c'est le point à retenir** : `email_sent_at` (nullable)
+   est écrite par `magic-link-send-email` après le 200 de Resend, et `admin_kyc_link_lookup`
+   la remet à la place de `sent_at` — à nombre de champs constant, pour ne pas élargir ce que
+   la console divulgue.
+   ⚠ **Corriger `sent_at` en place aurait cassé quatre choses**, mesurées avant d'écrire :
+   la contrainte `expires_at > sent_at` ; `get_admin_end_user_stats`, qui filtre
+   `where sent_at >= v_month_start` — une **cohorte mensuelle** qui aurait perdu des lignes
+   SANS erreur, dans une fonction de stats que personne ne recoupe ; et
+   `get_admin_kyc_magic_links` + `kyc_magic_link_summary`, qui la remontent aux écrans.
+   Mesure qui a tout orienté : `sent_at` et `created_at` sont **tous deux**
+   `NOT NULL DEFAULT now()` — doublons à l'insertion. `sent_at` n'apportait aucune
+   information, seulement un nom qui promettait autre chose.
 2. **La spec et le code se contredisent sur le canal.** Le handoff écrit « le lien part en
    WhatsApp / SMS — zéro e-mail » ; le code ne sait envoyer **que** par e-mail (Resend, via
    `magic-link-send-email`). Personne ne lit `'sms'` : la valeur est validée par
