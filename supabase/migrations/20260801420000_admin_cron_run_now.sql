@@ -25,37 +25,20 @@
 -- libellé de la maquette — « Relance demandée — prochain passage 15:12 » — est donc
 -- littéralement exact, et c'est le mot « replay » du plan qui était faux.
 
--- ── Le verrou accepte un jobname ────────────────────────────────────────────────
+-- ── Le verrou, sans surcharge ──────────────────────────────────────────────────
 --
 -- `admin_lock_entity(text, uuid)` exige un uuid, ce qu'un jobname n'a pas — le chantier
 -- avait rangé ça parmi les murs. C'en est un faux : le corps de la fonction fait
--- `hashtext(p_entity_id::text)`, l'uuid est reconverti en texte à la ligne suivante. La
--- surcharge ci-dessous retire la conversion parasite pour toute entité qui n'est pas un
--- uuid, sans rien changer à la sémantique : deux clés distinctes, jamais un hash de
--- concaténation.
-create or replace function public.admin_lock_entity(p_entity_type text, p_entity_id text)
-returns void
-language plpgsql
-set search_path to 'public', 'pg_temp'
-as $$
-begin
-  if p_entity_type is null or p_entity_id is null then
-    raise exception 'verrou d''entité sans cible' using errcode = '22023';
-  end if;
-  perform pg_advisory_xact_lock(hashtext(p_entity_type), hashtext(p_entity_id));
-end;
-$$;
-
-comment on function public.admin_lock_entity(text, text) is
-  'Verrou d''entité §10.2 pour une cible NON-uuid (jobname de cron…). Même sémantique que la surcharge uuid, sans la conversion parasite. ⚠ Passer une VARIABLE TYPÉE en 2e argument : un littéral nu (''abc'') est de type unknown et rend l''appel ambigu entre les deux surcharges (42725).';
-
--- ⚠ `revoke from public` NE RETIRE RIEN ici. Les droits par défaut du projet accordent
--- EXECUTE **nominativement** à anon, authenticated et service_role sur toute fonction
--- créée dans `public` (mesuré : pg_default_acl = {postgres=X,anon=X,authenticated=X,
--- service_role=X}), et PUBLIC n'a même pas d'entrée. Il faut donc nommer `anon`, comme
--- le fait tout le socle. Omettre ce revoke est le footgun déjà payé sur six tables.
-revoke all on function public.admin_lock_entity(text, text) from public, anon;
-grant execute on function public.admin_lock_entity(text, text) to authenticated, service_role;
+-- `hashtext(p_entity_id::text)`, l'uuid est reconverti en texte à la ligne suivante, et
+-- `md5(jobname)::uuid` est stable (mesuré). On dérive donc, et le verrou reste unique.
+--
+-- ⛔ UNE SURCHARGE `(text, text)` A ÉTÉ ESSAYÉE PUIS RETIRÉE. Elle était plus élégante et
+-- elle a cassé la CI : `PGRST203`. Les six appelants SQL passent tous une variable typée,
+-- donc la résolution restait non ambiguë EN SQL — mais PostgREST envoie du JSON SANS
+-- types, si bien que TOUT appel REST à une fonction surchargée devient ambigu. La spec du
+-- socle appelle justement `admin_lock_entity` par REST, et ses deux tests sont tombés.
+-- Leçon : vérifier les appelants SQL ne suffit pas ; le chemin PostgREST est un appelant
+-- à part entière, et il n'a pas les mêmes règles de résolution.
 
 -- ── Quels jobs partent sans confirmation ───────────────────────────────────────
 --
@@ -165,7 +148,8 @@ begin
 
   -- Verrou d'entité AVANT toute lecture d'état (§10.2, amendé : verrou d'entité puis
   -- verrou de chaîne — l'ordre inverse provoquait un interblocage 40P01).
-  perform public.admin_lock_entity('cron_job', p_jobname);
+  -- uuid dérivé du nom : la primitive n'accepte que ce type, et le hachage est stable.
+  perform public.admin_lock_entity('cron_job', md5(p_jobname)::uuid);
 
   -- ⚠ TOUS LES CONTRÔLES PRÉCÈDENT LA RÉSERVATION DE LA CLÉ. Un `return admin_error`
   -- COMMITTE la transaction : si la clé était prise avant, un refus métier la
