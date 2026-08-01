@@ -33,7 +33,10 @@ Thomas et Antoine travaillent en parallèle sur le même dépôt. Méthode reten
 |---|---|---|
 | #1043 | Inventaire du socle (245 ressources mesurées) | **mergée**, déployée |
 | #1044 | Bloquants pré-lancement 0.2 et 0.4 | **mergée**, gardes vérifiées en base ET en comportement |
-| **#1046** | **Lots 0 et 1 complets + Lot 2 à 5/9** | **brouillon**, **14 migrations en attente**, revue de code AVANT merge |
+| #1046 | Lots 0 et 1 complets + Lot 2 à 5/9 | **mergée** le 01.08, **14 migrations re-datées et déployées** |
+| #1049 | Revue du Lot 1 — deux défauts d'affichage juste (Plans, Vue d'ensemble) | **mergée**, déployée |
+| #1050 | Étape 23 — le contrat des gestes devient un balayage | **mergée** |
+| #1051 | Cerveau — les huit gestes hors chaîne, et la méthode | **mergée** |
 
 Les quatre bloquants pré-lancement (dépendance **P6**) sont **fermés et vérifiés en
 production** : 0.1 et 0.3 l'étaient déjà, 0.2 et 0.4 par #1044.
@@ -52,8 +55,26 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
 plus de moi : la base de recette pour mesurer le p95, la démo PO, et **14b** (revue KYB en
 lecture), suspendue à la dépendance **P5** — une maquette, pas du code.
 
-**Lot 2 — 4 étapes sur 9.** **16 ✅ socle des gestes** · **19 ✅ diagnostic de lien KYC** ·
-**20 ✅ relevé IA et dérives** · **21 ✅ changelog « What's new »** · **22 ✅ exports**.
+**Lot 2 — 6 étapes sur 9.** **16 ✅ socle des gestes** · **19 ✅ diagnostic de lien KYC** ·
+**20 ✅ relevé IA et dérives** · **21 ✅ changelog « What's new »** · **22 ✅ exports** ·
+**23 ◑ contrat des gestes** (fait pour les gestes qui existent ; 17/18 restent bloqués).
+
+⚠ **L'étape 23 a trouvé HUIT RPC super-admin qui écrivent hors du registre MEGGA.** Les
+cinq décisions KYB, `set_role`, plan et quotas d'agence journalisent dans `activity_events`
+— l'autre journal, celui des AGENCES : **sans chaîne d'empreintes**, et hors de l'écran
+Sécurité, qui est pourtant la surface faite pour auditer MEGGA. Ce sont exactement les
+gestes que 19b, 18 et la famille 17 promettent de brancher ; elles restent bloquées par des
+décisions PO, donc 23 ne les corrige pas — elle les **nomme dans un cliquet**
+(liste `DETTE` de [admin-gestes-sweep.spec.ts](../../tests/backend/admin-gestes-sweep.spec.ts))
+qui rougit dans les deux sens. **En branchant 17/18/19b : retirer les lignes correspondantes**,
+sinon la CI échoue avec le message qui le dit.
+
+⚠ **Amendement de méthode, §10.7.** La spec dit « tests **par RPC** » ; j'ai livré un
+**balayage**. Le défaut de clé d'idempotence brûlée avait traversé des specs qui testaient
+pourtant l'idempotence — elles éprouvaient le chemin HEUREUX. Une liste écrite à la main
+couvre les objets du jour et laisse le suivant sans filet. Le balayage définit son périmètre
+par une **propriété**, se garde contre le vide, plafonne ses exceptions, et son détecteur est
+**muté avant livraison**.
 
 ⚠ **L'étape 22 a trouvé la décision « aucun CSV » NON APPLIQUÉE.** §5.2 l'acte le 31 juil.
 et le répète deux fois ; les maquettes n'en portent aucun. La console réelle en avait
@@ -280,17 +301,27 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
 9. **Muter un test de garde avant de le livrer.** Un test de ce chantier était creux : son
    motif matchait dans un **commentaire CSS**. Retirer la vraie protection le laissait vert.
 
-## 7. Reprendre — et d'abord, la REVUE DE CODE
+## 7. Reprendre
 
-```bash
-cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/audit-backend-admin-a43be4
-git fetch origin && git rebase origin/main   # main a bougé (PR vitrine de Thomas/Antoine)
-gh pr checks 1046                            # doit être vert 6/6 AVANT de juger le code
-```
+✅ **La revue est passée, #1046 est mergée, les 14 migrations sont déployées.** Cette section
+garde sa valeur de mémoire : elle dit ce que la revue a trouvé, et la procédure §8 reste la
+référence pour la prochaine vague de migrations.
 
-🛑 **La revue passe AVANT le merge** (décidé avec le PO le 01.08). Ne pas re-dater les
-migrations, ne pas sortir du brouillon : le §8 ne s'exécute qu'une fois la revue passée, et
-**le même jour UTC que le merge**.
+**Ce qui est ouvert et ne dépend d'aucune décision PO :**
+
+| Étape | Ce que c'est | Dépend de |
+|---|---|---|
+| **27** | Endpoint agent « What's new » (§5.10) | 21 ✅ |
+| **28** | Gestes d'exploitation (§5.8) | 16 ✅ |
+| **30** | Surveiller le surveillant (§10.9) | 6 ✅ |
+
+Bloquées par les décisions PO 3/4/5 et P4 : **17, 18, 19b**. Par la maquette P5 : **14b**.
+Par P3 : **24, 25, 26**.
+
+**Dette d'après-merge, à solder quand la console sera stabilisée :** régénérer
+`src/types/database.ts` puis retirer les clients castés (`supabase as unknown as
+SupabaseClient`) de `useAdminAgencies`, `useAdminUsers`, `useAdminBilling`, `useChangelog` —
+les RPC du chantier n'étaient pas dans les types générés au moment du branchement.
 
 ### Ce que la revue a rendu (01.08)
 
