@@ -502,6 +502,45 @@ export function shouldResetAttestationLeavingRecap(previousStep: number, nextSte
  * Pur (pas de React) pour la même raison que les autres règles de ce fichier :
  * la décision se teste sans monter la coquille.
  */
+/**
+ * Ce que la route rend, en TROIS états mutuellement exclusifs.
+ *
+ * `welcomeDecision` vaut `null` tant que la question « ce dirigeant a-t-il déjà
+ * saisi quelque chose ? » n'a pas de réponse arrêtée. Elle se pose UNE fois, sur
+ * des données stabilisées, et ne se repose jamais.
+ *
+ * Pourquoi trois états et pas deux : tant qu'on n'a pas décidé, il ne faut rendre
+ * NI l'écran d'arrivée NI la coquille. Rendre la coquille « en attendant » la
+ * faisait remplacer par l'écran d'arrivée une fraction de seconde plus tard —
+ * c'est ce clignotement, et non un mauvais sélecteur, qui a fait tomber la suite
+ * E2E KYB trois fois de suite le 01.08.2026 : elle attrapait un repère qui
+ * disparaissait sous elle. Un écran d'attente neutre ne porte aucun des deux
+ * repères, donc rien à attraper trop tôt.
+ */
+export type IdentityScreen = 'preparing' | 'welcome' | 'wizard'
+
+/**
+ * La question est-elle seulement posable ? Tant qu'une lecture est en cours —
+ * premier chargement (`isLoading`) ou revalidation d'un cache déjà servi
+ * (`isRevalidating`) — la liste des personnes n'est pas un verdict, et trancher
+ * dessus revient à décider sur un état qui va changer.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldShowIdentityWelcome.
+export function shouldDecideIdentityWelcome(isLoading: boolean, isRevalidating: boolean): boolean {
+  return !isLoading && !isRevalidating
+}
+
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldShowIdentityWelcome.
+export function resolveIdentityScreen(
+  welcomeDecision: boolean | null,
+  welcomeDismissed: boolean,
+  showExitScreen: boolean,
+): IdentityScreen {
+  if (welcomeDecision === null) return 'preparing'
+  if (welcomeDecision && !welcomeDismissed && !showExitScreen) return 'welcome'
+  return 'wizard'
+}
+
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldResetAttestationLeavingRecap.
 export function shouldShowIdentityWelcome(
   personsCount: number,
@@ -532,6 +571,41 @@ export function shouldShowIdentityWelcome(
  * la police Mega Custom Icons), et les boutons sont les composants MEGGA X.
  * La feuille est la transcription verbatim de la vitrine, scopée `.megga-x`.
  */
+/**
+ * Écran d'attente, rendu tant que la décision n'est pas prise (cf.
+ * resolveIdentityScreen). Ne porte AUCUN des repères des deux autres écrans —
+ * c'est tout son intérêt : rien ne peut y être attrapé trop tôt, ni par un
+ * utilisateur ni par un test. Même habillage que l'écran d'arrivée, pour que la
+ * bascule ne se voie pas.
+ */
+function IdentityPreparingScreen() {
+  const { t } = useTranslation('onboarding')
+  return (
+    <MeggaX>
+      <div className="page-wrapper full-height-page">
+        <div className="header pd-medium-top-and-bottom">
+          <div className="container-default w-container">
+            <div className="flex-horizontal">
+              <div className="header-logo">
+                <img src="/megga-logo.svg" alt="MEGGA" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <section className="section hero---br pd-top-64px---bottom-108p">
+          <div className="container-default w-container">
+            <div className="inner-container _506px center">
+              <div className="text-center" role="status" aria-live="polite">
+                <p className="paragraph-large">{t('gate.shell.preparing')}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </MeggaX>
+  )
+}
+
 function IdentityWelcomeScreen({ onStart, onLater }: { onStart: () => void; onLater: () => void }) {
   const { t } = useTranslation('onboarding')
   return (
@@ -653,8 +727,16 @@ export default function IdentityShell() {
   // de données (personsCount) qui fait office de mémoire d'un parcours entamé,
   // cf. shouldShowIdentityWelcome.
   const [welcomeDismissed, setWelcomeDismissed] = useState(false)
-  const showWelcome = !welcomeDismissed && !showExitScreen
-    && shouldShowIdentityWelcome(persons.length, isLoading, isRevalidating)
+  // Prise UNE fois, sur des données stabilisées, et jamais reposée : `persons`
+  // repasse par une liste vide à chaque revalidation, et rejuger à chaque rendu
+  // faisait réapparaître l'écran d'arrivée sous les doigts de l'utilisateur.
+  const [welcomeDecision, setWelcomeDecision] = useState<boolean | null>(null)
+  useEffect(() => {
+    if (welcomeDecision !== null) return
+    if (!shouldDecideIdentityWelcome(isLoading, isRevalidating)) return
+    setWelcomeDecision(shouldShowIdentityWelcome(persons.length, isLoading, isRevalidating))
+  }, [welcomeDecision, isLoading, isRevalidating, persons.length])
+  const ecran = resolveIdentityScreen(welcomeDecision, welcomeDismissed, showExitScreen)
 
   // Correctif revue tâche 7, point 1 : réinitialise l'attestation dès qu'on QUITTE le
   // récapitulatif, quel que soit le chemin (goToStep — bouton "Modifier" ET stepper de
@@ -1038,7 +1120,8 @@ export default function IdentityShell() {
   // ni fond Sugar. Il porte la peau de la vitrine (cf. son en-tête), et la bascule
   // vers Sugar se fait au clic sur Commencer. Placé APRÈS tous les hooks — un
   // retour anticipé au-dessus d'eux changerait leur ordre d'un rendu à l'autre.
-  if (showWelcome) {
+  if (ecran === 'preparing') return <IdentityPreparingScreen />
+  if (ecran === 'welcome') {
     return (
       <IdentityWelcomeScreen
         onStart={() => setWelcomeDismissed(true)}
