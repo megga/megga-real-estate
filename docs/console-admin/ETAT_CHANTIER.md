@@ -154,7 +154,7 @@ Livrées : `agency_mrr` (+ sa règle pure `agency_mrr_rule`), `get_admin_agencie
 `get_admin_agency_detail`, `get_admin_users`, `get_admin_user_activity`,
 `get_admin_plans_board`.
 
-⚠ **Une erreur de l'étape 9, corrigée à l'étape 10** : le commentaire de `20260731280000`
+⚠ **Une erreur de l'étape 9, corrigée à l'étape 10** : le commentaire de `20260801280000`
 citait `get_admin_ops_health_rpcs()` comme source de « fonctions en erreur ». **Cette
 fonction n'existe pas** — ni en base, ni dans le dépôt. Le nom vient du plan, qui désigne
 ainsi `20260705172000`, laquelle a en réalité créé `get_admin_syndication_health`,
@@ -190,7 +190,7 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
 
 | # | Décision | Ce qu'elle bloque | Reco |
 |---|---|---|---|
-| ~~1~~ | ~~Support de la note d'agence~~ — **TRANCHÉE le 31.07** : table `admin_agency_notes` (migration `20260731270000`). ⚠ **Pas** une colonne `agencies.admin_note` comme d'abord recommandé : `agencies_members_select` donne à chaque membre la lecture de toute sa ligne, avec un GRANT de table, et un REVOKE de colonne ne protégerait rien (défaut mesuré sur `verification_*`). La note aurait été lue par l'agence. | ✅ débloquée | — |
+| ~~1~~ | ~~Support de la note d'agence~~ — **TRANCHÉE le 31.07** : table `admin_agency_notes` (migration `20260801270000`). ⚠ **Pas** une colonne `agencies.admin_note` comme d'abord recommandé : `agencies_members_select` donne à chaque membre la lecture de toute sa ligne, avec un GRANT de table, et un REVOKE de colonne ne protégerait rien (défaut mesuré sur `verification_*`). La note aurait été lue par l'agence. | ✅ débloquée | — |
 | ~~2~~ | ~~Accès du super-admin aux invitations~~ — **TRANCHÉE le 31.07** : RPC `get_admin_agency_invitations(agency_id, limit)`, gardée, qui sert la fiche agence (argument fourni) ET le registre Utilisateurs (argument NULL). Ne rend jamais le `token`. | ✅ débloquée | — |
 | 3 | **Enum `agency_plan`** = `starter\|pro\|agency\|enterprise` quand le catalogue dit `entreprise` → **`22P02` en production** sur toute création d'agence Entreprise | Lot 2 (étape 17) | convertir `agencies.plan` en `text` + CHECK, comme `subscriptions.plan` l'est déjà : supprime le 3ᵉ vocabulaire au lieu d'en ajouter un 4ᵉ. Colonne partagée avec le CRM. |
 | 4 | **Q5 sièges** — divergence **TRIPLE** : `PLANS.team_members` 1/5/∞ · `PLAN_LIMITS.maxAgents` 1/1/10 · `send-team-invite` en dur 1/3/10/50 (**la seule qui s'applique**) | étape 17 | — |
@@ -440,6 +440,16 @@ une colonne majoritairement nulle.
 
 ## 8. Re-dater les migrations le jour du merge — procédure
 
+> ✅ **EXÉCUTÉ le 01.08.2026** (08h05 UTC) : les 14 migrations sont passées de `20260731*`
+> à `20260801*`, `main` était à 0 de retard et ne portait aucune migration du 01.08, donc
+> aucune collision de stamp. Les références par numéro dans `tests/` et dans ce document ont
+> suivi — les trois migrations du 31 **déjà mergées** (`190000`, `200000`, `210000`) n'ont
+> pas été touchées, c'est exactement pourquoi la liste est nommée et jamais un glob.
+> La procédure ci-dessous reste le mode d'emploi si un rebase impose de recommencer.
+>
+> ⚠ **Le re-datage n'est valable que pour un merge le 1ᵉʳ août UTC** (l'UTC bascule à 02h00
+> heure suisse). Merge reporté au lendemain = tout re-dater.
+
 **Pourquoi.** `deploy.yml` (lignes 108-160) n'applique que les migrations dont l'horodatage
 est `>= TODAY` en **UTC**, et ne signale un saut que par un `::warning::`, jamais par un
 échec. Une migration datée du 31.07 mergée le 01.08 est donc **sautée définitivement** :
@@ -468,20 +478,20 @@ git fetch origin && git rebase origin/main
 # même jour — main en portait déjà une à 20260731210000, ce qui a forcé le décalage d'admin_log
 # à 210500. Un glob emporterait leurs fichiers.
 NOTRES="
-  20260731210500_admin_log.sql
-  20260731220000_admin_console_session.sql
-  20260731230000_admin_console_lot1_socle.sql
-  20260731240000_admin_live_and_kyc_funnel.sql
-  20260731250000_activation_and_cron_runs.sql
-  20260731260000_admin_security_read.sql
-  20260731270000_admin_agency_note_and_invitations.sql
-  20260731280000_admin_console_read_views.sql
-  20260731290000_admin_overview.sql
-  20260731300000_admin_gestures_socle.sql
-  20260731310000_admin_kyc_diagnostic.sql
-  20260731320000_admin_ai_month_and_drift.sql
-  20260731330000_admin_changelog_workflow.sql
-  20260731340000_admin_log_export.sql
+  20260801210500_admin_log.sql
+  20260801220000_admin_console_session.sql
+  20260801230000_admin_console_lot1_socle.sql
+  20260801240000_admin_live_and_kyc_funnel.sql
+  20260801250000_activation_and_cron_runs.sql
+  20260801260000_admin_security_read.sql
+  20260801270000_admin_agency_note_and_invitations.sql
+  20260801280000_admin_console_read_views.sql
+  20260801290000_admin_overview.sql
+  20260801300000_admin_gestures_socle.sql
+  20260801310000_admin_kyc_diagnostic.sql
+  20260801320000_admin_ai_month_and_drift.sql
+  20260801330000_admin_changelog_workflow.sql
+  20260801340000_admin_log_export.sql
 "
 for n in $NOTRES; do
   f="supabase/migrations/$n"

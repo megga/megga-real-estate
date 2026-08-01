@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — note interne d'agence et lecture des invitations
-// (migration 20260731270000, débloque l'étape 9, spec §5.3/§5.4/§4.3).
+// (migration 20260801270000, débloque l'étape 9, spec §5.3/§5.4/§4.3).
 //
 // Le test qui compte le plus ici est celui de la NON-FUITE : la note est interne à la
 // plateforme, et la raison pour laquelle elle ne vit pas sur `agencies` est que cette

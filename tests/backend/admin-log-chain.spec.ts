@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — registre `admin_log` : chaîne de hash, append-only,
-// privilèges (migration 20260731210500_admin_log.sql, étape 2 du plan, spec §4.2/§5.9/§10.2).
+// privilèges (migration 20260801210500_admin_log.sql, étape 2 du plan, spec §4.2/§5.9/§10.2).
 //
 // Ce fichier porte le critère de sortie G0 du plan : « ligne altérée en SQL brut → la
 // vérification échoue ». Il porte aussi son pendant, plus important encore : la vérification

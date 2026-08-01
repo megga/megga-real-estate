@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — `admin_overview()`, la vue d'ensemble en un fetch
-// (migration 20260731290000, étape 10 du plan, spec §5.1).
+// (migration 20260801290000, étape 10 du plan, spec §5.1).
 //
 // Ce que ce fichier cherche à faire échouer, par ordre d'importance :
 //

@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — l'écran Sécurité en lecture
-// (migration 20260731260000, étape 14 du plan, spec §5.9, §7, §10.4, §10.5).
+// (migration 20260801260000, étape 14 du plan, spec §5.9, §7, §10.4, §10.5).
 //
 // Écrite APRÈS coup : la migration est livrée depuis le 31.07, ses tests ne l'étaient pas.
 // L'étape 10 a montré ce que ça coûte — `get_admin_kyc_funnel_30d`, cochée ✅ sans qu'aucune

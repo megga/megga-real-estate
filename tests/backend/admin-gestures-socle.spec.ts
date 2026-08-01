@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — le socle des GESTES du Lot 2
-// (migration 20260731300000, étape 16, spec §10.1 et §10.2).
+// (migration 20260801300000, étape 16, spec §10.1 et §10.2).
 //
 // Ce fichier n'éprouve aucun geste : il éprouve les quatre primitives sur lesquelles ils
 // reposeront tous. Un défaut ici se paierait sur chacun d'eux.

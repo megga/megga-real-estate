@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — les « vues » de lecture de la console
-// (migration 20260731280000, étape 9 du plan, spec §4.3/§5.1/§5.3/§5.4/§5.7).
+// (migration 20260801280000, étape 9 du plan, spec §4.3/§5.1/§5.3/§5.4/§5.7).
 //
 // Ce que ce fichier cherche à faire échouer, par ordre d'importance :
 //

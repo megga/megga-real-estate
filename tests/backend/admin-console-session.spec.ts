@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — entrée console dans les deux journaux, et verdict
-// d'accès (migration 20260731220000_admin_console_session.sql, étape 3, spec §1/§5.9/§6/§10.3).
+// d'accès (migration 20260801220000_admin_console_session.sql, étape 3, spec §1/§5.9/§6/§10.3).
 //
 // Ce fichier porte le second critère de sortie G0 du plan : « une entrée console apparaît
 // dans admin_log avec hash chaîné ». Il vérifie aussi la double écriture — l'ancien journal

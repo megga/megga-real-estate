@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — relevé IA mensuel et dérives
-// (migration 20260731320000, étape 20, spec §5.11).
+// (migration 20260801320000, étape 20, spec §5.11).
 //
 // Ce que ce fichier cherche à faire échouer :
 //

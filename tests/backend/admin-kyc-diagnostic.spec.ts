@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — diagnostic d'un lien KYC
-// (migration 20260731310000, étape 19, spec §5.5 et HANDOFF_KYC_DIAGNOSTIC.md).
+// (migration 20260801310000, étape 19, spec §5.5 et HANDOFF_KYC_DIAGNOSTIC.md).
 //
 // Le handoff ouvre par : « les contraintes ci-dessous ne sont pas des détails d'UI, elles
 // définissent ce que la plateforme a le droit de VOIR des clients finaux d'une agence ».

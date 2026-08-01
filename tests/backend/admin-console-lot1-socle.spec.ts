@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — socle de lecture du Lot 1
-// (migration 20260731230000, étape 5, spec §4.2/§4.3/§5.7/§10.6).
+// (migration 20260801230000, étape 5, spec §4.2/§4.3/§5.7/§10.6).
 //
 // L'essentiel de l'étape 5 est ce qu'elle NE crée PAS : §4.2 annonce onze objets, l'inventaire
 // en a ramené six, ce fichier n'en pose qu'un. Les tests portent donc autant sur les absences

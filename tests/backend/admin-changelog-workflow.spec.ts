@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — le changelog « What's new »
-// (migration 20260731330000, étape 21, spec §5.10).
+// (migration 20260801330000, étape 21, spec §5.10).
 //
 // Ce que ce fichier cherche à faire échouer :
 //

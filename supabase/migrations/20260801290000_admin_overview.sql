@@ -21,7 +21,7 @@
 -- `get_admin_ops_health_rpcs()` comme source de « fonctions en erreur ». Mesuré ici :
 -- CETTE FONCTION N'EXISTE PAS — ni en base, ni dans le dépôt. La migration 20260705172000,
 -- que le plan désigne comme « ops health », a en réalité créé get_admin_syndication_health,
--- get_admin_whatsapp_health et get_admin_ai_costs. Le commentaire de 20260731280000 a été
+-- get_admin_whatsapp_health et get_admin_ai_costs. Le commentaire de 20260801280000 a été
 -- rectifié sur place : elle n'est ni mergée ni déployée, et la règle du dépôt n'interdit la
 -- reprise que d'une migration DÉJÀ en production.
 --

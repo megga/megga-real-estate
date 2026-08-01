@@ -10,7 +10,7 @@
 --   `admin_log_export` du Lot 2, pas à une étape de lecture.
 -- · L'enrichissement d'anomalie de session (« 187 entrées depuis cette IP », « IP jamais
 --   vue »). `metadata` est FIGÉ dans le hash à l'insert : ce calcul appartient au GESTE,
---   pas à sa lecture. Il faudra amender 20260731220000, qui pose aujourd'hui `info` en dur.
+--   pas à sa lecture. Il faudra amender 20260801220000, qui pose aujourd'hui `info` en dur.
 --   Tant que ce n'est pas fait, aucune ligne `crit` de famille `session` ne peut exister.
 -- · Le libellé français de `action`. Doublement muré : le commentaire de colonne interdit le
 --   français en base, et `lint:prose` interdit le tiret cadratin dans `src/i18n/locales/**`

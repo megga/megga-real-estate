@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — activation des agences et historique des crons
-// (migration 20260731250000, étapes 8 et 12, spec §4.2/§5.1/§5.3/§5.8/§7).
+// (migration 20260801250000, étapes 8 et 12, spec §4.2/§5.1/§5.3/§5.8/§7).
 //
 // Deux propriétés comptent plus que les valeurs elles-mêmes :
 //   · le calcul d'activation ABSORBE get_onboarding_milestones() sans la doubler — mêmes

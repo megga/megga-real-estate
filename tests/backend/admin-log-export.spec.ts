@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — extrait signé du registre console
-// (migration 20260731340000, étape 22, spec §5.9).
+// (migration 20260801340000, étape 22, spec §5.9).
 //
 // Ce que ce fichier cherche à faire échouer :
 //
