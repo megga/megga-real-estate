@@ -577,11 +577,31 @@ et les contraintes `status`/`published` du changelog.
   lien compromis à tuer, et « invalider » n'y apparaît qu'une fois, comme conséquence de la
   réémission. Sous ce scénario, expirer sans remplacer est le pire des trois états.
   ⚠ **Le worker d'outbox reste à bâtir** — la réémission est donc EN ATTENTE, mais plus rien
-  n'est détruit et plus rien de faux n'est scellé. Mesuré : le worker coûte bien moins cher
-  qu'estimé, `executeSendKycLink` (`_shared/whatsapp-actions.ts`) frappant déjà un jeton et
-  créant une ligne **en service-role, hors UI** — c'est le patron d'un consommateur. Le vrai
-  travail est d'extraire en helper partagé le doublon (deux copies identiques de la séquence
-  insert-placeholder → signer → update existent).
+  n'est détruit et plus rien de faux n'est scellé.
+  ⚠ **Correction d'une estimation trop rapide (01.08)** : j'avais écrit que le worker
+  « coûte bien moins cher qu'estimé » parce que `executeSendKycLink` frappe déjà un jeton en
+  service-role. C'est vrai de la MÉCANIQUE et faux du travail : **le worker est bloqué par
+  une décision, pas par un coût.** Le préflight a lu les 25 fichiers du corpus — « remettre
+  le lien à l'agence » n'est défini NULLE PART. La spec ne dit que ce que ce n'est pas :
+  pas d'envoi au client par la plateforme, pas de jeton ni d'URL dans la réponse, pas
+  d'envoi sortant depuis la console, et rien de conservé côté console à la fermeture de la
+  modale — ce qui ferme aussi la console comme lieu de dépôt. **Trois lieux interdits, aucun
+  désigné** ; aucun destinataire (ni `agencies.email`, ni `created_by`, ni MLRO : zéro
+  occurrence), aucun canal. La maquette annonce la remise comme un fait accompli sans dire
+  par quel mécanisme.
+  📊 **Mesure qui rend la décision tranchable** : **9 agences actives sur 10 n'ont AUCUN
+  e-mail**, alors que **7 profils sur 7** en ont un. Une remise par `agencies.email`
+  échouerait donc pour 90 % des agences.
+  ✅ **Précédent le plus proche, à reprendre tel quel** : `agency-verification-notify` écrit
+  aux profils `admin`/`manager` de l'agence, **replie sur `agencies.email`**, et journalise
+  un `..._undeliverable` quand personne n'est joignable — plutôt que de laisser l'envoi
+  disparaître.
+  ✅ **Livré en attendant (règle 11 d'`admin-alerts.ts`)** : l'absence de consommateur cesse
+  d'être SILENCIEUSE. `outbox:stuck` (jobs dus depuis > 6 h que personne n'a pris) et
+  `outbox:dead` (le socle promettait qu'ils remontent au Monitoring ; rien ne les y
+  remontait). Sans `count: 'exact'` — interdit par §7 de CLAUDE.md sur une table qui peut
+  grossir, et une file sans consommateur est celle-là — et filtré sur `next_retry_at`, la
+  colonne de l'index partiel, qui dit « dû depuis ».
 - **Le plafond 3 compte des LIENS, pas des personnes.** Un contact portant 4 liens déclenche
   `too_many`, alors que la justification du plafond est de ne pas nommer de **personnes**.
   C'est le cas d'usage central qui saute : une cliente qui n'a jamais reçu son lien est
