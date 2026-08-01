@@ -234,6 +234,55 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
     })
   }
 
+  // 10. Chaîne d'empreintes du registre console rompue (§10.9).
+  //
+  // C'est l'événement le PLUS grave que la console sache détecter : il dit que le journal
+  // de ce que fait MEGGA a été touché. Il était pourtant le seul à n'être notifié à
+  // personne — `admin_log_chain_verify_job` écrit une ligne `crit` toutes les heures, et ce
+  // module ignorait `admin_log`. Écrit, jamais lu.
+  //
+  // On LIT le bilan publié par le job horaire, on ne recalcule PAS. Rappeler
+  // `admin_log_verify_chain()` ici referait un SHA-256 par ligne sur TOUT le registre, une
+  // seconde fois par heure : on doublerait le coût de l'opération périodique la plus chère
+  // du système, et ce coût croît avec la rétention (dix ans au titre de la LBA).
+  //
+  // `app_config` est aussi la seule porte praticable : `service_role` n'a délibérément PAS
+  // de SELECT sur `admin_log` (posture asservie par un test), et un `.from('admin_log')`
+  // rendrait `null` SANS erreur — la règle serait muette et personne ne le saurait.
+  //
+  // Péremption : inutile de la gérer ici. Si le cron cesse de tourner, la règle 1 le signale
+  // déjà, générique sur tout job pg_cron en retard.
+  //
+  // AUCUN SEUIL : une chaîne est intacte ou ne l'est pas. Ajouter un seuil obligerait à
+  // toucher AlertThresholds et DEFAULT_THRESHOLDS pour une grandeur binaire.
+  try {
+    const chain = await readJsonConfig<{
+      status?: string
+      alarme?: boolean
+      attendu?: number
+      rows_checked?: number
+      break_at?: number | null
+      checked_at?: string
+    }>(admin, 'admin_log_chain_health')
+
+    if (chain?.alarme === true) {
+      // Le job a déjà tranché le cas ambigu — « rien à vérifier » n'est pas « quelqu'un a
+      // touché au registre ». On se contente de distinguer les deux messages.
+      const efface = chain.status === 'no_rows'
+      alerts.push({
+        key: 'admin_log:chain',
+        subject: efface
+          ? 'Registre console VIDÉ — chaîne d\'empreintes'
+          : 'Registre console : chaîne d\'empreintes ROMPUE',
+        body: efface
+          ? `Le registre admin_log ne rend plus aucune ligne alors que sa tête en annonce ${chain.attendu ?? '?'}. Un effacement est la seule explication : le journal de ce que fait MEGGA n'est plus fiable. Ne pas écrire dedans avant constat. Vérification du ${chain.checked_at ?? '?'}. Voir /dashboard/admin/security.`
+          : `La vérification de la chaîne d'empreintes échoue à la ligne seq=${chain.break_at ?? '?'} (${chain.rows_checked ?? 0} lignes relues, vérification du ${chain.checked_at ?? '?'}). Une ligne du registre a été modifiée après coup, ou son hash ne correspond plus. Voir /dashboard/admin/security.`,
+      })
+    }
+  } catch (e) {
+    console.error('[admin-alerts] chain health read failed:', (e as Error)?.message)
+  }
+
   if (alerts.length === 0) return
 
   // Dédup 24h par clé d'alerte.

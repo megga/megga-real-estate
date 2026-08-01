@@ -338,6 +338,41 @@ describe.skipIf(!HAS_KEYS)('admin_log — registre chaîné append-only (étape 
     expect(row?.severity, 'et elle n\'est pas critique').toBe('info')
   })
 
+  it('LE JOB PUBLIE SON VERDICT — sinon l\'alerte devrait tout recalculer', async () => {
+    // La règle 10 d'`admin-alerts.ts` notifie une rupture de chaîne. Elle LIT ce bilan au
+    // lieu de rappeler la vérification, pour deux raisons qui tiennent toutes les deux à
+    // des mesures :
+    //
+    // 1. LE COÛT. Rappeler admin_log_verify_chain() referait un SHA-256 par ligne sur TOUT
+    //    le registre, une seconde fois par heure — on doublerait l'opération périodique la
+    //    plus chère du système, et ce coût croît avec la rétention (dix ans, LBA).
+    // 2. LE DROIT. `service_role` n'a délibérément PAS de SELECT sur admin_log (posture
+    //    asservie par le test voisin), et `rolbypassrls` ne contourne pas un GRANT : une
+    //    lecture refusée rendrait `null` SANS erreur. Une alerte de sécurité qui se tait
+    //    est pire que pas d'alerte du tout — d'où le passage par app_config, que
+    //    service_role peut lire.
+    //
+    // Ce test tient donc le CONTRAT entre les deux moitiés : les champs que la règle
+    // consomme (`alarme` pour décider, `status` pour choisir le message, `attendu` et
+    // `checked_at` pour le corps) doivent exister et être exploitables.
+    execSql('select public.admin_log_chain_verify_job();')
+
+    const { data, error } = await serviceRoleClient()
+      .from('app_config').select('value').eq('key', 'admin_log_chain_health').maybeSingle()
+    expect(error, 'service_role doit pouvoir lire le bilan').toBeNull()
+    expect(data?.value, 'le job publie un bilan').toBeTruthy()
+
+    const bilan = JSON.parse(String(data!.value)) as Record<string, unknown>
+    expect(typeof bilan.alarme, '`alarme` pilote la décision de la règle').toBe('boolean')
+    expect(typeof bilan.status, '`status` choisit le message').toBe('string')
+    expect(Number(bilan.attendu), '`attendu` sépare « registre neuf » d\'« effacé »').not.toBeNaN()
+    expect(bilan.checked_at, 'le bilan se date, sinon on ne sait pas s\'il est frais').toBeTruthy()
+
+    // En CI le registre est non vide et intact : pas d'alarme. C'est aussi ce qui garantit
+    // que la suite n'envoie pas d'alerte pour rien.
+    expect(bilan.alarme, 'une chaîne saine ne déclenche AUCUNE alerte').toBe(false)
+  })
+
   it('UN REGISTRE VIDE N\'EST PAS UNE RUPTURE — sauf s\'il attendait des lignes', () => {
     // MESURÉ EN PRODUCTION : `admin_log` porte 7 lignes de contrôle, dont exactement une en
     // `crit` — la PREMIÈRE, écrite quand le registre était encore vide
