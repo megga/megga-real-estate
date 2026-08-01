@@ -23,6 +23,7 @@ import {
   identitySubmissionErrorStep,
   canSubmitIdentity,
   shouldResetAttestationLeavingRecap,
+  shouldShowIdentityWelcome,
   EMPTY_SIGNATAIRE_DRAFT,
   EMPTY_AGENCY_DRAFT,
   EMPTY_BENEFICIAIRE_DRAFT,
@@ -573,5 +574,29 @@ describe('shouldResetAttestationLeavingRecap — un seul point de reset de l\'at
 
     expect(step, 'de retour au récapitulatif').toBe(4)
     expect(attestationChecked, 'jamais remise à true automatiquement : l\'utilisateur doit la recocher').toBe(false)
+  })
+})
+
+// Écran d'arrivée (1er août 2026). Le wizard s'ouvrait droit sur « Signataire » :
+// un dirigeant qui venait d'activer son compte se voyait réclamer son identité
+// sans savoir pourquoi ni pour combien de temps. La règle décide qui voit
+// l'explication, et surtout qui ne la revoit pas.
+describe('shouldShowIdentityWelcome - qui voit l\'écran d\'arrivée', () => {
+  it('rien n\'a jamais été validé -> on explique avant de demander', () => {
+    expect(shouldShowIdentityWelcome(0, false)).toBe(true)
+  })
+
+  it('une personne déjà enregistrée -> saisie entamée, on reprend où on en était', () => {
+    expect(shouldShowIdentityWelcome(1, false)).toBe(false)
+    expect(shouldShowIdentityWelcome(3, false)).toBe(false)
+  })
+
+  it('lecture en cours -> ni l\'écran d\'arrivée ni le wizard, la coquille tient son spinner', () => {
+    // Sans cette garde, le compte de personnes vaut 0 le temps de la requête :
+    // un dirigeant qui a déjà tout saisi verrait l\'écran de bienvenue clignoter
+    // avant que ses données n\'arrivent - la même classe de faux positif que le
+    // flash du CRM corrigé le même jour dans AgentSugarLayout.
+    expect(shouldShowIdentityWelcome(0, true)).toBe(false)
+    expect(shouldShowIdentityWelcome(2, true)).toBe(false)
   })
 })
