@@ -45,6 +45,16 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
 plus de moi : la base de recette pour mesurer le p95, la démo PO, et **14b** (revue KYB en
 lecture), suspendue à la dépendance **P5** — une maquette, pas du code.
 
+**Lot 2 — 1 étape sur 9.** **16 ✅ socle des gestes.** Quatre primitives, aucun bouton
+activé : enveloppe d'erreur §10.1 (`admin_error` / `admin_ok`, vocabulaire FERMÉ de 8 codes),
+verrou advisory par entité (`admin_lock_entity`), idempotence (`rpc_receipts` +
+`admin_receipt_try` / `_seal`), outbox (`outbox_jobs` + `enqueue` / `claim` / `settle`, backoff
+exponentiel borné et dead-letter). 15 tests.
+
+Les étapes 17, 18 et 19b restent **bloquées par les décisions PO n° 3, 4, 5 et P4**. Sont
+faisables sans elles : **19** (KYC, dépend de 16), **20** (copilote, RPC existantes),
+**21** (changelog), **22** (exports).
+
 **L'étape 9 a surtout consisté à NE PAS créer.** §4.3 énumère douze vues ; six seulement
 manquaient. `v_admin_kpis` n'a pas été créée — `get_admin_dashboard_stats()` rend déjà, en
 production, les sept champs d'`ADMIN_KPIS` et rien d'autre, correspondance 1:1 avec la
@@ -287,6 +297,12 @@ la date. C'est une corvée au moment du merge.
 **Quand.** Dès que le jour UTC du merge diffère du jour d'écriture. Vérifier :
 `date -u +%Y-%m-%d`.
 
+> 🔴 **UTC A BASCULÉ AU 1ᵉʳ AOÛT 2026 pendant la session.** Les **dix** migrations de la
+> liste ci-dessous sont datées `20260731` : elles sont **déjà périmées**. Mergées telles
+> quelles, `deploy.yml` les saute **définitivement** — le dépôt reste vert, la CI reste
+> verte, et le schéma n'existe pas en production. Le re-datage n'est plus une précaution,
+> c'est un prérequis du merge.
+
 ```bash
 cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/audit-backend-admin-a43be4
 git fetch origin && git rebase origin/main
@@ -305,6 +321,7 @@ NOTRES="
   20260731270000_admin_agency_note_and_invitations.sql
   20260731280000_admin_console_read_views.sql
   20260731290000_admin_overview.sql
+  20260731300000_admin_gestures_socle.sql
 "
 for n in $NOTRES; do
   f="supabase/migrations/$n"
