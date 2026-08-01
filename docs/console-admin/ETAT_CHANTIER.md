@@ -311,6 +311,23 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
 8. **`greatest()` seul est un plancher**, jamais un plafond.
 9. **Muter un test de garde avant de le livrer.** Un test de ce chantier était creux : son
    motif matchait dans un **commentaire CSS**. Retirer la vraie protection le laissait vert.
+10. **Le piège 9 a une variante SQL, et elle est PIRE — elle se déclenche au moment du
+    correctif.** Un contrôle statique sur `prosrc` (position de deux motifs, présence d'un
+    appel) lit aussi les **commentaires** de la fonction. Or un bon correctif DÉCRIT le
+    défaut qu'il répare, en haut de la fonction, avec les mots du défaut. Mesuré sur
+    `admin_log_export` : « le compte et `jsonb_agg` vivaient dans le même select » plaçait
+    `jsonb_agg` en position 1062 contre 1159 pour le plafond — le test rougissait sur la
+    fonction CORRIGÉE. Parade : `regexp_replace(prosrc, '--[^\n]*', '', 'g')` avant toute
+    recherche. Une porte statique doit lire ce qui s'**exécute**, pas ce qui s'**explique**.
+11. **Faire journaliser une fonction la fait ENTRER dans le contrat des gestes.** Le
+    périmètre `GESTES` se définit par « SECURITY DEFINER qui écrit au registre ». Ajouter
+    `admin_log_write` à `changelog_publish_due` — correction juste — l'y a fait entrer, où
+    il violait l'enveloppe §10.1 (il rend un `integer` à pg_cron, pas un `jsonb` à un
+    écran) : **deux tests cassés d'un coup**, dont le plafond d'exceptions. Réflexe : quand
+    on branche la journalisation sur une fonction, vérifier ce que le balayage va lui
+    imposer. Ici le périmètre a gagné `has_function_privilege('authenticated', …)` — les
+    contrats balayés décrivent ce que la CONSOLE appelle, et un cron n'a pas d'écran à qui
+    rendre une enveloppe. Une PROPRIÉTÉ, jamais une exemption nommée.
 
 ## 7. Reprendre
 
