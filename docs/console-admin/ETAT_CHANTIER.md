@@ -1,9 +1,13 @@
 # Console MEGGA · backend — état du chantier et reprise
 
-> **31 juillet 2026, 20h45 UTC.** Document de reprise : tout ce qu'il faut pour continuer
-> sans relire la conversation. Branche : `claude/console-admin-admin-log`, PR **#1046**
-> (brouillon, base `main`). Spec : `docs/handoff/console-admin/` · Inventaire du socle :
-> [INVENTAIRE_SOCLE.md](INVENTAIRE_SOCLE.md).
+> **1ᵉʳ août 2026.** Document de reprise : tout ce qu'il faut pour continuer sans relire la
+> conversation. Branche : `claude/console-admin-admin-log`, PR **#1046** (brouillon, base
+> `main`, 46 commits, CI complète verte). Spec : `docs/handoff/console-admin/` · Inventaire
+> du socle : [INVENTAIRE_SOCLE.md](INVENTAIRE_SOCLE.md).
+>
+> 🛑 **PROCHAINE ACTION = REVUE DE CODE, PAS LE MERGE** (décidé avec le PO le 01.08). Ne pas
+> re-dater, ne pas sortir du brouillon, ne pas merger tant que la revue n'a pas eu lieu. Ce
+> qu'elle doit regarder en priorité est au **§7**.
 
 ## 1. Comment on travaille (décidé avec le PO)
 
@@ -26,7 +30,7 @@ Thomas et Antoine travaillent en parallèle sur le même dépôt. Méthode reten
 |---|---|---|
 | #1043 | Inventaire du socle (245 ressources mesurées) | **mergée**, déployée |
 | #1044 | Bloquants pré-lancement 0.2 et 0.4 | **mergée**, gardes vérifiées en base ET en comportement |
-| **#1046** | **Lot 0 complet + Lot 1 partiel** | **brouillon**, 7 migrations en attente |
+| **#1046** | **Lots 0 et 1 complets + Lot 2 à 5/9** | **brouillon**, **14 migrations en attente**, revue de code AVANT merge |
 
 Les quatre bloquants pré-lancement (dépendance **P6**) sont **fermés et vérifiés en
 production** : 0.1 et 0.3 l'étaient déjà, 0.2 et 0.4 par #1044.
@@ -273,12 +277,47 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
 9. **Muter un test de garde avant de le livrer.** Un test de ce chantier était creux : son
    motif matchait dans un **commentaire CSS**. Retirer la vraie protection le laissait vert.
 
-## 7. Reprendre
+## 7. Reprendre — et d'abord, la REVUE DE CODE
 
 ```bash
 cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/audit-backend-admin-a43be4
 git fetch origin && git rebase origin/main   # main a bougé (PR vitrine de Thomas/Antoine)
+gh pr checks 1046                            # doit être vert 6/6 AVANT de juger le code
 ```
+
+🛑 **La revue passe AVANT le merge** (décidé avec le PO le 01.08). Ne pas re-dater les
+migrations, ne pas sortir du brouillon : le §8 ne s'exécute qu'une fois la revue passée, et
+**le même jour UTC que le merge**.
+
+**Les cinq points où je regarderais en premier**, parce que ce sont ceux où je suis le moins
+sûr de moi — et non les plus gros morceaux :
+
+1. **Les quatre hooks à client casté** — `useAdminAgencies`, `useAdminUsers`,
+   `useAdminBilling`, `useChangelog` font `supabase as unknown as SupabaseClient` parce que
+   les RPC ne sont pas encore dans `src/types/database.ts` (auto-généré, et son en-tête
+   interdit l'édition à la main). C'est le patron du dépôt (`useAdminKybReview`), mais **le
+   typage ne vérifie plus rien** sur ces appels : les formes de retour sont re-typées À LA
+   MAIN, donc une colonne renommée en SQL ne ferait rougir personne. À régénérer et nettoyer
+   dès le merge fait.
+2. **Le retrait des cinq exports CSV** (étape 22) — c'est le SEUL endroit où j'ai supprimé
+   une capacité visible par un utilisateur. La décision est écrite deux fois dans la spec et
+   absente des maquettes, mais elle datait du 31.07 et les boutons étaient plus anciens :
+   vaut-il la peine de confirmer que personne ne s'en servait ?
+3. **Les 14 migrations n'ont JAMAIS tourné en production** — seulement sur base fraîche en
+   CI. C'est le gros de la surface, et c'est là que le risque se concentre. Voir aussi §8.
+4. **`admin_changelog` (étape 21)** — la migration ferme la table en écriture, or le
+   `useChangelog.ts` **déployé** fait encore un INSERT direct. Migration et front doivent
+   donc arriver ENSEMBLE ; c'est le seul couplage d'ordre du lot.
+5. **Les deux clés d'action en FRANÇAIS** laissées en place (`MEGGA AI — ${action}` dans
+   ai-copilot, `Photos certifiées C2PA` dans c2pa-sign). Je ne les ai pas corrigées :
+   changer une clé d'action orpheline les lignes déjà écrites et les libellés i18n qui les
+   visent. C'est une décision de contrat — à trancher, pas à oublier.
+
+⚠ **Pour chercher dans le cerveau, greper le seed JSON.** La recherche sémantique ne
+déduplique pas : elle a dix places et **une seule entrée les rafle** (mesuré le 01.08 —
+`memory search -q "console admin"` rend dix fois `megga/super-admin` et jamais
+`megga/console-admin-backend`). Un « rien trouvé » ne prouve donc RIEN. Les entrées du
+chantier sont `megga/console-admin-backend` et `megga/console-admin-defauts-dormants`.
 
 **Étape 15 — premier volet livré : le seed.** `scripts/seed-admin-staging.mjs` applique un
 jeu **pur et déterministe** (`scripts/_shared/admin-staging-seed.mjs`) : 14 agences,
