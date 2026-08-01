@@ -40,3 +40,19 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node scripts/check-migration-drift.mjs
+
+      # Le contrôle ci-dessus exclut explicitement policies, triggers et GRANT :
+      # « leur absence ne se lit pas dans un simple information_schema ». Ce trou
+      # a coûté une fuite réelle — `anon` détenait SELECT sur `admin_changelog` en
+      # production, sans qu'aucune migration ne l'accorde (droits par défaut de
+      # Supabase, jamais révoqués), et sa policy laissait passer les nouveautés
+      # publiées.
+      #
+      # ⚠ `if: always()` : les deux dérives sont indépendantes, et une dérive de
+      # schéma ne doit pas masquer une dérive de privilèges. Sans ça, la seconde
+      # ne se verrait que les jours où la première est verte.
+      - name: Dérive des privilèges (anon sur les tables internes)
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/check-privilege-drift.mjs
