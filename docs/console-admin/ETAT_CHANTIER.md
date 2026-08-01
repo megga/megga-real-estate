@@ -1,26 +1,31 @@
 # Console MEGGA · backend — état du chantier et reprise
 
-> **1ᵉʳ août 2026.** Document de reprise : tout ce qu'il faut pour continuer sans relire la
-> conversation. Branche : `claude/console-admin-admin-log`, PR **#1046** (brouillon, base
-> `main`, 46 commits, CI complète verte). Spec : `docs/handoff/console-admin/` · Inventaire
-> du socle : [INVENTAIRE_SOCLE.md](INVENTAIRE_SOCLE.md).
+> **1ᵉʳ août 2026, 19 h UTC — TOUT EST MERGÉ ET DÉPLOYÉ.** Document de reprise : tout ce
+> qu'il faut pour continuer sans relire la conversation. Spec :
+> `docs/handoff/console-admin/` · Inventaire du socle : [INVENTAIRE_SOCLE.md](INVENTAIRE_SOCLE.md).
 >
-> ✅ **REVUE DU LOT 1 FAITE le 01.08.** Deux défauts, tous deux corrigés (commit
-> `670ee59c`) : le verdict de chaîne de l'extrait n'était borné qu'en bas, et une erreur
-> métier consommait la clé d'idempotence. Détail au **§7**.
+> 🎯 **PROCHAIN CHANTIER : LE LOT 3** (étapes 24 à 30). ⚠ Lire le **§7ter** avant de
+> commencer : il a été mesuré le 01.08 et **la majeure partie du Lot 3 est murée** — 24/25/26
+> par la décision **P3**, 28 et 30 par des specs qui ne définissent pas ce qu'elles
+> demandent, 27 par une maquette qui n'existe pas au dépôt. Y aller sans l'avoir lu, c'est
+> retomber sur les mêmes murs.
 >
-> ✅ **REVUE DU LOT 2 FAITE le 01.08** (étapes 16, 19, 20, 21, 22 — livrées ET DÉPLOYÉES,
-> jamais relues). **Quatre défauts corrigés** par la migration `20260801360000` : l'empreinte
-> de l'extrait dépendait du FUSEAU de la session, le plafond de 5000 était évalué après
-> l'agrégat qu'il doit empêcher, il ne bornait pas la marche de chaîne sous filtre de
-> famille, et une publication programmée ne laissait aucune ligne au registre. **Deux
-> constats laissés ouverts parce qu'ils demandent une décision** — l'outbox n'a AUCUN
-> consommateur (la régénération de lien KYC détruit sans réémettre), et le plafond 3 compte
-> des liens et non des personnes. Détail au **§7bis**.
+> ✅ **REVUE DU LOT 1** (01.08, PR #1049). Deux défauts : le verdict de chaîne de l'extrait
+> n'était borné qu'en bas, et une erreur métier consommait la clé d'idempotence. **§7**.
 >
-> ⚠ **Ces correctifs-ci portent sur des fonctions DÉPLOYÉES**, contrairement à ceux du Lot 1 :
-> la migration doit être re-datée le jour du merge (§8), et elle doit passer APRÈS
-> `20260801350000`, faute de quoi elle est sautée à jamais.
+> ✅ **REVUE DU LOT 2** (01.08, PR #1054 — **mergée et déployée**). Les étapes 16, 19, 20, 21
+> et 22 étaient cochées ✅ mais portaient **HUIT défauts**, dont **deux de sécurité** :
+> `anon` lisait toutes les nouveautés publiées en production, et six tables internes lui
+> accordaient des droits — cinq en `DELETE/INSERT/TRUNCATE`, `app_config` comprise, qui porte
+> la clé de service. Plus deux garde-fous posés (alerte de rupture de chaîne, porte sur la
+> dérive des privilèges). **§7bis**, et chaque correctif est vérifié dans la fonction
+> VIVANTE, pas dans le fichier.
+>
+> ✅ **PR #1057** — le contrôle de dérive de schéma cesse de crier pendant les déploiements.
+>
+> ⚠ **DEUX DÉCISIONS FERMENT L'ÉTAPE 19**, cochée ✅ mais inutilisable de bout en bout : le
+> **destinataire** du lien KYC régénéré n'est défini nulle part dans les 25 fichiers de spec,
+> et le **plafond 3** compte des liens et non des personnes. **§7bis**.
 
 ## 1. Comment on travaille (décidé avec le PO)
 
@@ -47,7 +52,8 @@ Thomas et Antoine travaillent en parallèle sur le même dépôt. Méthode reten
 | #1049 | Revue du Lot 1 — deux défauts d'affichage juste (Plans, Vue d'ensemble) | **mergée**, déployée |
 | #1050 | Étape 23 — le contrat des gestes devient un balayage | **mergée** |
 | #1051 | Cerveau — les huit gestes hors chaîne, et la méthode | **mergée** |
-| #1054 | Revue du Lot 2 — **8 défauts corrigés** (dont 2 de sécurité), 2 garde-fous posés, 6 migrations. Détail au §7bis | **prête, CI verte** |
+| #1054 | Revue du Lot 2 — **8 défauts corrigés** (dont 2 de sécurité), 2 garde-fous posés, 6 migrations. Détail au §7bis | **mergée le 01.08 à 18:26 UTC, DÉPLOYÉE et vérifiée en production** |
+| #1057 | La dérive de schéma cesse de crier pendant le déploiement (faux positif mesuré sur le merge de #1054) | **mergée**, déployée |
 
 Les quatre bloquants pré-lancement (dépendance **P6**) sont **fermés et vérifiés en
 production** : 0.1 et 0.3 l'étaient déjà, 0.2 et 0.4 par #1044.
@@ -688,7 +694,51 @@ ils décident de ce que l'étape 19 peut réellement faire. **Aucun n'est corrig
    balayeur n'existe pas. Contraste mesuré dans le même dépôt : `mark_stale_kyc_dossiers()`
    + cron `kyc-stale-daily` existent pour les **dossiers**, rien pour les **liens**.
 
+
+### 7ter. LOT 3 — à lire AVANT de commencer
+
+Mesuré le 01.08.2026 (préflight `wf_a5d9245f-306`, 5 lecteurs). **Le Lot 3 est
+majoritairement muré, et ce ne sont pas des murs techniques.**
+
+| Étape | État mesuré |
+|---|---|
+| **24 · 25 · 26** | ⛔ **décision P3** — contrat webhook Immobilier.ch (codes de refus → mapping causes, HMAC). Rien à écrire sans lui. |
+| **27** | ◑ **backend LIVRÉ et déployé** (`get_agent_changelog`, `20260801380000`). La **carte agent** est bloquée : la maquette que `front/admin-communications.jsx:9` désigne — `today-h-live.jsx`, `HL_NEWS` — **n'existe pas au dépôt** (2 occurrences, toutes deux des renvois). La pilule « Nouveau » n'a **aucune source** : pas d'état lu/non-lu, et §5.10 interdit d'emprunter celui de `platform_announcements` (Q10). Et `PageAujourdhui` est un pager **zéro-scroll** plafonné à 760 px portant déjà trois bandeaux. |
+| **28** | ⛔ **sous-spécifiée.** `function_replay` n'a **RIEN à rejouer** — aucune table d'invocations d'edge ; `activity_events/edge_function_error` ne garde que `function_name`, `error`, `duration_ms`. *Ce n'est pas une RPC qui manque, c'est une trace.* Et le plan dit « replay » quand la maquette écrit « Relance demandée — prochain passage 15:12 », c'est-à-dire **re-planifier** : deux fonctionnalités différentes. `wa_deadletter_replay` **n'est pas dans la maquette** (elle offre « Examiner »), or son README pose que les libellés sont **définitifs**. `calendar_resync` n'a **aucun chemin serveur**. ⚠ `admin_lock_entity` exige un **uuid**, qu'un `jobname` de cron n'a pas. |
+| **29** | ⛔ **décision P4**. |
+| **30** | ⛔ **sous-spécifiée.** Le mécanisme d'alerte **existe entièrement** (`_shared/admin-alerts.ts`, **11 règles** depuis le 01.08) : c'est un signal à y brancher, pas un système à bâtir. Mais « hors projet » et « chiffré » **ne sont définis nulle part**, et **aucun canal d'alerte hors projet n'existe** — tous les crons de santé tournent dans Supabase, donc muets si Supabase tombe, ce qui est *précisément* le cas visé. |
+
+✅ **Ce qui est réellement faisable au Lot 3, sans aucune décision : rien de neuf.** Les deux
+« gains gratuits » qu'il portait ont été pris le 01.08 — l'alerte de rupture de chaîne
+(règle 10) et la visibilité de la file d'outbox (règle 11).
+
+🎯 **Donc, si l'objectif est d'avancer : le meilleur rapport effort/valeur n'est pas au Lot 3,
+il est à l'étape 19b du Lot 2.** Son backend existe déjà — les 5 RPC KYB sont en production —
+il ne manque que l'habillage, et elle rembourse à elle seule **5 des 8 lignes** de la liste
+`DETTE` du cliquet. Elle attend la maquette **P5**, pas du code.
+
+🔧 **La seule tâche du chantier qui ne demande AUCUNE décision** : régénérer
+`src/types/database.ts` puis retirer les clients castés (`supabase as unknown as
+SupabaseClient`) de `useAdminAgencies`, `useAdminUsers`, `useAdminBilling`, `useChangelog`.
+Tant que le cast est là, **le typage ne vérifie rien** sur ces appels — et le 01.08 a ajouté
+une colonne (`kyc_magic_links.email_sent_at`) et une fonction (`get_agent_changelog`) qui n'y
+sont pas.
+
 ## 8. Re-dater les migrations le jour du merge — procédure
+
+> ✅ **APPLIQUÉE le 01.08.2026, et sans re-datage.** Les 6 migrations de #1054 portaient déjà
+> le préfixe `20260801*` et le merge a eu lieu à **18:26 UTC**, donc dans la journée UTC de
+> leur date : le date-guard les a appliquées telles quelles. **Vérifié en base**, pas déduit
+> du log — colonne `email_sent_at` présente, fonction `get_agent_changelog` présente, droits
+> `anon` sur les tables internes passés de **38 à 0**, et les cinq fonctions modifiées
+> relues une par une via `pg_get_functiondef`.
+>
+> ⚠ **Ce que ce merge a appris sur la fenêtre** : le seuil est `préfixe >= $(date -u +%Y%m%d)`,
+> comparé au jour **UTC**. Écrire une migration à 23 h UTC laisse donc une heure pour la
+> merger. Et si elle est sautée, **les Edge Functions se déploient quand même** — d'où une
+> désynchronisation silencieuse code/schéma, qui est le vrai danger, pas la migration
+> manquante en elle-même.
+
 
 > ✅ **EXÉCUTÉ le 01.08.2026** (08h05 UTC) : les 14 migrations sont passées de `20260731*`
 > à `20260801*`, `main` était à 0 de retard et ne portait aucune migration du 01.08, donc
