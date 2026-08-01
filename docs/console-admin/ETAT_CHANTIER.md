@@ -329,6 +329,23 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
     contrats balayés décrivent ce que la CONSOLE appelle, et un cron n'a pas d'écran à qui
     rendre une enveloppe. Une PROPRIÉTÉ, jamais une exemption nommée.
 
+12. **Aucune porte ne surveille la dérive des PRIVILÈGES.** `check:drift` compare bien ce que
+    les fichiers déclarent à ce que la base contient — mais son en-tête EXCLUT explicitement
+    policies, triggers et GRANT (« leur absence ne se lit pas dans un simple
+    `information_schema` »). Mesuré le 01.08 : `anon` détient `SELECT` sur `admin_changelog`
+    **en production**, et **aucune migration du dépôt ne l'accorde**. Conséquence pratique
+    qui pique : la base FRAÎCHE de CI ne reproduit pas le défaut, donc un test de fuite y est
+    vert avant comme après le correctif — il ne peut être qu'un **cliquet**, jamais une
+    démonstration. Réflexe : pour tout ce qui touche aux droits, mesurer en PROD
+    (`has_table_privilege`, `pg_policy.polroles`) et ne jamais conclure depuis la CI.
+    ⚠ Ampleur mesurée, et moins alarmante qu'un premier chiffre le laissait croire : 79
+    tables lisibles par `anon` au sens du GRANT, 30 avec une policy `select` non scopée par
+    rôle, mais **une seule** dont le `USING` ne dépend d'aucune identité (`translation_cache`,
+    `using (true)`, vraisemblablement voulu). Pour les 28 autres le `USING` teste l'agence :
+    `anon` n'y lit rien. Une policy « ouverte » n'est donc PAS une fuite — c'est la clause
+    `USING` qui tranche, et il faut la lire branche par branche (celle d'`admin_changelog`
+    était `published = true OR is_super_admin()` : la première branche suffisait).
+
 ## 7. Reprendre
 
 ✅ **La revue est passée, #1046 est mergée, les 14 migrations sont déployées.** Cette section
@@ -337,11 +354,11 @@ référence pour la prochaine vague de migrations.
 
 **Ce qui est ouvert et ne dépend d'aucune décision PO :**
 
-| Étape | Ce que c'est | Dépend de |
+| Étape | Ce que c'est | État au 01.08 |
 |---|---|---|
-| **27** | Endpoint agent « What's new » (§5.10) | 21 ✅ |
-| **28** | Gestes d'exploitation (§5.8) | 16 ✅ |
-| **30** | Surveiller le surveillant (§10.9) | 6 ✅ |
+| **27** | Endpoint agent « What's new » (§5.10) | **◑ backend livré** (`20260801380000`) — `get_agent_changelog()` + fermeture de la fuite `anon`. La CARTE agent est bloquée : la maquette désignée (`today-h-live.jsx`, `HL_NEWS`) **n'existe pas au dépôt**, la pilule « Nouveau » n'a **aucune source** (pas d'état lu/non-lu, et §5.10 interdit d'emprunter celui de `platform_announcements`, Q10), et `PageAujourdhui` est un pager **zéro-scroll** plafonné à 760 px portant déjà trois bandeaux. |
+| **28** | Gestes d'exploitation (§5.8) | **⛔ sous-spécifiée, non écrite.** `function_replay` n'a **rien à rejouer** (aucune trace d'invocation d'edge ; `activity_events/edge_function_error` ne garde que `function_name`, `error`, `duration_ms`) — et le plan dit « replay » quand la maquette écrit « Relance demandée », c'est-à-dire **re-planifier**. `wa_deadletter_replay` **n'est pas dans la maquette**, qui offre « Examiner » ; or son README pose que les libellés sont **définitifs**. `calendar_resync` n'a **aucun chemin serveur** (les deux edges refusent tout appelant non propriétaire). ⚠ `admin_lock_entity` exige un **uuid**, qu'un `jobname` de cron n'a pas. ✅ Aucun des quatre n'a besoin de l'outbox : **`pg_net` EST déjà une outbox transactionnelle**. |
+| **30** | Surveiller le surveillant (§10.9) | **⛔ sous-spécifiée, non écrite.** Le mécanisme d'alerte **existe entièrement** (`_shared/admin-alerts.ts`, 9 règles) : c'est un signal à y brancher. Manquent une règle sur le silence d'`activity_events`, un prédicat « heures ouvrées » **plateforme** (aucun calendrier de fériés suisses au dépôt), un cron hebdo sur `admin_log_export`. ⚠ « hors projet » et « chiffré » **ne sont définis nulle part**, et **aucun canal d'alerte hors projet n'existe** — tout tourne dans Supabase, donc tout est muet si Supabase tombe, ce qui est précisément le cas visé. ✅ **Gain gratuit** : `admin_log_chain_verify_job` écrit une ligne `crit` horaire en cas de rupture de chaîne et `admin-alerts.ts` **ignore `admin_log`** — une rupture est écrite, jamais notifiée. |
 
 Bloquées par les décisions PO 3/4/5 et P4 : **17, 18, 19b**. Par la maquette P5 : **14b**.
 Par P3 : **24, 25, 26**.
