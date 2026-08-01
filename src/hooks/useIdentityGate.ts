@@ -114,6 +114,30 @@ export function shouldRedirectToIdentityGate(status: IdentityGateStatus, pathnam
   return status === 'required' && pathname !== IDENTITY_GATE_ROUTE
 }
 
+/**
+ * Garde-fou 1, VERSANT AFFICHAGE : tant que le statut n'est pas resolu, on ne
+ * rend pas non plus le CRM.
+ *
+ * Le garde-fou 1 ci-dessus dit seulement de ne pas REDIRIGER sur un etat
+ * indetermine. Il ne disait rien de ce qu'on affiche pendant ce temps, et
+ * AgentSugarLayout rendait donc l'<Outlet/> - c'est-a-dire le CRM - jusqu'a ce
+ * que la lecture agence reponde. Un dirigeant qui vient d'activer son compte
+ * voyait son tableau de bord s'afficher une fraction de seconde avant d'etre
+ * renvoye sur le wizard d'identite : l'app lui montrait une porte ouverte puis
+ * la lui fermait au nez. Signale par Julien le 1er aout 2026.
+ *
+ * KycLabGuard applique deja cette discipline pour son propre statut ("Ne rend
+ * JAMAIS le blocage ni le contenu reel tant que le statut n'est pas connu") ;
+ * ce predicat la rend disponible au gate identite, du meme cote de la barriere.
+ *
+ * Ne concerne que le PREMIER chargement : `isLoading` de React Query ne repasse
+ * pas a vrai sur un rafraichissement d'arriere-plan (les donnees sont alors
+ * deja la), donc ce predicat ne peut pas effacer un wizard en cours de saisie.
+ */
+export function shouldHoldForIdentityGate(status: IdentityGateStatus): boolean {
+  return status === 'loading'
+}
+
 interface AgencyIdentityRow {
   identity_submitted_at: string | null
 }

@@ -15,6 +15,7 @@ import { describe, it, expect } from 'vitest'
 import {
   resolveIdentityGateStatus,
   shouldRedirectToIdentityGate,
+  shouldHoldForIdentityGate,
   IDENTITY_GATE_ROUTE,
   type ResolveIdentityGateStatusInput,
 } from '@/hooks/useIdentityGate'
@@ -148,6 +149,34 @@ describe('shouldRedirectToIdentityGate - garde-fou 2 : la route du gate ne se re
     for (const status of ['loading', 'exempt', 'done'] as const) {
       expect(shouldRedirectToIdentityGate(status, '/dashboard')).toBe(false)
       expect(shouldRedirectToIdentityGate(status, IDENTITY_GATE_ROUTE)).toBe(false)
+    }
+  })
+})
+
+// Versant affichage du garde-fou 1. Le bloc precedent pin qu'on ne REDIRIGE pas
+// sur un etat indetermine ; celui-ci pin qu'on ne rend pas le CRM non plus. Sans
+// lui, "loading" laissait passer l'<Outlet/> : le tableau de bord s'affichait
+// une fraction de seconde, puis la lecture agence repondait 'required' et
+// renvoyait le dirigeant sur le wizard (signale le 1er aout 2026).
+describe('shouldHoldForIdentityGate - le CRM ne se montre pas avant que le gate ait tranche', () => {
+  it('statut non resolu -> on retient l ecran d arrivee', () => {
+    expect(shouldHoldForIdentityGate('loading')).toBe(true)
+  })
+
+  it('tout statut tranche -> on rend (le CRM, ou la redirection vers le wizard)', () => {
+    for (const status of ['required', 'exempt', 'done'] as const) {
+      expect(shouldHoldForIdentityGate(status)).toBe(false)
+    }
+  })
+
+  // Les deux predicats se lisent ensemble dans AgentSugarLayout : retenir
+  // d'abord, rediriger ensuite. Aucun etat ne doit permettre les deux a la fois,
+  // sans quoi l'ordre des ternaires deciderait du comportement.
+  it('aucun statut ne declenche a la fois la retenue et la redirection', () => {
+    for (const status of ['loading', 'required', 'exempt', 'done'] as const) {
+      const hold = shouldHoldForIdentityGate(status)
+      const redirect = shouldRedirectToIdentityGate(status, '/dashboard')
+      expect(hold && redirect).toBe(false)
     }
   })
 })
