@@ -3,8 +3,31 @@
  * Expose les gestes de connexion (mot de passe, OTP e-mail, OAuth Google/Microsoft/
  * Facebook), inscription, reset, updatePassword et signOut, plus les dérivés de rôle
  * (isAgent / isParticulier). DEV_BYPASS_AUTH (dev-only) injecte un mock sans réseau.
+ *
+ * ⚠ DEUX INVARIANTS NON NÉGOCIABLES, posés après l'incident « Agence non chargée »
+ * (onboarding KYB, 01.08.2026). Les deux protègent la même chose : `profile.agency_id`,
+ * dont dépendent useAgencySettings/useAgencyIdentity — un `agency_id` nul y devient le
+ * message « Agence non chargée » au moment d'enregistrer, après toute la saisie.
+ *
+ * 1. Le callback `onAuthStateChange` ne fait QUE du synchrone — jamais un appel
+ *    Supabase awaité. auth-js appelle ce callback DEPUIS l'intérieur de son verrou
+ *    (`_onVisibilityChanged` → `_acquireLock` → `_recoverAndRefresh` →
+ *    `_notifyAllSubscribers`, qui AWAITE chaque abonné). Toute lecture PostgREST
+ *    résout son jeton par `getSession()`, qui reprend ce même verrou : on tombe alors
+ *    dans la branche réentrante `if (this.lockAcquired) { await last; … }`, où AUCUN
+ *    timeout n'est armé et où `last` attend le callback qui attend cette lecture.
+ *    Attente circulaire : la requête HTTP ne part jamais. Le chargement du profil vit
+ *    donc dans un effet séparé (« effet 2 » plus bas), déclenché par le changement de
+ *    session — donc hors de la pile du callback, où reprendre le verrou est sans danger.
+ *    ⛔ Ne PAS « corriger » ce genre de blocage en allongeant PROFILE_READ_MS : depuis
+ *    auth-js 2.102 le verrou est VOLÉ à échéance (`steal: true`), mais uniquement dans
+ *    la branche non réentrante — l'attente circulaire, elle, est infinie.
+ *
+ * 2. Un profil SYNTHÉTISÉ n'écrase jamais un profil LU en base (voir
+ *    `reconcileProfile`). Le repli existe pour amorcer le routage au tout premier
+ *    login, pas pour remplacer une vérité déjà connue par un `agency_id: null`.
  */
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { UserProfile, UserRole } from '@/types/auth'
@@ -97,8 +120,44 @@ const MOCK_PROFILE: UserProfile = {
  */
 const PROFILE_READ_MS = 4000
 
+/**
+ * Résultat d'une lecture de profil. Discriminé — et non un simple
+ * `UserProfile | null` — parce que l'appelant DOIT pouvoir distinguer un profil lu
+ * en base d'un profil synthétisé depuis `user_metadata` : le second porte
+ * `agency_id: null` par construction (la métadonnée du jeton ne connaît pas
+ * l'agence), et le laisser passer pour l'autre est exactement ce qui produisait
+ * « Agence non chargée » en pleine saisie. Voir `reconcileProfile`.
+ */
+type ProfileRead =
+  | { kind: 'loaded'; profile: UserProfile }
+  | { kind: 'fallback'; profile: UserProfile }
+  | { kind: 'unavailable' }
+
+/**
+ * Applique une lecture de profil à l'état courant sans jamais RÉGRESSER : un profil
+ * synthétisé ne remplace pas un profil déjà lu en base pour le même utilisateur.
+ *
+ * Le test `prev.id === userId` n'est pas une précaution de style — c'est la garde
+ * anti-fuite : après un changement de compte, conserver `prev` sans le vérifier
+ * ferait porter au nouvel arrivant l'`agency_id` de l'utilisateur sortant, donc son
+ * tenant. On préfère alors le repli (ou rien) au profil de quelqu'un d'autre.
+ *
+ * Pure et exportée pour être testée sans monter le provider ni mocker Supabase —
+ * même motif que resolveIdentityGateStatus (useIdentityGate.ts).
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée, même motif que useAuth() plus bas.
+export function reconcileProfile(
+  prev: UserProfile | null,
+  read: ProfileRead,
+  userId: string,
+): UserProfile | null {
+  if (read.kind === 'loaded') return read.profile
+  if (prev && prev.id === userId) return prev
+  return read.kind === 'fallback' ? read.profile : null
+}
+
 /** Charge le profil depuis `profiles` ; un retry à 500 ms couvre la race « trigger de création pas encore passé », sinon repli minimal construit depuis user_metadata. */
-async function fetchProfile(userId: string, user?: User | null, retry = true): Promise<UserProfile | null> {
+async function fetchProfile(userId: string, user?: User | null, retry = true): Promise<ProfileRead> {
   try {
     const read = supabase
       .from('profiles')
@@ -124,22 +183,25 @@ async function fetchProfile(userId: string, user?: User | null, retry = true): P
       if (user) {
         const meta = user.user_metadata ?? {}
         return {
-          id: userId,
-          email: user.email ?? '',
-          full_name: meta.full_name ?? meta.name ?? '',
-          role: (meta.role as UserProfile['role']) ?? 'particulier',
-          avatar_url: meta.avatar_url ?? null,
-          phone: null,
-          canton: null,
-          agency_id: null,
-          created_at: user.created_at ?? new Date().toISOString(),
-        } as UserProfile
+          kind: 'fallback',
+          profile: {
+            id: userId,
+            email: user.email ?? '',
+            full_name: meta.full_name ?? meta.name ?? '',
+            role: (meta.role as UserProfile['role']) ?? 'particulier',
+            avatar_url: meta.avatar_url ?? null,
+            phone: null,
+            canton: null,
+            agency_id: null,
+            created_at: user.created_at ?? new Date().toISOString(),
+          } as UserProfile,
+        }
       }
-      return null
+      return { kind: 'unavailable' }
     }
-    return data as UserProfile
+    return { kind: 'loaded', profile: data as UserProfile }
   } catch {
-    return null
+    return { kind: 'unavailable' }
   }
 }
 
@@ -148,16 +210,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(DEV_BYPASS_AUTH ? MOCK_PROFILE : null)
   const [loading, setLoading] = useState(DEV_BYPASS_AUTH ? false : true)
+  /** Dernier utilisateur pour lequel une lecture de profil a été lancée (cf. effet 2). */
+  const loadedForUserId = useRef<string | null>(null)
 
   const loadProfile = useCallback(async (user: User | null) => {
     if (!user) {
+      loadedForUserId.current = null
       setProfile(null)
       return
     }
-    const p = await fetchProfile(user.id, user)
-    setProfile(p)
+    const read = await fetchProfile(user.id, user)
+    setProfile((prev) => reconcileProfile(prev, read, user.id))
+    loadedForUserId.current = user.id
   }, [])
 
+  // ── Effet 1 — résolution de la SESSION. Aucun await d'appel Supabase ici. ──
   useEffect(() => {
     if (DEV_BYPASS_AUTH) return
 
@@ -165,53 +232,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // (ProtectedRoute rend BootSplash tant qu'il vaut true), donc il doit
     // retomber quoi qu'il arrive.
     //
-    // ⚠ Le minuteur couvre la séquence ENTIÈRE, pas seulement `getSession()`.
-    // Il était désarmé dès que la session arrivait, donc juste AVANT le
-    // `fetchProfile` — or c'est lui qui peut traîner (aucun délai sur les appels
-    // REST de supabase-js, et un `getSession()` interne qui rejette au bout de
-    // 5 s si un autre onglet tient le verrou de l'origine). Une lecture de
-    // profil qui s'éternisait laissait donc `loading` à true pour toujours :
-    // même écran « Ouverture de votre espace », figé sur /dashboard cette fois.
+    // ⚠ Le minuteur couvre la séquence ENTIÈRE (session PUIS profil), pas
+    // seulement `getSession()` — c'est la lecture de profil qui peut traîner
+    // (aucun délai sur les appels REST de supabase-js, et un `getSession()`
+    // interne qui rejette au bout de 5 s si un autre onglet tient le verrou de
+    // l'origine). Il n'est donc désarmé qu'au démontage, jamais dès que la
+    // session arrive : sinon une lecture qui s'éternise laisse `loading` à true
+    // pour toujours — écran « Ouverture de votre espace » figé sur /dashboard.
     const safetyTimeout = setTimeout(() => setLoading(false), 3000)
 
-    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
-      if (s?.user) {
-        const p = await fetchProfile(s.user.id, s.user)
-        setProfile(p)
+      // Pas de session : rien à charger, l'effet 2 n'aura donc rien à conclure.
+      if (!s?.user) {
+        loadedForUserId.current = null
+        setProfile(null)
+        setLoading(false)
       }
     }).catch(() => {
       // Le verrou peut rejeter (conflit entre onglets) — on démarre déconnecté
       // plutôt que de retenir l'app.
-    }).finally(() => {
-      clearTimeout(safetyTimeout)
       setLoading(false)
     })
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, s) => {
-      try {
-        setSession(s)
-        if (s?.user) {
-          const p = await fetchProfile(s.user.id, s.user)
-          setProfile(p)
-          // Fire-and-forget device detection on sign-in (not on every token refresh)
-          if (event === 'SIGNED_IN') {
-            void reportDevice(s.access_token)
-          }
-        } else {
-          setProfile(null)
-        }
-      } catch {
-        // Ignore AbortError from lock conflicts between tabs
-      } finally {
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      // ⚠ SYNCHRONE UNIQUEMENT — invariant 1 en tête de fichier. auth-js awaite
+      // ce callback depuis l'INTÉRIEUR de son verrou ; y attendre une lecture
+      // PostgREST (qui redemande ce même verrou) est une attente circulaire.
+      // Le chargement du profil est délégué à l'effet 2 via ce setSession.
+      setSession(s)
+      // Déconnexion : le profil tombe ICI et non dans l'effet 2 — un setState
+      // synchrone dans un effet déclencherait un rendu en cascade (react-hooks).
+      if (!s?.user) {
+        loadedForUserId.current = null
+        setProfile(null)
         setLoading(false)
+      }
+      // Fire-and-forget device detection on sign-in (not on every token refresh).
+      // `fetch` direct vers l'edge function, jamais supabase-js : ne redemande
+      // donc pas le verrou d'auth, et reste sûr ici.
+      if (event === 'SIGNED_IN' && s?.access_token) {
+        void reportDevice(s.access_token)
       }
     })
 
-    return () => subscription.unsubscribe()
-  }, [loadProfile])
+    return () => {
+      clearTimeout(safetyTimeout)
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  // ── Effet 2 — chargement du PROFIL, hors de la pile du callback d'auth. ──
+  // Déclenché par le changement de session : à ce moment le callback a rendu la
+  // main, donc reprendre le verrou d'auth est sans danger.
+  useEffect(() => {
+    if (DEV_BYPASS_AUTH) return
+    const user = session?.user ?? null
+
+    // Absence de session : déjà traitée de façon synchrone par l'effet 1 (profil
+    // remis à null là-bas), rien à faire ici.
+    if (!user) return
+    // auth-js réémet SIGNED_IN à chaque retour d'onglet et TOKEN_REFRESHED environ
+    // toutes les heures : sans cette garde, le profil serait relu à chaque fois,
+    // pour un résultat identique. Un changement de COMPTE, lui, passe (id différent).
+    if (loadedForUserId.current === user.id) return
+    loadedForUserId.current = user.id
+
+    let cancelled = false
+    let settled = false
+    void (async () => {
+      const read = await fetchProfile(user.id, user)
+      if (cancelled) return
+      settled = true
+      setProfile((prev) => reconcileProfile(prev, read, user.id))
+      setLoading(false)
+    })()
+
+    return () => {
+      cancelled = true
+      // Démontage avant la fin de la lecture (StrictMode, navigation) : on relâche
+      // la garde, sinon le remontage la croirait déjà faite et n'aurait jamais de profil.
+      if (!settled) loadedForUserId.current = null
+    }
+  }, [session])
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
