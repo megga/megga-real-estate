@@ -53,7 +53,9 @@ describe.skipIf(!HAS_KEYS)('suppression de compte — le journal survit à son a
         actor_kind: 'user',
         action: 'contact_created',
         entity_type: 'contact',
-        category: 'crm',
+        // Les huit familles admises par activity_events_category_check :
+        // kyc, deal, contact, bien, doc, auth, settings, ai. Pas de 'crm'.
+        category: 'contact',
         severity: 'info',
         object_label: `ZZ Detach ${setup.stamp}`,
         metadata: { source: 'activity-events-actor-detach.spec' },
@@ -110,6 +112,7 @@ describe.skipIf(!HAS_KEYS)('suppression de compte — le journal survit à son a
     // Le correctif ouvre UN chemin : actor_id -> NULL. Il ne rend pas la colonne
     // modifiable. Sans cette assertion, élargir la branche par mégarde à
     // « actor_id peut changer » passerait inaperçu.
+    expect(eventId, 'le premier cas doit avoir créé la ligne : sans elle, ce test accuserait le garde à tort').toBeTruthy()
     const svc = serviceRoleClient()
     const { error } = await svc
       .from('activity_events')
