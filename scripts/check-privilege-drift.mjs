@@ -101,6 +101,27 @@ if (!token) {
   process.exit(2);
 }
 
+/**
+ * ⚠ POURQUOI CE CONTRÔLE PATIENTE AVANT DE CRIER.
+ *
+ * Ce script tourne aussi sur `push: main`, quelques minutes après le merge — mais
+ * `deploy.yml` enchaîne `npm ci`, `tsc -b`, `eslint` et `vite build` AVANT d'appliquer
+ * les migrations, et il est sérialisé par `concurrency: deploy-<ref>` avec
+ * `cancel-in-progress: false`. Un déploiement déjà en vol repousse donc le nôtre bien
+ * au-delà des 180 s d'attente du workflow.
+ *
+ * Sans cette patience, la toute PREMIÈRE exécution de ce garde-fou aurait échoué — sur le
+ * merge qui contient précisément la révocation qu'il réclame. Un contrôle qui rougit le
+ * jour où il a tort apprend à être ignoré le jour où il a raison ; c'est la leçon déjà
+ * écrite dans le script voisin, et elle vaut d'autant plus pour un contrôle NEUF, dont
+ * personne n'a encore appris à faire confiance.
+ *
+ * On ne relâche pas l'assertion pour autant : une dérive réelle finit par être rapportée,
+ * elle prend seulement quelques minutes de plus à l'être.
+ */
+const TENTATIVES = Number(process.env.PRIVILEGE_DRIFT_TRIES ?? 10);
+const ATTENTE_MS = Number(process.env.PRIVILEGE_DRIFT_DELAY_MS ?? 60_000);
+
 const [{ n: perimetre }] = await query(token, SQL_PERIMETRE);
 
 // Garde anti-contrôle creux : sans elle, un prédicat qui cesserait de matcher
@@ -112,8 +133,18 @@ if (perimetre < 10) {
   process.exit(1);
 }
 
-const fuites = await query(token, SQL);
 console.log(`${perimetre} tables internes inspectées en production.`);
+
+let fuites = await query(token, SQL);
+for (let essai = 1; fuites.length > 0 && essai < TENTATIVES; essai++) {
+  console.log(
+    `  ${fuites.length} table(s) encore ouverte(s) à anon — ` +
+    `un déploiement est peut-être en cours (essai ${essai}/${TENTATIVES - 1}, ` +
+    `nouvelle mesure dans ${Math.round(ATTENTE_MS / 1000)} s).`,
+  );
+  await new Promise((r) => setTimeout(r, ATTENTE_MS));
+  fuites = await query(token, SQL);
+}
 
 if (fuites.length === 0) {
   console.log('✓ Aucune dérive de privilèges : `anon` n\'a aucun droit sur les tables internes.');
