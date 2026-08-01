@@ -240,10 +240,17 @@ describe.skipIf(!HAS_KEYS)('extrait signé du registre (étape 22)', () => {
     // 5000 lignes de registre à chaque exécution pour observer une différence de DURÉE —
     // cher, et mesuré par un chronomètre, donc instable. L'ORDRE des deux motifs dans la
     // source établit la propriété sans rien semer.
+    //
+    // ⚠ LES COMMENTAIRES SONT RETIRÉS AVANT DE CHERCHER. Sans ça le test se sabote
+    // lui-même : le correctif DÉCRIT le défaut en tête de fonction (« le compte et
+    // jsonb_agg vivaient dans le même select »), donc `jsonb_agg` apparaissait dans une
+    // prose située AVANT le plafond, et la position lisait la documentation au lieu du
+    // code. Mesuré : le test a échoué sur la fonction CORRIGÉE. Un contrôle statique doit
+    // regarder ce qui s'exécute, pas ce qui s'explique.
     assertSql(`
     declare v_src text; v_cap int; v_agg int;
     begin
-      select p.prosrc into v_src
+      select regexp_replace(p.prosrc, '--[^\\n]*', '', 'g') into v_src
         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and p.proname = 'admin_log_export';
 

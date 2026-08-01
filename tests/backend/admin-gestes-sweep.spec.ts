@@ -39,6 +39,17 @@ const GESTES = `(
   and p.prosrc like '%admin_log_write%'
   and p.proname <> 'admin_log_write'
   and p.proname !~ '^admin_log_chain'
+  -- ⚠ AJOUTÉ par la revue du Lot 2, et c'est une PROPRIÉTÉ, pas une exemption nommée.
+  -- Les quatre contrats balayés ici — enveloppe §10.1, clé d'idempotence, scellement,
+  -- garde — décrivent ce que la CONSOLE appelle. Un cron n'a pas d'écran à qui rendre une
+  -- enveloppe et ne reçoit pas de double-clic : il rend un compte à pg_cron. Faire entrer
+  -- changelog_publish_due dans ce périmètre (ce que sa journalisation, correcte, a
+  -- provoqué) lui aurait imposé un contrat qui ne le concerne pas.
+  --
+  -- Il reste couvert ailleurs, et mieux : sa garde est éprouvée par
+  -- admin-rpc-guard-sweep, son inaccessibilité à \`authenticated\` est asservie dans
+  -- admin-changelog-workflow, et sa ligne de registre y est vérifiée par comportement.
+  and has_function_privilege('authenticated', p.oid, 'EXECUTE')
 )`
 
 const runSql = (body: string) => execSql(`do $$\n${body}\nend $$;`)
