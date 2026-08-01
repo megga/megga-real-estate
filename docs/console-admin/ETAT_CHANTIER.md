@@ -359,6 +359,24 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
     surface publique ne lit ces tables (une lecture bloquée par la RLS rend `[]`, bloquée par
     le GRANT elle rend une ERREUR — révoquer transforme un silence en erreur visible).
 
+13. **La CI a DEUX rouges qui ne sont pas du code, et ils se ressemblent.**
+    (a) **`esm.sh` répond 522.** L'étape `deno check` du job `Unit Tests` télécharge les
+    dépendances des 134 Edge Functions ; un 522 sur `@supabase/supabase-js@2` tue le job
+    **avant qu'une seule assertion ait tourné**. Vu deux fois le 01.08 en une heure. Signal
+    qui le distingue d'un vrai rouge : l'échec porte sur un fichier absent du diff, et le
+    commit ne contient parfois que du markdown. Remède : `gh run rerun <id> --failed`.
+    (b) **La course des 180 s.** `migration-drift.yml` attend 180 s fixes avant de sonder la
+    production, mais `deploy.yml` enchaîne `npm ci`, `tsc -b`, `eslint` et `vite build`
+    AVANT d'appliquer les migrations, et il est sérialisé par `concurrency`. Mesuré sur le
+    merge de #1054 : le contrôle a réclamé `get_agent_changelog` et
+    `kyc_magic_links.email_sent_at` comme absents, alors qu'ils sont arrivés quelques
+    minutes plus tard. **Les deux contrôles du workflow remesurent désormais** jusqu'à dix
+    fois avant de conclure — l'assertion n'est pas relâchée, elle est patiente.
+    ⚠ La leçon vaut au-delà : dans les deux cas, un rouge d'INFRASTRUCTURE se lit comme un
+    rouge de code, et c'est ainsi qu'un garde-fou perd sa crédibilité. Le fichier voisin le
+    disait déjà — « un garde-fou qui crie sans raison finit ignoré, donc muet le jour où il
+    a raison ».
+
 ## 7. Reprendre
 
 ✅ **La revue est passée, #1046 est mergée, les 14 migrations sont déployées.** Cette section
