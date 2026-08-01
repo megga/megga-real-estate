@@ -56,3 +56,18 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node scripts/check-privilege-drift.mjs
+
+      # Troisième dérive, du même genre que les deux précédentes et jusqu'ici sans
+      # surveillance : `src/types/database.ts` est auto-généré, et le contrôle voisin
+      # compare migrations → base, jamais types → base. Or c'est exactement ce trou qui
+      # a laissé TypeScript valider le code contre un schéma disparu en juillet 2026.
+      # Ici la moitié PRODUCTION du contrôle (relations vivantes absentes du fichier) ;
+      # sa moitié statique tourne sur chaque PR dans unit-tests.yml.
+      #
+      # ⚠ `if: always()`, même raison que ci-dessus : les trois dérives sont
+      # indépendantes, et l'une ne doit pas masquer les autres.
+      - name: Dérive du typage (relations vivantes absentes de database.ts)
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/check-types-freshness.mjs

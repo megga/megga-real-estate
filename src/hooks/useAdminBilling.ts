@@ -8,17 +8,13 @@
  * fonction SQL `agency_mrr`, jamais recalculée côté front » — et les deux calculs
  * avaient déjà divergé (voir le commentaire du repli).
  *
- * ⚠ Client casté : `get_admin_plans_board` n'est pas encore dans src/types/database.ts
- * (auto-généré, en retard sur ces migrations — cf. son en-tête). Même motif que
- * useAdminKybReview.ts. À nettoyer à la prochaine régénération.
  */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
-const rpcUntyped = supabase.rpc as unknown as
-  (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>
-
-/** Forme rendue par `get_admin_plans_board()`, re-typée à la main. */
+/** Forme rendue par `get_admin_plans_board()`. La RPC est déclarée `Returns: Json`,
+ *  que le générateur ne sait pas affiner : cette interface reste donc écrite à la main,
+ *  mais le NOM de la RPC et ses arguments sont désormais vérifiés par le compilateur. */
 interface PlansBoard {
   mrr: number | string
   subscriptions: number
@@ -96,9 +92,9 @@ export function useAdminBilling() {
       // suspendue avec un abonnement actif était donc facturée à l'écran et pas en base.
       // C'est exactement ce que §4.3 interdit : « une seule fonction SQL, jamais
       // recalculée côté front ».
-      const { data: board, error: boardError } = await rpcUntyped('get_admin_plans_board', {})
+      const { data: board, error: boardError } = await supabase.rpc('get_admin_plans_board')
       if (boardError) throw boardError
-      const b = board as PlansBoard
+      const b = board as unknown as PlansBoard
 
       const portefeuille = b.portfolio ?? []
       const impayes = b.queues?.unpaid?.length ?? 0

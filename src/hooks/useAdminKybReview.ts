@@ -20,20 +20,10 @@
  * 20260728160000 §6) derrière une seule mutation, pour qu'un seul geste à
  * l'écran suffise — le relecteur n'a pas à se souvenir qu'il faut aussi relancer.
  *
- * Client casté (`db`) : les 2 tables (verification_check_config/_types) et les
- * 6 RPC de cette migration ne sont pas encore dans les types générés
- * (src/types/database.ts — auto-généré, en retard sur ces migrations récentes,
- * cf. son en-tête). Même motif que useAgencyFollowupSuggestions.ts : client
- * casté en `SupabaseClient` non paramétré, entrées/sorties re-typées à la main
- * juste après. À nettoyer (retirer `db`, repasser sur `supabase` typé) à la
- * prochaine régénération (`supabase gen types typescript --local`).
  */
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { CheckResult, PersonRoleRow } from '@/pages/admin/AdminKybReviewPage'
-
-const db = supabase as unknown as SupabaseClient
 
 // ─── Liste ──────────────────────────────────────────────────────────────────
 
@@ -83,7 +73,7 @@ export interface KybReviewQueuePage {
  *  que pour la sonde d'une seule ligne du repli ci-dessous ; tout le reste lit une page
  *  entière. */
 async function fetchQueuePage(offset: number, limit = KYB_REVIEW_PAGE_SIZE): Promise<KybReviewQueuePage> {
-  const res = await db.rpc('get_admin_agency_review_queue', { p_limit: limit, p_offset: offset })
+  const res = await supabase.rpc('get_admin_agency_review_queue', { p_limit: limit, p_offset: offset })
   const { data, error } = res as unknown as { data: QueueRpcRow[] | null; error: { message: string } | null }
   if (error) throw new Error(error.message)
   const rpcRows = data ?? []
@@ -185,7 +175,7 @@ function useKybReviewChecks(agencyId: string) {
   return useQuery({
     queryKey: ['admin-kyb-review-checks', agencyId],
     queryFn: async (): Promise<KybReviewCheckRow[]> => {
-      const res = await db.rpc('get_admin_agency_review_detail', { p_agency_id: agencyId })
+      const res = await supabase.rpc('get_admin_agency_review_detail', { p_agency_id: agencyId })
       const { data, error } = res as unknown as { data: DetailRpcRow[] | null; error: { message: string } | null }
       if (error) throw new Error(error.message)
       return (data ?? []).map((r) => ({
@@ -219,10 +209,7 @@ interface PersonRpcRow {
 }
 
 /** Personnes liées à l'agence + leurs rôles — légende les checks « personne » (nom
- *  plutôt qu'UUID) et alimente le calcul des signataires actifs (activeSignatoryIds).
- *  `agency_related_persons`/`agency_person_roles` SONT dans les types générés (client
- *  `supabase` normal, pas `db`) — table plus ancienne que le trou de régénération
- *  décrit en en-tête de fichier. */
+ *  plutôt qu'UUID) et alimente le calcul des signataires actifs (activeSignatoryIds). */
 function useKybReviewPersons(agencyId: string) {
   return useQuery({
     queryKey: ['admin-kyb-review-persons', agencyId],
@@ -260,7 +247,7 @@ function useKybReviewCurrentVetoTypes() {
   return useQuery({
     queryKey: ['admin-kyb-review-current-vetos'],
     queryFn: async (): Promise<KybReviewCurrentVeto[]> => {
-      const configRes = await db
+      const configRes = await supabase
         .from('verification_check_config')
         .select('check_type')
         .eq('is_veto', true)
@@ -274,7 +261,7 @@ function useKybReviewCurrentVetoTypes() {
       const codes = (configRows ?? []).map((r) => r.check_type)
       if (codes.length === 0) return []
 
-      const typeRes = await db
+      const typeRes = await supabase
         .from('verification_check_types')
         .select('code, scope')
         .in('code', codes)
@@ -370,11 +357,17 @@ function useInvalidateKybReview(agencyId: string) {
   }
 }
 
-/** Lève une Error lisible depuis le résultat casté d'un appel RPC — factorise le
- *  triptyque `res as unknown as {...}; if (error) throw` répété par les 4 actions. */
-async function callRpc(fn: string, args: Record<string, unknown>): Promise<void> {
-  const res = await db.rpc(fn, args)
-  const { error } = res as unknown as { error: { message: string } | null }
+/** Lève une Error lisible depuis le résultat d'un appel RPC — factorise le triptyque
+ *  `const { error } = …; if (error) throw` répété par les 5 actions.
+ *
+ *  `fn` prend le type du premier paramètre de `supabase.rpc`, c'est-à-dire l'union des
+ *  noms de RPC connus de `database.ts`, et non `string` : un dispatcher typé `string`
+ *  éteint la vérification pour TOUS ses appelants d'un coup — c'est ce qui obligeait à
+ *  caster le client ici. Une RPC renommée en SQL fait désormais rougir les cinq gestes. */
+type RpcName = Parameters<typeof supabase.rpc>[0]
+
+async function callRpc(fn: RpcName, args: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase.rpc(fn, args as never)
   if (error) throw new Error(error.message)
 }
 

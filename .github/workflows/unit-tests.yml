@@ -64,6 +64,16 @@ jobs:
         # Baseline nettoyée (PR #848). Allowlist des gardes intentionnels dans le script.
         run: npm run lint:deadcode
 
+      - name: Typage Supabase (client casté / RPC hors types)
+        # Garde-fou typage : `src/types/database.ts` est auto-généré et RIEN ne
+        # surveillait sa fraîcheur — le dépôt a déjà payé ce défaut en juillet 2026
+        # (quatre gestes du pipeline cassés une semaine, cf. l'en-tête de
+        # check-migration-drift.mjs). Mesuré le 01.08 : 15 relations et 64 fonctions
+        # manquaient, et 16 sites castaient le client pour compiler quand même.
+        # Ici, contrôles STATIQUES seuls (aucun secret) ; la comparaison à la
+        # production vit dans migration-drift.yml, le seul workflow qui l'interroge.
+        run: npm run lint:types-freshness
+
       - name: Roster edge functions (dérive tree ↔ monitoring)
         # Garde-fou monitoring : src/lib/edgeFunctionRoster.ts est GÉNÉRÉ depuis
         # supabase/functions/ ; échoue si une fonction est ajoutée/retirée sans

@@ -13,6 +13,7 @@
     "check:privileges": "node scripts/check-privilege-drift.mjs",
     "lint:i18n": "node scripts/lint-i18n-hardcoded.mjs",
     "lint:deadcode": "node scripts/check-dead-exports.mjs",
+    "lint:types-freshness": "node scripts/check-types-freshness.mjs",
     "i18n:prose:fix": "node scripts/i18n-fix-typography.mjs",
     "i18n:scan": "node scripts/i18n-scan.mjs",
     "i18n:parity": "node scripts/i18n-parity.mjs",

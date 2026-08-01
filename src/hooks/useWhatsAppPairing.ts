@@ -34,8 +34,7 @@ export function useWhatsAppPairing() {
 
   const generateCode = useMutation({
     mutationFn: async (): Promise<string> => {
-      const { data, error } = await (supabase.rpc as unknown as
-        (fn: string) => Promise<{ data: string | null; error: unknown }>)('generate_whatsapp_pairing_code')
+      const { data, error } = await supabase.rpc('generate_whatsapp_pairing_code')
       if (error) throw error
       return (data as string) ?? ''
     },

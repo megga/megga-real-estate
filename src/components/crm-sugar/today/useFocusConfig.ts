@@ -11,9 +11,6 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { parseFocusConfig, FOCUS_DEFAULTS, type FocusConfig } from './focusScore'
 
-const rpcUntyped = supabase.rpc as unknown as
-  (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>
-
 export function useFocusConfig(): FocusConfig {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -21,7 +18,7 @@ export function useFocusConfig(): FocusConfig {
   const query = useQuery({
     queryKey: ['focus-config', agencyId],
     queryFn: async (): Promise<FocusConfig> => {
-      const { data, error } = await rpcUntyped('get_today_focus_config', {})
+      const { data, error } = await supabase.rpc('get_today_focus_config')
       if (error) throw error
       return parseFocusConfig(data)
     },

@@ -15,19 +15,6 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { BienHealth } from '@/components/crm-sugar/mockData'
 
-interface PropertyScoreRow {
-  property_id: string
-  overall_score: number | null
-  score_label: string | null
-  data_completeness: number | null
-}
-
-const fromUntyped = supabase.from as unknown as (table: string) => {
-  select: (cols: string) => {
-    eq: (col: string, val: string) => Promise<{ data: unknown; error: Error | null }>
-  }
-}
-
 /** Map property_id → BienHealth (lignes 'internal' de l'agence). Vide tant que non chargé. */
 export function usePropertyScores(): { scores: Map<string, BienHealth>; isLoading: boolean } {
   const { profile } = useAuth()
@@ -36,14 +23,16 @@ export function usePropertyScores(): { scores: Map<string, BienHealth>; isLoadin
   const query = useQuery({
     queryKey: ['property-scores', agencyId],
     queryFn: async (): Promise<Map<string, BienHealth>> => {
-      const { data, error } = await fromUntyped('property_scores')
+      const { data, error } = await supabase
+        .from('property_scores')
         .select('property_id, overall_score, score_label, data_completeness')
         .eq('source', 'internal')
       if (error) throw error
-      const rows = (data ?? []) as PropertyScoreRow[]
       const map = new Map<string, BienHealth>()
-      for (const r of rows) {
-        if (r.overall_score == null) continue
+      for (const r of data ?? []) {
+        // `property_id` est nullable en base : une ligne sans bien ne peut pas servir de
+        // clé ici (la Map est lue PAR id), elle est donc écartée comme un score absent.
+        if (r.property_id == null || r.overall_score == null) continue
         map.set(r.property_id, {
           overall: r.overall_score,
           label: r.score_label ?? '',

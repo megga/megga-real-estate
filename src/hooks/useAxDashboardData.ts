@@ -14,14 +14,14 @@ import type { AxPeriodId, AxPeriodData } from '@/components/crm-sugar/analytics/
 
 export type AxScope = 'me' | 'agency'
 
-// Les RPC analytics_* ne sont pas (encore) dans les types générés `Database` ;
-// on suit le pattern du repo (cf useAdminLearning.ts) pour rester sans `any`.
-const rpcUntyped = supabase.rpc as unknown as
-  (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>
-
-/** Appel d'une RPC Supabase non typée ; remonte l'erreur. */
-async function rpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
-  const { data, error } = await rpcUntyped(name, args)
+/** Appel d'une RPC agrégée du cockpit ; remonte l'erreur.
+ *
+ *  `name` prend l'union des noms connus de `database.ts`, pas `string` : un dispatcher
+ *  typé `string` éteint la vérification pour TOUS ses appelants d'un coup. Les trois RPC
+ *  rendent `Json`, que le générateur ne sait pas affiner — d'où le `T` en sortie, mais le
+ *  NOM et les arguments sont désormais vérifiés. */
+async function rpc<T>(name: Parameters<typeof supabase.rpc>[0], args: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.rpc(name, args as never)
   if (error) throw error
   return data as T
 }
