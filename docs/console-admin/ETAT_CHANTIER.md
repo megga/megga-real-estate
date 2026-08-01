@@ -169,8 +169,8 @@ par ligne comme au registre.
 `260000_admin_security_read` · `270000_admin_agency_note_and_invitations` ·
 `280000_admin_console_read_views` · `290000_admin_overview`.
 
-**Tests** : 54 specs dédiées à la console. CI complète verte sur `278720ee` — **138 fichiers /
-1 257 tests** en backend, **86 fichiers / 1 402 tests** en unitaire. Les specs des étapes 9, 10 et 14
+**Tests** : 56 specs dédiées à la console. CI complète verte sur `c1a178af` — **139 fichiers /
+1 265 tests** en backend, **87 fichiers / 1 406 tests** en unitaire. Les specs des étapes 9, 10 et 14
 exécutent respectivement **19**, **12** et **18** tests, le seed **7** et le garde-fou
 d'instrumentation **3** : c'est le compte qui le prouve, pas le statut vert.
 
