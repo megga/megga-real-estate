@@ -69,9 +69,20 @@ describe.skipIf(!HAS_KEYS)('revue du Lot 1 — correctifs (01.08)', () => {
     const pro = (b.plans as Row[]).find((p) => p.plan === 'pro')
     expect(pro, 'le plan Pro doit apparaître : une agence active y est abonnée').toBeTruthy()
 
-    // Les deux agences sont en Pro, une seule paie. Le compte doit dire UNE.
-    expect(Number(pro!.count), 'l\'agence en ESSAI ne doit pas gonfler le compte').toBe(1)
-    expect(Number(pro!.mrr), 'et le MRR reste celui de l\'agence qui paie').toBe(89)
+    // ⚠ Ne PAS affirmer « 1 » en dur : la base de CI est partagée et d'autres specs y
+    // créent des agences. Le compte se vérifie contre le PORTEFEUILLE, qui vient du même
+    // appel — c'est self-cohérent et immunisé aux voisins.
+    const portefeuille = b.portfolio as Row[]
+    const proActives = portefeuille.filter((p) => p.plan === 'pro' && p.state === 'active').length
+    const proTotal   = portefeuille.filter((p) => p.plan === 'pro').length
+
+    expect(Number(pro!.count), 'le compte doit être celui des Pro ACTIVES').toBe(proActives)
+    expect(proTotal, 'le décor du test : au moins une Pro non active (la mienne, en essai)')
+      .toBeGreaterThan(proActives)
+
+    // Mon agence en essai, nommément : elle ne doit pas être dans les actives.
+    const mienneEnEssai = portefeuille.find((p) => p.id === setup.agencyBId)
+    expect(mienneEnEssai?.state, 'l\'agence B est bien en essai').toBe('trial')
 
     // L'invariant qui vaut pour tous les plans, et qui aurait attrapé le défaut sans
     // connaître les valeurs : un plan dont le compte est non nul doit avoir un MRR

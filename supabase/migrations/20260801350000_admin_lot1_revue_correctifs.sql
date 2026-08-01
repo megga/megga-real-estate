@@ -1,9 +1,21 @@
 -- Revue du Lot 1 (01.08.2026) — deux défauts d'AFFICHAGE JUSTE, trouvés en relisant le
 -- code déployé contre la maquette et contre la production.
 --
--- NOUVEAU FICHIER, pas une reprise sur place : `20260731320000` et `20260731290000` sont
--- DÉJÀ en production (PR #1046, mergée le 01.08 à 08h20). La règle du dépôt interdit de
--- corriger une migration déployée — une correction se fait par une migration de plus.
+-- NOUVEAU FICHIER, pas une reprise sur place : les fonctions corrigées ici sont DÉJÀ en
+-- production (PR #1046, mergée le 01.08 à 08h20). La règle du dépôt interdit de corriger
+-- une migration déployée — une correction se fait par une migration de plus.
+--
+-- ⚠ POURQUOI `350000` ET NON `100000`, ET C'EST UN PIÈGE À RETENIR.
+-- Ce fichier était d'abord daté `20260801100000` : le jour UTC était bon, et ça semblait
+-- suffire. La CI l'a démenti — les deux tests rendaient EXACTEMENT l'ancien comportement.
+-- Cause : les migrations du Lot 1/2 ont été RE-DATÉES au 1ᵉʳ août au moment du merge (§8),
+-- de `20260731…` vers `20260801210500`…`20260801340000`. Elles passent donc APRÈS 10:00:00,
+-- et leurs `create or replace` ré-appliquaient les définitions d'origine PAR-DESSUS ce
+-- correctif. Le fix était juste ; il était enterré, en silence, sans qu'aucune erreur ne
+-- soit levée.
+--
+-- LEÇON : après un re-datage, « aujourd'hui » ne suffit plus à garantir l'ordre. Une
+-- correction doit être datée après la DERNIÈRE migration du dépôt, pas après l'horloge.
 --
 -- ⚠ UN TROISIÈME DÉFAUT A ÉTÉ SIGNALÉ PUIS RETIRÉ, et c'est noté ici pour que personne ne
 -- le « re-trouve » : le pouls ne compte pas les crons dont le dernier statut est NULL. Ça
