@@ -131,27 +131,67 @@ describe.skipIf(!HAS_KEYS)('contrat des gestes de console (étape 23)', () => {
     `)
   })
 
-  it('tout geste laisse une ligne au registre — c\'est ce qui en fait un geste', () => {
-    // Tautologique par construction (le périmètre EST « écrit dans admin_log »), et c'est
-    // voulu : le test qui compte est le suivant — qu'aucune RPC mutante ne se soit
-    // installée HORS de ce périmètre en oubliant de journaliser.
+  it('aucune RPC admin n\'écrit HORS du registre — hors dette nommée', () => {
+    // ⚠ CE TEST A ÉCHOUÉ À SA PREMIÈRE EXÉCUTION, et ce qu'il a trouvé est RÉEL : huit RPC
+    // super-admin écrivent sans laisser de ligne au registre MEGGA. Mesuré : elles
+    // journalisent toutes, mais dans `activity_events`. Or c'est l'autre journal — celui
+    // qui raconte ce que font les AGENCES. Ces huit-là sont des actions de MEGGA SUR une
+    // agence (changer un plan, des quotas, un rôle, trancher un dossier KYB). Les écrire
+    // là :
+    //   · les laisse HORS de la chaîne d'empreintes (activity_events n'en a pas) ;
+    //   · les rend invisibles à l'écran Sécurité, qui lit admin_log ;
+    //   · verse une action MEGGA dans le flux propre de l'agence.
+    //
+    // Le plan le sait déjà : les cinq KYB sont l'étape 19b (« + écriture admin_log famille
+    // kyb »), `set_role` l'étape 18, les deux réglages d'agence la famille 17. Toutes
+    // bloquées par des décisions PO. Ce n'est donc pas à l'étape 23 de les corriger — mais
+    // ce n'était pas non plus une raison d'affaiblir le test jusqu'à ce qu'il se taise.
+    //
+    // D'où un CLIQUET plutôt qu'une exemption : la dette est nommée, et le test rougit dans
+    // les DEUX sens. Un neuvième geste clandestin le fait échouer ; un remboursement laissé
+    // dans la liste aussi. La liste ne peut que rétrécir.
+    const DETTE = [
+      // étape 19b — décisions KYB, famille `kyb`
+      'admin_validate_agency_review', 'admin_reject_agency_review',
+      'admin_request_agency_correction', 'admin_relaunch_agency_review',
+      'admin_resolve_agency_id_document',
+      // étape 18 — utilisateurs
+      'admin_set_user_role',
+      // famille étape 17 — réglages d'agence
+      'admin_set_agency_plan', 'admin_set_agency_quotas',
+    ]
     assertSql(`
-    declare v_muettes text;
+    declare v_nouveaux text; v_rembourses text;
     begin
-      -- Une fonction admin SECURITY DEFINER qui ECRIT (insert/update/delete sur une table
-      -- du domaine) mais ne journalise pas : c'est un geste clandestin.
-      select string_agg(p.proname, ', ' order by p.proname) into v_muettes
-        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-       where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef
-         and p.proname ~ '^admin_'
-         and p.prosrc ~* '(insert into|update) public\\.'
-         and p.prosrc not like '%admin_log_write%'
-         -- Le registre lui-meme et ses outils : ils SONT le journal, ils ne s y ecrivent pas.
-         and p.proname !~ '^admin_log'
-         and p.proname not in ('admin_receipt_try', 'admin_receipt_seal',
-                               'admin_outbox_enqueue', 'admin_outbox_claim', 'admin_outbox_settle');
-      if v_muettes is not null then
-        raise exception 'RPC admin qui ECRIT sans journaliser : %', v_muettes;
+      with dette(nom) as (values ${DETTE.map((n) => `('${n}')`).join(', ')}),
+      clandestins as (
+        select p.proname
+          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef
+           and p.proname ~ '^admin_'
+           and p.prosrc ~* '(insert into|update) public\\.'
+           and p.prosrc not like '%admin_log_write%'
+           -- Le registre lui-meme et ses outils : ils SONT le journal, ils ne s y ecrivent pas.
+           and p.proname !~ '^admin_log'
+           and p.proname not in ('admin_receipt_try', 'admin_receipt_seal',
+                                 'admin_outbox_enqueue', 'admin_outbox_claim', 'admin_outbox_settle')
+      )
+      select (select string_agg(proname, ', ' order by proname) from clandestins
+               where proname not in (select nom from dette)),
+             (select string_agg(nom, ', ' order by nom) from dette
+               where nom not in (select proname from clandestins))
+        into v_nouveaux, v_rembourses;
+
+      if v_nouveaux is not null then
+        raise exception E'RPC admin qui ECRIT sans laisser de ligne au registre MEGGA : %\\n'
+          '  activity_events ne compte pas : il raconte ce que font les AGENCES, et il n a\\n'
+          '  pas de chaine d empreintes. Une action de MEGGA passe par admin_log_write.', v_nouveaux;
+      end if;
+
+      if v_rembourses is not null then
+        raise exception E'DETTE REMBOURSEE — retire ces noms de la liste DETTE du spec : %\\n'
+          '  Elles journalisent desormais (ou n existent plus). Une liste d exceptions qui\\n'
+          '  ne retrecit pas finit par exempter du code qui n en a plus besoin.', v_rembourses;
       end if;
     `)
   })
