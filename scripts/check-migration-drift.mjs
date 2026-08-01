@@ -170,18 +170,55 @@ if (!token) {
 }
 
 const expected = scanMigrations();
-const present = await fetchSchema(token);
-// Une colonne dont la TABLE est absente de la production n'est pas une dérive :
-// la table a été supprimée hors migration (éditeur SQL), et réclamer sa colonne
-// enverrait chercher un objet qui n'a plus de porteur.
-const missing = [...expected.entries()].filter(([key]) => {
+
+/**
+ * Une colonne dont la TABLE est absente de la production n'est pas une dérive :
+ * la table a été supprimée hors migration (éditeur SQL), et réclamer sa colonne
+ * enverrait chercher un objet qui n'a plus de porteur.
+ */
+const manquants = (present) => [...expected.entries()].filter(([key]) => {
   if (present.has(key)) return false;
   if (key.startsWith('column:') && !present.has(`table:${key.slice(7).split('.')[0]}`)) return false;
   return true;
 });
 
+/**
+ * ⚠ POURQUOI CE CONTRÔLE PATIENTE — mesuré le 01.08.2026, sur le merge de #1054.
+ *
+ * Ce script tourne sur `push: main`, après une attente FIXE de 180 s censée laisser
+ * deploy.yml appliquer les migrations. Cette attente ne suffit plus : deploy.yml enchaîne
+ * `npm ci`, `tsc -b`, `eslint .` et `vite build` AVANT d'appliquer quoi que ce soit, et il
+ * est sérialisé par `concurrency: deploy-<ref>` avec `cancel-in-progress: false`.
+ *
+ * Constaté en conditions réelles : sur le merge de #1054, ce contrôle a réclamé
+ * `get_agent_changelog` et `kyc_magic_links.email_sent_at` comme ABSENTS de la production —
+ * alors que les deux y sont bel et bien arrivés quelques minutes plus tard. Un faux positif
+ * sur la seule catégorie de merge qui le concerne : ceux qui portent des migrations.
+ *
+ * Le même jour, `check-privilege-drift.mjs` a rencontré exactement la même course, l'a
+ * annoncée (« un déploiement est peut-être en cours »), a remesuré et conclu juste. C'est
+ * ce comportement qu'on reprend ici.
+ *
+ * Le fichier disait déjà pourquoi ça compte, à propos d'un autre faux positif :
+ * « un garde-fou qui crie sans raison finit ignoré, donc muet le jour où il a raison ».
+ * L'assertion n'est pas relâchée — une dérive réelle est toujours rapportée, elle prend
+ * seulement quelques minutes de plus à l'être.
+ */
+const TENTATIVES = Number(process.env.DRIFT_TRIES ?? 10);
+const ATTENTE_MS = Number(process.env.DRIFT_DELAY_MS ?? 60_000);
+
 const scanned = readdirSync(DIR).filter(f => f.endsWith('.sql') && !BASELINE.test(f)).length;
 console.log(`${expected.size} objets déclarés par ${scanned} migrations (baseline exclue).`);
+
+let missing = manquants(await fetchSchema(token));
+for (let essai = 1; missing.length > 0 && essai < TENTATIVES; essai++) {
+  console.log(
+    `  ${missing.length} objet(s) encore absent(s) — un déploiement est peut-être en cours ` +
+    `(essai ${essai}/${TENTATIVES - 1}, nouvelle mesure dans ${Math.round(ATTENTE_MS / 1000)} s).`,
+  );
+  await new Promise((r) => setTimeout(r, ATTENTE_MS));
+  missing = manquants(await fetchSchema(token));
+}
 
 if (missing.length === 0) {
   console.log('✓ Aucune dérive : tout ce que le dépôt déclare existe en base.');
