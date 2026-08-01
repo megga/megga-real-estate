@@ -154,6 +154,15 @@ begin
     return public.admin_error('precondition_failed', 'Clé d''idempotence manquante.');
   end if;
 
+  -- pg_cron n'est PAS installé en local ni en CI (il exige shared_preload_libraries, on
+  -- ne peut donc pas l'y créer). Toucher `cron.job` sans cette garde lève 42P01 et fait
+  -- échouer la suite entière. Le dépôt a déjà l'idiome, sur les migrations comme sur
+  -- `get_cron_health` : tester la présence du schéma, puis dégrader.
+  if not exists (select 1 from pg_namespace where nspname = 'cron') then
+    return public.admin_error('precondition_failed',
+      'pg_cron n''est pas installé sur cette base : la relance n''est possible qu''en production.');
+  end if;
+
   -- Verrou d'entité AVANT toute lecture d'état (§10.2, amendé : verrou d'entité puis
   -- verrou de chaîne — l'ordre inverse provoquait un interblocage 40P01).
   perform public.admin_lock_entity('cron_job', p_jobname);
@@ -261,6 +270,10 @@ declare
   v_fin    timestamptz;
   v_n      integer := 0;
 begin
+  if not exists (select 1 from pg_namespace where nspname = 'cron') then
+    return 0;   -- pg_cron absent (local/CI) : rien à balayer, et surtout rien à lever.
+  end if;
+
   -- Le filtre porte le format DANS la clause : un job nommé à la main « adhoc-manuel »
   -- pendant un incident ferait lever le cast et le balayage entier s'arrêterait, laissant
   -- en place des ponctuels de crons SENSIBLES — ceux qu'on a confirmés à la main.
@@ -299,16 +312,25 @@ comment on function public.admin_cron_adhoc_sweep() is
 
 revoke all on function public.admin_cron_adhoc_sweep() from public, anon, authenticated;
 
-do $$
+-- ⚠ Planification GARDÉE par la présence du schéma `cron` : pg_cron exige
+-- shared_preload_libraries, il est donc absent en local et en CI, où `cron.job` n'existe
+-- pas du tout. Sans cette garde, la migration lève 42P01 et fait échouer `supabase start`,
+-- donc TOUTE la suite backend et l'E2E — avant qu'un seul test ait tourné. C'est l'idiome
+-- déjà employé par une dizaine de migrations du dépôt.
+do $do$
 begin
-  -- Rejeu le jour même : deploy.yml ré-applique toute migration dont le stamp est >= TODAY,
-  -- donc l'unschedule doit tolérer un job absent. On teste l'existence plutôt que d'avaler
-  -- l'exception : un `when others then null` masquerait aussi un refus de droits, et le
-  -- balayeur ne serait jamais planifié sans que rien ne le dise.
-  if exists (select 1 from cron.job where jobname = 'admin-adhoc-cron-sweep') then
-    perform cron.unschedule('admin-adhoc-cron-sweep');
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    -- Rejeu le jour même : deploy.yml ré-applique toute migration dont le stamp est
+    -- >= TODAY, donc l'unschedule doit tolérer un job absent. On teste l'existence plutôt
+    -- que d'avaler l'exception : un `when others then null` masquerait aussi un refus de
+    -- droits, et le balayeur ne serait jamais planifié sans que rien ne le dise.
+    if exists (select 1 from cron.job where jobname = 'admin-adhoc-cron-sweep') then
+      perform cron.unschedule('admin-adhoc-cron-sweep');
+    end if;
+    perform cron.schedule('admin-adhoc-cron-sweep', '*/10 * * * *',
+                          $cron$ select public.admin_cron_adhoc_sweep(); $cron$);
+  else
+    raise notice 'pg_cron absent (local/CI) — admin-adhoc-cron-sweep non planifié';
   end if;
-end $$;
-
-select cron.schedule('admin-adhoc-cron-sweep', '*/10 * * * *',
-                     $cron$ select public.admin_cron_adhoc_sweep(); $cron$);
+end
+$do$;
