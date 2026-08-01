@@ -159,13 +159,28 @@ describe('shouldRedirectToIdentityGate - garde-fou 2 : la route du gate ne se re
 // une fraction de seconde, puis la lecture agence repondait 'required' et
 // renvoyait le dirigeant sur le wizard (signale le 1er aout 2026).
 describe('shouldHoldForIdentityGate - le CRM ne se montre pas avant que le gate ait tranche', () => {
-  it('statut non resolu -> on retient l ecran d arrivee', () => {
-    expect(shouldHoldForIdentityGate('loading')).toBe(true)
+  it('statut non resolu, jamais tranche -> on retient l ecran d arrivee', () => {
+    expect(shouldHoldForIdentityGate('loading', false)).toBe(true)
   })
 
   it('tout statut tranche -> on rend (le CRM, ou la redirection vers le wizard)', () => {
     for (const status of ['required', 'exempt', 'done'] as const) {
-      expect(shouldHoldForIdentityGate(status)).toBe(false)
+      expect(shouldHoldForIdentityGate(status, false)).toBe(false)
+    }
+  })
+
+  // LA regression du 01.08.2026, attrapee par la suite E2E KYB : retenir l'ecran
+  // DEMONTE l'arbre sous la route. Un retour a 'loading' apres coup faisait donc
+  // repartir le wizard d'identite de zero -- ecran d'arrivee de nouveau affiche,
+  // saisie en cours perdue -- et la suite bouclait, chaque clic remontant la
+  // coquille qu'un passage a 'loading' demontait aussitot.
+  it('statut retombe a loading APRES une premiere resolution -> on ne retient plus rien', () => {
+    expect(shouldHoldForIdentityGate('loading', true)).toBe(false)
+  })
+
+  it('la retenue ne concerne QUE la toute premiere resolution', () => {
+    for (const status of ['loading', 'required', 'exempt', 'done'] as const) {
+      expect(shouldHoldForIdentityGate(status, true)).toBe(false)
     }
   })
 
@@ -174,9 +189,11 @@ describe('shouldHoldForIdentityGate - le CRM ne se montre pas avant que le gate 
   // sans quoi l'ordre des ternaires deciderait du comportement.
   it('aucun statut ne declenche a la fois la retenue et la redirection', () => {
     for (const status of ['loading', 'required', 'exempt', 'done'] as const) {
-      const hold = shouldHoldForIdentityGate(status)
-      const redirect = shouldRedirectToIdentityGate(status, '/dashboard')
-      expect(hold && redirect).toBe(false)
+      for (const resolu of [false, true]) {
+        const hold = shouldHoldForIdentityGate(status, resolu)
+        const redirect = shouldRedirectToIdentityGate(status, '/dashboard')
+        expect(hold && redirect).toBe(false)
+      }
     }
   })
 })

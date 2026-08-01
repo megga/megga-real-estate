@@ -90,7 +90,16 @@ function AgentSugarInner() {
   // lecture agence ne réponde 'required' et ne renvoie sur le wizard d'identité.
   // On prolonge l'écran d'arrivée — le même que celui de ProtectedRoute, donc la
   // bascule ne se voit pas — plutôt que d'ouvrir une porte qu'on va refermer.
-  const holdForIdentity = shouldHoldForIdentityGate(identityGateStatus)
+  //
+  // UNE SEULE FOIS, et c'est essentiel : retenir l'écran remplace l'<Outlet/>,
+  // donc DÉMONTE la page et son état. Un retour à 'loading' après coup ferait
+  // repartir le wizard d'identité de zéro en pleine saisie (cf. le JSDoc de
+  // shouldHoldForIdentityGate). Une fois le gate résolu, on ne retient plus rien.
+  const [gateResolvedOnce, setGateResolvedOnce] = useState(false)
+  useEffect(() => {
+    if (identityGateStatus !== 'loading') setGateResolvedOnce(true)
+  }, [identityGateStatus])
+  const holdForIdentity = shouldHoldForIdentityGate(identityGateStatus, gateResolvedOnce)
 
   return (
     // flex column pleine hauteur (correctif revue, point mineur) : les bandeaux

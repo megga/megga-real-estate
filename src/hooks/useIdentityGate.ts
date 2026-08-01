@@ -130,12 +130,26 @@ export function shouldRedirectToIdentityGate(status: IdentityGateStatus, pathnam
  * JAMAIS le blocage ni le contenu reel tant que le statut n'est pas connu") ;
  * ce predicat la rend disponible au gate identite, du meme cote de la barriere.
  *
- * Ne concerne que le PREMIER chargement : `isLoading` de React Query ne repasse
- * pas a vrai sur un rafraichissement d'arriere-plan (les donnees sont alors
- * deja la), donc ce predicat ne peut pas effacer un wizard en cours de saisie.
+ * ⚠ `alreadyResolved` n'est PAS une precaution decorative, c'est le coeur du
+ * predicat. Retenir l'ecran d'arrivee remplace l'<Outlet/> : l'arbre sous la
+ * route est DEMONTE, et avec lui tout l'etat local de la page. Si le statut
+ * retombait a 'loading' apres avoir tranche une premiere fois - cle de requete
+ * qui change, profil qui se re-resout, reconnexion - le wizard d'identite
+ * repartirait de zero : ecran d'arrivee de nouveau affiche, etape en cours de
+ * saisie perdue. Attrape par la suite E2E KYB le 01.08.2026, qui bouclait sur
+ * l'ecran d'arrivee : chaque clic sur « Identifier mon agence » montait la
+ * coquille, un passage a 'loading' la demontait, et l'ecran revenait.
+ *
+ * On ne retient donc QUE la premiere resolution. Apres elle, un statut
+ * indetermine ne provoque plus rien : il n'y a plus de flash a eviter, seulement
+ * du travail a ne pas detruire. La redirection, elle, reste gouvernee par le
+ * garde-fou 1 et ne part jamais sur un etat non resolu.
  */
-export function shouldHoldForIdentityGate(status: IdentityGateStatus): boolean {
-  return status === 'loading'
+export function shouldHoldForIdentityGate(
+  status: IdentityGateStatus,
+  alreadyResolved: boolean,
+): boolean {
+  return status === 'loading' && !alreadyResolved
 }
 
 interface AgencyIdentityRow {
