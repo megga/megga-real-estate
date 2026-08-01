@@ -45,7 +45,28 @@ Les trois critères de sortie **G0** sont couverts par des tests permanents.
 plus de moi : la base de recette pour mesurer le p95, la démo PO, et **14b** (revue KYB en
 lecture), suspendue à la dépendance **P5** — une maquette, pas du code.
 
-**Lot 2 — 2 étapes sur 9.** **16 ✅ socle des gestes** · **19 ✅ diagnostic de lien KYC**.
+**Lot 2 — 3 étapes sur 9.** **16 ✅ socle des gestes** · **19 ✅ diagnostic de lien KYC** ·
+**20 ✅ relevé IA et dérives**.
+
+⚠ **Amendement mesuré à l'étape 20 — la moitié « par compte » de §5.11 n'a AUCUNE source.**
+§5.11 demande « médiane par COMPTE », « comptes à zéro appel avec raison », et la maquette
+porte une vue « Par compte » plus une dérive « X pèse N× la médiane ». Or `ai_usage_logs`
+n'a **aucune colonne d'utilisateur**, et ce n'est pas un oubli de schéma : `AIUsageInput`
+n'en porte pas non plus, son commentaire dit « Agence à l'origine de l'appel (attribution
+des coûts) ». Rien à agréger, et **rien à rattraper** — le passé ne contient pas
+l'information. La rendre possible est un chantier d'**instrumentation** (comme l'étape 6),
+pas une vue à écrire : ajouter `profile_id` ET le faire remonter par tous les appelants,
+dont plusieurs (weekly-digest…) n'ont aucun utilisateur en contexte. Nommé dans
+`unavailable`, avec un test qui rougira le jour où la colonne apparaîtra.
+
+⚠ **`get_admin_ai_costs()` n'a PAS été recréée.** Elle rend déjà mois × agence × provider ×
+module sur N mois — la moitié « usage » de `v_ai_month`. `get_admin_ai_month()` agrège à un
+grain **différent** (mois × agence, avec part et médiane), que la première ne permet pas de
+calculer sans re-agréger côté écran. Ce n'est pas un doublon, c'est l'étage au-dessus.
+
+⚠ **Deux seuils à ne pas confondre** : la **dérive** est à 95 % du plafond (§7), l'**alerte**
+à `alert_threshold_pct` (défaut 80, servie par `get_admin_quota_breaches`). Une alerte
+prévient, une dérive demande un arbitrage. Un test les sépare explicitement.
 
 ⚠ **Amendement mesuré à l'étape 19 — la régénération ne peut PAS émettre le lien en SQL.**
 Le handoff dit « en émet un nouveau ». Mesuré : le jeton final est un **HMAC-SHA256 signé en
@@ -340,6 +361,7 @@ NOTRES="
   20260731290000_admin_overview.sql
   20260731300000_admin_gestures_socle.sql
   20260731310000_admin_kyc_diagnostic.sql
+  20260731320000_admin_ai_month_and_drift.sql
 "
 for n in $NOTRES; do
   f="supabase/migrations/$n"
