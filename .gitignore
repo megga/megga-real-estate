@@ -69,6 +69,11 @@ __pycache__/
 .claude-flow/policy/
 .claude/proven-config.json
 .claude/.proven-config-version
+# Permissions locales par poste : contient des noms de serveurs MCP qui changent
+# d'une session à l'autre (le serveur Supabase est tantôt `mcp__Supabase__*`,
+# tantôt `mcp__<uuid>__*`). Versionner ce fichier accorderait en plus `execute_sql`
+# sur la prod à quiconque récupère la branche, sans invite de confirmation.
+.claude/settings.local.json
 
 # Sorties du skill llm-council — écrites dans le cwd à chaque session de conseil
 # (non ancrés : le skill écrit là où Claude est lancé, pas forcément à la racine)

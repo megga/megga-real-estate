@@ -25,7 +25,10 @@
 // externe ; seule la partie 100% base de donnees bascule dans la RPC.
 //
 // Auth : Bearer == cle service-role, comparaison a temps constant (meme motif que
-// kyc-screening et idx-syndicate). Aucun chemin utilisateur pour l'instant : cette
+// kyc-screening et idx-syndicate), acceptee sous SES DEUX FORMATS -- le JWT legacy de
+// Deno.env et la cle `sb_secret_` d'app_config, que net.http_post rejoue en Bearer. Voir
+// isTrustedServiceCaller plus bas : n'en reconnaitre qu'un seul rendait la chaine KYB
+// dependante de la coincidence des deux sources. Aucun chemin utilisateur pour l'instant : cette
 // fonction n'est destinee qu'a des appelants internes de confiance -- le
 // declenchement (appel client apres soumission, cron, ou relais admin) se decide
 // a la tache 4. De toute facon, les tables de checks refusent l'ecriture a tout
@@ -77,6 +80,52 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0
 }
 
+/** Le Bearer recu porte-t-il le secret service-role, sous L'UN OU L'AUTRE de ses formats ?
+ *
+ *  Supabase expose la MEME identite service_role sous deux formats egalement valides : le
+ *  JWT legacy (`eyJ...`) et la cle `sb_secret_...`. Cette fonction n'en voyait qu'un --
+ *  celui de Deno.env -- et rejetait l'autre en 401 avant toute logique, alors qu'il ouvre
+ *  exactement les memes portes. Accepter les deux n'elargit donc aucun privilege : qui
+ *  detient l'un detient deja l'acces complet a la base.
+ *
+ *  POURQUOI CA COMPTE ICI, et pas seulement par elegance : l'appelant nominal est
+ *  net.http_post, qui rejoue en Bearer `app_config.service_role_key` -- pas la variable
+ *  d'environnement. Rien ne garantit que les deux portent la meme valeur, et le depot
+ *  contenait deja les deux croyances contradictoires sur ce point (l'en-tete de
+ *  tests/backend/agency-verification-run.spec.ts affirme que le runtime edge n'injecte que
+ *  le JWT legacy ; la production observee injecte la cle `sb_secret_`). Tant que la garde
+ *  ne regardait qu'une seule des deux sources, une rotation qui ne toucherait que l'autre
+ *  coupait toute la chaine KYB en 401 -- silencieusement, puisque net.http_post est
+ *  fire-and-forget et que personne ne lit net._http_response.
+ *
+ *  Ordre delibere : la variable d'environnement d'abord, parce qu'elle est en memoire et
+ *  qu'elle suffit dans le cas nominal. Le second credential n'est LU qu'en repli (d'ou le
+ *  thunk plutot que la valeur), donc le chemin passant ne paie aucun aller-retour SQL
+ *  supplementaire. Un echec de lecture (table absente en local, RLS) vaut « pas de second
+ *  credential », jamais une 500 : la garde reste fermee, elle ne s'ouvre pas sur une erreur.
+ *
+ *  POURQUOI UN THUNK ET NON LE CLIENT SUPABASE en parametre : annoter ce parametre est un
+ *  piege. `ReturnType<typeof createClient>` instancie les generiques sur leurs valeurs par
+ *  defaut -- le schema y vaut `never`, si bien que `.from('app_config')` rend une ligne
+ *  `never` et que `cfg?.value` ne compile pas (TS2339), tandis que le client reel
+ *  (`SupabaseClient<any, "public", ...>`) n'est plus assignable au parametre (TS2345).
+ *  Constate en CI le 01.08.2026, invisible en local faute de Deno. Le thunk laisse
+ *  l'inference faire son travail la ou le client est cree, et garde cette fonction pure. */
+async function isTrustedServiceCaller(
+  provided: string,
+  envServiceRoleKey: string,
+  readConfigSecret: () => Promise<string>,
+): Promise<boolean> {
+  if (safeEqual(provided, envServiceRoleKey)) return true
+  if (!provided) return false
+
+  try {
+    return safeEqual(provided, await readConfigSecret())
+  } catch {
+    return false
+  }
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 interface RunRequest {
@@ -94,7 +143,27 @@ serve(async (req) => {
 
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   const provided = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-  if (!serviceRoleKey || !safeEqual(provided, serviceRoleKey)) {
+  if (!serviceRoleKey) return json({ error: 'unauthorized' }, 401)
+
+  // Le client est construit AVANT la garde (et non apres, comme jusqu'ici) parce que le
+  // second credential accepte se lit en base. La cle d'env sert a le construire : c'est
+  // la seule dont on dispose a coup sur a cet instant.
+  const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey, {
+    auth: { persistSession: false },
+  })
+
+  // La lecture vit ICI, ou `supabase` porte son type infere : meme forme d'acces que
+  // whatsapp-process (garde service-role deja en production sur cette table).
+  const readConfigSecret = async (): Promise<string> => {
+    const { data: cfg } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'service_role_key')
+      .maybeSingle()
+    return (cfg?.value as string | undefined) ?? ''
+  }
+
+  if (!(await isTrustedServiceCaller(provided, serviceRoleKey, readConfigSecret))) {
     return json({ error: 'unauthorized' }, 401)
   }
 
@@ -109,10 +178,6 @@ serve(async (req) => {
   if (typeof agencyId !== 'string' || !UUID_RE.test(agencyId)) {
     return json({ error: 'agency_id required (uuid)' }, 400)
   }
-
-  const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey, {
-    auth: { persistSession: false },
-  })
 
   try {
     // 1. Lecture de l'agence a verifier.

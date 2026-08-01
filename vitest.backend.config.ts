@@ -20,6 +20,12 @@ import path from 'path'
 //      litterale au SUPABASE_SERVICE_ROLE_KEY du runtime n'acceptent que le JWT
 //      legacy. C'est le cas en CI (.github/workflows/backend.yml) ; en local,
 //      .env.test.local porte deja le JWT legacy et le repli suffit.
+//      EXCEPTION depuis le 01.08.2026 : agency-verification-run accepte les DEUX
+//      formats (isTrustedServiceCaller -- env d'abord, app_config.service_role_key en
+//      repli), parce que son appelant reel est net.http_post, qui rejoue en Bearer la
+//      valeur d'app_config et non celle du runtime. Les autres fonctions gardees de la
+//      meme facon (kyc-screening, idx-syndicate) n'ont pas encore ete alignees : la
+//      variable reste donc necessaire.
 //
 // Run with: npm run test:backend
 
