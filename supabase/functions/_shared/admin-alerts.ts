@@ -23,6 +23,7 @@ interface AlertThresholds {
   whatsapp_deadletter_max: number
   calendar_sync_stale_max: number
   stripe_webhook_stale_hours: number
+  outbox_stuck_hours: number
 }
 
 const DEFAULT_THRESHOLDS: AlertThresholds = {
@@ -40,6 +41,12 @@ const DEFAULT_THRESHOLDS: AlertThresholds = {
   // Âge (heures) du dernier événement webhook Stripe au-delà duquel on alerte,
   // UNIQUEMENT s'il existe ≥1 abonnement actif (sinon aucun trafic = normal).
   stripe_webhook_stale_hours: 72,
+  // Âge (heures) d'un job d'outbox resté `pending`. Court volontairement : un
+  // consommateur sain reprend en quelques minutes, donc 6 h signifie déjà que
+  // personne ne consomme — ce qui est l'état RÉEL aujourd'hui, aucun worker
+  // n'existant. Le seuil n'est pas là pour tolérer du retard mais pour que
+  // l'absence de consommateur cesse d'être silencieuse.
+  outbox_stuck_hours: 6,
 }
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000
@@ -232,6 +239,111 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
       subject: 'Webhook Stripe silencieux',
       body: `Aucun événement Stripe reçu depuis ${Math.round(signals.stripeWebhookAgeHours)}h (seuil : ${thresholds.stripe_webhook_stale_hours}h) alors que ${signals.activeSubscriptions} abonnement(s) sont actifs. Vérifier la config webhook Stripe. Voir /dashboard/admin/monitoring.`,
     })
+  }
+
+  // 10. Chaîne d'empreintes du registre console rompue (§10.9).
+  //
+  // C'est l'événement le PLUS grave que la console sache détecter : il dit que le journal
+  // de ce que fait MEGGA a été touché. Il était pourtant le seul à n'être notifié à
+  // personne — `admin_log_chain_verify_job` écrit une ligne `crit` toutes les heures, et ce
+  // module ignorait `admin_log`. Écrit, jamais lu.
+  //
+  // On LIT le bilan publié par le job horaire, on ne recalcule PAS. Rappeler
+  // `admin_log_verify_chain()` ici referait un SHA-256 par ligne sur TOUT le registre, une
+  // seconde fois par heure : on doublerait le coût de l'opération périodique la plus chère
+  // du système, et ce coût croît avec la rétention (dix ans au titre de la LBA).
+  //
+  // `app_config` est aussi la seule porte praticable : `service_role` n'a délibérément PAS
+  // de SELECT sur `admin_log` (posture asservie par un test), et un `.from('admin_log')`
+  // rendrait `null` SANS erreur — la règle serait muette et personne ne le saurait.
+  //
+  // Péremption : inutile de la gérer ici. Si le cron cesse de tourner, la règle 1 le signale
+  // déjà, générique sur tout job pg_cron en retard.
+  //
+  // AUCUN SEUIL : une chaîne est intacte ou ne l'est pas. Ajouter un seuil obligerait à
+  // toucher AlertThresholds et DEFAULT_THRESHOLDS pour une grandeur binaire.
+  try {
+    const chain = await readJsonConfig<{
+      status?: string
+      alarme?: boolean
+      attendu?: number
+      rows_checked?: number
+      break_at?: number | null
+      checked_at?: string
+    }>(admin, 'admin_log_chain_health')
+
+    if (chain?.alarme === true) {
+      // Le job a déjà tranché le cas ambigu — « rien à vérifier » n'est pas « quelqu'un a
+      // touché au registre ». On se contente de distinguer les deux messages.
+      const efface = chain.status === 'no_rows'
+      alerts.push({
+        key: 'admin_log:chain',
+        subject: efface
+          ? 'Registre console VIDÉ — chaîne d\'empreintes'
+          : 'Registre console : chaîne d\'empreintes ROMPUE',
+        body: efface
+          ? `Le registre admin_log ne rend plus aucune ligne alors que sa tête en annonce ${chain.attendu ?? '?'}. Un effacement est la seule explication : le journal de ce que fait MEGGA n'est plus fiable. Ne pas écrire dedans avant constat. Vérification du ${chain.checked_at ?? '?'}. Voir /dashboard/admin/security.`
+          : `La vérification de la chaîne d'empreintes échoue à la ligne seq=${chain.break_at ?? '?'} (${chain.rows_checked ?? 0} lignes relues, vérification du ${chain.checked_at ?? '?'}). Une ligne du registre a été modifiée après coup, ou son hash ne correspond plus. Voir /dashboard/admin/security.`,
+      })
+    }
+  } catch (e) {
+    console.error('[admin-alerts] chain health read failed:', (e as Error)?.message)
+  }
+
+  // 11. File d'outbox qui ne se vide pas (§5.8, socle étape 16).
+  //
+  // `outbox_jobs` est la file transactionnelle des gestes de console à effet EXTERNE : une
+  // RPC y dépose ce qu'elle ne peut pas faire elle-même, et un consommateur exécute. Mesuré
+  // le 01.08 : **aucun consommateur n'existe** — zéro appelant d'`admin_outbox_claim` hors
+  // tests, et le seul cron sur la table est une purge. Un job déposé y reste donc pour
+  // toujours, et RIEN ne le dit.
+  //
+  // C'est ce silence que cette règle supprime. Elle ne remplace pas le consommateur : elle
+  // fait qu'on apprend son absence par une alerte plutôt que par un client qui se plaint.
+  // Tant que la file reste vide, elle ne coûte rien et ne dit rien.
+  // ⚠ On BORNE au lieu de compter. CLAUDE.md §7 interdit `count: 'exact'` sur une table qui
+  // peut grossir — et une file que personne ne consomme est précisément celle-là. Un
+  // échantillon plafonné suffit : l'alerte dit « au moins N », pas un inventaire.
+  // Et on filtre sur `next_retry_at`, PAS sur `created_at` : c'est la colonne portée par
+  // l'index partiel `outbox_jobs_a_traiter_idx (next_retry_at) WHERE status = 'pending'`,
+  // et elle dit « dû depuis », ce qui est exactement la question.
+  const PLAFOND = 50
+  const auMoins = (n: number) => (n >= PLAFOND ? `au moins ${PLAFOND}` : `${n}`)
+  try {
+    const seuilIso = new Date(now.getTime() - thresholds.outbox_stuck_hours * 3600_000).toISOString()
+
+    const { data: bloques } = await admin
+      .from('outbox_jobs')
+      .select('id')
+      .eq('status', 'pending')
+      .lt('next_retry_at', seuilIso)
+      .limit(PLAFOND)
+    const nbBloques = bloques?.length ?? 0
+    if (nbBloques > 0) {
+      alerts.push({
+        key: 'outbox:stuck',
+        subject: 'File d\'outbox bloquée — rien ne la consomme',
+        body: `${auMoins(nbBloques)} job(s) de la file outbox_jobs sont dus depuis plus de ${thresholds.outbox_stuck_hours}h et personne ne les a pris. Un geste de console y a déposé un effet externe que rien n'exécute — par exemple une réémission de lien KYC qui ne partira jamais. Vérifier qu'un consommateur d'outbox tourne. Voir /dashboard/admin/monitoring.`,
+      })
+    }
+
+    // Les morts sont une décision HUMAINE, pas un incident de plus : le socle promet qu'ils
+    // « remontent au Monitoring pour décision humaine », et rien ne les y remontait.
+    const { data: morts } = await admin
+      .from('outbox_jobs')
+      .select('id')
+      .eq('status', 'dead')
+      .limit(PLAFOND)
+    const nbMorts = morts?.length ?? 0
+    if (nbMorts > 0) {
+      alerts.push({
+        key: 'outbox:dead',
+        subject: 'Jobs d\'outbox abandonnés',
+        body: `${auMoins(nbMorts)} job(s) de la file outbox_jobs sont en échec définitif après épuisement des tentatives. Ils ne seront JAMAIS repris seuls : c'est une décision humaine. Voir /dashboard/admin/monitoring.`,
+      })
+    }
+  } catch (e) {
+    console.error('[admin-alerts] outbox read failed:', (e as Error)?.message)
   }
 
   if (alerts.length === 0) return

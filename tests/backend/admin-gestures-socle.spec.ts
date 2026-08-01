@@ -249,6 +249,53 @@ describe.skipIf(!HAS_KEYS)('socle des gestes (étape 16)', () => {
       'un job mort ne doit plus jamais être réclamé').toBe(false)
   })
 
+  it('LA FILE QUI NE SE VIDE PAS EST VISIBLE — le chemin de données de l\'alerte', async () => {
+    // Le test ci-dessus dit « une file qui se rejoue indéfiniment n'alerte personne ». Rien
+    // n'alertait pour autant : mesuré le 01.08, AUCUN consommateur d'outbox n'existe — zéro
+    // appelant d'admin_outbox_claim hors tests, et le seul cron sur la table est une purge.
+    // Un job déposé y restait donc pour toujours, en silence. La règle 11 d'admin-alerts.ts
+    // supprime ce silence ; ce test tient le chemin de données dont elle dépend.
+    //
+    // Ce qui peut se casser SANS BRUIT : un REVOKE du SELECT à `service_role`. `rolbypassrls`
+    // ne contourne pas un GRANT, et une lecture refusée rend `null` SANS erreur — la règle
+    // deviendrait muette et personne ne le saurait. On éprouve donc les DEUX requêtes
+    // exactes qu'elle exécute, avec le client qu'elle utilise.
+    const svc = serviceRoleClient()
+
+    // (a) Un job dû depuis longtemps que personne n'a pris.
+    const { data: bloque } = await svc.rpc('admin_outbox_enqueue', {
+      p_kind: 'notify', p_payload: { tag: `socle-${stamp}-bloque` },
+    })
+    // `next_retry_at` et non `created_at` : c'est la colonne portée par l'index partiel
+    // `outbox_jobs_a_traiter_idx (next_retry_at) WHERE status = 'pending'`, et elle dit
+    // « dû depuis » — exactement la question que pose la règle.
+    execSql(`update public.outbox_jobs
+                set next_retry_at = now() - interval '7 hours'
+              where id = '${bloque}'::uuid;`)
+
+    const seuil = new Date(Date.now() - 6 * 3600_000).toISOString()
+    const { data: vus, error: errBloques } = await svc
+      .from('outbox_jobs').select('id')
+      .eq('status', 'pending').lt('next_retry_at', seuil).limit(50)
+    expect(errBloques, 'service_role doit pouvoir lire la file').toBeNull()
+    expect((vus ?? []).some((j) => (j as Row).id === bloque),
+      'un job dû depuis 7 h et jamais pris doit être VU').toBe(true)
+
+    // (b) Un job mort — le socle promet qu'il « remonte au Monitoring pour décision
+    //     humaine », et rien ne l'y remontait.
+    const { data: mort } = await svc.rpc('admin_outbox_enqueue', {
+      p_kind: 'notify', p_payload: { tag: `socle-${stamp}-mort` },
+    })
+    await svc.rpc('admin_outbox_claim', { p_limit: 100 })
+    await svc.rpc('admin_outbox_settle', { p_id: mort, p_ok: false, p_error: 'abandon', p_max: 0 })
+
+    const { data: morts, error: errMorts } = await svc
+      .from('outbox_jobs').select('id').eq('status', 'dead').limit(50)
+    expect(errMorts).toBeNull()
+    expect((morts ?? []).some((j) => (j as Row).id === mort),
+      'un job abandonné doit être VU, sinon la promesse du socle est vide').toBe(true)
+  })
+
   it('un job inconnu lève au lieu de mentir sur son sort', async () => {
     const { error } = await serviceRoleClient().rpc('admin_outbox_settle', {
       p_id: '00000000-0000-0000-0000-000000000000', p_ok: true,

@@ -12,6 +12,12 @@
 //      change toute seule ne signe rien.
 //   3. LE DOUBLE EXTRAIT. Un double-clic laisserait deux traces d'export là où l'agent n'en
 //      a demandé qu'un, et l'audit compterait faux.
+//   4. L'EMPREINTE QUI DÉPEND D'AUTRE CHOSE QUE DES DONNÉES. Ajouté par la revue du Lot 2 :
+//      le rendu d'un timestamptz nu suit le fuseau de la SESSION, et les mêmes lignes
+//      signaient deux empreintes différentes. Le point 2 ci-dessus le disait déjà — il ne
+//      le TESTAIT que sur l'ordre des écritures, jamais sur le rendu.
+//   5. LE PLAFOND QUI N'EN EST PAS UN. Évalué après l'agrégat qu'il doit empêcher, il ne
+//      protégeait de rien ; et il ne bornait pas la marche de chaîne sous filtre de famille.
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI — lire le compte de tests, jamais le code de sortie.
 
@@ -19,10 +25,14 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { serviceRoleClient, anonClient } from './helpers/supabase'
 import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
+import { execSql } from './helpers/local-sql'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 const PW = 'Test-Password-123!'
 const DENIED = '42501'
+
+const runSql = (body: string) => execSql(`do $$\n${body}\nend $$;`)
+const assertSql = (body: string) => expect(() => runSql(body), 'assertion SQL').not.toThrow()
 
 type Row = Record<string, unknown>
 
@@ -160,6 +170,123 @@ describe.skipIf(!HAS_KEYS)('extrait signé du registre (étape 22)', () => {
     const { data: b } = await svc.rpc('admin_log_export', { ...bornes, p_idempotency_key: `exp-rep-b-${stamp}` })
     expect(((a as Row).data as Row).digest_sha256)
       .toBe(((b as Row).data as Row).digest_sha256)
+  })
+
+  it('L\'EMPREINTE NE DÉPEND PAS DU FUSEAU DE LA SESSION', () => {
+    // MESURÉ avant correctif, sur les lignes réelles : la même fenêtre signait
+    // `84c3ff3e…` en UTC et `c01b7b0d…` en Europe/Zurich. `jsonb_build_object('ts', l.ts)`
+    // rend un timestamptz dans le fuseau de la SESSION — l'empreinte n'était donc pas
+    // fonction des seules DONNÉES. Le dépôt connaissait le piège : `admin_log_payload_v1`
+    // s'en défend nommément, et la chaîne d'empreintes y échappait. L'extrait, non.
+    //
+    // ⚠ POURQUOI LE TEST VOISIN NE POUVAIT PAS L'ATTRAPER : « l'empreinte est
+    // REPRODUCTIBLE » lance ses deux appels par le MÊME client, donc dans le même fuseau.
+    // Il asserte exactement la propriété cassée et reste vert. Même angle mort que les
+    // specs d'idempotence qui n'éprouvaient que le chemin heureux. Faire VARIER le fuseau
+    // demande psql — supabase-js n'expose pas ce réglage — d'où le bloc DO.
+    //
+    // `request.jwt.claims` plutôt que `set role` : dans une SECURITY DEFINER détenue par
+    // postgres, `current_user` VAUT postgres, et la branche `current_user = 'service_role'`
+    // d'`is_service_role()` serait fausse. Le GUC, lui, traverse le changement de rôle.
+    assertSql(`
+    declare v_ts timestamptz; a jsonb; b jsonb; d1 text; d2 text; n int;
+    begin
+      perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+
+      -- Une ligne SEMÉE, et une fenêtre d'une microseconde autour d'elle. Sans ce semis,
+      -- une base fraîche rendrait deux empreintes de tableau VIDE, égales pour la mauvaise
+      -- raison — le test serait creux. La fenêtre étroite garantit aussi que les deux
+      -- appels voient exactement les mêmes lignes : la ligne d'auto-journalisation du
+      -- premier extrait tombe forcément après (un INSERT ne dure pas 1 µs).
+      perform public.admin_log_write(
+        p_family => 'ops', p_action => 'revue_lot2_sonde_fuseau', p_severity => 'info',
+        p_entity_type => 'admin_log', p_entity_label => 'sonde de fuseau');
+      select ts into v_ts from public.admin_log order by seq desc limit 1;
+
+      perform set_config('TimeZone', 'UTC', true);
+      a := public.admin_log_export(v_ts, v_ts + interval '1 microsecond', null,
+                                   'tz-utc-' || v_ts::text);
+      perform set_config('TimeZone', 'Pacific/Kiritimati', true);
+      b := public.admin_log_export(v_ts, v_ts + interval '1 microsecond', null,
+                                   'tz-kir-' || v_ts::text);
+
+      n  := coalesce((a -> 'data' ->> 'count')::int, 0);
+      d1 := a -> 'data' ->> 'digest_sha256';
+      d2 := b -> 'data' ->> 'digest_sha256';
+
+      if n < 1 then
+        raise exception 'fenetre vide : deux empreintes de tableau vide prouveraient 0';
+      end if;
+      if d1 is null or d2 is null then
+        raise exception 'extrait sans empreinte : % / %', a, b;
+      end if;
+      if d1 <> d2 then
+        raise exception E'EMPREINTE DEPENDANTE DU FUSEAU : % (UTC) vs % (Kiritimati)\\n'
+          '  Les memes lignes ne peuvent pas rendre deux signatures. Rendre ts en UTC\\n'
+          '  explicite (to_char ... at time zone ''UTC''), comme admin_log_payload_v1.',
+          d1, d2;
+      end if;
+    `)
+  })
+
+  it('LE PLAFOND PRÉCÈDE L\'AGRÉGAT qu\'il est censé empêcher', () => {
+    // `count(*)` et `jsonb_agg` vivaient dans le MÊME select, le plafond étant testé
+    // après : l'array complet était donc matérialisé avant que `too_many` ne puisse
+    // refuser. Or le plafond existe pour éviter le statement timeout (8 s sur
+    // `authenticated`) — il ne pouvait pas l'éviter, le travail coûteux le précédant.
+    // L'appelant recevait un timeout, jamais `too_many`.
+    //
+    // Contrôle STATIQUE, et assumé : éprouver le comportement demanderait de semer plus de
+    // 5000 lignes de registre à chaque exécution pour observer une différence de DURÉE —
+    // cher, et mesuré par un chronomètre, donc instable. L'ORDRE des deux motifs dans la
+    // source établit la propriété sans rien semer.
+    //
+    // ⚠ LES COMMENTAIRES SONT RETIRÉS AVANT DE CHERCHER. Sans ça le test se sabote
+    // lui-même : le correctif DÉCRIT le défaut en tête de fonction (« le compte et
+    // jsonb_agg vivaient dans le même select »), donc `jsonb_agg` apparaissait dans une
+    // prose située AVANT le plafond, et la position lisait la documentation au lieu du
+    // code. Mesuré : le test a échoué sur la fonction CORRIGÉE. Un contrôle statique doit
+    // regarder ce qui s'exécute, pas ce qui s'explique.
+    assertSql(`
+    declare v_src text; v_cap int; v_agg int;
+    begin
+      select regexp_replace(p.prosrc, '--[^\\n]*', '', 'g') into v_src
+        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'admin_log_export';
+
+      v_cap := position('v_n > 5000' in v_src);
+      v_agg := position('jsonb_agg' in v_src);
+      -- Garde anti-test creux : si les motifs disparaissent (renommage, refonte), le test
+      -- doit rougir au lieu de valider une fonction qu'il ne reconnait plus.
+      if v_cap = 0 or v_agg = 0 then
+        raise exception 'motifs introuvables dans admin_log_export (cap=% agg=%) : '
+          'test creux, le relire avant de le croire', v_cap, v_agg;
+      end if;
+      if v_agg < v_cap then
+        raise exception E'Le plafond est evalue APRES l agregat qu il doit empecher.\\n'
+          '  jsonb_agg materialise toutes les lignes avant que "v_n > 5000" ne refuse :\\n'
+          '  le plafond ne peut pas eviter le timeout pour lequel il existe.';
+      end if;
+    `)
+  })
+
+  it('le verdict de chaîne NOMME la population de l\'extrait', async () => {
+    // Sous filtre de famille, `chain.rows_checked` et `count` étaient rendus côte à côte en
+    // décrivant des populations différentes : la marche de chaîne est CONTIGUË par nature
+    // (recalculer le hash d'une ligne exige celui de la précédente, filtrée ou non), donc
+    // elle relit toutes les familles de l'intervalle. C'est correct, et nécessaire — mais
+    // deux nombres voisins qui ne parlent pas de la même chose, c'est la classe de défaut
+    // qui a déjà payé deux fois sur ce chantier. Le verdict dit donc lui-même sur quoi
+    // porte chaque nombre.
+    const d = (await exporter(`exp-pop-${stamp}`, 'lifecycle')).data as Row
+    const lignes = d.entries as Row[]
+    const chaine = d.chain as Row
+
+    expect(lignes.length, 'au moins la ligne lifecycle semée').toBeGreaterThanOrEqual(1)
+    expect(Number(chaine.extract_rows), 'le verdict dit combien de lignes l\'extrait porte')
+      .toBe(lignes.length)
+    expect(Number(chaine.rows_checked), 'la marche est contiguë : elle couvre AU MOINS l\'extrait')
+      .toBeGreaterThanOrEqual(lignes.length)
   })
 
   // ── 3. L'idempotence ───────────────────────────────────────────────────────────

@@ -29,8 +29,12 @@ const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_T
 const PW = 'Test-Password-123!'
 const DENIED = '42501'
 
-/** Les SEPT champs autorisés par §4 du handoff, plus l'identifiant que l'écran doit cibler. */
-const CHAMPS_AUTORISES = ['link_id', 'contact', 'email', 'phone', 'agency', 'status', 'mode', 'sent_at']
+/**
+ * Les SEPT champs autorisés par §4 du handoff, plus l'identifiant que l'écran doit cibler.
+ * ⚠ `email_sent_at` a REMPLACÉ `sent_at` le 01.08 — même nombre de champs, mais celui-ci
+ * dit la vérité : `sent_at` est un DEFAULT now() posé à l'INSERT que rien ne met à jour.
+ */
+const CHAMPS_AUTORISES = ['link_id', 'contact', 'email', 'phone', 'agency', 'status', 'mode', 'email_sent_at']
 /** Ce que §2 interdit nommément. */
 const CHAMPS_INTERDITS = ['token', 'link_url', 'url', 'documents', 'ip', 'client_ip', 'user_agent',
                           'client_user_agent', 'kyc_case_id', 'custom_message']
@@ -135,6 +139,50 @@ describe.skipIf(!HAS_KEYS)('diagnostic d\'un lien KYC (étape 19)', () => {
     }
   })
 
+  it('LA PREUVE D\'ENVOI EN EST UNE — « créé mais jamais parti » devient lisible', async () => {
+    // Le diagnostic remettait `sent_at`, et toute l'étape 19 existe pour répondre à « où en
+    // est ce lien ? » quand une agence signale que sa cliente ne l'a jamais reçu. Or
+    // `sent_at` est un `DEFAULT now()` posé à l'INSERT que RIEN ne met jamais à jour (grep
+    // exhaustif : aucun UPDATE ne le touche). Il vaut donc la même chose que Resend ait
+    // répondu 200, 502, ou n'ait jamais été appelé — le cas quand le canal choisi est
+    // `sms`, que personne ne consomme. Le champ censé porter la preuve d'envoi ne
+    // distinguait pas « envoyé » de « jamais parti ».
+    //
+    // ⚠ POURQUOI ON N'A PAS CORRIGÉ `sent_at` EN PLACE : le rendre nullable casserait la
+    // contrainte `expires_at > sent_at`, et surtout `get_admin_end_user_stats` filtre
+    // `where sent_at >= v_month_start` — une cohorte MENSUELLE qui aurait perdu des lignes
+    // en silence. On ajoute une colonne qui dit vrai plutôt que de déplacer le défaut.
+    //
+    // Le lien semé par ce fichier est inséré directement en base : rien ne l'a jamais
+    // envoyé. C'est exactement le cas que l'opérateur doit pouvoir constater.
+    // ⚠ MESURÉ : `admin_ok` applique `jsonb_strip_nulls`, et c'est RÉCURSIF — une valeur
+    // nulle disparaît jusque dans les objets imbriqués de `matches`. Le contrat du dépôt est
+    // donc « clé absente = null », et `contact`, `email` et `phone` s'y conforment déjà.
+    // On asserte le COMPORTEMENT, pas la forme de la clé : un test qui exigerait
+    // `email_sent_at: null` échouerait sur une enveloppe pourtant correcte.
+    const jamais = ((await chercher(`Sophie${stamp}`)).data as Row).matches as Row[]
+    expect(jamais[0].email_sent_at, 'un lien jamais envoyé ne porte AUCUN horodatage d\'envoi')
+      .toBeFalsy()
+    expect(Object.keys(jamais[0]), '`sent_at` ne dit rien d\'un envoi — il ne doit plus sortir')
+      .not.toContain('sent_at')
+
+    // L'autre moitié du contrat, et la seule qui prouve que la colonne est vraiment
+    // projetée : quand un envoi a eu lieu, le diagnostic le REMET. On pose l'horodatage en
+    // base plutôt que d'envoyer un e-mail — Resend n'a pas sa place dans une suite de tests.
+    const svc = serviceRoleClient()
+    const quand = new Date(Date.now() - 3_600_000).toISOString()
+    await svc.from('kyc_magic_links').update({ email_sent_at: quand }).eq('id', linkId)
+    try {
+      const envoye = ((await chercher(`Sophie${stamp}`)).data as Row).matches as Row[]
+      expect(envoye[0].email_sent_at, 'un envoi réel est remis, et daté').toBeTruthy()
+      expect(new Date(String(envoye[0].email_sent_at)).getTime(),
+        'et c\'est bien CET horodatage, pas un autre').toBe(new Date(quand).getTime())
+    } finally {
+      // Remise à l'état semé : les tests suivants partagent ce lien.
+      await svc.from('kyc_magic_links').update({ email_sent_at: null }).eq('id', linkId)
+    }
+  })
+
   it('LA NON-FUITE — ni le jeton, ni l\'IP, ni le user-agent, sous AUCUN nom', async () => {
     // Le contrôle par nom de clé ne suffit pas : une projection qui renommerait `token` en
     // `code` passerait. On cherche donc les VALEURS, qui sont reconnaissables à dessein.
@@ -227,7 +275,18 @@ describe.skipIf(!HAS_KEYS)('diagnostic d\'un lien KYC (étape 19)', () => {
 
   // ── 4. La régénération (§4) ────────────────────────────────────────────────────
 
-  it('la régénération invalide l\'ancien lien et ne rend JAMAIS le nouveau', async () => {
+  it('LA RÉGÉNÉRATION NE DÉTRUIT PAS CE QU\'ELLE NE SAIT PAS REMPLACER', async () => {
+    // Ce test asserait l'inverse jusqu'au 01.08 : « l'ancien lien est invalidé ».
+    // Il encodait un défaut. La spec écrit le geste en TROIS temps indissociables —
+    // « invalide l'ancien lien, en émet un nouveau, le dépose côté agence » — et la RPC
+    // n'en exécutait qu'un : elle expirait, déposait un job que PERSONNE ne consomme
+    // (mesuré : zéro appelant d'admin_outbox_claim hors tests, le seul cron outbox est une
+    // purge), puis journalisait une régénération accomplie.
+    //
+    // Résultat : le lien de la cliente cessait de fonctionner, le remplaçant ne partait
+    // jamais, et le registre — infalsifiable — attestait d'un fait qui n'avait pas eu lieu.
+    // Sous le seul scénario que la spec décrit (« elle n'a jamais reçu son lien »), c'est
+    // le pire des états possibles : elle l'avait peut-être, et on vient de le lui retirer.
     const svc = serviceRoleClient()
     const { data, error } = await svc.rpc('admin_kyc_link_regenerate', {
       p_link_id: linkId, p_motive_agency_id: setup.agencyAId,
@@ -236,26 +295,36 @@ describe.skipIf(!HAS_KEYS)('diagnostic d\'un lien KYC (étape 19)', () => {
     expect(error).toBeNull()
     const r = data as Row
     expect(r.ok).toBe(true)
-    expect((r.data as Row).regenerated_at, '§4 : succès + horodatage').toBeTruthy()
+    expect((r.data as Row).requested_at, '§4 : succès + horodatage').toBeTruthy()
+    expect((r.data as Row).emission, 'la réponse dit que l\'émission RESTE À FAIRE')
+      .toBe('pending')
+    expect((r.data as Row).regenerated_at,
+      'plus de « regenerated_at » : rien n\'a été régénéré').toBeUndefined()
 
     // « Réponse : succès + horodatage, PAS le lien lui-même. »
     const brut = JSON.stringify(r).toLowerCase()
     expect(brut, 'le nouveau lien ne doit pas transiter par la réponse').not.toContain('token')
     expect(brut).not.toContain('http')
 
+    // LE CŒUR DU TEST : l'ancien lien est INTACT.
     const { data: ancien } = await svc.from('kyc_magic_links')
       .select('status, expired_at').eq('id', linkId).single()
-    expect((ancien as Row).status, 'l\'ancien lien est invalidé').toBe('expired')
-    expect((ancien as Row).expired_at).not.toBeNull()
+    expect((ancien as Row).status,
+      'l\'ancien lien reste utilisable tant qu\'aucun remplaçant n\'est parti').not.toBe('expired')
+    expect((ancien as Row).expired_at,
+      'ne rien détruire, c\'est aussi ne rien dater').toBeNull()
 
-    // L'émission part dans l'outbox : le jeton est un HMAC signé en Edge Function, hors de
-    // portée du SQL. C'est l'amendement mesuré de l'étape 19.
+    // L'invalidation n'est pas abandonnée : elle est DÉPLACÉE chez celui qui émettra, pour
+    // qu'elle arrive dans le même souffle que le remplacement.
     const { data: jobs } = await svc.from('outbox_jobs')
       .select('kind, payload').eq('payload->>previous_link_id', linkId)
     expect((jobs as Row[]).length, 'un job d\'émission est déposé').toBe(1)
     expect((jobs as Row[])[0].kind).toBe('notify')
-    expect(((jobs as Row[])[0].payload as Row).deliver_to,
+    const charge = (jobs as Row[])[0].payload as Row
+    expect(charge.deliver_to,
       '§2 : le lien est remis à l\'AGENCE, jamais envoyé au client final').toBe('agency')
+    expect(charge.expire_previous,
+      'le consommateur DOIT expirer l\'ancien, une fois le nouveau frappé').toBe(true)
   })
 
   it('L\'IDEMPOTENCE — un double-clic ne régénère pas deux fois', async () => {
@@ -335,7 +404,21 @@ describe.skipIf(!HAS_KEYS)('diagnostic d\'un lien KYC (étape 19)', () => {
 
     const actions = lignes.map((l) => String(l.action))
     expect(actions, 'la recherche est journalisée').toContain('kyc_link_lookup')
-    expect(actions, 'la régénération est journalisée').toContain('kyc_link_regenerate')
+
+    // L'action DIT ce qui a eu lieu : une DEMANDE de réémission, pas une réémission.
+    // Tant qu'aucun consommateur d'outbox n'existe, écrire `kyc_link_regenerate` serait
+    // sceller dans la chaîne un fait qui ne s'est pas produit. La ligne de complétion
+    // appartient au consommateur, quand il existera — deux lignes pour deux faits.
+    expect(actions, 'la DEMANDE de réémission est journalisée')
+      .toContain('kyc_link_regenerate_requested')
+    expect(actions, 'et rien n\'affirme une réémission accomplie')
+      .not.toContain('kyc_link_regenerate')
+
+    const demande = lignes.find((l) => l.action === 'kyc_link_regenerate_requested')
+    const metaDemande = JSON.stringify(demande?.meta ?? [])
+    expect(metaDemande, 'le registre dit que l\'ancien lien est CONSERVÉ')
+      .toContain('conservé')
+    expect(metaDemande, 'et que l\'émission reste à faire').toContain('attente')
 
     // Le motif est la raison d'être de l'étape 1 : l'audit doit dire POURQUOI on a cherché
     // un nom, pas seulement qui. Une ligne sans motif viderait le dispositif de son sens.

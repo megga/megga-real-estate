@@ -5,12 +5,22 @@
 > `main`, 46 commits, CI complète verte). Spec : `docs/handoff/console-admin/` · Inventaire
 > du socle : [INVENTAIRE_SOCLE.md](INVENTAIRE_SOCLE.md).
 >
-> ✅ **REVUE DE CODE FAITE le 01.08.** Elle a trouvé **deux défauts, tous deux corrigés**
-> (commit `670ee59c`) : le verdict de chaîne de l'extrait n'était borné qu'en bas, et une
-> erreur métier consommait la clé d'idempotence. Détail et verdict complet au **§7**.
+> ✅ **REVUE DU LOT 1 FAITE le 01.08.** Deux défauts, tous deux corrigés (commit
+> `670ee59c`) : le verdict de chaîne de l'extrait n'était borné qu'en bas, et une erreur
+> métier consommait la clé d'idempotence. Détail au **§7**.
 >
-> 🛑 **PROCHAINE ACTION = re-datage puis merge.** Le §8 s'exécute maintenant, mais **le même
-> jour UTC que le merge** — et le re-datage vient APRÈS le dernier rebase, jamais avant.
+> ✅ **REVUE DU LOT 2 FAITE le 01.08** (étapes 16, 19, 20, 21, 22 — livrées ET DÉPLOYÉES,
+> jamais relues). **Quatre défauts corrigés** par la migration `20260801360000` : l'empreinte
+> de l'extrait dépendait du FUSEAU de la session, le plafond de 5000 était évalué après
+> l'agrégat qu'il doit empêcher, il ne bornait pas la marche de chaîne sous filtre de
+> famille, et une publication programmée ne laissait aucune ligne au registre. **Deux
+> constats laissés ouverts parce qu'ils demandent une décision** — l'outbox n'a AUCUN
+> consommateur (la régénération de lien KYC détruit sans réémettre), et le plafond 3 compte
+> des liens et non des personnes. Détail au **§7bis**.
+>
+> ⚠ **Ces correctifs-ci portent sur des fonctions DÉPLOYÉES**, contrairement à ceux du Lot 1 :
+> la migration doit être re-datée le jour du merge (§8), et elle doit passer APRÈS
+> `20260801350000`, faute de quoi elle est sautée à jamais.
 
 ## 1. Comment on travaille (décidé avec le PO)
 
@@ -37,6 +47,7 @@ Thomas et Antoine travaillent en parallèle sur le même dépôt. Méthode reten
 | #1049 | Revue du Lot 1 — deux défauts d'affichage juste (Plans, Vue d'ensemble) | **mergée**, déployée |
 | #1050 | Étape 23 — le contrat des gestes devient un balayage | **mergée** |
 | #1051 | Cerveau — les huit gestes hors chaîne, et la méthode | **mergée** |
+| #1054 | Revue du Lot 2 — **8 défauts corrigés** (dont 2 de sécurité), 2 garde-fous posés, 6 migrations. Détail au §7bis | **prête, CI verte** |
 
 Les quatre bloquants pré-lancement (dépendance **P6**) sont **fermés et vérifiés en
 production** : 0.1 et 0.3 l'étaient déjà, 0.2 et 0.4 par #1044.
@@ -300,6 +311,53 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
 8. **`greatest()` seul est un plancher**, jamais un plafond.
 9. **Muter un test de garde avant de le livrer.** Un test de ce chantier était creux : son
    motif matchait dans un **commentaire CSS**. Retirer la vraie protection le laissait vert.
+10. **Le piège 9 a une variante SQL, et elle est PIRE — elle se déclenche au moment du
+    correctif.** Un contrôle statique sur `prosrc` (position de deux motifs, présence d'un
+    appel) lit aussi les **commentaires** de la fonction. Or un bon correctif DÉCRIT le
+    défaut qu'il répare, en haut de la fonction, avec les mots du défaut. Mesuré sur
+    `admin_log_export` : « le compte et `jsonb_agg` vivaient dans le même select » plaçait
+    `jsonb_agg` en position 1062 contre 1159 pour le plafond — le test rougissait sur la
+    fonction CORRIGÉE. Parade : `regexp_replace(prosrc, '--[^\n]*', '', 'g')` avant toute
+    recherche. Une porte statique doit lire ce qui s'**exécute**, pas ce qui s'**explique**.
+11. **Faire journaliser une fonction la fait ENTRER dans le contrat des gestes.** Le
+    périmètre `GESTES` se définit par « SECURITY DEFINER qui écrit au registre ». Ajouter
+    `admin_log_write` à `changelog_publish_due` — correction juste — l'y a fait entrer, où
+    il violait l'enveloppe §10.1 (il rend un `integer` à pg_cron, pas un `jsonb` à un
+    écran) : **deux tests cassés d'un coup**, dont le plafond d'exceptions. Réflexe : quand
+    on branche la journalisation sur une fonction, vérifier ce que le balayage va lui
+    imposer. Ici le périmètre a gagné `has_function_privilege('authenticated', …)` — les
+    contrats balayés décrivent ce que la CONSOLE appelle, et un cron n'a pas d'écran à qui
+    rendre une enveloppe. Une PROPRIÉTÉ, jamais une exemption nommée.
+
+12. **Aucune porte ne surveille la dérive des PRIVILÈGES.** `check:drift` compare bien ce que
+    les fichiers déclarent à ce que la base contient — mais son en-tête EXCLUT explicitement
+    policies, triggers et GRANT (« leur absence ne se lit pas dans un simple
+    `information_schema` »). Mesuré le 01.08 : `anon` détient `SELECT` sur `admin_changelog`
+    **en production**, et **aucune migration du dépôt ne l'accorde**. Conséquence pratique
+    qui pique : la base FRAÎCHE de CI ne reproduit pas le défaut, donc un test de fuite y est
+    vert avant comme après le correctif — il ne peut être qu'un **cliquet**, jamais une
+    démonstration. Réflexe : pour tout ce qui touche aux droits, mesurer en PROD
+    (`has_table_privilege`, `pg_policy.polroles`) et ne jamais conclure depuis la CI.
+    ⚠ Ampleur mesurée, et moins alarmante qu'un premier chiffre le laissait croire : 79
+    tables lisibles par `anon` au sens du GRANT, 30 avec une policy `select` non scopée par
+    rôle, mais **une seule** dont le `USING` ne dépend d'aucune identité (`translation_cache`,
+    `using (true)`, vraisemblablement voulu). Pour les 28 autres le `USING` teste l'agence :
+    `anon` n'y lit rien. Une policy « ouverte » n'est donc PAS une fuite — c'est la clause
+    `USING` qui tranche, et il faut la lire branche par branche (celle d'`admin_changelog`
+    était `published = true OR is_super_admin()` : la première branche suffisait).
+    ✅ **FERMÉ le 01.08** — `scripts/check-privilege-drift.mjs`, branché sur
+    `migration-drift.yml` (le seul workflow qui interroge la PRODUCTION ; un test sur base
+    fraîche ne peut pas voir une dérive de prod, par construction). Propriété étroite à
+    dessein : **aucune table interne n'accorde quoi que ce soit à `anon`** — pas de
+    comparaison déclaré/présent (79 tables sont anon-lisibles au sens du GRANT, crier sur
+    les 79 serait crier au loup), pas de lecture des clauses `USING`. Prédicat structurel
+    (`admin\_%` + courte liste) + garde anti-contrôle creux (< 10 tables = échec).
+    ⚠ **Ce que la porte a trouvé en la posant** : SIX tables internes accordaient des droits
+    à `anon`, dont **CINQ avec `DELETE, INSERT, UPDATE, TRUNCATE`** — y compris `app_config`,
+    qui porte `service_role_key`. Aucune migration ne les accordait : droits par défaut de
+    Supabase, jamais révoqués. Révoqués par `20260801410000`, après avoir vérifié qu'aucune
+    surface publique ne lit ces tables (une lecture bloquée par la RLS rend `[]`, bloquée par
+    le GRANT elle rend une ERREUR — révoquer transforme un silence en erreur visible).
 
 ## 7. Reprendre
 
@@ -309,11 +367,11 @@ référence pour la prochaine vague de migrations.
 
 **Ce qui est ouvert et ne dépend d'aucune décision PO :**
 
-| Étape | Ce que c'est | Dépend de |
+| Étape | Ce que c'est | État au 01.08 |
 |---|---|---|
-| **27** | Endpoint agent « What's new » (§5.10) | 21 ✅ |
-| **28** | Gestes d'exploitation (§5.8) | 16 ✅ |
-| **30** | Surveiller le surveillant (§10.9) | 6 ✅ |
+| **27** | Endpoint agent « What's new » (§5.10) | **◑ backend livré** (`20260801380000`) — `get_agent_changelog()` + fermeture de la fuite `anon`. La CARTE agent est bloquée : la maquette désignée (`today-h-live.jsx`, `HL_NEWS`) **n'existe pas au dépôt**, la pilule « Nouveau » n'a **aucune source** (pas d'état lu/non-lu, et §5.10 interdit d'emprunter celui de `platform_announcements`, Q10), et `PageAujourdhui` est un pager **zéro-scroll** plafonné à 760 px portant déjà trois bandeaux. |
+| **28** | Gestes d'exploitation (§5.8) | **⛔ sous-spécifiée, non écrite.** `function_replay` n'a **rien à rejouer** (aucune trace d'invocation d'edge ; `activity_events/edge_function_error` ne garde que `function_name`, `error`, `duration_ms`) — et le plan dit « replay » quand la maquette écrit « Relance demandée », c'est-à-dire **re-planifier**. `wa_deadletter_replay` **n'est pas dans la maquette**, qui offre « Examiner » ; or son README pose que les libellés sont **définitifs**. `calendar_resync` n'a **aucun chemin serveur** (les deux edges refusent tout appelant non propriétaire). ⚠ `admin_lock_entity` exige un **uuid**, qu'un `jobname` de cron n'a pas. ✅ Aucun des quatre n'a besoin de l'outbox : **`pg_net` EST déjà une outbox transactionnelle**. |
+| **30** | Surveiller le surveillant (§10.9) | **⛔ sous-spécifiée, non écrite.** Le mécanisme d'alerte **existe entièrement** (`_shared/admin-alerts.ts`, 9 règles à l'époque de ce constat, **11 depuis** — voir plus bas) : c'est un signal à y brancher. Manquent une règle sur le silence d'`activity_events`, un prédicat « heures ouvrées » **plateforme** (aucun calendrier de fériés suisses au dépôt), un cron hebdo sur `admin_log_export`. ⚠ « hors projet » et « chiffré » **ne sont définis nulle part**, et **aucun canal d'alerte hors projet n'existe** — tout tourne dans Supabase, donc tout est muet si Supabase tombe, ce qui est précisément le cas visé. ✅ **Gain PRIS le 01.08** (`20260801390000` + règle 10 d'`admin-alerts.ts`) : une rupture de chaîne est désormais notifiée. ⚠ Il a d'abord fallu réparer un **faux positif** — mesuré en prod, l'unique ligne `crit` du registre était un registre VIDE, le job traduisant `case when status = 'ok' then info else crit` alors que le vérificateur rend TROIS statuts. Et la règle **lit un bilan publié dans `app_config`** au lieu de rappeler la vérification : la rappeler referait un SHA-256 par ligne sur tout le registre une 2ᵉ fois par heure, et `service_role` n'a de toute façon **pas** de SELECT sur `admin_log` (un `.from()` aurait rendu `null` SANS erreur — alerte muette). ⚠ **Limite qui demeure** : l'alerte part de Supabase par Resend, donc muette si Supabase tombe — c'est le cas même que §10.9 vise. **L'étape 30 reste ouverte.** |
 
 Bloquées par les décisions PO 3/4/5 et P4 : **17, 18, 19b**. Par la maquette P5 : **14b**.
 Par P3 : **24, 25, 26**.
@@ -468,6 +526,149 @@ une spec l'appelle-t-elle vraiment ?**
 journal se vide en silence en croyant ne retirer que la conformité des clients finaux. La
 forme correcte est `is distinct from`. Le même piège attend tout filtre d'exclusion posé sur
 une colonne majoritairement nulle.
+
+### Ce que la revue du LOT 2 a rendu (01.08)
+
+Portait sur les étapes 16, 19, 20, 21, 22 — livrées **et déployées**, jamais relues. Tout
+est parti de `pg_get_functiondef`, jamais du fichier de migration.
+
+**Quatre défauts corrigés** (migration `20260801360000`, deux objets touchés) :
+
+1. **L'empreinte de l'extrait dépendait du FUSEAU de la session.** `admin_log_export`
+   signait `jsonb_build_object('ts', l.ts)` — un timestamptz nu se rend dans le fuseau de la
+   session. Mesuré sur les lignes réelles : `84c3ff3e…` en UTC, `c01b7b0d…` en
+   Europe/Zurich, mêmes données. Le dépôt connaissait pourtant le piège :
+   `admin_log_payload_v1` s'en défend nommément, ce qui immunisait la chaîne — mais pas
+   l'extrait. ⚠ **Le test qui aurait dû l'attraper s'appelle « l'empreinte est
+   REPRODUCTIBLE » et ne le pouvait pas** : ses deux appels passent par le même client, donc
+   le même fuseau. Même angle mort que les specs d'idempotence qui n'éprouvaient que le
+   chemin heureux. Le `ts` de l'extrait est désormais rendu au format EXACT de la charge de
+   chaîne, ce qui permet en prime de recalculer chaque hash sans accès à la base.
+2. **Le plafond de 5000 lignes était évalué APRÈS l'agrégat qu'il doit empêcher.**
+   `count(*)` et `jsonb_agg` vivaient dans le même select : l'array complet était matérialisé
+   avant que `too_many` ne puisse refuser. Le plafond existe contre le statement timeout
+   (8 s sur `authenticated`) — il ne pouvait pas l'éviter. L'appelant recevait un timeout,
+   jamais `too_many`.
+3. **Le plafond ne bornait pas la marche de chaîne sous filtre de famille.** Une chaîne ne se
+   vérifie que sur un intervalle CONTIGU de `seq` : `admin_log_verify_chain` relit donc
+   toutes les familles entre les bornes — correct, et nécessaire. Mais le plafond ne portait
+   que sur le compte FILTRÉ : une famille creuse sur une fenêtre large passait (50 ≤ 5000)
+   puis faisait un SHA-256 par ligne sur tout l'intervalle. **Même cause que le défaut de
+   fenêtre vide corrigé à la revue du Lot 1**, dont le commentaire nommait pourtant ce
+   cas — « une famille filtrée sur une période calme ». Le sous-cas `v_n = 0` avait été
+   traité, le cas creux non. Corollaire réglé au passage : `rows_checked` et `count` étaient
+   rendus côte à côte en décrivant des populations différentes ; le verdict porte désormais
+   `extract_rows`.
+4. **Une publication PROGRAMMÉE ne laissait aucune ligne au registre.**
+   `changelog_publish_due` (cron `*/10`) rend une nouveauté visible de TOUS les agents ; le
+   geste manuel identique journalise en `warn`. Le seul chemin de publication qui atteint
+   tout le monde était donc le seul invisible à l'écran Sécurité, et hors chaîne
+   d'empreintes.
+
+⚠ **Le cliquet de l'étape 23 ne pouvait pas voir le n° 4**, et c'est le vrai enseignement :
+son périmètre s'écrivait `proname ~ '^admin_'`, une convention de **nom**, là où le reste du
+fichier définit ses périmètres par une **propriété**. Rejoué avec la propriété (« écrit dans
+une table de la console sans `admin_log_write` »), il sortait exactement une fonction —
+celle-là. Périmètre élargi ; la liste `DETTE` reste à huit, inchangée.
+
+**Vérifié sain, mesuré et non supposé** : le socle de l'étape 16 en entier (vocabulaire
+d'erreur fermé, verrou de transaction à deux clés, atomicité par la primary key), l'ordre
+clé-après-contrôles sur les trois RPC concernées, `unaccent` bien en `public`,
+`submitted`/`expired` de vrais labels d'enum et `expired_at` une vraie colonne,
+`prev_hash`/`hash` en `NOT NULL` — donc pas de trou NULL dans le `<>` de la vérification —
+et les contraintes `status`/`published` du changelog.
+
+**Deux constats laissés OUVERTS parce que ce sont des décisions, pas des correctifs :**
+
+- ~~**`admin_kyc_link_regenerate` détruit le lien et rien ne le réémet.**~~ **TRANCHÉ le
+  01.08, migration `20260801370000`.** La RPC n'expire plus. Elle dépose le job avec
+  `expire_previous: true` — l'invalidation n'est pas abandonnée, elle est **déplacée** chez
+  celui qui frappera le nouveau jeton, pour arriver dans le même souffle. Le registre écrit
+  désormais `kyc_link_regenerate_requested` et la réponse dit `emission: 'pending'`.
+  La décision s'appuie sur une **mesure**, pas sur un goût : les sept documents de spec ne
+  décrivent QU'UN scénario, « la cliente n'a jamais reçu son lien » ; aucun ne parle d'un
+  lien compromis à tuer, et « invalider » n'y apparaît qu'une fois, comme conséquence de la
+  réémission. Sous ce scénario, expirer sans remplacer est le pire des trois états.
+  ⚠ **Le worker d'outbox reste à bâtir** — la réémission est donc EN ATTENTE, mais plus rien
+  n'est détruit et plus rien de faux n'est scellé.
+  ⚠ **Correction d'une estimation trop rapide (01.08)** : j'avais écrit que le worker
+  « coûte bien moins cher qu'estimé » parce que `executeSendKycLink` frappe déjà un jeton en
+  service-role. C'est vrai de la MÉCANIQUE et faux du travail : **le worker est bloqué par
+  une décision, pas par un coût.** Le préflight a lu les 25 fichiers du corpus — « remettre
+  le lien à l'agence » n'est défini NULLE PART. La spec ne dit que ce que ce n'est pas :
+  pas d'envoi au client par la plateforme, pas de jeton ni d'URL dans la réponse, pas
+  d'envoi sortant depuis la console, et rien de conservé côté console à la fermeture de la
+  modale — ce qui ferme aussi la console comme lieu de dépôt. **Trois lieux interdits, aucun
+  désigné** ; aucun destinataire (ni `agencies.email`, ni `created_by`, ni MLRO : zéro
+  occurrence), aucun canal. La maquette annonce la remise comme un fait accompli sans dire
+  par quel mécanisme.
+  📊 **Mesure qui rend la décision tranchable** : **9 agences actives sur 10 n'ont AUCUN
+  e-mail**, alors que **7 profils sur 7** en ont un. Une remise par `agencies.email`
+  échouerait donc pour 90 % des agences.
+  ✅ **Précédent le plus proche, à reprendre tel quel** : `agency-verification-notify` écrit
+  aux profils `admin`/`manager` de l'agence, **replie sur `agencies.email`**, et journalise
+  un `..._undeliverable` quand personne n'est joignable — plutôt que de laisser l'envoi
+  disparaître.
+  ✅ **Livré en attendant (règle 11 d'`admin-alerts.ts`)** : l'absence de consommateur cesse
+  d'être SILENCIEUSE. `outbox:stuck` (jobs dus depuis > 6 h que personne n'a pris) et
+  `outbox:dead` (le socle promettait qu'ils remontent au Monitoring ; rien ne les y
+  remontait). Sans `count: 'exact'` — interdit par §7 de CLAUDE.md sur une table qui peut
+  grossir, et une file sans consommateur est celle-là — et filtré sur `next_retry_at`, la
+  colonne de l'index partiel, qui dit « dû depuis ».
+- **Le plafond 3 compte des LIENS, pas des personnes.** Un contact portant 4 liens déclenche
+  `too_many`, alors que la justification du plafond est de ne pas nommer de **personnes**.
+  C'est le cas d'usage central qui saute : une cliente qui n'a jamais reçu son lien est
+  exactement celle à qui on l'a réémis plusieurs fois. Le test du plafond sème 4 contacts
+  DISTINCTS — il prouve qu'on arrête 4 personnes, jamais qu'on laisse passer une personne à
+  4 liens. **À trancher** : « correspondance » désigne-t-elle un lien ou une personne ?
+
+### Cinq défauts du chemin KYC, trouvés en instruisant la décision ci-dessus
+
+Hors périmètre de la revue — ils vivent dans le tunnel KYC agent, pas dans la console — mais
+ils décident de ce que l'étape 19 peut réellement faire. **Aucun n'est corrigé.**
+
+1. ~~**`sent_at` ne veut pas dire « envoyé ».**~~ **CORRIGÉ le 01.08, migration
+   `20260801400000`.** `sent_at` est un `DEFAULT now()` posé à l'INSERT qu'aucun code ne met
+   jamais à jour : il valait la même chose que Resend ait répondu 200, 502, ou n'ait jamais
+   été appelé. Le champ que le diagnostic remettait comme preuve d'envoi ne distinguait pas
+   « envoyé » de « jamais parti ».
+   **La correction est ADDITIVE, et c'est le point à retenir** : `email_sent_at` (nullable)
+   est écrite par `magic-link-send-email` après le 200 de Resend, et `admin_kyc_link_lookup`
+   la remet à la place de `sent_at` — à nombre de champs constant, pour ne pas élargir ce que
+   la console divulgue.
+   ⚠ **Corriger `sent_at` en place aurait cassé quatre choses**, mesurées avant d'écrire :
+   la contrainte `expires_at > sent_at` ; `get_admin_end_user_stats`, qui filtre
+   `where sent_at >= v_month_start` — une **cohorte mensuelle** qui aurait perdu des lignes
+   SANS erreur, dans une fonction de stats que personne ne recoupe ; et
+   `get_admin_kyc_magic_links` + `kyc_magic_link_summary`, qui la remontent aux écrans.
+   Mesure qui a tout orienté : `sent_at` et `created_at` sont **tous deux**
+   `NOT NULL DEFAULT now()` — doublons à l'insertion. `sent_at` n'apportait aucune
+   information, seulement un nom qui promettait autre chose.
+2. **La spec et le code se contredisent sur le canal.** Le handoff écrit « le lien part en
+   WhatsApp / SMS — zéro e-mail » ; le code ne sait envoyer **que** par e-mail (Resend, via
+   `magic-link-send-email`). Personne ne lit `'sms'` : la valeur est validée par
+   `magic-link-create`, autorisée par le CHECK, proposée dans `MlkAgentModal` — et consommée
+   par rien. **Cocher SMS seul produit un lien que rien n'envoie.**
+3. **La défense « ancien jeton invalidé » est inatteignable.** `magic-link-get` teste
+   `link.token !== token` sous un commentaire promettant « si l'agent regénère un lien,
+   l'ancien token doit être invalidé ». Mais créer un lien **insère une nouvelle ligne** et
+   ne réécrit jamais le token d'une ligne existante : aucun chemin ne peut déclencher la
+   garde.
+4. **Les deux rollbacks sont inopérants.** `magic-link-create` et `executeSendKycLink` font
+   un `delete` de rollback si la signature HMAC échoue. Le trigger
+   `enforce_kyc_magic_links_retention` lève une exception sur toute suppression de moins de
+   10 ans **sauf pour un `super_admin`** — or l'un tourne sous JWT d'agent, l'autre en
+   service-role (`auth.uid()` NULL, donc `coalesce(role,'') <> 'super_admin'` est vrai).
+   Une signature ratée laisse donc une **ligne orpheline** dont le `token` est l'UUID
+   bouche-trou, qui ne vérifiera jamais. Elle compte dans l'entonnoir KYC et dans le plafond
+   de 3 de la recherche.
+5. **Rien ne balaie les liens périmés.** L'expiration est PARESSEUSE : elle n'arrive que
+   dans `magic-link-get` / `-upload` / `-confirm`, au moment où quelqu'un touche le lien. Un
+   lien dépassé que personne ne clique reste `pending` indéfiniment, et les compteurs qui
+   filtrent `status = 'expired'` le sous-comptent. L'index partiel
+   `idx_kyc_magic_links_expires` a exactement la forme qu'un balayeur utiliserait ; le
+   balayeur n'existe pas. Contraste mesuré dans le même dépôt : `mark_stale_kyc_dossiers()`
+   + cron `kyc-stale-daily` existent pour les **dossiers**, rien pour les **liens**.
 
 ## 8. Re-dater les migrations le jour du merge — procédure
 

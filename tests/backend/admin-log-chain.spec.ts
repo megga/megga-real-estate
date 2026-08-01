@@ -335,6 +335,89 @@ describe.skipIf(!HAS_KEYS)('admin_log — registre chaîné append-only (étape 
       .single()
     expect(row?.action).toBe('admin_log_chain_verified')
     expect(row?.routine, 'une vérification saine est de la routine — elle se replie en pied').toBe(true)
+    expect(row?.severity, 'et elle n\'est pas critique').toBe('info')
+  })
+
+  it('LE JOB PUBLIE SON VERDICT — sinon l\'alerte devrait tout recalculer', async () => {
+    // La règle 10 d'`admin-alerts.ts` notifie une rupture de chaîne. Elle LIT ce bilan au
+    // lieu de rappeler la vérification, pour deux raisons qui tiennent toutes les deux à
+    // des mesures :
+    //
+    // 1. LE COÛT. Rappeler admin_log_verify_chain() referait un SHA-256 par ligne sur TOUT
+    //    le registre, une seconde fois par heure — on doublerait l'opération périodique la
+    //    plus chère du système, et ce coût croît avec la rétention (dix ans, LBA).
+    // 2. LE DROIT. `service_role` n'a délibérément PAS de SELECT sur admin_log (posture
+    //    asservie par le test voisin), et `rolbypassrls` ne contourne pas un GRANT : une
+    //    lecture refusée rendrait `null` SANS erreur. Une alerte de sécurité qui se tait
+    //    est pire que pas d'alerte du tout — d'où le passage par app_config, que
+    //    service_role peut lire.
+    //
+    // Ce test tient donc le CONTRAT entre les deux moitiés : les champs que la règle
+    // consomme (`alarme` pour décider, `status` pour choisir le message, `attendu` et
+    // `checked_at` pour le corps) doivent exister et être exploitables.
+    execSql('select public.admin_log_chain_verify_job();')
+
+    const { data, error } = await serviceRoleClient()
+      .from('app_config').select('value').eq('key', 'admin_log_chain_health').maybeSingle()
+    expect(error, 'service_role doit pouvoir lire le bilan').toBeNull()
+    expect(data?.value, 'le job publie un bilan').toBeTruthy()
+
+    const bilan = JSON.parse(String(data!.value)) as Record<string, unknown>
+    expect(typeof bilan.alarme, '`alarme` pilote la décision de la règle').toBe('boolean')
+    expect(typeof bilan.status, '`status` choisit le message').toBe('string')
+    expect(Number(bilan.attendu), '`attendu` sépare « registre neuf » d\'« effacé »').not.toBeNaN()
+    expect(bilan.checked_at, 'le bilan se date, sinon on ne sait pas s\'il est frais').toBeTruthy()
+
+    // En CI le registre est non vide et intact : pas d'alarme. C'est aussi ce qui garantit
+    // que la suite n'envoie pas d'alerte pour rien.
+    expect(bilan.alarme, 'une chaîne saine ne déclenche AUCUNE alerte').toBe(false)
+  })
+
+  it('UN REGISTRE VIDE N\'EST PAS UNE RUPTURE — sauf s\'il attendait des lignes', () => {
+    // MESURÉ EN PRODUCTION : `admin_log` porte 7 lignes de contrôle, dont exactement une en
+    // `crit` — la PREMIÈRE, écrite quand le registre était encore vide
+    // (`{Statut: no_rows, Lignes relues: 0, Rupture: aucune}`). La chaîne n'a jamais été
+    // rompue ; c'est le job qui traduisait mal, avec
+    //     case when status = 'ok' then 'info' else 'crit' end
+    // — donc TOUT ce qui n'est pas `ok` devient critique. Or le vérificateur rend TROIS
+    // statuts, et le troisième est délibéré : « une marche sur zéro ligne ne rencontre
+    // aucune rupture : ne JAMAIS rendre ok ». Cette prudence est juste chez lui ; le job la
+    // lisait comme un aveu. « Rien à vérifier » n'est pas « quelqu'un a touché au registre ».
+    //
+    // ⚠ POURQUOI CE TEST EST STATIQUE, et c'est assumé : éprouver le chemin `no_rows`
+    // demanderait un `admin_log` VIDE, impossible en CI — les autres specs y écrivent, et la
+    // table est append-only (UPDATE/DELETE/TRUNCATE refusés en 42501, cf. plus haut). Le
+    // chemin NOMINAL, lui, est éprouvé pour de bon par le test juste au-dessus, qui appelle
+    // réellement le job et vérifie `routine`/`severity`.
+    //
+    // Les commentaires sont retirés avant la recherche : un contrôle de position ou de
+    // présence sur `prosrc` lit aussi la prose du correctif, qui décrit forcément le défaut
+    // avec les mots du défaut (piège n°10 du §6, payé une passe de CI).
+    execSql(`do $$
+    declare v_src text;
+    begin
+      select regexp_replace(p.prosrc, '--[^\\n]*', '', 'g') into v_src
+        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'admin_log_chain_verify_job';
+      if v_src is null then
+        raise exception 'admin_log_chain_verify_job introuvable : test creux';
+      end if;
+
+      if position('no_rows' in v_src) = 0 then
+        raise exception E'Le job ne distingue pas le statut no_rows.\\n'
+          '  Tout ce qui n est pas ok devient alors critique, et un registre NEUF est\\n'
+          '  signale comme une rupture. Une alerte qui part pour rien finit par ne plus\\n'
+          '  etre lue, ce qui coute plus cher que de n en avoir aucune.';
+      end if;
+
+      -- La distinction ne vaut que si elle s'appuie sur le compte ATTENDU : sans lui, on ne
+      -- peut pas separer « registre neuf » de « registre VIDE », qui est un effacement.
+      if position('rows_count' in v_src) = 0 then
+        raise exception E'Le job ignore le compte attendu (head_row.rows_count).\\n'
+          '  Sans lui, un registre EFFACE se lit comme un registre neuf : le cas le plus\\n'
+          '  grave que ce controle existe pour attraper deviendrait le plus silencieux.';
+      end if;
+    end $$;`)
   })
 
   it('le service_role ne lit PAS le registre — posture délibérée', () => {

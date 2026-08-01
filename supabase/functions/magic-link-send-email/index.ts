@@ -429,6 +429,28 @@ serve(async (req) => {
 
   const resendData = await resendRes.json()
 
+  // C'EST ICI, ET NULLE PART AILLEURS, qu'on sait qu'un message est réellement parti.
+  // `kyc_magic_links.sent_at` ne le dit pas : c'est un DEFAULT now() posé à l'INSERT que
+  // rien ne met à jour, donc il vaut la même chose que Resend ait répondu 200, 502, ou
+  // n'ait jamais été appelé (canal `sms` seul, contact sans e-mail). Le diagnostic de
+  // l'étape 19 le remettait pourtant comme preuve d'envoi.
+  //
+  // Best-effort ASSUMÉ : le message EST parti. Échouer la réponse parce qu'on n'a pas su
+  // horodater ferait croire à l'appelant que l'envoi a raté, et `magic-link-create`
+  // rejouerait — deux e-mails pour une demande. On journalise et on continue.
+  // `updated_at` explicitement : le trigger d'audit ne le pose QUE dans sa branche de
+  // changement de statut (`NEW.status IS DISTINCT FROM OLD.status`). Sans ça on laisserait
+  // une ligne modifiée avec un `updated_at` périmé — et c'est aussi ce que font les autres
+  // écrivains de cette table (admin_kyc_link_regenerate le pose à la main).
+  const maintenant = new Date().toISOString()
+  const { error: stampErr } = await supabase
+    .from('kyc_magic_links')
+    .update({ email_sent_at: maintenant, updated_at: maintenant })
+    .eq('id', link.id)
+  if (stampErr) {
+    console.error('[magic-link-send-email] email_sent_at non posé:', stampErr.message)
+  }
+
   // Audit envoi réussi
   await supabase.from('activity_events').insert({
     agency_id: link.agency_id,
