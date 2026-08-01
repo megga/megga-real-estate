@@ -5,12 +5,22 @@
 > `main`, 46 commits, CI complète verte). Spec : `docs/handoff/console-admin/` · Inventaire
 > du socle : [INVENTAIRE_SOCLE.md](INVENTAIRE_SOCLE.md).
 >
-> ✅ **REVUE DE CODE FAITE le 01.08.** Elle a trouvé **deux défauts, tous deux corrigés**
-> (commit `670ee59c`) : le verdict de chaîne de l'extrait n'était borné qu'en bas, et une
-> erreur métier consommait la clé d'idempotence. Détail et verdict complet au **§7**.
+> ✅ **REVUE DU LOT 1 FAITE le 01.08.** Deux défauts, tous deux corrigés (commit
+> `670ee59c`) : le verdict de chaîne de l'extrait n'était borné qu'en bas, et une erreur
+> métier consommait la clé d'idempotence. Détail au **§7**.
 >
-> 🛑 **PROCHAINE ACTION = re-datage puis merge.** Le §8 s'exécute maintenant, mais **le même
-> jour UTC que le merge** — et le re-datage vient APRÈS le dernier rebase, jamais avant.
+> ✅ **REVUE DU LOT 2 FAITE le 01.08** (étapes 16, 19, 20, 21, 22 — livrées ET DÉPLOYÉES,
+> jamais relues). **Quatre défauts corrigés** par la migration `20260801360000` : l'empreinte
+> de l'extrait dépendait du FUSEAU de la session, le plafond de 5000 était évalué après
+> l'agrégat qu'il doit empêcher, il ne bornait pas la marche de chaîne sous filtre de
+> famille, et une publication programmée ne laissait aucune ligne au registre. **Deux
+> constats laissés ouverts parce qu'ils demandent une décision** — l'outbox n'a AUCUN
+> consommateur (la régénération de lien KYC détruit sans réémettre), et le plafond 3 compte
+> des liens et non des personnes. Détail au **§7bis**.
+>
+> ⚠ **Ces correctifs-ci portent sur des fonctions DÉPLOYÉES**, contrairement à ceux du Lot 1 :
+> la migration doit être re-datée le jour du merge (§8), et elle doit passer APRÈS
+> `20260801350000`, faute de quoi elle est sautée à jamais.
 
 ## 1. Comment on travaille (décidé avec le PO)
 
@@ -37,6 +47,7 @@ Thomas et Antoine travaillent en parallèle sur le même dépôt. Méthode reten
 | #1049 | Revue du Lot 1 — deux défauts d'affichage juste (Plans, Vue d'ensemble) | **mergée**, déployée |
 | #1050 | Étape 23 — le contrat des gestes devient un balayage | **mergée** |
 | #1051 | Cerveau — les huit gestes hors chaîne, et la méthode | **mergée** |
+| — | Revue du Lot 2 — 4 défauts corrigés, 2 constats ouverts (§7bis) | **en cours** |
 
 Les quatre bloquants pré-lancement (dépendance **P6**) sont **fermés et vérifiés en
 production** : 0.1 et 0.3 l'étaient déjà, 0.2 et 0.4 par #1044.
@@ -468,6 +479,75 @@ une spec l'appelle-t-elle vraiment ?**
 journal se vide en silence en croyant ne retirer que la conformité des clients finaux. La
 forme correcte est `is distinct from`. Le même piège attend tout filtre d'exclusion posé sur
 une colonne majoritairement nulle.
+
+### Ce que la revue du LOT 2 a rendu (01.08)
+
+Portait sur les étapes 16, 19, 20, 21, 22 — livrées **et déployées**, jamais relues. Tout
+est parti de `pg_get_functiondef`, jamais du fichier de migration.
+
+**Quatre défauts corrigés** (migration `20260801360000`, deux objets touchés) :
+
+1. **L'empreinte de l'extrait dépendait du FUSEAU de la session.** `admin_log_export`
+   signait `jsonb_build_object('ts', l.ts)` — un timestamptz nu se rend dans le fuseau de la
+   session. Mesuré sur les lignes réelles : `84c3ff3e…` en UTC, `c01b7b0d…` en
+   Europe/Zurich, mêmes données. Le dépôt connaissait pourtant le piège :
+   `admin_log_payload_v1` s'en défend nommément, ce qui immunisait la chaîne — mais pas
+   l'extrait. ⚠ **Le test qui aurait dû l'attraper s'appelle « l'empreinte est
+   REPRODUCTIBLE » et ne le pouvait pas** : ses deux appels passent par le même client, donc
+   le même fuseau. Même angle mort que les specs d'idempotence qui n'éprouvaient que le
+   chemin heureux. Le `ts` de l'extrait est désormais rendu au format EXACT de la charge de
+   chaîne, ce qui permet en prime de recalculer chaque hash sans accès à la base.
+2. **Le plafond de 5000 lignes était évalué APRÈS l'agrégat qu'il doit empêcher.**
+   `count(*)` et `jsonb_agg` vivaient dans le même select : l'array complet était matérialisé
+   avant que `too_many` ne puisse refuser. Le plafond existe contre le statement timeout
+   (8 s sur `authenticated`) — il ne pouvait pas l'éviter. L'appelant recevait un timeout,
+   jamais `too_many`.
+3. **Le plafond ne bornait pas la marche de chaîne sous filtre de famille.** Une chaîne ne se
+   vérifie que sur un intervalle CONTIGU de `seq` : `admin_log_verify_chain` relit donc
+   toutes les familles entre les bornes — correct, et nécessaire. Mais le plafond ne portait
+   que sur le compte FILTRÉ : une famille creuse sur une fenêtre large passait (50 ≤ 5000)
+   puis faisait un SHA-256 par ligne sur tout l'intervalle. **Même cause que le défaut de
+   fenêtre vide corrigé à la revue du Lot 1**, dont le commentaire nommait pourtant ce
+   cas — « une famille filtrée sur une période calme ». Le sous-cas `v_n = 0` avait été
+   traité, le cas creux non. Corollaire réglé au passage : `rows_checked` et `count` étaient
+   rendus côte à côte en décrivant des populations différentes ; le verdict porte désormais
+   `extract_rows`.
+4. **Une publication PROGRAMMÉE ne laissait aucune ligne au registre.**
+   `changelog_publish_due` (cron `*/10`) rend une nouveauté visible de TOUS les agents ; le
+   geste manuel identique journalise en `warn`. Le seul chemin de publication qui atteint
+   tout le monde était donc le seul invisible à l'écran Sécurité, et hors chaîne
+   d'empreintes.
+
+⚠ **Le cliquet de l'étape 23 ne pouvait pas voir le n° 4**, et c'est le vrai enseignement :
+son périmètre s'écrivait `proname ~ '^admin_'`, une convention de **nom**, là où le reste du
+fichier définit ses périmètres par une **propriété**. Rejoué avec la propriété (« écrit dans
+une table de la console sans `admin_log_write` »), il sortait exactement une fonction —
+celle-là. Périmètre élargi ; la liste `DETTE` reste à huit, inchangée.
+
+**Vérifié sain, mesuré et non supposé** : le socle de l'étape 16 en entier (vocabulaire
+d'erreur fermé, verrou de transaction à deux clés, atomicité par la primary key), l'ordre
+clé-après-contrôles sur les trois RPC concernées, `unaccent` bien en `public`,
+`submitted`/`expired` de vrais labels d'enum et `expired_at` une vraie colonne,
+`prev_hash`/`hash` en `NOT NULL` — donc pas de trou NULL dans le `<>` de la vérification —
+et les contraintes `status`/`published` du changelog.
+
+**Deux constats laissés OUVERTS parce que ce sont des décisions, pas des correctifs :**
+
+- **`admin_kyc_link_regenerate` détruit le lien et rien ne le réémet.** La RPC passe le lien
+  à `expired`, dépose un job dans l'outbox, journalise et rend un succès. Or **aucun
+  consommateur d'outbox n'existe** — vérifié dans tout le dépôt : `outbox` n'apparaît que
+  dans les tests, les docs, les migrations et le seed du cerveau. Le seul cron outbox est une
+  purge, et `outbox_jobs` compte 0 ligne. Aucune étape du plan (16→30) ne construit le
+  worker. Effet : le lien de la cliente cesse de fonctionner, le remplaçant ne part jamais,
+  l'écran annonce un succès. Pas déclenchable aujourd'hui (aucun appelant dans `src/`), mais
+  l'étape 19 est cochée ✅ alors que sa seconde moitié n'existe pas. **À trancher** : bâtir le
+  worker, ou ne plus expirer le lien tant que l'émission est impossible.
+- **Le plafond 3 compte des LIENS, pas des personnes.** Un contact portant 4 liens déclenche
+  `too_many`, alors que la justification du plafond est de ne pas nommer de **personnes**.
+  C'est le cas d'usage central qui saute : une cliente qui n'a jamais reçu son lien est
+  exactement celle à qui on l'a réémis plusieurs fois. Le test du plafond sème 4 contacts
+  DISTINCTS — il prouve qu'on arrête 4 personnes, jamais qu'on laisse passer une personne à
+  4 liens. **À trancher** : « correspondance » désigne-t-elle un lien ou une personne ?
 
 ## 8. Re-dater les migrations le jour du merge — procédure
 
