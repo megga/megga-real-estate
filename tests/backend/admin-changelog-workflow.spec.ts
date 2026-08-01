@@ -310,20 +310,39 @@ describe.skipIf(!HAS_KEYS)('changelog « What\'s new » (étape 21)', () => {
   })
 
   it('UN VISITEUR ANONYME NE VOIT RIEN — même une nouveauté publiée', async () => {
-    // Fuite mesurée le 01.08 et restée ouverte depuis la création de la table : le baseline
-    // accordait `GRANT ALL ... TO anon`, l'étape 21 n'a révoqué que l'ÉCRITURE, et la policy
-    // de lecture n'avait AUCUNE clause `TO` — elle portait donc sur `public`, `anon`
-    // compris, avec `published = true` en première branche. N'importe quel visiteur lisait
-    // le titre, le contenu, la version et l'`author_id` d'un super-admin.
+    // Fuite mesurée EN PRODUCTION le 01.08 : `has_table_privilege('anon', …, 'SELECT')`
+    // rend `true`, et la policy `admin_changelog_select` n'a AUCUNE clause `TO` — elle porte
+    // donc sur `public`, `anon` compris, avec `published = true` en PREMIÈRE branche, qui
+    // est vraie sans aucune identité. N'importe quel visiteur lisait le titre, le contenu,
+    // la version et l'`author_id` d'un super-admin. (0 ligne publiée en prod à ce jour, donc
+    // rien n'a fui en fait — mais la porte était ouverte.)
     //
-    // Ce que le test voisin ne pouvait pas voir : « LA PORTE D'ÉCRITURE est fermée »
-    // n'éprouve qu'INSERT/UPDATE/DELETE. Personne n'avait regardé la LECTURE.
+    // ⚠ CE TEST NE PEUT PAS ROUGIR EN CI, ET IL FAUT LE SAVOIR. La base fraîche de CI ne
+    // reproduit pas le grant de production : aucune migration du dépôt n'accorde ce SELECT à
+    // `anon`, il n'existe qu'en prod. C'est donc un CLIQUET — il empêche le grant de revenir
+    // par une migration future — et NON une démonstration du défaut.
+    //
+    // LE VRAI CONSTAT EST LA DÉRIVE : le dépôt et la production ne s'accordent pas sur les
+    // PRIVILÈGES, et rien ne le voit. `check:drift` compare les objets déclarés aux objets
+    // présents (tables, colonnes, fonctions, index) et exclut explicitement policies,
+    // triggers et GRANT — « leur absence ne se lit pas dans un simple information_schema ».
     const svc = serviceRoleClient()
     const publie = await creer(`anon-${stamp}`)
     await svc.rpc('admin_changelog_publish', { p_id: publie })
 
     const { data } = await anonClient().from('admin_changelog').select('id, title')
-    expect((data ?? []).length, 'anon ne lit AUCUNE ligne de ce journal').toBe(0)
+    // `data` vaut null si la requête est refusée, [] si la RLS ne rend rien : les deux
+    // conviennent. Ce qui ne convient pas, c'est UNE ligne.
+    expect(data ?? [], 'anon ne lit AUCUNE ligne de ce journal').toHaveLength(0)
+
+    // Le cliquet proprement dit, sur le PRIVILÈGE et non sur le comportement : c'est lui qui
+    // rougirait si une migration future réaccordait la lecture, même avec une policy correcte.
+    assertSql(`
+    begin
+      if has_table_privilege('anon', 'public.admin_changelog', 'SELECT') then
+        raise exception 'anon a de nouveau SELECT sur admin_changelog';
+      end if;
+    `)
   })
 
   // ── 5. Le chemin de lecture AGENT (étape 27) ───────────────────────────────────
