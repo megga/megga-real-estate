@@ -5,9 +5,12 @@
 > `main`, 46 commits, CI complète verte). Spec : `docs/handoff/console-admin/` · Inventaire
 > du socle : [INVENTAIRE_SOCLE.md](INVENTAIRE_SOCLE.md).
 >
-> 🛑 **PROCHAINE ACTION = REVUE DE CODE, PAS LE MERGE** (décidé avec le PO le 01.08). Ne pas
-> re-dater, ne pas sortir du brouillon, ne pas merger tant que la revue n'a pas eu lieu. Ce
-> qu'elle doit regarder en priorité est au **§7**.
+> ✅ **REVUE DE CODE FAITE le 01.08.** Elle a trouvé **deux défauts, tous deux corrigés**
+> (commit `670ee59c`) : le verdict de chaîne de l'extrait n'était borné qu'en bas, et une
+> erreur métier consommait la clé d'idempotence. Détail et verdict complet au **§7**.
+>
+> 🛑 **PROCHAINE ACTION = re-datage puis merge.** Le §8 s'exécute maintenant, mais **le même
+> jour UTC que le merge** — et le re-datage vient APRÈS le dernier rebase, jamais avant.
 
 ## 1. Comment on travaille (décidé avec le PO)
 
@@ -288,6 +291,39 @@ gh pr checks 1046                            # doit être vert 6/6 AVANT de juge
 🛑 **La revue passe AVANT le merge** (décidé avec le PO le 01.08). Ne pas re-dater les
 migrations, ne pas sortir du brouillon : le §8 ne s'exécute qu'une fois la revue passée, et
 **le même jour UTC que le merge**.
+
+### Ce que la revue a rendu (01.08)
+
+**Deux défauts, corrigés dans `670ee59c`** — sur des migrations jamais déployées, donc repris
+sur place :
+
+1. **`admin_log_verify_chain` n'avait qu'une borne BASSE.** Un extrait signé portait un
+   verdict couvrant des lignes qu'il ne contenait pas (`rows_checked` ≠ `count`, `last_seq`
+   hors extrait), et le coût croissait avec l'**âge** de la fenêtre, pas sa taille. Sur une
+   fenêtre valide mais **vide**, `min(seq)` vaut NULL : la borne disparaissait et l'appel
+   relisait le registre ENTIER — ce que le plafond de 5000 lignes existe précisément pour
+   éviter. `p_to` ajouté, plus un champ `bounded` qui dit sur quoi le verdict porte.
+2. **Une erreur métier consommait la clé d'idempotence.** `admin_receipt_try` était appelée
+   avant les contrôles dans `admin_kyc_link_regenerate` et `admin_log_export` ; un
+   `return admin_error` COMMITTE, donc la clé restait brûlée par un geste qui n'avait rien
+   fait, et le réessai répondait `already_done` — un faux succès. Sur la régénération de lien
+   KYC, l'écran annonçait un lien réémis alors que rien n'était parti dans l'outbox.
+
+**Vérifié sain, mesuré et non supposé** : 44 fonctions accordées / 44 révoquées de `PUBLIC`
+(aucune fuite par grant par défaut), 9 tables créées / 9 avec RLS, chaque `SECURITY DEFINER`
+a son `search_path`, idempotence verte (232 migrations), CI verte **sur le SHA exact**
+(139 fichiers / 1 265 tests backend, comptés et non lus au statut).
+
+⚠ **Un faux positif à ne pas re-trouver** : `count(*) over ()` apparaît bien dans
+`240000` (étape 11) alors que le dépôt l'interdit — mais `260000` **redéfinit**
+`get_admin_live_feed` avec une sous-requête scalaire. L'état final est correct ; c'est
+l'état intermédiaire qui trompe.
+
+**Restent ouverts, non bloquants** : la clé d'idempotence du changelog est générée par
+tentative côté client (`crypto.randomUUID()` dans `mutationFn`), donc elle ne peut jamais
+entrer en collision — ce qui protège aujourd'hui est le démontage de la modale, pas le
+mécanisme ; et `useAdminBilling.churnedThisMonth` compte tous les `canceled` sans borne de
+date alors que le serveur nomme `churn` dans `unavailable`.
 
 **Les cinq points où je regarderais en premier**, parce que ce sont ceux où je suis le moins
 sûr de moi — et non les plus gros morceaux :
