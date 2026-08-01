@@ -309,6 +309,90 @@ describe.skipIf(!HAS_KEYS)('changelog « What\'s new » (étape 21)', () => {
     expect(vus.some((l) => l.id === brouillon), 'un brouillon ne doit JAMAIS parvenir à un agent').toBe(false)
   })
 
+  it('UN VISITEUR ANONYME NE VOIT RIEN — même une nouveauté publiée', async () => {
+    // Fuite mesurée le 01.08 et restée ouverte depuis la création de la table : le baseline
+    // accordait `GRANT ALL ... TO anon`, l'étape 21 n'a révoqué que l'ÉCRITURE, et la policy
+    // de lecture n'avait AUCUNE clause `TO` — elle portait donc sur `public`, `anon`
+    // compris, avec `published = true` en première branche. N'importe quel visiteur lisait
+    // le titre, le contenu, la version et l'`author_id` d'un super-admin.
+    //
+    // Ce que le test voisin ne pouvait pas voir : « LA PORTE D'ÉCRITURE est fermée »
+    // n'éprouve qu'INSERT/UPDATE/DELETE. Personne n'avait regardé la LECTURE.
+    const svc = serviceRoleClient()
+    const publie = await creer(`anon-${stamp}`)
+    await svc.rpc('admin_changelog_publish', { p_id: publie })
+
+    const { data } = await anonClient().from('admin_changelog').select('id, title')
+    expect((data ?? []).length, 'anon ne lit AUCUNE ligne de ce journal').toBe(0)
+  })
+
+  // ── 5. Le chemin de lecture AGENT (étape 27) ───────────────────────────────────
+
+  it('L\'ENDPOINT AGENT rend les publiées, et RIEN du calendrier éditorial', async () => {
+    // Pourquoi un endpoint plutôt qu'une lecture directe : **la RLS filtre des LIGNES,
+    // jamais des COLONNES**. Une lecture directe expose à tout agent `author_id` (qui a
+    // écrit la nouveauté), `status`, `scheduled_for` — le calendrier éditorial interne de
+    // MEGGA. Il faudrait que CHAQUE appelant pense à restreindre son `select`, et le
+    // premier qui l'oublie rouvre la fuite sans que rien ne rougisse.
+    const svc = serviceRoleClient()
+    const brouillon = await creer(`ep-brouillon-${stamp}`)
+    const publie = await creer(`ep-publie-${stamp}`)
+    await svc.rpc('admin_changelog_publish', { p_id: publie })
+
+    const { data, error } = await setup.clientA.rpc('get_agent_changelog', { p_limit: 50 })
+    expect(error).toBeNull()
+    const lignes = (data ?? []) as Row[]
+
+    expect(lignes.some((l) => l.id === publie), 'la publiée sort').toBe(true)
+    expect(lignes.some((l) => l.id === brouillon), 'le brouillon ne sort JAMAIS').toBe(false)
+
+    const champs = Object.keys(lignes.find((l) => l.id === publie) ?? {})
+    expect(champs.sort(), 'la projection est fermée aux cinq champs utiles')
+      .toEqual(['content', 'id', 'published_at', 'title', 'version'])
+    for (const interdit of ['author_id', 'status', 'scheduled_for', 'updated_at']) {
+      expect(champs, `« ${interdit} » est du calendrier interne, pas du contenu agent`)
+        .not.toContain(interdit)
+    }
+  })
+
+  it('l\'endpoint agent trie par date de PUBLICATION, pas de rédaction', () => {
+    // Le hook console ordonne par `created_at` ; la carte agent affiche une date de
+    // publication. Une nouveauté rédigée en juin et publiée en août sortirait au mauvais
+    // rang. Contrôle statique : éprouver le tri demanderait de fabriquer deux lignes dont
+    // les deux dates sont croisées, et `published_at` est posé par `now()` côté serveur.
+    assertSql(`
+    declare v_src text;
+    begin
+      select regexp_replace(p.prosrc, '--[^\\n]*', '', 'g') into v_src
+        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'get_agent_changelog';
+      if v_src is null then
+        raise exception 'get_agent_changelog introuvable : test creux';
+      end if;
+      if position('order by' in lower(v_src)) = 0 then
+        raise exception 'aucun ORDER BY dans get_agent_changelog';
+      end if;
+      if position('published_at desc' in lower(v_src)) = 0 then
+        raise exception 'le tri n est pas sur published_at : la carte agent affiche une '
+          'date de PUBLICATION, pas de redaction';
+      end if;
+    `)
+  })
+
+  it('l\'endpoint agent est FERMÉ à anon', () => {
+    assertSql(`
+    begin
+      if has_function_privilege('anon', 'public.get_agent_changelog(integer)', 'EXECUTE') then
+        raise exception 'get_agent_changelog est executable par anon';
+      end if;
+      if not has_function_privilege('authenticated', 'public.get_agent_changelog(integer)', 'EXECUTE') then
+        raise exception 'get_agent_changelog n est PAS executable par un agent : '
+          'un garde-fou qui se contenterait d interdire serait satisfait par une '
+          'fonction que personne ne peut appeler';
+      end if;
+    `)
+  })
+
   it('LA PORTE D\'ÉCRITURE est fermée — plus d\'INSERT ni de DELETE nus', () => {
     assertSql(`
     begin
