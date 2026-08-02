@@ -1,6 +1,14 @@
 /**
  * Wizard « Identité légale » (KYB) — étape 3, les bénéficiaires effectifs.
  *
+ * Peau MEGGA X depuis le 02.08.2026 : cette étape ne porte plus la grammaire
+ * Sugar v2 mais celle de la vitrine megga.ch, transcrite verbatim dans
+ * src/styles/megga-x.generated.css (sélecteurs `.megga-x …`). Concrètement, tout
+ * le rendu passe par des classes de la vitrine et les composants de
+ * src/components/megga-x ; le fichier ne pose plus aucune valeur de couleur, de
+ * taille ni de rayon. La coquille (IdentityShell) enveloppe le contenu dans
+ * `<MeggaX>`, sans quoi ces classes ne s'appliquent pas — elles sont scopées.
+ *
  * Étape CONDITIONNELLE : IdentityShell ne la monte jamais quand la forme juridique
  * choisie à l'étape 2 vaut `sole_proprietorship` (shouldSkipBeneficiairesStep) — ce
  * fichier n'a donc à se soucier que du cas où elle s'applique.
@@ -37,11 +45,20 @@
  * appliqué comme condition de validation (brief tâche 5, explicite) — une valeur en
  * dessous reste acceptée telle quelle.
  */
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SugarV2 } from '../tokens'
-import { SgInput, SgGhostPill, SgCircleBtn, SgIcon } from '@/components/crm-sugar-wizard/primitives'
+import { MxButton, MxField, MxIcon, MxInput, MxRadio, MxSelect } from '@/components/megga-x'
 import { COUNTRIES } from '@/lib/countries'
 import { EMPTY_BENEFICIAIRE_DRAFT, type BeneficiaireDraft } from '../IdentityShell'
+
+/**
+ * Glyphes de la police d'icônes de la vitrine (Line Rounded Icon Font Brix),
+ * relevés dans la table de caractères de la fonte livrée
+ * (public/megga-x/fonts/…line-rounded-icon-font-brix.woff) : les noms de glyphes
+ * y sont `plus` et `close`. Aucun dessin d'icône n'est donc ajouté ici.
+ */
+const MX_GLYPH_PLUS = 0xe8a4
+const MX_GLYPH_CLOSE = 0xe83a
 
 /** Identité du signataire déjà saisi à l'étape 1, telle qu'exposée par IdentityShell pour le bouton « reprendre ». */
 export interface SignataireForReuse {
@@ -59,31 +76,6 @@ interface StepBeneficiairesProps {
    *  l'avancement avant que ça arrive — cf. canAdvanceFromIdentityStep — donc ce cas
    *  ne devrait pas se produire ici en pratique ; le composant reste défensif). */
   signataire: SignataireForReuse | null
-}
-
-const FIELD_LABEL_STYLE = {
-  fontSize: 11,
-  fontWeight: 600,
-  color: SugarV2.muted,
-  letterSpacing: 0.6,
-  textTransform: 'uppercase' as const,
-  marginBottom: 8,
-}
-
-const SELECT_STYLE = {
-  width: '100%',
-  boxSizing: 'border-box' as const,
-  height: 48,
-  padding: '0 16px',
-  borderRadius: 14,
-  border: 0,
-  outline: 'none',
-  fontFamily: 'inherit',
-  background: SugarV2.cardSubtle,
-  color: SugarV2.ink,
-  fontSize: 15,
-  fontWeight: 500,
-  boxShadow: `inset 0 0 0 1px ${SugarV2.line}`,
 }
 
 /**
@@ -129,161 +121,217 @@ export function StepBeneficiaires({ value, onChange, signataire }: StepBeneficia
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', animation: 'sgPage .45s cubic-bezier(.2,.8,.2,1) both' }}>
-      <div style={{ marginBottom: 32 }}>
-        <div style={{
-          fontSize: 12, fontWeight: 600, color: SugarV2.muted,
-          letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>{t('wizard.beneficiaires.eyebrow')}</div>
-        <h1 style={{
-          margin: '0 0 14px', fontSize: 32, fontWeight: 700,
-          color: SugarV2.ink, letterSpacing: -0.6, lineHeight: 1.15,
-        }}>{t('wizard.beneficiaires.title')}</h1>
-        <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          {t('wizard.beneficiaires.subtitle')}
-        </p>
+    <div className="inner-container _634px center">
+      <div className="mg-top-4x-extra-small">
+        <h1 className="display-6">{t('wizard.beneficiaires.title')}</h1>
+      </div>
+      <div className="mg-top-4x-extra-small">
+        <p className="paragraph-large text-paragraph">{t('wizard.beneficiaires.subtitle')}</p>
       </div>
 
       {signataire && !signataireAlreadyAdded && (
-        <div style={{ marginBottom: 20 }}>
-          <SgGhostPill onClick={reuseSignataire} icon={<SgIcon name="plus" size={16} stroke={SugarV2.inkSoft} />}>
-            {t('wizard.beneficiaires.reuseSignataire', { name: `${signataire.firstName} ${signataire.lastName}` })}
-          </SgGhostPill>
+        <div className="mg-top-small">
+          <MxButton variant="secondary" size="small" type="button" onClick={reuseSignataire}>
+            <div className="link-content-flex">
+              {/* Le glyphe ne porte aucune information que le libellé ne dise déjà. */}
+              <MxIcon code={MX_GLYPH_PLUS} aria-hidden="true" />
+              <div>{t('wizard.beneficiaires.reuseSignataire', { name: `${signataire.firstName} ${signataire.lastName}` })}</div>
+            </div>
+          </MxButton>
         </div>
       )}
 
-      {value.length === 0 ? (
-        <p style={{
-          margin: '0 0 20px', padding: '16px 20px', borderRadius: 16,
-          background: SugarV2.cardSubtle, color: SugarV2.muted,
-          fontSize: 13, fontWeight: 500, lineHeight: 1.5, textAlign: 'center',
-        }}>
-          {t('wizard.beneficiaires.emptyHint')}
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
-          {value.map((entry, index) => (
-            <BeneficiaireCard
-              key={entry.personId ?? `new-${index}`}
-              entry={entry}
-              onChange={(patch) => updateEntry(index, patch)}
-              onRemove={() => removeEntry(index)}
-            />
-          ))}
-        </div>
-      )}
+      <div className="mg-top-small">
+        {value.length === 0 ? (
+          <div className="card empty-state">
+            {/* `.empty-state` monte à 20 px : trop lourd pour ce rappel de trois lignes. */}
+            <p className="paragraph-small">{t('wizard.beneficiaires.emptyHint')}</p>
+          </div>
+        ) : (
+          <div className="grid-1-column">
+            {value.map((entry, index) => (
+              <BeneficiaireCard
+                key={entry.personId ?? `new-${index}`}
+                entry={entry}
+                onChange={(patch) => updateEntry(index, patch)}
+                onRemove={() => removeEntry(index)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-      <SgGhostPill onClick={addBlankEntry} icon={<SgIcon name="plus" size={16} stroke={SugarV2.inkSoft} />}>
-        {t('wizard.beneficiaires.addButton')}
-      </SgGhostPill>
+      <div className="mg-top-small">
+        <MxButton variant="secondary" size="small" type="button" onClick={addBlankEntry}>
+          <div className="link-content-flex">
+            <MxIcon code={MX_GLYPH_PLUS} aria-hidden="true" />
+            <div>{t('wizard.beneficiaires.addButton')}</div>
+          </div>
+        </MxButton>
+      </div>
     </div>
   )
 }
 
-/** Une ligne de bénéficiaire effectif — bento séparé sans bordure décorative, même grammaire que le reste du wizard (SugarV2.shadow). */
+/** Une ligne de bénéficiaire effectif — carte `.card` de la vitrine, contenu à son gabarit de padding. */
 function BeneficiaireCard({
   entry, onChange, onRemove,
 }: { entry: BeneficiaireDraft; onChange: (patch: Partial<BeneficiaireDraft>) => void; onRemove: () => void }) {
   const { t } = useTranslation('onboarding')
+  // Un groupe de radios par ligne : sans nom distinct, cocher « Oui » sur une ligne
+  // décocherait celui de la précédente (les radios d'un même `name` sont exclusifs).
+  const pepGroupName = useId()
+  const nameId = useId()
+
+  const removeLabel = t('wizard.beneficiaires.removeButton')
+  const pepLabel = t('wizard.beneficiaires.pep.label')
+  // La ligne est identifiée par ce que l'agent a saisi, pas par un numéro d'ordre :
+  // rien n'est inventé quand les deux champs sont encore vides, l'en-tête reste nu.
+  const displayName = [entry.firstName, entry.lastName].filter(Boolean).join(' ')
 
   return (
-    <div style={{
-      position: 'relative', background: SugarV2.card, borderRadius: 24, padding: 24,
-      boxShadow: SugarV2.shadow, display: 'flex', flexDirection: 'column', gap: 18,
-    }}>
-      <div style={{ position: 'absolute', top: 16, right: 16 }}>
-        <SgCircleBtn
-          size={32}
-          icon={<SgIcon name="close" size={14} stroke={SugarV2.muted} />}
-          title={t('wizard.beneficiaires.removeButton')}
-          onClick={onRemove}
-        />
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, paddingRight: 40 }}>
-        <SgInput
-          label={t('wizard.beneficiaires.fields.firstName')}
-          value={entry.firstName}
-          onChange={(v) => onChange({ firstName: v })}
-        />
-        <SgInput
-          label={t('wizard.beneficiaires.fields.lastName')}
-          value={entry.lastName}
-          onChange={(v) => onChange({ lastName: v })}
-        />
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-        <SgInput
-          label={t('wizard.beneficiaires.fields.dateOfBirth')}
-          type="date"
-          value={entry.dateOfBirth ?? ''}
-          onChange={(v) => onChange({ dateOfBirth: v || null })}
-        />
-        <label style={{ display: 'block' }}>
-          <div style={FIELD_LABEL_STYLE}>{t('wizard.beneficiaires.fields.nationality')}</div>
-          <select
-            value={entry.nationality ?? ''}
-            onChange={(e) => onChange({ nationality: e.target.value || null })}
-            style={SELECT_STYLE}
+    <div className="card">
+      <div className="pd---content-inside-card">
+        <div className="flex-horizontal space-between">
+          <div className="display-3 medium" id={nameId}>{displayName}</div>
+          {/* Le libellé i18n est le même sur toutes les lignes : listés hors contexte,
+              N boutons « Retirer ce bénéficiaire effectif » seraient indiscernables.
+              D'où la description qui rattache le bouton au nom saisi juste à gauche —
+              vide tant que les champs le sont, donc jamais de nom inventé. */}
+          <button
+            type="button"
+            className="circle-button-secondary small"
+            title={removeLabel}
+            aria-label={removeLabel}
+            aria-describedby={nameId}
+            onClick={onRemove}
           >
-            <option value="">{t('wizard.beneficiaires.fields.nationalityPlaceholder')}</option>
-            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-          </select>
-        </label>
-      </div>
-
-      <div>
-        <SgInput
-          label={t('wizard.beneficiaires.fields.ownershipPct')}
-          type="number"
-          value={entry.ownershipPct != null ? String(entry.ownershipPct) : ''}
-          onChange={(v) => onChange({ ownershipPct: parseOwnershipPct(v) })}
-        />
-        <div style={{ marginTop: 6, fontSize: 12, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.4 }}>
-          {t('wizard.beneficiaires.fields.ownershipPctHint')}
+            <MxIcon code={MX_GLYPH_CLOSE} aria-hidden="true" />
+          </button>
         </div>
-      </div>
 
-      <div>
-        <div style={FIELD_LABEL_STYLE}>{t('wizard.beneficiaires.pep.label')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-          <PepCard
-            selected={entry.pepSelfDeclared === true}
-            label={t('wizard.beneficiaires.pep.yes')}
-            hint={t('wizard.beneficiaires.pep.yesHint')}
-            onClick={() => onChange({ pepSelfDeclared: true })}
-          />
-          <PepCard
-            selected={entry.pepSelfDeclared === false}
-            label={t('wizard.beneficiaires.pep.no')}
-            hint={t('wizard.beneficiaires.pep.noHint')}
-            onClick={() => onChange({ pepSelfDeclared: false })}
-          />
+        <div className="grid-2-columns mg-top-small">
+          <MxField label={t('wizard.beneficiaires.fields.firstName')}>
+            {(id) => (
+              <MxInput
+                id={id}
+                value={entry.firstName}
+                onChange={(e) => onChange({ firstName: e.target.value })}
+              />
+            )}
+          </MxField>
+          <MxField label={t('wizard.beneficiaires.fields.lastName')}>
+            {(id) => (
+              <MxInput
+                id={id}
+                value={entry.lastName}
+                onChange={(e) => onChange({ lastName: e.target.value })}
+              />
+            )}
+          </MxField>
+        </div>
+
+        <div className="grid-2-columns mg-top-small">
+          <MxField label={t('wizard.beneficiaires.fields.dateOfBirth')}>
+            {(id) => (
+              <MxInput
+                id={id}
+                type="date"
+                value={entry.dateOfBirth ?? ''}
+                onChange={(e) => onChange({ dateOfBirth: e.target.value || null })}
+              />
+            )}
+          </MxField>
+          <MxField label={t('wizard.beneficiaires.fields.nationality')}>
+            {(id) => (
+              <MxSelect
+                id={id}
+                value={entry.nationality ?? ''}
+                onChange={(e) => onChange({ nationality: e.target.value || null })}
+                options={[
+                  { value: '', label: t('wizard.beneficiaires.fields.nationalityPlaceholder') },
+                  ...COUNTRIES.map((c) => ({ value: c.code, label: c.name })),
+                ]}
+              />
+            )}
+          </MxField>
+        </div>
+
+        <div className="mg-top-small">
+          <MxField
+            label={t('wizard.beneficiaires.fields.ownershipPct')}
+            help={t('wizard.beneficiaires.fields.ownershipPctHint')}
+          >
+            {(id) => (
+              <MxInput
+                id={id}
+                type="number"
+                value={entry.ownershipPct != null ? String(entry.ownershipPct) : ''}
+                onChange={(e) => onChange({ ownershipPct: parseOwnershipPct(e.target.value) })}
+              />
+            )}
+          </MxField>
+        </div>
+
+        <div className="mg-top-small">
+          {/* Enfant en nœud simple et non en fonction : un `for` unique n'aurait pas de
+              sens pour deux radios (cf. l'API de MxField). Contrepartie : le <label>
+              que MxField pose ne désigne alors aucun contrôle, et la question ne serait
+              jamais annoncée avec les réponses — d'où le rôle et le nom portés ici par
+              le groupe lui-même. */}
+          <MxField label={pepLabel}>
+            <div className="grid-2-columns" role="radiogroup" aria-label={pepLabel}>
+              <PepChoice
+                groupName={pepGroupName}
+                value="yes"
+                selected={entry.pepSelfDeclared === true}
+                label={t('wizard.beneficiaires.pep.yes')}
+                hint={t('wizard.beneficiaires.pep.yesHint')}
+                onSelect={() => onChange({ pepSelfDeclared: true })}
+              />
+              <PepChoice
+                groupName={pepGroupName}
+                value="no"
+                selected={entry.pepSelfDeclared === false}
+                label={t('wizard.beneficiaires.pep.no')}
+                hint={t('wizard.beneficiaires.pep.noHint')}
+                onSelect={() => onChange({ pepSelfDeclared: false })}
+              />
+            </div>
+          </MxField>
         </div>
       </div>
     </div>
   )
 }
 
-/** Carte sélectionnable Oui/Non — même grammaire monochrome que SignaturePowerCard (StepSignataire) : pas de couleur décorative. */
-function PepCard({
-  selected, label, hint, onClick,
-}: { selected: boolean; label: string; hint: string; onClick: () => void }) {
+/**
+ * Une réponse à la question PEP. La précision reste HORS du libellé du radio : la
+ * vitrine étiquette ses radios avec un `<span>`, et y glisser un paragraphe
+ * produirait un DOM que le navigateur réécrit.
+ */
+function PepChoice({
+  groupName, value, selected, label, hint, onSelect,
+}: {
+  groupName: string
+  value: string
+  selected: boolean
+  label: string
+  hint: string
+  onSelect: () => void
+}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={selected}
-      style={{
-        textAlign: 'left', borderRadius: 16, padding: '14px 16px', cursor: 'pointer',
-        fontFamily: 'inherit', background: selected ? SugarV2.cardSubtle : 'transparent',
-        border: `1.5px solid ${selected ? SugarV2.ink : SugarV2.line}`,
-        transition: 'all .18s ease',
-      }}
-    >
-      <div style={{ fontSize: 13.5, fontWeight: 700, color: SugarV2.ink, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 12, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.4 }}>{hint}</div>
-    </button>
+    <div>
+      <MxRadio
+        name={groupName}
+        value={value}
+        checked={selected}
+        onSelect={onSelect}
+        label={<span className="display-2 medium">{label}</span>}
+      />
+      <div className="mg-top-5x-extra-small">
+        <p className="paragraph-small text-color-neutral-600">{hint}</p>
+      </div>
+    </div>
   )
 }
