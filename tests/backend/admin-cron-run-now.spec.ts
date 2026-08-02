@@ -41,18 +41,35 @@ import { execSql } from './helpers/local-sql'
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 const DENIED = '42501'
 
-/** pg_cron présent ? Sonde qui ne lève jamais : `pg_namespace` existe toujours. */
+/**
+ * pg_cron présent ? Sonde qui ne lève jamais : `pg_extension` existe toujours.
+ *
+ * ⚠ Le prédicat porte sur l'EXTENSION, pas sur le schéma — même correctif que la migration
+ * 20260802150000. Le schéma `cron` peut exister sans ses tables sur une base fraîche, et la
+ * sonde répondait alors « présent » avant que `cron.schedule` du beforeAll ne lève 42P01,
+ * emportant tout le describe.
+ *
+ * ⚠ Et l'échec est DISTINGUÉ de l'absence. Le `catch` avalait tout : un conteneur Docker
+ * arrêté se lisait « pg_cron absent », les 7 tests passaient en gris et la suite restait
+ * verte sans que rien ne le dise. On ne peut pas faire échouer ici (pg_cron est réellement
+ * absent en CI, c'est le cas nominal), mais on peut refuser de le taire.
+ */
 function cronDisponible(): boolean {
   try {
     execSql(`
       do $$
       begin
-        if not exists (select 1 from pg_namespace where nspname = 'cron') then
+        if not exists (select 1 from pg_extension where extname = 'pg_cron') then
           raise exception 'pg_cron absent';
         end if;
       end $$;`)
     return true
-  } catch {
+  } catch (err) {
+    const motif = err instanceof Error ? err.message : String(err)
+    if (!/pg_cron absent/.test(motif)) {
+      console.warn(`[admin-cron-run-now] sonde pg_cron INEXPLOITABLE (${motif.slice(0, 200)}) — `
+        + 'les 7 tests du chemin nominal sont sautés pour une raison qui n\'est PAS l\'absence de pg_cron.')
+    }
     return false
   }
 }
@@ -87,6 +104,12 @@ describe.skipIf(!HAS_KEYS)('relancer un cron maintenant (étape 28)', () => {
     expect(await est('whatsapp-morning-brief-0530utc')).toBe(false)
     expect(await est('weekly-digest-friday')).toBe(false)
     expect(await est('realadvisor-health-daily'), 'poste vers send-email').toBe(false)
+
+    // ⚠ RÉGRESSION GARDÉE (revue du 02.08) : malgré son nom de purge, celui-ci fait un
+    // `net.http_delete` sur l'API Storage et supprime jusqu'à 200 objets. Il était classé
+    // inerte parce que le prédicat fondateur ne connaissait que `net.http_post` et ne
+    // lisait que la PREMIÈRE fonction citée par la commande (`get_app_config`, inoffensive).
+    expect(await est('purge-chat-staging-daily'), 'net.http_delete sur 200 objets').toBe(false)
 
     // FAIL-CLOSED : c'est la propriété qui rend la liste nommée sûre. Un job ajouté
     // demain est sensible sans que personne ait à y penser.
@@ -217,6 +240,11 @@ describe.skipIf(!HAS_KEYS)('relancer un cron maintenant (étape 28)', () => {
       })
       expect(env(deux.data).ok).toBe(true)
       expect(donnees(deux.data).already_done, 'le second appel ne reprogramme pas').toBe(true)
+      // ⚠ Le rejeu doit NOMMER le cron. `admin_receipt_try` ne fait clé que sur la clé
+      // d'idempotence — ni la RPC ni le job ne sont comparés — donc une clé réutilisée pour
+      // un AUTRE cron rend aussi `already_done`. Sans ce champ, l'écran afficherait un
+      // succès pour une relance qui n'a jamais eu lieu, sans moyen de s'en apercevoir.
+      expect(donnees(deux.data).jobname, 'le rejeu doit dire de QUEL cron il parle').toBe(jobTemoin)
     })
 
     it('NE BRÛLE PAS la clé sur un refus métier — le réessai doit vraiment agir', async () => {
@@ -256,6 +284,38 @@ describe.skipIf(!HAS_KEYS)('relancer un cron maintenant (étape 28)', () => {
             raise exception 'le balayeur a emporté un cron qui n''est pas un ponctuel';
           end if;
         end $$;`), 'balayage').not.toThrow()
+    })
+
+    it('une ligne empoisonnée ne bloque PAS le retrait des autres', () => {
+      // Le motif `^adhoc-\d+-` garantit des chiffres, pas la plage de `bigint` : ce nom
+      // faisait lever 22003 sur le cast, ce qui avortait la transaction ENTIÈRE du
+      // balayeur — donc plus aucun ponctuel retiré, à chaque passage, jusqu'à ce qu'un
+      // humain supprime la ligne. Et comme cron n'a pas de champ année, tout ponctuel
+      // resté planifié repart à la même date l'an prochain, cron SENSIBLE compris.
+      const poison = 'adhoc-99999999999999999999-poison'
+      const sain = `adhoc-${Math.floor(Date.now() / 1000) - 3600}-${jobTemoin}`
+      execSql(`select cron.schedule('${poison}', '0 0 1 1 *', $c$ select 1; $c$);`)
+      execSql(`select cron.schedule('${sain}', '0 0 1 1 *', $c$ select 1; $c$);`)
+
+      try {
+        expect(() => execSql(`
+          do $$
+          declare n integer;
+          begin
+            select public.admin_cron_adhoc_sweep() into n;
+            if exists (select 1 from cron.job where jobname = '${sain}') then
+              raise exception 'la ligne empoisonnée a emporté le balayage du ponctuel sain';
+            end if;
+          end $$;`), 'le balayeur doit isoler la ligne fautive').not.toThrow()
+      } finally {
+        execSql(`
+          do $$
+          declare j record;
+          begin
+            for j in select jobname from cron.job where jobname in ('${poison}', '${sain}')
+            loop perform cron.unschedule(j.jobname); end loop;
+          end $$;`)
+      }
     })
   })
 })
