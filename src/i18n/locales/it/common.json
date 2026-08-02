@@ -48,7 +48,7 @@
     "adminCompliance": "Conformita",
     "adminSupport": "Supporto",
     "adminChangelog": "Changelog",
-    "adminFlags": "Feature Flags",
+    "adminFlags": "Feature flag",
     "adminLive": "Live Feed",
     "adminPlans": "Piani & Quote",
     "adminSecurity": "Audit sicurezza",
@@ -56,13 +56,13 @@
     "adminAutonomy": "Autonomia agenti",
     "adminLearning": "Stili appresi",
     "adminToolUsage": "Utilizzo strumenti",
-    "backToCrm": "Back to the CRM",
-    "journey": "Journey",
-    "aiAgent": "Megga, AI agent",
+    "backToCrm": "Torna al CRM",
+    "journey": "Percorso",
+    "aiAgent": "Megga, agente IA",
     "help": "Aiuto",
     "notifications": "Notifications",
-    "callbacksToday": "Today's callbacks",
-    "importLeads": "Import leads",
+    "callbacksToday": "Richiami di oggi",
+    "importLeads": "Importa lead",
     "adminSectionPilotage": "Pilotaggio",
     "adminSectionClients": "Clienti",
     "adminSectionRevenue": "Ricavi",
@@ -105,7 +105,7 @@
     "showLess": "Mostra di meno",
     "viewAll": "Vedi tutto",
     "options": "Options",
-    "later": "Later"
+    "later": "Più tardi"
   },
   "time": {
     "ago": "fa",
@@ -273,40 +273,40 @@
     "clearSearch": "Cancella ricerca",
     "reset": "Reimposta",
     "command": {
-      "placeholder": "Search or ask Megga…",
-      "clear": "Clear",
+      "placeholder": "Cerca o chiedi a Megga…",
+      "clear": "Cancella",
       "scope": {
-        "all": "All",
+        "all": "Tutto",
         "contacts": "Contacts",
-        "biens": "Properties",
+        "biens": "Immobili",
         "deals": "Deals",
         "docs": "Documents"
       },
       "section": {
-        "resumeMegga": "Resume with Megga",
-        "recents": "Recent",
-        "askMegga": "Ask Megga",
-        "meggaConvos": "Megga conversations",
-        "biens": "Properties",
+        "resumeMegga": "Riprendi con Megga",
+        "recents": "Recenti",
+        "askMegga": "Chiedi a Megga",
+        "meggaConvos": "Conversazioni Megga",
+        "biens": "Immobili",
         "deals": "Deals",
-        "platform": "Platform"
+        "platform": "Piattaforma"
       },
       "badge": {
-        "semantic": "semantic"
+        "semantic": "semantica"
       },
       "empty": {
-        "title": "No results for “{{query}}”",
-        "body": "Ask Megga instead, it knows your entire CRM."
+        "title": "Nessun risultato per «{{query}}»",
+        "body": "Chiedi piuttosto a Megga, conosce tutto il tuo CRM."
       },
-      "askMeggaQuery": "Ask Megga: “{{query}}”",
+      "askMeggaQuery": "Chiedi a Megga: «{{query}}»",
       "deal": {
-        "untitled": "Deal"
+        "untitled": "Transazione"
       },
-      "roomsShort": "{{count}} rm",
+      "roomsShort": "{{count}} loc.",
       "aiPrompts": {
-        "buyersReady": "Buyers ready to sign this week",
-        "staleListings": "Listings stalled for 30+ days",
-        "exclusiveMandate": "Draft an exclusive mandate"
+        "buyersReady": "Acquirenti pronti a firmare questa settimana",
+        "staleListings": "Immobili fermi da oltre 30 giorni",
+        "exclusiveMandate": "Redigi un mandato esclusivo"
       }
     }
   },
@@ -322,111 +322,111 @@
     "groupOlder": "Prima",
     "kind": {
       "kyc": "KYC",
-      "visite": "Viewing",
-      "offre": "Offer",
-      "mandat": "Mandate",
+      "visite": "Visita",
+      "offre": "Offerta",
+      "mandat": "Mandato",
       "ai": "MEGGA AI",
       "doc": "Document",
       "team": "Team",
-      "system": "System"
+      "system": "Sistema"
     },
-    "markRead": "Mark as read",
-    "markUnread": "Mark as unread",
-    "hideOne": "Hide this notification",
-    "muteKind": "Turn off “{{kind}}”",
-    "toastMarkedRead": "Marked as read",
-    "toastMarkedUnread": "Marked as unread",
-    "toastHidden": "Notification hidden",
-    "toastMuted": "“{{kind}}” notifications turned off",
-    "unreadCount_one": "{{count}} unread",
-    "unreadCount_other": "{{count}} unread",
-    "allClear": "You're all caught up",
-    "markAllRead": "Mark all as read",
-    "empty": "No notifications yet.",
-    "pause2h": "Pause for 2h",
-    "seeAll": "See all notifications"
+    "markRead": "Segna come letta",
+    "markUnread": "Segna come non letta",
+    "hideOne": "Nascondi questa notifica",
+    "muteKind": "Disattiva «{{kind}}»",
+    "toastMarkedRead": "Segnata come letta",
+    "toastMarkedUnread": "Segnata come non letta",
+    "toastHidden": "Notifica nascosta",
+    "toastMuted": "Notifiche «{{kind}}» disattivate",
+    "unreadCount_one": "{{count}} non letta",
+    "unreadCount_other": "{{count}} non lette",
+    "allClear": "Tutto aggiornato",
+    "markAllRead": "Segna tutto come letto",
+    "empty": "Nessuna notifica per ora.",
+    "pause2h": "Pausa 2 h",
+    "seeAll": "Vedi tutte le notifiche"
   },
   "profile": {
     "defaultName": "Agent",
-    "noAgency": "No agency set",
-    "preferences": "Preferences",
-    "security": "Security & sessions",
-    "billing": "Billing & subscription",
-    "help": "Help center",
-    "adminConsole": "Admin console",
-    "platformSection": "Platform"
+    "noAgency": "Agenzia non definita",
+    "preferences": "Preferenze",
+    "security": "Sicurezza e sessioni",
+    "billing": "Fatturazione e abbonamento",
+    "help": "Centro assistenza",
+    "adminConsole": "Console admin",
+    "platformSection": "Piattaforma"
   },
   "audit": {
     "category": {
       "kyc": "KYC",
       "deal": "Pipeline",
       "contact": "Contact",
-      "bien": "Property",
+      "bien": "Immobile",
       "doc": "Document",
-      "auth": "Sign-in",
-      "settings": "Settings",
+      "auth": "Accesso",
+      "settings": "Impostazioni",
       "ai": "MEGGA AI"
     },
     "csv": {
-      "createdAt": "Date/time",
-      "category": "Category",
-      "severity": "Severity",
+      "createdAt": "Data/ora",
+      "category": "Categoria",
+      "severity": "Gravità",
       "action": "Action",
-      "objectLabel": "Object",
-      "entityType": "Entity type",
-      "entityId": "Entity ID",
-      "actorId": "Actor (ID)",
+      "objectLabel": "Oggetto",
+      "entityType": "Tipo entità",
+      "entityId": "ID entità",
+      "actorId": "Attore (ID)",
       "ip": "IP",
-      "metadata": "Metadata (JSON)"
+      "metadata": "Metadati (JSON)"
     },
     "severity": {
-      "critical": "Critical",
-      "warning": "Warning"
+      "critical": "Critico",
+      "warning": "Avviso"
     },
     "actor": {
       "agent": "Agent",
-      "system": "System"
+      "system": "Sistema"
     },
-    "details": "Details",
-    "eventCount_one": "{{count}} event",
-    "eventCount_other": "{{count}} events",
-    "eyebrow": "Compliance · nFADP",
-    "title": "Audit trail.",
-    "subtitle": "Every action on contacts, properties, deals and documents is recorded immutably. This trail meets the audit obligation under the nFADP (art. 12) and the AMLA (art. 7), retained for 10 years.",
+    "details": "Dettagli",
+    "eventCount_one": "{{count}} evento",
+    "eventCount_other": "{{count}} eventi",
+    "eyebrow": "Conformità · nLPD",
+    "title": "Registro di audit.",
+    "subtitle": "Tutte le azioni su contatti, immobili, deal e documenti sono registrate in modo immutabile. Questa traccia soddisfa l'obbligo di audit previsto dalla nLPD (art. 12) e dalla LRD (art. 7), ed è conservata per 10 anni.",
     "export": {
       "csv": "Export CSV",
-      "pdf": "Timestamped PDF export",
-      "generating": "Generating…",
-      "pdfFailed": "PDF export failed",
-      "pdfErrorPrefix": "PDF export:"
+      "pdf": "Esporta PDF con marca temporale",
+      "generating": "Generazione…",
+      "pdfFailed": "Esportazione PDF non riuscita",
+      "pdfErrorPrefix": "Esportazione PDF:"
     },
     "stats": {
-      "events": "Events",
-      "eventsRangeAll": "Across recent months",
-      "eventsRangeDays": "Across the last {{days}} days",
-      "critical": "Critical",
-      "criticalSub": "Locks, auth failures, denials",
-      "warning": "Warnings",
-      "warningSub": "Re-screening, data export",
-      "aiActions": "MEGGA AI actions",
-      "aiActionsSub": "Suggestions and automated matching"
+      "events": "Eventi",
+      "eventsRangeAll": "Negli ultimi mesi",
+      "eventsRangeDays": "Negli ultimi {{days}} giorni",
+      "critical": "Critici",
+      "criticalSub": "Blocchi, errori auth, rifiuti",
+      "warning": "Avvisi",
+      "warningSub": "Re-screening, esportazione dati",
+      "aiActions": "Azioni MEGGA AI",
+      "aiActionsSub": "Suggerimenti e matching automatico"
     },
-    "searchPlaceholder": "Search an action or an entity…",
+    "searchPlaceholder": "Cerca un'azione, un oggetto…",
     "period": {
-      "days7": "7 days",
-      "days30": "30 days",
-      "days90": "90 days",
-      "all": "All"
+      "days7": "7 giorni",
+      "days30": "30 giorni",
+      "days90": "90 giorni",
+      "all": "Tutto"
     },
     "filter": {
-      "allCategories": "All categories",
-      "allSeverities": "All severities"
+      "allCategories": "Tutte le categorie",
+      "allSeverities": "Tutte le gravità"
     },
-    "loading": "Loading the audit trail…",
-    "empty": "No event matches these filters.",
+    "loading": "Caricamento del registro…",
+    "empty": "Nessun evento corrisponde a questi filtri.",
     "footer": {
-      "retention": "Events are cryptographically signed and retained for 10 years (nFADP art. 12 · AMLA art. 7).",
-      "tamperLogged": "Any attempt to delete or alter a record is itself logged."
+      "retention": "Gli eventi sono firmati crittograficamente e conservati per 10 anni (nLPD art. 12 · LRD art. 7).",
+      "tamperLogged": "Ogni tentativo di cancellazione o modifica viene a sua volta registrato."
     },
     "action": {
       "admin_console_entered": "Console admin aperta",

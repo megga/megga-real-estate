@@ -3,6 +3,11 @@
 // Interdit les tells typographiques dans l'i18n :
 //   - tiret cadratin (—, U+2014) et demi-cadratin (–, U+2013)
 //   - puce (· • ●) en DÉBUT de chaîne
+//   - eszett (ß) dans les locales ALLEMANDES : le produit s'adresse au marché
+//     suisse, où cette lettre n'existe pas — c'est « ss » partout (Schliessen,
+//     Grossbuchstabe, Ausserhalb). Six occurrences avaient passé la revue
+//     humaine avant que ce contrôle existe (02.08.2026) ; la substitution est
+//     toujours mécanique, donc le garde-fou est sans faux positif.
 // Le séparateur « · » INLINE reste autorisé (convention UI : « 80 m² · 3 pièces »).
 // Le texte GÉNÉRÉ par l'IA suit la même règle au runtime via meggaProse()
 // (supabase/functions/_shared/megga-prose.ts).
@@ -16,6 +21,7 @@ import { join } from 'node:path'
 const LOCALES_DIR = 'src/i18n/locales'
 const EM = '—' // —
 const EN = '–' // –
+const SZ = 'ß' // ß — jamais en Suisse
 // NB : on ne flague PAS la puce « · » dans l'i18n. C'est le séparateur UI
 // volontaire (« Messages · 3 non lus », « 80 m² · 3 pièces »), y compris en tête
 // de fragments concaténés (subtitle_unread). Les puces décoratives générées par
@@ -31,10 +37,14 @@ function walkJson(dir) {
   return out
 }
 
+// `de/` dans le chemin = locale allemande, seule concernée par la règle eszett.
+const isGerman = (file) => file.includes(`${LOCALES_DIR}/de/`) || file.includes(`${LOCALES_DIR}\\de\\`)
+
 function check(file, keyPath, value, violations) {
   if (typeof value === 'string') {
     if (value.includes(EM)) violations.push({ file, key: keyPath, kind: 'tiret cadratin (—)', value })
     else if (value.includes(EN)) violations.push({ file, key: keyPath, kind: 'demi-cadratin (–)', value })
+    else if (isGerman(file) && value.includes(SZ)) violations.push({ file, key: keyPath, kind: 'eszett (ß) — allemand de Suisse : « ss »', value })
   } else if (value && typeof value === 'object') {
     for (const k of Object.keys(value)) check(file, keyPath ? `${keyPath}.${k}` : k, value[k], violations)
   }

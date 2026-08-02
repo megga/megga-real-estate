@@ -9,313 +9,313 @@
   },
   "search_placeholder": "Ricerca...",
   "copilot": {
-    "aiEstimate": "AI estimate",
+    "aiEstimate": "stima IA",
     "negotiation": {
-      "title": "Negotiation copilot",
-      "aiBadge": "AI suggestion",
-      "askingPrice": "Asking price",
-      "gap": "Gap",
-      "offerReceived": "Offer received",
-      "recommendedStrategy": "Recommended strategy",
-      "buyerInterest": "Buyer interest:",
-      "daysOnMarket_one": "{{count}} day on market",
-      "daysOnMarket_other": "{{count}} days on market",
-      "visits_one": "{{count}} visit",
-      "visits_other": "{{count}} visits",
-      "disclaimer": "Decision support, not a formal recommendation.",
+      "title": "Copilota di negoziazione",
+      "aiBadge": "Suggerimento IA",
+      "askingPrice": "Prezzo richiesto",
+      "gap": "Differenza",
+      "offerReceived": "Offerta ricevuta",
+      "recommendedStrategy": "Strategia consigliata",
+      "buyerInterest": "Interesse acquirente:",
+      "daysOnMarket_one": "{{count}} giorno in vendita",
+      "daysOnMarket_other": "{{count}} giorni in vendita",
+      "visits_one": "{{count}} visita",
+      "visits_other": "{{count}} visite",
+      "disclaimer": "Supporto alla decisione, non costituisce una raccomandazione formale.",
       "interest": {
-        "veryHigh": "Very high",
-        "high": "High",
-        "medium": "Medium",
-        "low": "Low"
+        "veryHigh": "Molto alto",
+        "high": "Alto",
+        "medium": "Medio",
+        "low": "Basso"
       },
       "tiers": {
         "symbolic": {
-          "strategy": "Accept or make a symbolic counter-offer",
-          "counterOffer": "Counter-offer at -1% of the asking price",
-          "reasoning": "The gap is small ({{gap}}%). With {{visits}} visits and {{days}} days on market, the market confirms the price. Negotiating too hard risks losing the buyer."
+          "strategy": "Accettare o controfferta simbolica",
+          "counterOffer": "Controfferta a -1% del prezzo richiesto",
+          "reasoning": "La differenza è ridotta ({{gap}}%). Con {{visits}} visite e {{days}} giorni in vendita, il mercato conferma il prezzo. Negoziare troppo rischia di far perdere l'acquirente."
         },
         "moderate": {
-          "strategy": "Moderate counter-offer",
-          "counterOffer": "Counter-offer at the midpoint (-{{mid}}%)",
-          "reasoning": "The {{gap}}% gap is within the usual negotiation range. Propose a midpoint compromise to keep the buyer engaged while protecting value."
+          "strategy": "Controfferta moderata",
+          "counterOffer": "Controfferta al punto mediano (-{{mid}}%)",
+          "reasoning": "La differenza del {{gap}}% rientra nella norma di negoziazione. Proporre un compromesso a metà strada per mantenere l'interesse proteggendo al contempo il valore."
         },
         "hold": {
-          "strategy": "Hold the price with supporting arguments",
-          "counterOffer": "Counter-offer at -3% maximum",
-          "reasoningLong": "The {{gap}}% gap is significant. However, the property has been on the market for a while, consider an adjustment.",
-          "reasoningMarket": "The {{gap}}% gap is significant. The price is justified by the market, present the comparables."
+          "strategy": "Mantenere il prezzo con argomenti",
+          "counterOffer": "Controfferta a -3% al massimo",
+          "reasoningLong": "La differenza del {{gap}}% è significativa. Tuttavia l'immobile è in vendita da molto tempo, valutare un adeguamento.",
+          "reasoningMarket": "La differenza del {{gap}}% è significativa. Il prezzo è giustificato dal mercato, presentare i comparabili."
         },
         "tooLow": {
-          "strategy": "Offer too low, decline politely",
-          "counterOffer": "Hold the asking price",
-          "reasoningInterest": "The {{gap}}% gap is too large. The property has drawn interest ({{visits}} visits), other buyers are possible.",
-          "reasoningBudget": "The {{gap}}% gap is too large. Suggest the buyer revisit their budget."
+          "strategy": "Offerta troppo bassa, rifiutare cortesemente",
+          "counterOffer": "Mantenere il prezzo richiesto",
+          "reasoningInterest": "La differenza del {{gap}}% è troppo elevata. L'immobile ha suscitato interesse ({{visits}} visite), altri acquirenti sono possibili.",
+          "reasoningBudget": "La differenza del {{gap}}% è troppo elevata. Suggerire all'acquirente di rivedere il proprio budget."
         }
       }
     },
     "objections": {
-      "title": "Objection analysis",
-      "aiBadge": "AI analysis",
-      "basedOnVisits_one": "Based on feedback from {{count}} visit.",
-      "basedOnVisits_other": "Based on feedback from {{count}} visits.",
-      "recurring": "Recurring objections",
-      "weaknesses": "Identified weaknesses",
-      "adjustments": "Adjustment suggestions",
+      "title": "Analisi delle obiezioni",
+      "aiBadge": "Analisi IA",
+      "basedOnVisits_one": "Basata sui riscontri di {{count}} visita.",
+      "basedOnVisits_other": "Basata sui riscontri di {{count}} visite.",
+      "recurring": "Obiezioni ricorrenti",
+      "weaknesses": "Punti deboli individuati",
+      "adjustments": "Suggerimenti di adeguamento",
       "impact": {
-        "high": "High impact",
-        "medium": "Moderate impact",
-        "low": "Low impact"
+        "high": "Impatto forte",
+        "medium": "Impatto moderato",
+        "low": "Impatto debole"
       },
-      "disclaimer": "AI analysis of visit feedback, anonymised data."
+      "disclaimer": "Analisi IA dei riscontri delle visite, dati anonimizzati."
     },
     "seller": {
       "title": "Seller intelligence",
-      "tensionLevel": "Tension level",
-      "priceReductionProbability": "Price reduction probability",
-      "dissatisfactionRisk": "Dissatisfaction risk",
-      "urgencyLabel": "Urgency",
-      "daysOnMarket": "Days on market",
-      "totalVisits": "Total visits",
+      "tensionLevel": "Livello di tensione",
+      "priceReductionProbability": "Probabilità di riduzione del prezzo",
+      "dissatisfactionRisk": "Rischio di insoddisfazione",
+      "urgencyLabel": "Urgenza",
+      "daysOnMarket": "Giorni in vendita",
+      "totalVisits": "Visite totali",
       "tension": {
-        "calm": "Calm",
-        "moderate": "Moderate",
-        "tense": "Tense",
-        "critical": "Critical"
+        "calm": "Calmo",
+        "moderate": "Moderato",
+        "tense": "Teso",
+        "critical": "Critico"
       },
       "urgency": {
-        "notUrgent": "Not urgent",
-        "moderate": "Moderate",
+        "notUrgent": "Non urgente",
+        "moderate": "Moderato",
         "urgent": "Urgent",
-        "veryUrgent": "Very urgent"
+        "veryUrgent": "Molto urgente"
       }
     },
     "buyer": {
       "title": "Buyer intelligence",
-      "seriousnessLevel": "Seriousness level",
-      "purchaseProbability": "Purchase probability",
+      "seriousnessLevel": "Livello di serietà",
+      "purchaseProbability": "Probabilità di acquisto",
       "timingLabel": "Timing",
       "engagementLabel": "Engagement",
-      "budgetAnnounced": "Stated budget",
-      "budgetEstimated": "Estimated · AI estimate",
+      "budgetAnnounced": "Budget dichiarato",
+      "budgetEstimated": "Stimato · stima IA",
       "timing": {
-        "immediate": "Immediate",
-        "months1to3": "1-3 months",
-        "months3to6": "3-6 months",
-        "months6to12": "6-12 months",
-        "longTerm": "Long term"
+        "immediate": "Immediato",
+        "months1to3": "1-3 mesi",
+        "months3to6": "3-6 mesi",
+        "months6to12": "6-12 mesi",
+        "longTerm": "Lungo termine"
       },
       "engagement": {
-        "veryHigh": "Very high",
-        "high": "High",
-        "medium": "Medium",
-        "low": "Low",
+        "veryHigh": "Molto alto",
+        "high": "Alto",
+        "medium": "Medio",
+        "low": "Basso",
         "dormant": "Dormant"
       }
     }
   },
   "julien": {
     "greeting": {
-      "lateNight": "Still here, {{name}}?",
-      "morning": "Good morning, {{name}}",
-      "midday": "Good day, {{name}}",
-      "afternoon": "Good afternoon, {{name}}",
-      "evening": "Good evening, {{name}}",
-      "night": "Good evening, {{name}}"
+      "lateNight": "Ancora qui, {{name}}?",
+      "morning": "Buon mattino, {{name}}",
+      "midday": "Buongiorno, {{name}}",
+      "afternoon": "Buon pomeriggio, {{name}}",
+      "evening": "Buonasera, {{name}}",
+      "night": "Buona serata, {{name}}"
     },
     "subgreeting": {
-      "earlyMorning": "How shall we start the day?",
-      "morning": "What can I prepare for you this morning?",
-      "midday": "Taking a break? I can recap the morning.",
-      "afternoon": "Ready to tackle the afternoon?",
-      "endOfDay": "Let's wrap up the day together.",
-      "weekend": "Shall we prepare for next week?",
-      "default": "How can I help you?"
+      "earlyMorning": "Come iniziamo la giornata?",
+      "morning": "Cosa posso preparare per te stamattina?",
+      "midday": "Una pausa? Posso riassumere la mattinata.",
+      "afternoon": "Iniziamo il pomeriggio?",
+      "endOfDay": "Chiudiamo insieme la giornata.",
+      "weekend": "Prepariamo la prossima settimana?",
+      "default": "Come posso aiutarti?"
     },
-    "promptPlaceholder": "How can I help you?",
+    "promptPlaceholder": "Come posso aiutarti?",
     "error": {
-      "failed": "Sorry, I couldn't process your request. Please try again."
+      "failed": "Spiacente, non sono riuscito a elaborare la tua richiesta. Riprova."
     },
     "actions": {
-      "copy": "Copy",
-      "copied": "Copied!"
+      "copy": "Copia",
+      "copied": "Copiato!"
     },
     "email": {
-      "draftTitle": "Email draft",
-      "notSent": "Not sent",
-      "copyEmail": "Copy email",
-      "copied": "Copied",
-      "toLabel": "To",
-      "subjectLabel": "Subject",
-      "noSubject": "(no subject)"
+      "draftTitle": "Bozza e-mail",
+      "notSent": "Non inviata",
+      "copyEmail": "Copia l'e-mail",
+      "copied": "Copiato",
+      "toLabel": "A",
+      "subjectLabel": "Oggetto",
+      "noSubject": "(nessun oggetto)"
     },
     "suggestions": {
       "pipeline": {
         "analyze": {
-          "label": "Analyze my pipeline",
-          "prompt": "Analyze my current pipeline: where are the bottlenecks, which opportunities should I prioritize?"
+          "label": "Analisi della mia pipeline",
+          "prompt": "Analizza la mia pipeline attuale: dove sono i blocchi, quali opportunità privilegiare?"
         },
         "followUp": {
-          "label": "Follow up on stalled deals",
-          "prompt": "Draft a follow-up message for my deals that have been stalled for more than 14 days."
+          "label": "Sollecita i fascicoli in pausa",
+          "prompt": "Scrivi un messaggio di sollecito per i miei fascicoli fermi da più di 14 giorni."
         },
         "nextActions": {
-          "label": "Next actions",
-          "prompt": "What are the next 3 concrete actions to take on my pipeline?"
+          "label": "Prossime azioni",
+          "prompt": "Quali sono le 3 prossime azioni concrete da svolgere sulla mia pipeline?"
         }
       },
       "biens": {
         "premiumListing": {
-          "label": "Premium listing",
-          "prompt": "Write a premium listing for the property I just viewed, in the MEGGA tone, highlighting its strengths."
+          "label": "Annuncio premium",
+          "prompt": "Scrivi un annuncio premium per l'immobile che ho appena consultato, tono MEGGA, mettendo in evidenza i punti di forza."
         },
         "comparableEstimate": {
-          "label": "Comparable estimate",
-          "prompt": "Give me a quick comparable estimate for this property based on recent transactions in the neighbourhood."
+          "label": "Stima comparativa",
+          "prompt": "Dammi una stima comparativa rapida per questo immobile a partire dalle transazioni recenti del quartiere."
         },
         "ownerPitch": {
-          "label": "Owner pitch",
-          "prompt": "Prepare a pitch to convince the owner to sign an exclusive mandate."
+          "label": "Pitch proprietario",
+          "prompt": "Prepara un pitch per convincere il proprietario a firmare un mandato in esclusiva."
         }
       },
       "contacts": {
         "checkInEmail": {
-          "label": "Check-in email",
-          "prompt": "Draft a warm check-in email for a contact I haven't followed up with in a while."
+          "label": "Email di ricontatto",
+          "prompt": "Scrivi un'email cordiale di ricontatto per un contatto che non sollecito da molto tempo."
         },
         "prepareCall": {
-          "label": "Prepare a call",
-          "prompt": "Prepare 5 open-ended questions to qualify a new buyer contact."
+          "label": "Prepara una chiamata",
+          "prompt": "Preparami 5 domande aperte per qualificare un nuovo contatto acquirente."
         },
         "followUpPlan": {
-          "label": "Follow-up plan",
-          "prompt": "Build a gradual 3-week follow-up plan for my inactive contacts."
+          "label": "Piano di sollecito",
+          "prompt": "Costruisci un piano di sollecito progressivo su 3 settimane per i miei contatti inattivi."
         }
       },
       "matching": {
         "email": {
-          "label": "Matching email",
-          "prompt": "Draft an email presenting a matched property to a buyer, with tailored arguments."
+          "label": "Email di matching",
+          "prompt": "Scrivi un'email che presenta a un acquirente un immobile abbinato, con argomenti personalizzati."
         },
         "refineCriteria": {
-          "label": "Refine criteria",
-          "prompt": "Help me refine a buyer's search criteria to improve matching."
+          "label": "Affina i criteri",
+          "prompt": "Aiutami ad affinare i criteri di ricerca di un acquirente per migliorare il matching."
         },
         "relevance": {
-          "label": "Match relevance",
-          "prompt": "Analyze the relevance of the current matches: which are the real top matches?"
+          "label": "Pertinenza dei match",
+          "prompt": "Analizza la pertinenza delle corrispondenze attuali: quali sono i veri top match?"
         }
       },
       "calendar": {
         "prepareToday": {
-          "label": "Prepare today's appointments",
-          "prompt": "List today's appointments with a concise brief for each one."
+          "label": "Prepara i miei appuntamenti di oggi",
+          "prompt": "Elenca i miei appuntamenti di oggi con un briefing sintetico per ciascuno."
         },
         "confirmVisits": {
-          "label": "Confirm viewings",
-          "prompt": "Draft a short confirmation text message for my scheduled viewings."
+          "label": "Conferma le visite",
+          "prompt": "Scrivi un SMS breve di conferma per le mie visite in programma."
         },
         "visitRecap": {
-          "label": "Post-viewing recap",
-          "prompt": "A recap template to send after a property viewing."
+          "label": "Riepilogo dopo la visita",
+          "prompt": "Modello di riepilogo da inviare dopo la visita di un immobile."
         }
       },
       "docs": {
         "checklist": {
-          "label": "Sale agreement checklist",
-          "prompt": "Give me the full checklist of points to verify before signing a preliminary sale agreement in Geneva."
+          "label": "Checklist compromesso",
+          "prompt": "Dammi la checklist completa dei punti da verificare prima della firma di un compromesso a Ginevra."
         },
         "clause": {
-          "label": "Specific clause",
-          "prompt": "Draft a conditions precedent clause for bank financing."
+          "label": "Clausola specifica",
+          "prompt": "Scrivi una clausola sospensiva per un finanziamento bancario."
         },
         "mandateTemplate": {
-          "label": "Mandate template",
-          "prompt": "Generate an exclusive sale mandate template compliant with Swiss law."
+          "label": "Modello di mandato",
+          "prompt": "Genera un modello di mandato di vendita in esclusiva conforme al diritto svizzero."
         }
       },
       "today": {
         "summary": {
-          "label": "Summarize my deals",
-          "prompt": "Give me a summary of my currently active deals."
+          "label": "Riassumi i miei fascicoli",
+          "prompt": "Dammi un riepilogo dei miei fascicoli attivi in questo momento."
         },
         "priorities": {
-          "label": "Today's priorities",
-          "prompt": "What are my 3 top priorities today based on my schedule?"
+          "label": "Priorità del giorno",
+          "prompt": "Quali sono le mie 3 priorità assolute di oggi in base alla mia agenda?"
         },
         "weekOutlook": {
-          "label": "Week outlook",
-          "prompt": "Week overview: what's progressing, what's blocked, what's missing."
+          "label": "Previsioni della settimana",
+          "prompt": "Sintesi della settimana: cosa procede, cosa è bloccato, cosa manca."
         }
       },
       "earlyMorning": {
         "appointments": {
-          "label": "Today's appointments",
-          "prompt": "Summarize today's appointments with a brief for each one."
+          "label": "I miei appuntamenti di oggi",
+          "prompt": "Riassumi i miei appuntamenti di oggi con un briefing per ciascuno."
         },
         "priorities": {
-          "label": "Morning priorities",
-          "prompt": "What are my 3 priorities to tackle this morning?"
+          "label": "Priorità del mattino",
+          "prompt": "Quali sono le mie 3 priorità da affrontare stamattina?"
         },
         "emails": {
-          "label": "Emails to send",
-          "prompt": "Which emails should I send first this morning?"
+          "label": "Email da inviare",
+          "prompt": "Quali email devo inviare con priorità stamattina?"
         }
       },
       "midday": {
         "progress": {
-          "label": "Morning progress",
-          "prompt": "Recap what has progressed on my deals this morning."
+          "label": "Avanzamento del mattino",
+          "prompt": "Fai il punto su cosa è progredito stamattina sui miei fascicoli."
         },
         "visitFollowUp": {
-          "label": "Viewing follow-up email",
-          "prompt": "Draft a professional follow-up email after a viewing for an apartment in Geneva."
+          "label": "Email di follow-up visita",
+          "prompt": "Scrivi un'email professionale di follow-up dopo una visita per un appartamento a Ginevra."
         },
         "genevaMarket": {
-          "label": "Geneva market",
-          "prompt": "Quick analysis of the Geneva real estate market: trends, time on market, active segments."
+          "label": "Mercato ginevrino",
+          "prompt": "Analisi rapida del mercato immobiliare ginevrino: tendenze, tempi, segmenti attivi."
         }
       },
       "afternoon": {
         "visitFollowUp": {
-          "label": "Viewing follow-up",
-          "prompt": "Draft a professional follow-up email after a viewing for an apartment in Geneva."
+          "label": "Follow-up visita",
+          "prompt": "Scrivi un'email professionale di follow-up dopo una visita per un appartamento a Ginevra."
         },
         "summary": {
-          "label": "Summarize my deals",
-          "prompt": "Give me a summary of my currently active deals."
+          "label": "Riassumi i miei fascicoli",
+          "prompt": "Dammi un riepilogo dei miei fascicoli attivi in questo momento."
         },
         "remaining": {
-          "label": "Left to do today",
-          "prompt": "What's left for me to wrap up today?"
+          "label": "Ancora da fare oggi",
+          "prompt": "Cosa mi resta da concludere oggi?"
         }
       },
       "friday": {
         "weekReview": {
-          "label": "Week review",
-          "prompt": "Review of my week: wins, points of attention, deals to pick up on Monday."
+          "label": "Bilancio della settimana",
+          "prompt": "Bilancio della mia settimana: successi, punti di attenzione, fascicoli da riprendere lunedì."
         },
         "prepareMonday": {
-          "label": "Prepare for Monday",
-          "prompt": "List the key actions for a strong start on Monday morning."
+          "label": "Prepara lunedì",
+          "prompt": "Elenca le azioni chiave per iniziare bene lunedì mattina."
         },
         "endOfWeekEmails": {
-          "label": "End-of-week emails",
-          "prompt": "Draft an end-of-week email to send to my active clients."
+          "label": "Email di fine settimana",
+          "prompt": "Scrivi un'email di fine settimana da inviare ai miei clienti attivi."
         }
       },
       "evening": {
         "dayReview": {
-          "label": "Day review",
-          "prompt": "Review my day: what progressed, what's left."
+          "label": "Bilancio del giorno",
+          "prompt": "Fai il bilancio della mia giornata: cosa è progredito, cosa resta."
         },
         "prepareTomorrow": {
-          "label": "Prepare for tomorrow",
-          "prompt": "What are the 3 priority actions to prepare for tomorrow?"
+          "label": "Prepara domani",
+          "prompt": "Quali sono le 3 azioni prioritarie da preparare per domani?"
         },
         "endOfDayEmail": {
-          "label": "End-of-day email",
-          "prompt": "Draft an end-of-day email to a client awaiting a reply."
+          "label": "Email di fine giornata",
+          "prompt": "Scrivi un'email di fine giornata a un cliente in attesa di un riscontro."
         }
       }
     }

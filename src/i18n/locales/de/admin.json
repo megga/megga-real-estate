@@ -601,7 +601,7 @@
   "toolUsage.subtitle": "{{neverUsed}} Tool(s) nie verwendet von {{total}} - WhatsApp-Copilot-Observability",
   "toolUsage.error": "Nutzungsstatistik konnte nicht geladen werden.",
   "toolUsage.observeNote": "Jeder Tool-Aufruf des WhatsApp-Copiloten wird erfasst - das Tool, sein Tier, sein Ergebnis, nie der Nachrichteninhalt. So erkennen Sie nie genutzte Tools und Fehlerraten und entscheiden, was verbessert wird.",
-  "toolUsage.tier.unknown": "Außerhalb des Katalogs",
+  "toolUsage.tier.unknown": "Ausserhalb des Katalogs",
   "toolUsage.neverUsed": "Nie verwendet",
   "toolUsage.aiCosts.title": "KI-Kosten pro Agentur",
   "toolUsage.aiCosts.subtitle": "letzte 6 Monate, Betraege in USD",
@@ -659,11 +659,30 @@
   },
   "common": {
     "saving": "Speichern...",
-    "edit": "Bearbeiten"
+    "edit": "Bearbeiten",
+    "plan": {
+      "entreprise": "Enterprise"
+    }
   },
   "agencyDetail": {
     "tab": {
-      "usage": "Nutzung & Kontingente"
+      "usage": "Nutzung & Kontingente",
+      "team": "Team"
+    },
+    "team": {
+      "table": {
+        "name": "Name"
+      }
+    },
+    "properties": {
+      "table": {
+        "status": "Status"
+      }
+    },
+    "transactions": {
+      "table": {
+        "status": "Status"
+      }
     }
   },
   "agencies": {
@@ -671,7 +690,11 @@
       "trialing": "Testphase",
       "pastDue": "Überfällig"
     },
-    "create": "Agentur erstellen"
+    "create": "Agentur erstellen",
+    "table": {
+      "name": "Name",
+      "status": "Status"
+    }
   },
   "usage": {
     "error": "Nutzung konnte nicht geladen werden.",
@@ -777,7 +800,12 @@
   },
   "billing": {
     "mrrTrend": "Geschätzter MRR-Trend",
-    "mrrTrendDays": "{{count}} Punkte (30T)"
+    "mrrTrendDays": "{{count}} Punkte (30T)",
+    "payment": {
+      "table": {
+        "status": "Status"
+      }
+    }
   },
   "communication": {
     "title": "Kommunikation",
@@ -913,7 +941,7 @@
   "kybReview.checks.table.checkedAt": "Geprüft am",
   "kybReview.checks.viewRaw": "Rohantwort anzeigen",
   "kybReview.checks.hideRaw": "Rohantwort ausblenden",
-  "kybReview.checks.weightVeto": "Außerhalb des Scores (Veto)",
+  "kybReview.checks.weightVeto": "Ausserhalb des Scores (Veto)",
   "kybReview.checks.weightUnknown": "Bewertung nicht gefunden",
   "kybReview.checks.forAgency": "Agentur",
   "kybReview.result.match": "Übereinstimmung",
@@ -994,5 +1022,63 @@
   "kybReview.actions.requestCorrection": "Korrektur anfordern",
   "kybReview.actions.requestingCorrection": "Wird gesendet…",
   "kybReview.actions.requestCorrectionSuccess": "Dossier zur Korrektur zurückgesendet",
-  "kybReview.event.agencyVerificationCorrectionRequested": "Korrektur bei der Geschäftsleitung angefordert"
+  "kybReview.event.agencyVerificationCorrectionRequested": "Korrektur bei der Geschäftsleitung angefordert",
+  "learning": {
+    "col": {
+      "register": "Register",
+      "status": "Status"
+    }
+  },
+  "users": {
+    "table": {
+      "name": "Name"
+    }
+  },
+  "compliance": {
+    "table": {
+      "status": "Status"
+    }
+  },
+  "moderation": {
+    "table": {
+      "status": "Status"
+    }
+  },
+  "monitoring": {
+    "edgeFunctions": {
+      "table": {
+        "status": "Status"
+      }
+    },
+    "cronHealth": {
+      "status": "Status"
+    }
+  },
+  "liveFeed": {
+    "entityType": {
+      "matches": "Matches"
+    }
+  },
+  "nps": {
+    "rating": {
+      "3": "Neutral"
+    }
+  },
+  "onboarding": {
+    "table": {
+      "status": "Status"
+    }
+  },
+  "toolUsage": {
+    "col": {
+      "tool": "Tool"
+    }
+  },
+  "kybReview": {
+    "checks": {
+      "table": {
+        "person": "Person"
+      }
+    }
+  }
 }

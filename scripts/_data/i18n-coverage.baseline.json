@@ -12,43 +12,43 @@
     },
     "calendar": {
       "total": 294,
-      "sameAsEn": 199,
-      "untranslated": 172
+      "sameAsEn": 31,
+      "untranslated": 4
     },
     "common": {
       "total": 414,
-      "sameAsEn": 135,
-      "untranslated": 99
+      "sameAsEn": 43,
+      "untranslated": 7
     },
     "contacts": {
       "total": 873,
-      "sameAsEn": 620,
-      "untranslated": 515
+      "sameAsEn": 121,
+      "untranslated": 16
     },
     "dashboard": {
       "total": 477,
-      "sameAsEn": 417,
-      "untranslated": 381
+      "sameAsEn": 41,
+      "untranslated": 5
     },
     "kyc": {
-      "total": 575,
-      "sameAsEn": 237,
-      "untranslated": 217
+      "total": 576,
+      "sameAsEn": 26,
+      "untranslated": 11
     },
     "listings": {
       "total": 1360,
-      "sameAsEn": 1147,
-      "untranslated": 1046
+      "sameAsEn": 120,
+      "untranslated": 19
     },
     "matching": {
       "total": 461,
-      "sameAsEn": 188,
-      "untranslated": 167
+      "sameAsEn": 23,
+      "untranslated": 2
     },
     "messages": {
       "total": 177,
-      "sameAsEn": 170,
-      "untranslated": 164
+      "sameAsEn": 6,
+      "untranslated": 0
     },
     "onboarding": {
       "total": 135,
@@ -57,20 +57,20 @@
     },
     "pipeline": {
       "total": 442,
-      "sameAsEn": 236,
-      "untranslated": 220
+      "sameAsEn": 20,
+      "untranslated": 4
     },
     "settings": {
       "total": 778,
-      "sameAsEn": 351,
-      "untranslated": 302
+      "sameAsEn": 57,
+      "untranslated": 8
     }
   },
   "it": {
     "admin": {
       "total": 934,
-      "sameAsEn": 69,
-      "untranslated": 6
+      "sameAsEn": 68,
+      "untranslated": 5
     },
     "auth": {
       "total": 58,
@@ -79,43 +79,43 @@
     },
     "calendar": {
       "total": 294,
-      "sameAsEn": 199,
-      "untranslated": 171
+      "sameAsEn": 28,
+      "untranslated": 0
     },
     "common": {
       "total": 414,
-      "sameAsEn": 136,
-      "untranslated": 98
+      "sameAsEn": 40,
+      "untranslated": 2
     },
     "contacts": {
       "total": 873,
-      "sameAsEn": 617,
-      "untranslated": 511
+      "sameAsEn": 112,
+      "untranslated": 6
     },
     "dashboard": {
       "total": 477,
-      "sameAsEn": 419,
-      "untranslated": 381
+      "sameAsEn": 41,
+      "untranslated": 3
     },
     "kyc": {
-      "total": 575,
-      "sameAsEn": 234,
-      "untranslated": 212
+      "total": 576,
+      "sameAsEn": 25,
+      "untranslated": 5
     },
     "listings": {
       "total": 1360,
-      "sameAsEn": 1144,
-      "untranslated": 1044
+      "sameAsEn": 105,
+      "untranslated": 5
     },
     "matching": {
       "total": 461,
-      "sameAsEn": 188,
-      "untranslated": 166
+      "sameAsEn": 24,
+      "untranslated": 2
     },
     "messages": {
       "total": 177,
-      "sameAsEn": 170,
-      "untranslated": 164
+      "sameAsEn": 6,
+      "untranslated": 0
     },
     "onboarding": {
       "total": 135,
@@ -124,13 +124,13 @@
     },
     "pipeline": {
       "total": 442,
-      "sameAsEn": 239,
-      "untranslated": 220
+      "sameAsEn": 21,
+      "untranslated": 2
     },
     "settings": {
       "total": 778,
-      "sameAsEn": 349,
-      "untranslated": 299
+      "sameAsEn": 55,
+      "untranslated": 5
     }
   }
 }

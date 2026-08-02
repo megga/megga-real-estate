@@ -57,51 +57,51 @@
     "languageHint": "Lingua dell'interfaccia MEGGA.",
     "save": "Salvare",
     "logout": "Disconnettersi",
-    "identityTitle": "Identity",
-    "function": "Role",
-    "rcc": "RCC number",
+    "identityTitle": "Identità",
+    "function": "Funzione",
+    "rcc": "Numero RCC",
     "contactTitle": "Contact",
-    "emailPro": "Work email",
-    "mobile": "Mobile phone",
-    "landline": "Landline",
-    "agency": "Agency",
-    "agencyHint": "Editable from the My agency tab",
-    "publicPresentationTitle": "Public presentation",
-    "bioPlaceholder": "Introduce yourself in a few sentences…",
-    "signatureEmailTitle": "Email signature",
+    "emailPro": "Email professionale",
+    "mobile": "Telefono cellulare",
+    "landline": "Telefono fisso",
+    "agency": "Agenzia",
+    "agencyHint": "Modificabile dalla scheda «La mia agenzia»",
+    "publicPresentationTitle": "Presentazione pubblica",
+    "bioPlaceholder": "Presentati in poche frasi…",
+    "signatureEmailTitle": "Firma email",
     "signatureLabel": "Signature",
-    "signaturePlaceholder": "Best regards,\nYour name\nAgency · Phone",
+    "signaturePlaceholder": "Cordiali saluti,\nIl tuo nome\nAgenzia · Telefono",
     "signatureMode": {
-      "text": "Text",
+      "text": "Testo",
       "html": "HTML"
     },
     "signatureHtml": {
-      "codeLabel": "HTML code",
-      "import": "Import .html",
-      "preview": "Preview",
-      "placeholder": "<table>…paste your signature HTML code here…</table>",
-      "hint": "Paste the HTML exported from your signature generator. Outgoing emails embed it as is.",
-      "empty": "No HTML content."
+      "codeLabel": "Codice HTML",
+      "import": "Importa .html",
+      "preview": "Anteprima del risultato",
+      "placeholder": "<table>…incolla qui il codice HTML della tua firma…</table>",
+      "hint": "Incolla l'HTML esportato dal tuo generatore di firme. Le email in uscita lo integrano così com'è.",
+      "empty": "Nessun contenuto HTML."
     },
-    "changePhoto": "Change photo",
-    "loading": "Loading profile…",
+    "changePhoto": "Cambia foto",
+    "loading": "Caricamento del profilo…",
     "avatarModal": {
-      "dragHint": "Drag to reposition, scroll to zoom.",
-      "formatHint": "Square recommended · JPG or PNG.",
-      "recenter": "Recenter",
-      "browse": "Browse for an image",
-      "remove": "Remove photo",
-      "apply": "Apply"
+      "dragHint": "Trascina per inquadrare, rotellina per zoomare.",
+      "formatHint": "Quadrato consigliato · JPG o PNG.",
+      "recenter": "Ricentra",
+      "browse": "Sfoglia un'immagine",
+      "remove": "Rimuovi la foto",
+      "apply": "Applica"
     },
     "cancelConfirm": {
-      "title": "Discard changes?",
-      "desc": "Your changes will be lost. This action cannot be undone.",
-      "confirm": "Discard changes"
+      "title": "Annullare le modifiche?",
+      "desc": "Le modifiche andranno perse. Questa azione è irreversibile.",
+      "confirm": "Annulla le modifiche"
     },
     "toast": {
-      "sessionExpired": "Session expired, sign in again to save",
-      "saved": "Profile saved",
-      "saveError": "Error while saving"
+      "sessionExpired": "Sessione scaduta, accedi di nuovo per salvare",
+      "saved": "Profilo salvato",
+      "saveError": "Errore durante il salvataggio"
     }
   },
   "agency": {
@@ -115,11 +115,11 @@
     "slogan": "Slogan",
     "sloganPlaceholder": "La vostra specialità in una frase",
     "address": {
-      "searchPlaceholder": "Search for an address in Switzerland…",
-      "done": "Done",
-      "adjustManually": "Adjust manually",
-      "streetAndNumber": "Street and number",
-      "npa": "Postal code"
+      "searchPlaceholder": "Cerca un indirizzo in Svizzera…",
+      "done": "Fatto",
+      "adjustManually": "Modifica manualmente",
+      "streetAndNumber": "Via e numero",
+      "npa": "NPA"
     },
     "city": "Città",
     "canton": "Cantone",
@@ -148,63 +148,63 @@
     "saving": "Salvataggio...",
     "cancel": "Annullare",
     "save": "Salvare",
-    "logoAlt": "Agency logo",
-    "editLogo": "Edit logo",
-    "myAgency": "My agency",
-    "nameUndefined": "Name not set",
-    "businessRegistrationNumber": "UID number",
-    "vat": "VAT no.",
-    "headquarters": "Head office",
-    "country": "Country",
-    "legalIdentityTitle": "Legal identity",
-    "commercialName": "Trade name",
-    "foundedYear": "Year founded",
-    "legalName": "Legal name",
-    "headquartersTitle": "Head office address",
-    "publicContactTitle": "Public contact details",
-    "publicPresentationTitle": "Public presentation",
-    "aboutPlaceholder": "Boutique agency specialized in…",
-    "loading": "Loading agency…",
+    "logoAlt": "Logo dell'agenzia",
+    "editLogo": "Modifica logo",
+    "myAgency": "La mia agenzia",
+    "nameUndefined": "Nome non definito",
+    "businessRegistrationNumber": "Numero IDI",
+    "vat": "N. IVA",
+    "headquarters": "Sede",
+    "country": "Paese",
+    "legalIdentityTitle": "Identità legale",
+    "commercialName": "Nome commerciale",
+    "foundedYear": "Anno di fondazione",
+    "legalName": "Ragione sociale",
+    "headquartersTitle": "Indirizzo della sede",
+    "publicContactTitle": "Dati di contatto pubblici",
+    "publicPresentationTitle": "Presentazione pubblica",
+    "aboutPlaceholder": "Agenzia boutique specializzata in…",
+    "loading": "Caricamento dell'agenzia…",
     "empty": {
-      "title": "No agency linked",
-      "description": "Your profile is not linked to any agency. Contact your administrator to join one."
+      "title": "Nessuna agenzia collegata",
+      "description": "Il tuo profilo non è associato a nessuna agenzia. Contatta l'amministratore per entrare in un'agenzia."
     },
     "targets": {
-      "title": "Sales targets",
-      "yearlyLabel": "Annual target (commissions, CHF)",
-      "split": "Split automatically: {{monthly}}/month · {{quarterly}}/quarter",
-      "empty": "No target set, the Dashboard hides pace and projection until a target is entered.",
-      "save": "Save target",
-      "toastSaved": "Sales target saved",
-      "toastError": "Error while saving the target"
+      "title": "Obiettivi commerciali",
+      "yearlyLabel": "Obiettivo annuale (commissioni, CHF)",
+      "split": "Ripartito automaticamente: {{monthly}}/mese · {{quarterly}}/trimestre",
+      "empty": "Nessun obiettivo definito, la Dashboard nasconde il ritmo e la proiezione finché non viene inserito un obiettivo.",
+      "save": "Salva l'obiettivo",
+      "toastSaved": "Obiettivo commerciale salvato",
+      "toastError": "Errore durante il salvataggio dell'obiettivo"
     },
     "logoModal": {
-      "title": "Agency logo",
-      "subtitle": "Upload an image, then adjust the crop.",
-      "dropHere": "Drag an image here",
-      "or": "or",
-      "browseFiles": "browse your files",
-      "autoFrame": "Auto-frame",
-      "autoFrameTitle": "Auto-recenter",
-      "remove": "Remove logo",
-      "apply": "Apply",
-      "successTitle": "Logo updated",
-      "successDesc": "The new logo has been saved for your agency."
+      "title": "Logo dell'agenzia",
+      "subtitle": "Carica un'immagine, poi regola l'inquadratura.",
+      "dropHere": "Trascina un'immagine qui",
+      "or": "o",
+      "browseFiles": "sfoglia i tuoi file",
+      "autoFrame": "Inquadratura auto",
+      "autoFrameTitle": "Centra automaticamente",
+      "remove": "Rimuovi il logo",
+      "apply": "Applica",
+      "successTitle": "Logo aggiornato",
+      "successDesc": "Il nuovo logo è stato salvato per la tua agenzia."
     },
     "cancelConfirm": {
-      "title": "Discard changes?",
-      "desc": "Your changes will be lost. This action cannot be undone.",
-      "confirm": "Discard changes"
+      "title": "Annullare le modifiche?",
+      "desc": "Le modifiche andranno perse. Questa azione è irreversibile.",
+      "confirm": "Annulla le modifiche"
     },
     "toast": {
-      "noAgency": "No agency linked to your profile",
-      "saved": "Agency saved",
-      "saveError": "Error while saving",
-      "logoRemoved": "Logo removed",
-      "logoRemoveError": "Error while removing the logo",
-      "logoUploadError": "The logo could not be uploaded, local preview only",
-      "logoUpdated": "Logo updated",
-      "logoSaveError": "Error while saving the logo"
+      "noAgency": "Nessuna agenzia associata al tuo profilo",
+      "saved": "Agenzia salvata",
+      "saveError": "Errore durante il salvataggio",
+      "logoRemoved": "Logo rimosso",
+      "logoRemoveError": "Errore durante la rimozione del logo",
+      "logoUploadError": "Non è stato possibile caricare il logo, solo anteprima locale",
+      "logoUpdated": "Logo aggiornato",
+      "logoSaveError": "Errore durante il salvataggio del logo"
     }
   },
   "team": {
@@ -345,31 +345,31 @@
     },
     "header": {
       "kicker": "Notifications",
-      "title": "Choose the channels that alert you",
-      "sub": "MEGGA notifies you on the channels enabled below: new client messages, offers, visits, signatures."
+      "title": "Scegli i canali che ti avvisano",
+      "sub": "MEGGA ti avvisa sui canali attivati qui sotto: nuovi messaggi dei clienti, offerte, visite, firme."
     },
     "channels": {
       "email": {
         "label": "Email",
-        "desc": "Main notifications by email"
+        "desc": "Notifiche principali via email"
       },
       "sms": {
         "label": "SMS",
-        "desc": "For urgent matters (offers, signatures)"
+        "desc": "Per le urgenze (offerte, firme)"
       },
       "whatsapp": {
         "label": "WhatsApp",
-        "desc": "Client messages received on your business number"
+        "desc": "Messaggi dei clienti ricevuti sul tuo numero professionale"
       },
       "inapp": {
-        "label": "In the CRM",
-        "desc": "CRM notification bell"
+        "label": "Nel CRM",
+        "desc": "Campanella delle notifiche del CRM"
       }
     },
     "toast": {
-      "sessionExpired": "Session expired, sign in again to save",
-      "saved": "Notifications saved",
-      "saveError": "Error while saving"
+      "sessionExpired": "Sessione scaduta, accedi di nuovo per salvare",
+      "saved": "Notifiche salvate",
+      "saveError": "Errore durante il salvataggio"
     }
   },
   "security": {
@@ -387,66 +387,66 @@
       "changing": "Modifica in corso...",
       "success": "Password modificata con successo.",
       "error": "Errore durante la modifica della password.",
-      "descView": "The master key to your MEGGA account.",
-      "descEdit": "Choose a new key, at least 8 characters.",
-      "descForgot": "No need for the old one, we'll send you a secure link.",
-      "descSent": "Reset link sent.",
-      "encryptedNote": "Encrypted · never shown in plain text",
-      "currentLabel": "Current password",
-      "currentPlaceholder": "Current key",
-      "forgotLink": "Forgot your password?",
-      "newLabel": "New password",
-      "newPlaceholder": "New key",
-      "confirmLabel": "Confirm",
-      "confirmPlaceholder": "Repeat the key",
-      "keysMatch": "The keys match",
-      "keysMismatch": "The keys don't match",
-      "sentTo": "Sent to",
-      "forgotInfo": "The link expires in 1 h. For security, review your sessions after resetting.",
-      "sendLink": "Send the link",
-      "checkInbox": "Check your inbox",
-      "sentBody": "Open the link sent to <b>{{email}}</b> to set a new key. It expires in 1 h.",
-      "nothingReceived": "Nothing received?",
-      "resendIn_one": "Resend in {{count}}s",
-      "resendIn_other": "Resend in {{count}}s",
-      "resend": "Resend",
-      "done": "Done",
-      "changedTitle": "Password changed",
-      "changedSub": "End-to-end encrypted · just now.",
-      "show": "Show",
-      "hide": "Hide",
-      "strengthTooShort": "Too short",
-      "strengthWeak": "Weak",
-      "strengthMedium": "Medium",
-      "strengthGood": "Good",
-      "strengthStrong": "Strong"
+      "descView": "La chiave principale del Suo account MEGGA.",
+      "descEdit": "Scelga una nuova chiave, almeno 8 caratteri.",
+      "descForgot": "Non serve la vecchia, Le inviamo un link sicuro.",
+      "descSent": "Link di reimpostazione inviato.",
+      "encryptedNote": "Crittografata · mai visualizzata in chiaro",
+      "currentLabel": "Password attuale",
+      "currentPlaceholder": "Chiave attuale",
+      "forgotLink": "Password dimenticata?",
+      "newLabel": "Nuova password",
+      "newPlaceholder": "Nuova chiave",
+      "confirmLabel": "Conferma",
+      "confirmPlaceholder": "Ripeta la chiave",
+      "keysMatch": "Le chiavi corrispondono",
+      "keysMismatch": "Le chiavi non corrispondono",
+      "sentTo": "Inviato a",
+      "forgotInfo": "Il link scade tra 1 h. Per sicurezza, controlli le Sue sessioni dopo la reimpostazione.",
+      "sendLink": "Invia il link",
+      "checkInbox": "Controlli la Sua casella di posta",
+      "sentBody": "Apra il link inviato a <b>{{email}}</b> per definire una nuova chiave. Scade tra 1 h.",
+      "nothingReceived": "Non ha ricevuto nulla?",
+      "resendIn_one": "Rinvia tra {{count}}s",
+      "resendIn_other": "Rinvia tra {{count}}s",
+      "resend": "Rinvia",
+      "done": "Fatto",
+      "changedTitle": "Password modificata",
+      "changedSub": "Crittografata end-to-end · proprio ora.",
+      "show": "Mostra",
+      "hide": "Nascondi",
+      "strengthTooShort": "Troppo corta",
+      "strengthWeak": "Debole",
+      "strengthMedium": "Media",
+      "strengthGood": "Buona",
+      "strengthStrong": "Robusta"
     },
     "sessions": {
-      "title": "Devices & sessions",
+      "title": "Dispositivi e sessioni",
       "devicesConnected": "{{count}} dispositivi connessi",
       "disconnectAll": "Disconnetti tutti",
       "current": "Attuale",
       "revoke": "Revocare",
       "comingSoon": "Prossimamente disponibile",
-      "loadingDevices": "Loading your devices…",
-      "activeCount_one": "{{count}} active session on your account.",
-      "activeCount_other": "{{count}} active sessions on your account.",
-      "thisDeviceOnly": "This device only. No other active session.",
-      "loadError": "Unable to load your devices right now.",
-      "empty": "No device registered yet.",
-      "thisDevice": "This device",
-      "unknownLocation": "Unknown location",
-      "unknownDevice": "Unknown device",
-      "disconnect": "Disconnect",
-      "allOthersDisconnected": "All other sessions have been disconnected.",
-      "revokeNote": "\"Disconnect\" removes the device from this list. Full remote sign-out is coming soon.",
-      "justNow": "Just now",
-      "minutesAgo_one": "{{count}} min ago",
-      "minutesAgo_other": "{{count}} min ago",
-      "hoursAgo_one": "{{count}} h ago",
-      "hoursAgo_other": "{{count}} h ago",
-      "daysAgo_one": "{{count}} d ago",
-      "daysAgo_other": "{{count}} d ago"
+      "loadingDevices": "Caricamento dei Suoi dispositivi…",
+      "activeCount_one": "{{count}} sessione attiva sul Suo account.",
+      "activeCount_other": "{{count}} sessioni attive sul Suo account.",
+      "thisDeviceOnly": "Solo questo dispositivo. Nessun'altra sessione attiva.",
+      "loadError": "Al momento non è possibile caricare i Suoi dispositivi.",
+      "empty": "Nessun dispositivo registrato al momento.",
+      "thisDevice": "Questo dispositivo",
+      "unknownLocation": "Posizione sconosciuta",
+      "unknownDevice": "Dispositivo sconosciuto",
+      "disconnect": "Disconnetti",
+      "allOthersDisconnected": "Tutte le altre sessioni sono state disconnesse.",
+      "revokeNote": "«Disconnetti» rimuove il dispositivo da questo elenco. La disconnessione remota completa sarà aggiunta prossimamente.",
+      "justNow": "Proprio ora",
+      "minutesAgo_one": "{{count}} min fa",
+      "minutesAgo_other": "{{count}} min fa",
+      "hoursAgo_one": "{{count}} h fa",
+      "hoursAgo_other": "{{count}} h fa",
+      "daysAgo_one": "{{count}} giorno fa",
+      "daysAgo_other": "{{count}} giorni fa"
     },
     "log": {
       "title": "Registro di sicurezza",
@@ -488,24 +488,24 @@
         "unknown": "Si è verificato un errore durante l'eliminazione dell'account."
       }
     },
-    "failureWith": "Failed: {{message}}",
+    "failureWith": "Operazione non riuscita: {{message}}",
     "hero": {
-      "title": "Account security",
-      "subtitleLine1": "MEGGA handles sensitive transaction data.",
-      "subtitleLine2": "Keep your account locked and monitor its activity."
+      "title": "Sicurezza dell'account",
+      "subtitleLine1": "MEGGA tratta dati di transazione sensibili.",
+      "subtitleLine2": "Mantieni il tuo account protetto e monitorane l'attività."
     },
     "sso": {
-      "title": "Sign-in methods",
-      "subtitle": "Sign in with one click. Your email + password always stay active.",
-      "linkedDetail": "{{account}} · Connected",
-      "linkedAccount": "Linked account",
-      "connectWith": "Sign in with your {{name}} account",
-      "connect": "Connect",
-      "disconnect": "Disconnect",
-      "disconnected": "{{name}} disconnected",
-      "disconnectConfirmTitle": "Disconnect {{name}}?",
-      "disconnectConfirmDesc": "You won't be able to sign in to MEGGA via {{name}} anymore. Your email + password stay active.",
-      "privacyNote": "MEGGA only receives your name, email and profile photo. No password is shared. You can revoke access here or from your Google / Microsoft account."
+      "title": "Metodi di accesso",
+      "subtitle": "Accedi con un clic. La tua email + password restano sempre attive.",
+      "linkedDetail": "{{account}} · Collegato",
+      "linkedAccount": "Account collegato",
+      "connectWith": "Accedi con il tuo account {{name}}",
+      "connect": "Collega",
+      "disconnect": "Scollega",
+      "disconnected": "{{name}} scollegato",
+      "disconnectConfirmTitle": "Scollegare {{name}}?",
+      "disconnectConfirmDesc": "Non potrai più accedere a MEGGA tramite {{name}}. La tua email + password restano attive.",
+      "privacyNote": "MEGGA riceve solo il tuo nome, la tua email e la tua foto profilo. Nessuna password viene condivisa. Puoi revocare l'accesso qui o dal tuo account Google / Microsoft."
     }
   },
   "subscription": {
@@ -578,21 +578,21 @@
     "title": "Integrazioni",
     "subtitle": "Colleghi i Suoi strumenti esterni per automatizzare il Suo lavoro quotidiano.",
     "status": {
-      "connected": "Connected",
-      "notConnected": "Not connected",
+      "connected": "Collegato",
+      "notConnected": "Non collegato",
       "configure": "Configurare",
       "disconnect": "Disconnettere",
       "comingSoon": "Prossimamente",
-      "onRequest": "On request",
-      "connectedDetail": "Active, domain megga.ch verified"
+      "onRequest": "Su richiesta",
+      "connectedDetail": "Attivo, dominio megga.ch verificato"
     },
     "categories": {
       "essential": "Essenziale",
       "recommended": "Consigliato",
       "upcoming": "In arrivo",
-      "productivity": "Productivity",
+      "productivity": "Produttività",
       "signature": "Signature",
-      "messaging": "Messaging"
+      "messaging": "Messaggistica"
     },
     "googleCalendar": {
       "name": "Google Calendar",
@@ -640,7 +640,7 @@
       "shortDesc": "CSV, Pipedrive, HubSpot",
       "description": "Importi i Suoi contatti da un altro CRM o da un file CSV. Esporti i Suoi dati in qualsiasi momento.",
       "features": {
-        "csvImport": "Import CSV / Excel",
+        "csvImport": "Importazione CSV / Excel",
         "crmMigration": "Migrazione da Pipedrive, HubSpot",
         "dataExport": "Esportazione dati completa"
       },
@@ -669,105 +669,105 @@
       "connectHint": "Colleghi il drive della Sua agenzia per centralizzare i Suoi documenti."
     },
     "header": {
-      "kicker": "Integrations",
-      "title": "Connect your business stack",
-      "sub": "{{active}} of {{total}} service(s) active · calendar, email, signature, messaging."
+      "kicker": "Integrazioni",
+      "title": "Collega il tuo stack di lavoro",
+      "sub": "{{active}} servizi attivi su {{total}} · agenda, email, firma, messaggistica."
     },
     "filters": {
-      "all": "All"
+      "all": "Tutti"
     },
     "catalogue": {
       "google": {
-        "desc": "Sync Google Calendar, Gmail and Contacts with a single OAuth connection."
+        "desc": "Sincronizza Google Calendar, Gmail e Contacts con un'unica connessione OAuth."
       },
       "microsoft": {
-        "desc": "Outlook Calendar, Outlook Mail and Exchange address book."
+        "desc": "Outlook Calendar, Outlook Mail e rubrica Exchange."
       },
       "docusign": {
-        "desc": "eIDAS-compliant electronic signature for mandates and offers."
+        "desc": "Firma elettronica conforme a eIDAS per mandati e offerte."
       },
       "skribble": {
-        "desc": "Swiss qualified signature, ZertES compliant."
+        "desc": "Firma qualificata svizzera, conformità ZertES."
       },
       "whatsapp": {
-        "desc": "Client conversations in the CRM, certified templates."
+        "desc": "Conversazioni con i clienti nel CRM, modelli certificati."
       }
     },
     "actions": {
-      "connect": "Connect",
-      "connecting": "Connecting…",
-      "disconnect": "Disconnect",
-      "linkWhatsapp": "Link WhatsApp"
+      "connect": "Collega",
+      "connecting": "Collegamento…",
+      "disconnect": "Scollega",
+      "linkWhatsapp": "Collega WhatsApp"
     },
     "card": {
-      "linkedAccount": "Linked account",
-      "synced": "Synced",
-      "assistedActivation": "Activation assisted by MEGGA"
+      "linkedAccount": "Account collegato",
+      "synced": "Sincronizzato",
+      "assistedActivation": "Attivazione assistita da MEGGA"
     },
     "details": {
-      "activeConnection": "Active connection",
-      "onRequestHint": "This integration is activated by the MEGGA team on request. Contact us to connect your account.",
-      "whatYouCanDo": "What you can do",
-      "permissionsGranted": "Permissions granted",
+      "activeConnection": "Connessione attiva",
+      "onRequestHint": "Questa integrazione viene attivata dal team MEGGA su richiesta. Contattaci per collegare il tuo account.",
+      "whatYouCanDo": "Cosa puoi fare",
+      "permissionsGranted": "Autorizzazioni concesse",
       "documentation": "Documentation",
       "permissions": {
-        "google": "[\"Calendar: visits, appointments\",\"Gmail: client emails in the CRM\",\"Contacts: synchronization\"]",
-        "microsoft": "[\"Outlook Calendar: calendar\",\"Outlook Mail: conversations\",\"Exchange address book\"]",
-        "whatsapp": "[\"Receive your client messages in the CRM\",\"Query MEGGA AI from your phone\"]",
-        "signature": "[\"Prepare signature files\",\"Track signature statuses\"]"
+        "google": "[\"Calendar: visite, appuntamenti\",\"Gmail: email dei clienti nel CRM\",\"Contacts: sincronizzazione\"]",
+        "microsoft": "[\"Outlook Calendar: agenda\",\"Outlook Mail: conversazioni\",\"Rubrica Exchange\"]",
+        "whatsapp": "[\"Ricevere i messaggi dei clienti nel CRM\",\"Interrogare MEGGA AI dal tuo telefono\"]",
+        "signature": "[\"Preparare fascicoli di firma\",\"Seguire gli stati di firma\"]"
       }
     },
     "disconnectConfirm": {
-      "title": "Disconnect {{name}}?",
-      "body": "Synchronization stops immediately. Your existing data stays in the CRM but will no longer be updated.",
-      "keep": "Keep"
+      "title": "Disconnettere {{name}}?",
+      "body": "La sincronizzazione si interrompe immediatamente. I dati esistenti restano nel CRM, ma non saranno più aggiornati.",
+      "keep": "Mantieni"
     },
     "toast": {
-      "disconnected": "{{name}} disconnected",
-      "disconnectFailed": "Disconnect failed: {{error}}",
+      "disconnected": "{{name}} disconnesso",
+      "disconnectFailed": "Disconnessione non riuscita: {{error}}",
       "connectFailed": "Connessione non riuscita: {{error}}",
-      "unknownError": "Unknown error",
-      "skribbleConnected": "Skribble connected"
+      "unknownError": "Errore sconosciuto",
+      "skribbleConnected": "Skribble connesso"
     },
     "whatsapp": {
-      "title": "Connect WhatsApp",
-      "subtitle": "MEGGA AI on your phone",
-      "linked": "Linked",
-      "linkedNumber": "Linked number",
-      "writeLikeColleague": "Write to MEGGA AI like a colleague",
-      "examples": "[\"My appointments tomorrow?\",\"My overdue follow-ups?\"]",
+      "title": "Collega WhatsApp",
+      "subtitle": "MEGGA AI sul Suo telefono",
+      "linked": "Collegato",
+      "linkedNumber": "Numero collegato",
+      "writeLikeColleague": "Scriva a MEGGA AI come a un collega",
+      "examples": "[\"I miei appuntamenti domani?\",\"I miei solleciti in ritardo?\"]",
       "error": {
-        "title": "Status unavailable",
-        "desc": "Unable to verify the WhatsApp connection right now.",
-        "retry": "Retry"
+        "title": "Stato non disponibile",
+        "desc": "Al momento non è possibile verificare la connessione WhatsApp.",
+        "retry": "Riprova"
       },
       "waiting": {
-        "sendCode": "Send this code to <strong>{{number}}</strong> on WhatsApp (valid for 15 min).",
-        "title": "Waiting for your message…",
-        "desc": "The link activates as soon as the code is received."
+        "sendCode": "Invii questo codice a <strong>{{number}}</strong> su WhatsApp (valido 15 min).",
+        "title": "In attesa del Suo messaggio…",
+        "desc": "Il collegamento si attiva appena il codice viene ricevuto."
       },
-      "regenerateCode": "Regenerate a code",
-      "generating": "Generating…",
+      "regenerateCode": "Rigenera un codice",
+      "generating": "Generazione…",
       "unlinked": {
-        "body": "Drive MEGGA from WhatsApp. Your appointments, follow-ups and contacts straight by message, without opening the CRM. Generate a code, then send it to MEGGA at <strong>{{number}}</strong>."
+        "body": "Gestisca MEGGA da WhatsApp. I Suoi appuntamenti, i Suoi solleciti e i Suoi contatti direttamente via messaggio, senza aprire il CRM. Generi un codice, poi lo invii a MEGGA al <strong>{{number}}</strong>."
       },
-      "generateCode": "Generate a code"
+      "generateCode": "Genera un codice"
     },
     "esign": {
-      "title": "Connect Skribble",
-      "intro": "Swiss qualified electronic signature (QES/AES), compliant with ZertES and eIDAS. Connect your agency's API account to sign your mandates and contracts in one click.",
-      "apiUser": "API username",
-      "apiKey": "API key",
-      "apiKeyHint": "Skribble → Administration → API keys.",
-      "defaultLevel": "Default signature level",
+      "title": "Collega Skribble",
+      "intro": "Firma elettronica qualificata svizzera (QES/AES), conforme a ZertES ed eIDAS. Colleghi l'account API della Sua agenzia per firmare i Suoi mandati e contratti con un clic.",
+      "apiUser": "Nome utente API",
+      "apiKey": "Chiave API",
+      "apiKeyHint": "Skribble → Amministrazione → Chiavi API.",
+      "defaultLevel": "Livello di firma predefinito",
       "qualities": {
-        "QES": "Qualified, same legal value as a handwritten signature (ZertES/eIDAS).",
-        "AES": "Advanced, signer identity verified.",
-        "SES": "Simple, quick agreement, without strong identification."
+        "QES": "Qualificata, stesso valore di una firma autografa (ZertES/eIDAS).",
+        "AES": "Avanzata, identità del firmatario verificata.",
+        "SES": "Semplice, accordo rapido, senza identificazione forte."
       },
-      "trustNote": "Your key is encrypted (Supabase Vault), never exposed, and validated on connection.",
-      "connectFailed": "Connection failed",
-      "connectButton": "Connect Skribble"
+      "trustNote": "La Sua chiave è crittografata (Supabase Vault), mai esposta e convalidata al momento del collegamento.",
+      "connectFailed": "Collegamento non riuscito",
+      "connectButton": "Collega Skribble"
     },
     "calSync": {
       "title": "Sincronizzazione calendario",
@@ -786,58 +786,58 @@
   "nav": {
     "sections": {
       "profile": {
-        "label": "My profile",
-        "short": "Profile"
+        "label": "Il mio profilo",
+        "short": "Profilo"
       },
       "agency": {
-        "label": "My agency",
-        "short": "Agency"
+        "label": "La mia agenzia",
+        "short": "Agenzia"
       },
       "notifications": {
         "label": "Notifications",
         "short": "Notifications"
       },
       "integrations": {
-        "label": "Integrations",
-        "short": "Integrations"
+        "label": "Integrazioni",
+        "short": "Integrazioni"
       },
       "billing": {
-        "label": "Billing",
-        "short": "Billing"
+        "label": "Fatturazione",
+        "short": "Fatturazione"
       },
       "security": {
-        "label": "Security",
-        "short": "Security"
+        "label": "Sicurezza",
+        "short": "Sicurezza"
       },
       "preferences": {
-        "label": "Preferences",
-        "short": "Preferences"
+        "label": "Preferenze",
+        "short": "Preferenze"
       }
     },
     "groups": {
       "moi": "Account",
-      "produit": "Product",
-      "compte": "Billing & security"
+      "produit": "Prodotto",
+      "compte": "Fatturazione e sicurezza"
     }
   },
   "preferences": {
     "header": {
-      "kicker": "Preferences",
-      "title": "Personal CRM settings",
-      "sub": "Specific to your account, does not affect other team members."
+      "kicker": "Preferenze",
+      "title": "Impostazioni personali del CRM",
+      "sub": "Specifiche del tuo account, non influiscono sugli altri membri del team."
     },
     "region": {
-      "title": "Region & language",
-      "sub": "Affects the interface language and default formats.",
-      "language": "Language",
-      "currency": "Currency",
+      "title": "Regione e lingua",
+      "sub": "Influisce sulla lingua dell'interfaccia e sui formati predefiniti.",
+      "language": "Lingua",
+      "currency": "Valuta",
       "currencyOptions": {
-        "CHF": "CHF · Swiss franc",
+        "CHF": "CHF · Franco svizzero",
         "EUR": "EUR · Euro",
-        "USD": "USD · US dollar"
+        "USD": "USD · Dollaro USA"
       },
-      "units": "Units",
-      "dateFormat": "Date format",
+      "units": "Unità",
+      "dateFormat": "Formato data",
       "dateFormatOptions": {
         "ch": "03.05.2026 (CH)",
         "fr": "03/05/2026 (FR)",
@@ -846,87 +846,87 @@
       }
     },
     "views": {
-      "title": "Default views",
-      "sub": "Which screen to land on when opening the CRM, and with which view.",
-      "homeScreen": "Home screen",
+      "title": "Viste predefinite",
+      "sub": "Su quale schermata arrivare all'apertura del CRM, e con quale vista.",
+      "homeScreen": "Schermata iniziale",
       "screens": {
-        "today": "Today",
+        "today": "Oggi",
         "pipeline": "Pipeline",
-        "matching": "AI matching",
+        "matching": "Matching IA",
         "contacts": "Contacts",
-        "biens": "My properties",
-        "calendar": "Calendar",
+        "biens": "I miei immobili",
+        "calendar": "Calendario",
         "docs": "Documenti"
       },
-      "defaultPipelineView": "Default pipeline view",
+      "defaultPipelineView": "Vista pipeline predefinita",
       "pipelineViews": {
         "kanban": "Kanban",
-        "list": "List",
+        "list": "Lista",
         "timeline": "Timeline"
       }
     },
     "appearance": {
-      "title": "Appearance",
-      "sub": "Adapts the interface to your reading comfort.",
-      "theme": "Theme",
+      "title": "Aspetto",
+      "sub": "Adatta l'interfaccia al Suo comfort di lettura.",
+      "theme": "Tema",
       "themes": {
         "light": {
-          "label": "Light",
-          "sub": "Recommended during the day"
+          "label": "Chiaro",
+          "sub": "Consigliato di giorno"
         },
         "dark": {
-          "label": "Dark",
-          "sub": "Navy mode"
+          "label": "Scuro",
+          "sub": "Modalità blu marino"
         },
         "system": {
-          "label": "System",
-          "sub": "Follows your OS"
+          "label": "Sistema",
+          "sub": "Segue il Suo sistema operativo"
         }
       },
-      "density": "Density",
+      "density": "Densità",
       "densities": {
         "comfort": {
           "label": "Comfort",
-          "sub": "Airy margins"
+          "sub": "Margini ampi"
         },
         "compact": {
           "label": "Compact",
-          "sub": "More info per screen"
+          "sub": "Più informazioni per schermata"
         }
       }
     },
     "editing": {
-      "title": "Editing & assistance",
-      "sub": "Controls smart help while you type.",
+      "title": "Modifica e assistenza",
+      "sub": "Controllo dell'aiuto intelligente durante la digitazione.",
       "spellcheck": {
-        "label": "Spell check",
-        "desc": "Multilingual checker in all long text fields."
+        "label": "Controllo ortografico",
+        "desc": "Correttore multilingue in tutti i campi di testo lunghi."
       },
       "autosave": {
-        "label": "Automatic draft saving",
-        "desc": "Your entries are kept in memory for 30 days."
+        "label": "Salvataggio automatico delle bozze",
+        "desc": "I Suoi inserimenti sono conservati in memoria per 30 giorni."
       },
       "aiAssist": {
-        "label": "Julien AI assistance level",
+        "label": "Livello di assistenza di Julien IA",
         "off": {
-          "label": "Off",
-          "sub": "No suggestions"
+          "label": "Disattivato",
+          "sub": "Nessun suggerimento"
         },
         "balanced": {
-          "label": "Balanced",
-          "sub": "Suggestions on demand"
+          "label": "Equilibrato",
+          "sub": "Suggerimenti su richiesta"
         },
         "proactif": {
-          "label": "Proactive",
-          "sub": "Suggestions as you type"
+          "label": "Proattivo",
+          "sub": "Suggerimenti durante la digitazione"
         }
       }
     }
   },
   "page": {
-    "unsavedChanges": "Unsaved changes",
-    "save": "Save",
-    "saving": "Saving…"
+    "unsavedChanges": "Modifiche non salvate",
+    "save": "Salva",
+    "saving": "Salvataggio…"
   },
   "billing": {
     "loading": "Caricamento della fatturazione…",
@@ -996,8 +996,8 @@
     "perYourNeeds": "in base alle esigenze"
   },
   "banner": {
-    "eyebrow": "Settings",
-    "more": "More"
+    "eyebrow": "Impostazioni",
+    "more": "Altro"
   },
   "focus": {
     "title": "Impostazioni",
@@ -1092,7 +1092,7 @@
       },
       "accents": {
         "black": "Nero",
-        "periwinkle": "Periwinkle",
+        "periwinkle": "Pervinca",
         "blue": "Blu",
         "cyan": "Ciano",
         "green": "Verde",

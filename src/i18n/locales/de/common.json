@@ -56,13 +56,13 @@
     "adminAutonomy": "Agenten-Autonomie",
     "adminLearning": "Gelernte Stile",
     "adminToolUsage": "Tool-Nutzung",
-    "backToCrm": "Back to the CRM",
-    "journey": "Journey",
-    "aiAgent": "Megga, AI agent",
+    "backToCrm": "Zurück zum CRM",
+    "journey": "Verlauf",
+    "aiAgent": "Megga, KI-Agent",
     "help": "Hilfe",
     "notifications": "Notifications",
-    "callbacksToday": "Today's callbacks",
-    "importLeads": "Import leads",
+    "callbacksToday": "Wiedervorlagen heute",
+    "importLeads": "Leads importieren",
     "adminSectionPilotage": "Steuerung",
     "adminSectionClients": "Kunden",
     "adminSectionRevenue": "Umsatz",
@@ -105,7 +105,7 @@
     "showLess": "Weniger anzeigen",
     "viewAll": "Alle anzeigen",
     "options": "Options",
-    "later": "Later"
+    "later": "Später"
   },
   "time": {
     "ago": "vor",
@@ -273,40 +273,40 @@
     "clearSearch": "Suche löschen",
     "reset": "Zurücksetzen",
     "command": {
-      "placeholder": "Search or ask Megga…",
-      "clear": "Clear",
+      "placeholder": "Suchen oder Megga fragen…",
+      "clear": "Leeren",
       "scope": {
-        "all": "All",
+        "all": "Alle",
         "contacts": "Contacts",
-        "biens": "Properties",
+        "biens": "Objekte",
         "deals": "Deals",
         "docs": "Documents"
       },
       "section": {
-        "resumeMegga": "Resume with Megga",
-        "recents": "Recent",
-        "askMegga": "Ask Megga",
-        "meggaConvos": "Megga conversations",
-        "biens": "Properties",
+        "resumeMegga": "Mit Megga fortfahren",
+        "recents": "Zuletzt verwendet",
+        "askMegga": "Megga fragen",
+        "meggaConvos": "Megga-Konversationen",
+        "biens": "Objekte",
         "deals": "Deals",
-        "platform": "Platform"
+        "platform": "Plattform"
       },
       "badge": {
-        "semantic": "semantic"
+        "semantic": "semantisch"
       },
       "empty": {
-        "title": "No results for “{{query}}”",
-        "body": "Ask Megga instead, it knows your entire CRM."
+        "title": "Keine Ergebnisse für «{{query}}»",
+        "body": "Fragen Sie stattdessen Megga, er kennt Ihr gesamtes CRM."
       },
-      "askMeggaQuery": "Ask Megga: “{{query}}”",
+      "askMeggaQuery": "Megga fragen: «{{query}}»",
       "deal": {
-        "untitled": "Deal"
+        "untitled": "Transaktion"
       },
-      "roomsShort": "{{count}} rm",
+      "roomsShort": "{{count}} Zi.",
       "aiPrompts": {
-        "buyersReady": "Buyers ready to sign this week",
-        "staleListings": "Listings stalled for 30+ days",
-        "exclusiveMandate": "Draft an exclusive mandate"
+        "buyersReady": "Käufer, die diese Woche unterschriftsbereit sind",
+        "staleListings": "Objekte, die seit über 30 Tagen stagnieren",
+        "exclusiveMandate": "Exklusivmandat verfassen"
       }
     }
   },
@@ -322,111 +322,111 @@
     "groupOlder": "Früher",
     "kind": {
       "kyc": "KYC",
-      "visite": "Viewing",
-      "offre": "Offer",
-      "mandat": "Mandate",
+      "visite": "Besichtigung",
+      "offre": "Angebot",
+      "mandat": "Mandat",
       "ai": "MEGGA AI",
       "doc": "Document",
       "team": "Team",
       "system": "System"
     },
-    "markRead": "Mark as read",
-    "markUnread": "Mark as unread",
-    "hideOne": "Hide this notification",
-    "muteKind": "Turn off “{{kind}}”",
-    "toastMarkedRead": "Marked as read",
-    "toastMarkedUnread": "Marked as unread",
-    "toastHidden": "Notification hidden",
-    "toastMuted": "“{{kind}}” notifications turned off",
-    "unreadCount_one": "{{count}} unread",
-    "unreadCount_other": "{{count}} unread",
-    "allClear": "You're all caught up",
-    "markAllRead": "Mark all as read",
-    "empty": "No notifications yet.",
-    "pause2h": "Pause for 2h",
-    "seeAll": "See all notifications"
+    "markRead": "Als gelesen markieren",
+    "markUnread": "Als ungelesen markieren",
+    "hideOne": "Diese Benachrichtigung ausblenden",
+    "muteKind": "«{{kind}}» deaktivieren",
+    "toastMarkedRead": "Als gelesen markiert",
+    "toastMarkedUnread": "Als ungelesen markiert",
+    "toastHidden": "Benachrichtigung ausgeblendet",
+    "toastMuted": "Benachrichtigungen «{{kind}}» deaktiviert",
+    "unreadCount_one": "{{count}} ungelesen",
+    "unreadCount_other": "{{count}} ungelesen",
+    "allClear": "Alles erledigt",
+    "markAllRead": "Alle als gelesen markieren",
+    "empty": "Noch keine Benachrichtigungen.",
+    "pause2h": "2 Std. pausieren",
+    "seeAll": "Alle Benachrichtigungen ansehen"
   },
   "profile": {
     "defaultName": "Agent",
-    "noAgency": "No agency set",
-    "preferences": "Preferences",
-    "security": "Security & sessions",
-    "billing": "Billing & subscription",
-    "help": "Help center",
-    "adminConsole": "Admin console",
-    "platformSection": "Platform"
+    "noAgency": "Keine Agentur festgelegt",
+    "preferences": "Präferenzen",
+    "security": "Sicherheit & Sitzungen",
+    "billing": "Abrechnung & Abonnement",
+    "help": "Hilfe-Center",
+    "adminConsole": "Admin-Konsole",
+    "platformSection": "Plattform"
   },
   "audit": {
     "category": {
       "kyc": "KYC",
       "deal": "Pipeline",
       "contact": "Contact",
-      "bien": "Property",
+      "bien": "Objekt",
       "doc": "Document",
-      "auth": "Sign-in",
-      "settings": "Settings",
+      "auth": "Anmeldung",
+      "settings": "Einstellungen",
       "ai": "MEGGA AI"
     },
     "csv": {
-      "createdAt": "Date/time",
-      "category": "Category",
-      "severity": "Severity",
+      "createdAt": "Datum/Zeit",
+      "category": "Kategorie",
+      "severity": "Schweregrad",
       "action": "Action",
-      "objectLabel": "Object",
-      "entityType": "Entity type",
-      "entityId": "Entity ID",
-      "actorId": "Actor (ID)",
+      "objectLabel": "Gegenstand",
+      "entityType": "Entitätstyp",
+      "entityId": "Entitäts-ID",
+      "actorId": "Akteur (ID)",
       "ip": "IP",
-      "metadata": "Metadata (JSON)"
+      "metadata": "Metadaten (JSON)"
     },
     "severity": {
-      "critical": "Critical",
-      "warning": "Warning"
+      "critical": "Kritisch",
+      "warning": "Warnung"
     },
     "actor": {
       "agent": "Agent",
       "system": "System"
     },
     "details": "Details",
-    "eventCount_one": "{{count}} event",
-    "eventCount_other": "{{count}} events",
-    "eyebrow": "Compliance · nFADP",
-    "title": "Audit trail.",
-    "subtitle": "Every action on contacts, properties, deals and documents is recorded immutably. This trail meets the audit obligation under the nFADP (art. 12) and the AMLA (art. 7), retained for 10 years.",
+    "eventCount_one": "{{count}} Ereignis",
+    "eventCount_other": "{{count}} Ereignisse",
+    "eyebrow": "Compliance · nDSG",
+    "title": "Auditprotokoll.",
+    "subtitle": "Alle Aktionen an Kontakten, Objekten, Deals und Dokumenten werden unveränderlich aufgezeichnet. Diese Spur erfüllt die Auditpflicht nach nDSG (Art. 12) und GwG (Art. 7) und wird 10 Jahre aufbewahrt.",
     "export": {
       "csv": "Export CSV",
-      "pdf": "Timestamped PDF export",
-      "generating": "Generating…",
-      "pdfFailed": "PDF export failed",
-      "pdfErrorPrefix": "PDF export:"
+      "pdf": "PDF-Export mit Zeitstempel",
+      "generating": "Wird erstellt…",
+      "pdfFailed": "PDF-Export fehlgeschlagen",
+      "pdfErrorPrefix": "PDF-Export:"
     },
     "stats": {
-      "events": "Events",
-      "eventsRangeAll": "Across recent months",
-      "eventsRangeDays": "Across the last {{days}} days",
-      "critical": "Critical",
-      "criticalSub": "Locks, auth failures, denials",
-      "warning": "Warnings",
-      "warningSub": "Re-screening, data export",
-      "aiActions": "MEGGA AI actions",
-      "aiActionsSub": "Suggestions and automated matching"
+      "events": "Ereignisse",
+      "eventsRangeAll": "Über die letzten Monate",
+      "eventsRangeDays": "Über die letzten {{days}} Tage",
+      "critical": "Kritisch",
+      "criticalSub": "Sperren, Auth-Fehler, Ablehnungen",
+      "warning": "Warnungen",
+      "warningSub": "Re-Screening, Datenexport",
+      "aiActions": "MEGGA AI-Aktionen",
+      "aiActionsSub": "Vorschläge und automatisches Matching"
     },
-    "searchPlaceholder": "Search an action or an entity…",
+    "searchPlaceholder": "Aktion oder Gegenstand suchen…",
     "period": {
-      "days7": "7 days",
-      "days30": "30 days",
-      "days90": "90 days",
-      "all": "All"
+      "days7": "7 Tage",
+      "days30": "30 Tage",
+      "days90": "90 Tage",
+      "all": "Alle"
     },
     "filter": {
-      "allCategories": "All categories",
-      "allSeverities": "All severities"
+      "allCategories": "Alle Kategorien",
+      "allSeverities": "Alle Schweregrade"
     },
-    "loading": "Loading the audit trail…",
-    "empty": "No event matches these filters.",
+    "loading": "Protokoll wird geladen…",
+    "empty": "Keine Ereignisse entsprechen diesen Filtern.",
     "footer": {
-      "retention": "Events are cryptographically signed and retained for 10 years (nFADP art. 12 · AMLA art. 7).",
-      "tamperLogged": "Any attempt to delete or alter a record is itself logged."
+      "retention": "Die Ereignisse werden kryptografisch signiert und 10 Jahre aufbewahrt (nDSG Art. 12 · GwG Art. 7).",
+      "tamperLogged": "Jeder Versuch einer Löschung oder Änderung wird selbst protokolliert."
     },
     "action": {
       "admin_console_entered": "Admin-Konsole geöffnet",
@@ -477,6 +477,6 @@
     "dashboard": "Zurück zum Dashboard"
   },
   "announcements": {
-    "dismiss": "Schließen"
+    "dismiss": "Schliessen"
   }
 }

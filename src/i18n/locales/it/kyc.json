@@ -127,15 +127,15 @@
     },
     "footer": {
       "legal": "Note legali",
-      "privacy": "Privacy"
+      "privacy": "Riservatezza"
     }
   },
   "steps": {
-    "identity": "Identity",
+    "identity": "Identità",
     "beneficiary": "Benef.",
-    "funds": "Funds",
+    "funds": "Fondi",
     "screening": "Screening",
-    "risk": "Risk",
+    "risk": "Rischio",
     "validation": "Validation"
   },
   "wizard": {
@@ -512,47 +512,47 @@
     }
   },
   "list": {
-    "intro": "Every Swiss real-estate transaction calls for a documented check of identity, address and source of funds. KYC stays recommended before signing, a gentle reminder, never a blocker. Final verification rests with the notary.",
-    "errorTitle": "Unable to load KYC cases.",
-    "retry": "Retry",
-    "emptyFilter": "No case matches this filter.",
-    "staleCount_one": "{{count}} case to re-screen (review date passed).",
-    "staleCount_other": "{{count}} cases to re-screen (review date passed)."
+    "intro": "Ogni transazione immobiliare in Svizzera richiede una verifica documentata dell'identità, del domicilio e dell'origine dei fondi. Il KYC resta raccomandato prima della firma, un promemoria discreto, mai bloccante.",
+    "errorTitle": "Impossibile caricare i fascicoli KYC.",
+    "retry": "Riprova",
+    "emptyFilter": "Nessun fascicolo corrisponde a questo filtro.",
+    "staleCount_one": "{{count}} fascicolo da sottoporre a nuovo screening (scadenza superata).",
+    "staleCount_other": "{{count}} fascicoli da sottoporre a nuovo screening (scadenza superata)."
   },
   "upload": {
-    "title": "Add a document",
-    "subtitle": "PDF, JPG, PNG · 10 MB max · Encrypted storage",
-    "close": "Close",
-    "categoryLabel": "Category",
+    "title": "Aggiungi un documento",
+    "subtitle": "PDF, JPG, PNG · max 10 MB · Archiviazione crittografata",
+    "close": "Chiudi",
+    "categoryLabel": "Categoria",
     "documentLabel": "Document",
     "categories": {
-      "identity": "Identity",
-      "domicile": "Address",
-      "financial": "Income",
-      "compliance": "Compliance",
-      "other": "Other"
+      "identity": "Identità",
+      "domicile": "Domicilio",
+      "financial": "Redditi",
+      "compliance": "Conformità",
+      "other": "Altro"
     },
-    "dropTitle": "Drop a file here",
-    "dropHint": "or click to browse",
-    "removeFile": "Remove file",
-    "cancel": "Cancel",
-    "submit": "Upload",
-    "submitting": "Uploading…",
-    "successAdded": "Document added: {{name}}",
-    "errorTooLarge": "File too large (10 MB max).",
-    "errorFailed": "Upload failed.",
+    "dropTitle": "Trascina un file qui",
+    "dropHint": "o clicca per sfogliare",
+    "removeFile": "Rimuovi il file",
+    "cancel": "Annulla",
+    "submit": "Carica",
+    "submitting": "Caricamento in corso…",
+    "successAdded": "Documento aggiunto: {{name}}",
+    "errorTooLarge": "File troppo grande (max 10 MB).",
+    "errorFailed": "Caricamento fallito.",
     "sizeBytes": "{{value}} B",
     "sizeKb": "{{value}} KB",
     "sizeMb": "{{value}} MB"
   },
   "export": {
-    "agentFallback": "Compliance officer",
-    "loading": "Loading case…",
-    "notFound": "Case not found.",
-    "preparing": "Preparing the report…",
-    "close": "Close",
-    "reportRef": "KYC report · {{reference}}",
-    "print": "Print / Save as PDF"
+    "agentFallback": "Responsabile conformità",
+    "loading": "Caricamento del fascicolo…",
+    "notFound": "Fascicolo non trovato.",
+    "preparing": "Preparazione del rapporto…",
+    "close": "Chiudi",
+    "reportRef": "Rapporto KYC · {{reference}}",
+    "print": "Stampa / Salva in PDF"
   },
   "report": {
     "check": {
@@ -742,38 +742,38 @@
   },
   "check": {
     "id": {
-      "title": "Identity document",
-      "sub": "Passport or official ID card, both sides."
+      "title": "Documento d'identità",
+      "sub": "Passaporto o carta d'identità ufficiale, fronte e retro."
     },
     "address": {
-      "title": "Proof of address",
-      "sub": "Named bill < 3 months (rent, electricity, bank)."
+      "title": "Giustificativo di domicilio",
+      "sub": "Fattura nominativa < 3 mesi (affitto, elettricità, banca)."
     },
     "pep": {
-      "title": "PEP screening",
-      "sub": "Check against Politically Exposed Persons lists."
+      "title": "Screening PEP",
+      "sub": "Verifica delle liste di persone politicamente esposte."
     },
     "sanctions": {
-      "title": "Sanctions lists",
-      "sub": "Cross-check OFAC, SECO, UN, European Union."
+      "title": "Liste di sanzioni",
+      "sub": "Incrocio con OFAC, SECO, ONU, Unione Europea."
     },
     "funds": {
-      "title": "Source of funds",
-      "sub": "Declaration and proof of origin for transactions > CHF 100'000."
+      "title": "Origine dei fondi",
+      "sub": "Dichiarazione e prova dell'origine per transazioni > CHF 100'000."
     }
   },
   "dossierStatus": {
-    "none": "Not started",
-    "pending": "In progress",
-    "verified": "Verified",
-    "failed": "Failed",
-    "stale": "Re-screening due"
+    "none": "Da avviare",
+    "pending": "In corso",
+    "verified": "Verificato",
+    "failed": "Fallito",
+    "stale": "Screening da ripetere"
   },
   "riskBadge": {
-    "low": "Low risk",
-    "medium": "Moderate risk",
-    "high": "High risk",
-    "unassessed": "Unassessed"
+    "low": "Rischio basso",
+    "medium": "Rischio medio",
+    "high": "Rischio alto",
+    "unassessed": "Non valutato"
   },
   "mobile": {
     "back": "Altro",
