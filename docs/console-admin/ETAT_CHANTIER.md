@@ -1088,6 +1088,59 @@ reste intouchable (décision PO n° 7, trigger append-only) : ces deux tables ne
 des cibles de ce critère, et ne le seront jamais. Le levier sur le Live reste la fenêtre
 d'**affichage**, pas une purge.
 
+### 7duodecies. PROCHAINE SESSION — rembourser la DETTE du registre (chemin vers G2)
+
+**Mesuré le 02.08.2026.** G2 reste ouvert, mais **son blocage n'est plus celui que le plan
+décrit**. Les gestes existent et sont déjà branchés aux écrans ; ce qui manque, c'est
+qu'ils écrivent dans le **bon journal**.
+
+**Le constat qui définit la tâche.** Le critère 2 de G2 exige « un geste par écran démontré
+de bout en bout — UI → RPC → **ligne visible dans Sécurité avec metadata** ». L'écran
+Sécurité lit `admin_log`. Or **aucun** des gestes ci-dessous n'y écrit : ils journalisent
+dans `activity_events`, le journal des AGENCES, sans chaîne d'empreintes. Le critère ne peut
+donc **structurellement pas** passer avant remboursement.
+
+| À rembourser | Où |
+|---|---|
+| `admin_validate_agency_review` · `admin_reject_agency_review` · `admin_request_agency_correction` · `admin_relaunch_agency_review` · `admin_resolve_agency_id_document` | RPC (étape 19b) |
+| `admin_set_user_role` | RPC (étape 18) |
+| `admin_set_agency_plan` · `admin_set_agency_quotas` | RPC (famille 17) |
+| `admin-agency-lifecycle` · `admin-user-lifecycle` | **Edge functions** — mesuré : `admin_log_write` = **0** occurrence, `activity_events` = 1 et 2 |
+
+⚠ **Ce n'est PAS bloqué par une décision PO.** Les 8 RPC existent, les 5 décisions KYB sont
+déjà appelées par `useAdminKybReview` (5 `callRpc`), et les 2 edges sont branchées. Le
+travail est mécanique. Reste bloqué par la **décision n° 4 (sièges)** : `invite_member`
+seulement — à ne pas toucher.
+
+**Le cliquet fait le contrôle.** `tests/backend/admin-gestes-sweep.spec.ts` porte la liste
+`DETTE` (≈ l. 166-172). Il rougit **dans les deux sens** : un 9ᵉ geste clandestin le fait
+échouer, un geste remboursé **laissé dans la liste** aussi. Donc : rembourser **puis retirer
+la ligne**, sinon la CI échoue avec le message qui le dit.
+
+**⛔ LE PIÈGE QUI A DÉJÀ COÛTÉ, et qui vise exactement cette tâche.** L'amendement §10.2 dit :
+**verrou d'entité PUIS verrou de chaîne**. L'ordre inverse a provoqué un interblocage `40P01`
+**au rétro-branchement des RPC KYB** — c'est-à-dire précisément ce qu'on s'apprête à refaire.
+Corollaire : `admin_log_write` doit être la **DERNIÈRE** instruction du geste, jamais la
+première (le verrou de chaîne est tenu jusqu'au COMMIT).
+
+**Autres contraintes mesurées, à ne pas redécouvrir :**
+- `admin_log_write` dérive l'acteur d'`auth.uid()`. Sans JWT il force `actor_label` à
+  **« Système »** et **LÈVE** si on lui passe autre chose. Une edge appelée avec la clé de
+  service journalisera donc « Système » — c'est correct, mais il faut le vouloir.
+- `p_metadata` est un **tableau ORDONNÉ de paires** `{l, v}`, pas un objet ; un **flottant**
+  y est refusé (`22023`) parce que le hash porte sur le texte du jsonb.
+- ⛔ **Ne jamais créer de surcharge** : PostgREST envoie du JSON sans types → `PGRST203`.
+  Ne pas changer les signatures — le front appelle ces RPC par nom.
+- Migration : 14 chiffres, date **≥ jour du merge en UTC**, liste explicite, idempotente
+  (`create or replace`) — le date-guard la rejoue à chaque déploiement du jour.
+- Les tests backend ne tournent **qu'en CI** (pas de Docker en local) ; lire le COMPTE.
+- Muter avant de livrer : c'est le seul contrôle qui distingue « vert » de « vert pour la
+  bonne raison ».
+
+**Vérification finale, en production après déploiement :** un geste de chaque famille doit
+produire une ligne dans `admin_log` avec la bonne famille (`kyb`, `lifecycle`, `plans`) et
+ses paires de metadata — visible sur `/dashboard/admin/security`.
+
 ## 8. Re-dater les migrations le jour du merge — procédure
 
 > ✅ **APPLIQUÉE le 01.08.2026, et sans re-datage.** Les 6 migrations de #1054 portaient déjà
