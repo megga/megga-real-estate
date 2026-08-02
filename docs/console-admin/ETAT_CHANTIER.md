@@ -948,6 +948,36 @@ Le geste le moins risqué pour cela est un cron **inerte** (`admin_cron_job_is_i
 et recalculs, aucun envoi) : il ne déclenche aucune modale, et le balayeur des ponctuels
 nettoie le job `adhoc-…` derrière lui.
 
+### 7octies. Le tag Sentry est posé — le critère G4 devient mesurable, à partir du déploiement
+
+Chaque événement envoyé à Sentry porte désormais un tag **`surface`** valant `console` ou
+`crm`. Le critère « 48 h en prod sans erreur Sentry console » se lit donc par un filtre
+`surface:console` sur le projet `4511407787933776` (org `gauthier-ru`, ingest UE).
+
+**Comment il est dérivé, et pourquoi pas autrement.** Le tag est calculé dans `beforeSend` à
+partir de l'URL de l'ÉVÉNEMENT, avec repli sur `window.location`. L'autre approche évidente
+— `Sentry.setTag('surface', 'console')` à l'entrée de la console — a été écartée : un tag
+global est **collant**, et un seul chemin de sortie oublié taguerait `console` des erreurs
+du CRM. Sur un critère de go-live, un faux positif vaut moins que pas de tag du tout. Ici il
+n'y a aucun état à remettre à zéro. Le test porte sur un **segment** et non un préfixe :
+`/dashboard/administration` n'est pas la console (les deux défauts sont éprouvés par
+mutation, `tests/unit/sentry-surface-tag.spec.ts`).
+
+**⚠ Trois limites à connaître avant de signer G4 :**
+1. **La mesure ne peut pas être rétroactive.** Les événements émis avant le déploiement de
+   ce changement ne portent aucun tag : la fenêtre de 48 h commence au **déploiement**, pas
+   avant.
+2. **Une erreur asynchrone remontée après la sortie de la console**, et dont l'événement ne
+   porte pas d'URL, retombe sur `window.location` et sera taguée `crm`. C'est le meilleur
+   signal disponible, mais le compte peut être légèrement optimiste.
+3. **Session Replay ne passe pas par `beforeSend`** : les replays ne sont pas filtrables sur
+   ce tag.
+
+**⚠ Ne PAS vérifier le tag en provoquant une erreur depuis la console** : elle compterait
+comme une erreur console et casserait la fenêtre de 48 h qu'on cherche justement à observer.
+Un `Sentry.captureMessage(…, 'info')` depuis un écran de la console suffit à voir le tag
+arriver, sans peupler le critère.
+
 ## 8. Re-dater les migrations le jour du merge — procédure
 
 > ✅ **APPLIQUÉE le 01.08.2026, et sans re-datage.** Les 6 migrations de #1054 portaient déjà
