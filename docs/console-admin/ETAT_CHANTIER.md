@@ -900,6 +900,39 @@ rend `consents` en `Json` opaque. Les types écrits à la main dans ces deux hoo
 **plus vrais que les générés** : les retirer serait une régression, pas un nettoyage.
 Vérifier « la RPC est dans les types » ne dit rien ; il faut lire la FORME.
 
+### 7septies. Le bouton « Relancer » est branché — trois amendements à acter
+
+Point 1 de §7quinquies livré : la table « Santé des crons » du Monitoring porte une colonne
+d'action, le geste passe par `admin_cron_run_now`, et la confirmation obéit au serveur
+(`details.needs_confirm`) au lieu de rejouer une règle côté écran.
+
+**1. Le libellé perd son tiret cadratin, pas ses mots.** La maquette écrit « Relance
+demandée — prochain passage 15:12 » ; `npm run lint:prose` interdit `—` dans
+`src/i18n/locales/**`, sans échappatoire (« ces caractères ne doivent pas atteindre
+l'utilisateur »). Livré : « Relance demandée · prochain passage 15:12 », avec le séparateur
+maison explicitement autorisé par la porte. Le mot que la maquette défend — **demandée**, pas
+*relancé* — est intact.
+
+**2. Le Monitoring du dépôt n'est PAS le « bulletin à file ».** La maquette concept F
+(file d'incidents, action Rejouer/Relancer par incident) n'a jamais été portée : le dépôt
+porte la version en bentos (santé, Flatfox, crons, intégrations, IA, fonctions, erreurs). Le
+bouton est donc posé sur la table des crons, qui existe. ⚠ L'`[x] Monitoring` de
+`refs/AUDIT_ADMIN_CONSOLE.md` §6 suit les **maquettes** (« Fichier : `admin-monitoring.jsx` »),
+pas le dépôt — il n'y a pas de contradiction, mais la ligne se lit trop facilement comme un
+écran livré. Porter le concept F reste un chantier à part, avec ses décisions produit (ce qui
+fait un incident, la corrélation au déploiement).
+
+**3. Le chemin nominal reste NON exercé, et je ne peux pas l'exercer.** Mesuré : la connexion
+MCP est `postgres`, avec `is_super_admin()` = `false` **et** `is_service_role()` = `false` —
+la RPC lève donc 42501 avant tout. La CI ne le peut pas non plus : pg_cron est absent des
+bases fraîches, et la RPC répond `precondition_failed` dès sa garde de schéma. Ce qui est
+éprouvé aujourd'hui : le contrat CLIENT (12 tests, dont le tri `needs_confirm` par le
+DRAPEAU et non par le code — `precondition_failed` couvre aussi des refus définitifs).
+Ce qui ne l'est pas : l'aller-retour réel. **Il faut un clic de super-admin en production.**
+Le geste le moins risqué pour cela est un cron **inerte** (`admin_cron_job_is_inert` = purges
+et recalculs, aucun envoi) : il ne déclenche aucune modale, et le balayeur des ponctuels
+nettoie le job `adhoc-…` derrière lui.
+
 ## 8. Re-dater les migrations le jour du merge — procédure
 
 > ✅ **APPLIQUÉE le 01.08.2026, et sans re-datage.** Les 6 migrations de #1054 portaient déjà
