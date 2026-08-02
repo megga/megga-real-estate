@@ -1,9 +1,11 @@
 /**
  * Initialisation Sentry (monitoring erreurs + session replay) du frontend.
  *
- * Scrub obligatoire des tokens secrets (/kyc/<token>, /portail/<token>) et query
- * strings avant tout envoi au tiers Sentry (cf. audit S27) ; PII désactivée,
- * replay masqué. `initSentry()` est idempotent (appelé une fois au boot).
+ * Scrub obligatoire des capability tokens (/kyc/, /kyc-report/, /reception/) et des
+ * query strings — c'est la query qui porte le `?token=` des pages de visite — avant
+ * tout envoi au tiers Sentry (cf. audit S27) ; PII désactivée, replay masqué ET non
+ * embarqué sur les routes tokenisées. `initSentry()` est idempotent (appelé une fois
+ * au boot).
  */
 import * as Sentry from '@sentry/react'
 
@@ -17,10 +19,42 @@ const SENTRY_DSN = (import.meta.env.VITE_SENTRY_DSN as string | undefined) || DE
 
 let sentryInitialized = false
 
-// Retire les tokens secrets des URLs (KYC / portail vendeur) + query strings,
-// avant tout envoi à Sentry (tiers). cf. audit S27.
-function scrubSecretUrl(u: string): string {
-  return u.replace(/\/(kyc|portail)\/[^/?#]+/gi, '/$1/[redacted]').replace(/[?#].*$/, '')
+/**
+ * Retire les capability tokens des URLs avant tout envoi à Sentry (tiers). cf. audit S27.
+ *
+ * Le segment qui suit `/kyc`, `/kyc-report` ou `/reception` est le token lui-même. Les
+ * pages de visite, elles, portent le leur en query : c'est le strip `[?#].*$` qui les
+ * couvre — ne pas le retirer en croyant qu'il ne sert qu'à raccourcir.
+ *
+ * ⚠ `kyc-report` est listé À PART : l'alternation impose un `/` immédiatement après le
+ * mot, donc une branche `kyc` seule ne couvre pas `/kyc-report/<token>`.
+ * `/portail/` a été retiré — le portail vendeur n'existe plus depuis juillet 2026.
+ */
+export function scrubSecretUrl(u: string): string {
+  return u
+    .replace(/\/(kyc-report|kyc|reception|accept-invite)\/[^/?#]+/gi, '/$1/[redacted]')
+    .replace(/[?#].*$/, '')
+}
+
+/**
+ * Routes publiques porteuses d'un capability token : `/kyc/<token>`,
+ * `/kyc-report/<token>`, `/reception/<token>`, `/accept-invite/<token>` (token dans le
+ * CHEMIN) et `/visit/:id/edit|feedback` (token dans la QUERY). `visite` = alias FR,
+ * normalement redirigé au bord, gardé ici parce que le SPA sert aussi ces chemins hors
+ * Cloudflare.
+ *
+ * `/auth` couvre le sous-arbre ENTIER : sans `flowType` explicite, le client Supabase
+ * reste en flux implicite et dépose la session dans le fragment
+ * (`#access_token=…&refresh_token=…`). Le Session Replay n'étant pas filtré par
+ * `beforeSend`, une session enregistrée sur ces pages livrerait un `refresh_token` de
+ * longue durée à un tiers — le pire des secrets de l'application, devant tout jeton
+ * de visite.
+ *
+ * ⚠ Jumelle de la garde de `index.html` (autre runtime, aucun import possible) —
+ * `tests/unit/token-routes.spec.ts` compare les deux sources.
+ */
+export function isTokenBearingPath(pathname: string): boolean {
+  return /^\/(kyc-report|kyc|reception|visit|visite|accept-invite|auth)(\/|$)/i.test(pathname)
 }
 
 /** Surface d'où part l'événement. Une seule application, deux publics. */
@@ -72,7 +106,8 @@ export function pathnameOfEventUrl(url: string | undefined): string | null {
  * ⚠ Limite connue : une erreur asynchrone qui remonte APRÈS avoir quitté la console, et
  * dont l'événement ne porte pas d'URL, tombe sur `window.location` et sera donc taguée
  * `crm`. Le repli reste le meilleur signal disponible. ⚠ Les événements de Session Replay
- * ne passent pas par `beforeSend` : on ne peut pas filtrer les replays sur ce tag.
+ * ne passent pas par `beforeSend` : on ne peut pas filtrer les replays sur ce tag — d'où
+ * le retrait pur et simple de l'intégration sur les routes tokenisées (cf. `initSentry`).
  */
 export function tagEventSurface<T extends Sentry.Event>(event: T): T {
   const chemin = pathnameOfEventUrl(event.request?.url)
@@ -85,14 +120,24 @@ export function tagEventSurface<T extends Sentry.Event>(event: T): T {
 export function initSentry() {
   if (sentryInitialized || !SENTRY_DSN) return
 
+  // Le Session Replay ne passe NI par `beforeSend` NI par `beforeSendTransaction` : ses
+  // enregistrements partent avec les URLs BRUTES, donc `scrubSecretUrl` ne le protège
+  // pas. Sur une route tokenisée on ne l'embarque donc pas du tout — masquer le texte ne
+  // masque pas la barre d'adresse. Décidé à l'entrée : ces pages sont des points
+  // d'arrivée (lien e-mail / WhatsApp), on n'y navigue jamais depuis le CRM.
+  const routeTokenisee =
+    typeof window !== 'undefined' && isTokenBearingPath(window.location.pathname)
+
   Sentry.init({
     dsn: SENTRY_DSN,
     environment: import.meta.env.MODE,
     sendDefaultPii: false,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({ maskAllText: true, maskAllInputs: true, blockAllMedia: true }),
-    ],
+    integrations: routeTokenisee
+      ? [Sentry.browserTracingIntegration()]
+      : [
+          Sentry.browserTracingIntegration(),
+          Sentry.replayIntegration({ maskAllText: true, maskAllInputs: true, blockAllMedia: true }),
+        ],
     // Tracing — échantillon réduit (limite la captation d'URLs).
     tracesSampleRate: 0.2,
     // Distributed tracing — propagate trace headers to our own backends only.
@@ -102,8 +147,10 @@ export function initSentry() {
       /^https:\/\/eayczugyrvmtqnnmvjod\.supabase\.co\//,
     ],
     // Session Replay — 10% of all sessions, 100% of sessions that hit an error.
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+    // Ramenés à 0 sur route tokenisée : redondant avec l'intégration non embarquée,
+    // mais c'est ce qui tient si quelqu'un la rebranche un jour sans relire ci-dessus.
+    replaysSessionSampleRate: routeTokenisee ? 0 : 0.1,
+    replaysOnErrorSampleRate: routeTokenisee ? 0 : 1.0,
     // Ne plus forwarder les console logs (peuvent contenir des fragments de données).
     enableLogs: false,
     // Don't spam Sentry from local dev unless explicitly opted in.
@@ -114,19 +161,28 @@ export function initSentry() {
       'ResizeObserver loop completed with undelivered notifications',
       'Non-Error promise rejection captured',
     ],
-    // Scrub des tokens secrets (/kyc/<token>, /portail/<token>) dans les URLs des
-    // événements, breadcrumbs et transactions avant envoi au tiers.
+    // Scrub des capability tokens (cf. `scrubSecretUrl` : segment de chemin pour /kyc/,
+    // /kyc-report/, /reception/, /accept-invite/ ; query et fragment pour les pages de
+    // visite et /auth/callback) dans les URLs des événements, breadcrumbs et transactions
+    // avant envoi au tiers.
     beforeSend(event) {
       // Taguer AVANT d'expurger : la dérivation tient sur les deux formes (un test le
       // prouve), mais partir de l'URL brute évite de dépendre de l'ordre des traitements.
       tagEventSurface(event)
       if (event.request?.url) event.request.url = scrubSecretUrl(event.request.url)
       if (event.breadcrumbs) {
-        event.breadcrumbs = event.breadcrumbs.map((b) =>
-          b.data && typeof b.data.url === 'string'
-            ? { ...b, data: { ...b.data, url: scrubSecretUrl(b.data.url) } }
-            : b,
-        )
+        // `url` ne suffit pas : un breadcrumb de navigation ne porte pas cette clé, il
+        // porte `from`/`to` (chemin + query + fragment). Une navigation partie d'une page
+        // tokenisée y inscrivait donc le token, dans un champ que ce filtre ne touchait
+        // pas, et le breadcrumb repart avec l'exception suivante.
+        event.breadcrumbs = event.breadcrumbs.map((b) => {
+          if (!b.data) return b
+          const data = { ...b.data }
+          for (const cle of ['url', 'from', 'to'] as const) {
+            if (typeof data[cle] === 'string') data[cle] = scrubSecretUrl(data[cle] as string)
+          }
+          return { ...b, data }
+        })
       }
       return event
     },

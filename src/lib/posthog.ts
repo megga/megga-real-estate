@@ -6,6 +6,7 @@
  * EU par défaut ; session recording désactivé. Miroir fonctionnel de `intercom.ts`.
  */
 import posthog from 'posthog-js'
+import { isTokenBearingPath } from '@/lib/sentry'
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined
 const POSTHOG_HOST = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ?? 'https://eu.posthog.com'
@@ -35,6 +36,12 @@ function readConsent(): CookieConsent | null {
 /** Initialise le SDK (idempotent). No-op sans clé ; à réserver au cas consenti. */
 export function initPostHog() {
   if (!POSTHOG_KEY || posthogInitialized) return
+  // Même règle que GTM/gtag et Sentry : rien sur une route à lien tokenisé.
+  // `capture_pageview` enverrait `$current_url` — le jeton compris — et
+  // `autocapture` le renverrait à chaque clic. Le garde-fou est posé maintenant
+  // parce que la clé est aujourd'hui absente du déploiement : le jour où on
+  // l'ajoutera, la fuite partirait sans que rien ne la signale.
+  if (typeof window !== 'undefined' && isTokenBearingPath(window.location.pathname)) return
 
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,

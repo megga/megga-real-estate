@@ -28,21 +28,55 @@
     <!-- Plus Jakarta Sans — fallback Property X (proche d'Objectivity, géométrie similaire) -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>MEGGA — CRM immobilier</title>
+    <script>
+      // Aucune mesure d'audience sur les routes à lien tokenisé : `gtag('config', …)`
+      // envoie `document.location.href` à Google, c'est-à-dire le token lui-même —
+      // dans le chemin (/kyc, /kyc-report, /reception) ou dans la query (?token= des
+      // pages de visite). Un capability token remis à un tiers est un token compromis.
+      //
+      // Le test se fait AU CHARGEMENT, à dessein : ce sont des pages d'ARRIVÉE, on y
+      // atterrit depuis un e-mail ou un lien WhatsApp, jamais par navigation interne.
+      // Ne pas « améliorer » en hook de routeur : les mouchards se chargent ici, dans
+      // <head>, bien avant React — un hook arriverait après la fuite.
+      // `visite` = alias FR redirigé au bord (Cloudflare conserve la query au 301) ;
+      // gardé ici parce que le SPA sert aussi ces chemins hors Cloudflare (dev).
+      //
+      // `/auth` couvre le sous-arbre ENTIER, pas seulement `/auth/callback` : le client
+      // Supabase ne fixe pas `flowType`, donc le flux implicite fait atterrir la session
+      // dans le FRAGMENT (`#access_token=…&refresh_token=…`). Le `refresh_token` est le
+      // secret le plus lourd de l'application — bien plus qu'un jeton de visite — et il
+      // traverse aussi la récupération de mot de passe. Un sous-arbre entier est plus sûr
+      // qu'une liste de chemins qu'on oubliera d'étendre ; l'audience y est sans valeur,
+      // l'entonnoir d'inscription vivant sur la vitrine.
+      // `/accept-invite/<token>` porte une invitation d'équipe encore active.
+      //
+      // ⚠ Cette expression est jumelle de `isTokenBearingPath` (src/lib/sentry.ts) —
+      // deux runtimes, aucun import possible entre eux. `tests/unit/token-routes.spec.ts`
+      // les compare caractère par caractère : étendre l'une sans l'autre rougit.
+      window.MEGGA_ROUTE_TOKENISEE =
+        /^\/(kyc-report|kyc|reception|visit|visite|accept-invite|auth)(\/|$)/i.test(location.pathname);
+    </script>
     <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    <script>if (!window.MEGGA_ROUTE_TOKENISEE) { (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-TFVCHXFJ');</script>
+    })(window,document,'script','dataLayer','GTM-TFVCHXFJ'); }</script>
     <!-- End Google Tag Manager -->
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-W8QK7C0NB1"></script>
+    <!-- Google tag (gtag.js) — injecté par script plutôt que posé en dur : sur une
+         route tokenisée, la balise ne doit même pas être téléchargée. -->
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-W8QK7C0NB1');
+      (function () {
+        if (window.MEGGA_ROUTE_TOKENISEE) return;
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { window.dataLayer.push(arguments); };
+        var tag = document.createElement('script');
+        tag.async = true;
+        tag.src = 'https://www.googletagmanager.com/gtag/js?id=G-W8QK7C0NB1';
+        document.head.appendChild(tag);
+        window.gtag('js', new Date());
+        window.gtag('config', 'G-W8QK7C0NB1');
+      })();
     </script>
     <script>
       // Pre-set theme BEFORE React renders to prevent white flash (FOUC)
@@ -183,9 +217,13 @@
     </style>
   </head>
   <body>
-    <!-- Google Tag Manager (noscript) -->
+    <!-- Google Tag Manager (noscript) — ne peut PAS être filtré par chemin : il part
+         justement quand JS est coupé. Sa `src` ne porte que l'identifiant du conteneur,
+         donc le seul canal qui pourrait emporter le token est l'en-tête Referer :
+         `referrerpolicy="no-referrer"` le supprime, sans dépendre de la politique par
+         défaut du navigateur ni d'un futur <meta name="referrer">. -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TFVCHXFJ"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    referrerpolicy="no-referrer" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
     <div id="root"></div>
     <!-- Placé APRÈS #root : à z-index égal, l'ordre du DOM décide, donc l'écran

@@ -46,10 +46,21 @@ serve(async (req) => {
 
   const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
-  // 2) Validation du lien (statut/expiry) avant mutation.
+  // 2) Validation du lien (jeton stocké / statut / expiry) avant mutation.
+  //
+  // Les trois garde-fous doivent être ICI et pas seulement dans `buyer-reception-get` :
+  // c'est le point d'ÉCRITURE. Sans eux le retrait d'un lien ne tenait qu'une requête —
+  // `record_buyer_reaction` finit par `update buyer_reception_links set status='reacted'`
+  // sans condition, donc un POST sur un lien retiré effaçait le retrait lui-même et
+  // rouvrait la lecture. Refuser avant l'appel est ce qui rend le retrait durable.
   const { data: link } = await supabase
-    .from('buyer_reception_links').select('id, status, expires_at').eq('id', linkId).maybeSingle()
+    .from('buyer_reception_links').select('id, token, status, expires_at').eq('id', linkId).maybeSingle()
   if (!link) return json({ error: 'Invalid link' }, 401)
+  // Le jeton stocké fait foi : une signature valide ne suffit pas. Le réécrire retire
+  // le lien sans attendre `expires_at`, y compris pour l'écriture — sinon un porteur
+  // de jeton périmé continuait de basculer les matches et d'injecter du texte libre.
+  if (link.token !== token) return json({ error: 'Invalid link' }, 401)
+  if (link.status === 'expired') return json({ error: 'Link expired' }, 410)
   if (new Date(link.expires_at) < new Date()) return json({ error: 'Link expired' }, 410)
 
   // 3) RPC atomique : met à jour le match (triggers) + le lien.

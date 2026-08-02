@@ -1,11 +1,17 @@
 // supabase/functions/buyer-reception-get/index.ts
-// GET /functions/v1/buyer-reception-get?token=...   (public — déployée --no-verify-jwt)
+// POST /functions/v1/buyer-reception-get   (public — déployée --no-verify-jwt)
+// Jeton dans le corps JSON ; `?token=` reste accepté pour compatibilité, mais les
+// journaux d'accès de la plateforme enregistrent l'URL complète — le corps évite ça.
 //
 // Charge la sélection transmise à l'acheteur (page réception mobile). Token HMAC
 // vérifié en crypto AVANT tout accès DB (aucune fuite de timing). service_role,
 // strictement scopé au lien du token. PII minimale : prénom du contact + infos
 // publiques de l'agent. Renvoie un statut structuré en 200 (invalid/expired) pour
 // piloter l'écran, comme le portail vendeur.
+//
+// Retrait d'un lien : la signature HMAC porte une expiration jusqu'à 90 jours, donc
+// le seul moyen de couper l'accès avant terme est en base — jeton stocké et statut
+// font foi (mêmes gardes que magic-link-get).
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -43,11 +49,16 @@ interface BienOut {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  // Le CORPS d'abord, la query seulement en repli : les journaux de requêtes de la
+  // plateforme conservent l'URL entière, donc un jeton en query y reste écrit pour
+  // toute sa durée de vie. L'unique appelant (`useBuyerReception`) poste déjà un
+  // corps ; le repli ne sert qu'aux liens ouverts en GET à la main.
   const url = new URL(req.url)
-  let token = url.searchParams.get('token') ?? ''
-  if (!token && req.method === 'POST') {
+  let token = ''
+  if (req.method === 'POST') {
     try { token = String(((await req.json()) as { token?: string }).token ?? '') } catch { /* ignore */ }
   }
+  if (!token) token = url.searchParams.get('token') ?? ''
   token = token.trim()
   if (!token) return json({ ok: false, reason: 'invalid' })
 
@@ -60,10 +71,21 @@ serve(async (req) => {
 
   const { data: link } = await supabase
     .from('buyer_reception_links')
-    .select('id, agency_id, contact_id, agent_id, match_ids, status, expires_at')
+    .select('id, token, agency_id, contact_id, agent_id, match_ids, status, expires_at')
     .eq('id', linkId)
     .maybeSingle()
   if (!link) return json({ ok: false, reason: 'invalid' })
+
+  // Le jeton STOCKÉ fait foi : une signature valide ne suffit pas. Réécrire
+  // `token` sur la ligne tue l'ancien jeton sans attendre `expires_at`. Rendu
+  // 'invalid' (et non un motif propre) pour ne pas distinguer, côté acheteur,
+  // un lien remplacé d'un lien inexistant.
+  if (link.token !== token) return json({ ok: false, reason: 'invalid' })
+
+  // 'expired' est le seul statut de retrait que le CHECK de la table autorise
+  // (pending|viewed|reacted|expired) : le poser à la main coupe le lien tout de
+  // suite. 'reacted' continue de servir — l'acheteur revient relire sa sélection.
+  if (link.status === 'expired') return json({ ok: false, reason: 'expired' })
   if (new Date(link.expires_at) < new Date()) return json({ ok: false, reason: 'expired' })
 
   // Marque « vu » au 1er accès (idempotent) + IP/UA forensiques.

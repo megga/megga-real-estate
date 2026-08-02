@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Star, Check, Loader2, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { usePublicVisit, useSubmitFeedback } from '@/hooks/useVisits'
+import { usePublicVisit, useSubmitFeedback, estRefus } from '@/hooks/useVisits'
 import PublicPageHeader from '@/components/layout/PublicPageHeader'
 
 const STRENGTHS = [
@@ -82,18 +82,23 @@ export default function VisitFeedbackPage() {
 
   const property = visit.property
 
+  // Le refus (avis déjà déposé, visite annulée) est rendu sous le bouton ; on
+  // avale le rejet pour ne pas laisser `mutateAsync` le repropager, l'état
+  // d'erreur de la mutation portant déjà l'information.
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!rating || !offerInterest || !token) return
-    await submitFeedback.mutateAsync({
-      token,
-      rating,
-      strengths,
-      objections,
-      comment,
-      offerInterest: offerInterest as 'yes' | 'maybe' | 'no',
-    })
-    setSubmitted(true)
+    try {
+      await submitFeedback.mutateAsync({
+        token,
+        rating,
+        strengths,
+        objections,
+        comment,
+        offerInterest: offerInterest as 'yes' | 'maybe' | 'no',
+      })
+      setSubmitted(true)
+    } catch { /* état porté par submitFeedback.isError */ }
   }
 
   return (
@@ -104,7 +109,9 @@ export default function VisitFeedbackPage() {
         <div className="rounded-xl border border-gray-200 overflow-hidden mb-8">
           {property?.photos?.[0] && (
             <div className="aspect-[16/9]">
-              <img src={property.photos[0]} alt="" className="w-full h-full object-cover" decoding="async" />
+              {/* no-referrer : le token de retour est dans la query de CETTE page,
+                  et un Referer l'emporterait vers l'hôte des photos. */}
+              <img src={property.photos[0]} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" decoding="async" />
             </div>
           )}
           <div className="p-4">
@@ -221,6 +228,20 @@ export default function VisitFeedbackPage() {
               ))}
             </div>
           </div>
+
+          {/* Refus : avis déjà déposé pour cette visite, ou visite annulée.
+              Sans ce bloc l'écran de remerciement s'afficherait sur un envoi
+              que la base a refusé. */}
+          {submitFeedback.isError && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-sm font-medium text-amber-900">Votre avis n'a pas pu être enregistré</p>
+              <p className="text-xs text-amber-800 mt-1">
+                {estRefus(submitFeedback.error)
+                  ? 'Un avis a peut-être déjà été déposé pour cette visite, ou celle-ci a été annulée.'
+                  : 'Vérifiez votre connexion et réessayez.'}
+              </p>
+            </div>
+          )}
 
           {/* Submit */}
           <button
