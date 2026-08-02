@@ -32,7 +32,7 @@ describe('buildReviewDigest', () => {
     expect(out!.html).toContain('Regie du Lac SA')
     // Assertion resserrée : cherche le texte d'ancienneté dans sa cellule <td> exacte,
     // pas juste '6' qui apparaît ailleurs (sujet, padding HTML, etc.)
-    expect(out!.html).toMatch(/white-space:nowrap;\">\s*depuis 6 jours/)
+    expect(out!.html).toMatch(/white-space:nowrap;">\s*depuis 6 jours/)
   })
 
   it('mene droit a la file, jamais a la racine de la console', () => {
