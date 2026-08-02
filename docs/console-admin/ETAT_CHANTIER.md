@@ -1037,6 +1037,57 @@ filtre de famille**, sinon les `seq` sautent. Corriger le commentaire exigerait 
 une fonction de production par migration : à faire à la prochaine reprise, pas pour un
 commentaire seul.
 
+### 7undecies. Critère G4 « drop de partition constaté » — AMENDÉ le 02.08.2026
+
+**Décision du PO : amender.** Le critère de sortie G4 disait « rétentions observées (drop de
+partition constaté) ». Il est **insatisfaisable tel qu'écrit** : ni `admin_log` (28 lignes) ni
+`activity_events` (~4 900) ne sont partitionnées, et partitionner des tables de cette taille
+serait de l'ingénierie prématurée. Le critère décrivait un MÉCANISME (le drop de partition)
+là où l'intention était un EFFET : prouver que la rétention agit vraiment en production.
+
+**Nouvelle formulation, qui garde l'intention et devient vérifiable :**
+
+> **Rétention observée sur une population NON VIDE** — constater, avant/après le passage d'un
+> cron de purge, que des lignes ayant dépassé leur fenêtre ont effectivement disparu (ou été
+> neutralisées). Le drop de partition n'est plus exigé : c'était un moyen, pas la preuve.
+
+**⚠ Pourquoi « non vide » n'est pas une précaution rhétorique.** Mesuré ce jour sur les sept
+cibles à fenêtre explicite : **six sont VIDES**.
+
+| Cible (fenêtre) | Lignes | Plus vieille |
+|---|---|---|
+| `rpc_receipts` (24 h) | 0 | — |
+| `outbox_jobs` done/dead | 0 | — |
+| `whatsapp_async_jobs` done/failed (7 j) | 0 | — |
+| `whatsapp_daily_briefs` (90 j) | 0 | — |
+| `whatsapp_recent_auto_actions` (7 j) | 0 | — |
+| `ai_drift_dismissals` (24 mois) | 0 | — |
+| **`whatsapp_messages.raw` non nul (30 j)** | **10** | **28 j** |
+
+Un critère formulé « aucune ligne plus vieille que sa fenêtre » serait donc **vrai sans rien
+prouver** sur six cibles sur sept — le vert sans assertion, que ce chantier a déjà payé deux
+fois. D'où l'exigence d'une population non vide.
+
+**La seule observation disponible, et elle est datable.** `whatsapp_messages.raw` porte
+10 lignes dont la plus ancienne a **28 jours** contre une fenêtre de 30. Le cron
+`whatsapp-purge-raw-daily` (`30 3 * * *`, dernier succès le 02.08 à 03:30 UTC) doit donc les
+passer à `raw IS NULL` **d'ici environ deux nuits**. Marche à suivre :
+
+```sql
+-- Avant, puis après le passage de 03:30 UTC : le compte doit tomber.
+select count(*) filter (where raw is not null)              as raw_restant,
+       max(now() - created_at) filter (where raw is not null) as plus_vieille
+  from public.whatsapp_messages;
+```
+
+⚠ Cette purge **neutralise** (`UPDATE … SET raw = NULL`), elle ne supprime pas la ligne : le
+critère porte sur la disparition de la DONNÉE soumise à rétention, pas sur un `DELETE`.
+
+**Ce qui n'est PAS amendé.** La rétention **LBA 10 ans** sur `activity_events` et `admin_log`
+reste intouchable (décision PO n° 7, trigger append-only) : ces deux tables ne sont donc pas
+des cibles de ce critère, et ne le seront jamais. Le levier sur le Live reste la fenêtre
+d'**affichage**, pas une purge.
+
 ## 8. Re-dater les migrations le jour du merge — procédure
 
 > ✅ **APPLIQUÉE le 01.08.2026, et sans re-datage.** Les 6 migrations de #1054 portaient déjà
