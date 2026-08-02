@@ -6,7 +6,7 @@
     "mobileNotice": {
       "eyebrow": "Required step",
       "title": "This step is completed on a computer",
-      "body": "Entering your agency's legal identity requires a larger screen. Sign in from a computer to complete it."
+      "body": "This entry requires a larger screen. Please resume it from a computer."
     },
     "welcome": {
       "title": "Let us open your workspace",
@@ -14,14 +14,14 @@
       "startButton": "Identify my agency"
     },
     "pendingNotice": {
-      "eyebrow": "Entry interrupted",
-      "title": "Your entry was interrupted",
-      "body": "Nothing is lost: every step you confirmed with Continue is already saved in our systems, which remain the source of record. Resume whenever you're ready, you'll find exactly what you already entered.",
-      "resumeButton": "Resume"
+      "title": "Your entry is paused",
+      "body": "Every step you confirmed is already saved. Come back whenever you want, you will find your entry as you left it.",
+      "resumeButton": "Resume entry"
     }
   },
   "wizard": {
     "steps": {
+      "ariaLabel": "Steps",
       "signataire": "Signatory",
       "agence": "Agency",
       "beneficiaires": "Beneficial owners",
@@ -31,17 +31,14 @@
     "footer": {
       "continue": "Continue",
       "saving": "Saving…",
-      "saved": "Saved",
-      "autosave": "Saved at every step",
       "unknownError": "An unknown error occurred.",
-      "submit": "Submit",
+      "submit": "Submit the file",
       "submitting": "Submitting…",
       "exit": "Finish later"
     },
     "signataire": {
-      "eyebrow": "Authorized signatory",
       "title": "Who is authorized to sign for the agency?",
-      "subtitle": "Provide the identity of the person authorized to commit the agency. We collect this information as part of our compliance controls, under Swiss anti-money laundering law (AMLA).",
+      "subtitle": "The person authorized to commit your agency. We collect this information under Swiss anti-money laundering law (AMLA).",
       "fields": {
         "firstName": "First name",
         "lastName": "Last name",
@@ -58,9 +55,8 @@
       }
     },
     "agence": {
-      "eyebrow": "Agency identity",
       "title": "What is your agency's legal identity?",
-      "subtitle": "This information must match your commercial register entry exactly. We collect it as part of our compliance controls, under Swiss anti-money laundering law (AMLA).",
+      "subtitle": "These details must match your commercial register entry exactly.",
       "fields": {
         "country": "Country of registration",
         "countryPlaceholder": "Select a country",
@@ -70,7 +66,7 @@
         "legalName": "Registered name",
         "legalNameHint": "The official name on your commercial register entry.",
         "tradeName": "Trade name",
-        "tradeNameHint": "The name your agency is known by to clients, if different from the registered name. Used to verify your website.",
+        "tradeNameHint": "The name your clients know you by, if different from the registered name.",
         "businessRegistrationNumber": "Registration number",
         "tva": "VAT number",
         "tvaHint": "Optional: applies only to VAT-registered entities.",
@@ -82,12 +78,11 @@
       }
     },
     "beneficiaires": {
-      "eyebrow": "Beneficial owners",
       "title": "Who are your agency's beneficial owners?",
-      "subtitle": "Provide the individuals who own or control the agency. We collect this information as part of our compliance controls, under Swiss anti-money laundering law (AMLA). The reference threshold is 25% (FATF standard): this is a data-entry aid, you can still declare someone below it.",
+      "subtitle": "The individuals who own or control your agency.",
       "reuseSignataire": "Reuse {{name}} (signatory)",
       "addButton": "Add a beneficial owner",
-      "emptyHint": "No beneficial owner declared yet. This is possible if no individual alone owns or controls 25% or more of the agency: in that case, declare the person who controls it another way, or otherwise a member of the senior management body.",
+      "emptyHint": "No one reaches 25%? Declare whoever controls the agency another way, or otherwise a member of its senior management.",
       "removeButton": "Remove this beneficial owner",
       "fields": {
         "firstName": "First name",
@@ -107,9 +102,8 @@
       }
     },
     "pieceIdentite": {
-      "eyebrow": "ID document",
       "title": "Upload the signatory's ID document",
-      "subtitle": "Front and back of a valid ID document (identity card, passport, or residence permit). This document is reviewed by a member of our compliance team; no automated verification is performed at this stage.",
+      "subtitle": "Front and back of a valid document: identity card, passport, or residence permit. A member of our compliance team reviews it.",
       "missingSignataire": "The signatory must be entered in the previous step first.",
       "sides": {
         "recto": "Front",
@@ -126,9 +120,8 @@
       }
     },
     "recap": {
-      "eyebrow": "Summary",
-      "title": "Review your information before submitting",
-      "subtitle": "Review each section below. You can still edit a step before submitting.",
+      "title": "Review your file before submitting it",
+      "subtitle": "Read through each section. You can still edit a step.",
       "notProvided": "Not provided",
       "beneficiaires": {
         "empty": "No beneficial owner declared.",
@@ -142,10 +135,10 @@
       },
       "attestation": "I confirm that the information above is accurate and complete to the best of my knowledge.",
       "errors": {
-        "legalName": "The agency's registered name is missing. Complete the Agency step before submitting.",
-        "legalForm": "The agency's legal form is missing. Complete the Agency step before submitting.",
-        "country": "The agency's country of registration is missing. Complete the Agency step before submitting.",
-        "signatory": "No active signatory is on file. Complete the Signatory step before submitting.",
+        "legalName": "Registered name missing. Complete the Agency step.",
+        "legalForm": "Legal form missing. Complete the Agency step.",
+        "country": "Country of registration missing. Complete the Agency step.",
+        "signatory": "No active signatory. Complete the Signatory step.",
         "generic": "The submission failed. Please try again."
       }
     }
@@ -154,46 +147,46 @@
     "banner": {
       "notSubmitted": {
         "title": "Identity verification not submitted",
-        "bodyAdmin": "Complete your agency's identity verification to unlock opening KYC files and sending electronic signatures.",
-        "bodyOther": "An administrator or manager of your agency must complete identity verification before a KYC file can be opened or an electronic signature sent."
+        "bodyAdmin": "Complete identity verification to open KYC files and send signatures.",
+        "bodyOther": "An administrator or manager must complete your agency's identity verification."
       },
       "pendingReview": {
         "title": "Verification under review",
-        "body": "The MEGGA team must validate your agency's identity before KYC files and electronic signatures become available. Check back later, the status updates automatically."
+        "body": "We are validating your agency's identity. The status updates automatically."
       },
       "rejected": {
         "title": "Verification rejected",
-        "body": "The MEGGA team did not validate your agency's identity. Resubmitting the form will not trigger a new review: contact MEGGA support to learn why and what to do next."
+        "body": "Your agency's identity was not validated. Resubmitting the form does not trigger a new review: please contact support."
       },
       "cta": "Complete verification",
       "contactSupport": "Contact support",
       "correctionRequested": {
         "title": "Correction requested",
-        "body": "The MEGGA team has asked you to correct your identity details before continuing. The specifics were sent to you by email. Reopen the form, then submit again."
+        "body": "A correction was requested by email. Reopen the form, then submit again."
       }
     },
     "block": {
-      "checking": "Checking your agency's verification status before opening a KYC file…",
+      "checking": "Checking your agency's status…",
       "notSubmitted": {
         "eyebrow": "Identity verification required",
-        "title": "Your agency's identity verification has not been submitted yet",
-        "bodyAdmin": "MEGGA verifies every agency's identity before a KYC client file can be opened or an electronic signature sent, as part of our compliance controls, under Swiss anti-money laundering law (AMLA). As an administrator or manager, you can complete this verification now.",
-        "bodyOther": "MEGGA verifies every agency's identity before a KYC client file can be opened or an electronic signature sent, as part of our compliance controls, under Swiss anti-money laundering law (AMLA). Only an administrator or manager of your agency can complete this verification."
+        "title": "Verify your agency's identity",
+        "bodyAdmin": "We verify every agency's identity before any KYC file or electronic signature, under Swiss anti-money laundering law (AMLA). You can complete it now.",
+        "bodyOther": "We verify every agency's identity before any KYC file or electronic signature, under Swiss anti-money laundering law (AMLA). Only an administrator or manager can complete it."
       },
       "pendingReview": {
         "eyebrow": "Verification in progress",
-        "title": "Your agency's verification file is under review",
-        "body": "Your file has been sent to the MEGGA team. A team member must validate your agency's identity before you can open KYC files or send electronic signatures. Check back on this screen later, the status updates as soon as a decision is made."
+        "title": "We are reviewing your file",
+        "body": "Your file is with our compliance team. The status updates as soon as a decision is made."
       },
       "rejected": {
         "eyebrow": "Verification rejected",
-        "title": "Your agency's verification file was rejected",
-        "body": "The MEGGA team did not validate your agency's identity. Resubmitting the form will not trigger a new review: contact MEGGA support to understand why and to learn the next steps."
+        "title": "Your file was not validated",
+        "body": "Resubmitting the form does not trigger a new review. Contact support to learn the reason and the next steps."
       },
       "unavailable": {
         "eyebrow": "Verification status unavailable",
-        "title": "We could not read your agency's verification status",
-        "body": "This is not a decision about your file: reading the status failed, most likely because of an interrupted connection or a temporarily unavailable service. KYC files cannot be opened until this status is confirmed. Try again in a moment; if the problem persists, contact MEGGA support.",
+        "title": "Verification status could not be read",
+        "body": "This is not about your file: reading the status failed. Try again in a moment, then contact support if the problem persists.",
         "retry": "Retry"
       },
       "cta": "Complete verification",
@@ -201,8 +194,8 @@
       "contactSupport": "Contact support",
       "correctionRequested": {
         "eyebrow": "Correction requested",
-        "title": "Your identity details need correcting",
-        "body": "The MEGGA team reviewed your file and is asking for a correction before validating it. What needs to change was sent to you by email. Reopen the identity form, correct it, then submit again: the review will resume automatically."
+        "title": "A correction is requested",
+        "body": "The details were sent to you by email. Correct your entry, then submit again: the review resumes automatically."
       }
     }
   }
