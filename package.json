@@ -12,6 +12,7 @@
     "check:drift": "node scripts/check-migration-drift.mjs",
     "check:privileges": "node scripts/check-privilege-drift.mjs",
     "lint:i18n": "node scripts/lint-i18n-hardcoded.mjs",
+    "lint:i18n-keys": "node scripts/check-i18n-keys.mjs",
     "lint:deadcode": "node scripts/check-dead-exports.mjs",
     "lint:types-freshness": "node scripts/check-types-freshness.mjs",
     "i18n:prose:fix": "node scripts/i18n-fix-typography.mjs",

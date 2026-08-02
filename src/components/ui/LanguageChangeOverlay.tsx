@@ -40,16 +40,26 @@ export default function LanguageChangeOverlay() {
   const [dark, setDark] = useState(false)
 
   useEffect(() => {
+    // ⚠ `i18n.on` est un émetteur d'événements, pas `useEffect` : ce que le
+    // handler retourne est JETÉ. Une fonction de nettoyage rendue ici n'aurait
+    // donc jamais été appelée — le minuteur doit vivre dans la portée de
+    // l'effet, seul endroit dont le nettoyage est réellement exécuté.
+    let minuteur: number | undefined
     const handler = () => {
       if (reducedMotion) return
       setDark(readSugarDark())
       setActive(true)
-      const id = window.setTimeout(() => setActive(false), OVERLAY_DURATION_MS)
-      return () => window.clearTimeout(id)
+      // Deux bascules rapprochées (la détection géographique en lance une au
+      // chargement, l'agent peut en demander une autre dans la foulée) armaient
+      // deux minuteurs : le premier à expirer fermait le voile alors que la
+      // seconde bascule était encore en cours.
+      window.clearTimeout(minuteur)
+      minuteur = window.setTimeout(() => setActive(false), OVERLAY_DURATION_MS)
     }
     i18n.on('languageChanged', handler)
     return () => {
       i18n.off('languageChanged', handler)
+      window.clearTimeout(minuteur)
     }
   }, [i18n, reducedMotion])
 

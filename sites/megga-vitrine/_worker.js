@@ -190,6 +190,258 @@ function sansLangue(path) {
   return SLUGS.get(canonicalPage(reste)) || reste;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  /api/geo — d'où vient le visiteur, et dans quelle langue lui parler
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Cloudflare pose déjà le pays et la subdivision sur `request.cf` : la détection
+// se fait donc au bord, dans le processus qui sert la page. Aucun appel à un
+// service tiers, aucune adresse IP transmise ni journalisée, et la réponse ne
+// porte que le pays et le canton — pas la ville, pas les coordonnées, dont
+// personne n'a besoin ici.
+//
+// L'arbitrage est rendu ICI plutôt que dans les deux clients (le JS de la
+// vitrine, le TypeScript du CRM). Trois raisons : `Accept-Language` n'existe
+// qu'au bord sous sa forme complète et pondérée ; la vitrine est un export
+// Webflow sans build, qui ne peut pas importer un module partagé ; et une table
+// de langues dupliquée en deux exemplaires diverge le jour où l'un des deux est
+// corrigé seul.
+
+/** Les quatre langues du produit. Tout code hors de cette liste est ignoré. */
+const LANGUES_PRODUIT = ['fr', 'de', 'en', 'it'];
+
+/**
+ * Langue de travail par canton — les 26, une entrée chacun, jamais de « et le
+ * reste en allemand ».
+ *
+ * ⚠ L'exhaustivité n'est pas de la coquetterie : une règle par défaut ferait
+ * tomber dans le seau allemand tout ce qui n'est pas un canton — `CH-ZH` mal
+ * découpé, le `FL` que `npaToCanton` rend pour le Liechtenstein, ou la chaîne
+ * vide — sans que rien ne le signale. Un code inconnu doit sortir `undefined`
+ * et faire abstenir l'appelant.
+ *
+ * Le critère n'est pas « quelle langue parle-t-on ici » mais « dans quelle
+ * langue cet agent travaille-t-il » : registre foncier, notaire, extrait du
+ * registre du commerce, administration cantonale. D'où les quatre arbitrages
+ * des cantons plurilingues :
+ *   BE → de (Berne, Thoune, l'Oberland font le volume ; le Jura bernois et
+ *            Bienne sont mal servis, et l'assument)
+ *   FR → fr (~68 % francophone, administration à priorité française)
+ *   VS → fr (~63 % francophone ; c'est le cas le plus coûteux de la table —
+ *            le Haut-Valais germanophone est un marché de résidences
+ *            secondaires à forte valeur, et on lui propose du français)
+ *   GR → de (Coire, Davos, l'Engadine ; les vallées italophones du Sud sont
+ *            mal servies)
+ * Le romanche n'entre pas : le produit ne le parle pas, et ses locuteurs
+ * travaillent en allemand ou en italien.
+ */
+const LANGUE_PAR_CANTON = {
+  GE: 'fr', VD: 'fr', VS: 'fr', NE: 'fr', FR: 'fr', JU: 'fr',
+  ZH: 'de', BE: 'de', LU: 'de', UR: 'de', SZ: 'de', OW: 'de', NW: 'de',
+  GL: 'de', ZG: 'de', SO: 'de', BS: 'de', BL: 'de', SH: 'de', AR: 'de',
+  AI: 'de', SG: 'de', GR: 'de', AG: 'de', TG: 'de',
+  TI: 'it',
+};
+
+/**
+ * Pays où plusieurs de nos langues sont défendables, et dans lesquels
+ * `Accept-Language` tranche mieux que l'adresse IP.
+ *
+ * C'est le seul endroit où la langue du navigateur est consultée, et le
+ * restreindre ainsi est délibéré : elle ne choisit qu'entre des langues déjà
+ * plausibles là où se trouve la personne. Un macOS en anglais à Genève ne
+ * bascule donc rien — `en` n'est pas dans la liste suisse, on retombe sur le
+ * canton.
+ */
+const LANGUES_PLAUSIBLES_PAR_PAYS = {
+  CH: ['fr', 'de', 'it'],
+  LU: ['fr', 'de'],
+  BE: ['fr'],
+  CA: ['fr', 'en'],
+};
+
+/**
+ * Meilleure langue connue par pays. Absent de la table → anglais (voir
+ * `resoudreLangue`), ce qui est le bon pari pour ES, PT, NL, PL, BR, TR, JP,
+ * les Émirats… : de nos quatre langues, c'est celle qu'ils ont le plus de
+ * chances de lire.
+ *
+ * Les pays francophones hors Europe et les collectivités françaises d'outre-mer
+ * y figurent parce qu'ils portent leur propre code ISO : sans eux, un visiteur
+ * de Casablanca ou de Fort-de-France recevrait de l'anglais alors qu'il lit le
+ * français mieux que nous.
+ */
+const LANGUE_PAR_PAYS = {
+  CH: 'fr', LI: 'de',
+  FR: 'fr', MC: 'fr', BE: 'fr', LU: 'fr',
+  DE: 'de', AT: 'de',
+  IT: 'it', SM: 'it', VA: 'it',
+  // Outre-mer français
+  GP: 'fr', MQ: 'fr', GF: 'fr', RE: 'fr', YT: 'fr', PM: 'fr',
+  BL: 'fr', MF: 'fr', NC: 'fr', PF: 'fr', WF: 'fr',
+  // Francophonie
+  MA: 'fr', TN: 'fr', DZ: 'fr', SN: 'fr', CI: 'fr', CM: 'fr', CD: 'fr',
+  GA: 'fr', ML: 'fr', BF: 'fr', BJ: 'fr', TG: 'fr', NE: 'fr', MG: 'fr', HT: 'fr',
+};
+
+/** Code pays ISO 3166-1 alpha-2, ou `null` si Cloudflare n'a rien de exploitable. */
+function normaliserPays(brut) {
+  const code = String(brut || '').trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(code) ? code : null;
+}
+
+/**
+ * Code de subdivision ISO 3166-2 sans son préfixe pays — le canton, en Suisse.
+ *
+ * Le préfixe est retiré par précaution : `regionCode` est documenté sans lui,
+ * mais une valeur `CH-GE` qui traverserait la table sans être reconnue serait
+ * indistinguable d'un canton inconnu, et ferait taire la détection sans bruit.
+ */
+function normaliserSubdivision(brut) {
+  const code = String(brut || '').trim().toUpperCase().replace(/^[A-Z]{2}-/, '');
+  return /^[A-Z]{2}$/.test(code) ? code : null;
+}
+
+/**
+ * Codes de langue d'un en-tête `Accept-Language`, du plus voulu au moins voulu.
+ *
+ * Le tri par `q` est nécessaire : rien n'oblige le navigateur à envoyer ses
+ * préférences dans l'ordre décroissant, et `q=0` signifie « surtout pas ».
+ * À poids égal, l'ordre d'apparition tranche.
+ */
+function languesAcceptees(entete) {
+  if (!entete) return [];
+  return String(entete)
+    .split(',')
+    .map((brut, rang) => {
+      const morceaux = brut.trim().split(';');
+      const parametreQ = morceaux.slice(1).map((p) => p.trim()).find((p) => p.startsWith('q='));
+      const poids = parametreQ ? Number.parseFloat(parametreQ.slice(2)) : 1;
+      return {
+        code: morceaux[0].trim().slice(0, 2).toLowerCase(),
+        poids: Number.isFinite(poids) ? poids : 0,
+        rang,
+      };
+    })
+    .filter((e) => /^[a-z]{2}$/.test(e.code) && e.poids > 0)
+    .sort((a, b) => b.poids - a.poids || a.rang - b.rang)
+    .map((e) => e.code);
+}
+
+/** Première langue voulue par le navigateur parmi `candidates`, ou `null`. */
+function premiereLangueVoulue(entete, candidates) {
+  for (const code of languesAcceptees(entete)) {
+    if (candidates.includes(code)) return code;
+  }
+  return null;
+}
+
+/**
+ * La langue à proposer, et à quel point on y croit.
+ *
+ * `confidence: 'low'` veut dire « on ne sait pas » : la langue rendue est alors
+ * le défaut produit, et l'appelant ne doit RIEN proposer. C'est le cas d'un
+ * visiteur suisse dont le canton est inconnu — mobile derrière un CGNAT, relais
+ * privé iCloud, VPN. Lui suggérer le français qu'il a déjà sous les yeux, ou
+ * pire lui « confirmer » un choix qu'on n'a pas fait, serait mentir sur ce
+ * qu'on sait.
+ */
+function resoudreLangue(pays, subdivision, acceptLanguage) {
+  const plausibles = LANGUES_PLAUSIBLES_PAR_PAYS[pays];
+
+  // 1. Le navigateur tranche, mais seulement entre des langues déjà plausibles
+  //    là où se trouve la personne.
+  if (plausibles) {
+    const voulue = premiereLangueVoulue(acceptLanguage, plausibles);
+    if (voulue) return { language: voulue, confidence: 'high', source: 'accept-language' };
+  }
+
+  // 2. En Suisse, le canton. C'est le seul pays où il change quelque chose.
+  if (pays === 'CH') {
+    const parCanton = LANGUE_PAR_CANTON[subdivision];
+    if (parCanton) return { language: parCanton, confidence: 'high', source: 'canton' };
+    return { language: 'fr', confidence: 'low', source: 'defaut' };
+  }
+
+  // 3. Le pays.
+  const parPays = LANGUE_PAR_PAYS[pays];
+  if (parPays) return { language: parPays, confidence: 'medium', source: 'pays' };
+
+  // 4. Pays inconnu de la table : on servirait de l'anglais. Là, et là
+  //    seulement, la langue du navigateur vaut mieux que rien — un visiteur
+  //    marocain qui demande du français doit le recevoir.
+  if (pays) {
+    const voulue = premiereLangueVoulue(acceptLanguage, LANGUES_PRODUIT);
+    if (voulue) return { language: voulue, confidence: 'medium', source: 'accept-language' };
+    return { language: 'en', confidence: 'medium', source: 'pays-defaut' };
+  }
+
+  // 5. Même pas de pays : hors réseau Cloudflare, ou `cf` absent.
+  return { language: 'fr', confidence: 'low', source: 'defaut' };
+}
+
+/**
+ * Origines admises à interroger l'endpoint depuis un autre hôte.
+ *
+ * Le CRM vit sur `app.megga.ch`, donc sur une AUTRE origine que la vitrine :
+ * sans cet en-tête, le navigateur lui refuse la lecture de la réponse. Les
+ * préversions Cloudflare du projet `megga-app` sont admises pour qu'une branche
+ * se teste comme la production ; `localhost` pour `npm run dev`.
+ *
+ * ⚠ Écrit ICI et pas dans `_headers` : megga.ch tourne en mode Advanced, où
+ * Cloudflare n'évalue ni `_headers` ni `_redirects` (cf. public/_headers).
+ */
+const ORIGINES_CRM = /^https:\/\/(app\.megga\.ch|[a-z0-9-]+\.megga-app\.pages\.dev)$/;
+
+function origineAutorisee(origine) {
+  if (!origine) return false;
+  if (ORIGINES_CRM.test(origine)) return true;
+  return /^http:\/\/localhost:(5173|4173|4180)$/.test(origine);
+}
+
+/**
+ * Réponse de `/api/geo`.
+ *
+ * `no-store` n'est pas une précaution de style : la réponse dépend de l'adresse
+ * IP et de l'en-tête `Accept-Language` de CHAQUE visiteur. Mise en cache, elle
+ * servirait l'allemand d'un Zurichois à tout le monde.
+ */
+function reponseGeo(request) {
+  const origine = request.headers.get('Origin');
+  const entetes = {
+    'Content-Type': 'application/json; charset=UTF-8',
+    'Cache-Control': 'no-store',
+    'CDN-Cache-Control': 'no-store',
+    Vary: 'Origin, Accept-Language',
+  };
+  if (origineAutorisee(origine)) entetes['Access-Control-Allow-Origin'] = origine;
+
+  // La préflight doit répondre ici : le navigateur ne joint pas d'en-tête
+  // `Authorization` à un OPTIONS, un gate posé devant lui rendrait 401 et le
+  // CRM ne verrait jamais la réponse.
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: { ...entetes, 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Max-Age': '86400' },
+    });
+  }
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return new Response(null, { status: 405, headers: { ...entetes, Allow: 'GET, OPTIONS' } });
+  }
+
+  // `request.cf` est absent hors du réseau Cloudflare (aperçu local, éditeur du
+  // tableau de bord) : sans ce repli, la détection lèverait au lieu de s'abstenir.
+  const cf = request.cf || {};
+  const pays = normaliserPays(cf.country);
+  const subdivision = normaliserSubdivision(cf.regionCode);
+  const decision = resoudreLangue(pays, subdivision, request.headers.get('Accept-Language'));
+
+  return new Response(
+    JSON.stringify({ country: pays, region: subdivision, ...decision }),
+    { headers: entetes }
+  );
+}
+
 /** Vrai si la requête doit passer sans mot de passe. */
 function isPublic(pathname) {
   const path = safePath(pathname);
@@ -203,6 +455,14 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const { pathname } = url;
+
+    // Détection de langue, tout en haut : ni redirection ni mot de passe.
+    //
+    // Le gate répondrait 401 (`/api/geo` n'est ni dans PUBLIC_PAGES ni sous un
+    // préfixe ouvert), et l'ajouter aux chemins publics ne suffirait pas — la
+    // requête finirait ligne « env.ASSETS.fetch » sur un fichier qui n'existe
+    // pas. C'est un endpoint calculé, il se traite avant tout le reste.
+    if (canonicalPage(pathname) === '/api/geo') return reponseGeo(request);
 
     // Anciennes URLs → forme définitive, AVANT le gate (voir LEGACY_REDIRECTS).
     // La query est conservée ; le fragment n'atteint jamais le serveur et le
@@ -235,4 +495,17 @@ export default {
 
     return env.ASSETS.fetch(request);
   },
+};
+
+// Exports nommés pour `tests/unit/vitrine-geo.spec.ts`. Cloudflare ne lit que
+// l'export par défaut ; ceux-ci lui sont indifférents, et ils évitent que la
+// table des 26 cantons ne soit vérifiable que par une regex sur le fichier.
+export {
+  LANGUE_PAR_CANTON,
+  LANGUE_PAR_PAYS,
+  languesAcceptees,
+  normaliserPays,
+  normaliserSubdivision,
+  origineAutorisee,
+  resoudreLangue,
 };
