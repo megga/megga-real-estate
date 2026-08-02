@@ -40,7 +40,7 @@
     "expandSidebar": "Seitenleiste öffnen",
     "mainAgent": "Hauptmakler",
     "adminConsole": "Konsole",
-    "adminOverview": "Ubersicht",
+    "adminOverview": "Übersicht",
     "adminAgencies": "Agenturen",
     "adminUsers": "Benutzer",
     "adminMonitoring": "Monitoring",
@@ -50,19 +50,19 @@
     "adminChangelog": "Changelog",
     "adminFlags": "Feature Flags",
     "adminLive": "Live Feed",
-    "adminPlans": "Plane & Kontingente",
+    "adminPlans": "Pläne & Kontingente",
     "adminSecurity": "Sicherheitsaudit",
     "adminNps": "Zufriedenheit",
     "adminAutonomy": "Agenten-Autonomie",
     "adminLearning": "Gelernte Stile",
     "adminToolUsage": "Tool-Nutzung",
-    "backToCrm": "Back to the CRM",
-    "journey": "Journey",
-    "aiAgent": "Megga, AI agent",
+    "backToCrm": "Zurück zum CRM",
+    "journey": "Verlauf",
+    "aiAgent": "Megga, KI-Agent",
     "help": "Hilfe",
     "notifications": "Notifications",
-    "callbacksToday": "Today's callbacks",
-    "importLeads": "Import leads",
+    "callbacksToday": "Wiedervorlagen heute",
+    "importLeads": "Leads importieren",
     "adminSectionPilotage": "Steuerung",
     "adminSectionClients": "Kunden",
     "adminSectionRevenue": "Umsatz",
@@ -104,8 +104,8 @@
     "showMore": "Mehr anzeigen",
     "showLess": "Weniger anzeigen",
     "viewAll": "Alle anzeigen",
-    "options": "Options",
-    "later": "Later"
+    "options": "Optionen",
+    "later": "Später"
   },
   "time": {
     "ago": "vor",
@@ -162,12 +162,6 @@
     "facebookSoon": "Facebook wird bald verfügbar sein",
     "passwordError": "Das Passwort muss mindestens 8 Zeichen enthalten",
     "back": "Zurück"
-  },
-  "privacyConsent": {
-    "label": "Einwilligung zur Datenverarbeitung",
-    "prefix": "Ich stimme zu, dass MEGGA meine Daten gemäss seiner ",
-    "linkText": "Datenschutzrichtlinie",
-    "suffix": " verarbeitet. Meine Informationen werden verwendet, um meine Anfrage zu beantworten."
   },
   "search": {
     "seoTitle": "Immobilien zum Verkauf in der Schweiz",
@@ -279,40 +273,40 @@
     "clearSearch": "Suche löschen",
     "reset": "Zurücksetzen",
     "command": {
-      "placeholder": "Search or ask Megga…",
-      "clear": "Clear",
+      "placeholder": "Suchen oder Megga fragen…",
+      "clear": "Leeren",
       "scope": {
-        "all": "All",
+        "all": "Alle",
         "contacts": "Contacts",
-        "biens": "Properties",
+        "biens": "Objekte",
         "deals": "Deals",
         "docs": "Documents"
       },
       "section": {
-        "resumeMegga": "Resume with Megga",
-        "recents": "Recent",
-        "askMegga": "Ask Megga",
-        "meggaConvos": "Megga conversations",
-        "biens": "Properties",
+        "resumeMegga": "Mit Megga fortfahren",
+        "recents": "Zuletzt verwendet",
+        "askMegga": "Megga fragen",
+        "meggaConvos": "Megga-Konversationen",
+        "biens": "Objekte",
         "deals": "Deals",
-        "platform": "Platform"
+        "platform": "Plattform"
       },
       "badge": {
-        "semantic": "semantic"
+        "semantic": "semantisch"
       },
       "empty": {
-        "title": "No results for “{{query}}”",
-        "body": "Ask Megga instead, it knows your entire CRM."
+        "title": "Keine Ergebnisse für «{{query}}»",
+        "body": "Fragen Sie stattdessen Megga, er kennt Ihr gesamtes CRM."
       },
-      "askMeggaQuery": "Ask Megga: “{{query}}”",
+      "askMeggaQuery": "Megga fragen: «{{query}}»",
       "deal": {
-        "untitled": "Deal"
+        "untitled": "Transaktion"
       },
-      "roomsShort": "{{count}} rm",
+      "roomsShort": "{{count}} Zi.",
       "aiPrompts": {
-        "buyersReady": "Buyers ready to sign this week",
-        "staleListings": "Listings stalled for 30+ days",
-        "exclusiveMandate": "Draft an exclusive mandate"
+        "buyersReady": "Käufer, die diese Woche unterschriftsbereit sind",
+        "staleListings": "Objekte, die seit über 30 Tagen stagnieren",
+        "exclusiveMandate": "Exklusivmandat verfassen"
       }
     }
   },
@@ -328,111 +322,111 @@
     "groupOlder": "Früher",
     "kind": {
       "kyc": "KYC",
-      "visite": "Viewing",
-      "offre": "Offer",
-      "mandat": "Mandate",
+      "visite": "Besichtigung",
+      "offre": "Angebot",
+      "mandat": "Mandat",
       "ai": "MEGGA AI",
       "doc": "Document",
       "team": "Team",
       "system": "System"
     },
-    "markRead": "Mark as read",
-    "markUnread": "Mark as unread",
-    "hideOne": "Hide this notification",
-    "muteKind": "Turn off “{{kind}}”",
-    "toastMarkedRead": "Marked as read",
-    "toastMarkedUnread": "Marked as unread",
-    "toastHidden": "Notification hidden",
-    "toastMuted": "“{{kind}}” notifications turned off",
-    "unreadCount_one": "{{count}} unread",
-    "unreadCount_other": "{{count}} unread",
-    "allClear": "You're all caught up",
-    "markAllRead": "Mark all as read",
-    "empty": "No notifications yet.",
-    "pause2h": "Pause for 2h",
-    "seeAll": "See all notifications"
+    "markRead": "Als gelesen markieren",
+    "markUnread": "Als ungelesen markieren",
+    "hideOne": "Diese Benachrichtigung ausblenden",
+    "muteKind": "«{{kind}}» deaktivieren",
+    "toastMarkedRead": "Als gelesen markiert",
+    "toastMarkedUnread": "Als ungelesen markiert",
+    "toastHidden": "Benachrichtigung ausgeblendet",
+    "toastMuted": "Benachrichtigungen «{{kind}}» deaktiviert",
+    "unreadCount_one": "{{count}} ungelesen",
+    "unreadCount_other": "{{count}} ungelesen",
+    "allClear": "Alles erledigt",
+    "markAllRead": "Alle als gelesen markieren",
+    "empty": "Noch keine Benachrichtigungen.",
+    "pause2h": "2 Std. pausieren",
+    "seeAll": "Alle Benachrichtigungen ansehen"
   },
   "profile": {
     "defaultName": "Agent",
-    "noAgency": "No agency set",
-    "preferences": "Preferences",
-    "security": "Security & sessions",
-    "billing": "Billing & subscription",
-    "help": "Help center",
-    "adminConsole": "Admin console",
-    "platformSection": "Platform"
+    "noAgency": "Keine Agentur festgelegt",
+    "preferences": "Präferenzen",
+    "security": "Sicherheit & Sitzungen",
+    "billing": "Abrechnung & Abonnement",
+    "help": "Hilfe-Center",
+    "adminConsole": "Admin-Konsole",
+    "platformSection": "Plattform"
   },
   "audit": {
     "category": {
       "kyc": "KYC",
       "deal": "Pipeline",
       "contact": "Contact",
-      "bien": "Property",
+      "bien": "Objekt",
       "doc": "Document",
-      "auth": "Sign-in",
-      "settings": "Settings",
+      "auth": "Anmeldung",
+      "settings": "Einstellungen",
       "ai": "MEGGA AI"
     },
     "csv": {
-      "createdAt": "Date/time",
-      "category": "Category",
-      "severity": "Severity",
+      "createdAt": "Datum/Zeit",
+      "category": "Kategorie",
+      "severity": "Schweregrad",
       "action": "Action",
-      "objectLabel": "Object",
-      "entityType": "Entity type",
-      "entityId": "Entity ID",
-      "actorId": "Actor (ID)",
+      "objectLabel": "Gegenstand",
+      "entityType": "Entitätstyp",
+      "entityId": "Entitäts-ID",
+      "actorId": "Akteur (ID)",
       "ip": "IP",
-      "metadata": "Metadata (JSON)"
+      "metadata": "Metadaten (JSON)"
     },
     "severity": {
-      "critical": "Critical",
-      "warning": "Warning"
+      "critical": "Kritisch",
+      "warning": "Warnung"
     },
     "actor": {
       "agent": "Agent",
       "system": "System"
     },
     "details": "Details",
-    "eventCount_one": "{{count}} event",
-    "eventCount_other": "{{count}} events",
-    "eyebrow": "Compliance · nFADP",
-    "title": "Audit trail.",
-    "subtitle": "Every action on contacts, properties, deals and documents is recorded immutably. This trail meets the audit obligation under the nFADP (art. 12) and the AMLA (art. 7), retained for 10 years.",
+    "eventCount_one": "{{count}} Ereignis",
+    "eventCount_other": "{{count}} Ereignisse",
+    "eyebrow": "Compliance · nDSG",
+    "title": "Auditprotokoll.",
+    "subtitle": "Alle Aktionen an Kontakten, Objekten, Deals und Dokumenten werden unveränderlich aufgezeichnet. Diese Spur erfüllt die Auditpflicht nach nDSG (Art. 12) und GwG (Art. 7) und wird 10 Jahre aufbewahrt.",
     "export": {
       "csv": "Export CSV",
-      "pdf": "Timestamped PDF export",
-      "generating": "Generating…",
-      "pdfFailed": "PDF export failed",
-      "pdfErrorPrefix": "PDF export:"
+      "pdf": "PDF-Export mit Zeitstempel",
+      "generating": "Wird erstellt…",
+      "pdfFailed": "PDF-Export fehlgeschlagen",
+      "pdfErrorPrefix": "PDF-Export:"
     },
     "stats": {
-      "events": "Events",
-      "eventsRangeAll": "Across recent months",
-      "eventsRangeDays": "Across the last {{days}} days",
-      "critical": "Critical",
-      "criticalSub": "Locks, auth failures, denials",
-      "warning": "Warnings",
-      "warningSub": "Re-screening, data export",
-      "aiActions": "MEGGA AI actions",
-      "aiActionsSub": "Suggestions and automated matching"
+      "events": "Ereignisse",
+      "eventsRangeAll": "Über die letzten Monate",
+      "eventsRangeDays": "Über die letzten {{days}} Tage",
+      "critical": "Kritisch",
+      "criticalSub": "Sperren, Auth-Fehler, Ablehnungen",
+      "warning": "Warnungen",
+      "warningSub": "Re-Screening, Datenexport",
+      "aiActions": "MEGGA AI-Aktionen",
+      "aiActionsSub": "Vorschläge und automatisches Matching"
     },
-    "searchPlaceholder": "Search an action or an entity…",
+    "searchPlaceholder": "Aktion oder Gegenstand suchen…",
     "period": {
-      "days7": "7 days",
-      "days30": "30 days",
-      "days90": "90 days",
-      "all": "All"
+      "days7": "7 Tage",
+      "days30": "30 Tage",
+      "days90": "90 Tage",
+      "all": "Alle"
     },
     "filter": {
-      "allCategories": "All categories",
-      "allSeverities": "All severities"
+      "allCategories": "Alle Kategorien",
+      "allSeverities": "Alle Schweregrade"
     },
-    "loading": "Loading the audit trail…",
-    "empty": "No event matches these filters.",
+    "loading": "Protokoll wird geladen…",
+    "empty": "Keine Ereignisse entsprechen diesen Filtern.",
     "footer": {
-      "retention": "Events are cryptographically signed and retained for 10 years (nFADP art. 12 · AMLA art. 7).",
-      "tamperLogged": "Any attempt to delete or alter a record is itself logged."
+      "retention": "Die Ereignisse werden kryptografisch signiert und 10 Jahre aufbewahrt (nDSG Art. 12 · GwG Art. 7).",
+      "tamperLogged": "Jeder Versuch einer Löschung oder Änderung wird selbst protokolliert."
     },
     "action": {
       "admin_console_entered": "Admin-Konsole geöffnet",
@@ -476,227 +470,6 @@
       "whatsapp_agent_copilot_reply": "Antwort des WhatsApp-Copiloten"
     }
   },
-  "portal": {
-    "type": {
-      "studio": "Studio"
-    },
-    "propertyFallback": "Property",
-    "rooms_one": "{{count}} room",
-    "rooms_other": "{{count}} rooms",
-    "mandate": {
-      "exclusive": "Exclusive mandate",
-      "simple": "Simple mandate"
-    },
-    "rel": {
-      "now": "just now",
-      "hours": "{{count}}h ago",
-      "today": "today",
-      "days": "{{count}}d ago",
-      "months": "{{count}} months ago"
-    },
-    "agentRole": "Your agent",
-    "visitsSubThisMonth": "incl. {{count}} this month",
-    "visitsSubDefault": "this month",
-    "step": {
-      "mandateSigned": "Mandate signed",
-      "online": "Online",
-      "visits": "Viewings",
-      "offers": "Offers",
-      "negotiation": "Negotiation",
-      "signed": "Signed"
-    },
-    "stepSentence": {
-      "0": "Your mandate is signed. Your property is getting ready to go online.",
-      "1": "Your property has just gone online. The first viewings are being arranged.",
-      "2": "Your property is online. Viewings are under way.",
-      "3": "You have received your first offers. Your agent is reviewing them with you.",
-      "4": "Negotiation is under way. Your agent is securing the best price for you.",
-      "5": "The sale is signed. Congratulations, everything is finalized."
-    },
-    "next": {
-      "0": {
-        "eta": "Within 3-5 days",
-        "hint": "Photos and listing in preparation."
-      },
-      "1": {
-        "eta": "This week",
-        "hint": "The first viewing requests are coming in."
-      },
-      "2": {
-        "eta": "1 to 2 weeks",
-        "hint": "Qualified viewings lead to the first offers."
-      },
-      "3": {
-        "eta": "A few days",
-        "hint": "Your agent reviews every offer received."
-      },
-      "4": {
-        "eta": "Within 48 hours",
-        "hint": "Your agent is defending your price."
-      }
-    },
-    "header": {
-      "settings": "Settings",
-      "yourAgent": "Your agent"
-    },
-    "property": {
-      "viewPhotos": "View photos",
-      "onlineSince_one": "Online for {{count}} day",
-      "onlineSince_other": "Online for {{count}} days"
-    },
-    "journey": {
-      "title": "Where your sale stands",
-      "stepCounter_one": "Step {{current}}/{{total}} · {{count}} step left",
-      "stepCounter_other": "Step {{current}}/{{total}} · {{count}} steps left",
-      "inProgress": "in progress",
-      "nextStep": "Next step",
-      "congrats": "Congratulations",
-      "saleComplete": "Sale completed",
-      "saleCompleteHint": "Your property is sold. Your agent remains available for post-sale matters."
-    },
-    "stats": {
-      "visits": "Visits",
-      "offers": "Offers",
-      "days": "Days",
-      "offersTarget": "target {{count}}",
-      "medianDays": "GE median · {{days}} d"
-    },
-    "offers": {
-      "statusPending": "Pending",
-      "statusCounter": "Counter-offer",
-      "statusAccepted": "Accepted",
-      "title": "Offers",
-      "emptyTitle": "No offer yet, which is normal at this stage.",
-      "emptyHint": "The viewings are doing their work.",
-      "respond": "Respond to the offer"
-    },
-    "activity": {
-      "title": "Latest news"
-    },
-    "agent": {
-      "whatsapp": "Message on WhatsApp",
-      "call": "Call",
-      "email": "Email"
-    },
-    "offer": {
-      "eyebrow": "Offer received",
-      "heading": "What would you like to do?",
-      "recap": {
-        "amount": "Amount offered",
-        "gap": "Gap to listed price"
-      },
-      "choice": {
-        "accept": {
-          "title": "Accept the offer",
-          "desc": "You confirm the amount offered."
-        },
-        "counter": {
-          "title": "Make a counter-offer",
-          "desc": "Propose your price in return."
-        },
-        "refuse": {
-          "title": "Decline the offer",
-          "desc": "You decline this proposal."
-        }
-      },
-      "counter": {
-        "label": "Your desired price"
-      },
-      "reassurance": "{{name}} confirms every decision with you before it is sent. Nothing goes out without your agreement.",
-      "cancel": "Cancel",
-      "submit": "Send to my agent",
-      "submitting": "Sending…",
-      "error": {
-        "send": "Sending failed. Check your connection, or contact your agent directly."
-      },
-      "sent": {
-        "title": "It's on its way",
-        "accept": "Your agreement has been sent. Your agent will get back to you for the next steps (sale agreement, notary).",
-        "counter": "Your counter-offer of {{amount}} has been sent to your agent, who will present it to the buyer.",
-        "refuse": "Your decline has been sent to your agent, who will keep you informed of the next steps.",
-        "back": "Back to my sale"
-      }
-    },
-    "settings": {
-      "eyebrow": "Settings",
-      "title": "Settings",
-      "notif": {
-        "title": "Notifications",
-        "sub": "You are notified by email.",
-        "offer": "New offer received",
-        "visit": "Viewing scheduled",
-        "feedback": "Feedback after viewing"
-      },
-      "availability": {
-        "title": "Viewing availability",
-        "sub": "When your property can be viewed.",
-        "day": {
-          "mon": "Mon",
-          "tue": "Tue",
-          "wed": "Wed",
-          "thu": "Thu",
-          "fri": "Fri",
-          "sat": "Sat",
-          "sun": "Sun"
-        },
-        "slotsLabel": "Time slots",
-        "slot": {
-          "morning": "Morning",
-          "afternoon": "Afternoon",
-          "evening": "Evening"
-        },
-        "noticeLabel": "Preferred notice",
-        "notice": {
-          "sameDay": "Same day",
-          "24h": "24 h",
-          "48h": "48 h"
-        }
-      },
-      "langContact": {
-        "title": "Language & contact",
-        "langLabel": "Interface language",
-        "channelLabel": "How your agent contacts you",
-        "channel": {
-          "phone": "Phone",
-          "email": "Email"
-        }
-      },
-      "appearance": {
-        "title": "Appearance",
-        "darkMode": "Dark mode",
-        "darkModeSub": "Easier reading in low light"
-      },
-      "cancel": "Cancel",
-      "save": "Save",
-      "saving": "Saving…"
-    },
-    "gallery": {
-      "close": "Close",
-      "previous": "Previous",
-      "next": "Next",
-      "photoAlt": "Photo {{index}}",
-      "emptyTitle": "No photos yet",
-      "emptyHint": "Photos of your property will appear here."
-    },
-    "modal": {
-      "close": "Close"
-    },
-    "invalid": {
-      "notFound": {
-        "title": "Portal not found",
-        "description": "This link does not match any seller portal. Please check the link your real estate agent sent you."
-      },
-      "expired": {
-        "title": "Portal expired",
-        "description": "This seller portal has expired. Please contact your real estate agent to obtain a new link."
-      },
-      "revoked": {
-        "title": "Access revoked",
-        "description": "Access to this portal has been disabled. Please contact your real estate agent for more information."
-      },
-      "backHome": "Back to home"
-    }
-  },
   "errorBoundary": {
     "title": "Ein Fehler ist aufgetreten",
     "body": "Auf unserer Seite ist etwas schiefgelaufen. Sie können die Seite neu laden oder zu Ihrem Dashboard zurückkehren.",
@@ -704,6 +477,6 @@
     "dashboard": "Zurück zum Dashboard"
   },
   "announcements": {
-    "dismiss": "Schließen"
+    "dismiss": "Schliessen"
   }
 }

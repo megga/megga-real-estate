@@ -37,7 +37,10 @@ export type { UserRole, UserProfile } from '@/types/auth'
 
 // DEV_BYPASS: active uniquement en dev ET si VITE_DEV_BYPASS_AUTH=true dans .env.local
 // Ne jamais activer en prod — même si la constante est forcée, ce check empêche l'app de démarrer.
-const DEV_BYPASS_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
+// Exporté pour les gardes qui doivent savoir que le profil courant est un MOCK et que
+// les lignes qu'il désigne n'existent dans aucune base (cf. DEV_BYPASS_AGENCY).
+// eslint-disable-next-line react-refresh/only-export-components -- drapeau de config, pas un composant (même motif que reconcileProfile plus bas).
+export const DEV_BYPASS_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
 
 if (DEV_BYPASS_AUTH && import.meta.env.PROD) {
   throw new Error('[SECURITY] DEV_BYPASS_AUTH ne peut pas être actif en production.')
@@ -101,6 +104,37 @@ const MOCK_USER = {
   created_at: '2026-01-01T00:00:00Z',
 } as unknown as User
 
+/**
+ * L'agence du profil mock — sa FICHE, pas seulement son identifiant.
+ *
+ * `dev-mock-agency` n'existe dans aucune base, et n'est même pas un UUID : toute
+ * lecture de `agencies` à son sujet échoue par construction (PostgREST répond 400,
+ * mesuré le 02.08.2026), et le mock n'a de toute façon pas de session pour passer
+ * la RLS. Un garde qui déduit l'état de l'agence d'une telle lecture ne peut donc
+ * rien conclure — il rend son écran d'échec, et REMPLACE la page qu'il protège.
+ *
+ * C'est ce qui a rendu creuse toute la couverture E2E de /dashboard/kyc :
+ * KycLabGuard rendait « Statut de vérification illisible » et les pages KYC
+ * n'étaient JAMAIS montées, alors que quatre vérifications prétendaient les
+ * couvrir (constat par mutation, 02.08.2026).
+ *
+ * D'où cette ligne : le profil de bypass appartient à une agence VÉRIFIÉE. Les
+ * gardes la lisent au lieu du réseau (cf. `useLabGuard`) et tranchent dessus avec
+ * leur règle habituelle — ils restent donc exercés, ce n'est pas un
+ * court-circuit. Choisir 'validated' plutôt qu'un statut bloqué est délibéré :
+ * un bypass sert à ATTEINDRE les surfaces, et les écrans de blocage se prouvent
+ * là où de vraies données existent (suite KYB, tests backend).
+ *
+ * ⚠ Inopérant en production : `DEV_BYPASS_AUTH` est faux dès que `import.meta.env.DEV`
+ * l'est, et useAuth throw si la combinaison était forcée (cf. plus haut).
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- donnée de configuration, pas un composant.
+export const DEV_BYPASS_AGENCY = {
+  id: 'dev-mock-agency',
+  verification_status: 'validated',
+  identity_submitted_at: '2026-01-01T00:00:00Z',
+} as const
+
 const MOCK_PROFILE: UserProfile = {
   id: 'dev-mock-user',
   email: 'dev@megga.local',
@@ -109,7 +143,7 @@ const MOCK_PROFILE: UserProfile = {
   avatar_url: null,
   phone: null,
   canton: 'GE',
-  agency_id: 'dev-mock-agency',
+  agency_id: DEV_BYPASS_AGENCY.id,
   created_at: '2026-01-01T00:00:00Z',
 }
 

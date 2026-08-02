@@ -121,5 +121,41 @@ if (failed) {
   process.exit(1);
 }
 
+// ── Unicité des versions ──────────────────────────────────────────────────
+//
+// Deux fichiers au MÊME horodatage 14 chiffres se comportent différemment selon
+// le chemin d'application, et les deux issues sont mauvaises :
+//   · sur une base fraîche (CI, `supabase start`), le second casse sur
+//     `schema_migrations_pkey` — bruyant, donc bénin ;
+//   · au rejeu du jour de deploy.yml, qui applique par l'API Management SANS
+//     passer par le tracker, les DEUX s'exécutent dans l'ordre `sort` du nom.
+//     Le suffixe alphabétiquement dernier gagne, en silence, avec un déploiement
+//     vert : une policy durcie peut se faire remplacer par une version faible.
+// Rien n'attrapait ce cas — d'où ce contrôle.
+const byVersion = new Map();
+for (const f of files) {
+  const version = basename(f).slice(0, 14);
+  if (!/^\d{14}$/.test(version)) continue;
+  if (!byVersion.has(version)) byVersion.set(version, []);
+  byVersion.get(version).push(basename(f));
+}
+
+const collisions = [...byVersion.entries()].filter(([, names]) => names.length > 1);
+if (collisions.length) {
+  console.error(`\n✗ ${collisions.length} version(s) de migration en double :`);
+  for (const [version, names] of collisions) {
+    console.error(`    ${version} → ${names.sort().join('  ET  ')}`);
+  }
+  console.error('\nAu rejeu du jour, les deux s\'appliquent et le nom qui trie en DERNIER gagne :');
+  console.error('un correctif peut être écrasé par la version qu\'il remplaçait, sans rien casser.');
+  console.error('Renommer l\'une des deux avec `date +%Y%m%d%H%M%S` (pas un horodatage rond).');
+  console.error('\n⚠ Vérifier l\'unicité contre l\'UNION de la branche ET de origin/main :');
+  console.error("   { git ls-tree -r --name-only origin/main -- supabase/migrations/;\\");
+  console.error("     git ls-tree -r --name-only HEAD -- supabase/migrations/; } \\");
+  console.error("   | grep -oE '[0-9]{14}' | sort | uniq -d");
+  process.exit(1);
+}
+
 const checked = files.filter((f) => !GRANDFATHERED.has(basename(f))).length;
 console.log(`✓ Migrations rejouables (${checked} vérifiées, ${GRANDFATHERED.size} historiques exclues).`);
+console.log(`✓ Versions uniques (${byVersion.size} horodatages distincts).`);

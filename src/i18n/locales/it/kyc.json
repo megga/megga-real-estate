@@ -45,19 +45,6 @@
     "validated": "Validato",
     "rejected": "Rifiutato"
   },
-  "create_modal": {
-    "title": "Nuovo fascicolo KYC",
-    "select_contact": "Selezionare un contatto",
-    "type_label": "Tipo di fascicolo *",
-    "transaction_label": "Transazione collegata (opzionale)",
-    "no_transaction": "Nessuna transazione",
-    "nationality_label": "Nazionalità del contatto",
-    "nationality_hint": "Codice paese ISO 2 lettere (CH, FR, DE...)",
-    "amount_label": "Importo della transazione (CHF)",
-    "error": "Errore durante la creazione del fascicolo",
-    "creating": "Creazione...",
-    "submit": "Creare il fascicolo"
-  },
   "client": {
     "landing": {
       "lock_label": "Link crittografato · scade il {{date}}",
@@ -140,689 +127,653 @@
     },
     "footer": {
       "legal": "Note legali",
-      "privacy": "Privacy"
+      "privacy": "Riservatezza"
     }
   },
   "steps": {
-    "identity": "Identity",
+    "identity": "Identità",
     "beneficiary": "Benef.",
-    "funds": "Funds",
+    "funds": "Fondi",
     "screening": "Screening",
-    "risk": "Risk",
+    "risk": "Rischio",
     "validation": "Validation"
-  },
-  "riskScore": {
-    "low": "Low",
-    "moderate": "Moderate",
-    "high": "High"
   },
   "wizard": {
     "steps": {
-      "start": "Start",
-      "contact": "Contact",
-      "vigilance": "Due diligence"
+      "start": "Avvio",
+      "contact": "Contatto",
+      "vigilance": "Diligenza",
+      "report": "Rapporto"
     },
     "header": {
-      "eyebrow": "AMLA compliance",
-      "title": "New KYC case"
+      "eyebrow": "Conformità LRD",
+      "title": "Nuovo fascicolo KYC"
     },
-    "close": "Close",
+    "close": "Chiudi",
     "nav": {
-      "previous": "Back",
-      "continue": "Continue",
-      "creating": "Creating…",
-      "prepareMagicLink": "Prepare the magic link",
-      "openDossier": "Open the case"
+      "previous": "Indietro",
+      "continue": "Continua",
+      "creating": "Creazione…",
+      "prepareMagicLink": "Prepara il link magico",
+      "openDossier": "Apri il fascicolo"
     },
     "errors": {
-      "missingContactVigilance": "Select a contact and a due diligence level.",
-      "createFailed": "Creation failed"
+      "missingContactVigilance": "Selezioni un contatto e un livello di diligenza.",
+      "createFailed": "Creazione non riuscita"
     },
     "roles": {
-      "buyer": "Buyer",
-      "seller": "Seller",
-      "tenant": "Tenant",
-      "landlord": "Landlord"
+      "buyer": "Acquirente",
+      "seller": "Venditore",
+      "tenant": "Inquilino",
+      "landlord": "Locatore"
     },
     "start": {
-      "title": "How would you like to open this case?",
-      "subtitle": "Three ways to meet your AMLA obligation. The quickest is to link the case to a contact already in your CRM.",
+      "title": "Come desidera aprire questo fascicolo?",
+      "subtitle": "Tre percorsi per adempiere all'obbligo LRD. Il più rapido resta collegare il fascicolo a un contatto già presente nel Suo CRM.",
       "existing": {
-        "title": "Link to an existing contact",
-        "sub": "The most common path: pick a buyer, seller or tenant already in the CRM."
+        "title": "Collegare a un contatto esistente",
+        "sub": "Il caso più frequente: seleziona un acquirente, un venditore o un inquilino già presente nel CRM."
       },
       "import": {
-        "title": "Import an external file (coming soon)",
-        "sub": "Import with automatic parsing (Persona PDF, ComplyAdvantage, partner-agency report) is coming in a future release. Use “Link to an existing contact” in the meantime."
+        "title": "Importare un fascicolo esterno (prossimamente)",
+        "sub": "L'importazione con lettura automatica (PDF Persona, ComplyAdvantage, rapporto di un'agenzia partner) arriverà in una prossima versione. Nel frattempo utilizzi «Collegare a un contatto esistente»."
       },
       "magic": {
-        "title": "Request the documents",
-        "sub": "A magic link is sent to the contact so they can securely upload their documents themselves."
+        "title": "Richiedere i documenti",
+        "sub": "Link magico inviato al contatto affinché carichi lui stesso i suoi giustificativi in tutta sicurezza."
       }
     },
     "contact": {
-      "title": "For which contact?",
-      "subtitle": "Contacts who already have an open KYC case appear greyed out, you can reopen them from the main list.",
-      "searchPlaceholder": "Search for a contact or email…",
-      "empty": "No contact matches this search.",
-      "existingDossier": "Existing case",
+      "title": "Per quale contatto?",
+      "subtitle": "I contatti che hanno già un fascicolo KYC in corso appaiono in grigio, può riaprirli dall'elenco principale.",
+      "searchPlaceholder": "Ricerca contatto o email…",
+      "empty": "Nessun contatto corrisponde a questa ricerca.",
+      "existingDossier": "Fascicolo esistente",
       "typeShort": {
-        "buyer": "Buy",
-        "seller": "Sell",
-        "tenant": "Ten",
-        "landlord": "Lan",
-        "mixed": "Mix"
+        "buyer": "Acqu",
+        "seller": "Vend",
+        "tenant": "Inqu",
+        "landlord": "Prop",
+        "mixed": "Mist"
       }
     },
     "vigilance": {
-      "title": "Which level of due diligence?",
-      "subtitle": "Enhanced due diligence applies to transactions above CHF 100'000, PEP contacts and cross-border operations.",
-      "entityTypeLabel": "AMLA entity type",
-      "entityTypeAria": "Entity type",
-      "entityPp": "Natural person",
-      "entityPm": "Legal entity",
-      "pmHint": "Legal entities trigger the identification of beneficial owners (AMLA art. 4).",
+      "title": "Quale livello di diligenza?",
+      "subtitle": "La diligenza accresciuta si applica alle transazioni superiori a CHF 100'000, ai contatti PEP e alle operazioni internazionali.",
+      "entityTypeLabel": "Tipo di entità LRD",
+      "entityTypeAria": "Tipo di entità",
+      "entityPp": "Persona fisica",
+      "entityPm": "Persona giuridica",
+      "pmHint": "Le persone giuridiche comportano l'accertamento degli aventi economicamente diritto (LRD art. 4).",
       "standard": {
-        "title": "Standard due diligence",
-        "sub": "Five standard checks · AMLA art. 3-4. Enough for most everyday residential transactions."
+        "title": "Diligenza standard",
+        "sub": "Cinque controlli di base · LRD art. 3-4. Sufficiente per la maggior parte delle transazioni residenziali correnti."
       },
       "renforced": {
-        "title": "Enhanced due diligence",
-        "sub": "In-depth checks on the source of funds, beneficial owners and economic background · AMLA art. 6."
+        "title": "Diligenza accresciuta",
+        "sub": "Controlli approfonditi su origine dei fondi, aventi economicamente diritto e retroscena economico · LRD art. 6."
       }
     },
     "gate": {
-      "recommended": "Recommended",
-      "selected": "Selected",
-      "choose": "Choose"
+      "recommended": "Consigliato",
+      "selected": "Selezionato",
+      "choose": "Scegli"
     },
     "magic": {
-      "recommended": "Recommended",
-      "eyebrow": "Magic link · KYC",
-      "title": "Request documents from {{firstName}}",
-      "close": "Close",
-      "modeLabel": "Collection mode",
+      "recommended": "Consigliato",
+      "eyebrow": "Link magico · KYC",
+      "title": "Richiedere i documenti a {{firstName}}",
+      "close": "Chiudi",
+      "modeLabel": "Modalità di raccolta",
       "modeLibre": {
-        "title": "Open",
-        "sub": "The client just uploads their documents. You review them yourself in the CRM.",
+        "title": "Libera",
+        "sub": "Il cliente carica i suoi documenti e basta. La verifica la esegue Lei nel CRM.",
         "duration": "3 min",
-        "steps": "2 screens"
+        "steps": "2 schermate"
       },
       "modeVerifiee": {
-        "title": "Verified",
-        "sub": "The client confirms the data detected on their documents before sending.",
+        "title": "Verificata",
+        "sub": "Il cliente conferma i dati rilevati sui suoi documenti prima dell'invio.",
         "duration": "5 min",
-        "steps": "3 screens"
+        "steps": "3 schermate"
       },
-      "channelLabel": "Send via",
+      "channelLabel": "Invio tramite",
       "channelEmail": "Email",
       "channelSms": "SMS",
-      "noEmail": "No email on file",
-      "noPhone": "No phone on file",
-      "messageLabel": "Custom message · optional",
-      "messagePlaceholder": "Hello {{firstName}},\nAs agreed, here is the link to complete your KYC file. See you soon.",
-      "expiryNote": "The link expires in <1>7 days</1>. The send is recorded in the AMLA art. 7 audit trail.",
-      "cancel": "Cancel",
-      "sending": "Sending…",
-      "sendLink": "Send the link to {{firstName}}",
+      "noEmail": "Nessuna email registrata",
+      "noPhone": "Nessun telefono registrato",
+      "messageLabel": "Messaggio personalizzato · opzionale",
+      "messagePlaceholder": "Buongiorno {{firstName}},\nCome concordato, ecco il link per completare il Suo fascicolo KYC. A presto.",
+      "expiryNote": "Il link scade tra <1>7 giorni</1>. L'invio è registrato nella traccia di audit LRD art. 7.",
+      "cancel": "Annulla",
+      "sending": "Invio in corso…",
+      "sendLink": "Invia il link a {{firstName}}",
       "success": {
-        "eyebrow": "Magic link created",
-        "title": "Link sent to {{firstName}}",
-        "body": "{{firstName}} will receive the link within seconds. You'll be notified as soon as they upload their documents, or if nothing arrives within 3 days.",
-        "urlLabel": "Secure URL · expires in 7 days",
-        "copy": "Copy",
-        "copied": "Copied",
-        "close": "Close"
+        "eyebrow": "Link magico creato",
+        "title": "Link inviato a {{firstName}}",
+        "body": "{{firstName}} riceverà il link tra pochi secondi. La avviseremo non appena carica i suoi documenti, oppure se non arriva nulla entro 3 giorni.",
+        "urlLabel": "URL sicuro · scade tra 7 giorni",
+        "copy": "Copia",
+        "copied": "Copiato",
+        "close": "Chiudi"
       }
     },
     "legacy": {
       "steps": {
-        "context": "Context",
-        "identity": "Identity",
-        "funds": "Source of funds",
+        "context": "Contesto",
+        "identity": "Identità",
+        "funds": "Origine fondi",
         "screening": "Screening",
-        "validation": "Validation"
+        "validation": "Validazione"
       },
       "titles": {
-        "context": "Context, {{name}}",
-        "start": "Start a case",
-        "identity": "Identity, {{name}}",
-        "funds": "Source of funds, {{name}}",
-        "screening": "PEP & sanctions screening",
-        "validation": "Final case validation"
+        "context": "Contesto, {{name}}",
+        "start": "Avviare un fascicolo",
+        "identity": "Identità, {{name}}",
+        "funds": "Origine dei fondi, {{name}}",
+        "screening": "Screening PEP e sanzioni",
+        "validation": "Validazione finale del fascicolo"
       },
       "kickers": {
-        "0": "Step 1 of 5 · AMLA art. 3, Relationship context",
-        "1": "Step 2 of 5 · AMLA art. 3, Identification of the contracting party",
-        "2": "Step 3 of 5 · AMLA art. 4, Source of funds",
-        "3": "Step 4 of 5 · AMLA art. 4, PEP & sanctions screening",
-        "4": "Step 5 of 5 · AMLA, Compliance validation"
+        "0": "Fase 1 di 5 · LRD art. 3, Contesto della relazione",
+        "1": "Fase 2 di 5 · LRD art. 3, Identificazione della controparte",
+        "2": "Fase 3 di 5 · LRD art. 4, Origine dei fondi",
+        "3": "Fase 4 di 5 · LRD art. 4, Screening PEP e sanzioni",
+        "4": "Fase 5 di 5 · LRD, Validazione della conformità"
       },
       "subs": {
-        "0": "Select the relevant contact, their role in the transaction and an indicative amount if already known.",
-        "1": "Enter the data from the official document and confirm the visual check. Sanctions/PEP screening runs in the background via Dilisense.",
-        "2": "Document the source of funds (savings, sale, inheritance…) with an official supporting document.",
-        "3": "Review the PEP and sanctions matches retrieved from the 4 sources queried.",
-        "4": "Final review by the compliance officer before closing the case."
+        "0": "Selezioni il contatto interessato, il suo ruolo nella transazione e un importo indicativo se già noto.",
+        "1": "Inserisca i dati del documento ufficiale e confermi la verifica visiva. Lo screening sanzioni/PEP viene avviato in secondo piano tramite Dilisense.",
+        "2": "Comprovi l'origine dei fondi (risparmi, vendita, eredità…) con un'attestazione ufficiale.",
+        "3": "Verifichi le corrispondenze PEP e sanzioni ottenute dalle 4 fonti interrogate.",
+        "4": "Validazione finale da parte del responsabile della conformità prima della chiusura del fascicolo."
       },
       "types": {
-        "buyer": "Buyer",
-        "seller": "Seller",
-        "pp": "Natural person",
-        "pm": "Legal entity"
+        "buyer": "Acquirente",
+        "seller": "Venditore",
+        "pp": "Persona fisica",
+        "pm": "Persona giuridica"
       },
       "context": {
-        "contactSection": "Relevant contact",
-        "relationSection": "Relationship type",
-        "amountSection": "Transaction amount (optional)",
-        "searchPlaceholder": "Search for a contact by name or email…",
-        "contactsLoading": "Loading contacts…",
-        "contactsEmpty": "No contact found",
-        "changeContact": "Change contact"
+        "contactSection": "Contatto interessato",
+        "relationSection": "Tipo di relazione",
+        "amountSection": "Importo della transazione (opzionale)",
+        "searchPlaceholder": "Ricerca contatto per nome o email…",
+        "contactsLoading": "Caricamento contatti…",
+        "contactsEmpty": "Nessun contatto trovato",
+        "changeContact": "Cambia contatto"
       },
       "identity": {
-        "docSection": "Identity document",
-        "dropTitle": "Drag the passport or ID card",
-        "dropHint": "PDF/JPG · 10 MB max",
-        "browse": "Browse",
-        "manualSection": "Manual entry",
-        "visualSection": "Visual check",
-        "methodSection": "Verification method",
+        "docSection": "Documento d'identità",
+        "dropTitle": "Trascinare il passaporto o la carta d'identità",
+        "dropHint": "PDF/JPG · max 10 MB",
+        "browse": "Sfoglia",
+        "manualSection": "Inserimento manuale",
+        "visualSection": "Verifica visiva",
+        "methodSection": "Metodo di verifica",
         "fields": {
-          "lastName": "Last name",
-          "firstName": "First name(s)",
-          "birthDate": "Date of birth",
-          "nationality": "Nationality(ies)",
-          "docType": "Document type",
-          "docNumber": "Document number",
-          "expiryDate": "Expiry date",
-          "issuingCountry": "Issuing country"
+          "lastName": "Cognome",
+          "firstName": "Nome/i",
+          "birthDate": "Data di nascita",
+          "nationality": "Nazionalità",
+          "docType": "Tipo di documento",
+          "docNumber": "Numero del documento",
+          "expiryDate": "Data di scadenza",
+          "issuingCountry": "Paese di rilascio"
         }
       },
       "checks": {
-        "official": "Official, unexpired document",
-        "photo": "Photo matches the person",
-        "number": "Document number legible",
-        "tamper": "No sign of tampering",
-        "consistent": "Entered data consistent with the document"
+        "official": "Documento ufficiale e non scaduto",
+        "photo": "La foto corrisponde alla persona",
+        "number": "Numero del documento leggibile",
+        "tamper": "Nessun segno di alterazione",
+        "consistent": "Dati inseriti coerenti con il documento"
       },
       "methods": {
         "person": {
-          "label": "In person",
-          "sub": "At the office"
+          "label": "Di persona",
+          "sub": "In ufficio"
         },
         "video": {
-          "label": "Video call",
-          "sub": "Secure link"
+          "label": "Videoconferenza",
+          "sub": "Link sicuro"
         },
         "lawyer": {
-          "label": "Lawyer / notary attestation",
-          "sub": "Attach attestation"
+          "label": "Attestazione avvocato / notaio",
+          "sub": "Allegare l'attestazione"
         }
       },
       "ai": {
-        "consistency": "The entered data is <1>consistent</1> with the contact record. For this profile, an in-person check is usually enough.",
-        "screeningTitle": "Dilisense screening",
-        "screeningStatus": "In progress · 4 sources queried",
-        "screeningHint": "Started automatically on entry. Results at the Screening step.",
-        "tipTitle": "Compliance tip",
-        "tipBody": "Remember to scan the back too for a Swiss ID card, the document number is on the reverse."
+        "consistency": "I dati inseriti sono <1>coerenti</1> con la scheda contatto. Per questo profilo, una verifica di persona è generalmente sufficiente.",
+        "screeningTitle": "Screening Dilisense",
+        "screeningStatus": "In corso · 4 fonti interrogate",
+        "screeningHint": "Avviato automaticamente all'inserimento. Risultati nella fase Screening.",
+        "tipTitle": "Consiglio di conformità",
+        "tipBody": "Con una carta d'identità svizzera, scansioni anche il retro: il numero del documento è sul verso."
       },
       "nav": {
-        "back": "Back",
-        "saveDraft": "Save draft",
-        "creating": "Creating…",
-        "finish": "Finish",
-        "next": "Next step"
+        "back": "Indietro",
+        "saveDraft": "Salva la bozza",
+        "creating": "Creazione…",
+        "finish": "Termina",
+        "next": "Fase successiva"
       },
       "placeholder": {
-        "title": "Step to complete",
-        "body": "The content of this step will be added in a future iteration of the wizard."
+        "title": "Fase da completare",
+        "body": "Il contenuto di questa fase sarà completato in una prossima iterazione della procedura guidata."
       },
       "errors": {
-        "selectContactType": "Select a contact and a relationship type to continue.",
-        "selectContactTypeShort": "Select a contact and a relationship type.",
-        "noAgency": "Agency profile not found, the case can't be created.",
-        "createFailed": "Error while creating the case."
+        "selectContactType": "Selezioni un contatto e un tipo di relazione per continuare.",
+        "selectContactTypeShort": "Selezioni un contatto e un tipo di relazione.",
+        "noAgency": "Profilo dell'agenzia non trovato, impossibile creare il fascicolo.",
+        "createFailed": "Errore durante la creazione del fascicolo."
       }
     },
     "success": {
-      "eyebrow": "File opened",
-      "fallbackTitle": "KYC file",
-      "description": "Five checks are pending. Start by uploading the identity documents or send the document request to the contact.",
-      "close": "Close",
-      "open": "Open the file"
+      "eyebrow": "Fascicolo aperto",
+      "fallbackTitle": "Fascicolo KYC",
+      "description": "Cinque controlli sono in attesa. Inizi caricando i documenti d'identità oppure invii al contatto la richiesta di documenti.",
+      "close": "Chiudi",
+      "open": "Apri il fascicolo"
     }
   },
   "dossier": {
     "detail": {
-      "loadError": "This KYC case could not be loaded.",
-      "loadErrorHint": "Network or database error.",
-      "retry": "Retry",
-      "loading": "Loading case…",
-      "reviewSanctionsFirst": "Review the sanctions match first",
-      "reviewPepFirst": "Review the PEP match first",
-      "screeningRunning": "Screening in progress…",
-      "runScreeningFirst": "Run the screening before validating",
-      "saveFailed": "Save failed.",
-      "fiveChecks": "5 standard checks (AMLA art. 3-7)",
-      "previewError": "Preview unavailable: {{message}}"
+      "loadError": "Impossibile caricare questo fascicolo KYC.",
+      "loadErrorHint": "Errore di rete o di database.",
+      "retry": "Riprova",
+      "loading": "Caricamento del fascicolo…",
+      "reviewSanctionsFirst": "Esamina prima la corrispondenza sanzioni",
+      "reviewPepFirst": "Esamina prima la corrispondenza PEP",
+      "screeningRunning": "Screening in corso…",
+      "runScreeningFirst": "Avvia lo screening prima di validare",
+      "saveFailed": "Salvataggio non riuscito.",
+      "fiveChecks": "5 controlli obbligatori (LRD art. 3-7)",
+      "previewError": "Anteprima non disponibile: {{message}}"
     },
     "tabs": {
-      "synthese": "Summary",
-      "controles": "Checks",
-      "documents": "Documents",
+      "synthese": "Sintesi",
+      "controles": "Controlli",
+      "documents": "Documenti",
       "audit": "Audit"
     },
     "alert": {
-      "matchSanctions": "Sanctions match detected · review required (AMLA art. 9).",
-      "matchPep": "PEP match detected · review required (AMLA art. 9)."
+      "matchSanctions": "Corrispondenza sanzioni rilevata · esame richiesto (LRD art. 9).",
+      "matchPep": "Corrispondenza PEP rilevata · esame richiesto (LRD art. 9)."
     },
     "confirm": {
-      "eyebrow": "Compliance validation · AMLA art. 7",
-      "title": "Mark this case as verified?",
-      "body": "This action ticks the 5 standard checks and sets the case to \"verified\" status. It is logged in the FADP audit trail for 10 years.",
-      "sanctions": "Sanctions:",
+      "eyebrow": "Validazione conformità · LRD art. 7",
+      "title": "Segnare il fascicolo come verificato?",
+      "body": "Questa azione spunta i 5 controlli obbligatori e porta il fascicolo allo stato «verificato». È registrata nel giornale di audit nLPD per 10 anni.",
+      "sanctions": "Sanzioni:",
       "pep": "PEP:",
-      "vigilance": "Due diligence:",
+      "vigilance": "Diligenza:",
       "clear": "✓ Clear",
-      "vigilanceEnhanced": "Enhanced (AMLA art. 6)",
-      "vigilanceStandard": "Standard (AMLA art. 3-4)",
-      "cancel": "Cancel",
-      "submit": "Confirm validation",
+      "vigilanceEnhanced": "Rafforzata (LRD art. 6)",
+      "vigilanceStandard": "Standard (LRD art. 3-4)",
+      "cancel": "Annulla",
+      "submit": "Conferma la validazione",
       "status": {
-        "match": "Match",
-        "pending": "Pending",
-        "not_checked": "Not checked"
+        "match": "Corrispondenza",
+        "pending": "In attesa",
+        "not_checked": "Non verificato"
       }
     },
     "examine": {
-      "matchCount_one": "{{count}} Dilisense match",
-      "matchCount_other": "{{count}} Dilisense matches"
+      "matchCount_one": "{{count}} corrispondenza Dilisense",
+      "matchCount_other": "{{count}} corrispondenze Dilisense"
     },
     "funds": {
-      "eyebrow": "Economic origin · AMLA art. 6 para. 1 let. b",
-      "title": "Source of funds",
-      "edit": "Edit",
-      "document": "Document",
-      "notDocumented": "Not documented. For enhanced due-diligence transactions and any amount above CHF 100'000, we recommend clarifying and retaining the economic background.",
-      "redFlag": "AMLA red flag",
+      "eyebrow": "Origine economica · LRD art. 6 cpv. 1 lett. b",
+      "title": "Origine dei fondi",
+      "edit": "Modifica",
+      "document": "Documenta",
+      "notDocumented": "Non documentata. Per le transazioni con diligenza rafforzata e per qualsiasi importo superiore a CHF 100'000, si raccomanda di chiarire e conservare il retroscena economico.",
+      "redFlag": "Red flag LRD",
       "redFlagSuffix": "(red flag)",
-      "linkedDoc": "Linked document:",
-      "noLinkedDoc": "No document linked, to be uploaded.",
-      "errorAgencyMissing": "Missing agency_id.",
-      "errorSave": "Save failed.",
-      "overlayEyebrow": "AMLA art. 6 para. 1 let. b · Economic background",
-      "overlayTitle": "Document the source of funds",
-      "typeLabel": "Type",
-      "descriptionLabelRequired": "Description ({{count}}/20 characters min)",
-      "descriptionLabelOptional": "Description (optional)",
-      "descriptionPlaceholder": "Specify the economic background: period, instruments, counterparties.",
-      "descriptionPlaceholderCrypto": "E.g. USDT bought in 2021 on Kraken, FINMA-regulated exchange, cold-wallet custody, attestation attached.",
-      "docLabel": "Supporting document (financial or compliance category)",
-      "docNone": "No document",
-      "cancel": "Cancel",
-      "saving": "Saving…",
-      "save": "Save",
+      "linkedDoc": "Documento collegato:",
+      "noLinkedDoc": "Nessun documento associato, da caricare.",
+      "errorAgencyMissing": "agency_id mancante.",
+      "errorSave": "Salvataggio non riuscito.",
+      "overlayEyebrow": "LRD art. 6 cpv. 1 lett. b · Retroscena economico",
+      "overlayTitle": "Documenta l'origine dei fondi",
+      "typeLabel": "Tipo",
+      "descriptionLabelRequired": "Descrizione ({{count}}/20 caratteri min)",
+      "descriptionLabelOptional": "Descrizione (facoltativa)",
+      "descriptionPlaceholder": "Precisa il retroscena economico: periodo, strumenti, controparti.",
+      "descriptionPlaceholderCrypto": "Es.: USDT acquistati nel 2021 su Kraken, exchange regolato FINMA, custodia cold wallet, attestazione allegata.",
+      "docLabel": "Documento giustificativo (categoria financial o compliance)",
+      "docNone": "Nessun documento",
+      "cancel": "Annulla",
+      "saving": "Salvataggio…",
+      "save": "Salva",
       "types": {
         "salary": {
-          "label": "Salary / employment income",
-          "hint": "Payslips or employer certificate"
+          "label": "Stipendio / redditi da lavoro",
+          "hint": "Buste paga o attestazione del datore di lavoro"
         },
         "sale_property": {
-          "label": "Sale of a property",
-          "hint": "Notarized sale contract"
+          "label": "Vendita di un immobile",
+          "hint": "Contratto di vendita notarile"
         },
         "sale_business": {
-          "label": "Sale of a business / shares",
-          "hint": "Transfer deed"
+          "label": "Vendita d'impresa / quote sociali",
+          "hint": "Atto di cessione"
         },
         "inheritance": {
-          "label": "Inheritance / gift",
-          "hint": "Notarized deed"
+          "label": "Eredità / donazione",
+          "hint": "Atto notarile"
         },
         "investment": {
-          "label": "Investment income / dividends",
-          "hint": "Bank statement or tax certificate"
+          "label": "Redditi da investimento / dividendi",
+          "hint": "Estratto conto bancario o attestazione fiscale"
         },
         "crypto": {
-          "label": "Crypto-assets",
-          "hint": "AMLA red flag, detailed description recommended"
+          "label": "Criptoattività",
+          "hint": "Red flag LRD, descrizione dettagliata raccomandata"
         },
         "loan": {
-          "label": "Bank loan",
-          "hint": "Loan agreement + bank certificate"
+          "label": "Prestito bancario",
+          "hint": "Contratto di prestito + attestazione bancaria"
         },
         "mixed": {
-          "label": "Mixed origin",
-          "hint": "AMLA red flag, detail each source"
+          "label": "Origine mista",
+          "hint": "Red flag LRD, dettagliare ogni fonte"
         },
         "other": {
-          "label": "Other",
-          "hint": "Description recommended"
+          "label": "Altro",
+          "hint": "Descrizione raccomandata"
         }
       }
     },
     "synthese": {
-      "typeBuyer": "Buyer",
-      "typeSeller": "Seller",
-      "stateEyebrow": "Case status",
-      "stateVerifiedTitle": "Case verified, ready to proceed",
-      "stateUnverifiedTitle": "Checks to complete",
-      "stateVerifiedBody": "All AMLA checks are validated.",
-      "stateUnverifiedBody": "You can keep moving the deal forward. KYC is recommended before signing, but it is not blocking.",
-      "markingAll": "Validating…",
-      "markAllVerified": "Mark all as verified",
-      "checksEyebrow": "Checks · AMLA art. 3-7",
-      "seeDetail": "View details",
-      "infoEyebrow": "Information",
-      "riskLevel": "Risk level",
-      "contactType": "Contact type",
-      "openedOn": "Case opened on",
-      "lastScreening": "Last screening",
-      "expiry": "Expiry",
-      "reference": "Reference"
+      "typeBuyer": "Acquirente",
+      "typeSeller": "Venditore",
+      "stateEyebrow": "Stato del fascicolo",
+      "stateVerifiedTitle": "Fascicolo verificato, transazione autorizzata",
+      "stateUnverifiedTitle": "Verifiche da completare",
+      "stateVerifiedBody": "Tutti i controlli LRD sono validati.",
+      "stateUnverifiedBody": "Puoi continuare a far avanzare il deal. Il KYC è raccomandato prima della firma, ma non è bloccante.",
+      "markingAll": "Validazione…",
+      "markAllVerified": "Segna tutto come verificato",
+      "checksEyebrow": "Controlli · LRD art. 3-7",
+      "seeDetail": "Vedi il dettaglio",
+      "infoEyebrow": "Informazioni",
+      "riskLevel": "Livello di rischio",
+      "contactType": "Tipo di contatto",
+      "openedOn": "Fascicolo aperto il",
+      "lastScreening": "Ultimo screening",
+      "expiry": "Scadenza",
+      "reference": "Riferimento"
     },
     "docs": {
-      "expiresInDays_one": "Expires in {{count}} day",
-      "expiresInDays_other": "Expires in {{count}} days"
+      "expiresInDays_one": "Scade tra {{count}} g",
+      "expiresInDays_other": "Scade tra {{count}} g"
     }
   },
   "list": {
-    "intro": "Every Swiss real-estate transaction calls for a documented check of identity, address and source of funds. KYC stays recommended before signing, a gentle reminder, never a blocker. Final verification rests with the notary.",
-    "errorTitle": "Unable to load KYC cases.",
-    "retry": "Retry",
-    "emptyFilter": "No case matches this filter.",
-    "staleCount_one": "{{count}} case to re-screen (review date passed).",
-    "staleCount_other": "{{count}} cases to re-screen (review date passed)."
-  },
-  "nonBlocking": {
-    "complete": "Complete",
-    "dismiss": "Dismiss",
-    "dealBadgeHint_one": "{{count}} document outstanding, non-blocking",
-    "dealBadgeHint_other": "{{count}} documents outstanding, non-blocking",
-    "availableActions": "Available actions",
-    "completeBeforeSignature": "Complete KYC before signing",
-    "debtIntro": "No action is ever blocked. The compliance lead sees the outstanding items here and follows up.",
-    "daysShort_one": "{{count}}d",
-    "daysShort_other": "{{count}}d",
-    "followUp": "Follow up",
-    "showcase": {
-      "contactBanner": "Contact card, gentle banner (blocks no action)",
-      "dealBadge": "Deal card, persistent badge",
-      "debtTable": "Outstanding-items table, compliance lead view"
-    }
-  },
-  "contactBento": {
-    "heading": "KYC / AML compliance",
-    "kpiRisk": "Risk",
-    "kpiDocs": "Documents",
-    "kpiLastScreening": "Last screening",
-    "openDossier": "Open case",
-    "followUpClient": "Follow up with client"
+    "intro": "Ogni transazione immobiliare in Svizzera richiede una verifica documentata dell'identità, del domicilio e dell'origine dei fondi. Il KYC resta raccomandato prima della firma, un promemoria discreto, mai bloccante.",
+    "errorTitle": "Impossibile caricare i fascicoli KYC.",
+    "retry": "Riprova",
+    "emptyFilter": "Nessun fascicolo corrisponde a questo filtro.",
+    "staleCount_one": "{{count}} fascicolo da sottoporre a nuovo screening (scadenza superata).",
+    "staleCount_other": "{{count}} fascicoli da sottoporre a nuovo screening (scadenza superata)."
   },
   "upload": {
-    "title": "Add a document",
-    "subtitle": "PDF, JPG, PNG · 10 MB max · Encrypted storage",
-    "close": "Close",
-    "categoryLabel": "Category",
+    "title": "Aggiungi un documento",
+    "subtitle": "PDF, JPG, PNG · max 10 MB · Archiviazione crittografata",
+    "close": "Chiudi",
+    "categoryLabel": "Categoria",
     "documentLabel": "Document",
     "categories": {
-      "identity": "Identity",
-      "domicile": "Address",
-      "financial": "Income",
-      "compliance": "Compliance",
-      "other": "Other"
+      "identity": "Identità",
+      "domicile": "Domicilio",
+      "financial": "Redditi",
+      "compliance": "Conformità",
+      "other": "Altro"
     },
-    "dropTitle": "Drop a file here",
-    "dropHint": "or click to browse",
-    "removeFile": "Remove file",
-    "cancel": "Cancel",
-    "submit": "Upload",
-    "submitting": "Uploading…",
-    "successAdded": "Document added: {{name}}",
-    "errorTooLarge": "File too large (10 MB max).",
-    "errorFailed": "Upload failed.",
+    "dropTitle": "Trascina un file qui",
+    "dropHint": "o clicca per sfogliare",
+    "removeFile": "Rimuovi il file",
+    "cancel": "Annulla",
+    "submit": "Carica",
+    "submitting": "Caricamento in corso…",
+    "successAdded": "Documento aggiunto: {{name}}",
+    "errorTooLarge": "File troppo grande (max 10 MB).",
+    "errorFailed": "Caricamento fallito.",
     "sizeBytes": "{{value}} B",
     "sizeKb": "{{value}} KB",
     "sizeMb": "{{value}} MB"
   },
   "export": {
-    "agentFallback": "Compliance officer",
-    "loading": "Loading case…",
-    "notFound": "Case not found.",
-    "preparing": "Preparing the report…",
-    "close": "Close",
-    "reportRef": "KYC report · {{reference}}",
-    "print": "Print / Save as PDF"
+    "agentFallback": "Responsabile conformità",
+    "loading": "Caricamento del fascicolo…",
+    "notFound": "Fascicolo non trovato.",
+    "preparing": "Preparazione del rapporto…",
+    "close": "Chiudi",
+    "reportRef": "Rapporto KYC · {{reference}}",
+    "print": "Stampa / Salva in PDF"
   },
   "report": {
     "check": {
-      "id": "Counterparty identification",
-      "address": "Address verification",
-      "pep": "PEP screening",
-      "sanctions": "Sanctions lists",
-      "funds": "Source of funds"
+      "id": "Identificazione della controparte",
+      "address": "Verifica dell'indirizzo",
+      "pep": "Screening PEP",
+      "sanctions": "Liste di sanzioni",
+      "funds": "Origine dei fondi"
     },
     "checkJustif": {
-      "id": "Official ID document",
-      "address": "Proof of address < 3 months",
+      "id": "Documento d'identità ufficiale",
+      "address": "Attestazione di domicilio < 3 mesi",
       "pep": "Dilisense, clear",
       "sanctions": "Dilisense, clear",
-      "funds": "Bank statement + payslip"
+      "funds": "Attestazione bancaria + busta paga"
     },
     "contactType": {
-      "buyer_pp": "Buyer · natural person",
-      "buyer_pm": "Buyer · legal entity",
-      "seller_pp": "Seller · natural person",
-      "seller_pm": "Seller · legal entity"
+      "buyer_pp": "Acquirente · persona fisica",
+      "buyer_pm": "Acquirente · persona giuridica",
+      "seller_pp": "Venditore · persona fisica",
+      "seller_pm": "Venditore · persona giuridica"
     },
     "sourceOfFunds": {
-      "salary": "Salary savings",
-      "sale_property": "Property sale",
-      "sale_business": "Business sale",
-      "inheritance": "Inheritance",
-      "investment": "Investments",
-      "crypto": "Crypto-assets",
-      "loan": "Mortgage loan",
-      "mixed": "Mixed (savings + loan)",
-      "other": "Other"
+      "salary": "Risparmi da lavoro",
+      "sale_property": "Vendita immobiliare",
+      "sale_business": "Cessione d'impresa",
+      "inheritance": "Eredità",
+      "investment": "Investimenti / collocamenti",
+      "crypto": "Criptoattività",
+      "loan": "Credito ipotecario",
+      "mixed": "Misto (risparmi + credito)",
+      "other": "Altro"
     },
     "risk": {
-      "low": "Low",
-      "medium": "Medium",
-      "high": "High",
-      "critical": "Critical"
+      "low": "Basso",
+      "medium": "Medio",
+      "high": "Alto",
+      "critical": "Critico"
     },
     "aiVigilance": {
-      "standard": "Standard due diligence",
-      "renforced": "Enhanced due diligence",
-      "escalation_mlro": "MLRO escalation recommended"
+      "standard": "Diligenza standard",
+      "renforced": "Diligenza rafforzata",
+      "escalation_mlro": "Escalation al MLRO raccomandata"
     },
     "docCategory": {
-      "identity": "Identity",
-      "domicile": "Residence",
-      "financial": "Source of funds",
-      "compliance": "Compliance",
-      "other": "Annex"
+      "identity": "Identità",
+      "domicile": "Domicilio",
+      "financial": "Origine dei fondi",
+      "compliance": "Conformità",
+      "other": "Allegato"
     },
     "verdict": {
       "vigilanceStandard": "Standard",
-      "vigilanceRenforced": "Enhanced",
-      "vigilanceSubStandard": "AMLA art. 3",
-      "vigilanceSubRenforced": "AMLA art. 6",
-      "riskSub": "Internal score {{score}}/100",
-      "statusInProgress": "In progress",
-      "statusVerified": "Verified",
-      "statusFailed": "Failed",
-      "statusStale": "To renew",
-      "statusSub": "{{done}}/{{total}} checks validated"
+      "vigilanceRenforced": "Rafforzata",
+      "vigilanceSubStandard": "LRD art. 3",
+      "vigilanceSubRenforced": "LRD art. 6",
+      "riskSub": "Punteggio interno {{score}}/100",
+      "statusInProgress": "In corso",
+      "statusVerified": "Verificato",
+      "statusFailed": "Fallito",
+      "statusStale": "Da rinnovare",
+      "statusSub": "{{done}}/{{total}} controlli validati"
     },
     "agent": {
-      "system": "System",
-      "agent": "Agent",
-      "dilisense": "Dilisense (system)"
+      "system": "Sistema",
+      "agent": "Agente",
+      "dilisense": "Dilisense (sistema)"
     },
     "riskAnalysis": {
-      "riskSub": "{{label}} risk"
+      "riskSub": "Rischio {{label}}"
     },
     "fallback": {
-      "counterparty": "Counterparty",
-      "sourceNotDocumented": "Not documented"
+      "counterparty": "Controparte",
+      "sourceNotDocumented": "Non documentato"
     },
     "pdf": {
-      "headerTag": "KYC report · AMLA",
-      "footerLegal": "MEGGA · legal@megga.ch · AMLA art. 7 · Retain for 10 years",
+      "headerTag": "Rapporto KYC · LRD",
+      "footerLegal": "MEGGA · legal@megga.ch · LRD art. 7 · Documento da conservare 10 anni",
       "pageAbbrev": "p.",
       "page1": {
-        "eyebrow": "Executive summary · AMLA art. 3-7",
-        "title": "KYC report"
+        "eyebrow": "Sintesi esecutiva · LRD art. 3-7",
+        "title": "Rapporto KYC"
       },
       "section": {
-        "client": "Client",
-        "transaction": "Transaction",
-        "verdict": "Overall verdict",
-        "screening": "Official watchlist screening · {{provider}}",
-        "lbaChecks": "Validated AMLA checks · art. 3 to 7",
-        "sourceOfFunds": "Documented source of funds",
-        "riskAnalysis": "Risk analysis",
-        "documents": "Documents attached to the file · {{count}}",
-        "auditTrail": "Audit trail & retention"
+        "client": "Cliente",
+        "transaction": "Transazione",
+        "verdict": "Verdetto complessivo",
+        "screening": "Screening liste ufficiali · {{provider}}",
+        "lbaChecks": "Controlli LRD validati · art. da 3 a 7",
+        "sourceOfFunds": "Origine dei fondi documentata",
+        "riskAnalysis": "Analisi del rischio",
+        "documents": "Documenti allegati al fascicolo · {{count}}",
+        "auditTrail": "Pista di controllo e conservazione"
       },
       "label": {
-        "reference": "Reference",
-        "emittedOn": "Issued on",
-        "by": "By",
-        "identity": "Identity",
-        "nationality": "Nationality",
-        "type": "Type",
-        "taxResidence": "Tax residence",
-        "property": "Property",
-        "mandate": "Mandate",
-        "amount": "Amount",
-        "pipelineStage": "Pipeline stage",
-        "validation": "Validation",
-        "integrityHash": "Integrity hash:",
-        "establishment": "Institution",
-        "attestedAmount": "Attested amount",
-        "retentionPeriod": "Retention period",
-        "legalBasis": "Legal basis"
+        "reference": "Riferimento",
+        "emittedOn": "Emesso il",
+        "by": "Da",
+        "identity": "Identità",
+        "nationality": "Nazionalità",
+        "type": "Tipo",
+        "taxResidence": "Residenza fiscale",
+        "property": "Immobile",
+        "mandate": "Mandato",
+        "amount": "Importo",
+        "pipelineStage": "Fase pipeline",
+        "validation": "Validazione",
+        "integrityHash": "Hash di integrità:",
+        "establishment": "Istituto",
+        "attestedAmount": "Importo attestato",
+        "retentionPeriod": "Durata di conservazione",
+        "legalBasis": "Base legale"
       },
       "value": {
-        "notProvided": "Not provided",
-        "propertyUnderMandate": "Property under mandate"
+        "notProvided": "Non indicata",
+        "propertyUnderMandate": "Immobile sotto mandato"
       },
       "verdictCol": {
-        "vigilance": "Due diligence",
-        "risk": "Risk",
-        "status": "Status"
+        "vigilance": "Diligenza",
+        "risk": "Rischio",
+        "status": "Stato"
       },
-      "validatedBy": "Validated on {{date}} by {{name}}",
-      "validationPending": "File pending validation",
-      "signatureCaption": "Digital signature · qualified",
-      "confidentialNotice": "“Internal document {{agency}} · Strictly confidential · Restricted circulation”",
+      "validatedBy": "Validato il {{date}} da {{name}}",
+      "validationPending": "Fascicolo in corso di validazione",
+      "signatureCaption": "Firma digitale · qualificata",
+      "confidentialNotice": "«Documento interno {{agency}} · Strettamente confidenziale · Diffusione limitata»",
       "page2": {
-        "eyebrow": "Customer due diligence performed",
-        "title": "Checks & documents.",
-        "noMatch": "0 match",
+        "eyebrow": "Dovuta diligenza effettuata",
+        "title": "Controlli e documenti.",
+        "noMatch": "0 corrispondenze",
         "clear": "Clear",
-        "toReview": "To review",
+        "toReview": "Da esaminare",
         "list": {
-          "pep": "PEP (Politically Exposed Persons)",
-          "ofac": "OFAC sanctions (United States)",
-          "seco": "SECO sanctions (Switzerland)",
-          "eu": "EU sanctions",
-          "un": "UN sanctions",
-          "adverseMedia": "Adverse media lists"
+          "pep": "PEP (Persone politicamente esposte)",
+          "ofac": "Sanzioni OFAC (Stati Uniti)",
+          "seco": "Sanzioni SECO (Svizzera)",
+          "eu": "Sanzioni UE",
+          "un": "Sanzioni ONU",
+          "adverseMedia": "Liste adverse media"
         }
       },
       "col": {
-        "list": "List",
-        "provider": "Provider",
-        "result": "Result",
-        "timestamp": "Timestamp",
+        "list": "Lista",
+        "provider": "Fornitore",
+        "result": "Risultato",
+        "timestamp": "Marca temporale",
         "num": "#",
-        "control": "Check",
-        "supportingDoc": "Supporting document",
-        "date": "Date",
-        "agent": "Agent",
-        "fileName": "File name",
-        "category": "Category",
-        "size": "Size",
+        "control": "Controllo",
+        "supportingDoc": "Documento giustificativo",
+        "date": "Data",
+        "agent": "Agente",
+        "fileName": "Nome del file",
+        "category": "Categoria",
+        "size": "Dimensione",
         "hash": "Hash"
       },
-      "riskLevelLabel": "Qualitative risk level",
-      "recommendationLabel": "Recommendation",
-      "confidence": "Confidence: {{pct}}%",
-      "patternsDetected": "Patterns detected",
-      "assistedEstimateNotice": "Assisted estimate, a decision aid; it does not replace the compliance officer's (MLRO) assessment. To be validated.",
+      "riskLevelLabel": "Livello di rischio qualitativo",
+      "recommendationLabel": "Raccomandazione",
+      "confidence": "Confidenza: {{pct}} %",
+      "patternsDetected": "Pattern rilevati",
+      "assistedEstimateNotice": "Stima assistita, ausilio alla decisione, non sostituisce la valutazione del responsabile della conformità (MLRO). Da validare.",
       "page3": {
-        "eyebrow": "Appendices",
-        "title": "Supporting documents.",
-        "noDocuments": "No document is attached to the file to date."
+        "eyebrow": "Allegati",
+        "title": "Documenti giustificativi.",
+        "noDocuments": "Ad oggi nessun documento è allegato al fascicolo."
       },
-      "retentionValue": "10 years from {{date}}",
-      "retentionBody": "In accordance with art. 7 para. 3 AMLA, the entire file (documents, screening, audit trail) is retained in an intact and accessible form for ten years, including after the end of the business relationship.",
-      "legalBasisValue": "AMLA · AMLO-FINMA · nFADP",
-      "legalBasisBody": "This report constitutes documentation within the meaning of art. 7 AMLA and art. 22 AMLO-FINMA. The processing of personal data complies with the principles of the nFADP (proportionality, purpose limitation, security). Right of access guaranteed to the client in accordance with art. 25 nFADP.",
-      "finalAttestationLabel": "Final attestation",
-      "finalAttestationBody": "This KYC report is complete, dated and signed by the financial intermediary subject to the AMLA. No material information has been omitted."
+      "retentionValue": "10 anni a partire dal {{date}}",
+      "retentionBody": "Conformemente all'art. 7 cpv. 3 LRD, l'intero fascicolo (documenti, screening, pista di controllo) è conservato in forma integra e accessibile per dieci anni, anche dopo la fine della relazione d'affari.",
+      "legalBasisValue": "LRD · ORD-FINMA · nLPD",
+      "legalBasisBody": "Il presente rapporto vale come documentazione ai sensi dell'art. 7 LRD e dell'art. 22 ORD-FINMA. Il trattamento dei dati personali rispetta i principi della nLPD (proporzionalità, finalità, sicurezza). Il diritto d'accesso del cliente è garantito conformemente all'art. 25 nLPD.",
+      "finalAttestationLabel": "Attestazione finale",
+      "finalAttestationBody": "Il presente rapporto KYC è completo, datato e firmato dall'intermediario finanziario assoggettato alla LRD. Nessuna informazione rilevante è stata omessa."
     },
     "export": {
-      "agentFallback": "Agent",
-      "loading": "Loading the file…",
-      "notFound": "File not found.",
-      "preparing": "Preparing the report…",
-      "close": "Close",
-      "print": "Print / Save as PDF",
-      "reportRef": "Report {{reference}}"
+      "agentFallback": "Agente",
+      "loading": "Caricamento del fascicolo…",
+      "notFound": "Fascicolo non trovato.",
+      "preparing": "Preparazione del rapporto…",
+      "close": "Chiudi",
+      "print": "Stampa / Salva in PDF",
+      "reportRef": "Rapporto {{reference}}"
     },
     "render": {
-      "unavailable": "Report unavailable.",
-      "preparing": "Preparing the report…"
+      "unavailable": "Rapporto non disponibile.",
+      "preparing": "Preparazione del rapporto…"
     }
   },
   "check": {
     "id": {
-      "title": "Identity document",
-      "sub": "Passport or official ID card, both sides."
+      "title": "Documento d'identità",
+      "sub": "Passaporto o carta d'identità ufficiale, fronte e retro."
     },
     "address": {
-      "title": "Proof of address",
-      "sub": "Named bill < 3 months (rent, electricity, bank)."
+      "title": "Giustificativo di domicilio",
+      "sub": "Fattura nominativa < 3 mesi (affitto, elettricità, banca)."
     },
     "pep": {
-      "title": "PEP screening",
-      "sub": "Check against Politically Exposed Persons lists."
+      "title": "Screening PEP",
+      "sub": "Verifica delle liste di persone politicamente esposte."
     },
     "sanctions": {
-      "title": "Sanctions lists",
-      "sub": "Cross-check OFAC, SECO, UN, European Union."
+      "title": "Liste di sanzioni",
+      "sub": "Incrocio con OFAC, SECO, ONU, Unione Europea."
     },
     "funds": {
-      "title": "Source of funds",
-      "sub": "Declaration and proof of origin for transactions > CHF 100'000."
+      "title": "Origine dei fondi",
+      "sub": "Dichiarazione e prova dell'origine per transazioni > CHF 100'000."
     }
   },
   "dossierStatus": {
-    "none": "Not started",
-    "pending": "In progress",
-    "verified": "Verified",
-    "failed": "Failed",
-    "stale": "Re-screening due"
+    "none": "Da avviare",
+    "pending": "In corso",
+    "verified": "Verificato",
+    "failed": "Fallito",
+    "stale": "Screening da ripetere"
   },
   "riskBadge": {
-    "low": "Low risk",
-    "medium": "Moderate risk",
-    "high": "High risk",
-    "unassessed": "Unassessed"
-  },
-  "dealBadge": {
-    "verified": "KYC verified",
-    "pending": "KYC in progress",
-    "none": "KYC to do",
-    "stale": "KYC expired",
-    "failed": "KYC failed"
+    "low": "Rischio basso",
+    "medium": "Rischio medio",
+    "high": "Rischio alto",
+    "unassessed": "Non valutato"
   },
   "mobile": {
     "back": "Altro",

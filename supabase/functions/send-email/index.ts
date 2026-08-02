@@ -336,17 +336,26 @@ serve(async (req) => {
     const { to, subject: overrideSubject, template, data, scheduled_at }: SendEmailRequest = await req.json()
 
     // ── Auth ────────────────────────────────────────────────────────────────
-    // Templates PUBLICS = contenu 100% rendu serveur (formulaires contact / ticket).
-    // Tout le reste — dont le case `default` avec `data.html` arbitraire — exige une
-    // VRAIE session agent. Sous --no-verify-jwt, `startsWith('Bearer ')` ne prouvait
-    // rien (relais email ouvert). Le destinataire de la notif admin est forcé
-    // côté serveur plus bas (jamais `body.to`).
-    const PUBLIC_TEMPLATES = ['ticket_confirmation', 'contact_confirmation', 'contact_notification_admin']
-    const isPublicTemplate = PUBLIC_TEMPLATES.includes(template)
-    if (!isPublicTemplate) {
-      const auth = await requireAgentAuth(req, corsHeaders)
-      if (auth instanceof Response) return auth
-    }
+    // Plus AUCUNE exemption. Trois templates sautaient `requireAgentAuth` au motif
+    // qu'ils seraient « 100% rendus serveur » — ce qui était faux pour deux d'entre
+    // eux : `ticket_confirmation` rend un bouton dont l'appelant fournit le href
+    // (`data.tracking_url`) et `contact_confirmation` interpole `data.subject` et
+    // `data.message` sans échappement. La fonction étant déployée --no-verify-jwt,
+    // n'importe qui obtenait donc un e-mail MEGGA signé DKIM avec un lien de son
+    // choix : un gabarit d'hameçonnage, pas une confirmation.
+    //
+    // Retirer l'exemption ne casse rien : au 02.08.2026, `contact_messages` et
+    // `support_tickets` comptent 0 ligne DEPUIS TOUJOURS, aucun e-mail n'est parti
+    // en 30 jours, et aucun appelant n'existe — ni dans src/, ni dans sites/
+    // (vitrine), ni dans un trigger. Les deux parcours que ces templates servaient
+    // n'ont jamais tourné.
+    //
+    // ⚠ Le jour où le formulaire de contact public sera branché, il ne devra PAS
+    // rouvrir cette porte : le geste correct est un déclencheur en base qui poste
+    // avec le secret de service (cf. _shared/require-service-secret.ts), ou une
+    // fonction dédiée avec captcha — pas une exemption sur le template.
+    const auth = await requireAgentAuth(req, corsHeaders)
+    if (auth instanceof Response) return auth
 
     const isEmail = (s: unknown): s is string =>
       typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
