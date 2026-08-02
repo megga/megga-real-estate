@@ -115,6 +115,10 @@
       "dropHint": "Click to select a file",
       "formatHint": "JPG, PNG, WEBP, or PDF, 8 MB maximum",
       "replaceHint": "Click to replace",
+      "zoomOpen": "Enlarge the {{side}}",
+      "zoomClose": "Close",
+      "zoomHint": "Check that the document is sharp and all four corners are visible. If not, replace it.",
+      "openPdf": "Open the PDF",
       "errors": {
         "format": "Accepted format: JPG, PNG, WEBP, or PDF.",
         "size": "Maximum size: 8 MB.",

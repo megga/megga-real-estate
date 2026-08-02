@@ -22,6 +22,10 @@
  *    plusieurs écrans, donc aucun stepper nulle part (vérifié, 21 pages).
  * 4. Pied d'actions collant — ses formulaires poussent leur bouton en fin de
  *    flux ; à 10 champs, Continuer doit rester atteignable.
+ * 5. Cadre de document déposé — son wrapper d'image ne pose aucune hauteur,
+ *    donc la photo de l'agent dicte la forme de la tuile.
+ * 6. Modale — elle existe dans la vitrine, mais dans megga-auth.css, feuille
+ *    manuscrite que le générateur ne lit pas. Transcrite au pixel.
  *
  * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
  * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
@@ -35,11 +39,142 @@
   color: var(--neutral-colors--600);
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+ * 5. Cadre de document déposé. Le wrapper d'image de la vitrine
+ *    (`.link-item-image-wrapper` + `.link-item-image`) ne pose AUCUNE hauteur :
+ *    c'est donc la photo de l'agent qui dicte la forme de la tuile. Mesuré à
+ *    1440 px sur l'étape « Pièce d'identité » : un scan 1712×1080 rend un aperçu
+ *    de 237×150, une photo de téléphone 1500×2000 rend 237×316 — deux tuiles de
+ *    hauteurs différentes, grille bancale, et un document trop petit pour être
+ *    vérifié.
+ *
+ *    L'étape « Récapitulatif » du MÊME wizard avait déjà buté là-dessus et s'en
+ *    sort avec `card logo-icon-card` (128 px fixes) + `_w-h-100`. Ce cadre-ci
+ *    reprend l'idée avec un ratio adapté à une pièce d'identité (ID-1, 85,6 ×
+ *    54 mm ≈ 1,585) et surtout `contain` et non `cover` : sur une pièce
+ *    justificative, rogner un bord peut cacher le défaut même qu'on demande à
+ *    l'agent de constater.
+ *
+ *    ⚠ `object-fit: contain` et `aspect-ratio` n'existent NULLE PART dans la
+ *    feuille transcrite (0 occurrence sur 10 571 lignes) : c'est bien un ajout,
+ *    pas une transcription.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-docframe {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1.585;
+  overflow: hidden;
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: var(--main-border-radius--br-small);
+  background-color: var(--neutral-colors--200);
+}
+
+.megga-x .mx-docframe img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Le document agrandi : entier, à sa taille naturelle, plafonné par la fenêtre.
+   `contain` ici aussi — une pièce justificative ne se rogne jamais. */
+.megga-x .mx-docfull {
+  display: block;
+  width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+  border-radius: var(--main-border-radius--br-small);
+  background-color: var(--neutral-colors--200);
+}
+
+/* Le cadre est cliquable pour agrandir : il l'annonce au survol et garde un
+   anneau de focus au clavier (c'est un vrai <button>). */
+.megga-x button.mx-docframe {
+  padding: 0;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+
+.megga-x button.mx-docframe:hover {
+  border-color: var(--neutral-colors--600);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 6. Modale. La vitrine EN A UNE, mais écrite à la main dans
+ *    sites/megga-vitrine/css/megga-auth.css — feuille que le générateur ne lit
+ *    pas (il ne lit que css/styles.css), et dont le comportement vit en DOM
+ *    impératif dans js/megga-auth.js. Valeurs reprises au pixel depuis
+ *    `.megga-modal*` ; seule la mécanique est réécrite en React (MxModal.tsx).
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--main-spacers--small);
+}
+
+.megga-x .mx-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 3, 3, .72);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: mxModalFade .2s ease both;
+}
+
+.megga-x .mx-modal__dialog {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: mxModalRise .28s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+/* Un document se lit en grand : la variante large, pour l'agrandissement. */
+.megga-x .mx-modal__dialog--wide {
+  width: min(920px, 100%);
+}
+
+.megga-x .mx-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+}
+
+@keyframes mxModalFade {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+@keyframes mxModalRise {
+  from { opacity: 0; transform: translateY(10px) }
+  to { opacity: 1; transform: none }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .megga-x .mx-modal__backdrop,
+  .megga-x .mx-modal__dialog {
+    animation: none;
+  }
+}
+
 /* Plomberie de gabarit : l'enfant qui absorbe la hauteur restante d'un
    `.page-wrapper.full-height-page`. Cette classe vitrine pose
    `justify-content: space-between` : à deux enfants (en-tête, section), elle
    cloue la section au BAS de l'écran et ouvre un vide sous le logo dès que le
-   contenu est court. La section qui grandit ne laisse rien à répartir. */
+   contenu est court. La section qui grandit ne laisse rien à répartir.
+   Ce n'est pas une invention : la vitrine règle le même défaut par
+   `.page-wrapper.full-height-page > .section { flex-grow: 1 }` dans
+   megga-auth.css, hors générateur. Ici en classe explicite plutôt qu'en
+   sélecteur structurel, le wizard n'ayant pas la même arborescence. */
 .megga-x .mx-grow {
   flex: 1;
 }
