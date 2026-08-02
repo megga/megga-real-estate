@@ -12,16 +12,9 @@
  * qui sert l'écran Plans : deux calculs séparés divergent, et ils divergeaient déjà —
  * l'ancien calcul de useAdminBilling ignorait les agences SUSPENDUES.
  *
- * ⚠ Client casté : `get_admin_agencies` n'est pas encore dans src/types/database.ts
- * (auto-généré, en retard sur ces migrations — cf. son en-tête). Même motif que
- * useAdminKybReview.ts : entrées/sorties re-typées à la main juste après. À nettoyer à
- * la prochaine régénération (`supabase gen types typescript`).
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-
-const db = supabase as unknown as SupabaseClient
 
 export interface AgencyWithStats {
   id: string
@@ -67,7 +60,7 @@ export function useAdminAgencies() {
   const agencies = useQuery({
     queryKey: ['admin-agencies'],
     queryFn: async (): Promise<AgencyWithStats[]> => {
-      const { data, error } = await db.rpc('get_admin_agencies', { p_limit: 2000, p_offset: 0 })
+      const { data, error } = await supabase.rpc('get_admin_agencies', { p_limit: 2000, p_offset: 0 })
       if (error) throw error
 
       return ((data ?? []) as AdminAgencyRow[]).map(r => ({

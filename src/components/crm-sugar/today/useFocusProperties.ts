@@ -49,16 +49,6 @@ export interface FocusProperty {
   photo: string | null
 }
 
-const fromUntyped = supabase.from as unknown as (table: string) => {
-  select: (cols: string) => {
-    eq: (col: string, val: string) => {
-      order: (col: string, opts: { ascending: boolean }) => {
-        limit: (n: number) => Promise<{ data: unknown; error: Error | null }>
-      }
-    }
-  }
-}
-
 // Un bien VENDU / ARCHIVÉ ne « mérite plus l'attention » : le RPC ne le re-score
 // plus mais sa dernière ligne survit dans property_scores → on l'écarte côté lecture.
 const TERMINAL_STATUS = new Set(['sold', 'archived'])
@@ -70,7 +60,8 @@ export function useFocusProperties(limit = 12): { properties: FocusProperty[]; i
   const query = useQuery({
     queryKey: ['focus-properties', agencyId, limit],
     queryFn: async (): Promise<FocusProperty[]> => {
-      const { data, error } = await fromUntyped('property_scores')
+      const { data, error } = await supabase
+        .from('property_scores')
         .select(
           'property_id, overall_score, score_label, completeness_score, interest_score, pipeline_score, data_completeness, properties(title, city, price, photos, status)',
         )
@@ -78,14 +69,18 @@ export function useFocusProperties(limit = 12): { properties: FocusProperty[]; i
         .order('overall_score', { ascending: false })
         .limit(limit)
       if (error) throw error
-      const rows = (data ?? []) as PropertyScoreRow[]
+      // L'embed to-one `properties(...)` n'est pas affiné par le générateur : la forme
+      // de la LIGNE reste écrite à la main, mais la table et les colonnes du `.select()`
+      // sont désormais vérifiées — une colonne renommée en SQL fait rougir ici.
+      const rows = (data ?? []) as unknown as PropertyScoreRow[]
       return rows
         .map((r): FocusProperty | null => {
           // PostgREST renvoie l'embed to-one en OBJET, mais on normalise un
           // éventuel tableau (défensif) ; un bien supprimé est masqué par la RLS
           // (deleted_at) → join NULL → on l'écarte.
           const p = Array.isArray(r.properties) ? (r.properties[0] ?? null) : r.properties
-          if (p == null || TERMINAL_STATUS.has(p.status ?? '')) return null
+          // `property_id` est nullable en base ; sans bien, la carte n'est pas navigable.
+          if (r.property_id == null || p == null || TERMINAL_STATUS.has(p.status ?? '')) return null
           return {
             propertyId: r.property_id,
             overall: r.overall_score ?? 0,

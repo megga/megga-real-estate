@@ -62,9 +62,7 @@ export function useAgencyTargets(options?: { enabled?: boolean }): {
     mutationFn: async (yearly: number): Promise<void> => {
       const p_yearly = Math.round(Math.max(0, yearly))
       // RPC pas encore dans les types générés `Database` → pattern repo (sans `any`).
-      const rpcUntyped = supabase.rpc as unknown as
-        (fn: string, args: Record<string, unknown>) => Promise<{ error: Error | null }>
-      const { error } = await rpcUntyped('analytics_set_target', { p_yearly })
+      const { error } = await supabase.rpc('analytics_set_target', { p_yearly })
       if (error) throw error
     },
     onSuccess: () => {

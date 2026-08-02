@@ -84,6 +84,35 @@ export type Database = {
           },
         ]
       }
+      admin_agency_notes: {
+        Row: {
+          agency_id: string
+          note: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agency_id: string
+          note: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agency_id?: string
+          note?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_agency_notes_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_changelog: {
         Row: {
           author_id: string | null
@@ -91,6 +120,9 @@ export type Database = {
           created_at: string
           id: string
           published: boolean
+          published_at: string | null
+          scheduled_for: string | null
+          status: string
           title: string
           updated_at: string
           version: string | null
@@ -101,6 +133,9 @@ export type Database = {
           created_at?: string
           id?: string
           published?: boolean
+          published_at?: string | null
+          scheduled_for?: string | null
+          status?: string
           title: string
           updated_at?: string
           version?: string | null
@@ -111,6 +146,9 @@ export type Database = {
           created_at?: string
           id?: string
           published?: boolean
+          published_at?: string | null
+          scheduled_for?: string | null
+          status?: string
           title?: string
           updated_at?: string
           version?: string | null
@@ -158,6 +196,147 @@ export type Database = {
           key?: string
           label?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_log: {
+        Row: {
+          action: string
+          action_params: Json
+          actor_label: string
+          actor_user_id: string | null
+          agency_id: string | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string | null
+          family: string
+          hash: string
+          id: string
+          ip: unknown
+          metadata: Json
+          payload_version: number
+          prev_hash: string
+          routine: boolean
+          seq: number
+          session_id: string | null
+          severity: string
+          ts: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          action_params?: Json
+          actor_label: string
+          actor_user_id?: string | null
+          agency_id?: string | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          family: string
+          hash: string
+          id?: string
+          ip?: unknown
+          metadata?: Json
+          payload_version?: number
+          prev_hash: string
+          routine?: boolean
+          seq: number
+          session_id?: string | null
+          severity: string
+          ts?: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          action_params?: Json
+          actor_label?: string
+          actor_user_id?: string | null
+          agency_id?: string | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          family?: string
+          hash?: string
+          id?: string
+          ip?: unknown
+          metadata?: Json
+          payload_version?: number
+          prev_hash?: string
+          routine?: boolean
+          seq?: number
+          session_id?: string | null
+          severity?: string
+          ts?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_log_family_fkey"
+            columns: ["family"]
+            isOneToOne: false
+            referencedRelation: "admin_log_family"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "admin_log_severity_fkey"
+            columns: ["severity"]
+            isOneToOne: false
+            referencedRelation: "admin_log_severity"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      admin_log_chain_head: {
+        Row: {
+          head_hash: string
+          last_event_ts: string | null
+          one: boolean
+          rows_count: number
+          seq_max: number
+          updated_at: string
+        }
+        Insert: {
+          head_hash: string
+          last_event_ts?: string | null
+          one?: boolean
+          rows_count?: number
+          seq_max?: number
+          updated_at?: string
+        }
+        Update: {
+          head_hash?: string
+          last_event_ts?: string | null
+          one?: boolean
+          rows_count?: number
+          seq_max?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_log_family: {
+        Row: {
+          code: string
+          label_key: string
+        }
+        Insert: {
+          code: string
+          label_key: string
+        }
+        Update: {
+          code?: string
+          label_key?: string
+        }
+        Relationships: []
+      }
+      admin_log_severity: {
+        Row: {
+          code: string
+        }
+        Insert: {
+          code: string
+        }
+        Update: {
+          code?: string
         }
         Relationships: []
       }
@@ -245,6 +424,7 @@ export type Database = {
           tva: string | null
           verification_score: number | null
           verification_status: string
+          verification_sweep_attempts: number
           verified_at: string | null
           website: string | null
           yearly_target: number | null
@@ -281,6 +461,7 @@ export type Database = {
           tva?: string | null
           verification_score?: number | null
           verification_status?: string
+          verification_sweep_attempts?: number
           verified_at?: string | null
           website?: string | null
           yearly_target?: number | null
@@ -317,6 +498,7 @@ export type Database = {
           tva?: string | null
           verification_score?: number | null
           verification_status?: string
+          verification_sweep_attempts?: number
           verified_at?: string | null
           website?: string | null
           yearly_target?: number | null
@@ -327,6 +509,56 @@ export type Database = {
             columns: ["legal_form_id"]
             isOneToOne: false
             referencedRelation: "legal_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_activation: {
+        Row: {
+          agency_id: string
+          computed_at: string
+          first_contact_at: string | null
+          first_deal_at: string | null
+          first_kyc_at: string | null
+          first_match_at: string | null
+          first_property_at: string | null
+          last_activity_at: string | null
+          score: number
+          signed_up_at: string | null
+          status: string
+        }
+        Insert: {
+          agency_id: string
+          computed_at?: string
+          first_contact_at?: string | null
+          first_deal_at?: string | null
+          first_kyc_at?: string | null
+          first_match_at?: string | null
+          first_property_at?: string | null
+          last_activity_at?: string | null
+          score?: number
+          signed_up_at?: string | null
+          status?: string
+        }
+        Update: {
+          agency_id?: string
+          computed_at?: string
+          first_contact_at?: string | null
+          first_deal_at?: string | null
+          first_kyc_at?: string | null
+          first_match_at?: string | null
+          first_property_at?: string | null
+          last_activity_at?: string | null
+          score?: number
+          signed_up_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_activation_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
         ]
@@ -371,6 +603,51 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "agency_person_roles_related_person_id_fkey"
+            columns: ["related_person_id"]
+            isOneToOne: false
+            referencedRelation: "agency_related_persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_person_verification_checks: {
+        Row: {
+          check_type: string
+          checked_at: string
+          id: string
+          raw_response: Json | null
+          related_person_id: string
+          result: string
+          source: string
+        }
+        Insert: {
+          check_type: string
+          checked_at?: string
+          id?: string
+          raw_response?: Json | null
+          related_person_id: string
+          result: string
+          source: string
+        }
+        Update: {
+          check_type?: string
+          checked_at?: string
+          id?: string
+          raw_response?: Json | null
+          related_person_id?: string
+          result?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_person_verification_checks_check_type_fkey"
+            columns: ["check_type"]
+            isOneToOne: false
+            referencedRelation: "verification_check_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "agency_person_verification_checks_related_person_id_fkey"
             columns: ["related_person_id"]
             isOneToOne: false
             referencedRelation: "agency_related_persons"
@@ -645,6 +922,51 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "agencies"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_verification_checks: {
+        Row: {
+          agency_id: string
+          check_type: string
+          checked_at: string
+          id: string
+          raw_response: Json | null
+          result: string
+          source: string
+        }
+        Insert: {
+          agency_id: string
+          check_type: string
+          checked_at?: string
+          id?: string
+          raw_response?: Json | null
+          result: string
+          source: string
+        }
+        Update: {
+          agency_id?: string
+          check_type?: string
+          checked_at?: string
+          id?: string
+          raw_response?: Json | null
+          result?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_verification_checks_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_verification_checks_check_type_fkey"
+            columns: ["check_type"]
+            isOneToOne: false
+            referencedRelation: "verification_check_types"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -946,6 +1268,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_drift_dismissals: {
+        Row: {
+          dismissed_by: string | null
+          drift_key: string
+          month: string
+          ts: string
+        }
+        Insert: {
+          dismissed_by?: string | null
+          drift_key: string
+          month: string
+          ts?: string
+        }
+        Update: {
+          dismissed_by?: string | null
+          drift_key?: string
+          month?: string
+          ts?: string
+        }
+        Relationships: []
       }
       ai_usage_logs: {
         Row: {
@@ -2300,6 +2643,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           custom_message: string | null
+          email_sent_at: string | null
           expired_at: string | null
           expires_at: string
           id: string
@@ -2322,6 +2666,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           custom_message?: string | null
+          email_sent_at?: string | null
           expired_at?: string | null
           expires_at: string
           id?: string
@@ -2344,6 +2689,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           custom_message?: string | null
+          email_sent_at?: string | null
           expired_at?: string | null
           expires_at?: string
           id?: string
@@ -2473,6 +2819,35 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_form_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          id: string
+          legal_form_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          id?: string
+          legal_form_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          id?: string
+          legal_form_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_form_aliases_legal_form_id_fkey"
+            columns: ["legal_form_id"]
+            isOneToOne: false
+            referencedRelation: "legal_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_forms: {
         Row: {
           category: string
@@ -2522,6 +2897,7 @@ export type Database = {
           agency_logo_url: string | null
           agency_name: string | null
           agency_phone: string | null
+          agency_portal_id: string | null
           agency_profile_id: string | null
           agency_reference: string | null
           availability_date: string | null
@@ -2613,6 +2989,7 @@ export type Database = {
           agency_logo_url?: string | null
           agency_name?: string | null
           agency_phone?: string | null
+          agency_portal_id?: string | null
           agency_profile_id?: string | null
           agency_reference?: string | null
           availability_date?: string | null
@@ -2704,6 +3081,7 @@ export type Database = {
           agency_logo_url?: string | null
           agency_name?: string | null
           agency_phone?: string | null
+          agency_portal_id?: string | null
           agency_profile_id?: string | null
           agency_reference?: string | null
           availability_date?: string | null
@@ -3015,6 +3393,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      outbox_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          next_retry_at: string
+          payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          kind: string
+          last_error?: string | null
+          next_retry_at?: string
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          next_retry_at?: string
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       outlook_calendar_sync: {
         Row: {
@@ -3773,6 +4187,113 @@ export type Database = {
         }
         Relationships: []
       }
+      registry_companies: {
+        Row: {
+          business_registration_number: string
+          capital_amount: number | null
+          capital_currency: string | null
+          city: string | null
+          country: string
+          created_at: string
+          discovery_query: string | null
+          fetched_at: string
+          house_number: string | null
+          id: string
+          last_publication_date: string | null
+          legal_form_code: string | null
+          legal_form_id: string | null
+          legal_form_label: string | null
+          legal_name: string
+          legal_seat: string | null
+          legal_seat_code: string | null
+          postal_code: string | null
+          purpose: string | null
+          raw_response: Json | null
+          region_code: string | null
+          registry_deletion_date: string | null
+          registry_entity_id: string | null
+          registry_excerpt_url: string | null
+          registry_office_code: string | null
+          registry_secondary_number: string | null
+          registry_source: string
+          status: string
+          street: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_registration_number: string
+          capital_amount?: number | null
+          capital_currency?: string | null
+          city?: string | null
+          country: string
+          created_at?: string
+          discovery_query?: string | null
+          fetched_at?: string
+          house_number?: string | null
+          id?: string
+          last_publication_date?: string | null
+          legal_form_code?: string | null
+          legal_form_id?: string | null
+          legal_form_label?: string | null
+          legal_name: string
+          legal_seat?: string | null
+          legal_seat_code?: string | null
+          postal_code?: string | null
+          purpose?: string | null
+          raw_response?: Json | null
+          region_code?: string | null
+          registry_deletion_date?: string | null
+          registry_entity_id?: string | null
+          registry_excerpt_url?: string | null
+          registry_office_code?: string | null
+          registry_secondary_number?: string | null
+          registry_source: string
+          status: string
+          street?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_registration_number?: string
+          capital_amount?: number | null
+          capital_currency?: string | null
+          city?: string | null
+          country?: string
+          created_at?: string
+          discovery_query?: string | null
+          fetched_at?: string
+          house_number?: string | null
+          id?: string
+          last_publication_date?: string | null
+          legal_form_code?: string | null
+          legal_form_id?: string | null
+          legal_form_label?: string | null
+          legal_name?: string
+          legal_seat?: string | null
+          legal_seat_code?: string | null
+          postal_code?: string | null
+          purpose?: string | null
+          raw_response?: Json | null
+          region_code?: string | null
+          registry_deletion_date?: string | null
+          registry_entity_id?: string | null
+          registry_excerpt_url?: string | null
+          registry_office_code?: string | null
+          registry_secondary_number?: string | null
+          registry_source?: string
+          status?: string
+          street?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registry_companies_legal_form_id_fkey"
+            columns: ["legal_form_id"]
+            isOneToOne: false
+            referencedRelation: "legal_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminders: {
         Row: {
           agency_id: string
@@ -3868,6 +4389,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rpc_receipts: {
+        Row: {
+          actor_user_id: string | null
+          idempotency_key: string
+          result_hash: string | null
+          rpc: string
+          ts: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          idempotency_key: string
+          result_hash?: string | null
+          rpc: string
+          ts?: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          idempotency_key?: string
+          result_hash?: string | null
+          rpc?: string
+          ts?: string
+        }
+        Relationships: []
       }
       seller_leads: {
         Row: {
@@ -4094,12 +4639,15 @@ export type Database = {
           current_period_start: string | null
           id: string
           interval: string | null
+          last_invoice_status: string | null
+          mrr_chf: number | null
           plan: string
           price: number | null
           status: string
           stripe_customer_id: string
           stripe_price_id: string | null
           stripe_subscription_id: string | null
+          trial_end: string | null
           updated_at: string | null
         }
         Insert: {
@@ -4111,12 +4659,15 @@ export type Database = {
           current_period_start?: string | null
           id?: string
           interval?: string | null
+          last_invoice_status?: string | null
+          mrr_chf?: number | null
           plan?: string
           price?: number | null
           status?: string
           stripe_customer_id: string
           stripe_price_id?: string | null
           stripe_subscription_id?: string | null
+          trial_end?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -4128,12 +4679,15 @@ export type Database = {
           current_period_start?: string | null
           id?: string
           interval?: string | null
+          last_invoice_status?: string | null
+          mrr_chf?: number | null
           plan?: string
           price?: number | null
           status?: string
           stripe_customer_id?: string
           stripe_price_id?: string | null
           stripe_subscription_id?: string | null
+          trial_end?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -4512,6 +5066,62 @@ export type Database = {
           trusted?: boolean
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      verification_check_config: {
+        Row: {
+          check_type: string
+          id: string
+          is_veto: boolean
+          valid_from: string
+          valid_to: string | null
+          weight: number
+        }
+        Insert: {
+          check_type: string
+          id?: string
+          is_veto?: boolean
+          valid_from?: string
+          valid_to?: string | null
+          weight: number
+        }
+        Update: {
+          check_type?: string
+          id?: string
+          is_veto?: boolean
+          valid_from?: string
+          valid_to?: string | null
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_check_config_check_type_fkey"
+            columns: ["check_type"]
+            isOneToOne: false
+            referencedRelation: "verification_check_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      verification_check_types: {
+        Row: {
+          code: string
+          created_at: string
+          label_fr: string
+          scope: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          label_fr: string
+          scope: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          label_fr?: string
+          scope?: string
         }
         Relationships: []
       }
@@ -5449,9 +6059,20 @@ export type Database = {
       }
     }
     Functions: {
+      _agency_identity_completeness_error: {
+        Args: { p_agency_id: string }
+        Returns: string
+      }
       _analytics_decomp: {
         Args: { p: Database["public"]["Enums"]["transaction_stage"] }
         Returns: string
+      }
+      _latest_person_verification_check: {
+        Args: { p_check_type: string; p_related_person_id: string }
+        Returns: {
+          check_id: string
+          check_result: string
+        }[]
       }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
@@ -5581,6 +6202,28 @@ export type Database = {
             }
             Returns: string
           }
+      admin_ai_drift_dismiss: {
+        Args: { p_drift_key: string; p_month: string }
+        Returns: Json
+      }
+      admin_changelog_delete: { Args: { p_id: string }; Returns: Json }
+      admin_changelog_publish: { Args: { p_id: string }; Returns: Json }
+      admin_changelog_save: {
+        Args: {
+          p_content: string
+          p_id: string
+          p_idempotency_key: string
+          p_title: string
+          p_version: string
+        }
+        Returns: Json
+      }
+      admin_changelog_schedule: {
+        Args: { p_id: string; p_when: string }
+        Returns: Json
+      }
+      admin_changelog_unpublish: { Args: { p_id: string }; Returns: Json }
+      admin_console_session_state: { Args: never; Returns: Json }
       admin_create_agency: {
         Args: {
           p_canton?: string
@@ -5592,11 +6235,157 @@ export type Database = {
         }
         Returns: string
       }
+      admin_error: {
+        Args: { p_code: string; p_details?: Json; p_message_fr: string }
+        Returns: Json
+      }
+      admin_kyc_link_lookup: {
+        Args: {
+          p_motive_agency_id: string
+          p_motive_ref: string
+          p_query: string
+        }
+        Returns: Json
+      }
+      admin_kyc_link_regenerate: {
+        Args: {
+          p_idempotency_key: string
+          p_link_id: string
+          p_motive_agency_id: string
+          p_motive_ref: string
+        }
+        Returns: Json
+      }
+      admin_kyc_query_normalize: { Args: { p_query: string }; Returns: string }
+      admin_lock_entity: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: undefined
+      }
+      admin_log_chain_verify_job: { Args: never; Returns: undefined }
       admin_log_console_entry: { Args: { p_metadata?: Json }; Returns: string }
+      admin_log_export: {
+        Args: {
+          p_family?: string
+          p_from: string
+          p_idempotency_key?: string
+          p_to: string
+        }
+        Returns: Json
+      }
       admin_log_impersonation: {
         Args: { p_action: string; p_metadata?: Json; p_target_id: string }
         Returns: string
       }
+      admin_log_payload_v1: {
+        Args: {
+          p_action: string
+          p_action_params: Json
+          p_actor_label: string
+          p_actor_user_id: string
+          p_agency_id: string
+          p_entity_id: string
+          p_entity_label: string
+          p_entity_type: string
+          p_family: string
+          p_id: string
+          p_ip: unknown
+          p_metadata: Json
+          p_routine: boolean
+          p_seq: number
+          p_session_id: string
+          p_severity: string
+          p_ts: string
+          p_user_agent: string
+        }
+        Returns: string
+      }
+      admin_log_verify_chain: {
+        Args: { p_from?: number; p_to?: number }
+        Returns: Json
+      }
+      admin_log_write: {
+        Args: {
+          p_action: string
+          p_action_params?: Json
+          p_actor_label?: string
+          p_agency_id?: string
+          p_entity_id?: string
+          p_entity_label?: string
+          p_entity_type?: string
+          p_family: string
+          p_ip?: unknown
+          p_metadata?: Json
+          p_routine?: boolean
+          p_session_id?: string
+          p_severity?: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
+      admin_ok: { Args: { p_data?: Json }; Returns: Json }
+      admin_outbox_claim: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          next_retry_at: string
+          payload: Json
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "outbox_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      admin_outbox_enqueue: {
+        Args: { p_kind: string; p_payload: Json }
+        Returns: string
+      }
+      admin_outbox_settle: {
+        Args: { p_error?: string; p_id: string; p_max?: number; p_ok: boolean }
+        Returns: string
+      }
+      admin_overview: { Args: never; Returns: Json }
+      admin_plan_pricing_drift: { Args: { p_catalogue: Json }; Returns: Json }
+      admin_receipt_seal: {
+        Args: { p_key: string; p_result: Json }
+        Returns: undefined
+      }
+      admin_receipt_try: {
+        Args: { p_key: string; p_rpc: string }
+        Returns: boolean
+      }
+      admin_reject_agency_review: {
+        Args: { p_agency_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_relaunch_agency_review: {
+        Args: { p_agency_id: string }
+        Returns: undefined
+      }
+      admin_request_agency_correction: {
+        Args: { p_agency_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_resolve_agency_id_document: {
+        Args: { p_agency_id: string; p_check_id: string; p_result: string }
+        Returns: undefined
+      }
+      admin_security_entity: {
+        Args: {
+          p_agency_name: string
+          p_entity_label: string
+          p_entity_type: string
+        }
+        Returns: string
+      }
+      admin_security_window: { Args: { p_window?: string }; Returns: string }
       admin_set_agency_plan: {
         Args: {
           p_agency_id: string
@@ -5614,9 +6403,24 @@ export type Database = {
         Args: { p_role: string; p_user_id: string }
         Returns: undefined
       }
+      admin_validate_agency_review: {
+        Args: { p_agency_id: string }
+        Returns: undefined
+      }
       agency_for_wa_business_number: {
         Args: { p_wa_to: string }
         Returns: string
+      }
+      agency_mrr: { Args: { p_agency_id: string }; Returns: number }
+      agency_mrr_rule: {
+        Args: {
+          p_agency_status: string
+          p_billing_period: string
+          p_plan: string
+          p_pricing: Json
+          p_sub_status: string
+        }
+        Returns: number
       }
       analytics_cockpit: {
         Args: { p_period?: string; p_scope?: string }
@@ -5656,6 +6460,7 @@ export type Database = {
         Returns: boolean
       }
       cancel_visit_by_token: { Args: { p_token: string }; Returns: boolean }
+      changelog_publish_due: { Args: never; Returns: number }
       check_email_exists: { Args: { p_email: string }; Returns: boolean }
       claim_pending_role: { Args: never; Returns: string }
       claim_whatsapp_async_jobs: {
@@ -6058,6 +6863,74 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_admin_agencies: {
+        Args: { p_agency_id?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          agents: number
+          canton: string
+          city: string
+          current_period_end: string
+          deals: number
+          email: string
+          id: string
+          last: string
+          logo_url: string
+          mrr: number
+          name: string
+          phone: string
+          plan: string
+          properties: number
+          score: number
+          since: string
+          slug: string
+          status: string
+          sub: string
+          verification_status: string
+        }[]
+      }
+      get_admin_agency_detail: { Args: { p_agency_id: string }; Returns: Json }
+      get_admin_agency_invitations: {
+        Args: { p_agency_id?: string; p_limit?: number }
+        Returns: {
+          agency_id: string
+          agency_name: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          is_expired: boolean
+          role: string
+          status: string
+        }[]
+      }
+      get_admin_agency_review_detail: {
+        Args: { p_agency_id: string }
+        Returns: {
+          applicable_weight: number
+          check_id: string
+          check_type: string
+          checked_at: string
+          is_veto: boolean
+          raw_response: Json
+          related_person_id: string
+          result: string
+          source: string
+        }[]
+      }
+      get_admin_agency_review_queue: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          agency_id: string
+          agency_name: string
+          country: string
+          identity_submitted_at: string
+          total_count: number
+          verification_score: number
+          verification_status: string
+          verification_sweep_attempts: number
+        }[]
+      }
       get_admin_agency_usage: {
         Args: { p_agency_id: string }
         Returns: {
@@ -6084,6 +6957,7 @@ export type Database = {
           tokens_out: number
         }[]
       }
+      get_admin_ai_month: { Args: { p_months?: number }; Returns: Json }
       get_admin_compliance_stats: {
         Args: never
         Returns: {
@@ -6094,6 +6968,19 @@ export type Database = {
         }[]
       }
       get_admin_consent_stats: { Args: never; Returns: Json }
+      get_admin_cron_runs: {
+        Args: { p_jobname?: string; p_limit?: number }
+        Returns: {
+          active: boolean
+          duration_s: number
+          end_time: string
+          jobname: string
+          message: string
+          schedule: string
+          start_time: string
+          status: string
+        }[]
+      }
       get_admin_dashboard_stats: {
         Args: never
         Returns: {
@@ -6108,6 +6995,20 @@ export type Database = {
       }
       get_admin_end_user_stats: { Args: never; Returns: Json }
       get_admin_integrations_health: { Args: never; Returns: Json }
+      get_admin_kyc_funnel_30d: {
+        Args: never
+        Returns: {
+          cases_opened: number
+          cases_pending: number
+          cases_validated: number
+          links_expired: number
+          links_opened: number
+          links_sent: number
+          links_submitted: number
+          median_hours_open: number
+          window_days: number
+        }[]
+      }
       get_admin_kyc_magic_links: {
         Args: { p_limit?: number; p_offset?: number; p_status?: string }
         Returns: {
@@ -6121,6 +7022,29 @@ export type Database = {
           sent_at: string
           status: string
           uploaded_at: string
+        }[]
+      }
+      get_admin_live_feed: {
+        Args: {
+          p_action?: string
+          p_category?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+        }
+        Returns: {
+          action: string
+          actor_kind: string
+          actor_label: string
+          agency_id: string
+          agency_name: string
+          category: string
+          entity_type: string
+          id: string
+          object_label: string
+          severity: string
+          total_count: number
+          ts: string
         }[]
       }
       get_admin_moderation_stats: {
@@ -6144,6 +7068,7 @@ export type Database = {
           storage_used_mb: number
         }[]
       }
+      get_admin_plans_board: { Args: never; Returns: Json }
       get_admin_quota_breaches: {
         Args: never
         Returns: {
@@ -6153,6 +7078,43 @@ export type Database = {
           metric: string
           threshold_pct: number
           usage: number
+        }[]
+      }
+      get_admin_security_counters: {
+        Args: { p_window?: string }
+        Returns: Json
+      }
+      get_admin_security_journal: {
+        Args: {
+          p_filter?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_window?: string
+        }
+        Returns: {
+          action: string
+          action_params: Json
+          actor: string
+          entity: string
+          fam: string
+          id: string
+          meta: Json
+          sev: string
+          total_count: number
+          ts: string
+        }[]
+      }
+      get_admin_security_routine: {
+        Args: { p_limit?: number; p_window?: string }
+        Returns: {
+          action: string
+          action_params: Json
+          actor: string
+          entity: string
+          id: string
+          routine_total: number
+          ts: string
         }[]
       }
       get_admin_syndication_health: { Args: never; Returns: Json }
@@ -6172,6 +7134,42 @@ export type Database = {
           wa_messages_month: number
         }[]
       }
+      get_admin_user_activity: {
+        Args: { p_limit?: number; p_user_id: string }
+        Returns: {
+          action: string
+          agency_id: string
+          category: string
+          created_at: string
+          entity_id: string
+          entity_label: string
+          entity_type: string
+          id: string
+          severity: string
+        }[]
+      }
+      get_admin_users: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          agency: string
+          agency_id: string
+          avatar_url: string
+          consents: Json
+          deleted_at: string
+          email: string
+          id: string
+          invited_at: string
+          last: string
+          marketing: boolean
+          name: string
+          never: boolean
+          phone: string
+          role: string
+          since: string
+          stale_days: number
+          suspended: boolean
+        }[]
+      }
       get_admin_whatsapp_health: { Args: never; Returns: Json }
       get_agency_activity_summary: {
         Args: { agency_ids: string[]; since_days?: number }
@@ -6188,6 +7186,17 @@ export type Database = {
           agent_count: number
           property_count: number
           transaction_count: number
+        }[]
+      }
+      get_agency_verification_config: { Args: never; Returns: Json }
+      get_agent_changelog: {
+        Args: { p_limit?: number }
+        Returns: {
+          content: string
+          id: string
+          published_at: string
+          title: string
+          version: string
         }[]
       }
       get_agent_learned_styles: {
@@ -6278,6 +7287,7 @@ export type Database = {
         }[]
       }
       get_property_score_config: { Args: never; Returns: Json }
+      get_signup_trigger_count: { Args: never; Returns: number }
       get_today_focus_config: { Args: never; Returns: Json }
       get_user_agency_id: { Args: never; Returns: string }
       get_user_role: { Args: never; Returns: string }
@@ -6367,6 +7377,8 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      is_agency_admin: { Args: never; Returns: boolean }
+      is_agency_lab_cleared: { Args: { p_agency_id: string }; Returns: boolean }
       is_service_role: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       is_within_sla_window: {
@@ -6457,6 +7469,8 @@ export type Database = {
           type: string
         }[]
       }
+      megga_agency_slug: { Args: { p_name: string }; Returns: string }
+      normalize_legal_form_text: { Args: { p_text: string }; Returns: string }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
       pending_consents: {
         Args: never
@@ -6513,6 +7527,7 @@ export type Database = {
       purge_activity_events_retention: { Args: never; Returns: number }
       purge_expired_import_raw_text: { Args: never; Returns: number }
       purge_stale_market_matches: { Args: never; Returns: number }
+      realadvisor_fill_agency_logos: { Args: never; Returns: number }
       realadvisor_health_check: { Args: never; Returns: Json }
       realadvisor_probe_bookkeep: {
         Args: {
@@ -6560,6 +7575,24 @@ export type Database = {
           p_window_days?: number
         }
         Returns: Json
+      }
+      recompute_agency_activation: {
+        Args: { p_agency_id?: string }
+        Returns: number
+      }
+      recompute_agency_verification: {
+        Args: { p_agency_id: string }
+        Returns: undefined
+      }
+      record_agency_verification_run: {
+        Args: {
+          p_agency_id: string
+          p_checks: Json
+          p_metadata: Json
+          p_person_checks?: Json
+          p_severity: string
+        }
+        Returns: undefined
       }
       record_buyer_reaction: {
         Args: {
@@ -7221,7 +8254,10 @@ export type Database = {
         Returns: unknown
       }
       storage_size_mb: { Args: never; Returns: number }
-      submit_agency_identity: { Args: { p_related_person_id?: string }; Returns: undefined }
+      submit_agency_identity: {
+        Args: { p_related_person_id?: string }
+        Returns: undefined
+      }
       submit_visit_feedback_by_token: {
         Args: {
           p_ai: Json
@@ -7240,6 +8276,7 @@ export type Database = {
         Args: { sim_threshold?: number }
         Returns: number
       }
+      sweep_pending_agency_verifications: { Args: never; Returns: undefined }
       team_remove_member: { Args: { p_member_id: string }; Returns: undefined }
       team_set_member_role: {
         Args: { p_member_id: string; p_role: string }

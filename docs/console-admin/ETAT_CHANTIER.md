@@ -704,25 +704,83 @@ majoritairement muré, et ce ne sont pas des murs techniques.**
 |---|---|
 | **24 · 25 · 26** | ⛔ **décision P3** — contrat webhook Immobilier.ch (codes de refus → mapping causes, HMAC). Rien à écrire sans lui. |
 | **27** | ◑ **backend LIVRÉ et déployé** (`get_agent_changelog`, `20260801380000`). La **carte agent** est bloquée : la maquette que `front/admin-communications.jsx:9` désigne — `today-h-live.jsx`, `HL_NEWS` — **n'existe pas au dépôt** (2 occurrences, toutes deux des renvois). La pilule « Nouveau » n'a **aucune source** : pas d'état lu/non-lu, et §5.10 interdit d'emprunter celui de `platform_announcements` (Q10). Et `PageAujourdhui` est un pager **zéro-scroll** plafonné à 760 px portant déjà trois bandeaux. |
-| **28** | ⛔ **sous-spécifiée.** `function_replay` n'a **RIEN à rejouer** — aucune table d'invocations d'edge ; `activity_events/edge_function_error` ne garde que `function_name`, `error`, `duration_ms`. *Ce n'est pas une RPC qui manque, c'est une trace.* Et le plan dit « replay » quand la maquette écrit « Relance demandée — prochain passage 15:12 », c'est-à-dire **re-planifier** : deux fonctionnalités différentes. `wa_deadletter_replay` **n'est pas dans la maquette** (elle offre « Examiner »), or son README pose que les libellés sont **définitifs**. `calendar_resync` n'a **aucun chemin serveur**. ⚠ `admin_lock_entity` exige un **uuid**, qu'un `jobname` de cron n'a pas. |
+| **28** | ⛔ **sous-spécifiée.** `function_replay` n'a **RIEN à rejouer** — aucune table d'invocations d'edge ; `activity_events/edge_function_error` ne garde que `function_name`, `error`, `duration_ms`. *Ce n'est pas une RPC qui manque, c'est une trace.* Et le plan dit « replay » quand la maquette écrit « Relance demandée — prochain passage 15:12 », c'est-à-dire **re-planifier** : deux fonctionnalités différentes. `wa_deadletter_replay` **n'est pas dans la maquette** (elle offre « Examiner »), or son README pose que les libellés sont **définitifs**. `calendar_resync` n'a **aucun chemin serveur**. ⚠ **Mais le 4ᵉ geste, `cron_run_now`, est LIVRABLE** — cette ligne le passait sous silence, et c'était le seul qu'elle n'accusait de rien. Mesuré : 46 jobs actifs, **206 030** exécutions tracées dans `cron.job_run_details`, famille `ops` en base, socle étape 16 prêt. *Les crons ont la trace qui manque aux edges : c'est pourquoi `function_replay` n'a rien à rejouer et `cron_run_now` a tout.* ⛔ Et `admin_lock_entity` n'est **pas** un mur : son corps fait `hashtext(p_entity_id::text)`, l'uuid est reconverti en texte à la ligne suivante (`md5(jobname)::uuid` est stable). Lire la SIGNATURE et non le CORPS avait fabriqué un faux mur. ⚠ Avant d'écrire le geste, lire `megga/pgnet-request-loss` : `job_run_details = 'succeeded'` ne prouve pas que la requête est partie — d'où « Relance **demandée** » dans la maquette. |
 | **29** | ⛔ **décision P4**. |
-| **30** | ⛔ **sous-spécifiée.** Le mécanisme d'alerte **existe entièrement** (`_shared/admin-alerts.ts`, **11 règles** depuis le 01.08) : c'est un signal à y brancher, pas un système à bâtir. Mais « hors projet » et « chiffré » **ne sont définis nulle part**, et **aucun canal d'alerte hors projet n'existe** — tous les crons de santé tournent dans Supabase, donc muets si Supabase tombe, ce qui est *précisément* le cas visé. |
+| **30** | ⛔ **sous-spécifiée.** Le mécanisme d'alerte **existe entièrement** (`_shared/admin-alerts.ts`, **11 règles** depuis le 01.08) : c'est un signal à y brancher, pas un système à bâtir. Mais « hors projet » et « chiffré » **ne sont définis nulle part**. ⚠ En revanche « aucun canal d'alerte hors projet n'existe » est **FAUX** : `.github/workflows/security-audit.yml` tourne chaque lundi 07:03 UTC sur l'infra GitHub, sonde la prod et **envoie un e-mail par Resend** ([security-audit.mjs:284](../../scripts/security-audit.mjs)). La prémisse tenait (46/46 crons pg_cron sont Supabase) mais la conclusion ne suit pas — les veilleurs externes ne sont pas dans `cron.job`, ils sont dans `.github/workflows/`. Il faut **donner un signal** à un canal, pas en bâtir un. |
 
-✅ **Ce qui est réellement faisable au Lot 3, sans aucune décision : rien de neuf.** Les deux
-« gains gratuits » qu'il portait ont été pris le 01.08 — l'alerte de rupture de chaîne
-(règle 10) et la visibilité de la file d'outbox (règle 11).
+✅ **Ce qui est réellement faisable au Lot 3 sans aucune décision : presque rien — mais pas
+« rien ».** Les deux « gains gratuits » ont été pris le 01.08 (règle 10, règle 11). ⚠ **Il
+reste `cron_run_now`**, corrigé le 01.08 après vérification en base : la ligne 28 le rangeait
+sous le même ⛔ que trois gestes qui, eux, sont vraiment murés. Contraintes réelles mais
+chiffrables : `statement_timeout = 8s` sur `authenticated`, 2 jobs sur 46 sont des `REFRESH
+MATERIALIZED VIEW CONCURRENTLY` (impossibles en transaction), et le CHECK d'`outbox_jobs.kind`
+est fermé à `stripe|portal|notify|email`. ⚠ Avant d'ajouter un `kind` : `pg_net` **est déjà
+une outbox transactionnelle** (`net.http_request_queue` est écrite dans la transaction de
+l'appelant), donc seule la garantie de livraison manquerait — arbitrage de fiabilité, pas
+nécessité technique.
+
+⚠ **Le mur dominant du Lot 3 n'est pas les décisions, c'est le VIDE.** Mesuré : `admin_changelog`
+**0 ligne**, `property_syndications` **0**, `agency_syndication_config` **0**,
+`edge_function_error` **0**, dead-letter WhatsApp **0**, table `deployments` **inexistante**.
+Une décision PO rendue demain ne ferait rien apparaître à l'écran. `cron_run_now` échappe au
+vide précisément parce que pg_cron est le seul sous-système qui a de l'histoire.
 
 🎯 **Donc, si l'objectif est d'avancer : le meilleur rapport effort/valeur n'est pas au Lot 3,
 il est à l'étape 19b du Lot 2.** Son backend existe déjà — les 5 RPC KYB sont en production —
 il ne manque que l'habillage, et elle rembourse à elle seule **5 des 8 lignes** de la liste
 `DETTE` du cliquet. Elle attend la maquette **P5**, pas du code.
 
-🔧 **La seule tâche du chantier qui ne demande AUCUNE décision** : régénérer
-`src/types/database.ts` puis retirer les clients castés (`supabase as unknown as
-SupabaseClient`) de `useAdminAgencies`, `useAdminUsers`, `useAdminBilling`, `useChangelog`.
-Tant que le cast est là, **le typage ne vérifie rien** sur ces appels — et le 01.08 a ajouté
-une colonne (`kyc_magic_links.email_sent_at`) et une fonction (`get_agent_changelog`) qui n'y
-sont pas.
+🔧 ✅ **FAIT le 01.08** — la seule tâche du chantier qui ne demandait aucune décision.
+`src/types/database.ts` régénéré depuis la production, **les 16 sites de contournement des
+14 fichiers sont traités**, et une **porte** défend désormais la propriété. Surface exportée
+**strictement identique** sur les 15 fichiers touchés (vérifiée symbole par symbole) : le
+contrat que le plan protège n'a pas bougé. `tsc -b`, `lint`, `lint:deadcode`, `lint:prose`,
+`build` à 0 ; **88 fichiers / 1413 tests**, inchangé.
+
+Ce qui a été *réparé* plutôt qu'*échappé* : les dispatchers génériques (`callRpc`,
+`rpcByToken`, le `rpc<T>` du cockpit) prennent l'union `Parameters<typeof supabase.rpc>[0]`
+au lieu de `string` — un dispatcher typé `string` éteint la vérification pour tous ses
+appelants d'un coup, sans qu'aucun `as` n'apparaisse à leur ligne. Deux gardes de nullité
+ajoutées sur `property_scores.property_id` (nullable en base, clé de Map côté front).
+
+⚠ **Une seule échappatoire subsiste, bornée à deux arguments** : `admin_changelog_save`
+déclare ses cinq paramètres SANS DEFAULT (`pronargdefaults = 0`), or c'est le seul signal
+que lit le générateur — il les type non-nullables alors qu'`uuid` accepte NULL et qu'une
+création passe justement `p_id: null`. Corriger le SQL changerait la signature d'un geste
+déjà en production pour un défaut qui n'existe que dans le type ; le nom de la RPC et les
+trois autres arguments restent vérifiés.
+
+**Porte posée — `scripts/check-types-freshness.mjs`**, trois propriétés, mutée trois fois
+avant livraison (client re-casté → rouge ; RPC hors types → rouge ; parseur cassé → rouge) :
+aucun contournement du client typé dans `src/`, aucune RPC appelée hors des types, aucune
+relation vivante absente du fichier. Statique sur chaque PR (`unit-tests.yml`, sans secret),
+moitié production dans `migration-drift.yml` — le seul workflow qui interroge la prod.
+⚠ Elle ne compare **pas** les fonctions : 770 vivantes contre 420 émises, le filtre du
+générateur nous échappe, et une porte qui se trompe de périmètre crie au loup.
+
+⚠ **Périmètre corrigé le 01.08 — il était très sous-évalué.** La dérive n'est pas « une
+colonne et une fonction » mais **15 relations et 64 fonctions** absentes du fichier (tout le
+socle console : `admin_log`, `outbox_jobs`, `rpc_receipts`, `agency_activation`, les `admin_*`
+et `get_admin_*`) ; vues et enums sont identiques. Et les casts ne sont pas 4 mais **16 sites
+dans 14 fichiers** : un grep sur `as unknown as SupabaseClient` n'en voit que 5, les formes
+majoritaires étant `supabase.rpc as unknown as` et `supabase.from as unknown as`.
+`useAdminBilling` caste `supabase.rpc`, pas le client.
+
+⛔ **Piège mesuré : « la cible est dans `database.ts` » ne veut PAS dire « le cast est
+gratuit ».** L'existence n'est pas la compatibilité. Sur 9 casts à cible typée, **3 seulement**
+compilent sans cast (`useFocusMatches`, `useWhatsAppPairing`, `useAgencyTargets`) ; les autres
+cassent pour de vraies raisons — `get_today_focus_config` est typée `Args: never` et le hook
+passe `{}` ; `property_scores.property_id` est `string | null` et le hook rétrécit à `string` ;
+`useAxDashboardData` et `useVisits` castent un **dispatcher générique**, pas un appel.
+**Vérifier en compilant, jamais au grep.**
+
+⚠ Ne pas promettre une récolte de bugs : mesuré (tsc d'ombre, types frais, exit 0), la
+régénération seule ne casse rien et ne révèle **aucun bug latent**. Et régénérer **seul** ne
+vaut presque rien tant que les casts tiennent — une sonde tsc casts en place ne peut
+structurellement voir aucune erreur de forme de retour. ⚠ **Aucune porte ne surveille la
+fraîcheur de `database.ts`** : `check-migration-drift.mjs` compare migrations→base, jamais
+types→base, alors que son propre en-tête raconte qu'un `database.ts` figé avait cassé quatre
+gestes du pipeline pendant une semaine en juillet.
 
 ## 8. Re-dater les migrations le jour du merge — procédure
 

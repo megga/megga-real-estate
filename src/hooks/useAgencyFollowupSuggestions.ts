@@ -6,16 +6,11 @@
 // SEULE surface des suivis, les actions vivent donc ici (restaurées de #842).
 //
 // RLS : wa_followups_agency_select / _update (agency_id = get_my_agency_id()) —
-// borné à l'agence de l'agent connecté, comme le partage des contacts. La table
-// n'est pas encore dans les types générés (database.ts en retard sur la prod) →
-// client casté, entrées/sorties typées fort.
+// borné à l'agence de l'agent connecté, comme le partage des contacts.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { FollowupKind } from './useFollowupSuggestions'
-
-const db = supabase as unknown as SupabaseClient
 
 export interface AgencyFollowupRow {
   id: string
@@ -48,7 +43,7 @@ export function useAgencyFollowupSuggestions(limit = AGENCY_FOLLOWUPS_LIMIT) {
     queryKey: ['wa-agency-followups', limit],
     staleTime: 60_000,
     queryFn: async (): Promise<AgencyFollowupRow[]> => {
-      const res = await db
+      const res = await supabase
         .from('whatsapp_followup_suggestions')
         .select('id, contact_id, action, due_at, kind')
         .eq('status', 'suggested')
@@ -105,7 +100,7 @@ export function useAgencyFollowupActions() {
 
   const accept = useMutation({
     mutationFn: async (id: string) => {
-      const res = await db.rpc('accept_followup_suggestion', { p_id: id })
+      const res = await supabase.rpc('accept_followup_suggestion', { p_id: id })
       const { error } = res as unknown as { error: { message: string } | null }
       if (error) throw new Error(error.message)
     },
@@ -114,7 +109,7 @@ export function useAgencyFollowupActions() {
 
   const dismiss = useMutation({
     mutationFn: async (id: string) => {
-      const res = await db
+      const res = await supabase
         .from('whatsapp_followup_suggestions')
         .update({ status: 'dismissed' })
         .eq('id', id)

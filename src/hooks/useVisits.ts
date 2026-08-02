@@ -298,19 +298,15 @@ export interface PublicVisitData {
 // sur une policy anon `manage_token IS NOT NULL` qui exposait TOUTES les
 // visites (faille advisor rls_policy_always_true) ; la RPC ne renvoie que la
 // visite dont le client détient le token (uuid = capability non devinable).
-// Les RPC token ne sont pas dans les types générés (database.ts en retard) →
-// cast localisé, même pattern que useFollowupSuggestions.
 /** Lecture publique d'une visite par capability token (RPC SECURITY DEFINER `get_visit_by_token`). */
 export function usePublicVisit(token: string | undefined) {
   return useRqQuery({
     queryKey: ['public-visit', token],
     queryFn: async (): Promise<PublicVisitData | null> => {
       if (!token) return null
-      const res = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>)(
-        'get_visit_by_token', { p_token: token },
-      )
+      const res = await supabase.rpc('get_visit_by_token', { p_token: token })
       if (res.error || !res.data) return null
-      return res.data as PublicVisitData
+      return res.data as unknown as PublicVisitData
     },
     enabled: !!token,
   })
@@ -320,8 +316,10 @@ export function usePublicVisit(token: string | undefined) {
 
 // Mutations par token — via RPC SECURITY DEFINER (mêmes transitions que les
 // anciens updates directs ; la policy anon UPDATE barn-door a été supprimée).
-const rpcByToken = (fn: string, args: Record<string, unknown>) =>
-  (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>)(fn, args)
+// `fn` prend l'union des noms connus de `database.ts`, pas `string` : un dispatcher typé
+// `string` éteint la vérification pour TOUS ses appelants d'un coup.
+const rpcByToken = (fn: Parameters<typeof supabase.rpc>[0], args: Record<string, unknown>) =>
+  supabase.rpc(fn, args as never)
 
 /** Replanification publique (par token) via RPC `reschedule_visit_by_token`. */
 export function useRescheduleVisit() {
