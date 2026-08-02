@@ -5,11 +5,14 @@
  *  - les composants/tokens sont dans megga-x.generated.css, scopés `.megga-x`
  *    (généré verbatim depuis sites/megga-vitrine/css/styles.css —
  *     `node scripts/build-megga-x-css.mjs`, NE PAS éditer à la main) ;
+ *  - les AJOUTS assumés (ce que la vitrine n'a pas) sont isolés dans
+ *    megga-x-additions.css, pour rester auditables d'un coup d'œil ;
  *  - ici on ne fait que : charger Inter Tight + poser le canvas du conteneur.
  * ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap');
 @import './megga-x.generated.css';
+@import './megga-x-additions.css';
 
 /* Canvas du conteneur MEGGA X (fond sombre + Inter Tight, comme le style guide).
    box-sizing border-box vient déjà du `.megga-x *` généré (reset Webflow). */

@@ -6,7 +6,7 @@
     "mobileNotice": {
       "eyebrow": "Étape obligatoire",
       "title": "Cette étape se termine sur ordinateur",
-      "body": "La saisie de l'identité légale de votre agence nécessite un écran plus grand. Connectez-vous depuis un ordinateur pour la terminer."
+      "body": "Cette saisie demande un écran plus grand. Reprenez-la depuis un ordinateur."
     },
     "welcome": {
       "title": "Ouvrons votre espace",
@@ -14,14 +14,14 @@
       "startButton": "Identifier mon agence"
     },
     "pendingNotice": {
-      "eyebrow": "Saisie interrompue",
-      "title": "Votre saisie a été interrompue",
-      "body": "Rien n'est perdu : chaque étape validée par Continuer est déjà enregistrée dans nos systèmes, qui en restent la source. Reprenez la saisie quand vous le souhaitez, vous retrouverez exactement ce que vous aviez déjà renseigné.",
+      "title": "Votre saisie est en pause",
+      "body": "Chaque étape validée est déjà enregistrée. Revenez quand vous voulez, vous retrouverez votre saisie.",
       "resumeButton": "Reprendre la saisie"
     }
   },
   "wizard": {
     "steps": {
+      "ariaLabel": "Étapes",
       "signataire": "Signataire",
       "agence": "Agence",
       "beneficiaires": "Bénéficiaires",
@@ -31,17 +31,14 @@
     "footer": {
       "continue": "Continuer",
       "saving": "Enregistrement…",
-      "saved": "Enregistré",
-      "autosave": "Sauvegardé à chaque étape",
       "unknownError": "Une erreur inconnue est survenue.",
       "submit": "Soumettre le dossier",
       "submitting": "Soumission en cours…",
       "exit": "Reprendre plus tard"
     },
     "signataire": {
-      "eyebrow": "Signataire autorisé",
       "title": "Qui est autorisé à signer pour l'agence ?",
-      "subtitle": "Indiquez l'identité de la personne habilitée à engager l'agence. Nous collectons ces informations dans le cadre de nos contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA).",
+      "subtitle": "La personne habilitée à engager votre agence. Nous collectons ces informations au titre de la loi suisse sur le blanchiment d'argent (LBA).",
       "fields": {
         "firstName": "Prénom",
         "lastName": "Nom",
@@ -58,9 +55,8 @@
       }
     },
     "agence": {
-      "eyebrow": "Identité de l'agence",
       "title": "Quelle est l'identité légale de votre agence ?",
-      "subtitle": "Ces informations doivent correspondre exactement à celles de votre registre du commerce. Nous les collectons dans le cadre de nos contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA).",
+      "subtitle": "Elles doivent correspondre exactement à votre inscription au registre du commerce.",
       "fields": {
         "country": "Pays du siège",
         "countryPlaceholder": "Sélectionner un pays",
@@ -70,7 +66,7 @@
         "legalName": "Raison sociale",
         "legalNameHint": "La dénomination officielle inscrite au registre du commerce.",
         "tradeName": "Nom commercial",
-        "tradeNameHint": "Le nom sous lequel votre agence est connue de vos clients, si différent de la raison sociale. Utilisé pour vérifier votre site internet.",
+        "tradeNameHint": "Le nom sous lequel vos clients vous connaissent, s'il diffère de la raison sociale.",
         "businessRegistrationNumber": "Numéro de registre",
         "tva": "Numéro de TVA",
         "tvaHint": "Facultatif : ne concerne que les entités assujetties à la TVA.",
@@ -82,12 +78,11 @@
       }
     },
     "beneficiaires": {
-      "eyebrow": "Bénéficiaires effectifs",
       "title": "Qui sont les bénéficiaires effectifs de votre agence ?",
-      "subtitle": "Indiquez les personnes physiques qui détiennent ou contrôlent l'agence. Nous recueillons ces informations dans le cadre de nos contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA). Le seuil de référence est de 25 % (norme du GAFI) : c'est une aide à la saisie, vous pouvez déclarer une personne même en dessous.",
+      "subtitle": "Les personnes physiques qui détiennent ou contrôlent votre agence.",
       "reuseSignataire": "Reprendre {{name}} (signataire)",
       "addButton": "Ajouter un bénéficiaire effectif",
-      "emptyHint": "Aucun bénéficiaire effectif déclaré pour l'instant. C'est possible si aucune personne physique ne détient ou ne contrôle seule 25 % ou plus de l'agence : déclarez alors la personne qui la contrôle autrement, ou à défaut un membre de l'organe supérieur de direction.",
+      "emptyHint": "Personne n'atteint 25 % ? Déclarez qui contrôle l'agence autrement, ou à défaut un membre de sa direction.",
       "removeButton": "Retirer ce bénéficiaire effectif",
       "fields": {
         "firstName": "Prénom",
@@ -107,9 +102,8 @@
       }
     },
     "pieceIdentite": {
-      "eyebrow": "Pièce d'identité",
       "title": "Téléversez la pièce d'identité du signataire",
-      "subtitle": "Recto et verso d'une pièce d'identité en cours de validité (carte d'identité, passeport ou titre de séjour). Ce document est examiné par un membre de notre équipe conformité ; aucune vérification automatique n'est effectuée à ce stade.",
+      "subtitle": "Recto et verso d'une pièce en cours de validité : carte d'identité, passeport ou titre de séjour. Un membre de notre équipe conformité l'examine.",
       "missingSignataire": "Le signataire doit d'abord être renseigné à l'étape précédente.",
       "sides": {
         "recto": "Recto",
@@ -126,9 +120,8 @@
       }
     },
     "recap": {
-      "eyebrow": "Récapitulatif",
       "title": "Vérifiez votre dossier avant de le soumettre",
-      "subtitle": "Relisez chaque section ci-dessous. Vous pouvez encore modifier une étape avant de soumettre.",
+      "subtitle": "Relisez chaque section. Vous pouvez encore modifier une étape.",
       "notProvided": "Non renseigné",
       "beneficiaires": {
         "empty": "Aucun bénéficiaire effectif déclaré.",
@@ -142,10 +135,10 @@
       },
       "attestation": "J'atteste que les informations ci-dessus sont exactes et complètes, à ma connaissance.",
       "errors": {
-        "legalName": "La raison sociale de l'agence est manquante. Complétez l'étape Agence avant de soumettre.",
-        "legalForm": "La forme juridique de l'agence est manquante. Complétez l'étape Agence avant de soumettre.",
-        "country": "Le pays du siège de l'agence est manquant. Complétez l'étape Agence avant de soumettre.",
-        "signatory": "Aucun signataire actif n'est enregistré. Complétez l'étape Signataire avant de soumettre.",
+        "legalName": "Raison sociale manquante. Complétez l'étape Agence.",
+        "legalForm": "Forme juridique manquante. Complétez l'étape Agence.",
+        "country": "Pays du siège manquant. Complétez l'étape Agence.",
+        "signatory": "Aucun signataire actif. Complétez l'étape Signataire.",
         "generic": "La soumission a échoué. Réessayez."
       }
     }
@@ -154,46 +147,46 @@
     "banner": {
       "notSubmitted": {
         "title": "Vérification d'identité non soumise",
-        "bodyAdmin": "Complétez la vérification d'identité de votre agence pour débloquer l'ouverture de dossiers KYC et les signatures électroniques.",
-        "bodyOther": "Un administrateur ou un gérant de votre agence doit compléter la vérification d'identité avant l'ouverture d'un dossier KYC ou l'envoi d'une signature électronique."
+        "bodyAdmin": "Complétez la vérification d'identité pour ouvrir des dossiers KYC et envoyer des signatures.",
+        "bodyOther": "Un administrateur ou un gérant doit compléter la vérification d'identité de votre agence."
       },
       "pendingReview": {
         "title": "Vérification en cours de revue",
-        "body": "L'équipe MEGGA doit valider l'identité de votre agence avant l'ouverture de dossiers KYC et les signatures électroniques. Revenez plus tard, le statut se met à jour automatiquement."
+        "body": "Nous validons l'identité de votre agence. Le statut se met à jour automatiquement."
       },
       "rejected": {
         "title": "Vérification refusée",
-        "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Renvoyer le formulaire ne relance pas d'examen : contactez le support MEGGA pour connaître le motif et la marche à suivre."
+        "body": "L'identité de votre agence n'a pas été validée. Renvoyer le formulaire ne relance pas l'examen : contactez le support."
       },
       "cta": "Compléter la vérification",
       "contactSupport": "Contacter le support",
       "correctionRequested": {
         "title": "Correction demandée",
-        "body": "L'équipe MEGGA vous demande de corriger votre saisie d'identité avant de poursuivre. Le détail vous a été envoyé par e-mail. Reprenez le formulaire, puis soumettez à nouveau."
+        "body": "Une correction vous a été demandée par e-mail. Reprenez le formulaire, puis soumettez à nouveau."
       }
     },
     "block": {
-      "checking": "Vérification du statut de votre agence avant l'ouverture d'un dossier KYC…",
+      "checking": "Vérification du statut de votre agence…",
       "notSubmitted": {
         "eyebrow": "Vérification d'identité requise",
-        "title": "La vérification d'identité de votre agence n'a pas encore été soumise",
-        "bodyAdmin": "MEGGA vérifie l'identité de chaque agence avant l'ouverture d'un dossier KYC client ou l'envoi d'une signature électronique, dans le cadre de ses contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA). En tant qu'administrateur ou gérant, vous pouvez compléter cette vérification maintenant.",
-        "bodyOther": "MEGGA vérifie l'identité de chaque agence avant l'ouverture d'un dossier KYC client ou l'envoi d'une signature électronique, dans le cadre de ses contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA). Seul un administrateur ou un gérant de votre agence peut compléter cette vérification."
+        "title": "Vérifiez l'identité de votre agence",
+        "bodyAdmin": "Nous vérifions l'identité de chaque agence avant tout dossier KYC ou signature électronique, au titre de la loi suisse sur le blanchiment d'argent (LBA). Vous pouvez la compléter maintenant.",
+        "bodyOther": "Nous vérifions l'identité de chaque agence avant tout dossier KYC ou signature électronique, au titre de la loi suisse sur le blanchiment d'argent (LBA). Seul un administrateur ou un gérant peut la compléter."
       },
       "pendingReview": {
         "eyebrow": "Vérification en cours",
-        "title": "Le dossier de vérification de votre agence est en cours de revue",
-        "body": "Votre dossier a été transmis à l'équipe MEGGA. Un membre de l'équipe doit valider l'identité de votre agence avant que l'ouverture de dossiers KYC et les signatures électroniques soient possibles. Revenez consulter cet écran plus tard, le statut se met à jour dès qu'une décision est prise."
+        "title": "Nous examinons votre dossier",
+        "body": "Votre dossier est entre les mains de notre équipe conformité. Le statut se met à jour dès qu'une décision est prise."
       },
       "rejected": {
         "eyebrow": "Vérification refusée",
-        "title": "Le dossier de vérification de votre agence a été refusé",
-        "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Renvoyer le formulaire ne relance pas d'examen : contactez le support MEGGA pour comprendre le motif et connaître la marche à suivre."
+        "title": "Votre dossier n'a pas été validé",
+        "body": "Renvoyer le formulaire ne relance pas l'examen. Contactez le support pour connaître le motif et la marche à suivre."
       },
       "unavailable": {
         "eyebrow": "Statut de vérification indisponible",
-        "title": "Impossible de lire le statut de vérification de votre agence",
-        "body": "Ce n'est pas une décision concernant votre dossier : la lecture du statut a échoué, probablement à cause d'une connexion interrompue ou d'un service momentanément indisponible. L'ouverture d'un dossier KYC reste impossible tant que ce statut n'est pas confirmé. Réessayez dans un instant ; si le problème persiste, contactez le support MEGGA.",
+        "title": "Statut de vérification illisible",
+        "body": "Votre dossier n'est pas en cause : c'est la lecture du statut qui a échoué. Réessayez dans un instant, puis contactez le support si cela persiste.",
         "retry": "Réessayer"
       },
       "cta": "Compléter la vérification",
@@ -201,8 +194,8 @@
       "contactSupport": "Contacter le support",
       "correctionRequested": {
         "eyebrow": "Correction demandée",
-        "title": "Votre saisie d'identité doit être corrigée",
-        "body": "L'équipe MEGGA a examiné votre dossier et vous demande une correction avant de valider. Le détail de ce qui doit changer vous a été envoyé par e-mail. Reprenez le formulaire d'identité, corrigez, puis soumettez à nouveau : l'examen reprendra automatiquement."
+        "title": "Une correction est demandée",
+        "body": "Le détail vous a été envoyé par e-mail. Corrigez votre saisie, puis soumettez à nouveau : l'examen reprend automatiquement."
       }
     }
   }
