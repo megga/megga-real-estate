@@ -29,6 +29,7 @@ import {
 } from '@/hooks/useSecurityAudit'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { useClientPagination } from '@/hooks/useClientPagination'
+import SecurityRegistryView from '@/components/admin/SecurityRegistryView'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import { AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
@@ -122,6 +123,11 @@ export default function AdminSecurityAuditPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [pdfExporting, setPdfExporting] = useState(false)
+  // Deux journaux, deux questions. `registry` = admin_log (ce que MEGGA fait SUR une
+  // agence, avec chaîne d'empreintes) ; `agencies` = activity_events (ce qui se passe CHEZ
+  // les agences). Le registre est la vue par défaut : c'est celle que la console doit
+  // rendre démontrable (critère 2 du gate G2), et la seule dont les lignes sont scellées.
+  const [view, setView] = useState<'registry' | 'agencies'>('registry')
 
   // ── Derived data ──────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -212,6 +218,32 @@ export default function AdminSecurityAuditPage() {
         @media (max-width: 760px) { .sec-kpi { grid-template-columns: 1fr; } }
       `}</style>
 
+      {/* Bascule des deux journaux — même grammaire de segment que les filtres. */}
+      <div style={{
+        display: 'inline-flex', gap: 3, padding: 3, borderRadius: ADMIN_RADII.pill,
+        background: surf.cardSub, border: surf.hairline, alignSelf: 'flex-start',
+      }}>
+        {(['registry', 'agencies'] as const).map(v => {
+          const on = view === v
+          return (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              style={{
+                height: 30, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
+                background: on ? sp.accent : 'transparent', color: on ? sp.accentInk : sp.sub,
+                transition: 'background .15s ease, color .15s ease',
+              }}
+            >
+              {t(`admin:securityAudit.view.${v}`)}
+            </button>
+          )
+        })}
+      </div>
+
+      {view === 'registry' ? <SecurityRegistryView /> : (
+      <>
       {/* Bandeau KPI (7 jours) */}
       <div className="sec-kpi">
         <AdminStat
@@ -406,6 +438,8 @@ export default function AdminSecurityAuditPage() {
             la sépare de la dernière ligne au lieu de flotter sous la carte. */}
         <AdminPager page={page} totalPages={totalPages} total={total} perPage={perPage} onPage={setPage} />
       </AdminCard>
+      </>
+      )}
     </AdminPage>
   )
 }

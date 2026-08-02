@@ -1,9 +1,9 @@
 {
   "de": {
     "admin": {
-      "total": 934,
-      "sameAsEn": 100,
-      "untranslated": 22
+      "total": 967,
+      "sameAsEn": 103,
+      "untranslated": 23
     },
     "auth": {
       "total": 58,
@@ -68,8 +68,8 @@
   },
   "it": {
     "admin": {
-      "total": 934,
-      "sameAsEn": 68,
+      "total": 967,
+      "sameAsEn": 69,
       "untranslated": 5
     },
     "auth": {

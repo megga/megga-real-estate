@@ -659,30 +659,11 @@
   },
   "common": {
     "saving": "Speichern...",
-    "edit": "Bearbeiten",
-    "plan": {
-      "entreprise": "Enterprise"
-    }
+    "edit": "Bearbeiten"
   },
   "agencyDetail": {
     "tab": {
-      "usage": "Nutzung & Kontingente",
-      "team": "Team"
-    },
-    "team": {
-      "table": {
-        "name": "Name"
-      }
-    },
-    "properties": {
-      "table": {
-        "status": "Status"
-      }
-    },
-    "transactions": {
-      "table": {
-        "status": "Status"
-      }
+      "usage": "Nutzung & Kontingente"
     }
   },
   "agencies": {
@@ -690,11 +671,7 @@
       "trialing": "Testphase",
       "pastDue": "Überfällig"
     },
-    "create": "Agentur erstellen",
-    "table": {
-      "name": "Name",
-      "status": "Status"
-    }
+    "create": "Agentur erstellen"
   },
   "usage": {
     "error": "Nutzung konnte nicht geladen werden.",
@@ -800,12 +777,7 @@
   },
   "billing": {
     "mrrTrend": "Geschätzter MRR-Trend",
-    "mrrTrendDays": "{{count}} Punkte (30T)",
-    "payment": {
-      "table": {
-        "status": "Status"
-      }
-    }
+    "mrrTrendDays": "{{count}} Punkte (30T)"
   },
   "communication": {
     "title": "Kommunikation",
@@ -1005,6 +977,16 @@
   "kybReview.resolveIdDocument.match": "Übereinstimmung",
   "kybReview.resolveIdDocument.partial": "Teilweise Übereinstimmung",
   "kybReview.resolveIdDocument.mismatch": "Keine Übereinstimmung",
+  "kybReview.idDocument.show": "Ausweisdokument ansehen",
+  "kybReview.idDocument.hide": "Dokument ausblenden",
+  "kybReview.idDocument.loading": "Dokument wird geladen...",
+  "kybReview.idDocument.error": "Lesen nicht möglich. Prüfen Sie Ihre Rechte für dieses Dossier.",
+  "kybReview.idDocument.empty": "Für diese Person wurde keine Datei hochgeladen.",
+  "kybReview.idDocument.emptyHint": "Die Prüfanfrage speichert keinen Dateipfad. Ein leerer Ordner beweist daher nicht, dass nie etwas hochgeladen wurde.",
+  "kybReview.idDocument.recto": "Vorderseite",
+  "kybReview.idDocument.verso": "Rückseite",
+  "kybReview.idDocument.enlarge": "Vergrössern",
+  "kybReview.idDocument.faceError": "Vorschau für diese Datei nicht verfügbar.",
   "kybReview.event.agencyIdentitySubmitted": "Identität eingereicht",
   "kybReview.event.agencyVerificationRecomputed": "Prüfung neu berechnet",
   "kybReview.event.agencyVerificationSweepExhausted": "Automatische Wiederholung ausgeschöpft",
@@ -1023,62 +1005,27 @@
   "kybReview.actions.requestingCorrection": "Wird gesendet…",
   "kybReview.actions.requestCorrectionSuccess": "Dossier zur Korrektur zurückgesendet",
   "kybReview.event.agencyVerificationCorrectionRequested": "Korrektur bei der Geschäftsleitung angefordert",
-  "learning": {
-    "col": {
-      "register": "Register",
-      "status": "Status"
-    }
-  },
-  "users": {
-    "table": {
-      "name": "Name"
-    }
-  },
-  "compliance": {
-    "table": {
-      "status": "Status"
-    }
-  },
-  "moderation": {
-    "table": {
-      "status": "Status"
-    }
-  },
-  "monitoring": {
-    "edgeFunctions": {
-      "table": {
-        "status": "Status"
-      }
-    },
-    "cronHealth": {
-      "status": "Status"
-    }
-  },
-  "liveFeed": {
-    "entityType": {
-      "matches": "Matches"
-    }
-  },
-  "nps": {
-    "rating": {
-      "3": "Neutral"
-    }
-  },
-  "onboarding": {
-    "table": {
-      "status": "Status"
-    }
-  },
-  "toolUsage": {
-    "col": {
-      "tool": "Tool"
-    }
-  },
-  "kybReview": {
-    "checks": {
-      "table": {
-        "person": "Person"
-      }
-    }
-  }
+  "securityAudit.view.registry": "MEGGA-Register",
+  "securityAudit.view.agencies": "Agenturaktionen",
+  "securityAudit.window.today": "Heute",
+  "securityAudit.window.rolling_24h": "24 Stunden",
+  "securityAudit.window.month": "Dieser Monat",
+  "securityAudit.table.family": "Familie",
+  "securityAudit.filterAll": "Alle anzeigen",
+  "securityAudit.registry.searchPlaceholder": "Nach Akteur, Objekt oder Agentur suchen...",
+  "securityAudit.registry.empty.title": "Keine Einträge in diesem Zeitraum",
+  "securityAudit.registry.empty.subtitle": "Konsolenaktionen erscheinen hier, sobald sie ausgeführt werden.",
+  "securityAudit.registry.noMeta": "Keine Details erfasst",
+  "audit.family.session": "Sitzung",
+  "audit.family.identity": "Identität",
+  "audit.family.lifecycle": "Lebenszyklus",
+  "audit.family.plans": "Pläne",
+  "audit.family.deploy": "Bereitstellung",
+  "audit.family.export": "Export",
+  "audit.family.link": "Links",
+  "audit.family.diffusion": "Verbreitung",
+  "audit.family.comm": "Kommunikation",
+  "audit.family.ai": "KI",
+  "audit.family.ops": "Betrieb",
+  "audit.family.kyb": "KYB"
 }
