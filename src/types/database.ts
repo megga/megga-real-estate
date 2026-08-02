@@ -6235,6 +6235,16 @@ export type Database = {
         }
         Returns: string
       }
+      admin_cron_adhoc_sweep: { Args: never; Returns: number }
+      admin_cron_job_is_inert: { Args: { p_jobname: string }; Returns: boolean }
+      admin_cron_run_now: {
+        Args: {
+          p_confirm?: boolean
+          p_idempotency_key: string
+          p_jobname: string
+        }
+        Returns: Json
+      }
       admin_error: {
         Args: { p_code: string; p_details?: Json; p_message_fr: string }
         Returns: Json

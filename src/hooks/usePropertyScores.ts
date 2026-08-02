@@ -4,10 +4,6 @@
 // nocturne, cf migration 20260616190000) via la RLS d'agence DÉJÀ posée — aucune
 // RPC. Renvoie une Map property_id → BienHealth pour que useBiensSugar attache le
 // score à chaque CrmBien (galerie Mes biens). Le score est une ESTIMATION (HITL).
-//
-// Les colonnes v1 de property_scores ne sont pas (encore) dans les types générés
-// `Database` → même esprit `*Untyped` que useFocusMatches (qui caste un RPC) : ici
-// on caste la lecture de TABLE pour rester sans `any` au-delà du point de lecture.
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'

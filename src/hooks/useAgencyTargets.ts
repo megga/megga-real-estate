@@ -61,7 +61,6 @@ export function useAgencyTargets(options?: { enabled?: boolean }): {
   const mutation = useMutation({
     mutationFn: async (yearly: number): Promise<void> => {
       const p_yearly = Math.round(Math.max(0, yearly))
-      // RPC pas encore dans les types générés `Database` → pattern repo (sans `any`).
       const { error } = await supabase.rpc('analytics_set_target', { p_yearly })
       if (error) throw error
     },
