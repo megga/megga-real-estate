@@ -170,14 +170,27 @@ serve(async (req) => {
         })
       }
 
-      const { error } = await supabase
+      // `.select().single()` et pas un simple update : PostgREST ne lève AUCUNE
+      // erreur quand un UPDATE ne touche aucune ligne. Sans lui, un id d'une
+      // autre agence (ou déjà annulé) repartait en `{success:true}` et faisait
+      // écrire une ligne d'audit portant un `entity_id` jamais vérifié. La
+      // branche `resend`, juste en dessous, faisait déjà le bon geste.
+      const { data: cancelled, error } = await supabase
         .from('team_invitations')
         .update({ status: 'cancelled' })
         .eq('id', body.invitationId)
         .eq('agency_id', profile.agency_id)
         .eq('status', 'pending')
+        .select('id')
+        .maybeSingle()
 
       if (error) throw error
+      if (!cancelled) {
+        return new Response(JSON.stringify({ error: 'Invitation not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
 
       // Log activity
       await supabaseAdmin.from('activity_events').insert({
@@ -288,10 +301,18 @@ serve(async (req) => {
     // bornait la valeur, si bien qu'un `manager` pouvait émettre une invitation
     // `admin` — un cran au-dessus de lui. On borne à une liste explicite, puis
     // au niveau de l'appelant.
-    const ROLE_RANK: Record<string, number> = { agent: 1, manager: 2, admin: 3 }
+    //
+    // ⚠ Doit rester aligné sur `team_role_rank()` (migration 20260802210000),
+    // qui porte la MÊME règle dans la policy RLS : cette garde-ci ne protège que
+    // les appels passant par cette fonction, or la table est exposée à
+    // `authenticated`, donc un dirigeant peut écrire en direct via PostgREST.
+    // `assistant` est un rôle d'agent à part entière (src/types/auth.ts
+    // AGENT_ROLES, proposé par la console) : l'omettre revenait à refuser une
+    // invitation légitime.
+    const ROLE_RANK: Record<string, number> = { assistant: 1, agent: 1, manager: 2, admin: 3 }
     const requestedRank = ROLE_RANK[body.role]
     if (!requestedRank) {
-      return new Response(JSON.stringify({ error: 'role must be agent, manager or admin' }), {
+      return new Response(JSON.stringify({ error: 'role must be assistant, agent, manager or admin' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

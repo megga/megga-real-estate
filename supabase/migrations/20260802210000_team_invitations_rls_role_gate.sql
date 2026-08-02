@@ -28,10 +28,46 @@
 -- toute façon. Le front, lui, n'accède JAMAIS à cette table directement
 -- (vérifié : aucune occurrence dans src/ hors types générés).
 
+-- `is_agency_admin()` vaut admin OU manager. Sans hiérarchie, un MANAGER
+-- s'auto-promeut : POST direct sur /rest/v1/team_invitations (donc sans passer
+-- par send-team-invite, où vit la garde de rang applicative), invitation à son
+-- propre e-mail en `role='admin'`, puis claim. Cela défait deux règles que le
+-- dépôt paie déjà du code pour tenir : la garde de rang de send-team-invite et
+-- l'invariant « cannot change your own role » de team_set_member_role.
+-- Le rang doit donc vivre DANS la policy, pas seulement dans l'edge.
+--
+-- `assistant` est un rôle d'agent à part entière (src/types/auth.ts AGENT_ROLES,
+-- proposé par la console) : il est classé au niveau d'`agent`, pas exclu.
+CREATE OR REPLACE FUNCTION public.team_role_rank(p_role text)
+RETURNS integer
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT CASE p_role
+    WHEN 'assistant' THEN 1
+    WHEN 'agent'     THEN 1
+    WHEN 'manager'   THEN 2
+    WHEN 'admin'     THEN 3
+    ELSE 0
+  END;
+$$;
+
+COMMENT ON FUNCTION public.team_role_rank(text) IS
+  'Hiérarchie des rôles d''équipe, pour interdire d''inviter au-dessus de soi. '
+  'Doit rester alignée sur ROLE_RANK de supabase/functions/send-team-invite.';
+
+-- `invited_by = auth.uid()` sur l'INSERT seulement : à l'UPDATE (annulation ou
+-- renvoi), un dirigeant doit pouvoir agir sur l'invitation émise par un autre.
 DROP POLICY IF EXISTS team_invitations_insert ON public.team_invitations;
 CREATE POLICY team_invitations_insert ON public.team_invitations
   FOR INSERT TO authenticated
-  WITH CHECK (agency_id = get_user_agency_id() AND is_agency_admin());
+  WITH CHECK (
+    agency_id = get_user_agency_id()
+    AND is_agency_admin()
+    AND invited_by = auth.uid()
+    AND team_role_rank(role::text) > 0
+    AND team_role_rank(role::text) <= team_role_rank(get_user_role())
+  );
 
 -- Le WITH CHECK est le correctif de fond : sans lui, l'UPDATE ne contrôlait que
 -- la ligne AVANT écriture, donc `agency_id`, `email` et `role` étaient libres.
@@ -39,7 +75,12 @@ DROP POLICY IF EXISTS team_invitations_update ON public.team_invitations;
 CREATE POLICY team_invitations_update ON public.team_invitations
   FOR UPDATE TO authenticated
   USING (agency_id = get_user_agency_id() AND is_agency_admin())
-  WITH CHECK (agency_id = get_user_agency_id() AND is_agency_admin());
+  WITH CHECK (
+    agency_id = get_user_agency_id()
+    AND is_agency_admin()
+    AND team_role_rank(role::text) > 0
+    AND team_role_rank(role::text) <= team_role_rank(get_user_role())
+  );
 
 -- Lecture inchangée sur le fond (l'écran d'équipe liste les invitations en
 -- attente), mais recadrée sur `authenticated` : la policy était `TO public`,
@@ -52,6 +93,13 @@ CREATE POLICY team_invitations_select ON public.team_invitations
 -- Aucun chemin anonyme ne touche cette table : la prévisualisation d'invitation
 -- (`accept-team-invite`, action `preview`) passe par un client service_role.
 REVOKE ALL ON public.team_invitations FROM anon;
+
+-- Le DELETE n'était bloqué que par l'ABSENCE de policy DELETE — un accident de
+-- RLS, pas une contrainte : la première policy `FOR ALL` écrite un jour ici le
+-- rouvrirait sans que personne ne le remarque. Aucun chemin produit ne supprime
+-- une invitation avec un JWT utilisateur (accept-team-invite et les tests
+-- passent en service_role, que ce REVOKE n'affecte pas).
+REVOKE DELETE, TRUNCATE ON public.team_invitations FROM authenticated;
 
 COMMENT ON TABLE public.team_invitations IS
   'Invitations d''équipe par agence. Écritures réservées aux rôles admin/manager '

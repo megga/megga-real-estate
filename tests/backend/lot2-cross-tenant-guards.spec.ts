@@ -159,6 +159,49 @@ describe.skipIf(!HAS_KEYS)('Lot 2 — cloisonnement inter-agences', () => {
     }
   })
 
+  it("un manager ne peut PAS s'auto-promouvoir en invitant au rôle admin", async () => {
+    // Le trou que laissait la première version du correctif : `is_agency_admin()`
+    // vaut admin OU manager, donc un manager sautait `send-team-invite` (où vit
+    // la garde de rang applicative) et écrivait en direct via PostgREST une
+    // invitation `admin` à son propre e-mail. Le rang doit vivre DANS la policy.
+    await service.from('profiles').update({ role: 'manager' }).eq('id', setup.agentAId)
+    try {
+      const { error: refus } = await setup.clientA.from('team_invitations').insert({
+        agency_id: setup.agencyAId,
+        email: `manager-escalade-${setup.stamp}@megga-test.local`,
+        role: 'admin',
+        invited_by: setup.agentAId,
+      })
+      expect(refus, 'un manager ne doit pas pouvoir inviter au rôle admin').toBeTruthy()
+
+      // TÉMOIN : il peut toujours inviter à son propre niveau ou en dessous.
+      const { error: permis } = await setup.clientA.from('team_invitations').insert({
+        agency_id: setup.agencyAId,
+        email: `manager-legit-${setup.stamp}@megga-test.local`,
+        role: 'agent',
+        invited_by: setup.agentAId,
+      })
+      expect(permis, `un manager doit pouvoir inviter un agent — ${permis?.message ?? ''}`).toBeNull()
+    } finally {
+      await service.from('profiles').update({ role: 'agent' }).eq('id', setup.agentAId)
+    }
+  })
+
+  it("le rôle 'assistant' reste invitable (il est dans AGENT_ROLES)", async () => {
+    await service.from('profiles').update({ role: 'admin' }).eq('id', setup.agentAId)
+    try {
+      const { error } = await setup.clientA.from('team_invitations').insert({
+        agency_id: setup.agencyAId,
+        email: `assistant-${setup.stamp}@megga-test.local`,
+        role: 'assistant',
+        invited_by: setup.agentAId,
+      })
+      expect(error, `'assistant' est un rôle légitime — ${error?.message ?? ''}`).toBeNull()
+    } finally {
+      await service.from('profiles').update({ role: 'agent' }).eq('id', setup.agentAId)
+    }
+  })
+
   // ── 2. matching-engine : match-contact acceptait un contact d'une autre agence ──
 
   it("matching-engine ignore un contact_id d'une autre agence", async () => {
