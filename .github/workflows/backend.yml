@@ -99,6 +99,49 @@ jobs:
           # MEGGA_MAGIC_LINK_HMAC_SECRET is already in the job env (above),
           # so it is visible to all subsequent steps including npm run test:backend.
 
+      - name: Rejouer les migrations du jour (ce que fait deploy.yml, à chaque push)
+        # ⛔ CETTE ÉTAPE EXISTE PARCE QU'UN DÉPLOIEMENT DE PRODUCTION EST MORT SANS ELLE.
+        # Le 02.08.2026 à 19:16 UTC : `20260802180000` avait fait passer
+        # `admin_set_agency_plan` de `void` à `jsonb`, et `20260802170000` — même journée —
+        # la recréait en `void`. Au deuxième déploiement du jour, son rejeu a levé
+        # `42P13 cannot change return type of existing function`, `set -e` a coupé l'étape,
+        # et NI les migrations suivantes NI les Edge Functions ne sont parties.
+        #
+        # ⚠ CE QUE LA CI NE POUVAIT PAS VOIR, ET QUI EST TOUT LE SUJET. `supabase start`
+        # applique les migrations UNE fois, dans l'ordre, sur une base fraîche : `170000`
+        # crée en `void`, `180000` remplace en `jsonb`, aucun conflit. Le conflit n'existe
+        # qu'au SECOND passage — exactement ce que fait `deploy.yml`, et rien d'autre au
+        # dépôt ne le reproduisait. `check-migration-idempotence.mjs` ne pouvait pas
+        # l'attraper non plus : il lit la SYNTAXE (un CREATE est-il gardé ?), pas l'effet
+        # d'une migration sur l'état laissé par une autre.
+        #
+        # On rejoue donc ici la MÊME sélection que deploy.yml — préfixe de date `>= TODAY`
+        # en UTC, ordre des noms de fichiers — contre la base locale. Un échec ici est un
+        # déploiement qui aurait échoué en production.
+        #
+        # Sur une journée sans migration nouvelle, la boucle ne sélectionne rien et l'étape
+        # passe en silence : c'est voulu, pas un contrôle creux — le jour où elle a quelque
+        # chose à dire, elle le dit.
+        run: |
+          set -euo pipefail
+          TODAY=$(date -u +%Y%m%d)
+          CONTENEUR=$(docker ps --filter name=supabase_db_ --format '{{.Names}}' | head -1)
+          if [ -z "$CONTENEUR" ]; then
+            echo "::error::conteneur supabase_db_* introuvable — impossible de rejouer"
+            exit 1
+          fi
+          rejouees=0
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            base=$(basename "$f")
+            if [ "${base:0:8}" -ge "$TODAY" ]; then
+              echo "::group::Rejeu $base"
+              docker exec -i "$CONTENEUR" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < "$f"
+              echo "::endgroup::"
+              rejouees=$((rejouees + 1))
+            fi
+          done
+          echo "$rejouees migration(s) du jour rejouée(s) sans erreur."
+
       - name: Run backend tests
         run: npm run test:backend
 
