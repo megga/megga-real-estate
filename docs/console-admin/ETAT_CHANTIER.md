@@ -422,6 +422,29 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
     anonyme, le `grant … to anon, authenticated` est explicite deux lignes plus bas
     (`20260711190000`, « capability publique »). Aucun correctif à faire ailleurs.
 
+15. **Changer un TYPE DE RETOUR casse le REJEU du même jour — et la CI ne peut pas le voir.**
+    Payé en production le 02.08.2026 à 19:16 UTC. `20260802180000` a fait passer
+    `admin_set_agency_plan` de `void` à `jsonb` ; `20260802170000`, mergée le MÊME JOUR, la
+    recréait en `void`. `deploy.yml` rejoue toute migration de préfixe `>= TODAY` à CHAQUE
+    déploiement de la journée : au deuxième, `170000` a levé
+    **`42P13 cannot change return type of existing function`**, `set -e` a coupé l'étape, et
+    ni les migrations suivantes ni les **Edge Functions** ne sont parties. La base était
+    intacte (l'échec précède toute écriture) — c'est le PIPELINE qui restait rouge, pour le
+    reste de la journée UTC.
+    ⚠ **Pourquoi rien ne l'attrapait.** Sur base fraîche les migrations passent UNE fois,
+    dans l'ordre : `170000` crée en `void`, `180000` remplace en `jsonb`, aucun conflit. Le
+    conflit n'existe qu'au SECOND passage. Et `check-migration-idempotence.mjs` ne pouvait
+    pas aider : il lit la SYNTAXE (« ce CREATE est-il gardé ? »), jamais l'effet d'une
+    migration sur l'état laissé par une autre.
+    ✅ **Fermé** par une étape de `backend.yml` qui **rejoue les migrations du jour une
+    seconde fois** contre la base locale, avec la même sélection que `deploy.yml`. Un rouge
+    y est désormais un déploiement qui aurait échoué en production.
+    💡 **Le levier qui débloque sans enfreindre la règle** : le date-guard ne compare que
+    les **8 chiffres de la date** (`stamp_date="${base:0:8}"`), alors que l'ordre
+    d'application suit le nom COMPLET (`ls … | sort`). Un fichier `20260802165000` est donc
+    rejoué aujourd'hui ET trié AVANT `170000` — ce qui permet de corriger par un NOUVEAU
+    fichier, sans reprendre sur place une migration déjà en production.
+
 ## 7. Reprendre
 
 ✅ **La revue est passée, #1046 est mergée, les 14 migrations sont déployées.** Cette section
