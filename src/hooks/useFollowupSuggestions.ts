@@ -1,13 +1,7 @@
 // src/hooks/useFollowupSuggestions.ts
-// Suivis suggérés par MEGGA depuis WhatsApp (engagements actionnables). Lecture +
-// accept (RPC → crée un vrai rappel) + dismiss. RLS par agence
-// (wa_followups_agency_select / _update). Human-in-the-loop : rien n'est créé sans
-// le clic de l'agent.
-//
-// La table whatsapp_followup_suggestions n'est pas encore dans les types générés
-// (database.ts est en retard sur la prod) → on cible la table via un client non
-// typé (cast localisé) tout en typant fortement les entrées/sorties.
-
-
+// Ce qui reste de l'ancien hook « suivis suggérés » de la fiche contact (#768) après
+// le retrait des exports morts (f212f16f) : le seul genre de suivi, importé par
+// useAgencyFollowupSuggestions — désormais la SEULE surface vivante des suivis
+// WhatsApp (cockpit « Aujourd'hui »), qui porte la lecture, la RLS et les actions HITL.
 
 export type FollowupKind = 'commitment' | 'next_action' | 'client_availability'

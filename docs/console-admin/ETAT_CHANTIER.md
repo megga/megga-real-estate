@@ -865,6 +865,41 @@ externe) est une décision, pas un correctif.
 **⚠ Santé au moment du préflight** : 0 échec sur 1 438 exécutions de cron depuis le merge
 de #1064 ; chaîne du registre `ok` ; balayeur des ponctuels passé sans faute.
 
+### 7sexies. Le préalable du point 1 est LEVÉ — régénération du 02.08.2026
+
+`src/types/database.ts` a été régénéré depuis la **prod** — le dépôt ne fait tourner aucune
+stack Supabase locale, or `src/lib/supabase.ts` documentait la recette `--local`, qui pointe
+une base inexistante ici (recette corrigée dans la même PR). Diff intégral du fichier :
+**+10 lignes, rien d'autre**, soit exactement les 3 fonctions de #1064, signatures relues en
+base (`pg_get_function_arguments` / `_result`) :
+
+| Fonction | Base | Types |
+|---|---|---|
+| `admin_cron_adhoc_sweep()` | `→ integer` | `Args: never; Returns: number` |
+| `admin_cron_job_is_inert(p_jobname text)` | `→ boolean` | `Args: { p_jobname: string }; Returns: boolean` |
+| `admin_cron_run_now(p_jobname text, p_idempotency_key text, p_confirm boolean DEFAULT false)` | `→ jsonb` | `p_confirm?`, les deux autres requis ; `Returns: Json` |
+
+Aucune autre dérive : 97 tables / 4 vues / 423 fonctions, la porte `lint:types-freshness`
+passe, `tsc -b` et `npm run lint` restent à 0 erreur.
+
+**⛔ Le point « 16 casts dans 14 fichiers » est CLOS depuis #1064, pas ouvert.** Mesuré :
+**zéro** cast du client subsiste, et les 3 dispatchers sont typés
+`Parameters<typeof supabase.rpc>[0]`. Ce qui restait n'était pas du code mais **cinq
+commentaires qui affirmaient encore le contraire** — dont « `database.ts` est en retard sur
+la prod » et « re-typée à la main faute de types générés », deux affirmations que la base
+contredit depuis #1064. C'est le vecteur de propagation que la porte ne voit pas : elle
+attrape les casts, personne n'attrape une JUSTIFICATION périmée, et c'est elle que le hook
+suivant recopie. Corrigés dans la même PR.
+
+**⚠ Nuance NOUVELLE du piège « cible typée ≠ cast retirable ».** Le générateur perd la
+**nullabilité des colonnes d'un `returns table`**. Mesuré en prod le 02.08 :
+`get_admin_agencies` déclare `email`, `sub`, `logo_url`, `current_period_end`
+**non-nullables** — ils sont nuls sur 9, 10, 10 et 10 agences sur 10 ; `get_admin_users`
+déclare `agency`, `phone`, `deleted_at` non-nullables — nuls sur 2, 6 et 7 profils sur 7, et
+rend `consents` en `Json` opaque. Les types écrits à la main dans ces deux hooks sont donc
+**plus vrais que les générés** : les retirer serait une régression, pas un nettoyage.
+Vérifier « la RPC est dans les types » ne dit rien ; il faut lire la FORME.
+
 ## 8. Re-dater les migrations le jour du merge — procédure
 
 > ✅ **APPLIQUÉE le 01.08.2026, et sans re-datage.** Les 6 migrations de #1054 portaient déjà

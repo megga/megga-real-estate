@@ -5,10 +5,6 @@
 // — aucune RPC, aucun grant. Rend les biens INTERNES les mieux placés pour être
 // travaillés (overall_score DESC), joints à `properties` pour l'affichage.
 // DÉTERMINISTE, 0 LLM. Le score est une ESTIMATION (HITL) ; le geste reste manuel.
-//
-// Les colonnes v1 de property_scores ne sont pas (encore) dans les types générés
-// `Database` → même esprit `*Untyped` que useFocusMatches (qui, lui, caste un RPC) :
-// ici on caste la lecture de TABLE pour rester sans `any` au-delà du point de lecture.
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
