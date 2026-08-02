@@ -183,50 +183,46 @@ describe.skipIf(!HAS_KEYS)('trigger agencies_notify_verification_decision -- dis
   }
 
   it(
-    'une transition vers un statut NOTIFIABLE (validated) déclenche réellement le dispatch, là où la transition ' +
-      'PRÉCÉDENTE vers un état d\'attente (manual_review) n\'a rien déclenché -- transition détectée ET statuts filtrés',
+    'une transition vers manual_review declenche un accuse de reception, et la decision qui suit ' +
+      '(validated) declenche son propre courriel -- deux transitions notifiables, deux evenements',
     async () => {
       const urlBefore = await readConfig('supabase_url')
       const keyBefore = await readConfig('service_role_key')
       try {
-        // Pointe le dispatch vers le VRAI runtime local -- preuve directe de bout en bout,
-        // pas seulement que le trigger "tente" un appel (même motif que "Edge Function
-        // déployée" dans agency-verification-run.spec.ts).
         await setConfig('supabase_url', PG_NET_LOCAL_FUNCTIONS_URL)
         await setConfig('service_role_key', SERVICE_ROLE_JWT)
 
         const agencyId = await createAgency('validated', 'dirigeant-notify@megga-test.local')
 
-        // 1) pending -> manual_review : ÉTAT D'ATTENTE, hors NOTIFIABLE_STATUSES. Délai fixe
-        // avant l'assertion : si le trigger dispatchait ici par erreur, il aurait largement
-        // le temps d'écrire avant qu'on ne regarde (mesuré ailleurs dans ce fichier : un
-        // dispatch réel aboutit en quelques centaines de ms).
+        // 1) pending -> manual_review : ACCUSÉ DE RÉCEPTION (01.08.2026). Ce test assertait
+        // l'inverse jusqu'ici — « état d'attente, donc muet ». L'audit d'onboarding a montré
+        // que cette attente EST l'issue normale : le véto id_document n'accepte que 'match'
+        // et aucun connecteur ne le produit, donc tout dossier passe par un humain.
         await setStatus(agencyId, 'manual_review')
-        await new Promise((resolve) => setTimeout(resolve, 1_000))
-        expect(
-          await getNoticeEvents(agencyId),
-          'manual_review est un état d\'attente -- NOTIFIABLE_STATUSES ne le contient pas, prévenir à chaque ' +
-            'passage du moteur ferait du bruit sans information'
-        ).toHaveLength(0)
-
-        // 2) manual_review -> validated : DÉCIDÉ, notifiable. Cible le runtime edge réel.
-        await setStatus(agencyId, 'validated')
         await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 0)
+        const recu = await getNoticeEvents(agencyId)
+        expect(recu).toHaveLength(1)
+        expect(recu[0].metadata).toMatchObject({ status: 'manual_review' })
+
+        // 2) manual_review -> validated : la DÉCISION, son propre courriel.
+        await setStatus(agencyId, 'validated')
+        await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 1)
 
         const events = await getNoticeEvents(agencyId)
-        expect(events, 'une seule transition notifiable, un seul événement').toHaveLength(1)
-        // Sans RESEND_API_KEY en local, l'Edge Function va jusqu'au bout de sa logique --
-        // destinataire trouvé, courriel composé -- et s'arrête honnêtement au dernier geste :
-        // jamais un `_sent` fabriqué qui prétendrait un envoi qui n'a pas eu lieu.
-        expect(events[0].action).toBe('agency_verification_notice_undeliverable')
-        expect(events[0].severity).toBe('warn')
-        expect(events[0].metadata).toMatchObject({ status: 'validated', cause: 'resend_key_missing' })
+        expect(events, 'deux transitions notifiables, deux evenements').toHaveLength(2)
+        expect(events.some((e) => (e.metadata as { status?: string }).status === 'validated')).toBe(true)
+        // Sans RESEND_API_KEY en local, l'Edge Function va jusqu'au bout de sa logique et
+        // s'arrête honnêtement au dernier geste : jamais un `_sent` fabriqué.
+        for (const e of events) {
+          expect(e.action).toBe('agency_verification_notice_undeliverable')
+          expect(e.metadata).toMatchObject({ cause: 'resend_key_missing' })
+        }
       } finally {
         await restoreConfig('supabase_url', urlBefore)
         await restoreConfig('service_role_key', keyBefore)
       }
     },
-    15_000
+    20_000
   )
 
   it(
@@ -242,10 +238,10 @@ describe.skipIf(!HAS_KEYS)('trigger agencies_notify_verification_decision -- dis
         await setStatus(agencyId, 'manual_review')
         await setStatus(agencyId, 'rejected')
 
-        await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 0)
+        await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 1)
         const events = await getNoticeEvents(agencyId)
-        expect(events).toHaveLength(1)
-        expect(events[0].metadata).toMatchObject({ status: 'rejected', cause: 'resend_key_missing' })
+        expect(events).toHaveLength(2)
+        expect(events.some((e) => (e.metadata as { status?: string }).status === 'rejected')).toBe(true)
       } finally {
         await restoreConfig('supabase_url', urlBefore)
         await restoreConfig('service_role_key', keyBefore)
@@ -266,8 +262,8 @@ describe.skipIf(!HAS_KEYS)('trigger agencies_notify_verification_decision -- dis
         const agencyId = await createAgency('idempotent', 'dirigeant-idem@megga-test.local')
         await setStatus(agencyId, 'manual_review')
         await setStatus(agencyId, 'validated')
-        await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 0)
-        expect(await getNoticeEvents(agencyId)).toHaveLength(1)
+        await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 1)
+        expect(await getNoticeEvents(agencyId)).toHaveLength(2)
 
         // Réécrit EXACTEMENT la même valeur -- un UPDATE sans changement réel de la colonne
         // suivie, cas ordinaire (un formulaire qui resauvegarde la ligne). Sans le
@@ -278,7 +274,7 @@ describe.skipIf(!HAS_KEYS)('trigger agencies_notify_verification_decision -- dis
           await getNoticeEvents(agencyId),
           'réécrire la MÊME valeur ne doit jamais redéclencher : ce serait relancer un courriel à chaque ' +
             'sauvegarde de la ligne, sans rapport avec une nouvelle décision'
-        ).toHaveLength(1)
+        ).toHaveLength(2)
       } finally {
         await restoreConfig('supabase_url', urlBefore)
         await restoreConfig('service_role_key', keyBefore)
