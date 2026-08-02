@@ -1119,7 +1119,7 @@
       "banner": "Gli orari che i suoi clienti possono prenotare da soli.",
       "loading": "Caricamento delle disponibilità…",
       "open_label": "Prenotazione online",
-      "open_on": "Aperta — {{days}} giorno/i configurato/i",
+      "open_on": "Aperta, {{days}} giorno/i configurato/i",
       "open_off": "Chiusa. I suoi clienti non possono prenotare da soli.",
       "week_group": "Settimana tipo",
       "closed": "Chiuso",

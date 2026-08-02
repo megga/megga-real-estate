@@ -1119,7 +1119,7 @@
       "banner": "Die Zeitfenster, die Ihre Kundschaft selbst buchen kann.",
       "loading": "Verfügbarkeiten werden geladen…",
       "open_label": "Online-Buchung",
-      "open_on": "Offen — {{days}} Tag(e) konfiguriert",
+      "open_on": "Offen, {{days}} Tag(e) konfiguriert",
       "open_off": "Geschlossen. Ihre Kundschaft kann nicht selbst buchen.",
       "week_group": "Typische Woche",
       "closed": "Geschlossen",

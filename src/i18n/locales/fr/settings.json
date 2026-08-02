@@ -1119,7 +1119,7 @@
       "banner": "Vos créneaux ouverts à la réservation par vos clients.",
       "loading": "Chargement des disponibilités…",
       "open_label": "Réservation en ligne",
-      "open_on": "Ouverte — {{days}} jour(s) configuré(s)",
+      "open_on": "Ouverte, {{days}} jour(s) configuré(s)",
       "open_off": "Fermée. Vos clients ne peuvent pas réserver eux-mêmes.",
       "week_group": "Semaine type",
       "closed": "Fermé",
