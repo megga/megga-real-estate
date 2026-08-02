@@ -265,10 +265,19 @@ serve(async (req) => {
       newMatches += await flush(rows, 'insert_internal_matches', 'internal')
     } else if (mode === 'match-contact' && contact_id) {
       // ── Acheteur (modifié) → scanner les biens internes + la veille marché ──
+      // `supabase` est un client service-role : sans le filtre d'agence, ce
+      // `contact_id` venu du corps atteignait les recherches de N'IMPORTE quel
+      // contact de la plateforme, et les matches créés ensuite portaient
+      // l'agence de l'APPELANT sur le contact d'une autre. Les deux autres
+      // branches de ce switch (`match-property`, `scan-all`) filtraient déjà.
+      // Les deux appelants légitimes passent : le front envoie l'agence du
+      // profil, et le pont `client_searches` (20260621120000) poste
+      // `NEW.agency_id`, c'est-à-dire l'agence de la ligne visée.
       const { data: searches, error: searchError } = await supabase
         .from('client_searches')
         .select('id, contact_id, criteria')
         .eq('contact_id', contact_id)
+        .eq('agency_id', agency_id)
         .eq('is_active', true)
       if (searchError) throw searchError
       if (!searches || searches.length === 0) {
