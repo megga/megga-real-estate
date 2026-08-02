@@ -88,6 +88,16 @@ function resout(cle) {
  *
  * Un simple `replace(/\/\/.*$/)` ne suffirait pas : `'https://…'` porte deux
  * barres obliques à l'intérieur d'une chaîne. Il faut suivre l'état.
+ *
+ * ⚠ LIMITE CONNUE, et sa signature. Le suivi d'état ne distingue pas le code du
+ * TEXTE JSX : une apostrophe française isolée (`<p>L'agent…</p>`) ouvre un état
+ * « chaîne » fantôme, qui se referme à l'apostrophe suivante. Sans conséquence
+ * sur la détection elle-même — on n'efface pas les chaînes, seulement les
+ * commentaires — mais un commentaire situé entre deux apostrophes déséquilibrées
+ * pourrait échapper au blanchiment. Le symptôme serait alors un FAUX POSITIF
+ * pointant une ligne de commentaire : si ce gate accuse un `t()` qui n'est pas
+ * un appel, c'est ici qu'il faut regarder. Le dépôt entier passe aujourd'hui,
+ * apostrophes comprises ; y remédier vraiment demanderait un parseur JSX.
  */
 function blanchirCommentaires(source) {
   const sortie = Array.from(source)
