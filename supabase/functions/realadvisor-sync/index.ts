@@ -27,6 +27,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // désormais dérivée du registre swisstopo et partagée — cf. _shared/npa.ts.
 import { npaToCanton } from '../_shared/npa.ts'
 import { SLUG_TO_CODE, assertSliceResolved } from '../_shared/ra-slice-resolution.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 // ─── Config ──────────────────────────────────────────────────────
 
@@ -1338,6 +1339,23 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+
+    // ── Auth : appel interne uniquement (pg_cron realadvisor-*, self-invoke) ──
+    // La fonction n'avait AUCUNE garde alors qu'elle est déployée --no-verify-jwt.
+    // Les balayages destructeurs lisent leur drapeau `apply` côté serveur et
+    // restaient donc à blanc, mais un appelant anonyme pouvait déclencher jusqu'à
+    // 200 relais d'affilée (bannissement de l'IP de sortie), écrire dans
+    // `market_listings` / `agency_profiles`, et surtout empoisonner
+    // `realadvisor_sync_runs` — la table que lisent le cron de santé et la console.
+    // Le cron forwarde `app_config.service_role_key`, le self-invoke (ligne ~843)
+    // envoie la clé env : `isServiceSecret` accepte les deux.
+    if (!(await isServiceSecret(supabase, req))) {
+      return new Response(
+        JSON.stringify({ ok: false, error: 'service_role required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const body: SyncRequest = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
 
     const work = body.mode === 'fresh' ? runFresh(body, supabase)

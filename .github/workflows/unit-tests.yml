@@ -98,6 +98,17 @@ jobs:
         # détecté sur #893, corrigé par #894). Allowlist historique dans le script.
         run: npm run lint:migrations
 
+      - name: Gardes d'authentification des edge functions
+        # Toutes les fonctions sont déployées --no-verify-jwt (allowlist JWT_PROTECTED
+        # volontairement vide) : la passerelle ne vérifie AUCUNE signature, donc une
+        # fonction sans garde est un endpoint public. L'audit du 02.08.2026 a trouvé
+        # onze fonctions exploitables, dont trois simplement parce que personne
+        # n'avait écrit de garde et que rien ne le signalait — lint:roster contrôle
+        # que config.toml DÉCLARE les fonctions, pas qu'elles s'authentifient.
+        # ⚠ Cette porte attrape l'oubli TOTAL, pas l'IDOR : deux des onze failles
+        # avaient une garde et fuyaient quand même faute de cloisonner par agency_id.
+        run: npm run lint:edge-auth
+
       - name: Setup Deno
         # Edge Functions (supabase/functions/**) tournent sur Deno, pas Node : elles
         # échappent à tsc (exclu du build front) et à vitest (imports https: non résolus).

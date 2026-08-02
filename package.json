@@ -35,6 +35,7 @@
     "test:e2e:kyb": "playwright test --config=playwright.kyb.config.ts",
     "ruflo:seed": "node scripts/ruflo-seed-memory.mjs",
     "lint:roster": "node scripts/check-edge-roster.mjs",
+    "lint:edge-auth": "node scripts/check-edge-auth.mjs",
     "lint:migrations": "node scripts/check-migration-idempotence.mjs",
     "test:e2e:admin": "playwright test --config=playwright.admin.config.ts"
   },

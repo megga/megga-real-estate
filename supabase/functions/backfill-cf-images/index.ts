@@ -43,7 +43,6 @@ serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   // ── Auth: super_admin or service_role ──────────────────────────────
-  const authHeader = req.headers.get('Authorization') ?? ''
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
   })
@@ -96,8 +95,35 @@ serve(async (req: Request) => {
   // Sequential to be polite to the Flatfox CDN (CF fetches it in the backend,
   // but it's still 10 req/listing at their end). Parallel within each listing
   // via photo-processor's Promise.all.
+  // Le secret que `photo-processor` attend — PAS l'en-tête entrant.
+  //
+  // L'ancien code réexpédiait `authHeader` en affirmant en commentaire qu'il
+  // avait « déjà validé un JWT service_role ». C'était vrai sur le chemin cron,
+  // faux sur le chemin super-admin, où l'en-tête porte le JWT d'un UTILISATEUR.
+  // `photo-processor` ne connaît que `isServiceSecret` : il répondait donc 401,
+  // et chaque annonce du lot tombait dans la branche d'échec ci-dessous, qui
+  // estampille `photos_cf: []` + `photos_cf_processed_at` — c'est-à-dire
+  // « traitée, aucune photo », définitivement et sans reprise. Un clic depuis la
+  // console détruisait ainsi le travail en attente de tout le lot, en répondant
+  // `{succeeded: 0, failed: N}`, ce qui se lit comme une panne passagère.
+  //
+  // Même ordre de préférence que `isServiceSecret` côté receveur : `app_config`
+  // d'abord (la valeur que pg_cron forwarde), l'env en repli.
+  const { data: cfg } = await supabase
+    .from('app_config').select('value').eq('key', 'service_role_key').maybeSingle()
+  const serviceCredential = ((cfg?.value as string | undefined) ?? '').trim() || SERVICE_ROLE_KEY
+  if (!serviceCredential) {
+    return new Response(
+      JSON.stringify({ error: 'service credential unavailable (app_config.service_role_key et env vides)' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
   let succeeded = 0
   let failed = 0
+  /** Panne SYSTÉMIQUE (auth, fonction absente) : elle frappera chaque annonce à
+   *  l'identique. On arrête le lot au lieu de brûler les lignes une à une. */
+  let aborted: string | null = null
   for (const row of listings) {
     const photos = (row.photos as string[] | null) ?? []
     if (photos.length === 0) {
@@ -111,18 +137,23 @@ serve(async (req: Request) => {
     }
 
     try {
-      // Forward the incoming auth header — we already validated it's a valid
-      // service_role JWT above. This sidesteps the issue where
-      // SUPABASE_SERVICE_ROLE_KEY env var isn't reliably auto-injected in the
-      // EF runtime (especially under the new sb_secret_ key rollout).
       const procRes = await fetch(`${SUPABASE_URL}/functions/v1/photo-processor`, {
         method: 'POST',
         headers: {
-          Authorization: authHeader,
+          Authorization: `Bearer ${serviceCredential}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ listingId: row.id, photoUrls: photos }),
       })
+
+      // Un statut d'erreur HTTP ne dit RIEN sur les photos de cette annonce : il
+      // dit que l'appel n'aboutit pas. L'estampiller reviendrait à effacer du
+      // travail en attente à cause d'un problème d'installation.
+      if (!procRes.ok) {
+        aborted = `photo-processor a répondu ${procRes.status}`
+        break
+      }
+
       const procJson = await procRes.json() as {
         success?: boolean
         photos_cf?: unknown[]
@@ -144,13 +175,14 @@ serve(async (req: Request) => {
           .eq('id', row.id)
         failed++
       }
-    } catch {
+    } catch (err) {
       // Same — stamp with [] so we don't spin forever on a bad photo.
       await supabase
         .from('market_listings')
         .update({ photos_cf: [], photos_cf_processed_at: new Date().toISOString() })
         .eq('id', row.id)
       failed++
+      console.error('[backfill-cf-images] annonce', row.id, (err as Error)?.message ?? err)
     }
   }
 
@@ -161,13 +193,16 @@ serve(async (req: Request) => {
     .is('photos_cf_processed_at', null)
     .not('photos', 'is', null)
 
+  // Un arrêt systémique se répond en 502 : `{succeeded: 0}` en 200 se lit comme
+  // « rien à faire » et la boucle shell d'ops enchaîne les lots dans le vide.
   return new Response(
     JSON.stringify({
-      processed: listings.length,
+      processed: aborted ? succeeded + failed : listings.length,
       succeeded,
       failed,
       remaining: remaining ?? null,
+      ...(aborted ? { aborted, hint: 'lot interrompu — aucune annonce estampillée sur cette panne' } : {}),
     }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { status: aborted ? 502 : 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   )
 })

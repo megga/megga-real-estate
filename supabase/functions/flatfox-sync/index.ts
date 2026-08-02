@@ -24,6 +24,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // reste est exact depuis le passage au registre swisstopo — cf. _shared/npa.ts.
 import { npaToCanton } from '../_shared/npa.ts'
 import { reportEdgeError } from '../_shared/audit-edge-error.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 // ─── Config ──────────────────────────────────────────────────────
 
@@ -743,6 +744,21 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, serviceKey)
+
+    // ── Auth : appel interne uniquement (pg_cron `flatfox-sync-daily`, self-invoke) ──
+    // La fonction n'avait AUCUNE garde. Elle est déployée --no-verify-jwt, donc
+    // elle était joignable par n'importe qui — et `mode:'sweep'` lit son garde-fou
+    // `total_expected` dans le CORPS de la requête : un appelant anonyme fournissait
+    // le dénominateur du ratio de sécurité et faisait passer tout le corpus Flatfox
+    // actif en `removed` (le corpus qui alimente le matching CRM).
+    // Le cron forwarde `app_config.service_role_key`, le self-invoke (ligne ~551)
+    // envoie la clé env : `isServiceSecret` accepte les deux.
+    if (!(await isServiceSecret(supabase, req))) {
+      return new Response(
+        JSON.stringify({ ok: false, error: 'service_role required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     const body: SyncRequest = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
 
