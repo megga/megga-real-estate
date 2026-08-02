@@ -1194,9 +1194,24 @@ d'**affichage**, pas une purge.
 >  order by seq desc limit 20;
 > ```
 >
-> `lifecycle` n'a **aucune couverture de test backend** (les deux edges ne sont pas
-> exercées par la suite) : c'est la seule des quatre familles dont la première preuve sera
-> la production.
+> ✅ **Le trou `lifecycle` est FERMÉ** — `tests/backend/admin-lifecycle-edges.spec.ts`
+> exerce les deux edges de bout en bout contre la pile locale (auth super-admin réelle →
+> mutation → `admin_log_write`), et asserte ce que le statique ne peut pas voir : la ligne,
+> sa famille, ses paires, l'acteur **« Système »** et l'opérateur déplacé en 1ʳᵉ paire, les
+> compteurs en **chaînes**, et l'absence de ligne sur un refus 401/403.
+>
+> ⚠ **Deux pièges de ce test, à ne pas redécouvrir.** (1) `super_admin_allowlist_match`
+> déclare allowlisté TOUT e-mail suffixé par `app_config.super_admin_test_domain` : des
+> cibles sur le même domaine que le super-admin de test seraient **épargnées** par
+> `admin-agency-lifecycle` (`skipped++`) et **refusées** (403) par `admin-user-lifecycle`
+> (anti-lockout) — le test passerait à côté de tout ce qu'il croit mesurer. D'où deux
+> domaines `.local` distincts. (2) L'assertion `actor_label = 'Système'` est **volontairement
+> stricte** : si elle rougit un jour parce que le libellé porte un nom, ce n'est pas une
+> régression mais l'amélioration décrite plus haut (second client au JWT de l'appelant) — la
+> mettre à jour **consciemment**, pas la contourner.
+>
+> Reste donc la seule chose qu'aucun test ne peut faire : la **démonstration à l'écran**
+> `/dashboard/admin/security`, qui est le libellé exact du critère 2 de G2.
 
 **Mesuré le 02.08.2026.** G2 reste ouvert, mais **son blocage n'est plus celui que le plan
 décrit**. Les gestes existent et sont déjà branchés aux écrans ; ce qui manque, c'est
