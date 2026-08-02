@@ -1069,6 +1069,69 @@ export type Database = {
           },
         ]
       }
+      agent_booking_settings: {
+        Row: {
+          agency_id: string
+          agent_id: string
+          buffer_minutes: number
+          created_at: string
+          default_mode: string
+          is_open: boolean
+          location_label: string | null
+          max_advance_days: number
+          min_notice_hours: number
+          slot_minutes: number
+          timezone: string
+          updated_at: string
+          weekly_hours: Json
+        }
+        Insert: {
+          agency_id: string
+          agent_id: string
+          buffer_minutes?: number
+          created_at?: string
+          default_mode?: string
+          is_open?: boolean
+          location_label?: string | null
+          max_advance_days?: number
+          min_notice_hours?: number
+          slot_minutes?: number
+          timezone?: string
+          updated_at?: string
+          weekly_hours?: Json
+        }
+        Update: {
+          agency_id?: string
+          agent_id?: string
+          buffer_minutes?: number
+          created_at?: string
+          default_mode?: string
+          is_open?: boolean
+          location_label?: string | null
+          max_advance_days?: number
+          min_notice_hours?: number
+          slot_minutes?: number
+          timezone?: string
+          updated_at?: string
+          weekly_hours?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_booking_settings_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_booking_settings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_profiles: {
         Row: {
           agency_profile_id: string | null
@@ -1192,6 +1255,51 @@ export type Database = {
           {
             foreignKeyName: "agent_profiles_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_time_off: {
+        Row: {
+          agency_id: string
+          agent_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          reason: string | null
+          starts_at: string
+        }
+        Insert: {
+          agency_id: string
+          agent_id: string
+          created_at?: string
+          ends_at: string
+          id?: string
+          reason?: string | null
+          starts_at: string
+        }
+        Update: {
+          agency_id?: string
+          agent_id?: string
+          created_at?: string
+          ends_at?: string
+          id?: string
+          reason?: string | null
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_time_off_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_time_off_agent_id_fkey"
+            columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1354,6 +1462,132 @@ export type Database = {
           value?: string
         }
         Relationships: []
+      }
+      appointments: {
+        Row: {
+          agency_id: string
+          agent_id: string
+          booked_by: string
+          cancelled_at: string | null
+          cancelled_by: string | null
+          client_ip: string | null
+          client_note: string | null
+          client_user_agent: string | null
+          confirmation_sent_at: string | null
+          contact_id: string
+          created_at: string
+          ends_at: string
+          external_event_id: string | null
+          external_provider: string | null
+          id: string
+          kyc_case_id: string | null
+          location: string | null
+          magic_link_id: string | null
+          mode: string
+          purpose: string
+          reminder_sent_at: string | null
+          reschedule_count: number
+          slot: unknown
+          starts_at: string
+          status: string
+          updated_at: string
+          video_link: string | null
+        }
+        Insert: {
+          agency_id: string
+          agent_id: string
+          booked_by?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_ip?: string | null
+          client_note?: string | null
+          client_user_agent?: string | null
+          confirmation_sent_at?: string | null
+          contact_id: string
+          created_at?: string
+          ends_at: string
+          external_event_id?: string | null
+          external_provider?: string | null
+          id?: string
+          kyc_case_id?: string | null
+          location?: string | null
+          magic_link_id?: string | null
+          mode?: string
+          purpose?: string
+          reminder_sent_at?: string | null
+          reschedule_count?: number
+          slot?: unknown
+          starts_at: string
+          status?: string
+          updated_at?: string
+          video_link?: string | null
+        }
+        Update: {
+          agency_id?: string
+          agent_id?: string
+          booked_by?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_ip?: string | null
+          client_note?: string | null
+          client_user_agent?: string | null
+          confirmation_sent_at?: string | null
+          contact_id?: string
+          created_at?: string
+          ends_at?: string
+          external_event_id?: string | null
+          external_provider?: string | null
+          id?: string
+          kyc_case_id?: string | null
+          location?: string | null
+          magic_link_id?: string | null
+          mode?: string
+          purpose?: string
+          reminder_sent_at?: string | null
+          reschedule_count?: number
+          slot?: unknown
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          video_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_kyc_case_id_fkey"
+            columns: ["kyc_case_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_magic_link_id_fkey"
+            columns: ["magic_link_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_magic_links"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       auth_events: {
         Row: {
@@ -6453,6 +6687,17 @@ export type Database = {
         Args: { p_contact_id: string }
         Returns: number
       }
+      book_kyc_appointment: {
+        Args: {
+          p_client_ip?: string
+          p_client_note?: string
+          p_client_user_agent?: string
+          p_magic_link_id: string
+          p_mode?: string
+          p_starts_at: string
+        }
+        Returns: string
+      }
       calculate_contact_scores: { Args: { p_agency?: string }; Returns: number }
       calculate_property_scores: {
         Args: { p_agency?: string }
@@ -6468,6 +6713,10 @@ export type Database = {
       can_auto_send: {
         Args: { p_action_type: string; p_agent_id: string }
         Returns: boolean
+      }
+      cancel_kyc_appointment: {
+        Args: { p_appointment_id: string; p_client_ip?: string }
+        Returns: undefined
       }
       cancel_visit_by_token: { Args: { p_token: string }; Returns: boolean }
       changelog_publish_due: { Args: never; Returns: number }
@@ -7238,6 +7487,10 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_kyc_appointment_public: {
+        Args: { p_appointment_id: string }
+        Returns: Json
+      }
       get_market_map_points: {
         Args: {
           p_canton?: string
@@ -7396,6 +7649,19 @@ export type Database = {
         Returns: boolean
       }
       join_agency: { Args: { p_agency_id: string }; Returns: undefined }
+      kyc_booking_busy_ranges: {
+        Args: {
+          p_agent_id: string
+          p_exclude_id?: string
+          p_from: string
+          p_to: string
+        }
+        Returns: {
+          ends_at: string
+          source: string
+          starts_at: string
+        }[]
+      }
       kyc_by_contact_id: {
         Args: { p_contact_id: string }
         Returns: {
@@ -7442,6 +7708,15 @@ export type Database = {
           status: Database["public"]["Enums"]["kyc_magic_link_status"]
           uploads_count: number
         }[]
+      }
+      kyc_slot_rejection: {
+        Args: {
+          p_agent_id: string
+          p_ends_at: string
+          p_exclude_id?: string
+          p_starts_at: string
+        }
+        Returns: string
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
       mark_stale_kyc_dossiers: {
@@ -7625,6 +7900,14 @@ export type Database = {
       }
       record_consent: {
         Args: { p_type: string; p_version?: string }
+        Returns: undefined
+      }
+      reschedule_kyc_appointment: {
+        Args: {
+          p_appointment_id: string
+          p_client_ip?: string
+          p_new_starts_at: string
+        }
         Returns: undefined
       }
       reschedule_visit_by_token: {
