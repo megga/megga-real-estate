@@ -51,6 +51,20 @@ function fakeJpeg(): Blob {
   return new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], { type: 'image/jpeg' })
 }
 
+/**
+ * Les formats que le client propose ET valide pour une pièce d'identité, avec
+ * l'extension que `extensionOfFile` en dériverait. Recopie DÉLIBÉRÉE de
+ * `ALLOWED_IDENTITY_DOCUMENT_TYPES` (useAgencyIdentity.ts) : un test backend ne peut
+ * pas importer un module du bundle navigateur, et c'est précisément l'écart entre
+ * cette liste et l'`allowed_mime_types` du bucket que le cas ci-dessous mesure.
+ */
+const CLIENT_ACCEPTED_TYPES: ReadonlyArray<[string, string]> = [
+  ['image/jpeg', 'jpg'],
+  ['image/png', 'png'],
+  ['image/webp', 'webp'],
+  ['application/pdf', 'pdf'],
+]
+
 describe.skipIf(!HAS_KEYS)('storage documents/kyb-identity — dirigeant seul (20260728109000)', () => {
   let setup: TwoAgenciesSetup
   let plainAgentId: string
@@ -151,6 +165,34 @@ describe.skipIf(!HAS_KEYS)('storage documents/kyb-identity — dirigeant seul (2
     const { error } = await setup.clientA.storage.from('documents').upload(pathA, fakeJpeg(), { contentType: 'image/jpeg' })
     expect(error, error?.message).toBeNull()
   })
+
+  // Bug du 02.08.2026 : le client proposait et validait `image/webp`, le bucket le
+  // refusait (`allowed_mime_types` sans WebP) — validation client verte, téléversement
+  // en échec. Corrigé par 20260802140000.
+  //
+  // ⚠ CE TEST N'AURAIT PAS ATTRAPÉ LE BUG AVANT CETTE MIGRATION, et c'est le fond du
+  // problème plutôt qu'un détail : la configuration du bucket avait été posée à la main
+  // dans le dashboard, et 20260527000000 est un `INSERT … ON CONFLICT DO NOTHING` qui
+  // ne l'écrit jamais. Sur la base FRAÎCHE de la CI, `allowed_mime_types` valait donc
+  // NULL — « tout accepté » — et n'importe quel format serait passé au vert pendant que
+  // la production refusait. Le cas n'a de mordant que parce que la migration écrit
+  // désormais la liste sur les deux bases : c'est la même classe de piège que
+  // scripts/check-privilege-drift.mjs documente pour les GRANT.
+  it.each(CLIENT_ACCEPTED_TYPES)(
+    'le bucket accepte %s, comme le client (bug WebP du 02.08.2026, 20260802140000)',
+    async (contentType, extension) => {
+      // Storage valide le Content-Type DÉCLARÉ, jamais les octets : un blob factice
+      // suffit à éprouver le contrôle MIME du bucket, et seulement lui.
+      const path = `${folderA}/format-${extension}.${extension}`
+      const blob = new Blob([new Uint8Array([0x00, 0x01, 0x02, 0x03])], { type: contentType })
+      const { error } = await setup.clientA.storage.from('documents').upload(path, blob, { contentType, upsert: true })
+      expect(
+        error,
+        `${contentType} est proposé et validé côté client (ALLOWED_IDENTITY_DOCUMENT_TYPES) : le bucket doit l'accepter — ${error?.message}`,
+      ).toBeNull()
+      await serviceRoleClient().storage.from('documents').remove([path]).catch(() => {})
+    },
+  )
 
   it('ce même dirigeant relit ce qu\'il vient de téléverser (list)', async () => {
     const { data, error } = await setup.clientA.storage.from('documents').list(folderA)
