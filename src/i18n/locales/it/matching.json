@@ -234,7 +234,7 @@
     "engagedVisit": "Visita già pianificata. Prepari il modulo di visita e i punti di forza dell'immobile.",
     "engaged": "{{engage}}, sollecito a caldo, è il momento di proporre una visita.",
     "aligned": "Profilo allineato su tutti i fronti. {{kyc}}",
-    "posNeg": "{{force}} allineato{{agr}}, ma {{frein}} resta indietro ({{detail}}). Da presentare con questo contesto.",
+    "posNeg": "{{force}} in linea, ma {{frein}} resta indietro ({{detail}}). Da presentare con questo contesto.",
     "twoPos": "{{a}} e {{b}} allineati. {{kyc}}",
     "default": "Match a {{score}}/100 sui criteri attivi. {{kyc}}",
     "kycPhrase": {

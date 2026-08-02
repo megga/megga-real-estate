@@ -234,7 +234,7 @@
     "engagedVisit": "Besichtigung bereits geplant. Bereiten Sie den Besichtigungsschein und die Stärken des Objekts vor.",
     "engaged": "{{engage}}, jetzt nachfassen, es ist der richtige Moment für eine Besichtigung.",
     "aligned": "Profil in allen Punkten passend. {{kyc}}",
-    "posNeg": "{{force}} passend{{agr}}, aber {{frein}} liegt zurück ({{detail}}). Mit diesem Kontext präsentieren.",
+    "posNeg": "{{force}} passend, aber {{frein}} liegt zurück ({{detail}}). Mit diesem Kontext präsentieren.",
     "twoPos": "{{a}} und {{b}} passend. {{kyc}}",
     "default": "Match von {{score}}/100 bei den aktiven Kriterien. {{kyc}}",
     "kycPhrase": {
