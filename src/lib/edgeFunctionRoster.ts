@@ -19,6 +19,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'agency-verification-run',
   'ai-billing-monitor',
   'ai-copilot',
+  'appointment-slots',
   'audit-pdf-export',
   'automation-engine',
   'backfill-cf-images',

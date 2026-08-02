@@ -31,31 +31,33 @@ export type ExternalBusyResult =
   | { ok: false; degraded: 'provider_unreachable'; provider: string }
 
 /**
- * Surface minimale du client Supabase réellement utilisée ici.
+ * Lecture de la ligne de jetons d'un agent, injectée par l'appelant.
  *
- * Structurelle plutôt qu'importée : ça garde ce module testable sans monter un
- * vrai client, et ça documente en une lecture tout ce qu'il touche en base.
+ * Une FONCTION plutôt que le client Supabase : décrire structurellement
+ * `from().select().eq().maybeSingle()` échouait au `deno check` — le builder
+ * PostgREST est un thenable, pas une Promise, et faire correspondre ses
+ * génériques déclenchait un TS2589 (« type instantiation excessively deep »).
+ * Réduire le contrat à ce dont ce module a réellement besoin supprime le
+ * problème et le rend testable sans monter de client.
  */
-interface MinimalDb {
-  from: (table: string) => {
-    select: (cols: string) => {
-      eq: (col: string, val: string) => {
-        maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>
-      }
-    }
-  }
-}
-
-/** Jeton d'accès valide, rafraîchi si nécessaire. null = connexion inutilisable. */
-async function freshAccessToken(
-  db: MinimalDb,
+export type TokenRowReader = (
   table: 'google_calendar_tokens' | 'outlook_calendar_tokens',
   userId: string,
-): Promise<string | null> {
-  const { data } = await db.from(table).select('*').eq('user_id', userId).maybeSingle()
-  if (!data) return null
-  if (data.sync_enabled === false) return null
+) => Promise<Record<string, unknown> | null>
 
+/**
+ * Jeton d'accès valide, rafraîchi si nécessaire. null = connexion inutilisable.
+ *
+ * Le jeton rafraîchi n'est PAS réécrit en base : cet appel vient d'un visiteur
+ * anonyme et reste en lecture seule. La session CRM de l'agent
+ * (google-calendar-sync) persiste, elle. Coût : un rafraîchissement de plus
+ * quand le jeton a expiré — négligeable devant le nombre de clients par agent,
+ * et préférable à ouvrir une écriture sur un chemin public.
+ */
+async function freshAccessToken(
+  data: Record<string, unknown>,
+  table: 'google_calendar_tokens' | 'outlook_calendar_tokens',
+): Promise<string | null> {
   const accessToken = String(data.access_token ?? '')
   const refreshToken = String(data.refresh_token ?? '')
   const expiresAt = new Date(String(data.token_expires_at ?? 0)).getTime()
@@ -150,7 +152,7 @@ async function outlookBusy(token: string, fromIso: string, toIso: string): Promi
  * pas une dégradation, la base le décrit entièrement.
  */
 export async function externalBusyRanges(
-  db: MinimalDb,
+  readTokens: TokenRowReader,
   userId: string,
   fromIso: string,
   toIso: string,
@@ -162,10 +164,10 @@ export async function externalBusyRanges(
     ['google_calendar_tokens', 'google'],
     ['outlook_calendar_tokens', 'outlook'],
   ] as const) {
-    const { data } = await db.from(table).select('user_id, sync_enabled').eq('user_id', userId).maybeSingle()
-    if (!data || data.sync_enabled === false) continue // agenda non connecté : rien à lire
+    const row = await readTokens(table, userId)
+    if (!row || row.sync_enabled === false) continue // agenda non connecté : rien à lire
 
-    const token = await freshAccessToken(db, table, userId)
+    const token = await freshAccessToken(row, table)
     if (!token) return { ok: false, degraded: 'provider_unreachable', provider }
 
     const ranges = provider === 'google'
