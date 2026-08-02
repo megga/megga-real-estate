@@ -23,9 +23,21 @@
 
 import { describe, it, expect } from 'vitest'
 
-const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
+const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_JWT)
 const URL = process.env.SUPABASE_TEST_URL ?? 'http://127.0.0.1:54321'
-const SERVICE_KEY = process.env.SUPABASE_TEST_SERVICE_ROLE_KEY ?? ''
+
+// ⚠ `SUPABASE_TEST_SERVICE_ROLE_JWT`, PAS `..._SERVICE_ROLE_KEY`. Les deux sont
+// des credentials valides, mais ce ne sont pas les mêmes : `supabase status`
+// expose le JWT legacy (`eyJ…`) ET la clé récente (`sb_secret_…`), et le runtime
+// edge n'injecte que le PREMIER sous le nom `SUPABASE_SERVICE_ROLE_KEY` — la clé
+// `sb_secret_` y atterrit dans `SUPABASE_INTERNAL_SECRET_KEY`. Envoyer la clé
+// récente à une fonction qui compare son Bearer à l'env, c'est lui envoyer un
+// credential valide mais AUTRE : elle répond 401. `app_config.service_role_key`
+// n'étant pas semé en CI, `isServiceSecret` tombe justement sur ce repli env.
+// Le piège est documenté dans .github/workflows/backend.yml (export des
+// identifiants) et invisible en local, où `.env.test.local` met le JWT legacy
+// dans la variable `..._KEY`.
+const SERVICE_JWT = process.env.SUPABASE_TEST_SERVICE_ROLE_JWT ?? ''
 
 /** JWT syntaxiquement valide, signature bidon, payload `{"role":"service_role"}`. */
 function forgedServiceRoleJwt(): string {
@@ -104,7 +116,7 @@ describe.skipIf(!HAS_KEYS)('gardes de secret de service — le vrai secret passe
   // on veut prouver que la porte s'ouvre, pas lancer un crawl dans la CI.
 
   it('market-scraper accepte le secret puis rejette le corps invalide (400, pas 401)', async () => {
-    const { status } = await post('market-scraper', { Authorization: `Bearer ${SERVICE_KEY}` })
+    const { status } = await post('market-scraper', { Authorization: `Bearer ${SERVICE_JWT}` })
     // 400 = la validation métier a parlé, donc la garde a laissé passer.
     expect(status, `attendu 400 (garde franchie), reçu ${status}`).toBe(400)
   })
@@ -112,7 +124,7 @@ describe.skipIf(!HAS_KEYS)('gardes de secret de service — le vrai secret passe
   it('send-visit-email accepte le secret puis ne trouve pas la visite (404, pas 401)', async () => {
     const { status } = await post(
       'send-visit-email',
-      { Authorization: `Bearer ${SERVICE_KEY}` },
+      { Authorization: `Bearer ${SERVICE_JWT}` },
       JSON.stringify({ type: 'reminder', visit_id: '00000000-0000-4000-8000-000000000000' }),
     )
     expect(status, `attendu 404 (garde franchie), reçu ${status}`).toBe(404)
@@ -123,7 +135,7 @@ describe.skipIf(!HAS_KEYS)('gardes de secret de service — le vrai secret passe
     // Aucun `status='removed'` n'est posé : le test ouvre la porte sans rien casser.
     const { status } = await post(
       'flatfox-sync',
-      { Authorization: `Bearer ${SERVICE_KEY}` },
+      { Authorization: `Bearer ${SERVICE_JWT}` },
       JSON.stringify({ mode: 'sweep', total_expected: 0, sync_start_at: new Date().toISOString() }),
     )
     expect(status, `attendu 202 (garde franchie), reçu ${status}`).toBe(202)
