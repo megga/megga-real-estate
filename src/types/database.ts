@@ -413,7 +413,7 @@ export type Database = {
           monthly_target: number | null
           name: string
           phone: string | null
-          plan: Database["public"]["Enums"]["agency_plan"]
+          plan: string
           postal_code: string | null
           quarterly_target: number | null
           slug: string
@@ -450,7 +450,7 @@ export type Database = {
           monthly_target?: number | null
           name: string
           phone?: string | null
-          plan?: Database["public"]["Enums"]["agency_plan"]
+          plan?: string
           postal_code?: string | null
           quarterly_target?: number | null
           slug: string
@@ -487,7 +487,7 @@ export type Database = {
           monthly_target?: number | null
           name?: string
           phone?: string | null
-          plan?: Database["public"]["Enums"]["agency_plan"]
+          plan?: string
           postal_code?: string | null
           quarterly_target?: number | null
           slug?: string
@@ -6373,19 +6373,19 @@ export type Database = {
       }
       admin_reject_agency_review: {
         Args: { p_agency_id: string; p_reason: string }
-        Returns: undefined
+        Returns: Json
       }
       admin_relaunch_agency_review: {
         Args: { p_agency_id: string }
-        Returns: undefined
+        Returns: Json
       }
       admin_request_agency_correction: {
         Args: { p_agency_id: string; p_reason: string }
-        Returns: undefined
+        Returns: Json
       }
       admin_resolve_agency_id_document: {
         Args: { p_agency_id: string; p_check_id: string; p_result: string }
-        Returns: undefined
+        Returns: Json
       }
       admin_security_entity: {
         Args: {
@@ -6403,19 +6403,19 @@ export type Database = {
           p_plan: string
           p_status?: string
         }
-        Returns: undefined
+        Returns: Json
       }
       admin_set_agency_quotas: {
         Args: { p_agency_id: string; p_note?: string; p_quotas: Json }
-        Returns: undefined
+        Returns: Json
       }
       admin_set_user_role: {
         Args: { p_role: string; p_user_id: string }
-        Returns: undefined
+        Returns: Json
       }
       admin_validate_agency_review: {
         Args: { p_agency_id: string }
-        Returns: undefined
+        Returns: Json
       }
       agency_for_wa_business_number: {
         Args: { p_wa_to: string }
@@ -7480,6 +7480,14 @@ export type Database = {
         }[]
       }
       megga_agency_slug: { Args: { p_name: string }; Returns: string }
+      ml_extract_rooms: {
+        Args: { p_description: string; p_type: string }
+        Returns: number
+      }
+      ml_extract_surface_m2: {
+        Args: { p_description: string; p_type: string }
+        Returns: number
+      }
       normalize_legal_form_text: { Args: { p_text: string }; Returns: string }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
       pending_consents: {
@@ -7489,6 +7497,7 @@ export type Database = {
           version: string
         }[]
       }
+      pg_cron_installe: { Args: never; Returns: boolean }
       pg_database_size_mb: { Args: never; Returns: number }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -8343,7 +8352,6 @@ export type Database = {
       }
     }
     Enums: {
-      agency_plan: "starter" | "pro" | "agency" | "enterprise"
       crm_offer_kind: "offer" | "counter"
       crm_offer_party: "buyer" | "seller"
       crm_offer_status:
@@ -8545,7 +8553,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      agency_plan: ["starter", "pro", "agency", "enterprise"],
       crm_offer_kind: ["offer", "counter"],
       crm_offer_party: ["buyer", "seller"],
       crm_offer_status: [
