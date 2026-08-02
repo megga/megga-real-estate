@@ -978,6 +978,30 @@ comme une erreur console et casserait la fenêtre de 48 h qu'on cherche justemen
 Un `Sentry.captureMessage(…, 'info')` depuis un écran de la console suffit à voir le tag
 arriver, sans peupler le critère.
 
+### 7nonies. Le runbook existe — [`RUNBOOK_INCIDENT.md`](RUNBOOK_INCIDENT.md)
+
+Une page, uniquement des gestes qui existent, tout relevé en base ou au dépôt le 02.08. Il
+couvre : les trois canaux d'alerte **avec leur latence réelle**, l'ordre des premiers regards,
+les cinq pannes déjà vues et leur geste, la vérification de chaîne, l'export de preuve.
+
+**Trois choses que l'écriture a mises au jour, et qui valent plus que le document :**
+
+1. **Le verdict de `admin_log_verify_chain()` est dans `status`, PAS dans `ok`.** C'est
+   l'exception connue à l'enveloppe §10.1, et elle mord : `->> 'ok'` rend `null`, ce qui se
+   lit comme un échec sur une chaîne parfaitement intacte. Mesuré en écrivant le runbook,
+   après avoir failli le consigner à l'envers.
+2. **Le seul canal qui survit à une panne Supabase écrit à `noreply@megga.ch`** — en dur, et
+   pour une bonne raison (lire l'allowlist exigerait la base, c'est-à-dire le patient). Reste
+   que si personne n'ouvre cette boîte, ce canal se réduit à son second support : le workflow
+   rouge dans l'onglet Actions. À trancher (§6 du runbook).
+3. **Un cron désactivé ne se relance pas** : la RPC refuse, et le réactiver est un geste
+   distinct qui **n'est outillé nulle part**. Ce n'est pas un manque du runbook, c'est un
+   trou du socle, nommé plutôt que contourné.
+
+⚠ `super_admin_allowlist()` rend **une ligne portant un TABLEAU** de deux adresses : un
+`count(*)` dessus rend 1 et se lit « un seul super-admin ». Le chiffre de §7quinquies (2
+comptes) est le bon.
+
 ## 8. Re-dater les migrations le jour du merge — procédure
 
 > ✅ **APPLIQUÉE le 01.08.2026, et sans re-datage.** Les 6 migrations de #1054 portaient déjà
