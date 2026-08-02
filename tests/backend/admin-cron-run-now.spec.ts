@@ -41,18 +41,35 @@ import { execSql } from './helpers/local-sql'
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 const DENIED = '42501'
 
-/** pg_cron présent ? Sonde qui ne lève jamais : `pg_namespace` existe toujours. */
+/**
+ * pg_cron présent ? Sonde qui ne lève jamais : `pg_extension` existe toujours.
+ *
+ * ⚠ Le prédicat porte sur l'EXTENSION, pas sur le schéma — même correctif que la migration
+ * 20260802150000. Le schéma `cron` peut exister sans ses tables sur une base fraîche, et la
+ * sonde répondait alors « présent » avant que `cron.schedule` du beforeAll ne lève 42P01,
+ * emportant tout le describe.
+ *
+ * ⚠ Et l'échec est DISTINGUÉ de l'absence. Le `catch` avalait tout : un conteneur Docker
+ * arrêté se lisait « pg_cron absent », les 7 tests passaient en gris et la suite restait
+ * verte sans que rien ne le dise. On ne peut pas faire échouer ici (pg_cron est réellement
+ * absent en CI, c'est le cas nominal), mais on peut refuser de le taire.
+ */
 function cronDisponible(): boolean {
   try {
     execSql(`
       do $$
       begin
-        if not exists (select 1 from pg_namespace where nspname = 'cron') then
+        if not exists (select 1 from pg_extension where extname = 'pg_cron') then
           raise exception 'pg_cron absent';
         end if;
       end $$;`)
     return true
-  } catch {
+  } catch (err) {
+    const motif = err instanceof Error ? err.message : String(err)
+    if (!/pg_cron absent/.test(motif)) {
+      console.warn(`[admin-cron-run-now] sonde pg_cron INEXPLOITABLE (${motif.slice(0, 200)}) — `
+        + 'les 7 tests du chemin nominal sont sautés pour une raison qui n\'est PAS l\'absence de pg_cron.')
+    }
     return false
   }
 }
