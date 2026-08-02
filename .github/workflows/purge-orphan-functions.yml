@@ -69,9 +69,20 @@ jobs:
           [ "$FAIL" -eq 0 ] || exit 1
 
       - name: Setup Supabase CLI
+        # ⚠ VERSION ÉPINGLÉE, ET CE N'EST PAS DU ZÈLE. `version: latest` oblige l'action à
+        # résoudre la dernière release via l'API GitHub, SANS authentification : sous charge,
+        # l'IP partagée des runners atteint la limite et le job meurt AVANT tout travail utile
+        # (« Failed to resolve latest Supabase CLI release: rate limit exceeded », suivi de
+        # « No such container: supabase_db_… »). Mesuré le 02.08.2026 : TROIS occurrences dans
+        # la journée, dont un déploiement de production qu'il a fallu relancer à la main.
+        # 2.111.0 EST ce que `latest` résolvait ce jour-là — l'épinglage ne change donc aucun
+        # comportement, il supprime seulement l'appel réseau.
+        # ⚠ À faire évoluer À LA MAIN quand `supabase/config.toml` ou `supabase start` l'exigent
+        # (l'action n'accepte pas de `token` pour authentifier l'appel, et `supabase` n'est pas
+        # une dépendance du dépôt : omettre `version` retomberait sur `latest`).
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.111.0
 
       - name: Supprimer les fonctions
         env:
