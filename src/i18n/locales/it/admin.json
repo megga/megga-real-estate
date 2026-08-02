@@ -983,5 +983,9 @@
   "kybReview.actions.requestCorrection": "Richiedi una correzione",
   "kybReview.actions.requestingCorrection": "Invio…",
   "kybReview.actions.requestCorrectionSuccess": "Fascicolo rinviato al dirigente per la correzione",
-  "kybReview.event.agencyVerificationCorrectionRequested": "Correzione richiesta al dirigente"
+  "kybReview.event.agencyVerificationCorrectionRequested": "Correzione richiesta al dirigente",
+  "nav": {
+    "adminKybReviewPending_one": "{{count}} pratica in attesa di revisione",
+    "adminKybReviewPending_other": "{{count}} pratiche in attesa di revisione"
+  }
 }

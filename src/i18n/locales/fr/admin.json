@@ -983,5 +983,9 @@
   "kybReview.actions.requestCorrection": "Demander une correction",
   "kybReview.actions.requestingCorrection": "Envoi…",
   "kybReview.actions.requestCorrectionSuccess": "Dossier renvoyé au dirigeant pour correction",
-  "kybReview.event.agencyVerificationCorrectionRequested": "Correction demandée au dirigeant"
+  "kybReview.event.agencyVerificationCorrectionRequested": "Correction demandée au dirigeant",
+  "nav": {
+    "adminKybReviewPending_one": "{{count}} dossier en attente de revue",
+    "adminKybReviewPending_other": "{{count}} dossiers en attente de revue"
+  }
 }

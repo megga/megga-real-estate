@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useKybReviewCount, formatReviewBadge } from '@/hooks/useKybReviewCount'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
@@ -47,6 +48,9 @@ interface NavItem {
   icon: MEIconName
   /** `end` : n'est actif que sur une correspondance exacte (l'accueil `/`). */
   end?: boolean
+  /** Seule valeur admise aujourd'hui. Un littéral plutôt qu'un booléen : le jour où une
+   *  seconde file mérite une pastille, le compilateur exigera de dire laquelle. */
+  badge?: 'kybReview'
 }
 
 interface NavSection {
@@ -83,7 +87,7 @@ const NAV_SECTIONS: NavSection[] = [
     { labelKey: 'nav.adminMonitoring', href: '/monitoring', icon: 'broadcast' },
     { labelKey: 'nav.adminSecurity', href: '/security', icon: 'shield' },
     { labelKey: 'nav.adminCompliance', href: '/compliance', icon: 'shield' },
-    { labelKey: 'nav.adminKybReview', href: '/kyb-review', icon: 'eye' },
+    { labelKey: 'nav.adminKybReview', href: '/kyb-review', icon: 'eye', badge: 'kybReview' },
   ]},
   { labelKey: 'nav.adminSectionProduct', items: [
     { labelKey: 'nav.adminChangelog', href: '/changelog', icon: 'megaphone' },
@@ -107,7 +111,8 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation(['common', 'admin'])
   const { signOut, profile } = useAuth()
   const { dark } = useAdminTheme()
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones, onTone } = useAdminSugar()
+  const { count: kybReviewCount } = useKybReviewCount()
   const navigate = useNavigate()
 
   const rowBase = {
@@ -160,6 +165,24 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
                         <MEIcon name={item.icon} size={17} color={isActive ? sp.ink : sp.sub} />
                       </span>
                       <span style={labelStyle}>{t(item.labelKey)}</span>
+                      {item.badge === 'kybReview' && formatReviewBadge(kybReviewCount) && (
+                        <span
+                          aria-label={t('admin:nav.adminKybReviewPending', { count: kybReviewCount })}
+                          style={{
+                            marginLeft: 'auto',
+                            minWidth: 20,
+                            padding: '1px 6px',
+                            borderRadius: ADMIN_RADII.pill,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            textAlign: 'center',
+                            background: tones.warn,
+                            color: onTone,
+                          }}
+                        >
+                          {formatReviewBadge(kybReviewCount)}
+                        </span>
+                      )}
                     </>
                   )}
                 </NavLink>

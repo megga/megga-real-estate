@@ -983,5 +983,9 @@
   "kybReview.actions.requestCorrection": "Request a correction",
   "kybReview.actions.requestingCorrection": "Sending…",
   "kybReview.actions.requestCorrectionSuccess": "File sent back to the director for correction",
-  "kybReview.event.agencyVerificationCorrectionRequested": "Correction requested from the director"
+  "kybReview.event.agencyVerificationCorrectionRequested": "Correction requested from the director",
+  "nav": {
+    "adminKybReviewPending_one": "{{count}} file awaiting review",
+    "adminKybReviewPending_other": "{{count}} files awaiting review"
+  }
 }

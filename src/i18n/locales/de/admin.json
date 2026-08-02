@@ -983,5 +983,9 @@
   "kybReview.actions.requestCorrection": "Korrektur anfordern",
   "kybReview.actions.requestingCorrection": "Wird gesendet…",
   "kybReview.actions.requestCorrectionSuccess": "Dossier zur Korrektur zurückgesendet",
-  "kybReview.event.agencyVerificationCorrectionRequested": "Korrektur bei der Geschäftsleitung angefordert"
+  "kybReview.event.agencyVerificationCorrectionRequested": "Korrektur bei der Geschäftsleitung angefordert",
+  "nav": {
+    "adminKybReviewPending_one": "{{count}} Dossier wartet auf Prüfung",
+    "adminKybReviewPending_other": "{{count}} Dossiers warten auf Prüfung"
+  }
 }
