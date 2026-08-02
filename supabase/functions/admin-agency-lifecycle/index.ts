@@ -9,8 +9,18 @@
 // L'ancien useAdminAgencies.updateStatus ne changeait que le statut — personne
 // n'était réellement bloqué ; cette edge devient le seul chemin.
 //
-// Audit : agency_suspended / agency_activated (labels déjà présents dans
-// SENSITIVE_ACTIONS côté UI) + compteur de membres traités en metadata.
+// Audit : DEUX journaux, et ce n'est pas une redondance.
+//   * activity_events — agency_suspended / agency_activated (labels déjà présents
+//     dans SENSITIVE_ACTIONS côté UI) : ce que l'AGENCE a le droit de voir.
+//   * admin_log famille `lifecycle` — le registre MEGGA, avec sa chaîne
+//     d'empreintes, seul lu par l'écran Sécurité de la console. Sans lui, le
+//     critère 2 du gate G2 (« UI → RPC → ligne visible dans Sécurité avec
+//     metadata ») ne pouvait structurellement pas passer pour cet écran.
+//
+// ⚠ ACTEUR = « Système », et il faut le savoir. requireSuperAdmin rend un client
+// à la CLÉ DE SERVICE : auth.uid() y est NULL, donc admin_log_write force
+// actor_label à « Système » et LÈVE si on lui passe autre chose. L'identité de
+// l'opérateur n'est donc pas perdue mais DÉPLACÉE — première paire de metadata.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
@@ -99,6 +109,33 @@ serve(async (req) => {
       metadata: { members_processed: processed, members_skipped_allowlisted: skipped },
     })
     if (auditErr) throw auditErr
+
+    // Registre MEGGA — EN DERNIER. admin_log_write prend le verrou de chaîne et le tient
+    // jusqu'au COMMIT ; l'appeler avant la boucle de ban l'aurait fait tenir pendant N
+    // aller-retours GoTrue. Même règle qu'en SQL (§10.2 amendé : entité puis chaîne).
+    //
+    // p_metadata est un tableau ORDONNÉ de paires {l, v} — jamais un objet — et sans
+    // flottant (le hash porte sur le TEXTE du jsonb). Les compteurs partent en chaînes.
+    const { error: registryErr } = await supabase.rpc('admin_log_write', {
+      p_family: 'lifecycle',
+      p_action: suspend ? 'agency_suspended' : 'agency_activated',
+      p_severity: 'warn',
+      p_entity_type: 'agency',
+      p_entity_id: agencyId,
+      p_entity_label: agency.name,
+      p_agency_id: agencyId,
+      p_metadata: [
+        { l: 'Opérateur', v: admin.email || admin.id },
+        { l: 'Action', v: suspend ? 'Suspension' : 'Réactivation' },
+        { l: 'Membres traités', v: String(processed) },
+        { l: 'Membres épargnés (allowlist)', v: String(skipped) },
+      ],
+    })
+    // On lève, comme pour activity_events juste au-dessus. La conséquence est connue et
+    // assumée : l'état est DÉJÀ changé quand on arrive ici, donc l'appelant reçoit un 500
+    // sur un geste qui a eu lieu. Avaler l'erreur produirait l'inverse — un geste réussi
+    // en silence, absent du registre — et c'est le pire des deux pour un journal LBA.
+    if (registryErr) throw registryErr
 
     return json(200, { success: true, action, members_processed: processed, members_skipped: skipped })
   } catch (err) {

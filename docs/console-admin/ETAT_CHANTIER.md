@@ -398,6 +398,30 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
     disait déjà — « un garde-fou qui crie sans raison finit ignoré, donc muet le jour où il
     a raison ».
 
+14. **`revoke … from public` NE RÉVOQUE PAS `anon`, et tout `create function` ouvre la
+    porte.** Mesuré dans `pg_default_acl` le 02.08.2026 : le projet porte un
+    `alter default privileges in schema public grant execute on functions to anon,
+    authenticated, service_role` posé par `postgres`. Chaque `CREATE FUNCTION` d'une
+    migration accorde donc EXECUTE à `anon` **explicitement** — et `PUBLIC`
+    (`grantee = '-'`) et `anon` sont deux bénéficiaires **différents**. Révoquer PUBLIC
+    laisse `anon` intact : une SECURITY DEFINER joignable **sans authentification**.
+    ⚠ Le piège ne se déclenche qu'au **recréage** : un `create or replace` conserve l'ACL
+    existante, seul un `DROP` (ou une première création) la remet à la valeur par défaut.
+    C'est donc invisible tant qu'on ne change pas une signature ou un type de retour — et
+    ça mord exactement le jour où on croit ne faire qu'un refactor mécanique.
+    Règle : **`revoke all on function … from public, anon;`**, plus `service_role` si la
+    fonction ne l'avait pas (sinon la portée s'élargit en silence). Attrapé par
+    `admin-rpc-guard-sweep.spec.ts`, qui teste `grantee in ('-', 'anon')` — le seul garde-fou
+    du dépôt sur ce point, et il a payé sa place sur la PR #1094.
+    ✅ **Le reste du dépôt a été vérifié EN PROD dans la foulée, inutile de recommencer** :
+    dix autres migrations écrivent `revoke … from public;` sans `anon` sur une fonction. Six
+    sont saines (`anon` n'y a rien : `realadvisor_probe_*`, `realadvisor_sweep_enum`,
+    `sync_contact_client_search`). Les quatre autres — `get_visit_by_token`,
+    `reschedule_visit_by_token`, `cancel_visit_by_token`, `submit_visit_feedback_by_token` —
+    SONT joignables par `anon`, et **c'est voulu** : la page de gestion de visite est
+    anonyme, le `grant … to anon, authenticated` est explicite deux lignes plus bas
+    (`20260711190000`, « capability publique »). Aucun correctif à faire ailleurs.
+
 ## 7. Reprendre
 
 ✅ **La revue est passée, #1046 est mergée, les 14 migrations sont déployées.** Cette section
@@ -1088,7 +1112,91 @@ reste intouchable (décision PO n° 7, trigger append-only) : ces deux tables ne
 des cibles de ce critère, et ne le seront jamais. Le levier sur le Live reste la fenêtre
 d'**affichage**, pas une purge.
 
-### 7duodecies. PROCHAINE SESSION — rembourser la DETTE du registre (chemin vers G2)
+### 7duodecies. La DETTE du registre — ✅ REMBOURSÉE le 02.08.2026 (migration `20260802180000`)
+
+> ✅ **FAIT.** Les huit RPC journalisent dans `admin_log`, les deux edges aussi, et la liste
+> `DETTE` du cliquet est **vide**. Ce qui reste à faire est une **vérification en
+> production, après déploiement** — elle ne peut pas se faire avant : voir la fin de cette
+> section.
+>
+> **Ce que le remboursement a coûté en plus, et qui n'était pas au devis.** Le piège n° 11
+> de §6 s'est déclenché exactement comme annoncé : faire journaliser une fonction la fait
+> ENTRER dans le périmètre des GESTES, qui impose l'enveloppe §10.1. Les huit rendaient
+> `void`. Il a donc fallu **changer leur type de retour en `jsonb`** — ce qui exige un
+> `DROP` (`42P13` sinon), donc de **reposer les GRANT mesurés avant l'opération**. Ce n'est
+> **pas** une surcharge : la signature (nom + types d'arguments) est reconduite à
+> l'identique, donc pas de `PGRST203` et aucun appelant front à toucher. L'alternative —
+> exempter huit noms du balayage — aurait vidé le test de son sens.
+>
+> ⛔ **PIÈGE PAYÉ EN CI SUR CETTE PR, à ajouter au §6 : `revoke … from public` ne révoque
+> PAS `anon`.** Le premier jet écrivait `revoke all on function … from public;` — ce que
+> l'intuition dit suffisant, puisque `anon` « hérite » de PUBLIC. C'est faux ici, et
+> `pg_default_acl` le dit : le projet porte un `alter default privileges in schema public
+> grant execute on functions to anon, authenticated, service_role` posé par `postgres`.
+> Tout `create function` accorde donc EXECUTE à `anon` **explicitement**, et `PUBLIC`
+> (`grantee = '-'`) et `anon` sont deux bénéficiaires **différents** : révoquer le premier
+> laisse le second intact. Résultat : huit SECURITY DEFINER joignables sans
+> authentification — attrapé par `admin-rpc-guard-sweep.spec.ts`, qui teste exactement
+> `grantee in ('-', 'anon')`. **Toute migration qui recrée une fonction doit écrire
+> `from public, anon`** (c'est déjà ce que fait `20260801210500_admin_log.sql` pour
+> `admin_log_write` — la ligne existait, elle a été lue et le `, anon` sauté).
+> `service_role` est ajouté au `revoke` pour la même raison, mais ce n'est pas une faille :
+> c'est une **dérive** — les cinq décisions KYB ne l'avaient pas (mesuré), le laisser leur
+> élargirait la portée en silence. Les trois qui l'avaient se le voient re-accorder.
+>
+> **Les refus restent des LEVÉES, délibérément.** Aucun `raise exception` n'a été converti
+> en `return admin_error(...)`. Les cinq appelants front (`callRpc` de `useAdminKybReview`,
+> et les `supabase.rpc` de `AdminPlansPage` / `AdminBillingCard` / `useAdminAgencyUsage` /
+> `useAdminUsers`) ne lisent QUE `error` et jettent `data` : une enveloppe d'erreur rendue
+> au lieu d'être levée serait un **échec silencieux à l'écran**, le geste paraissant réussi.
+> `tests/backend/admin-gestes-registre.spec.ts` asserte cette propriété — c'est ce qui
+> empêche un futur « alignement sur §10.1 » de casser les cinq écrans d'un coup.
+>
+> **Une famille s'écarte du handoff, et c'est un choix.** Le handoff annonçait trois
+> familles (`kyb`, `lifecycle`, `plans`). `admin_set_user_role` écrit en **`identity`**, pas
+> `lifecycle` : un rôle dit les DROITS d'un compte, son cycle de vie (actif / suspendu)
+> appartient aux deux edges `admin-*-lifecycle`, qui écrivent bien en `lifecycle`. Les
+> confondre aurait mélangé deux questions et laissé `identity` définitivement vide. Les
+> trois familles annoncées sont donc toutes produites, plus celle-là.
+>
+> **Les deux edges journalisent « Système », et il faut le savoir en lisant l'écran.**
+> `requireSuperAdmin` rend un client à la **clé de service** : `auth.uid()` y est NULL, donc
+> `admin_log_write` force `actor_label` et LÈVE si on lui passe autre chose. L'identité de
+> l'opérateur n'est pas perdue mais **déplacée** — première paire de metadata (`Opérateur`).
+> Le jour où l'on voudra un acteur nommé sur ces deux lignes, le geste est de construire
+> dans l'edge un **second client portant le JWT de l'appelant** (la clé anon + son en-tête
+> `Authorization`), pas de toucher `admin_log_write`.
+>
+> ⚠ **Le cliquet a failli casser en gagnant.** Sa liste `DETTE` était interpolée en
+> `values ${...}` : une liste VIDE produit `values )`, une erreur de **syntaxe**. Remplacé
+> par `unnest(array[…]::text[])`, qui accepte le tableau vide. Un garde-fou ne doit pas
+> échouer le jour où il n'a plus rien à signaler.
+>
+> ⚠ **`src/types/database.ts` a été régénéré ET avancé à la main sur huit lignes.** La
+> régénération corrige la dérive annoncée (enum `agency_plan` supprimé, `agencies.plan`
+> en `text`) et ramasse trois fonctions manquantes au passage (`ml_extract_rooms`,
+> `ml_extract_surface_m2`, `pg_cron_installe`). Les huit `Returns: undefined` ont ensuite
+> été passés à `Returns: Json` **à la main**, parce que la migration de cette même PR les
+> rend `jsonb` au déploiement : régénérer après le merge produira exactement ces octets.
+> Sans ce geste, la PR aurait livré un fichier périmé dès son propre déploiement. Aucune
+> porte ne compare les types de RETOUR (`check-types-freshness` compare des présences et la
+> résolution des `.rpc()`), donc rien ne l'aurait signalé — c'est précisément pourquoi
+> c'est écrit ici.
+>
+> 🔴 **CE QUI RESTE, ET QUI NE PEUT PAS SE FAIRE AVANT LE DÉPLOIEMENT.** Le critère 2 de G2
+> demande une ligne **visible dans l'écran Sécurité**. Après merge, poser un geste de
+> chaque famille et vérifier sur `/dashboard/admin/security` :
+>
+> ```sql
+> select family, action, actor_label, entity_label, jsonb_array_length(metadata) as paires
+>   from public.admin_log
+>  where family in ('kyb', 'identity', 'plans', 'lifecycle')
+>  order by seq desc limit 20;
+> ```
+>
+> `lifecycle` n'a **aucune couverture de test backend** (les deux edges ne sont pas
+> exercées par la suite) : c'est la seule des quatre familles dont la première preuve sera
+> la production.
 
 **Mesuré le 02.08.2026.** G2 reste ouvert, mais **son blocage n'est plus celui que le plan
 décrit**. Les gestes existent et sont déjà branchés aux écrans ; ce qui manque, c'est

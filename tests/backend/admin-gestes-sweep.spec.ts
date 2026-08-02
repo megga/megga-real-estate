@@ -161,20 +161,29 @@ describe.skipIf(!HAS_KEYS)('contrat des gestes de console (étape 23)', () => {
     // D'où un CLIQUET plutôt qu'une exemption : la dette est nommée, et le test rougit dans
     // les DEUX sens. Un neuvième geste clandestin le fait échouer ; un remboursement laissé
     // dans la liste aussi. La liste ne peut que rétrécir.
-    const DETTE = [
-      // étape 19b — décisions KYB, famille `kyb`
-      'admin_validate_agency_review', 'admin_reject_agency_review',
-      'admin_request_agency_correction', 'admin_relaunch_agency_review',
-      'admin_resolve_agency_id_document',
-      // étape 18 — utilisateurs
-      'admin_set_user_role',
-      // famille étape 17 — réglages d'agence
-      'admin_set_agency_plan', 'admin_set_agency_quotas',
-    ]
+    //
+    // ── ✅ REMBOURSÉE EN ENTIER le 02.08.2026 (migration 20260802180000) ───────────────
+    // Les huit journalisent désormais dans `admin_log` — familles `kyb` (les cinq décisions
+    // de revue), `identity` (le rôle) et `plans` (plan et quotas) — et leurs deux edges
+    // voisines, `admin-agency-lifecycle` et `admin-user-lifecycle`, écrivent en famille
+    // `lifecycle`. Leur retour est passé de `void` à `jsonb` dans le même geste : journaliser
+    // les fait ENTRER dans le périmètre GESTES ci-dessus, qui impose l'enveloppe §10.1 —
+    // c'est le piège n° 11 du chantier, et il visait exactement cette tâche.
+    //
+    // ⚠ LA LISTE EST VIDE, ET ELLE DOIT LE RESTER. Ce test n'est plus un cliquet mais une
+    // PROPRIÉTÉ : aucune RPC admin n'écrit hors du registre. Y rajouter un nom demande la
+    // même chose qu'avant — une raison écrite et une échéance —, sauf qu'il n'y a plus de
+    // précédent pour l'excuser. `invite_member` reste hors de ce périmètre : elle est
+    // bloquée par la décision PO n° 4 (sièges), pas par de la dette technique.
+    const DETTE: string[] = []
     assertSql(`
     declare v_nouveaux text; v_rembourses text;
     begin
-      with dette(nom) as (values ${DETTE.map((n) => `('${n}')`).join(', ')}),
+      -- unnest(array[...]::text[]) et non values (...), precisement parce que la liste peut
+      -- etre VIDE : un values sans ligne est une erreur de syntaxe, et le jour du dernier
+      -- remboursement le test se serait mis a echouer pour une raison qui n a rien a voir
+      -- avec ce qu il mesure. Un garde-fou ne doit pas casser quand il gagne.
+      with dette(nom) as (select unnest(array[${DETTE.map((n) => `'${n}'`).join(', ')}]::text[])),
       clandestins as (
         select p.proname
           from pg_proc p join pg_namespace n on n.oid = p.pronamespace
