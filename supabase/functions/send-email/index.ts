@@ -117,7 +117,7 @@ function agentNewSellerLead(data: Record<string, unknown>): { subject: string; h
   const surface = data.surface as number || 0
   const estimationRange = data.estimation_range as string || ''
   const motivation = data.motivation as string || ''
-  const dashboardUrl = data.dashboard_url as string || 'https://megga.ch/dashboard'
+  const dashboardUrl = data.dashboard_url as string || 'https://app.megga.ch/dashboard'
 
   const typeLabel = type === 'apartment' ? 'Appartement' : type === 'house' ? 'Maison' : type === 'villa' ? 'Villa' : type === 'land' ? 'Terrain' : type || 'Bien'
   const motivLabel = motivation === 'immediate' ? 'Immédiate' : motivation === '3months' ? 'Dans les 3 mois' : motivation === '6months' ? 'Dans les 6 mois' : motivation === 'exploring' ? 'En exploration' : motivation
@@ -286,8 +286,6 @@ function contactConfirmation(data: Record<string, unknown>): { subject: string; 
       <div style="border-top:1px solid #e5e7eb;margin:8px 0"></div>
       <p style="margin:0;font-size:13px;color:#374151;white-space:pre-wrap">${message.substring(0, 400)}${message.length > 400 ? '…' : ''}</p>
     `),
-    p('En attendant, vous pouvez explorer nos biens disponibles ou estimer votre logement en moins de 2 minutes :'),
-    cta('Voir les biens disponibles', 'https://megga.ch/acheter'),
     p('<span style="font-size:12px;color:#9ca3af">Vous pouvez répondre directement à cet email pour compléter votre demande.</span>'),
   ].join('\n')
 
@@ -303,7 +301,7 @@ function contactNotificationAdmin(data: Record<string, unknown>): { subject: str
   const subject = (data.subject as string) || '(sans sujet)'
   const message = (data.message as string) || ''
   const lang    = (data.lang    as string) || 'fr'
-  const dashboardUrl = (data.dashboard_url as string) || 'https://megga.ch/dashboard'
+  const dashboardUrl = (data.dashboard_url as string) || 'https://app.megga.ch/dashboard'
 
   const emailSubject = `Nouveau message contact — ${name}`
 
