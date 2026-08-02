@@ -72,4 +72,45 @@ describe.skipIf(!HAS_KEYS)('admin_create_agency — gardée super_admin, sans ra
     const { error } = await setup.clientA.rpc('admin_create_agency', { p_name: name })
     expect(error, 'collision de nom → erreur').not.toBeNull()
   })
+
+  /**
+   * Le plan « entreprise » — celui qui échouait, et que RIEN ne testait.
+   *
+   * `agencies.plan` était l'enum `agency_plan` (`starter|pro|agency|enterprise`) alors que
+   * le catalogue et `subscriptions.plan` disent `entreprise`. La fonction validait DÉJÀ le
+   * vocabulaire du catalogue puis castait vers l'enum : toute création « Entreprise »
+   * passait le contrôle applicatif pour mourir sur `22P02 invalid input value for enum`.
+   *
+   * ⚠ Les deux suites qui touchent au plan n'exerçaient que `'pro'` — le seul mot présent
+   * dans LES DEUX vocabulaires. Le défaut a traversé les tests parce qu'ils testaient la
+   * valeur qui ne pouvait pas le révéler. Corrigé par `20260802170000` (colonne en `text`
+   * + CHECK identique à `subscriptions_plan_check`, enum supprimé).
+   */
+  it('crée une agence au plan « entreprise » — le mot du catalogue, pas celui de l\'enum', async () => {
+    const service = serviceRoleClient()
+    const nomEntreprise = `Agence Entreprise ${setup.stamp}`
+    const { data, error } = await setup.clientA.rpc('admin_create_agency', {
+      p_name: nomEntreprise, p_city: 'Lausanne', p_canton: 'VD', p_plan: 'entreprise',
+    })
+    expect(error, `« entreprise » doit être accepté : ${error?.message ?? ''}`).toBeNull()
+
+    const id = data as string
+    try {
+      const { data: agency } = await service.from('agencies').select('plan').eq('id', id).single()
+      expect(agency?.plan).toBe('entreprise')
+    } finally {
+      await service.from('agencies').delete().eq('id', id).then(() => {}, () => {})
+    }
+  })
+
+  it('un plan hors catalogue reste refusé — y compris les mots de l\'ancien enum', async () => {
+    // Le CHECK ne doit pas être plus permissif que l'enum ne l'était : `agency` et
+    // `enterprise` étaient des valeurs VALIDES de l'ancien type, elles ne le sont plus.
+    for (const plan of ['enterprise', 'agency', 'gratuit']) {
+      const { error } = await setup.clientA.rpc('admin_create_agency', {
+        p_name: `Refus ${plan} ${setup.stamp}`, p_plan: plan,
+      })
+      expect(error, `« ${plan} » doit être refusé`).not.toBeNull()
+    }
+  })
 })

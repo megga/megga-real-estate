@@ -15,7 +15,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
-export type AgencyPlan = 'starter' | 'pro' | 'agency' | 'enterprise'
+/**
+ * Vocabulaire des plans — celui du catalogue (`src/lib/plans.ts`), désormais le SEUL.
+ *
+ * Portait auparavant `'agency' | 'enterprise'`, hérité de l'enum Postgres `agency_plan`,
+ * quand le catalogue et `subscriptions.plan` disaient `entreprise`. Trois vocabulaires
+ * pour une même notion, et toute création d'agence « Entreprise » mourait en `22P02` sur
+ * le cast vers l'enum. La migration `20260802170000` a converti `agencies.plan` en `text`
+ * avec le MÊME CHECK que `subscriptions.plan` et supprimé l'enum.
+ */
+export type AgencyPlan = 'starter' | 'pro' | 'entreprise'
 
 export interface AgencySettingsData {
   name: string
