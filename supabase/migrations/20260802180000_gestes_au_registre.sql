@@ -42,9 +42,22 @@
 --
 -- Changer le type de retour EXIGE un DROP (42P13 sinon). Ce n'est PAS une surcharge : la
 -- signature — nom + types d'arguments — est reconduite à l'identique, donc aucun `PGRST203`
--- et aucun appelant front à modifier. Mais un DROP emporte les GRANT, et un CREATE nu
--- redonne EXECUTE à `PUBLIC` (donc à `anon`) : chaque fonction est donc suivie du `revoke`
--- puis des `grant` MESURÉS avant l'opération, jamais devinés.
+-- et aucun appelant front à modifier. Mais un DROP emporte les GRANT : chaque fonction est
+-- donc suivie du `revoke` puis des `grant` MESURÉS avant l'opération, jamais devinés.
+--
+-- ⛔ ET `revoke … from public` NE SUFFIT PAS. Piège payé en CI sur ce fichier même, puis
+-- mesuré dans `pg_default_acl` : le projet porte un
+-- `alter default privileges in schema public grant execute on functions to anon,
+-- authenticated, service_role` posé par `postgres`. Tout `create function` accorde donc
+-- EXECUTE à `anon` **explicitement** — et `PUBLIC` (`grantee = '-'`) et `anon` sont deux
+-- bénéficiaires DIFFÉRENTS : révoquer le premier laisse le second intact. Le résultat est
+-- une SECURITY DEFINER joignable sans authentification, attrapée par
+-- `admin-rpc-guard-sweep.spec.ts`. D'où `from public, anon, service_role` :
+--   · `anon`        — la faille ;
+--   · `service_role` — pas une faille, mais une DÉRIVE : les cinq décisions KYB ne
+--     l'avaient pas avant (mesuré), et le laisser leur élargirait la portée en silence.
+-- Les trois fonctions qui l'avaient (`set_user_role`, `set_agency_plan`,
+-- `set_agency_quotas`) se le voient re-accorder explicitement, juste en dessous.
 --
 -- ── ORDRE DES VERROUS (§10.2 amendé) ──────────────────────────────────────────────────
 -- ⛔ Verrou d'ENTITÉ d'abord, verrou de CHAÎNE ensuite. L'ordre inverse a déjà produit un
@@ -143,7 +156,7 @@ begin
 end;
 $function$;
 
-revoke all on function public.admin_validate_agency_review(uuid) from public;
+revoke all on function public.admin_validate_agency_review(uuid) from public, anon, service_role;
 grant execute on function public.admin_validate_agency_review(uuid) to authenticated;
 
 
@@ -220,7 +233,7 @@ begin
 end;
 $function$;
 
-revoke all on function public.admin_reject_agency_review(uuid, text) from public;
+revoke all on function public.admin_reject_agency_review(uuid, text) from public, anon, service_role;
 grant execute on function public.admin_reject_agency_review(uuid, text) to authenticated;
 
 
@@ -296,7 +309,7 @@ begin
 end;
 $function$;
 
-revoke all on function public.admin_request_agency_correction(uuid, text) from public;
+revoke all on function public.admin_request_agency_correction(uuid, text) from public, anon, service_role;
 grant execute on function public.admin_request_agency_correction(uuid, text) to authenticated;
 
 
@@ -389,7 +402,7 @@ begin
 end;
 $function$;
 
-revoke all on function public.admin_relaunch_agency_review(uuid) from public;
+revoke all on function public.admin_relaunch_agency_review(uuid) from public, anon, service_role;
 grant execute on function public.admin_relaunch_agency_review(uuid) to authenticated;
 
 
@@ -521,7 +534,7 @@ begin
 end;
 $function$;
 
-revoke all on function public.admin_resolve_agency_id_document(uuid, uuid, text) from public;
+revoke all on function public.admin_resolve_agency_id_document(uuid, uuid, text) from public, anon, service_role;
 grant execute on function public.admin_resolve_agency_id_document(uuid, uuid, text) to authenticated;
 
 
@@ -598,7 +611,7 @@ begin
 end;
 $function$;
 
-revoke all on function public.admin_set_user_role(uuid, text) from public;
+revoke all on function public.admin_set_user_role(uuid, text) from public, anon, service_role;
 grant execute on function public.admin_set_user_role(uuid, text) to authenticated;
 grant execute on function public.admin_set_user_role(uuid, text) to service_role;
 
@@ -685,7 +698,7 @@ begin
 end;
 $function$;
 
-revoke all on function public.admin_set_agency_plan(uuid, text, text, text) from public;
+revoke all on function public.admin_set_agency_plan(uuid, text, text, text) from public, anon, service_role;
 grant execute on function public.admin_set_agency_plan(uuid, text, text, text) to authenticated;
 grant execute on function public.admin_set_agency_plan(uuid, text, text, text) to service_role;
 
@@ -793,6 +806,6 @@ begin
 end;
 $function$;
 
-revoke all on function public.admin_set_agency_quotas(uuid, jsonb, text) from public;
+revoke all on function public.admin_set_agency_quotas(uuid, jsonb, text) from public, anon, service_role;
 grant execute on function public.admin_set_agency_quotas(uuid, jsonb, text) to authenticated;
 grant execute on function public.admin_set_agency_quotas(uuid, jsonb, text) to service_role;

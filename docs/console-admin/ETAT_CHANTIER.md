@@ -398,6 +398,30 @@ aurait envoyé chercher un défaut inexistant. Remède : `gh run rerun <id> --fa
     disait déjà — « un garde-fou qui crie sans raison finit ignoré, donc muet le jour où il
     a raison ».
 
+14. **`revoke … from public` NE RÉVOQUE PAS `anon`, et tout `create function` ouvre la
+    porte.** Mesuré dans `pg_default_acl` le 02.08.2026 : le projet porte un
+    `alter default privileges in schema public grant execute on functions to anon,
+    authenticated, service_role` posé par `postgres`. Chaque `CREATE FUNCTION` d'une
+    migration accorde donc EXECUTE à `anon` **explicitement** — et `PUBLIC`
+    (`grantee = '-'`) et `anon` sont deux bénéficiaires **différents**. Révoquer PUBLIC
+    laisse `anon` intact : une SECURITY DEFINER joignable **sans authentification**.
+    ⚠ Le piège ne se déclenche qu'au **recréage** : un `create or replace` conserve l'ACL
+    existante, seul un `DROP` (ou une première création) la remet à la valeur par défaut.
+    C'est donc invisible tant qu'on ne change pas une signature ou un type de retour — et
+    ça mord exactement le jour où on croit ne faire qu'un refactor mécanique.
+    Règle : **`revoke all on function … from public, anon;`**, plus `service_role` si la
+    fonction ne l'avait pas (sinon la portée s'élargit en silence). Attrapé par
+    `admin-rpc-guard-sweep.spec.ts`, qui teste `grantee in ('-', 'anon')` — le seul garde-fou
+    du dépôt sur ce point, et il a payé sa place sur la PR #1094.
+    ✅ **Le reste du dépôt a été vérifié EN PROD dans la foulée, inutile de recommencer** :
+    dix autres migrations écrivent `revoke … from public;` sans `anon` sur une fonction. Six
+    sont saines (`anon` n'y a rien : `realadvisor_probe_*`, `realadvisor_sweep_enum`,
+    `sync_contact_client_search`). Les quatre autres — `get_visit_by_token`,
+    `reschedule_visit_by_token`, `cancel_visit_by_token`, `submit_visit_feedback_by_token` —
+    SONT joignables par `anon`, et **c'est voulu** : la page de gestion de visite est
+    anonyme, le `grant … to anon, authenticated` est explicite deux lignes plus bas
+    (`20260711190000`, « capability publique »). Aucun correctif à faire ailleurs.
+
 ## 7. Reprendre
 
 ✅ **La revue est passée, #1046 est mergée, les 14 migrations sont déployées.** Cette section
@@ -1099,11 +1123,26 @@ d'**affichage**, pas une purge.
 > de §6 s'est déclenché exactement comme annoncé : faire journaliser une fonction la fait
 > ENTRER dans le périmètre des GESTES, qui impose l'enveloppe §10.1. Les huit rendaient
 > `void`. Il a donc fallu **changer leur type de retour en `jsonb`** — ce qui exige un
-> `DROP` (`42P13` sinon), donc de **reposer les GRANT mesurés avant l'opération** : un
-> `CREATE` nu redonne `EXECUTE` à `PUBLIC`, c'est-à-dire à `anon`. Ce n'est **pas** une
-> surcharge : la signature (nom + types d'arguments) est reconduite à l'identique, donc pas
-> de `PGRST203` et aucun appelant front à toucher. L'alternative — exempter huit noms du
-> balayage — aurait vidé le test de son sens.
+> `DROP` (`42P13` sinon), donc de **reposer les GRANT mesurés avant l'opération**. Ce n'est
+> **pas** une surcharge : la signature (nom + types d'arguments) est reconduite à
+> l'identique, donc pas de `PGRST203` et aucun appelant front à toucher. L'alternative —
+> exempter huit noms du balayage — aurait vidé le test de son sens.
+>
+> ⛔ **PIÈGE PAYÉ EN CI SUR CETTE PR, à ajouter au §6 : `revoke … from public` ne révoque
+> PAS `anon`.** Le premier jet écrivait `revoke all on function … from public;` — ce que
+> l'intuition dit suffisant, puisque `anon` « hérite » de PUBLIC. C'est faux ici, et
+> `pg_default_acl` le dit : le projet porte un `alter default privileges in schema public
+> grant execute on functions to anon, authenticated, service_role` posé par `postgres`.
+> Tout `create function` accorde donc EXECUTE à `anon` **explicitement**, et `PUBLIC`
+> (`grantee = '-'`) et `anon` sont deux bénéficiaires **différents** : révoquer le premier
+> laisse le second intact. Résultat : huit SECURITY DEFINER joignables sans
+> authentification — attrapé par `admin-rpc-guard-sweep.spec.ts`, qui teste exactement
+> `grantee in ('-', 'anon')`. **Toute migration qui recrée une fonction doit écrire
+> `from public, anon`** (c'est déjà ce que fait `20260801210500_admin_log.sql` pour
+> `admin_log_write` — la ligne existait, elle a été lue et le `, anon` sauté).
+> `service_role` est ajouté au `revoke` pour la même raison, mais ce n'est pas une faille :
+> c'est une **dérive** — les cinq décisions KYB ne l'avaient pas (mesuré), le laisser leur
+> élargirait la portée en silence. Les trois qui l'avaient se le voient re-accorder.
 >
 > **Les refus restent des LEVÉES, délibérément.** Aucun `raise exception` n'a été converti
 > en `return admin_error(...)`. Les cinq appelants front (`callRpc` de `useAdminKybReview`,
