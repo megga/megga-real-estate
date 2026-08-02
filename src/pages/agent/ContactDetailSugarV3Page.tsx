@@ -23,6 +23,7 @@ import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
 import { useAuth } from '@/hooks/useAuth'
 import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useContactSentMatches } from '@/hooks/useContactSentMatches'
+import { useReceptionLinks, useRevokeReceptionLink, estRefusDeRetrait } from '@/hooks/useReceptionLinks'
 import { useKycDossierByContact, useInvalidateKycForContact } from '@/hooks/useKycDossier'
 import type { Contact } from '@/types/contact'
 import { buildSearchCriteria, parseSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
@@ -32,6 +33,7 @@ import { supabase } from '@/lib/supabase'
 import ContactDetailPager, {
   type FicheContact,
   type FicheNba,
+  type FicheRevokeResult,
 } from '@/components/crm-sugar/contacts-pager/ContactDetailPager'
 import { useContactNextAction } from '@/hooks/useContactNextAction'
 import { nbaToI18n } from '@/lib/contactNba'
@@ -60,6 +62,8 @@ export default function ContactDetailSugarV3Page() {
   const [ghost, setGhost] = useState<Contact | null>(null)
   const contact = fetched ?? ghost
   const loop = useContactSentMatches(id)
+  const receptionLinks = useReceptionLinks(id)
+  const revokeLink = useRevokeReceptionLink()
   const { data: kyc } = useKycDossierByContact(id)
   // NBA (cerveau partagé) — best-effort : null si RPC absent/erreur, la fiche vit sans.
   const { data: nbaRaw } = useContactNextAction(id)
@@ -184,6 +188,7 @@ export default function ContactDetailSugarV3Page() {
       fiche={fiche}
       nba={nba}
       loop={{ items: loop.items, pendingLikes: loop.pendingLikes, transmitted: loop.transmitted, opened: loop.opened }}
+      links={{ items: receptionLinks.data ?? [], isLoading: receptionLinks.isLoading, failed: receptionLinks.isError }}
       sp={sp}
       dark={dark}
       onBack={() => navigate('/dashboard/contacts')}
@@ -248,6 +253,17 @@ export default function ContactDetailSugarV3Page() {
       // Pas de navigate ici : le pager affiche « Contact supprimé » puis appelle
       // onBack (naviguer tout de suite démonterait la carte avant qu'on la voie).
       onDelete={async () => { setGhost(contact); await del.mutateAsync(id); refreshList() }}
+      // Le pager reste sans appel Supabase : il reçoit le VERDICT, pas l'erreur brute.
+      // Un refus de la RPC (lien déjà retiré, déjà échu) et une panne réseau doivent
+      // se dire différemment à l'agent — les confondre ferait croire à un accès coupé.
+      onRevokeLink={async (linkId): Promise<FicheRevokeResult> => {
+        try {
+          await revokeLink.mutateAsync({ linkId, contactId: id })
+          return 'ok'
+        } catch (e) {
+          return estRefusDeRetrait(e) ? 'refused' : 'failed'
+        }
+      }}
       onOpenKyc={() => navigate(`/dashboard/kyc?openContactId=${id}`)}
       onOpenMatching={() => navigate(`/dashboard/matching?contact=${id}`)}
       onOpenListings={() => navigate('/dashboard/listings')}

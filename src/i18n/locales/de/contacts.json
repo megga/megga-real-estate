@@ -1075,6 +1075,38 @@
       "emptyTitle": "Noch keine Objekte gesendet",
       "emptyBody": "Senden Sie {{name}} eine Auswahl an Objekten.<1/>Die Rückmeldungen erscheinen hier."
     },
+    "links": {
+      "title": "Gesendete Links ({{count}})",
+      "loading": "Links werden geladen…",
+      "failed": "Links konnten nicht geladen werden.",
+      "empty": "Noch kein Link gesendet.",
+      "selection_one": "Auswahl mit {{count}} Objekt",
+      "selection_other": "Auswahl mit {{count}} Objekten",
+      "sentOn": "Gesendet am {{date}}",
+      "expiresOn": "gültig bis {{date}}",
+      "revoke": "Link zurückziehen",
+      "channel": {
+        "whatsapp": "WhatsApp",
+        "link": "Kopierter Link"
+      },
+      "status": {
+        "pending": "Nicht geöffnet",
+        "viewed": "Geöffnet",
+        "reacted": "Antwort erhalten",
+        "expired": "Abgelaufen",
+        "revoked": "Zurückgezogen",
+        "unknown": "Unbekannter Status"
+      },
+      "confirm": {
+        "title": "Diesen Link zurückziehen?",
+        "body_one": "Der Käufer verliert den Zugriff auf das erhaltene Objekt. Das Zurückziehen ist endgültig: für einen erneuten Zugriff muss ein neuer Link gesendet werden.",
+        "body_other": "Der Käufer verliert den Zugriff auf die {{count}} erhaltenen Objekte. Das Zurückziehen ist endgültig: für einen erneuten Zugriff muss ein neuer Link gesendet werden.",
+        "cta": "Link zurückziehen",
+        "busy": "Wird zurückgezogen…",
+        "refused": "Dieser Link war bereits nicht mehr aktiv. Die Liste wurde soeben aktualisiert.",
+        "failed": "Der Link wurde nicht zurückgezogen. Bitte erneut versuchen."
+      }
+    },
     "saved": {
       "coord": "Kontaktdaten gespeichert",
       "crit": "Kriterien gespeichert"

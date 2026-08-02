@@ -1075,6 +1075,38 @@
       "emptyTitle": "Nessun immobile inviato",
       "emptyBody": "Invia una selezione di immobili a {{name}}.<1/>I suoi riscontri appariranno qui."
     },
+    "links": {
+      "title": "Link inviati ({{count}})",
+      "loading": "Caricamento dei link…",
+      "failed": "Impossibile caricare i link.",
+      "empty": "Nessun link inviato per ora.",
+      "selection_one": "Selezione di {{count}} immobile",
+      "selection_other": "Selezione di {{count}} immobili",
+      "sentOn": "Inviato il {{date}}",
+      "expiresOn": "scadenza {{date}}",
+      "revoke": "Revoca il link",
+      "channel": {
+        "whatsapp": "WhatsApp",
+        "link": "Link copiato"
+      },
+      "status": {
+        "pending": "Non aperto",
+        "viewed": "Aperto",
+        "reacted": "Risposta ricevuta",
+        "expired": "Scaduto",
+        "revoked": "Revocato",
+        "unknown": "Stato sconosciuto"
+      },
+      "confirm": {
+        "title": "Revocare questo link?",
+        "body_one": "L'acquirente perderà l'accesso all'immobile che ha ricevuto. La revoca è definitiva: per ridargli accesso occorre inviare un nuovo link.",
+        "body_other": "L'acquirente perderà l'accesso ai {{count}} immobili che ha ricevuto. La revoca è definitiva: per ridargli accesso occorre inviare un nuovo link.",
+        "cta": "Revoca il link",
+        "busy": "Revoca in corso…",
+        "refused": "Questo link non era più attivo. L'elenco è stato appena aggiornato.",
+        "failed": "La revoca non è andata a buon fine. Riprovare."
+      }
+    },
     "saved": {
       "coord": "Recapiti salvati",
       "crit": "Criteri salvati"

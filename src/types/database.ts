@@ -1690,6 +1690,7 @@ export type Database = {
           id: string
           match_ids: string[]
           reacted_at: string | null
+          revoked_at: string | null
           sent_at: string
           status: string
           token: string
@@ -1709,6 +1710,7 @@ export type Database = {
           id?: string
           match_ids: string[]
           reacted_at?: string | null
+          revoked_at?: string | null
           sent_at?: string
           status?: string
           token: string
@@ -1728,6 +1730,7 @@ export type Database = {
           id?: string
           match_ids?: string[]
           reacted_at?: string | null
+          revoked_at?: string | null
           sent_at?: string
           status?: string
           token?: string
@@ -7920,6 +7923,10 @@ export type Database = {
           agency_id: string
           id: string
         }[]
+      }
+      revoke_reception_link: {
+        Args: { p_link_id: string }
+        Returns: boolean
       }
       revoke_user_session: {
         Args: { p_session_id: string; p_user_id: string }
