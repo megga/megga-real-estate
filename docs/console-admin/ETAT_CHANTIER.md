@@ -1,8 +1,23 @@
 # Console MEGGA · backend — état du chantier et reprise
 
-> **1ᵉʳ août 2026, 19 h UTC — TOUT EST MERGÉ ET DÉPLOYÉ.** Document de reprise : tout ce
+> **2 août 2026, 12 h UTC — TOUT EST MERGÉ ET DÉPLOYÉ.** Document de reprise : tout ce
 > qu'il faut pour continuer sans relire la conversation. Spec :
 > `docs/handoff/console-admin/` · Inventaire du socle : [INVENTAIRE_SOCLE.md](INVENTAIRE_SOCLE.md).
+>
+> 📦 **INTERMÈDE HORS CHANTIER (02.08, matin)** — deux PR RealAdvisor mergées, déployées
+> et **vérifiées en production** ; consignées ici pour la continuité, le détail vit dans
+> le cerveau, pas dans ce document :
+> · **#1067** — le sweep nocturne n'est plus bridé par le cap absolu de 1200 (le 3 % du
+>   live gouverne seul, ~1 320 au lieu de 1 200 ; le cap, calibré à un vivier de ~26k,
+>   était devenu la contrainte active à ~44k ⇒ `capped` chronique). `p_cap_abs` reste en
+>   frein d'urgence nullable. Cerveau : `megga/realadvisor-ingestion`. La consigne du
+>   rapport quotidien est à jour : un `capped` avec le 3 % seul est désormais un VRAI
+>   signal d'inflow.
+> · **#1072** — extraction déterministe pièces/surface depuis les descriptions
+>   (2 fonctions SQL pures + trigger qui ne remplit QUE les NULL ; précision mesurée
+>   contre la vérité terrain ; backfill honnête : ~127 pièces + ~372 surfaces, l'essentiel
+>   de la valeur est le trigger au fil de l'eau). Cerveau : `megga/ml-extract-rooms-surface`
+>   — ⚠ toute retouche de regex impose de REFAIRE la mesure de précision.
 >
 > 🎯 **PROCHAIN CHANTIER : LE LOT 3** (étapes 24 à 30). ⚠ Lire le **§7ter** avant de
 > commencer : il a été mesuré le 01.08 et **la majeure partie du Lot 3 est murée** — 24/25/26
@@ -864,6 +879,214 @@ externe) est une décision, pas un correctif.
 
 **⚠ Santé au moment du préflight** : 0 échec sur 1 438 exécutions de cron depuis le merge
 de #1064 ; chaîne du registre `ok` ; balayeur des ponctuels passé sans faute.
+
+### 7sexies. Le préalable du point 1 est LEVÉ — régénération du 02.08.2026
+
+`src/types/database.ts` a été régénéré depuis la **prod** — le dépôt ne fait tourner aucune
+stack Supabase locale, or `src/lib/supabase.ts` documentait la recette `--local`, qui pointe
+une base inexistante ici (recette corrigée dans la même PR). Diff intégral du fichier :
+**+10 lignes, rien d'autre**, soit exactement les 3 fonctions de #1064, signatures relues en
+base (`pg_get_function_arguments` / `_result`) :
+
+| Fonction | Base | Types |
+|---|---|---|
+| `admin_cron_adhoc_sweep()` | `→ integer` | `Args: never; Returns: number` |
+| `admin_cron_job_is_inert(p_jobname text)` | `→ boolean` | `Args: { p_jobname: string }; Returns: boolean` |
+| `admin_cron_run_now(p_jobname text, p_idempotency_key text, p_confirm boolean DEFAULT false)` | `→ jsonb` | `p_confirm?`, les deux autres requis ; `Returns: Json` |
+
+Aucune autre dérive : 97 tables / 4 vues / 423 fonctions, la porte `lint:types-freshness`
+passe, `tsc -b` et `npm run lint` restent à 0 erreur.
+
+**⛔ Le point « 16 casts dans 14 fichiers » est CLOS depuis #1064, pas ouvert.** Mesuré :
+**zéro** cast du client subsiste, et les 3 dispatchers sont typés
+`Parameters<typeof supabase.rpc>[0]`. Ce qui restait n'était pas du code mais **cinq
+commentaires qui affirmaient encore le contraire** — dont « `database.ts` est en retard sur
+la prod » et « re-typée à la main faute de types générés », deux affirmations que la base
+contredit depuis #1064. C'est le vecteur de propagation que la porte ne voit pas : elle
+attrape les casts, personne n'attrape une JUSTIFICATION périmée, et c'est elle que le hook
+suivant recopie. Corrigés dans la même PR.
+
+**⚠ Nuance NOUVELLE du piège « cible typée ≠ cast retirable ».** Le générateur perd la
+**nullabilité des colonnes d'un `returns table`**. Mesuré en prod le 02.08 :
+`get_admin_agencies` déclare `email`, `sub`, `logo_url`, `current_period_end`
+**non-nullables** — ils sont nuls sur 9, 10, 10 et 10 agences sur 10 ; `get_admin_users`
+déclare `agency`, `phone`, `deleted_at` non-nullables — nuls sur 2, 6 et 7 profils sur 7, et
+rend `consents` en `Json` opaque. Les types écrits à la main dans ces deux hooks sont donc
+**plus vrais que les générés** : les retirer serait une régression, pas un nettoyage.
+Vérifier « la RPC est dans les types » ne dit rien ; il faut lire la FORME.
+
+### 7septies. Le bouton « Relancer » est branché — trois amendements à acter
+
+Point 1 de §7quinquies livré : la table « Santé des crons » du Monitoring porte une colonne
+d'action, le geste passe par `admin_cron_run_now`, et la confirmation obéit au serveur
+(`details.needs_confirm`) au lieu de rejouer une règle côté écran.
+
+**1. Le libellé perd son tiret cadratin, pas ses mots.** La maquette écrit « Relance
+demandée — prochain passage 15:12 » ; `npm run lint:prose` interdit `—` dans
+`src/i18n/locales/**`, sans échappatoire (« ces caractères ne doivent pas atteindre
+l'utilisateur »). Livré : « Relance demandée · prochain passage 15:12 », avec le séparateur
+maison explicitement autorisé par la porte. Le mot que la maquette défend — **demandée**, pas
+*relancé* — est intact.
+
+**2. Le Monitoring du dépôt n'est PAS le « bulletin à file ».** La maquette concept F
+(file d'incidents, action Rejouer/Relancer par incident) n'a jamais été portée : le dépôt
+porte la version en bentos (santé, Flatfox, crons, intégrations, IA, fonctions, erreurs). Le
+bouton est donc posé sur la table des crons, qui existe. ⚠ L'`[x] Monitoring` de
+`refs/AUDIT_ADMIN_CONSOLE.md` §6 suit les **maquettes** (« Fichier : `admin-monitoring.jsx` »),
+pas le dépôt — il n'y a pas de contradiction, mais la ligne se lit trop facilement comme un
+écran livré. Porter le concept F reste un chantier à part, avec ses décisions produit (ce qui
+fait un incident, la corrélation au déploiement).
+
+**3. Le chemin nominal reste NON exercé, et je ne peux pas l'exercer.** Mesuré : la connexion
+MCP est `postgres`, avec `is_super_admin()` = `false` **et** `is_service_role()` = `false` —
+la RPC lève donc 42501 avant tout. La CI ne le peut pas non plus : pg_cron est absent des
+bases fraîches, et la RPC répond `precondition_failed` dès sa garde de schéma. Ce qui est
+éprouvé aujourd'hui : le contrat CLIENT (12 tests, dont le tri `needs_confirm` par le
+DRAPEAU et non par le code — `precondition_failed` couvre aussi des refus définitifs).
+Ce qui ne l'est pas : l'aller-retour réel. **Il faut un clic de super-admin en production.**
+Le geste le moins risqué pour cela est un cron **inerte** (`admin_cron_job_is_inert` = purges
+et recalculs, aucun envoi) : il ne déclenche aucune modale, et le balayeur des ponctuels
+nettoie le job `adhoc-…` derrière lui.
+
+### 7octies. Le tag Sentry est posé — le critère G4 devient mesurable, à partir du déploiement
+
+Chaque événement envoyé à Sentry porte désormais un tag **`surface`** valant `console` ou
+`crm`. Le critère « 48 h en prod sans erreur Sentry console » se lit donc par un filtre
+`surface:console` sur le projet `4511407787933776` (org `gauthier-ru`, ingest UE).
+
+**Comment il est dérivé, et pourquoi pas autrement.** Le tag est calculé dans `beforeSend` à
+partir de l'URL de l'ÉVÉNEMENT, avec repli sur `window.location`. L'autre approche évidente
+— `Sentry.setTag('surface', 'console')` à l'entrée de la console — a été écartée : un tag
+global est **collant**, et un seul chemin de sortie oublié taguerait `console` des erreurs
+du CRM. Sur un critère de go-live, un faux positif vaut moins que pas de tag du tout. Ici il
+n'y a aucun état à remettre à zéro. Le test porte sur un **segment** et non un préfixe :
+`/dashboard/administration` n'est pas la console (les deux défauts sont éprouvés par
+mutation, `tests/unit/sentry-surface-tag.spec.ts`).
+
+**⚠ Trois limites à connaître avant de signer G4 :**
+1. **La mesure ne peut pas être rétroactive.** Les événements émis avant le déploiement de
+   ce changement ne portent aucun tag : la fenêtre de 48 h commence au **déploiement**, pas
+   avant.
+2. **Une erreur asynchrone remontée après la sortie de la console**, et dont l'événement ne
+   porte pas d'URL, retombe sur `window.location` et sera taguée `crm`. C'est le meilleur
+   signal disponible, mais le compte peut être légèrement optimiste.
+3. **Session Replay ne passe pas par `beforeSend`** : les replays ne sont pas filtrables sur
+   ce tag.
+
+**⚠ Ne PAS vérifier le tag en provoquant une erreur depuis la console** : elle compterait
+comme une erreur console et casserait la fenêtre de 48 h qu'on cherche justement à observer.
+Un `Sentry.captureMessage(…, 'info')` depuis un écran de la console suffit à voir le tag
+arriver, sans peupler le critère.
+
+### 7nonies. Le runbook existe — [`RUNBOOK_INCIDENT.md`](RUNBOOK_INCIDENT.md)
+
+Une page, uniquement des gestes qui existent, tout relevé en base ou au dépôt le 02.08. Il
+couvre : les trois canaux d'alerte **avec leur latence réelle**, l'ordre des premiers regards,
+les cinq pannes déjà vues et leur geste, la vérification de chaîne, l'export de preuve.
+
+**Trois choses que l'écriture a mises au jour, et qui valent plus que le document :**
+
+1. **Le verdict de `admin_log_verify_chain()` est dans `status`, PAS dans `ok`.** C'est
+   l'exception connue à l'enveloppe §10.1, et elle mord : `->> 'ok'` rend `null`, ce qui se
+   lit comme un échec sur une chaîne parfaitement intacte. Mesuré en écrivant le runbook,
+   après avoir failli le consigner à l'envers.
+2. **Le seul canal qui survit à une panne Supabase écrit à `noreply@megga.ch`** — en dur, et
+   pour une bonne raison (lire l'allowlist exigerait la base, c'est-à-dire le patient). Reste
+   que si personne n'ouvre cette boîte, ce canal se réduit à son second support : le workflow
+   rouge dans l'onglet Actions. À trancher (§6 du runbook).
+3. **Un cron désactivé ne se relance pas** : la RPC refuse, et le réactiver est un geste
+   distinct qui **n'est outillé nulle part**. Ce n'est pas un manque du runbook, c'est un
+   trou du socle, nommé plutôt que contourné.
+
+⚠ `super_admin_allowlist()` rend **une ligne portant un TABLEAU** de deux adresses : un
+`count(*)` dessus rend 1 et se lit « un seul super-admin ». Le chiffre de §7quinquies (2
+comptes) est le bon.
+
+### 7decies. Premier export du registre — la marche à suivre existe, le « clic » non
+
+[`PROCEDURE_EXPORT_REGISTRE.md`](PROCEDURE_EXPORT_REGISTRE.md). Écrite après avoir relu la
+fonction **en base** ; quatre constats qui contredisent le préflight ou le code lui-même.
+
+**1. ⛔ « Un CLIC de super-admin, pas du code » est FAUX.** `admin_log_export` n'a **aucun
+consommateur front** — zéro occurrence dans `src/`, exactement comme `admin_cron_run_now`
+avant #1073. La console n'a aucun écran d'export (les cinq CSV ont été retirés à l'étape 22).
+Le premier export passe donc par un appel direct à la RPC. Brancher un bouton sur
+`/dashboard/admin/security` est faisable au même patron que « Relancer » — le GRANT
+`authenticated` est déjà là — mais c'est une décision d'ordre.
+
+**2. La voie choisie décide de QUI SIGNE.** `admin_log_write` dérive l'acteur d'`auth.uid()` :
+sans JWT (clé de service, `postgres`, pg_cron) la ligne est forcée à **« Système »**, et la
+fonction *lève* si on tente un autre libellé. Un premier extrait produit à la clé de service
+serait donc signé « Système » — l'inverse de ce que le gate doit démontrer. D'où : **voie
+super-admin pour le premier export**, clé de service pour la suite.
+
+**3. Deux couches d'autorisation, et elles divergent** (corrigé dans le runbook au passage) :
+`admin_log_export` est accordé à `authenticated`, `admin_log_verify_chain` **ne l'est pas**.
+Un super-admin échoue sur le GRANT avant même la garde interne. Sans objet en pratique :
+l'export **embarque** le verdict de chaîne sur sa fenêtre.
+
+**4. ⚠ Le commentaire de `admin_log_export` promet plus que la fonction ne tient.** Il
+affirme que « le destinataire peut recalculer le hash de chaque ligne à partir du seul
+extrait, sans accès à la base ». Mesuré : la charge hachée (`admin_log_payload_v1`) compte
+**19 champs**, l'extrait en porte **10**. Ce qui a été aligné au caractère près, c'est le
+**format de l'horodatage**, pas le jeu de champs — et l'écart est délibéré, cinq des champs
+absents étant des données personnelles (IP, user-agent, session, compte, agence). Ce que
+l'extrait prouve réellement : le verdict de chaîne, une empreinte reproductible en rejouant
+l'extraction, et le **chaînage** entre lignes consécutives — ce dernier **seulement sans
+filtre de famille**, sinon les `seq` sautent. Corriger le commentaire exigerait de recréer
+une fonction de production par migration : à faire à la prochaine reprise, pas pour un
+commentaire seul.
+
+### 7undecies. Critère G4 « drop de partition constaté » — AMENDÉ le 02.08.2026
+
+**Décision du PO : amender.** Le critère de sortie G4 disait « rétentions observées (drop de
+partition constaté) ». Il est **insatisfaisable tel qu'écrit** : ni `admin_log` (28 lignes) ni
+`activity_events` (~4 900) ne sont partitionnées, et partitionner des tables de cette taille
+serait de l'ingénierie prématurée. Le critère décrivait un MÉCANISME (le drop de partition)
+là où l'intention était un EFFET : prouver que la rétention agit vraiment en production.
+
+**Nouvelle formulation, qui garde l'intention et devient vérifiable :**
+
+> **Rétention observée sur une population NON VIDE** — constater, avant/après le passage d'un
+> cron de purge, que des lignes ayant dépassé leur fenêtre ont effectivement disparu (ou été
+> neutralisées). Le drop de partition n'est plus exigé : c'était un moyen, pas la preuve.
+
+**⚠ Pourquoi « non vide » n'est pas une précaution rhétorique.** Mesuré ce jour sur les sept
+cibles à fenêtre explicite : **six sont VIDES**.
+
+| Cible (fenêtre) | Lignes | Plus vieille |
+|---|---|---|
+| `rpc_receipts` (24 h) | 0 | — |
+| `outbox_jobs` done/dead | 0 | — |
+| `whatsapp_async_jobs` done/failed (7 j) | 0 | — |
+| `whatsapp_daily_briefs` (90 j) | 0 | — |
+| `whatsapp_recent_auto_actions` (7 j) | 0 | — |
+| `ai_drift_dismissals` (24 mois) | 0 | — |
+| **`whatsapp_messages.raw` non nul (30 j)** | **10** | **28 j** |
+
+Un critère formulé « aucune ligne plus vieille que sa fenêtre » serait donc **vrai sans rien
+prouver** sur six cibles sur sept — le vert sans assertion, que ce chantier a déjà payé deux
+fois. D'où l'exigence d'une population non vide.
+
+**La seule observation disponible, et elle est datable.** `whatsapp_messages.raw` porte
+10 lignes dont la plus ancienne a **28 jours** contre une fenêtre de 30. Le cron
+`whatsapp-purge-raw-daily` (`30 3 * * *`, dernier succès le 02.08 à 03:30 UTC) doit donc les
+passer à `raw IS NULL` **d'ici environ deux nuits**. Marche à suivre :
+
+```sql
+-- Avant, puis après le passage de 03:30 UTC : le compte doit tomber.
+select count(*) filter (where raw is not null)              as raw_restant,
+       max(now() - created_at) filter (where raw is not null) as plus_vieille
+  from public.whatsapp_messages;
+```
+
+⚠ Cette purge **neutralise** (`UPDATE … SET raw = NULL`), elle ne supprime pas la ligne : le
+critère porte sur la disparition de la DONNÉE soumise à rétention, pas sur un `DELETE`.
+
+**Ce qui n'est PAS amendé.** La rétention **LBA 10 ans** sur `activity_events` et `admin_log`
+reste intouchable (décision PO n° 7, trigger append-only) : ces deux tables ne sont donc pas
+des cibles de ce critère, et ne le seront jamais. Le levier sur le Live reste la fenêtre
+d'**affichage**, pas une purge.
 
 ## 8. Re-dater les migrations le jour du merge — procédure
 

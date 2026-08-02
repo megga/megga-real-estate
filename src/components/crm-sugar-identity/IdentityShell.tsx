@@ -3,11 +3,17 @@
  * Rendu par la route /dashboard/identite (src/pages/agent/IdentitySugarPage.tsx),
  * tant que useIdentityGate() renvoie 'required'.
  *
- * Reprend TEL QUEL le mécanisme de thème de crm-sugar-wizard/WizardShell.tsx
- * (`setSugarV2Dark(dark)` au début du render, `SugarV2.foo` lu au render dans
- * chaque étape) et réutilise ses primitives (SgIcon, SgBlackPill, SgGhostPill,
- * SgInput dans StepSignataire) — voir tokens.ts pour le pourquoi d'un module de
- * thème séparé plutôt qu'un import croisé.
+ * HABILLAGE : MEGGA X, la transcription verbatim de la vitrine megga.ch, et non
+ * Sugar (bascule du 2 août 2026). Tout le parcours vit sous <MeggaX> et n'emploie
+ * que des classes de `src/styles/megga-x.generated.css` ; les quatre ajouts que la
+ * vitrine ne couvre pas (aide de champ, focus des choix, rail d'étapes, pied
+ * d'actions) sont isolés dans `megga-x-additions.css`, qui dit pourquoi.
+ *
+ * Conséquence assumée : ce parcours ne suit PAS la préférence clair/sombre de
+ * l'agent, la peau vitrine n'existant qu'en une polarité. C'est un couloir
+ * d'entrée — l'agent vient de megga.ch — pas une surface du CRM ; le thème reprend
+ * ses droits au retour sur /dashboard. Même raisonnement que l'écran d'arrivée
+ * (IdentityWelcomeScreen) et que BootSplash.
  *
  * Persistance (règle du plan étape 2, § Parcours cible) : l'étape qu'on est en
  * train de QUITTER est sauvegardée dans persistCurrentStep(), appelée par next()
@@ -54,13 +60,12 @@
  * vérité — revenir (bouton Reprendre la saisie, ou une reconnexion ultérieure qui
  * rouvre ce wizard) relit ce qui a été persisté, rien n'est perdu.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { SugarV2, setSugarV2Dark, SG_IDENTITY_STEPS, SG_IDENTITY_KEYFRAMES } from './tokens'
-import { SgIcon, SgBlackPill, SgGhostPill } from '@/components/crm-sugar-wizard/primitives'
+import { SG_IDENTITY_STEPS } from './tokens'
 import { MeggaX, MxButton, MxLink } from '@/components/megga-x'
-import { useTheme } from '@/hooks/useTheme'
+import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import {
   useAgencyIdentity, useLegalFormCategory, useIdentityDocuments, validateIdentityDocumentFile,
@@ -642,13 +647,20 @@ function IdentityWelcomeScreen({ onStart, onLater }: { onStart: () => void; onLa
                       </div>
                     </div>
                     <div className="mg-top-large text-center">
-                      <MxButton className="app-button" onClick={onStart}>
+                      {/* `type="button"` explicite, comme aux étapes 3/4/5 : MxButton n'en
+                          pose aucun, donc son défaut HTML est `submit`. Aucun de ces
+                          boutons ne soumet quoi que ce soit — la coquille Sugar les
+                          écrivait déjà tous en `type="button"`, la peau MEGGA X l'avait
+                          perdu au passage. Inerte tant qu'aucun <form> ne les enveloppe,
+                          mais c'est exactement le genre de déclaration fausse qu'on ne
+                          laisse pas traîner (même raison que MxLink sans href). */}
+                      <MxButton type="button" className="app-button" onClick={onStart}>
                         {t('gate.welcome.startButton')}
                       </MxButton>
                     </div>
                     <div className="mg-top-small">
                       <div className="text-center">
-                        <MxLink href="#" onClick={(e) => { e.preventDefault(); onLater() }}>
+                        <MxLink onClick={onLater}>
                           {t('wizard.footer.exit')}
                         </MxLink>
                       </div>
@@ -661,38 +673,6 @@ function IdentityWelcomeScreen({ onStart, onLater }: { onStart: () => void; onLa
         </section>
       </div>
     </MeggaX>
-  )
-}
-
-/**
- * Sortie de secours (tâche 8) : écran d'attente affiché à la place du contenu du
- * wizard quand `showExitScreen` vaut vrai (cf. son point d'appel dans IdentityShell,
- * plus bas) — jamais un composant monté par une route séparée, voir l'en-tête du
- * fichier pour pourquoi (garde-fou anti-boucle). Purement local, non exporté : ce
- * n'est pas une étape du parcours (SG_IDENTITY_STEPS), seulement un état de la
- * coquille, au même titre que le spinner de chargement déjà inline dans <main>.
- */
-function ExitPendingScreen({ onResume }: { onResume: () => void }) {
-  const { t } = useTranslation('onboarding')
-  return (
-    <div style={{ maxWidth: 560, margin: '96px auto 0', textAlign: 'center' }}>
-      <div style={{
-        fontSize: 12, fontWeight: 600, color: SugarV2.muted,
-        letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-      }}>{t('gate.pendingNotice.eyebrow')}</div>
-      <h1 style={{
-        margin: '0 0 14px', fontSize: 28, fontWeight: 700,
-        color: SugarV2.ink, letterSpacing: -0.5, lineHeight: 1.2,
-      }}>{t('gate.pendingNotice.title')}</h1>
-      <p style={{ margin: '0 0 32px', fontSize: 14.5, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.6 }}>
-        {t('gate.pendingNotice.body')}
-      </p>
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <SgBlackPill onClick={onResume} icon={<SgIcon name="arrowR" size={16} stroke={SugarV2.onBlack} />}>
-          {t('gate.pendingNotice.resumeButton')}
-        </SgBlackPill>
-      </div>
-    </div>
   )
 }
 
@@ -719,32 +699,30 @@ const LANGUES_WIZARD = [
  * sélecteur, ne sont pas atteignables tant qu'il n'est pas terminé. Tant que la
  * langue ne pouvait venir que d'un choix explicite, cette impasse restait
  * théorique. Depuis que le pays du visiteur peut la deviner
- * (`src/lib/geoLanguage.ts`), elle ne l'est plus : une déduction fausse — un
- * Genevois derrière la sortie zurichoise d'un VPN d'entreprise, cas banal —
- * enfermerait quelqu'un dans un parcours de conformité en allemand, sans issue.
+ * (`src/lib/geoLanguage.ts`, chantier langue-par-géolocalisation), elle ne
+ * l'est plus : une déduction fausse — un Genevois derrière la sortie zurichoise
+ * d'un VPN d'entreprise, cas banal — enfermerait quelqu'un dans un parcours de
+ * conformité en allemand, sans issue.
  *
  * Le `<select>` natif est un choix, pas un repli : navigable au clavier,
  * annoncé par les lecteurs d'écran et rendu par le sélecteur du système sur
  * mobile, sans qu'on ait à le réimplémenter.
+ *
+ * (Ré-application du 2 août 2026 : ce composant venait de la branche
+ * langue-par-géolocalisation, écrite contre l'ancien header Sugar ; #1069 a
+ * réécrit le header en MEGGA X sans lui. Logique et documentation reprises
+ * telles quelles, seul le style passe de SugarV2 — retiré — à `.mx-langpicker`,
+ * cf. megga-x-additions.css.)
  */
 function WizardLanguagePicker() {
   const { t, i18n } = useTranslation('onboarding')
   return (
     <select
+      className="mx-langpicker"
       value={i18n.language.slice(0, 2)}
       onChange={(e) => { void i18n.changeLanguage(e.target.value) }}
       aria-label={t('wizard.header.language')}
       title={t('wizard.header.language')}
-      style={{
-        background: 'transparent',
-        border: 0,
-        padding: 0,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        fontSize: 13,
-        fontWeight: 600,
-        color: SugarV2.muted,
-      }}
     >
       {LANGUES_WIZARD.map((l) => (
         <option key={l.code} value={l.code}>{l.nom}</option>
@@ -753,16 +731,63 @@ function WizardLanguagePicker() {
   )
 }
 
+/**
+ * Sortie de secours (tâche 8) : écran d'attente affiché à la place du contenu du
+ * wizard quand `showExitScreen` vaut vrai (cf. son point d'appel dans IdentityShell,
+ * plus bas) — jamais un composant monté par une route séparée, voir l'en-tête du
+ * fichier pour pourquoi (garde-fou anti-boucle). Purement local, non exporté : ce
+ * n'est pas une étape du parcours (SG_IDENTITY_STEPS), seulement un état de la
+ * coquille, au même titre que le spinner de chargement déjà inline dans <main>.
+ */
+function ExitPendingScreen({ onResume, onLogout }: { onResume: () => void; onLogout: () => void }) {
+  const { t } = useTranslation('onboarding')
+  return (
+    <div className="inner-container _634px center">
+      <div className="card sign-in-card">
+        <div className="pd---content-inside-card">
+          <div className="inner-container _464px center">
+            <div className="text-center">
+              {/* Le sur-titre en majuscules de la coquille Sugar est retiré : la
+                  vitrine n'a pas ce registre, ses cartes ouvrent sur le titre. */}
+              <h1 className="display-6">{t('gate.pendingNotice.title')}</h1>
+              <div className="mg-top-4x-extra-small">
+                <p className="paragraph-large">{t('gate.pendingNotice.body')}</p>
+              </div>
+            </div>
+            {/* Deux sorties, hiérarchisées : reprendre (primaire) ou partir
+                vraiment (secondaire). La déconnexion est la SEULE vraie sortie de
+                ce parcours — rediriger vers /dashboard reproduirait la boucle de
+                l'incident P0 c830f9a9 (cf. en-tête du fichier), le gate y
+                renverrait aussitôt. Même geste que « Se déconnecter » de
+                l'en-tête (handleLogout), pas un chemin parallèle. */}
+            <div className="mg-top-medium text-center">
+              <MxButton type="button" onClick={onResume}>{t('gate.pendingNotice.resumeButton')}</MxButton>
+            </div>
+            <div className="mg-top-2x-extra-small text-center">
+              <MxButton type="button" variant="secondary" onClick={onLogout}>{t('common:nav.logout')}</MxButton>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** Coquille du wizard identité : chrome, navigation entre étapes, persistance au changement d'étape. */
 export default function IdentityShell() {
   const { t } = useTranslation('onboarding')
-  const { theme } = useTheme()
-  const dark = theme === 'dark'
-  setSugarV2Dark(dark)
-  useEffect(() => () => { setSugarV2Dark(null) }, [])
+  // Aucune lecture de `useTheme()` ici, et c'est délibéré : ce parcours porte la
+  // peau de la vitrine, qui n'existe qu'en une polarité (fond #030303). Il ne
+  // suit donc pas la préférence clair/sombre de l'agent — comme l'écran d'arrivée
+  // et BootSplash, c'est un couloir d'entrée, pas une surface du CRM. Le CRM
+  // reprend la main (et le thème) dès la soumission, au retour sur /dashboard.
 
   const { signOut } = useAuth()
   const navigate = useNavigate()
+  /** LA sortie du parcours — en-tête ET écran d'attente. `/login` redirige vers la
+   *  vitrine (VitrineLoginRedirect) : c'est le seul départ que le gate ne rattrape
+   *  pas, rediriger vers /dashboard reproduirait la boucle P0 c830f9a9. */
+  const handleLogout = () => { void signOut().then(() => navigate('/login')) }
   const {
     agency, agencyId, persons, isLoading, isRevalidating, savePerson, removePerson, revokeUboRole, saveAgency, uploadIdentityDocument, submit,
   } = useAgencyIdentity()
@@ -770,7 +795,6 @@ export default function IdentityShell() {
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [justSaved, setJustSaved] = useState(false)
   // Étape 4 (récapitulatif, tâche 7) : case d'attestation d'exactitude, contrôlée ici
   // comme tout autre brouillon de ce wizard — gate canSubmitIdentity (footer, plus bas).
   const [attestationChecked, setAttestationChecked] = useState(false)
@@ -810,14 +834,6 @@ export default function IdentityShell() {
     }
     previousStepRef.current = step
   }, [step])
-
-  // Flash "Enregistré" pendant 1.8s après une sauvegarde réussie (footer).
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => {
-    if (!justSaved) return
-    savedTimerRef.current = setTimeout(() => setJustSaved(false), 1800)
-    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }
-  }, [justSaved])
 
   const existingSignatory = useMemo(
     () => persons.find((p) => p.roles.some((r) => r.role === 'signatory')) ?? null,
@@ -968,17 +984,18 @@ export default function IdentityShell() {
 
   const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, beneficiaires, pieceIdentiteDraft)
 
-  /** Enveloppe commune à chaque étape persistable : bascule saving/error/justSaved
-   *  autour de l'opération d'écriture réelle (savePerson ou saveAgency selon
-   *  l'étape). Extrait de l'ancien corps inline de persistCurrentStep pour éviter de
-   *  dupliquer ce triptyque try/catch/finally à chaque étape persistable ajoutée par
-   *  les tâches 4 à 7 — comportement inchangé pour l'étape 0. */
+  /** Enveloppe commune à chaque étape persistable : bascule saving/error autour de
+   *  l'opération d'écriture réelle (savePerson ou saveAgency selon l'étape).
+   *  Extrait de l'ancien corps inline de persistCurrentStep pour éviter de dupliquer
+   *  ce triptyque try/catch/finally à chaque étape persistable ajoutée par les
+   *  tâches 4 à 7 — comportement inchangé pour l'étape 0. Le succès n'allume plus
+   *  aucun témoin (retiré le 02.08.2026) : il fait avancer l'étape, ce qui EST le
+   *  signal. */
   const runPersist = async (save: () => Promise<unknown>): Promise<boolean> => {
     setSaving(true)
     setError(null)
     try {
       await save()
-      setJustSaved(true)
       return true
     } catch (e) {
       setError(e instanceof Error ? e.message : t('wizard.footer.unknownError'))
@@ -1188,103 +1205,83 @@ export default function IdentityShell() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      background: dark ? SugarV2.bg : SugarV2.bgGradient,
-      fontFamily: '"Inter Tight", system-ui, sans-serif', color: SugarV2.ink,
-    } as CSSProperties}>
-      <style>{SG_IDENTITY_KEYFRAMES}</style>
-
-      <header style={{
-        flexShrink: 0, padding: '24px 32px', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', gap: 16,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24, overflowX: 'auto' }}>
-          {/* visibleIdentitySteps exclut l'étape bénéficiaires quand elle est sautée : ni
-              affichée ni comptée dans la numérotation (position + 1, pas i + 1) — c'est le
-              volet "stepper" de l'exigence de saut propre (cf. en-tête du fichier). */}
-          {visibleIdentitySteps(SG_IDENTITY_STEPS.length, skipBeneficiaires).map((i, position) => {
-            const s = SG_IDENTITY_STEPS[i]
-            // !showExitScreen : un palier ne doit jamais paraître cliquable pendant que
-            // l'écran d'attente (sortie de secours, tâche 8) est affiché — sinon un clic
-            // changerait `step` sans jamais faire réapparaître le wizard (ExitPendingScreen
-            // reste rendu tant que showExitScreen n'est pas remis à faux), interaction morte.
-            const clickable = i < step && !saving && !showExitScreen
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => { if (clickable) void goToStep(i) }}
-                disabled={!clickable}
-                style={{
-                  background: 'transparent', border: 0, padding: 0,
-                  fontFamily: 'inherit', whiteSpace: 'nowrap',
-                  cursor: clickable ? 'pointer' : 'default',
-                  fontSize: 13, fontWeight: i === step ? 700 : 600,
-                  paddingBottom: 8,
-                  borderBottom: `2px solid ${i <= step ? SugarV2.ink : 'transparent'}`,
-                  color: i === step ? SugarV2.ink : i < step ? SugarV2.inkSoft : SugarV2.muted,
-                  transition: 'all .18s ease',
-                }}
-              >
-                {position + 1}. {s.label}
-              </button>
-            )
-          })}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0 }}>
-          {/* Toujours visible, y compris sur l'écran d'attente : c'est la seule
-              sortie de langue du parcours (les Réglages sont derrière ce gate). */}
-          <WizardLanguagePicker />
-          {/* Sortie de secours (tâche 8) : masquée sur l'écran d'attente lui-même — on y
-              est déjà « sorti », le bouton principal de cet écran est Reprendre la saisie
-              (ExitPendingScreen). Toujours à côté de Se déconnecter, jamais dans le pied
-              de page partagé : celui-ci disparaît entièrement pendant l'écran d'attente. */}
-          {!showExitScreen && (
-            <button
-              type="button"
-              onClick={() => { void handleExit() }}
-              disabled={saving}
-              style={{
-                background: 'transparent', border: 0,
-                cursor: saving ? 'default' : 'pointer',
-                fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-                color: SugarV2.inkSoft, opacity: saving ? 0.5 : 1,
-              }}
-            >
-              {t('wizard.footer.exit')}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => { void signOut().then(() => navigate('/login')) }}
-            style={{
-              background: 'transparent', border: 0, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: SugarV2.muted,
-            }}
-          >
-            {t('common:logout')}
-          </button>
-        </div>
-      </header>
-
-      <main key={showExitScreen ? 'exit' : step} style={{
-        flex: 1, padding: '16px 32px 140px', animation: 'sgPage .45s cubic-bezier(.2,.8,.2,1) both',
-      }}>
-        {isLoading ? (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            padding: '96px 0', color: SugarV2.muted, fontSize: 13, fontWeight: 500,
-          }} role="status" aria-live="polite">
-            <span style={{
-              width: 14, height: 14, borderRadius: 999,
-              border: `2px solid ${SugarV2.line}`, borderTopColor: SugarV2.ink,
-              animation: 'sgSpin .8s linear infinite',
-            }} />
-            {t('gate.shell.preparing')}
+    <MeggaX>
+      {/* `full-height-page` : sans elle, un contenu court (écran d'attente) laisse
+          une bande blanche sous le canvas — le noir vient du conteneur, pas du body. */}
+      <div className="page-wrapper full-height-page">
+        {/* Même en-tête que l'écran d'arrivée et que les pages d'authentification de
+            la vitrine : l'agent ne doit pas sentir de rupture entre le lien reçu par
+            e-mail et la saisie. Logo non cliquable — il est connecté, la vitrine
+            n'est plus une destination. */}
+        <div className="header pd-medium-top-and-bottom">
+          <div className="container-default w-container">
+            <div className="flex-horizontal space-between">
+              <div className="header-logo">
+                <img src="/megga-logo.svg" alt="MEGGA" />
+              </div>
+              <div className="flex-horizontal gap-24px---wrap-down">
+                {/* Toujours visible, y compris sur l'écran d'attente : c'est la seule
+                    sortie de langue du parcours (les Réglages sont derrière ce gate). */}
+                <WizardLanguagePicker />
+                {/* Sortie de secours : masquée sur l'écran d'attente lui-même — on y est
+                    déjà « sorti », son bouton principal est Reprendre la saisie. */}
+                {!showExitScreen && (
+                  <MxLink onClick={() => { if (!saving) void handleExit() }} disabled={saving}>
+                    {t('wizard.footer.exit')}
+                  </MxLink>
+                )}
+                {/* `common:nav.logout` et non `common:logout` : la clé racine n'existe
+                    pas, l'ancien appel affichait le mot « logout » en clair. */}
+                <MxLink onClick={handleLogout}>
+                  {t('common:nav.logout')}
+                </MxLink>
+              </div>
+            </div>
           </div>
-        ) : showExitScreen ? (
-          <ExitPendingScreen onResume={() => setShowExitScreen(false)} />
+        </div>
+
+        {/* `.section` seule vaut 200 px de respiration haut et bas : c'est le
+            gabarit des sections marketing de la vitrine, pas d'un formulaire de
+            dix champs. Les deux modificateurs la ramènent à 64 px / 80 px. */}
+        <section className="section pd-top-regular pd-bottom-medium mx-grow">
+          <div className="container-default w-container">
+            {/* visibleIdentitySteps exclut l'étape bénéficiaires quand elle est sautée : ni
+                affichée ni comptée dans la numérotation (position + 1, pas i + 1) — c'est le
+                volet "stepper" de l'exigence de saut propre (cf. en-tête du fichier). */}
+            <nav className="mx-stepper" aria-label={t('wizard.steps.ariaLabel')}>
+              {visibleIdentitySteps(SG_IDENTITY_STEPS.length, skipBeneficiaires).map((i, position) => {
+                const s = SG_IDENTITY_STEPS[i]
+                // !showExitScreen : un palier ne doit jamais paraître cliquable pendant que
+                // l'écran d'attente (sortie de secours, tâche 8) est affiché — sinon un clic
+                // changerait `step` sans jamais faire réapparaître le wizard (ExitPendingScreen
+                // reste rendu tant que showExitScreen n'est pas remis à faux), interaction morte.
+                const clickable = i < step && !saving && !showExitScreen
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => { if (clickable) void goToStep(i) }}
+                    disabled={!clickable}
+                    aria-current={i === step ? 'step' : undefined}
+                    className={cn(
+                      'mx-stepper__step',
+                      i === step && 'mx-stepper__step--current',
+                      clickable && 'mx-stepper__step--done',
+                    )}
+                  >
+                    {position + 1}. {s.label}
+                  </button>
+                )
+              })}
+            </nav>
+
+            <main key={showExitScreen ? 'exit' : step} className="mg-top-medium">
+              {isLoading ? (
+                <div className="text-center" role="status" aria-live="polite">
+                  <p className="paragraph-large">{t('gate.shell.preparing')}</p>
+                </div>
+              ) : showExitScreen ? (
+          <ExitPendingScreen onResume={() => setShowExitScreen(false)} onLogout={handleLogout} />
         ) : step === 0 ? (
           <StepSignataire value={signataire} onChange={setSignataire} />
         ) : step === 1 ? (
@@ -1332,78 +1329,57 @@ export default function IdentityShell() {
             onAttestationChange={setAttestationChecked}
             onEditStep={(target) => { void goToStep(target) }}
           />
-        ) : null}
-      </main>
+              ) : null}
+            </main>
 
-      {/* Sortie de secours (tâche 8) : le pied de page (Continuer/Précédent/Soumettre)
-          n'a aucun sens pendant l'écran d'attente — ExitPendingScreen porte son propre
-          bouton principal (Reprendre la saisie). Header (stepper + Reprendre plus
-          tard/Se déconnecter) reste en revanche affiché dans les deux cas. */}
-      {!showExitScreen && (
-      <footer style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, padding: '24px 32px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 16, zIndex: 20,
-        background: dark
-          ? `linear-gradient(180deg, transparent 0%, ${SugarV2.bg} 72%)`
-          : SugarV2.footerFade,
-        pointerEvents: 'none',
-      }}>
-        <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
-          {step > 0 && (
-            <SgGhostPill onClick={() => { void prev() }} icon={<SgIcon name="arrowL" size={16} stroke={SugarV2.inkSoft} />}>
-              {t('common:actions.previous')}
-            </SgGhostPill>
-          )}
-          {/* Indicateur de sauvegarde : reflète la persistance réelle (savePerson ou
-              saveAgency selon l'étape), jamais un état optimiste — il ne s'allume
-              qu'après succès. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: SugarV2.ok }}>
-            {justSaved ? (
-              <span style={{
-                width: 15, height: 15, borderRadius: 999, display: 'grid', placeItems: 'center', flexShrink: 0,
-                background: SugarV2.ok, animation: 'sgSavePop .4s cubic-bezier(.2,.8,.2,1) both',
-              }}>
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={SugarV2.onBlack} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-              </span>
-            ) : (
-              <span style={{ width: 7, height: 7, borderRadius: 999, flexShrink: 0, background: SugarV2.ok }} />
+            {/* Bannière d'erreur : au-dessus du pied d'actions, pas en surimpression
+                flottante — c'est la place que lui donne la vitrine (`.error-message`,
+                pavé rouge plein), et elle pousse le contenu au lieu de le masquer. */}
+            {error && (
+              <div className="mg-top-small">
+                <div className="error-message" role="alert">{error}</div>
+              </div>
             )}
-            {justSaved ? t('wizard.footer.saved') : t('wizard.footer.autosave')}
+
+            {/* Sortie de secours (tâche 8) : le pied d'actions (Continuer/Précédent/
+                Soumettre) n'a aucun sens pendant l'écran d'attente — ExitPendingScreen
+                porte son propre bouton principal (Reprendre la saisie). L'en-tête reste
+                en revanche affiché dans les deux cas. */}
+            {!showExitScreen && (
+              <div className="mx-actionbar mg-top-medium">
+                {/* Aucun témoin de sauvegarde : la persistance à chaque changement
+                    d'étape (persistCurrentStep, appelée par next/prev/goToStep) reste
+                    entière, elle se fait simplement sans le dire. Un dirigeant qui
+                    remplit un formulaire de conformité n'a pas à surveiller un voyant
+                    vert ; ce qui compte est que fermer l'onglet ne perde rien, et ça
+                    n'a pas changé. */}
+                <div className="flex-horizontal gap-16px">
+                  {step > 0 && (
+                    <MxButton type="button" variant="secondary" size="small" onClick={() => { void prev() }} disabled={saving}>
+                      {t('common:actions.previous')}
+                    </MxButton>
+                  )}
+                </div>
+
+                <div>
+                  {step < SG_IDENTITY_STEPS.length - 1 ? (
+                    <MxButton type="button" onClick={() => { void next() }} disabled={!canNext || saving}>
+                      {saving ? t('wizard.footer.saving') : t('wizard.footer.continue')}
+                    </MxButton>
+                  ) : (
+                    // Dernière étape (récapitulatif) : Soumettre remplace Continuer — gate
+                    // sur l'attestation ET un signataire réellement désigné
+                    // (canSubmitIdentity), jamais sur canNext (toujours false ici).
+                    <MxButton type="button" onClick={() => { void handleSubmit() }} disabled={!canSubmitIdentity(attestationChecked, signatoryId) || saving}>
+                      {saving ? t('wizard.footer.submitting') : t('wizard.footer.submit')}
+                    </MxButton>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-
-        <div style={{ pointerEvents: 'auto' }}>
-          {step < SG_IDENTITY_STEPS.length - 1 ? (
-            <SgBlackPill onClick={() => { void next() }} disabled={!canNext || saving}
-              icon={<SgIcon name="arrowR" size={16} stroke={SugarV2.onBlack} />}>
-              {saving ? t('wizard.footer.saving') : t('wizard.footer.continue')}
-            </SgBlackPill>
-          ) : (
-            // Dernière étape (récapitulatif) : Soumettre remplace Continuer — gate sur
-            // l'attestation ET un signataire réellement désigné (canSubmitIdentity),
-            // jamais sur canNext (qui vaut toujours false ici, cf. son en-tête).
-            <SgBlackPill onClick={() => { void handleSubmit() }} disabled={!canSubmitIdentity(attestationChecked, signatoryId) || saving}
-              icon={<SgIcon name="check" size={16} stroke={SugarV2.onBlack} />}>
-              {saving ? t('wizard.footer.submitting') : t('wizard.footer.submit')}
-            </SgBlackPill>
-          )}
-        </div>
-      </footer>
-      )}
-
-      {error && (
-        <div role="alert" style={{
-          position: 'fixed', bottom: 92, left: 32, right: 32, zIndex: 21,
-          padding: '10px 14px', borderRadius: 12, textAlign: 'center',
-          background: dark ? 'rgba(242,107,101,0.12)' : '#FEF2F2',
-          color: SugarV2.err,
-          border: `1px solid ${dark ? 'rgba(242,107,101,0.35)' : '#FCA5A5'}`,
-          fontSize: 12.5, fontWeight: 600,
-        }}>
-          {error}
-        </div>
-      )}
-    </div>
+        </section>
+      </div>
+    </MeggaX>
   )
 }

@@ -44,13 +44,31 @@ const DRY = process.argv.includes('--dry-run');
  * aucune trace, il cesse simplement d'écrire — le pouls disparaîtrait sans que le silence
  * ne prouve quoi que ce soit sur la santé du reste. Le dépôt a déjà payé ça
  * (realadvisor-rolling-daily supprimé le 21/06, personne ne l'a vu pendant un mois).
+ *
+ * ⚠ LE TEST DES SENTINELLES EST SÉMANTIQUE, PAS LITTÉRAL. `schedule = '* * * * *'`
+ * comparait une CHAÎNE : réécrire la minute en intervalle — forme « barre oblique 1 »,
+ * strictement équivalente et acceptée par pg_cron — faisait tomber le compte à 0 et
+ * déclenchait « le pouls a disparu »
+ * toutes les 30 min sur un ordonnanceur en pleine santé. Or le dépôt re-pose régulièrement
+ * des commandes de cron par migration. On normalise donc les espaces et on accepte les
+ * deux écritures de « chaque minute » (vérifié sur les 6 formes).
+ *
+ * ⚠ LE SILENCE SE MESURE SUR UNE FENÊTRE BORNÉE. `max(end_time)` sur toute la table était
+ * un Parallel Seq Scan — 208 000 lignes, 15 403 buffers, 92 ms — répété à chaque passage
+ * sur une table que RIEN ne purge, et qui évinçait 125 Mo du cache partagé au passage.
+ * Les 2 000 derniers `runid` couvrent ~30 h d'historique pour un seuil de 10 min : marge
+ * intacte, et le plan devient un Index Scan Backward sur la PK (280 buffers, 1,4 ms).
  */
 const SQL = `
   select
     (select round(extract(epoch from (now() - max(end_time))) / 60.0)::int
-       from cron.job_run_details)                                      as silence_min,
+       from (select end_time from cron.job_run_details
+              order by runid desc limit 2000) r)                       as silence_min,
     (select count(*)::int from cron.job
-      where schedule = '* * * * *' and active)                         as sentinelles,
+      where active
+        and split_part(regexp_replace(btrim(schedule), '\\s+', ' ', 'g'), ' ', 1) in ('*', '*/1')
+        and regexp_replace(btrim(schedule), '\\s+', ' ', 'g') like '% * * * *')
+                                                                       as sentinelles,
     (select count(*)::int from cron.job where active)                  as jobs_actifs`;
 
 async function interroger(token) {
@@ -63,8 +81,21 @@ async function interroger(token) {
       signal: AbortSignal.timeout(30_000),
     },
   );
-  if (!res.ok) throw new Error(`Management API ${res.status} : ${(await res.text()).slice(0, 200)}`);
-  const [row] = await res.json();
+  if (!res.ok) {
+    const err = new Error(`Management API ${res.status} : ${(await res.text()).slice(0, 200)}`);
+    err.statut = res.status;
+    throw err;
+  }
+  const lignes = await res.json();
+  // ⚠ La forme fait partie du contrat, et elle se vérifie : un corps vide ou inattendu
+  // laissait `row` à `undefined`, et la première lecture de champ levait un TypeError
+  // HORS du try/catch — workflow rouge, mais AUCUNE alerte envoyée.
+  const row = Array.isArray(lignes) ? lignes[0] : undefined;
+  if (!row || typeof row.jobs_actifs !== 'number') {
+    const err = new Error(`réponse inattendue du Management API : ${JSON.stringify(lignes).slice(0, 200)}`);
+    err.statut = res.status;
+    throw err;
+  }
   return row;
 }
 
@@ -104,15 +135,54 @@ if (!token) {
   process.exit(2);
 }
 
+/**
+ * ⚠ LA SONDE N'EST PAS LA BASE. Elle interroge `api.supabase.com`, le PLAN DE CONTRÔLE :
+ * son échec ne prouve donc PAS que la production est tombée. Annoncer « Production
+ * Supabase INJOIGNABLE » sur un 401 revenait à crier à la mort du patient parce que le
+ * téléphone du veilleur ne marche plus — et, à raison d'un passage toutes les 30 minutes
+ * sans aucun état conservé entre eux, à le crier des dizaines de fois par jour jusqu'à ce
+ * que quelqu'un renouvelle le jeton.
+ *
+ * On sépare donc trois cas, parce qu'ils appellent trois gestes différents :
+ *   · 401/403 → NOTRE configuration est cassée (jeton révoqué ou périmé). Le workflow
+ *     rouge est le bon canal : un e-mail quotidien sur notre propre panne de veille est
+ *     du bruit, et il userait la seule adresse censée signifier « la plateforme est morte ».
+ *   · 429/5xx/réseau/timeout → très probablement transitoire : on réessaie avant de parler.
+ *   · échec persistant → on alerte, mais en le NOMMANT pour ce qu'il est (la sonde est
+ *     aveugle), sans affirmer l'état de la base qu'on n'a justement pas pu lire.
+ */
+const TENTATIVES = Number(process.env.HEARTBEAT_TRIES ?? 3);
+const ATTENTE_MS = Number(process.env.HEARTBEAT_DELAY_MS ?? 20_000);
+
 let etat;
-try {
-  etat = await interroger(token);
-} catch (err) {
-  // ⚠ C'EST LE CAS QUE §10.9 VISE, et il ne ressemble pas à un défaut de données : la
-  // base ne répond pas du tout. On alerte sur l'échec lui-même, sans rien pouvoir lire.
-  await alerter('Production Supabase INJOIGNABLE', [
-    `La sonde a échoué : ${err.message}`,
-    'Aucune alerte interne ne peut partir dans cet état : elles vivent toutes dans Supabase.',
+let dernierEchec;
+for (let essai = 1; essai <= TENTATIVES; essai++) {
+  try {
+    etat = await interroger(token);
+    break;
+  } catch (err) {
+    dernierEchec = err;
+    if (err.statut === 401 || err.statut === 403) {
+      console.error(
+        `✗ Le veilleur ne peut plus s'authentifier (HTTP ${err.statut}) : ${err.message}\n` +
+        '  C\'est SUPABASE_ACCESS_TOKEN qu\'il faut renouveler, pas la production qu\'il faut réveiller.\n' +
+        '  Aucun e-mail envoyé : ce workflow rouge est le bon canal pour une panne de la veille.',
+      );
+      process.exit(2);
+    }
+    if (essai < TENTATIVES) {
+      console.error(`… sonde en échec (${err.message}) — nouvel essai ${essai + 1}/${TENTATIVES} dans ${Math.round(ATTENTE_MS / 1000)} s.`);
+      await new Promise((r) => setTimeout(r, ATTENTE_MS));
+    }
+  }
+}
+
+if (!etat) {
+  await alerter('Le battement de production ne peut plus être mesuré', [
+    `La sonde a échoué ${TENTATIVES} fois de suite : ${dernierEchec?.message ?? 'aucune tentative effectuée'}`,
+    'Elle interroge api.supabase.com — cet échec ne dit PAS que la base est tombée, il dit',
+    'que la veille est aveugle. Les alertes internes, elles, vivent dans Supabase : si la',
+    'plateforme est effectivement morte, personne d\'autre ne parlera.',
   ]);
   process.exit(1);
 }

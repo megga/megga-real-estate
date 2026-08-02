@@ -43,7 +43,12 @@ export interface AgencyWithStats {
   last_activity_at: string | null
 }
 
-/** Ligne brute de `get_admin_agencies()`, re-typée à la main faute de types générés. */
+/** Ligne brute de `get_admin_agencies()`. Re-typée à la main NON par absence des types
+ *  générés — la RPC y est entrée avec #1064 — mais parce que le générateur perd la
+ *  NULLABILITÉ des colonnes d'un `returns table` : il déclare `email`, `sub`, `logo_url`
+ *  et `current_period_end` non-nullables, alors qu'elles sont nulles en prod (mesuré le
+ *  02.08.2026 : respectivement 9, 10, 10 et 10 agences sur 10). Le type ci-dessous est
+ *  donc le plus vrai des deux ; c'est lui qui justifie les `??` du mapping. */
 interface AdminAgencyRow {
   id: string; name: string; email: string | null; city: string | null; canton: string | null
   plan: string | null; agents: number; properties: number; deals: number; mrr: number | string
