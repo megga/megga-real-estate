@@ -28,6 +28,9 @@
       "pieceIdentite": "ID document",
       "recapitulatif": "Summary"
     },
+    "header": {
+      "language": "Interface language"
+    },
     "footer": {
       "continue": "Continue",
       "saving": "Saving…",
