@@ -695,6 +695,40 @@ ils décident de ce que l'étape 19 peut réellement faire. **Aucun n'est corrig
    + cron `kyc-stale-daily` existent pour les **dossiers**, rien pour les **liens**.
 
 
+### 7quater. LOT 3 — ce qui est LIVRÉ (02.08.2026, PR #1064, mergée et déployée)
+
+**Étape 28 — `cron_run_now` est en production.** Le seul geste vivant du Lot 3. Vérifié
+objet par objet après déploiement, pas au statut du workflow : trois fonctions présentes
+avec `search_path` fixé, `anon` révoqué sur les trois, `authenticated` révoqué sur le seul
+balayeur, `admin-adhoc-cron-sweep` planifié en `*/10` et **déjà passé deux fois**
+(`succeeded`, 0,032 s) — c'était le seul chemin qui n'avait jamais tourné nulle part.
+47 jobs actifs, 53 exécutions depuis le merge, **0 échec**, chaîne du registre `ok`,
+droits `anon` sur les tables internes toujours à 0.
+
+⚠ **Ce qui reste non éprouvé** : le chemin NOMINAL — programmer un ponctuel — exige un clic
+sur un vrai cron. Il n'a tourné ni en local, ni en CI, ni en production.
+
+**Deux garde-fous posés au passage** : `check-types-freshness.mjs` (la dérive de
+`database.ts`, jusqu'ici sans surveillance) et `scheduler-heartbeat.yml` (le veilleur hors
+Supabase de l'étape 30 — les 47 crons de santé vivent tous dans la base, donc se taisent
+ensemble ; celui-ci parle depuis GitHub).
+
+**Trois défauts que SEULE la CI a vus**, et qu'aucune relecture — onze agents adversariaux
+compris — n'avait attrapés, parce qu'aucun n'est visible en simulation locale :
+
+1. **`cron.job` n'existe pas sur base fraîche.** pg_cron exige `shared_preload_libraries` :
+   on ne peut pas l'installer en CI. Une migration qui le lit sans garde fait échouer
+   `supabase start`, donc la suite backend ET l'E2E, avant qu'un seul test ait tourné.
+2. **`PGRST203` — une surcharge casse PostgREST.** Les six appelants SQL passaient tous une
+   variable typée, donc la résolution était non ambiguë *en SQL*. Mais PostgREST envoie du
+   JSON **sans types** : tout appel REST à une fonction surchargée devient ambigu. Le dépôt
+   le savait déjà (`megga/instrumentation-comportementale`), rangé là où personne écrivant
+   une migration admin n'irait chercher. **Vérifier les appelants SQL ne suffit pas.**
+3. **Collision de stamp par un merge parallèle.** `main` a pris `20260801420000` pendant la
+   revue. La CI d'une PR teste la FUSION : les deux fichiers arrivent ensemble et
+   `schema_migrations_pkey` refuse le doublon. Même signature d'échec que (1), cause
+   différente. ⚠ Une branche qui vieillit collectionne ces collisions.
+
 ### 7ter. LOT 3 — à lire AVANT de commencer
 
 Mesuré le 01.08.2026 (préflight `wf_a5d9245f-306`, 5 lecteurs). **Le Lot 3 est
