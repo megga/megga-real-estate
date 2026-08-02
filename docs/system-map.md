@@ -419,6 +419,7 @@ Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEG
 npm run dev          # vite — CRM, console super-admin comprise (localhost:5173)
 npm run build        # tsc -b && vite build  (+ postbuild overlay-storefront)
 npm run lint         # eslint          ·  lint:deadcode  ·  lint:prose (⚠ i18n, hors des autres gates)
+npm run lint:types-freshness  # database.ts vs prod : aucun client casté, aucune RPC hors types (#1064)
 npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/admin/visual)
 npm run i18n:parity:ci  # parité FR/DE/EN/IT — à lancer dès qu'on touche aux locales
 ```
@@ -444,6 +445,21 @@ Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA - acce
 pré-lancement) — realm en ASCII pur : un tiret cadratin sort de la plage d'un octet des valeurs
 d'en-tête HTTP, Cloudflare le tolérait mais un client strict refuse la réponse entière.
 Les pages d'auth échappent au gate (cf. §vitrine).
+
+**Deux veilleurs HORS Supabase** (`.github/workflows/`, seuls dispositifs qui survivent à une panne de la
+plateforme — les 47 crons de santé vivent tous dans `cron.job`, donc se taisent ensemble) :
+`security-audit.yml` (lundi 07:03 UTC, RLS + policies + gardes edge, mail Resend) et
+**`scheduler-heartbeat.yml`** (*/30, #1064) — sonde `cron.job_run_details` et alerte si l'ordonnanceur se tait.
+Seuil DÉRIVÉ, pas choisi : deux jobs tournent à la minute et l'écart maximal mesuré sur 6 h de production est de
+60 s, donc 10 min de silence = dix battements manqués. ⚠ Le destinataire est en dur : le lire dans
+`super_admin_allowlist()` exigerait la base, c'est-à-dire ce qui peut être tombé. La sonde qui ÉCHOUE est
+elle-même une alarme. Cf. brain `megga/console-admin-lot3-preflight`.
+
+**Dérive du TYPAGE (#1064)** — `src/types/database.ts` est auto-généré et rien ne le surveillait : 15 relations
+et 64 fonctions y manquaient, tenues par 16 casts de client dans 14 fichiers. `check-types-freshness.mjs` défend
+trois propriétés (aucun client casté dans `src/`, aucune RPC appelée hors des types, aucune relation vivante
+absente) — statique sur chaque PR, moitié production dans `migration-drift.yml`. ⚠ Elle ne compare PAS les
+fonctions : 770 vivantes contre 420 émises, le filtre du générateur nous échappe.
 
 **Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur 8 familles CRM verrouillées : crm-mobile/crm-sugar/crm-sugar-v3/crm-sugar-wizard/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
 
