@@ -13,6 +13,13 @@ import { serviceRoleClient, anonClient } from './helpers/supabase'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 const PW = 'Test-Password-123!'
+// Observé (pas supposé) contre la pile locale avant de resserrer cette assertion, comme
+// invité par le brief : anon ET un utilisateur authentifié ordinaire reçoivent tous deux
+// 42501 "permission denied for function" -- le REVOKE ALL ... FROM public, anon,
+// authenticated de la migration est vérifié par Postgres avant même que PostgREST
+// n'atteigne le corps de la fonction, donc aucun des deux rôles ne déclenche jamais le
+// 42883/PGRST202 envisagé par le texte d'origine (qui restait, lui, une hypothèse).
+const DENIED = '42501'
 
 interface DigestRow {
   agency_id: string
@@ -167,20 +174,17 @@ describe.skipIf(!HAS_KEYS)('kyb_review_digest_payload() — la charge utile du d
 
   it('refuse un appelant authentifié — un cron l\'appelle, jamais un navigateur', async () => {
     const { data, error } = await ordinaryUser.rpc('kyb_review_digest_payload')
-    // Le CODE n'est pas épinglé, et c'est délibéré. Contrairement au patron P3 (EXECUTE
-    // accordé à `authenticated` + garde interne is_super_admin(), qui rend bien 42501),
-    // cette RPC a EXECUTE *révoqué* pour `authenticated` : PostgREST échoue alors AVANT
-    // d'entrer dans la fonction, et le code rendu dépend de sa version (42883 / PGRST202
-    // selon que la fonction est masquée du cache de schéma ou refusée à l'exécution).
-    // Épingler une de ces valeurs rendrait le test faux à la première montée de version,
-    // sur un comportement par ailleurs correct. Ce qui compte : rien ne sort.
-    expect(error).not.toBeNull()
+    // EXECUTE est *révoqué* pour `authenticated` (contrairement au patron P3, où il est
+    // accordé et la garde is_super_admin() est interne à la fonction) : Postgres refuse
+    // donc l'appel par privilège AVANT même d'entrer dans le corps de la fonction.
+    // Épinglé à 42501 -- observé contre la pile locale, pas supposé (voir DENIED).
+    expect(error?.code, `attendu ${DENIED}, reçu ${error?.code}`).toBe(DENIED)
     expect(data).toBeNull()
   })
 
   it('refuse l\'anonyme', async () => {
     const { data, error } = await anonClient().rpc('kyb_review_digest_payload')
-    expect(error).not.toBeNull()
+    expect(error?.code, `attendu ${DENIED}, reçu ${error?.code}`).toBe(DENIED)
     expect(data).toBeNull()
   })
 })
