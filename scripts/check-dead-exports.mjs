@@ -20,6 +20,11 @@ const ALLOW_FILES = new Set([
 const ALLOW_SYMBOLS = new Set([
   'src/components/propertyx/PxWhatsAppButton.tsx:default', // composant du cœur Px (buildWaMeUrl, lui, est utilisé)
   'src/components/crm-sugar/SugarShell.tsx:SugarIconRailProps', // re-export type (faux positif ts-prune)
+  // Faux positif : le symbole EST importé (src/lib/geoLanguage.ts:29) et lu
+  // (ligne 101), sur un chemin joignable depuis main.tsx. Preuve : retirer le
+  // mot-clé `export` fait échouer tsc en TS2614. ts-prune ne compte pas l'usage
+  // — const évalué au chargement du module, sans usage interne au fichier.
+  'src/i18n/index.ts:hasExplicitLanguage',
   // lib API / compliance conservée (surface API + données réglementaires) :
   'src/lib/posthog.ts:identifyUser', 'src/lib/posthog.ts:trackEvent', 'src/lib/posthog.ts:resetPostHog',
   'src/lib/sentry.ts:identifySentryUser', 'src/lib/sentry.ts:clearSentryUser',
