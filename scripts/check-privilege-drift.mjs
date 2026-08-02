@@ -61,6 +61,12 @@ const INTERNES_HORS_PREFIXE = [
   'outbox_jobs',
   'platform_metrics',
   'platform_announcements',
+  // Instrumentation IA — lues côté client par la SEULE console (useAIBilling.ts,
+  // Monitoring), écrites par les edges en service_role. Mesuré le 03.08.2026 : `anon`
+  // y détenait encore les droits par défaut, révoqués par 20260803010000. Elles
+  // précèdent la convention `admin_*`, d'où leur place dans la liste.
+  'ai_usage_logs',
+  'ai_balance_snapshots',
 ];
 
 const SQL = `
