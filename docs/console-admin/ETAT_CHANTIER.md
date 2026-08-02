@@ -1233,8 +1233,38 @@ d'**affichage**, pas une purge.
 > régression mais l'amélioration décrite plus haut (second client au JWT de l'appelant) — la
 > mettre à jour **consciemment**, pas la contourner.
 >
+> 🔴 **ET LÀ, LE VRAI MUR — cette section affirmait quelque chose de FAUX.** « L'écran
+> Sécurité lit `admin_log` » : non. Mesuré le 02.08 au soir, `/dashboard/admin/security` →
+> `AdminSecurityAuditPage` → `useSecurityAudit` → **`.from('activity_events')`**, filtré sur
+> `SENSITIVE_ACTIONS`. La page n'a ni colonne `family`, ni `actor_label` ; elle calcule la
+> sévérité depuis le NOM d'action et traite `metadata` comme un OBJET, alors que celle du
+> registre est un tableau ordonné de paires. Et `get_admin_security_journal` — le lecteur
+> d'`admin_log`, gardé et couvert par sept specs backend — n'avait **aucun appelant dans
+> `src/`**.
+>
+> Conséquence : rembourser la dette était **nécessaire mais pas suffisant**. Le critère 2
+> était bloqué au DERNIER maillon, côté écran, pas côté base. Piège de lecture qui l'a
+> masqué : `SENSITIVE_ACTIONS` contient déjà `role_changed`, `agency_suspended`,
+> `agency_activated`, `subscription_changed` — un geste posé produisait donc bien « une
+> ligne à l'écran », mais la ligne `activity_events`, sans chaîne ni famille. Voir une ligne
+> ne prouvait pas qu'on voyait LE registre.
+>
+> ✅ **Câblé** : `SecurityRegistryView` + `useAdminSecurityJournal` ajoutent une vue
+> « Registre MEGGA » à côté de la vue « Actions agences », qui est conservée. Les deux
+> répondent à deux questions différentes, et les afficher côte à côte rend VISIBLE la
+> frontière MEGGA / agences que tout cet écran défend.
+>
+> ⚠ **Trois pièges mesurés en le câblant.** (1) Les deux sources ont des vocabulaires de
+> sévérité DIFFÉRENTS — `crit`/`warn`/`info` contre `critical`/`warning`/`info` : la
+> traduction se fait AU BORD (`SEV_MAP`), exactement comme l'exigeait le commentaire de
+> `20260801210500`. (2) `audit.family.*` n'existait dans AUCUNE locale : les 12 familles
+> se seraient affichées en clé brute. (3) `entity` vaut la chaîne VIDE, jamais `null`
+> (`array_to_string`) — un `??` laissait la colonne blanche ; il faut `||`.
+>
 > Reste donc la seule chose qu'aucun test ne peut faire : la **démonstration à l'écran**
-> `/dashboard/admin/security`, qui est le libellé exact du critère 2 de G2.
+> `/dashboard/admin/security`, qui est le libellé exact du critère 2 de G2. Le chemin est
+> désormais complet de bout en bout ; il ne manque qu'un geste posé par un humain
+> allowlisté.
 
 **Mesuré le 02.08.2026.** G2 reste ouvert, mais **son blocage n'est plus celui que le plan
 décrit**. Les gestes existent et sont déjà branchés aux écrans ; ce qui manque, c'est
