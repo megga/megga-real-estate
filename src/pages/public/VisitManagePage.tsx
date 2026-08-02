@@ -64,19 +64,26 @@ export default function VisitManagePage() {
     return d
   })
 
+  // Le refus est rendu par le bloc « lien plus valable » ; on avale donc le rejet
+  // ici, sinon `mutateAsync` le repropage en rejet non capturé alors que l'état
+  // d'erreur de la mutation porte déjà l'information.
   async function handleReschedule() {
     if (!newDate || !token) return
     const scheduledAt = newTime
       ? new Date(`${newDate}T${newTime}:00`).toISOString()
       : new Date(`${newDate}T10:00:00`).toISOString()
-    await reschedule.mutateAsync({ token, newDate: scheduledAt })
-    setMode('rescheduled')
+    try {
+      await reschedule.mutateAsync({ token, newDate: scheduledAt })
+      setMode('rescheduled')
+    } catch { /* état porté par reschedule.isError */ }
   }
 
   async function handleCancel() {
     if (!token) return
-    await cancel.mutateAsync(token)
-    setMode('cancelled')
+    try {
+      await cancel.mutateAsync(token)
+      setMode('cancelled')
+    } catch { /* état porté par cancel.isError */ }
   }
 
   if (mode === 'cancelled') {
@@ -128,7 +135,9 @@ export default function VisitManagePage() {
         <div className="rounded-xl border border-gray-200 overflow-hidden mb-8">
           {photo && (
             <div className="aspect-[16/9]">
-              <img src={photo} alt="" className="w-full h-full object-cover" decoding="async" />
+              {/* no-referrer : le token de gestion est dans la query de CETTE page,
+                  et un Referer l'emporterait vers l'hôte des photos. */}
+              <img src={photo} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" decoding="async" />
             </div>
           )}
           <div className="p-5 space-y-3">
@@ -145,6 +154,19 @@ export default function VisitManagePage() {
             </div>
           </div>
         </div>
+
+        {/* Refus du geste : le lien est lisible mais n'ouvre plus ce droit
+            (visite déjà annulée ou close par l'agent, fenêtre du lien passée).
+            Sans ce bloc, l'écran de succès s'afficherait sur un geste qui n'a
+            rien écrit et l'acheteur repartirait convaincu du contraire. */}
+        {(cancel.isError || reschedule.isError) && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-sm font-medium text-amber-900">Ce lien ne permet plus cette action</p>
+            <p className="text-xs text-amber-800 mt-1">
+              La visite a peut-être déjà été annulée ou clôturée. Contactez votre agent pour la modifier.
+            </p>
+          </div>
+        )}
 
         {/* Actions */}
         {mode === 'view' && (

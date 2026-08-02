@@ -15,6 +15,15 @@ const FN_HEADERS = {
   Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
 }
 
+/**
+ * En-têtes d'un appel porteur du jeton magique.
+ *
+ * Le jeton voyage en EN-TÊTE, jamais en query string : les journaux d'accès de
+ * la plateforme Supabase enregistrent l'URL complète des requêtes, un `?token=`
+ * y déposerait chaque jeton KYC en clair avec toute sa durée de vie devant lui.
+ */
+const tokenHeaders = (token: string) => ({ ...FN_HEADERS, 'x-magic-link-token': token })
+
 export interface MagicLinkLoadError {
   status: number
   reason?: string
@@ -33,10 +42,9 @@ export function useMagicLinkClient(token: string | undefined) {
     queryKey: ['magic-link-client', token],
     queryFn: async (): Promise<MagicLinkPublicView | MagicLinkLoadError> => {
       if (!token) throw new Error('No token')
-      const res = await fetch(
-        `${SUPABASE_URL}/functions/v1/magic-link-get?token=${encodeURIComponent(token)}`,
-        { headers: FN_HEADERS },
-      )
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-get`, {
+        headers: tokenHeaders(token),
+      })
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as {
           reason?: string
@@ -82,14 +90,11 @@ export function useMagicLinkUploadClient() {
       const form = new FormData()
       form.append('file', input.file)
       form.append('type', input.type)
-      const res = await fetch(
-        `${SUPABASE_URL}/functions/v1/magic-link-upload?token=${encodeURIComponent(input.token)}`,
-        {
-          method: 'POST',
-          headers: FN_HEADERS,
-          body: form,
-        },
-      )
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-upload`, {
+        method: 'POST',
+        headers: tokenHeaders(input.token),
+        body: form,
+      })
       if (!res.ok) {
         const errBody = await res.text()
         throw new Error(`Upload failed: HTTP ${res.status} ${errBody}`)
@@ -121,17 +126,14 @@ export function useMagicLinkConfirmClient() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: ConfirmInput): Promise<ConfirmResponse> => {
-      const res = await fetch(
-        `${SUPABASE_URL}/functions/v1/magic-link-confirm?token=${encodeURIComponent(input.token)}`,
-        {
-          method: 'POST',
-          headers: {
-            ...FN_HEADERS,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-confirm`, {
+        method: 'POST',
+        headers: {
+          ...tokenHeaders(input.token),
+          'Content-Type': 'application/json',
         },
-      )
+        body: JSON.stringify({}),
+      })
       if (!res.ok) {
         const errBody = await res.text()
         throw new Error(`Confirm failed: HTTP ${res.status} ${errBody}`)
