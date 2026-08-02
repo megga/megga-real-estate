@@ -160,7 +160,8 @@
     "steps": {
       "start": "Démarrer",
       "contact": "Contact",
-      "vigilance": "Vigilance"
+      "vigilance": "Vigilance",
+      "report": "Rapport"
     },
     "header": {
       "eyebrow": "Conformité LBA",
