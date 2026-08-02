@@ -53,6 +53,26 @@ test.describe('Agent KYC', () => {
     await expect(page.getByText('Statut de vérification illisible')).toHaveCount(0)
   })
 
+  test("un dossier introuvable le DIT, et laisse une sortie", async ({ page }) => {
+    await skipKycOnboarding(page)
+    await page.goto('/dashboard/kyc/00000000-0000-0000-0000-000000000000')
+
+    // 1. L'overlay tranche au lieu de tourner. Jusqu'au 02.08.2026 il confondait
+    //    attente et échec (`isLoading || !dossier`, KycFicheStrict) et restait
+    //    indéfiniment sur « Chargement du dossier… », en plein écran par-dessus le
+    //    pager — sans explication ni issue.
+    await expect(page.getByRole('heading', { name: 'Dossier indisponible' })).toBeVisible()
+
+    // 2. La SORTIE fonctionne. Un bouton dont on vérifie seulement la présence
+    //    n'est pas une issue : on le clique, et on exige que l'overlay se referme
+    //    réellement — l'URL redevient celle de la liste, et le titre du pager,
+    //    jusque-là masqué par l'overlay opaque, réapparaît.
+    await page.getByRole('button', { name: 'Retour aux dossiers' }).click()
+    await expect(page).toHaveURL(/\/dashboard\/kyc$/)
+    await expect(page.getByRole('heading', { name: 'KYC', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dossier indisponible' })).toHaveCount(0)
+  })
+
   test('no blocking console errors on /dashboard/kyc load', async ({ page }) => {
     await skipKycOnboarding(page)
     const collector = collectConsoleErrors(page)
