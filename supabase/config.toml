@@ -520,6 +520,12 @@ verify_jwt = false
 [functions.ai-copilot]
 verify_jwt = false
 
+[functions.appointment-book]
+verify_jwt = false
+
+[functions.appointment-manage]
+verify_jwt = false
+
 [functions.appointment-slots]
 verify_jwt = false
 
@@ -659,5 +665,3 @@ verify_jwt = false
 verify_jwt = false
 
 # ── GÉNÉRÉ par scripts/check-edge-roster.mjs — fin ──
-
-
