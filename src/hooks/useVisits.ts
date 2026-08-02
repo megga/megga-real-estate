@@ -17,6 +17,7 @@ import {
   useDeleteMutation,
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/types/database'
 import { useAuth } from '@/hooks/useAuth'
 import type { CalendarEvent, EventColor, VisitStatus } from '@/components/calendar/week-view-types'
 import type { TablesInsert } from '@/types/database'
@@ -318,7 +319,15 @@ export function usePublicVisit(token: string | undefined) {
 // anciens updates directs ; la policy anon UPDATE barn-door a été supprimée).
 // `fn` prend l'union des noms connus de `database.ts`, pas `string` : un dispatcher typé
 // `string` éteint la vérification pour TOUS ses appelants d'un coup.
-const rpcByToken = (fn: Parameters<typeof supabase.rpc>[0], args: Record<string, unknown>) =>
+//
+// Et `args` est indexé PAR le nom : un `Record<string, unknown>` laissait passer
+// `{ p_token_TYPO: … }` en silence, pour finir en PGRST202 à l'exécution — sur des gestes
+// publics par token, donc côté acheteur non authentifié. Le cast est confiné à cette
+// ligne : TS ne sait pas resoudre `Args` sur un `N` encore générique, mais chaque appelant,
+// lui, passe un nom littéral et voit donc ses arguments vérifiés.
+type PgFns = Database['public']['Functions']
+
+const rpcByToken = <N extends keyof PgFns>(fn: N, args: PgFns[N]['Args']) =>
   supabase.rpc(fn, args as never)
 
 /** Replanification publique (par token) via RPC `reschedule_visit_by_token`. */

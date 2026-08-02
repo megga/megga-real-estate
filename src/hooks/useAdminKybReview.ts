@@ -23,6 +23,7 @@
  */
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/types/database'
 import type { CheckResult, PersonRoleRow } from '@/pages/admin/AdminKybReviewPage'
 
 // ─── Liste ──────────────────────────────────────────────────────────────────
@@ -363,10 +364,14 @@ function useInvalidateKybReview(agencyId: string) {
  *  `fn` prend le type du premier paramètre de `supabase.rpc`, c'est-à-dire l'union des
  *  noms de RPC connus de `database.ts`, et non `string` : un dispatcher typé `string`
  *  éteint la vérification pour TOUS ses appelants d'un coup — c'est ce qui obligeait à
- *  caster le client ici. Une RPC renommée en SQL fait désormais rougir les cinq gestes. */
-type RpcName = Parameters<typeof supabase.rpc>[0]
+ *  caster le client ici. Une RPC renommée en SQL fait désormais rougir les cinq gestes.
+ *
+ *  Et `args` est indexé PAR ce nom. En `Record<string, unknown>`, `{ p_agency_TYPO: … }`
+ *  compilait en silence et finissait en PGRST202 à l'exécution — sur les cinq décisions
+ *  humaines d'un dossier KYB, c'est-à-dire les gestes les moins rejouables du produit. */
+type PgFns = Database['public']['Functions']
 
-async function callRpc(fn: RpcName, args: Record<string, unknown>): Promise<void> {
+async function callRpc<N extends keyof PgFns>(fn: N, args: PgFns[N]['Args']): Promise<void> {
   const { error } = await supabase.rpc(fn, args as never)
   if (error) throw new Error(error.message)
 }
