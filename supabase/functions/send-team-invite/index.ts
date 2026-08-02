@@ -6,6 +6,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+/**
+ * Base de l'URL d'acceptation d'invitation.
+ *
+ * Elle était construite depuis l'en-tête `Origin` de la requête, avec
+ * `https://megga.ch` en repli — deux défauts d'un coup.
+ *
+ * 1. SÉCURITÉ. `Origin` est fourni par l'appelant. Un agent dirigeant qui poste
+ *    avec `Origin: https://evil.tld` fait partir un e-mail MEGGA authentique,
+ *    signé DKIM, dont le bouton « Accepter l'invitation » pointe chez lui — et
+ *    le TOKEN d'invitation part dans l'URL. Hameçonnage sur notre domaine, plus
+ *    exfiltration d'une capacité qui vaut attribution de rôle au claim.
+ * 2. CORRECTION. Le repli était faux : `/accept-invite/:token` est une route de
+ *    l'app CRM (src/App.tsx), servie par app.megga.ch. `megga.ch` est la
+ *    vitrine et ne connaît pas cette route — tout envoi sans en-tête `Origin`
+ *    produisait donc un lien mort.
+ *
+ * Même variable et même repli que kyc-report-pdf et agency-verification-notify.
+ */
+function appBaseUrl(): string {
+  return (Deno.env.get('MEGGA_APP_URL') ?? 'https://app.megga.ch').replace(/\/+$/, '')
+}
+
 const PLAN_LIMITS: Record<string, number> = {
   starter: 1,
   pro: 3,
@@ -240,12 +262,11 @@ serve(async (req) => {
       // Send email
       const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
       if (RESEND_API_KEY) {
-        const origin = req.headers.get('origin') || 'https://megga.ch'
         const html = buildInviteEmailHtml({
           inviterName: profile.full_name,
           agencyName: agency.name,
           role: invitation.role,
-          acceptUrl: `${origin}/accept-invite/${newToken}`,
+          acceptUrl: `${appBaseUrl()}/accept-invite/${newToken}`,
         })
 
         await fetch('https://api.resend.com/emails', {
@@ -389,12 +410,11 @@ serve(async (req) => {
     // Send email via Resend
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (RESEND_API_KEY) {
-      const origin = req.headers.get('origin') || 'https://megga.ch'
       const html = buildInviteEmailHtml({
         inviterName: profile.full_name,
         agencyName: agency.name,
         role: body.role,
-        acceptUrl: `${origin}/accept-invite/${invitation.token}`,
+        acceptUrl: `${appBaseUrl()}/accept-invite/${invitation.token}`,
       })
 
       await fetch('https://api.resend.com/emails', {
