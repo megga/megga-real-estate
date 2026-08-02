@@ -153,6 +153,35 @@ function seedLanguageFromUrl(): void {
   }
 }
 
+/**
+ * L'agent avait-il DÉJÀ une langue au moment où ce module s'est chargé ?
+ *
+ * ⚠ Se lit ici et nulle part ailleurs, parce qu'`init()` détruit la réponse une
+ * ligne plus bas. i18next appelle `changeLanguage(options.lng)` pendant son
+ * initialisation, ce qui déclenche `cacheUserLanguage()` du détecteur, qui écrit
+ * `localStorage['megga-language']` — la valeur détectée, donc `'fr'` par repli.
+ * Après l'init, la clé est TOUJOURS remplie : demander « a-t-il une préférence »
+ * répondrait oui à tout le monde, y compris à quelqu'un qui n'a jamais rien
+ * choisi. C'est la même raison qui fait vivre `seedLanguageFromUrl` avant
+ * `init()`, et le piège est le même.
+ *
+ * Ce que la valeur veut dire : `false` = tout premier contact d'un navigateur
+ * avec le CRM, sans passage par la vitrine (qui, elle, joint toujours `?lang=`).
+ * C'est la seule situation où deviner la langue est légitime — partout ailleurs
+ * il existe un choix, explicite ou hérité, et deviner reviendrait à l'écraser.
+ */
+export const hasExplicitLanguage: boolean = (() => {
+  if (languageFromUrl() !== null) return true
+  try {
+    return window.localStorage.getItem(LANG_KEY) !== null
+  } catch {
+    // Stockage refusé : on ne peut ni lire une préférence ni en poser une.
+    // Traité comme « préférence existante » pour ne rien tenter d'automatique
+    // à chaque chargement de page.
+    return true
+  }
+})()
+
 seedLanguageFromUrl()
 
 i18n
@@ -181,18 +210,56 @@ i18n
       lookupLocalStorage: 'megga-language',
       caches: ['localStorage'],
     },
-    // Évite que i18next bloque le rendu en attendant le chargement async
+    // Évite que i18next bloque le rendu en attendant le chargement async.
+    //
+    // ⚠ INVARIANT à ne pas casser : AUCUN backend i18next n'est branché (pas de
+    // `i18next-http-backend`), et c'est ce qui rend `hasLoadedNamespace()` vrai
+    // même quand le bundle d'une langue n'est pas encore là. Sans cette
+    // propriété, `useTranslation` re-suspendrait à chaque bascule, le
+    // `<Suspense>` d'App.tsx démonterait l'arbre — et le wizard KYB
+    // (`IdentityShell`), dont les brouillons ne vivent qu'en `useState`,
+    // perdrait la saisie en cours. Monter un backend un jour exigerait donc de
+    // sortir ce wizard du périmètre suspendable, ou de persister ses brouillons.
     partialBundledLanguages: true,
   })
 
-/** Enregistre à la volée les bundles d'une langue non-FR puis bascule dessus ; idempotent (no-op si déjà chargée). */
-async function ensureLanguageLoaded(lng: string) {
+/**
+ * Dernière langue explicitement demandée — garde de fraîcheur des chargements.
+ *
+ * Deux bascules peuvent être en vol en même temps : le chargement d'un bundle
+ * passe par un `import()` dynamique de plusieurs centaines de millisecondes, et
+ * rien n'empêche l'agent de re-choisir pendant ce temps. Sans ce témoin, la
+ * requête la plus LENTE gagnait — et se persistait dans `localStorage`. Le cas
+ * n'était pas théorique : la détection géographique (`src/lib/geoLanguage.ts`)
+ * démarre une bascule au chargement de la page, précisément quand l'agent peut
+ * en demander une autre depuis le sélecteur du wizard d'onboarding.
+ */
+let langueDemandee: string = i18n.language
+
+/**
+ * Enregistre à la volée les bundles d'une langue non-FR puis bascule dessus ;
+ * idempotent (no-op si déjà chargée).
+ *
+ * Exporté pour la bascule géographique (`src/lib/geoLanguage.ts`) : appeler
+ * `changeLanguage()` directement basculerait AVANT que le bundle n'existe, et
+ * l'agent verrait l'interface en français le temps du téléchargement, puis un
+ * second rendu. Ici la ressource est chargée d'abord, la bascule vient après —
+ * un seul `languageChanged`, un seul rendu.
+ */
+export async function ensureLanguageLoaded(lng: string) {
   if (lng === 'fr' || !['de', 'en', 'it'].includes(lng)) return
   if (i18n.hasResourceBundle(lng, 'common')) return
+  // Un appel direct (géographie) est une demande au même titre qu'un clic ;
+  // l'écouteur ci-dessous couvre le cas où la demande vient de changeLanguage().
+  langueDemandee = lng
   const bundle = await loadLanguage(lng as SupportedLang)
   for (const ns of NAMESPACES) {
     i18n.addResourceBundle(lng, ns, bundle[ns], true, true)
   }
+  // Une autre langue a été demandée pendant le téléchargement : les ressources
+  // restent enregistrées (elles resserviront), mais basculer maintenant
+  // reviendrait à annuler le choix le plus récent de l'agent.
+  if (langueDemandee !== lng) return
   // Notifie React de re-render avec les nouvelles ressources
   await i18n.changeLanguage(lng)
 }
@@ -202,6 +269,9 @@ void ensureLanguageLoaded(i18n.language)
 
 // À chaque changement de langue : charge à la volée
 i18n.on('languageChanged', (lng) => {
+  // Hors du `if` : une bascule vers le français ne charge rien, mais elle reste
+  // une demande, et elle doit périmer un chargement encore en vol.
+  langueDemandee = lng
   if (!i18n.hasResourceBundle(lng, 'common')) {
     void ensureLanguageLoaded(lng)
   }
