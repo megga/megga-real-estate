@@ -96,9 +96,22 @@ L'extraction est **elle-même journalisée** (famille `export`) et porte une emp
 ainsi que le verdict de chaîne sur la fenêtre. L'extraction précède la journalisation — sinon
 l'empreinte ne serait pas reproductible.
 
-⚠ Ces deux appels sont gardés par `is_super_admin() OR is_service_role()`. Une console SQL
-ouverte en `postgres` **n'est ni l'un ni l'autre** (mesuré) et se fait refuser par un 42501 :
-passer par un compte super-admin, ou par la clé de service.
+**⚠ Qui peut appeler quoi — mesuré, et les deux ne se ressemblent pas :**
+
+| Fonction | `authenticated` (super-admin connecté) | `service_role` | `postgres` (console SQL) |
+|---|---|---|---|
+| `admin_log_export` | ✅ | ✅ | ❌ 42501 |
+| `admin_log_verify_chain` | ❌ **pas de GRANT** | ✅ | ❌ 42501 |
+
+Deux couches, et elles ne disent pas la même chose. Le **GRANT** décide qui peut seulement
+*appeler* ; la **garde interne** (`is_super_admin() OR is_service_role()`) décide ensuite.
+`postgres` échoue à la garde (il n'est ni l'un ni l'autre, mesuré) ; un super-admin échoue
+plus tôt encore sur `verify_chain`, faute de GRANT — l'erreur n'est alors pas la même et ne
+se lit pas comme un refus métier.
+
+En pratique : un super-admin **n'a pas besoin** d'appeler `verify_chain` séparément, puisque
+l'export **embarque** le verdict de chaîne sur sa fenêtre. La fonction nue est un outil de
+service (clé de service, ou le cron horaire `admin-log-chain-verify-hourly`).
 
 ## 6. Ce que ce runbook ne peut pas décider
 
