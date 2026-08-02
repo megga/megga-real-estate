@@ -1,5 +1,5 @@
 // Backend integration spec (live CI) — le geste « relancer un cron maintenant »
-// (migration 20260801420000, étape 28, spec §5.8).
+// (migration 20260802010000, étape 28, spec §5.8).
 //
 // Ce que ce fichier cherche à faire échouer :
 //
