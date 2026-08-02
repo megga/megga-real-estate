@@ -32,6 +32,25 @@ const HORIZON_CHOICES = [7, 14, 30, 60] as const
 /** Grille par défaut proposée quand l'agent ouvre un jour vide. */
 const DEFAULT_RANGE: [string, string] = ['09:00', '12:00']
 
+/**
+ * Message lisible d'une erreur d'écriture Supabase.
+ *
+ * ⚠ `e instanceof Error` NE SUFFIT PAS : PostgrestError est un objet nu
+ * ({ message, details, hint, code }), pas une instance d'Error. Le tester ainsi
+ * jetait silencieusement le message du trigger — « weekly_hours[1] : fin
+ * (08:00:00) <= debut (09:00:00) », qui désigne le jour à corriger — pour le
+ * remplacer par un « Enregistrement impossible » qui n'aide personne. Constaté
+ * en enregistrant une grille inversée dans le navigateur.
+ */
+function writeErrorMessage(e: unknown): string | null {
+  if (e instanceof Error) return e.message
+  if (e && typeof e === 'object' && 'message' in e) {
+    const m = (e as { message: unknown }).message
+    if (typeof m === 'string' && m.trim()) return m
+  }
+  return null
+}
+
 function Field({ c, label, hint, children }: {
   c: PfColors; label: string; hint?: string; children: React.ReactNode
 }) {
@@ -111,7 +130,7 @@ export function AvailabilityFocusSection({ sp, surf, dark }: FocusSectionProps) 
       // Message du trigger affiché tel quel : « weekly_hours[2] : plages non
       // ordonnees ou chevauchantes » dit précisément quel jour corriger, là où
       // un « erreur d'enregistrement » laisserait l'agent chercher.
-      setError(e instanceof Error ? e.message : t('focus.toast.saveError'))
+      setError(writeErrorMessage(e) ?? t('focus.toast.saveError'))
     }
   }
 
