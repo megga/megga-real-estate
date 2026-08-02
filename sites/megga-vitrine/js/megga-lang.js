@@ -126,6 +126,138 @@
     return modal;
   }
 
+  /* ── Suggestion d'après le pays du visiteur ───────────────────────────────
+   *
+   * Le bord sait d'où vient la requête (`/api/geo`, cf. `_worker.js`). Quand ce
+   * pays désigne une autre langue que celle de la page, on le DIT — on ne
+   * redirige pas.
+   *
+   * Pourquoi jamais de redirection automatique : les pages portent 4 alternates
+   * `hreflang` chacune, et un robot d'indexation qui arrive des États-Unis
+   * recevrait la version anglaise de chaque URL française. Le cluster hreflang
+   * s'effondre, et le référencement multilingue avec lui. Une personne derrière
+   * un VPN, elle, se retrouverait déplacée sans avoir rien demandé.
+   */
+
+  /* Langue proposée puis écartée. Clé distincte de CLE : refuser une suggestion
+     n'est pas choisir une langue, et confondre les deux ferait passer un simple
+     « non merci » pour une préférence à transporter jusqu'au CRM. */
+  var CLE_SUGGESTION = 'megga-lang-suggestion';
+
+  /* La réponse ne change pas d'une page à l'autre : une requête par session
+     suffit, et la navigation reste instantanée. */
+  var CLE_GEO = 'megga-geo';
+
+  /* Le message est rédigé dans la langue PROPOSÉE : c'est la personne qui ne
+     lit pas la page courante qu'on cherche à atteindre. */
+  var SUGGESTIONS = {
+    fr: { texte: 'Cette page existe en français.', oui: 'Lire en français', non: 'Non merci' },
+    de: { texte: 'Diese Seite gibt es auf Deutsch.', oui: 'Auf Deutsch lesen', non: 'Nein, danke' },
+    en: { texte: 'This page is available in English.', oui: 'Read in English', non: 'No thanks' },
+    it: { texte: 'Questa pagina è disponibile in italiano.', oui: 'Leggi in italiano', non: 'No, grazie' },
+  };
+
+  function lireStockage(zone, cle) {
+    try { return zone.getItem(cle); } catch (err) { return null; }
+  }
+
+  function ecrireStockage(zone, cle, valeur) {
+    try { zone.setItem(cle, valeur); } catch (err) { /* navigation privée stricte */ }
+  }
+
+  /** Détection du bord, mise en cache pour la session. Rend null si indisponible. */
+  function detecterLangue(suite) {
+    var cache = lireStockage(sessionStorage, CLE_GEO);
+    if (cache) {
+      try { return suite(JSON.parse(cache)); } catch (err) { /* cache illisible : on redemande */ }
+    }
+    if (typeof fetch !== 'function') return suite(null);
+    fetch('/api/geo', { credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (data) ecrireStockage(sessionStorage, CLE_GEO, JSON.stringify(data));
+        suite(data);
+      })
+      .catch(function () { suite(null); });
+  }
+
+  /**
+   * Affiche la barre, si et seulement si toutes les conditions sont réunies.
+   *
+   * Elle se tait beaucoup, et c'est le but : une suggestion qui se trompe ou qui
+   * enfonce une porte ouverte coûte plus cher que pas de suggestion du tout.
+   */
+  function proposerLangue(code) {
+    // Une langue a déjà été choisie ici : ne plus rien proposer, jamais.
+    if (lireStockage(localStorage, CLE)) return;
+    if (lireStockage(localStorage, CLE_SUGGESTION)) return;
+
+    detecterLangue(function (geo) {
+      if (!geo || !SUGGESTIONS[geo.language]) return;
+      // `low` veut dire « on ne sait pas » : le bord n'a ni canton ni pays
+      // exploitable. Proposer quand même reviendrait à inventer.
+      if (geo.confidence === 'low') return;
+      // Déjà dans la bonne langue.
+      if (geo.language === code) return;
+      // Cette page-ci n'existe pas dans la langue proposée (blog, pages
+      // légales, carrières). Emmener vers l'accueil d'une autre langue quand on
+      // était en train de lire un article n'est pas une aide.
+      var cible = urlDansLaLangue(geo.language);
+      if (!cible) return;
+
+      var mots = SUGGESTIONS[geo.language];
+      var barre = document.createElement('div');
+      barre.className = 'megga-lang-suggest';
+      // `aria-live` plutôt qu'un déplacement du focus : la barre arrive après
+      // le premier rendu, et voler le focus à quelqu'un en pleine lecture est
+      // une agression. On annonce, on n'interrompt pas.
+      barre.setAttribute('role', 'region');
+      barre.setAttribute('aria-live', 'polite');
+      barre.setAttribute('aria-label', mots.texte);
+      barre.setAttribute('lang', geo.language);
+
+      var texte = document.createElement('p');
+      texte.className = 'megga-lang-suggest__text';
+      texte.textContent = mots.texte;
+
+      var actions = document.createElement('div');
+      actions.className = 'megga-lang-suggest__actions';
+
+      var oui = document.createElement('button');
+      oui.type = 'button';
+      oui.className = 'megga-lang-suggest__go';
+      oui.textContent = mots.oui;
+
+      var non = document.createElement('button');
+      non.type = 'button';
+      non.className = 'megga-lang-suggest__no';
+      non.textContent = mots.non;
+
+      actions.appendChild(oui);
+      actions.appendChild(non);
+      barre.appendChild(texte);
+      barre.appendChild(actions);
+      document.body.appendChild(barre);
+
+      oui.addEventListener('click', function () {
+        // Accepter EST un choix de langue : il se range dans CLE, donc il
+        // voyage jusqu'au CRM par le `?lang=` que megga-auth.js accroche à
+        // toutes les portes. Sans ça, l'agent lirait la vitrine en allemand
+        // pour atterrir dans un CRM français.
+        ecrireStockage(localStorage, CLE, geo.language);
+        var url = new URL(cible, location.href);
+        location.href = url.pathname + location.search + location.hash;
+      });
+
+      non.addEventListener('click', function () {
+        // Le refus est mémorisé : reposer la question à chaque page serait une
+        // insistance, pas un service.
+        ecrireStockage(localStorage, CLE_SUGGESTION, geo.language);
+        barre.parentNode.removeChild(barre);
+      });
+    });
+  }
+
   function init() {
     var zone = $('.footer-bottom .megga-lang-zone') || $('.footer-bottom');
     if (!zone) return;
@@ -185,6 +317,10 @@
         location.href = url.pathname + location.search + location.hash;
       });
     });
+
+    // Le sélecteur complet reste la sortie de secours : proposer une langue ne
+    // dispense pas de pouvoir en choisir une autre.
+    proposerLangue(code);
   }
 
   if (document.readyState !== 'loading') init();
