@@ -27,9 +27,9 @@
  * 42501 sur les tables de checks) — l'étape 5 (récapitulatif, tâche 7) l'appellera au
  * moment de la soumission finale.
  */
-import { useRef, type ChangeEvent } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MxButton, MxStateMessage } from '@/components/megga-x'
+import { MxButton, MxModal, MxStateMessage } from '@/components/megga-x'
 import type { IdentityDocumentPreview, IdentityDocumentSide } from '@/hooks/useAgencyIdentity'
 
 interface StepPieceIdentiteProps {
@@ -124,10 +124,19 @@ export function StepPieceIdentite({
  *
  * La vitrine n'a AUCUNE zone de dépôt (vérifié sur ses 21 pages) : la case est donc
  * composée de son vocabulaire existant — `.card` + `.pd---content-inside-card` pour le
- * contenant, `.link-item-image-wrapper`/`.link-item-image` (le couple image-dans-une-
- * carte de la vitrine) pour l'aperçu, un bouton secondaire pour l'action. Aucune
- * grande surface cliquable, donc : le geste passe par un vrai bouton, qui garde son
- * anneau de focus natif au clavier.
+ * contenant, un bouton secondaire pour l'action. Aucune grande surface cliquable,
+ * donc : le geste passe par un vrai bouton, qui garde son anneau de focus natif.
+ *
+ * L'APERÇU utilisait `.link-item-image-wrapper`/`.link-item-image` de la vitrine, qui
+ * ne posent AUCUNE hauteur : c'était donc la photo de l'agent qui dictait la forme de
+ * la tuile. Mesuré à 1440 px : un scan 1712×1080 rendait 237×150, une photo de
+ * téléphone 1500×2000 rendait 237×316 — deux tuiles de hauteurs différentes, et un
+ * document trop petit pour être vérifié (la carte y faisait ~90 px). Remplacé par
+ * `mx-docframe` (ratio ID-1 fixe, `contain`) et un agrandissement au clic.
+ *
+ * Aucune retouche n'est proposée, et c'est délibéré : l'original déposé EST la pièce
+ * examinée par l'équipe conformité (décision produit du 02.08.2026, « l'original doit
+ * rester intact »). Une photo mal cadrée se reprend, elle ne se rogne pas.
  */
 function DocumentTile({
   label, preview, uploading, isLoading, onSelectFile,
@@ -140,6 +149,12 @@ function DocumentTile({
 }) {
   const { t } = useTranslation('onboarding')
   const inputRef = useRef<HTMLInputElement>(null)
+  // L'agrandissement retient le CHEMIN qu'il montre, pas un simple booléen : si le
+  // document change sous lui (remplacement par un fichier d'une autre extension,
+  // donc d'une autre clé Storage), l'égalité cesse d'être vraie et la vue se ferme
+  // d'elle-même. État dérivé plutôt qu'un effet qui appellerait setState.
+  const [zoomedPath, setZoomedPath] = useState<string | null>(null)
+  const zoomed = preview != null && zoomedPath === preview.path
 
   const filled = preview != null
   const isPdf = filled && preview.path.toLowerCase().endsWith('.pdf')
@@ -165,13 +180,39 @@ function DocumentTile({
           )}
         </div>
 
-        {/* Un PDF n'a pas d'aperçu : la pastille et le libellé du bouton portent seuls
-            l'état déposé, plutôt qu'une vignette générique qui n'apprendrait rien. */}
+        {/* Un PDF ne se rend pas dans un <img>. Plutôt que de le laisser sans
+            aucune vérification possible — ce qui était le cas jusqu'ici —, il
+            s'ouvre dans un onglet, où le lecteur du navigateur fait le travail.
+            `noopener` : l'URL signée ne doit jamais donner la main sur l'onglet
+            du wizard. */}
+        {preview != null && isPdf && (
+          <div className="mg-top-3x-extra-small">
+            <a
+              className="link-single display-1 medium"
+              href={preview.signedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t('wizard.pieceIdentite.openPdf')}
+            </a>
+          </div>
+        )}
+
         {preview != null && !isPdf && (
           <div className="mg-top-3x-extra-small">
-            <div className="link-item-image-wrapper">
-              <img className="link-item-image" src={preview.signedUrl} alt={label} />
-            </div>
+            {/* Un vrai <button> et non le wrapper d'image de la vitrine : le cadre
+                est le geste d'agrandissement, il doit s'atteindre au clavier et
+                garder son anneau de focus. `mx-docframe` impose le ratio d'une
+                pièce d'identité et `contain` — un document déposé n'est jamais
+                rogné, c'est précisément le bord manquant qu'on demande de voir. */}
+            <button
+              type="button"
+              className="mx-docframe"
+              onClick={() => setZoomedPath(preview.path)}
+              aria-label={t('wizard.pieceIdentite.zoomOpen', { side: label })}
+            >
+              <img src={preview.signedUrl} alt={label} />
+            </button>
           </div>
         )}
 
@@ -201,6 +242,28 @@ function DocumentTile({
           </p>
         </div>
       </div>
+
+      {/* Agrandissement. Le document est montré ENTIER et à sa taille naturelle
+          plafonnée à la fenêtre : c'est le seul endroit où l'agent peut juger la
+          netteté et vérifier que les quatre coins sont dans le cadre. Aucune
+          retouche n'y est proposée — l'original déposé est la pièce examinée, la
+          seule correction possible est de reprendre la photo (bouton Remplacer,
+          rappelé sous l'image). */}
+      {zoomed && preview != null && (
+        <MxModal
+          wide
+          title={label}
+          closeLabel={t('wizard.pieceIdentite.zoomClose')}
+          onClose={() => setZoomedPath(null)}
+        >
+          <img className="mx-docfull" src={preview.signedUrl} alt={label} />
+          <div className="mg-top-3x-extra-small text-center">
+            <p className="paragraph-small text-color-neutral-600">
+              {t('wizard.pieceIdentite.zoomHint')}
+            </p>
+          </div>
+        </MxModal>
+      )}
     </div>
   )
 }
