@@ -141,239 +141,240 @@
   "wizard": {
     "steps": {
       "start": "Start",
-      "contact": "Contact",
-      "vigilance": "Due diligence"
+      "contact": "Kontakt",
+      "vigilance": "Sorgfalt",
+      "report": "Bericht"
     },
     "header": {
-      "eyebrow": "AMLA compliance",
-      "title": "New KYC case"
+      "eyebrow": "GwG-Compliance",
+      "title": "Neues KYC-Dossier"
     },
-    "close": "Close",
+    "close": "Schliessen",
     "nav": {
-      "previous": "Back",
-      "continue": "Continue",
-      "creating": "Creating…",
-      "prepareMagicLink": "Prepare the magic link",
-      "openDossier": "Open the case"
+      "previous": "Zurück",
+      "continue": "Weiter",
+      "creating": "Wird erstellt…",
+      "prepareMagicLink": "Magic Link vorbereiten",
+      "openDossier": "Dossier öffnen"
     },
     "errors": {
-      "missingContactVigilance": "Select a contact and a due diligence level.",
-      "createFailed": "Creation failed"
+      "missingContactVigilance": "Wählen Sie einen Kontakt und eine Sorgfaltsstufe.",
+      "createFailed": "Erstellung fehlgeschlagen"
     },
     "roles": {
-      "buyer": "Buyer",
-      "seller": "Seller",
-      "tenant": "Tenant",
-      "landlord": "Landlord"
+      "buyer": "Käufer",
+      "seller": "Verkäufer",
+      "tenant": "Mieter",
+      "landlord": "Vermieter"
     },
     "start": {
-      "title": "How would you like to open this case?",
-      "subtitle": "Three ways to meet your AMLA obligation. The quickest is to link the case to a contact already in your CRM.",
+      "title": "Wie möchten Sie dieses Dossier eröffnen?",
+      "subtitle": "Drei Wege, um die GwG-Pflicht zu erfüllen. Am schnellsten geht es, wenn Sie das Dossier mit einem Kontakt verknüpfen, den Ihr CRM bereits kennt.",
       "existing": {
-        "title": "Link to an existing contact",
-        "sub": "The most common path: pick a buyer, seller or tenant already in the CRM."
+        "title": "Mit bestehendem Kontakt verknüpfen",
+        "sub": "Der häufigste Weg: Sie wählen einen Käufer, Verkäufer oder Mieter, der bereits im CRM erfasst ist."
       },
       "import": {
-        "title": "Import an external file (coming soon)",
-        "sub": "Import with automatic parsing (Persona PDF, ComplyAdvantage, partner-agency report) is coming in a future release. Use “Link to an existing contact” in the meantime."
+        "title": "Externes Dossier importieren (demnächst)",
+        "sub": "Import mit automatischer Auswertung (Persona-PDF, ComplyAdvantage, Bericht einer Partneragentur) folgt in einer kommenden Version. Verwenden Sie bis dahin «Mit bestehendem Kontakt verknüpfen»."
       },
       "magic": {
-        "title": "Request the documents",
-        "sub": "A magic link is sent to the contact so they can securely upload their documents themselves."
+        "title": "Dokumente anfordern",
+        "sub": "Der Kontakt erhält einen Magic Link und lädt seine Belege sicher selbst hoch."
       }
     },
     "contact": {
-      "title": "For which contact?",
-      "subtitle": "Contacts who already have an open KYC case appear greyed out, you can reopen them from the main list.",
-      "searchPlaceholder": "Search for a contact or email…",
-      "empty": "No contact matches this search.",
-      "existingDossier": "Existing case",
+      "title": "Für welchen Kontakt?",
+      "subtitle": "Kontakte mit einem bereits laufenden KYC-Dossier erscheinen ausgegraut, Sie können sie über die Hauptliste wieder öffnen.",
+      "searchPlaceholder": "Kontakt oder E-Mail suchen…",
+      "empty": "Kein Kontakt entspricht dieser Suche.",
+      "existingDossier": "Bestehendes Dossier",
       "typeShort": {
-        "buyer": "Buy",
-        "seller": "Sell",
-        "tenant": "Ten",
-        "landlord": "Lan",
-        "mixed": "Mix"
+        "buyer": "Käuf",
+        "seller": "Verk",
+        "tenant": "Miet",
+        "landlord": "Verm",
+        "mixed": "Misch"
       }
     },
     "vigilance": {
-      "title": "Which level of due diligence?",
-      "subtitle": "Enhanced due diligence applies to transactions above CHF 100'000, PEP contacts and cross-border operations.",
-      "entityTypeLabel": "AMLA entity type",
-      "entityTypeAria": "Entity type",
-      "entityPp": "Natural person",
-      "entityPm": "Legal entity",
-      "pmHint": "Legal entities trigger the identification of beneficial owners (AMLA art. 4).",
+      "title": "Welche Sorgfaltsstufe?",
+      "subtitle": "Erhöhte Sorgfaltspflichten gelten für Transaktionen über CHF 100'000, für PEP-Kontakte und für grenzüberschreitende Geschäfte.",
+      "entityTypeLabel": "Personentyp (GwG)",
+      "entityTypeAria": "Personentyp",
+      "entityPp": "Natürliche Person",
+      "entityPm": "Juristische Person",
+      "pmHint": "Bei juristischen Personen ist die wirtschaftlich berechtigte Person festzustellen (GwG Art. 4).",
       "standard": {
-        "title": "Standard due diligence",
-        "sub": "Five standard checks · AMLA art. 3-4. Enough for most everyday residential transactions."
+        "title": "Standard-Sorgfaltspflichten",
+        "sub": "Fünf klassische Prüfungen · GwG Art. 3-4. Genügt für die meisten gängigen Wohnimmobilien-Transaktionen."
       },
       "renforced": {
-        "title": "Enhanced due diligence",
-        "sub": "In-depth checks on the source of funds, beneficial owners and economic background · AMLA art. 6."
+        "title": "Erhöhte Sorgfaltspflichten",
+        "sub": "Vertiefte Abklärungen zu Mittelherkunft, wirtschaftlich Berechtigten und wirtschaftlichem Hintergrund · GwG Art. 6."
       }
     },
     "gate": {
-      "recommended": "Recommended",
-      "selected": "Selected",
-      "choose": "Choose"
+      "recommended": "Empfohlen",
+      "selected": "Ausgewählt",
+      "choose": "Auswählen"
     },
     "magic": {
-      "recommended": "Recommended",
-      "eyebrow": "Magic link · KYC",
-      "title": "Request documents from {{firstName}}",
-      "close": "Close",
-      "modeLabel": "Collection mode",
+      "recommended": "Empfohlen",
+      "eyebrow": "Magic Link · KYC",
+      "title": "Dokumente von {{firstName}} anfordern",
+      "close": "Schliessen",
+      "modeLabel": "Erfassungsmodus",
       "modeLibre": {
-        "title": "Open",
-        "sub": "The client just uploads their documents. You review them yourself in the CRM.",
-        "duration": "3 min",
-        "steps": "2 screens"
+        "title": "Frei",
+        "sub": "Der Kunde lädt seine Dokumente hoch, mehr nicht. Sie prüfen sie selbst im CRM.",
+        "duration": "3 Min.",
+        "steps": "2 Schritte"
       },
       "modeVerifiee": {
-        "title": "Verified",
-        "sub": "The client confirms the data detected on their documents before sending.",
-        "duration": "5 min",
-        "steps": "3 screens"
+        "title": "Verifiziert",
+        "sub": "Der Kunde bestätigt die auf seinen Dokumenten erkannten Daten vor dem Senden.",
+        "duration": "5 Min.",
+        "steps": "3 Schritte"
       },
-      "channelLabel": "Send via",
-      "channelEmail": "Email",
+      "channelLabel": "Senden per",
+      "channelEmail": "E-Mail",
       "channelSms": "SMS",
-      "noEmail": "No email on file",
-      "noPhone": "No phone on file",
-      "messageLabel": "Custom message · optional",
-      "messagePlaceholder": "Hello {{firstName}},\nAs agreed, here is the link to complete your KYC file. See you soon.",
-      "expiryNote": "The link expires in <1>7 days</1>. The send is recorded in the AMLA art. 7 audit trail.",
-      "cancel": "Cancel",
-      "sending": "Sending…",
-      "sendLink": "Send the link to {{firstName}}",
+      "noEmail": "Keine E-Mail hinterlegt",
+      "noPhone": "Keine Telefonnummer hinterlegt",
+      "messageLabel": "Persönliche Nachricht · optional",
+      "messagePlaceholder": "Guten Tag {{firstName}},\nwie besprochen, hier der Link, um Ihr KYC-Dossier abzuschliessen. Bis bald.",
+      "expiryNote": "Der Link läuft in <1>7 Tagen</1> ab. Der Versand wird im Audit-Trail nach GwG Art. 7 protokolliert.",
+      "cancel": "Abbrechen",
+      "sending": "Wird gesendet…",
+      "sendLink": "Link an {{firstName}} senden",
       "success": {
-        "eyebrow": "Magic link created",
-        "title": "Link sent to {{firstName}}",
-        "body": "{{firstName}} will receive the link within seconds. You'll be notified as soon as they upload their documents, or if nothing arrives within 3 days.",
-        "urlLabel": "Secure URL · expires in 7 days",
-        "copy": "Copy",
-        "copied": "Copied",
-        "close": "Close"
+        "eyebrow": "Magic Link erstellt",
+        "title": "Link an {{firstName}} gesendet",
+        "body": "{{firstName}} erhält den Link in wenigen Sekunden. Sie werden benachrichtigt, sobald die Dokumente hochgeladen sind, oder wenn innert 3 Tagen nichts eintrifft.",
+        "urlLabel": "Gesicherte URL · läuft in 7 Tagen ab",
+        "copy": "Kopieren",
+        "copied": "Kopiert",
+        "close": "Schliessen"
       }
     },
     "legacy": {
       "steps": {
-        "context": "Context",
-        "identity": "Identity",
-        "funds": "Source of funds",
+        "context": "Kontext",
+        "identity": "Identität",
+        "funds": "Mittelherkunft",
         "screening": "Screening",
-        "validation": "Validation"
+        "validation": "Validierung"
       },
       "titles": {
-        "context": "Context, {{name}}",
-        "start": "Start a case",
-        "identity": "Identity, {{name}}",
-        "funds": "Source of funds, {{name}}",
-        "screening": "PEP & sanctions screening",
-        "validation": "Final case validation"
+        "context": "Kontext, {{name}}",
+        "start": "Dossier eröffnen",
+        "identity": "Identität, {{name}}",
+        "funds": "Mittelherkunft, {{name}}",
+        "screening": "PEP- und Sanktionsscreening",
+        "validation": "Abschliessende Validierung des Dossiers"
       },
       "kickers": {
-        "0": "Step 1 of 5 · AMLA art. 3, Relationship context",
-        "1": "Step 2 of 5 · AMLA art. 3, Identification of the contracting party",
-        "2": "Step 3 of 5 · AMLA art. 4, Source of funds",
-        "3": "Step 4 of 5 · AMLA art. 4, PEP & sanctions screening",
-        "4": "Step 5 of 5 · AMLA, Compliance validation"
+        "0": "Schritt 1 von 5 · GwG Art. 3, Kontext der Geschäftsbeziehung",
+        "1": "Schritt 2 von 5 · GwG Art. 3, Identifizierung der Vertragspartei",
+        "2": "Schritt 3 von 5 · GwG Art. 4, Mittelherkunft",
+        "3": "Schritt 4 von 5 · GwG Art. 4, PEP- und Sanktionsscreening",
+        "4": "Schritt 5 von 5 · GwG, Compliance-Validierung"
       },
       "subs": {
-        "0": "Select the relevant contact, their role in the transaction and an indicative amount if already known.",
-        "1": "Enter the data from the official document and confirm the visual check. Sanctions/PEP screening runs in the background via Dilisense.",
-        "2": "Document the source of funds (savings, sale, inheritance…) with an official supporting document.",
-        "3": "Review the PEP and sanctions matches retrieved from the 4 sources queried.",
-        "4": "Final review by the compliance officer before closing the case."
+        "0": "Wählen Sie den betreffenden Kontakt, seine Rolle in der Transaktion und, falls bereits bekannt, einen Richtbetrag.",
+        "1": "Erfassen Sie die Daten des amtlichen Dokuments und bestätigen Sie die Sichtprüfung. Das Sanktions- und PEP-Screening läuft im Hintergrund über Dilisense.",
+        "2": "Belegen Sie die Mittelherkunft (Ersparnisse, Verkauf, Erbschaft…) mit einem amtlichen Nachweis.",
+        "3": "Prüfen Sie die PEP- und Sanktionstreffer aus den 4 abgefragten Quellen.",
+        "4": "Abschliessende Validierung durch den Compliance-Verantwortlichen vor Abschluss des Dossiers."
       },
       "types": {
-        "buyer": "Buyer",
-        "seller": "Seller",
-        "pp": "Natural person",
-        "pm": "Legal entity"
+        "buyer": "Käufer",
+        "seller": "Verkäufer",
+        "pp": "Natürliche Person",
+        "pm": "Juristische Person"
       },
       "context": {
-        "contactSection": "Relevant contact",
-        "relationSection": "Relationship type",
-        "amountSection": "Transaction amount (optional)",
-        "searchPlaceholder": "Search for a contact by name or email…",
-        "contactsLoading": "Loading contacts…",
-        "contactsEmpty": "No contact found",
-        "changeContact": "Change contact"
+        "contactSection": "Betreffender Kontakt",
+        "relationSection": "Art der Geschäftsbeziehung",
+        "amountSection": "Transaktionsbetrag (optional)",
+        "searchPlaceholder": "Kontakt nach Name oder E-Mail suchen…",
+        "contactsLoading": "Kontakte werden geladen…",
+        "contactsEmpty": "Kein Kontakt gefunden",
+        "changeContact": "Kontakt wechseln"
       },
       "identity": {
-        "docSection": "Identity document",
-        "dropTitle": "Drag the passport or ID card",
-        "dropHint": "PDF/JPG · 10 MB max",
-        "browse": "Browse",
-        "manualSection": "Manual entry",
-        "visualSection": "Visual check",
-        "methodSection": "Verification method",
+        "docSection": "Ausweisdokument",
+        "dropTitle": "Reisepass oder Identitätskarte hierher ziehen",
+        "dropHint": "PDF/JPG · max. 10 MB",
+        "browse": "Durchsuchen",
+        "manualSection": "Manuelle Erfassung",
+        "visualSection": "Sichtprüfung",
+        "methodSection": "Verifizierungsmethode",
         "fields": {
-          "lastName": "Last name",
-          "firstName": "First name(s)",
-          "birthDate": "Date of birth",
-          "nationality": "Nationality(ies)",
-          "docType": "Document type",
-          "docNumber": "Document number",
-          "expiryDate": "Expiry date",
-          "issuingCountry": "Issuing country"
+          "lastName": "Nachname",
+          "firstName": "Vorname(n)",
+          "birthDate": "Geburtsdatum",
+          "nationality": "Nationalität(en)",
+          "docType": "Dokumenttyp",
+          "docNumber": "Dokumentnummer",
+          "expiryDate": "Ablaufdatum",
+          "issuingCountry": "Ausstellungsland"
         }
       },
       "checks": {
-        "official": "Official, unexpired document",
-        "photo": "Photo matches the person",
-        "number": "Document number legible",
-        "tamper": "No sign of tampering",
-        "consistent": "Entered data consistent with the document"
+        "official": "Amtliches Dokument, nicht abgelaufen",
+        "photo": "Foto stimmt mit der Person überein",
+        "number": "Dokumentnummer lesbar",
+        "tamper": "Keine Anzeichen von Manipulation",
+        "consistent": "Erfasste Daten stimmen mit dem Dokument überein"
       },
       "methods": {
         "person": {
-          "label": "In person",
-          "sub": "At the office"
+          "label": "Persönlich",
+          "sub": "Im Büro"
         },
         "video": {
-          "label": "Video call",
-          "sub": "Secure link"
+          "label": "Videokonferenz",
+          "sub": "Gesicherter Link"
         },
         "lawyer": {
-          "label": "Lawyer / notary attestation",
-          "sub": "Attach attestation"
+          "label": "Bestätigung Anwalt / Notar",
+          "sub": "Bestätigung anhängen"
         }
       },
       "ai": {
-        "consistency": "The entered data is <1>consistent</1> with the contact record. For this profile, an in-person check is usually enough.",
-        "screeningTitle": "Dilisense screening",
-        "screeningStatus": "In progress · 4 sources queried",
-        "screeningHint": "Started automatically on entry. Results at the Screening step.",
-        "tipTitle": "Compliance tip",
-        "tipBody": "Remember to scan the back too for a Swiss ID card, the document number is on the reverse."
+        "consistency": "Die erfassten Daten sind mit dem Kontaktdatensatz <1>konsistent</1>. Für dieses Profil genügt in der Regel eine persönliche Prüfung.",
+        "screeningTitle": "Dilisense-Screening",
+        "screeningStatus": "Läuft · 4 Quellen abgefragt",
+        "screeningHint": "Startet automatisch bei der Erfassung. Ergebnisse im Schritt Screening.",
+        "tipTitle": "Compliance-Tipp",
+        "tipBody": "Bei einer Schweizer Identitätskarte auch die Rückseite scannen, die Dokumentnummer steht dort."
       },
       "nav": {
-        "back": "Back",
-        "saveDraft": "Save draft",
-        "creating": "Creating…",
-        "finish": "Finish",
-        "next": "Next step"
+        "back": "Zurück",
+        "saveDraft": "Entwurf speichern",
+        "creating": "Wird erstellt…",
+        "finish": "Abschliessen",
+        "next": "Nächster Schritt"
       },
       "placeholder": {
-        "title": "Step to complete",
-        "body": "The content of this step will be added in a future iteration of the wizard."
+        "title": "Schritt in Vorbereitung",
+        "body": "Der Inhalt dieses Schritts wird in einer kommenden Version des Assistenten ergänzt."
       },
       "errors": {
-        "selectContactType": "Select a contact and a relationship type to continue.",
-        "selectContactTypeShort": "Select a contact and a relationship type.",
-        "noAgency": "Agency profile not found, the case can't be created.",
-        "createFailed": "Error while creating the case."
+        "selectContactType": "Wählen Sie einen Kontakt und die Art der Geschäftsbeziehung, um fortzufahren.",
+        "selectContactTypeShort": "Wählen Sie einen Kontakt und die Art der Geschäftsbeziehung.",
+        "noAgency": "Agenturprofil nicht gefunden, das Dossier kann nicht erstellt werden.",
+        "createFailed": "Fehler bei der Erstellung des Dossiers."
       }
     },
     "success": {
-      "eyebrow": "File opened",
-      "fallbackTitle": "KYC file",
-      "description": "Five checks are pending. Start by uploading the identity documents or send the document request to the contact.",
-      "close": "Close",
-      "open": "Open the file"
+      "eyebrow": "Dossier eröffnet",
+      "fallbackTitle": "KYC-Dossier",
+      "description": "Fünf Prüfungen stehen aus. Laden Sie zuerst die Ausweisdokumente hoch oder senden Sie dem Kontakt die Dokumentenanfrage.",
+      "close": "Schliessen",
+      "open": "Dossier öffnen"
     }
   },
   "dossier": {
