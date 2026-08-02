@@ -270,6 +270,12 @@ changement d'extension ne regarde que la racine, [lignes 742-750](../src/hooks/u
 > **La pièce d'identité n'a aucun chemin de suppression. On la rend purgeable maintenant, ou
 > on assume explicitement ?**
 
+> ➡ **Trois mécanismes concrets sont désormais posés pour y répondre :**
+> [agency-kyb-purge-piece-identite.md](agency-kyb-purge-piece-identite.md). Ils ne diffèrent
+> que sur l'événement qui démarre le délai, et la note y ajoute deux décisions transverses —
+> dont celle-ci, qui n'avait pas été vue : le dirigeant peut **déjà** effacer sa propre pièce,
+> sans qu'aucune trace n'en subsiste.
+
 C'est la dette déjà écrite, avec son échéance déjà passée (« avant qu'une vraie pièce
 d'identité soit déposée »). Un scrub posé sur un fichier éternel corrige le passager et laisse
 le véhicule. Voir l'avertissement du §2.3 : **indexer** et **protéger** doivent être décidés
