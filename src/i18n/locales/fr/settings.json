@@ -783,67 +783,6 @@
       "lbaNote": "Vos événements personnels s’affichent en « Occupé », aucun détail client ne quitte MEGGA. Conforme LBA."
     }
   },
-  "apps": {
-    "filters": {
-      "all": "Tous",
-      "connected": "Connectés",
-      "calendar": "Calendrier",
-      "crm": "CRM",
-      "tools": "Outils",
-      "storage": "Stockage"
-    },
-    "status": {
-      "connected": "Connecté",
-      "notConnected": "Non connecté",
-      "comingSoon": "Bientôt",
-      "connect": "Connecter"
-    },
-    "empty": "Aucune application dans cette catégorie.",
-    "google-calendar": {
-      "name": "Google Calendar",
-      "desc": "Synchronisation des visites et rendez-vous"
-    },
-    "outlook-calendar": {
-      "name": "Outlook Calendar",
-      "desc": "Synchronisation des visites et rendez-vous"
-    },
-    "hubspot": {
-      "name": "HubSpot",
-      "desc": "Import de vos contacts, entreprises et deals"
-    },
-    "pipedrive": {
-      "name": "Pipedrive",
-      "desc": "Import de vos personnes, organisations et deals"
-    },
-    "csv-import": {
-      "name": "Import / Export",
-      "desc": "Importez vos données depuis un fichier CSV ou Excel"
-    },
-    "posthog": {
-      "name": "PostHog",
-      "desc": "Analytics d'usage et adoption par votre équipe"
-    },
-    "google-drive": {
-      "name": "Google Drive",
-      "desc": "Synchronisation documents KYC et mandats"
-    },
-    "onedrive": {
-      "name": "OneDrive",
-      "desc": "Synchronisation documents KYC et mandats"
-    },
-    "googleCalendar": {
-      "lastSync": "Dernière synchro : {{date}}",
-      "syncNow": "Sync",
-      "disconnect": "Délier",
-      "disconnectConfirm": "Voulez-vous déconnecter Google Calendar ?"
-    },
-    "outlookCalendar": {
-      "lastSync": "Dernière synchro : {{date}}",
-      "syncNow": "Sync",
-      "disconnect": "Délier",
-      "disconnectConfirm": "Voulez-vous déconnecter Outlook Calendar ?"
-    }
-  },
   "nav": {
     "sections": {
       "profile": {
@@ -1055,68 +994,6 @@
     "whatsIncluded": "Ce qui est inclus",
     "perPersonMonth": "/ personne / mois",
     "perYourNeeds": "selon vos besoins"
-  },
-  "privacy": {
-    "sending": "Envoi…",
-    "deleteError": "Échec suppression : {{message}}",
-    "deleteRefused": "Suppression refusée",
-    "deleteSuccess": "Compte supprimé. À bientôt.",
-    "unknownError": "Erreur inconnue",
-    "notIdentified": "(non identifié)",
-    "export": {
-      "mailSubject": "Demande d'export de mes données (RGPD art. 15)",
-      "mailBody": "Bonjour,\n\nConformément à l'article 15 du RGPD, je demande une copie de toutes mes données personnelles traitées par MEGGA.\n\nMon compte : {{account}}\n\nMerci."
-    },
-    "rectification": {
-      "mailSubject": "Demande de rectification de mes données (RGPD art. 16)",
-      "mailBody": "Bonjour,\n\nConformément à l'article 16 du RGPD, je demande la rectification des données suivantes :\n\n[Décrivez ici les données à corriger]\n\nMon compte : {{account}}\n\nMerci."
-    },
-    "header": {
-      "kicker": "Confidentialité & RGPD",
-      "title": "Vos données, vos règles",
-      "sub": "MEGGA est conforme au RGPD européen et à la nLPD suisse. Exercez vos droits à tout moment, sans frais."
-    },
-    "banner": {
-      "title": "Compte conforme · RGPD · nLPD suisse",
-      "desc": "Données hébergées en Europe (eu-west-1) · Chiffrement AES-256 au repos et TLS 1.3 en transit",
-      "policyCta": "Politique"
-    },
-    "rights": {
-      "title": "Mes droits",
-      "sub": "Articles 15 à 21 du règlement européen, exerçables à tout moment, sans frais."
-    },
-    "cards": {
-      "export": {
-        "title": "Exporter mes données",
-        "desc": "Demande d'export ZIP (JSON + PDF). Délai légal : 30 jours.",
-        "cta": "Envoyer la demande"
-      },
-      "policy": {
-        "title": "Politique de confidentialité",
-        "desc": "Détail des traitements, sous-traitants et durées de conservation.",
-        "cta": "Lire la politique"
-      },
-      "rectification": {
-        "title": "Demander une rectification",
-        "desc": "Corriger ou compléter une information personnelle inexacte.",
-        "cta": "Envoyer la demande"
-      },
-      "delete": {
-        "title": "Supprimer mon compte",
-        "desc": "Effacement définitif. Conservation légale de 10 ans pour pièces comptables (LBA art. 7 al. 3).",
-        "cta": "Supprimer mon compte"
-      }
-    },
-    "legalNote": {
-      "before": "Les pièces comptables et mandats signés sont conservés",
-      "duration": "10 ans",
-      "after": "indépendamment de votre choix, obligation légale CO art. 958f et LBA art. 7 al. 3."
-    },
-    "deleteModal": {
-      "title": "Supprimer définitivement votre compte ?",
-      "desc": "Vos contacts et profil seront anonymisés, vos documents non-KYC supprimés. Les dossiers KYC en cours doivent être finalisés avant. Cette action est irréversible.",
-      "confirm": "Supprimer définitivement"
-    }
   },
   "banner": {
     "eyebrow": "Paramètres",

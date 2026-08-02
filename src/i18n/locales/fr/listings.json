@@ -34,10 +34,6 @@
   "no_photo": "Pas de photo",
   "empty_no_properties": "Vous n'avez pas encore ajouté de bien",
   "empty_no_results": "Aucun bien trouvé",
-  "delete_dialog": {
-    "title": "Supprimer ce bien ?",
-    "message": "Cette action est irréversible. Le bien et son annonce seront supprimés définitivement."
-  },
   "deleting": "Suppression...",
   "delete_button": "Supprimer",
   "cancel": "Annuler",

@@ -783,67 +783,6 @@
       "lbaNote": "Your personal events show as “Busy”, no client detail leaves MEGGA. AMLA-compliant."
     }
   },
-  "apps": {
-    "filters": {
-      "all": "All",
-      "connected": "Connected",
-      "calendar": "Calendar",
-      "crm": "CRM",
-      "tools": "Tools",
-      "storage": "Storage"
-    },
-    "status": {
-      "connected": "Connected",
-      "notConnected": "Not connected",
-      "comingSoon": "Soon",
-      "connect": "Connect"
-    },
-    "empty": "No applications in this category.",
-    "google-calendar": {
-      "name": "Google Calendar",
-      "desc": "Visit and appointment sync"
-    },
-    "outlook-calendar": {
-      "name": "Outlook Calendar",
-      "desc": "Visit and appointment sync"
-    },
-    "hubspot": {
-      "name": "HubSpot",
-      "desc": "Import contacts, companies and deals"
-    },
-    "pipedrive": {
-      "name": "Pipedrive",
-      "desc": "Import persons, organizations and deals"
-    },
-    "csv-import": {
-      "name": "Import / Export",
-      "desc": "Import data from CSV or Excel files"
-    },
-    "posthog": {
-      "name": "PostHog",
-      "desc": "Usage analytics and team adoption"
-    },
-    "google-drive": {
-      "name": "Google Drive",
-      "desc": "KYC documents and mandates sync"
-    },
-    "onedrive": {
-      "name": "OneDrive",
-      "desc": "KYC documents and mandates sync"
-    },
-    "googleCalendar": {
-      "lastSync": "Last sync: {{date}}",
-      "syncNow": "Sync",
-      "disconnect": "Unlink",
-      "disconnectConfirm": "Disconnect Google Calendar?"
-    },
-    "outlookCalendar": {
-      "lastSync": "Last sync: {{date}}",
-      "syncNow": "Sync",
-      "disconnect": "Unlink",
-      "disconnectConfirm": "Disconnect Outlook Calendar?"
-    }
-  },
   "nav": {
     "sections": {
       "profile": {
@@ -1055,68 +994,6 @@
     "whatsIncluded": "What's included",
     "perPersonMonth": "/ person / month",
     "perYourNeeds": "based on your needs"
-  },
-  "privacy": {
-    "sending": "Sending…",
-    "deleteError": "Deletion failed: {{message}}",
-    "deleteRefused": "Deletion refused",
-    "deleteSuccess": "Account deleted. See you soon.",
-    "unknownError": "Unknown error",
-    "notIdentified": "(not identified)",
-    "export": {
-      "mailSubject": "Request to export my data (GDPR art. 15)",
-      "mailBody": "Hello,\n\nIn accordance with article 15 of the GDPR, I request a copy of all my personal data processed by MEGGA.\n\nMy account: {{account}}\n\nThank you."
-    },
-    "rectification": {
-      "mailSubject": "Request to rectify my data (GDPR art. 16)",
-      "mailBody": "Hello,\n\nIn accordance with article 16 of the GDPR, I request the rectification of the following data:\n\n[Describe here the data to correct]\n\nMy account: {{account}}\n\nThank you."
-    },
-    "header": {
-      "kicker": "Privacy & GDPR",
-      "title": "Your data, your rules",
-      "sub": "MEGGA complies with the European GDPR and the Swiss FADP. Exercise your rights at any time, free of charge."
-    },
-    "banner": {
-      "title": "Compliant account · GDPR · Swiss FADP",
-      "desc": "Data hosted in Europe (eu-west-1) · AES-256 encryption at rest and TLS 1.3 in transit",
-      "policyCta": "Policy"
-    },
-    "rights": {
-      "title": "My rights",
-      "sub": "Articles 15 to 21 of the European regulation, exercisable at any time, free of charge."
-    },
-    "cards": {
-      "export": {
-        "title": "Export my data",
-        "desc": "Request a ZIP export (JSON + PDF). Legal deadline: 30 days.",
-        "cta": "Send request"
-      },
-      "policy": {
-        "title": "Privacy policy",
-        "desc": "Details of processing, subprocessors and retention periods.",
-        "cta": "Read the policy"
-      },
-      "rectification": {
-        "title": "Request a rectification",
-        "desc": "Correct or complete inaccurate personal information.",
-        "cta": "Send request"
-      },
-      "delete": {
-        "title": "Delete my account",
-        "desc": "Permanent erasure. Legal retention of 10 years for accounting records (AMLA art. 7 para. 3).",
-        "cta": "Delete my account"
-      }
-    },
-    "legalNote": {
-      "before": "Accounting records and signed mandates are retained",
-      "duration": "10 years",
-      "after": "regardless of your choice, legal obligation CO art. 958f and AMLA art. 7 para. 3."
-    },
-    "deleteModal": {
-      "title": "Permanently delete your account?",
-      "desc": "Your contacts and profile will be anonymised, your non-KYC documents deleted. Ongoing KYC files must be finalised first. This action is irreversible.",
-      "confirm": "Delete permanently"
-    }
   },
   "banner": {
     "eyebrow": "Settings",

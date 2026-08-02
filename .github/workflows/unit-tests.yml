@@ -59,6 +59,15 @@ jobs:
         # Garde-fou i18n : échoue si une clé FR n'a pas sa contrepartie EN (ou inverse).
         run: npm run i18n:parity:ci
 
+      - name: i18n translation coverage (DE/IT — cliquet)
+        # La parité ci-dessus ne voit que la PRÉSENCE des clés : une clé recopiée
+        # mot pour mot depuis l'anglais la satisfait. C'est ainsi que 59 % du DE
+        # est resté anglais sans qu'aucun signal ne le dise (constat du 02.08.2026).
+        # Cliquet, pas seuil : vert à l'état courant, rouge seulement si un commit
+        # AJOUTE de l'anglais non traduit. Traduire fait baisser le compteur ;
+        # `npm run i18n:coverage:update` verrouille le gain après un lot.
+        run: npm run i18n:coverage:ci
+
       - name: Dead exports (ts-prune)
         # Garde-fou code mort : échoue si un export n'est importé nulle part.
         # Baseline nettoyée (PR #848). Allowlist des gardes intentionnels dans le script.

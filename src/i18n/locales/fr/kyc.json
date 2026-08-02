@@ -45,19 +45,6 @@
     "validated": "Validé",
     "rejected": "Rejeté"
   },
-  "create_modal": {
-    "title": "Nouveau dossier KYC",
-    "select_contact": "Sélectionner un contact",
-    "type_label": "Type de dossier *",
-    "transaction_label": "Transaction liée (optionnel)",
-    "no_transaction": "Aucune transaction",
-    "nationality_label": "Nationalité du contact",
-    "nationality_hint": "Code pays ISO 2 lettres (CH, FR, DE...)",
-    "amount_label": "Montant de la transaction (CHF)",
-    "error": "Erreur lors de la création du dossier",
-    "creating": "Création...",
-    "submit": "Créer le dossier"
-  },
   "client": {
     "landing": {
       "lock_label": "Lien chiffré · expire le {{date}}",
@@ -151,16 +138,12 @@
     "risk": "Risque",
     "validation": "Validation"
   },
-  "riskScore": {
-    "low": "Faible",
-    "moderate": "Modéré",
-    "high": "Élevé"
-  },
   "wizard": {
     "steps": {
       "start": "Démarrer",
       "contact": "Contact",
-      "vigilance": "Vigilance"
+      "vigilance": "Vigilance",
+      "report": "Rapport"
     },
     "header": {
       "eyebrow": "Conformité LBA",
@@ -536,31 +519,6 @@
     "staleCount_one": "{{count}} dossier à re-screener (échéance dépassée).",
     "staleCount_other": "{{count}} dossiers à re-screener (échéance dépassée)."
   },
-  "nonBlocking": {
-    "complete": "Compléter",
-    "dismiss": "Ignorer",
-    "dealBadgeHint_one": "{{count}} pièce manquante, non bloquant",
-    "dealBadgeHint_other": "{{count}} pièces manquantes, non bloquant",
-    "availableActions": "Actions disponibles",
-    "completeBeforeSignature": "Compléter le KYC avant la signature",
-    "debtIntro": "Aucune action n'est jamais bloquée. Le responsable conformité voit ici la dette accumulée et relance.",
-    "daysShort_one": "{{count}}j",
-    "daysShort_other": "{{count}}j",
-    "followUp": "Relancer",
-    "showcase": {
-      "contactBanner": "Fiche contact, banner doux (n'empêche aucune action)",
-      "dealBadge": "Carte deal, badge persistant",
-      "debtTable": "Tableau de dette, vu par le responsable"
-    }
-  },
-  "contactBento": {
-    "heading": "Conformité KYC / LBA",
-    "kpiRisk": "Risque",
-    "kpiDocs": "Pièces",
-    "kpiLastScreening": "Dernier screening",
-    "openDossier": "Ouvrir le dossier",
-    "followUpClient": "Relancer le client"
-  },
   "upload": {
     "title": "Ajouter une pièce",
     "subtitle": "PDF, JPG, PNG · 10 Mo max · Stockage chiffré",
@@ -816,13 +774,6 @@
     "medium": "Risque modéré",
     "high": "Risque élevé",
     "unassessed": "Non évalué"
-  },
-  "dealBadge": {
-    "verified": "KYC vérifié",
-    "pending": "KYC en cours",
-    "none": "KYC à faire",
-    "stale": "KYC périmé",
-    "failed": "KYC échec"
   },
   "mobile": {
     "back": "Plus",

@@ -45,19 +45,6 @@
     "validated": "Validated",
     "rejected": "Rejected"
   },
-  "create_modal": {
-    "title": "New KYC case",
-    "select_contact": "Select a contact",
-    "type_label": "Case type *",
-    "transaction_label": "Linked transaction (optional)",
-    "no_transaction": "No transaction",
-    "nationality_label": "Contact nationality",
-    "nationality_hint": "ISO 2-letter country code (CH, FR, DE...)",
-    "amount_label": "Transaction amount (CHF)",
-    "error": "Error creating case",
-    "creating": "Creating...",
-    "submit": "Create case"
-  },
   "client": {
     "landing": {
       "lock_label": "Encrypted link · expires on {{date}}",
@@ -151,16 +138,12 @@
     "risk": "Risk",
     "validation": "Validation"
   },
-  "riskScore": {
-    "low": "Low",
-    "moderate": "Moderate",
-    "high": "High"
-  },
   "wizard": {
     "steps": {
       "start": "Start",
       "contact": "Contact",
-      "vigilance": "Due diligence"
+      "vigilance": "Due diligence",
+      "report": "Report"
     },
     "header": {
       "eyebrow": "AMLA compliance",
@@ -536,31 +519,6 @@
     "staleCount_one": "{{count}} case to re-screen (review date passed).",
     "staleCount_other": "{{count}} cases to re-screen (review date passed)."
   },
-  "nonBlocking": {
-    "complete": "Complete",
-    "dismiss": "Dismiss",
-    "dealBadgeHint_one": "{{count}} document outstanding, non-blocking",
-    "dealBadgeHint_other": "{{count}} documents outstanding, non-blocking",
-    "availableActions": "Available actions",
-    "completeBeforeSignature": "Complete KYC before signing",
-    "debtIntro": "No action is ever blocked. The compliance lead sees the outstanding items here and follows up.",
-    "daysShort_one": "{{count}}d",
-    "daysShort_other": "{{count}}d",
-    "followUp": "Follow up",
-    "showcase": {
-      "contactBanner": "Contact card, gentle banner (blocks no action)",
-      "dealBadge": "Deal card, persistent badge",
-      "debtTable": "Outstanding-items table, compliance lead view"
-    }
-  },
-  "contactBento": {
-    "heading": "KYC / AML compliance",
-    "kpiRisk": "Risk",
-    "kpiDocs": "Documents",
-    "kpiLastScreening": "Last screening",
-    "openDossier": "Open case",
-    "followUpClient": "Follow up with client"
-  },
   "upload": {
     "title": "Add a document",
     "subtitle": "PDF, JPG, PNG · 10 MB max · Encrypted storage",
@@ -816,13 +774,6 @@
     "medium": "Moderate risk",
     "high": "High risk",
     "unassessed": "Unassessed"
-  },
-  "dealBadge": {
-    "verified": "KYC verified",
-    "pending": "KYC in progress",
-    "none": "KYC to do",
-    "stale": "KYC expired",
-    "failed": "KYC failed"
   },
   "mobile": {
     "back": "More",

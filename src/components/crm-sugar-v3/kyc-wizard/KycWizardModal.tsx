@@ -192,9 +192,12 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
       WIZARD_STEPS.map((s, i) => ({
         id: s.id,
         // Voie import : la 3e étape s'intitule « Rapport » (au lieu de Vigilance).
+        // Le repli `defaultValue` a été retiré avec l'ajout de la clé dans les
+        // quatre langues : il servait de béquille à une clé absente, et faisait
+        // donc lire « Rapport » en français à un agent alémanique ou tessinois.
         label:
           i === 2 && data.source === 'import'
-            ? t('wizard.steps.report', { defaultValue: 'Rapport' })
+            ? t('wizard.steps.report')
             : t(s.labelKey),
       })),
     [t, data.source],

@@ -16,7 +16,7 @@
     "price": "Prezzo",
     "stage": "Fase",
     "activity": "Attività",
-    "value": "Value"
+    "value": "Valore"
   },
   "drop_target": "Rilasciare qui",
   "empty_title": "Crei il Suo primo deal per seguire le Sue transazioni",
@@ -50,56 +50,56 @@
     "other": "Altro motivo"
   },
   "stages": {
-    "new-lead": "New lead",
-    "to-qualify": "To qualify",
-    "searching": "Active search",
-    "visit-scheduled": "Viewing scheduled",
-    "visit-done": "Viewing done",
-    "interest-confirmed": "Interest confirmed",
-    "offer": "Offer submitted",
-    "signed": "Signed",
-    "lost": "Lost"
+    "new-lead": "Nuovo lead",
+    "to-qualify": "Da qualificare",
+    "searching": "Ricerca attiva",
+    "visit-scheduled": "Visita pianificata",
+    "visit-done": "Visita effettuata",
+    "interest-confirmed": "Interesse confermato",
+    "offer": "Offerta presentata",
+    "signed": "Firmato",
+    "lost": "Perso"
   },
   "board": {
-    "noPropertyYet": "Active search",
-    "dragDealHere": "Drag a deal here",
-    "dropToStage": "Drop here → {{stage}}",
-    "searchPlaceholder": "Search contact, property, note…",
-    "commandPaletteComingSoon": "Search, ⌘K (coming soon)",
+    "noPropertyYet": "Ricerca attiva",
+    "dragDealHere": "Trascina un deal qui",
+    "dropToStage": "Rilascia qui → {{stage}}",
+    "searchPlaceholder": "Cerca contatto, immobile, nota…",
+    "commandPaletteComingSoon": "Ricerca, ⌘K (in arrivo)",
     "list": {
       "dealContact": "Deal / Contact",
-      "nextAction": "Next action",
-      "status": "Status",
-      "noMatch": "No deal matches the active filters."
+      "nextAction": "Prossima azione",
+      "status": "Stato",
+      "noMatch": "Nessun deal corrisponde ai filtri attivi."
     },
     "risk": {
-      "all": "All",
-      "healthy": "Healthy",
-      "atRisk": "At risk",
-      "stalled": "Stalled"
+      "all": "Tutti",
+      "healthy": "Sano",
+      "atRisk": "A rischio",
+      "stalled": "Bloccato"
     },
     "filter": {
-      "apply": "Apply",
-      "reset": "Reset",
-      "riskHeader": "Risk",
-      "periodHeader": "Period",
-      "deselectAll": "Deselect all",
-      "lastDays_one": "Last {{count}} day",
-      "lastDays_other": "Last {{count}} days",
-      "allTime": "All",
+      "apply": "Applica",
+      "reset": "Reimposta",
+      "riskHeader": "Rischio",
+      "periodHeader": "Periodo",
+      "deselectAll": "Deseleziona tutto",
+      "lastDays_one": "Ultimo {{count}} giorno",
+      "lastDays_other": "Ultimi {{count}} giorni",
+      "allTime": "Tutti",
       "label": "Filtri",
       "none": "Nessuno",
       "resetAll": "Reimposta i filtri"
     },
     "card": {
-      "scheduleVisit": "Schedule a visit",
-      "moreOptions": "More options",
-      "reassign": "Reassign",
-      "archive": "Archive",
-      "markLost": "Mark as lost",
-      "reassignTo": "Reassign to",
-      "actionFailed": "Failed: {{message}}",
-      "unknownError": "unknown error",
+      "scheduleVisit": "Pianifica una visita",
+      "moreOptions": "Altre opzioni",
+      "reassign": "Riassegna",
+      "archive": "Archivia",
+      "markLost": "Segna come perso",
+      "reassignTo": "Riassegna a",
+      "actionFailed": "Operazione non riuscita: {{message}}",
+      "unknownError": "errore sconosciuto",
       "newDealInColumn": "Nuovo deal · {{stage}}",
       "planAction": "Pianifica un'azione",
       "overdue": "In ritardo",
@@ -111,8 +111,8 @@
       "visitAiPromptWithBien": "Pianifichi una visita per {{name}} per «{{bien}}». Proponga degli orari, rediga il messaggio d'invito e la aggiunga alla mia agenda."
     },
     "toast": {
-      "moveFailedTitle": "Could not move the deal",
-      "moveFailedDescription": "The stage change was not saved. Check your connection, then try again.",
+      "moveFailedTitle": "Impossibile spostare il deal",
+      "moveFailedDescription": "Il cambio di fase non è stato registrato. Verifichi la connessione, poi riprovi.",
       "archived": "Deal archiviato",
       "lost": "Deal segnato come perso",
       "reassigned": "Deal riassegnato a {{name}}",
@@ -161,94 +161,94 @@
   },
   "kyc": {
     "lock": {
-      "title": "Non-blocking reminder, open the KYC files",
-      "pending_one": "<strong>{{count}}</strong> KYC file to complete",
-      "pending_other": "<strong>{{count}}</strong> KYC files to complete",
-      "optional": "Optional"
+      "title": "Promemoria non bloccante, apri i dossier KYC",
+      "pending_one": "<strong>{{count}}</strong> dossier KYC da completare",
+      "pending_other": "<strong>{{count}}</strong> dossier KYC da completare",
+      "optional": "Opzionale"
     }
   },
   "transaction": {
-    "dialog_title": "New transaction",
-    "dialog_subtitle": "Create a deal in your pipeline.",
-    "optional": "(optional)",
-    "role": "Role",
-    "role_buyer": "Buyer",
-    "role_seller": "Seller",
-    "add_details": "+ Add details",
-    "mandate_type": "Mandate type",
+    "dialog_title": "Nuova transazione",
+    "dialog_subtitle": "Crei un deal nella sua pipeline.",
+    "optional": "(facoltativo)",
+    "role": "Ruolo",
+    "role_buyer": "Acquirente",
+    "role_seller": "Venditore",
+    "add_details": "+ Aggiungi dettagli",
+    "mandate_type": "Tipo di mandato",
     "mandate": {
-      "none": "None",
+      "none": "Nessuno",
       "simple": "Simple",
-      "exclusive": "Exclusive",
-      "semi_exclusive": "Semi-exclusive"
+      "exclusive": "Esclusivo",
+      "semi_exclusive": "Semi-esclusivo"
     },
     "notes": "Notes",
-    "notes_placeholder": "Context, important details..."
+    "notes_placeholder": "Contesto, dettagli importanti..."
   },
   "deal": {
-    "loading": "Loading deal…",
-    "load_error": "Failed to load deal: {{message}}",
-    "error_unknown": "unknown",
-    "not_found": "Deal not found.",
-    "buyer_fallback": "Buyer",
-    "schedule_visit": "Schedule a visit",
-    "counter_offer": "Counter-offer",
-    "new_offer": "New offer",
+    "loading": "Caricamento del deal…",
+    "load_error": "Errore durante il caricamento del deal: {{message}}",
+    "error_unknown": "sconosciuto",
+    "not_found": "Deal non trovato.",
+    "buyer_fallback": "Acquirente",
+    "schedule_visit": "Pianifica una visita",
+    "counter_offer": "Controfferta",
+    "new_offer": "Nuova offerta",
     "pipeline_stage": "Pipeline · {{stage}}",
-    "sentiment_healthy": "Healthy",
-    "deal_amount": "Deal amount",
-    "last_offer": "Latest offer: {{amount}}",
-    "kyc_banner_title": "KYC recommended before signing",
-    "kyc_banner_body": "A verified KYC for <strong>{{name}}</strong> is recommended before the <strong>{{stage}}</strong> stage, supporting AML compliance. It is not a blocker: you can proceed; final verification rests with the notary.",
-    "open_kyc_dossier": "Open KYC file",
-    "negotiation_rounds_one": "Negotiation · {{count}} round",
-    "negotiation_rounds_other": "Negotiation · {{count}} rounds",
-    "offers_title": "Offers & counter-offers",
-    "no_offer_title": "No offer submitted",
-    "no_offer_subtitle": "When the buyer is ready, you'll be able to record their formal offer here.",
-    "record_offer": "Record an offer",
+    "sentiment_healthy": "Sano",
+    "deal_amount": "Importo del deal",
+    "last_offer": "Ultima offerta: {{amount}}",
+    "kyc_banner_title": "KYC raccomandato prima della firma",
+    "kyc_banner_body": "Un KYC verificato per <strong>{{name}}</strong> è raccomandato prima della fase <strong>{{stage}}</strong>, a sostegno della conformità LRD. Non è un blocco: può proseguire, la verifica finale spetta al notaio.",
+    "open_kyc_dossier": "Apri il dossier KYC",
+    "negotiation_rounds_one": "Negoziazione · {{count}} round",
+    "negotiation_rounds_other": "Negoziazione · {{count}} round",
+    "offers_title": "Offerte e controfferte",
+    "no_offer_title": "Nessuna offerta presentata",
+    "no_offer_subtitle": "Quando l'acquirente sarà pronto, potrà inserire qui la sua offerta formale.",
+    "record_offer": "Inserisci un'offerta",
     "offer_confirm": {
-      "accepted": "Do you want to accept this offer?",
-      "rejected": "Do you want to reject this offer?",
-      "withdrawn": "Do you want to withdraw this offer?",
-      "expired": "Do you want to mark this offer as expired?"
+      "accepted": "Vuole accettare questa offerta?",
+      "rejected": "Vuole rifiutare questa offerta?",
+      "withdrawn": "Vuole ritirare questa offerta?",
+      "expired": "Vuole contrassegnare questa offerta come scaduta?"
     },
-    "offer_update_failed": "Failed: {{message}}",
-    "recent_activity": "Recent activity",
-    "timeline_title": "Deal timeline",
-    "timeline_counter_offer": "Counter-offer from {{by}}",
-    "timeline_offer": "Offer from {{by}}",
-    "timeline_created": "Deal created",
-    "buyer": "Buyer",
-    "view_full_profile": "View full profile",
-    "call": "Call",
+    "offer_update_failed": "Operazione non riuscita: {{message}}",
+    "recent_activity": "Attività recente",
+    "timeline_title": "Timeline del deal",
+    "timeline_counter_offer": "Controfferta di {{by}}",
+    "timeline_offer": "Offerta di {{by}}",
+    "timeline_created": "Deal creato",
+    "buyer": "Acquirente",
+    "view_full_profile": "Vedi la scheda completa",
+    "call": "Chiama",
     "email": "E-mail",
     "message": "Message",
-    "capacity": "Budget",
-    "purchase_probability": "{{value}}% purchase probability",
-    "surface_rooms": "{{surface}} m² · {{rooms}} rooms",
+    "capacity": "Capacità",
+    "purchase_probability": "{{value}}% probabilità d'acquisto",
+    "surface_rooms": "{{surface}} m² · {{rooms}} locali",
     "documents": "Documents",
-    "documents_subtitle": "For this deal",
-    "doc_formal_offer": "Formal offer, {{by}}",
-    "doc_counter_offer": "Counter-offer, {{by}}",
-    "doc_kyc_complete": "Buyer KYC, complete file",
-    "doc_sale_agreement": "Sale agreement",
-    "no_documents": "No document generated for this deal.",
-    "doc_status_signed": "Signed",
-    "doc_status_pending": "Pending",
-    "doc_status_missing": "To generate",
+    "documents_subtitle": "Del deal",
+    "doc_formal_offer": "Offerta formale, {{by}}",
+    "doc_counter_offer": "Controfferta, {{by}}",
+    "doc_kyc_complete": "KYC acquirente, dossier completo",
+    "doc_sale_agreement": "Compromesso di vendita",
+    "no_documents": "Nessun documento generato per questo deal.",
+    "doc_status_signed": "Firmato",
+    "doc_status_pending": "In attesa",
+    "doc_status_missing": "Da generare",
     "doc_pages_one": "{{count}} page",
     "doc_pages_other": "{{count}} pages",
-    "private_notes": "Private notes",
-    "notes_team": "{{brand}} team",
-    "notes_saving": "Saving…",
-    "notes_empty": "Private notes, visible only to the {{brand}} team.",
-    "never_visible_client": "Never visible to the client",
-    "asking_price": "Asking price",
-    "offer_received": "Offer received",
-    "last_update": "Last update",
-    "no_offer_recorded": "No offer recorded for this transaction.",
-    "view_contact": "View contact",
+    "private_notes": "Note private",
+    "notes_team": "Team {{brand}}",
+    "notes_saving": "Salvataggio…",
+    "notes_empty": "Note private, visibili solo al team {{brand}}.",
+    "never_visible_client": "Mai visibile al cliente",
+    "asking_price": "Prezzo richiesto",
+    "offer_received": "Offerta ricevuta",
+    "last_update": "Ultimo aggiornamento",
+    "no_offer_recorded": "Nessuna offerta registrata per questa transazione.",
+    "view_contact": "Vedi il contatto",
     "offer_status": {
       "pending": "In attesa",
       "accepted": "Accettata",
@@ -313,120 +313,120 @@
   },
   "offerModal": {
     "cta": {
-      "close": "Close",
-      "cancel": "Cancel",
-      "back": "Back",
-      "continue": "Continue",
-      "submit": "Save & send",
-      "submitting": "Sending…",
+      "close": "Chiudi",
+      "cancel": "Annulla",
+      "back": "Indietro",
+      "continue": "Continua",
+      "submit": "Salva e invia",
+      "submitting": "Invio…",
       "save": "Salva",
       "saving": "Salvataggio…"
     },
     "label": {
-      "buyerFallback": "Buyer"
+      "buyerFallback": "Acquirente"
     },
     "eyebrow": {
-      "counter": "Counter-offer · seller",
-      "offer": "New offer · buyer"
+      "counter": "Controfferta · venditore",
+      "offer": "Nuova offerta · acquirente"
     },
     "step": {
-      "amount": "Amount",
+      "amount": "Importo",
       "conditions": "Conditions",
-      "delay": "Deadline & send"
+      "delay": "Termine e invio"
     },
     "step0": {
-      "eyebrow": "Step 1 of 3 · Amount",
+      "eyebrow": "Fase 1 di 3 · Importo",
       "title": {
-        "counter": "What amount are you proposing in return?",
-        "offer": "What amount is the buyer offering?"
+        "counter": "Quale importo propone in cambio?",
+        "offer": "Quale importo propone l'acquirente?"
       },
       "subtitle": {
-        "counter": "You can adjust the amount, reposition the conditions and set a new deadline.",
-        "offer": "Enter the main amount, any deposit and the desired signing date."
+        "counter": "Può adeguare l'importo, riposizionare le condizioni e fissare un nuovo termine.",
+        "offer": "Inserisca l'importo principale, un eventuale acconto e la data di firma desiderata."
       }
     },
     "field": {
-      "offerFrom": "Offer from {{label}}",
-      "amount": "Proposed amount",
-      "askingPriceHint": "Asking price: {{price}}",
-      "deposit": "Deposit",
-      "depositHint": "On signing the preliminary agreement",
-      "closingDate": "Desired signing date",
-      "gap": "Gap",
-      "gapVsAsking": "vs asking price",
-      "expiryDate": "Expiry date",
-      "expiryTime": "Time"
+      "offerFrom": "Offerta di {{label}}",
+      "amount": "Importo proposto",
+      "askingPriceHint": "Prezzo richiesto: {{price}}",
+      "deposit": "Acconto",
+      "depositHint": "Alla firma del compromesso",
+      "closingDate": "Data di firma desiderata",
+      "gap": "Differenza",
+      "gapVsAsking": "vs prezzo richiesto",
+      "expiryDate": "Data di scadenza",
+      "expiryTime": "Ora"
     },
     "step1": {
-      "eyebrow": "Step 2 of 3 · Conditions precedent",
-      "title": "Under what conditions?",
-      "subtitle": "Enable only the conditions that apply. Each must be lifted before signing."
+      "eyebrow": "Fase 2 di 3 · Condizioni sospensive",
+      "title": "A quali condizioni?",
+      "subtitle": "Attivi solo le condizioni applicabili. Ognuna dovrà essere adempiuta prima della firma."
     },
     "condition": {
       "financing": {
-        "title": "Bank financing",
-        "sub": "The offer is conditional on obtaining a mortgage loan.",
-        "daysLabel": "Deadline (days)",
-        "noteLabel": "Details (bank, rate…)",
-        "notePlaceholder": "E.g. BCGE, 80%, 10-year fixed rate"
+        "title": "Finanziamento bancario",
+        "sub": "L'offerta è subordinata all'ottenimento di un mutuo ipotecario.",
+        "daysLabel": "Termine (giorni)",
+        "noteLabel": "Dettagli (banca, tasso…)",
+        "notePlaceholder": "Es. BCGE, 80%, tasso fisso 10 anni"
       },
       "sale": {
-        "title": "Sale of another property",
-        "sub": "The purchase depends on first selling an existing property."
+        "title": "Vendita di un altro immobile",
+        "sub": "L'acquisto dipende dalla previa vendita di un immobile esistente."
       },
       "diagnostic": {
-        "title": "Survey / Inspection",
-        "sub": "Independent survey (roof, structure, energy) at the buyer's expense.",
-        "noteLabel": "Scope of the survey",
-        "notePlaceholder": "E.g. Roof + facade"
+        "title": "Perizia / Diagnosi",
+        "sub": "Perizia indipendente (tetto, struttura, energia) a carico dell'acquirente.",
+        "noteLabel": "Ambito della perizia",
+        "notePlaceholder": "Es. Tetto + facciata"
       },
       "occupancy": {
-        "title": "Vacant possession",
-        "sub": "The property must be vacant by a specific date.",
-        "dateLabel": "Vacancy date"
+        "title": "Rilascio dell'alloggio",
+        "sub": "L'immobile deve essere libero da occupanti a una data precisa.",
+        "dateLabel": "Data di rilascio"
       },
       "other": {
-        "label": "Other: free text",
-        "hint": "Visible in the formal offer (PDF). Keep it factual.",
-        "placeholder": "E.g. Purchase in a personal capacity, cash payment of 35%."
+        "label": "Altro, testo libero",
+        "hint": "Visibile nell'offerta formale (PDF). Si attenga ai fatti.",
+        "placeholder": "Es. Acquisto a titolo personale, pagamento in contanti pari al 35%."
       },
-      "financingShort": "Financing · {{days}}d",
-      "diagnosticShort": "Survey",
+      "financingShort": "Finanziamento · {{days}}g",
+      "diagnosticShort": "Perizia",
       "noteTitle": "Nota"
     },
     "step2": {
-      "eyebrow": "Step 3 of 3 · Deadline & confirmation",
-      "title": "Offer validity",
-      "subtitle": "After this date, the offer will move to « expired » status."
+      "eyebrow": "Fase 3 di 3 · Termine e conferma",
+      "title": "Validità dell'offerta",
+      "subtitle": "Dopo questa data, l'offerta passerà automaticamente allo stato «Scaduta»."
     },
     "delay": {
       "h48": "48h",
-      "days_one": "{{count}} day",
-      "days_other": "{{count}} days"
+      "days_one": "{{count}} giorno",
+      "days_other": "{{count}} giorni"
     },
     "summary": {
-      "title": "Summary",
-      "counterLabel": "Seller counter-offer",
-      "offerLabel": "Buyer offer",
-      "deposit": "Deposit",
-      "closing": "Target signing",
-      "activeConditions": "Active conditions",
-      "expires": "Expires on",
-      "expiresValue": "{{date}} at {{time}}"
+      "title": "Riepilogo",
+      "counterLabel": "Controfferta venditore",
+      "offerLabel": "Offerta acquirente",
+      "deposit": "Acconto",
+      "closing": "Firma prevista",
+      "activeConditions": "Condizioni attive",
+      "expires": "Scade il",
+      "expiresValue": "{{date}} alle {{time}}"
     },
     "footer": {
-      "stepCount": "Step {{current}} / {{total}}"
+      "stepCount": "Fase {{current}} / {{total}}"
     },
-    "eyebrowOffer": "Offer · buyer",
-    "statusCurrent": "Current",
-    "depositSuffix": "+ {{amount}} deposit",
-    "expiresAt": "Expires {{date}}",
-    "attachments_one": "{{count}} attachment",
-    "attachments_other": "{{count}} attachments",
+    "eyebrowOffer": "Offerta · acquirente",
+    "statusCurrent": "In corso",
+    "depositSuffix": "+ {{amount}} di acconto",
+    "expiresAt": "Scade {{date}}",
+    "attachments_one": "{{count}} allegato",
+    "attachments_other": "{{count}} allegati",
     "action": {
-      "accept": "Accept",
-      "reject": "Decline",
-      "withdraw": "Withdraw"
+      "accept": "Accetta",
+      "reject": "Rifiuta",
+      "withdraw": "Ritira"
     },
     "header": {
       "fallback": "Inserisci un'offerta"
@@ -440,56 +440,56 @@
   },
   "journey": {
     "stages": {
-      "mandat": "Mandate received",
-      "market": "On the market",
-      "nego": "Negotiation",
+      "mandat": "Mandato ricevuto",
+      "market": "Messa sul mercato",
+      "nego": "Negoziazione",
       "closing": "Closing"
     },
     "urgency": {
-      "high": "High urgency",
-      "medium": "Medium",
-      "low": "Relaxed"
+      "high": "Urgenza alta",
+      "medium": "Media",
+      "low": "Tranquilla"
     },
     "task": {
-      "mandatSigned": "Mandate signed",
-      "kycSeller": "Seller KYC",
-      "commercialBrief": "Sales brief",
-      "photosVideo": "Photos & video",
-      "listingPublished": "Listing published",
-      "visitsScheduled": "Viewings scheduled",
-      "offersReceived": "Offers received",
-      "negotiation": "Negotiation",
-      "preliminaryAgreement": "Preliminary agreement",
-      "notarialDeed": "Notarial deed",
+      "mandatSigned": "Mandato firmato",
+      "kycSeller": "KYC venditore",
+      "commercialBrief": "Brief commerciale",
+      "photosVideo": "Foto e video",
+      "listingPublished": "Annuncio pubblicato",
+      "visitsScheduled": "Visite pianificate",
+      "offersReceived": "Offerte ricevute",
+      "negotiation": "Negoziazione",
+      "preliminaryAgreement": "Compromesso",
+      "notarialDeed": "Atto pubblico",
       "actions": {
-        "markDone": "Mark as done",
-        "reschedule": "Reschedule",
-        "more": "More"
+        "markDone": "Segna come eseguita",
+        "reschedule": "Ripianifica",
+        "more": "Altro"
       }
     },
-    "roomsAbbr": "rooms",
-    "dossierFallback": "File",
-    "title": "Team journey",
-    "subtitle": "Real-time tracking of every file · panoramic view",
-    "emptyState": "No file matches the selected filters.",
+    "roomsAbbr": "loc.",
+    "dossierFallback": "Dossier",
+    "title": "Percorso del team",
+    "subtitle": "Monitoraggio in tempo reale di ogni fascicolo · vista panoramica",
+    "emptyState": "Nessun fascicolo corrisponde ai filtri selezionati.",
     "filters": {
-      "stageLabel": "Stage",
-      "allStages": "All",
-      "urgencyLabel": "Urgency",
-      "allUrgencies": "All",
-      "activeCount_one": "{{count}} active file",
-      "activeCount_other": "{{count}} active files"
+      "stageLabel": "Fase",
+      "allStages": "Tutte",
+      "urgencyLabel": "Urgenza",
+      "allUrgencies": "Tutte",
+      "activeCount_one": "{{count}} dossier attivo",
+      "activeCount_other": "{{count}} dossier attivi"
     },
     "actions": {
-      "addMember": "Add a member",
-      "addTask": "Add a task",
-      "shareToNetwork": "Share to the network",
-      "schedule": "Schedule"
+      "addMember": "Aggiungi un membro",
+      "addTask": "Aggiungi un'attività",
+      "shareToNetwork": "Condividi nella rete",
+      "schedule": "Pianifica"
     },
     "avatar": {
       "title": "{{firstName}} {{lastName}}, {{role}}",
-      "tasksInProgress_one": "{{count}} task in progress",
-      "tasksInProgress_other": "{{count}} tasks in progress"
+      "tasksInProgress_one": "{{count}} attività in corso",
+      "tasksInProgress_other": "{{count}} attività in corso"
     }
   },
   "actions": {
@@ -520,7 +520,7 @@
     "kind": {
       "call": "Chiamata",
       "match": "Invio match",
-      "kyc": "Dossier KYC",
+      "kyc": "Fascicolo KYC",
       "visit": "Visita",
       "offer": "Offerta",
       "note": "Nota",

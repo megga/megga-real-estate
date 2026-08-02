@@ -33,220 +33,151 @@
       "to_recontact": "Da ricontattare"
     }
   },
-  "atRisk": {
-    "title": "Deal a rischio",
-    "empty": "Nessun deal a rischio",
-    "emptyDescription": "La tua pipeline è sana",
-    "unknownContact": "Contatto sconosciuto",
-    "daysSince": "Da {{count}} giorno senza attività",
-    "daysSince_plural": "Da {{count}} giorni senza attività",
-    "view": "Vedi →"
-  },
   "activity": {
     "title": "Attività recente",
     "viewAll": "Vedi tutto",
     "empty": "Nessuna attività recente"
   },
-  "actionBoard": {
-    "sections": {
-      "urgencies": "Urgenze",
-      "followUps": "Solleciti del giorno",
-      "matches": "Match trovati",
-      "visits": "Visite da confermare",
-      "suggestions": "Suggerimenti IA"
-    },
-    "empty": {
-      "urgencies": "Nessuna urgenza oggi",
-      "followUps": "Nessun sollecito previsto",
-      "matches": "Nessun nuovo match",
-      "visits": "Nessuna visita oggi",
-      "suggestions": "Nessun suggerimento al momento"
-    },
-    "summary": {
-      "urgency": "{{count}} urgenza",
-      "urgency_plural": "{{count}} urgenze",
-      "followUp": "{{count}} sollecito da fare",
-      "followUp_plural": "{{count}} solleciti da fare",
-      "visit": "{{count}} visita",
-      "visit_plural": "{{count}} visite",
-      "match": "{{count}} match",
-      "match_plural": "{{count}} match"
-    },
-    "days": {
-      "0": "Domenica",
-      "1": "Lunedì",
-      "2": "Martedì",
-      "3": "Mercoledì",
-      "4": "Giovedì",
-      "5": "Venerdì",
-      "6": "Sabato"
-    },
-    "months": {
-      "0": "gennaio",
-      "1": "febbraio",
-      "2": "marzo",
-      "3": "aprile",
-      "4": "maggio",
-      "5": "giugno",
-      "6": "luglio",
-      "7": "agosto",
-      "8": "settembre",
-      "9": "ottobre",
-      "10": "novembre",
-      "11": "dicembre"
-    },
-    "sellerLeads": "Nuovi lead venditori",
-    "accept": "Accetta",
-    "reject": "Rifiuta",
-    "accepted": "Accettato",
-    "motivation": "Motivazione",
-    "motivations": {
-      "immediate": "Immediata",
-      "3months": "3 mesi",
-      "6months": "6 mesi",
-      "exploring": "Esplorazione"
-    }
-  },
   "today": {
     "reasons": {
-      "reminderKycOverdue": "KYC {{days}}d overdue, verification to complete",
-      "reminderOverdue": "Follow-up {{days}}d overdue",
-      "reminderTodayAt": "Follow-up scheduled today ({{time}})",
-      "reminderToday": "Follow-up scheduled today",
-      "sellerLeadCity": "New seller lead, {{city}}",
-      "sellerLead": "New seller lead to claim",
-      "sellerLeadWaiting": " · waiting for {{days}}d",
-      "kycClosing": "Closing near, case KYC to finalize",
+      "reminderKycOverdue": "KYC in ritardo di {{days}} g, verifica da completare",
+      "reminderOverdue": "Follow-up in ritardo di {{days}} g",
+      "reminderTodayAt": "Follow-up previsto oggi ({{time}})",
+      "reminderToday": "Follow-up previsto oggi",
+      "sellerLeadCity": "Nuovo lead venditore, {{city}}",
+      "sellerLead": "Nuovo lead venditore da rivendicare",
+      "sellerLeadWaiting": " · in attesa da {{days}} g",
+      "kycClosing": "Closing vicino, KYC del fascicolo da finalizzare",
       "kycTail": {
-        "failed": " · case to fix",
-        "stale": " · case to re-verify",
-        "none": " · case not started",
-        "pending": " · case in progress"
+        "failed": " · fascicolo da correggere",
+        "stale": " · fascicolo da riverificare",
+        "none": " · fascicolo non avviato",
+        "pending": " · fascicolo in corso"
       },
-      "coolingDated": "Cooling lead, no contact for {{days}}d",
-      "coolingNever": "Lead never contacted since creation",
-      "coolingHot": " · hot lead, don't lose it",
-      "coolingCold": " · cold lead",
-      "offerNoDate": "Pending offer, deadline to verify",
-      "offerOverdue": "Pending offer, deadline passed, to close",
-      "offerToday": "Pending offer, expires today",
-      "offerInDays": "Pending offer, expires in {{days}}d",
-      "visitToday": "Visit scheduled today, to prepare",
-      "visitNoShow": "Missed visit, to follow up",
-      "visitDebriefDone": "Past visit, debrief to enter",
-      "visitDebriefClose": "Past visit, to close",
-      "visitFollow": "Visit to follow",
-      "propertyHot": "Property to push, well positioned",
-      "propertyDormant": "Dormant property, to revive or archive",
-      "propertyActivate": "Property to activate",
-      "propertyIncomplete": " · listing to complete",
-      "propertyBuyers": " · cross-matched buyers, to highlight",
-      "propertyNoDeal": " · not yet linked to a deal",
-      "propertyLimited": " · estimate (limited data)",
-      "matchStrong": "Strong match ({{score}})",
-      "matchToConfirm": "Match to confirm ({{score}})",
+      "coolingDated": "Lead che si raffredda, nessun contatto da {{days}} g",
+      "coolingNever": "Lead mai ricontattato dalla creazione",
+      "coolingHot": " · lead caldo da non perdere",
+      "coolingCold": " · lead freddo",
+      "offerNoDate": "Offerta in sospeso, scadenza da verificare",
+      "offerOverdue": "Offerta in sospeso, termine scaduto, da chiudere",
+      "offerToday": "Offerta in sospeso, scade oggi",
+      "offerInDays": "Offerta in sospeso, scade tra {{days}} g",
+      "visitToday": "Visita prevista oggi, da preparare",
+      "visitNoShow": "Visita non effettuata, da ricontattare",
+      "visitDebriefDone": "Visita passata, debriefing da inserire",
+      "visitDebriefClose": "Visita passata, da chiudere",
+      "visitFollow": "Visita da seguire",
+      "propertyHot": "Immobile da spingere, ben posizionato",
+      "propertyDormant": "Immobile in pausa, da rilanciare o archiviare",
+      "propertyActivate": "Immobile da rilanciare",
+      "propertyIncomplete": " · scheda da completare",
+      "propertyBuyers": " · acquirenti incrociati, da mettere in evidenza",
+      "propertyNoDeal": " · non ancora collegato a un deal",
+      "propertyLimited": " · stima (dati limitati)",
+      "matchStrong": "Match forte ({{score}})",
+      "matchToConfirm": "Match da confermare ({{score}})",
       "matchCriteria": " - {{criteria}}",
-      "matchInternal": " · own mandate",
-      "dealStalled": "Stalled deal, to unblock",
-      "dealOffer": "Offer to follow, closing near",
-      "dealAtRisk": "Deal under pressure, to follow up",
-      "dealAdvance": "Stage to move forward",
-      "kycExpired": " · KYC expired",
-      "kycDueToday": " · KYC due today",
-      "kycDueInDays": " · KYC due in {{days}}d",
+      "matchInternal": " · mandato proprio",
+      "dealStalled": "Deal in stallo, da sbloccare",
+      "dealOffer": "Offerta da seguire, closing vicino",
+      "dealAtRisk": "Deal sotto pressione, da ricontattare",
+      "dealAdvance": "Fase da far avanzare",
+      "kycExpired": " · KYC scaduto",
+      "kycDueToday": " · KYC in scadenza oggi",
+      "kycDueInDays": " · KYC in scadenza tra {{days}} g",
       "criteria": {
         "budget": "budget",
-        "zone": "area",
-        "rooms": "rooms",
-        "type": "property type",
-        "features": "criteria"
+        "zone": "zona",
+        "rooms": "locali",
+        "type": "tipo di immobile",
+        "features": "criteri"
       }
     },
     "queue": {
       "contact": "Contact",
-      "kycSub": "KYC case to finalize before closing.",
-      "kycSubTitled": "{{title}}, KYC case to finalize before closing.",
-      "dealSub": "Deal to move forward.",
-      "dealSubTitled": "{{title}}, to move forward.",
-      "reminderKycSub": "Identity verification to complete.",
-      "reminderSub": "To follow up.",
-      "matchSub": "Property proposed, to present.",
-      "estimationValue": "estimate {{value}}",
-      "sellerSub": "New seller mandate to qualify.",
-      "offerContact": "Offer",
-      "offerSub": "Offer {{amount}} pending, response to follow.",
-      "visitSub": "Visit to follow.",
-      "untitledProperty": "Untitled property",
-      "propertySub": "Internal property to work on."
+      "kycSub": "Fascicolo KYC da finalizzare prima della chiusura.",
+      "kycSubTitled": "{{title}}, fascicolo KYC da finalizzare prima della chiusura.",
+      "dealSub": "Deal da far avanzare.",
+      "dealSubTitled": "{{title}}, da far avanzare.",
+      "reminderKycSub": "Verifica dell'identità da completare.",
+      "reminderSub": "Da ricontattare.",
+      "matchSub": "Immobile proposto, da presentare.",
+      "estimationValue": "stima {{value}}",
+      "sellerSub": "Nuovo mandato venditore da qualificare.",
+      "offerContact": "Offerta",
+      "offerSub": "Offerta {{amount}} in sospeso, risposta da seguire.",
+      "visitSub": "Visita da seguire.",
+      "untitledProperty": "Immobile senza titolo",
+      "propertySub": "Immobile interno su cui lavorare."
     },
     "tags": {
-      "offer": "Offer",
-      "mandate": "Mandate",
+      "offer": "Offerta",
+      "mandate": "Mandato",
       "relance": "Follow-up",
       "kyc": "KYC",
-      "seller": "Seller",
-      "visit": "Visit",
-      "property": "Property",
+      "seller": "Venditore",
+      "visit": "Visita",
+      "property": "Immobile",
       "match": "Match"
     },
     "focusTypes": {
-      "call": "Call {{name}}",
-      "kyc": "Review KYC",
-      "sign": "Prepare the mandate",
-      "offer": "Follow up on offer",
-      "seller": "Contact {{name}}",
-      "cooling": "Follow up with {{name}}",
-      "visit": "View visit",
-      "bien": "View property"
+      "call": "Chiama {{name}}",
+      "kyc": "Verifica il KYC",
+      "sign": "Prepara il mandato",
+      "offer": "Sollecita l'offerta",
+      "seller": "Contatta {{name}}",
+      "cooling": "Ricontatta {{name}}",
+      "visit": "Vedi la visita",
+      "bien": "Vedi l'immobile"
     },
     "focus": {
-      "loading": "Loading your priorities…",
-      "queueDone": "Queue cleared",
-      "queueDoneSub": "All your current priorities are handled. Take a breath, or move the pipeline forward.",
-      "queueDoneModeSub": "All your priorities are handled. Jump to the match wall to place your properties.",
-      "statProcessed_one": "handled",
-      "statProcessed_other": "handled",
-      "statMinFocus": "focus min",
-      "statSnoozed_one": "snoozed",
-      "statSnoozed_other": "snoozed",
-      "reviewQueue": "Review the queue",
-      "estimatedPriority": "Estimated priority",
-      "estimate": "estimate",
-      "finish": "Finish",
-      "reschedule": "Reschedule",
-      "markDone": "Mark done",
-      "modeTitle": "Focus mode",
-      "quitEsc": "Quit (Esc)",
+      "loading": "Caricamento delle tue priorità…",
+      "queueDone": "Coda completata",
+      "queueDoneSub": "Tutte le tue priorità del momento sono gestite. Goditela, oppure fai avanzare la pipeline.",
+      "queueDoneModeSub": "Tutte le tue priorità sono gestite. Passa al muro dei match per piazzare i tuoi immobili.",
+      "statProcessed_one": "gestita",
+      "statProcessed_other": "gestite",
+      "statMinFocus": "min focus",
+      "statSnoozed_one": "rinviata",
+      "statSnoozed_other": "rinviate",
+      "reviewQueue": "Rivedi la coda",
+      "estimatedPriority": "Priorità stimata",
+      "estimate": "stima",
+      "finish": "Termina",
+      "reschedule": "Ripianifica",
+      "markDone": "Segna come fatto",
+      "modeTitle": "Modalità Focus",
+      "quitEsc": "Esci (Esc)",
       "esc": "Esc",
-      "statPrioritiesProcessed_one": "priority handled",
-      "statPrioritiesProcessed_other": "priorities handled",
-      "statMinConcentration": "min focused",
-      "statRescheduled_one": "rescheduled",
-      "statRescheduled_other": "rescheduled",
-      "viewCatalogue": "View match catalogue",
-      "upNext": "Up next",
-      "lastPriority": "Last priority in the queue."
+      "statPrioritiesProcessed_one": "priorità gestita",
+      "statPrioritiesProcessed_other": "priorità gestite",
+      "statMinConcentration": "min di concentrazione",
+      "statRescheduled_one": "ripianificata",
+      "statRescheduled_other": "ripianificate",
+      "viewCatalogue": "Vedi il catalogo dei match",
+      "upNext": "Prossimo",
+      "lastPriority": "Ultima priorità della coda."
     },
     "cockpit": {
-      "greeting": "Hello {{name}}",
-      "greetingNoName": "Hello",
-      "focusMode": "Focus mode",
-      "next": "Next",
+      "greeting": "Buongiorno {{name}}",
+      "greetingNoName": "Buongiorno",
+      "focusMode": "Modalità Focus",
+      "next": "Poi",
       "tiles": {
-        "agenda": "Today's schedule",
-        "relances": "AI follow-ups",
+        "agenda": "Agenda del giorno",
+        "relances": "Follow-up IA",
         "pipeline": "Pipeline",
-        "objectif": "Target"
+        "objectif": "Obiettivo"
       },
       "tags": {
-        "offer": "Offer",
-        "mandate": "Mandate",
-        "seller": "Seller",
+        "offer": "Offerta",
+        "mandate": "Mandato",
+        "seller": "Venditore",
         "kyc": "KYC",
         "relance": "Follow-up",
         "match": "Match",
-        "compromis": "Sale agreement",
-        "visit": "Viewing"
+        "compromis": "Compromesso",
+        "visit": "Visita"
       },
       "pipelineDeals_one": "{{count}} affare",
       "pipelineDeals_other": "{{count}} affari",
@@ -263,21 +194,21 @@
       "dismiss": "Ignora"
     },
     "agenda": {
-      "next": "Next",
-      "empty": "Nothing more after this, your day is clear.",
-      "call": "Call",
-      "inMinutes_one": "in {{count}} min",
-      "inMinutes_other": "in {{count}} min",
-      "inHours_one": "in {{count}} h",
-      "inHours_other": "in {{count}} h",
-      "doneThisMorning_one": "{{count}} done this morning · {{times}}",
-      "doneThisMorning_other": "{{count}} done this morning · {{times}}",
+      "next": "Poi",
+      "empty": "Dopo non c'è più nulla, giornata libera.",
+      "call": "Chiama",
+      "inMinutes_one": "tra {{count}} min",
+      "inMinutes_other": "tra {{count}} min",
+      "inHours_one": "tra {{count}} h",
+      "inHours_other": "tra {{count}} h",
+      "doneThisMorning_one": "{{count}} fatto stamattina · {{times}}",
+      "doneThisMorning_other": "{{count}} fatti stamattina · {{times}}",
       "types": {
-        "call": "Call",
+        "call": "Chiamata",
         "kyc": "KYC",
-        "mandate": "Mandate",
-        "visit": "Viewing",
-        "offer": "Offer"
+        "mandate": "Mandato",
+        "visit": "Visita",
+        "offer": "Offerta"
       },
       "nowBadge": "Adesso",
       "error": {
@@ -285,214 +216,214 @@
       }
     },
     "relances": {
-      "leadsToFollow": "leads to follow up",
-      "preparedByAi": "prepared by AI",
+      "leadsToFollow": "lead da ricontattare",
+      "preparedByAi": "preparati dall'IA",
       "startSession": "Avvia la sessione",
-      "tempHot": "hot",
-      "tempWarm": "warm",
-      "tempCold": "cold"
+      "tempHot": "caldi",
+      "tempWarm": "tiepidi",
+      "tempCold": "freddi"
     },
     "pipeline": {
       "stages": {
-        "searching": "Active search",
-        "visit": "Viewing scheduled",
-        "offer": "Offer submitted",
-        "compromis": "Sale agreement"
+        "searching": "Ricerca attiva",
+        "visit": "Visita pianificata",
+        "offer": "Offerta presentata",
+        "compromis": "Compromesso"
       },
-      "dealFallback": "Deal",
-      "riskStalled": "Deal stalled",
-      "riskOverdue": "Deadline overdue",
+      "dealFallback": "Affare",
+      "riskStalled": "Affare in stallo",
+      "riskOverdue": "Scadenza superata",
       "error": {
         "title": "Dati non disponibili"
       }
     },
     "objectif": {
-      "realized": "achieved",
-      "realizedNoTarget": "achieved · no target set",
-      "target": "target",
+      "realized": "realizzato",
+      "realizedNoTarget": "realizzato · obiettivo non definito",
+      "target": "obiettivo",
       "error": {
         "title": "Dati non disponibili"
       }
     },
     "pager": {
-      "today": "Today",
-      "catalogue": "Catalog",
-      "wheelTo": "Scroll to {{label}}"
+      "today": "Oggi",
+      "catalogue": "Catalogo",
+      "wheelTo": "Rotella per {{label}}"
     },
     "catalogue": {
-      "title": "Match catalogue",
-      "empty": "No matches in this filter.",
-      "proposed": "Proposed",
-      "proposedCount_one": "{{count}} proposed",
-      "proposedCount_other": "{{count}} proposed",
+      "title": "Catalogo dei match",
+      "empty": "Nessun match in questo filtro.",
+      "proposed": "Proposto",
+      "proposedCount_one": "{{count}} proposto",
+      "proposedCount_other": "{{count}} proposti",
       "filters": {
-        "all": "All",
-        "followUp": "To follow up",
-        "new": "New"
+        "all": "Tutti",
+        "followUp": "Da ricontattare",
+        "new": "Nuovi"
       },
       "sorts": {
         "score": "Score",
-        "value": "Value",
-        "recency": "Recency"
+        "value": "Valore",
+        "recency": "Recenza"
       },
       "sort": {
-        "by": "Sort {{label}}",
-        "byDot": "Sort · {{label}}",
-        "change": "Change sort"
+        "by": "Ordina {{label}}",
+        "byDot": "Ordina · {{label}}",
+        "change": "Cambia ordinamento"
       },
       "status": {
-        "new": "New",
-        "sent": "File sent",
-        "visitPlanned": "Visit scheduled",
-        "interested": "Interested"
+        "new": "Nuovo",
+        "sent": "Fascicolo inviato",
+        "visitPlanned": "Visita pianificata",
+        "interested": "Interessato"
       },
       "why": {
-        "fallback": "New match, first contact to initiate."
+        "fallback": "Nuovo match, primo contatto da avviare."
       },
       "advertiser": {
-        "marketWatch": "Market watch",
-        "internalMandate": "Internal mandate",
-        "externalAdvertiser": "External advertiser",
-        "yourAgency": "Your agency",
+        "marketWatch": "Monitoraggio del mercato",
+        "internalMandate": "Mandato interno",
+        "externalAdvertiser": "Inserzionista esterno",
+        "yourAgency": "La tua agenzia",
         "source": "Source"
       },
       "detail": {
-        "eyebrow": "Match detail",
+        "eyebrow": "Dettaglio del match",
         "photos": "photos"
       },
       "section": {
-        "specs": "Features",
-        "highlights": "Highlights",
+        "specs": "Caratteristiche",
+        "highlights": "Punti di forza",
         "description": "Description",
-        "location": "Location",
-        "salePrice": "Sale price",
-        "buyer": "Buyer",
-        "compatibility": "Compatibility",
-        "advertiser": "Advertiser"
+        "location": "Posizione",
+        "salePrice": "Prezzo di vendita",
+        "buyer": "Acquirente",
+        "compatibility": "Compatibilità",
+        "advertiser": "Inserzionista"
       },
       "spec": {
-        "rooms": "Rooms",
-        "roomsCount": "{{rooms}} rooms",
+        "rooms": "Locali",
+        "roomsCount": "{{rooms}} locali",
         "surface": "Surface",
-        "bedrooms": "Bedrooms",
-        "bathrooms": "Bathrooms",
-        "year": "Year",
-        "floor": "Floor",
+        "bedrooms": "Camere",
+        "bathrooms": "Bagni",
+        "year": "Anno",
+        "floor": "Piano",
         "villa": "Villa"
       },
       "price": {
         "charges": "Charges",
-        "perMonth": "CHF {{amount}} / month",
-        "onMarket": "On the market",
-        "today": "Today",
-        "days_one": "{{count}} day",
-        "days_other": "{{count}} days"
+        "perMonth": "CHF {{amount}} / mese",
+        "onMarket": "Sul mercato",
+        "today": "Oggi",
+        "days_one": "{{count}} giorno",
+        "days_other": "{{count}} giorni"
       },
       "buyer": {
-        "searching": "{{tag}} · looking for {{specs}}"
+        "searching": "{{tag}} · cerca {{specs}}"
       },
       "compat": {
-        "perfect": "Profile perfectly aligned",
-        "aligned": "Well aligned with their search",
-        "someGaps": "Aligned, a few gaps",
-        "manyGaps": "Several gaps to address"
+        "perfect": "Profilo perfettamente allineato",
+        "aligned": "Ben allineato con la sua ricerca",
+        "someGaps": "Allineato, alcuni divari",
+        "manyGaps": "Diversi divari da colmare"
       },
       "criteria": {
         "budget": "Budget",
-        "zone": "Area",
+        "zone": "Zona",
         "type": "Type",
-        "rooms": "Rooms",
-        "features": "Wishes",
-        "toRefine": "to refine"
+        "rooms": "Locali",
+        "features": "Desideri",
+        "toRefine": "da affinare"
       },
       "action": {
-        "addToFile": "Add to {{name}}'s file",
-        "added": "Added to {{name}}'s file"
+        "addToFile": "Aggiungi al fascicolo di {{name}}",
+        "added": "Aggiunto al fascicolo di {{name}}"
       },
       "gallery": {
-        "closeHint": "Close (Esc)",
-        "previous": "Previous",
-        "next": "Next",
-        "backToWall": "Back to wall",
-        "title": "Whole catalogue",
-        "subtitle": "Full gallery"
+        "closeHint": "Chiudi (Esc)",
+        "previous": "Precedente",
+        "next": "Successiva",
+        "backToWall": "Torna al muro",
+        "title": "Tutto il catalogo",
+        "subtitle": "Galleria completa"
       },
       "more": {
-        "otherMatches_one": "other match",
-        "otherMatches_other": "other matches",
-        "viewWhole": "View whole catalogue"
+        "otherMatches_one": "altro match",
+        "otherMatches_other": "altri match",
+        "viewWhole": "Vedi tutto il catalogo"
       },
       "place": {
-        "fallback": "Property"
+        "fallback": "Immobile"
       }
     },
     "relance": {
       "temp": {
-        "hot": "Hot",
-        "warm": "Warm",
-        "cold": "Cold"
+        "hot": "Caldo",
+        "warm": "Tiepido",
+        "cold": "Freddo"
       },
       "header": {
-        "title": "Follow-up session",
-        "closeTitle": "Back to dashboard (Esc)"
+        "title": "Sessione di follow-up",
+        "closeTitle": "Torna alla dashboard (Esc)"
       },
-      "agentFallback": "Your MEGGA broker",
-      "generating": "MEGGA AI is writing…",
-      "demoBanner": "Demo mode, no dormant lead in your agency. These examples are sent to no one.",
-      "loading": "Loading…",
+      "agentFallback": "Il Suo agente MEGGA",
+      "generating": "MEGGA AI sta scrivendo…",
+      "demoBanner": "Modalità demo, nessun lead dormiente nella tua agenzia. Questi esempi non vengono inviati a nessuno.",
+      "loading": "Caricamento…",
       "noLeads": {
-        "title": "No follow-ups pending",
-        "body": "No dormant contact to follow up today. Your follow-ups will appear here as soon as a contact goes cold."
+        "title": "Nessun follow-up in sospeso",
+        "body": "Nessun contatto dormiente da ricontattare oggi. I tuoi follow-up appariranno qui non appena un contatto si raffredda."
       },
-      "sendError": "Sending failed, try again or copy the message.",
+      "sendError": "Invio non riuscito, riprova o copia il messaggio.",
       "draft": {
-        "to": "To",
-        "emailMissing": "(email missing)",
-        "subject": "Subject",
-        "regenerate": "Suggest another version",
-        "editable": "Editable text",
-        "fallbackSubject": "Let's reconnect, {{name}}"
+        "to": "A",
+        "emailMissing": "(email mancante)",
+        "subject": "Oggetto",
+        "regenerate": "Proponi un'altra versione",
+        "editable": "Testo modificabile",
+        "fallbackSubject": "Riprendiamo i contatti, {{name}}"
       },
       "empty": {
-        "prompt": "Need a message?",
-        "help": "AI drafts it from the context.",
-        "cta": "Suggest a message"
+        "prompt": "Ti serve un messaggio?",
+        "help": "L'IA lo redige a partire dal contesto.",
+        "cta": "Proponi un messaggio"
       },
       "genError": {
-        "title": "The draft couldn't be generated.",
-        "help": "Check your connection, then try again.",
-        "retry": "Try again"
+        "title": "La redazione non è riuscita.",
+        "help": "Controlla la connessione, poi riprova.",
+        "retry": "Riprova"
       },
       "sent": {
-        "title": "Sent from MEGGA",
-        "tracked": "The follow-up is logged in {{name}}'s record."
+        "title": "Inviato da MEGGA",
+        "tracked": "Il follow-up è registrato nel fascicolo di {{name}}."
       },
       "actions": {
-        "copied": "Message copied",
-        "copy": "Copy the message",
-        "openInMailbox": "Open in my mailbox",
-        "sending": "Sending…",
-        "sendFromMegga": "or send from MEGGA"
+        "copied": "Messaggio copiato",
+        "copy": "Copia il messaggio",
+        "openInMailbox": "Apri nella mia posta",
+        "sending": "Invio…",
+        "sendFromMegga": "oppure invia da MEGGA"
       },
       "nav": {
-        "later": "Later",
-        "notInterested": "Not interested",
-        "next": "Next"
+        "later": "Più tardi",
+        "notInterested": "Non interessato",
+        "next": "Avanti"
       },
       "undo": {
-        "discarded": "{{name}} removed from the loop",
-        "cancel": "Undo"
+        "discarded": "{{name}} escluso dal ciclo",
+        "cancel": "Annulla"
       },
       "done": {
-        "title": "Session complete",
-        "contacted_one": "contacted",
-        "contacted_other": "contacted",
-        "discarded_one": "discarded",
-        "discarded_other": "discarded",
-        "postponed_one": "postponed",
-        "postponed_other": "postponed",
-        "explainer": "Postponed leads will come back tomorrow; discarded ones are out of the loop.",
-        "backToDashboard": "Back to dashboard"
+        "title": "Sessione terminata",
+        "contacted_one": "ricontattato",
+        "contacted_other": "ricontattati",
+        "discarded_one": "scartato",
+        "discarded_other": "scartati",
+        "postponed_one": "rinviato",
+        "postponed_other": "rinviati",
+        "explainer": "I lead rinviati torneranno domani; quelli scartati sono usciti dal ciclo.",
+        "backToDashboard": "Torna alla dashboard"
       }
     },
     "brief": {
@@ -504,238 +435,223 @@
   "analytics": {
     "period": {
       "year": {
-        "label": "this year",
-        "granularity": "Monthly cumulative",
-        "pointWord": "Month"
+        "label": "quest'anno",
+        "granularity": "Cumulato mensile",
+        "pointWord": "Mese"
       },
       "quarter": {
-        "label": "this quarter",
-        "granularity": "Weekly cumulative",
-        "pointWord": "Week"
+        "label": "questo trimestre",
+        "granularity": "Cumulato settimanale",
+        "pointWord": "Settimana"
       },
       "month": {
-        "label": "this month",
-        "granularity": "Daily cumulative",
-        "pointWord": "Day"
+        "label": "questo mese",
+        "granularity": "Cumulato giornaliero",
+        "pointWord": "Giorno"
       }
     },
     "source": {
-      "website": "Agency website",
-      "onboarding": "MEGGA marketplace",
-      "referral": "Referrals",
-      "manual": "Manual import"
+      "website": "Sito agenzia",
+      "onboarding": "Marketplace MEGGA",
+      "referral": "Segnalazioni",
+      "manual": "Importazione manuale"
     },
     "composition": {
       "secured": {
-        "label": "Secured",
-        "hint": "Deeds + sale agreements"
+        "label": "Sicuro",
+        "hint": "Atti + compromessi"
       },
       "probable": {
         "label": "Probable",
-        "hint": "Offers in progress"
+        "hint": "Offerte in corso"
       },
       "possible": {
         "label": "Possible",
-        "hint": "Mandates & viewings"
+        "hint": "Mandati e visite"
       },
-      "title": "What the projection is made of",
-      "total": "{{amount}} in total",
-      "empty": "No projected commission for the period"
+      "title": "Di cosa è composta la proiezione",
+      "total": "{{amount}} in totale",
+      "empty": "Nessuna commissione prevista nel periodo"
     },
     "kpi": {
-      "volume": "Transaction volume",
+      "volume": "Volume transazioni",
       "transactions": "Transactions",
-      "avgCommission": "Avg. commission",
-      "conversionRate": "Conversion rate"
+      "avgCommission": "Commissione media",
+      "conversionRate": "Tasso di conversione"
     },
-    "insufficientData": "Insufficient data",
-    "qualifiedPct": "{{pct}} % qualified",
+    "insufficientData": "Dati insufficienti",
+    "qualifiedPct": "{{pct}} % qualificati",
     "scope": {
-      "me": "Personal view",
-      "agency": "Agency view"
+      "me": "Vista personale",
+      "agency": "Vista agenzia"
     },
     "stage": {
-      "signed": "Signed",
-      "compromis": "Sale agreement",
-      "offer": "Offer",
-      "visit": "Visit"
+      "signed": "Firmato",
+      "compromis": "Compromesso",
+      "offer": "Offerta",
+      "visit": "Visita"
     },
     "dealFallback": "Deal",
     "title": "Performance",
-    "estimateTooltip": "Estimate weighted by probability of closing",
+    "estimateTooltip": "Stima ponderata per probabilità di realizzazione",
     "selector": {
-      "month": "Month",
-      "quarter": "Quarter",
-      "year": "Year"
+      "month": "Mese",
+      "quarter": "Trimestre",
+      "year": "Anno"
     },
     "toolbar": {
-      "lightMode": "Light mode",
-      "darkMode": "Dark mode",
-      "refresh": "Refresh",
-      "exportPdf": "Export PDF"
+      "lightMode": "Modalità chiara",
+      "darkMode": "Modalità scura",
+      "refresh": "Aggiorna",
+      "exportPdf": "Esporta PDF"
     },
     "error": {
-      "title": "Unable to load your performance",
-      "body": "An error occurred while computing the indicators. Please try again shortly.",
-      "retry": "Try again"
+      "title": "Impossibile caricare le tue performance",
+      "body": "Si è verificato un errore durante il calcolo degli indicatori. Riprova tra un istante.",
+      "retry": "Riprova"
     },
     "pace": {
-      "realized": "Realized",
-      "projected": "Projected",
-      "target": "Target",
-      "tempo": "pace"
+      "realized": "Realizzato",
+      "projected": "Previsto",
+      "target": "Obiettivo",
+      "tempo": "ritmo"
     },
     "hero": {
-      "eyebrow": "Projected commission",
-      "ahead": "Ahead",
-      "behind": "Behind",
-      "vsTempo": "vs pace",
-      "projectionLead": "At this pace, you close {{period}} at",
-      "projectionMid": "that is",
-      "projectionTail": "of your target.",
-      "noTarget": "No sales target is set for {{period}}.",
-      "setInSettings": "Set it in Settings",
-      "setInSettingsAgency": "Set it in Settings › Agency.",
-      "targetSetByAgency": "Target set by the agency",
-      "editInSettings": "Edit in Settings",
-      "targetUnsetHint": "Target not set · set it in Settings",
-      "realized": "Realized",
-      "remaining": "Remaining",
-      "objectiveLabel": "Target",
-      "modify": "Edit",
-      "aheadShort": "ahead",
-      "behindShort": "behind",
-      "paceMarkerTitle": "Where you should be at this point"
+      "eyebrow": "Commissione prevista",
+      "ahead": "In anticipo",
+      "behind": "In ritardo",
+      "vsTempo": "vs ritmo",
+      "projectionLead": "A questo ritmo, chiudi {{period}} a",
+      "projectionMid": "ossia",
+      "projectionTail": "del tuo obiettivo.",
+      "noTarget": "Nessun obiettivo commerciale è definito per {{period}}.",
+      "setInSettings": "Definiscilo nelle Impostazioni",
+      "setInSettingsAgency": "Definiscilo in Impostazioni › Agenzia.",
+      "targetSetByAgency": "Obiettivo definito dall'agenzia",
+      "editInSettings": "Modifica nelle Impostazioni",
+      "targetUnsetHint": "Obiettivo non definito · definiscilo nelle Impostazioni",
+      "realized": "Realizzato",
+      "remaining": "Restante",
+      "objectiveLabel": "Obiettivo",
+      "modify": "Modifica",
+      "aheadShort": "di anticipo",
+      "behindShort": "di ritardo",
+      "paceMarkerTitle": "Dove dovresti essere a questo punto"
     },
     "fallback": {
-      "defaultRate_one": "{{count}} property at the default 3 % rate",
-      "defaultRate_other": "{{count}} properties at the default 3 % rate",
-      "missingPrice_one": "{{count}} without a price",
-      "missingPrice_other": "{{count}} without a price",
-      "summary": "Estimated commission: {{parts}}. Enter the mandate rate on your properties to refine it."
+      "defaultRate_one": "{{count}} immobile al tasso predefinito del 3 %",
+      "defaultRate_other": "{{count}} immobili al tasso predefinito del 3 %",
+      "missingPrice_one": "{{count}} senza prezzo",
+      "missingPrice_other": "{{count}} senza prezzo",
+      "summary": "Commissione stimata: {{parts}}. Inserisci il tasso di mandato sui tuoi immobili per affinare la stima."
     },
     "chart": {
-      "title": "Trajectory toward the target",
-      "realized": "Realized",
-      "target": "Target"
+      "title": "Traiettoria verso l’obiettivo",
+      "realized": "Realizzato",
+      "target": "Obiettivo"
     },
     "deal": {
       "commission": "commission",
-      "missingPrice": "price missing"
+      "missingPrice": "prezzo mancante"
     },
     "closing": {
-      "title": "Signing soon",
-      "empty": "No deal in progress"
+      "title": "Cosa si firma a breve",
+      "empty": "Nessun deal in corso"
     },
     "sources": {
-      "title": "Lead sources",
-      "subtitle": "Where your contacts come from · agency scope",
-      "bestChannel": "= your best channel",
-      "empty": "No source for the period",
+      "title": "Fonti dei lead",
+      "subtitle": "Da dove arrivano i tuoi contatti · ambito agenzia",
+      "bestChannel": "= il tuo canale migliore",
+      "empty": "Nessuna fonte nel periodo",
       "leadCount_one": "lead",
       "leadCount_other": "leads",
-      "dealsTitle": "Deal sources",
-      "commissionTitle": "Commission by channel",
-      "commissionEmpty": "No realized commission by channel for the period",
-      "wonDeals_one": "{{count}} signed deal",
-      "wonDeals_other": "{{count}} signed deals"
+      "dealsTitle": "Fonti dei deals",
+      "commissionTitle": "Commissione per canale",
+      "commissionEmpty": "Nessuna commissione realizzata per canale nel periodo",
+      "wonDeals_one": "{{count}} deal firmato",
+      "wonDeals_other": "{{count}} deals firmati"
     },
     "drawer": {
       "bucket": {
         "secured": {
-          "label": "Secured",
-          "hint": "Signed deeds and binding sale agreements"
+          "label": "Sicuro",
+          "hint": "Atti firmati + compromessi vincolanti"
         },
         "probable": {
           "label": "Probable",
-          "hint": "Offers submitted, in negotiation"
+          "hint": "Offerte presentate in fase di negoziazione"
         },
         "possible": {
           "label": "Possible",
-          "hint": "Active mandates and ongoing viewings"
+          "hint": "Mandati attivi e visite in corso"
         }
       },
       "compositionEyebrow": "Composition · {{label}}",
       "dealEyebrow": "Deal · {{stage}}",
-      "comparableDeals": "Other comparable deals",
-      "fileCount_one": "{{count}} file · commission",
-      "fileCount_other": "{{count}} files · commission",
-      "close": "Close",
+      "comparableDeals": "Altri deals comparabili",
+      "fileCount_one": "{{count}} fascicolo · commissione",
+      "fileCount_other": "{{count}} fascicoli · commissione",
+      "close": "Chiudi",
       "field": {
         "commission": "Commission",
-        "probability": "Probability",
-        "stage": "Stage"
+        "probability": "Probabilità",
+        "stage": "Fase"
       },
-      "detailsUnavailable": "Details unavailable",
-      "detailsUnavailableHint": "Per-file detail is coming soon, open the filtered Pipeline to follow up.",
-      "openInPipeline": "Open in the filtered Pipeline"
+      "detailsUnavailable": "Dettagli non disponibili",
+      "detailsUnavailableHint": "Il dettaglio per fascicolo arriva presto, apri la Pipeline filtrata per il monitoraggio.",
+      "openInPipeline": "Apri nella Pipeline filtrata"
     },
     "trajectory": {
-      "goalLabel": "target",
+      "goalLabel": "obiettivo",
       "pointFallback": "Point {{n}}",
-      "projected": "projected",
-      "vsPace": "vs pace",
-      "objectiveShort": "target {{amount}}",
-      "prudent": "cautious {{amount}}",
+      "projected": "previsto",
+      "vsPace": "vs ritmo",
+      "objectiveShort": "obiettivo {{amount}}",
+      "prudent": "prudente {{amount}}",
       "projectedShort": "proj.",
       "pointWordFallback": "Point"
     },
     "drill": {
-      "filesCount_one": "{{count}} file",
-      "filesCount_other": "{{count}} files",
-      "openInPipeline": "Open in Pipeline",
-      "openNFiles": "Open the {{count}} files in Pipeline",
-      "emptyBucket": "Open the Pipeline to see the files in this category.",
-      "topFiles": "Top files"
+      "filesCount_one": "{{count}} fascicolo",
+      "filesCount_other": "{{count}} fascicoli",
+      "openInPipeline": "Apri nella Pipeline",
+      "openNFiles": "Apri i {{count}} fascicoli nella Pipeline",
+      "emptyBucket": "Apri la Pipeline per vedere i fascicoli di questa categoria.",
+      "topFiles": "Fascicoli principali"
     },
     "gate": {
-      "eyebrow": "First sign-in",
-      "title": "Set your annual target",
+      "eyebrow": "Primo accesso",
+      "title": "Fissa il tuo obiettivo annuale",
       "placeholder": "1'200'000",
-      "cta": "Set my target",
-      "saving": "Saving…",
-      "error": "Saving failed. Try again."
+      "cta": "Definisci il mio obiettivo",
+      "saving": "Salvataggio…",
+      "error": "Salvataggio non riuscito. Riprova."
     },
     "firstrun": {
-      "objectiveEyebrow": "Annual target",
-      "objectiveSet": "Target set",
-      "objectiveCaption": "Your trajectory starts at your first commission. Editable in Settings.",
-      "compositionCaption": "Your first deal will fill this card.",
-      "trajectoryStart": "Your curve starts here, at your first commission",
-      "sourcesCaption": "Your channels will appear with your first deal."
+      "objectiveEyebrow": "Obiettivo annuale",
+      "objectiveSet": "Obiettivo definito",
+      "objectiveCaption": "La tua traiettoria parte dalla tua prima commissione. Modificabile in Impostazioni.",
+      "compositionCaption": "Il tuo primo deal riempirà questa scheda.",
+      "trajectoryStart": "La tua curva inizia qui, dalla tua prima commissione",
+      "sourcesCaption": "I tuoi canali appariranno dal tuo primo deal."
     }
   },
   "task": {
-    "markRedo": "Mark as to redo",
-    "markDone": "Mark as done"
+    "markRedo": "Segna da rifare",
+    "markDone": "Segna come eseguita"
   },
   "action": {
-    "reschedule": "Reschedule",
-    "moreActions": "More actions"
+    "reschedule": "Ripianifica",
+    "moreActions": "Altre azioni"
   },
   "create": {
-    "added": "Added · {{value}}",
-    "submit": "Create",
-    "suggested": "Suggested"
-  },
-  "knowledge": {
-    "col": {
-      "subject": "Subject",
-      "status": "Status",
-      "startDate": "Start date",
-      "endDate": "End date",
-      "assignedUser": "Assigned user"
-    },
-    "favRemove": "Remove from favorites",
-    "favAdd": "Add to favorites",
-    "favRemoved": "Removed from favorites, {{subject}}",
-    "favAdded": "Added to favorites, {{subject}}",
-    "statusChanged": "Status → {{status}}",
-    "changeStatus": "Change status"
+    "added": "Aggiunto · {{value}}",
+    "submit": "Crea",
+    "suggested": "Suggerito"
   },
   "focus": {
-    "heading": "3 must-do priorities for today",
-    "subtitle": "Everything else can wait. Breathe, do these three things well."
+    "heading": "3 priorità assolute per oggi",
+    "subtitle": "Tutto il resto può aspettare. Respira, fai bene queste tre cose."
   },
   "mobile": {
     "analytics": {
