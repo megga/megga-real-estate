@@ -283,6 +283,26 @@ serve(async (req) => {
       })
     }
 
+    // `body.role` partait tel quel dans l'invitation, et le token d'invitation
+    // VAUT attribution de rôle au moment du claim : seul l'enum `user_role`
+    // bornait la valeur, si bien qu'un `manager` pouvait émettre une invitation
+    // `admin` — un cran au-dessus de lui. On borne à une liste explicite, puis
+    // au niveau de l'appelant.
+    const ROLE_RANK: Record<string, number> = { agent: 1, manager: 2, admin: 3 }
+    const requestedRank = ROLE_RANK[body.role]
+    if (!requestedRank) {
+      return new Response(JSON.stringify({ error: 'role must be agent, manager or admin' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (requestedRank > (ROLE_RANK[profile.role] ?? 0)) {
+      return new Response(
+        JSON.stringify({ error: 'Cannot invite someone above your own role.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
     // Check plan limit
     const { data: countResult } = await supabaseAdmin.rpc('get_agency_member_count', {
       p_agency_id: profile.agency_id,
