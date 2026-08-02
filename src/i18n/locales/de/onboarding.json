@@ -28,6 +28,9 @@
       "pieceIdentite": "Ausweisdokument",
       "recapitulatif": "Zusammenfassung"
     },
+    "header": {
+      "language": "Sprache der Oberfläche"
+    },
     "footer": {
       "continue": "Weiter",
       "saving": "Wird gespeichert…",

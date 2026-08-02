@@ -647,7 +647,14 @@ function IdentityWelcomeScreen({ onStart, onLater }: { onStart: () => void; onLa
                       </div>
                     </div>
                     <div className="mg-top-large text-center">
-                      <MxButton className="app-button" onClick={onStart}>
+                      {/* `type="button"` explicite, comme aux étapes 3/4/5 : MxButton n'en
+                          pose aucun, donc son défaut HTML est `submit`. Aucun de ces
+                          boutons ne soumet quoi que ce soit — la coquille Sugar les
+                          écrivait déjà tous en `type="button"`, la peau MEGGA X l'avait
+                          perdu au passage. Inerte tant qu'aucun <form> ne les enveloppe,
+                          mais c'est exactement le genre de déclaration fausse qu'on ne
+                          laisse pas traîner (même raison que MxLink sans href). */}
+                      <MxButton type="button" className="app-button" onClick={onStart}>
                         {t('gate.welcome.startButton')}
                       </MxButton>
                     </div>
@@ -666,6 +673,61 @@ function IdentityWelcomeScreen({ onStart, onLater }: { onStart: () => void; onLa
         </section>
       </div>
     </MeggaX>
+  )
+}
+
+/**
+ * Langues du produit, nommées dans leur propre langue.
+ *
+ * Des endonymes, jamais des exonymes : « Deutsch » se lit de la même façon sur
+ * un wizard français ou italien, là où « Allemand » suppose de comprendre le
+ * français pour retrouver l'allemand — exactement la personne qu'on cherche à
+ * dépanner. Ils ne passent donc pas par les fichiers de traduction.
+ */
+const LANGUES_WIZARD = [
+  { code: 'fr', nom: 'Français' },
+  { code: 'de', nom: 'Deutsch' },
+  { code: 'en', nom: 'English' },
+  { code: 'it', nom: 'Italiano' },
+]
+
+/**
+ * Sélecteur de langue du wizard d'onboarding.
+ *
+ * POURQUOI IL EXISTE. Ce wizard est le premier écran d'un nouvel agent, et il
+ * se trouve derrière le gate d'identité : les Réglages, qui portent l'autre
+ * sélecteur, ne sont pas atteignables tant qu'il n'est pas terminé. Tant que la
+ * langue ne pouvait venir que d'un choix explicite, cette impasse restait
+ * théorique. Depuis que le pays du visiteur peut la deviner
+ * (`src/lib/geoLanguage.ts`, chantier langue-par-géolocalisation), elle ne
+ * l'est plus : une déduction fausse — un Genevois derrière la sortie zurichoise
+ * d'un VPN d'entreprise, cas banal — enfermerait quelqu'un dans un parcours de
+ * conformité en allemand, sans issue.
+ *
+ * Le `<select>` natif est un choix, pas un repli : navigable au clavier,
+ * annoncé par les lecteurs d'écran et rendu par le sélecteur du système sur
+ * mobile, sans qu'on ait à le réimplémenter.
+ *
+ * (Ré-application du 2 août 2026 : ce composant venait de la branche
+ * langue-par-géolocalisation, écrite contre l'ancien header Sugar ; #1069 a
+ * réécrit le header en MEGGA X sans lui. Logique et documentation reprises
+ * telles quelles, seul le style passe de SugarV2 — retiré — à `.mx-langpicker`,
+ * cf. megga-x-additions.css.)
+ */
+function WizardLanguagePicker() {
+  const { t, i18n } = useTranslation('onboarding')
+  return (
+    <select
+      className="mx-langpicker"
+      value={i18n.language.slice(0, 2)}
+      onChange={(e) => { void i18n.changeLanguage(e.target.value) }}
+      aria-label={t('wizard.header.language')}
+      title={t('wizard.header.language')}
+    >
+      {LANGUES_WIZARD.map((l) => (
+        <option key={l.code} value={l.code}>{l.nom}</option>
+      ))}
+    </select>
   )
 }
 
@@ -699,10 +761,10 @@ function ExitPendingScreen({ onResume, onLogout }: { onResume: () => void; onLog
                 renverrait aussitôt. Même geste que « Se déconnecter » de
                 l'en-tête (handleLogout), pas un chemin parallèle. */}
             <div className="mg-top-medium text-center">
-              <MxButton onClick={onResume}>{t('gate.pendingNotice.resumeButton')}</MxButton>
+              <MxButton type="button" onClick={onResume}>{t('gate.pendingNotice.resumeButton')}</MxButton>
             </div>
             <div className="mg-top-2x-extra-small text-center">
-              <MxButton variant="secondary" onClick={onLogout}>{t('common:nav.logout')}</MxButton>
+              <MxButton type="button" variant="secondary" onClick={onLogout}>{t('common:nav.logout')}</MxButton>
             </div>
           </div>
         </div>
@@ -1158,6 +1220,9 @@ export default function IdentityShell() {
                 <img src="/megga-logo.svg" alt="MEGGA" />
               </div>
               <div className="flex-horizontal gap-24px---wrap-down">
+                {/* Toujours visible, y compris sur l'écran d'attente : c'est la seule
+                    sortie de langue du parcours (les Réglages sont derrière ce gate). */}
+                <WizardLanguagePicker />
                 {/* Sortie de secours : masquée sur l'écran d'attente lui-même — on y est
                     déjà « sorti », son bouton principal est Reprendre la saisie. */}
                 {!showExitScreen && (
@@ -1290,7 +1355,7 @@ export default function IdentityShell() {
                     n'a pas changé. */}
                 <div className="flex-horizontal gap-16px">
                   {step > 0 && (
-                    <MxButton variant="secondary" size="small" onClick={() => { void prev() }} disabled={saving}>
+                    <MxButton type="button" variant="secondary" size="small" onClick={() => { void prev() }} disabled={saving}>
                       {t('common:actions.previous')}
                     </MxButton>
                   )}
@@ -1298,14 +1363,14 @@ export default function IdentityShell() {
 
                 <div>
                   {step < SG_IDENTITY_STEPS.length - 1 ? (
-                    <MxButton onClick={() => { void next() }} disabled={!canNext || saving}>
+                    <MxButton type="button" onClick={() => { void next() }} disabled={!canNext || saving}>
                       {saving ? t('wizard.footer.saving') : t('wizard.footer.continue')}
                     </MxButton>
                   ) : (
                     // Dernière étape (récapitulatif) : Soumettre remplace Continuer — gate
                     // sur l'attestation ET un signataire réellement désigné
                     // (canSubmitIdentity), jamais sur canNext (toujours false ici).
-                    <MxButton onClick={() => { void handleSubmit() }} disabled={!canSubmitIdentity(attestationChecked, signatoryId) || saving}>
+                    <MxButton type="button" onClick={() => { void handleSubmit() }} disabled={!canSubmitIdentity(attestationChecked, signatoryId) || saving}>
                       {saving ? t('wizard.footer.submitting') : t('wizard.footer.submit')}
                     </MxButton>
                   )}

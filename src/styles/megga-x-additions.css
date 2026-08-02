@@ -22,6 +22,10 @@
  *    plusieurs écrans, donc aucun stepper nulle part (vérifié, 21 pages).
  * 4. Pied d'actions collant — ses formulaires poussent leur bouton en fin de
  *    flux ; à 10 champs, Continuer doit rester atteignable.
+ *
+ * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
+ * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
+ * du wizard — celui de la vitrine vit dans megga-lang.css, hors générateur).
  * ========================================================================== */
 
 /* 1. Texte d'aide. Reprend la taille de `.paragraph-small` (14 px) que le
@@ -38,6 +42,33 @@
    contenu est court. La section qui grandit ne laisse rien à répartir. */
 .megga-x .mx-grow {
   flex: 1;
+}
+
+/* Sélecteur de langue du wizard d'onboarding (WizardLanguagePicker). La vitrine
+   a bien un sélecteur de langue, mais il vit dans megga-lang.css, feuille
+   manuscrite HORS du périmètre du générateur — rien à transcrire. Un <select>
+   nu dans le header, même encre discrète que les actions voisines, qui reprend
+   la couleur du texte au survol comme elles. */
+.megga-x .mx-langpicker {
+  padding: 0;
+  border: 0;
+  background: var(--transparent);
+  color: var(--neutral-colors--600);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color .2s;
+}
+
+.megga-x .mx-langpicker:hover {
+  color: var(--neutral-colors--1000);
+}
+
+/* Les <option> héritent du fond du menu système ; sur macOS/Windows le menu est
+   clair, une encre claire y serait invisible. L'encre du canvas de la vitrine
+   convient aux deux. */
+.megga-x .mx-langpicker option {
+  color: var(--neutral-colors--100);
 }
 
 /* Bouton portant la peau d'un lien (MxLink sans href). La vitrine n'a que des

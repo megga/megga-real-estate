@@ -28,6 +28,9 @@
       "pieceIdentite": "Documento d'identità",
       "recapitulatif": "Riepilogo"
     },
+    "header": {
+      "language": "Lingua dell'interfaccia"
+    },
     "footer": {
       "continue": "Continua",
       "saving": "Salvataggio…",
