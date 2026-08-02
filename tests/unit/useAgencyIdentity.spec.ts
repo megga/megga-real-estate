@@ -524,6 +524,15 @@ describe('validateIdentityDocumentFile — format et taille avant tout envoi ré
     expect(validateIdentityDocumentFile(new File([new Uint8Array(10)], 'piece.pdf', { type: 'application/pdf' }))).toBeNull()
   })
 
+  // Bug du 02.08.2026 : ce format était déjà accepté ici et proposé par l'input
+  // (ACCEPTED_TYPES, StepPieceIdentite.tsx), mais REFUSÉ par `allowed_mime_types` du
+  // bucket `documents` — validation client verte, téléversement en échec. Le côté
+  // serveur a été aligné (20260802140000) ; c'est lui que garde le test backend
+  // kyb-identity-documents-storage.spec.ts, celui-ci ne fixe que le contrat client.
+  it('webp accepté — et le bucket `documents` l\'accepte aussi depuis 20260802140000', () => {
+    expect(validateIdentityDocumentFile(new File([new Uint8Array(10)], 'piece.webp', { type: 'image/webp' }))).toBeNull()
+  })
+
   it('format non accepté (ex. vidéo) -> erreur de format', () => {
     const file = new File([new Uint8Array(10)], 'piece.mov', { type: 'video/quicktime' })
     expect(validateIdentityDocumentFile(file)).toEqual({ type: 'format' })
