@@ -1,0 +1,186 @@
+/* ============================================================================
+ * MEGGA X — AJOUTS assumés (feuille écrite à la main).
+ * ----------------------------------------------------------------------------
+ * La règle n°1 du port est « zéro invention » : tout ce qui existe dans la
+ * vitrine est repris verbatim par megga-x.generated.css. Ce fichier porte le
+ * complément, et lui seul — ce que la vitrine N'A PAS et qu'un formulaire de
+ * conformité exige. Il est volontairement court : chaque règle ajoutée ici est
+ * une dette de design system, à confronter à la vitrine si celle-ci se dote un
+ * jour de l'équivalent.
+ *
+ * Aucune VALEUR n'est inventée non plus : tout est exprimé en variables de la
+ * vitrine (`--system-colors--*`, `--neutral-colors--*`, `--main-spacers--*`),
+ * jamais en littéral.
+ *
+ * Inventaire des ajouts, et pourquoi la vitrine ne les couvre pas :
+ *
+ * 1. Texte d'aide sous un champ — la vitrine n'a aucun formulaire assez long
+ *    pour en avoir eu besoin (son plus gros est le contact, 4 champs sans aide).
+ * 2. Focus clavier des choix — la vitrine ANNULE le halo du radio Webflow ;
+ *    repris verbatim, un choix devient inatteignable au clavier.
+ * 3. Rail d'étapes — la vitrine est un site de pages, aucun parcours en
+ *    plusieurs écrans, donc aucun stepper nulle part (vérifié, 21 pages).
+ * 4. Pied d'actions collant — ses formulaires poussent leur bouton en fin de
+ *    flux ; à 10 champs, Continuer doit rester atteignable.
+ *
+ * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
+ * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
+ * du wizard — celui de la vitrine vit dans megga-lang.css, hors générateur).
+ * ========================================================================== */
+
+/* 1. Texte d'aide. Reprend la taille de `.paragraph-small` (14 px) que le
+      composant applique conjointement ; ici on ne pose QUE la couleur, celle
+      des textes secondaires de la vitrine. */
+.megga-x .mx-field__help {
+  color: var(--neutral-colors--600);
+}
+
+/* Plomberie de gabarit : l'enfant qui absorbe la hauteur restante d'un
+   `.page-wrapper.full-height-page`. Cette classe vitrine pose
+   `justify-content: space-between` : à deux enfants (en-tête, section), elle
+   cloue la section au BAS de l'écran et ouvre un vide sous le logo dès que le
+   contenu est court. La section qui grandit ne laisse rien à répartir. */
+.megga-x .mx-grow {
+  flex: 1;
+}
+
+/* Sélecteur de langue du wizard d'onboarding (WizardLanguagePicker). La vitrine
+   a bien un sélecteur de langue, mais il vit dans megga-lang.css, feuille
+   manuscrite HORS du périmètre du générateur — rien à transcrire. Un <select>
+   nu dans le header, même encre discrète que les actions voisines, qui reprend
+   la couleur du texte au survol comme elles. */
+.megga-x .mx-langpicker {
+  padding: 0;
+  border: 0;
+  background: var(--transparent);
+  color: var(--neutral-colors--600);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color .2s;
+}
+
+.megga-x .mx-langpicker:hover {
+  color: var(--neutral-colors--1000);
+}
+
+/* Les <option> héritent du fond du menu système ; sur macOS/Windows le menu est
+   clair, une encre claire y serait invisible. L'encre du canvas de la vitrine
+   convient aux deux. */
+.megga-x .mx-langpicker option {
+  color: var(--neutral-colors--100);
+}
+
+/* Bouton portant la peau d'un lien (MxLink sans href). La vitrine n'a que des
+   liens qui naviguent ; une action qui n'emmène nulle part doit rester un
+   <button> pour les lecteurs d'écran, sans en porter l'apparence native. */
+.megga-x .mx-linkbutton {
+  padding: 0;
+  border: 0;
+  background: var(--transparent);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 2. Focus clavier des choix en carte. La vitrine ANNULE elle-même le halo de
+ *    focus du radio Webflow (`.radio-button.w--redirected-focus{box-shadow:none}`,
+ *    megga-x.generated.css) : reprise verbatim, elle importe donc une option
+ *    inatteignable au clavier. Acceptable sur un site de pages qui n'a qu'un
+ *    formulaire de contact ; pas sur une déclaration d'identité légale.
+ *
+ *    Un `outline` et non un `box-shadow` : la carte porteuse est en
+ *    `overflow: hidden`, qui rognerait une ombre posée à l'intérieur — l'outline
+ *    d'un élément n'est jamais rogné par son propre overflow.
+ *
+ *    `:focus-visible` et non `:focus` : au clic souris l'anneau ne sert à rien et
+ *    la pastille cochée suffit.
+ * ───────────────────────────────────────────────────────────────────────── */
+/*    Deux restrictions, chacune corrigeant un encadrement de trop constaté au
+      clavier :
+      - `input[type="radio"]` et non `input` — une carte de FORMULAIRE contient
+        elle aussi des champs, et un anneau dès qu'on tape dans l'un d'eux
+        encadrerait tout le bloc au lieu du champ ;
+      - `:not(.sign-in-card)` — les cartes sont IMBRIQUÉES (la carte de
+        formulaire `card sign-in-card` contient les cartes d'option `card`), et
+        `:has()` remonte tous les ancêtres : sans cette exclusion, choisir une
+        option encadrait aussi le formulaire entier. */
+.megga-x .card:not(.sign-in-card):has(input[type="radio"]:focus-visible),
+.megga-x .card:not(.sign-in-card):has(input[type="checkbox"]:focus-visible) {
+  outline: 2px solid var(--primary-colors--100);
+  outline-offset: 2px;
+}
+
+/* Radio ou case hors carte : on rend l'anneau que la vitrine avait retiré. */
+.megga-x .radio-button:has(~ input:focus-visible),
+.megga-x .checkbox:has(~ input:focus-visible) {
+  outline: 2px solid var(--primary-colors--100);
+  outline-offset: 2px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 3. Rail d'étapes. La vitrine est un site de pages, elle n'a aucun parcours
+ *    en plusieurs écrans : ni stepper, ni barre de progression, nulle part
+ *    (vérifié sur ses 21 pages). Composé ici avec son vocabulaire : Inter
+ *    Tight, ses neutres, son indigo pour l'étape courante.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--main-spacers--small);
+  overflow-x: auto;
+}
+
+.megga-x .mx-stepper__step {
+  padding: 0 0 var(--main-spacers--5x-extra-small);
+  border: 0;
+  border-bottom: 2px solid var(--transparent);
+  background: var(--transparent);
+  color: var(--neutral-colors--500);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 400;
+  white-space: nowrap;
+  cursor: default;
+  transition: color .2s, border-color .2s;
+}
+
+/* Étape déjà franchie : cliquable pour y revenir. */
+.megga-x .mx-stepper__step--done {
+  border-bottom-color: var(--neutral-colors--500);
+  color: var(--neutral-colors--700);
+  cursor: pointer;
+}
+
+.megga-x .mx-stepper__step--done:hover {
+  color: var(--neutral-colors--1000);
+  border-bottom-color: var(--neutral-colors--1000);
+}
+
+/* Étape courante : le seul endroit du rail qui porte l'accent. */
+.megga-x .mx-stepper__step--current {
+  border-bottom-color: var(--primary-colors--100);
+  color: var(--neutral-colors--1000);
+  font-weight: 500;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 4. Pied d'actions du parcours. La vitrine pousse ses boutons en fin de flux ;
+ *    un wizard de 10 champs a besoin que Continuer reste atteignable sans
+ *    dérouler. Barre PLEINE et filet haut, jamais un dégradé de fondu : le
+ *    fondu de l'ancienne coquille Sugar rendait illisible la dernière ligne des
+ *    étapes longues (constat d'audit du 02.08.2026).
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--main-spacers--2x-extra-small);
+  padding: var(--main-spacers--small) 0;
+  border-top: 1px solid var(--neutral-colors--400);
+  background-color: var(--neutral-colors--100);
+}
+

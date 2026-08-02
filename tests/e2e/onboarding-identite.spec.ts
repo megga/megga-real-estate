@@ -44,7 +44,7 @@
  * ni retoucher ce verrou — la seule navigation DURE de tout ce fichier est le tout
  * premier page.goto(), avant qu'aucun jeton n'existe.
  */
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 import { serviceRoleClient } from '../backend/helpers/supabase'
 
 const PW = 'Test-Password-123!'
@@ -157,20 +157,42 @@ async function clientSideNavigate(page: Page, path: string): Promise<void> {
 }
 
 /**
- * Locator d'un champ par son libellé, ancré en DÉBUT de nom accessible. Pour un
- * `<select>`, le nom accessible calculé englobe le texte de l'option
- * actuellement affichée (le placeholder tant que rien n'est choisi) — deux
- * champs de StepAgence.tsx en sont la preuve directe : le placeholder de
- * "Forme juridique" tant que le pays n'est pas choisi est littéralement
- * « Choisissez d'abord le pays du siège », qui contient la sous-chaîne « pays
- * du siège » et fait donc matcher `getByLabel('Pays du siège')` (substring,
- * insensible à la casse par défaut) sur DEUX champs à la fois. Ancrer en
- * préfixe (jamais `exact: true`, qui échouerait aussi — le nom accessible du
- * champ visé n'est justement pas QUE son libellé) lève l'ambiguïté partout,
- * pas seulement sur ce cas observé.
+ * Locator d'un champ par son libellé, ancré en DÉBUT de libellé.
+ *
+ * L'ancrage protégeait à l'origine d'un piège qui n'existe plus : les étapes
+ * ENVELOPPAIENT leur contrôle dans le `<label>`, dont le texte englobait alors
+ * l'option affichée d'un `<select>` — le placeholder « Choisissez d'abord le
+ * pays du siège » de "Forme juridique" contient « pays du siège » et faisait
+ * matcher `getByLabel('Pays du siège')` sur DEUX champs. Depuis la peau MEGGA X,
+ * MxField rend un `<label for>` FRÈRE du contrôle (cf. son en-tête) : le texte
+ * du libellé est désormais le libellé seul, rien d'autre.
+ *
+ * L'ancrage reste nécessaire pour une autre raison, elle toujours vraie :
+ * `getByLabel` cherche une SOUS-CHAÎNE insensible à la casse, donc « Nom »
+ * matcherait aussi « Prénom » et « Nom commercial ». Toujours pas `exact: true`
+ * en revanche — plusieurs libellés visés sont des préfixes voulus.
  */
 function labelField(page: Page, label: string) {
   return page.getByLabel(new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))
+}
+
+/**
+ * Coche un choix exclusif (radio) ou une case, puis affirme qu'il est bien coché.
+ *
+ * Pourquoi passer par le `<label>` plutôt que cliquer le contrôle : sous la peau
+ * MEGGA X, MxRadio/MxCheckbox masquent l'input natif sous la pastille dessinée
+ * (`opacity: 0; position: absolute; z-index: -1`, transcription du custom
+ * radio/checkbox Webflow de la vitrine). Playwright le tient pour visible — sa
+ * boîte n'est pas vide — mais le contrôle de cible du clic résout sur le
+ * `<label>` qui l'enveloppe, jamais sur l'input : un `.click()`/`.check()`
+ * direct échouerait en « intercepts pointer events ». On clique donc ce qu'un
+ * agent clique, la carte-étiquette, et on vérifie l'état obtenu — plus fort que
+ * l'ancien `.click()` sur un `<button aria-pressed>`, qui n'affirmait rien après
+ * coup. Le contrôle reste identifié par son rôle et son nom accessible.
+ */
+async function checkByLabel(page: Page, control: Locator): Promise<void> {
+  await page.locator('label').filter({ has: control }).click()
+  await expect(control).toBeChecked()
 }
 
 /**
@@ -255,10 +277,20 @@ async function expectWizardShellMounted(page: Page): Promise<void> {
   // visibilité tout de suite lirait un écran encore en chargement (le gate tient
   // l'écran d'arrivée tant qu'il n'a pas résolu son statut) et conclurait à tort
   // qu'il n'y a pas d'écran à franchir.
+  //
+  // Le repère de la coquille est ici le RAIL D'ÉTAPES, et non « Reprendre plus
+  // tard » : depuis la peau MEGGA X, l'écran d'arrivée porte lui aussi ce libellé
+  // en <button> (MxLink sans href — il l'écrivait en <a href="#"> auparavant, ce
+  // que la refonte a corrigé : l'action ne navigue pas). `or()` résoudrait donc
+  // DEUX nœuds sur l'écran d'arrivée, violation de mode strict. Le rail, lui,
+  // n'existe que dans la coquille, et il partage la propriété qui compte ici avec
+  // le header : rendu HORS du `isLoading ? … : …`, qui ne gate que <main>. Son
+  // absence signe donc toujours un IdentityShell jamais monté, jamais un
+  // chargement interne lent.
   const commencer = page.getByRole('button', { name: 'Identifier mon agence' })
-  const coquille = page.getByRole('button', { name: 'Reprendre plus tard' })
+  const railEtapes = page.getByRole('navigation', { name: 'Étapes' })
   await expect(
-    commencer.or(coquille),
+    commencer.or(railEtapes),
     'ni l\'écran d\'arrivée ni la coquille du wizard ne se sont montrés sur /dashboard/identite',
   ).toBeVisible()
   if (await commencer.isVisible()) await commencer.click()
@@ -291,8 +323,14 @@ async function fillSignataireStep(page: Page, s: SignataireFixture): Promise<voi
   await labelField(page, 'Nom').fill(s.lastName)
   await labelField(page, 'Date de naissance').fill(s.dateOfBirth)
   await labelField(page, 'Nationalité').selectOption(s.nationality)
+  // Rôle 'radio' et non 'button' : les deux pouvoirs de signature étaient rendus
+  // par une paire de <button aria-pressed>, ils sont devenus un vrai groupe de
+  // radios (SignaturePowerCard, StepSignataire.tsx). Le choix étant exclusif,
+  // c'est le rôle juste — le test suit, il n'y a rien à faire régresser. Nom
+  // accessible ÉLARGI au passage : le <label> du radio porte le titre ET la
+  // précision, d'où une regex (sous-chaîne) plutôt qu'un libellé entier.
   const powerLabel = s.signaturePower === 'individual' ? /Signature individuelle/ : /Signature collective/
-  await page.getByRole('button', { name: powerLabel }).click()
+  await checkByLabel(page, page.getByRole('radio', { name: powerLabel }))
   await page.getByRole('button', { name: 'Continuer' }).click()
 }
 
@@ -353,9 +391,13 @@ async function fillPieceIdentiteStep(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Continuer' }).click()
 }
 
-/** Coche l'attestation d'exactitude et soumet depuis le récapitulatif (dernière étape). */
+/**
+ * Coche l'attestation d'exactitude et soumet depuis le récapitulatif (dernière étape).
+ * Toujours la SEULE case de l'écran, d'où le rôle sans nom ; le clic passe par son
+ * étiquette (cf. checkByLabel — MxCheckbox masque l'input natif).
+ */
 async function submitRecapitulatif(page: Page): Promise<void> {
-  await page.getByRole('checkbox').check()
+  await checkByLabel(page, page.getByRole('checkbox'))
   await page.getByRole('button', { name: 'Soumettre le dossier' }).click()
 }
 
@@ -408,7 +450,11 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // ce stade et contient lui aussi "Reprendre" — ambiguïté de mode strict sinon.
       await page.getByRole('button', { name: /\(signataire\)/ }).click()
       await labelField(page, 'Pourcentage de détention').fill('30')
-      await page.getByRole('button', { name: /^Non\b/ }).click()
+      // Rôle 'radio' et non 'button', même motif qu'au pouvoir de signature : la
+      // paire Oui/Non de la question PEP est devenue un vrai groupe de radios
+      // (PepChoice, StepBeneficiaires.tsx). Ancrage /^Non\b/ conservé — la
+      // précision reste HORS du <label>, le nom accessible vaut donc « Non » seul.
+      await checkByLabel(page, page.getByRole('radio', { name: /^Non\b/ }))
       await page.getByRole('button', { name: 'Continuer' }).click()
 
       // Étape 3 — pièce d'identité (recto puis verso, ordre fixe dans le DOM).
@@ -517,7 +563,10 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // reste sur /dashboard/identite — écran d'attente lisible en place du wizard.
       await page.getByRole('button', { name: 'Reprendre plus tard' }).click()
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
-      await expect(page.getByText('Votre saisie a été interrompue')).toBeVisible()
+      // Titre raccourci par la refonte (gate.pendingNotice.title, fr/onboarding.json) —
+      // et le sur-titre en majuscules « Saisie interrompue » qui l'accompagnait a
+      // disparu avec la clé gate.pendingNotice.eyebrow.
+      await expect(page.getByText('Votre saisie est en pause')).toBeVisible()
       await expect(labelField(page, 'Raison sociale')).not.toBeVisible()
 
       // Revenir (sans démonter) : le brouillon en mémoire de l'étape 1 encore en

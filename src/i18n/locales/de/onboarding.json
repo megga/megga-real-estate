@@ -6,7 +6,7 @@
     "mobileNotice": {
       "eyebrow": "Obligatorischer Schritt",
       "title": "Dieser Schritt wird am Computer abgeschlossen",
-      "body": "Die Erfassung der rechtlichen Identität Ihrer Agentur erfordert einen grösseren Bildschirm. Melden Sie sich von einem Computer aus an, um sie abzuschliessen."
+      "body": "Diese Erfassung erfordert einen grösseren Bildschirm. Setzen Sie sie an einem Computer fort."
     },
     "welcome": {
       "title": "Öffnen wir Ihren Arbeitsbereich",
@@ -14,14 +14,14 @@
       "startButton": "Meine Agentur identifizieren"
     },
     "pendingNotice": {
-      "eyebrow": "Erfassung unterbrochen",
-      "title": "Ihre Erfassung wurde unterbrochen",
-      "body": "Nichts geht verloren: Jeder mit Weiter bestätigte Schritt ist bereits in unseren Systemen gespeichert, die massgeblich bleiben. Setzen Sie die Erfassung fort, wann immer Sie möchten. Sie finden genau das wieder, was Sie bereits angegeben haben.",
+      "title": "Ihre Erfassung ist unterbrochen",
+      "body": "Jeder bestätigte Schritt ist bereits gespeichert. Kommen Sie zurück, wann Sie möchten: Ihre Angaben bleiben erhalten.",
       "resumeButton": "Erfassung fortsetzen"
     }
   },
   "wizard": {
     "steps": {
+      "ariaLabel": "Schritte",
       "signataire": "Unterzeichner",
       "agence": "Agentur",
       "beneficiaires": "Wirtschaftlich Berechtigte",
@@ -34,17 +34,14 @@
     "footer": {
       "continue": "Weiter",
       "saving": "Wird gespeichert…",
-      "saved": "Gespeichert",
-      "autosave": "Bei jedem Schritt gespeichert",
       "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
       "submit": "Angaben einreichen",
       "submitting": "Wird eingereicht…",
       "exit": "Später fortsetzen"
     },
     "signataire": {
-      "eyebrow": "Zeichnungsberechtigte Person",
       "title": "Wer ist berechtigt, für die Agentur zu unterzeichnen?",
-      "subtitle": "Geben Sie die Identität der Person an, die berechtigt ist, die Agentur zu verpflichten. Wir erheben diese Angaben im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG).",
+      "subtitle": "Die Person, die Ihre Agentur verpflichten kann. Wir erheben diese Angaben im Sinne des Schweizer Geldwäschereigesetzes (GwG).",
       "fields": {
         "firstName": "Vorname",
         "lastName": "Nachname",
@@ -61,9 +58,8 @@
       }
     },
     "agence": {
-      "eyebrow": "Identität der Agentur",
       "title": "Wie lautet die rechtliche Identität Ihrer Agentur?",
-      "subtitle": "Diese Angaben müssen genau mit Ihrem Handelsregistereintrag übereinstimmen. Wir erheben sie im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG).",
+      "subtitle": "Diese Angaben müssen genau mit Ihrem Handelsregistereintrag übereinstimmen.",
       "fields": {
         "country": "Sitzstaat",
         "countryPlaceholder": "Land auswählen",
@@ -73,7 +69,7 @@
         "legalName": "Firmenbezeichnung",
         "legalNameHint": "Die offizielle Bezeichnung gemäss Handelsregistereintrag.",
         "tradeName": "Handelsname",
-        "tradeNameHint": "Der Name, unter dem Ihre Agentur bei Kundinnen und Kunden bekannt ist, falls abweichend von der Firmenbezeichnung. Wird zum Abgleich mit Ihrer Website verwendet.",
+        "tradeNameHint": "Der Name, unter dem Ihre Kundinnen und Kunden Sie kennen, falls abweichend von der Firmenbezeichnung.",
         "businessRegistrationNumber": "Handelsregisternummer",
         "tva": "MWST-Nummer",
         "tvaHint": "Freiwillig: betrifft nur mehrwertsteuerpflichtige Unternehmen.",
@@ -85,12 +81,11 @@
       }
     },
     "beneficiaires": {
-      "eyebrow": "Wirtschaftlich Berechtigte",
       "title": "Wer sind die wirtschaftlich Berechtigten Ihrer Agentur?",
-      "subtitle": "Geben Sie die natürlichen Personen an, die die Agentur besitzen oder kontrollieren. Wir erheben diese Angaben im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Der Referenzschwellenwert liegt bei 25 % (FATF-Norm): Dies ist eine Erfassungshilfe, Sie können eine Person auch darunter angeben.",
+      "subtitle": "Die natürlichen Personen, die Ihre Agentur besitzen oder kontrollieren.",
       "reuseSignataire": "{{name}} übernehmen (Unterzeichner)",
       "addButton": "Wirtschaftlich Berechtigten hinzufügen",
-      "emptyHint": "Bisher kein wirtschaftlich Berechtigter angegeben. Dies ist möglich, wenn keine natürliche Person allein 25 % oder mehr der Agentur hält oder kontrolliert: Geben Sie dann die Person an, die sie auf andere Weise kontrolliert, oder andernfalls ein Mitglied der obersten Geschäftsleitung.",
+      "emptyHint": "Erreicht niemand 25 %? Geben Sie an, wer die Agentur anderweitig kontrolliert, andernfalls ein Mitglied der Geschäftsleitung.",
       "removeButton": "Diesen wirtschaftlich Berechtigten entfernen",
       "fields": {
         "firstName": "Vorname",
@@ -110,9 +105,8 @@
       }
     },
     "pieceIdentite": {
-      "eyebrow": "Ausweisdokument",
       "title": "Laden Sie das Ausweisdokument der unterzeichnenden Person hoch",
-      "subtitle": "Vorder- und Rückseite eines gültigen Ausweisdokuments (Identitätskarte, Pass oder Aufenthaltstitel). Dieses Dokument wird von einer Person unseres Compliance-Teams geprüft; in diesem Schritt erfolgt keine automatische Überprüfung.",
+      "subtitle": "Vorder- und Rückseite eines gültigen Ausweises: Identitätskarte, Pass oder Aufenthaltstitel. Eine Person unseres Compliance-Teams prüft das Dokument.",
       "missingSignataire": "Die unterzeichnende Person muss zuerst im vorherigen Schritt angegeben werden.",
       "sides": {
         "recto": "Vorderseite",
@@ -129,9 +123,8 @@
       }
     },
     "recap": {
-      "eyebrow": "Zusammenfassung",
       "title": "Prüfen Sie Ihre Angaben, bevor Sie sie einreichen",
-      "subtitle": "Lesen Sie jeden Abschnitt unten noch einmal durch. Sie können einen Schritt vor dem Einreichen noch bearbeiten.",
+      "subtitle": "Lesen Sie jeden Abschnitt noch einmal durch. Sie können einen Schritt noch bearbeiten.",
       "notProvided": "Nicht angegeben",
       "beneficiaires": {
         "empty": "Kein wirtschaftlich Berechtigter angegeben.",
@@ -145,10 +138,10 @@
       },
       "attestation": "Ich bestätige, dass die obigen Angaben nach meinem Wissen richtig und vollständig sind.",
       "errors": {
-        "legalName": "Die Firmenbezeichnung der Agentur fehlt. Vervollständigen Sie den Schritt Agentur, bevor Sie einreichen.",
-        "legalForm": "Die Rechtsform der Agentur fehlt. Vervollständigen Sie den Schritt Agentur, bevor Sie einreichen.",
-        "country": "Der Sitzstaat der Agentur fehlt. Vervollständigen Sie den Schritt Agentur, bevor Sie einreichen.",
-        "signatory": "Es ist keine zeichnungsberechtigte Person aktiv erfasst. Vervollständigen Sie den Schritt Unterzeichner, bevor Sie einreichen.",
+        "legalName": "Firmenbezeichnung fehlt. Vervollständigen Sie den Schritt Agentur.",
+        "legalForm": "Rechtsform fehlt. Vervollständigen Sie den Schritt Agentur.",
+        "country": "Sitzstaat fehlt. Vervollständigen Sie den Schritt Agentur.",
+        "signatory": "Keine zeichnungsberechtigte Person aktiv. Vervollständigen Sie den Schritt Unterzeichner.",
         "generic": "Die Einreichung ist fehlgeschlagen. Versuchen Sie es erneut."
       }
     }
@@ -157,46 +150,46 @@
     "banner": {
       "notSubmitted": {
         "title": "Identitätsprüfung nicht eingereicht",
-        "bodyAdmin": "Schliessen Sie die Identitätsprüfung Ihrer Agentur ab, um das Öffnen von KYC-Dossiers und den Versand elektronischer Signaturen freizuschalten.",
-        "bodyOther": "Ein Admin oder Manager Ihrer Agentur muss die Identitätsprüfung abschliessen, bevor ein KYC-Dossier geöffnet oder eine elektronische Signatur versendet werden kann."
+        "bodyAdmin": "Schliessen Sie die Identitätsprüfung ab, um KYC-Dossiers zu öffnen und elektronische Signaturen zu versenden.",
+        "bodyOther": "Ein Admin oder Manager muss die Identitätsprüfung Ihrer Agentur abschliessen."
       },
       "pendingReview": {
         "title": "Prüfung wird begutachtet",
-        "body": "Das MEGGA-Team muss die Identität Ihrer Agentur bestätigen, bevor KYC-Dossiers und elektronische Signaturen verfügbar werden. Schauen Sie später wieder vorbei, der Status aktualisiert sich automatisch."
+        "body": "Wir bestätigen die Identität Ihrer Agentur. Der Status aktualisiert sich automatisch."
       },
       "rejected": {
         "title": "Prüfung abgelehnt",
-        "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Das erneute Absenden des Formulars löst keine neue Prüfung aus: Wenden Sie sich an den MEGGA-Support, um den Grund und die weiteren Schritte zu erfahren."
+        "body": "Die Identität Ihrer Agentur wurde nicht bestätigt. Das erneute Absenden des Formulars löst keine neue Prüfung aus: Wenden Sie sich an den Support."
       },
       "cta": "Prüfung abschliessen",
       "contactSupport": "Support kontaktieren",
       "correctionRequested": {
         "title": "Korrektur angefordert",
-        "body": "Das MEGGA-Team bittet Sie, Ihre Identitätsangaben zu korrigieren, bevor Sie fortfahren. Die Einzelheiten wurden Ihnen per E-Mail zugesandt. Öffnen Sie das Formular erneut und senden Sie es anschliessend nochmals ab."
+        "body": "Wir haben Sie per E-Mail um eine Korrektur gebeten. Öffnen Sie das Formular erneut und senden Sie es nochmals ab."
       }
     },
     "block": {
-      "checking": "Prüfung des Status Ihrer Agentur vor dem Öffnen eines KYC-Dossiers…",
+      "checking": "Status Ihrer Agentur wird geprüft…",
       "notSubmitted": {
         "eyebrow": "Identitätsprüfung erforderlich",
-        "title": "Die Identitätsprüfung Ihrer Agentur wurde noch nicht eingereicht",
-        "bodyAdmin": "MEGGA prüft die Identität jeder Agentur, bevor ein KYC-Kundendossier geöffnet oder eine elektronische Signatur versendet werden kann, im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Als Admin oder Manager können Sie diese Prüfung jetzt abschliessen.",
-        "bodyOther": "MEGGA prüft die Identität jeder Agentur, bevor ein KYC-Kundendossier geöffnet oder eine elektronische Signatur versendet werden kann, im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Nur ein Admin oder Manager Ihrer Agentur kann diese Prüfung abschliessen."
+        "title": "Weisen Sie die Identität Ihrer Agentur nach",
+        "bodyAdmin": "Wir prüfen die Identität jeder Agentur, bevor ein KYC-Dossier eröffnet oder eine elektronische Signatur versendet wird, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Sie können die Prüfung jetzt abschliessen.",
+        "bodyOther": "Wir prüfen die Identität jeder Agentur, bevor ein KYC-Dossier eröffnet oder eine elektronische Signatur versendet wird, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Nur ein Admin oder Manager kann sie abschliessen."
       },
       "pendingReview": {
         "eyebrow": "Prüfung läuft",
-        "title": "Das Prüfdossier Ihrer Agentur wird derzeit begutachtet",
-        "body": "Ihr Dossier wurde an das MEGGA-Team übermittelt. Ein Teammitglied muss die Identität Ihrer Agentur bestätigen, bevor Sie KYC-Dossiers öffnen oder elektronische Signaturen versenden können. Schauen Sie später wieder auf diesem Bildschirm vorbei, der Status aktualisiert sich, sobald eine Entscheidung getroffen wurde."
+        "title": "Wir prüfen Ihr Dossier",
+        "body": "Ihr Dossier liegt bei unserem Compliance-Team. Der Status aktualisiert sich, sobald eine Entscheidung getroffen wurde."
       },
       "rejected": {
         "eyebrow": "Prüfung abgelehnt",
-        "title": "Das Prüfdossier Ihrer Agentur wurde abgelehnt",
-        "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Das erneute Absenden des Formulars löst keine neue Prüfung aus: Wenden Sie sich an den MEGGA-Support, um den Grund zu verstehen und die weiteren Schritte zu erfahren."
+        "title": "Ihr Dossier wurde nicht bestätigt",
+        "body": "Das erneute Absenden des Formulars löst keine neue Prüfung aus. Wenden Sie sich an den Support, um den Grund und die weiteren Schritte zu erfahren."
       },
       "unavailable": {
         "eyebrow": "Prüfstatus nicht verfügbar",
-        "title": "Der Prüfstatus Ihrer Agentur konnte nicht gelesen werden",
-        "body": "Dies ist keine Entscheidung über Ihr Dossier: Das Lesen des Status ist fehlgeschlagen, vermutlich wegen einer unterbrochenen Verbindung oder eines vorübergehend nicht verfügbaren Dienstes. Solange dieser Status nicht bestätigt ist, kann kein KYC-Dossier geöffnet werden. Versuchen Sie es gleich noch einmal; falls das Problem bestehen bleibt, wenden Sie sich an den MEGGA-Support.",
+        "title": "Prüfstatus konnte nicht gelesen werden",
+        "body": "Ihr Dossier ist nicht betroffen: Das Lesen des Status ist fehlgeschlagen. Versuchen Sie es gleich noch einmal; wenden Sie sich an den Support, falls es weiterhin nicht klappt.",
         "retry": "Erneut versuchen"
       },
       "cta": "Prüfung abschliessen",
@@ -204,8 +197,8 @@
       "contactSupport": "Support kontaktieren",
       "correctionRequested": {
         "eyebrow": "Korrektur angefordert",
-        "title": "Ihre Identitätsangaben müssen korrigiert werden",
-        "body": "Das MEGGA-Team hat Ihr Dossier geprüft und bittet um eine Korrektur vor der Freigabe. Was geändert werden muss, wurde Ihnen per E-Mail mitgeteilt. Öffnen Sie das Identitätsformular, korrigieren Sie es und senden Sie es erneut ab: die Prüfung wird automatisch fortgesetzt."
+        "title": "Eine Korrektur ist erforderlich",
+        "body": "Die Einzelheiten haben wir Ihnen per E-Mail zugesandt. Korrigieren Sie Ihre Angaben und senden Sie sie erneut ab: die Prüfung wird automatisch fortgesetzt."
       }
     }
   }
