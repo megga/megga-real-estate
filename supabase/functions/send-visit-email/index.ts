@@ -3,9 +3,15 @@
 // - confirmation_buyer : confirmation à l'acheteur
 // - notification_agent : notification à l'agent
 // - reminder : rappel J-1 à l'acheteur
+//
+// APPELANT UNIQUE : pg_cron (`visit-reminders-j1`, migration 20260617160000).
+// Aucun appelant applicatif — la fonction n'est pas joignable depuis le front.
+// L'accès est donc réservé au secret de service ; le destinataire et l'agence
+// se déduisent de la ligne `visits`, jamais du corps de la requête.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,7 +21,6 @@ const corsHeaders = {
 interface RequestBody {
   type: 'confirmation_buyer' | 'notification_agent' | 'reminder'
   visit_id: string
-  agency_id: string
 }
 
 function formatDateFR(isoDate: string): string {
@@ -58,24 +63,28 @@ serve(async (req) => {
   }
 
   try {
-    const { type, visit_id, agency_id }: RequestBody = await req.json()
-
-    // ── Auth check (skip for buyer confirmations — public booking flow) ─────
-    const PUBLIC_TYPES = ['confirmation_buyer']
-    if (!PUBLIC_TYPES.includes(type)) {
-      const authHeader = req.headers.get('Authorization')
-      if (!authHeader?.startsWith('Bearer ')) {
-        return new Response(
-          JSON.stringify({ error: 'Authentication required' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    }
-
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
+
+    // ── Auth : appel interne uniquement (pg_cron `visit-reminders-j1`) ──
+    // L'ancienne garde ne vérifiait que le PRÉFIXE de l'en-tête
+    // (`authHeader.startsWith('Bearer ')`) : sous --no-verify-jwt, la chaîne
+    // littérale « Bearer x » suffisait, et `confirmation_buyer` en était même
+    // exempté. La fonction lisait ensuite n'importe quelle visite par son id et
+    // résolvait l'agent destinataire depuis l'`agency_id` du CORPS — de quoi se
+    // faire livrer les coordonnées de l'acheteur d'une autre agence.
+    // L'exemption publique protégeait un flux de réservation qui n'existe pas :
+    // le seul appelant du dépôt est le cron (20260617160000).
+    if (!(await isServiceSecret(supabaseAdmin, req))) {
+      return new Response(
+        JSON.stringify({ error: 'service_role required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { type, visit_id }: RequestBody = await req.json()
 
     // Fetch visit with relations
     const { data: visit, error: visitError } = await supabaseAdmin
@@ -87,6 +96,12 @@ serve(async (req) => {
     if (visitError || !visit) {
       return new Response(JSON.stringify({ error: 'Visit not found' }), { status: 404, headers: corsHeaders })
     }
+
+    // L'agence vient de la VISITE, jamais du corps de la requête : c'est elle qui
+    // désigne l'agent destinataire, donc la laisser à la main de l'appelant
+    // revenait à choisir vers quelle boîte partent les coordonnées de l'acheteur.
+    // Le cron passait déjà `v.agency_id` — comportement identique, primitif en moins.
+    const agency_id = visit.agency_id as string
 
     const property = Array.isArray(visit.property) ? visit.property[0] : visit.property
     const contact = Array.isArray(visit.contact) ? visit.contact[0] : visit.contact

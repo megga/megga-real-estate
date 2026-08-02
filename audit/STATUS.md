@@ -37,8 +37,16 @@ SPA est désactivée dans cette app, mais **si la vitrine `megga.ch` appelle enc
 ## Reste à faire — CODE (mineur)
 - **P10** — invalidations larges `useProperties.ts:187-190` → cibler (`setQueryData`). *Borderline* : change la
   fraîcheur des données affichées → à valider (pas fait pour respecter la golden rule sans validation).
-- **Scrapers coût/DoS** (`flatfox-sync`, `market-scraper`) → **gelé** tant que la PR **#677** (feature Owner touchant
-  ces mêmes fichiers) n'est pas mergée. Ensuite : appliquer `requireServiceSecret` (voir `patches/09`).
+- ~~**Scrapers coût/DoS** (`flatfox-sync`, `market-scraper`) → **gelé** tant que la PR **#677** n'est pas mergée.~~
+  **FAIT (2026-08-02)** — dégelé et appliqué : `patches/09` §C posé sur `flatfox-sync`, `realadvisor-sync`,
+  `market-scraper` et `send-visit-email` (S1g et voisins). Le gel a tenu six semaines pendant que quatre endpoints
+  d'écriture `service_role` restaient joignables sans aucune authentification ; #677 n'a pas bougé depuis sa création
+  le 18 juin. Les gardes sont posées en tête de gestionnaire, loin du mapping d'ingestion que #677 modifie : le
+  conflit attendu est trivial et se résout côté #677.
+  ⚠️ Deux findings du même patron ont été trouvés en dehors de `patches/09` et corrigés ici : `admin-monitoring` et
+  `ai-billing-monitor` décodaient la revendication `role` d'un JWT **sans vérifier la signature** — sous
+  `--no-verify-jwt`, un jeton forgé `{"role":"service_role"}` sautait la garde super-admin. Non-régression :
+  [tests/backend/edge-service-secret-guard.spec.ts](../tests/backend/edge-service-secret-guard.spec.ts).
 
 ## Reste à faire — ADMIN (Julien, tokens) → [PRE_LAUNCH_ADMIN_PLAN.md](PRE_LAUNCH_ADMIN_PLAN.md)
 Findings **non couverts par une PR code** car ils touchent le schéma/RLS/CI/secrets :

@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkMetaToken, tokenDaysMetric, tokenNeedsAlert } from '../_shared/whatsapp-token.ts'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 import { evaluateAndSendAlerts, type WhatsAppDeadletters } from '../_shared/admin-alerts.ts'
 import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 
@@ -36,26 +37,20 @@ serve(async (req) => {
   )
 
   try {
-    // Auth: accept service_role JWT (pg_cron) OR super_admin user JWT (dashboard)
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Unauthorized('Unauthorized')
+    // Auth : appel interne (pg_cron) OU super_admin interactif (console).
+    //
+    // La garde interne compare le Bearer, à temps constant, au secret partagé
+    // `app_config.service_role_key` — la valeur que pg_cron forwarde — avec repli
+    // sur l'env. On NE décode PLUS le rôle porté par un JWT : la fonction est
+    // déployée --no-verify-jwt, donc la plateforme ne vérifie aucune signature, et
+    // un jeton forgé {"role":"service_role"} franchissait la garde sans connaître
+    // le moindre secret. Le décodage servait à contourner une différence entre la
+    // clé collée et l'env (49022a70) ; `isServiceSecret` accepte les deux formats,
+    // ce qui résout ce problème-là sans ouvrir la porte.
+    // Même correctif que photo-processor (S1b) et backfill-cf-images (S22).
+    if (!req.headers.get('Authorization')) throw new Unauthorized('Unauthorized')
 
-    const token = authHeader.replace('Bearer ', '')
-
-    // Decode JWT payload to check role without a DB roundtrip
-    let jwtRole = ''
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      jwtRole = payload.role ?? ''
-    } catch { /* invalid JWT → will fail below */ }
-
-    // service_role = trusted internal call (pg_cron, other Edge Functions).
-    // Accept BOTH the legacy service_role JWT (role claim) and the current
-    // sb_secret_ service key (string-equality with the runtime env), so crons
-    // sending get_app_config('service_role_key') authenticate.
-    const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const isServiceKey = svcKey !== '' && token === svcKey
-    if (jwtRole !== 'service_role' && !isServiceKey) {
+    if (!(await isServiceSecret(supabaseAdmin, req))) {
       // Interactive call from dashboard — super_admin : rôle + allowlist email
       // (voir _shared/require-super-admin.ts, migration 20260705160000)
       const auth = await requireSuperAdmin(req, corsHeaders)

@@ -8,27 +8,11 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-// Decode a JWT payload without verifying the signature. We only use it to
-// read the `role` claim for routing (service_role vs user) — Supabase gateway
-// is not validating (deployed with --no-verify-jwt), so we re-check via
-// auth.getUser() for user tokens below.
-function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
-  try {
-    const parts = jwt.split('.')
-    if (parts.length !== 3) return null
-    const padded = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-    const padding = '='.repeat((4 - (padded.length % 4)) % 4)
-    const json = atob(padded + padding)
-    return JSON.parse(json)
-  } catch {
-    return null
-  }
 }
 
 interface DeepSeekBalanceResponse {
@@ -47,39 +31,42 @@ serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY')
-    if (!deepseekKey) {
-      return new Response(JSON.stringify({ error: 'DEEPSEEK_API_KEY not set' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
 
-    // Auth: decode the JWT payload. service_role tokens have `role: 'service_role'`;
-    // authenticated users have a `sub` claim we can look up in profiles.
-    // We avoid strict token equality on SUPABASE_SERVICE_ROLE_KEY because the
-    // env var and the pasted key can differ by whitespace/JWT rotation.
-    const authHeader = req.headers.get('Authorization') ?? ''
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+    // Auth : appel interne (pg_cron) OU super_admin interactif (console).
+    //
+    // Le Bearer est comparé à temps constant au secret partagé
+    // `app_config.service_role_key` (ce que pg_cron forwarde), avec repli sur
+    // l'env — `isServiceSecret` accepte les deux formats, ce qui couvre l'écart
+    // entre la clé collée et l'env qui avait motivé le décodage de claim.
+    // Ce décodage ne vérifiait AUCUNE signature : la fonction étant déployée
+    // --no-verify-jwt, un jeton forgé {"role":"service_role"} passait la garde.
+    // Même correctif que photo-processor (S1b) et backfill-cf-images (S22).
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
 
-    if (!token) {
+    if (!req.headers.get('Authorization')) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const payload = decodeJwtPayload(token)
-    const jwtRole = payload?.role as string | undefined
-
-    // Accept the current sb_secret_ service key (string-equality) in addition
-    // to the legacy service_role JWT, so pg_cron via get_app_config authenticates.
-    const isServiceKey = serviceKey !== '' && token === serviceKey
-    if (jwtRole !== 'service_role' && !isServiceKey) {
+    if (!(await isServiceSecret(admin, req))) {
       // Appel interactif — super_admin : rôle + allowlist email
       // (voir _shared/require-super-admin.ts, migration 20260705160000)
       const auth = await requireSuperAdmin(req, corsHeaders)
       if (auth instanceof Response) return auth
+    }
+
+    // Après l'auth, et pas avant : l'état de configuration du projet n'a pas à
+    // se lire depuis l'extérieur. Répondre « DEEPSEEK_API_KEY not set » à un
+    // inconnu renseigne sur l'installation, et rendait surtout tout test de la
+    // garde creux — le 500 partait avant que l'authentification soit évaluée.
+    const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY')
+    if (!deepseekKey) {
+      return new Response(JSON.stringify({ error: 'DEEPSEEK_API_KEY not set' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const res = await fetch('https://api.deepseek.com/user/balance', {
@@ -106,7 +93,6 @@ serve(async (req: Request) => {
       })
     }
 
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
     const { error } = await admin.from('ai_balance_snapshots').insert({
       provider: 'deepseek',
       total_balance_usd: parseFloat(usd.total_balance),
