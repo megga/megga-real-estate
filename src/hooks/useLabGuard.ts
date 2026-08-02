@@ -46,9 +46,16 @@
  * seulement que la LECTURE a echoue, ce qui est vrai et actionnable. La discipline
  * du correctif est intacte : 'unavailable' n'est jamais un 'blocked_*', le bandeau
  * global reste muet dessus, et seul l'ecran plein en parle.
+ *
+ * Carve-out DEV_BYPASS (dev/E2E uniquement, cf. plus bas) : l'agence du profil mock
+ * n'existe dans aucune base, donc la lecture ci-dessous ne peut RIEN dire d'elle et
+ * ce garde remplacait chaque page KYC par son ecran d'echec — ce qui a rendu creuse
+ * toute la couverture E2E de /dashboard/kyc (constat par mutation, 02.08.2026). Sous
+ * bypass on lit donc DEV_BYPASS_AGENCY au lieu du reseau ; la REGLE, elle, tourne
+ * a l'identique.
  */
 import { useQuery } from '@tanstack/react-query'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth, DEV_BYPASS_AUTH, DEV_BYPASS_AGENCY } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { UserRole } from '@/types/auth'
 
@@ -231,19 +238,30 @@ export function useLabGuard(): LabGuardStatus {
       if (error) throw error
       return data
     },
-    enabled: !authLoading && !!agencyId,
+    // Bypass dev (playwright.config.ts) : l'agence du profil mock n'existe dans
+    // aucune base — la lecture repondrait 400 et ce garde rendrait « statut
+    // illisible » a la place de CHAQUE page KYC. On lit donc la fiche du mock
+    // (DEV_BYPASS_AGENCY) plutot que le reseau. Inoperant en prod, ou
+    // DEV_BYPASS_AUTH est faux par construction (import.meta.env.DEV).
+    enabled: !authLoading && !!agencyId && !DEV_BYPASS_AUTH,
     staleTime: 60_000,
   })
+
+  // La regle ci-dessous s'applique a la fiche du mock EXACTEMENT comme a une ligne
+  // lue en base : `resolveLabGuardStatus` tranche, le bypass ne court-circuite donc
+  // pas le garde, il lui donne seulement une agence a juger.
+  const row = DEV_BYPASS_AUTH ? DEV_BYPASS_AGENCY : data
 
   return resolveLabGuardStatus({
     authLoading,
     agencyId,
-    agencyStatusLoading,
+    // Sous bypass la requete est desactivee : ni attente, ni echec a signaler.
+    agencyStatusLoading: !DEV_BYPASS_AUTH && agencyStatusLoading,
     // Correctif revue (point 3, important) : une lecture en echec (isError) donne
     // 'unavailable' dans resolveLabGuardStatus, jamais un blocage — cf. l'en-tete du
     // fichier et son propre commentaire.
-    agencyStatusError,
-    identitySubmittedAt: data?.identity_submitted_at,
-    verificationStatus: data?.verification_status,
+    agencyStatusError: !DEV_BYPASS_AUTH && agencyStatusError,
+    identitySubmittedAt: row?.identity_submitted_at,
+    verificationStatus: row?.verification_status,
   })
 }
