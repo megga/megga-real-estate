@@ -211,11 +211,16 @@ pièce n'apparaît pas.
 **Ce que ça ne couvre pas, à dire franchement** (la mesure du §5 en a ajouté un troisième
 point, le plus gênant) **:**
 
-- **Une image imbriquée dans le MPF.** Les fichiers réels portent deux à trois segments
-  `APP2` : sur un iPhone, l'un d'eux est le MPF, qui peut contenir une seconde image JPEG
-  complète avec son propre `APP1/Exif`. Retirer le `APP1` de tête laisserait alors le GPS
-  dans l'image imbriquée — un retrait qui se croit fait et ne l'est pas, le pire des
-  résultats. **À trancher avant d'écrire la moindre ligne de (b).**
+- **L'index MPF, qu'un retrait naïf casse en silence.** Les fichiers réels contiennent des
+  images imbriquées (MPF) — mesuré : 2 images pour le recto, 3 pour le verso. Bonne
+  nouvelle, **aucune ne porte d'EXIF ni de GPS** (§5), donc retirer le `APP1` de tête suffit
+  à faire disparaître les coordonnées. Mais les décalages du MPF sont comptés depuis son
+  propre en-tête TIFF : retirer un segment en amont les décale tous, et **l'index pointe
+  alors à côté**. Le fichier s'ouvre encore (l'image primaire est intacte) mais sa structure
+  devient silencieusement incohérente. L'implémentation doit donc soit retirer aussi le
+  segment MPF et les images qui le suivent — JPEG propre à une seule image, pixels primaires
+  identiques octet pour octet, au prix de la carte de gain HDR —, soit réécrire les
+  décalages. La première voie est plus simple et plus honnête.
 
 - **`application/pdf`**, pourtant format accepté
   ([useAgencyIdentity.ts:523](../src/hooks/useAgencyIdentity.ts), et proposé à l'input) : un
@@ -309,13 +314,38 @@ Trois conséquences.
 3. **Le XMP compte.** Présent sur le recto, il peut porter de la géolocalisation lui aussi :
    un retrait lossless doit viser `APP1/Exif` **et** `APP1/XMP`.
 
-> ⚠ **Un piège pour (b) que ces segments révèlent.** Deux à trois `APP2` plus un `APP10`,
-> c'est la signature d'un iPhone : `APP2` y porte le profil ICC **et le MPF**
-> (Multi-Picture Format). Or un MPF peut embarquer une **seconde image JPEG complète, avec
-> son propre `APP1/Exif`**. Si c'est le cas ici, retirer le `APP1` de tête ne suffirait pas :
-> le GPS survivrait dans l'image imbriquée, et le retrait passerait pour fait alors qu'il ne
-> le serait pas. **À vérifier avant d'implémenter (b)** — non fait, cela sortait du périmètre
-> de lecture autorisé pour cette mesure.
+### ✅ Le MPF, mesuré le 02.08.2026 — le piège redouté ne mord pas, un autre apparaît
+
+Les deux à trois segments `APP2` sont la signature d'un iPhone : `APP2` y porte le profil ICC
+**et le MPF** (Multi-Picture Format, CIPA DC-007), qui peut embarquer des images
+supplémentaires. La crainte était qu'une image imbriquée porte son propre `APP1/Exif` : le
+GPS survivrait au retrait du `APP1` de tête, et le correctif passerait pour fait sans l'être.
+
+| | images déclarées | imbriquées | EXIF | GPS |
+|---|---|---|---|---|
+| recto.jpg | 2 | 1 (411 Ko) | non | **non** |
+| verso.jpg | 3 | 2 (225 et 91 Ko) | non | **non** |
+
+**Aucune image imbriquée ne porte de métadonnées.** Retirer `APP1/Exif` (et `APP1/XMP` sur le
+recto) suffit donc à faire disparaître les coordonnées de ces fichiers.
+
+> ⚠ **Mais la mesure révèle un autre problème, plus concret.** Les décalages du MPF sont
+> comptés depuis le début de son propre en-tête TIFF. Retirer un segment `APP1` en amont
+> décale tout ce qui suit : **l'index MPF pointe alors à côté**. Le fichier continue de
+> s'ouvrir — l'image primaire est intacte — mais sa structure devient silencieusement
+> incohérente. Un retrait « lossless » naïf produit donc un fichier subtilement malformé.
+> Deux issues, à décider en implémentant : retirer aussi le segment MPF **et** les images qui
+> le suivent (JPEG propre à une seule image, pixels primaires identiques octet pour octet, au
+> prix de la carte de gain HDR), ou réécrire les décalages. La première est plus simple.
+>
+> ⚠ **Portée de ce constat : deux fichiers, un seul appareil.** La spécification MPF AUTORISE
+> une image imbriquée porteuse d'EXIF, et un autre modèle — ou un mode Portrait, Live Photo,
+> HDR — pourrait en produire une. Ce résultat ne vaut pas garantie pour les dépôts futurs :
+> une implémentation prudente vérifie aussi les images imbriquées, ou les supprime, ce qui
+> règle la question définitivement.
+
+Le segment `urn:iso:std:` relevé sur le verso est une carte de gain HDR ISO, pas un porteur
+de géolocalisation.
 
 ### Ce qui reste ouvert
 
@@ -386,8 +416,14 @@ métadonnée n'a été lue ni rapportée** : uniquement des présences. Le parse
 au préalable sur deux JPEG témoins fabriqués pour ça, l'un avec un pointeur d'IFD GPS et
 l'autre nu, afin que l'instrument soit vérifié avant d'être pointé sur une pièce d'identité.
 
-Restent des **hypothèses**, étiquetées comme telles : la présence d'une image imbriquée dans
-le MPF (§5, le piège de (b) — plausible d'après les segments relevés, non vérifiée), ce que
+**La seconde mesure du §5**, sur le MPF, a suivi la même discipline : lecture de l'index
+`APP2/MPF` dans les 128 premiers Ko, puis une tranche de 64 Ko à la position déclarée de
+chaque image imbriquée — jamais le fichier entier, jamais un décodage, jamais une valeur.
+Elle a levé une hypothèse (le piège redouté ne se matérialise pas) et en a produit un
+constat neuf (les décalages MPF qu'un retrait casse).
+
+Restent des **hypothèses**, étiquetées comme telles : la généralisation du résultat MPF au-delà
+de ces deux fichiers et de cet appareil — la spécification autorise le cas contraire —, ce que
 Safari iOS livre à un utilisateur dont le téléphone produit du HEIC, et la présence effective
 de GPS dans les médias entrants WhatsApp, qui dépend du ré-encodage côté Meta et n'est pas
 prouvable depuis ce dépôt.
