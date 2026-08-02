@@ -51,8 +51,7 @@ const DEMO_YEARLY = 1200000
 const PLAN_KEYS: Record<AgencyPlan, string> = {
   starter: 'subscription.plans.starter.name',
   pro: 'subscription.plans.pro.name',
-  agency: 'subscription.plans.agency.name',
-  enterprise: 'subscription.plans.entreprise.name',
+  entreprise: 'subscription.plans.entreprise.name',
 }
 
 /**
