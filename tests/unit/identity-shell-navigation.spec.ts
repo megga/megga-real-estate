@@ -23,6 +23,9 @@ import {
   identitySubmissionErrorStep,
   canSubmitIdentity,
   shouldResetAttestationLeavingRecap,
+  shouldShowIdentityWelcome,
+  shouldDecideIdentityWelcome,
+  resolveIdentityScreen,
   EMPTY_SIGNATAIRE_DRAFT,
   EMPTY_AGENCY_DRAFT,
   EMPTY_BENEFICIAIRE_DRAFT,
@@ -573,5 +576,80 @@ describe('shouldResetAttestationLeavingRecap — un seul point de reset de l\'at
 
     expect(step, 'de retour au récapitulatif').toBe(4)
     expect(attestationChecked, 'jamais remise à true automatiquement : l\'utilisateur doit la recocher').toBe(false)
+  })
+})
+
+// Écran d'arrivée (1er août 2026). Le wizard s'ouvrait droit sur « Signataire » :
+// un dirigeant qui venait d'activer son compte se voyait réclamer son identité
+// sans savoir pourquoi ni pour combien de temps. La règle décide qui voit
+// l'explication, et surtout qui ne la revoit pas.
+describe('shouldShowIdentityWelcome - qui voit l\'écran d\'arrivée', () => {
+  it('rien n\'a jamais été validé -> on explique avant de demander', () => {
+    expect(shouldShowIdentityWelcome(0, false, false)).toBe(true)
+  })
+
+  it('une personne déjà enregistrée -> saisie entamée, on reprend où on en était', () => {
+    expect(shouldShowIdentityWelcome(1, false, false)).toBe(false)
+    expect(shouldShowIdentityWelcome(3, false, false)).toBe(false)
+  })
+
+  // LA régression du 01.08.2026 : React Query sert le cache AVANT de revalider,
+  // donc `isLoading` est faux alors que la liste est encore celle de la visite
+  // précédente. Trancher là-dessus faisait clignoter l'écran d'arrivée chez un
+  // dirigeant qui avait déjà saisi son signataire.
+  it('liste vide mais revalidation en cours -> on ne tranche pas', () => {
+    expect(shouldShowIdentityWelcome(0, false, true)).toBe(false)
+  })
+
+  it('lecture en cours -> ni l\'écran d\'arrivée ni le wizard, la coquille tient son spinner', () => {
+    // Sans cette garde, le compte de personnes vaut 0 le temps de la requête :
+    // un dirigeant qui a déjà tout saisi verrait l\'écran de bienvenue clignoter
+    // avant que ses données n\'arrivent - la même classe de faux positif que le
+    // flash du CRM corrigé le même jour dans AgentSugarLayout.
+    expect(shouldShowIdentityWelcome(0, true, false)).toBe(false)
+    expect(shouldShowIdentityWelcome(2, true, false)).toBe(false)
+  })
+})
+
+// Trois états mutuellement exclusifs, et surtout : une décision PRISE UNE FOIS.
+// La suite E2E KYB est tombée trois fois de suite le 01.08.2026 non pas sur un
+// mauvais sélecteur, mais parce que l'écran changeait sous elle — coquille, puis
+// écran d'arrivée, puis coquille. Ces cas pinnent qu'aucun repère n'apparaît
+// avant que la décision soit arrêtée.
+describe('resolveIdentityScreen - ce que la route rend, sans clignotement', () => {
+  it('décision non prise -> écran d\'attente, ni arrivée ni coquille', () => {
+    expect(resolveIdentityScreen(null, false, false)).toBe('preparing')
+    expect(resolveIdentityScreen(null, true, false)).toBe('preparing')
+    expect(resolveIdentityScreen(null, false, true)).toBe('preparing')
+  })
+
+  it('rien de saisi et écran pas encore franchi -> écran d\'arrivée', () => {
+    expect(resolveIdentityScreen(true, false, false)).toBe('welcome')
+  })
+
+  it('écran franchi -> le wizard, et on n\'y revient jamais', () => {
+    expect(resolveIdentityScreen(true, true, false)).toBe('wizard')
+  })
+
+  it('sortie de secours -> le wizard (qui rend l\'écran d\'attente), jamais l\'arrivée', () => {
+    expect(resolveIdentityScreen(true, false, true)).toBe('wizard')
+  })
+
+  it('saisie déjà entamée -> le wizard directement', () => {
+    for (const dismissed of [false, true]) {
+      expect(resolveIdentityScreen(false, dismissed, false)).toBe('wizard')
+    }
+  })
+})
+
+describe('shouldDecideIdentityWelcome - on ne tranche que sur des donnees stabilisees', () => {
+  it('aucune lecture en cours -> on peut decider', () => {
+    expect(shouldDecideIdentityWelcome(false, false)).toBe(true)
+  })
+
+  it('premier chargement ou revalidation -> on attend', () => {
+    expect(shouldDecideIdentityWelcome(true, false)).toBe(false)
+    expect(shouldDecideIdentityWelcome(false, true)).toBe(false)
+    expect(shouldDecideIdentityWelcome(true, true)).toBe(false)
   })
 })

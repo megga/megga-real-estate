@@ -372,11 +372,20 @@ MAPBOX_TOKEN,
 UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 ```
 
-> `MAPBOX_TOKEN` est distinct de `VITE_MAPBOX_TOKEN` (secret GitHub Actions, injecté au
-> build du bundle navigateur). Le connecteur de géocodage KYB tourne dans une Edge
-> Function, côté serveur : il lui faut le jeton dans les secrets Supabase, pas dans le
-> build. La même valeur convient. Sans lui, le check `address_geocode` produit
-> `unavailable`, ce qui ne casse rien mais retire un signal du score.
+> ⚠ **`MAPBOX_TOKEN` n'est PAS configuré** (constat du 01.08.2026, [issue #1061](https://github.com/megga/megga-real-estate/issues/1061)).
+> Il est distinct de `VITE_MAPBOX_TOKEN` (secret GitHub Actions, injecté au build du bundle
+> navigateur). Le connecteur de géocodage KYB tourne dans une Edge Function, côté serveur :
+> il lui faut le jeton dans les secrets Supabase, pas dans le build. Sans lui, le check
+> `address_geocode` produit `unavailable` — et contrairement à ce que cette note affirmait,
+> **ça ne « retire pas juste un signal » : ça empêche tout score d'exister**. Le moteur exclut
+> `unavailable` du numérateur ET du dénominateur, or les trois seuls checks scorables
+> (`vat_lookup` 3.00, `address_geocode` 1.50, `domain_whois_age` 0.75) sortent tous
+> `unavailable` aujourd'hui → `verification_score = NULL` pour tout dossier suisse, et la file
+> de revue trie sur des `NULL`.
+>
+> « La même valeur convient » **reste à vérifier** : si le jeton porte une restriction URL
+> referrer, il fonctionnera dans le navigateur et échouera depuis l'Edge Function (appel sans
+> referrer). Il faudra alors un second jeton public sans restriction, scope `geocoding`.
 
 > ⚠ **Les deux variables du registre UID ne sont PAS configurées** (aucun secret Supabase,
 > aucune entrée `supabase/config.toml`) : on ignore encore s'il existe une API séparée pour
@@ -396,15 +405,39 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 
 ### Secrets GitHub Actions
 ```
-VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN,
+VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN (⚠ vide — voir ci-dessous),
 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 ```
+
+> ⚠ **`VITE_MAPBOX_TOKEN` est listé ici mais vide au build** ([issue #1061](https://github.com/megga/megga-real-estate/issues/1061)).
+> Les 290 fichiers déployés de `app.megga.ch` et `megga.ch` ont été inspectés le 01.08.2026 :
+> aucun littéral `pk.`, alors que `MrhMapbox.tsx` lit `import.meta.env.VITE_MAPBOX_TOKEN` au
+> niveau module — la valeur devrait y être figée. Conséquence : les cartes du CRM affichent
+> le repli « Carte indisponible ». Les secrets GitHub n'étant pas lisibles, l'absence est
+> déduite des artefacts, pas vérifiée à la source.
 
 ### Supabase
 - **Project ref** : eayczugyrvmtqnnmvjod | **Region** : eu-west-1 | **Plan** : Pro
 - **Anon key** : hardcodée dans `src/lib/supabase.ts` (sécurité via RLS, pas par obscurité)
 
 ### Prochaines priorités
+
+**🔴 Bloquant en production — [issue #1061](https://github.com/megga/megga-real-estate/issues/1061) : jeton Mapbox absent partout.**
+Deux secrets à poser, deux effets distincts, constatés le 01.08.2026 :
+- `VITE_MAPBOX_TOKEN` (GitHub Actions) est **vide au build** → les cartes du CRM sont mortes
+  (Matching · Recherche affiche le repli « Carte indisponible »). Vérifié en inspectant les
+  290 fichiers déployés de `app.megga.ch` + `megga.ch` : zéro littéral `pk.`. Exige un
+  redéploiement, la valeur étant figée au build.
+- `MAPBOX_TOKEN` (secrets Supabase) absent → `address_geocode` = `unavailable`, donc
+  **`verification_score` reste `NULL` pour tout dossier suisse** (les 3 seuls checks
+  scorables sont tous `unavailable` ; les checks tranchés sont des vétos à poids 0). Pris en
+  compte sans redéploiement. C'est le geste à plus fort effet sur le KYB.
+
+⚠ Vérifier la restriction **URL referrer** du jeton : un jeton restreint marche dans le
+navigateur mais échoue depuis l'Edge Function, qui appelle sans referrer — auquel cas les
+deux secrets doivent porter des valeurs **différentes**.
+
+---
 
 > ⚠ Liste pré-pivot (avril 2026), conservée pour mémoire. Depuis le pivot CRM-first (juin 2026), les points marketplace publique (`/louer`, « Mes lieux », carte des prix) sont gelés ; le focus actuel est le CRM agent.
 

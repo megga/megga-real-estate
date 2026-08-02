@@ -8,6 +8,11 @@
       "title": "Cette étape se termine sur ordinateur",
       "body": "La saisie de l'identité légale de votre agence nécessite un écran plus grand. Connectez-vous depuis un ordinateur pour la terminer."
     },
+    "welcome": {
+      "title": "Ouvrons votre espace",
+      "body": "Nous allons commencer par identifier votre agence.",
+      "startButton": "Identifier mon agence"
+    },
     "pendingNotice": {
       "eyebrow": "Saisie interrompue",
       "title": "Votre saisie a été interrompue",

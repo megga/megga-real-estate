@@ -8,6 +8,11 @@
       "title": "Questo passaggio si completa da computer",
       "body": "L'inserimento dell'identità legale della Sua agenzia richiede uno schermo più grande. Acceda da un computer per completarlo."
     },
+    "welcome": {
+      "title": "Apriamo il suo spazio",
+      "body": "Inizieremo identificando la sua agenzia.",
+      "startButton": "Identifichi la sua agenzia"
+    },
     "pendingNotice": {
       "eyebrow": "Compilazione interrotta",
       "title": "La Sua compilazione è stata interrotta",

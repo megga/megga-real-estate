@@ -8,6 +8,11 @@
       "title": "This step is completed on a computer",
       "body": "Entering your agency's legal identity requires a larger screen. Sign in from a computer to complete it."
     },
+    "welcome": {
+      "title": "Let us open your workspace",
+      "body": "We will start by identifying your agency.",
+      "startButton": "Identify my agency"
+    },
     "pendingNotice": {
       "eyebrow": "Entry interrupted",
       "title": "Your entry was interrupted",

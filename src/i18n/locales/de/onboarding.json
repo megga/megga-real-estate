@@ -8,6 +8,11 @@
       "title": "Dieser Schritt wird am Computer abgeschlossen",
       "body": "Die Erfassung der rechtlichen Identität Ihrer Agentur erfordert einen grösseren Bildschirm. Melden Sie sich von einem Computer aus an, um sie abzuschliessen."
     },
+    "welcome": {
+      "title": "Öffnen wir Ihren Arbeitsbereich",
+      "body": "Wir beginnen damit, Ihre Agentur zu identifizieren.",
+      "startButton": "Meine Agentur identifizieren"
+    },
     "pendingNotice": {
       "eyebrow": "Erfassung unterbrochen",
       "title": "Ihre Erfassung wurde unterbrochen",
