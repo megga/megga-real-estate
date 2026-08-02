@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Star, Check, Loader2, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { usePublicVisit, useSubmitFeedback } from '@/hooks/useVisits'
+import { usePublicVisit, useSubmitFeedback, estRefus } from '@/hooks/useVisits'
 import PublicPageHeader from '@/components/layout/PublicPageHeader'
 
 const STRENGTHS = [
@@ -236,7 +236,9 @@ export default function VisitFeedbackPage() {
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
               <p className="text-sm font-medium text-amber-900">Votre avis n'a pas pu être enregistré</p>
               <p className="text-xs text-amber-800 mt-1">
-                Un avis a peut-être déjà été déposé pour cette visite, ou celle-ci a été annulée.
+                {estRefus(submitFeedback.error)
+                  ? 'Un avis a peut-être déjà été déposé pour cette visite, ou celle-ci a été annulée.'
+                  : 'Vérifiez votre connexion et réessayez.'}
               </p>
             </div>
           )}

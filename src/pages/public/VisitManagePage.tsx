@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { CalendarDays, MapPin, Check, X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { usePublicVisit, useRescheduleVisit, useCancelVisit } from '@/hooks/useVisits'
+import { usePublicVisit, useRescheduleVisit, useCancelVisit, estRefus } from '@/hooks/useVisits'
 import PublicPageHeader from '@/components/layout/PublicPageHeader'
 
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
@@ -161,10 +161,21 @@ export default function VisitManagePage() {
             rien écrit et l'acheteur repartirait convaincu du contraire. */}
         {(cancel.isError || reschedule.isError) && (
           <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-sm font-medium text-amber-900">Ce lien ne permet plus cette action</p>
-            <p className="text-xs text-amber-800 mt-1">
-              La visite a peut-être déjà été annulée ou clôturée. Contactez votre agent pour la modifier.
-            </p>
+            {estRefus(cancel.error) || estRefus(reschedule.error) ? (
+              <>
+                <p className="text-sm font-medium text-amber-900">Ce lien ne permet plus cette action</p>
+                <p className="text-xs text-amber-800 mt-1">
+                  La visite a peut-être déjà été annulée ou clôturée. Contactez votre agent pour la modifier.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-amber-900">L'action n'a pas abouti</p>
+                <p className="text-xs text-amber-800 mt-1">
+                  Vérifiez votre connexion et réessayez.
+                </p>
+              </>
+            )}
           </div>
         )}
 

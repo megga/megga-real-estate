@@ -339,6 +339,15 @@ const rpcByToken = <N extends keyof PgFns>(fn: N, args: PgFns[N]['Args']) =>
 export const VISIT_TOKEN_REFUSED = 'visit_token_refused'
 
 /**
+ * Distingue un REFUS (le lien a été compris, il n'ouvre plus ce droit) d'une PANNE
+ * (réseau, 500). Les deux doivent se dire différemment à l'acheteur : « contactez
+ * votre agent » sur un refus, « réessayez » sur une panne. Les confondre enverrait
+ * appeler l'agence pour une coupure Wi-Fi.
+ */
+export const estRefus = (e: unknown): boolean =>
+  e instanceof Error && e.message === VISIT_TOKEN_REFUSED
+
+/**
  * Les trois gestes par token renvoient un `boolean` : `false` = refus métier
  * (jeton hors fenêtre, visite déjà annulée/close, avis déjà déposé), et non une
  * erreur PostgREST. Sans cette conversion, `error` est `null`, la mutation

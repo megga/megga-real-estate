@@ -67,7 +67,7 @@ describe.skipIf(!HAS_KEYS)('durcissement RLS — tickets + visites par token', (
     propertyId = p.id
 
     // ⚠ Date RELATIVE, jamais littérale : `get_visit_by_token` ne sert plus une visite
-    // au-delà de `scheduled_at + 30 jours` (migration 20260802210000). Une date en dur
+    // au-delà de `scheduled_at + 30 jours` (migration 20260802223756). Une date en dur
     // sortirait de la fenêtre à une échéance fixe et ferait rougir la suite un matin,
     // sur un code inchangé.
     const { id, token } = await creerVisite({ decalageHeures: -2 })
