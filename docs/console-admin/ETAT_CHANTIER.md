@@ -816,6 +816,55 @@ fraîcheur de `database.ts`** : `check-migration-drift.mjs` compare migrations�
 types→base, alors que son propre en-tête raconte qu'un `database.ts` figé avait cassé quatre
 gestes du pipeline pendant une semaine en juillet.
 
+### 7quinquies. PHASE 4 (étape 31 · gate G4) — préflight MESURÉ le 02.08.2026
+
+Le plan d'origine ne s'arrête pas au Lot 3 : il reste la **Phase 4 — Go-live** (étape 31,
+gate G4, §10.8-10.9). Chaque item a été mesuré en base et au dépôt avant d'écrire cette
+section — même méthode que §7ter, mêmes surprises.
+
+| Item de l'étape 31 | État MESURÉ |
+|---|---|
+| Bascule prod par flag d'env | ⛔ **CADUQUE.** Aucun flag n'existe (seul `DEV_BYPASS`, inopérant en prod) et il n'y a **plus rien à basculer** : le remplacement s'est fait au fil des lots mergés, la console lit le LIVE depuis les lots 0-2. Amendement à acter au handoff, pas du code à écrire. |
+| Retrait des tweaks/échelles de démo | ✅ **DÉJÀ VRAI.** Aucun reste démo dans `src/pages/admin` ni `src/components/admin` (le seul hit « échelle » = l'échelle de notes NPS, un terme de design). Le seed de recette (étape 15) refuse la réf. prod EN DUR. |
+| Purges & rétentions (Live 30 j) | ◑ murée par la **décision PO n° 7** : le trigger LBA interdit toute purge < 10 ans sur `activity_events` ; le levier réel est la fenêtre d'AFFICHAGE. Les crons de purge des tables techniques, eux, existent (10 actifs). |
+| Partitions | ⛔ **RIEN À DROPPER.** Ni `admin_log` (26 lignes) ni `activity_events` (4 913) ne sont partitionnées. Le critère G4 « drop de partition constaté » est **insatisfaisable tel qu'écrit** — et partitionner 5 000 lignes serait de l'ingénierie prématurée. À amender ou à trancher, pas à construire en silence. |
+| PITR vérifié | ◻ vérification MANUELLE (dashboard Supabase → Database → PITR), ~1 min, exige un humain avec accès. Aucune API MCP ne l'expose. |
+| Allowlist prod nominale (3-4 comptes) | ◑ `super_admin_allowlist()` compte **2** comptes aujourd'hui. La LISTE nominale est une décision PO ; l'appliquer ensuite est une ligne. |
+| Runbook incident 1 page | ◻ n'existe pas. Écriture pure, sans décision. |
+
+**Critères de sortie G4, confrontés au réel :**
+- « 48 h sans erreur **Sentry console** » — Sentry est **VIVANT** (DSN en dur, ingest **UE**
+  `.de.sentry.io`, scrub des tokens S27, PII off, `SENTRY_AUTH_TOKEN` au deploy) mais
+  **aucun tag ne distingue la console** du reste du CRM : le critère n'est pas mesurable
+  tant que le tag §10.9 (« Sentry taggé ») n'est pas posé. Petit, sans décision.
+- « premier export du registre produit et vérifié » — `admin_log_export` existe (étape 22),
+  la vérification aussi (`admin_log_verify_chain`). Un clic de super-admin, pas du code.
+- « rétentions observées (drop de partition constaté) » — voir ci-dessus : à amender.
+- « PO signe » — humain.
+
+**⚠ Le veilleur hors Supabase tient, mais pas à la cadence écrite.** Demandé `*/30`,
+mesuré : 3 passages en ~9 h (04:21, 07:06, 09:32 UTC), tous `success` — GitHub Actions
+traite `schedule` en best-effort et la cadence réelle est ~2 h 45. La latence de détection
+d'une panne Supabase est donc de QUELQUES HEURES, pas 30 min. L'améliorer (service de cron
+externe) est une décision, pas un correctif.
+
+**✅ Faisable sans aucune décision, dans l'ordre du rendement :**
+1. **Brancher le bouton « Relancer » de Monitoring sur `admin_cron_run_now`** — le backend
+   de l'étape 28 n'a **AUCUN consommateur front** (mesuré : zéro occurrence dans
+   `src/pages/admin`). La modale de confirmation est déjà contractualisée
+   (`needs_confirm` dans `details`), la maquette a le libellé exact (« Relance demandée —
+   prochain passage HH:MM »). ⚠ Régénérer `src/types/database.ts` D'ABORD : les 3
+   fonctions de #1064 n'y sont pas, et la porte types-freshness rougira au premier
+   `.rpc('admin_cron_run_now')` du bundle. C'est AUSSI ce qui permettra d'éprouver enfin
+   le chemin nominal du geste — jamais exercé nulle part.
+2. **Tag Sentry « console »** (§10.9) — rend le critère G4 mesurable.
+3. **Runbook incident 1 page.**
+4. Premier export du registre + vérification de chaîne (exécution, pas du code).
+5. PITR : vérification dashboard (humain).
+
+**⚠ Santé au moment du préflight** : 0 échec sur 1 438 exécutions de cron depuis le merge
+de #1064 ; chaîne du registre `ok` ; balayeur des ponctuels passé sans faute.
+
 ## 8. Re-dater les migrations le jour du merge — procédure
 
 > ✅ **APPLIQUÉE le 01.08.2026, et sans re-datage.** Les 6 migrations de #1054 portaient déjà
