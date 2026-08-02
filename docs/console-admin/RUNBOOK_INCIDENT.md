@@ -113,6 +113,8 @@ En pratique : un super-admin **n'a pas besoin** d'appeler `verify_chain` sépar�
 l'export **embarque** le verdict de chaîne sur sa fenêtre. La fonction nue est un outil de
 service (clé de service, ou le cron horaire `admin-log-chain-verify-hourly`).
 
+📄 Marche à suivre complète du premier export : [`PROCEDURE_EXPORT_REGISTRE.md`](PROCEDURE_EXPORT_REGISTRE.md).
+
 ## 6. Ce que ce runbook ne peut pas décider
 
 Ces points sont ouverts et relèvent du PO ; ils sont listés ici pour qu'aucune astreinte ne

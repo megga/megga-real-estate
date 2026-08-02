@@ -1002,6 +1002,41 @@ les cinq pannes déjà vues et leur geste, la vérification de chaîne, l'export
 `count(*)` dessus rend 1 et se lit « un seul super-admin ». Le chiffre de §7quinquies (2
 comptes) est le bon.
 
+### 7decies. Premier export du registre — la marche à suivre existe, le « clic » non
+
+[`PROCEDURE_EXPORT_REGISTRE.md`](PROCEDURE_EXPORT_REGISTRE.md). Écrite après avoir relu la
+fonction **en base** ; quatre constats qui contredisent le préflight ou le code lui-même.
+
+**1. ⛔ « Un CLIC de super-admin, pas du code » est FAUX.** `admin_log_export` n'a **aucun
+consommateur front** — zéro occurrence dans `src/`, exactement comme `admin_cron_run_now`
+avant #1073. La console n'a aucun écran d'export (les cinq CSV ont été retirés à l'étape 22).
+Le premier export passe donc par un appel direct à la RPC. Brancher un bouton sur
+`/dashboard/admin/security` est faisable au même patron que « Relancer » — le GRANT
+`authenticated` est déjà là — mais c'est une décision d'ordre.
+
+**2. La voie choisie décide de QUI SIGNE.** `admin_log_write` dérive l'acteur d'`auth.uid()` :
+sans JWT (clé de service, `postgres`, pg_cron) la ligne est forcée à **« Système »**, et la
+fonction *lève* si on tente un autre libellé. Un premier extrait produit à la clé de service
+serait donc signé « Système » — l'inverse de ce que le gate doit démontrer. D'où : **voie
+super-admin pour le premier export**, clé de service pour la suite.
+
+**3. Deux couches d'autorisation, et elles divergent** (corrigé dans le runbook au passage) :
+`admin_log_export` est accordé à `authenticated`, `admin_log_verify_chain` **ne l'est pas**.
+Un super-admin échoue sur le GRANT avant même la garde interne. Sans objet en pratique :
+l'export **embarque** le verdict de chaîne sur sa fenêtre.
+
+**4. ⚠ Le commentaire de `admin_log_export` promet plus que la fonction ne tient.** Il
+affirme que « le destinataire peut recalculer le hash de chaque ligne à partir du seul
+extrait, sans accès à la base ». Mesuré : la charge hachée (`admin_log_payload_v1`) compte
+**19 champs**, l'extrait en porte **10**. Ce qui a été aligné au caractère près, c'est le
+**format de l'horodatage**, pas le jeu de champs — et l'écart est délibéré, cinq des champs
+absents étant des données personnelles (IP, user-agent, session, compte, agence). Ce que
+l'extrait prouve réellement : le verdict de chaîne, une empreinte reproductible en rejouant
+l'extraction, et le **chaînage** entre lignes consécutives — ce dernier **seulement sans
+filtre de famille**, sinon les `seq` sautent. Corriger le commentaire exigerait de recréer
+une fonction de production par migration : à faire à la prochaine reprise, pas pour un
+commentaire seul.
+
 ## 8. Re-dater les migrations le jour du merge — procédure
 
 > ✅ **APPLIQUÉE le 01.08.2026, et sans re-datage.** Les 6 migrations de #1054 portaient déjà
