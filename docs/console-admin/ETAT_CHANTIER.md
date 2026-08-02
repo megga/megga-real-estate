@@ -1,8 +1,23 @@
 # Console MEGGA · backend — état du chantier et reprise
 
-> **1ᵉʳ août 2026, 19 h UTC — TOUT EST MERGÉ ET DÉPLOYÉ.** Document de reprise : tout ce
+> **2 août 2026, 12 h UTC — TOUT EST MERGÉ ET DÉPLOYÉ.** Document de reprise : tout ce
 > qu'il faut pour continuer sans relire la conversation. Spec :
 > `docs/handoff/console-admin/` · Inventaire du socle : [INVENTAIRE_SOCLE.md](INVENTAIRE_SOCLE.md).
+>
+> 📦 **INTERMÈDE HORS CHANTIER (02.08, matin)** — deux PR RealAdvisor mergées, déployées
+> et **vérifiées en production** ; consignées ici pour la continuité, le détail vit dans
+> le cerveau, pas dans ce document :
+> · **#1067** — le sweep nocturne n'est plus bridé par le cap absolu de 1200 (le 3 % du
+>   live gouverne seul, ~1 320 au lieu de 1 200 ; le cap, calibré à un vivier de ~26k,
+>   était devenu la contrainte active à ~44k ⇒ `capped` chronique). `p_cap_abs` reste en
+>   frein d'urgence nullable. Cerveau : `megga/realadvisor-ingestion`. La consigne du
+>   rapport quotidien est à jour : un `capped` avec le 3 % seul est désormais un VRAI
+>   signal d'inflow.
+> · **#1072** — extraction déterministe pièces/surface depuis les descriptions
+>   (2 fonctions SQL pures + trigger qui ne remplit QUE les NULL ; précision mesurée
+>   contre la vérité terrain ; backfill honnête : ~127 pièces + ~372 surfaces, l'essentiel
+>   de la valeur est le trigger au fil de l'eau). Cerveau : `megga/ml-extract-rooms-surface`
+>   — ⚠ toute retouche de regex impose de REFAIRE la mesure de précision.
 >
 > 🎯 **PROCHAIN CHANTIER : LE LOT 3** (étapes 24 à 30). ⚠ Lire le **§7ter** avant de
 > commencer : il a été mesuré le 01.08 et **la majeure partie du Lot 3 est murée** — 24/25/26
