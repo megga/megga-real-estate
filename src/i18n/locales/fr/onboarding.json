@@ -28,6 +28,9 @@
       "pieceIdentite": "Pièce d'identité",
       "recapitulatif": "Récapitulatif"
     },
+    "header": {
+      "language": "Langue de l'interface"
+    },
     "footer": {
       "continue": "Continuer",
       "saving": "Enregistrement…",

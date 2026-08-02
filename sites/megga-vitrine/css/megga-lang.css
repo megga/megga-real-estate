@@ -202,3 +202,133 @@ body.megga-lang-open {
     padding: 24px;
   }
 }
+
+/* ── Barre de suggestion de langue ─────────────────────────────────────────
+ *
+ * Apparaît quand le pays du visiteur (détecté au bord, cf. `/api/geo`) désigne
+ * une autre langue que celle de la page. Elle SUGGÈRE : elle ne redirige jamais,
+ * et n'apparaît pas si l'on n'est pas sûr.
+ *
+ * `position: fixed` plutôt qu'inséré dans le flux : la barre arrive après le
+ * premier rendu, une fois la réponse réseau revenue. Posée dans le flux, elle
+ * décalerait la page sous les yeux du visiteur — et sous son curseur.
+ *
+ * z-index sous le dialogue de langue (9999) : si l'on ouvre le sélecteur
+ * complet, il passe devant la suggestion, pas l'inverse.
+ */
+.megga-lang-suggest {
+  position: fixed;
+  /* Centrée par les marges, PAS par `left: 50%` + `translateX(-50%)` :
+     `meggaLangRise` anime `transform` et le laisse à `none` en fin de course
+     (`both`), ce qui effacerait le recentrage. La barre se collait alors au
+     bord droit, contre le lanceur d'assistance. */
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  margin: 0 auto;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  width: min(560px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 16px 20px;
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: 18px;
+  background: var(--neutral-colors--100);
+  box-shadow: 0 14px 40px rgba(3, 3, 3, 0.55);
+  animation: meggaLangRise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.megga-lang-suggest[hidden] {
+  display: none;
+}
+
+.megga-lang-suggest__text {
+  flex: 1 1 200px;
+  margin: 0;
+  color: var(--neutral-colors--900);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.megga-lang-suggest__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.megga-lang-suggest__go,
+.megga-lang-suggest__no {
+  padding: 10px 16px;
+  border-radius: 100px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+}
+
+.megga-lang-suggest__go {
+  border: 1px solid var(--neutral-colors--1000);
+  background: var(--neutral-colors--1000);
+  color: var(--neutral-colors--100);
+  font-weight: 600;
+}
+
+.megga-lang-suggest__go:hover {
+  background: var(--neutral-colors--800);
+  border-color: var(--neutral-colors--800);
+}
+
+.megga-lang-suggest__no {
+  border: 1px solid var(--neutral-colors--400);
+  background: transparent;
+  color: var(--neutral-colors--700);
+}
+
+.megga-lang-suggest__no:hover {
+  color: var(--neutral-colors--1000);
+  border-color: var(--neutral-colors--600);
+}
+
+/* Le contour du focus est POSÉ, jamais retiré : la vitrine a déjà connu un
+   `outline: none` qui rendait la navigation au clavier invisible. */
+.megga-lang-suggest__go:focus-visible,
+.megga-lang-suggest__no:focus-visible {
+  outline: 2px solid var(--neutral-colors--1000);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .megga-lang-suggest {
+    animation: none;
+  }
+}
+
+/* Au-dessus du lanceur d'assistance, pas dessous.
+   Le widget flotte en bas à droite : dès que la barre s'élargit assez pour
+   l'atteindre, il recouvre le bouton « Non merci » — constaté sur mobile, où le
+   refus devenait tout simplement incliquable. Le seuil est celui de la vitrine
+   (992 px), et non 480 px : le chevauchement commence bien avant le mobile. */
+@media screen and (max-width: 991px) {
+  .megga-lang-suggest {
+    bottom: 96px;
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .megga-lang-suggest {
+    padding: 14px 16px;
+  }
+
+  .megga-lang-suggest__actions {
+    width: 100%;
+  }
+
+  .megga-lang-suggest__go {
+    flex: 1 1 auto;
+  }
+}

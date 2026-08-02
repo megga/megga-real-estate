@@ -6,6 +6,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@/i18n'
+import { applyDetectedLanguage } from '@/lib/geoLanguage'
 import { initPostHogIfConsented } from '@/lib/posthog'
 import { initSentry } from '@/lib/sentry'
 import App from './App'
@@ -17,6 +18,13 @@ initSentry()
 
 // Initialize PostHog analytics only if the user has consented (LPD-C3)
 initPostHogIfConsented()
+
+// Langue déduite du pays, UNIQUEMENT au tout premier contact (aucune préférence
+// stockée, aucun `?lang=`). Hors du rendu et sans `await` : un hôte lent ne doit
+// pas retarder le premier écran, et un échec ne doit rien casser — le CRM
+// démarre en français, comme avant. Au niveau module, donc une seule fois :
+// StrictMode ferait partir deux requêtes depuis un effet.
+void applyDetectedLanguage()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

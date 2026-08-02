@@ -696,6 +696,63 @@ function ExitPendingScreen({ onResume }: { onResume: () => void }) {
   )
 }
 
+/**
+ * Langues du produit, nommées dans leur propre langue.
+ *
+ * Des endonymes, jamais des exonymes : « Deutsch » se lit de la même façon sur
+ * un wizard français ou italien, là où « Allemand » suppose de comprendre le
+ * français pour retrouver l'allemand — exactement la personne qu'on cherche à
+ * dépanner. Ils ne passent donc pas par les fichiers de traduction.
+ */
+const LANGUES_WIZARD = [
+  { code: 'fr', nom: 'Français' },
+  { code: 'de', nom: 'Deutsch' },
+  { code: 'en', nom: 'English' },
+  { code: 'it', nom: 'Italiano' },
+]
+
+/**
+ * Sélecteur de langue du wizard d'onboarding.
+ *
+ * POURQUOI IL EXISTE. Ce wizard est le premier écran d'un nouvel agent, et il
+ * se trouve derrière le gate d'identité : les Réglages, qui portent l'autre
+ * sélecteur, ne sont pas atteignables tant qu'il n'est pas terminé. Tant que la
+ * langue ne pouvait venir que d'un choix explicite, cette impasse restait
+ * théorique. Depuis que le pays du visiteur peut la deviner
+ * (`src/lib/geoLanguage.ts`), elle ne l'est plus : une déduction fausse — un
+ * Genevois derrière la sortie zurichoise d'un VPN d'entreprise, cas banal —
+ * enfermerait quelqu'un dans un parcours de conformité en allemand, sans issue.
+ *
+ * Le `<select>` natif est un choix, pas un repli : navigable au clavier,
+ * annoncé par les lecteurs d'écran et rendu par le sélecteur du système sur
+ * mobile, sans qu'on ait à le réimplémenter.
+ */
+function WizardLanguagePicker() {
+  const { t, i18n } = useTranslation('onboarding')
+  return (
+    <select
+      value={i18n.language.slice(0, 2)}
+      onChange={(e) => { void i18n.changeLanguage(e.target.value) }}
+      aria-label={t('wizard.header.language')}
+      title={t('wizard.header.language')}
+      style={{
+        background: 'transparent',
+        border: 0,
+        padding: 0,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        fontSize: 13,
+        fontWeight: 600,
+        color: SugarV2.muted,
+      }}
+    >
+      {LANGUES_WIZARD.map((l) => (
+        <option key={l.code} value={l.code}>{l.nom}</option>
+      ))}
+    </select>
+  )
+}
+
 /** Coquille du wizard identité : chrome, navigation entre étapes, persistance au changement d'étape. */
 export default function IdentityShell() {
   const { t } = useTranslation('onboarding')
@@ -1176,6 +1233,9 @@ export default function IdentityShell() {
           })}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0 }}>
+          {/* Toujours visible, y compris sur l'écran d'attente : c'est la seule
+              sortie de langue du parcours (les Réglages sont derrière ce gate). */}
+          <WizardLanguagePicker />
           {/* Sortie de secours (tâche 8) : masquée sur l'écran d'attente lui-même — on y
               est déjà « sorti », le bouton principal de cet écran est Reprendre la saisie
               (ExitPendingScreen). Toujours à côté de Se déconnecter, jamais dans le pied
@@ -1203,7 +1263,9 @@ export default function IdentityShell() {
               fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: SugarV2.muted,
             }}
           >
-            {t('common:logout')}
+            {/* `common:nav.logout` et non `common:logout` : la clé racine
+                n'existe pas, l'ancien appel affichait « logout » en clair. */}
+            {t('common:nav.logout')}
           </button>
         </div>
       </header>
