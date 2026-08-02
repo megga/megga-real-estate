@@ -47,15 +47,16 @@ const CRM_AGENT_PARAM_ROUTES: ParamRouteSpec[] = [
   { path: `/dashboard/transactions/${MOCK_UUID}/offre/counter`, label: 'Counter-offer modal' },
   { path: `/dashboard/visits/${MOCK_UUID}`, label: 'Visit detail' },
   { path: `/dashboard/visits/${MOCK_UUID}/companion`, label: 'Visit companion (mobile)' },
-  // Fiche KYC en overlay AU-DESSUS du pager : le repère vise le pager (son titre),
-  // pas l'overlay — sur un dossier inexistant celui-ci reste sur « Chargement du
-  // dossier… », un état qu'on se garde bien de graver dans un test. `prepare` évite
+  // Fiche KYC en overlay AU-DESSUS du pager. Le repère vise l'OVERLAY, seul point
+  // qui prouve qu'il a tranché : jusqu'au 02.08.2026 il confondait attente et échec
+  // (`isLoading || !dossier`) et restait indéfiniment sur « Chargement du dossier… »,
+  // si bien qu'on ne pouvait viser que le titre du pager EN DESSOUS. `prepare` évite
   // la redirection vers l'onboarding (cf. helpers/kyc.ts).
   {
     path: `/dashboard/kyc/${MOCK_UUID}`,
     label: 'KYC dossier detail',
     prepare: skipKycOnboarding,
-    landmark: (page) => page.getByRole('heading', { name: 'KYC', exact: true }),
+    landmark: (page) => page.getByRole('heading', { name: 'Dossier indisponible' }),
   },
   // ⚠ Cette route-ci n'a JAMAIS été derrière KycLabGuard : elle est déclarée au
   // premier niveau (src/App.tsx), sous ProtectedRoute seul. Elle rendait donc déjà

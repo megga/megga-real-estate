@@ -12,7 +12,7 @@
 //   • log de consultation nLPD art. 12 (useLogKycRead) ;
 //   • export = route print existante ; PAS de suppression (rétention LBA 10 ans).
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import {
   useKycCase,
@@ -60,6 +60,32 @@ const CAT_TO_UPLOADCAT: Record<'id' | 'address', 'identity' | 'domicile'> = {
   address: 'domicile',
 }
 
+/**
+ * Cadre des états SANS donnée de l'overlay — mêmes coordonnées que la fiche
+ * elle-même (absolu, au-dessus du pager, fond opaque). Factorisé pour que l'attente
+ * et l'échec occupent exactement la même surface : leur différence doit se lire dans
+ * le texte, pas dans un déplacement de la mise en page.
+ */
+function KypFicheOverlay({ sp, children }: { sp: SugarPalette; children: ReactNode }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 40,
+        background: sp.pageBg,
+        display: 'grid',
+        placeItems: 'center',
+        padding: '26px 34px',
+        boxSizing: 'border-box',
+        fontFamily: KYP_FONT,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
 function fmtDate(iso: string | null | undefined, long?: boolean): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString(
@@ -78,7 +104,7 @@ interface Props {
 }
 
 export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNavigate }: Props) {
-  const { data: dossier, isLoading } = useKycCase(dossierId)
+  const { data: dossier, isPending, isError, refetch } = useKycCase(dossierId)
   const { data: docs = [] } = useKycDocuments(dossierId)
   const markCheck = useMarkKycCheck()
   const screen = useScreenKycCase()
@@ -196,24 +222,68 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dossier?.id, dossier?.last_screening_at])
 
-  if (isLoading || !dossier) {
+  // Attente RÉELLE et échec TERMINAL sont deux états distincts. Les confondre
+  // (`isLoading || !dossier`) laissait cet overlay PLEIN ÉCRAN sur « Chargement du
+  // dossier… » indéfiniment dès que la lecture échouait — dossier inexistant, hors
+  // périmètre RLS, réseau coupé : `.single()` sur 0 ligne répond 406, `isLoading`
+  // retombait à false et `dossier` restait undefined. L'agent se retrouvait devant
+  // une page muette, sans explication ni issue, par-dessus le pager. Même discipline
+  // que resolveLabGuardStatus (useLabGuard.ts) : un état non résolu n'est pas un
+  // verdict, mais un échec acquis doit se DIRE.
+  //
+  // `isPending`, pas `isLoading` : `isLoading` = isPending && isFetching, donc il
+  // retombe à false entre deux tentatives (retry: 1, App.tsx) — l'écran d'échec
+  // clignoterait avant que l'échec soit acquis.
+  if (isPending) {
     return (
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 40,
-          background: sp.pageBg,
-          display: 'grid',
-          placeItems: 'center',
-          color: sp.sub,
-          fontSize: 14,
-          fontWeight: 500,
-          fontFamily: KYP_FONT,
-        }}
-      >
-        Chargement du dossier…
-      </div>
+      <KypFicheOverlay sp={sp}>
+        <span style={{ color: sp.sub, fontSize: 14, fontWeight: 500 }}>Chargement du dossier…</span>
+      </KypFicheOverlay>
+    )
+  }
+
+  // Lecture aboutie sans dossier, ou en échec. On n'énonce PAS un verdict qu'on n'a
+  // pas : les deux causes — le dossier n'existe pas / il n'est pas visible depuis
+  // cette agence — répondent au même 406, et un réseau coupé y ressemble. D'où
+  // « indisponible » plutôt que « supprimé » (un dossier KYC ne se supprime jamais :
+  // rétention LBA 10 ans, cf. l'en-tête de ce fichier) et une reprise, qui règle la
+  // seule cause transitoire des trois.
+  if (isError || !dossier) {
+    return (
+      <KypFicheOverlay sp={sp}>
+        <div style={{ maxWidth: 420, textAlign: 'center' }}>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: sp.ink }}>Dossier indisponible</h2>
+          <p style={{ margin: '10px 0 0', fontSize: 13.5, lineHeight: 1.55, color: sp.sub }}>
+            Ce dossier n'a pas pu être ouvert : il n'existe pas, ou il n'est pas accessible depuis votre agence.
+          </p>
+          <div style={{ marginTop: 18, display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <KypCta sp={sp} onClick={() => void refetch()}>
+              Réessayer
+            </KypCta>
+            <button
+              onClick={onClose}
+              // Surface secondaire du pager (même carte + ombre que le bouton
+              // « Retour » de l'en-tête de la fiche), pour ne pas mettre deux
+              // appels à l'action de même poids côte à côte.
+              style={{
+                height: 34,
+                padding: '0 15px',
+                borderRadius: 999,
+                border: 0,
+                background: surf.card,
+                boxShadow: sp.shadowSm,
+                color: sp.ink,
+                fontFamily: KYP_FONT,
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Retour aux dossiers
+            </button>
+          </div>
+        </div>
+      </KypFicheOverlay>
     )
   }
 
