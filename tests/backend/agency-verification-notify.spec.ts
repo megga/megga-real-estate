@@ -235,19 +235,33 @@ describe.skipIf(!HAS_KEYS)('trigger agencies_notify_verification_decision -- dis
         await setConfig('service_role_key', SERVICE_ROLE_JWT)
 
         const agencyId = await createAgency('rejected', 'dirigeant-rejet@megga-test.local')
-        await setStatus(agencyId, 'manual_review')
-        await setStatus(agencyId, 'rejected')
 
+        // manual_review D'ABORD, et ATTENDU avant de déclencher rejected -- comme le test
+        // précédent. Sans cette attente, les deux dispatches (celui de manual_review et celui
+        // de rejected, tirés dos à dos) relisent tous deux le statut APRÈS que les deux UPDATE
+        // aient commité (la relecture est délibérée, cf. l'en-tête de l'edge function) : les
+        // deux événements portent alors {"status":"rejected"} et l'assertion `some(status ===
+        // 'rejected')` passe sans jamais avoir prouvé que manual_review, pris isolément,
+        // notifie quoi que ce soit -- confondu avec la mesure directe (voir le rapport de
+        // diagnostic). En attendant le premier événement, chaque dispatch lit un statut
+        // distinct au moment où il s'exécute réellement.
+        await setStatus(agencyId, 'manual_review')
+        await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 0)
+        const afterFirst = await getNoticeEvents(agencyId)
+        expect(afterFirst).toHaveLength(1)
+        expect(afterFirst[0].metadata).toMatchObject({ status: 'manual_review' })
+
+        await setStatus(agencyId, 'rejected')
         await waitUntil(async () => (await getNoticeEvents(agencyId)).length > 1)
         const events = await getNoticeEvents(agencyId)
         expect(events).toHaveLength(2)
-        expect(events.some((e) => (e.metadata as { status?: string }).status === 'rejected')).toBe(true)
+        expect(events[1].metadata).toMatchObject({ status: 'rejected' })
       } finally {
         await restoreConfig('supabase_url', urlBefore)
         await restoreConfig('service_role_key', keyBefore)
       }
     },
-    15_000
+    20_000
   )
 
   it(
