@@ -2,6 +2,7 @@
 // Assemble les CalEvent affichés par les 4 vues (Day/Week/Month/Agenda) :
 //   - Visites (table `visits`) → type='visite'
 //   - Reminders actifs (table `reminders`) → type='task'
+//   - RDV de vérification KYC (table `appointments`) → type='kyc'
 //
 // Hors scope cette PR : mandate (transactions stage='mandate'), notary
 // (transactions stage='notary'/'signed'), publish (properties.published_at).
@@ -30,6 +31,17 @@ interface ReminderJoin {
   message_template: string | null
   contact: { first_name: string; last_name: string } | { first_name: string; last_name: string }[] | null
   property: { title: string | null; address: string | null } | { title: string | null; address: string | null }[] | null
+}
+
+interface AppointmentJoin {
+  id: string
+  contact_id: string
+  starts_at: string
+  ends_at: string
+  status: string
+  mode: string
+  location: string | null
+  contact: { first_name: string; last_name: string } | { first_name: string; last_name: string }[] | null
 }
 
 /** Aplatit une jointure Supabase (objet, tableau à 1 élément ou null) en une valeur unique. */
@@ -82,6 +94,31 @@ function visitToCalEvent(v: VisitJoin): CalEvent {
   }
 }
 
+/**
+ * Convertit un rendez-vous de vérification KYC en `CalEvent` type='kyc'.
+ *
+ * Contrairement aux visites, la durée est RÉELLE : `appointments` porte `ends_at`,
+ * là où `visits` n'a pas de durée et se voit attribuer une heure par défaut.
+ */
+function appointmentToCalEvent(a: AppointmentJoin): CalEvent {
+  const contact = unwrap(a.contact)
+  const contactName = contact ? `${contact.first_name} ${contact.last_name}`.trim() : 'Client'
+  return {
+    id: a.id,
+    origin: 'appointment',
+    type: 'kyc',
+    title: `Vérification — ${contactName}`,
+    contactId: a.contact_id,
+    contact: { name: contactName, role: 'Client' },
+    location: a.mode === 'video' ? undefined : a.location ?? undefined,
+    start: new Date(a.starts_at),
+    end: new Date(a.ends_at),
+    // Un RDV annulé reste VISIBLE et barré plutôt que disparaître : l'agent doit
+    // voir qu'un créneau s'est libéré, pas le découvrir par son absence.
+    status: a.status === 'cancelled' ? 'cancelled' : a.status === 'done' ? 'done' : undefined,
+  }
+}
+
 /** Convertit un reminder actif en `CalEvent` type='task' (relance à traiter). */
 function reminderToCalEvent(r: ReminderJoin): CalEvent {
   const contact = unwrap(r.contact)
@@ -106,9 +143,9 @@ export interface UseCalendarSugarReturn {
   events: CalEvent[]
   hotBuyers: CalHotBuyer[]
   isLoading: boolean
-  /** true si l'une des 3 queries (visits/reminders/hotBuyers) a échoué. */
+  /** true si l'une des 4 queries (visits/reminders/appointments/hotBuyers) a échoué. */
   isError: boolean
-  /** relance les 3 queries du calendrier (bouton « Réessayer »). */
+  /** relance les 4 queries du calendrier (bouton « Réessayer »). */
   refetch: () => void
 }
 
@@ -146,7 +183,8 @@ function warmScore(row: HotBuyerRow): number {
 }
 
 /**
- * Source de données de CalendarSugarV2Page : agrège visites + reminders actifs en
+ * Source de données de CalendarSugarV2Page : agrège visites + reminders actifs +
+ * rendez-vous de vérification KYC en
  * `CalEvent` (fenêtre ±60 j) et expose le top 5 des acheteurs chauds/tièdes.
  */
 export function useCalendarSugar(): UseCalendarSugarReturn {
@@ -203,12 +241,31 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
     staleTime: 60_000,
   })
 
+  const { data: appointments = [], isLoading: apptLoading, isError: apptError, refetch: refetchAppts } = useQuery({
+    queryKey: ['calendar-sugar-appointments', agencyId, range.from, range.to],
+    queryFn: async (): Promise<AppointmentJoin[]> => {
+      if (!agencyId) return []
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, contact_id, starts_at, ends_at, status, mode, location, contact:contacts(first_name, last_name)')
+        .eq('agency_id', agencyId)
+        .gte('starts_at', range.from)
+        .lte('starts_at', range.to)
+        .order('starts_at', { ascending: true })
+      if (error) throw error
+      return (data ?? []) as AppointmentJoin[]
+    },
+    enabled: !!agencyId,
+    staleTime: 60_000,
+  })
+
   const events = useMemo<CalEvent[]>(() => {
     const out: CalEvent[] = []
     for (const v of visits) out.push(visitToCalEvent(v))
     for (const r of reminders) out.push(reminderToCalEvent(r))
+    for (const a of appointments) out.push(appointmentToCalEvent(a))
     return out.sort((a, b) => a.start.getTime() - b.start.getTime())
-  }, [visits, reminders])
+  }, [visits, reminders, appointments])
 
   // Hot buyers : contacts.score IN ('hot','warm') ordonnés par last_interaction_at,
   // top 5 acheteurs chauds (exposés pour d'éventuels consommateurs — Today/mobile).
@@ -245,11 +302,12 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
   return {
     events,
     hotBuyers,
-    isLoading: visitsLoading || remindersLoading || hotLoading,
-    isError: visitsError || remindersError || hotError,
+    isLoading: visitsLoading || remindersLoading || apptLoading || hotLoading,
+    isError: visitsError || remindersError || apptError || hotError,
     refetch: () => {
       void refetchVisits()
       void refetchReminders()
+      void refetchAppts()
       void refetchHot()
     },
   }

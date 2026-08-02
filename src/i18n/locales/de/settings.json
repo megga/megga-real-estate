@@ -812,6 +812,10 @@
       "preferences": {
         "label": "Präferenzen",
         "short": "Präferenzen"
+      },
+      "availability": {
+        "label": "Verfügbarkeiten",
+        "short": "Verfügbarkeit"
       }
     },
     "groups": {
@@ -1110,6 +1114,57 @@
       "agencyNotLoaded": "Agentur nicht geladen, bitte erneut anmelden zum Speichern.",
       "logoUploadError": "Logo konnte nicht hochgeladen werden.",
       "directoryMissing": "Ihr Verzeichnisprofil ist noch nicht eingerichtet, bitte kontaktieren Sie Ihren Administrator."
+    },
+    "availability": {
+      "banner": "Die Zeitfenster, die Ihre Kundschaft selbst buchen kann.",
+      "loading": "Verfügbarkeiten werden geladen…",
+      "open_label": "Online-Buchung",
+      "open_on": "Offen — {{days}} Tag(e) konfiguriert",
+      "open_off": "Geschlossen. Ihre Kundschaft kann nicht selbst buchen.",
+      "week_group": "Typische Woche",
+      "closed": "Geschlossen",
+      "add_range": "Zeitfenster hinzufügen",
+      "remove_range": "Dieses Zeitfenster entfernen",
+      "days": {
+        "1": "Montag",
+        "2": "Dienstag",
+        "3": "Mittwoch",
+        "4": "Donnerstag",
+        "5": "Freitag",
+        "6": "Samstag",
+        "7": "Sonntag"
+      },
+      "slot_group": "Terminformat",
+      "slot_minutes": "Termindauer",
+      "slot_minutes_hint": "Die tatsächlich im Kalender belegte Zeit.",
+      "buffer_minutes": "Puffer zwischen Terminen",
+      "buffer_minutes_hint": "Fahrt- oder Erfassungszeit. Trennt diesen Termin vom vorherigen UND vom nächsten.",
+      "min_notice": "Mindestvorlauf",
+      "min_notice_hint": "Darunter keine Online-Buchung und keine Absage mehr.",
+      "max_advance": "Buchungshorizont",
+      "max_advance_hint": "Darüber hinaus wird kein Termin angeboten.",
+      "mode": "Terminart",
+      "mode_sur_place": "Vor Ort",
+      "mode_video": "Videokonferenz",
+      "location": "Ort",
+      "location_hint": "Der Kundschaft angezeigt und in den Kalendereintrag übernommen.",
+      "location_placeholder": "Rue du Rhône 12, Genf",
+      "minutes": "{{n}} Min.",
+      "hours": "{{n}} Std.",
+      "days_n": "{{n}} T.",
+      "none": "Kein",
+      "timeoff_group": "Abwesenheiten",
+      "timeoff_empty": "Keine bevorstehenden Abwesenheiten.",
+      "timeoff_from": "Von",
+      "timeoff_to": "Bis",
+      "timeoff_reason": "Grund (optional)",
+      "timeoff_reason_placeholder": "Ferien",
+      "timeoff_add": "Hinzufügen",
+      "timeoff_remove": "Diesen Eintrag entfernen",
+      "timeoff_bad_range": "Das Enddatum muss nach dem Startdatum liegen.",
+      "unsaved": "Nicht gespeicherte Änderungen",
+      "save": "Speichern",
+      "saving": "Wird gespeichert…"
     }
   }
 }

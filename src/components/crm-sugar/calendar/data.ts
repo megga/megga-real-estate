@@ -58,6 +58,15 @@ export const CAL_EVENT_TYPES: Record<string, CalEventType> = {
     bg: '#4A5568', ink: '#FFFFFF', accent: '#4A5568',
     darkColors: { bg: '#3E4757', ink: '#FFFFFF', accent: '#AEBAC9' },
   },
+  // Vérification d'identité KYC, réservée par le client depuis son lien magique.
+  // Type distinct plutôt que « autre » : ce n'est pas un rendez-vous divers, c'est
+  // une étape LAB/KYC, et l'agent doit la repérer d'un coup d'œil dans sa semaine.
+  // Teinte framboise, la seule libre parmi les six existantes.
+  kyc: {
+    id: 'kyc', get label() { return i18n.t('calendar:eventType.kyc') }, short: 'K', icon: 'user',
+    bg: '#B02A5B', ink: '#FFFFFF', accent: '#B02A5B',
+    darkColors: { bg: '#96234D', ink: '#FFFFFF', accent: '#DB5A87' },
+  },
   autre: {
     id: 'autre', get label() { return i18n.t('calendar:eventType.autre') }, short: 'A', icon: 'pin',
     bg: '#5B6472', ink: '#FFFFFF', accent: '#5B6472',
@@ -132,8 +141,16 @@ export interface CalEvent {
   /** Rattachement CRM (liens profonds bien / contact). */
   bienId?: string | null
   contactId?: string | null
-  /** Table d'origine (routage des écritures serveur). */
-  origin?: 'visit' | 'reminder'
+  /**
+   * Table d'origine (routage des écritures serveur).
+   *
+   * `appointment` = RDV de vérification KYC réservé par le CLIENT. Les branches
+   * d'écriture de CalendarApp ne le reconnaissent volontairement pas : glisser
+   * pour replanifier reste inopérant, parce que déplacer un rendez-vous confirmé
+   * sans prévenir le client serait pire que de ne rien faire. Le report passe par
+   * les RPC, qui envoient un courriel.
+   */
+  origin?: 'visit' | 'reminder' | 'appointment'
   /** Événement synchronisé d'un agenda externe (Google/Outlook) → « Occupé », lecture seule. */
   external?: boolean
   source?: 'google' | 'microsoft'
