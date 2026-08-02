@@ -184,7 +184,10 @@ serve(async (req) => {
         videoLink: (publicAppt.video_link as string | null) ?? null,
         agencyName: agency?.name ?? null,
         agentName: agent?.full_name ?? null,
-        manageUrl: `${APP_URL}/rendez-vous/${apptId}?token=${encodeURIComponent(manageToken)}`,
+        // Le jeton porte déjà l'id du rendez-vous dans son payload signé : le
+        // répéter dans l'URL n'ajouterait rien et donnerait un identifiant de
+        // plus à recopier. Même forme que /kyc/<token>.
+        manageUrl: `${APP_URL}/rendez-vous/${encodeURIComponent(manageToken)}`,
       })
       await db.from('appointments')
         .update({ confirmation_sent_at: new Date().toISOString() })

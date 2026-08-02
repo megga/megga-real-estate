@@ -45,6 +45,7 @@ import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Sprint 4.7.C — Parcours client KYC Magic Link (public, sans compte MEGGA)
 const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
+const AppointmentManagePage = lazy(() => import('@/pages/public/AppointmentManagePage'))
 // Réception acheteur — page publique par token (boucle de match, refonte juil. 2026)
 const BuyerReceptionPage = lazy(() => import('@/pages/public/BuyerReceptionPage'))
 // Sprint 4.7.D — Rendu PDF tokenisé pour Cloudflare Browser Rendering (rapport KYC WhatsApp)
@@ -362,6 +363,9 @@ function AppRoutes() {
               <Route path="/kyc/:token" element={<KycPublicPage />} />
               {/* Réception acheteur — sélection de biens transmise par lien privé (boucle de match) */}
               <Route path="/reception/:token" element={<BuyerReceptionPage />} />
+              {/* Gestion par le client de son RDV de vérification KYC (jeton k='appt').
+                  Le jeton porte déjà l'id du rendez-vous : pas d'id dans l'URL. */}
+              <Route path="/rendez-vous/:token" element={<AppointmentManagePage />} />
               {/* Sprint 4.7.D — Rendu PDF tokenisé (Cloudflare Browser Rendering → WhatsApp) */}
               <Route path="/kyc-report/:token" element={<KycReportRenderPage />} />
               {/* Marketplace publique désactivée → vitrine. (SearchPage/RentPage
