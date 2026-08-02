@@ -6,8 +6,15 @@
  * canton). Contrôlée par IdentityShell (value/onChange) : cette étape ne détient
  * aucun état propre et n'écrit rien elle-même — IdentityShell persiste le brouillon
  * via useAgencyIdentity().saveAgency() au changement d'étape (cf. son en-tête).
- * Reprend la forme de StepSignataire (en-tête eyebrow/titre/sous-titre + bento de
- * champs), première étape du wizard livrée à la tâche 3.
+ *
+ * Peau MEGGA X depuis la refonte visuelle de l'onboarding : plus aucun token Sugar
+ * ici. Le gabarit est celui des écrans d'authentification de la vitrine
+ * (`inner-container _634px center` > `card sign-in-card` > `pd---content-inside-card`,
+ * cf. login.html / reset-password.html — les deux seules pages qui portent
+ * `sign-in-card`), et les dix champs reprennent le couple `<label for>` + `.input`
+ * de ces mêmes formulaires via MxField. Aucune valeur n'est posée en dur : la
+ * coquille (IdentityShell) monte l'étape dans `<MeggaX>`, qui scope la feuille
+ * `.megga-x`.
  *
  * Deux dépendances d'ordre, ni l'une ni l'autre cosmétique (cf. brief tâche 4) :
  * 1. Le pays du siège filtre la liste des formes juridiques (useLegalForms(country),
@@ -30,11 +37,10 @@
  * décidée le 27.07.2026 : la TVA reste saisissable et, si renseignée, persistée
  * normalement — mais elle ne bloque plus l'avancement (seuil d'assujettissement
  * suisse, cf. le commentaire d'isAgencyStepComplete pour le détail). Seule indication
- * visuelle de ce caractère facultatif : le FieldHint sous le champ, plus bas.
+ * visuelle de ce caractère facultatif : l'aide MxField sous le champ, plus bas.
  */
 import { useTranslation } from 'react-i18next'
-import { SugarV2 } from '../tokens'
-import { SgInput } from '@/components/crm-sugar-wizard/primitives'
+import { MxField, MxInput, MxSelect } from '@/components/megga-x'
 import { COUNTRIES } from '@/lib/countries'
 import { CANTONS } from '@/lib/constants'
 import { useLegalForms } from '@/hooks/useLegalForms'
@@ -57,42 +63,6 @@ interface StepAgenceProps {
  */
 const AGENCY_COUNTRIES = COUNTRIES.filter((c) => c.code === 'CH' || c.code === 'FR' || c.code === 'LI')
 
-const FIELD_LABEL_STYLE = {
-  fontSize: 11,
-  fontWeight: 600,
-  color: SugarV2.muted,
-  letterSpacing: 0.6,
-  textTransform: 'uppercase' as const,
-  marginBottom: 8,
-}
-
-const SELECT_STYLE = {
-  width: '100%',
-  boxSizing: 'border-box' as const,
-  height: 48,
-  padding: '0 16px',
-  borderRadius: 14,
-  border: 0,
-  outline: 'none',
-  fontFamily: 'inherit',
-  background: SugarV2.cardSubtle,
-  color: SugarV2.ink,
-  fontSize: 15,
-  fontWeight: 500,
-  boxShadow: `inset 0 0 0 1px ${SugarV2.line}`,
-}
-
-/** Légende sous un champ — même langage visuel que le hint des cartes de pouvoir de
- *  signature (StepSignataire), réutilisé ici pour clarifier raison sociale vs nom
- *  commercial sans jargon (cf. en-tête du fichier et brief tâche 4). */
-function FieldHint({ text }: { text: string }) {
-  return (
-    <div style={{ marginTop: 6, fontSize: 12, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.4 }}>
-      {text}
-    </div>
-  )
-}
-
 /** Étape 2 du wizard identité : formulaire de l'identité légale de l'agence. */
 export function StepAgence({ value, onChange }: StepAgenceProps) {
   const { t } = useTranslation('onboarding')
@@ -109,125 +79,179 @@ export function StepAgence({ value, onChange }: StepAgenceProps) {
     })
   }
 
+  // Le choix vide en tête n'est pas un placeholder HTML : `<select>` n'en a pas,
+  // la vitrine fait de même (contact.html, « Choisissez un sujet… »).
+  const countryOptions = [
+    { value: '', label: t('wizard.agence.fields.countryPlaceholder') },
+    ...AGENCY_COUNTRIES.map((c) => ({ value: c.code, label: c.name })),
+  ]
+  const legalFormSelectOptions = [
+    {
+      value: '',
+      label: value.country
+        ? t('wizard.agence.fields.legalFormPlaceholder')
+        : t('wizard.agence.fields.legalFormPlaceholderNoCountry'),
+    },
+    ...legalFormOptions.map((o) => ({ value: o.id, label: o.label })),
+  ]
+  const cantonOptions = [
+    { value: '', label: t('wizard.agence.fields.cantonPlaceholder') },
+    ...CANTONS.map((c) => ({ value: c, label: c })),
+  ]
+
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', animation: 'sgPage .45s cubic-bezier(.2,.8,.2,1) both' }}>
-      <div style={{ marginBottom: 32 }}>
-        <div style={{
-          fontSize: 12, fontWeight: 600, color: SugarV2.muted,
-          letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>{t('wizard.agence.eyebrow')}</div>
-        <h1 style={{
-          margin: '0 0 14px', fontSize: 32, fontWeight: 700,
-          color: SugarV2.ink, letterSpacing: -0.6, lineHeight: 1.15,
-        }}>{t('wizard.agence.title')}</h1>
-        <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          {t('wizard.agence.subtitle')}
-        </p>
-      </div>
+    <div className="inner-container _634px center">
+      {/* Les marges du titre sont portées par le <h1> lui-même, jamais par un
+          conteneur : la feuille de la vitrine donne 20 px / 10 px à tout h1, et la
+          fusion des marges avale un `mg-top-*` posé sur un parent — la classe serait
+          là sans rien produire. La vitrine pose donc elle aussi ses marges sur le
+          heading (about.html, pricing.html : `<h1 class="mg-bottom-2x-extra-small">`). */}
+      <h1 className="display-6 mg-top-4x-extra-small mg-bottom-4x-extra-small">
+        {t('wizard.agence.title')}
+      </h1>
+      <p className="paragraph-large text-paragraph">{t('wizard.agence.subtitle')}</p>
 
-      <div style={{
-        background: SugarV2.card, borderRadius: 24, padding: 24,
-        boxShadow: SugarV2.shadow, display: 'flex', flexDirection: 'column', gap: 18,
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-          <label style={{ display: 'block' }}>
-            <div style={FIELD_LABEL_STYLE}>{t('wizard.agence.fields.country')}</div>
-            <select
-              value={value.country}
-              onChange={(e) => onCountryChange(e.target.value)}
-              style={SELECT_STYLE}
-            >
-              <option value="">{t('wizard.agence.fields.countryPlaceholder')}</option>
-              {AGENCY_COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-            </select>
-          </label>
-          <label style={{ display: 'block' }}>
-            <div style={FIELD_LABEL_STYLE}>{t('wizard.agence.fields.legalFormId')}</div>
-            <select
-              value={value.legalFormId}
-              onChange={(e) => onChange({ legalFormId: e.target.value })}
-              disabled={legalFormDisabled}
-              style={{
-                ...SELECT_STYLE,
-                opacity: legalFormDisabled ? 0.55 : 1,
-                cursor: legalFormDisabled ? 'not-allowed' : 'pointer',
-              }}
-            >
-              <option value="">
-                {value.country ? t('wizard.agence.fields.legalFormPlaceholder') : t('wizard.agence.fields.legalFormPlaceholderNoCountry')}
-              </option>
-              {legalFormOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-            </select>
-          </label>
-        </div>
+      <div className="mg-top-regular">
+        <div className="card sign-in-card">
+          <div className="pd---content-inside-card">
+            {/* Les rangées n'ont pas toutes le même nombre de colonnes, elles ne
+                peuvent donc pas tenir dans une grille unique. C'est `grid-1-column`
+                — l'empilement de champs de la vitrine elle-même (login.html) — qui
+                porte l'écart entre elles, plutôt qu'une marge répétée sur chaque
+                rangée : une classe au lieu de cinq, et le champ pleine largeur
+                (adresse) n'a plus besoin d'un conteneur pour être espacé comme
+                les autres. */}
+            <div className="grid-1-column">
+              <div className="grid-2-columns">
+                <MxField label={t('wizard.agence.fields.country')}>
+                  {(id) => (
+                    <MxSelect
+                      id={id}
+                      options={countryOptions}
+                      value={value.country}
+                      onChange={(e) => onCountryChange(e.target.value)}
+                    />
+                  )}
+                </MxField>
+                <MxField label={t('wizard.agence.fields.legalFormId')}>
+                  {(id) => (
+                    <MxSelect
+                      id={id}
+                      options={legalFormSelectOptions}
+                      value={value.legalFormId}
+                      onChange={(e) => onChange({ legalFormId: e.target.value })}
+                      disabled={legalFormDisabled}
+                      // `w-input-disabled` est l'échappatoire prévue par la feuille de la
+                      // vitrine : sans elle, la règle Webflow `[disabled]` repeindrait le
+                      // select en #eee, un pavé clair au milieu d'une carte sombre. Le
+                      // `cursor: not-allowed` de la règle voisine, lui, est conservé.
+                      className={legalFormDisabled ? 'w-input-disabled' : undefined}
+                    />
+                  )}
+                </MxField>
+              </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-          <div>
-            <SgInput
-              label={t('wizard.agence.fields.legalName')}
-              value={value.legal}
-              onChange={(v) => onChange({ legal: v })}
-              autoFocus
-            />
-            <FieldHint text={t('wizard.agence.fields.legalNameHint')} />
+              <div className="grid-2-columns">
+                <MxField
+                  label={t('wizard.agence.fields.legalName')}
+                  help={t('wizard.agence.fields.legalNameHint')}
+                >
+                  {(id) => (
+                    <MxInput
+                      id={id}
+                      value={value.legal}
+                      onChange={(e) => onChange({ legal: e.target.value })}
+                      autoFocus
+                    />
+                  )}
+                </MxField>
+                <MxField
+                  label={t('wizard.agence.fields.tradeName')}
+                  help={t('wizard.agence.fields.tradeNameHint')}
+                >
+                  {(id) => (
+                    <MxInput
+                      id={id}
+                      value={value.tradeName}
+                      onChange={(e) => onChange({ tradeName: e.target.value })}
+                    />
+                  )}
+                </MxField>
+              </div>
+
+              <div className="grid-2-columns">
+                <MxField label={t('wizard.agence.fields.businessRegistrationNumber')}>
+                  {(id) => (
+                    <MxInput
+                      id={id}
+                      value={value.businessRegistrationNumber}
+                      onChange={(e) => onChange({ businessRegistrationNumber: e.target.value })}
+                    />
+                  )}
+                </MxField>
+                {/* Seul champ facultatif de l'étape (décision produit 27.07.2026) : ni le
+                    libellé ni `.input` ne portent de marqueur « requis »/« facultatif »,
+                    cette aide est donc la seule indication visuelle du caractère optionnel. */}
+                <MxField
+                  label={t('wizard.agence.fields.tva')}
+                  help={t('wizard.agence.fields.tvaHint')}
+                >
+                  {(id) => (
+                    <MxInput
+                      id={id}
+                      value={value.tva}
+                      onChange={(e) => onChange({ tva: e.target.value })}
+                    />
+                  )}
+                </MxField>
+              </div>
+
+              <MxField label={t('wizard.agence.fields.address')}>
+                {(id) => (
+                  <MxInput
+                    id={id}
+                    value={value.address}
+                    onChange={(e) => onChange({ address: e.target.value })}
+                  />
+                )}
+              </MxField>
+
+              {/* `_1-col-tablet` fait retomber cette rangée sur une colonne au même
+                  palier (991 px) que les `grid-2-columns` ci-dessus. Sans elle, la
+                  seule rangée à trois colonnes resterait à trois entre 768 et 991 px
+                  alors que toutes les autres seraient déjà dépliées. */}
+              <div className="grid-3-columns _1-col-tablet">
+                <MxField label={t('wizard.agence.fields.postal')}>
+                  {(id) => (
+                    <MxInput
+                      id={id}
+                      value={value.postal}
+                      onChange={(e) => onChange({ postal: e.target.value })}
+                    />
+                  )}
+                </MxField>
+                <MxField label={t('wizard.agence.fields.city')}>
+                  {(id) => (
+                    <MxInput
+                      id={id}
+                      value={value.city}
+                      onChange={(e) => onChange({ city: e.target.value })}
+                    />
+                  )}
+                </MxField>
+                <MxField label={t('wizard.agence.fields.canton')}>
+                  {(id) => (
+                    <MxSelect
+                      id={id}
+                      options={cantonOptions}
+                      value={value.canton}
+                      onChange={(e) => onChange({ canton: e.target.value })}
+                    />
+                  )}
+                </MxField>
+              </div>
+            </div>
           </div>
-          <div>
-            <SgInput
-              label={t('wizard.agence.fields.tradeName')}
-              value={value.tradeName}
-              onChange={(v) => onChange({ tradeName: v })}
-            />
-            <FieldHint text={t('wizard.agence.fields.tradeNameHint')} />
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-          <SgInput
-            label={t('wizard.agence.fields.businessRegistrationNumber')}
-            value={value.businessRegistrationNumber}
-            onChange={(v) => onChange({ businessRegistrationNumber: v })}
-          />
-          <div>
-            <SgInput
-              label={t('wizard.agence.fields.tva')}
-              value={value.tva}
-              onChange={(v) => onChange({ tva: v })}
-            />
-            {/* Seul champ facultatif de l'étape (décision produit 27.07.2026) : SgInput n'a
-                pas de marqueur "requis"/"facultatif" (cf. primitives.tsx), cette mention
-                sous le champ est donc la seule indication visuelle du caractère optionnel. */}
-            <FieldHint text={t('wizard.agence.fields.tvaHint')} />
-          </div>
-        </div>
-
-        <SgInput
-          label={t('wizard.agence.fields.address')}
-          value={value.address}
-          onChange={(v) => onChange({ address: v })}
-        />
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: 14 }}>
-          <SgInput
-            label={t('wizard.agence.fields.postal')}
-            value={value.postal}
-            onChange={(v) => onChange({ postal: v })}
-          />
-          <SgInput
-            label={t('wizard.agence.fields.city')}
-            value={value.city}
-            onChange={(v) => onChange({ city: v })}
-          />
-          <label style={{ display: 'block' }}>
-            <div style={FIELD_LABEL_STYLE}>{t('wizard.agence.fields.canton')}</div>
-            <select
-              value={value.canton}
-              onChange={(e) => onChange({ canton: e.target.value })}
-              style={SELECT_STYLE}
-            >
-              <option value="">{t('wizard.agence.fields.cantonPlaceholder')}</option>
-              {CANTONS.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </label>
         </div>
       </div>
     </div>

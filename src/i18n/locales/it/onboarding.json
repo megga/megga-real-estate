@@ -6,7 +6,7 @@
     "mobileNotice": {
       "eyebrow": "Passaggio obbligatorio",
       "title": "Questo passaggio si completa da computer",
-      "body": "L'inserimento dell'identità legale della Sua agenzia richiede uno schermo più grande. Acceda da un computer per completarlo."
+      "body": "Questa compilazione richiede uno schermo più grande. La riprenda da un computer."
     },
     "welcome": {
       "title": "Apriamo il suo spazio",
@@ -14,34 +14,34 @@
       "startButton": "Identifichi la sua agenzia"
     },
     "pendingNotice": {
-      "eyebrow": "Compilazione interrotta",
-      "title": "La Sua compilazione è stata interrotta",
-      "body": "Nulla va perso: ogni passaggio confermato con Continua è già salvato nei nostri sistemi, che ne restano la fonte. Riprenda la compilazione quando lo desidera, ritroverà esattamente quanto già inserito.",
+      "title": "La Sua compilazione è in pausa",
+      "body": "Ogni passaggio confermato è già salvato. Torni quando desidera, ritroverà la Sua compilazione.",
       "resumeButton": "Riprenda la compilazione"
     }
   },
   "wizard": {
     "steps": {
+      "ariaLabel": "Passaggi",
       "signataire": "Firmatario",
       "agence": "Agenzia",
       "beneficiaires": "Aventi diritto economico",
       "pieceIdentite": "Documento d'identità",
       "recapitulatif": "Riepilogo"
     },
+    "header": {
+      "language": "Lingua dell'interfaccia"
+    },
     "footer": {
       "continue": "Continua",
       "saving": "Salvataggio…",
-      "saved": "Salvato",
-      "autosave": "Salvato a ogni passaggio",
       "unknownError": "Si è verificato un errore sconosciuto.",
       "submit": "Invii il fascicolo",
       "submitting": "Invio in corso…",
       "exit": "Continui più tardi"
     },
     "signataire": {
-      "eyebrow": "Firmatario autorizzato",
       "title": "Chi è autorizzato a firmare per l'agenzia?",
-      "subtitle": "Indichi l'identità della persona autorizzata a impegnare l'agenzia. Raccogliamo queste informazioni nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD).",
+      "subtitle": "La persona autorizzata a impegnare la Sua agenzia. Raccogliamo queste informazioni ai sensi della legge svizzera antiriciclaggio (LRD).",
       "fields": {
         "firstName": "Nome",
         "lastName": "Cognome",
@@ -58,9 +58,8 @@
       }
     },
     "agence": {
-      "eyebrow": "Identità dell'agenzia",
       "title": "Qual è l'identità legale della Sua agenzia?",
-      "subtitle": "Queste informazioni devono corrispondere esattamente al Suo registro di commercio. Le raccogliamo nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD).",
+      "subtitle": "Devono corrispondere esattamente alla Sua iscrizione nel registro di commercio.",
       "fields": {
         "country": "Paese della sede",
         "countryPlaceholder": "Selezioni un Paese",
@@ -70,7 +69,7 @@
         "legalName": "Ragione sociale",
         "legalNameHint": "La denominazione ufficiale iscritta nel registro di commercio.",
         "tradeName": "Nome commerciale",
-        "tradeNameHint": "Il nome con cui la Sua agenzia è conosciuta dai clienti, se diverso dalla ragione sociale. Utilizzato per verificare il Suo sito internet.",
+        "tradeNameHint": "Il nome con cui i Suoi clienti La conoscono, se diverso dalla ragione sociale.",
         "businessRegistrationNumber": "Numero di registro",
         "tva": "Numero IVA",
         "tvaHint": "Facoltativo: riguarda solo le aziende assoggettate all'IVA.",
@@ -82,12 +81,11 @@
       }
     },
     "beneficiaires": {
-      "eyebrow": "Aventi diritto economico",
       "title": "Chi sono gli aventi diritto economico della Sua agenzia?",
-      "subtitle": "Indichi le persone fisiche che detengono o controllano l'agenzia. Raccogliamo queste informazioni nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD). La soglia di riferimento è del 25% (norma GAFI): si tratta di un aiuto alla compilazione, può dichiarare una persona anche al di sotto.",
+      "subtitle": "Le persone fisiche che detengono o controllano la Sua agenzia.",
       "reuseSignataire": "Riprenda {{name}} (firmatario)",
       "addButton": "Aggiunga un avente diritto economico",
-      "emptyHint": "Nessun avente diritto economico dichiarato per il momento. È possibile se nessuna persona fisica detiene o controlla da sola il 25% o più dell'agenzia: in tal caso indichi la persona che la controlla in altro modo, oppure, in mancanza, un membro dell'organo di alta direzione.",
+      "emptyHint": "Nessuno raggiunge il 25%? Dichiari chi controlla l'agenzia in altro modo o, in mancanza, un membro della sua direzione.",
       "removeButton": "Rimuova questo avente diritto economico",
       "fields": {
         "firstName": "Nome",
@@ -107,9 +105,8 @@
       }
     },
     "pieceIdentite": {
-      "eyebrow": "Documento d'identità",
       "title": "Carichi il documento d'identità del firmatario",
-      "subtitle": "Fronte e retro di un documento d'identità in corso di validità (carta d'identità, passaporto o permesso di soggiorno). Questo documento viene esaminato da un membro del nostro team di conformità; in questa fase non viene effettuata alcuna verifica automatica.",
+      "subtitle": "Fronte e retro di un documento in corso di validità: carta d'identità, passaporto o permesso di soggiorno. Lo esamina un membro del nostro team di conformità.",
       "missingSignataire": "Il firmatario deve prima essere indicato nel passaggio precedente.",
       "sides": {
         "recto": "Fronte",
@@ -118,6 +115,10 @@
       "dropHint": "Clicchi per selezionare un file",
       "formatHint": "JPG, PNG, WEBP o PDF, massimo 8 MB",
       "replaceHint": "Clicchi per sostituire",
+      "zoomOpen": "Ingrandisci il {{side}}",
+      "zoomClose": "Chiudi",
+      "zoomHint": "Verifichi che il documento sia nitido e che i quattro angoli siano visibili. Altrimenti lo sostituisca.",
+      "openPdf": "Apri il PDF",
       "errors": {
         "format": "Formato accettato: JPG, PNG, WEBP o PDF.",
         "size": "Dimensione massima: 8 MB.",
@@ -126,9 +127,8 @@
       }
     },
     "recap": {
-      "eyebrow": "Riepilogo",
       "title": "Verifichi il Suo fascicolo prima di inviarlo",
-      "subtitle": "Rilegga ogni sezione qui sotto. Può ancora modificare un passaggio prima di inviare.",
+      "subtitle": "Rilegga ogni sezione. Può ancora modificare un passaggio.",
       "notProvided": "Non indicato",
       "beneficiaires": {
         "empty": "Nessun avente diritto economico dichiarato.",
@@ -142,10 +142,10 @@
       },
       "attestation": "Attesto che le informazioni sopra riportate sono esatte e complete, per quanto a mia conoscenza.",
       "errors": {
-        "legalName": "La ragione sociale dell'agenzia è mancante. Completi il passaggio Agenzia prima di inviare.",
-        "legalForm": "La forma giuridica dell'agenzia è mancante. Completi il passaggio Agenzia prima di inviare.",
-        "country": "Il Paese della sede dell'agenzia è mancante. Completi il passaggio Agenzia prima di inviare.",
-        "signatory": "Non risulta alcun firmatario attivo registrato. Completi il passaggio Firmatario prima di inviare.",
+        "legalName": "Ragione sociale mancante. Completi il passaggio Agenzia.",
+        "legalForm": "Forma giuridica mancante. Completi il passaggio Agenzia.",
+        "country": "Paese della sede mancante. Completi il passaggio Agenzia.",
+        "signatory": "Nessun firmatario attivo. Completi il passaggio Firmatario.",
         "generic": "L'invio non è riuscito. Riprovi."
       }
     }
@@ -154,46 +154,46 @@
     "banner": {
       "notSubmitted": {
         "title": "Verifica d'identità non inviata",
-        "bodyAdmin": "Completi la verifica d'identità della Sua agenzia per sbloccare l'apertura di pratiche KYC e l'invio di firme elettroniche.",
-        "bodyOther": "Un amministratore o un manager della Sua agenzia deve completare la verifica d'identità prima che sia possibile aprire una pratica KYC o inviare una firma elettronica."
+        "bodyAdmin": "Completi la verifica d'identità per aprire pratiche KYC e inviare firme elettroniche.",
+        "bodyOther": "Un amministratore o un manager deve completare la verifica d'identità della Sua agenzia."
       },
       "pendingReview": {
         "title": "Verifica in fase di revisione",
-        "body": "Il team MEGGA deve convalidare l'identità della Sua agenzia prima che le pratiche KYC e le firme elettroniche diventino disponibili. Torni più tardi, lo stato si aggiorna automaticamente."
+        "body": "Stiamo convalidando l'identità della Sua agenzia. Lo stato si aggiorna automaticamente."
       },
       "rejected": {
         "title": "Verifica respinta",
-        "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Reinviare il modulo non avvia un nuovo esame: contatti il supporto MEGGA per conoscere il motivo e i prossimi passi."
+        "body": "L'identità della Sua agenzia non è stata convalidata. Reinviare il modulo non avvia un nuovo esame: contatti il supporto."
       },
       "cta": "Completa la verifica",
       "contactSupport": "Contatta il supporto",
       "correctionRequested": {
         "title": "Correzione richiesta",
-        "body": "Il team MEGGA ti chiede di correggere i dati di identità prima di proseguire. I dettagli ti sono stati inviati per e-mail. Riapri il modulo, poi invia di nuovo."
+        "body": "Le è stata richiesta una correzione per e-mail. Riapra il modulo, quindi invii di nuovo."
       }
     },
     "block": {
-      "checking": "Verifica dello stato della Sua agenzia prima di aprire una pratica KYC…",
+      "checking": "Verifica dello stato della Sua agenzia…",
       "notSubmitted": {
         "eyebrow": "Verifica d'identità richiesta",
-        "title": "La verifica d'identità della Sua agenzia non è ancora stata inviata",
-        "bodyAdmin": "MEGGA verifica l'identità di ogni agenzia prima che una pratica KYC cliente possa essere aperta o una firma elettronica inviata, nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD). In qualità di amministratore o manager, può completare questa verifica adesso.",
-        "bodyOther": "MEGGA verifica l'identità di ogni agenzia prima che una pratica KYC cliente possa essere aperta o una firma elettronica inviata, nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD). Solo un amministratore o un manager della Sua agenzia può completare questa verifica."
+        "title": "Verifichi l'identità della Sua agenzia",
+        "bodyAdmin": "Verifichiamo l'identità di ogni agenzia prima di qualsiasi pratica KYC o firma elettronica, ai sensi della legge svizzera antiriciclaggio (LRD). Può completarla ora.",
+        "bodyOther": "Verifichiamo l'identità di ogni agenzia prima di qualsiasi pratica KYC o firma elettronica, ai sensi della legge svizzera antiriciclaggio (LRD). Solo un amministratore o un manager può completarla."
       },
       "pendingReview": {
         "eyebrow": "Verifica in corso",
-        "title": "La pratica di verifica della Sua agenzia è in fase di revisione",
-        "body": "La Sua pratica è stata trasmessa al team MEGGA. Un membro del team deve convalidare l'identità della Sua agenzia prima che sia possibile aprire pratiche KYC o inviare firme elettroniche. Torni a consultare questa schermata più tardi, lo stato si aggiorna non appena viene presa una decisione."
+        "title": "Stiamo esaminando il Suo fascicolo",
+        "body": "Il Suo fascicolo è nelle mani del nostro team di conformità. Lo stato si aggiorna non appena viene presa una decisione."
       },
       "rejected": {
         "eyebrow": "Verifica respinta",
-        "title": "La pratica di verifica della Sua agenzia è stata respinta",
-        "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Reinviare il modulo non avvia un nuovo esame: contatti il supporto MEGGA per comprendere il motivo e conoscere i prossimi passi."
+        "title": "Il Suo fascicolo non è stato convalidato",
+        "body": "Reinviare il modulo non avvia un nuovo esame. Contatti il supporto per conoscere il motivo e i prossimi passi."
       },
       "unavailable": {
         "eyebrow": "Stato della verifica non disponibile",
-        "title": "Non è stato possibile leggere lo stato di verifica della Sua agenzia",
-        "body": "Non si tratta di una decisione sulla Sua pratica: la lettura dello stato non è riuscita, probabilmente a causa di una connessione interrotta o di un servizio momentaneamente non disponibile. Finché questo stato non è confermato, non è possibile aprire pratiche KYC. Riprovi tra un istante; se il problema persiste, contatti il supporto MEGGA.",
+        "title": "Stato di verifica non leggibile",
+        "body": "Non dipende dal Suo fascicolo: è la lettura dello stato che non è riuscita. Riprovi tra un istante e, se il problema persiste, contatti il supporto.",
         "retry": "Riprova"
       },
       "cta": "Completa la verifica",
@@ -201,8 +201,8 @@
       "contactSupport": "Contatta il supporto",
       "correctionRequested": {
         "eyebrow": "Correzione richiesta",
-        "title": "I tuoi dati di identità devono essere corretti",
-        "body": "Il team MEGGA ha esaminato il tuo fascicolo e chiede una correzione prima di convalidarlo. Ciò che deve cambiare ti è stato comunicato per e-mail. Riapri il modulo di identità, correggilo e invialo di nuovo: l'esame riprenderà automaticamente."
+        "title": "È richiesta una correzione",
+        "body": "I dettagli Le sono stati inviati per e-mail. Corregga la Sua compilazione, quindi invii di nuovo: l'esame riprende automaticamente."
       }
     }
   }
