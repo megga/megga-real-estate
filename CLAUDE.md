@@ -366,11 +366,25 @@ Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel e
 ### Secrets Supabase
 ```
 DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
+MEGGA_MAGIC_LINK_HMAC_SECRET,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
 MAPBOX_TOKEN,
 UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 ```
+
+> ✅ **`MEGGA_MAGIC_LINK_HMAC_SECRET` EST configuré** (mesuré le 03.08.2026) — il manquait
+> simplement à cet inventaire. Il signe les jetons publics du lien magique KYC ET des liens
+> de réception acheteur (`_shared/magic-link-token.ts`, ≥ 32 caractères exigés à la
+> signature). Sans lui, les deux parcours échouent **fermé** — `verifyMagicLinkToken` rend
+> `no_secret` et tout lien est refusé — donc son absence casse la fonctionnalité sans ouvrir
+> de faille.
+>
+> Méthode, réutilisable pour tout secret d'edge : interroger la fonction déployée avec un
+> faux jeton de syntaxe valide et lire le motif. Le secret est vérifié AVANT la signature,
+> donc `no_secret` ⇒ absent, `invalid_signature` ⇒ présent. ⚠ Cet oracle disparaît avec la
+> PR #1114, qui réduit le motif rendu aux appelants anonymes à `expired`/`invalid` — il
+> renseignait un tiers sur la configuration du déploiement.
 
 > ⚠ **`MAPBOX_TOKEN` n'est PAS configuré** (constat du 01.08.2026, [issue #1061](https://github.com/megga/megga-real-estate/issues/1061)).
 > Il est distinct de `VITE_MAPBOX_TOKEN` (secret GitHub Actions, injecté au build du bundle
