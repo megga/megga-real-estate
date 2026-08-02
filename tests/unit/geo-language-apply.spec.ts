@@ -1,6 +1,13 @@
+// @vitest-environment-options { "url": "https://app.megga.ch/dashboard" }
 /**
  * Garde-fou : quand la langue déduite du pays est appliquée au CRM, et surtout
  * quand elle ne l'est PAS.
+ *
+ * ⚠ L'URL du document est forcée sur app.megga.ch : le client refuse d'appeler
+ * l'endpoint depuis un hôte où il n'existe pas (voir HOTES_AVEC_ENDPOINT, et
+ * tests/unit/geo-language-host-gate.spec.ts). Sous le localhost par défaut de
+ * jsdom, tous les cas ci-dessous s'abstiendraient et ce fichier passerait au
+ * vert sans rien distinguer.
  *
  * La détection ne doit s'appliquer que dans un cas très étroit — premier contact,
  * réponse sûre, langue différente de celle en cours. Tout le reste est une

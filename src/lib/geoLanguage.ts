@@ -54,6 +54,28 @@ export interface GeoLanguage {
 const ENDPOINT = 'https://megga.ch/api/geo'
 
 /**
+ * Hôtes depuis lesquels l'endpoint est joignable — production et préversions
+ * Cloudflare du CRM.
+ *
+ * ⚠ CE GARDE-FOU N'EST PAS UNE PRÉCAUTION DE STYLE. Sans lui, le CRM lançait
+ * l'appel depuis `localhost` en développement et en CI, où `/api/geo` n'existe
+ * pas : le navigateur journalise alors « blocked by CORS policy », et un
+ * `catch` n'y peut RIEN — l'échec réseau est tracé par le navigateur, pas levé
+ * par notre code. 35 tests Playwright, qui assertent l'absence d'erreur console
+ * sur chaque route, sont tombés d'un coup. Aucune porte locale ne le voyait.
+ *
+ * Le fond du problème n'était pas le CORS : c'était de faire dépendre le
+ * démarrage du CRM d'un endpoint qui ne peut pas exister dans son
+ * environnement. Cette même dépendance aurait gardé la CI rouge jusqu'au merge,
+ * puisque l'endpoint n'arrive qu'avec le déploiement de la vitrine.
+ *
+ * Pour l'exercer en local : déployer la vitrine sur une préversion, ou relâcher
+ * temporairement ce test — `localhost` est déjà admis côté worker
+ * (`origineAutorisee`, sites/megga-vitrine/_worker.js).
+ */
+const HOTES_AVEC_ENDPOINT = /(^|\.)megga\.ch$|\.megga-app\.pages\.dev$/
+
+/**
  * Au-delà, on renonce. Le budget est celui d'un confort, pas d'une dépendance :
  * personne ne doit attendre pour utiliser le CRM parce qu'un autre hôte est lent.
  */
@@ -72,6 +94,7 @@ const LANGUES_PRODUIT = ['fr', 'de', 'en', 'it']
  */
 export async function fetchGeoLanguage(): Promise<GeoLanguage | null> {
   if (typeof window === 'undefined') return null
+  if (!HOTES_AVEC_ENDPOINT.test(window.location.hostname)) return null
   const abandon = new AbortController()
   const minuterie = window.setTimeout(() => abandon.abort(), DELAI_MAX_MS)
   try {
