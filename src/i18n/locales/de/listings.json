@@ -34,10 +34,6 @@
   "no_photo": "Kein Foto",
   "empty_no_properties": "Sie haben noch kein Objekt hinzugefügt",
   "empty_no_results": "Kein Objekt gefunden",
-  "delete_dialog": {
-    "title": "Dieses Objekt löschen?",
-    "message": "Diese Aktion ist unwiderruflich. Das Objekt und sein Inserat werden dauerhaft gelöscht."
-  },
   "deleting": "Löschen...",
   "delete_button": "Löschen",
   "cancel": "Abbrechen",

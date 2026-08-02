@@ -33,79 +33,10 @@
       "to_recontact": "Erneut kontaktieren"
     }
   },
-  "atRisk": {
-    "title": "Gefährdete Deals",
-    "empty": "Keine gefährdeten Deals",
-    "emptyDescription": "Ihre Pipeline ist gesund",
-    "unknownContact": "Unbekannter Kontakt",
-    "daysSince": "Seit {{count}} Tag ohne Aktivität",
-    "daysSince_plural": "Seit {{count}} Tagen ohne Aktivität",
-    "view": "Ansehen →"
-  },
   "activity": {
     "title": "Letzte Aktivitäten",
     "viewAll": "Alle anzeigen",
     "empty": "Keine aktuelle Aktivität"
-  },
-  "actionBoard": {
-    "sections": {
-      "urgencies": "Dringend",
-      "followUps": "Nachfassaktionen heute",
-      "matches": "Gefundene Matches",
-      "visits": "Besichtigungen bestätigen",
-      "suggestions": "KI-Vorschläge"
-    },
-    "empty": {
-      "urgencies": "Keine Dringlichkeiten heute",
-      "followUps": "Keine Nachfassaktionen geplant",
-      "matches": "Keine neuen Matches",
-      "visits": "Keine Besichtigungen heute",
-      "suggestions": "Keine Vorschläge im Moment"
-    },
-    "summary": {
-      "urgency": "{{count}} Dringlichkeit",
-      "urgency_plural": "{{count}} Dringlichkeiten",
-      "followUp": "{{count}} Nachfassaktion",
-      "followUp_plural": "{{count}} Nachfassaktionen",
-      "visit": "{{count}} Besichtigung",
-      "visit_plural": "{{count}} Besichtigungen",
-      "match": "{{count}} Match",
-      "match_plural": "{{count}} Matches"
-    },
-    "days": {
-      "0": "Sonntag",
-      "1": "Montag",
-      "2": "Dienstag",
-      "3": "Mittwoch",
-      "4": "Donnerstag",
-      "5": "Freitag",
-      "6": "Samstag"
-    },
-    "months": {
-      "0": "Januar",
-      "1": "Februar",
-      "2": "März",
-      "3": "April",
-      "4": "Mai",
-      "5": "Juni",
-      "6": "Juli",
-      "7": "August",
-      "8": "September",
-      "9": "Oktober",
-      "10": "November",
-      "11": "Dezember"
-    },
-    "sellerLeads": "Neue Verkäufer-Leads",
-    "accept": "Akzeptieren",
-    "reject": "Ablehnen",
-    "accepted": "Akzeptiert",
-    "motivation": "Motivation",
-    "motivations": {
-      "immediate": "Sofort",
-      "3months": "3 Monate",
-      "6months": "6 Monate",
-      "exploring": "Erkundung"
-    }
   },
   "today": {
     "reasons": {
@@ -717,21 +648,6 @@
     "added": "Added · {{value}}",
     "submit": "Create",
     "suggested": "Suggested"
-  },
-  "knowledge": {
-    "col": {
-      "subject": "Subject",
-      "status": "Status",
-      "startDate": "Start date",
-      "endDate": "End date",
-      "assignedUser": "Assigned user"
-    },
-    "favRemove": "Remove from favorites",
-    "favAdd": "Add to favorites",
-    "favRemoved": "Removed from favorites, {{subject}}",
-    "favAdded": "Added to favorites, {{subject}}",
-    "statusChanged": "Status → {{status}}",
-    "changeStatus": "Change status"
   },
   "focus": {
     "heading": "3 must-do priorities for today",

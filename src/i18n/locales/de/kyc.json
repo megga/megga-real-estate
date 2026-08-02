@@ -45,19 +45,6 @@
     "validated": "Validiert",
     "rejected": "Abgelehnt"
   },
-  "create_modal": {
-    "title": "Neues KYC-Dossier",
-    "select_contact": "Kontakt auswählen",
-    "type_label": "Dossier-Typ *",
-    "transaction_label": "Verknüpfte Transaktion (optional)",
-    "no_transaction": "Keine Transaktion",
-    "nationality_label": "Nationalität des Kontakts",
-    "nationality_hint": "ISO 2-Buchstaben-Ländercode (CH, DE, FR...)",
-    "amount_label": "Transaktionsbetrag (CHF)",
-    "error": "Fehler bei der Erstellung des Dossiers",
-    "creating": "Erstellen...",
-    "submit": "Dossier erstellen"
-  },
   "client": {
     "landing": {
       "lock_label": "Verschlüsselter Link · läuft ab am {{date}}",
@@ -150,11 +137,6 @@
     "screening": "Screening",
     "risk": "Risk",
     "validation": "Validation"
-  },
-  "riskScore": {
-    "low": "Low",
-    "moderate": "Moderate",
-    "high": "High"
   },
   "wizard": {
     "steps": {
@@ -396,136 +378,136 @@
   },
   "dossier": {
     "detail": {
-      "loadError": "This KYC case could not be loaded.",
-      "loadErrorHint": "Network or database error.",
-      "retry": "Retry",
-      "loading": "Loading case…",
-      "reviewSanctionsFirst": "Review the sanctions match first",
-      "reviewPepFirst": "Review the PEP match first",
-      "screeningRunning": "Screening in progress…",
-      "runScreeningFirst": "Run the screening before validating",
-      "saveFailed": "Save failed.",
-      "fiveChecks": "5 standard checks (AMLA art. 3-7)",
-      "previewError": "Preview unavailable: {{message}}"
+      "loadError": "Dieses KYC-Dossier konnte nicht geladen werden.",
+      "loadErrorHint": "Netzwerk- oder Datenbankfehler.",
+      "retry": "Erneut versuchen",
+      "loading": "Dossier wird geladen…",
+      "reviewSanctionsFirst": "Prüfen Sie zuerst den Sanktionstreffer",
+      "reviewPepFirst": "Prüfen Sie zuerst den PEP-Treffer",
+      "screeningRunning": "Screening läuft…",
+      "runScreeningFirst": "Starten Sie das Screening vor der Validierung",
+      "saveFailed": "Speichern fehlgeschlagen.",
+      "fiveChecks": "5 obligatorische Kontrollen (GwG Art. 3-7)",
+      "previewError": "Vorschau nicht möglich: {{message}}"
     },
     "tabs": {
-      "synthese": "Summary",
-      "controles": "Checks",
-      "documents": "Documents",
+      "synthese": "Übersicht",
+      "controles": "Kontrollen",
+      "documents": "Dokumente",
       "audit": "Audit"
     },
     "alert": {
-      "matchSanctions": "Sanctions match detected · review required (AMLA art. 9).",
-      "matchPep": "PEP match detected · review required (AMLA art. 9)."
+      "matchSanctions": "Sanktionstreffer erkannt · Prüfung erforderlich (GwG Art. 9).",
+      "matchPep": "PEP-Treffer erkannt · Prüfung erforderlich (GwG Art. 9)."
     },
     "confirm": {
-      "eyebrow": "Compliance validation · AMLA art. 7",
-      "title": "Mark this case as verified?",
-      "body": "This action ticks the 5 standard checks and sets the case to \"verified\" status. It is logged in the FADP audit trail for 10 years.",
-      "sanctions": "Sanctions:",
+      "eyebrow": "Compliance-Validierung · GwG Art. 7",
+      "title": "Dossier als verifiziert markieren?",
+      "body": "Diese Aktion hakt die 5 obligatorischen Kontrollen ab und setzt das Dossier auf den Status «verifiziert». Sie wird während 10 Jahren im nDSG-Auditprotokoll festgehalten.",
+      "sanctions": "Sanktionen:",
       "pep": "PEP:",
-      "vigilance": "Due diligence:",
+      "vigilance": "Sorgfaltspflicht:",
       "clear": "✓ Clear",
-      "vigilanceEnhanced": "Enhanced (AMLA art. 6)",
-      "vigilanceStandard": "Standard (AMLA art. 3-4)",
-      "cancel": "Cancel",
-      "submit": "Confirm validation",
+      "vigilanceEnhanced": "Erhöht (GwG Art. 6)",
+      "vigilanceStandard": "Standard (GwG Art. 3-4)",
+      "cancel": "Abbrechen",
+      "submit": "Validierung bestätigen",
       "status": {
-        "match": "Match",
-        "pending": "Pending",
-        "not_checked": "Not checked"
+        "match": "Treffer",
+        "pending": "Ausstehend",
+        "not_checked": "Nicht geprüft"
       }
     },
     "examine": {
-      "matchCount_one": "{{count}} Dilisense match",
-      "matchCount_other": "{{count}} Dilisense matches"
+      "matchCount_one": "{{count}} Dilisense-Treffer",
+      "matchCount_other": "{{count}} Dilisense-Treffer"
     },
     "funds": {
-      "eyebrow": "Economic origin · AMLA art. 6 para. 1 let. b",
-      "title": "Source of funds",
-      "edit": "Edit",
-      "document": "Document",
-      "notDocumented": "Not documented. For enhanced due-diligence transactions and any amount above CHF 100'000, we recommend clarifying and retaining the economic background.",
-      "redFlag": "AMLA red flag",
-      "redFlagSuffix": "(red flag)",
-      "linkedDoc": "Linked document:",
-      "noLinkedDoc": "No document linked, to be uploaded.",
-      "errorAgencyMissing": "Missing agency_id.",
-      "errorSave": "Save failed.",
-      "overlayEyebrow": "AMLA art. 6 para. 1 let. b · Economic background",
-      "overlayTitle": "Document the source of funds",
-      "typeLabel": "Type",
-      "descriptionLabelRequired": "Description ({{count}}/20 characters min)",
-      "descriptionLabelOptional": "Description (optional)",
-      "descriptionPlaceholder": "Specify the economic background: period, instruments, counterparties.",
-      "descriptionPlaceholderCrypto": "E.g. USDT bought in 2021 on Kraken, FINMA-regulated exchange, cold-wallet custody, attestation attached.",
-      "docLabel": "Supporting document (financial or compliance category)",
-      "docNone": "No document",
-      "cancel": "Cancel",
-      "saving": "Saving…",
-      "save": "Save",
+      "eyebrow": "Wirtschaftliche Herkunft · GwG Art. 6 Abs. 1 Bst. b",
+      "title": "Herkunft der Mittel",
+      "edit": "Bearbeiten",
+      "document": "Dokumentieren",
+      "notDocumented": "Nicht dokumentiert. Bei Transaktionen mit erhöhten Sorgfaltspflichten und bei jedem Betrag über CHF 100'000 wird empfohlen, den wirtschaftlichen Hintergrund abzuklären und aufzubewahren.",
+      "redFlag": "GwG-Red-Flag",
+      "redFlagSuffix": "(Red Flag)",
+      "linkedDoc": "Verknüpfter Beleg:",
+      "noLinkedDoc": "Kein Beleg verknüpft, hochzuladen.",
+      "errorAgencyMissing": "agency_id fehlt.",
+      "errorSave": "Speichern fehlgeschlagen.",
+      "overlayEyebrow": "GwG Art. 6 Abs. 1 Bst. b · Wirtschaftlicher Hintergrund",
+      "overlayTitle": "Herkunft der Mittel dokumentieren",
+      "typeLabel": "Typ",
+      "descriptionLabelRequired": "Beschreibung ({{count}}/20 Zeichen min.)",
+      "descriptionLabelOptional": "Beschreibung (optional)",
+      "descriptionPlaceholder": "Präzisieren Sie den wirtschaftlichen Hintergrund: Zeitraum, Instrumente, Gegenparteien.",
+      "descriptionPlaceholderCrypto": "Z. B.: 2021 auf Kraken gekaufte USDT, FINMA-regulierte Exchange, Cold-Wallet-Verwahrung, Bestätigung beigelegt.",
+      "docLabel": "Beleg (Kategorie financial oder compliance)",
+      "docNone": "Kein Beleg",
+      "cancel": "Abbrechen",
+      "saving": "Wird gespeichert…",
+      "save": "Speichern",
       "types": {
         "salary": {
-          "label": "Salary / employment income",
-          "hint": "Payslips or employer certificate"
+          "label": "Lohn / Erwerbseinkommen",
+          "hint": "Lohnabrechnungen oder Arbeitgeberbestätigung"
         },
         "sale_property": {
-          "label": "Sale of a property",
-          "hint": "Notarized sale contract"
+          "label": "Verkauf einer Immobilie",
+          "hint": "Notariell beurkundeter Kaufvertrag"
         },
         "sale_business": {
-          "label": "Sale of a business / shares",
-          "hint": "Transfer deed"
+          "label": "Unternehmens- / Anteilsverkauf",
+          "hint": "Abtretungsvertrag"
         },
         "inheritance": {
-          "label": "Inheritance / gift",
-          "hint": "Notarized deed"
+          "label": "Erbschaft / Schenkung",
+          "hint": "Notarielle Urkunde"
         },
         "investment": {
-          "label": "Investment income / dividends",
-          "hint": "Bank statement or tax certificate"
+          "label": "Anlageerträge / Dividenden",
+          "hint": "Bankauszug oder Steuerbescheinigung"
         },
         "crypto": {
-          "label": "Crypto-assets",
-          "hint": "AMLA red flag, detailed description recommended"
+          "label": "Kryptowerte",
+          "hint": "GwG-Red-Flag, detaillierte Beschreibung empfohlen"
         },
         "loan": {
-          "label": "Bank loan",
-          "hint": "Loan agreement + bank certificate"
+          "label": "Bankdarlehen",
+          "hint": "Darlehensvertrag + Bankbestätigung"
         },
         "mixed": {
-          "label": "Mixed origin",
-          "hint": "AMLA red flag, detail each source"
+          "label": "Gemischte Herkunft",
+          "hint": "GwG-Red-Flag, jede Quelle detaillieren"
         },
         "other": {
-          "label": "Other",
-          "hint": "Description recommended"
+          "label": "Andere",
+          "hint": "Beschreibung empfohlen"
         }
       }
     },
     "synthese": {
-      "typeBuyer": "Buyer",
-      "typeSeller": "Seller",
-      "stateEyebrow": "Case status",
-      "stateVerifiedTitle": "Case verified, ready to proceed",
-      "stateUnverifiedTitle": "Checks to complete",
-      "stateVerifiedBody": "All AMLA checks are validated.",
-      "stateUnverifiedBody": "You can keep moving the deal forward. KYC is recommended before signing, but it is not blocking.",
-      "markingAll": "Validating…",
-      "markAllVerified": "Mark all as verified",
-      "checksEyebrow": "Checks · AMLA art. 3-7",
-      "seeDetail": "View details",
-      "infoEyebrow": "Information",
-      "riskLevel": "Risk level",
-      "contactType": "Contact type",
-      "openedOn": "Case opened on",
-      "lastScreening": "Last screening",
-      "expiry": "Expiry",
-      "reference": "Reference"
+      "typeBuyer": "Käufer",
+      "typeSeller": "Verkäufer",
+      "stateEyebrow": "Dossierstatus",
+      "stateVerifiedTitle": "Dossier verifiziert, Transaktion freigegeben",
+      "stateUnverifiedTitle": "Prüfungen zu vervollständigen",
+      "stateVerifiedBody": "Alle GwG-Kontrollen sind validiert.",
+      "stateUnverifiedBody": "Sie können den Deal weiter vorantreiben. Das KYC wird vor der Unterzeichnung empfohlen, ist aber nicht blockierend.",
+      "markingAll": "Validierung…",
+      "markAllVerified": "Alle als verifiziert markieren",
+      "checksEyebrow": "Kontrollen · GwG Art. 3-7",
+      "seeDetail": "Details anzeigen",
+      "infoEyebrow": "Informationen",
+      "riskLevel": "Risikoniveau",
+      "contactType": "Kontakttyp",
+      "openedOn": "Dossier eröffnet am",
+      "lastScreening": "Letztes Screening",
+      "expiry": "Fälligkeit",
+      "reference": "Referenz"
     },
     "docs": {
-      "expiresInDays_one": "Expires in {{count}} day",
-      "expiresInDays_other": "Expires in {{count}} days"
+      "expiresInDays_one": "Läuft in {{count}} T ab",
+      "expiresInDays_other": "Läuft in {{count}} T ab"
     }
   },
   "list": {
@@ -535,31 +517,6 @@
     "emptyFilter": "No case matches this filter.",
     "staleCount_one": "{{count}} case to re-screen (review date passed).",
     "staleCount_other": "{{count}} cases to re-screen (review date passed)."
-  },
-  "nonBlocking": {
-    "complete": "Complete",
-    "dismiss": "Dismiss",
-    "dealBadgeHint_one": "{{count}} document outstanding, non-blocking",
-    "dealBadgeHint_other": "{{count}} documents outstanding, non-blocking",
-    "availableActions": "Available actions",
-    "completeBeforeSignature": "Complete KYC before signing",
-    "debtIntro": "No action is ever blocked. The compliance lead sees the outstanding items here and follows up.",
-    "daysShort_one": "{{count}}d",
-    "daysShort_other": "{{count}}d",
-    "followUp": "Follow up",
-    "showcase": {
-      "contactBanner": "Contact card, gentle banner (blocks no action)",
-      "dealBadge": "Deal card, persistent badge",
-      "debtTable": "Outstanding-items table, compliance lead view"
-    }
-  },
-  "contactBento": {
-    "heading": "KYC / AML compliance",
-    "kpiRisk": "Risk",
-    "kpiDocs": "Documents",
-    "kpiLastScreening": "Last screening",
-    "openDossier": "Open case",
-    "followUpClient": "Follow up with client"
   },
   "upload": {
     "title": "Add a document",
@@ -598,188 +555,188 @@
   },
   "report": {
     "check": {
-      "id": "Counterparty identification",
-      "address": "Address verification",
-      "pep": "PEP screening",
-      "sanctions": "Sanctions lists",
-      "funds": "Source of funds"
+      "id": "Identifizierung der Vertragspartei",
+      "address": "Adressprüfung",
+      "pep": "PEP-Screening",
+      "sanctions": "Sanktionslisten",
+      "funds": "Herkunft der Mittel"
     },
     "checkJustif": {
-      "id": "Official ID document",
-      "address": "Proof of address < 3 months",
+      "id": "Amtlicher Ausweis",
+      "address": "Wohnsitznachweis < 3 Monate",
       "pep": "Dilisense, clear",
       "sanctions": "Dilisense, clear",
-      "funds": "Bank statement + payslip"
+      "funds": "Bankbestätigung + Lohnabrechnung"
     },
     "contactType": {
-      "buyer_pp": "Buyer · natural person",
-      "buyer_pm": "Buyer · legal entity",
-      "seller_pp": "Seller · natural person",
-      "seller_pm": "Seller · legal entity"
+      "buyer_pp": "Käufer · natürliche Person",
+      "buyer_pm": "Käufer · juristische Person",
+      "seller_pp": "Verkäufer · natürliche Person",
+      "seller_pm": "Verkäufer · juristische Person"
     },
     "sourceOfFunds": {
-      "salary": "Salary savings",
-      "sale_property": "Property sale",
-      "sale_business": "Business sale",
-      "inheritance": "Inheritance",
-      "investment": "Investments",
-      "crypto": "Crypto-assets",
-      "loan": "Mortgage loan",
-      "mixed": "Mixed (savings + loan)",
-      "other": "Other"
+      "salary": "Erspartes aus Erwerbstätigkeit",
+      "sale_property": "Immobilienverkauf",
+      "sale_business": "Unternehmensverkauf",
+      "inheritance": "Erbschaft",
+      "investment": "Investitionen / Anlagen",
+      "crypto": "Kryptowerte",
+      "loan": "Hypothekarkredit",
+      "mixed": "Gemischt (Erspartes + Kredit)",
+      "other": "Andere"
     },
     "risk": {
-      "low": "Low",
-      "medium": "Medium",
-      "high": "High",
-      "critical": "Critical"
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch",
+      "critical": "Kritisch"
     },
     "aiVigilance": {
-      "standard": "Standard due diligence",
-      "renforced": "Enhanced due diligence",
-      "escalation_mlro": "MLRO escalation recommended"
+      "standard": "Standardsorgfaltspflichten",
+      "renforced": "Erhöhte Sorgfaltspflichten",
+      "escalation_mlro": "Eskalation an MLRO empfohlen"
     },
     "docCategory": {
-      "identity": "Identity",
-      "domicile": "Residence",
-      "financial": "Source of funds",
+      "identity": "Identität",
+      "domicile": "Wohnsitz",
+      "financial": "Herkunft der Mittel",
       "compliance": "Compliance",
-      "other": "Annex"
+      "other": "Anhang"
     },
     "verdict": {
       "vigilanceStandard": "Standard",
-      "vigilanceRenforced": "Enhanced",
-      "vigilanceSubStandard": "AMLA art. 3",
-      "vigilanceSubRenforced": "AMLA art. 6",
-      "riskSub": "Internal score {{score}}/100",
-      "statusInProgress": "In progress",
-      "statusVerified": "Verified",
-      "statusFailed": "Failed",
-      "statusStale": "To renew",
-      "statusSub": "{{done}}/{{total}} checks validated"
+      "vigilanceRenforced": "Erhöht",
+      "vigilanceSubStandard": "GwG Art. 3",
+      "vigilanceSubRenforced": "GwG Art. 6",
+      "riskSub": "Interner Score {{score}}/100",
+      "statusInProgress": "In Bearbeitung",
+      "statusVerified": "Verifiziert",
+      "statusFailed": "Fehlgeschlagen",
+      "statusStale": "Zu erneuern",
+      "statusSub": "{{done}}/{{total}} Kontrollen validiert"
     },
     "agent": {
       "system": "System",
-      "agent": "Agent",
-      "dilisense": "Dilisense (system)"
+      "agent": "Makler",
+      "dilisense": "Dilisense (System)"
     },
     "riskAnalysis": {
-      "riskSub": "{{label}} risk"
+      "riskSub": "Risiko {{label}}"
     },
     "fallback": {
-      "counterparty": "Counterparty",
-      "sourceNotDocumented": "Not documented"
+      "counterparty": "Vertragspartei",
+      "sourceNotDocumented": "Nicht dokumentiert"
     },
     "pdf": {
-      "headerTag": "KYC report · AMLA",
-      "footerLegal": "MEGGA · legal@megga.ch · AMLA art. 7 · Retain for 10 years",
-      "pageAbbrev": "p.",
+      "headerTag": "KYC-Bericht · GwG",
+      "footerLegal": "MEGGA · legal@megga.ch · GwG Art. 7 · Dokument 10 Jahre aufzubewahren",
+      "pageAbbrev": "S.",
       "page1": {
-        "eyebrow": "Executive summary · AMLA art. 3-7",
-        "title": "KYC report"
+        "eyebrow": "Management-Summary · GwG Art. 3-7",
+        "title": "KYC-Bericht"
       },
       "section": {
-        "client": "Client",
-        "transaction": "Transaction",
-        "verdict": "Overall verdict",
-        "screening": "Official watchlist screening · {{provider}}",
-        "lbaChecks": "Validated AMLA checks · art. 3 to 7",
-        "sourceOfFunds": "Documented source of funds",
-        "riskAnalysis": "Risk analysis",
-        "documents": "Documents attached to the file · {{count}}",
-        "auditTrail": "Audit trail & retention"
+        "client": "Kunde",
+        "transaction": "Transaktion",
+        "verdict": "Gesamtbeurteilung",
+        "screening": "Screening amtlicher Listen · {{provider}}",
+        "lbaChecks": "Validierte GwG-Kontrollen · Art. 3 bis 7",
+        "sourceOfFunds": "Dokumentierte Herkunft der Mittel",
+        "riskAnalysis": "Risikoanalyse",
+        "documents": "Dem Dossier beigelegte Dokumente · {{count}}",
+        "auditTrail": "Audit-Trail & Aufbewahrung"
       },
       "label": {
-        "reference": "Reference",
-        "emittedOn": "Issued on",
-        "by": "By",
-        "identity": "Identity",
-        "nationality": "Nationality",
-        "type": "Type",
-        "taxResidence": "Tax residence",
-        "property": "Property",
-        "mandate": "Mandate",
-        "amount": "Amount",
-        "pipelineStage": "Pipeline stage",
-        "validation": "Validation",
-        "integrityHash": "Integrity hash:",
-        "establishment": "Institution",
-        "attestedAmount": "Attested amount",
-        "retentionPeriod": "Retention period",
-        "legalBasis": "Legal basis"
+        "reference": "Referenz",
+        "emittedOn": "Ausgestellt am",
+        "by": "Von",
+        "identity": "Identität",
+        "nationality": "Nationalität",
+        "type": "Typ",
+        "taxResidence": "Steuerlicher Wohnsitz",
+        "property": "Objekt",
+        "mandate": "Mandat",
+        "amount": "Betrag",
+        "pipelineStage": "Pipeline-Phase",
+        "validation": "Validierung",
+        "integrityHash": "Integritäts-Hash:",
+        "establishment": "Institut",
+        "attestedAmount": "Bestätigter Betrag",
+        "retentionPeriod": "Aufbewahrungsdauer",
+        "legalBasis": "Rechtsgrundlage"
       },
       "value": {
-        "notProvided": "Not provided",
-        "propertyUnderMandate": "Property under mandate"
+        "notProvided": "Nicht angegeben",
+        "propertyUnderMandate": "Objekt unter Mandat"
       },
       "verdictCol": {
-        "vigilance": "Due diligence",
-        "risk": "Risk",
+        "vigilance": "Sorgfaltspflicht",
+        "risk": "Risiko",
         "status": "Status"
       },
-      "validatedBy": "Validated on {{date}} by {{name}}",
-      "validationPending": "File pending validation",
-      "signatureCaption": "Digital signature · qualified",
-      "confidentialNotice": "“Internal document {{agency}} · Strictly confidential · Restricted circulation”",
+      "validatedBy": "Validiert am {{date}} durch {{name}}",
+      "validationPending": "Dossier in Validierung",
+      "signatureCaption": "Digitale Signatur · qualifiziert",
+      "confidentialNotice": "«Internes Dokument {{agency}} · Streng vertraulich · Eingeschränkte Verbreitung»",
       "page2": {
-        "eyebrow": "Customer due diligence performed",
-        "title": "Checks & documents.",
-        "noMatch": "0 match",
+        "eyebrow": "Durchgeführte Sorgfaltsprüfung",
+        "title": "Kontrollen & Belege.",
+        "noMatch": "0 Treffer",
         "clear": "Clear",
-        "toReview": "To review",
+        "toReview": "Zu prüfen",
         "list": {
-          "pep": "PEP (Politically Exposed Persons)",
-          "ofac": "OFAC sanctions (United States)",
-          "seco": "SECO sanctions (Switzerland)",
-          "eu": "EU sanctions",
-          "un": "UN sanctions",
-          "adverseMedia": "Adverse media lists"
+          "pep": "PEP (Politisch exponierte Personen)",
+          "ofac": "OFAC-Sanktionen (USA)",
+          "seco": "SECO-Sanktionen (Schweiz)",
+          "eu": "EU-Sanktionen",
+          "un": "UNO-Sanktionen",
+          "adverseMedia": "Adverse-Media-Listen"
         }
       },
       "col": {
-        "list": "List",
-        "provider": "Provider",
-        "result": "Result",
-        "timestamp": "Timestamp",
+        "list": "Liste",
+        "provider": "Anbieter",
+        "result": "Ergebnis",
+        "timestamp": "Zeitstempel",
         "num": "#",
-        "control": "Check",
-        "supportingDoc": "Supporting document",
-        "date": "Date",
-        "agent": "Agent",
-        "fileName": "File name",
-        "category": "Category",
-        "size": "Size",
+        "control": "Kontrolle",
+        "supportingDoc": "Beleg",
+        "date": "Datum",
+        "agent": "Makler",
+        "fileName": "Dateiname",
+        "category": "Kategorie",
+        "size": "Grösse",
         "hash": "Hash"
       },
-      "riskLevelLabel": "Qualitative risk level",
-      "recommendationLabel": "Recommendation",
-      "confidence": "Confidence: {{pct}}%",
-      "patternsDetected": "Patterns detected",
-      "assistedEstimateNotice": "Assisted estimate, a decision aid; it does not replace the compliance officer's (MLRO) assessment. To be validated.",
+      "riskLevelLabel": "Qualitatives Risikoniveau",
+      "recommendationLabel": "Empfehlung",
+      "confidence": "Konfidenz: {{pct}} %",
+      "patternsDetected": "Erkannte Muster",
+      "assistedEstimateNotice": "Assistierte Einschätzung als Entscheidungshilfe; sie ersetzt nicht die Beurteilung des Compliance-Verantwortlichen (MLRO). Zu validieren.",
       "page3": {
-        "eyebrow": "Appendices",
-        "title": "Supporting documents.",
-        "noDocuments": "No document is attached to the file to date."
+        "eyebrow": "Anhänge",
+        "title": "Belege.",
+        "noDocuments": "Dem Dossier ist bis heute kein Dokument beigelegt."
       },
-      "retentionValue": "10 years from {{date}}",
-      "retentionBody": "In accordance with art. 7 para. 3 AMLA, the entire file (documents, screening, audit trail) is retained in an intact and accessible form for ten years, including after the end of the business relationship.",
-      "legalBasisValue": "AMLA · AMLO-FINMA · nFADP",
-      "legalBasisBody": "This report constitutes documentation within the meaning of art. 7 AMLA and art. 22 AMLO-FINMA. The processing of personal data complies with the principles of the nFADP (proportionality, purpose limitation, security). Right of access guaranteed to the client in accordance with art. 25 nFADP.",
-      "finalAttestationLabel": "Final attestation",
-      "finalAttestationBody": "This KYC report is complete, dated and signed by the financial intermediary subject to the AMLA. No material information has been omitted."
+      "retentionValue": "10 Jahre ab {{date}}",
+      "retentionBody": "Gemäss Art. 7 Abs. 3 GwG wird das gesamte Dossier (Belege, Screening, Audit-Trail) während zehn Jahren unverändert und zugänglich aufbewahrt, auch nach Beendigung der Geschäftsbeziehung.",
+      "legalBasisValue": "GwG · GwV-FINMA · nDSG",
+      "legalBasisBody": "Der vorliegende Bericht gilt als Dokumentation im Sinne von Art. 7 GwG und Art. 22 GwV-FINMA. Die Bearbeitung der Personendaten entspricht den Grundsätzen des nDSG (Verhältnismässigkeit, Zweckbindung, Sicherheit). Das Auskunftsrecht der Kundschaft nach Art. 25 nDSG ist gewährleistet.",
+      "finalAttestationLabel": "Schlussbestätigung",
+      "finalAttestationBody": "Der vorliegende KYC-Bericht ist vollständig, datiert und vom dem GwG unterstellten Finanzintermediär unterzeichnet. Es wurden keine wesentlichen Informationen weggelassen."
     },
     "export": {
-      "agentFallback": "Agent",
-      "loading": "Loading the file…",
-      "notFound": "File not found.",
-      "preparing": "Preparing the report…",
-      "close": "Close",
-      "print": "Print / Save as PDF",
-      "reportRef": "Report {{reference}}"
+      "agentFallback": "Makler",
+      "loading": "Dossier wird geladen…",
+      "notFound": "Dossier nicht gefunden.",
+      "preparing": "Bericht wird vorbereitet…",
+      "close": "Schliessen",
+      "print": "Drucken / Als PDF speichern",
+      "reportRef": "Bericht {{reference}}"
     },
     "render": {
-      "unavailable": "Report unavailable.",
-      "preparing": "Preparing the report…"
+      "unavailable": "Bericht nicht verfügbar.",
+      "preparing": "Bericht wird vorbereitet…"
     }
   },
   "check": {
@@ -816,13 +773,6 @@
     "medium": "Moderate risk",
     "high": "High risk",
     "unassessed": "Unassessed"
-  },
-  "dealBadge": {
-    "verified": "KYC verified",
-    "pending": "KYC in progress",
-    "none": "KYC to do",
-    "stale": "KYC expired",
-    "failed": "KYC failed"
   },
   "mobile": {
     "back": "Mehr",

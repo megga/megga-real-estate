@@ -392,28 +392,6 @@
     "affordabilityCheck": "Tragbarkeitsprüfung",
     "matchSent": "Matching gesendet"
   },
-  "importPage": {
-    "title": "Kontakte importieren",
-    "csvTitle": "Aus CSV / Excel importieren",
-    "csvDrop": "CSV- oder TSV-Datei hierher ziehen",
-    "csvBrowse": "oder durchsuchen",
-    "vcardTitle": "Aus vCard importieren",
-    "vcardDrop": ".vcf-Datei hierher ziehen",
-    "vcardBrowse": "oder durchsuchen",
-    "textTitle": "KI-Extraktion",
-    "textPlaceholder": "E-Mail, WhatsApp-Nachricht oder Text mit Kontaktdaten einfügen...",
-    "textExtract": "Mit MEGGA AI extrahieren",
-    "textExtracting": "Wird extrahiert...",
-    "preview": "Import-Vorschau",
-    "contactsDetected": "{{count}} Kontakte erkannt",
-    "import": "{{count}} Kontakte importieren",
-    "importing": "Import läuft...",
-    "success": "{{count}} Kontakte erfolgreich importiert",
-    "goToContacts": "Meine Kontakte anzeigen",
-    "importMore": "Weitere Kontakte importieren",
-    "errors": "Fehler",
-    "skipped": "{{count}} übersprungen (Duplikate oder ungültig)"
-  },
   "contactType": {
     "buyer": "Buyer",
     "seller": "Seller",
@@ -497,120 +475,6 @@
       "referral": "Referrals",
       "social": "Social media",
       "manual": "Manual import"
-    }
-  },
-  "widgets": {
-    "criteria": {
-      "transaction": "Transaction",
-      "buy": "Purchase",
-      "rent": "Rental",
-      "type": "Type",
-      "zones": "Areas",
-      "budget": "Budget",
-      "surface": "Surface",
-      "rooms": "Rooms",
-      "mustHave": "Must-have",
-      "niceToHave": "Nice-to-have"
-    },
-    "matches": {
-      "empty": "No match computed for this contact.",
-      "specs": "{{rooms}} rms · {{area}}m² · {{price}}",
-      "perMonth": "{{price}}/mo",
-      "send": "Send",
-      "open": "Open",
-      "status": {
-        "to-send": "To send",
-        "sent": "Sent",
-        "viewed": "Viewed",
-        "liked": "Liked",
-        "rejected": "Rejected"
-      }
-    },
-    "activity": {
-      "empty": "No activity recorded for this contact."
-    },
-    "composer": {
-      "tab": {
-        "note": "Note",
-        "call": "Call",
-        "email": "Email",
-        "task": "Task"
-      },
-      "placeholder": {
-        "note": "Add a quick note…",
-        "call": "Summarise a call, key points, next step…",
-        "email": "Subject + email body…",
-        "task": "Task to do, due date, who?"
-      },
-      "suggest": "Suggest with MEGGA AI",
-      "save": "Save"
-    },
-    "deals": {
-      "empty": "No deal in progress for this contact.",
-      "newDeal": "+ New deal",
-      "activeSearch": "Active search",
-      "risk": {
-        "atRisk": "At risk",
-        "stalled": "Stalled",
-        "healthy": "Healthy"
-      }
-    },
-    "seller": {
-      "empty": "No active property under mandate.",
-      "mandateLine": "{{ref}} · {{type}} mandate · {{commission}}%",
-      "stat": {
-        "views": "Views",
-        "favorites": "Favourites",
-        "visits": "Viewings"
-      }
-    },
-    "kyc": {
-      "step": {
-        "identity": "Identity",
-        "beneficiary": "Benef.",
-        "funds": "Funds",
-        "screening": "Screening",
-        "risk": "Risk",
-        "validation": "Validation"
-      },
-      "statusLabel": {
-        "none": "To start",
-        "pending": "In progress",
-        "verified": "Verified",
-        "stale": "Re-screen needed"
-      },
-      "hint": {
-        "none": "You can keep working this file, remember to complete it before signing.",
-        "pending": "Checks pending · usual turnaround 24-48h.",
-        "verified": "Risk {{risk}} · last screening {{date}}.",
-        "stale": "Sanctions/PEP to refresh, recommended after 12 months or a change of circumstances."
-      },
-      "cta": {
-        "none": "Start the KYC file",
-        "pending": "View the file",
-        "verified": "Open the file",
-        "stale": "Re-run screening"
-      },
-      "kpi": {
-        "risk": "Risk",
-        "documents": "Documents",
-        "validity": "Valid until"
-      },
-      "risk": {
-        "high": "High",
-        "medium": "Medium",
-        "low": "Low"
-      }
-    },
-    "scoreBadge": {
-      "label": {
-        "serieux": "Serious",
-        "a_qualifier": "To qualify",
-        "froid": "Cold"
-      },
-      "estimation": "Estimate",
-      "title": "Contact score, estimate",
-      "titleLimited": "Contact score, estimate · limited data"
     }
   },
   "newContact": {
@@ -772,43 +636,6 @@
       "retry": "Erneut versuchen"
     }
   },
-  "ctKyc": {
-    "title": "KYC / AML compliance",
-    "status": {
-      "none": {
-        "label": "To start",
-        "hint": "You can keep working this file, remember to complete it before signing."
-      },
-      "pending": {
-        "label": "In progress",
-        "hint": "Checks pending · usual turnaround 24-48h."
-      },
-      "verified": {
-        "label": "Verified",
-        "hint": "File compliant, re-screening advised at 12 months."
-      },
-      "stale": {
-        "label": "To re-screen",
-        "hint": "Sanctions/PEP need refreshing, recommended after 12 months or a change of circumstances."
-      },
-      "failed": {
-        "label": "Failed",
-        "hint": "A check failed, review the file in detail."
-      }
-    },
-    "cta": {
-      "none": "Start the KYC file",
-      "pending": "View the file",
-      "verified": "View the file",
-      "stale": "Re-run the screening",
-      "failed": "Review the file"
-    },
-    "kpi": {
-      "risk": "Risk",
-      "docs": "Documents",
-      "lastScreening": "Last screening"
-    }
-  },
   "field": {
     "firstName": "First name",
     "lastName": "Last name",
@@ -822,26 +649,6 @@
   },
   "action": {
     "cancel": "Cancel"
-  },
-  "editDialog": {
-    "title": "Edit contact",
-    "description": "Edit {{name}}'s information.",
-    "save": "Save",
-    "notesPlaceholder": "Notes about the contact...",
-    "source": {
-      "manual": "Manual",
-      "website": "Website",
-      "referral": "Referral",
-      "portal": "Portal",
-      "social": "Social media"
-    }
-  },
-  "newDialog": {
-    "title": "New contact",
-    "description": "Add a contact to your CRM.",
-    "addDetails": "+ Add details",
-    "notesPlaceholder": "Context, remarks...",
-    "create": "Create"
   },
   "mobile": {
     "title": "Kontakte",
