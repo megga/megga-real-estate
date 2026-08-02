@@ -248,7 +248,15 @@ Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`
 `supabase.ts` (client typé, anon key) · `utils.ts` (`formatCHF` → `CHF 720'000`, `formatDate` DD.MM.YYYY, `cn`) · `constants.ts` (CANTONS, types, stages) · `sugarAdapters.ts` (Supabase → vues CRM) · logique métier (`plans`, `contactNba`, `contactCriteria`) · export (`auditPdfExport`, `exportCsv`) · intégrations (`mapbox`, `captcha`, `sentry`, `posthog`).
 
 ### i18n
-FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth` (`directory`/`compte`/`comingSoon` retirés en juil. 2026 — orphelins post-pivot). Switch = overlay shimmer 350ms.
+FR (défaut, eager) + DE/EN/IT (lazy). **13** namespaces : `common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth, onboarding` (`directory`/`compte`/`comingSoon` retirés en juil. 2026 — orphelins post-pivot). Switch = overlay shimmer 350ms.
+
+⚠️ **Détection = `localStorage` SEUL**, jamais le navigateur (`order: ['localStorage']`, pas de `'navigator'`) : charte FR-first assumée, écrite en commentaire dans [src/i18n/index.ts](../src/i18n/index.ts). La langue du navigateur n'est lue **qu'au bord**, par `/api/geo`, et seulement pour départager des langues déjà plausibles dans le pays du visiteur.
+
+**Détection de langue par pays** (août 2026) — endpoint `GET /api/geo` servi par [sites/megga-vitrine/_worker.js](../sites/megga-vitrine/_worker.js), traité **tout en haut** de `fetch()`, avant les 301 et avant le gate Basic Auth. Il lit `request.cf` (pays + canton) : aucun appel tiers, aucune IP stockée. L'arbitrage est rendu **au bord** — la vitrine est un export Webflow sans build et ne peut pas importer de module partagé avec le CRM en TypeScript ; une table dupliquée divergerait. Ordre : `Accept-Language` restreint aux langues plausibles du pays → canton (CH) → pays → anglais. `confidence: 'low'` vaut **abstention**, pas décision.
+- **Vitrine** : barre de suggestion dans `js/megga-lang.js`. Jamais de redirection automatique — les pages portent 4 alternates `hreflang`, et rediriger par IP casse le cluster. Aucune barre sur les pages sans alternate (blog, légales, carrières).
+- **CRM / onboarding** : [src/lib/geoLanguage.ts](../src/lib/geoLanguage.ts), appelé au niveau module depuis `main.tsx`, non bloquant, appliqué **au seul premier contact**. Un sélecteur de langue a été ajouté au header du wizard d'identité : les Réglages sont derrière le gate KYB, donc sans lui une déduction fausse enfermait l'agent.
+
+Cerveau : `megga/geo-langue`, `megga/i18n-namespaces`.
 
 ---
 
@@ -422,6 +430,7 @@ npm run lint         # eslint          ·  lint:deadcode  ·  lint:prose (⚠ i1
 npm run lint:types-freshness  # database.ts vs prod : aucun client casté, aucune RPC hors types (#1064)
 npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/admin/visual)
 npm run i18n:parity:ci  # parité FR/DE/EN/IT — à lancer dès qu'on touche aux locales
+npm run lint:i18n-keys  # clé appelée mais inexistante (i18next l'afficherait en clair)
 ```
 CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy. **Deux cibles Pages**,
 un workflow chacune : `deploy.yml` → megga.ch (vitrine, projet `megga-real-estate`) et `deploy-app.yml` →
@@ -461,7 +470,9 @@ trois propriétés (aucun client casté dans `src/`, aucune RPC appelée hors de
 absente) — statique sur chaque PR, moitié production dans `migration-drift.yml`. ⚠ Elle ne compare PAS les
 fonctions : 770 vivantes contre 420 émises, le filtre du générateur nous échappe.
 
-**Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur 8 familles CRM verrouillées : crm-mobile/crm-sugar/crm-sugar-v3/crm-sugar-wizard/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
+**Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur 8 familles CRM verrouillées : crm-mobile/crm-sugar/crm-sugar-v3/crm-sugar-wizard/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n) · **`lint:i18n-keys`** (août 2026 — une clé APPELÉE mais inexistante ; 4 044 clés littérales vérifiées contre le FR, résolution déléguée au vrai i18next). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
+
+⚠️ Ces trois gates i18n couvrent des choses **différentes**, et l'angle mort de `lint:i18n-keys` était total : `lint:i18n` cherche du texte en dur, `i18n:parity` compare les langues **entre elles** — une clé que personne n'a écrite est en parité parfaite (absente partout) et passe. i18next, lui, affiche la clé brute sans avertir. Cas réel : `t('common:logout')` (vrai chemin `common:nav.logout`) affichait « logout » en clair sur les deux écrans d'entrée d'un nouvel agent. Cerveau : `megga/i18n-guard-ci`.
 
 ---
 

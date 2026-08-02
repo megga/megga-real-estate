@@ -59,6 +59,16 @@ jobs:
         # Garde-fou i18n : échoue si une clé FR n'a pas sa contrepartie EN (ou inverse).
         run: npm run i18n:parity:ci
 
+      - name: i18n keys exist (clé appelée mais absente)
+        # Garde-fou i18n, angle mort des DEUX précédents : une clé appelée qui
+        # n'existe dans AUCUNE langue. `lint:i18n` cherche du texte en dur ;
+        # `i18n:parity` compare les langues entre elles — une clé que personne
+        # n'a écrite est en parité parfaite (absente partout) et passe. i18next,
+        # lui, affiche la clé brute à l'écran sans avertir. Cas réel :
+        # `t('common:logout')` (vrai chemin `common:nav.logout`) affichait le mot
+        # « logout » en clair sur les deux écrans d'entrée d'un nouvel agent.
+        run: npm run lint:i18n-keys
+
       - name: Dead exports (ts-prune)
         # Garde-fou code mort : échoue si un export n'est importé nulle part.
         # Baseline nettoyée (PR #848). Allowlist des gardes intentionnels dans le script.
