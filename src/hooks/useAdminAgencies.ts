@@ -21,6 +21,7 @@ export interface AgencyWithStats {
   name: string
   slug: string
   logo_url: string | null
+  city: string | null
   address: string | null
   phone: string | null
   email: string | null
@@ -73,6 +74,7 @@ export function useAdminAgencies() {
         name: r.name,
         slug: r.slug,
         logo_url: r.logo_url,
+        city: r.city,
         // `address` n'est pas servie par la RPC : le registre ne l'affiche pas, et la
         // fiche la relit en entier via useAdminAgency(). L'ajouter au registre aurait
         // chargé une colonne pour personne.
