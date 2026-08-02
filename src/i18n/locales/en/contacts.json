@@ -1084,6 +1084,7 @@
       "selection_other": "Selection of {{count}} properties",
       "sentOn": "Sent on {{date}}",
       "expiresOn": "expires {{date}}",
+      "revokedOn": "revoked on {{date}}",
       "revoke": "Revoke link",
       "channel": {
         "whatsapp": "WhatsApp",

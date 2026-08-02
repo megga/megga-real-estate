@@ -1084,6 +1084,7 @@
       "selection_other": "Auswahl mit {{count}} Objekten",
       "sentOn": "Gesendet am {{date}}",
       "expiresOn": "gültig bis {{date}}",
+      "revokedOn": "zurückgezogen am {{date}}",
       "revoke": "Link zurückziehen",
       "channel": {
         "whatsapp": "WhatsApp",

@@ -1084,6 +1084,7 @@
       "selection_other": "Sélection de {{count}} biens",
       "sentOn": "Envoyé le {{date}}",
       "expiresOn": "échéance {{date}}",
+      "revokedOn": "retiré le {{date}}",
       "revoke": "Retirer le lien",
       "channel": {
         "whatsapp": "WhatsApp",

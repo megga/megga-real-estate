@@ -47,15 +47,21 @@ comment on column public.buyer_reception_links.revoked_at is
 -- Corps reproduit à l'identique (casse d'origine comprise) pour que le delta se lise seul :
 -- seules deux choses changent, le `status` lu en tête et la clause WHERE de l'UPDATE final.
 --
--- (a) Le refus explicite `link_revoked` couvre le cas nominal — un lien déjà retiré ne prend
---     plus de réaction, et l'appelant reçoit un motif nommé plutôt qu'un silence.
+-- (a) Refus des DEUX statuts terminaux, 'revoked' ET 'expired'. Ne refuser que 'revoked'
+--     laissait passer un lien coupé par le seul recours antérieur (poser 'expired' à la
+--     main alors qu'`expires_at` court encore) : les gardes tombaient, et l'UPDATE sur
+--     `matches` s'exécutait — bascule du statut et texte libre du porteur écrits. Seule la
+--     ligne du lien était épargnée, c'est-à-dire pas l'écriture que le retrait existe pour
+--     empêcher.
 --
--- (b) La condition sur l'UPDATE final est ce qui rend le retrait DURABLE, et elle n'est pas
---     redondante avec (a) : le statut est lu au début de la transaction, un retrait posé
---     entre-temps ne serait pas vu par (a) mais sera vu ici, au moment de l'écriture. Sans
---     elle, la fonction repose un statut vivant sur un lien terminal — c'est le défaut qui
---     rendait tout retrait réversible. 'expired' est protégé de la même manière : lui aussi
---     est terminal, et c'est le seul interrupteur dont on disposait jusqu'à cette migration.
+-- (b) `FOR UPDATE` sur la lecture d'ouverture. Sans verrou, un retrait concurrent était
+--     constaté TROP TARD : la réaction lisait 'viewed', le retrait committait, puis la
+--     réaction écrivait quand même dans `matches` avant de voir son UPDATE final ne toucher
+--     aucune ligne. Le retrait tenait sur le lien, le dommage passait à côté. Le verrou
+--     sérialise les deux gestes, quel que soit leur ordre d'arrivée.
+--
+-- (c) La condition sur l'UPDATE final reste, en dernier rempart : elle garantit qu'aucun
+--     chemin ne repose un statut vivant sur un lien terminal.
 CREATE OR REPLACE FUNCTION public.record_buyer_reaction(
   p_link_id  uuid,
   p_match_id uuid,
@@ -76,11 +82,14 @@ BEGIN
   SELECT contact_id, expires_at, match_ids, status
     INTO v_contact, v_expires, v_matches, v_status
   FROM public.buyer_reception_links
-  WHERE id = p_link_id;
+  WHERE id = p_link_id
+  FOR UPDATE;
 
   IF v_contact IS NULL THEN RAISE EXCEPTION 'link_not_found'; END IF;
   IF v_status = 'revoked' THEN RAISE EXCEPTION 'link_revoked'; END IF;
-  IF v_expires < now() THEN RAISE EXCEPTION 'link_expired'; END IF;
+  -- 'expired' lève `link_expired`, comme une échéance dépassée : c'est le même état pour
+  -- l'appelant, et le distinguer n'apprendrait rien d'utile à qui porte le jeton.
+  IF v_status = 'expired' OR v_expires < now() THEN RAISE EXCEPTION 'link_expired'; END IF;
   IF NOT (p_match_id = ANY (v_matches)) THEN RAISE EXCEPTION 'match_not_in_selection'; END IF;
   IF p_reaction NOT IN ('interested', 'rejected') THEN RAISE EXCEPTION 'bad_reaction'; END IF;
 
@@ -145,7 +154,11 @@ begin
   select * into v_link from public.buyer_reception_links where id = p_link_id for update;
   if not found then return false; end if;
   if v_link.agency_id <> v_agency then return false; end if;
-  if v_link.status = 'revoked' then return false; end if;
+  -- Les deux statuts terminaux rendent `false`, pas seulement 'revoked' : « retirer » un
+  -- lien déjà mort n'écrit rien d'utile, mais inscrirait dans un registre append-only
+  -- conservé dix ans une ligne `severity='warn'` laissant croire à une coupure d'accès qui
+  -- n'a jamais eu lieu. Un journal de sécurité ne doit pas raconter de gestes vides.
+  if v_link.status in ('revoked', 'expired') then return false; end if;
 
   update public.buyer_reception_links
      set status = 'revoked', revoked_at = now(), updated_at = now()

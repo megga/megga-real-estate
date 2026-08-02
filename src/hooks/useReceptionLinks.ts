@@ -35,9 +35,9 @@ export interface ReceptionLink {
    * échéance). Un lien `reacted` reste actif — l'acheteur peut y revenir tant
    * qu'il n'a pas expiré ; c'est précisément ce qui rend le retrait nécessaire.
    *
-   * ⚠ Calculé à l'instant du fetch. Un lien qui échoit entre la lecture et le clic
-   * paraîtra donc encore actif : c'est la RPC qui tranche, et son refus remonte
-   * comme une exception (voir `useRevokeReceptionLink`).
+   * ⚠ Calculé à l'instant du fetch : un lien qui échoit entre la lecture et le clic
+   * paraîtra encore actif. Sans conséquence — la RPC retire volontiers un lien déjà
+   * échu (elle ne refuse qu'un lien DÉJÀ retiré, ou hors agence).
    */
   active: boolean
 }
@@ -83,7 +83,7 @@ export function useReceptionLinks(contactId: string | undefined) {
           viewedAt: row.viewed_at,
           reactedAt: row.reacted_at,
           revokedAt: row.revoked_at,
-          count: row.match_ids?.length ?? 0,
+          count: row.match_ids.length,
           active:
             (status === 'pending' || status === 'viewed' || status === 'reacted') &&
             new Date(expiresAt).getTime() > now,
@@ -106,7 +106,7 @@ export const estRefusDeRetrait = (e: unknown): boolean =>
 /**
  * Retrait d'un lien de réception (RPC `revoke_reception_link`).
  *
- * ⚠ La RPC rend `false` sur un refus métier (lien déjà retiré, déjà expiré, hors
+ * ⚠ La RPC rend `false` sur un refus métier (lien déjà retiré, introuvable, hors
  * agence), PAS une erreur PostgREST : `error` est alors `null`. Sans la levée sur
  * `data !== true`, la mutation « réussirait », l'écran afficherait un retrait qui
  * n'a rien écrit, et l'agent croirait avoir coupé un accès toujours ouvert. Même

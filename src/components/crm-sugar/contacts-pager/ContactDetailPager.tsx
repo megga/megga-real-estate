@@ -74,6 +74,8 @@ export interface FicheReceptionLink {
   expiresAt: string
   /** Nombre de biens que le lien ouvre. */
   count: number
+  /** Renseigné une fois le lien retiré : « depuis quand est-il coupé ». */
+  revokedAt: string | null
   /** Le lien donne encore accès à la sélection (ni retiré, ni échu). */
   active: boolean
 }
@@ -1107,8 +1109,8 @@ function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
     const verdict = await onRevokeLink(target.id)
     if (verdict === 'ok') { close(); return }
     setBusy(false)
-    // Un refus veut dire que notre liste était périmée (lien déjà retiré ou échu) ;
-    // une panne veut dire qu'il faut réessayer. Deux phrases, pas une.
+    // Un refus veut dire que notre liste était périmée (le lien a déjà été retiré
+    // ailleurs) ; une panne veut dire qu'il faut réessayer. Deux phrases, pas une.
     setError(verdict === 'refused' ? t('fiche.links.confirm.refused') : t('fiche.links.confirm.failed'))
   }
 
@@ -1136,7 +1138,13 @@ function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
                 {t('fiche.links.selection', { count: l.count })}{channel ? ` · ${channel}` : ''}
               </div>
               <div style={{ fontSize: 11, fontWeight: 500, color: P.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
-                {t('fiche.links.sentOn', { date: cdDay(l.createdAt) })} · {t('fiche.links.expiresOn', { date: cdDay(l.expiresAt) })}
+                {t('fiche.links.sentOn', { date: cdDay(l.createdAt) })}
+                {' · '}
+                {/* Sur un lien coupé, la date qui compte est celle de la coupure,
+                    pas une échéance que le lien n'atteindra jamais. */}
+                {l.revokedAt
+                  ? t('fiche.links.revokedOn', { date: cdDay(l.revokedAt) })
+                  : t('fiche.links.expiresOn', { date: cdDay(l.expiresAt) })}
               </div>
             </div>
             <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 999, background: state ? P[state.key] : P.ghost, color: '#fff', fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>

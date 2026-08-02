@@ -1084,6 +1084,7 @@
       "selection_other": "Selezione di {{count}} immobili",
       "sentOn": "Inviato il {{date}}",
       "expiresOn": "scadenza {{date}}",
+      "revokedOn": "revocato il {{date}}",
       "revoke": "Revoca il link",
       "channel": {
         "whatsapp": "WhatsApp",

@@ -254,8 +254,8 @@ export default function ContactDetailSugarV3Page() {
       // onBack (naviguer tout de suite démonterait la carte avant qu'on la voie).
       onDelete={async () => { setGhost(contact); await del.mutateAsync(id); refreshList() }}
       // Le pager reste sans appel Supabase : il reçoit le VERDICT, pas l'erreur brute.
-      // Un refus de la RPC (lien déjà retiré, déjà échu) et une panne réseau doivent
-      // se dire différemment à l'agent — les confondre ferait croire à un accès coupé.
+      // Un refus de la RPC (lien déjà retiré ailleurs) et une panne réseau doivent se
+      // dire différemment à l'agent — les confondre ferait croire à un accès coupé.
       onRevokeLink={async (linkId): Promise<FicheRevokeResult> => {
         try {
           await revokeLink.mutateAsync({ linkId, contactId: id })
