@@ -1,8 +1,10 @@
 # Pièce d'identité KYB — métadonnées GPS : note de décision
 
 > **Pour qui :** Gregory (PO), pour arbitrage. Julien et qui reprendra le chantier KYB.
-> **Écrit le :** 2 août 2026. **Branche :** `claude/etat-chantier-0208`.
-> **État :** en attente d'arbitrage. **Rien n'a été codé.**
+> **Écrit le :** 2 août 2026, **mis à jour le même jour** après la mesure EXIF sur les
+> fichiers réels (§5) et la levée du blocage de la revue (#1098).
+> **État :** en attente d'arbitrage sur Q1 et Q2 (§4). L'accès du relecteur au document,
+> lui, est livré et vérifié en production.
 >
 > **Où ça se rattache :**
 > - [agency-kyb-handoff.md](agency-kyb-handoff.md) §« Dettes identifiées en revue finale
@@ -27,7 +29,7 @@ Après vérification, la question n'est pas celle qu'on croyait.
 
 | | |
 |---|---|
-| Le fait de départ | **vrai** : la pièce d'identité est téléversée brute, GPS compris |
+| Le fait de départ | **vrai, et mesuré** : les deux fichiers réels portent un bloc GPS (§5) |
 | La décision qui semblait fermer le débat | **ne dit pas ça** : elle refuse la **retouche**, pas les octets (§2.1) |
 | L'examen humain qu'elle protège | **n'existe pas encore** dans le produit (§2.2) |
 | Le vrai défaut | le fichier n'a **aucun cycle de vie** : rien ne l'efface, jamais (§2.3) |
@@ -73,7 +75,19 @@ dans ce commentaire et dans le message du commit `112efcd9`. Les quatre document
 `docs/compliance/` se déclarent eux-mêmes non relus par un juriste (le registre porte encore
 `{{DATE_REVUE_AVOCAT}}`), et ne peuvent donc pas servir d'arbitre.
 
-### 2.2 L'examen humain que la décision protège n'a pas de chemin dans le produit
+### 2.2 L'examen humain que la décision protège n'avait pas de chemin dans le produit
+
+> ✅ **Résolu le 02.08.2026 au soir, PR #1098.** Ce qui suit décrit l'état constaté au moment
+> de l'arbitrage ; il est conservé parce que c'est lui qui a motivé le correctif. La migration
+> `20260802200000` ajoute `or public.is_super_admin()` à la **seule** policy SELECT du
+> préfixe, imbriquée sous `bucket_id` et le test de préfixe, et l'écran de revue affiche
+> désormais recto et verso. Vérifié en production : 1 policy sur 4 porte la branche, les
+> `documents_bucket_*` sont intactes, 1 seule policy Storage modifiée sur 33.
+>
+> **Ce que cela ne change PAS à l'arbitrage :** voir la pièce ne veut pas dire la maîtriser.
+> Le fichier n'a toujours ni propriétaire, ni rétention, ni purge (§2.3), et le viewer ne clôt
+> pas le dossier à lui seul — après un verdict `match`, un dossier suisse reste en
+> `manual_review`, `registry_lookup` étant plafonné à `partial`.
 
 Vérifié **en production** le 02.08.2026 (`pg_policies` sur `storage.objects`) : les 8 policies
 `documents_*` sont vivantes et identiques à la migration
@@ -194,7 +208,14 @@ chemins KYC qui, eux, posent un SHA-256 destiné à un auditeur. Réécrire le c
 rompt aucune chaîne de preuve. Skribble ne signe que des lignes de `documents`, où cette
 pièce n'apparaît pas.
 
-**Ce que ça ne couvre pas, à dire franchement :**
+**Ce que ça ne couvre pas, à dire franchement** (la mesure du §5 en a ajouté un troisième
+point, le plus gênant) **:**
+
+- **Une image imbriquée dans le MPF.** Les fichiers réels portent deux à trois segments
+  `APP2` : sur un iPhone, l'un d'eux est le MPF, qui peut contenir une seconde image JPEG
+  complète avec son propre `APP1/Exif`. Retirer le `APP1` de tête laisserait alors le GPS
+  dans l'image imbriquée — un retrait qui se croit fait et ne l'est pas, le pire des
+  résultats. **À trancher avant d'écrire la moindre ligne de (b).**
 
 - **`application/pdf`**, pourtant format accepté
   ([useAgencyIdentity.ts:523](../src/hooks/useAgencyIdentity.ts), et proposé à l'input) : un
@@ -262,17 +283,50 @@ Dans les deux cas, **(c)** est écartée.
 
 ---
 
-## 5. Ce qui reste à mesurer avant d'engager (b)
+## 5. Ce qui a été mesuré, et ce qui reste à mesurer
 
-1. **HEIC — prérequis n°1.** `image/heic` est refusé côté client
+### ✅ Mesuré le 02.08.2026 sur les deux fichiers réels — **le GPS est là**
+
+Contrôle de présence sur les 128 premiers Ko de chaque objet (les métadonnées vivent en tête
+de fichier), sans jamais lire ni imprimer une seule valeur :
+
+| | recto.jpg | verso.jpg |
+|---|---|---|
+| EXIF | oui | oui |
+| **bloc GPS** | **oui** | **oui** |
+| XMP | oui | non |
+| marque/modèle d'appareil | oui | oui |
+| segments | `APP0, APP1/Exif, APP1/XMP, APP2, APP2, APP10` | `APP0, APP1/Exif, APP2, APP2, APP2, APP10` |
+
+Trois conséquences.
+
+1. **Le sujet n'est pas théorique.** La position d'enregistrement de la photo est dans les
+   fichiers, et elle y restera aussi longtemps qu'eux, c'est-à-dire indéfiniment (§2.3).
+2. **Ce sont des originaux d'appareil.** La présence de la marque et du modèle prouve qu'iOS
+   n'a rien ré-encodé à la sélection. L'hypothèse « le téléphone nettoie tout seul » est
+   morte, et la question HEIC du prérequis n°1 se referme en partie : quel que soit le chemin
+   d'arrivée, le fichier conserve ses métadonnées d'appareil.
+3. **Le XMP compte.** Présent sur le recto, il peut porter de la géolocalisation lui aussi :
+   un retrait lossless doit viser `APP1/Exif` **et** `APP1/XMP`.
+
+> ⚠ **Un piège pour (b) que ces segments révèlent.** Deux à trois `APP2` plus un `APP10`,
+> c'est la signature d'un iPhone : `APP2` y porte le profil ICC **et le MPF**
+> (Multi-Picture Format). Or un MPF peut embarquer une **seconde image JPEG complète, avec
+> son propre `APP1/Exif`**. Si c'est le cas ici, retirer le `APP1` de tête ne suffirait pas :
+> le GPS survivrait dans l'image imbriquée, et le retrait passerait pour fait alors qu'il ne
+> le serait pas. **À vérifier avant d'implémenter (b)** — non fait, cela sortait du périmètre
+> de lecture autorisé pour cette mesure.
+
+### Ce qui reste ouvert
+
+1. **Le taux de PDF réels.** Si les dépôts sont majoritairement des scans PDF, (b) ne couvre
+   presque rien et (a) devient le choix honnête. Le seul dossier existant est en JPEG.
+2. **HEIC, ce qu'il en reste.** `image/heic` est refusé côté client
    ([useAgencyIdentity.ts:537](../src/hooks/useAgencyIdentity.ts)), avec un message qui ne le
-   nomme jamais. Ce que Safari iOS livre réellement via `<input type=file>` n'est documenté
-   nulle part dans le dépôt et **doit être mesuré sur un vrai iPhone**. Cela décide si (b)
-   couvre le gros de l'exposition ou une fraction : si le format le plus chargé en GPS est
-   bloqué en amont, l'exposition réelle change d'échelle — et l'utilisateur, lui, voit un
-   refus qu'il ne comprend pas.
-2. **Le taux de PDF réels.** Si les dépôts sont majoritairement des scans PDF, (b) ne couvre
-   presque rien et (a) devient le choix honnête.
+   nomme jamais. La mesure ci-dessus montre que le fichier finalement déposé est un JPEG
+   d'appareil complet, mais elle ne dit pas ce que voit un utilisateur dont le téléphone
+   produit du HEIC : il se heurte peut-être à un refus qu'il ne comprend pas. Reste à
+   éprouver sur un vrai iPhone.
 
 ---
 
@@ -319,12 +373,21 @@ le préfixe `/chat-staging/`.
 
 ## 7. Comment ces constats ont été établis
 
-Lecture du dépôt à la date du 02.08.2026 (branche `claude/etat-chantier-0208`), plus trois
-requêtes sur la base de **production** `eayczugyrvmtqnnmvjod` : `pg_policies` sur
-`storage.objects`, `storage.buckets`, et `pg_get_functiondef` sur les deux triggers de
-rétention. Les constats issus des seuls fichiers de migration sont signalés comme tels ; ceux
-vérifiés en base portent la mention « vérifié en production ».
+Lecture du dépôt à la date du 02.08.2026, plus des requêtes sur la base de **production**
+`eayczugyrvmtqnnmvjod` : `pg_policies` sur `storage.objects`, `storage.buckets`,
+`pg_get_functiondef` sur les deux triggers de rétention et sur `is_super_admin()` /
+`super_admin_allowlist_match()`. Les constats issus des seuls fichiers de migration sont
+signalés comme tels ; ceux vérifiés en base portent la mention « vérifié en production ».
 
-Deux affirmations restent des **hypothèses** et sont étiquetées comme telles : le comportement
-réel de Safari iOS sur HEIC (§5.1) et la présence effective de GPS dans les médias entrants
-WhatsApp, qui dépend du ré-encodage côté Meta et n'est pas prouvable depuis ce dépôt.
+**La mesure du §5** a été faite sur les deux objets réels via des URL signées de courte durée,
+en ne téléchargeant que les 128 premiers Ko de chaque fichier (l'EXIF vit en tête, juste après
+le SOI). Aucune image n'a été décodée, aucun fichier écrit sur disque, et **aucune valeur de
+métadonnée n'a été lue ni rapportée** : uniquement des présences. Le parseur avait été éprouvé
+au préalable sur deux JPEG témoins fabriqués pour ça, l'un avec un pointeur d'IFD GPS et
+l'autre nu, afin que l'instrument soit vérifié avant d'être pointé sur une pièce d'identité.
+
+Restent des **hypothèses**, étiquetées comme telles : la présence d'une image imbriquée dans
+le MPF (§5, le piège de (b) — plausible d'après les segments relevés, non vérifiée), ce que
+Safari iOS livre à un utilisateur dont le téléphone produit du HEIC, et la présence effective
+de GPS dans les médias entrants WhatsApp, qui dépend du ré-encodage côté Meta et n'est pas
+prouvable depuis ce dépôt.
