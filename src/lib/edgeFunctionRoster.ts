@@ -38,6 +38,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'idx-feed',
   'idx-syndicate',
   'intercom-identity',
+  'kyb-review-digest',
   'kyc-report-data',
   'kyc-report-import',
   'kyc-report-pdf',

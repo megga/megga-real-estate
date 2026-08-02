@@ -562,6 +562,9 @@ verify_jwt = false
 [functions.google-calendar-sync]
 verify_jwt = false
 
+[functions.kyb-review-digest]
+verify_jwt = false
+
 [functions.kyc-report-data]
 verify_jwt = false
 
