@@ -409,7 +409,7 @@ serve(async (req) => {
     // diagnostic — pratique courante sur une erreur de validation — inscrirait donc le
     // capability token dans `activity_events`, table append-only conservée dix ans, ET
     // dans le corps 502 rendu à l'appelant.
-    const errSafe = redactPII(errText).text
+    const errSafe = redactPII(errText).redactedText
     // Log silencieux dans activity_events pour debug compliance
     await supabase.from('activity_events').insert({
       agency_id: link.agency_id,
