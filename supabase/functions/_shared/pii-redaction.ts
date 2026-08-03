@@ -114,7 +114,7 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
 
   // Même jeton, reconnu par son PORTEUR et non par sa forme : query `?token=`
   // (buyer-reception-get/-react), en-tête `x-magic-link-token` (magic-link-get/-confirm/
-  // -upload), ou SEGMENT DE CHEMIN (`/kyc/`, `/kyc-report/`, `/reception/`,
+  // -upload), ou SEGMENT DE CHEMIN (`/kyc/`, `/kyc-report/`, `/reception/`, `/rendez-vous/`,
   // `/accept-invite/`). Utile quand la valeur n'a plus la forme canonique — jeton TRONQUÉ par
   // le journal qui le recopie, ou percent-encodé — cas où le motif précédent ne peut conclure.
   //
@@ -134,7 +134,7 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
   //     tandis que tout jeton réel est pris — son payload encode `exp`, un nombre.
   {
     kind: 'TOKEN',
-    pattern: /(?:[?&]token=|x-magic-link-token[ \t]*[:=][ \t]*|\/(?:kyc-report|kyc|reception|accept-invite)\/)((?=[\w.%-]*\d)[\w.%-]{12,})/gi,
+    pattern: /(?:[?&]token=|x-magic-link-token[ \t]*[:=][ \t]*|\/(?:kyc-report|kyc|reception|rendez-vous|accept-invite)\/)((?=[\w.%-]*\d)[\w.%-]{12,})/gi,
   },
 
   // AVS Suisse — format officiel 756.XXXX.XXXX.XX (avec ou sans points/espaces).

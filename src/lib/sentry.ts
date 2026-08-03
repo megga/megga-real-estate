@@ -22,7 +22,8 @@ let sentryInitialized = false
 /**
  * Retire les capability tokens des URLs avant tout envoi à Sentry (tiers). cf. audit S27.
  *
- * Le segment qui suit `/kyc`, `/kyc-report` ou `/reception` est le token lui-même. Les
+ * Le segment qui suit `/kyc`, `/kyc-report`, `/reception`, `/rendez-vous` ou
+ * `/accept-invite` est le token lui-même. Les
  * pages de visite, elles, portent le leur en query : c'est le strip `[?#].*$` qui les
  * couvre — ne pas le retirer en croyant qu'il ne sert qu'à raccourcir.
  *
@@ -32,13 +33,14 @@ let sentryInitialized = false
  */
 export function scrubSecretUrl(u: string): string {
   return u
-    .replace(/\/(kyc-report|kyc|reception|accept-invite)\/[^/?#]+/gi, '/$1/[redacted]')
+    .replace(/\/(kyc-report|kyc|reception|rendez-vous|accept-invite)\/[^/?#]+/gi, '/$1/[redacted]')
     .replace(/[?#].*$/, '')
 }
 
 /**
  * Routes publiques porteuses d'un capability token : `/kyc/<token>`,
- * `/kyc-report/<token>`, `/reception/<token>`, `/accept-invite/<token>` (token dans le
+ * `/kyc-report/<token>`, `/reception/<token>`, `/rendez-vous/<token>` (gestion d'un RDV
+ * KYC, émis par `appointment-book`), `/accept-invite/<token>` (token dans le
  * CHEMIN) et `/visit/:id/edit|feedback` (token dans la QUERY). `visite` = alias FR,
  * normalement redirigé au bord, gardé ici parce que le SPA sert aussi ces chemins hors
  * Cloudflare.
@@ -54,7 +56,7 @@ export function scrubSecretUrl(u: string): string {
  * `tests/unit/token-routes.spec.ts` compare les deux sources.
  */
 export function isTokenBearingPath(pathname: string): boolean {
-  return /^\/(kyc-report|kyc|reception|visit|visite|accept-invite|auth)(\/|$)/i.test(pathname)
+  return /^\/(kyc-report|kyc|reception|rendez-vous|visit|visite|accept-invite|auth)(\/|$)/i.test(pathname)
 }
 
 /** Surface d'où part l'événement. Une seule application, deux publics. */

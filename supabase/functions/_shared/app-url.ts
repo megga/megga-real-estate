@@ -39,12 +39,20 @@
  * L'environnement est lu à CHAQUE appel, pas dans une `const` de module : une
  * constante fige la valeur au démarrage de l'isolat et rend le réglage intestable.
  *
- * Même variable et même repli que `kyc-report-pdf` et `send-team-invite` — ces
- * deux-là gardent leur propre lecture, épinglée par
- * `tests/unit/invite-link-origin-guard.spec.ts`.
+ * Elle n'est PAS exportée, et c'est le point du module. Rendre la base nue à
+ * l'appelant lui rend aussi le segment de chemin, or c'est précisément le segment
+ * qui s'est perdu dans chacune des pannes de liens de ce dépôt : `/kyc` promu au
+ * rang de domaine, `/accept-invite` et `/visite/…/modifier` accrochés à la
+ * vitrine. Un nouveau parcours public ajoute donc un constructeur ici plutôt que
+ * d'emprunter la base.
  */
 function appBaseUrl(): string {
-  return (Deno.env.get('MEGGA_APP_URL') ?? 'https://app.megga.ch').replace(/\/+$/, '')
+  // `??` ne retombe que sur null/undefined, PAS sur la chaîne vide — or vider un secret est
+  // la façon la plus courante de le « désactiver » côté Supabase. Sans ce `||`, une valeur
+  // posée-mais-vide donnait une base `''`, donc des URL RELATIVES dans un e-mail : le lien
+  // ne mène nulle part, et la panne a exactement la signature de celle qu'on vient de fermer.
+  const brut = (Deno.env.get('MEGGA_APP_URL') ?? '').trim()
+  return (brut || 'https://app.megga.ch').replace(/\/+$/, '')
 }
 
 /**
@@ -73,4 +81,39 @@ export function kycMagicLinkUrl(token: string): string {
  */
 export function visitManageUrl(visitId: string, manageToken: string): string {
   return `${appBaseUrl()}/visite/${visitId}/modifier?token=${manageToken}`
+}
+
+/**
+ * URL d'acceptation d'une invitation d'équipe (route `/accept-invite/:token`).
+ *
+ * `send-team-invite` la bâtissait depuis l'en-tête `Origin` de la requête, avec
+ * `https://megga.ch` en repli — deux défauts d'un coup.
+ *
+ * 1. SÉCURITÉ. `Origin` est choisi par l'appelant. Un dirigeant postant avec
+ *    `Origin: https://evil.tld` faisait partir un e-mail MEGGA authentique, signé
+ *    DKIM, dont le bouton « Accepter l'invitation » pointait chez lui — jeton
+ *    d'invitation compris. Or ce jeton vaut attribution de rôle au moment du
+ *    claim : hameçonnage sur notre propre domaine, doublé d'une exfiltration de
+ *    capacité.
+ * 2. CORRECTION. Le repli désignait la vitrine, qui ne sert pas cette route :
+ *    tout envoi dépourvu d'en-tête `Origin` produisait un lien mort.
+ *
+ * Épinglé par `tests/unit/invite-link-origin-guard.spec.ts`.
+ */
+export function teamInviteAcceptUrl(token: string): string {
+  return `${appBaseUrl()}/accept-invite/${token}`
+}
+
+/**
+ * URL de la page qui REND le rapport KYC (route `/kyc-report/:token`), celle que
+ * Cloudflare Browser Rendering charge pour fabriquer le PDF.
+ *
+ * Seul lien du module qui ne s'adresse à personne : il est chargé par un
+ * navigateur headless, son jeton vit 5 minutes, et l'adresse ressort dans les
+ * erreurs de Cloudflare (d'où le caviardage côté `kyc-report-pdf`). Il passe
+ * quand même par ici parce qu'une base divergente y échouerait en SILENCE — un
+ * PDF blanc envoyé à l'agent, pas une erreur.
+ */
+export function kycReportRenderUrl(token: string): string {
+  return `${appBaseUrl()}/kyc-report/${token}`
 }
