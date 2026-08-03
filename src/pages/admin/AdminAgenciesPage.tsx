@@ -1,447 +1,312 @@
 /**
- * Page super-admin — annuaire des agences.
+ * Page super-admin — registre des agences (concept A de la maquette `admin-agencies.jsx`).
  *
- * Route : `/agencies`. Liste paginée (10/page) avec recherche, filtre de statut,
- * score de santé par agence. La santé s'appuie sur un résumé
- * d'activité agrégé server-side (RPC `get_agency_activity_summary`) pour éviter de
- * scanner activity_events.
+ * Route : `/dashboard/admin/agencies`. **La liste nue** : outils et table posés
+ * à même le fond, aucune carte, aucune couture. Une ligne = une agence, un clic
+ * ouvre sa fiche.
  *
- * Rendu en grammaire Sugar (kit `components/admin/kit`) : l'en-tête et la largeur
- * viennent d'`AdminPage` (la pastille violette vit désormais dans le rail, une
- * seule fois), les bentos sont séparés par l'ombre et non par une bordure, les
- * statuts sont des pilules pleines, les avatars n'ont plus qu'un fond — l'encre —
- * et tous les compteurs sont en chiffres tabulaires.
+ * La colonne « Statut » a disparu, et c'est la décision fondatrice de l'écran :
+ * « Active » sur douze lignes sur quatorze n'informe personne. Ce qui informe,
+ * c'est la SANTÉ — un mot, jamais un score nu (`src/lib/adminAgencyHealth.ts`).
  *
- * Le tableau desktop reste une grille de `<Link>` (et non un `<table>`) : chaque
- * ligne EST un lien vers la fiche, ce qui préserve le clic milieu et « ouvrir
- * dans un nouvel onglet ». Sa typographie reprend celle d'`AdminTh`/`AdminTd`.
+ * ⚡ Un fetch en moins. L'ancienne page appelait `get_agency_activity_summary`
+ * en plus du registre pour calculer un score maison ; la dérivation de la
+ * maquette n'a besoin que du `score` d'activation, déjà servi par la RPC.
+ *
+ * ── Écarts et constats assumés, nommés plutôt que tus ──
+ *
+ * É1 · **La pilule KYB s'affichera sur 100 % des lignes tant qu'aucune agence
+ *      n'est validée** (mesuré : 9 `pending`, 2 `manual_review`, 0 validée).
+ *      C'est exactement le bruit que le retrait de « Statut » supprime — mais
+ *      l'amendement C9 du handoff la rend DUE sur la liste comme sur la fiche.
+ *      La restreindre aux seuls statuts qui appellent un geste
+ *      (`manual_review`, `correction_requested`, `rejected`) la ramènerait à
+ *      2 lignes sur 11 : **c'est un arbitrage PO**, pas une formule à choisir ici.
+ * É2 · **La colonne MRR rend « non facturée » sur toute la base**, et le tri par
+ *      MRR est donc inerte. La cause n'est PAS l'absence d'abonnements : les
+ *      onze agences sont Starter, et Starter vaut 0 au catalogue
+ *      (`app_config.plan_pricing`). Le déclencheur d'un MRR non nul est la
+ *      première montée en Pro ou Entreprise, pas le premier abonnement.
+ * É3 · **La colonne Plan affiche « Starter » onze fois sur onze**, et la
+ *      sous-ligne d'identité est vide sur neuf lignes sur onze (`city` nulle).
+ *      Deux colonnes constantes ou vides de plus, à connaître avant de juger
+ *      l'écran : la maquette les demande, la base ne les nourrit pas encore.
+ * É4 · **Trois chips de filtre sur quatre ne discriminent rien** aujourd'hui —
+ *      « Toutes » et « Actives » sélectionnent le MÊME ensemble (11), et
+ *      « Suspendues » comme « Essai » sont à zéro. La barre est celle de la
+ *      maquette ; son inertie est un fait de la base, pas un défaut de code.
+ * É5 · **Le placeholder annonce trois champs dont deux sont presque toujours
+ *      nuls** : `email` est renseigné sur 1 agence sur 11, `city` sur 2. Le
+ *      verbatim de la maquette est conservé — le corriger serait dévier de la
+ *      spec — mais la recherche ne fonctionne en pratique que sur le nom.
+ * É6 · **Le tableau d'usage par agence quitte cet écran** : la maquette ne le
+ *      porte pas, et la fiche agence rend désormais l'usage agence par agence.
+ *      Ce qui est perdu est la COMPARAISON transversale (coût IA, stockage,
+ *      WhatsApp côte à côte) — nommé ici plutôt que tu.
+ * É7 · **La suspension n'est plus sur cette liste** (elle vit sur la fiche,
+ *      derrière une confirmation). Le survol ne propose que la réactivation.
  */
-import { useState, useMemo, type CSSProperties } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Building2, Plus } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
-import { useAdminAgencies } from '@/hooks/useAdminAgencies'
-import type { AgencyWithStats } from '@/hooks/useAdminAgencies'
-import { useClientPagination } from '@/hooks/useClientPagination'
-import { calculateAgencyHealth } from '@/lib/agencyHealthScore'
-import AgencyHealthBadge from '@/components/admin/AgencyHealthBadge'
-import AgencyUsageOverview from '@/components/admin/AgencyUsageOverview'
+import { formatCHF, formatRelativeDate } from '@/lib/utils'
+import { useAdminAgencies, type AgencyWithStats } from '@/hooks/useAdminAgencies'
+import {
+  agencyHealth,
+  compareAgencies,
+  agencyIdentityLine,
+  HEALTH_WORD_KEY,
+  HEALTH_CAUSE_KEY,
+  type AgencyHealthTone,
+} from '@/lib/adminAgencyHealth'
 import CreateAgencyModal from '@/components/admin/CreateAgencyModal'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
-  AdminAvatar, AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminPager, AdminPill,
-  AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminSolidBtn,
+  AdminEmpty,
+  AdminError,
+  AdminGhostBtn,
+  AdminPill,
+  AdminSearchInput,
+  AdminSegmentBtn,
+  AdminSkeleton,
+  AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 
-const ITEMS_PER_PAGE = 10
+/** Lignes rendues avant le « voir les N autres » (maquette). */
+const SHOW = 20
 
-const PLAN_LABEL: Record<string, string> = {
-  starter: 'Starter',
-  pro: 'Pro',
-  entreprise: 'Entreprise',
+/** Statuts KYB qui portent une pilule. `validated` / `auto_validated` restent muets. */
+const KYB_PILL: Record<string, { key: string; tone: AdminToneName }> = {
+  pending: { key: 'agencies.kyb.pending', tone: 'neutral' },
+  manual_review: { key: 'agencies.kyb.manualReview', tone: 'info' },
+  correction_requested: { key: 'agencies.kyb.correctionRequested', tone: 'warn' },
+  rejected: { key: 'agencies.kyb.rejected', tone: 'err' },
 }
 
-// Statuts d'abonnement à signaler. Pilule pleine plutôt que texte coloré : c'est
-// un statut, pas une nuance de prose.
-const SUB_BADGE: Record<string, { i18nKey: string; tone: AdminToneName }> = {
-  trialing: { i18nKey: 'agencies.sub.trialing', tone: 'info' },
-  past_due: { i18nKey: 'agencies.sub.pastDue', tone: 'err' },
-}
-
-// Largeurs de colonnes partagées par l'en-tête et les lignes — sans elles, les
-// deux grilles dérivent l'une de l'autre au moindre changement.
-const COL = {
-  plan: 84,
-  agents: 62,
-  properties: 62,
-  transactions: 84,
-  date: 94,
-  status: 98,
-  health: 62,
-  action: 106,
-} as const
-
-function SubscriptionBadge({ status }: { status: string | null }) {
-  const { t } = useTranslation('admin')
-  if (!status || !SUB_BADGE[status]) return null
-  const meta = SUB_BADGE[status]
-  return <AdminPill label={t(meta.i18nKey)} tone={meta.tone} style={{ padding: '3px 9px', fontSize: 10.5 }} />
-}
-
-/** Initiale d'agence pour l'avatar (la couleur, elle, ne dépend plus du nom). */
-function agencyInitial(name: string): string {
-  return (name || '?')[0].toUpperCase()
-}
-
-/** Placeholder du tableau desktop pendant le chargement. */
-function SkeletonRows() {
-  return (
-    <>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px' }}>
-          <AdminSkeleton height={34} width={34} radius={ADMIN_RADII.pill} />
-          <div style={{ flex: 1, display: 'grid', gap: 6 }}>
-            <AdminSkeleton height={11} width={150} radius={ADMIN_RADII.pill} />
-            <AdminSkeleton height={9} width={94} radius={ADMIN_RADII.pill} />
-          </div>
-          <AdminSkeleton height={10} width={COL.plan - 24} radius={ADMIN_RADII.pill} />
-          <AdminSkeleton height={10} width={COL.agents - 30} radius={ADMIN_RADII.pill} />
-          <AdminSkeleton height={10} width={COL.properties - 30} radius={ADMIN_RADII.pill} />
-          <AdminSkeleton height={10} width={COL.transactions - 40} radius={ADMIN_RADII.pill} />
-          <AdminSkeleton height={10} width={COL.date - 30} radius={ADMIN_RADII.pill} />
-          <AdminSkeleton height={20} width={COL.status - 24} radius={ADMIN_RADII.pill} />
-          <AdminSkeleton height={20} width={COL.health - 20} radius={ADMIN_RADII.pill} />
-          <div style={{ width: COL.action }} />
-        </div>
-      ))}
-    </>
-  )
-}
-
-/** Écran annuaire : chargement, filtres, pagination et calcul du score de santé. */
 export default function AdminAgenciesPage() {
-  'use no memo'
   const { t } = useTranslation('admin')
   const { agencies, isLoading, isError, refetch, updateStatus } = useAdminAgencies()
-  const { sp, surf, dark, tones } = useAdminSugar()
-
-  // Activity data for health scores.
-  // Agrégé SERVER-SIDE via RPC : l'ancien code chargeait toutes les lignes
-  // activity_events des 30 derniers jours dans le navigateur (SELECT non borné
-  // sur une table d'audit append-only → des dizaines de milliers de lignes pour
-  // un super_admin réel). La RPC renvoie ~1 ligne par agence. Voir migration
-  // 20260705210000_agency_activity_summary_rpc + CLAUDE.md §7.
-  const agencyIds = useMemo(() => agencies.map((a) => a.id), [agencies])
-  const activityQuery = useQuery({
-    queryKey: ['admin-agency-activity-summary', agencyIds],
-    enabled: agencyIds.length > 0,
-    queryFn: async () => {
-      const { data } = await supabase.rpc('get_agency_activity_summary', {
-        agency_ids: agencyIds,
-        since_days: 30,
-      })
-      const byAgency: Record<string, { count: number; lastAt: string }> = {}
-      for (const row of data ?? []) {
-        if (!row.agency_id) continue
-        byAgency[row.agency_id] = {
-          count: Number(row.event_count),
-          lastAt: row.last_activity_at,
-        }
-      }
-      return byAgency
-    },
-    staleTime: 60_000,
-  })
-
-  const healthMap = useMemo(() => {
-    const map: Record<string, ReturnType<typeof calculateAgencyHealth>> = {}
-    for (const agency of agencies) {
-      const ad = activityQuery.data?.[agency.id]
-      map[agency.id] = calculateAgencyHealth({
-        daysSinceLastActivity: ad ? Math.floor((Date.now() - new Date(ad.lastAt).getTime()) / 86400000) : 999,
-        activePropertiesCount: agency.property_count,
-        contactsCount: 0,
-        transactionsCount: agency.transaction_count,
-        eventsLast30Days: ad?.count ?? 0,
-      })
-    }
-    return map
-  }, [agencies, activityQuery.data])
-
-  function getHealth(agency: AgencyWithStats) {
-    return healthMap[agency.id] ?? calculateAgencyHealth({ daysSinceLastActivity: 999, activePropertiesCount: 0, contactsCount: 0, transactionsCount: 0, eventsLast30Days: 0 })
-  }
+  const { sp, surf, tones } = useAdminSugar()
 
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [showCreate, setShowCreate] = useState(false)
-
-  const filtered = useMemo(() => {
-    let list = [...agencies]
-    if (search) {
-      const q = search.toLowerCase()
-      list = list.filter(a => a.name.toLowerCase().includes(q) || (a.email ?? '').toLowerCase().includes(q))
-    }
-    if (statusFilter) list = list.filter(a => a.status === statusFilter)
-    return list
-  }, [agencies, search, statusFilter])
-
-  const { page, setPage, totalPages, paginated, perPage, total } = useClientPagination(filtered, ITEMS_PER_PAGE)
+  const [filtre, setFiltre] = useState<'all' | 'active' | 'suspended' | 'trial'>('all')
+  const [tout, setTout] = useState(false)
+  const [creation, setCreation] = useState(false)
 
   /**
-   * Réactivation seule. La SUSPENSION a quitté cette liste le 03.08.2026 : elle
-   * vit sur la fiche agence, derrière une confirmation qui dit ce qu'elle fait.
-   * Ici, le clic partait sans le moindre garde-fou pour un geste qui bannit N
-   * comptes GoTrue — un survol maladroit suffisait. Réactiver, à l'inverse, ne
-   * détruit rien et n'a pas besoin d'être confirmé.
+   * Couleur d'un ton de santé.
+   *
+   * ⛔ `ok` n'est PAS vert : sur ce registre, « Saine » retombe à l'encre douce.
+   * C'est la décision de la maquette — une liste où le sain crie autant que le
+   * malade ne trie plus rien. (La fiche agence, elle, peut se permettre le vert :
+   * elle ne montre qu'une agence à la fois.)
    */
-  function handleReactivate(e: React.MouseEvent, agency: AgencyWithStats) {
-    e.preventDefault()
-    e.stopPropagation()
-    updateStatus.mutate({ id: agency.id, status: 'active' })
+  const couleurTon = (ton: AgencyHealthTone): string =>
+    ton === 'err' ? tones.err : ton === 'warn' ? tones.warn : ton === 'mute' ? sp.sub : sp.soft
+
+  const comptes = useMemo(() => ({
+    all: agencies.length,
+    active: agencies.filter(a => a.status === 'active').length,
+    suspended: agencies.filter(a => a.status === 'suspended').length,
+    trial: agencies.filter(a => a.subscription_status === 'trialing').length,
+  }), [agencies])
+
+  const filtrees = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return agencies
+      .filter(a =>
+        filtre === 'all' ? true
+        : filtre === 'trial' ? a.subscription_status === 'trialing'
+        : a.status === filtre)
+      .filter(a => {
+        if (!q) return true
+        // Le canton est cherchable sans être annoncé : le placeholder de la
+        // maquette ne cite que trois champs (É5).
+        return [a.name, a.email, a.city, a.canton]
+          .some(v => (v ?? '').toLowerCase().includes(q))
+      })
+      .sort(compareAgencies)
+  }, [agencies, filtre, search])
+
+  const visibles = tout ? filtrees : filtrees.slice(0, SHOW)
+  const reste = filtrees.length - visibles.length
+
+  const th = { bg: sp.pageBg }
+  const cellule: CSSProperties = {
+    padding: '12px', fontSize: 12.5, fontWeight: 600, color: sp.ink,
+    borderTop: surf.hairline, verticalAlign: 'middle',
   }
 
-  const statusFilters = [
-    { value: '', label: t('common.all') },
-    { value: 'active', label: t('common.status.active') },
-    { value: 'suspended', label: t('common.status.suspended') },
-  ]
+  const ligne = (a: AgencyWithStats) => {
+    const sante = agencyHealth({
+      status: a.status,
+      subscription_status: a.subscription_status,
+      score: a.score,
+      transaction_count: a.transaction_count,
+    })
+    const kyb = a.verification_status ? KYB_PILL[a.verification_status] : undefined
+    const identite = agencyIdentityLine(a.city, a.canton)
 
-  const hair = surf.hairline
-  const num: CSSProperties = { fontVariantNumeric: 'tabular-nums' }
-  const cell: CSSProperties = { fontSize: 12, color: sp.soft }
-  const headCell: CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: sp.sub, whiteSpace: 'nowrap' }
+    return (
+      <tr key={a.id} className="adm-row" style={{ cursor: 'pointer' }}>
+        {/* Agence — nom, identité, et la pilule KYB due par l'amendement C9 */}
+        <td style={cellule}>
+          <Link
+            to={`${ADMIN_CONSOLE_PATH}/agencies/${a.id}`}
+            style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{a.name}</span>
+              {a.status === 'suspended' && (
+                <AdminPill label={t('common.status.suspended')} tone="err" />
+              )}
+              {kyb && <AdminPill label={t(kyb.key)} tone={kyb.tone} />}
+            </div>
+            {identite && (
+              <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>{identite}</div>
+            )}
+          </Link>
+        </td>
 
-  /** Statut d'une agence : pilule pleine (l'ancien point vert/rouge ne se lisait pas). */
-  const statusPill = (agency: AgencyWithStats) => (
-    <AdminPill
-      label={t(agency.status === 'active' ? 'common.status.active' : 'common.status.suspended')}
-      tone={agency.status === 'active' ? 'ok' : 'err'}
-      style={{ padding: '4px 10px', fontSize: 11 }}
-    />
-  )
+        <td style={cellule}>
+          {t(`common.plan.${(a.plan ?? 'starter').toLowerCase()}`, { defaultValue: a.plan ?? '—' })}
+        </td>
+
+        {/* Portefeuille — trois compteurs fondus en une cellule (maquette) */}
+        <td style={{ ...cellule, fontWeight: 500, color: sp.sub, fontSize: 11.5 }}>
+          {[
+            t('agencies.portfolio.agents', { count: a.agent_count }),
+            t('agencies.portfolio.properties', { count: a.property_count }),
+            t('agencies.portfolio.deals', { count: a.transaction_count }),
+          ].join(' · ')}
+        </td>
+
+        <td style={{ ...cellule, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+          {a.mrr > 0
+            ? formatCHF(a.mrr)
+            : <span style={{ fontWeight: 500, color: sp.sub }}>{t('agencies.mrr.notBilled')}</span>}
+        </td>
+
+        {/* Santé — un MOT, et sa cause en infobulle : deux branches rendent
+            « Dormante » pour des états incompatibles (suspendue par un admin,
+            ou score bas), que rien d'autre ne distinguerait à l'écran. */}
+        <td style={cellule}>
+          <span
+            title={t(HEALTH_CAUSE_KEY[sante.cause])}
+            style={{ fontSize: 12.5, fontWeight: 700, color: couleurTon(sante.tone) }}
+          >
+            {t(HEALTH_WORD_KEY[sante.word])}
+          </span>
+        </td>
+
+        <td style={{ ...cellule, fontWeight: 500, color: sp.sub, fontSize: 11.5, whiteSpace: 'nowrap' }}>
+          {a.last_activity_at ? formatRelativeDate(a.last_activity_at) : t('agencies.noEvent')}
+        </td>
+
+        {/* Action au survol — réactivation SEULE (É7) */}
+        <td style={{ ...cellule, textAlign: 'right' }}>
+          {a.status === 'suspended' && (
+            <button
+              className="agx-act"
+              onClick={() => updateStatus.mutate({ id: a.id, status: 'active' })}
+              disabled={updateStatus.isPending}
+              style={{
+                height: 28, padding: '0 12px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
+                background: surf.card, boxShadow: sp.shadowSm, color: tones.ok,
+              }}
+            >
+              {t('agencies.action.reactivate')}
+            </button>
+          )}
+        </td>
+      </tr>
+    )
+  }
 
   return (
     <AdminPage
       title={t('agencies.title')}
-      subtitle={isLoading ? t('common.loading') : t(agencies.length !== 1 ? 'agencies.subtitle_plural' : 'agencies.subtitle', { count: agencies.length })}
+      subtitle={t('agencies.subtitle', { count: agencies.length })}
       width="wide"
       actions={
-        <AdminSolidBtn icon={Plus} onClick={() => setShowCreate(true)}>
+        <AdminGhostBtn onClick={() => setCreation(true)} icon={Plus} style={{ height: 30, fontSize: 12 }}>
           {t('agencies.create')}
-        </AdminSolidBtn>
+        </AdminGhostBtn>
       }
     >
-      {/* Survol de ligne et révélation de l'action : impossible en style inline. */}
-      <style>{`
-        .agx-row { text-decoration: none; transition: background-color .16s ease; }
-        .agx-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.025)'}; }
-        .agx-act { opacity: 0; transition: opacity .16s ease; }
-        .agx-row:hover .agx-act, .agx-row:focus-visible .agx-act { opacity: 1; }
-      `}</style>
-
-      {showCreate && <CreateAgencyModal onClose={() => setShowCreate(false)} />}
-
-      {/* Filtres */}
-      <AdminCard padding="10px 12px">
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+      {/* Outils posés à MÊME le fond — aucune carte (concept A) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 2px 12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          {(['all', 'active', 'suspended', 'trial'] as const).map(f => (
+            <AdminSegmentBtn key={f} on={filtre === f} onClick={() => { setFiltre(f); setTout(false) }}>
+              {t(`agencies.filter.${f}`)} · {comptes[f]}
+            </AdminSegmentBtn>
+          ))}
+        </div>
+        <div style={{ marginLeft: 'auto' }}>
           <AdminSearchInput
             value={search}
-            onChange={(v) => { setSearch(v); setPage(1) }}
+            onChange={v => { setSearch(v); setTout(false) }}
             placeholder={t('agencies.searchPlaceholder')}
             label={t('agencies.searchPlaceholder')}
+            maxWidth={240}
+            compact
           />
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {statusFilters.map((f) => (
-              <AdminSegmentBtn
-                key={f.value}
-                on={statusFilter === f.value}
-                onClick={() => { setStatusFilter(f.value); setPage(1) }}
-              >
-                {f.label}
-              </AdminSegmentBtn>
-            ))}
-          </div>
         </div>
-      </AdminCard>
-
-      {/* Usage consolidé par agence (repliable, chargé à la demande) */}
-      <AgencyUsageOverview />
-
-      {/* Mobile : cartes. Le display vient des CLASSES (un `display` inline
-          l'emporterait sur `md:hidden` et la liste resterait visible en desktop). */}
-      <div className="md:hidden space-y-2">
-        {isLoading ? (
-          <>
-            <AdminSkeleton height={62} radius={ADMIN_RADII.card} />
-            <AdminSkeleton height={62} radius={ADMIN_RADII.card} />
-            <AdminSkeleton height={62} radius={ADMIN_RADII.card} />
-          </>
-        ) : isError && paginated.length === 0 ? (
-          <AdminCard padding={0}>
-            <AdminError
-              message={t('common.loadError')}
-              onRetry={() => void refetch()}
-              retryLabel={t('common.retry')}
-            />
-          </AdminCard>
-        ) : paginated.length === 0 ? (
-          <AdminCard padding={0}>
-            <EmptyState hasFilters={!!search || !!statusFilter} />
-          </AdminCard>
-        ) : (
-          paginated.map((agency) => (
-            <Link key={agency.id} to={`${ADMIN_CONSOLE_PATH}/agencies/${agency.id}`} style={{ textDecoration: 'none', display: 'block' }}>
-              <AdminCard padding="12px 14px">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <AdminAvatar initials={agencyInitial(agency.name)} size={34} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {agency.name}
-                    </p>
-                    <p style={{ margin: '2px 0 0', fontSize: 11.5, color: sp.sub, ...num }}>
-                      {PLAN_LABEL[agency.plan ?? ''] ?? agency.plan ?? 'Starter'}
-                      {' · '}{agency.agent_count} agent{agency.agent_count !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  {statusPill(agency)}
-                </div>
-              </AdminCard>
-            </Link>
-          ))
-        )}
       </div>
 
-      {/* Desktop : tableau */}
-      <AdminCard className="hidden md:block" padding={0} style={{ overflow: 'hidden' }}>
-        {/* Ligne d'en-tête */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '9px 16px', background: sp.tableHeadBg }}>
-          <span style={{ ...headCell, flex: 1 }}>{t('agencies.table.name')}</span>
-          <span style={{ ...headCell, width: COL.plan }}>{t('agencies.table.plan')}</span>
-          <span style={{ ...headCell, width: COL.agents, textAlign: 'center' }}>{t('agencies.table.agents')}</span>
-          <span style={{ ...headCell, width: COL.properties, textAlign: 'center' }}>{t('agencies.table.properties')}</span>
-          <span style={{ ...headCell, width: COL.transactions, textAlign: 'center' }}>{t('agencies.table.transactions')}</span>
-          <span style={{ ...headCell, width: COL.date }}>{t('agencies.table.date')}</span>
-          <span style={{ ...headCell, width: COL.status, textAlign: 'center' }}>{t('agencies.table.status')}</span>
-          <span style={{ ...headCell, width: COL.health, textAlign: 'center' }}>{t('agencies.table.health')}</span>
-          <span style={{ width: COL.action }} />
+      {isLoading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {Array.from({ length: 6 }).map((_, i) => <AdminSkeleton key={i} height={46} />)}
         </div>
+      ) : isError && agencies.length === 0 ? (
+        <AdminError
+          message={t('common.loadError')}
+          onRetry={() => void refetch()}
+          retryLabel={t('common.retry')}
+        />
+      ) : filtrees.length === 0 ? (
+        <AdminEmpty icon={Building2} title={t('agencies.empty.title')} />
+      ) : (
+        <>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <AdminTh width={214} {...th}>{t('agencies.table.agency')}</AdminTh>
+                <AdminTh width={108} {...th}>{t('agencies.table.plan')}</AdminTh>
+                <AdminTh width={216} {...th}>{t('agencies.table.portfolio')}</AdminTh>
+                <AdminTh width={96} align="right" {...th}>{t('agencies.table.mrr')}</AdminTh>
+                <AdminTh width={132} {...th}>{t('agencies.table.health')}</AdminTh>
+                <AdminTh width={132} {...th}>{t('agencies.table.lastEvent')}</AdminTh>
+                <AdminTh width={132} align="right" {...th}>{''}</AdminTh>
+              </tr>
+            </thead>
+            <tbody>{visibles.map(ligne)}</tbody>
+          </table>
 
-        {/* Lignes */}
-        {isLoading ? (
-          <SkeletonRows />
-        ) : isError && paginated.length === 0 ? (
-          <AdminError
-            message={t('common.loadError')}
-            onRetry={() => void refetch()}
-            retryLabel={t('common.retry')}
-          />
-        ) : paginated.length === 0 ? (
-          <EmptyState hasFilters={!!search || !!statusFilter} />
-        ) : (
-          paginated.map((agency, i) => (
-            <Link
-              key={agency.id}
-              to={`${ADMIN_CONSOLE_PATH}/agencies/${agency.id}`}
-              className="agx-row"
-              style={{ display: 'flex', alignItems: 'center', padding: '11px 16px', borderTop: i === 0 ? undefined : hair }}
+          {reste > 0 && (
+            <button
+              type="button"
+              className="adm-row"
+              onClick={() => setTout(true)}
+              style={{
+                marginTop: 12, alignSelf: 'flex-start', border: 0, background: 'transparent',
+                padding: '7px 10px', borderRadius: ADMIN_RADII.pill, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: sp.sub,
+              }}
             >
-              {/* Nom + avatar */}
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                <AdminAvatar initials={agencyInitial(agency.name)} size={34} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {agency.name}
-                    </p>
-                    <SubscriptionBadge status={agency.subscription_status} />
-                  </div>
-                  {agency.email && (
-                    <p style={{ margin: '1px 0 0', fontSize: 11.5, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {agency.email}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Plan */}
-              <span style={{ ...cell, width: COL.plan }}>
-                {PLAN_LABEL[agency.plan ?? ''] ?? agency.plan ?? 'Starter'}
-              </span>
-
-              {/* Agents */}
-              <span style={{ ...cell, ...num, width: COL.agents, textAlign: 'center' }}>
-                {agency.agent_count}
-              </span>
-
-              {/* Biens */}
-              <span style={{ ...cell, ...num, width: COL.properties, textAlign: 'center' }}>
-                {agency.property_count}
-              </span>
-
-              {/* Transactions */}
-              <span style={{ ...cell, ...num, width: COL.transactions, textAlign: 'center' }}>
-                {agency.transaction_count}
-              </span>
-
-              {/* Date */}
-              <span style={{ ...cell, ...num, width: COL.date, color: sp.sub }}>
-                {formatDate(agency.created_at)}
-              </span>
-
-              {/* Statut */}
-              <div style={{ width: COL.status, display: 'flex', justifyContent: 'center' }}>
-                {statusPill(agency)}
-              </div>
-
-              {/* Santé */}
-              <div style={{ width: COL.health, display: 'flex', justifyContent: 'center' }}>
-                {(() => { const h = getHealth(agency); return <AgencyHealthBadge score={h.score} level={h.level} /> })()}
-              </div>
-
-              {/* Action au survol — réactivation SEULE (la suspension vit sur la fiche) */}
-              <div style={{ width: COL.action, display: 'flex', justifyContent: 'flex-end' }}>
-                {agency.status === 'suspended' && (
-                  <button
-                    className="agx-act"
-                    onClick={(e) => handleReactivate(e, agency)}
-                    disabled={updateStatus.isPending}
-                    style={{
-                      height: 28, padding: '0 12px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                      fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
-                      background: surf.card, boxShadow: sp.shadowSm, color: tones.ok,
-                    }}
-                  >
-                    {t('agencies.action.activate')}
-                  </button>
-                )}
-              </div>
-            </Link>
-          ))
-        )}
-
-        <AdminPager page={page} totalPages={totalPages} total={total} perPage={perPage} onPage={setPage} />
-      </AdminCard>
-
-      {/* Pagination mobile — hauteur 44 pour rester une cible tactile confortable */}
-      {!isLoading && totalPages > 1 && (
-        <div className="md:hidden flex items-center justify-between" style={{ padding: '0 4px' }}>
-          <AdminGhostBtn
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            style={{ height: 44 }}
-          >
-            {t('common.previous')}
-          </AdminGhostBtn>
-          <span style={{ fontSize: 12, color: sp.sub, ...num }}>{page}/{totalPages}</span>
-          <AdminGhostBtn
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            style={{ height: 44 }}
-          >
-            {t('common.next')}
-          </AdminGhostBtn>
-        </div>
+              {t('agencies.showMore', { count: reste })}
+            </button>
+          )}
+        </>
       )}
-    </AdminPage>
-  )
-}
 
-/** État vide, messages distincts selon qu'un filtre est actif ou non. */
-function EmptyState({ hasFilters }: { hasFilters: boolean }) {
-  const { t } = useTranslation('admin')
-  return (
-    <AdminEmpty
-      icon={Building2}
-      title={hasFilters ? t('agencies.empty.titleFiltered') : t('agencies.empty.title')}
-      hint={hasFilters ? t('agencies.empty.subtitleFiltered') : t('agencies.empty.subtitle')}
-    />
+      {creation && <CreateAgencyModal onClose={() => setCreation(false)} />}
+    </AdminPage>
   )
 }

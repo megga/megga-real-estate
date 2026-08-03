@@ -24,6 +24,9 @@ export interface AgencyWithStats {
   slug: string
   logo_url: string | null
   city: string | null
+  /** Canton — servi par la RPC, il était PERDU au mapping : la sous-ligne
+   *  d'identité du registre et sa recherche mentaient en silence. */
+  canton: string | null
   address: string | null
   phone: string | null
   email: string | null
@@ -77,6 +80,7 @@ export function useAdminAgencies() {
         slug: r.slug,
         logo_url: r.logo_url,
         city: r.city,
+        canton: r.canton,
         // `address` n'est pas servie par la RPC : le registre ne l'affiche pas, et la
         // fiche ne la montre plus non plus depuis la refonte (elle mesure l'usage de
         // la plateforme, pas l'identité de l'agence). Champ conservé pour la forme
