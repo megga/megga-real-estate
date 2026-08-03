@@ -64,6 +64,18 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "comment fonctio
 > fait foi** — re-vérifier puis corriger le seed. Plusieurs entrées portent des `NUANCE`/`ATTENTION`
 > issues d'un audit factuel ; les garder à jour.
 
+> ⚠️ **Écrire ≠ rendre trouvable (mesuré le 3 août 2026).** Un nœud porte **un seul embedding pour tout
+> son texte** : un paragraphe ajouté en queue d'un nœud hub (`megga/dev-ci`, ~5 800 car.) était
+> **introuvable par toute requête**, y compris en citant ses termes exacts. Extrait en nœud focalisé
+> (`megga/ci-attente-verdict`), il remonte en tête à 0,79. **Règle : un sujet nouveau = un nœud nouveau ;
+> n'append à un hub que ce qui prolonge vraiment son sujet.** Limite résiduelle à connaître : le modèle
+> (`all-MiniLM-L6-v2`, anglocentré) rend le rappel **sensible à la formulation** — les requêtes lexicales
+> (termes techniques, noms de fichiers) touchent, les paraphrases françaises courtes atterrissent souvent
+> sur des nœuds-aimants (`megga/docs-index`). Ajouter une ligne `Requetes typiques:` — technique déjà
+> employée par `megga/deploy-migrations-gate` — n'a **pas** corrigé le cas mesuré : ne pas compter dessus.
+> **Vérifier le rappel après écriture** (`memory search`), sans quoi on croit avoir appris quelque chose
+> qui ne ressortira jamais.
+
 ---
 
 ## 0. En une phrase
@@ -478,6 +490,27 @@ et 64 fonctions y manquaient, tenues par 16 casts de client dans 14 fichiers. `c
 trois propriétés (aucun client casté dans `src/`, aucune RPC appelée hors des types, aucune relation vivante
 absente) — statique sur chaque PR, moitié production dans `migration-drift.yml`. ⚠ Elle ne compare PAS les
 fonctions : 770 vivantes contre 420 émises, le filtre du générateur nous échappe.
+
+**⚠ `migration-drift.yml` rougit STRUCTURELLEMENT, pas par accident** (cf. brain `megga/derive-schema-check`).
+Il enchaîne deux comparaisons de sens **opposés** — objets déclarés par une migration mais absents de la prod
+(*dépôt en avance*) et relations vivantes en prod absentes de `database.ts` (*prod en avance*) — qu'il ne faut pas
+confondre en lisant un échec. Or la règle d'or du gate de date impose d'appliquer une migration à la prod **à la
+main avant le merge** ; entre cette application et l'atterrissage de la PR, la prod est donc légitimement en avance
+sur `main`. L'échec se résorbe seul au merge, qui apporte migration **et** `database.ts` régénéré. Cycle vérifié le
+3 août 2026 : `relance_sessions`/`relance_items` vivantes en prod sans migration au dépôt (elle dormait sur la
+PR #1136), rouge sur `c4a535dd` → PR mergée (`3bf8abcf`) → vert. Devant un rouge, chercher **d'abord la PR ouverte**
+qui porte la migration des objets cités. Le risque n'est pas l'échec, c'est l'**accoutumance** : ce bruit récurrent
+masquerait une dérive réelle (PR abandonnée laissant des tables orphelines en prod).
+
+**Couverture e2e de la console admin — la liste est écrite à la main.** `tests/e2e-admin/admin-coverage.spec.ts`
+visite un tableau `ADMIN_ROUTES` saisi manuellement ; **rien ne le dérive** de `AdminConsoleRoutes.tsx`.
+`/dashboard/admin/kyb-review` y a manqué depuis la remontée de la console dans le CRM (28 juil.) : routée, présente
+au rail, visitée par aucun test — libre de rendre blanc ou de cracher des erreurs console sans que la CI le voie.
+Corrigé PR #1127 : l'entrée (elle passe les 4 assertions sans correctif) **et** `tests/unit/admin-routes-coverage.spec.ts`,
+qui confronte statiquement le routeur au tableau — toute route rendant une page doit y figurer, toute redirection
+routée doit être suivie par un test nommé. Statique et non dérivé à l'exécution : importer le routeur depuis
+Playwright tirerait React, `AdminShell` et 18 chunks lazy dans un runner qui n'en a pas besoin. Il tourne dans
+`test:unit`, donc **en amont** de l'e2e — l'oubli est bloqué au merge, pas constaté après.
 
 **Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur 8 familles CRM verrouillées : crm-mobile/crm-sugar/crm-sugar-v3/crm-sugar-wizard/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
 
