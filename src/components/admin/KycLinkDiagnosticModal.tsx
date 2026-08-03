@@ -139,16 +139,20 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
   const libelle = { display: 'block', marginBottom: 5, fontSize: 11.5, fontWeight: 700, color: sp.sub } as const
 
   return (
-    // `className` atteint la RACINE portée (en-tête comprise) : sans elle, le
-    // bouton de fermeture garderait l'anneau de focus du CRM et l'en-tête
-    // resterait hors du remappage de couleurs de la console.
+    // ⛔ PAS de `className="megga-admin-console"` ici, et c'est mesuré : la feuille
+    // `admin-console.css` REDÉFINIT `--color-theme-*` en CLAIR sous cette classe, et
+    // ne repasse au sombre que sur `[data-admin-dark='true']` — un attribut que
+    // `ModalProps` ne sait pas transmettre (aucun rest spread). Poser la classe seule
+    // rendait donc la modale BLANCHE sur une console sombre, vérifié à l'écran.
+    // Sans elle, la modale hérite du `data-theme` que le fournisseur pose sur
+    // `documentElement` précisément pour les surfaces portées, et suit le thème —
+    // c'est le comportement des trois autres modales de la console.
     <Modal
       open
       onClose={onClose}
       title={t('kycDiag.title')}
       description={t('kycDiag.subtitle')}
       size="lg"
-      className="megga-admin-console"
     >
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
