@@ -338,7 +338,8 @@
       },
       "action": {
         "addToFile": "Aggiungi al fascicolo di {{name}}",
-        "added": "Aggiunto al fascicolo di {{name}}"
+        "added": "Aggiunto al fascicolo di {{name}}",
+        "openInMatching": "Apri in Matching"
       },
       "gallery": {
         "closeHint": "Chiudi (Esc)",

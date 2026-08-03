@@ -139,7 +139,9 @@ export default function TodaySugarPage() {
       case 'visite-detail': navigate(ref ? `/dashboard/visits/${ref}` : '/dashboard/calendar'); break
       case 'biens-detail': navigate(ref ? `/dashboard/listings/${ref}` : '/dashboard/listings'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
+      // `?contact=` est le contrat que MatchingAtelierPage lit déjà pour
+      // focaliser un acheteur — pas une globale posée avant la navigation.
+      case 'matching': navigate(ref ? `/dashboard/matching?contact=${ref}` : '/dashboard/matching'); break
       case 'contacts': navigate('/dashboard/contacts'); break
       case 'biens': navigate('/dashboard/listings'); break
       case 'biens-new': navigate('/dashboard/listings/new'); break

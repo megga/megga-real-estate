@@ -338,7 +338,8 @@
       },
       "action": {
         "addToFile": "Add to {{name}}'s file",
-        "added": "Added to {{name}}'s file"
+        "added": "Added to {{name}}'s file",
+        "openInMatching": "Open in Matching"
       },
       "gallery": {
         "closeHint": "Close (Esc)",

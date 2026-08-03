@@ -338,7 +338,8 @@
       },
       "action": {
         "addToFile": "In das Dossier von {{name}} legen",
-        "added": "Zum Dossier von {{name}} hinzugefügt"
+        "added": "Zum Dossier von {{name}} hinzugefügt",
+        "openInMatching": "In Matching öffnen"
       },
       "gallery": {
         "closeHint": "Schliessen (Esc)",
