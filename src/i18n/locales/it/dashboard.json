@@ -509,7 +509,15 @@
       },
       "deals": {
         "open": "Apri",
-        "empty": "Nessun dossier richiede attenzione ora."
+        "empty": "Nessun dossier richiede attenzione ora.",
+        "ctaCall": "Richiamare",
+        "ctaKyc": "Apri KYC",
+        "ctaSign": "Preparare",
+        "ctaOffer": "Vedi l’offerta",
+        "ctaMatch": "Vedi i match",
+        "ctaVisit": "Vedi la visita",
+        "ctaSeller": "Apri",
+        "ctaListing": "Vedi l’immobile"
       }
     }
   },

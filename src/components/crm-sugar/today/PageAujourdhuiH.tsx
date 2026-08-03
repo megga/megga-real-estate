@@ -280,6 +280,11 @@ function HlDay({ day, selId, onSel }: {
   const nowCol = TK.mode === 'light' ? '#E54D38' : '#FFFFFF'
   const hours: number[] = []
   for (let h = startMin / 60; h <= endMin / 60; h++) hours.push(h)
+  // « Maintenant » n'a de sens que DANS la fenêtre du jour. À 19 h 30 sur une
+  // journée qui finit à 17 h, `pct` vaut 131 % : le repère se faisait CLIPPER
+  // en silence. On le retire explicitement — une journée terminée n'a pas de
+  // « maintenant » à montrer, et un clip n'est pas une décision.
+  const nowInWindow = nowM >= startMin && nowM <= endMin
   const freeMin = free ? free.to - free.from : 0
   const freeLabel = freeMin % 60 === 0 ? `${freeMin / 60} h` : `${Math.floor(freeMin / 60)} h ${freeMin % 60}`
   return (
@@ -293,11 +298,11 @@ function HlDay({ day, selId, onSel }: {
           }}>{t('today.h.hour', { hour: String(h).padStart(2, '0') })}</span>
         ))}
         {/* badge « maintenant » dans la gouttière */}
-        <span style={{
+        {nowInWindow && <span style={{
           position: 'absolute', top: `${pct(nowM)}%`, right: 10, transform: 'translateY(-8px)', zIndex: 8,
           fontSize: 9.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', background: nowCol,
           color: TK.mode === 'light' ? '#fff' : '#0B0C0E', padding: '2px 6px', borderRadius: 999,
-        }}>{nowLabel}</span>
+        }}>{nowLabel}</span>}
       </div>
       {/* colonne timeline */}
       <div style={{ position: 'relative', flex: 1, borderLeft: `1px solid ${TK.border}` }}>
@@ -321,10 +326,10 @@ function HlDay({ day, selId, onSel }: {
           <HlBlock key={b.id} b={b} pct={pct} span={span} sel={b.id === selId} done={!!b.done} past={(b.from + b.dur) <= nowM} onSel={onSel} />
         ))}
         {/* ligne « maintenant » */}
-        <div className="hl-now" style={{ position: 'absolute', top: `${pct(nowM)}%`, left: 0, right: 0, display: 'flex', alignItems: 'center', zIndex: 7, pointerEvents: 'none' }}>
+        {nowInWindow && <div className="hl-now" style={{ position: 'absolute', top: `${pct(nowM)}%`, left: 0, right: 0, display: 'flex', alignItems: 'center', zIndex: 7, pointerEvents: 'none' }}>
           <span className="hl-now-dot" style={{ width: 9, height: 9, borderRadius: 999, background: nowCol, marginLeft: -5 }} />
           <span style={{ flex: 1, height: 2, background: nowCol }} />
-        </div>
+        </div>}
       </div>
     </div>
   )

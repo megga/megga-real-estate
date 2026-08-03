@@ -509,7 +509,15 @@
       },
       "deals": {
         "open": "Ouvrir",
-        "empty": "Aucun dossier à traiter en priorité."
+        "empty": "Aucun dossier à traiter en priorité.",
+        "ctaCall": "Rappeler",
+        "ctaKyc": "Ouvrir le KYC",
+        "ctaSign": "Préparer",
+        "ctaOffer": "Voir l’offre",
+        "ctaMatch": "Voir les matchs",
+        "ctaVisit": "Voir la visite",
+        "ctaSeller": "Ouvrir",
+        "ctaListing": "Voir le bien"
       }
     }
   },

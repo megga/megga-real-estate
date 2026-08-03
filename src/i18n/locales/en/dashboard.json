@@ -509,7 +509,15 @@
       },
       "deals": {
         "open": "Open",
-        "empty": "No deal needs attention right now."
+        "empty": "No deal needs attention right now.",
+        "ctaCall": "Call back",
+        "ctaKyc": "Open KYC",
+        "ctaSign": "Prepare",
+        "ctaOffer": "View offer",
+        "ctaMatch": "View matches",
+        "ctaVisit": "View viewing",
+        "ctaSeller": "Open",
+        "ctaListing": "View listing"
       }
     }
   },

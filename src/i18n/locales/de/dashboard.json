@@ -509,7 +509,15 @@
       },
       "deals": {
         "open": "Öffnen",
-        "empty": "Kein Dossier erfordert derzeit Aufmerksamkeit."
+        "empty": "Kein Dossier erfordert derzeit Aufmerksamkeit.",
+        "ctaCall": "Zurückrufen",
+        "ctaKyc": "KYC öffnen",
+        "ctaSign": "Vorbereiten",
+        "ctaOffer": "Angebot ansehen",
+        "ctaMatch": "Matches ansehen",
+        "ctaVisit": "Besichtigung ansehen",
+        "ctaSeller": "Öffnen",
+        "ctaListing": "Objekt ansehen"
       }
     }
   },

@@ -35,6 +35,26 @@ export interface UseHotDealsReturn {
   isLoading: boolean
 }
 
+// CTA contextuel — la maquette donne un libellé par nature de dossier, pas un
+// « Ouvrir » uniforme. Vu à l'écran : trois cartes portant le même mot ne disent
+// rien de ce qui attend l'agent. Les clés inconnues retombent sur « Ouvrir ».
+const CTA_BY_TYPE: Record<string, string> = {
+  call: 'today.h.deals.ctaCall',
+  kyc: 'today.h.deals.ctaKyc',
+  sign: 'today.h.deals.ctaSign',
+  offer: 'today.h.deals.ctaOffer',
+  match: 'today.h.deals.ctaMatch',
+  visit: 'today.h.deals.ctaVisit',
+  seller: 'today.h.deals.ctaSeller',
+  bien: 'today.h.deals.ctaListing',
+  cooling: 'today.h.deals.ctaCall',
+}
+
+const ICON_BY_TYPE: Record<string, string> = {
+  call: 'user', kyc: 'shield', sign: 'doc', offer: 'offer',
+  match: 'spark', visit: 'home', seller: 'user', bien: 'doc', cooling: 'user',
+}
+
 /** Pastille : rouge si le dossier est en retard, sinon la teinte de sa famille. */
 const DOT_BY_CATEGORY: Record<string, string> = {
   RELANCE: '#C45A00',
@@ -61,8 +81,8 @@ export function useHotDeals(): UseHotDealsReturn {
       reason: it.reason,
       dot: it.urgent ? '#F26B65' : (DOT_BY_CATEGORY[it.category] ?? '#797D90'),
       late: it.urgent,
-      cta: t('today.h.deals.open'),
-      ctaIcon: 'user',
+      cta: t(CTA_BY_TYPE[it.type] ?? 'today.h.deals.open'),
+      ctaIcon: ICON_BY_TYPE[it.type] ?? 'user',
       price: it.bien?.price ?? '',
       photo: it.bien?.photo || undefined,
     }))
