@@ -42,6 +42,7 @@ DROP POLICY IF EXISTS "agents_update_seller_leads" ON public.seller_leads;
 -- commun en entier, PII comprise — la branche `IS NULL` étant vraie pour lui aussi.
 -- Aucune décision produit n'a jamais visé ce cas ; le partage voulu est d'agence à
 -- agence.
+DROP POLICY IF EXISTS "seller_leads_agents_select" ON public.seller_leads;
 CREATE POLICY "seller_leads_agents_select"
   ON public.seller_leads
   FOR SELECT
@@ -58,6 +59,7 @@ CREATE POLICY "seller_leads_agents_select"
 -- Le WITH CHECK identique au USING empêche les trois dérives : toucher un lead du pot
 -- commun, pousser un lead vers une autre agence, et relâcher un lead attribué dans le
 -- pot commun pour le soustraire à son agence.
+DROP POLICY IF EXISTS "seller_leads_agents_update_own" ON public.seller_leads;
 CREATE POLICY "seller_leads_agents_update_own"
   ON public.seller_leads
   FOR UPDATE
