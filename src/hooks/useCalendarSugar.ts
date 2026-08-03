@@ -17,6 +17,7 @@ import type { CalEvent, CalHotBuyer } from '@/components/crm-sugar/calendar/data
 interface VisitJoin {
   id: string
   scheduled_at: string
+  duration_minutes: number | null
   status: string
   buyer_name: string | null
   buyer_phone: string | null
@@ -60,12 +61,17 @@ function toneFromId(id: string): string {
   return tones[Math.abs(h) % tones.length]
 }
 
-/** Convertit une ligne `visits` en `CalEvent` type='visite' (bloc d'1 h par défaut). */
+/** Convertit une ligne `visits` en `CalEvent` type='visite'.
+ *
+ *  La durée est celle de la table (`visits.duration_minutes`) ; l'heure pleine
+ *  ne sert que de repli quand la colonne est nulle. Elle était auparavant forcée
+ *  à 1 h alors que la colonne existait — un bloc d'agenda mentait donc sur sa
+ *  durée, et le concept H la lit pour dimensionner la ligne du temps. */
 function visitToCalEvent(v: VisitJoin): CalEvent {
   const contact = unwrap(v.contact)
   const property = unwrap(v.property)
   const start = new Date(v.scheduled_at)
-  const end = new Date(start.getTime() + 60 * 60 * 1000) // défaut 1h, à raffiner si la table porte une durée
+  const end = new Date(start.getTime() + (v.duration_minutes ?? 60) * 60 * 1000)
   const contactName = contact
     ? `${contact.first_name} ${contact.last_name}`.trim()
     : v.buyer_name ?? 'Visiteur'
@@ -210,7 +216,7 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
       if (!agencyId) return []
       const { data, error } = await supabase
         .from('visits')
-        .select('id, scheduled_at, status, buyer_name, buyer_phone, contact:contacts(first_name, last_name), property:properties(id, title, address, city, price, surface_m2)')
+        .select('id, scheduled_at, duration_minutes, status, buyer_name, buyer_phone, contact:contacts(first_name, last_name), property:properties(id, title, address, city, price, surface_m2)')
         .eq('agency_id', agencyId)
         .gte('scheduled_at', range.from)
         .lte('scheduled_at', range.to)

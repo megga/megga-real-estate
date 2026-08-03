@@ -7,7 +7,11 @@
 import { createContext, useContext } from 'react'
 
 export interface TodayNav {
-  navigate: (id: string) => void
+  /** `id` = cible logique (contact-detail, deal-detail, visite-detail…).
+   *  `ref` = identifiant réel de la ligne visée. Sans `ref`, la cible retombe
+   *  sur sa LISTE plutôt que sur un bouton mort — c'est la règle du dépôt :
+   *  « un bouton qui ne fait rien doit disparaître ». */
+  navigate: (id: string, ref?: string) => void
   goToPage: (page: number) => void
 }
 

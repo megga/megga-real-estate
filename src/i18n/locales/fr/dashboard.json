@@ -430,6 +430,86 @@
       "eyebrow": "MEGGA AI · Briefing du jour",
       "deepen": "Approfondir",
       "deepenQuestion": "Détaille mes priorités du jour et propose la prochaine action pour chacune."
+    },
+    "h": {
+      "greeting": "Bonjour {{name}}",
+      "whatsNew": "What's new",
+      "close": "Fermer",
+      "yourDay": "Ta journée",
+      "appointments_one": "{{count}} rendez-vous",
+      "appointments_other": "{{count}} rendez-vous",
+      "hour": "{{hour}} h",
+      "freeWindow": "{{duration}} libres · session relances",
+      "tabs": {
+        "deals": "Dossiers",
+        "listings": "Annonces"
+      },
+      "hotCount_one": "{{count}} chaud",
+      "hotCount_other": "{{count}} chauds",
+      "openListings": "Ouvrir Mes biens",
+      "seeDealsInPipeline": "Voir les {{count}} dossiers dans le Pipeline",
+      "todayLabel": "Aujourd'hui",
+      "openInCalendar": "Ouvrir dans le calendrier",
+      "doneBadge": "Terminé",
+      "types": {
+        "relance": "Appel",
+        "kyc": "Conformité",
+        "mandat": "Mandat",
+        "visite": "Visite",
+        "compromis": "Compromis",
+        "default": "Rendez-vous"
+      },
+      "news": {
+        "fresh": "Nouveau"
+      },
+      "absence": {
+        "title": "Pendant ton absence",
+        "seeAll": "Voir les {{count}}",
+        "countSince_one": "{{count}} signal · depuis {{since}}",
+        "countSince_other": "{{count}} signaux · depuis {{since}}",
+        "upToDateSince": "À jour · depuis {{since}}",
+        "upToDateInline": "Tu es à jour, rien de neuf depuis {{since}}",
+        "emptyTitle": "Tu es à jour",
+        "emptyDesc": "Aucun retour acheteur ni rappel en attente. Tout a été traité.",
+        "markAll": "Tout marquer comme vu",
+        "count_one": "{{count}} signal",
+        "count_other": "{{count}} signaux",
+        "groupBuyers": "Retours acheteurs",
+        "groupReminders": "Rappels",
+        "liked": "a aimé {{subject}}",
+        "skipped": "a écarté {{subject}}",
+        "reminderDue": "dossier {{subject}} à reprendre",
+        "ctaProposeVisit": "Proposer la visite",
+        "ctaRecalibrate": "Recalibrer",
+        "ctaResume": "Reprendre",
+        "unknownContact": "Contact",
+        "unknownProperty": "un bien"
+      },
+      "toast": {
+        "openMandate": "Ouverture du mandat de {{name}}",
+        "launched": "{{cta}} · c'est lancé",
+        "launchedFor": "{{cta}} {{name}} · c'est lancé",
+        "allUpToDate": "Tout est à jour",
+        "visitProposed": "Proposition de visite envoyée à {{name}}",
+        "dealResumed": "Dossier {{name}} repris",
+        "recalibrated": "Critères recalibrés pour {{name}}",
+        "published": "Publication sur Immobilier.ch · {{title}}",
+        "annAction": "{{cta}} · {{title}}",
+        "resumeFailed": "La reprise n’a pas pu être enregistrée. Réessaie."
+      },
+      "cta": {
+        "openKyc": "Ouvrir le KYC",
+        "openVisit": "Voir la visite",
+        "openContact": "Voir le contact",
+        "openListing": "Voir le bien",
+        "openCalendar": "Ouvrir le calendrier"
+      },
+      "day": {
+        "emptyTitle": "Journée dégagée",
+        "emptyDesc": "Aucun rendez-vous, aucune visite ni rappel prévu aujourd’hui."
+      },
+      "demoTag": "Démo",
+      "demoHint": "Zone encore alimentée par des données de démonstration."
     }
   },
   "analytics": {
