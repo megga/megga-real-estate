@@ -6,6 +6,7 @@
 import { useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { switchLanguage } from '@/i18n'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import Pressable from '@/components/ui/Pressable'
 import { useAuth } from '@/hooks/useAuth'
@@ -238,7 +239,8 @@ export default function MobileMoreScreen() {
           </div>
           <Segment
             value={lang}
-            onChange={(v) => void i18n.changeLanguage(v)}
+            // Charge le bundle PUIS bascule — cf. la JSDoc de switchLanguage.
+            onChange={(v) => void switchLanguage(v)}
             options={[
               { id: 'fr', label: 'FR' },
               { id: 'en', label: 'EN' },

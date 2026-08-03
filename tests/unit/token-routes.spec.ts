@@ -30,6 +30,7 @@ const TOKENISEES = [
   '/kyc-report/abc123',
   '/reception/abc123',
   '/accept-invite/abc123',
+  '/rendez-vous/abc123', // gestion de RDV KYC — jeton dans le CHEMIN (appointment-book)
   '/visit/9c2/edit',
   '/visit/9c2/feedback',
   '/visite/9c2/modifier', // alias FR : redirigé au bord, mais servi par le SPA en dev

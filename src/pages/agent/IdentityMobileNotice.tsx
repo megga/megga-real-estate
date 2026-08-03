@@ -26,7 +26,11 @@ export default function IdentityMobileNotice() {
         onClick={() => { void signOut().then(() => navigate('/login')) }}
         className="mt-10 rounded-lg border border-theme-border px-4 py-2 text-sm font-medium text-theme-secondary transition-colors hover:bg-theme-hover"
       >
-        {t('common:logout')}
+        {/* `common:nav.logout` et non `common:logout` : la clé racine n'existe dans
+            aucune des 4 langues, i18next rendait donc le CHEMIN — le bouton affichait
+            « logout » en clair, partout. Même correctif que dans IdentityShell (#1069),
+            qui avait laissé cet écran-ci de côté. */}
+        {t('common:nav.logout')}
       </button>
     </div>
   )

@@ -19,8 +19,10 @@
  */
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MxField, MxInput, MxSelect, MxRadio } from '@/components/megga-x'
+import { cn } from '@/lib/utils'
+import { MxDatePicker, MxField, MxInput, MxSelect, MxRadio } from '@/components/megga-x'
 import { COUNTRIES } from '@/lib/countries'
+import { SG_IDENTITY_DATE_LABELS, identityMaxBirthDate } from '../tokens'
 import type { SignataireDraft } from '../IdentityShell'
 
 interface StepSignataireProps {
@@ -87,14 +89,16 @@ export function StepSignataire({ value, onChange }: StepSignataireProps) {
           <div className="grid-2-columns mg-top-small">
             <MxField label={t('wizard.signataire.fields.dateOfBirth')}>
               {(id) => (
-                <MxInput
+                // MxDatePicker et non `<MxInput type="date">` : ce dernier délègue
+                // son calendrier au navigateur, donc à la DA de Chrome au milieu
+                // du parcours (cf. l'en-tête de MxDatePicker.tsx). Le contrat de
+                // valeur est identique — ISO ou null, la colonne étant nullable.
+                <MxDatePicker
                   id={id}
-                  type="date"
-                  value={value.dateOfBirth ?? ''}
-                  // Chaîne vide = champ vidé, et la colonne DB est nullable :
-                  // on écrit null plutôt que '' pour ne pas faire passer un vide
-                  // pour une date saisie.
-                  onChange={(e) => onChange({ dateOfBirth: e.target.value || null })}
+                  value={value.dateOfBirth}
+                  onChange={(iso) => onChange({ dateOfBirth: iso })}
+                  max={identityMaxBirthDate()}
+                  labels={SG_IDENTITY_DATE_LABELS}
                 />
               )}
             </MxField>
@@ -145,16 +149,26 @@ export function StepSignataire({ value, onChange }: StepSignataireProps) {
  *
  * Radio réel et non bouton `aria-pressed` : le choix est exclusif, et seul un
  * groupe radio l'annonce comme tel (« 1 sur 2 ») et se parcourt aux flèches.
- * L'état sélectionné se lit sur la pastille — la vitrine n'a pas de carte
- * « choisie », et rien ici n'est inventé pour en fabriquer une.
  *
- * ⚠ Le focus clavier n'est PAS visible sur ces deux cartes, et ça ne se répare
- * pas ici : MxRadio masque l'input natif (`opacity: 0`), et la vitrine annule
- * elle-même le halo Webflow (`.radio-button.w--redirected-focus{box-shadow:none}`)
- * — câbler la classe ne donnerait donc rien. Il faut une règle dans
- * megga-x-additions.css (le `.card` porteur est en `overflow: hidden`, un halo
- * posé à l'intérieur serait rogné). Régression assumée le temps de l'arbitrage :
- * la version Sugar était un `<button>` et gardait l'anneau natif.
+ * L'état sélectionné se lit sur un LISERÉ d'accent qui ceint la carte entière
+ * (`mx-choice-card--selected`), et sur lui seul : la pastille du radio est
+ * masquée (demande du 3 août 2026), elle faisait doublon sur une option qui
+ * tient en deux lignes. Masquage VISUEL uniquement — l'`<input type="radio">`
+ * reste coché, groupé et navigable aux flèches ; c'est lui qui porte l'état pour
+ * les lecteurs d'écran.
+ *
+ * Ce n'est pas pour autant une information portée par la seule COULEUR (WCAG
+ * 1.4.1) : entre la bordure au repos (#181818) et le liseré (#424bfb) il y a un
+ * écart de luminance de 3,07:1 — le trait reste donc lisible en niveaux de gris,
+ * ce qu'un simple changement de teinte ne garantirait pas.
+ *
+ * Le focus clavier ne peut pas venir de la carte elle-même : MxRadio masque
+ * l'input natif (`opacity: 0`) et la vitrine annule le halo Webflow
+ * (`.radio-button.w--redirected-focus{box-shadow:none}`). Il vient du point 2 de
+ * megga-x-additions.css, qui rend un `outline` sur la carte porteuse via
+ * `:has(input[type="radio"]:focus-visible)` — un outline et non un box-shadow,
+ * que l'`overflow: hidden` de la carte rognerait. Vérifié au clavier le
+ * 03.08.2026 : anneau indigo de 2 px sur la carte tabulée.
  */
 function SignaturePowerCard({
   power, selected, label, hint, onSelect,
@@ -166,7 +180,11 @@ function SignaturePowerCard({
   onSelect: (power: SignaturePower) => void
 }) {
   return (
-    <div className="card">
+    // Classe explicite plutôt qu'un `:has(input:checked)` en CSS : une règle
+    // structurelle attraperait aussi la carte du bénéficiaire de l'étape 3, dont
+    // les radios PEP ne sont PAS dans une sous-carte — le liseré s'y poserait
+    // autour de la fiche entière dès qu'on répond à la question.
+    <div className={cn('card mx-choice-card', selected && 'mx-choice-card--selected')}>
       <MxRadio
         className="pd---content-inside-card"
         name="signature-power"

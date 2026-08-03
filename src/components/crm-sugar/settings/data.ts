@@ -11,7 +11,7 @@ import { crmStep } from '@/components/crm-sugar/tokens'
 //   - #456 Wire TeamSection back: agency_members + RBAC + Resend invites
 export type SectionId =
   | 'profile' | 'agency'
-  | 'notifications' | 'integrations' | 'availability'
+  | 'notifications' | 'integrations'
   | 'billing' | 'security' | 'preferences'
 
 export interface SettingsSection {
@@ -61,10 +61,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'agency', get label() { return i18n.t('settings:nav.sections.agency.label') }, get short() { return i18n.t('settings:nav.sections.agency.short') }, icon: 'building', group: 'moi' },
   { id: 'notifications', get label() { return i18n.t('settings:nav.sections.notifications.label') }, get short() { return i18n.t('settings:nav.sections.notifications.short') }, icon: 'bell', group: 'produit' },
   { id: 'integrations', get label() { return i18n.t('settings:nav.sections.integrations.label') }, get short() { return i18n.t('settings:nav.sections.integrations.short') }, icon: 'plug', group: 'produit' },
-  // Placée juste après Intégrations : les deux parlent d'agenda, et les
-  // disponibilités n'ont de sens complet qu'une fois Google/Outlook connecté
-  // (le free/busy externe s'y ajoute pour éviter les doubles réservations).
-  { id: 'availability', get label() { return i18n.t('settings:nav.sections.availability.label') }, get short() { return i18n.t('settings:nav.sections.availability.short') }, icon: 'clock', group: 'produit' },
   { id: 'preferences', get label() { return i18n.t('settings:nav.sections.preferences.label') }, get short() { return i18n.t('settings:nav.sections.preferences.short') }, icon: 'sliders', group: 'produit' },
   { id: 'billing', get label() { return i18n.t('settings:nav.sections.billing.label') }, get short() { return i18n.t('settings:nav.sections.billing.short') }, icon: 'card', group: 'compte' },
   { id: 'security', get label() { return i18n.t('settings:nav.sections.security.label') }, get short() { return i18n.t('settings:nav.sections.security.short') }, icon: 'lock', group: 'compte' },

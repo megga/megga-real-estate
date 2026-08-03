@@ -1,9 +1,15 @@
-// Couverture super-admin (17 pages).
+// Couverture super-admin (18 pages).
 // La console vit DANS le CRM depuis juillet 2026 : les routes sont sous
 // `/dashboard/admin/*` et la suite lance le serveur du CRM avec
 // VITE_DEV_BYPASS_ROLE=super_admin (cf playwright.admin.config.ts). Sans ce
 // rôle, `AdminConsoleRoute` redirige vers /dashboard et la suite testerait
-// 17 fois la même page sans rien affirmer.
+// 18 fois la même page sans rien affirmer.
+//
+// ⚠ Cette liste est ÉCRITE À LA MAIN et rien ici ne la dérive du routeur : un
+// navigateur ne connaît pas les routes qu'on ne lui demande pas. C'est pour
+// cela que `tests/unit/admin-routes-coverage.spec.ts` la confronte
+// statiquement à `AdminConsoleRoutes.tsx` — sans ce garde-fou, `kyb-review` est
+// restée hors couverture depuis sa remontée dans le CRM.
 
 import { test, expect } from '@playwright/test'
 import { collectConsoleErrors } from '../e2e/helpers/console'
@@ -26,6 +32,7 @@ const ADMIN_ROUTES: RouteSpec[] = [
   { path: `${BASE}/monitoring`, label: 'Admin > Monitoring' },
   { path: `${BASE}/moderation`, label: 'Admin > Modération' },
   { path: `${BASE}/compliance`, label: 'Admin > Compliance' },
+  { path: `${BASE}/kyb-review`, label: 'Admin > Revue KYB' },
   { path: `${BASE}/changelog`, label: 'Admin > Communication' },
   { path: `${BASE}/feature-flags`, label: 'Admin > Feature flags' },
   { path: `${BASE}/plans`, label: 'Admin > Plans / billing' },

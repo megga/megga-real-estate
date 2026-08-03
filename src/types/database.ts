@@ -775,8 +775,14 @@ export type Database = {
           date_of_birth: string | null
           first_name: string
           id: string
+          id_document_expires_on: string | null
           id_document_number: string | null
+          id_document_read: Json | null
           id_document_type: string | null
+          identity_verification_error_code: string | null
+          identity_verification_session_id: string | null
+          identity_verification_status: string | null
+          identity_verified_at: string | null
           last_name: string
           nationality: string | null
           profile_id: string | null
@@ -788,8 +794,14 @@ export type Database = {
           date_of_birth?: string | null
           first_name: string
           id?: string
+          id_document_expires_on?: string | null
           id_document_number?: string | null
+          id_document_read?: Json | null
           id_document_type?: string | null
+          identity_verification_error_code?: string | null
+          identity_verification_session_id?: string | null
+          identity_verification_status?: string | null
+          identity_verified_at?: string | null
           last_name: string
           nationality?: string | null
           profile_id?: string | null
@@ -801,8 +813,14 @@ export type Database = {
           date_of_birth?: string | null
           first_name?: string
           id?: string
+          id_document_expires_on?: string | null
           id_document_number?: string | null
+          id_document_read?: Json | null
           id_document_type?: string | null
+          identity_verification_error_code?: string | null
+          identity_verification_session_id?: string | null
+          identity_verification_status?: string | null
+          identity_verified_at?: string | null
           last_name?: string
           nationality?: string | null
           profile_id?: string | null

@@ -13,16 +13,106 @@
  * Les deux modules n'ont jamais été liés.
  */
 import i18nIdentity from '@/i18n' // labels d'étapes i18n (getters SG_IDENTITY_STEPS)
+import type { MxAddressLabels, MxCompanyLabels, MxDatePickerLabels, MxFrenchCompanyLabels } from '@/components/megga-x'
 
 // ─── Étapes du wizard ───────────────────────────────────────────────────
-// Cinq étapes fixées par le plan (§ Parcours cible de la spec de conception) :
-// signataire → agence → bénéficiaires effectifs → pièce d'identité → récapitulatif.
+// QUATRE étapes : signataire → agence → pièce d'identité → récapitulatif.
 // label en getter (i18n singleton) : traduit + réactif au changement de langue,
 // même motif que SG_STEPS dans crm-sugar-wizard/tokens.ts.
+//
+// L'étape « bénéficiaires effectifs » a été RETIRÉE du parcours le 3 août 2026
+// (décision client). Elle occupait l'index 2 et était la seule étape
+// CONDITIONNELLE du wizard — sautée pour une raison individuelle — ce qui
+// justifiait à elle seule toute la machinerie de saut (shouldSkipBeneficiairesStep,
+// visibleIdentitySteps, nextIdentityStep, prevIdentityStep). Cette machinerie part
+// avec elle : sans étape conditionnelle, avancer et reculer redeviennent un simple
+// clampIdentityStep(step ± 1).
+//
+// ⚠ PORTÉE DU RETRAIT : le WIZARD seulement. Le rôle `ubo` reste dans le schéma
+// (agency_person_roles.role, CHECK inchangé), la console admin continue d'afficher
+// les bénéficiaires d'un dossier, et le backend n'a pas bougé — le parcours peut
+// donc être rétabli sans migration. Mesuré au moment du retrait : 0 ligne portant
+// le rôle `ubo` en production, donc aucune donnée orpheline.
 export const SG_IDENTITY_STEPS = [
   { id: 'signataire', get label() { return i18nIdentity.t('onboarding:wizard.steps.signataire') } },
   { id: 'agence', get label() { return i18nIdentity.t('onboarding:wizard.steps.agence') } },
-  { id: 'beneficiaires', get label() { return i18nIdentity.t('onboarding:wizard.steps.beneficiaires') } },
   { id: 'pieceIdentite', get label() { return i18nIdentity.t('onboarding:wizard.steps.pieceIdentite') } },
   { id: 'recapitulatif', get label() { return i18nIdentity.t('onboarding:wizard.steps.recapitulatif') } },
 ] as const
+
+// ─── Champ date ─────────────────────────────────────────────────────────
+/**
+ * Libellés du calendrier (MxDatePicker), partagés par les deux étapes qui
+ * demandent une date de naissance — le signataire et chaque bénéficiaire
+ * effectif. Ici plutôt qu'en double dans les deux fichiers : sept clés
+ * recopiées à deux endroits, ce sont sept occasions de dériver au premier
+ * renommage.
+ *
+ * `MxDatePicker` ne lit aucune traduction lui-même (dossier megga-x = catalogue
+ * d'atomes, cf. son en-tête) : c'est l'appelant qui les lui passe, comme
+ * `closeLabel` de MxModal. Getters et non valeurs figées, même motif que
+ * SG_IDENTITY_STEPS : la coquille se re-rend à chaque bascule de langue et doit
+ * relire, pas resservir ce qui a été capturé au chargement du module.
+ */
+export const SG_IDENTITY_DATE_LABELS: MxDatePickerLabels = {
+  get open() { return i18nIdentity.t('onboarding:wizard.date.open') },
+  get placeholder() { return i18nIdentity.t('onboarding:wizard.date.placeholder') },
+  get previousMonth() { return i18nIdentity.t('onboarding:wizard.date.previousMonth') },
+  get nextMonth() { return i18nIdentity.t('onboarding:wizard.date.nextMonth') },
+  get month() { return i18nIdentity.t('onboarding:wizard.date.month') },
+  get year() { return i18nIdentity.t('onboarding:wizard.date.year') },
+  get clear() { return i18nIdentity.t('onboarding:wizard.date.clear') },
+}
+
+/**
+ * Libellés du champ d'adresse assistée (MxAddressAutocomplete), étape 2. Mêmes
+ * raisons d'être ici que SG_IDENTITY_DATE_LABELS ci-dessus : le dossier megga-x
+ * ne lit aucune traduction, et les getters relisent à chaque bascule de langue.
+ */
+export const SG_IDENTITY_ADDRESS_LABELS: MxAddressLabels = {
+  get placeholder() { return i18nIdentity.t('onboarding:wizard.agence.address.placeholder') },
+  get noResults() { return i18nIdentity.t('onboarding:wizard.agence.address.noResults') },
+  get error() { return i18nIdentity.t('onboarding:wizard.agence.address.error') },
+  get listLabel() { return i18nIdentity.t('onboarding:wizard.agence.address.listLabel') },
+}
+
+/**
+ * Libellés de la recherche au registre du commerce (MxCompanySearch), étape 2.
+ * Mêmes raisons d'être ici que les deux jeux ci-dessus.
+ */
+export const SG_IDENTITY_COMPANY_LABELS: MxCompanyLabels = {
+  get search() { return i18nIdentity.t('onboarding:wizard.agence.company.search') },
+  get searching() { return i18nIdentity.t('onboarding:wizard.agence.company.searching') },
+  get noResults() { return i18nIdentity.t('onboarding:wizard.agence.company.noResults') },
+  get error() { return i18nIdentity.t('onboarding:wizard.agence.company.error') },
+  get listLabel() { return i18nIdentity.t('onboarding:wizard.agence.company.listLabel') },
+}
+
+/**
+ * Libellés de la recherche au registre FRANÇAIS (MxFrenchCompanyField).
+ *
+ * Les trois libellés communs sont ceux du suisse — « au registre du commerce »
+ * vaut des deux côtés, et les dupliquer par pays ferait deux jeux à faire
+ * dériver. Seul `inactive` est propre à la France : c'est la seule des deux
+ * sources à rendre le statut actif/radié.
+ */
+export const SG_IDENTITY_FR_COMPANY_LABELS: MxFrenchCompanyLabels = {
+  get noResults() { return i18nIdentity.t('onboarding:wizard.agence.company.noResults') },
+  get error() { return i18nIdentity.t('onboarding:wizard.agence.company.error') },
+  get listLabel() { return i18nIdentity.t('onboarding:wizard.agence.company.listLabel') },
+  get inactive() { return i18nIdentity.t('onboarding:wizard.agence.company.inactive') },
+}
+
+/**
+ * Borne haute des dates de naissance : aujourd'hui. Calculée à l'appel et non
+ * figée dans une constante de module — un onglet resté ouvert une nuit
+ * proposerait sinon une borne périmée.
+ *
+ * Composantes LOCALES, jamais `toISOString()` : ce dernier convertit en UTC et
+ * rend la VEILLE dès qu'on est à l'est de Greenwich, ce qui interdirait la date
+ * du jour à un agent suisse chaque soir après minuit UTC.
+ */
+export function identityMaxBirthDate(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}

@@ -812,10 +812,6 @@
       "preferences": {
         "label": "Preferenze",
         "short": "Preferenze"
-      },
-      "availability": {
-        "label": "Disponibilità",
-        "short": "Disponibilità"
       }
     },
     "groups": {
@@ -1114,57 +1110,6 @@
       "agencyNotLoaded": "Agenzia non caricata, accedi di nuovo per salvare.",
       "logoUploadError": "Impossibile caricare il logo.",
       "directoryMissing": "La tua scheda di rubrica non è ancora creata, contatta il tuo amministratore per compilarla."
-    },
-    "availability": {
-      "banner": "Gli orari che i suoi clienti possono prenotare da soli.",
-      "loading": "Caricamento delle disponibilità…",
-      "open_label": "Prenotazione online",
-      "open_on": "Aperta, {{days}} giorno/i configurato/i",
-      "open_off": "Chiusa. I suoi clienti non possono prenotare da soli.",
-      "week_group": "Settimana tipo",
-      "closed": "Chiuso",
-      "add_range": "Aggiungere una fascia",
-      "remove_range": "Rimuovere questa fascia",
-      "days": {
-        "1": "Lunedì",
-        "2": "Martedì",
-        "3": "Mercoledì",
-        "4": "Giovedì",
-        "5": "Venerdì",
-        "6": "Sabato",
-        "7": "Domenica"
-      },
-      "slot_group": "Formato degli appuntamenti",
-      "slot_minutes": "Durata di un appuntamento",
-      "slot_minutes_hint": "Tempo effettivamente bloccato nella sua agenda.",
-      "buffer_minutes": "Intervallo tra due appuntamenti",
-      "buffer_minutes_hint": "Tempo di spostamento o di registrazione. Separa questo appuntamento dal precedente E dal successivo.",
-      "min_notice": "Preavviso minimo",
-      "min_notice_hint": "Al di sotto, niente più prenotazione né annullamento online.",
-      "max_advance": "Orizzonte di prenotazione",
-      "max_advance_hint": "Oltre, nessun orario viene proposto.",
-      "mode": "Tipo di appuntamento",
-      "mode_sur_place": "Di persona",
-      "mode_video": "Videoconferenza",
-      "location": "Luogo",
-      "location_hint": "Mostrato al cliente e ripreso nell'evento di agenda.",
-      "location_placeholder": "Rue du Rhône 12, Ginevra",
-      "minutes": "{{n}} min",
-      "hours": "{{n}} h",
-      "days_n": "{{n}} g",
-      "none": "Nessuno",
-      "timeoff_group": "Assenze",
-      "timeoff_empty": "Nessuna assenza in programma.",
-      "timeoff_from": "Dal",
-      "timeoff_to": "Al",
-      "timeoff_reason": "Motivo (facoltativo)",
-      "timeoff_reason_placeholder": "Ferie",
-      "timeoff_add": "Aggiungere",
-      "timeoff_remove": "Rimuovere questa assenza",
-      "timeoff_bad_range": "La data di fine deve essere successiva a quella di inizio.",
-      "unsaved": "Modifiche non salvate",
-      "save": "Salvare",
-      "saving": "Salvataggio…"
     }
   }
 }
