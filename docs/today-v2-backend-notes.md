@@ -273,6 +273,11 @@ une session interrompue est perdue : les seules traces sont `ai-copilot`,
    Les chaînes d'interface portées utilisent donc « · » ou une virgule. Les textes
    de **données** (`dataH.ts`) gardent le tiret du pack : ils ne sont pas dans les
    locales.
-4. **Mobile.** `resp-today-mobile.jsx` du pack traduit le concept H sur téléphone
-   en lisant `window.HL_H`. Le mobile de ce dépôt (`crm-mobile/today/`) reflète
-   encore l'**ancien** cockpit. C'est un écran à part entière, pas un réglage.
+4. ~~Mobile.~~ **Fait.** `MobileTodayHScreen` porte la maquette mobile du pack et
+   lit les mêmes hooks que le desktop — il hérite des lots 0 et 1 sans logique
+   dupliquée. Seule différence assumée : il expose le bouton « fait », que la
+   maquette mobile porte et que la maquette desktop n'a pas. Il ne crée aucun
+   chemin d'écriture : `markBlockDone` route vers ceux du Calendrier et refuse
+   les rendez-vous de vérification.
+   ⚠ L'ancien cockpit mobile reste au dépôt : `/dev/mobile` le consomme, et sa
+   galerie a besoin du mode `demo` que le nouvel écran n'a pas — par choix.
