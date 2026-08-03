@@ -7,9 +7,6 @@ import type { ReactNode } from 'react'
 export const AI_GLYPH_PATH =
   'M12 2c.4 3.6 1.4 6 3.4 7.6 1.6 1.3 3.6 1.9 6.6 2.4-3 .5-5 1.1-6.6 2.4C13.4 16 12.4 18.4 12 22c-.4-3.6-1.4-6-3.4-7.6C7 13.1 5 12.5 2 12c3-.5 5-1.1 6.6-2.4C10.6 8 11.6 5.6 12 2Z'
 // Étoile des bandeaux proactifs (glyphe plein blanc sur pastille bleue)
-export const AI_SPARK_PATH =
-  'm12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z'
-
 const ICON_PATHS: Record<string, ReactNode> = {
   sparkle: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />,
   close: <><path d="M6 6l12 12" /><path d="M18 6L6 18" /></>,

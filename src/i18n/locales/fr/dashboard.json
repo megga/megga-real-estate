@@ -223,28 +223,6 @@
       "tempWarm": "tièdes",
       "tempCold": "froids"
     },
-    "pipeline": {
-      "error": {
-        "title": "Données indisponibles"
-      },
-      "stages": {
-        "searching": "Recherche active",
-        "visit": "Visite planifiée",
-        "offer": "Offre déposée",
-        "compromis": "Compromis"
-      },
-      "dealFallback": "Affaire",
-      "riskStalled": "Affaire au point mort",
-      "riskOverdue": "Échéance dépassée"
-    },
-    "objectif": {
-      "error": {
-        "title": "Données indisponibles"
-      },
-      "realized": "réalisé",
-      "realizedNoTarget": "réalisé · objectif non défini",
-      "target": "cible"
-    },
     "pager": {
       "today": "Aujourd'hui",
       "catalogue": "Catalogue",
@@ -426,11 +404,6 @@
         "explainer": "Les leads reportés reviendront demain ; les écartés sont sortis de la boucle.",
         "backToDashboard": "Retour au dashboard"
       }
-    },
-    "brief": {
-      "eyebrow": "MEGGA AI · Briefing du jour",
-      "deepen": "Approfondir",
-      "deepenQuestion": "Détaille mes priorités du jour et propose la prochaine action pour chacune."
     },
     "h": {
       "greeting": "Bonjour {{name}}",

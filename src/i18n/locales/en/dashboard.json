@@ -223,28 +223,6 @@
       "tempWarm": "warm",
       "tempCold": "cold"
     },
-    "pipeline": {
-      "error": {
-        "title": "Data unavailable"
-      },
-      "stages": {
-        "searching": "Active search",
-        "visit": "Viewing scheduled",
-        "offer": "Offer submitted",
-        "compromis": "Sale agreement"
-      },
-      "dealFallback": "Deal",
-      "riskStalled": "Deal stalled",
-      "riskOverdue": "Deadline overdue"
-    },
-    "objectif": {
-      "error": {
-        "title": "Data unavailable"
-      },
-      "realized": "achieved",
-      "realizedNoTarget": "achieved · no target set",
-      "target": "target"
-    },
     "pager": {
       "today": "Today",
       "catalogue": "Catalog",
@@ -426,11 +404,6 @@
         "explainer": "Postponed leads will come back tomorrow; discarded ones are out of the loop.",
         "backToDashboard": "Back to dashboard"
       }
-    },
-    "brief": {
-      "eyebrow": "MEGGA AI · Daily briefing",
-      "deepen": "Go deeper",
-      "deepenQuestion": "Detail my priorities for today and suggest the next action for each."
     },
     "h": {
       "greeting": "Hello {{name}}",

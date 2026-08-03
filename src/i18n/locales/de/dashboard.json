@@ -223,28 +223,6 @@
       "tempWarm": "lauwarm",
       "tempCold": "kalt"
     },
-    "pipeline": {
-      "stages": {
-        "searching": "Aktive Suche",
-        "visit": "Besichtigung geplant",
-        "offer": "Angebot eingereicht",
-        "compromis": "Vorvertrag"
-      },
-      "dealFallback": "Deal",
-      "riskStalled": "Deal steht still",
-      "riskOverdue": "Frist überschritten",
-      "error": {
-        "title": "Daten nicht verfügbar"
-      }
-    },
-    "objectif": {
-      "realized": "erreicht",
-      "realizedNoTarget": "erreicht · Ziel nicht festgelegt",
-      "target": "Ziel",
-      "error": {
-        "title": "Daten nicht verfügbar"
-      }
-    },
     "pager": {
       "today": "Heute",
       "catalogue": "Katalog",
@@ -426,11 +404,6 @@
         "explainer": "Verschobene Leads kommen morgen zurück; verworfene Leads sind aus der Schleife.",
         "backToDashboard": "Zurück zum Dashboard"
       }
-    },
-    "brief": {
-      "eyebrow": "MEGGA AI · Tagesbriefing",
-      "deepen": "Vertiefen",
-      "deepenQuestion": "Erläutere meine heutigen Prioritäten im Detail und schlage für jede die nächste Aktion vor."
     },
     "h": {
       "greeting": "Hallo {{name}}",
