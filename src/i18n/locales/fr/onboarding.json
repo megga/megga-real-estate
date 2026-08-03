@@ -105,6 +105,7 @@
       "verification": {
         "title": "Vérifiez votre identité",
         "body": "Photographiez votre pièce et votre visage. La vérification se fait chez notre prestataire : la photo de votre pièce ne nous est jamais transmise.",
+        "accepted": "La vérification en ligne accepte le passeport et la carte d'identité. Pour un titre de séjour, déposez votre pièce ci-dessous.",
         "cta": "Vérifier mon identité",
         "retryCta": "Reprendre la vérification",
         "pendingTitle": "Vérification en cours",

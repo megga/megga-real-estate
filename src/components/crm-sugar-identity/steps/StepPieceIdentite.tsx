@@ -40,7 +40,8 @@ import { useTranslation } from 'react-i18next'
 import { MxButton, MxField, MxModal, MxRadio, MxStateMessage } from '@/components/megga-x'
 import { cn } from '@/lib/utils'
 import {
-  IDENTITY_DOCUMENT_TYPES, identityDocumentSidesFor,
+  IDENTITY_DOCUMENT_TYPES, identityDocumentSidesFor, knownVerificationError,
+  verificationNeedsManualFallback,
   type IdentityDocumentPreview, type IdentityDocumentSide, type IdentityDocumentType,
   type IdentityVerificationStatus,
 } from '@/hooks/useAgencyIdentity'
@@ -214,6 +215,29 @@ export function StepPieceIdentite({
         />
       ) : (
         <>
+          {/* Pourquoi l'écran a changé de forme. Sur un refus DÉFINITIF, IdentityShell
+              force `manualFallback` (verificationNeedsManualFallback) : le dirigeant
+              revient de chez le prestataire et trouve un dépôt de fichier à la place du
+              bouton qu'il venait d'actionner. Sans cette phrase il n'apprend jamais ce
+              qui a été refusé — et ce sont précisément les cas qu'il ne peut pas
+              corriger seul (pays non couvert, âge) qui atterrissent ici.
+              Le catalogue est le MÊME que celui de la carte, et ses trois messages
+              définitifs renvoient déjà « déposez votre pièce ci-dessous » : ils étaient
+              écrits pour cet endroit, ils n'y étaient simplement pas rendus. */}
+          {verificationNeedsManualFallback(verificationErrorCode) && (
+            // Paragraphe neutre, PAS MxStateMessage : le composant ne connaît que
+            // `error` et `success`, et la règle de l'écran (cf. la branche `disabled`
+            // plus haut) est qu'une information n'emprunte jamais le pavé rouge de la
+            // vitrine. Rien n'a échoué du fait du dirigeant ; on lui dit ce qui s'est
+            // passé et où continuer. Même forme que le motif rendu dans la carte, pour
+            // qu'il lise la MÊME phrase dans la MÊME peau des deux côtés de la bascule.
+            <div className="mg-top-medium">
+              <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
+                {t(`wizard.pieceIdentite.verification.errors.${knownVerificationError(verificationErrorCode)}`)}
+              </p>
+            </div>
+          )}
+
           {/* La nature AVANT les cases, et les cases seulement après : c'est elle qui
               décide combien de faces sont demandées. L'ordre inverse aurait fait
               déposer un verso à un porteur de passeport avant de lui apprendre qu'il
@@ -319,6 +343,23 @@ function IdentityVerificationCard({
             </p>
           </div>
 
+          {/* Quels documents ce chemin-ci accepte — AVANT le clic, pas après.
+              Le sous-titre de l'étape annonce « passeport, carte d'identité ou titre
+              de séjour », ce qui est vrai du dépôt manuel mais faux de la vérification
+              en ligne : `allowed_types` ne connaît que `passport` et `id_card`, aucun
+              titre de séjour n'existe chez le prestataire (cf. l'en-tête de
+              _shared/kyb-identity-stripe.ts). Sans cette ligne, un dirigeant au livret
+              B/C lit qu'il peut, clique, et se cogne à l'autre bout — à Genève ce n'est
+              pas un cas marginal. La phrase ne retire rien au sous-titre : elle dit
+              quelle porte prend quoi, et renvoie l'autre vers le dépôt. */}
+          {!done && !pending && (
+            <div className="mg-top-4x-extra-small">
+              <p className="paragraph-small text-color-neutral-600">
+                {t('wizard.pieceIdentite.verification.accepted')}
+              </p>
+            </div>
+          )}
+
           {/* Le motif du refus, dans la langue de l'agent. Le code brut de Stripe
               (`selfie_document_missing_photo`) n'a aucun sens pour un dirigeant : tout
               code hors du catalogue traduit retombe sur une phrase générique. */}
@@ -360,17 +401,6 @@ function IdentityVerificationCard({
   )
 }
 
-/** Les codes de refus pour lesquels il existe une phrase traduite — tout le reste retombe sur `unknown`. */
-const KNOWN_VERIFICATION_ERRORS = [
-  'consent_declined', 'under_supported_age', 'country_not_supported',
-  'document_expired', 'document_type_not_supported', 'document_unverified_other',
-  'selfie_face_mismatch', 'selfie_manipulated', 'selfie_document_missing_photo',
-  'selfie_unverified_other', 'abandoned',
-]
-
-function knownVerificationError(code: string | null): string {
-  return code && KNOWN_VERIFICATION_ERRORS.includes(code) ? code : 'unknown'
-}
 
 /**
  * Une des trois natures de pièce, en carte.

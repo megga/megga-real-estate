@@ -105,6 +105,7 @@
       "verification": {
         "title": "Bestätigen Sie Ihre Identität",
         "body": "Fotografieren Sie Ihren Ausweis und Ihr Gesicht. Die Prüfung läuft bei unserem Dienstleister: das Foto Ihres Ausweises wird uns nie übermittelt.",
+        "accepted": "Die Online-Prüfung akzeptiert Reisepass und Identitätskarte. Für einen Aufenthaltstitel laden Sie Ihr Dokument unten hoch.",
         "cta": "Identität bestätigen",
         "retryCta": "Prüfung fortsetzen",
         "pendingTitle": "Prüfung läuft",
