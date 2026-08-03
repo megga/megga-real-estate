@@ -167,13 +167,18 @@ describe('knownErrorCode / requiresManualFallback', () => {
     expect(knownErrorCode('')).toBe('unknown')
   })
 
-  it('refus DÉFINITIFS -> repli manuel : réessayer ne changerait rien, insister enfermerait l\'utilisateur dans une boucle', () => {
-    expect(requiresManualFallback('consent_declined')).toBe(true)
+  it('refus SANS RECOURS -> repli manuel : réessayer ne changerait rien, insister enfermerait l\'utilisateur dans une boucle', () => {
     expect(requiresManualFallback('country_not_supported')).toBe(true)
     expect(requiresManualFallback('under_supported_age')).toBe(true)
   })
 
   it('refus REPRENABLES -> pas de repli : une photo floue ou un selfie raté se refont', () => {
+    // `consent_declined` est ici depuis le 04.08.2026, et c'est le point du correctif :
+    // Stripe ne déclare aucun code TERMINAL (seul `canceled` l'est, et il vient de
+    // l'intégrateur). Refuser le consentement est un geste rejouable — le classer
+    // définitif retirait le bouton « Réessayer » à quelqu'un dont c'était justement le
+    // geste à refaire.
+    expect(requiresManualFallback('consent_declined')).toBe(false)
     expect(requiresManualFallback('document_unverified_other')).toBe(false)
     expect(requiresManualFallback('selfie_face_mismatch')).toBe(false)
     expect(requiresManualFallback('abandoned')).toBe(false)

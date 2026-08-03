@@ -43,7 +43,7 @@ import {
   IDENTITY_DOCUMENT_TYPES, identityDocumentSidesFor, knownVerificationError,
   verificationNeedsManualFallback,
   type IdentityDocumentPreview, type IdentityDocumentSide, type IdentityDocumentType,
-  type IdentityVerificationStatus,
+  type IdentityVerificationStatus, type VerificationStartFailure,
 } from '@/hooks/useAgencyIdentity'
 import type { KybIdReadRecord } from '@/types/kybIdRead'
 
@@ -56,8 +56,17 @@ interface StepPieceIdentiteProps {
   startingVerification: boolean
   /** true quand l'écran doit montrer le dépôt manuel à la place de la vérification. */
   manualFallback: boolean
+  /**
+   * Renseigné quand c'est un ÉCHEC d'ouverture, et non le choix du dirigeant, qui a
+   * produit la bascule vers le dépôt : l'écran le DIT, au lieu de changer de forme sans
+   * explication (défaut constaté le 04.08.2026, cf. l'en-tête de handleStartVerification).
+   */
+  startFailure: VerificationStartFailure | null
+  /** false sur un refus définitif : y revenir ne rendrait que le même refus. */
+  canReturnToVerification: boolean
   onStartVerification: () => void
   onUseManualFallback: () => void
+  onReturnToVerification: () => void
   /** Nature déclarée, null tant qu'elle n'a pas été choisie — les cases n'apparaissent qu'après. */
   documentType: IdentityDocumentType | null
   recto: IdentityDocumentPreview | null
@@ -162,7 +171,8 @@ const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,application/pdf'
 /** Étape 3 du wizard identité : recto/verso de la pièce d'identité du signataire. */
 export function StepPieceIdentite({
   verificationStatus, verificationErrorCode, startingVerification, manualFallback,
-  onStartVerification, onUseManualFallback,
+  startFailure, canReturnToVerification,
+  onStartVerification, onUseManualFallback, onReturnToVerification,
   documentType, recto, verso, isLoading, uploadingSide, savingDocumentType,
   identityRead, identityReading, error, loadError, disabled, onSelectType, onSelectFile,
 }: StepPieceIdentiteProps) {
@@ -224,6 +234,32 @@ export function StepPieceIdentite({
               Le catalogue est le MÊME que celui de la carte, et ses trois messages
               définitifs renvoient déjà « déposez votre pièce ci-dessous » : ils étaient
               écrits pour cet endroit, ils n'y étaient simplement pas rendus. */}
+          {/* Pourquoi le dépôt a remplacé le bouton, quand c'est un ÉCHEC qui l'a
+              décidé. Deux phrases distinctes, parce que les deux situations n'appellent
+              pas la même suite : le prestataire a dit non (rien à réessayer maintenant),
+              ou la requête n'est jamais partie (réessayer a du sens). Sans elles,
+              l'écran changeait de forme sans un mot et la vérification passait pour
+              inexistante. */}
+          {startFailure && (
+            <div className="mg-top-medium">
+              <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
+                {t(`wizard.pieceIdentite.verification.startFailed.${startFailure}`)}
+              </p>
+            </div>
+          )}
+
+          {/* Le retour vers la carte — ce qui manquait le plus : `manualFallback` est
+              un useState sans marche arrière, et seul un rechargement de page ramenait
+              la vérification. Masqué sur un refus définitif (canReturnToVerification),
+              où la carte ne rendrait que le même refus. */}
+          {canReturnToVerification && (
+            <div className="mg-top-3x-extra-small">
+              <button type="button" className="link-single display-1 medium" onClick={onReturnToVerification}>
+                {t('wizard.pieceIdentite.verification.backToVerification')}
+              </button>
+            </div>
+          )}
+
           {verificationNeedsManualFallback(verificationErrorCode) && (
             // Paragraphe neutre, PAS MxStateMessage : le composant ne connaît que
             // `error` et `success`, et la règle de l'écran (cf. la branche `disabled`

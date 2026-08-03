@@ -72,6 +72,7 @@ import {
   useAgencyIdentity, useIdentityDocuments, validateIdentityDocumentFile, identityDocumentSidesFor,
   isIdentityVerificationSufficient, verificationNeedsManualFallback,
   type IdentityDocumentSide, type IdentityDocumentType, type IdentityVerificationStatus,
+  type VerificationStartFailure,
 } from '@/hooks/useAgencyIdentity'
 import { ONBOARDING_CALL_ROUTE } from '@/hooks/useOnboardingCall'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
@@ -927,6 +928,13 @@ export default function IdentityShell() {
    * `ou` au moment du rendu plutôt que recopié ici, pour ne pas avoir deux vérités.
    */
   const [manualFallback, setManualFallback] = useState(false)
+  /**
+   * Pourquoi la vérification n'a pas pu s'ouvrir, quand c'est un ÉCHEC qui a produit la
+   * bascule et non le choix du dirigeant. `null` sur un passage volontaire au dépôt :
+   * il n'y a alors rien à expliquer. Effacé au retour vers la carte, sinon la phrase
+   * survivrait à la situation qu'elle décrit.
+   */
+  const [startFailure, setStartFailure] = useState<VerificationStartFailure | null>(null)
   const [identityRead, setIdentityRead] = useState<KybIdReadRecord | null>(null)
   const [identityReading, setIdentityReading] = useState(false)
 
@@ -954,19 +962,28 @@ export default function IdentityShell() {
    * domaine Stripe, pas une route de l'app. Le retour se fait par `return_url`, et le
    * VERDICT par webhook — l'utilisateur peut abandonner en route sans rien casser.
    *
-   * Une indisponibilité (clé absente, compte non activé, refus de création) n'affiche
-   * pas d'erreur : elle bascule sur le dépôt manuel, qui existe précisément pour les
-   * cas que le prestataire ne sait pas traiter. Un bouton mort serait pire qu'un
-   * chemin plus long.
+   * Un échec ne rend pas d'erreur rouge : il bascule sur le dépôt manuel, qui existe
+   * précisément pour les cas que le prestataire ne sait pas traiter. Un bouton mort
+   * serait pire qu'un chemin plus long.
+   *
+   * ⚠ Mais la bascule ne se fait plus en SILENCE. Sans un mot, l'écran remplace le
+   * bouton qu'on vient d'actionner par un formulaire de fichier, et le dirigeant en
+   * conclut que la vérification n'existe pas — constaté le 04.08.2026, sur un échec
+   * réseau qui n'avait rien à voir avec le produit. La cause est donc mémorisée
+   * (`startFailure`), dite à l'écran, et le retour vers la carte reste ouvert.
    */
   const handleStartVerification = async (): Promise<void> => {
     if (!signatoryId) return
     setStartingVerification(true)
     try {
-      const url = await startIdentityVerification(signatoryId)
-      if (url) { window.location.href = url; return }
+      const started = await startIdentityVerification(signatoryId)
+      if (started.url) { window.location.href = started.url; return }
+      setStartFailure(started.failure)
       setManualFallback(true)
     } catch {
+      // Rejet imprévu (hors du contrat du hook) : même traitement que la requête qui
+      // n'est jamais partie, c'est ce que l'utilisateur constate de toute façon.
+      setStartFailure('unexpected')
       setManualFallback(true)
     } finally {
       setStartingVerification(false)
@@ -1358,8 +1375,15 @@ export default function IdentityShell() {
             // Stripe donnerait le même refus, et l'étape deviendrait un cul-de-sac.
             manualFallback={manualFallback
               || verificationNeedsManualFallback(existingSignatory?.verificationErrorCode ?? null)}
+            startFailure={startFailure}
+            // Le retour n'est offert que si le repli vient d'un choix ou d'un échec —
+            // JAMAIS d'un refus définitif, où la carte ne rendrait que le même refus.
+            canReturnToVerification={
+              !verificationNeedsManualFallback(existingSignatory?.verificationErrorCode ?? null)
+            }
             onStartVerification={() => { void handleStartVerification() }}
             onUseManualFallback={() => setManualFallback(true)}
+            onReturnToVerification={() => { setManualFallback(false); setStartFailure(null) }}
             documentType={pieceIdentiteDraft.documentType}
             recto={identityDocuments?.recto ?? null}
             verso={identityDocuments?.verso ?? null}

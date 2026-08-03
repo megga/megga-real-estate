@@ -99,8 +99,8 @@
       }
     },
     "pieceIdentite": {
-      "title": "Carichi il documento d'identità del firmatario",
-      "subtitle": "Un documento in corso di validità: passaporto, carta d'identità o permesso di soggiorno. Ne indichi il tipo, poi fotografi le facciate richieste. Lo esamina un membro del nostro team di conformità.",
+      "title": "Verifichi l'identità del firmatario",
+      "subtitle": "La verifica online accetta il passaporto e la carta d'identità: fotografa il suo documento e il suo viso presso il nostro fornitore. Il caricamento del documento resta possibile e accetta anche il permesso di soggiorno. Un membro del nostro team di conformità esamina il dossier.",
       "missingSignataire": "Il firmatario deve prima essere indicato nel passaggio precedente.",
       "verification": {
         "title": "Verifichi la sua identità",
@@ -115,7 +115,7 @@
         "useManual": "Caricare invece il documento",
         "privacy": "Il nostro fornitore conserva il documento per il controllo; MEGGA riceve solo l'esito e la data di scadenza.",
         "errors": {
-          "consent_declined": "Ha rifiutato la verifica. Carichi il documento qui sotto, il nostro team lo esaminerà.",
+          "consent_declined": "Ha rifiutato la verifica. Può riprenderla, oppure caricare il suo documento.",
           "under_supported_age": "La verifica online non copre le persone sotto i 16 anni.",
           "country_not_supported": "Il suo Paese non è coperto dalla verifica online. Carichi il documento qui sotto.",
           "document_expired": "Il documento presentato è scaduto. Riprovi con un documento in corso di validità.",
@@ -127,7 +127,12 @@
           "selfie_unverified_other": "Non è stato possibile verificare il volto. Ripeta la verifica.",
           "abandoned": "La verifica è stata interrotta. Può riprenderla.",
           "unknown": "La verifica non è andata a buon fine. Può riprovare o caricare il documento qui sotto."
-        }
+        },
+        "startFailed": {
+          "unavailable": "La verifica online è momentaneamente non disponibile. Carichi il suo documento qui sotto, il nostro team lo esaminerà.",
+          "unexpected": "Non è stato possibile aprire la verifica online. Carichi il suo documento qui sotto, oppure riprovi la verifica."
+        },
+        "backToVerification": "Torna alla verifica online"
       },
       "documentType": {
         "label": "Tipo di documento",
