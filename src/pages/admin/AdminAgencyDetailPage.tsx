@@ -39,6 +39,12 @@
  *      (`admin-stripe-agency-billing`). Les deux gestes serveur restent
  *      déployés et testés ; 0 ligne en production dans les deux cas. Rouvrir un
  *      écran plus tard coûtera un écran, pas un backend.
+ * É9 · **L'appel d'accueil arrive de `main`, pas de la maquette.** La section
+ *      a été ajoutée à l'ancienne fiche pendant cette refonte ; elle est portée
+ *      ici plutôt qu'écrasée. Elle garde sa règle : distinguer « jamais
+ *      réservé », « à venir » et « déjà passé » — n'afficher « aucun appel »
+ *      pour les trois masquerait le seul cas qui demande une relance. Rendue en
+ *      section à filet, sans carte, pour suivre la grammaire du concept B.
  * É8 · **La confirmation de suspension ne GARANTIT pas le nombre.** L'edge
  *      épargne les comptes super-admin allowlistés : le libellé dit « jusqu'à
  *      N », pas « N ».
@@ -46,11 +52,12 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Eye } from 'lucide-react'
+import { ArrowLeft, Clock, Eye } from 'lucide-react'
 import { formatCHF, formatDate, formatRelativeDate } from '@/lib/utils'
 import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
+import { useAgencyOnboardingCalls } from '@/hooks/useAdminOnboardingCalls'
 import {
   useAdminAgencyDetail,
   type AgencyDetailMember,
@@ -325,6 +332,9 @@ export default function AdminAgencyDetailPage() {
         </div>,
       )}
 
+      {/* ── Appel d'accueil (apporté par main pendant la refonte, É9) ───────── */}
+      <AppelAccueil agencyId={agency.id} section={section} />
+
       {/* ── Abonnement ──────────────────────────────────────────────────────── */}
       {section('subscription', t('agencyDetail.section.subscription'),
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -396,4 +406,52 @@ export default function AdminAgencyDetailPage() {
       />
     </div>
   )
+}
+
+/**
+ * Appel d'accueil de l'agence.
+ *
+ * Trois états qui se ressemblent trop pour être confondus : jamais réservé,
+ * réservé et à venir, déjà passé. Un écran qui n'afficherait « aucun appel »
+ * pour les trois masquerait le seul cas qui demande une relance — c'est la
+ * règle apportée par `main`, conservée telle quelle.
+ */
+function AppelAccueil({ agencyId, section }: {
+  agencyId: string
+  section: (cle: string, titre: string, contenu: ReactNode) => ReactNode
+}) {
+  const { t } = useTranslation('admin')
+  const { sp } = useAdminSugar()
+  const { data: calls, isLoading } = useAgencyOnboardingCalls(agencyId)
+
+  const trie = [...(calls ?? [])].sort((a, b) => Date.parse(b.scheduled_at) - Date.parse(a.scheduled_at))
+  const aVenir = trie.find(c => c.status === 'confirmed' && Date.parse(c.scheduled_at) > Date.now())
+  const dernier = aVenir ?? trie[0] ?? null
+
+  return section('call', t('agencyDetail.onboardingCall.title'),
+    isLoading ? <AdminSkeleton height={40} /> : !dernier ? (
+      <div style={{ fontSize: 12.5, fontWeight: 500, color: sp.sub, padding: '2px 2px 6px' }}>
+        {t('agencyDetail.onboardingCall.none')}
+      </div>
+    ) : (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minHeight: 40 }}>
+        <AdminIc icon={Clock} size={15} color={sp.sub} />
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+          {new Intl.DateTimeFormat('fr-CH', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: false,
+          }).format(new Date(dernier.scheduled_at))}
+        </span>
+        <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>{dernier.host_name}</span>
+        <AdminPill
+          label={t(`onboardingCalls.status.${dernier.status}`)}
+          tone={dernier.status === 'confirmed' ? 'ok' : dernier.status === 'no_show' ? 'err' : 'neutral'}
+        />
+        {dernier.rescheduled_count > 0 && (
+          <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+            {t('onboardingCalls.table.rescheduled', { count: dernier.rescheduled_count })}
+          </span>
+        )}
+      </div>
+    ))
 }

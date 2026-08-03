@@ -69,7 +69,8 @@
     "adminSectionOps": "Betrieb",
     "adminSectionProduct": "Produkt & KI",
     "adminEndUsers": "Endkunden",
-    "adminKybReview": "KYB-Prüfung"
+    "adminKybReview": "KYB-Prüfung",
+    "adminOnboardingCalls": "Willkommensgesprache"
   },
   "sections": {
     "main": "Hauptmenü",

@@ -24,12 +24,21 @@
       "ariaLabel": "Steps",
       "signataire": "Signatory",
       "agence": "Agency",
-      "beneficiaires": "Beneficial owners",
       "pieceIdentite": "ID document",
       "recapitulatif": "Summary"
     },
     "header": {
-      "language": "Interface language"
+      "language": "Interface language",
+      "languageLoading": "Loading language…"
+    },
+    "date": {
+      "open": "Choose a date",
+      "placeholder": "DD.MM.YYYY",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "month": "Month",
+      "year": "Year",
+      "clear": "Clear date"
     },
     "footer": {
       "continue": "Continue",
@@ -65,52 +74,77 @@
         "countryPlaceholder": "Select a country",
         "legalFormId": "Legal form",
         "legalFormPlaceholder": "Select a legal form",
-        "legalFormPlaceholderNoCountry": "Choose the country of registration first",
+        "legalFormPlaceholderNoCountry": "Choose a country first",
         "legalName": "Registered name",
-        "legalNameHint": "The official name on your commercial register entry.",
-        "tradeName": "Trade name",
-        "tradeNameHint": "The name your clients know you by, if different from the registered name.",
         "businessRegistrationNumber": "Registration number",
-        "tva": "VAT number",
-        "tvaHint": "Optional: applies only to VAT-registered entities.",
         "address": "Address",
         "postal": "Postal code",
         "city": "City",
         "canton": "Canton",
         "cantonPlaceholder": "Select a canton"
-      }
-    },
-    "beneficiaires": {
-      "title": "Who are your agency's beneficial owners?",
-      "subtitle": "The individuals who own or control your agency.",
-      "reuseSignataire": "Reuse {{name}} (signatory)",
-      "addButton": "Add a beneficial owner",
-      "emptyHint": "No one reaches 25%? Declare whoever controls the agency another way, or otherwise a member of its senior management.",
-      "removeButton": "Remove this beneficial owner",
-      "fields": {
-        "firstName": "First name",
-        "lastName": "Last name",
-        "dateOfBirth": "Date of birth",
-        "nationality": "Nationality",
-        "nationalityPlaceholder": "Select a country",
-        "ownershipPct": "Ownership percentage",
-        "ownershipPctHint": "Reference threshold (FATF standard): 25% or more. You can enter a lower value."
       },
-      "pep": {
-        "label": "Is this person a politically exposed person (PEP)?",
-        "yes": "Yes",
-        "yesHint": "Holds or has held a prominent public function, in Switzerland or abroad, or is a close associate of such a person.",
-        "no": "No",
-        "noHint": "Does not hold any prominent public function."
+      "company": {
+        "search": "Search",
+        "searching": "Searching…",
+        "noResults": "No company found under that name in the commercial register.",
+        "error": "The commercial register did not answer.",
+        "listLabel": "Companies found in the register",
+        "inactive": " · struck off"
+      },
+      "address": {
+        "placeholder": "Street and number",
+        "noResults": "No address found. You can type it in yourself.",
+        "error": "The address register did not answer. You can type the address in yourself.",
+        "listLabel": "Suggested addresses"
       }
     },
     "pieceIdentite": {
       "title": "Upload the signatory's ID document",
-      "subtitle": "Front and back of a valid document: identity card, passport, or residence permit. A member of our compliance team reviews it.",
+      "subtitle": "A valid document: passport, identity card, or residence permit. Tell us which one, then photograph the sides we ask for. A member of our compliance team reviews it.",
       "missingSignataire": "The signatory must be entered in the previous step first.",
+      "verification": {
+        "title": "Verify your identity",
+        "body": "Photograph your document and your face. The verification runs at our provider: the photo of your document is never sent to us.",
+        "cta": "Verify my identity",
+        "retryCta": "Resume verification",
+        "pendingTitle": "Verification in progress",
+        "pendingBody": "The result arrives shortly. You can continue, we will attach it to your file.",
+        "doneTitle": "Identity verified",
+        "doneBody": "Your document was verified and your face compared with its photo. Our compliance team then reviews the file.",
+        "useManual": "Upload my document instead",
+        "privacy": "Our provider keeps the document for its check; MEGGA only receives the result and the expiry date.",
+        "errors": {
+          "consent_declined": "You declined the verification. Upload your document below and our team will review it.",
+          "under_supported_age": "Online verification does not cover people under 16.",
+          "country_not_supported": "Your country is not covered by online verification. Upload your document below.",
+          "document_expired": "The document has expired. Try again with a valid one.",
+          "document_type_not_supported": "This document type is not accepted. A passport or identity card works.",
+          "document_unverified_other": "The document could not be verified. Try again with better lighting.",
+          "selfie_face_mismatch": "Your face does not match the photo on the document. Try the verification again.",
+          "selfie_manipulated": "The face photo appears edited. Try the verification again.",
+          "selfie_document_missing_photo": "The document has no photo. Use a passport or an identity card.",
+          "selfie_unverified_other": "Your face could not be verified. Try the verification again.",
+          "abandoned": "The verification was interrupted. You can resume it.",
+          "unknown": "The verification did not complete. You can try again or upload your document below."
+        }
+      },
+      "documentType": {
+        "label": "Type of document",
+        "options": {
+          "passport": "Passport",
+          "id_card": "Identity card",
+          "residence_permit": "Residence permit"
+        },
+        "hints": {
+          "passport": "Only one page to photograph",
+          "id_card": "Both sides are required",
+          "residence_permit": "Both sides are required"
+        }
+      },
       "sides": {
         "recto": "Front",
-        "verso": "Back"
+        "verso": "Back",
+        "dataPage": "Data page"
       },
       "dropHint": "Click to select a file",
       "formatHint": "JPG, PNG, WEBP, or PDF, 8 MB maximum",
@@ -119,6 +153,18 @@
       "zoomClose": "Close",
       "zoomHint": "Check that the document is sharp and all four corners are visible. If not, replace it.",
       "openPdf": "Open the PDF",
+      "read": {
+        "running": "Reading the document…",
+        "verdict": {
+          "match": "The document matches the identity you entered.",
+          "partial": "The document partly matches the identity you entered. Review the signatory step before continuing.",
+          "mismatch": "The document does not match the identity you entered. Check that it is the right one.",
+          "unreadable": "The document could not be read. A sharper photo helps, but you can continue."
+        },
+        "expired": "This document appears to have expired on {{date}}.",
+        "typeDiffers": "The document does not appear to be the one you selected.",
+        "disclaimer": "Automated reading, for guidance only: our compliance team reviews the document."
+      },
       "errors": {
         "format": "Accepted format: JPG, PNG, WEBP, or PDF.",
         "size": "Maximum size: 8 MB.",
@@ -130,15 +176,14 @@
       "title": "Review your file before submitting it",
       "subtitle": "Read through each section. You can still edit a step.",
       "notProvided": "Not provided",
-      "beneficiaires": {
-        "empty": "No beneficial owner declared.",
-        "ownership": "{{pct}}% ownership"
-      },
       "pieceIdentite": {
         "uploaded": "Uploaded",
         "missing": "Missing",
         "loading": "Checking the uploaded documents…",
-        "loadFailed": "Could not check the uploaded documents. Please try again."
+        "loadFailed": "Could not check the uploaded documents. Please try again.",
+        "statusLabel": "Verification",
+        "verified": "Identity verified at our provider",
+        "processing": "Verification being processed"
       },
       "attestation": "I confirm that the information above is accurate and complete to the best of my knowledge.",
       "errors": {
@@ -203,6 +248,93 @@
         "eyebrow": "Correction requested",
         "title": "A correction is requested",
         "body": "The details were sent to you by email. Correct your entry, then submit again: the review resumes automatically."
+      }
+    }
+  },
+  "call": {
+    "intro": {
+      "title": "Book your welcome call",
+      "body": "Your file is under review. Let us take 30 minutes to walk through your setup and answer your questions."
+    },
+    "picker": {
+      "weekdays": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "slotsTitle": "Times",
+      "pickDayFirst": "Pick a day in the calendar to see the free times.",
+      "noSlotThatDay": "Nothing left that day.",
+      "timezoneHint": "Times shown in your timezone : {{timezone}}"
+    },
+    "form": {
+      "phone": "Phone (optional)",
+      "phonePlaceholder": "+41 22 000 00 00",
+      "note": "A word on your priorities (optional)",
+      "notePlaceholder": "What you would like to see first"
+    },
+    "actions": {
+      "confirm": "Confirm the appointment",
+      "later": "Later",
+      "continue": "Continue to my workspace"
+    },
+    "confirmed": {
+      "title": "You are booked",
+      "join": "Join the video call",
+      "emailSent": "A confirmation email is waiting for you, with the link and a way to reschedule if needed.",
+      "toDashboard": "Go to my workspace"
+    },
+    "empty": {
+      "noHost": "No slot is open right now. We will come back to you by email as soon as we can.",
+      "noSlot": "Nothing free left in this period. Try the next month, or carry on : we will write to you."
+    },
+    "errors": {
+      "slot_taken": "That slot was just taken. Please pick another one.",
+      "already_booked": "Your agency already has a call booked.",
+      "no_host_available": "Nobody is available right now.",
+      "slot_in_past": "That slot is already in the past.",
+      "call_in_past": "This appointment is already in the past.",
+      "call_not_active": "This appointment is no longer active.",
+      "reschedule_limit_reached": "Reschedule limit reached. Write to us to find another date.",
+      "generic": "The appointment could not be saved. Please try again in a moment."
+    },
+    "banner": {
+      "pending": {
+        "title": "Book your welcome call",
+        "body": "30 minutes with our team to get started with MEGGA.",
+        "cta": "Pick a slot"
+      },
+      "booked": {
+        "title": "Welcome call scheduled",
+        "join": "Join"
+      }
+    },
+    "public": {
+      "loading": "Loading your appointment...",
+      "title": "Your MEGGA welcome call",
+      "invalid": {
+        "title": "Link not found",
+        "body": "This link is no longer valid. Check the address you received by email, or write to us."
+      },
+      "notActive": "This appointment was cancelled or has already passed.",
+      "tooLate": "This appointment is very soon : it can no longer be changed here.",
+      "reschedule": "Reschedule",
+      "cancel": "Cancel the appointment",
+      "back": "Back",
+      "confirmReschedule": "Confirm the new date",
+      "cancelled": {
+        "title": "Appointment cancelled",
+        "body": "Noted. You can book a new one from your MEGGA workspace."
+      },
+      "rescheduled": {
+        "title": "New date saved",
+        "body": "A confirmation email with the updated date is on its way."
       }
     }
   }

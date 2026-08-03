@@ -571,6 +571,12 @@ verify_jwt = false
 [functions.google-calendar-sync]
 verify_jwt = false
 
+[functions.kyb-identity-read]
+verify_jwt = false
+
+[functions.kyb-identity-verify]
+verify_jwt = false
+
 [functions.kyc-report-data]
 verify_jwt = false
 
@@ -605,6 +611,18 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.matching-engine]
+verify_jwt = false
+
+[functions.onboarding-call-book]
+verify_jwt = false
+
+[functions.onboarding-call-manage]
+verify_jwt = false
+
+[functions.onboarding-call-reminder]
+verify_jwt = false
+
+[functions.onboarding-slots]
 verify_jwt = false
 
 [functions.outlook-calendar-sync]

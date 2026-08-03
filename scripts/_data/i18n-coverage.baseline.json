@@ -1,7 +1,7 @@
 {
   "de": {
     "admin": {
-      "total": 983,
+      "total": 1052,
       "sameAsEn": 104,
       "untranslated": 26
     },
@@ -11,27 +11,27 @@
       "untranslated": 0
     },
     "calendar": {
-      "total": 294,
+      "total": 295,
       "sameAsEn": 31,
       "untranslated": 4
     },
     "common": {
-      "total": 414,
+      "total": 415,
       "sameAsEn": 42,
-      "untranslated": 7
+      "untranslated": 8
     },
     "contacts": {
-      "total": 873,
-      "sameAsEn": 121,
+      "total": 898,
+      "sameAsEn": 122,
       "untranslated": 16
     },
     "dashboard": {
-      "total": 477,
-      "sameAsEn": 41,
-      "untranslated": 5
+      "total": 553,
+      "sameAsEn": 45,
+      "untranslated": 7
     },
     "kyc": {
-      "total": 576,
+      "total": 642,
       "sameAsEn": 26,
       "untranslated": 11
     },
@@ -51,8 +51,8 @@
       "untranslated": 0
     },
     "onboarding": {
-      "total": 135,
-      "sameAsEn": 0,
+      "total": 216,
+      "sameAsEn": 1,
       "untranslated": 0
     },
     "pipeline": {
@@ -68,8 +68,8 @@
   },
   "it": {
     "admin": {
-      "total": 983,
-      "sameAsEn": 70,
+      "total": 1052,
+      "sameAsEn": 69,
       "untranslated": 5
     },
     "auth": {
@@ -78,27 +78,27 @@
       "untranslated": 1
     },
     "calendar": {
-      "total": 294,
+      "total": 295,
       "sameAsEn": 28,
       "untranslated": 0
     },
     "common": {
-      "total": 414,
+      "total": 415,
       "sameAsEn": 39,
       "untranslated": 2
     },
     "contacts": {
-      "total": 873,
-      "sameAsEn": 112,
+      "total": 898,
+      "sameAsEn": 113,
       "untranslated": 6
     },
     "dashboard": {
-      "total": 477,
-      "sameAsEn": 41,
-      "untranslated": 3
+      "total": 553,
+      "sameAsEn": 47,
+      "untranslated": 5
     },
     "kyc": {
-      "total": 576,
+      "total": 642,
       "sameAsEn": 25,
       "untranslated": 5
     },
@@ -118,9 +118,9 @@
       "untranslated": 0
     },
     "onboarding": {
-      "total": 135,
+      "total": 216,
       "sameAsEn": 1,
-      "untranslated": 1
+      "untranslated": 0
     },
     "pipeline": {
       "total": 442,

@@ -1,8 +1,12 @@
 // MEGGA CRM — Écran « Aujourd'hui » (refonte Claude Design, port fidèle).
 //
-// Port 1:1 du prototype validé (handoff juin 2026) : cockpit (page 0) + catalogue
-// de matchs (page 1), pager molette vertical (1 cran = 1 page plein écran),
-// chrome CRM standard (SugarTopNav + SugarIconRail).
+// Page 0 = « concept H » (handoff Today V2, 3 août 2026) — un seul bento :
+// la journée + les dossiers/annonces + « Pendant ton absence ». Elle remplace
+// l'ancien cockpit `PageAujourdhui`, qui reste au dépôt : c'est lui qui porte
+// le câblage Supabase (useFocusQueue, agenda, pipeline, objectif) à reprendre
+// au « Lot 0 » d'hydratation du concept H.
+// Page 1 = catalogue de matchs. Pager molette vertical (1 cran = 1 page plein
+// écran), chrome CRM standard (SugarTopNav + SugarIconRail).
 //
 // ⚠️ Port VISUEL sur DONNÉES DÉMO (cf. ./today/data.ts). Le handoff prescrit
 // « porter à l'identique d'abord, câbler ensuite » : le câblage live (Supabase)
@@ -23,7 +27,7 @@ import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
 import { TK, applyTK } from '@/components/crm-sugar/today/tk'
 import { TodayNavProvider } from '@/components/crm-sugar/today/TodayNavContext'
-import { PageAujourdhui } from '@/components/crm-sugar/today/PageAujourdhui'
+import { PageAujourdhuiH } from '@/components/crm-sugar/today/PageAujourdhuiH'
 import { PageCatalogue } from '@/components/crm-sugar/today/PageCatalogue'
 
 // `labelKey` = clé i18n stable (namespace dashboard) ; le libellé est traduit
@@ -124,11 +128,20 @@ export default function TodaySugarPage() {
 
   const onCmd = () => openSugarSearch()
 
-  const onNavigate = (id: SugarScreenId | string) => {
+  // `ref` = identifiant réel porté par le payload (uuid). Les cibles « détail »
+  // n'existent qu'avec lui : sans référence, on ouvre la LISTE correspondante
+  // plutôt que de laisser un bouton sans effet.
+  const onNavigate = (id: SugarScreenId | string, ref?: string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
+      case 'contact-detail': navigate(ref ? `/dashboard/contacts/${ref}` : '/dashboard/contacts'); break
+      case 'deal-detail': navigate(ref ? `/dashboard/transactions/${ref}` : '/dashboard/pipeline'); break
+      case 'visite-detail': navigate(ref ? `/dashboard/visits/${ref}` : '/dashboard/calendar'); break
+      case 'biens-detail': navigate(ref ? `/dashboard/listings/${ref}` : '/dashboard/listings'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
+      // `?contact=` est le contrat que MatchingAtelierPage lit déjà pour
+      // focaliser un acheteur — pas une globale posée avant la navigation.
+      case 'matching': navigate(ref ? `/dashboard/matching?contact=${ref}` : '/dashboard/matching'); break
       case 'contacts': navigate('/dashboard/contacts'); break
       case 'biens': navigate('/dashboard/listings'); break
       case 'biens-new': navigate('/dashboard/listings/new'); break
@@ -337,7 +350,7 @@ export default function TodaySugarPage() {
             }}>
               <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
                 <div style={{ height: '100%', width: '100%', position: 'relative' }}>
-                  <PageAujourdhui />
+                  <PageAujourdhuiH />
                 </div>
                 <div style={{ height: '100%', width: '100%', position: 'relative' }}>
                   <PageCatalogue />

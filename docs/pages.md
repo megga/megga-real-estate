@@ -50,6 +50,7 @@ console super-admin, elle, porte son propre chrome (`AdminShell`).
 | `/dashboard/analytics` | Analytics et commissions |
 | `/dashboard/julien` | Copilote MEGGA AI |
 | `/dashboard/audit` | Journal d'audit |
+| `/dashboard/rendez-vous-accueil` | Réservation de l'appel d'accueil avec l'équipe MEGGA, à la sortie du wizard d'identité. Écran passable, jamais bloquant |
 | `/dashboard/settings` | Réglages (7 sections : profil, agence, notifications, intégrations, facturation, sécurité, préférences) |
 | `/dashboard/market/:externalId` | Détail d'une annonce du marché (`market_listings`) |
 
@@ -57,14 +58,15 @@ console super-admin, elle, porte son propre chrome (`AdminShell`).
 → `/visits/*`, `/dashboard/marche/:id` → `/market/:id`. `/dashboard/network`,
 `/reseau`, `/onboarding`, `/premier-jour` → `/dashboard` (modules retirés).
 
-### 2. Super-admin — `/dashboard/admin/*` (17 pages)
+### 2. Super-admin — `/dashboard/admin/*` (18 pages)
 
 Surface du CRM depuis le 28.07.2026 (l'application autonome `admin.megga.ch` a été
 retirée). Montée par `AdminConsoleRoute`, qui gate sur `useSuperAdminGate` et
 journalise chaque entrée ; le chrome vient d'`AdminShell`, l'accent violet ne sert
 que de repère de contexte.
 
-Accueil, agences (+ détail), utilisateurs, clients finaux, monitoring, **modération**,
+Accueil, agences (+ détail), utilisateurs, clients finaux, **appels d'accueil**,
+monitoring, **modération**,
 conformité, communication, feature flags, plans, live, sécurité, NPS, autonomie,
 usage des outils, apprentissage.
 
@@ -85,6 +87,7 @@ Ouvertes par un client depuis un lien e-mail, sans compte. Elles portent
 | `/reception/:token` | Réception acquéreur |
 | `/visit/:id/edit` · `/feedback` | Gestion et retour de visite |
 | `/accept-invite/:token` | Acceptation d'invitation |
+| `/rendez-vous/:token` | Gestion de l'appel d'accueil (replanifier, annuler) |
 
 ### 4. Authentification
 

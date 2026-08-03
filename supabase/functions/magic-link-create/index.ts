@@ -17,7 +17,7 @@
 //   {
 //     magic_link_id: string,
 //     token: string,
-//     url: string,                 // kyc.megga.ch/<token>
+//     url: string,                 // https://app.megga.ch/kyc/<token>
 //     expires_at: string (ISO),
 //     status: 'pending'
 //   }
@@ -29,6 +29,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { signMagicLinkToken, expiryFromDays } from '../_shared/magic-link-token.ts'
+import { kycMagicLinkUrl } from '../_shared/app-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,8 +45,6 @@ interface CreateRequest {
   custom_message?: string | null
   expiration_days?: number
 }
-
-const PUBLIC_DOMAIN = Deno.env.get('MEGGA_KYC_PUBLIC_DOMAIN') ?? 'kyc.megga.ch'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -222,7 +221,9 @@ serve(async (req) => {
     JSON.stringify({
       magic_link_id: inserted.id,
       token,
-      url: `https://${PUBLIC_DOMAIN}/${token}`,
+      // Même constructeur que magic-link-send-email : l'agent copie exactement le
+      // lien que le client reçoit dans son e-mail.
+      url: kycMagicLinkUrl(token),
       expires_at: inserted.expires_at,
       status: inserted.status,
       email_sent: emailSent.sent,

@@ -775,8 +775,14 @@ export type Database = {
           date_of_birth: string | null
           first_name: string
           id: string
+          id_document_expires_on: string | null
           id_document_number: string | null
+          id_document_read: Json | null
           id_document_type: string | null
+          identity_verification_error_code: string | null
+          identity_verification_session_id: string | null
+          identity_verification_status: string | null
+          identity_verified_at: string | null
           last_name: string
           nationality: string | null
           profile_id: string | null
@@ -788,8 +794,14 @@ export type Database = {
           date_of_birth?: string | null
           first_name: string
           id?: string
+          id_document_expires_on?: string | null
           id_document_number?: string | null
+          id_document_read?: Json | null
           id_document_type?: string | null
+          identity_verification_error_code?: string | null
+          identity_verification_session_id?: string | null
+          identity_verification_status?: string | null
+          identity_verified_at?: string | null
           last_name: string
           nationality?: string | null
           profile_id?: string | null
@@ -801,8 +813,14 @@ export type Database = {
           date_of_birth?: string | null
           first_name?: string
           id?: string
+          id_document_expires_on?: string | null
           id_document_number?: string | null
+          id_document_read?: Json | null
           id_document_type?: string | null
+          identity_verification_error_code?: string | null
+          identity_verification_session_id?: string | null
+          identity_verification_status?: string | null
+          identity_verified_at?: string | null
           last_name?: string
           nationality?: string | null
           profile_id?: string | null
@@ -1131,6 +1149,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      agent_presence: {
+        Row: {
+          agent_id: string
+          last_seen_at: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          last_seen_at?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          last_seen_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       agent_profiles: {
         Row: {
@@ -1690,6 +1726,7 @@ export type Database = {
           id: string
           match_ids: string[]
           reacted_at: string | null
+          revoked_at: string | null
           sent_at: string
           status: string
           token: string
@@ -1709,6 +1746,7 @@ export type Database = {
           id?: string
           match_ids: string[]
           reacted_at?: string | null
+          revoked_at?: string | null
           sent_at?: string
           status?: string
           token: string
@@ -1728,6 +1766,7 @@ export type Database = {
           id?: string
           match_ids?: string[]
           reacted_at?: string | null
+          revoked_at?: string | null
           sent_at?: string
           status?: string
           token?: string
@@ -3664,6 +3703,159 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_calls: {
+        Row: {
+          agency_id: string
+          attendee_note: string | null
+          attendee_phone: string | null
+          booked_by: string
+          calendar_event_id: string | null
+          calendar_provider: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          confirmation_sent_at: string | null
+          created_at: string
+          duration_minutes: number
+          host_display_name: string
+          host_id: string
+          id: string
+          manage_token: string
+          meeting_url: string | null
+          reminder_sent_at: string | null
+          rescheduled_count: number
+          scheduled_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          attendee_note?: string | null
+          attendee_phone?: string | null
+          booked_by: string
+          calendar_event_id?: string | null
+          calendar_provider?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          confirmation_sent_at?: string | null
+          created_at?: string
+          duration_minutes?: number
+          host_display_name: string
+          host_id: string
+          id?: string
+          manage_token?: string
+          meeting_url?: string | null
+          reminder_sent_at?: string | null
+          rescheduled_count?: number
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          attendee_note?: string | null
+          attendee_phone?: string | null
+          booked_by?: string
+          calendar_event_id?: string | null
+          calendar_provider?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          confirmation_sent_at?: string | null
+          created_at?: string
+          duration_minutes?: number
+          host_display_name?: string
+          host_id?: string
+          id?: string
+          manage_token?: string
+          meeting_url?: string | null
+          reminder_sent_at?: string | null
+          rescheduled_count?: number
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      onboarding_host_exceptions: {
+        Row: {
+          created_at: string
+          day: string
+          host_id: string
+          id: string
+          is_closed: boolean
+          reason: string | null
+          slices: Json
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          host_id: string
+          id?: string
+          is_closed?: boolean
+          reason?: string | null
+          slices?: Json
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          host_id?: string
+          id?: string
+          is_closed?: boolean
+          reason?: string | null
+          slices?: Json
+        }
+        Relationships: []
+      }
+      onboarding_hosts: {
+        Row: {
+          buffer_after_minutes: number
+          created_at: string
+          display_name: string
+          duration_minutes: number
+          horizon_days: number
+          id: string
+          is_active: boolean
+          max_per_day: number | null
+          min_notice_hours: number
+          profile_id: string
+          slot_minutes: number
+          timezone: string
+          updated_at: string
+          weekly_hours: Json
+        }
+        Insert: {
+          buffer_after_minutes?: number
+          created_at?: string
+          display_name: string
+          duration_minutes?: number
+          horizon_days?: number
+          id?: string
+          is_active?: boolean
+          max_per_day?: number | null
+          min_notice_hours?: number
+          profile_id: string
+          slot_minutes?: number
+          timezone?: string
+          updated_at?: string
+          weekly_hours?: Json
+        }
+        Update: {
+          buffer_after_minutes?: number
+          created_at?: string
+          display_name?: string
+          duration_minutes?: number
+          horizon_days?: number
+          id?: string
+          is_active?: boolean
+          max_per_day?: number | null
+          min_notice_hours?: number
+          profile_id?: string
+          slot_minutes?: number
+          timezone?: string
+          updated_at?: string
+          weekly_hours?: Json
+        }
+        Relationships: []
+      }
       outlook_calendar_sync: {
         Row: {
           created_at: string | null
@@ -4524,6 +4716,99 @@ export type Database = {
             columns: ["legal_form_id"]
             isOneToOne: false
             referencedRelation: "legal_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relance_items: {
+        Row: {
+          agency_id: string
+          contact_id: string
+          copied_at: string | null
+          created_at: string
+          generated_at: string | null
+          generated_text: string | null
+          id: string
+          session_id: string
+          status: string
+        }
+        Insert: {
+          agency_id: string
+          contact_id: string
+          copied_at?: string | null
+          created_at?: string
+          generated_at?: string | null
+          generated_text?: string | null
+          id?: string
+          session_id: string
+          status: string
+        }
+        Update: {
+          agency_id?: string
+          contact_id?: string
+          copied_at?: string | null
+          created_at?: string
+          generated_at?: string | null
+          generated_text?: string | null
+          id?: string
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relance_items_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relance_items_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relance_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "relance_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relance_sessions: {
+        Row: {
+          agency_id: string
+          agent_id: string
+          closed_at: string | null
+          created_at: string
+          id: string
+          started_at: string
+        }
+        Insert: {
+          agency_id: string
+          agent_id: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          started_at?: string
+        }
+        Update: {
+          agency_id?: string
+          agent_id?: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relance_sessions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
         ]
@@ -6643,6 +6928,29 @@ export type Database = {
         Args: { p_agency_id: string; p_note?: string; p_quotas: Json }
         Returns: Json
       }
+      admin_set_onboarding_call_outcome: {
+        Args: { p_call_id: string; p_status: string }
+        Returns: Json
+      }
+      admin_set_onboarding_host_active: {
+        Args: { p_active: boolean; p_host_id: string }
+        Returns: Json
+      }
+      admin_upsert_onboarding_host: {
+        Args: {
+          p_buffer_after_minutes?: number
+          p_display_name: string
+          p_duration_minutes?: number
+          p_horizon_days?: number
+          p_max_per_day?: number
+          p_min_notice_hours?: number
+          p_profile_id: string
+          p_slot_minutes?: number
+          p_timezone?: string
+          p_weekly_hours?: Json
+        }
+        Returns: Json
+      }
       admin_set_user_role: {
         Args: { p_role: string; p_user_id: string }
         Returns: Json
@@ -7122,6 +7430,50 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_admin_onboarding_calls: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: {
+          agency_id: string
+          agency_name: string
+          agency_slug: string
+          attendee_note: string
+          attendee_phone: string
+          booked_by: string
+          booked_by_email: string
+          booked_by_name: string
+          cancel_reason: string
+          created_at: string
+          duration_minutes: number
+          host_id: string
+          host_name: string
+          id: string
+          meeting_url: string
+          rescheduled_count: number
+          scheduled_at: string
+          status: string
+          verification_status: string
+        }[]
+      }
+      get_admin_onboarding_hosts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          buffer_after_minutes: number
+          created_at: string
+          display_name: string
+          duration_minutes: number
+          horizon_days: number
+          id: string
+          is_active: boolean
+          max_per_day: number
+          min_notice_hours: number
+          profile_email: string
+          profile_id: string
+          slot_minutes: number
+          timezone: string
+          upcoming_calls: number
+          weekly_hours: Json
+        }[]
+      }
       get_admin_agencies: {
         Args: { p_agency_id?: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -7517,6 +7869,10 @@ export type Database = {
       get_market_rent_reference_config: { Args: never; Returns: Json }
       get_my_agency_id: { Args: never; Returns: string }
       get_my_agency_plan: { Args: never; Returns: string }
+      get_onboarding_call_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       get_onboarding_milestones: {
         Args: { agency_ids: string[] }
         Returns: {
@@ -7814,6 +8170,7 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      presence_touch: { Args: never; Returns: string }
       provision_solo_agency: {
         Args: { p_display_name: string; p_user: string }
         Returns: string
@@ -7921,6 +8278,7 @@ export type Database = {
           id: string
         }[]
       }
+      revoke_reception_link: { Args: { p_link_id: string }; Returns: boolean }
       revoke_user_session: {
         Args: { p_session_id: string; p_user_id: string }
         Returns: undefined
@@ -8580,10 +8938,12 @@ export type Database = {
       }
       sweep_pending_agency_verifications: { Args: never; Returns: undefined }
       team_remove_member: { Args: { p_member_id: string }; Returns: undefined }
+      team_role_rank: { Args: { p_role: string }; Returns: number }
       team_set_member_role: {
         Args: { p_member_id: string; p_role: string }
         Returns: undefined
       }
+      today_absence: { Args: { p_fallback_hours?: number }; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
       unlockrows: { Args: { "": string }; Returns: number }
       unpublish_expired_mandates: { Args: never; Returns: number }

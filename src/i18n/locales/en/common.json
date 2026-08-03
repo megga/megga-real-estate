@@ -75,7 +75,8 @@
     "adminSectionOps": "Operations",
     "adminSectionProduct": "Product & AI",
     "adminEndUsers": "End users",
-    "adminKybReview": "KYB verification"
+    "adminKybReview": "KYB verification",
+    "adminOnboardingCalls": "Welcome calls"
   },
   "sections": {
     "main": "Main",

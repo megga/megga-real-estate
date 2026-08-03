@@ -22,6 +22,96 @@ describe('workflows GitHub Actions', () => {
     expect(files.length).toBeGreaterThan(5)
   })
 
+  /**
+   * Corps `run:` de toutes les étapes, lignes de commentaire shell retirées.
+   *
+   * Le retrait n'est pas cosmétique : un `#` fait partie du scalaire `run:`, et les
+   * commentaires qui expliquent les garde-fous ci-dessous CITENT les noms qu'ils
+   * interdisent. Sans ce filtre, les tests rougiraient sur l'énoncé de leur propre raison
+   * d'être. Règle volontairement simple (ligne dont le premier caractère non blanc est
+   * `#`) : un nom de conteneur vit dans une commande, pas en fin de ligne après un dièse.
+   */
+  function scriptsShell() {
+    const sorties: Array<{ ou: string; corps: string }> = []
+    for (const f of files) {
+      const doc = parse(readFileSync(join(DIR, f), 'utf-8')) as {
+        jobs?: Record<string, { steps?: Array<{ name?: string; run?: string }> }>
+      }
+      for (const [job, corps] of Object.entries(doc.jobs ?? {})) {
+        for (const step of corps.steps ?? []) {
+          if (typeof step.run !== 'string') continue
+          sorties.push({
+            ou: `${f} › ${job} › ${step.name ?? 'étape sans nom'}`,
+            corps: step.run.split('\n').filter(l => !/^\s*#/.test(l)).join('\n'),
+          })
+        }
+      }
+    }
+    return sorties
+  }
+
+  /**
+   * `supabase start` nomme ses conteneurs `supabase_<service>_<project_id>`, où `project_id`
+   * est celui de `supabase/config.toml` — `zealous-faraday-34b2f5`, PAS le nom du dépôt.
+   *
+   * backend.yml et e2e.yml appelaient `docker logs supabase_db_megga-real-estate`, un nom
+   * qui n'a jamais existé. Le `|| true` de fin de ligne avalait le « No such container », si
+   * bien que l'étape « Print Supabase logs on failure » n'imprimait RIEN : la CI perdait les
+   * logs Postgres au moment précis où elle cassait, c'est-à-dire quand on venait les lire.
+   * Une panne muette ne se signale pas d'elle-même — d'où ce contrôle.
+   */
+  it('aucun nom de conteneur Supabase n’est figé dans un script shell', () => {
+    // Seules formes légitimes : le PRÉFIXE d'un filtre (`--filter name=supabase_db_`, qui
+    // s'arrête au tiret bas, donc ne matche pas ici) et une expansion de variable. Tout
+    // suffixe littéral est un nom gravé, qui se périmera au prochain `project_id`.
+    const NOM_FIGE = /supabase_[a-z]+_[A-Za-z0-9][\w.-]*/g
+    // Sentinelles de repli : inexistantes EXPRÈS. Leur seul rôle est de faire dire
+    // « No such container: … » à docker plutôt que de lui passer un argument vide.
+    const SENTINELLES = new Set(['supabase_db_introuvable', 'supabase_auth_introuvable'])
+
+    const fautifs: string[] = []
+    for (const { ou, corps } of scriptsShell()) {
+      for (const nom of corps.match(NOM_FIGE) ?? []) {
+        if (!SENTINELLES.has(nom)) fautifs.push(`${ou} : ${nom}`)
+      }
+    }
+
+    expect(
+      fautifs,
+      `nom(s) de conteneur figé(s) :\n  ${fautifs.join('\n  ')}\n` +
+        'Le nom dérive du `project_id` de supabase/config.toml, pas du nom du dépôt. Le dériver :\n' +
+        "  CONTENEUR=$(docker ps -a --filter name=supabase_db_ --format '{{.Names}}' | head -1)",
+    ).toEqual([])
+  })
+
+  /**
+   * Contrôle complémentaire du précédent, et c'est le plus utile des deux : il ne cherche
+   * pas un nom fautif connu, il exige la bonne FORME. Un `docker logs` sur un littéral —
+   * fût-il exact aujourd'hui — redeviendra muet le jour où le `project_id` changera.
+   */
+  it('chaque `docker logs` vise un conteneur dérivé, pas un littéral', () => {
+    const appels = scriptsShell().flatMap(({ ou, corps }) =>
+      corps
+        .split('\n')
+        .filter(l => /docker\s+logs/.test(l))
+        .map(l => ({ ou, ligne: l.trim() })),
+    )
+    const fautifs = appels.filter(({ ligne }) => !/docker\s+logs\s+"?\$/.test(ligne))
+
+    // Garde anti-contrôle creux : si les étapes de diagnostic disparaissaient, ce test
+    // passerait au vert sans rien vérifier. 4 = deux workflows qui démarrent Supabase
+    // (backend, e2e) × deux conteneurs lus (db, auth).
+    expect(
+      appels.length,
+      'moins de 4 appels `docker logs` — étape de diagnostic supprimée, ou ce contrôle ne couvre plus rien',
+    ).toBeGreaterThanOrEqual(4)
+    expect(
+      fautifs.map(({ ou, ligne }) => `${ou} : ${ligne}`),
+      'ces `docker logs` visent un nom littéral. Ils se terminent par `|| true` : un nom mort ' +
+        'n’y échoue pas, il se TAIT. Viser une variable dérivée — `docker logs "${CONTENEUR_DB:-…}"`.',
+    ).toEqual([])
+  })
+
   for (const f of files) {
     it(`${f} est un YAML valide`, () => {
       const raw = readFileSync(join(DIR, f), 'utf-8')

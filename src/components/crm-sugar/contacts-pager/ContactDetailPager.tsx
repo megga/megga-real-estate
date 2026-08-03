@@ -64,6 +64,30 @@ export interface FicheLoopItem {
   motif: string | null
 }
 
+/** Lien de réception émis pour ce contact (jamais son jeton : c'est la capability). */
+export interface FicheReceptionLink {
+  id: string
+  /** `null` = statut non reconnu ; l'UI le dit et n'offre pas de retrait dessus. */
+  status: 'pending' | 'viewed' | 'reacted' | 'expired' | 'revoked' | null
+  channel: 'whatsapp' | 'link' | null
+  createdAt: string
+  expiresAt: string
+  /** Nombre de biens que le lien ouvre. */
+  count: number
+  /** Renseigné une fois le lien retiré : « depuis quand est-il coupé ». */
+  revokedAt: string | null
+  /** Le lien donne encore accès à la sélection (ni retiré, ni échu). */
+  active: boolean
+}
+
+/**
+ * Issue d'un retrait. Trois cas et non deux : un REFUS (le lien n'était déjà plus
+ * actif) et une PANNE ne se disent pas pareil à l'agent, sinon il croit avoir coupé
+ * un accès resté ouvert. Le conteneur traduit l'erreur du hook en ce verdict ; le
+ * pager reste sans appel Supabase.
+ */
+export type FicheRevokeResult = 'ok' | 'refused' | 'failed'
+
 /** Prochaine action estimée (NBA déterministe, cerveau partagé WhatsApp ⇄ copilote) —
  *  chaînes DÉJÀ traduites par le parent (le pager reste présentation pure, sans i18n
  *  de données). Absent/null → aucun rendu (ajout additif, façon BnScoreBadge). */
@@ -77,6 +101,8 @@ export interface ContactDetailPagerProps {
   fiche: FicheContact
   nba?: FicheNba | null
   loop: { items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; opened: number }
+  /** Liens de réception émis + états de chargement (le conteneur porte la requête). */
+  links: { items: FicheReceptionLink[]; isLoading: boolean; failed: boolean }
   sp: SugarPalette
   dark: boolean
   onBack: () => void
@@ -94,6 +120,8 @@ export interface ContactDetailPagerProps {
   /** CTA principal d'un Vendeur/Bailleur (côté offre) — vers ses biens, jamais le Matching acheteur. */
   onOpenListings: () => void
   onProposeVisit: (matchId: string) => void
+  /** Retire un lien de réception. Ne rejette pas : renvoie le verdict à afficher. */
+  onRevokeLink: (linkId: string) => Promise<FicheRevokeResult>
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -225,6 +253,26 @@ const LOOP_STATE: Record<FicheLoopItem['state'], { key: 'ok' | 'cyan' | 'wait' |
   seen: { key: 'cyan', labelK: 'loop.pillSeen' },
   sent: { key: 'wait', labelK: 'loop.pillSent' },
   dismissed: { key: 'ghost', labelK: 'loop.pillDismissed' },
+}
+
+// Statut d'un lien de réception → couleur de palette + clé i18n. `revoked` et
+// `expired` prennent la teinte éteinte : un lien fermé n'est pas une alerte, c'est
+// un état de repos. `null` (statut non reconnu) est traité plus bas, pas ici.
+const LINK_STATE: Record<Exclude<FicheReceptionLink['status'], null>, { key: 'ok' | 'cyan' | 'wait' | 'ghost'; labelK: string }> = {
+  pending: { key: 'wait', labelK: 'fiche.links.status.pending' },
+  viewed: { key: 'cyan', labelK: 'fiche.links.status.viewed' },
+  reacted: { key: 'ok', labelK: 'fiche.links.status.reacted' },
+  expired: { key: 'ghost', labelK: 'fiche.links.status.expired' },
+  revoked: { key: 'ghost', labelK: 'fiche.links.status.revoked' },
+}
+
+/** Date suisse JJ.MM.AAAA depuis un horodatage ISO ; vide si la valeur est inexploitable. */
+const cdDay = (iso: string | null | undefined): string => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const p2 = (n: number) => String(n).padStart(2, '0')
+  return `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}`
 }
 
 // Gel du pager pendant une édition inline / une modale : increment/decrement.
@@ -995,16 +1043,152 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//   LIENS DE RÉCEPTION — voir ce qui a été envoyé, et le retirer
+// ═══════════════════════════════════════════════════════════════════════
+/**
+ * Confirmation avant retrait. Elle est obligatoire parce que le geste est
+ * irréversible DU CÔTÉ DE L'ACHETEUR : il perd l'accès à la sélection qu'on lui a
+ * transmise, et seul un nouveau lien peut le lui rendre.
+ */
+function CdRevokeLinkModal({ P, dark, link, busy, error, onCancel, onConfirm }: {
+  P: FichePal; dark: boolean; link: FicheReceptionLink; busy: boolean; error: string | null; onCancel: () => void; onConfirm: () => void
+}) {
+  const { t } = useTranslation('contacts')
+  const modalBg = dark ? crmStep('s4', '#17181A') : '#FFFFFF'
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: "'Inter Tight', system-ui, sans-serif" }}>
+      <div role="dialog" aria-modal="true" aria-label={t('fiche.links.confirm.title')}
+        style={{ width: 440, background: modalBg, borderRadius: 24, boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+        <span style={{ width: 44, height: 44, borderRadius: 999, background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
+          <FcpIcon name="shield" size={20} stroke={P.danger} sw={2} />
+        </span>
+        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.links.confirm.title')}</div>
+        <div style={{ fontSize: 13.5, fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
+          {t('fiche.links.confirm.body', { count: link.count })}
+        </div>
+        {error && (
+          <div role="alert" style={{ marginTop: 16, fontSize: 12, fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
+        )}
+        <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
+          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
+          <button onClick={busy ? undefined : onConfirm} disabled={busy}
+            style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.danger, color: '#FFFFFF', opacity: busy ? 0.55 : 1 }}>
+            {busy ? t('fiche.links.confirm.busy') : t('fiche.links.confirm.cta')}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+/**
+ * Liste des liens émis pour ce contact, avec retrait des liens encore ouverts.
+ * Vit à côté des « Biens transmis » : c'est le même geste vu de l'autre bout,
+ * ce que l'acheteur peut encore ouvrir.
+ */
+function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
+  P: FichePal
+  dark: boolean
+  links: ContactDetailPagerProps['links']
+  freezeRef: MutableRefObject<number>
+  onRevokeLink: (linkId: string) => Promise<FicheRevokeResult>
+}) {
+  const { t } = useTranslation('contacts')
+  const [target, setTarget] = useState<FicheReceptionLink | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  // La modale ouverte doit geler le pager, sinon la molette change de page dessous.
+  useFreeze(freezeRef, !!target)
+
+  const close = () => { setTarget(null); setBusy(false); setError(null) }
+  const confirm = async () => {
+    if (!target || busy) return
+    setBusy(true)
+    setError(null)
+    const verdict = await onRevokeLink(target.id)
+    if (verdict === 'ok') { close(); return }
+    setBusy(false)
+    // Un refus veut dire que notre liste était périmée (le lien a déjà été retiré
+    // ailleurs) ; une panne veut dire qu'il faut réessayer. Deux phrases, pas une.
+    setError(verdict === 'refused' ? t('fiche.links.confirm.refused') : t('fiche.links.confirm.failed'))
+  }
+
+  return (
+    <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadowSm, padding: '16px 20px', display: 'flex', flexDirection: 'column', minHeight: 0, flexShrink: 0, maxHeight: '42%', overflowY: 'auto' }}>
+      <CdGrp P={P}>{t('fiche.links.title', { count: links.items.length })}</CdGrp>
+      {links.isLoading ? (
+        <div style={{ padding: '16px 2px', fontSize: 12.5, fontWeight: 500, color: P.muted }}>{t('fiche.links.loading')}</div>
+      ) : links.failed ? (
+        <div role="alert" style={{ padding: '16px 2px', fontSize: 12.5, fontWeight: 600, color: P.danger }}>{t('fiche.links.failed')}</div>
+      ) : links.items.length === 0 ? (
+        <div style={{ padding: '16px 2px', fontSize: 12.5, fontWeight: 500, color: P.muted }}>{t('fiche.links.empty')}</div>
+      ) : links.items.map((l, i) => {
+        const state = l.status ? LINK_STATE[l.status] : null
+        const channel = l.channel === 'whatsapp' ? t('fiche.links.channel.whatsapp')
+          : l.channel === 'link' ? t('fiche.links.channel.link')
+            : null
+        return (
+          <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 2px', opacity: l.active ? 1 : 0.6, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
+            <span style={{ width: 32, height: 32, borderRadius: 10, background: P.sub, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <FcpIcon name={l.channel === 'whatsapp' ? 'msg' : 'ext'} size={14} stroke={P.inkSoft} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: -0.2, color: P.ink }}>
+                {t('fiche.links.selection', { count: l.count })}{channel ? ` · ${channel}` : ''}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: P.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
+                {t('fiche.links.sentOn', { date: cdDay(l.createdAt) })}
+                {' · '}
+                {/* Sur un lien coupé, la date qui compte est celle de la coupure,
+                    pas une échéance que le lien n'atteindra jamais. */}
+                {l.revokedAt
+                  ? t('fiche.links.revokedOn', { date: cdDay(l.revokedAt) })
+                  : t('fiche.links.expiresOn', { date: cdDay(l.expiresAt) })}
+              </div>
+            </div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 999, background: state ? P[state.key] : P.ghost, color: '#fff', fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>
+              {state ? t(state.labelK) : t('fiche.links.status.unknown')}
+            </span>
+            {l.active && (
+              <CdCta small tone="ghost" P={P} onClick={() => setTarget(l)}>{t('fiche.links.revoke')}</CdCta>
+            )}
+          </div>
+        )
+      })}
+      {target && (
+        <CdRevokeLinkModal P={P} dark={dark} link={target} busy={busy} error={error} onCancel={close} onConfirm={() => { void confirm() }} />
+      )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //   PAGE 1 — BOUCLE DE MATCH
 // ═══════════════════════════════════════════════════════════════════════
-function CdBoucle({ P, loop, firstName, onOpenMatching, onProposeVisit }: {
-  P: FichePal; loop: ContactDetailPagerProps['loop']; firstName: string; onOpenMatching: () => void; onProposeVisit: (matchId: string) => void
+function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, onProposeVisit, onRevokeLink }: {
+  P: FichePal
+  dark: boolean
+  loop: ContactDetailPagerProps['loop']
+  links: ContactDetailPagerProps['links']
+  firstName: string
+  freezeRef: MutableRefObject<number>
+  onOpenMatching: () => void
+  onProposeVisit: (matchId: string) => void
+  onRevokeLink: (linkId: string) => Promise<FicheRevokeResult>
 }) {
   const { t } = useTranslation('contacts')
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   const hide = (id: string) => setHidden((s) => { const n = new Set(s); n.add(id); return n })
   const pending = loop.pendingLikes.filter((p) => !hidden.has(p.matchId))
+  // Un lien émis suffit à sortir de l'écran d'invitation : sinon un lien encore
+  // ouvert (dont les matches ont disparu) n'aurait plus AUCUN endroit d'où le retirer.
+  // Une lecture des liens en ÉCHEC compte pareil : sans ce test, un contact sans
+  // dossier verrait l'invitation à transmettre, et l'erreur de chargement (portée par
+  // la section « Liens de réception ») serait remplacée par elle. Un défaut de lecture
+  // se lirait alors comme « aucun lien », sur la seule surface qui permet d'en couper un.
   const totallyEmpty = loop.pendingLikes.length === 0 && loop.items.length === 0
+    && links.items.length === 0 && !links.failed
 
   const counters: { v: number; l: string; liked?: boolean }[] = [
     { v: loop.transmitted, l: t('loop.pillSent') },
@@ -1070,29 +1254,34 @@ function CdBoucle({ P, loop, firstName, onOpenMatching, onProposeVisit }: {
             ))}
           </div>
 
-          {/* Biens transmis — état par bien */}
-          <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadowSm, padding: '18px 20px', display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
-              <CdGrp P={P}>{t('fiche.loop.transmittedCount', { count: loop.items.length })}</CdGrp>
-              <div style={{ flex: 1 }} />
-              <span onClick={onOpenMatching} style={{ fontSize: 11.5, fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('fiche.loop.openInMatching')}</span>
-            </div>
-            {loop.items.length === 0 ? (
-              <div style={{ padding: '20px 2px', fontSize: 12.5, fontWeight: 500, color: P.muted }}>{t('loop.empty')}</div>
-            ) : loop.items.map((m, i) => {
-              const out = m.state === 'dismissed'
-              return (
-                <div key={m.matchId} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 2px', opacity: out ? 0.55 : 1, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
-                  {m.photo
-                    ? <img src={m.photo} alt="" style={{ width: 44, height: 44, borderRadius: 11, objectFit: 'cover', flexShrink: 0, filter: out ? 'grayscale(.6)' : 'none' }} />
-                    : <div style={{ width: 44, height: 44, borderRadius: 11, flexShrink: 0, background: P.sub, display: 'grid', placeItems: 'center' }}><FcpIcon name="home" size={16} stroke={P.ghost} /></div>}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+          {/* Ce qui est parti chez l'acheteur : les biens, puis les liens qui les ouvrent */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minHeight: 0 }}>
+            {/* Biens transmis — état par bien */}
+            <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadowSm, padding: '18px 20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+                <CdGrp P={P}>{t('fiche.loop.transmittedCount', { count: loop.items.length })}</CdGrp>
+                <div style={{ flex: 1 }} />
+                <span onClick={onOpenMatching} style={{ fontSize: 11.5, fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('fiche.loop.openInMatching')}</span>
+              </div>
+              {loop.items.length === 0 ? (
+                <div style={{ padding: '20px 2px', fontSize: 12.5, fontWeight: 500, color: P.muted }}>{t('loop.empty')}</div>
+              ) : loop.items.map((m, i) => {
+                const out = m.state === 'dismissed'
+                return (
+                  <div key={m.matchId} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 2px', opacity: out ? 0.55 : 1, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
+                    {m.photo
+                      ? <img src={m.photo} alt="" style={{ width: 44, height: 44, borderRadius: 11, objectFit: 'cover', flexShrink: 0, filter: out ? 'grayscale(.6)' : 'none' }} />
+                      : <div style={{ width: 44, height: 44, borderRadius: 11, flexShrink: 0, background: P.sub, display: 'grid', placeItems: 'center' }}><FcpIcon name="home" size={16} stroke={P.ghost} /></div>}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                    </div>
+                    <CdStatePill state={m.state} label={t(LOOP_STATE[m.state].labelK)} P={P} />
                   </div>
-                  <CdStatePill state={m.state} label={t(LOOP_STATE[m.state].labelK)} P={P} />
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
+
+            <CdLinks P={P} dark={dark} links={links} freezeRef={freezeRef} onRevokeLink={onRevokeLink} />
           </div>
         </div>
       )}
@@ -1104,7 +1293,7 @@ function CdBoucle({ P, loop, firstName, onOpenMatching, onProposeVisit }: {
 //   PAGER
 // ═══════════════════════════════════════════════════════════════════════
 export default function ContactDetailPager(props: ContactDetailPagerProps): ReactElement {
-  const { fiche, nba, loop, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, onOpenKyc, onOpenMatching, onOpenListings, onProposeVisit } = props
+  const { fiche, nba, loop, links, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, onOpenKyc, onOpenMatching, onOpenListings, onProposeVisit, onRevokeLink } = props
   const { t } = useTranslation('contacts')
   const P = buildPal(sp, dark)
   const pageLabels = [t('fiche.page.infos'), t('fiche.page.loop')]
@@ -1215,7 +1404,8 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
               onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} onSaveNote={onSaveNote} onDelete={onDelete} />
           </div>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-            <CdBoucle P={P} loop={loop} firstName={fiche.firstName} onOpenMatching={onOpenMatching} onProposeVisit={onProposeVisit} />
+            <CdBoucle P={P} dark={dark} loop={loop} links={links} firstName={fiche.firstName} freezeRef={freezeRef}
+              onOpenMatching={onOpenMatching} onProposeVisit={onProposeVisit} onRevokeLink={onRevokeLink} />
           </div>
         </div>
         <CdDots page={page} onGo={goTo} P={P} labels={pageLabels} />

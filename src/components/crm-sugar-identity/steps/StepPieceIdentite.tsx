@@ -1,11 +1,19 @@
 /**
- * Wizard « Identité légale » (KYB) — étape 4, la pièce d'identité du signataire.
+ * Wizard « Identité légale » (KYB) — étape 3, la pièce d'identité du signataire.
  *
  * Peau MEGGA X (transcription verbatim de la vitrine megga.ch, scopée `.megga-x`) :
  * l'écran ne pose plus aucune valeur de couleur, taille, rayon ou ombre — tout vient
  * des classes de la vitrine et des composants de src/components/megga-x/. La coquille
  * (IdentityShell) enveloppe le contenu dans <MeggaX>, c'est elle qui porte le fond et
  * la police ; cette étape ne rend que son contenu.
+ *
+ * L'écran demande D'ABORD la nature de la pièce (passeport / carte d'identité /
+ * titre de séjour), et c'est elle qui décide combien de faces sont réclamées :
+ * identityDocumentSidesFor (useAgencyIdentity.ts), la même fonction que celle qui
+ * gate le bouton Continuer. Un passeport n'a qu'une page de données — l'exiger en
+ * deux faces faisait photographier une couverture vierge. La réponse est écrite dans
+ * `agency_related_persons.id_document_type`, colonne posée dès l'origine
+ * (migration 20260729150200) et restée vide jusqu'au 3 août 2026.
  *
  * Téléversement recto/verso avec aperçu et remplacement — mais contrairement aux
  * étapes précédentes (texte tenu en brouillon React, écrit seulement au clic sur
@@ -17,28 +25,48 @@
  * vérifier la complétude.
  *
  * Purement contrôlée par IdentityShell, comme StepSignataire/StepAgence/
- * StepBeneficiaires : aucun accès Supabase direct ici, seulement des props (aperçus
+ * les étapes précédentes : aucun accès Supabase direct ici, seulement des props (aperçus
  * déjà résolus + callback de sélection) — IdentityShell détient
  * useIdentityDocuments()/uploadIdentityDocument() (useAgencyIdentity.ts, tâche 6).
  *
  * Aucun champ ici n'écrit dans agency_person_verification_checks : cette ligne de
  * check (check_type='id_document', source='manual', result='pending_manual_review')
  * ne peut être posée que par submit_agency_identity() (RPC SECURITY DEFINER, garde
- * 42501 sur les tables de checks) — l'étape 5 (récapitulatif, tâche 7) l'appellera au
+ * 42501 sur les tables de checks) — l'étape 4 (récapitulatif, tâche 7) l'appellera au
  * moment de la soumission finale.
  */
 import { useRef, useState, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MxButton, MxModal, MxStateMessage } from '@/components/megga-x'
-import type { IdentityDocumentPreview, IdentityDocumentSide } from '@/hooks/useAgencyIdentity'
+import { MxButton, MxField, MxModal, MxRadio, MxStateMessage } from '@/components/megga-x'
+import { cn } from '@/lib/utils'
+import {
+  IDENTITY_DOCUMENT_TYPES, identityDocumentSidesFor,
+  type IdentityDocumentPreview, type IdentityDocumentSide, type IdentityDocumentType,
+  type IdentityVerificationStatus,
+} from '@/hooks/useAgencyIdentity'
+import type { KybIdReadRecord } from '@/types/kybIdRead'
 
 interface StepPieceIdentiteProps {
+  /** Statut de la vérification chez le prestataire — null si aucune n'a été lancée. */
+  verificationStatus: IdentityVerificationStatus | null
+  /** `last_error.code` de Stripe, pour expliquer un refus dans la langue de l'agent. */
+  verificationErrorCode: string | null
+  /** true pendant l'ouverture de la session (avant la navigation vers Stripe). */
+  startingVerification: boolean
+  /** true quand l'écran doit montrer le dépôt manuel à la place de la vérification. */
+  manualFallback: boolean
+  onStartVerification: () => void
+  onUseManualFallback: () => void
+  /** Nature déclarée, null tant qu'elle n'a pas été choisie — les cases n'apparaissent qu'après. */
+  documentType: IdentityDocumentType | null
   recto: IdentityDocumentPreview | null
   verso: IdentityDocumentPreview | null
   /** true tant que useIdentityDocuments() n'a pas encore résolu — évite un flash "vide" avant que l'aperçu existant n'apparaisse. */
   isLoading: boolean
   /** Le côté en cours de téléversement, pour son propre spinner — jamais les deux à la fois (un input à la fois). */
   uploadingSide: IdentityDocumentSide | null
+  /** true pendant l'écriture de la nature (et l'éventuel retrait du verso qui l'accompagne) — fige le groupe le temps de l'aller-retour. */
+  savingDocumentType: boolean
   /** Message d'erreur déjà traduit (format/taille/échec réseau) — IdentityShell choisit lequel. */
   error: string | null
   /**
@@ -53,20 +81,103 @@ interface StepPieceIdentiteProps {
   loadError: boolean
   /** true si aucun signataire n'est encore enregistré — ne devrait pas arriver en pratique (étape 0 bloque l'avancement avant), l'écran reste défensif. */
   disabled: boolean
+  /** Verdict de la lecture assistée, null tant qu'elle n'a rien rendu (ou a échoué). */
+  identityRead: KybIdReadRecord | null
+  identityReading: boolean
+  onSelectType: (type: IdentityDocumentType) => void
   onSelectFile: (side: IdentityDocumentSide, file: File) => void
+}
+
+/**
+ * Ce que la lecture assistée a trouvé — jamais un obstacle, toujours une remarque.
+ *
+ * Exporté et partagé avec le récapitulatif : le dirigeant doit lire la MÊME phrase aux
+ * deux endroits, sans quoi la seconde ressemblerait à un second avis.
+ *
+ * Trois règles de fond, dans cet ordre :
+ *  1. rien ici ne bloque le bouton Continuer, et la mention le dit en toutes lettres —
+ *     c'est notre équipe conformité qui tranche, pas un modèle ;
+ *  2. la péremption est une ligne À PART du verdict de concordance : une pièce
+ *     périmée peut parfaitement appartenir à la bonne personne, et les confondre
+ *     ferait chercher au dirigeant un problème d'identité qui n'existe pas ;
+ *  3. « illisible » n'accuse personne — c'est une photo à reprendre, pas un soupçon.
+ */
+export function IdentityReadNotice({
+  read, reading,
+}: { read: KybIdReadRecord | null; reading: boolean }) {
+  const { t } = useTranslation('onboarding')
+
+  if (reading) {
+    return (
+      <div className="mg-top-3x-extra-small">
+        <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
+          {t('wizard.pieceIdentite.read.running')}
+        </p>
+      </div>
+    )
+  }
+  if (read == null) return null
+
+  return (
+    <div className="mg-top-3x-extra-small">
+      {/* `role="status"` et non `alert` même pour un mismatch : rien n'a échoué, et
+          une alerte pousserait un lecteur d'écran à interrompre la saisie en cours. */}
+      <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
+        {t(`wizard.pieceIdentite.read.verdict.${read.verdict}`)}
+      </p>
+      {read.expired === true && (
+        <p className="paragraph-small text-color-neutral-600">
+          {t('wizard.pieceIdentite.read.expired', { date: swissDate(read.expiresOn) })}
+        </p>
+      )}
+      {read.documentTypeMatches === false && (
+        <p className="paragraph-small text-color-neutral-600">
+          {t('wizard.pieceIdentite.read.typeDiffers')}
+        </p>
+      )}
+      <p className="paragraph-small text-color-neutral-600">
+        {t('wizard.pieceIdentite.read.disclaimer')}
+      </p>
+    </div>
+  )
+}
+
+/**
+ * Date suisse (31.12.2030) depuis l'ISO rendu par la lecture.
+ *
+ * Réécriture de CHAÎNE, jamais `formatDate()` : mesuré le 03.08.2026, une date-seule
+ * passée par `new Date()` puis réaffichée en heure locale sort la VEILLE dès que le
+ * fuseau de la session est à l'ouest de UTC. Même piège, même parade qu'à la date de
+ * naissance du récapitulatif (birthDate, StepRecapitulatif.tsx).
+ */
+function swissDate(iso: string | null): string {
+  if (!iso) return ''
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : iso
 }
 
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,application/pdf'
 
-/** Étape 4 du wizard identité : recto/verso de la pièce d'identité du signataire. */
+/** Étape 3 du wizard identité : recto/verso de la pièce d'identité du signataire. */
 export function StepPieceIdentite({
-  recto, verso, isLoading, uploadingSide, error, loadError, disabled, onSelectFile,
+  verificationStatus, verificationErrorCode, startingVerification, manualFallback,
+  onStartVerification, onUseManualFallback,
+  documentType, recto, verso, isLoading, uploadingSide, savingDocumentType,
+  identityRead, identityReading, error, loadError, disabled, onSelectType, onSelectFile,
 }: StepPieceIdentiteProps) {
   const { t } = useTranslation('onboarding')
+  // Une seule source pour « quelles faces » : la même fonction gate le bouton
+  // Continuer (isPieceIdentiteStepComplete). Demander ici une face que la garde
+  // n'exige pas — ou l'inverse — serait un écran qui se contredit lui-même.
+  const sides = identityDocumentSidesFor(documentType)
 
   return (
     <div className="inner-container _634px center">
-      <h1 className="display-6">{t('wizard.pieceIdentite.title')}</h1>
+      {/* Marge portée par le <h1> lui-même, comme aux autres étapes : la règle `h1`
+          de la vitrine remet les marges à zéro, et sans cette classe le titre de
+          CETTE étape seule démarrait 8 px plus haut que les trois autres — un saut
+          visible au changement d'étape, la coquille ne bougeant pas autour. */}
+      <h1 className="display-6 mg-top-4x-extra-small">{t('wizard.pieceIdentite.title')}</h1>
       <div className="mg-top-4x-extra-small">
         <p className="paragraph-large text-paragraph">
           {t('wizard.pieceIdentite.subtitle')}
@@ -91,28 +202,216 @@ export function StepPieceIdentite({
         <MxStateMessage variant="error" role="alert">
           {t('wizard.pieceIdentite.errors.loadFailed')}
         </MxStateMessage>
+      ) : !manualFallback ? (
+        // CHEMIN PRINCIPAL — la vérification chez le prestataire. Aucun fichier ne
+        // transite par MEGGA, ce qui est tout l'intérêt du changement du 3 août 2026.
+        <IdentityVerificationCard
+          status={verificationStatus}
+          errorCode={verificationErrorCode}
+          starting={startingVerification}
+          onStart={onStartVerification}
+          onUseManual={onUseManualFallback}
+        />
       ) : (
-        <div className="mg-top-medium">
-          <div className="grid-2-columns">
-            <DocumentTile
-              label={t('wizard.pieceIdentite.sides.recto')}
-              preview={recto}
-              uploading={uploadingSide === 'recto'}
-              isLoading={isLoading}
-              onSelectFile={(file) => onSelectFile('recto', file)}
-            />
-            <DocumentTile
-              label={t('wizard.pieceIdentite.sides.verso')}
-              preview={verso}
-              uploading={uploadingSide === 'verso'}
-              isLoading={isLoading}
-              onSelectFile={(file) => onSelectFile('verso', file)}
-            />
-          </div>
-        </div>
+        <>
+          {/* La nature AVANT les cases, et les cases seulement après : c'est elle qui
+              décide combien de faces sont demandées. L'ordre inverse aurait fait
+              déposer un verso à un porteur de passeport avant de lui apprendre qu'il
+              n'en a pas — un fichier de trop, déjà en ligne, qu'il faudrait retirer. */}
+          <MxField className="mg-top-medium" label={t('wizard.pieceIdentite.documentType.label')}>
+            {/* `mx-equal-columns` : sans lui, `1fr 1fr 1fr` ne donne PAS trois
+                colonnes égales — la piste garde un minimum `auto`, et la carte au
+                libellé le plus long (allemand : « Aufenthaltstitel ») écrase les deux
+                autres. Même piège que le trio adresse de l'étape 2. */}
+            <div
+              className="grid-3-columns mx-equal-columns"
+              role="radiogroup"
+              aria-label={t('wizard.pieceIdentite.documentType.label')}
+            >
+              {IDENTITY_DOCUMENT_TYPES.map((type) => (
+                <DocumentTypeCard
+                  key={type}
+                  type={type}
+                  selected={documentType === type}
+                  disabled={savingDocumentType}
+                  label={t(`wizard.pieceIdentite.documentType.options.${type}`)}
+                  hint={t(`wizard.pieceIdentite.documentType.hints.${type}`)}
+                  onSelect={onSelectType}
+                />
+              ))}
+            </div>
+          </MxField>
+
+          {documentType != null && (
+            <div className="mg-top-medium">
+              {/* Deux colonnes pour deux faces, une seule quand la pièce n'en a
+                  qu'une : une case de passeport étalée sur la moitié de la largeur
+                  aurait laissé un vide inexpliqué à côté d'elle. */}
+              <div className={sides.length > 1 ? 'grid-2-columns' : undefined}>
+                {sides.map((side) => (
+                  <DocumentTile
+                    key={side}
+                    // « Recto » n'a de sens qu'en face d'un verso : pour un
+                    // passeport, la seule face demandée s'appelle par ce qu'elle
+                    // est, la page de données.
+                    label={documentType === 'passport'
+                      ? t('wizard.pieceIdentite.sides.dataPage')
+                      : t(`wizard.pieceIdentite.sides.${side}`)}
+                    preview={side === 'recto' ? recto : verso}
+                    uploading={uploadingSide === side}
+                    isLoading={isLoading}
+                    onSelectFile={(file) => onSelectFile(side, file)}
+                  />
+                ))}
+              </div>
+              <IdentityReadNotice read={identityRead} reading={identityReading} />
+            </div>
+          )}
+        </>
       )}
 
       {error && <MxStateMessage variant="error">{error}</MxStateMessage>}
+    </div>
+  )
+}
+
+/**
+ * La carte du chemin principal : vérifier son identité chez le prestataire.
+ *
+ * Quatre états, et un seul geste par état — c'est la règle qui tient cet écran :
+ *  · rien encore lancé -> « Vérifier mon identité » ;
+ *  · `processing` -> Stripe traite ; on NE bloque PAS le parcours (cf.
+ *    isIdentityVerificationSufficient), le verdict arrivera par webhook avant que le
+ *    relecteur n'ouvre le dossier ;
+ *  · `verified` -> c'est fait, plus rien à faire ici ;
+ *  · `requires_input` -> le motif expliqué, et « Reprendre ».
+ *
+ * Le dépôt manuel est TOUJOURS proposé en second recours, jamais caché : le titre de
+ * séjour n'est pas dans les types que Stripe accepte, et seul le dirigeant sait quelle
+ * pièce il possède. Un parcours qui ne laisserait que la vérification exclurait
+ * silencieusement les détenteurs de livret B/C — soit une part notable des dirigeants
+ * d'agence à Genève.
+ */
+function IdentityVerificationCard({
+  status, errorCode, starting, onStart, onUseManual,
+}: {
+  status: IdentityVerificationStatus | null
+  errorCode: string | null
+  starting: boolean
+  onStart: () => void
+  onUseManual: () => void
+}) {
+  const { t } = useTranslation('onboarding')
+  const done = status === 'verified'
+  const pending = status === 'processing'
+  const retry = status === 'requires_input'
+
+  return (
+    <div className="mg-top-medium">
+      <div className="card">
+        <div className="pd---content-inside-card">
+          <div className="display-2 semi-bold">
+            {t(`wizard.pieceIdentite.verification.${done ? 'doneTitle' : pending ? 'pendingTitle' : 'title'}`)}
+          </div>
+          <div className="mg-top-4x-extra-small">
+            <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
+              {t(`wizard.pieceIdentite.verification.${done ? 'doneBody' : pending ? 'pendingBody' : 'body'}`)}
+            </p>
+          </div>
+
+          {/* Le motif du refus, dans la langue de l'agent. Le code brut de Stripe
+              (`selfie_document_missing_photo`) n'a aucun sens pour un dirigeant : tout
+              code hors du catalogue traduit retombe sur une phrase générique. */}
+          {retry && (
+            <div className="mg-top-4x-extra-small">
+              <p className="paragraph-small text-color-neutral-600">
+                {t(`wizard.pieceIdentite.verification.errors.${knownVerificationError(errorCode)}`)}
+              </p>
+            </div>
+          )}
+
+          {!done && (
+            <div className="mg-top-3x-extra-small">
+              <MxButton type="button" onClick={onStart} disabled={starting} aria-busy={starting || undefined}>
+                {starting
+                  ? t('wizard.footer.saving')
+                  : t(`wizard.pieceIdentite.verification.${retry ? 'retryCta' : 'cta'}`)}
+              </MxButton>
+            </div>
+          )}
+
+          {/* Second recours, jamais mis en avant mais jamais caché non plus. */}
+          {!done && (
+            <div className="mg-top-4x-extra-small">
+              <button type="button" className="link-single display-1 medium" onClick={onUseManual}>
+                {t('wizard.pieceIdentite.verification.useManual')}
+              </button>
+            </div>
+          )}
+
+          <div className="mg-top-4x-extra-small">
+            <p className="paragraph-small text-color-neutral-600">
+              {t('wizard.pieceIdentite.verification.privacy')}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Les codes de refus pour lesquels il existe une phrase traduite — tout le reste retombe sur `unknown`. */
+const KNOWN_VERIFICATION_ERRORS = [
+  'consent_declined', 'under_supported_age', 'country_not_supported',
+  'document_expired', 'document_type_not_supported', 'document_unverified_other',
+  'selfie_face_mismatch', 'selfie_manipulated', 'selfie_document_missing_photo',
+  'selfie_unverified_other', 'abandoned',
+]
+
+function knownVerificationError(code: string | null): string {
+  return code && KNOWN_VERIFICATION_ERRORS.includes(code) ? code : 'unknown'
+}
+
+/**
+ * Une des trois natures de pièce, en carte.
+ *
+ * Même grammaire que le pouvoir de signature de l'étape 1 (SignaturePowerCard) :
+ * radio réel dans un groupe — le choix est exclusif, seul un `radiogroup`
+ * l'annonce comme tel (« 1 sur 3 ») et se parcourt aux flèches — et sélection
+ * portée par le liseré d'accent qui ceint la carte, la pastille restant masquée
+ * visuellement mais présente dans le DOM.
+ *
+ * Figée pendant l'écriture (`disabled`) : ce choix part immédiatement en base et
+ * peut emporter le retrait du verso ; en enchaîner deux avant que le premier ait
+ * résolu ferait courir deux écritures concurrentes sur la même ligne.
+ */
+function DocumentTypeCard({
+  type, selected, disabled, label, hint, onSelect,
+}: {
+  type: IdentityDocumentType
+  selected: boolean
+  disabled: boolean
+  label: string
+  hint: string
+  onSelect: (type: IdentityDocumentType) => void
+}) {
+  return (
+    <div className={cn('card mx-choice-card', selected && 'mx-choice-card--selected')}>
+      <MxRadio
+        className="pd---content-inside-card"
+        name="identity-document-type"
+        value={type}
+        checked={selected}
+        disabled={disabled}
+        onSelect={() => onSelect(type)}
+        label={(
+          <>
+            <span className="display-2 semi-bold">{label}</span>
+            <br />
+            <span className="paragraph-small text-color-neutral-600">{hint}</span>
+          </>
+        )}
+      />
     </div>
   )
 }

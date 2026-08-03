@@ -24,12 +24,21 @@
       "ariaLabel": "Passaggi",
       "signataire": "Firmatario",
       "agence": "Agenzia",
-      "beneficiaires": "Aventi diritto economico",
       "pieceIdentite": "Documento d'identità",
       "recapitulatif": "Riepilogo"
     },
     "header": {
-      "language": "Lingua dell'interfaccia"
+      "language": "Lingua dell'interfaccia",
+      "languageLoading": "Caricamento della lingua…"
+    },
+    "date": {
+      "open": "Scegliere una data",
+      "placeholder": "GG.MM.AAAA",
+      "previousMonth": "Mese precedente",
+      "nextMonth": "Mese successivo",
+      "month": "Mese",
+      "year": "Anno",
+      "clear": "Cancellare la data"
     },
     "footer": {
       "continue": "Continua",
@@ -65,52 +74,77 @@
         "countryPlaceholder": "Selezioni un Paese",
         "legalFormId": "Forma giuridica",
         "legalFormPlaceholder": "Selezioni una forma giuridica",
-        "legalFormPlaceholderNoCountry": "Selezioni prima il Paese della sede",
+        "legalFormPlaceholderNoCountry": "Scelga prima il Paese",
         "legalName": "Ragione sociale",
-        "legalNameHint": "La denominazione ufficiale iscritta nel registro di commercio.",
-        "tradeName": "Nome commerciale",
-        "tradeNameHint": "Il nome con cui i Suoi clienti La conoscono, se diverso dalla ragione sociale.",
         "businessRegistrationNumber": "Numero di registro",
-        "tva": "Numero IVA",
-        "tvaHint": "Facoltativo: riguarda solo le aziende assoggettate all'IVA.",
         "address": "Indirizzo",
         "postal": "NPA",
         "city": "Città",
         "canton": "Cantone",
         "cantonPlaceholder": "Selezioni un Cantone"
-      }
-    },
-    "beneficiaires": {
-      "title": "Chi sono gli aventi diritto economico della Sua agenzia?",
-      "subtitle": "Le persone fisiche che detengono o controllano la Sua agenzia.",
-      "reuseSignataire": "Riprenda {{name}} (firmatario)",
-      "addButton": "Aggiunga un avente diritto economico",
-      "emptyHint": "Nessuno raggiunge il 25%? Dichiari chi controlla l'agenzia in altro modo o, in mancanza, un membro della sua direzione.",
-      "removeButton": "Rimuova questo avente diritto economico",
-      "fields": {
-        "firstName": "Nome",
-        "lastName": "Cognome",
-        "dateOfBirth": "Data di nascita",
-        "nationality": "Nazionalità",
-        "nationalityPlaceholder": "Selezioni un Paese",
-        "ownershipPct": "Percentuale di partecipazione",
-        "ownershipPctHint": "Soglia di riferimento (norma GAFI): 25% o più. Può indicare anche un valore inferiore."
       },
-      "pep": {
-        "label": "Questa persona è una persona politicamente esposta (PEP)?",
-        "yes": "Sì",
-        "yesHint": "Esercita o ha esercitato un'importante funzione pubblica, in Svizzera o all'estero, oppure è uno stretto collaboratore di tale persona.",
-        "no": "No",
-        "noHint": "Non esercita alcuna funzione pubblica importante."
+      "company": {
+        "search": "Cercare",
+        "searching": "Ricerca…",
+        "noResults": "Nessuna società trovata con questo nome nel registro di commercio.",
+        "error": "Il registro di commercio non ha risposto.",
+        "listLabel": "Società trovate nel registro",
+        "inactive": " · radiata"
+      },
+      "address": {
+        "placeholder": "Via e numero",
+        "noResults": "Nessun indirizzo trovato. Può inserirlo a mano.",
+        "error": "Il registro degli indirizzi non ha risposto. Può inserire l'indirizzo a mano.",
+        "listLabel": "Indirizzi proposti"
       }
     },
     "pieceIdentite": {
       "title": "Carichi il documento d'identità del firmatario",
-      "subtitle": "Fronte e retro di un documento in corso di validità: carta d'identità, passaporto o permesso di soggiorno. Lo esamina un membro del nostro team di conformità.",
+      "subtitle": "Un documento in corso di validità: passaporto, carta d'identità o permesso di soggiorno. Ne indichi il tipo, poi fotografi le facciate richieste. Lo esamina un membro del nostro team di conformità.",
       "missingSignataire": "Il firmatario deve prima essere indicato nel passaggio precedente.",
+      "verification": {
+        "title": "Verifichi la sua identità",
+        "body": "Fotografi il documento e il suo volto. La verifica avviene presso il nostro fornitore: la foto del documento non ci viene mai trasmessa.",
+        "cta": "Verificare la mia identità",
+        "retryCta": "Riprendere la verifica",
+        "pendingTitle": "Verifica in corso",
+        "pendingBody": "Il risultato arriva tra poco. Può continuare, lo collegheremo al suo fascicolo.",
+        "doneTitle": "Identità verificata",
+        "doneBody": "Il documento è stato verificato e il suo volto confrontato con la foto. Il nostro team di conformità esamina poi il fascicolo.",
+        "useManual": "Caricare invece il documento",
+        "privacy": "Il nostro fornitore conserva il documento per il controllo; MEGGA riceve solo l'esito e la data di scadenza.",
+        "errors": {
+          "consent_declined": "Ha rifiutato la verifica. Carichi il documento qui sotto, il nostro team lo esaminerà.",
+          "under_supported_age": "La verifica online non copre le persone sotto i 16 anni.",
+          "country_not_supported": "Il suo Paese non è coperto dalla verifica online. Carichi il documento qui sotto.",
+          "document_expired": "Il documento presentato è scaduto. Riprovi con un documento in corso di validità.",
+          "document_type_not_supported": "Questo tipo di documento non è accettato. Vanno bene un passaporto o una carta d'identità.",
+          "document_unverified_other": "Non è stato possibile verificare il documento. Riprovi con una luce migliore.",
+          "selfie_face_mismatch": "Il volto non corrisponde alla foto del documento. Ripeta la verifica.",
+          "selfie_manipulated": "La foto del volto sembra ritoccata. Ripeta la verifica.",
+          "selfie_document_missing_photo": "Il documento non riporta una foto. Usi un passaporto o una carta d'identità.",
+          "selfie_unverified_other": "Non è stato possibile verificare il volto. Ripeta la verifica.",
+          "abandoned": "La verifica è stata interrotta. Può riprenderla.",
+          "unknown": "La verifica non è andata a buon fine. Può riprovare o caricare il documento qui sotto."
+        }
+      },
+      "documentType": {
+        "label": "Tipo di documento",
+        "options": {
+          "passport": "Passaporto",
+          "id_card": "Carta d'identità",
+          "residence_permit": "Permesso di soggiorno"
+        },
+        "hints": {
+          "passport": "Una sola pagina da fotografare",
+          "id_card": "Sono richieste entrambe le facciate",
+          "residence_permit": "Sono richieste entrambe le facciate"
+        }
+      },
       "sides": {
         "recto": "Fronte",
-        "verso": "Retro"
+        "verso": "Retro",
+        "dataPage": "Pagina dei dati"
       },
       "dropHint": "Clicchi per selezionare un file",
       "formatHint": "JPG, PNG, WEBP o PDF, massimo 8 MB",
@@ -119,6 +153,18 @@
       "zoomClose": "Chiudi",
       "zoomHint": "Verifichi che il documento sia nitido e che i quattro angoli siano visibili. Altrimenti lo sostituisca.",
       "openPdf": "Apri il PDF",
+      "read": {
+        "running": "Lettura del documento in corso…",
+        "verdict": {
+          "match": "Il documento corrisponde all'identità che ha indicato.",
+          "partial": "Il documento corrisponde solo in parte all'identità che ha indicato. Rilegga il passaggio del firmatario prima di continuare.",
+          "mismatch": "Il documento non corrisponde all'identità che ha indicato. Verifichi che sia quello giusto.",
+          "unreadable": "Non è stato possibile leggere il documento. Una foto più nitida aiuta, ma può continuare."
+        },
+        "expired": "Questo documento sembra scaduto il {{date}}.",
+        "typeDiffers": "Il documento non sembra quello che ha indicato.",
+        "disclaimer": "Lettura automatica, a titolo indicativo: è il nostro team di conformità a esaminare il documento."
+      },
       "errors": {
         "format": "Formato accettato: JPG, PNG, WEBP o PDF.",
         "size": "Dimensione massima: 8 MB.",
@@ -130,15 +176,14 @@
       "title": "Verifichi il Suo fascicolo prima di inviarlo",
       "subtitle": "Rilegga ogni sezione. Può ancora modificare un passaggio.",
       "notProvided": "Non indicato",
-      "beneficiaires": {
-        "empty": "Nessun avente diritto economico dichiarato.",
-        "ownership": "{{pct}}% di partecipazione"
-      },
       "pieceIdentite": {
         "uploaded": "Caricato",
         "missing": "Mancante",
         "loading": "Verifica dei documenti caricati…",
-        "loadFailed": "Impossibile verificare i documenti caricati. Riprovi."
+        "loadFailed": "Impossibile verificare i documenti caricati. Riprovi.",
+        "statusLabel": "Verifica",
+        "verified": "Identità verificata presso il nostro fornitore",
+        "processing": "Verifica in corso di elaborazione"
       },
       "attestation": "Attesto che le informazioni sopra riportate sono esatte e complete, per quanto a mia conoscenza.",
       "errors": {
@@ -203,6 +248,93 @@
         "eyebrow": "Correzione richiesta",
         "title": "È richiesta una correzione",
         "body": "I dettagli Le sono stati inviati per e-mail. Corregga la Sua compilazione, quindi invii di nuovo: l'esame riprende automaticamente."
+      }
+    }
+  },
+  "call": {
+    "intro": {
+      "title": "Prenoti la sua chiamata di benvenuto",
+      "body": "Il suo dossier e in revisione. Prendiamoci 30 minuti per esaminare la sua configurazione e rispondere alle sue domande."
+    },
+    "picker": {
+      "weekdays": [
+        "Lun",
+        "Mar",
+        "Mer",
+        "Gio",
+        "Ven",
+        "Sab",
+        "Dom"
+      ],
+      "prevMonth": "Mese precedente",
+      "nextMonth": "Mese successivo",
+      "slotsTitle": "Orari",
+      "pickDayFirst": "Scelga un giorno nel calendario per vedere gli orari liberi.",
+      "noSlotThatDay": "Niente di libero quel giorno.",
+      "timezoneHint": "Orari nel suo fuso orario : {{timezone}}"
+    },
+    "form": {
+      "phone": "Telefono (facoltativo)",
+      "phonePlaceholder": "+41 22 000 00 00",
+      "note": "Una parola sulle sue priorita (facoltativo)",
+      "notePlaceholder": "Cosa vorrebbe vedere per primo"
+    },
+    "actions": {
+      "confirm": "Confermare l'appuntamento",
+      "later": "Piu tardi",
+      "continue": "Continua verso il mio spazio"
+    },
+    "confirmed": {
+      "title": "Prenotato",
+      "join": "Partecipare alla videoconferenza",
+      "emailSent": "Un'e-mail di conferma la attende, con il link e la possibilita di riprogrammare.",
+      "toDashboard": "Vai al mio spazio"
+    },
+    "empty": {
+      "noHost": "Nessun orario disponibile al momento. La ricontatteremo per e-mail appena possibile.",
+      "noSlot": "Niente piu di libero in questo periodo. Provi il mese successivo, oppure continui : le scriveremo."
+    },
+    "errors": {
+      "slot_taken": "Questo orario e appena stato preso. Ne scelga un altro.",
+      "already_booked": "La sua agenzia ha gia un appuntamento prenotato.",
+      "no_host_available": "Nessuno e disponibile al momento.",
+      "slot_in_past": "Questo orario e gia passato.",
+      "call_in_past": "Questo appuntamento e gia passato.",
+      "call_not_active": "Questo appuntamento non e piu attivo.",
+      "reschedule_limit_reached": "Limite di riprogrammazioni raggiunto. Ci scriva per trovare un altra data.",
+      "generic": "L'appuntamento non e stato salvato. Riprovi tra un istante."
+    },
+    "banner": {
+      "pending": {
+        "title": "Prenoti la sua chiamata di benvenuto",
+        "body": "30 minuti con il nostro team per iniziare con MEGGA.",
+        "cta": "Scegliere un orario"
+      },
+      "booked": {
+        "title": "Chiamata di benvenuto prevista",
+        "join": "Partecipare"
+      }
+    },
+    "public": {
+      "loading": "Caricamento del suo appuntamento...",
+      "title": "La sua chiamata di benvenuto MEGGA",
+      "invalid": {
+        "title": "Link non trovato",
+        "body": "Questo link non e piu valido. Verifichi l'indirizzo ricevuto per e-mail, oppure ci scriva."
+      },
+      "notActive": "Questo appuntamento e stato annullato o e gia passato.",
+      "tooLate": "Questo appuntamento e molto vicino : non puo piu essere modificato qui.",
+      "reschedule": "Riprogrammare",
+      "cancel": "Annullare l'appuntamento",
+      "back": "Indietro",
+      "confirmReschedule": "Confermare la nuova data",
+      "cancelled": {
+        "title": "Appuntamento annullato",
+        "body": "Preso nota. Puo prenotarne uno nuovo dal suo spazio MEGGA."
+      },
+      "rescheduled": {
+        "title": "Nuova data salvata",
+        "body": "Un'e-mail di conferma con la data aggiornata e in arrivo."
       }
     }
   }
