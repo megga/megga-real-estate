@@ -26,9 +26,11 @@ import { TK } from './tk'
 import { RXIcon, Av, Eyebrow } from './kit'
 import { DATA } from './data'
 import {
-  HL_TYPES, HL_KIND_TYPE, HL_HOT, HL_ANN,
+  HL_TYPES, HL_KIND_TYPE,
   type HlSignalData, type HlHotData, type HlAnnData, type HlNewsData,
 } from './dataH'
+import { useHotDeals } from './useHotDeals'
+import { useListingActions } from './useListingActions'
 import { useTodayH, type TodayHBlock, type TodayHDay } from './useTodayH'
 import { useAbsenceSignals, type AbsenceGroup, type AbsenceSignal } from './useAbsenceSignals'
 import { useTodayNav } from './TodayNavContext'
@@ -328,21 +330,17 @@ function HlDay({ day, selId, onSel }: {
   )
 }
 
-// ─── Repère « démo » ────────────────────────────────────────────────────
-// Une zone encore alimentée par `dataH.ts` le DIT. Un écran qui mêle
-// silencieusement données réelles et données inventées est pire qu'un écran
-// incomplet : l'agent ne peut plus savoir ce qu'il regarde. Ce repère disparaît
-// zone par zone à mesure que les lots backend arrivent.
-function HlDemoTag() {
-  const { t } = useTranslation('dashboard')
+// ─── État vide d'un segment ─────────────────────────────────────────────
+// Un segment sans contenu doit le DIRE. Sans ça, « 0 chaud » surplombe un vide
+// qu'on ne sait pas lire : rien à traiter, ou rien qui charge ?
+function HlZoneEmpty({ label }: { label: string }) {
   return (
-    <span
-      title={t('today.h.demoHint')}
-      style={{
-        fontSize: 9, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase',
-        color: TK.sub, background: TK.card, borderRadius: 999, padding: '2px 7px', flexShrink: 0,
-      }}
-    >{t('today.h.demoTag')}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 2px 2px' }}>
+      <span style={{ width: 30, height: 30, borderRadius: 999, background: TK.ok.bg, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+        <RXIcon name="check" size={15} sw={2.4} color={TK.ok.dot} />
+      </span>
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: TK.sub, lineHeight: 1.4 }}>{label}</span>
+    </div>
   )
 }
 
@@ -588,6 +586,10 @@ export function PageAujourdhuiH() {
     signals: absenceSignals, groups: absenceGroups, total: absenceTotal,
     sinceLabel, markAllSeen, resumeReminder,
   } = useAbsenceSignals()
+  // Lot 3 — Dossiers (file Focus, déterministe) et Annonces (complétude +
+  // état de diffusion). Les deux dernières zones de démonstration tombent.
+  const { deals: hotDeals } = useHotDeals()
+  const { actions: listingActions } = useListingActions()
   // Lot 0 — journée, nouveautés et total Pipeline viennent de Supabase.
   // « fait » reste un ÉTAT DE DONNÉE (barré + badge « Terminé ») : le geste
   // `event_mark_done` est du Lot 2, et le popover de la maquette ne l'expose pas.
@@ -640,17 +642,12 @@ export function PageAujourdhuiH() {
     }
     nav(s.route, s.navRef)
   }
-  const onDeal = (d: HlHotData) => {
-    if (d.id === 'marie') { nav('contact-detail'); return }
-    if (d.id === 'antoine') { nav('deal-detail'); return }
-    if (d.id === 'julien') { say(t('today.h.toast.openMandate', { name: d.name.split(' ')[0] })); return }
-    say(t('today.h.toast.launchedFor', { cta: d.cta, name: d.name.split(' ')[0] }))
-  }
-  const onAnn = (a: HlAnnData) => {
-    if (a.cta === 'Publier') { say(t('today.h.toast.published', { title: a.title })); return }
-    if (a.cta === 'Voir les retours') { nav('matching'); return }
-    say(t('today.h.toast.annAction', { cta: a.cta, title: a.title }))
-  }
+  // Dossiers et Annonces EMMÈNENT vers la fiche concernée. « Publier » n'écrit
+  // rien : le go-live est bloqué chez le tiers (FTP, `idx_enabled` à false), donc
+  // un bouton qui écrirait `queued` mentirait. Il ouvre la fiche du bien, là où
+  // la diffusion se pilote.
+  const onDeal = (d: HlHotData) => nav('contact-detail', (d as { contactId?: string }).contactId)
+  const onAnn = (a: HlAnnData) => nav('biens-detail', (a as { propertyId?: string }).propertyId)
 
   // Teaser : les 4 signaux les plus récents, tous groupes confondus.
   const teaser = absenceSignals.slice(0, 4)
@@ -724,16 +721,16 @@ export function PageAujourdhuiH() {
                       >{l}</button>
                     ))}
                   </div>
-                  <HlDemoTag />
                   </div>
                   {zone === 'dossiers'
-                    ? <span style={{ fontSize: 11, fontWeight: 700, color: TK.sub }}>{t('today.h.hotCount', { count: HL_HOT.length })}</span>
+                    ? <span style={{ fontSize: 11, fontWeight: 700, color: TK.sub }}>{t('today.h.hotCount', { count: hotDeals.length })}</span>
                     : <button onClick={() => nav('biens')} style={{ background: 'none', border: 0, fontFamily: 'inherit', fontSize: 11, fontWeight: 700, color: TK.sub, cursor: 'pointer', padding: '4px 6px', marginRight: -4 }}>{t('today.h.openListings')}</button>}
                 </div>
                 <div key={zone} className="hl-dossier" style={{ minHeight: 0 }}>
                   {zone === 'dossiers' ? (
                     <>
-                      {HL_HOT.map((d, i) => <HlDealCard key={d.id} d={d} first={i === 0} onCta={onDeal} />)}
+                      {!hotDeals.length && <HlZoneEmpty label={t('today.h.deals.empty')} />}
+                      {hotDeals.map((d, i) => <HlDealCard key={d.id} d={d} first={i === 0} onCta={onDeal} />)}
                       {/* Pipeline vide ⇒ pas de renvoi : « Voir les 0 dossiers »
                           serait une invitation à ouvrir un écran vide. */}
                       {pipelineTotal > 0 && (
@@ -747,7 +744,9 @@ export function PageAujourdhuiH() {
                       )}
                     </>
                   ) : (
-                    HL_ANN.map((a, i) => <HlAnnCard key={a.id} a={a} first={i === 0} onCta={onAnn} />)
+                    listingActions.length
+                      ? listingActions.map((a, i) => <HlAnnCard key={a.id} a={a} first={i === 0} onCta={onAnn} />)
+                      : <HlZoneEmpty label={t('today.h.listings.empty')} />
                   )}
                 </div>
               </div>

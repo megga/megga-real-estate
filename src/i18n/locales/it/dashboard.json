@@ -486,15 +486,10 @@
         "unknownProperty": "un immobile"
       },
       "toast": {
-        "openMandate": "Apertura del mandato di {{name}}",
-        "launched": "{{cta}} · avviato",
-        "launchedFor": "{{cta}} {{name}} · avviato",
         "allUpToDate": "Tutto aggiornato",
         "visitProposed": "Proposta di visita inviata a {{name}}",
         "dealResumed": "Dossier {{name}} ripreso",
         "recalibrated": "Criteri ricalibrati per {{name}}",
-        "published": "Pubblicazione su Immobilier.ch · {{title}}",
-        "annAction": "{{cta}} · {{title}}",
         "resumeFailed": "La ripresa non è stata salvata. Riprova.",
         "doneFailed": "Lo stato non è stato salvato. Riprova.",
         "markedDone": "{{name}} · segnato come completato",
@@ -511,8 +506,6 @@
         "emptyTitle": "Giornata libera",
         "emptyDesc": "Nessun appuntamento, visita o promemoria previsto oggi."
       },
-      "demoTag": "Demo",
-      "demoHint": "Quest’area utilizza ancora dati dimostrativi.",
       "mobileTitle": "Oggi",
       "mobileDay": "Giornata",
       "searchAria": "Cerca",
@@ -521,7 +514,29 @@
       "slots_one": "{{count}} fascia oraria",
       "slots_other": "{{count}} fasce orarie",
       "minutes_one": "{{count}} min",
-      "minutes_other": "{{count}} min"
+      "minutes_other": "{{count}} min",
+      "listings": {
+        "untitled": "Immobile senza titolo",
+        "issue": {
+          "draft": "bozza da completare",
+          "noPhoto": "nessuna foto",
+          "thinDescription": "descrizione troppo breve",
+          "notPushed": "pubblico, non ancora su Immobilier.ch",
+          "published": "pubblicato"
+        },
+        "cta": {
+          "draft": "Completa",
+          "noPhoto": "Aggiungi",
+          "thinDescription": "Completa",
+          "notPushed": "Pubblica",
+          "published": "Apri"
+        },
+        "empty": "Tutti i tuoi annunci sono completi e pubblicati."
+      },
+      "deals": {
+        "open": "Apri",
+        "empty": "Nessun dossier richiede attenzione ora."
+      }
     }
   },
   "analytics": {

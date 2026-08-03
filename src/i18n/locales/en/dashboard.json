@@ -486,15 +486,10 @@
         "unknownProperty": "a property"
       },
       "toast": {
-        "openMandate": "Opening the mandate for {{name}}",
-        "launched": "{{cta}} · under way",
-        "launchedFor": "{{cta}} {{name}} · under way",
         "allUpToDate": "Everything is up to date",
         "visitProposed": "Viewing proposal sent to {{name}}",
         "dealResumed": "Deal {{name}} resumed",
         "recalibrated": "Criteria recalibrated for {{name}}",
-        "published": "Published on Immobilier.ch · {{title}}",
-        "annAction": "{{cta}} · {{title}}",
         "resumeFailed": "The follow-up could not be saved. Try again.",
         "doneFailed": "The status could not be saved. Try again.",
         "markedDone": "{{name}} · marked as done",
@@ -511,8 +506,6 @@
         "emptyTitle": "Clear day",
         "emptyDesc": "No appointment, viewing or reminder scheduled today."
       },
-      "demoTag": "Demo",
-      "demoHint": "This area still runs on demonstration data.",
       "mobileTitle": "Today",
       "mobileDay": "Day",
       "searchAria": "Search",
@@ -521,7 +514,29 @@
       "slots_one": "{{count}} slot",
       "slots_other": "{{count}} slots",
       "minutes_one": "{{count}} min",
-      "minutes_other": "{{count}} min"
+      "minutes_other": "{{count}} min",
+      "listings": {
+        "untitled": "Untitled property",
+        "issue": {
+          "draft": "draft to complete",
+          "noPhoto": "no photo",
+          "thinDescription": "description too short",
+          "notPushed": "public, not yet on Immobilier.ch",
+          "published": "published"
+        },
+        "cta": {
+          "draft": "Complete",
+          "noPhoto": "Add",
+          "thinDescription": "Complete",
+          "notPushed": "Publish",
+          "published": "Open"
+        },
+        "empty": "All your listings are complete and published."
+      },
+      "deals": {
+        "open": "Open",
+        "empty": "No deal needs attention right now."
+      }
     }
   },
   "analytics": {
