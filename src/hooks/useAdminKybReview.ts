@@ -24,6 +24,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/types/database'
+import { isIdentityDocumentType, type IdentityDocumentType } from '@/hooks/useAgencyIdentity'
+import { isKybIdReadRecord, type KybIdReadRecord } from '@/types/kybIdRead'
 import type { CheckResult, PersonRoleRow } from '@/pages/admin/AdminKybReviewPage'
 
 // ─── Liste ──────────────────────────────────────────────────────────────────
@@ -199,6 +201,26 @@ export interface KybReviewPerson {
   id: string
   firstName: string
   lastName: string
+  /**
+   * Nature déclarée de la pièce d'identité, ou null si le dossier a été soumis avant
+   * que l'étape 3 ne la demande (03.08.2026). Elle dit au relecteur COMBIEN de faces
+   * attendre : un passeport n'en a qu'une, un verso absent n'y est donc pas un
+   * manque. `id_document_number`, lui, reste HORS de cette lecture — c'est la PII que
+   * le commentaire de colonne (20260729150200) désigne comme sensible, et le
+   * relecteur l'a sous les yeux sur l'image.
+   */
+  idDocumentType: IdentityDocumentType | null
+  /**
+   * Échéance et verdict de la lecture assistée (edge kyb-identity-read) — posés par
+   * service_role seul (trigger enforce_agency_person_id_read_writer, 20260803150000),
+   * donc jamais par le dirigeant qui fait l'objet de la revue.
+   *
+   * ⚠ INDICATIFS. Ils n'entrent dans aucun score et ne lèvent aucun véto : la décision
+   * reste `admin_resolve_agency_id_document`, prise par le relecteur qui a l'image sous
+   * les yeux. Un `mismatch` dit où regarder, il ne tranche pas.
+   */
+  idDocumentExpiresOn: string | null
+  idDocumentRead: KybIdReadRecord | null
   roles: PersonRoleRow[]
 }
 
@@ -206,6 +228,9 @@ interface PersonRpcRow {
   id: string
   first_name: string
   last_name: string
+  id_document_type: string | null
+  id_document_expires_on: string | null
+  id_document_read: unknown
   roles: Array<{ role: 'signatory' | 'ubo'; valid_to: string | null }> | null
 }
 
@@ -217,13 +242,21 @@ function useKybReviewPersons(agencyId: string) {
     queryFn: async (): Promise<KybReviewPerson[]> => {
       const { data, error } = await supabase
         .from('agency_related_persons')
-        .select('id, first_name, last_name, roles:agency_person_roles(role, valid_to)')
+        .select('id, first_name, last_name, id_document_type, id_document_expires_on, id_document_read, roles:agency_person_roles(role, valid_to)')
         .eq('agency_id', agencyId)
       if (error) throw error
       return ((data ?? []) as unknown as PersonRpcRow[]).map((p) => ({
         id: p.id,
         firstName: p.first_name,
         lastName: p.last_name,
+        // `other` (quatrième valeur du CHECK, qu'aucun chemin n'écrit aujourd'hui)
+        // est ramenée à null plutôt qu'affichée : il n'existe pas de libellé pour
+        // elle, et un code brut dans une console de conformité se lit mal.
+        idDocumentType: isIdentityDocumentType(p.id_document_type) ? p.id_document_type : null,
+        idDocumentExpiresOn: p.id_document_expires_on,
+        // jsonb libre en base : une ligne écrite par une version antérieure du
+        // contrat ne doit pas casser l'écran qui l'affiche.
+        idDocumentRead: isKybIdReadRecord(p.id_document_read) ? p.id_document_read : null,
         roles: (p.roles ?? []).map((r) => ({ role: r.role, validTo: r.valid_to })),
       }))
     },

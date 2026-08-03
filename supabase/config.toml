@@ -571,6 +571,12 @@ verify_jwt = false
 [functions.google-calendar-sync]
 verify_jwt = false
 
+[functions.kyb-identity-read]
+verify_jwt = false
+
+[functions.kyb-identity-verify]
+verify_jwt = false
+
 [functions.kyc-report-data]
 verify_jwt = false
 

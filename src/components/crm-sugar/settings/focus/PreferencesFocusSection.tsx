@@ -10,7 +10,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import i18n from '@/i18n'
+import { switchLanguage } from '@/i18n'
 import { useToast } from '@/components/ui/Toast'
 import { useUiPreferences } from '@/hooks/useUiPreferences'
 import { CRM_DARK_TONES, crmStep, type DarkTone } from '@/components/crm-sugar/tokens'
@@ -220,7 +220,10 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
     const next = { ...local, [key]: value } as PrefsData
     setLocal(next)
     if (key === 'theme') applyTheme(String(value))
-    if (key === 'language') void i18n.changeLanguage(String(value))
+    // `switchLanguage` et non `i18n.changeLanguage` : ce dernier bascule avant que
+    // le bundle de la langue soit téléchargé, ce qui repassait l'écran par le
+    // français puis le re-rendait une seconde fois (cf. sa JSDoc, src/i18n/index.ts).
+    if (key === 'language') void switchLanguage(String(value))
     if (!hasBackend) { toast.error(t('focus.toast.sessionExpired')); return }
     try {
       await save(next)
