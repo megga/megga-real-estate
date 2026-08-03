@@ -4549,6 +4549,99 @@ export type Database = {
           },
         ]
       }
+      relance_items: {
+        Row: {
+          agency_id: string
+          contact_id: string
+          copied_at: string | null
+          created_at: string
+          generated_at: string | null
+          generated_text: string | null
+          id: string
+          session_id: string
+          status: string
+        }
+        Insert: {
+          agency_id: string
+          contact_id: string
+          copied_at?: string | null
+          created_at?: string
+          generated_at?: string | null
+          generated_text?: string | null
+          id?: string
+          session_id: string
+          status: string
+        }
+        Update: {
+          agency_id?: string
+          contact_id?: string
+          copied_at?: string | null
+          created_at?: string
+          generated_at?: string | null
+          generated_text?: string | null
+          id?: string
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relance_items_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relance_items_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relance_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "relance_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relance_sessions: {
+        Row: {
+          agency_id: string
+          agent_id: string
+          closed_at: string | null
+          created_at: string
+          id: string
+          started_at: string
+        }
+        Insert: {
+          agency_id: string
+          agent_id: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          started_at?: string
+        }
+        Update: {
+          agency_id?: string
+          agent_id?: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relance_sessions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminders: {
         Row: {
           agency_id: string
