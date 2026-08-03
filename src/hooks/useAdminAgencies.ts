@@ -1,7 +1,9 @@
 /**
- * Hooks React Query de la console super-admin des agences : liste enrichie de
- * compteurs, détail d'une agence et ses sous-ressources (membres, biens,
- * transactions, activité). Alimente AdminAgencyDetailPage.
+ * Hooks React Query du REGISTRE des agences (console super-admin) : liste
+ * enrichie de compteurs serveur, et le geste de cycle de vie.
+ *
+ * La FICHE d'une agence ne vit plus ici : elle lit `get_admin_agency_detail()`
+ * via `useAdminAgencyDetail` — voir la note en pied de fichier.
  *
  * Étape 15 : la liste passe par la RPC `get_admin_agencies()` — UN appel là où il en
  * fallait trois (select agencies + get_agency_stats + select subscriptions). Elle
@@ -21,6 +23,10 @@ export interface AgencyWithStats {
   name: string
   slug: string
   logo_url: string | null
+  city: string | null
+  /** Canton — servi par la RPC, il était PERDU au mapping : la sous-ligne
+   *  d'identité du registre et sa recherche mentaient en silence. */
+  canton: string | null
   address: string | null
   phone: string | null
   email: string | null
@@ -73,9 +79,12 @@ export function useAdminAgencies() {
         name: r.name,
         slug: r.slug,
         logo_url: r.logo_url,
+        city: r.city,
+        canton: r.canton,
         // `address` n'est pas servie par la RPC : le registre ne l'affiche pas, et la
-        // fiche la relit en entier via useAdminAgency(). L'ajouter au registre aurait
-        // chargé une colonne pour personne.
+        // fiche ne la montre plus non plus depuis la refonte (elle mesure l'usage de
+        // la plateforme, pas l'identité de l'agence). Champ conservé pour la forme
+        // exportée, jamais rempli.
         address: null,
         phone: r.phone,
         email: r.email,
@@ -100,14 +109,28 @@ export function useAdminAgencies() {
     mutationFn: async ({ id, status }: { id: string; status: 'active' | 'suspended' }) => {
       // P4 : passe par l'edge admin-agency-lifecycle — l'ancien update nu de
       // agencies.status ne bloquait personne (aucun ban GoTrue des membres).
-      const { error } = await supabase.functions.invoke('admin-agency-lifecycle', {
+      const { data, error } = await supabase.functions.invoke('admin-agency-lifecycle', {
         body: { action: status === 'suspended' ? 'suspend' : 'reactivate', agency_id: id },
       })
       if (error) throw error
+      // ⚠ L'absence d'`error` NE SUFFIT PAS : c'est le contrat client des gestes
+      // admin. Une réponse 200 qui ne porte pas `success` est un échec silencieux
+      // à l'écran, le geste paraissant réussi.
+      if (data && (data as { success?: boolean }).success === false) {
+        throw new Error((data as { error?: string }).error ?? 'lifecycle failed')
+      }
+      return data
     },
-    onSuccess: () => {
+    // ⚠ `onSettled`, pas `onSuccess`. L'edge écrit l'état de l'agence AVANT le
+    // registre et lève si `admin_log_write` échoue : un geste réellement appliqué
+    // peut donc remonter en erreur. Invalider seulement au succès laisserait
+    // l'écran afficher l'ancien état d'une agence déjà suspendue.
+    onSettled: (_data, _err, vars) => {
       queryClient.invalidateQueries({ queryKey: ['admin-agencies'] })
+      // L'edge bannit les comptes GoTrue et écrit `profiles.is_suspended` : le
+      // registre Utilisateurs est concerné autant que celui des agences.
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      if (vars?.id) queryClient.invalidateQueries({ queryKey: ['admin-agency-detail', vars.id] })
     },
   })
 
@@ -120,95 +143,15 @@ export function useAdminAgencies() {
   }
 }
 
-/** Détail complet d'une agence par id (`select('*')`). */
-export function useAdminAgency(id: string) {
-  return useQuery({
-    queryKey: ['admin-agency', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('agencies')
-        .select('*')
-        .eq('id', id)
-        .single()
-      if (error) throw error
-      return data
-    },
-    enabled: !!id,
-    staleTime: 30_000,
-  })
-}
-
-/** Membres (profiles) d'une agence, les plus récents d'abord. */
-export function useAgencyMembers(agencyId: string) {
-  return useQuery({
-    queryKey: ['admin-agency-members', agencyId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, avatar_url, role, phone, created_at')
-        .eq('agency_id', agencyId)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return data ?? []
-    },
-    enabled: !!agencyId,
-    staleTime: 30_000,
-  })
-}
-
-/** Biens d'une agence (colonnes de liste seulement, sans description lourde). */
-export function useAgencyProperties(agencyId: string) {
-  return useQuery({
-    queryKey: ['admin-agency-properties', agencyId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('id, title, status, price, city, canton, created_at')
-        .eq('agency_id', agencyId)
-        .order('created_at', { ascending: false })
-        .limit(200)
-      if (error) throw error
-      return data ?? []
-    },
-    enabled: !!agencyId,
-    staleTime: 30_000,
-  })
-}
-
-/** Transactions d'une agence (stade pipeline, statut, montant offert). */
-export function useAgencyTransactions(agencyId: string) {
-  return useQuery({
-    queryKey: ['admin-agency-transactions', agencyId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('id, stage, status, price_offered, created_at')
-        .eq('agency_id', agencyId)
-        .order('created_at', { ascending: false })
-        .limit(200)
-      if (error) throw error
-      return data ?? []
-    },
-    enabled: !!agencyId,
-    staleTime: 30_000,
-  })
-}
-
-/** 30 derniers événements d'activité d'une agence. */
-export function useAgencyActivity(agencyId: string) {
-  return useQuery({
-    queryKey: ['admin-agency-activity', agencyId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('activity_events')
-        .select('id, action, entity_type, metadata, created_at')
-        .eq('agency_id', agencyId)
-        .order('created_at', { ascending: false })
-        .limit(30)
-      if (error) throw error
-      return data ?? []
-    },
-    enabled: !!agencyId,
-    staleTime: 30_000,
-  })
-}
+/*
+ * ── Cinq hooks retirés le 03.08.2026 avec la refonte de la fiche agence ──────
+ *
+ * `useAdminAgency`, `useAgencyMembers`, `useAgencyProperties`,
+ * `useAgencyTransactions` et `useAgencyActivity` faisaient SIX allers-retours
+ * pour peupler six onglets. La fiche lit désormais `get_admin_agency_detail()`,
+ * qui assemble tout côté serveur — et qui existait déjà, sans consommateur.
+ *
+ * ⚠ `useAgencyProperties` avait un HOMONYME dans `@/hooks/useProperties`, lui
+ * bien vivant (six surfaces du CRM agent). Ne pas confondre les deux : un grep
+ * sur le seul nom donne huit fichiers dont un seul concernait celui-ci.
+ */

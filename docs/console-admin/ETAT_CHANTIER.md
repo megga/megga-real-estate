@@ -42,6 +42,78 @@
 > **destinataire** du lien KYC régénéré n'est défini nulle part dans les 25 fichiers de spec,
 > et le **plafond 3** compte des liens et non des personnes. **§7bis**.
 
+## 0. La passe UI des écrans — 03.08.2026
+
+> **Le backend était fini, les ÉCRANS ne l'étaient pas.** Un audit à trois volets
+> (environnement, plan ↔ code, maquettes) a rendu trois réponses différentes selon la
+> couche, et les confondre fait perdre du temps :
+> - **backend des 4 lots** : construit, déployé, sain — 6 tables, 18 fonctions, chaîne du
+>   registre `ok`, liste `DETTE` du cliquet **vide**, CI verte ;
+> - **santé** : 10/10 portes vertes, 1483 tests unitaires, un seul échec de cron sur ~8 000 ;
+> - **conformité aux maquettes** : **non**. La coquille, le kit et l'écran Sécurité sont
+>   fidèles ; Vue d'ensemble, Agences, Fiche agence, Utilisateurs, Plans et Communications
+>   étaient restés la console d'avant, habillée Sugar. C'est cohérent — ce plan est un plan
+>   **backend**, « le design est gelé : le backend se conforme au front » — mais la passe UI
+>   n'avait jamais été faite, et personne ne l'avait écrit.
+>
+> **Trois PR livrées dans la nuit**, empilées sur `main` :
+> | PR | Contenu |
+> |---|---|
+> | #1118 | Durcissement A2 : `ai_usage_logs` / `ai_balance_snapshots` (droits `anon` révoqués, policies sur `is_super_admin()`), `search_path` de trois helpers, commentaire menteur d'`admin_log_export` |
+> | #1120 | **C3 — Plans** devient le poste de triage de la maquette (MRR réel, files Impayés / Essais, portefeuille en table nue, grille lue en base) |
+> | #1123 | **C1 — Vue d'ensemble** au concept A + **C2 — modale de diagnostic KYC** |
+>
+> ⛔ **C1 et C2 n'étaient pas des constructions, c'étaient des BRANCHEMENTS.**
+> `admin_overview()` était déployée, testée, typée — **zéro appelant**.
+> `admin_kyc_link_lookup` / `_regenerate` aussi, couvertes par 14 tests backend — **zéro
+> appelant**. Chercher « ce qu'il reste à construire » sans vérifier les appelants fait
+> re-livrer du backend déjà là.
+>
+> 🔴 **Une P0 trouvée en écrivant l'écran** (corrigée, `20260803040000`).
+> `admin_kyc_query_normalize` ne retire que `[\s.\-()]` : **ni `%` ni `_`** n'étaient
+> neutralisés. Une saisie `%%%` franchissait le seuil des 3 caractères et devenait
+> `like '%%%%%'` — un motif qui matche tout. Le plafond de 3 correspondances était le seul
+> rempart, alors qu'il existe pour ne pas **nommer** de personnes, pas pour tenir lieu de
+> garde contre une recherche sans critère.
+> ⚠ **Le correctif ne va PAS dans le normalisateur** : la même fonction normalise les
+> **deux côtés** du `like` (la requête *et* la colonne) — y échapper corromprait les valeurs
+> comparées. L'échappement porte sur le **motif seul**, au site d'usage, avec `escape '\'`.
+>
+> ⛔ **Piège de thème des modales admin**, mesuré à l'écran et **invisible à toutes les
+> portes**. `admin-console.css` redéfinit `--color-theme-*` en **clair** sous
+> `.megga-admin-console` et ne repasse au sombre que sur `[data-admin-dark='true']` —
+> attribut que `ModalProps` ne sait pas transmettre (aucun rest spread, et l'en-tête est
+> rendu **au-dessus** de `children`). Poser la classe « pour bien scoper l'anneau de focus »
+> rendait la modale **blanche** sur console sombre. Le bon geste : **ne pas** poser la
+> classe — la modale hérite alors du `data-theme` que le fournisseur pose sur
+> `documentElement` précisément pour les surfaces portées.
+>
+> ⚠ **Six affirmations du plan de reconnaissance étaient fausses, et ses propres critiques
+> adversariaux les ont attrapées.** À ne pas re-croire : le journal n'a **aucune fenêtre de
+> 24 h** (`get_admin_live_feed` n'a aucun prédicat temporel ; la sur-récupération est
+> plafonnée à **100**, pas 120) · « comptes agents » est faux (`COUNT(*)` sur `profiles`
+> sans filtre de rôle) · « paiements échoués » compte des **agences**, suspendues comprises ·
+> `links_submitted` = « déposés », jamais « confirmés » · les quatre actions les plus
+> fréquentes portent des chaînes non devinables (`contact_scores.recompute`,
+> `whatsapp_agent_copilot_reply`…) et une clé devinée s'affiche brute sans qu'aucune porte
+> ne le voie · `sectionPath` doit connaître `security` **et** traduire `kyb` → `kyb-review`,
+> un test « jeton inconnu → accueil » restant vert sur ce défaut.
+>
+> ⚠ **Ce que la Vue d'ensemble montre réellement en production**, et ce n'est pas un bug :
+> CHF 0 de MRR, un seul signal à traiter, un journal de cinq familles toutes en `info`, et
+> **zéro lien KYC** — donc **la modale de diagnostic est inexerçable** tant qu'un premier
+> lien n'a pas été émis. Un succès sur table vide n'éprouve rien.
+>
+> **Neuf fichiers supprimés** avec l'ancienne Vue d'ensemble (`ActivityLog`,
+> `OnboardingTracker`, `BillingDashboard`, `MrrSparkline` + `useActivityLog`,
+> `useOnboardingTracker`, `useAdminBilling`, `useAdminStats`) ; `WeeklyReportPreview`
+> **déplacé** vers Monitoring. ⚠ `useAdminBilling` était le **seul appelant** de l'edge
+> `admin-stripe-metrics`, qui n'en a donc plus.
+>
+> **Reste de la passe UI** : fiche agence (concept B), registre Agences, Utilisateurs et son
+> tiroir, Communications (concept C), revue KYB (bloquée **P5**). Cerveau :
+> `megga/console-admin-passe-ui`.
+
 ## 1. Comment on travaille (décidé avec le PO)
 
 Thomas et Antoine travaillent en parallèle sur le même dépôt. Méthode retenue :

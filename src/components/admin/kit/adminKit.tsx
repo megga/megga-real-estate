@@ -454,17 +454,24 @@ export function AdminError({ message, onRetry, retryLabel }: {
 /* ─── Tableau ───────────────────────────────────────────────────────────────── */
 
 /** En-tête de colonne — casse normale, jamais d'UPPERCASE (règle CLAUDE.md). */
-export function AdminTh({ children, align = 'left', width }: {
+export function AdminTh({ children, align = 'left', width, bg }: {
   children: ReactNode
   align?: 'left' | 'right' | 'center'
   width?: number | string
+  /**
+   * Fond de l'en-tête collant. Par défaut la surface de table, qui suppose un
+   * tableau posé dans une carte. Un tableau posé à MÊME le fond de page doit
+   * passer `sp.pageBg` : sinon une couture apparaît au défilement, exactement
+   * la ligne que la grammaire « liste nue » cherche à supprimer.
+   */
+  bg?: string
 }) {
   const { sp } = useAdminSugar()
   return (
     <th style={{
       textAlign: align, width, padding: '9px 12px', whiteSpace: 'nowrap',
       fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
-      background: sp.tableHeadBg, position: 'sticky', top: 0, zIndex: 1,
+      background: bg ?? sp.tableHeadBg, position: 'sticky', top: 0, zIndex: 1,
     }}>
       {children}
     </th>
