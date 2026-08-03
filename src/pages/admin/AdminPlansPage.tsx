@@ -1,62 +1,64 @@
 /**
- * Page super-admin — plans et abonnements.
+ * Page super-admin — Plans & abonnements (poste de triage — maquette `admin-plans.jsx`).
  *
- * Route : `/dashboard/admin/plans`. Grille comparative des plans
- * (`PLANS`), tableau détaillé des fonctionnalités et gestion de l'abonnement par
- * agence (changement de plan écrit sur `agencies` via `admin_set_agency_plan`).
+ * Route : `/dashboard/admin/plans`. La page ne répond plus « où en est cette
+ * agence ? » — c'est le travail de la fiche agence — mais « où en est le
+ * REVENU ? » : le MRR réel (règle serveur, une seule source), les files qui le
+ * menacent (Impayés · Essais qui finissent — une file vide disparaît, les deux
+ * vides laissent une ligne calme), le portefeuille en table nue dont chaque
+ * ligne ouvre la fiche, et la grille en vigueur en pied.
  *
- * Rendu en grammaire Sugar (kit `@/components/admin/kit`) : bentos séparés par
- * l'ombre, en-têtes de plan sans fond teinté (une pastille de ton suffit à
- * distinguer les trois offres), plan d'agence en pilule pleine, prix et
- * compteurs en chiffres tabulaires. Le repère violet « Admin MEGGA » a quitté la
- * page — il ne vit plus qu'une fois, dans le rail du shell.
+ * Écarts assumés vis-à-vis de la maquette, tous suspendus à des décisions PO :
+ * - la file « Sièges saturés » n'est PAS rendue : le plafond de sièges n'est pas
+ *   arbitré (décision n° 4) et le serveur la nomme dans `unavailable`. La
+ *   colonne Sièges affiche le compte nu, sans plafond ni jauge — en afficher un
+ *   trancherait la question en silence.
+ * - le changement de plan RESTE (colonne Actions) : la maquette l'exclut
+ *   (« la console NE CHANGE PAS de plan ») mais le retrait d'une capacité
+ *   branchée appartient à la décision n° 5 (périmètre à démonter), pas à une
+ *   passe UI.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CreditCard, Check, X, ChevronDown, Infinity as InfinityIcon } from 'lucide-react'
+import { CreditCard, ChevronDown, ChevronRight } from 'lucide-react'
 import { formatCHF } from '@/lib/utils'
 import { PLANS } from '@/lib/plans'
+import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
+import { useAdminPlansBoard, type PlansBoardRow } from '@/hooks/useAdminPlansBoard'
 import { supabase } from '@/lib/supabase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/Toast'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
-  AdminCard,
-  AdminDivider,
   AdminEmpty,
   AdminError,
   AdminGhostBtn,
-  AdminGroupTitle,
   AdminIc,
   AdminPill,
+  AdminSearchInput,
+  AdminSegmentBtn,
   AdminSkeleton,
-  AdminTd,
-  AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
-/**
- * Ton de pilule par plan.
- *
- * Le violet est exclu : il ne signale que « tu es dans la console », jamais une
- * offre commerciale. Starter n'a pas de signal, d'où `neutral`.
- */
-const PLAN_TONE: Record<string, AdminToneName> = {
-  starter: 'neutral',
-  pro: 'info',
-  entreprise: 'cyan',
+/** Pilule d'état d'abonnement : ton + clé i18n par `state` serveur. */
+const STATE_META: Record<PlansBoardRow['state'], { tone: AdminToneName; key: string }> = {
+  active: { tone: 'ok', key: 'plans.state.active' },
+  trial: { tone: 'warn', key: 'plans.state.trial' },
+  unpaid: { tone: 'err', key: 'plans.state.unpaid' },
+  none: { tone: 'neutral', key: 'plans.state.none' },
 }
 
-/** Pilule du plan d'une agence ; libellé résolu depuis `PLANS`. */
-function PlanBadge({ plan }: { plan: string }) {
-  const normalized = (plan ?? 'starter').toLowerCase()
-  const label = PLANS.find(p => p.id === normalized)?.name ?? plan
-  return <AdminPill label={label} tone={PLAN_TONE[normalized] ?? 'neutral'} />
+/** Libellé d'un plan depuis le catalogue (`PLANS`), repli sur la valeur brute. */
+function planLabel(plan: string | null): string {
+  if (!plan) return '—'
+  return PLANS.find(p => p.id === plan.toLowerCase())?.name ?? plan
 }
 
-/** Menu de changement de plan d'une agence ; mutation directe sur `agencies.plan`. */
+/** Menu de changement de plan d'une agence ; mutation via `admin_set_agency_plan`. */
 function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; agencyId: string }) {
   const { t } = useTranslation('admin')
   const [open, setOpen] = useState(false)
@@ -96,6 +98,7 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
     onSuccess: () => {
       toast.success(t('plans.changeDone'))
       void queryClient.invalidateQueries({ queryKey: ['admin-agencies'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin-plans-board'] })
       void queryClient.invalidateQueries({ queryKey: ['admin-agency-billing'] })
       void queryClient.invalidateQueries({ queryKey: ['admin-billing-stripe'] })
       setOpen(false)
@@ -175,198 +178,325 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
   )
 }
 
-/** Vue principale : grille de plans, tableau des fonctionnalités et liste des agences. */
+/** Une file de triage (maquette) : titre + compte, lignes nues, disparaît vide. */
+function PlanQueue({ title, rows, dot, amount, onOpen }: {
+  title: string
+  rows: PlansBoardRow[]
+  dot: string
+  amount: (row: PlansBoardRow) => string
+  onOpen: (row: PlansBoardRow) => void
+}) {
+  const { sp, surf } = useAdminSugar()
+  if (rows.length === 0) return null
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, padding: '0 2px 8px' }}>
+        <h3 style={{ margin: 0, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub }}>
+          {title}
+        </h3>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.sub }}>{rows.length}</span>
+      </div>
+      {rows.map((row, i) => (
+        <div
+          key={row.id}
+          className="adm-row"
+          onClick={() => onOpen(row)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14, minHeight: 46,
+            padding: '0 12px 0 2px', cursor: 'pointer',
+            borderTop: i === 0 ? undefined : surf.hairline,
+          }}
+        >
+          <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: dot, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>
+            {row.name}
+          </div>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.soft, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+            {amount(row)}
+          </span>
+          <AdminIc icon={ChevronRight} size={15} color={sp.sub} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Vue principale : MRR, files de triage, portefeuille, grille en vigueur. */
 export default function AdminPlansPage() {
   const { t } = useTranslation('admin')
-  const { agencies, isLoading, isError, refetch } = useAdminAgencies()
-  const { sp, tones } = useAdminSugar()
+  const navigate = useNavigate()
+  const { sp, surf, dark, tones } = useAdminSugar()
+  const { data: board, isPending, isError, refetch } = useAdminPlansBoard()
+  // Jointure d'AFFICHAGE seulement (ville, compte de biens) : aucune règle n'est
+  // recalculée ici — le MRR et les états viennent du serveur (§4.3).
+  const { agencies } = useAdminAgencies()
 
-  const featureKeys = PLANS[0].features.map(f => f.key)
+  const [filter, setFilter] = useState<string>('all')
+  const [q, setQ] = useState('')
 
-  /** Couleur de la pastille d'en-tête d'un plan (même hiérarchie que `PLAN_TONE`). */
-  const planDot = (id: string): string => {
-    switch (PLAN_TONE[id]) {
-      case 'info': return tones.info
-      case 'cyan': return tones.cyan
-      default: return sp.soft
+  const extras = useMemo(
+    () => new Map(agencies.map(a => [a.id, { city: a.city, properties: a.property_count }])),
+    [agencies],
+  )
+
+  const portfolio = useMemo(() => board?.portfolio ?? [], [board])
+
+  const rows = useMemo(() => {
+    const nq = q.trim().toLowerCase()
+    return portfolio
+      .filter(r =>
+        filter === 'all' ? true
+        : filter === 'todo' ? r.state === 'unpaid' || r.state === 'trial'
+        : (r.plan ?? '').toLowerCase() === filter)
+      .filter(r => {
+        if (!nq) return true
+        const city = extras.get(r.id)?.city ?? ''
+        return r.name.toLowerCase().includes(nq) || city.toLowerCase().includes(nq)
+      })
+  }, [portfolio, filter, q, extras])
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {
+      all: portfolio.length,
+      todo: portfolio.filter(r => r.state === 'unpaid' || r.state === 'trial').length,
     }
+    for (const p of PLANS) c[p.id] = portfolio.filter(r => (r.plan ?? '').toLowerCase() === p.id).length
+    return c
+  }, [portfolio])
+
+  const seatsTotal = useMemo(() => portfolio.reduce((s, r) => s + Number(r.seats_used || 0), 0), [portfolio])
+  const propsTotal = useMemo(
+    () => portfolio.reduce((s, r) => s + (extras.get(r.id)?.properties ?? 0), 0),
+    [portfolio, extras],
+  )
+
+  const openAgency = (row: PlansBoardRow) => navigate(`${ADMIN_CONSOLE_PATH}/agencies/${row.id}`)
+
+  /** Montant menacé d'une ligne de file : le prix CATALOGUE du plan (grille C2),
+   *  jamais `row.mrr` — la règle serveur met justement l'impayé et l'essai à zéro. */
+  const threatened = (row: PlansBoardRow): string => {
+    const monthly = row.plan ? board?.pricing_source?.[row.plan.toLowerCase()]?.monthly : undefined
+    if (monthly === undefined || monthly === null) return '—'
+    return `${formatCHF(Number(monthly))} ${t('plans.perMonth')}`
+  }
+
+  /** Échéance d'une ligne : fin d'essai pour un essai, fin de période sinon. */
+  const renewalLabel = (row: PlansBoardRow): string => {
+    const iso = row.state === 'trial' ? (row.trial_end ?? row.current_period_end) : row.current_period_end
+    if (!iso) return '—'
+    const d = new Date(iso)
+    const today = new Date()
+    const tomorrow = new Date(today)
+    tomorrow.setDate(today.getDate() + 1)
+    const sameDay = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+    if (sameDay(d, today)) return t('plans.renewal.today')
+    if (sameDay(d, tomorrow)) return t('plans.renewal.tomorrow')
+    return d.toLocaleDateString('fr-CH')
+  }
+
+  const calm = (board?.queues.unpaid.length ?? 0) === 0 && (board?.queues.trials.length ?? 0) === 0
+
+  const th = (label: string, extra?: { align?: 'left' | 'right'; width?: number }) => (
+    <th style={{
+      textAlign: extra?.align ?? 'left', width: extra?.width, padding: '9px 12px',
+      whiteSpace: 'nowrap', fontSize: 11, fontWeight: 700, color: sp.sub,
+    }}>{label}</th>
+  )
+  const tdStyle = (extra?: { align?: 'left' | 'right'; total?: boolean }): CSSProperties => ({
+    padding: extra?.total ? '13px 12px 11px' : '11px 12px', fontSize: 12.5, fontWeight: 600, color: sp.ink,
+    whiteSpace: 'nowrap', textAlign: extra?.align ?? 'left', fontVariantNumeric: 'tabular-nums',
+    borderTop: extra?.total
+      ? `1px solid ${dark ? 'rgba(255,255,255,0.16)' : 'rgba(15,23,42,0.16)'}`
+      : surf.hairline,
+  })
+
+  if (isPending) {
+    return (
+      <AdminPage title={t('admin:plans.title')} subtitle={t('admin:plans.subtitle')} width="wide">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <AdminSkeleton height={52} width={280} />
+          {Array.from({ length: 6 }).map((_, i) => <AdminSkeleton key={i} height={42} />)}
+        </div>
+      </AdminPage>
+    )
+  }
+
+  if (isError || !board) {
+    return (
+      <AdminPage title={t('admin:plans.title')} subtitle={t('admin:plans.subtitle')} width="wide">
+        <AdminError
+          message={t('admin:common.loadError')}
+          onRetry={() => void refetch()}
+          retryLabel={t('admin:common.retry')}
+        />
+      </AdminPage>
+    )
   }
 
   return (
     <AdminPage title={t('admin:plans.title')} subtitle={t('admin:plans.subtitle')} width="wide">
-      {/* Plan comparison grid */}
-      <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <AdminGroupTitle label={t('admin:plans.comparison')} tone="info" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {PLANS.map(plan => (
-            <AdminCard key={plan.id} padding={0}>
-              {/* Plan header */}
-              <div style={{ padding: '16px 18px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: planDot(plan.id), flexShrink: 0 }} />
-                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, letterSpacing: -0.3, color: sp.ink }}>{plan.name}</h3>
-                </div>
-                {plan.price_monthly === 0 ? (
-                  <div style={{ marginTop: 8, fontSize: 20, fontWeight: 800, letterSpacing: -0.7, color: sp.ink }}>
-                    {t('admin:plans.free')}
-                  </div>
-                ) : (
-                  <div style={{ marginTop: 8 }}>
-                    <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.7, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
-                      {formatCHF(plan.price_monthly)}
-                    </span>
-                    <span style={{ marginLeft: 4, fontSize: 11.5, color: sp.sub }}>{t('admin:plans.perMonth')}</span>
-                    <div style={{ marginTop: 3, fontSize: 11, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-                      {t('admin:plans.annual', { price: formatCHF(plan.price_yearly) })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <AdminDivider />
-
-              {/* Features list */}
-              <div style={{ padding: '13px 18px 16px', display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {plan.features.map(feature => (
-                  <div key={feature.key} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <AdminIc
-                      icon={feature.included ? Check : X}
-                      size={14}
-                      color={feature.included ? tones.ok : tones.err}
-                    />
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: feature.included ? sp.ink : sp.sub }}>
-                      {feature.label}
-                    </span>
-                    {feature.included && feature.limit !== undefined && (
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-                        {feature.limit}
-                      </span>
-                    )}
-                    {feature.included && feature.limit === undefined && (
-                      <AdminIc icon={InfinityIcon} size={13} color={sp.sub} />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </AdminCard>
-          ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+        {/* MRR — le seul chiffre que la fiche agence ne peut pas donner */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12 }}>
+          <span style={{ fontSize: 44, fontWeight: 800, letterSpacing: -2, lineHeight: 1, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+            {formatCHF(Number(board.mrr))}
+          </span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: sp.sub, marginBottom: 5 }}>
+            {t('plans.mrrSuffix')}
+          </span>
         </div>
-      </section>
 
-      {/* Feature comparison table (aligned rows) */}
-      <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <AdminGroupTitle label={t('admin:plans.featureDetail')} tone="cyan" />
-        <AdminCard padding={0} style={{ overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: 540, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-              <thead>
-                <tr>
-                  <AdminTh>{t('admin:plans.feature')}</AdminTh>
-                  {PLANS.map(plan => (
-                    <AdminTh key={plan.id} align="center" width={116}>{plan.name}</AdminTh>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {featureKeys.map(key => {
-                  const label = PLANS[0].features.find(f => f.key === key)?.label ?? key
-                  return (
-                    <tr key={key}>
-                      <AdminTd>{label}</AdminTd>
-                      {PLANS.map(plan => {
-                        const feature = plan.features.find(f => f.key === key)
-                        return (
-                          <AdminTd key={plan.id} align="center">
-                            {!feature || !feature.included ? (
-                              <AdminIc icon={X} size={14} color={tones.err} style={{ margin: '0 auto' }} />
-                            ) : feature.limit !== undefined ? (
-                              <span style={{ fontSize: 12, fontWeight: 700, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
-                                {feature.limit}
-                              </span>
-                            ) : (
-                              <AdminIc icon={Check} size={14} color={tones.ok} style={{ margin: '0 auto' }} />
-                            )}
-                          </AdminTd>
-                        )
-                      })}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+        {/* Les files : ce qui menace le revenu, rien d'autre. « Sièges saturés »
+            attend la décision n° 4 — le serveur la nomme dans `unavailable`. */}
+        {calm ? (
+          <div style={{ padding: '6px 2px 0', fontSize: 13, fontWeight: 600, color: sp.sub }}>
+            {t('plans.calm')}
           </div>
-        </AdminCard>
-      </section>
-
-      {/* Agency plan management */}
-      <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <AdminGroupTitle label={t('admin:plans.agencySubscriptions')} tone="ok" />
-        {/* Pas de conteneur défilant ici : le menu « changer de plan » s'ouvre en
-            absolu et serait rogné par un `overflow` sur la carte. */}
-        <AdminCard padding={0}>
-          {isLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14 }}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <AdminSkeleton key={i} height={38} />
-              ))}
-            </div>
-          ) : isError && agencies.length === 0 ? (
-            <AdminError
-              message={t('admin:common.loadError')}
-              onRetry={() => void refetch()}
-              retryLabel={t('admin:common.retry')}
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <PlanQueue
+              title={t('plans.queue.unpaid')}
+              rows={board.queues.unpaid}
+              dot={tones.err}
+              amount={threatened}
+              onOpen={openAgency}
             />
-          ) : agencies.length === 0 ? (
+            <PlanQueue
+              title={t('plans.queue.trials')}
+              rows={board.queues.trials}
+              dot={tones.warn}
+              amount={threatened}
+              onOpen={openAgency}
+            />
+          </div>
+        )}
+
+        {/* Le portefeuille — une ligne par agence, le détail vit dans sa fiche */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 2px 10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              <AdminSegmentBtn on={filter === 'all'} onClick={() => setFilter('all')}>
+                {t('plans.filter.all')} · {counts.all}
+              </AdminSegmentBtn>
+              {PLANS.map(p => (
+                <AdminSegmentBtn key={p.id} on={filter === p.id} onClick={() => setFilter(p.id)}>
+                  {p.name} · {counts[p.id] ?? 0}
+                </AdminSegmentBtn>
+              ))}
+              <AdminSegmentBtn on={filter === 'todo'} onClick={() => setFilter('todo')}>
+                {t('plans.filter.todo')} · {counts.todo}
+              </AdminSegmentBtn>
+            </div>
+            <div style={{ marginLeft: 'auto' }}>
+              <AdminSearchInput
+                value={q}
+                onChange={setQ}
+                placeholder={t('plans.searchPlaceholder')}
+                label={t('plans.searchPlaceholder')}
+                maxWidth={200}
+                compact
+              />
+            </div>
+          </div>
+
+          {portfolio.length === 0 ? (
             <AdminEmpty icon={CreditCard} title={t('admin:plans.noAgency')} />
+          ) : rows.length === 0 ? (
+            <AdminEmpty icon={CreditCard} title={t('admin:plans.noAgency')} hint={t('plans.emptyHint')} />
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <AdminTh>{t('admin:plans.table.agency')}</AdminTh>
-                  <AdminTh align="center" width={148}>{t('admin:plans.table.plan')}</AdminTh>
-                  <AdminTh align="center" width={96}>{t('admin:plans.table.agents')}</AdminTh>
-                  <AdminTh align="right" width={168}>{t('admin:plans.table.actions')}</AdminTh>
+                  {th(t('plans.table.agency'), { width: 236 })}
+                  {th(t('plans.table.plan'), { width: 108 })}
+                  {th(t('plans.table.seats'), { width: 90, align: 'right' })}
+                  {th(t('plans.table.properties'), { width: 78, align: 'right' })}
+                  {th(t('plans.table.mrr'), { width: 104, align: 'right' })}
+                  {th(t('plans.table.renewal'), { width: 132 })}
+                  {th(t('plans.table.status'))}
+                  {th(t('plans.table.actions'), { width: 130, align: 'right' })}
                 </tr>
               </thead>
               <tbody>
-                {agencies.map(agency => (
-                  // `.adm-row` : le survol de ligne passe par la feuille de style
-                  // (`!important`), les cellules gardant leurs fonds inline.
-                  <tr key={agency.id} className="adm-row">
-                    <AdminTd>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {agency.name}
-                      </div>
-                      {agency.email && (
-                        <div style={{ fontSize: 11, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {agency.email}
+                {rows.map(row => {
+                  const meta = STATE_META[row.state]
+                  const mrr = Number(row.mrr || 0)
+                  const extra = extras.get(row.id)
+                  return (
+                    <tr key={row.id} className="adm-row" onClick={() => openAgency(row)} style={{ cursor: 'pointer' }}>
+                      <td style={tdStyle()}>
+                        <div style={{ fontWeight: 700, letterSpacing: -0.2 }}>{row.name}</div>
+                        {extra?.city && (
+                          <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>{extra.city}</div>
+                        )}
+                      </td>
+                      <td style={tdStyle()}>{planLabel(row.plan)}</td>
+                      <td style={tdStyle({ align: 'right' })}>{row.seats_used}</td>
+                      <td style={tdStyle({ align: 'right' })}>{extra?.properties ?? '—'}</td>
+                      <td style={{ ...tdStyle({ align: 'right' }), color: mrr ? sp.ink : sp.sub }}>
+                        {mrr ? formatCHF(mrr) : '—'}
+                      </td>
+                      <td style={tdStyle()}>{renewalLabel(row)}</td>
+                      <td style={tdStyle()}>
+                        <AdminPill label={t(meta.key)} tone={meta.tone} />
+                      </td>
+                      {/* La cellule Actions n'ouvre pas la fiche : elle porte le menu. */}
+                      <td style={tdStyle({ align: 'right' })} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <PlanChangeDropdown currentPlan={row.plan ?? 'starter'} agencyId={row.id} />
                         </div>
-                      )}
-                    </AdminTd>
-                    <AdminTd align="center">
-                      <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                        <PlanBadge plan={agency.plan ?? 'starter'} />
-                        {agency.subscription_status === 'trialing' && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: tones.info }}>{t('agencies.sub.trialing')}</span>
-                        )}
-                        {agency.subscription_status === 'past_due' && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: tones.err }}>{t('agencies.sub.pastDue')}</span>
-                        )}
-                      </div>
-                    </AdminTd>
-                    <AdminTd align="center" numeric style={{ color: sp.sub }}>{agency.agent_count}</AdminTd>
-                    <AdminTd align="right">
-                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <PlanChangeDropdown currentPlan={agency.plan ?? 'starter'} agencyId={agency.id} />
-                      </div>
-                    </AdminTd>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  )
+                })}
+                {/* Ligne de totaux : population COMPLÈTE, pas la vue filtrée. */}
+                <tr>
+                  <td style={{ ...tdStyle({ total: true }), fontWeight: 800 }}>
+                    {rows.length === portfolio.length
+                      ? t('plans.totals.all', { count: portfolio.length })
+                      : t('plans.totals.filtered', { shown: rows.length, total: portfolio.length })}
+                  </td>
+                  <td style={tdStyle({ total: true })} />
+                  <td style={{ ...tdStyle({ total: true, align: 'right' }), fontWeight: 800 }}>
+                    {t('plans.totals.seats', { count: seatsTotal })}
+                  </td>
+                  <td style={{ ...tdStyle({ total: true, align: 'right' }), fontWeight: 800 }}>{propsTotal}</td>
+                  <td style={{ ...tdStyle({ total: true, align: 'right' }), fontWeight: 800 }}>
+                    {formatCHF(Number(board.mrr))}
+                  </td>
+                  <td style={tdStyle({ total: true })} />
+                  <td style={tdStyle({ total: true })} />
+                  <td style={tdStyle({ total: true })} />
+                </tr>
               </tbody>
             </table>
           )}
-        </AdminCard>
-      </section>
+
+          {/* Grille en vigueur — les prix vivent en base (C2), la console les lit. */}
+          {board.pricing_source && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 26, margin: '14px 2px 0', paddingTop: 14,
+              borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.07)'}`,
+              flexWrap: 'wrap',
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: sp.sub }}>{t('plans.grid')}</span>
+              {PLANS.map(p => {
+                const monthly = board.pricing_source?.[p.id]?.monthly
+                if (monthly === undefined || monthly === null) return null
+                return (
+                  <span key={p.id} style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink }}>
+                    {p.name}{' '}
+                    <span style={{ fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                      {formatCHF(Number(monthly))}
+                    </span>
+                  </span>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </AdminPage>
   )
 }

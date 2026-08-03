@@ -1,26 +1,26 @@
 {
   "loop": {
-    "inboxTitle": "To handle",
-    "likedTitle": "Liked {{title}}",
+    "inboxTitle": "Zu bearbeiten",
+    "likedTitle": "Hat {{title}} geliked",
     "likedSub": "{{when}} · {{price}}{{score}}",
-    "matchPct": " · match {{score}}%",
-    "proposeVisit": "Propose a visit",
-    "later": "Later",
-    "handled": "Visit in preparation · logged in their file",
-    "filEyebrow": "Their reception",
-    "filTitle": "Sent dossiers",
-    "filMeta": "{{sent}} sent · {{opened}} opened",
-    "openAtelier": "Open the atelier",
-    "empty": "No dossier sent yet.",
-    "pillLiked": "Liked",
-    "pillSeen": "Seen",
-    "pillSent": "Sent",
-    "pillDismissed": "Passed",
-    "metaLiked": "Sent {{sent}} · opened · liked {{when}}",
-    "metaSeen": "Sent {{sent}} · opened · no reaction",
-    "metaSent": "Sent {{sent}} · not opened yet",
-    "metaDismissed": "Reason logged · recalibrates matching",
-    "motif": "“{{motif}}”"
+    "matchPct": " · Match {{score}} %",
+    "proposeVisit": "Besichtigung vorschlagen",
+    "later": "Später",
+    "handled": "Besichtigung in Vorbereitung · in seinem Profil vermerkt",
+    "filEyebrow": "Empfang",
+    "filTitle": "Gesendete Dossiers",
+    "filMeta": "{{sent}} gesendet · {{opened}} geöffnet",
+    "openAtelier": "Atelier öffnen",
+    "empty": "Noch kein Dossier gesendet.",
+    "pillLiked": "Geliked",
+    "pillSeen": "Gesehen",
+    "pillSent": "Gesendet",
+    "pillDismissed": "Verworfen",
+    "metaLiked": "Gesendet {{sent}} · geöffnet · geliked {{when}}",
+    "metaSeen": "Gesendet {{sent}} · geöffnet · ohne Reaktion",
+    "metaSent": "Gesendet {{sent}} · noch nicht geöffnet",
+    "metaDismissed": "Grund vermerkt · kalibriert das Matching neu",
+    "motif": "«{{motif}}»"
   },
   "title": "Kontakte",
   "add_button": "Hinzufügen",
@@ -69,172 +69,172 @@
     "text_desc": "E-Mail oder Nachricht einfügen, MEGGA AI extrahiert die Infos",
     "manual_label": "Manuelle Eingabe",
     "urgency": {
-      "high": "High",
-      "medium": "Medium",
+      "high": "Hoch",
+      "medium": "Mittel",
       "normal": "Normal"
     },
     "nextAction": {
-      "call": "Qualification call",
-      "visit": "Schedule a viewing",
-      "match": "Send 3 properties from the portfolio",
-      "kyc": "Start KYC"
+      "call": "Qualifizierungsanruf",
+      "visit": "Besichtigung planen",
+      "match": "3 Objekte aus dem Portfolio senden",
+      "kyc": "KYC starten"
     },
     "lead": {
       "eyebrow": "Import lead · MEGGA AI",
       "steps": {
-        "message": "The message",
-        "review": "Review & create"
+        "message": "Die Nachricht",
+        "review": "Prüfen & erstellen"
       },
-      "stepOf": "Step {{current}} of {{total}}",
-      "stepProgress": "Step {{current}} / {{total}}",
-      "editing": "Editing",
-      "repaste": "Paste the message again",
-      "analyze": "Analyse with MEGGA AI",
-      "analyzing": "Analysing…",
-      "finishEditing": "Finish editing",
-      "creating": "Creating…",
-      "checkingDuplicates": "Checking for duplicates…",
-      "createContactAndDeal": "Create contact & deal",
-      "createContact": "Create contact",
+      "stepOf": "Schritt {{current}} von {{total}}",
+      "stepProgress": "Schritt {{current}} / {{total}}",
+      "editing": "In Bearbeitung",
+      "repaste": "Nachricht erneut einfügen",
+      "analyze": "Mit MEGGA AI analysieren",
+      "analyzing": "Analyse läuft…",
+      "finishEditing": "Bearbeitung beenden",
+      "creating": "Wird erstellt…",
+      "checkingDuplicates": "Duplikate werden geprüft…",
+      "createContactAndDeal": "Kontakt & Deal erstellen",
+      "createContact": "Kontakt erstellen",
       "confirmLeave": {
-        "message": "The message you entered will not be saved. Leave?",
-        "review": "Leaving the import will discard the current extraction. Continue?"
+        "message": "Die eingegebene Nachricht wird nicht gespeichert. Verlassen?",
+        "review": "Wenn Sie den Import verlassen, geht die laufende Extraktion verloren. Fortfahren?"
       },
       "paste": {
-        "title": "Paste the prospect's message.",
-        "subtitle": "Email, SMS, web form, transcribed WhatsApp message, MEGGA AI extracts the identity and intent, and suggests the next action.",
-        "placeholder": "Paste the email, SMS or message you received here. The richer the text, the better the extraction…",
-        "tryExample": "Try with an example"
+        "title": "Fügen Sie die Nachricht des Interessenten ein.",
+        "subtitle": "E-Mail, SMS, Webformular, transkribierte WhatsApp-Nachricht: MEGGA AI extrahiert Identität und Absicht und schlägt die nächste Aktion vor.",
+        "placeholder": "Fügen Sie hier die E-Mail, die SMS oder die erhaltene Nachricht ein. Je ausführlicher der Text, desto besser die Extraktion…",
+        "tryExample": "Mit einem Beispiel ausprobieren"
       },
       "errors": {
-        "unauthorized": "Session expired, please sign in again.",
-        "textTooShort": "The message is too short to analyse (10 characters minimum).",
-        "rateLimit": "Extraction quota reached for this hour. Try again later or contact your admin.",
-        "llmUnavailable": "MEGGA AI is temporarily unavailable. Please try again shortly.",
-        "generic": "Something went wrong. Try again or contact support."
+        "unauthorized": "Sitzung abgelaufen, bitte melden Sie sich erneut an.",
+        "textTooShort": "Die Nachricht ist zu kurz für eine Analyse (mindestens 10 Zeichen).",
+        "rateLimit": "Extraktionskontingent für diese Stunde erreicht. Versuchen Sie es später erneut oder wenden Sie sich an Ihren Admin.",
+        "llmUnavailable": "MEGGA AI ist vorübergehend nicht verfügbar. Versuchen Sie es gleich erneut.",
+        "generic": "Ein Fehler ist aufgetreten. Versuchen Sie es erneut oder wenden Sie sich an den Support."
       },
       "review": {
-        "title": "Here's what I understood.",
-        "titleEdit": "Adjust anything that's incorrect.",
-        "subtitle": "Review the extracted fields, then create the contact. Click the pencil to adjust.",
-        "subtitleEdit": "Every field is editable. Click \"Finish\" to return to the summary view."
+        "title": "Das habe ich verstanden.",
+        "titleEdit": "Passen Sie an, was nicht stimmt.",
+        "subtitle": "Prüfen Sie die extrahierten Felder und erstellen Sie dann den Kontakt. Klicken Sie auf das Stiftsymbol, um sie anzupassen.",
+        "subtitleEdit": "Alle Felder sind bearbeitbar. Klicken Sie auf «Beenden», um zur Übersicht zurückzukehren."
       },
       "banner": {
         "lowConfidence": {
-          "title": "Short or ambiguous message",
-          "body": "Review the extraction before creating, some fields may be incomplete."
+          "title": "Kurze oder mehrdeutige Nachricht",
+          "body": "Prüfen Sie die Extraktion vor dem Erstellen, einzelne Felder können unvollständig sein."
         },
         "truncated": {
-          "title": "Message truncated for analysis",
-          "body": "Only the first 8 KB of the message were sent to MEGGA AI. Check that the key information was extracted correctly."
+          "title": "Nachricht für die Analyse gekürzt",
+          "body": "Nur die ersten 8 KB der Nachricht wurden an MEGGA AI gesendet. Prüfen Sie, ob die wichtigsten Informationen extrahiert wurden."
         },
         "redaction": {
-          "title": "Sensitive data removed before analysis",
-          "body": "nFADP filter applied: {{summary}}. The original message was not sent to the AI as-is."
+          "title": "Sensible Daten vor der Analyse entfernt",
+          "body": "nDSG-Filter angewendet: {{summary}}. Die ursprüngliche Nachricht wurde nicht unverändert an die KI gesendet."
         }
       },
       "field": {
-        "identity": "Identity",
-        "firstName": "First name",
-        "lastName": "Last name",
+        "identity": "Identität",
+        "firstName": "Vorname",
+        "lastName": "Nachname",
         "email": "Email",
-        "phone": "Phone",
-        "intent": "Intent",
+        "phone": "Telefon",
+        "intent": "Absicht",
         "budget": "Budget",
-        "criteria": "Criteria",
-        "rooms": "Rooms",
-        "zone": "Neighbourhood / area",
-        "urgency": "Urgency",
-        "nextAction": "Suggested action"
+        "criteria": "Kriterien",
+        "rooms": "Zimmer",
+        "zone": "Quartier / Gebiet",
+        "urgency": "Dringlichkeit",
+        "nextAction": "Vorgeschlagene Aktion"
       },
-      "roomsCount_one": "{{count}} room",
-      "roomsCount_other": "{{count}} rooms",
-      "notDetected": "Not detected",
+      "roomsCount_one": "{{count}} Zimmer",
+      "roomsCount_other": "{{count}} Zimmer",
+      "notDetected": "Nicht erkannt",
       "deal": {
-        "title": "Also create a deal in the pipeline",
-        "desc": "A \"{{intent}}\" deal will be opened with the next action scheduled.",
-        "kycNote": "KYC will be requested before signing."
+        "title": "Auch einen Deal in der Pipeline erstellen",
+        "desc": "Ein Deal «{{intent}}» wird mit der nächsten geplanten Aktion eröffnet.",
+        "kycNote": "Das KYC wird vor der Unterzeichnung angefordert."
       },
-      "createFailed": "Creation failed: {{message}}",
+      "createFailed": "Erstellung fehlgeschlagen: {{message}}",
       "duplicate": {
-        "title_one": "One similar contact already in your agency",
-        "title_other": "{{count}} similar contacts already in your agency",
-        "matchBadge": "{{kind}} match",
+        "title_one": "Ein ähnlicher Kontakt bereits in Ihrer Agentur",
+        "title_other": "{{count}} ähnliche Kontakte bereits in Ihrer Agentur",
+        "matchBadge": "Treffer: {{kind}}",
         "kind": {
           "email": "email",
-          "phone": "phone",
-          "name": "name"
+          "phone": "Telefon",
+          "name": "Name"
         },
-        "note": "You can still create a new contact below if you're sure this is a different person."
+        "note": "Sie können unten trotzdem einen neuen Kontakt erstellen, wenn Sie sicher sind, dass es sich um eine andere Person handelt."
       },
       "created": {
         "fallbackName": "Contact",
-        "title": "{{name}} is in your CRM.",
-        "subtitleDeal": "A \"{{intent}}\" deal was created in your pipeline.",
-        "subtitleContact": "The contact was created. You can link a deal to it later.",
-        "partialContact": "Partial contact details",
-        "nextActionLabel": "Next action:",
-        "highUrgencySuffix": "· high urgency",
-        "viewPipeline": "View in pipeline →",
-        "viewPipelineDesc": "Open the deal card",
-        "viewContact": "View contact record →",
-        "viewContactDesc": "Contact details, KYC, history"
+        "title": "{{name}} ist in Ihrem CRM.",
+        "subtitleDeal": "Ein Deal «{{intent}}» wurde in Ihrer Pipeline erstellt.",
+        "subtitleContact": "Der Kontakt wurde erstellt. Sie können ihm später einen Deal zuordnen.",
+        "partialContact": "Unvollständige Kontaktdaten",
+        "nextActionLabel": "Nächste Aktion:",
+        "highUrgencySuffix": "· hohe Dringlichkeit",
+        "viewPipeline": "In der Pipeline ansehen →",
+        "viewPipelineDesc": "Die Deal-Karte öffnen",
+        "viewContact": "Kontaktprofil ansehen →",
+        "viewContactDesc": "Kontaktdaten, KYC, Verlauf"
       }
     },
     "batch": {
-      "title": "Import contacts",
-      "methodPrompt": "How would you like to add your contacts?",
-      "manual_desc": "Add a contact manually",
-      "importing": "Importing…",
-      "importCount_one": "Import {{count}} contact",
-      "importCount_other": "Import {{count}} contacts",
-      "foundCount_one": "{{count}} contact found",
-      "foundCount_other": "{{count}} contacts found",
+      "title": "Kontakte importieren",
+      "methodPrompt": "Wie möchten Sie Ihre Kontakte hinzufügen?",
+      "manual_desc": "Einen Kontakt manuell hinzufügen",
+      "importing": "Import läuft…",
+      "importCount_one": "{{count}} Kontakt importieren",
+      "importCount_other": "{{count}} Kontakte importieren",
+      "foundCount_one": "{{count}} Kontakt gefunden",
+      "foundCount_other": "{{count}} Kontakte gefunden",
       "field": {
-        "ignore": "Ignore",
-        "firstName": "First name",
-        "lastName": "Last name",
+        "ignore": "Ignorieren",
+        "firstName": "Vorname",
+        "lastName": "Nachname",
         "email": "Email",
-        "phone": "Phone",
+        "phone": "Telefon",
         "type": "Type",
         "notes": "Notes",
         "source": "Source"
       },
       "csv": {
-        "title": "Import from a CSV",
-        "uploadPrompt": "Drag or select your file",
-        "mapPrompt_one": "{{count}} contact found, map the columns",
-        "mapPrompt_other": "{{count}} contacts found, map the columns",
-        "dropTitle": "Drop your CSV file here",
-        "dropHint": "or click to select (.csv, .tsv)",
-        "previewLabel": "Preview:"
+        "title": "Aus einer CSV importieren",
+        "uploadPrompt": "Ziehen Sie Ihre Datei hierher oder wählen Sie sie aus",
+        "mapPrompt_one": "{{count}} Kontakt gefunden, ordnen Sie die Spalten zu",
+        "mapPrompt_other": "{{count}} Kontakte gefunden, ordnen Sie die Spalten zu",
+        "dropTitle": "Ziehen Sie Ihre CSV-Datei hierher",
+        "dropHint": "oder klicken Sie zum Auswählen (.csv, .tsv)",
+        "previewLabel": "Vorschau:"
       },
       "vcard": {
-        "title": "Import from vCard",
-        "subtitle": "Export from iPhone, Android, Outlook or Gmail",
-        "dropTitle": "Drop your .vcf file here",
-        "dropHint": "or click to select"
+        "title": "Aus vCard importieren",
+        "subtitle": "Export von iPhone, Android, Outlook oder Gmail",
+        "dropTitle": "Ziehen Sie Ihre .vcf-Datei hierher",
+        "dropHint": "oder klicken Sie zum Auswählen"
       },
       "text": {
-        "title": "AI extraction",
-        "subtitle": "Paste an email, a message, or any text containing contact details",
-        "placeholder": "E.g. Hello, I'm Marie Dupont, reachable at 079 123 45 67 or marie.dupont@gmail.com. I'm looking for a 4-room flat in Geneva…",
-        "extract": "Extract contacts",
-        "analyzing": "MEGGA AI is analysing the text…",
-        "identifiedCount_one": "{{count}} contact identified",
-        "identifiedCount_other": "{{count}} contacts identified",
-        "errorNotFound": "No contact found in the text",
-        "errorNone": "No contact identified",
-        "errorExtract": "Extraction error"
+        "title": "KI-Extraktion",
+        "subtitle": "Fügen Sie eine E-Mail, eine Nachricht oder einen beliebigen Text mit Kontaktdaten ein",
+        "placeholder": "Z. B.: Guten Tag, ich bin Marie Dupont, erreichbar unter 079 123 45 67 oder marie.dupont@gmail.com. Ich suche eine 4-Zimmer-Wohnung in Genf…",
+        "extract": "Kontakte extrahieren",
+        "analyzing": "MEGGA AI analysiert den Text…",
+        "identifiedCount_one": "{{count}} Kontakt identifiziert",
+        "identifiedCount_other": "{{count}} Kontakte identifiziert",
+        "errorNotFound": "Keine Kontakte im Text gefunden",
+        "errorNone": "Keine Kontakte identifiziert",
+        "errorExtract": "Extraktionsfehler"
       },
       "result": {
-        "importedCount_one": "{{count}} contact imported",
-        "importedCount_other": "{{count}} contacts imported",
-        "skippedCount_one": "{{count}} skipped (incomplete)",
-        "skippedCount_other": "{{count}} skipped (incomplete)",
-        "duplicatesCount_one": "{{count}} duplicate skipped",
-        "duplicatesCount_other": "{{count}} duplicates skipped",
-        "goToContacts": "View my contacts"
+        "importedCount_one": "{{count}} Kontakt importiert",
+        "importedCount_other": "{{count}} Kontakte importiert",
+        "skippedCount_one": "{{count}} ignoriert (unvollständig)",
+        "skippedCount_other": "{{count}} ignoriert (unvollständig)",
+        "duplicatesCount_one": "{{count}} Duplikat ignoriert",
+        "duplicatesCount_other": "{{count}} Duplikate ignoriert",
+        "goToContacts": "Meine Kontakte ansehen"
       }
     }
   },
@@ -297,85 +297,85 @@
     "qualify": "Kontakt qualifizieren",
     "qualifyDesc": "Erstkontakt zur Bedarfsermittlung.",
     "propertyForSale": "Objekt zum Verkauf",
-    "noneSelectedTitle": "No contact selected",
-    "noneSelectedDesc": "Pick a contact from the list to view its detailed record.",
+    "noneSelectedTitle": "Kein Kontakt ausgewählt",
+    "noneSelectedDesc": "Wählen Sie einen Kontakt aus der Liste, um seine Detailansicht zu öffnen.",
     "scoreChip": "Score {{score}}",
-    "metaLine": "Source: {{source}} · Created on {{date}} · Last activity {{activity}}",
+    "metaLine": "Quelle: {{source}} · Erstellt am {{date}} · Letzte Aktivität {{activity}}",
     "addTag": "+ Tag",
-    "plan": "Schedule",
-    "planRdvTitle": "Schedule an appointment",
-    "moreActions": "More actions",
-    "recentActivity": "Recent activity",
-    "seeAll": "See all",
-    "quickEntry": "Quick entry",
-    "modify": "Edit",
-    "mandatesDistribution": "Mandates & distribution",
-    "kycCompliance": "KYC / AMLA compliance",
-    "internalNotes": "Internal notes",
-    "noNotes": "No note for this contact.",
+    "plan": "Planen",
+    "planRdvTitle": "Termin planen",
+    "moreActions": "Weitere Aktionen",
+    "recentActivity": "Neueste Aktivität",
+    "seeAll": "Alle anzeigen",
+    "quickEntry": "Schnelleingabe",
+    "modify": "Bearbeiten",
+    "mandatesDistribution": "Mandate & Publikation",
+    "kycCompliance": "KYC- / GwG-Konformität",
+    "internalNotes": "Interne Notizen",
+    "noNotes": "Keine Notiz für diesen Kontakt.",
     "dealsTitle": "Deals · {{count}}",
-    "newShort": "+ New",
-    "preferences": "Preferences",
-    "prefLanguage": "Language",
-    "prefChannel": "Channel",
+    "newShort": "+ Neu",
+    "preferences": "Präferenzen",
+    "prefLanguage": "Sprache",
+    "prefChannel": "Kanal",
     "channelEmail": "Email",
-    "channelPhone": "Phone",
-    "prefMoment": "Best time",
-    "notProvided": "Not provided",
+    "channelPhone": "Telefon",
+    "prefMoment": "Zeitpunkt",
+    "notProvided": "Nicht angegeben",
     "prefAgent": "Agent",
-    "unassigned": "Unassigned",
+    "unassigned": "Nicht zugewiesen",
     "matchesTitle": "Matches · {{count}}",
-    "seeAllArrow": "See all →",
-    "rdvPlanned": "{{type}} scheduled, {{when}}",
-    "rdvWhen": "{{date}} at {{time}}",
+    "seeAllArrow": "Alle anzeigen →",
+    "rdvPlanned": "{{type}} geplant, {{when}}",
+    "rdvWhen": "{{date}} um {{time}}",
     "rdvType": {
-      "visit": "Viewing",
-      "phone": "Phone call",
-      "video": "Video call",
-      "notary": "Notary signing",
-      "other": "Appointment"
+      "visit": "Besichtigung",
+      "phone": "Telefon",
+      "video": "Videoanruf",
+      "notary": "Notarielle Unterzeichnung",
+      "other": "Termin"
     },
     "docs": {
       "title": "Documents",
-      "count": "{{count}} item",
-      "upload": "Upload",
-      "empty": "No document attached to this contact.",
-      "addedOn": "Added on {{date}}"
+      "count": "{{count}} Dokument",
+      "upload": "Hochladen",
+      "empty": "Keine Dokumente für diesen Kontakt angehängt.",
+      "addedOn": "Hinzugefügt am {{date}}"
     },
     "type": {
-      "buyer": "Buyer",
-      "seller": "Seller",
+      "buyer": "Käufer",
+      "seller": "Verkäufer",
       "lead": "Lead"
     },
-    "new": "New",
+    "new": "Neu",
     "via": "Via {{source}}",
-    "unknownSource": "Unknown source",
+    "unknownSource": "Unbekannte Quelle",
     "action": {
-      "call": "Call",
+      "call": "Anrufen",
       "email": "Email",
-      "schedule": "Schedule",
+      "schedule": "Planen",
       "note": "Note"
     },
     "score": {
-      "label": "MEGGA score",
-      "hot": "Hot lead",
-      "nurture": "To nurture",
-      "qualify": "To qualify",
-      "hotHint": "Strong purchase intent",
-      "nurtureHint": "Moderate engagement",
-      "qualifyHint": "Insufficient data"
+      "label": "MEGGA-Score",
+      "hot": "Heisser Lead",
+      "nurture": "Zu pflegen",
+      "qualify": "Zu qualifizieren",
+      "hotHint": "Starke Kaufabsicht",
+      "nurtureHint": "Mässiges Engagement",
+      "qualifyHint": "Unzureichende Daten"
     },
-    "contactInfo": "Contact details",
-    "openFullProfile": "Open full profile",
+    "contactInfo": "Kontaktdaten",
+    "openFullProfile": "Vollständiges Profil öffnen",
     "signature": {
-      "title": "Electronic signature",
-      "description": "Upload a document (PDF) for {{name}} to sign. The signing link is sent by email or WhatsApp, validated by you.",
-      "thisContact": "this contact",
-      "send": "Send a document for signature",
-      "errPdfOnly": "Only PDF files are accepted.",
-      "errTooLarge": "PDF too large (max 20 MB).",
-      "errRead": "Unable to read the file.",
-      "defaultTitle": "Document to sign"
+      "title": "Elektronische Signatur",
+      "description": "Laden Sie ein Dokument (PDF) hoch, das {{name}} unterzeichnen soll. Der Signaturlink wird nach Ihrer Freigabe per E-Mail oder WhatsApp versendet.",
+      "thisContact": "dieser Kontakt",
+      "send": "Dokument zur Signatur senden",
+      "errPdfOnly": "Es werden nur PDF-Dateien akzeptiert.",
+      "errTooLarge": "PDF zu gross (max. 20 MB).",
+      "errRead": "Datei kann nicht gelesen werden.",
+      "defaultTitle": "Zu unterzeichnendes Dokument"
     }
   },
   "timeline": {
@@ -392,428 +392,255 @@
     "affordabilityCheck": "Tragbarkeitsprüfung",
     "matchSent": "Matching gesendet"
   },
-  "importPage": {
-    "title": "Kontakte importieren",
-    "csvTitle": "Aus CSV / Excel importieren",
-    "csvDrop": "CSV- oder TSV-Datei hierher ziehen",
-    "csvBrowse": "oder durchsuchen",
-    "vcardTitle": "Aus vCard importieren",
-    "vcardDrop": ".vcf-Datei hierher ziehen",
-    "vcardBrowse": "oder durchsuchen",
-    "textTitle": "KI-Extraktion",
-    "textPlaceholder": "E-Mail, WhatsApp-Nachricht oder Text mit Kontaktdaten einfügen...",
-    "textExtract": "Mit MEGGA AI extrahieren",
-    "textExtracting": "Wird extrahiert...",
-    "preview": "Import-Vorschau",
-    "contactsDetected": "{{count}} Kontakte erkannt",
-    "import": "{{count}} Kontakte importieren",
-    "importing": "Import läuft...",
-    "success": "{{count}} Kontakte erfolgreich importiert",
-    "goToContacts": "Meine Kontakte anzeigen",
-    "importMore": "Weitere Kontakte importieren",
-    "errors": "Fehler",
-    "skipped": "{{count}} übersprungen (Duplikate oder ungültig)"
-  },
   "contactType": {
-    "buyer": "Buyer",
-    "seller": "Seller",
-    "tenant": "Tenant",
-    "landlord": "Landlord",
-    "mixed": "Mixed",
+    "buyer": "Käufer",
+    "seller": "Verkäufer",
+    "tenant": "Mieter",
+    "landlord": "Eigentümer",
+    "mixed": "Gemischt",
     "investor": "Investor",
     "lead": "Lead"
   },
   "relativeTime": {
-    "min": "{{n}} min ago",
-    "h": "{{n}}h ago",
-    "j": "{{n}}d ago",
-    "sem": "{{n}}w ago",
-    "mois": "{{n}}mo ago",
+    "min": "vor {{n}} Min.",
+    "h": "vor {{n}} Std.",
+    "j": "vor {{n}} T.",
+    "sem": "vor {{n}} Wo.",
+    "mois": "vor {{n}} Mt.",
     "ans_one": "vor {{count}} Jahr",
     "ans_other": "vor {{count}} Jahren"
   },
   "segments": {
-    "all": "All",
-    "toQualify": "To qualify",
-    "buyer": "Buyers",
-    "seller": "Sellers",
-    "tenant": "Tenants",
-    "hot": "Hot leads",
-    "kyc": "KYC to complete",
-    "stale": "Inactive 14d+"
+    "all": "Alle",
+    "toQualify": "Zu qualifizieren",
+    "buyer": "Käufer",
+    "seller": "Verkäufer",
+    "tenant": "Mieter",
+    "hot": "Heisse Leads",
+    "kyc": "KYC zu vervollständigen",
+    "stale": "Ohne Aktivität 14 T.+"
   },
   "nextAction": {
-    "planifier_visite": "Schedule a visit",
-    "envoyer_biens": "Send properties",
-    "relancer": "Follow up",
-    "qualifier_lead": "Qualify the lead",
-    "repondre": "Reply",
-    "rien": "Nothing to do"
+    "planifier_visite": "Besichtigung planen",
+    "envoyer_biens": "Objekte senden",
+    "relancer": "Nachfassen",
+    "qualifier_lead": "Lead qualifizieren",
+    "repondre": "Antworten",
+    "rien": "Nichts zu tun"
   },
   "sentiment": {
-    "positif": "Positive",
-    "tendu": "Tense",
+    "positif": "Positiv",
+    "tendu": "Angespannt",
     "neutre": "Neutral"
   },
   "entity": {
     "budget": "Budget",
-    "zones": "Areas",
+    "zones": "Gebiete",
     "type": "Type",
-    "pieces": "Rooms",
+    "pieces": "Zimmer",
     "dates": "Dates"
   },
   "list": {
-    "searchPlaceholder": "Name, email, tag…",
-    "importLeadTitle": "Import a lead with MEGGA AI",
-    "newContactTitle": "New contact",
-    "resultsCount_one": "{{count}} result",
-    "resultsCount_other": "{{count}} results",
-    "sortLabel": "Sort: {{mode}}",
+    "searchPlaceholder": "Name, E-Mail, Tag…",
+    "importLeadTitle": "Lead über MEGGA AI importieren",
+    "newContactTitle": "Neuer Kontakt",
+    "resultsCount_one": "{{count}} Ergebnis",
+    "resultsCount_other": "{{count}} Ergebnisse",
+    "sortLabel": "Sortierung: {{mode}}",
     "sort": {
-      "activity": "Activity",
+      "activity": "Aktivität",
       "score": "Score",
       "name": "Name"
     },
-    "errorTitle": "Unable to load contacts",
-    "errorBody": "Something went wrong. Check your connection, then try again.",
-    "retry": "Retry",
-    "loading": "Loading contacts…",
-    "emptyFiltered": "No contact matches the filters.",
+    "errorTitle": "Kontakte konnten nicht geladen werden",
+    "errorBody": "Ein Fehler ist aufgetreten. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "retry": "Erneut versuchen",
+    "loading": "Kontakte werden geladen…",
+    "emptyFiltered": "Kein Kontakt entspricht den Filtern.",
     "toast": {
-      "created": "Contact created, {{name}}",
-      "error": "Error, {{message}}",
-      "unknownError": "Unknown error"
+      "created": "Kontakt erstellt, {{name}}",
+      "error": "Fehler, {{message}}",
+      "unknownError": "Unbekannter Fehler"
     },
     "sourceFilter": {
-      "badge": "Dashboard filter",
-      "label": "Source:",
-      "hint": "· channel filtering will be available once contacts carry a source field.",
-      "remove": "Remove",
-      "removeAria": "Remove the source filter"
+      "badge": "Dashboard-Filter",
+      "label": "Quelle:",
+      "hint": "· Der Kanalfilter wird verfügbar, sobald die Kontakte das Feld Quelle haben.",
+      "remove": "Entfernen",
+      "removeAria": "Quellenfilter entfernen"
     },
     "sourceLabel": {
-      "marketplace": "MEGGA marketplace",
-      "agency-site": "Agency website",
-      "referral": "Referrals",
-      "social": "Social media",
-      "manual": "Manual import"
-    }
-  },
-  "widgets": {
-    "criteria": {
-      "transaction": "Transaction",
-      "buy": "Purchase",
-      "rent": "Rental",
-      "type": "Type",
-      "zones": "Areas",
-      "budget": "Budget",
-      "surface": "Surface",
-      "rooms": "Rooms",
-      "mustHave": "Must-have",
-      "niceToHave": "Nice-to-have"
-    },
-    "matches": {
-      "empty": "No match computed for this contact.",
-      "specs": "{{rooms}} rms · {{area}}m² · {{price}}",
-      "perMonth": "{{price}}/mo",
-      "send": "Send",
-      "open": "Open",
-      "status": {
-        "to-send": "To send",
-        "sent": "Sent",
-        "viewed": "Viewed",
-        "liked": "Liked",
-        "rejected": "Rejected"
-      }
-    },
-    "activity": {
-      "empty": "No activity recorded for this contact."
-    },
-    "composer": {
-      "tab": {
-        "note": "Note",
-        "call": "Call",
-        "email": "Email",
-        "task": "Task"
-      },
-      "placeholder": {
-        "note": "Add a quick note…",
-        "call": "Summarise a call, key points, next step…",
-        "email": "Subject + email body…",
-        "task": "Task to do, due date, who?"
-      },
-      "suggest": "Suggest with MEGGA AI",
-      "save": "Save"
-    },
-    "deals": {
-      "empty": "No deal in progress for this contact.",
-      "newDeal": "+ New deal",
-      "activeSearch": "Active search",
-      "risk": {
-        "atRisk": "At risk",
-        "stalled": "Stalled",
-        "healthy": "Healthy"
-      }
-    },
-    "seller": {
-      "empty": "No active property under mandate.",
-      "mandateLine": "{{ref}} · {{type}} mandate · {{commission}}%",
-      "stat": {
-        "views": "Views",
-        "favorites": "Favourites",
-        "visits": "Viewings"
-      }
-    },
-    "kyc": {
-      "step": {
-        "identity": "Identity",
-        "beneficiary": "Benef.",
-        "funds": "Funds",
-        "screening": "Screening",
-        "risk": "Risk",
-        "validation": "Validation"
-      },
-      "statusLabel": {
-        "none": "To start",
-        "pending": "In progress",
-        "verified": "Verified",
-        "stale": "Re-screen needed"
-      },
-      "hint": {
-        "none": "You can keep working this file, remember to complete it before signing.",
-        "pending": "Checks pending · usual turnaround 24-48h.",
-        "verified": "Risk {{risk}} · last screening {{date}}.",
-        "stale": "Sanctions/PEP to refresh, recommended after 12 months or a change of circumstances."
-      },
-      "cta": {
-        "none": "Start the KYC file",
-        "pending": "View the file",
-        "verified": "Open the file",
-        "stale": "Re-run screening"
-      },
-      "kpi": {
-        "risk": "Risk",
-        "documents": "Documents",
-        "validity": "Valid until"
-      },
-      "risk": {
-        "high": "High",
-        "medium": "Medium",
-        "low": "Low"
-      }
-    },
-    "scoreBadge": {
-      "label": {
-        "serieux": "Serious",
-        "a_qualifier": "To qualify",
-        "froid": "Cold"
-      },
-      "estimation": "Estimate",
-      "title": "Contact score, estimate",
-      "titleLimited": "Contact score, estimate · limited data"
+      "marketplace": "MEGGA-Marktplatz",
+      "agency-site": "Agentur-Website",
+      "referral": "Empfehlungen",
+      "social": "Soziale Netzwerke",
+      "manual": "Manueller Import"
     }
   },
   "newContact": {
-    "title": "New contact",
-    "subtitle": "Create a record",
+    "title": "Neuer Kontakt",
+    "subtitle": "Datensatz erstellen",
     "civility": {
-      "mr": "Mr",
-      "mrs": "Mrs",
-      "other": "Other"
+      "mr": "Herr",
+      "mrs": "Frau",
+      "other": "Andere"
     },
     "source": {
       "website": "Website",
-      "referral": "Referral",
+      "referral": "Empfehlung",
       "portal": "Portal",
       "walkIn": "Walk-in",
       "import": "Import",
-      "other": "Other"
+      "other": "Sonstige"
     },
     "propertyType": {
-      "apartment": "Apartment",
-      "house": "House",
-      "land": "Land",
+      "apartment": "Wohnung",
+      "house": "Haus",
+      "land": "Grundstück",
       "commercial": "Commercial"
     },
-    "civilityLabel": "Title",
-    "firstName": "First name *",
+    "civilityLabel": "Anrede",
+    "firstName": "Vorname *",
     "firstNamePlaceholder": "Marie",
-    "lastName": "Last name *",
+    "lastName": "Nachname *",
     "lastNamePlaceholder": "Bertrand",
     "email": "Email *",
-    "phone": "Phone",
-    "language": "Language",
-    "leadSource": "Lead source",
+    "phone": "Telefon",
+    "language": "Sprache",
+    "leadSource": "Lead-Quelle",
     "tags": "Tags / segment",
-    "tagPlaceholder": "Add a tag then press Enter…",
-    "note": "Free note",
-    "notePlaceholder": "Context, how you were introduced, key points…",
+    "tagPlaceholder": "Tag hinzufügen, dann Enter…",
+    "note": "Freie Notiz",
+    "notePlaceholder": "Kontext, wie der Kontakt zustande kam, wichtige Punkte…",
     "searchCriteria": {
-      "titleBuy": "Search criteria · purchase",
-      "titleRent": "Search criteria · rental",
+      "titleBuy": "Suchkriterien · Kauf",
+      "titleRent": "Suchkriterien · Miete",
       "budget": "Budget (CHF)",
-      "maxRent": "Max monthly rent (CHF)",
+      "maxRent": "Max. Monatsmiete (CHF)",
       "budgetMinPlaceholder": "Min · 900000",
       "budgetMaxPlaceholder": "Max · 1300000"
     },
-    "propertyTypeLabel": "Property type",
+    "propertyTypeLabel": "Objekttyp",
     "cantons": "Cantons",
-    "minRooms": "Min rooms",
-    "minRoomsPlaceholder": "e.g. 4",
-    "matchingHint": "These criteria will trigger an initial <strong>AI matching</strong> as soon as the contact is created.<br/>You can refine them later from the record.",
+    "minRooms": "Zimmer min.",
+    "minRoomsPlaceholder": "z. B. 4",
+    "matchingHint": "Diese Kriterien starten ein erstes <strong>KI-Matching</strong> direkt bei der Erstellung.<br/>Sie können sie später im Datensatz verfeinern.",
     "property": {
-      "titleSell": "Property to sell",
-      "titleRent": "Property to rent",
-      "minFicheHint": "Creates a <strong>minimal property record</strong> linked to this contact. You can add photos, price and description later via the wizard from the record.",
-      "address": "Property address",
+      "titleSell": "Objekt zum Verkauf",
+      "titleRent": "Objekt zur Miete",
+      "minFicheHint": "Erstellt ein <strong>minimales Objektprofil</strong>, das mit diesem Kontakt verknüpft ist. Fotos, Preis und Beschreibung ergänzen Sie später über den Wizard aus dem Profil.",
+      "address": "Adresse des Objekts",
       "addressPlaceholder": "Rue du Mont-Blanc 12, 1201 Genève",
       "type": "Type",
-      "rooms": "Rooms",
-      "openWizard": "Open the full property wizard",
-      "mandateKycHint": "The <strong>mandate signature</strong> and KYC will be offered as next steps after creation."
+      "rooms": "Zimmer",
+      "openWizard": "Vollständigen Objekt-Wizard öffnen",
+      "mandateKycHint": "Die <strong>Mandatsunterzeichnung</strong> und das KYC werden nach der Erstellung als nächste Schritte vorgeschlagen."
     },
-    "shortcutCreate": "⌘⏎ to create",
-    "creating": "Creating…",
-    "submit": "Create contact"
+    "shortcutCreate": "⌘⏎ zum Erstellen",
+    "creating": "Wird erstellt…",
+    "submit": "Kontakt erstellen"
   },
   "cd": {
-    "backToContacts": "Back to contacts",
-    "scoreHot": "Hot score",
-    "scoreWarm": "Warm score",
-    "scoreCold": "Cold score",
-    "sourceLabel": "Source: {{source}}",
-    "callTitle": "Call {{phone}}",
-    "noPhone": "No phone number",
-    "emailTitle": "Email {{email}}",
-    "noEmail": "No email",
-    "whatsappTitle": "WhatsApp message",
-    "scheduleTitle": "Schedule",
-    "newAction": "New action",
-    "kvEmail": "Email",
-    "kvPhone": "Phone",
-    "kvLanguage": "Language",
-    "kvAgent": "Lead agent",
-    "unassigned": "Unassigned",
-    "notesTitle": "Internal notes",
-    "notesEyebrow": "Private · MEGGA team",
-    "edit": "Edit",
-    "notesPlaceholder": "Internal note, visible to the MEGGA team only.",
-    "cancel": "Cancel",
-    "saving": "Saving…",
-    "save": "Save",
-    "notesEmpty": "No notes for this contact.",
-    "kycBannerNoneStatus": "no KYC file opened yet",
-    "kycBannerPendingStatus": "the KYC file is in progress, documents to complete",
-    "kycBannerReviewStatus": "the KYC file should be reviewed",
-    "kycBannerTitle": "KYC compliance, {{status}}.",
-    "kycBannerDesc": "Complete the KYC to prepare the move to <1>Confirmed interest</1>. It's an optional assist, never a blocker.",
-    "kycBannerProgress": "Progress: {{pct}}%.",
-    "kycStart": "Start KYC",
-    "kycContinue": "Continue the file",
+    "backToContacts": "Zurück zu den Kontakten",
+    "scoreHot": "Heisser Score",
+    "scoreWarm": "Warmer Score",
+    "scoreCold": "Kalter Score",
+    "sourceLabel": "Quelle: {{source}}",
+    "callTitle": "{{phone}} anrufen",
+    "noPhone": "Keine Nummer",
+    "emailTitle": "E-Mail an {{email}}",
+    "noEmail": "Keine E-Mail",
+    "whatsappTitle": "WhatsApp-Nachricht",
+    "scheduleTitle": "Planen",
+    "newAction": "Neue Aktion",
+    "kvEmail": "E-Mail",
+    "kvPhone": "Telefon",
+    "kvLanguage": "Sprache",
+    "kvAgent": "Zuständiger Makler",
+    "unassigned": "Nicht zugewiesen",
+    "notesTitle": "Interne Notizen",
+    "notesEyebrow": "Privat · MEGGA-Team",
+    "edit": "Bearbeiten",
+    "notesPlaceholder": "Interne Notiz, nur für das MEGGA-Team sichtbar.",
+    "cancel": "Abbrechen",
+    "saving": "Wird gespeichert…",
+    "save": "Speichern",
+    "notesEmpty": "Keine Notizen für diesen Kontakt.",
+    "kycBannerNoneStatus": "es wurde noch kein KYC-Dossier eröffnet",
+    "kycBannerPendingStatus": "das KYC-Dossier ist in Bearbeitung, Unterlagen zu vervollständigen",
+    "kycBannerReviewStatus": "das KYC-Dossier ist zu überprüfen",
+    "kycBannerTitle": "KYC-Konformität, {{status}}.",
+    "kycBannerDesc": "Vervollständigen Sie das KYC, um den Übergang zu <1>Bestätigtes Interesse</1> vorzubereiten. Es ist eine freiwillige Unterstützung, nie eine Sperre.",
+    "kycBannerProgress": "Fortschritt: {{pct}} %.",
+    "kycStart": "KYC starten",
+    "kycContinue": "Dossier fortsetzen",
     "waMessageCount_one": "{{count}} message",
     "waMessageCount_other": "{{count}} messages",
-    "waLoading": "Loading…",
-    "waEmpty": "No WhatsApp messages for this contact.",
-    "waTranscribing": "transcribing…",
-    "waTranscriptUnavailable": "transcript unavailable",
-    "waNoText": "(no text)",
-    "waReplyPlaceholder": "Reply on WhatsApp…",
-    "waSendError": "Sending failed. The 24-hour window may have expired.",
-    "waSending": "Sending…",
-    "waSend": "Send",
-    "waDeliverySent": "Sent",
-    "waDeliveryDelivered": "Delivered",
-    "waDeliveryRead": "Read",
-    "waDeliveryFailed": "not delivered",
-    "waDeliveryFailedTitle": "Delivery failed",
-    "timelineTitle": "Activity",
-    "timelineEyebrow": "Unified timeline",
-    "timelineSummarize": "Summarize with MEGGA AI",
-    "timelineAdd": "Add",
-    "timelineEmpty": "No activity recorded for this contact.",
+    "waLoading": "Laden…",
+    "waEmpty": "Keine WhatsApp-Nachrichten für diesen Kontakt.",
+    "waTranscribing": "Transkription läuft…",
+    "waTranscriptUnavailable": "Transkription nicht verfügbar",
+    "waNoText": "(ohne Text)",
+    "waReplyPlaceholder": "Auf WhatsApp antworten…",
+    "waSendError": "Senden fehlgeschlagen. Das 24-Stunden-Fenster ist möglicherweise abgelaufen.",
+    "waSending": "Wird gesendet…",
+    "waSend": "Senden",
+    "waDeliverySent": "Gesendet",
+    "waDeliveryDelivered": "Zugestellt",
+    "waDeliveryRead": "Gelesen",
+    "waDeliveryFailed": "nicht zugestellt",
+    "waDeliveryFailedTitle": "Zustellung fehlgeschlagen",
+    "timelineTitle": "Aktivität",
+    "timelineEyebrow": "Einheitliche Timeline",
+    "timelineSummarize": "Mit MEGGA AI zusammenfassen",
+    "timelineAdd": "Hinzufügen",
+    "timelineEmpty": "Keine Aktivität für diesen Kontakt erfasst.",
     "timelineAction": {
-      "seller_offer_decision": "Seller decision"
+      "seller_offer_decision": "Entscheidung des Verkäufers"
     },
     "actorAgent": "Agent",
-    "criteriaTitle": "Search criteria",
-    "criteriaEyebrow": "AI matching",
+    "criteriaTitle": "Suchkriterien",
+    "criteriaEyebrow": "KI-Matching",
     "criteriaType": "Type",
-    "criteriaZones": "Areas",
+    "criteriaZones": "Gebiete",
     "criteriaBudget": "Budget",
     "criteriaSurface": "Surface",
-    "criteriaRooms": "Rooms",
-    "criteriaFrom": "from {{value}}",
-    "criteriaMustHave": "Must-have",
-    "kycTitle": "KYC compliance",
-    "kycEyebrow": "AMLA · recommended",
-    "kycOpen": "Open",
-    "kycPercentComplete": "{{pct}}% complete",
-    "kycNoDocuments": "No documents collected",
-    "kycToComplete": "To complete",
-    "insightEyebrow": "AI assistance",
-    "insightTitle": "MEGGA understanding",
-    "insightLoading": "Analyzing the conversation…",
-    "insightError": "Understanding unavailable at the moment.",
-    "insightCommitments": "Commitments",
-    "insightNextAction": "Suggested next action",
-    "insightFooter_one": "AI estimate · {{count}} message analyzed · {{date}}",
-    "insightFooter_other": "AI estimate · {{count}} messages analyzed · {{date}}",
-    "loading": "Loading contact…",
-    "followupTitle": "Suggested follow-ups",
-    "followupAccept": "Create reminder",
-    "followupDismiss": "Dismiss",
-    "followupFooter": "MEGGA suggestions to accept or dismiss.",
-    "followupKind_commitment": "Commitment",
-    "followupKind_next_action": "Next action",
-    "followupKind_client_availability": "Client availability",
+    "criteriaRooms": "Zimmer",
+    "criteriaFrom": "ab {{value}}",
+    "criteriaMustHave": "Unverzichtbar",
+    "kycTitle": "KYC-Konformität",
+    "kycEyebrow": "GwG · empfohlen",
+    "kycOpen": "Öffnen",
+    "kycPercentComplete": "{{pct}} % abgeschlossen",
+    "kycNoDocuments": "Keine Unterlagen erfasst",
+    "kycToComplete": "Zu vervollständigen",
+    "insightEyebrow": "KI-Assistenz",
+    "insightTitle": "MEGGA-Verständnis",
+    "insightLoading": "Gespräch wird analysiert…",
+    "insightError": "Verständnis derzeit nicht verfügbar.",
+    "insightCommitments": "Zusagen",
+    "insightNextAction": "Vorgeschlagene nächste Aktion",
+    "insightFooter_one": "KI-Schätzung · {{count}} Nachricht analysiert · {{date}}",
+    "insightFooter_other": "KI-Schätzung · {{count}} Nachrichten analysiert · {{date}}",
+    "loading": "Kontakt wird geladen…",
+    "followupTitle": "Vorgeschlagene Folgeaktionen",
+    "followupAccept": "Erinnerung erstellen",
+    "followupDismiss": "Ignorieren",
+    "followupFooter": "Vorschläge von MEGGA, zu bestätigen oder zu ignorieren.",
+    "followupKind_commitment": "Zusage",
+    "followupKind_next_action": "Aktion",
+    "followupKind_client_availability": "Verfügbarkeit Kunde",
     "error": {
       "title": "Dieser Kontakt konnte nicht geladen werden",
       "message": "Ein Fehler ist aufgetreten. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
       "retry": "Erneut versuchen"
     }
   },
-  "ctKyc": {
-    "title": "KYC / AML compliance",
-    "status": {
-      "none": {
-        "label": "To start",
-        "hint": "You can keep working this file, remember to complete it before signing."
-      },
-      "pending": {
-        "label": "In progress",
-        "hint": "Checks pending · usual turnaround 24-48h."
-      },
-      "verified": {
-        "label": "Verified",
-        "hint": "File compliant, re-screening advised at 12 months."
-      },
-      "stale": {
-        "label": "To re-screen",
-        "hint": "Sanctions/PEP need refreshing, recommended after 12 months or a change of circumstances."
-      },
-      "failed": {
-        "label": "Failed",
-        "hint": "A check failed, review the file in detail."
-      }
-    },
-    "cta": {
-      "none": "Start the KYC file",
-      "pending": "View the file",
-      "verified": "View the file",
-      "stale": "Re-run the screening",
-      "failed": "Review the file"
-    },
-    "kpi": {
-      "risk": "Risk",
-      "docs": "Documents",
-      "lastScreening": "Last screening"
-    }
-  },
   "field": {
-    "firstName": "First name",
-    "lastName": "Last name",
+    "firstName": "Vorname",
+    "lastName": "Name",
     "email": "Email",
-    "phone": "Phone",
+    "phone": "Telefon",
     "type": "Type",
     "score": "Score",
     "source": "Source",
@@ -821,27 +648,7 @@
     "optional": "(optional)"
   },
   "action": {
-    "cancel": "Cancel"
-  },
-  "editDialog": {
-    "title": "Edit contact",
-    "description": "Edit {{name}}'s information.",
-    "save": "Save",
-    "notesPlaceholder": "Notes about the contact...",
-    "source": {
-      "manual": "Manual",
-      "website": "Website",
-      "referral": "Referral",
-      "portal": "Portal",
-      "social": "Social media"
-    }
-  },
-  "newDialog": {
-    "title": "New contact",
-    "description": "Add a contact to your CRM.",
-    "addDetails": "+ Add details",
-    "notesPlaceholder": "Context, remarks...",
-    "create": "Create"
+    "cancel": "Abbrechen"
   },
   "mobile": {
     "title": "Kontakte",
@@ -987,39 +794,39 @@
   },
   "pager": {
     "title": "Contacts",
-    "newContact": "New contact",
-    "removeFilter": "Remove filter",
-    "emptyFilter": "No contact for this filter.",
-    "today": "today",
-    "yesterday": "yesterday",
+    "newContact": "Neuer Kontakt",
+    "removeFilter": "Filter entfernen",
+    "emptyFilter": "Kein Kontakt für diesen Filter.",
+    "today": "heute",
+    "yesterday": "gestern",
     "col": {
       "contact": "Contact",
       "type": "Type",
       "budget": "Budget",
       "kyc": "KYC",
-      "last": "Last contact"
+      "last": "Letzter Kontakt"
     },
     "kyc": {
-      "verified": "Verified",
-      "pending": "Pending",
-      "stale": "Expired",
-      "noneShort": "None",
+      "verified": "Verifiziert",
+      "pending": "Ausstehend",
+      "stale": "Abgelaufen",
+      "noneShort": "Keines",
       "verifiedTitle": "KYC verifiziert"
     },
     "src": {
       "website": "Website",
-      "referral": "Referral",
+      "referral": "Empfehlung",
       "csv": "Import",
       "import": "Import",
-      "call": "Call",
+      "call": "Anruf",
       "walk-in": "Walk-in",
       "AI": "MEGGA AI",
       "ai": "MEGGA AI",
-      "whatsapp_ai": "WhatsApp AI",
+      "whatsapp_ai": "WhatsApp KI",
       "onboarding": "Onboarding",
-      "manual": "Manual entry",
+      "manual": "Manuelle Eingabe",
       "portal": "Portal",
-      "other": "Other"
+      "other": "Sonstige"
     },
     "goToPage": "Zu {{page}}",
     "error": {
@@ -1029,20 +836,20 @@
     }
   },
   "health": {
-    "title": "Portfolio health",
-    "intro": "Where your contacts come from, where the blind spots are. Click a segment to filter the list.",
-    "byAudience": "By audience",
-    "kycCoverage": "KYC coverage",
-    "sources": "Acquisition sources",
+    "title": "Zustand des Portfolios",
+    "intro": "Woher Ihre Kontakte kommen, wo die blinden Flecken liegen. Klicken Sie auf ein Segment, um die Liste zu filtern.",
+    "byAudience": "Nach Zielgruppe",
+    "kycCoverage": "KYC-Abdeckung",
+    "sources": "Akquisequellen",
     "kpi": {
-      "active": "Active contacts",
-      "medBudget": "Median purchase budget",
-      "kycVerified": "KYC verified",
-      "relance": "To follow up 7 d+"
+      "active": "Aktive Kontakte",
+      "medBudget": "Medianes Kaufbudget",
+      "kycVerified": "KYC verifiziert",
+      "relance": "Nachfassen 7 T+"
     },
     "seg": {
-      "kycVerified": "KYC · Verified",
-      "stale": "No news 7 d+",
+      "kycVerified": "KYC · Verifiziert",
+      "stale": "Ohne Nachricht 7 T+",
       "kyc": "KYC · {{status}}",
       "source": "Source · {{source}}"
     }
@@ -1060,75 +867,75 @@
     "manualLink": "Kontakt manuell erstellen"
   },
   "waConnect": {
-    "title": "Connect your WhatsApp account",
-    "subtitle": "Your conversations become your address book and much more.",
-    "benefit1": "Your contacts flow into MEGGA at once.",
-    "benefit2": "Share a form to complete right in the conversation.",
-    "benefit3": "Replies come back to the CRM on their own.",
-    "cta": "Connect WhatsApp",
-    "note": "You confirm from WhatsApp › Linked devices.",
-    "close": "Close",
-    "generating": "Generating code…",
-    "codeLabel": "Your pairing code",
-    "error": "Couldn't generate the code. Try again.",
-    "connectedTitle": "WhatsApp account connected",
-    "connectedFallback": "Your number is connected.",
-    "connectedBadge": "Account connected"
+    "title": "Ihr WhatsApp-Konto verknüpfen",
+    "subtitle": "Ihre Gespräche werden zu Ihrem Adressbuch und zu viel mehr.",
+    "benefit1": "Ihre Kontakte landen auf einen Schlag in MEGGA.",
+    "benefit2": "Teilen Sie ein auszufüllendes Formular direkt im Gespräch.",
+    "benefit3": "Die Antworten kommen von selbst ins CRM zurück.",
+    "cta": "WhatsApp verknüpfen",
+    "note": "Sie bestätigen in WhatsApp › Verknüpfte Geräte.",
+    "close": "Schliessen",
+    "generating": "Code wird generiert…",
+    "codeLabel": "Ihr Kopplungscode",
+    "error": "Code konnte nicht generiert werden. Erneut versuchen.",
+    "connectedTitle": "WhatsApp-Konto verknüpft",
+    "connectedFallback": "Ihre Nummer ist verknüpft.",
+    "connectedBadge": "Konto verknüpft"
   },
   "newContactPager": {
-    "close": "Close",
-    "addPhoto": "Add a photo",
-    "removePhoto": "Remove photo",
-    "civ": "Title",
-    "firstName": "First name",
-    "lastName": "Last name",
+    "close": "Schliessen",
+    "addPhoto": "Foto hinzufügen",
+    "removePhoto": "Foto entfernen",
+    "civ": "Anrede",
+    "firstName": "Vorname",
+    "lastName": "Name",
     "email": "Email",
-    "emailPlaceholder": "name@example.ch",
-    "phone": "Phone",
+    "emailPlaceholder": "name@beispiel.ch",
+    "phone": "Telefon",
     "phonePlaceholder": "+41 79 …",
-    "lang": "Language",
+    "lang": "Sprache",
     "langOpt": {
-      "fr": "French",
-      "de": "German",
-      "en": "English",
-      "it": "Italian"
+      "fr": "Französisch",
+      "de": "Deutsch",
+      "en": "Englisch",
+      "it": "Italienisch"
     },
-    "canal": "Preferred channel",
+    "canal": "Bevorzugter Kanal",
     "canalOpt": {
       "whatsapp": "WhatsApp",
       "sms": "SMS",
-      "call": "Call",
-      "email": "Email"
+      "call": "Anruf",
+      "email": "E-Mail"
     },
-    "criteriaBuy": "Criteria · purchase",
-    "criteriaRent": "Criteria · rental",
-    "rentMax": "Max rent (CHF)",
+    "criteriaBuy": "Kriterien · Kauf",
+    "criteriaRent": "Kriterien · Miete",
+    "rentMax": "Max. Miete (CHF)",
     "rentMaxPlaceholder": "3'500",
-    "budgetMin": "Min budget (CHF)",
+    "budgetMin": "Budget min. (CHF)",
     "budgetMinPlaceholder": "900'000",
-    "budgetMax": "Max budget (CHF)",
+    "budgetMax": "Budget max. (CHF)",
     "budgetMaxPlaceholder": "1'300'000",
-    "cantonPlaceholder": "Type a canton: GE, VD…",
+    "cantonPlaceholder": "Kanton eingeben: GE, VD…",
     "roomsPlaceholder": "4",
-    "addressPlaceholder": "Street…, ZIP City",
+    "addressPlaceholder": "Strasse…, PLZ Ort",
     "note": "Note",
-    "notePlaceholder": "Context, preferences, relationship history…",
-    "validationError": "First name, last name and a valid email are required.",
-    "cancel": "Cancel",
+    "notePlaceholder": "Kontext, Vorlieben, Verlauf der Beziehung…",
+    "validationError": "Vorname, Name und gültige E-Mail erforderlich.",
+    "cancel": "Abbrechen",
     "crop": {
-      "title": "Crop the photo",
-      "hint": "Drag to reposition, adjust the zoom.",
-      "validate": "Apply"
+      "title": "Foto zuschneiden",
+      "hint": "Ziehen Sie zum Verschieben, passen Sie den Zoom an.",
+      "validate": "Übernehmen"
     },
     "created": {
-      "eyebrow": "Contact created",
-      "heroTitle": "See the matches",
-      "heroSub": "First matching launched automatically",
+      "eyebrow": "Kontakt erstellt",
+      "heroTitle": "Matches ansehen",
+      "heroSub": "Erstes Matching automatisch gestartet",
       "kycTitle": "KYC",
       "kycSub": "Optional",
-      "ficheTitle": "Profile",
-      "ficheSub": "Complete, schedule",
-      "createAnother": "Create another"
+      "ficheTitle": "Profil",
+      "ficheSub": "Ergänzen, planen",
+      "createAnother": "Weiteren erstellen"
     },
     "expressCard": "Kurzprofil",
     "birth": "Geburtsdatum",
@@ -1149,39 +956,39 @@
   "fiche": {
     "back": "Contacts",
     "seal": {
-      "title": "KYC verified",
-      "aria": "Verified"
+      "title": "KYC verifiziert",
+      "aria": "Verifiziert"
     },
-    "kycDossier": "KYC file",
+    "kycDossier": "KYC-Dossier",
     "cta": {
-      "transmit": "Send properties",
-      "viewMandate": "View mandate"
+      "transmit": "Objekte senden",
+      "viewMandate": "Mandat ansehen"
     },
     "menu": {
-      "editIdentity": "Edit identity",
-      "editCoord": "Edit contact details",
-      "editCriteria": "Edit criteria",
-      "delete": "Delete contact"
+      "editIdentity": "Identität bearbeiten",
+      "editCoord": "Kontaktdaten bearbeiten",
+      "editCriteria": "Kriterien bearbeiten",
+      "delete": "Kontakt löschen"
     },
     "delete": {
-      "title": "Delete {{name}}?",
-      "thisContact": "this contact",
-      "body": "The profile, its search criteria and its match-loop history will be <1>permanently deleted</1>. This action is irreversible.",
-      "confirm": "Delete",
+      "title": "{{name}} löschen?",
+      "thisContact": "diese Person",
+      "body": "Das Profil, seine Suchkriterien und der Verlauf seiner Match-Schleife werden <1>endgültig gelöscht</1>. Diese Aktion ist unwiderruflich.",
+      "confirm": "Löschen",
       "done": "Kontakt gelöscht",
       "error": "Löschen fehlgeschlagen. Bitte erneut versuchen."
     },
     "kycWarn": {
-      "title": "Edit a verified identity?",
-      "body": "{{name}} has a verified KYC. Editing their identity <1>invalidates the verification</1>. The entire AML procedure will have to be redone.",
-      "consent": "I confirm I have obtained the <1>contact's consent</1> to edit their identity and restart the KYC / AML procedure.",
-      "confirm": "Edit"
+      "title": "Eine verifizierte Identität bearbeiten?",
+      "body": "{{name}} hat ein verifiziertes KYC. Eine Änderung der Identität <1>macht die Verifizierung ungültig</1>. Das gesamte GwG-Verfahren muss neu durchlaufen werden.",
+      "consent": "Ich bestätige, dass ich die <1>Einwilligung des Kontakts</1> eingeholt habe, um seine Identität zu ändern und das KYC-/GwG-Verfahren neu zu starten.",
+      "confirm": "Bearbeiten"
     },
     "identity": {
-      "title": "Edit identity",
-      "firstName": "First name",
-      "lastName": "Last name",
-      "kycWarn": "This contact has a verified KYC. Saving a new identity <1>will invalidate the verification</1>. The AML procedure will have to be redone.",
+      "title": "Identität bearbeiten",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "kycWarn": "Dieser Kontakt hat ein verifiziertes KYC. Das Speichern einer neuen Identität <1>macht die Verifizierung ungültig</1>. Das GwG-Verfahren muss neu durchgeführt werden.",
       "birth": "Geburtsdatum",
       "birthPlaceholder": "TT.MM.JJJJ",
       "nationality": "Nationalität",
@@ -1192,81 +999,114 @@
       "saveError": "Die Identität konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
     "coord": {
-      "civility": "Title",
-      "channel": "Preferred channel",
-      "emailPlaceholder": "name@example.ch",
+      "civility": "Anrede",
+      "channel": "Bevorzugter Kanal",
+      "emailPlaceholder": "name@beispiel.ch",
       "phonePlaceholder": "+41 79 …",
       "birth": "Geburtsdatum",
       "nationality": "Nationalität",
       "residence": "Wohnsitzland",
       "address": "Adresse"
     },
-    "toFill": "To fill in",
+    "toFill": "Auszufüllen",
     "civ": {
       "none": "-",
-      "mrs": "Ms",
-      "mr": "Mr"
+      "mrs": "Frau",
+      "mr": "Herr"
     },
     "lang": {
-      "fr": "French",
-      "de": "German",
-      "en": "English",
-      "it": "Italian"
+      "fr": "Französisch",
+      "de": "Deutsch",
+      "en": "Englisch",
+      "it": "Italienisch"
     },
     "canal": {
       "whatsapp": "WhatsApp",
       "sms": "SMS",
-      "call": "Call",
-      "email": "Email"
+      "call": "Anruf",
+      "email": "E-Mail"
     },
     "crit": {
-      "wants": "What they're looking for",
-      "offers": "What they offer",
-      "rentMax": "Max rent",
-      "buyBudget": "Purchase budget",
+      "wants": "Was gesucht wird",
+      "offers": "Was angeboten wird",
+      "rentMax": "Max. Miete",
+      "buyBudget": "Kaufbudget",
       "chfUnit": "(CHF)",
-      "sectors": "Areas",
-      "citiesPlaceholder": "Cities (comma-separated)",
-      "roomsMin": "Min rooms",
-      "areaMin": "Min area",
-      "areaMinEdit": "Min area (m²)",
-      "mustHave": "Must-haves",
+      "sectors": "Gebiete",
+      "citiesPlaceholder": "Städte (durch Kommas getrennt)",
+      "roomsMin": "Min. Zimmer",
+      "areaMin": "Min. Fläche",
+      "areaMinEdit": "Min. Fläche (m²)",
+      "mustHave": "Muss-Kriterien",
       "minPlaceholder": "Min",
       "maxPlaceholder": "Max"
     },
     "propType": {
-      "appartement": "Apartment",
-      "maison": "House",
-      "terrain": "Land",
+      "appartement": "Wohnung",
+      "maison": "Haus",
+      "terrain": "Grundstück",
       "commercial": "Commercial"
     },
     "feature": {
-      "balcon": "Balcony",
-      "ascenseur": "Elevator",
+      "balcon": "Balkon",
+      "ascenseur": "Aufzug",
       "parking": "Parking",
-      "jardin": "Garden",
-      "terrasse": "Terrace",
-      "cave": "Cellar",
+      "jardin": "Garten",
+      "terrasse": "Terrasse",
+      "cave": "Keller",
       "garage": "Garage",
-      "vueLac": "Lake view"
+      "vueLac": "Seesicht"
     },
     "note": {
       "label": "Note",
-      "placeholder": "Context, preferences, relationship history…"
+      "placeholder": "Kontext, Vorlieben, Verlauf der Beziehung…"
     },
     "page": {
-      "infos": "Their information",
-      "loop": "Match loop"
+      "infos": "Informationen zum Kontakt",
+      "loop": "Match-Schleife"
     },
     "loop": {
-      "opened": "Opened",
-      "toHandleCount": "To handle ({{count}})",
-      "transmittedCount": "Properties sent ({{count}})",
-      "openInMatching": "Open in Matching",
-      "ignore": "Ignore",
+      "opened": "Geöffnet",
+      "toHandleCount": "Zu bearbeiten ({{count}})",
+      "transmittedCount": "Gesendete Objekte ({{count}})",
+      "openInMatching": "Im Matching öffnen",
+      "ignore": "Ignorieren",
       "nothingToHandle": "Alles aktuell, derzeit nichts zu bearbeiten.",
       "emptyTitle": "Noch keine Objekte gesendet",
       "emptyBody": "Senden Sie {{name}} eine Auswahl an Objekten.<1/>Die Rückmeldungen erscheinen hier."
+    },
+    "links": {
+      "title": "Gesendete Links ({{count}})",
+      "loading": "Links werden geladen…",
+      "failed": "Links konnten nicht geladen werden.",
+      "empty": "Noch kein Link gesendet.",
+      "selection_one": "Auswahl mit {{count}} Objekt",
+      "selection_other": "Auswahl mit {{count}} Objekten",
+      "sentOn": "Gesendet am {{date}}",
+      "expiresOn": "gültig bis {{date}}",
+      "revokedOn": "zurückgezogen am {{date}}",
+      "revoke": "Link zurückziehen",
+      "channel": {
+        "whatsapp": "WhatsApp",
+        "link": "Kopierter Link"
+      },
+      "status": {
+        "pending": "Nicht geöffnet",
+        "viewed": "Geöffnet",
+        "reacted": "Antwort erhalten",
+        "expired": "Abgelaufen",
+        "revoked": "Zurückgezogen",
+        "unknown": "Unbekannter Status"
+      },
+      "confirm": {
+        "title": "Diesen Link zurückziehen?",
+        "body_one": "Der Käufer verliert den Zugriff auf das erhaltene Objekt. Das Zurückziehen ist endgültig: für einen erneuten Zugriff muss ein neuer Link gesendet werden.",
+        "body_other": "Der Käufer verliert den Zugriff auf die {{count}} erhaltenen Objekte. Das Zurückziehen ist endgültig: für einen erneuten Zugriff muss ein neuer Link gesendet werden.",
+        "cta": "Link zurückziehen",
+        "busy": "Wird zurückgezogen…",
+        "refused": "Dieser Link war bereits nicht mehr aktiv. Die Liste wurde soeben aktualisiert.",
+        "failed": "Der Link wurde nicht zurückgezogen. Bitte erneut versuchen."
+      }
     },
     "saved": {
       "coord": "Kontaktdaten gespeichert",

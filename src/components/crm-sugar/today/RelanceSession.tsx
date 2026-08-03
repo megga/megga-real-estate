@@ -21,6 +21,7 @@ import { useAuth } from '@/hooks/useAuth'
 import type { Json } from '@/types/database'
 import { uuidOrNull } from './focusAudit'
 import { useRelanceLeads } from '@/hooks/useRelanceLeads'
+import { useRelanceSession } from './useRelanceSession'
 
 // La couleur reste un token de présentation ; le libellé de température est une
 // clé i18n stable (code → clé), traduite au point d'usage.
@@ -201,14 +202,18 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation('dashboard')
   const { user, profile } = useAuth()
   const { leads: realLeads, isLoading, isEmpty } = useRelanceLeads()
+  // Lot 4 — la session survit à la fermeture. La reprise se lit par DIFFÉRENCE
+  // (les contacts déjà traités sortent de la file), jamais par un index rejoué :
+  // la file de leads peut changer entre deux ouvertures.
+  const { treatedContactIds, isResolving, recordItem, closeSession } = useRelanceSession(true)
   const agentName = profile?.full_name?.trim() || t('today.relance.agentFallback')
 
   // Vrais leads dormants UNIQUEMENT (plus aucun persona de démo fabriqué). Tant
   // que la requête charge, ou si l'agence n'a aucun lead dormant, `leads` est
   // VIDE → on rend un état honnête « rien à relancer » (jamais de faux contacts).
-  const live = !isLoading && !isEmpty
+  const live = !isLoading && !isEmpty && !isResolving
   const leads: RSLead[] = live
-    ? realLeads.map((l, idx) => ({
+    ? realLeads.filter((l) => !treatedContactIds.has(l.id)).map((l, idx) => ({
         id: l.id,
         initials: initialsOf(l.first, l.last),
         av: l.avatarBg || PALETTE[idx % PALETTE.length],
@@ -257,10 +262,27 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   const reset = () => { setAsked(false); setGen(false); setGenError(false); setSendError(false); setCopied(false); setSending(false); setSent(false); setSubject(''); setDraft('') }
   // outcome : "sent" (relancé) · "skipped" (passé, representé plus tard) · "discarded" (pas intéressé, sorti de la boucle)
   const advance = (outcome: 'sent' | 'skipped' | 'discarded') => {
+    // Garde manquante, relevée à la revue : sans lead, `advance` incrémentait
+    // quand même un compteur et basculait sur l'écran de fin — un bilan qui
+    // décrit un travail qui n'a pas eu lieu. Ses voisins l'avaient déjà.
+    if (!lead) return
     if (undoTimer.current) clearTimeout(undoTimer.current)
     setUndo(null)
     setCounts((c) => ({ ...c, [outcome]: c[outcome] + 1 }))
-    if (i >= leads.length - 1) { setDone(true); return }
+    // Consigné en base : c'est ce qui permettra de reprendre la session.
+    // `copied_at` n'atteste que la COPIE, jamais un envoi.
+    // `RSLead.id` est optionnel (les leads de repli n'en ont pas) : sans
+    // identifiant réel, rien à consigner — on ne fabrique pas de clé.
+    if (live && lead.id) {
+      void recordItem({
+        contactId: lead.id,
+        status: outcome,
+        generatedText: draft || null,
+        generatedAt: asked ? new Date().toISOString() : null,
+        copiedAt: copied ? new Date().toISOString() : null,
+      })
+    }
+    if (i >= leads.length - 1) { setDone(true); void closeSession(); return }
     setI(i + 1); reset()
   }
   const next = () => advance((copied || sent) ? 'sent' : 'skipped')

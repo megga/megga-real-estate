@@ -38,6 +38,10 @@ import {
   XCircle,
 } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
+// Réutilisé tel quel depuis le CRM : ce hook prend (agencyId, relatedPersonId) en simples
+// paramètres et ne lit jamais l'agence de l'appelant, donc il sert le relecteur super-admin
+// aussi bien que le dirigeant. La console partage le bundle et le client Supabase du CRM.
+import { useIdentityDocuments } from '@/hooks/useAgencyIdentity'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/modal'
@@ -622,7 +626,27 @@ function ChecksTable({ checks, persons }: { checks: KybReviewCheckRow[]; persons
 
 /** Personnes liées à l'agence — nom, rôle(s), et un indicateur "actif" pour les
  *  signataires (même règle que hasActiveSignatoryRole). */
-function PersonsList({ persons }: { persons: KybReviewPerson[] }) {
+/**
+ * `agencyId` sert UNIQUEMENT à l'aperçu de la pièce d'identité, rattaché ici et pas
+ * seulement au bloc de résolution : ce dernier n'est rendu que tant qu'un check est
+ * `pending_manual_review`, donc il disparaît à l'instant même où il a servi. Or relire la
+ * pièce d'un dossier DÉJÀ tranché est précisément ce qu'un audit demande. Rattaché à la
+ * PERSONNE, l'aperçu survit à la décision.
+ */
+/**
+ * Date suisse depuis un ISO date-SEULE (31.12.2030).
+ *
+ * `formatDate()` est utilisée partout ailleurs sur cet écran, mais elle prend des
+ * `timestamptz` : sur une date-seule elle rend la VEILLE dès que le fuseau de la
+ * session est à l'ouest de UTC (mesuré le 03.08.2026, même piège que la date de
+ * naissance du récapitulatif). Une échéance de pièce d'identité est une date-seule.
+ */
+function swissDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : iso
+}
+
+function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agencyId: string }) {
   const { t } = useTranslation('admin')
   const today = new Date().toISOString().slice(0, 10)
 
@@ -639,18 +663,54 @@ function PersonsList({ persons }: { persons: KybReviewPerson[] }) {
           return { label, active: r.role === 'signatory' ? active : true }
         })
         return (
-          <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
-            <span className="text-theme-primary">{p.firstName} {p.lastName}</span>
-            <span className="flex items-center gap-1.5">
-              {roleLabels.map((r, i) => (
-                <span
-                  key={i}
-                  className={cn('text-xs', r.active ? 'text-theme-secondary' : 'text-theme-tertiary line-through')}
-                >
-                  {r.label}
-                </span>
-              ))}
-            </span>
+          <li key={p.id} className="text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-theme-primary">
+                {p.firstName} {p.lastName}
+                {/* Nature de la pièce, à côté du nom : c'est elle qui dit combien de
+                    faces attendre sous cette ligne. Sans elle, l'absence de verso
+                    d'un passeport se lit comme un dossier incomplet. Absente sur les
+                    dossiers soumis avant le 03.08.2026, où rien ne la demandait. */}
+                {p.idDocumentType && (
+                  <span className="ml-2 text-xs text-theme-tertiary">
+                    {t(`kybReview.detail.idDocumentType.${p.idDocumentType}`)}
+                  </span>
+                )}
+              </span>
+              <span className="flex items-center gap-1.5">
+                {roleLabels.map((r, i) => (
+                  <span
+                    key={i}
+                    className={cn('text-xs', r.active ? 'text-theme-secondary' : 'text-theme-tertiary line-through')}
+                  >
+                    {r.label}
+                  </span>
+                ))}
+              </span>
+            </div>
+            {/* Ce que la lecture assistée a trouvé, AU-DESSUS de l'image et non à sa
+                place : elle dit où porter les yeux, elle ne remplace pas le regard.
+                Absente sur les dossiers soumis avant le 03.08.2026. */}
+            {(p.idDocumentRead || p.idDocumentExpiresOn) && (
+              <div className="mt-1 flex items-center gap-2 text-xs text-theme-tertiary">
+                {/* « vérifiée » quand c'est le prestataire (document authentifié +
+                    selfie), « lecture » quand c'est le modèle (ce qui est imprimé sur
+                    une image, rien de plus). Le relecteur tranche sur cette nuance. */}
+                {p.idDocumentRead && (
+                  <span>
+                    {t(`kybReview.detail.${p.idDocumentRead.provider === 'stripe_identity' ? 'idVerified' : 'idRead'}.${p.idDocumentRead.verdict}`)}
+                  </span>
+                )}
+                {p.idDocumentExpiresOn && (
+                  <span className={cn(p.idDocumentRead?.expired && 'text-red-500')}>
+                    {t('kybReview.detail.idRead.expiresOn', { date: swissDate(p.idDocumentExpiresOn) })}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="mt-1">
+              <IdDocumentPreview agencyId={agencyId} relatedPersonId={p.id} />
+            </div>
           </li>
         )
       })}
@@ -753,9 +813,190 @@ function ReasonDialog({ open, onClose, onConfirm, pending, variant }: {
   )
 }
 
+/**
+ * UNE face (recto ou verso) de la pièce d'identité.
+ *
+ * Deux rendus, et le choix n'est pas cosmétique. Une IMAGE passe par `<img>`, qui
+ * n'exécute jamais de script : l'URL signée suffit. Un PDF — format accepté au dépôt
+ * (`ALLOWED_IDENTITY_DOCUMENT_TYPES`, un scan de passeport est courant) — est servi via un
+ * blob au TYPE FORCÉ `application/pdf` : un HTML déguisé téléversé dans le bucket ne peut
+ * alors pas s'exécuter, alors que passer l'URL signée brute à une `<iframe>` embarquerait
+ * une surface d'exécution. Et surtout PAS d'attribut `sandbox` : il bloque le lecteur PDF
+ * de Chromium (panneau vide), constat empirique déjà payé une fois — cf. l'en-tête de
+ * KycDocViewer.tsx, d'où cette technique est reprise.
+ */
+function IdDocumentFace({ label, signedUrl, path }: { label: string; signedUrl: string; path: string }) {
+  const { t } = useTranslation('admin')
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [zoomed, setZoomed] = useState(false)
+  const isPdf = /\.pdf$/i.test(path)
+
+  // Le tiroir parent écoute Escape sur `window` pour se fermer. Sans ce handler en phase
+  // de CAPTURE, appuyer sur Escape depuis l'agrandissement fermerait le dossier entier
+  // au lieu de la seule image. On intercepte donc avant lui, et uniquement quand
+  // l'agrandissement est ouvert.
+  useEffect(() => {
+    if (!zoomed) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setZoomed(false)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [zoomed])
+
+  useEffect(() => {
+    if (!isPdf) return
+    let alive = true
+    let objectUrl: string | null = null
+    setPdfUrl(null)
+    setFailed(false)
+    ;(async () => {
+      try {
+        const resp = await fetch(signedUrl)
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+        const buf = await resp.arrayBuffer()
+        if (!alive) return
+        objectUrl = URL.createObjectURL(new Blob([buf], { type: 'application/pdf' }))
+        setPdfUrl(objectUrl)
+      } catch {
+        if (alive) setFailed(true)
+      }
+    })()
+    return () => {
+      alive = false
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [signedUrl, isPdf])
+
+  return (
+    <div className="min-w-0">
+      <p className="text-xs text-theme-tertiary mb-1">{label}</p>
+      {isPdf ? (
+        failed ? (
+          <p className="text-xs text-red-500">{t('kybReview.idDocument.faceError')}</p>
+        ) : pdfUrl ? (
+          <iframe src={pdfUrl} title={label} className="w-full h-64 rounded-lg border border-theme-border bg-theme-section" />
+        ) : (
+          <div className="h-64 rounded-lg border border-theme-border grid place-items-center">
+            <Loader2 className="h-4 w-4 animate-spin text-theme-tertiary" />
+          </div>
+        )
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => setZoomed(true)}
+            className="block w-full rounded-lg border border-theme-border overflow-hidden hover:border-theme-border-subtle transition-colors"
+            aria-label={t('kybReview.idDocument.enlarge')}
+          >
+            <img src={signedUrl} alt={label} className="w-full h-48 object-contain bg-theme-section" />
+          </button>
+          {zoomed && createPortal(
+            <div
+              className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm grid place-items-center p-6"
+              onClick={() => setZoomed(false)}
+              role="dialog"
+              aria-modal="true"
+              aria-label={label}
+            >
+              <img src={signedUrl} alt={label} className="max-h-full max-w-full object-contain" />
+            </div>,
+            document.body,
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * L'aperçu recto/verso de la pièce d'identité d'une personne liée.
+ *
+ * Chargé À LA DEMANDE : tant que le relecteur n'a pas cliqué, `relatedPersonId` reste
+ * `null` et `useIdentityDocuments` demeure désactivé. Ce n'est pas une optimisation, c'est
+ * la règle de moindre exposition — une PII de conformité ne se charge pas parce qu'un
+ * tiroir s'est ouvert. `useIdentityDocuments` est réutilisé tel quel : il prend ses deux
+ * identifiants en paramètres, sans jamais lire l'agence de l'appelant, donc il sert le
+ * dirigeant sur sa propre agence comme le relecteur sur n'importe laquelle.
+ *
+ * La lecture n'est possible que depuis la migration 20260802200000, qui a ajouté la
+ * branche `is_super_admin()` à la SEULE policy SELECT du préfixe. Avant elle, cet écran
+ * n'aurait rien affiché : la RLS filtre les LIGNES visibles sans faire échouer l'appel,
+ * donc `list()` renvoyait un tableau vide SANS erreur. D'où la distinction explicite
+ * ci-dessous entre « rien déposé » et « lecture impossible » : un vide muet serait
+ * indiscernable d'un droit manquant, et c'est exactement le piège qui a laissé un dossier
+ * réel coincé en `manual_review`.
+ *
+ * ⚠ Les URL signées émises par `useIdentityDocuments` vivent 300 s. Un relecteur qui
+ * étudie longuement une pièce verra l'image expirer. Replier puis rouvrir l'aperçu
+ * ré-émet des URL fraîches — c'est le geste de rattrapage, volontairement laissé manuel :
+ * un rafraîchissement automatique prolongerait indéfiniment la durée de vie de jetons
+ * porteurs sur une PII sensible, ce qui est exactement ce que la TTL courte évite.
+ */
+function IdDocumentPreview({ agencyId, relatedPersonId }: { agencyId: string; relatedPersonId: string }) {
+  const { t } = useTranslation('admin')
+  const [open, setOpen] = useState(false)
+  const documents = useIdentityDocuments(agencyId, open ? relatedPersonId : null)
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:border-theme-border-subtle hover:text-theme-primary transition-colors inline-flex items-center gap-1.5"
+      >
+        <IdCard className="h-3.5 w-3.5" />
+        {t('kybReview.idDocument.show')}
+      </button>
+    )
+  }
+
+  const previews = documents.data
+  const nothing = previews && !previews.recto && !previews.verso
+
+  return (
+    <div className="mt-2 space-y-2">
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="text-xs text-theme-tertiary hover:text-theme-primary transition-colors"
+      >
+        {t('kybReview.idDocument.hide')}
+      </button>
+
+      {documents.isLoading ? (
+        <p className="text-xs text-theme-tertiary">{t('kybReview.idDocument.loading')}</p>
+      ) : documents.isError ? (
+        <p className="text-xs text-red-500">{t('kybReview.idDocument.error')}</p>
+      ) : nothing ? (
+        <div>
+          <p className="text-xs text-theme-secondary">{t('kybReview.idDocument.empty')}</p>
+          {/* La ligne de check ne prouve PAS que le fichier existe : submit_agency_identity
+              « ne touche jamais au fichier lui-même » et n'enregistre aucun chemin. Le
+              relecteur doit savoir que ce vide est ambigu, pas conclure à une fraude. */}
+          <p className="text-xs text-theme-tertiary mt-0.5">{t('kybReview.idDocument.emptyHint')}</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {previews?.recto && (
+            <IdDocumentFace label={t('kybReview.idDocument.recto')} signedUrl={previews.recto.signedUrl} path={previews.recto.path} />
+          )}
+          {previews?.verso && (
+            <IdDocumentFace label={t('kybReview.idDocument.verso')} signedUrl={previews.verso.signedUrl} path={previews.verso.path} />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** Les 3 boutons de résolution d'UNE pièce d'identité en attente — enchaîne
  *  résolution + relance en un seul geste (useAdminKybReviewActions.resolveIdentityDocument). */
-function ResolveIdDocumentSection({ pending, persons, onResolve, busy }: {
+function ResolveIdDocumentSection({ agencyId, pending, persons, onResolve, busy }: {
+  agencyId: string
   pending: Array<{ checkId: string; relatedPersonId: string }>
   persons: KybReviewPerson[]
   onResolve: (checkId: string, result: 'match' | 'partial' | 'mismatch') => void
@@ -774,6 +1015,12 @@ function ResolveIdDocumentSection({ pending, persons, onResolve, busy }: {
             <p className="text-sm font-medium text-theme-primary mb-2">
               {t('kybReview.resolveIdDocument.title', { name })}
             </p>
+            {/* La pièce AVANT les boutons : c'est l'ordre du geste. La RPC appelée juste
+                en dessous refuse 'unavailable' au motif que « Le relecteur A le document
+                sous les yeux » — jusqu'au 02.08.2026 cette prémisse était fausse. */}
+            <div className="mb-3">
+              <IdDocumentPreview agencyId={agencyId} relatedPersonId={p.relatedPersonId} />
+            </div>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => onResolve(p.checkId, 'match')}
@@ -928,6 +1175,7 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
 
               {pendingIdDocs.length > 0 && (
                 <ResolveIdDocumentSection
+                  agencyId={agencyId}
                   pending={pendingIdDocs}
                   persons={persons.data ?? []}
                   busy={anyActionPending}
@@ -945,7 +1193,7 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
               </DetailSection>
 
               <DetailSection title={t('kybReview.detail.personsSection')} icon={Users}>
-                <PersonsList persons={persons.data ?? []} />
+                <PersonsList persons={persons.data ?? []} agencyId={agencyId} />
               </DetailSection>
 
               <DetailSection title={t('kybReview.detail.historySection')} icon={History}>

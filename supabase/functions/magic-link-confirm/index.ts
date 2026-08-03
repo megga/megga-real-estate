@@ -1,5 +1,5 @@
 // supabase/functions/magic-link-confirm/index.ts
-// POST /functions/v1/magic-link-confirm?token=<token>
+// POST /functions/v1/magic-link-confirm   (jeton dans l'en-tête `x-magic-link-token`)
 //
 // Sprint 4.7.A — Endpoint PUBLIC (sans auth) — confirmation finale du client.
 //
@@ -17,9 +17,12 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
 
+// `x-magic-link-token` DOIT figurer ici : l'appel vient d'un navigateur en
+// cross-origin, et un en-tête absent de cette liste fait échouer le preflight —
+// la soumission finale du dossier deviendrait une erreur CORS opaque.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-magic-link-token',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
@@ -38,10 +41,14 @@ serve(async (req) => {
     })
   }
 
+  // Jeton en en-tête : les journaux d'accès de la plateforme conservent l'URL
+  // complète, un `?token=` y déposerait chaque jeton KYC en clair pour toute sa
+  // durée de vie. Repli sur le query param par COMPATIBILITÉ — les liens déjà
+  // envoyés et les appelants hors navigateur doivent continuer de fonctionner.
   const url = new URL(req.url)
-  const token = url.searchParams.get('token')
+  const token = req.headers.get('x-magic-link-token')?.trim() || url.searchParams.get('token')
   if (!token) {
-    return new Response(JSON.stringify({ error: 'token query param required' }), {
+    return new Response(JSON.stringify({ error: 'x-magic-link-token header required' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -50,7 +57,8 @@ serve(async (req) => {
   const verify = await verifyMagicLinkToken(token)
   if (!verify.valid || !verify.payload) {
     return new Response(
-      JSON.stringify({ error: 'Invalid or expired link', reason: verify.reason }),
+      // Motif volontairement réduit à expired/invalid : cf. magic-link-get.
+      JSON.stringify({ error: 'Invalid or expired link', reason: verify.reason === 'expired' ? 'expired' : 'invalid' }),
       { status: verify.reason === 'expired' ? 410 : 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }

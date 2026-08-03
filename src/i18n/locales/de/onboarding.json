@@ -6,37 +6,51 @@
     "mobileNotice": {
       "eyebrow": "Obligatorischer Schritt",
       "title": "Dieser Schritt wird am Computer abgeschlossen",
-      "body": "Die Erfassung der rechtlichen Identität Ihrer Agentur erfordert einen grösseren Bildschirm. Melden Sie sich von einem Computer aus an, um sie abzuschliessen."
+      "body": "Diese Erfassung erfordert einen grösseren Bildschirm. Setzen Sie sie an einem Computer fort."
+    },
+    "welcome": {
+      "title": "Öffnen wir Ihren Arbeitsbereich",
+      "body": "Wir beginnen damit, Ihre Agentur zu identifizieren.",
+      "startButton": "Meine Agentur identifizieren"
     },
     "pendingNotice": {
-      "eyebrow": "Erfassung unterbrochen",
-      "title": "Ihre Erfassung wurde unterbrochen",
-      "body": "Nichts geht verloren: Jeder mit Weiter bestätigte Schritt ist bereits in unseren Systemen gespeichert, die massgeblich bleiben. Setzen Sie die Erfassung fort, wann immer Sie möchten. Sie finden genau das wieder, was Sie bereits angegeben haben.",
+      "title": "Ihre Erfassung ist unterbrochen",
+      "body": "Jeder bestätigte Schritt ist bereits gespeichert. Kommen Sie zurück, wann Sie möchten: Ihre Angaben bleiben erhalten.",
       "resumeButton": "Erfassung fortsetzen"
     }
   },
   "wizard": {
     "steps": {
+      "ariaLabel": "Schritte",
       "signataire": "Unterzeichner",
       "agence": "Agentur",
-      "beneficiaires": "Wirtschaftlich Berechtigte",
       "pieceIdentite": "Ausweisdokument",
       "recapitulatif": "Zusammenfassung"
+    },
+    "header": {
+      "language": "Sprache der Oberfläche",
+      "languageLoading": "Sprache wird geladen …"
+    },
+    "date": {
+      "open": "Datum wählen",
+      "placeholder": "TT.MM.JJJJ",
+      "previousMonth": "Vorheriger Monat",
+      "nextMonth": "Nächster Monat",
+      "month": "Monat",
+      "year": "Jahr",
+      "clear": "Datum löschen"
     },
     "footer": {
       "continue": "Weiter",
       "saving": "Wird gespeichert…",
-      "saved": "Gespeichert",
-      "autosave": "Bei jedem Schritt gespeichert",
       "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
       "submit": "Angaben einreichen",
       "submitting": "Wird eingereicht…",
       "exit": "Später fortsetzen"
     },
     "signataire": {
-      "eyebrow": "Zeichnungsberechtigte Person",
       "title": "Wer ist berechtigt, für die Agentur zu unterzeichnen?",
-      "subtitle": "Geben Sie die Identität der Person an, die berechtigt ist, die Agentur zu verpflichten. Wir erheben diese Angaben im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG).",
+      "subtitle": "Die Person, die Ihre Agentur verpflichten kann. Wir erheben diese Angaben im Sinne des Schweizer Geldwäschereigesetzes (GwG).",
       "fields": {
         "firstName": "Vorname",
         "lastName": "Nachname",
@@ -53,66 +67,104 @@
       }
     },
     "agence": {
-      "eyebrow": "Identität der Agentur",
       "title": "Wie lautet die rechtliche Identität Ihrer Agentur?",
-      "subtitle": "Diese Angaben müssen genau mit Ihrem Handelsregistereintrag übereinstimmen. Wir erheben sie im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG).",
+      "subtitle": "Diese Angaben müssen genau mit Ihrem Handelsregistereintrag übereinstimmen.",
       "fields": {
         "country": "Sitzstaat",
         "countryPlaceholder": "Land auswählen",
         "legalFormId": "Rechtsform",
         "legalFormPlaceholder": "Rechtsform auswählen",
-        "legalFormPlaceholderNoCountry": "Wählen Sie zuerst den Sitzstaat",
+        "legalFormPlaceholderNoCountry": "Zuerst das Land wählen",
         "legalName": "Firmenbezeichnung",
-        "legalNameHint": "Die offizielle Bezeichnung gemäss Handelsregistereintrag.",
-        "tradeName": "Handelsname",
-        "tradeNameHint": "Der Name, unter dem Ihre Agentur bei Kundinnen und Kunden bekannt ist, falls abweichend von der Firmenbezeichnung. Wird zum Abgleich mit Ihrer Website verwendet.",
         "businessRegistrationNumber": "Handelsregisternummer",
-        "tva": "MWST-Nummer",
-        "tvaHint": "Freiwillig: betrifft nur mehrwertsteuerpflichtige Unternehmen.",
         "address": "Adresse",
         "postal": "PLZ",
         "city": "Ort",
         "canton": "Kanton",
         "cantonPlaceholder": "Kanton auswählen"
-      }
-    },
-    "beneficiaires": {
-      "eyebrow": "Wirtschaftlich Berechtigte",
-      "title": "Wer sind die wirtschaftlich Berechtigten Ihrer Agentur?",
-      "subtitle": "Geben Sie die natürlichen Personen an, die die Agentur besitzen oder kontrollieren. Wir erheben diese Angaben im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Der Referenzschwellenwert liegt bei 25 % (FATF-Norm): Dies ist eine Erfassungshilfe, Sie können eine Person auch darunter angeben.",
-      "reuseSignataire": "{{name}} übernehmen (Unterzeichner)",
-      "addButton": "Wirtschaftlich Berechtigten hinzufügen",
-      "emptyHint": "Bisher kein wirtschaftlich Berechtigter angegeben. Dies ist möglich, wenn keine natürliche Person allein 25 % oder mehr der Agentur hält oder kontrolliert: Geben Sie dann die Person an, die sie auf andere Weise kontrolliert, oder andernfalls ein Mitglied der obersten Geschäftsleitung.",
-      "removeButton": "Diesen wirtschaftlich Berechtigten entfernen",
-      "fields": {
-        "firstName": "Vorname",
-        "lastName": "Nachname",
-        "dateOfBirth": "Geburtsdatum",
-        "nationality": "Staatsangehörigkeit",
-        "nationalityPlaceholder": "Land auswählen",
-        "ownershipPct": "Beteiligungsquote",
-        "ownershipPctHint": "Referenzschwellenwert (FATF-Norm): 25 % oder mehr. Sie können auch einen niedrigeren Wert angeben."
       },
-      "pep": {
-        "label": "Handelt es sich bei dieser Person um eine politisch exponierte Person (PEP)?",
-        "yes": "Ja",
-        "yesHint": "Übt oder übte eine wichtige öffentliche Funktion aus, im In- oder Ausland, oder steht einer solchen Person nahe.",
-        "no": "Nein",
-        "noHint": "Übt keine wichtige öffentliche Funktion aus."
+      "company": {
+        "search": "Suchen",
+        "searching": "Suche…",
+        "noResults": "Keine Firma mit diesem Namen im Handelsregister gefunden.",
+        "error": "Das Handelsregister hat nicht geantwortet.",
+        "listLabel": "Im Register gefundene Firmen",
+        "inactive": " · gelöscht"
+      },
+      "address": {
+        "placeholder": "Strasse und Nummer",
+        "noResults": "Keine Adresse gefunden. Sie können sie von Hand eingeben.",
+        "error": "Das Adressregister hat nicht geantwortet. Sie können die Adresse von Hand eingeben.",
+        "listLabel": "Vorgeschlagene Adressen"
       }
     },
     "pieceIdentite": {
-      "eyebrow": "Ausweisdokument",
       "title": "Laden Sie das Ausweisdokument der unterzeichnenden Person hoch",
-      "subtitle": "Vorder- und Rückseite eines gültigen Ausweisdokuments (Identitätskarte, Pass oder Aufenthaltstitel). Dieses Dokument wird von einer Person unseres Compliance-Teams geprüft; in diesem Schritt erfolgt keine automatische Überprüfung.",
+      "subtitle": "Ein gültiger Ausweis: Pass, Identitätskarte oder Aufenthaltstitel. Geben Sie die Art an und fotografieren Sie die verlangten Seiten. Eine Person unseres Compliance-Teams prüft das Dokument.",
       "missingSignataire": "Die unterzeichnende Person muss zuerst im vorherigen Schritt angegeben werden.",
+      "verification": {
+        "title": "Bestätigen Sie Ihre Identität",
+        "body": "Fotografieren Sie Ihren Ausweis und Ihr Gesicht. Die Prüfung läuft bei unserem Dienstleister: das Foto Ihres Ausweises wird uns nie übermittelt.",
+        "cta": "Identität bestätigen",
+        "retryCta": "Prüfung fortsetzen",
+        "pendingTitle": "Prüfung läuft",
+        "pendingBody": "Das Ergebnis kommt in Kürze. Sie können fortfahren, wir hängen es an Ihr Dossier an.",
+        "doneTitle": "Identität bestätigt",
+        "doneBody": "Ihr Ausweis wurde geprüft und Ihr Gesicht mit dem Foto verglichen. Danach prüft unser Compliance-Team das Dossier.",
+        "useManual": "Stattdessen Ausweis hochladen",
+        "privacy": "Unser Dienstleister behält den Ausweis für seine Prüfung; MEGGA erhält nur das Ergebnis und das Ablaufdatum.",
+        "errors": {
+          "consent_declined": "Sie haben die Prüfung abgelehnt. Laden Sie Ihren Ausweis unten hoch, unser Team prüft ihn.",
+          "under_supported_age": "Die Online-Prüfung gilt nicht für Personen unter 16 Jahren.",
+          "country_not_supported": "Ihr Land wird von der Online-Prüfung nicht abgedeckt. Laden Sie Ihren Ausweis unten hoch.",
+          "document_expired": "Der vorgelegte Ausweis ist abgelaufen. Versuchen Sie es mit einem gültigen Ausweis.",
+          "document_type_not_supported": "Diese Dokumentart wird nicht akzeptiert. Ein Pass oder eine Identitätskarte geht.",
+          "document_unverified_other": "Der Ausweis konnte nicht geprüft werden. Versuchen Sie es bei besserem Licht erneut.",
+          "selfie_face_mismatch": "Das Gesicht stimmt nicht mit dem Foto im Ausweis überein. Wiederholen Sie die Prüfung.",
+          "selfie_manipulated": "Das Gesichtsfoto wirkt bearbeitet. Wiederholen Sie die Prüfung.",
+          "selfie_document_missing_photo": "Der Ausweis trägt kein Foto. Verwenden Sie einen Pass oder eine Identitätskarte.",
+          "selfie_unverified_other": "Das Gesicht konnte nicht geprüft werden. Wiederholen Sie die Prüfung.",
+          "abandoned": "Die Prüfung wurde abgebrochen. Sie können sie fortsetzen.",
+          "unknown": "Die Prüfung wurde nicht abgeschlossen. Sie können es erneut versuchen oder Ihren Ausweis unten hochladen."
+        }
+      },
+      "documentType": {
+        "label": "Art des Ausweises",
+        "options": {
+          "passport": "Pass",
+          "id_card": "Identitätskarte",
+          "residence_permit": "Aufenthaltstitel"
+        },
+        "hints": {
+          "passport": "Nur eine Seite zu fotografieren",
+          "id_card": "Beide Seiten werden verlangt",
+          "residence_permit": "Beide Seiten werden verlangt"
+        }
+      },
       "sides": {
         "recto": "Vorderseite",
-        "verso": "Rückseite"
+        "verso": "Rückseite",
+        "dataPage": "Datenseite"
       },
       "dropHint": "Klicken Sie, um eine Datei auszuwählen",
       "formatHint": "JPG, PNG, WEBP oder PDF, maximal 8 MB",
       "replaceHint": "Klicken Sie, um zu ersetzen",
+      "zoomOpen": "{{side}} vergrössern",
+      "zoomClose": "Schliessen",
+      "zoomHint": "Prüfen Sie, ob das Dokument scharf ist und alle vier Ecken sichtbar sind. Andernfalls ersetzen Sie es.",
+      "openPdf": "PDF öffnen",
+      "read": {
+        "running": "Der Ausweis wird gelesen…",
+        "verdict": {
+          "match": "Der Ausweis stimmt mit der erfassten Identität überein.",
+          "partial": "Der Ausweis stimmt nur teilweise mit der erfassten Identität überein. Prüfen Sie den Schritt zur unterzeichnenden Person, bevor Sie fortfahren.",
+          "mismatch": "Der Ausweis stimmt nicht mit der erfassten Identität überein. Prüfen Sie, ob es der richtige ist.",
+          "unreadable": "Der Ausweis konnte nicht gelesen werden. Ein schärferes Foto hilft, Sie können aber fortfahren."
+        },
+        "expired": "Dieser Ausweis scheint seit dem {{date}} abgelaufen zu sein.",
+        "typeDiffers": "Der Ausweis scheint nicht der zu sein, den Sie angegeben haben.",
+        "disclaimer": "Automatische Lesung, nur als Hinweis: unser Compliance-Team prüft das Dokument."
+      },
       "errors": {
         "format": "Zulässiges Format: JPG, PNG, WEBP oder PDF.",
         "size": "Maximale Grösse: 8 MB.",
@@ -121,26 +173,24 @@
       }
     },
     "recap": {
-      "eyebrow": "Zusammenfassung",
       "title": "Prüfen Sie Ihre Angaben, bevor Sie sie einreichen",
-      "subtitle": "Lesen Sie jeden Abschnitt unten noch einmal durch. Sie können einen Schritt vor dem Einreichen noch bearbeiten.",
+      "subtitle": "Lesen Sie jeden Abschnitt noch einmal durch. Sie können einen Schritt noch bearbeiten.",
       "notProvided": "Nicht angegeben",
-      "beneficiaires": {
-        "empty": "Kein wirtschaftlich Berechtigter angegeben.",
-        "ownership": "{{pct}} % Beteiligung"
-      },
       "pieceIdentite": {
         "uploaded": "Hochgeladen",
         "missing": "Fehlt",
         "loading": "Hochgeladene Dokumente werden geprüft…",
-        "loadFailed": "Die hochgeladenen Dokumente konnten nicht geprüft werden. Versuchen Sie es erneut."
+        "loadFailed": "Die hochgeladenen Dokumente konnten nicht geprüft werden. Versuchen Sie es erneut.",
+        "statusLabel": "Prüfung",
+        "verified": "Identität bei unserem Dienstleister bestätigt",
+        "processing": "Prüfung wird bearbeitet"
       },
       "attestation": "Ich bestätige, dass die obigen Angaben nach meinem Wissen richtig und vollständig sind.",
       "errors": {
-        "legalName": "Die Firmenbezeichnung der Agentur fehlt. Vervollständigen Sie den Schritt Agentur, bevor Sie einreichen.",
-        "legalForm": "Die Rechtsform der Agentur fehlt. Vervollständigen Sie den Schritt Agentur, bevor Sie einreichen.",
-        "country": "Der Sitzstaat der Agentur fehlt. Vervollständigen Sie den Schritt Agentur, bevor Sie einreichen.",
-        "signatory": "Es ist keine zeichnungsberechtigte Person aktiv erfasst. Vervollständigen Sie den Schritt Unterzeichner, bevor Sie einreichen.",
+        "legalName": "Firmenbezeichnung fehlt. Vervollständigen Sie den Schritt Agentur.",
+        "legalForm": "Rechtsform fehlt. Vervollständigen Sie den Schritt Agentur.",
+        "country": "Sitzstaat fehlt. Vervollständigen Sie den Schritt Agentur.",
+        "signatory": "Keine zeichnungsberechtigte Person aktiv. Vervollständigen Sie den Schritt Unterzeichner.",
         "generic": "Die Einreichung ist fehlgeschlagen. Versuchen Sie es erneut."
       }
     }
@@ -149,46 +199,46 @@
     "banner": {
       "notSubmitted": {
         "title": "Identitätsprüfung nicht eingereicht",
-        "bodyAdmin": "Schliessen Sie die Identitätsprüfung Ihrer Agentur ab, um das Öffnen von KYC-Dossiers und den Versand elektronischer Signaturen freizuschalten.",
-        "bodyOther": "Ein Admin oder Manager Ihrer Agentur muss die Identitätsprüfung abschliessen, bevor ein KYC-Dossier geöffnet oder eine elektronische Signatur versendet werden kann."
+        "bodyAdmin": "Schliessen Sie die Identitätsprüfung ab, um KYC-Dossiers zu öffnen und elektronische Signaturen zu versenden.",
+        "bodyOther": "Ein Admin oder Manager muss die Identitätsprüfung Ihrer Agentur abschliessen."
       },
       "pendingReview": {
         "title": "Prüfung wird begutachtet",
-        "body": "Das MEGGA-Team muss die Identität Ihrer Agentur bestätigen, bevor KYC-Dossiers und elektronische Signaturen verfügbar werden. Schauen Sie später wieder vorbei, der Status aktualisiert sich automatisch."
+        "body": "Wir bestätigen die Identität Ihrer Agentur. Der Status aktualisiert sich automatisch."
       },
       "rejected": {
         "title": "Prüfung abgelehnt",
-        "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Das erneute Absenden des Formulars löst keine neue Prüfung aus: Wenden Sie sich an den MEGGA-Support, um den Grund und die weiteren Schritte zu erfahren."
+        "body": "Die Identität Ihrer Agentur wurde nicht bestätigt. Das erneute Absenden des Formulars löst keine neue Prüfung aus: Wenden Sie sich an den Support."
       },
       "cta": "Prüfung abschliessen",
       "contactSupport": "Support kontaktieren",
       "correctionRequested": {
         "title": "Korrektur angefordert",
-        "body": "Das MEGGA-Team bittet Sie, Ihre Identitätsangaben zu korrigieren, bevor Sie fortfahren. Die Einzelheiten wurden Ihnen per E-Mail zugesandt. Öffnen Sie das Formular erneut und senden Sie es anschliessend nochmals ab."
+        "body": "Wir haben Sie per E-Mail um eine Korrektur gebeten. Öffnen Sie das Formular erneut und senden Sie es nochmals ab."
       }
     },
     "block": {
-      "checking": "Prüfung des Status Ihrer Agentur vor dem Öffnen eines KYC-Dossiers…",
+      "checking": "Status Ihrer Agentur wird geprüft…",
       "notSubmitted": {
         "eyebrow": "Identitätsprüfung erforderlich",
-        "title": "Die Identitätsprüfung Ihrer Agentur wurde noch nicht eingereicht",
-        "bodyAdmin": "MEGGA prüft die Identität jeder Agentur, bevor ein KYC-Kundendossier geöffnet oder eine elektronische Signatur versendet werden kann, im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Als Admin oder Manager können Sie diese Prüfung jetzt abschliessen.",
-        "bodyOther": "MEGGA prüft die Identität jeder Agentur, bevor ein KYC-Kundendossier geöffnet oder eine elektronische Signatur versendet werden kann, im Rahmen unserer Compliance-Kontrollen, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Nur ein Admin oder Manager Ihrer Agentur kann diese Prüfung abschliessen."
+        "title": "Weisen Sie die Identität Ihrer Agentur nach",
+        "bodyAdmin": "Wir prüfen die Identität jeder Agentur, bevor ein KYC-Dossier eröffnet oder eine elektronische Signatur versendet wird, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Sie können die Prüfung jetzt abschliessen.",
+        "bodyOther": "Wir prüfen die Identität jeder Agentur, bevor ein KYC-Dossier eröffnet oder eine elektronische Signatur versendet wird, im Sinne des Schweizer Geldwäschereigesetzes (GwG). Nur ein Admin oder Manager kann sie abschliessen."
       },
       "pendingReview": {
         "eyebrow": "Prüfung läuft",
-        "title": "Das Prüfdossier Ihrer Agentur wird derzeit begutachtet",
-        "body": "Ihr Dossier wurde an das MEGGA-Team übermittelt. Ein Teammitglied muss die Identität Ihrer Agentur bestätigen, bevor Sie KYC-Dossiers öffnen oder elektronische Signaturen versenden können. Schauen Sie später wieder auf diesem Bildschirm vorbei, der Status aktualisiert sich, sobald eine Entscheidung getroffen wurde."
+        "title": "Wir prüfen Ihr Dossier",
+        "body": "Ihr Dossier liegt bei unserem Compliance-Team. Der Status aktualisiert sich, sobald eine Entscheidung getroffen wurde."
       },
       "rejected": {
         "eyebrow": "Prüfung abgelehnt",
-        "title": "Das Prüfdossier Ihrer Agentur wurde abgelehnt",
-        "body": "Das MEGGA-Team hat die Identität Ihrer Agentur nicht bestätigt. Das erneute Absenden des Formulars löst keine neue Prüfung aus: Wenden Sie sich an den MEGGA-Support, um den Grund zu verstehen und die weiteren Schritte zu erfahren."
+        "title": "Ihr Dossier wurde nicht bestätigt",
+        "body": "Das erneute Absenden des Formulars löst keine neue Prüfung aus. Wenden Sie sich an den Support, um den Grund und die weiteren Schritte zu erfahren."
       },
       "unavailable": {
         "eyebrow": "Prüfstatus nicht verfügbar",
-        "title": "Der Prüfstatus Ihrer Agentur konnte nicht gelesen werden",
-        "body": "Dies ist keine Entscheidung über Ihr Dossier: Das Lesen des Status ist fehlgeschlagen, vermutlich wegen einer unterbrochenen Verbindung oder eines vorübergehend nicht verfügbaren Dienstes. Solange dieser Status nicht bestätigt ist, kann kein KYC-Dossier geöffnet werden. Versuchen Sie es gleich noch einmal; falls das Problem bestehen bleibt, wenden Sie sich an den MEGGA-Support.",
+        "title": "Prüfstatus konnte nicht gelesen werden",
+        "body": "Ihr Dossier ist nicht betroffen: Das Lesen des Status ist fehlgeschlagen. Versuchen Sie es gleich noch einmal; wenden Sie sich an den Support, falls es weiterhin nicht klappt.",
         "retry": "Erneut versuchen"
       },
       "cta": "Prüfung abschliessen",
@@ -196,8 +246,95 @@
       "contactSupport": "Support kontaktieren",
       "correctionRequested": {
         "eyebrow": "Korrektur angefordert",
-        "title": "Ihre Identitätsangaben müssen korrigiert werden",
-        "body": "Das MEGGA-Team hat Ihr Dossier geprüft und bittet um eine Korrektur vor der Freigabe. Was geändert werden muss, wurde Ihnen per E-Mail mitgeteilt. Öffnen Sie das Identitätsformular, korrigieren Sie es und senden Sie es erneut ab: die Prüfung wird automatisch fortgesetzt."
+        "title": "Eine Korrektur ist erforderlich",
+        "body": "Die Einzelheiten haben wir Ihnen per E-Mail zugesandt. Korrigieren Sie Ihre Angaben und senden Sie sie erneut ab: die Prüfung wird automatisch fortgesetzt."
+      }
+    }
+  },
+  "call": {
+    "intro": {
+      "title": "Buchen Sie Ihr Willkommensgesprach",
+      "body": "Ihr Dossier ist in Prufung. Nehmen wir uns 30 Minuten Zeit, um Ihre Einrichtung durchzugehen und Ihre Fragen zu beantworten."
+    },
+    "picker": {
+      "weekdays": [
+        "Mo",
+        "Di",
+        "Mi",
+        "Do",
+        "Fr",
+        "Sa",
+        "So"
+      ],
+      "prevMonth": "Voriger Monat",
+      "nextMonth": "Nachster Monat",
+      "slotsTitle": "Uhrzeiten",
+      "pickDayFirst": "Wahlen Sie einen Tag im Kalender, um freie Zeiten zu sehen.",
+      "noSlotThatDay": "An diesem Tag ist nichts mehr frei.",
+      "timezoneHint": "Zeiten in Ihrer Zeitzone : {{timezone}}"
+    },
+    "form": {
+      "phone": "Telefon (optional)",
+      "phonePlaceholder": "+41 22 000 00 00",
+      "note": "Ein Wort zu Ihren Prioritaten (optional)",
+      "notePlaceholder": "Was Sie zuerst sehen mochten"
+    },
+    "actions": {
+      "confirm": "Termin bestatigen",
+      "later": "Spater",
+      "continue": "Weiter zu meinem Bereich"
+    },
+    "confirmed": {
+      "title": "Gebucht",
+      "join": "Videokonferenz beitreten",
+      "emailSent": "Eine Bestatigungsmail wartet auf Sie, mit dem Link und der Moglichkeit umzubuchen.",
+      "toDashboard": "Zu meinem Bereich"
+    },
+    "empty": {
+      "noHost": "Derzeit ist kein Termin offen. Wir melden uns so bald wie moglich per E-Mail.",
+      "noSlot": "In diesem Zeitraum ist nichts mehr frei. Versuchen Sie den nachsten Monat, oder fahren Sie fort : wir schreiben Ihnen."
+    },
+    "errors": {
+      "slot_taken": "Dieser Termin wurde soeben vergeben. Bitte wahlen Sie einen anderen.",
+      "already_booked": "Ihre Agentur hat bereits einen Termin gebucht.",
+      "no_host_available": "Derzeit ist niemand verfugbar.",
+      "slot_in_past": "Dieser Termin liegt in der Vergangenheit.",
+      "call_in_past": "Dieser Termin liegt bereits in der Vergangenheit.",
+      "call_not_active": "Dieser Termin ist nicht mehr aktiv.",
+      "reschedule_limit_reached": "Grenze fur Umbuchungen erreicht. Schreiben Sie uns fur einen anderen Termin.",
+      "generic": "Der Termin konnte nicht gespeichert werden. Bitte versuchen Sie es gleich erneut."
+    },
+    "banner": {
+      "pending": {
+        "title": "Buchen Sie Ihr Willkommensgesprach",
+        "body": "30 Minuten mit unserem Team fur den Einstieg in MEGGA.",
+        "cta": "Termin wahlen"
+      },
+      "booked": {
+        "title": "Willkommensgesprach geplant",
+        "join": "Beitreten"
+      }
+    },
+    "public": {
+      "loading": "Ihr Termin wird geladen...",
+      "title": "Ihr MEGGA Willkommensgesprach",
+      "invalid": {
+        "title": "Link nicht gefunden",
+        "body": "Dieser Link ist nicht mehr gultig. Prufen Sie die per E-Mail erhaltene Adresse, oder schreiben Sie uns."
+      },
+      "notActive": "Dieser Termin wurde abgesagt oder liegt in der Vergangenheit.",
+      "tooLate": "Dieser Termin findet sehr bald statt : er kann hier nicht mehr geandert werden.",
+      "reschedule": "Umbuchen",
+      "cancel": "Termin absagen",
+      "back": "Zuruck",
+      "confirmReschedule": "Neues Datum bestatigen",
+      "cancelled": {
+        "title": "Termin abgesagt",
+        "body": "Notiert. Sie konnen jederzeit einen neuen Termin in Ihrem MEGGA Bereich buchen."
+      },
+      "rescheduled": {
+        "title": "Neues Datum gespeichert",
+        "body": "Eine Bestatigungsmail mit dem aktualisierten Datum ist unterwegs."
       }
     }
   }

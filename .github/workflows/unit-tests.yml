@@ -29,6 +29,11 @@ jobs:
     name: Vitest unit (jsdom)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # Posé explicitement plutôt que laissé au défaut du runner : l'étape de cache
+      # ci-dessous et setup-deno doivent viser le MÊME répertoire, sans quoi le cache
+      # est écrit à un endroit et lu à un autre — panne silencieuse, cache toujours froid.
+      DENO_DIR: ${{ github.workspace }}/.deno-cache
 
     steps:
       - name: Checkout
@@ -41,14 +46,17 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        id: deps
         run: npm ci
 
       - name: Lint prose typography (i18n)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Garde-fou « style maison MEGGA » : bloque les tells (— / –) dans l'i18n.
         # Bloquant, comme eslint dans deploy.yml.
         run: npm run lint:prose
 
       - name: Lint i18n (texte FR en dur — surfaces agent verrouillées)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Garde-fou i18n : échoue si du texte FR est réintroduit en dur sur une
         # surface agent migrée (règle no-literal-string en ERROR). Cible la règle
         # seule, ce qui donne un échec lisible sur ce seul motif ; le lint complet
@@ -56,21 +64,46 @@ jobs:
         run: npm run lint:i18n
 
       - name: i18n key parity (FR↔EN)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Garde-fou i18n : échoue si une clé FR n'a pas sa contrepartie EN (ou inverse).
         run: npm run i18n:parity:ci
 
+      - name: i18n translation coverage (DE/IT — cliquet)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        # La parité ci-dessus ne voit que la PRÉSENCE des clés : une clé recopiée
+        # mot pour mot depuis l'anglais la satisfait. C'est ainsi que 59 % du DE
+        # est resté anglais sans qu'aucun signal ne le dise (constat du 02.08.2026).
+        # Cliquet, pas seuil : vert à l'état courant, rouge seulement si un commit
+        # AJOUTE de l'anglais non traduit. Traduire fait baisser le compteur ;
+        # `npm run i18n:coverage:update` verrouille le gain après un lot.
+        run: npm run i18n:coverage:ci
+
       - name: Dead exports (ts-prune)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Garde-fou code mort : échoue si un export n'est importé nulle part.
         # Baseline nettoyée (PR #848). Allowlist des gardes intentionnels dans le script.
         run: npm run lint:deadcode
 
+      - name: Typage Supabase (client casté / RPC hors types)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        # Garde-fou typage : `src/types/database.ts` est auto-généré et RIEN ne
+        # surveillait sa fraîcheur — le dépôt a déjà payé ce défaut en juillet 2026
+        # (quatre gestes du pipeline cassés une semaine, cf. l'en-tête de
+        # check-migration-drift.mjs). Mesuré le 01.08 : 15 relations et 64 fonctions
+        # manquaient, et 16 sites castaient le client pour compiler quand même.
+        # Ici, contrôles STATIQUES seuls (aucun secret) ; la comparaison à la
+        # production vit dans migration-drift.yml, le seul workflow qui l'interroge.
+        run: npm run lint:types-freshness
+
       - name: Roster edge functions (dérive tree ↔ monitoring)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Garde-fou monitoring : src/lib/edgeFunctionRoster.ts est GÉNÉRÉ depuis
         # supabase/functions/ ; échoue si une fonction est ajoutée/retirée sans
         # régénérer (node scripts/check-edge-roster.mjs --write).
         run: npm run lint:roster
 
       - name: Migrations rejouables (idempotence)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Garde-fou déploiement : deploy.yml rejoue TOUTE migration dont le stamp est
         # >= TODAY (UTC), donc une migration mergée le jour de sa date est ré-appliquée
         # à chaque push. Non idempotente, elle casse l'étape « Apply Supabase migrations »
@@ -79,7 +112,42 @@ jobs:
         # détecté sur #893, corrigé par #894). Allowlist historique dans le script.
         run: npm run lint:migrations
 
+      - name: Gardes d'authentification des edge functions
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        # Toutes les fonctions sont déployées --no-verify-jwt (allowlist JWT_PROTECTED
+        # volontairement vide) : la passerelle ne vérifie AUCUNE signature, donc une
+        # fonction sans garde est un endpoint public. L'audit du 02.08.2026 a trouvé
+        # onze fonctions exploitables, dont trois simplement parce que personne
+        # n'avait écrit de garde et que rien ne le signalait — lint:roster contrôle
+        # que config.toml DÉCLARE les fonctions, pas qu'elles s'authentifient.
+        # ⚠ Cette porte attrape l'oubli TOTAL, pas l'IDOR : deux des onze failles
+        # avaient une garde et fuyaient quand même faute de cloisonner par agency_id.
+        run: npm run lint:edge-auth
+
+      - name: Cache des dépendances Deno
+        # Les Edge Functions importent 143 fois par URL (esm.sh, deno.land) ; sans cache,
+        # chaque exécution retélécharge tout et met la CI à la merci d'un CDN tiers. Le
+        # 02.08.2026, esm.sh a renvoyé des 522 par intermittence et fait rougir trois jobs
+        # sans aucun rapport avec le code poussé.
+        #
+        # ⚠ `restore-keys` n'est PAS décoratif, et c'est la différence avec le bloc de cache
+        # des navigateurs Playwright (e2e.yml) dont ce motif s'inspire : la clé exacte
+        # change dès qu'un fichier d'edge function bouge, donc sans repli par préfixe le
+        # cache serait froid à presque chaque exécution — c'est-à-dire inutile.
+        #
+        # Ce cache RARÉFIE la dépendance, il ne la supprime pas : cache froid (première
+        # exécution, éviction après 7 jours, dépassement du quota) = exposition entière.
+        # Le correctif de fond est ailleurs (voir docs/ci-dependance-cdn.md).
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.DENO_DIR }}
+          key: deno-${{ runner.os }}-${{ hashFiles('supabase/functions/**/*.ts') }}
+          restore-keys: |
+            deno-${{ runner.os }}-
+
       - name: Setup Deno
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Edge Functions (supabase/functions/**) tournent sur Deno, pas Node : elles
         # échappent à tsc (exclu du build front) et à vitest (imports https: non résolus).
         # Épinglé 2.x, aligné sur supabase/config.toml (deno_version = 2).
@@ -88,6 +156,7 @@ jobs:
           deno-version: v2.x
 
       - name: Type-check Edge Functions (deno check)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Garde-fou backend : `deno check` sur toutes les Edge Functions hors *.test.ts.
         # Seul filet de type sur le code Deno → BLOQUANT (jamais `|| true`).
         # mapfile + find -print0 : robuste aux espaces/caractères spéciaux (bash 5 sur ubuntu).
@@ -97,5 +166,6 @@ jobs:
           deno check --no-lock "${files[@]}"
 
       - name: Run unit tests
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # No --coverage: keep this step fast (it is the PR's quickest check).
         run: npm run test:unit

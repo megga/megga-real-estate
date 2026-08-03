@@ -10,6 +10,12 @@ import path from 'path'
 //   1. Docker engine running (Colima or Docker Desktop)
 //   2. `supabase start` from the project root → exposes local URL on
 //      http://127.0.0.1:54321 with seeded migrations
+//      ⚠ Plusieurs instances Supabase locales peuvent coexister (autre projet,
+//      autre worktree). Les specs qui écrivent en SQL direct passent par
+//      tests/backend/helpers/local-sql.ts, qui vise le conteneur du `project_id`
+//      de supabase/config.toml et refuse de deviner : si SUPABASE_TEST_URL et le
+//      conteneur désignent deux instances différentes, il lève au lieu de semer
+//      dans la mauvaise base. Forcer au besoin avec SUPABASE_TEST_DB_CONTAINER.
 //   3. Env vars in .env.test.local (or in shell):
 //        SUPABASE_TEST_URL=http://127.0.0.1:54321
 //        SUPABASE_TEST_ANON_KEY=<from `supabase status`>

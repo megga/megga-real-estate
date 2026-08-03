@@ -18,12 +18,17 @@ import type { LucideIcon } from 'lucide-react'
 import { useAdminMonitoring } from '@/hooks/useAdminMonitoring'
 import { useDeepSeekBalance, useAIUsageSummary, useAIUsageTimeseries } from '@/hooks/useAIBilling'
 import { useCronHealth } from '@/hooks/useCronHealth'
+import { useAdminCronRunNow } from '@/hooks/useAdminCronRunNow'
 import { cronStale } from '@/lib/cronHealth'
+import { formatNextRun } from '@/lib/cronRunNow'
+import CronRunNowConfirm from '@/components/admin/CronRunNowConfirm'
+import { useToast } from '@/components/ui/Toast'
 import { SyndicationHealthPanel, WhatsAppOpsPanel } from '@/components/admin/AdminOpsPanels'
 import IntegrationsHealthPanel from '@/components/admin/IntegrationsHealthPanel'
 import AdminPage from '@/components/admin/kit/AdminPage'
+import WeeklyReportPreview from '@/components/admin/WeeklyReportPreview'
 import {
-  AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGroupTitle, AdminIc,
+  AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminGroupTitle, AdminIc,
   AdminPill, AdminSearchInput, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
@@ -82,6 +87,51 @@ export default function AdminMonitoringPage() {
   const [fnSearch, setFnSearch] = useState('')
   const [expandedError, setExpandedError] = useState<string | null>(null)
 
+  // ── Geste « Relancer un cron » (étape 28) ─────────────────────────────────
+  const runNow = useAdminCronRunNow()
+  const toast = useToast()
+  /**
+   * Crons dont la relance est en vol. Un ENSEMBLE, pas un seul nom : relancer deux crons
+   * de suite est légitime, et avec un nom unique le second clic ré-activait le bouton du
+   * premier — deux clés, donc deux passages programmés pour un seul geste voulu.
+   */
+  const [running, setRunning] = useState<ReadonlySet<string>>(() => new Set())
+  /** Confirmation demandée par le SERVEUR ; la clé est celle du geste, rejouée telle quelle. */
+  const [confirming, setConfirming] = useState<{ jobname: string; key: string; messageFr: string } | null>(null)
+  /** Issue affichée à la place du bouton, une fois la relance demandée. */
+  const [runDone, setRunDone] = useState<Record<string, string>>({})
+
+  /**
+   * Un tour du geste. `key` vient de l'appelant : le premier clic en tire une neuve, la
+   * confirmation REJOUE la même — le refus « confirmez » ne consomme pas la clé (tous les
+   * contrôles de la RPC précèdent sa réservation), et en tirer une seconde programmerait
+   * deux passages sur un double-clic.
+   */
+  const relancerCron = (jobname: string, key: string, confirm: boolean) => {
+    setRunning(v => new Set(v).add(jobname))
+    runNow.mutate({ jobname, idempotencyKey: key, confirm }, {
+      onSuccess: (issue) => {
+        if (issue.kind === 'needs_confirm') { setConfirming({ jobname, key, messageFr: issue.messageFr }); return }
+        setConfirming(null)
+        if (issue.kind === 'already_done') {
+          setRunDone(v => ({ ...v, [jobname]: t('admin:monitoring.cronHealth.runNowAlready') }))
+          return
+        }
+        // « demandée », jamais « relancé » : à cette seconde le job n'a pas tourné, et pour
+        // les crons qui délèguent à `net.http_post` même son succès ne prouverait que
+        // l'enfilage de la requête. Le libellé de la maquette dit exactement cela.
+        const heure = formatNextRun(issue.scheduledForIso)
+        const texte = heure
+          ? t('admin:monitoring.cronHealth.runNowRequested', { time: heure })
+          : t('admin:monitoring.cronHealth.runNowRequestedNoTime')
+        setRunDone(v => ({ ...v, [jobname]: texte }))
+        toast.success(texte)
+      },
+      onError: (e: Error) => { setConfirming(null); toast.error(e.message) },
+      onSettled: () => setRunning(v => { const n = new Set(v); n.delete(jobname); return n }),
+    })
+  }
+
   const filteredErrors = useMemo(() => {
     if (!errorSearch.trim()) return errorLogs
     const q = errorSearch.toLowerCase()
@@ -117,7 +167,16 @@ export default function AdminMonitoringPage() {
     <AdminPage
       title={t('admin:monitoring.title')}
       width="wide"
-      actions={<AdminPill label={t('admin:monitoring.planPro')} tone="ok" />}
+      /* Le rapport hebdomadaire a suivi la refonte de la Vue d'ensemble : celle-ci
+         ne garde que des renvois, et l'envoi d'un bulletin d'exploitation est un
+         geste de Monitoring. La fente `actions` étant unique, les deux cohabitent
+         dans un même conteneur. */
+      actions={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AdminPill label={t('admin:monitoring.planPro')} tone="ok" />
+          <WeeklyReportPreview />
+        </div>
+      }
     >
       {/* Error banner — when the health query fails entirely (Supabase down,
           RLS issue, network error). Without this, the page just showed
@@ -258,6 +317,7 @@ export default function AdminMonitoringPage() {
                   <AdminTh>{t('admin:monitoring.cronHealth.schedule')}</AdminTh>
                   <AdminTh align="right" width={140}>{t('admin:monitoring.cronHealth.lastRun')}</AdminTh>
                   <AdminTh align="right" width={104}>{t('admin:monitoring.cronHealth.status')}</AdminTh>
+                  <AdminTh align="right" width={210}>{t('admin:monitoring.cronHealth.action')}</AdminTh>
                 </tr>
               </thead>
               <tbody>
@@ -282,6 +342,29 @@ export default function AdminMonitoringPage() {
                           label={st.stale ? t('admin:monitoring.cronHealth.stale') : t('admin:monitoring.cronHealth.ok')}
                           tone={st.stale ? 'err' : 'ok'}
                         />
+                      </AdminTd>
+                      <AdminTd align="right">
+                        {runDone[row.jobname] ? (
+                          <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.soft }}>{runDone[row.jobname]}</span>
+                        ) : (
+                          // Le bouton reste offert sur un cron désactivé : c'est la RPC qui
+                          // refuse, avec sa raison. Le masquer ferait deux juges, et l'écran
+                          // se tromperait le jour où la règle bouge en base.
+                          <AdminGhostBtn
+                            onClick={() => relancerCron(row.jobname, crypto.randomUUID(), false)}
+                            disabled={running.has(row.jobname)}
+                            // Le nom accessible CONTIENT le texte visible dans les deux
+                            // états (WCAG 2.5.3) : il change donc avec lui, sinon le
+                            // libellé « Relance… » n'aurait plus de nom qui le reprenne.
+                            label={running.has(row.jobname)
+                              ? t('admin:monitoring.cronHealth.runNowPendingFor', { job: row.jobname })
+                              : t('admin:monitoring.cronHealth.runNowFor', { job: row.jobname })}
+                          >
+                            {running.has(row.jobname)
+                              ? t('admin:monitoring.cronHealth.runNowPending')
+                              : t('admin:monitoring.cronHealth.runNow')}
+                          </AdminGhostBtn>
+                        )}
                       </AdminTd>
                     </tr>
                   )
@@ -556,6 +639,16 @@ export default function AdminMonitoringPage() {
           </div>
         )}
       </AdminCard>
+
+      {confirming && (
+        <CronRunNowConfirm
+          jobname={confirming.jobname}
+          messageFr={confirming.messageFr}
+          pending={running.has(confirming.jobname)}
+          onConfirm={() => relancerCron(confirming.jobname, confirming.key, true)}
+          onClose={() => setConfirming(null)}
+        />
+      )}
     </AdminPage>
   )
 }

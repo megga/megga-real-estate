@@ -50,14 +50,14 @@
     "adminAgencies": "Agences",
     "adminUsers": "Utilisateurs",
     "adminMonitoring": "Monitoring",
-    "adminModeration": "Moderation",
-    "adminCompliance": "Conformite",
+    "adminModeration": "Modération",
+    "adminCompliance": "Conformité",
     "adminSupport": "Support",
     "adminChangelog": "Changelog",
     "adminFlags": "Feature flags",
     "adminLive": "Live Feed",
     "adminPlans": "Plans & Quotas",
-    "adminSecurity": "Audit securite",
+    "adminSecurity": "Audit sécurité",
     "adminNps": "Satisfaction",
     "adminAutonomy": "Autonomie agents",
     "adminLearning": "Styles appris",
@@ -75,7 +75,8 @@
     "adminSectionOps": "Opérations",
     "adminSectionProduct": "Produit & IA",
     "adminEndUsers": "Clients finaux",
-    "adminKybReview": "Vérification KYB"
+    "adminKybReview": "Vérification KYB",
+    "adminOnboardingCalls": "Appels d'accueil"
   },
   "sections": {
     "main": "Principal",
@@ -168,12 +169,6 @@
     "facebookSoon": "Facebook sera disponible prochainement",
     "passwordError": "Le mot de passe doit contenir au moins 8 caractères",
     "back": "Retour"
-  },
-  "privacyConsent": {
-    "label": "Consentement au traitement des données",
-    "prefix": "J'accepte que MEGGA traite mes données conformément à sa ",
-    "linkText": "politique de confidentialité",
-    "suffix": ". Mes informations seront utilisées pour répondre à ma demande."
   },
   "search": {
     "seoTitle": "Biens à vendre en Suisse",
@@ -480,227 +475,6 @@
       "subscription_changed": "Abonnement modifié",
       "visit_scheduled": "Visite planifiée",
       "whatsapp_agent_copilot_reply": "Réponse du copilote WhatsApp"
-    }
-  },
-  "portal": {
-    "type": {
-      "studio": "Studio"
-    },
-    "propertyFallback": "Bien",
-    "rooms_one": "{{count}} pièce",
-    "rooms_other": "{{count}} pièces",
-    "mandate": {
-      "exclusive": "Mandat exclusif",
-      "simple": "Mandat simple"
-    },
-    "rel": {
-      "now": "à l'instant",
-      "hours": "il y a {{count}} h",
-      "today": "aujourd'hui",
-      "days": "il y a {{count}} j",
-      "months": "il y a {{count}} mois"
-    },
-    "agentRole": "Votre agent",
-    "visitsSubThisMonth": "dont {{count}} ce mois-ci",
-    "visitsSubDefault": "ce mois-ci",
-    "step": {
-      "mandateSigned": "Mandat signé",
-      "online": "En ligne",
-      "visits": "Visites",
-      "offers": "Offres",
-      "negotiation": "Négociation",
-      "signed": "Signé"
-    },
-    "stepSentence": {
-      "0": "Votre mandat est signé. Votre bien se prépare à entrer en ligne.",
-      "1": "Votre bien vient d'être mis en ligne. Les premières visites s'organisent.",
-      "2": "Votre bien est en ligne. Les visites sont en cours.",
-      "3": "Vous avez reçu vos premières offres. Votre agent les étudie avec vous.",
-      "4": "La négociation est en cours. Votre agent défend le meilleur prix pour vous.",
-      "5": "La vente est signée. Félicitations, tout est finalisé."
-    },
-    "next": {
-      "0": {
-        "eta": "Sous 3-5 jours",
-        "hint": "Photos et annonce en préparation."
-      },
-      "1": {
-        "eta": "Cette semaine",
-        "hint": "Les premières demandes de visite arrivent."
-      },
-      "2": {
-        "eta": "1 à 2 semaines",
-        "hint": "Les visites qualifiées mènent aux premières offres."
-      },
-      "3": {
-        "eta": "Quelques jours",
-        "hint": "Votre agent analyse chaque offre reçue."
-      },
-      "4": {
-        "eta": "Sous 48 heures",
-        "hint": "Votre agent défend votre prix."
-      }
-    },
-    "header": {
-      "settings": "Paramètres",
-      "yourAgent": "Votre agent"
-    },
-    "property": {
-      "viewPhotos": "Voir les photos",
-      "onlineSince_one": "En ligne depuis {{count}} jour",
-      "onlineSince_other": "En ligne depuis {{count}} jours"
-    },
-    "journey": {
-      "title": "Où en est votre vente",
-      "stepCounter_one": "Étape {{current}}/{{total}} · reste {{count}} étape",
-      "stepCounter_other": "Étape {{current}}/{{total}} · reste {{count}} étapes",
-      "inProgress": "en cours",
-      "nextStep": "Prochaine étape",
-      "congrats": "Félicitations",
-      "saleComplete": "Vente finalisée",
-      "saleCompleteHint": "Votre bien est vendu. Votre agent reste disponible pour l'après-vente."
-    },
-    "stats": {
-      "visits": "Visites",
-      "offers": "Offres",
-      "days": "Jours",
-      "offersTarget": "objectif {{count}}",
-      "medianDays": "médiane GE · {{days}} j"
-    },
-    "offers": {
-      "statusPending": "En attente",
-      "statusCounter": "Contre-offre",
-      "statusAccepted": "Acceptée",
-      "title": "Offres",
-      "emptyTitle": "Pas encore d'offre, c'est normal à ce stade.",
-      "emptyHint": "Les visites font leur travail.",
-      "respond": "Répondre à l'offre"
-    },
-    "activity": {
-      "title": "Dernières nouvelles"
-    },
-    "agent": {
-      "whatsapp": "Écrire sur WhatsApp",
-      "call": "Appeler",
-      "email": "Email"
-    },
-    "offer": {
-      "eyebrow": "Offre reçue",
-      "heading": "Que souhaitez-vous faire ?",
-      "recap": {
-        "amount": "Montant proposé",
-        "gap": "Écart au prix affiché"
-      },
-      "choice": {
-        "accept": {
-          "title": "Accepter l'offre",
-          "desc": "Vous validez le montant proposé."
-        },
-        "counter": {
-          "title": "Faire une contre-offre",
-          "desc": "Proposez votre prix en retour."
-        },
-        "refuse": {
-          "title": "Refuser l'offre",
-          "desc": "Vous déclinez cette proposition."
-        }
-      },
-      "counter": {
-        "label": "Votre prix souhaité"
-      },
-      "reassurance": "{{name}} valide chaque décision avec vous avant transmission. Rien n'est envoyé sans votre accord.",
-      "cancel": "Annuler",
-      "submit": "Transmettre à mon agent",
-      "submitting": "Transmission…",
-      "error": {
-        "send": "L'envoi a échoué. Vérifiez votre connexion, ou contactez directement votre agent."
-      },
-      "sent": {
-        "title": "C'est transmis",
-        "accept": "Votre accord est transmis. Votre agent revient vers vous pour la suite (compromis, notaire).",
-        "counter": "Votre contre-offre de {{amount}} est transmise à votre agent, qui la présentera à l'acheteur.",
-        "refuse": "Votre refus est transmis à votre agent. Il vous tiendra informé de la suite.",
-        "back": "Revenir à ma vente"
-      }
-    },
-    "settings": {
-      "eyebrow": "Réglages",
-      "title": "Paramètres",
-      "notif": {
-        "title": "Notifications",
-        "sub": "Vous êtes prévenu par e-mail.",
-        "offer": "Nouvelle offre reçue",
-        "visit": "Visite planifiée",
-        "feedback": "Retour après visite"
-      },
-      "availability": {
-        "title": "Disponibilités des visites",
-        "sub": "Quand votre bien peut être visité.",
-        "day": {
-          "mon": "Lun",
-          "tue": "Mar",
-          "wed": "Mer",
-          "thu": "Jeu",
-          "fri": "Ven",
-          "sat": "Sam",
-          "sun": "Dim"
-        },
-        "slotsLabel": "Créneaux",
-        "slot": {
-          "morning": "Matin",
-          "afternoon": "Après-midi",
-          "evening": "Soir"
-        },
-        "noticeLabel": "Préavis souhaité",
-        "notice": {
-          "sameDay": "Le jour même",
-          "24h": "24 h",
-          "48h": "48 h"
-        }
-      },
-      "langContact": {
-        "title": "Langue & contact",
-        "langLabel": "Langue de l'interface",
-        "channelLabel": "Comment votre agent vous contacte",
-        "channel": {
-          "phone": "Téléphone",
-          "email": "E-mail"
-        }
-      },
-      "appearance": {
-        "title": "Apparence",
-        "darkMode": "Mode sombre",
-        "darkModeSub": "Confort de lecture en faible luminosité"
-      },
-      "cancel": "Annuler",
-      "save": "Enregistrer",
-      "saving": "Enregistrement…"
-    },
-    "gallery": {
-      "close": "Fermer",
-      "previous": "Précédente",
-      "next": "Suivante",
-      "photoAlt": "Photo {{index}}",
-      "emptyTitle": "Aucune photo pour le moment",
-      "emptyHint": "Les photos de votre bien apparaîtront ici."
-    },
-    "modal": {
-      "close": "Fermer"
-    },
-    "invalid": {
-      "notFound": {
-        "title": "Portail introuvable",
-        "description": "Ce lien ne correspond à aucun portail vendeur. Vérifiez le lien reçu de votre agent immobilier."
-      },
-      "expired": {
-        "title": "Portail expiré",
-        "description": "Ce portail vendeur a expiré. Contactez votre agent immobilier pour obtenir un nouveau lien."
-      },
-      "revoked": {
-        "title": "Accès révoqué",
-        "description": "L'accès à ce portail a été désactivé. Contactez votre agent immobilier pour plus d'informations."
-      },
-      "backHome": "Retour à l'accueil"
     }
   },
   "announcements": {

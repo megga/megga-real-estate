@@ -33,79 +33,10 @@
       "to_recontact": "To recontact"
     }
   },
-  "atRisk": {
-    "title": "Deals at risk",
-    "empty": "No deals at risk",
-    "emptyDescription": "Your pipeline is healthy",
-    "unknownContact": "Unknown contact",
-    "daysSince": "{{count}} day without activity",
-    "daysSince_plural": "{{count}} days without activity",
-    "view": "View →"
-  },
   "activity": {
     "title": "Recent activity",
     "viewAll": "View all",
     "empty": "No recent activity"
-  },
-  "actionBoard": {
-    "sections": {
-      "urgencies": "Urgent",
-      "followUps": "Follow-ups today",
-      "matches": "Matches found",
-      "visits": "Visits to confirm",
-      "suggestions": "AI suggestions"
-    },
-    "empty": {
-      "urgencies": "No urgencies today",
-      "followUps": "No follow-ups planned",
-      "matches": "No new matches",
-      "visits": "No visits today",
-      "suggestions": "No suggestions at the moment"
-    },
-    "summary": {
-      "urgency": "{{count}} urgency",
-      "urgency_plural": "{{count}} urgencies",
-      "followUp": "{{count}} follow-up to do",
-      "followUp_plural": "{{count}} follow-ups to do",
-      "visit": "{{count}} visit",
-      "visit_plural": "{{count}} visits",
-      "match": "{{count}} match",
-      "match_plural": "{{count}} matches"
-    },
-    "days": {
-      "0": "Sunday",
-      "1": "Monday",
-      "2": "Tuesday",
-      "3": "Wednesday",
-      "4": "Thursday",
-      "5": "Friday",
-      "6": "Saturday"
-    },
-    "months": {
-      "0": "January",
-      "1": "February",
-      "2": "March",
-      "3": "April",
-      "4": "May",
-      "5": "June",
-      "6": "July",
-      "7": "August",
-      "8": "September",
-      "9": "October",
-      "10": "November",
-      "11": "December"
-    },
-    "sellerLeads": "New seller leads",
-    "accept": "Accept",
-    "reject": "Reject",
-    "accepted": "Accepted",
-    "motivation": "Motivation",
-    "motivations": {
-      "immediate": "Immediate",
-      "3months": "3 months",
-      "6months": "6 months",
-      "exploring": "Exploring"
-    }
   },
   "today": {
     "reasons": {
@@ -292,28 +223,6 @@
       "tempWarm": "warm",
       "tempCold": "cold"
     },
-    "pipeline": {
-      "error": {
-        "title": "Data unavailable"
-      },
-      "stages": {
-        "searching": "Active search",
-        "visit": "Viewing scheduled",
-        "offer": "Offer submitted",
-        "compromis": "Sale agreement"
-      },
-      "dealFallback": "Deal",
-      "riskStalled": "Deal stalled",
-      "riskOverdue": "Deadline overdue"
-    },
-    "objectif": {
-      "error": {
-        "title": "Data unavailable"
-      },
-      "realized": "achieved",
-      "realizedNoTarget": "achieved · no target set",
-      "target": "target"
-    },
     "pager": {
       "today": "Today",
       "catalogue": "Catalog",
@@ -407,7 +316,8 @@
       },
       "action": {
         "addToFile": "Add to {{name}}'s file",
-        "added": "Added to {{name}}'s file"
+        "added": "Added to {{name}}'s file",
+        "openInMatching": "Open in Matching"
       },
       "gallery": {
         "closeHint": "Close (Esc)",
@@ -495,10 +405,120 @@
         "backToDashboard": "Back to dashboard"
       }
     },
-    "brief": {
-      "eyebrow": "MEGGA AI · Daily briefing",
-      "deepen": "Go deeper",
-      "deepenQuestion": "Detail my priorities for today and suggest the next action for each."
+    "h": {
+      "greeting": "Hello {{name}}",
+      "whatsNew": "What's new",
+      "close": "Close",
+      "yourDay": "Your day",
+      "appointments_one": "{{count}} appointment",
+      "appointments_other": "{{count}} appointments",
+      "hour": "{{hour}}:00",
+      "freeWindow": "{{duration}} free · follow-up session",
+      "tabs": {
+        "deals": "Deals",
+        "listings": "Listings"
+      },
+      "hotCount_one": "{{count}} hot",
+      "hotCount_other": "{{count}} hot",
+      "openListings": "Open My listings",
+      "seeDealsInPipeline": "See the {{count}} deals in the Pipeline",
+      "todayLabel": "Today",
+      "openInCalendar": "Open in calendar",
+      "doneBadge": "Done",
+      "types": {
+        "relance": "Call",
+        "kyc": "Compliance",
+        "mandat": "Mandate",
+        "visite": "Viewing",
+        "compromis": "Agreement",
+        "default": "Appointment"
+      },
+      "news": {
+        "fresh": "New"
+      },
+      "absence": {
+        "title": "While you were away",
+        "seeAll": "See all {{count}}",
+        "countSince_one": "{{count}} signal · since {{since}}",
+        "countSince_other": "{{count}} signals · since {{since}}",
+        "upToDateSince": "Up to date · since {{since}}",
+        "upToDateInline": "You're up to date, nothing new since {{since}}",
+        "emptyTitle": "You're up to date",
+        "emptyDesc": "No buyer feedback or reminders pending. Everything has been handled.",
+        "markAll": "Mark all as seen",
+        "count_one": "{{count}} signal",
+        "count_other": "{{count}} signals",
+        "groupBuyers": "Buyer feedback",
+        "groupReminders": "Reminders",
+        "liked": "liked {{subject}}",
+        "skipped": "passed on {{subject}}",
+        "reminderDue": "{{subject}} to pick back up",
+        "ctaProposeVisit": "Propose a viewing",
+        "ctaRecalibrate": "Recalibrate",
+        "ctaResume": "Resume",
+        "unknownContact": "Contact",
+        "unknownProperty": "a property"
+      },
+      "toast": {
+        "allUpToDate": "Everything is up to date",
+        "visitProposed": "Viewing proposal sent to {{name}}",
+        "dealResumed": "Deal {{name}} resumed",
+        "recalibrated": "Criteria recalibrated for {{name}}",
+        "resumeFailed": "The follow-up could not be saved. Try again.",
+        "doneFailed": "The status could not be saved. Try again.",
+        "markedDone": "{{name}} · marked as done",
+        "reopened": "Reopened"
+      },
+      "cta": {
+        "openKyc": "Open KYC",
+        "openVisit": "Open viewing",
+        "openContact": "Open contact",
+        "openListing": "Open listing",
+        "openCalendar": "Open calendar"
+      },
+      "day": {
+        "emptyTitle": "Clear day",
+        "emptyDesc": "No appointment, viewing or reminder scheduled today."
+      },
+      "mobileTitle": "Today",
+      "mobileDay": "Day",
+      "searchAria": "Search",
+      "markDoneAria": "Mark as done",
+      "reopenAria": "Reopen",
+      "slots_one": "{{count}} slot",
+      "slots_other": "{{count}} slots",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "listings": {
+        "untitled": "Untitled property",
+        "issue": {
+          "draft": "draft to complete",
+          "noPhoto": "no photo",
+          "thinDescription": "description too short",
+          "notPushed": "public, not yet on Immobilier.ch",
+          "published": "published"
+        },
+        "cta": {
+          "draft": "Complete",
+          "noPhoto": "Add",
+          "thinDescription": "Complete",
+          "notPushed": "Publish",
+          "published": "Open"
+        },
+        "empty": "All your listings are complete and published."
+      },
+      "deals": {
+        "open": "Open",
+        "empty": "No deal needs attention right now.",
+        "ctaCall": "Call back",
+        "ctaKyc": "Open KYC",
+        "ctaSign": "Prepare",
+        "ctaOffer": "View offer",
+        "ctaMatch": "View matches",
+        "ctaVisit": "View viewing",
+        "ctaSeller": "Open",
+        "ctaListing": "View listing"
+      }
     }
   },
   "analytics": {
@@ -717,21 +737,6 @@
     "added": "Added · {{value}}",
     "submit": "Create",
     "suggested": "Suggested"
-  },
-  "knowledge": {
-    "col": {
-      "subject": "Subject",
-      "status": "Status",
-      "startDate": "Start date",
-      "endDate": "End date",
-      "assignedUser": "Assigned user"
-    },
-    "favRemove": "Remove from favorites",
-    "favAdd": "Add to favorites",
-    "favRemoved": "Removed from favorites, {{subject}}",
-    "favAdded": "Added to favorites, {{subject}}",
-    "statusChanged": "Status → {{status}}",
-    "changeStatus": "Change status"
   },
   "focus": {
     "heading": "3 must-do priorities for today",

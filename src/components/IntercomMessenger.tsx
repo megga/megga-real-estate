@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useImpersonate } from '@/hooks/useImpersonate'
 import { supabase } from '@/lib/supabase'
 import { bootIntercom, shutdownIntercom, updateIntercom, isIntercomEnabled } from '@/lib/intercom'
+import { isTokenBearingPath } from '@/lib/sentry'
 
 // Le JWT « Messenger Security » expire après 1h (cf. edge `intercom-identity`).
 // On le rafraîchit avant l'échéance pour qu'une session ouverte toute la journée
@@ -39,6 +40,11 @@ export default function IntercomMessenger() {
 
   useEffect(() => {
     if (!isIntercomEnabled() || loading) return
+    // Pas de Messenger sur les routes à lien tokenisé. Il y démarrerait en anonyme
+    // (aucun compte derrière un lien public) et son ping porte l'URL courante, donc
+    // le token : le même geste que GTM, vers un autre tiers. Accessoirement, une
+    // bulle de support n'a rien à faire sur l'écran de confirmation d'un acheteur.
+    if (isTokenBearingPath(window.location.pathname)) return
 
     const identified = !!(user && profile && !impersonating)
     // La clé inclut les attributs de ciblage : si role/canton/nom changent

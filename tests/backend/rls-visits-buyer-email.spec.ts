@@ -1,13 +1,23 @@
-// RLS — visits readable by buyer_email match.
+// RLS — `visits` est FERMÉE à un compte qui ne fait que revendiquer un e-mail.
 //
-// Scenario: a marketplace buyer (authenticated via Supabase Auth, no profile,
-// no agency) must be able to SELECT visits where buyer_email matches their
-// JWT email. They must NOT see visits booked by other emails.
+// ⚠ CE FICHIER A CHANGÉ DE SENS (03.08.2026). Il éprouvait la policy
+// `visits_select_by_buyer_email` (20260526140000), qui laissait tout compte
+// authentifié lire une ligne `visits` ENTIÈRE dès que la revendication `email` de
+// son JWT égalait `buyer_email`. Cette ligne porte `manage_token` — la capability
+// qui commande replanification, annulation et dépôt d'avis. Un e-mail revendiqué
+// n'est pas un e-mail prouvé : la policy distribuait donc le jeton.
 //
-// This was a real silent bug: VisitsRow.tsx queried a non-existent table
-// `property_visits` and degraded to []. The fix points it at `visits` and
-// relies on the policy `visits_select_by_buyer_email` added in
-// 20260526140000_visits_select_by_buyer_email.sql.
+// Elle servait un seul écran, `VisitsRow.tsx`, supprimé avec la marketplace au
+// pivot CRM-first ; `/account` redirige vers `/dashboard` et plus aucun compte de
+// production n'est dépourvu de profil. Retirée par la migration
+// 20260802223756_visit_token_lifecycle.sql.
+//
+// Le fichier est conservé RETOURNÉ plutôt que supprimé : il vaut désormais comme
+// garde-fou anti-récidive. Rétablir la policy le fait rougir, ce qu'une simple
+// suppression n'aurait pas fait.
+//
+// L'accès public légitime de l'acheteur passe par les RPC SECURITY DEFINER
+// `*_visit_by_token`, éprouvées dans `rls-advisors-hardening.spec.ts`.
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -141,14 +151,27 @@ describe.skipIf(!HAS_KEYS)('RLS — visits readable by buyer_email', () => {
     if (agencyId)      await svc.from('agencies').delete().eq('id', agencyId).then(() => {}, () => {})
   })
 
-  it('buyer sees their own visit', async () => {
+  it('la session acheteur est bien AUTHENTIFIÉE (garde anti-test creux)', async () => {
+    // Sans cette assertion, tous les tests ci-dessous passeraient pour la mauvaise
+    // raison : un client non connecté rend `[]` sur tout, et un fichier entier de
+    // « rien ne fuit » resterait vert alors qu'il ne prouve plus rien. C'est le
+    // motif du vert sans assertion, déjà rencontré deux fois sur ce chantier.
+    const { data, error } = await buyerClient.auth.getUser()
+    expect(error).toBeNull()
+    expect(data.user?.id).toBe(buyerUserId)
+    expect(data.user?.email).toBe(buyerEmail)
+  })
+
+  it('un compte qui revendique buyer_email NE LIT PLUS sa visite (policy retirée)', async () => {
+    // Le cœur de la régression : cette ligne porte `manage_token`. La rendre
+    // lisible sur une simple revendication d'e-mail revient à donner la capability
+    // à qui sait prononcer l'adresse.
     const { data, error } = await buyerClient
       .from('visits')
-      .select('id, buyer_email')
+      .select('id, buyer_email, manage_token')
       .eq('id', visitMineId)
     expect(error).toBeNull()
-    expect(data).toHaveLength(1)
-    expect(data?.[0]?.buyer_email).toBe(buyerEmail)
+    expect(data, 'visits_select_by_buyer_email est revenue — le manage_token refuit').toEqual([])
   })
 
   it('buyer CANNOT see a visit booked under a different email', async () => {
@@ -160,35 +183,47 @@ describe.skipIf(!HAS_KEYS)('RLS — visits readable by buyer_email', () => {
     expect(data, `buyer leaked other email's visit`).toEqual([])
   })
 
-  it('buyer list query returns ONLY their own visits', async () => {
+  it('une liste sans filtre ne rend AUCUNE visite', async () => {
+    // Autrefois « seulement les siennes ». Désormais aucune : un compte sans profil
+    // n'a plus aucune lecture directe sur `visits`. On assère le vide, pas
+    // l'absence-d'autrui — sinon le test resterait vert si la policy revenait.
     const { data, error } = await buyerClient
       .from('visits')
       .select('id, buyer_email')
       .limit(50)
     expect(error).toBeNull()
-    const others = (data ?? []).filter(v => v.buyer_email !== buyerEmail)
-    expect(others, `buyer leaked ${others.length} cross-email visits`).toEqual([])
+    expect(data ?? []).toEqual([])
   })
 
-  it('buyer can join properties + profiles via FKs', async () => {
-    // The component query uses joins — verify they work for the buyer role
-    // (the joined tables have their own RLS).
+  it('la jointure ne contourne pas le refus', async () => {
+    // Une requête à jointures était le chemin réel de l'ancien écran. On vérifie
+    // qu'elle ne rouvre pas une porte que la sélection simple ferme : PostgREST
+    // applique la RLS de `visits` AVANT de résoudre les FK, donc pas de ligne.
     const { data, error } = await buyerClient
       .from('visits')
       .select(`
         id,
         scheduled_at,
-        status,
         buyer_message,
         properties:property_id ( title, address ),
         agent:profiles!agent_id ( full_name )
       `)
       .eq('id', visitMineId)
-      .single()
+      .maybeSingle()
     expect(error).toBeNull()
-    expect(data?.buyer_message).toBe('Test message from buyer')
-    // properties and profiles RLS may or may not expose the joined data —
-    // both `null` and a populated object are valid here; the visit row
-    // itself just needs to be visible (which is what we're really testing).
+    expect(data).toBeNull()
+  })
+
+  it("le parcours public légitime, lui, marche toujours — par JETON, pas par e-mail", async () => {
+    // Contrepartie indispensable : sans elle, ce fichier prouverait seulement
+    // qu'on a tout fermé, pas qu'on a fermé la BONNE chose. L'acheteur garde son
+    // accès, il le tient du lien qu'on lui a envoyé et non de son adresse.
+    const svc = serviceRoleClient()
+    const { data: row } = await svc.from('visits').select('manage_token').eq('id', visitMineId).single()
+    const { data: vue, error } = await buyerClient.rpc('get_visit_by_token', {
+      p_token: row!.manage_token as string,
+    })
+    expect(error).toBeNull()
+    expect((vue as { id?: string } | null)?.id).toBe(visitMineId)
   })
 })

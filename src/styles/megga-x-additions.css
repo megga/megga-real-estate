@@ -1,0 +1,857 @@
+/* ============================================================================
+ * MEGGA X — AJOUTS assumés (feuille écrite à la main).
+ * ----------------------------------------------------------------------------
+ * La règle n°1 du port est « zéro invention » : tout ce qui existe dans la
+ * vitrine est repris verbatim par megga-x.generated.css. Ce fichier porte le
+ * complément, et lui seul — ce que la vitrine N'A PAS et qu'un formulaire de
+ * conformité exige. Il est volontairement court : chaque règle ajoutée ici est
+ * une dette de design system, à confronter à la vitrine si celle-ci se dote un
+ * jour de l'équivalent.
+ *
+ * Aucune VALEUR n'est inventée non plus : tout est exprimé en variables de la
+ * vitrine (`--system-colors--*`, `--neutral-colors--*`, `--main-spacers--*`),
+ * jamais en littéral.
+ *
+ * Inventaire des ajouts, et pourquoi la vitrine ne les couvre pas :
+ *
+ * 1. Texte d'aide sous un champ — la vitrine n'a aucun formulaire assez long
+ *    pour en avoir eu besoin (son plus gros est le contact, 4 champs sans aide).
+ * 2. Focus clavier des choix — la vitrine ANNULE le halo du radio Webflow ;
+ *    repris verbatim, un choix devient inatteignable au clavier.
+ * 3. Rail d'étapes — la vitrine est un site de pages, aucun parcours en
+ *    plusieurs écrans, donc aucun stepper nulle part (vérifié, 21 pages).
+ * 4. Pied d'actions — ses formulaires poussent leur bouton en fin de flux ;
+ *    à 10 champs, Continuer doit rester à l'écran.
+ * 5. Cadre de document déposé — son wrapper d'image ne pose aucune hauteur,
+ *    donc la photo de l'agent dicte la forme de la tuile.
+ * 6. Modale — elle existe dans la vitrine, mais dans megga-auth.css, feuille
+ *    manuscrite que le générateur ne lit pas. Transcrite au pixel.
+ * 7. Coquille à hauteur d'écran — la vitrine est un site de pages, où c'est la
+ *    FENÊTRE qui défile ; un parcours de conformité doit garder ses repères
+ *    (rail d'étapes, pied d'actions) fixes et ne faire défiler que l'étape.
+ * 8. État d'erreur d'un champ — corollaire du point 1 : la vitrine n'a pas de
+ *    formulaire assez long pour signaler une pièce manquante sous un champ.
+ * 9. Squelette de chargement — la vitrine sert des pages rendues d'un bloc,
+ *    elle n'a aucun contenu qui arrive après coup, donc aucun placeholder.
+ * 10. Carte de choix sélectionnée — la vitrine n'a que des radios NUS, jamais
+ *     une carte entière qui porte l'état choisi.
+ * 11. Sélecteur de date — la vitrine n'a aucun champ date, donc aucun
+ *     calendrier ; celui de `<input type="date">` appartient au navigateur.
+ * 12. Adresse assistée — la vitrine n'a aucune liste de suggestions sous un
+ *     champ ; son seul formulaire est un contact à quatre champs.
+ * 13. Colonnes réellement égales — `1fr` vaut `minmax(auto, 1fr)` et cède
+ *     devant la largeur intrinsèque d'un `<input>`.
+ *
+ * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
+ * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
+ * du wizard — celui de la vitrine vit dans megga-lang.css, hors générateur).
+ * ========================================================================== */
+
+/* 1. Texte d'aide. Reprend la taille de `.paragraph-small` (14 px) que le
+      composant applique conjointement ; ici on ne pose QUE la couleur, celle
+      des textes secondaires de la vitrine. */
+.megga-x .mx-field__help {
+  color: var(--neutral-colors--600);
+}
+
+/* 8. État d'erreur d'un champ. `.error-message` de la vitrine est un PAVÉ rouge
+      plein, taillé pour un refus de formulaire entier ; sous un champ ou dans
+      une ligne de récapitulatif il écraserait la relecture. Ici, seule l'encre
+      change — même rouge (`--system-colors--red-400`, mesuré 6,64:1 sur le
+      canvas #030303 et 6,41:1 sur la carte, au-delà d'AA dans les deux cas).
+
+      ⚠ La classe était POSÉE sans exister (StepRecapitulatif : « pièce
+      manquante », « échec du chargement »), constat d'audit du 03.08.2026 :
+      les deux alertes se rendaient donc en blanc ordinaire, indiscernables de
+      la ligne voisine qui annonce un dépôt réussi. */
+.megga-x .mx-field__error {
+  color: var(--system-colors--red-400);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 5. Cadre de document déposé. Le wrapper d'image de la vitrine
+ *    (`.link-item-image-wrapper` + `.link-item-image`) ne pose AUCUNE hauteur :
+ *    c'est donc la photo de l'agent qui dicte la forme de la tuile. Mesuré à
+ *    1440 px sur l'étape « Pièce d'identité » : un scan 1712×1080 rend un aperçu
+ *    de 237×150, une photo de téléphone 1500×2000 rend 237×316 — deux tuiles de
+ *    hauteurs différentes, grille bancale, et un document trop petit pour être
+ *    vérifié.
+ *
+ *    L'étape « Récapitulatif » du MÊME wizard avait déjà buté là-dessus et s'en
+ *    sort avec `card logo-icon-card` (128 px fixes) + `_w-h-100`. Ce cadre-ci
+ *    reprend l'idée avec un ratio adapté à une pièce d'identité (ID-1, 85,6 ×
+ *    54 mm ≈ 1,585) et surtout `contain` et non `cover` : sur une pièce
+ *    justificative, rogner un bord peut cacher le défaut même qu'on demande à
+ *    l'agent de constater.
+ *
+ *    ⚠ `object-fit: contain` et `aspect-ratio` n'existent NULLE PART dans la
+ *    feuille transcrite (0 occurrence sur 10 571 lignes) : c'est bien un ajout,
+ *    pas une transcription.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-docframe {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1.585;
+  overflow: hidden;
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: var(--main-border-radius--br-small);
+  background-color: var(--neutral-colors--200);
+}
+
+.megga-x .mx-docframe img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Le document agrandi : entier, à sa taille naturelle, plafonné par la fenêtre.
+   `contain` ici aussi — une pièce justificative ne se rogne jamais. */
+.megga-x .mx-docfull {
+  display: block;
+  width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+  border-radius: var(--main-border-radius--br-small);
+  background-color: var(--neutral-colors--200);
+}
+
+/* Le cadre est cliquable pour agrandir : il l'annonce au survol et garde un
+   anneau de focus au clavier (c'est un vrai <button>). */
+.megga-x button.mx-docframe {
+  padding: 0;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+
+.megga-x button.mx-docframe:hover {
+  border-color: var(--neutral-colors--600);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 6. Modale. La vitrine EN A UNE, mais écrite à la main dans
+ *    sites/megga-vitrine/css/megga-auth.css — feuille que le générateur ne lit
+ *    pas (il ne lit que css/styles.css), et dont le comportement vit en DOM
+ *    impératif dans js/megga-auth.js. Valeurs reprises au pixel depuis
+ *    `.megga-modal*` ; seule la mécanique est réécrite en React (MxModal.tsx).
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--main-spacers--small);
+}
+
+.megga-x .mx-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 3, 3, .72);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: mxModalFade .2s ease both;
+}
+
+.megga-x .mx-modal__dialog {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: mxModalRise .28s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+/* Un document se lit en grand : la variante large, pour l'agrandissement. */
+.megga-x .mx-modal__dialog--wide {
+  width: min(920px, 100%);
+}
+
+.megga-x .mx-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+}
+
+@keyframes mxModalFade {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+@keyframes mxModalRise {
+  from { opacity: 0; transform: translateY(10px) }
+  to { opacity: 1; transform: none }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .megga-x .mx-modal__backdrop,
+  .megga-x .mx-modal__dialog {
+    animation: none;
+  }
+}
+
+/* Plomberie de gabarit : l'enfant qui absorbe la hauteur restante d'un
+   `.page-wrapper.full-height-page`. Cette classe vitrine pose
+   `justify-content: space-between` : à deux enfants (en-tête, section), elle
+   cloue la section au BAS de l'écran et ouvre un vide sous le logo dès que le
+   contenu est court. La section qui grandit ne laisse rien à répartir.
+   Ce n'est pas une invention : la vitrine règle le même défaut par
+   `.page-wrapper.full-height-page > .section { flex-grow: 1 }` dans
+   megga-auth.css, hors générateur. Ici en classe explicite plutôt qu'en
+   sélecteur structurel, le wizard n'ayant pas la même arborescence. */
+.megga-x .mx-grow {
+  flex: 1;
+}
+
+/* Sélecteur de langue du wizard d'onboarding (WizardLanguagePicker). La vitrine
+   a bien un sélecteur de langue, mais il vit dans megga-lang.css, feuille
+   manuscrite HORS du périmètre du générateur — rien à transcrire. Un <select>
+   nu dans le header, même encre discrète que les actions voisines, qui reprend
+   la couleur du texte au survol comme elles. */
+.megga-x .mx-langpicker {
+  padding: 0;
+  border: 0;
+  background: var(--transparent);
+  color: var(--neutral-colors--600);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color .2s;
+}
+
+.megga-x .mx-langpicker:hover {
+  color: var(--neutral-colors--1000);
+}
+
+/* Les <option> héritent du fond du menu système ; sur macOS/Windows le menu est
+   clair, une encre claire y serait invisible. L'encre du canvas de la vitrine
+   convient aux deux. */
+.megga-x .mx-langpicker option {
+  color: var(--neutral-colors--100);
+}
+
+/* Bouton portant la peau d'un lien (MxLink sans href). La vitrine n'a que des
+   liens qui naviguent ; une action qui n'emmène nulle part doit rester un
+   <button> pour les lecteurs d'écran, sans en porter l'apparence native. */
+.megga-x .mx-linkbutton {
+  padding: 0;
+  border: 0;
+  background: var(--transparent);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 2. Focus clavier des choix en carte. La vitrine ANNULE elle-même le halo de
+ *    focus du radio Webflow (`.radio-button.w--redirected-focus{box-shadow:none}`,
+ *    megga-x.generated.css) : reprise verbatim, elle importe donc une option
+ *    inatteignable au clavier. Acceptable sur un site de pages qui n'a qu'un
+ *    formulaire de contact ; pas sur une déclaration d'identité légale.
+ *
+ *    Un `outline` et non un `box-shadow` : la carte porteuse est en
+ *    `overflow: hidden`, qui rognerait une ombre posée à l'intérieur — l'outline
+ *    d'un élément n'est jamais rogné par son propre overflow.
+ *
+ *    `:focus-visible` et non `:focus` : au clic souris l'anneau ne sert à rien et
+ *    la pastille cochée suffit.
+ * ───────────────────────────────────────────────────────────────────────── */
+/*    Deux restrictions, chacune corrigeant un encadrement de trop constaté au
+      clavier :
+      - `input[type="radio"]` et non `input` — une carte de FORMULAIRE contient
+        elle aussi des champs, et un anneau dès qu'on tape dans l'un d'eux
+        encadrerait tout le bloc au lieu du champ ;
+      - `:not(.sign-in-card)` — les cartes sont IMBRIQUÉES (la carte de
+        formulaire `card sign-in-card` contient les cartes d'option `card`), et
+        `:has()` remonte tous les ancêtres : sans cette exclusion, choisir une
+        option encadrait aussi le formulaire entier. */
+.megga-x .card:not(.sign-in-card):has(input[type="radio"]:focus-visible),
+.megga-x .card:not(.sign-in-card):has(input[type="checkbox"]:focus-visible) {
+  outline: 2px solid var(--primary-colors--100);
+  outline-offset: 2px;
+}
+
+/* Radio ou case hors carte : on rend l'anneau que la vitrine avait retiré. */
+.megga-x .radio-button:has(~ input:focus-visible),
+.megga-x .checkbox:has(~ input:focus-visible) {
+  outline: 2px solid var(--primary-colors--100);
+  outline-offset: 2px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 10. Carte de choix sélectionnée. La vitrine n'a que des radios NUS — une
+ *     pastille et un libellé sur une ligne — jamais une carte entière qui porte
+ *     l'état choisi. Or « Pouvoir de signature » présente deux options en cartes
+ *     de ~300 px : la pastille de 12 px y était le seul indice de sélection, et
+ *     à l'échelle de l'écran on ne voyait pas laquelle des deux était retenue.
+ *
+ *     Un LISERÉ, pas un fond plein : le remplissage est la grammaire des
+ *     boutons d'action, et une option choisie n'est pas une action. La couleur
+ *     est celle que le parcours réserve déjà à l'état courant (accent du rail
+ *     d'étapes, anneau de focus), donc rien de nouveau ne s'invente ici.
+ *
+ *     ⚠ La largeur ne change PAS (1 px sélectionné comme au repos, seule la
+ *     couleur bouge) : passer à 2 px décalerait le contenu de la carte d'un
+ *     pixel au clic, et l'œil lit ce saut comme un défaut, pas comme un choix.
+ *     C'est aussi pourquoi l'anneau de FOCUS voisin est un `outline` et non un
+ *     `border` : les deux peuvent alors coexister sur la même carte sans se
+ *     disputer la géométrie.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-choice-card {
+  transition: border-color .2s, box-shadow .2s;
+}
+
+/* Le liseré : la couleur de la bordure change, sa LARGEUR non — le second
+   filet est un `box-shadow` INSET, qui se peint à l'intérieur sans rien pousser
+   (l'`overflow: hidden` de la carte ne rogne que ses enfants, pas son propre
+   fond). D'où un trait qui se lit comme 2 px sans que le contenu bouge d'un
+   pixel au clic. */
+.megga-x .mx-choice-card--selected {
+  border-color: var(--primary-colors--100);
+  box-shadow: inset 0 0 0 1px var(--primary-colors--100);
+}
+
+/* Composés allemands. « Kollektivzeichnungsberechtigung » fait 31 caractères,
+   soit 241 px pour une boîte de contenu de 208 : sans point de coupure, le
+   navigateur ne peut rien faire et l'`overflow: hidden` de la carte tranchait
+   le mot en plein milieu (constat du 3 août 2026, capture du client).
+
+   `hyphens: auto` d'ABORD : il coupe où la langue le permet et pose un trait
+   d'union, seule césure lisible. Il n'agit que si `<html lang>` annonce la
+   bonne langue — c'est pourquoi `syncDocumentLang()` (src/i18n/index.ts) a été
+   posé dans le même geste ; sans lui la règle serait décorative.
+   `overflow-wrap: break-word` ENSUITE, en filet : pour une langue sans
+   dictionnaire de césure, mieux vaut une coupure sèche qu'un mot tranché par
+   le bord de la carte. */
+.megga-x .mx-choice-card .w-form-label {
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 11. Sélecteur de date. La vitrine n'a aucun champ date — son seul formulaire
+ *     est un contact à quatre champs — donc rien à transcrire, et le calendrier
+ *     de `<input type="date">` n'est pas stylable : il vit dans le shadow DOM
+ *     de l'agent utilisateur, avec la DA du navigateur (Roboto et bleu Material
+ *     sur Chrome, au milieu d'un parcours noir en Inter Tight).
+ *
+ *     Le champ REPREND `.input` de la vitrine — même hauteur, même rayon de
+ *     pilule, mêmes états — et n'ajoute que ce qu'un bouton doit corriger d'un
+ *     input : l'alignement du texte et la place du glyphe. Le calendrier, lui,
+ *     est neuf de bout en bout, sur les seuls jetons de la vitrine.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-datepicker__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* `.input` est taillé pour un <input> : sur un <button> il faut rendre le texte
+   à gauche (un bouton centre par défaut) et écarter le glyphe du libellé. */
+.megga-x .mx-datefield {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--main-spacers--3x-extra-small);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Pas encore de date : même encre que le choix vide d'un <select> de la vitrine,
+   pour que les deux champs d'une même rangée se lisent au même niveau. */
+.megga-x .mx-datefield__placeholder {
+  color: var(--neutral-colors--500);
+}
+
+/* Vider : posé DANS la pilule, à gauche du glyphe calendrier, sans jamais
+   changer la géométrie du champ (position absolue). */
+.megga-x .mx-datefield__clear {
+  position: absolute;
+  right: 52px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 100%;
+  background: var(--transparent);
+  color: var(--neutral-colors--600);
+  cursor: pointer;
+  transition: color .2s, background-color .2s;
+}
+
+.megga-x .mx-datefield__clear:hover {
+  background-color: var(--neutral-colors--400);
+  color: var(--neutral-colors--1000);
+}
+
+/* Le calendrier est DÉPLIÉ dans le flux, jamais flottant : la carte qui porte
+   les champs a `backdrop-filter`, donc elle devient le bloc conteneur de tout
+   `position: fixed` — et son `overflow: hidden` le rognerait. Mesuré, voir
+   l'en-tête de MxDatePicker.tsx. */
+.megga-x .mx-datepicker__panel {
+  margin-top: var(--main-spacers--4x-extra-small);
+  padding: var(--main-spacers--3x-extra-small);
+  border-radius: var(--main-border-radius--br-medium);
+}
+
+.megga-x .mx-datepicker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--main-spacers--5x-extra-small);
+}
+
+.megga-x .mx-datepicker__nav {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: 100%;
+  background: var(--transparent);
+  color: var(--neutral-colors--1000);
+  cursor: pointer;
+  transition: border-color .2s, background-color .2s;
+}
+
+.megga-x .mx-datepicker__nav:hover {
+  border-color: var(--neutral-colors--600);
+  background-color: var(--neutral-colors--400);
+}
+
+.megga-x .mx-datepicker__selects {
+  display: flex;
+  gap: var(--main-spacers--5x-extra-small);
+}
+
+/* Mois et année en <select> natifs : c'est ce qui rend une date de NAISSANCE
+   atteignable. Sans eux, remonter à 1985 depuis le mois courant demanderait
+   ~490 clics sur la flèche — le calendrier serait joli et inutilisable. */
+.megga-x .mx-datepicker__select {
+  padding: 4px 6px;
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: var(--main-border-radius--br-small);
+  background: var(--transparent);
+  color: var(--neutral-colors--1000);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Les <option> héritent du fond du menu SYSTÈME, clair sur macOS et Windows :
+   une encre claire y serait invisible. Même correctif que `.mx-langpicker`. */
+.megga-x .mx-datepicker__select option {
+  color: var(--neutral-colors--100);
+}
+
+.megga-x .mx-datepicker__weekdays,
+.megga-x .mx-datepicker__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.megga-x .mx-datepicker__weekdays {
+  margin-top: var(--main-spacers--3x-extra-small);
+  color: var(--neutral-colors--600);
+  font-size: 12px;
+  text-align: center;
+  text-transform: lowercase;
+}
+
+.megga-x .mx-datepicker__day {
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--transparent);
+  border-radius: 100%;
+  background: var(--transparent);
+  color: var(--neutral-colors--1000);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color .2s, background-color .2s;
+}
+
+.megga-x .mx-datepicker__day:hover:not(:disabled) {
+  background-color: var(--neutral-colors--400);
+}
+
+.megga-x .mx-datepicker__day:disabled {
+  color: var(--neutral-colors--500);
+  cursor: not-allowed;
+}
+
+/* Jour retenu : le même liseré d'accent que les cartes de choix (point 10), et
+   pour la même raison — l'état choisi se ceint, il ne se remplit pas. */
+.megga-x .mx-datepicker__day--selected {
+  border-color: var(--primary-colors--100);
+  color: var(--neutral-colors--1000);
+  font-weight: 600;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 12. Champ à suggestions. La vitrine n'affiche jamais de liste sous un champ —
+ *     son seul formulaire est un contact à quatre champs. Composée ici avec son
+ *     vocabulaire : la carte pour le panneau, ses neutres, son accent.
+ *
+ *     `mx-suggest` sert DEUX champs de l'étape agence, dont les sources n'ont
+ *     rien à voir : l'adresse (geo.admin.ch, ~300 ms, liste à la frappe) et la
+ *     raison sociale (registre du commerce par LINDAS, 1,3 à 5,2 s, liste sur
+ *     geste — cf. l'en-tête de useZefixCompany.ts). Seule la LISTE est commune ;
+ *     ce qui la déclenche appartient à chaque composant.
+ *
+ *     ⚠ `position: absolute` et non `fixed` : la carte porteuse a
+ *     `backdrop-filter`, ce qui en ferait le bloc conteneur d'un `fixed` — donc
+ *     un panneau ancré à la carte et rogné par son `overflow: hidden`. En
+ *     absolu, il s'ancre sur le champ, et c'est `mx-hasoverlay` (plus bas) qui
+ *     lève le rognage.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-suggest {
+  position: relative;
+}
+
+/* Champ + loupe : la loupe est POSÉE DANS la pilule, à droite, comme le glyphe du
+   calendrier. Une tuile « Chercher » à côté du champ pesait visuellement autant
+   que lui pour une action secondaire, sur une rangée qui en porte déjà deux.
+   Le conteneur est le repère de position, le champ réserve la place. */
+.megga-x .mx-suggest__row {
+  position: relative;
+}
+
+/* De quoi que le texte saisi ne passe jamais sous la loupe. `.input` pose 24 px
+   à droite ; 56 px laissent le bouton (36) et son air. */
+.megga-x .mx-suggest__input {
+  padding-right: 56px;
+}
+
+/* En absolu : le bouton ne participe pas au flux, donc il ne peut pas élargir la
+   colonne ni décaler le champ — ce qui compte sur une rangée à deux champs. */
+.megga-x .mx-suggest__action {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 100%;
+  background: var(--transparent);
+  color: var(--neutral-colors--600);
+  cursor: pointer;
+  transition: color .2s, background-color .2s;
+}
+
+.megga-x .mx-suggest__action:hover:not(:disabled) {
+  background-color: var(--neutral-colors--400);
+  color: var(--neutral-colors--1000);
+}
+
+/* Désactivée sous le seuil de caractères, et pendant l'attente : dans les deux
+   cas rien ne se passerait au clic, l'encre le dit. Le curseur reste par défaut
+   plutôt que `not-allowed` — la loupe se rallume dès qu'on tape, ce n'est pas un
+   refus mais une condition. */
+.megga-x .mx-suggest__action:disabled {
+  color: var(--neutral-colors--500);
+  cursor: default;
+}
+
+.megga-x .mx-suggest__list {
+  position: absolute;
+  top: calc(100% + var(--main-spacers--5x-extra-small));
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 264px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--main-border-radius--br-medium);
+  /* Le panneau flotte AU-DESSUS d'autres champs : il lui faut un fond opaque.
+     `.card` n'apporte que sa translucidité, qui laisserait lire le NPA à
+     travers la liste. */
+  background-color: var(--neutral-colors--200);
+}
+
+.megga-x .mx-suggest__option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--main-spacers--4x-extra-small) var(--main-spacers--3x-extra-small);
+  border: 0;
+  border-bottom: 1px solid var(--neutral-colors--400);
+  background: var(--transparent);
+  color: var(--neutral-colors--1000);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.megga-x .mx-suggest__option:last-child {
+  border-bottom: 0;
+}
+
+/* Une seule ligne mise en avant à la fois, au survol comme aux flèches : le
+   composant fait converger les deux sur `--active`, la CSS n'a donc pas de
+   `:hover` propre qui pourrait en allumer une seconde. */
+.megga-x .mx-suggest__option--active {
+  background-color: var(--neutral-colors--400);
+}
+
+.megga-x .mx-suggest__empty {
+  margin: 0;
+  padding: var(--main-spacers--3x-extra-small);
+  text-align: center;
+}
+
+/* Carte qui héberge un panneau flottant : son `overflow: hidden` (hérité de
+   `.card`, qui clippe ses enfants au rayon) couperait la liste dès qu'elle
+   dépasse le bas. Le contenu est de toute façon en retrait de 32 px de padding,
+   rien d'autre n'a besoin d'être rogné ici. */
+.megga-x .mx-hasoverlay {
+  overflow: visible;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 13. Colonnes réellement égales. `grid-template-columns: 1fr 1fr 1fr` ne donne
+ *     PAS trois parts égales : `1fr` vaut `minmax(auto, 1fr)`, et l'`auto`
+ *     minimum d'un `<input>` est sa largeur intrinsèque (~190 px, la taille par
+ *     défaut de 20 caractères) plus les 48 px de padding de la pilule. Mesuré
+ *     le 3 août 2026 sur la rangée NPA / Ville / Canton : les colonnes se
+ *     résolvaient à 238,5 / 238,5 / 58 px, et le `<select>` du canton tombait à
+ *     8 px utiles — réduit à son chevron, inutilisable.
+ *
+ *     `min-width: 0` sur les ENFANTS, et non un `minmax(0, 1fr)` réécrit sur la
+ *     grille : ça ramène l'`auto` minimum à zéro sans redéclarer le gabarit de
+ *     la vitrine, donc sans avoir à en recopier gouttières et points de rupture.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-equal-columns > * {
+  min-width: 0;
+}
+
+/* Pastille du radio masquée (demande du 3 août 2026) : sur une carte, elle
+   faisait doublon avec le liseré et alourdissait une option qui tient en deux
+   lignes. C'est un masquage VISUEL seulement — `<input type="radio">` reste
+   dans le DOM, coché, groupé et navigable aux flèches : les lecteurs d'écran
+   annoncent toujours « 1 sur 2 », et l'anneau de focus du point 2 se pose sur
+   la carte, pas sur la pastille disparue.
+   `display: none` sur le seul `.radio-button` : il flotte à gauche, donc le
+   retirer ramène simplement le titre au bord du padding de la carte —
+   `.radio-button-field` pose déjà `padding-left: 0`, aucune gouttière ne
+   subsiste. */
+.megga-x .mx-choice-card .radio-button {
+  display: none;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 3. Rail d'étapes. La vitrine est un site de pages, elle n'a aucun parcours
+ *    en plusieurs écrans : ni stepper, ni barre de progression, nulle part
+ *    (vérifié sur ses 21 pages). Composé ici avec son vocabulaire : Inter
+ *    Tight, ses neutres, son indigo pour l'étape courante.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--main-spacers--small);
+  overflow-x: auto;
+}
+
+/* Étape pas encore atteinte. `--neutral-colors--600` et non `--500` : ce dernier
+   (#686868) tombe à 3,70:1 sur le canvas #030303, sous le 4,5:1 exigé à 16 px —
+   or ces libellés ne sont pas de la décoration désactivée, ils annoncent au
+   dirigeant ce que le parcours va lui demander. Même défaut, même correctif que
+   les libellés de champ du 02.08.2026. */
+.megga-x .mx-stepper__step {
+  padding: 0 0 var(--main-spacers--5x-extra-small);
+  border: 0;
+  border-bottom: 2px solid var(--transparent);
+  background: var(--transparent);
+  color: var(--neutral-colors--600);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 400;
+  white-space: nowrap;
+  cursor: default;
+  transition: color .2s, border-color .2s;
+}
+
+/* Étape déjà franchie : cliquable pour y revenir. */
+.megga-x .mx-stepper__step--done {
+  border-bottom-color: var(--neutral-colors--500);
+  color: var(--neutral-colors--700);
+  cursor: pointer;
+}
+
+.megga-x .mx-stepper__step--done:hover {
+  color: var(--neutral-colors--1000);
+  border-bottom-color: var(--neutral-colors--1000);
+}
+
+/* Étape courante : le seul endroit du rail qui porte l'accent. */
+.megga-x .mx-stepper__step--current {
+  border-bottom-color: var(--primary-colors--100);
+  color: var(--neutral-colors--1000);
+  font-weight: 500;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 4. Pied d'actions du parcours. La vitrine pousse ses boutons en fin de flux ;
+ *    un wizard de 10 champs a besoin que Continuer reste à l'écran. Barre
+ *    PLEINE et filet haut, jamais un dégradé de fondu : le fondu de l'ancienne
+ *    coquille Sugar rendait illisible la dernière ligne des étapes longues
+ *    (constat d'audit du 02.08.2026).
+ *
+ *    ⚠ N'est plus COLLANT (`position: sticky`), et c'est le corollaire du
+ *    point 7 : un pied collant flotte AU-DESSUS du contenu qui défile sous
+ *    lui, avec un fond opaque — mesuré le 03.08.2026, il masquait les 98
+ *    derniers pixels du formulaire, soit très exactement le défaut que le
+ *    fondu Sugar avait produit avant lui, sous une autre forme. Depuis que la
+ *    coquille tient dans l'écran, ce pied est la dernière RANGÉE d'une colonne
+ *    fixe : il ne recouvre plus rien, la zone qui défile s'arrête à son filet.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-actionbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--main-spacers--2x-extra-small);
+  padding: var(--main-spacers--small) 0;
+  border-top: 1px solid var(--neutral-colors--400);
+  background-color: var(--neutral-colors--100);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 7. Coquille à hauteur d'écran. La vitrine est un site de PAGES : ses sections
+ *    s'empilent et c'est la fenêtre qui défile — `full-height-page` n'y pose
+ *    donc qu'un plancher (`min-height: 100vh`), jamais un plafond. Repris tel
+ *    quel, le wizard en héritait : mesuré le 03.08.2026 sur son étape la plus
+ *    COURTE (signataire, 5 champs), la page dépassait de 402 px à 1280×720 et
+ *    de 222 px à 1440×900 — logo, rail d'étapes et pied d'actions défilaient
+ *    hors de vue, et rien ne ramenait en haut au changement d'étape.
+ *
+ *    Un parcours de conformité n'est pas une page qu'on parcourt : ses repères
+ *    — où j'en suis, comment je continue, comment je sors — doivent rester à
+ *    l'écran. La coquille se cloue donc à la fenêtre, et un SEUL élément
+ *    défile : le contenu de l'étape.
+ *
+ *    `100dvh` déclaré après `100vh` : là où la barre d'URL d'un navigateur
+ *    mobile se rétracte, `vh` vaut plus que la surface réellement visible et
+ *    le pied d'actions passerait sous le bord. Le second déclarant gagne là où
+ *    il est compris, le premier reste le repli.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-appshell {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* Les niveaux traversés entre la coquille et la zone qui défile. `min-height: 0`
+   n'est pas décoratif : un enfant flex vaut `min-height: auto` par défaut et
+   REFUSE de descendre sous la hauteur de son contenu — sans lui, c'est la
+   coquille qui déborderait au lieu que `.mx-scrollarea` défile, et le correctif
+   ne ferait rien du tout. */
+.megga-x .mx-appshell .mx-shellbody,
+.megga-x .mx-appshell .mx-shellbody > .container-default {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Le seul élément qui défile de tout le parcours. `overscroll-behavior` évite
+   qu'arrivé en bout de liste, le geste reprenne sur la page derrière. */
+.megga-x .mx-scrollarea {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 9. Squelette de chargement. La vitrine sert des pages rendues d'un bloc : rien
+ *    n'y arrive après coup, elle n'a donc aucun placeholder à transcrire. Le CRM
+ *    en a un (`<Shimmer>`, .megga-shimmer dans globals.css) mais sa variante
+ *    sombre est gardée par `[data-theme="dark"]` — la préférence d'apparence de
+ *    l'agent, que ce parcours ignore délibérément (cf. en-tête d'IdentityShell).
+ *    Le réutiliser tel quel poserait un balayage blanc à 45 % sur le canvas noir
+ *    dès qu'un agent règle son CRM en clair. D'où ces règles, sur les neutres de
+ *    la vitrine et rien d'autre.
+ *
+ *    Sert pendant le téléchargement d'une langue (13 imports dynamiques,
+ *    ~140 Ko) : il remplace le contenu de l'étape, jamais l'écran entier — le
+ *    voile plein écran qu'il remplace (LanguageChangeOverlay) tenait ~1 s pour
+ *    60 ms de travail réel, et masquait le défaut au lieu de le corriger.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-skeleton {
+  border-radius: var(--main-border-radius--br-small);
+  /* Le même gris translucide que le squelette du CRM : il fonce ou éclaircit
+     selon la surface qui le porte, donc il reste visible sur une carte comme
+     sur le canvas, sans dépendre d'un token opaque. */
+  background-color: rgba(127, 127, 127, .14);
+  background-image: linear-gradient(90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, .07) 50%,
+    rgba(255, 255, 255, 0) 100%);
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  background-position: -200% 0;
+  animation: mxSkeletonSweep 1.4s linear infinite;
+}
+
+/* Les quatre gabarits reprennent les hauteurs réelles de ce qu'ils remplacent —
+   titre `.display-6`, ligne de `.paragraph-large`, libellé de MxField, champ
+   `.input` (62 px, mesuré) — pour que le bloc garde sa hauteur et que la zone de
+   défilement ne saute pas au retour du texte. */
+.megga-x .mx-skeleton--title { width: 68%; height: 38px; }
+.megga-x .mx-skeleton--line { width: 100%; height: 18px; }
+.megga-x .mx-skeleton--short { width: 62%; }
+.megga-x .mx-skeleton--label { width: 38%; height: 18px; }
+.megga-x .mx-skeleton--field { width: 100%; height: 62px; border-radius: 200px; }
+
+@keyframes mxSkeletonSweep {
+  0% { background-position: -200% 0 }
+  100% { background-position: 200% 0 }
+}
+
+/* Un squelette qui clignote est pire que pas de squelette : sans mouvement, il
+   reste un bloc neutre qui tient la place, ce qui est déjà tout son office. */
+@media (prefers-reduced-motion: reduce) {
+  .megga-x .mx-skeleton {
+    background-image: none;
+    animation: none;
+  }
+}
+
+/* Le libellé que seul un lecteur d'écran lit — le squelette lui-même est
+   `aria-hidden`, sans quoi il annoncerait une douzaine de barres grises. */
+.megga-x .mx-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Écrans courts (arrivée, attente) : leur carte se centre dans la hauteur
+   restante plutôt que d'être poussée par des paddings de section fixes.
+   Des marges `auto` sur l'enfant, JAMAIS `justify-content: center` sur le
+   conteneur : centrer un conteneur qui défile rend son premier débord
+   inatteignable (le contenu passe au-dessus du bord haut, sans barre pour y
+   revenir). Les marges automatiques, elles, cèdent dès qu'il faut défiler. */
+.megga-x .mx-scrollarea--center > * {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+

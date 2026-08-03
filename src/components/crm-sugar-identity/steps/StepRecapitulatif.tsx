@@ -1,13 +1,21 @@
 /**
- * Wizard « Identité légale » (KYB) — étape 5, le récapitulatif et la soumission.
+ * Wizard « Identité légale » (KYB) — étape 4, le récapitulatif et la soumission.
  *
- * Relit tout ce qui a été saisi aux quatre étapes précédentes, section par section,
- * avec un lien « Modifier » vers chacune (onEditStep délègue à goToStep,
+ * Peau MEGGA X depuis la refonte visuelle de l'onboarding : l'étape ne compose plus
+ * qu'avec des classes de la vitrine (`card`, `pd---content-inside-card`, `display-*`,
+ * `flex-horizontal space-between`, `grid-1-column gap-row-*`) et les composants
+ * `@/components/megga-x`. Elle suppose donc d'être rendue à l'intérieur du conteneur
+ * `<MeggaX>` de la coquille — hors de ce scope, aucune de ces classes ne s'applique.
+ * Aucune valeur (couleur, taille, rayon, ombre) n'est posée en style inline : ce qui
+ * n'existe pas dans la vitrine n'est pas inventé ici, il est signalé au handoff.
+ *
+ * Relit tout ce qui a été saisi aux trois étapes précédentes, section par section,
+ * avec un bouton « Modifier » vers chacune (onEditStep délègue à goToStep,
  * IdentityShell.tsx). Ce qui est affiché ici DOIT correspondre à ce qui part : les
- * valeurs viennent des MÊMES brouillons (signataire, agencyDraft, beneficiaires) que
- * ceux que persistCurrentStep a déjà écrits en base à chaque changement d'étape, jamais
+ * valeurs viennent des MÊMES brouillons (signataire, agencyDraft) que ceux que
+ * persistCurrentStep a déjà écrits en base à chaque changement d'étape, jamais
  * un résumé recalculé séparément. Purement contrôlée par IdentityShell, comme les
- * quatre étapes précédentes : aucun accès Supabase direct ici, aucun état propre — y
+ * trois étapes précédentes : aucun accès Supabase direct ici, aucun état propre — y
  * compris la case d'attestation (attestationChecked/onAttestationChange), qui gate le
  * bouton Soumettre du pied de page (canSubmitIdentity, IdentityShell.tsx) tout en
  * vivant ici comme n'importe quel autre contrôle contrôlé.
@@ -16,11 +24,6 @@
  * partagé d'IdentityShell (comme le bouton Continuer des quatre étapes précédentes),
  * avec l'indicateur de sauvegarde et la bannière d'erreur déjà en place — cf. son
  * en-tête. Cette étape ne fait donc que relire et attester, jamais soumettre elle-même.
- *
- * Bénéficiaires effectifs : section ABSENTE (pas seulement vide) quand
- * `skipBeneficiaires` est vrai — même règle d'affichage que le stepper du header
- * (visibleIdentitySteps, IdentityShell.tsx) : une étape sautée ne doit jamais
- * réapparaître ici sous une forme quelconque, y compris un message « non applicable ».
  *
  * Pièce d'identité : ne réaffiche pas un formulaire de dépôt (le fichier est déjà
  * durablement dans Storage depuis l'étape précédente, cf. l'en-tête de
@@ -32,28 +35,36 @@
  */
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SugarV2 } from '../tokens'
-import { SgIcon } from '@/components/crm-sugar-wizard/primitives'
+import { cn } from '@/lib/utils'
+import { MxButton, MxCheckbox } from '@/components/megga-x'
 import { COUNTRIES } from '@/lib/countries'
 import { useLegalForms } from '@/hooks/useLegalForms'
-import type { IdentityDocumentPreview } from '@/hooks/useAgencyIdentity'
-import type { SignataireDraft, AgencyDraft, BeneficiaireDraft } from '../IdentityShell'
+import {
+  identityDocumentSidesFor, isIdentityVerificationSufficient,
+  type IdentityDocumentPreview, type IdentityDocumentType, type IdentityVerificationStatus,
+} from '@/hooks/useAgencyIdentity'
+import type { KybIdReadRecord } from '@/types/kybIdRead'
+import { IdentityReadNotice } from './StepPieceIdentite'
+import type { SignataireDraft, AgencyDraft } from '../IdentityShell'
 
 interface StepRecapitulatifProps {
   signataire: SignataireDraft
   agencyDraft: AgencyDraft
-  /** true si l'étape bénéficiaires a été sautée (raison individuelle) — la section correspondante n'est alors pas rendue du tout. */
-  skipBeneficiaires: boolean
-  beneficiaires: BeneficiaireDraft[]
+  /** Nature déclarée à l'étape 3 — décide aussi quelles faces sont relues ici. */
+  documentType: IdentityDocumentType | null
+  /** Verdict de la lecture assistée, relu tel quel depuis l'étape 3 — même phrase aux deux endroits. */
+  identityRead: KybIdReadRecord | null
+  /** Statut de la vérification chez le prestataire — décide si l'on relit des FICHIERS ou un STATUT. */
+  verificationStatus: IdentityVerificationStatus | null
   recto: IdentityDocumentPreview | null
   verso: IdentityDocumentPreview | null
-  /** true tant que useIdentityDocuments() n'a pas encore résolu (même signal qu'à l'étape 4). */
+  /** true tant que useIdentityDocuments() n'a pas encore résolu (même signal qu'à l'étape 3). */
   identityDocumentsLoading: boolean
   /** true si useIdentityDocuments() a échoué — état d'erreur dédié, jamais une absence de document affichée à tort. */
   identityDocumentsError: boolean
   attestationChecked: boolean
   onAttestationChange: (checked: boolean) => void
-  /** Ramène au step index donné (0 signataire, 1 agence, 2 bénéficiaires, 3 pièce d'identité) — délègue à goToStep, IdentityShell.tsx. */
+  /** Ramène au step index donné (0 signataire, 1 agence, 2 pièce d'identité) — délègue à goToStep, IdentityShell.tsx. */
   onEditStep: (step: number) => void
 }
 
@@ -63,190 +74,198 @@ function countryName(code: string | null): string {
   return COUNTRIES.find((c) => c.code === code)?.name ?? code
 }
 
-/** Étape 5 du wizard identité : relecture complète, attestation, préparation de la soumission. */
+/**
+ * Date de naissance au format suisse (16.03.1985). Le brouillon la porte en ISO
+ * — c'est ce que rend un `<input type="date">`, et ce que la colonne attend —
+ * mais cette étape est la RELECTURE : c'est là qu'un dirigeant doit reconnaître
+ * sa propre date d'un coup d'œil avant d'attester qu'elle est exacte, pas
+ * déchiffrer un format machine. Règle §6 du CLAUDE.md.
+ *
+ * ⚠ Réécriture de CHAÎNE, jamais `formatDate()` — mesuré le 03.08.2026 :
+ * `formatDate('1980-05-15')` rend « 14.05.1980 » dès que le fuseau de la session
+ * est à l'ouest de UTC. `new Date('1980-05-15')` parse en UTC minuit (spec ES,
+ * pour la forme date-seule) puis `format()` réaffiche en heure LOCALE, et la
+ * veille sort. Sans conséquence à Genève (UTC+1/+2), fausse pour un dirigeant
+ * connecté depuis les Amériques — et une date de naissance est précisément ce
+ * que la case d'attestation, deux blocs plus bas, lui demande de certifier exact.
+ * Une date-seule n'a pas d'instant : la traiter comme tel est l'erreur.
+ *
+ * Toute forme inattendue est rendue telle quelle plutôt que réécrite de travers :
+ * mieux vaut une date visiblement brute qu'une date plausible et fausse.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-recap-birthdate.spec.ts), même motif que isSignataireStepComplete.
+export function birthDate(iso: string | null): string {
+  if (!iso) return ''
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (!m) return iso
+  return `${m[3]}.${m[2]}.${m[1]}`
+}
+
+/** Étape 4 du wizard identité : relecture complète, attestation, préparation de la soumission. */
 export function StepRecapitulatif({
-  signataire, agencyDraft, skipBeneficiaires, beneficiaires,
+  signataire, agencyDraft, documentType, identityRead, verificationStatus,
   recto, verso, identityDocumentsLoading, identityDocumentsError,
   attestationChecked, onAttestationChange, onEditStep,
 }: StepRecapitulatifProps) {
   const { t } = useTranslation('onboarding')
   // Même requête (clé ['legal-forms', code]) que StepAgence pour ce même pays — déjà
-  // chargée par l'étape 2, donc résolue en pratique dès qu'on atteint le récapitulatif.
+  // chargée par l'étape agence, donc résolue en pratique dès qu'on atteint le récapitulatif.
   const { options: legalFormOptions } = useLegalForms(agencyDraft.country)
   const legalFormLabel = legalFormOptions.find((o) => o.id === agencyDraft.legalFormId)?.label ?? agencyDraft.legalFormId
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', animation: 'sgPage .45s cubic-bezier(.2,.8,.2,1) both' }}>
-      <div style={{ marginBottom: 32 }}>
-        <div style={{
-          fontSize: 12, fontWeight: 600, color: SugarV2.muted,
-          letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>{t('wizard.recap.eyebrow')}</div>
-        <h1 style={{
-          margin: '0 0 14px', fontSize: 32, fontWeight: 700,
-          color: SugarV2.ink, letterSpacing: -0.6, lineHeight: 1.15,
-        }}>{t('wizard.recap.title')}</h1>
-        <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          {t('wizard.recap.subtitle')}
-        </p>
+    <div className="inner-container _634px center">
+      <h1 className="display-6 mg-top-4x-extra-small">{t('wizard.recap.title')}</h1>
+      <div className="mg-top-4x-extra-small">
+        <p className="paragraph-large text-paragraph">{t('wizard.recap.subtitle')}</p>
       </div>
 
-      <RecapSection title={t('wizard.steps.signataire')} onEdit={() => onEditStep(0)}>
-        <RecapRow label={t('wizard.signataire.fields.firstName')} value={signataire.firstName} />
-        <RecapRow label={t('wizard.signataire.fields.lastName')} value={signataire.lastName} />
-        <RecapRow label={t('wizard.signataire.fields.dateOfBirth')} value={signataire.dateOfBirth ?? ''} />
-        <RecapRow label={t('wizard.signataire.fields.nationality')} value={countryName(signataire.nationality)} />
-        <RecapRow
-          label={t('wizard.signataire.fields.signaturePower')}
-          value={signataire.signaturePower ? t(`wizard.signataire.signaturePower.${signataire.signaturePower}`) : ''}
-        />
-      </RecapSection>
+      <div className="mg-top-medium grid-1-column gap-row-2x-extra-small">
+        <RecapSection title={t('wizard.steps.signataire')} onEdit={() => onEditStep(0)}>
+          <RecapRow label={t('wizard.signataire.fields.firstName')} value={signataire.firstName} />
+          <RecapRow label={t('wizard.signataire.fields.lastName')} value={signataire.lastName} />
+          <RecapRow label={t('wizard.signataire.fields.dateOfBirth')} value={birthDate(signataire.dateOfBirth)} />
+          <RecapRow label={t('wizard.signataire.fields.nationality')} value={countryName(signataire.nationality)} />
+          <RecapRow
+            label={t('wizard.signataire.fields.signaturePower')}
+            value={signataire.signaturePower ? t(`wizard.signataire.signaturePower.${signataire.signaturePower}`) : ''}
+          />
+        </RecapSection>
 
-      <RecapSection title={t('wizard.steps.agence')} onEdit={() => onEditStep(1)}>
-        <RecapRow label={t('wizard.agence.fields.country')} value={countryName(agencyDraft.country)} />
-        <RecapRow label={t('wizard.agence.fields.legalFormId')} value={legalFormLabel} />
-        <RecapRow label={t('wizard.agence.fields.legalName')} value={agencyDraft.legal} />
-        <RecapRow label={t('wizard.agence.fields.tradeName')} value={agencyDraft.tradeName} />
-        <RecapRow label={t('wizard.agence.fields.businessRegistrationNumber')} value={agencyDraft.businessRegistrationNumber} />
-        <RecapRow label={t('wizard.agence.fields.tva')} value={agencyDraft.tva.trim() || t('wizard.recap.notProvided')} />
-        <RecapRow
-          label={t('wizard.agence.fields.address')}
-          value={`${agencyDraft.address}, ${agencyDraft.postal} ${agencyDraft.city}, ${agencyDraft.canton}`}
-        />
-      </RecapSection>
+        <RecapSection title={t('wizard.steps.agence')} onEdit={() => onEditStep(1)}>
+          <RecapRow label={t('wizard.agence.fields.country')} value={countryName(agencyDraft.country)} />
+          <RecapRow label={t('wizard.agence.fields.legalFormId')} value={legalFormLabel} />
+          <RecapRow label={t('wizard.agence.fields.legalName')} value={agencyDraft.legal} />
+          <RecapRow label={t('wizard.agence.fields.businessRegistrationNumber')} value={agencyDraft.businessRegistrationNumber} />
+          <RecapRow
+            label={t('wizard.agence.fields.address')}
+            value={`${agencyDraft.address}, ${agencyDraft.postal} ${agencyDraft.city}, ${agencyDraft.canton}`}
+          />
+        </RecapSection>
 
-      {!skipBeneficiaires && (
-        <RecapSection title={t('wizard.steps.beneficiaires')} onEdit={() => onEditStep(2)}>
-          {beneficiaires.length === 0 ? (
-            <p style={{ margin: 0, fontSize: 13, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.5 }}>
-              {t('wizard.recap.beneficiaires.empty')}
+        <RecapSection title={t('wizard.steps.pieceIdentite')} onEdit={() => onEditStep(2)}>
+          {identityDocumentsLoading ? (
+            // Texte seul, sans roue d'attente : la vitrine n'a aucun indicateur de
+            // progression indéterminé, et son écran d'attente équivalent
+            // (IdentityPreparingScreen) annonce lui aussi le chargement en toutes lettres.
+            <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
+              {t('wizard.recap.pieceIdentite.loading')}
+            </p>
+          ) : identityDocumentsError ? (
+            <p className="paragraph-small mx-field__error" role="alert">
+              {t('wizard.recap.pieceIdentite.loadFailed')}
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {beneficiaires.map((b, index) => (
-                <div key={b.personId ?? `new-${index}`} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {index > 0 && <div style={{ height: 1, background: SugarV2.line, margin: '2px 0 8px' }} />}
-                  <RecapRow label={t('wizard.beneficiaires.fields.firstName')} value={`${b.firstName} ${b.lastName}`} />
-                  <RecapRow label={t('wizard.beneficiaires.fields.nationality')} value={countryName(b.nationality)} />
-                  <RecapRow
-                    label={t('wizard.beneficiaires.fields.ownershipPct')}
-                    value={t('wizard.recap.beneficiaires.ownership', { pct: b.ownershipPct ?? 0 })}
-                  />
-                  <RecapRow
-                    label={t('wizard.beneficiaires.pep.label')}
-                    value={b.pepSelfDeclared ? t('wizard.beneficiaires.pep.yes') : t('wizard.beneficiaires.pep.no')}
-                  />
+            <>
+              {documentType != null && (
+                <RecapRow
+                  label={t('wizard.pieceIdentite.documentType.label')}
+                  value={t(`wizard.pieceIdentite.documentType.options.${documentType}`)}
+                />
+              )}
+
+              {/* Deux parcours, deux relectures — et surtout PAS la seconde quand c'est
+                  la première qui a servi. Le chemin Stripe ne dépose aucun fichier chez
+                  nous : afficher les tuiles recto/verso y rendait « manquant », EN
+                  ROUGE, sur un dossier dont l'identité venait d'être vérifiée avec
+                  succès. Le dirigeant lisait un reproche là où tout allait bien. */}
+              {isIdentityVerificationSufficient(verificationStatus) ? (
+                <RecapRow
+                  label={t('wizard.recap.pieceIdentite.statusLabel')}
+                  value={t(`wizard.recap.pieceIdentite.${verificationStatus === 'verified' ? 'verified' : 'processing'}`)}
+                />
+              ) : (
+                // Les mêmes faces qu'à l'étape 3, décidées par la même fonction : un
+                // récapitulatif qui réclamerait un verso de passeport contredirait
+                // l'écran qui vient de ne pas le demander.
+                <div className="flex align-top gap-small">
+                  {identityDocumentSidesFor(documentType).map((side) => (
+                    <PieceIdentiteRecapRow
+                      key={side}
+                      label={documentType === 'passport'
+                        ? t('wizard.pieceIdentite.sides.dataPage')
+                        : t(`wizard.pieceIdentite.sides.${side}`)}
+                      preview={side === 'recto' ? recto : verso}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+              <IdentityReadNotice read={identityRead} reading={false} />
+            </>
           )}
         </RecapSection>
-      )}
 
-      <RecapSection title={t('wizard.steps.pieceIdentite')} onEdit={() => onEditStep(3)}>
-        {identityDocumentsLoading ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: SugarV2.muted, fontWeight: 500 }}>
-            <span style={{
-              width: 13, height: 13, borderRadius: 999, flexShrink: 0,
-              border: `2px solid ${SugarV2.line}`, borderTopColor: SugarV2.ink,
-              animation: 'sgSpin .8s linear infinite',
-            }} />
-            {t('wizard.recap.pieceIdentite.loading')}
+        <div className="card">
+          <div className="pd---content-inside-card">
+            <MxCheckbox
+              className="paragraph-small"
+              checked={attestationChecked}
+              onCheckedChange={onAttestationChange}
+              label={t('wizard.recap.attestation')}
+            />
           </div>
-        ) : identityDocumentsError ? (
-          <p role="alert" style={{ margin: 0, fontSize: 13, color: SugarV2.err, fontWeight: 500, lineHeight: 1.5 }}>
-            {t('wizard.recap.pieceIdentite.loadFailed')}
-          </p>
-        ) : (
-          <div style={{ display: 'flex', gap: 20 }}>
-            <PieceIdentiteRecapRow label={t('wizard.pieceIdentite.sides.recto')} preview={recto} />
-            <PieceIdentiteRecapRow label={t('wizard.pieceIdentite.sides.verso')} preview={verso} />
-          </div>
-        )}
-      </RecapSection>
-
-      <label style={{
-        display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
-        padding: '18px 20px', borderRadius: 16, background: SugarV2.cardSubtle, marginTop: 8,
-      }}>
-        <input
-          type="checkbox"
-          checked={attestationChecked}
-          onChange={(e) => onAttestationChange(e.target.checked)}
-          style={{ marginTop: 3, width: 18, height: 18, flexShrink: 0, accentColor: SugarV2.ink, cursor: 'pointer' }}
-        />
-        <span style={{ fontSize: 13.5, fontWeight: 500, color: SugarV2.inkSoft, lineHeight: 1.5 }}>
-          {t('wizard.recap.attestation')}
-        </span>
-      </label>
+        </div>
+      </div>
     </div>
   )
 }
 
-/** Bento d'une section relue — même grammaire que les cartes des étapes précédentes (SugarV2.shadow), avec un lien Modifier vers l'étape source. */
+/** Carte d'une section relue — même gabarit que les cartes de la vitrine (`card` > `pd---content-inside-card`), avec un bouton Modifier vers l'étape source. */
 function RecapSection({ title, onEdit, children }: { title: string; onEdit: () => void; children: ReactNode }) {
   const { t } = useTranslation('onboarding')
   return (
-    <div style={{
-      position: 'relative', background: SugarV2.card, borderRadius: 24, padding: 24,
-      boxShadow: SugarV2.shadow, display: 'flex', flexDirection: 'column', gap: 12,
-      marginBottom: 16,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: SugarV2.ink }}>{title}</div>
-        <button
-          type="button"
-          onClick={onEdit}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, color: SugarV2.inkSoft,
-          }}
-        >
-          <SgIcon name="edit" size={13} stroke={SugarV2.inkSoft} />
-          {t('common:actions.edit')}
-        </button>
+    <section className="card">
+      <div className="pd---content-inside-card">
+        <div className="flex-horizontal space-between gap-16px">
+          <h2 className="display-3 semi-bold">{title}</h2>
+          {/* Le petit bouton secondaire est le seul bouton discret de la vitrine :
+              elle n'a ni bouton fantôme ni lien-action. Reste un <button>, pas un
+              <a href="#"> — l'action ne navigue pas, elle ramène à une étape. */}
+          <MxButton type="button" variant="secondary" size="small" onClick={onEdit}>
+            {t('common:actions.edit')}
+          </MxButton>
+        </div>
+        <div className="mg-top-2x-extra-small grid-1-column gap-row-3x-extra-small">{children}</div>
       </div>
-      {children}
-    </div>
+    </section>
   )
 }
 
 /** Une paire libellé/valeur en lecture seule — jamais un input, cette étape ne fait que relire. */
 function RecapRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 13.5 }}>
-      <span style={{ color: SugarV2.muted, fontWeight: 500, flexShrink: 0 }}>{label}</span>
-      <span style={{ color: SugarV2.ink, fontWeight: 600, textAlign: 'right' }}>{value}</span>
+    <div className="flex-horizontal space-between gap-16px">
+      <span className="display-1 text-color-neutral-600">{label}</span>
+      <span className="display-1 medium text-color-neutral-600">{value}</span>
     </div>
   )
 }
 
-/** Statut d'un côté (recto/verso) de la pièce d'identité — aperçu si l'image est disponible, icône de repli pour un PDF ou un côté manquant (défensif : ne devrait pas arriver, isPieceIdentiteStepComplete a déjà bloqué l'avancement sinon). */
+/**
+ * Statut d'un côté (recto/verso) de la pièce d'identité. L'aperçu n'est rendu que
+ * pour une image : un PDF ou un côté manquant n'a pas de vignette de repli, faute
+ * d'icône dont le glyphe soit attesté dans la vitrine — le statut en toutes lettres
+ * porte alors seul l'information (défensif : isPieceIdentiteStepComplete a déjà
+ * bloqué l'avancement si un côté manque).
+ */
 function PieceIdentiteRecapRow({ label, preview }: { label: string; preview: IdentityDocumentPreview | null }) {
   const { t } = useTranslation('onboarding')
   const isPdf = preview != null && preview.path.toLowerCase().endsWith('.pdf')
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{
-        width: 44, height: 44, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
-        background: SugarV2.cardSubtle, display: 'grid', placeItems: 'center',
-      }}>
-        {preview == null ? (
-          <SgIcon name="close" size={15} stroke={SugarV2.err} />
-        ) : isPdf ? (
-          <SgIcon name="inbox" size={17} stroke={SugarV2.muted} />
-        ) : (
-          <img src={preview.signedUrl} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        )}
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: SugarV2.ink }}>{label}</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: preview ? SugarV2.ok : SugarV2.err }}>
-          {preview ? t('wizard.recap.pieceIdentite.uploaded') : t('wizard.recap.pieceIdentite.missing')}
-        </span>
-      </div>
+    <div className="grid-1-column gap-row-4x-extra-small">
+      {preview != null && !isPdf && (
+        <div className="card logo-icon-card">
+          {/* `link-item-image _w-h-100` : sans elles l'image garde sa hauteur
+              intrinsèque et déborde la tuile (128 px fixes), que `overflow:hidden`
+              rognerait alors de façon différente pour le recto et le verso. */}
+          <img className="link-item-image _w-h-100" src={preview.signedUrl} alt={label} />
+        </div>
+      )}
+      <span className="display-1 medium text-color-neutral-600">{label}</span>
+      <p className={cn('paragraph-small', preview ? 'text-color-neutral-600' : 'mx-field__error')}>
+        {preview ? t('wizard.recap.pieceIdentite.uploaded') : t('wizard.recap.pieceIdentite.missing')}
+      </p>
     </div>
   )
 }

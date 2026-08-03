@@ -7,6 +7,10 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
 import { reportEdgeError } from '../_shared/audit-edge-error.ts'
+import {
+  buildStripeIdentityRecord,
+  isStripeVerificationStatus,
+} from '../_shared/kyb-identity-stripe.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2023-10-16',
@@ -54,6 +58,114 @@ function monthlyRevenue(
   // Un abonnement annuel est ramené au mois : sans cela, décembre pèserait douze fois.
   const perMonth = price?.recurring?.interval === 'year' ? cents / 12 : cents
   return Math.round(perMonth) / 100
+}
+
+/**
+ * Traite un événement Stripe Identity : retrouve la personne, développe ce que Stripe a
+ * vérifié, et écrit l'état + les verdicts de correspondance.
+ *
+ * ⚠ Rien de ce qui est écrit ici n'est une DONNÉE d'identité. Ni nom, ni prénom, ni
+ * date de naissance, ni numéro : uniquement des verdicts de comparaison avec la ligne
+ * déjà déclarée par le dirigeant (buildStripeIdentityRecord). Stripe garde l'original
+ * de son côté et sait le supprimer sur demande. Dupliquer la PII pour dire qu'elle
+ * correspond à elle-même créerait une seconde copie à protéger et à purger.
+ *
+ * ⚠ Rien ici ne valide un dossier. `verification_status` de l'AGENCE n'est pas touché,
+ * aucun check n'est écrit : le seul verdict de la pièce reste `id_document` /
+ * `pending_manual_review`, tranché par un humain. Une vérification réussie donne au
+ * relecteur une preuve qu'il n'avait pas, elle ne prend pas sa décision.
+ *
+ * La personne est retrouvée par `metadata.related_person_id` (posé à la création) avec
+ * repli sur l'identifiant de session — l'index partiel de 20260803160000 couvre le
+ * second chemin. Deux chemins parce qu'une session créée à la main depuis le tableau de
+ * bord Stripe n'aurait pas la metadata.
+ */
+async function handleIdentityVerification(
+  stripeClient: Stripe,
+  session: Stripe.Identity.VerificationSession,
+): Promise<void> {
+  // Client ouvert ICI plutôt que reçu en paramètre : `ReturnType<typeof createClient>`
+  // ne se réconcilie pas avec le client réellement construit dans `serve` (les
+  // paramètres de type par défaut résolvent en `never`), et le fichier a déjà ce motif
+  // dans son `catch` de fin. Un client Supabase est un objet de configuration, pas une
+  // connexion : en ouvrir un second ne coûte rien.
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  )
+  const relatedPersonId = session.metadata?.related_person_id ?? null
+
+  const query = supabaseAdmin
+    .from('agency_related_persons')
+    .select('id, first_name, last_name, date_of_birth')
+  const { data: person } = relatedPersonId
+    ? await query.eq('id', relatedPersonId).maybeSingle()
+    : await query.eq('identity_verification_session_id', session.id).maybeSingle()
+
+  if (!person) {
+    // Une session sans ligne correspondante n'est pas une erreur de traitement : elle
+    // vient d'un autre environnement (test vs live) ou d'un essai manuel. Acquitter
+    // évite que Stripe la rejoue indéfiniment.
+    console.log(`identity: aucune personne pour la session ${session.id}`)
+    return
+  }
+
+  // Le rapport porte ce que le DOCUMENT dit (nature, pays émetteur, échéance) ; la
+  // session développée porte ce que Stripe a VÉRIFIÉ (nom, prénom, naissance). Les deux
+  // sont nécessaires, et le rapport n'existe qu'une fois la capture faite.
+  let document: Stripe.Identity.VerificationReport.Document | null = null
+  let verifiedOutputs: Stripe.Identity.VerificationSession.VerifiedOutputs | null = null
+  try {
+    const expanded = await stripeClient.identity.verificationSessions.retrieve(session.id, {
+      expand: ['verified_outputs', 'last_verification_report'],
+    })
+    verifiedOutputs = expanded.verified_outputs ?? null
+    const report = expanded.last_verification_report
+    if (report && typeof report !== 'string') document = report.document ?? null
+  } catch (e) {
+    // Le statut reste écrit même si le développement échoue : savoir qu'une session est
+    // `verified` sans connaître l'échéance vaut mieux que ne rien savoir du tout.
+    console.error('identity: expand impossible', (e as Error)?.name)
+  }
+
+  const status = isStripeVerificationStatus(session.status) ? session.status : 'requires_input'
+  const record = buildStripeIdentityRecord(
+    {
+      sessionId: session.id,
+      status,
+      firstName: verifiedOutputs?.first_name ?? null,
+      lastName: verifiedOutputs?.last_name ?? null,
+      dob: verifiedOutputs?.dob ?? null,
+      documentType: document?.type ?? null,
+      issuingCountry: document?.issuing_country ?? null,
+      expirationDate: document?.expiration_date ?? null,
+      errorCode: session.last_error?.code ?? null,
+    },
+    {
+      firstName: (person.first_name as string) ?? '',
+      lastName: (person.last_name as string) ?? '',
+      dateOfBirth: (person.date_of_birth as string | null) ?? null,
+    },
+    new Date().toISOString().slice(0, 10),
+  )
+
+  await supabaseAdmin
+    .from('agency_related_persons')
+    .update({
+      identity_verification_session_id: session.id,
+      identity_verification_status: status,
+      identity_verification_error_code: record.errorCode,
+      // Posé UNE fois, au passage en `verified`. Une reprise ultérieure ne l'efface
+      // pas : le dossier a bien été vérifié ce jour-là, et l'audit doit pouvoir le dire.
+      ...(status === 'verified' ? { identity_verified_at: new Date().toISOString() } : {}),
+      id_document_read: record,
+      id_document_expires_on: record.expiresOn,
+      // `other` est une valeur légitime du CHECK (permis de conduire chez Stripe) ;
+      // null signifie « pas encore su » et ne doit pas écraser une nature déjà déclarée
+      // à la main à l'étape 3.
+      ...(record.documentType ? { id_document_type: record.documentType } : {}),
+    })
+    .eq('id', person.id as string)
 }
 
 serve(async (req) => {
@@ -370,6 +482,24 @@ serve(async (req) => {
             })
             .eq('agency_id', agencyId)
         }
+        break
+      }
+
+      // ─── Stripe Identity — vérification d'identité du dirigeant (KYB, étape 3) ───
+      //
+      // Les quatre statuts arrivent ici, pas seulement les deux terminaux : le wizard
+      // affiche « en cours de traitement » sur `processing`, et une session annulée
+      // doit cesser de compter comme une vérification en attente.
+      //
+      // Pourquoi ce webhook et pas le retour de navigation : l'utilisateur peut fermer
+      // l'onglet chez Stripe. Une réponse HTTP au navigateur n'est pas une preuve ; ce
+      // canal-ci est signé et rejoué par Stripe jusqu'à acquittement.
+      case 'identity.verification_session.verified':
+      case 'identity.verification_session.requires_input':
+      case 'identity.verification_session.processing':
+      case 'identity.verification_session.canceled': {
+        const session = event.data.object as Stripe.Identity.VerificationSession
+        await handleIdentityVerification(stripe, session)
         break
       }
 

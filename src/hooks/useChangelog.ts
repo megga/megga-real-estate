@@ -9,16 +9,9 @@
 // nouveauté est visible de tous les agents. L'ancien formulaire posait `published` à
 // l'insert, et la table avait `DEFAULT TRUE` — une entrée créée sans y penser partait en
 // production.
-//
-// ⚠ Client casté : ces RPC ne sont pas encore dans src/types/database.ts (auto-généré, en
-// retard sur des migrations non mergées — son en-tête interdit l'édition à la main). Même
-// motif que useAdminKybReview.ts. À nettoyer à la première régénération.
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-
-const db = supabase as unknown as SupabaseClient
 
 /** Enveloppe §10.1 : `{ ok:false, code, message_fr }` sur refus métier. */
 interface Enveloppe { ok: boolean; code?: string; message_fr?: string; data?: unknown }
@@ -72,16 +65,25 @@ export function useChangelog() {
       // La clé d'idempotence protège du double-clic : sans elle, deux entrées identiques
       // que rien ne distinguerait ensuite. `crypto.randomUUID` est disponible partout où
       // ce hook tourne (navigateur moderne, contexte sécurisé).
-      const { data, error } = await db.rpc('admin_changelog_save', {
-        p_id: null, p_title: input.title, p_content: input.content,
-        p_version: input.version || null, p_idempotency_key: crypto.randomUUID(),
+      // ⚠ `p_id` et `p_version` sont castés, et SEULEMENT eux. `admin_changelog_save`
+      // déclare ses cinq paramètres SANS DEFAULT (pronargdefaults = 0), or c'est le
+      // seul signal que lit le générateur : il les type donc non-nullables, alors que
+      // `p_id uuid` accepte NULL à l'exécution et qu'une CRÉATION passe justement null.
+      // Postgres ne sait pas distinguer « sans défaut » de « non nullable » ; corriger
+      // le SQL changerait la signature d'un geste déjà en production, pour un défaut
+      // qui n'existe que dans le type. L'échappatoire est bornée à ces deux arguments :
+      // le nom de la RPC et les trois autres restent vérifiés par le compilateur.
+      const { data, error } = await supabase.rpc('admin_changelog_save', {
+        p_id: null as unknown as string, p_title: input.title, p_content: input.content,
+        p_version: (input.version || null) as unknown as string,
+        p_idempotency_key: crypto.randomUUID(),
       })
       const cree = deballer(data, error) as { id?: string; already_done?: boolean } | undefined
 
       // Créer puis publier sont DEUX gestes : le second est journalisé à part, parce
       // qu'il rend la nouveauté visible de tous les agents.
       if (input.published && cree?.id) {
-        const { data: p, error: pErr } = await db.rpc('admin_changelog_publish', { p_id: cree.id })
+        const { data: p, error: pErr } = await supabase.rpc('admin_changelog_publish', { p_id: cree.id })
         deballer(p, pErr)
       }
     },
@@ -90,7 +92,7 @@ export function useChangelog() {
 
   const publishEntry = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await db.rpc('admin_changelog_publish', { p_id: id })
+      const { data, error } = await supabase.rpc('admin_changelog_publish', { p_id: id })
       deballer(data, error)
     },
     onSuccess: invalider,
@@ -98,7 +100,7 @@ export function useChangelog() {
 
   const unpublishEntry = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await db.rpc('admin_changelog_unpublish', { p_id: id })
+      const { data, error } = await supabase.rpc('admin_changelog_unpublish', { p_id: id })
       deballer(data, error)
     },
     onSuccess: invalider,
@@ -106,7 +108,7 @@ export function useChangelog() {
 
   const scheduleEntry = useMutation({
     mutationFn: async (input: { id: string; when: string }) => {
-      const { data, error } = await db.rpc('admin_changelog_schedule', {
+      const { data, error } = await supabase.rpc('admin_changelog_schedule', {
         p_id: input.id, p_when: input.when,
       })
       deballer(data, error)
@@ -116,7 +118,7 @@ export function useChangelog() {
 
   const deleteEntry = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await db.rpc('admin_changelog_delete', { p_id: id })
+      const { data, error } = await supabase.rpc('admin_changelog_delete', { p_id: id })
       deballer(data, error)
     },
     onSuccess: invalider,

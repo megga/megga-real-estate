@@ -7,12 +7,16 @@
 > l'a fait réécrire pays par pays.
 > **Branche :** `feat/kyb-lindas-format`.
 >
-> **Trois documents, trois rôles :**
+> **Quatre documents, quatre rôles :**
 > - celui-ci dit **où on en est et quoi faire**, étape par étape ;
 > - [agency-kyb-verification.md](agency-kyb-verification.md) porte les **décisions de
 >   conception du schéma et de la vérification** ;
 > - [2026-07-26-onboarding-kyb-design.md](superpowers/specs/2026-07-26-onboarding-kyb-design.md)
->   porte la **conception du parcours utilisateur**, écrite après ton départ.
+>   porte la **conception du parcours utilisateur**, écrite après ton départ ;
+> - [agency-kyb-test-prod.md](agency-kyb-test-prod.md) porte la **procédure du dossier de
+>   test en production** — l'infrastructure est déployée mais n'a jamais été exercée
+>   (0 soumission réelle au 01.08.2026), et son §2.1 isole le seul point qui ferait
+>   échouer l'onboarding en silence.
 
 ---
 

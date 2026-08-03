@@ -61,7 +61,38 @@ const INTERNES_HORS_PREFIXE = [
   'outbox_jobs',
   'platform_metrics',
   'platform_announcements',
+  // Instrumentation IA — lues côté client par la SEULE console (useAIBilling.ts,
+  // Monitoring), écrites par les edges en service_role. Mesuré le 03.08.2026 : `anon`
+  // y détenait encore les droits par défaut, révoqués par 20260803010000. Elles
+  // précèdent la convention `admin_*`, d'où leur place dans la liste.
+  'ai_usage_logs',
+  'ai_balance_snapshots',
 ];
+
+/**
+ * Tables adossées à un jeton de capacité. Elles ne sont pas « internes » au sens
+ * de la console — ce sont des tables métier — mais elles vérifient la même
+ * propriété, et pour une raison plus étroite : leur accès public légitime passe
+ * TOUJOURS par une fonction SECURITY DEFINER (les quatre `*_visit_by_token`) ou
+ * par une edge function en `service_role` (magic-link-*, buyer-reception-*). Ces
+ * deux chemins s'exécutent sous une autre identité que `anon` et n'ont donc
+ * besoin d'AUCUN droit de table pour `anon`.
+ *
+ * Le jour où l'audit du 2 août 2026 les a mesurées, `anon` y détenait pourtant
+ * les sept droits par défaut de Supabase, `TRUNCATE` compris — et `TRUNCATE`
+ * n'est PAS soumis au RLS. Aucune policy, si stricte soit-elle, ne peut rattraper
+ * ce grant-là ; seule sa révocation le peut. D'où leur entrée ici : le garde-fou
+ * empêche la récidive, qui viendrait sinon en silence des droits par défaut
+ * reposés à la prochaine recréation de table.
+ */
+const TABLES_A_CAPACITE = [
+  'visits',
+  'kyc_magic_links',
+  'kyc_magic_link_uploads',
+  'buyer_reception_links',
+];
+
+const SURVEILLEES = [...INTERNES_HORS_PREFIXE, ...TABLES_A_CAPACITE];
 
 const SQL = `
   select c.relname as tbl,
@@ -73,7 +104,7 @@ const SQL = `
    where n.nspname = 'public'
      and c.relkind = 'r'
      and (c.relname like 'admin\\_%' escape '\\'
-          or c.relname in (${INTERNES_HORS_PREFIXE.map(t => `'${t}'`).join(', ')}))
+          or c.relname in (${SURVEILLEES.map(t => `'${t}'`).join(', ')}))
    group by c.relname
    order by c.relname`;
 
@@ -83,7 +114,7 @@ const SQL_PERIMETRE = `
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind = 'r'
      and (c.relname like 'admin\\_%' escape '\\'
-          or c.relname in (${INTERNES_HORS_PREFIXE.map(t => `'${t}'`).join(', ')}))`;
+          or c.relname in (${SURVEILLEES.map(t => `'${t}'`).join(', ')}))`;
 
 async function query(token, sql) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
@@ -128,12 +159,31 @@ const [{ n: perimetre }] = await query(token, SQL_PERIMETRE);
 // (renommage massif, schéma déplacé) rendrait « aucune fuite » sur zéro table.
 // C'est le motif du vert sans assertion, rencontré deux fois sur ce chantier.
 if (perimetre < 10) {
-  console.error(`✗ Périmètre suspect : ${perimetre} table(s) interne(s) trouvée(s), 10 attendues au moins.`);
-  console.error('  Le prédicat ne reconnaît plus les tables de la console — le contrôle ne prouve plus rien.');
+  console.error(`✗ Périmètre suspect : ${perimetre} table(s) surveillée(s) trouvée(s), 10 attendues au moins.`);
+  console.error('  Le prédicat ne reconnaît plus les tables surveillées — le contrôle ne prouve plus rien.');
   process.exit(1);
 }
 
-console.log(`${perimetre} tables internes inspectées en production.`);
+// Le seuil ci-dessus ne voit QUE la masse : il reste vert si une table nommée
+// disparaît, noyée dans la trentaine de `admin_*`. Or c'est précisément une table
+// nommée qu'on tient à surveiller — la renommer sans toucher à cette liste la
+// ferait sortir du périmètre en silence, et le contrôle continuerait d'afficher
+// « aucune fuite » sur une table qu'il ne regarde plus.
+const presentes = new Set(
+  (await query(token, `
+     select c.relname as tbl
+       from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r'
+        and c.relname in (${SURVEILLEES.map(t => `'${t}'`).join(', ')})`)).map(r => r.tbl),
+);
+const disparues = SURVEILLEES.filter(t => !presentes.has(t));
+if (disparues.length > 0) {
+  console.error(`✗ Table(s) surveillée(s) introuvable(s) en production : ${disparues.join(', ')}.`);
+  console.error('  Renommée, déplacée ou supprimée — mettre à jour la liste, sinon elle sort du périmètre sans bruit.');
+  process.exit(1);
+}
+
+console.log(`${perimetre} tables surveillées inspectées en production.`);
 
 let fuites = await query(token, SQL);
 for (let essai = 1; fuites.length > 0 && essai < TENTATIVES; essai++) {

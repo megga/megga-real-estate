@@ -20,21 +20,14 @@
  * 20260728160000 §6) derrière une seule mutation, pour qu'un seul geste à
  * l'écran suffise — le relecteur n'a pas à se souvenir qu'il faut aussi relancer.
  *
- * Client casté (`db`) : les 2 tables (verification_check_config/_types) et les
- * 6 RPC de cette migration ne sont pas encore dans les types générés
- * (src/types/database.ts — auto-généré, en retard sur ces migrations récentes,
- * cf. son en-tête). Même motif que useAgencyFollowupSuggestions.ts : client
- * casté en `SupabaseClient` non paramétré, entrées/sorties re-typées à la main
- * juste après. À nettoyer (retirer `db`, repasser sur `supabase` typé) à la
- * prochaine régénération (`supabase gen types typescript --local`).
  */
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/types/database'
+import { isIdentityDocumentType, type IdentityDocumentType } from '@/hooks/useAgencyIdentity'
+import { isKybIdReadRecord, type KybIdReadRecord } from '@/types/kybIdRead'
 import type { CheckResult, PersonRoleRow } from '@/pages/admin/AdminKybReviewPage'
 import { KYB_REVIEW_COUNT_KEY } from '@/hooks/useKybReviewCount'
-
-const db = supabase as unknown as SupabaseClient
 
 // ─── Liste ──────────────────────────────────────────────────────────────────
 
@@ -84,7 +77,7 @@ export interface KybReviewQueuePage {
  *  que pour la sonde d'une seule ligne du repli ci-dessous ; tout le reste lit une page
  *  entière. */
 async function fetchQueuePage(offset: number, limit = KYB_REVIEW_PAGE_SIZE): Promise<KybReviewQueuePage> {
-  const res = await db.rpc('get_admin_agency_review_queue', { p_limit: limit, p_offset: offset })
+  const res = await supabase.rpc('get_admin_agency_review_queue', { p_limit: limit, p_offset: offset })
   const { data, error } = res as unknown as { data: QueueRpcRow[] | null; error: { message: string } | null }
   if (error) throw new Error(error.message)
   const rpcRows = data ?? []
@@ -186,7 +179,7 @@ function useKybReviewChecks(agencyId: string) {
   return useQuery({
     queryKey: ['admin-kyb-review-checks', agencyId],
     queryFn: async (): Promise<KybReviewCheckRow[]> => {
-      const res = await db.rpc('get_admin_agency_review_detail', { p_agency_id: agencyId })
+      const res = await supabase.rpc('get_admin_agency_review_detail', { p_agency_id: agencyId })
       const { data, error } = res as unknown as { data: DetailRpcRow[] | null; error: { message: string } | null }
       if (error) throw new Error(error.message)
       return (data ?? []).map((r) => ({
@@ -209,6 +202,26 @@ export interface KybReviewPerson {
   id: string
   firstName: string
   lastName: string
+  /**
+   * Nature déclarée de la pièce d'identité, ou null si le dossier a été soumis avant
+   * que l'étape 3 ne la demande (03.08.2026). Elle dit au relecteur COMBIEN de faces
+   * attendre : un passeport n'en a qu'une, un verso absent n'y est donc pas un
+   * manque. `id_document_number`, lui, reste HORS de cette lecture — c'est la PII que
+   * le commentaire de colonne (20260729150200) désigne comme sensible, et le
+   * relecteur l'a sous les yeux sur l'image.
+   */
+  idDocumentType: IdentityDocumentType | null
+  /**
+   * Échéance et verdict de la lecture assistée (edge kyb-identity-read) — posés par
+   * service_role seul (trigger enforce_agency_person_id_read_writer, 20260803150000),
+   * donc jamais par le dirigeant qui fait l'objet de la revue.
+   *
+   * ⚠ INDICATIFS. Ils n'entrent dans aucun score et ne lèvent aucun véto : la décision
+   * reste `admin_resolve_agency_id_document`, prise par le relecteur qui a l'image sous
+   * les yeux. Un `mismatch` dit où regarder, il ne tranche pas.
+   */
+  idDocumentExpiresOn: string | null
+  idDocumentRead: KybIdReadRecord | null
   roles: PersonRoleRow[]
 }
 
@@ -216,27 +229,35 @@ interface PersonRpcRow {
   id: string
   first_name: string
   last_name: string
+  id_document_type: string | null
+  id_document_expires_on: string | null
+  id_document_read: unknown
   roles: Array<{ role: 'signatory' | 'ubo'; valid_to: string | null }> | null
 }
 
 /** Personnes liées à l'agence + leurs rôles — légende les checks « personne » (nom
- *  plutôt qu'UUID) et alimente le calcul des signataires actifs (activeSignatoryIds).
- *  `agency_related_persons`/`agency_person_roles` SONT dans les types générés (client
- *  `supabase` normal, pas `db`) — table plus ancienne que le trou de régénération
- *  décrit en en-tête de fichier. */
+ *  plutôt qu'UUID) et alimente le calcul des signataires actifs (activeSignatoryIds). */
 function useKybReviewPersons(agencyId: string) {
   return useQuery({
     queryKey: ['admin-kyb-review-persons', agencyId],
     queryFn: async (): Promise<KybReviewPerson[]> => {
       const { data, error } = await supabase
         .from('agency_related_persons')
-        .select('id, first_name, last_name, roles:agency_person_roles(role, valid_to)')
+        .select('id, first_name, last_name, id_document_type, id_document_expires_on, id_document_read, roles:agency_person_roles(role, valid_to)')
         .eq('agency_id', agencyId)
       if (error) throw error
       return ((data ?? []) as unknown as PersonRpcRow[]).map((p) => ({
         id: p.id,
         firstName: p.first_name,
         lastName: p.last_name,
+        // `other` (quatrième valeur du CHECK, qu'aucun chemin n'écrit aujourd'hui)
+        // est ramenée à null plutôt qu'affichée : il n'existe pas de libellé pour
+        // elle, et un code brut dans une console de conformité se lit mal.
+        idDocumentType: isIdentityDocumentType(p.id_document_type) ? p.id_document_type : null,
+        idDocumentExpiresOn: p.id_document_expires_on,
+        // jsonb libre en base : une ligne écrite par une version antérieure du
+        // contrat ne doit pas casser l'écran qui l'affiche.
+        idDocumentRead: isKybIdReadRecord(p.id_document_read) ? p.id_document_read : null,
         roles: (p.roles ?? []).map((r) => ({ role: r.role, validTo: r.valid_to })),
       }))
     },
@@ -261,7 +282,7 @@ function useKybReviewCurrentVetoTypes() {
   return useQuery({
     queryKey: ['admin-kyb-review-current-vetos'],
     queryFn: async (): Promise<KybReviewCurrentVeto[]> => {
-      const configRes = await db
+      const configRes = await supabase
         .from('verification_check_config')
         .select('check_type')
         .eq('is_veto', true)
@@ -275,7 +296,7 @@ function useKybReviewCurrentVetoTypes() {
       const codes = (configRows ?? []).map((r) => r.check_type)
       if (codes.length === 0) return []
 
-      const typeRes = await db
+      const typeRes = await supabase
         .from('verification_check_types')
         .select('code, scope')
         .in('code', codes)
@@ -376,11 +397,21 @@ function useInvalidateKybReview(agencyId: string) {
   }
 }
 
-/** Lève une Error lisible depuis le résultat casté d'un appel RPC — factorise le
- *  triptyque `res as unknown as {...}; if (error) throw` répété par les 4 actions. */
-async function callRpc(fn: string, args: Record<string, unknown>): Promise<void> {
-  const res = await db.rpc(fn, args)
-  const { error } = res as unknown as { error: { message: string } | null }
+/** Lève une Error lisible depuis le résultat d'un appel RPC — factorise le triptyque
+ *  `const { error } = …; if (error) throw` répété par les 5 actions.
+ *
+ *  `fn` prend le type du premier paramètre de `supabase.rpc`, c'est-à-dire l'union des
+ *  noms de RPC connus de `database.ts`, et non `string` : un dispatcher typé `string`
+ *  éteint la vérification pour TOUS ses appelants d'un coup — c'est ce qui obligeait à
+ *  caster le client ici. Une RPC renommée en SQL fait désormais rougir les cinq gestes.
+ *
+ *  Et `args` est indexé PAR ce nom. En `Record<string, unknown>`, `{ p_agency_TYPO: … }`
+ *  compilait en silence et finissait en PGRST202 à l'exécution — sur les cinq décisions
+ *  humaines d'un dossier KYB, c'est-à-dire les gestes les moins rejouables du produit. */
+type PgFns = Database['public']['Functions']
+
+async function callRpc<N extends keyof PgFns>(fn: N, args: PgFns[N]['Args']): Promise<void> {
+  const { error } = await supabase.rpc(fn, args as never)
   if (error) throw new Error(error.message)
 }
 

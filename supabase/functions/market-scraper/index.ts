@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -59,6 +60,25 @@ serve(async (req) => {
   }
 
   try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+
+    // ── Auth : appel interne uniquement ──
+    // Worker DORMANT (chemin d'ingestion vente, jamais lancé en prod — cf.
+    // docs/estimation-vente-phase2-cadrage.md), volontairement conservé aux deux
+    // élagages de juillet 2026. Dormant ne veut pas dire injoignable : déployé
+    // --no-verify-jwt et sans aucune garde, il offrait à n'importe qui des
+    // écritures `market_listings` / `market_price_history` sous service_role.
+    // Correctif prescrit par audit/patches/09-R4-cost-dos-edge-auth.md §C (S1g),
+    // gelé jusqu'ici derrière la PR #677.
+    if (!(await isServiceSecret(supabase, req))) {
+      return new Response(
+        JSON.stringify({ error: 'service_role required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const params: ScrapeRequest = await req.json()
     if (params.price_min == null || params.price_max == null) {
       return new Response(
@@ -68,9 +88,6 @@ serve(async (req) => {
     }
 
     const cantonFilter = params.cantons || null // null = accept all cantons
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
 
     // Fetch from RealAdvisor JSON API with price range + optional sort
     let apiUrl = `https://realadvisor.ch/api/listings?offerType_eq=buy&salePrice_gte=${params.price_min}&salePrice_lte=${params.price_max}&limit=36`

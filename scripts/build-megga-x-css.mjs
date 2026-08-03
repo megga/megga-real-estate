@@ -29,6 +29,14 @@ const ROOTLIKE = new Set([':root'])
 // le fond sombre du style guide.
 const DROP = new Set(['html', 'body', 'html body'])
 
+// Le badge « Made in Webflow » : ses règles voyagent avec la feuille alors que le
+// badge lui-même n'est dans AUCUNE page du dépôt. Elles ne servent donc rien et
+// nomment l'outil dans le CSS livré de app.megga.ch. Retirées par MOTIF (et non
+// par sélecteur exact) parce que Webflow les écrit en plusieurs variantes
+// (`.w-webflow-badge`, `.w-webflow-badge > img`, …).
+const DROP_PATTERN = /w-webflow-badge/
+
+
 const css = readFileSync(SRC, 'utf8')
 const rootNode = postcss.parse(css)
 
@@ -60,7 +68,7 @@ let dropped = 0
 rootNode.walkRules((rule) => {
   if (inKeyframes(rule)) return // ne pas toucher 0%/50%/to…
   if (rule.parent && rule.parent.type === 'atrule' && /font-face/i.test(rule.parent.name)) return
-  if (DROP.has(rule.selector.trim())) {
+  if (DROP.has(rule.selector.trim()) || DROP_PATTERN.test(rule.selector)) {
     rule.remove()
     dropped++
     return

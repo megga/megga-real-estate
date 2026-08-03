@@ -195,6 +195,28 @@ serve(async (req: Request) => {
     const userId = user.id
     const db = supabaseAdmin()
 
+    /**
+     * Agence de l'appelant, résolue au plus une fois.
+     *
+     * `db` est un client service-role : la RLS est contournée, donc une requête
+     * filtrée sur le seul id venu du corps atteint N'IMPORTE quelle ligne de la
+     * plateforme. Toute branche qui charge une visite par `body.visit_id` doit
+     * s'y restreindre — `sync_all` le faisait déjà, `create_event` et
+     * `update_event` non, ce qui suffisait à pousser les coordonnées de
+     * l'acheteur d'une autre agence dans le calendrier de l'appelant.
+     * Paresseux à dessein : `save_tokens` et `disconnect` n'ont pas besoin d'un
+     * profil et ne doivent pas se mettre à échouer s'il manque.
+     */
+    let cachedAgencyId: string | null | undefined
+    const callerAgencyId = async (): Promise<string> => {
+      if (cachedAgencyId === undefined) {
+        const { data } = await db.from('profiles').select('agency_id').eq('id', userId).maybeSingle()
+        cachedAgencyId = (data?.agency_id as string | null) ?? null
+      }
+      if (!cachedAgencyId) throw new Error('Profile not found')
+      return cachedAgencyId
+    }
+
     switch (body.action) {
       // ── Save tokens after OAuth callback ──
       case 'save_tokens': {
@@ -263,6 +285,7 @@ serve(async (req: Request) => {
           .from('visits')
           .select('*, contact:contacts(first_name, last_name), property:properties(title, address, city)')
           .eq('id', body.visit_id)
+          .eq('agency_id', await callerAgencyId())
           .single()
 
         if (!visit) throw new Error('Visit not found')
@@ -318,6 +341,7 @@ serve(async (req: Request) => {
           .from('visits')
           .select('*, contact:contacts(first_name, last_name), property:properties(title, address, city)')
           .eq('id', body.visit_id)
+          .eq('agency_id', await callerAgencyId())
           .single()
 
         if (!visit) throw new Error('Visit not found')
@@ -376,14 +400,7 @@ serve(async (req: Request) => {
         const accessToken = await getValidToken(userId)
         if (!accessToken) throw new Error('Outlook Calendar not connected')
 
-        // Get user's agency
-        const { data: profile } = await db
-          .from('profiles')
-          .select('agency_id')
-          .eq('id', userId)
-          .single()
-
-        if (!profile) throw new Error('Profile not found')
+        const agencyId = await callerAgencyId()
 
         // Get all planned/confirmed visits for the next 30 days
         const now = new Date()
@@ -392,7 +409,7 @@ serve(async (req: Request) => {
         const { data: visits } = await db
           .from('visits')
           .select('id, scheduled_at, status, contact:contacts(first_name, last_name), property:properties(title, address, city)')
-          .eq('agency_id', profile.agency_id)
+          .eq('agency_id', agencyId)
           .in('status', ['planned', 'confirmed'])
           .gte('scheduled_at', now.toISOString())
           .lte('scheduled_at', in30Days.toISOString())

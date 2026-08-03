@@ -27,8 +27,9 @@ import {
   MlkSuccess,
   MlkUpload,
 } from '@/components/kyc-magic-link/MlkScreens'
+import { MlkBooking } from '@/components/kyc-magic-link/MlkBooking'
 
-type LocalScreen = 'landing' | 'upload'
+type LocalScreen = 'landing' | 'upload' | 'booking'
 
 export default function KycPublicPage() {
   const { token } = useParams<{ token: string }>()
@@ -121,14 +122,31 @@ export default function KycPublicPage() {
   const agencyName =
     data.agency?.name?.trim() || t('client.placeholder.fallback_agency')
 
-  // Status submitted → écran Success final
+  // Status submitted → Success, puis prise de rendez-vous de vérification.
+  // Deux écrans plutôt qu'un : la cliente vient de déposer ses pièces et doit
+  // d'abord lire que MEGGA les a bien reçues. Enchaîner directement sur un
+  // calendrier escamoterait cet accusé de réception, qui est la seule chose
+  // qu'elle attend à cet instant.
   if (data.status === 'submitted') {
+    if (localScreen === 'booking') {
+      return (
+        <MlkBackground>
+          <MlkBooking
+            token={token}
+            firstName={firstName}
+            agentFullName={agentFullName}
+            agencyName={agencyName}
+          />
+        </MlkBackground>
+      )
+    }
     return (
       <MlkBackground>
         <MlkSuccess
           firstName={firstName}
           agentFullName={agentFullName}
           agencyName={agencyName}
+          onBook={() => setLocalScreen('booking')}
         />
       </MlkBackground>
     )

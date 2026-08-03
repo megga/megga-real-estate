@@ -366,17 +366,68 @@ Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel e
 ### Secrets Supabase
 ```
 DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
+MEGGA_MAGIC_LINK_HMAC_SECRET,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
-STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_IDENTITY_FLOW_ID,
 MAPBOX_TOKEN,
 UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 ```
 
-> `MAPBOX_TOKEN` est distinct de `VITE_MAPBOX_TOKEN` (secret GitHub Actions, injecté au
-> build du bundle navigateur). Le connecteur de géocodage KYB tourne dans une Edge
-> Function, côté serveur : il lui faut le jeton dans les secrets Supabase, pas dans le
-> build. La même valeur convient. Sans lui, le check `address_geocode` produit
-> `unavailable`, ce qui ne casse rien mais retire un signal du score.
+> ⚠ **`STRIPE_IDENTITY_FLOW_ID` n'est pas un secret, mais il doit rester hors du dépôt.**
+> C'est l'identifiant (`vf_…`) du flux de vérification configuré dans le tableau de bord
+> Stripe (Identity, décision du 03.08.2026 : passeport + carte d'identité, selfie exigé,
+> capture en direct, ni numéro de pièce ni e-mail ni téléphone). Le mode TEST et le mode
+> RÉEL en portent **deux distincts** — en figer un dans le code casserait l'autre, même
+> raison que les `STRIPE_PRICE_*`. Absent, `kyb-identity-verify` retombe sur les mêmes
+> options posées en clair : le parcours tourne, il n'échoue pas.
+>
+> ⛔ **`MEGGA_APP_URL` doit rester ABSENTE — ne pas « réparer » son absence.** Constaté le
+> 03.08.2026 : elle n'est posée nulle part, et c'est la bonne configuration. Son repli en
+> dur, `https://app.megga.ch`, est la valeur qui sert réellement les quatre parcours
+> publics — mesuré, `/kyc/…`, `/kyc-report/…`, `/accept-invite/…` et
+> `/visite/…/modifier` rendent **200 sur `app.megga.ch` et 401 sur `megga.ch`** (la
+> vitrine est protégée par mot de passe et ne connaît aucune de ces routes).
+>
+> La poser n'ajoute donc aucune capacité, seulement deux façons de casser les liens : une
+> faute de frappe, ou le plan archivé
+> `docs/superpowers/plans/2026-06-02-whatsapp-kyc-report-pdf.md` qui donne
+> `MEGGA_APP_URL=https://megga.ch` en exemple. La suivre remplacerait une panne visible par
+> une panne qui ressemble à un site vivant.
+>
+> À poser UNIQUEMENT le jour où l'app changerait de domaine — et alors sur le domaine de
+> l'APP, avec le schéma, sans chemin (le segment `/kyc` appartient à la route, pas au
+> réglage). Lecteurs : `_shared/app-url.ts` — qui porte les quatre constructeurs
+> (`kycMagicLinkUrl`, `visitManageUrl`, `teamInviteAcceptUrl`, `kycReportRenderUrl`) — et
+> `appointment-book`, seule fonction à garder sa propre lecture (elle accepte en plus un
+> repli `APP_URL`, et fige la valeur dans une `const` de module).
+
+> ✅ **`MEGGA_MAGIC_LINK_HMAC_SECRET` EST configuré** (mesuré le 03.08.2026) — il manquait
+> simplement à cet inventaire. Il signe les jetons publics du lien magique KYC ET des liens
+> de réception acheteur (`_shared/magic-link-token.ts`, ≥ 32 caractères exigés à la
+> signature). Sans lui, les deux parcours échouent **fermé** — `verifyMagicLinkToken` rend
+> `no_secret` et tout lien est refusé — donc son absence casse la fonctionnalité sans ouvrir
+> de faille.
+>
+> Méthode, réutilisable pour tout secret d'edge : interroger la fonction déployée avec un
+> faux jeton de syntaxe valide et lire le motif. Le secret est vérifié AVANT la signature,
+> donc `no_secret` ⇒ absent, `invalid_signature` ⇒ présent. ⚠ Cet oracle disparaît avec la
+> PR #1114, qui réduit le motif rendu aux appelants anonymes à `expired`/`invalid` — il
+> renseignait un tiers sur la configuration du déploiement.
+
+> ⚠ **`MAPBOX_TOKEN` n'est PAS configuré** (constat du 01.08.2026, [issue #1061](https://github.com/megga/megga-real-estate/issues/1061)).
+> Il est distinct de `VITE_MAPBOX_TOKEN` (secret GitHub Actions, injecté au build du bundle
+> navigateur). Le connecteur de géocodage KYB tourne dans une Edge Function, côté serveur :
+> il lui faut le jeton dans les secrets Supabase, pas dans le build. Sans lui, le check
+> `address_geocode` produit `unavailable` — et contrairement à ce que cette note affirmait,
+> **ça ne « retire pas juste un signal » : ça empêche tout score d'exister**. Le moteur exclut
+> `unavailable` du numérateur ET du dénominateur, or les trois seuls checks scorables
+> (`vat_lookup` 3.00, `address_geocode` 1.50, `domain_whois_age` 0.75) sortent tous
+> `unavailable` aujourd'hui → `verification_score = NULL` pour tout dossier suisse, et la file
+> de revue trie sur des `NULL`.
+>
+> « La même valeur convient » **reste à vérifier** : si le jeton porte une restriction URL
+> referrer, il fonctionnera dans le navigateur et échouera depuis l'Edge Function (appel sans
+> referrer). Il faudra alors un second jeton public sans restriction, scope `geocoding`.
 
 > ⚠ **Les deux variables du registre UID ne sont PAS configurées** (aucun secret Supabase,
 > aucune entrée `supabase/config.toml`) : on ignore encore s'il existe une API séparée pour
@@ -396,15 +447,39 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 
 ### Secrets GitHub Actions
 ```
-VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN,
+VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN (⚠ vide — voir ci-dessous),
 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 ```
+
+> ⚠ **`VITE_MAPBOX_TOKEN` est listé ici mais vide au build** ([issue #1061](https://github.com/megga/megga-real-estate/issues/1061)).
+> Les 290 fichiers déployés de `app.megga.ch` et `megga.ch` ont été inspectés le 01.08.2026 :
+> aucun littéral `pk.`, alors que `MrhMapbox.tsx` lit `import.meta.env.VITE_MAPBOX_TOKEN` au
+> niveau module — la valeur devrait y être figée. Conséquence : les cartes du CRM affichent
+> le repli « Carte indisponible ». Les secrets GitHub n'étant pas lisibles, l'absence est
+> déduite des artefacts, pas vérifiée à la source.
 
 ### Supabase
 - **Project ref** : eayczugyrvmtqnnmvjod | **Region** : eu-west-1 | **Plan** : Pro
 - **Anon key** : hardcodée dans `src/lib/supabase.ts` (sécurité via RLS, pas par obscurité)
 
 ### Prochaines priorités
+
+**🔴 Bloquant en production — [issue #1061](https://github.com/megga/megga-real-estate/issues/1061) : jeton Mapbox absent partout.**
+Deux secrets à poser, deux effets distincts, constatés le 01.08.2026 :
+- `VITE_MAPBOX_TOKEN` (GitHub Actions) est **vide au build** → les cartes du CRM sont mortes
+  (Matching · Recherche affiche le repli « Carte indisponible »). Vérifié en inspectant les
+  290 fichiers déployés de `app.megga.ch` + `megga.ch` : zéro littéral `pk.`. Exige un
+  redéploiement, la valeur étant figée au build.
+- `MAPBOX_TOKEN` (secrets Supabase) absent → `address_geocode` = `unavailable`, donc
+  **`verification_score` reste `NULL` pour tout dossier suisse** (les 3 seuls checks
+  scorables sont tous `unavailable` ; les checks tranchés sont des vétos à poids 0). Pris en
+  compte sans redéploiement. C'est le geste à plus fort effet sur le KYB.
+
+⚠ Vérifier la restriction **URL referrer** du jeton : un jeton restreint marche dans le
+navigateur mais échoue depuis l'Edge Function, qui appelle sans referrer — auquel cas les
+deux secrets doivent porter des valeurs **différentes**.
+
+---
 
 > ⚠ Liste pré-pivot (avril 2026), conservée pour mémoire. Depuis le pivot CRM-first (juin 2026), les points marketplace publique (`/louer`, « Mes lieux », carte des prix) sont gelés ; le focus actuel est le CRM agent.
 

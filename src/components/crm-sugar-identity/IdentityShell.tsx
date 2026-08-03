@@ -3,11 +3,17 @@
  * Rendu par la route /dashboard/identite (src/pages/agent/IdentitySugarPage.tsx),
  * tant que useIdentityGate() renvoie 'required'.
  *
- * Reprend TEL QUEL le mécanisme de thème de crm-sugar-wizard/WizardShell.tsx
- * (`setSugarV2Dark(dark)` au début du render, `SugarV2.foo` lu au render dans
- * chaque étape) et réutilise ses primitives (SgIcon, SgBlackPill, SgGhostPill,
- * SgInput dans StepSignataire) — voir tokens.ts pour le pourquoi d'un module de
- * thème séparé plutôt qu'un import croisé.
+ * HABILLAGE : MEGGA X, la transcription verbatim de la vitrine megga.ch, et non
+ * Sugar (bascule du 2 août 2026). Tout le parcours vit sous <MeggaX> et n'emploie
+ * que des classes de `src/styles/megga-x.generated.css` ; les quatre ajouts que la
+ * vitrine ne couvre pas (aide de champ, focus des choix, rail d'étapes, pied
+ * d'actions) sont isolés dans `megga-x-additions.css`, qui dit pourquoi.
+ *
+ * Conséquence assumée : ce parcours ne suit PAS la préférence clair/sombre de
+ * l'agent, la peau vitrine n'existant qu'en une polarité. C'est un couloir
+ * d'entrée — l'agent vient de megga.ch — pas une surface du CRM ; le thème reprend
+ * ses droits au retour sur /dashboard. Même raisonnement que l'écran d'arrivée
+ * (IdentityWelcomeScreen) et que BootSplash.
  *
  * Persistance (règle du plan étape 2, § Parcours cible) : l'étape qu'on est en
  * train de QUITTER est sauvegardée dans persistCurrentStep(), appelée par next()
@@ -16,28 +22,28 @@
  * vérité ; aucun stockage local parallèle (le brouillon d'étape en cours vit en
  * mémoire React le temps de la saisie, rien d'autre).
  *
- * Les cinq étapes ont désormais un écran réel : 0 (StepSignataire, tâche 3), 1
- * (StepAgence, tâche 4), 2 (StepBeneficiaires, tâche 5), 3 (StepPieceIdentite, tâche 6)
- * et 4 (StepRecapitulatif, tâche 7 — relecture de tout ce qui a été saisi, attestation
- * d'exactitude, soumission finale). La soumission (handleSubmit, plus bas) N'EST PAS un
- * bloc de persistCurrentStep comme les quatre précédents : c'est une action explicite
- * distincte, déclenchée par le bouton Soumettre du pied de page, jamais par
- * next()/prev()/goToStep() — voir le dernier cas de persistCurrentStep (étape 4 : rien
- * à y persister) et le commentaire d'en-tête de handleSubmit.
+ * QUATRE étapes, toutes avec un écran réel : 0 (StepSignataire), 1 (StepAgence),
+ * 2 (StepPieceIdentite) et 3 (StepRecapitulatif — relecture de tout ce qui a été
+ * saisi, attestation d'exactitude, soumission finale). La soumission (handleSubmit,
+ * plus bas) N'EST PAS un bloc de persistCurrentStep comme les précédents : c'est une
+ * action explicite distincte, déclenchée par le bouton Soumettre du pied de page,
+ * jamais par next()/prev()/goToStep() — voir le dernier cas de persistCurrentStep
+ * (étape 3 : rien à y persister) et le commentaire d'en-tête de handleSubmit.
  *
- * L'étape 3 (tâche 6) diffère des trois précédentes sur un point : elle ne porte
- * AUCUN brouillon local à sauvegarder au clic sur Continuer. Le fichier recto/verso
- * est téléversé IMMÉDIATEMENT vers Storage dès sa sélection (cf. en-tête de
+ * L'étape 2 diffère des deux précédentes sur un point : elle ne porte AUCUN
+ * brouillon local à sauvegarder au clic sur Continuer. Le fichier recto/verso est
+ * téléversé IMMÉDIATEMENT vers Storage dès sa sélection (cf. en-tête de
  * StepPieceIdentite.tsx) — persistCurrentStep n'y fait donc que vérifier la
  * complétude, jamais une écriture supplémentaire.
  *
- * L'étape 2 est en outre CONDITIONNELLE (tâche 5, point central de son brief) :
- * sautée quand la forme juridique choisie à l'étape 1 est une raison individuelle
- * (`legal_forms.category = 'sole_proprietorship'`) — le signataire EST l'entité,
- * aucun bénéficiaire effectif tiers à déclarer. « Sauter » veut dire : ni affichée
- * ni comptée par le stepper, dans les deux sens de navigation — voir
- * shouldSkipBeneficiairesStep/visibleIdentitySteps/nextIdentityStep/prevIdentityStep
- * plus bas, et leur usage dans le corps du composant.
+ * ⚠ L'étape « bénéficiaires effectifs » a été RETIRÉE du parcours le 3 août 2026
+ * (décision client). Elle occupait l'index 2 et était la SEULE étape conditionnelle
+ * du wizard — sautée pour une raison individuelle — ce qui justifiait à elle seule
+ * toute la machinerie de saut (shouldSkipBeneficiairesStep, visibleIdentitySteps,
+ * nextIdentityStep, prevIdentityStep), partie avec elle : avancer et reculer sont
+ * redevenus un simple clampIdentityStep(step ± 1). Le retrait ne touche QUE le
+ * wizard — le rôle `ubo` reste dans le schéma, la console admin continue d'afficher
+ * les bénéficiaires d'un dossier, et le backend n'a pas bougé.
  *
  * Sortie de secours (tâche 8, « Reprendre plus tard ») : un dirigeant peut quitter
  * le wizard sans le terminer. `showExitScreen` (useState) fait basculer le contenu
@@ -54,22 +60,24 @@
  * vérité — revenir (bouton Reprendre la saisie, ou une reconnexion ultérieure qui
  * rouvre ce wizard) relit ce qui a été persisté, rien n'est perdu.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { SugarV2, setSugarV2Dark, SG_IDENTITY_STEPS, SG_IDENTITY_KEYFRAMES } from './tokens'
-import { SgIcon, SgBlackPill, SgGhostPill } from '@/components/crm-sugar-wizard/primitives'
-import { useTheme } from '@/hooks/useTheme'
+import { SG_IDENTITY_STEPS } from './tokens'
+import { switchLanguage } from '@/i18n'
+import { MeggaX, MxButton, MxLink } from '@/components/megga-x'
+import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  useAgencyIdentity, useLegalFormCategory, useIdentityDocuments, validateIdentityDocumentFile,
-  ubosToRemove, ubosToRevoke, ubosToRevokeOnSkip, type IdentityRole, type IdentityDocumentSide,
+  useAgencyIdentity, useIdentityDocuments, validateIdentityDocumentFile, identityDocumentSidesFor,
+  isIdentityVerificationSufficient, verificationNeedsManualFallback,
+  type IdentityDocumentSide, type IdentityDocumentType, type IdentityVerificationStatus,
 } from '@/hooks/useAgencyIdentity'
+import { ONBOARDING_CALL_ROUTE } from '@/hooks/useOnboardingCall'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
-import type { LegalFormCategory } from '@/hooks/useLegalForms'
+import type { KybIdReadRecord } from '@/types/kybIdRead'
 import { StepSignataire } from './steps/StepSignataire'
 import { StepAgence } from './steps/StepAgence'
-import { StepBeneficiaires } from './steps/StepBeneficiaires'
 import { StepPieceIdentite } from './steps/StepPieceIdentite'
 import { StepRecapitulatif } from './steps/StepRecapitulatif'
 
@@ -118,10 +126,18 @@ export function isSignataireStepComplete(draft: SignataireDraft): boolean {
  * (français, comme SignataireDraft) : à un caractère de distance de `agency`
  * (AgencySettingsData renvoyée par le hook), une paire agence/agency aurait été un
  * copier-coller-typo attendant de se produire dans ce fichier précis.
+ *
+ * `tradeName` et `tva` ont été RETIRÉS de ce brouillon le 3 août 2026 (décision
+ * client : ni l'un ni l'autre ne sert au dossier KYB). Retirés du TYPE, et pas
+ * seulement de l'écran : le brouillon est étalé tel quel sur l'agence chargée
+ * (`{ ...agency, ...agencyDraft }`), donc les garder ici à vide aurait ÉCRASÉ
+ * `trade_name` et `vat` en base pour une agence qui les avait déjà renseignés
+ * ailleurs (Réglages › Agence). Absents du type, les deux colonnes ne sont plus
+ * touchées du tout par ce parcours.
  */
 export type AgencyDraft = Pick<
   AgencySettingsData,
-  'country' | 'legalFormId' | 'legal' | 'tradeName' | 'businessRegistrationNumber' | 'tva' | 'address' | 'postal' | 'city' | 'canton'
+  'country' | 'legalFormId' | 'legal' | 'businessRegistrationNumber' | 'address' | 'postal' | 'city' | 'canton'
 >
 
 /** Brouillon vide — état initial avant hydratation depuis une agence déjà persistée. */
@@ -130,9 +146,7 @@ export const EMPTY_AGENCY_DRAFT: AgencyDraft = {
   country: '',
   legalFormId: '',
   legal: '',
-  tradeName: '',
   businessRegistrationNumber: '',
-  tva: '',
   address: '',
   postal: '',
   city: '',
@@ -140,107 +154,41 @@ export const EMPTY_AGENCY_DRAFT: AgencyDraft = {
 }
 
 /**
- * true si les 9 champs BLOQUANTS de l'étape agence sont renseignés. `tva` est
- * volontairement EXCLU de ce tout-ou-rien (décision produit du 27.07.2026) :
- * l'assujettissement à la TVA suisse n'est obligatoire qu'au-delà d'un seuil de
- * chiffre d'affaires, donc une raison individuelle parfaitement légitime peut n'avoir
- * aucun numéro de TVA — l'exiger la bloquerait sans raison et la renverrait au
- * support. Même principe que le reste du dispositif de vérification KYB
- * (docs/agency-kyb-verification.md) : un signal absent en est exclu plutôt que
- * pénalisé. `tva` reste un champ normal de AgencyDraft par ailleurs : saisi, il est
- * toujours persisté (persistCurrentStep étale tout le brouillon d'un coup) — seule sa
- * présence a cessé d'être une condition d'avancement.
+ * true si l'étape agence est renseignée. Sept champs pour tout le monde, plus le
+ * canton EN SUISSE SEULEMENT.
+ *
+ * ⚠ Le canton était exigé de TOUS les pays, avec les 26 cantons suisses pour
+ * seules options : une agence française ou liechtensteinoise ne pouvait donc pas
+ * franchir l'étape sans s'attribuer un canton suisse — un blocage pur, sur un
+ * sélecteur de pays qui propose ces trois juridictions depuis l'origine. Défaut
+ * relevé le 03.08.2026 en ouvrant l'étape aux registres français. Ni la France ni
+ * le Liechtenstein n'ont de canton, leur découpage tenant dans le code postal.
+ *
+ * `tradeName` et `tva` ont par ailleurs quitté le parcours le même jour
+ * (cf. AgencyDraft) ; l'ancienne exception de la TVA facultative (27.07.2026) a
+ * disparu avec le champ.
  *
  * Comme isSignataireStepComplete : gate à la fois le bouton Continuer ET la tentative
- * de sauvegarde (persistCurrentStep) — tout ou rien sur les 9 champs restants, jamais
- * une écriture partielle de l'identité légale de l'agence.
+ * de sauvegarde (persistCurrentStep) — tout ou rien, jamais une écriture partielle
+ * de l'identité légale de l'agence.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
 export function isAgencyStepComplete(draft: AgencyDraft): boolean {
+  const cantonRequis = draft.country.trim() === 'CH'
   return (
     draft.country.trim() !== ''
     && draft.legalFormId.trim() !== ''
     && draft.legal.trim() !== ''
-    && draft.tradeName.trim() !== ''
     && draft.businessRegistrationNumber.trim() !== ''
     && draft.address.trim() !== ''
     && draft.postal.trim() !== ''
     && draft.city.trim() !== ''
-    && draft.canton.trim() !== ''
+    && (!cantonRequis || draft.canton.trim() !== '')
   )
 }
 
 /**
- * Un bénéficiaire effectif du brouillon local de l'étape 2 (tâche 5) — une liste, à la
- * différence des deux étapes précédentes qui portent une entité unique.
- * `personId` distingue une saisie neuve (`null`) d'une personne déjà persistée
- * (id réel) — c'est ce même id qui, lorsqu'il coïncide avec celui du signataire, fait
- * qu'un « second rôle » s'ajoute à une personne existante au lieu d'en dupliquer
- * l'identité (cf. brief tâche 5, StepBeneficiaires « reprendre le signataire »).
- * `pepSelfDeclared` est nullable ICI (contrairement à `IdentityRole.pepSelfDeclared`,
- * `boolean` non nullable) : `null` = pas encore répondu, pour ne jamais faire de
- * "false" un défaut silencieux sur une déclaration de conformité — même logique que
- * `signaturePower` côté signataire. Coercé en `boolean` uniquement à l'écriture
- * (persistCurrentStep), une fois la complétude de la ligne déjà vérifiée.
- */
-export interface BeneficiaireDraft {
-  personId: string | null
-  firstName: string
-  lastName: string
-  dateOfBirth: string | null
-  nationality: string | null
-  ownershipPct: number | null
-  pepSelfDeclared: boolean | null
-}
-
-/** Ligne vide — état initial d'une nouvelle entrée ajoutée dans StepBeneficiaires. */
-// eslint-disable-next-line react-refresh/only-export-components -- constante partagée avec StepBeneficiaires/les tests, même motif que EMPTY_SIGNATAIRE_DRAFT.
-export const EMPTY_BENEFICIAIRE_DRAFT: BeneficiaireDraft = {
-  personId: null,
-  firstName: '',
-  lastName: '',
-  dateOfBirth: null,
-  nationality: null,
-  ownershipPct: null,
-  pepSelfDeclared: null,
-}
-
-/**
- * true si les 6 champs d'un bénéficiaire sont renseignés — même discipline tout-ou-rien
- * que isSignataireStepComplete/isAgencyStepComplete : jamais de ligne à moitié saisie
- * silencieusement acceptée. `ownershipPct` n'est PAS comparé au seuil GAFI de 25 % :
- * le brief est explicite, ce seuil est une aide à la saisie rappelée par l'interface,
- * jamais une règle de validation — 0 % (dilution) et null (pas répondu) sont les seules
- * valeurs distinguées ici, `!= null` couvre les deux sans confondre l'une avec l'autre.
- */
-// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
-export function isBeneficiaireEntryComplete(entry: BeneficiaireDraft): boolean {
-  return (
-    entry.firstName.trim() !== ''
-    && entry.lastName.trim() !== ''
-    && entry.dateOfBirth != null
-    && entry.nationality != null
-    && entry.ownershipPct != null
-    && entry.pepSelfDeclared != null
-  )
-}
-
-/**
- * true si l'étape bénéficiaires effectifs peut être quittée en avançant. Une liste VIDE
- * est valide (contrairement au signataire et à l'agence, qui portent chacun une entité
- * BLOQUANTE) : aucune personne physique ne détenant seule 25 % ou plus est une réponse
- * légitime, et la RPC de soumission (submit_agency_identity, 20260728108000) n'exige
- * d'ailleurs aucun UBO pour accepter le dossier — seuls raison sociale, forme
- * juridique, pays et signataire actif y sont vérifiés. Ce qui n'est en revanche jamais
- * toléré, c'est une ligne commencée puis laissée incomplète (isBeneficiaireEntryComplete).
- */
-// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isAgencyStepComplete.
-export function isBeneficiairesStepComplete(entries: BeneficiaireDraft[]): boolean {
-  return entries.every(isBeneficiaireEntryComplete)
-}
-
-/**
- * Brouillon local de l'étape 4 (tâche 6), contrôlé par IdentityShell comme les étapes
+ * Brouillon local de l'étape 3 (tâche 6), contrôlé par IdentityShell comme les étapes
  * précédentes — mais ce n'est PAS un brouillon au même sens : `recto`/`verso` sont les
  * chemins Storage déjà téléversés (useIdentityDocuments), jamais une saisie en
  * attente. IdentityShell le reconstruit à chaque rendu depuis ce hook plutôt que de
@@ -248,27 +196,52 @@ export function isBeneficiairesStepComplete(entries: BeneficiaireDraft[]): boole
  * rien d'autre à mémoriser côté client (cf. en-tête de StepPieceIdentite.tsx).
  */
 export interface PieceIdentiteDraft {
+  /**
+   * Statut de la vérification Stripe Identity — le chemin PRINCIPAL depuis le 3 août
+   * 2026. Quand il suffit, aucun fichier n'est demandé : la pièce ne transite pas par
+   * MEGGA, et c'est tout l'intérêt.
+   */
+  verificationStatus: IdentityVerificationStatus | null
+  /** Nature déclarée de la pièce — décide combien de faces exige le chemin de SECOURS. */
+  documentType: IdentityDocumentType | null
   recto: string | null
   verso: string | null
 }
 
-/** Brouillon vide — aucun des deux côtés encore téléversé. */
+/** Brouillon vide — aucune vérification, aucune nature choisie, aucun côté téléversé. */
 // eslint-disable-next-line react-refresh/only-export-components -- constante partagée avec les tests, même motif que EMPTY_SIGNATAIRE_DRAFT.
 export const EMPTY_PIECE_IDENTITE_DRAFT: PieceIdentiteDraft = {
+  verificationStatus: null,
+  documentType: null,
   recto: null,
   verso: null,
 }
 
 /**
- * true si RECTO ET VERSO sont tous deux téléversés — contrairement à
- * isBeneficiairesStepComplete (une liste vide est une réponse légitime), il n'y a ici
- * aucune valeur par défaut acceptable : l'étape existe précisément pour collecter les
- * deux faces de la pièce d'identité du signataire, tant que l'une manque le dossier
- * KYB reste incomplet.
+ * true si toutes les faces exigées par la nature déclarée sont téléversées.
+ *
+ * Aucune valeur par défaut n'est acceptable ici — l'étape existe précisément pour
+ * collecter la pièce du signataire, et tant qu'une face manque le dossier KYB reste
+ * incomplet. Mais « les deux faces » n'était pas la bonne règle : un passeport n'a
+ * qu'une page de données, et l'exiger quand même faisait photographier une
+ * couverture vierge. C'est identityDocumentSidesFor (useAgencyIdentity.ts) qui
+ * tranche, une seule fois, pour cet écran ET pour cette garde.
+ *
+ * Tant qu'aucune nature n'est déclarée, la liste rendue est complète (recto+verso) :
+ * une étape n'est jamais réputée finie parce qu'une question n'a pas été posée.
  */
-// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isBeneficiairesStepComplete.
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isAgencyStepComplete.
 export function isPieceIdentiteStepComplete(draft: PieceIdentiteDraft): boolean {
-  return draft.recto != null && draft.verso != null
+  // Chemin PRINCIPAL — la vérification par le prestataire. Elle se suffit à elle-même :
+  // le document a été présenté, authentifié et confronté à un selfie chez Stripe, et
+  // rien n'a été déposé ici. Demander un fichier en plus reviendrait à réintroduire
+  // exactement la copie qu'on cherche à ne plus détenir.
+  if (isIdentityVerificationSufficient(draft.verificationStatus)) return true
+
+  // Chemin de SECOURS — le dépôt manuel, pour les cas que Stripe ne sait pas traiter
+  // (titre de séjour, consentement refusé, pays non couvert).
+  if (draft.documentType == null) return false
+  return identityDocumentSidesFor(draft.documentType).every((side) => draft[side] != null)
 }
 
 /**
@@ -294,17 +267,13 @@ export function clampIdentityStep(step: number, stepCount: number): number {
 
 /**
  * true si l'étape `step` autorise une navigation avant (bouton Continuer du pied de
- * page). Les étapes 0 (StepSignataire), 1 (StepAgence) et 2 (StepBeneficiaires) ont un
- * écran réel — gate sur leur complétude respective. `beneficiaires` est optionnel
- * (défaut `[]`) : les appels antérieurs à la tâche 5 (tests des tâches 3/4) restent
- * valides sans le 4e argument, et une liste vide est de toute façon complète
- * (isBeneficiairesStepComplete). L'étape 3 (StepPieceIdentite) gate elle aussi sur sa
- * propre complétude, cf. le paragraphe `pieceIdentite` plus bas. L'étape 4
- * (récapitulatif, StepRecapitulatif, tâche 7) renvoie toujours `false` ici pour une
- * raison différente : c'est la DERNIÈRE étape, il n'existe pas de « suivante » vers
- * laquelle avancer — le pied de page n'y affiche d'ailleurs jamais de bouton Continuer
- * (cf. le rendu du footer plus bas), seulement Soumettre, qui gate sur l'attestation
- * d'exactitude et non sur ce booléen (canSubmitIdentity, plus bas).
+ * page). Les étapes 0 (StepSignataire), 1 (StepAgence) et 2 (StepPieceIdentite) ont un
+ * écran réel — gate sur leur complétude respective. L'étape 3 (récapitulatif,
+ * StepRecapitulatif) renvoie toujours `false` ici pour une raison différente : c'est la
+ * DERNIÈRE étape, il n'existe pas de « suivante » vers laquelle avancer — le pied de
+ * page n'y affiche d'ailleurs jamais de bouton Continuer (cf. le rendu du footer plus
+ * bas), seulement Soumettre, qui gate sur l'attestation d'exactitude et non sur ce
+ * booléen (canSubmitIdentity, plus bas).
  *
  * Revue tâche 3 : `canNext` valait `true` sans condition dès step > 0 — le bouton
  * Continuer du pied de page restait cliquable sur ces paliers vides jusqu'au
@@ -312,82 +281,26 @@ export function clampIdentityStep(step: number, stepCount: number): number {
  * déjà la règle (goToStep refuse toute cible > step, cf. plus bas), mais le rapport de
  * la tâche affirmait à tort que c'était vrai aussi du bouton du pied de page.
  *
- * `pieceIdentite` (tâche 6) suit le même motif que `beneficiaires` : paramètre
- * optionnel à défaut vide, pour que les appels antérieurs (tests des tâches 3 à 5)
- * restent valides sans le 5e argument — mais contrairement à `beneficiaires`, un
- * brouillon vide y est INCOMPLET (isPieceIdentiteStepComplete), jamais une réponse
- * légitime : recto et verso sont tous deux exigés pour avancer.
+ * `pieceIdentite` est un paramètre optionnel à défaut vide, pour que les appels
+ * antérieurs restent valides sans le 4e argument — mais un brouillon vide y est
+ * INCOMPLET (isPieceIdentiteStepComplete), jamais une réponse légitime : recto et verso
+ * sont tous deux exigés pour avancer.
+ *
+ * L'étape « bénéficiaires effectifs » occupait l'index 2 jusqu'au 3 août 2026 ; les
+ * indices 2 et 3 désignent depuis la pièce d'identité et le récapitulatif (cf. le
+ * commentaire de SG_IDENTITY_STEPS, tokens.ts).
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete/clampIdentityStep.
 export function canAdvanceFromIdentityStep(
   step: number,
   signataire: SignataireDraft,
   agency: AgencyDraft,
-  beneficiaires: BeneficiaireDraft[] = [],
   pieceIdentite: PieceIdentiteDraft = EMPTY_PIECE_IDENTITE_DRAFT,
 ): boolean {
   if (step === 0) return isSignataireStepComplete(signataire)
   if (step === 1) return isAgencyStepComplete(agency)
-  if (step === 2) return isBeneficiairesStepComplete(beneficiaires)
-  if (step === 3) return isPieceIdentiteStepComplete(pieceIdentite)
+  if (step === 2) return isPieceIdentiteStepComplete(pieceIdentite)
   return false
-}
-
-/**
- * Index fixe de l'étape bénéficiaires effectifs dans SG_IDENTITY_STEPS (voir tokens.ts
- * § Étapes du wizard : signataire=0, agence=1, bénéficiaires=2, pièce d'identité=3,
- * récapitulatif=4). La SEULE étape conditionnelle du parcours — pas de paramétrage
- * générique « quel index sauter » ici, ce serait de la généricité non demandée pour un
- * wizard qui n'a qu'un seul palier optionnel par construction.
- */
-const BENEFICIAIRES_STEP_INDEX = 2
-
-/**
- * true si l'étape bénéficiaires effectifs (index 2) doit être sautée : raison
- * individuelle, le signataire EST l'entité, aucun bénéficiaire effectif tiers à
- * déclarer (§4 de la spec de conception, rôle explicite de `legal_forms.category`).
- * `null` (catégorie pas encore connue, ex. aucune forme juridique choisie) -> PAS
- * sautée : tant qu'on ignore si l'étape s'applique, mieux vaut la montrer que la
- * masquer à tort et laisser filer un dossier KYB incomplet.
- */
-// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
-export function shouldSkipBeneficiairesStep(category: LegalFormCategory | null): boolean {
-  return category === 'sole_proprietorship'
-}
-
-/**
- * Indices d'étapes VISIBLES, dans l'ordre — exclut BENEFICIAIRES_STEP_INDEX quand
- * `skipBeneficiaires`. Alimente à la fois le rendu du stepper du header (qui ne doit
- * jamais compter une étape que l'utilisateur ne verra pas, cf. brief tâche 5) et
- * nextIdentityStep/prevIdentityStep ci-dessous — une seule source de vérité pour
- * « quelles étapes existent réellement pour cette agence ».
- */
-// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que clampIdentityStep.
-export function visibleIdentitySteps(stepCount: number, skipBeneficiaires: boolean): number[] {
-  const all = Array.from({ length: stepCount }, (_, i) => i)
-  return skipBeneficiaires ? all.filter((i) => i !== BENEFICIAIRES_STEP_INDEX) : all
-}
-
-/**
- * Étape suivante VISIBLE après `step` (jamais BENEFICIAIRES_STEP_INDEX quand sautée),
- * bornée à la dernière étape visible. Remplace un simple `clampIdentityStep(step + 1,
- * …)` dans next() : ce dernier ignore le saut et laisserait l'utilisateur atterrir sur
- * l'étape bénéficiaires même quand elle ne s'applique pas — exactement le bug que la
- * tâche 5 doit éviter dans les DEUX sens de navigation (voir prevIdentityStep).
- */
-// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que clampIdentityStep.
-export function nextIdentityStep(step: number, stepCount: number, skipBeneficiaires: boolean): number {
-  const visible = visibleIdentitySteps(stepCount, skipBeneficiaires)
-  const pos = visible.indexOf(step)
-  return visible[pos === -1 ? 0 : Math.min(pos + 1, visible.length - 1)]
-}
-
-/** Symétrique de nextIdentityStep pour le bouton Précédent — même garde-fou, sens inverse. */
-// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que nextIdentityStep.
-export function prevIdentityStep(step: number, stepCount: number, skipBeneficiaires: boolean): number {
-  const visible = visibleIdentitySteps(stepCount, skipBeneficiaires)
-  const pos = visible.indexOf(step)
-  return visible[pos === -1 ? 0 : Math.max(pos - 1, 0)]
 }
 
 /**
@@ -473,6 +386,360 @@ export function shouldResetAttestationLeavingRecap(previousStep: number, nextSte
 }
 
 /**
+ * Écran d'arrivée : ce wizard s'ouvre-t-il sur une explication, ou droit sur la
+ * première étape ?
+ *
+ * Le dirigeant qui vient d'activer son compte tombait sur « Signataire » sans un
+ * mot : ni pourquoi on lui demande son identité avant de lui ouvrir le CRM, ni
+ * combien de temps ça prend, ni qu'une pièce d'identité lui sera réclamée en
+ * cours de route. Un mur se traverse mieux quand il annonce ce qu'il y a
+ * derrière.
+ *
+ * `personsCount` est le signal de fraîcheur : l'étape 0 écrit dans
+ * `agency_related_persons`, donc zéro personne veut dire que rien n'a jamais été
+ * validé. Un dirigeant qui revient reprendre sa saisie a déjà lu l'écran et a des
+ * données : on ne le lui remontre pas. Celui qui est reparti avant d'avoir rien
+ * saisi le revoit, ce qui est juste puisqu'il n'a jamais commencé.
+ *
+ * ⚠ `isRevalidating` n'est pas une redondance d'`isLoading`. React Query sert
+ * d'abord le CACHE — `isLoading` faux, liste encore vide de la visite précédente
+ * — puis revalide. Sans cette seconde garde, un dirigeant qui a déjà saisi son
+ * signataire, quitte le wizard et revient, revoyait l'écran d'arrivée le temps
+ * d'un aller-retour réseau. Attrapé par la suite E2E KYB le 01.08.2026 : elle
+ * voyait le bouton « Identifier mon agence », le perdait avant de pouvoir
+ * cliquer, et n'avait plus ni écran d'arrivée ni coquille sous la main. C'est
+ * exactement le flash qu'on est venu corriger sur le tableau de bord, à un autre
+ * étage.
+ *
+ * Pur (pas de React) pour la même raison que les autres règles de ce fichier :
+ * la décision se teste sans monter la coquille.
+ */
+/**
+ * Ce que la route rend, en TROIS états mutuellement exclusifs.
+ *
+ * `welcomeDecision` vaut `null` tant que la question « ce dirigeant a-t-il déjà
+ * saisi quelque chose ? » n'a pas de réponse arrêtée. Elle se pose UNE fois, sur
+ * des données stabilisées, et ne se repose jamais.
+ *
+ * Pourquoi trois états et pas deux : tant qu'on n'a pas décidé, il ne faut rendre
+ * NI l'écran d'arrivée NI la coquille. Rendre la coquille « en attendant » la
+ * faisait remplacer par l'écran d'arrivée une fraction de seconde plus tard —
+ * c'est ce clignotement, et non un mauvais sélecteur, qui a fait tomber la suite
+ * E2E KYB trois fois de suite le 01.08.2026 : elle attrapait un repère qui
+ * disparaissait sous elle. Un écran d'attente neutre ne porte aucun des deux
+ * repères, donc rien à attraper trop tôt.
+ */
+export type IdentityScreen = 'preparing' | 'welcome' | 'wizard'
+
+/**
+ * La question est-elle seulement posable ? Tant qu'une lecture est en cours —
+ * premier chargement (`isLoading`) ou revalidation d'un cache déjà servi
+ * (`isRevalidating`) — la liste des personnes n'est pas un verdict, et trancher
+ * dessus revient à décider sur un état qui va changer.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldShowIdentityWelcome.
+export function shouldDecideIdentityWelcome(isLoading: boolean, isRevalidating: boolean): boolean {
+  return !isLoading && !isRevalidating
+}
+
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldShowIdentityWelcome.
+export function resolveIdentityScreen(
+  welcomeDecision: boolean | null,
+  welcomeDismissed: boolean,
+  showExitScreen: boolean,
+): IdentityScreen {
+  if (welcomeDecision === null) return 'preparing'
+  if (welcomeDecision && !welcomeDismissed && !showExitScreen) return 'welcome'
+  return 'wizard'
+}
+
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldResetAttestationLeavingRecap.
+export function shouldShowIdentityWelcome(
+  personsCount: number,
+  isLoading: boolean,
+  isRevalidating: boolean,
+): boolean {
+  return !isLoading && !isRevalidating && personsCount === 0
+}
+
+/**
+ * Écran d'arrivée, rendu À LA PLACE de toute la coquille Sugar tant qu'il n'a pas
+ * été franchi (cf. son point d'appel dans IdentityShell). Jamais une route : la
+ * route du gate est la seule que shouldRedirectToIdentityGate exempte, en sortir
+ * renverrait ici (incident P0 c830f9a9). Même statut qu'ExitPendingScreen, donc,
+ * mais pas la même peau.
+ *
+ * Habillé en MEGGA X, pas en Sugar, et c'est délibéré : l'agent vient de
+ * megga.ch, il a lu « Compte créé » sur la vitrine, il a cliqué un lien reçu par
+ * e-mail. Cet écran est le dernier de ce parcours-là, pas le premier du CRM —
+ * il en garde donc la peau, et la bascule vers Sugar se fait au clic sur
+ * Commencer, quand le wizard commence vraiment. Même raisonnement que BootSplash,
+ * qui porte lui aussi l'habillage de la vitrine.
+ *
+ * Rien n'est réinventé : le gabarit est celui des écrans d'authentification de la
+ * vitrine (`card sign-in-card` > `pd---content-inside-card` > `inner-container
+ * _464px center`), la pastille de validation est la même que « Lien envoyé » de
+ * la modale mot de passe oublié (`success-message-icon-top` + le glyphe U+E805 de
+ * la police Mega Custom Icons), et les boutons sont les composants MEGGA X.
+ * La feuille est la transcription verbatim de la vitrine, scopée `.megga-x`.
+ */
+/**
+ * Écran d'attente, rendu tant que la décision n'est pas prise (cf.
+ * resolveIdentityScreen). Ne porte AUCUN des repères des deux autres écrans —
+ * c'est tout son intérêt : rien ne peut y être attrapé trop tôt, ni par un
+ * utilisateur ni par un test. Même habillage que l'écran d'arrivée, pour que la
+ * bascule ne se voie pas.
+ */
+function IdentityPreparingScreen() {
+  const { t } = useTranslation('onboarding')
+  return (
+    <MeggaX>
+      <div className="page-wrapper full-height-page mx-appshell">
+        <div className="header pd-medium-top-and-bottom">
+          <div className="container-default w-container">
+            <div className="flex-horizontal">
+              <div className="header-logo">
+                <img src="/megga-logo.svg" alt="MEGGA" />
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Mêmes classes de gabarit que l'écran d'arrivée, pour que la bascule de
+            l'un à l'autre ne déplace rien : la respiration vient du centrage dans
+            la hauteur restante, pas des 64/108 px fixes de la section vitrine. */}
+        <section className="section hero---br pd-top-0 pd-bottom-0 mx-grow mx-shellbody">
+          <div className="container-default w-container mx-scrollarea mx-scrollarea--center">
+            <div className="inner-container _506px center">
+              <div className="text-center" role="status" aria-live="polite">
+                <p className="paragraph-large">{t('gate.shell.preparing')}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </MeggaX>
+  )
+}
+
+function IdentityWelcomeScreen({ onStart, onLater }: { onStart: () => void; onLater: () => void }) {
+  const { t } = useTranslation('onboarding')
+  return (
+    <MeggaX>
+      {/* `mx-appshell` : cet écran-ci débordait de 69 px à 1280×720 — une carte,
+          un bouton, et il fallait dérouler. La coquille tient maintenant dans la
+          fenêtre et la carte se centre dans ce qui reste. */}
+      <div className="page-wrapper full-height-page mx-appshell">
+        {/* Même en-tête que signup.html / login.html, sans lien : l'agent est
+            déjà connecté, le logo n'est plus une porte vers la vitrine. */}
+        <div className="header pd-medium-top-and-bottom">
+          <div className="container-default w-container">
+            <div className="flex-horizontal">
+              {/* `.header-logo img` porte le `filter: brightness(0) invert(1)` de la
+                  vitrine, qui blanchit le tracé noir sur fond sombre, et sa taille.
+                  Un <div> plutôt qu'un <a> : l'agent est connecté, le logo ne
+                  ramène nulle part. */}
+              <div className="header-logo">
+                <img src="/megga-logo.svg" alt="MEGGA" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <section className="section hero---br pd-top-0 pd-bottom-0 mx-grow mx-shellbody">
+          <div className="container-default position-relative---z-index-1 w-container mx-scrollarea mx-scrollarea--center">
+            <div className="inner-container _634px center">
+              <div className="card sign-in-card">
+                <div className="pd---content-inside-card pd---vertical-side-104px">
+                  <div className="inner-container _464px center">
+                    <div className="text-center">
+                      {/* Glyphe de la police Mega Custom Icons, comme dans la vitrine :
+                          la classe porte déjà la pastille dégradée et la font-family. */}
+                      <div className="success-message-icon-top">{''}</div>
+                      <h1 className="display-6">{t('gate.welcome.title')}</h1>
+                      <div className="mg-top-4x-extra-small">
+                        <p className="paragraph-large">{t('gate.welcome.body')}</p>
+                      </div>
+                    </div>
+                    <div className="mg-top-large text-center">
+                      {/* `type="button"` explicite, comme aux étapes 3/4/5 : MxButton n'en
+                          pose aucun, donc son défaut HTML est `submit`. Aucun de ces
+                          boutons ne soumet quoi que ce soit — la coquille Sugar les
+                          écrivait déjà tous en `type="button"`, la peau MEGGA X l'avait
+                          perdu au passage. Inerte tant qu'aucun <form> ne les enveloppe,
+                          mais c'est exactement le genre de déclaration fausse qu'on ne
+                          laisse pas traîner (même raison que MxLink sans href). */}
+                      <MxButton type="button" className="app-button" onClick={onStart}>
+                        {t('gate.welcome.startButton')}
+                      </MxButton>
+                    </div>
+                    <div className="mg-top-small">
+                      <div className="text-center">
+                        <MxLink onClick={onLater}>
+                          {t('wizard.footer.exit')}
+                        </MxLink>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </MeggaX>
+  )
+}
+
+/**
+ * Langues du produit, nommées dans leur propre langue.
+ *
+ * Des endonymes, jamais des exonymes : « Deutsch » se lit de la même façon sur
+ * un wizard français ou italien, là où « Allemand » suppose de comprendre le
+ * français pour retrouver l'allemand — exactement la personne qu'on cherche à
+ * dépanner. Ils ne passent donc pas par les fichiers de traduction.
+ */
+const LANGUES_WIZARD = [
+  { code: 'fr', nom: 'Français' },
+  { code: 'de', nom: 'Deutsch' },
+  { code: 'en', nom: 'English' },
+  { code: 'it', nom: 'Italiano' },
+]
+
+/**
+ * Sélecteur de langue du wizard d'onboarding.
+ *
+ * POURQUOI IL EXISTE. Ce wizard est le premier écran d'un nouvel agent, et il
+ * se trouve derrière le gate d'identité : les Réglages, qui portent l'autre
+ * sélecteur, ne sont pas atteignables tant qu'il n'est pas terminé. Tant que la
+ * langue ne pouvait venir que d'un choix explicite, cette impasse restait
+ * théorique. Depuis que le pays du visiteur peut la deviner
+ * (`src/lib/geoLanguage.ts`, chantier langue-par-géolocalisation), elle ne
+ * l'est plus : une déduction fausse — un Genevois derrière la sortie zurichoise
+ * d'un VPN d'entreprise, cas banal — enfermerait quelqu'un dans un parcours de
+ * conformité en allemand, sans issue.
+ *
+ * Le `<select>` natif est un choix, pas un repli : navigable au clavier,
+ * annoncé par les lecteurs d'écran et rendu par le sélecteur du système sur
+ * mobile, sans qu'on ait à le réimplémenter.
+ *
+ * (Ré-application du 2 août 2026 : ce composant venait de la branche
+ * langue-par-géolocalisation, écrite contre l'ancien header Sugar ; #1069 a
+ * réécrit le header en MEGGA X sans lui. Logique et documentation reprises
+ * telles quelles, seul le style passe de SugarV2 — retiré — à `.mx-langpicker`,
+ * cf. megga-x-additions.css.)
+ *
+ * `switchLanguage` et non `i18n.changeLanguage` : ce dernier bascule AVANT que
+ * le bundle de la langue existe, ce qui repassait l'écran par le français le
+ * temps du téléchargement puis le re-rendait une seconde fois (voir sa JSDoc
+ * dans src/i18n/index.ts pour le déroulé mesuré). `onPending` remonte l'attente
+ * à la coquille, qui en fait un squelette — le sélecteur ne pilote pas
+ * l'affichage du parcours lui-même.
+ */
+function WizardLanguagePicker({ onPending }: { onPending: (pending: boolean) => void }) {
+  const { t, i18n } = useTranslation('onboarding')
+  const handleChange = async (lng: string) => {
+    onPending(true)
+    try {
+      await switchLanguage(lng)
+    } finally {
+      onPending(false)
+    }
+  }
+  return (
+    <select
+      className="mx-langpicker"
+      value={i18n.language.slice(0, 2)}
+      onChange={(e) => { void handleChange(e.target.value) }}
+      aria-label={t('wizard.header.language')}
+      title={t('wizard.header.language')}
+    >
+      {LANGUES_WIZARD.map((l) => (
+        <option key={l.code} value={l.code}>{l.nom}</option>
+      ))}
+    </select>
+  )
+}
+
+/**
+ * Seuil au-delà duquel une bascule de langue mérite un squelette.
+ *
+ * En dessous, la langue est déjà en cache (second passage par une langue, ou le
+ * français toujours bundlé) et la bascule est quasi instantanée : afficher un
+ * squelette y produirait un CLIGNOTEMENT, c'est-à-dire précisément le défaut
+ * qu'on cherche à retirer. Au-delà, il y a un vrai téléchargement (13 imports
+ * dynamiques, ~140 Ko) et le silence deviendrait une panne apparente.
+ */
+const LANGUAGE_SKELETON_DELAY_MS = 120
+
+/**
+ * Reprend `actif`, mais seulement s'il dure plus de `delaiMs` — et le relâche
+ * immédiatement. Retarder l'apparition, jamais la disparition : c'est ce qui
+ * distingue un squelette d'un voile de chargement.
+ *
+ * Le retour est DÉRIVÉ (`actif && ecoule`) plutôt que porté par le seul état :
+ * c'est ce qui rend la disparition instantanée — dès qu'`actif` retombe, le
+ * rendu courant vaut déjà faux, sans attendre que l'effet de nettoyage passe.
+ * L'état ne se remet à faux que dans ce nettoyage, jamais dans le corps de
+ * l'effet, qui déclencherait un rendu en cascade (react-hooks/set-state-in-effect).
+ */
+function useFlagRetarde(actif: boolean, delaiMs: number): boolean {
+  const [ecoule, setEcoule] = useState(false)
+  useEffect(() => {
+    if (!actif) return
+    const id = window.setTimeout(() => setEcoule(true), delaiMs)
+    return () => { window.clearTimeout(id); setEcoule(false) }
+  }, [actif, delaiMs])
+  return actif && ecoule
+}
+
+/**
+ * Squelette de l'étape, affiché à la place de son contenu pendant qu'une langue
+ * se télécharge.
+ *
+ * Il ne remplace QUE `<main>`. La coquille — logo, sélecteur, rail d'étapes,
+ * pied d'actions — reste en place et garde sa langue courante : ses libellés
+ * sont courts, ils se substituent sans que l'œil accroche, et les figer aurait
+ * fait disparaître les repères que le correctif de gabarit vient justement de
+ * clouer à l'écran.
+ *
+ * Les proportions sont celles d'une étape réelle (titre, deux lignes de
+ * sous-titre, carte de champs par paires) : le bloc garde sa hauteur, donc la
+ * zone de défilement ne saute pas au retour du texte.
+ *
+ * `aria-hidden` + `role="status"` sur le libellé : un lecteur d'écran entend
+ * « chargement », jamais la douzaine de barres grises.
+ */
+function StepSkeleton({ label }: { label: string }) {
+  return (
+    <div className="inner-container _634px center">
+      <p className="mx-visually-hidden" role="status" aria-live="polite">{label}</p>
+      <div aria-hidden="true">
+        <div className="mx-skeleton mx-skeleton--title" />
+        <div className="mg-top-4x-extra-small">
+          <div className="mx-skeleton mx-skeleton--line" />
+          <div className="mx-skeleton mx-skeleton--line mx-skeleton--short mg-top-5x-extra-small" />
+        </div>
+        <div className="card sign-in-card mg-top-medium">
+          <div className="pd---content-inside-card">
+            {[0, 1, 2].map((row) => (
+              <div key={row} className={cn('grid-2-columns', row > 0 && 'mg-top-small')}>
+                <div>
+                  <div className="mx-skeleton mx-skeleton--label" />
+                  <div className="mx-skeleton mx-skeleton--field mg-top-5x-extra-small" />
+                </div>
+                <div>
+                  <div className="mx-skeleton mx-skeleton--label" />
+                  <div className="mx-skeleton mx-skeleton--field mg-top-5x-extra-small" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
  * Sortie de secours (tâche 8) : écran d'attente affiché à la place du contenu du
  * wizard quand `showExitScreen` vaut vrai (cf. son point d'appel dans IdentityShell,
  * plus bas) — jamais un composant monté par une route séparée, voir l'en-tête du
@@ -480,25 +747,35 @@ export function shouldResetAttestationLeavingRecap(previousStep: number, nextSte
  * n'est pas une étape du parcours (SG_IDENTITY_STEPS), seulement un état de la
  * coquille, au même titre que le spinner de chargement déjà inline dans <main>.
  */
-function ExitPendingScreen({ onResume }: { onResume: () => void }) {
+function ExitPendingScreen({ onResume, onLogout }: { onResume: () => void; onLogout: () => void }) {
   const { t } = useTranslation('onboarding')
   return (
-    <div style={{ maxWidth: 560, margin: '96px auto 0', textAlign: 'center' }}>
-      <div style={{
-        fontSize: 12, fontWeight: 600, color: SugarV2.muted,
-        letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-      }}>{t('gate.pendingNotice.eyebrow')}</div>
-      <h1 style={{
-        margin: '0 0 14px', fontSize: 28, fontWeight: 700,
-        color: SugarV2.ink, letterSpacing: -0.5, lineHeight: 1.2,
-      }}>{t('gate.pendingNotice.title')}</h1>
-      <p style={{ margin: '0 0 32px', fontSize: 14.5, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.6 }}>
-        {t('gate.pendingNotice.body')}
-      </p>
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <SgBlackPill onClick={onResume} icon={<SgIcon name="arrowR" size={16} stroke={SugarV2.onBlack} />}>
-          {t('gate.pendingNotice.resumeButton')}
-        </SgBlackPill>
+    <div className="inner-container _634px center">
+      <div className="card sign-in-card">
+        <div className="pd---content-inside-card">
+          <div className="inner-container _464px center">
+            <div className="text-center">
+              {/* Le sur-titre en majuscules de la coquille Sugar est retiré : la
+                  vitrine n'a pas ce registre, ses cartes ouvrent sur le titre. */}
+              <h1 className="display-6">{t('gate.pendingNotice.title')}</h1>
+              <div className="mg-top-4x-extra-small">
+                <p className="paragraph-large">{t('gate.pendingNotice.body')}</p>
+              </div>
+            </div>
+            {/* Deux sorties, hiérarchisées : reprendre (primaire) ou partir
+                vraiment (secondaire). La déconnexion est la SEULE vraie sortie de
+                ce parcours — rediriger vers /dashboard reproduirait la boucle de
+                l'incident P0 c830f9a9 (cf. en-tête du fichier), le gate y
+                renverrait aussitôt. Même geste que « Se déconnecter » de
+                l'en-tête (handleLogout), pas un chemin parallèle. */}
+            <div className="mg-top-medium text-center">
+              <MxButton type="button" onClick={onResume}>{t('gate.pendingNotice.resumeButton')}</MxButton>
+            </div>
+            <div className="mg-top-2x-extra-small text-center">
+              <MxButton type="button" variant="secondary" onClick={onLogout}>{t('common:nav.logout')}</MxButton>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -507,21 +784,27 @@ function ExitPendingScreen({ onResume }: { onResume: () => void }) {
 /** Coquille du wizard identité : chrome, navigation entre étapes, persistance au changement d'étape. */
 export default function IdentityShell() {
   const { t } = useTranslation('onboarding')
-  const { theme } = useTheme()
-  const dark = theme === 'dark'
-  setSugarV2Dark(dark)
-  useEffect(() => () => { setSugarV2Dark(null) }, [])
+  // Aucune lecture de `useTheme()` ici, et c'est délibéré : ce parcours porte la
+  // peau de la vitrine, qui n'existe qu'en une polarité (fond #030303). Il ne
+  // suit donc pas la préférence clair/sombre de l'agent — comme l'écran d'arrivée
+  // et BootSplash, c'est un couloir d'entrée, pas une surface du CRM. Le CRM
+  // reprend la main (et le thème) dès la soumission, au retour sur /dashboard.
 
   const { signOut } = useAuth()
   const navigate = useNavigate()
+  /** LA sortie du parcours — en-tête ET écran d'attente. `/login` redirige vers la
+   *  vitrine (VitrineLoginRedirect) : c'est le seul départ que le gate ne rattrape
+   *  pas, rediriger vers /dashboard reproduirait la boucle P0 c830f9a9. */
+  const handleLogout = () => { void signOut().then(() => navigate('/login')) }
   const {
-    agency, agencyId, persons, isLoading, savePerson, removePerson, revokeUboRole, saveAgency, uploadIdentityDocument, submit,
+    agency, agencyId, persons, isLoading, isRevalidating, savePerson, saveAgency, uploadIdentityDocument,
+    saveIdentityDocumentType, removeIdentityDocument, readIdentityDocument,
+    startIdentityVerification, submit,
   } = useAgencyIdentity()
 
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [justSaved, setJustSaved] = useState(false)
   // Étape 4 (récapitulatif, tâche 7) : case d'attestation d'exactitude, contrôlée ici
   // comme tout autre brouillon de ce wizard — gate canSubmitIdentity (footer, plus bas).
   const [attestationChecked, setAttestationChecked] = useState(false)
@@ -529,6 +812,27 @@ export default function IdentityShell() {
   // Sortie de secours (tâche 8) : true -> <main>/<footer> affichent ExitPendingScreen
   // à la place du wizard, SANS jamais changer de route (cf. en-tête du fichier).
   const [showExitScreen, setShowExitScreen] = useState(false)
+
+  // Bascule de langue en cours (WizardLanguagePicker). Ne devient un squelette
+  // qu'au-delà du seuil : une langue déjà en cache bascule sans rien montrer.
+  const [langueEnCours, setLangueEnCours] = useState(false)
+  const squeletteLangue = useFlagRetarde(langueEnCours, LANGUAGE_SKELETON_DELAY_MS)
+
+  // Écran d'arrivée : franchi par le bouton Commencer, et seulement pour la durée
+  // de la visite. Rien n'est écrit en base pour s'en souvenir — c'est la présence
+  // de données (personsCount) qui fait office de mémoire d'un parcours entamé,
+  // cf. shouldShowIdentityWelcome.
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false)
+  // Prise UNE fois, sur des données stabilisées, et jamais reposée : `persons`
+  // repasse par une liste vide à chaque revalidation, et rejuger à chaque rendu
+  // faisait réapparaître l'écran d'arrivée sous les doigts de l'utilisateur.
+  const [welcomeDecision, setWelcomeDecision] = useState<boolean | null>(null)
+  useEffect(() => {
+    if (welcomeDecision !== null) return
+    if (!shouldDecideIdentityWelcome(isLoading, isRevalidating)) return
+    setWelcomeDecision(shouldShowIdentityWelcome(persons.length, isLoading, isRevalidating))
+  }, [welcomeDecision, isLoading, isRevalidating, persons.length])
+  const ecran = resolveIdentityScreen(welcomeDecision, welcomeDismissed, showExitScreen)
 
   // Correctif revue tâche 7, point 1 : réinitialise l'attestation dès qu'on QUITTE le
   // récapitulatif, quel que soit le chemin (goToStep — bouton "Modifier" ET stepper de
@@ -545,14 +849,6 @@ export default function IdentityShell() {
     }
     previousStepRef.current = step
   }, [step])
-
-  // Flash "Enregistré" pendant 1.8s après une sauvegarde réussie (footer).
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => {
-    if (!justSaved) return
-    savedTimerRef.current = setTimeout(() => setJustSaved(false), 1800)
-    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }
-  }, [justSaved])
 
   const existingSignatory = useMemo(
     () => persons.find((p) => p.roles.some((r) => r.role === 'signatory')) ?? null,
@@ -583,19 +879,19 @@ export default function IdentityShell() {
   const setAgencyDraft = (patch: Partial<AgencyDraft>) => setAgencyDraftRaw((prev) => ({ ...prev, ...patch }))
 
   // Hydrate le brouillon dès que l'agence chargée porte une identité légale déjà
-  // saisie (retour sur le wizard après une fermeture d'onglet). Les 10 colonnes de
+  // saisie (retour sur le wizard après une fermeture d'onglet). Les 8 colonnes de
   // cette étape sont écrites ENSEMBLE par persistCurrentStep (tout ou rien, comme le
   // signataire) : n'importe laquelle suffit comme déclencheur de l'hydratation ;
   // legalFormId est prise pour rester au plus près du motif existingSignatory?.id.
+  // `tradeName`/`tva` ne sont volontairement PAS relus : hors du brouillon, ils sont
+  // hors de ce parcours (cf. AgencyDraft).
   useEffect(() => {
     if (agency.legalFormId) {
       setAgencyDraftRaw({
         country: agency.country,
         legalFormId: agency.legalFormId,
         legal: agency.legal,
-        tradeName: agency.tradeName,
         businessRegistrationNumber: agency.businessRegistrationNumber,
-        tva: agency.tva,
         address: agency.address,
         postal: agency.postal,
         city: agency.city,
@@ -605,56 +901,7 @@ export default function IdentityShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agency.legalFormId])
 
-  // Décision de saut de l'étape bénéficiaires (tâche 5, point central du brief) —
-  // dérivée du BROUILLON agence (agencyDraft) : c'est la SEULE façon de refléter un
-  // changement de forme juridique PENDANT LA SAISIE, avant même un clic sur Continuer
-  // (le stepper du header démasque/masque Bénéficiaires en direct, cf. son rendu plus
-  // bas). useAgencyIdentity().legalFormCategory ne peut pas jouer ce rôle : même
-  // redevenu fiable juste après un saveAgency() résolu (correctif revue tâche 5, cf.
-  // l'en-tête de useAgencyIdentity.ts), il ne reflète par construction que ce qui a
-  // été ENVOYÉ à saveAgency(), jamais une frappe pas encore sauvegardée.
-  // useLegalFormCategory (useAgencyIdentity.ts) porte la SEULE implémentation de la
-  // dérivation (useLegalForms + resolveLegalFormCategory) : IdentityShell et le hook
-  // l'appellent chacun avec leur propre entrée légitime (le brouillon ici, le dernier
-  // payload sauvegardé côté hook), mais plus jamais deux implémentations séparées de
-  // la même logique. Coût : un appel de plus, mais la query est partagée par clé
-  // (['legal-forms', code]) avec celles de StepAgence et du hook — pas de requête
-  // réseau supplémentaire dès que le pays coïncide (cas normal ici).
-  const skipBeneficiaires = shouldSkipBeneficiairesStep(
-    useLegalFormCategory(agencyDraft.country, agencyDraft.legalFormId),
-  )
-
-  const existingBeneficiaires = useMemo(
-    () => persons.filter((p) => p.roles.some((r) => r.role === 'ubo')),
-    [persons],
-  )
-  const [beneficiaires, setBeneficiairesRaw] = useState<BeneficiaireDraft[]>([])
-  const setBeneficiaires = (next: BeneficiaireDraft[]) => setBeneficiairesRaw(next)
-
-  // Hydrate le brouillon depuis les UBO déjà persistés — UNIQUEMENT tant que le
-  // brouillon local est encore vide (garde `prev.length > 0 ? prev : …`), jamais en
-  // écrasant une saisie déjà en cours. Sans cette garde, le refetch que savePerson/
-  // removePerson attendent tous deux avant de résoudre (cf. leur JSDoc) redéclencherait
-  // cet effet PENDANT la boucle de sauvegarde de persistCurrentStep (step 2, plus bas)
-  // et écraserait les lignes que la boucle n'a pas encore traitées — même risque que la
-  // sur-hydratation évitée pour existingSignatory/agency.legalFormId ci-dessus, mais
-  // plus aigu ici : une liste se modifie à chaque save, pas une entité unique.
-  const existingBeneficiairesKey = existingBeneficiaires.map((p) => p.id).join(',')
-  useEffect(() => {
-    if (existingBeneficiaires.length === 0) return
-    setBeneficiairesRaw((prev) => (prev.length > 0 ? prev : existingBeneficiaires.map((p) => ({
-      personId: p.id,
-      firstName: p.firstName,
-      lastName: p.lastName,
-      dateOfBirth: p.dateOfBirth,
-      nationality: p.nationality,
-      ownershipPct: p.roles.find((r) => r.role === 'ubo')?.ownershipPct ?? null,
-      pepSelfDeclared: p.roles.find((r) => r.role === 'ubo')?.pepSelfDeclared ?? false,
-    }))))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingBeneficiairesKey])
-
-  // Étape 4 (tâche 6) : signatoryId vient d'existingSignatory ci-dessus (la personne
+  // Étape 3 (tâche 6) : signatoryId vient d'existingSignatory ci-dessus (la personne
   // enregistrée à l'étape 0 de CE wizard) — jamais un id choisi par l'utilisateur, il
   // n'y a qu'un seul signataire saisi par ce parcours. useIdentityDocuments lit
   // Storage directement (aucune colonne DB, cf. son en-tête dans useAgencyIdentity.ts) ;
@@ -664,12 +911,92 @@ export default function IdentityShell() {
   const {
     data: identityDocuments, isLoading: identityDocumentsLoading, error: identityDocumentsError,
   } = useIdentityDocuments(agencyId, signatoryId)
+  const [uploadingSide, setUploadingSide] = useState<IdentityDocumentSide | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [savingDocumentType, setSavingDocumentType] = useState(false)
+  /** Nature choisie mais pas encore relue depuis la base — voir pieceIdentiteDraft. */
+  const [pendingDocumentType, setPendingDocumentType] = useState<IdentityDocumentType | null>(null)
+  const [startingVerification, setStartingVerification] = useState(false)
+  /**
+   * true quand l'écran doit montrer le DÉPÔT MANUEL plutôt que la vérification.
+   *
+   * Deux sources : le dirigeant qui le demande (son titre de séjour n'est pas dans les
+   * types que Stripe accepte, et lui seul le sait), et un refus définitif du
+   * prestataire. Un `useState` et non une dérivation pure : le choix de l'utilisateur
+   * doit survivre à une invalidation de query, et le refus définitif est ajouté par
+   * `ou` au moment du rendu plutôt que recopié ici, pour ne pas avoir deux vérités.
+   */
+  const [manualFallback, setManualFallback] = useState(false)
+  const [identityRead, setIdentityRead] = useState<KybIdReadRecord | null>(null)
+  const [identityReading, setIdentityReading] = useState(false)
+
   const pieceIdentiteDraft: PieceIdentiteDraft = {
+    // La nature vient de la personne persistée — comme les fichiers, elle est écrite
+    // en base au moment du clic (saveIdentityDocumentType), donc la relire est plus
+    // juste que la mémoriser en double.
+    //
+    // `pendingDocumentType` ne double PAS cette source, il la devance : l'écriture
+    // puis l'invalidation de la query font deux allers-retours, et sans lui le clic
+    // sur une carte ne produisait rien de visible pendant ce temps (la pastille du
+    // radio est masquée, seul le liseré dit la sélection, et il suit la valeur
+    // persistée). Il est effacé dès que la base l'a rattrapé, et en cas d'échec —
+    // sinon l'écran affirmerait un choix qui n'a pas été enregistré.
+    verificationStatus: existingSignatory?.verificationStatus ?? null,
+    documentType: pendingDocumentType ?? existingSignatory?.idDocumentType ?? null,
     recto: identityDocuments?.recto?.path ?? null,
     verso: identityDocuments?.verso?.path ?? null,
   }
-  const [uploadingSide, setUploadingSide] = useState<IdentityDocumentSide | null>(null)
-  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  /**
+   * Ouvre la vérification d'identité chez Stripe et y envoie le dirigeant.
+   *
+   * La navigation est un `location.href` et non un `navigate()` : la cible est un
+   * domaine Stripe, pas une route de l'app. Le retour se fait par `return_url`, et le
+   * VERDICT par webhook — l'utilisateur peut abandonner en route sans rien casser.
+   *
+   * Une indisponibilité (clé absente, compte non activé, refus de création) n'affiche
+   * pas d'erreur : elle bascule sur le dépôt manuel, qui existe précisément pour les
+   * cas que le prestataire ne sait pas traiter. Un bouton mort serait pire qu'un
+   * chemin plus long.
+   */
+  const handleStartVerification = async (): Promise<void> => {
+    if (!signatoryId) return
+    setStartingVerification(true)
+    try {
+      const url = await startIdentityVerification(signatoryId)
+      if (url) { window.location.href = url; return }
+      setManualFallback(true)
+    } catch {
+      setManualFallback(true)
+    } finally {
+      setStartingVerification(false)
+    }
+  }
+
+  /**
+   * Lance la lecture assistée de la pièce (edge `kyb-identity-read`).
+   *
+   * Déclenchée à la main depuis les deux gestes qui peuvent COMPLÉTER l'étape — la
+   * dernière face déposée, ou la nature enfin déclarée sur des faces déjà présentes
+   * (retour par la boucle de correction) — et jamais par un effet : un effet qui
+   * appellerait setState sur un changement de query rejouerait la lecture à chaque
+   * resignature d'URL, soit un appel Gemini toutes les dix minutes pour rien.
+   *
+   * Un échec ne dit RIEN à l'utilisateur, délibérément : cette lecture est un confort
+   * indicatif, pas une étape du parcours. Une panne de Gemini ne doit pas afficher une
+   * erreur sous un dépôt qui, lui, a parfaitement réussi — le dossier part de toute
+   * façon en revue humaine.
+   */
+  const runIdentityRead = async (relatedPersonId: string): Promise<void> => {
+    setIdentityReading(true)
+    try {
+      setIdentityRead(await readIdentityDocument(relatedPersonId))
+    } catch {
+      setIdentityRead(null)
+    } finally {
+      setIdentityReading(false)
+    }
+  }
 
   /**
    * Valide puis téléverse IMMÉDIATEMENT (cf. en-tête de StepPieceIdentite.tsx) — pas
@@ -686,8 +1013,16 @@ export default function IdentityShell() {
     }
     setUploadingSide(side)
     setUploadError(null)
+    // Toute face remplacée périme le verdict précédent : le garder à l'écran
+    // affirmerait quelque chose sur un document qui vient de changer.
+    setIdentityRead(null)
     try {
       await uploadIdentityDocument(signatoryId, side, file)
+      // Complétude calculée sur le brouillon d'APRÈS ce dépôt : `pieceIdentiteDraft`
+      // est figé à la fermeture, il ne connaît pas encore la face qu'on vient d'écrire.
+      if (isPieceIdentiteStepComplete({ ...pieceIdentiteDraft, [side]: 'uploaded' })) {
+        await runIdentityRead(signatoryId)
+      }
     } catch {
       // Correctif revue tâche 6, point 4 : ne JAMAIS afficher e.message brut (celui de
       // Supabase Storage arrive en anglais) dans une interface qui existe en 4 langues
@@ -701,19 +1036,63 @@ export default function IdentityShell() {
     }
   }
 
-  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, beneficiaires, pieceIdentiteDraft)
+  /**
+   * Enregistre la nature déclarée de la pièce, immédiatement — même règle que le
+   * fichier (l'étape 3 ne tient aucun brouillon).
+   *
+   * Bascule vers `passport` : le verso déjà déposé est RETIRÉ. Un passeport n'a pas
+   * de verso ; le garder laisserait dans Storage une PII que plus rien ne réclame,
+   * que le récapitulatif et la console du relecteur continueraient d'afficher (tous
+   * deux listent Storage, ils ne demandent pas une liste attendue), et qu'aucune
+   * purge ne connaît. L'ordre compte : le retrait D'ABORD, la nature ENSUITE — si le
+   * retrait échoue, la nature n'est pas écrite, donc l'écran continue de réclamer un
+   * verso qui existe vraiment, plutôt que d'en masquer un devenu invisible.
+   */
+  const handleSelectIdentityType = async (type: IdentityDocumentType): Promise<void> => {
+    if (!signatoryId || type === pieceIdentiteDraft.documentType) return
+    setSavingDocumentType(true)
+    setPendingDocumentType(type)
+    setUploadError(null)
+    try {
+      if (!identityDocumentSidesFor(type).includes('verso') && pieceIdentiteDraft.verso != null) {
+        await removeIdentityDocument(signatoryId, 'verso')
+      }
+      await saveIdentityDocumentType(signatoryId, type)
+      // Effacé APRÈS l'invalidation faite par saveIdentityDocumentType : la valeur
+      // relue a alors rattrapé le choix, et le liseré ne clignote pas en repassant
+      // une image par l'ancienne valeur.
+      setPendingDocumentType(null)
+      // Déclarer la nature peut suffire à compléter l'étape quand les faces sont déjà
+      // là (retour par la boucle de correction). Et elle change ce qui est comparé :
+      // un verdict rendu sous l'ancienne nature ne vaut plus.
+      setIdentityRead(null)
+      if (isPieceIdentiteStepComplete({ ...pieceIdentiteDraft, documentType: type })) {
+        await runIdentityRead(signatoryId)
+      }
+    } catch {
+      // Même raison qu'au téléversement : jamais le message brut de Supabase, qui
+      // arrive en anglais dans une interface qui existe en quatre langues.
+      setPendingDocumentType(null)
+      setUploadError(t('wizard.pieceIdentite.errors.generic'))
+    } finally {
+      setSavingDocumentType(false)
+    }
+  }
 
-  /** Enveloppe commune à chaque étape persistable : bascule saving/error/justSaved
-   *  autour de l'opération d'écriture réelle (savePerson ou saveAgency selon
-   *  l'étape). Extrait de l'ancien corps inline de persistCurrentStep pour éviter de
-   *  dupliquer ce triptyque try/catch/finally à chaque étape persistable ajoutée par
-   *  les tâches 4 à 7 — comportement inchangé pour l'étape 0. */
+  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, pieceIdentiteDraft)
+
+  /** Enveloppe commune à chaque étape persistable : bascule saving/error autour de
+   *  l'opération d'écriture réelle (savePerson ou saveAgency selon l'étape).
+   *  Extrait de l'ancien corps inline de persistCurrentStep pour éviter de dupliquer
+   *  ce triptyque try/catch/finally à chaque étape persistable ajoutée par les
+   *  tâches 4 à 7 — comportement inchangé pour l'étape 0. Le succès n'allume plus
+   *  aucun témoin (retiré le 02.08.2026) : il fait avancer l'étape, ce qui EST le
+   *  signal. */
   const runPersist = async (save: () => Promise<unknown>): Promise<boolean> => {
     setSaving(true)
     setError(null)
     try {
       await save()
-      setJustSaved(true)
       return true
     } catch (e) {
       setError(e instanceof Error ? e.message : t('wizard.footer.unknownError'))
@@ -758,76 +1137,13 @@ export default function IdentityShell() {
         // touchés par ce wizard, save() les réécrit pourtant tous à chaque appel
         // (contrat de useAgencySettings) — d'où l'étalement plutôt qu'un patch.
         await saveAgency({ ...agency, ...agencyDraft })
-        // Nettoyage rétroactif (correctif revue tâche 5) : si la forme juridique tout
-        // juste enregistrée fait basculer l'étape bénéficiaires en « sautée », l'écran
-        // qui permettrait normalement de retirer un bénéficiaire un par un ne sera
-        // plus jamais monté — tout rôle ubo déjà actif doit donc être révoqué ICI,
-        // sinon le dossier soumis porte un bénéficiaire fantôme que l'écran ne montre
-        // plus (la RPC de soumission ne vérifie pas cette cohérence). Jamais de
-        // suppression : ubosToRevokeOnSkip ne renvoie que des ids à révoquer,
-        // l'identité et un éventuel rôle signataire restent intacts.
-        if (skipBeneficiaires) {
-          for (const id of ubosToRevokeOnSkip(persons)) {
-            await revokeUboRole(id)
-          }
-        }
       })
     }
     if (step === 2) {
-      if (!isBeneficiairesStepComplete(beneficiaires)) return false
-      return runPersist(async () => {
-        // 1. Retire d'abord les UBO enlevés du brouillon — ubosToRemove protège déjà
-        // toute personne qui porte un autre rôle actif (ex. le signataire réutilisé
-        // comme bénéficiaire, cf. son en-tête dans useAgencyIdentity.ts) : jamais de
-        // cascade destructive sur une identité encore nécessaire ailleurs.
-        for (const id of ubosToRemove(persons, beneficiaires.map((b) => b.personId))) {
-          await removePerson(id)
-        }
-        // 2. Révoque (sans supprimer) le rôle ubo des personnes protégées ci-dessus par
-        // un autre rôle actif — correctif revue tâche 5 : ubosToRemove les excluait déjà
-        // à raison de la suppression complète, mais rien ne révoquait leur rôle ubo, qui
-        // restait actif en base indéfiniment après un retrait à l'écran. ubosToRevoke
-        // est le complément exact de ubosToRemove ; revokeUboRole ne pose que valid_to
-        // sur LEUR ligne agency_person_roles(role='ubo'), jamais agency_related_persons
-        // ni un rôle signatory.
-        for (const id of ubosToRevoke(persons, beneficiaires.map((b) => b.personId))) {
-          await revokeUboRole(id)
-        }
-        // 3. (Ré)écrit chaque ligne du brouillon. `id: b.personId` fait toute la
-        // différence entre "ajouter un second rôle" et "dupliquer l'identité" (cas
-        // central du brief) : reprendre le signataire transmet SON id réel, savePerson
-        // met alors à jour la personne existante au lieu d'en insérer une seconde.
-        for (let i = 0; i < beneficiaires.length; i += 1) {
-          const b = beneficiaires[i]
-          const role: IdentityRole = {
-            role: 'ubo',
-            signaturePower: null,
-            ownershipPct: b.ownershipPct,
-            // Coercion sûre : isBeneficiairesStepComplete (garde ci-dessus) a déjà
-            // vérifié pepSelfDeclared != null pour CHAQUE entrée avant d'arriver ici.
-            pepSelfDeclared: b.pepSelfDeclared ?? false,
-          }
-          const savedId = await savePerson(
-            { id: b.personId, firstName: b.firstName, lastName: b.lastName, dateOfBirth: b.dateOfBirth, nationality: b.nationality },
-            [role],
-          )
-          // Patch synchrone du brouillon local pour une ligne neuve (personId était
-          // null) : sans ça, un aller-retour prev()/next() sur cette même étape avant
-          // qu'un futur refetch ne recharge `persons` réinsérerait cette personne une
-          // seconde fois (personId resterait null) — cf. JSDoc de l'effet d'hydratation
-          // ci-dessus, qui ne peut pas jouer ce rôle (garde "brouillon déjà non vide").
-          if (b.personId == null) {
-            const insertedIndex = i
-            setBeneficiairesRaw((prev) => prev.map((x, idx) => (idx === insertedIndex ? { ...x, personId: savedId } : x)))
-          }
-        }
-      })
-    }
-    if (step === 3) {
       // Rien à écrire ici (cf. en-tête de StepPieceIdentite.tsx) : le fichier est déjà
       // durablement dans Storage au moment où l'utilisateur clique Continuer — cette
       // étape ne fait que revérifier sa complétude, comme canNext l'a déjà fait pour
-      // activer le bouton (garde défensive redondante, même style que les étapes 0 à 2).
+      // activer le bouton (garde défensive redondante, même style que les étapes 0 et 1).
       return isPieceIdentiteStepComplete(pieceIdentiteDraft)
     }
     // Étape 4 (récapitulatif) : rien à persister en QUITTANT l'étape — l'attestation
@@ -875,7 +1191,10 @@ export default function IdentityShell() {
     setError(null)
     try {
       await submit(signatoryId)
-      navigate('/dashboard')
+      // Suite du parcours plutôt que le dashboard : l'agence sort d'ici avec un
+      // dossier en revue, et personne chez MEGGA ne la contacterait sans ce détour.
+      // L'écran est passable, il ne remplace pas le dashboard, il le précède.
+      navigate(ONBOARDING_CALL_ROUTE)
     } catch (e) {
       const rawMessage = e instanceof Error ? e.message : ''
       const code = identitySubmissionErrorCode(rawMessage)
@@ -895,12 +1214,12 @@ export default function IdentityShell() {
   const next = async () => {
     if (!canNext || saving) return
     if (!(await persistCurrentStep())) return
-    setStep((s) => nextIdentityStep(s, SG_IDENTITY_STEPS.length, skipBeneficiaires))
+    setStep((s) => clampIdentityStep(s + 1, SG_IDENTITY_STEPS.length))
   }
   const prev = async () => {
     if (saving) return
     await persistCurrentStep()
-    setStep((s) => prevIdentityStep(s, SG_IDENTITY_STEPS.length, skipBeneficiaires))
+    setStep((s) => clampIdentityStep(s - 1, SG_IDENTITY_STEPS.length))
   }
   const goToStep = async (target: number) => {
     if (target === step || target > step || saving) return // seuls les paliers déjà visités sont accessibles
@@ -908,220 +1227,219 @@ export default function IdentityShell() {
     setStep(clampIdentityStep(target, SG_IDENTITY_STEPS.length))
   }
 
+  // L'écran d'arrivée remplace la coquille ENTIÈRE : ni stepper, ni pied de page,
+  // ni fond Sugar. Il porte la peau de la vitrine (cf. son en-tête), et la bascule
+  // vers Sugar se fait au clic sur Commencer. Placé APRÈS tous les hooks — un
+  // retour anticipé au-dessus d'eux changerait leur ordre d'un rendu à l'autre.
+  if (ecran === 'preparing') return <IdentityPreparingScreen />
+  if (ecran === 'welcome') {
+    return (
+      <IdentityWelcomeScreen
+        onStart={() => setWelcomeDismissed(true)}
+        onLater={() => setShowExitScreen(true)}
+      />
+    )
+  }
+
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      background: dark ? SugarV2.bg : SugarV2.bgGradient,
-      fontFamily: '"Inter Tight", system-ui, sans-serif', color: SugarV2.ink,
-    } as CSSProperties}>
-      <style>{SG_IDENTITY_KEYFRAMES}</style>
-
-      <header style={{
-        flexShrink: 0, padding: '24px 32px', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', gap: 16,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24, overflowX: 'auto' }}>
-          {/* visibleIdentitySteps exclut l'étape bénéficiaires quand elle est sautée : ni
-              affichée ni comptée dans la numérotation (position + 1, pas i + 1) — c'est le
-              volet "stepper" de l'exigence de saut propre (cf. en-tête du fichier). */}
-          {visibleIdentitySteps(SG_IDENTITY_STEPS.length, skipBeneficiaires).map((i, position) => {
-            const s = SG_IDENTITY_STEPS[i]
-            // !showExitScreen : un palier ne doit jamais paraître cliquable pendant que
-            // l'écran d'attente (sortie de secours, tâche 8) est affiché — sinon un clic
-            // changerait `step` sans jamais faire réapparaître le wizard (ExitPendingScreen
-            // reste rendu tant que showExitScreen n'est pas remis à faux), interaction morte.
-            const clickable = i < step && !saving && !showExitScreen
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => { if (clickable) void goToStep(i) }}
-                disabled={!clickable}
-                style={{
-                  background: 'transparent', border: 0, padding: 0,
-                  fontFamily: 'inherit', whiteSpace: 'nowrap',
-                  cursor: clickable ? 'pointer' : 'default',
-                  fontSize: 13, fontWeight: i === step ? 700 : 600,
-                  paddingBottom: 8,
-                  borderBottom: `2px solid ${i <= step ? SugarV2.ink : 'transparent'}`,
-                  color: i === step ? SugarV2.ink : i < step ? SugarV2.inkSoft : SugarV2.muted,
-                  transition: 'all .18s ease',
-                }}
-              >
-                {position + 1}. {s.label}
-              </button>
-            )
-          })}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0 }}>
-          {/* Sortie de secours (tâche 8) : masquée sur l'écran d'attente lui-même — on y
-              est déjà « sorti », le bouton principal de cet écran est Reprendre la saisie
-              (ExitPendingScreen). Toujours à côté de Se déconnecter, jamais dans le pied
-              de page partagé : celui-ci disparaît entièrement pendant l'écran d'attente. */}
-          {!showExitScreen && (
-            <button
-              type="button"
-              onClick={() => { void handleExit() }}
-              disabled={saving}
-              style={{
-                background: 'transparent', border: 0,
-                cursor: saving ? 'default' : 'pointer',
-                fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-                color: SugarV2.inkSoft, opacity: saving ? 0.5 : 1,
-              }}
-            >
-              {t('wizard.footer.exit')}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => { void signOut().then(() => navigate('/login')) }}
-            style={{
-              background: 'transparent', border: 0, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: SugarV2.muted,
-            }}
-          >
-            {t('common:logout')}
-          </button>
-        </div>
-      </header>
-
-      <main key={showExitScreen ? 'exit' : step} style={{
-        flex: 1, padding: '16px 32px 140px', animation: 'sgPage .45s cubic-bezier(.2,.8,.2,1) both',
-      }}>
-        {isLoading ? (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            padding: '96px 0', color: SugarV2.muted, fontSize: 13, fontWeight: 500,
-          }} role="status" aria-live="polite">
-            <span style={{
-              width: 14, height: 14, borderRadius: 999,
-              border: `2px solid ${SugarV2.line}`, borderTopColor: SugarV2.ink,
-              animation: 'sgSpin .8s linear infinite',
-            }} />
-            {t('gate.shell.preparing')}
+    <MeggaX>
+      {/* `full-height-page` : sans elle, un contenu court (écran d'attente) laisse
+          une bande blanche sous le canvas — le noir vient du conteneur, pas du body.
+          `mx-appshell` la PLAFONNE à la hauteur de la fenêtre (elle n'en pose que le
+          plancher) : en-tête, rail d'étapes et pied d'actions cessent de défiler,
+          seule la zone d'étape le fait. Voir le point 7 de megga-x-additions.css
+          pour les mesures qui l'ont motivé. */}
+      <div className="page-wrapper full-height-page mx-appshell">
+        {/* Même en-tête que l'écran d'arrivée et que les pages d'authentification de
+            la vitrine : l'agent ne doit pas sentir de rupture entre le lien reçu par
+            e-mail et la saisie. Logo non cliquable — il est connecté, la vitrine
+            n'est plus une destination. */}
+        <div className="header pd-medium-top-and-bottom">
+          <div className="container-default w-container">
+            <div className="flex-horizontal space-between">
+              <div className="header-logo">
+                <img src="/megga-logo.svg" alt="MEGGA" />
+              </div>
+              <div className="flex-horizontal gap-24px---wrap-down">
+                {/* Toujours visible, y compris sur l'écran d'attente : c'est la seule
+                    sortie de langue du parcours (les Réglages sont derrière ce gate). */}
+                <WizardLanguagePicker onPending={setLangueEnCours} />
+                {/* Sortie de secours : masquée sur l'écran d'attente lui-même — on y est
+                    déjà « sorti », son bouton principal est Reprendre la saisie. */}
+                {!showExitScreen && (
+                  <MxLink onClick={() => { if (!saving) void handleExit() }} disabled={saving}>
+                    {t('wizard.footer.exit')}
+                  </MxLink>
+                )}
+                {/* `common:nav.logout` et non `common:logout` : la clé racine n'existe
+                    pas, l'ancien appel affichait le mot « logout » en clair. */}
+                <MxLink onClick={handleLogout}>
+                  {t('common:nav.logout')}
+                </MxLink>
+              </div>
+            </div>
           </div>
-        ) : showExitScreen ? (
-          <ExitPendingScreen onResume={() => setShowExitScreen(false)} />
+        </div>
+
+        {/* `.section` seule vaut 200 px de respiration haut et bas : c'est le
+            gabarit des sections marketing de la vitrine, pas d'un formulaire de
+            dix champs. Les deux paddings tombent à 0 depuis que la coquille est
+            plafonnée : dans une page qui défile ils ne coûtaient qu'un peu de
+            déroulé, dans une fenêtre ils prennent 144 px À L'ÉTAPE, la seule
+            chose ici dont la place manque. La respiration vient de ce que
+            l'en-tête et le pied portent déjà (40 px sous le logo, 24 px autour
+            des boutons). `mx-shellbody` fait de cette section, et de son
+            conteneur, la colonne qui se partage la hauteur restante. */}
+        <section className="section pd-top-0 pd-bottom-0 mx-grow mx-shellbody">
+          <div className="container-default w-container">
+            {/* Numérotation directe depuis SG_IDENTITY_STEPS : le rail n'a plus de
+                palier à masquer depuis le retrait de l'étape bénéficiaires, seule
+                étape conditionnelle qu'ait connue ce parcours (cf. tokens.ts). */}
+            <nav className="mx-stepper" aria-label={t('wizard.steps.ariaLabel')}>
+              {SG_IDENTITY_STEPS.map((s, i) => {
+                // !showExitScreen : un palier ne doit jamais paraître cliquable pendant que
+                // l'écran d'attente (sortie de secours, tâche 8) est affiché — sinon un clic
+                // changerait `step` sans jamais faire réapparaître le wizard (ExitPendingScreen
+                // reste rendu tant que showExitScreen n'est pas remis à faux), interaction morte.
+                const clickable = i < step && !saving && !showExitScreen
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => { if (clickable) void goToStep(i) }}
+                    disabled={!clickable}
+                    aria-current={i === step ? 'step' : undefined}
+                    className={cn(
+                      'mx-stepper__step',
+                      i === step && 'mx-stepper__step--current',
+                      clickable && 'mx-stepper__step--done',
+                    )}
+                  >
+                    {i + 1}. {s.label}
+                  </button>
+                )
+              })}
+            </nav>
+
+            {/* Le SEUL élément qui défile du parcours (`mx-scrollarea`) : le rail
+                d'étapes au-dessus et le pied d'actions en dessous restent à
+                l'écran quelle que soit la longueur de l'étape.
+                Le `key` porte ici une seconde charge, en plus de repartir d'un
+                sous-arbre neuf : c'est lui qui remet le défilement en haut à
+                chaque changement d'étape — un nœud remonté naît à scrollTop 0.
+                Tant que le défilement vivait sur la FENÊTRE, rien ne le
+                ramenait, et quitter une étape déroulée jusqu'en bas faisait
+                atterrir au milieu de la suivante. Le retirer réintroduirait ce
+                défaut : aucun effet ne le rattrape ailleurs. */}
+            <main key={showExitScreen ? 'exit' : step} className="mg-top-medium mx-scrollarea">
+              {isLoading ? (
+                <div className="text-center" role="status" aria-live="polite">
+                  <p className="paragraph-large">{t('gate.shell.preparing')}</p>
+                </div>
+              ) : squeletteLangue ? (
+                // AVANT les étapes, APRÈS le chargement initial : une bascule de
+                // langue ne doit pas effacer l'écran d'attente du premier
+                // chargement, qui dit autre chose. Le brouillon de l'étape vit
+                // dans IdentityShell, pas dans l'étape démontée ici : rien de
+                // saisi ne se perd le temps du squelette.
+                <StepSkeleton label={t('wizard.header.languageLoading')} />
+              ) : showExitScreen ? (
+          <ExitPendingScreen onResume={() => setShowExitScreen(false)} onLogout={handleLogout} />
         ) : step === 0 ? (
           <StepSignataire value={signataire} onChange={setSignataire} />
         ) : step === 1 ? (
           <StepAgence value={agencyDraft} onChange={setAgencyDraft} />
         ) : step === 2 ? (
-          // N'est jamais atteinte quand skipBeneficiaires est vrai : nextIdentityStep/
-          // prevIdentityStep ne renvoient jamais 2 dans ce cas (cf. leur JSDoc).
-          <StepBeneficiaires
-            value={beneficiaires}
-            onChange={setBeneficiaires}
-            signataire={existingSignatory && existingSignatory.id ? {
-              // existingSignatory.id est `string | null` dans le type partagé
-              // (IdentityPerson.id, null = pas encore enregistrée) mais vient ici
-              // toujours d'une lecture DB (persons) : le garde ci-dessus le narrows en
-              // `string` pour StepBeneficiaires, qui a besoin d'un id réel à réutiliser.
-              personId: existingSignatory.id,
-              firstName: existingSignatory.firstName,
-              lastName: existingSignatory.lastName,
-              dateOfBirth: existingSignatory.dateOfBirth,
-              nationality: existingSignatory.nationality,
-            } : null}
-          />
-        ) : step === 3 ? (
           <StepPieceIdentite
+            verificationStatus={pieceIdentiteDraft.verificationStatus}
+            verificationErrorCode={existingSignatory?.verificationErrorCode ?? null}
+            startingVerification={startingVerification}
+            // Le repli s'impose de lui-même sur un refus définitif : réessayer chez
+            // Stripe donnerait le même refus, et l'étape deviendrait un cul-de-sac.
+            manualFallback={manualFallback
+              || verificationNeedsManualFallback(existingSignatory?.verificationErrorCode ?? null)}
+            onStartVerification={() => { void handleStartVerification() }}
+            onUseManualFallback={() => setManualFallback(true)}
+            documentType={pieceIdentiteDraft.documentType}
             recto={identityDocuments?.recto ?? null}
             verso={identityDocuments?.verso ?? null}
             isLoading={identityDocumentsLoading}
             uploadingSide={uploadingSide}
+            savingDocumentType={savingDocumentType}
+            identityRead={identityRead ?? existingSignatory?.idDocumentRead ?? null}
+            identityReading={identityReading}
             error={uploadError}
             loadError={!!identityDocumentsError}
             disabled={!signatoryId}
+            onSelectType={(type) => { void handleSelectIdentityType(type) }}
             onSelectFile={(side, file) => { void handleSelectIdentityFile(side, file) }}
           />
-        ) : step === 4 ? (
+        ) : step === 3 ? (
           <StepRecapitulatif
             signataire={signataire}
             agencyDraft={agencyDraft}
-            skipBeneficiaires={skipBeneficiaires}
-            beneficiaires={beneficiaires}
+            documentType={pieceIdentiteDraft.documentType}
+            verificationStatus={pieceIdentiteDraft.verificationStatus}
             recto={identityDocuments?.recto ?? null}
             verso={identityDocuments?.verso ?? null}
+            identityRead={identityRead ?? existingSignatory?.idDocumentRead ?? null}
             identityDocumentsLoading={identityDocumentsLoading}
             identityDocumentsError={!!identityDocumentsError}
             attestationChecked={attestationChecked}
             onAttestationChange={setAttestationChecked}
             onEditStep={(target) => { void goToStep(target) }}
           />
-        ) : null}
-      </main>
+              ) : null}
+            </main>
 
-      {/* Sortie de secours (tâche 8) : le pied de page (Continuer/Précédent/Soumettre)
-          n'a aucun sens pendant l'écran d'attente — ExitPendingScreen porte son propre
-          bouton principal (Reprendre la saisie). Header (stepper + Reprendre plus
-          tard/Se déconnecter) reste en revanche affiché dans les deux cas. */}
-      {!showExitScreen && (
-      <footer style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, padding: '24px 32px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 16, zIndex: 20,
-        background: dark
-          ? `linear-gradient(180deg, transparent 0%, ${SugarV2.bg} 72%)`
-          : SugarV2.footerFade,
-        pointerEvents: 'none',
-      }}>
-        <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
-          {step > 0 && (
-            <SgGhostPill onClick={() => { void prev() }} icon={<SgIcon name="arrowL" size={16} stroke={SugarV2.inkSoft} />}>
-              {t('common:actions.previous')}
-            </SgGhostPill>
-          )}
-          {/* Indicateur de sauvegarde : reflète la persistance réelle (savePerson ou
-              saveAgency selon l'étape), jamais un état optimiste — il ne s'allume
-              qu'après succès. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: SugarV2.ok }}>
-            {justSaved ? (
-              <span style={{
-                width: 15, height: 15, borderRadius: 999, display: 'grid', placeItems: 'center', flexShrink: 0,
-                background: SugarV2.ok, animation: 'sgSavePop .4s cubic-bezier(.2,.8,.2,1) both',
-              }}>
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={SugarV2.onBlack} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-              </span>
-            ) : (
-              <span style={{ width: 7, height: 7, borderRadius: 999, flexShrink: 0, background: SugarV2.ok }} />
+            {/* Bannière d'erreur : au-dessus du pied d'actions, pas en surimpression
+                flottante — c'est la place que lui donne la vitrine (`.error-message`,
+                pavé rouge plein), et elle pousse le contenu au lieu de le masquer. */}
+            {error && (
+              <div className="mg-top-small">
+                <div className="error-message" role="alert">{error}</div>
+              </div>
             )}
-            {justSaved ? t('wizard.footer.saved') : t('wizard.footer.autosave')}
+
+            {/* Sortie de secours (tâche 8) : le pied d'actions (Continuer/Précédent/
+                Soumettre) n'a aucun sens pendant l'écran d'attente — ExitPendingScreen
+                porte son propre bouton principal (Reprendre la saisie). L'en-tête reste
+                en revanche affiché dans les deux cas. */}
+            {!showExitScreen && (
+              <div className="mx-actionbar mg-top-small">
+                {/* Aucun témoin de sauvegarde : la persistance à chaque changement
+                    d'étape (persistCurrentStep, appelée par next/prev/goToStep) reste
+                    entière, elle se fait simplement sans le dire. Un dirigeant qui
+                    remplit un formulaire de conformité n'a pas à surveiller un voyant
+                    vert ; ce qui compte est que fermer l'onglet ne perde rien, et ça
+                    n'a pas changé. */}
+                <div className="flex-horizontal gap-16px">
+                  {step > 0 && (
+                    <MxButton type="button" variant="secondary" size="small" onClick={() => { void prev() }} disabled={saving}>
+                      {t('common:actions.previous')}
+                    </MxButton>
+                  )}
+                </div>
+
+                <div>
+                  {step < SG_IDENTITY_STEPS.length - 1 ? (
+                    <MxButton type="button" onClick={() => { void next() }} disabled={!canNext || saving}>
+                      {saving ? t('wizard.footer.saving') : t('wizard.footer.continue')}
+                    </MxButton>
+                  ) : (
+                    // Dernière étape (récapitulatif) : Soumettre remplace Continuer — gate
+                    // sur l'attestation ET un signataire réellement désigné
+                    // (canSubmitIdentity), jamais sur canNext (toujours false ici).
+                    <MxButton type="button" onClick={() => { void handleSubmit() }} disabled={!canSubmitIdentity(attestationChecked, signatoryId) || saving}>
+                      {saving ? t('wizard.footer.submitting') : t('wizard.footer.submit')}
+                    </MxButton>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-
-        <div style={{ pointerEvents: 'auto' }}>
-          {step < SG_IDENTITY_STEPS.length - 1 ? (
-            <SgBlackPill onClick={() => { void next() }} disabled={!canNext || saving}
-              icon={<SgIcon name="arrowR" size={16} stroke={SugarV2.onBlack} />}>
-              {saving ? t('wizard.footer.saving') : t('wizard.footer.continue')}
-            </SgBlackPill>
-          ) : (
-            // Dernière étape (récapitulatif) : Soumettre remplace Continuer — gate sur
-            // l'attestation ET un signataire réellement désigné (canSubmitIdentity),
-            // jamais sur canNext (qui vaut toujours false ici, cf. son en-tête).
-            <SgBlackPill onClick={() => { void handleSubmit() }} disabled={!canSubmitIdentity(attestationChecked, signatoryId) || saving}
-              icon={<SgIcon name="check" size={16} stroke={SugarV2.onBlack} />}>
-              {saving ? t('wizard.footer.submitting') : t('wizard.footer.submit')}
-            </SgBlackPill>
-          )}
-        </div>
-      </footer>
-      )}
-
-      {error && (
-        <div role="alert" style={{
-          position: 'fixed', bottom: 92, left: 32, right: 32, zIndex: 21,
-          padding: '10px 14px', borderRadius: 12, textAlign: 'center',
-          background: dark ? 'rgba(242,107,101,0.12)' : '#FEF2F2',
-          color: SugarV2.err,
-          border: `1px solid ${dark ? 'rgba(242,107,101,0.35)' : '#FCA5A5'}`,
-          fontSize: 12.5, fontWeight: 600,
-        }}>
-          {error}
-        </div>
-      )}
-    </div>
+        </section>
+      </div>
+    </MeggaX>
   )
 }

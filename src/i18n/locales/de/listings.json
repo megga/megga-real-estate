@@ -15,10 +15,10 @@
     "villa": "Villa",
     "commercial": "Commercial",
     "land": "Grundstück",
-    "office": "Office",
+    "office": "Büro",
     "parking": "Parking / Garage",
-    "storage": "Storage / Cellar",
-    "attic": "Penthouse",
+    "storage": "Lager / Keller",
+    "attic": "Dachwohnung",
     "duplex": "Duplex",
     "triplex": "Triplex",
     "loft": "Loft",
@@ -34,10 +34,6 @@
   "no_photo": "Kein Foto",
   "empty_no_properties": "Sie haben noch kein Objekt hinzugefügt",
   "empty_no_results": "Kein Objekt gefunden",
-  "delete_dialog": {
-    "title": "Dieses Objekt löschen?",
-    "message": "Diese Aktion ist unwiderruflich. Das Objekt und sein Inserat werden dauerhaft gelöscht."
-  },
   "deleting": "Löschen...",
   "delete_button": "Löschen",
   "cancel": "Abbrechen",
@@ -112,251 +108,251 @@
       "apartment_loft": "Loft",
       "apartment_terrasse_flat": "Gartenwohnung"
     },
-    "photoAlt": "Property",
-    "aggregatorValue": "RealAdvisor ({{count}} portals)",
+    "photoAlt": "Immobilienobjekt",
+    "aggregatorValue": "RealAdvisor ({{count}} Portale)",
     "channelEmail": "Email",
-    "channelMessaging": "Messaging"
+    "channelMessaging": "Nachrichten"
   },
   "status": {
-    "active": "Active",
-    "reserved": "Reserved",
-    "draft": "Draft",
-    "paused": "Paused",
-    "sold": "Sold",
+    "active": "Aktiv",
+    "reserved": "Reserviert",
+    "draft": "Entwurf",
+    "paused": "Pausiert",
+    "sold": "Verkauft",
     "archived": "Archiviert"
   },
   "relativeTime": {
     "min": "{{n}} min",
-    "h": "{{n}}h",
-    "j": "{{n}}d",
-    "mois": "{{n}}mo"
+    "h": "{{n}} Std.",
+    "j": "{{n}} T",
+    "mois": "{{n}} Mt."
   },
   "form": {
     "step1": {
-      "title": "General information",
-      "subtitle": "Describe your property.",
-      "characteristics": "Characteristics"
+      "title": "Allgemeine Informationen",
+      "subtitle": "Beschreiben Sie Ihre Immobilie.",
+      "characteristics": "Merkmale"
     },
     "step2": {
-      "title": "Location",
-      "subtitle": "Where is the property located?",
-      "addressSearchHelp": "Searches across all official Swiss addresses",
-      "manualEntry": "Enter manually",
-      "searchByAddress": "Search by address",
-      "mapPlaceholder": "Select an address to see the location"
+      "title": "Lage",
+      "subtitle": "Wo befindet sich das Objekt?",
+      "addressSearchHelp": "Sucht in allen offiziellen Schweizer Adressen",
+      "manualEntry": "Manuell eingeben",
+      "searchByAddress": "Nach Adresse suchen",
+      "mapPlaceholder": "Wählen Sie eine Adresse, um den Standort zu sehen"
     },
     "step3": {
-      "title": "Price & details",
-      "subtitle": "Set the price and the property's features."
+      "title": "Preis & Details",
+      "subtitle": "Legen Sie den Preis und die Merkmale des Objekts fest."
     },
     "step4": {
       "title": "Photos",
-      "subtitle": "Add quality photos. Drag to reorder. The first one will be the cover.",
-      "dropzoneTitle": "Drag your photos here or click to browse",
-      "dropzoneHint": "JPG, PNG or WebP · Max 10 MB · Up to 20 photos",
-      "layoutTitle": "Public listing layout",
-      "layoutSubtitle": "Choose how your listing will be laid out on the property's public page."
+      "subtitle": "Fügen Sie hochwertige Fotos hinzu. Ziehen Sie zum Neuordnen. Das erste wird zum Titelbild.",
+      "dropzoneTitle": "Ziehen Sie Ihre Fotos hierher oder klicken Sie zum Durchsuchen",
+      "dropzoneHint": "JPG, PNG oder WebP · Max. 10 MB · Bis zu 20 Fotos",
+      "layoutTitle": "Layout des öffentlichen Objektblatts",
+      "layoutSubtitle": "Wählen Sie, wie Ihr Inserat auf dem öffentlichen Objektblatt angeordnet wird."
     },
     "step5": {
       "title": "Description & publication",
-      "subtitle": "Write an appealing description and choose your tags."
+      "subtitle": "Verfassen Sie eine ansprechende Beschreibung und wählen Sie Ihre Tags."
     },
     "fields": {
-      "title": "Listing title",
-      "type": "Property type",
-      "rooms": "Rooms",
-      "bedrooms": "Bedrooms",
-      "bathrooms": "Bathrooms",
-      "surface": "Surface area",
-      "floor": "Floor",
-      "totalFloors": "No. of floors",
-      "yearBuilt": "Year built",
-      "condition": "Property condition",
-      "energyClass": "Energy rating (CECB)",
-      "energyClassHelp": "Required for sales in the cantons of GE, VD and NE (cantonal energy law).",
-      "propertyAddress": "Property address",
-      "street": "Street",
-      "city": "City",
-      "postalCode": "Postal code",
-      "postalCodeFull": "Postal code",
+      "title": "Titel des Inserats",
+      "type": "Objekttyp",
+      "rooms": "Zimmer",
+      "bedrooms": "Schlafzimmer",
+      "bathrooms": "Badezimmer",
+      "surface": "Fläche",
+      "floor": "Stockwerk",
+      "totalFloors": "Anz. Stockwerke",
+      "yearBuilt": "Baujahr",
+      "condition": "Objektzustand",
+      "energyClass": "Energieklasse (GEAK)",
+      "energyClassHelp": "Beim Verkauf in den Kantonen GE, VD und NE erforderlich (kantonales Energiegesetz).",
+      "propertyAddress": "Objektadresse",
+      "street": "Strasse",
+      "city": "Ort",
+      "postalCode": "PLZ",
+      "postalCodeFull": "Postleitzahl",
       "canton": "Canton",
-      "address": "Address",
-      "egid": "EGID (federal building identifier)",
-      "egidHelp": "9 digits, searchable on <mono>map.geo.admin.ch</mono>. Optional here, required at the notary.",
-      "monthlyRent": "Monthly rent",
-      "salePrice": "Sale price",
-      "chargesMonthly": "Monthly charges",
-      "deposit": "Deposit (months of rent)",
-      "furnished": "Furnished",
-      "mandateType": "Mandate type",
-      "features": "Features",
-      "availability": "Availability",
-      "description": "Property description",
+      "address": "Adresse",
+      "egid": "EGID (eidgenössischer Gebäudeidentifikator)",
+      "egidHelp": "9 Ziffern, auffindbar auf <mono>map.geo.admin.ch</mono>. Hier optional, beim Notar unerlässlich.",
+      "monthlyRent": "Monatsmiete",
+      "salePrice": "Verkaufspreis",
+      "chargesMonthly": "Monatliche Nebenkosten",
+      "deposit": "Kaution (Monatsmieten)",
+      "furnished": "Möbliert",
+      "mandateType": "Mandatsart",
+      "features": "Merkmale",
+      "availability": "Verfügbarkeit",
+      "description": "Objektbeschreibung",
       "tags": "Tags"
     },
     "placeholders": {
-      "title": "e.g. Bright apartment in Eaux-Vives",
-      "addressSearch": "Type a Swiss address...",
-      "select": "Select...",
-      "description": "Describe the property's highlights, surroundings and assets...",
+      "title": "Z. B. Helle Wohnung in Eaux-Vives",
+      "addressSearch": "Schweizer Adresse eingeben...",
+      "select": "Auswählen...",
+      "description": "Beschreiben Sie die Stärken des Objekts, seine Umgebung, seine Vorzüge...",
       "addressManual": "Rue du Lac 12",
-      "cityExample": "Geneva"
+      "cityExample": "Genf"
     },
     "typeDesc": {
-      "apartment": "Condominium or rental",
-      "house": "Detached or semi-detached",
-      "villa": "High-end",
-      "commercial": "Office or retail",
-      "land": "Building land"
+      "apartment": "Stockwerkeigentum oder Miete",
+      "house": "Einfamilien- oder Reihenhaus",
+      "villa": "Gehobenes Segment",
+      "commercial": "Büro oder Gewerbe",
+      "land": "Bauland"
     },
     "condition": {
-      "new": "New",
-      "renovated": "Renovated",
-      "good": "Good condition",
-      "to_renovate": "To renovate"
+      "new": "Neu",
+      "renovated": "Renoviert",
+      "good": "Guter Zustand",
+      "to_renovate": "Renovierungsbedürftig"
     },
     "availability": {
-      "immediate": "Immediate",
-      "3months": "In 3 months",
-      "negotiable": "To be agreed"
+      "immediate": "Sofort",
+      "3months": "In 3 Monaten",
+      "negotiable": "Nach Vereinbarung"
     },
-    "perMonth": "/month",
-    "monthsCount_one": "{{count}} month",
-    "monthsCount_other": "{{count}} months",
+    "perMonth": "/Monat",
+    "monthsCount_one": "{{count}} Monat",
+    "monthsCount_other": "{{count}} Monate",
     "furnishedOption": {
-      "notFurnished": "Unfurnished",
-      "furnished": "Furnished"
+      "notFurnished": "Unmöbliert",
+      "furnished": "Möbliert"
     },
     "mandate": {
       "exclusive": {
-        "label": "Exclusive",
-        "desc": "Sole agent"
+        "label": "Exklusiv",
+        "desc": "Alleiniger Makler"
       },
       "simple": {
         "label": "Simple",
-        "desc": "Multi-agency"
+        "desc": "Mehrere Agenturen"
       },
       "search": {
-        "label": "Search",
-        "desc": "Buyer mandate"
+        "label": "Suche",
+        "desc": "Käufermandat"
       }
     },
     "regie": {
-      "summary": "External property manager (optional, otherwise the agency publishes under its own name)",
-      "name": "Manager name",
-      "phone": "Phone",
+      "summary": "Externe Verwaltung (optional, sonst veröffentlicht die Agentur unter ihrem Namen)",
+      "name": "Name der Verwaltung",
+      "phone": "Telefon",
       "email": "Email",
       "website": "Website",
-      "namePlaceholder": "Bernard Property Management Ltd"
+      "namePlaceholder": "Verwaltung Bernard AG"
     },
     "featureGroup": {
-      "exterior": "Exterior",
-      "parkingStorage": "Parking & storage",
-      "interior": "Interior",
-      "qualityAccess": "Quality & accessibility"
+      "exterior": "Aussenbereich",
+      "parkingStorage": "Parkplatz & Abstellraum",
+      "interior": "Innenbereich",
+      "qualityAccess": "Qualität & Zugänglichkeit"
     },
-    "featuresSelected_one": "{{count}} feature selected",
-    "featuresSelected_other": "{{count}} features selected",
-    "required": "(required)",
-    "coverPhoto": "Cover",
+    "featuresSelected_one": "{{count}} Merkmal ausgewählt",
+    "featuresSelected_other": "{{count}} Merkmale ausgewählt",
+    "required": "(erforderlich)",
+    "coverPhoto": "Titelbild",
     "photoAlt": "Photo {{index}}",
-    "roomTagPlaceholder": "Room",
+    "roomTagPlaceholder": "Zimmer",
     "floorPlan": {
-      "upgradeTitle": "Interactive floor plan",
-      "upgradeDescription": "Add a clickable floor plan so buyers can browse the photos room by room."
+      "upgradeTitle": "Interaktiver Grundriss",
+      "upgradeDescription": "Fügen Sie einen anklickbaren Grundriss hinzu, damit Käufer die Fotos Raum für Raum durchsehen können."
     },
     "c2pa": {
-      "title": "C2PA certification",
-      "titleSigned": "Photos certified with C2PA",
-      "saveFirst": "Save the property to certify the photos",
-      "proveAuthenticity": "Sign your photos to prove their authenticity",
-      "signedCount_one": "{{count}} photo signed cryptographically",
-      "signedCount_other": "{{count}} photos signed cryptographically",
-      "certifying": "Certifying...",
-      "certify": "Certify",
-      "error": "Certification failed. Please try again later."
+      "title": "C2PA-Zertifizierung",
+      "titleSigned": "C2PA-zertifizierte Fotos",
+      "saveFirst": "Speichern Sie das Objekt, um die Fotos zu zertifizieren",
+      "proveAuthenticity": "Signieren Sie Ihre Fotos, um ihre Echtheit zu belegen",
+      "signedCount_one": "{{count}} Foto kryptografisch signiert",
+      "signedCount_other": "{{count}} Fotos kryptografisch signiert",
+      "certifying": "Zertifizierung...",
+      "certify": "Zertifizieren",
+      "error": "Fehler bei der Zertifizierung. Bitte später erneut versuchen."
     },
     "staging": {
-      "subtitle": "Furnish your empty rooms with AI",
-      "selectPhoto": "Select a photo to furnish",
+      "subtitle": "Möblieren Sie Ihre leeren Zimmer mit KI",
+      "selectPhoto": "Wählen Sie ein Foto zum Möblieren aus",
       "style": "Style",
-      "roomType": "Room type",
-      "generating": "Generating...",
-      "generate": "Generate the furnished version",
-      "upgradeSuffix": "- Upgrade to the Pro plan to unlock.",
+      "roomType": "Zimmertyp",
+      "generating": "Generierung läuft...",
+      "generate": "Möblierte Version generieren",
+      "upgradeSuffix": "- Wechseln Sie zum Pro-Plan, um es freizuschalten.",
       "original": "Original",
-      "furnished": "Furnished",
-      "imagesRemaining_one": "{{count}} image left this month",
-      "imagesRemaining_other": "{{count}} images left this month",
-      "stageAnother": "Furnish another photo"
+      "furnished": "Möbliert",
+      "imagesRemaining_one": "Noch {{count}} Bild diesen Monat",
+      "imagesRemaining_other": "Noch {{count}} Bilder diesen Monat",
+      "stageAnother": "Weiteres Foto möblieren"
     },
     "method": {
-      "heading": "Add a property",
-      "subheading": "How would you like to enter this property?",
+      "heading": "Objekt hinzufügen",
+      "subheading": "Wie möchten Sie dieses Objekt erfassen?",
       "manual": {
-        "title": "Manual entry",
-        "desc": "Fill out the form step by step"
+        "title": "Manuelle Erfassung",
+        "desc": "Das Formular Schritt für Schritt ausfüllen"
       },
       "duplicate": {
-        "title": "Duplicate an existing property",
-        "desc": "Copy the details of one of your properties",
-        "descEmpty": "You have no property to duplicate"
+        "title": "Bestehendes Objekt duplizieren",
+        "desc": "Die Angaben eines Ihrer Objekte kopieren",
+        "descEmpty": "Sie haben kein Objekt zum Duplizieren"
       },
       "url": {
-        "title": "From a URL",
-        "desc": "Import from Homegate, ImmoScout24..."
+        "title": "Aus einer URL",
+        "desc": "Von Homegate, ImmoScout24 importieren..."
       },
       "pdf": {
-        "title": "From a PDF",
-        "desc": "Extract the details from a property sheet"
+        "title": "Aus einem PDF",
+        "desc": "Die Angaben aus einem Objektblatt extrahieren"
       },
-      "soon": "Soon"
+      "soon": "Bald"
     },
     "duplicate": {
-      "heading": "Duplicate a property",
-      "subheading": "Select the property to copy",
-      "searchPlaceholder": "Search by title, address, city...",
-      "copySuffix": "{{title}} (copy)"
+      "heading": "Objekt duplizieren",
+      "subheading": "Wählen Sie das zu kopierende Objekt",
+      "searchPlaceholder": "Nach Titel, Adresse, Ort suchen...",
+      "copySuffix": "{{title}} (Kopie)"
     },
     "url": {
-      "heading": "Import from a URL",
-      "subheading": "Paste the link to a Swiss property listing",
-      "analyze": "Analyse the listing",
-      "errorTitle": "Import error",
-      "supportedPortals": "Supported portals:",
-      "analyzing": "Analysing the listing...",
-      "analyzingHint": "MEGGA AI reads the page and extracts the property information"
+      "heading": "Aus einer URL importieren",
+      "subheading": "Fügen Sie den Link eines Schweizer Immobilieninserats ein",
+      "analyze": "Inserat analysieren",
+      "errorTitle": "Importfehler",
+      "supportedPortals": "Unterstützte Portale:",
+      "analyzing": "Inserat wird analysiert...",
+      "analyzingHint": "MEGGA AI liest die Seite und extrahiert die Objektdaten"
     },
     "pdf": {
-      "heading": "Import from a PDF",
-      "subheading": "Upload a property sheet, a mandate or any document describing the property",
-      "dropzoneTitle": "Drag your PDF here",
-      "dropzoneHint": "or click to select (max 20 MB)",
-      "analyzing": "Analysing the document...",
-      "analyzingHint": "MEGGA AI reads the PDF and extracts the property information",
-      "errorTitle": "Extraction error",
-      "retry": "Try again with another file",
-      "supportedFormats": "Supported formats: property sheets, sale mandates, valuation reports"
+      "heading": "Aus einem PDF importieren",
+      "subheading": "Laden Sie ein Objektblatt, ein Mandat oder ein beliebiges Dokument zum Objekt hoch",
+      "dropzoneTitle": "Ziehen Sie Ihr PDF hierher",
+      "dropzoneHint": "oder klicken Sie zum Auswählen (max. 20 MB)",
+      "analyzing": "Dokument wird analysiert...",
+      "analyzingHint": "MEGGA AI liest das PDF und extrahiert die Objektangaben",
+      "errorTitle": "Extraktionsfehler",
+      "retry": "Mit einer anderen Datei erneut versuchen",
+      "supportedFormats": "Unterstützte Formate: Objektblätter, Verkaufsmandate, Schätzungsberichte"
     },
     "header": {
-      "edit": "Edit property",
-      "duplicate": "Duplicate property",
-      "new": "New property",
-      "stepIndicator": "Step {{current}} of {{total}}"
+      "edit": "Objekt bearbeiten",
+      "duplicate": "Objekt duplizieren",
+      "new": "Neues Objekt",
+      "stepIndicator": "Schritt {{current}} von {{total}}"
     },
     "autosave": {
-      "saving": "Saving...",
-      "saved": "Draft saved"
+      "saving": "Wird gespeichert...",
+      "saved": "Entwurf gespeichert"
     },
     "transaction": {
-      "buy": "Sale",
-      "rent": "Rental",
-      "locked": "The transaction type is locked in edit mode"
+      "buy": "Verkauf",
+      "rent": "Miete",
+      "locked": "Der Transaktionstyp ist im Bearbeitungsmodus gesperrt"
     },
     "sections": {
-      "general": "General info",
-      "location": "Location",
-      "priceDetails": "Price & details",
+      "general": "Allgemeine Infos",
+      "location": "Standort",
+      "priceDetails": "Preis & Details",
       "photos": "Photos",
       "photosCount_one": "{{count}} photo",
       "photosCount_other": "{{count}} photos",
@@ -364,176 +360,176 @@
       "description": "Description"
     },
     "preview": {
-      "heading": "Listing preview",
-      "titlePlaceholder": "Listing title",
-      "cityPlaceholder": "City",
-      "roomsCount_one": "{{count}} room",
-      "roomsCount_other": "{{count}} rooms",
-      "descriptionPlaceholder": "The description will appear here...",
-      "newPropertyTitle": "New property",
-      "noAddress": "No address provided",
-      "roomsShort_one": "{{count}} rm",
-      "roomsShort_other": "{{count}} rms"
+      "heading": "Vorschau des Inserats",
+      "titlePlaceholder": "Titel des Inserats",
+      "cityPlaceholder": "Ort",
+      "roomsCount_one": "{{count}} Zimmer",
+      "roomsCount_other": "{{count}} Zimmer",
+      "descriptionPlaceholder": "Die Beschreibung erscheint hier...",
+      "newPropertyTitle": "Neues Objekt",
+      "noAddress": "Adresse nicht angegeben",
+      "roomsShort_one": "{{count}} Zi.",
+      "roomsShort_other": "{{count}} Zi."
     },
-    "completion": "Completion",
+    "completion": "Vollständigkeit",
     "actions": {
-      "saveDraft": "Save draft",
-      "draft": "Draft",
-      "publish": "Publish",
-      "save": "Save"
+      "saveDraft": "Entwurf speichern",
+      "draft": "Entwurf",
+      "publish": "Veröffentlichen",
+      "save": "Speichern"
     },
     "errors": {
-      "fixInvalidFields": "Fix the invalid fields before saving (price, canton, postal code, Swiss coordinates).",
-      "lbaRent": "AMLA art. 6: a signed management mandate is required before publishing a rental. Save the mandate from the property page (draft) before publishing.",
-      "lbaBuy": "AMLA art. 6: this property at CHF {{price}} cannot be published without a signed mandate. Save the mandate from the property page (draft) before publishing."
+      "fixInvalidFields": "Korrigieren Sie die ungültigen Felder vor dem Speichern (Preis, Kanton, PLZ, Schweizer Koordinaten).",
+      "lbaRent": "GwG Art. 6: Vor der Veröffentlichung einer Vermietung ist ein unterzeichnetes Verwaltungsmandat erforderlich. Erfassen Sie das Mandat auf der Objektseite (Entwurf), bevor Sie veröffentlichen.",
+      "lbaBuy": "GwG Art. 6: Dieses Objekt zu CHF {{price}} kann ohne unterzeichnetes Mandat nicht veröffentlicht werden. Erfassen Sie das Mandat auf der Objektseite (Entwurf), bevor Sie veröffentlichen."
     },
     "validation": {
-      "latOutsideSwitzerland": "Latitude outside Switzerland",
-      "lngOutsideSwitzerland": "Longitude outside Switzerland",
-      "urlInvalid": "Invalid URL (http(s) only)",
-      "emailInvalid": "Invalid email",
-      "titleMin": "The title must be at least 5 characters",
-      "max200": "Maximum 200 characters",
-      "max100": "Maximum 100 characters",
-      "typeRequired": "Select a property type",
-      "roomsMin": "Minimum 0.5 room",
-      "roomsMax": "Maximum 30 rooms",
+      "latOutsideSwitzerland": "Breitengrad ausserhalb der Schweiz",
+      "lngOutsideSwitzerland": "Längengrad ausserhalb der Schweiz",
+      "urlInvalid": "Ungültige URL (nur http(s))",
+      "emailInvalid": "Ungültige E-Mail",
+      "titleMin": "Der Titel muss mindestens 5 Zeichen enthalten",
+      "max200": "Maximal 200 Zeichen",
+      "max100": "Maximal 100 Zeichen",
+      "typeRequired": "Wählen Sie einen Objekttyp",
+      "roomsMin": "Mindestens 0.5 Zimmer",
+      "roomsMax": "Maximal 30 Zimmer",
       "min0": "Minimum 0",
-      "bedroomsMax": "Maximum 20 bedrooms",
+      "bedroomsMax": "Maximal 20 Schlafzimmer",
       "bathroomsMax": "Maximum 10",
       "surfaceMin": "Minimum 5 m²",
       "surfaceMax": "Maximum 10000 m²",
-      "addressRequired": "Address is required",
-      "cityRequired": "City is required",
-      "cantonRequired": "Select a valid Swiss canton",
-      "postalCodeInvalid": "Invalid Swiss postal code (4 digits, must not start with 0)",
-      "egidInvalid": "EGID = 9 digits (federal building identifier)",
-      "priceNegative": "Negative price rejected",
-      "mandateRequired": "Select a mandate type",
-      "featuresMax": "Maximum 50 features",
-      "photoUrlInvalid": "Invalid photo URL",
+      "addressRequired": "Adresse ist erforderlich",
+      "cityRequired": "Ort ist erforderlich",
+      "cantonRequired": "Wählen Sie einen gültigen Schweizer Kanton",
+      "postalCodeInvalid": "Ungültige Schweizer PLZ (4 Ziffern, nicht mit 0 beginnend)",
+      "egidInvalid": "EGID = 9 Ziffern (eidgenössischer Gebäudeidentifikator)",
+      "priceNegative": "Negativer Preis nicht zulässig",
+      "mandateRequired": "Wählen Sie eine Mandatsart",
+      "featuresMax": "Maximal 50 Merkmale",
+      "photoUrlInvalid": "Ungültige Foto-URL",
       "photosMax": "Maximum 50 photos",
-      "descriptionMin": "The description must be at least 20 characters",
-      "descriptionMax": "Description too long (max 10,000 characters)",
+      "descriptionMin": "Die Beschreibung muss mindestens 20 Zeichen enthalten",
+      "descriptionMax": "Beschreibung zu lang (max. 10 000 Zeichen)",
       "tagsMax": "Maximum 20 tags",
-      "rentRange": "Rent between CHF {{min}} and CHF {{max}}/month",
-      "availabilityRequiredRent": "Date required for a rental",
-      "priceRange": "Price between CHF {{min}} and CHF {{max}}",
-      "cecbRequired": "CECB is mandatory for sales in the canton of {{canton}}. Please provide the energy rating."
+      "rentRange": "Miete zwischen CHF {{min}} und CHF {{max}}/Monat",
+      "availabilityRequiredRent": "Datum für eine Vermietung erforderlich",
+      "priceRange": "Preis zwischen CHF {{min}} und CHF {{max}}",
+      "cecbRequired": "GEAK beim Verkauf im Kanton {{canton}} obligatorisch. Geben Sie die Energieklasse an."
     }
   },
   "biens": {
-    "create": "Create a property",
-    "export": "Export",
-    "loading": "Loading…",
-    "subtitle_one": "{{count}} property of {{total}} in your catalogue",
-    "subtitle_other": "{{count}} properties of {{total}} in your catalogue",
-    "searchPlaceholder": "Search a property, an address, a reference…",
-    "seller": "Seller",
-    "unlinked": "Unlinked",
-    "perMonth": "/mo",
-    "toEstimate": "To estimate",
-    "finish": "Finish",
-    "photosToAdd": "Photos to add",
+    "create": "Objekt erstellen",
+    "export": "Exportieren",
+    "loading": "Wird geladen…",
+    "subtitle_one": "{{count}} Objekt von {{total}} in Ihrem Katalog",
+    "subtitle_other": "{{count}} Objekte von {{total}} in Ihrem Katalog",
+    "searchPlaceholder": "Objekt, Adresse oder Referenz suchen…",
+    "seller": "Verkäufer",
+    "unlinked": "Nicht verknüpft",
+    "perMonth": "/Monat",
+    "toEstimate": "Zu schätzen",
+    "finish": "Fertigstellen",
+    "photosToAdd": "Fotos hinzufügen",
     "sort": {
-      "recent": "Recent",
-      "priceDesc": "Price descending",
-      "priceAsc": "Price ascending",
+      "recent": "Neueste",
+      "priceDesc": "Preis absteigend",
+      "priceAsc": "Preis aufsteigend",
       "surface": "Surface",
-      "views": "Most viewed"
+      "views": "Meistgesehen"
     },
     "view": {
-      "gallery": "Gallery",
-      "list": "List"
+      "gallery": "Galerie",
+      "list": "Liste"
     },
     "kpi": {
-      "portfolioValue": "Portfolio value",
-      "viewsCumulated": "Total views · 30 d",
-      "visitRequests": "Visit requests",
-      "views": "Views"
+      "portfolioValue": "Portfoliowert",
+      "viewsCumulated": "Aufrufe gesamt · 30 Tage",
+      "visitRequests": "Besichtigungsanfragen",
+      "views": "Aufrufe"
     },
     "empty": {
-      "noMatch": "No property matches"
+      "noMatch": "Kein Objekt entspricht"
     },
     "error": {
-      "title": "Unable to load your properties",
-      "message": "An error occurred. Check your connection, then try again.",
-      "retry": "Retry"
+      "title": "Ihre Objekte konnten nicht geladen werden",
+      "message": "Ein Fehler ist aufgetreten. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "retry": "Erneut versuchen"
     },
     "spec": {
-      "rooms": "rooms",
-      "beds": "bd",
-      "baths": "ba",
-      "epc": "EPC"
+      "rooms": "Zimmer",
+      "beds": "Schlafz.",
+      "baths": "Bad",
+      "epc": "GEAK"
     },
     "score": {
-      "chaud": "Hot",
-      "a_animer": "To nurture",
-      "en_veille": "Idle",
-      "fallback": "Estimate",
-      "tooltip": "Property score, estimate",
-      "tooltipLimited": "Property score, estimate · limited data"
+      "chaud": "Heiss",
+      "a_animer": "Zu beleben",
+      "en_veille": "Ruhend",
+      "fallback": "Schätzung",
+      "tooltip": "Objekt-Score, Schätzung",
+      "tooltipLimited": "Objekt-Score, Schätzung · begrenzte Daten"
     },
     "submissions": {
-      "bannerTitle_one": "{{count}} new seller submission",
-      "bannerTitle_other": "{{count}} new seller submissions",
-      "subtitle": "Individuals who submitted their property via MEGGA Vendre",
-      "subtitleWithUrgent": "{{urgent}} · Individuals who submitted their property via MEGGA Vendre",
-      "urgentClause_one": "{{count}} to handle within 24h",
-      "urgentClause_other": "{{count}} to handle within 24h",
-      "open": "Open",
-      "inbox": "Seller inbox",
-      "count_one": "{{count}} submission",
-      "count_other": "{{count}} submissions",
-      "receivedAgo": "Received {{time}}",
-      "roomsArea": "{{rooms}} rms · {{area}}m²"
+      "bannerTitle_one": "{{count}} neue Verkäufereinreichung",
+      "bannerTitle_other": "{{count}} neue Verkäufereinreichungen",
+      "subtitle": "Privatpersonen, die ihr Objekt über MEGGA Vendre eingereicht haben",
+      "subtitleWithUrgent": "{{urgent}} · Privatpersonen, die ihr Objekt über MEGGA Vendre eingereicht haben",
+      "urgentClause_one": "{{count}} innerhalb von 24 h zu bearbeiten",
+      "urgentClause_other": "{{count}} innerhalb von 24 h zu bearbeiten",
+      "open": "Öffnen",
+      "inbox": "Verkäufer-Inbox",
+      "count_one": "{{count}} Einreichung",
+      "count_other": "{{count}} Einreichungen",
+      "receivedAgo": "Erhalten {{time}}",
+      "roomsArea": "{{rooms}} Zi. · {{area}} m²"
     },
     "transaction": {
-      "rent": "Rental",
-      "sale": "Sale"
+      "rent": "Miete",
+      "sale": "Verkauf"
     },
     "detail": {
-      "back": "Back to properties",
-      "publish": "Publish",
-      "update": "Update",
-      "viewPhotos_one": "View the photo",
-      "viewPhotos_other": "View all {{count}} photos",
-      "exclusiveMandate": "Exclusive mandate",
+      "back": "Zurück zu den Objekten",
+      "publish": "Veröffentlichen",
+      "update": "Aktualisieren",
+      "viewPhotos_one": "Foto anzeigen",
+      "viewPhotos_other": "{{count}} Fotos anzeigen",
+      "exclusiveMandate": "Exklusivmandat",
       "charges": "+ CHF {{amount}} charges",
       "tabs": {
-        "overview": "Overview",
+        "overview": "Übersicht",
         "performance": "Performance",
-        "requests": "Requests",
-        "history": "History"
+        "requests": "Anfragen",
+        "history": "Verlauf"
       },
       "specs": {
         "surface": "Surface",
-        "rooms": "Rooms",
-        "epc": "EPC",
-        "bedrooms": "Beds",
-        "bathrooms": "Baths",
-        "year": "Year"
+        "rooms": "Zimmer",
+        "epc": "GEAK",
+        "bedrooms": "Schlafzimmer",
+        "bathrooms": "Badezimmer",
+        "year": "Baujahr"
       },
       "mandate": {
-        "heading": "Mandate",
+        "heading": "Mandat",
         "type": "Type",
         "commission": "Commission",
-        "signedOn": "Signed on",
-        "expiresOn": "Expires on"
+        "signedOn": "Unterzeichnet am",
+        "expiresOn": "Läuft ab am"
       },
-      "distribution": "Distribution",
-      "channelActive": "Active",
-      "channelInactive": "Not published",
-      "call": "Call",
+      "distribution": "Veröffentlichung",
+      "channelActive": "Aktiv",
+      "channelInactive": "Nicht veröffentlicht",
+      "call": "Anrufen",
       "email": "Email",
-      "noSeller": "No seller linked",
+      "noSeller": "Kein Verkäufer verknüpft",
       "perf": {
-        "views": "Views",
+        "views": "Aufrufe",
         "favorites": "Favourites",
-        "requests": "Requests"
+        "requests": "Anfragen"
       },
-      "noRequests": "No request or match for this property.",
-      "noHistory": "No event recorded."
+      "noRequests": "Keine Anfrage und kein Match für dieses Objekt.",
+      "noHistory": "Kein Ereignis erfasst."
     },
     "followUp": {
       "title": "Nachverfolgung",
@@ -618,900 +614,900 @@
     }
   },
   "detail": {
-    "loading": "Loading property…",
-    "loadError": "Failed to load property: {{message}}",
-    "unknownError": "unknown",
-    "notFound": "Property not found.",
-    "editingBadge": "Editing",
-    "editListing": "Edit listing",
-    "cancelEdit": "Cancel",
-    "scheduleVisit": "Schedule a viewing",
-    "saveAndPublish": "Save & publish",
-    "manageDistribution": "Manage distribution",
-    "publishProperty": "Publish property",
-    "distribution": "Distribution",
-    "onlineOn": "Listing live on {{portals}}",
-    "notPublishedYet": "Property not published yet",
-    "viewPhotos": "View {{count}} photos",
-    "c2paVerified": "Verified provenance · C2PA",
-    "transactionRent": "Rental",
-    "transactionSale": "Sale",
-    "rentLabel": "Rent",
-    "salePriceLabel": "Sale price",
-    "perMonth": "/month",
+    "loading": "Objekt wird geladen…",
+    "loadError": "Fehler beim Laden des Objekts: {{message}}",
+    "unknownError": "unbekannt",
+    "notFound": "Objekt nicht gefunden.",
+    "editingBadge": "Bearbeitung",
+    "editListing": "Inserat bearbeiten",
+    "cancelEdit": "Abbrechen",
+    "scheduleVisit": "Besichtigung planen",
+    "saveAndPublish": "Speichern & veröffentlichen",
+    "manageDistribution": "Veröffentlichung verwalten",
+    "publishProperty": "Objekt veröffentlichen",
+    "distribution": "Veröffentlichung",
+    "onlineOn": "Inserat online auf {{portals}}",
+    "notPublishedYet": "Objekt noch nicht veröffentlicht",
+    "viewPhotos": "Alle {{count}} Fotos ansehen",
+    "c2paVerified": "Herkunft verifiziert · C2PA",
+    "transactionRent": "Miete",
+    "transactionSale": "Verkauf",
+    "rentLabel": "Mietzins",
+    "salePriceLabel": "Verkaufspreis",
+    "perMonth": "/Monat",
     "chargesLine": "+ CHF {{amount}} charges{{suffix}}",
-    "locationUnavailable": "Location unavailable",
-    "energyClassUnknown": "not specified",
-    "autoDescription": "{{rooms}}-room property ({{surface}} m²) located {{address}}. Built in {{year}}, energy class {{energyClass}}.",
+    "locationUnavailable": "Standort nicht verfügbar",
+    "energyClassUnknown": "nicht angegeben",
+    "autoDescription": "Objekt mit {{rooms}} Zimmern ({{surface}} m²) an der Adresse {{address}}. Baujahr {{year}}, Energieklasse {{energyClass}}.",
     "spec": {
-      "surface": "Area",
-      "rooms": "Rooms",
-      "bedrooms": "Bedrooms",
-      "bathrooms": "Baths",
-      "year": "Year",
-      "energyClass": "EPC"
+      "surface": "Fläche",
+      "rooms": "Zimmer",
+      "bedrooms": "Schlafzimmer",
+      "bathrooms": "Badezimmer",
+      "year": "Jahr",
+      "energyClass": "GEAK"
     },
     "stage": {
-      "new_lead": "New lead",
-      "to_qualify": "To qualify",
-      "active_search": "Searching",
-      "visit_planned": "Viewing scheduled",
-      "visit_done": "Viewing done",
-      "interest_confirmed": "Interest confirmed",
-      "offer": "Offer",
-      "negotiation": "Negotiation",
-      "reserved": "Reserved",
-      "financing": "Financing",
-      "notary": "Notary",
-      "signed": "Signed",
-      "lost": "Lost",
-      "to_recontact": "To follow up"
+      "new_lead": "Neuer Lead",
+      "to_qualify": "Zu qualifizieren",
+      "active_search": "Aktive Suche",
+      "visit_planned": "Besichtigung geplant",
+      "visit_done": "Besichtigung erfolgt",
+      "interest_confirmed": "Interesse bestätigt",
+      "offer": "Angebot",
+      "negotiation": "Verhandlung",
+      "reserved": "Reserviert",
+      "financing": "Finanzierung",
+      "notary": "Notar",
+      "signed": "Unterzeichnet",
+      "lost": "Verloren",
+      "to_recontact": "Nachfassen"
     },
     "status": {
-      "archived": "Archived"
+      "archived": "Archiviert"
     },
     "description": {
       "eyebrow": "Description",
-      "publicTitle": "Listing visible to buyers",
-      "privateTitle": "MEGGA team notes",
-      "tabPublic": "Public",
-      "tabPrivate": "Private",
-      "privatePlaceholder": "Internal notes (never published): seller availability, negotiation room, buyer preferences…",
-      "privateOnly": "Visible only to the MEGGA team · never published",
-      "privateEmpty": "No team notes, switch to edit mode (✎) to add some. Visible to MEGGA only."
+      "publicTitle": "Für Käufer sichtbares Inserat",
+      "privateTitle": "Notizen MEGGA-Team",
+      "tabPublic": "Öffentlich",
+      "tabPrivate": "Privat",
+      "privatePlaceholder": "Interne Notizen (nie veröffentlicht): Verfügbarkeit des Verkäufers, Verhandlungsspielraum, Käuferpräferenzen…",
+      "privateOnly": "Nur für das MEGGA-Team sichtbar · nie veröffentlicht",
+      "privateEmpty": "Keine Teamnotizen, wechseln Sie in den Bearbeitungsmodus (✎), um welche hinzuzufügen. Nur für MEGGA sichtbar."
     },
     "specs": {
-      "eyebrow": "Features",
-      "title": "Property details",
-      "propertyType": "Property type",
+      "eyebrow": "Merkmale",
+      "title": "Die Objektdetails",
+      "propertyType": "Objekttyp",
       "transaction": "Transaction",
-      "livingArea": "Living area",
-      "bathrooms": "Bathrooms",
-      "energyClass": "Energy class",
-      "energyClassValue": "EPC {{grade}}",
+      "livingArea": "Wohnfläche",
+      "bathrooms": "Badezimmer",
+      "energyClass": "Energieklasse",
+      "energyClassValue": "GEAK {{grade}}",
       "charges": "Charges"
     },
     "buyers": {
-      "eyebrow_one": "Buyer pipeline for this property",
-      "eyebrow_other": "Buyer pipeline for this property",
-      "title": "Active buyers",
+      "eyebrow_one": "Käufer-Pipeline zu diesem Objekt",
+      "eyebrow_other": "Käufer-Pipeline zu diesem Objekt",
+      "title": "Aktive Käufer",
       "pipeline": "Pipeline",
-      "buyerFallback": "Buyer",
-      "matchAffinity": "MEGGA AI match · {{score}}% fit",
-      "propose": "Propose",
-      "kycNotice": "<0>KYC to complete</0> for a buyer, optional at this stage, required before signing.",
-      "startKyc": "Start"
+      "buyerFallback": "Käufer",
+      "matchAffinity": "MEGGA AI Match · {{score}}% Übereinstimmung",
+      "propose": "Vorschlagen",
+      "kycNotice": "<0>KYC zu vervollständigen</0> für einen Käufer, in dieser Phase optional, vor der Unterzeichnung erforderlich.",
+      "startKyc": "Starten"
     },
     "nextVisit": {
-      "eyebrow": "Next viewing",
-      "visitor": "Visitor",
-      "reschedule": "Reschedule",
-      "cancel": "Cancel",
-      "cancelledTitle": "Viewing cancelled",
-      "cancelledLine": "Removed from your schedule"
+      "eyebrow": "Nächste Besichtigung",
+      "visitor": "Besucher",
+      "reschedule": "Verschieben",
+      "cancel": "Absagen",
+      "cancelledTitle": "Besichtigung abgesagt",
+      "cancelledLine": "Aus Ihrem Kalender entfernt"
     },
     "performance": {
-      "eyebrow": "Performance · 30 days",
-      "views": "Views",
+      "eyebrow": "Leistung · 30 Tage",
+      "views": "Aufrufe",
       "favorites": "Favourites",
-      "requests": "Requests",
-      "trend": "+{{percent}} % vs. previous month"
+      "requests": "Anfragen",
+      "trend": "+{{percent}} % vs. Vormonat"
     },
     "mandate": {
-      "eyebrow": "Mandate",
-      "heading": "{{type}} mandate",
-      "sellerViewProfile": "Seller · view profile",
+      "eyebrow": "Mandat",
+      "heading": "{{type}}-Mandat",
+      "sellerViewProfile": "Verkäufer · Profil ansehen",
       "commission": "Commission",
-      "signedOn": "Signed on",
-      "expiresOn": "Expires on",
-      "expiresIn_one": "in {{count}} day",
-      "expiresIn_other": "in {{count}} days",
-      "overdue_one": "{{count}} day overdue",
-      "overdue_other": "{{count}} days overdue",
+      "signedOn": "Unterzeichnet am",
+      "expiresOn": "Läuft ab am",
+      "expiresIn_one": "in {{count}} T",
+      "expiresIn_other": "in {{count}} T",
+      "overdue_one": "{{count}} T überfällig",
+      "overdue_other": "{{count}} T überfällig",
       "type": {
-        "exclusive": "exclusive",
-        "simple": "open",
-        "semi_exclusive": "semi-exclusive"
+        "exclusive": "Exklusiv",
+        "simple": "Einfach",
+        "semi_exclusive": "Semi-Exklusiv"
       }
     },
     "distributionSection": {
-      "eyebrow": "Distribution",
-      "notPublished": "Not published",
+      "eyebrow": "Veröffentlichung",
+      "notPublished": "Nicht veröffentlicht",
       "online": "Online",
-      "queued": "Queued",
+      "queued": "In Warteschlange",
       "offline": "Offline"
     },
     "historySection": {
-      "eyebrow": "History"
+      "eyebrow": "Verlauf"
     },
     "history": {
-      "created": "Property created in the CRM",
-      "published": "Listing published",
-      "updated": "Listing updated"
+      "created": "Objekt im CRM erstellt",
+      "published": "Inserat veröffentlicht",
+      "updated": "Inserat aktualisiert"
     },
     "visitModal": {
-      "title": "Schedule a viewing",
-      "day": "Day",
-      "time": "Time",
-      "visitor": "Visitor",
-      "confirm": "Confirm viewing",
-      "scheduledTitle": "Viewing scheduled",
-      "scheduledLine": "{{date}} at {{time}}",
-      "scheduledHint": "Added to your local schedule"
+      "title": "Besichtigung planen",
+      "day": "Tag",
+      "time": "Uhrzeit",
+      "visitor": "Besucher",
+      "confirm": "Besichtigung bestätigen",
+      "scheduledTitle": "Besichtigung geplant",
+      "scheduledLine": "{{date}} um {{time}}",
+      "scheduledHint": "Zu Ihrem lokalen Kalender hinzugefügt"
     },
     "toast": {
-      "publishedTitle": "Listing published",
-      "updatedTitle": "Listing updated",
-      "statusActive": "Status set to active",
-      "auditAdded": "Entry added to the nFADP audit log"
+      "publishedTitle": "Inserat veröffentlicht",
+      "updatedTitle": "Inserat aktualisiert",
+      "statusActive": "Status auf aktiv gesetzt",
+      "auditAdded": "Eintrag zum nDSG-Auditprotokoll hinzugefügt"
     },
     "c2paAlert": {
-      "title": "Photos without authenticity certification",
-      "body": "Re-upload the photos to make distribution reliable. MEGGA Marketplace publishing will wait for certification; partner portals accept them anyway.",
-      "action": "Re-upload"
+      "title": "Fotos ohne Echtheitszertifizierung",
+      "body": "Laden Sie die Fotos erneut hoch, um die Verbreitung zuverlässig zu machen. Die Veröffentlichung auf MEGGA Marketplace wartet auf die Zertifizierung; die Partnerportale akzeptieren sie dennoch.",
+      "action": "Erneut hochladen"
     }
   },
   "editor": {
     "gallery": {
-      "title": "Gallery layout",
-      "subtitle": "Choose how your photos appear on the property's public page.",
+      "title": "Layout der Galerie",
+      "subtitle": "Wählen Sie, wie Ihre Fotos auf dem öffentlichen Objektblatt angezeigt werden.",
       "layout": {
         "hero": {
           "label": "Hero",
-          "description": "1 large + 2×2 grid"
+          "description": "1 grosses Foto + 2×2-Raster"
         },
         "mosaic": {
-          "label": "Mosaic",
-          "description": "6 asymmetric photos"
+          "label": "Mosaik",
+          "description": "6 asymmetrische Fotos"
         },
         "carousel": {
-          "label": "Carousel",
-          "description": "Single photo + arrows + thumbnails"
+          "label": "Karussell",
+          "description": "Einzelfoto + Pfeile + Miniaturen"
         }
       }
     },
     "contactLayout": {
-      "title": "Contact card",
-      "subtitle": "Where to show the agent block on the listing.",
+      "title": "Kontaktkarte",
+      "subtitle": "Wo der Maklerblock auf dem Objektblatt erscheint.",
       "right": {
-        "label": "Sticky right",
-        "description": "Agent card in the right column"
+        "label": "Sticky rechts",
+        "description": "Maklerkarte in der rechten Spalte"
       },
       "banner": {
-        "label": "Top banner",
-        "description": "CTA in the price card"
+        "label": "Banner oben",
+        "description": "CTA in der Preiskarte"
       },
       "floating": {
         "label": "Floating",
-        "description": "Fixed bottom-right widget"
+        "description": "Fixes Widget unten rechts"
       }
     },
     "neighborhood": {
-      "title": "\"The neighbourhood\" block",
-      "subtitle": "How to present the property's surroundings.",
+      "title": "Block «Das Quartier»",
+      "subtitle": "Wie die Umgebung des Objekts dargestellt wird.",
       "map": {
-        "label": "Interactive map",
-        "description": "Leaflet OSM + amenities around the property"
+        "label": "Interaktive Karte",
+        "description": "Leaflet OSM + Amenities rund um das Objekt"
       },
       "scores": {
-        "label": "Editorial scores",
-        "description": "Walkability, Transit, Quiet + a word from MEGGA"
+        "label": "Redaktionelle Scores",
+        "description": "Fussgängerfreundlichkeit, Verkehrsanbindung, Ruhe + der Kommentar von MEGGA"
       }
     },
     "partnerAgency": {
-      "title": "Partner agency",
-      "subtitle": "Shows an agency banner at the top of the agent card (optional).",
+      "title": "Partneragentur",
+      "subtitle": "Zeigt ein Agenturbanner oben auf der Maklerkarte an (optional).",
       "none": {
-        "label": "None",
-        "description": "MEGGA Real Estate by default"
+        "label": "Keine",
+        "description": "Standardmässig MEGGA Real Estate"
       }
     },
     "floorPlan": {
-      "title": "Interactive floor plan",
-      "subtitle": "Add a floor plan and link your photos by room",
-      "uploading": "Uploading...",
-      "dropHere": "Drop your floor plan here",
-      "fileHint": "JPG, PNG, WebP or SVG, max 15 MB",
-      "browse": "Browse",
-      "instructions": "Click the plan to place a point. Drag to reposition.",
-      "canvasAria": "Click to place a point",
-      "imageAlt": "Floor plan",
-      "hotspotAria": "{{room}} point",
-      "room": "Room",
-      "linkedPhotos_one": "Linked photo ({{count}})",
-      "linkedPhotos_other": "Linked photos ({{count}})",
+      "title": "Interaktiver Grundriss",
+      "subtitle": "Fügen Sie einen Grundriss hinzu und ordnen Sie Ihre Fotos den Zimmern zu",
+      "uploading": "Upload läuft...",
+      "dropHere": "Ziehen Sie Ihren Grundriss hierher",
+      "fileHint": "JPG, PNG, WebP oder SVG, max. 15 MB",
+      "browse": "Durchsuchen",
+      "instructions": "Klicken Sie auf den Grundriss, um einen Punkt zu setzen. Ziehen Sie, um ihn zu verschieben.",
+      "canvasAria": "Klicken Sie, um einen Punkt zu setzen",
+      "imageAlt": "Grundriss",
+      "hotspotAria": "Punkt {{room}}",
+      "room": "Zimmer",
+      "linkedPhotos_one": "Zugeordnetes Foto ({{count}})",
+      "linkedPhotos_other": "Zugeordnete Fotos ({{count}})",
       "photoCount_one": "{{count}} photo",
       "photoCount_other": "{{count}} photos",
-      "taggedCounter": "{{tagged}}/{{total}} photos tagged"
+      "taggedCounter": "{{tagged}}/{{total}} Fotos markiert"
     },
     "address": {
-      "placeholder": "Search for an address in Switzerland...",
-      "noResults": "No address found",
-      "noResultsHint": "Check the spelling or try another term",
-      "error": "Connection error. Please try again."
+      "placeholder": "Adresse in der Schweiz suchen...",
+      "noResults": "Keine Adresse gefunden",
+      "noResultsHint": "Prüfen Sie die Schreibweise oder versuchen Sie einen anderen Begriff",
+      "error": "Verbindungsfehler. Bitte versuchen Sie es erneut."
     }
   },
   "wizard": {
     "steps": {
       "start": "Start",
-      "mandate": "Seller",
-      "address": "Address",
-      "specs": "Features",
+      "mandate": "Verkäufer",
+      "address": "Adresse",
+      "specs": "Merkmale",
       "photos": "Photos",
       "desc": "Description",
       "options": "Options",
       "publish": "Publication"
     },
-    "forOwner": "For {{name}}",
+    "forOwner": "Für {{name}}",
     "ownerVia": {
-      "submission": "via submission",
-      "linked": "linked seller"
+      "submission": "via Einreichung",
+      "linked": "verknüpfter Verkäufer"
     },
     "step0": {
-      "eyebrow": "Step 1 of 8 · Start",
-      "title": "How would you like to create this property?",
-      "subtitle": "Three quick ways to start. You'll refine the content step by step afterwards.",
+      "eyebrow": "Schritt 1 von 8 · Start",
+      "title": "Wie möchten Sie dieses Objekt erstellen?",
+      "subtitle": "Drei schnelle Wege. Der Inhalt wird anschliessend Schritt für Schritt verfeinert.",
       "manual": {
-        "title": "Enter manually",
-        "sub": "Section by section, you stay in control."
+        "title": "Manuell erfassen",
+        "sub": "Abschnitt für Abschnitt, Sie behalten die Kontrolle."
       },
       "import": {
-        "title": "Import a mandate",
-        "sub": "MEGGA AI extracts everything from the mandate PDF.",
-        "soon": "Soon"
+        "title": "Mandat importieren",
+        "sub": "MEGGA AI extrahiert alles aus dem Mandats-PDF.",
+        "soon": "Demnächst"
       },
       "autosave": {
-        "title": "Draft saved automatically",
-        "note": "You can close the wizard at any time, your data is kept."
+        "title": "Entwurf automatisch gespeichert",
+        "note": "Sie können den Assistenten jederzeit schliessen, Ihre Daten bleiben erhalten."
       },
       "submissions": {
-        "title": "Resume a submission",
-        "subtitle": "{{count}} owners have submitted their property. Select one to pre-fill.",
-        "emptyTitle": "No submissions",
-        "emptyBody": "No individual has submitted a property yet.",
-        "unknownVendor": "Unknown seller",
-        "subtitle_one": "1 individual has submitted their property.",
-        "subtitle_other": "{{count}} individuals have submitted their property.",
-        "selectVendor": "Select a seller",
-        "cap_one": "5 submissions shown at most; 1 older one in My properties.",
-        "cap_other": "5 submissions shown at most; {{count}} older ones in My properties."
+        "title": "Einreichung fortsetzen",
+        "subtitle": "{{count}} Privatpersonen haben ihr Objekt eingereicht. Wählen Sie eine aus, um vorauszufüllen.",
+        "emptyTitle": "Keine Einreichung",
+        "emptyBody": "Bisher hat keine Privatperson ein Objekt eingereicht.",
+        "unknownVendor": "Unbekannter Verkäufer",
+        "subtitle_one": "1 Privatperson hat ihr Objekt eingereicht.",
+        "subtitle_other": "{{count}} Privatpersonen haben ihr Objekt eingereicht.",
+        "selectVendor": "Wählen Sie einen Verkäufer",
+        "cap_one": "Maximal 5 Einreichungen angezeigt; 1 ältere unter Meine Objekte.",
+        "cap_other": "Maximal 5 Einreichungen angezeigt; {{count}} ältere unter Meine Objekte."
       }
     },
     "step1": {
       "vendor": {
-        "eyebrow": "Step 2 of 8 · Seller (1/2)",
-        "title": "Who is the owner?",
-        "subtitle": "Link this property to an existing contact or create a new one.",
-        "change": "Change",
-        "searchPlaceholder": "Type the seller's name, email or phone…",
-        "newButton": "+ New",
-        "recentSellers": "Your recent sellers",
-        "noMatchTitle": "No contact found for \"{{query}}\"",
-        "noMatchBody": "Create a new seller contact.",
-        "createNamed": "+ Create \"{{query}}\"",
-        "sellerTag": "Seller",
-        "newSeller": "New seller",
-        "quickInfo": "A few quick details",
-        "firstName": "First name",
-        "lastName": "Last name",
+        "eyebrow": "Schritt 2 von 8 · Verkäufer (1/2)",
+        "title": "Wer ist der Eigentümer?",
+        "subtitle": "Dieses Objekt mit einem bestehenden Kontakt verknüpfen oder einen neuen erstellen.",
+        "change": "Ändern",
+        "searchPlaceholder": "Name, E-Mail oder Telefon des Verkäufers eingeben…",
+        "newButton": "+ Neu",
+        "recentSellers": "Ihre letzten Verkäufer",
+        "noMatchTitle": "Kein Kontakt für «{{query}}» gefunden",
+        "noMatchBody": "Einen neuen Verkäuferkontakt erstellen.",
+        "createNamed": "+ «{{query}}» erstellen",
+        "sellerTag": "Verkäufer",
+        "newSeller": "Neuer Verkäufer",
+        "quickInfo": "Ein paar kurze Angaben",
+        "firstName": "Vorname",
+        "lastName": "Nachname",
         "email": "Email",
-        "phone": "Phone",
+        "phone": "Telefon",
         "phonePlaceholder": "+41 79 …",
-        "kycNote": "KYC can be started after the mandate is signed. MEGGA can send the procedure to the seller, it's optional.",
-        "createContact": "Create contact"
+        "kycNote": "Das KYC kann nach der Unterzeichnung des Mandats gestartet werden. MEGGA kann das Verfahren an den Verkäufer senden, das ist optional.",
+        "createContact": "Kontakt erstellen"
       },
       "mandate": {
-        "eyebrow": "Step 2 of 8 · Mandate (2/2)",
-        "title": "What type of mandate?",
-        "subtitle": "Import a signed mandate to save time, or set it up manually.",
-        "subtitleImported": "MEGGA AI has extracted the details from your mandate. Review and adjust if needed.",
+        "eyebrow": "Schritt 2 von 8 · Mandat (2/2)",
+        "title": "Welche Art von Mandat?",
+        "subtitle": "Ein unterzeichnetes Mandat importieren, um Zeit zu sparen, oder es manuell einrichten.",
+        "subtitleImported": "MEGGA AI hat die Angaben aus Ihrem Mandat extrahiert. Prüfen und bei Bedarf anpassen.",
         "field": {
-          "type": "Mandate type",
-          "duration": "Duration",
+          "type": "Mandatstyp",
+          "duration": "Dauer",
           "commission": "Commission",
-          "fees": "Fees",
-          "signedAt": "Signature date",
-          "vendor": "Seller identified"
+          "fees": "Honorar",
+          "signedAt": "Unterschriftsdatum",
+          "vendor": "Verkäufer identifiziert"
         },
         "type": {
           "exclusive": {
-            "title": "Exclusive mandate",
-            "sub": "You are the sole agent. Guaranteed commission, stronger commitment."
+            "title": "Exklusivmandat",
+            "sub": "Sie sind der einzige Makler. Garantierte Provision, stärkeres Engagement."
           },
           "simple": {
-            "title": "Simple mandate",
-            "sub": "The seller can appoint several agencies. Commission goes to whoever sells first."
+            "title": "Einfaches Mandat",
+            "sub": "Der Verkäufer kann mehrere Agenturen beauftragen. Provision an denjenigen, der zuerst verkauft."
           },
           "co": {
-            "title": "Co-mandate",
-            "sub": "Mandate shared between 2 agencies. Commission split by agreement."
+            "title": "Co-Mandat",
+            "sub": "Zwischen 2 Agenturen geteiltes Mandat. Provision nach Vereinbarung aufzuteilen."
           }
         },
-        "recommended": "Recommended",
+        "recommended": "Empfohlen",
         "import": {
-          "title": "Import a signed mandate",
-          "hint": "Drop your PDF here. MEGGA AI automatically extracts the type, duration, commission and signature date.",
-          "choosePdf": "Choose PDF"
+          "title": "Unterzeichnetes Mandat importieren",
+          "hint": "Ihr PDF hierher ziehen. MEGGA AI extrahiert automatisch Typ, Dauer, Provision und Unterschriftsdatum.",
+          "choosePdf": "PDF auswählen"
         },
-        "reading": "Reading file…",
-        "analyzing": "MEGGA AI is analysing your mandate",
-        "searchingNextField": "Looking for the next field…",
-        "importedTitle": "Mandate imported and analysed",
-        "enterManually": "Enter manually",
-        "enterManuallyQuoted": "\"Enter manually\"",
-        "editHint": "To edit these values, click",
-        "months": "{{count}} months",
-        "feesOwner": "Paid by the seller",
-        "feesBuyer": "Paid by the buyer",
-        "feesOwnerInline": "paid by the seller",
-        "feesBuyerInline": "paid by the buyer",
+        "reading": "Datei wird gelesen…",
+        "analyzing": "MEGGA AI analysiert Ihr Mandat",
+        "searchingNextField": "Nächstes Feld wird gesucht…",
+        "importedTitle": "Mandat importiert und analysiert",
+        "enterManually": "Manuell eingeben",
+        "enterManuallyQuoted": "«Manuell eingeben»",
+        "editHint": "Um diese Werte zu ändern, klicken Sie auf",
+        "months": "{{count}} Monate",
+        "feesOwner": "Zulasten des Verkäufers",
+        "feesBuyer": "Zulasten des Käufers",
+        "feesOwnerInline": "zulasten des Verkäufers",
+        "feesBuyerInline": "zulasten des Käufers",
         "statusLabel": "Status",
-        "signed": "Signed",
-        "notSigned": "Not signed",
-        "orManual": "or set it up manually",
-        "proposedCommission": "Suggested commission",
-        "settings": "Settings",
-        "settingsTitle": "Adjust the mandate terms",
-        "commissionExample": "<base>On a property at CHF 1'500'000</base>, the commission would amount to <amountStrong>{{amount}}</amountStrong> ({{party}}).",
-        "signedNote": "Mandate marked as signed.",
-        "notSignedNote": "Mandate not signed, you can send it for signature after publishing.",
-        "markUnsigned": "Mark as not signed",
-        "markSigned": "Mark as signed"
+        "signed": "Unterzeichnet",
+        "notSigned": "Nicht unterzeichnet",
+        "orManual": "oder manuell einrichten",
+        "proposedCommission": "Vorgeschlagene Provision",
+        "settings": "Einstellungen",
+        "settingsTitle": "Mandatsbedingungen anpassen",
+        "commissionExample": "<base>Bei einem Objekt für CHF 1'500'000</base> würde die Provision <amountStrong>{{amount}}</amountStrong> betragen ({{party}}).",
+        "signedNote": "Mandat als unterzeichnet markiert.",
+        "notSignedNote": "Mandat nicht unterzeichnet, Sie können es nach der Veröffentlichung zur Unterschrift senden.",
+        "markUnsigned": "Als nicht unterzeichnet markieren",
+        "markSigned": "Als unterzeichnet markieren"
       }
     },
     "step2": {
-      "eyebrow": "Step 3 of 8 · Address",
-      "title": "Where is the property located?",
-      "subtitle": "Type an address and MEGGA AI fills in the postal code, canton and coordinates.",
-      "searchPlaceholder": "Street, number, city…",
-      "confirmedTitle": "Address confirmed",
-      "confirmedSubtitle": "Postal code, canton and coordinates detected automatically.",
-      "coordinates": "Coordinates",
-      "refineToggle": "Refine the details (floor, unit, plot…)",
+      "eyebrow": "Schritt 3 von 8 · Adresse",
+      "title": "Wo befindet sich das Objekt?",
+      "subtitle": "Geben Sie eine Adresse ein, MEGGA AI ergänzt PLZ, Kanton und Koordinaten.",
+      "searchPlaceholder": "Strasse, Nummer, Ort…",
+      "confirmedTitle": "Adresse bestätigt",
+      "confirmedSubtitle": "PLZ, Kanton und Koordinaten automatisch erkannt.",
+      "coordinates": "Koordinaten",
+      "refineToggle": "Details verfeinern (Etage, Einheit, Parzelle…)",
       "refine": {
-        "unit": "Apartment / unit no.",
-        "unitPlaceholder": "e.g. 3B",
-        "outOf": "Of",
-        "cadastral": "Cadastral plot no.",
-        "cadastralPlaceholder": "e.g. 1234-567",
-        "postalAdjust": "Postal code (adjust)"
+        "unit": "Wohnungs- / Einheitsnr.",
+        "unitPlaceholder": "z. B. 3B",
+        "outOf": "von",
+        "cadastral": "Katasterparzellen-Nr.",
+        "cadastralPlaceholder": "z. B. 1234-567",
+        "postalAdjust": "PLZ (anpassen)"
       },
-      "mapPrompt": "Type an address to see the map",
-      "mapUnavailable": "⚠ Map unavailable, Mapbox token to configure"
+      "mapPrompt": "Geben Sie eine Adresse ein, um die Karte zu sehen",
+      "mapUnavailable": "⚠ Karte nicht verfügbar, Mapbox-Token muss konfiguriert werden"
     },
     "step3": {
-      "eyebrow": "Step 4 of 8 · Features",
-      "title": "Describe the property",
-      "subtitle": "Type, surface, rooms, energy rating. Everything is optional, you can complete it later.",
+      "eyebrow": "Schritt 4 von 8 · Merkmale",
+      "title": "Beschreiben Sie das Objekt",
+      "subtitle": "Typ, Fläche, Zimmer, Energieeffizienz. Alles ist optional, Sie können es später ergänzen.",
       "typeSection": {
-        "title": "Property type",
-        "subtitle": "Choose the nature of the property to publish."
+        "title": "Objekttyp",
+        "subtitle": "Wählen Sie die Art des zu veröffentlichenden Objekts."
       },
       "surfaceSection": {
-        "title": "Living area",
-        "subtitle": "Drag the slider to adjust."
+        "title": "Wohnfläche",
+        "subtitle": "Verschieben Sie den Regler zum Anpassen."
       },
       "roomsSection": {
-        "title": "Rooms & year",
-        "subtitle": "Details about the property's layout."
+        "title": "Zimmer & Baujahr",
+        "subtitle": "Angaben zur Aufteilung des Objekts."
       },
-      "yearLabel": "Year built",
-      "yearPlaceholder": "e.g. 1985",
+      "yearLabel": "Baujahr",
+      "yearPlaceholder": "Z. B. 1985",
       "energySection": {
-        "title": "Energy performance",
-        "subtitle": "Energy rating per canton. Shown on the listing."
+        "title": "Energieeffizienz",
+        "subtitle": "Energieklasse je nach Kanton. Sichtbar im Inserat."
       },
-      "energyClassLabel": "Class {{class}} - {{desc}}",
+      "energyClassLabel": "Klasse {{class}} - {{desc}}",
       "energyDesc": {
-        "A": "Very efficient",
-        "B": "Efficient",
-        "C": "Good performance",
-        "D": "Average performance",
-        "E": "Energy-intensive",
-        "F": "Very energy-intensive",
-        "G": "Very poor insulation"
+        "A": "Sehr effizient",
+        "B": "Effizient",
+        "C": "Gute Effizienz",
+        "D": "Mittlere Effizienz",
+        "E": "Energieintensiv",
+        "F": "Sehr energieintensiv",
+        "G": "Sehr schlechte Dämmung"
       },
       "featuresSection": {
-        "title": "Amenities & highlights",
-        "subtitle": "What will make the listing more appealing. Select everything that applies."
+        "title": "Ausstattung & Vorzüge",
+        "subtitle": "Was das Inserat attraktiver macht. Wählen Sie alles Zutreffende aus."
       },
       "feature": {
-        "balcon": "Balcony",
-        "terrasse": "Terrace",
-        "jardin": "Garden",
+        "balcon": "Balkon",
+        "terrasse": "Terrasse",
+        "jardin": "Garten",
         "garage": "Garage",
-        "parking": "Parking space",
-        "cave": "Cellar",
+        "parking": "Parkplatz",
+        "cave": "Keller",
         "ascenseur": "Lift",
-        "piscine": "Swimming pool",
-        "cheminée": "Fireplace",
-        "clim": "Air conditioning",
-        "buanderie": "Laundry room",
-        "vue": "Open view",
-        "cheminee": "Fireplace",
-        "vue_lac": "Lake view",
-        "cuisine_agencee": "Fitted kitchen",
-        "dressing": "Walk-in closet",
-        "parquet": "Parquet flooring",
-        "reduit": "Storage room",
-        "cave_a_vin": "Wine cellar",
-        "pompe_chaleur": "Heat pump",
-        "solaire": "Solar panels",
-        "borne_recharge": "EV charging station",
-        "domotique": "Home automation",
-        "fibre": "Fibre optic",
-        "triple_vitrage": "Triple glazing",
-        "abri_pc": "Civil-defence shelter",
-        "velo": "Bike room",
-        "conciergerie": "Concierge service",
-        "plain_pied": "Single-storey",
-        "mansarde": "Converted attic",
-        "accessible_pmr": "Wheelchair access",
-        "animaux": "Pets allowed",
-        "meuble": "Furnished"
+        "piscine": "Pool",
+        "cheminée": "Cheminée",
+        "clim": "Klimaanlage",
+        "buanderie": "Waschküche",
+        "vue": "Freie Sicht",
+        "cheminee": "Cheminée",
+        "vue_lac": "Seesicht",
+        "cuisine_agencee": "Einbauküche",
+        "dressing": "Ankleidezimmer",
+        "parquet": "Parkett",
+        "reduit": "Abstellraum",
+        "cave_a_vin": "Weinkeller",
+        "pompe_chaleur": "Wärmepumpe",
+        "solaire": "Solarpanels",
+        "borne_recharge": "Ladestation",
+        "domotique": "Smart Home",
+        "fibre": "Glasfaser",
+        "triple_vitrage": "Dreifachverglasung",
+        "abri_pc": "Schutzraum",
+        "velo": "Veloraum",
+        "conciergerie": "Hauswartung",
+        "plain_pied": "Auf einer Ebene",
+        "mansarde": "Ausgebautes Dachgeschoss",
+        "accessible_pmr": "Rollstuhlgängig",
+        "animaux": "Haustiere erlaubt",
+        "meuble": "Möbliert"
       },
       "q": {
-        "type": "What type of property?",
-        "surfaceHab": "What is the living area?",
-        "surfaceTerrain": "What is the land area?",
-        "surfaceCommerce": "What is the usable area?",
-        "rooms": "How many rooms?",
-        "year": "Year of construction?",
-        "energy": "Energy class?",
-        "features": "Amenities & highlights",
-        "details": "Property details"
+        "type": "Welcher Objekttyp?",
+        "surfaceHab": "Welche Wohnfläche?",
+        "surfaceTerrain": "Welche Grundstücksfläche?",
+        "surfaceCommerce": "Welche Nutzfläche?",
+        "rooms": "Wie viele Zimmer?",
+        "year": "Baujahr?",
+        "energy": "Energieklasse?",
+        "features": "Ausstattung & Vorzüge",
+        "details": "Die Details des Objekts"
       },
-      "addFeature": "Add a highlight",
-      "customPlaceholder": "e.g. Sauna, bike storage…",
-      "removeFeature": "Remove"
+      "addFeature": "Vorzug hinzufügen",
+      "customPlaceholder": "Z. B. Sauna, Veloraum…",
+      "removeFeature": "Entfernen"
     },
     "txBadge": {
-      "sale": "For sale",
-      "rent": "For rent"
+      "sale": "Zu verkaufen",
+      "rent": "Zu vermieten"
     },
-    "perMonth": " / month",
-    "perMonthShort": "/month",
-    "country": "Switzerland",
+    "perMonth": " / Monat",
+    "perMonthShort": "/Monat",
+    "country": "Schweiz",
     "photosCount_one": "{{count}} photo",
     "photosCount_other": "{{count}} photos",
     "step4": {
-      "eyebrow": "Step 5 of 8 · Photos",
-      "title": "Add the property photos",
-      "intro": "Listings with 8 to 12 photos receive <strong>3× more enquiries</strong>. The first photo will be the cover on MEGGA.",
+      "eyebrow": "Schritt 5 von 8 · Fotos",
+      "title": "Fügen Sie die Fotos des Objekts hinzu",
+      "intro": "Inserate mit 8 bis 12 Fotos erhalten <strong>3× mehr Anfragen</strong>. Das erste Foto wird das Titelbild auf MEGGA.",
       "mode": {
-        "pc": "From this computer",
-        "mobile": "From your phone",
-        "drive": "From a drive"
+        "pc": "Von diesem Computer",
+        "mobile": "Von Ihrem Telefon",
+        "drive": "Von einem Drive"
       },
       "dropzone": {
-        "title": "Drag and drop your photos",
-        "titleActive": "Drop your photos here",
-        "browse": "or <browse>browse</browse> your files",
-        "maxPhotos_one": "Up to {{count}} photo",
-        "maxPhotos_other": "Up to {{count}} photos",
-        "maxSize": "Max {{size}} MB / photo"
+        "title": "Ziehen Sie Ihre Fotos hierher",
+        "titleActive": "Legen Sie Ihre Fotos hier ab",
+        "browse": "oder Ihre Dateien <browse>durchsuchen</browse>",
+        "maxPhotos_one": "Bis zu {{count}} Foto",
+        "maxPhotos_other": "Bis zu {{count}} Fotos",
+        "maxSize": "Max. {{size}} MB / Foto"
       },
       "grid": {
-        "empty": "No photos yet",
+        "empty": "Noch keine Fotos",
         "count_one": "{{count}} photo",
         "count_other": "{{count}} photos",
-        "reorderHint": "· drag to reorder",
-        "clearAll": "Clear all",
-        "emptyHint": "The grid will appear here as soon as you add your first photo."
+        "reorderHint": "· zum Neuordnen ziehen",
+        "clearAll": "Alles löschen",
+        "emptyHint": "Das Raster erscheint hier, sobald Sie Ihr erstes Foto hinzugefügt haben."
       },
-      "cover": "Cover",
+      "cover": "Titelbild",
       "action": {
-        "stage": "Stage virtually",
-        "setCover": "Set as cover"
+        "stage": "Virtuell möblieren",
+        "setCover": "Als Titelbild festlegen"
       },
       "quality": {
-        "eyebrow": "MEGGA AI · Quality",
+        "eyebrow": "MEGGA AI · Qualität",
         "label": {
-          "none": "No photos",
-          "insufficient": "Insufficient",
-          "toComplete": "To complete",
-          "good": "Good",
+          "none": "Keine Fotos",
+          "insufficient": "Ungenügend",
+          "toComplete": "Zu ergänzen",
+          "good": "Gut",
           "excellent": "Excellent"
         },
         "message": {
-          "none": "Start by adding at least 8 photos.",
-          "insufficient_one": "Only {{count}} photo, the listing will get fewer views.",
-          "insufficient_other": "Only {{count}} photos, the listing will get fewer views.",
-          "toComplete_one": "{{count}} photo · almost there, add a few more.",
-          "toComplete_other": "{{count}} photos · almost there, add a few more.",
-          "good_one": "{{count}} photo · satisfactory quality.",
-          "good_other": "{{count}} photos · satisfactory quality.",
-          "excellent_one": "{{count}} photo · premium listing.",
-          "excellent_other": "{{count}} photos · premium listing."
+          "none": "Fügen Sie zunächst mindestens 8 Fotos hinzu.",
+          "insufficient_one": "Nur {{count}} Foto, das Inserat wird weniger aufgerufen.",
+          "insufficient_other": "Nur {{count}} Fotos, das Inserat wird weniger aufgerufen.",
+          "toComplete_one": "{{count}} Foto · fast bereit, fügen Sie noch einige hinzu.",
+          "toComplete_other": "{{count}} Fotos · fast bereit, fügen Sie noch einige hinzu.",
+          "good_one": "{{count}} Foto · zufriedenstellende Qualität.",
+          "good_other": "{{count}} Fotos · zufriedenstellende Qualität.",
+          "excellent_one": "{{count}} Foto · Premium-Inserat.",
+          "excellent_other": "{{count}} Fotos · Premium-Inserat."
         },
         "suggestion": {
-          "addMore_one": "Add {{count}} photo to reach the recommended minimum",
-          "addMore_other": "Add {{count}} photos to reach the recommended minimum",
-          "exterior": "Add at least one exterior photo",
-          "plan": "A floor plan boosts buyer confidence",
-          "rooms": "Photograph every main room"
+          "addMore_one": "Fügen Sie {{count}} Foto hinzu, um das empfohlene Minimum zu erreichen",
+          "addMore_other": "Fügen Sie {{count}} Fotos hinzu, um das empfohlene Minimum zu erreichen",
+          "exterior": "Fügen Sie mindestens ein Aussenfoto hinzu",
+          "plan": "Ein Grundriss stärkt das Vertrauen der Käufer",
+          "rooms": "Fotografieren Sie jeden Hauptraum"
         }
       },
       "phone": {
-        "uniqueCode": "One-time code · 2h",
+        "uniqueCode": "Eindeutiger Code · 2 Std.",
         "phase": {
-          "waiting": "Waiting",
-          "connected": "Phone paired",
-          "receiving": "Receiving…"
+          "waiting": "Warten",
+          "connected": "Telefon gekoppelt",
+          "receiving": "Empfang läuft…"
         },
-        "title": "Scan with your phone",
-        "intro": "Open your phone's camera and point it at the QR code. A web page will open to transfer your photos straight into this wizard, no install required.",
-        "step1": "Scan the code with your phone",
-        "step2": "Allow access to your photos",
-        "step3": "Select and send",
-        "simulate": "Simulate pairing",
-        "connected": "Connected"
+        "title": "Scannen Sie mit Ihrem Telefon",
+        "intro": "Öffnen Sie die Kamera Ihres Telefons und richten Sie sie auf den QR-Code. Eine Webseite öffnet sich, um Ihre Fotos direkt in diesen Assistenten zu übertragen, ohne Installation.",
+        "step1": "Scannen Sie den Code mit Ihrem Telefon",
+        "step2": "Erlauben Sie den Zugriff auf die Fotos",
+        "step3": "Wählen Sie aus und senden Sie",
+        "simulate": "Kopplung simulieren",
+        "connected": "Verbunden"
       },
       "drive": {
-        "connecting": "Connecting…",
-        "connect": "Connect my account",
-        "readOnlyNote": "Read-only, MEGGA will import a copy. Your original files stay intact."
+        "connecting": "Verbindung läuft…",
+        "connect": "Mein Konto verbinden",
+        "readOnlyNote": "Nur Lesezugriff, MEGGA importiert eine Kopie. Ihre Originaldateien bleiben unverändert."
       },
       "count_one": "{{count}} photo",
       "count_other": "{{count}} photos",
-      "tipFew": "8 to 12 photos = 3× more enquiries",
-      "tipMany": "Nice set, remember to vary the angles",
-      "dropTitle": "Drop your photos here",
-      "dropHint": "or click to browse · JPG, PNG · several at once",
-      "coverShort": "COVER",
-      "add": "Add",
-      "setCover": "Set as cover",
-      "crop": "Crop",
-      "delete": "Delete",
-      "cropTitle": "Crop the photo",
-      "cropHint": "Drag the frame or its corners to adjust.",
-      "aspectFree": "Free"
+      "tipFew": "8 bis 12 Fotos = 3× mehr Anfragen",
+      "tipMany": "Schöne Serie, denken Sie an verschiedene Blickwinkel",
+      "dropTitle": "Legen Sie Ihre Fotos hier ab",
+      "dropHint": "oder klicken Sie zum Durchsuchen · JPG, PNG · mehrere auf einmal",
+      "coverShort": "TITEL",
+      "add": "Hinzufügen",
+      "setCover": "Als Titelbild festlegen",
+      "crop": "Zuschneiden",
+      "delete": "Löschen",
+      "cropTitle": "Foto zuschneiden",
+      "cropHint": "Ziehen Sie den Rahmen oder seine Ecken, um anzupassen.",
+      "aspectFree": "Frei"
     },
     "step5": {
-      "eyebrow": "Step 6 of 8 · Price & Description",
-      "title": "First, the price.",
-      "intro": "It's what drives 80% of viewings. You can adjust it later.",
-      "chargesLabel": "+ Monthly charges",
+      "eyebrow": "Schritt 6 von 8 · Preis & Beschreibung",
+      "title": "Zuerst der Preis.",
+      "intro": "Er entscheidet über 80 % der Besichtigungen. Sie können ihn später anpassen.",
+      "chargesLabel": "+ Monatliche Nebenkosten",
       "estimation": {
-        "eyebrow": "MEGGA AI · Market estimate",
-        "range": "For a {{label}}, the usual range is between <b>{{low}}</b> and <b>{{high}}</b>.",
-        "rangeRent": "For a {{label}}, the usual range is between <b>{{low}}</b> and <b>{{high}}</b> / month.",
-        "use": "Use {{amount}}"
+        "eyebrow": "MEGGA AI · Marktschätzung",
+        "range": "Für ein {{label}} liegt die übliche Spanne zwischen <b>{{low}}</b> und <b>{{high}}</b>.",
+        "rangeRent": "Für ein {{label}} liegt die übliche Spanne zwischen <b>{{low}}</b> und <b>{{high}}</b> / Monat.",
+        "use": "{{amount}} verwenden"
       },
       "position": {
-        "eyebrow": "Positioning",
-        "farBelow": "Well below",
-        "below": "Below",
-        "inRange": "Within range",
-        "above": "Above",
-        "farAbove": "Well above"
+        "eyebrow": "Positionierung",
+        "farBelow": "Deutlich darunter",
+        "below": "Darunter",
+        "inRange": "In der Spanne",
+        "above": "Darüber",
+        "farAbove": "Deutlich darüber"
       },
-      "descTitle": "The description.",
-      "descSubtitle": "A few enticing lines. Let MEGGA AI draft a first version, or write it yourself.",
+      "descTitle": "Die Beschreibung.",
+      "descSubtitle": "Ein paar Zeilen, die Lust machen. Lassen Sie MEGGA AI einen ersten Entwurf schreiben, oder schreiben Sie selbst.",
       "ai": {
-        "title": "MEGGA AI writes it for you",
-        "hint": "Uses the type, surface area, rooms, features and municipality.",
-        "thinking": "Thinking…",
-        "regenerate": "Regenerate",
-        "generate": "Generate",
+        "title": "MEGGA AI schreibt für Sie",
+        "hint": "Nutzt Typ, Wohnfläche, Zimmer, Ausstattung und Gemeinde.",
+        "thinking": "Denkt nach…",
+        "regenerate": "Neu generieren",
+        "generate": "Generieren",
         "error": "Die KI-Texterstellung ist fehlgeschlagen. Erneut versuchen oder Beschreibung manuell eingeben.",
-        "promptRefine": "Refine: e.g. make it more premium, shorten…",
-        "promptAsk": "Ask MEGGA AI to write the description…",
-        "refine": "Refine",
-        "create": "Create"
+        "promptRefine": "Verfeinern: z. B. hochwertiger machen, kürzen…",
+        "promptAsk": "MEGGA AI bitten, die Beschreibung zu schreiben…",
+        "refine": "Verfeinern",
+        "create": "Erstellen"
       },
       "tone": {
         "neutre": "Neutral",
         "premium": "Premium",
-        "famille": "Family",
+        "famille": "Familie",
         "invest": "Investor"
       },
-      "descPlaceholder": "Write the property description here… or generate a first draft with MEGGA AI.",
+      "descPlaceholder": "Schreiben Sie hier die Objektbeschreibung… oder generieren Sie einen ersten Entwurf mit MEGGA AI.",
       "counter": {
-        "chars_one": "{{count}} character",
-        "chars_other": "{{count}} characters",
-        "beforeMin_one": " · {{count}} before the minimum",
-        "beforeMin_other": " · {{count}} before the minimum",
-        "target": " · target {{target}}",
+        "chars_one": "{{count}} Zeichen",
+        "chars_other": "{{count}} Zeichen",
+        "beforeMin_one": " · noch {{count}} bis zum Minimum",
+        "beforeMin_other": " · noch {{count}} bis zum Minimum",
+        "target": " · Ziel {{target}}",
         "ideal": " · ideal",
-        "zero": "0 characters",
+        "zero": "0 Zeichen",
         "min": " · min. {{count}}"
       },
-      "writtenByAi": "Written by MEGGA AI",
-      "editHint": "You can freely edit the generated text.",
-      "txSale": "Sale",
-      "txRent": "Rental",
-      "qSalePrice": "What sale price?",
-      "qMonthlyRent": "What monthly rent?",
-      "modify": "edit"
+      "writtenByAi": "Von MEGGA AI verfasst",
+      "editHint": "Sie können den generierten Text frei bearbeiten.",
+      "txSale": "Verkauf",
+      "txRent": "Miete",
+      "qSalePrice": "Welcher Verkaufspreis?",
+      "qMonthlyRent": "Welche Monatsmiete?",
+      "modify": "ändern"
     },
     "step6": {
-      "eyebrow": "Step 7 of 8 · Options",
-      "title": "Give your listing more impact.",
-      "intro": "All options are optional. You can enable them later from the property page.",
+      "eyebrow": "Schritt 7 von 8 · Optionen",
+      "title": "Verleihen Sie Ihrem Inserat mehr Wirkung.",
+      "intro": "Alle Optionen sind optional. Sie können sie später auf der Objektseite aktivieren.",
       "style": {
-        "scandinave": "Scandinavian",
+        "scandinave": "Skandinavisch",
         "modern": "Modern",
         "warm": "Warm",
-        "minimal": "Minimalist",
-        "luxe": "Luxury",
-        "family": "Family"
+        "minimal": "Minimalistisch",
+        "luxe": "Luxus",
+        "family": "Familiär"
       },
       "staging": {
-        "before": "Before, empty",
-        "after": "After, virtually staged",
-        "dragToCompare": "Drag to compare",
-        "buyerEyebrow": "For the buyer · immersive",
-        "buyerTitle": "Premium virtual staging",
-        "buyerDesc": "On empty rooms, the buyer can switch on virtual furniture to picture themselves there. Shown on the public listing with a before/after slider.",
-        "enableBuyer": "Enable buyer staging",
-        "buyerPrice": "CHF {{price}}, billed once at publication",
-        "provenanceTitle": "Certified provenance",
-        "provenanceDesc": "Every generated image is signed."
+        "before": "Vorher, leer",
+        "after": "Nachher, virtuell möbliert",
+        "dragToCompare": "Zum Vergleichen ziehen",
+        "buyerEyebrow": "Für den Käufer · immersiv",
+        "buyerTitle": "Virtuelles Premium-Staging",
+        "buyerDesc": "Bei leeren Räumen kann der Käufer die virtuelle Möblierung einblenden, um sich das Wohnen vorzustellen. Auf dem öffentlichen Inserat mit einem Vorher-Nachher-Regler angezeigt.",
+        "enableBuyer": "Käufer-Staging aktivieren",
+        "buyerPrice": "{{price}} CHF, einmalig bei der Veröffentlichung verrechnet",
+        "provenanceTitle": "Zertifizierte Herkunft",
+        "provenanceDesc": "Jedes generierte Bild wird signiert."
       },
       "agent": {
-        "eyebrow": "For the agent · multi-style",
-        "title": "Agent virtual staging",
-        "desc": "Generate several moods for meetings and counter-offers. Not visible to buyers.",
-        "selectedStyles_one": "{{count}} style · CHF {{price}}",
-        "selectedStyles_other": "{{count}} styles · CHF {{price}}"
+        "eyebrow": "Für den Makler · Multi-Stil",
+        "title": "Virtuelles Staging für Makler",
+        "desc": "Erzeugen Sie mehrere Stimmungen für Gespräche und Gegenvorschläge. Für Käufer nicht sichtbar.",
+        "selectedStyles_one": "{{count}} Stil · {{price}} CHF",
+        "selectedStyles_other": "{{count}} Stile · {{price}} CHF"
       },
-      "pricePerStyle": "CHF {{price}}",
-      "priceChf": "CHF {{price}}",
+      "pricePerStyle": "{{price}} CHF",
+      "priceChf": "{{price}} CHF",
       "featured": {
-        "tag": "Visibility",
-        "title": "30-day boost",
-        "subtitle": "Top of MEGGA results, a “Featured” badge and alerts to nearby buyers.",
-        "statViews": "Estimated views",
-        "statRequests": "Enquiries"
+        "tag": "Sichtbarkeit",
+        "title": "Hervorhebung 30 Tage",
+        "subtitle": "Top der Ergebnisse auf MEGGA, Hinweis «Hervorgehoben» und Benachrichtigung an Käufer in der Nähe.",
+        "statViews": "Geschätzte Aufrufe",
+        "statRequests": "Anfragen"
       },
       "video": {
         "tag": "Production",
-        "title": "Guided video tour",
-        "subtitle": "A MEGGA operator films and edits a professional 90-second tour.",
-        "statDelay": "Lead time",
-        "statDelayValue_one": "{{count}} day",
-        "statDelayValue_other": "{{count}} days",
+        "title": "Geführte Videobesichtigung",
+        "subtitle": "Ein Videograf von MEGGA filmt und schneidet eine professionelle 90-Sekunden-Besichtigung.",
+        "statDelay": "Vorlaufzeit",
+        "statDelayValue_one": "{{count}} Tag",
+        "statDelayValue_other": "{{count}} Tage",
         "statEngagement": "Engagement"
       },
       "recap": {
-        "eyebrow": "Selected options",
-        "empty": "No options yet, you'll publish your listing for free.",
-        "total": "Options total: CHF {{total}}, billed at publication."
+        "eyebrow": "Ausgewählte Optionen",
+        "empty": "Vorerst keine Option, Sie veröffentlichen Ihr Inserat kostenlos.",
+        "total": "Summe der Optionen: {{total}} CHF, bei der Veröffentlichung verrechnet."
       }
     },
     "step7": {
-      "eyebrow": "Step 8 of 8 · Publication",
-      "title": "Ready to go live?",
-      "intro": "Here's what your listing will look like. Fine-tune the last step before publishing.",
-      "noCoverPhoto": "No cover photo",
+      "eyebrow": "Schritt 8 von 8 · Veröffentlichung",
+      "title": "Bereit zur Veröffentlichung?",
+      "intro": "So wird Ihr Inserat aussehen. Passen Sie den letzten Schritt vor der Veröffentlichung an.",
+      "noCoverPhoto": "Kein Titelbild",
       "badge": {
-        "featured": "★ Featured",
-        "video": "▶ Video tour",
+        "featured": "★ Hervorgehoben",
+        "video": "▶ Videorundgang",
         "staging": "Staging"
       },
       "chip": {
-        "rooms_one": "{{count}} room",
-        "rooms_other": "{{count}} rooms",
-        "bedrooms_one": "{{count}} bd",
-        "bedrooms_other": "{{count}} bd",
-        "epc": "EPC {{grade}}"
+        "rooms_one": "{{count}} Zimmer",
+        "rooms_other": "{{count}} Zimmer",
+        "bedrooms_one": "{{count}} Schlafz.",
+        "bedrooms_other": "{{count}} Schlafz.",
+        "epc": "GEAK {{grade}}"
       },
-      "addressPlaceholder": "Address to be completed",
-      "agentLine": "MEGGA · {{canton}} · Presented by the agent",
-      "contact": "Contact",
-      "whenPublish": "When to publish",
+      "addressPlaceholder": "Adresse ergänzen",
+      "agentLine": "MEGGA · {{canton}} · Präsentiert vom Makler",
+      "contact": "Kontaktieren",
+      "whenPublish": "Wann veröffentlichen",
       "publishNow": {
-        "title": "Publish now",
-        "sub": "The listing goes live within 30 seconds."
+        "title": "Jetzt veröffentlichen",
+        "sub": "Das Inserat wird innerhalb von 30 Sekunden sichtbar."
       },
       "schedule": {
-        "title": "Schedule",
-        "sub": "Choose the go-live date and time."
+        "title": "Planen",
+        "sub": "Wählen Sie Datum und Uhrzeit der Veröffentlichung."
       },
       "draft": {
-        "title": "Save as draft",
-        "sub": "Pick up later. No public date."
+        "title": "Als Entwurf speichern",
+        "sub": "Später fortfahren. Kein öffentliches Datum."
       },
-      "scheduleDateLabel": "Date and time (Europe/Zurich)",
+      "scheduleDateLabel": "Datum und Uhrzeit (Europe/Zurich)",
       "visibility": {
-        "eyebrow": "Visibility",
+        "eyebrow": "Sichtbarkeit",
         "public": "Public",
-        "network": "MEGGA network",
-        "private": "Private",
-        "publicDesc": "Distributed on Immobilier.ch after verification.",
-        "networkDesc": "Visible only to MEGGA agents.",
-        "privateDesc": "Visible only in your CRM and Matching."
+        "network": "MEGGA-Netzwerk",
+        "private": "Privat",
+        "publicDesc": "Nach der Prüfung auf Immobilier.ch veröffentlicht.",
+        "networkDesc": "Nur für MEGGA-Makler sichtbar.",
+        "privateDesc": "Nur in Ihrem CRM und im Matching sichtbar."
       },
       "recap": {
-        "title": "Summary",
-        "seller": "Seller",
-        "mandate": "Mandate",
+        "title": "Zusammenfassung",
+        "seller": "Verkäufer",
+        "mandate": "Mandat",
         "photos": "Photos",
-        "price": "Price",
+        "price": "Preis",
         "description": "Description",
-        "charsCount_one": "{{count}} character",
-        "charsCount_other": "{{count}} characters"
+        "charsCount_one": "{{count}} Zeichen",
+        "charsCount_other": "{{count}} Zeichen"
       },
       "mandate": {
-        "exclusive": "Exclusive",
+        "exclusive": "Exklusiv",
         "simple": "Simple",
-        "co": "Co-mandate"
+        "co": "Co-Mandat"
       },
-      "urlSlugFallback": "new-listing",
-      "readyTitle": "Ready to go live?",
+      "urlSlugFallback": "neues-objekt",
+      "readyTitle": "Bereit zur Veröffentlichung?",
       "check": {
-        "address": "Property address",
-        "surface": "Surface area or number of rooms",
-        "photos": "At least 5 photos ({{count}}/5)",
-        "rent": "Monthly rent",
-        "price": "Sale price",
-        "description": "Listing description"
+        "address": "Adresse des Objekts",
+        "surface": "Fläche oder Anzahl Zimmer",
+        "photos": "Mindestens 5 Fotos ({{count}}/5)",
+        "rent": "Monatsmiete",
+        "price": "Verkaufspreis",
+        "description": "Beschreibung des Inserats"
       },
       "checklist": {
-        "heading_one": "1 item to complete before publishing",
-        "heading_other": "{{count}} items to complete before publishing",
-        "hint": "You can also save as a draft and finish later.",
-        "complete": "Complete"
+        "heading_one": "1 Punkt vor der Veröffentlichung ergänzen",
+        "heading_other": "{{count}} Punkte vor der Veröffentlichung ergänzen",
+        "hint": "Sie können auch als Entwurf speichern und später fertigstellen.",
+        "complete": "Ergänzen"
       },
-      "mandateNote": "Mandate not signed: the listing will appear on MEGGA; Immobilier.ch distribution will start once it is signed.",
+      "mandateNote": "Mandat nicht unterzeichnet: Das Inserat erscheint auf MEGGA; die Verbreitung auf Immobilier.ch startet mit der Unterzeichnung.",
       "cta": {
-        "schedule": "Schedule publication",
-        "draft": "Save draft",
-        "private": "Save privately",
-        "publishIdx": "Publish on Immobilier.ch",
-        "publishMegga": "Publish on MEGGA"
+        "schedule": "Veröffentlichung planen",
+        "draft": "Entwurf speichern",
+        "private": "Privat speichern",
+        "publishIdx": "Auf Immobilier.ch veröffentlichen",
+        "publishMegga": "Auf MEGGA veröffentlichen"
       },
-      "blockedHint_one": "1 item to complete, or set When to Draft",
-      "blockedHint_other": "{{count}} items to complete, or set When to Draft",
-      "roomsWord": "rooms",
+      "blockedHint_one": "1 Punkt zu ergänzen, oder «Wann» auf Entwurf stellen",
+      "blockedHint_other": "{{count}} Punkte zu ergänzen, oder «Wann» auf Entwurf stellen",
+      "roomsWord": "Zimmer",
       "spec": {
         "surface": "Surface",
-        "rooms": "Rooms",
-        "bedrooms": "Bedrooms",
-        "bathrooms": "Bathrooms",
-        "floor": "Floor",
-        "year": "Year",
+        "rooms": "Zimmer",
+        "bedrooms": "Schlafzimmer",
+        "bathrooms": "Badezimmer",
+        "floor": "Etage",
+        "year": "Jahr",
         "charges": "Charges",
-        "epc": "EPC"
+        "epc": "GEAK"
       },
       "descriptionLabel": "Description",
-      "featuresLabel": "Amenities",
-      "agentFallback": "Your agency",
-      "optionsTitle": "Publishing options",
+      "featuresLabel": "Ausstattung",
+      "agentFallback": "Ihre Agentur",
+      "optionsTitle": "Veröffentlichungsoptionen",
       "when": {
-        "now": "Now",
-        "schedule": "Schedule",
-        "draft": "Draft"
+        "now": "Jetzt",
+        "schedule": "Planen",
+        "draft": "Entwurf"
       },
-      "draftNote": "The property stays as a draft in My properties; nothing is distributed."
+      "draftNote": "Das Objekt bleibt als Entwurf in «Meine Objekte», nichts wird verbreitet."
     },
     "step8": {
       "eyebrow": {
-        "now": "Publication confirmed",
-        "schedule": "Scheduled",
-        "draft": "Draft"
+        "now": "Veröffentlichung bestätigt",
+        "schedule": "Geplant",
+        "draft": "Entwurf"
       },
       "title": {
-        "now": "Listing published",
-        "schedule": "Publication scheduled",
-        "draft": "Draft saved"
+        "now": "Inserat veröffentlicht",
+        "schedule": "Veröffentlichung geplant",
+        "draft": "Entwurf gespeichert"
       },
       "subtitle": {
-        "now": "Your property is now live on MEGGA.",
-        "schedule": "Publication will take place on {{date}}.",
-        "scheduleFallbackDate": "the chosen date",
-        "draft": "You can pick up again from your dashboard."
+        "now": "Ihr Objekt ist jetzt auf MEGGA online.",
+        "schedule": "Die Veröffentlichung erfolgt am {{date}}.",
+        "scheduleFallbackDate": "am gewählten Datum",
+        "draft": "Sie können später über Ihr Dashboard weitermachen."
       },
-      "noCover": "No cover",
-      "noAddress": "Property without an address",
-      "stagedCount_one": "{{count}} staged",
-      "stagedCount_other": "{{count}} staged",
-      "viewListing": "View listing",
-      "publicUrl": "Public URL",
-      "copy": "Copy",
+      "noCover": "Kein Titelbild",
+      "noAddress": "Objekt ohne Adresse",
+      "stagedCount_one": "{{count}} gestaged",
+      "stagedCount_other": "{{count}} gestaged",
+      "viewListing": "Inserat ansehen",
+      "publicUrl": "Öffentliche URL",
+      "copy": "Kopieren",
       "qrCode": "QR Code",
-      "share": "Share",
-      "liveActivity": "Live activity",
-      "firstSeconds": "First seconds online",
+      "share": "Teilen",
+      "liveActivity": "Live-Aktivität",
+      "firstSeconds": "Erste Sekunden online",
       "stat": {
-        "views": "Views",
-        "saves": "Saves",
-        "contactRequests": "Contact requests"
+        "views": "Aufrufe",
+        "saves": "Gemerkt",
+        "contactRequests": "Kontaktanfragen"
       },
       "next": {
         "createAnother": {
-          "title": "Create another property",
-          "subtitle": "Keep the momentum, add another mandate."
+          "title": "Weiteres Objekt erstellen",
+          "subtitle": "Schwung mitnehmen, ein weiteres Mandat hinzufügen."
         },
         "seeBuyers": {
-          "title": "See your buyers",
-          "subtitle_one": "MEGGA AI found {{count}} potential match.",
-          "subtitle_other": "MEGGA AI found {{count}} potential matches.",
+          "title": "Ihre Käufer ansehen",
+          "subtitle_one": "MEGGA AI hat {{count}} potenziellen Match gefunden.",
+          "subtitle_other": "MEGGA AI hat {{count}} potenzielle Matches gefunden.",
           "tag_one": "{{count}} match",
-          "tag_other": "{{count}} matches"
+          "tag_other": "{{count}} Matches"
         },
         "backToCrm": {
-          "title": "Back to CRM",
-          "subtitle": "Dashboard and pipeline."
+          "title": "Zurück zum CRM",
+          "subtitle": "Dashboard und Pipeline."
         }
       },
-      "confirmationEmail": "You'll receive a confirmation email at <strong>{{email}}</strong>.",
-      "c2paNote": "All generated images are <strong>C2PA</strong>-signed · provenance verifiable by the buyer."
+      "confirmationEmail": "Sie erhalten eine Bestätigungs-E-Mail an <strong>{{email}}</strong>.",
+      "c2paNote": "Alle generierten Bilder sind <strong>C2PA</strong>-signiert · Herkunft für den Käufer überprüfbar."
     },
     "shell": {
-      "mandateTitle": "Mandate",
-      "continue": "Continue",
-      "publishing": "Publishing…",
-      "schedulePublish": "Schedule publication",
-      "saveDraft": "Save as draft",
-      "publish": "Publish on MEGGA",
-      "photoRequired": "Add at least one photo to publish. Without a photo, save the listing as a draft and complete it later.",
-      "publishError": "Publication failed: {{message}}",
-      "unknownError": "Unknown error",
-      "recommended": "Recommended",
-      "choose": "Choose",
-      "saved": "Saved",
-      "autosave": "Auto-saved"
+      "mandateTitle": "Mandat",
+      "continue": "Weiter",
+      "publishing": "Veröffentlichung…",
+      "schedulePublish": "Veröffentlichung planen",
+      "saveDraft": "Als Entwurf speichern",
+      "publish": "Auf MEGGA veröffentlichen",
+      "photoRequired": "Fügen Sie mindestens ein Foto hinzu, um zu veröffentlichen. Ohne Foto speichern Sie das Inserat als Entwurf und vervollständigen es später.",
+      "publishError": "Veröffentlichung fehlgeschlagen: {{message}}",
+      "unknownError": "Unbekannter Fehler",
+      "recommended": "Empfohlen",
+      "choose": "Auswählen",
+      "saved": "Gespeichert",
+      "autosave": "Automatische Speicherung"
     },
     "kyc": {
-      "verified": "KYC verified",
-      "pending": "KYC in progress",
-      "none": "KYC to do",
-      "stale": "KYC to re-screen"
+      "verified": "KYC verifiziert",
+      "pending": "KYC läuft",
+      "none": "KYC ausstehend",
+      "stale": "KYC erneut prüfen"
     },
     "staging": {
       "eyebrow": "Staging Studio · {{room}}",
-      "title": "Virtually furnish this room",
-      "c2paSigned": "C2PA signed",
-      "originalEmpty": "Original, empty",
-      "furnished": "Furnished",
+      "title": "Diesen Raum virtuell möblieren",
+      "c2paSigned": "C2PA-signiert",
+      "originalEmpty": "Original, leer",
+      "furnished": "Möbliert",
       "seed": "seed {{seed}}",
-      "variant": "Variant {{letter}}",
-      "idleTitle": "Configure your generation",
-      "idleBody": "Pick a style or describe the mood. Nano Banana 2 will produce 4 C2PA-signed variants.",
-      "generatingCount": "Generating · {{count}}/{{total}} variants",
-      "signingProgress": "C2PA signing in progress…",
-      "dragToCompare": "Drag to compare",
-      "thumbsEmpty": "Generated variants will appear here.",
-      "roomTypeLabel": "Room type",
-      "roomTypeHint": "Detected automatically",
+      "variant": "Variante {{letter}}",
+      "idleTitle": "Konfigurieren Sie Ihre Generierung",
+      "idleBody": "Wählen Sie einen Stil oder beschreiben Sie die Stimmung. Nano Banana 2 erzeugt 4 C2PA-signierte Varianten.",
+      "generatingCount": "Generierung · {{count}}/{{total}} Varianten",
+      "signingProgress": "C2PA-Signierung läuft…",
+      "dragToCompare": "Zum Vergleichen ziehen",
+      "thumbsEmpty": "Die generierten Varianten erscheinen hier.",
+      "roomTypeLabel": "Raumtyp",
+      "roomTypeHint": "Automatisch erkannt",
       "rooms": {
-        "salon": "Living room",
-        "chambre": "Bedroom",
-        "cuisine": "Kitchen",
-        "salleDeBain": "Bathroom",
-        "bureau": "Office",
-        "entree": "Entrance"
+        "salon": "Wohnzimmer",
+        "chambre": "Schlafzimmer",
+        "cuisine": "Küche",
+        "salleDeBain": "Badezimmer",
+        "bureau": "Büro",
+        "entree": "Eingang"
       },
       "styleLabel": "Style",
-      "styleHintPreset": "6 Sugar moods",
-      "styleHintCustom": "Describe your vision",
-      "tabPreset": "Presets",
-      "tabCustom": "Custom · free prompt",
+      "styleHintPreset": "6 Sugar-Stimmungen",
+      "styleHintCustom": "Beschreiben Sie Ihre Vision",
+      "tabPreset": "Voreinstellungen",
+      "tabCustom": "Individuell · freier Prompt",
       "presets": {
         "scandinave": {
-          "label": "Scandinavian"
+          "label": "Skandinavisch"
         },
         "moderne": {
           "label": "Modern"
@@ -1520,189 +1516,189 @@
           "label": "Warm"
         },
         "minimal": {
-          "label": "Minimalist"
+          "label": "Minimalistisch"
         },
         "luxe": {
-          "label": "Luxury"
+          "label": "Luxus"
         },
         "familial": {
-          "label": "Family"
+          "label": "Familiär"
         }
       },
-      "customPlaceholder": "E.g. Vaud chalet style, raw light wood, natural linen, golden late-afternoon light, minimal greenery…",
-      "quickInspirations": "Quick inspirations",
+      "customPlaceholder": "Z. B. Waadtländer Chaletstil, helles Rohholz, naturbelassenes Leinen, goldenes Licht am späten Nachmittag, wenige Grünpflanzen…",
+      "quickInspirations": "Schnelle Inspirationen",
       "quickPrompts": {
-        "0": "Vaud chalet style, light wood, golden late afternoon",
-        "1": "Industrial urban loft, polished concrete and matte black",
-        "2": "Lake Geneva shore, rattan, natural linen, morning light"
+        "0": "Waadtländer Chaletstil, helles Holz, goldener später Nachmittag",
+        "1": "Urbaner Industrieloft, polierter Beton und mattes Schwarz",
+        "2": "Genferseeufer, Rattan, naturbelassenes Leinen, Morgenlicht"
       },
-      "advancedToggle": "Advanced settings",
-      "densityLabel": "Furniture density",
+      "advancedToggle": "Erweiterte Angaben",
+      "densityLabel": "Möbeldichte",
       "density": {
-        "leger": "Light",
-        "moyen": "Medium",
+        "leger": "Leicht",
+        "moyen": "Mittel",
         "dense": "Dense"
       },
-      "budgetLabel": "Range",
+      "budgetLabel": "Preisklasse",
       "budget": {
-        "economique": "Economy",
+        "economique": "Günstig",
         "standard": "Standard",
         "premium": "Premium"
       },
-      "promptRecap": "{{style}} in a {{room}}, {{density}} density, {{budget}} range",
-      "promptRecapEmpty": "(describe the mood above)",
-      "generateCta": "Generate {{count}} variants",
-      "generatingShort": "Generating…",
-      "signingShort": "C2PA signing…",
-      "regenerate": "Regenerate",
-      "pickPrompt": "Tick the variants to keep",
-      "addSigned_one": "Add {{count}} signed variant",
-      "addSigned_other": "Add {{count}} signed variants",
-      "saveFootnote": "The selected variants will be added as <strong>signed variants</strong> of this photo. The original stays unchanged.",
+      "promptRecap": "{{style}} in einem {{room}}, Dichte {{density}}, Preisklasse {{budget}}",
+      "promptRecapEmpty": "(beschreiben Sie oben die Stimmung)",
+      "generateCta": "{{count}} Varianten generieren",
+      "generatingShort": "Generierung…",
+      "signingShort": "C2PA-Signierung…",
+      "regenerate": "Neu generieren",
+      "pickPrompt": "Wählen Sie die zu behaltenden Varianten",
+      "addSigned_one": "{{count}} signierte Variante hinzufügen",
+      "addSigned_other": "{{count}} signierte Varianten hinzufügen",
+      "saveFootnote": "Die ausgewählten Varianten werden als <strong>signierte Varianten</strong> dieses Fotos hinzugefügt. Das Original bleibt unverändert.",
       "stock": {
-        "p1": "Living room",
-        "p2": "Kitchen",
-        "p3": "Bedroom",
-        "p4": "Bathroom",
-        "p5": "Facade",
-        "p6": "Garden",
-        "p7": "View",
-        "p8": "Floor plan"
+        "p1": "Wohnzimmer",
+        "p2": "Küche",
+        "p3": "Schlafzimmer",
+        "p4": "Badezimmer",
+        "p5": "Fassade",
+        "p6": "Garten",
+        "p7": "Aussicht",
+        "p8": "Grundriss"
       }
     },
     "step3b": {
       "section": {
-        "info": "General information",
-        "surf": "Areas",
-        "pieces": "Rooms",
-        "ext": "Outdoor",
-        "park": "Parking",
-        "equip": "Amenities",
-        "imm": "Building",
-        "energy": "Heating & energy",
-        "lux": "Luxury features"
+        "info": "Allgemeine Angaben",
+        "surf": "Flächen",
+        "pieces": "Zimmer",
+        "ext": "Aussenbereiche",
+        "park": "Parkplätze",
+        "equip": "Ausstattung",
+        "imm": "Gebäude",
+        "energy": "Heizung & Energie",
+        "lux": "Luxusausstattung"
       },
-      "reference": "Reference",
+      "reference": "Referenz",
       "auto": "Auto",
-      "availability": "Availability",
-      "renovYear": "Renovation year",
-      "renovYearPlaceholder": "e.g. 2018",
-      "charges": "Monthly charges",
+      "availability": "Verfügbarkeit",
+      "renovYear": "Renovationsjahr",
+      "renovYearPlaceholder": "z. B. 2018",
+      "charges": "Monatliche Nebenkosten",
       "standing": {
         "label": "Standing",
         "standard": "Standard",
-        "hautDeGamme": "High-end",
-        "luxe": "Luxury",
-        "ultraLuxe": "Ultra-luxury"
+        "hautDeGamme": "Gehoben",
+        "luxe": "Luxus",
+        "ultraLuxe": "Ultra-Luxus"
       },
       "unit": {
         "m2": "m²",
-        "chfMonth": "CHF/month",
+        "chfMonth": "CHF/Monat",
         "chf": "CHF"
       },
-      "datePlaceholder": "Choose…",
-      "toAgree": "To be agreed",
-      "clear": "Clear",
+      "datePlaceholder": "Wählen…",
+      "toAgree": "Nach Vereinbarung",
+      "clear": "Löschen",
       "surf": {
-        "ppe": "Condominium area",
-        "hab": "Living area",
-        "utile": "Usable area",
-        "pond": "Weighted area",
-        "balc": "Balcony area",
-        "terr": "Terrace area",
-        "jard": "Private garden",
-        "terrain": "Land area"
+        "ppe": "StWE-Fläche",
+        "hab": "Wohnfläche",
+        "utile": "Nutzfläche",
+        "pond": "Gewichtete Fläche",
+        "balc": "Balkonfläche",
+        "terr": "Terrassenfläche",
+        "jard": "Privatgarten",
+        "terrain": "Grundstücksfläche"
       },
       "pieces": {
-        "chambres": "Bedrooms",
-        "sdb": "Bathrooms",
-        "wc": "Guest toilets"
+        "chambres": "Schlafzimmer",
+        "sdb": "Badezimmer",
+        "wc": "Gäste-WC"
       },
       "ext": {
-        "balcon": "Balcony",
-        "terrasse": "Terrace",
-        "jardin": "Garden",
-        "piscine": "Swimming pool",
+        "balcon": "Balkon",
+        "terrasse": "Terrasse",
+        "jardin": "Garten",
+        "piscine": "Schwimmbad",
         "jacuzzi": "Jacuzzi",
-        "vueMontagne": "Mountain view",
-        "vueLac": "Lake view"
+        "vueMontagne": "Bergsicht",
+        "vueLac": "Seesicht"
       },
       "expo": {
-        "label": "Exposure",
-        "sud": "South",
-        "sudOuest": "South-West",
-        "sudEst": "South-East",
-        "est": "East",
+        "label": "Ausrichtung",
+        "sud": "Süd",
+        "sudOuest": "Südwest",
+        "sudEst": "Südost",
+        "est": "Ost",
         "ouest": "West",
-        "nord": "North"
+        "nord": "Nord"
       },
       "park": {
-        "int": "Indoor parking",
-        "ext": "Outdoor parking",
-        "garage": "Closed garage",
-        "box": "Lock-up garage",
-        "visit": "Visitor spaces",
-        "borne": "EV charging station"
+        "int": "Innenparkplatz",
+        "ext": "Aussenparkplatz",
+        "garage": "Geschlossene Garage",
+        "box": "Einzelgarage",
+        "visit": "Besucherparkplätze",
+        "borne": "E-Ladestation"
       },
       "equip": {
         "ascenseur": "Lift",
-        "clim": "Air conditioning",
-        "domotique": "Home automation",
-        "cheminee": "Fireplace",
-        "caveVin": "Wine cellar",
-        "alarme": "Alarm",
-        "video": "Video surveillance",
+        "clim": "Klimaanlage",
+        "domotique": "Smart Home",
+        "cheminee": "Cheminée",
+        "caveVin": "Weinkeller",
+        "alarme": "Alarmanlage",
+        "video": "Videoüberwachung",
         "concierge": "Concierge",
-        "pmr": "Wheelchair access"
+        "pmr": "Rollstuhlgerechter Zugang"
       },
       "imm": {
-        "etage": "Floor",
-        "etagePlaceholder": "e.g. 3",
-        "floors": "Number of floors (building)",
-        "floorsPlaceholder": "e.g. 6",
-        "chargesPPE": "Condominium fees",
-        "fondsReno": "Renovation fund"
+        "etage": "Stockwerk",
+        "etagePlaceholder": "z. B. 3",
+        "floors": "Anzahl Stockwerke (Gebäude)",
+        "floorsPlaceholder": "z. B. 6",
+        "chargesPPE": "StWE-Nebenkosten",
+        "fondsReno": "Erneuerungsfonds"
       },
       "energy": {
-        "heatLabel": "Heating type",
+        "heatLabel": "Heizungsart",
         "heat": {
-          "pac": "Heat pump",
+          "pac": "Wärmepumpe",
           "gaz": "Gas",
-          "mazout": "Oil",
+          "mazout": "Heizöl",
           "pellets": "Pellets",
-          "electrique": "Electric",
-          "cad": "District heating"
+          "electrique": "Elektrisch",
+          "cad": "Fernwärme"
         },
         "optionsLabel": "Options",
-        "floorHeat": "Underfloor heating",
-        "pv": "Photovoltaic panels",
-        "solarTherm": "Solar thermal",
-        "glazingLabel": "Glazing",
+        "floorHeat": "Bodenheizung",
+        "pv": "Photovoltaikanlage",
+        "solarTherm": "Solarthermie",
+        "glazingLabel": "Verglasung",
         "glazing": {
-          "double": "Double glazing",
-          "triple": "Triple glazing"
+          "double": "Doppelverglasung",
+          "triple": "Dreifachverglasung"
         }
       },
       "lux": {
-        "quai": "Private dock",
-        "ponton": "Pontoon",
-        "accesLac": "Lake access",
+        "quai": "Privater Bootsanleger",
+        "ponton": "Bootssteg",
+        "accesLac": "Seezugang",
         "sauna": "Sauna",
         "hammam": "Hammam",
-        "piscInt": "Indoor pool",
-        "piscExt": "Outdoor pool",
-        "vue360": "360° view",
-        "accesSecu": "Secured access",
-        "domaine": "Gated estate"
+        "piscInt": "Innenschwimmbad",
+        "piscExt": "Aussenschwimmbad",
+        "vue360": "360°-Rundsicht",
+        "accesSecu": "Gesicherter Zugang",
+        "domaine": "Geschlossenes Anwesen"
       }
     },
     "porte": {
-      "choose": "Choose",
-      "selected": "Selected"
+      "choose": "Auswählen",
+      "selected": "Ausgewählt"
     }
   },
   "gallery": {
-    "sort": "Sort"
+    "sort": "Sortieren"
   },
   "mobile": {
     "subtitle": "{{count}} von {{total}}",
@@ -1793,30 +1789,30 @@
   "fiche": {
     "offMarket": "Off-market",
     "edit": {
-      "titleLabel": "Listing title",
-      "addressLabel": "Address"
+      "titleLabel": "Titel des Inserats",
+      "addressLabel": "Adresse"
     },
     "performance": {
-      "trendShort": "+{{percent}}%"
+      "trendShort": "+{{percent}} %"
     },
     "buyers": {
-      "empty": "No buyer positioned yet."
+      "empty": "Noch keine Käufer positioniert."
     },
     "visits": {
-      "eyebrow": "Visits",
-      "none": "No visit scheduled."
+      "eyebrow": "Besichtigungen",
+      "none": "Keine Besichtigung geplant."
     },
     "mandate": {
-      "renew": "Renew the mandate",
-      "renewToastTitle": "Mandate renewal",
-      "renewToastLine": "Prepare the renewal and hand it to the owner for signature."
+      "renew": "Mandat erneuern",
+      "renewToastTitle": "Mandatserneuerung",
+      "renewToastLine": "Bereiten Sie die Erneuerung vor und übermitteln Sie sie dem Eigentümer zur Unterschrift."
     },
     "diffusion": {
-      "publish": "Publish",
-      "publicPreview": "View public listing",
-      "previewToastTitle": "Public preview",
-      "previewOnlineLine": "The listing is live on immobilier.ch.",
-      "previewOfflineLine": "The listing is not published publicly yet."
+      "publish": "Veröffentlichen",
+      "publicPreview": "Öffentliches Inserat ansehen",
+      "previewToastTitle": "Öffentliche Vorschau",
+      "previewOnlineLine": "Das Inserat ist auf immobilier.ch veröffentlicht.",
+      "previewOfflineLine": "Das Inserat ist noch nicht öffentlich veröffentlicht."
     }
   }
 }

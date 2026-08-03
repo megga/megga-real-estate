@@ -10,9 +10,11 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
 // Typed client — schema in src/types/database.ts is regenerated via:
-//   supabase gen types typescript --local > src/types/database.ts
-// (re-run when migrations change the schema, then re-run `npm run build` to
-// catch any new type errors).
+//   npx supabase gen types typescript --project-id eayczugyrvmtqnnmvjod > src/types/database.ts
+// NOT `--local`: this repo runs no local Supabase stack (no Docker), so `--local`
+// points at a database that does not exist — the remote project is the only source
+// of truth. The file also carries a hand-written `/** */` header the generator does
+// not emit: put it back. `npm run lint:types-freshness` is what catches the drift.
 
 // Real anon key for the MEGGA Supabase project (eayczugyrvmtqnnmvjod).
 // anon keys are PUBLIC BY DESIGN — their security relies on Row Level Security (RLS).

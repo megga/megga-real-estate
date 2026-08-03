@@ -1,508 +1,457 @@
 /**
- * Page super-admin — détail d'une agence.
+ * Page super-admin — fiche agence (concept B de la maquette `admin-agency-detail.jsx`).
  *
- * Route : `/agencies/:id`. Vue en lecture seule organisée en 6 onglets (infos,
- * usage, équipe, activité, biens, transactions), chacun alimenté par un hook
- * `useAgency*` dédié. Sert aussi de point d'entrée à l'impersonation d'un
- * membre — précédée d'un audit serveur (cf. `EquipeTab`).
+ * Route : `/dashboard/admin/agencies/:id`. Plein cadre, **une colonne, aucun
+ * onglet, aucune carte** : des sections séparées par un filet. Un seul appel —
+ * `get_admin_agency_detail()` assemble équipe, invitations, usage, abonnement,
+ * note et activation côté serveur, là où la fiche faisait six allers-retours.
  *
- * Rendu en grammaire Sugar (kit `components/admin/kit`) : bentos séparés par
- * l'ombre et non par une bordure, statuts en pilules pleines, tableaux réels
- * (`AdminTh`/`AdminTd`) au lieu de grilles de `<span>`. Le repère « console
- * admin » vit désormais une seule fois, dans le rail du shell.
+ * La fiche **mesure l'usage de la plateforme, pas le contenu du CRM** : les
+ * tables de biens et de transactions (titre, prix, ville) ont quitté cet écran,
+ * il n'en reste que des compteurs.
+ *
+ * ── Écarts assumés vis-à-vis de la maquette, nommés plutôt que tus ──
+ *
+ * É1 · **Aucun plafond de sièges n'est affiché.** La maquette en propose un par
+ *      plan ; le dépôt en porte quatre versions divergentes et **aucune ne
+ *      s'applique** (aucune fonction de plafond n'existe en base). L'afficher
+ *      trancherait en silence la décision PO n° 4. La ligne dit donc l'occupé,
+ *      et nomme le manque.
+ * É2 · **Pas d'invitation de membre.** La maquette l'offre, mais aucun chemin
+ *      serveur super-admin n'existe : `send-team-invite` est un geste d'agence,
+ *      et son plafond dépend justement de la décision n° 4. La section
+ *      « Invitations en attente » se contente donc de LIRE.
+ * É3 · **Pas de bouton « Ouvrir dans Stripe ».** La RPC ampute délibérément
+ *      `stripe_customer_id` de sa réponse : le lien n'aurait aucune cible.
+ * É4 · **Le compteur de biens garde le même libellé quand l'agence est
+ *      suspendue.** La maquette écrit « biens — hors ligne » ; mesuré :
+ *      `admin-agency-lifecycle` ne touche jamais `properties`, et le compteur
+ *      vaut `count(*) where status='active'`. Afficher « hors ligne » sur des
+ *      annonces toujours diffusées serait un fait inventé.
+ * É5 · **Le changement de plan quitte la fiche** (maquette) mais survit sur
+ *      l'écran Plans : aucune capacité n'est perdue. Son retrait complet
+ *      appartient à la décision n° 5, pas à une passe UI.
+ * É6 · **L'impersonation reste** sur la ligne de membre : retirer une capacité
+ *      branchée et auditée est une décision produit écrite (n° 5), pas un geste
+ *      de refonte.
+ * É7 · **Deux surfaces perdent leur seule adresse UI** : le formulaire de quotas
+ *      (`admin_set_agency_quotas`) et les factures Stripe
+ *      (`admin-stripe-agency-billing`). Les deux gestes serveur restent
+ *      déployés et testés ; 0 ligne en production dans les deux cas. Rouvrir un
+ *      écran plus tard coûtera un écran, pas un backend.
+ * É9 · **L'appel d'accueil arrive de `main`, pas de la maquette.** La section
+ *      a été ajoutée à l'ancienne fiche pendant cette refonte ; elle est portée
+ *      ici plutôt qu'écrasée. Elle garde sa règle : distinguer « jamais
+ *      réservé », « à venir » et « déjà passé » — n'afficher « aucun appel »
+ *      pour les trois masquerait le seul cas qui demande une relance. Rendue en
+ *      section à filet, sans carte, pour suivre la grammaire du concept B.
+ * É8 · **La confirmation de suspension ne GARANTIT pas le nombre.** L'edge
+ *      épargne les comptes super-admin allowlistés : le libellé dit « jusqu'à
+ *      N », pas « N ».
  */
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, Mail, Phone, Clock, Eye } from 'lucide-react'
-import { formatDate, formatRelativeDate, formatCHF } from '@/lib/utils'
-import {
-  useAdminAgency,
-  useAgencyMembers,
-  useAgencyProperties,
-  useAgencyTransactions,
-  useAgencyActivity,
-} from '@/hooks/useAdminAgencies'
+import { useTranslation } from 'react-i18next'
+import { ArrowLeft, Clock, Eye } from 'lucide-react'
+import { formatCHF, formatDate, formatRelativeDate } from '@/lib/utils'
+import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
-import AdminPage from '@/components/admin/kit/AdminPage'
+import { useAdminAgencies } from '@/hooks/useAdminAgencies'
+import { useAgencyOnboardingCalls } from '@/hooks/useAdminOnboardingCalls'
 import {
-  AdminAvatar,
-  AdminCard,
-  AdminDivider,
+  useAdminAgencyDetail,
+  type AgencyDetailMember,
+  type AgencyDetailPayload,
+} from '@/hooks/useAdminAgencyDetail'
+import AdminConfirm from '@/components/admin/AdminConfirm'
+import {
   AdminEmpty,
   AdminError,
+  AdminGhostBtn,
   AdminIc,
   AdminPill,
   AdminSkeleton,
-  AdminTd,
-  AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
-import AdminBillingCard from '@/components/admin/AdminBillingCard'
-import AgencyUsagePanel from '@/components/admin/AgencyUsagePanel'
 
-type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions' | 'usage'
+/** Ton de la pilule d'état d'une agence. */
+const STATUS_TONE: Record<string, AdminToneName> = { active: 'ok', suspended: 'err' }
 
-const TAB_KEYS: { key: Tab; i18nKey: string }[] = [
-  { key: 'infos', i18nKey: 'agencyDetail.tab.infos' },
-  { key: 'usage', i18nKey: 'agencyDetail.tab.usage' },
-  { key: 'equipe', i18nKey: 'agencyDetail.tab.team' },
-  { key: 'activite', i18nKey: 'agencyDetail.tab.activity' },
-  { key: 'biens', i18nKey: 'agencyDetail.tab.properties' },
-  { key: 'transactions', i18nKey: 'agencyDetail.tab.transactions' },
-]
+export default function AdminAgencyDetailPage() {
+  const { id = '' } = useParams()
+  const { t } = useTranslation('admin')
+  const { sp, surf, tones } = useAdminSugar()
+  const { data, isPending, isError, refetch } = useAdminAgencyDetail(id)
+  const { updateStatus } = useAdminAgencies()
 
-const PLAN_I18N: Record<string, string> = {
-  starter: 'common.plan.starter',
-  pro: 'common.plan.pro',
-  entreprise: 'common.plan.entreprise',
-}
+  const [confirmOuvert, setConfirmOuvert] = useState(false)
+  const [flash, setFlash] = useState<{ ok: boolean; text: string } | null>(null)
 
-const STATUS_I18N: Record<string, string> = {
-  active: 'common.status.active',
-  suspended: 'common.status.suspended',
-}
+  const payload: AgencyDetailPayload | undefined = data
+  const agency = payload?.agency
+  const team = useMemo(() => payload?.team ?? [], [payload])
+  const invitations = useMemo(() => payload?.invitations ?? [], [payload])
 
-const PROPERTY_STATUS_I18N: Record<string, string> = {
-  draft: 'common.status.draft',
-  active: 'common.status.active',
-  reserved: 'common.status.reserved',
-  sold: 'common.status.sold',
-  off_market: 'common.status.offMarket',
-  archived: 'common.status.archived',
-}
+  const filet: CSSProperties = { borderTop: surf.hairline }
+  const ligne: CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 13, minHeight: 46, padding: '0 2px',
+  }
+  const enveloppe: CSSProperties = {
+    padding: '28px 32px 40px', display: 'flex', flexDirection: 'column', minWidth: 0,
+    // ⚠ La classe `adm-fade-up` n'anime RIEN par elle-même : c'est uniquement
+    // l'interrupteur d'extinction sous `prefers-reduced-motion`. L'animation vit
+    // en inline dans `AdminPage` ; sans elle, cette page serait la seule de la
+    // console sans entrée en fondu.
+    animation: 'admFadeUp .32s cubic-bezier(.2,.8,.2,1) both',
+  }
 
-const STAGE_I18N: Record<string, string> = {
-  new_lead: 'agencyDetail.stage.newLead',
-  to_qualify: 'agencyDetail.stage.toQualify',
-  active_search: 'agencyDetail.stage.activeSearch',
-  visit_planned: 'agencyDetail.stage.visitPlanned',
-  visit_done: 'agencyDetail.stage.visitDone',
-  interest_confirmed: 'agencyDetail.stage.interestConfirmed',
-  offer: 'agencyDetail.stage.offer',
-  negotiation: 'agencyDetail.stage.negotiation',
-  reserved: 'agencyDetail.stage.reserved',
-  financing: 'agencyDetail.stage.financing',
-  notary: 'agencyDetail.stage.notary',
-  signed: 'agencyDetail.stage.signed',
-  closed: 'agencyDetail.stage.closed',
-  lost: 'agencyDetail.stage.lost',
-  to_recontact: 'agencyDetail.stage.toRecontact',
-}
-
-/**
- * Tons de pilule des statuts de bien et d'affaire.
- *
- * `sold` / `completed` étaient en violet : le violet est le repère « tu es dans
- * la console », jamais un statut métier — ils passent donc en `info`. Les
- * statuts non listés restent neutres, comme avant (ils n'avaient pas de signal).
- */
-const PROPERTY_TONE: Record<string, AdminToneName> = { active: 'ok', sold: 'info' }
-const TRANSACTION_TONE: Record<string, AdminToneName> = { active: 'ok', completed: 'info', cancelled: 'err' }
-
-/** Deux initiales à partir d'un nom complet (« Marie Dupont » → « MD »). */
-function initialsOf(name: string): string {
-  return (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-}
-
-/**
- * Retour à la liste des agences.
- *
- * Reprend la grammaire d'`AdminGhostBtn` mais reste une ancre : un `<button>`
- * perdrait le clic-milieu, le survol d'URL et l'ouverture en nouvel onglet.
- */
-function BackToAgencies({ label }: { label: string }) {
-  const { sp, surf } = useAdminSugar()
-  return (
+  const filAriane = (
     <Link
       to={`${ADMIN_CONSOLE_PATH}/agencies`}
+      className="adm-row"
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 7,
-        height: 34, padding: '0 15px', borderRadius: ADMIN_RADII.pill,
-        fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', textDecoration: 'none',
-        color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
+        display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+        marginBottom: 14, padding: '5px 9px 5px 6px', borderRadius: ADMIN_RADII.pill,
+        textDecoration: 'none', fontSize: 12, fontWeight: 600, color: sp.sub,
       }}
     >
-      <AdminIc icon={ArrowLeft} size={15} color={sp.ink} />
-      {label}
+      <AdminIc icon={ArrowLeft} size={14} color={sp.sub} />
+      {t('agencyDetail.back')}
     </Link>
   )
-}
 
-/** Empilement de lignes fantômes pendant le chargement d'un onglet. */
-function TabSkeleton({ rows = 5 }: { rows?: number }) {
-  return (
-    <AdminCard padding={14}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {Array.from({ length: rows }).map((_, i) => (
-          <AdminSkeleton key={i} height={38} />
-        ))}
+  if (isPending) {
+    return (
+      <div className="adm-fade-up" style={enveloppe}>
+        {filAriane}
+        <AdminSkeleton height={44} width={320} />
+        <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {Array.from({ length: 5 }).map((_, i) => <AdminSkeleton key={i} height={44} />)}
+        </div>
       </div>
-    </AdminCard>
-  )
-}
+    )
+  }
 
-/** Barre d'onglets monochrome : soulignement à l'accent, pas de pastille colorée. */
-function TabBar({ active, onSelect }: { active: Tab; onSelect: (tab: Tab) => void }) {
-  const { t } = useTranslation('admin')
-  const { sp, dark } = useAdminSugar()
-  return (
-    <div
-      style={{
-        display: 'flex', alignItems: 'center', gap: 2, overflowX: 'auto',
-        boxShadow: `inset 0 -1px 0 ${dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.07)'}`,
-      }}
-    >
-      {TAB_KEYS.map((tab) => {
-        const on = active === tab.key
-        return (
-          <button
-            key={tab.key}
-            onClick={() => onSelect(tab.key)}
-            style={{
-              border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-              padding: '9px 14px 11px', whiteSpace: 'nowrap',
-              fontSize: 12.5, fontWeight: on ? 800 : 600, letterSpacing: -0.1,
-              color: on ? sp.ink : sp.sub,
-              boxShadow: on ? `inset 0 -2px 0 ${sp.accent}` : undefined,
-              transition: 'color .18s ease',
-            }}
-          >
-            {t(tab.i18nKey)}
-          </button>
-        )
-      })}
+  if (isError) {
+    return (
+      <div className="adm-fade-up" style={enveloppe}>
+        {filAriane}
+        <AdminError
+          message={t('common.loadError')}
+          onRetry={() => void refetch()}
+          retryLabel={t('common.retry')}
+        />
+      </div>
+    )
+  }
+
+  if (!payload?.found || !agency) {
+    return (
+      <div className="adm-fade-up" style={enveloppe}>
+        {filAriane}
+        <AdminEmpty icon={Eye} title={t('agencyDetail.notFound')} />
+      </div>
+    )
+  }
+
+  const usage = payload.usage
+  const subscription = payload.subscription
+  const note = payload.note
+  // ⚠ `agencies.status` est NULLABLE en base : sans ce repli, la pilule et le
+  // pied destructif rendraient une clé i18n brute.
+  const statut = agency.status ?? 'active'
+  const suspendue = statut === 'suspended'
+  const nom = agency.name
+  const planLabel = agency.plan
+    ? t(`common.plan.${agency.plan.toLowerCase()}`, { defaultValue: agency.plan })
+    : '—'
+
+  const basculer = (vers: 'active' | 'suspended') => {
+    setConfirmOuvert(false)
+    setFlash(null)
+    updateStatus.mutate(
+      { id, status: vers },
+      {
+        onSuccess: () => setFlash({
+          ok: true,
+          text: vers === 'suspended'
+            ? t('agencyDetail.suspend.done', { name: nom })
+            : t('agencyDetail.reactivate.done', { name: nom }),
+        }),
+        onError: () => setFlash({ ok: false, text: t('agencyDetail.lifecycle.error') }),
+      },
+    )
+  }
+
+  const chiffre = (valeur: string, libelle: string) => (
+    <div key={libelle} style={{ minWidth: 118 }}>
+      <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.8, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+        {valeur}
+      </div>
+      <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>{libelle}</div>
     </div>
   )
-}
 
-/**
- * Composant de page : en-tête agence (nom, plan, statut) + barre d'onglets.
- * Gère les états chargement / introuvable, puis délègue le contenu à l'onglet actif.
- */
-export default function AdminAgencyDetailPage() {
-  const { t } = useTranslation('admin')
-  const { id } = useParams<{ id: string }>()
-  const [activeTab, setActiveTab] = useState<Tab>('infos')
-
-  const { data: agency, isLoading, isError, refetch } = useAdminAgency(id ?? '')
-
-  const plan = agency ? t(PLAN_I18N[agency.plan ?? ''] ?? 'common.plan.starter') : null
-  const statusKey = agency?.status ?? 'active'
-
-  return (
-    <AdminPage
-      // Le nom n'est connu qu'après chargement ; « — » est le placeholder de
-      // valeur absente déjà utilisé par les tableaux de cette page.
-      title={agency?.name ?? '—'}
-      subtitle={agency ? `${plan} · ${formatDate(agency.created_at)}` : undefined}
-      width="wide"
-      actions={
-        <>
-          {agency && (
-            <AdminPill
-              label={t(STATUS_I18N[statusKey] ?? 'common.status.active')}
-              tone={agency.status === 'active' ? 'ok' : 'err'}
-            />
-          )}
-          <BackToAgencies label={t('admin:agencyDetail.back')} />
-        </>
-      }
-    >
-      {isLoading ? (
-        <TabSkeleton rows={4} />
-      ) : isError && !agency ? (
-        // Passe AVANT « introuvable » : une requête en échec renvoie elle aussi
-        // `agency` vide, et annoncer une agence supprimée sur une simple panne
-        // réseau enverrait le super-admin chercher un problème qui n'existe pas.
-        <AdminCard>
-          <AdminError
-            message={t('admin:common.loadError')}
-            onRetry={() => void refetch()}
-            retryLabel={t('admin:common.retry')}
-          />
-        </AdminCard>
-      ) : !agency ? (
-        <AdminCard>
-          <AdminEmpty icon={Building2} title={t('admin:agencyDetail.notFound')} />
-        </AdminCard>
-      ) : (
-        <>
-          <TabBar active={activeTab} onSelect={setActiveTab} />
-
-          {activeTab === 'infos' && <InfosTab agency={agency} />}
-          {activeTab === 'usage' && <AgencyUsagePanel agencyId={agency.id} />}
-          {activeTab === 'equipe' && <EquipeTab agencyId={agency.id} />}
-          {activeTab === 'activite' && <ActiviteTab agencyId={agency.id} />}
-          {activeTab === 'biens' && <BiensTab agencyId={agency.id} />}
-          {activeTab === 'transactions' && <TransactionsTab agencyId={agency.id} />}
-        </>
-      )}
-    </AdminPage>
+  const section = (cle: string, titre: string, contenu: ReactNode) => (
+    <section key={cle} style={{ ...filet, paddingTop: 16, marginTop: 22 }}>
+      <h2 style={{
+        margin: '0 0 11px', fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em',
+        textTransform: 'uppercase', color: sp.sub,
+      }}>
+        {titre}
+      </h2>
+      {contenu}
+    </section>
   )
-}
 
-/** Onglet « Infos » : coordonnées de l'agence + carte d'abonnement (override manuel du plan). */
-function InfosTab({ agency }: { agency: Record<string, unknown> }) {
-  const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
-  const fields = [
-    { icon: Building2, label: t('admin:agencyDetail.info.address'), value: agency.address as string | null },
-    { icon: Phone, label: t('admin:agencyDetail.info.phone'), value: agency.phone as string | null },
-    { icon: Mail, label: t('admin:agencyDetail.info.email'), value: agency.email as string | null },
-    { icon: Clock, label: t('admin:agencyDetail.info.slug'), value: agency.slug as string | null },
-  ]
+  const membre = (m: AgencyDetailMember, i: number) => (
+    <div key={m.id} style={{ ...ligne, borderTop: i === 0 ? undefined : surf.hairline }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {m.name ?? t('common.noName')}
+          {m.suspended && (
+            <span style={{ marginLeft: 8, fontSize: 11.5, fontWeight: 500, color: tones.err }}>
+              {t('agencyDetail.team.suspended')}
+            </span>
+          )}
+        </div>
+        <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {[m.email, m.role ? t(`common.role.${m.role}`, { defaultValue: m.role }) : null]
+            .filter(Boolean).join(' · ')}
+        </div>
+      </div>
+      <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub, whiteSpace: 'nowrap' }}>
+        {t('agencyDetail.team.registeredOn', { date: formatDate(m.since) })}
+      </span>
+      {/* Bouton icône : le libellé complet part en `title` ET en `label`
+          (nom accessible), sinon un lecteur d'écran n'annonce qu'une icône. */}
+      <AdminGhostBtn
+        onClick={() => openImpersonation(m.id)}
+        title={t('agencyDetail.team.impersonate', { name: m.name ?? t('common.noName') })}
+        label={t('agencyDetail.team.impersonate', { name: m.name ?? t('common.noName') })}
+        style={{ height: 28, width: 28, padding: 0, justifyContent: 'center' }}
+      >
+        <AdminIc icon={Eye} size={14} color={sp.sub} />
+      </AdminGhostBtn>
+    </div>
+  )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <AdminCard padding={8}>
-        {fields.map((f, i) => (
-          <div key={f.label}>
-            {i > 0 && <AdminDivider margin="0 6px" />}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 10px', minWidth: 0 }}>
-              <AdminIc icon={f.icon} size={16} color={sp.soft} />
-              <span style={{ width: 96, flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: sp.sub }}>{f.label}</span>
-              <span style={{ minWidth: 0, fontSize: 13, fontWeight: 600, color: f.value ? sp.ink : sp.soft, letterSpacing: -0.1 }}>
-                {f.value || t('admin:common.notProvided')}
+    <div className="adm-fade-up" style={enveloppe}>
+      {filAriane}
+
+      {/* ── En-tête ─────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 13, flexWrap: 'wrap' }}>
+        <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, letterSpacing: -1.4, lineHeight: 1.05, color: sp.ink }}>
+          {nom}
+        </h1>
+        <AdminPill
+          label={t(`common.status.${statut}`, { defaultValue: statut })}
+          tone={STATUS_TONE[statut] ?? 'neutral'}
+        />
+        {agency.sub === 'trialing' && <AdminPill label={t('agencies.sub.trialing')} tone="info" />}
+        {agency.sub === 'past_due' && <AdminPill label={t('agencies.sub.pastDue')} tone="err" />}
+        {suspendue && (
+          <div style={{ marginLeft: 'auto' }}>
+            <AdminGhostBtn onClick={() => basculer('active')} disabled={updateStatus.isPending} style={{ height: 30, fontSize: 12 }}>
+              {t('agencyDetail.reactivate.cta')}
+            </AdminGhostBtn>
+          </div>
+        )}
+      </div>
+      <div style={{ marginTop: 5, fontSize: 12.5, fontWeight: 500, color: sp.sub }}>
+        {[agency.city, agency.canton, agency.email].filter(Boolean).join(' · ')}
+      </div>
+
+      {flash && (
+        <div style={{
+          marginTop: 14, padding: '11px 13px', borderRadius: ADMIN_RADII.row, background: surf.cardSub,
+          fontSize: 12.5, fontWeight: 600, color: flash.ok ? sp.ink : tones.err,
+        }}>
+          {flash.text}
+        </div>
+      )}
+
+      {/* ── Équipe ──────────────────────────────────────────────────────────── */}
+      {section('team', t('agencyDetail.section.team'),
+        team.length === 0
+          ? <div style={{ fontSize: 12.5, fontWeight: 500, color: sp.sub, padding: '2px 2px 6px' }}>
+              {t('agencyDetail.team.empty')}
+            </div>
+          : <div style={{ display: 'flex', flexDirection: 'column' }}>{team.map(membre)}</div>,
+      )}
+
+      {/* ── Invitations en attente — lecture seule (É2) ──────────────────────── */}
+      {invitations.length > 0 && section('invites', t('agencyDetail.section.invites'),
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {invitations.map((inv, i) => (
+            <div key={inv.id ?? `${inv.email}-${i}`} style={{ ...ligne, borderTop: i === 0 ? undefined : surf.hairline }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {inv.email ?? t('common.noName')}
+              </span>
+              {inv.role && (
+                <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                  {t(`common.role.${inv.role}`, { defaultValue: inv.role })}
+                </span>
+              )}
+              {inv.created_at && (
+                <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub, whiteSpace: 'nowrap' }}>
+                  {t('agencyDetail.invites.sentOn', { date: formatDate(inv.created_at) })}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>,
+      )}
+
+      {/* ── Portefeuille — des COMPTEURS, jamais le contenu du CRM ───────────── */}
+      {section('portfolio', t('agencyDetail.section.portfolio'),
+        <div>
+          <div style={{ display: 'flex', gap: 30, flexWrap: 'wrap' }}>
+            {chiffre(String(agency.agents), t('agencyDetail.portfolio.agents', { count: agency.agents }))}
+            {chiffre(String(agency.properties), t('agencyDetail.portfolio.properties'))}
+            {chiffre(String(agency.deals), t('agencyDetail.portfolio.deals'))}
+          </div>
+          <div style={{ marginTop: 10, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+            {agency.last
+              ? t('agencyDetail.portfolio.lastActivity', { when: formatRelativeDate(agency.last) })
+              : t('agencyDetail.portfolio.noActivity')}
+          </div>
+        </div>,
+      )}
+
+      {/* ── Usage de la plateforme — la RPC le calcule à chaque ouverture ; le
+             jeter aurait coûté le calcul sans en rendre la valeur ─────────── */}
+      {usage && section('usage', t('agencyDetail.section.usage'),
+        <div style={{ display: 'flex', gap: 30, flexWrap: 'wrap' }}>
+          {chiffre(String(usage.contacts_count ?? 0), t('agencyDetail.usage.contacts'))}
+          {chiffre(String(usage.ai_calls_month ?? 0), t('agencyDetail.usage.aiCalls'))}
+          {chiffre(`$${Number(usage.ai_cost_month_usd ?? 0).toFixed(2)}`, t('agencyDetail.usage.aiCost'))}
+          {chiffre(String(usage.wa_messages_month ?? 0), t('agencyDetail.usage.whatsapp'))}
+          {chiffre(`${Math.round(Number(usage.storage_est_mb ?? 0))} Mo`, t('agencyDetail.usage.storage'))}
+        </div>,
+      )}
+
+      {/* ── Appel d'accueil (apporté par main pendant la refonte, É9) ───────── */}
+      <AppelAccueil agencyId={agency.id} section={section} />
+
+      {/* ── Abonnement ──────────────────────────────────────────────────────── */}
+      {section('subscription', t('agencyDetail.section.subscription'),
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={ligne}>
+            <span style={{ minWidth: 118, fontSize: 12.5, fontWeight: 700, color: sp.ink }}>
+              {t('agencyDetail.sub.plan')}
+            </span>
+            <span style={{ fontSize: 12.5, fontWeight: 500, color: sp.sub }}>
+              {t('agencyDetail.sub.planValue', { plan: planLabel, price: formatCHF(Number(agency.mrr)) })}
+            </span>
+          </div>
+          <div style={{ ...ligne, borderTop: surf.hairline }}>
+            <span style={{ minWidth: 118, fontSize: 12.5, fontWeight: 700, color: sp.ink }}>
+              {t('agencyDetail.sub.seats')}
+            </span>
+            <span style={{ fontSize: 12.5, fontWeight: 500, color: sp.sub }}>
+              {t('agencyDetail.sub.seatsValue', { count: agency.agents })}
+              {' · '}
+              {/* É1 : le plafond n'est pas affiché, il est NOMMÉ comme manquant. */}
+              {t('agencyDetail.sub.seatsNoCap')}
+            </span>
+          </div>
+          {!subscription && (
+            <div style={{ ...ligne, borderTop: surf.hairline, minHeight: 38 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                {t('agencyDetail.sub.none')}
               </span>
             </div>
-          </div>
-        ))}
-      </AdminCard>
+          )}
+        </div>,
+      )}
 
-      {/* Abonnement + override manuel de plan (P4 admin) */}
-      <AdminBillingCard agencyId={agency.id as string} />
+      {/* ── Note interne — jamais lue par l'agence (RLS super-admin seule) ───── */}
+      {note?.note && section('note', t('agencyDetail.section.note'),
+        <div style={{ fontSize: 12.5, fontWeight: 500, color: sp.ink, whiteSpace: 'pre-wrap' }}>
+          {note.note}
+        </div>,
+      )}
+
+      {/* ── Pied destructif ─────────────────────────────────────────────────── */}
+      {!suspendue && (
+        <div style={{ ...filet, marginTop: 26, paddingTop: 16 }}>
+          <AdminGhostBtn
+            onClick={() => setConfirmOuvert(true)}
+            disabled={updateStatus.isPending}
+            style={{ height: 30, fontSize: 12, color: tones.err }}
+          >
+            {t('agencyDetail.suspend.cta')}
+          </AdminGhostBtn>
+        </div>
+      )}
+
+      <AdminConfirm
+        open={confirmOuvert}
+        onClose={() => setConfirmOuvert(false)}
+        onConfirm={() => basculer('suspended')}
+        title={t('agencyDetail.suspend.title', { name: nom })}
+        message={
+          team.length === 0
+            ? t('agencyDetail.suspend.messageNoMember')
+            : t('agencyDetail.suspend.message', { count: team.length })
+        }
+        confirmLabel={t('agencyDetail.suspend.confirm')}
+        tone="warn"
+        // Sans `busy`, un double-clic part deux fois : deux lignes au registre
+        // pour un seul geste voulu.
+        busy={updateStatus.isPending}
+        busyLabel={t('common.saving')}
+      />
     </div>
   )
 }
 
 /**
- * Onglet « Équipe » : liste des membres de l'agence. Chaque ligne expose (au
- * survol) un bouton qui ouvre le CRM en vue impersonée (l'audit serveur y est
- * fait avant activation).
+ * Appel d'accueil de l'agence.
+ *
+ * Trois états qui se ressemblent trop pour être confondus : jamais réservé,
+ * réservé et à venir, déjà passé. Un écran qui n'afficherait « aucun appel »
+ * pour les trois masquerait le seul cas qui demande une relance — c'est la
+ * règle apportée par `main`, conservée telle quelle.
  */
-function EquipeTab({ agencyId }: { agencyId: string }) {
+function AppelAccueil({ agencyId, section }: {
+  agencyId: string
+  section: (cle: string, titre: string, contenu: ReactNode) => ReactNode
+}) {
   const { t } = useTranslation('admin')
   const { sp } = useAdminSugar()
-  const { data: members, isLoading } = useAgencyMembers(agencyId)
+  const { data: calls, isLoading } = useAgencyOnboardingCalls(agencyId)
 
-  if (isLoading) return <TabSkeleton />
+  const trie = [...(calls ?? [])].sort((a, b) => Date.parse(b.scheduled_at) - Date.parse(a.scheduled_at))
+  const aVenir = trie.find(c => c.status === 'confirmed' && Date.parse(c.scheduled_at) > Date.now())
+  const dernier = aVenir ?? trie[0] ?? null
 
-  if (!members || members.length === 0) {
-    return (
-      <AdminCard>
-        <AdminEmpty title={t('admin:agencyDetail.team.noMembers')} />
-      </AdminCard>
-    )
-  }
-
-  return (
-    <AdminCard padding={0} style={{ overflow: 'hidden' }}>
-      <div style={{ overflowX: 'auto' }} className="scrollbar-hide">
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
-          <thead>
-            <tr>
-              <AdminTh>{t('admin:agencyDetail.team.table.name')}</AdminTh>
-              <AdminTh width={180}>{t('admin:agencyDetail.team.table.email')}</AdminTh>
-              <AdminTh width={110}>{t('admin:agencyDetail.team.table.role')}</AdminTh>
-              <AdminTh width={110} align="right">{t('admin:agencyDetail.team.table.registration')}</AdminTh>
-              {/* Colonne d'action (impersonation) : en-tête sans libellé. */}
-              <AdminTh width={54}>{null}</AdminTh>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((member) => (
-              <tr key={member.id} className="group">
-                <AdminTd>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <AdminAvatar initials={initialsOf(member.full_name ?? t('admin:common.user'))} size={28} />
-                    <span style={{ fontWeight: 700, letterSpacing: -0.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {member.full_name ?? t('admin:common.noName')}
-                    </span>
-                  </span>
-                </AdminTd>
-                <AdminTd style={{ color: sp.sub, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {member.email}
-                </AdminTd>
-                <AdminTd style={{ color: sp.sub, textTransform: 'capitalize' }}>
-                  {member.role ?? 'agent'}
-                </AdminTd>
-                <AdminTd align="right" numeric style={{ color: sp.soft }}>
-                  {formatDate(member.created_at ?? '')}
-                </AdminTd>
-                <AdminTd align="right">
-                  <button
-                    // Nouvel onglet ; c'est le CRM qui journalise avant
-                    // d'activer la vue (audit-first).
-                    onClick={() => openImpersonation(member.id)}
-                    aria-label={t('admin:agencyDetail.team.impersonate', { name: member.full_name ?? t('admin:common.user') })}
-                    // `group-focus-within` en plus du survol : sans lui, ce
-                    // bouton était atteignable au clavier mais jamais visible.
-                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
-                    style={{
-                      width: 28, height: 28, borderRadius: ADMIN_RADII.pill, border: 0,
-                      background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center',
-                    }}
-                  >
-                    <AdminIc icon={Eye} size={15} color={sp.soft} />
-                  </button>
-                </AdminTd>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+  return section('call', t('agencyDetail.onboardingCall.title'),
+    isLoading ? <AdminSkeleton height={40} /> : !dernier ? (
+      <div style={{ fontSize: 12.5, fontWeight: 500, color: sp.sub, padding: '2px 2px 6px' }}>
+        {t('agencyDetail.onboardingCall.none')}
       </div>
-    </AdminCard>
-  )
-}
-
-/** Onglet « Activité » : flux chronologique des événements de l'agence. */
-function ActiviteTab({ agencyId }: { agencyId: string }) {
-  const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
-  const { data: events, isLoading } = useAgencyActivity(agencyId)
-
-  if (isLoading) return <TabSkeleton />
-
-  if (!events || events.length === 0) {
-    return (
-      <AdminCard>
-        <AdminEmpty title={t('admin:agencyDetail.activity.noActivity')} />
-      </AdminCard>
-    )
-  }
-
-  return (
-    <AdminCard padding={8}>
-      {events.map((event) => (
-        <div key={event.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '10px 10px' }}>
-          {/* Puce de repère chronologique : aucun signal, donc encre douce et pas de couleur vive. */}
-          <span style={{ width: 6, height: 6, borderRadius: ADMIN_RADII.pill, background: sp.soft, marginTop: 6, flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 12.5, color: sp.ink }}>
-              <span style={{ fontWeight: 700 }}>{event.action}</span>
-              {event.entity_type && (
-                <span style={{ color: sp.sub }}> {t('admin:agencyDetail.activity.on')} {event.entity_type}</span>
-              )}
-            </p>
-            <p style={{ margin: '2px 0 0', fontSize: 11.5, color: sp.soft }}>
-              {formatRelativeDate(event.created_at)}
-            </p>
-          </div>
-        </div>
-      ))}
-    </AdminCard>
-  )
-}
-
-/** Onglet « Biens » : tableau des annonces de l'agence (titre, statut, prix, ville, date). */
-function BiensTab({ agencyId }: { agencyId: string }) {
-  const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
-  const { data: properties, isLoading } = useAgencyProperties(agencyId)
-
-  if (isLoading) return <TabSkeleton />
-
-  if (!properties || properties.length === 0) {
-    return (
-      <AdminCard>
-        <AdminEmpty title={t('admin:agencyDetail.properties.noProperties')} />
-      </AdminCard>
-    )
-  }
-
-  return (
-    <AdminCard padding={0} style={{ overflow: 'hidden' }}>
-      <div style={{ overflowX: 'auto' }} className="scrollbar-hide">
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
-          <thead>
-            <tr>
-              <AdminTh>{t('admin:agencyDetail.properties.table.title')}</AdminTh>
-              <AdminTh width={120}>{t('admin:agencyDetail.properties.table.status')}</AdminTh>
-              <AdminTh width={130} align="right">{t('admin:agencyDetail.properties.table.price')}</AdminTh>
-              <AdminTh width={110}>{t('admin:agencyDetail.properties.table.city')}</AdminTh>
-              <AdminTh width={110} align="right">{t('admin:agencyDetail.properties.table.date')}</AdminTh>
-            </tr>
-          </thead>
-          <tbody>
-            {properties.map((prop) => (
-              <tr key={prop.id}>
-                <AdminTd style={{ fontWeight: 600, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {prop.title || t('admin:common.noTitle')}
-                </AdminTd>
-                <AdminTd>
-                  <AdminPill
-                    label={t(PROPERTY_STATUS_I18N[prop.status] ?? 'common.status.draft')}
-                    tone={PROPERTY_TONE[prop.status] ?? 'neutral'}
-                  />
-                </AdminTd>
-                <AdminTd align="right" numeric style={{ fontWeight: 700 }}>
-                  {prop.price ? formatCHF(prop.price) : '—'}
-                </AdminTd>
-                <AdminTd style={{ color: sp.sub }}>{prop.city ?? '—'}</AdminTd>
-                <AdminTd align="right" numeric style={{ color: sp.soft }}>
-                  {formatDate(prop.created_at)}
-                </AdminTd>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    ) : (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minHeight: 40 }}>
+        <AdminIc icon={Clock} size={15} color={sp.sub} />
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+          {new Intl.DateTimeFormat('fr-CH', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: false,
+          }).format(new Date(dernier.scheduled_at))}
+        </span>
+        <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>{dernier.host_name}</span>
+        <AdminPill
+          label={t(`onboardingCalls.status.${dernier.status}`)}
+          tone={dernier.status === 'confirmed' ? 'ok' : dernier.status === 'no_show' ? 'err' : 'neutral'}
+        />
+        {dernier.rescheduled_count > 0 && (
+          <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+            {t('onboardingCalls.table.rescheduled', { count: dernier.rescheduled_count })}
+          </span>
+        )}
       </div>
-    </AdminCard>
-  )
-}
-
-/** Onglet « Transactions » : tableau des affaires (stade pipeline, statut, montant, date). */
-function TransactionsTab({ agencyId }: { agencyId: string }) {
-  const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
-  const { data: transactions, isLoading } = useAgencyTransactions(agencyId)
-
-  if (isLoading) return <TabSkeleton />
-
-  if (!transactions || transactions.length === 0) {
-    return (
-      <AdminCard>
-        <AdminEmpty title={t('admin:agencyDetail.transactions.noTransactions')} />
-      </AdminCard>
-    )
-  }
-
-  return (
-    <AdminCard padding={0} style={{ overflow: 'hidden' }}>
-      <div style={{ overflowX: 'auto' }} className="scrollbar-hide">
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
-          <thead>
-            <tr>
-              <AdminTh>{t('admin:agencyDetail.transactions.table.stage')}</AdminTh>
-              <AdminTh width={120}>{t('admin:agencyDetail.transactions.table.status')}</AdminTh>
-              <AdminTh width={130} align="right">{t('admin:agencyDetail.transactions.table.amount')}</AdminTh>
-              <AdminTh width={110} align="right">{t('admin:agencyDetail.transactions.table.date')}</AdminTh>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((tx) => (
-              <tr key={tx.id}>
-                <AdminTd style={{ fontWeight: 600 }}>
-                  {STAGE_I18N[tx.stage] ? t(STAGE_I18N[tx.stage]) : tx.stage ?? '—'}
-                </AdminTd>
-                <AdminTd>
-                  {tx.status
-                    ? <AdminPill label={tx.status} tone={TRANSACTION_TONE[tx.status] ?? 'neutral'} />
-                    : <span style={{ color: sp.soft }}>—</span>}
-                </AdminTd>
-                <AdminTd align="right" numeric style={{ fontWeight: 700 }}>
-                  {tx.price_offered ? formatCHF(tx.price_offered) : '—'}
-                </AdminTd>
-                <AdminTd align="right" numeric style={{ color: sp.soft }}>
-                  {formatDate(tx.created_at)}
-                </AdminTd>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </AdminCard>
-  )
+    ))
 }

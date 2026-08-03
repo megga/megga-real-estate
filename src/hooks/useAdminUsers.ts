@@ -7,10 +7,7 @@
  * l'export DSAR (nLPD art. 25) journalisé côté serveur.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-
-const db = supabase as unknown as SupabaseClient
 
 export interface AdminUser {
   id: string
@@ -35,7 +32,12 @@ export interface AdminUser {
   marketing: boolean
 }
 
-/** Ligne brute de `get_admin_users()`, re-typée à la main faute de types générés. */
+/** Ligne brute de `get_admin_users()`. Re-typée à la main NON par absence des types
+ *  générés — la RPC y est entrée avec #1064 — mais parce que le générateur perd la
+ *  NULLABILITÉ des colonnes d'un `returns table` : il déclare `agency`, `phone` et
+ *  `deleted_at` non-nullables, alors qu'elles sont nulles en prod (mesuré le 02.08.2026 :
+ *  respectivement 2, 6 et 7 profils sur 7), et il rend `consents` en `Json` opaque. Le
+ *  type ci-dessous est donc le plus vrai des deux. */
 interface AdminUserRow {
   id: string; name: string | null; email: string; phone: string | null; role: string
   agency_id: string | null; agency: string | null; since: string; last: string | null
@@ -56,7 +58,7 @@ export function useAdminUsers() {
       // résoudre les noms). La RPC joint côté serveur et apporte en plus les champs de
       // §5.4 que ce registre ne savait pas afficher : dernière activité, ancienneté
       // d'inactivité, « invité jamais connecté » et consentements.
-      const { data, error } = await db.rpc('get_admin_users', { p_limit: 2000, p_offset: 0 })
+      const { data, error } = await supabase.rpc('get_admin_users', { p_limit: 2000, p_offset: 0 })
       if (error) throw error
 
       return ((data ?? []) as AdminUserRow[]).map(u => ({

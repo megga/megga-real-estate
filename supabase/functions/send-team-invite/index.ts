@@ -1,5 +1,10 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// L'adresse d'acceptation s'est déjà bâtie ici depuis l'en-tête `Origin`, que
+// l'appelant choisit : elle vient d'un constructeur partagé, chemin compris.
+// Rationnel complet et garde-fou : `_shared/app-url.ts`,
+// `tests/unit/invite-link-origin-guard.spec.ts`.
+import { teamInviteAcceptUrl } from '../_shared/app-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -170,14 +175,27 @@ serve(async (req) => {
         })
       }
 
-      const { error } = await supabase
+      // `.select().single()` et pas un simple update : PostgREST ne lève AUCUNE
+      // erreur quand un UPDATE ne touche aucune ligne. Sans lui, un id d'une
+      // autre agence (ou déjà annulé) repartait en `{success:true}` et faisait
+      // écrire une ligne d'audit portant un `entity_id` jamais vérifié. La
+      // branche `resend`, juste en dessous, faisait déjà le bon geste.
+      const { data: cancelled, error } = await supabase
         .from('team_invitations')
         .update({ status: 'cancelled' })
         .eq('id', body.invitationId)
         .eq('agency_id', profile.agency_id)
         .eq('status', 'pending')
+        .select('id')
+        .maybeSingle()
 
       if (error) throw error
+      if (!cancelled) {
+        return new Response(JSON.stringify({ error: 'Invitation not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
 
       // Log activity
       await supabaseAdmin.from('activity_events').insert({
@@ -227,12 +245,11 @@ serve(async (req) => {
       // Send email
       const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
       if (RESEND_API_KEY) {
-        const origin = req.headers.get('origin') || 'https://megga.ch'
         const html = buildInviteEmailHtml({
           inviterName: profile.full_name,
           agencyName: agency.name,
           role: invitation.role,
-          acceptUrl: `${origin}/accept-invite/${newToken}`,
+          acceptUrl: teamInviteAcceptUrl(newToken),
         })
 
         await fetch('https://api.resend.com/emails', {
@@ -281,6 +298,34 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    // `body.role` partait tel quel dans l'invitation, et le token d'invitation
+    // VAUT attribution de rôle au moment du claim : seul l'enum `user_role`
+    // bornait la valeur, si bien qu'un `manager` pouvait émettre une invitation
+    // `admin` — un cran au-dessus de lui. On borne à une liste explicite, puis
+    // au niveau de l'appelant.
+    //
+    // ⚠ Doit rester aligné sur `team_role_rank()` (migration 20260802210000),
+    // qui porte la MÊME règle dans la policy RLS : cette garde-ci ne protège que
+    // les appels passant par cette fonction, or la table est exposée à
+    // `authenticated`, donc un dirigeant peut écrire en direct via PostgREST.
+    // `assistant` est un rôle d'agent à part entière (src/types/auth.ts
+    // AGENT_ROLES, proposé par la console) : l'omettre revenait à refuser une
+    // invitation légitime.
+    const ROLE_RANK: Record<string, number> = { assistant: 1, agent: 1, manager: 2, admin: 3 }
+    const requestedRank = ROLE_RANK[body.role]
+    if (!requestedRank) {
+      return new Response(JSON.stringify({ error: 'role must be assistant, agent, manager or admin' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (requestedRank > (ROLE_RANK[profile.role] ?? 0)) {
+      return new Response(
+        JSON.stringify({ error: 'Cannot invite someone above your own role.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
     // Check plan limit
@@ -348,12 +393,11 @@ serve(async (req) => {
     // Send email via Resend
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (RESEND_API_KEY) {
-      const origin = req.headers.get('origin') || 'https://megga.ch'
       const html = buildInviteEmailHtml({
         inviterName: profile.full_name,
         agencyName: agency.name,
         role: body.role,
-        acceptUrl: `${origin}/accept-invite/${invitation.token}`,
+        acceptUrl: teamInviteAcceptUrl(invitation.token),
       })
 
       await fetch('https://api.resend.com/emails', {

@@ -14,6 +14,7 @@ import { TK } from './tk'
 import { RXIcon, Av, Orbs } from './kit'
 import { PHOTO } from './data'
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
+import { useTodayNav } from './TodayNavContext'
 
 // Type du traducteur i18next injecté dans les helpers de module (non-composants).
 type TFunc = (key: string, params?: Record<string, unknown>) => string
@@ -58,6 +59,8 @@ interface CatItem {
   detail?: CatDetailData
   // Vrai id du match (pour « Mettre dans le dossier » → sendMatch). Absent = seed.
   matchId?: string
+  /** Contact acheteur réel — cible du deep-link « Ouvrir dans Matching ». */
+  contactId?: string
 }
 
 // ─── Adaptateurs match réel → item de catalogue ─────────────────────────
@@ -106,6 +109,7 @@ function matchToCatItem(m: MatchResult, idx: number, t: TFunction): CatItem {
   return {
     id: hashInt(m.id) || idx + 1,
     matchId: m.id,
+    contactId: m.contactId,
     photo: L.photos?.[0] || PHOTO.champel,
     place,
     price: fmtApos(L.price),
@@ -441,7 +445,7 @@ function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; s
   )
 }
 
-function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; proposed: boolean; onPropose: (m: CatItem) => void; onClose: () => void }) {
+function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m: CatItem; proposed: boolean; onPropose: (m: CatItem) => void; onOpenMatching: (m: CatItem) => void; onClose: () => void }) {
   const { t } = useTranslation('dashboard')
   const [active, setActive] = useState(0)
   const [galOpen, setGalOpen] = useState(false)
@@ -656,6 +660,16 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
 
         {/* ── footer sticky ── action principale alignée à droite ── */}
         <div style={{ padding: '14px 24px 18px', borderTop: `1px solid ${TK.border}`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 11, flexShrink: 0, background: TK.frameSolid }}>
+          {/* Le prototype du pack fait du Catalogue une VITRINE qui emmène vers
+              Matching. On en prend la capacité — sans retirer les filtres, les
+              tris ni cette fiche, que le §18 du handoff décrit encore : le pack
+              se contredit, et supprimer est irréversible. */}
+          {m.contactId && (
+            <button onClick={() => onOpenMatching(m)} style={{ height: 48, padding: '0 20px', borderRadius: 999, border: `1px solid ${TK.border}`, cursor: 'pointer',
+              background: 'transparent', color: TK.ink, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap' }}>
+              {t('today.catalogue.action.openInMatching')}
+            </button>
+          )}
           <button onClick={() => onPropose(m)} style={{ height: 48, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer',
             background: proposed ? '#15643F' : '#424bfb',
             color: '#FFFFFF',
@@ -815,6 +829,7 @@ function EnjeuStat({ icon, children, accent }: { icon: string; children: ReactNo
 // ─── PAGE ─────────────────────────────────────────────────────────────
 export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
   const { t } = useTranslation('dashboard')
+  const { navigate: nav } = useTodayNav()
   const [filter, setFilter] = useState('tous')
   const [sortI, setSortI] = useState(0)
   const [sel, setSel] = useState<CatItem | null>(null)
@@ -833,6 +848,13 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
   // « Mettre dans le dossier » : toggle visuel + écriture réelle la 1re fois —
   // sendMatch marque le match `status='sent'` (proposé). AUCUN email n'est envoyé
   // (état CRM seulement). Item seed (pas de matchId) → toggle local uniquement.
+  // « Ouvrir dans Matching » : le contrat vivant est `/dashboard/matching?contact=<id>`
+  // (MatchingAtelierPage lit ce paramètre). Pas de globale `__sgaFocusBuyer`.
+  const openInMatching = (m: CatItem) => {
+    if (!m.contactId) return
+    setSel(null)
+    nav('matching', m.contactId)
+  }
   const togglePropose = (m: CatItem) => {
     const adding = !proposed.has(m.id)
     setProposed((prev) => { const n = new Set(prev); if (n.has(m.id)) n.delete(m.id); else n.add(m.id); return n })
@@ -919,7 +941,7 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
         )}
       </div>
 
-      {sel && <CatalogDetail m={sel} proposed={proposed.has(sel.id)} onPropose={togglePropose} onClose={() => setSel(null)} />}
+      {sel && <CatalogDetail m={sel} proposed={proposed.has(sel.id)} onPropose={togglePropose} onOpenMatching={openInMatching} onClose={() => setSel(null)} />}
       {showAll && <CatalogGalleryOverlay list={list} proposedSet={proposed} sortLabel={t(sort.labelKey)}
         onCycleSort={() => setSortI((i) => (i + 1) % CATA_SORTS.length)}
         onOpen={(m) => { setShowAll(false); setSel(m) }} onClose={() => setShowAll(false)} />}

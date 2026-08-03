@@ -48,9 +48,20 @@ jobs:
         run: npm ci
 
       - name: Setup Supabase CLI
+        # ⚠ VERSION ÉPINGLÉE, ET CE N'EST PAS DU ZÈLE. `version: latest` oblige l'action à
+        # résoudre la dernière release via l'API GitHub, SANS authentification : sous charge,
+        # l'IP partagée des runners atteint la limite et le job meurt AVANT tout travail utile
+        # (« Failed to resolve latest Supabase CLI release: rate limit exceeded », suivi de
+        # « No such container: supabase_db_… »). Mesuré le 02.08.2026 : TROIS occurrences dans
+        # la journée, dont un déploiement de production qu'il a fallu relancer à la main.
+        # 2.111.0 EST ce que `latest` résolvait ce jour-là — l'épinglage ne change donc aucun
+        # comportement, il supprime seulement l'appel réseau.
+        # ⚠ À faire évoluer À LA MAIN quand `supabase/config.toml` ou `supabase start` l'exigent
+        # (l'action n'accepte pas de `token` pour authentifier l'appel, et `supabase` n'est pas
+        # une dépendance du dépôt : omettre `version` retomberait sur `latest`).
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.111.0
 
       - name: Start Supabase local
         # Excludes services we don't test: Studio (admin UI), Inbucket (mail
@@ -88,6 +99,49 @@ jobs:
           # MEGGA_MAGIC_LINK_HMAC_SECRET is already in the job env (above),
           # so it is visible to all subsequent steps including npm run test:backend.
 
+      - name: Rejouer les migrations du jour (ce que fait deploy.yml, à chaque push)
+        # ⛔ CETTE ÉTAPE EXISTE PARCE QU'UN DÉPLOIEMENT DE PRODUCTION EST MORT SANS ELLE.
+        # Le 02.08.2026 à 19:16 UTC : `20260802180000` avait fait passer
+        # `admin_set_agency_plan` de `void` à `jsonb`, et `20260802170000` — même journée —
+        # la recréait en `void`. Au deuxième déploiement du jour, son rejeu a levé
+        # `42P13 cannot change return type of existing function`, `set -e` a coupé l'étape,
+        # et NI les migrations suivantes NI les Edge Functions ne sont parties.
+        #
+        # ⚠ CE QUE LA CI NE POUVAIT PAS VOIR, ET QUI EST TOUT LE SUJET. `supabase start`
+        # applique les migrations UNE fois, dans l'ordre, sur une base fraîche : `170000`
+        # crée en `void`, `180000` remplace en `jsonb`, aucun conflit. Le conflit n'existe
+        # qu'au SECOND passage — exactement ce que fait `deploy.yml`, et rien d'autre au
+        # dépôt ne le reproduisait. `check-migration-idempotence.mjs` ne pouvait pas
+        # l'attraper non plus : il lit la SYNTAXE (un CREATE est-il gardé ?), pas l'effet
+        # d'une migration sur l'état laissé par une autre.
+        #
+        # On rejoue donc ici la MÊME sélection que deploy.yml — préfixe de date `>= TODAY`
+        # en UTC, ordre des noms de fichiers — contre la base locale. Un échec ici est un
+        # déploiement qui aurait échoué en production.
+        #
+        # Sur une journée sans migration nouvelle, la boucle ne sélectionne rien et l'étape
+        # passe en silence : c'est voulu, pas un contrôle creux — le jour où elle a quelque
+        # chose à dire, elle le dit.
+        run: |
+          set -euo pipefail
+          TODAY=$(date -u +%Y%m%d)
+          CONTENEUR=$(docker ps --filter name=supabase_db_ --format '{{.Names}}' | head -1)
+          if [ -z "$CONTENEUR" ]; then
+            echo "::error::conteneur supabase_db_* introuvable — impossible de rejouer"
+            exit 1
+          fi
+          rejouees=0
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            base=$(basename "$f")
+            if [ "${base:0:8}" -ge "$TODAY" ]; then
+              echo "::group::Rejeu $base"
+              docker exec -i "$CONTENEUR" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < "$f"
+              echo "::endgroup::"
+              rejouees=$((rejouees + 1))
+            fi
+          done
+          echo "$rejouees migration(s) du jour rejouée(s) sans erreur."
+
       - name: Run backend tests
         run: npm run test:backend
 
@@ -98,10 +152,19 @@ jobs:
           supabase status || true
           echo "=== docker ps ==="
           docker ps || true
-          echo "=== postgres logs ==="
-          docker logs supabase_db_megga-real-estate 2>&1 | tail -100 || true
-          echo "=== auth logs ==="
-          docker logs supabase_auth_megga-real-estate 2>&1 | tail -50 || true
+          # Les noms de conteneurs dérivent du `project_id` de supabase/config.toml
+          # (`supabase_db_zealous-faraday-34b2f5`), PAS du nom du dépôt. Figés à
+          # `*_megga-real-estate`, ils ne désignaient rien : `docker logs` échouait, le
+          # `|| true` avalait l'échec, et on perdait les logs Postgres au moment précis
+          # où on venait les chercher.
+          # `docker ps -a` et non `docker ps` : un conteneur MORT est justement le cas où
+          # ces logs comptent, et il ne figure plus parmi les vivants.
+          CONTENEUR_DB=$(docker ps -a --filter name=supabase_db_ --format '{{.Names}}' | head -1)
+          CONTENEUR_AUTH=$(docker ps -a --filter name=supabase_auth_ --format '{{.Names}}' | head -1)
+          echo "=== postgres logs (${CONTENEUR_DB:-introuvable}) ==="
+          docker logs "${CONTENEUR_DB:-supabase_db_introuvable}" 2>&1 | tail -100 || true
+          echo "=== auth logs (${CONTENEUR_AUTH:-introuvable}) ==="
+          docker logs "${CONTENEUR_AUTH:-supabase_auth_introuvable}" 2>&1 | tail -50 || true
 
       - name: Stop Supabase
         if: always()

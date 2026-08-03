@@ -5,9 +5,6 @@
 // dédoublonne + cap 2/contact + top-N EN SQL, et renvoie des items
 // auto-suffisants (contact + bien + KYC + clés de raison). L'agence vient du
 // JWT (anti-IDOR) — jamais de paramètre agency_id côté client.
-//
-// Les RPC ne sont pas dans les types générés `Database` → on suit le pattern
-// `rpcUntyped` du repo (cf useAxDashboardData.ts) pour rester sans `any`.
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -50,9 +47,6 @@ export interface FocusMatch {
   kyc: FocusKyc
 }
 
-const rpcUntyped = supabase.rpc as unknown as
-  (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>
-
 export function useFocusMatches(limit = 30): { matches: FocusMatch[]; isLoading: boolean } {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -60,7 +54,7 @@ export function useFocusMatches(limit = 30): { matches: FocusMatch[]; isLoading:
   const query = useQuery({
     queryKey: ['focus-matches', agencyId, limit],
     queryFn: async (): Promise<FocusMatch[]> => {
-      const { data, error } = await rpcUntyped('focus_top_matches', { p_limit: limit })
+      const { data, error } = await supabase.rpc('focus_top_matches', { p_limit: limit })
       if (error) throw error
       const rows = (data ?? []) as FocusMatchRow[]
       return rows.map((r): FocusMatch => ({

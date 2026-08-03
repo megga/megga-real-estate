@@ -1,11 +1,12 @@
 {
   "eventType": {
-    "visite": "Viewing",
-    "mandate": "Mandate / Valuation",
-    "notary": "Notary signing",
-    "task": "Task / Follow-up",
+    "visite": "Visita",
+    "mandate": "Mandato / Stima",
+    "notary": "Firma dal notaio",
+    "task": "Attività / Sollecito",
     "publish": "Publication",
-    "autre": "Altro"
+    "autre": "Altro",
+    "kyc": "Verifica"
   },
   "days": [
     "Sun",
@@ -40,22 +41,22 @@
     "December"
   ],
   "views": {
-    "timelineCount_one": "Timeline · {{count}} event",
-    "timelineCount_other": "Timeline · {{count}} events",
-    "now": "NOW · {{time}}",
-    "dayEmpty": "Free day, block time for your hot buyers.",
-    "heroFirst": "First appointment",
-    "heroInProgress": "IN PROGRESS",
-    "heroInMinutes_one": "IN {{count}} MIN",
-    "heroInMinutes_other": "IN {{count}} MIN",
-    "heroAtTime": "AT {{time}}",
-    "heroLast": "LAST APPOINTMENT",
-    "warmBadge": "Hot · {{pct}}%",
-    "moreEvents_one": "+ {{count}} more",
-    "moreEvents_other": "+ {{count}} more",
-    "todayBadge": "TODAY",
-    "eventCount_one": "{{count}} event",
-    "eventCount_other": "{{count}} events"
+    "timelineCount_one": "Timeline · {{count}} evento",
+    "timelineCount_other": "Timeline · {{count}} eventi",
+    "now": "ADESSO · {{time}}",
+    "dayEmpty": "Giornata libera, blocca del tempo per gli acquirenti caldi.",
+    "heroFirst": "Primo appuntamento",
+    "heroInProgress": "IN CORSO",
+    "heroInMinutes_one": "TRA {{count}} MIN",
+    "heroInMinutes_other": "TRA {{count}} MIN",
+    "heroAtTime": "ALLE {{time}}",
+    "heroLast": "ULTIMO APPUNTAMENTO",
+    "warmBadge": "Caldo · {{pct}}%",
+    "moreEvents_one": "+ {{count}} altro",
+    "moreEvents_other": "+ {{count}} altri",
+    "todayBadge": "OGGI",
+    "eventCount_one": "{{count}} evento",
+    "eventCount_other": "{{count}} eventi"
   },
   "panel": {
     "miniWeekdays": [
@@ -67,63 +68,63 @@
       "S",
       "S"
     ],
-    "filterByType": "Filter by type",
-    "hotBuyers": "Hot buyers",
-    "cardAriaLabel": "Card {{index}}",
-    "emptyTitle": "Select an event",
-    "emptyHint": "Click an appointment to see details and take action.",
-    "statusDone": "Completed",
-    "statusCancelled": "Cancelled",
-    "linkedProperty": "Linked property",
+    "filterByType": "Filtra per tipo",
+    "hotBuyers": "Acquirenti caldi",
+    "cardAriaLabel": "Scheda {{index}}",
+    "emptyTitle": "Seleziona un evento",
+    "emptyHint": "Clicca su un appuntamento per vedere i dettagli e avviare le azioni.",
+    "statusDone": "Completato",
+    "statusCancelled": "Annullato",
+    "linkedProperty": "Immobile collegato",
     "notes": "Notes",
-    "directions": "Directions",
-    "markDone": "Mark done",
+    "directions": "Itinerario",
+    "markDone": "Segna come completato",
     "views": {
-      "day": "Day",
-      "week": "Week",
-      "month": "Month",
+      "day": "Giorno",
+      "week": "Settimana",
+      "month": "Mese",
       "agenda": "Agenda"
     },
     "eventTypes": "Tipi di evento"
   },
   "edit": {
-    "newEvent": "New event",
+    "newEvent": "Nuovo evento",
     "typeLabel": "Type",
-    "titleLabel": "Title",
-    "titlePlaceholder": "Event title",
+    "titleLabel": "Titolo",
+    "titlePlaceholder": "Titolo dell'evento",
     "dateLabel": "Date",
-    "startLabel": "Start",
-    "endLabel": "End",
-    "locationLabel": "Location",
-    "locationPlaceholder": "Address",
+    "startLabel": "Inizio",
+    "endLabel": "Fine",
+    "locationLabel": "Luogo",
+    "locationPlaceholder": "Indirizzo",
     "contactLabel": "Contact",
-    "namePlaceholder": "Name",
-    "rolePlaceholder": "Role",
-    "phonePlaceholder": "Phone",
-    "propertyLabel": "Property",
-    "designationPlaceholder": "Designation",
+    "namePlaceholder": "Nome",
+    "rolePlaceholder": "Ruolo",
+    "phonePlaceholder": "Telefono",
+    "propertyLabel": "Immobile",
+    "designationPlaceholder": "Denominazione",
     "areaPlaceholder": "m²",
-    "pricePlaceholder": "Price CHF",
+    "pricePlaceholder": "Prezzo CHF",
     "notesLabel": "Notes",
-    "notesPlaceholder": "Internal notes",
-    "save": "Save"
+    "notesPlaceholder": "Note interne",
+    "save": "Salva"
   },
   "page": {
-    "eyebrow": "Calendar",
-    "newEvent": "New event",
-    "creating": "Creating…",
-    "fullAgenda": "Full agenda",
-    "weekRange": "Week of {{startDay}} {{startMonth}} - {{endDay}} {{endMonth}}",
-    "selectContactAndProperty": "Select both a contact AND a property to schedule a viewing",
-    "errorUnknown": "Unknown error",
-    "createFailed": "Failed: {{error}}",
+    "eyebrow": "Calendario",
+    "newEvent": "Nuovo evento",
+    "creating": "Creazione…",
+    "fullAgenda": "Agenda completa",
+    "weekRange": "Settimana dal {{startDay}} {{startMonth}} - {{endDay}} {{endMonth}}",
+    "selectContactAndProperty": "Seleziona un contatto E un immobile per pianificare una visita",
+    "errorUnknown": "Errore sconosciuto",
+    "createFailed": "Non riuscito: {{error}}",
     "created": {
-      "visit": "Viewing scheduled",
-      "meeting": "Appointment scheduled",
-      "reminder": "Follow-up created",
-      "signing": "Signing scheduled",
-      "deadline": "Deadline added",
-      "personal": "Personal event added"
+      "visit": "Visita pianificata",
+      "meeting": "Appuntamento pianificato",
+      "reminder": "Sollecito creato",
+      "signing": "Firma pianificata",
+      "deadline": "Scadenza aggiunta",
+      "personal": "Evento personale aggiunto"
     },
     "error": {
       "title": "Impossibile caricare l'agenda",
@@ -132,184 +133,184 @@
     }
   },
   "createVisit": {
-    "title": "New event",
-    "description": "Schedule a viewing, an appointment or a follow-up",
+    "title": "Nuovo evento",
+    "description": "Pianifica una visita, un appuntamento o un sollecito",
     "eventType": {
-      "visit": "Viewing",
-      "meeting": "Appointment",
-      "reminder": "Follow-up",
-      "signing": "Signing",
-      "deadline": "Deadline",
-      "personal": "Personal"
+      "visit": "Visita",
+      "meeting": "Appuntamento",
+      "reminder": "Sollecito",
+      "signing": "Firma",
+      "deadline": "Scadenza",
+      "personal": "Personale"
     },
     "prefix": {
-      "visit": "Viewing",
-      "meeting": "Appt.",
-      "reminder": "Reminder",
-      "signing": "Signing",
-      "deadline": "Deadline",
+      "visit": "Visita",
+      "meeting": "Appunt.",
+      "reminder": "Promemoria",
+      "signing": "Firma",
+      "deadline": "Scadenza",
       "personal": ""
     },
     "recurrence": {
-      "none": "Never",
-      "daily": "Every day",
-      "weekly": "Every week",
-      "biweekly": "Every 2 weeks",
-      "monthly": "Every month"
+      "none": "Mai",
+      "daily": "Ogni giorno",
+      "weekly": "Ogni settimana",
+      "biweekly": "Ogni 2 sett.",
+      "monthly": "Ogni mese"
     },
     "field": {
       "type": "Type",
-      "title": "Title",
+      "title": "Titolo",
       "date": "Date",
-      "time": "Time",
-      "duration": "Duration",
-      "recurrence": "Recurrence",
+      "time": "Ora",
+      "duration": "Durata",
+      "recurrence": "Ricorrenza",
       "contact": "Contact",
-      "property": "Property",
-      "location": "Address",
+      "property": "Immobile",
+      "location": "Indirizzo",
       "notes": "Notes"
     },
-    "locationPlaceholder": "Appointment address",
-    "notesPlaceholder": "Optional notes...",
-    "noContact": "No contact",
-    "noProperty": "No property"
+    "locationPlaceholder": "Indirizzo dell'appuntamento",
+    "notesPlaceholder": "Note facoltative...",
+    "noContact": "Nessun contatto",
+    "noProperty": "Nessun immobile"
   },
   "visit": {
     "sentiment": {
-      "hot": "Very interested",
-      "warm": "Interested",
-      "cool": "Lukewarm",
-      "cold": "Not interested"
+      "hot": "Molto interessato",
+      "warm": "Interessato",
+      "cool": "Tiepido",
+      "cold": "Non interessato"
     }
   },
   "visitModal": {
-    "title": "Schedule a viewing",
+    "title": "Pianifica una visita",
     "stepper": {
-      "propertyVisitor": "Property & visitor",
-      "dateTime": "Date & time",
+      "propertyVisitor": "Immobile e visitatore",
+      "dateTime": "Data e ora",
       "confirmation": "Confirmation"
     },
     "action": {
-      "close": "Close",
-      "cancel": "Cancel",
-      "back": "Back",
-      "continue": "Continue"
+      "close": "Chiudi",
+      "cancel": "Annulla",
+      "back": "Indietro",
+      "continue": "Continua"
     },
     "step1": {
-      "eyebrow": "Step 1 of 3 · What & who",
-      "title": "Which property are we showing, and to whom?",
-      "subtitle": "Browse the list, or search by name, address or city."
+      "eyebrow": "Passaggio 1 di 3 · Cosa e chi",
+      "title": "Quale immobile facciamo visitare, e a chi?",
+      "subtitle": "Scorri l'elenco, puoi anche cercare per nome, indirizzo o città."
     },
     "field": {
-      "property": "Property to view",
-      "visitor": "Visitor",
+      "property": "Immobile da visitare",
+      "visitor": "Visitatore",
       "date": "Date",
-      "time": "Time",
-      "duration": "Duration"
+      "time": "Ora",
+      "duration": "Durata"
     },
     "placeholder": {
-      "propertySearch": "Title, address, city…",
-      "visitorSearch": "Name, email, phone…"
+      "propertySearch": "Titolo, indirizzo, città…",
+      "visitorSearch": "Nome, email, telefono…"
     },
     "empty": {
-      "noProperty": "No active property matches."
+      "noProperty": "Nessun immobile attivo corrisponde."
     },
     "step2": {
-      "eyebrow": "Step 2 of 3 · When",
-      "title": "Which day, what time?",
-      "subtitle": "The viewing voucher will be ready to sign once confirmed."
+      "eyebrow": "Passaggio 2 di 3 · Quando",
+      "title": "Quale giorno, a che ora?",
+      "subtitle": "Il buono di visita sarà pronto da firmare al momento della conferma."
     },
     "duration": {
       "minutes_one": "{{count}} minute",
       "minutes_other": "{{count}} minutes",
-      "oneHour": "1 hour",
+      "oneHour": "1 ora",
       "oneHourThirty": "1h30"
     },
     "step3": {
-      "eyebrow": "Step 3 of 3 · Details & confirmation",
-      "title": "All set?",
-      "subtitle": "Choose what we automate for you."
+      "eyebrow": "Passaggio 3 di 3 · Dettagli e conferma",
+      "title": "Tutto pronto?",
+      "subtitle": "Scegli cosa automatizziamo per te."
     },
     "recap": {
-      "title": "Summary",
-      "property": "Property",
-      "visitor": "Visitor",
+      "title": "Riepilogo",
+      "property": "Immobile",
+      "visitor": "Visitatore",
       "date": "Date",
       "timeDuration": "{{time}} ({{duration}} min)"
     },
     "automation": {
       "emailVisitor": {
-        "label": "Email to visitor",
-        "desc": "Confirmation with address, access and property photo."
+        "label": "Email al visitatore",
+        "desc": "Conferma con indirizzo, accesso e foto dell'immobile."
       },
       "generateBon": {
-        "label": "Generate the viewing voucher",
-        "desc": "Pre-filled MEGGA PDF with the visitor's undertaking."
+        "label": "Genera il buono di visita",
+        "desc": "PDF MEGGA precompilato con l'impegno del visitatore."
       },
       "askSignature": {
-        "label": "Request signature beforehand",
-        "desc": "Secure link sent to the visitor 24h ahead."
+        "label": "Richiedi la firma in anticipo",
+        "desc": "Link sicuro inviato al visitatore 24 h prima."
       }
     },
     "footer": {
-      "stepCounter": "Step {{current}} / {{total}}"
+      "stepCounter": "Passo {{current}} / {{total}}"
     },
     "cta": {
-      "scheduling": "Scheduling…",
-      "schedule": "Schedule the viewing"
+      "scheduling": "Pianificazione…",
+      "schedule": "Pianifica la visita"
     }
   },
   "visitDetail": {
-    "loading": "Loading the viewing…",
-    "loadError": "Error loading the viewing: {{message}}",
-    "unknownError": "unknown",
-    "notFound": "Viewing not found.",
-    "backToCalendar": "Calendar",
-    "statusUpdateError": "Unable to update the status: {{message}}",
+    "loading": "Caricamento della visita…",
+    "loadError": "Errore durante il caricamento della visita: {{message}}",
+    "unknownError": "sconosciuto",
+    "notFound": "Visita non trovata.",
+    "backToCalendar": "Calendario",
+    "statusUpdateError": "Impossibile aggiornare lo stato: {{message}}",
     "cta": {
-      "visitDone": "Viewing completed",
-      "markDone": "Mark as completed",
-      "confirm": "Confirm the viewing"
+      "visitDone": "Visita effettuata",
+      "markDone": "Segna come effettuata",
+      "confirm": "Conferma la visita"
     },
     "eyebrow": {
-      "prefix": "Viewing",
-      "done": "Completed",
-      "planned": "Planned"
+      "prefix": "Visita",
+      "done": "Effettuata",
+      "planned": "Pianificata"
     },
-    "propertyFallback": "Property",
-    "withContact": "with {{name}}",
+    "propertyFallback": "Immobile",
+    "withContact": "con {{name}}",
     "bon": {
-      "eyebrowPrefix": "Viewing voucher",
-      "signed": "Signed",
-      "toSign": "To sign",
-      "documentTitle": "Viewing document",
-      "pdfTitle": "Viewing voucher",
-      "fieldProperty": "Property",
-      "fieldVisitor": "Visitor",
+      "eyebrowPrefix": "Buono di visita",
+      "signed": "Firmato",
+      "toSign": "Da firmare",
+      "documentTitle": "Documento di visita",
+      "pdfTitle": "Buono di visita",
+      "fieldProperty": "Immobile",
+      "fieldVisitor": "Visitatore",
       "fieldAgent": "Agent",
-      "fieldDateTime": "Date and time",
-      "plannedDuration": "Planned duration: {{minutes}} min",
-      "commitmentLabel": "Visitor's commitment",
-      "commitmentText": "The visitor acknowledges having been informed of the mandate binding the seller to MEGGA and undertakes not to contact the seller directly. Any transaction completed within the 24 months following this viewing will be owed to the agency under the terms of the mandate.",
-      "signatureVisitor": "Visitor signature",
-      "signatureAgent": "Agent signature",
-      "signedElectronically": "Signed electronically",
-      "awaitingSignature": "Awaiting signature",
-      "signNow": "Get it signed now"
+      "fieldDateTime": "Data e ora",
+      "plannedDuration": "Durata prevista: {{minutes}} min",
+      "commitmentLabel": "Impegno del visitatore",
+      "commitmentText": "Il visitatore riconosce di essere stato informato dell'esistenza del mandato che lega il venditore a MEGGA e si impegna a non contattare direttamente il venditore. Ogni transazione conclusa nei 24 mesi successivi a questa visita sarà dovuta all'agenzia secondo i termini del mandato.",
+      "signatureVisitor": "Firma visitatore",
+      "signatureAgent": "Firma agente",
+      "signedElectronically": "Firmato elettronicamente",
+      "awaitingSignature": "In attesa di firma",
+      "signNow": "Fai firmare ora"
     },
     "report": {
-      "eyebrowPrefix": "Report",
-      "awaitingVisit": "Awaiting the viewing",
-      "title": "Viewing report",
-      "emptyTitle": "The report will be available after the viewing",
-      "emptyHint": "During the viewing, use the mobile companion view to capture voice notes, photos and impressions. The report will fill in automatically.",
-      "sentimentFallback": "Lukewarm",
+      "eyebrowPrefix": "Rapporto",
+      "awaitingVisit": "In attesa della visita",
+      "title": "Rapporto di visita",
+      "emptyTitle": "Il rapporto sarà disponibile dopo la visita",
+      "emptyHint": "Durante la visita, usa la vista mobile di accompagnamento per registrare note vocali, foto e impressioni. Il rapporto si compilerà automaticamente.",
+      "sentimentFallback": "Tiepido",
       "score": "Score",
-      "highlights": "Highlights",
+      "highlights": "Punti positivi",
       "objections": "Objections",
-      "nextStep": "Next step",
-      "voiceNote": "Agent voice note · {{time}}",
-      "autoTranscript": "Automatic transcription available",
+      "nextStep": "Prossimo passo",
+      "voiceNote": "Nota vocale agente · {{time}}",
+      "autoTranscript": "Trascrizione automatica disponibile",
       "photoCount_one": "{{count}} photo",
       "photoCount_other": "{{count}} photos"
     }
@@ -400,7 +401,7 @@
     "tenant": "Inquilino",
     "landlord": "Proprietario",
     "both": "Misto",
-    "lead": "Lead",
+    "lead": "Potenziale cliente",
     "contact": "Contatto"
   },
   "color": {

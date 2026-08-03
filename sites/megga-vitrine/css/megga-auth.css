@@ -61,6 +61,25 @@
   border-style: none;
 }
 
+/* …et la page cesse de se décoller de son pied.
+
+   `signup.html` est la seule page d'authentification en `.full-height-page` :
+   `min-height: 100vh` + `justify-content: space-between` sur trois blocs
+   (en-tête, section, pied). Tant que le formulaire dépassait la fenêtre, il n'y
+   avait rien à répartir et le dégradé du bas de section arrivait pile sur le
+   filet du pied de page. Dès que le contenu devient plus court que la fenêtre —
+   confirmation « Compte créé », ou simplement un grand écran — `space-between`
+   distribue le vide ENTRE les blocs : une bande noire s'ouvre entre le dégradé
+   et le filet, et la section trop courte écrase au passage la capture du
+   tableau de bord qu'elle étire sur toute sa hauteur.
+
+   C'est la section qui doit absorber ce vide, pas les intervalles : elle
+   grandit, il ne reste plus rien à répartir, et le dégradé redescend jusqu'au
+   filet quelle que soit la hauteur du contenu. */
+.page-wrapper.full-height-page > .section {
+  flex-grow: 1;
+}
+
 /* Le message d'erreur vit DANS la grille des champs, juste au-dessus du bouton
    d'envoi. Webflow le pose après le formulaire entier — sous les boutons OAuth
    et le lien « Se connecter » — donc hors de l'écran sur l'inscription : la

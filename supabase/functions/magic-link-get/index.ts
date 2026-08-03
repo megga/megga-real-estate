@@ -1,5 +1,5 @@
 // supabase/functions/magic-link-get/index.ts
-// GET /functions/v1/magic-link-get?token=<token>
+// GET /functions/v1/magic-link-get   (jeton dans l'en-tête `x-magic-link-token`)
 //
 // Sprint 4.7.A — Endpoint PUBLIC (sans auth) qui résout un token magique
 // et retourne l'état du lien + le contexte minimal pour l'écran client
@@ -8,6 +8,8 @@
 //
 // Sécurité :
 //   - Vérification HMAC stricte
+//   - Jeton hors URL (en-tête) : les journaux d'accès de la plateforme
+//     enregistrent l'URL complète des requêtes
 //   - Aucun PII serveur exposé hors du strict nécessaire pour l'UX client
 //   - Au 1er hit, on incrémente `opened_at` et passe status à 'opened'
 //   - Si expiré → status='expired' + AuditEvent + 410 Gone
@@ -16,9 +18,12 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
 
+// `x-magic-link-token` DOIT figurer ici : l'appel vient d'un navigateur en
+// cross-origin, et un en-tête absent de cette liste fait échouer le preflight —
+// l'écran KYC n'obtient alors qu'une erreur CORS opaque.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-magic-link-token',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 
@@ -27,10 +32,14 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Jeton en en-tête : les journaux d'accès de la plateforme conservent l'URL
+  // complète, un `?token=` y déposerait chaque jeton KYC en clair pour toute sa
+  // durée de vie. Repli sur le query param par COMPATIBILITÉ — les liens déjà
+  // envoyés et les appelants hors navigateur doivent continuer de fonctionner.
   const url = new URL(req.url)
-  const token = url.searchParams.get('token')
+  const token = req.headers.get('x-magic-link-token')?.trim() || url.searchParams.get('token')
   if (!token) {
-    return new Response(JSON.stringify({ error: 'token query param required' }), {
+    return new Response(JSON.stringify({ error: 'x-magic-link-token header required' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -39,11 +48,16 @@ serve(async (req) => {
   // 1. Vérification HMAC (signature + expiration crypto)
   const verifyResult = await verifyMagicLinkToken(token)
   if (!verifyResult.valid || !verifyResult.payload) {
+    // Le motif interne n'est PAS reporté tel quel : `no_secret` dirait à un appelant
+    // anonyme que le secret HMAC manque sur ce déploiement (donc que tous les liens
+    // sont morts), et `malformed` vs `invalid_signature` lui dirait quand il a touché
+    // la grammaire du jeton — de quoi calibrer une tentative de forge. Le client ne
+    // distingue que « expiré » du reste (KycPublicPage), c'est donc tout ce qui sort.
     const statusCode = verifyResult.reason === 'expired' ? 410 : 401
     return new Response(
       JSON.stringify({
         error: 'Invalid or expired link',
-        reason: verifyResult.reason,
+        reason: verifyResult.reason === 'expired' ? 'expired' : 'invalid',
       }),
       { status: statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )

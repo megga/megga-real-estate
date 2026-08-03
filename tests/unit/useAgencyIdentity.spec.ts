@@ -11,22 +11,23 @@ import {
   mapPersonRow,
   buildPersonPayload,
   buildRolePayload,
-  buildRoleRevocationPayload,
   isRoleActive,
   resolveLegalFormCategory,
   agencyForLegalFormCategory,
-  ubosToRemove,
-  ubosToRevoke,
-  ubosToRevokeOnSkip,
   identityDocumentFolder,
   identityDocumentFileName,
   extensionOfFile,
   findIdentityDocumentPath,
+  identityDocumentSidesFor,
+  isIdentityDocumentType,
+  isIdentityVerificationStatus,
+  isIdentityVerificationSufficient,
+  verificationNeedsManualFallback,
+  IDENTITY_DOCUMENT_TYPES,
   validateIdentityDocumentFile,
   identityDocumentsQueryKey,
   buildSubmitAgencyIdentityArgs,
   type PersonRow,
-  type IdentityPersonWithRoles,
   type AgencyLegalFormFields,
 } from '@/hooks/useAgencyIdentity'
 import type { LegalFormOption } from '@/hooks/useLegalForms'
@@ -63,8 +64,19 @@ describe('mapPersonRow — lignes DB (snake_case, roles imbriqués) vers le cont
     last_name: 'Lyonnet',
     date_of_birth: '1980-05-12',
     nationality: 'CH',
+    id_document_type: null,
+    id_document_read: null,
     roles: [],
   }
+
+  it('nature de la pièce : les trois valeurs du wizard passent, `other` et l\'inconnu retombent à null (pas de libellé pour elles)', () => {
+    expect(mapPersonRow({ ...baseRow, id_document_type: 'passport' }).idDocumentType).toBe('passport')
+    expect(mapPersonRow({ ...baseRow, id_document_type: 'id_card' }).idDocumentType).toBe('id_card')
+    expect(mapPersonRow({ ...baseRow, id_document_type: 'residence_permit' }).idDocumentType).toBe('residence_permit')
+    expect(mapPersonRow({ ...baseRow, id_document_type: 'other' }).idDocumentType).toBeNull()
+    // Dossier soumis avant le 03.08.2026 : la colonne existait, rien ne l'écrivait.
+    expect(mapPersonRow({ ...baseRow, id_document_type: null }).idDocumentType).toBeNull()
+  })
 
   it('mappe les champs identité un-à-un', () => {
     const mapped = mapPersonRow(baseRow)
@@ -209,16 +221,6 @@ describe('buildRolePayload — construit la ligne agency_person_roles à écrire
   })
 })
 
-describe('buildRoleRevocationPayload — correctif revue tâche 5 : ligne de mise à jour pour révoquer (historiser) un rôle, jamais une autre colonne', () => {
-  it('ne pose que valid_to, à la date fournie', () => {
-    expect(buildRoleRevocationPayload('2026-07-27')).toEqual({ valid_to: '2026-07-27' })
-  })
-
-  it('sans date fournie -> aujourd\'hui (même paramètre injectable que isRoleActive)', () => {
-    expect(buildRoleRevocationPayload()).toEqual({ valid_to: todayIso() })
-  })
-})
-
 describe('resolveLegalFormCategory — dérive la catégorie de la forme juridique choisie (tâche 4 : info exposée pour l étape bénéficiaires effectifs de la tâche 5)', () => {
   const options: LegalFormOption[] = [
     { id: 'legal-form-sa', label: 'Société anonyme (SA)', category: 'corporation' },
@@ -266,166 +268,6 @@ describe('agencyForLegalFormCategory — correctif revue tâche 5 : legalFormCat
   })
 })
 
-describe('ubosToRemove — tâche 5 : quels UBO retirés du brouillon supprimer, sans jamais toucher une personne qui porte un autre rôle actif', () => {
-  const uboOnly: IdentityPersonWithRoles = {
-    id: 'p-ubo',
-    firstName: 'Alice',
-    lastName: 'Martin',
-    dateOfBirth: '1970-01-01',
-    nationality: 'CH',
-    roles: [{ role: 'ubo', signaturePower: null, ownershipPct: 40, pepSelfDeclared: false }],
-  }
-  // Le cas qui justifie tout le découpage du schéma (brief tâche 5) : le fondateur
-  // administrateur ET actionnaire majoritaire, DEUX rôles actifs sur la MÊME personne.
-  const sharedSignatoryAndUbo: IdentityPersonWithRoles = {
-    id: 'p-shared',
-    firstName: 'Grégory',
-    lastName: 'Lyonnet',
-    dateOfBirth: '1980-05-12',
-    nationality: 'CH',
-    roles: [
-      { role: 'signatory', signaturePower: 'individual', ownershipPct: null, pepSelfDeclared: false },
-      { role: 'ubo', signaturePower: null, ownershipPct: 60, pepSelfDeclared: true },
-    ],
-  }
-  const signatoryOnly: IdentityPersonWithRoles = {
-    id: 'p-sig',
-    firstName: 'Autre',
-    lastName: 'Signataire',
-    dateOfBirth: '1985-06-15',
-    nationality: 'FR',
-    roles: [{ role: 'signatory', signaturePower: 'joint', ownershipPct: null, pepSelfDeclared: false }],
-  }
-
-  it('UBO seul absent du brouillon courant -> à supprimer', () => {
-    expect(ubosToRemove([uboOnly], [])).toEqual(['p-ubo'])
-  })
-
-  it('UBO seul toujours présent dans le brouillon (son id est gardé) -> conservé', () => {
-    expect(ubosToRemove([uboOnly], ['p-ubo'])).toEqual([])
-  })
-
-  it('personne signataire ET UBO, retirée du brouillon bénéficiaires -> JAMAIS supprimée : la suppression cascaderait sur son rôle de signataire (on delete cascade, 20260728102000)', () => {
-    expect(ubosToRemove([sharedSignatoryAndUbo], [])).toEqual([])
-  })
-
-  it('mélange : le UBO seul part, la personne partagée signataire+UBO reste protégée', () => {
-    expect(ubosToRemove([uboOnly, sharedSignatoryAndUbo], [])).toEqual(['p-ubo'])
-  })
-
-  it('personne sans rôle ubo actif (signataire seul) -> jamais renvoyée, rien à voir avec cette étape', () => {
-    expect(ubosToRemove([signatoryOnly], [])).toEqual([])
-  })
-
-  it('draftPersonIds contient des null (lignes neuves pas encore enregistrées) -> ignorés, ne protègent aucun id existant', () => {
-    expect(ubosToRemove([uboOnly], [null, null])).toEqual(['p-ubo'])
-  })
-})
-
-describe('ubosToRevoke — correctif revue tâche 5 : complément exact de ubosToRemove, révoque (sans jamais supprimer) le rôle ubo d\'une personne protégée par un autre rôle actif', () => {
-  const uboOnly: IdentityPersonWithRoles = {
-    id: 'p-ubo',
-    firstName: 'Alice',
-    lastName: 'Martin',
-    dateOfBirth: '1970-01-01',
-    nationality: 'CH',
-    roles: [{ role: 'ubo', signaturePower: null, ownershipPct: 40, pepSelfDeclared: false }],
-  }
-  const sharedSignatoryAndUbo: IdentityPersonWithRoles = {
-    id: 'p-shared',
-    firstName: 'Grégory',
-    lastName: 'Lyonnet',
-    dateOfBirth: '1980-05-12',
-    nationality: 'CH',
-    roles: [
-      { role: 'signatory', signaturePower: 'individual', ownershipPct: null, pepSelfDeclared: false },
-      { role: 'ubo', signaturePower: null, ownershipPct: 60, pepSelfDeclared: true },
-    ],
-  }
-  const signatoryOnly: IdentityPersonWithRoles = {
-    id: 'p-sig',
-    firstName: 'Autre',
-    lastName: 'Signataire',
-    dateOfBirth: '1985-06-15',
-    nationality: 'FR',
-    roles: [{ role: 'signatory', signaturePower: 'joint', ownershipPct: null, pepSelfDeclared: false }],
-  }
-
-  it('UBO seul retiré du brouillon -> PAS dans ubosToRevoke (ubosToRemove le supprime déjà en entier, rien à révoquer en plus)', () => {
-    expect(ubosToRevoke([uboOnly], [])).toEqual([])
-  })
-
-  it('personne signataire ET UBO, retirée du brouillon bénéficiaires -> son id apparaît dans ubosToRevoke : c\'est le trou relevé en revue, son rôle ubo restait actif en base indéfiniment alors que ubosToRemove la protège déjà de la suppression', () => {
-    expect(ubosToRevoke([sharedSignatoryAndUbo], [])).toEqual(['p-shared'])
-  })
-
-  it('personne signataire ET UBO, toujours présente dans le brouillon (son id est gardé) -> rien à révoquer', () => {
-    expect(ubosToRevoke([sharedSignatoryAndUbo], ['p-shared'])).toEqual([])
-  })
-
-  it('personne sans rôle ubo actif (signataire seul) -> jamais renvoyée, rien à voir avec cette étape', () => {
-    expect(ubosToRevoke([signatoryOnly], [])).toEqual([])
-  })
-
-  it('mélange : le UBO seul est ignoré ici (ubosToRemove le supprime), seule la personne partagée signataire+UBO est renvoyée pour révocation ciblée — jamais les deux fonctions pour la même personne', () => {
-    expect(ubosToRevoke([uboOnly, sharedSignatoryAndUbo], [])).toEqual(['p-shared'])
-  })
-
-  it('draftPersonIds contient des null (lignes neuves pas encore enregistrées) -> ignorés, ne protègent aucun id existant', () => {
-    expect(ubosToRevoke([sharedSignatoryAndUbo], [null, null])).toEqual(['p-shared'])
-  })
-})
-
-describe('ubosToRevokeOnSkip — correctif revue tâche 5 : nettoyage rétroactif quand l\'étape bénéficiaires bascule en sautée (raison individuelle choisie à l\'étape agence)', () => {
-  const uboOnly: IdentityPersonWithRoles = {
-    id: 'p-ubo',
-    firstName: 'Alice',
-    lastName: 'Martin',
-    dateOfBirth: '1970-01-01',
-    nationality: 'CH',
-    roles: [{ role: 'ubo', signaturePower: null, ownershipPct: 40, pepSelfDeclared: false }],
-  }
-  const sharedSignatoryAndUbo: IdentityPersonWithRoles = {
-    id: 'p-shared',
-    firstName: 'Grégory',
-    lastName: 'Lyonnet',
-    dateOfBirth: '1980-05-12',
-    nationality: 'CH',
-    roles: [
-      { role: 'signatory', signaturePower: 'individual', ownershipPct: null, pepSelfDeclared: false },
-      { role: 'ubo', signaturePower: null, ownershipPct: 60, pepSelfDeclared: true },
-    ],
-  }
-  const signatoryOnly: IdentityPersonWithRoles = {
-    id: 'p-sig',
-    firstName: 'Autre',
-    lastName: 'Signataire',
-    dateOfBirth: '1985-06-15',
-    nationality: 'FR',
-    roles: [{ role: 'signatory', signaturePower: 'joint', ownershipPct: null, pepSelfDeclared: false }],
-  }
-
-  it('personne UBO seule -> révoquée, sans condition de brouillon (ce chemin ne lit même pas le brouillon : l\'écran qui le porte n\'est plus jamais monté)', () => {
-    expect(ubosToRevokeOnSkip([uboOnly])).toEqual(['p-ubo'])
-  })
-
-  it('personne signataire ET UBO -> révoquée aussi, mais SEUL son rôle ubo : cas central de la revue, son rôle signataire doit rester intact (revokeUboRole ne touche jamais agency_related_persons ni un rôle signatory, cf. useAgencyIdentity.ts)', () => {
-    expect(ubosToRevokeOnSkip([sharedSignatoryAndUbo])).toEqual(['p-shared'])
-  })
-
-  it('personne signataire seule (jamais UBO) -> jamais renvoyée', () => {
-    expect(ubosToRevokeOnSkip([signatoryOnly])).toEqual([])
-  })
-
-  it('aucun bénéficiaire jamais déclaré -> liste vide', () => {
-    expect(ubosToRevokeOnSkip([])).toEqual([])
-  })
-
-  it('mélange : toutes les personnes qui portent un rôle ubo actif sont renvoyées, qu\'elles portent un autre rôle ou non — au contraire de ubosToRevoke, aucune n\'est exclue', () => {
-    expect(ubosToRevokeOnSkip([uboOnly, sharedSignatoryAndUbo, signatoryOnly])).toEqual(['p-ubo', 'p-shared'])
-  })
-})
-
 // ─── Tâche 6 : pièce d'identité — chemins Storage (bucket documents, préfixe réservé
 // kyb-identity, migration 20260728109000) ────────────────────────────────────────────
 describe('identityDocumentFolder — préfixe Storage réservé, isolé par agence ET par personne', () => {
@@ -460,6 +302,86 @@ describe('extensionOfFile — extension en minuscule, sans le point ; jamais une
 
   it('nom sans extension -> repli sur "bin", jamais une chaîne vide', () => {
     expect(extensionOfFile('sansextension')).toBe('bin')
+  })
+})
+
+describe('identityDocumentSidesFor — combien de faces la nature déclarée exige (décision du 03.08.2026)', () => {
+  it('passeport -> la page de données SEULE : un passeport n\'a pas de verso, l\'exiger faisait photographier une couverture vierge', () => {
+    expect(identityDocumentSidesFor('passport')).toEqual(['recto'])
+  })
+
+  it('carte d\'identité -> les deux faces : sur la carte suisse, la date d\'expiration est au dos', () => {
+    expect(identityDocumentSidesFor('id_card')).toEqual(['recto', 'verso'])
+  })
+
+  it('titre de séjour -> les deux faces', () => {
+    expect(identityDocumentSidesFor('residence_permit')).toEqual(['recto', 'verso'])
+  })
+
+  it('aucune nature encore choisie -> les deux faces : jamais un dossier réputé complet parce que la question n\'a pas été posée', () => {
+    expect(identityDocumentSidesFor(null)).toEqual(['recto', 'verso'])
+  })
+
+  it('chaque nature proposée par le wizard a une réponse non vide — aucune ne peut rendre une étape impossible à finir', () => {
+    for (const type of IDENTITY_DOCUMENT_TYPES) {
+      expect(identityDocumentSidesFor(type).length).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('isIdentityDocumentType — le CHECK en base accepte 4 valeurs, le wizard n\'en affiche que 3', () => {
+  it('les trois natures proposées sont reconnues', () => {
+    expect(isIdentityDocumentType('passport')).toBe(true)
+    expect(isIdentityDocumentType('id_card')).toBe(true)
+    expect(isIdentityDocumentType('residence_permit')).toBe(true)
+  })
+
+  it('`other` — 4e valeur du CHECK, qu\'aucun chemin n\'écrit — n\'est PAS affichable : sans libellé, elle se rendrait en code brut ou en option sélectionnée introuvable', () => {
+    expect(isIdentityDocumentType('other')).toBe(false)
+  })
+
+  it('null (dossier soumis avant le 03.08.2026) et valeur inconnue -> false, jamais une correspondance approximative', () => {
+    expect(isIdentityDocumentType(null)).toBe(false)
+    expect(isIdentityDocumentType('passeport')).toBe(false)
+    expect(isIdentityDocumentType('')).toBe(false)
+  })
+})
+
+describe('isIdentityVerificationStatus / isIdentityVerificationSufficient — miroir client du CHECK de la colonne', () => {
+  it('les quatre statuts Stripe sont reconnus', () => {
+    for (const st of ['requires_input', 'processing', 'verified', 'canceled']) {
+      expect(isIdentityVerificationStatus(st)).toBe(true)
+    }
+  })
+
+  it('null (jamais lancée) et valeur inconnue -> refusés', () => {
+    expect(isIdentityVerificationStatus(null)).toBe(false)
+    expect(isIdentityVerificationStatus('succeeded')).toBe(false)
+  })
+
+  it('`verified` ET `processing` laissent avancer : bloquer sur un traitement asynchrone échouerait juste après que le dirigeant a tout fait', () => {
+    expect(isIdentityVerificationSufficient('verified')).toBe(true)
+    expect(isIdentityVerificationSufficient('processing')).toBe(true)
+  })
+
+  it('`requires_input`, `canceled` et l\'absence de vérification ne suffisent pas', () => {
+    expect(isIdentityVerificationSufficient('requires_input')).toBe(false)
+    expect(isIdentityVerificationSufficient('canceled')).toBe(false)
+    expect(isIdentityVerificationSufficient(null)).toBe(false)
+  })
+})
+
+describe('verificationNeedsManualFallback — quand insister chez le prestataire enfermerait l\'utilisateur', () => {
+  it('les trois refus DÉFINITIFS ouvrent le dépôt manuel', () => {
+    expect(verificationNeedsManualFallback('consent_declined')).toBe(true)
+    expect(verificationNeedsManualFallback('country_not_supported')).toBe(true)
+    expect(verificationNeedsManualFallback('under_supported_age')).toBe(true)
+  })
+
+  it('un refus REPRENABLE ne bascule pas : une photo floue ou un selfie raté se refont', () => {
+    expect(verificationNeedsManualFallback('document_unverified_other')).toBe(false)
+    expect(verificationNeedsManualFallback('selfie_face_mismatch')).toBe(false)
+    expect(verificationNeedsManualFallback(null)).toBe(false)
   })
 })
 
@@ -522,6 +444,15 @@ describe('validateIdentityDocumentFile — format et taille avant tout envoi ré
 
   it('pdf accepté (scan de passeport, pas seulement des photos)', () => {
     expect(validateIdentityDocumentFile(new File([new Uint8Array(10)], 'piece.pdf', { type: 'application/pdf' }))).toBeNull()
+  })
+
+  // Bug du 02.08.2026 : ce format était déjà accepté ici et proposé par l'input
+  // (ACCEPTED_TYPES, StepPieceIdentite.tsx), mais REFUSÉ par `allowed_mime_types` du
+  // bucket `documents` — validation client verte, téléversement en échec. Le côté
+  // serveur a été aligné (20260802140000) ; c'est lui que garde le test backend
+  // kyb-identity-documents-storage.spec.ts, celui-ci ne fixe que le contrat client.
+  it('webp accepté — et le bucket `documents` l\'accepte aussi depuis 20260802140000', () => {
+    expect(validateIdentityDocumentFile(new File([new Uint8Array(10)], 'piece.webp', { type: 'image/webp' }))).toBeNull()
   })
 
   it('format non accepté (ex. vidéo) -> erreur de format', () => {

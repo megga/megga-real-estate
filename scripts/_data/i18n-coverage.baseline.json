@@ -1,0 +1,136 @@
+{
+  "de": {
+    "admin": {
+      "total": 1052,
+      "sameAsEn": 104,
+      "untranslated": 26
+    },
+    "auth": {
+      "total": 58,
+      "sameAsEn": 2,
+      "untranslated": 0
+    },
+    "calendar": {
+      "total": 295,
+      "sameAsEn": 31,
+      "untranslated": 4
+    },
+    "common": {
+      "total": 415,
+      "sameAsEn": 42,
+      "untranslated": 8
+    },
+    "contacts": {
+      "total": 898,
+      "sameAsEn": 122,
+      "untranslated": 16
+    },
+    "dashboard": {
+      "total": 553,
+      "sameAsEn": 45,
+      "untranslated": 7
+    },
+    "kyc": {
+      "total": 642,
+      "sameAsEn": 26,
+      "untranslated": 11
+    },
+    "listings": {
+      "total": 1360,
+      "sameAsEn": 120,
+      "untranslated": 19
+    },
+    "matching": {
+      "total": 461,
+      "sameAsEn": 23,
+      "untranslated": 2
+    },
+    "messages": {
+      "total": 177,
+      "sameAsEn": 6,
+      "untranslated": 0
+    },
+    "onboarding": {
+      "total": 216,
+      "sameAsEn": 1,
+      "untranslated": 0
+    },
+    "pipeline": {
+      "total": 442,
+      "sameAsEn": 20,
+      "untranslated": 4
+    },
+    "settings": {
+      "total": 778,
+      "sameAsEn": 57,
+      "untranslated": 8
+    }
+  },
+  "it": {
+    "admin": {
+      "total": 1052,
+      "sameAsEn": 69,
+      "untranslated": 5
+    },
+    "auth": {
+      "total": 58,
+      "sameAsEn": 3,
+      "untranslated": 1
+    },
+    "calendar": {
+      "total": 295,
+      "sameAsEn": 28,
+      "untranslated": 0
+    },
+    "common": {
+      "total": 415,
+      "sameAsEn": 39,
+      "untranslated": 2
+    },
+    "contacts": {
+      "total": 898,
+      "sameAsEn": 113,
+      "untranslated": 6
+    },
+    "dashboard": {
+      "total": 553,
+      "sameAsEn": 47,
+      "untranslated": 5
+    },
+    "kyc": {
+      "total": 642,
+      "sameAsEn": 25,
+      "untranslated": 5
+    },
+    "listings": {
+      "total": 1360,
+      "sameAsEn": 105,
+      "untranslated": 5
+    },
+    "matching": {
+      "total": 461,
+      "sameAsEn": 24,
+      "untranslated": 2
+    },
+    "messages": {
+      "total": 177,
+      "sameAsEn": 6,
+      "untranslated": 0
+    },
+    "onboarding": {
+      "total": 216,
+      "sameAsEn": 1,
+      "untranslated": 0
+    },
+    "pipeline": {
+      "total": 442,
+      "sameAsEn": 21,
+      "untranslated": 2
+    },
+    "settings": {
+      "total": 778,
+      "sameAsEn": 55,
+      "untranslated": 5
+    }
+  }
+}

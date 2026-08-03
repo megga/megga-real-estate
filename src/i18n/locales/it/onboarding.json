@@ -6,37 +6,51 @@
     "mobileNotice": {
       "eyebrow": "Passaggio obbligatorio",
       "title": "Questo passaggio si completa da computer",
-      "body": "L'inserimento dell'identità legale della Sua agenzia richiede uno schermo più grande. Acceda da un computer per completarlo."
+      "body": "Questa compilazione richiede uno schermo più grande. La riprenda da un computer."
+    },
+    "welcome": {
+      "title": "Apriamo il suo spazio",
+      "body": "Inizieremo identificando la sua agenzia.",
+      "startButton": "Identifichi la sua agenzia"
     },
     "pendingNotice": {
-      "eyebrow": "Compilazione interrotta",
-      "title": "La Sua compilazione è stata interrotta",
-      "body": "Nulla va perso: ogni passaggio confermato con Continua è già salvato nei nostri sistemi, che ne restano la fonte. Riprenda la compilazione quando lo desidera, ritroverà esattamente quanto già inserito.",
+      "title": "La Sua compilazione è in pausa",
+      "body": "Ogni passaggio confermato è già salvato. Torni quando desidera, ritroverà la Sua compilazione.",
       "resumeButton": "Riprenda la compilazione"
     }
   },
   "wizard": {
     "steps": {
+      "ariaLabel": "Passaggi",
       "signataire": "Firmatario",
       "agence": "Agenzia",
-      "beneficiaires": "Aventi diritto economico",
       "pieceIdentite": "Documento d'identità",
       "recapitulatif": "Riepilogo"
+    },
+    "header": {
+      "language": "Lingua dell'interfaccia",
+      "languageLoading": "Caricamento della lingua…"
+    },
+    "date": {
+      "open": "Scegliere una data",
+      "placeholder": "GG.MM.AAAA",
+      "previousMonth": "Mese precedente",
+      "nextMonth": "Mese successivo",
+      "month": "Mese",
+      "year": "Anno",
+      "clear": "Cancellare la data"
     },
     "footer": {
       "continue": "Continua",
       "saving": "Salvataggio…",
-      "saved": "Salvato",
-      "autosave": "Salvato a ogni passaggio",
       "unknownError": "Si è verificato un errore sconosciuto.",
       "submit": "Invii il fascicolo",
       "submitting": "Invio in corso…",
       "exit": "Continui più tardi"
     },
     "signataire": {
-      "eyebrow": "Firmatario autorizzato",
       "title": "Chi è autorizzato a firmare per l'agenzia?",
-      "subtitle": "Indichi l'identità della persona autorizzata a impegnare l'agenzia. Raccogliamo queste informazioni nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD).",
+      "subtitle": "La persona autorizzata a impegnare la Sua agenzia. Raccogliamo queste informazioni ai sensi della legge svizzera antiriciclaggio (LRD).",
       "fields": {
         "firstName": "Nome",
         "lastName": "Cognome",
@@ -53,66 +67,104 @@
       }
     },
     "agence": {
-      "eyebrow": "Identità dell'agenzia",
       "title": "Qual è l'identità legale della Sua agenzia?",
-      "subtitle": "Queste informazioni devono corrispondere esattamente al Suo registro di commercio. Le raccogliamo nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD).",
+      "subtitle": "Devono corrispondere esattamente alla Sua iscrizione nel registro di commercio.",
       "fields": {
         "country": "Paese della sede",
         "countryPlaceholder": "Selezioni un Paese",
         "legalFormId": "Forma giuridica",
         "legalFormPlaceholder": "Selezioni una forma giuridica",
-        "legalFormPlaceholderNoCountry": "Selezioni prima il Paese della sede",
+        "legalFormPlaceholderNoCountry": "Scelga prima il Paese",
         "legalName": "Ragione sociale",
-        "legalNameHint": "La denominazione ufficiale iscritta nel registro di commercio.",
-        "tradeName": "Nome commerciale",
-        "tradeNameHint": "Il nome con cui la Sua agenzia è conosciuta dai clienti, se diverso dalla ragione sociale. Utilizzato per verificare il Suo sito internet.",
         "businessRegistrationNumber": "Numero di registro",
-        "tva": "Numero IVA",
-        "tvaHint": "Facoltativo: riguarda solo le aziende assoggettate all'IVA.",
         "address": "Indirizzo",
         "postal": "NPA",
         "city": "Città",
         "canton": "Cantone",
         "cantonPlaceholder": "Selezioni un Cantone"
-      }
-    },
-    "beneficiaires": {
-      "eyebrow": "Aventi diritto economico",
-      "title": "Chi sono gli aventi diritto economico della Sua agenzia?",
-      "subtitle": "Indichi le persone fisiche che detengono o controllano l'agenzia. Raccogliamo queste informazioni nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD). La soglia di riferimento è del 25% (norma GAFI): si tratta di un aiuto alla compilazione, può dichiarare una persona anche al di sotto.",
-      "reuseSignataire": "Riprenda {{name}} (firmatario)",
-      "addButton": "Aggiunga un avente diritto economico",
-      "emptyHint": "Nessun avente diritto economico dichiarato per il momento. È possibile se nessuna persona fisica detiene o controlla da sola il 25% o più dell'agenzia: in tal caso indichi la persona che la controlla in altro modo, oppure, in mancanza, un membro dell'organo di alta direzione.",
-      "removeButton": "Rimuova questo avente diritto economico",
-      "fields": {
-        "firstName": "Nome",
-        "lastName": "Cognome",
-        "dateOfBirth": "Data di nascita",
-        "nationality": "Nazionalità",
-        "nationalityPlaceholder": "Selezioni un Paese",
-        "ownershipPct": "Percentuale di partecipazione",
-        "ownershipPctHint": "Soglia di riferimento (norma GAFI): 25% o più. Può indicare anche un valore inferiore."
       },
-      "pep": {
-        "label": "Questa persona è una persona politicamente esposta (PEP)?",
-        "yes": "Sì",
-        "yesHint": "Esercita o ha esercitato un'importante funzione pubblica, in Svizzera o all'estero, oppure è uno stretto collaboratore di tale persona.",
-        "no": "No",
-        "noHint": "Non esercita alcuna funzione pubblica importante."
+      "company": {
+        "search": "Cercare",
+        "searching": "Ricerca…",
+        "noResults": "Nessuna società trovata con questo nome nel registro di commercio.",
+        "error": "Il registro di commercio non ha risposto.",
+        "listLabel": "Società trovate nel registro",
+        "inactive": " · radiata"
+      },
+      "address": {
+        "placeholder": "Via e numero",
+        "noResults": "Nessun indirizzo trovato. Può inserirlo a mano.",
+        "error": "Il registro degli indirizzi non ha risposto. Può inserire l'indirizzo a mano.",
+        "listLabel": "Indirizzi proposti"
       }
     },
     "pieceIdentite": {
-      "eyebrow": "Documento d'identità",
       "title": "Carichi il documento d'identità del firmatario",
-      "subtitle": "Fronte e retro di un documento d'identità in corso di validità (carta d'identità, passaporto o permesso di soggiorno). Questo documento viene esaminato da un membro del nostro team di conformità; in questa fase non viene effettuata alcuna verifica automatica.",
+      "subtitle": "Un documento in corso di validità: passaporto, carta d'identità o permesso di soggiorno. Ne indichi il tipo, poi fotografi le facciate richieste. Lo esamina un membro del nostro team di conformità.",
       "missingSignataire": "Il firmatario deve prima essere indicato nel passaggio precedente.",
+      "verification": {
+        "title": "Verifichi la sua identità",
+        "body": "Fotografi il documento e il suo volto. La verifica avviene presso il nostro fornitore: la foto del documento non ci viene mai trasmessa.",
+        "cta": "Verificare la mia identità",
+        "retryCta": "Riprendere la verifica",
+        "pendingTitle": "Verifica in corso",
+        "pendingBody": "Il risultato arriva tra poco. Può continuare, lo collegheremo al suo fascicolo.",
+        "doneTitle": "Identità verificata",
+        "doneBody": "Il documento è stato verificato e il suo volto confrontato con la foto. Il nostro team di conformità esamina poi il fascicolo.",
+        "useManual": "Caricare invece il documento",
+        "privacy": "Il nostro fornitore conserva il documento per il controllo; MEGGA riceve solo l'esito e la data di scadenza.",
+        "errors": {
+          "consent_declined": "Ha rifiutato la verifica. Carichi il documento qui sotto, il nostro team lo esaminerà.",
+          "under_supported_age": "La verifica online non copre le persone sotto i 16 anni.",
+          "country_not_supported": "Il suo Paese non è coperto dalla verifica online. Carichi il documento qui sotto.",
+          "document_expired": "Il documento presentato è scaduto. Riprovi con un documento in corso di validità.",
+          "document_type_not_supported": "Questo tipo di documento non è accettato. Vanno bene un passaporto o una carta d'identità.",
+          "document_unverified_other": "Non è stato possibile verificare il documento. Riprovi con una luce migliore.",
+          "selfie_face_mismatch": "Il volto non corrisponde alla foto del documento. Ripeta la verifica.",
+          "selfie_manipulated": "La foto del volto sembra ritoccata. Ripeta la verifica.",
+          "selfie_document_missing_photo": "Il documento non riporta una foto. Usi un passaporto o una carta d'identità.",
+          "selfie_unverified_other": "Non è stato possibile verificare il volto. Ripeta la verifica.",
+          "abandoned": "La verifica è stata interrotta. Può riprenderla.",
+          "unknown": "La verifica non è andata a buon fine. Può riprovare o caricare il documento qui sotto."
+        }
+      },
+      "documentType": {
+        "label": "Tipo di documento",
+        "options": {
+          "passport": "Passaporto",
+          "id_card": "Carta d'identità",
+          "residence_permit": "Permesso di soggiorno"
+        },
+        "hints": {
+          "passport": "Una sola pagina da fotografare",
+          "id_card": "Sono richieste entrambe le facciate",
+          "residence_permit": "Sono richieste entrambe le facciate"
+        }
+      },
       "sides": {
         "recto": "Fronte",
-        "verso": "Retro"
+        "verso": "Retro",
+        "dataPage": "Pagina dei dati"
       },
       "dropHint": "Clicchi per selezionare un file",
       "formatHint": "JPG, PNG, WEBP o PDF, massimo 8 MB",
       "replaceHint": "Clicchi per sostituire",
+      "zoomOpen": "Ingrandisci il {{side}}",
+      "zoomClose": "Chiudi",
+      "zoomHint": "Verifichi che il documento sia nitido e che i quattro angoli siano visibili. Altrimenti lo sostituisca.",
+      "openPdf": "Apri il PDF",
+      "read": {
+        "running": "Lettura del documento in corso…",
+        "verdict": {
+          "match": "Il documento corrisponde all'identità che ha indicato.",
+          "partial": "Il documento corrisponde solo in parte all'identità che ha indicato. Rilegga il passaggio del firmatario prima di continuare.",
+          "mismatch": "Il documento non corrisponde all'identità che ha indicato. Verifichi che sia quello giusto.",
+          "unreadable": "Non è stato possibile leggere il documento. Una foto più nitida aiuta, ma può continuare."
+        },
+        "expired": "Questo documento sembra scaduto il {{date}}.",
+        "typeDiffers": "Il documento non sembra quello che ha indicato.",
+        "disclaimer": "Lettura automatica, a titolo indicativo: è il nostro team di conformità a esaminare il documento."
+      },
       "errors": {
         "format": "Formato accettato: JPG, PNG, WEBP o PDF.",
         "size": "Dimensione massima: 8 MB.",
@@ -121,26 +173,24 @@
       }
     },
     "recap": {
-      "eyebrow": "Riepilogo",
       "title": "Verifichi il Suo fascicolo prima di inviarlo",
-      "subtitle": "Rilegga ogni sezione qui sotto. Può ancora modificare un passaggio prima di inviare.",
+      "subtitle": "Rilegga ogni sezione. Può ancora modificare un passaggio.",
       "notProvided": "Non indicato",
-      "beneficiaires": {
-        "empty": "Nessun avente diritto economico dichiarato.",
-        "ownership": "{{pct}}% di partecipazione"
-      },
       "pieceIdentite": {
         "uploaded": "Caricato",
         "missing": "Mancante",
         "loading": "Verifica dei documenti caricati…",
-        "loadFailed": "Impossibile verificare i documenti caricati. Riprovi."
+        "loadFailed": "Impossibile verificare i documenti caricati. Riprovi.",
+        "statusLabel": "Verifica",
+        "verified": "Identità verificata presso il nostro fornitore",
+        "processing": "Verifica in corso di elaborazione"
       },
       "attestation": "Attesto che le informazioni sopra riportate sono esatte e complete, per quanto a mia conoscenza.",
       "errors": {
-        "legalName": "La ragione sociale dell'agenzia è mancante. Completi il passaggio Agenzia prima di inviare.",
-        "legalForm": "La forma giuridica dell'agenzia è mancante. Completi il passaggio Agenzia prima di inviare.",
-        "country": "Il Paese della sede dell'agenzia è mancante. Completi il passaggio Agenzia prima di inviare.",
-        "signatory": "Non risulta alcun firmatario attivo registrato. Completi il passaggio Firmatario prima di inviare.",
+        "legalName": "Ragione sociale mancante. Completi il passaggio Agenzia.",
+        "legalForm": "Forma giuridica mancante. Completi il passaggio Agenzia.",
+        "country": "Paese della sede mancante. Completi il passaggio Agenzia.",
+        "signatory": "Nessun firmatario attivo. Completi il passaggio Firmatario.",
         "generic": "L'invio non è riuscito. Riprovi."
       }
     }
@@ -149,46 +199,46 @@
     "banner": {
       "notSubmitted": {
         "title": "Verifica d'identità non inviata",
-        "bodyAdmin": "Completi la verifica d'identità della Sua agenzia per sbloccare l'apertura di pratiche KYC e l'invio di firme elettroniche.",
-        "bodyOther": "Un amministratore o un manager della Sua agenzia deve completare la verifica d'identità prima che sia possibile aprire una pratica KYC o inviare una firma elettronica."
+        "bodyAdmin": "Completi la verifica d'identità per aprire pratiche KYC e inviare firme elettroniche.",
+        "bodyOther": "Un amministratore o un manager deve completare la verifica d'identità della Sua agenzia."
       },
       "pendingReview": {
         "title": "Verifica in fase di revisione",
-        "body": "Il team MEGGA deve convalidare l'identità della Sua agenzia prima che le pratiche KYC e le firme elettroniche diventino disponibili. Torni più tardi, lo stato si aggiorna automaticamente."
+        "body": "Stiamo convalidando l'identità della Sua agenzia. Lo stato si aggiorna automaticamente."
       },
       "rejected": {
         "title": "Verifica respinta",
-        "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Reinviare il modulo non avvia un nuovo esame: contatti il supporto MEGGA per conoscere il motivo e i prossimi passi."
+        "body": "L'identità della Sua agenzia non è stata convalidata. Reinviare il modulo non avvia un nuovo esame: contatti il supporto."
       },
       "cta": "Completa la verifica",
       "contactSupport": "Contatta il supporto",
       "correctionRequested": {
         "title": "Correzione richiesta",
-        "body": "Il team MEGGA ti chiede di correggere i dati di identità prima di proseguire. I dettagli ti sono stati inviati per e-mail. Riapri il modulo, poi invia di nuovo."
+        "body": "Le è stata richiesta una correzione per e-mail. Riapra il modulo, quindi invii di nuovo."
       }
     },
     "block": {
-      "checking": "Verifica dello stato della Sua agenzia prima di aprire una pratica KYC…",
+      "checking": "Verifica dello stato della Sua agenzia…",
       "notSubmitted": {
         "eyebrow": "Verifica d'identità richiesta",
-        "title": "La verifica d'identità della Sua agenzia non è ancora stata inviata",
-        "bodyAdmin": "MEGGA verifica l'identità di ogni agenzia prima che una pratica KYC cliente possa essere aperta o una firma elettronica inviata, nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD). In qualità di amministratore o manager, può completare questa verifica adesso.",
-        "bodyOther": "MEGGA verifica l'identità di ogni agenzia prima che una pratica KYC cliente possa essere aperta o una firma elettronica inviata, nell'ambito dei nostri controlli di conformità, ai sensi della legge svizzera antiriciclaggio (LRD). Solo un amministratore o un manager della Sua agenzia può completare questa verifica."
+        "title": "Verifichi l'identità della Sua agenzia",
+        "bodyAdmin": "Verifichiamo l'identità di ogni agenzia prima di qualsiasi pratica KYC o firma elettronica, ai sensi della legge svizzera antiriciclaggio (LRD). Può completarla ora.",
+        "bodyOther": "Verifichiamo l'identità di ogni agenzia prima di qualsiasi pratica KYC o firma elettronica, ai sensi della legge svizzera antiriciclaggio (LRD). Solo un amministratore o un manager può completarla."
       },
       "pendingReview": {
         "eyebrow": "Verifica in corso",
-        "title": "La pratica di verifica della Sua agenzia è in fase di revisione",
-        "body": "La Sua pratica è stata trasmessa al team MEGGA. Un membro del team deve convalidare l'identità della Sua agenzia prima che sia possibile aprire pratiche KYC o inviare firme elettroniche. Torni a consultare questa schermata più tardi, lo stato si aggiorna non appena viene presa una decisione."
+        "title": "Stiamo esaminando il Suo fascicolo",
+        "body": "Il Suo fascicolo è nelle mani del nostro team di conformità. Lo stato si aggiorna non appena viene presa una decisione."
       },
       "rejected": {
         "eyebrow": "Verifica respinta",
-        "title": "La pratica di verifica della Sua agenzia è stata respinta",
-        "body": "Il team MEGGA non ha convalidato l'identità della Sua agenzia. Reinviare il modulo non avvia un nuovo esame: contatti il supporto MEGGA per comprendere il motivo e conoscere i prossimi passi."
+        "title": "Il Suo fascicolo non è stato convalidato",
+        "body": "Reinviare il modulo non avvia un nuovo esame. Contatti il supporto per conoscere il motivo e i prossimi passi."
       },
       "unavailable": {
         "eyebrow": "Stato della verifica non disponibile",
-        "title": "Non è stato possibile leggere lo stato di verifica della Sua agenzia",
-        "body": "Non si tratta di una decisione sulla Sua pratica: la lettura dello stato non è riuscita, probabilmente a causa di una connessione interrotta o di un servizio momentaneamente non disponibile. Finché questo stato non è confermato, non è possibile aprire pratiche KYC. Riprovi tra un istante; se il problema persiste, contatti il supporto MEGGA.",
+        "title": "Stato di verifica non leggibile",
+        "body": "Non dipende dal Suo fascicolo: è la lettura dello stato che non è riuscita. Riprovi tra un istante e, se il problema persiste, contatti il supporto.",
         "retry": "Riprova"
       },
       "cta": "Completa la verifica",
@@ -196,8 +246,95 @@
       "contactSupport": "Contatta il supporto",
       "correctionRequested": {
         "eyebrow": "Correzione richiesta",
-        "title": "I tuoi dati di identità devono essere corretti",
-        "body": "Il team MEGGA ha esaminato il tuo fascicolo e chiede una correzione prima di convalidarlo. Ciò che deve cambiare ti è stato comunicato per e-mail. Riapri il modulo di identità, correggilo e invialo di nuovo: l'esame riprenderà automaticamente."
+        "title": "È richiesta una correzione",
+        "body": "I dettagli Le sono stati inviati per e-mail. Corregga la Sua compilazione, quindi invii di nuovo: l'esame riprende automaticamente."
+      }
+    }
+  },
+  "call": {
+    "intro": {
+      "title": "Prenoti la sua chiamata di benvenuto",
+      "body": "Il suo dossier e in revisione. Prendiamoci 30 minuti per esaminare la sua configurazione e rispondere alle sue domande."
+    },
+    "picker": {
+      "weekdays": [
+        "Lun",
+        "Mar",
+        "Mer",
+        "Gio",
+        "Ven",
+        "Sab",
+        "Dom"
+      ],
+      "prevMonth": "Mese precedente",
+      "nextMonth": "Mese successivo",
+      "slotsTitle": "Orari",
+      "pickDayFirst": "Scelga un giorno nel calendario per vedere gli orari liberi.",
+      "noSlotThatDay": "Niente di libero quel giorno.",
+      "timezoneHint": "Orari nel suo fuso orario : {{timezone}}"
+    },
+    "form": {
+      "phone": "Telefono (facoltativo)",
+      "phonePlaceholder": "+41 22 000 00 00",
+      "note": "Una parola sulle sue priorita (facoltativo)",
+      "notePlaceholder": "Cosa vorrebbe vedere per primo"
+    },
+    "actions": {
+      "confirm": "Confermare l'appuntamento",
+      "later": "Piu tardi",
+      "continue": "Continua verso il mio spazio"
+    },
+    "confirmed": {
+      "title": "Prenotato",
+      "join": "Partecipare alla videoconferenza",
+      "emailSent": "Un'e-mail di conferma la attende, con il link e la possibilita di riprogrammare.",
+      "toDashboard": "Vai al mio spazio"
+    },
+    "empty": {
+      "noHost": "Nessun orario disponibile al momento. La ricontatteremo per e-mail appena possibile.",
+      "noSlot": "Niente piu di libero in questo periodo. Provi il mese successivo, oppure continui : le scriveremo."
+    },
+    "errors": {
+      "slot_taken": "Questo orario e appena stato preso. Ne scelga un altro.",
+      "already_booked": "La sua agenzia ha gia un appuntamento prenotato.",
+      "no_host_available": "Nessuno e disponibile al momento.",
+      "slot_in_past": "Questo orario e gia passato.",
+      "call_in_past": "Questo appuntamento e gia passato.",
+      "call_not_active": "Questo appuntamento non e piu attivo.",
+      "reschedule_limit_reached": "Limite di riprogrammazioni raggiunto. Ci scriva per trovare un altra data.",
+      "generic": "L'appuntamento non e stato salvato. Riprovi tra un istante."
+    },
+    "banner": {
+      "pending": {
+        "title": "Prenoti la sua chiamata di benvenuto",
+        "body": "30 minuti con il nostro team per iniziare con MEGGA.",
+        "cta": "Scegliere un orario"
+      },
+      "booked": {
+        "title": "Chiamata di benvenuto prevista",
+        "join": "Partecipare"
+      }
+    },
+    "public": {
+      "loading": "Caricamento del suo appuntamento...",
+      "title": "La sua chiamata di benvenuto MEGGA",
+      "invalid": {
+        "title": "Link non trovato",
+        "body": "Questo link non e piu valido. Verifichi l'indirizzo ricevuto per e-mail, oppure ci scriva."
+      },
+      "notActive": "Questo appuntamento e stato annullato o e gia passato.",
+      "tooLate": "Questo appuntamento e molto vicino : non puo piu essere modificato qui.",
+      "reschedule": "Riprogrammare",
+      "cancel": "Annullare l'appuntamento",
+      "back": "Indietro",
+      "confirmReschedule": "Confermare la nuova data",
+      "cancelled": {
+        "title": "Appuntamento annullato",
+        "body": "Preso nota. Puo prenotarne uno nuovo dal suo spazio MEGGA."
+      },
+      "rescheduled": {
+        "title": "Nuova data salvata",
+        "body": "Un'e-mail di conferma con la data aggiornata e in arrivo."
       }
     }
   }

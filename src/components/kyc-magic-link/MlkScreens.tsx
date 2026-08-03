@@ -733,9 +733,19 @@ interface SuccessProps {
   firstName: string
   agentFullName: string
   agencyName: string
+  /**
+   * Ouvre la prise de rendez-vous de vérification.
+   *
+   * Proposé sans vérifier au préalable que l'agent a ouvert l'auto-réservation :
+   * ce contrôle coûterait un appel free/busy (donc un aller-retour Google) sur
+   * CHAQUE ouverture du lien, y compris pendant le dépôt des pièces. L'écran de
+   * réservation traite le cas fermé par un message informatif — « votre agent
+   * vous contactera » — et non par une erreur, donc l'impasse n'en est pas une.
+   */
+  onBook?: () => void
 }
 
-export function MlkSuccess({ firstName, agentFullName, agencyName }: SuccessProps) {
+export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: SuccessProps) {
   const { t } = useTranslation('kyc')
   const agentFirstName = agentFullName.split(' ')[0]
 
@@ -837,6 +847,14 @@ export function MlkSuccess({ firstName, agentFullName, agencyName }: SuccessProp
           </div>
         </div>
       </div>
+
+      {onBook && (
+        <div style={{ marginTop: 4 }}>
+          <MlkBlackPill onClick={onBook} full>
+            {t('client.booking.cta_open')}
+          </MlkBlackPill>
+        </div>
+      )}
 
       <MlkFooter />
     </MlkShell>

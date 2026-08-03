@@ -33,79 +33,10 @@
       "to_recontact": "À relancer"
     }
   },
-  "atRisk": {
-    "title": "Deals à risque",
-    "empty": "Aucun deal à risque",
-    "emptyDescription": "Votre pipeline est sain",
-    "unknownContact": "Contact inconnu",
-    "daysSince": "Depuis {{count}} jour sans activité",
-    "daysSince_plural": "Depuis {{count}} jours sans activité",
-    "view": "Voir →"
-  },
   "activity": {
     "title": "Activité récente",
     "viewAll": "Voir tout",
     "empty": "Aucune activité récente"
-  },
-  "actionBoard": {
-    "sections": {
-      "urgencies": "Urgences",
-      "followUps": "Relances du jour",
-      "matches": "Matchs trouvés",
-      "visits": "Visites à confirmer",
-      "suggestions": "Suggestions IA"
-    },
-    "empty": {
-      "urgencies": "Aucune urgence aujourd'hui",
-      "followUps": "Aucune relance prévue",
-      "matches": "Aucun nouveau match",
-      "visits": "Aucune visite aujourd'hui",
-      "suggestions": "Aucune suggestion pour le moment"
-    },
-    "summary": {
-      "urgency": "{{count}} urgence",
-      "urgency_plural": "{{count}} urgences",
-      "followUp": "{{count}} relance à faire",
-      "followUp_plural": "{{count}} relances à faire",
-      "visit": "{{count}} visite",
-      "visit_plural": "{{count}} visites",
-      "match": "{{count}} match",
-      "match_plural": "{{count}} matchs"
-    },
-    "days": {
-      "0": "Dimanche",
-      "1": "Lundi",
-      "2": "Mardi",
-      "3": "Mercredi",
-      "4": "Jeudi",
-      "5": "Vendredi",
-      "6": "Samedi"
-    },
-    "months": {
-      "0": "janvier",
-      "1": "février",
-      "2": "mars",
-      "3": "avril",
-      "4": "mai",
-      "5": "juin",
-      "6": "juillet",
-      "7": "août",
-      "8": "septembre",
-      "9": "octobre",
-      "10": "novembre",
-      "11": "décembre"
-    },
-    "sellerLeads": "Nouveaux leads vendeurs",
-    "accept": "Accepter",
-    "reject": "Rejeter",
-    "accepted": "Accepté",
-    "motivation": "Motivation",
-    "motivations": {
-      "immediate": "Immédiate",
-      "3months": "3 mois",
-      "6months": "6 mois",
-      "exploring": "Exploration"
-    }
   },
   "today": {
     "reasons": {
@@ -292,28 +223,6 @@
       "tempWarm": "tièdes",
       "tempCold": "froids"
     },
-    "pipeline": {
-      "error": {
-        "title": "Données indisponibles"
-      },
-      "stages": {
-        "searching": "Recherche active",
-        "visit": "Visite planifiée",
-        "offer": "Offre déposée",
-        "compromis": "Compromis"
-      },
-      "dealFallback": "Affaire",
-      "riskStalled": "Affaire au point mort",
-      "riskOverdue": "Échéance dépassée"
-    },
-    "objectif": {
-      "error": {
-        "title": "Données indisponibles"
-      },
-      "realized": "réalisé",
-      "realizedNoTarget": "réalisé · objectif non défini",
-      "target": "cible"
-    },
     "pager": {
       "today": "Aujourd'hui",
       "catalogue": "Catalogue",
@@ -407,7 +316,8 @@
       },
       "action": {
         "addToFile": "Mettre dans le dossier de {{name}}",
-        "added": "Ajouté au dossier de {{name}}"
+        "added": "Ajouté au dossier de {{name}}",
+        "openInMatching": "Ouvrir dans Matching"
       },
       "gallery": {
         "closeHint": "Fermer (Échap)",
@@ -495,10 +405,120 @@
         "backToDashboard": "Retour au dashboard"
       }
     },
-    "brief": {
-      "eyebrow": "MEGGA AI · Briefing du jour",
-      "deepen": "Approfondir",
-      "deepenQuestion": "Détaille mes priorités du jour et propose la prochaine action pour chacune."
+    "h": {
+      "greeting": "Bonjour {{name}}",
+      "whatsNew": "What's new",
+      "close": "Fermer",
+      "yourDay": "Ta journée",
+      "appointments_one": "{{count}} rendez-vous",
+      "appointments_other": "{{count}} rendez-vous",
+      "hour": "{{hour}} h",
+      "freeWindow": "{{duration}} libres · session relances",
+      "tabs": {
+        "deals": "Dossiers",
+        "listings": "Annonces"
+      },
+      "hotCount_one": "{{count}} chaud",
+      "hotCount_other": "{{count}} chauds",
+      "openListings": "Ouvrir Mes biens",
+      "seeDealsInPipeline": "Voir les {{count}} dossiers dans le Pipeline",
+      "todayLabel": "Aujourd'hui",
+      "openInCalendar": "Ouvrir dans le calendrier",
+      "doneBadge": "Terminé",
+      "types": {
+        "relance": "Appel",
+        "kyc": "Conformité",
+        "mandat": "Mandat",
+        "visite": "Visite",
+        "compromis": "Compromis",
+        "default": "Rendez-vous"
+      },
+      "news": {
+        "fresh": "Nouveau"
+      },
+      "absence": {
+        "title": "Pendant ton absence",
+        "seeAll": "Voir les {{count}}",
+        "countSince_one": "{{count}} signal · depuis {{since}}",
+        "countSince_other": "{{count}} signaux · depuis {{since}}",
+        "upToDateSince": "À jour · depuis {{since}}",
+        "upToDateInline": "Tu es à jour, rien de neuf depuis {{since}}",
+        "emptyTitle": "Tu es à jour",
+        "emptyDesc": "Aucun retour acheteur ni rappel en attente. Tout a été traité.",
+        "markAll": "Tout marquer comme vu",
+        "count_one": "{{count}} signal",
+        "count_other": "{{count}} signaux",
+        "groupBuyers": "Retours acheteurs",
+        "groupReminders": "Rappels",
+        "liked": "a aimé {{subject}}",
+        "skipped": "a écarté {{subject}}",
+        "reminderDue": "dossier {{subject}} à reprendre",
+        "ctaProposeVisit": "Proposer la visite",
+        "ctaRecalibrate": "Recalibrer",
+        "ctaResume": "Reprendre",
+        "unknownContact": "Contact",
+        "unknownProperty": "un bien"
+      },
+      "toast": {
+        "allUpToDate": "Tout est à jour",
+        "visitProposed": "Proposition de visite envoyée à {{name}}",
+        "dealResumed": "Dossier {{name}} repris",
+        "recalibrated": "Critères recalibrés pour {{name}}",
+        "resumeFailed": "La reprise n’a pas pu être enregistrée. Réessaie.",
+        "doneFailed": "L’état n’a pas pu être enregistré. Réessaie.",
+        "markedDone": "{{name}} · marqué comme fait",
+        "reopened": "Rouvert"
+      },
+      "cta": {
+        "openKyc": "Ouvrir le KYC",
+        "openVisit": "Voir la visite",
+        "openContact": "Voir le contact",
+        "openListing": "Voir le bien",
+        "openCalendar": "Ouvrir le calendrier"
+      },
+      "day": {
+        "emptyTitle": "Journée dégagée",
+        "emptyDesc": "Aucun rendez-vous, aucune visite ni rappel prévu aujourd’hui."
+      },
+      "mobileTitle": "Aujourd'hui",
+      "mobileDay": "Journée",
+      "searchAria": "Rechercher",
+      "markDoneAria": "Marquer comme fait",
+      "reopenAria": "Rouvrir",
+      "slots_one": "{{count}} créneau",
+      "slots_other": "{{count}} créneaux",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "listings": {
+        "untitled": "Bien sans titre",
+        "issue": {
+          "draft": "brouillon à compléter",
+          "noPhoto": "aucune photo",
+          "thinDescription": "description trop courte",
+          "notPushed": "publique, pas encore sur Immobilier.ch",
+          "published": "diffusée"
+        },
+        "cta": {
+          "draft": "Compléter",
+          "noPhoto": "Ajouter",
+          "thinDescription": "Compléter",
+          "notPushed": "Diffuser",
+          "published": "Ouvrir"
+        },
+        "empty": "Toutes tes annonces sont complètes et diffusées."
+      },
+      "deals": {
+        "open": "Ouvrir",
+        "empty": "Aucun dossier à traiter en priorité.",
+        "ctaCall": "Rappeler",
+        "ctaKyc": "Ouvrir le KYC",
+        "ctaSign": "Préparer",
+        "ctaOffer": "Voir l’offre",
+        "ctaMatch": "Voir les matchs",
+        "ctaVisit": "Voir la visite",
+        "ctaSeller": "Ouvrir",
+        "ctaListing": "Voir le bien"
+      }
     }
   },
   "analytics": {
@@ -717,21 +737,6 @@
     "added": "Ajouté · {{value}}",
     "submit": "Créer",
     "suggested": "Suggéré"
-  },
-  "knowledge": {
-    "col": {
-      "subject": "Sujet",
-      "status": "Statut",
-      "startDate": "Date de début",
-      "endDate": "Date de fin",
-      "assignedUser": "Utilisateur assigné"
-    },
-    "favRemove": "Retirer des favoris",
-    "favAdd": "Ajouter aux favoris",
-    "favRemoved": "Retiré des favoris, {{subject}}",
-    "favAdded": "Ajouté aux favoris, {{subject}}",
-    "statusChanged": "Statut → {{status}}",
-    "changeStatus": "Changer le statut"
   },
   "focus": {
     "heading": "3 priorités absolues pour aujourd'hui",

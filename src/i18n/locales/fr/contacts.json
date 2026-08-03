@@ -392,28 +392,6 @@
     "affordabilityCheck": "Vérification accessibilité",
     "matchSent": "Matching envoyé"
   },
-  "importPage": {
-    "title": "Importer des contacts",
-    "csvTitle": "Importer depuis CSV / Excel",
-    "csvDrop": "Glissez un fichier CSV ou TSV ici",
-    "csvBrowse": "ou parcourir",
-    "vcardTitle": "Importer depuis vCard",
-    "vcardDrop": "Glissez un fichier .vcf ici",
-    "vcardBrowse": "ou parcourir",
-    "textTitle": "Extraction IA",
-    "textPlaceholder": "Collez un email, un message WhatsApp, ou du texte contenant des coordonnées...",
-    "textExtract": "Extraire avec MEGGA AI",
-    "textExtracting": "Extraction...",
-    "preview": "Aperçu de l'import",
-    "contactsDetected": "{{count}} contacts détectés",
-    "import": "Importer {{count}} contacts",
-    "importing": "Import en cours...",
-    "success": "{{count}} contacts importés avec succès",
-    "goToContacts": "Voir mes contacts",
-    "importMore": "Importer d'autres contacts",
-    "errors": "Erreurs",
-    "skipped": "{{count}} ignorés (doublons ou invalides)"
-  },
   "contactType": {
     "buyer": "Acheteur",
     "seller": "Vendeur",
@@ -559,120 +537,6 @@
       "referral": "Recommandations",
       "social": "Réseaux sociaux",
       "manual": "Importé manuel"
-    }
-  },
-  "widgets": {
-    "criteria": {
-      "transaction": "Transaction",
-      "buy": "Achat",
-      "rent": "Location",
-      "type": "Type",
-      "zones": "Zones",
-      "budget": "Budget",
-      "surface": "Surface",
-      "rooms": "Pièces",
-      "mustHave": "Indispensable",
-      "niceToHave": "Souhaité"
-    },
-    "matches": {
-      "empty": "Aucun match calculé pour ce contact.",
-      "specs": "{{rooms}}p · {{area}}m² · {{price}}",
-      "perMonth": "{{price}}/mois",
-      "send": "Envoyer",
-      "open": "Ouvrir",
-      "status": {
-        "to-send": "À envoyer",
-        "sent": "Envoyé",
-        "viewed": "Vu",
-        "liked": "Aimé",
-        "rejected": "Rejeté"
-      }
-    },
-    "activity": {
-      "empty": "Aucune activité enregistrée pour ce contact."
-    },
-    "composer": {
-      "tab": {
-        "note": "Note",
-        "call": "Appel",
-        "email": "Email",
-        "task": "Tâche"
-      },
-      "placeholder": {
-        "note": "Ajouter une note rapide…",
-        "call": "Résumer un appel, points clés, prochaine étape…",
-        "email": "Sujet + corps de l'email…",
-        "task": "Tâche à faire, date, qui ?"
-      },
-      "suggest": "Suggérer avec MEGGA AI",
-      "save": "Enregistrer"
-    },
-    "deals": {
-      "empty": "Aucun deal en cours pour ce contact.",
-      "newDeal": "+ Nouveau deal",
-      "activeSearch": "Recherche active",
-      "risk": {
-        "atRisk": "À risque",
-        "stalled": "Bloqué",
-        "healthy": "Sain"
-      }
-    },
-    "seller": {
-      "empty": "Aucun bien actif sous mandat.",
-      "mandateLine": "{{ref}} · Mandat {{type}} · {{commission}}%",
-      "stat": {
-        "views": "Vues",
-        "favorites": "Favoris",
-        "visits": "Visites"
-      }
-    },
-    "kyc": {
-      "step": {
-        "identity": "Identité",
-        "beneficiary": "Béné.",
-        "funds": "Fonds",
-        "screening": "Screening",
-        "risk": "Risque",
-        "validation": "Validation"
-      },
-      "statusLabel": {
-        "none": "À démarrer",
-        "pending": "En cours",
-        "verified": "Validé",
-        "stale": "À re-screener"
-      },
-      "hint": {
-        "none": "Vous pouvez continuer à travailler ce dossier, pensez à le compléter avant la signature.",
-        "pending": "Vérifications en attente · délai habituel 24-48h.",
-        "verified": "Risque {{risk}} · dernier screening {{date}}.",
-        "stale": "Sanctions/PEP à rafraîchir, recommandé après 12 mois ou changement de situation."
-      },
-      "cta": {
-        "none": "Démarrer le dossier KYC",
-        "pending": "Voir le dossier",
-        "verified": "Consulter le dossier",
-        "stale": "Relancer le screening"
-      },
-      "kpi": {
-        "risk": "Risque",
-        "documents": "Pièces",
-        "validity": "Validité"
-      },
-      "risk": {
-        "high": "Élevé",
-        "medium": "Modéré",
-        "low": "Faible"
-      }
-    },
-    "scoreBadge": {
-      "label": {
-        "serieux": "Sérieux",
-        "a_qualifier": "À qualifier",
-        "froid": "Froid"
-      },
-      "estimation": "Estimation",
-      "title": "Score de contact, estimation",
-      "titleLimited": "Score de contact, estimation · données limitées"
     }
   },
   "newContact": {
@@ -834,43 +698,6 @@
     "followupKind_next_action": "Action",
     "followupKind_client_availability": "Dispo client"
   },
-  "ctKyc": {
-    "title": "Conformité KYC / LBA",
-    "status": {
-      "none": {
-        "label": "À démarrer",
-        "hint": "Vous pouvez continuer à travailler ce dossier, pensez à le compléter avant la signature."
-      },
-      "pending": {
-        "label": "En cours",
-        "hint": "Vérifications en attente · délai habituel 24-48h."
-      },
-      "verified": {
-        "label": "Validé",
-        "hint": "Dossier conforme, re-screening conseillé à 12 mois."
-      },
-      "stale": {
-        "label": "À re-screener",
-        "hint": "Sanctions/PEP à rafraîchir, recommandé après 12 mois ou changement de situation."
-      },
-      "failed": {
-        "label": "Échec",
-        "hint": "Un contrôle a échoué, revoyez le dossier en détail."
-      }
-    },
-    "cta": {
-      "none": "Démarrer le dossier KYC",
-      "pending": "Voir le dossier",
-      "verified": "Consulter le dossier",
-      "stale": "Relancer le screening",
-      "failed": "Examiner le dossier"
-    },
-    "kpi": {
-      "risk": "Risque",
-      "docs": "Pièces",
-      "lastScreening": "Dernier screening"
-    }
-  },
   "field": {
     "firstName": "Prénom",
     "lastName": "Nom",
@@ -884,26 +711,6 @@
   },
   "action": {
     "cancel": "Annuler"
-  },
-  "editDialog": {
-    "title": "Modifier le contact",
-    "description": "Modifiez les informations de {{name}}.",
-    "save": "Sauvegarder",
-    "notesPlaceholder": "Notes sur le contact...",
-    "source": {
-      "manual": "Manuel",
-      "website": "Site web",
-      "referral": "Recommandation",
-      "portal": "Portail",
-      "social": "Réseaux sociaux"
-    }
-  },
-  "newDialog": {
-    "title": "Nouveau contact",
-    "description": "Ajoutez un contact à votre CRM.",
-    "addDetails": "+ Ajouter des détails",
-    "notesPlaceholder": "Contexte, remarques...",
-    "create": "Créer"
   },
   "mobile": {
     "title": "Contacts",
@@ -1267,6 +1074,39 @@
       "nothingToHandle": "Tout est à jour, rien à traiter pour l'instant.",
       "emptyTitle": "Aucun dossier transmis",
       "emptyBody": "Envoyez une sélection de biens à {{name}}.<1/>Ses retours arrivent ici."
+    },
+    "links": {
+      "title": "Liens envoyés ({{count}})",
+      "loading": "Chargement des liens…",
+      "failed": "Liens non chargés.",
+      "empty": "Aucun lien envoyé pour l'instant.",
+      "selection_one": "Sélection de {{count}} bien",
+      "selection_other": "Sélection de {{count}} biens",
+      "sentOn": "Envoyé le {{date}}",
+      "expiresOn": "échéance {{date}}",
+      "revokedOn": "retiré le {{date}}",
+      "revoke": "Retirer le lien",
+      "channel": {
+        "whatsapp": "WhatsApp",
+        "link": "Lien copié"
+      },
+      "status": {
+        "pending": "Non ouvert",
+        "viewed": "Ouvert",
+        "reacted": "Réponse reçue",
+        "expired": "Échu",
+        "revoked": "Retiré",
+        "unknown": "Statut inconnu"
+      },
+      "confirm": {
+        "title": "Retirer ce lien ?",
+        "body_one": "L'acheteur perdra l'accès au bien qu'il a reçu. Le retrait est définitif : pour lui redonner accès, il faudra lui transmettre un nouveau lien.",
+        "body_other": "L'acheteur perdra l'accès aux {{count}} biens qu'il a reçus. Le retrait est définitif : pour lui redonner accès, il faudra lui transmettre un nouveau lien.",
+        "cta": "Retirer le lien",
+        "busy": "Retrait en cours…",
+        "refused": "Ce lien n'était déjà plus actif. La liste vient d'être rafraîchie.",
+        "failed": "Le retrait n'a pas abouti. Réessayez."
+      }
     },
     "saved": {
       "coord": "Coordonnées enregistrées",

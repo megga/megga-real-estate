@@ -130,9 +130,20 @@ jobs:
         run: npx playwright install-deps chromium
 
       - name: Setup Supabase CLI
+        # ⚠ VERSION ÉPINGLÉE, ET CE N'EST PAS DU ZÈLE. `version: latest` oblige l'action à
+        # résoudre la dernière release via l'API GitHub, SANS authentification : sous charge,
+        # l'IP partagée des runners atteint la limite et le job meurt AVANT tout travail utile
+        # (« Failed to resolve latest Supabase CLI release: rate limit exceeded », suivi de
+        # « No such container: supabase_db_… »). Mesuré le 02.08.2026 : TROIS occurrences dans
+        # la journée, dont un déploiement de production qu'il a fallu relancer à la main.
+        # 2.111.0 EST ce que `latest` résolvait ce jour-là — l'épinglage ne change donc aucun
+        # comportement, il supprime seulement l'appel réseau.
+        # ⚠ À faire évoluer À LA MAIN quand `supabase/config.toml` ou `supabase start` l'exigent
+        # (l'action n'accepte pas de `token` pour authentifier l'appel, et `supabase` n'est pas
+        # une dépendance du dépôt : omettre `version` retomberait sur `latest`).
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.111.0
 
       - name: Start Supabase local
         # Exclusions identiques à backend.yml : Studio (UI admin), Inbucket
@@ -165,10 +176,16 @@ jobs:
           supabase status || true
           echo "=== docker ps ==="
           docker ps || true
-          echo "=== postgres logs ==="
-          docker logs supabase_db_megga-real-estate 2>&1 | tail -100 || true
-          echo "=== auth logs ==="
-          docker logs supabase_auth_megga-real-estate 2>&1 | tail -50 || true
+          # Mêmes dérivations que backend.yml, et pour la même raison : les noms viennent
+          # du `project_id` de supabase/config.toml (`supabase_db_zealous-faraday-34b2f5`),
+          # pas du nom du dépôt. Figés, ils rendaient cette étape muette — masquée par le
+          # `|| true`. `docker ps -a` inclut les conteneurs morts, le cas qui nous intéresse.
+          CONTENEUR_DB=$(docker ps -a --filter name=supabase_db_ --format '{{.Names}}' | head -1)
+          CONTENEUR_AUTH=$(docker ps -a --filter name=supabase_auth_ --format '{{.Names}}' | head -1)
+          echo "=== postgres logs (${CONTENEUR_DB:-introuvable}) ==="
+          docker logs "${CONTENEUR_DB:-supabase_db_introuvable}" 2>&1 | tail -100 || true
+          echo "=== auth logs (${CONTENEUR_AUTH:-introuvable}) ==="
+          docker logs "${CONTENEUR_AUTH:-supabase_auth_introuvable}" 2>&1 | tail -50 || true
 
       - name: Stop Supabase
         if: always()

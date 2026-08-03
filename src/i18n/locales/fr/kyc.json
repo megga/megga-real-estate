@@ -45,19 +45,6 @@
     "validated": "Validé",
     "rejected": "Rejeté"
   },
-  "create_modal": {
-    "title": "Nouveau dossier KYC",
-    "select_contact": "Sélectionner un contact",
-    "type_label": "Type de dossier *",
-    "transaction_label": "Transaction liée (optionnel)",
-    "no_transaction": "Aucune transaction",
-    "nationality_label": "Nationalité du contact",
-    "nationality_hint": "Code pays ISO 2 lettres (CH, FR, DE...)",
-    "amount_label": "Montant de la transaction (CHF)",
-    "error": "Erreur lors de la création du dossier",
-    "creating": "Création...",
-    "submit": "Créer le dossier"
-  },
   "client": {
     "landing": {
       "lock_label": "Lien chiffré · expire le {{date}}",
@@ -141,6 +128,76 @@
     "footer": {
       "legal": "Mentions légales",
       "privacy": "Confidentialité"
+    },
+    "booking": {
+      "cta_open": "Prendre rendez-vous",
+      "title": "Choisissez votre rendez-vous, {{firstName}}",
+      "subtitle": "Une vérification d'identité de {{minutes}} minutes avec {{agentName}}.",
+      "at_time": "à {{time}}",
+      "join_video": "Rejoindre la visioconférence",
+      "video_link_later": "En visioconférence : le lien vous parviendra avant la séance.",
+      "loading_title": "Recherche des disponibilités…",
+      "loading_body": "Nous consultons l'agenda de votre conseiller.",
+      "closed_title": "Rendez-vous à convenir directement",
+      "closed_body": "Votre conseiller n'a pas ouvert la réservation en ligne. Il vous contactera pour fixer un créneau.",
+      "unavailable_title": "Disponibilités momentanément inaccessibles",
+      "unavailable_body": "Nous ne parvenons pas à lire l'agenda de votre conseiller. Plutôt que de vous proposer un créneau qui pourrait déjà être pris, nous préférons attendre. Réessayez dans quelques minutes.",
+      "expired_title": "Ce lien a expiré",
+      "expired_body": "Demandez un nouveau lien à votre conseiller.",
+      "invalid_title": "Lien invalide",
+      "invalid_body": "Ce lien ne correspond à aucun dossier. Vérifiez qu'il est complet.",
+      "network_title": "Connexion interrompue",
+      "network_body": "Vérifiez votre connexion, puis réessayez.",
+      "empty_title": "Aucun créneau disponible",
+      "empty_body": "L'agenda de votre conseiller est complet sur les {{days}} prochains jours.",
+      "contact_agent": "Vous pouvez joindre {{agentName}}, {{agencyName}}.",
+      "confirmed_title": "C'est noté.",
+      "confirmed_body": "Votre rendez-vous avec {{agentName}} ({{agencyName}}) est confirmé.",
+      "confirmed_email": "Un courriel de confirmation vient de vous être envoyé. Il contient un lien pour déplacer ou annuler ce rendez-vous.",
+      "mode_video": "Le rendez-vous se tiendra en visioconférence.",
+      "mode_onsite": "Le rendez-vous se tiendra sur place.",
+      "mode_onsite_at": "Sur place : {{location}}",
+      "cta_pick": "Choisissez un créneau",
+      "cta_booking": "Confirmation en cours…",
+      "cta_confirm_at": "Confirmer · {{when}}",
+      "error_default": "Ce créneau n'a pas pu être réservé. Réessayez.",
+      "error_slot_taken": "Ce créneau vient d'être pris. La liste a été mise à jour : choisissez-en un autre.",
+      "error_too_soon": "Ce créneau est désormais trop proche. Choisissez-en un plus tardif.",
+      "error_too_far": "Ce créneau est trop éloigné pour être réservé en ligne.",
+      "error_outside_hours": "Ce créneau ne fait plus partie des disponibilités de votre conseiller.",
+      "error_already_booked": "Un rendez-vous a déjà été pris avec ce lien.",
+      "error_booking_closed": "La réservation en ligne n'est plus ouverte.",
+      "error_reschedule_limit_reached": "Vous avez déjà déplacé ce rendez-vous deux fois. Contactez votre conseiller.",
+      "error_too_late_to_change": "Il est trop tard pour modifier ce rendez-vous en ligne. Contactez votre conseiller.",
+      "error_not_reschedulable": "Ce rendez-vous ne peut plus être déplacé.",
+      "error_not_cancellable": "Ce rendez-vous ne peut plus être annulé."
+    },
+    "manage": {
+      "title": "Votre rendez-vous",
+      "subtitle": "Vérification d'identité : {{when}}",
+      "reschedule": "Déplacer",
+      "cancel": "Annuler",
+      "back": "Retour",
+      "keep": "Conserver",
+      "reschedule_title": "Choisissez un nouveau créneau",
+      "confirm_cancel_title": "Annuler ce rendez-vous ?",
+      "confirm_cancel_body": "Votre conseiller en sera informé. Vous devrez le contacter pour en fixer un nouveau.",
+      "confirm_cancel_cta": "Annuler le rendez-vous",
+      "cancelling": "Annulation…",
+      "cancelled_title": "Rendez-vous annulé",
+      "cancelled_body": "Votre conseiller a été prévenu. Il vous recontactera pour convenir d'une nouvelle date.",
+      "rescheduled_title": "Rendez-vous déplacé",
+      "rescheduled_body": "Votre nouveau créneau est confirmé. Un courriel vient de vous être envoyé.",
+      "already_cancelled_title": "Ce rendez-vous a été annulé",
+      "already_cancelled_body": "Contactez votre conseiller pour en fixer un nouveau.",
+      "locked_title": "Modification impossible en ligne",
+      "locked_body": "Le rendez-vous approche, ou il a déjà été déplacé deux fois. Contactez votre conseiller.",
+      "invalid_title": "Lien invalide",
+      "invalid_body": "Ce lien ne correspond à aucun rendez-vous.",
+      "expired_title": "Ce lien a expiré",
+      "expired_body": "Contactez votre conseiller pour toute modification.",
+      "not_found_title": "Rendez-vous introuvable",
+      "not_found_body": "Il a peut-être été supprimé. Contactez votre conseiller."
     }
   },
   "steps": {
@@ -151,16 +208,12 @@
     "risk": "Risque",
     "validation": "Validation"
   },
-  "riskScore": {
-    "low": "Faible",
-    "moderate": "Modéré",
-    "high": "Élevé"
-  },
   "wizard": {
     "steps": {
       "start": "Démarrer",
       "contact": "Contact",
-      "vigilance": "Vigilance"
+      "vigilance": "Vigilance",
+      "report": "Rapport"
     },
     "header": {
       "eyebrow": "Conformité LBA",
@@ -536,31 +589,6 @@
     "staleCount_one": "{{count}} dossier à re-screener (échéance dépassée).",
     "staleCount_other": "{{count}} dossiers à re-screener (échéance dépassée)."
   },
-  "nonBlocking": {
-    "complete": "Compléter",
-    "dismiss": "Ignorer",
-    "dealBadgeHint_one": "{{count}} pièce manquante, non bloquant",
-    "dealBadgeHint_other": "{{count}} pièces manquantes, non bloquant",
-    "availableActions": "Actions disponibles",
-    "completeBeforeSignature": "Compléter le KYC avant la signature",
-    "debtIntro": "Aucune action n'est jamais bloquée. Le responsable conformité voit ici la dette accumulée et relance.",
-    "daysShort_one": "{{count}}j",
-    "daysShort_other": "{{count}}j",
-    "followUp": "Relancer",
-    "showcase": {
-      "contactBanner": "Fiche contact, banner doux (n'empêche aucune action)",
-      "dealBadge": "Carte deal, badge persistant",
-      "debtTable": "Tableau de dette, vu par le responsable"
-    }
-  },
-  "contactBento": {
-    "heading": "Conformité KYC / LBA",
-    "kpiRisk": "Risque",
-    "kpiDocs": "Pièces",
-    "kpiLastScreening": "Dernier screening",
-    "openDossier": "Ouvrir le dossier",
-    "followUpClient": "Relancer le client"
-  },
   "upload": {
     "title": "Ajouter une pièce",
     "subtitle": "PDF, JPG, PNG · 10 Mo max · Stockage chiffré",
@@ -816,13 +844,6 @@
     "medium": "Risque modéré",
     "high": "Risque élevé",
     "unassessed": "Non évalué"
-  },
-  "dealBadge": {
-    "verified": "KYC vérifié",
-    "pending": "KYC en cours",
-    "none": "KYC à faire",
-    "stale": "KYC périmé",
-    "failed": "KYC échec"
   },
   "mobile": {
     "back": "Plus",

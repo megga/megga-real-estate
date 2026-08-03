@@ -1,36 +1,94 @@
-// MEGGA — Page 404. Sobre, aux tokens du thème CRM (dark/light), sans dépendance
-// Property X (l'ancien 404 marketplace a été archivé hors repo le 2026-06-08).
-
+/**
+ * Page 404 de l'app — route `*`, publique (hors ProtectedRoute).
+ *
+ * Portée sur le gabarit Code AI X, celui de `sites/megga-vitrine/404.html` :
+ * l'agent qui tombe sur une URL morte de app.megga.ch voit la même page que s'il
+ * s'était trompé sur megga.ch. L'ancienne version était une composition maison
+ * aux tokens du thème CRM, sans parenté avec le reste de la marque.
+ *
+ * Rien n'est réinventé — markup et classes recopiés de la vitrine, servis par la
+ * feuille MEGGA X (transcription verbatim scopée `.megga-x`). Les deux voiles
+ * (`bg-image-gradient-overlay`, `_404-image-blur-overlay`) sont des dégradés CSS
+ * et un `backdrop-filter`, ils n'ont besoin d'aucun asset ; seule l'illustration
+ * en est une, copiée dans `public/megga-x/images/` avec ses deux variantes
+ * responsives.
+ *
+ * Une seule adaptation, assumée : le bouton ramène au tableau de bord et non à
+ * l'accueil de la vitrine. Quelqu'un qui se perd sur app.megga.ch veut rentrer
+ * dans l'app, pas en sortir. Le lien vers le centre d'aide est conservé de la
+ * version précédente — c'est le second recours quand la page cherchée existait.
+ *
+ * Texte en français, comme la page qu'elle remplace : les surfaces publiques de
+ * l'app ne passent pas par i18next (le garde `lint:i18n` ne couvre que les
+ * surfaces agent).
+ */
 import { Link } from 'react-router-dom'
 
+import { MeggaX, MxLink } from '@/components/megga-x'
 import { HELP_CENTER_URL } from '@/lib/help-articles'
+
+/** Illustration servie depuis public/megga-x/images (cf. en-tête). Renommée à la
+ *  copie : le nom d'origine annonçait le gabarit d'achat dans une URL publique. */
+const IMG = '/megga-x/images/404-illustration'
 
 export default function NotFoundPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-theme-page px-6 text-center">
-      <p className="text-sm font-medium tracking-wide text-theme-tertiary">Erreur 404</p>
-      <h1 className="mt-3 text-3xl font-semibold text-theme-primary md:text-4xl">
-        Page introuvable
-      </h1>
-      <p className="mt-3 max-w-md text-base text-theme-secondary">
-        La page que vous cherchez n'existe pas ou a été déplacée.
-      </p>
-      <div className="mt-8 flex items-center gap-3">
-        <Link
-          to="/dashboard"
-          className="rounded-lg border border-theme-border px-4 py-2 text-sm font-medium text-theme-secondary transition-colors hover:bg-theme-hover"
-        >
-          Retour au tableau de bord
-        </Link>
-        <a
-          href={HELP_CENTER_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-lg px-4 py-2 text-sm font-medium text-theme-tertiary transition-colors hover:text-theme-primary"
-        >
-          Centre d'aide
-        </a>
+    <MeggaX className="min-h-screen">
+      <div className="page-wrapper">
+        {/* Même en-tête que l'écran d'arrivée : le logo situe la marque sans
+            proposer une navigation qui vit sur l'autre domaine. */}
+        <div className="header pd-medium-top-and-bottom">
+          <div className="container-default w-container">
+            <div className="flex-horizontal">
+              <div className="header-logo">
+                <img src="/megga-logo.svg" alt="MEGGA" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section className="section overflow-hidden">
+          <div className="container-default w-container">
+            <div className="_404-top-image-wrapper">
+              <img
+                alt="Page introuvable — MEGGA"
+                loading="lazy"
+                sizes="(max-width: 1439px) 74vw, (max-width: 1919px) 59vw, 100vw"
+                src={`${IMG}.png`}
+                srcSet={`${IMG}-500.png 500w, ${IMG}-800.png 800w, ${IMG}.png 1700w`}
+              />
+              <div className="bg-image-gradient-overlay rectangle-gradient-bottom" />
+              <div className="_404-image-blur-overlay" />
+            </div>
+
+            <div className="inner-container _506px center">
+              <div className="position-relative---z-index-1">
+                <div className="text-center">
+                  <h1 className="mg-bottom-2x-extra-small">Page introuvable</h1>
+                  <div className="mg-bottom-small">
+                    <p className="paragraph-large">
+                      Cette page n&apos;existe pas, ou elle a changé d&apos;adresse. Rien de cassé
+                      chez vous : reprenons depuis votre tableau de bord.
+                    </p>
+                  </div>
+                  <div className="buttons-row">
+                    <Link className="primary-button w-inline-block" to="/dashboard">
+                      <div className="link-content-flex">
+                        <div>Retour au tableau de bord</div>
+                      </div>
+                    </Link>
+                  </div>
+                  <div className="mg-top-small">
+                    <MxLink href={HELP_CENTER_URL} target="_blank" rel="noopener noreferrer">
+                      Centre d&apos;aide
+                    </MxLink>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
-    </div>
+    </MeggaX>
   )
 }

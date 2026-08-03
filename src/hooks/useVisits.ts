@@ -17,6 +17,7 @@ import {
   useDeleteMutation,
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/types/database'
 import { useAuth } from '@/hooks/useAuth'
 import type { CalendarEvent, EventColor, VisitStatus } from '@/components/calendar/week-view-types'
 import type { TablesInsert } from '@/types/database'
@@ -283,13 +284,15 @@ export function useFocusVisits(limit = 100) {
 // new rows on next refetch (RLS-scoped data anyway).
 // ── Public visit lookup by manage token ──────────────────────────────────────
 
+// Pas de `manage_token` ici : la RPC ne renvoie plus le token dans sa réponse. Le
+// client le détient déjà (il est dans son lien) et aucun composant ne le lisait — le
+// réécho ne faisait que multiplier les endroits où un capability token peut fuiter.
 export interface PublicVisitData {
   id: string
   scheduled_at: string
   status: VisitStatus
   buyer_name: string | null
   buyer_email: string | null
-  manage_token: string
   property: { title: string; address: string; city: string; photos: string[] } | null
 }
 
@@ -298,19 +301,15 @@ export interface PublicVisitData {
 // sur une policy anon `manage_token IS NOT NULL` qui exposait TOUTES les
 // visites (faille advisor rls_policy_always_true) ; la RPC ne renvoie que la
 // visite dont le client détient le token (uuid = capability non devinable).
-// Les RPC token ne sont pas dans les types générés (database.ts en retard) →
-// cast localisé, même pattern que useFollowupSuggestions.
 /** Lecture publique d'une visite par capability token (RPC SECURITY DEFINER `get_visit_by_token`). */
 export function usePublicVisit(token: string | undefined) {
   return useRqQuery({
     queryKey: ['public-visit', token],
     queryFn: async (): Promise<PublicVisitData | null> => {
       if (!token) return null
-      const res = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>)(
-        'get_visit_by_token', { p_token: token },
-      )
+      const res = await supabase.rpc('get_visit_by_token', { p_token: token })
       if (res.error || !res.data) return null
-      return res.data as PublicVisitData
+      return res.data as unknown as PublicVisitData
     },
     enabled: !!token,
   })
@@ -320,26 +319,70 @@ export function usePublicVisit(token: string | undefined) {
 
 // Mutations par token — via RPC SECURITY DEFINER (mêmes transitions que les
 // anciens updates directs ; la policy anon UPDATE barn-door a été supprimée).
-const rpcByToken = (fn: string, args: Record<string, unknown>) =>
-  (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>)(fn, args)
+// `fn` prend l'union des noms connus de `database.ts`, pas `string` : un dispatcher typé
+// `string` éteint la vérification pour TOUS ses appelants d'un coup.
+//
+// Et `args` est indexé PAR le nom : un `Record<string, unknown>` laissait passer
+// `{ p_token_TYPO: … }` en silence, pour finir en PGRST202 à l'exécution — sur des gestes
+// publics par token, donc côté acheteur non authentifié. Le cast est confiné à cette
+// ligne : TS ne sait pas resoudre `Args` sur un `N` encore générique, mais chaque appelant,
+// lui, passe un nom littéral et voit donc ses arguments vérifiés.
+type PgFns = Database['public']['Functions']
+
+const rpcByToken = <N extends keyof PgFns>(fn: N, args: PgFns[N]['Args']) =>
+  supabase.rpc(fn, args as never)
+
+/**
+ * Message porté par un refus de geste public. Distinct d'une panne réseau : le
+ * lien a été compris, il n'ouvre simplement plus ce droit-là.
+ */
+export const VISIT_TOKEN_REFUSED = 'visit_token_refused'
+
+/**
+ * Distingue un REFUS (le lien a été compris, il n'ouvre plus ce droit) d'une PANNE
+ * (réseau, 500). Les deux doivent se dire différemment à l'acheteur : « contactez
+ * votre agent » sur un refus, « réessayez » sur une panne. Les confondre enverrait
+ * appeler l'agence pour une coupure Wi-Fi.
+ */
+export const estRefus = (e: unknown): boolean =>
+  e instanceof Error && e.message === VISIT_TOKEN_REFUSED
+
+/**
+ * Les trois gestes par token renvoient un `boolean` : `false` = refus métier
+ * (jeton hors fenêtre, visite déjà annulée/close, avis déjà déposé), et non une
+ * erreur PostgREST. Sans cette conversion, `error` est `null`, la mutation
+ * réussit, et la page affiche son écran de succès pour un geste qui n'a rien
+ * écrit — l'acheteur croit sa visite annulée, l'agent n'est jamais prévenu et se
+ * déplace. Le refus doit donc voyager comme une exception, pas comme un `false`
+ * silencieux.
+ */
+type GestePublic = 'reschedule_visit_by_token' | 'cancel_visit_by_token' | 'submit_visit_feedback_by_token'
+
+async function gesteParJeton<N extends GestePublic>(fn: N, args: PgFns[N]['Args']): Promise<void> {
+  // Même confinement que `rpcByToken` juste au-dessus : sur un `N` encore générique, TS
+  // ne sait pas réduire `Returns`, alors que les trois gestes rendent tous un booléen.
+  // L'annotation est bornée à cette ligne ; `N` continue de faire vérifier les arguments
+  // chez chaque appelant, qui passe un nom littéral.
+  const { data, error } = (await rpcByToken(fn, args)) as {
+    data: boolean | null
+    error: { message: string } | null
+  }
+  if (error) throw new Error(error.message)
+  if (data !== true) throw new Error(VISIT_TOKEN_REFUSED)
+}
 
 /** Replanification publique (par token) via RPC `reschedule_visit_by_token`. */
 export function useRescheduleVisit() {
   return useMutation({
-    mutationFn: async ({ token, newDate }: { token: string; newDate: string }) => {
-      const { error } = await rpcByToken('reschedule_visit_by_token', { p_token: token, p_new_at: newDate })
-      if (error) throw new Error(error.message)
-    },
+    mutationFn: ({ token, newDate }: { token: string; newDate: string }) =>
+      gesteParJeton('reschedule_visit_by_token', { p_token: token, p_new_at: newDate }),
   })
 }
 
 /** Annulation publique (par token) via RPC `cancel_visit_by_token`. */
 export function useCancelVisit() {
   return useMutation({
-    mutationFn: async (token: string) => {
-      const { error } = await rpcByToken('cancel_visit_by_token', { p_token: token })
-      if (error) throw new Error(error.message)
-    },
+    mutationFn: (token: string) => gesteParJeton('cancel_visit_by_token', { p_token: token }),
   })
 }
 
@@ -357,10 +400,10 @@ export interface VisitFeedbackInput {
 /** Dépôt public du feedback visite (note + objections/intérêt) via RPC `submit_visit_feedback_by_token`. */
 export function useSubmitFeedback() {
   return useMutation({
-    mutationFn: async (input: VisitFeedbackInput) => {
+    mutationFn: (input: VisitFeedbackInput) =>
       // Même capability token que la lecture/replanification : RPC SECURITY DEFINER
       // (submit_visit_feedback_by_token) — l'update direct anon n'existe plus.
-      const { error } = await rpcByToken('submit_visit_feedback_by_token', {
+      gesteParJeton('submit_visit_feedback_by_token', {
         p_token: input.token,
         p_rating: input.rating,
         p_comment: input.comment || '',
@@ -369,8 +412,6 @@ export function useSubmitFeedback() {
           objections: input.objections,
           offer_interest: input.offerInterest,
         },
-      })
-      if (error) throw new Error(error.message)
-    },
+      }),
   })
 }

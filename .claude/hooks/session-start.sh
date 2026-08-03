@@ -66,12 +66,17 @@ else
   echo "migrations : up to date with origin/main"
 fi
 
-# 5. Liveness check on the production /louer page.
-http=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 https://megga.ch/louer 2>/dev/null || echo "000")
+# 5. Liveness check on the production vitrine (megga.ch).
+# On sonde la RACINE : c'est une page PUBLIQUE du gate Basic Auth pré-lancement
+# (sites/megga-vitrine/_worker.js), donc un 200 prouve que la vitrine ET son
+# worker sont en vie. L'ancienne sonde visait /louer, qui n'est plus une page
+# de la vitrine depuis le pivot CRM-first et répond 401 par construction
+# (défaut du gate) — elle criait ⚠ à chaque session sans aucune panne.
+http=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 https://megga.ch/ 2>/dev/null || echo "000")
 case "$http" in
-  200) echo "/louer     : 200 OK" ;;
-  000) echo "/louer     : timeout / no response  ⚠" ;;
-  *)   echo "/louer     : HTTP $http  ⚠" ;;
+  200) echo "vitrine    : 200 OK" ;;
+  000) echo "vitrine    : timeout / no response  ⚠" ;;
+  *)   echo "vitrine    : HTTP $http  ⚠" ;;
 esac
 
 # 6. Warm ruflo's ephemeral memory with the committed MEGGA system knowledge.

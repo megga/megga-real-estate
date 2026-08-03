@@ -6,37 +6,51 @@
     "mobileNotice": {
       "eyebrow": "Étape obligatoire",
       "title": "Cette étape se termine sur ordinateur",
-      "body": "La saisie de l'identité légale de votre agence nécessite un écran plus grand. Connectez-vous depuis un ordinateur pour la terminer."
+      "body": "Cette saisie demande un écran plus grand. Reprenez-la depuis un ordinateur."
+    },
+    "welcome": {
+      "title": "Ouvrons votre espace",
+      "body": "Nous allons commencer par identifier votre agence.",
+      "startButton": "Identifier mon agence"
     },
     "pendingNotice": {
-      "eyebrow": "Saisie interrompue",
-      "title": "Votre saisie a été interrompue",
-      "body": "Rien n'est perdu : chaque étape validée par Continuer est déjà enregistrée dans nos systèmes, qui en restent la source. Reprenez la saisie quand vous le souhaitez, vous retrouverez exactement ce que vous aviez déjà renseigné.",
+      "title": "Votre saisie est en pause",
+      "body": "Chaque étape validée est déjà enregistrée. Revenez quand vous voulez, vous retrouverez votre saisie.",
       "resumeButton": "Reprendre la saisie"
     }
   },
   "wizard": {
     "steps": {
+      "ariaLabel": "Étapes",
       "signataire": "Signataire",
       "agence": "Agence",
-      "beneficiaires": "Bénéficiaires",
       "pieceIdentite": "Pièce d'identité",
       "recapitulatif": "Récapitulatif"
+    },
+    "header": {
+      "language": "Langue de l'interface",
+      "languageLoading": "Chargement de la langue…"
+    },
+    "date": {
+      "open": "Choisir une date",
+      "placeholder": "JJ.MM.AAAA",
+      "previousMonth": "Mois précédent",
+      "nextMonth": "Mois suivant",
+      "month": "Mois",
+      "year": "Année",
+      "clear": "Effacer la date"
     },
     "footer": {
       "continue": "Continuer",
       "saving": "Enregistrement…",
-      "saved": "Enregistré",
-      "autosave": "Sauvegardé à chaque étape",
       "unknownError": "Une erreur inconnue est survenue.",
       "submit": "Soumettre le dossier",
       "submitting": "Soumission en cours…",
       "exit": "Reprendre plus tard"
     },
     "signataire": {
-      "eyebrow": "Signataire autorisé",
       "title": "Qui est autorisé à signer pour l'agence ?",
-      "subtitle": "Indiquez l'identité de la personne habilitée à engager l'agence. Nous collectons ces informations dans le cadre de nos contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA).",
+      "subtitle": "La personne habilitée à engager votre agence. Nous collectons ces informations au titre de la loi suisse sur le blanchiment d'argent (LBA).",
       "fields": {
         "firstName": "Prénom",
         "lastName": "Nom",
@@ -53,66 +67,104 @@
       }
     },
     "agence": {
-      "eyebrow": "Identité de l'agence",
       "title": "Quelle est l'identité légale de votre agence ?",
-      "subtitle": "Ces informations doivent correspondre exactement à celles de votre registre du commerce. Nous les collectons dans le cadre de nos contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA).",
+      "subtitle": "Elles doivent correspondre exactement à votre inscription au registre du commerce.",
       "fields": {
         "country": "Pays du siège",
         "countryPlaceholder": "Sélectionner un pays",
         "legalFormId": "Forme juridique",
         "legalFormPlaceholder": "Sélectionner une forme juridique",
-        "legalFormPlaceholderNoCountry": "Choisissez d'abord le pays du siège",
+        "legalFormPlaceholderNoCountry": "Choisissez d'abord le pays",
         "legalName": "Raison sociale",
-        "legalNameHint": "La dénomination officielle inscrite au registre du commerce.",
-        "tradeName": "Nom commercial",
-        "tradeNameHint": "Le nom sous lequel votre agence est connue de vos clients, si différent de la raison sociale. Utilisé pour vérifier votre site internet.",
         "businessRegistrationNumber": "Numéro de registre",
-        "tva": "Numéro de TVA",
-        "tvaHint": "Facultatif : ne concerne que les entités assujetties à la TVA.",
         "address": "Adresse",
         "postal": "NPA",
         "city": "Ville",
         "canton": "Canton",
         "cantonPlaceholder": "Sélectionner un canton"
-      }
-    },
-    "beneficiaires": {
-      "eyebrow": "Bénéficiaires effectifs",
-      "title": "Qui sont les bénéficiaires effectifs de votre agence ?",
-      "subtitle": "Indiquez les personnes physiques qui détiennent ou contrôlent l'agence. Nous recueillons ces informations dans le cadre de nos contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA). Le seuil de référence est de 25 % (norme du GAFI) : c'est une aide à la saisie, vous pouvez déclarer une personne même en dessous.",
-      "reuseSignataire": "Reprendre {{name}} (signataire)",
-      "addButton": "Ajouter un bénéficiaire effectif",
-      "emptyHint": "Aucun bénéficiaire effectif déclaré pour l'instant. C'est possible si aucune personne physique ne détient ou ne contrôle seule 25 % ou plus de l'agence : déclarez alors la personne qui la contrôle autrement, ou à défaut un membre de l'organe supérieur de direction.",
-      "removeButton": "Retirer ce bénéficiaire effectif",
-      "fields": {
-        "firstName": "Prénom",
-        "lastName": "Nom",
-        "dateOfBirth": "Date de naissance",
-        "nationality": "Nationalité",
-        "nationalityPlaceholder": "Sélectionner un pays",
-        "ownershipPct": "Pourcentage de détention",
-        "ownershipPctHint": "Seuil de référence (norme du GAFI) : 25 % ou plus. Vous pouvez indiquer une valeur inférieure."
       },
-      "pep": {
-        "label": "Cette personne est-elle une personne politiquement exposée (PEP) ?",
-        "yes": "Oui",
-        "yesHint": "Exerce ou a exercé une fonction publique importante, en Suisse ou à l'étranger, ou est un proche d'une telle personne.",
-        "no": "Non",
-        "noHint": "N'exerce aucune fonction publique importante."
+      "company": {
+        "search": "Chercher",
+        "searching": "Recherche…",
+        "noResults": "Aucune société trouvée à ce nom au registre du commerce.",
+        "error": "Le registre du commerce n'a pas répondu.",
+        "listLabel": "Sociétés trouvées au registre",
+        "inactive": " · radiée"
+      },
+      "address": {
+        "placeholder": "Rue et numéro",
+        "noResults": "Aucune adresse trouvée. Vous pouvez la saisir à la main.",
+        "error": "Le registre des adresses n'a pas répondu. Vous pouvez saisir l'adresse à la main.",
+        "listLabel": "Adresses proposées"
       }
     },
     "pieceIdentite": {
-      "eyebrow": "Pièce d'identité",
       "title": "Téléversez la pièce d'identité du signataire",
-      "subtitle": "Recto et verso d'une pièce d'identité en cours de validité (carte d'identité, passeport ou titre de séjour). Ce document est examiné par un membre de notre équipe conformité ; aucune vérification automatique n'est effectuée à ce stade.",
+      "subtitle": "Une pièce en cours de validité : passeport, carte d'identité ou titre de séjour. Indiquez sa nature, puis photographiez les faces demandées. Un membre de notre équipe conformité l'examine.",
       "missingSignataire": "Le signataire doit d'abord être renseigné à l'étape précédente.",
+      "verification": {
+        "title": "Vérifiez votre identité",
+        "body": "Photographiez votre pièce et votre visage. La vérification se fait chez notre prestataire : la photo de votre pièce ne nous est jamais transmise.",
+        "cta": "Vérifier mon identité",
+        "retryCta": "Reprendre la vérification",
+        "pendingTitle": "Vérification en cours",
+        "pendingBody": "Le résultat arrive dans quelques instants. Vous pouvez continuer, nous le rattacherons à votre dossier.",
+        "doneTitle": "Identité vérifiée",
+        "doneBody": "Votre pièce a été vérifiée et votre visage comparé à sa photo. Notre équipe conformité examine ensuite le dossier.",
+        "useManual": "Déposer ma pièce à la place",
+        "privacy": "Notre prestataire conserve la pièce pour son contrôle ; MEGGA ne reçoit que le résultat et la date d'expiration.",
+        "errors": {
+          "consent_declined": "Vous avez refusé la vérification. Déposez votre pièce ci-dessous, notre équipe l'examinera.",
+          "under_supported_age": "La vérification en ligne ne couvre pas les personnes de moins de 16 ans.",
+          "country_not_supported": "Votre pays n'est pas couvert par la vérification en ligne. Déposez votre pièce ci-dessous.",
+          "document_expired": "La pièce présentée est expirée. Reprenez avec une pièce en cours de validité.",
+          "document_type_not_supported": "Ce type de document n'est pas accepté. Un passeport ou une carte d'identité conviennent.",
+          "document_unverified_other": "La pièce n'a pas pu être vérifiée. Reprenez avec un meilleur éclairage.",
+          "selfie_face_mismatch": "Le visage ne correspond pas à la photo de la pièce. Reprenez la vérification.",
+          "selfie_manipulated": "La photo du visage semble retouchée. Reprenez la vérification.",
+          "selfie_document_missing_photo": "La pièce présentée ne porte pas de photo. Utilisez un passeport ou une carte d'identité.",
+          "selfie_unverified_other": "Le visage n'a pas pu être vérifié. Reprenez la vérification.",
+          "abandoned": "La vérification a été interrompue. Vous pouvez la reprendre.",
+          "unknown": "La vérification n'a pas abouti. Vous pouvez la reprendre ou déposer votre pièce ci-dessous."
+        }
+      },
+      "documentType": {
+        "label": "Nature de la pièce",
+        "options": {
+          "passport": "Passeport",
+          "id_card": "Carte d'identité",
+          "residence_permit": "Titre de séjour"
+        },
+        "hints": {
+          "passport": "Une seule page à photographier",
+          "id_card": "Les deux faces sont demandées",
+          "residence_permit": "Les deux faces sont demandées"
+        }
+      },
       "sides": {
         "recto": "Recto",
-        "verso": "Verso"
+        "verso": "Verso",
+        "dataPage": "Page de données"
       },
       "dropHint": "Cliquez pour sélectionner un fichier",
       "formatHint": "JPG, PNG, WEBP ou PDF, 8 Mo maximum",
       "replaceHint": "Cliquez pour remplacer",
+      "zoomOpen": "Agrandir le {{side}}",
+      "zoomClose": "Fermer",
+      "zoomHint": "Vérifiez que le document est net et que les quatre coins sont visibles. Sinon, remplacez-le.",
+      "openPdf": "Ouvrir le PDF",
+      "read": {
+        "running": "Lecture de la pièce en cours…",
+        "verdict": {
+          "match": "La pièce lue correspond à l'identité que vous avez saisie.",
+          "partial": "La pièce lue correspond en partie à l'identité que vous avez saisie. Relisez l'étape signataire avant de continuer.",
+          "mismatch": "La pièce lue ne correspond pas à l'identité que vous avez saisie. Vérifiez que c'est bien la bonne pièce.",
+          "unreadable": "La pièce n'a pas pu être lue. Une photo plus nette aide, mais vous pouvez continuer."
+        },
+        "expired": "Cette pièce semble expirée depuis le {{date}}.",
+        "typeDiffers": "La pièce lue ne semble pas être celle que vous avez indiquée.",
+        "disclaimer": "Lecture automatique, à titre indicatif : c'est notre équipe conformité qui examine la pièce."
+      },
       "errors": {
         "format": "Format accepté : JPG, PNG, WEBP ou PDF.",
         "size": "Taille maximale : 8 Mo.",
@@ -121,26 +173,24 @@
       }
     },
     "recap": {
-      "eyebrow": "Récapitulatif",
       "title": "Vérifiez votre dossier avant de le soumettre",
-      "subtitle": "Relisez chaque section ci-dessous. Vous pouvez encore modifier une étape avant de soumettre.",
+      "subtitle": "Relisez chaque section. Vous pouvez encore modifier une étape.",
       "notProvided": "Non renseigné",
-      "beneficiaires": {
-        "empty": "Aucun bénéficiaire effectif déclaré.",
-        "ownership": "{{pct}} % de détention"
-      },
       "pieceIdentite": {
         "uploaded": "Déposé",
         "missing": "Manquant",
         "loading": "Vérification des documents déposés…",
-        "loadFailed": "Impossible de vérifier les documents déposés. Réessayez."
+        "loadFailed": "Impossible de vérifier les documents déposés. Réessayez.",
+        "statusLabel": "Vérification",
+        "verified": "Identité vérifiée chez notre prestataire",
+        "processing": "Vérification en cours de traitement"
       },
       "attestation": "J'atteste que les informations ci-dessus sont exactes et complètes, à ma connaissance.",
       "errors": {
-        "legalName": "La raison sociale de l'agence est manquante. Complétez l'étape Agence avant de soumettre.",
-        "legalForm": "La forme juridique de l'agence est manquante. Complétez l'étape Agence avant de soumettre.",
-        "country": "Le pays du siège de l'agence est manquant. Complétez l'étape Agence avant de soumettre.",
-        "signatory": "Aucun signataire actif n'est enregistré. Complétez l'étape Signataire avant de soumettre.",
+        "legalName": "Raison sociale manquante. Complétez l'étape Agence.",
+        "legalForm": "Forme juridique manquante. Complétez l'étape Agence.",
+        "country": "Pays du siège manquant. Complétez l'étape Agence.",
+        "signatory": "Aucun signataire actif. Complétez l'étape Signataire.",
         "generic": "La soumission a échoué. Réessayez."
       }
     }
@@ -149,46 +199,46 @@
     "banner": {
       "notSubmitted": {
         "title": "Vérification d'identité non soumise",
-        "bodyAdmin": "Complétez la vérification d'identité de votre agence pour débloquer l'ouverture de dossiers KYC et les signatures électroniques.",
-        "bodyOther": "Un administrateur ou un gérant de votre agence doit compléter la vérification d'identité avant l'ouverture d'un dossier KYC ou l'envoi d'une signature électronique."
+        "bodyAdmin": "Complétez la vérification d'identité pour ouvrir des dossiers KYC et envoyer des signatures.",
+        "bodyOther": "Un administrateur ou un gérant doit compléter la vérification d'identité de votre agence."
       },
       "pendingReview": {
         "title": "Vérification en cours de revue",
-        "body": "L'équipe MEGGA doit valider l'identité de votre agence avant l'ouverture de dossiers KYC et les signatures électroniques. Revenez plus tard, le statut se met à jour automatiquement."
+        "body": "Nous validons l'identité de votre agence. Le statut se met à jour automatiquement."
       },
       "rejected": {
         "title": "Vérification refusée",
-        "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Renvoyer le formulaire ne relance pas d'examen : contactez le support MEGGA pour connaître le motif et la marche à suivre."
+        "body": "L'identité de votre agence n'a pas été validée. Renvoyer le formulaire ne relance pas l'examen : contactez le support."
       },
       "cta": "Compléter la vérification",
       "contactSupport": "Contacter le support",
       "correctionRequested": {
         "title": "Correction demandée",
-        "body": "L'équipe MEGGA vous demande de corriger votre saisie d'identité avant de poursuivre. Le détail vous a été envoyé par e-mail. Reprenez le formulaire, puis soumettez à nouveau."
+        "body": "Une correction vous a été demandée par e-mail. Reprenez le formulaire, puis soumettez à nouveau."
       }
     },
     "block": {
-      "checking": "Vérification du statut de votre agence avant l'ouverture d'un dossier KYC…",
+      "checking": "Vérification du statut de votre agence…",
       "notSubmitted": {
         "eyebrow": "Vérification d'identité requise",
-        "title": "La vérification d'identité de votre agence n'a pas encore été soumise",
-        "bodyAdmin": "MEGGA vérifie l'identité de chaque agence avant l'ouverture d'un dossier KYC client ou l'envoi d'une signature électronique, dans le cadre de ses contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA). En tant qu'administrateur ou gérant, vous pouvez compléter cette vérification maintenant.",
-        "bodyOther": "MEGGA vérifie l'identité de chaque agence avant l'ouverture d'un dossier KYC client ou l'envoi d'une signature électronique, dans le cadre de ses contrôles de conformité, au sens de la loi suisse sur le blanchiment d'argent (LBA). Seul un administrateur ou un gérant de votre agence peut compléter cette vérification."
+        "title": "Vérifiez l'identité de votre agence",
+        "bodyAdmin": "Nous vérifions l'identité de chaque agence avant tout dossier KYC ou signature électronique, au titre de la loi suisse sur le blanchiment d'argent (LBA). Vous pouvez la compléter maintenant.",
+        "bodyOther": "Nous vérifions l'identité de chaque agence avant tout dossier KYC ou signature électronique, au titre de la loi suisse sur le blanchiment d'argent (LBA). Seul un administrateur ou un gérant peut la compléter."
       },
       "pendingReview": {
         "eyebrow": "Vérification en cours",
-        "title": "Le dossier de vérification de votre agence est en cours de revue",
-        "body": "Votre dossier a été transmis à l'équipe MEGGA. Un membre de l'équipe doit valider l'identité de votre agence avant que l'ouverture de dossiers KYC et les signatures électroniques soient possibles. Revenez consulter cet écran plus tard, le statut se met à jour dès qu'une décision est prise."
+        "title": "Nous examinons votre dossier",
+        "body": "Votre dossier est entre les mains de notre équipe conformité. Le statut se met à jour dès qu'une décision est prise."
       },
       "rejected": {
         "eyebrow": "Vérification refusée",
-        "title": "Le dossier de vérification de votre agence a été refusé",
-        "body": "L'équipe MEGGA n'a pas validé l'identité de votre agence. Renvoyer le formulaire ne relance pas d'examen : contactez le support MEGGA pour comprendre le motif et connaître la marche à suivre."
+        "title": "Votre dossier n'a pas été validé",
+        "body": "Renvoyer le formulaire ne relance pas l'examen. Contactez le support pour connaître le motif et la marche à suivre."
       },
       "unavailable": {
         "eyebrow": "Statut de vérification indisponible",
-        "title": "Impossible de lire le statut de vérification de votre agence",
-        "body": "Ce n'est pas une décision concernant votre dossier : la lecture du statut a échoué, probablement à cause d'une connexion interrompue ou d'un service momentanément indisponible. L'ouverture d'un dossier KYC reste impossible tant que ce statut n'est pas confirmé. Réessayez dans un instant ; si le problème persiste, contactez le support MEGGA.",
+        "title": "Statut de vérification illisible",
+        "body": "Votre dossier n'est pas en cause : c'est la lecture du statut qui a échoué. Réessayez dans un instant, puis contactez le support si cela persiste.",
         "retry": "Réessayer"
       },
       "cta": "Compléter la vérification",
@@ -196,8 +246,95 @@
       "contactSupport": "Contacter le support",
       "correctionRequested": {
         "eyebrow": "Correction demandée",
-        "title": "Votre saisie d'identité doit être corrigée",
-        "body": "L'équipe MEGGA a examiné votre dossier et vous demande une correction avant de valider. Le détail de ce qui doit changer vous a été envoyé par e-mail. Reprenez le formulaire d'identité, corrigez, puis soumettez à nouveau : l'examen reprendra automatiquement."
+        "title": "Une correction est demandée",
+        "body": "Le détail vous a été envoyé par e-mail. Corrigez votre saisie, puis soumettez à nouveau : l'examen reprend automatiquement."
+      }
+    }
+  },
+  "call": {
+    "intro": {
+      "title": "Reservez votre appel d'accueil",
+      "body": "Votre dossier est parti en revue. Prenons 30 minutes ensemble pour faire le tour de votre installation et repondre a vos questions."
+    },
+    "picker": {
+      "weekdays": [
+        "Lun",
+        "Mar",
+        "Mer",
+        "Jeu",
+        "Ven",
+        "Sam",
+        "Dim"
+      ],
+      "prevMonth": "Mois precedent",
+      "nextMonth": "Mois suivant",
+      "slotsTitle": "Horaires",
+      "pickDayFirst": "Choisissez un jour dans le calendrier pour voir les horaires libres.",
+      "noSlotThatDay": "Plus rien de libre ce jour la.",
+      "timezoneHint": "Horaires affiches dans votre fuseau : {{timezone}}"
+    },
+    "form": {
+      "phone": "Telephone (facultatif)",
+      "phonePlaceholder": "+41 22 000 00 00",
+      "note": "Un mot sur vos priorites (facultatif)",
+      "notePlaceholder": "Ce que vous aimeriez voir en premier"
+    },
+    "actions": {
+      "confirm": "Confirmer le rendez-vous",
+      "later": "Plus tard",
+      "continue": "Continuer vers mon espace"
+    },
+    "confirmed": {
+      "title": "C'est reserve",
+      "join": "Rejoindre la visioconference",
+      "emailSent": "Un e-mail de confirmation vous attend, avec le lien et de quoi replanifier si besoin.",
+      "toDashboard": "Aller a mon espace"
+    },
+    "empty": {
+      "noHost": "Aucun creneau n'est ouvert pour le moment. Nous revenons vers vous par e-mail des que possible.",
+      "noSlot": "Plus aucun creneau libre sur cette periode. Essayez le mois suivant, ou continuez : nous vous ecrirons."
+    },
+    "errors": {
+      "slot_taken": "Ce creneau vient d'etre pris. Choisissez-en un autre.",
+      "already_booked": "Votre agence a deja un appel reserve.",
+      "no_host_available": "Aucun hote disponible pour le moment.",
+      "slot_in_past": "Ce creneau est deja passe.",
+      "call_in_past": "Ce rendez-vous est deja passe.",
+      "call_not_active": "Ce rendez-vous n'est plus actif.",
+      "reschedule_limit_reached": "Limite de replanifications atteinte. Ecrivez-nous pour trouver une autre date.",
+      "generic": "Le rendez-vous n'a pas pu etre enregistre. Reessayez dans un instant."
+    },
+    "banner": {
+      "pending": {
+        "title": "Reservez votre appel d'accueil",
+        "body": "30 minutes avec notre equipe pour prendre en main MEGGA.",
+        "cta": "Choisir un creneau"
+      },
+      "booked": {
+        "title": "Appel d'accueil prevu",
+        "join": "Rejoindre"
+      }
+    },
+    "public": {
+      "loading": "Chargement de votre rendez-vous...",
+      "title": "Votre appel d'accueil MEGGA",
+      "invalid": {
+        "title": "Lien introuvable",
+        "body": "Ce lien n'est plus valide. Verifiez l'adresse recue par e-mail, ou ecrivez-nous."
+      },
+      "notActive": "Ce rendez-vous a ete annule ou est deja passe.",
+      "tooLate": "Ce rendez-vous a lieu tres bientot : il ne peut plus etre modifie ici.",
+      "reschedule": "Replanifier",
+      "cancel": "Annuler le rendez-vous",
+      "back": "Retour",
+      "confirmReschedule": "Confirmer la nouvelle date",
+      "cancelled": {
+        "title": "Rendez-vous annule",
+        "body": "C'est note. Vous pouvez en reserver un nouveau depuis votre espace MEGGA."
+      },
+      "rescheduled": {
+        "title": "Nouvelle date enregistree",
+        "body": "Un e-mail de confirmation part a l'instant, avec la date mise a jour."
       }
     }
   }

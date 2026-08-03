@@ -501,21 +501,6 @@
       "email": "Hello {{firstName}},\n\nFollowing our conversation, I am pleased to present a property that matches your criteria:\n\n{{title}}\n{{address}}, {{city}}\nPrice: {{price}}\n{{rooms}} rooms · {{surface}} m²\n\nWould you like to arrange a viewing? I remain at your disposal.\n\nKind regards,\nGregory Lyonnet\nMEGGA Immobilier"
     }
   },
-  "scoreCard": {
-    "reason": {
-      "budget": "Budget",
-      "zone": "Area",
-      "type": "Type",
-      "surface": "Surface",
-      "extras": "Extras"
-    },
-    "missing": "Missing: {{list}}",
-    "niceToHave": "+ {{list}}",
-    "daysOnMarket_one": "{{count}}d online",
-    "daysOnMarket_other": "{{count}}d online",
-    "sentVia": "Sent · {{channel}}",
-    "visit": "Viewing"
-  },
   "mobile": {
     "activeBuyers_one": "{{count}} active buyer",
     "activeBuyers_other": "{{count}} active buyers",

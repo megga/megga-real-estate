@@ -18,8 +18,10 @@ import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens
 import { useDarkTone } from '@/hooks/useDarkTone'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import LabGuardBanner from '@/components/layout/LabGuardBanner'
+import BootSplash from '@/components/layout/BootSplash'
+import OnboardingCallBanner from '@/components/layout/OnboardingCallBanner'
 import CrmSugarSearchHost from '@/components/crm-sugar/search/CrmSugarSearchHost'
-import { useIdentityGate, shouldRedirectToIdentityGate, IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
+import { useIdentityGate, shouldRedirectToIdentityGate, shouldHoldForIdentityGate, IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 
 /** Lit la préférence de thème sombre Sugar (fallback : préférence système). */
 // Mode sombre Sugar (même clé localStorage que les pages). Réactif : `storage`
@@ -84,6 +86,21 @@ function AgentSugarInner() {
   // sans ce second garde-fou, la page qui doit justement lever le statut 'required'
   // ne pourrait jamais se monter.
   const mustRedirectToIdentity = shouldRedirectToIdentityGate(identityGateStatus, location.pathname)
+  // …et tant que le statut n'est pas résolu, on ne rend PAS le CRM non plus :
+  // sans ça, le tableau de bord s'affichait une fraction de seconde avant que la
+  // lecture agence ne réponde 'required' et ne renvoie sur le wizard d'identité.
+  // On prolonge l'écran d'arrivée — le même que celui de ProtectedRoute, donc la
+  // bascule ne se voit pas — plutôt que d'ouvrir une porte qu'on va refermer.
+  //
+  // UNE SEULE FOIS, et c'est essentiel : retenir l'écran remplace l'<Outlet/>,
+  // donc DÉMONTE la page et son état. Un retour à 'loading' après coup ferait
+  // repartir le wizard d'identité de zéro en pleine saisie (cf. le JSDoc de
+  // shouldHoldForIdentityGate). Une fois le gate résolu, on ne retient plus rien.
+  const [gateResolvedOnce, setGateResolvedOnce] = useState(false)
+  useEffect(() => {
+    if (identityGateStatus !== 'loading') setGateResolvedOnce(true)
+  }, [identityGateStatus])
+  const holdForIdentity = shouldHoldForIdentityGate(identityGateStatus, gateResolvedOnce)
 
   return (
     // flex column pleine hauteur (correctif revue, point mineur) : les bandeaux
@@ -102,6 +119,9 @@ function AgentSugarInner() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <ImpersonateBanner />
       <LabGuardBanner />
+      {/* Après le garde LAB : celui-ci parle d'un dossier bloqué, celui-là d'un
+          rendez-vous à prendre. Le blocage passe d'abord. */}
+      <OnboardingCallBanner />
       {/* Le panneau MEGGA AI « pousse » le contenu de travail vers la gauche
           quand il est ouvert (COPILOT_WIDTH = panneau + gouttières). */}
       <div
@@ -112,7 +132,11 @@ function AgentSugarInner() {
           flex: '1 1 auto',
         }}
       >
-        {mustRedirectToIdentity ? <Navigate to={IDENTITY_GATE_ROUTE} replace /> : <Outlet />}
+        {holdForIdentity
+          ? <BootSplash />
+          : mustRedirectToIdentity
+            ? <Navigate to={IDENTITY_GATE_ROUTE} replace />
+            : <Outlet />}
       </div>
       <CrmSugarSearchHost />
       {/* Le panneau MEGGA AI est monté dans App.tsx (au-dessus de <Routes>)
