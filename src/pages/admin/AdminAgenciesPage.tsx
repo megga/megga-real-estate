@@ -174,11 +174,17 @@ export default function AdminAgenciesPage() {
 
   const { page, setPage, totalPages, paginated, perPage, total } = useClientPagination(filtered, ITEMS_PER_PAGE)
 
-  function handleToggleStatus(e: React.MouseEvent, agency: AgencyWithStats) {
+  /**
+   * Réactivation seule. La SUSPENSION a quitté cette liste le 03.08.2026 : elle
+   * vit sur la fiche agence, derrière une confirmation qui dit ce qu'elle fait.
+   * Ici, le clic partait sans le moindre garde-fou pour un geste qui bannit N
+   * comptes GoTrue — un survol maladroit suffisait. Réactiver, à l'inverse, ne
+   * détruit rien et n'a pas besoin d'être confirmé.
+   */
+  function handleReactivate(e: React.MouseEvent, agency: AgencyWithStats) {
     e.preventDefault()
     e.stopPropagation()
-    const newStatus = agency.status === 'active' ? 'suspended' : 'active'
-    updateStatus.mutate({ id: agency.id, status: newStatus })
+    updateStatus.mutate({ id: agency.id, status: 'active' })
   }
 
   const statusFilters = [
@@ -380,20 +386,22 @@ export default function AdminAgenciesPage() {
                 {(() => { const h = getHealth(agency); return <AgencyHealthBadge score={h.score} level={h.level} /> })()}
               </div>
 
-              {/* Action au survol */}
+              {/* Action au survol — réactivation SEULE (la suspension vit sur la fiche) */}
               <div style={{ width: COL.action, display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  className="agx-act"
-                  onClick={(e) => handleToggleStatus(e, agency)}
-                  style={{
-                    height: 28, padding: '0 12px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
-                    background: surf.card, boxShadow: sp.shadowSm,
-                    color: agency.status === 'active' ? tones.err : tones.ok,
-                  }}
-                >
-                  {agency.status === 'active' ? t('agencies.action.suspend') : t('agencies.action.activate')}
-                </button>
+                {agency.status === 'suspended' && (
+                  <button
+                    className="agx-act"
+                    onClick={(e) => handleReactivate(e, agency)}
+                    disabled={updateStatus.isPending}
+                    style={{
+                      height: 28, padding: '0 12px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                      fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
+                      background: surf.card, boxShadow: sp.shadowSm, color: tones.ok,
+                    }}
+                  >
+                    {t('agencies.action.activate')}
+                  </button>
+                )}
               </div>
             </Link>
           ))
