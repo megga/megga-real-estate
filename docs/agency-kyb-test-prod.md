@@ -50,6 +50,48 @@ la file de revue admin et les surfaces LAB/KYC. On polluerait le module que l'on
 
 ---
 
+## 1bis. Préalable Stripe Identity (depuis le 03.08.2026)
+
+L'étape « pièce d'identité » ne dépose plus un fichier chez MEGGA par défaut : elle ouvre
+une session **Stripe Identity**. Trois réglages vivent dans le tableau de bord Stripe et
+dans les secrets Supabase — hors dépôt, donc invérifiables par lecture du code. Tant
+qu'ils ne sont pas posés, la procédure ci-dessous reste exécutable **par le chemin de
+secours** (bouton « Déposer ma pièce à la place »), mais elle ne prouve rien du parcours
+vérifié.
+
+Mesuré en production le 03.08.2026 : `kyb-identity-verify` et `kyb-identity-read` sont
+`ACTIVE`, `STRIPE_SECRET_KEY` est posée (la fonction répond `401` et non `503`), et
+**0 session de vérification n'a jamais été ouverte** (`identity_verification_session_id`
+nul sur les 3 personnes liées existantes).
+
+| # | Geste | Où | Comment vérifier qu'il a pris |
+|---|---|---|---|
+| 1 | Abonner l'endpoint webhook aux événements `identity.verification_session.*` (les 4 : `verified`, `requires_input`, `processing`, `canceled`) | Stripe › Developers › Webhooks › l'endpoint `stripe-webhook` | Stripe › Webhooks › onglet des tentatives : un événement `identity.*` y apparaît après le passage de test |
+| 2 | Soumettre le formulaire d'activation Identity — motif **Regulatory Compliance** | Stripe › Identity › Get started | L'API cesse de refuser `verificationSessions.create` ; côté produit, le bouton ne retombe plus sur `verification_unavailable` (503) |
+| 3 | Poser `STRIPE_IDENTITY_FLOW_ID` (`vf_…`) dans les secrets Supabase | Supabase › Settings › Edge Functions › Secrets | Aucun oracle externe : le repli est **silencieux**. Se lit dans le tableau de bord Stripe, sur la session produite (`vs_…`), qui porte la configuration qui l'a créée |
+
+⛔ **Le n° 1 est le seul dont l'oubli ne se voit pas.** Sans abonnement, la session
+s'ouvre, le dirigeant fait tout le parcours, Stripe conclut — et rien ne redescend :
+la ligne reste en `processing` indéfiniment. Le parcours a l'air de marcher jusqu'au
+bout. Le vérifier **avant** le passage de test, pas après.
+
+⚠ Le n° 3 doit correspondre au **mode** de `STRIPE_SECRET_KEY` : un flux du mode test et
+son équivalent du mode réel portent deux `vf_…` distincts. Absent, `kyb-identity-verify`
+repose les mêmes options en clair (passeport + carte d'identité, selfie, capture en
+direct) — le parcours tourne, mais ce n'est plus le tableau de bord qui fait foi.
+
+⚠ La Suisse est en **bêta self-serve** chez Stripe Identity, pas en disponibilité
+générale. Un refus d'activation est un résultat possible du n° 2, et il n'a rien à voir
+avec le code.
+
+Ce que ce préalable ne lèvera pas : Stripe ne connaît **aucun titre de séjour**
+(`allowed_types` = `driving_license | id_card | passport`). Un dirigeant au livret B/C
+passe par son passeport d'origine ou par le dépôt manuel — c'est la raison pour laquelle
+le chemin de secours reste offert, et pourquoi les phases ci-dessous continuent de
+l'exercer.
+
+---
+
 ## 2. Phase 0 — Préflight en lecture seule
 
 **À faire en premier, et à rapporter même si l'on renonce au reste.** Aucune écriture, et
