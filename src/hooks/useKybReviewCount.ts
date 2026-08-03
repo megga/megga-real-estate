@@ -11,18 +11,9 @@
  * Renvoie 0 (jamais undefined) tant que la lecture n'a pas abouti : une pastille absente est
  * la seule affirmation sûre en l'absence de réponse — annoncer un nombre faux dans un rail
  * permanent serait pire que ne rien annoncer.
- *
- * Client casté (`db`) : `get_admin_agency_review_queue` n'est pas encore dans les types
- * générés (src/types/database.ts — auto-généré, en retard sur cette migration). Même trou,
- * même remède que useAdminKybReview.ts (qui consomme les 6 RPC de la même migration) : client
- * non paramétré, réponse re-typée à la main juste après. À nettoyer à la prochaine
- * régénération (`supabase gen types typescript --local`).
  */
 import { useQuery } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-
-const db = supabase as unknown as SupabaseClient
 
 /** Clé de cache unique — exportée pour que useAdminKybReview.ts (mutations validate /
  *  reject / relaunch / requestCorrection / resolveIdentityDocument) invalide la MÊME
@@ -52,10 +43,8 @@ export function useKybReviewCount(): { count: number } {
   const { data } = useQuery({
     queryKey: KYB_REVIEW_COUNT_KEY,
     queryFn: async (): Promise<number> => {
-      const { data, error } = (await db.rpc('get_admin_agency_review_queue', {
-        p_limit: 1,
-        p_offset: 0,
-      })) as unknown as { data: ReviewQueueHead[] | null; error: { message: string } | null }
+      const res = await supabase.rpc('get_admin_agency_review_queue', { p_limit: 1, p_offset: 0 })
+      const { data, error } = res as unknown as { data: ReviewQueueHead[] | null; error: { message: string } | null }
       if (error) throw new Error(error.message)
       const head = data?.[0]
       return head ? Number(head.total_count) : 0
