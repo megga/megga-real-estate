@@ -75,6 +75,7 @@ const NAV_SECTIONS: NavSection[] = [
     { labelKey: 'nav.adminUsers', href: '/users', icon: 'users' },
     { labelKey: 'nav.adminEndUsers', href: '/end-users', icon: 'users' },
     { labelKey: 'nav.adminModeration', href: '/moderation', icon: 'store' },
+    { labelKey: 'nav.adminOnboardingCalls', href: '/onboarding-calls', icon: 'calendar' },
   ]},
   { labelKey: 'nav.adminSectionRevenue', items: [
     { labelKey: 'nav.adminPlans', href: '/plans', icon: 'credit-card' },

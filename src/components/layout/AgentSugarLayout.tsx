@@ -19,6 +19,7 @@ import { useDarkTone } from '@/hooks/useDarkTone'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import LabGuardBanner from '@/components/layout/LabGuardBanner'
 import BootSplash from '@/components/layout/BootSplash'
+import OnboardingCallBanner from '@/components/layout/OnboardingCallBanner'
 import CrmSugarSearchHost from '@/components/crm-sugar/search/CrmSugarSearchHost'
 import { useIdentityGate, shouldRedirectToIdentityGate, shouldHoldForIdentityGate, IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 
@@ -118,6 +119,9 @@ function AgentSugarInner() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <ImpersonateBanner />
       <LabGuardBanner />
+      {/* Après le garde LAB : celui-ci parle d'un dossier bloqué, celui-là d'un
+          rendez-vous à prendre. Le blocage passe d'abord. */}
+      <OnboardingCallBanner />
       {/* Le panneau MEGGA AI « pousse » le contenu de travail vers la gauche
           quand il est ouvert (COPILOT_WIDTH = panneau + gouttières). */}
       <div

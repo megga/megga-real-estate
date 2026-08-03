@@ -31,6 +31,7 @@ const ADMIN_ROUTES: RouteSpec[] = [
   { path: `${BASE}/end-users`, label: 'Admin > Clients finaux' },
   { path: `${BASE}/monitoring`, label: 'Admin > Monitoring' },
   { path: `${BASE}/moderation`, label: 'Admin > Modération' },
+  { path: `${BASE}/onboarding-calls`, label: 'Admin > Appels d\'accueil' },
   { path: `${BASE}/compliance`, label: 'Admin > Compliance' },
   { path: `${BASE}/kyb-review`, label: 'Admin > Revue KYB' },
   { path: `${BASE}/changelog`, label: 'Admin > Communication' },

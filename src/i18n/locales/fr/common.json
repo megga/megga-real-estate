@@ -75,7 +75,8 @@
     "adminSectionOps": "Opérations",
     "adminSectionProduct": "Produit & IA",
     "adminEndUsers": "Clients finaux",
-    "adminKybReview": "Vérification KYB"
+    "adminKybReview": "Vérification KYB",
+    "adminOnboardingCalls": "Appels d'accueil"
   },
   "sections": {
     "main": "Principal",

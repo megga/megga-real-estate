@@ -664,6 +664,10 @@
   "agencyDetail": {
     "tab": {
       "usage": "Utilizzo e quote"
+    },
+    "onboardingCall": {
+      "title": "Chiamata di benvenuto",
+      "none": "Nessuna chiamata di benvenuto prenotata finora."
     }
   },
   "agencies": {
@@ -1039,5 +1043,113 @@
   "audit.family.comm": "Comunicazione",
   "audit.family.ai": "IA",
   "audit.family.ops": "Operazioni",
-  "audit.family.kyb": "KYB"
+  "audit.family.kyb": "KYB",
+  "onboardingCalls": {
+    "title": "Chiamate di benvenuto",
+    "subtitle": "Il calendario del team MEGGA e gli orari dei referenti.",
+    "error": "Lettura impossibile.",
+    "searchLabel": "Cercare una chiamata",
+    "searchPlaceholder": "Agenzia, referente, contatto...",
+    "tabs": {
+      "calls": "Appuntamenti",
+      "hosts": "Referenti"
+    },
+    "stats": {
+      "upcoming": "In arrivo",
+      "done": "Tenute",
+      "noShow": "Assenze",
+      "cancelled": "Annullate"
+    },
+    "filters": {
+      "all": "Tutte",
+      "confirmed": "Confermate",
+      "done": "Tenute",
+      "no_show": "Assenze",
+      "cancelled": "Annullate"
+    },
+    "status": {
+      "confirmed": "Confermata",
+      "done": "Tenuta",
+      "no_show": "Assenza",
+      "cancelled": "Annullata"
+    },
+    "table": {
+      "agency": "Agenzia",
+      "when": "Quando",
+      "host": "Referente",
+      "status": "Stato",
+      "actions": "Azioni",
+      "rescheduled": "riprogrammata {{count}} volte",
+      "openMeeting": "Aprire la videoconferenza"
+    },
+    "actions": {
+      "markDone": "Tenuta",
+      "markNoShow": "Assente",
+      "cancel": "Annullare"
+    },
+    "empty": {
+      "title": "Nessuna chiamata",
+      "hint": "Gli appuntamenti presi all'uscita del wizard d'identita appariranno qui."
+    },
+    "hosts": {
+      "dayNames": [
+        "Lunedi",
+        "Martedi",
+        "Mercoledi",
+        "Giovedi",
+        "Venerdi",
+        "Sabato",
+        "Domenica"
+      ],
+      "active": "Attivo",
+      "inactive": "Inattivo",
+      "activate": "Attivare",
+      "deactivate": "Disattivare",
+      "table": {
+        "host": "Referente",
+        "hours": "Orari",
+        "upcoming": "In arrivo",
+        "state": "Stato",
+        "rules": "{{duration}} min, margine {{buffer}} min, preavviso {{notice}} h, orizzonte {{horizon}} g"
+      },
+      "empty": {
+        "title": "Nessun referente",
+        "hint": "Senza referente attivo, nessuna agenzia puo prenotare."
+      },
+      "provisioningNote": "Aggiungere un referente o modificarne gli orari passa dalla RPC admin_upsert_onboarding_host. Questa schermata permette di attivarlo o disattivarlo.",
+      "addHost": "Aggiungere un referente",
+      "editHost": "Modificare",
+      "form": {
+        "addTitle": "Nuovo referente",
+        "editTitle": "Modificare il referente",
+        "close": "Chiudere",
+        "email": "E-mail del conto MEGGA",
+        "displayName": "Nome mostrato al cliente",
+        "timezone": "Fuso orario",
+        "weekly": "Fasce settimanali",
+        "addSlice": "Aggiungere una fascia",
+        "removeSlice": "Rimuovere questa fascia",
+        "duration": "Durata (min)",
+        "slot": "Passo (min)",
+        "buffer": "Margine dopo (min)",
+        "notice": "Preavviso (h)",
+        "horizon": "Orizzonte (g)",
+        "maxPerDay": "Max al giorno",
+        "noLimit": "senza limite",
+        "save": "Salvare",
+        "errors": {
+          "unknownEmail": "Nessun conto porta questa e-mail.",
+          "nameRequired": "Il nome mostrato e obbligatorio.",
+          "badSlice": "Una fascia e malformata : la fine deve seguire l inizio.",
+          "generic": "Il referente non e stato salvato."
+        }
+      }
+    },
+    "cancelConfirm": {
+      "title": "Annullare questa chiamata di benvenuto ?",
+      "message": "{{agency}} sara avvisata per e-mail e l'orario del {{when}} sara liberato nel calendario dell'host.",
+      "confirm": "Annullare la chiamata",
+      "busy": "Annullamento..."
+    }
+  }
 }

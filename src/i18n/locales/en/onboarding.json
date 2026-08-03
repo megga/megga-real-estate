@@ -250,5 +250,92 @@
         "body": "The details were sent to you by email. Correct your entry, then submit again: the review resumes automatically."
       }
     }
+  },
+  "call": {
+    "intro": {
+      "title": "Book your welcome call",
+      "body": "Your file is under review. Let us take 30 minutes to walk through your setup and answer your questions."
+    },
+    "picker": {
+      "weekdays": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "slotsTitle": "Times",
+      "pickDayFirst": "Pick a day in the calendar to see the free times.",
+      "noSlotThatDay": "Nothing left that day.",
+      "timezoneHint": "Times shown in your timezone : {{timezone}}"
+    },
+    "form": {
+      "phone": "Phone (optional)",
+      "phonePlaceholder": "+41 22 000 00 00",
+      "note": "A word on your priorities (optional)",
+      "notePlaceholder": "What you would like to see first"
+    },
+    "actions": {
+      "confirm": "Confirm the appointment",
+      "later": "Later",
+      "continue": "Continue to my workspace"
+    },
+    "confirmed": {
+      "title": "You are booked",
+      "join": "Join the video call",
+      "emailSent": "A confirmation email is waiting for you, with the link and a way to reschedule if needed.",
+      "toDashboard": "Go to my workspace"
+    },
+    "empty": {
+      "noHost": "No slot is open right now. We will come back to you by email as soon as we can.",
+      "noSlot": "Nothing free left in this period. Try the next month, or carry on : we will write to you."
+    },
+    "errors": {
+      "slot_taken": "That slot was just taken. Please pick another one.",
+      "already_booked": "Your agency already has a call booked.",
+      "no_host_available": "Nobody is available right now.",
+      "slot_in_past": "That slot is already in the past.",
+      "call_in_past": "This appointment is already in the past.",
+      "call_not_active": "This appointment is no longer active.",
+      "reschedule_limit_reached": "Reschedule limit reached. Write to us to find another date.",
+      "generic": "The appointment could not be saved. Please try again in a moment."
+    },
+    "banner": {
+      "pending": {
+        "title": "Book your welcome call",
+        "body": "30 minutes with our team to get started with MEGGA.",
+        "cta": "Pick a slot"
+      },
+      "booked": {
+        "title": "Welcome call scheduled",
+        "join": "Join"
+      }
+    },
+    "public": {
+      "loading": "Loading your appointment...",
+      "title": "Your MEGGA welcome call",
+      "invalid": {
+        "title": "Link not found",
+        "body": "This link is no longer valid. Check the address you received by email, or write to us."
+      },
+      "notActive": "This appointment was cancelled or has already passed.",
+      "tooLate": "This appointment is very soon : it can no longer be changed here.",
+      "reschedule": "Reschedule",
+      "cancel": "Cancel the appointment",
+      "back": "Back",
+      "confirmReschedule": "Confirm the new date",
+      "cancelled": {
+        "title": "Appointment cancelled",
+        "body": "Noted. You can book a new one from your MEGGA workspace."
+      },
+      "rescheduled": {
+        "title": "New date saved",
+        "body": "A confirmation email with the updated date is on its way."
+      }
+    }
   }
 }

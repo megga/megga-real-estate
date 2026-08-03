@@ -664,6 +664,10 @@
   "agencyDetail": {
     "tab": {
       "usage": "Usage & quotas"
+    },
+    "onboardingCall": {
+      "title": "Appel d'accueil",
+      "none": "Aucun appel d'accueil reserve a ce jour."
     }
   },
   "agencies": {
@@ -1039,5 +1043,113 @@
   "audit.family.comm": "Communication",
   "audit.family.ai": "IA",
   "audit.family.ops": "Exploitation",
-  "audit.family.kyb": "KYB"
+  "audit.family.kyb": "KYB",
+  "onboardingCalls": {
+    "title": "Appels d'accueil",
+    "subtitle": "Le carnet de l'equipe MEGGA et les horaires des hotes.",
+    "error": "Lecture impossible.",
+    "searchLabel": "Rechercher un appel",
+    "searchPlaceholder": "Agence, hote, contact...",
+    "tabs": {
+      "calls": "Rendez-vous",
+      "hosts": "Hotes"
+    },
+    "stats": {
+      "upcoming": "A venir",
+      "done": "Tenus",
+      "noShow": "Absences",
+      "cancelled": "Annules"
+    },
+    "filters": {
+      "all": "Tous",
+      "confirmed": "Confirmes",
+      "done": "Tenus",
+      "no_show": "Absences",
+      "cancelled": "Annules"
+    },
+    "status": {
+      "confirmed": "Confirme",
+      "done": "Tenu",
+      "no_show": "Absence",
+      "cancelled": "Annule"
+    },
+    "table": {
+      "agency": "Agence",
+      "when": "Quand",
+      "host": "Hote",
+      "status": "Statut",
+      "actions": "Actions",
+      "rescheduled": "replanifie {{count}} fois",
+      "openMeeting": "Ouvrir la visioconference"
+    },
+    "actions": {
+      "markDone": "Tenu",
+      "markNoShow": "Absent",
+      "cancel": "Annuler"
+    },
+    "empty": {
+      "title": "Aucun appel",
+      "hint": "Les rendez-vous pris a la sortie du wizard d'identite apparaitront ici."
+    },
+    "hosts": {
+      "dayNames": [
+        "Lundi",
+        "Mardi",
+        "Mercredi",
+        "Jeudi",
+        "Vendredi",
+        "Samedi",
+        "Dimanche"
+      ],
+      "active": "Actif",
+      "inactive": "Inactif",
+      "activate": "Activer",
+      "deactivate": "Desactiver",
+      "table": {
+        "host": "Hote",
+        "hours": "Horaires",
+        "upcoming": "A venir",
+        "state": "Etat",
+        "rules": "{{duration}} min, tampon {{buffer}} min, preavis {{notice}} h, horizon {{horizon}} j"
+      },
+      "empty": {
+        "title": "Aucun hote",
+        "hint": "Sans hote actif, aucune agence ne peut reserver."
+      },
+      "provisioningNote": "Sans hote actif, l'ecran de reservation annonce honnetement qu'aucun creneau n'est ouvert.",
+      "addHost": "Ajouter un hote",
+      "editHost": "Modifier",
+      "form": {
+        "addTitle": "Nouvel hote",
+        "editTitle": "Modifier l'hote",
+        "close": "Fermer",
+        "email": "E-mail du compte MEGGA",
+        "displayName": "Nom affiche au client",
+        "timezone": "Fuseau horaire",
+        "weekly": "Plages hebdomadaires",
+        "addSlice": "Ajouter une plage",
+        "removeSlice": "Retirer cette plage",
+        "duration": "Duree (min)",
+        "slot": "Pas (min)",
+        "buffer": "Tampon apres (min)",
+        "notice": "Preavis (h)",
+        "horizon": "Horizon (j)",
+        "maxPerDay": "Max par jour",
+        "noLimit": "sans limite",
+        "save": "Enregistrer",
+        "errors": {
+          "unknownEmail": "Aucun compte ne porte cet e-mail.",
+          "nameRequired": "Le nom affiche est requis.",
+          "badSlice": "Une plage est mal formee : la fin doit suivre le debut.",
+          "generic": "L'hote n'a pas pu etre enregistre."
+        }
+      }
+    },
+    "cancelConfirm": {
+      "title": "Annuler cet appel d'accueil ?",
+      "message": "{{agency}} sera prevenue par e-mail et le creneau du {{when}} sera libere dans l'agenda de l'hote.",
+      "confirm": "Annuler l'appel",
+      "busy": "Annulation..."
+    }
+  }
 }

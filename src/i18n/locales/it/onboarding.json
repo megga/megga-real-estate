@@ -250,5 +250,92 @@
         "body": "I dettagli Le sono stati inviati per e-mail. Corregga la Sua compilazione, quindi invii di nuovo: l'esame riprende automaticamente."
       }
     }
+  },
+  "call": {
+    "intro": {
+      "title": "Prenoti la sua chiamata di benvenuto",
+      "body": "Il suo dossier e in revisione. Prendiamoci 30 minuti per esaminare la sua configurazione e rispondere alle sue domande."
+    },
+    "picker": {
+      "weekdays": [
+        "Lun",
+        "Mar",
+        "Mer",
+        "Gio",
+        "Ven",
+        "Sab",
+        "Dom"
+      ],
+      "prevMonth": "Mese precedente",
+      "nextMonth": "Mese successivo",
+      "slotsTitle": "Orari",
+      "pickDayFirst": "Scelga un giorno nel calendario per vedere gli orari liberi.",
+      "noSlotThatDay": "Niente di libero quel giorno.",
+      "timezoneHint": "Orari nel suo fuso orario : {{timezone}}"
+    },
+    "form": {
+      "phone": "Telefono (facoltativo)",
+      "phonePlaceholder": "+41 22 000 00 00",
+      "note": "Una parola sulle sue priorita (facoltativo)",
+      "notePlaceholder": "Cosa vorrebbe vedere per primo"
+    },
+    "actions": {
+      "confirm": "Confermare l'appuntamento",
+      "later": "Piu tardi",
+      "continue": "Continua verso il mio spazio"
+    },
+    "confirmed": {
+      "title": "Prenotato",
+      "join": "Partecipare alla videoconferenza",
+      "emailSent": "Un'e-mail di conferma la attende, con il link e la possibilita di riprogrammare.",
+      "toDashboard": "Vai al mio spazio"
+    },
+    "empty": {
+      "noHost": "Nessun orario disponibile al momento. La ricontatteremo per e-mail appena possibile.",
+      "noSlot": "Niente piu di libero in questo periodo. Provi il mese successivo, oppure continui : le scriveremo."
+    },
+    "errors": {
+      "slot_taken": "Questo orario e appena stato preso. Ne scelga un altro.",
+      "already_booked": "La sua agenzia ha gia un appuntamento prenotato.",
+      "no_host_available": "Nessuno e disponibile al momento.",
+      "slot_in_past": "Questo orario e gia passato.",
+      "call_in_past": "Questo appuntamento e gia passato.",
+      "call_not_active": "Questo appuntamento non e piu attivo.",
+      "reschedule_limit_reached": "Limite di riprogrammazioni raggiunto. Ci scriva per trovare un altra data.",
+      "generic": "L'appuntamento non e stato salvato. Riprovi tra un istante."
+    },
+    "banner": {
+      "pending": {
+        "title": "Prenoti la sua chiamata di benvenuto",
+        "body": "30 minuti con il nostro team per iniziare con MEGGA.",
+        "cta": "Scegliere un orario"
+      },
+      "booked": {
+        "title": "Chiamata di benvenuto prevista",
+        "join": "Partecipare"
+      }
+    },
+    "public": {
+      "loading": "Caricamento del suo appuntamento...",
+      "title": "La sua chiamata di benvenuto MEGGA",
+      "invalid": {
+        "title": "Link non trovato",
+        "body": "Questo link non e piu valido. Verifichi l'indirizzo ricevuto per e-mail, oppure ci scriva."
+      },
+      "notActive": "Questo appuntamento e stato annullato o e gia passato.",
+      "tooLate": "Questo appuntamento e molto vicino : non puo piu essere modificato qui.",
+      "reschedule": "Riprogrammare",
+      "cancel": "Annullare l'appuntamento",
+      "back": "Indietro",
+      "confirmReschedule": "Confermare la nuova data",
+      "cancelled": {
+        "title": "Appuntamento annullato",
+        "body": "Preso nota. Puo prenotarne uno nuovo dal suo spazio MEGGA."
+      },
+      "rescheduled": {
+        "title": "Nuova data salvata",
+        "body": "Un'e-mail di conferma con la data aggiornata e in arrivo."
+      }
+    }
   }
 }

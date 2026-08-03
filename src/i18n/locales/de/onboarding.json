@@ -250,5 +250,92 @@
         "body": "Die Einzelheiten haben wir Ihnen per E-Mail zugesandt. Korrigieren Sie Ihre Angaben und senden Sie sie erneut ab: die Prüfung wird automatisch fortgesetzt."
       }
     }
+  },
+  "call": {
+    "intro": {
+      "title": "Buchen Sie Ihr Willkommensgesprach",
+      "body": "Ihr Dossier ist in Prufung. Nehmen wir uns 30 Minuten Zeit, um Ihre Einrichtung durchzugehen und Ihre Fragen zu beantworten."
+    },
+    "picker": {
+      "weekdays": [
+        "Mo",
+        "Di",
+        "Mi",
+        "Do",
+        "Fr",
+        "Sa",
+        "So"
+      ],
+      "prevMonth": "Voriger Monat",
+      "nextMonth": "Nachster Monat",
+      "slotsTitle": "Uhrzeiten",
+      "pickDayFirst": "Wahlen Sie einen Tag im Kalender, um freie Zeiten zu sehen.",
+      "noSlotThatDay": "An diesem Tag ist nichts mehr frei.",
+      "timezoneHint": "Zeiten in Ihrer Zeitzone : {{timezone}}"
+    },
+    "form": {
+      "phone": "Telefon (optional)",
+      "phonePlaceholder": "+41 22 000 00 00",
+      "note": "Ein Wort zu Ihren Prioritaten (optional)",
+      "notePlaceholder": "Was Sie zuerst sehen mochten"
+    },
+    "actions": {
+      "confirm": "Termin bestatigen",
+      "later": "Spater",
+      "continue": "Weiter zu meinem Bereich"
+    },
+    "confirmed": {
+      "title": "Gebucht",
+      "join": "Videokonferenz beitreten",
+      "emailSent": "Eine Bestatigungsmail wartet auf Sie, mit dem Link und der Moglichkeit umzubuchen.",
+      "toDashboard": "Zu meinem Bereich"
+    },
+    "empty": {
+      "noHost": "Derzeit ist kein Termin offen. Wir melden uns so bald wie moglich per E-Mail.",
+      "noSlot": "In diesem Zeitraum ist nichts mehr frei. Versuchen Sie den nachsten Monat, oder fahren Sie fort : wir schreiben Ihnen."
+    },
+    "errors": {
+      "slot_taken": "Dieser Termin wurde soeben vergeben. Bitte wahlen Sie einen anderen.",
+      "already_booked": "Ihre Agentur hat bereits einen Termin gebucht.",
+      "no_host_available": "Derzeit ist niemand verfugbar.",
+      "slot_in_past": "Dieser Termin liegt in der Vergangenheit.",
+      "call_in_past": "Dieser Termin liegt bereits in der Vergangenheit.",
+      "call_not_active": "Dieser Termin ist nicht mehr aktiv.",
+      "reschedule_limit_reached": "Grenze fur Umbuchungen erreicht. Schreiben Sie uns fur einen anderen Termin.",
+      "generic": "Der Termin konnte nicht gespeichert werden. Bitte versuchen Sie es gleich erneut."
+    },
+    "banner": {
+      "pending": {
+        "title": "Buchen Sie Ihr Willkommensgesprach",
+        "body": "30 Minuten mit unserem Team fur den Einstieg in MEGGA.",
+        "cta": "Termin wahlen"
+      },
+      "booked": {
+        "title": "Willkommensgesprach geplant",
+        "join": "Beitreten"
+      }
+    },
+    "public": {
+      "loading": "Ihr Termin wird geladen...",
+      "title": "Ihr MEGGA Willkommensgesprach",
+      "invalid": {
+        "title": "Link nicht gefunden",
+        "body": "Dieser Link ist nicht mehr gultig. Prufen Sie die per E-Mail erhaltene Adresse, oder schreiben Sie uns."
+      },
+      "notActive": "Dieser Termin wurde abgesagt oder liegt in der Vergangenheit.",
+      "tooLate": "Dieser Termin findet sehr bald statt : er kann hier nicht mehr geandert werden.",
+      "reschedule": "Umbuchen",
+      "cancel": "Termin absagen",
+      "back": "Zuruck",
+      "confirmReschedule": "Neues Datum bestatigen",
+      "cancelled": {
+        "title": "Termin abgesagt",
+        "body": "Notiert. Sie konnen jederzeit einen neuen Termin in Ihrem MEGGA Bereich buchen."
+      },
+      "rescheduled": {
+        "title": "Neues Datum gespeichert",
+        "body": "Eine Bestatigungsmail mit dem aktualisierten Datum ist unterwegs."
+      }
+    }
   }
 }

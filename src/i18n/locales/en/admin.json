@@ -664,6 +664,10 @@
   "agencyDetail": {
     "tab": {
       "usage": "Usage & quotas"
+    },
+    "onboardingCall": {
+      "title": "Welcome call",
+      "none": "No welcome call booked so far."
     }
   },
   "agencies": {
@@ -1039,5 +1043,113 @@
   "audit.family.comm": "Communication",
   "audit.family.ai": "AI",
   "audit.family.ops": "Operations",
-  "audit.family.kyb": "KYB"
+  "audit.family.kyb": "KYB",
+  "onboardingCalls": {
+    "title": "Welcome calls",
+    "subtitle": "The MEGGA team schedule and the hosts availability.",
+    "error": "Could not read.",
+    "searchLabel": "Search a call",
+    "searchPlaceholder": "Agency, host, contact...",
+    "tabs": {
+      "calls": "Appointments",
+      "hosts": "Hosts"
+    },
+    "stats": {
+      "upcoming": "Upcoming",
+      "done": "Held",
+      "noShow": "No shows",
+      "cancelled": "Cancelled"
+    },
+    "filters": {
+      "all": "All",
+      "confirmed": "Confirmed",
+      "done": "Held",
+      "no_show": "No shows",
+      "cancelled": "Cancelled"
+    },
+    "status": {
+      "confirmed": "Confirmed",
+      "done": "Held",
+      "no_show": "No show",
+      "cancelled": "Cancelled"
+    },
+    "table": {
+      "agency": "Agency",
+      "when": "When",
+      "host": "Host",
+      "status": "Status",
+      "actions": "Actions",
+      "rescheduled": "rescheduled {{count}} times",
+      "openMeeting": "Open the video call"
+    },
+    "actions": {
+      "markDone": "Held",
+      "markNoShow": "No show",
+      "cancel": "Cancel"
+    },
+    "empty": {
+      "title": "No call",
+      "hint": "Appointments booked at the end of the identity wizard will show up here."
+    },
+    "hosts": {
+      "dayNames": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+      ],
+      "active": "Active",
+      "inactive": "Inactive",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "table": {
+        "host": "Host",
+        "hours": "Hours",
+        "upcoming": "Upcoming",
+        "state": "State",
+        "rules": "{{duration}} min, buffer {{buffer}} min, notice {{notice}} h, horizon {{horizon}} d"
+      },
+      "empty": {
+        "title": "No host",
+        "hint": "With no active host, no agency can book."
+      },
+      "provisioningNote": "With no active host, the booking screen honestly states that no slot is open.",
+      "addHost": "Add a host",
+      "editHost": "Edit",
+      "form": {
+        "addTitle": "New host",
+        "editTitle": "Edit host",
+        "close": "Close",
+        "email": "MEGGA account email",
+        "displayName": "Name shown to the client",
+        "timezone": "Timezone",
+        "weekly": "Weekly ranges",
+        "addSlice": "Add a range",
+        "removeSlice": "Remove this range",
+        "duration": "Duration (min)",
+        "slot": "Step (min)",
+        "buffer": "Buffer after (min)",
+        "notice": "Notice (h)",
+        "horizon": "Horizon (d)",
+        "maxPerDay": "Max per day",
+        "noLimit": "no limit",
+        "save": "Save",
+        "errors": {
+          "unknownEmail": "No account carries this email.",
+          "nameRequired": "The displayed name is required.",
+          "badSlice": "A range is malformed : the end must follow the start.",
+          "generic": "The host could not be saved."
+        }
+      }
+    },
+    "cancelConfirm": {
+      "title": "Cancel this welcome call ?",
+      "message": "{{agency}} will be notified by email and the {{when}} slot will be freed in the host calendar.",
+      "confirm": "Cancel the call",
+      "busy": "Cancelling..."
+    }
+  }
 }

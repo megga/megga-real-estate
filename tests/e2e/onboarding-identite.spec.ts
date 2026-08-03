@@ -472,6 +472,16 @@ async function submitRecapitulatif(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Soumettre le dossier' }).click()
 }
 
+/**
+ * Où le wizard dépose l'agence une fois le dossier soumis.
+ *
+ * Ce n'est plus `/dashboard` : la soumission mène à l'écran de réservation de
+ * l'appel d'accueil (IdentityShell.handleSubmit). L'écran est PASSABLE, donc
+ * ce que ces tests éprouvent reste le même — la soumission aboutit et le gate
+ * ne reboucle pas — seule la destination a changé.
+ */
+const APRES_SOUMISSION = /\/dashboard\/rendez-vous-accueil$/
+
 test.describe('Onboarding KYB — gate et wizard identité', () => {
   test('parcours complet : connexion, gate, quatre étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
     const founder = await createFounder()
@@ -517,7 +527,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
 
       // 4. Soumission — puis 5. accès au dashboard, sans redirection retour.
       // handleSubmit() navigue via useNavigate() (react-router, déjà client-side).
-      await expectNoBounceBack(page, /\/dashboard$/)
+      await expectNoBounceBack(page, APRES_SOUMISSION)
 
       // Preuve backend, pas seulement l'URL du navigateur : la RPC a réellement
       // posé identity_submitted_at (submit_agency_identity, 20260728108000).
@@ -715,7 +725,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
 
       await submitRecapitulatif(page)
-      await expectNoBounceBack(page, /\/dashboard$/)
+      await expectNoBounceBack(page, APRES_SOUMISSION)
 
       // La soumission finale doit aboutir sur ce chemin aussi (même
       // preuve backend que le premier test de ce fichier).
@@ -781,7 +791,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       })
       await fillPieceIdentiteStep(page)
       await submitRecapitulatif(page)
-      await expect(page).toHaveURL(/\/dashboard$/)
+      await expect(page).toHaveURL(APRES_SOUMISSION)
 
       // 2. Le relecteur renvoie le dossier. Posé en service_role plutôt qu'en montant une
       // session super-admin dans le navigateur : la console admin a ses propres tests, et
@@ -852,8 +862,8 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
 
       // 5. Retour au CRM, et AUCUNE reboucle : c'est la vérification que ce cas existe pour
       // faire. Si le gate régressait sur ce chemin, cette navigation finirait au wizard.
-      await expect(page).toHaveURL(/\/dashboard$/)
-      await expectNoBounceBack(page, /\/dashboard$/)
+      await expect(page).toHaveURL(APRES_SOUMISSION)
+      await expectNoBounceBack(page, APRES_SOUMISSION)
 
       // 6. Et le dossier a bien rendu la main au moteur.
       const { data: agencyAfter, error: agencyAfterErr } = await serviceRoleClient()

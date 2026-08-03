@@ -73,6 +73,7 @@ import {
   isIdentityVerificationSufficient, verificationNeedsManualFallback,
   type IdentityDocumentSide, type IdentityDocumentType, type IdentityVerificationStatus,
 } from '@/hooks/useAgencyIdentity'
+import { ONBOARDING_CALL_ROUTE } from '@/hooks/useOnboardingCall'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
 import type { KybIdReadRecord } from '@/types/kybIdRead'
 import { StepSignataire } from './steps/StepSignataire'
@@ -1190,7 +1191,10 @@ export default function IdentityShell() {
     setError(null)
     try {
       await submit(signatoryId)
-      navigate('/dashboard')
+      // Suite du parcours plutôt que le dashboard : l'agence sort d'ici avec un
+      // dossier en revue, et personne chez MEGGA ne la contacterait sans ce détour.
+      // L'écran est passable, il ne remplace pas le dashboard, il le précède.
+      navigate(ONBOARDING_CALL_ROUTE)
     } catch (e) {
       const rawMessage = e instanceof Error ? e.message : ''
       const code = identitySubmissionErrorCode(rawMessage)

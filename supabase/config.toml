@@ -613,6 +613,18 @@ verify_jwt = false
 [functions.matching-engine]
 verify_jwt = false
 
+[functions.onboarding-call-book]
+verify_jwt = false
+
+[functions.onboarding-call-manage]
+verify_jwt = false
+
+[functions.onboarding-call-reminder]
+verify_jwt = false
+
+[functions.onboarding-slots]
+verify_jwt = false
+
 [functions.outlook-calendar-sync]
 verify_jwt = false
 

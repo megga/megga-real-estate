@@ -234,6 +234,27 @@ signup), renommable dans Réglages › Agence. Migration `20260718130000`. Conse
 n'est **pas couverte par la CI** (`onboarding-agency-rpc.spec` pose le profil à la main et
 court-circuite le trigger) : toute modif de `handle_new_user` se vérifie à la main (insert
 `auth.users` jetable → contrôle `agency_id` → suppression).
+**🟨 Appel d'accueil (août 2026)** — la suite immédiate du wizard d'identité KYB.
+`IdentityShell.handleSubmit` mène désormais à **`/dashboard/rendez-vous-accueil`** et non plus à
+`/dashboard` : l'agence y réserve son appel de prise en main avec l'équipe MEGGA, sur des créneaux
+réellement libres. Écran **passable** (« Plus tard » pose un drapeau `localStorage`), rappelé
+ensuite par `OnboardingCallBanner` (même emplacement que `LabGuardBanner`).
+
+C'est un **objet de plateforme**, pas de tenant : 3 tables neuves (`onboarding_hosts` avec
+`weekly_hours` en heure **murale**, `onboarding_host_exceptions`, `onboarding_calls`) plutôt qu'un
+détournement de `visits`, dont `property_id`/`contact_id` sont `NOT NULL` et que toute la chaîne
+aval lit comme une visite de bien. ⚠ Ce qui ferme réellement la double réservation, ce sont **deux
+index partiels uniques** (`host_id, scheduled_at` et `agency_id`, tous deux `WHERE
+status='confirmed'`) : une revérification applicative laisse passer deux requêtes concurrentes.
+3 edge functions (`onboarding-slots` à **double mode d'authentification** — session d'agent ou
+`manage_token` —, `onboarding-call-book`, `onboarding-call-manage`) + `onboarding-call-reminder`
+(cron 07:00 UTC). Moteur de créneaux **pur** dans `_shared/onboarding-slots.ts`, converti par
+`Intl.DateTimeFormat` avec aller-retour de vérification (une heure inexistante au passage à l'heure
+d'été rend `null` au lieu d'un créneau décalé). Console : `/dashboard/admin/onboarding-calls`
+(segments Rendez-vous / Hôtes) + carte sur la fiche agence ; le flux live vient gratuitement de
+l'audit `actor_kind='system'`, catégorie **`onboarding`** ajoutée au CHECK d'`activity_events`.
+Cerveau : `megga/onboarding-call`.
+
 **Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/sentry-test`.
 
 ### Composants (`src/components/`)
