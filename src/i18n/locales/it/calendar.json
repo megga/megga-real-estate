@@ -5,7 +5,8 @@
     "notary": "Firma dal notaio",
     "task": "Attività / Sollecito",
     "publish": "Publication",
-    "autre": "Altro"
+    "autre": "Altro",
+    "kyc": "Verifica"
   },
   "days": [
     "Sun",

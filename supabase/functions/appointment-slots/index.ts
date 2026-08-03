@@ -51,39 +51,62 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
   )
 
-  // 2) Revalidation en base.
-  const { data: link } = await db
-    .from('kyc_magic_links')
-    .select('id, token, agency_id, contact_id, expires_at, created_by')
-    .eq('id', verified.payload.id)
-    .maybeSingle()
-  if (!link) return json({ error: 'Invalid link' }, 401)
+  // 2) Deux porteurs légitimes, deux résolutions.
+  //    - lien magique KYC (k absent) : première réservation ;
+  //    - jeton de rendez-vous (k='appt') : REPORT, où le client n'a plus le lien
+  //      magique en main. Sans cette branche, « déplacer » serait impossible à
+  //      servir : il faut bien une liste de créneaux pour en choisir un autre.
+  let agentId: string
+  //   Le rendez-vous en cours de report ne doit pas se compter lui-même comme
+  //   occupé, sinon aucun créneau proche du sien ne ressortirait jamais.
+  let excludeAppointmentId: string | null = null
 
-  // Un lien régénéré par l'agent doit invalider le précédent : le token signé
-  // reste cryptographiquement valide jusqu'à son exp, seul ce contrôle le révoque.
-  if (link.token !== token) return json({ error: 'Token superseded', reason: 'regenerated' }, 410)
-  if (new Date(link.expires_at) < new Date()) return json({ error: 'Link expired' }, 410)
-  if (!link.created_by) return json({ error: 'booking_unavailable', reason: 'no_agent' }, 409)
+  if (verified.payload.k === 'appt') {
+    const { data: appt } = await db
+      .from('appointments')
+      .select('id, agent_id, status')
+      .eq('id', verified.payload.id)
+      .maybeSingle()
+    if (!appt) return json({ error: 'appointment_not_found' }, 404)
+    if (appt.status !== 'confirmed') return json({ error: 'not_reschedulable', reason: 'not_reschedulable' }, 409)
+    agentId = appt.agent_id
+    excludeAppointmentId = appt.id
+  } else {
+    const { data: link } = await db
+      .from('kyc_magic_links')
+      .select('id, token, agency_id, contact_id, expires_at, created_by')
+      .eq('id', verified.payload.id)
+      .maybeSingle()
+    if (!link) return json({ error: 'Invalid link' }, 401)
 
-  // 3) Un lien ne porte qu'un RDV : s'il existe déjà, on le renvoie au lieu de
-  //    proposer des créneaux que book_kyc_appointment refuserait (already_booked).
-  const { data: existing } = await db
-    .from('appointments')
-    .select('id')
-    .eq('magic_link_id', link.id)
-    .eq('status', 'confirmed')
-    .maybeSingle()
-  if (existing) {
-    const { data: appt } = await db.rpc('get_kyc_appointment_public', { p_appointment_id: existing.id })
-    return json({ already_booked: true, appointment: appt })
+    // Un lien régénéré par l'agent doit invalider le précédent : le token signé
+    // reste cryptographiquement valide jusqu'à son exp, seul ce contrôle le révoque.
+    if (link.token !== token) return json({ error: 'Token superseded', reason: 'regenerated' }, 410)
+    if (new Date(link.expires_at) < new Date()) return json({ error: 'Link expired' }, 410)
+    if (!link.created_by) return json({ error: 'booking_unavailable', reason: 'no_agent' }, 409)
+
+    // Un lien ne porte qu'un RDV : s'il existe déjà, on le renvoie au lieu de
+    // proposer des créneaux que book_kyc_appointment refuserait (already_booked).
+    const { data: existing } = await db
+      .from('appointments')
+      .select('id')
+      .eq('magic_link_id', link.id)
+      .eq('status', 'confirmed')
+      .maybeSingle()
+    if (existing) {
+      const { data: appt } = await db.rpc('get_kyc_appointment_public', { p_appointment_id: existing.id })
+      return json({ already_booked: true, appointment: appt })
+    }
+
+    agentId = link.created_by
   }
 
-  // 4) Réglages de l'agent. Absence de ligne = auto-réservation jamais configurée,
+  // 3) Réglages de l'agent. Absence de ligne = auto-réservation jamais configurée,
   //    ce qui n'est pas une erreur : c'est un opt-in non exercé.
   const { data: settingsRow } = await db
     .from('agent_booking_settings')
     .select('is_open, timezone, slot_minutes, buffer_minutes, min_notice_hours, max_advance_days, weekly_hours, default_mode, location_label')
-    .eq('agent_id', link.created_by)
+    .eq('agent_id', agentId)
     .maybeSingle()
   if (!settingsRow || !settingsRow.is_open) {
     return json({ slots: [], booking_open: false, reason: 'booking_closed' })
@@ -100,9 +123,10 @@ serve(async (req) => {
 
   // 6) Occupations internes : RDV confirmés + visites de bien + absences.
   const { data: busyRows, error: busyErr } = await db.rpc('kyc_booking_busy_ranges', {
-    p_agent_id: link.created_by,
+    p_agent_id: agentId,
     p_from: fromIso,
     p_to: toIso,
+    p_exclude_id: excludeAppointmentId,
   })
   if (busyErr) return json({ error: 'Could not read availability' }, 500)
 
@@ -117,7 +141,7 @@ serve(async (req) => {
       const { data } = await db.from(table).select('*').eq('user_id', userId).maybeSingle()
       return (data ?? null) as Record<string, unknown> | null
     },
-    link.created_by, fromIso, toIso,
+    agentId, fromIso, toIso,
   )
   if (!external.ok) {
     return json({ slots: [], booking_open: true, reason: 'calendar_unavailable', provider: external.provider }, 503)

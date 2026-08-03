@@ -5,7 +5,8 @@
     "notary": "Notary signing",
     "task": "Task / Follow-up",
     "publish": "Publication",
-    "autre": "Other"
+    "autre": "Other",
+    "kyc": "Verification"
   },
   "days": [
     "Sun",
