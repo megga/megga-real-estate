@@ -129,7 +129,7 @@ L'audit source date du 3-4 juillet ; la branche KYB du 30-31 juillet lui est pos
 
 **Ce qui reste à faire, côté Julien, avant le G1 — deux migrations courtes :**
 
-1. Garde `is_super_admin() OR is_service_role()` sur `get_onboarding_milestones` et `get_agency_activity_summary` (idiome déjà en place dans `20260717190000`, corps SELECT inchangé), plus le revoke `anon` des deux RPC logos. Aucun risque de régression mesuré : les seuls appelants sont `useOnboardingTracker.ts:45` et `AdminAgenciesPage.tsx:126`, deux surfaces super-admin.
+1. Garde `is_super_admin() OR is_service_role()` sur `get_onboarding_milestones` et `get_agency_activity_summary` (idiome déjà en place dans `20260717190000`, corps SELECT inchangé), plus le revoke `anon` des deux RPC logos. Aucun risque de régression mesuré : les seuls appelants sont `useOnboardingTracker.ts:45` et `AdminAgenciesPage.tsx:126`, deux surfaces super-admin. ⚠ **Périmé depuis le 03.08** : `useOnboardingTracker` a été supprimé avec la refonte de la Vue d'ensemble (PR #1123). `get_onboarding_milestones` reste en base et n'a plus d'appelant — le funnel d'activation en 6 étapes n'existe donc plus nulle part à l'écran ; le remonter sur Agences ne coûtera que l'UI.
 2. Trigger `BEFORE UPDATE` sur `agencies` refusant l'écriture de `plan` / `billing` / `stripe_customer_id` quand `current_user = 'authenticated'`, **sans liste blanche de rôles**. Ne pas reprendre le patch 08 tel quel : il autorise `admin|manager` et laisse donc exactement le trou qui fausse le MRR. Ne pas tenter sa variante « grants colonne » : elle est démontrée inopérante ici. Le gabarit existe déjà dans le dépôt — `agencies_guard_identity_columns()`.
 
 La console n'a rien à faire sur ces deux points : elle en dépend. Elle peut avancer sur tout ce qui ne consomme pas ces quatre RPC.
@@ -204,7 +204,7 @@ La spec présente le socle comme des ressources « à consommer ». Elles sont e
 | live | `AdminLiveFeedPage` | reprise |
 | agencies · agency-detail | `AdminAgenciesPage` · `AdminAgencyDetailPage` | reprise (à retirer : impersonation, override de plan) |
 | users | `AdminUsersPage` + `UserDrawer` | reprise |
-| plans | `AdminPlansPage` + `BillingDashboard` | reprise, **à repasser en lecture seule** |
+| plans | `AdminPlansPage` (poste de triage, PR #1120) | ⚠ `BillingDashboard` **supprimé** le 03.08 avec la refonte de la Vue d'ensemble ; le changement de plan y subsiste, suspendu à la décision PO n° 5 |
 | monitoring | `AdminMonitoringPage` | reprise |
 | security | `AdminSecurityAuditPage` | reprise, **socle à changer** (`activity_events` → `admin_log`) |
 | communications | `AdminCommunicationPage`, onglet Changelog | reprise partielle (l'onglet Annonces est hors périmètre) |
