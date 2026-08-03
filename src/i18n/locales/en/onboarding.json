@@ -105,6 +105,7 @@
       "verification": {
         "title": "Verify your identity",
         "body": "Photograph your document and your face. The verification runs at our provider: the photo of your document is never sent to us.",
+        "accepted": "Online verification accepts passports and identity cards. For a residence permit, upload your document below instead.",
         "cta": "Verify my identity",
         "retryCta": "Resume verification",
         "pendingTitle": "Verification in progress",

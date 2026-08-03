@@ -500,6 +500,29 @@ export function verificationNeedsManualFallback(errorCode: string | null): boole
     || errorCode === 'under_supported_age'
 }
 
+/**
+ * Les codes de refus qui ont une phrase traduite — tout le reste retombe sur `unknown`.
+ *
+ * Voisine de verificationNeedsManualFallback À DESSEIN : les trois refus définitifs
+ * qu'elle désigne DOIVENT figurer ici. Ce sont les seuls dont le message est lu depuis
+ * la branche du dépôt manuel, où il n'y a plus rien à reprendre — or `unknown` propose
+ * justement de « reprendre la vérification », un conseil impossible à suivre puisque
+ * réessayer rendrait le même refus. Les séparer laisserait la divergence s'installer
+ * sans que personne ne la voie ; tests/unit/identity-verification-refusal-copy.spec.ts
+ * la fait échouer.
+ */
+export const KNOWN_VERIFICATION_ERRORS = [
+  'consent_declined', 'under_supported_age', 'country_not_supported',
+  'document_expired', 'document_type_not_supported', 'document_unverified_other',
+  'selfie_face_mismatch', 'selfie_manipulated', 'selfie_document_missing_photo',
+  'selfie_unverified_other', 'abandoned',
+]
+
+/** Le code tel que la clé de traduction l'attend : lui-même, ou `unknown`. */
+export function knownVerificationError(code: string | null): string {
+  return code && KNOWN_VERIFICATION_ERRORS.includes(code) ? code : 'unknown'
+}
+
 /** Les trois natures proposées par le wizard, dans l'ordre d'affichage. */
 export const IDENTITY_DOCUMENT_TYPES: readonly IdentityDocumentType[] = [
   'passport', 'id_card', 'residence_permit',

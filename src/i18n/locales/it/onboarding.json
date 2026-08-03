@@ -105,6 +105,7 @@
       "verification": {
         "title": "Verifichi la sua identità",
         "body": "Fotografi il documento e il suo volto. La verifica avviene presso il nostro fornitore: la foto del documento non ci viene mai trasmessa.",
+        "accepted": "La verifica online accetta passaporto e carta d'identità. Per un permesso di soggiorno, carichi il suo documento qui sotto.",
         "cta": "Verificare la mia identità",
         "retryCta": "Riprendere la verifica",
         "pendingTitle": "Verifica in corso",
