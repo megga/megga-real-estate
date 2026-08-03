@@ -33,6 +33,7 @@ interface DigestRow {
 interface DigestPayload {
   recipients: string[]
   dossiers: DigestRow[]
+  total: number
 }
 
 describe.skipIf(!HAS_KEYS)('kyb_review_digest_payload() — la charge utile du digest quotidien', () => {
@@ -165,12 +166,36 @@ describe.skipIf(!HAS_KEYS)('kyb_review_digest_payload() — la charge utile du d
     for (const r of recipients) expect(r).toContain('@')
   })
 
-  it('`dossiers` est toujours un tableau, jamais null', async () => {
-    // Le cas VIDE lui-même se teste au niveau unitaire (buildReviewDigest([]) === null) :
-    // le forcer ici exigerait de vider la file d'une base partagée, ce qu'un test n'a pas
-    // à faire. Ici on verrouille seulement le coalesce.
+  it('rend `dossiers` sous forme de tableau — forme de la charge utile, pas une preuve du coalesce sur file vide', async () => {
+    // Ce que ce test NE prouve PAS : que coalesce(..., '[]'::jsonb) tient sur une file
+    // VIDE. Les it() precedents ont deja inserre des lignes dans cette suite, donc
+    // jsonb_agg rend ici un vrai tableau que le coalesce existe ou non — seul un etat
+    // vide distinguerait les deux, et le forcer exigerait de vider une file partagee
+    // entre suites, ce qu'un test n'a pas a faire. Le coalesce sur file vide se prouve
+    // au niveau UNITAIRE (buildReviewDigest([]) === null, tests/unit/kyb-review-digest).
+    // Ici on verrouille seulement la FORME : `dossiers` est un tableau, jamais un objet
+    // ou une chaine.
     expect(Array.isArray((await payload()).dossiers)).toBe(true)
   })
+
+  it('plafonne `dossiers` a 50 et rend dans `total` le compte REEL, au-dela du plafond', async () => {
+    // Assertions RELATIVES uniquement (jamais un total absolu) : cette base est partagee
+    // entre suites qui tournent en parallele (meme convention que admin-log-chain.spec.ts).
+    // Le plafond de 50 est un invariant absolu, lui, quel que soit le bruit ambiant.
+    const N = 52
+    const created = await Promise.all(
+      Array.from({ length: N }, (_, i) =>
+        createAgency({ label: `plafond-${i}`, status: 'manual_review', submittedDaysAgo: 30 }))
+    )
+    expect(created).toHaveLength(N)
+
+    const { dossiers, total } = await payload()
+    expect(dossiers.length, 'jamais plus de 50 dossiers rendus, quelle que soit la file').toBeLessThanOrEqual(50)
+    // Ces N dossiers sont TOUS en manual_review avec identity_submitted_at pose : ils
+    // comptent tous dans le total REEL, meme ceux restes hors de la page de 50.
+    expect(total, 'le total ne doit jamais se limiter a la taille de la page').toBeGreaterThanOrEqual(N)
+    expect(total, 'la file depasse reellement le plafond une fois N > 50').toBeGreaterThan(dossiers.length)
+  }, 30_000)
 
   it('refuse un appelant authentifié — un cron l\'appelle, jamais un navigateur', async () => {
     const { data, error } = await ordinaryUser.rpc('kyb_review_digest_payload')

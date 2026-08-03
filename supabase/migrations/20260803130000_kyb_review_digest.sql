@@ -27,6 +27,7 @@ set search_path to 'public'
 as $$
 declare
   v_dossiers jsonb;
+  v_total    int;
 begin
   -- service_role SEUL : un cron appelle ceci, jamais un navigateur. Pas de branche
   -- is_super_admin() -- la console a deja get_admin_agency_review_queue pour le meme besoin,
@@ -35,35 +36,64 @@ begin
     raise exception 'forbidden: service_role only' using errcode = '42501';
   end if;
 
-  select coalesce(
-           jsonb_agg(
-             jsonb_build_object(
-               'agency_id',    a.id,
-               'agency_name',  coalesce(nullif(btrim(a.legal_name), ''), a.name),
-               'country',      a.country,
-               'score',        a.verification_score,
-               'submitted_at', a.identity_submitted_at,
-               -- Jours PLEINS ecoules. floor et non round : un dossier de 30 heures se dit
-               -- « depuis 1 jour », jamais « depuis 2 ».
-               'age_days',     floor(extract(epoch from (now() - a.identity_submitted_at)) / 86400)::int
-             )
-             order by a.identity_submitted_at
-           ),
-           '[]'::jsonb)
-    into v_dossiers
+  -- Total AVANT plafonnement (correctif de revue) : sans lui, une file tronquee est
+  -- indiscernable d'une file terminee -- meme raison que total_count sur
+  -- get_admin_agency_review_queue (20260729160000). Predicat DUPLIQUE volontairement
+  -- de celui de la sous-requete ci-dessous : les deux doivent bouger ENSEMBLE.
+  select count(*) into v_total
     from public.agencies a
    where a.verification_status = 'manual_review'
      and a.identity_submitted_at is not null;
 
+  -- PLAFOND a 50 (correctif de revue), les plus anciens d'abord -- meme ordre qu'avant
+  -- ce correctif, et meme motif que le plafond de get_admin_agency_review_queue : vers
+  -- 250 dossiers le HTML rendu depasse le seuil de rognage de Gmail (102 Ko), et comme
+  -- le CTA est desormais rendu AVANT le tableau (buildReviewDigest), c'est la ligne
+  -- « et N autres » sous le tableau qui disparaitrait la premiere -- jamais le bouton
+  -- d'action. order by DANS la sous-requete (pas seulement dans jsonb_agg) : LIMIT doit
+  -- s'appliquer aux 50 dossiers les plus anciens, pas a 50 lignes prises au hasard puis
+  -- triees.
+  select coalesce(
+           jsonb_agg(
+             jsonb_build_object(
+               'agency_id',    d.id,
+               'agency_name',  d.agency_name,
+               'country',      d.country,
+               'score',        d.score,
+               'submitted_at', d.submitted_at,
+               'age_days',     d.age_days
+             )
+             order by d.submitted_at
+           ),
+           '[]'::jsonb)
+    into v_dossiers
+    from (
+      select
+        a.id,
+        coalesce(nullif(btrim(a.legal_name), ''), a.name) as agency_name,
+        a.country,
+        a.verification_score as score,
+        a.identity_submitted_at as submitted_at,
+        -- Jours PLEINS ecoules. floor et non round : un dossier de 30 heures se dit
+        -- « depuis 1 jour », jamais « depuis 2 ».
+        floor(extract(epoch from (now() - a.identity_submitted_at)) / 86400)::int as age_days
+      from public.agencies a
+      where a.verification_status = 'manual_review'
+        and a.identity_submitted_at is not null
+      order by a.identity_submitted_at
+      limit 50
+    ) d;
+
   return jsonb_build_object(
     'recipients', to_jsonb(public.super_admin_allowlist()),
-    'dossiers',   v_dossiers
+    'dossiers',   v_dossiers,
+    'total',      v_total
   );
 end;
 $$;
 
 comment on function public.kyb_review_digest_payload() is
-  'Charge utile du digest quotidien de revue KYB (01.08.2026) : les agences en verification_status=''manual_review'' avec leur ancienneté en jours pleins, et les destinataires lus dans super_admin_allowlist() -- une seule liste, jamais une seconde à tenir à jour. Rend toujours un tableau (vide si rien n''attend) : c''est l''edge function qui décide de ne pas envoyer. service_role uniquement.';
+  'Charge utile du digest quotidien de revue KYB (01.08.2026) : les agences en verification_status=''manual_review'' avec leur ancienneté en jours pleins, et les destinataires lus dans super_admin_allowlist() -- une seule liste, jamais une seconde à tenir à jour. PLAFONNEE a 50 dossiers (correctif de revue, meme motif que get_admin_agency_review_queue) -- les plus anciens d''abord -- avec un champ total = le compte REEL avant plafonnement, pour qu''une file tronquee reste distinguable d''une file terminee. Rend toujours un tableau (vide si rien n''attend) : c''est l''edge function qui décide de ne pas envoyer. service_role uniquement.';
 
 revoke all on function public.kyb_review_digest_payload() from public, anon, authenticated;
 grant execute on function public.kyb_review_digest_payload() to service_role;

@@ -54,6 +54,43 @@ describe('buildReviewDigest', () => {
     expect(out!.html).not.toMatch(/>\s*0\s*</)
     expect(out!.html).toContain('non calcule')
   })
+
+  it('le CTA precede le tableau — un rognage (seuil Gmail 102 Ko) coupe la FIN du document', () => {
+    const out = buildReviewDigest({ dossiers: [dossier()], appUrl: 'https://app.megga.ch' })
+    const ctaIndex = out!.html.indexOf('Ouvrir la file de revue')
+    const tableIndex = out!.html.indexOf('<table')
+    expect(ctaIndex).toBeGreaterThan(-1)
+    expect(tableIndex).toBeGreaterThan(-1)
+    expect(ctaIndex).toBeLessThan(tableIndex)
+  })
+})
+
+describe('buildReviewDigest — overflow au-dela du plafond de 50 (correctif de revue)', () => {
+  it('« et N autres dossiers en attente » apparait quand total > dossiers.length', () => {
+    const out = buildReviewDigest({
+      dossiers: [dossier()],
+      appUrl: 'https://app.megga.ch',
+      total: 4,
+    })
+    expect(out!.html).toContain('et 3 autres dossiers en attente')
+  })
+
+  it('le singulier se dit « et 1 autre dossier », jamais « 1 autres »', () => {
+    const out = buildReviewDigest({ dossiers: [dossier()], appUrl: 'https://app.megga.ch', total: 2 })
+    expect(out!.html).toContain('et 1 autre dossier en attente')
+  })
+
+  it('jamais quand total == dossiers.length', () => {
+    const out = buildReviewDigest({ dossiers: [dossier()], appUrl: 'https://app.megga.ch', total: 1 })
+    expect(out!.html).not.toContain('autres dossiers en attente')
+    expect(out!.html).not.toContain('autre dossier en attente')
+  })
+
+  it('jamais quand total est absent — se comporte comme avant le correctif', () => {
+    const out = buildReviewDigest({ dossiers: [dossier()], appUrl: 'https://app.megga.ch' })
+    expect(out!.html).not.toContain('autres dossiers en attente')
+    expect(out!.html).not.toContain('autre dossier en attente')
+  })
 })
 
 describe('digestSubject', () => {

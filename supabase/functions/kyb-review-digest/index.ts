@@ -39,6 +39,7 @@ function safeEqual(a: string, b: string): boolean {
 interface DigestPayload {
   recipients: string[]
   dossiers: PendingDossier[]
+  total: number
 }
 
 serve(async (req) => {
@@ -59,21 +60,26 @@ serve(async (req) => {
     const { data, error } = await supabase.rpc('kyb_review_digest_payload')
     if (error) throw error
     const payload = data as DigestPayload
+    // Repli defensif : un ancien schema de cache (avant le correctif de revue) ne
+    // porterait pas `total`. Sans lui, dossiers.length reste la meilleure estimation
+    // disponible -- exactement le comportement d'avant ce correctif.
+    const total = payload.total ?? payload.dossiers.length
 
     const notice = buildReviewDigest({
       dossiers: payload.dossiers ?? [],
       appUrl: Deno.env.get('APP_URL') ?? 'https://app.megga.ch',
+      total,
     })
 
     // Rien a dire = rien envoye. Un digest quotidien qui arrive tous les jours pour dire
     // « rien » se fait ignorer, puis filtrer, et n'est plus lu le jour ou il compte.
-    if (!notice) return json({ ok: true, skipped: 'empty_queue' })
+    if (!notice) return json({ ok: true, skipped: 'empty_queue', pending: total })
 
     const recipients = (payload.recipients ?? []).filter((e) => typeof e === 'string' && e.includes('@'))
     if (recipients.length === 0) {
       // Dit, jamais tu : une allowlist vide est un fait qu'on doit pouvoir constater.
       console.error('[kyb-review-digest] aucun destinataire dans super_admin_allowlist')
-      return json({ ok: true, skipped: 'no_recipient', pending: payload.dossiers.length })
+      return json({ ok: true, skipped: 'no_recipient', pending: total })
     }
 
     // Sans cle Resend, on ne pretend pas avoir envoye -- meme discipline que
@@ -81,7 +87,7 @@ serve(async (req) => {
     const resendKey = Deno.env.get('RESEND_API_KEY') ?? ''
     if (!resendKey) {
       console.error('[kyb-review-digest] RESEND_API_KEY absente, digest non envoye')
-      return json({ ok: true, skipped: 'resend_key_missing', pending: payload.dossiers.length })
+      return json({ ok: true, skipped: 'resend_key_missing', pending: total })
     }
 
     const res = await fetch('https://api.resend.com/emails', {
@@ -102,7 +108,7 @@ serve(async (req) => {
     // concerne AUCUNE agence (agency_id serait null) et n'est pas un acte de conformite. Le
     // journaliser dans une table append-only conservee dix ans y ajouterait du bruit
     // d'exploitation ineffacable.
-    return json({ ok: true, recipients: recipients.length, pending: payload.dossiers.length })
+    return json({ ok: true, recipients: recipients.length, pending: total })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown_error'
     console.error('[kyb-review-digest]', message)

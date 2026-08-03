@@ -53,13 +53,25 @@ export function digestSubject(count: number, oldestAgeDays: number): string {
  * jour ou il compte.
  *
  * Le nom d'agence est ECHAPPE : texte libre saisi a l'inscription, rendu dans du HTML.
+ *
+ * LE CTA PRECEDE LE TABLEAU (correctif de revue) : vers 250 dossiers, le HTML rendu
+ * depasse le seuil de rognage de Gmail (102 Ko) -- ce qui est coupe en premier, c'est la
+ * FIN du document. Un bouton d'action rendu apres le tableau disparaitrait donc le
+ * premier, degradant le digest en mur de noms sans aucun moyen d'agir. Place avant, il
+ * survit a un rognage que le tableau, lui, n'a aucune raison de survivre.
  */
 export function buildReviewDigest(input: {
   dossiers: PendingDossier[]
   appUrl: string
+  /** Total REEL de dossiers en attente, avant le plafond de 50 applique par
+   *  kyb_review_digest_payload() (correctif de revue). Defaut : dossiers.length, pour les
+   *  appelants (et tests unitaires) qui ne le fournissent pas -- se comporte alors comme
+   *  si aucun dossier ne restait hors de la page. */
+  total?: number
 }): { subject: string; html: string } | null {
   if (input.dossiers.length === 0) return null
 
+  const total = input.total ?? input.dossiers.length
   const oldest = Math.max(...input.dossiers.map((d) => d.age_days))
   const subject = digestSubject(input.dossiers.length, oldest)
 
@@ -83,6 +95,17 @@ export function buildReviewDigest(input: {
     })
     .join('')
 
+  // Au-dela des 50 dossiers rendus (plafond kyb_review_digest_payload), combien restent
+  // hors du tableau -- affichee uniquement quand le plafond a reellement coupe quelque
+  // chose, jamais quand total est absent ou <= dossiers.length.
+  const remaining = total - input.dossiers.length
+  const overflowLine = remaining > 0
+    ? `
+      <p style="font-size:12px;color:#9ca3af;margin:14px 0 0 0;">
+        ${remaining === 1 ? 'et 1 autre dossier en attente' : `et ${remaining} autres dossiers en attente`}
+      </p>`
+    : ''
+
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -104,7 +127,12 @@ export function buildReviewDigest(input: {
         Ces agences ne peuvent ouvrir aucun dossier KYC client tant que leur identite n'a pas ete tranchee.
       </p>
 
-      <table style="width:100%;border-collapse:collapse;margin:0 0 22px 0;">
+      <a href="${escapeHtml(input.appUrl)}/dashboard/admin/kyb-review"
+         style="display:inline-block;background:#1a1a1a;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 20px;border-radius:10px;margin:0 0 22px 0;">
+        Ouvrir la file de revue
+      </a>
+
+      <table style="width:100%;border-collapse:collapse;margin:0;">
         <thead>
           <tr>
             <th style="text-align:left;padding:0 12px 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:#9ca3af;">Agence</th>
@@ -114,12 +142,7 @@ export function buildReviewDigest(input: {
         </thead>
         <tbody>${lignes}
         </tbody>
-      </table>
-
-      <a href="${escapeHtml(input.appUrl)}/dashboard/admin/kyb-review"
-         style="display:inline-block;background:#1a1a1a;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 20px;border-radius:10px;">
-        Ouvrir la file de revue
-      </a>
+      </table>${overflowLine}
     </div>
 
     <p style="font-size:11px;color:#9ca3af;text-align:center;margin:24px 0 0 0;">
