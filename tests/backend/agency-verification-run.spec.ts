@@ -77,6 +77,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest
 import { readFileSync } from 'node:fs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { serviceRoleClient, anonClient } from './helpers/supabase'
+import { waitForEdgeWorker, edgeStatusMessage } from './helpers/edge'
 import {
   runKybSource,
   runAgencyKybSources,
@@ -914,27 +915,25 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
     // (etape 6, integration de main), ces deux appels atteignent vraiment le
     // runtime et paient le demarrage.
     //
-    // Ce hook ne peut PAS faire echouer la suite, et c'est deliberé : un premier
+    // Ce hook ne peut PAS faire echouer la suite, et c'est delibere : un premier
     // jet le laissait simplement attendre `fetch`, sous le hookTimeout de 30 s --
     // mesure en CI, le demarrage vaut ~15 s d'ordinaire mais depasse 30 s sur un
     // runner charge, et le hook expirait alors en emportant tout le bloc. Un
     // rechauffement n'affirme rien : il ne doit jamais etre le motif d'un echec.
-    // D'ou la course contre une echeance qui RESOUT (jamais ne rejette), et un
-    // plafond de hook tres au-dessus d'elle. Si le worker n'est toujours pas
-    // pret, ce sont les tests eux-memes qui le diront, avec leur propre budget.
+    // Si le worker n'est toujours pas pret, ce sont les tests eux-memes qui le
+    // diront, avec leur propre budget.
+    //
+    // ⚠ MAIS il ne suffit pas d'ATTENDRE : il faut SONDER. La forme precedente
+    // lancait UNE requete et la faisait courir contre une echeance de 60 s ; un 503
+    // rendu en 200 ms -- exactement ce que sert le runtime local tant que le worker
+    // n'est pas debout -- terminait donc ce rechauffement « avec succes » en 200 ms,
+    // sans que rien ne soit pret. C'est ce qui a fait echouer le test suivant en
+    // « expected 503 to be 401 » le 02.08.2026 (PR #1088, run 30768283828), un
+    // message qui ressemble a une regression d'authentification et n'en est pas :
+    // l'appel d'apres, meme endpoint, a repondu 401. waitForEdgeWorker sonde jusqu'a
+    // obtenir autre chose qu'un 503 -- voir helpers/edge.ts pour le mode de panne.
     beforeAll(async () => {
-      let timer: ReturnType<typeof setTimeout> | undefined
-      const deadline = new Promise<void>((resolve) => {
-        timer = setTimeout(resolve, 60_000)
-      })
-      try {
-        await Promise.race([
-          fetch(ENDPOINT, { method: 'OPTIONS' }).then(() => undefined, () => undefined),
-          deadline,
-        ])
-      } finally {
-        clearTimeout(timer)
-      }
+      await waitForEdgeWorker(ENDPOINT)
     }, 120_000)
 
     async function callRun(agencyId: string, bearer: string = SERVICE_ROLE_JWT): Promise<Response> {
@@ -976,12 +975,14 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agency_id: NIL_UUID }),
       })
-      expect(res.status).toBe(401)
+      // Message d'assertion et non simple `toBe` : si le rechauffement n'a pas suffi,
+      // le 503 recu doit se DIRE pour ce qu'il est (runtime, pas contrat).
+      expect(res.status, await edgeStatusMessage(res, 'agency-verification-run')).toBe(401)
     }, 60_000)
 
     it("un Bearer valide mais qui n'est pas la cle service-role -> 401 (le jeton anon ne doit jamais suffire)", async () => {
       const res = await callRun(NIL_UUID, ANON_KEY)
-      expect(res.status).toBe(401)
+      expect(res.status, await edgeStatusMessage(res, 'agency-verification-run')).toBe(401)
     }, 60_000)
 
     it('agency_id absent du corps -> 400', async () => {
