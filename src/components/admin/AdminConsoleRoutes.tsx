@@ -23,6 +23,7 @@ const AdminMonitoringPage = lazy(() => import('@/pages/admin/AdminMonitoringPage
 const AdminModerationPage = lazy(() => import('@/pages/admin/AdminModerationPage'))
 const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage'))
 const AdminKybReviewPage = lazy(() => import('@/pages/admin/AdminKybReviewPage'))
+const AdminOnboardingCallsPage = lazy(() => import('@/pages/admin/AdminOnboardingCallsPage'))
 const AdminCommunicationPage = lazy(() => import('@/pages/admin/AdminCommunicationPage'))
 const AdminFeatureFlagsPage = lazy(() => import('@/pages/admin/AdminFeatureFlagsPage'))
 const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
@@ -65,6 +66,7 @@ export default function AdminConsoleRoutes() {
                 `nav.adminKybReview` d'`AdminShell` tomberait sur le 404 du CRM et
                 les quatre décisions humaines de conformité seraient injoignables. */}
             <Route path="kyb-review" element={<AdminKybReviewPage />} />
+            <Route path="onboarding-calls" element={<AdminOnboardingCallsPage />} />
             <Route path="changelog" element={<AdminCommunicationPage />} />
             <Route path="feature-flags" element={<AdminFeatureFlagsPage />} />
             <Route path="plans" element={<AdminPlansPage />} />

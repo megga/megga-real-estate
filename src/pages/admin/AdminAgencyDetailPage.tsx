@@ -23,6 +23,7 @@ import {
   useAgencyTransactions,
   useAgencyActivity,
 } from '@/hooks/useAdminAgencies'
+import { useAgencyOnboardingCalls } from '@/hooks/useAdminOnboardingCalls'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
@@ -31,6 +32,7 @@ import {
   AdminDivider,
   AdminEmpty,
   AdminError,
+  AdminGroupTitle,
   AdminIc,
   AdminPill,
   AdminSkeleton,
@@ -273,7 +275,65 @@ function InfosTab({ agency }: { agency: Record<string, unknown> }) {
 
       {/* Abonnement + override manuel de plan (P4 admin) */}
       <AdminBillingCard agencyId={agency.id as string} />
+
+      {/* Appel d'accueil : ce que l'agence a réservé à la sortie du wizard KYB. */}
+      <OnboardingCallCard agencyId={agency.id as string} />
     </div>
+  )
+}
+
+/**
+ * Appel d'accueil de cette agence.
+ *
+ * Distingue trois états qui se ressemblent trop pour être confondus : jamais
+ * réservé, réservé et à venir, déjà passé. Un écran qui n'afficherait que « aucun
+ * appel » pour les trois masquerait le seul cas qui demande une relance.
+ */
+function OnboardingCallCard({ agencyId }: { agencyId: string }) {
+  const { t } = useTranslation('admin')
+  const { sp } = useAdminSugar()
+  const { data: calls, isLoading } = useAgencyOnboardingCalls(agencyId)
+
+  if (isLoading) return <AdminSkeleton height={72} />
+
+  const sorted = [...(calls ?? [])].sort(
+    (a, b) => Date.parse(b.scheduled_at) - Date.parse(a.scheduled_at),
+  )
+  const upcoming = sorted.find(
+    (c) => c.status === 'confirmed' && Date.parse(c.scheduled_at) > Date.now(),
+  )
+  const latest = upcoming ?? sorted[0] ?? null
+
+  return (
+    <AdminCard>
+      <AdminGroupTitle label={t('admin:agencyDetail.onboardingCall.title')} tone="info" level={3} />
+      {!latest && (
+        <p style={{ fontSize: 13, color: sp.soft, marginTop: 8, lineHeight: 1.6 }}>
+          {t('admin:agencyDetail.onboardingCall.none')}
+        </p>
+      )}
+      {latest && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
+          <AdminIc icon={Clock} size={16} color={sp.soft} />
+          <span style={{ fontSize: 13, fontWeight: 600, color: sp.ink }}>
+            {new Intl.DateTimeFormat('fr-CH', {
+              day: '2-digit', month: '2-digit', year: 'numeric',
+              hour: '2-digit', minute: '2-digit', hour12: false,
+            }).format(new Date(latest.scheduled_at))}
+          </span>
+          <span style={{ fontSize: 12.5, color: sp.sub }}>{latest.host_name}</span>
+          <AdminPill
+            label={t(`admin:onboardingCalls.status.${latest.status}`)}
+            tone={latest.status === 'confirmed' ? 'ok' : latest.status === 'no_show' ? 'err' : 'neutral'}
+          />
+          {latest.rescheduled_count > 0 && (
+            <span style={{ fontSize: 12, color: sp.soft }}>
+              {t('admin:onboardingCalls.table.rescheduled', { count: latest.rescheduled_count })}
+            </span>
+          )}
+        </div>
+      )}
+    </AdminCard>
   )
 }
 

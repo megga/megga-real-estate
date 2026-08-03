@@ -664,6 +664,10 @@
   "agencyDetail": {
     "tab": {
       "usage": "Nutzung & Kontingente"
+    },
+    "onboardingCall": {
+      "title": "Willkommensgesprach",
+      "none": "Bisher kein Willkommensgesprach gebucht."
     }
   },
   "agencies": {
@@ -1039,5 +1043,113 @@
   "audit.family.comm": "Kommunikation",
   "audit.family.ai": "KI",
   "audit.family.ops": "Betrieb",
-  "audit.family.kyb": "KYB"
+  "audit.family.kyb": "KYB",
+  "onboardingCalls": {
+    "title": "Willkommensgesprache",
+    "subtitle": "Der Terminkalender des MEGGA Teams und die Zeiten der Gastgeber.",
+    "error": "Lesen nicht moglich.",
+    "searchLabel": "Termin suchen",
+    "searchPlaceholder": "Agentur, Gastgeber, Kontakt...",
+    "tabs": {
+      "calls": "Termine",
+      "hosts": "Gastgeber"
+    },
+    "stats": {
+      "upcoming": "Bevorstehend",
+      "done": "Gehalten",
+      "noShow": "Nicht erschienen",
+      "cancelled": "Abgesagt"
+    },
+    "filters": {
+      "all": "Alle",
+      "confirmed": "Bestatigt",
+      "done": "Gehalten",
+      "no_show": "Nicht erschienen",
+      "cancelled": "Abgesagt"
+    },
+    "status": {
+      "confirmed": "Bestatigt",
+      "done": "Gehalten",
+      "no_show": "Nicht erschienen",
+      "cancelled": "Abgesagt"
+    },
+    "table": {
+      "agency": "Agentur",
+      "when": "Wann",
+      "host": "Gastgeber",
+      "status": "Status",
+      "actions": "Aktionen",
+      "rescheduled": "{{count}} mal umgebucht",
+      "openMeeting": "Videokonferenz offnen"
+    },
+    "actions": {
+      "markDone": "Gehalten",
+      "markNoShow": "Nicht erschienen",
+      "cancel": "Absagen"
+    },
+    "empty": {
+      "title": "Keine Termine",
+      "hint": "Termine aus dem Identitatsassistenten erscheinen hier."
+    },
+    "hosts": {
+      "dayNames": [
+        "Montag",
+        "Dienstag",
+        "Mittwoch",
+        "Donnerstag",
+        "Freitag",
+        "Samstag",
+        "Sonntag"
+      ],
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "activate": "Aktivieren",
+      "deactivate": "Deaktivieren",
+      "table": {
+        "host": "Gastgeber",
+        "hours": "Zeiten",
+        "upcoming": "Bevorstehend",
+        "state": "Status",
+        "rules": "{{duration}} Min., Puffer {{buffer}} Min., Vorlauf {{notice}} Std., Horizont {{horizon}} T."
+      },
+      "empty": {
+        "title": "Keine Gastgeber",
+        "hint": "Ohne aktiven Gastgeber kann keine Agentur buchen."
+      },
+      "provisioningNote": "Ohne aktiven Gastgeber meldet der Buchungsbildschirm ehrlich, dass kein Termin offen ist.",
+      "addHost": "Gastgeber hinzufugen",
+      "editHost": "Bearbeiten",
+      "form": {
+        "addTitle": "Neuer Gastgeber",
+        "editTitle": "Gastgeber bearbeiten",
+        "close": "Schliessen",
+        "email": "E-Mail des MEGGA Kontos",
+        "displayName": "Dem Kunden angezeigter Name",
+        "timezone": "Zeitzone",
+        "weekly": "Wochentliche Zeitfenster",
+        "addSlice": "Zeitfenster hinzufugen",
+        "removeSlice": "Dieses Zeitfenster entfernen",
+        "duration": "Dauer (Min.)",
+        "slot": "Schritt (Min.)",
+        "buffer": "Puffer danach (Min.)",
+        "notice": "Vorlauf (Std.)",
+        "horizon": "Horizont (T.)",
+        "maxPerDay": "Max. pro Tag",
+        "noLimit": "ohne Grenze",
+        "save": "Speichern",
+        "errors": {
+          "unknownEmail": "Kein Konto mit dieser E-Mail.",
+          "nameRequired": "Der angezeigte Name ist erforderlich.",
+          "badSlice": "Ein Zeitfenster ist fehlerhaft : das Ende muss nach dem Anfang liegen.",
+          "generic": "Der Gastgeber konnte nicht gespeichert werden."
+        }
+      }
+    },
+    "cancelConfirm": {
+      "title": "Dieses Willkommensgesprach absagen ?",
+      "message": "{{agency}} wird per E-Mail benachrichtigt und der Termin am {{when}} wird im Kalender des Gastgebers frei.",
+      "confirm": "Termin absagen",
+      "busy": "Wird abgesagt..."
+    }
+  }
 }

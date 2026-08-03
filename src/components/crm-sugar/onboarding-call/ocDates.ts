@@ -1,0 +1,55 @@
+/**
+ * Helpers de date du sélecteur de créneau.
+ *
+ * Séparés d'`OcPicker.tsx` pour satisfaire `react-refresh/only-export-components` :
+ * un fichier qui exporte un composant ET une fonction casse le rafraîchissement à
+ * chaud. Même découpe que `adminKit.tsx` / `adminKitCore.ts`.
+ */
+
+/**
+ * Clé de journée civile (`YYYY-MM-DD`) d'un instant, dans le fuseau donné.
+ *
+ * `en-CA` rend nativement l'ordre année-mois-jour avec des zéros de tête, ce qui évite
+ * de recomposer la chaîne depuis `formatToParts`.
+ */
+export function dayKeyOf(iso: string, timezone: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(iso))
+}
+
+/** Heure murale `HH:MM` d'un instant, dans le fuseau donné. */
+export function hourLabel(iso: string, timezone: string): string {
+  return new Intl.DateTimeFormat('fr-CH', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso))
+}
+
+/**
+ * Grille du mois, alignée sur une semaine qui commence le lundi. Les cases de tête
+ * sont `null` (jours du mois précédent, non rendus).
+ */
+export function monthGrid(month: Date): (string | null)[] {
+  const year = month.getFullYear()
+  const m = month.getMonth()
+  const daysInMonth = new Date(year, m + 1, 0).getDate()
+  // getDay() rend 0 pour dimanche : on ramène à une semaine ISO commençant lundi.
+  const lead = (new Date(year, m, 1).getDay() + 6) % 7
+
+  const cells: (string | null)[] = Array.from({ length: lead }, () => null)
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push(`${year}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
+  }
+  return cells
+}
+
+/** Clé `YYYY-MM` du mois, utilisée pour des clés de rendu stables. */
+export function monthKey(month: Date): string {
+  return `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`
+}

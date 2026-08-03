@@ -25,6 +25,7 @@ const ADMIN_ROUTES: RouteSpec[] = [
   { path: `${BASE}/end-users`, label: 'Admin > Clients finaux' },
   { path: `${BASE}/monitoring`, label: 'Admin > Monitoring' },
   { path: `${BASE}/moderation`, label: 'Admin > Modération' },
+  { path: `${BASE}/onboarding-calls`, label: 'Admin > Appels d\'accueil' },
   { path: `${BASE}/compliance`, label: 'Admin > Compliance' },
   { path: `${BASE}/changelog`, label: 'Admin > Communication' },
   { path: `${BASE}/feature-flags`, label: 'Admin > Feature flags' },

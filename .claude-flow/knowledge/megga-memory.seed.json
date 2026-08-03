@@ -1305,6 +1305,21 @@
       "namespace": "megga",
       "tags": "security,urls,edge-functions,incident",
       "value": "Tout lien public envoye a un tiers se construit via _shared/app-url.ts (kycMagicLinkUrl, visitManageUrl), JAMAIS en dur. POURQUOI - deux pannes de la meme famille, mesurees le 03.08.2026 et corrigees par #1119: (1) le lien KYC pointait kyc.megga.ch, hote SANS AUCUN DNS (erreur de resolution, pas meme un 404); (2) send-visit-email batissait https://megga.ch/visite/<id>/modifier?token=..., or megga.ch est la VITRINE protegee par mot de passe: elle rend 401 sur ce chemin, app.megga.ch rend 200. Tous les liens de gestion de visite deja envoyes menaient donc a une page d'authentification - le durcissement du jeton de visite (#1114) protegeait un parcours que personne ne pouvait atteindre. REGLE: le segment de chemin (/kyc, /visite/...) appartient a la ROUTE, jamais au reglage. Un reglage nomme '...DOMAIN' est un piege: il invite a poser un hote nu, ce qui produit un lien mort. ⚠ Rien de tout cela n'avait ete constate par un usage reel: 0 lien KYC, 0 invitation, 0 e-mail de visite emis en production. Une panne de lien ne se voit PAS dans les journaux tant que personne n'envoie - la seule verification possible est de tester l'URL contre les deux hotes."
+    },
+    {
+      "key": "megga/onboarding-call",
+      "namespace": "megga",
+      "value": "APPEL D'ACCUEIL (aout 2026) — prise de RDV MEGGA<->agence a la SORTIE du wizard KYB. IdentityShell.handleSubmit mene a /dashboard/rendez-vous-accueil (ecran PASSABLE). ⚠ RECOUVREMENT CONNU : `main` porte depuis le 02-03/08/2026 un socle de reservation KYC (agent_booking_settings, agent_time_off, appointments + booking-slots/freebusy/email + appointment-slots/book/manage) qui couvre ~80% de la meme mecanique pour un AUTRE cas (le client d'une agence reserve avec SON agent via le magic link KYC). Convergence a arbitrer : `appointments.purpose` existe deja et vaut 'kyc_verification' par defaut ; les vrais ecarts sont contact_id NOT NULL (notre reservant est un profiles, pas un contact), l'absence de pool avec attribution tournante, et la couture post-KYB. Anti-double-reservation : notre socle utilise 2 index PARTIELS UNIQUES (host_id,scheduled_at) et (agency_id) WHERE confirmed ; celui de main utilise une contrainte d'EXCLUSION GiST (agent_id =, slot &&), plus forte. PIEGE DE TEST : une ligne peut violer les DEUX index et Postgres n'en rapporte qu'un — un test de creneau doit partir d'agences SANS appel confirme. PIEGE MESURE : la fenetre de reverification avant ecriture doit contenir le rendez-vous ENTIER (cf. recheckWindow) ; a +/-1 min, TOUTE reservation echouait en 'creneau deja pris'. Moteur pur : heure murale -> instant par Intl.DateTimeFormat avec aller-retour, une heure inexistante au passage a l'heure d'ete rend null. activity_events gagne la categorie 'onboarding'. Les RPC admin laissent leur ligne au registre admin_log et rendent l'enveloppe 10.1.",
+      "tags": [
+        "onboarding",
+        "rendez-vous",
+        "kyb",
+        "admin",
+        "rls",
+        "fuseau",
+        "concurrence",
+        "doublon"
+      ]
     }
   ]
 }

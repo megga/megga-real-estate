@@ -137,6 +137,10 @@ const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 // terminer sur ordinateur (IdentityMobileNotice), hors périmètre v1.
 const IdentitySugarPage = lazy(() => import('@/pages/agent/IdentitySugarPage'))
 const IdentityMobileNotice = lazy(() => import('@/pages/agent/IdentityMobileNotice'))
+// Étape 3 KYB — suite immédiate du wizard d'identité : réserver l'appel d'accueil
+// avec l'équipe MEGGA. Écran passable, jamais bloquant.
+const OnboardingCallPage = lazy(() => import('@/pages/agent/OnboardingCallPage'))
+const OnboardingCallManagePage = lazy(() => import('@/pages/public/OnboardingCallManagePage'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
@@ -388,6 +392,9 @@ function AppRoutes() {
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/visit/:id/edit" element={<VisitManagePage />} />
               <Route path="/visit/:id/feedback" element={<VisitFeedbackPage />} />
+              {/* Lien personnel de l'appel d'accueil : le jeton est la capability,
+                  aucune session requise (cf. get_onboarding_call_by_token). */}
+              <Route path="/rendez-vous/:token" element={<OnboardingCallManagePage />} />
               <Route path="/agents" element={<MarketplaceDisabledRedirect />} />
               <Route path="/agents/:slug" element={<MarketplaceDisabledRedirect />} />
               <Route path="/agencies" element={<MarketplaceDisabledRedirect />} />
@@ -528,6 +535,8 @@ function AppRoutes() {
                     AgentSugarLayout tant que agencies.identity_submitted_at est nul).
                     Mobile (< 768px) : la saisie se termine sur ordinateur uniquement. */}
                 <Route path="identite" element={<ResponsiveRoute desktop={<IdentitySugarPage />} mobile={<IdentityMobileNotice />} />} />
+                {/* Étape 3 KYB — réservation de l'appel d'accueil, à la sortie du wizard. */}
+                <Route path="rendez-vous-accueil" element={<OnboardingCallPage />} />
                 {/* Réseau inter-agences — hors périmètre v1 (route neutralisée ; NetworkSugarV2Page retirée) */}
                 <Route path="network" element={<Navigate to="/dashboard" replace />} />
                 <Route path="reseau" element={<Navigate to="/dashboard" replace />} />
