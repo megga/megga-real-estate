@@ -66,15 +66,15 @@ serve(async (req) => {
       supabaseAdmin.from('activity_events').select('id', { count: 'exact', head: true }).eq('action', 'edge_function_error').gte('created_at', weekAgo),
     ])
 
-    // ── Get super_admin emails ──
-    const { data: admins } = await supabaseAdmin
-      .from('profiles')
-      .select('email')
-      .eq('role', 'super_admin')
-
-    const adminEmails = (admins ?? []).map(a => a.email).filter(Boolean)
-    if (adminEmails.length === 0) {
-      return new Response(JSON.stringify({ error: 'No super_admin emails found' }), {
+    // ── Recipients = admin alert list (allowlist minus opt-out) ──
+    // Same list as the hourly cron alerting (admin_alert_recipients, migration
+    // 20260803220000): the mailing list is decoupled from the super_admin
+    // IDENTITY allowlist, so an admin can opt out of admin/cron emails via
+    // app_config.admin_alert_optout WITHOUT losing super-admin access.
+    const { data: recipients, error: recipientsErr } = await supabaseAdmin.rpc('admin_alert_recipients')
+    const adminEmails = (Array.isArray(recipients) ? recipients : []).filter(Boolean)
+    if (recipientsErr || adminEmails.length === 0) {
+      return new Response(JSON.stringify({ error: 'No admin recipients found' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
