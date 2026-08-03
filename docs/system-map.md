@@ -103,11 +103,17 @@ Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge au
 **Frontières & flux global :**
 ```
 megga.ch (site statique V3, password-gated)          ─┐
-app.megga.ch (SPA React CRM, /dashboard/* —            │
-              console super-admin comprise)            ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
-kyc.megga.ch (magic links KYC publics)                ─┘         ▲
-                                                         └── pg_cron (flatfox-sync, monitoring…) via pg_net
+                                                      ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
+app.megga.ch (SPA React CRM, /dashboard/* — console  ─┘         ▲
+              super-admin comprise — et les parcours            └── pg_cron (flatfox-sync, monitoring…) via pg_net
+              publics tokenisés /kyc/:token,
+              /reception/:token, /accept-invite/:token)
 ```
+
+> `kyc.megga.ch` figurait ici comme hôte des liens magiques : ce domaine n'a **jamais eu de
+> DNS**. Le parcours client est une route de l'app (`/kyc/:token`) ; les liens sont bâtis
+> depuis `MEGGA_APP_URL` (repli `https://app.megga.ch`) par
+> [`_shared/app-url.ts`](../supabase/functions/_shared/app-url.ts).
 
 **🟪 Console super-admin : une SURFACE DU CRM** (28 juil. 2026). Les 17 pages d'administration vivent sous
 `/dashboard/admin/*`, dans le bundle du CRM : [`src/App.tsx`](../src/App.tsx) monte
