@@ -37,18 +37,40 @@ export function buildCfPdfRequestBody(input: CfPdfRequestInput): Record<string, 
 }
 
 /**
- * Rend journalisable le corps d'erreur renvoyé par Cloudflare : l'URL rendue disparaît,
- * le motif de l'échec reste.
+ * Rend journalisable le corps d'erreur renvoyé par Cloudflare : le jeton de lecture disparaît,
+ * l'URL qui a échoué reste lisible.
  *
- * Pourquoi : une erreur de navigation recopie l'URL visée (« net::ERR_… at https://… »), et
- * cette URL PORTE le jeton de lecture du rapport. Sans cette passe le jeton partait en clair
- * dans les journaux ET dans la réponse d'erreur rendue à l'appelant. Deux filets qui ne se
- * recouvrent pas : le retrait littéral de l'URL qu'on vient de construire, puis le catalogue
- * partagé (motif TOKEN), qui rattrape le jeton sous les formes qu'on ne fabrique pas nous-mêmes
- * — URL échappée dans du JSON, réécrite par une redirection, ou jeton cité seul.
+ * POURQUOI PAS `<render-url>`. Une erreur de navigation recopie l'URL visée
+ * (« net::ERR_… at https://… »), qui PORTE le jeton. La première version effaçait l'URL
+ * ENTIÈRE — et avec elle l'hôte et le chemin, c'est-à-dire exactement ce qui désigne le
+ * coupable quand le rendu est mal configuré. Le dépôt a vécu cette panne : un lien pointant
+ * un hôte sans DNS, invisible longtemps. `at <render-url>` ne dit rien ;
+ * `at https://kyc.megga.ch/kyc-report/[REDACTED:TOKEN]` nomme le fautif.
+ *
+ * POURQUOI UNE SUBSTITUTION LITTÉRALE, et pas un motif qui rattraperait le jeton tronqué ou
+ * percent-encodé. Un FRAGMENT de jeton n'est pas une capacité : `verifyMagicLinkToken` exige
+ * exactement deux tranches jointes par un point ET une signature HMAC valide sur la première
+ * — une moitié, ou un jeton coupé, ne peut donc jamais authentifier. Une version ancrée sur
+ * un préfixe a été écrite puis retirée : elle promettait de rattraper ces formes, mais
+ * apportait quatre modes de panne pour protéger ce qui n'ouvre aucun droit — un seuil de
+ * longueur en deçà duquel elle mangeait le chemin qu'elle prétend garder, pas de frontière
+ * droite (un suffixe de diagnostic partait avec le jeton), et un désarmement SILENCIEUX le
+ * jour où l'URL porterait son jeton en query.
+ *
+ * Ce qui reste couvre le cas réel — l'URL recopiée telle qu'on l'a construite — et le
+ * catalogue partagé (motif TOKEN) prend la suite pour les secrets qu'on n'a PAS fabriqués
+ * ici : URL réécrite par une redirection, jeton cité seul, JWT d'un intermédiaire.
  */
 export function redactCfRenderError(errTxt: string, renderUrl: string): string {
-  return redactPII(errTxt.replaceAll(renderUrl, '<render-url>')).redactedText
+  const coupe = renderUrl.lastIndexOf('/')
+  const segment = coupe < 0 ? '' : renderUrl.slice(coupe + 1)
+  // Segment vide = l'URL ne porte pas de jeton (elle finit par « / »). Substituer quand même
+  // collerait un « [REDACTED:TOKEN] » qui désigne un secret inexistant : un journal qui invente
+  // une rédaction est aussi trompeur qu'un journal qui en oublie une.
+  if (!segment) return redactPII(errTxt).redactedText
+  return redactPII(
+    errTxt.replaceAll(renderUrl, `${renderUrl.slice(0, coupe + 1)}[REDACTED:TOKEN]`),
+  ).redactedText
 }
 
 /** Découpe "user:pass" en { user, pass } ; tolère un pass contenant des ':'. */

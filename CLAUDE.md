@@ -388,7 +388,10 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 >
 > À poser UNIQUEMENT le jour où l'app changerait de domaine — et alors sur le domaine de
 > l'APP, avec le schéma, sans chemin (le segment `/kyc` appartient à la route, pas au
-> réglage). Lecteurs : `_shared/app-url.ts`, `kyc-report-pdf`, `send-team-invite`.
+> réglage). Lecteurs : `_shared/app-url.ts` — qui porte les quatre constructeurs
+> (`kycMagicLinkUrl`, `visitManageUrl`, `teamInviteAcceptUrl`, `kycReportRenderUrl`) — et
+> `appointment-book`, seule fonction à garder sa propre lecture (elle accepte en plus un
+> repli `APP_URL`, et fige la valeur dans une `const` de module).
 
 > ✅ **`MEGGA_MAGIC_LINK_HMAC_SECRET` EST configuré** (mesuré le 03.08.2026) — il manquait
 > simplement à cet inventaire. Il signe les jetons publics du lien magique KYC ET des liens
