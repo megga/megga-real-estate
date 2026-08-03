@@ -20,8 +20,9 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { LucideIcon } from 'lucide-react'
 import { X, Mail, Phone, Building2, Clock, Eye, FileDown, Ban, KeyRound, Trash2 } from 'lucide-react'
-import { formatRelativeDate } from '@/lib/utils'
+import { formatDate, formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity, useDsarExport } from '@/hooks/useAdminUsers'
+import { consentView, ORG_ROLES, ROLE_LABEL_KEY, displayName } from '@/lib/adminUserRegistry'
 import { useAdminUserLifecycle } from '@/hooks/useAdminUserLifecycle'
 import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
 import AdminConfirm from '@/components/admin/AdminConfirm'
@@ -33,13 +34,6 @@ import {
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 
-const ROLE_OPTIONS = [
-  { value: 'super_admin', i18nKey: 'common.role.superAdmin' },
-  { value: 'admin', i18nKey: 'common.role.admin' },
-  { value: 'manager', i18nKey: 'common.role.manager' },
-  { value: 'agent', i18nKey: 'common.role.agent' },
-  { value: 'assistant', i18nKey: 'common.role.assistant' },
-]
 
 interface UserDrawerProps {
   userId: string
@@ -81,6 +75,12 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const toast = useToast()
 
   const user = users.find(u => u.id === userId)
+
+  /**
+   * Compte PROTÉGÉ : l'edge refuse sur lui les TROIS gestes de cycle de vie.
+   * Proxy assumé de l'allowlist super-admin — voir la note du bloc de gestes.
+   */
+  const protege = user?.role === 'super_admin'
   const focusTrapRef = useFocusTrap(true)
   // Action destructive en attente de confirmation (`null` = aucune).
   const [confirming, setConfirming] = useState<'suspend' | 'delete' | null>(null)
@@ -217,8 +217,8 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                   opacity: updateRole.isPending ? 0.6 : 1,
                 }}
               >
-                {ROLE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{t(opt.i18nKey)}</option>
+                {ORG_ROLES.map((r) => (
+                  <option key={r} value={r}>{t(ROLE_LABEL_KEY[r])}</option>
                 ))}
               </select>
               {updateRole.isError && (
@@ -258,8 +258,17 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
               {dsarExport.isPending ? t('userDrawer.dsarExporting') : t('userDrawer.dsarExport')}
             </AdminGhostBtn>
 
-            {/* Cycle de vie du compte (P4) — actions journalisées serveur ;
-                les comptes allowlistés sont refusés par l'edge (anti-lockout). */}
+            {/* Cycle de vie du compte (P4) — actions journalisées serveur.
+                ⛔ MESURÉ : la garde anti-lockout d'`admin-user-lifecycle` est posée
+                AVANT le switch d'action (index.ts:69), elle refuse donc en 403
+                `suspend`, `reactivate` ET `force_password_reset` sur un compte
+                allowlisté — pas seulement la suppression, comme le laissait croire
+                l'ancienne note. Sur ce déploiement, l'unique compte allowlisté est
+                l'opérateur lui-même : sans ce garde-fou, le bouton principal du
+                premier compte de la liste échouait en silence.
+                ⚠ `role === 'super_admin'` est un PROXY de l'allowlist, pas
+                l'allowlist : un e-mail allowlisté au profil `admin` serait refusé
+                sans signal. Les deux coïncident aujourd'hui. */}
             {/* Les trois actions sont empilées pleine largeur : à 380 px de
                 panneau, deux colonnes ne tiennent pas « Reset mot de passe »
                 (et encore moins sa traduction allemande) sans débordement. */}
@@ -280,7 +289,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                   }
                   setConfirming('suspend')
                 }}
-                disabled={lifecycle.isPending}
+                disabled={lifecycle.isPending || protege}
                 style={{ ...fullWidthBtn, color: user.is_suspended ? sp.ink : tones.warn }}
               >
                 <AdminIc icon={Ban} size={15} color={user.is_suspended ? sp.ink : tones.warn} />
@@ -297,19 +306,53 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                     },
                   )
                 }
-                disabled={lifecycle.isPending}
+                disabled={lifecycle.isPending || protege}
                 style={fullWidthBtn}
               >
                 {t('userDrawer.lifecycle.resetPassword')}
               </AdminGhostBtn>
               <AdminGhostBtn
                 onClick={() => setConfirming('delete')}
-                disabled={deleteAccount.isPending}
+                disabled={deleteAccount.isPending || protege}
                 style={{ ...fullWidthBtn, color: tones.err }}
               >
                 <AdminIc icon={Trash2} size={15} color={tones.err} />
                 {deleteAccount.isPending ? t('userDrawer.lifecycle.deleting') : t('userDrawer.lifecycle.delete')}
               </AdminGhostBtn>
+              {protege && (
+                <div style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                  {t('userDrawer.protectedNote')}
+                </div>
+              )}
+            </div>
+
+            {/* Consentements nLPD — ce que le compte a accepté, et quand.
+                ⛔ Le marketing ne rend JAMAIS « refusé » : aucun chemin
+                d'inscription ne pose de case marketing, donc l'absence de ligne
+                signifie « jamais demandé », pas un refus. */}
+            <div style={{ paddingTop: 14, borderTop: surf.hairline }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
+                {t('userDrawer.consents.title')}
+              </div>
+              {(() => {
+                const c = consentView(user.consents, user.marketing)
+                return ([['terms', c.terms], ['privacy', c.privacy], ['marketing', c.marketing]] as const).map(([cle, etat]) => (
+                  <div key={cle} style={{ display: 'flex', alignItems: 'baseline', gap: 10, minHeight: 26 }}>
+                    <span style={{ minWidth: 132, fontSize: 12, fontWeight: 600, color: sp.ink }}>
+                      {t(`userDrawer.consents.${cle}`)}
+                    </span>
+                    <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                      {etat.kind === 'accepted'
+                        ? (etat.version
+                            ? t('userDrawer.consents.acceptedVersion', { version: etat.version, date: etat.at ? formatDate(etat.at) : '—' })
+                            : t('userDrawer.consents.accepted', { date: etat.at ? formatDate(etat.at) : '—' }))
+                        : etat.kind === 'notAsked'
+                          ? t('userDrawer.consents.notAsked')
+                          : t('userDrawer.consents.notRecorded')}
+                    </span>
+                  </div>
+                ))
+              })()}
             </div>
 
             {/* Activity timeline */}
@@ -364,7 +407,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
             open={confirming === 'suspend'}
             onClose={() => setConfirming(null)}
             title={t('userDrawer.lifecycle.suspendTitle')}
-            message={t('userDrawer.lifecycle.suspendConfirm', { email: user.email })}
+            message={t('userDrawer.lifecycle.suspendConfirm', { name: displayName(user.full_name, user.email) })}
             confirmLabel={t('userDrawer.lifecycle.suspend')}
             tone="warn"
             busy={lifecycle.isPending}
