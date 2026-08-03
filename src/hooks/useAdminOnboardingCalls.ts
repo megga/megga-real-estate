@@ -11,11 +11,7 @@
  * pagination côté écran (les volumes sont ceux d'une plateforme, pas d'un catalogue).
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-
-// database.ts est en retard sur la migration : cast localisé, comme useAdminAgencies.
-const db = supabase as unknown as SupabaseClient
 
 export interface AdminOnboardingCall {
   id: string
@@ -62,8 +58,8 @@ export function useAdminOnboardingCalls(status?: string) {
     queryKey: ['admin-onboarding-calls', status ?? 'all'],
     staleTime: 30_000,
     queryFn: async (): Promise<AdminOnboardingCall[]> => {
-      const { data, error } = await db.rpc('get_admin_onboarding_calls', {
-        p_status: status ?? null,
+      const { data, error } = await supabase.rpc('get_admin_onboarding_calls', {
+        p_status: status ?? undefined,
         p_limit: 2000,
         p_offset: 0,
       })
@@ -78,7 +74,7 @@ export function useAdminOnboardingHosts() {
     queryKey: ['admin-onboarding-hosts'],
     staleTime: 30_000,
     queryFn: async (): Promise<AdminOnboardingHost[]> => {
-      const { data, error } = await db.rpc('get_admin_onboarding_hosts')
+      const { data, error } = await supabase.rpc('get_admin_onboarding_hosts')
       if (error) throw error
       return ((data ?? []) as AdminOnboardingHost[]).map((h) => ({
         ...h,
@@ -129,7 +125,7 @@ export function useUpsertOnboardingHost() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: UpsertHostInput) => {
-      const { data, error } = await db.rpc('admin_upsert_onboarding_host', {
+      const { data, error } = await supabase.rpc('admin_upsert_onboarding_host', {
         p_profile_id: input.profileId,
         p_display_name: input.displayName,
         p_timezone: input.timezone,
@@ -139,7 +135,7 @@ export function useUpsertOnboardingHost() {
         p_buffer_after_minutes: input.bufferAfterMinutes,
         p_min_notice_hours: input.minNoticeHours,
         p_horizon_days: input.horizonDays,
-        p_max_per_day: input.maxPerDay,
+        p_max_per_day: input.maxPerDay ?? undefined,
       })
       if (error) throw error
       return unwrap(data).host_id as string
@@ -152,7 +148,7 @@ export function useSetOnboardingHostActive() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ hostId, active }: { hostId: string; active: boolean }) => {
-      const { data, error } = await db.rpc('admin_set_onboarding_host_active', {
+      const { data, error } = await supabase.rpc('admin_set_onboarding_host_active', {
         p_host_id: hostId,
         p_active: active,
       })
@@ -172,7 +168,7 @@ export function useSetOnboardingCallOutcome() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ callId, status }: { callId: string; status: 'done' | 'no_show' }) => {
-      const { data, error } = await db.rpc('admin_set_onboarding_call_outcome', {
+      const { data, error } = await supabase.rpc('admin_set_onboarding_call_outcome', {
         p_call_id: callId,
         p_status: status,
       })

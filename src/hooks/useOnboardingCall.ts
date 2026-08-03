@@ -13,14 +13,8 @@
  * mieux faux, au pire une réservation sur un horaire déjà pris.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-
-// Les types générés (`src/types/database.ts`) sont en retard sur la migration
-// `20260803214105_onboarding_calls`. Même parade que `useAdminAgencies` : on caste le
-// client et on décrit les lignes à la main.
-const db = supabase as unknown as SupabaseClient
 
 /** Clé de mise en sommeil du rappel, par agence : passer n'est pas refuser. */
 export const ONBOARDING_CALL_SNOOZE_KEY = 'megga.onboardingCall.snoozed'
@@ -79,10 +73,12 @@ export function useMyOnboardingCall() {
     enabled: !!agencyId,
     staleTime: 60_000,
     queryFn: async (): Promise<OnboardingCallRow | null> => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('onboarding_calls')
         .select('id, scheduled_at, duration_minutes, status, host_display_name, meeting_url, manage_token, rescheduled_count')
-        .eq('agency_id', agencyId)
+        // `enabled: !!agencyId` garantit la valeur ; le client typé refuse
+        // désormais un filtre nul, ce que le cast masquait.
+        .eq('agency_id', agencyId!)
         .eq('status', 'confirmed')
         .maybeSingle()
       if (error) throw error
@@ -174,16 +170,15 @@ export function usePublicOnboardingCall(token: string | undefined) {
     enabled: !!token,
     retry: false,
     queryFn: async (): Promise<PublicOnboardingCall | null> => {
-      // Les RPC à jeton ne sont pas dans les types générés (database.ts en retard
-      // sur les migrations) : cast localisé, même patron que `usePublicVisit`.
-      const res = await (supabase.rpc as unknown as (
-        fn: string,
-        args: Record<string, unknown>,
-      ) => PromiseLike<{ data: unknown; error: { message: string } | null }>)(
-        'get_onboarding_call_by_token', { p_token: token },
-      )
-      if (res.error || !res.data) return null
-      return res.data as PublicOnboardingCall
+      // `enabled: !!token` garantit que la requête ne part pas sans jeton ; le
+      // `!` le dit au typage plutôt que de rouvrir une porte avec un cast large.
+      const { data, error } = await supabase.rpc('get_onboarding_call_by_token', {
+        p_token: token!,
+      })
+      if (error || !data) return null
+      // La RPC rend un `jsonb` : le générateur le type `Json`, la forme exacte est
+      // celle que la migration construit (jsonb_build_object).
+      return data as unknown as PublicOnboardingCall
     },
   })
 }

@@ -3703,6 +3703,159 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_calls: {
+        Row: {
+          agency_id: string
+          attendee_note: string | null
+          attendee_phone: string | null
+          booked_by: string
+          calendar_event_id: string | null
+          calendar_provider: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          confirmation_sent_at: string | null
+          created_at: string
+          duration_minutes: number
+          host_display_name: string
+          host_id: string
+          id: string
+          manage_token: string
+          meeting_url: string | null
+          reminder_sent_at: string | null
+          rescheduled_count: number
+          scheduled_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          attendee_note?: string | null
+          attendee_phone?: string | null
+          booked_by: string
+          calendar_event_id?: string | null
+          calendar_provider?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          confirmation_sent_at?: string | null
+          created_at?: string
+          duration_minutes?: number
+          host_display_name: string
+          host_id: string
+          id?: string
+          manage_token?: string
+          meeting_url?: string | null
+          reminder_sent_at?: string | null
+          rescheduled_count?: number
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          attendee_note?: string | null
+          attendee_phone?: string | null
+          booked_by?: string
+          calendar_event_id?: string | null
+          calendar_provider?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          confirmation_sent_at?: string | null
+          created_at?: string
+          duration_minutes?: number
+          host_display_name?: string
+          host_id?: string
+          id?: string
+          manage_token?: string
+          meeting_url?: string | null
+          reminder_sent_at?: string | null
+          rescheduled_count?: number
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      onboarding_host_exceptions: {
+        Row: {
+          created_at: string
+          day: string
+          host_id: string
+          id: string
+          is_closed: boolean
+          reason: string | null
+          slices: Json
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          host_id: string
+          id?: string
+          is_closed?: boolean
+          reason?: string | null
+          slices?: Json
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          host_id?: string
+          id?: string
+          is_closed?: boolean
+          reason?: string | null
+          slices?: Json
+        }
+        Relationships: []
+      }
+      onboarding_hosts: {
+        Row: {
+          buffer_after_minutes: number
+          created_at: string
+          display_name: string
+          duration_minutes: number
+          horizon_days: number
+          id: string
+          is_active: boolean
+          max_per_day: number | null
+          min_notice_hours: number
+          profile_id: string
+          slot_minutes: number
+          timezone: string
+          updated_at: string
+          weekly_hours: Json
+        }
+        Insert: {
+          buffer_after_minutes?: number
+          created_at?: string
+          display_name: string
+          duration_minutes?: number
+          horizon_days?: number
+          id?: string
+          is_active?: boolean
+          max_per_day?: number | null
+          min_notice_hours?: number
+          profile_id: string
+          slot_minutes?: number
+          timezone?: string
+          updated_at?: string
+          weekly_hours?: Json
+        }
+        Update: {
+          buffer_after_minutes?: number
+          created_at?: string
+          display_name?: string
+          duration_minutes?: number
+          horizon_days?: number
+          id?: string
+          is_active?: boolean
+          max_per_day?: number | null
+          min_notice_hours?: number
+          profile_id?: string
+          slot_minutes?: number
+          timezone?: string
+          updated_at?: string
+          weekly_hours?: Json
+        }
+        Relationships: []
+      }
       outlook_calendar_sync: {
         Row: {
           created_at: string | null
@@ -6682,6 +6835,29 @@ export type Database = {
         Args: { p_agency_id: string; p_note?: string; p_quotas: Json }
         Returns: Json
       }
+      admin_set_onboarding_call_outcome: {
+        Args: { p_call_id: string; p_status: string }
+        Returns: Json
+      }
+      admin_set_onboarding_host_active: {
+        Args: { p_active: boolean; p_host_id: string }
+        Returns: Json
+      }
+      admin_upsert_onboarding_host: {
+        Args: {
+          p_buffer_after_minutes?: number
+          p_display_name: string
+          p_duration_minutes?: number
+          p_horizon_days?: number
+          p_max_per_day?: number
+          p_min_notice_hours?: number
+          p_profile_id: string
+          p_slot_minutes?: number
+          p_timezone?: string
+          p_weekly_hours?: Json
+        }
+        Returns: Json
+      }
       admin_set_user_role: {
         Args: { p_role: string; p_user_id: string }
         Returns: Json
@@ -7161,6 +7337,50 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_admin_onboarding_calls: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: {
+          agency_id: string
+          agency_name: string
+          agency_slug: string
+          attendee_note: string
+          attendee_phone: string
+          booked_by: string
+          booked_by_email: string
+          booked_by_name: string
+          cancel_reason: string
+          created_at: string
+          duration_minutes: number
+          host_id: string
+          host_name: string
+          id: string
+          meeting_url: string
+          rescheduled_count: number
+          scheduled_at: string
+          status: string
+          verification_status: string
+        }[]
+      }
+      get_admin_onboarding_hosts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          buffer_after_minutes: number
+          created_at: string
+          display_name: string
+          duration_minutes: number
+          horizon_days: number
+          id: string
+          is_active: boolean
+          max_per_day: number
+          min_notice_hours: number
+          profile_email: string
+          profile_id: string
+          slot_minutes: number
+          timezone: string
+          upcoming_calls: number
+          weekly_hours: Json
+        }[]
+      }
       get_admin_agencies: {
         Args: { p_agency_id?: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -7556,6 +7776,10 @@ export type Database = {
       get_market_rent_reference_config: { Args: never; Returns: Json }
       get_my_agency_id: { Args: never; Returns: string }
       get_my_agency_plan: { Args: never; Returns: string }
+      get_onboarding_call_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       get_onboarding_milestones: {
         Args: { agency_ids: string[] }
         Returns: {

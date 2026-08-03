@@ -1,9 +1,9 @@
 {
   "de": {
     "admin": {
-      "total": 967,
-      "sameAsEn": 103,
-      "untranslated": 25
+      "total": 1052,
+      "sameAsEn": 104,
+      "untranslated": 26
     },
     "auth": {
       "total": 58,
@@ -16,7 +16,7 @@
       "untranslated": 4
     },
     "common": {
-      "total": 414,
+      "total": 415,
       "sameAsEn": 42,
       "untranslated": 7
     },
@@ -26,7 +26,7 @@
       "untranslated": 16
     },
     "dashboard": {
-      "total": 541,
+      "total": 553,
       "sameAsEn": 45,
       "untranslated": 7
     },
@@ -51,8 +51,8 @@
       "untranslated": 0
     },
     "onboarding": {
-      "total": 135,
-      "sameAsEn": 0,
+      "total": 216,
+      "sameAsEn": 1,
       "untranslated": 0
     },
     "pipeline": {
@@ -61,14 +61,14 @@
       "untranslated": 4
     },
     "settings": {
-      "total": 827,
+      "total": 778,
       "sameAsEn": 57,
       "untranslated": 8
     }
   },
   "it": {
     "admin": {
-      "total": 967,
+      "total": 1052,
       "sameAsEn": 69,
       "untranslated": 5
     },
@@ -83,7 +83,7 @@
       "untranslated": 0
     },
     "common": {
-      "total": 414,
+      "total": 415,
       "sameAsEn": 39,
       "untranslated": 2
     },
@@ -93,8 +93,8 @@
       "untranslated": 6
     },
     "dashboard": {
-      "total": 541,
-      "sameAsEn": 45,
+      "total": 553,
+      "sameAsEn": 47,
       "untranslated": 5
     },
     "kyc": {
@@ -118,9 +118,9 @@
       "untranslated": 0
     },
     "onboarding": {
-      "total": 135,
+      "total": 216,
       "sameAsEn": 1,
-      "untranslated": 1
+      "untranslated": 0
     },
     "pipeline": {
       "total": 442,
@@ -128,8 +128,8 @@
       "untranslated": 2
     },
     "settings": {
-      "total": 827,
-      "sameAsEn": 57,
+      "total": 778,
+      "sameAsEn": 55,
       "untranslated": 5
     }
   }

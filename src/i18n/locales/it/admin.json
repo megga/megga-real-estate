@@ -1046,13 +1046,13 @@
   "audit.family.kyb": "KYB",
   "onboardingCalls": {
     "title": "Chiamate di benvenuto",
-    "subtitle": "Il calendario del team MEGGA e gli orari degli host.",
+    "subtitle": "Il calendario del team MEGGA e gli orari dei referenti.",
     "error": "Lettura impossibile.",
     "searchLabel": "Cercare una chiamata",
-    "searchPlaceholder": "Agenzia, host, contatto...",
+    "searchPlaceholder": "Agenzia, referente, contatto...",
     "tabs": {
       "calls": "Appuntamenti",
-      "hosts": "Host"
+      "hosts": "Referenti"
     },
     "stats": {
       "upcoming": "In arrivo",
@@ -1076,7 +1076,7 @@
     "table": {
       "agency": "Agenzia",
       "when": "Quando",
-      "host": "Host",
+      "host": "Referente",
       "status": "Stato",
       "actions": "Azioni",
       "rescheduled": "riprogrammata {{count}} volte",
@@ -1106,22 +1106,22 @@
       "activate": "Attivare",
       "deactivate": "Disattivare",
       "table": {
-        "host": "Host",
+        "host": "Referente",
         "hours": "Orari",
         "upcoming": "In arrivo",
         "state": "Stato",
         "rules": "{{duration}} min, margine {{buffer}} min, preavviso {{notice}} h, orizzonte {{horizon}} g"
       },
       "empty": {
-        "title": "Nessun host",
-        "hint": "Senza host attivo, nessuna agenzia puo prenotare."
+        "title": "Nessun referente",
+        "hint": "Senza referente attivo, nessuna agenzia puo prenotare."
       },
-      "provisioningNote": "Senza host attivo, la schermata di prenotazione dichiara onestamente che nessun orario e aperto.",
-      "addHost": "Aggiungere un host",
+      "provisioningNote": "Aggiungere un referente o modificarne gli orari passa dalla RPC admin_upsert_onboarding_host. Questa schermata permette di attivarlo o disattivarlo.",
+      "addHost": "Aggiungere un referente",
       "editHost": "Modificare",
       "form": {
-        "addTitle": "Nuovo host",
-        "editTitle": "Modificare l'host",
+        "addTitle": "Nuovo referente",
+        "editTitle": "Modificare il referente",
         "close": "Chiudere",
         "email": "E-mail del conto MEGGA",
         "displayName": "Nome mostrato al cliente",
@@ -1141,7 +1141,7 @@
           "unknownEmail": "Nessun conto porta questa e-mail.",
           "nameRequired": "Il nome mostrato e obbligatorio.",
           "badSlice": "Una fascia e malformata : la fine deve seguire l inizio.",
-          "generic": "L'host non e stato salvato."
+          "generic": "Il referente non e stato salvato."
         }
       }
     },
