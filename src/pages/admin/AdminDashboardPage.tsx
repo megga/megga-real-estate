@@ -1,188 +1,412 @@
 /**
- * Page super-admin — tableau de bord plateforme (accueil de la section admin).
+ * Page super-admin — Vue d'ensemble (concept A de la maquette `admin-overview.jsx`).
  *
- * Route : `/dashboard/admin` (accent violet). Empile un pouls de santé, 5 KPIs
- * (agences, users, biens, transactions, KYC à risque), le flux d'alertes, le
- * journal d'activité, le suivi d'onboarding et le dashboard de facturation.
+ * Route : `/dashboard/admin`. Un seul objet, un seul appel : `admin_overview()`
+ * assemble ses sept sources côté serveur. La page ne recalcule rien et ne
+ * complète rien par un second fetch — c'est le contrat de cet écran.
  *
- * Grammaire Sugar : le titre et l'action « rapport hebdo » vivent dans
- * `AdminPage` (la pastille violette + le badge Admin sont désormais dans le rail,
- * une seule fois) ; le pouls de santé est une carte NEUTRE dont le signal passe
- * par des pilules ; une alerte est repérée par une pastille de ton, l'ancien
- * liseré gauche mettant du violet de plateforme sur un événement métier.
+ * Structure (profondeur 1, aucune carte) : pouls · cinq chiffres nus · tête
+ * « À traiter » · manques déclarés · journal · pied de trois renvois.
+ *
+ * ── Écarts assumés vis-à-vis de la maquette, tous nommés ici plutôt que tus ──
+ *
+ * É1 · Le KPI « KYC à risque » DISPARAÎT, et le pouls change de source. La
+ *      maquette l'écrit trois fois : « le KYC/LBA des clients finaux n'est pas
+ *      l'affaire de la plateforme ». `admin_overview()` calcule la valeur puis
+ *      la jette — le serveur applique déjà l'arbitrage. Le pouls lit désormais
+ *      `pulse.healthy`, plus un compte de dossiers à risque.
+ * É2 · Le pouls dit « aucune erreur de fonction REMONTÉE », pas « aucun incident
+ *      sur 24 h ». Le capteur (`edge_function_error`) n'est câblé que dans 4 des
+ *      68 edge functions : l'absence d'erreur ne prouve pas l'absence d'incident,
+ *      et l'écran n'a pas à l'affirmer.
+ * É3 · Le journal n'annonce AUCUNE fenêtre de 24 h. Mesuré : `get_admin_live_feed`
+ *      n'a aucun prédicat temporel — ce sont « les 40 événements non-KYC les plus
+ *      récents », qui peuvent dater de plusieurs semaines sur une plateforme calme.
+ * É4 · Le renvoi vers Live ne porte AUCUN nombre. « Les N plus anciens » se
+ *      lirait « il en reste N », alors que N ne serait que l'écart entre 40 et
+ *      l'affiché, face à des milliers de lignes en base.
+ * É5 · Le signal `payments_failed` s'affiche « agence à régulariser ». Le serveur
+ *      compte les agences de la file `unpaid`, où tombe aussi toute agence
+ *      SUSPENDUE, y compris sans la moindre ligne d'abonnement : « paiement
+ *      échoué » serait un fait inventé.
+ * É6 · Le pied KYC dit « déposés », le mot du serveur (`links_submitted`), et non
+ *      « confirmés » : la plateforme ne confirme rien et ne voit aucune pièce.
+ * É7 · Le libellé des comptes reste « utilisateurs » et non « comptes agents » :
+ *      la source est un `COUNT(*)` sur `profiles`, sans filtre de rôle — elle
+ *      compte les administrateurs, un acheteur et le super-admin qui regarde.
+ * É8 · Le tableau des motifs du pouls est AFFICHÉ, là où la maquette le calcule
+ *      et rend `null` : sans lui, « Attention requise » n'est suivi d'aucune
+ *      explication.
+ * É9 · Les tendances « +N ce mois » ne sont pas reprises : la maquette veut des
+ *      chiffres NUS. Le contrat les rend toujours (`new_agencies_this_month`),
+ *      elles sont donc disponibles sans nouvelle mesure.
+ * É10 · Le signal « tickets support » n'est pas dessiné, et son absence est
+ *      AFFICHÉE sous « Pas encore de source » : il n'existe ni table, ni un seul
+ *      événement `ticket_created`.
+ *
+ * Le rapport hebdomadaire a quitté cette page pour le Monitoring : les revenus
+ * vont à Plans et l'activation à Agences, l'accueil ne garde que des renvois.
  */
+import { useMemo, useState, type CSSProperties } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle, UserCog } from 'lucide-react'
-import { useAdminStats } from '@/hooks/useAdminStats'
+import { Activity, AlertTriangle, Check, ChevronRight, CreditCard, Eye } from 'lucide-react'
+import { formatCHF, formatRelativeDate } from '@/lib/utils'
+import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
-import BillingDashboard from '@/components/admin/BillingDashboard'
-import WeeklyReportPreview from '@/components/admin/WeeklyReportPreview'
-import OnboardingTracker from '@/components/admin/OnboardingTracker'
-import ActivityLog from '@/components/admin/ActivityLog'
+import { useAdminOverview } from '@/hooks/useAdminOverview'
+import {
+  sectionPath,
+  groupJournal,
+  journalDetail,
+  JOURNAL_ACTION_KEY,
+  SIGNAL_LABEL_KEY,
+  SIGNAL_CTA_KEY,
+  UNAVAILABLE_KEY,
+  type AdminOverview,
+  type OverviewSignal,
+} from '@/lib/adminOverview'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminEmpty, AdminError, AdminGroupTitle, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import KycLinkDiagnosticModal from '@/components/admin/KycLinkDiagnosticModal'
+import {
+  AdminError,
+  AdminGhostBtn,
+  AdminIc,
+  AdminSegmentBtn,
+  AdminSkeleton,
+} from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { formatRelativeDate } from '@/lib/utils'
 
-/**
- * Vocabulaire de RENDU, pas liste d'autorisation : la requête filtre par
- * sévérité, donc une action inconnue de ces tables peut arriver ici. C'est
- * prévu — elle s'affiche alors sous son nom brut, avec une cloche et une
- * pastille neutre.
- *
- * Ce vocabulaire a longtemps été ASPIRATIONNEL : la console savait nommer,
- * iconifier et colorer quatre alertes qu'aucun producteur n'écrivait. Les
- * producteurs existent depuis le 29.07.2026 (trigger `trg_agency_created`,
- * `kyc_screening_match` côté kyc-screening, `edge_function_error` via
- * `_shared/audit-edge-error.ts`, gravité posée sur les événements Stripe).
- * `ticket_created` reste retiré : le support maison n'existe plus.
- */
-const ALERT_ICONS: Record<string, typeof AlertTriangle> = {
-  agency_created: Building2,
-  kyc_screening_match: ShieldAlert,
-  subscription_cancelled: CreditCard,
-  payment_failed: CreditCard,
-  edge_function_error: AlertTriangle,
-  role_changed: UserCog,
+/** Icône d'un signal, par `kind` serveur. Un `kind` inconnu prend l'icône neutre. */
+const SIGNAL_ICON: Record<string, typeof AlertTriangle> = {
+  functions_error: AlertTriangle,
+  payments_failed: CreditCard,
+  kyb_review: Eye,
 }
 
-const ALERT_LABEL_KEYS: Record<string, string> = {
-  agency_created: 'dashboard.alert.agencyCreated',
-  kyc_screening_match: 'dashboard.alert.kycScreeningMatch',
-  subscription_cancelled: 'dashboard.alert.subscriptionCancelled',
-  payment_failed: 'dashboard.alert.paymentFailed',
-  edge_function_error: 'dashboard.alert.edgeFunctionError',
-  role_changed: 'dashboard.alert.roleChanged',
-}
+/** Nombre de lignes rendues en maille « Détail » avant le renvoi vers Live. */
+const DETAIL_ROWS = 9
 
-/** Tons de signal d'une alerte — le violet de plateforme n'est pas un statut métier. */
-type AlertTone = 'ok' | 'warn' | 'err' | 'info'
-
-/** `agency_created` était en violet ; c'est une bonne nouvelle, donc un ton « ok ». */
-const ALERT_TONES: Record<string, AlertTone> = {
-  agency_created: 'ok',
-  kyc_screening_match: 'err',
-  subscription_cancelled: 'warn',
-  // Un paiement refusé bascule l'abonnement en `past_due` : c'est réparable,
-  // et ça se répare depuis l'agence — un avertissement, pas une panne.
-  payment_failed: 'warn',
-  edge_function_error: 'err',
-  // Un rôle qui change, c'est un périmètre de droits qui bouge.
-  role_changed: 'err',
-}
-
-/** Vue d'ensemble : dérive l'état de santé des KPIs et compose les bandeaux/sections. */
 export default function AdminDashboardPage() {
-  const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
-  const { kpis, kpisLoading, alerts, alertsLoading, alertsError, refetch } = useAdminStats()
+  const { t } = useTranslation(['admin', 'common'])
+  const navigate = useNavigate()
+  const { sp, surf, dark, tones } = useAdminSugar()
+  const { data, isPending, isError, refetch } = useAdminOverview()
+  const [maille, setMaille] = useState<'familles' | 'detail'>('familles')
+  const [diagOuvert, setDiagOuvert] = useState(false)
 
-  const healthStatus = (kpis?.highRiskKyc ?? 0) > 0 ? 'warning' : 'healthy'
+  const familles = useMemo(() => groupJournal(data?.journal ?? []), [data])
+  const detail = useMemo(() => journalDetail(data?.journal ?? []), [data])
+
+  const tonOf = (ton: string): string =>
+    ton === 'critical' || ton === 'err' ? tones.err : ton === 'warn' ? tones.warn : tones.info
+
+  if (isPending) {
+    return (
+      <AdminPage title={t('admin:dashboard.title')} width="wide">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AdminSkeleton height={28} width={260} />
+          <AdminSkeleton height={54} />
+          {Array.from({ length: 5 }).map((_, i) => <AdminSkeleton key={i} height={40} />)}
+        </div>
+      </AdminPage>
+    )
+  }
+
+  if (isError || !data) {
+    return (
+      <AdminPage title={t('admin:dashboard.title')} width="wide">
+        <AdminError
+          message={t('admin:common.loadError')}
+          onRetry={() => void refetch()}
+          retryLabel={t('admin:common.retry')}
+        />
+      </AdminPage>
+    )
+  }
+
+  const o: AdminOverview = data
+
+  // Ce qui ne va pas, en toutes lettres : « Attention requise » sans explication
+  // n'aide personne (É8).
+  const motifs: string[] = []
+  if (o.pulse.functions_err > 0) motifs.push(t('admin:dashboard.pulse.functionsErr', { count: o.pulse.functions_err }))
+  if (o.pulse.crons_failed > 0) motifs.push(t('admin:dashboard.pulse.cronsFailed', { count: o.pulse.crons_failed }))
+
+  const chiffres: Array<{ k: string; v: string }> = [
+    { k: 'agencies', v: String(o.kpis.agencies) },
+    { k: 'users', v: String(o.kpis.users) },
+    { k: 'properties', v: String(o.kpis.properties) },
+    { k: 'transactions', v: String(o.kpis.transactions) },
+    { k: 'mrr', v: formatCHF(o.kpis.mrr) },
+  ]
+
+  const ligneSignal: CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 13, minHeight: 46,
+    padding: '0 12px', borderRadius: ADMIN_RADII.row, background: surf.cardSub,
+  }
+  const ligneJournal: CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 13, minHeight: 44, padding: '0 2px',
+  }
+  const lignePied: CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 13, minHeight: 48, padding: '0 2px',
+    borderTop: surf.hairline,
+  }
+
+  const signalLabel = (s: OverviewSignal): string => {
+    const key = SIGNAL_LABEL_KEY[s.kind]
+    return key ? t(`admin:${key}`, { count: s.count }) : `${s.count} · ${s.kind}`
+  }
+  const actionLabel = (action: string): string =>
+    JOURNAL_ACTION_KEY[action] ? t(`admin:${JOURNAL_ACTION_KEY[action]}`) : action
 
   return (
-    <AdminPage title={t('dashboard.title')} width="wide" actions={<WeeklyReportPreview />}>
-      {/* ── Pouls de santé — carte neutre, le signal est dans les pilules ── */}
-      {kpis && (
-        <AdminCard padding="12px 14px">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-            <AdminPill
-              tone={healthStatus === 'healthy' ? 'ok' : 'warn'}
-              icon={healthStatus === 'healthy' ? CheckCircle : AlertCircle}
-              label={healthStatus === 'healthy' ? t('dashboard.platformHealthy') : t('dashboard.attentionRequired')}
-            />
-            {kpis.highRiskKyc > 0 && (
-              <AdminPill
-                tone="err"
-                label={`${kpis.highRiskKyc} KYC ${t('dashboard.kpi.kycAtRisk').toLowerCase()}`}
-                style={{ fontVariantNumeric: 'tabular-nums' }}
-              />
-            )}
-          </div>
-        </AdminCard>
-      )}
+    <AdminPage title={t('admin:dashboard.title')} width="wide">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
 
-      {/* ── KPIs (5 cards) ── */}
-      {kpisLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <AdminSkeleton key={i} height={64} radius={ADMIN_RADII.card} />
+        {/* ── Pouls ────────────────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, flexWrap: 'wrap' }}>
+          <span style={{
+            width: 9, height: 9, borderRadius: ADMIN_RADII.pill, flexShrink: 0,
+            background: o.pulse.healthy ? tones.ok : tones.err,
+          }} />
+          <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3, color: sp.ink }}>
+            {o.pulse.healthy ? t('admin:dashboard.platformHealthy') : t('admin:dashboard.attentionRequired')}
+          </span>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: sp.sub }}>
+            {motifs.length > 0 ? motifs.join(' · ') : t('admin:dashboard.pulse.noFunctionError')}
+          </span>
+          <div style={{ marginLeft: 'auto' }}>
+            <AdminGhostBtn onClick={() => navigate(sectionPath('monitoring'))} style={{ height: 30, fontSize: 12 }}>
+              {t('common:nav.adminMonitoring')}
+            </AdminGhostBtn>
+          </div>
+        </div>
+
+        {/* ── Cinq chiffres nus ────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', gap: 38, flexWrap: 'wrap' }}>
+          {chiffres.map(c => (
+            <div key={c.k}>
+              <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -1.2, lineHeight: 1.05, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+                {c.v}
+              </div>
+              <div style={{ marginTop: 3, fontSize: 12, fontWeight: 600, color: sp.sub }}>
+                {t(`admin:dashboard.num.${c.k}`)}
+              </div>
+            </div>
           ))}
         </div>
-      ) : kpis ? (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <AdminStat label={t('dashboard.kpi.agencies')} value={kpis.activeAgencies} icon={Building2}
-            trend={kpis.newAgenciesThisMonth > 0 ? kpis.newAgenciesThisMonth : undefined} />
-          <AdminStat label={t('dashboard.kpi.users')} value={kpis.totalUsers} icon={Users} tone="info"
-            trend={kpis.newUsersThisMonth > 0 ? kpis.newUsersThisMonth : undefined} />
-          <AdminStat label={t('dashboard.kpi.activeProperties')} value={kpis.activeProperties} icon={Home} tone="info" />
-          <AdminStat label={t('dashboard.kpi.transactions')} value={kpis.activeTransactions} icon={GitBranch} tone="ok" />
-          <AdminStat label={t('dashboard.kpi.kycAtRisk')} value={kpis.highRiskKyc} icon={ShieldAlert}
-            tone={kpis.highRiskKyc > 0 ? 'err' : undefined} />
-        </div>
-      ) : null}
 
-      {/* ── Alerts (full-width) ── */}
-      <AdminCard padding="8px 12px 14px">
-        <AdminGroupTitle label={t('dashboard.alerts')} tone="warn" />
-        {alertsLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <AdminSkeleton key={i} height={40} />
-            ))}
+        {/* ── À traiter ────────────────────────────────────────────────────── */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, padding: '0 2px 9px' }}>
+            <h2 style={{ margin: 0, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub }}>
+              {t('admin:dashboard.head.title')}
+            </h2>
+            {o.signals.length > 0 && (
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.sub }}>{o.signals.length}</span>
+            )}
           </div>
-        ) : alertsError && alerts.length === 0 ? (
-          // « Aucune alerte » est une BONNE nouvelle : la servir sur un flux qui
-          // n'a pas pu être chargé ferait passer une panne réseau pour une
-          // plateforme saine.
-          <AdminError
-            message={t('common.loadError')}
-            onRetry={() => void refetch()}
-            retryLabel={t('common.retry')}
-          />
-        ) : alerts.length === 0 ? (
-          <AdminEmpty icon={CheckCircle} title={t('dashboard.noAlerts')} />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {alerts.map((alert) => {
-              const Icon = ALERT_ICONS[alert.action] ?? Bell
-              const tone = ALERT_TONES[alert.action]
-              const labelKey = ALERT_LABEL_KEYS[alert.action]
-              const label = labelKey ? t(labelKey) : alert.action
-              return (
-                <div
-                  key={alert.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 11, minWidth: 0,
-                    padding: '10px 12px', borderRadius: ADMIN_RADII.row, background: surf.cardSub,
-                  }}
-                >
-                  {/* La pastille remplace le liseré de 4 px : seul repère coloré autorisé. */}
-                  <span style={{
-                    width: 8, height: 8, borderRadius: ADMIN_RADII.pill, flexShrink: 0,
-                    background: tone ? tones[tone] : sp.soft,
-                  }} />
-                  <AdminIc icon={Icon} size={15} color={sp.sub} />
-                  <p style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {label}
-                  </p>
-                  <span style={{ flexShrink: 0, fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-                    {formatRelativeDate(alert.created_at)}
+
+          {o.signals.length === 0 ? (
+            // Seule surface CREUSÉE de la page : un anneau intérieur, pas une carte.
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, minHeight: 54, padding: '0 14px',
+              borderRadius: ADMIN_RADII.row,
+              boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.07)'} inset`,
+            }}>
+              <AdminIc icon={Check} size={15} color={sp.sub} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: sp.sub }}>
+                {t('admin:dashboard.head.empty')}
+              </span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {o.signals.map(s => (
+                <div key={s.id} style={ligneSignal}>
+                  <AdminIc icon={SIGNAL_ICON[s.kind] ?? Activity} size={15} color={tonOf(s.tone)} />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>
+                    {signalLabel(s)}
+                  </span>
+                  <AdminGhostBtn onClick={() => navigate(sectionPath(s.go))} style={{ height: 28, fontSize: 11.5 }}>
+                    {SIGNAL_CTA_KEY[s.kind] ? t(`admin:${SIGNAL_CTA_KEY[s.kind]}`) : t('common:actions.view')}
+                    <AdminIc icon={ChevronRight} size={13} color={sp.sub} />
+                  </AdminGhostBtn>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Les manques que le SERVEUR nomme. Un jeton inconnu s'affiche brut :
+              taire un manque non répertorié serait le pire des deux. */}
+          {o.unavailable.length > 0 && (
+            <div style={{ marginTop: 11, padding: '0 2px' }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.sub }}>
+                {t('admin:dashboard.unavailable.title')}
+              </span>
+              <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                {' · '}
+                {o.unavailable.map(u => (UNAVAILABLE_KEY[u] ? t(`admin:${UNAVAILABLE_KEY[u]}`) : u)).join(' · ')}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Journal ──────────────────────────────────────────────────────── */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 2px 10px', flexWrap: 'wrap' }}>
+            <h2 style={{ margin: 0, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub }}>
+              {t('admin:dashboard.journal.title')}
+            </h2>
+            <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+              {t('admin:dashboard.journal.window')}
+            </span>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 5 }}>
+              <AdminSegmentBtn on={maille === 'familles'} onClick={() => setMaille('familles')}>
+                {t('admin:dashboard.journal.grouped')}
+              </AdminSegmentBtn>
+              <AdminSegmentBtn on={maille === 'detail'} onClick={() => setMaille('detail')}>
+                {t('admin:dashboard.journal.detail')}
+              </AdminSegmentBtn>
+            </div>
+          </div>
+
+          {detail.length === 0 ? (
+            <div style={{ padding: '4px 2px', fontSize: 13, fontWeight: 600, color: sp.sub }}>
+              {t('admin:dashboard.journal.empty')}
+            </div>
+          ) : maille === 'familles' ? (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {familles.map((f, i) => (
+                <div key={f.action} style={{ ...ligneJournal, borderTop: i === 0 ? undefined : surf.hairline }}>
+                  <span style={{ width: 7, height: 7, borderRadius: ADMIN_RADII.pill, flexShrink: 0, background: tonOf(f.tone) }} />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>
+                    {actionLabel(f.action)}
+                  </span>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>{f.count}</span>
+                  <span style={{ minWidth: 118, textAlign: 'right', fontSize: 11.5, fontWeight: 500, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {f.agencies.length === 0
+                      ? t('admin:dashboard.journal.platform')
+                      : f.agencies.length === 1
+                        ? f.agencies[0]
+                        : t('admin:dashboard.journal.agencies', { count: f.agencies.length })}
+                  </span>
+                  <span style={{ minWidth: 96, textAlign: 'right', fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                    {formatRelativeDate(f.last)}
                   </span>
                 </div>
-              )
-            })}
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {detail.slice(0, DETAIL_ROWS).map((r, i) => (
+                <div key={r.id} style={{ ...ligneJournal, borderTop: i === 0 ? undefined : surf.hairline }}>
+                  <span style={{ width: 7, height: 7, borderRadius: ADMIN_RADII.pill, flexShrink: 0, background: tonOf(r.severity) }} />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {actionLabel(r.action)}
+                    {r.object_label && (
+                      <span style={{ marginLeft: 7, fontWeight: 500, color: sp.sub }}>{r.object_label}</span>
+                    )}
+                  </span>
+                  <span style={{ minWidth: 118, textAlign: 'right', fontSize: 11.5, fontWeight: 500, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.agency_name ?? t('admin:dashboard.journal.platform')}
+                  </span>
+                  <span style={{ minWidth: 96, textAlign: 'right', fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                    {formatRelativeDate(r.ts)}
+                  </span>
+                </div>
+              ))}
+              {/* Sans nombre : « les N plus anciens » se lirait comme un reste (É4). */}
+              <button
+                type="button"
+                className="adm-row"
+                onClick={() => navigate(sectionPath('live'))}
+                style={{
+                  marginTop: 8, alignSelf: 'flex-start', border: 0, background: 'transparent',
+                  padding: '6px 8px', borderRadius: ADMIN_RADII.pill, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 11.5, fontWeight: 600, color: sp.sub,
+                }}
+              >
+                {t('admin:dashboard.journal.more')}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Pied : trois renvois ─────────────────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={lignePied}>
+            <span style={{ minWidth: 148, fontSize: 12.5, fontWeight: 700, color: sp.ink }}>
+              {t('admin:dashboard.foot.activation')}
+            </span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+              {o.activation.total}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+              {[
+                t('admin:dashboard.foot.activationDormant', { count: o.activation.dormant }),
+                t('admin:dashboard.foot.activationRisk', { count: o.activation.at_risk }),
+              ].join(' · ')}
+            </span>
+            <AdminGhostBtn onClick={() => navigate(sectionPath('agencies'))} style={{ height: 28, fontSize: 11.5 }}>
+              {t('common:nav.adminAgencies')}
+            </AdminGhostBtn>
           </div>
-        )}
-      </AdminCard>
 
-      {/* ── Activity (full-width) ── */}
-      <ActivityLog />
+          {/* Liens KYC publics — agrégat SEUL, aucun nom : c'est la frontière que
+              cet écran défend. La pilule ouvre le diagnostic, qui exige un motif. */}
+          <div style={lignePied}>
+            <span style={{ minWidth: 148, fontSize: 12.5, fontWeight: 700, color: sp.ink }}>
+              {t('admin:dashboard.foot.kyc')}
+            </span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+              {o.kyc_funnel.links_sent}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+              {o.kyc_funnel.links_sent === 0
+                ? t('admin:dashboard.foot.kycEmpty')
+                : t('admin:dashboard.foot.kycDetail', {
+                    opened: o.kyc_funnel.links_opened,
+                    submitted: o.kyc_funnel.links_submitted,
+                    conversion: o.kyc_funnel.conversion_pct,
+                  })}
+            </span>
+            <AdminGhostBtn onClick={() => setDiagOuvert(true)} style={{ height: 28, fontSize: 11.5 }}>
+              {t('admin:dashboard.foot.diagnose')}
+            </AdminGhostBtn>
+          </div>
 
-      {/* ── Onboarding (full-width) ── */}
-      <OnboardingTracker />
+          <div style={lignePied}>
+            <span style={{ minWidth: 148, fontSize: 12.5, fontWeight: 700, color: sp.ink }}>
+              {t('admin:dashboard.foot.revenue')}
+            </span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+              {formatCHF(o.revenue.mrr)}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+              {o.revenue.subscriptions === 0
+                ? t('admin:dashboard.foot.revenueEmpty')
+                : t('admin:dashboard.foot.revenueDetail', {
+                    count: o.revenue.subscriptions,
+                    arpu: formatCHF(o.revenue.arpu),
+                  })}
+              {o.revenue.failed > 0 && ` · ${t('admin:dashboard.foot.revenueFailed', { count: o.revenue.failed })}`}
+            </span>
+            <AdminGhostBtn onClick={() => navigate(sectionPath('plans'))} style={{ height: 28, fontSize: 11.5 }}>
+              {t('common:nav.adminPlans')}
+            </AdminGhostBtn>
+          </div>
+        </div>
+      </div>
 
-      {/* ── Billing (full-width, dense) ── */}
-      <BillingDashboard />
+      {/* Montée conditionnellement : la modale tire la liste des agences, et cet
+          écran s'interdit un second fetch tant qu'on ne le lui demande pas. */}
+      {diagOuvert && (
+        <KycLinkDiagnosticModal
+          onClose={() => setDiagOuvert(false)}
+          onGoToJournal={() => { setDiagOuvert(false); navigate(`${ADMIN_CONSOLE_PATH}/security`) }}
+        />
+      )}
     </AdminPage>
   )
 }

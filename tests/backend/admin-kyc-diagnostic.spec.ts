@@ -443,6 +443,32 @@ describe.skipIf(!HAS_KEYS)('diagnostic d\'un lien KYC (étape 19)', () => {
     expect(e2?.code).toBe(DENIED)
   })
 
+  // ── Les jokers ne sont pas des jokers ──────────────────────────────────────────
+
+  it('LES JOKERS — `%` et `_` sont des CARACTÈRES, pas des motifs', async () => {
+    // Mesuré sur la fonction vivante le 03.08.2026 : `admin_kyc_query_normalize` ne
+    // retire que `[\s.\-()]`. Une saisie « %%% » franchissait donc le seuil des trois
+    // caractères et devenait `like '%%%%%'` — un motif qui matche TOUT. Le seul rempart
+    // restant était le plafond de trois correspondances, qui existe pour empêcher de
+    // NOMMER des personnes, pas pour tenir lieu de garde contre une recherche sans
+    // critère. Corrigé par 20260803040000 : l'échappement porte sur le motif seul, la
+    // longueur reste mesurée sur la requête normalisée.
+    for (const joker of ['%%%', '_o_', '%_%']) {
+      const r = await chercher(joker)
+      expect(r.ok, `« ${joker} » doit être accepté comme requête (3 caractères)`).toBe(true)
+      const m = (r.data as Row).matches as Row[]
+      expect(m.length, `« ${joker} » ne doit nommer personne`).toBe(0)
+      expect((r.data as Row).count, `« ${joker} » ne compte personne`).toBe(0)
+    }
+
+    // Le contrôle qui empêche le test d'être creux : la même recherche, avec un vrai
+    // critère, trouve toujours. Sans lui, une régression qui casserait la recherche
+    // ENTIÈRE laisserait les assertions ci-dessus vertes.
+    const temoin = await chercher(`Sophie${stamp}`)
+    expect(temoin.ok).toBe(true)
+    expect(((temoin.data as Row).matches as Row[]).length, 'le témoin doit rester trouvable').toBe(1)
+  })
+
   it('un super-admin authentifié passe, et son plafond de débit le retient', async () => {
     // ⚠ Ce test ne peut PAS se faire en service_role : le compteur filtre sur
     // `actor_user_id = auth.uid()`, or auth.uid() est NULL sous service_role et

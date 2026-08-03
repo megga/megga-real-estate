@@ -26,6 +26,7 @@ import { useToast } from '@/components/ui/Toast'
 import { SyndicationHealthPanel, WhatsAppOpsPanel } from '@/components/admin/AdminOpsPanels'
 import IntegrationsHealthPanel from '@/components/admin/IntegrationsHealthPanel'
 import AdminPage from '@/components/admin/kit/AdminPage'
+import WeeklyReportPreview from '@/components/admin/WeeklyReportPreview'
 import {
   AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminGroupTitle, AdminIc,
   AdminPill, AdminSearchInput, AdminSkeleton, AdminTd, AdminTh,
@@ -166,7 +167,16 @@ export default function AdminMonitoringPage() {
     <AdminPage
       title={t('admin:monitoring.title')}
       width="wide"
-      actions={<AdminPill label={t('admin:monitoring.planPro')} tone="ok" />}
+      /* Le rapport hebdomadaire a suivi la refonte de la Vue d'ensemble : celle-ci
+         ne garde que des renvois, et l'envoi d'un bulletin d'exploitation est un
+         geste de Monitoring. La fente `actions` étant unique, les deux cohabitent
+         dans un même conteneur. */
+      actions={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AdminPill label={t('admin:monitoring.planPro')} tone="ok" />
+          <WeeklyReportPreview />
+        </div>
+      }
     >
       {/* Error banner — when the health query fails entirely (Supabase down,
           RLS issue, network error). Without this, the page just showed
