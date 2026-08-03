@@ -167,13 +167,23 @@ async function clientSideNavigate(page: Page, path: string): Promise<void> {
  * MxField rend un `<label for>` FRÈRE du contrôle (cf. son en-tête) : le texte
  * du libellé est désormais le libellé seul, rien d'autre.
  *
- * L'ancrage reste nécessaire pour une autre raison, elle toujours vraie :
- * `getByLabel` cherche une SOUS-CHAÎNE insensible à la casse, donc « Nom »
- * matcherait aussi « Prénom ». Toujours pas `exact: true` en revanche —
- * plusieurs libellés visés sont des préfixes voulus.
+ * ⚠ EXACT depuis le 03.08.2026, et non plus ancré en début. L'ancrage réglait le
+ * cas « Nom » qui matchait « Prénom » (getByLabel cherche une sous-chaîne), mais
+ * il ouvrait la porte inverse : un libellé qui en PRÉFIXE un autre attrape les
+ * deux, et Playwright refuse alors d'agir (mode strict). Deux cas vivants,
+ * introduits par la refonte du 3 août et jamais vus parce que la suite échouait
+ * avant de les atteindre :
+ *   · « Mois » préfixe « Mois précédent » et « Mois suivant » (calendrier) ;
+ *   · « Adresse » préfixe « Adresses proposées » (liste de l'adresse assistée).
+ *
+ * `exact: true` ferme les deux sens d'un coup. Vérifié le 03.08.2026 : les onze
+ * libellés visés par ce fichier sont TOUS la chaîne i18n entière, sans suffixe —
+ * MxField rend un `<label for>` FRÈRE du contrôle (cf. son en-tête), dont le
+ * texte est le libellé seul. La note d'origine invoquait « des préfixes voulus » ;
+ * il n'en reste aucun.
  */
 function labelField(page: Page, label: string) {
-  return page.getByLabel(new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))
+  return page.getByLabel(label, { exact: true })
 }
 
 /**
@@ -340,6 +350,8 @@ async function pickDateOfBirth(page: Page, iso: string): Promise<void> {
   // est encore celle par défaut, et un 29 février y serait absent.
   await labelField(page, 'Année').selectOption(String(year))
   // `value` = index du mois (0-11), pas son numéro — cf. monthNames dans MxDatePicker.
+  // C'est « Mois » qui a révélé le défaut de `labelField` : il préfixait les deux
+  // flèches du calendrier (cf. l'en-tête du helper, désormais exact).
   await labelField(page, 'Mois').selectOption(String(month - 1))
   await page.locator(`.mx-datepicker__day[data-iso="${iso}"]`).click()
 }
