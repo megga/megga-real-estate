@@ -24,6 +24,11 @@ import { supabase } from '@/lib/supabase'
 
 const db = supabase as unknown as SupabaseClient
 
+/** Clé de cache unique — exportée pour que useAdminKybReview.ts (mutations validate /
+ *  reject / relaunch / requestCorrection / resolveIdentityDocument) invalide la MÊME
+ *  clé plutôt que d'en retenir une copie littérale, qui aurait pu diverger en silence. */
+export const KYB_REVIEW_COUNT_KEY = ['kyb-review-count'] as const
+
 /** Au-delà de 99, le chiffre exact ne change plus aucune décision et déborde du rail. */
 const BADGE_CEILING = 99
 
@@ -45,7 +50,7 @@ interface ReviewQueueHead {
 
 export function useKybReviewCount(): { count: number } {
   const { data } = useQuery({
-    queryKey: ['kyb-review-count'],
+    queryKey: KYB_REVIEW_COUNT_KEY,
     queryFn: async (): Promise<number> => {
       const { data, error } = (await db.rpc('get_admin_agency_review_queue', {
         p_limit: 1,

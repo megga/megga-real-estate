@@ -152,41 +152,55 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {section.items.map((item) => (
-                <NavLink key={item.href} to={`${ADMIN_CONSOLE_PATH}${item.href}`} end={item.end} onClick={onNavigate} className="adm-nav" style={({ isActive }) => ({
-                  ...rowBase,
-                  textDecoration: 'none',
-                  background: isActive ? surf.card : 'transparent',
-                  boxShadow: isActive ? `0 0 0 1.5px ${sp.ink} inset, ${surf.shadow}` : 'none',
-                })}>
-                  {({ isActive }) => (
-                    <>
-                      <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                        <MEIcon name={item.icon} size={17} color={isActive ? sp.ink : sp.sub} />
-                      </span>
-                      <span style={labelStyle}>{t(item.labelKey)}</span>
-                      {item.badge === 'kybReview' && formatReviewBadge(kybReviewCount) && (
-                        <span
-                          aria-label={t('admin:nav.adminKybReviewPending', { count: kybReviewCount })}
-                          style={{
-                            marginLeft: 'auto',
-                            minWidth: 20,
-                            padding: '1px 6px',
-                            borderRadius: ADMIN_RADII.pill,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            textAlign: 'center',
-                            background: tones.warn,
-                            color: onTone,
-                          }}
-                        >
-                          {formatReviewBadge(kybReviewCount)}
+              {section.items.map((item) => {
+                // Mémorisé une fois par item plutôt que rappelé deux fois (garde d'affichage
+                // ET contenu du badge) — les deux appels pouvaient diverger si l'un lisait
+                // kybReviewCount avant un re-rendu et l'autre après.
+                const reviewBadge = item.badge === 'kybReview' ? formatReviewBadge(kybReviewCount) : null
+                return (
+                  <NavLink key={item.href} to={`${ADMIN_CONSOLE_PATH}${item.href}`} end={item.end} onClick={onNavigate} className="adm-nav" style={({ isActive }) => ({
+                    ...rowBase,
+                    textDecoration: 'none',
+                    background: isActive ? surf.card : 'transparent',
+                    boxShadow: isActive ? `0 0 0 1.5px ${sp.ink} inset, ${surf.shadow}` : 'none',
+                  })}>
+                    {({ isActive }) => (
+                      <>
+                        <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                          <MEIcon name={item.icon} size={17} color={isActive ? sp.ink : sp.sub} />
                         </span>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
+                        <span style={labelStyle}>{t(item.labelKey)}</span>
+                        {reviewBadge && (
+                          <span
+                            // role="status" : un <span> nu a un rôle implicite "generic", qui
+                            // interdit un nom accessible en ARIA 1.2 -- sans lui, aria-label
+                            // n'est probablement jamais annoncé et le lien se lit juste
+                            // "Vérification KYB 3". role="status" annonce aussi les
+                            // changements (une file qui se vide en direct).
+                            role="status"
+                            aria-label={t('admin:nav.adminKybReviewPending', { count: kybReviewCount })}
+                            style={{
+                              // Pas de marginLeft: 'auto' ici : labelStyle porte déjà
+                              // flex: 1, qui pousse déjà ce badge en fin de ligne — le
+                              // marginLeft était inerte.
+                              minWidth: 20,
+                              padding: '1px 6px',
+                              borderRadius: ADMIN_RADII.pill,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              textAlign: 'center',
+                              background: tones.warn,
+                              color: onTone,
+                            }}
+                          >
+                            {reviewBadge}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                )
+              })}
             </div>
           </div>
         ))}
