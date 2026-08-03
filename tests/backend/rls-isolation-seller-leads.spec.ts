@@ -34,7 +34,8 @@ describe.skipIf(!HAS_KEYS)('RLS isolation — seller_leads', () => {
           contact_name: `${label} ${setup.stamp}`,
           contact_email: `${label}-${setup.stamp}@megga-test.local`,
           contact_phone: '+41 22 000 00 00',
-          motivation: 'test',
+          // CHECK seller_leads_motivation_check : immediate | 3months | 6months | exploring
+          motivation: 'exploring',
           assigned_agency_id: assignedAgencyId,
           status: 'new',
         })
