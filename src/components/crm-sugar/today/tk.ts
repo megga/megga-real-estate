@@ -30,6 +30,13 @@ export interface Tk {
   cardHi: string
   cardBorder: string
   ink: string
+  /** Accent UI unique (CTA pleins, pilules actives, toast). Le proto le résout
+   *  via `window.crmAccent(dark)` ; ce dépôt ne connaît que l'accent « noir »,
+   *  dont les valeurs résolues sont exactement celles écrites ici — même rendu,
+   *  sans le sélecteur. Aligné sur `crmSugarPalette().accent`. */
+  accent: string
+  /** Texte posé sur `accent`. */
+  accentInk: string
   inkDim: string
   sub: string
   faint: string
@@ -60,6 +67,8 @@ const TK_DARK: Omit<Tk, 'mode'> = {
   get cardHi() { return crmStep('s3', 'rgba(255,255,255,0.06)') },
   cardBorder: 'rgba(255,255,255,0.07)',
   ink: '#ECEDF3',
+  accent: '#ECEDF3',
+  accentInk: '#0B0C0E',
   inkDim: '#B5B7C4',
   sub: '#797D90',
   faint: '#54576A',
@@ -87,6 +96,8 @@ const TK_LIGHT: Omit<Tk, 'mode'> = {
   cardHi: 'rgba(15,23,42,0.055)',
   cardBorder: 'rgba(15,23,42,0.08)',
   ink: '#0B0C0E',
+  accent: '#0B0C0E',
+  accentInk: '#FFFFFF',
   inkDim: '#3A3D44',
   sub: '#6B7079',
   faint: '#9CA1AB',

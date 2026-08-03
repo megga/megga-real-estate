@@ -1150,6 +1150,24 @@ export type Database = {
           },
         ]
       }
+      agent_presence: {
+        Row: {
+          agent_id: string
+          last_seen_at: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          last_seen_at?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          last_seen_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       agent_profiles: {
         Row: {
           agency_profile_id: string | null
@@ -1708,6 +1726,7 @@ export type Database = {
           id: string
           match_ids: string[]
           reacted_at: string | null
+          revoked_at: string | null
           sent_at: string
           status: string
           token: string
@@ -1727,6 +1746,7 @@ export type Database = {
           id?: string
           match_ids: string[]
           reacted_at?: string | null
+          revoked_at?: string | null
           sent_at?: string
           status?: string
           token: string
@@ -1746,6 +1766,7 @@ export type Database = {
           id?: string
           match_ids?: string[]
           reacted_at?: string | null
+          revoked_at?: string | null
           sent_at?: string
           status?: string
           token?: string
@@ -7832,6 +7853,7 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      presence_touch: { Args: never; Returns: string }
       provision_solo_agency: {
         Args: { p_display_name: string; p_user: string }
         Returns: string
@@ -7939,6 +7961,7 @@ export type Database = {
           id: string
         }[]
       }
+      revoke_reception_link: { Args: { p_link_id: string }; Returns: boolean }
       revoke_user_session: {
         Args: { p_session_id: string; p_user_id: string }
         Returns: undefined
@@ -8598,10 +8621,12 @@ export type Database = {
       }
       sweep_pending_agency_verifications: { Args: never; Returns: undefined }
       team_remove_member: { Args: { p_member_id: string }; Returns: undefined }
+      team_role_rank: { Args: { p_role: string }; Returns: number }
       team_set_member_role: {
         Args: { p_member_id: string; p_role: string }
         Returns: undefined
       }
+      today_absence: { Args: { p_fallback_hours?: number }; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
       unlockrows: { Args: { "": string }; Returns: number }
       unpublish_expired_mandates: { Args: never; Returns: number }

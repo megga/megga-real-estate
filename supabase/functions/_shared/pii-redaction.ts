@@ -12,6 +12,13 @@
 // [REDACTED:IBAN], etc.) pour préserver la structure du texte et permettre
 // au LLM de comprendre qu'il y avait là une donnée sans la voir.
 //
+// Deuxième famille, arrivée après coup (août 2026) : les secrets que le produit
+// ÉMET lui-même (TOKEN). Un jeton de lien magique n'est pas une PII, c'est un
+// DROIT D'ACCÈS — et il ressort dans des textes qu'on croit techniques, typiquement
+// le corps d'erreur d'un service tiers qui recopie l'URL qu'il n'a pas pu charger.
+// Ces textes-là finissent en journal, en `activity_events` et dans des réponses
+// d'API : ils passent par ici comme le reste.
+//
 // **À utiliser sur tout chemin où du texte libre rentre dans le système** :
 //   - extract-lead (Sprint 3)
 //   - extract-property-pdf (post-Sprint 3 rétrofit recommandé)
@@ -30,6 +37,7 @@ export type RedactionKind =
   | 'API_KEY'    // sk-..., AKIA..., ghp_..., etc.
   | 'DOB'        // Date de naissance explicite (Né(e) le ...)
   | 'ACCESS_CODE' // Digicode / code d'accès / code wifi / PIN — valeur de FORME contrainte
+  | 'TOKEN'      // Jeton de capacité MEGGA (lien magique KYC, lien de réception) : <b64url>.<b64url>
 
 export interface RedactionResult {
   redactedText: string
@@ -53,8 +61,82 @@ export interface RedactionResult {
  * « Mot de passe :\nNé le 12.03.1985 » rendait « [REDACTED:PASSWORD] le 12.03.1985 » —
  * l'ancre « Né » mangée, la date de naissance en clair. Placer PASSWORD après DOB et CARD
  * ramène ces fuites à zéro sans coûter un seul vrai positif.
+ *
+ * COROLLAIRE SYMÉTRIQUE (août 2026) : un motif qui, lui, ne peut avaler AUCUNE ancre passe
+ * en TÊTE — c'est le cas de TOKEN, dont l'alphabet ne contient ni espace ni « : » ni « = ».
+ * Il n'a rien à perdre à passer premier, et beaucoup à y gagner : c'est LUI qui se fait
+ * grignoter par un motif large (le détail est sur l'entrée TOKEN).
  */
 const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
+  // Jeton de capacité MEGGA — lien magique KYC et lien de réception acheteur.
+  // Forme émise par _shared/magic-link-token.ts : <base64url(payload)>.<base64url(HMAC-SHA256)>,
+  // soit ≥ 80 caractères de payload (il encode un UUID et `exp`) et exactement 43 de signature.
+  // Un JWT, à 3 segments, rentre dans la même forme et est couvert par la même passe.
+  //
+  // EN TÊTE DU CATALOGUE, pour la raison INVERSE de celle qui envoie PASSWORD en queue.
+  // Désarmer un motif aval, c'est manger son ANCRE en laissant sa VALEUR en clair ; celui-ci
+  // ne le peut pas. Sa classe [\w-] ne contient ni espace, ni « : », ni « = », ni guillemet —
+  // les séparateurs qui, chez PASSWORD, DOB et ACCESS_CODE, tiennent l'ancre à sa valeur : il
+  // ne franchit donc jamais la frontière entre les deux, et là où il englobe un marqueur, il
+  // englobe aussi la valeur, si bien que rien ne survit en clair.
+  // L'inverse est possible : un motif large qui mord une tranche du jeton le rend
+  // méconnaissable ICI, et la moitié restante part en clair. Mesuré sur un jeton dont le
+  // payload est intégralement majuscules/chiffres (base64 valide, juste improbable — 0 cas sur
+  // 20 000 jetons tirés) : IBAN avale le payload et la signature reste lisible. Le risque est
+  // donc théorique aujourd'hui ; la place en tête le maintient à zéro quel que soit le motif
+  // large ajouté demain.
+  //
+  // BORNES — un motif trop gourmand est pire qu'absent, et le plancher de 24 caractères ne
+  // suffit PAS. Mesuré sur les 969 fichiers de texte du dépôt, CSS et HTML compris : le seul
+  // plancher rendait 103 prises légitimes, toutes de la même famille — des sélecteurs CSS en
+  // kebab-case joints par un point, « bg-image-gradient-overlay.rectangle-gradient-bottom »,
+  // « w-richtext-figure-selected.w-richtext-figure-type-video ». Ce n'est pas théorique ici :
+  // `magic-link-send-email` passe désormais le corps d'erreur de Resend dans ce catalogue, et
+  // ce corps peut recopier le HTML de l'e-mail.
+  //
+  // D'où la MAJUSCULE exigée dans chaque segment. C'est le discriminant : le base64url d'un
+  // JSON (le payload encode un UUID et `exp`) comme celui de 32 octets aléatoires (la
+  // signature) en contient toujours une — mesuré sur 200 000 jetons tirés selon la forme de
+  // `_shared/magic-link-token.ts`, 200 000 captés, aucun manqué. Un identifiant kebab-case,
+  // lui, n'en porte jamais. Après cet ajout : 0 prise légitime sur les 969 fichiers, les 4
+  // restantes étant de VRAIS jetons (clé anon Supabase, fixtures de tests).
+  // ⚠ Ne pas « renforcer » en exigeant aussi un CHIFFRE : essayé, 10 jetons sur 20 000
+  // passaient à travers (la signature peut n'en porter aucun). Manquer un jeton est une
+  // fuite, un faux positif n'est qu'un journal moins lisible — l'asymétrie décide.
+  //
+  // Les frontières sont des lookarounds sur [\w-] et NON sur [\w.-] : le point est de la
+  // ponctuation autant qu'un séparateur de segments, et l'exclure des frontières faisait
+  // manquer le jeton en fin de phrase (« …a échoué sur <jeton>. ») ou précédé d'un point.
+  {
+    kind: 'TOKEN',
+    pattern: /(?<![\w-])(?=[\w-]*[A-Z])[\w-]{24,}(?:\.(?=[\w-]*[A-Z])[\w-]{24,}){1,2}(?![\w-])/g,
+  },
+
+  // Même jeton, reconnu par son PORTEUR et non par sa forme : query `?token=`
+  // (buyer-reception-get/-react), en-tête `x-magic-link-token` (magic-link-get/-confirm/
+  // -upload), ou SEGMENT DE CHEMIN (`/kyc/`, `/kyc-report/`, `/reception/`, `/rendez-vous/`,
+  // `/accept-invite/`). Utile quand la valeur n'a plus la forme canonique — jeton TRONQUÉ par
+  // le journal qui le recopie, ou percent-encodé — cas où le motif précédent ne peut conclure.
+  //
+  // Le chemin n'est pas un ancrage de confort : c'est la forme DOMINANTE. Quatre des cinq
+  // parcours publics portent leur jeton dans l'URL, pas en query — et c'est précisément par
+  // là qu'un texte d'erreur tiers le recopie (« net::ERR_… at https://…/kyc-report/<jeton> »),
+  // souvent tronqué, donc hors de portée du motif de forme.
+  // `kyc-report` précède `kyc` dans l'alternation : l'inverse ferait mordre `kyc` d'abord et
+  // laisserait « -report/<jeton> » hors de la capture.
+  //
+  // Gourmandise bornée par deux gardes repris d'ACCESS_CODE :
+  //  1. le séparateur est [ \t]* et non \s* : il ne traverse pas un saut de ligne, donc ne peut
+  //     pas capturer le premier mot de la ligne suivante ;
+  //  2. la valeur doit contenir AU MOINS UN CHIFFRE, lookahead borné à la MÊME classe qu'elle
+  //     (avec une classe plus large, le lookahead traverse le texte et valide n'importe quoi).
+  //     Un mot de prose n'a pas de chiffre : « x-magic-link-token: manquant » reste lisible,
+  //     tandis que tout jeton réel est pris — son payload encode `exp`, un nombre.
+  {
+    kind: 'TOKEN',
+    pattern: /(?:[?&]token=|x-magic-link-token[ \t]*[:=][ \t]*|\/(?:kyc-report|kyc|reception|rendez-vous|accept-invite)\/)((?=[\w.%-]*\d)[\w.%-]{12,})/gi,
+  },
+
   // AVS Suisse — format officiel 756.XXXX.XXXX.XX (avec ou sans points/espaces).
   // Doit matcher avant CARD (13 chiffres collés ressemblent à une carte).
   {
@@ -187,7 +269,7 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
  */
 export function redactPII(text: string): RedactionResult {
   const counts: Record<RedactionKind, number> = {
-    AVS: 0, IBAN: 0, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0, ACCESS_CODE: 0,
+    AVS: 0, IBAN: 0, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0, ACCESS_CODE: 0, TOKEN: 0,
   }
 
   let out = text

@@ -268,6 +268,113 @@ describe('redactPII — ACCESS_CODE (digicode, wifi, boîte à clés)', () => {
   })
 })
 
+describe('redactPII — TOKEN (jeton de lien magique / réception)', () => {
+  // Jeton réaliste, tel que le produit l'émet (_shared/magic-link-token.ts) :
+  // payload = base64url({ id: <uuid>, exp: <unix>, p: <uuid> }) → 140 caractères ;
+  // signature = base64url(HMAC-SHA256) → 43 caractères, longueur invariable.
+  const PAYLOAD = 'eyJpZCI6IjNmMmE5YzFlLTc3YjQtNGQyMS05YTU1LTBlMWIyYzNkNGU1ZiIsImV4cCI6MTg5MzQ1NjAwMCwicCI6ImIyYzNkNGU1LTZmNzAtNDgxMi05MzRhLTViNmM3ZDhlOWYwMSJ9'
+  const SIG = 'CzBVep_E6Q4zWH2ix-wRNluApcrvFDleg6jN8hc8YYY'
+  const TOKEN = `${PAYLOAD}.${SIG}`
+
+  it.each([
+    // Le cas d'origine : Cloudflare Browser Rendering recopie l'URL qu'il n'a pas pu charger.
+    `net::ERR_ABORTED at https://app.megga.ch/kyc-report/${TOKEN}`,
+    // Même chose en fin de phrase — le point de ponctuation ne doit pas masquer le jeton.
+    `page.goto a échoué sur https://app.megga.ch/kyc-report/${TOKEN}.`,
+    // Porteurs réels du jeton côté API.
+    `GET /functions/v1/buyer-reception-get?token=${TOKEN} 401`,
+    `x-magic-link-token: ${TOKEN}`,
+    `x-magic-link-token = ${TOKEN}`,
+    `{"token":"${TOKEN}","reaction":"interested"}`,
+    // Un JWT (3 segments) relève de la même forme et du même enjeu.
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk',
+  ])('marque le jeton porté par « %s »', (input) => {
+    const r = redactPII(input)
+    expect(r.counts.TOKEN).toBe(1)
+    expect(r.redactedText).toContain('[REDACTED:TOKEN]')
+    // Pas de fragment survivant : plus aucune suite base64url de 24 caractères ou plus. Une
+    // moitié de jeton n'ouvre rien, mais elle signale que la redaction a été partielle.
+    expect(r.redactedText).not.toMatch(/[\w-]{24,}/)
+  })
+
+  it('garde le motif de l’échec : seule la valeur du jeton disparaît', () => {
+    // Un opérateur doit continuer à savoir POURQUOI le rendu a échoué et sur quelle route.
+    const r = redactPII(`net::ERR_CONNECTION_REFUSED at https://app.megga.ch/kyc-report/${TOKEN}`)
+    expect(r.redactedText).toBe('net::ERR_CONNECTION_REFUSED at https://app.megga.ch/kyc-report/[REDACTED:TOKEN]')
+  })
+
+  it('attrape un jeton TRONQUÉ derrière son marqueur — ce que la forme seule ne peut pas voir', () => {
+    // Un journal qui coupe l'URL laisse un fragment sans point : il ne ressemble plus à un
+    // jeton, mais il en est un. C'est la seule raison d'être du second motif.
+    const tronque = PAYLOAD.slice(0, 76)
+    const r = redactPII(`GET /functions/v1/buyer-reception-get?token=${tronque}… (journal tronqué)`)
+    expect(r.counts.TOKEN).toBe(1)
+    expect(r.redactedText).not.toContain(tronque)
+    expect(r.redactedText).toContain('(journal tronqué)')
+  })
+
+  // FAUX POSITIFS — l'assertion qui décide si ce motif est un filet ou une nuisance : un
+  // journal d'exploitation est fait de noms d'hôtes, de fichiers d'assets et de versions, tous
+  // de forme « quelque chose point quelque chose ». Aucun ne doit être caviardé.
+  it.each([
+    'https://app.megga.ch/kyc-report/ — page introuvable',
+    'net::ERR_NAME_NOT_RESOLVED at https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/kyc_cases',
+    'Rapport-KYC-KYC-2026-AB3F.pdf introuvable',
+    'assets/index-DZ3kf9aQ2xPq1mnbVcXs.js 404',
+    'waitForSelector: #pdf-ready timeout 20000ms exceeded',
+    'Le worker sites/megga-vitrine/_worker.js a répondu 500',
+    'Version 1.2.3 du connecteur flatfox-sync',
+    'com.megga.pipeline.StageChangeHandler a levé une exception',
+    'Contactez sophie.marchand@example.com au sujet du mandat',
+    'Le document arrondissement-administratif.communes-genevoises.pdf est illisible',
+    // Prose derrière le marqueur : sans chiffre, ce n'est pas un jeton.
+    'x-magic-link-token: manquant',
+    'x-magic-link-token: header required',
+  ])('laisse intact un texte d’exploitation légitime : %s', (input) => {
+    const r = redactPII(input)
+    expect(r.counts.TOKEN).toBe(0)
+    expect(r.redactedText).toBe(input)
+  })
+
+  // Le motif ne franchit ni espace, ni « : », ni « = » : il ne peut donc pas contenir
+  // « marqueur + séparateur », donc pas manger l'ancre d'un motif suivant. C'est ce qui rend sa
+  // place en tête de catalogue gratuite.
+  it.each([
+    [`x-magic-link-token: ${TOKEN}\nNé le 12.03.1985`, '12.03.1985'],
+    [`?token=${TOKEN} puis mdp: hunter2`, 'hunter2'],
+    [`Rendu KO sur ${TOKEN} — carte 4111 1111 1111 1111`, '1111 1111 1111'],
+  ])('n’avale pas l’ancre du motif suivant : %s', (input, secret) => {
+    const r = redactPII(input)
+    expect(r.counts.TOKEN).toBe(1)
+    expect(r.redactedText, `secret en clair : ${secret}`).not.toContain(secret)
+  })
+})
+
+describe('ordre du catalogue — TOKEN passe en TÊTE', () => {
+  const SIG = 'CzBVep_E6Q4zWH2ix-wRNluApcrvFDleg6jN8hc8YYY'
+
+  it('un motif large ne grignote pas le jeton et n’en laisse pas la moitié en clair', () => {
+    // Piège construit : un payload dont le base64 sort intégralement en majuscules et chiffres
+    // (valide, seulement improbable — 0 cas sur 20 000 jetons tirés). Précédé du « / » de
+    // l'URL, il satisfait alors le motif IBAN de bout en bout.
+    // Si TOKEN repasse APRÈS IBAN, IBAN avale le payload, le fragment « [REDACTED:IBAN].<sig> »
+    // n'a plus la forme d'un jeton, et la SIGNATURE ressort en clair : ce test tombe.
+    const trap = `net::ERR_ABORTED at https://app.megga.ch/kyc-report/CH93QRSTUVWXYZ0123456789ABCDEF.${SIG}`
+    const r = redactPII(trap)
+    expect(r.counts.TOKEN).toBe(1)
+    expect(r.counts.IBAN).toBe(0)
+    expect(r.redactedText).not.toContain(SIG)
+  })
+
+  it('la forme passe avant le marqueur : « ?token= » reste lisible dans le journal', () => {
+    // Le motif ancré au marqueur remplace le marqueur AVEC la valeur. Le laisser passer en
+    // premier effacerait « token= » et rendrait le journal muet sur le paramètre en cause.
+    const token = `eyJpZCI6IjNmMmE5YzFlLTc3YjQtNGQyMS05YTU1LTBlMWIyYzNkNGU1ZiIsImV4cCI6MTg5MzQ1NjAwMH0.${SIG}`
+    expect(redactPII(`GET /functions/v1/buyer-reception-get?token=${token} 401`).redactedText)
+      .toBe('GET /functions/v1/buyer-reception-get?token=[REDACTED:TOKEN] 401')
+  })
+})
+
 describe('redactPII — messages réalistes', () => {
   it('message Import Lead réaliste : aucune PII sensible, texte inchangé', () => {
     const text = `Bonjour Marie,
@@ -306,7 +413,7 @@ mdp: hunter2`
 
 describe('formatRedactionSummary', () => {
   it('vide vs renseigné', () => {
-    expect(formatRedactionSummary({ AVS: 0, IBAN: 0, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0, ACCESS_CODE: 0 })).toBe('')
-    expect(formatRedactionSummary({ AVS: 2, IBAN: 1, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0, ACCESS_CODE: 0 })).toBe('AVS×2, IBAN×1')
+    expect(formatRedactionSummary({ AVS: 0, IBAN: 0, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0, ACCESS_CODE: 0, TOKEN: 0 })).toBe('')
+    expect(formatRedactionSummary({ AVS: 2, IBAN: 1, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0, ACCESS_CODE: 0, TOKEN: 0 })).toBe('AVS×2, IBAN×1')
   })
 })

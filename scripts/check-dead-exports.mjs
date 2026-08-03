@@ -32,6 +32,13 @@ const ALLOW_SYMBOLS = new Set([
   // qui charge le bundle de langue AVANT de basculer i18next — la retirer ramènerait le
   // détour par le français et le double `languageChanged` corrigés le même jour.
   'src/i18n/index.ts:switchLanguage',
+  // Ancien cockpit « Aujourd'hui », déposé de la page 0 par le concept H
+  // (handoff Today V2, 3 août 2026) mais CONSERVÉ à dessein : c'est lui qui
+  // porte le câblage Supabase vivant (useFocusQueue, agenda, pipeline,
+  // objectif) que le « Lot 0 » d'hydratation doit reprendre dans
+  // PageAujourdhuiH. À retirer — avec tout son sous-arbre — le jour où le
+  // concept H sera hydraté ; pas avant, sinon le câblage est perdu.
+  'src/components/crm-sugar/today/PageAujourdhui.tsx:PageAujourdhui',
   // lib API / compliance conservée (surface API + données réglementaires) :
   'src/lib/posthog.ts:identifyUser', 'src/lib/posthog.ts:trackEvent', 'src/lib/posthog.ts:resetPostHog',
   'src/lib/sentry.ts:identifySentryUser', 'src/lib/sentry.ts:clearSentryUser',

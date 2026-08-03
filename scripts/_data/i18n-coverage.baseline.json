@@ -11,7 +11,7 @@
       "untranslated": 0
     },
     "calendar": {
-      "total": 294,
+      "total": 295,
       "sameAsEn": 31,
       "untranslated": 4
     },
@@ -21,17 +21,17 @@
       "untranslated": 7
     },
     "contacts": {
-      "total": 873,
-      "sameAsEn": 121,
+      "total": 898,
+      "sameAsEn": 122,
       "untranslated": 16
     },
     "dashboard": {
-      "total": 477,
-      "sameAsEn": 41,
-      "untranslated": 5
+      "total": 541,
+      "sameAsEn": 45,
+      "untranslated": 7
     },
     "kyc": {
-      "total": 576,
+      "total": 642,
       "sameAsEn": 26,
       "untranslated": 11
     },
@@ -61,7 +61,7 @@
       "untranslated": 4
     },
     "settings": {
-      "total": 778,
+      "total": 827,
       "sameAsEn": 57,
       "untranslated": 8
     }
@@ -78,7 +78,7 @@
       "untranslated": 1
     },
     "calendar": {
-      "total": 294,
+      "total": 295,
       "sameAsEn": 28,
       "untranslated": 0
     },
@@ -88,17 +88,17 @@
       "untranslated": 2
     },
     "contacts": {
-      "total": 873,
-      "sameAsEn": 112,
+      "total": 898,
+      "sameAsEn": 113,
       "untranslated": 6
     },
     "dashboard": {
-      "total": 477,
-      "sameAsEn": 41,
-      "untranslated": 3
+      "total": 541,
+      "sameAsEn": 45,
+      "untranslated": 5
     },
     "kyc": {
-      "total": 576,
+      "total": 642,
       "sameAsEn": 25,
       "untranslated": 5
     },
@@ -128,8 +128,8 @@
       "untranslated": 2
     },
     "settings": {
-      "total": 778,
-      "sameAsEn": 55,
+      "total": 827,
+      "sameAsEn": 57,
       "untranslated": 5
     }
   }

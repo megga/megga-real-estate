@@ -60,7 +60,9 @@ serve(async (req) => {
   // le lien sans attendre `expires_at`, y compris pour l'écriture — sinon un porteur
   // de jeton périmé continuait de basculer les matches et d'injecter du texte libre.
   if (link.token !== token) return json({ error: 'Invalid link' }, 401)
-  if (link.status === 'expired') return json({ error: 'Link expired' }, 410)
+  // 'revoked' (retrait par l'agence) meurt comme 'expired', et sous le même 410 :
+  // distinguer les deux apprendrait au porteur du jeton qu'il a été repéré.
+  if (link.status === 'revoked' || link.status === 'expired') return json({ error: 'Link expired' }, 410)
   if (new Date(link.expires_at) < new Date()) return json({ error: 'Link expired' }, 410)
 
   // 3) RPC atomique : met à jour le match (triggers) + le lien.
@@ -74,7 +76,13 @@ serve(async (req) => {
   if (error) {
     const msg = String(error.message || '')
     if (msg.includes('match_not_in_selection')) return json({ error: 'match not in selection' }, 403)
-    if (msg.includes('link_expired')) return json({ error: 'Link expired' }, 410)
+    // `link_revoked` rend le MÊME 410 que `link_expired`, et ce n'est pas une commodité :
+    // sans cette ligne, un retrait survenu entre la lecture ci-dessus et l'appel RPC tombait
+    // dans le repli 500 — le seul code que ne produit aucun autre état terminal. La réponse
+    // signait donc la révocation à celui qui porte le jeton, exactement ce que le refus
+    // indifférencié cherche à éviter. Accessoirement, elle remontait un 5xx au monitoring
+    // pour un refus parfaitement nominal.
+    if (msg.includes('link_revoked') || msg.includes('link_expired')) return json({ error: 'Link expired' }, 410)
     return json({ error: 'Could not record reaction' }, 500)
   }
 

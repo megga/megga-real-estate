@@ -430,6 +430,98 @@
       "eyebrow": "MEGGA AI · Daily briefing",
       "deepen": "Go deeper",
       "deepenQuestion": "Detail my priorities for today and suggest the next action for each."
+    },
+    "h": {
+      "greeting": "Hello {{name}}",
+      "whatsNew": "What's new",
+      "close": "Close",
+      "yourDay": "Your day",
+      "appointments_one": "{{count}} appointment",
+      "appointments_other": "{{count}} appointments",
+      "hour": "{{hour}}:00",
+      "freeWindow": "{{duration}} free · follow-up session",
+      "tabs": {
+        "deals": "Deals",
+        "listings": "Listings"
+      },
+      "hotCount_one": "{{count}} hot",
+      "hotCount_other": "{{count}} hot",
+      "openListings": "Open My listings",
+      "seeDealsInPipeline": "See the {{count}} deals in the Pipeline",
+      "todayLabel": "Today",
+      "openInCalendar": "Open in calendar",
+      "doneBadge": "Done",
+      "types": {
+        "relance": "Call",
+        "kyc": "Compliance",
+        "mandat": "Mandate",
+        "visite": "Viewing",
+        "compromis": "Agreement",
+        "default": "Appointment"
+      },
+      "news": {
+        "fresh": "New"
+      },
+      "absence": {
+        "title": "While you were away",
+        "seeAll": "See all {{count}}",
+        "countSince_one": "{{count}} signal · since {{since}}",
+        "countSince_other": "{{count}} signals · since {{since}}",
+        "upToDateSince": "Up to date · since {{since}}",
+        "upToDateInline": "You're up to date, nothing new since {{since}}",
+        "emptyTitle": "You're up to date",
+        "emptyDesc": "No buyer feedback or reminders pending. Everything has been handled.",
+        "markAll": "Mark all as seen",
+        "count_one": "{{count}} signal",
+        "count_other": "{{count}} signals",
+        "groupBuyers": "Buyer feedback",
+        "groupReminders": "Reminders",
+        "liked": "liked {{subject}}",
+        "skipped": "passed on {{subject}}",
+        "reminderDue": "{{subject}} to pick back up",
+        "ctaProposeVisit": "Propose a viewing",
+        "ctaRecalibrate": "Recalibrate",
+        "ctaResume": "Resume",
+        "unknownContact": "Contact",
+        "unknownProperty": "a property"
+      },
+      "toast": {
+        "openMandate": "Opening the mandate for {{name}}",
+        "launched": "{{cta}} · under way",
+        "launchedFor": "{{cta}} {{name}} · under way",
+        "allUpToDate": "Everything is up to date",
+        "visitProposed": "Viewing proposal sent to {{name}}",
+        "dealResumed": "Deal {{name}} resumed",
+        "recalibrated": "Criteria recalibrated for {{name}}",
+        "published": "Published on Immobilier.ch · {{title}}",
+        "annAction": "{{cta}} · {{title}}",
+        "resumeFailed": "The follow-up could not be saved. Try again.",
+        "doneFailed": "The status could not be saved. Try again.",
+        "markedDone": "{{name}} · marked as done",
+        "reopened": "Reopened"
+      },
+      "cta": {
+        "openKyc": "Open KYC",
+        "openVisit": "Open viewing",
+        "openContact": "Open contact",
+        "openListing": "Open listing",
+        "openCalendar": "Open calendar"
+      },
+      "day": {
+        "emptyTitle": "Clear day",
+        "emptyDesc": "No appointment, viewing or reminder scheduled today."
+      },
+      "demoTag": "Demo",
+      "demoHint": "This area still runs on demonstration data.",
+      "mobileTitle": "Today",
+      "mobileDay": "Day",
+      "searchAria": "Search",
+      "markDoneAria": "Mark as done",
+      "reopenAria": "Reopen",
+      "slots_one": "{{count}} slot",
+      "slots_other": "{{count}} slots",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min"
     }
   },
   "analytics": {

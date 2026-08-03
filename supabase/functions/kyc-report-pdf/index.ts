@@ -1,7 +1,8 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { signMagicLinkToken } from '../_shared/magic-link-token.ts'
-import { buildCfPdfRequestBody, parseBasicAuthPair } from '../_shared/cf-browser-render.ts'
+import { buildCfPdfRequestBody, parseBasicAuthPair, redactCfRenderError } from '../_shared/cf-browser-render.ts'
+import { kycReportRenderUrl } from '../_shared/app-url.ts'
 import { uploadMetaMediaDocument } from '../_shared/whatsapp-media.ts'
 import { getProvider } from '../_shared/whatsapp-gateway.ts'
 import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
@@ -63,14 +64,12 @@ serve(async (req) => {
     // 2. Cloudflare Browser Rendering /pdf (REST API, pas de Worker).
     const cfAccount = Deno.env.get('CLOUDFLARE_ACCOUNT_ID') ?? ''
     const cfToken = Deno.env.get('CLOUDFLARE_BROWSER_RENDER_TOKEN') ?? ''
-    // app.megga.ch sert le SPA React (la route /kyc-report/:token) ; megga.ch sert la
-    // vitrine statique depuis le pivot #542. app.megga.ch est OUVERT (pas de Basic Auth) →
-    // authenticate omis si MEGGA_PREVIEW_BASIC_AUTH absent (param gardé au cas où l'app serait gatée).
-    const appUrl = Deno.env.get('MEGGA_APP_URL') ?? 'https://app.megga.ch'
+    // L'app est OUVERTE (pas de Basic Auth) → `authenticate` omis quand
+    // MEGGA_PREVIEW_BASIC_AUTH est absent ; le paramètre reste au cas où elle serait gatée.
     const { user, pass } = parseBasicAuthPair(Deno.env.get('MEGGA_PREVIEW_BASIC_AUTH'))
     if (!cfAccount || !cfToken) return json({ error: 'CLOUDFLARE_* secrets missing' }, 500)
 
-    const renderUrl = `${appUrl}/kyc-report/${token}`
+    const renderUrl = kycReportRenderUrl(token)
     const cfRes = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/browser-rendering/pdf`,
       {
@@ -84,8 +83,12 @@ serve(async (req) => {
     )
     if (!cfRes.ok) {
       const errTxt = await cfRes.text().catch(() => '')
-      console.error('kyc-report-pdf cf-render', { kyc_case_id, cf_status: cfRes.status, detail: errTxt.slice(0, 200) })
-      return json({ error: `cloudflare pdf HTTP ${cfRes.status}`, detail: errTxt.slice(0, 300) }, 502)
+      // Le corps d'erreur de Cloudflare recopie l'URL rendue, qui porte le jeton : il ne sort
+      // ni en journal ni en réponse sans passer par là. Seul le jeton tombe — l'hôte, le chemin
+      // et le motif de l'échec restent, ce sont eux qui désignent une mauvaise configuration.
+      const detail = redactCfRenderError(errTxt, renderUrl)
+      console.error('kyc-report-pdf cf-render', { kyc_case_id, cf_status: cfRes.status, detail: detail.slice(0, 200) })
+      return json({ error: `cloudflare pdf HTTP ${cfRes.status}`, detail: detail.slice(0, 300) }, 502)
     }
     const pdfBytes = new Uint8Array(await cfRes.arrayBuffer())
     if (pdfBytes.byteLength < 1000) {

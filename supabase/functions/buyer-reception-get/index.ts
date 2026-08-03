@@ -82,10 +82,14 @@ serve(async (req) => {
   // un lien remplacé d'un lien inexistant.
   if (link.token !== token) return json({ ok: false, reason: 'invalid' })
 
-  // 'expired' est le seul statut de retrait que le CHECK de la table autorise
-  // (pending|viewed|reacted|expired) : le poser à la main coupe le lien tout de
-  // suite. 'reacted' continue de servir — l'acheteur revient relire sa sélection.
-  if (link.status === 'expired') return json({ ok: false, reason: 'expired' })
+  // Deux statuts coupent l'accès avant `expires_at` : 'revoked' (retrait explicite
+  // par l'agence) et 'expired' (péremption posée à la main). Un lien retiré se
+  // présente à l'acheteur comme périmé — lui rendre un motif 'revoked' lui
+  // apprendrait qu'il a été repéré, alors que « ce lien n'est plus valable » suffit
+  // et ne renseigne personne. Le même refus est doublé dans buyer-reception-react,
+  // qui est le point d'écriture : retenu ici seulement, le retrait serait cosmétique.
+  // 'reacted' continue de servir — l'acheteur revient relire sa sélection.
+  if (link.status === 'revoked' || link.status === 'expired') return json({ ok: false, reason: 'expired' })
   if (new Date(link.expires_at) < new Date()) return json({ ok: false, reason: 'expired' })
 
   // Marque « vu » au 1er accès (idempotent) + IP/UA forensiques.
