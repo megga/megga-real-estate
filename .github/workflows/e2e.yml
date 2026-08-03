@@ -176,10 +176,16 @@ jobs:
           supabase status || true
           echo "=== docker ps ==="
           docker ps || true
-          echo "=== postgres logs ==="
-          docker logs supabase_db_megga-real-estate 2>&1 | tail -100 || true
-          echo "=== auth logs ==="
-          docker logs supabase_auth_megga-real-estate 2>&1 | tail -50 || true
+          # Mêmes dérivations que backend.yml, et pour la même raison : les noms viennent
+          # du `project_id` de supabase/config.toml (`supabase_db_zealous-faraday-34b2f5`),
+          # pas du nom du dépôt. Figés, ils rendaient cette étape muette — masquée par le
+          # `|| true`. `docker ps -a` inclut les conteneurs morts, le cas qui nous intéresse.
+          CONTENEUR_DB=$(docker ps -a --filter name=supabase_db_ --format '{{.Names}}' | head -1)
+          CONTENEUR_AUTH=$(docker ps -a --filter name=supabase_auth_ --format '{{.Names}}' | head -1)
+          echo "=== postgres logs (${CONTENEUR_DB:-introuvable}) ==="
+          docker logs "${CONTENEUR_DB:-supabase_db_introuvable}" 2>&1 | tail -100 || true
+          echo "=== auth logs (${CONTENEUR_AUTH:-introuvable}) ==="
+          docker logs "${CONTENEUR_AUTH:-supabase_auth_introuvable}" 2>&1 | tail -50 || true
 
       - name: Stop Supabase
         if: always()

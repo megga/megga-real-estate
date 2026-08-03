@@ -152,10 +152,19 @@ jobs:
           supabase status || true
           echo "=== docker ps ==="
           docker ps || true
-          echo "=== postgres logs ==="
-          docker logs supabase_db_megga-real-estate 2>&1 | tail -100 || true
-          echo "=== auth logs ==="
-          docker logs supabase_auth_megga-real-estate 2>&1 | tail -50 || true
+          # Les noms de conteneurs dérivent du `project_id` de supabase/config.toml
+          # (`supabase_db_zealous-faraday-34b2f5`), PAS du nom du dépôt. Figés à
+          # `*_megga-real-estate`, ils ne désignaient rien : `docker logs` échouait, le
+          # `|| true` avalait l'échec, et on perdait les logs Postgres au moment précis
+          # où on venait les chercher.
+          # `docker ps -a` et non `docker ps` : un conteneur MORT est justement le cas où
+          # ces logs comptent, et il ne figure plus parmi les vivants.
+          CONTENEUR_DB=$(docker ps -a --filter name=supabase_db_ --format '{{.Names}}' | head -1)
+          CONTENEUR_AUTH=$(docker ps -a --filter name=supabase_auth_ --format '{{.Names}}' | head -1)
+          echo "=== postgres logs (${CONTENEUR_DB:-introuvable}) ==="
+          docker logs "${CONTENEUR_DB:-supabase_db_introuvable}" 2>&1 | tail -100 || true
+          echo "=== auth logs (${CONTENEUR_AUTH:-introuvable}) ==="
+          docker logs "${CONTENEUR_AUTH:-supabase_auth_introuvable}" 2>&1 | tail -50 || true
 
       - name: Stop Supabase
         if: always()
