@@ -223,28 +223,6 @@
       "tempWarm": "lauwarm",
       "tempCold": "kalt"
     },
-    "pipeline": {
-      "stages": {
-        "searching": "Aktive Suche",
-        "visit": "Besichtigung geplant",
-        "offer": "Angebot eingereicht",
-        "compromis": "Vorvertrag"
-      },
-      "dealFallback": "Deal",
-      "riskStalled": "Deal steht still",
-      "riskOverdue": "Frist überschritten",
-      "error": {
-        "title": "Daten nicht verfügbar"
-      }
-    },
-    "objectif": {
-      "realized": "erreicht",
-      "realizedNoTarget": "erreicht · Ziel nicht festgelegt",
-      "target": "Ziel",
-      "error": {
-        "title": "Daten nicht verfügbar"
-      }
-    },
     "pager": {
       "today": "Heute",
       "catalogue": "Katalog",
@@ -338,7 +316,8 @@
       },
       "action": {
         "addToFile": "In das Dossier von {{name}} legen",
-        "added": "Zum Dossier von {{name}} hinzugefügt"
+        "added": "Zum Dossier von {{name}} hinzugefügt",
+        "openInMatching": "In Matching öffnen"
       },
       "gallery": {
         "closeHint": "Schliessen (Esc)",
@@ -426,11 +405,6 @@
         "backToDashboard": "Zurück zum Dashboard"
       }
     },
-    "brief": {
-      "eyebrow": "MEGGA AI · Tagesbriefing",
-      "deepen": "Vertiefen",
-      "deepenQuestion": "Erläutere meine heutigen Prioritäten im Detail und schlage für jede die nächste Aktion vor."
-    },
     "h": {
       "greeting": "Hallo {{name}}",
       "whatsNew": "What's new",
@@ -486,15 +460,10 @@
         "unknownProperty": "ein Objekt"
       },
       "toast": {
-        "openMandate": "Mandat von {{name}} wird geöffnet",
-        "launched": "{{cta}} · gestartet",
-        "launchedFor": "{{cta}} {{name}} · gestartet",
         "allUpToDate": "Alles aktuell",
         "visitProposed": "Besichtigungsvorschlag an {{name}} gesendet",
         "dealResumed": "Dossier {{name}} wieder aufgenommen",
         "recalibrated": "Kriterien für {{name}} neu justiert",
-        "published": "Veröffentlichung auf Immobilier.ch · {{title}}",
-        "annAction": "{{cta}} · {{title}}",
         "resumeFailed": "Die Wiederaufnahme konnte nicht gespeichert werden. Bitte erneut versuchen.",
         "doneFailed": "Der Status konnte nicht gespeichert werden. Bitte erneut versuchen.",
         "markedDone": "{{name}} · als erledigt markiert",
@@ -511,8 +480,6 @@
         "emptyTitle": "Freier Tag",
         "emptyDesc": "Heute sind keine Termine, Besichtigungen oder Erinnerungen geplant."
       },
-      "demoTag": "Demo",
-      "demoHint": "Dieser Bereich läuft noch mit Demodaten.",
       "mobileTitle": "Heute",
       "mobileDay": "Tag",
       "searchAria": "Suchen",
@@ -521,7 +488,37 @@
       "slots_one": "{{count}} Termin",
       "slots_other": "{{count}} Termine",
       "minutes_one": "{{count}} Min.",
-      "minutes_other": "{{count}} Min."
+      "minutes_other": "{{count}} Min.",
+      "listings": {
+        "untitled": "Objekt ohne Titel",
+        "issue": {
+          "draft": "Entwurf zu vervollständigen",
+          "noPhoto": "kein Foto",
+          "thinDescription": "Beschreibung zu kurz",
+          "notPushed": "öffentlich, noch nicht auf Immobilier.ch",
+          "published": "veröffentlicht"
+        },
+        "cta": {
+          "draft": "Vervollständigen",
+          "noPhoto": "Hinzufügen",
+          "thinDescription": "Vervollständigen",
+          "notPushed": "Veröffentlichen",
+          "published": "Öffnen"
+        },
+        "empty": "Alle deine Inserate sind vollständig und veröffentlicht."
+      },
+      "deals": {
+        "open": "Öffnen",
+        "empty": "Kein Dossier erfordert derzeit Aufmerksamkeit.",
+        "ctaCall": "Zurückrufen",
+        "ctaKyc": "KYC öffnen",
+        "ctaSign": "Vorbereiten",
+        "ctaOffer": "Angebot ansehen",
+        "ctaMatch": "Matches ansehen",
+        "ctaVisit": "Besichtigung ansehen",
+        "ctaSeller": "Öffnen",
+        "ctaListing": "Objekt ansehen"
+      }
     }
   },
   "analytics": {

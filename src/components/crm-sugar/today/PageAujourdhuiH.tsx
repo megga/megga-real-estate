@@ -26,9 +26,11 @@ import { TK } from './tk'
 import { RXIcon, Av, Eyebrow } from './kit'
 import { DATA } from './data'
 import {
-  HL_TYPES, HL_KIND_TYPE, HL_HOT, HL_ANN,
+  HL_TYPES, HL_KIND_TYPE,
   type HlSignalData, type HlHotData, type HlAnnData, type HlNewsData,
 } from './dataH'
+import { useHotDeals } from './useHotDeals'
+import { useListingActions } from './useListingActions'
 import { useTodayH, type TodayHBlock, type TodayHDay } from './useTodayH'
 import { useAbsenceSignals, type AbsenceGroup, type AbsenceSignal } from './useAbsenceSignals'
 import { useTodayNav } from './TodayNavContext'
@@ -278,6 +280,11 @@ function HlDay({ day, selId, onSel }: {
   const nowCol = TK.mode === 'light' ? '#E54D38' : '#FFFFFF'
   const hours: number[] = []
   for (let h = startMin / 60; h <= endMin / 60; h++) hours.push(h)
+  // « Maintenant » n'a de sens que DANS la fenêtre du jour. À 19 h 30 sur une
+  // journée qui finit à 17 h, `pct` vaut 131 % : le repère se faisait CLIPPER
+  // en silence. On le retire explicitement — une journée terminée n'a pas de
+  // « maintenant » à montrer, et un clip n'est pas une décision.
+  const nowInWindow = nowM >= startMin && nowM <= endMin
   const freeMin = free ? free.to - free.from : 0
   const freeLabel = freeMin % 60 === 0 ? `${freeMin / 60} h` : `${Math.floor(freeMin / 60)} h ${freeMin % 60}`
   return (
@@ -291,11 +298,11 @@ function HlDay({ day, selId, onSel }: {
           }}>{t('today.h.hour', { hour: String(h).padStart(2, '0') })}</span>
         ))}
         {/* badge « maintenant » dans la gouttière */}
-        <span style={{
+        {nowInWindow && <span style={{
           position: 'absolute', top: `${pct(nowM)}%`, right: 10, transform: 'translateY(-8px)', zIndex: 8,
           fontSize: 9.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', background: nowCol,
           color: TK.mode === 'light' ? '#fff' : '#0B0C0E', padding: '2px 6px', borderRadius: 999,
-        }}>{nowLabel}</span>
+        }}>{nowLabel}</span>}
       </div>
       {/* colonne timeline */}
       <div style={{ position: 'relative', flex: 1, borderLeft: `1px solid ${TK.border}` }}>
@@ -319,30 +326,26 @@ function HlDay({ day, selId, onSel }: {
           <HlBlock key={b.id} b={b} pct={pct} span={span} sel={b.id === selId} done={!!b.done} past={(b.from + b.dur) <= nowM} onSel={onSel} />
         ))}
         {/* ligne « maintenant » */}
-        <div className="hl-now" style={{ position: 'absolute', top: `${pct(nowM)}%`, left: 0, right: 0, display: 'flex', alignItems: 'center', zIndex: 7, pointerEvents: 'none' }}>
+        {nowInWindow && <div className="hl-now" style={{ position: 'absolute', top: `${pct(nowM)}%`, left: 0, right: 0, display: 'flex', alignItems: 'center', zIndex: 7, pointerEvents: 'none' }}>
           <span className="hl-now-dot" style={{ width: 9, height: 9, borderRadius: 999, background: nowCol, marginLeft: -5 }} />
           <span style={{ flex: 1, height: 2, background: nowCol }} />
-        </div>
+        </div>}
       </div>
     </div>
   )
 }
 
-// ─── Repère « démo » ────────────────────────────────────────────────────
-// Une zone encore alimentée par `dataH.ts` le DIT. Un écran qui mêle
-// silencieusement données réelles et données inventées est pire qu'un écran
-// incomplet : l'agent ne peut plus savoir ce qu'il regarde. Ce repère disparaît
-// zone par zone à mesure que les lots backend arrivent.
-function HlDemoTag() {
-  const { t } = useTranslation('dashboard')
+// ─── État vide d'un segment ─────────────────────────────────────────────
+// Un segment sans contenu doit le DIRE. Sans ça, « 0 chaud » surplombe un vide
+// qu'on ne sait pas lire : rien à traiter, ou rien qui charge ?
+function HlZoneEmpty({ label }: { label: string }) {
   return (
-    <span
-      title={t('today.h.demoHint')}
-      style={{
-        fontSize: 9, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase',
-        color: TK.sub, background: TK.card, borderRadius: 999, padding: '2px 7px', flexShrink: 0,
-      }}
-    >{t('today.h.demoTag')}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 2px 2px' }}>
+      <span style={{ width: 30, height: 30, borderRadius: 999, background: TK.ok.bg, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+        <RXIcon name="check" size={15} sw={2.4} color={TK.ok.dot} />
+      </span>
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: TK.sub, lineHeight: 1.4 }}>{label}</span>
+    </div>
   )
 }
 
@@ -588,6 +591,10 @@ export function PageAujourdhuiH() {
     signals: absenceSignals, groups: absenceGroups, total: absenceTotal,
     sinceLabel, markAllSeen, resumeReminder,
   } = useAbsenceSignals()
+  // Lot 3 — Dossiers (file Focus, déterministe) et Annonces (complétude +
+  // état de diffusion). Les deux dernières zones de démonstration tombent.
+  const { deals: hotDeals } = useHotDeals()
+  const { actions: listingActions } = useListingActions()
   // Lot 0 — journée, nouveautés et total Pipeline viennent de Supabase.
   // « fait » reste un ÉTAT DE DONNÉE (barré + badge « Terminé ») : le geste
   // `event_mark_done` est du Lot 2, et le popover de la maquette ne l'expose pas.
@@ -640,17 +647,12 @@ export function PageAujourdhuiH() {
     }
     nav(s.route, s.navRef)
   }
-  const onDeal = (d: HlHotData) => {
-    if (d.id === 'marie') { nav('contact-detail'); return }
-    if (d.id === 'antoine') { nav('deal-detail'); return }
-    if (d.id === 'julien') { say(t('today.h.toast.openMandate', { name: d.name.split(' ')[0] })); return }
-    say(t('today.h.toast.launchedFor', { cta: d.cta, name: d.name.split(' ')[0] }))
-  }
-  const onAnn = (a: HlAnnData) => {
-    if (a.cta === 'Publier') { say(t('today.h.toast.published', { title: a.title })); return }
-    if (a.cta === 'Voir les retours') { nav('matching'); return }
-    say(t('today.h.toast.annAction', { cta: a.cta, title: a.title }))
-  }
+  // Dossiers et Annonces EMMÈNENT vers la fiche concernée. « Publier » n'écrit
+  // rien : le go-live est bloqué chez le tiers (FTP, `idx_enabled` à false), donc
+  // un bouton qui écrirait `queued` mentirait. Il ouvre la fiche du bien, là où
+  // la diffusion se pilote.
+  const onDeal = (d: HlHotData) => nav('contact-detail', (d as { contactId?: string }).contactId)
+  const onAnn = (a: HlAnnData) => nav('biens-detail', (a as { propertyId?: string }).propertyId)
 
   // Teaser : les 4 signaux les plus récents, tous groupes confondus.
   const teaser = absenceSignals.slice(0, 4)
@@ -724,16 +726,16 @@ export function PageAujourdhuiH() {
                       >{l}</button>
                     ))}
                   </div>
-                  <HlDemoTag />
                   </div>
                   {zone === 'dossiers'
-                    ? <span style={{ fontSize: 11, fontWeight: 700, color: TK.sub }}>{t('today.h.hotCount', { count: HL_HOT.length })}</span>
+                    ? <span style={{ fontSize: 11, fontWeight: 700, color: TK.sub }}>{t('today.h.hotCount', { count: hotDeals.length })}</span>
                     : <button onClick={() => nav('biens')} style={{ background: 'none', border: 0, fontFamily: 'inherit', fontSize: 11, fontWeight: 700, color: TK.sub, cursor: 'pointer', padding: '4px 6px', marginRight: -4 }}>{t('today.h.openListings')}</button>}
                 </div>
                 <div key={zone} className="hl-dossier" style={{ minHeight: 0 }}>
                   {zone === 'dossiers' ? (
                     <>
-                      {HL_HOT.map((d, i) => <HlDealCard key={d.id} d={d} first={i === 0} onCta={onDeal} />)}
+                      {!hotDeals.length && <HlZoneEmpty label={t('today.h.deals.empty')} />}
+                      {hotDeals.map((d, i) => <HlDealCard key={d.id} d={d} first={i === 0} onCta={onDeal} />)}
                       {/* Pipeline vide ⇒ pas de renvoi : « Voir les 0 dossiers »
                           serait une invitation à ouvrir un écran vide. */}
                       {pipelineTotal > 0 && (
@@ -747,7 +749,9 @@ export function PageAujourdhuiH() {
                       )}
                     </>
                   ) : (
-                    HL_ANN.map((a, i) => <HlAnnCard key={a.id} a={a} first={i === 0} onCta={onAnn} />)
+                    listingActions.length
+                      ? listingActions.map((a, i) => <HlAnnCard key={a.id} a={a} first={i === 0} onCta={onAnn} />)
+                      : <HlZoneEmpty label={t('today.h.listings.empty')} />
                   )}
                 </div>
               </div>

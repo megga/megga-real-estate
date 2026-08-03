@@ -1,13 +1,14 @@
-// MEGGA CRM — Refonte « Aujourd'hui » · ATOMES PARTAGÉS (port fidèle)
+// MEGGA CRM — Today V2 « concept H » · ATOMES PARTAGÉS
 // ----------------------------------------------------------------------------
-// Port 1:1 des atomes de `today-redesign-kit.jsx` + `today-redesign-c1c2.jsx`
-// (uniquement ceux consommés par la page finale rendue : cockpit + catalogue).
+// Port des atomes de `today-redesign-kit.jsx`, réduits à ceux que les surfaces
+// VIVANTES consomment : la page Aujourd'hui, le catalogue, la session de relance
+// et le mobile. `Tile`, `TileHead` et `MoreLink` sont partis avec les tuiles de
+// l'ancien cockpit, qu'elles seules servaient.
+//
 // `RXIcon` est un simple adaptateur qui traduit les noms locaux du proto vers
 // les glyphes officiels MEIcon (src/components/propertyx/MEIcon).
 
-import { useState } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
-import { useTranslation } from 'react-i18next'
+import type { ReactNode } from 'react'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { TK } from './tk'
 
@@ -95,75 +96,8 @@ export function Eyebrow({ children, color }: EyebrowProps) {
   )
 }
 
-// ─── Frame / Tile (verre Sugar) ─────────────────────────────────────────
-interface TileProps {
-  children: ReactNode
-  style?: CSSProperties
-  pad?: number
-  hover?: boolean
-}
-
-export function Tile({ children, style, pad = 18, hover = true }: TileProps) {
-  const [h, setH] = useState(false)
-  return (
-    <div
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
-      style={{
-        position: 'relative', borderRadius: 24, padding: pad,
-        background: h && hover ? TK.frameHi : TK.frame,
-        border: `1px solid ${h && hover ? TK.borderHi : TK.border}`,
-        boxShadow: TK.shadow,
-        transition: 'background .25s ease, border-color .25s ease',
-        overflow: 'hidden',
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  )
-}
-
-
 // ─── Orbs de fond (lueur douce derrière le verre) — no-op fidèle ─────────
 export function Orbs() {
   return null
 }
 
-// ─── section header tuile (today-redesign-c1c2) ─────────────────────────
-// `icon` / `accent` sont acceptés mais non rendus (fidèle au proto : TileHead
-// destructure ces props sans les utiliser).
-interface TileHeadProps {
-  icon?: string
-  title: string
-  action?: ReactNode
-  accent?: string
-}
-
-export function TileHead({ title, action }: TileHeadProps) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 13 }}>
-      <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: TK.ink, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>{title}</h3>
-      <div style={{ flex: 1 }} />
-      {action}
-    </div>
-  )
-}
-
-interface MoreLinkProps {
-  children?: ReactNode
-  onClick?: () => void
-}
-
-export function MoreLink({ children, onClick }: MoreLinkProps) {
-  const { t } = useTranslation('common')
-  return (
-    <span
-      onClick={onClick}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: TK.sub, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
-    >
-      {children ?? t('actions.viewAll')}
-      <RXIcon name="arrow" size={13} sw={2} />
-    </span>
-  )
-}

@@ -223,28 +223,6 @@
       "tempWarm": "tiepidi",
       "tempCold": "freddi"
     },
-    "pipeline": {
-      "stages": {
-        "searching": "Ricerca attiva",
-        "visit": "Visita pianificata",
-        "offer": "Offerta presentata",
-        "compromis": "Compromesso"
-      },
-      "dealFallback": "Affare",
-      "riskStalled": "Affare in stallo",
-      "riskOverdue": "Scadenza superata",
-      "error": {
-        "title": "Dati non disponibili"
-      }
-    },
-    "objectif": {
-      "realized": "realizzato",
-      "realizedNoTarget": "realizzato · obiettivo non definito",
-      "target": "obiettivo",
-      "error": {
-        "title": "Dati non disponibili"
-      }
-    },
     "pager": {
       "today": "Oggi",
       "catalogue": "Catalogo",
@@ -338,7 +316,8 @@
       },
       "action": {
         "addToFile": "Aggiungi al fascicolo di {{name}}",
-        "added": "Aggiunto al fascicolo di {{name}}"
+        "added": "Aggiunto al fascicolo di {{name}}",
+        "openInMatching": "Apri in Matching"
       },
       "gallery": {
         "closeHint": "Chiudi (Esc)",
@@ -426,11 +405,6 @@
         "backToDashboard": "Torna alla dashboard"
       }
     },
-    "brief": {
-      "eyebrow": "MEGGA AI · Briefing del giorno",
-      "deepen": "Approfondisci",
-      "deepenQuestion": "Dettaglia le mie priorità di oggi e proponi la prossima azione per ciascuna."
-    },
     "h": {
       "greeting": "Buongiorno {{name}}",
       "whatsNew": "What's new",
@@ -486,15 +460,10 @@
         "unknownProperty": "un immobile"
       },
       "toast": {
-        "openMandate": "Apertura del mandato di {{name}}",
-        "launched": "{{cta}} · avviato",
-        "launchedFor": "{{cta}} {{name}} · avviato",
         "allUpToDate": "Tutto aggiornato",
         "visitProposed": "Proposta di visita inviata a {{name}}",
         "dealResumed": "Dossier {{name}} ripreso",
         "recalibrated": "Criteri ricalibrati per {{name}}",
-        "published": "Pubblicazione su Immobilier.ch · {{title}}",
-        "annAction": "{{cta}} · {{title}}",
         "resumeFailed": "La ripresa non è stata salvata. Riprova.",
         "doneFailed": "Lo stato non è stato salvato. Riprova.",
         "markedDone": "{{name}} · segnato come completato",
@@ -511,8 +480,6 @@
         "emptyTitle": "Giornata libera",
         "emptyDesc": "Nessun appuntamento, visita o promemoria previsto oggi."
       },
-      "demoTag": "Demo",
-      "demoHint": "Quest’area utilizza ancora dati dimostrativi.",
       "mobileTitle": "Oggi",
       "mobileDay": "Giornata",
       "searchAria": "Cerca",
@@ -521,7 +488,37 @@
       "slots_one": "{{count}} fascia oraria",
       "slots_other": "{{count}} fasce orarie",
       "minutes_one": "{{count}} min",
-      "minutes_other": "{{count}} min"
+      "minutes_other": "{{count}} min",
+      "listings": {
+        "untitled": "Immobile senza titolo",
+        "issue": {
+          "draft": "bozza da completare",
+          "noPhoto": "nessuna foto",
+          "thinDescription": "descrizione troppo breve",
+          "notPushed": "pubblico, non ancora su Immobilier.ch",
+          "published": "pubblicato"
+        },
+        "cta": {
+          "draft": "Completa",
+          "noPhoto": "Aggiungi",
+          "thinDescription": "Completa",
+          "notPushed": "Pubblica",
+          "published": "Apri"
+        },
+        "empty": "Tutti i tuoi annunci sono completi e pubblicati."
+      },
+      "deals": {
+        "open": "Apri",
+        "empty": "Nessun dossier richiede attenzione ora.",
+        "ctaCall": "Richiamare",
+        "ctaKyc": "Apri KYC",
+        "ctaSign": "Preparare",
+        "ctaOffer": "Vedi l’offerta",
+        "ctaMatch": "Vedi i match",
+        "ctaVisit": "Vedi la visita",
+        "ctaSeller": "Apri",
+        "ctaListing": "Vedi l’immobile"
+      }
     }
   },
   "analytics": {
