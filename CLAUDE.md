@@ -368,11 +368,19 @@ Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel e
 DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MEGGA_MAGIC_LINK_HMAC_SECRET,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
-STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_IDENTITY_FLOW_ID,
 MAPBOX_TOKEN,
 UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 ```
 
+> ⚠ **`STRIPE_IDENTITY_FLOW_ID` n'est pas un secret, mais il doit rester hors du dépôt.**
+> C'est l'identifiant (`vf_…`) du flux de vérification configuré dans le tableau de bord
+> Stripe (Identity, décision du 03.08.2026 : passeport + carte d'identité, selfie exigé,
+> capture en direct, ni numéro de pièce ni e-mail ni téléphone). Le mode TEST et le mode
+> RÉEL en portent **deux distincts** — en figer un dans le code casserait l'autre, même
+> raison que les `STRIPE_PRICE_*`. Absent, `kyb-identity-verify` retombe sur les mêmes
+> options posées en clair : le parcours tourne, il n'échoue pas.
+>
 > ✅ **`MEGGA_MAGIC_LINK_HMAC_SECRET` EST configuré** (mesuré le 03.08.2026) — il manquait
 > simplement à cet inventaire. Il signe les jetons publics du lien magique KYC ET des liens
 > de réception acheteur (`_shared/magic-link-token.ts`, ≥ 32 caractères exigés à la

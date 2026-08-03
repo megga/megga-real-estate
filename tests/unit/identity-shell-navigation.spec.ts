@@ -216,55 +216,85 @@ describe('canAdvanceFromIdentityStep — gate le bouton Continuer du pied de pag
     expect(canAdvanceFromIdentityStep(1, completeSignataire, { ...completeAgency, canton: '' })).toBe(false)
   })
 
-  it('étape 4 (récapitulatif, palier "à venir", sans contenu réel) -> jamais navigable en avant, même avec des brouillons complets', () => {
+  it('dernière étape (récapitulatif, indice 3) -> jamais navigable en avant, même avec des brouillons complets : il n\'existe pas d\'étape suivante', () => {
     // Revue tâche 3 : le bouton Continuer du pied de page restait actif sur ces
     // paliers (canNext valait `true` sans condition dès step > 0) — on pouvait
-    // avancer jusqu'au récapitulatif sans rien renseigner. SG_IDENTITY_STEPS.length
-    // vaut 5 (indices 0 à 4) ; les indices 0 et 1 ont un écran réel depuis la tâche 3/4.
-    // L'indice 2 (bénéficiaires, tâche 5) et l'indice 3 (pièce d'identité, tâche 6) en
-    // ont un désormais et sortent donc de cette boucle générique — leur complétude a
-    // son propre bloc de tests (4e et 5e arguments) plus bas.
+    // avancer jusqu'au récapitulatif sans rien renseigner. Depuis le retrait de
+    // l'étape bénéficiaires (03.08.2026), SG_IDENTITY_STEPS.length vaut 4 : les
+    // indices 0, 1 et 2 ont un écran réel dont la complétude est testée à part,
+    // l'indice 3 est le récapitulatif, qui ne mène nulle part.
+    expect(canAdvanceFromIdentityStep(3, completeSignataire, completeAgency)).toBe(false)
+  })
+
+  it('indice hors de SG_IDENTITY_STEPS -> false, jamais une navigation vers un palier qui n\'existe pas', () => {
     expect(canAdvanceFromIdentityStep(4, completeSignataire, completeAgency)).toBe(false)
   })
 })
 
-describe('canAdvanceFromIdentityStep — étape 2 (bénéficiaires) : gate sur sa propre complétude, comme le signataire et l\'agence', () => {
-  const completeSignataire: SignataireDraft = {
-    firstName: 'Grégory', lastName: 'Lyonnet', dateOfBirth: '1980-05-12', nationality: 'CH', signaturePower: 'individual',
-  }
-  const completeAgency: AgencyDraft = {
-    country: 'CH', legalFormId: 'legal-form-sa', legal: 'Régie Lyonnet SA',
-    businessRegistrationNumber: 'CHE-123.456.789', address: 'Rue du Rhône 10',
-    postal: '1204', city: 'Genève', canton: 'GE',
-  }
-
-  it('pièce d identité non téléversée -> pas navigable depuis l étape 2', () => {
-    // 4e argument omis : le défaut est un brouillon VIDE, et un brouillon vide est
-    // incomplet ici (les deux faces sont exigées) — contrairement à l'ancienne étape
-    // bénéficiaires, où une liste vide était une réponse légitime.
-    expect(canAdvanceFromIdentityStep(2, completeSignataire, completeAgency)).toBe(false)
-  })
-})
-
 describe('isPieceIdentiteStepComplete — gate le bouton Continuer de l\'étape 3 (pièce d\'identité)', () => {
-  it('brouillon vide (rien téléversé) -> incomplet', () => {
+  const RECTO = 'agency-1/kyb-identity/person-1/recto.jpg'
+  const VERSO = 'agency-1/kyb-identity/person-1/verso.jpg'
+
+  it('brouillon vide (aucune nature, rien téléversé) -> incomplet', () => {
     expect(isPieceIdentiteStepComplete(EMPTY_PIECE_IDENTITE_DRAFT)).toBe(false)
   })
 
-  it('recto seul (verso manquant) -> incomplet : recto et verso sont tous deux exigés', () => {
-    expect(isPieceIdentiteStepComplete({ recto: 'agency-1/kyb-identity/person-1/recto.jpg', verso: null })).toBe(false)
+  it('les deux faces présentes mais AUCUNE nature déclarée -> incomplet : une étape n\'est jamais réputée finie parce qu\'une question n\'a pas été posée', () => {
+    expect(isPieceIdentiteStepComplete({ verificationStatus: null, documentType: null, recto: RECTO, verso: VERSO })).toBe(false)
   })
 
-  it('verso seul (recto manquant) -> incomplet', () => {
-    expect(isPieceIdentiteStepComplete({ recto: null, verso: 'agency-1/kyb-identity/person-1/verso.jpg' })).toBe(false)
+  it('carte d\'identité, recto seul -> incomplet : les deux faces sont exigées', () => {
+    expect(isPieceIdentiteStepComplete({ verificationStatus: null, documentType: 'id_card', recto: RECTO, verso: null })).toBe(false)
   })
 
-  it('recto ET verso présents -> complet', () => {
-    const complete: PieceIdentiteDraft = {
-      recto: 'agency-1/kyb-identity/person-1/recto.jpg',
-      verso: 'agency-1/kyb-identity/person-1/verso.jpg',
-    }
+  it('carte d\'identité, verso seul -> incomplet', () => {
+    expect(isPieceIdentiteStepComplete({ verificationStatus: null, documentType: 'id_card', recto: null, verso: VERSO })).toBe(false)
+  })
+
+  it('carte d\'identité, recto ET verso -> complet', () => {
+    const complete: PieceIdentiteDraft = { verificationStatus: null, documentType: 'id_card', recto: RECTO, verso: VERSO }
     expect(isPieceIdentiteStepComplete(complete)).toBe(true)
+  })
+
+  it('titre de séjour : même règle que la carte, les deux faces', () => {
+    expect(isPieceIdentiteStepComplete({ verificationStatus: null, documentType: 'residence_permit', recto: RECTO, verso: null })).toBe(false)
+    expect(isPieceIdentiteStepComplete({ verificationStatus: null, documentType: 'residence_permit', recto: RECTO, verso: VERSO })).toBe(true)
+  })
+
+  it('PASSEPORT, page de données seule -> COMPLET : c\'est tout le sujet du 3 août 2026, un passeport n\'a pas de verso', () => {
+    expect(isPieceIdentiteStepComplete({ verificationStatus: null, documentType: 'passport', recto: RECTO, verso: null })).toBe(true)
+  })
+
+  it('passeport sans page de données -> incomplet : la face unique reste exigée', () => {
+    expect(isPieceIdentiteStepComplete({ verificationStatus: null, documentType: 'passport', recto: null, verso: null })).toBe(false)
+  })
+
+  it('identité VÉRIFIÉE chez le prestataire -> complet sans aucun fichier : c\'est tout l\'intérêt du chemin Stripe, la pièce ne transite pas par MEGGA', () => {
+    expect(isPieceIdentiteStepComplete({
+      verificationStatus: 'verified', documentType: null, recto: null, verso: null,
+    })).toBe(true)
+  })
+
+  it('vérification EN COURS DE TRAITEMENT -> complet : bloquer l\'onboarding sur un traitement asynchrone échouerait juste après que le dirigeant a tout fait, et le dossier part de toute façon en revue humaine', () => {
+    expect(isPieceIdentiteStepComplete({
+      verificationStatus: 'processing', documentType: null, recto: null, verso: null,
+    })).toBe(true)
+  })
+
+  it('vérification à REPRENDRE ou ANNULÉE -> incomplet, et le chemin de secours reprend la main', () => {
+    for (const status of ['requires_input', 'canceled'] as const) {
+      expect(isPieceIdentiteStepComplete({
+        verificationStatus: status, documentType: null, recto: null, verso: null,
+      })).toBe(false)
+      // Le dépôt manuel, lui, complète l'étape même après un refus du prestataire.
+      expect(isPieceIdentiteStepComplete({
+        verificationStatus: status, documentType: 'residence_permit', recto: RECTO, verso: VERSO,
+      })).toBe(true)
+    }
+  })
+
+  it('passeport avec un verso résiduel -> complet quand même : le verso n\'est pas REGARDÉ pour un passeport (il est retiré au changement de nature, cf. handleSelectIdentityType), sa présence ne doit ni bloquer ni être exigée', () => {
+    expect(isPieceIdentiteStepComplete({ verificationStatus: null, documentType: 'passport', recto: RECTO, verso: VERSO })).toBe(true)
   })
 })
 
@@ -278,24 +308,39 @@ describe('canAdvanceFromIdentityStep — étape 3 (pièce d\'identité, tâche 6
     postal: '1204', city: 'Genève', canton: 'GE',
   }
   const completePieceIdentite: PieceIdentiteDraft = {
+    verificationStatus: null,
+    documentType: 'id_card',
     recto: 'agency-1/kyb-identity/person-1/recto.jpg',
     verso: 'agency-1/kyb-identity/person-1/verso.jpg',
   }
 
-  it('5e argument omis (compat. appels existants) -> se comporte comme un brouillon vide, donc PAS navigable (contrairement aux bénéficiaires, recto/verso sont bloquants)', () => {
-    expect(canAdvanceFromIdentityStep(3, completeSignataire, completeAgency, [])).toBe(false)
+  // ⚠ Ces quatre cas tapaient l'indice 3 (le RÉCAPITULATIF, qui rend false quoi qu'il
+  // arrive) avec un `[]` en 4e argument, vestige de la signature d'avant le retrait de
+  // l'étape bénéficiaires (03.08.2026). Ils passaient sans rien éprouver de la pièce
+  // d'identité — et `tsc -b` ne couvrant que src/, l'argument surnuméraire ne levait
+  // aucune erreur de type. Recalés sur l'indice 2, le vrai palier de cette étape.
+
+  it('4e argument omis -> se comporte comme un brouillon vide, donc PAS navigable (une pièce d\'identité est toujours bloquante)', () => {
+    expect(canAdvanceFromIdentityStep(2, completeSignataire, completeAgency)).toBe(false)
   })
 
-  it('ni recto ni verso téléversés -> pas navigable', () => {
-    expect(canAdvanceFromIdentityStep(3, completeSignataire, completeAgency, [], EMPTY_PIECE_IDENTITE_DRAFT)).toBe(false)
+  it('aucune face téléversée -> pas navigable', () => {
+    expect(canAdvanceFromIdentityStep(2, completeSignataire, completeAgency, EMPTY_PIECE_IDENTITE_DRAFT)).toBe(false)
   })
 
-  it('recto seul téléversé -> pas encore navigable', () => {
-    expect(canAdvanceFromIdentityStep(3, completeSignataire, completeAgency, [], { recto: completePieceIdentite.recto, verso: null })).toBe(false)
+  it('carte d\'identité, recto seul téléversé -> pas encore navigable', () => {
+    expect(canAdvanceFromIdentityStep(2, completeSignataire, completeAgency, { ...completePieceIdentite, verso: null })).toBe(false)
   })
 
-  it('recto ET verso téléversés -> navigable', () => {
+  it('carte d\'identité, recto ET verso téléversés -> navigable', () => {
     expect(canAdvanceFromIdentityStep(2, completeSignataire, completeAgency, completePieceIdentite)).toBe(true)
+  })
+
+  it('passeport, page de données seule -> navigable : la garde suit la nature déclarée, comme l\'écran', () => {
+    expect(canAdvanceFromIdentityStep(
+      2, completeSignataire, completeAgency,
+      { verificationStatus: null, documentType: 'passport', recto: completePieceIdentite.recto, verso: null },
+    )).toBe(true)
   })
 })
 

@@ -100,11 +100,51 @@
     },
     "pieceIdentite": {
       "title": "Laden Sie das Ausweisdokument der unterzeichnenden Person hoch",
-      "subtitle": "Vorder- und Rückseite eines gültigen Ausweises: Identitätskarte, Pass oder Aufenthaltstitel. Eine Person unseres Compliance-Teams prüft das Dokument.",
+      "subtitle": "Ein gültiger Ausweis: Pass, Identitätskarte oder Aufenthaltstitel. Geben Sie die Art an und fotografieren Sie die verlangten Seiten. Eine Person unseres Compliance-Teams prüft das Dokument.",
       "missingSignataire": "Die unterzeichnende Person muss zuerst im vorherigen Schritt angegeben werden.",
+      "verification": {
+        "title": "Bestätigen Sie Ihre Identität",
+        "body": "Fotografieren Sie Ihren Ausweis und Ihr Gesicht. Die Prüfung läuft bei unserem Dienstleister: das Foto Ihres Ausweises wird uns nie übermittelt.",
+        "cta": "Identität bestätigen",
+        "retryCta": "Prüfung fortsetzen",
+        "pendingTitle": "Prüfung läuft",
+        "pendingBody": "Das Ergebnis kommt in Kürze. Sie können fortfahren, wir hängen es an Ihr Dossier an.",
+        "doneTitle": "Identität bestätigt",
+        "doneBody": "Ihr Ausweis wurde geprüft und Ihr Gesicht mit dem Foto verglichen. Danach prüft unser Compliance-Team das Dossier.",
+        "useManual": "Stattdessen Ausweis hochladen",
+        "privacy": "Unser Dienstleister behält den Ausweis für seine Prüfung; MEGGA erhält nur das Ergebnis und das Ablaufdatum.",
+        "errors": {
+          "consent_declined": "Sie haben die Prüfung abgelehnt. Laden Sie Ihren Ausweis unten hoch, unser Team prüft ihn.",
+          "under_supported_age": "Die Online-Prüfung gilt nicht für Personen unter 16 Jahren.",
+          "country_not_supported": "Ihr Land wird von der Online-Prüfung nicht abgedeckt. Laden Sie Ihren Ausweis unten hoch.",
+          "document_expired": "Der vorgelegte Ausweis ist abgelaufen. Versuchen Sie es mit einem gültigen Ausweis.",
+          "document_type_not_supported": "Diese Dokumentart wird nicht akzeptiert. Ein Pass oder eine Identitätskarte geht.",
+          "document_unverified_other": "Der Ausweis konnte nicht geprüft werden. Versuchen Sie es bei besserem Licht erneut.",
+          "selfie_face_mismatch": "Das Gesicht stimmt nicht mit dem Foto im Ausweis überein. Wiederholen Sie die Prüfung.",
+          "selfie_manipulated": "Das Gesichtsfoto wirkt bearbeitet. Wiederholen Sie die Prüfung.",
+          "selfie_document_missing_photo": "Der Ausweis trägt kein Foto. Verwenden Sie einen Pass oder eine Identitätskarte.",
+          "selfie_unverified_other": "Das Gesicht konnte nicht geprüft werden. Wiederholen Sie die Prüfung.",
+          "abandoned": "Die Prüfung wurde abgebrochen. Sie können sie fortsetzen.",
+          "unknown": "Die Prüfung wurde nicht abgeschlossen. Sie können es erneut versuchen oder Ihren Ausweis unten hochladen."
+        }
+      },
+      "documentType": {
+        "label": "Art des Ausweises",
+        "options": {
+          "passport": "Pass",
+          "id_card": "Identitätskarte",
+          "residence_permit": "Aufenthaltstitel"
+        },
+        "hints": {
+          "passport": "Nur eine Seite zu fotografieren",
+          "id_card": "Beide Seiten werden verlangt",
+          "residence_permit": "Beide Seiten werden verlangt"
+        }
+      },
       "sides": {
         "recto": "Vorderseite",
-        "verso": "Rückseite"
+        "verso": "Rückseite",
+        "dataPage": "Datenseite"
       },
       "dropHint": "Klicken Sie, um eine Datei auszuwählen",
       "formatHint": "JPG, PNG, WEBP oder PDF, maximal 8 MB",
@@ -113,6 +153,18 @@
       "zoomClose": "Schliessen",
       "zoomHint": "Prüfen Sie, ob das Dokument scharf ist und alle vier Ecken sichtbar sind. Andernfalls ersetzen Sie es.",
       "openPdf": "PDF öffnen",
+      "read": {
+        "running": "Der Ausweis wird gelesen…",
+        "verdict": {
+          "match": "Der Ausweis stimmt mit der erfassten Identität überein.",
+          "partial": "Der Ausweis stimmt nur teilweise mit der erfassten Identität überein. Prüfen Sie den Schritt zur unterzeichnenden Person, bevor Sie fortfahren.",
+          "mismatch": "Der Ausweis stimmt nicht mit der erfassten Identität überein. Prüfen Sie, ob es der richtige ist.",
+          "unreadable": "Der Ausweis konnte nicht gelesen werden. Ein schärferes Foto hilft, Sie können aber fortfahren."
+        },
+        "expired": "Dieser Ausweis scheint seit dem {{date}} abgelaufen zu sein.",
+        "typeDiffers": "Der Ausweis scheint nicht der zu sein, den Sie angegeben haben.",
+        "disclaimer": "Automatische Lesung, nur als Hinweis: unser Compliance-Team prüft das Dokument."
+      },
       "errors": {
         "format": "Zulässiges Format: JPG, PNG, WEBP oder PDF.",
         "size": "Maximale Grösse: 8 MB.",
@@ -128,7 +180,10 @@
         "uploaded": "Hochgeladen",
         "missing": "Fehlt",
         "loading": "Hochgeladene Dokumente werden geprüft…",
-        "loadFailed": "Die hochgeladenen Dokumente konnten nicht geprüft werden. Versuchen Sie es erneut."
+        "loadFailed": "Die hochgeladenen Dokumente konnten nicht geprüft werden. Versuchen Sie es erneut.",
+        "statusLabel": "Prüfung",
+        "verified": "Identität bei unserem Dienstleister bestätigt",
+        "processing": "Prüfung wird bearbeitet"
       },
       "attestation": "Ich bestätige, dass die obigen Angaben nach meinem Wissen richtig und vollständig sind.",
       "errors": {

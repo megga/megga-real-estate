@@ -69,10 +69,12 @@ import { MeggaX, MxButton, MxLink } from '@/components/megga-x'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  useAgencyIdentity, useIdentityDocuments, validateIdentityDocumentFile,
-  type IdentityDocumentSide,
+  useAgencyIdentity, useIdentityDocuments, validateIdentityDocumentFile, identityDocumentSidesFor,
+  isIdentityVerificationSufficient, verificationNeedsManualFallback,
+  type IdentityDocumentSide, type IdentityDocumentType, type IdentityVerificationStatus,
 } from '@/hooks/useAgencyIdentity'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
+import type { KybIdReadRecord } from '@/types/kybIdRead'
 import { StepSignataire } from './steps/StepSignataire'
 import { StepAgence } from './steps/StepAgence'
 import { StepPieceIdentite } from './steps/StepPieceIdentite'
@@ -185,7 +187,7 @@ export function isAgencyStepComplete(draft: AgencyDraft): boolean {
 }
 
 /**
- * Brouillon local de l'étape 4 (tâche 6), contrôlé par IdentityShell comme les étapes
+ * Brouillon local de l'étape 3 (tâche 6), contrôlé par IdentityShell comme les étapes
  * précédentes — mais ce n'est PAS un brouillon au même sens : `recto`/`verso` sont les
  * chemins Storage déjà téléversés (useIdentityDocuments), jamais une saisie en
  * attente. IdentityShell le reconstruit à chaque rendu depuis ce hook plutôt que de
@@ -193,26 +195,52 @@ export function isAgencyStepComplete(draft: AgencyDraft): boolean {
  * rien d'autre à mémoriser côté client (cf. en-tête de StepPieceIdentite.tsx).
  */
 export interface PieceIdentiteDraft {
+  /**
+   * Statut de la vérification Stripe Identity — le chemin PRINCIPAL depuis le 3 août
+   * 2026. Quand il suffit, aucun fichier n'est demandé : la pièce ne transite pas par
+   * MEGGA, et c'est tout l'intérêt.
+   */
+  verificationStatus: IdentityVerificationStatus | null
+  /** Nature déclarée de la pièce — décide combien de faces exige le chemin de SECOURS. */
+  documentType: IdentityDocumentType | null
   recto: string | null
   verso: string | null
 }
 
-/** Brouillon vide — aucun des deux côtés encore téléversé. */
+/** Brouillon vide — aucune vérification, aucune nature choisie, aucun côté téléversé. */
 // eslint-disable-next-line react-refresh/only-export-components -- constante partagée avec les tests, même motif que EMPTY_SIGNATAIRE_DRAFT.
 export const EMPTY_PIECE_IDENTITE_DRAFT: PieceIdentiteDraft = {
+  verificationStatus: null,
+  documentType: null,
   recto: null,
   verso: null,
 }
 
 /**
- * true si RECTO ET VERSO sont tous deux téléversés : aucune valeur par défaut n'est
- * acceptable ici, l'étape existe précisément pour collecter les deux faces de la
- * pièce d'identité du signataire, et tant que l'une manque le dossier KYB reste
- * incomplet.
+ * true si toutes les faces exigées par la nature déclarée sont téléversées.
+ *
+ * Aucune valeur par défaut n'est acceptable ici — l'étape existe précisément pour
+ * collecter la pièce du signataire, et tant qu'une face manque le dossier KYB reste
+ * incomplet. Mais « les deux faces » n'était pas la bonne règle : un passeport n'a
+ * qu'une page de données, et l'exiger quand même faisait photographier une
+ * couverture vierge. C'est identityDocumentSidesFor (useAgencyIdentity.ts) qui
+ * tranche, une seule fois, pour cet écran ET pour cette garde.
+ *
+ * Tant qu'aucune nature n'est déclarée, la liste rendue est complète (recto+verso) :
+ * une étape n'est jamais réputée finie parce qu'une question n'a pas été posée.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isAgencyStepComplete.
 export function isPieceIdentiteStepComplete(draft: PieceIdentiteDraft): boolean {
-  return draft.recto != null && draft.verso != null
+  // Chemin PRINCIPAL — la vérification par le prestataire. Elle se suffit à elle-même :
+  // le document a été présenté, authentifié et confronté à un selfie chez Stripe, et
+  // rien n'a été déposé ici. Demander un fichier en plus reviendrait à réintroduire
+  // exactement la copie qu'on cherche à ne plus détenir.
+  if (isIdentityVerificationSufficient(draft.verificationStatus)) return true
+
+  // Chemin de SECOURS — le dépôt manuel, pour les cas que Stripe ne sait pas traiter
+  // (titre de séjour, consentement refusé, pays non couvert).
+  if (draft.documentType == null) return false
+  return identityDocumentSidesFor(draft.documentType).every((side) => draft[side] != null)
 }
 
 /**
@@ -768,7 +796,9 @@ export default function IdentityShell() {
    *  pas, rediriger vers /dashboard reproduirait la boucle P0 c830f9a9. */
   const handleLogout = () => { void signOut().then(() => navigate('/login')) }
   const {
-    agency, agencyId, persons, isLoading, isRevalidating, savePerson, saveAgency, uploadIdentityDocument, submit,
+    agency, agencyId, persons, isLoading, isRevalidating, savePerson, saveAgency, uploadIdentityDocument,
+    saveIdentityDocumentType, removeIdentityDocument, readIdentityDocument,
+    startIdentityVerification, submit,
   } = useAgencyIdentity()
 
   const [step, setStep] = useState(0)
@@ -870,7 +900,7 @@ export default function IdentityShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agency.legalFormId])
 
-  // Étape 4 (tâche 6) : signatoryId vient d'existingSignatory ci-dessus (la personne
+  // Étape 3 (tâche 6) : signatoryId vient d'existingSignatory ci-dessus (la personne
   // enregistrée à l'étape 0 de CE wizard) — jamais un id choisi par l'utilisateur, il
   // n'y a qu'un seul signataire saisi par ce parcours. useIdentityDocuments lit
   // Storage directement (aucune colonne DB, cf. son en-tête dans useAgencyIdentity.ts) ;
@@ -880,12 +910,92 @@ export default function IdentityShell() {
   const {
     data: identityDocuments, isLoading: identityDocumentsLoading, error: identityDocumentsError,
   } = useIdentityDocuments(agencyId, signatoryId)
+  const [uploadingSide, setUploadingSide] = useState<IdentityDocumentSide | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [savingDocumentType, setSavingDocumentType] = useState(false)
+  /** Nature choisie mais pas encore relue depuis la base — voir pieceIdentiteDraft. */
+  const [pendingDocumentType, setPendingDocumentType] = useState<IdentityDocumentType | null>(null)
+  const [startingVerification, setStartingVerification] = useState(false)
+  /**
+   * true quand l'écran doit montrer le DÉPÔT MANUEL plutôt que la vérification.
+   *
+   * Deux sources : le dirigeant qui le demande (son titre de séjour n'est pas dans les
+   * types que Stripe accepte, et lui seul le sait), et un refus définitif du
+   * prestataire. Un `useState` et non une dérivation pure : le choix de l'utilisateur
+   * doit survivre à une invalidation de query, et le refus définitif est ajouté par
+   * `ou` au moment du rendu plutôt que recopié ici, pour ne pas avoir deux vérités.
+   */
+  const [manualFallback, setManualFallback] = useState(false)
+  const [identityRead, setIdentityRead] = useState<KybIdReadRecord | null>(null)
+  const [identityReading, setIdentityReading] = useState(false)
+
   const pieceIdentiteDraft: PieceIdentiteDraft = {
+    // La nature vient de la personne persistée — comme les fichiers, elle est écrite
+    // en base au moment du clic (saveIdentityDocumentType), donc la relire est plus
+    // juste que la mémoriser en double.
+    //
+    // `pendingDocumentType` ne double PAS cette source, il la devance : l'écriture
+    // puis l'invalidation de la query font deux allers-retours, et sans lui le clic
+    // sur une carte ne produisait rien de visible pendant ce temps (la pastille du
+    // radio est masquée, seul le liseré dit la sélection, et il suit la valeur
+    // persistée). Il est effacé dès que la base l'a rattrapé, et en cas d'échec —
+    // sinon l'écran affirmerait un choix qui n'a pas été enregistré.
+    verificationStatus: existingSignatory?.verificationStatus ?? null,
+    documentType: pendingDocumentType ?? existingSignatory?.idDocumentType ?? null,
     recto: identityDocuments?.recto?.path ?? null,
     verso: identityDocuments?.verso?.path ?? null,
   }
-  const [uploadingSide, setUploadingSide] = useState<IdentityDocumentSide | null>(null)
-  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  /**
+   * Ouvre la vérification d'identité chez Stripe et y envoie le dirigeant.
+   *
+   * La navigation est un `location.href` et non un `navigate()` : la cible est un
+   * domaine Stripe, pas une route de l'app. Le retour se fait par `return_url`, et le
+   * VERDICT par webhook — l'utilisateur peut abandonner en route sans rien casser.
+   *
+   * Une indisponibilité (clé absente, compte non activé, refus de création) n'affiche
+   * pas d'erreur : elle bascule sur le dépôt manuel, qui existe précisément pour les
+   * cas que le prestataire ne sait pas traiter. Un bouton mort serait pire qu'un
+   * chemin plus long.
+   */
+  const handleStartVerification = async (): Promise<void> => {
+    if (!signatoryId) return
+    setStartingVerification(true)
+    try {
+      const url = await startIdentityVerification(signatoryId)
+      if (url) { window.location.href = url; return }
+      setManualFallback(true)
+    } catch {
+      setManualFallback(true)
+    } finally {
+      setStartingVerification(false)
+    }
+  }
+
+  /**
+   * Lance la lecture assistée de la pièce (edge `kyb-identity-read`).
+   *
+   * Déclenchée à la main depuis les deux gestes qui peuvent COMPLÉTER l'étape — la
+   * dernière face déposée, ou la nature enfin déclarée sur des faces déjà présentes
+   * (retour par la boucle de correction) — et jamais par un effet : un effet qui
+   * appellerait setState sur un changement de query rejouerait la lecture à chaque
+   * resignature d'URL, soit un appel Gemini toutes les dix minutes pour rien.
+   *
+   * Un échec ne dit RIEN à l'utilisateur, délibérément : cette lecture est un confort
+   * indicatif, pas une étape du parcours. Une panne de Gemini ne doit pas afficher une
+   * erreur sous un dépôt qui, lui, a parfaitement réussi — le dossier part de toute
+   * façon en revue humaine.
+   */
+  const runIdentityRead = async (relatedPersonId: string): Promise<void> => {
+    setIdentityReading(true)
+    try {
+      setIdentityRead(await readIdentityDocument(relatedPersonId))
+    } catch {
+      setIdentityRead(null)
+    } finally {
+      setIdentityReading(false)
+    }
+  }
 
   /**
    * Valide puis téléverse IMMÉDIATEMENT (cf. en-tête de StepPieceIdentite.tsx) — pas
@@ -902,8 +1012,16 @@ export default function IdentityShell() {
     }
     setUploadingSide(side)
     setUploadError(null)
+    // Toute face remplacée périme le verdict précédent : le garder à l'écran
+    // affirmerait quelque chose sur un document qui vient de changer.
+    setIdentityRead(null)
     try {
       await uploadIdentityDocument(signatoryId, side, file)
+      // Complétude calculée sur le brouillon d'APRÈS ce dépôt : `pieceIdentiteDraft`
+      // est figé à la fermeture, il ne connaît pas encore la face qu'on vient d'écrire.
+      if (isPieceIdentiteStepComplete({ ...pieceIdentiteDraft, [side]: 'uploaded' })) {
+        await runIdentityRead(signatoryId)
+      }
     } catch {
       // Correctif revue tâche 6, point 4 : ne JAMAIS afficher e.message brut (celui de
       // Supabase Storage arrive en anglais) dans une interface qui existe en 4 langues
@@ -914,6 +1032,49 @@ export default function IdentityShell() {
       setUploadError(t('wizard.pieceIdentite.errors.generic'))
     } finally {
       setUploadingSide(null)
+    }
+  }
+
+  /**
+   * Enregistre la nature déclarée de la pièce, immédiatement — même règle que le
+   * fichier (l'étape 3 ne tient aucun brouillon).
+   *
+   * Bascule vers `passport` : le verso déjà déposé est RETIRÉ. Un passeport n'a pas
+   * de verso ; le garder laisserait dans Storage une PII que plus rien ne réclame,
+   * que le récapitulatif et la console du relecteur continueraient d'afficher (tous
+   * deux listent Storage, ils ne demandent pas une liste attendue), et qu'aucune
+   * purge ne connaît. L'ordre compte : le retrait D'ABORD, la nature ENSUITE — si le
+   * retrait échoue, la nature n'est pas écrite, donc l'écran continue de réclamer un
+   * verso qui existe vraiment, plutôt que d'en masquer un devenu invisible.
+   */
+  const handleSelectIdentityType = async (type: IdentityDocumentType): Promise<void> => {
+    if (!signatoryId || type === pieceIdentiteDraft.documentType) return
+    setSavingDocumentType(true)
+    setPendingDocumentType(type)
+    setUploadError(null)
+    try {
+      if (!identityDocumentSidesFor(type).includes('verso') && pieceIdentiteDraft.verso != null) {
+        await removeIdentityDocument(signatoryId, 'verso')
+      }
+      await saveIdentityDocumentType(signatoryId, type)
+      // Effacé APRÈS l'invalidation faite par saveIdentityDocumentType : la valeur
+      // relue a alors rattrapé le choix, et le liseré ne clignote pas en repassant
+      // une image par l'ancienne valeur.
+      setPendingDocumentType(null)
+      // Déclarer la nature peut suffire à compléter l'étape quand les faces sont déjà
+      // là (retour par la boucle de correction). Et elle change ce qui est comparé :
+      // un verdict rendu sous l'ancienne nature ne vaut plus.
+      setIdentityRead(null)
+      if (isPieceIdentiteStepComplete({ ...pieceIdentiteDraft, documentType: type })) {
+        await runIdentityRead(signatoryId)
+      }
+    } catch {
+      // Même raison qu'au téléversement : jamais le message brut de Supabase, qui
+      // arrive en anglais dans une interface qui existe en quatre langues.
+      setPendingDocumentType(null)
+      setUploadError(t('wizard.pieceIdentite.errors.generic'))
+    } finally {
+      setSavingDocumentType(false)
     }
   }
 
@@ -1186,21 +1347,38 @@ export default function IdentityShell() {
           <StepAgence value={agencyDraft} onChange={setAgencyDraft} />
         ) : step === 2 ? (
           <StepPieceIdentite
+            verificationStatus={pieceIdentiteDraft.verificationStatus}
+            verificationErrorCode={existingSignatory?.verificationErrorCode ?? null}
+            startingVerification={startingVerification}
+            // Le repli s'impose de lui-même sur un refus définitif : réessayer chez
+            // Stripe donnerait le même refus, et l'étape deviendrait un cul-de-sac.
+            manualFallback={manualFallback
+              || verificationNeedsManualFallback(existingSignatory?.verificationErrorCode ?? null)}
+            onStartVerification={() => { void handleStartVerification() }}
+            onUseManualFallback={() => setManualFallback(true)}
+            documentType={pieceIdentiteDraft.documentType}
             recto={identityDocuments?.recto ?? null}
             verso={identityDocuments?.verso ?? null}
             isLoading={identityDocumentsLoading}
             uploadingSide={uploadingSide}
+            savingDocumentType={savingDocumentType}
+            identityRead={identityRead ?? existingSignatory?.idDocumentRead ?? null}
+            identityReading={identityReading}
             error={uploadError}
             loadError={!!identityDocumentsError}
             disabled={!signatoryId}
+            onSelectType={(type) => { void handleSelectIdentityType(type) }}
             onSelectFile={(side, file) => { void handleSelectIdentityFile(side, file) }}
           />
         ) : step === 3 ? (
           <StepRecapitulatif
             signataire={signataire}
             agencyDraft={agencyDraft}
+            documentType={pieceIdentiteDraft.documentType}
+            verificationStatus={pieceIdentiteDraft.verificationStatus}
             recto={identityDocuments?.recto ?? null}
             verso={identityDocuments?.verso ?? null}
+            identityRead={identityRead ?? existingSignatory?.idDocumentRead ?? null}
             identityDocumentsLoading={identityDocumentsLoading}
             identityDocumentsError={!!identityDocumentsError}
             attestationChecked={attestationChecked}

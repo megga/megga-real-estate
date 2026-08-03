@@ -39,12 +39,23 @@ import { cn } from '@/lib/utils'
 import { MxButton, MxCheckbox } from '@/components/megga-x'
 import { COUNTRIES } from '@/lib/countries'
 import { useLegalForms } from '@/hooks/useLegalForms'
-import type { IdentityDocumentPreview } from '@/hooks/useAgencyIdentity'
+import {
+  identityDocumentSidesFor, isIdentityVerificationSufficient,
+  type IdentityDocumentPreview, type IdentityDocumentType, type IdentityVerificationStatus,
+} from '@/hooks/useAgencyIdentity'
+import type { KybIdReadRecord } from '@/types/kybIdRead'
+import { IdentityReadNotice } from './StepPieceIdentite'
 import type { SignataireDraft, AgencyDraft } from '../IdentityShell'
 
 interface StepRecapitulatifProps {
   signataire: SignataireDraft
   agencyDraft: AgencyDraft
+  /** Nature déclarée à l'étape 3 — décide aussi quelles faces sont relues ici. */
+  documentType: IdentityDocumentType | null
+  /** Verdict de la lecture assistée, relu tel quel depuis l'étape 3 — même phrase aux deux endroits. */
+  identityRead: KybIdReadRecord | null
+  /** Statut de la vérification chez le prestataire — décide si l'on relit des FICHIERS ou un STATUT. */
+  verificationStatus: IdentityVerificationStatus | null
   recto: IdentityDocumentPreview | null
   verso: IdentityDocumentPreview | null
   /** true tant que useIdentityDocuments() n'a pas encore résolu (même signal qu'à l'étape 3). */
@@ -92,7 +103,7 @@ export function birthDate(iso: string | null): string {
 
 /** Étape 4 du wizard identité : relecture complète, attestation, préparation de la soumission. */
 export function StepRecapitulatif({
-  signataire, agencyDraft,
+  signataire, agencyDraft, documentType, identityRead, verificationStatus,
   recto, verso, identityDocumentsLoading, identityDocumentsError,
   attestationChecked, onAttestationChange, onEditStep,
 }: StepRecapitulatifProps) {
@@ -145,10 +156,42 @@ export function StepRecapitulatif({
               {t('wizard.recap.pieceIdentite.loadFailed')}
             </p>
           ) : (
-            <div className="flex align-top gap-small">
-              <PieceIdentiteRecapRow label={t('wizard.pieceIdentite.sides.recto')} preview={recto} />
-              <PieceIdentiteRecapRow label={t('wizard.pieceIdentite.sides.verso')} preview={verso} />
-            </div>
+            <>
+              {documentType != null && (
+                <RecapRow
+                  label={t('wizard.pieceIdentite.documentType.label')}
+                  value={t(`wizard.pieceIdentite.documentType.options.${documentType}`)}
+                />
+              )}
+
+              {/* Deux parcours, deux relectures — et surtout PAS la seconde quand c'est
+                  la première qui a servi. Le chemin Stripe ne dépose aucun fichier chez
+                  nous : afficher les tuiles recto/verso y rendait « manquant », EN
+                  ROUGE, sur un dossier dont l'identité venait d'être vérifiée avec
+                  succès. Le dirigeant lisait un reproche là où tout allait bien. */}
+              {isIdentityVerificationSufficient(verificationStatus) ? (
+                <RecapRow
+                  label={t('wizard.recap.pieceIdentite.statusLabel')}
+                  value={t(`wizard.recap.pieceIdentite.${verificationStatus === 'verified' ? 'verified' : 'processing'}`)}
+                />
+              ) : (
+                // Les mêmes faces qu'à l'étape 3, décidées par la même fonction : un
+                // récapitulatif qui réclamerait un verso de passeport contredirait
+                // l'écran qui vient de ne pas le demander.
+                <div className="flex align-top gap-small">
+                  {identityDocumentSidesFor(documentType).map((side) => (
+                    <PieceIdentiteRecapRow
+                      key={side}
+                      label={documentType === 'passport'
+                        ? t('wizard.pieceIdentite.sides.dataPage')
+                        : t(`wizard.pieceIdentite.sides.${side}`)}
+                      preview={side === 'recto' ? recto : verso}
+                    />
+                  ))}
+                </div>
+              )}
+              <IdentityReadNotice read={identityRead} reading={false} />
+            </>
           )}
         </RecapSection>
 

@@ -380,20 +380,46 @@ async function fillAgenceStep(page: Page, a: AgenceFixture): Promise<void> {
 }
 
 /**
- * Dépose recto puis verso (ordre fixe dans le DOM, toujours 'piece-identite.png' donc
- * 'recto.png'/'verso.png' une fois dans Storage, cf. extensionOfFile dans
- * useAgencyIdentity.ts) et valide (Continuer) l'étape pièce d'identité — jamais sautée,
- * à la différence des bénéficiaires effectifs, donc commune à tout parcours qui va
- * jusqu'à la soumission dans ce fichier.
+ * Déclare la nature de la pièce, dépose les faces qu'elle exige, puis valide
+ * (Continuer) l'étape pièce d'identité — commune à tout parcours qui va jusqu'à la
+ * soumission dans ce fichier.
+ *
+ * La nature vient EN PREMIER, et c'est elle qui décide du reste : les cases
+ * n'apparaissent qu'après le choix (décision du 03.08.2026, cf.
+ * identityDocumentSidesFor). Le défaut est la carte d'identité — c'est la forme du
+ * client de référence, et la seule qui éprouve les deux faces.
+ *
+ * Fichier toujours 'piece-identite.png', donc 'recto.png'/'verso.png' une fois dans
+ * Storage (cf. extensionOfFile dans useAgencyIdentity.ts) — ce que les assertions de
+ * Storage, plus bas, vérifient nommément.
  */
-async function fillPieceIdentiteStep(page: Page): Promise<void> {
+async function fillPieceIdentiteStep(
+  page: Page,
+  documentType: { label: string; sides: number } = { label: "Carte d'identité", sides: 2 },
+): Promise<void> {
   const idFile = { name: 'piece-identite.png', mimeType: 'image/png', buffer: Buffer.from(TINY_PNG_BASE64, 'base64') }
+
+  // Depuis le 03.08.2026, l'écran propose D'ABORD la vérification chez le prestataire :
+  // le dépôt de fichier est le chemin de SECOURS, et il faut le demander. Ce test suit
+  // exprès ce chemin-là — la vérification Stripe sort de l'app (domaine verify.stripe.com)
+  // et ne peut pas être conduite depuis un test de bout en bout du produit.
+  await page.getByRole('button', { name: 'Déposer ma pièce à la place' }).click()
+
+  // Le radio natif est masqué (`opacity: 0`, MxRadio) : le clic passe par son
+  // étiquette, comme partout ailleurs dans ce fichier.
+  await page.getByText(documentType.label, { exact: true }).click()
+
+  // Les cases n'existent dans le DOM qu'une fois la nature choisie : les attendre
+  // évite un setInputFiles sur un input pas encore monté.
   const fileInputs = page.locator('input[type="file"]')
-  await fileInputs.nth(0).setInputFiles(idFile)
-  await fileInputs.nth(1).setInputFiles(idFile)
-  // Attend que les DEUX tuiles confirment le dépôt avant de continuer — c'est aussi ce
-  // qui gate le bouton Continuer (isPieceIdentiteStepComplete).
-  await expect(page.getByText('Cliquez pour remplacer')).toHaveCount(2)
+  await expect(fileInputs).toHaveCount(documentType.sides)
+  for (let i = 0; i < documentType.sides; i += 1) {
+    await fileInputs.nth(i).setInputFiles(idFile)
+  }
+
+  // Attend que CHAQUE face exigée confirme son dépôt avant de continuer — c'est aussi
+  // ce qui gate le bouton Continuer (isPieceIdentiteStepComplete).
+  await expect(page.getByText('Cliquez pour remplacer')).toHaveCount(documentType.sides)
   await page.getByRole('button', { name: 'Continuer' }).click()
 }
 
@@ -408,7 +434,7 @@ async function submitRecapitulatif(page: Page): Promise<void> {
 }
 
 test.describe('Onboarding KYB — gate et wizard identité', () => {
-  test('parcours complet : connexion, gate, cinq étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
+  test('parcours complet : connexion, gate, quatre étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
     const founder = await createFounder()
     try {
       // 1. Connexion d'un dirigeant dont l'agence n'a pas soumis son identité —
@@ -443,7 +469,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
         canton: 'GE',
       })
 
-      // Étape 2 — pièce d'identité (recto puis verso, ordre fixe dans le DOM).
+      // Étape 2 — pièce d'identité : nature déclarée, puis les faces qu'elle exige.
       await fillPieceIdentiteStep(page)
 
       // Étape 3 — récapitulatif, attestation, soumission.
@@ -475,11 +501,20 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // sans ambiguïté.
       const { data: signatoryRow, error: signatoryRowErr } = await serviceRoleClient()
         .from('agency_related_persons')
-        .select('id')
+        .select('id, id_document_type')
         .eq('agency_id', founder.agencyId)
         .single()
       expect(signatoryRowErr).toBeNull()
       const signatoryId = signatoryRow!.id as string
+
+      // La nature déclarée à l'étape 2 est bien ARRIVÉE en base (saveIdentityDocumentType,
+      // écriture immédiate au clic). Sans elle, le relecteur ne saurait pas combien de
+      // faces attendre — et la colonne, posée dès l'origine (20260729150200), est restée
+      // vide jusqu'au 03.08.2026 précisément parce qu'aucun écran ne la remplissait.
+      expect(
+        signatoryRow!.id_document_type,
+        'la nature choisie à l\'étape pièce d\'identité doit être écrite dans agency_related_persons',
+      ).toBe('id_card')
 
       const { data: idDocumentCheck, error: idDocumentCheckErr } = await serviceRoleClient()
         .from('agency_person_verification_checks')
@@ -632,7 +667,12 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await expect(page.getByRole('button', { name: '3. Pièce d\'identité' })).toBeVisible()
       await expect(page.getByRole('button', { name: '4. Récapitulatif' })).toBeVisible()
 
-      await fillPieceIdentiteStep(page)
+      // Ce parcours porte AUSSI le cas du passeport — la seule pièce à une face.
+      // C'est le seul endroit du dépôt qui éprouve de bout en bout que déclarer un
+      // passeport suffit à finir l'étape sans verso : la garde du bouton Continuer a
+      // ses tests unitaires, mais qu'il n'existe qu'UNE case à remplir, et qu'un seul
+      // fichier atterrisse dans Storage, ne se voit que dans un vrai navigateur.
+      await fillPieceIdentiteStep(page, { label: 'Passeport', sides: 1 })
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
 
       await submitRecapitulatif(page)
@@ -649,6 +689,23 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
         agencyAfterSubmit?.identity_submitted_at,
         'identity_submitted_at doit être posé après soumission, y compris pour une raison individuelle',
       ).not.toBeNull()
+
+      // Et le passeport n'a laissé QU'UN fichier : un verso déposé « au cas où »
+      // signifierait que l'écran l'a demandé quand même.
+      const { data: passportPerson } = await serviceRoleClient()
+        .from('agency_related_persons')
+        .select('id, id_document_type')
+        .eq('agency_id', founder.agencyId)
+        .single()
+      expect(passportPerson!.id_document_type).toBe('passport')
+      const { data: passportFiles } = await serviceRoleClient()
+        .storage.from('documents')
+        .list(`${founder.agencyId}/kyb-identity/${passportPerson!.id}`)
+      expect(passportFiles?.some((f) => f.name === 'recto.png'), 'la page de données du passeport doit exister dans Storage').toBe(true)
+      expect(
+        passportFiles?.some((f) => f.name.startsWith('verso.')),
+        'aucun verso ne doit être déposé pour un passeport : il n\'a pas de seconde face',
+      ).toBe(false)
     } finally {
       await deleteFounder(founder)
     }

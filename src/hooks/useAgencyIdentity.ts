@@ -19,7 +19,7 @@
  * saveAgency (écriture agence, étape 2) et legalFormCategory (catégorie de la forme
  * juridique COURANTE de l'agence, dérivée ici pour que la tâche 5 — étape 3,
  * bénéficiaires effectifs — n'ait qu'à la lire plutôt que de refaire la résolution
- * pays -> useLegalForms -> option elle-même) ; la tâche 5 y ajoute revokeUboRole
+ * pays -> useLegalForms -> option elle-même).
  * (cf. plus bas, correctif revue).
  *
  * ⚠ Correctif revue tâche 5 — fraîcheur de `legalFormCategory` : `agencySettings.agency`
@@ -43,23 +43,15 @@
  * (country, legalFormId) -> catégorie, `useLegalFormCategory` ci-dessous — chacun avec
  * sa propre paire en entrée, mais plus jamais deux façons séparées de la calculer.
  *
- * Tâche 5 : savePerson/removePerson (déjà génériques sur `role` depuis la tâche 3)
- * suffisent tels quels pour ÉCRIRE un rôle 'ubo' — aucune nouvelle primitive d'écriture
- * n'était nécessaire pour ça. `ubosToRemove` ci-dessous reste le filet de sécurité pure
- * function pour la suppression (cf. son en-tête) : il protège l'identité et le rôle
- * signataire d'une personne qui porte aussi un rôle ubo, en ne la supprimant jamais.
- *
- * ⚠ Correctif revue tâche 5 — révocation du rôle ubo : `ubosToRemove` protège une
- * personne qui porte un autre rôle actif de la SUPPRESSION, mais ne révoquait rien de
- * SON CÔTÉ — son rôle ubo restait actif en base indéfiniment après un retrait à
- * l'écran, ou après un passage à une raison individuelle (l'étape qui permettrait de
- * le retirer un par un cessant alors d'être montée). `revokeUboRole` ci-dessous comble
- * ce trou : il pose `valid_to` sur LA ligne agency_person_roles(role='ubo') ACTIVE de
- * la personne (trouvée par le même `findActiveRoleId` que savePerson), jamais sur
- * agency_related_persons ni sur un rôle signatory. `ubosToRevoke` (complément exact de
- * `ubosToRemove` : mêmes entrées, dernier prédicat inversé) et `ubosToRevokeOnSkip`
- * (nettoyage rétroactif, sans condition de brouillon) décident QUI en a besoin —
- * IdentityShell.tsx appelle les deux, cf. persistCurrentStep.
+ * ⚠ Bénéficiaires effectifs — ce hook n'en porte PLUS aucune machinerie. L'étape a été
+ * retirée du wizard le 3 août 2026 (décision client, 5 étapes -> 4), et le 3 août au
+ * soir les helpers qu'elle seule appelait ont suivi : `ubosToRemove`, `ubosToRevoke`,
+ * `ubosToRevokeOnSkip`, `revokeUboRole` et `buildRoleRevocationPayload` n'avaient plus
+ * un seul appelant hors de leurs propres tests. Le SCHÉMA, lui, est intact — le rôle
+ * `ubo` reste une valeur de `agency_person_roles.role`, la console admin continue
+ * d'afficher les bénéficiaires d'un dossier, et rien n'exige de migration pour
+ * réactiver l'étape. Ces cinq fonctions se relisent dans l'historique git si le besoin
+ * revient ; les garder « au cas où » aurait été du code mort, ce que le dépôt interdit.
  *
  * Toute la logique de décision (mapping des lignes DB, construction des payloads
  * d'écriture) vit dans des fonctions pures exportées ci-dessous, testées dans
@@ -84,6 +76,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings, type AgencySettingsData } from '@/hooks/useAgencySettings'
 import { useLegalForms, type LegalFormOption, type LegalFormCategory } from '@/hooks/useLegalForms'
+import { isKybIdReadRecord, type KybIdReadRecord } from '@/types/kybIdRead'
 
 /** Identité d'une personne liée à l'agence — indépendante de son/ses rôle(s). */
 export interface IdentityPerson {
@@ -107,8 +100,37 @@ export interface IdentityRole {
   pepSelfDeclared: boolean
 }
 
-/** Une personne liée à l'agence, avec la liste de ses rôles courants. */
-export type IdentityPersonWithRoles = IdentityPerson & { roles: IdentityRole[] }
+/**
+ * Une personne liée à l'agence, avec la liste de ses rôles courants et la nature de
+ * la pièce d'identité déposée pour elle.
+ *
+ * `idDocumentType` est délibérément HORS d'`IdentityPerson` : cette dernière est ce
+ * que `buildPersonPayload` écrit d'un bloc à l'étape 1, alors que la nature de la
+ * pièce se choisit à l'étape 3. L'y mettre ferait écraser le choix par `null` au
+ * moindre retour en arrière sur l'étape signataire. Lue ici, écrite seulement par
+ * saveIdentityDocumentType.
+ */
+export type IdentityPersonWithRoles = IdentityPerson & {
+  roles: IdentityRole[]
+  idDocumentType: IdentityDocumentType | null
+  /**
+   * État de la vérification Stripe Identity de cette personne. Écrit par le webhook
+   * (service_role seul, trigger enforce_agency_person_id_read_writer) : le client le
+   * LIT, il ne peut pas le poser — sans quoi un dirigeant se déclarerait vérifié.
+   * `null` = aucune vérification jamais lancée.
+   */
+  /**
+   * Verdict de la dernière lecture/vérification, relu depuis la BASE et non depuis un
+   * état React : sans lui, recharger la page effaçait le verdict à l'écran alors qu'il
+   * était bien écrit en base, et le chemin Stripe (dont le verdict arrive par webhook,
+   * jamais par une réponse à l'onglet) n'en affichait aucun.
+   */
+  idDocumentRead: KybIdReadRecord | null
+  verificationStatus: IdentityVerificationStatus | null
+  /** `last_error.code` de Stripe — décide s'il faut proposer le dépôt manuel. */
+  verificationErrorCode: string | null
+  verifiedAt: string | null
+}
 
 /** Contrat public de useAgencyIdentity(), fixé à la tâche 3, étendu par les tâches 4 à 7 (cf. en-tête). */
 export interface UseAgencyIdentityReturn {
@@ -135,14 +157,6 @@ export interface UseAgencyIdentityReturn {
   savePerson: (p: IdentityPerson, roles: IdentityRole[]) => Promise<string>
   removePerson: (id: string) => Promise<void>
   /**
-   * Correctif revue tâche 5 — révoque UNIQUEMENT le rôle `ubo` ACTIF d'une personne
-   * (pose `valid_to` à aujourd'hui) : jamais `agency_related_persons`, jamais un rôle
-   * `signatory` de la même personne. No-op silencieux si elle n'a déjà plus de rôle
-   * ubo actif. Voir `ubosToRevoke` / `ubosToRevokeOnSkip` ci-dessous pour qui en a
-   * besoin et pourquoi.
-   */
-  revokeUboRole: (relatedPersonId: string) => Promise<void>
-  /**
    * Tâche 6 — téléverse (ou remplace) le recto/verso de la pièce d'identité de
    * `relatedPersonId` dans Storage (bucket `documents`, préfixe kyb-identity,
    * migration 20260728109000). N'écrit AUCUNE ligne DB : la ligne de check
@@ -152,6 +166,46 @@ export interface UseAgencyIdentityReturn {
    * `relatedPersonId` une fois l'upload résolu.
    */
   uploadIdentityDocument: (relatedPersonId: string, side: IdentityDocumentSide, file: File) => Promise<string>
+  /**
+   * Écrit la NATURE de la pièce (`agency_related_persons.id_document_type`) pour
+   * `relatedPersonId`. Écriture immédiate, comme le fichier lui-même et pour la même
+   * raison (cf. en-tête de StepPieceIdentite.tsx) : l'étape 3 ne tient aucun
+   * brouillon, fermer l'onglet juste après avoir répondu ne doit rien perdre.
+   */
+  saveIdentityDocumentType: (relatedPersonId: string, type: IdentityDocumentType) => Promise<void>
+  /**
+   * Fait LIRE la pièce déposée (edge `kyb-identity-read`, Gemini) et rend le verdict de
+   * sa comparaison avec l'identité déclarée à l'étape 1 — jamais le contenu lu.
+   *
+   * Indicatif, jamais bloquant : rien de ce que rend cette lecture n'entre dans
+   * `verification_score` ni dans un véto. Le seul check de la pièce reste
+   * `id_document`/`pending_manual_review`, tranché par un humain. Rejouable sans effet
+   * de bord (l'edge réécrit les deux mêmes colonnes). `null` si la réponse ne porte pas
+   * un verdict de la forme attendue.
+   */
+  readIdentityDocument: (relatedPersonId: string) => Promise<KybIdReadRecord | null>
+  /**
+   * Ouvre (ou reprend) une vérification Stripe Identity pour cette personne et rend
+   * l'URL de la page hébergée, vers laquelle l'appelant doit NAVIGUER.
+   *
+   * Rend `null` quand la vérification n'est pas disponible — clé Stripe absente, compte
+   * non activé, refus de création. Ce n'est pas une erreur à afficher comme telle :
+   * c'est le signal qu'il faut proposer le dépôt manuel, qui reste le chemin de secours
+   * (le titre de séjour n'existe pas chez Stripe, cf. l'edge function).
+   *
+   * Le résultat de la vérification n'arrive JAMAIS par cet appel : il vient du webhook
+   * `identity.verification_session.*`. L'utilisateur peut fermer l'onglet chez Stripe.
+   */
+  startIdentityVerification: (relatedPersonId: string) => Promise<string | null>
+  /**
+   * Retire une face déjà déposée. Sert au seul cas où une pièce déposée cesse d'être
+   * demandée : passer la nature à `passport`, qui n'a pas de verso. Sans ce retrait,
+   * le verso d'une carte resterait dans Storage — une PII que plus rien ne réclame,
+   * que le récapitulatif et la console du relecteur continueraient d'afficher (les
+   * deux lisent Storage, pas une liste attendue), et qu'aucune purge ne connaît.
+   * No-op silencieux si ce côté n'a rien : rien à retirer n'est pas une erreur.
+   */
+  removeIdentityDocument: (relatedPersonId: string, side: IdentityDocumentSide) => Promise<void>
   /**
    * Appelle submit_agency_identity() (RPC, tâche 1, étendue par la tâche 6 puis câblée
    * par la tâche 7). `relatedPersonId` DOIT être LE signataire dont la pièce d'identité
@@ -258,11 +312,17 @@ export interface PersonRow {
   last_name: string
   date_of_birth: string | null
   nationality: string | null
+  /** CHECK en base : passport | id_card | residence_permit | other — d'où `string` et non IdentityDocumentType, le parcours n'écrivant que trois des quatre. */
+  id_document_type: string | null
+  id_document_read: unknown
+  identity_verification_status: string | null
+  identity_verification_error_code: string | null
+  identity_verified_at: string | null
   roles: PersonRoleRow[]
 }
 
 const PERSON_SELECT =
-  'id, first_name, last_name, date_of_birth, nationality, roles:agency_person_roles(id, role, signature_power, ownership_pct, pep_self_declared, valid_to)'
+  'id, first_name, last_name, date_of_birth, nationality, id_document_type, id_document_read, identity_verification_status, identity_verification_error_code, identity_verified_at, roles:agency_person_roles(id, role, signature_power, ownership_pct, pep_self_declared, valid_to)'
 
 /** Date UTC du jour au format 'YYYY-MM-DD' — même format que la colonne `date` valid_to. */
 function todayIsoDate(): string {
@@ -304,6 +364,17 @@ export function mapPersonRow(row: PersonRow): IdentityPersonWithRoles {
     lastName: row.last_name,
     dateOfBirth: row.date_of_birth,
     nationality: row.nationality,
+    // `other` (quatrième valeur du CHECK, jamais écrite par ce parcours) est ramenée
+    // à null : le wizard n'a pas de case pour elle, et l'afficher comme un choix
+    // sélectionné qui n'existe dans aucune option serait un état impossible à
+    // corriger sans en choisir un autre.
+    idDocumentType: isIdentityDocumentType(row.id_document_type) ? row.id_document_type : null,
+    idDocumentRead: isKybIdReadRecord(row.id_document_read) ? row.id_document_read : null,
+    verificationStatus: isIdentityVerificationStatus(row.identity_verification_status)
+      ? row.identity_verification_status
+      : null,
+    verificationErrorCode: row.identity_verification_error_code,
+    verifiedAt: row.identity_verified_at,
     roles: row.roles
       .filter((r) => isRoleActive(r.valid_to))
       .map((r) => ({
@@ -344,17 +415,6 @@ export function buildRolePayload(relatedPersonId: string, r: IdentityRole) {
 }
 
 /**
- * Correctif revue tâche 5 — ligne de mise à jour pour révoquer (historiser) un rôle :
- * ne pose QUE `valid_to`, jamais une autre colonne — même convention de « actif » que
- * isRoleActive/la RPC submit_agency_identity (valid_to non nul et non futur = plus
- * actif). `today` injectable pour les tests, comme isRoleActive ; par défaut la date
- * UTC du jour. Consommée par revokeUboRole, ci-dessous dans useAgencyIdentity().
- */
-export function buildRoleRevocationPayload(today: string = todayIsoDate()): { valid_to: string } {
-  return { valid_to: today }
-}
-
-/**
  * Tâche 7 — argument RPC de submit_agency_identity(p_related_person_id). `null` ->
  * objet VIDE, jamais `{ p_related_person_id: null }` : le paramètre généré
  * (src/types/database.ts, reflet de `uuid default null`) est optionnel (`?:`) mais
@@ -365,88 +425,6 @@ export function buildRoleRevocationPayload(today: string = todayIsoDate()): { va
  */
 export function buildSubmitAgencyIdentityArgs(relatedPersonId: string | null): { p_related_person_id?: string } {
   return relatedPersonId == null ? {} : { p_related_person_id: relatedPersonId }
-}
-
-/**
- * Tâche 5 — quelles personnes `removePerson()` doit effacer pour que la table reflète
- * le retrait d'un bénéficiaire dans le brouillon de l'étape 3 : celles qui portent
- * aujourd'hui un rôle `ubo` actif mais dont l'id n'apparaît plus dans le brouillon
- * courant (`draftPersonIds`, les `personId` — nullables pour les lignes neuves pas
- * encore enregistrées — des entrées de BeneficiaireDraft[]).
- *
- * Garde de sécurité, et raison d'être de cette fonction plutôt qu'un simple filtre
- * inline dans IdentityShell : une personne qui porte AUSSI un autre rôle actif (le cas
- * signataire+UBO explicitement visé par le brief tâche 5, très fréquent en petite SA)
- * n'est JAMAIS renvoyée, même si son id UBO a disparu du brouillon. `removePerson`
- * supprime la ligne `agency_related_persons` entière — `on delete cascade` emporterait
- * alors aussi son rôle signataire (20260728102000), perdant une identité KYB pourtant
- * toujours valide. Retirer quelqu'un de la liste des bénéficiaires ne doit revenir
- * qu'à cesser de déclarer CE rôle-là pour lui, jamais à effacer la personne.
- *
- * Limite assumée : un `ubo` déjà persisté pour une personne qui porte un autre rôle
- * n'est donc jamais révoqué (le rôle reste actif en base) si l'utilisateur la retire
- * du brouillon puis sauvegarde — seule une historisation ciblée de CE rôle le
- * permettrait, hors périmètre ici (la tâche 5 réutilise savePerson/removePerson tels
- * quels, cf. en-tête du fichier). Sans conséquence destructive : aucune identité ni
- * aucun autre rôle n'est jamais perdu.
- */
-export function ubosToRemove(existingPersons: IdentityPersonWithRoles[], draftPersonIds: Array<string | null>): string[] {
-  const keptIds = new Set(draftPersonIds.filter((id): id is string => id != null))
-  return existingPersons
-    // IdentityPerson.id est `string | null` dans le type partagé (null = pas encore
-    // enregistrée, cf. son JSDoc) — mais tout élément de `persons` vient d'une lecture
-    // DB (mapPersonRow) et porte donc toujours un id réel. Ce filtre à predicate narrows
-    // `p.id` en `string` pour le reste de la chaîne sans jamais recourir à `any`/`!`.
-    .filter((p): p is IdentityPersonWithRoles & { id: string } => p.id != null)
-    .filter((p) => p.roles.some((r) => r.role === 'ubo'))
-    .filter((p) => !keptIds.has(p.id))
-    .filter((p) => p.roles.every((r) => r.role === 'ubo'))
-    .map((p) => p.id)
-}
-
-/**
- * Correctif revue tâche 5 — complément EXACT de ubosToRemove ci-dessus : personnes
- * qui portent un rôle `ubo` actif retiré du brouillon (même définition que
- * ubosToRemove : id absent de `draftPersonIds`) mais qu'un AUTRE rôle actif protège
- * déjà de la suppression complète (ubosToRemove ne les renvoie jamais, cf. son
- * en-tête) — le dernier filtre est l'exact inverse de celui de ubosToRemove. Ces
- * personnes ne doivent PAS être supprimées, mais leur rôle ubo doit tout de même
- * cesser d'être actif : sans ce complément, il restait actif en base indéfiniment
- * après un retrait à l'écran — le trou signalé en revue. `revokeUboRole`
- * (useAgencyIdentity()) consomme ce résultat : il n'historise QUE la ligne
- * agency_person_roles(role='ubo') de la personne, jamais agency_related_persons ni un
- * rôle signatory.
- */
-export function ubosToRevoke(existingPersons: IdentityPersonWithRoles[], draftPersonIds: Array<string | null>): string[] {
-  const keptIds = new Set(draftPersonIds.filter((id): id is string => id != null))
-  return existingPersons
-    .filter((p): p is IdentityPersonWithRoles & { id: string } => p.id != null)
-    .filter((p) => p.roles.some((r) => r.role === 'ubo'))
-    .filter((p) => !keptIds.has(p.id))
-    .filter((p) => p.roles.some((r) => r.role !== 'ubo'))
-    .map((p) => p.id)
-}
-
-/**
- * Correctif revue tâche 5 — nettoyage RÉTROACTIF : TOUTES les personnes qui portent
- * aujourd'hui un rôle `ubo` actif, sans condition de brouillon (contrairement à
- * ubosToRemove/ubosToRevoke ci-dessus). Appelée quand l'étape bénéficiaires bascule en
- * « sautée » (raison individuelle choisie à l'étape agence, shouldSkipBeneficiairesStep
- * dans IdentityShell.tsx) : l'écran qui permettrait normalement de les retirer un par
- * un ne sera alors plus jamais monté, donc plus jamais l'occasion de les nettoyer par
- * les deux fonctions ci-dessus, qui lisent un brouillon que l'utilisateur ne verra
- * plus. Ne supprime JAMAIS personne (jamais agency_related_persons), même une
- * personne qui ne porte QUE le rôle ubo : contrairement à un retrait explicite à
- * l'écran, un changement de forme juridique n'est pas un signal que l'utilisateur
- * donne sur l'identité de qui que ce soit — seule sa déclaration ubo cesse de
- * s'appliquer. `revokeUboRole` (useAgencyIdentity()) fait le reste : valid_to
- * seulement, jamais l'identité ni un rôle signatory.
- */
-export function ubosToRevokeOnSkip(existingPersons: IdentityPersonWithRoles[]): string[] {
-  return existingPersons
-    .filter((p): p is IdentityPersonWithRoles & { id: string } => p.id != null)
-    .filter((p) => p.roles.some((r) => r.role === 'ubo'))
-    .map((p) => p.id)
 }
 
 // ─── Tâche 6 : pièce d'identité du signataire (Storage, bucket `documents`) ────────
@@ -462,6 +440,92 @@ export function ubosToRevokeOnSkip(existingPersons: IdentityPersonWithRoles[]): 
 
 /** Les deux faces d'une pièce d'identité — recto puis verso, jamais l'inverse. */
 export type IdentityDocumentSide = 'recto' | 'verso'
+
+const IDENTITY_DOCUMENT_SIDES: readonly IdentityDocumentSide[] = ['recto', 'verso']
+
+/**
+ * Nature de la pièce déposée — écrite dans `agency_related_persons.id_document_type`,
+ * colonne et CHECK posés dès l'origine (`20260729150200`) et restés vides jusqu'ici.
+ *
+ * Le CHECK en base accepte une QUATRIÈME valeur, `other`, que ce parcours n'offre
+ * délibérément pas : le wizard doit pouvoir déduire de ce choix combien de faces
+ * demander (identityDocumentSidesFor ci-dessous), ce qu'`other` rend impossible. La
+ * valeur reste disponible pour un autre chemin d'écriture, elle n'est simplement pas
+ * proposée à un dirigeant.
+ */
+export type IdentityDocumentType = 'passport' | 'id_card' | 'residence_permit'
+
+/**
+ * Statut d'une vérification d'identité Stripe, recopié depuis Stripe par le webhook.
+ *
+ * Miroir client du CHECK de `agency_related_persons.identity_verification_status`
+ * (migration 20260803160000) et de STRIPE_VERIFICATION_STATUSES
+ * (supabase/functions/_shared/kyb-identity-stripe.ts). Copie et non import : `src/` est
+ * le bundle navigateur et `supabase/functions/` tourne sous Deno — deux runtimes qu'on
+ * ne fait pas s'importer (règle §4 du CLAUDE.md).
+ */
+export type IdentityVerificationStatus = 'requires_input' | 'processing' | 'verified' | 'canceled'
+
+const IDENTITY_VERIFICATION_STATUSES: readonly IdentityVerificationStatus[] = [
+  'requires_input', 'processing', 'verified', 'canceled',
+]
+
+/** Vrai si cette valeur de colonne est un statut de vérification connu. */
+export function isIdentityVerificationStatus(value: string | null): value is IdentityVerificationStatus {
+  return value != null && (IDENTITY_VERIFICATION_STATUSES as readonly string[]).includes(value)
+}
+
+/**
+ * Vrai si l'identité est suffisamment établie pour laisser AVANCER dans le wizard.
+ *
+ * `processing` compte, et c'est un arbitrage : Stripe met de quelques secondes à
+ * quelques minutes à rendre son verdict, et bloquer l'onboarding entier sur un
+ * traitement asynchrone échouerait au pire moment — juste après que le dirigeant a
+ * fait tout le travail. Le dossier part de toute façon en revue humaine, et le webhook
+ * écrira le verdict avant que le relecteur ne l'ouvre. `identity_submitted_at`
+ * n'affirme d'ailleurs pas que l'identité est vérifiée : il date une soumission.
+ */
+export function isIdentityVerificationSufficient(status: IdentityVerificationStatus | null): boolean {
+  return status === 'verified' || status === 'processing'
+}
+
+/**
+ * Refus DÉFINITIFS de Stripe : réessayer ne changera rien, il faut ouvrir le dépôt
+ * manuel. Miroir de requiresManualFallback (kyb-identity-stripe.ts) — insister sur ces
+ * trois codes enfermerait l'utilisateur dans une boucle.
+ */
+export function verificationNeedsManualFallback(errorCode: string | null): boolean {
+  return errorCode === 'consent_declined'
+    || errorCode === 'country_not_supported'
+    || errorCode === 'under_supported_age'
+}
+
+/** Les trois natures proposées par le wizard, dans l'ordre d'affichage. */
+export const IDENTITY_DOCUMENT_TYPES: readonly IdentityDocumentType[] = [
+  'passport', 'id_card', 'residence_permit',
+]
+
+/** Vrai si cette valeur de colonne est l'une des trois natures que le wizard sait afficher (donc `other` exclue). */
+export function isIdentityDocumentType(value: string | null): value is IdentityDocumentType {
+  return value != null && (IDENTITY_DOCUMENT_TYPES as readonly string[]).includes(value)
+}
+
+/**
+ * Les faces à fournir pour cette nature de pièce.
+ *
+ * Un passeport n'a qu'une page de données ; exiger un « verso » revenait à faire
+ * photographier une couverture vierge pour débloquer le bouton Continuer. Une carte
+ * d'identité et un titre de séjour, eux, portent des informations des deux côtés —
+ * sur la carte suisse, la date d'expiration est au DOS.
+ *
+ * Le repli `null` (aucune nature encore choisie) rend les deux faces : jamais un
+ * dossier réputé complet parce qu'une question n'a pas encore été posée.
+ */
+export function identityDocumentSidesFor(
+  type: IdentityDocumentType | null,
+): readonly IdentityDocumentSide[] {
+  return type === 'passport' ? ['recto'] : IDENTITY_DOCUMENT_SIDES
+}
 
 /** Un fichier déjà téléversé : son chemin Storage complet et une URL signée de prévisualisation. */
 export interface IdentityDocumentPreview {
@@ -552,7 +616,25 @@ export function identityDocumentsQueryKey(agencyId: string | null, relatedPerson
   return ['agency-identity-documents', agencyId, relatedPersonId] as const
 }
 
-const IDENTITY_DOCUMENT_SIDES: readonly IdentityDocumentSide[] = ['recto', 'verso']
+/**
+ * Durée de vie des URL signées d'aperçu, et fréquence à laquelle on les renouvelle.
+ *
+ * Ces deux valeurs vont ENSEMBLE et l'écart entre elles est la marge de sécurité. Le
+ * motif habituel du dépôt (KycDocViewer : signer 60-120 s au CLIC, ouvrir tout de
+ * suite) ne s'applique pas ici : cette query est montée par IdentityShell dès que
+ * l'agence et le signataire sont connus, donc potentiellement à l'étape 1, alors que
+ * les aperçus ne sont rendus qu'aux étapes 3 et 4. Avec 300 s et aucun
+ * renouvellement, tout parcours de plus de cinq minutes affichait des images mortes
+ * — le cas exact de la boucle de correction (admin_request_agency_correction remet
+ * identity_submitted_at à NULL et renvoie le dirigeant sur des pièces DÉJÀ déposées),
+ * et celui du relecteur qui revient à la photo après avoir lu le reste du dossier.
+ *
+ * Renouveler ne suffirait pas seul : chaque signature change le jeton, donc l'URL,
+ * donc l'image est retéléchargée. D'où un intervalle large (10 min) sous une durée
+ * plus large encore (15 min) plutôt qu'un rafraîchissement serré.
+ */
+const IDENTITY_DOCUMENT_SIGNED_URL_TTL_SECONDS = 900
+const IDENTITY_DOCUMENT_REFRESH_MS = 10 * 60 * 1000
 
 /**
  * Les aperçus recto/verso déjà téléversés pour `relatedPersonId`, lus directement dans
@@ -582,13 +664,23 @@ export function useIdentityDocuments(agencyId: string | null, relatedPersonId: s
       for (const side of IDENTITY_DOCUMENT_SIDES) {
         const path = findIdentityDocumentPath(files ?? [], folder, side)
         if (!path) continue
-        const { data: signed, error: signError } = await supabase.storage.from('documents').createSignedUrl(path, 300)
+        const { data: signed, error: signError } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(path, IDENTITY_DOCUMENT_SIGNED_URL_TTL_SECONDS)
         if (signError) throw signError
         previews[side] = { path, signedUrl: signed.signedUrl }
       }
       return previews
     },
     enabled: !!agencyId && !!relatedPersonId,
+    // Une URL signée périme : la donnée de cette query VIEILLIT toute seule, sans
+    // qu'aucune écriture ne la change. D'où un staleTime aligné sur la signature
+    // plutôt que le défaut global de 2 min (App.tsx), et un renouvellement pendant
+    // que l'écran reste ouvert. `refetchIntervalInBackground` reste à son défaut
+    // (false) : un onglet en arrière-plan ne signe rien, le retour au premier plan
+    // est déjà couvert par refetchOnWindowFocus.
+    staleTime: IDENTITY_DOCUMENT_REFRESH_MS,
+    refetchInterval: IDENTITY_DOCUMENT_REFRESH_MS,
   })
 }
 
@@ -703,26 +795,6 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
   }
 
   /**
-   * Correctif revue tâche 5 — révoque UNIQUEMENT le rôle `ubo` ACTIF d'une personne :
-   * jamais agency_related_persons, jamais un rôle signatory. Réutilise
-   * findActiveRoleId (ci-dessus, même filtre `.eq('role', 'ubo')` que savePerson) pour
-   * cibler LA ligne agency_person_roles à historiser, puis ne pose que `valid_to`
-   * (buildRoleRevocationPayload) — jamais une autre colonne. No-op silencieux si la
-   * personne n'a déjà plus de rôle ubo actif : rien à révoquer n'est jamais une
-   * erreur, mêmes appelants idempotents que removePerson.
-   */
-  const revokeUboRole = async (relatedPersonId: string): Promise<void> => {
-    const activeRoleId = await findActiveRoleId(relatedPersonId, 'ubo')
-    if (!activeRoleId) return
-    const { error } = await supabase
-      .from('agency_person_roles')
-      .update(buildRoleRevocationPayload())
-      .eq('id', activeRoleId)
-    if (error) throw error
-    await queryClient.invalidateQueries({ queryKey: personsQueryKey })
-  }
-
-  /**
    * Tâche 6 — dépose (ou remplace) le fichier `side` de `relatedPersonId` sous le
    * préfixe réservé (identityDocumentFolder). Nom de fichier STABLE par côté
    * (`recto.<ext>`/`verso.<ext>`) : un remplacement écrase la même clé via `upsert`,
@@ -746,7 +818,15 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     const path = `${folder}/${identityDocumentFileName(side, extensionOfFile(file.name))}`
 
     if (existingPath && existingPath !== path) {
-      await supabase.storage.from('documents').remove([existingPath])
+      // L'erreur de ce retrait ne peut PAS être avalée. `list()` trie par nom en
+      // ordre croissant, et findIdentityDocumentPath prend le premier match : si le
+      // retrait échoue, `recto.jpg` continue de gagner sur le `recto.pdf` qui vient
+      // d'être déposé. L'écran afficherait « Téléversé » et le récapitulatif
+      // partirait en conformité avec l'ANCIENNE pièce, celle que l'utilisateur
+      // croyait avoir remplacée. Mieux vaut un échec visible (l'appelant montre déjà
+      // errors.generic) qu'un remplacement silencieusement sans effet.
+      const { error: removeError } = await supabase.storage.from('documents').remove([existingPath])
+      if (removeError) throw removeError
     }
 
     const { error } = await supabase.storage.from('documents').upload(path, file, {
@@ -757,6 +837,64 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
 
     await queryClient.invalidateQueries({ queryKey: identityDocumentsQueryKey(agencyId, relatedPersonId) })
     return path
+  }
+
+  /** Voir le contrat dans UseAgencyIdentityReturn. */
+  const readIdentityDocument = async (relatedPersonId: string): Promise<KybIdReadRecord | null> => {
+    const { data, error } = await supabase.functions.invoke<{ read?: unknown }>('kyb-identity-read', {
+      body: { related_person_id: relatedPersonId },
+    })
+    if (error) throw error
+    // La personne relue porte désormais le verdict et l'échéance : invalider pour que
+    // le récapitulatif et la console les voient sans second appel.
+    await queryClient.invalidateQueries({ queryKey: personsQueryKey })
+    return isKybIdReadRecord(data?.read) ? data.read : null
+  }
+
+  /** Voir le contrat dans UseAgencyIdentityReturn. */
+  const startIdentityVerification = async (relatedPersonId: string): Promise<string | null> => {
+    const { data, error } = await supabase.functions.invoke<{ url?: unknown }>('kyb-identity-verify', {
+      body: { related_person_id: relatedPersonId },
+    })
+    // Une indisponibilité (503) n'est pas une panne à remonter en rouge : l'appelant
+    // en fait un basculement vers le dépôt manuel. D'où `null` plutôt qu'un `throw`.
+    if (error) return null
+    // L'edge a noté l'identifiant de session sur la personne : la relire garde le
+    // wizard cohérent si l'utilisateur revient sans passer par le return_url.
+    await queryClient.invalidateQueries({ queryKey: personsQueryKey })
+    return typeof data?.url === 'string' ? data.url : null
+  }
+
+  /** Voir le contrat dans UseAgencyIdentityReturn. */
+  const saveIdentityDocumentType = async (
+    relatedPersonId: string,
+    type: IdentityDocumentType,
+  ): Promise<void> => {
+    const { error } = await supabase
+      .from('agency_related_persons')
+      .update({ id_document_type: type })
+      .eq('id', relatedPersonId)
+    if (error) throw error
+    await queryClient.invalidateQueries({ queryKey: personsQueryKey })
+  }
+
+  /** Voir le contrat dans UseAgencyIdentityReturn. */
+  const removeIdentityDocument = async (
+    relatedPersonId: string,
+    side: IdentityDocumentSide,
+  ): Promise<void> => {
+    if (!agencyId) throw new Error('Agence non chargée')
+
+    const folder = identityDocumentFolder(agencyId, relatedPersonId)
+    const { data: files, error: listError } = await supabase.storage.from('documents').list(folder)
+    if (listError) throw listError
+
+    const path = findIdentityDocumentPath(files ?? [], folder, side)
+    if (!path) return
+
+    const { error } = await supabase.storage.from('documents').remove([path])
+    if (error) throw error
+    await queryClient.invalidateQueries({ queryKey: identityDocumentsQueryKey(agencyId, relatedPersonId) })
   }
 
   const submit = async (relatedPersonId: string | null): Promise<void> => {
@@ -789,8 +927,11 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     isRevalidating: personsFetching,
     savePerson,
     removePerson,
-    revokeUboRole,
     uploadIdentityDocument,
+    saveIdentityDocumentType,
+    removeIdentityDocument,
+    readIdentityDocument,
+    startIdentityVerification,
     submit,
     saveAgency,
     legalFormCategory,

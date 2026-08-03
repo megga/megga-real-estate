@@ -633,6 +633,19 @@ function ChecksTable({ checks, persons }: { checks: KybReviewCheckRow[]; persons
  * pièce d'un dossier DÉJÀ tranché est précisément ce qu'un audit demande. Rattaché à la
  * PERSONNE, l'aperçu survit à la décision.
  */
+/**
+ * Date suisse depuis un ISO date-SEULE (31.12.2030).
+ *
+ * `formatDate()` est utilisée partout ailleurs sur cet écran, mais elle prend des
+ * `timestamptz` : sur une date-seule elle rend la VEILLE dès que le fuseau de la
+ * session est à l'ouest de UTC (mesuré le 03.08.2026, même piège que la date de
+ * naissance du récapitulatif). Une échéance de pièce d'identité est une date-seule.
+ */
+function swissDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : iso
+}
+
 function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agencyId: string }) {
   const { t } = useTranslation('admin')
   const today = new Date().toISOString().slice(0, 10)
@@ -652,7 +665,18 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
         return (
           <li key={p.id} className="text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-theme-primary">{p.firstName} {p.lastName}</span>
+              <span className="text-theme-primary">
+                {p.firstName} {p.lastName}
+                {/* Nature de la pièce, à côté du nom : c'est elle qui dit combien de
+                    faces attendre sous cette ligne. Sans elle, l'absence de verso
+                    d'un passeport se lit comme un dossier incomplet. Absente sur les
+                    dossiers soumis avant le 03.08.2026, où rien ne la demandait. */}
+                {p.idDocumentType && (
+                  <span className="ml-2 text-xs text-theme-tertiary">
+                    {t(`kybReview.detail.idDocumentType.${p.idDocumentType}`)}
+                  </span>
+                )}
+              </span>
               <span className="flex items-center gap-1.5">
                 {roleLabels.map((r, i) => (
                   <span
@@ -664,6 +688,26 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
                 ))}
               </span>
             </div>
+            {/* Ce que la lecture assistée a trouvé, AU-DESSUS de l'image et non à sa
+                place : elle dit où porter les yeux, elle ne remplace pas le regard.
+                Absente sur les dossiers soumis avant le 03.08.2026. */}
+            {(p.idDocumentRead || p.idDocumentExpiresOn) && (
+              <div className="mt-1 flex items-center gap-2 text-xs text-theme-tertiary">
+                {/* « vérifiée » quand c'est le prestataire (document authentifié +
+                    selfie), « lecture » quand c'est le modèle (ce qui est imprimé sur
+                    une image, rien de plus). Le relecteur tranche sur cette nuance. */}
+                {p.idDocumentRead && (
+                  <span>
+                    {t(`kybReview.detail.${p.idDocumentRead.provider === 'stripe_identity' ? 'idVerified' : 'idRead'}.${p.idDocumentRead.verdict}`)}
+                  </span>
+                )}
+                {p.idDocumentExpiresOn && (
+                  <span className={cn(p.idDocumentRead?.expired && 'text-red-500')}>
+                    {t('kybReview.detail.idRead.expiresOn', { date: swissDate(p.idDocumentExpiresOn) })}
+                  </span>
+                )}
+              </div>
+            )}
             <div className="mt-1">
               <IdDocumentPreview agencyId={agencyId} relatedPersonId={p.id} />
             </div>

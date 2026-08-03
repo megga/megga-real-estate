@@ -100,11 +100,51 @@
     },
     "pieceIdentite": {
       "title": "Upload the signatory's ID document",
-      "subtitle": "Front and back of a valid document: identity card, passport, or residence permit. A member of our compliance team reviews it.",
+      "subtitle": "A valid document: passport, identity card, or residence permit. Tell us which one, then photograph the sides we ask for. A member of our compliance team reviews it.",
       "missingSignataire": "The signatory must be entered in the previous step first.",
+      "verification": {
+        "title": "Verify your identity",
+        "body": "Photograph your document and your face. The verification runs at our provider: the photo of your document is never sent to us.",
+        "cta": "Verify my identity",
+        "retryCta": "Resume verification",
+        "pendingTitle": "Verification in progress",
+        "pendingBody": "The result arrives shortly. You can continue, we will attach it to your file.",
+        "doneTitle": "Identity verified",
+        "doneBody": "Your document was verified and your face compared with its photo. Our compliance team then reviews the file.",
+        "useManual": "Upload my document instead",
+        "privacy": "Our provider keeps the document for its check; MEGGA only receives the result and the expiry date.",
+        "errors": {
+          "consent_declined": "You declined the verification. Upload your document below and our team will review it.",
+          "under_supported_age": "Online verification does not cover people under 16.",
+          "country_not_supported": "Your country is not covered by online verification. Upload your document below.",
+          "document_expired": "The document has expired. Try again with a valid one.",
+          "document_type_not_supported": "This document type is not accepted. A passport or identity card works.",
+          "document_unverified_other": "The document could not be verified. Try again with better lighting.",
+          "selfie_face_mismatch": "Your face does not match the photo on the document. Try the verification again.",
+          "selfie_manipulated": "The face photo appears edited. Try the verification again.",
+          "selfie_document_missing_photo": "The document has no photo. Use a passport or an identity card.",
+          "selfie_unverified_other": "Your face could not be verified. Try the verification again.",
+          "abandoned": "The verification was interrupted. You can resume it.",
+          "unknown": "The verification did not complete. You can try again or upload your document below."
+        }
+      },
+      "documentType": {
+        "label": "Type of document",
+        "options": {
+          "passport": "Passport",
+          "id_card": "Identity card",
+          "residence_permit": "Residence permit"
+        },
+        "hints": {
+          "passport": "Only one page to photograph",
+          "id_card": "Both sides are required",
+          "residence_permit": "Both sides are required"
+        }
+      },
       "sides": {
         "recto": "Front",
-        "verso": "Back"
+        "verso": "Back",
+        "dataPage": "Data page"
       },
       "dropHint": "Click to select a file",
       "formatHint": "JPG, PNG, WEBP, or PDF, 8 MB maximum",
@@ -113,6 +153,18 @@
       "zoomClose": "Close",
       "zoomHint": "Check that the document is sharp and all four corners are visible. If not, replace it.",
       "openPdf": "Open the PDF",
+      "read": {
+        "running": "Reading the document…",
+        "verdict": {
+          "match": "The document matches the identity you entered.",
+          "partial": "The document partly matches the identity you entered. Review the signatory step before continuing.",
+          "mismatch": "The document does not match the identity you entered. Check that it is the right one.",
+          "unreadable": "The document could not be read. A sharper photo helps, but you can continue."
+        },
+        "expired": "This document appears to have expired on {{date}}.",
+        "typeDiffers": "The document does not appear to be the one you selected.",
+        "disclaimer": "Automated reading, for guidance only: our compliance team reviews the document."
+      },
       "errors": {
         "format": "Accepted format: JPG, PNG, WEBP, or PDF.",
         "size": "Maximum size: 8 MB.",
@@ -128,7 +180,10 @@
         "uploaded": "Uploaded",
         "missing": "Missing",
         "loading": "Checking the uploaded documents…",
-        "loadFailed": "Could not check the uploaded documents. Please try again."
+        "loadFailed": "Could not check the uploaded documents. Please try again.",
+        "statusLabel": "Verification",
+        "verified": "Identity verified at our provider",
+        "processing": "Verification being processed"
       },
       "attestation": "I confirm that the information above is accurate and complete to the best of my knowledge.",
       "errors": {

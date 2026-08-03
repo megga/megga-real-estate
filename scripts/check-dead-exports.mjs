@@ -25,6 +25,13 @@ const ALLOW_SYMBOLS = new Set([
   // mot-clé `export` fait échouer tsc en TS2614. ts-prune ne compte pas l'usage
   // — const évalué au chargement du module, sans usage interne au fichier.
   'src/i18n/index.ts:hasExplicitLanguage',
+  // Même angle mort, même fichier, ajouté le 03.08.2026 : `switchLanguage` EST importé
+  // et appelé par src/components/crm-mobile/more/MobileMoreScreen.tsx:9 et
+  // src/components/crm-sugar-identity/IdentityShell.tsx:67, tous deux joignables depuis
+  // main.tsx. Preuve : retirer le mot-clé `export` fait échouer tsc. C'est LA fonction
+  // qui charge le bundle de langue AVANT de basculer i18next — la retirer ramènerait le
+  // détour par le français et le double `languageChanged` corrigés le même jour.
+  'src/i18n/index.ts:switchLanguage',
   // lib API / compliance conservée (surface API + données réglementaires) :
   'src/lib/posthog.ts:identifyUser', 'src/lib/posthog.ts:trackEvent', 'src/lib/posthog.ts:resetPostHog',
   'src/lib/sentry.ts:identifySentryUser', 'src/lib/sentry.ts:clearSentryUser',
