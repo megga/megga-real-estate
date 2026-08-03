@@ -25,8 +25,12 @@
 //   1. LA TRANSITION EST DÉTECTÉE -- pas l'état : une écriture qui ne CHANGE PAS
 //      verification_status ne redéclenche jamais (guard `is distinct from` du trigger).
 //   2. LES STATUTS SONT FILTRÉS -- liste BLANCHE (NOTIFIABLE_STATUSES : validated,
-//      auto_validated, rejected, correction_requested). pending et manual_review sont des
-//      états d'ATTENTE et ne déclenchent rien, quoi que fasse le moteur en repassant dessus.
+//      auto_validated, rejected, correction_requested, et depuis le 01.08.2026
+//      manual_review -- un ACCUSÉ DE RÉCEPTION, jamais un verdict : l'audit d'onboarding a
+//      montré que le passage en revue est l'issue NORMALE de tout dossier). 'pending' reste
+//      seul hors liste : c'est l'instant entre la soumission et le premier passage du
+//      moteur, quelques centaines de ms -- y notifier ferait deux courriels pour une seule
+//      soumission.
 //   3. LE DISPATCH EST EFFECTIF -- pas seulement tenté : la cible est le VRAI runtime edge
 //      local (même cible que « Edge Function déployée » dans agency-verification-run.spec.ts),
 //      et l'effet lu est celui que l'Edge Function écrit RÉELLEMENT dans activity_events
@@ -47,6 +51,8 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { serviceRoleClient } from './helpers/supabase'
+import { execSql } from './helpers/local-sql'
+import { NOTIFIABLE_STATUSES } from '../../supabase/functions/_shared/agency-verification-notice'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 const URL = process.env.SUPABASE_TEST_URL ?? 'http://127.0.0.1:54321'
@@ -74,6 +80,11 @@ const NOTIFY_ENDPOINT = `${URL}/functions/v1/agency-verification-notify`
 const PG_NET_LOCAL_FUNCTIONS_URL = 'http://api.supabase.internal:8000'
 
 const NOTICE_ACTIONS = ['agency_verification_notice_sent', 'agency_verification_notice_undeliverable']
+
+// execSql ne rend pas de résultat : on lève côté SQL (raise exception dans un bloc `do`),
+// l'absence d'exception EST l'assertion -- même idiome que admin-log-chain.spec.ts /
+// admin-activation-cron-runs.spec.ts.
+const assertSql = (body: string) => expect(() => execSql(`do $$\nbegin\n${body}\nend $$;`), 'assertion SQL').not.toThrow()
 
 describe.skipIf(!HAS_KEYS)('trigger agencies_notify_verification_decision -- dispatch réel (étape 7, tâche 6)', () => {
   const agencyIds: string[] = []
@@ -322,5 +333,34 @@ describe.skipIf(!HAS_KEYS)('trigger agencies_notify_verification_decision -- dis
       }
     },
     15_000
+  )
+
+  // ── Garde permanente contre la dérive SQL / TypeScript ──────────────────────────
+  //
+  // Le côté TS est verrouillé par le compilateur (Record<NotifiableStatus, string> dans
+  // _shared/agency-verification-notice.ts) : y ajouter un statut sans mettre à jour les
+  // libellés casse le build. La liste blanche du TRIGGER SQL, elle, est une copie à la
+  // main (agencies_notify_verification_decision, 20260803120000) -- rien ne la lie au
+  // module TS. Un sixième statut ajouté côté TS serait silencieusement ignoré par le
+  // trigger : aucun des tests ci-dessus ne le détecterait, tous resteraient verts.
+  //
+  // Ce test lit pg_get_functiondef() de la fonction déployée et vérifie que CHAQUE entrée
+  // de NOTIFIABLE_STATUSES (importée depuis le module, jamais réécrite en dur ici) y
+  // figure comme littéral entre guillemets -- si quelqu'un ajoute un statut au tableau TS
+  // sans toucher au SQL, ce test échoue avant que quiconque ne découvre l'écart en
+  // production.
+  it(
+    'chaque NOTIFIABLE_STATUSES figure dans la liste blanche SQL du trigger -- ' +
+      'sans quoi un statut ajouté côté TS serait ignoré en silence',
+    () => {
+      const sqlLiteral = (s: string) => `'${s.replace(/'/g, "''")}'`
+      const checks = NOTIFIABLE_STATUSES
+        .map((status) => `
+      if position(${sqlLiteral(sqlLiteral(status))} in pg_get_functiondef('public.agencies_notify_verification_decision'::regproc)) = 0 then
+        raise exception 'NOTIFIABLE_STATUSES: statut absent de la liste blanche SQL du trigger: %', ${sqlLiteral(status)};
+      end if;`)
+        .join('\n')
+      assertSql(checks)
+    }
   )
 })
