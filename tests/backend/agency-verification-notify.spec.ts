@@ -332,7 +332,7 @@ describe.skipIf(!HAS_KEYS)('trigger agencies_notify_verification_decision -- dis
   // Le côté TS est verrouillé par le compilateur (Record<NotifiableStatus, string> dans
   // _shared/agency-verification-notice.ts) : y ajouter un statut sans mettre à jour les
   // libellés casse le build. La liste blanche du TRIGGER SQL, elle, est une copie à la
-  // main (agencies_notify_verification_decision, 20260803120000) -- rien ne la lie au
+  // main (agencies_notify_verification_decision, 20260803230000) -- rien ne la lie au
   // module TS. Un sixième statut ajouté côté TS serait silencieusement ignoré par le
   // trigger : aucun des tests ci-dessus ne le détecterait, tous resteraient verts.
   //
