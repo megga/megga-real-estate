@@ -10,12 +10,16 @@
 // : une seule definition de « en attente », une seule liste de destinataires. Cette fonction
 // compose et envoie, rien d'autre.
 //
-// Auth : Bearer == cle service-role, comparaison a temps constant, meme motif que
-// agency-verification-notify et agency-verification-run. Aucun chemin utilisateur.
+// Auth : Bearer == cle service-role, via le garde PARTAGE isServiceSecret()
+// (_shared/require-service-secret.ts, meme motif que backfill-cf-images /
+// photo-processor / send-reminder-email) -- comparaison a temps constant contre
+// app_config.service_role_key (ce que pg_cron forwarde), repli sur l'env
+// SUPABASE_SERVICE_ROLE_KEY. Aucun chemin utilisateur.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildReviewDigest, type PendingDossier } from '../_shared/kyb-review-digest.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,13 +33,6 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length || a.length === 0) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return diff === 0
-}
-
 interface DigestPayload {
   recipients: string[]
   dossiers: PendingDossier[]
@@ -46,15 +43,19 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
 
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const provided = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-  if (!serviceRoleKey || !safeEqual(provided, serviceRoleKey)) {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    { auth: { persistSession: false } }
+  )
+
+  // isServiceSecret() trim() les deux cotes de la comparaison (provided ET
+  // app_config.service_role_key) : sans ce trim, un retour a la ligne dans la valeur
+  // configuree aurait donne un 401 permanent -- cause la plus probable d'un digest en
+  // echec silencieux (decision du 03.08.2026, cf. kyb_review_digest_dispatch_log).
+  if (!(await isServiceSecret(supabase, req))) {
     return json({ error: 'unauthorized' }, 401)
   }
-
-  const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey, {
-    auth: { persistSession: false },
-  })
 
   try {
     const { data, error } = await supabase.rpc('kyb_review_digest_payload')

@@ -98,6 +98,32 @@ comment on function public.kyb_review_digest_payload() is
 revoke all on function public.kyb_review_digest_payload() from public, anon, authenticated;
 grant execute on function public.kyb_review_digest_payload() to service_role;
 
+-- ─── Tracabilite du dispatch (decision du 03.08.2026) ────────────────────────────────
+--
+-- POURQUOI. Rien ne distinguait un digest livre d'un digest en echec depuis le
+-- deploiement : le bloc exception ci-dessous avalait l'echec en `raise warning`, jamais
+-- inspecte la reponse, et get_admin_cron_runs (cron.job_run_details) rapporte SUCCESS des
+-- que net.http_post a pu METTRE la requete en file -- pas que l'edge function ait repondu
+-- 200. net.http_post rend un request_id (bigint) : le CONSERVER quelque part
+-- d'interrogeable est ce qui rend la reponse lisible ensuite dans net._http_response
+-- (jointure sur cet id) -- sans lui, aucun moyen de savoir si le dernier envoi a echoue.
+--
+-- MEME PATRON que realadvisor_probe_inflight (20260621140000) : une table de staging,
+-- request_id en clef primaire, alter table ... enable row level security SANS policy
+-- (deny par defaut ; service_role la lit/l'ecrit par bypassrls, jamais via PostgREST).
+--
+-- CE QUI DIFFERE, ET POURQUOI CE N'EST PAS UN OUBLI : le probe realadvisor tire des
+-- dizaines de lots par heure et sa table PURGE ce qu'un collect() a traite (+ les
+-- orphelins >15 min). Ce dispatch-ci est quotidien et unitaire -- une ligne par jour,
+-- ~365/an -- donc aucune collecte automatique ni purge : le volume ne le justifie pas, et
+-- la table sert de journal consultable (dashboard SQL / jointure manuelle sur
+-- net._http_response), pas d'une file de travail a vider.
+create table if not exists public.kyb_review_digest_dispatch_log (
+  request_id bigint primary key,
+  fired_at   timestamptz not null default now()
+);
+alter table public.kyb_review_digest_dispatch_log enable row level security;
+
 -- ─── Le dispatch, meme patron que sweep_pending_agency_verifications ────────────────
 create or replace function public.dispatch_kyb_review_digest()
 returns void
@@ -106,8 +132,9 @@ security definer
 set search_path to 'public'
 as $$
 declare
-  v_base_url text := public.get_app_config('supabase_url');
-  v_svc_key  text := public.get_app_config('service_role_key');
+  v_base_url   text := public.get_app_config('supabase_url');
+  v_svc_key    text := public.get_app_config('service_role_key');
+  v_request_id bigint;
 begin
   -- Environnement non configure (local/CI sans app_config seede) -> no-op silencieux plutot
   -- qu'une violation NOT NULL sur http_request_queue.url. Meme garde que le filet horaire.
@@ -119,7 +146,7 @@ begin
   -- est vide. Un second endroit qui deciderait « y a-t-il quelque chose a dire » serait un
   -- second endroit a tenir d'accord avec le premier.
   begin
-    perform net.http_post(
+    v_request_id := net.http_post(
       url := v_base_url || '/functions/v1/kyb-review-digest',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
@@ -128,6 +155,9 @@ begin
       body := '{}'::jsonb,
       timeout_milliseconds := 15000
     );
+    -- Rend l'envoi CONSTATABLE : sans cette ligne, request_id est aussitot jete et
+    -- net._http_response, bien que renseignee par pg_net, ne se rattache plus a rien.
+    insert into public.kyb_review_digest_dispatch_log (request_id) values (v_request_id);
   exception when others then
     raise warning 'dispatch_kyb_review_digest: dispatch echoue: %', sqlerrm;
   end;
@@ -135,7 +165,7 @@ end;
 $$;
 
 comment on function public.dispatch_kyb_review_digest() is
-  'Déclenche l''edge function kyb-review-digest via net.http_post (best-effort, jamais bloquant). Planifiée une fois par jour à 08:00 UTC via cron.schedule si pg_cron est présent (absent en local/CI). service_role uniquement.';
+  'Déclenche l''edge function kyb-review-digest via net.http_post (best-effort, jamais bloquant) et conserve le request_id rendu dans kyb_review_digest_dispatch_log (03.08.2026) -- sans quoi la reponse, pourtant journalisee par pg_net dans net._http_response, ne se rattache plus a rien d''interrogeable. Planifiée une fois par jour à 08:00 UTC via cron.schedule si pg_cron est présent (absent en local/CI). service_role uniquement.';
 
 revoke all on function public.dispatch_kyb_review_digest() from public, anon, authenticated;
 grant execute on function public.dispatch_kyb_review_digest() to service_role;
