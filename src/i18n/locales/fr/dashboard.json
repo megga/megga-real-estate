@@ -495,7 +495,10 @@
         "recalibrated": "Critères recalibrés pour {{name}}",
         "published": "Publication sur Immobilier.ch · {{title}}",
         "annAction": "{{cta}} · {{title}}",
-        "resumeFailed": "La reprise n’a pas pu être enregistrée. Réessaie."
+        "resumeFailed": "La reprise n’a pas pu être enregistrée. Réessaie.",
+        "doneFailed": "L’état n’a pas pu être enregistré. Réessaie.",
+        "markedDone": "{{name}} · marqué comme fait",
+        "reopened": "Rouvert"
       },
       "cta": {
         "openKyc": "Ouvrir le KYC",
@@ -509,7 +512,16 @@
         "emptyDesc": "Aucun rendez-vous, aucune visite ni rappel prévu aujourd’hui."
       },
       "demoTag": "Démo",
-      "demoHint": "Zone encore alimentée par des données de démonstration."
+      "demoHint": "Zone encore alimentée par des données de démonstration.",
+      "mobileTitle": "Aujourd'hui",
+      "mobileDay": "Journée",
+      "searchAria": "Rechercher",
+      "markDoneAria": "Marquer comme fait",
+      "reopenAria": "Rouvrir",
+      "slots_one": "{{count}} créneau",
+      "slots_other": "{{count}} créneaux",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min"
     }
   },
   "analytics": {

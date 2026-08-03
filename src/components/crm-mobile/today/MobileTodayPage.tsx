@@ -1,11 +1,11 @@
 import MobileShell from '../shell/MobileShell'
-import { MobileTodayScreen } from './MobileTodayScreen'
+import { MobileTodayHScreen } from './MobileTodayHScreen'
 
-/** Route /dashboard (index, mobile) — cockpit « Aujourd'hui » dans la coque à onglets. */
+/** Route /dashboard (index, mobile) — « Aujourd'hui » concept H dans la coque à onglets. */
 export default function MobileTodayPage() {
   return (
     <MobileShell variant="tabs">
-      <MobileTodayScreen />
+      <MobileTodayHScreen />
     </MobileShell>
   )
 }

@@ -495,7 +495,10 @@
         "recalibrated": "Criteria recalibrated for {{name}}",
         "published": "Published on Immobilier.ch · {{title}}",
         "annAction": "{{cta}} · {{title}}",
-        "resumeFailed": "The follow-up could not be saved. Try again."
+        "resumeFailed": "The follow-up could not be saved. Try again.",
+        "doneFailed": "The status could not be saved. Try again.",
+        "markedDone": "{{name}} · marked as done",
+        "reopened": "Reopened"
       },
       "cta": {
         "openKyc": "Open KYC",
@@ -509,7 +512,16 @@
         "emptyDesc": "No appointment, viewing or reminder scheduled today."
       },
       "demoTag": "Demo",
-      "demoHint": "This area still runs on demonstration data."
+      "demoHint": "This area still runs on demonstration data.",
+      "mobileTitle": "Today",
+      "mobileDay": "Day",
+      "searchAria": "Search",
+      "markDoneAria": "Mark as done",
+      "reopenAria": "Reopen",
+      "slots_one": "{{count}} slot",
+      "slots_other": "{{count}} slots",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min"
     }
   },
   "analytics": {

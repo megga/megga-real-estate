@@ -495,7 +495,10 @@
         "recalibrated": "Criteri ricalibrati per {{name}}",
         "published": "Pubblicazione su Immobilier.ch · {{title}}",
         "annAction": "{{cta}} · {{title}}",
-        "resumeFailed": "La ripresa non è stata salvata. Riprova."
+        "resumeFailed": "La ripresa non è stata salvata. Riprova.",
+        "doneFailed": "Lo stato non è stato salvato. Riprova.",
+        "markedDone": "{{name}} · segnato come completato",
+        "reopened": "Riaperto"
       },
       "cta": {
         "openKyc": "Apri KYC",
@@ -509,7 +512,16 @@
         "emptyDesc": "Nessun appuntamento, visita o promemoria previsto oggi."
       },
       "demoTag": "Demo",
-      "demoHint": "Quest’area utilizza ancora dati dimostrativi."
+      "demoHint": "Quest’area utilizza ancora dati dimostrativi.",
+      "mobileTitle": "Oggi",
+      "mobileDay": "Giornata",
+      "searchAria": "Cerca",
+      "markDoneAria": "Segna come completato",
+      "reopenAria": "Riapri",
+      "slots_one": "{{count}} fascia oraria",
+      "slots_other": "{{count}} fasce orarie",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min"
     }
   },
   "analytics": {

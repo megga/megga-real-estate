@@ -95,6 +95,21 @@ export interface TodayHBlock extends HlBlockData {
   route: string
   /** Référence réelle passée à la route (uuid), quand elle existe. */
   navRef?: string
+  /** Table d'origine — décide du chemin d'écriture du geste « fait ». */
+  origin?: 'visit' | 'reminder' | 'appointment'
+}
+
+/**
+ * Le bloc peut-il être coché sur cet écran ?
+ *
+ * ⛔ NON pour un `appointment` : c'est un rendez-vous de vérification RÉSERVÉ PAR
+ * LE CLIENT. Le dépôt refuse déjà de le modifier depuis le Calendrier — « déplacer
+ * un rendez-vous confirmé sans prévenir le client serait pire que de ne rien
+ * faire » — et son report passe par des RPC qui envoient un courriel. On n'ouvre
+ * pas ici une porte que le Calendrier ferme.
+ */
+export function canMarkDone(b: TodayHBlock): boolean {
+  return b.origin === 'visit' || b.origin === 'reminder'
 }
 
 export interface TodayHDay {
@@ -143,6 +158,7 @@ export function mapEventsToBlocks(
       ctaIcon: cta.ctaIcon,
       route: cta.route,
       navRef: cta.ref,
+      origin: e.origin,
       done: e.status === 'done',
       // ⛔ Pas de `risk` : `transactions` n'a pas de colonne de risque, et le
       // risque du CRM est au niveau DEAL, jamais au niveau ÉVÉNEMENT.
@@ -195,6 +211,34 @@ export function deriveDay(blocks: TodayHBlock[], nowTs: number): TodayHDay {
     nowLabel: hhmm(now),
     free,
   }
+}
+
+/**
+ * Marque un bloc de la journée comme fait.
+ *
+ * ⚠️ ROUTE, n'aplatit pas : chaque source a son chemin d'écriture, et ce sont
+ * les chemins DÉJÀ empruntés par le popover du Calendrier — aucune RPC nouvelle,
+ * aucune quatrième porte. Un `appointment` est refusé en amont (`canMarkDone`).
+ */
+export async function markBlockDone(b: TodayHBlock, done: boolean): Promise<boolean> {
+  if (!canMarkDone(b)) return false
+  const now = new Date().toISOString()
+  if (b.origin === 'reminder') {
+    const { error } = await supabase
+      .from('reminders')
+      .update(done ? { status: 'done', completed_at: now } : { status: 'pending', completed_at: null })
+      .eq('id', b.id)
+    return !error
+  }
+  // `visits` : le trigger `trg_visit_completed_at` POSE `completed_at` quand le
+  // statut passe à 'done' — inutile de le devancer. Mais il ne l'efface JAMAIS :
+  // à la réouverture, on le remet à null nous-mêmes, sinon la visite garderait
+  // une date d'achèvement qui ne correspond à rien.
+  const { error } = await supabase
+    .from('visits')
+    .update(done ? { status: 'done' } : { status: 'planned', completed_at: null })
+    .eq('id', b.id)
+  return !error
 }
 
 export interface UseTodayHReturn {
