@@ -12,6 +12,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
+import { visitManageUrl } from '../_shared/app-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -109,7 +110,7 @@ serve(async (req) => {
     const propertyAddress = `${property?.address || ''}, ${property?.city || ''}`
     const dateFR = formatDateFR(visit.scheduled_at)
     const timeFR = formatTimeFR(visit.scheduled_at)
-    const manageUrl = `https://megga.ch/visite/${visit.id}/modifier?token=${visit.manage_token}`
+    const manageUrl = visitManageUrl(visit.id, visit.manage_token)
     // feedbackUrl used in post-visit reminder (sent separately via pg_cron)
     const isVideo = visit.visit_type === 'video'
     const videoLabel = visit.video_platform === 'facetime' ? 'FaceTime' : 'Google Meet'

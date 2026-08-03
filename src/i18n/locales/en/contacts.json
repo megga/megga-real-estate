@@ -1075,6 +1075,39 @@
       "emptyTitle": "No properties sent yet",
       "emptyBody": "Send a selection of properties to {{name}}.<1/>Their feedback lands here."
     },
+    "links": {
+      "title": "Links sent ({{count}})",
+      "loading": "Loading links…",
+      "failed": "Links could not be loaded.",
+      "empty": "No link sent yet.",
+      "selection_one": "Selection of {{count}} property",
+      "selection_other": "Selection of {{count}} properties",
+      "sentOn": "Sent on {{date}}",
+      "expiresOn": "expires {{date}}",
+      "revokedOn": "revoked on {{date}}",
+      "revoke": "Revoke link",
+      "channel": {
+        "whatsapp": "WhatsApp",
+        "link": "Copied link"
+      },
+      "status": {
+        "pending": "Not opened",
+        "viewed": "Opened",
+        "reacted": "Replied",
+        "expired": "Expired",
+        "revoked": "Revoked",
+        "unknown": "Unknown status"
+      },
+      "confirm": {
+        "title": "Revoke this link?",
+        "body_one": "The buyer will lose access to the property they received. Revoking is final: to give access back you will have to send a new link.",
+        "body_other": "The buyer will lose access to the {{count}} properties they received. Revoking is final: to give access back you will have to send a new link.",
+        "cta": "Revoke link",
+        "busy": "Revoking…",
+        "refused": "This link was no longer active. The list has just been refreshed.",
+        "failed": "The link was not revoked. Please try again."
+      }
+    },
     "saved": {
       "coord": "Contact details saved",
       "crit": "Criteria saved"

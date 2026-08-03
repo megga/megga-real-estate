@@ -1075,6 +1075,39 @@
       "emptyTitle": "Aucun dossier transmis",
       "emptyBody": "Envoyez une sélection de biens à {{name}}.<1/>Ses retours arrivent ici."
     },
+    "links": {
+      "title": "Liens envoyés ({{count}})",
+      "loading": "Chargement des liens…",
+      "failed": "Liens non chargés.",
+      "empty": "Aucun lien envoyé pour l'instant.",
+      "selection_one": "Sélection de {{count}} bien",
+      "selection_other": "Sélection de {{count}} biens",
+      "sentOn": "Envoyé le {{date}}",
+      "expiresOn": "échéance {{date}}",
+      "revokedOn": "retiré le {{date}}",
+      "revoke": "Retirer le lien",
+      "channel": {
+        "whatsapp": "WhatsApp",
+        "link": "Lien copié"
+      },
+      "status": {
+        "pending": "Non ouvert",
+        "viewed": "Ouvert",
+        "reacted": "Réponse reçue",
+        "expired": "Échu",
+        "revoked": "Retiré",
+        "unknown": "Statut inconnu"
+      },
+      "confirm": {
+        "title": "Retirer ce lien ?",
+        "body_one": "L'acheteur perdra l'accès au bien qu'il a reçu. Le retrait est définitif : pour lui redonner accès, il faudra lui transmettre un nouveau lien.",
+        "body_other": "L'acheteur perdra l'accès aux {{count}} biens qu'il a reçus. Le retrait est définitif : pour lui redonner accès, il faudra lui transmettre un nouveau lien.",
+        "cta": "Retirer le lien",
+        "busy": "Retrait en cours…",
+        "refused": "Ce lien n'était déjà plus actif. La liste vient d'être rafraîchie.",
+        "failed": "Le retrait n'a pas abouti. Réessayez."
+      }
+    },
     "saved": {
       "coord": "Coordonnées enregistrées",
       "crit": "Critères enregistrés"

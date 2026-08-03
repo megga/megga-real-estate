@@ -24,6 +24,8 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { kycMagicLinkUrl } from '../_shared/app-url.ts'
+import { redactPII } from '../_shared/pii-redaction.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,7 +64,6 @@ async function authorizeSendEmailCall(
   return { mode: 'agent', agencyId: auth.profile.agency_id }
 }
 
-const PUBLIC_DOMAIN = Deno.env.get('MEGGA_KYC_PUBLIC_DOMAIN') ?? 'kyc.megga.ch'
 const FROM_EMAIL = Deno.env.get('MEGGA_KYC_FROM_EMAIL') ?? 'kyc@megga.ch'
 const FROM_NAME = Deno.env.get('MEGGA_KYC_FROM_NAME') ?? 'MEGGA'
 
@@ -370,7 +371,9 @@ serve(async (req) => {
 
   const locale = normalizeLocale(contact.language)
   const t = STRINGS[locale]
-  const url = `https://${PUBLIC_DOMAIN}/${link.token}`
+  // Même constructeur que magic-link-create : le bouton de l'e-mail mène là où
+  // l'agent croit l'envoyer.
+  const url = kycMagicLinkUrl(link.token)
 
   const html = buildHtmlEmail({
     locale,
@@ -400,6 +403,13 @@ serve(async (req) => {
 
   if (!resendRes.ok) {
     const errText = await resendRes.text()
+    // Le corps d'erreur de Resend est expurgé AVANT d'aller où que ce soit : le corps de
+    // requête qu'on vient de lui envoyer est le HTML de l'e-mail, lequel contient
+    // `<a href=".../kyc/<jeton>">`. Un fournisseur qui recopie la requête dans son
+    // diagnostic — pratique courante sur une erreur de validation — inscrirait donc le
+    // capability token dans `activity_events`, table append-only conservée dix ans, ET
+    // dans le corps 502 rendu à l'appelant.
+    const errSafe = redactPII(errText).redactedText
     // Log silencieux dans activity_events pour debug compliance
     await supabase.from('activity_events').insert({
       agency_id: link.agency_id,
@@ -413,7 +423,7 @@ serve(async (req) => {
       object_label: `Lien ${link.id}`,
       metadata: {
         resend_status: resendRes.status,
-        resend_error: errText.slice(0, 500),
+        resend_error: errSafe.slice(0, 500),
         recipient: contact.email,
       },
     })
@@ -421,7 +431,7 @@ serve(async (req) => {
       JSON.stringify({
         sent: false,
         reason: 'Resend API error',
-        details: `${resendRes.status} ${errText}`,
+        details: `${resendRes.status} ${errSafe.slice(0, 500)}`,
       }),
       { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
