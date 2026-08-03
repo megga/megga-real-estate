@@ -812,6 +812,10 @@
       "preferences": {
         "label": "Préférences",
         "short": "Préférences"
+      },
+      "availability": {
+        "label": "Disponibilités",
+        "short": "Disponibilités"
       }
     },
     "groups": {
@@ -1110,6 +1114,57 @@
       "agencyNotLoaded": "Agence non chargée, reconnectez-vous pour enregistrer.",
       "logoUploadError": "Envoi du logo impossible.",
       "directoryMissing": "Votre fiche annuaire n'est pas encore créée, contactez votre administrateur pour la renseigner."
+    },
+    "availability": {
+      "banner": "Vos créneaux ouverts à la réservation par vos clients.",
+      "loading": "Chargement des disponibilités…",
+      "open_label": "Réservation en ligne",
+      "open_on": "Ouverte, {{days}} jour(s) configuré(s)",
+      "open_off": "Fermée. Vos clients ne peuvent pas réserver eux-mêmes.",
+      "week_group": "Semaine type",
+      "closed": "Fermé",
+      "add_range": "Ajouter une plage",
+      "remove_range": "Retirer cette plage",
+      "days": {
+        "1": "Lundi",
+        "2": "Mardi",
+        "3": "Mercredi",
+        "4": "Jeudi",
+        "5": "Vendredi",
+        "6": "Samedi",
+        "7": "Dimanche"
+      },
+      "slot_group": "Format des rendez-vous",
+      "slot_minutes": "Durée d'un rendez-vous",
+      "slot_minutes_hint": "Durée réelle bloquée dans votre agenda.",
+      "buffer_minutes": "Battement entre deux rendez-vous",
+      "buffer_minutes_hint": "Temps de trajet ou de saisie. Sépare ce rendez-vous du précédent ET du suivant.",
+      "min_notice": "Délai de prévenance",
+      "min_notice_hint": "En deçà, plus de réservation ni d'annulation en ligne.",
+      "max_advance": "Horizon de réservation",
+      "max_advance_hint": "Au-delà, aucun créneau n'est proposé.",
+      "mode": "Type de rendez-vous",
+      "mode_sur_place": "Sur place",
+      "mode_video": "Visioconférence",
+      "location": "Lieu",
+      "location_hint": "Affiché au client et repris dans l'événement d'agenda.",
+      "location_placeholder": "Rue du Rhône 12, Genève",
+      "minutes": "{{n}} min",
+      "hours": "{{n}} h",
+      "days_n": "{{n}} j",
+      "none": "Aucun",
+      "timeoff_group": "Absences",
+      "timeoff_empty": "Aucune absence à venir.",
+      "timeoff_from": "Du",
+      "timeoff_to": "Au",
+      "timeoff_reason": "Motif (facultatif)",
+      "timeoff_reason_placeholder": "Congé",
+      "timeoff_add": "Ajouter",
+      "timeoff_remove": "Retirer cette absence",
+      "timeoff_bad_range": "La date de fin doit suivre la date de début.",
+      "unsaved": "Modifications non enregistrées",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
     }
   }
 }

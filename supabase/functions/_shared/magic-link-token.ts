@@ -8,12 +8,26 @@
 // Le payload ne contient JAMAIS dossier_id ni contact_id — uniquement le
 // magic_link.id (UUID). Le serveur résout via le DB en respectant la sig.
 
-interface MagicLinkTokenPayload {
+export interface MagicLinkTokenPayload {
   id: string
   exp: number
   /** Optionnel : profile id de l'agent demandeur (rapport KYC PDF par WhatsApp).
    *  Survit au round-trip JSON ; non requis par les usages magic-link existants. */
   p?: string
+  /**
+   * Optionnel : NATURE de l'objet désigné par `id`.
+   *
+   * Le payload ne portait qu'un `id` opaque, si bien que deux familles de liens
+   * signés par le même secret étaient formellement interchangeables : rien dans
+   * le jeton ne disait si l'`id` désignait un lien magique KYC ou un rendez-vous.
+   * En pratique la confusion échoue (les UUID ne se rencontrent pas d'une table à
+   * l'autre), mais s'appuyer sur l'absence de collision n'est pas un contrôle
+   * d'autorisation. `k` rend l'intention explicite et vérifiable.
+   *
+   * Absent = lien magique KYC — la valeur historique, préservée pour que les
+   * jetons déjà en circulation restent valides.
+   */
+  k?: 'appt'
 }
 
 const enc = new TextEncoder()

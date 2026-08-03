@@ -520,6 +520,15 @@ verify_jwt = false
 [functions.ai-copilot]
 verify_jwt = false
 
+[functions.appointment-book]
+verify_jwt = false
+
+[functions.appointment-manage]
+verify_jwt = false
+
+[functions.appointment-slots]
+verify_jwt = false
+
 [functions.audit-pdf-export]
 verify_jwt = false
 

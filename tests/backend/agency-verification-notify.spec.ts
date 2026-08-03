@@ -47,6 +47,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { serviceRoleClient } from './helpers/supabase'
+import { waitForEdgeWorker } from './helpers/edge'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 const URL = process.env.SUPABASE_TEST_URL ?? 'http://127.0.0.1:54321'
@@ -79,23 +80,14 @@ describe.skipIf(!HAS_KEYS)('trigger agencies_notify_verification_decision -- dis
   const agencyIds: string[] = []
 
   // Démarrage à froid du worker agency-verification-notify, payé UNE fois ici -- même
-  // motif, même forme que « Edge Function déployée » dans agency-verification-run.spec.ts :
-  // ce hook ne peut PAS faire échouer la suite (course contre une échéance qui RÉSOUT
-  // jamais ne rejette), et le budget de warm-up est largement au-dessus du démarrage
-  // habituel (~15 s) pour ne jamais être lui-même la cause d'un échec.
+  // motif, même helper que « Edge Function déployée » dans agency-verification-run.spec.ts :
+  // ce hook ne peut PAS faire échouer la suite, et son budget est largement au-dessus
+  // du démarrage habituel (~15 s) pour ne jamais être lui-même la cause d'un échec.
+  // Il SONDE au lieu d'attendre une réponse unique : un 503 immédiat (worker pas
+  // debout) terminait sinon le réchauffement sans que rien ne soit prêt — voir
+  // helpers/edge.ts, et l'échec du 02.08.2026 qui a rendu ce défaut visible.
   beforeAll(async () => {
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const deadline = new Promise<void>((resolve) => {
-      timer = setTimeout(resolve, 60_000)
-    })
-    try {
-      await Promise.race([
-        fetch(NOTIFY_ENDPOINT, { method: 'OPTIONS' }).then(() => undefined, () => undefined),
-        deadline,
-      ])
-    } finally {
-      clearTimeout(timer)
-    }
+    await waitForEdgeWorker(NOTIFY_ENDPOINT)
   }, 120_000)
 
   afterAll(async () => {

@@ -13,7 +13,15 @@ import i18n from '@/i18n'
 // Locale date-fns suivant la langue active (i18n). FR par défaut. Permet aux
 // libellés de date écrits en toutes lettres (jour/mois) de se localiser sans
 // changer les formats numériques suisses (DD.MM.YYYY) ni le séparateur CHF.
-function dfLocale(): Locale {
+/**
+ * Locale date-fns correspondant à la langue active.
+ *
+ * Exportée pour les surfaces qui formatent des dates hors des helpers ci-dessous
+ * — la page publique de réservation, qui compose ses propres libellés de jour et
+ * d'heure dans le fuseau de l'agent (TZDate). Redéclarer la correspondance
+ * ailleurs la ferait diverger au premier ajout de langue.
+ */
+export function dfLocale(): Locale {
   const l = i18n.language || 'fr'
   if (l.startsWith('en')) return enUS
   if (l.startsWith('de')) return de

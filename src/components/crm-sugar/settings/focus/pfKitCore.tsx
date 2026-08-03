@@ -40,6 +40,9 @@ export const PF_ICONS = {
   receipt: <><path d="M6 2h12v20l-2-1.4L14 22l-2-1.4L10 22l-2-1.4L6 22Z" /><path d="M9 8h6M9 12h5" /></>,
   scale: <><path d="M12 4v17" /><path d="M8 21h8" /><path d="M4 7h16" /><path d="M4 7l-2.4 5.4a2.5 2.5 0 0 0 4.8 0Z" /><path d="M20 7l-2.4 5.4a2.5 2.5 0 0 0 4.8 0Z" /><circle cx="12" cy="4" r="1.3" /></>,
   image: <><rect x="3" y="4" width="18" height="16" rx="2.4" /><circle cx="8.5" cy="9.5" r="1.8" /><path d="m5 18 5-5 4 4 2-2 3 3" /></>,
+  // Ajoutés pour la section « Disponibilités » (grille horaire + absences).
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5.2l3.2 2" /></>,
+  trash: <><path d="M4 7h16" /><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /><path d="M6 7v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7" /><path d="M10 11v6M14 11v6" /></>,
 } as const
 
 export type PfIconName = keyof typeof PF_ICONS
