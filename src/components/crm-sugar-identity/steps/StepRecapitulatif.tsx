@@ -1,5 +1,5 @@
 /**
- * Wizard « Identité légale » (KYB) — étape 5, le récapitulatif et la soumission.
+ * Wizard « Identité légale » (KYB) — étape 4, le récapitulatif et la soumission.
  *
  * Peau MEGGA X depuis la refonte visuelle de l'onboarding : l'étape ne compose plus
  * qu'avec des classes de la vitrine (`card`, `pd---content-inside-card`, `display-*`,
@@ -9,13 +9,13 @@
  * Aucune valeur (couleur, taille, rayon, ombre) n'est posée en style inline : ce qui
  * n'existe pas dans la vitrine n'est pas inventé ici, il est signalé au handoff.
  *
- * Relit tout ce qui a été saisi aux quatre étapes précédentes, section par section,
+ * Relit tout ce qui a été saisi aux trois étapes précédentes, section par section,
  * avec un bouton « Modifier » vers chacune (onEditStep délègue à goToStep,
  * IdentityShell.tsx). Ce qui est affiché ici DOIT correspondre à ce qui part : les
- * valeurs viennent des MÊMES brouillons (signataire, agencyDraft, beneficiaires) que
- * ceux que persistCurrentStep a déjà écrits en base à chaque changement d'étape, jamais
+ * valeurs viennent des MÊMES brouillons (signataire, agencyDraft) que ceux que
+ * persistCurrentStep a déjà écrits en base à chaque changement d'étape, jamais
  * un résumé recalculé séparément. Purement contrôlée par IdentityShell, comme les
- * quatre étapes précédentes : aucun accès Supabase direct ici, aucun état propre — y
+ * trois étapes précédentes : aucun accès Supabase direct ici, aucun état propre — y
  * compris la case d'attestation (attestationChecked/onAttestationChange), qui gate le
  * bouton Soumettre du pied de page (canSubmitIdentity, IdentityShell.tsx) tout en
  * vivant ici comme n'importe quel autre contrôle contrôlé.
@@ -24,11 +24,6 @@
  * partagé d'IdentityShell (comme le bouton Continuer des quatre étapes précédentes),
  * avec l'indicateur de sauvegarde et la bannière d'erreur déjà en place — cf. son
  * en-tête. Cette étape ne fait donc que relire et attester, jamais soumettre elle-même.
- *
- * Bénéficiaires effectifs : section ABSENTE (pas seulement vide) quand
- * `skipBeneficiaires` est vrai — même règle d'affichage que le stepper du header
- * (visibleIdentitySteps, IdentityShell.tsx) : une étape sautée ne doit jamais
- * réapparaître ici sous une forme quelconque, y compris un message « non applicable ».
  *
  * Pièce d'identité : ne réaffiche pas un formulaire de dépôt (le fichier est déjà
  * durablement dans Storage depuis l'étape précédente, cf. l'en-tête de
@@ -45,23 +40,20 @@ import { MxButton, MxCheckbox } from '@/components/megga-x'
 import { COUNTRIES } from '@/lib/countries'
 import { useLegalForms } from '@/hooks/useLegalForms'
 import type { IdentityDocumentPreview } from '@/hooks/useAgencyIdentity'
-import type { SignataireDraft, AgencyDraft, BeneficiaireDraft } from '../IdentityShell'
+import type { SignataireDraft, AgencyDraft } from '../IdentityShell'
 
 interface StepRecapitulatifProps {
   signataire: SignataireDraft
   agencyDraft: AgencyDraft
-  /** true si l'étape bénéficiaires a été sautée (raison individuelle) — la section correspondante n'est alors pas rendue du tout. */
-  skipBeneficiaires: boolean
-  beneficiaires: BeneficiaireDraft[]
   recto: IdentityDocumentPreview | null
   verso: IdentityDocumentPreview | null
-  /** true tant que useIdentityDocuments() n'a pas encore résolu (même signal qu'à l'étape 4). */
+  /** true tant que useIdentityDocuments() n'a pas encore résolu (même signal qu'à l'étape 3). */
   identityDocumentsLoading: boolean
   /** true si useIdentityDocuments() a échoué — état d'erreur dédié, jamais une absence de document affichée à tort. */
   identityDocumentsError: boolean
   attestationChecked: boolean
   onAttestationChange: (checked: boolean) => void
-  /** Ramène au step index donné (0 signataire, 1 agence, 2 bénéficiaires, 3 pièce d'identité) — délègue à goToStep, IdentityShell.tsx. */
+  /** Ramène au step index donné (0 signataire, 1 agence, 2 pièce d'identité) — délègue à goToStep, IdentityShell.tsx. */
   onEditStep: (step: number) => void
 }
 
@@ -71,15 +63,42 @@ function countryName(code: string | null): string {
   return COUNTRIES.find((c) => c.code === code)?.name ?? code
 }
 
-/** Étape 5 du wizard identité : relecture complète, attestation, préparation de la soumission. */
+/**
+ * Date de naissance au format suisse (16.03.1985). Le brouillon la porte en ISO
+ * — c'est ce que rend un `<input type="date">`, et ce que la colonne attend —
+ * mais cette étape est la RELECTURE : c'est là qu'un dirigeant doit reconnaître
+ * sa propre date d'un coup d'œil avant d'attester qu'elle est exacte, pas
+ * déchiffrer un format machine. Règle §6 du CLAUDE.md.
+ *
+ * ⚠ Réécriture de CHAÎNE, jamais `formatDate()` — mesuré le 03.08.2026 :
+ * `formatDate('1980-05-15')` rend « 14.05.1980 » dès que le fuseau de la session
+ * est à l'ouest de UTC. `new Date('1980-05-15')` parse en UTC minuit (spec ES,
+ * pour la forme date-seule) puis `format()` réaffiche en heure LOCALE, et la
+ * veille sort. Sans conséquence à Genève (UTC+1/+2), fausse pour un dirigeant
+ * connecté depuis les Amériques — et une date de naissance est précisément ce
+ * que la case d'attestation, deux blocs plus bas, lui demande de certifier exact.
+ * Une date-seule n'a pas d'instant : la traiter comme tel est l'erreur.
+ *
+ * Toute forme inattendue est rendue telle quelle plutôt que réécrite de travers :
+ * mieux vaut une date visiblement brute qu'une date plausible et fausse.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-recap-birthdate.spec.ts), même motif que isSignataireStepComplete.
+export function birthDate(iso: string | null): string {
+  if (!iso) return ''
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (!m) return iso
+  return `${m[3]}.${m[2]}.${m[1]}`
+}
+
+/** Étape 4 du wizard identité : relecture complète, attestation, préparation de la soumission. */
 export function StepRecapitulatif({
-  signataire, agencyDraft, skipBeneficiaires, beneficiaires,
+  signataire, agencyDraft,
   recto, verso, identityDocumentsLoading, identityDocumentsError,
   attestationChecked, onAttestationChange, onEditStep,
 }: StepRecapitulatifProps) {
   const { t } = useTranslation('onboarding')
   // Même requête (clé ['legal-forms', code]) que StepAgence pour ce même pays — déjà
-  // chargée par l'étape 2, donc résolue en pratique dès qu'on atteint le récapitulatif.
+  // chargée par l'étape agence, donc résolue en pratique dès qu'on atteint le récapitulatif.
   const { options: legalFormOptions } = useLegalForms(agencyDraft.country)
   const legalFormLabel = legalFormOptions.find((o) => o.id === agencyDraft.legalFormId)?.label ?? agencyDraft.legalFormId
 
@@ -94,7 +113,7 @@ export function StepRecapitulatif({
         <RecapSection title={t('wizard.steps.signataire')} onEdit={() => onEditStep(0)}>
           <RecapRow label={t('wizard.signataire.fields.firstName')} value={signataire.firstName} />
           <RecapRow label={t('wizard.signataire.fields.lastName')} value={signataire.lastName} />
-          <RecapRow label={t('wizard.signataire.fields.dateOfBirth')} value={signataire.dateOfBirth ?? ''} />
+          <RecapRow label={t('wizard.signataire.fields.dateOfBirth')} value={birthDate(signataire.dateOfBirth)} />
           <RecapRow label={t('wizard.signataire.fields.nationality')} value={countryName(signataire.nationality)} />
           <RecapRow
             label={t('wizard.signataire.fields.signaturePower')}
@@ -106,44 +125,14 @@ export function StepRecapitulatif({
           <RecapRow label={t('wizard.agence.fields.country')} value={countryName(agencyDraft.country)} />
           <RecapRow label={t('wizard.agence.fields.legalFormId')} value={legalFormLabel} />
           <RecapRow label={t('wizard.agence.fields.legalName')} value={agencyDraft.legal} />
-          <RecapRow label={t('wizard.agence.fields.tradeName')} value={agencyDraft.tradeName} />
           <RecapRow label={t('wizard.agence.fields.businessRegistrationNumber')} value={agencyDraft.businessRegistrationNumber} />
-          <RecapRow label={t('wizard.agence.fields.tva')} value={agencyDraft.tva.trim() || t('wizard.recap.notProvided')} />
           <RecapRow
             label={t('wizard.agence.fields.address')}
             value={`${agencyDraft.address}, ${agencyDraft.postal} ${agencyDraft.city}, ${agencyDraft.canton}`}
           />
         </RecapSection>
 
-        {!skipBeneficiaires && (
-          <RecapSection title={t('wizard.steps.beneficiaires')} onEdit={() => onEditStep(2)}>
-            {beneficiaires.length === 0 ? (
-              <p className="paragraph-small text-color-neutral-600">
-                {t('wizard.recap.beneficiaires.empty')}
-              </p>
-            ) : (
-              <div className="grid-1-column gap-row-2x-extra-small">
-                {beneficiaires.map((b, index) => (
-                  <div key={b.personId ?? `new-${index}`} className="grid-1-column gap-row-3x-extra-small">
-                    {index > 0 && <div className="divider" />}
-                    <RecapRow label={t('wizard.beneficiaires.fields.firstName')} value={`${b.firstName} ${b.lastName}`} />
-                    <RecapRow label={t('wizard.beneficiaires.fields.nationality')} value={countryName(b.nationality)} />
-                    <RecapRow
-                      label={t('wizard.beneficiaires.fields.ownershipPct')}
-                      value={t('wizard.recap.beneficiaires.ownership', { pct: b.ownershipPct ?? 0 })}
-                    />
-                    <RecapRow
-                      label={t('wizard.beneficiaires.pep.label')}
-                      value={b.pepSelfDeclared ? t('wizard.beneficiaires.pep.yes') : t('wizard.beneficiaires.pep.no')}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </RecapSection>
-        )}
-
-        <RecapSection title={t('wizard.steps.pieceIdentite')} onEdit={() => onEditStep(3)}>
+        <RecapSection title={t('wizard.steps.pieceIdentite')} onEdit={() => onEditStep(2)}>
           {identityDocumentsLoading ? (
             // Texte seul, sans roue d'attente : la vitrine n'a aucun indicateur de
             // progression indéterminé, et son écran d'attente équivalent

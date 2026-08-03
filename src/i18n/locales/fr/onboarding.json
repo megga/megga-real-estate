@@ -24,12 +24,21 @@
       "ariaLabel": "Étapes",
       "signataire": "Signataire",
       "agence": "Agence",
-      "beneficiaires": "Bénéficiaires",
       "pieceIdentite": "Pièce d'identité",
       "recapitulatif": "Récapitulatif"
     },
     "header": {
-      "language": "Langue de l'interface"
+      "language": "Langue de l'interface",
+      "languageLoading": "Chargement de la langue…"
+    },
+    "date": {
+      "open": "Choisir une date",
+      "placeholder": "JJ.MM.AAAA",
+      "previousMonth": "Mois précédent",
+      "nextMonth": "Mois suivant",
+      "month": "Mois",
+      "year": "Année",
+      "clear": "Effacer la date"
     },
     "footer": {
       "continue": "Continuer",
@@ -65,43 +74,28 @@
         "countryPlaceholder": "Sélectionner un pays",
         "legalFormId": "Forme juridique",
         "legalFormPlaceholder": "Sélectionner une forme juridique",
-        "legalFormPlaceholderNoCountry": "Choisissez d'abord le pays du siège",
+        "legalFormPlaceholderNoCountry": "Choisissez d'abord le pays",
         "legalName": "Raison sociale",
-        "legalNameHint": "La dénomination officielle inscrite au registre du commerce.",
-        "tradeName": "Nom commercial",
-        "tradeNameHint": "Le nom sous lequel vos clients vous connaissent, s'il diffère de la raison sociale.",
         "businessRegistrationNumber": "Numéro de registre",
-        "tva": "Numéro de TVA",
-        "tvaHint": "Facultatif : ne concerne que les entités assujetties à la TVA.",
         "address": "Adresse",
         "postal": "NPA",
         "city": "Ville",
         "canton": "Canton",
         "cantonPlaceholder": "Sélectionner un canton"
-      }
-    },
-    "beneficiaires": {
-      "title": "Qui sont les bénéficiaires effectifs de votre agence ?",
-      "subtitle": "Les personnes physiques qui détiennent ou contrôlent votre agence.",
-      "reuseSignataire": "Reprendre {{name}} (signataire)",
-      "addButton": "Ajouter un bénéficiaire effectif",
-      "emptyHint": "Personne n'atteint 25 % ? Déclarez qui contrôle l'agence autrement, ou à défaut un membre de sa direction.",
-      "removeButton": "Retirer ce bénéficiaire effectif",
-      "fields": {
-        "firstName": "Prénom",
-        "lastName": "Nom",
-        "dateOfBirth": "Date de naissance",
-        "nationality": "Nationalité",
-        "nationalityPlaceholder": "Sélectionner un pays",
-        "ownershipPct": "Pourcentage de détention",
-        "ownershipPctHint": "Seuil de référence (norme du GAFI) : 25 % ou plus. Vous pouvez indiquer une valeur inférieure."
       },
-      "pep": {
-        "label": "Cette personne est-elle une personne politiquement exposée (PEP) ?",
-        "yes": "Oui",
-        "yesHint": "Exerce ou a exercé une fonction publique importante, en Suisse ou à l'étranger, ou est un proche d'une telle personne.",
-        "no": "Non",
-        "noHint": "N'exerce aucune fonction publique importante."
+      "company": {
+        "search": "Chercher",
+        "searching": "Recherche…",
+        "noResults": "Aucune société trouvée à ce nom au registre du commerce.",
+        "error": "Le registre du commerce n'a pas répondu.",
+        "listLabel": "Sociétés trouvées au registre",
+        "inactive": " · radiée"
+      },
+      "address": {
+        "placeholder": "Rue et numéro",
+        "noResults": "Aucune adresse trouvée. Vous pouvez la saisir à la main.",
+        "error": "Le registre des adresses n'a pas répondu. Vous pouvez saisir l'adresse à la main.",
+        "listLabel": "Adresses proposées"
       }
     },
     "pieceIdentite": {
@@ -130,10 +124,6 @@
       "title": "Vérifiez votre dossier avant de le soumettre",
       "subtitle": "Relisez chaque section. Vous pouvez encore modifier une étape.",
       "notProvided": "Non renseigné",
-      "beneficiaires": {
-        "empty": "Aucun bénéficiaire effectif déclaré.",
-        "ownership": "{{pct}} % de détention"
-      },
       "pieceIdentite": {
         "uploaded": "Déposé",
         "missing": "Manquant",

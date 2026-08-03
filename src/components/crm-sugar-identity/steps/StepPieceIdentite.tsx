@@ -17,7 +17,7 @@
  * vérifier la complétude.
  *
  * Purement contrôlée par IdentityShell, comme StepSignataire/StepAgence/
- * StepBeneficiaires : aucun accès Supabase direct ici, seulement des props (aperçus
+ * les étapes précédentes : aucun accès Supabase direct ici, seulement des props (aperçus
  * déjà résolus + callback de sélection) — IdentityShell détient
  * useIdentityDocuments()/uploadIdentityDocument() (useAgencyIdentity.ts, tâche 6).
  *

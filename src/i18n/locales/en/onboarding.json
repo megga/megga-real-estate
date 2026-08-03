@@ -24,12 +24,21 @@
       "ariaLabel": "Steps",
       "signataire": "Signatory",
       "agence": "Agency",
-      "beneficiaires": "Beneficial owners",
       "pieceIdentite": "ID document",
       "recapitulatif": "Summary"
     },
     "header": {
-      "language": "Interface language"
+      "language": "Interface language",
+      "languageLoading": "Loading language…"
+    },
+    "date": {
+      "open": "Choose a date",
+      "placeholder": "DD.MM.YYYY",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "month": "Month",
+      "year": "Year",
+      "clear": "Clear date"
     },
     "footer": {
       "continue": "Continue",
@@ -65,43 +74,28 @@
         "countryPlaceholder": "Select a country",
         "legalFormId": "Legal form",
         "legalFormPlaceholder": "Select a legal form",
-        "legalFormPlaceholderNoCountry": "Choose the country of registration first",
+        "legalFormPlaceholderNoCountry": "Choose a country first",
         "legalName": "Registered name",
-        "legalNameHint": "The official name on your commercial register entry.",
-        "tradeName": "Trade name",
-        "tradeNameHint": "The name your clients know you by, if different from the registered name.",
         "businessRegistrationNumber": "Registration number",
-        "tva": "VAT number",
-        "tvaHint": "Optional: applies only to VAT-registered entities.",
         "address": "Address",
         "postal": "Postal code",
         "city": "City",
         "canton": "Canton",
         "cantonPlaceholder": "Select a canton"
-      }
-    },
-    "beneficiaires": {
-      "title": "Who are your agency's beneficial owners?",
-      "subtitle": "The individuals who own or control your agency.",
-      "reuseSignataire": "Reuse {{name}} (signatory)",
-      "addButton": "Add a beneficial owner",
-      "emptyHint": "No one reaches 25%? Declare whoever controls the agency another way, or otherwise a member of its senior management.",
-      "removeButton": "Remove this beneficial owner",
-      "fields": {
-        "firstName": "First name",
-        "lastName": "Last name",
-        "dateOfBirth": "Date of birth",
-        "nationality": "Nationality",
-        "nationalityPlaceholder": "Select a country",
-        "ownershipPct": "Ownership percentage",
-        "ownershipPctHint": "Reference threshold (FATF standard): 25% or more. You can enter a lower value."
       },
-      "pep": {
-        "label": "Is this person a politically exposed person (PEP)?",
-        "yes": "Yes",
-        "yesHint": "Holds or has held a prominent public function, in Switzerland or abroad, or is a close associate of such a person.",
-        "no": "No",
-        "noHint": "Does not hold any prominent public function."
+      "company": {
+        "search": "Search",
+        "searching": "Searching…",
+        "noResults": "No company found under that name in the commercial register.",
+        "error": "The commercial register did not answer.",
+        "listLabel": "Companies found in the register",
+        "inactive": " · struck off"
+      },
+      "address": {
+        "placeholder": "Street and number",
+        "noResults": "No address found. You can type it in yourself.",
+        "error": "The address register did not answer. You can type the address in yourself.",
+        "listLabel": "Suggested addresses"
       }
     },
     "pieceIdentite": {
@@ -130,10 +124,6 @@
       "title": "Review your file before submitting it",
       "subtitle": "Read through each section. You can still edit a step.",
       "notProvided": "Not provided",
-      "beneficiaires": {
-        "empty": "No beneficial owner declared.",
-        "ownership": "{{pct}}% ownership"
-      },
       "pieceIdentite": {
         "uploaded": "Uploaded",
         "missing": "Missing",

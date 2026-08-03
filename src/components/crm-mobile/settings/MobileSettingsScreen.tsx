@@ -9,6 +9,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
+import { switchLanguage } from '@/i18n'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
@@ -214,7 +215,8 @@ export function MobileSettingsScreen({ demo = false }: { demo?: boolean }) {
           <PreferencesSection
             ctx={ctx}
             lang={i18n.language.startsWith('en') ? 'en' : 'fr'}
-            onLang={(v) => void i18n.changeLanguage(v)}
+            // Charge le bundle PUIS bascule — cf. la JSDoc de switchLanguage.
+            onLang={(v) => void switchLanguage(v)}
             onTheme={(v) => setTheme(v)}
             onBack={() => setView('hub')}
           />

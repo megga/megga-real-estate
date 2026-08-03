@@ -24,12 +24,21 @@
       "ariaLabel": "Schritte",
       "signataire": "Unterzeichner",
       "agence": "Agentur",
-      "beneficiaires": "Wirtschaftlich Berechtigte",
       "pieceIdentite": "Ausweisdokument",
       "recapitulatif": "Zusammenfassung"
     },
     "header": {
-      "language": "Sprache der Oberfläche"
+      "language": "Sprache der Oberfläche",
+      "languageLoading": "Sprache wird geladen …"
+    },
+    "date": {
+      "open": "Datum wählen",
+      "placeholder": "TT.MM.JJJJ",
+      "previousMonth": "Vorheriger Monat",
+      "nextMonth": "Nächster Monat",
+      "month": "Monat",
+      "year": "Jahr",
+      "clear": "Datum löschen"
     },
     "footer": {
       "continue": "Weiter",
@@ -65,43 +74,28 @@
         "countryPlaceholder": "Land auswählen",
         "legalFormId": "Rechtsform",
         "legalFormPlaceholder": "Rechtsform auswählen",
-        "legalFormPlaceholderNoCountry": "Wählen Sie zuerst den Sitzstaat",
+        "legalFormPlaceholderNoCountry": "Zuerst das Land wählen",
         "legalName": "Firmenbezeichnung",
-        "legalNameHint": "Die offizielle Bezeichnung gemäss Handelsregistereintrag.",
-        "tradeName": "Handelsname",
-        "tradeNameHint": "Der Name, unter dem Ihre Kundinnen und Kunden Sie kennen, falls abweichend von der Firmenbezeichnung.",
         "businessRegistrationNumber": "Handelsregisternummer",
-        "tva": "MWST-Nummer",
-        "tvaHint": "Freiwillig: betrifft nur mehrwertsteuerpflichtige Unternehmen.",
         "address": "Adresse",
         "postal": "PLZ",
         "city": "Ort",
         "canton": "Kanton",
         "cantonPlaceholder": "Kanton auswählen"
-      }
-    },
-    "beneficiaires": {
-      "title": "Wer sind die wirtschaftlich Berechtigten Ihrer Agentur?",
-      "subtitle": "Die natürlichen Personen, die Ihre Agentur besitzen oder kontrollieren.",
-      "reuseSignataire": "{{name}} übernehmen (Unterzeichner)",
-      "addButton": "Wirtschaftlich Berechtigten hinzufügen",
-      "emptyHint": "Erreicht niemand 25 %? Geben Sie an, wer die Agentur anderweitig kontrolliert, andernfalls ein Mitglied der Geschäftsleitung.",
-      "removeButton": "Diesen wirtschaftlich Berechtigten entfernen",
-      "fields": {
-        "firstName": "Vorname",
-        "lastName": "Nachname",
-        "dateOfBirth": "Geburtsdatum",
-        "nationality": "Staatsangehörigkeit",
-        "nationalityPlaceholder": "Land auswählen",
-        "ownershipPct": "Beteiligungsquote",
-        "ownershipPctHint": "Referenzschwellenwert (FATF-Norm): 25 % oder mehr. Sie können auch einen niedrigeren Wert angeben."
       },
-      "pep": {
-        "label": "Handelt es sich bei dieser Person um eine politisch exponierte Person (PEP)?",
-        "yes": "Ja",
-        "yesHint": "Übt oder übte eine wichtige öffentliche Funktion aus, im In- oder Ausland, oder steht einer solchen Person nahe.",
-        "no": "Nein",
-        "noHint": "Übt keine wichtige öffentliche Funktion aus."
+      "company": {
+        "search": "Suchen",
+        "searching": "Suche…",
+        "noResults": "Keine Firma mit diesem Namen im Handelsregister gefunden.",
+        "error": "Das Handelsregister hat nicht geantwortet.",
+        "listLabel": "Im Register gefundene Firmen",
+        "inactive": " · gelöscht"
+      },
+      "address": {
+        "placeholder": "Strasse und Nummer",
+        "noResults": "Keine Adresse gefunden. Sie können sie von Hand eingeben.",
+        "error": "Das Adressregister hat nicht geantwortet. Sie können die Adresse von Hand eingeben.",
+        "listLabel": "Vorgeschlagene Adressen"
       }
     },
     "pieceIdentite": {
@@ -130,10 +124,6 @@
       "title": "Prüfen Sie Ihre Angaben, bevor Sie sie einreichen",
       "subtitle": "Lesen Sie jeden Abschnitt noch einmal durch. Sie können einen Schritt noch bearbeiten.",
       "notProvided": "Nicht angegeben",
-      "beneficiaires": {
-        "empty": "Kein wirtschaftlich Berechtigter angegeben.",
-        "ownership": "{{pct}} % Beteiligung"
-      },
       "pieceIdentite": {
         "uploaded": "Hochgeladen",
         "missing": "Fehlt",

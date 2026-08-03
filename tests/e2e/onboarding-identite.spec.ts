@@ -169,8 +169,8 @@ async function clientSideNavigate(page: Page, path: string): Promise<void> {
  *
  * L'ancrage reste nécessaire pour une autre raison, elle toujours vraie :
  * `getByLabel` cherche une SOUS-CHAÎNE insensible à la casse, donc « Nom »
- * matcherait aussi « Prénom » et « Nom commercial ». Toujours pas `exact: true`
- * en revanche — plusieurs libellés visés sont des préfixes voulus.
+ * matcherait aussi « Prénom ». Toujours pas `exact: true` en revanche —
+ * plusieurs libellés visés sont des préfixes voulus.
  */
 function labelField(page: Page, label: string) {
   return page.getByLabel(new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))
@@ -336,17 +336,17 @@ async function fillSignataireStep(page: Page, s: SignataireFixture): Promise<voi
 
 /**
  * Champs de l'étape 1 (agence) communs aux parcours qui la remplissent en entier dans
- * ce fichier — toujours en Suisse (seul pays exercé ici), `tva` volontairement absente
- * (facultative depuis le 27.07.2026, cf. isAgencyStepComplete dans IdentityShell.tsx).
+ * ce fichier — toujours en Suisse (seul pays exercé ici). « Nom commercial » et
+ * « Numéro de TVA » ne figurent plus ici parce qu'ils ont quitté l'étape le
+ * 03.08.2026 (décision client), pas parce que ce test les omettrait.
  * `legalFormLabel` est le libellé AFFICHÉ dans le menu déroulant, pas un code : c'est le
- * SEUL champ qui distingue le parcours société anonyme du parcours raison individuelle
- * (revue finale, lot 3) — la forme juridique choisie ici décide seule si l'étape
- * bénéficiaires effectifs suit ou est sautée (shouldSkipBeneficiairesStep).
+ * SEUL champ qui distingue le parcours société anonyme du parcours raison individuelle.
+ * Il ne commande plus aucune bifurcation depuis le retrait de l'étape « bénéficiaires
+ * effectifs » (03.08.2026) — les deux formes suivent désormais les mêmes quatre étapes.
  */
 interface AgenceFixture {
   legalFormLabel: string
   legalName: string
-  tradeName: string
   registrationNumber: string
   address: string
   postal: string
@@ -364,9 +364,15 @@ async function fillAgenceStep(page: Page, a: AgenceFixture): Promise<void> {
   await labelField(page, 'Pays du siège').selectOption('CH')
   await labelField(page, 'Forme juridique').selectOption({ label: a.legalFormLabel })
   await labelField(page, 'Raison sociale').fill(a.legalName)
-  await labelField(page, 'Nom commercial').fill(a.tradeName)
   await labelField(page, 'Numéro de registre').fill(a.registrationNumber)
   await labelField(page, 'Adresse').fill(a.address)
+  // Échap referme la liste de suggestions d'adresse (MxAddressAutocomplete,
+  // branché sur geo.admin.ch depuis le 03.08.2026) : elle s'ouvre au-dessus de la
+  // rangée NPA / Ville / Canton, et sans ce geste le clic suivant atterrirait
+  // dessus au lieu du champ visé. Saisie libre volontaire ici plutôt qu'un choix
+  // dans la liste : faire dépendre ce test d'un service externe le rendrait
+  // instable en CI, alors que ce qu'il éprouve est le gate, pas l'autocomplétion.
+  await page.keyboard.press('Escape')
   await labelField(page, 'NPA').fill(a.postal)
   await labelField(page, 'Ville').fill(a.city)
   await labelField(page, 'Canton').selectOption(a.canton)
@@ -418,22 +424,18 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // la première saisie, cf. expectWizardShellMounted ci-dessus.
       await expectWizardShellMounted(page)
 
-      // 3. Saisie des cinq étapes.
+      // 3. Saisie des quatre étapes.
 
       // Étape 0 — signataire.
       await fillSignataireStep(page, {
         firstName: 'Jean', lastName: 'Dupont', dateOfBirth: '1980-05-15', nationality: 'CH', signaturePower: 'individual',
       })
 
-      // Étape 1 — agence. CH_SA (« Société anonyme (SA) », catégorie corporation)
-      // pour que l'étape bénéficiaires NE soit PAS sautée — le brief exige les
-      // cinq étapes, pas quatre. (Le parcours raison individuelle, qui la saute, est
-      // couvert séparément par le troisième test de ce fichier.)
+      // Étape 1 — agence.
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
       await fillAgenceStep(page, {
         legalFormLabel: 'Société anonyme (SA)',
         legalName: 'Regie Immobiliere Test SA',
-        tradeName: 'Regie Test',
         registrationNumber: 'CHE-123.456.789',
         address: '10 Rue du Test',
         postal: '1200',
@@ -441,26 +443,10 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
         canton: 'GE',
       })
 
-      // Étape 2 — bénéficiaires effectifs. Reprend le signataire déjà saisi (cas
-      // central du brief tâche 5 : la même personne peut être signataire ET
-      // bénéficiaire) plutôt qu'une ligne vide, pour ne pas resaisir prénom/nom/
-      // date de naissance/nationalité déjà connus.
-      // "(signataire)" (pas seulement "Reprendre", trop large) : le bouton "Reprendre
-      // plus tard" de l'en-tête (sortie de secours, tâche 8) est TOUJOURS présent à
-      // ce stade et contient lui aussi "Reprendre" — ambiguïté de mode strict sinon.
-      await page.getByRole('button', { name: /\(signataire\)/ }).click()
-      await labelField(page, 'Pourcentage de détention').fill('30')
-      // Rôle 'radio' et non 'button', même motif qu'au pouvoir de signature : la
-      // paire Oui/Non de la question PEP est devenue un vrai groupe de radios
-      // (PepChoice, StepBeneficiaires.tsx). Ancrage /^Non\b/ conservé — la
-      // précision reste HORS du <label>, le nom accessible vaut donc « Non » seul.
-      await checkByLabel(page, page.getByRole('radio', { name: /^Non\b/ }))
-      await page.getByRole('button', { name: 'Continuer' }).click()
-
-      // Étape 3 — pièce d'identité (recto puis verso, ordre fixe dans le DOM).
+      // Étape 2 — pièce d'identité (recto puis verso, ordre fixe dans le DOM).
       await fillPieceIdentiteStep(page)
 
-      // Étape 4 — récapitulatif, attestation, soumission.
+      // Étape 3 — récapitulatif, attestation, soumission.
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
       await submitRecapitulatif(page)
 
@@ -601,20 +587,19 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
   })
 
   /**
-   * Revue finale (lot 3) : les deux tests ci-dessus choisissent tous deux une société
-   * anonyme (CH_SA), précisément pour que l'étape bénéficiaires effectifs ne soit
-   * JAMAIS sautée (cf. leur commentaire d'étape 1) — le chemin raison individuelle
-   * (CH_RI, category=sole_proprietorship, shouldSkipBeneficiairesStep dans
-   * IdentityShell.tsx) n'était donc exercé qu'en fonctions pures
-   * (tests/unit/identity-shell-navigation.spec.ts), jamais contre une vraie base. C'est
-   * pourtant le cas du client de référence (une agence individuelle, pas une SA).
+   * Le client de référence est une RAISON INDIVIDUELLE, pas une société anonyme —
+   * or les deux tests ci-dessus passent tous deux par une SA. Ce test parcourt donc
+   * le wizard avec la forme juridique réellement visée, jusqu'à la soumission.
    *
-   * Ce test parcourt le wizard avec une raison individuelle et vérifie les trois points
-   * qui, autrement, ne sont exercés nulle part : (1) le saut d'étape lui-même, (2) le
-   * stepper de l'en-tête qui doit masquer ET ne pas compter le palier, (3) l'absence de
-   * la section correspondante au récapitulatif.
+   * ⚠ Ce test prouvait AUTRE CHOSE jusqu'au 03.08.2026 : une raison individuelle
+   * SAUTAIT l'étape « bénéficiaires effectifs » (le signataire EST l'entité), et il
+   * vérifiait les trois volets de ce saut — l'étape jamais atteinte, le rail qui ne
+   * la comptait pas, la section absente du récapitulatif. L'étape ayant été retirée
+   * du parcours pour TOUT LE MONDE (décision client), il n'y a plus de saut à
+   * éprouver : ce chemin n'a plus rien de particulier, et c'est précisément ce que
+   * ce test affirme désormais — quatre étapes, comme une société.
    */
-  test('raison individuelle : bénéficiaires effectifs sauté, jamais affiché ni compté, absent du récapitulatif', async ({ page }) => {
+  test('raison individuelle (forme du client de référence) : même parcours à quatre étapes, soumission aboutie', async ({ page }) => {
     const founder = await createFounder()
     try {
       await signInLive(page, founder.email, PW, { firstEver: true })
@@ -622,22 +607,17 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
       await expectWizardShellMounted(page)
 
-      // Étape 0 — signataire. Signature individuelle : cohérent avec une raison
-      // individuelle (le signataire EST l'entité, cf. shouldSkipBeneficiairesStep,
-      // IdentityShell.tsx), mais ce n'est pas ce champ qui pilote le saut : seule la
-      // forme juridique choisie à l'étape suivante en décide.
+      // Étape 0 — signataire. Signature individuelle, cohérent avec une raison
+      // individuelle : le signataire EST l'entité.
       await fillSignataireStep(page, {
         firstName: 'Marc', lastName: 'Bovay', dateOfBirth: '1985-11-02', nationality: 'CH', signaturePower: 'individual',
       })
 
-      // Étape 1 — agence. CH_RI (« Raison individuelle », catégorie
-      // sole_proprietorship) : c'est ce choix, et lui seul, qui doit faire sauter
-      // l'étape bénéficiaires effectifs.
+      // Étape 1 — agence, en « Raison individuelle » (catégorie sole_proprietorship).
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
       await fillAgenceStep(page, {
         legalFormLabel: 'Raison individuelle',
         legalName: 'Atelier Immobilier Bovay',
-        tradeName: 'Atelier Bovay',
         registrationNumber: 'CHE-987.654.321',
         address: '5 Chemin du Test',
         postal: '1201',
@@ -645,36 +625,20 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
         canton: 'GE',
       })
 
-      // 1. Saut d'étape, contre une vraie base : le clic sur Continuer depuis l'agence
-      // doit atterrir DIRECTEMENT sur la pièce d'identité, jamais sur les bénéficiaires
-      // effectifs (nextIdentityStep exclut BENEFICIAIRES_STEP_INDEX quand
-      // skipBeneficiaires est vrai, IdentityShell.tsx).
+      // Le parcours d'une raison individuelle est désormais celui de tout le monde :
+      // l'agence mène droit à la pièce d'identité, et le rail compte quatre paliers.
       await expect(page.getByRole('heading', { name: 'Téléversez la pièce d\'identité du signataire' })).toBeVisible()
-      await expect(page.getByRole('heading', { name: 'Qui sont les bénéficiaires effectifs de votre agence' })).toHaveCount(0)
-
-      // 2. Le stepper de l'en-tête ne montre ni ne compte l'étape bénéficiaires
-      // (visibleIdentitySteps, IdentityShell.tsx) : quatre paliers numérotés 1 à 4,
-      // jamais cinq avec un trou, et aucun bouton « Bénéficiaires ».
       await expect(page.getByRole('button', { name: /^\d\.\s/ })).toHaveCount(4)
-      await expect(page.getByRole('button', { name: /Bénéficiaires/ })).toHaveCount(0)
       await expect(page.getByRole('button', { name: '3. Pièce d\'identité' })).toBeVisible()
       await expect(page.getByRole('button', { name: '4. Récapitulatif' })).toBeVisible()
 
       await fillPieceIdentiteStep(page)
-
-      // 3. Récapitulatif : la section bénéficiaires effectifs est ABSENTE (pas
-      // seulement vide) — StepRecapitulatif.tsx ne la rend pas du tout quand
-      // skipBeneficiaires est vrai. `exact: true` distingue le titre de section
-      // ("Bénéficiaires" seul) du libellé numéroté du stepper ("N. Bénéficiaires",
-      // de toute façon déjà absent par le point 2 ci-dessus) : ce test isole bien la
-      // section du récapitulatif, pas seulement l'en-tête.
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
-      await expect(page.getByText('Bénéficiaires', { exact: true })).toHaveCount(0)
 
       await submitRecapitulatif(page)
       await expectNoBounceBack(page, /\/dashboard$/)
 
-      // Le saut d'étape ne doit jamais empêcher la soumission finale d'aboutir (même
+      // La soumission finale doit aboutir sur ce chemin aussi (même
       // preuve backend que le premier test de ce fichier).
       const { data: agencyAfterSubmit } = await serviceRoleClient()
         .from('agencies')
@@ -713,7 +677,6 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await fillAgenceStep(page, {
         legalFormLabel: 'Raison individuelle',
         legalName: 'Regie Correction Test',
-        tradeName: 'Regie Correction',
         registrationNumber: 'CHE-123.456.789',
         address: '10 Rue du Test',
         postal: '1200',
@@ -781,7 +744,6 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await fillAgenceStep(page, {
         legalFormLabel: 'Raison individuelle',
         legalName: 'Regie Correction Test',
-        tradeName: 'Regie Correction',
         // LE champ corrigé : c'est ce que le relecteur avait demandé.
         registrationNumber: 'CHE-105.909.036',
         address: '10 Rue du Test',

@@ -144,14 +144,56 @@ function parseDetail(detail: string, attrs: GeoAdminResult['attrs']): Omit<Swiss
   }
 }
 
-/** Assemble une suggestion complète (id + libellés) à partir d'un résultat brut de l'API. */
+/**
+ * Rue, NPA et localité lus dans `attrs.label` — la SEULE forme correctement
+ * accentuée et casée que rend l'API.
+ *
+ * `attrs.detail`, que `parseDetail` découpe, est un index de recherche : tout en
+ * minuscules et SANS accents (« rue du rhone 100 1204 geneve … »). Reconstruit
+ * depuis là, le champ ressortait « Rue Du Rhone 100 » / « Geneve » — mauvaise
+ * casse sur les particules ET accents perdus. Or `attrs.label` vaut, pour la même
+ * adresse, « Rue du Rhône 100 <b>1204 Genève</b> » (constaté le 03.08.2026).
+ * L'écart n'est pas cosmétique ici : l'étape 2 du KYB demande une adresse qui
+ * corresponde à l'inscription au registre du commerce.
+ *
+ * Le canton n'est PAS dans le label : il reste lu dans `detail`, seul endroit où
+ * il figure. Forme inattendue -> `null`, et l'appelant retombe sur `parseDetail`.
+ */
+function parseLabel(labelHtml: string):
+  Pick<SwissAddressSuggestion, 'street' | 'streetName' | 'streetNumber' | 'postalCode' | 'city'> | null {
+  const m = /^(.+?)\s*<b>\s*(\d{4})\s+(.+?)\s*<\/b>\s*$/.exec(labelHtml)
+  if (!m) return null
+  const street = m[1].trim()
+  // `streetName`/`streetNumber` re-dérivés de la rue ACCENTUÉE, et pas laissés à
+  // ceux de `parseDetail` : personne ne les consomme aujourd'hui, mais les laisser
+  // en version non accentuée à côté d'un `street` accentué installerait une
+  // divergence silencieuse dans le même objet, prête à mordre le premier appelant.
+  const num = /\s(\d+[a-zA-Z]?)$/.exec(street)
+  return {
+    street,
+    streetName: num ? street.slice(0, num.index).trim() : street,
+    streetNumber: num ? num[1] : '',
+    postalCode: m[2],
+    city: m[3].trim(),
+  }
+}
+
+/**
+ * Assemble une suggestion complète (id + libellés) à partir d'un résultat brut.
+ *
+ * `detail` donne la structure (le canton, et le repli complet si le label n'a pas
+ * la forme attendue) ; `label` donne la TYPOGRAPHIE. On garde donc les deux, et
+ * le label prime là où il dit quelque chose.
+ */
 function parseSuggestion(result: GeoAdminResult): SwissAddressSuggestion {
   const parsed = parseDetail(result.attrs.detail, result.attrs)
+  const soigne = parseLabel(result.attrs.label)
   return {
     id: result.id,
     label: stripHtml(result.attrs.label),
     labelHtml: result.attrs.label,
     ...parsed,
+    ...(soigne ?? {}),
   }
 }
 

@@ -33,7 +33,6 @@ import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import { ToastProvider } from '@/components/ui/Toast'
 import AdminConsoleRoute from '@/components/admin/AdminConsoleRoute'
 import ImpersonationHandoff from '@/components/admin/ImpersonationHandoff'
-import LanguageChangeOverlay from '@/components/ui/LanguageChangeOverlay'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Lazy-loaded public pages
@@ -581,9 +580,16 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ToastProvider>
-            {/* Masks the layout reflow during i18n.changeLanguage() — 350ms
-                frosted-glass shimmer overlay, listens to languageChanged event. */}
-            <LanguageChangeOverlay />
+            {/* Aucun voile de bascule de langue ici, et c'est délibéré (3 août 2026).
+                `<LanguageChangeOverlay>` occupait cette place : 350 ms de verre dépoli
+                plein écran par `languageChanged`. Or l'événement partait DEUX fois par
+                choix — les sélecteurs appelaient `changeLanguage()` avant que le bundle
+                existe —, soit ~1 s de veille opaque mesurée pour 60 ms de travail réel,
+                avec un passage par le français au milieu. Le voile masquait ce défaut ;
+                `switchLanguage()` (src/i18n/index.ts) le supprime à la source, en
+                chargeant avant de basculer. Ce qui reste à couvrir est le seul
+                téléchargement, et se couvre là où il se voit : un squelette DANS la
+                surface concernée, jamais un voile sur toute l'application. */}
             <AiPanelProvider>
               <ErrorBoundary>
                 <Suspense fallback={<SmartPageLoader />}>

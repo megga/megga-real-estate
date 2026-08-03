@@ -24,12 +24,21 @@
       "ariaLabel": "Passaggi",
       "signataire": "Firmatario",
       "agence": "Agenzia",
-      "beneficiaires": "Aventi diritto economico",
       "pieceIdentite": "Documento d'identità",
       "recapitulatif": "Riepilogo"
     },
     "header": {
-      "language": "Lingua dell'interfaccia"
+      "language": "Lingua dell'interfaccia",
+      "languageLoading": "Caricamento della lingua…"
+    },
+    "date": {
+      "open": "Scegliere una data",
+      "placeholder": "GG.MM.AAAA",
+      "previousMonth": "Mese precedente",
+      "nextMonth": "Mese successivo",
+      "month": "Mese",
+      "year": "Anno",
+      "clear": "Cancellare la data"
     },
     "footer": {
       "continue": "Continua",
@@ -65,43 +74,28 @@
         "countryPlaceholder": "Selezioni un Paese",
         "legalFormId": "Forma giuridica",
         "legalFormPlaceholder": "Selezioni una forma giuridica",
-        "legalFormPlaceholderNoCountry": "Selezioni prima il Paese della sede",
+        "legalFormPlaceholderNoCountry": "Scelga prima il Paese",
         "legalName": "Ragione sociale",
-        "legalNameHint": "La denominazione ufficiale iscritta nel registro di commercio.",
-        "tradeName": "Nome commerciale",
-        "tradeNameHint": "Il nome con cui i Suoi clienti La conoscono, se diverso dalla ragione sociale.",
         "businessRegistrationNumber": "Numero di registro",
-        "tva": "Numero IVA",
-        "tvaHint": "Facoltativo: riguarda solo le aziende assoggettate all'IVA.",
         "address": "Indirizzo",
         "postal": "NPA",
         "city": "Città",
         "canton": "Cantone",
         "cantonPlaceholder": "Selezioni un Cantone"
-      }
-    },
-    "beneficiaires": {
-      "title": "Chi sono gli aventi diritto economico della Sua agenzia?",
-      "subtitle": "Le persone fisiche che detengono o controllano la Sua agenzia.",
-      "reuseSignataire": "Riprenda {{name}} (firmatario)",
-      "addButton": "Aggiunga un avente diritto economico",
-      "emptyHint": "Nessuno raggiunge il 25%? Dichiari chi controlla l'agenzia in altro modo o, in mancanza, un membro della sua direzione.",
-      "removeButton": "Rimuova questo avente diritto economico",
-      "fields": {
-        "firstName": "Nome",
-        "lastName": "Cognome",
-        "dateOfBirth": "Data di nascita",
-        "nationality": "Nazionalità",
-        "nationalityPlaceholder": "Selezioni un Paese",
-        "ownershipPct": "Percentuale di partecipazione",
-        "ownershipPctHint": "Soglia di riferimento (norma GAFI): 25% o più. Può indicare anche un valore inferiore."
       },
-      "pep": {
-        "label": "Questa persona è una persona politicamente esposta (PEP)?",
-        "yes": "Sì",
-        "yesHint": "Esercita o ha esercitato un'importante funzione pubblica, in Svizzera o all'estero, oppure è uno stretto collaboratore di tale persona.",
-        "no": "No",
-        "noHint": "Non esercita alcuna funzione pubblica importante."
+      "company": {
+        "search": "Cercare",
+        "searching": "Ricerca…",
+        "noResults": "Nessuna società trovata con questo nome nel registro di commercio.",
+        "error": "Il registro di commercio non ha risposto.",
+        "listLabel": "Società trovate nel registro",
+        "inactive": " · radiata"
+      },
+      "address": {
+        "placeholder": "Via e numero",
+        "noResults": "Nessun indirizzo trovato. Può inserirlo a mano.",
+        "error": "Il registro degli indirizzi non ha risposto. Può inserire l'indirizzo a mano.",
+        "listLabel": "Indirizzi proposti"
       }
     },
     "pieceIdentite": {
@@ -130,10 +124,6 @@
       "title": "Verifichi il Suo fascicolo prima di inviarlo",
       "subtitle": "Rilegga ogni sezione. Può ancora modificare un passaggio.",
       "notProvided": "Non indicato",
-      "beneficiaires": {
-        "empty": "Nessun avente diritto economico dichiarato.",
-        "ownership": "{{pct}}% di partecipazione"
-      },
       "pieceIdentite": {
         "uploaded": "Caricato",
         "missing": "Mancante",

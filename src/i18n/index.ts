@@ -264,7 +264,72 @@ export async function ensureLanguageLoaded(lng: string) {
   await i18n.changeLanguage(lng)
 }
 
-// Au démarrage : charge la langue détectée si ≠ fr
+/**
+ * LA bascule de langue déclenchée par un humain — sélecteur du wizard, Réglages,
+ * Réglages mobile, écran « Plus » mobile. Tous passent par ici ; aucun n'appelle
+ * plus `i18n.changeLanguage()` en direct.
+ *
+ * POURQUOI ELLE EXISTE. Les quatre sélecteurs appelaient `changeLanguage(lng)`
+ * tel quel, c'est-à-dire exactement ce contre quoi `ensureLanguageLoaded`
+ * ci-dessus met en garde depuis toujours. Déroulé mesuré le 3 août 2026 sur une
+ * bascule vers l'italien :
+ *
+ *   1. `changeLanguage('it')` bascule AVANT que le bundle existe → premier
+ *      `languageChanged`, premier rendu — en FRANÇAIS, par `fallbackLng` ;
+ *   2. l'écouteur plus bas rattrape et lance le téléchargement (13 imports
+ *      dynamiques, ~140 Ko) ;
+ *   3. arrivé, il rebascule → SECOND `languageChanged`, second rendu, en italien.
+ *
+ * Deux `languageChanged` pour un seul choix, séparés par toute la durée du
+ * téléchargement — d'où le passage par le français au milieu, et le voile plein
+ * écran qui s'ouvrait deux fois (LanguageChangeOverlay, retiré au même moment :
+ * il masquait ce défaut au lieu de le corriger, ~1 s de veille opaque pour 60 ms
+ * de travail réel).
+ *
+ * Ici : on charge, PUIS on bascule. Un seul événement, un seul rendu, jamais de
+ * détour par le français. La promesse ne se résout qu'une fois la bascule faite
+ * — c'est elle que l'appelant attend pour savoir quand relâcher son squelette.
+ */
+export async function switchLanguage(lng: string): Promise<void> {
+  if (lng === i18n.language) return
+  // Posé AVANT le premier await : deux clics rapprochés doivent se départager
+  // sur le dernier demandé, pas sur le téléchargement le plus rapide.
+  langueDemandee = lng
+  await ensureLanguageLoaded(lng)
+  // `ensureLanguageLoaded` a déjà basculé pour une langue non-FR fraîchement
+  // chargée. Restent : le français (aucun bundle à charger) et une langue déjà
+  // en cache (sortie anticipée) — d'où cette bascule, sans quoi rien ne se
+  // passerait. Le garde de fraîcheur vaut ici aussi : pendant l'await, l'agent
+  // a pu choisir autre chose.
+  if (langueDemandee !== lng) return
+  if (i18n.language !== lng) await i18n.changeLanguage(lng)
+}
+
+/**
+ * Aligne `<html lang>` sur la langue affichée.
+ *
+ * `index.html` l'écrit « fr » en dur et personne ne le rtouchait ensuite : un
+ * CRM affiché en allemand se DÉCLARAIT donc français, dans les quatre langues
+ * sauf une. Trois conséquences, dont une visible :
+ *
+ *  1. la CÉSURE. `hyphens: auto` choisit son dictionnaire d'après `lang` :
+ *     annoncer « fr » sur un texte allemand donne des coupures fausses, ou
+ *     aucune. C'est ce qui faisait déborder « Kollektivzeichnungsberechtigung »
+ *     (31 caractères, 241 px pour une boîte de 208) hors de sa tuile ;
+ *  2. les lecteurs d'écran prononcent tout avec la phonétique française ;
+ *  3. WCAG 3.1.1 (Langue de la page) n'est pas satisfait.
+ *
+ * Deux lettres seulement (`de`, pas `de-CH`) : c'est la granularité des
+ * ressources du produit, et une forme régionale inventée serait une déclaration
+ * fausse de plus.
+ */
+function syncDocumentLang(lng: string): void {
+  if (typeof document === 'undefined') return
+  document.documentElement.lang = lng.slice(0, 2)
+}
+
+// Au démarrage : charge la langue détectée si ≠ fr, et déclare-la.
+syncDocumentLang(i18n.language)
 void ensureLanguageLoaded(i18n.language)
 
 // À chaque changement de langue : charge à la volée
@@ -272,6 +337,7 @@ i18n.on('languageChanged', (lng) => {
   // Hors du `if` : une bascule vers le français ne charge rien, mais elle reste
   // une demande, et elle doit périmer un chargement encore en vol.
   langueDemandee = lng
+  syncDocumentLang(lng)
   if (!i18n.hasResourceBundle(lng, 'common')) {
     void ensureLanguageLoaded(lng)
   }
