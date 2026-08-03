@@ -317,11 +317,38 @@ interface SignataireFixture {
   signaturePower: 'individual' | 'joint'
 }
 
+/**
+ * Choisit une date de naissance dans le calendrier de l'étape 0.
+ *
+ * ⚠ Ce n'est plus un `.fill()`. La date de naissance était un `<input type="date">` ;
+ * elle est passée à `MxDatePicker` (refonte du 03.08.2026) parce que le calendrier
+ * natif appartient au navigateur, donc à la DA de Chrome au milieu du parcours. Le
+ * contrôle rendu est un **bouton** qui ouvre un panneau — `getByLabel('Date de
+ * naissance').fill()` attendait donc indéfiniment un champ qui n'existe plus, et
+ * l'e2e expirait à 90 s. Ce défaut est arrivé avec la refonte, pas avec l'étape 3 :
+ * la branche n'avait simplement pas encore de PR, donc ce job n'avait jamais tourné.
+ *
+ * La cellule du jour est ciblée par `data-iso`, posé exprès sur chaque bouton du
+ * calendrier : c'est la seule prise qui ne dépend ni de la langue de l'interface ni
+ * du format d'affichage. Le mois et l'année passent par leurs `<select>`, seule
+ * façon d'atteindre 1980 sans cliquer « mois précédent » cinq cents fois.
+ */
+async function pickDateOfBirth(page: Page, iso: string): Promise<void> {
+  const [year, month] = iso.split('-').map(Number)
+  await page.getByRole('button', { name: 'Choisir une date' }).click()
+  // L'ANNÉE d'abord : changer le mois d'abord ferait remonter une vue dont l'année
+  // est encore celle par défaut, et un 29 février y serait absent.
+  await labelField(page, 'Année').selectOption(String(year))
+  // `value` = index du mois (0-11), pas son numéro — cf. monthNames dans MxDatePicker.
+  await labelField(page, 'Mois').selectOption(String(month - 1))
+  await page.locator(`.mx-datepicker__day[data-iso="${iso}"]`).click()
+}
+
 /** Remplit et valide (Continuer) l'étape 0, commune aux trois parcours de ce fichier. */
 async function fillSignataireStep(page: Page, s: SignataireFixture): Promise<void> {
   await labelField(page, 'Prénom').fill(s.firstName)
   await labelField(page, 'Nom').fill(s.lastName)
-  await labelField(page, 'Date de naissance').fill(s.dateOfBirth)
+  await pickDateOfBirth(page, s.dateOfBirth)
   await labelField(page, 'Nationalité').selectOption(s.nationality)
   // Rôle 'radio' et non 'button' : les deux pouvoirs de signature étaient rendus
   // par une paire de <button aria-pressed>, ils sont devenus un vrai groupe de
