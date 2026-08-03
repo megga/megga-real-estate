@@ -15,10 +15,18 @@ L'audit croise **trois couches**, parce qu'une seule d'entre elles ment dans les
 | Grants de table | `information_schema.role_table_grants` | `TRUNCATE` **ignore la RLS** — aucune policy ne le filtre |
 | Comportement réel | impersonation `set local role authenticated` + `request.jwt.claims` | La logique d'une expression ne se déduit pas toujours de sa lecture |
 
-La troisième couche a tranché deux verdicts que les deux premières donnaient faux
-(cf. §4 `seller_leads`, §6 `agency_profiles`). **Les policies ont été lues dans la base, pas
-dans `supabase/migrations/`** : plusieurs policies vivantes proviennent de
-`_archived/`, donc les fichiers de migration ne décrivent plus l'état réel.
+La troisième couche a tranché des verdicts que les deux premières donnaient faux — dans les
+deux sens : elle a confirmé une fuite que le texte des policies laissait discutable (§4
+`seller_leads`) et **invalidé un constat de ce rapport** qui reposait sur une sonde mal
+formée (§8 `agency_profiles`). **Les policies ont été lues dans la base, pas dans
+`supabase/migrations/`** : plusieurs policies vivantes proviennent de `_archived/`, donc les
+fichiers de migration ne décrivent plus l'état réel.
+
+⚠ Un quatrième niveau existe, et il a piégé cet audit : les **grants de COLONNE**
+(`information_schema.role_column_grants`). PostgreSQL nomme la **table** dans son message
+d'erreur même quand seul l'accès à une **colonne** manque — un refus de colonne prend donc
+l'apparence d'une table fermée. Toute conclusion tirée d'un `permission denied` doit être
+recoupée colonne par colonne avant d'être écrite (cf. §8).
 
 ### Ce qui a été mesuré, et ce qui ne l'a pas été
 
@@ -204,28 +212,47 @@ autant que de sécurité.
 
 ---
 
-## 8. 🟢 Correction d'un constat interne périmé — `agency_profiles`
+## 8. 🟢 `agency_profiles` — déjà fermé, et une erreur de cet audit corrigée
 
 `INVENTAIRE_SOCLE.md` §9.4 affirme que `read_agency_profiles` (`SELECT … USING(true)`)
-expose 5 992 `claim_token` à tout compte authentifié, et qu'`authenticated` « n'a jamais
-été coupé ».
+expose 5 992 `claim_token` à tout compte authentifié. **Ce n'est plus vrai** — mais pas pour
+la raison que la première version de ce rapport avançait.
 
-**Ce n'est plus vrai.** Mesuré ce jour :
+**Erreur de méthode, et sa correction.** Une première sonde en production avait renvoyé
+`42501: permission denied for table agency_profiles`, d'où la conclusion — fausse — que
+`SELECT` avait été révoqué et que la policy était devenue **inerte**, avec la recommandation
+de la supprimer. La sonde portait en réalité un `where claim_token is not null` : c'est
+cette colonne-là qui était refusée, pas la table. **Le message d'erreur de PostgreSQL
+nomme la TABLE même quand seul l'accès à une COLONNE manque** — piège à connaître, il
+transforme un refus de colonne en apparence de table fermée.
 
-```
-authenticated → DELETE, INSERT, REFERENCES, TRIGGER, TRUNCATE, UPDATE   (pas de SELECT)
-```
+**L'état réel**, vérifié colonne par colonne (`information_schema.role_column_grants`, puis
+`SET ROLE authenticated` sur base locale) : `authenticated` détient `SELECT` sur **31
+colonnes**, et `claim_token` en est **exclu**.
 
-Le `SELECT` a été révoqué au niveau **grant**. Une lecture réelle renvoie
-`42501: permission denied for table agency_profiles`. La policy `USING(true)` est **inerte**
-— elle survit, trompeuse, au-dessus d'un grant fermé.
+| Sonde, en tant qu'`authenticated` | Résultat |
+|---|---|
+| `select id, name, logo_url …` | ✅ autorisé |
+| `select claim_token …` | ❌ `permission denied` |
 
-Les écritures restent formellement accordées mais échouent en RLS : les 5 992 lignes portent
-`agency_id IS NULL`, et `NULL IN (…)` vaut `NULL`, donc faux. Aucune policy `DELETE`
-n'existe. **Fermé des deux côtés.**
+Le secret est donc protégé, et il l'est depuis le 29.07.2026 :
+`20260729130000_agency_profiles_read_policy.sql` a repris le `SELECT` de table pour le
+re-donner colonne par colonne, sans `claim_token`. Son en-tête documente déjà le piège —
+« un REVOKE de colonne ne suffit pas », le privilège de table couvrant toutes les colonnes.
 
-À faire malgré tout : **supprimer la policy morte**, qui fait croire à une exposition, et
-mettre §9.4 à jour. Deux audits successifs perdront le même temps à re-mesurer.
+**La policy `USING(true)` n'est ni morte ni trompeuse : elle est voulue.** L'annuaire est un
+référentiel partagé, non cloisonné par tenant, au même titre que `market_listings` — et il
+est portant : Matching · Recherche jointe `agency_profiles(logo_url)`. **La supprimer aurait
+cassé cet écran en silence** (l'embed serait passé à `null`, masqué par le repli sur le nom).
+
+Reste vrai, et à faire : **mettre `INVENTAIRE_SOCLE.md` §9.4 à jour**, qui décrit une
+exposition refermée depuis le 29.07.
+
+⚠ Détail à surveiller, sans gravité aujourd'hui : les grants de colonne `INSERT` et `UPDATE`
+d'`authenticated` incluent, eux, `claim_token`. Non exploitable — les 5 992 lignes portent
+`agency_id IS NULL`, donc `owner_update_agency_profiles` ne matche aucune, et un jeton
+réécrit resterait illisible. Mais le jour où une ligne sera rattachée à une agence, cette
+colonne deviendra inscriptible par elle.
 
 ---
 
@@ -254,7 +281,9 @@ Ordre d'exécution : effet décroissant, risque croissant.
    la lecture.
 4. **Grants** — `REVOKE TRUNCATE` (au minimum) sur les tables du schéma ; commencer par
    `activity_events`, dont l'immuabilité est un engagement de conformité.
-5. **`agency_profiles`** — supprimer la policy inerte et corriger `INVENTAIRE_SOCLE.md` §9.4.
+5. **`agency_profiles`** — **ne rien toucher au schéma** (§8 : la policy est voulue et
+   portante). Seulement corriger `INVENTAIRE_SOCLE.md` §9.4, qui décrit une exposition
+   refermée le 29.07.
 
 **Garde-fou à ajouter (le vrai livrable durable) :** un test qui échoue si une nouvelle
 policy accorde un accès cross-agence, sur le modèle de `tests/unit/redirects-guard.spec.ts`.
