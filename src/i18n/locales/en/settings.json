@@ -812,10 +812,6 @@
       "preferences": {
         "label": "Preferences",
         "short": "Preferences"
-      },
-      "availability": {
-        "label": "Availability",
-        "short": "Availability"
       }
     },
     "groups": {
@@ -1114,57 +1110,6 @@
       "agencyNotLoaded": "Agency not loaded, sign in again to save.",
       "logoUploadError": "Could not upload the logo.",
       "directoryMissing": "Your directory profile isn't set up yet, contact your administrator to complete it."
-    },
-    "availability": {
-      "banner": "The slots your clients can book themselves.",
-      "loading": "Loading availability…",
-      "open_label": "Online booking",
-      "open_on": "Open, {{days}} day(s) configured",
-      "open_off": "Closed. Your clients cannot book by themselves.",
-      "week_group": "Typical week",
-      "closed": "Closed",
-      "add_range": "Add a range",
-      "remove_range": "Remove this range",
-      "days": {
-        "1": "Monday",
-        "2": "Tuesday",
-        "3": "Wednesday",
-        "4": "Thursday",
-        "5": "Friday",
-        "6": "Saturday",
-        "7": "Sunday"
-      },
-      "slot_group": "Appointment format",
-      "slot_minutes": "Appointment length",
-      "slot_minutes_hint": "The actual time blocked in your calendar.",
-      "buffer_minutes": "Gap between appointments",
-      "buffer_minutes_hint": "Travel or admin time. Separates this appointment from the previous one AND the next.",
-      "min_notice": "Minimum notice",
-      "min_notice_hint": "Below this, no online booking or cancellation.",
-      "max_advance": "Booking horizon",
-      "max_advance_hint": "Beyond this, no slot is offered.",
-      "mode": "Appointment type",
-      "mode_sur_place": "In person",
-      "mode_video": "Video call",
-      "location": "Location",
-      "location_hint": "Shown to the client and carried into the calendar event.",
-      "location_placeholder": "Rue du Rhône 12, Geneva",
-      "minutes": "{{n}} min",
-      "hours": "{{n}} h",
-      "days_n": "{{n}} d",
-      "none": "None",
-      "timeoff_group": "Time off",
-      "timeoff_empty": "No upcoming time off.",
-      "timeoff_from": "From",
-      "timeoff_to": "To",
-      "timeoff_reason": "Reason (optional)",
-      "timeoff_reason_placeholder": "Holiday",
-      "timeoff_add": "Add",
-      "timeoff_remove": "Remove this entry",
-      "timeoff_bad_range": "The end date must come after the start date.",
-      "unsaved": "Unsaved changes",
-      "save": "Save",
-      "saving": "Saving…"
     }
   }
 }
