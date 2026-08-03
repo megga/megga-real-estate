@@ -76,7 +76,24 @@ export function Av({ initials, av, size = 38, ring = false }: AvProps) {
   )
 }
 
+// ─── Eyebrow — libellé de section ───────────────────────────────────────
+interface EyebrowProps {
+  children: ReactNode
+  color?: string
+}
 
+export function Eyebrow({ children, color }: EyebrowProps) {
+  return (
+    <div
+      style={{
+        fontSize: 10.5, fontWeight: 800, letterSpacing: '0.13em', textTransform: 'uppercase',
+        color: color || TK.sub,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
 
 // ─── Frame / Tile (verre Sugar) ─────────────────────────────────────────
 interface TileProps {

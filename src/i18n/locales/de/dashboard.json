@@ -430,6 +430,98 @@
       "eyebrow": "MEGGA AI · Tagesbriefing",
       "deepen": "Vertiefen",
       "deepenQuestion": "Erläutere meine heutigen Prioritäten im Detail und schlage für jede die nächste Aktion vor."
+    },
+    "h": {
+      "greeting": "Hallo {{name}}",
+      "whatsNew": "What's new",
+      "close": "Schliessen",
+      "yourDay": "Dein Tag",
+      "appointments_one": "{{count}} Termin",
+      "appointments_other": "{{count}} Termine",
+      "hour": "{{hour}}:00",
+      "freeWindow": "{{duration}} frei · Nachfass-Session",
+      "tabs": {
+        "deals": "Dossiers",
+        "listings": "Inserate"
+      },
+      "hotCount_one": "{{count}} heiss",
+      "hotCount_other": "{{count}} heisse",
+      "openListings": "Meine Objekte öffnen",
+      "seeDealsInPipeline": "Die {{count}} Dossiers in der Pipeline ansehen",
+      "todayLabel": "Heute",
+      "openInCalendar": "Im Kalender öffnen",
+      "doneBadge": "Erledigt",
+      "types": {
+        "relance": "Anruf",
+        "kyc": "Konformität",
+        "mandat": "Mandat",
+        "visite": "Besichtigung",
+        "compromis": "Vorvertrag",
+        "default": "Termin"
+      },
+      "news": {
+        "fresh": "Neu"
+      },
+      "absence": {
+        "title": "Während deiner Abwesenheit",
+        "seeAll": "Alle {{count}} ansehen",
+        "countSince_one": "{{count}} Signal · seit {{since}}",
+        "countSince_other": "{{count}} Signale · seit {{since}}",
+        "upToDateSince": "Aktuell · seit {{since}}",
+        "upToDateInline": "Du bist auf dem neusten Stand, nichts Neues seit {{since}}",
+        "emptyTitle": "Du bist auf dem neusten Stand",
+        "emptyDesc": "Keine Käuferrückmeldungen und keine offenen Erinnerungen. Alles wurde bearbeitet.",
+        "markAll": "Alle als gesehen markieren",
+        "count_one": "{{count}} Signal",
+        "count_other": "{{count}} Signale",
+        "groupBuyers": "Käuferrückmeldungen",
+        "groupReminders": "Erinnerungen",
+        "liked": "mag {{subject}}",
+        "skipped": "hat {{subject}} abgelehnt",
+        "reminderDue": "Dossier {{subject}} wieder aufnehmen",
+        "ctaProposeVisit": "Besichtigung vorschlagen",
+        "ctaRecalibrate": "Neu justieren",
+        "ctaResume": "Aufnehmen",
+        "unknownContact": "Kontakt",
+        "unknownProperty": "ein Objekt"
+      },
+      "toast": {
+        "openMandate": "Mandat von {{name}} wird geöffnet",
+        "launched": "{{cta}} · gestartet",
+        "launchedFor": "{{cta}} {{name}} · gestartet",
+        "allUpToDate": "Alles aktuell",
+        "visitProposed": "Besichtigungsvorschlag an {{name}} gesendet",
+        "dealResumed": "Dossier {{name}} wieder aufgenommen",
+        "recalibrated": "Kriterien für {{name}} neu justiert",
+        "published": "Veröffentlichung auf Immobilier.ch · {{title}}",
+        "annAction": "{{cta}} · {{title}}",
+        "resumeFailed": "Die Wiederaufnahme konnte nicht gespeichert werden. Bitte erneut versuchen.",
+        "doneFailed": "Der Status konnte nicht gespeichert werden. Bitte erneut versuchen.",
+        "markedDone": "{{name}} · als erledigt markiert",
+        "reopened": "Wieder geöffnet"
+      },
+      "cta": {
+        "openKyc": "KYC öffnen",
+        "openVisit": "Besichtigung öffnen",
+        "openContact": "Kontakt öffnen",
+        "openListing": "Objekt öffnen",
+        "openCalendar": "Kalender öffnen"
+      },
+      "day": {
+        "emptyTitle": "Freier Tag",
+        "emptyDesc": "Heute sind keine Termine, Besichtigungen oder Erinnerungen geplant."
+      },
+      "demoTag": "Demo",
+      "demoHint": "Dieser Bereich läuft noch mit Demodaten.",
+      "mobileTitle": "Heute",
+      "mobileDay": "Tag",
+      "searchAria": "Suchen",
+      "markDoneAria": "Als erledigt markieren",
+      "reopenAria": "Wieder öffnen",
+      "slots_one": "{{count}} Termin",
+      "slots_other": "{{count}} Termine",
+      "minutes_one": "{{count}} Min.",
+      "minutes_other": "{{count}} Min."
     }
   },
   "analytics": {
