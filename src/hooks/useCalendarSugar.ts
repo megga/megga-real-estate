@@ -97,6 +97,14 @@ function visitToCalEvent(v: VisitJoin): CalEvent {
     location: property ? [property.address, property.city].filter(Boolean).join(', ') : undefined,
     start,
     end,
+    // Le statut de la visite était SÉLECTIONNÉ puis jeté : une visite effectuée
+    // se rendait donc comme une visite à venir. Le Calendrier ne s'en apercevait
+    // pas — il superpose son propre état local — mais la ligne du temps du
+    // concept H, elle, lit `status` et n'a aucun état local à superposer.
+    // `no_show` compte comme close : le créneau est passé, il n'attend plus rien.
+    status: v.status === 'done' || v.status === 'no_show' ? 'done'
+      : v.status === 'cancelled' ? 'cancelled'
+      : undefined,
   }
 }
 
