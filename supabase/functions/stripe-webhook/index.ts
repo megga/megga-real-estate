@@ -168,12 +168,58 @@ async function handleIdentityVerification(
     .eq('id', person.id as string)
 }
 
+/** Ce qu'a fait une écriture d'état d'abonnement. */
+type ApplyOutcome = 'applied' | 'stale' | 'absent'
+
+/**
+ * Écrit un état d'abonnement en REFUSANT les événements hors séquence.
+ *
+ * Stripe ne garantit pas l'ordre de livraison. Sans garde, un
+ * `customer.subscription.updated` rejoué après un `customer.subscription.deleted`
+ * réactive un abonnement résilié et lui rend son `mrr_chf` — sans qu'aucun
+ * attaquant soit impliqué, il suffit que Stripe reprenne une livraison.
+ *
+ * La garde est portée par le WHERE de l'UPDATE lui-même
+ * (`last_stripe_event_at <= eventAt`, ou NULL pour une ligne antérieure au
+ * correctif), donc la décision et l'écriture sont la même opération : deux
+ * livraisons simultanées ne peuvent pas toutes deux se croire les plus récentes.
+ *
+ * `absent` distingue « ligne inexistante » de « événement périmé » — les deux
+ * rendent zéro ligne modifiée, et l'appelant doit les traiter différemment
+ * (créer vs ignorer).
+ */
+async function applySubscriptionState(
+  admin: ReturnType<typeof createClient>,
+  agencyId: string,
+  eventAt: string,
+  patch: Record<string, unknown>,
+): Promise<ApplyOutcome> {
+  const { data, error } = await admin
+    .from('subscriptions')
+    .update({ ...patch, last_stripe_event_at: eventAt, updated_at: new Date().toISOString() })
+    .eq('agency_id', agencyId)
+    // Valeur entre guillemets : un horodatage ISO contient des points, et la
+    // syntaxe `or=(col.op.valeur)` de PostgREST découpe sur les points.
+    .or(`last_stripe_event_at.is.null,last_stripe_event_at.lte."${eventAt}"`)
+    .select('agency_id')
+
+  if (error) throw error
+  if (data && data.length > 0) return 'applied'
+
+  const { data: existing } = await admin
+    .from('subscriptions').select('agency_id').eq('agency_id', agencyId).maybeSingle()
+  return existing ? 'stale' : 'absent'
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   const startedAt = Date.now()
+  // Déclaré hors du `try` : le `catch` doit pouvoir RETIRER la réservation prise
+  // plus bas, faute de quoi un échec rendrait l'événement définitivement ignoré.
+  let claimedEventId: string | null = null
   try {
     const body = await req.text()
     const signature = req.headers.get('stripe-signature')!
@@ -194,6 +240,37 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
+    // ── Réservation de l'événement (idempotence, audit §4.4) ──
+    //
+    // Stripe rejoue tant qu'il n'a pas de 2xx, et le `catch` de cette fonction
+    // rend 500 : le rejeu n'est donc pas une hypothèse, c'est le comportement
+    // nominal en cas d'échec partiel. Sans registre, chaque rejeu réinsérait les
+    // `activity_events` déjà écrits avant l'échec.
+    //
+    // `ignoreDuplicates` rend un tableau VIDE quand l'événement est déjà connu —
+    // on acquitte alors sans retraiter. La réservation est prise AVANT le
+    // traitement et RETIRÉE dans le `catch` : marquer traité un événement qui a
+    // échoué ferait ignorer le rejeu, transformant une panne passagère en perte
+    // définitive.
+    const eventAt = new Date(event.created * 1000).toISOString()
+    const { data: claimed, error: claimError } = await supabaseAdmin
+      .from('stripe_events')
+      .upsert(
+        { event_id: event.id, event_type: event.type, event_created: eventAt },
+        { onConflict: 'event_id', ignoreDuplicates: true },
+      )
+      .select('event_id')
+
+    if (claimError) throw claimError
+    if (!claimed || claimed.length === 0) {
+      console.log(`Stripe event ${event.id} déjà traité — acquitté sans retraitement`)
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    claimedEventId = event.id
+
     switch (event.type) {
       // ─── Checkout completed — activate subscription ───
       case 'checkout.session.completed': {
@@ -211,32 +288,47 @@ serve(async (req) => {
           break
         }
 
-        // UPSERT subscription in DB
-        const { error } = await supabaseAdmin
-          .from('subscriptions')
-          .upsert({
-            agency_id: agencyId,
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscriptionId,
-            stripe_price_id: priceId,
-            plan: getPlanFromPriceId(priceId),
-            billing_period: getBillingPeriod(priceId),
-            status: 'active',
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            // Étape 7 (console §5.7) : les files « essais qui finissent » et « impayés »
-            // lisent ces colonnes. `trial_end` vient de Stripe, jamais d'un calcul local.
-            trial_end: subscription.trial_end
-              ? new Date(subscription.trial_end * 1000).toISOString()
-              : null,
-            // Règle de comptage §4.3, appliquée À L'ÉCRITURE pour que le MRR ne soit jamais
-            // recalculé côté front : essai, impayé, annulé et Starter (0 CHF) comptent ZÉRO.
-            mrr_chf: monthlyRevenue(subscription, 'active', getPlanFromPriceId(priceId)),
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'agency_id' })
+        const checkoutPatch = {
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscriptionId,
+          stripe_price_id: priceId,
+          plan: getPlanFromPriceId(priceId),
+          billing_period: getBillingPeriod(priceId),
+          status: 'active',
+          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          // Étape 7 (console §5.7) : les files « essais qui finissent » et « impayés »
+          // lisent ces colonnes. `trial_end` vient de Stripe, jamais d'un calcul local.
+          trial_end: subscription.trial_end
+            ? new Date(subscription.trial_end * 1000).toISOString()
+            : null,
+          // Règle de comptage §4.3, appliquée À L'ÉCRITURE pour que le MRR ne soit jamais
+          // recalculé côté front : essai, impayé, annulé et Starter (0 CHF) comptent ZÉRO.
+          mrr_chf: monthlyRevenue(subscription, 'active', getPlanFromPriceId(priceId)),
+        }
 
-        if (error) console.error('Failed to upsert subscription:', error)
+        // Cet événement CRÉE la ligne, mais il peut aussi arriver en retard,
+        // après un `subscription.updated` qui l'a déjà créée. D'où la garde
+        // d'abord, l'insertion seulement si la ligne n'existe pas encore.
+        const checkoutOutcome = await applySubscriptionState(
+          supabaseAdmin, agencyId, eventAt, checkoutPatch,
+        )
+        if (checkoutOutcome === 'absent') {
+          // Course possible avec une création concurrente : la contrainte
+          // d'unicité sur agency_id lèvera, le `catch` libérera la réservation,
+          // et le rejeu Stripe repassera par la branche « applied ».
+          const { error } = await supabaseAdmin.from('subscriptions').insert({
+            agency_id: agencyId,
+            ...checkoutPatch,
+            last_stripe_event_at: eventAt,
+            updated_at: new Date().toISOString(),
+          })
+          if (error) throw error
+        } else if (checkoutOutcome === 'stale') {
+          console.log(`checkout.session.completed ${event.id} hors séquence — ignoré`)
+          break
+        }
 
         // Update agencies.stripe_customer_id
         await supabaseAdmin
@@ -297,26 +389,28 @@ serve(async (req) => {
           break
         }
 
-        // Update subscription
-        await supabaseAdmin
-          .from('subscriptions')
-          .upsert({
-            agency_id: agencyId,
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subscription.id,
-            stripe_price_id: priceId,
-            plan,
-            billing_period: getBillingPeriod(priceId),
-            status,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            cancel_at_period_end: subscription.cancel_at_period_end,
-            trial_end: subscription.trial_end
-              ? new Date(subscription.trial_end * 1000).toISOString()
-              : null,
-            mrr_chf: monthlyRevenue(subscription, status, plan),
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'agency_id' })
+        // C'est LE cas que la garde d'ordre protège : rejoué après un
+        // `customer.subscription.deleted`, cet événement réactivait un
+        // abonnement résilié et lui rendait son mrr_chf.
+        const updatedOutcome = await applySubscriptionState(supabaseAdmin, agencyId, eventAt, {
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscription.id,
+          stripe_price_id: priceId,
+          plan,
+          billing_period: getBillingPeriod(priceId),
+          status,
+          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          trial_end: subscription.trial_end
+            ? new Date(subscription.trial_end * 1000).toISOString()
+            : null,
+          mrr_chf: monthlyRevenue(subscription, status, plan),
+        })
+        if (updatedOutcome !== 'applied') {
+          console.log(`customer.subscription.updated ${event.id} ${updatedOutcome} — ignoré`)
+          break
+        }
 
         // Log activity
         await supabaseAdmin.from('activity_events').insert({
@@ -356,14 +450,14 @@ serve(async (req) => {
         }
 
         if (agencyId) {
-          await supabaseAdmin
-            .from('subscriptions')
-            .update({
-              status: 'canceled',
-              plan: 'starter',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('agency_id', agencyId)
+          const deletedOutcome = await applySubscriptionState(supabaseAdmin, agencyId, eventAt, {
+            status: 'canceled',
+            plan: 'starter',
+          })
+          if (deletedOutcome !== 'applied') {
+            console.log(`customer.subscription.deleted ${event.id} ${deletedOutcome} — ignoré`)
+            break
+          }
 
           await supabaseAdmin.from('activity_events').insert({
             agency_id: agencyId,
@@ -401,15 +495,11 @@ serve(async (req) => {
           .maybeSingle()
 
         if (sub?.agency_id) {
-          await supabaseAdmin
-            .from('subscriptions')
-            .update({
-              trial_end: subscription.trial_end
-                ? new Date(subscription.trial_end * 1000).toISOString()
-                : null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('agency_id', sub.agency_id)
+          await applySubscriptionState(supabaseAdmin, sub.agency_id, eventAt, {
+            trial_end: subscription.trial_end
+              ? new Date(subscription.trial_end * 1000).toISOString()
+              : null,
+          })
         }
         break
       }
@@ -426,17 +516,17 @@ serve(async (req) => {
 
         const agencyId = sub?.agency_id
         if (agencyId) {
-          await supabaseAdmin
-            .from('subscriptions')
-            .update({
-              status: 'past_due',
-              last_invoice_status: 'payment_failed',
-              // Un impayé sort du MRR (§4.3) : la valeur affichée ne doit pas survivre à
-              // l'échec de paiement qui la rend caduque.
-              mrr_chf: 0,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('agency_id', agencyId)
+          const failedOutcome = await applySubscriptionState(supabaseAdmin, agencyId, eventAt, {
+            status: 'past_due',
+            last_invoice_status: 'payment_failed',
+            // Un impayé sort du MRR (§4.3) : la valeur affichée ne doit pas survivre à
+            // l'échec de paiement qui la rend caduque.
+            mrr_chf: 0,
+          })
+          if (failedOutcome !== 'applied') {
+            console.log(`invoice.payment_failed ${event.id} ${failedOutcome} — ignoré`)
+            break
+          }
 
           await supabaseAdmin.from('activity_events').insert({
             agency_id: agencyId,
@@ -471,16 +561,14 @@ serve(async (req) => {
         const agencyId = sub?.agency_id
         if (agencyId && invoice.lines?.data?.[0]?.period) {
           const period = invoice.lines.data[0].period
-          await supabaseAdmin
-            .from('subscriptions')
-            .update({
-              status: 'active',
-              last_invoice_status: 'paid',
-              current_period_start: new Date(period.start * 1000).toISOString(),
-              current_period_end: new Date(period.end * 1000).toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('agency_id', agencyId)
+          // Garde d'ordre ici aussi : un paiement réussi rejoué APRÈS un impayé
+            // ressusciterait un `active` que Stripe a déjà démenti.
+          await applySubscriptionState(supabaseAdmin, agencyId, eventAt, {
+            status: 'active',
+            last_invoice_status: 'paid',
+            current_period_start: new Date(period.start * 1000).toISOString(),
+            current_period_end: new Date(period.end * 1000).toISOString(),
+          })
         }
         break
       }
@@ -517,8 +605,31 @@ serve(async (req) => {
     // sort en 400 plus haut) : un appelant qui n'a pas le secret ne peut donc
     // pas provoquer d'écriture ici. `supabaseAdmin` est déclaré dans le `try`,
     // hors de portée — on rouvre un client plutôt que de restructurer.
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
+
+    // Libère la réservation pour que le rejeu Stripe puisse retraiter. Sans ça,
+    // le registre d'idempotence transformerait une panne passagère en perte
+    // définitive : l'événement serait « déjà traité » alors qu'il a échoué.
+    //
+    // Le retrait est lui-même best-effort et enveloppé : s'il échoue, on veut
+    // quand même le 500 qui déclenche le rejeu, et l'erreur d'origine dans le
+    // rapport — pas une seconde exception qui masquerait la première.
+    if (claimedEventId) {
+      const { error: releaseError } = await admin
+        .from('stripe_events').delete().eq('event_id', claimedEventId)
+      if (releaseError) {
+        console.error(
+          `Stripe event ${claimedEventId} : réservation NON libérée — le rejeu sera ignoré`,
+          releaseError.message,
+        )
+      }
+    }
+
     await reportEdgeError(
-      createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!),
+      admin,
       'stripe-webhook',
       err,
       { startedAt },
