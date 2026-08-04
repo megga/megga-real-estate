@@ -60,6 +60,34 @@ interface StepPieceIdentiteProps {
 }
 
 /**
+ * Le pictogramme de la carte de vérification : un visage dans un cadre de scan.
+ *
+ * Dessiné sur `currentColor` et NON sur le `#000000` de la source : cet écran est un
+ * canvas noir MEGGA X, un tracé noir y serait purement invisible. La couleur vient donc
+ * du texte de la carte, et le pictogramme suit toute reteinte future sans retouche.
+ *
+ * `aria-hidden` : il redit le titre qui le suit, il n'ajoute rien pour un lecteur
+ * d'écran. Pas d'`id` non plus — celui de la source (`Face Scan`) serait un identifiant
+ * de document, dupliqué à chaque rendu.
+ */
+function FaceScanGlyph() {
+  return (
+    <svg
+      width="64" height="64" viewBox="0 0 24 24" fill="none"
+      xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+    >
+      <path d="M3 8.46907V6.89189C3 4.74259 4.74259 3 6.89286 3H8.18205" />
+      <path d="M3 15.5312V17.1084C3 19.2577 4.74259 21.0003 6.89286 21.0003H8.14994" />
+      <path d="M21.0004 15.5312V17.1084C21.0004 19.2577 19.2578 21.0003 17.1075 21.0003H15.8184" />
+      <path d="M20.9995 8.46907V6.89189C20.9995 4.74259 19.257 3 17.1067 3H15.8496" />
+      <path d="M13.7624 16.043C13.2145 16.331 12.9522 17.8173 12.9522 17.8173" strokeLinejoin="miter" />
+      <path d="M8.23834 17.1213C8.9253 15.5547 8.55371 13.9168 7.74922 12.4768C7.17425 11.4473 7.04693 10.3433 7.53317 9.22298C8.25599 7.55669 9.99998 6.78841 11.7304 6.74995C12.7678 6.72687 13.7525 6.90794 14.5634 7.59185C15.6044 8.46982 16.2133 9.54401 15.898 10.9724C15.73 11.7338 16.2859 12.5987 16.6798 13.1278C16.8532 13.3607 16.7658 13.6728 16.4948 13.7773L15.9821 13.9751C15.8341 14.0321 15.7261 14.1614 15.6962 14.3171L15.5247 15.7783C15.4678 16.1576 15.1454 16.3377 14.7852 16.2619L13.2458 15.9148C12.7425 15.8038 12.7645 15.3485 12.633 14.8721" strokeLinejoin="miter" />
+    </svg>
+  )
+}
+
+/**
  * Ce que la lecture assistée a trouvé — jamais un obstacle, toujours une remarque.
  *
  * Exporté et partagé avec le récapitulatif : le dirigeant doit lire la MÊME phrase aux
@@ -152,9 +180,9 @@ export function StepPieceIdentite({
         // Information, pas erreur : une carte neutre, jamais le pavé rouge de la
         // vitrine — rien n'a échoué, il manque seulement une étape en amont.
         <div className="mg-top-medium">
-          <div className="card">
+          <div className="card mx-idcard">
             <div className="pd---content-inside-card">
-              <p className="paragraph-small text-color-neutral-600 text-center">
+              <p className="paragraph-small text-color-neutral-600">
                 {t('wizard.pieceIdentite.missingSignataire')}
               </p>
             </div>
@@ -220,7 +248,10 @@ function IdentityBlockedCard({ onUndeclare }: { onUndeclare: () => void }) {
   const { t } = useTranslation('onboarding')
   return (
     <div className="mg-top-medium">
-      <div className="card">
+      {/* Même plancher que la carte principale : les deux branches se remplacent l'une
+          l'autre au même endroit, et un pied d'actions qui saute au moment où le
+          dirigeant clique « Ma pièce n'est pas acceptée » ferait douter du clic. */}
+      <div className="card mx-idcard">
         <div className="pd---content-inside-card">
           <p className="display-1 medium">{t('wizard.pieceIdentite.verification.blocked.title')}</p>
           <div className="mg-top-4x-extra-small">
@@ -261,40 +292,56 @@ function IdentityVerificationCard({
   const pending = status === 'processing'
   const retry = status === 'requires_input'
 
+  // La carte ne parle que si elle a un fait NOUVEAU à donner — un refus, une ouverture
+  // impossible, un traitement en cours, une vérification faite. `null` dans l'état
+  // d'accueil, et c'est le nettoyage principal de cet écran : ce qui est accepté
+  // (passeport, carte d'identité) et ce que MEGGA ne reçoit jamais sont désormais écrits
+  // UNE fois, sous le titre de l'étape. Les répéter sous l'icône remplissait la carte
+  // sans rien apprendre, à deux lignes d'intervalle.
+  const message = startFailure
+    ? t(`wizard.pieceIdentite.verification.startFailed.${startFailure}`)
+    : retry
+      ? t(`wizard.pieceIdentite.verification.errors.${knownVerificationError(errorCode)}`)
+      : done
+        ? t('wizard.pieceIdentite.verification.doneBody')
+        : pending
+          ? t('wizard.pieceIdentite.verification.pendingBody')
+          : null
+
   return (
     <div className="mg-top-medium">
-      <div className="card">
+      {/* `mx-idcard` : plancher de hauteur + centrage. Le contenu de cette étape est le
+          plus court des cinq (une carte, un bouton) ; sans plancher, le pied
+          d'actions remontait de 223 px par rapport aux étapes 1 et 2 et « Continuer »
+          changeait de place d'une étape à l'autre. Détail au point 15 de
+          megga-x-additions.css. */}
+      <div className="card mx-idcard">
         <div className="pd---content-inside-card">
-          <div className="display-2 semi-bold">
-            {t(`wizard.pieceIdentite.verification.${done ? 'doneTitle' : pending ? 'pendingTitle' : 'title'}`)}
-          </div>
-          <div className="mg-top-4x-extra-small">
-            <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
-              {t(`wizard.pieceIdentite.verification.${done ? 'doneBody' : pending ? 'pendingBody' : 'body'}`)}
-            </p>
-          </div>
-
-
-          {/* Le motif du refus, dans la langue de l'agent. Le code brut de Stripe
-              (`selfie_document_missing_photo`) n'a aucun sens pour un dirigeant : tout
-              code hors du catalogue traduit retombe sur une phrase générique. */}
-          {/* Le motif du refus, ou la raison pour laquelle l'ouverture a échoué. Les
-              deux atterrissent ici, à la même place et dans la même peau : l'écran ne
-              change plus de forme, il explique. C'est ce qui remplace la bascule vers
-              le dépôt, retirée le 05.08.2026. */}
-          {startFailure ? (
-            <div className="mg-top-4x-extra-small">
-              <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
-                {t(`wizard.pieceIdentite.verification.startFailed.${startFailure}`)}
-              </p>
+          <div className="mx-idcard__glyph" aria-hidden="true"><FaceScanGlyph /></div>
+          {/* Un titre de carte SEULEMENT quand il dit ce que le titre de l'étape ne peut
+              pas dire. Celui-ci est une consigne fixe (« Vérifiez votre identité ») ;
+              `verified` et `processing` sont des ÉTATS, et l'écran doit pouvoir les
+              annoncer. Dans l'état d'accueil, la carte se taisait pour redire le titre
+              placé cent pixels plus haut — avec le rail qui affiche déjà « Vérification »,
+              cela faisait trois formulations de la même idée l'une sous l'autre. */}
+          {(done || pending) && (
+            <div className="display-2 semi-bold mg-top-3x-extra-small">
+              {t(`wizard.pieceIdentite.verification.${done ? 'doneTitle' : 'pendingTitle'}`)}
             </div>
-          ) : retry ? (
-            <div className="mg-top-4x-extra-small">
-              <p className="paragraph-small text-color-neutral-600">
-                {t(`wizard.pieceIdentite.verification.errors.${knownVerificationError(errorCode)}`)}
+          )}
+          {/* La région vivante est déclarée MÊME VIDE, dès le premier rendu : un lecteur
+              d'écran n'annonce de façon fiable que les changements survenus DANS une
+              région déjà présente. La créer en même temps que le premier message — un
+              refus, un passage en traitement — laisserait cette annonce-là passer
+              inaperçue, la seule qui compte vraiment. `polite` et non `assertive` :
+              rien ici n'a à interrompre une saisie en cours. */}
+          <div role="status" aria-live="polite">
+            {message && (
+              <p className="paragraph-small text-color-neutral-600 mg-top-4x-extra-small">
+                {message}
               </p>
-            </div>
-          ) : null}
+            )}
+          </div>
 
           {!done && (
             <div className="mg-top-3x-extra-small">

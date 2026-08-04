@@ -44,6 +44,9 @@
  * 14. Colonne des heures d'un sélecteur de créneau — la vitrine ne prend aucun
  *     rendez-vous. Le CALENDRIER, lui, n'est pas réécrit : celui du point 11
  *     sert tel quel, seule la colonne à sa droite est neuve.
+ * 15. Plancher de hauteur d'une carte d'étape — la vitrine n'a aucun écran dont
+ *     le contenu tienne en une carte et un bouton : ses sections sont toujours
+ *     remplies, il n'y avait donc jamais rien à répartir.
  *
  * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
  * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
@@ -922,3 +925,47 @@
   margin-bottom: auto;
 }
 
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 15. Carte de l'étape « Vérification ». La vitrine n'a pas d'écran dont le
+ *    contenu tienne en une carte et un bouton : ses sections sont toujours
+ *    remplies, et rien n'y avait à répartir.
+ *
+ *    Cette étape-ci est la plus COURTE du parcours. Mesuré le
+ *    04.08.2026 à 1495×929 : sa carte faisait 258 px quand celle de l'étape 1
+ *    en fait 495, si bien que le pied d'actions remontait de 223 px et que
+ *    « Continuer » n'était pas au même endroit d'une étape à l'autre — le
+ *    parcours sautait sous l'œil à chaque passage.
+ *
+ *    `30rem` (480 px) n'est pas un chiffre rond posé au hasard : c'est ce qui
+ *    porte le contenu de l'étape au niveau de la zone qui défile (628 px à
+ *    cette taille de fenêtre, titre et chapô compris), donc ce qui remet le
+ *    pied exactement là où les étapes 1 et 2 le posent. En `rem` pour suivre le
+ *    zoom du navigateur.
+ *
+ *    ⚠ `justify-content: center` est ici SANS le danger décrit au point 7
+ *    (« jamais sur un conteneur qui défile ») : ce n'est pas ce conteneur qui
+ *    défile mais `.mx-scrollarea`, et `min-height` — jamais `height` — laisse
+ *    la carte GRANDIR au-delà de 30rem. Le centrage ne répartit donc que du
+ *    mou ; dès qu'il n'y en a plus, il ne fait plus rien et rien n'est masqué.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-idcard {
+  display: flex;
+  min-height: 30rem;
+}
+
+.megga-x .mx-idcard > .pd---content-inside-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Le pictogramme est dessiné sur `currentColor` : il hérite donc de la couleur de
+   texte de la carte. `line-height: 0` évite la bande fantôme qu'un SVG en display
+   inline laisse sous lui (il s'aligne sur la ligne de base du texte). */
+.megga-x .mx-idcard__glyph {
+  line-height: 0;
+}

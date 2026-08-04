@@ -5,8 +5,8 @@
     },
     "mobileNotice": {
       "eyebrow": "Obligatorischer Schritt",
-      "title": "Dieser Schritt wird am Computer abgeschlossen",
-      "body": "Diese Erfassung erfordert einen grösseren Bildschirm. Setzen Sie sie an einem Computer fort."
+      "title": "Fahren Sie am Computer fort",
+      "body": "Dieser Schritt benötigt einen breiteren Bildschirm."
     },
     "welcome": {
       "title": "Öffnen wir Ihren Arbeitsbereich",
@@ -24,7 +24,7 @@
       "ariaLabel": "Schritte",
       "signataire": "Unterzeichner",
       "agence": "Agentur",
-      "pieceIdentite": "Ausweisdokument",
+      "pieceIdentite": "Verifizierung",
       "rendezVous": "Termin",
       "recapitulatif": "Zusammenfassung"
     },
@@ -105,12 +105,10 @@
       }
     },
     "pieceIdentite": {
-      "title": "Identität der zeichnungsberechtigten Person prüfen",
-      "subtitle": "Die zur Vertretung Ihrer Agentur befugte Person fotografiert ihren Ausweis und ihr Gesicht bei unserem Dienstleister. Anschliessend prüft unser Compliance-Team das Dossier.",
+      "title": "Bestätigen Sie Ihre Identität",
+      "subtitle": "Reisepass oder Identitätskarte. Das Foto wird uns nie übermittelt.",
       "missingSignataire": "Die unterzeichnende Person muss zuerst im vorherigen Schritt angegeben werden.",
       "verification": {
-        "title": "Bestätigen Sie Ihre Identität",
-        "body": "Reisepass oder Personalausweis. Das Foto wird uns nie übermittelt.",
         "cta": "Identität bestätigen",
         "retryCta": "Prüfung fortsetzen",
         "pendingTitle": "Prüfung läuft",

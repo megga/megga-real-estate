@@ -5,8 +5,8 @@
     },
     "mobileNotice": {
       "eyebrow": "Required step",
-      "title": "This step is completed on a computer",
-      "body": "This entry requires a larger screen. Please resume it from a computer."
+      "title": "Continue on a computer",
+      "body": "This step needs a wider screen."
     },
     "welcome": {
       "title": "Let us open your workspace",
@@ -24,7 +24,7 @@
       "ariaLabel": "Steps",
       "signataire": "Signatory",
       "agence": "Agency",
-      "pieceIdentite": "ID document",
+      "pieceIdentite": "Verification",
       "rendezVous": "Appointment",
       "recapitulatif": "Summary"
     },
@@ -105,12 +105,10 @@
       }
     },
     "pieceIdentite": {
-      "title": "Verify the signatory's identity",
-      "subtitle": "The person authorised to bind your agency photographs their document and their face at our provider. Our compliance team then reviews the file.",
+      "title": "Verify your identity",
+      "subtitle": "Passport or identity card. The photo is never passed on to us.",
       "missingSignataire": "The signatory must be entered in the previous step first.",
       "verification": {
-        "title": "Verify your identity",
-        "body": "Passport or identity card. The photo is never passed on to us.",
         "cta": "Verify my identity",
         "retryCta": "Resume verification",
         "pendingTitle": "Verification in progress",

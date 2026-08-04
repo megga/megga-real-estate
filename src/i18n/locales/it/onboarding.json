@@ -5,8 +5,8 @@
     },
     "mobileNotice": {
       "eyebrow": "Passaggio obbligatorio",
-      "title": "Questo passaggio si completa da computer",
-      "body": "Questa compilazione richiede uno schermo più grande. La riprenda da un computer."
+      "title": "Continui su computer",
+      "body": "Questo passaggio richiede uno schermo più largo."
     },
     "welcome": {
       "title": "Apriamo il suo spazio",
@@ -24,7 +24,7 @@
       "ariaLabel": "Passaggi",
       "signataire": "Firmatario",
       "agence": "Agenzia",
-      "pieceIdentite": "Documento d'identità",
+      "pieceIdentite": "Verifica",
       "rendezVous": "Appuntamento",
       "recapitulatif": "Riepilogo"
     },
@@ -105,12 +105,10 @@
       }
     },
     "pieceIdentite": {
-      "title": "Verifichi l'identità del firmatario",
-      "subtitle": "La persona abilitata a impegnare la sua agenzia fotografa il documento e il volto presso il nostro fornitore. Il nostro team conformità esamina poi il dossier.",
+      "title": "Verifichi la sua identità",
+      "subtitle": "Passaporto o carta d'identità. La foto non ci viene mai trasmessa.",
       "missingSignataire": "Il firmatario deve prima essere indicato nel passaggio precedente.",
       "verification": {
-        "title": "Verifichi la sua identità",
-        "body": "Passaporto o carta d'identità. La foto non ci viene mai trasmessa.",
         "cta": "Verificare la mia identità",
         "retryCta": "Riprendere la verifica",
         "pendingTitle": "Verifica in corso",

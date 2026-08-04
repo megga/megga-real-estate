@@ -5,8 +5,8 @@
     },
     "mobileNotice": {
       "eyebrow": "Étape obligatoire",
-      "title": "Cette étape se termine sur ordinateur",
-      "body": "Cette saisie demande un écran plus grand. Reprenez-la depuis un ordinateur."
+      "title": "Continuez sur ordinateur",
+      "body": "Cette étape demande un écran plus large."
     },
     "welcome": {
       "title": "Ouvrons votre espace",
@@ -24,7 +24,7 @@
       "ariaLabel": "Étapes",
       "signataire": "Signataire",
       "agence": "Agence",
-      "pieceIdentite": "Pièce d'identité",
+      "pieceIdentite": "Vérification",
       "rendezVous": "Rendez-vous",
       "recapitulatif": "Récapitulatif"
     },
@@ -105,12 +105,10 @@
       }
     },
     "pieceIdentite": {
-      "title": "Vérifiez l'identité du signataire",
-      "subtitle": "La personne habilitée à engager votre agence photographie sa pièce et son visage chez notre prestataire. Notre équipe conformité examine ensuite le dossier.",
+      "title": "Vérifiez votre identité",
+      "subtitle": "Passeport ou carte d'identité. La photo ne nous est jamais transmise.",
       "missingSignataire": "Le signataire doit d'abord être renseigné à l'étape précédente.",
       "verification": {
-        "title": "Vérifiez votre identité",
-        "body": "Passeport ou carte d'identité. La photo ne nous est jamais transmise.",
         "cta": "Vérifier mon identité",
         "retryCta": "Reprendre la vérification",
         "pendingTitle": "Vérification en cours",
