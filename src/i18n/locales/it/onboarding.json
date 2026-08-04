@@ -113,9 +113,9 @@
         "doneBody": "Il documento è stato verificato e il suo volto confrontato con la foto. Il nostro team di conformità esamina poi il fascicolo.",
         "useManual": "Caricare invece il documento",
         "errors": {
-          "consent_declined": "Ha rifiutato la verifica. Può riprenderla, oppure caricare il suo documento.",
+          "consent_declined": "Ha rifiutato la verifica. Può riprenderla, oppure richiedere una verifica manuale.",
           "under_supported_age": "La verifica online non copre le persone sotto i 16 anni.",
-          "country_not_supported": "Il suo Paese non è coperto dalla verifica online. Carichi il documento qui sotto.",
+          "country_not_supported": "Il suo paese non è coperto dalla verifica online. Richieda una verifica manuale: il nostro team conformità la contatterà.",
           "document_expired": "Il documento presentato è scaduto. Riprovi con un documento in corso di validità.",
           "document_type_not_supported": "Questo tipo di documento non è accettato. Vanno bene un passaporto o una carta d'identità.",
           "document_unverified_other": "Non è stato possibile verificare il documento. Riprovi con una luce migliore.",
@@ -124,11 +124,11 @@
           "selfie_document_missing_photo": "Il documento non riporta una foto. Usi un passaporto o una carta d'identità.",
           "selfie_unverified_other": "Non è stato possibile verificare il volto. Ripeta la verifica.",
           "abandoned": "La verifica è stata interrotta. Può riprenderla.",
-          "unknown": "La verifica non è andata a buon fine. Può riprovare o caricare il documento qui sotto."
+          "unknown": "La verifica non è andata a buon fine. Può riprenderla, oppure richiedere una verifica manuale."
         },
         "startFailed": {
-          "unavailable": "La verifica online è momentaneamente non disponibile. Carichi il suo documento qui sotto, il nostro team lo esaminerà.",
-          "unexpected": "Non è stato possibile aprire la verifica online. Carichi il suo documento qui sotto, oppure riprovi la verifica."
+          "unavailable": "La verifica online è momentaneamente non disponibile. Riprovi tra poco, oppure richieda una verifica manuale.",
+          "unexpected": "La verifica online non si è potuta aprire. Controlli la connessione e riprovi, oppure richieda una verifica manuale."
         },
         "backToVerification": "Torna alla verifica online",
         "blocked": {

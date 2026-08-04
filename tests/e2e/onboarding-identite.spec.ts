@@ -72,11 +72,6 @@ const CURRENT_CONSENT_VERSION = '2026-07'
 // (via navigation client-side, cf. en-tête) avant de toucher à la session.
 const NEUTRAL_PAGE = '/design-system/megga-x'
 
-// Plus petit PNG valide (1x1, transparent) — le contenu importe peu ici : seuls
-// le content-type (image/png, accepté par validateIdentityDocumentFile) et le
-// dépôt réel dans Storage sous le préfixe kyb-identity sont ce que ce test vérifie.
-const TINY_PNG_BASE64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
 
 interface Founder {
   id: string
@@ -419,60 +414,38 @@ async function fillAgenceStep(page: Page, a: AgenceFixture): Promise<void> {
 }
 
 /**
- * Déclare la nature de la pièce, dépose les faces qu'elle exige, puis valide
- * (Continuer) l'étape pièce d'identité — commune à tout parcours qui va jusqu'à la
- * soumission dans ce fichier.
+ * Franchit l'étape 3 (identité du signataire) par le parcours réel.
  *
- * La nature vient EN PREMIER, et c'est elle qui décide du reste : les cases
- * n'apparaissent qu'après le choix (décision du 03.08.2026, cf.
- * identityDocumentSidesFor). Le défaut est la carte d'identité — c'est la forme du
- * client de référence, et la seule qui éprouve les deux faces.
- *
- * Fichier toujours 'piece-identite.png', donc 'recto.png'/'verso.png' une fois dans
- * Storage (cf. extensionOfFile dans useAgencyIdentity.ts) — ce que les assertions de
- * Storage, plus bas, vérifient nommément.
+ * Plus aucun fichier n'est déposé : le dépôt de pièce a été retiré du parcours le
+ * 05.08.2026, la vérification chez le prestataire est le chemin unique, et ce que
+ * celui-ci ne sait pas traiter passe par une demande de vérification manuelle qui ne
+ * réclame aucun document.
  */
-async function fillPieceIdentiteStep(
-  page: Page,
-  documentType: { label: string; sides: number } = { label: "Carte d'identité", sides: 2 },
-): Promise<void> {
-  const idFile = { name: 'piece-identite.png', mimeType: 'image/png', buffer: Buffer.from(TINY_PNG_BASE64, 'base64') }
-
-  // Depuis le 05.08.2026 le dépôt n'est PLUS un choix offert : l'écran ne porte qu'une
-  // action, et le dépôt n'apparaît que comme repli décidé par le SYSTÈME. Ce test
-  // emprunte donc le chemin réel d'un utilisateur — il clique « Vérifier mon identité »
-  // — et c'est l'échec d'ouverture qui fait apparaître le dépôt.
-  //
-  // L'échec est GARANTI ici, et c'est ce qui rend l'attente déterministe : cet
-  // environnement n'a pas de clé Stripe, donc kyb-identity-verify répond 503
-  // (verification_unavailable, contrôle posé avant toute authentification). Le jour où
-  // une clé serait injectée dans ce banc, ce helper cesserait de fonctionner — et c'est
-  // le bon comportement : il faudrait alors éprouver le vrai parcours, pas le repli.
-  //
-  // La vérification elle-même sort de l'app (domaine du prestataire) et reste hors de
-  // portée d'un test de bout en bout du produit.
+async function fillPieceIdentiteStep(page: Page): Promise<void> {
+  // Depuis le 05.08.2026 le dépôt de pièce a été RETIRÉ du parcours : la vérification
+  // chez le prestataire est le chemin unique, et la seule issue pour ce qu'il ne sait
+  // pas traiter est une demande de vérification manuelle — qui ne réclame AUCUN
+  // fichier. Ce helper suit donc le parcours réel d'un dirigeant, de bout en bout.
   await page.getByRole('button', { name: 'Vérifier mon identité' }).click()
 
-  // Le repli est asynchrone (aller-retour vers l'edge) : attendre le formulaire plutôt
-  // qu'un délai fixe. Sa présence EST la preuve que la bascule automatique a eu lieu.
-  await expect(page.getByText('Nature de la pièce')).toBeVisible({ timeout: 15_000 })
+  // L'échec d'ouverture est GARANTI dans ce banc, et c'est ce qui rend l'attente
+  // déterministe : l'environnement n'a pas de clé Stripe, donc kyb-identity-verify
+  // répond 503 (contrôle posé AVANT toute authentification). Le jour où une clé y
+  // serait injectée, ce helper cesserait de fonctionner — et ce serait le bon
+  // comportement : il faudrait alors éprouver le vrai parcours, pas son issue.
+  //
+  // La sortie de secours n'apparaît qu'après cet échec (ou après un refus) : son
+  // apparition EST la preuve que l'écran a réagi, ce qu'aucun délai fixe ne montrerait.
+  const sortie = page.getByRole('button', { name: "Ma pièce n'est pas acceptée" })
+  await expect(sortie).toBeVisible({ timeout: 15_000 })
+  await sortie.click()
 
-  // Le radio natif est masqué (`opacity: 0`, MxRadio) : le clic passe par son
-  // étiquette, comme partout ailleurs dans ce fichier.
-  await page.getByText(documentType.label, { exact: true }).click()
-
-  // Les cases n'existent dans le DOM qu'une fois la nature choisie : les attendre
-  // évite un setInputFiles sur un input pas encore monté.
-  const fileInputs = page.locator('input[type="file"]')
-  await expect(fileInputs).toHaveCount(documentType.sides)
-  for (let i = 0; i < documentType.sides; i += 1) {
-    await fileInputs.nth(i).setInputFiles(idFile)
-  }
-
-  // Attend que CHAQUE face exigée confirme son dépôt avant de continuer — c'est aussi
-  // ce qui gate le bouton Continuer (isPieceIdentiteStepComplete).
-  await expect(page.getByText('Cliquez pour remplacer')).toHaveCount(documentType.sides)
-  await page.getByRole('button', { name: 'Continuer' }).click()
+  // La déclaration rend l'étape franchissable SANS aucun document — c'est tout l'objet
+  // du retrait. Le bouton Continuer qui s'active le prouve mieux qu'une assertion sur
+  // le texte : il est gaté par isPieceIdentiteStepComplete.
+  const continuer = page.getByRole('button', { name: 'Continuer' })
+  await expect(continuer).toBeEnabled({ timeout: 10_000 })
+  await continuer.click()
 }
 
 /**
@@ -591,18 +564,16 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       expect(idDocumentCheck?.source, 'aucun prestataire automatique à ce stade : source=manual').toBe('manual')
       expect(idDocumentCheck?.result, 'en attente de revue humaine, jamais un verdict automatique').toBe('pending_manual_review')
 
-      // Et les deux faces déposées à l'étape 3 existent réellement dans Storage, sous le
-      // préfixe réservé (identityDocumentFolder, useAgencyIdentity.ts) : pas seulement une
-      // ligne DB, c'est le fichier lui-même que la revue humaine doit pouvoir rouvrir.
-      // Extension 'png' : fillPieceIdentiteStep dépose toujours 'piece-identite.png'
-      // (extensionOfFile la reprend telle quelle, useAgencyIdentity.ts).
-      const kybIdentityFolder = `${founder.agencyId}/kyb-identity/${signatoryId}`
-      const { data: storedFiles, error: storedFilesErr } = await serviceRoleClient()
+      // ⛔ L'INVERSE de ce que ce test affirmait jusqu'au 05.08.2026 : plus AUCUN
+      // fichier ne doit atterrir dans Storage. Le dépôt de pièce a été retiré du
+      // parcours — la vérification se fait chez le prestataire, et ce qu'il ne sait
+      // pas traiter part en revue humaine sans document. Un fichier ici signalerait
+      // qu'un chemin d'écriture a survécu au retrait, ce qui est précisément le
+      // risque que ce changement doit fermer.
+      const { data: storedFiles } = await serviceRoleClient()
         .storage.from('documents')
-        .list(kybIdentityFolder)
-      expect(storedFilesErr).toBeNull()
-      expect(storedFiles?.some((f) => f.name === 'recto.png'), 'le recto déposé à l\'étape 3 doit exister dans Storage').toBe(true)
-      expect(storedFiles?.some((f) => f.name === 'verso.png'), 'le verso déposé à l\'étape 3 doit exister dans Storage').toBe(true)
+        .list(`${founder.agencyId}/kyb-identity/${signatoryId}`)
+      expect(storedFiles ?? [], 'aucune pièce ne doit être déposée : le parcours ne dépose plus rien').toHaveLength(0)
 
       // 6. Déconnexion, reconnexion, absence de nouvelle redirection.
       await signOutLive(page)
@@ -729,12 +700,9 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await expect(page.getByRole('button', { name: '3. Pièce d\'identité' })).toBeVisible()
       await expect(page.getByRole('button', { name: '4. Récapitulatif' })).toBeVisible()
 
-      // Ce parcours porte AUSSI le cas du passeport — la seule pièce à une face.
-      // C'est le seul endroit du dépôt qui éprouve de bout en bout que déclarer un
-      // passeport suffit à finir l'étape sans verso : la garde du bouton Continuer a
-      // ses tests unitaires, mais qu'il n'existe qu'UNE case à remplir, et qu'un seul
-      // fichier atterrisse dans Storage, ne se voit que dans un vrai navigateur.
-      await fillPieceIdentiteStep(page, { label: 'Passeport', sides: 1 })
+      // Le parcours ne dépose plus aucun fichier : la sortie de secours suffit à
+      // franchir l'étape, et c'est ce que ce test éprouve de bout en bout.
+      await fillPieceIdentiteStep(page)
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
 
       await submitRecapitulatif(page)
@@ -752,22 +720,19 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
         'identity_submitted_at doit être posé après soumission, y compris pour une raison individuelle',
       ).not.toBeNull()
 
-      // Et le passeport n'a laissé QU'UN fichier : un verso déposé « au cas où »
-      // signifierait que l'écran l'a demandé quand même.
+      // Plus aucune nature de pièce n'est demandée ni écrite, et rien n'atterrit dans
+      // Storage : c'est l'inverse de ce que ce test vérifiait avant le retrait du
+      // dépôt, et c'est ce qui prouve que le retrait est complet côté écriture.
       const { data: passportPerson } = await serviceRoleClient()
         .from('agency_related_persons')
         .select('id, id_document_type')
         .eq('agency_id', founder.agencyId)
         .single()
-      expect(passportPerson!.id_document_type).toBe('passport')
+      expect(passportPerson!.id_document_type, 'la nature de pièce n\'est plus demandée').toBeNull()
       const { data: passportFiles } = await serviceRoleClient()
         .storage.from('documents')
         .list(`${founder.agencyId}/kyb-identity/${passportPerson!.id}`)
-      expect(passportFiles?.some((f) => f.name === 'recto.png'), 'la page de données du passeport doit exister dans Storage').toBe(true)
-      expect(
-        passportFiles?.some((f) => f.name.startsWith('verso.')),
-        'aucun verso ne doit être déposé pour un passeport : il n\'a pas de seconde face',
-      ).toBe(false)
+      expect(passportFiles ?? [], 'aucun fichier : le parcours ne dépose plus').toHaveLength(0)
     } finally {
       await deleteFounder(founder)
     }

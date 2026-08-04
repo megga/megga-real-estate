@@ -662,24 +662,8 @@ export function findIdentityDocumentPath(
 }
 
 /** Formats acceptés : les pièces d'identité suisses sont presque toujours des photos, mais un scan PDF de passeport reste courant. */
-const ALLOWED_IDENTITY_DOCUMENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
-/** 8 Mo — plus généreux que l'avatar (2 Mo, useAvatar.ts) : une pièce d'identité doit rester lisible en haute résolution. */
-const MAX_IDENTITY_DOCUMENT_BYTES = 8 * 1024 * 1024
 
-export interface IdentityDocumentValidationError {
-  type: 'format' | 'size'
-}
 
-/**
- * Valide un fichier AVANT tout envoi réseau — format et taille, jamais l'un sans
- * l'autre. null = valide. Pure et testée directement (tests/unit/useAgencyIdentity.spec.ts),
- * même motif que le reste de ce fichier.
- */
-export function validateIdentityDocumentFile(file: File): IdentityDocumentValidationError | null {
-  if (!ALLOWED_IDENTITY_DOCUMENT_TYPES.includes(file.type)) return { type: 'format' }
-  if (file.size > MAX_IDENTITY_DOCUMENT_BYTES) return { type: 'size' }
-  return null
-}
 
 /**
  * Clé React Query partagée par useIdentityDocuments() et uploadIdentityDocument() — une

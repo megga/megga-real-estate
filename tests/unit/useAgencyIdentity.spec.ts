@@ -24,7 +24,6 @@ import {
   isIdentityVerificationSufficient,
   verificationNeedsManualFallback,
   IDENTITY_DOCUMENT_TYPES,
-  validateIdentityDocumentFile,
   identityDocumentsQueryKey,
   buildSubmitAgencyIdentityArgs,
   type PersonRow,
@@ -439,45 +438,6 @@ describe('identityDocumentsQueryKey — correctif revue tâche 6 (point mineur) 
   })
 })
 
-describe('validateIdentityDocumentFile — format et taille avant tout envoi réseau', () => {
-  const withinLimit = (bytes: number) => new File([new Uint8Array(bytes)], 'piece.jpg', { type: 'image/jpeg' })
-
-  it('image jpeg de taille raisonnable -> aucune erreur', () => {
-    expect(validateIdentityDocumentFile(withinLimit(1024))).toBeNull()
-  })
-
-  it('png accepté', () => {
-    expect(validateIdentityDocumentFile(new File([new Uint8Array(10)], 'piece.png', { type: 'image/png' }))).toBeNull()
-  })
-
-  it('pdf accepté (scan de passeport, pas seulement des photos)', () => {
-    expect(validateIdentityDocumentFile(new File([new Uint8Array(10)], 'piece.pdf', { type: 'application/pdf' }))).toBeNull()
-  })
-
-  // Bug du 02.08.2026 : ce format était déjà accepté ici et proposé par l'input
-  // (ACCEPTED_TYPES, StepPieceIdentite.tsx), mais REFUSÉ par `allowed_mime_types` du
-  // bucket `documents` — validation client verte, téléversement en échec. Le côté
-  // serveur a été aligné (20260802140000) ; c'est lui que garde le test backend
-  // kyb-identity-documents-storage.spec.ts, celui-ci ne fixe que le contrat client.
-  it('webp accepté — et le bucket `documents` l\'accepte aussi depuis 20260802140000', () => {
-    expect(validateIdentityDocumentFile(new File([new Uint8Array(10)], 'piece.webp', { type: 'image/webp' }))).toBeNull()
-  })
-
-  it('format non accepté (ex. vidéo) -> erreur de format', () => {
-    const file = new File([new Uint8Array(10)], 'piece.mov', { type: 'video/quicktime' })
-    expect(validateIdentityDocumentFile(file)).toEqual({ type: 'format' })
-  })
-
-  it('fichier trop volumineux (> 8 Mo) -> erreur de taille', () => {
-    const tooBig = new File([new Uint8Array(8 * 1024 * 1024 + 1)], 'piece.jpg', { type: 'image/jpeg' })
-    expect(validateIdentityDocumentFile(tooBig)).toEqual({ type: 'size' })
-  })
-
-  it('exactement 8 Mo -> encore accepté (borne inclusive)', () => {
-    const exactlyAtLimit = new File([new Uint8Array(8 * 1024 * 1024)], 'piece.jpg', { type: 'image/jpeg' })
-    expect(validateIdentityDocumentFile(exactlyAtLimit)).toBeNull()
-  })
-})
 
 describe('buildSubmitAgencyIdentityArgs — argument RPC de submit_agency_identity (tâche 7, câblage du dernier maillon)', () => {
   it('un id de personne -> { p_related_person_id } posé : c\'est ce qui déclenche la pose de la ligne de vérification côté RPC (20260728110000)', () => {
