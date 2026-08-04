@@ -1,5 +1,6 @@
 // Couche d'abstraction provider WhatsApp. Le code applicatif (edge functions)
-// parle à cette interface, jamais directement à OpenWA ni Meta.
+// parle à cette interface, jamais directement à l'API Meta. C'est ce qui a
+// permis de retirer OpenWA (04.08.2026) sans toucher aux fonctions d'envoi.
 // Couvre : entrant (parseInbound), envoi (buildSend*), accusés de lecture, et
 // statuts de livraison des sortants (parseStatusUpdates — events `statuses` Meta).
 // N'utilise que la Web Crypto API → testable Vitest (Node) ET exécutable Deno.
@@ -55,10 +56,6 @@ export interface SendConfig {
   metaToken?: string
   metaPhoneNumberId?: string
   metaApiVersion?: string        // default 'v22.0'
-  // OpenWA
-  openwaBaseUrl?: string          // e.g. http://localhost:2785
-  openwaApiKey?: string
-  openwaSessionId?: string
 }
 
 export interface SendHttpRequest {
@@ -84,22 +81,31 @@ export interface StatusUpdate {
   errorDetail: string | null
 }
 
+/**
+ * Un seul provider depuis le retrait d'OpenWA (04.08.2026) : Meta Cloud API.
+ *
+ * L'interface est conservée — c'est elle qui a rendu ce retrait possible sans
+ * toucher aux quatre fonctions d'envoi — mais les méthodes ci-dessous restent
+ * optionnelles pour une raison HISTORIQUE : elles l'étaient parce qu'OpenWA ne
+ * les supportait pas. Meta les implémente toutes. Un futur second provider
+ * décidera s'il faut les rendre obligatoires ; les rendre obligatoires
+ * aujourd'hui n'apporterait rien et toucherait les appelants qui testent leur
+ * présence.
+ */
 export interface WhatsAppProvider {
-  readonly name: 'openwa' | 'meta'
+  readonly name: 'meta'
   parseInbound(payload: unknown): NormalizedInboundMessage | null
   buildSendTextRequest(msg: OutboundTextMessage, config: SendConfig): SendHttpRequest
   parseSendResult(status: number, responseBody: unknown): SendResult
-  // Accusé de lecture (coches bleues) + indicateur "typing…" optionnel. Optionnel sur
-  // l'interface : seul Meta le supporte (OpenWA = prototype legacy sans cette capacité).
+  /** Accusé de lecture (coches bleues) + indicateur « typing… » optionnel. */
   buildMarkReadRequest?(messageId: string, config: SendConfig, opts?: { typing?: boolean }): SendHttpRequest
-  // Envoi d'un document (PDF) déjà uploadé en média. Optionnel : Meta uniquement.
+  /** Envoi d'un document (PDF) déjà uploadé en média. */
   buildSendDocumentRequest?(msg: OutboundDocumentMessage, config: SendConfig): SendHttpRequest
-  // Envoi d'une image par URL publique (photo R2). Optionnel : Meta uniquement.
+  /** Envoi d'une image par URL publique (photo R2). */
   buildSendImageRequest?(msg: OutboundImageMessage, config: SendConfig): SendHttpRequest
-  // Envoi d'un TEMPLATE approuvé (seul type autorisé hors fenêtre 24h). Optionnel : Meta seul.
+  /** Envoi d'un TEMPLATE approuvé (seul type autorisé hors fenêtre 24 h). */
   buildSendTemplateRequest?(msg: OutboundTemplateMessage, config: SendConfig): SendHttpRequest
-  // Events `statuses` (sent/delivered/read/failed) d'un webhook. Optionnel : Meta
-  // uniquement (le proto OpenWA n'en émet pas). Renvoie [] si le payload n'en a aucun.
+  /** Events `statuses` d'un webhook (sent/delivered/read/failed). `[]` si aucun. */
   parseStatusUpdates?(payload: unknown): StatusUpdate[]
 }
 
@@ -120,9 +126,20 @@ export function allowedPriorStatuses(next: StatusUpdate['status']): string[] {
   }
 }
 
-const OPENWA_TYPE_TO_MEDIA: Record<string, NormalizedMediaType> = {
-  image: 'image', audio: 'audio', ptt: 'audio', video: 'video',
-  document: 'document', location: 'location', vcard: 'contact', sticker: 'sticker',
+/**
+ * Comparaison à temps constant de deux chaînes.
+ *
+ * Sort tôt sur une longueur différente — la longueur d'un condensat hexadécimal
+ * ou d'un jeton de vérification n'est pas un secret. Ce qui ne doit pas fuir,
+ * c'est la position du premier caractère qui diverge : un `===` s'arrête dessus
+ * et le temps de réponse dit alors combien de préfixe l'attaquant a deviné.
+ */
+export function constantTimeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
 }
 
 export async function verifyHmac(rawBody: string, signatureHeader: string, secret: string): Promise<boolean> {
@@ -132,70 +149,14 @@ export async function verifyHmac(rawBody: string, signatureHeader: string, secre
   const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
   const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(rawBody))
   const expected = [...new Uint8Array(sigBuf)].map(b => b.toString(16).padStart(2, '0')).join('')
-  if (provided.length !== expected.length) return false
-  let diff = 0
-  for (let i = 0; i < expected.length; i++) diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i)
-  return diff === 0
-}
-
-class OpenWAProvider implements WhatsAppProvider {
-  readonly name = 'openwa' as const
-
-  parseInbound(payload: unknown): NormalizedInboundMessage | null {
-    const p = payload as Record<string, unknown>
-    if (!p || p.event !== 'message.received') return null
-    const data = (p.data ?? {}) as Record<string, unknown>
-    const id = data.id as string | undefined
-    const from = data.from as string | undefined
-    if (!id || !from) return null
-    const type = (data.type as string) || 'chat'
-    const mediaType = OPENWA_TYPE_TO_MEDIA[type] ?? null
-    const ts = data.timestamp as number | undefined
-    return {
-      providerMessageId: id,
-      sessionId: (p.sessionId as string) ?? null,
-      fromPhone: normalizePhone(from),
-      toPhone: data.to ? normalizePhone(data.to as string) : null,
-      body: (data.body as string) || (data.caption as string) || null,
-      mediaType,
-      mediaUrl: (data.mediaUrl as string) ?? null,
-      mediaId: null,
-      mediaMime: null,
-      timestamp: ts ? new Date(ts * 1000).toISOString() : null,
-      raw: payload,
-    }
-  }
-
-  buildSendTextRequest(msg: OutboundTextMessage, config: SendConfig): SendHttpRequest {
-    return {
-      url: `${config.openwaBaseUrl}/api/sessions/${config.openwaSessionId}/messages/send-text`,
-      method: 'POST',
-      headers: {
-        'X-API-Key': config.openwaApiKey ?? '',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ to: msg.toPhone, message: msg.body }),
-    }
-  }
-
-  parseSendResult(status: number, responseBody: unknown): SendResult {
-    const body = responseBody as Record<string, unknown>
-    if (status >= 200 && status < 300) {
-      const id =
-        (body.id as string) ??
-        ((body.data as Record<string, unknown>)?.id as string) ??
-        null
-      return { ok: true, providerMessageId: id }
-    }
-    return { ok: false, providerMessageId: null, error: 'HTTP ' + status }
-  }
+  return constantTimeEqual(provided, expected)
 }
 
 // ── Meta Cloud API provider ──────────────────────────────────────
 // Payload Meta : { object:'whatsapp_business_account', entry:[{ changes:[{
 //   field:'messages', value:{ messages:[...], metadata:{...} } }] }] }
-// Signature : header X-Hub-Signature-256 = sha256=HMAC-SHA256(app_secret, rawBody)
-// → on réutilise verifyHmac() tel quel (même schéma que OpenWA).
+// Signature : header X-Hub-Signature-256 = sha256=HMAC-SHA256(app_secret, rawBody),
+// vérifiée par verifyHmac() — désormais le seul chemin d'entrée accepté.
 
 const META_TYPE_TO_MEDIA: Record<string, NormalizedMediaType> = {
   image: 'image', audio: 'audio', voice: 'audio', video: 'video',
@@ -404,11 +365,19 @@ class MetaProvider implements WhatsAppProvider {
 }
 
 const PROVIDERS: Record<string, WhatsAppProvider> = {
-  openwa: new OpenWAProvider(),
   meta: new MetaProvider(),
 }
 
-export function getProvider(name = 'openwa'): WhatsAppProvider {
+/**
+ * ⚠ Le nom du provider est OBLIGATOIRE, volontairement.
+ *
+ * Il portait un défaut — `name = 'openwa'` — qui faisait retomber tout appelant
+ * distrait sur le prototype de la Phase 1. Un défaut qui désigne le chemin le
+ * moins sûr est un piège : il agit précisément quand personne n'a réfléchi.
+ * Aucun appelant ne s'en servait (tous passaient 'meta'), donc l'exiger ne
+ * casse rien et le compilateur attrape désormais l'oubli.
+ */
+export function getProvider(name: string): WhatsAppProvider {
   const p = PROVIDERS[name]
   if (!p) throw new Error(`Unknown WhatsApp provider: ${name}`)
   return p

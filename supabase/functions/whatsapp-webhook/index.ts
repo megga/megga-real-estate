@@ -1,13 +1,14 @@
 // supabase/functions/whatsapp-webhook/index.ts
-// Réception des webhooks WhatsApp entrants (OpenWA en Phase 1).
-// AUCUNE AUTH SUPABASE — validation via signature HMAC (x-openwa-signature).
+// Réception des webhooks WhatsApp entrants (Meta Cloud API).
+// AUCUNE AUTH SUPABASE — validation par signature HMAC (x-hub-signature-256),
+// UNIQUE chemin depuis le retrait d'OpenWA (audit du 03.08.2026 §4.2).
 //
 // Pipeline : signature → parse (gateway) → map contact par numéro →
 // insert idempotent whatsapp_messages → audit activity_events.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getProvider, verifyHmac, allowedPriorStatuses, type SendConfig, type SendResult, type StatusUpdate } from '../_shared/whatsapp-gateway.ts'
+import { getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, type SendConfig, type SendResult, type StatusUpdate } from '../_shared/whatsapp-gateway.ts'
 import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 import { resolveTriageAgencyId, ensureLeadForInboundPhone, triageLeadName, isTriageEligible } from '../_shared/whatsapp-lead-triage.ts'
 import { buildTemplateMessage, type WaTemplateContext, type WaTemplateKey } from '../_shared/whatsapp-templates.ts'
@@ -23,7 +24,7 @@ import { asWaLang, detectLang, t, type WaLang, undoneStage, undoStateChanged, un
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type, x-openwa-signature, x-openwa-idempotency-key, x-openwa-retry-count, x-openwa-delivery-id',
+  'Access-Control-Allow-Headers': 'content-type, x-hub-signature-256',
 }
 
 serve(async (req) => {
@@ -31,14 +32,20 @@ serve(async (req) => {
 
   // ── Handshake de vérification webhook Meta (GET) ──
   // Meta envoie ?hub.mode=subscribe&hub.verify_token=…&hub.challenge=… → on
-  // renvoie le challenge si le token correspond. (OpenWA n'utilise jamais GET.)
+  // renvoie le challenge si le token correspond.
   if (req.method === 'GET') {
     const url = new URL(req.url)
     const mode = url.searchParams.get('hub.mode')
     const token = url.searchParams.get('hub.verify_token')
     const challenge = url.searchParams.get('hub.challenge')
     const verifyToken = Deno.env.get('WHATSAPP_VERIFY_TOKEN') ?? ''
-    if (mode === 'subscribe' && verifyToken && token === verifyToken) {
+    // `===` s'arrêtait au premier caractère divergent : le temps de réponse
+    // disait alors combien de préfixe l'appelant avait deviné. Exploiter ça à
+    // travers le réseau n'est pas réaliste (audit §4.5, sévérité faible) — mais
+    // le POST à deux lignes d'ici comparait déjà en temps constant, et laisser
+    // deux règles cohabiter dans un même fichier coûte plus cher à lire qu'à
+    // corriger.
+    if (mode === 'subscribe' && verifyToken && constantTimeEqual(token ?? '', verifyToken)) {
       return new Response(challenge ?? '', { status: 200, headers: corsHeaders })
     }
     return new Response('Forbidden', { status: 403, headers: corsHeaders })
@@ -46,33 +53,37 @@ serve(async (req) => {
 
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: corsHeaders })
 
-  // 1. Body brut + détection du provider via l'en-tête de signature
+  // 1. Corps brut + signature Meta — UN SEUL chemin, volontairement.
+  //
+  // Il y en avait deux, choisis par l'en-tête que l'APPELANT envoie : sans
+  // `x-hub-signature-256`, on retombait sur la branche OpenWA et sa propre clé.
+  // L'attaquant ne choisissait pas s'il devait signer, mais AVEC LEQUEL des deux
+  // secrets — donc le plus faible, le plus ancien, ou le plus largement diffusé.
+  // Et `WHATSAPP_WEBHOOK_SECRET` était les trois : posé le 28.05.2026, jamais
+  // tourné depuis, pour un provider retiré de la production.
+  //
+  // Ce que la branche gardait n'était pas anodin : le pipeline entrant atteint
+  // whatsapp-actions.ts — pipeline, envoi de lien KYC, e-mail client,
+  // publication/retrait portails, suppression de contact.
+  //
+  // Audit du 03.08.2026 §4.2 (docs/audits/2026-08-03-signatures-webhooks.md).
   const rawBody = await req.text()
   const metaSig = req.headers.get('x-hub-signature-256')
-  const openwaSig = req.headers.get('x-openwa-signature')
 
-  let providerName: 'meta' | 'openwa'
-  let signatureValid: boolean
-  if (metaSig) {
-    // Meta : X-Hub-Signature-256 = sha256=HMAC-SHA256(app_secret, rawBody)
-    providerName = 'meta'
-    const appSecret = Deno.env.get('META_APP_SECRET') ?? ''
-    if (!appSecret) {
-      console.error('META_APP_SECRET not configured')
-      return new Response('Server misconfigured', { status: 500, headers: corsHeaders })
-    }
-    signatureValid = await verifyHmac(rawBody, metaSig, appSecret)
-  } else {
-    // OpenWA : x-openwa-signature = sha256=HMAC-SHA256(webhook_secret, rawBody)
-    providerName = 'openwa'
-    const secret = Deno.env.get('WHATSAPP_WEBHOOK_SECRET') ?? ''
-    if (!secret) {
-      console.error('WHATSAPP_WEBHOOK_SECRET not configured')
-      return new Response('Server misconfigured', { status: 500, headers: corsHeaders })
-    }
-    signatureValid = await verifyHmac(rawBody, openwaSig ?? '', secret)
+  // Signature absente → refus. Pas de repli : un repli est un second chemin, et
+  // un second chemin est un choix laissé à l'appelant.
+  if (!metaSig) return new Response('Invalid signature', { status: 401, headers: corsHeaders })
+
+  const appSecret = Deno.env.get('META_APP_SECRET') ?? ''
+  if (!appSecret) {
+    console.error('META_APP_SECRET not configured')
+    return new Response('Server misconfigured', { status: 500, headers: corsHeaders })
   }
-  if (!signatureValid) return new Response('Invalid signature', { status: 401, headers: corsHeaders })
+  // X-Hub-Signature-256 = sha256=HMAC-SHA256(app_secret, rawBody)
+  if (!await verifyHmac(rawBody, metaSig, appSecret)) {
+    return new Response('Invalid signature', { status: 401, headers: corsHeaders })
+  }
+  const providerName = 'meta'
 
   // 2. Parse + normalisation via la couche gateway (provider détecté)
   let payload: unknown
@@ -271,7 +282,7 @@ serve(async (req) => {
   if (!contactId && !agencyId && isTriageEligible(msg.fromPhone, msg.body)) {
     // Best-effort : les 2 appels réseau du triage (RPC agence + upsert lead) ne doivent JAMAIS
     // faire échouer le webhook. Une erreur Postgres est déjà gérée en {error} → null ; on borne
-    // aussi les erreurs TRANSPORT (DNS/timeout) sinon le handler rejette → 500 → retries Meta/openwa.
+    // aussi les erreurs TRANSPORT (DNS/timeout) sinon le handler rejette → 500 → retries Meta.
     // Mode d'échec sûr : le message est inséré tel quel (orphelin), le back-link trigger rattrapera.
     try {
       // wa_to = numéro Business composé par le client → attribution déterministe par agence
@@ -664,7 +675,7 @@ async function sendWhatsAppText(
 }
 
 // Envoi d'une image WhatsApp par URL publique (photo R2) — Meta télécharge le lien,
-// pas d'upload média. ok=false si le provider ne le supporte pas (OpenWA legacy).
+// pas d'upload média. ok=false si le provider ne le supporte pas.
 async function sendWhatsAppImage(
   provider: ReturnType<typeof getProvider>, toPhone: string, link: string, caption?: string,
 ): Promise<SendResult> {
@@ -813,7 +824,7 @@ async function notifyDeliveryFailure(
 }
 
 // Accusé de lecture (coches bleues) + « typing… » optionnel. Best-effort, Meta only
-// (buildMarkReadRequest absent sur OpenWA → no-op via l'appel optionnel).
+// (méthode optionnelle sur l'interface → no-op si absente).
 async function markRead(
   provider: ReturnType<typeof getProvider>, messageId: string, typing: boolean,
 ): Promise<void> {
