@@ -283,7 +283,9 @@
       "loadingSlots": "Uhrzeiten werden geladen…",
       "pickDayFirst": "Wählen Sie einen Tag im Kalender, um freie Zeiten zu sehen.",
       "noSlotThatDay": "An diesem Tag ist nichts mehr frei.",
-      "timezoneHint": "Zeiten in Ihrer Zeitzone: {{timezone}}"
+      "timezoneHint": "Zeiten in Ihrer Zeitzone: {{timezone}}",
+      "timezoneLabel": "Zeitzone",
+      "hour12": "Uhrzeiten als am/pm anzeigen"
     },
     "form": {
       "phone": "Telefon (optional)",

@@ -77,7 +77,12 @@ function monthBounds(month: Date): { from: string; to: string } {
 export default function OcBooking({ onStateChange, secondaryAction }: OcBookingProps) {
   const { t } = useTranslation('onboarding')
 
-  const timezone = useMemo(() => browserTimezone(), [])
+  // Le fuseau du navigateur n'est qu'un POINT DE DÉPART : un dirigeant en déplacement,
+  // ou qui reçoit un associé à l'étranger, doit pouvoir lire les créneaux dans le fuseau
+  // qui l'intéresse. Même raison pour le format 12 h : lire « 14:00 » quand on pense en
+  // am/pm fait manquer un appel.
+  const [timezone, setTimezone] = useState(() => browserTimezone())
+  const [hour12, setHour12] = useState(false)
   const [month, setMonth] = useState(() => new Date())
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
@@ -227,7 +232,7 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
         {etape === 'formulaire' && selectedSlot && (
           <div className="mx-book__fact mg-top-5x-extra-small">
             <CalendarGlyph />
-            <p className="paragraph-small">{longSlotLabel(selectedSlot, timezone)}</p>
+            <p className="paragraph-small">{longSlotLabel(selectedSlot, timezone, hour12)}</p>
           </div>
         )}
       </div>
@@ -256,6 +261,9 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
                   selectedSlot={selectedSlot}
                   onSelectSlot={setSelectedSlot}
                   timezone={timezone}
+                  onTimezoneChange={setTimezone}
+                  hour12={hour12}
+                  onHour12Change={setHour12}
                   loading={slotsQuery.isLoading}
                   slotAction={(
                     <MxButton type="button" size="small" onClick={() => setEtape('formulaire')}>
@@ -351,12 +359,15 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
 }
 
 /** Horodatage long du volet hôte : « mercredi 5 août 2026, 10:30 – 11:00 ». */
-function longSlotLabel(iso: string, timezone: string): string {
+function longSlotLabel(iso: string, timezone: string, hour12: boolean): string {
   const d = new Date(iso)
   const jour = new Intl.DateTimeFormat('fr-CH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: timezone }).format(d)
-  const heure = new Intl.DateTimeFormat('fr-CH', { hour: '2-digit', minute: '2-digit', timeZone: timezone }).format(d)
-  const fin = new Intl.DateTimeFormat('fr-CH', { hour: '2-digit', minute: '2-digit', timeZone: timezone }).format(new Date(d.getTime() + 30 * 60_000))
-  return `${jour}, ${heure} – ${fin}`
+  // Même paire de locales que hourLabel, et pour la même raison : `fr-CH` ne rend
+  // jamais le suffixe am/pm, il produirait un horaire ambigu à midi.
+  const h = (at: Date) => new Intl.DateTimeFormat(hour12 ? 'en-US' : 'fr-CH', {
+    hour: '2-digit', minute: '2-digit', hour12, timeZone: timezone,
+  }).format(at)
+  return `${jour}, ${h(d)} – ${h(new Date(d.getTime() + 30 * 60_000))}`
 }
 
 /* Trois pictogrammes du volet hôte, tracés sur `currentColor` — mêmes conventions que

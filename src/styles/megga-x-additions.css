@@ -1083,3 +1083,28 @@
   background-color: var(--neutral-colors--400);
   border-color: var(--neutral-colors--400);
 }
+
+/* Fuseau et format d'heure côte à côte, sous le mois (point 17). Empilés, la bascule
+   passait sous le bord de la zone qui défile : deux réglages qu'on lit ensemble ne
+   doivent pas demander de faire défiler pour découvrir le second. */
+.megga-x .mx-slotpicker__prefs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--main-spacers--5x-extra-small);
+}
+
+/* Aligné sur la ligne de base du champ voisin, pas sur son étiquette. */
+.megga-x .mx-slotpicker__prefs-toggle {
+  padding-bottom: 10px;
+  white-space: nowrap;
+}
+
+@media screen and (max-width: 767px) {
+  .megga-x .mx-slotpicker__prefs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .megga-x .mx-slotpicker__prefs-toggle {
+    padding-bottom: 0;
+  }
+}

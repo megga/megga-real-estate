@@ -28,6 +28,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { dayKeyOf, hourLabel, monthGrid, monthKey } from './ocDates'
+import { MxField, MxSelect, MxToggle } from '@/components/megga-x'
 
 export interface OcSlotPickerProps {
   /** Instants ISO rendus par l'edge function `onboarding-slots`. */
@@ -47,12 +48,18 @@ export interface OcSlotPickerProps {
    */
   slotAction?: React.ReactNode
   timezone: string
+  /** Change le fuseau d'affichage. Absent : le fuseau est figé et seul un texte l'annonce. */
+  onTimezoneChange?: (tz: string) => void
+  /** Affichage sur 12 heures (am/pm) plutôt que 24. */
+  hour12?: boolean
+  onHour12Change?: (next: boolean) => void
   loading?: boolean
 }
 
 export default function OcSlotPicker({
   slots, month, onMonthChange, selectedDay, onSelectDay,
-  selectedSlot, onSelectSlot, timezone, loading = false, slotAction,
+  selectedSlot, onSelectSlot, timezone, onTimezoneChange,
+  hour12 = false, onHour12Change, loading = false, slotAction,
 }: OcSlotPickerProps) {
   const { t } = useTranslation('onboarding')
 
@@ -138,11 +145,43 @@ export default function OcSlotPicker({
           })}
         </div>
 
-        {/* `paragraph-small mx-field__help` : le couple exact que MxField pose sous
-            un champ — taille de la vitrine, encre secondaire du point 1. */}
-        <p className="paragraph-small mx-field__help mg-top-5x-extra-small">
-          {t('call.picker.timezoneHint', { timezone })}
-        </p>
+        {/* Fuseau et format d'heure, sous le mois. Réglages et non simple mention :
+            un agent genevois reçoit des dirigeants qui ne vivent pas tous à l'heure
+            suisse, et lire « 14:00 » quand on pense en am/pm fait manquer un appel.
+            Sans `onTimezoneChange`, on retombe sur la mention figée d'avant. */}
+        {onTimezoneChange ? (
+          <div className="mg-top-5x-extra-small mx-slotpicker__prefs">
+            <MxField label={t('call.picker.timezoneLabel')}>
+              {(id) => (
+                <MxSelect
+                  id={id}
+                  value={timezone}
+                  onChange={(e) => onTimezoneChange(e.target.value)}
+                  options={timezoneOptions(timezone)}
+                />
+              )}
+            </MxField>
+            {/* MxToggle ne porte pas de libellé (transcription de la vitrine) : le texte
+                vit à côté, et c'est LUI qui bascule au clic — un interrupteur dont le
+                libellé n'est pas cliquable rate la moitié des gestes. */}
+            {onHour12Change && (
+              <div className="mx-slotpicker__prefs-toggle mx-book__fact">
+                <MxToggle small on={hour12} onToggle={onHour12Change} />
+                <button
+                  type="button"
+                  className="mx-linkbutton paragraph-small"
+                  onClick={() => onHour12Change(!hour12)}
+                >
+                  {t('call.picker.hour12')}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="paragraph-small mx-field__help mg-top-5x-extra-small">
+            {t('call.picker.timezoneHint', { timezone })}
+          </p>
+        )}
       </div>
 
       {/* ── Heures du jour retenu ── */}
@@ -178,7 +217,7 @@ export default function OcSlotPicker({
                       isSelected && slotAction != null && 'mx-slotpicker__slot--picked',
                     )}
                   >
-                    {hourLabel(iso, timezone)}
+                    {hourLabel(iso, timezone, hour12)}
                   </button>
                 )
                 // Le créneau retenu partage sa ligne avec l'action de confirmation.
@@ -205,4 +244,23 @@ function ChevronGlyph({ direction }: { direction: 'left' | 'right' }) {
       <path d={direction === 'left' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} />
     </svg>
   )
+}
+
+/**
+ * Les fuseaux offerts au choix.
+ *
+ * `Intl.supportedValuesOf('timeZone')` — la liste IANA que porte le navigateur, donc
+ * ni inventée ni figée dans le dépôt. Repli sur une poignée de fuseaux là où l'API
+ * manque (Safari < 15.4) : mieux vaut cinq choix justes qu'un menu vide.
+ *
+ * Le fuseau courant est ajouté s'il n'y figure pas — un réglage qui n'affiche pas sa
+ * propre valeur paraît cassé.
+ */
+function timezoneOptions(courant: string): { value: string; label: string }[] {
+  const supporte = (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf
+  const liste = typeof supporte === 'function'
+    ? supporte('timeZone')
+    : ['Europe/Zurich', 'Europe/Paris', 'Europe/London', 'Europe/Lisbon', 'UTC']
+  const avec = liste.includes(courant) ? liste : [courant, ...liste]
+  return avec.map((tz) => ({ value: tz, label: tz.replace(/_/g, ' ') }))
 }

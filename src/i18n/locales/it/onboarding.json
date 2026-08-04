@@ -283,7 +283,9 @@
       "loadingSlots": "Caricamento degli orari…",
       "pickDayFirst": "Scelga un giorno nel calendario per vedere gli orari liberi.",
       "noSlotThatDay": "Niente di libero quel giorno.",
-      "timezoneHint": "Orari nel suo fuso orario: {{timezone}}"
+      "timezoneHint": "Orari nel suo fuso orario: {{timezone}}",
+      "timezoneLabel": "Fuso orario",
+      "hour12": "Mostrare le ore in am/pm"
     },
     "form": {
       "phone": "Telefono (facoltativo)",

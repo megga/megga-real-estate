@@ -283,7 +283,9 @@
       "loadingSlots": "Chargement des horaires…",
       "pickDayFirst": "Choisissez un jour dans le calendrier pour voir les horaires libres.",
       "noSlotThatDay": "Plus rien de libre ce jour-là.",
-      "timezoneHint": "Horaires affichés dans votre fuseau : {{timezone}}"
+      "timezoneHint": "Horaires affichés dans votre fuseau : {{timezone}}",
+      "timezoneLabel": "Fuseau horaire",
+      "hour12": "Afficher les heures en am/pm"
     },
     "form": {
       "phone": "Téléphone (facultatif)",

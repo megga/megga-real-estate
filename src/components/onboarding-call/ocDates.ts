@@ -28,12 +28,14 @@ export function dayKeyOf(iso: string, timezone: string): string {
 }
 
 /** Heure murale `HH:MM` d'un instant, dans le fuseau donné. */
-export function hourLabel(iso: string, timezone: string): string {
-  return new Intl.DateTimeFormat('fr-CH', {
+export function hourLabel(iso: string, timezone: string, hour12 = false): string {
+  // `en-US` quand on veut le suffixe am/pm : `fr-CH` ne le rend pas, même avec
+  // hour12 -- il produit « 2:30 » sans indication, donc un horaire ambigu à midi.
+  return new Intl.DateTimeFormat(hour12 ? 'en-US' : 'fr-CH', {
     timeZone: timezone,
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
+    hour12,
   }).format(new Date(iso))
 }
 

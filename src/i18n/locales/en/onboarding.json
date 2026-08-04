@@ -283,7 +283,9 @@
       "loadingSlots": "Loading times…",
       "pickDayFirst": "Pick a day in the calendar to see the free times.",
       "noSlotThatDay": "Nothing left that day.",
-      "timezoneHint": "Times shown in your timezone: {{timezone}}"
+      "timezoneHint": "Times shown in your timezone: {{timezone}}",
+      "timezoneLabel": "Time zone",
+      "hour12": "Show times as am/pm"
     },
     "form": {
       "phone": "Phone (optional)",
