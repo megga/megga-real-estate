@@ -42,7 +42,7 @@ export const NEVER_RETRY_META_CODES = new Set<number>([131047])
 export const RETRYABLE_META_CODES = new Set<number>([130429, 80007])
 
 // Extrait le code d'erreur Meta du corps de réponse ({ error: { code } }). null si absent
-// (succès, provider OpenWA, ou corps illisible).
+// (succès ou corps illisible).
 export function metaErrorCode(body: unknown): number | null {
   const err = (body as { error?: { code?: unknown } } | null | undefined)?.error
   return typeof err?.code === 'number' ? err.code : null

@@ -1,46 +1,50 @@
 import { describe, it, expect } from 'vitest'
-import { getProvider, verifyHmac, allowedPriorStatuses, type NormalizedInboundMessage } from './whatsapp-gateway'
+import { getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, type NormalizedInboundMessage } from './whatsapp-gateway'
 
-describe('whatsapp-gateway — OpenWA provider', () => {
-  const provider = getProvider('openwa')
-
-  it('parse un event message.received en message normalisé', () => {
-    const payload = {
-      event: 'message.received',
-      sessionId: 'sess_123',
-      data: {
-        id: 'wamid.ABC',
-        from: '41791112233@c.us',
-        to: '41220000000@c.us',
-        body: 'Bonjour, je veux visiter',
-        type: 'chat',
-        timestamp: 1716900000,
-      },
-    }
-    const msg = provider.parseInbound(payload) as NormalizedInboundMessage
-    expect(msg).not.toBeNull()
-    expect(msg.providerMessageId).toBe('wamid.ABC')
-    expect(msg.fromPhone).toBe('41791112233')
-    expect(msg.toPhone).toBe('41220000000')
-    expect(msg.body).toBe('Bonjour, je veux visiter')
-    expect(msg.mediaType).toBeNull()
-    expect(msg.sessionId).toBe('sess_123')
+// Régression de l'audit du 03.08.2026 §4.2. Le webhook choisissait sa branche de
+// vérification d'après l'en-tête envoyé par l'APPELANT : sans
+// `x-hub-signature-256`, il retombait sur OpenWA et sa propre clé. L'attaquant
+// choisissait donc lequel des deux secrets forger. Ces tests garantissent que le
+// second chemin ne peut pas revenir par inadvertance.
+describe('whatsapp-gateway — OpenWA est retiré, pas désactivé', () => {
+  it('getProvider("openwa") lève — le provider n’existe plus dans le registre', () => {
+    expect(() => getProvider('openwa')).toThrow(/Unknown WhatsApp provider/)
   })
 
-  it('mappe un type média', () => {
-    const msg = provider.parseInbound({
-      event: 'message.received',
-      sessionId: 's',
-      data: { id: 'm2', from: '41790000000@c.us', type: 'image', body: '', caption: 'photo', timestamp: 1 },
-    })
-    expect(msg?.mediaType).toBe('image')
+  it('un nom absent lève au lieu de retomber silencieusement sur un provider', () => {
+    // Le défaut valait 'openwa' : un appelant distrait obtenait le prototype
+    // sans le savoir. Il n'y a plus de défaut — l'absence de nom échoue fort.
+    //
+    // Assertion d'EXÉCUTION seulement, à dessein : `tsc` ne couvre pas
+    // supabase/functions (tsconfig.app/node ne l'incluent pas), donc un
+    // `@ts-expect-error` n'y serait vérifié par personne et donnerait une
+    // fausse impression de garde statique.
+    expect(() => getProvider(undefined as unknown as string)).toThrow(/Unknown WhatsApp provider/)
+    expect(() => getProvider('')).toThrow(/Unknown WhatsApp provider/)
   })
 
-  it('ignore les events non pertinents (message.sent, status)', () => {
-    expect(provider.parseInbound({ event: 'message.sent', data: { id: 'x' } })).toBeNull()
-    expect(provider.parseInbound({ event: 'session.connected', data: {} })).toBeNull()
+  it('meta reste le seul provider résolvable', () => {
+    expect(getProvider('meta').name).toBe('meta')
+  })
+})
+
+describe('constantTimeEqual', () => {
+  it('vrai sur égalité, faux sur différence', () => {
+    expect(constantTimeEqual('abc123', 'abc123')).toBe(true)
+    expect(constantTimeEqual('abc123', 'abc124')).toBe(false)
   })
 
+  it('faux sur longueurs différentes, y compris préfixe commun', () => {
+    expect(constantTimeEqual('abc', 'abcd')).toBe(false)
+    expect(constantTimeEqual('', 'a')).toBe(false)
+  })
+
+  it('vrai sur deux chaînes vides', () => {
+    expect(constantTimeEqual('', '')).toBe(true)
+  })
+})
+
+describe('whatsapp-gateway — signature entrante', () => {
   it('verifyHmac valide une signature correcte et rejette une mauvaise', async () => {
     const secret = 'topsecret'
     const raw = '{"event":"message.received","data":{"id":"m"}}'
@@ -68,13 +72,6 @@ describe('whatsapp-gateway — outbound send', () => {
     const p = getProvider('meta')
     expect(p.parseSendResult(200, { messages: [{ id: 'wamid.X' }] })).toEqual({ ok: true, providerMessageId: 'wamid.X' })
     expect(p.parseSendResult(400, { error: { message: 'Bad' } })).toEqual({ ok: false, providerMessageId: null, error: 'Bad' })
-  })
-  it('OpenWA: build request targets local send-text endpoint', () => {
-    const p = getProvider('openwa')
-    const req = p.buildSendTextRequest({ toPhone: '41790000000', body: 'Hi' }, { openwaBaseUrl: 'http://localhost:2785', openwaApiKey: 'k', openwaSessionId: 's1' })
-    expect(req.url).toBe('http://localhost:2785/api/sessions/s1/messages/send-text')
-    expect(req.headers['X-API-Key']).toBe('k')
-    expect(JSON.parse(req.body)).toEqual({ to: '41790000000', message: 'Hi' })
   })
 })
 
@@ -187,9 +184,6 @@ describe('Meta buildSendImageRequest', () => {
     expect(body.image).toEqual({ link: 'https://img.megga.ch/x.jpg' })
   })
 
-  it('absent chez OpenWA (prototype legacy)', () => {
-    expect(getProvider('openwa').buildSendImageRequest).toBeUndefined()
-  })
 })
 
 describe('whatsapp-gateway — statuts de livraison Meta', () => {
@@ -240,9 +234,6 @@ describe('whatsapp-gateway — statuts de livraison Meta', () => {
     expect(meta.parseStatusUpdates!(inbound)).toEqual([])
   })
 
-  it('OpenWA n\'expose pas parseStatusUpdates (méthode absente)', () => {
-    expect(getProvider('openwa').parseStatusUpdates).toBeUndefined()
-  })
 })
 
 describe('allowedPriorStatuses — progression monotone', () => {
@@ -278,8 +269,5 @@ describe('buildMarkReadRequest (Meta)', () => {
   it('ajoute l’indicateur typing si demandé', () => {
     const body = JSON.parse(meta.buildMarkReadRequest!('wamid.XYZ', config, { typing: true }).body)
     expect(body.typing_indicator).toEqual({ type: 'text' })
-  })
-  it('OpenWA ne supporte pas le mark-read (méthode absente)', () => {
-    expect(getProvider('openwa').buildMarkReadRequest).toBeUndefined()
   })
 })

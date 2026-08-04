@@ -99,8 +99,10 @@ describe('whatsapp-gateway — buildSendTemplateRequest (Meta)', () => {
     expect(body.template).toEqual({ name: 'ping_v1', language: { code: 'fr' } })
   })
 
-  it('provider OpenWA n\'expose pas buildSendTemplateRequest (méthode absente)', () => {
-    const openwa = getProvider('openwa')
-    expect(openwa.buildSendTemplateRequest).toBeUndefined()
+  // Ce test vérifiait qu'OpenWA n'exposait pas buildSendTemplateRequest. OpenWA a
+  // été retiré (audit §4.2) : la propriété qui reste utile est que Meta, lui,
+  // l'expose — l'envoi hors fenêtre 24 h en dépend.
+  it('Meta expose bien buildSendTemplateRequest — l\'envoi hors fenêtre 24 h en dépend', () => {
+    expect(getProvider('meta').buildSendTemplateRequest).toBeTypeOf('function')
   })
 })
