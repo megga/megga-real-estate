@@ -115,6 +115,10 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
   // Même jeton, reconnu par son PORTEUR et non par sa forme : query `?token=`
   // (buyer-reception-get/-react), en-tête `x-magic-link-token` (magic-link-get/-confirm/
   // -upload), ou SEGMENT DE CHEMIN (`/kyc/`, `/kyc-report/`, `/reception/`, `/rendez-vous/`,
+  // `/rendez-vous-accueil/` — l'appel d'accueil, ajouté le 04.08.2026 en même temps que sa
+  // route ; il précède `rendez-vous` dans l'alternation pour la MÊME raison que
+  // `kyc-report` précède `kyc` : l'inverse ferait mordre `rendez-vous` d'abord, et le `\/`
+  // qui suit échouerait sur le `-` d'« -accueil », laissant le jeton en clair —
   // `/accept-invite/`). Utile quand la valeur n'a plus la forme canonique — jeton TRONQUÉ par
   // le journal qui le recopie, ou percent-encodé — cas où le motif précédent ne peut conclure.
   //
@@ -134,7 +138,7 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
   //     tandis que tout jeton réel est pris — son payload encode `exp`, un nombre.
   {
     kind: 'TOKEN',
-    pattern: /(?:[?&]token=|x-magic-link-token[ \t]*[:=][ \t]*|\/(?:kyc-report|kyc|reception|rendez-vous|accept-invite)\/)((?=[\w.%-]*\d)[\w.%-]{12,})/gi,
+    pattern: /(?:[?&]token=|x-magic-link-token[ \t]*[:=][ \t]*|\/(?:kyc-report|kyc|reception|rendez-vous-accueil|rendez-vous|accept-invite)\/)((?=[\w.%-]*\d)[\w.%-]{12,})/gi,
   },
 
   // AVS Suisse — format officiel 756.XXXX.XXXX.XX (avec ou sans points/espaces).

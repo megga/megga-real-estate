@@ -33,7 +33,7 @@ let sentryInitialized = false
  */
 export function scrubSecretUrl(u: string): string {
   return u
-    .replace(/\/(kyc-report|kyc|reception|rendez-vous|accept-invite)\/[^/?#]+/gi, '/$1/[redacted]')
+    .replace(/\/(kyc-report|kyc|reception|rendez-vous-accueil|rendez-vous|accept-invite)\/[^/?#]+/gi, '/$1/[redacted]')
     .replace(/[?#].*$/, '')
 }
 
@@ -56,7 +56,7 @@ export function scrubSecretUrl(u: string): string {
  * `tests/unit/token-routes.spec.ts` compare les deux sources.
  */
 export function isTokenBearingPath(pathname: string): boolean {
-  return /^\/(kyc-report|kyc|reception|rendez-vous|visit|visite|accept-invite|auth)(\/|$)/i.test(pathname)
+  return /^\/(kyc-report|kyc|reception|rendez-vous-accueil|rendez-vous|visit|visite|accept-invite|auth)(\/|$)/i.test(pathname)
 }
 
 /** Surface d'où part l'événement. Une seule application, deux publics. */
