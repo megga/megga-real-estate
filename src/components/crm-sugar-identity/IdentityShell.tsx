@@ -823,7 +823,7 @@ function StepSkeleton({ label }: { label: string }) {
  * ce dossier-là, et le reformuler (majuscule forcée, point final ajouté) ferait dire à
  * l'écran autre chose que ce qu'a écrit la personne qui décide.
  */
-function IdentityCorrectionNotice({ reason }: { reason: string }) {
+function IdentityCorrectionNotice({ reason }: { reason: string | null }) {
   const { t } = useTranslation('onboarding')
   return (
     <div className="inner-container _634px center mg-bottom-small">
@@ -832,12 +832,14 @@ function IdentityCorrectionNotice({ reason }: { reason: string }) {
           <p className="display-1 medium">{t('wizard.correction.title')}</p>
           <div className="mg-top-4x-extra-small">
             <p className="paragraph-small text-color-neutral-600">
-              {t('wizard.correction.body')}
+              {t(reason ? 'wizard.correction.body' : 'wizard.correction.bodyNoReason')}
             </p>
           </div>
-          <div className="mg-top-3x-extra-small">
-            <p className="paragraph-small" role="status" aria-live="polite">{reason}</p>
-          </div>
+          {reason && (
+            <div className="mg-top-3x-extra-small">
+              <p className="paragraph-small" role="status" aria-live="polite">{reason}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1003,10 +1005,18 @@ export default function IdentityShell() {
    * ressortirait une demande déjà corrigée à quiconque rouvre cette route à la main.
    * useLabGuard est par ailleurs déjà monté au-dessus de cette page (LabGuardBanner,
    * AgentSugarLayout) : ce second appel relit le même cache React Query, pas le réseau.
+   *
+   * ⚠ L'encart s'affiche sur le STATUT SEUL — le motif n'en est que le contenu, et peut
+   * manquer. Le lier à la présence du motif a été essayé le 05.08.2026 et cassé aussitôt
+   * par la suite E2E : un dossier mis en `correction_requested` sans passer par la RPC
+   * n'a AUCUNE ligne de journal, donc aucun motif, donc plus rien à l'écran — et comme le
+   * bandeau se tait désormais ici, le dirigeant se retrouvait devant un wizard qui ne lui
+   * disait plus du tout pourquoi il y était renvoyé. La même chose arriverait sur une
+   * lecture du journal en échec. Le statut, lui, est toujours vrai : c'est lui qui décide.
    */
   const labGuardStatus = useLabGuard()
   const correction = useAgencyCorrectionReason()
-  const correctionReason = labGuardStatus === 'blocked_correction_requested' ? correction.reason : null
+  const correctionRequested = labGuardStatus === 'blocked_correction_requested'
 
   // Correctif revue tâche 7, point 1 : réinitialise l'attestation dès qu'on QUITTE le
   // récapitulatif, quel que soit le chemin (goToStep — bouton "Modifier" ET stepper de
@@ -1414,7 +1424,7 @@ export default function IdentityShell() {
                       qui revient corriger ne sait pas d'avance sur quelle étape se trouve
                       ce qu'on lui reproche, et devoir remonter au début pour relire la
                       consigne est exactement le va-et-vient qu'on lui épargne ici. */}
-                  {correctionReason && <IdentityCorrectionNotice reason={correctionReason} />}
+                  {correctionRequested && <IdentityCorrectionNotice reason={correction.reason} />}
                   {step === 0 ? (
                     <StepSignataire value={signataire} onChange={setSignataire} />
                   ) : step === 1 ? (

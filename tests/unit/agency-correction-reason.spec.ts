@@ -81,7 +81,10 @@ describe('les quatre langues portent l\'encart de correction', () => {
     it(`${langue} — titre et corps`, () => {
       const correction = LANGUES[langue].wizard.correction
       expect(correction, `wizard.correction manque en ${langue}`).toBeTruthy()
-      for (const cle of ['title', 'body']) {
+      // `bodyNoReason` n'est pas décoratif : c'est ce que lit l'encart quand le motif
+      // manque (journal vide, lecture en échec). Sans lui, l'écran afficherait la clé en
+      // clair au moment précis où le dirigeant cherche à comprendre pourquoi il est là.
+      for (const cle of ['title', 'body', 'bodyNoReason']) {
         const texte = correction?.[cle]
         expect(typeof texte, `wizard.correction.${cle} manque en ${langue}`).toBe('string')
         expect((texte ?? '').trim().length, `wizard.correction.${cle} est vide en ${langue}`)
