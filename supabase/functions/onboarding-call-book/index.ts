@@ -115,7 +115,10 @@ serve(async (req: Request) => {
   }
 
   // ── 3. Tout ce qui suit est best-effort ──
-  const manageUrl = `${appOrigin(req)}/rendez-vous/${inserted.manage_token}`
+  // `/rendez-vous-accueil/`, et non `/rendez-vous/` : ce dernier sert le RDV de
+  // vérification KYC, dont le jeton est signé. Les deux ont partagé un chemin, et le
+  // routeur ne rendait alors que la page KYC — qui refusait cet UUID.
+  const manageUrl = `${appOrigin(req)}/rendez-vous-accueil/${inserted.manage_token}`
   const { data: agency } = await db
     .from('agencies').select('name').eq('id', profile.agency_id).maybeSingle()
   const { data: hostProfile } = await db

@@ -31,8 +31,11 @@
     <script>
       // Aucune mesure d'audience sur les routes à lien tokenisé : `gtag('config', …)`
       // envoie `document.location.href` à Google, c'est-à-dire le token lui-même —
-      // dans le chemin (/kyc, /kyc-report, /reception, /rendez-vous) ou dans la query (?token= des
+      // dans le chemin (/kyc, /kyc-report, /reception, /rendez-vous, /rendez-vous-accueil)
+      // ou dans la query (?token= des
       // pages de visite). Un capability token remis à un tiers est un token compromis.
+      // `rendez-vous-accueil` précède `rendez-vous` : le plus long d'abord, sans quoi la
+      // branche courte mord puis échoue sur le `-` et laisse la route non reconnue.
       //
       // Le test se fait AU CHARGEMENT, à dessein : ce sont des pages d'ARRIVÉE, on y
       // atterrit depuis un e-mail ou un lien WhatsApp, jamais par navigation interne.
@@ -54,7 +57,7 @@
       // deux runtimes, aucun import possible entre eux. `tests/unit/token-routes.spec.ts`
       // les compare caractère par caractère : étendre l'une sans l'autre rougit.
       window.MEGGA_ROUTE_TOKENISEE =
-        /^\/(kyc-report|kyc|reception|rendez-vous|visit|visite|accept-invite|auth)(\/|$)/i.test(location.pathname);
+        /^\/(kyc-report|kyc|reception|rendez-vous-accueil|rendez-vous|visit|visite|accept-invite|auth)(\/|$)/i.test(location.pathname);
     </script>
     <!-- Google Tag Manager -->
     <script>if (!window.MEGGA_ROUTE_TOKENISEE) { (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':

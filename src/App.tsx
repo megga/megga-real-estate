@@ -393,8 +393,17 @@ function AppRoutes() {
               <Route path="/visit/:id/edit" element={<VisitManagePage />} />
               <Route path="/visit/:id/feedback" element={<VisitFeedbackPage />} />
               {/* Lien personnel de l'appel d'accueil : le jeton est la capability,
-                  aucune session requise (cf. get_onboarding_call_by_token). */}
-              <Route path="/rendez-vous/:token" element={<OnboardingCallManagePage />} />
+                  aucune session requise (cf. get_onboarding_call_by_token).
+
+                  ⚠ Chemin DISTINCT de `/rendez-vous/:token` (RDV de vérification KYC),
+                  et pas par goût : deux routes de même motif ne coexistent pas. React
+                  Router les classe à égalité et ne garde que la PREMIÈRE déclarée, donc
+                  partager le chemin rendait cette page injoignable et envoyait le lien
+                  d'accueil sur la page KYC, qui attend un jeton signé `k='appt'` et non
+                  cet UUID — l'agence lisait « lien invalide » sur un lien que MEGGA
+                  venait de lui écrire. Les deux jetons ne sont pas de même nature ;
+                  les deux adresses ne doivent donc pas l'être non plus. */}
+              <Route path="/rendez-vous-accueil/:token" element={<OnboardingCallManagePage />} />
               <Route path="/agents" element={<MarketplaceDisabledRedirect />} />
               <Route path="/agents/:slug" element={<MarketplaceDisabledRedirect />} />
               <Route path="/agencies" element={<MarketplaceDisabledRedirect />} />

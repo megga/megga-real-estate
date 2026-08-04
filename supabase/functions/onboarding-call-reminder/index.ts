@@ -88,7 +88,7 @@ serve(async (req: Request) => {
       durationMinutes: call.duration_minutes,
       timezone: host?.timezone ?? 'Europe/Zurich',
       meetingUrl: call.meeting_url,
-      manageUrl: `https://app.megga.ch/rendez-vous/${call.manage_token}`,
+      manageUrl: `https://app.megga.ch/rendez-vous-accueil/${call.manage_token}`,
       locale: 'fr',
     })
 

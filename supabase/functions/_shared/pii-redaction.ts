@@ -115,15 +115,17 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
   // Même jeton, reconnu par son PORTEUR et non par sa forme : query `?token=`
   // (buyer-reception-get/-react), en-tête `x-magic-link-token` (magic-link-get/-confirm/
   // -upload), ou SEGMENT DE CHEMIN (`/kyc/`, `/kyc-report/`, `/reception/`, `/rendez-vous/`,
-  // `/accept-invite/`). Utile quand la valeur n'a plus la forme canonique — jeton TRONQUÉ par
-  // le journal qui le recopie, ou percent-encodé — cas où le motif précédent ne peut conclure.
+  // `/rendez-vous-accueil/`, `/accept-invite/`). Utile quand la valeur n'a plus la forme
+  // canonique — jeton TRONQUÉ par le journal qui le recopie, ou percent-encodé — cas où
+  // le motif précédent ne peut conclure.
   //
   // Le chemin n'est pas un ancrage de confort : c'est la forme DOMINANTE. Quatre des cinq
   // parcours publics portent leur jeton dans l'URL, pas en query — et c'est précisément par
   // là qu'un texte d'erreur tiers le recopie (« net::ERR_… at https://…/kyc-report/<jeton> »),
   // souvent tronqué, donc hors de portée du motif de forme.
   // `kyc-report` précède `kyc` dans l'alternation : l'inverse ferait mordre `kyc` d'abord et
-  // laisserait « -report/<jeton> » hors de la capture.
+  // laisserait « -report/<jeton> » hors de la capture. Même raison pour
+  // `rendez-vous-accueil` avant `rendez-vous` — le plus long d'abord, toujours.
   //
   // Gourmandise bornée par deux gardes repris d'ACCESS_CODE :
   //  1. le séparateur est [ \t]* et non \s* : il ne traverse pas un saut de ligne, donc ne peut
@@ -134,7 +136,7 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
   //     tandis que tout jeton réel est pris — son payload encode `exp`, un nombre.
   {
     kind: 'TOKEN',
-    pattern: /(?:[?&]token=|x-magic-link-token[ \t]*[:=][ \t]*|\/(?:kyc-report|kyc|reception|rendez-vous|accept-invite)\/)((?=[\w.%-]*\d)[\w.%-]{12,})/gi,
+    pattern: /(?:[?&]token=|x-magic-link-token[ \t]*[:=][ \t]*|\/(?:kyc-report|kyc|reception|rendez-vous-accueil|rendez-vous|accept-invite)\/)((?=[\w.%-]*\d)[\w.%-]{12,})/gi,
   },
 
   // AVS Suisse — format officiel 756.XXXX.XXXX.XX (avec ou sans points/espaces).
