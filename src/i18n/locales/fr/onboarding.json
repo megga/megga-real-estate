@@ -48,6 +48,10 @@
       "submitting": "Soumission en cours…",
       "exit": "Reprendre plus tard"
     },
+    "correction": {
+      "title": "Correction demandée",
+      "body": "Un relecteur a renvoyé votre dossier pour que vous repreniez le point ci-dessous. Corrigez-le, puis soumettez à nouveau."
+    },
     "signataire": {
       "title": "Qui est autorisé à signer pour l'agence ?",
       "subtitle": "La personne habilitée à engager votre agence. Nous collectons ces informations au titre de la loi suisse sur le blanchiment d'argent (LBA).",

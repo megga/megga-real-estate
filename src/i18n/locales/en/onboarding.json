@@ -48,6 +48,10 @@
       "submitting": "Submitting…",
       "exit": "Finish later"
     },
+    "correction": {
+      "title": "Correction requested",
+      "body": "A reviewer sent your file back so you can revisit the point below. Fix it, then submit again."
+    },
     "signataire": {
       "title": "Who is authorized to sign for the agency?",
       "subtitle": "The person authorized to commit your agency. We collect this information under Swiss anti-money laundering law (AMLA).",
