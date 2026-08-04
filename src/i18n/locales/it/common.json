@@ -475,6 +475,7 @@
     "title": "Si è verificato un errore",
     "body": "Qualcosa non ha funzionato dalla nostra parte. Può ricaricare la pagina o tornare alla dashboard.",
     "reload": "Ricarica",
+    "updating": "Aggiornamento dell'applicazione in corso…",
     "dashboard": "Torna alla dashboard"
   },
   "announcements": {

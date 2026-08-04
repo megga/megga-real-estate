@@ -3,6 +3,7 @@
     "title": "Une erreur est survenue",
     "body": "Quelque chose s'est mal passé de notre côté. Vous pouvez recharger la page ou revenir à votre tableau de bord.",
     "reload": "Recharger",
+    "updating": "Mise à jour de l'application en cours…",
     "dashboard": "Retour au tableau de bord"
   },
   "consentGate": {

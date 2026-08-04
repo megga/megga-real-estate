@@ -7,6 +7,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { RefreshCw, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isStaleChunkError } from '@/lib/staleChunkRecovery'
 
 /**
  * StaleBundleDetector
@@ -28,23 +29,11 @@ import { cn } from '@/lib/utils'
  * Mount once near the top of the tree (inside <BrowserRouter> is fine).
  */
 
-const STALE_PATTERNS = [
-  'Failed to fetch dynamically imported module',
-  'Importing a module script failed',
-  'ChunkLoadError',
-  "error loading dynamically imported module",
-]
-
 // Once we've shown the banner we set this flag so repeated errors don't
 // flood the UI with copies — and to stop our own retry-loop triggering it.
+// (Les motifs d'erreur reconnus vivent dans src/lib/staleChunkRecovery.ts,
+// partagés avec ErrorBoundary — voir son en-tête pour qui attrape quoi.)
 const SESSION_FLAG = 'megga-stale-bundle-shown'
-
-/** True si l'erreur correspond à un échec de chargement de chunk périmé (cf. STALE_PATTERNS). */
-function isStaleBundleError(reason: unknown): boolean {
-  if (!reason) return false
-  const msg = reason instanceof Error ? reason.message : String(reason)
-  return STALE_PATTERNS.some((p) => msg.includes(p))
-}
 
 export default function StaleBundleDetector() {
   const [visible, setVisible] = useState(false)
@@ -66,7 +55,7 @@ export default function StaleBundleDetector() {
   // promise rejections (most common with lazy imports) and plain errors.
   useEffect(() => {
     function handle(reason: unknown) {
-      if (!isStaleBundleError(reason)) return
+      if (!isStaleChunkError(reason)) return
       if (sessionStorage.getItem(SESSION_FLAG) === 'true') return
       try { sessionStorage.setItem(SESSION_FLAG, 'true') } catch { /* noop */ }
       setVisible(true)

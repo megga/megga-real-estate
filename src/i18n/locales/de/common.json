@@ -475,6 +475,7 @@
     "title": "Ein Fehler ist aufgetreten",
     "body": "Auf unserer Seite ist etwas schiefgelaufen. Sie können die Seite neu laden oder zu Ihrem Dashboard zurückkehren.",
     "reload": "Neu laden",
+    "updating": "Die Anwendung wird aktualisiert…",
     "dashboard": "Zurück zum Dashboard"
   },
   "announcements": {

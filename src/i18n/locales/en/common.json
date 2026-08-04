@@ -3,6 +3,7 @@
     "title": "Something went wrong",
     "body": "Something broke on our side. You can reload the page or go back to your dashboard.",
     "reload": "Reload",
+    "updating": "Updating the application…",
     "dashboard": "Back to dashboard"
   },
   "consentGate": {
