@@ -1179,5 +1179,9 @@
   "kycDiag.regenBlocked.submitted": "Vorgang abgeschlossen, nichts neu auszustellen",
   "kycDiag.regenBlocked.expired": "Link abgelaufen, im Dossier neu erstellen",
   "kycDiag.audited": "Diese Abfrage wird mit ihrem Grund im MEGGA-Register festgehalten.",
-  "kycDiag.openJournal": "Register öffnen"
+  "kycDiag.openJournal": "Register öffnen",
+  "nav": {
+    "adminKybReviewPending_one": "{{count}} Dossier wartet auf Prüfung",
+    "adminKybReviewPending_other": "{{count}} Dossiers warten auf Prüfung"
+  }
 }

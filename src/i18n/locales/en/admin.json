@@ -1179,5 +1179,9 @@
   "kycDiag.regenBlocked.submitted": "Journey complete, nothing to reissue",
   "kycDiag.regenBlocked.expired": "Link expired, recreate it from the file",
   "kycDiag.audited": "This lookup is written to the MEGGA registry, with its reason.",
-  "kycDiag.openJournal": "Open the registry"
+  "kycDiag.openJournal": "Open the registry",
+  "nav": {
+    "adminKybReviewPending_one": "{{count}} file awaiting review",
+    "adminKybReviewPending_other": "{{count}} files awaiting review"
+  }
 }

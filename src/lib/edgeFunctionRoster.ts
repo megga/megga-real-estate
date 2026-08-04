@@ -43,6 +43,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'intercom-identity',
   'kyb-identity-read',
   'kyb-identity-verify',
+  'kyb-review-digest',
   'kyc-report-data',
   'kyc-report-import',
   'kyc-report-pdf',

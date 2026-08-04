@@ -23,9 +23,17 @@ describe('isNotifiableStatus — liste blanche, jamais liste noire', () => {
     for (const s of NOTIFIABLE_STATUSES) expect(isNotifiableStatus(s)).toBe(true)
   })
 
-  it('les états d\'attente ne le sont pas — prévenir à chaque passage du moteur ferait du bruit', () => {
+  it('manual_review est notifiable : c\'est un accusé de réception, pas un verdict', () => {
+    // Le dirigeant qui soumet ne recevait RIEN — ni à la soumission, ni au passage en revue.
+    // Or une agence suisse finit toujours là (le véto id_document exige un humain), donc
+    // « état d'attente » décrivait en réalité l'issue NORMALE du parcours, pas un cas de bord.
+    expect(isNotifiableStatus('manual_review')).toBe(true)
+  })
+
+  it('pending reste muet : c\'est l\'instant entre la soumission et le premier passage du moteur', () => {
+    // Quelques centaines de ms en usage normal. Notifier ici enverrait deux courriels
+    // pour une seule soumission.
     expect(isNotifiableStatus('pending')).toBe(false)
-    expect(isNotifiableStatus('manual_review')).toBe(false)
   })
 
   it('un statut futur ou absent ne déclenche rien tant que personne n\'a écrit quoi en dire', () => {
@@ -150,5 +158,37 @@ describe('buildVerificationNotice', () => {
     })
     expect(n.html).not.toContain('<img')
     expect(n.html).toContain('&lt;img')
+  })
+})
+
+describe('buildVerificationNotice — accusé de réception de mise en revue', () => {
+  const base = { agencyName: 'Agence Test SA', reason: null, appUrl: 'https://app.megga.ch' }
+
+  it('annonce un examen en cours, jamais une décision', () => {
+    const { subject, html } = buildVerificationNotice({ ...base, status: 'manual_review' })
+    expect(subject).toBe("Verification d'identite : dossier recu")
+    expect(html).toContain('en cours d&#39;examen')
+    expect(html).toContain('Agence Test SA')
+  })
+
+  it('ne promet aucun délai — on ne tient pas ce qu\'on ne mesure pas', () => {
+    const { html } = buildVerificationNotice({ ...base, status: 'manual_review' })
+    expect(html).not.toMatch(/\d+\s*(heures?|jours?|ouvrés?)/i)
+  })
+
+  it('n\'affiche ni bloc Motif ni bouton : il n\'y a rien à corriger et rien à reprendre', () => {
+    const { html } = buildVerificationNotice({
+      ...base, status: 'manual_review', reason: 'un motif qui traine d\'une decision anterieure',
+    })
+    expect(html).not.toContain('Motif')
+    expect(html).not.toContain('Reprendre le formulaire')
+    expect(html).not.toContain('un motif qui traine')
+  })
+
+  it('le pied de page ne parle pas de décision pour un dossier simplement reçu', () => {
+    const recu = buildVerificationNotice({ ...base, status: 'manual_review' })
+    const decide = buildVerificationNotice({ ...base, status: 'validated' })
+    expect(recu.html).not.toContain('une decision a ete prise')
+    expect(decide.html).toContain('une decision a ete prise')
   })
 })

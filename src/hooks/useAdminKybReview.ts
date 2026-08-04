@@ -27,6 +27,7 @@ import type { Database } from '@/types/database'
 import { isIdentityDocumentType, type IdentityDocumentType } from '@/hooks/useAgencyIdentity'
 import { isKybIdReadRecord, type KybIdReadRecord } from '@/types/kybIdRead'
 import type { CheckResult, PersonRoleRow } from '@/pages/admin/AdminKybReviewPage'
+import { KYB_REVIEW_COUNT_KEY } from '@/hooks/useKybReviewCount'
 
 // ─── Liste ──────────────────────────────────────────────────────────────────
 
@@ -377,17 +378,22 @@ export function useAdminKybReviewDetail(agencyId: string) {
 
 // ─── Actions (décision humaine) ──────────────────────────────────────────────
 
-/** Invalide la file ET le détail du dossier concerné — commun aux quatre actions :
- *  chacune peut faire quitter la file (validé/rejeté) ou changer le score/les checks
- *  (relancé/résolu). C'est au composant appelant de refermer le tiroir quand l'agence
- *  a quitté la file (AdminKybReviewPage : effet qui compare selectedAgencyId à la
- *  file fraîchement invalidée). */
+/** Invalide la file, le détail du dossier concerné, ET la pastille du rail — commun aux
+ *  cinq actions : chacune peut faire quitter la file (validé/rejeté) ou changer le
+ *  score/les checks (relancé/résolu/correction demandée), donc changer le nombre de
+ *  dossiers en attente. Sans l'invalidation de KYB_REVIEW_COUNT_KEY, un relecteur qui
+ *  traite le DERNIER dossier de la file voit la pastille rester affichée — ShellNav
+ *  reste monté en permanence pendant la navigation dans la console, staleTime de 5 min
+ *  côté useKybReviewCount, donc rien ne la rafraîchit d'elle-même. C'est au composant
+ *  appelant de refermer le tiroir quand l'agence a quitté la file (AdminKybReviewPage :
+ *  effet qui compare selectedAgencyId à la file fraîchement invalidée). */
 function useInvalidateKybReview(agencyId: string) {
   const queryClient = useQueryClient()
   return async () => {
     await queryClient.invalidateQueries({ queryKey: QUEUE_KEY })
     await queryClient.invalidateQueries({ queryKey: ['admin-kyb-review-checks', agencyId] })
     await queryClient.invalidateQueries({ queryKey: ['admin-kyb-review-events', agencyId] })
+    await queryClient.invalidateQueries({ queryKey: KYB_REVIEW_COUNT_KEY })
   }
 }
 

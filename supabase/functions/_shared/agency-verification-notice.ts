@@ -17,11 +17,16 @@
 //     est obligatoire cote RPC precisement pour etre actionnable, et il ne l'est que s'il
 //     atteint son destinataire. Sans ce courriel, le dirigeant resoumettait a l'identique.
 //
-// LES QUATRE DECISIONS NOTIFIEES, et pourquoi celles-la. `validated` et `auto_validated`
-// ouvrent les gardes LAB : c'est la bonne nouvelle, et elle est inutile si personne ne la
-// lit. `rejected` ferme le dossier definitivement. `correction_requested` attend un geste.
-// `pending` et `manual_review` ne sont PAS notifies : ce sont des etats d'attente, et
-// prevenir a chaque passage du moteur ferait du bruit sans information.
+// LES CINQ STATUTS NOTIFIES. `validated` et `auto_validated` ouvrent les gardes LAB : c'est la
+// bonne nouvelle, et elle est inutile si personne ne la lit. `rejected` ferme le dossier
+// definitivement. `correction_requested` attend un geste. `manual_review` n'annonce AUCUNE
+// decision -- c'est un accuse de reception, et il a ete ajoute le 01.08.2026 parce que
+// l'audit d'onboarding a montre que « etat d'attente » decrivait en fait l'issue NORMALE du
+// parcours : le veto `id_document` n'accepte que `match`, aucun connecteur ne le produit, donc
+// TOUT dossier passe par un humain. Un dirigeant qui soumet ne recevait rien et n'avait aucun
+// moyen de savoir que son dossier etait parti, ni qu'il devait attendre.
+// `pending` reste seul hors liste : c'est l'instant entre la soumission et le premier passage
+// du moteur, quelques centaines de ms -- y notifier ferait deux courriels pour une soumission.
 
 /** Les statuts de verification qui meritent un courriel. Ordre sans importance ; c'est
  *  l'appartenance qui compte, et elle est verifiee par isNotifiableStatus(). */
@@ -30,6 +35,7 @@ export const NOTIFIABLE_STATUSES = [
   'auto_validated',
   'rejected',
   'correction_requested',
+  'manual_review',
 ] as const
 
 export type NotifiableStatus = (typeof NOTIFIABLE_STATUSES)[number]
@@ -92,6 +98,7 @@ const HEADLINE: Record<NotifiableStatus, string> = {
   auto_validated: "L'identite de votre agence est validee",
   rejected: "L'identite de votre agence n'a pas ete validee",
   correction_requested: 'Une correction est demandee sur votre dossier',
+  manual_review: "Votre dossier d'identite est en cours d'examen",
 }
 
 const SUBJECT: Record<NotifiableStatus, string> = {
@@ -99,6 +106,7 @@ const SUBJECT: Record<NotifiableStatus, string> = {
   auto_validated: 'Votre agence est verifiee sur MEGGA',
   rejected: "Verification d'identite : dossier refuse",
   correction_requested: "Verification d'identite : correction demandee",
+  manual_review: "Verification d'identite : dossier recu",
 }
 
 const BODY: Record<NotifiableStatus, string> = {
@@ -112,6 +120,11 @@ const BODY: Record<NotifiableStatus, string> = {
   correction_requested:
     'Reprenez votre formulaire d\'identite, corrigez ce qui est indique ci-dessous, puis soumettez '
     + 'a nouveau. L\'examen reprendra automatiquement.',
+  manual_review:
+    'Nous avons bien recu votre formulaire. Un examen par nos equipes est necessaire avant '
+    + "d'ouvrir des dossiers KYC clients et de lancer des signatures electroniques. Vous serez "
+    + "prevenu des qu'une decision aura ete prise ; aucune action n'est attendue de votre part "
+    + 'd\'ici la.',
 }
 
 function escapeHtml(value: string): string {
@@ -166,6 +179,13 @@ export function buildVerificationNotice(input: {
       </div>`
     : ''
 
+  // Le pied de page disait « une decision a ete prise » — faux pour une mise en revue, qui
+  // est justement l'ABSENCE de decision. Un accuse de reception qui s'annonce comme un
+  // verdict ferait chercher au dirigeant un verdict qui n'y est pas.
+  const footer = input.status === 'manual_review'
+    ? "Message automatique, envoye parce que votre dossier d'identite a bien ete recu."
+    : "Message automatique, envoye parce qu'une decision a ete prise sur le dossier d'identite de votre agence."
+
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -195,7 +215,7 @@ ${ctaBlock}
     </div>
 
     <p style="font-size:11px;color:#9ca3af;text-align:center;margin:24px 0 0 0;">
-      Message automatique, envoye parce qu'une decision a ete prise sur le dossier d'identite de votre agence.
+      ${escapeHtml(footer)}
     </p>
   </div>
 </body>

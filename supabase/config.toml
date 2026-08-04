@@ -577,6 +577,9 @@ verify_jwt = false
 [functions.kyb-identity-verify]
 verify_jwt = false
 
+[functions.kyb-review-digest]
+verify_jwt = false
+
 [functions.kyc-report-data]
 verify_jwt = false
 

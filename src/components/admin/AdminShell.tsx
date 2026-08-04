@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useKybReviewCount, formatReviewBadge } from '@/hooks/useKybReviewCount'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
@@ -47,6 +48,9 @@ interface NavItem {
   icon: MEIconName
   /** `end` : n'est actif que sur une correspondance exacte (l'accueil `/`). */
   end?: boolean
+  /** Seule valeur admise aujourd'hui. Un littéral plutôt qu'un booléen : le jour où une
+   *  seconde file mérite une pastille, le compilateur exigera de dire laquelle. */
+  badge?: 'kybReview'
 }
 
 interface NavSection {
@@ -84,7 +88,7 @@ const NAV_SECTIONS: NavSection[] = [
     { labelKey: 'nav.adminMonitoring', href: '/monitoring', icon: 'broadcast' },
     { labelKey: 'nav.adminSecurity', href: '/security', icon: 'shield' },
     { labelKey: 'nav.adminCompliance', href: '/compliance', icon: 'shield' },
-    { labelKey: 'nav.adminKybReview', href: '/kyb-review', icon: 'eye' },
+    { labelKey: 'nav.adminKybReview', href: '/kyb-review', icon: 'eye', badge: 'kybReview' },
   ]},
   { labelKey: 'nav.adminSectionProduct', items: [
     { labelKey: 'nav.adminChangelog', href: '/changelog', icon: 'megaphone' },
@@ -108,7 +112,8 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation(['common', 'admin'])
   const { signOut, profile } = useAuth()
   const { dark } = useAdminTheme()
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones, onTone } = useAdminSugar()
+  const { count: kybReviewCount } = useKybReviewCount()
   const navigate = useNavigate()
 
   const rowBase = {
@@ -148,23 +153,55 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {section.items.map((item) => (
-                <NavLink key={item.href} to={`${ADMIN_CONSOLE_PATH}${item.href}`} end={item.end} onClick={onNavigate} className="adm-nav" style={({ isActive }) => ({
-                  ...rowBase,
-                  textDecoration: 'none',
-                  background: isActive ? surf.card : 'transparent',
-                  boxShadow: isActive ? `0 0 0 1.5px ${sp.ink} inset, ${surf.shadow}` : 'none',
-                })}>
-                  {({ isActive }) => (
-                    <>
-                      <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                        <MEIcon name={item.icon} size={17} color={isActive ? sp.ink : sp.sub} />
-                      </span>
-                      <span style={labelStyle}>{t(item.labelKey)}</span>
-                    </>
-                  )}
-                </NavLink>
-              ))}
+              {section.items.map((item) => {
+                // Mémorisé une fois par item plutôt que rappelé deux fois (garde d'affichage
+                // ET contenu du badge) — les deux appels pouvaient diverger si l'un lisait
+                // kybReviewCount avant un re-rendu et l'autre après.
+                const reviewBadge = item.badge === 'kybReview' ? formatReviewBadge(kybReviewCount) : null
+                return (
+                  <NavLink key={item.href} to={`${ADMIN_CONSOLE_PATH}${item.href}`} end={item.end} onClick={onNavigate} className="adm-nav" style={({ isActive }) => ({
+                    ...rowBase,
+                    textDecoration: 'none',
+                    background: isActive ? surf.card : 'transparent',
+                    boxShadow: isActive ? `0 0 0 1.5px ${sp.ink} inset, ${surf.shadow}` : 'none',
+                  })}>
+                    {({ isActive }) => (
+                      <>
+                        <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                          <MEIcon name={item.icon} size={17} color={isActive ? sp.ink : sp.sub} />
+                        </span>
+                        <span style={labelStyle}>{t(item.labelKey)}</span>
+                        {reviewBadge && (
+                          <span
+                            // role="status" : un <span> nu a un rôle implicite "generic", qui
+                            // interdit un nom accessible en ARIA 1.2 -- sans lui, aria-label
+                            // n'est probablement jamais annoncé et le lien se lit juste
+                            // "Vérification KYB 3". role="status" annonce aussi les
+                            // changements (une file qui se vide en direct).
+                            role="status"
+                            aria-label={t('admin:nav.adminKybReviewPending', { count: kybReviewCount })}
+                            style={{
+                              // Pas de marginLeft: 'auto' ici : labelStyle porte déjà
+                              // flex: 1, qui pousse déjà ce badge en fin de ligne — le
+                              // marginLeft était inerte.
+                              minWidth: 20,
+                              padding: '1px 6px',
+                              borderRadius: ADMIN_RADII.pill,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              textAlign: 'center',
+                              background: tones.warn,
+                              color: onTone,
+                            }}
+                          >
+                            {reviewBadge}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                )
+              })}
             </div>
           </div>
         ))}

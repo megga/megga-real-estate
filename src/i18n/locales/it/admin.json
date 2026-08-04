@@ -1179,5 +1179,9 @@
   "kycDiag.regenBlocked.submitted": "Percorso concluso, nulla da riemettere",
   "kycDiag.regenBlocked.expired": "Link scaduto, da ricreare dalla pratica",
   "kycDiag.audited": "Questa consultazione è iscritta nel registro MEGGA, con il suo motivo.",
-  "kycDiag.openJournal": "Aprire il registro"
+  "kycDiag.openJournal": "Aprire il registro",
+  "nav": {
+    "adminKybReviewPending_one": "{{count}} pratica in attesa di revisione",
+    "adminKybReviewPending_other": "{{count}} pratiche in attesa di revisione"
+  }
 }

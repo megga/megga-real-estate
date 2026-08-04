@@ -1179,5 +1179,9 @@
   "kycDiag.regenBlocked.submitted": "Parcours terminé, rien à réémettre",
   "kycDiag.regenBlocked.expired": "Lien expiré, à recréer depuis le dossier",
   "kycDiag.audited": "Cette consultation est inscrite au registre MEGGA, avec son motif.",
-  "kycDiag.openJournal": "Ouvrir le registre"
+  "kycDiag.openJournal": "Ouvrir le registre",
+  "nav": {
+    "adminKybReviewPending_one": "{{count}} dossier en attente de revue",
+    "adminKybReviewPending_other": "{{count}} dossiers en attente de revue"
+  }
 }
