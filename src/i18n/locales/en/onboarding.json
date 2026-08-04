@@ -158,13 +158,6 @@
         "verso": "Back",
         "dataPage": "Data page"
       },
-      "dropHint": "Click to select a file",
-      "formatHint": "JPG, PNG, WEBP, or PDF, 8 MB maximum",
-      "replaceHint": "Click to replace",
-      "zoomOpen": "Enlarge the {{side}}",
-      "zoomClose": "Close",
-      "zoomHint": "Check that the document is sharp and all four corners are visible. If not, replace it.",
-      "openPdf": "Open the PDF",
       "read": {
         "running": "Reading the document…",
         "verdict": {
@@ -176,12 +169,6 @@
         "expired": "This document appears to have expired on {{date}}.",
         "typeDiffers": "The document does not appear to be the one you selected.",
         "disclaimer": "Automated reading, for guidance only: our compliance team reviews the document."
-      },
-      "errors": {
-        "format": "Accepted format: JPG, PNG, WEBP, or PDF.",
-        "size": "Maximum size: 8 MB.",
-        "generic": "The upload failed. Please try again.",
-        "loadFailed": "Failed to load the documents. Please try again."
       }
     },
     "recap": {

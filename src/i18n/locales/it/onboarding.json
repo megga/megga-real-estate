@@ -158,13 +158,6 @@
         "verso": "Retro",
         "dataPage": "Pagina dei dati"
       },
-      "dropHint": "Clicchi per selezionare un file",
-      "formatHint": "JPG, PNG, WEBP o PDF, massimo 8 MB",
-      "replaceHint": "Clicchi per sostituire",
-      "zoomOpen": "Ingrandisci il {{side}}",
-      "zoomClose": "Chiudi",
-      "zoomHint": "Verifichi che il documento sia nitido e che i quattro angoli siano visibili. Altrimenti lo sostituisca.",
-      "openPdf": "Apri il PDF",
       "read": {
         "running": "Lettura del documento in corso…",
         "verdict": {
@@ -176,12 +169,6 @@
         "expired": "Questo documento sembra scaduto il {{date}}.",
         "typeDiffers": "Il documento non sembra quello che ha indicato.",
         "disclaimer": "Lettura automatica, a titolo indicativo: è il nostro team di conformità a esaminare il documento."
-      },
-      "errors": {
-        "format": "Formato accettato: JPG, PNG, WEBP o PDF.",
-        "size": "Dimensione massima: 8 MB.",
-        "generic": "Il caricamento non è riuscito. Riprovi.",
-        "loadFailed": "Impossibile caricare i documenti. Riprovi."
       }
     },
     "recap": {
