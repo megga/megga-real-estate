@@ -8,7 +8,7 @@
 // testable sous Node avec un supabase mocké et fetch stubbé.
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { reconcileSignatureRequest, type SigRequestRow } from './esign-finalize.ts'
+import { reconcileSignatureRequest, isRequestSettled, type SigRequestRow } from './esign-finalize.ts'
 import { getEsignProvider, type StatusResult } from './esign-gateway.ts'
 
 // Mock minimal du client Supabase : enregistre updates / inserts / uploads et
@@ -144,5 +144,106 @@ describe('reconcileSignatureRequest — verrou de concurrence', () => {
     expect(calls.uploads).toHaveLength(0)
     const release = calls.updates.find((u) => 'last_error' in u.payload)
     expect(release?.payload.completed_at).toBeNull() // verrou relâché
+  })
+})
+
+// ── Cycle de vie du jeton de callback (audit du 03.08.2026 §4.3) ─────────────
+//
+// `webhook_token` voyage dans la query string — ni Skribble ni DocuSign
+// n'acceptent d'en-tête sur leurs URL de notification — donc il survit dans les
+// journaux d'accès de tout le trajet. Il n'expirait jamais et n'était jamais
+// nettoyé : un identifiant valide à vie pour une demande signée il y a des mois.
+//
+// Ce qui suit verrouille les deux moitiés du correctif : effacer quand c'est
+// clos, et surtout NE PAS effacer tant que ça peut encore servir.
+
+describe('isRequestSettled', () => {
+  it('clos : PDF archivé, demande retirée, demande refusée', () => {
+    expect(isRequestSettled({ status: 'signed', signed_document_path: 'a1/sr1.pdf' })).toBe(true)
+    expect(isRequestSettled({ status: 'withdrawn', signed_document_path: null })).toBe(true)
+    expect(isRequestSettled({ status: 'declined', signed_document_path: null })).toBe(true)
+  })
+
+  it('PAS clos : signé mais pas encore archivé — le download doit rester re-tentable', () => {
+    // Le piège du dossier. `signed` sans signed_document_path = le
+    // téléchargement précédent a échoué ; reconcile relâche son verrou pour
+    // re-tenter au prochain callback. Effacer le jeton ici condamnerait la
+    // demande : le callback suivant tomberait en 401 et le PDF ne serait jamais
+    // archivé.
+    expect(isRequestSettled({ status: 'signed', signed_document_path: null })).toBe(false)
+  })
+
+  it('PAS clos : expired et error restent réconciliables', () => {
+    // Terminaux au sens du STATUT, mais un callback ultérieur peut encore
+    // corriger. Plus étroit que TERMINAL, délibérément.
+    expect(isRequestSettled({ status: 'expired', signed_document_path: null })).toBe(false)
+    expect(isRequestSettled({ status: 'error', signed_document_path: null })).toBe(false)
+  })
+
+  it('PAS clos : statuts en cours', () => {
+    for (const status of ['draft', 'sent', 'opened']) {
+      expect(isRequestSettled({ status, signed_document_path: null })).toBe(false)
+    }
+  })
+})
+
+describe('reconcileSignatureRequest — effacement du jeton', () => {
+  it('archivage réussi : le jeton est effacé dans la MÊME écriture que le chemin', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true, status: 200, arrayBuffer: async () => new ArrayBuffer(16),
+    })))
+    const { supabase, calls } = createSupabaseMock([{ id: 'sr1' }])
+
+    await reconcileSignatureRequest({
+      supabase, provider, creds: {}, token: 't', sr: SR, statusResult: SIGNED, actor: { kind: 'system' },
+    })
+
+    const pathUpdate = calls.updates.find((u) => 'signed_document_path' in u.payload)
+    expect(pathUpdate?.payload.webhook_token).toBeNull()
+  })
+
+  it('échec download : le jeton SURVIT — sinon le retry serait condamné', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false, status: 500, arrayBuffer: async () => new ArrayBuffer(0),
+    })))
+    const { supabase, calls } = createSupabaseMock([{ id: 'sr1' }])
+
+    await reconcileSignatureRequest({
+      supabase, provider, creds: {}, token: 't', sr: SR, statusResult: SIGNED, actor: { kind: 'system' },
+    })
+
+    // Aucune écriture ne doit toucher au jeton sur ce chemin.
+    for (const u of calls.updates) {
+      expect(u.payload).not.toHaveProperty('webhook_token')
+    }
+  })
+
+  it('demande refusée : jeton effacé', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const { supabase, calls } = createSupabaseMock([{ id: 'sr1' }])
+
+    await reconcileSignatureRequest({
+      supabase, provider, creds: {}, token: 't', sr: SR,
+      statusResult: { ok: true, status: 'declined', signers: [] },
+      actor: { kind: 'system' },
+    })
+
+    const update = calls.updates.find((u) => u.payload.status === 'declined')
+    expect(update?.payload.webhook_token).toBeNull()
+  })
+
+  it('demande expirée : jeton CONSERVÉ', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const { supabase, calls } = createSupabaseMock([{ id: 'sr1' }])
+
+    await reconcileSignatureRequest({
+      supabase, provider, creds: {}, token: 't', sr: SR,
+      statusResult: { ok: true, status: 'expired', signers: [] },
+      actor: { kind: 'system' },
+    })
+
+    const update = calls.updates.find((u) => u.payload.status === 'expired')
+    expect(update).toBeDefined()
+    expect(update?.payload).not.toHaveProperty('webhook_token')
   })
 })

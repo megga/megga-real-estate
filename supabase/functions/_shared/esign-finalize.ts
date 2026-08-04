@@ -36,6 +36,29 @@ export interface ReconcileArgs {
 
 const TERMINAL = new Set(['signed', 'declined', 'withdrawn', 'expired', 'error'])
 
+/**
+ * La demande est-elle DÉFINITIVEMENT close — c'est-à-dire plus rien qu'un
+ * callback puisse faire avancer ?
+ *
+ * ⚠ Plus étroit que `TERMINAL`, et c'est délibéré. `expired` et `error` sont
+ * terminaux au sens du STATUT, mais un callback ultérieur doit encore pouvoir
+ * réconcilier (le provider peut corriger, et un `signed` dont le téléchargement
+ * a échoué relâche son verrou pour être re-tenté). Seuls trois états ne laissent
+ * plus rien à faire : le PDF est archivé, ou la demande a été retirée, ou elle a
+ * été refusée.
+ *
+ * Source unique de vérité, consommée par `esign-webhook` (court-circuit
+ * idempotent) ET par l'effacement du `webhook_token` ci-dessous. Les deux DOIVENT
+ * s'accorder : effacer le jeton d'une demande que le webhook croit encore active
+ * ferait échouer en 401 un callback légitime, et le provider boucle sur les
+ * non-2xx.
+ */
+export function isRequestSettled(
+  sr: Pick<SigRequestRow, 'status' | 'signed_document_path'>,
+): boolean {
+  return !!sr.signed_document_path || sr.status === 'withdrawn' || sr.status === 'declined'
+}
+
 // Télécharge le PDF signé chez le provider et le range dans le bucket privé
 // signed-documents/<agency_id>/<sr_id>.pdf. Retourne chemin + sha256.
 export async function downloadAndStoreSigned(args: {
@@ -110,7 +133,18 @@ export async function reconcileSignatureRequest(args: ReconcileArgs): Promise<{ 
     if (stored.ok) {
       await supabase
         .from('signature_requests')
-        .update({ signed_document_path: stored.path, signed_sha256: stored.sha256 })
+        .update({
+          signed_document_path: stored.path,
+          signed_sha256: stored.sha256,
+          // Le jeton d'URL a fini son office : le PDF est archivé, plus aucun
+          // callback ne peut faire avancer cette demande. On l'efface plutôt que
+          // de le laisser vivre indéfiniment dans la base ET dans les journaux
+          // d'accès qui ont vu passer l'URL (audit du 03.08.2026 §4.3).
+          // Effacé ICI et pas plus haut dans le claim : tant que le
+          // téléchargement peut échouer, la demande reste re-tentable et le
+          // jeton doit survivre.
+          webhook_token: null,
+        })
         .eq('id', sr.id)
       finalized = true
     } else {
@@ -130,6 +164,13 @@ export async function reconcileSignatureRequest(args: ReconcileArgs): Promise<{ 
     }
     if (statusResult.providerDocumentId) update.provider_document_id = statusResult.providerDocumentId
     if (TERMINAL.has(newStatus)) update.completed_at = nowIso
+    // Même raison qu'au-dessus : retirée ou refusée, la demande ne peut plus
+    // rien recevoir d'utile — le jeton n'a plus de raison d'exister.
+    // `isRequestSettled` est la MÊME condition que le court-circuit du webhook,
+    // pour qu'ils ne puissent pas diverger.
+    if (isRequestSettled({ status: newStatus, signed_document_path: sr.signed_document_path })) {
+      update.webhook_token = null
+    }
     await supabase.from('signature_requests').update(update).eq('id', sr.id)
   }
 
