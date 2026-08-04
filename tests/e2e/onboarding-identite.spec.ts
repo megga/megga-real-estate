@@ -319,7 +319,8 @@ interface SignataireFixture {
   lastName: string
   dateOfBirth: string
   nationality: string
-  signaturePower: 'individual' | 'joint'
+  /** Remplace `signaturePower` depuis le 04.08.2026 — cf. fillSignataireStep. */
+  agencyRole: 'admin' | 'manager' | 'agent' | 'assistant'
 }
 
 /**
@@ -357,14 +358,16 @@ async function fillSignataireStep(page: Page, s: SignataireFixture): Promise<voi
   await labelField(page, 'Nom').fill(s.lastName)
   await pickDateOfBirth(page, s.dateOfBirth)
   await labelField(page, 'Nationalité').selectOption(s.nationality)
-  // Rôle 'radio' et non 'button' : les deux pouvoirs de signature étaient rendus
-  // par une paire de <button aria-pressed>, ils sont devenus un vrai groupe de
-  // radios (SignaturePowerCard, StepSignataire.tsx). Le choix étant exclusif,
-  // c'est le rôle juste — le test suit, il n'y a rien à faire régresser. Nom
-  // accessible ÉLARGI au passage : le <label> du radio porte le titre ET la
-  // précision, d'où une regex (sous-chaîne) plutôt qu'un libellé entier.
-  const powerLabel = s.signaturePower === 'individual' ? /Signature individuelle/ : /Signature collective/
-  await checkByLabel(page, page.getByRole('radio', { name: powerLabel }))
+  // ⚠ « Pouvoir de signature » a été REMPLACÉ par « Quel est votre rôle » le
+  // 04.08.2026 (décision client) : deux cartes sont devenues quatre, et la question
+  // porte sur la place dans l'organisation, pas sur la capacité à engager seul.
+  // Rôle 'radio' et non 'button' : le choix reste exclusif, rendu par un vrai groupe
+  // de radios (AgencyRoleCard, StepSignataire.tsx). Nom accessible en ancre de DÉBUT
+  // (`^`) : le <label> porte le titre, la précision ET, pour un seul administrateur,
+  // la réserve du garde-fou — une sous-chaîne nue attraperait « Admin » dans
+  // « administrateur » de la carte voisine.
+  const roleLabel = { admin: /^Admin/, manager: /^Manager/, agent: /^Agent/, assistant: /^Assistant/ }[s.agencyRole]
+  await checkByLabel(page, page.getByRole('radio', { name: roleLabel }))
   await page.getByRole('button', { name: 'Continuer' }).click()
 }
 
@@ -376,7 +379,7 @@ async function fillSignataireStep(page: Page, s: SignataireFixture): Promise<voi
  * `legalFormLabel` est le libellé AFFICHÉ dans le menu déroulant, pas un code : c'est le
  * SEUL champ qui distingue le parcours société anonyme du parcours raison individuelle.
  * Il ne commande plus aucune bifurcation depuis le retrait de l'étape « bénéficiaires
- * effectifs » (03.08.2026) — les deux formes suivent désormais les mêmes quatre étapes.
+ * effectifs » (03.08.2026) — les deux formes suivent désormais les mêmes cinq étapes.
  */
 interface AgenceFixture {
   legalFormLabel: string
@@ -449,6 +452,49 @@ async function fillPieceIdentiteStep(page: Page): Promise<void> {
 }
 
 /**
+ * Franchit l'étape 3 (rendez-vous d'accueil), ajoutée le 04.08.2026 en avant-dernière
+ * position.
+ *
+ * ⚠ ÉTAPE BLOQUANTE, mais jamais un cul-de-sac : Continuer exige un rendez-vous pris,
+ * SAUF quand il n'y a rien à réserver (aucun hôte actif dans le pool, ou aucun créneau
+ * libre sur l'horizon), auquel cas l'exigence tombe. Ce helper couvre les DEUX chemins
+ * plutôt que de parier sur l'état du banc :
+ *
+ *   - pool vide (l'état attendu ici : `onboarding_hosts` n'est semée par aucune fixture
+ *     de ce fichier) -> l'écran l'annonce et Continuer s'active seul ;
+ *   - un créneau existe -> on le prend pour de vrai, ce qui éprouve le chemin nominal.
+ *
+ * Sans le second cas, semer un hôte un jour ferait tomber tous les parcours de ce
+ * fichier sur un bouton désactivé, sans que le message ne dise pourquoi.
+ */
+async function passRendezVousStep(page: Page): Promise<void> {
+  const continuer = page.getByRole('button', { name: 'Continuer' })
+  const premierCreneau = page.locator('.mx-slotpicker__slot').first()
+
+  // La liste des créneaux arrive de l'edge function : on attend que l'écran ait TRANCHÉ,
+  // dans un sens ou dans l'autre.
+  //
+  // ⚠ Surtout pas `expect(premierCreneau.or(continuer)).toBeVisible()` : quand des
+  // créneaux existent, Continuer est visible LUI AUSSI (désactivé, mais rendu), donc le
+  // locator résout deux éléments et le mode strict fait échouer l'attente — précisément
+  // sur le chemin nominal qu'on cherche à couvrir. Une condition qui se retente dit la
+  // même chose sans dépendre du nombre d'éléments rendus.
+  await expect(async () => {
+    const aDesCreneaux = await premierCreneau.isVisible()
+    const franchissable = await continuer.isEnabled()
+    expect(aDesCreneaux || franchissable).toBe(true)
+  }).toPass({ timeout: 15_000 })
+
+  if (await premierCreneau.isVisible()) {
+    await premierCreneau.click()
+    await page.getByRole('button', { name: 'Confirmer le rendez-vous' }).click()
+  }
+
+  await expect(continuer).toBeEnabled({ timeout: 15_000 })
+  await continuer.click()
+}
+
+/**
  * Coche l'attestation d'exactitude et soumet depuis le récapitulatif (dernière étape).
  * Toujours la SEULE case de l'écran, d'où le rôle sans nom ; le clic passe par son
  * étiquette (cf. checkByLabel — MxCheckbox masque l'input natif).
@@ -461,15 +507,16 @@ async function submitRecapitulatif(page: Page): Promise<void> {
 /**
  * Où le wizard dépose l'agence une fois le dossier soumis.
  *
- * Ce n'est plus `/dashboard` : la soumission mène à l'écran de réservation de
- * l'appel d'accueil (IdentityShell.handleSubmit). L'écran est PASSABLE, donc
- * ce que ces tests éprouvent reste le même — la soumission aboutit et le gate
- * ne reboucle pas — seule la destination a changé.
+ * De nouveau `/dashboard` depuis le 04.08.2026. Le détour par l'écran de réservation
+ * de l'appel d'accueil existait parce que le rendez-vous se prenait APRÈS la
+ * soumission ; il est désormais une ÉTAPE du parcours (index 3), donc y renvoyer
+ * ferait redemander ce qui vient d'être fait. Ce que ces tests éprouvent n'a pas
+ * bougé : la soumission aboutit et le gate ne reboucle pas.
  */
-const APRES_SOUMISSION = /\/dashboard\/rendez-vous-accueil$/
+const APRES_SOUMISSION = /\/dashboard$/
 
 test.describe('Onboarding KYB — gate et wizard identité', () => {
-  test('parcours complet : connexion, gate, quatre étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
+  test('parcours complet : connexion, gate, cinq étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
     const founder = await createFounder()
     try {
       // 1. Connexion d'un dirigeant dont l'agence n'a pas soumis son identité —
@@ -485,11 +532,11 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // la première saisie, cf. expectWizardShellMounted ci-dessus.
       await expectWizardShellMounted(page)
 
-      // 3. Saisie des quatre étapes.
+      // 3. Saisie des cinq étapes.
 
       // Étape 0 — signataire.
       await fillSignataireStep(page, {
-        firstName: 'Jean', lastName: 'Dupont', dateOfBirth: '1980-05-15', nationality: 'CH', signaturePower: 'individual',
+        firstName: 'Jean', lastName: 'Dupont', dateOfBirth: '1980-05-15', nationality: 'CH', agencyRole: 'admin',
       })
 
       // Étape 1 — agence.
@@ -507,7 +554,10 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // Étape 2 — pièce d'identité : nature déclarée, puis les faces qu'elle exige.
       await fillPieceIdentiteStep(page)
 
-      // Étape 3 — récapitulatif, attestation, soumission.
+      // Étape 3 — rendez-vous d'accueil (bloquante, sauf s'il n'y a rien à réserver).
+      await passRendezVousStep(page)
+
+      // Étape 4 — récapitulatif, attestation, soumission.
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
       await submitRecapitulatif(page)
 
@@ -606,7 +656,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // ce dont ce test doit prouver la survie à un démontage/remontage complet
       // du wizard (pas seulement à un aller-retour d'état React en mémoire).
       await fillSignataireStep(page, {
-        firstName: 'Alice', lastName: 'Martin', dateOfBirth: '1975-02-20', nationality: 'CH', signaturePower: 'joint',
+        firstName: 'Alice', lastName: 'Martin', dateOfBirth: '1975-02-20', nationality: 'CH', agencyRole: 'manager',
       })
 
       // Étape 1 — saisie PARTIELLE, jamais validée par Continuer : ne doit rien
@@ -668,9 +718,9 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
    * la comptait pas, la section absente du récapitulatif. L'étape ayant été retirée
    * du parcours pour TOUT LE MONDE (décision client), il n'y a plus de saut à
    * éprouver : ce chemin n'a plus rien de particulier, et c'est précisément ce que
-   * ce test affirme désormais — quatre étapes, comme une société.
+   * ce test affirme désormais — cinq étapes, comme une société.
    */
-  test('raison individuelle (forme du client de référence) : même parcours à quatre étapes, soumission aboutie', async ({ page }) => {
+  test('raison individuelle (forme du client de référence) : même parcours à cinq étapes, soumission aboutie', async ({ page }) => {
     const founder = await createFounder()
     try {
       await signInLive(page, founder.email, PW, { firstEver: true })
@@ -681,7 +731,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // Étape 0 — signataire. Signature individuelle, cohérent avec une raison
       // individuelle : le signataire EST l'entité.
       await fillSignataireStep(page, {
-        firstName: 'Marc', lastName: 'Bovay', dateOfBirth: '1985-11-02', nationality: 'CH', signaturePower: 'individual',
+        firstName: 'Marc', lastName: 'Bovay', dateOfBirth: '1985-11-02', nationality: 'CH', agencyRole: 'admin',
       })
 
       // Étape 1 — agence, en « Raison individuelle » (catégorie sole_proprietorship).
@@ -697,15 +747,17 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       })
 
       // Le parcours d'une raison individuelle est désormais celui de tout le monde :
-      // l'agence mène droit à la pièce d'identité, et le rail compte quatre paliers.
+      // l'agence mène droit à la pièce d'identité, et le rail compte cinq paliers.
       await expect(page.getByRole('heading', { name: 'Vérifiez l\'identité du signataire' })).toBeVisible()
-      await expect(page.getByRole('button', { name: /^\d\.\s/ })).toHaveCount(4)
+      await expect(page.getByRole('button', { name: /^\d\.\s/ })).toHaveCount(5)
       await expect(page.getByRole('button', { name: '3. Pièce d\'identité' })).toBeVisible()
-      await expect(page.getByRole('button', { name: '4. Récapitulatif' })).toBeVisible()
+      await expect(page.getByRole('button', { name: '4. Rendez-vous' })).toBeVisible()
+      await expect(page.getByRole('button', { name: '5. Récapitulatif' })).toBeVisible()
 
       // Le parcours ne dépose plus aucun fichier : la sortie de secours suffit à
       // franchir l'étape, et c'est ce que ce test éprouve de bout en bout.
       await fillPieceIdentiteStep(page)
+      await passRendezVousStep(page)
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
 
       await submitRecapitulatif(page)
@@ -759,7 +811,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await expectWizardShellMounted(page)
 
       await fillSignataireStep(page, {
-        firstName: 'Jean', lastName: 'Dupont', dateOfBirth: '1980-05-15', nationality: 'CH', signaturePower: 'individual',
+        firstName: 'Jean', lastName: 'Dupont', dateOfBirth: '1980-05-15', nationality: 'CH', agencyRole: 'admin',
       })
       await fillAgenceStep(page, {
         legalFormLabel: 'Raison individuelle',
@@ -771,6 +823,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
         canton: 'GE',
       })
       await fillPieceIdentiteStep(page)
+      await passRendezVousStep(page)
       await submitRecapitulatif(page)
       await expect(page).toHaveURL(APRES_SOUMISSION)
 
@@ -826,7 +879,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // sont cliquables qu'en arrière (i < step), donc aucun ne l'est à l'étape 1.
       await expectWizardShellMounted(page)
       await fillSignataireStep(page, {
-        firstName: 'Jean', lastName: 'Dupont', dateOfBirth: '1980-05-15', nationality: 'CH', signaturePower: 'individual',
+        firstName: 'Jean', lastName: 'Dupont', dateOfBirth: '1980-05-15', nationality: 'CH', agencyRole: 'admin',
       })
       await fillAgenceStep(page, {
         legalFormLabel: 'Raison individuelle',
@@ -839,6 +892,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
         canton: 'GE',
       })
       await fillPieceIdentiteStep(page)
+      await passRendezVousStep(page)
       await submitRecapitulatif(page)
 
       // 5. Retour au CRM, et AUCUNE reboucle : c'est la vérification que ce cas existe pour

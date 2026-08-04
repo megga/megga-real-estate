@@ -25,6 +25,7 @@
       "signataire": "Signatory",
       "agence": "Agency",
       "pieceIdentite": "ID document",
+      "rendezVous": "Appointment",
       "recapitulatif": "Summary"
     },
     "header": {
@@ -49,21 +50,26 @@
       "exit": "Finish later"
     },
     "signataire": {
-      "title": "Who is authorized to sign for the agency?",
-      "subtitle": "The person authorized to commit your agency. We collect this information under Swiss anti-money laundering law (AMLA).",
+      "title": "Who is filling in this file?",
+      "subtitle": "Your identity and your role in the agency. We collect this information under Swiss anti-money laundering law (AMLA).",
       "fields": {
         "firstName": "First name",
         "lastName": "Last name",
         "dateOfBirth": "Date of birth",
         "nationality": "Nationality",
         "nationalityPlaceholder": "Select a country",
-        "signaturePower": "Signing authority"
+        "agencyRole": "Your role in the agency"
       },
-      "signaturePower": {
-        "individual": "Sole signing authority",
-        "individualHint": "This person can commit the agency alone.",
-        "joint": "Joint signing authority",
-        "jointHint": "This person signs jointly with another authorized person."
+      "agencyRole": {
+        "admin": "Admin",
+        "adminHint": "Full access: settings, billing, team management.",
+        "manager": "Manager",
+        "managerHint": "Managing agents, overseeing transactions and the pipeline.",
+        "agent": "Agent",
+        "agentHint": "Managing their own contacts, properties and transactions.",
+        "assistant": "Assistant",
+        "assistantHint": "Read access, administrative support.",
+        "lastAdminNotice": "You are the only admin: your account will keep its rights."
       }
     },
     "agence": {
@@ -184,6 +190,13 @@
         "verified": "Identity verified at our provider",
         "processing": "Verification being processed"
       },
+      "rendezVous": {
+        "whenLabel": "Date",
+        "hostLabel": "With",
+        "durationLabel": "Duration",
+        "duration": "{{minutes}} min",
+        "none": "No appointment yet. We will write to you as soon as a slot opens."
+      },
       "attestation": "I confirm that the information above is accurate and complete to the best of my knowledge.",
       "errors": {
         "legalName": "Registered name missing. Complete the Agency step.",
@@ -253,7 +266,8 @@
   "call": {
     "intro": {
       "title": "Book your welcome call",
-      "body": "Your file is under review. Let us take 30 minutes to walk through your setup and answer your questions."
+      "body": "Before you finish, let us take 30 minutes to walk through your setup and answer your questions.",
+      "bodyStandalone": "Your file is under review. Let us take 30 minutes to walk through your setup and answer your questions."
     },
     "picker": {
       "weekdays": [
@@ -268,9 +282,10 @@
       "prevMonth": "Previous month",
       "nextMonth": "Next month",
       "slotsTitle": "Times",
+      "loadingSlots": "Loading times…",
       "pickDayFirst": "Pick a day in the calendar to see the free times.",
       "noSlotThatDay": "Nothing left that day.",
-      "timezoneHint": "Times shown in your timezone : {{timezone}}"
+      "timezoneHint": "Times shown in your timezone: {{timezone}}"
     },
     "form": {
       "phone": "Phone (optional)",
@@ -280,18 +295,20 @@
     },
     "actions": {
       "confirm": "Confirm the appointment",
+      "confirming": "Booking…",
       "later": "Later",
       "continue": "Continue to my workspace"
     },
     "confirmed": {
       "title": "You are booked",
+      "details": "{{duration}} min with {{host}}",
       "join": "Join the video call",
       "emailSent": "A confirmation email is waiting for you, with the link and a way to reschedule if needed.",
       "toDashboard": "Go to my workspace"
     },
     "empty": {
       "noHost": "No slot is open right now. We will come back to you by email as soon as we can.",
-      "noSlot": "Nothing free left in this period. Try the next month, or carry on : we will write to you."
+      "noSlot": "Nothing free left in this period. Try the next month, or carry on: we will write to you."
     },
     "errors": {
       "slot_taken": "That slot was just taken. Please pick another one.",
@@ -315,14 +332,14 @@
       }
     },
     "public": {
-      "loading": "Loading your appointment...",
+      "loading": "Loading your appointment…",
       "title": "Your MEGGA welcome call",
       "invalid": {
         "title": "Link not found",
         "body": "This link is no longer valid. Check the address you received by email, or write to us."
       },
       "notActive": "This appointment was cancelled or has already passed.",
-      "tooLate": "This appointment is very soon : it can no longer be changed here.",
+      "tooLate": "This appointment is very soon: it can no longer be changed here.",
       "reschedule": "Reschedule",
       "cancel": "Cancel the appointment",
       "back": "Back",

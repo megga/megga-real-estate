@@ -13,6 +13,7 @@ import {
   legalFormIdAfterCountryChange,
   canAdvanceFromIdentityStep,
   isPieceIdentiteStepComplete,
+  isRendezVousStepComplete,
   identitySubmissionErrorCode,
   identitySubmissionErrorStep,
   canSubmitIdentity,
@@ -32,10 +33,12 @@ import { SG_IDENTITY_STEPS } from '@/components/crm-sugar-identity/tokens'
 describe('clampIdentityStep — borne la navigation à [0, nombre d étapes - 1]', () => {
   const COUNT = SG_IDENTITY_STEPS.length
 
-  it('la coquille déclare bien les 4 étapes du parcours (signataire -> récapitulatif)', () => {
-    // Cinq jusqu'au 03.08.2026 : l'étape « bénéficiaires effectifs » a été retirée
-    // (décision client), et avec elle la seule étape conditionnelle du wizard.
-    expect(COUNT).toBe(4)
+  it('la coquille déclare bien les 5 étapes du parcours (signataire -> récapitulatif)', () => {
+    // Cinq jusqu'au 03.08.2026 (retrait de « bénéficiaires effectifs »), quatre
+    // ensuite, cinq de nouveau depuis le 04.08.2026 : l'étape « rendez-vous » a été
+    // insérée en avant-dernière position, la réservation de l'appel d'accueil se
+    // faisant jusque-là APRÈS la soumission, sur une route à part.
+    expect(COUNT).toBe(5)
   })
 
   it('un pas normal (avancer ou reculer) passe tel quel', () => {
@@ -59,7 +62,7 @@ describe('isSignataireStepComplete — gate le bouton Continuer de l étape 1', 
     lastName: 'Lyonnet',
     dateOfBirth: '1980-05-12',
     nationality: 'CH',
-    signaturePower: 'individual',
+    agencyRole: 'admin',
   }
 
   it('brouillon vide -> incomplet', () => {
@@ -83,8 +86,10 @@ describe('isSignataireStepComplete — gate le bouton Continuer de l étape 1', 
     expect(isSignataireStepComplete({ ...complete, nationality: null })).toBe(false)
   })
 
-  it('pouvoir de signature non choisi -> incomplet', () => {
-    expect(isSignataireStepComplete({ ...complete, signaturePower: null })).toBe(false)
+  it('rôle dans l agence non choisi -> incomplet', () => {
+    // Remplace le « pouvoir de signature » depuis le 04.08.2026 : la question porte
+    // désormais sur la place dans l'organisation, pas sur la capacité à engager seul.
+    expect(isSignataireStepComplete({ ...complete, agencyRole: null })).toBe(false)
   })
 })
 
@@ -178,7 +183,7 @@ describe('canAdvanceFromIdentityStep — gate le bouton Continuer du pied de pag
     lastName: 'Lyonnet',
     dateOfBirth: '1980-05-12',
     nationality: 'CH',
-    signaturePower: 'individual',
+    agencyRole: 'admin',
   }
   const completeAgency: AgencyDraft = {
     country: 'CH',
@@ -216,18 +221,56 @@ describe('canAdvanceFromIdentityStep — gate le bouton Continuer du pied de pag
     expect(canAdvanceFromIdentityStep(1, completeSignataire, { ...completeAgency, canton: '' })).toBe(false)
   })
 
-  it('dernière étape (récapitulatif, indice 3) -> jamais navigable en avant, même avec des brouillons complets : il n\'existe pas d\'étape suivante', () => {
+  it('dernière étape (récapitulatif, indice 4) -> jamais navigable en avant, même avec des brouillons complets : il n\'existe pas d\'étape suivante', () => {
     // Revue tâche 3 : le bouton Continuer du pied de page restait actif sur ces
     // paliers (canNext valait `true` sans condition dès step > 0) — on pouvait
-    // avancer jusqu'au récapitulatif sans rien renseigner. Depuis le retrait de
-    // l'étape bénéficiaires (03.08.2026), SG_IDENTITY_STEPS.length vaut 4 : les
-    // indices 0, 1 et 2 ont un écran réel dont la complétude est testée à part,
-    // l'indice 3 est le récapitulatif, qui ne mène nulle part.
-    expect(canAdvanceFromIdentityStep(3, completeSignataire, completeAgency)).toBe(false)
+    // avancer jusqu'au récapitulatif sans rien renseigner. Depuis l'ajout de l'étape
+    // rendez-vous (04.08.2026), SG_IDENTITY_STEPS.length vaut 5 : les indices 0 à 3
+    // ont un écran réel dont la complétude est testée à part, l'indice 4 est le
+    // récapitulatif, qui ne mène nulle part.
+    expect(canAdvanceFromIdentityStep(4, completeSignataire, completeAgency)).toBe(false)
   })
 
   it('indice hors de SG_IDENTITY_STEPS -> false, jamais une navigation vers un palier qui n\'existe pas', () => {
-    expect(canAdvanceFromIdentityStep(4, completeSignataire, completeAgency)).toBe(false)
+    expect(canAdvanceFromIdentityStep(5, completeSignataire, completeAgency)).toBe(false)
+  })
+})
+
+describe('isRendezVousStepComplete — gate le bouton Continuer de l\'étape 4 (rendez-vous)', () => {
+  it('verdict pas encore rendu (lecture des créneaux en cours) -> incomplet', () => {
+    // Une étape n'est jamais réputée franchie parce que la question n'a pas encore de
+    // réponse. Même règle qu'à la pièce d'identité : on bloque, on ne laisse pas passer
+    // par défaut le temps d'un aller-retour réseau.
+    expect(isRendezVousStepComplete(null)).toBe(false)
+  })
+
+  it('rendez-vous pris -> complet', () => {
+    expect(isRendezVousStepComplete({ booked: true, nothingToBook: false })).toBe(true)
+  })
+
+  it('rien réservé alors qu\'un créneau est disponible -> incomplet : c\'est une étape bloquante', () => {
+    expect(isRendezVousStepComplete({ booked: false, nothingToBook: false })).toBe(false)
+  })
+
+  it('RIEN À RÉSERVER (aucun hôte actif, ou aucun créneau sur l\'horizon) -> franchissable', () => {
+    // La réserve qui empêche l'étape d'être un cul-de-sac. Sans elle, l'exigence
+    // enfermerait aujourd'hui même chaque nouvelle agence hors du CRM : la table
+    // onboarding_hosts est vide en production et aucun agenda n'y est connecté.
+    // L'exigence porte sur ce que le dirigeant PEUT faire, jamais sur ce que notre
+    // configuration lui permet d'atteindre.
+    expect(isRendezVousStepComplete({ booked: false, nothingToBook: true })).toBe(true)
+  })
+
+  it('branchée sur canAdvanceFromIdentityStep à l\'indice 3, et sur lui seul', () => {
+    const nothing = { booked: false, nothingToBook: false }
+    const booked = { booked: true, nothingToBook: false }
+    expect(canAdvanceFromIdentityStep(3, EMPTY_SIGNATAIRE_DRAFT, EMPTY_AGENCY_DRAFT, EMPTY_PIECE_IDENTITE_DRAFT, false, nothing)).toBe(false)
+    expect(canAdvanceFromIdentityStep(3, EMPTY_SIGNATAIRE_DRAFT, EMPTY_AGENCY_DRAFT, EMPTY_PIECE_IDENTITE_DRAFT, false, booked)).toBe(true)
+    // Sans 6e argument, l'étape 3 reste bloquée : le défaut est `null`, jamais un
+    // « franchissable » implicite pour les appelants qui ne le passent pas.
+    expect(canAdvanceFromIdentityStep(3, EMPTY_SIGNATAIRE_DRAFT, EMPTY_AGENCY_DRAFT)).toBe(false)
+    // Un rendez-vous pris ne débloque AUCUNE autre étape.
+    expect(canAdvanceFromIdentityStep(0, EMPTY_SIGNATAIRE_DRAFT, EMPTY_AGENCY_DRAFT, EMPTY_PIECE_IDENTITE_DRAFT, false, booked)).toBe(false)
   })
 })
 
@@ -317,7 +360,7 @@ describe('isPieceIdentiteStepComplete — gate le bouton Continuer de l\'étape 
 
 describe('canAdvanceFromIdentityStep — étape 3 (pièce d\'identité, tâche 6) : gate sur sa propre complétude, comme les étapes précédentes', () => {
   const completeSignataire: SignataireDraft = {
-    firstName: 'Grégory', lastName: 'Lyonnet', dateOfBirth: '1980-05-12', nationality: 'CH', signaturePower: 'individual',
+    firstName: 'Grégory', lastName: 'Lyonnet', dateOfBirth: '1980-05-12', nationality: 'CH', agencyRole: 'admin',
   }
   const completeAgency: AgencyDraft = {
     country: 'CH', legalFormId: 'legal-form-sa', legal: 'Régie Lyonnet SA',
@@ -438,26 +481,34 @@ describe('canSubmitIdentity — gate le bouton Soumettre de l\'étape 4 (récapi
 })
 
 describe('shouldResetAttestationLeavingRecap — un seul point de reset de l\'attestation, quel que soit le chemin de sortie du récapitulatif (revue tâche 7, point 1)', () => {
-  const COUNT = SG_IDENTITY_STEPS.length // 4 -> récapitulatif = index 3 (COUNT - 1)
+  const COUNT = SG_IDENTITY_STEPS.length
+  // Le récapitulatif est TOUJOURS la dernière étape : le désigner par COUNT - 1 plutôt
+  // que par un index en dur, sans quoi chaque étape ajoutée au parcours (rendez-vous,
+  // 04.08.2026) fait tomber ce bloc entier sur une constante périmée.
+  const RECAP = COUNT - 1
 
   it('récapitulatif -> étape signataire (renvoi automatique après refus "signatory") -> reset', () => {
-    expect(shouldResetAttestationLeavingRecap(3, 0, COUNT)).toBe(true)
+    expect(shouldResetAttestationLeavingRecap(RECAP, 0, COUNT)).toBe(true)
   })
 
   it('récapitulatif -> étape agence (renvoi automatique après refus "legalName"/"legalForm"/"country") -> reset', () => {
-    expect(shouldResetAttestationLeavingRecap(3, 1, COUNT)).toBe(true)
+    expect(shouldResetAttestationLeavingRecap(RECAP, 1, COUNT)).toBe(true)
   })
 
   it('récapitulatif -> étape pièce d\'identité (bouton Précédent OU « Modifier » du récapitulatif, tous deux via goToStep) -> reset', () => {
-    expect(shouldResetAttestationLeavingRecap(3, 2, COUNT)).toBe(true)
+    expect(shouldResetAttestationLeavingRecap(RECAP, 2, COUNT)).toBe(true)
+  })
+
+  it('récapitulatif -> étape rendez-vous (bouton Précédent, ou « Modifier » de la section rendez-vous) -> reset', () => {
+    expect(shouldResetAttestationLeavingRecap(RECAP, 3, COUNT)).toBe(true)
   })
 
   it('re-clic sur le récapitulatif déjà actif (aucune navigation réelle) -> pas de reset', () => {
-    expect(shouldResetAttestationLeavingRecap(3, 3, COUNT)).toBe(false)
+    expect(shouldResetAttestationLeavingRecap(RECAP, RECAP, COUNT)).toBe(false)
   })
 
   it('arrivée SUR le récapitulatif depuis l\'étape précédente -> pas de reset (rien à réinitialiser en y entrant)', () => {
-    expect(shouldResetAttestationLeavingRecap(2, 3, COUNT)).toBe(false)
+    expect(shouldResetAttestationLeavingRecap(RECAP - 1, RECAP, COUNT)).toBe(false)
   })
 
   it('navigation entre deux étapes qui ne sont ni l\'une ni l\'autre le récapitulatif -> pas de reset', () => {
@@ -467,7 +518,7 @@ describe('shouldResetAttestationLeavingRecap — un seul point de reset de l\'at
 
   it('scénario complet de la revue : coche, soumission refusée (signataire manquant), retour étape 0, correction, ré-avance jusqu\'au récapitulatif -> l\'attestation est bien redemandée, jamais remise à true automatiquement', () => {
     let attestationChecked = true // l'utilisateur avait coché avant de soumettre
-    let step = 3 // au récapitulatif au moment du clic sur Soumettre
+    let step = RECAP // au récapitulatif au moment du clic sur Soumettre
 
     // handleSubmit échoue avec la cause "signatory" -> identitySubmissionErrorStep renvoie 0.
     const targetStep = identitySubmissionErrorStep('signatory')

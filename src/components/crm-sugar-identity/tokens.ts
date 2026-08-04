@@ -16,7 +16,15 @@ import i18nIdentity from '@/i18n' // labels d'étapes i18n (getters SG_IDENTITY_
 import type { MxAddressLabels, MxCompanyLabels, MxDatePickerLabels, MxFrenchCompanyLabels } from '@/components/megga-x'
 
 // ─── Étapes du wizard ───────────────────────────────────────────────────
-// QUATRE étapes : signataire → agence → pièce d'identité → récapitulatif.
+// CINQ étapes : signataire → agence → pièce d'identité → rendez-vous → récapitulatif.
+//
+// L'étape « rendez-vous » a été AJOUTÉE le 4 août 2026, en avant-dernière position.
+// La réservation de l'appel d'accueil vivait jusque-là APRÈS la soumission, sur une
+// route à part (/dashboard/rendez-vous-accueil) et en habillage CRM — donc au moment
+// précis où le dirigeant croyait avoir terminé, dans une peau qu'il n'avait pas encore
+// vue. Elle est maintenant relue avec le reste au récapitulatif, avant l'attestation.
+// La route survit, pour ceux qui ont franchi le wizard avant que l'étape n'existe et
+// pour toute reprise ultérieure (cf. l'en-tête de OnboardingCallPage.tsx).
 // label en getter (i18n singleton) : traduit + réactif au changement de langue,
 // même motif que SG_STEPS dans crm-sugar-wizard/tokens.ts.
 //
@@ -37,6 +45,7 @@ export const SG_IDENTITY_STEPS = [
   { id: 'signataire', get label() { return i18nIdentity.t('onboarding:wizard.steps.signataire') } },
   { id: 'agence', get label() { return i18nIdentity.t('onboarding:wizard.steps.agence') } },
   { id: 'pieceIdentite', get label() { return i18nIdentity.t('onboarding:wizard.steps.pieceIdentite') } },
+  { id: 'rendezVous', get label() { return i18nIdentity.t('onboarding:wizard.steps.rendezVous') } },
   { id: 'recapitulatif', get label() { return i18nIdentity.t('onboarding:wizard.steps.recapitulatif') } },
 ] as const
 

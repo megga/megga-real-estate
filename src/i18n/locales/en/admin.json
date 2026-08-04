@@ -928,7 +928,7 @@
     "subtitle": "The MEGGA team schedule and the hosts availability.",
     "error": "Could not read.",
     "searchLabel": "Search a call",
-    "searchPlaceholder": "Agency, host, contact...",
+    "searchPlaceholder": "Agency, host, contact…",
     "tabs": {
       "calls": "Appointments",
       "hosts": "Hosts"
@@ -968,7 +968,7 @@
     },
     "empty": {
       "title": "No call",
-      "hint": "Appointments booked at the end of the identity wizard will show up here."
+      "hint": "Appointments booked during onboarding will show up here."
     },
     "hosts": {
       "dayNames": [
@@ -989,7 +989,7 @@
         "hours": "Hours",
         "upcoming": "Upcoming",
         "state": "State",
-        "rules": "{{duration}} min, buffer {{buffer}} min, notice {{notice}} h, horizon {{horizon}} d"
+        "hoursMore": "+{{n}} more days"
       },
       "empty": {
         "title": "No host",
@@ -1019,16 +1019,16 @@
         "errors": {
           "unknownEmail": "No account carries this email.",
           "nameRequired": "The displayed name is required.",
-          "badSlice": "A range is malformed : the end must follow the start.",
+          "badSlice": "A range is malformed: the end must follow the start.",
           "generic": "The host could not be saved."
         }
       }
     },
     "cancelConfirm": {
-      "title": "Cancel this welcome call ?",
+      "title": "Cancel this welcome call?",
       "message": "{{agency}} will be notified by email and the {{when}} slot will be freed in the host calendar.",
       "confirm": "Cancel the call",
-      "busy": "Cancelling..."
+      "busy": "Cancelling…"
     }
   },
   "dashboard.pulse.noFunctionError": "no function error reported",

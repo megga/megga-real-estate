@@ -25,6 +25,7 @@
       "signataire": "Signataire",
       "agence": "Agence",
       "pieceIdentite": "Pièce d'identité",
+      "rendezVous": "Rendez-vous",
       "recapitulatif": "Récapitulatif"
     },
     "header": {
@@ -49,21 +50,26 @@
       "exit": "Reprendre plus tard"
     },
     "signataire": {
-      "title": "Qui est autorisé à signer pour l'agence ?",
-      "subtitle": "La personne habilitée à engager votre agence. Nous collectons ces informations au titre de la loi suisse sur le blanchiment d'argent (LBA).",
+      "title": "Qui remplit ce dossier ?",
+      "subtitle": "Votre identité et votre rôle dans l'agence. Nous collectons ces informations au titre de la loi suisse sur le blanchiment d'argent (LBA).",
       "fields": {
         "firstName": "Prénom",
         "lastName": "Nom",
         "dateOfBirth": "Date de naissance",
         "nationality": "Nationalité",
         "nationalityPlaceholder": "Sélectionner un pays",
-        "signaturePower": "Pouvoir de signature"
+        "agencyRole": "Votre rôle dans l'agence"
       },
-      "signaturePower": {
-        "individual": "Signature individuelle",
-        "individualHint": "Cette personne peut engager seule l'agence.",
-        "joint": "Signature collective",
-        "jointHint": "Cette personne signe conjointement avec une autre personne autorisée."
+      "agencyRole": {
+        "admin": "Admin",
+        "adminHint": "Accès complet : paramètres, facturation, gestion de l'équipe.",
+        "manager": "Manager",
+        "managerHint": "Gestion des agents, supervision des transactions et du pipeline.",
+        "agent": "Agent",
+        "agentHint": "Gestion de ses contacts, biens et transactions.",
+        "assistant": "Assistant",
+        "assistantHint": "Accès en lecture, support administratif.",
+        "lastAdminNotice": "Vous êtes le seul administrateur : votre compte gardera ses droits."
       }
     },
     "agence": {
@@ -184,6 +190,13 @@
         "verified": "Identité vérifiée chez notre prestataire",
         "processing": "Vérification en cours de traitement"
       },
+      "rendezVous": {
+        "whenLabel": "Date",
+        "hostLabel": "Avec",
+        "durationLabel": "Durée",
+        "duration": "{{minutes}} min",
+        "none": "Aucun rendez-vous pour l'instant. Nous vous écrirons dès qu'un créneau s'ouvre."
+      },
       "attestation": "J'atteste que les informations ci-dessus sont exactes et complètes, à ma connaissance.",
       "errors": {
         "legalName": "Raison sociale manquante. Complétez l'étape Agence.",
@@ -252,8 +265,9 @@
   },
   "call": {
     "intro": {
-      "title": "Reservez votre appel d'accueil",
-      "body": "Votre dossier est parti en revue. Prenons 30 minutes ensemble pour faire le tour de votre installation et repondre a vos questions."
+      "title": "Réservez votre appel d'accueil",
+      "body": "Avant de terminer, prenons 30 minutes ensemble pour faire le tour de votre installation et répondre à vos questions.",
+      "bodyStandalone": "Votre dossier est parti en revue. Prenons 30 minutes ensemble pour faire le tour de votre installation et répondre à vos questions."
     },
     "picker": {
       "weekdays": [
@@ -265,75 +279,78 @@
         "Sam",
         "Dim"
       ],
-      "prevMonth": "Mois precedent",
+      "prevMonth": "Mois précédent",
       "nextMonth": "Mois suivant",
       "slotsTitle": "Horaires",
+      "loadingSlots": "Chargement des horaires…",
       "pickDayFirst": "Choisissez un jour dans le calendrier pour voir les horaires libres.",
-      "noSlotThatDay": "Plus rien de libre ce jour la.",
-      "timezoneHint": "Horaires affiches dans votre fuseau : {{timezone}}"
+      "noSlotThatDay": "Plus rien de libre ce jour-là.",
+      "timezoneHint": "Horaires affichés dans votre fuseau : {{timezone}}"
     },
     "form": {
-      "phone": "Telephone (facultatif)",
+      "phone": "Téléphone (facultatif)",
       "phonePlaceholder": "+41 22 000 00 00",
-      "note": "Un mot sur vos priorites (facultatif)",
+      "note": "Un mot sur vos priorités (facultatif)",
       "notePlaceholder": "Ce que vous aimeriez voir en premier"
     },
     "actions": {
       "confirm": "Confirmer le rendez-vous",
+      "confirming": "Réservation…",
       "later": "Plus tard",
       "continue": "Continuer vers mon espace"
     },
     "confirmed": {
-      "title": "C'est reserve",
-      "join": "Rejoindre la visioconference",
+      "title": "C'est réservé",
+      "details": "{{duration}} min avec {{host}}",
+      "join": "Rejoindre la visioconférence",
       "emailSent": "Un e-mail de confirmation vous attend, avec le lien et de quoi replanifier si besoin.",
-      "toDashboard": "Aller a mon espace"
+      "toDashboard": "Aller à mon espace"
     },
     "empty": {
-      "noHost": "Aucun creneau n'est ouvert pour le moment. Nous revenons vers vous par e-mail des que possible.",
-      "noSlot": "Plus aucun creneau libre sur cette periode. Essayez le mois suivant, ou continuez : nous vous ecrirons."
+      "noHost": "Aucun créneau n'est ouvert pour le moment. Nous revenons vers vous par e-mail dès que possible.",
+      "noSlot": "Plus aucun créneau libre sur cette période. Essayez le mois suivant, ou continuez : nous vous écrirons."
     },
     "errors": {
-      "slot_taken": "Ce creneau vient d'etre pris. Choisissez-en un autre.",
-      "already_booked": "Votre agence a deja un appel reserve.",
-      "no_host_available": "Aucun hote disponible pour le moment.",
-      "slot_in_past": "Ce creneau est deja passe.",
-      "call_in_past": "Ce rendez-vous est deja passe.",
+      "slot_taken": "Ce créneau vient d'être pris. Choisissez-en un autre.",
+      "already_booked": "Votre agence a déjà un appel réservé.",
+      "no_host_available": "Aucun hôte disponible pour le moment.",
+      "slot_in_past": "Ce créneau est déjà passé.",
+      "call_in_past": "Ce rendez-vous est déjà passé.",
       "call_not_active": "Ce rendez-vous n'est plus actif.",
-      "reschedule_limit_reached": "Limite de replanifications atteinte. Ecrivez-nous pour trouver une autre date.",
-      "generic": "Le rendez-vous n'a pas pu etre enregistre. Reessayez dans un instant."
+      "reschedule_limit_reached": "Limite de replanifications atteinte. Écrivez-nous pour trouver une autre date.",
+      "generic": "Le rendez-vous n'a pas pu être enregistré. Réessayez dans un instant."
     },
     "banner": {
       "pending": {
-        "title": "Reservez votre appel d'accueil",
-        "body": "30 minutes avec notre equipe pour prendre en main MEGGA.",
-        "cta": "Choisir un creneau"
+        "title": "Réservez votre appel d'accueil",
+        "body": "30 minutes avec notre équipe pour prendre en main MEGGA.",
+        "cta": "Choisir un créneau"
       },
       "booked": {
-        "title": "Appel d'accueil prevu",
+        "title": "Appel d'accueil prévu",
         "join": "Rejoindre"
       }
     },
     "public": {
-      "loading": "Chargement de votre rendez-vous...",
+      "loading": "Chargement de votre rendez-vous…",
       "title": "Votre appel d'accueil MEGGA",
       "invalid": {
         "title": "Lien introuvable",
-        "body": "Ce lien n'est plus valide. Verifiez l'adresse recue par e-mail, ou ecrivez-nous."
+        "body": "Ce lien n'est plus valide. Vérifiez l'adresse reçue par e-mail, ou écrivez-nous."
       },
-      "notActive": "Ce rendez-vous a ete annule ou est deja passe.",
-      "tooLate": "Ce rendez-vous a lieu tres bientot : il ne peut plus etre modifie ici.",
+      "notActive": "Ce rendez-vous a été annulé ou est déjà passé.",
+      "tooLate": "Ce rendez-vous a lieu très bientôt : il ne peut plus être modifié ici.",
       "reschedule": "Replanifier",
       "cancel": "Annuler le rendez-vous",
       "back": "Retour",
       "confirmReschedule": "Confirmer la nouvelle date",
       "cancelled": {
-        "title": "Rendez-vous annule",
-        "body": "C'est note. Vous pouvez en reserver un nouveau depuis votre espace MEGGA."
+        "title": "Rendez-vous annulé",
+        "body": "C'est noté. Vous pouvez en réserver un nouveau depuis votre espace MEGGA."
       },
       "rescheduled": {
-        "title": "Nouvelle date enregistree",
-        "body": "Un e-mail de confirmation part a l'instant, avec la date mise a jour."
+        "title": "Nouvelle date enregistrée",
+        "body": "Un e-mail de confirmation part à l'instant, avec la date mise à jour."
       }
     }
   }

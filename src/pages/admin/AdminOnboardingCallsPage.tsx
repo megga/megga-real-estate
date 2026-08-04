@@ -49,19 +49,44 @@ function formatWhen(iso: string): string {
   }).format(new Date(iso))
 }
 
-/** Résumé d'un horaire hebdomadaire, en une ligne lisible. */
-function weeklySummary(host: AdminOnboardingHost, dayNames: string[]): string {
-  if (host.weekly_hours.length === 0) return '—'
+/**
+ * Nombre de jours d'horaires rendus en clair dans le tableau ; au-delà, un compte.
+ *
+ * Deux, et pas plus : un hôte qui ouvre quatre jours produisait trois lignes qui
+ * s'enroulaient dans une cellule, et c'est la ligne la plus longue qui donnait sa hauteur
+ * à toute la rangée. Le détail complet reste à un clic, dans le formulaire d'édition.
+ */
+const HOURS_DAYS_SHOWN = 2
+
+/** Le fuseau de tous les hôtes en pratique — n'est affiché que lorsqu'il en diffère. */
+const DEFAULT_TIMEZONE = 'Europe/Zurich'
+
+/**
+ * Résumé d'un horaire hebdomadaire : les deux premiers jours en clair, le reste compté.
+ *
+ * Rend un couple plutôt qu'une chaîne pour que l'appelant compose lui-même la
+ * troncature avec sa propre encre atténuée — recoller « +2 autres jours » dans la même
+ * chaîne lui donnerait le poids visuel d'un horaire réel.
+ */
+function weeklySummary(
+  host: AdminOnboardingHost,
+  dayNames: string[],
+): { shown: string; more: number } {
+  if (host.weekly_hours.length === 0) return { shown: '—', more: 0 }
   const byDay = new Map<number, string[]>()
   for (const slice of host.weekly_hours) {
     const list = byDay.get(slice.dow) ?? []
     list.push(`${slice.start}-${slice.end}`)
     byDay.set(slice.dow, list)
   }
-  return [...byDay.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([dow, ranges]) => `${dayNames[dow - 1] ?? dow} ${ranges.join(', ')}`)
-    .join(' · ')
+  const days = [...byDay.entries()].sort((a, b) => a[0] - b[0])
+  return {
+    shown: days
+      .slice(0, HOURS_DAYS_SHOWN)
+      .map(([dow, ranges]) => `${dayNames[dow - 1] ?? dow} ${ranges.join(', ')}`)
+      .join(' · '),
+    more: Math.max(0, days.length - HOURS_DAYS_SHOWN),
+  }
 }
 
 function CallsTab() {
@@ -308,26 +333,36 @@ function HostsTab() {
               </tr>
             </thead>
             <tbody>
-              {(hosts ?? []).map((host) => (
+              {(hosts ?? []).map((host) => {
+                const hours = weeklySummary(host, dayNames)
+                return (
                 <tr key={host.id} style={{ borderTop: surf.hairline }}>
                   <AdminTd>
                     <span style={{ fontWeight: 600 }}>{host.display_name}</span>
                     <br />
                     <span style={{ color: sp.soft, fontSize: 12 }}>
-                      {host.profile_email ?? '—'} · {host.timezone}
+                      {host.profile_email ?? '—'}
+                      {/* Le fuseau seulement quand il SURPREND. Tous les hôtes sont à
+                          Europe/Zurich : répété sur chaque rangée, il n'apprenait rien
+                          et faisait passer l'e-mail à la ligne. */}
+                      {host.timezone !== DEFAULT_TIMEZONE && ` · ${host.timezone}`}
                     </span>
                   </AdminTd>
                   <AdminTd>
-                    {weeklySummary(host, dayNames)}
-                    <br />
-                    <span style={{ color: sp.soft, fontSize: 12 }}>
-                      {t('onboardingCalls.hosts.table.rules', {
-                        duration: host.duration_minutes,
-                        buffer: host.buffer_after_minutes,
-                        notice: host.min_notice_hours,
-                        horizon: host.horizon_days,
-                      })}
-                    </span>
+                    {/* La ligne de règles (« 30 min, tampon 15 min, préavis 12 h,
+                        horizon 30 j ») a été RETIRÉE : elle s'affichait à l'identique
+                        sur chaque hôte, pesait un tiers du texte du tableau et n'en
+                        distinguait aucun. C'est de la configuration — elle vit dans le
+                        formulaire d'édition, qui porte déjà les quatre champs. */}
+                    {hours.shown}
+                    {hours.more > 0 && (
+                      <>
+                        <br />
+                        <span style={{ color: sp.soft, fontSize: 12 }}>
+                          {t('onboardingCalls.hosts.table.hoursMore', { n: hours.more })}
+                        </span>
+                      </>
+                    )}
                   </AdminTd>
                   <AdminTd numeric align="right">{host.upcoming_calls}</AdminTd>
                   <AdminTd align="right">
@@ -355,7 +390,8 @@ function HostsTab() {
                     </div>
                   </AdminTd>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -368,11 +404,15 @@ function HostsTab() {
         />
       )}
 
-      {/* Sans hôte actif, l'écran de réservation dit honnêtement qu'aucun créneau
-          n'est ouvert. Le rappeler ici évite de chercher la panne ailleurs. */}
-      <p style={{ color: sp.soft, fontSize: 12, marginTop: 14, lineHeight: 1.6 }}>
-        {t('onboardingCalls.hosts.provisioningNote')}
-      </p>
+      {/* Sans hôte actif, l'écran de réservation dit honnêtement qu'aucun créneau n'est
+          ouvert. Le rappeler évite de chercher la panne ailleurs — mais SEULEMENT quand
+          c'est le cas : sous une liste d'hôtes actifs, la phrase n'expliquait rien et
+          s'ajoutait au texte que cet écran demande déjà de lire. */}
+      {!isLoading && (hosts ?? []).length > 0 && !(hosts ?? []).some((h) => h.is_active) && (
+        <p style={{ color: sp.soft, fontSize: 12, marginTop: 14, lineHeight: 1.6 }}>
+          {t('onboardingCalls.hosts.provisioningNote')}
+        </p>
+      )}
     </AdminCard>
   )
 }

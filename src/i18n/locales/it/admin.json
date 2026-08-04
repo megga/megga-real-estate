@@ -928,7 +928,7 @@
     "subtitle": "Il calendario del team MEGGA e gli orari dei referenti.",
     "error": "Lettura impossibile.",
     "searchLabel": "Cercare una chiamata",
-    "searchPlaceholder": "Agenzia, referente, contatto...",
+    "searchPlaceholder": "Agenzia, referente, contatto…",
     "tabs": {
       "calls": "Appuntamenti",
       "hosts": "Referenti"
@@ -968,15 +968,15 @@
     },
     "empty": {
       "title": "Nessuna chiamata",
-      "hint": "Gli appuntamenti presi all'uscita del wizard d'identita appariranno qui."
+      "hint": "Gli appuntamenti presi durante l'onboarding appariranno qui."
     },
     "hosts": {
       "dayNames": [
-        "Lunedi",
-        "Martedi",
-        "Mercoledi",
-        "Giovedi",
-        "Venerdi",
+        "Lunedì",
+        "Martedì",
+        "Mercoledì",
+        "Giovedì",
+        "Venerdì",
         "Sabato",
         "Domenica"
       ],
@@ -989,13 +989,13 @@
         "hours": "Orari",
         "upcoming": "In arrivo",
         "state": "Stato",
-        "rules": "{{duration}} min, margine {{buffer}} min, preavviso {{notice}} h, orizzonte {{horizon}} g"
+        "hoursMore": "+{{n}} altri giorni"
       },
       "empty": {
         "title": "Nessun referente",
-        "hint": "Senza referente attivo, nessuna agenzia puo prenotare."
+        "hint": "Senza referente attivo, nessuna agenzia può prenotare."
       },
-      "provisioningNote": "Aggiungere un referente o modificarne gli orari passa dalla RPC admin_upsert_onboarding_host. Questa schermata permette di attivarlo o disattivarlo.",
+      "provisioningNote": "Senza referente attivo, la schermata di prenotazione annuncia onestamente che nessun orario è aperto.",
       "addHost": "Aggiungere un referente",
       "editHost": "Modificare",
       "form": {
@@ -1018,17 +1018,17 @@
         "save": "Salvare",
         "errors": {
           "unknownEmail": "Nessun conto porta questa e-mail.",
-          "nameRequired": "Il nome mostrato e obbligatorio.",
-          "badSlice": "Una fascia e malformata : la fine deve seguire l inizio.",
-          "generic": "Il referente non e stato salvato."
+          "nameRequired": "Il nome mostrato è obbligatorio.",
+          "badSlice": "Una fascia è malformata: la fine deve seguire l'inizio.",
+          "generic": "Il referente non è stato salvato."
         }
       }
     },
     "cancelConfirm": {
-      "title": "Annullare questa chiamata di benvenuto ?",
-      "message": "{{agency}} sara avvisata per e-mail e l'orario del {{when}} sara liberato nel calendario dell'host.",
+      "title": "Annullare questa chiamata di benvenuto?",
+      "message": "{{agency}} sarà avvisata per e-mail e l'orario del {{when}} sarà liberato nel calendario del referente.",
       "confirm": "Annullare la chiamata",
-      "busy": "Annullamento..."
+      "busy": "Annullamento…"
     }
   },
   "dashboard.pulse.noFunctionError": "nessun errore di funzione segnalato",

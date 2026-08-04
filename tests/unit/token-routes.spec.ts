@@ -31,6 +31,12 @@ const TOKENISEES = [
   '/reception/abc123',
   '/accept-invite/abc123',
   '/rendez-vous/abc123', // gestion de RDV KYC — jeton dans le CHEMIN (appointment-book)
+  // Appel d'accueil, chemin DISTINCT du précédent : `/rendez-vous/` lui était disputé
+  // par le RDV KYC, déclaré avant dans App.tsx, et sa page était donc injoignable
+  // (corrigé le 04.08.2026). Le cas est ici parce que la garde doit couvrir le
+  // préfixe LE PLUS LONG : une alternation qui essaie `rendez-vous` d'abord échoue
+  // sur le `-` d'« -accueil » et laisserait ce jeton-là en clair chez Sentry.
+  '/rendez-vous-accueil/abc123',
   '/visit/9c2/edit',
   '/visit/9c2/feedback',
   '/visite/9c2/modifier', // alias FR : redirigé au bord, mais servi par le SPA en dev

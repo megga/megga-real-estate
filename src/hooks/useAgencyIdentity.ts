@@ -79,7 +79,24 @@ import { useAgencySettings, type AgencySettingsData } from '@/hooks/useAgencySet
 import { useLegalForms, type LegalFormOption, type LegalFormCategory } from '@/hooks/useLegalForms'
 import { isKybIdReadRecord, type KybIdReadRecord } from '@/types/kybIdRead'
 
-/** Identité d'une personne liée à l'agence — indépendante de son/ses rôle(s). */
+/**
+ * Rôle DÉCLARÉ dans l'organisation — les quatre rôles que le CRM connaît déjà
+ * (`profiles.role`, `useTeam.ts`), demandés à l'étape 1 du wizard depuis le
+ * 4 août 2026 à la place du pouvoir de signature.
+ *
+ * À ne PAS confondre avec `IdentityRole.role` juste en dessous, qui porte la
+ * qualité de CONFORMITÉ (signatory | ubo) : celle-là décide qui doit être
+ * identifié au titre de la LBA, celle-ci décide de quels droits la personne
+ * dispose dans le produit. Une même personne porte les deux.
+ */
+export type AgencyDeclaredRole = 'admin' | 'manager' | 'agent' | 'assistant'
+
+/** Les quatre rôles, dans l'ordre décroissant de droits — l'ordre des cartes à l'écran. */
+export const AGENCY_DECLARED_ROLES: readonly AgencyDeclaredRole[] = [
+  'admin', 'manager', 'agent', 'assistant',
+] as const
+
+/** Identité d'une personne liée à l'agence — indépendante de son/ses rôle(s) de conformité. */
 export interface IdentityPerson {
   /** null = pas encore enregistrée (savePerson l'insère et renvoie l'id réel). */
   id: string | null
@@ -89,6 +106,14 @@ export interface IdentityPerson {
   dateOfBirth: string | null
   /** ISO 3166-1 alpha-2. */
   nationality: string | null
+  /**
+   * Rôle déclaré dans l'organisation. Persisté ici dès l'étape 1, mais appliqué à
+   * `profiles.role` seulement à la soumission, par submit_agency_identity() — le
+   * client n'a aucun droit d'écriture sur cette colonne-là (verrou anti-escalade
+   * 20260627120000). Voir la migration 20260804170100 pour les trois raisons du
+   * délai et pour le garde-fou « dernier administrateur ».
+   */
+  agencyRole: AgencyDeclaredRole | null
 }
 
 /** Un rôle porté par une personne dans l'agence : signataire et/ou UBO. */
@@ -287,6 +312,8 @@ export interface PersonRow {
   last_name: string
   date_of_birth: string | null
   nationality: string | null
+  /** CHECK en base : admin | manager | agent | assistant — d'où `string`, validé à la lecture par isAgencyDeclaredRole. */
+  agency_role: string | null
   /** CHECK en base : passport | id_card | residence_permit | other — d'où `string` et non IdentityDocumentType, le parcours n'écrivant que trois des quatre. */
   id_document_type: string | null
   id_document_read: unknown
@@ -297,7 +324,12 @@ export interface PersonRow {
 }
 
 const PERSON_SELECT =
-  'id, first_name, last_name, date_of_birth, nationality, id_document_type, id_document_read, identity_verification_status, identity_verification_error_code, identity_verified_at, roles:agency_person_roles(id, role, signature_power, ownership_pct, pep_self_declared, valid_to)'
+  'id, first_name, last_name, date_of_birth, nationality, agency_role, id_document_type, id_document_read, identity_verification_status, identity_verification_error_code, identity_verified_at, roles:agency_person_roles(id, role, signature_power, ownership_pct, pep_self_declared, valid_to)'
+
+/** Garde de type sur la colonne `agency_role`, lue en `string` (le CHECK vit en base). */
+export function isAgencyDeclaredRole(value: string | null): value is AgencyDeclaredRole {
+  return value != null && (AGENCY_DECLARED_ROLES as readonly string[]).includes(value)
+}
 
 /** Date UTC du jour au format 'YYYY-MM-DD' — même format que la colonne `date` valid_to. */
 function todayIsoDate(): string {
@@ -339,6 +371,11 @@ export function mapPersonRow(row: PersonRow): IdentityPersonWithRoles {
     lastName: row.last_name,
     dateOfBirth: row.date_of_birth,
     nationality: row.nationality,
+    // Même traitement que idDocumentType juste en dessous : une valeur hors des quatre
+    // rôles connus est ramenée à null plutôt qu'affichée comme une carte sélectionnée
+    // qui n'existe pas. La colonne est nullable — tout dossier saisi avant le 4 août
+    // 2026 la porte vide, et se relit sans rôle plutôt qu'avec un rôle inventé.
+    agencyRole: isAgencyDeclaredRole(row.agency_role) ? row.agency_role : null,
     // `other` (quatrième valeur du CHECK, jamais écrite par ce parcours) est ramenée
     // à null : le wizard n'a pas de case pour elle, et l'afficher comme un choix
     // sélectionné qui n'existe dans aucune option serait un état impossible à
@@ -369,6 +406,7 @@ export function buildPersonPayload(agencyId: string, p: IdentityPerson) {
     last_name: p.lastName.trim(),
     date_of_birth: p.dateOfBirth,
     nationality: p.nationality,
+    agency_role: p.agencyRole,
   }
 }
 

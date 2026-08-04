@@ -88,7 +88,9 @@ serve(async (req: Request) => {
       durationMinutes: call.duration_minutes,
       timezone: host?.timezone ?? 'Europe/Zurich',
       meetingUrl: call.meeting_url,
-      manageUrl: `https://app.megga.ch/rendez-vous/${call.manage_token}`,
+      // `/rendez-vous-accueil/` — cf. onboarding-call-book pour pourquoi ce n'est pas
+      // `/rendez-vous/`, qui appartient au RDV de vérification KYC.
+      manageUrl: `https://app.megga.ch/rendez-vous-accueil/${call.manage_token}`,
       locale: 'fr',
     })
 

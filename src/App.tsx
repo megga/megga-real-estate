@@ -393,8 +393,21 @@ function AppRoutes() {
               <Route path="/visit/:id/edit" element={<VisitManagePage />} />
               <Route path="/visit/:id/feedback" element={<VisitFeedbackPage />} />
               {/* Lien personnel de l'appel d'accueil : le jeton est la capability,
-                  aucune session requise (cf. get_onboarding_call_by_token). */}
-              <Route path="/rendez-vous/:token" element={<OnboardingCallManagePage />} />
+                  aucune session requise (cf. get_onboarding_call_by_token).
+
+                  ⚠ `/rendez-vous-accueil/` et NON `/rendez-vous/` : ce dernier est déjà
+                  pris, plus haut dans ce même fichier, par AppointmentManagePage (RDV de
+                  vérification KYC, jeton émis par appointment-book). React Router retient
+                  la PREMIÈRE route qui matche — cette page-ci était donc injoignable
+                  depuis sa création, et chaque lien « replanifier ou annuler » des e-mails
+                  d'appel d'accueil atterrissait sur l'écran KYC, qui interrogeait sa
+                  propre RPC avec un jeton qu'elle ne connaît pas. Constaté le 04.08.2026
+                  en essayant d'ouvrir la page.
+
+                  Les trois edge functions qui construisent ce lien (onboarding-call-book,
+                  -manage, -reminder) ont été alignées dans le même changement : le chemin
+                  vit à quatre endroits, il doit bouger aux quatre. */}
+              <Route path="/rendez-vous-accueil/:token" element={<OnboardingCallManagePage />} />
               <Route path="/agents" element={<MarketplaceDisabledRedirect />} />
               <Route path="/agents/:slug" element={<MarketplaceDisabledRedirect />} />
               <Route path="/agencies" element={<MarketplaceDisabledRedirect />} />
