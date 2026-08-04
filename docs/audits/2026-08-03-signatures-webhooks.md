@@ -3,6 +3,16 @@
 **Date :** 3 août 2026 · **Périmètre :** `stripe-webhook`, `esign-webhook`, `whatsapp-webhook`, `log-auth-event`
 **Nature :** rapport seul — aucun correctif écrit, aucune donnée modifiée.
 
+> **État au 4 août 2026 : les cinq constats sont traités.** §4.1 fusionné et déployé
+> ([#1154](https://github.com/megga/megga-real-estate/pull/1154)) ; §4.2 et §4.5
+> ([#1158](https://github.com/megga/megga-real-estate/pull/1158)), §4.4
+> ([#1160](https://github.com/megga/megga-real-estate/pull/1160)) et §4.3
+> ([#1162](https://github.com/megga/megga-real-estate/pull/1162)) en attente de fusion.
+> Détail et écarts assumés au §7 ; ce que l'exécution a appris au §8.
+>
+> Le corps du rapport est conservé **tel qu'il a été écrit**, y compris ses incertitudes
+> — un audit qu'on réécrit après coup ne dit plus ce qu'on savait au moment de décider.
+
 ---
 
 ## 1. Pourquoi ces quatre fonctions
@@ -260,15 +270,63 @@ Un correctif par PR, dans cet ordre — le premier est le plus rentable et le pl
    comptage et insertion en un seul aller (`log_auth_event_limited`), plus la résolution
    d'IP corrigée — `x-forwarded-for` se lit désormais depuis la DROITE, et
    `cf-connecting-ip` n'est plus cru.
-2. **§4.2** — **c'est maintenant le plus rentable.** Le secret étant confirmé posé (§6),
-   c'est une **suppression**, pas une refonte : retirer la branche OpenWA, exiger un
-   provider connu au lieu d'y retomber par défaut, puis révoquer
-   `WHATSAPP_WEBHOOK_SECRET`.
-3. **§4.4** — table `stripe_events(event_id primary key)` en garde d'idempotence, et
-   comparaison de `event.created` avant écriture d'état.
-4. **§4.3** — nettoyer `webhook_token` à la finalisation ; envisager l'en-tête plutôt que
-   la query string si le provider le permet.
-5. **§4.5 + §4.4 mineur** — `timingSafeEqual` sur le handshake GET ; message d'erreur
-   générique côté Stripe.
+2. ~~**§4.2** — supprimer la branche OpenWA~~ · ✅ **FAIT** ([#1158](https://github.com/megga/megga-real-estate/pull/1158)).
+   Ce fut bien une **suppression** : classe `OpenWAProvider`, champs `openwa*` de
+   `SendConfig` et registre réduits à `meta` ; `x-hub-signature-256` exigé sans repli.
+   Le vrai piège n'était pas dans le webhook mais dans `getProvider(name = 'openwa')` —
+   un défaut qui désignait le chemin le moins sûr, donc qui agissait précisément quand
+   personne n'avait réfléchi. Il n'y a plus de défaut.
+   ⚠ **Reste à faire à la main** : révoquer `WHATSAPP_WEBHOOK_SECRET` une fois la PR
+   déployée (pas avant — la branche est encore vivante en production jusque-là).
+3. ~~**§4.4** — registre d'événements + garde d'ordre~~ · ✅ **FAIT**
+   ([#1160](https://github.com/megga/megga-real-estate/pull/1160)). Table `stripe_events`
+   avec réservation AVANT traitement et **libération dans le `catch`** — sans ce second
+   geste, un échec transitoire deviendrait une perte définitive, ce qui serait pire que
+   le défaut corrigé. La garde d'ordre est portée par le WHERE de l'UPDATE lui-même,
+   donc décision et écriture sont la même opération.
+   Le défaut a été **reproduit puis corrigé sur la même ligne** : sans garde
+   `active/pro/mrr=99`, avec garde `canceled/starter/mrr=0`.
+4. ~~**§4.3** — cycle de vie du `webhook_token`~~ · ✅ **FAIT**
+   ([#1162](https://github.com/megga/megga-real-estate/pull/1162)). Jeton effacé à la
+   clôture, plus rattrapage sur l'existant. L'en-tête plutôt que la query string a été
+   **écarté après vérification** : ni Skribble ni DocuSign ne l'acceptent sur leurs URL
+   de notification. Ce n'était donc pas un oubli, et c'est désormais documenté en tête
+   du fichier plutôt que porté comme une dette.
+5. ~~**§4.5**~~ · ✅ **FAIT** ([#1158](https://github.com/megga/megga-real-estate/pull/1158)) —
+   `constantTimeEqual` extrait de `verifyHmac` et appliqué au handshake GET.
+   **§4.4 mineur** (message d'erreur Stripe rendu à l'appelant) : NON traité, laissé
+   volontairement. Il distingue « en-tête malformé » de « condensat qui ne correspond
+   pas » pour un sondeur anonyme — un signal réel mais mince, à mettre en regard de la
+   valeur de diagnostic du message en production.
 
 Chacun mérite un test de point d'entrée (§5) dans la même PR que son correctif.
+
+---
+
+## 8. Ce que l'exécution a appris, et que l'audit n'avait pas vu
+
+Trois choses que seul le fait de corriger a révélées — elles valent pour les prochains
+lots autant que pour celui-ci.
+
+**Un test de refus peut passer pour la mauvaise raison, et rien ne le signale.** Les
+contrôles de privilège de #1154, écrits en capacité (`SET ROLE` puis appel réel),
+passaient au vert alors que le `REVOKE` qu'ils prétendaient vérifier avait été rendu.
+L'appel levait — mais sur l'INSERT dans la table, pas sur le grant de la fonction. Une
+tentative réelle ne peut pas distinguer deux verrous superposés. **Ce sont les tests
+mutés qui l'ont trouvé, pas la relecture.** Rendre le privilège et vérifier que quelque
+chose devient rouge devrait accompagner chaque correctif de ce programme.
+
+**Le même piège existe côté données.** Une sonde du §4.4 a d'abord semblé prouver la
+garde d'ordre alors que la ligne testée n'existait pas — l'insertion avait échoué sur une
+colonne obligatoire. Les deux cas rendaient « 0 ligne modifiée ». Un contrôle positif
+(une ligne qui DOIT bouger) est la seule défense.
+
+**`deno check` est bloquant en CI et couvre les 157 fichiers d'edge functions.** `tsc`,
+lui, n'en couvre aucun. Confondre les deux — ce qui est arrivé pendant ce lot — mène à
+pousser du code qui ne compile pas. La commande exacte de `unit-tests.yml` se rejoue en
+local :
+
+```bash
+mapfile -d '' files < <(find supabase/functions -name '*.ts' ! -name '*.test.ts' -print0)
+deno check --no-lock "${files[@]}"
+```
