@@ -20,6 +20,9 @@
  * Ne rend RIEN non plus sur les routes gardées par KycLabGuard (correctif
  * revue, point mineur) : cet écran plein dit déjà tout, répéter le bandeau
  * au-dessus double le message sans rien ajouter.
+ *
+ * Ni sur le gate d'identité, pour les deux statuts qui y CONDUISENT — cf.
+ * shouldShowLabGuardBanner ci-dessous.
  */
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -41,6 +44,42 @@ const SEVERITY: Record<BlockedStatus, { icon: typeof AlertTriangle; color: strin
   blocked_correction_requested: { icon: AlertTriangle, color: 'text-amber-500' },
 }
 
+/**
+ * Ce bandeau doit-il s'afficher sur la route du wizard d'identité ?
+ *
+ * Il existe pour avertir quelqu'un qui fait AUTRE CHOSE que son agence est bloquée. Sur
+ * /dashboard/identite, l'utilisateur fait exactement ce que le bandeau réclame — et ce
+ * sont précisément les deux statuts ci-dessous qui l'y ont conduit : le gate d'identité
+ * y redirige tant qu'`identity_submitted_at` est nul, ce que « jamais soumis » et
+ * « correction demandée » ont tous deux en commun (admin_request_agency_correction
+ * remet la colonne à NULL). Le wizard porte déjà le message, et mieux : depuis le
+ * 05.08.2026 il affiche le MOTIF de la correction, que ce bandeau ne peut que résumer.
+ *
+ * S'y ajoute une raison d'habillage, et elle ne se rattrape pas au cas par cas : ce
+ * parcours porte la peau MEGGA X (transcription de la vitrine, une seule polarité), pas
+ * le thème du CRM. Un bandeau bâti sur `bg-theme-card`/`border-theme-border` posé
+ * au-dessus s'y lit comme une bande rapportée d'une autre application — visible en clair
+ * comme en sombre, puisque les deux surfaces ne suivent pas la même préférence.
+ *
+ * Les deux AUTRES statuts restent affichés là : « en revue » et « refusé » n'amènent
+ * personne ici (le gate est franchi, `identity_submitted_at` est posé) — on n'y arrive
+ * qu'en tapant l'URL, devant un formulaire que la base a gelé. Le bandeau est alors la
+ * seule chose qui dise pourquoi rien ne s'enregistrera.
+ *
+ * Pur, testé directement (tests/unit/lab-guard-banner-routes.spec.ts). Vit ICI et non
+ * dans useLabGuard.ts : la règle ne parle que de CE bandeau, et l'y déplacer forcerait
+ * useLabGuard — que tout le CRM monte — à importer la route du gate d'identité, deux
+ * gardes que son en-tête tient délibérément indépendants.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement, même motif que les règles exportées d'IdentityShell.tsx.
+export function shouldShowLabGuardBanner(status: BlockedStatus, pathname: string): boolean {
+  if (pathname.startsWith(KYC_LAB_GUARD_ROUTE_PREFIX)) return false
+  if (pathname === IDENTITY_GATE_ROUTE) {
+    return status !== 'blocked_not_submitted' && status !== 'blocked_correction_requested'
+  }
+  return true
+}
+
 export default function LabGuardBanner() {
   const { t } = useTranslation('onboarding')
   const { profile } = useAuth()
@@ -50,15 +89,11 @@ export default function LabGuardBanner() {
 
   if (status === 'loading' || status === 'unavailable' || status === 'clear') return null
 
-  // /dashboard/kyc* affiche déjà l'écran plein (KycLabGuard) qui dit exactement la
-  // même chose — le bandeau reste utile PARTOUT AILLEURS (rappel persistant sur les
-  // pages non gardées), pas ici.
-  if (location.pathname.startsWith(KYC_LAB_GUARD_ROUTE_PREFIX)) return null
+  // Deux surfaces disent déjà tout, chacune mieux que ce bandeau : l'écran plein de
+  // /dashboard/kyc* et le wizard d'identité. Cf. shouldShowLabGuardBanner.
+  if (!shouldShowLabGuardBanner(status, location.pathname)) return null
 
   const canAct = profile != null && canActOnLabGuard(profile.role)
-  // Jamais proposer de naviguer vers la page d'identité depuis la page d'identité
-  // elle-même — même motif que shouldRedirectToIdentityGate (useIdentityGate.ts).
-  const onIdentityPage = location.pathname === IDENTITY_GATE_ROUTE
   const { icon: Icon, color } = SEVERITY[status]
 
   // Un i18n key par statut (LAB_GUARD_LABEL_KEY, pfKit voisin) plutôt qu'une chaîne de
@@ -80,7 +115,10 @@ export default function LabGuardBanner() {
           <p className="text-sm font-medium text-theme-primary">{title}</p>
           <p className="text-xs text-theme-secondary mt-0.5">{body}</p>
         </div>
-        {(status === 'blocked_not_submitted' || status === 'blocked_correction_requested') && canAct && !onIdentityPage && (
+        {/* Aucun garde de route ici : les deux seuls statuts qui portent ce bouton ne
+            s'affichent plus SUR /dashboard/identite (shouldShowLabGuardBanner), donc il
+            ne peut plus proposer d'aller là où l'on est déjà. */}
+        {(status === 'blocked_not_submitted' || status === 'blocked_correction_requested') && canAct && (
           <button
             type="button"
             onClick={() => navigate(IDENTITY_GATE_ROUTE)}

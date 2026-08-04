@@ -451,6 +451,78 @@ export function isIdentityVerificationStatus(value: string | null): value is Ide
 }
 
 /**
+ * Vrai si le VERDICT du prestataire est arrivé — c'est-à-dire s'il n'y a plus rien à
+ * attendre pour cette personne.
+ *
+ * `requires_input` est le seul cas ambigu, et c'est celui qui compte : Stripe l'emploie
+ * AUSSI BIEN pour une session jamais commencée que pour une session refusée (il y
+ * ajoute alors `last_error`). Sans le motif, une attente qui commence trouverait son
+ * état de départ déjà « arrivé » et s'arrêterait avant d'avoir servi.
+ *
+ * Pure et testée directement (tests/unit/identity-verdict-poll.spec.ts), même motif que
+ * le reste de ce fichier.
+ */
+export function identityVerdictArrived(
+  status: IdentityVerificationStatus | null,
+  errorCode: string | null,
+): boolean {
+  if (status === 'verified' || status === 'canceled') return true
+  return status === 'requires_input' && errorCode != null
+}
+
+/**
+ * LE signataire de cette liste — la personne que le wizard fait saisir à l'étape 1 et
+ * dont il ouvre la vérification à l'étape 3.
+ *
+ * Ici plutôt qu'inline chez chaque appelant : IdentityShell en avait déjà besoin pour
+ * son brouillon, la relecture du verdict (ci-dessous) en a besoin depuis l'intérieur du
+ * hook, et deux `find` séparés sur le même critère sont deux occasions de diverger.
+ * Rend la PREMIÈRE : plusieurs personnes peuvent porter un rôle signatory actif
+ * (signature_power='joint'), mais ce parcours n'en fait saisir qu'une.
+ */
+export function findSignatory(persons: IdentityPersonWithRoles[]): IdentityPersonWithRoles | null {
+  return persons.find((p) => p.roles.some((r) => r.role === 'signatory')) ?? null
+}
+
+/**
+ * Le verdict du signataire de cette liste est-il arrivé ? Une liste non chargée
+ * (`undefined`) ou sans signataire répond NON : il n'y a alors rien à conclure, et
+ * conclure « arrivé » couperait l'attente avant qu'elle ait servi.
+ */
+export function signatoryVerdictArrived(persons: IdentityPersonWithRoles[] | undefined): boolean {
+  const signatory = findSignatory(persons ?? [])
+  return signatory != null
+    && identityVerdictArrived(signatory.verificationStatus, signatory.verificationErrorCode)
+}
+
+/**
+ * Cadence de relecture pendant l'attente du verdict.
+ *
+ * Le verdict n'arrive JAMAIS par la réponse à l'onglet : Stripe redirige dès la capture
+ * terminée, et c'est le webhook qui écrit la colonne, quelques secondes plus tard. Sans
+ * cette relecture, l'écran de retour restait figé sur « Vérification en cours » jusqu'à
+ * ce que le dirigeant recharge la page de lui-même — donc, en pratique, jusqu'à ce qu'il
+ * conclue que rien ne s'est passé.
+ *
+ * 4 s : assez court pour que « Identité vérifiée » apparaisse pendant qu'il regarde
+ * l'écran, assez long pour ne pas marteler PostgREST. La FENÊTRE d'attente, elle, est
+ * bornée par l'appelant (cf. `awaitVerdict`) — un dossier bloqué en `processing` ne
+ * doit pas relire indéfiniment.
+ */
+export const IDENTITY_VERDICT_POLL_MS = 4_000
+
+/** Options de useAgencyIdentity — toutes facultatives, le contrat de retour ne bouge pas. */
+export interface UseAgencyIdentityOptions {
+  /**
+   * Une attente de verdict est OUVERTE : relire la personne toutes les
+   * IDENTITY_VERDICT_POLL_MS tant que son verdict n'est pas arrivé. L'appelant décide
+   * quand la fenêtre s'ouvre (retour du prestataire) et quand elle se referme
+   * (délai écoulé) ; le hook, lui, arrête de lui-même dès que le verdict est là.
+   */
+  awaitVerdict?: boolean
+}
+
+/**
  * Vrai si l'identité est suffisamment établie pour laisser AVANCER dans le wizard.
  *
  * `processing` compte, et c'est un arbitrage : Stripe met de quelques secondes à
@@ -724,7 +796,8 @@ export function useIdentityDocuments(agencyId: string | null, relatedPersonId: s
  * `agencyId` vient de profile.agency_id — RLS (is_agency_admin()) refuse de toute
  * façon la lecture à un agent simple, mais on évite déjà la requête inutile.
  */
-export function useAgencyIdentity(): UseAgencyIdentityReturn {
+export function useAgencyIdentity(options: UseAgencyIdentityOptions = {}): UseAgencyIdentityReturn {
+  const { awaitVerdict = false } = options
   const { profile } = useAuth()
   const agencyId = profile?.agency_id ?? null
   const queryClient = useQueryClient()
@@ -754,6 +827,14 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     },
     enabled: !!agencyId,
     staleTime: 30_000,
+    // Relecture courte pendant une attente de verdict SEULEMENT — le webhook est le
+    // seul chemin par lequel il arrive, et rien d'autre ne réveillerait cet écran (cf.
+    // IDENTITY_VERDICT_POLL_MS). S'arrête d'elle-même dès que le verdict est là, sans
+    // attendre que l'appelant referme la fenêtre : c'est ce qui évite de continuer à
+    // relire une page qui n'a plus rien à apprendre.
+    refetchInterval: (query) => (
+      awaitVerdict && !signatoryVerdictArrived(query.state.data) ? IDENTITY_VERDICT_POLL_MS : false
+    ),
   })
 
   /**

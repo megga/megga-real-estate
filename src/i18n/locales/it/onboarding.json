@@ -48,6 +48,11 @@
       "submitting": "Invio in corso…",
       "exit": "Continui più tardi"
     },
+    "correction": {
+      "title": "Correzione richiesta",
+      "body": "Un revisore ha rinviato il suo dossier affinché riveda il punto qui sotto. Lo corregga, poi invii di nuovo.",
+      "bodyNoReason": "Un revisore ha rinviato il suo dossier. I dettagli le sono stati inviati per e-mail. Riprenda il modulo, poi lo invii di nuovo."
+    },
     "signataire": {
       "title": "Chi è autorizzato a firmare per l'agenzia?",
       "subtitle": "La persona autorizzata a impegnare la Sua agenzia. Raccogliamo queste informazioni ai sensi della legge svizzera antiriciclaggio (LRD).",

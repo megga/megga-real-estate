@@ -62,18 +62,20 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { SG_IDENTITY_STEPS } from './tokens'
 import { switchLanguage } from '@/i18n'
 import { MeggaX, MxButton, MxLink } from '@/components/megga-x'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  useAgencyIdentity, identityDocumentSidesFor,
+  useAgencyIdentity, identityDocumentSidesFor, findSignatory,
   isIdentityVerificationSufficient, verificationNeedsManualFallback,
   type IdentityDocumentType, type IdentityVerificationStatus,
   type VerificationStartFailure,
 } from '@/hooks/useAgencyIdentity'
+import { useAgencyCorrectionReason } from '@/hooks/useAgencyCorrectionReason'
+import { useLabGuard } from '@/hooks/useLabGuard'
 import { ONBOARDING_CALL_ROUTE } from '@/hooks/useOnboardingCall'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
 import { StepSignataire } from './steps/StepSignataire'
@@ -477,6 +479,59 @@ export function shouldShowIdentityWelcome(
 }
 
 /**
+ * Nom du paramètre par lequel le prestataire nous renvoie, et sa valeur.
+ *
+ * Miroir CLIENT de `RETURN_PATH` (supabase/functions/kyb-identity-verify/index.ts,
+ * `/dashboard/identite?verification=done`). Copie et non import : `src/` est le bundle
+ * navigateur et `supabase/functions/` tourne sous Deno — deux runtimes qu'on ne fait pas
+ * s'importer (règle §4 du CLAUDE.md), même précédent que IdentityVerificationStatus.
+ * tests/unit/identity-verification-return.spec.ts relit le fichier de l'edge et fait
+ * échouer toute divergence : c'est la seule chose qui tienne les deux bouts ensemble.
+ */
+export const VERIFICATION_RETURN_PARAM = 'verification'
+export const VERIFICATION_RETURN_VALUE = 'done'
+
+/**
+ * Le dirigeant revient-il de la page hébergée du prestataire ?
+ *
+ * ⚠ Ce paramètre a existé sans lecteur jusqu'au 05.08.2026, et c'était le trou du
+ * parcours : l'edge posait consciencieusement `?verification=done` dans son `return_url`,
+ * le navigateur y revenait, et le wizard — dont `step` naît à 0 — rouvrait l'étape
+ * SIGNATAIRE. Quelqu'un qui venait de photographier sa pièce et son visage devait
+ * re-valider deux étapes pour apprendre si ça avait marché. C'est l'écran d'après la
+ * vérification, et il n'existait pas.
+ *
+ * Pure (prend l'URLSearchParams, pas le router) pour la même raison que les autres
+ * règles de ce fichier : la décision se teste sans monter la coquille.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-verification-return.spec.ts), même motif que shouldShowIdentityWelcome.
+export function isVerificationReturn(params: URLSearchParams): boolean {
+  return params.get(VERIFICATION_RETURN_PARAM) === VERIFICATION_RETURN_VALUE
+}
+
+/**
+ * Index de l'étape de vérification — celle sur laquelle atterrir au retour.
+ *
+ * Dérivé de l'`id` et jamais écrit en dur : ce parcours a déjà perdu une étape (les
+ * bénéficiaires effectifs, index 2, retirés le 3 août 2026), et un littéral aurait
+ * silencieusement pointé la mauvaise le jour où il en perd ou en gagne une autre.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- constante dérivée, testée avec les fonctions pures voisines.
+export const IDENTITY_VERIFICATION_STEP = SG_IDENTITY_STEPS.findIndex((s) => s.id === 'pieceIdentite')
+
+/**
+ * Durée pendant laquelle on relit la personne en attendant le verdict du prestataire.
+ *
+ * Une BORNE, pas une prédiction : Stripe rend son verdict en quelques secondes dans le
+ * cas courant, mais une session peut rester en `processing` (revue interne de leur
+ * côté). Relire indéfiniment ferait tourner une boucle réseau derrière un écran que
+ * plus personne ne regarde. Passé ce délai l'écran ne ment pas pour autant — il dit
+ * toujours « vérification en cours », ce qui reste vrai ; il cesse seulement de le
+ * redemander tout seul.
+ */
+const IDENTITY_VERDICT_WINDOW_MS = 3 * 60 * 1000
+
+/**
  * Écran d'arrivée, rendu À LA PLACE de toute la coquille Sugar tant qu'il n'a pas
  * été franchi (cf. son point d'appel dans IdentityShell). Jamais une route : la
  * route du gate est la seule que shouldRedirectToIdentityGate exempte, en sortir
@@ -754,6 +809,44 @@ function StepSkeleton({ label }: { label: string }) {
 }
 
 /**
+ * Ce qu'un relecteur demande de corriger, en tête de l'étape en cours.
+ *
+ * Une carte NEUTRE, jamais le pavé rouge `.error-message` de la vitrine — même règle que
+ * les deux cartes d'information de StepPieceIdentite : rien n'a échoué du fait du
+ * dirigeant, on lui demande un complément. Le rouge est réservé à ce qui vient de rater
+ * sous ses doigts (la bannière `error` du pied de page).
+ *
+ * `role="status"` et non `alert` : le texte est déjà là quand l'étape s'affiche, il
+ * n'interrompt aucune saisie en cours — même arbitrage qu'IdentityReadNotice.
+ *
+ * Le motif est rendu tel quel, sans mise en forme : il est écrit par un relecteur pour
+ * ce dossier-là, et le reformuler (majuscule forcée, point final ajouté) ferait dire à
+ * l'écran autre chose que ce qu'a écrit la personne qui décide.
+ */
+function IdentityCorrectionNotice({ reason }: { reason: string | null }) {
+  const { t } = useTranslation('onboarding')
+  return (
+    <div className="inner-container _634px center mg-bottom-small">
+      <div className="card">
+        <div className="pd---content-inside-card">
+          <p className="display-1 medium">{t('wizard.correction.title')}</p>
+          <div className="mg-top-4x-extra-small">
+            <p className="paragraph-small text-color-neutral-600">
+              {t(reason ? 'wizard.correction.body' : 'wizard.correction.bodyNoReason')}
+            </p>
+          </div>
+          {reason && (
+            <div className="mg-top-3x-extra-small">
+              <p className="paragraph-small" role="status" aria-live="polite">{reason}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
  * Sortie de secours (tâche 8) : écran d'attente affiché à la place du contenu du
  * wizard quand `showExitScreen` vaut vrai (cf. son point d'appel dans IdentityShell,
  * plus bas) — jamais un composant monté par une route séparée, voir l'en-tête du
@@ -810,10 +903,19 @@ export default function IdentityShell() {
    *  vitrine (VitrineLoginRedirect) : c'est le seul départ que le gate ne rattrape
    *  pas, rediriger vers /dashboard reproduirait la boucle P0 c830f9a9. */
   const handleLogout = () => { void signOut().then(() => navigate('/login')) }
+
+  /**
+   * Attente de verdict OUVERTE — posée au retour du prestataire (effet plus bas), close
+   * d'elle-même au bout d'IDENTITY_VERDICT_WINDOW_MS. Déclarée AVANT useAgencyIdentity :
+   * c'est elle qui décide de la relecture courte, et le hook s'arrête tout seul dès que
+   * le verdict est arrivé (cf. son `refetchInterval`).
+   */
+  const [verdictWindowOpen, setVerdictWindowOpen] = useState(false)
+
   const {
     agency, persons, isLoading, isRevalidating, savePerson, saveAgency,
     startIdentityVerification, submit,
-  } = useAgencyIdentity()
+  } = useAgencyIdentity({ awaitVerdict: verdictWindowOpen })
 
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -847,6 +949,75 @@ export default function IdentityShell() {
   }, [welcomeDecision, isLoading, isRevalidating, persons.length])
   const ecran = resolveIdentityScreen(welcomeDecision, welcomeDismissed, showExitScreen)
 
+  /**
+   * RETOUR DU PRESTATAIRE — l'écran d'après la vérification.
+   *
+   * Trois gestes, et chacun répare une part du trou décrit sur isVerificationReturn :
+   *   1. atterrir sur l'étape de vérification, celle dont on revient, plutôt qu'à
+   *      l'étape 1 où `step` naît ;
+   *   2. franchir l'écran d'arrivée — le dirigeant a commencé, il ne recommence pas ;
+   *   3. ouvrir l'attente du verdict, qui arrive par webhook et par rien d'autre.
+   *
+   * Puis EFFACER le paramètre (`replace`, pas une entrée d'historique de plus) : sans
+   * ça, un rechargement ou un retour arrière relancerait le saut et l'attente des heures
+   * après la capture, sur un écran où il n'y a plus rien à attendre. `replace` évite en
+   * outre que le bouton Précédent du navigateur ne repasse par l'URL de retour. Le
+   * nettoyage passe par `navigate` et non par le `setSearchParams` du couple ci-dessous :
+   * ce dernier navigue vers `'?' + params`, ce qui laisse un `?` orphelin en fin d'URL
+   * quand il ne reste plus rien — la seule chose qu'on avait à retirer.
+   *
+   * Rien ne dépend de l'ordre entre ce nettoyage et le saut d'étape : la relecture qui
+   * suit voit le paramètre absent et sort par le premier `return`.
+   */
+  const [searchParams] = useSearchParams()
+  const { pathname } = useLocation()
+  useEffect(() => {
+    if (!isVerificationReturn(searchParams)) return
+    setStep(IDENTITY_VERIFICATION_STEP)
+    setWelcomeDismissed(true)
+    setVerdictWindowOpen(true)
+    const cleaned = new URLSearchParams(searchParams)
+    cleaned.delete(VERIFICATION_RETURN_PARAM)
+    const reste = cleaned.toString()
+    navigate(reste ? `${pathname}?${reste}` : pathname, { replace: true })
+  }, [searchParams, pathname, navigate])
+
+  // Referme l'attente au bout du délai — cf. IDENTITY_VERDICT_WINDOW_MS pour pourquoi
+  // elle est bornée. Le hook, lui, a déjà pu cesser de relire avant : il s'arrête dès
+  // que le verdict est arrivé, sans attendre cette échéance.
+  useEffect(() => {
+    if (!verdictWindowOpen) return
+    const timer = window.setTimeout(() => setVerdictWindowOpen(false), IDENTITY_VERDICT_WINDOW_MS)
+    return () => window.clearTimeout(timer)
+  }, [verdictWindowOpen])
+
+  /**
+   * Le motif de la correction demandée par un relecteur, quand il y en a une EN COURS.
+   *
+   * `admin_request_agency_correction` remet `identity_submitted_at` à NULL : le gate
+   * rouvre, et le dirigeant est renvoyé ICI. Jusqu'au 05.08.2026 il y arrivait sans
+   * savoir quoi corriger — le motif est obligatoire côté RPC précisément pour être
+   * actionnable, mais il ne voyageait que par e-mail. Un e-mail qu'on ne retrouve pas,
+   * et c'est une resoumission à l'identique.
+   *
+   * Le STATUT commande l'affichage, jamais l'existence du motif : useAgencyCorrectionReason
+   * rend la dernière demande quelle que soit son issue, et l'afficher sans le statut
+   * ressortirait une demande déjà corrigée à quiconque rouvre cette route à la main.
+   * useLabGuard est par ailleurs déjà monté au-dessus de cette page (LabGuardBanner,
+   * AgentSugarLayout) : ce second appel relit le même cache React Query, pas le réseau.
+   *
+   * ⚠ L'encart s'affiche sur le STATUT SEUL — le motif n'en est que le contenu, et peut
+   * manquer. Le lier à la présence du motif a été essayé le 05.08.2026 et cassé aussitôt
+   * par la suite E2E : un dossier mis en `correction_requested` sans passer par la RPC
+   * n'a AUCUNE ligne de journal, donc aucun motif, donc plus rien à l'écran — et comme le
+   * bandeau se tait désormais ici, le dirigeant se retrouvait devant un wizard qui ne lui
+   * disait plus du tout pourquoi il y était renvoyé. La même chose arriverait sur une
+   * lecture du journal en échec. Le statut, lui, est toujours vrai : c'est lui qui décide.
+   */
+  const labGuardStatus = useLabGuard()
+  const correction = useAgencyCorrectionReason()
+  const correctionRequested = labGuardStatus === 'blocked_correction_requested'
+
   // Correctif revue tâche 7, point 1 : réinitialise l'attestation dès qu'on QUITTE le
   // récapitulatif, quel que soit le chemin (goToStep — bouton "Modifier" ET stepper de
   // l'en-tête, prev() — bouton Précédent, ou le setStep de handleSubmit après un refus
@@ -863,10 +1034,10 @@ export default function IdentityShell() {
     previousStepRef.current = step
   }, [step])
 
-  const existingSignatory = useMemo(
-    () => persons.find((p) => p.roles.some((r) => r.role === 'signatory')) ?? null,
-    [persons],
-  )
+  // findSignatory (useAgencyIdentity.ts) et non un `find` local : la relecture du
+  // verdict applique le MÊME critère depuis l'intérieur du hook, et deux définitions du
+  // « signataire courant » sont deux occasions de désigner deux personnes différentes.
+  const existingSignatory = useMemo(() => findSignatory(persons), [persons])
 
   const [signataire, setSignataireRaw] = useState<SignataireDraft>(EMPTY_SIGNATAIRE_DRAFT)
   const setSignataire = (patch: Partial<SignataireDraft>) => setSignataireRaw((prev) => ({ ...prev, ...patch }))
@@ -1246,47 +1417,56 @@ export default function IdentityShell() {
                 // saisi ne se perd le temps du squelette.
                 <StepSkeleton label={t('wizard.header.languageLoading')} />
               ) : showExitScreen ? (
-          <ExitPendingScreen onResume={() => setShowExitScreen(false)} onLogout={handleLogout} />
-        ) : step === 0 ? (
-          <StepSignataire value={signataire} onChange={setSignataire} />
-        ) : step === 1 ? (
-          <StepAgence value={agencyDraft} onChange={setAgencyDraft} />
-        ) : step === 2 ? (
-          <StepPieceIdentite
-            verificationStatus={pieceIdentiteDraft.verificationStatus}
-            verificationErrorCode={existingSignatory?.verificationErrorCode ?? null}
-            startingVerification={startingVerification}
-            startFailure={startFailure}
-            // Un refus SANS RECOURS ouvre la sortie de lui-même : réessayer chez le
-            // prestataire rendrait le même refus, et attendre que le dirigeant déclare
-            // ce que le système sait déjà ferait de l'étape un cul-de-sac.
-            blockedDeclared={blockedDeclared
-              || verificationNeedsManualFallback(existingSignatory?.verificationErrorCode ?? null)}
-            disabled={!signatoryId}
-            onStartVerification={() => { void handleStartVerification() }}
-            // Un refus SANS RECOURS ouvre la sortie tout seul : réessayer chez le
-            // prestataire rendrait le même refus, et laisser l'écran inchangé ferait
-            // de l'étape un cul-de-sac. Le dirigeant n'a pas à deviner qu'il doit
-            // déclarer lui-même ce que le système sait déjà.
-            onDeclareBlocked={() => setBlockedDeclared(true)}
-            onUndeclareBlocked={() => setBlockedDeclared(false)}
-          />
-        ) : step === 3 ? (
-          <StepRecapitulatif
-            signataire={signataire}
-            agencyDraft={agencyDraft}
-            documentType={null}
-            verificationStatus={pieceIdentiteDraft.verificationStatus}
-            recto={null}
-            verso={null}
-            identityRead={existingSignatory?.idDocumentRead ?? null}
-            identityDocumentsLoading={false}
-            identityDocumentsError={false}
-            attestationChecked={attestationChecked}
-            onAttestationChange={setAttestationChecked}
-            onEditStep={(target) => { void goToStep(target) }}
-          />
-              ) : null}
+                <ExitPendingScreen onResume={() => setShowExitScreen(false)} onLogout={handleLogout} />
+              ) : (
+                <>
+                  {/* En tête de CHAQUE étape, et pas seulement de la première : quelqu'un
+                      qui revient corriger ne sait pas d'avance sur quelle étape se trouve
+                      ce qu'on lui reproche, et devoir remonter au début pour relire la
+                      consigne est exactement le va-et-vient qu'on lui épargne ici. */}
+                  {correctionRequested && <IdentityCorrectionNotice reason={correction.reason} />}
+                  {step === 0 ? (
+                    <StepSignataire value={signataire} onChange={setSignataire} />
+                  ) : step === 1 ? (
+                    <StepAgence value={agencyDraft} onChange={setAgencyDraft} />
+                  ) : step === 2 ? (
+                    <StepPieceIdentite
+                      verificationStatus={pieceIdentiteDraft.verificationStatus}
+                      verificationErrorCode={existingSignatory?.verificationErrorCode ?? null}
+                      startingVerification={startingVerification}
+                      startFailure={startFailure}
+                      // Un refus SANS RECOURS ouvre la sortie de lui-même : réessayer chez le
+                      // prestataire rendrait le même refus, et attendre que le dirigeant déclare
+                      // ce que le système sait déjà ferait de l'étape un cul-de-sac.
+                      blockedDeclared={blockedDeclared
+                        || verificationNeedsManualFallback(existingSignatory?.verificationErrorCode ?? null)}
+                      disabled={!signatoryId}
+                      onStartVerification={() => { void handleStartVerification() }}
+                      // Un refus SANS RECOURS ouvre la sortie tout seul : réessayer chez le
+                      // prestataire rendrait le même refus, et laisser l'écran inchangé ferait
+                      // de l'étape un cul-de-sac. Le dirigeant n'a pas à deviner qu'il doit
+                      // déclarer lui-même ce que le système sait déjà.
+                      onDeclareBlocked={() => setBlockedDeclared(true)}
+                      onUndeclareBlocked={() => setBlockedDeclared(false)}
+                    />
+                  ) : step === 3 ? (
+                    <StepRecapitulatif
+                      signataire={signataire}
+                      agencyDraft={agencyDraft}
+                      documentType={null}
+                      verificationStatus={pieceIdentiteDraft.verificationStatus}
+                      recto={null}
+                      verso={null}
+                      identityRead={existingSignatory?.idDocumentRead ?? null}
+                      identityDocumentsLoading={false}
+                      identityDocumentsError={false}
+                      attestationChecked={attestationChecked}
+                      onAttestationChange={setAttestationChecked}
+                      onEditStep={(target) => { void goToStep(target) }}
+                    />
+                  ) : null}
+                </>
+              )}
             </main>
 
             {/* Bannière d'erreur : au-dessus du pied d'actions, pas en surimpression

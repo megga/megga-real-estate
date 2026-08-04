@@ -48,6 +48,11 @@
       "submitting": "Wird eingereicht…",
       "exit": "Später fortsetzen"
     },
+    "correction": {
+      "title": "Korrektur angefordert",
+      "body": "Ein Prüfer hat Ihr Dossier zurückgeschickt, damit Sie den folgenden Punkt überarbeiten. Korrigieren Sie ihn und reichen Sie erneut ein.",
+      "bodyNoReason": "Ein Prüfer hat Ihr Dossier zurückgeschickt. Die Einzelheiten wurden Ihnen per E-Mail zugesandt. Gehen Sie das Formular erneut durch und reichen Sie es ein."
+    },
     "signataire": {
       "title": "Wer ist berechtigt, für die Agentur zu unterzeichnen?",
       "subtitle": "Die Person, die Ihre Agentur verpflichten kann. Wir erheben diese Angaben im Sinne des Schweizer Geldwäschereigesetzes (GwG).",
