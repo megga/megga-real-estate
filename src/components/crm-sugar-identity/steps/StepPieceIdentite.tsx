@@ -1,48 +1,32 @@
 /**
- * Wizard « Identité légale » (KYB) — étape 3, la pièce d'identité du signataire.
+ * Wizard « Identité légale » (KYB) — étape 3, l'identité du signataire.
  *
- * Peau MEGGA X (transcription verbatim de la vitrine megga.ch, scopée `.megga-x`) :
- * l'écran ne pose plus aucune valeur de couleur, taille, rayon ou ombre — tout vient
- * des classes de la vitrine et des composants de src/components/megga-x/. La coquille
- * (IdentityShell) enveloppe le contenu dans <MeggaX>, c'est elle qui porte le fond et
- * la police ; cette étape ne rend que son contenu.
+ * Peau MEGGA X (transcription verbatim de la vitrine, scopée `.megga-x`) : l'écran ne
+ * pose aucune valeur de couleur, taille, rayon ou ombre. La coquille (IdentityShell)
+ * l'enveloppe dans <MeggaX> ; cette étape ne rend que son contenu.
  *
- * L'écran demande D'ABORD la nature de la pièce (passeport / carte d'identité /
- * titre de séjour), et c'est elle qui décide combien de faces sont réclamées :
- * identityDocumentSidesFor (useAgencyIdentity.ts), la même fonction que celle qui
- * gate le bouton Continuer. Un passeport n'a qu'une page de données — l'exiger en
- * deux faces faisait photographier une couverture vierge. La réponse est écrite dans
- * `agency_related_persons.id_document_type`, colonne posée dès l'origine
- * (migration 20260729150200) et restée vide jusqu'au 3 août 2026.
+ * ⛔ UN SEUL CHEMIN depuis le 05.08.2026 : la vérification chez le prestataire. Le
+ * dépôt de pièce a été RETIRÉ — pas seulement retiré de l'offre, retiré tout court :
+ * aucun état de cet écran ne peut plus faire apparaître un champ de fichier. C'était
+ * la condition pour que le retrait soit réel ; ne plus le proposer laissait un échec
+ * d'ouverture y ramener, et c'est ce que le dirigeant constatait.
  *
- * Téléversement recto/verso avec aperçu et remplacement — mais contrairement aux
- * étapes précédentes (texte tenu en brouillon React, écrit seulement au clic sur
- * Continuer), un fichier choisi est téléversé IMMÉDIATEMENT vers Storage (même motif
- * que le logo d'agence, AgencyFocusSection.tsx) : fermer l'onglet juste après avoir
- * choisi un fichier ne doit jamais le perdre, cf. la règle de persistance de
- * IdentityShell (son en-tête, « Persistance »). Il n'y a donc rien à « sauvegarder »
- * de plus au changement d'étape — persistCurrentStep (IdentityShell) ne fait ici que
- * vérifier la complétude.
+ * Ce que le prestataire ne sait pas traiter — pays émetteur hors de sa liste,
+ * nationalité que ses conditions excluent, pièce qu'il ne reconnaît pas — passe par
+ * IdentityBlockedCard : une demande de vérification manuelle qui ne réclame AUCUN
+ * document. Le dossier part en revue humaine avec la même ligne de check qu'un dépôt
+ * aurait produite, mais MEGGA ne détient rien. C'est tout l'objet de la décision.
  *
- * Purement contrôlée par IdentityShell, comme StepSignataire/StepAgence/
- * les étapes précédentes : aucun accès Supabase direct ici, seulement des props (aperçus
- * déjà résolus + callback de sélection) — IdentityShell détient
- * useIdentityDocuments()/uploadIdentityDocument() (useAgencyIdentity.ts, tâche 6).
+ * ⚠ Un refus SANS RECOURS ouvre cette sortie de lui-même (cf. le point d'appel dans
+ * IdentityShell) : attendre que le dirigeant déclare ce que le système sait déjà
+ * ferait de l'étape un cul-de-sac, le gate d'identité le maintenant hors du CRM.
  *
- * Aucun champ ici n'écrit dans agency_person_verification_checks : cette ligne de
- * check (check_type='id_document', source='manual', result='pending_manual_review')
- * ne peut être posée que par submit_agency_identity() (RPC SECURITY DEFINER, garde
- * 42501 sur les tables de checks) — l'étape 4 (récapitulatif, tâche 7) l'appellera au
- * moment de la soumission finale.
+ * Purement contrôlée par IdentityShell : aucun accès Supabase ici, seulement des props.
  */
-import { useRef, useState, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MxButton, MxField, MxModal, MxRadio, MxStateMessage } from '@/components/megga-x'
-import { cn } from '@/lib/utils'
+import { MxButton } from '@/components/megga-x'
 import {
-  IDENTITY_DOCUMENT_TYPES, identityDocumentSidesFor, knownVerificationError,
-  verificationNeedsManualFallback,
-  type IdentityDocumentPreview, type IdentityDocumentSide, type IdentityDocumentType,
+  knownVerificationError,
   type IdentityVerificationStatus, type VerificationStartFailure,
 } from '@/hooks/useAgencyIdentity'
 import type { KybIdReadRecord } from '@/types/kybIdRead'
@@ -50,61 +34,29 @@ import type { KybIdReadRecord } from '@/types/kybIdRead'
 interface StepPieceIdentiteProps {
   /** Statut de la vérification chez le prestataire — null si aucune n'a été lancée. */
   verificationStatus: IdentityVerificationStatus | null
-  /** `last_error.code` de Stripe, pour expliquer un refus dans la langue de l'agent. */
+  /** `last_error.code` du prestataire, pour expliquer un refus dans la langue de l'agent. */
   verificationErrorCode: string | null
-  /** true pendant l'ouverture de la session (avant la navigation vers Stripe). */
+  /** true pendant l'ouverture de la session (avant la navigation vers le prestataire). */
   startingVerification: boolean
-  /** true quand l'écran doit montrer le dépôt manuel à la place de la vérification. */
-  manualFallback: boolean
   /**
-   * Renseigné quand c'est un ÉCHEC d'ouverture, et non le choix du dirigeant, qui a
-   * produit la bascule vers le dépôt : l'écran le DIT, au lieu de changer de forme sans
-   * explication (défaut constaté le 04.08.2026, cf. l'en-tête de handleStartVerification).
+   * Renseigné quand l'ouverture a ÉCHOUÉ : l'écran le DIT au lieu de rester muet.
+   * Deux causes distinctes, deux phrases — le prestataire a répondu non, ou la
+   * requête n'est jamais partie (cf. classifyVerificationStartError).
    */
   startFailure: VerificationStartFailure | null
-  /** false sur un refus définitif : y revenir ne rendrait que le même refus. */
-  canReturnToVerification: boolean
   /**
    * true quand le dirigeant a déclaré que sa pièce ne peut PAS être vérifiée en ligne
    * (pays émetteur hors liste, nationalité que les conditions du prestataire excluent,
-   * pièce non reconnue). L'étape devient alors franchissable SANS aucun fichier : le
-   * dossier part en revue humaine à la soumission, comme un dépôt l'aurait fait, mais
-   * sans que MEGGA détienne la pièce — c'est tout l'intérêt de cette sortie.
+   * pièce non reconnue). L'étape devient alors franchissable SANS aucun document : le
+   * dossier part en revue humaine à la soumission. C'est la SEULE issue hors
+   * vérification depuis le 05.08.2026 — le dépôt de pièce a été retiré du parcours.
    */
   blockedDeclared: boolean
+  /** true si aucun signataire n'est encore enregistré — défensif, l'étape 1 bloque avant. */
+  disabled: boolean
   onStartVerification: () => void
-  onReturnToVerification: () => void
   onDeclareBlocked: () => void
   onUndeclareBlocked: () => void
-  /** Nature déclarée, null tant qu'elle n'a pas été choisie — les cases n'apparaissent qu'après. */
-  documentType: IdentityDocumentType | null
-  recto: IdentityDocumentPreview | null
-  verso: IdentityDocumentPreview | null
-  /** true tant que useIdentityDocuments() n'a pas encore résolu — évite un flash "vide" avant que l'aperçu existant n'apparaisse. */
-  isLoading: boolean
-  /** Le côté en cours de téléversement, pour son propre spinner — jamais les deux à la fois (un input à la fois). */
-  uploadingSide: IdentityDocumentSide | null
-  /** true pendant l'écriture de la nature (et l'éventuel retrait du verso qui l'accompagne) — fige le groupe le temps de l'aller-retour. */
-  savingDocumentType: boolean
-  /** Message d'erreur déjà traduit (format/taille/échec réseau) — IdentityShell choisit lequel. */
-  error: string | null
-  /**
-   * Correctif revue tâche 6, point 5 — true si useIdentityDocuments() a échoué (ex. le
-   * bug de casse Storage du point 1, qui rendait l'étape bloquée en silence). Remplace
-   * la grille par un état d'erreur dédié : sans donnée fiable sur ce qui est déjà
-   * téléversé, montrer des tuiles vides inviterait à re-téléverser un document peut-être
-   * déjà présent. Distinct de `error` (échec d'un téléversement EN COURS), qui reste
-   * affiché sous la grille normale — les trois états requis par le projet (chargement,
-   * vide, erreur) sont ainsi tous couverts : isLoading, grille vide/remplie, loadError.
-   */
-  loadError: boolean
-  /** true si aucun signataire n'est encore enregistré — ne devrait pas arriver en pratique (étape 0 bloque l'avancement avant), l'écran reste défensif. */
-  disabled: boolean
-  /** Verdict de la lecture assistée, null tant qu'elle n'a rien rendu (ou a échoué). */
-  identityRead: KybIdReadRecord | null
-  identityReading: boolean
-  onSelectType: (type: IdentityDocumentType) => void
-  onSelectFile: (side: IdentityDocumentSide, file: File) => void
 }
 
 /**
@@ -175,22 +127,13 @@ function swissDate(iso: string | null): string {
   return m ? `${m[3]}.${m[2]}.${m[1]}` : iso
 }
 
-const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,application/pdf'
 
 /** Étape 3 du wizard identité : recto/verso de la pièce d'identité du signataire. */
 export function StepPieceIdentite({
-  verificationStatus, verificationErrorCode, startingVerification, manualFallback, blockedDeclared,
-  onDeclareBlocked, onUndeclareBlocked,
-  startFailure, canReturnToVerification,
-  onStartVerification, onReturnToVerification,
-  documentType, recto, verso, isLoading, uploadingSide, savingDocumentType,
-  identityRead, identityReading, error, loadError, disabled, onSelectType, onSelectFile,
+  verificationStatus, verificationErrorCode, startingVerification, startFailure,
+  blockedDeclared, disabled, onStartVerification, onDeclareBlocked, onUndeclareBlocked,
 }: StepPieceIdentiteProps) {
   const { t } = useTranslation('onboarding')
-  // Une seule source pour « quelles faces » : la même fonction gate le bouton
-  // Continuer (isPieceIdentiteStepComplete). Demander ici une face que la garde
-  // n'exige pas — ou l'inverse — serait un écran qui se contredit lui-même.
-  const sides = identityDocumentSidesFor(documentType)
 
   return (
     <div className="inner-container _634px center">
@@ -217,135 +160,28 @@ export function StepPieceIdentite({
             </div>
           </div>
         </div>
-      ) : loadError ? (
-        // Correctif revue tâche 6, point 5 : état d'erreur dédié, jamais silencieux.
-        // `.error-message` porte déjà sa marge haute, d'où l'absence de mg-top-* ici.
-        <MxStateMessage variant="error" role="alert">
-          {t('wizard.pieceIdentite.errors.loadFailed')}
-        </MxStateMessage>
       ) : blockedDeclared ? (
         // SORTIE DE SECOURS — déclarée par le dirigeant, jamais déduite. Elle passe
         // AVANT les deux autres branches : quelqu'un qui vient de dire « ma pièce n'est
         // pas acceptée » ne doit pas retrouver l'écran qu'il vient de quitter.
         <IdentityBlockedCard onUndeclare={onUndeclareBlocked} />
-      ) : !manualFallback ? (
-        // CHEMIN PRINCIPAL — la vérification chez le prestataire. Aucun fichier ne
-        // transite par MEGGA, ce qui est tout l'intérêt du changement du 3 août 2026.
+      ) : (
+        // CHEMIN UNIQUE — la vérification chez le prestataire. Aucun fichier n'entre
+        // chez MEGGA : c'est tout l'objet de la décision du 05.08.2026. Le dépôt de
+        // pièce a été RETIRÉ du parcours, y compris comme repli — il ne suffisait pas
+        // de ne plus le proposer, il fallait qu'aucun état ne puisse le ramener.
+        // Ce que le prestataire ne sait pas traiter passe désormais par
+        // IdentityBlockedCard, qui ouvre la revue humaine SANS document.
         <IdentityVerificationCard
           status={verificationStatus}
           errorCode={verificationErrorCode}
           starting={startingVerification}
+          startFailure={startFailure}
           onStart={onStartVerification}
           onDeclareBlocked={onDeclareBlocked}
         />
-      ) : (
-        <>
-          {/* Pourquoi l'écran a changé de forme. Sur un refus DÉFINITIF, IdentityShell
-              force `manualFallback` (verificationNeedsManualFallback) : le dirigeant
-              revient de chez le prestataire et trouve un dépôt de fichier à la place du
-              bouton qu'il venait d'actionner. Sans cette phrase il n'apprend jamais ce
-              qui a été refusé — et ce sont précisément les cas qu'il ne peut pas
-              corriger seul (pays non couvert, âge) qui atterrissent ici.
-              Le catalogue est le MÊME que celui de la carte, et ses trois messages
-              définitifs renvoient déjà « déposez votre pièce ci-dessous » : ils étaient
-              écrits pour cet endroit, ils n'y étaient simplement pas rendus. */}
-          {/* Pourquoi le dépôt a remplacé le bouton, quand c'est un ÉCHEC qui l'a
-              décidé. Deux phrases distinctes, parce que les deux situations n'appellent
-              pas la même suite : le prestataire a dit non (rien à réessayer maintenant),
-              ou la requête n'est jamais partie (réessayer a du sens). Sans elles,
-              l'écran changeait de forme sans un mot et la vérification passait pour
-              inexistante. */}
-          {startFailure && (
-            <div className="mg-top-medium">
-              <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
-                {t(`wizard.pieceIdentite.verification.startFailed.${startFailure}`)}
-              </p>
-            </div>
-          )}
-
-          {/* Le retour vers la carte — ce qui manquait le plus : `manualFallback` est
-              un useState sans marche arrière, et seul un rechargement de page ramenait
-              la vérification. Masqué sur un refus définitif (canReturnToVerification),
-              où la carte ne rendrait que le même refus. */}
-          {canReturnToVerification && (
-            <div className="mg-top-3x-extra-small">
-              <button type="button" className="link-single display-1 medium" onClick={onReturnToVerification}>
-                {t('wizard.pieceIdentite.verification.backToVerification')}
-              </button>
-            </div>
-          )}
-
-          {verificationNeedsManualFallback(verificationErrorCode) && (
-            // Paragraphe neutre, PAS MxStateMessage : le composant ne connaît que
-            // `error` et `success`, et la règle de l'écran (cf. la branche `disabled`
-            // plus haut) est qu'une information n'emprunte jamais le pavé rouge de la
-            // vitrine. Rien n'a échoué du fait du dirigeant ; on lui dit ce qui s'est
-            // passé et où continuer. Même forme que le motif rendu dans la carte, pour
-            // qu'il lise la MÊME phrase dans la MÊME peau des deux côtés de la bascule.
-            <div className="mg-top-medium">
-              <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
-                {t(`wizard.pieceIdentite.verification.errors.${knownVerificationError(verificationErrorCode)}`)}
-              </p>
-            </div>
-          )}
-
-          {/* La nature AVANT les cases, et les cases seulement après : c'est elle qui
-              décide combien de faces sont demandées. L'ordre inverse aurait fait
-              déposer un verso à un porteur de passeport avant de lui apprendre qu'il
-              n'en a pas — un fichier de trop, déjà en ligne, qu'il faudrait retirer. */}
-          <MxField className="mg-top-medium" label={t('wizard.pieceIdentite.documentType.label')}>
-            {/* `mx-equal-columns` : sans lui, `1fr 1fr 1fr` ne donne PAS trois
-                colonnes égales — la piste garde un minimum `auto`, et la carte au
-                libellé le plus long (allemand : « Aufenthaltstitel ») écrase les deux
-                autres. Même piège que le trio adresse de l'étape 2. */}
-            <div
-              className="grid-3-columns mx-equal-columns"
-              role="radiogroup"
-              aria-label={t('wizard.pieceIdentite.documentType.label')}
-            >
-              {IDENTITY_DOCUMENT_TYPES.map((type) => (
-                <DocumentTypeCard
-                  key={type}
-                  type={type}
-                  selected={documentType === type}
-                  disabled={savingDocumentType}
-                  label={t(`wizard.pieceIdentite.documentType.options.${type}`)}
-                  hint={t(`wizard.pieceIdentite.documentType.hints.${type}`)}
-                  onSelect={onSelectType}
-                />
-              ))}
-            </div>
-          </MxField>
-
-          {documentType != null && (
-            <div className="mg-top-medium">
-              {/* Deux colonnes pour deux faces, une seule quand la pièce n'en a
-                  qu'une : une case de passeport étalée sur la moitié de la largeur
-                  aurait laissé un vide inexpliqué à côté d'elle. */}
-              <div className={sides.length > 1 ? 'grid-2-columns' : undefined}>
-                {sides.map((side) => (
-                  <DocumentTile
-                    key={side}
-                    // « Recto » n'a de sens qu'en face d'un verso : pour un
-                    // passeport, la seule face demandée s'appelle par ce qu'elle
-                    // est, la page de données.
-                    label={documentType === 'passport'
-                      ? t('wizard.pieceIdentite.sides.dataPage')
-                      : t(`wizard.pieceIdentite.sides.${side}`)}
-                    preview={side === 'recto' ? recto : verso}
-                    uploading={uploadingSide === side}
-                    isLoading={isLoading}
-                    onSelectFile={(file) => onSelectFile(side, file)}
-                  />
-                ))}
-              </div>
-              <IdentityReadNotice read={identityRead} reading={identityReading} />
-            </div>
-          )}
-        </>
       )}
 
-      {error && <MxStateMessage variant="error">{error}</MxStateMessage>}
     </div>
   )
 }
@@ -411,11 +247,12 @@ function IdentityBlockedCard({ onUndeclare }: { onUndeclare: () => void }) {
 }
 
 function IdentityVerificationCard({
-  status, errorCode, starting, onStart, onDeclareBlocked,
+  status, errorCode, starting, startFailure, onStart, onDeclareBlocked,
 }: {
   status: IdentityVerificationStatus | null
   errorCode: string | null
   starting: boolean
+  startFailure: VerificationStartFailure | null
   onStart: () => void
   onDeclareBlocked: () => void
 }) {
@@ -441,13 +278,23 @@ function IdentityVerificationCard({
           {/* Le motif du refus, dans la langue de l'agent. Le code brut de Stripe
               (`selfie_document_missing_photo`) n'a aucun sens pour un dirigeant : tout
               code hors du catalogue traduit retombe sur une phrase générique. */}
-          {retry && (
+          {/* Le motif du refus, ou la raison pour laquelle l'ouverture a échoué. Les
+              deux atterrissent ici, à la même place et dans la même peau : l'écran ne
+              change plus de forme, il explique. C'est ce qui remplace la bascule vers
+              le dépôt, retirée le 05.08.2026. */}
+          {startFailure ? (
+            <div className="mg-top-4x-extra-small">
+              <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
+                {t(`wizard.pieceIdentite.verification.startFailed.${startFailure}`)}
+              </p>
+            </div>
+          ) : retry ? (
             <div className="mg-top-4x-extra-small">
               <p className="paragraph-small text-color-neutral-600">
                 {t(`wizard.pieceIdentite.verification.errors.${knownVerificationError(errorCode)}`)}
               </p>
             </div>
-          )}
+          ) : null}
 
           {!done && (
             <div className="mg-top-3x-extra-small">
@@ -472,7 +319,7 @@ function IdentityVerificationCard({
               ne marchera pas », ce qui invitait à contourner la vérification avant même
               de l'avoir tentée. Offerte au moment où le prestataire vient de refuser,
               elle répond à une question que l'utilisateur se pose déjà. */}
-          {retry && (
+          {(retry || startFailure) && (
             <div className="mg-top-4x-extra-small">
               <button type="button" className="link-single display-1 medium" onClick={onDeclareBlocked}>
                 {t('wizard.pieceIdentite.verification.blocked.link')}
@@ -482,202 +329,6 @@ function IdentityVerificationCard({
 
         </div>
       </div>
-    </div>
-  )
-}
-
-
-/**
- * Une des trois natures de pièce, en carte.
- *
- * Même grammaire que le pouvoir de signature de l'étape 1 (SignaturePowerCard) :
- * radio réel dans un groupe — le choix est exclusif, seul un `radiogroup`
- * l'annonce comme tel (« 1 sur 3 ») et se parcourt aux flèches — et sélection
- * portée par le liseré d'accent qui ceint la carte, la pastille restant masquée
- * visuellement mais présente dans le DOM.
- *
- * Figée pendant l'écriture (`disabled`) : ce choix part immédiatement en base et
- * peut emporter le retrait du verso ; en enchaîner deux avant que le premier ait
- * résolu ferait courir deux écritures concurrentes sur la même ligne.
- */
-function DocumentTypeCard({
-  type, selected, disabled, label, hint, onSelect,
-}: {
-  type: IdentityDocumentType
-  selected: boolean
-  disabled: boolean
-  label: string
-  hint: string
-  onSelect: (type: IdentityDocumentType) => void
-}) {
-  return (
-    <div className={cn('card mx-choice-card', selected && 'mx-choice-card--selected')}>
-      <MxRadio
-        className="pd---content-inside-card"
-        name="identity-document-type"
-        value={type}
-        checked={selected}
-        disabled={disabled}
-        onSelect={() => onSelect(type)}
-        label={(
-          <>
-            <span className="display-2 semi-bold">{label}</span>
-            <br />
-            <span className="paragraph-small text-color-neutral-600">{hint}</span>
-          </>
-        )}
-      />
-    </div>
-  )
-}
-
-/**
- * Une case recto/verso : vide (bouton qui ouvre le sélecteur de fichier), en cours de
- * téléversement, ou remplie (aperçu + bouton = remplacer, même geste que le logo
- * d'agence — AgencyFocusSection.tsx).
- *
- * La vitrine n'a AUCUNE zone de dépôt (vérifié sur ses 21 pages) : la case est donc
- * composée de son vocabulaire existant — `.card` + `.pd---content-inside-card` pour le
- * contenant, un bouton secondaire pour l'action. Aucune grande surface cliquable,
- * donc : le geste passe par un vrai bouton, qui garde son anneau de focus natif.
- *
- * L'APERÇU utilisait `.link-item-image-wrapper`/`.link-item-image` de la vitrine, qui
- * ne posent AUCUNE hauteur : c'était donc la photo de l'agent qui dictait la forme de
- * la tuile. Mesuré à 1440 px : un scan 1712×1080 rendait 237×150, une photo de
- * téléphone 1500×2000 rendait 237×316 — deux tuiles de hauteurs différentes, et un
- * document trop petit pour être vérifié (la carte y faisait ~90 px). Remplacé par
- * `mx-docframe` (ratio ID-1 fixe, `contain`) et un agrandissement au clic.
- *
- * Aucune retouche n'est proposée, et c'est délibéré : l'original déposé EST la pièce
- * examinée par l'équipe conformité (décision produit du 02.08.2026, « l'original doit
- * rester intact »). Une photo mal cadrée se reprend, elle ne se rogne pas.
- */
-function DocumentTile({
-  label, preview, uploading, isLoading, onSelectFile,
-}: {
-  label: string
-  preview: IdentityDocumentPreview | null
-  uploading: boolean
-  isLoading: boolean
-  onSelectFile: (file: File) => void
-}) {
-  const { t } = useTranslation('onboarding')
-  const inputRef = useRef<HTMLInputElement>(null)
-  // L'agrandissement retient le CHEMIN qu'il montre, pas un simple booléen : si le
-  // document change sous lui (remplacement par un fichier d'une autre extension,
-  // donc d'une autre clé Storage), l'égalité cesse d'être vraie et la vue se ferme
-  // d'elle-même. État dérivé plutôt qu'un effet qui appellerait setState.
-  const [zoomedPath, setZoomedPath] = useState<string | null>(null)
-  const zoomed = preview != null && zoomedPath === preview.path
-
-  const filled = preview != null
-  const isPdf = filled && preview.path.toLowerCase().endsWith('.pdf')
-  const busy = uploading || isLoading
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    // Vide la valeur de l'input : sans ça, re-sélectionner EXACTEMENT le même fichier
-    // (ex. après une erreur de format corrigée autrement) ne redéclencherait pas onChange.
-    e.target.value = ''
-    if (file) onSelectFile(file)
-  }
-
-  return (
-    <div className="card">
-      <div className="pd---content-inside-card">
-        <input ref={inputRef} type="file" accept={ACCEPTED_TYPES} onChange={handleChange} className="display-none" />
-
-        <div className="flex-horizontal space-between">
-          <div className="display-1 medium text-color-neutral-600">{label}</div>
-          {filled && !uploading && (
-            <div className="badge-light small">{t('wizard.recap.pieceIdentite.uploaded')}</div>
-          )}
-        </div>
-
-        {/* Un PDF ne se rend pas dans un <img>. Plutôt que de le laisser sans
-            aucune vérification possible — ce qui était le cas jusqu'ici —, il
-            s'ouvre dans un onglet, où le lecteur du navigateur fait le travail.
-            `noopener` : l'URL signée ne doit jamais donner la main sur l'onglet
-            du wizard. */}
-        {preview != null && isPdf && (
-          <div className="mg-top-3x-extra-small">
-            <a
-              className="link-single display-1 medium"
-              href={preview.signedUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('wizard.pieceIdentite.openPdf')}
-            </a>
-          </div>
-        )}
-
-        {preview != null && !isPdf && (
-          <div className="mg-top-3x-extra-small">
-            {/* Un vrai <button> et non le wrapper d'image de la vitrine : le cadre
-                est le geste d'agrandissement, il doit s'atteindre au clavier et
-                garder son anneau de focus. `mx-docframe` impose le ratio d'une
-                pièce d'identité et `contain` — un document déposé n'est jamais
-                rogné, c'est précisément le bord manquant qu'on demande de voir. */}
-            <button
-              type="button"
-              className="mx-docframe"
-              onClick={() => setZoomedPath(preview.path)}
-              aria-label={t('wizard.pieceIdentite.zoomOpen', { side: label })}
-            >
-              <img src={preview.signedUrl} alt={label} />
-            </button>
-          </div>
-        )}
-
-        <div className="mg-top-3x-extra-small">
-          <MxButton
-            type="button"
-            variant="secondary"
-            size="small"
-            onClick={() => inputRef.current?.click()}
-            disabled={busy}
-            aria-busy={busy || undefined}
-          >
-            {filled ? t('wizard.pieceIdentite.replaceHint') : t('wizard.pieceIdentite.dropHint')}
-          </MxButton>
-        </div>
-
-        {/* Ligne d'état de la case : les formats acceptés au repos, l'avancement pendant
-            un téléversement. `role="status"` pour que l'attente s'entende aussi — la
-            peau MEGGA X n'a pas de spinner, l'attente ne se lit que là. */}
-        <div className="mg-top-4x-extra-small">
-          <p className="paragraph-small text-color-neutral-600" role="status">
-            {uploading
-              ? t('wizard.footer.saving')
-              : isLoading
-                ? t('wizard.recap.pieceIdentite.loading')
-                : t('wizard.pieceIdentite.formatHint')}
-          </p>
-        </div>
-      </div>
-
-      {/* Agrandissement. Le document est montré ENTIER et à sa taille naturelle
-          plafonnée à la fenêtre : c'est le seul endroit où l'agent peut juger la
-          netteté et vérifier que les quatre coins sont dans le cadre. Aucune
-          retouche n'y est proposée — l'original déposé est la pièce examinée, la
-          seule correction possible est de reprendre la photo (bouton Remplacer,
-          rappelé sous l'image). */}
-      {zoomed && preview != null && (
-        <MxModal
-          wide
-          title={label}
-          closeLabel={t('wizard.pieceIdentite.zoomClose')}
-          onClose={() => setZoomedPath(null)}
-        >
-          <img className="mx-docfull" src={preview.signedUrl} alt={label} />
-          <div className="mg-top-3x-extra-small text-center">
-            <p className="paragraph-small text-color-neutral-600">
-              {t('wizard.pieceIdentite.zoomHint')}
-            </p>
-          </div>
-        </MxModal>
-      )}
     </div>
   )
 }

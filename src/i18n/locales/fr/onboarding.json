@@ -113,9 +113,9 @@
         "doneBody": "Votre pièce a été vérifiée et votre visage comparé à sa photo. Notre équipe conformité examine ensuite le dossier.",
         "useManual": "Déposer ma pièce à la place",
         "errors": {
-          "consent_declined": "Vous avez refusé la vérification. Vous pouvez la reprendre, ou déposer votre pièce à la place.",
+          "consent_declined": "Vous avez refusé la vérification. Vous pouvez la reprendre, ou demander une vérification manuelle.",
           "under_supported_age": "La vérification en ligne ne couvre pas les personnes de moins de 16 ans.",
-          "country_not_supported": "Votre pays n'est pas couvert par la vérification en ligne. Déposez votre pièce ci-dessous.",
+          "country_not_supported": "Votre pays n'est pas couvert par la vérification en ligne. Demandez une vérification manuelle : notre équipe conformité vous contactera.",
           "document_expired": "La pièce présentée est expirée. Reprenez avec une pièce en cours de validité.",
           "document_type_not_supported": "Ce type de document n'est pas accepté. Un passeport ou une carte d'identité conviennent.",
           "document_unverified_other": "La pièce n'a pas pu être vérifiée. Reprenez avec un meilleur éclairage.",
@@ -124,11 +124,11 @@
           "selfie_document_missing_photo": "La pièce présentée ne porte pas de photo. Utilisez un passeport ou une carte d'identité.",
           "selfie_unverified_other": "Le visage n'a pas pu être vérifié. Reprenez la vérification.",
           "abandoned": "La vérification a été interrompue. Vous pouvez la reprendre.",
-          "unknown": "La vérification n'a pas abouti. Vous pouvez la reprendre ou déposer votre pièce ci-dessous."
+          "unknown": "La vérification n'a pas abouti. Vous pouvez la reprendre, ou demander une vérification manuelle."
         },
         "startFailed": {
-          "unavailable": "La vérification en ligne est momentanément indisponible. Déposez votre pièce ci-dessous, notre équipe l'examinera.",
-          "unexpected": "La vérification en ligne n'a pas pu s'ouvrir. Déposez votre pièce ci-dessous, ou réessayez la vérification."
+          "unavailable": "La vérification en ligne est momentanément indisponible. Réessayez dans un instant, ou demandez une vérification manuelle.",
+          "unexpected": "La vérification en ligne n'a pas pu s'ouvrir. Vérifiez votre connexion et réessayez, ou demandez une vérification manuelle."
         },
         "backToVerification": "Revenir à la vérification en ligne",
         "blocked": {

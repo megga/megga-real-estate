@@ -113,9 +113,9 @@
         "doneBody": "Your document was verified and your face compared with its photo. Our compliance team then reviews the file.",
         "useManual": "Upload my document instead",
         "errors": {
-          "consent_declined": "You declined the verification. You can start it again, or upload your document instead.",
+          "consent_declined": "You declined the verification. You can start it again, or request a manual verification.",
           "under_supported_age": "Online verification does not cover people under 16.",
-          "country_not_supported": "Your country is not covered by online verification. Upload your document below.",
+          "country_not_supported": "Your country is not covered by online verification. Request a manual verification: our compliance team will contact you.",
           "document_expired": "The document has expired. Try again with a valid one.",
           "document_type_not_supported": "This document type is not accepted. A passport or identity card works.",
           "document_unverified_other": "The document could not be verified. Try again with better lighting.",
@@ -124,11 +124,11 @@
           "selfie_document_missing_photo": "The document has no photo. Use a passport or an identity card.",
           "selfie_unverified_other": "Your face could not be verified. Try the verification again.",
           "abandoned": "The verification was interrupted. You can resume it.",
-          "unknown": "The verification did not complete. You can try again or upload your document below."
+          "unknown": "The verification did not succeed. You can start it again, or request a manual verification."
         },
         "startFailed": {
-          "unavailable": "Online verification is temporarily unavailable. Upload your document below and our team will review it.",
-          "unexpected": "Online verification could not be opened. Upload your document below, or try verification again."
+          "unavailable": "Online verification is temporarily unavailable. Try again shortly, or request a manual verification.",
+          "unexpected": "Online verification could not open. Check your connection and try again, or request a manual verification."
         },
         "backToVerification": "Back to online verification",
         "blocked": {

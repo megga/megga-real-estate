@@ -113,9 +113,9 @@
         "doneBody": "Ihr Ausweis wurde geprüft und Ihr Gesicht mit dem Foto verglichen. Danach prüft unser Compliance-Team das Dossier.",
         "useManual": "Stattdessen Ausweis hochladen",
         "errors": {
-          "consent_declined": "Sie haben die Prüfung abgelehnt. Sie können sie erneut starten oder stattdessen Ihren Ausweis hochladen.",
+          "consent_declined": "Sie haben die Prüfung abgelehnt. Sie können sie erneut starten oder eine manuelle Prüfung anfordern.",
           "under_supported_age": "Die Online-Prüfung gilt nicht für Personen unter 16 Jahren.",
-          "country_not_supported": "Ihr Land wird von der Online-Prüfung nicht abgedeckt. Laden Sie Ihren Ausweis unten hoch.",
+          "country_not_supported": "Ihr Land wird von der Online-Prüfung nicht abgedeckt. Fordern Sie eine manuelle Prüfung an: Unser Compliance-Team meldet sich bei Ihnen.",
           "document_expired": "Der vorgelegte Ausweis ist abgelaufen. Versuchen Sie es mit einem gültigen Ausweis.",
           "document_type_not_supported": "Diese Dokumentart wird nicht akzeptiert. Ein Pass oder eine Identitätskarte geht.",
           "document_unverified_other": "Der Ausweis konnte nicht geprüft werden. Versuchen Sie es bei besserem Licht erneut.",
@@ -124,11 +124,11 @@
           "selfie_document_missing_photo": "Der Ausweis trägt kein Foto. Verwenden Sie einen Pass oder eine Identitätskarte.",
           "selfie_unverified_other": "Das Gesicht konnte nicht geprüft werden. Wiederholen Sie die Prüfung.",
           "abandoned": "Die Prüfung wurde abgebrochen. Sie können sie fortsetzen.",
-          "unknown": "Die Prüfung wurde nicht abgeschlossen. Sie können es erneut versuchen oder Ihren Ausweis unten hochladen."
+          "unknown": "Die Prüfung war nicht erfolgreich. Sie können sie erneut starten oder eine manuelle Prüfung anfordern."
         },
         "startFailed": {
-          "unavailable": "Die Online-Prüfung ist vorübergehend nicht verfügbar. Laden Sie Ihr Dokument unten hoch, unser Team prüft es.",
-          "unexpected": "Die Online-Prüfung konnte nicht geöffnet werden. Laden Sie Ihr Dokument unten hoch oder versuchen Sie die Prüfung erneut."
+          "unavailable": "Die Online-Prüfung ist vorübergehend nicht verfügbar. Versuchen Sie es gleich erneut oder fordern Sie eine manuelle Prüfung an.",
+          "unexpected": "Die Online-Prüfung konnte nicht geöffnet werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut, oder fordern Sie eine manuelle Prüfung an."
         },
         "backToVerification": "Zurück zur Online-Prüfung",
         "blocked": {
