@@ -142,11 +142,23 @@ export function initSentry() {
         ],
     // Tracing — échantillon réduit (limite la captation d'URLs).
     tracesSampleRate: 0.2,
-    // Distributed tracing — propagate trace headers to our own backends only.
+    // Distributed tracing — en-têtes de trace vers nos propres pages SEULEMENT.
+    //
+    // ⛔ NE JAMAIS remettre supabase.co dans cette liste sans avoir d'abord ajouté
+    // `sentry-trace, baggage` aux Access-Control-Allow-Headers de TOUTES les edge
+    // functions. Incident du 04.08.2026 : avec supabase.co ciblé, Sentry attache
+    // `baggage` + `sentry-trace` à chaque appel — la passerelle REST reflète les
+    // en-têtes demandés et survit, mais les FONCTIONS répondent une liste figée qui
+    // ne les contient pas : Chrome refuse alors le préflight (cors-error 20,
+    // failed-parameter: baggage) et AUCUN appel de fonction ne part de AUCUN
+    // navigateur en production. Symptôme vécu : « Failed to fetch » silencieux,
+    // Intercom qui ne boote pas, zéro appareil enregistré, vérification Stripe
+    // inaccessible — pendant que curl (sans Sentry) passait, ce qui a orienté le
+    // diagnostic vers tout sauf notre propre bundle. Preuve : netlog Chrome,
+    // CORS_PREFLIGHT_ERROR {"cors-error": 20, "failed-parameter": "baggage"}.
     tracePropagationTargets: [
       'localhost',
       /^https:\/\/(.*\.)?megga\.ch\//,
-      /^https:\/\/eayczugyrvmtqnnmvjod\.supabase\.co\//,
     ],
     // Session Replay — 10% of all sessions, 100% of sessions that hit an error.
     // Ramenés à 0 sur route tokenisée : redondant avec l'intégration non embarquée,

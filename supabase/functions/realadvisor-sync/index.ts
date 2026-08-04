@@ -110,7 +110,7 @@ const PROBE_BATCH = 36            // ids distincts par requête id_in (= cap d'u
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 }
 
 // 26 cantons (slugs RealAdvisor validés : Σ counts = total_count exact).

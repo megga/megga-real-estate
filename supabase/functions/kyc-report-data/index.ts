@@ -9,7 +9,7 @@ const corsHeaders = {
   // (Sentry actif) → le SDK ajoute ces en-têtes au fetch. Sans eux dans l'allowlist,
   // le préflight CORS bloque le POST (vu en headless : "field baggage is not allowed")
   // → données jamais chargées → #pdf-ready jamais posé → Cloudflare timeout → 502.
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage, sentry-trace, baggage',
 }
 
 serve(async (req) => {
