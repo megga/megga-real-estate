@@ -189,11 +189,21 @@ type ApplyOutcome = 'applied' | 'stale' | 'absent'
  * (créer vs ignorer).
  */
 async function applySubscriptionState(
-  admin: ReturnType<typeof createClient>,
   agencyId: string,
   eventAt: string,
   patch: Record<string, unknown>,
 ): Promise<ApplyOutcome> {
+  // Client ouvert ICI plutôt que reçu en paramètre, pour la raison déjà
+  // documentée sur `handleIdentityVerification` : `ReturnType<typeof
+  // createClient>` ne se réconcilie pas avec le client réellement construit
+  // dans `serve` (les paramètres de type par défaut résolvent en `never`), et
+  // `deno check` — bloquant en CI — le refuse. Un client Supabase est un objet
+  // de configuration, pas une connexion : en ouvrir un second ne coûte rien.
+  const admin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  )
+
   const { data, error } = await admin
     .from('subscriptions')
     .update({ ...patch, last_stripe_event_at: eventAt, updated_at: new Date().toISOString() })
@@ -311,9 +321,7 @@ serve(async (req) => {
         // Cet événement CRÉE la ligne, mais il peut aussi arriver en retard,
         // après un `subscription.updated` qui l'a déjà créée. D'où la garde
         // d'abord, l'insertion seulement si la ligne n'existe pas encore.
-        const checkoutOutcome = await applySubscriptionState(
-          supabaseAdmin, agencyId, eventAt, checkoutPatch,
-        )
+        const checkoutOutcome = await applySubscriptionState(agencyId, eventAt, checkoutPatch)
         if (checkoutOutcome === 'absent') {
           // Course possible avec une création concurrente : la contrainte
           // d'unicité sur agency_id lèvera, le `catch` libérera la réservation,
@@ -392,7 +400,7 @@ serve(async (req) => {
         // C'est LE cas que la garde d'ordre protège : rejoué après un
         // `customer.subscription.deleted`, cet événement réactivait un
         // abonnement résilié et lui rendait son mrr_chf.
-        const updatedOutcome = await applySubscriptionState(supabaseAdmin, agencyId, eventAt, {
+        const updatedOutcome = await applySubscriptionState(agencyId, eventAt, {
           stripe_customer_id: customerId,
           stripe_subscription_id: subscription.id,
           stripe_price_id: priceId,
@@ -450,7 +458,7 @@ serve(async (req) => {
         }
 
         if (agencyId) {
-          const deletedOutcome = await applySubscriptionState(supabaseAdmin, agencyId, eventAt, {
+          const deletedOutcome = await applySubscriptionState(agencyId, eventAt, {
             status: 'canceled',
             plan: 'starter',
           })
@@ -495,7 +503,7 @@ serve(async (req) => {
           .maybeSingle()
 
         if (sub?.agency_id) {
-          await applySubscriptionState(supabaseAdmin, sub.agency_id, eventAt, {
+          await applySubscriptionState(sub.agency_id, eventAt, {
             trial_end: subscription.trial_end
               ? new Date(subscription.trial_end * 1000).toISOString()
               : null,
@@ -516,7 +524,7 @@ serve(async (req) => {
 
         const agencyId = sub?.agency_id
         if (agencyId) {
-          const failedOutcome = await applySubscriptionState(supabaseAdmin, agencyId, eventAt, {
+          const failedOutcome = await applySubscriptionState(agencyId, eventAt, {
             status: 'past_due',
             last_invoice_status: 'payment_failed',
             // Un impayé sort du MRR (§4.3) : la valeur affichée ne doit pas survivre à
@@ -563,7 +571,7 @@ serve(async (req) => {
           const period = invoice.lines.data[0].period
           // Garde d'ordre ici aussi : un paiement réussi rejoué APRÈS un impayé
             // ressusciterait un `active` que Stripe a déjà démenti.
-          await applySubscriptionState(supabaseAdmin, agencyId, eventAt, {
+          await applySubscriptionState(agencyId, eventAt, {
             status: 'active',
             last_invoice_status: 'paid',
             current_period_start: new Date(period.start * 1000).toISOString(),
