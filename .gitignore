@@ -10,6 +10,10 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# Sortie de l'ancien build:admin (application autonome admin.megga.ch, retirée le
+# 28.07.2026). Le script n'existe plus, mais le dossier survit dans les copies de
+# travail et suit chaque nouvelle branche — il n'a jamais eu à être versionné.
+dist-admin
 *.local
 
 # Editor directories and files
