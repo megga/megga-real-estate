@@ -289,7 +289,12 @@
       "phone": "Telefono (facoltativo)",
       "phonePlaceholder": "+41 22 000 00 00",
       "note": "Una parola sulle sue priorità (facoltativo)",
-      "notePlaceholder": "Cosa vorrebbe vedere per primo"
+      "notePlaceholder": "Cosa vorrebbe vedere per primo",
+      "firstName": "Nome",
+      "lastName": "Cognome",
+      "email": "E-mail",
+      "whatsapp": "Numero WhatsApp",
+      "whatsappHelp": "La conferma e il promemoria Le arrivano su WhatsApp."
     },
     "actions": {
       "confirm": "Confermare l'appuntamento",
@@ -349,6 +354,59 @@
       "rescheduled": {
         "title": "Nuova data salvata",
         "body": "Un'e-mail di conferma con la data aggiornata è in arrivo."
+      }
+    },
+    "book": {
+      "hostedBy": "Con il team MEGGA",
+      "title": "Chiamata di benvenuto",
+      "duration": "{{count}} min",
+      "video": "Il link alla videoconferenza Le arriva con la conferma.",
+      "about": "Facciamo il punto sulla Sua configurazione, rispondiamo alle Sue domande e tariamo il CRM sul Suo modo di lavorare.",
+      "pickTitle": "Scelga la data e l'ora",
+      "next": "Avanti",
+      "back": "Indietro",
+      "formTitle": "I Suoi dati"
+    },
+    "questions": {
+      "placeholder": "Selezioni…",
+      "portfolio": {
+        "label": "Quanti immobili gestisce oggi?",
+        "options": {
+          "1-5": "Da 1 a 5",
+          "6-20": "Da 6 a 20",
+          "21-50": "Da 21 a 50",
+          "50+": "Più di 50"
+        }
+      },
+      "business": {
+        "label": "Vendita, locazione o entrambe?",
+        "options": {
+          "sale": "Vendita",
+          "rent": "Locazione",
+          "both": "Entrambe"
+        }
+      },
+      "team": {
+        "label": "Quanti agenti nel team?",
+        "options": {
+          "1": "Lavoro da solo",
+          "2-5": "Da 2 a 5",
+          "6-15": "Da 6 a 15",
+          "15+": "Più di 15"
+        }
+      },
+      "priority": {
+        "label": "La Sua priorità dei prossimi tre mesi?",
+        "options": {
+          "mandates": "Ottenere mandati",
+          "buyers": "Seguire i miei acquirenti",
+          "admin": "Guadagnare tempo amministrativo",
+          "compliance": "Mettere in sicurezza LRD/KYC"
+        }
+      },
+      "cantons": {
+        "label": "In quali cantoni lavora?",
+        "placeholder": "Ginevra, Vaud…"
       }
     }
   }

@@ -50,6 +50,8 @@
  * 16. Bandeau d'état du dossier — la vitrine vend, elle ne suit aucun dossier :
  *     ni bandeau persistant, ni gradation de gravité entre « à faire »,
  *     « en attente » et « refusé ».
+ * 17. Prise de rendez-vous en deux temps — la vitrine ne prend aucun
+ *     rendez-vous : ni volet d'hôte, ni confirmation en deux écrans.
  *
  * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
  * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
@@ -1013,4 +1015,71 @@
 /* Rouge, et lui seul : un verdict, pas une étape. */
 .megga-x .mx-notice--refused .mx-notice__title {
   color: var(--system-colors--red-400);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 17. Prise de rendez-vous en DEUX temps (MEGGA Calendar). La vitrine ne prend
+ *    aucun rendez-vous : ni panneau d'hôte, ni confirmation en deux écrans.
+ *
+ *    Deux ajouts, et rien d'autre :
+ *
+ *    a) `mx-book` — la mise en page à deux volets : l'hôte à gauche (logo, durée,
+ *       objet, puis le créneau retenu une fois choisi), le geste à droite. Le
+ *       volet gauche ne change pas d'un écran à l'autre : c'est ce qui fait que
+ *       le passage au formulaire ne ressemble pas à une nouvelle page.
+ *
+ *    b) `mx-slotpicker__row` — le créneau retenu cède la moitié de sa largeur à
+ *       « Suivant ». Le choix reste visible et modifiable pendant qu'on confirme,
+ *       au lieu de disparaître sous un bouton posé ailleurs.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-book {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: var(--main-spacers--medium);
+}
+
+/* Même rupture que le sélecteur de créneau : sous 767 px, l'hôte passe au-dessus. */
+@media screen and (max-width: 767px) {
+  .megga-x .mx-book {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Le filet ne descend qu'en deux colonnes : empilé, il couperait le volet gauche
+   en travers au lieu de le border. */
+@media screen and (min-width: 768px) {
+  .megga-x .mx-book__host {
+    border-right: 1px solid var(--neutral-colors--400);
+    padding-right: var(--main-spacers--medium);
+  }
+}
+
+.megga-x .mx-book__logo img {
+  height: 28px;
+  width: auto;
+}
+
+/* Une ligne de fait dans le volet hôte : durée, support, créneau, fuseau. */
+.megga-x .mx-book__fact {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--main-spacers--5x-extra-small);
+}
+
+.megga-x .mx-book__fact svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.megga-x .mx-slotpicker__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--main-spacers--5x-extra-small);
+}
+
+/* Le créneau retenu s'efface au profit de « Suivant » : il reste lisible et
+   cliquable (le reclic le déselectionne), mais il ne réclame plus l'œil. */
+.megga-x .mx-slotpicker__slot--picked {
+  background-color: var(--neutral-colors--400);
+  border-color: var(--neutral-colors--400);
 }

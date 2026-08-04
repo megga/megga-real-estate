@@ -39,13 +39,20 @@ export interface OcSlotPickerProps {
   onSelectDay: (dayKey: string) => void
   selectedSlot: string | null
   onSelectSlot: (iso: string) => void
+  /**
+   * Rendu À CÔTÉ du créneau retenu, qui cède alors la moitié de sa largeur.
+   * Le choix reste visible et modifiable pendant qu'on confirme — c'est la
+   * différence avec un bouton posé sous la liste, qui oblige à quitter des yeux
+   * ce qu'on vient de choisir. Absent : la liste se comporte comme avant.
+   */
+  slotAction?: React.ReactNode
   timezone: string
   loading?: boolean
 }
 
 export default function OcSlotPicker({
   slots, month, onMonthChange, selectedDay, onSelectDay,
-  selectedSlot, onSelectSlot, timezone, loading = false,
+  selectedSlot, onSelectSlot, timezone, loading = false, slotAction,
 }: OcSlotPickerProps) {
   const { t } = useTranslation('onboarding')
 
@@ -158,17 +165,29 @@ export default function OcSlotPicker({
             <div className="mx-slotpicker__list" role="radiogroup" aria-label={t('call.picker.slotsTitle')}>
               {daySlots.map((iso) => {
                 const isSelected = iso === selectedSlot
-                return (
+                const bouton = (
                   <button
                     key={iso}
                     type="button"
                     role="radio"
                     aria-checked={isSelected}
                     onClick={() => onSelectSlot(iso)}
-                    className={cn('mx-slotpicker__slot', isSelected && 'mx-slotpicker__slot--selected')}
+                    className={cn(
+                      'mx-slotpicker__slot',
+                      isSelected && 'mx-slotpicker__slot--selected',
+                      isSelected && slotAction != null && 'mx-slotpicker__slot--picked',
+                    )}
                   >
                     {hourLabel(iso, timezone)}
                   </button>
+                )
+                // Le créneau retenu partage sa ligne avec l'action de confirmation.
+                if (!isSelected || slotAction == null) return bouton
+                return (
+                  <div key={iso} className="mx-slotpicker__row">
+                    {bouton}
+                    {slotAction}
+                  </div>
                 )
               })}
             </div>

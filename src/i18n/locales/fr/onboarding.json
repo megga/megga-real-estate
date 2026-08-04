@@ -289,7 +289,12 @@
       "phone": "Téléphone (facultatif)",
       "phonePlaceholder": "+41 22 000 00 00",
       "note": "Un mot sur vos priorités (facultatif)",
-      "notePlaceholder": "Ce que vous aimeriez voir en premier"
+      "notePlaceholder": "Ce que vous aimeriez voir en premier",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "email": "E-mail",
+      "whatsapp": "Numéro WhatsApp",
+      "whatsappHelp": "La confirmation et le rappel vous arrivent sur WhatsApp."
     },
     "actions": {
       "confirm": "Confirmer le rendez-vous",
@@ -349,6 +354,59 @@
       "rescheduled": {
         "title": "Nouvelle date enregistrée",
         "body": "Un e-mail de confirmation part à l'instant, avec la date mise à jour."
+      }
+    },
+    "book": {
+      "hostedBy": "Avec l'équipe MEGGA",
+      "title": "Appel d'accueil",
+      "duration": "{{count}} min",
+      "video": "Le lien de visioconférence vous est envoyé à la confirmation.",
+      "about": "Nous faisons le tour de votre installation, nous répondons à vos questions, et nous calibrons le CRM sur votre façon de travailler.",
+      "pickTitle": "Choisissez la date et l'heure",
+      "next": "Suivant",
+      "back": "Retour",
+      "formTitle": "Vos informations"
+    },
+    "questions": {
+      "placeholder": "Sélectionnez…",
+      "portfolio": {
+        "label": "Combien de biens gérez-vous aujourd'hui ?",
+        "options": {
+          "1-5": "1 à 5",
+          "6-20": "6 à 20",
+          "21-50": "21 à 50",
+          "50+": "Plus de 50"
+        }
+      },
+      "business": {
+        "label": "Vente, location, ou les deux ?",
+        "options": {
+          "sale": "Vente",
+          "rent": "Location",
+          "both": "Les deux"
+        }
+      },
+      "team": {
+        "label": "Combien d'agents dans l'équipe ?",
+        "options": {
+          "1": "Je travaille seul",
+          "2-5": "2 à 5",
+          "6-15": "6 à 15",
+          "15+": "Plus de 15"
+        }
+      },
+      "priority": {
+        "label": "Votre priorité des trois prochains mois ?",
+        "options": {
+          "mandates": "Trouver des mandats",
+          "buyers": "Suivre mes acquéreurs",
+          "admin": "Gagner du temps administratif",
+          "compliance": "Sécuriser le LAB/KYC"
+        }
+      },
+      "cantons": {
+        "label": "Sur quels cantons travaillez-vous ?",
+        "placeholder": "Genève, Vaud…"
       }
     }
   }
