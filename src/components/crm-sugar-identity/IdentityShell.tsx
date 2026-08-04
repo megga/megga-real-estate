@@ -1404,7 +1404,6 @@ export default function IdentityShell() {
               !verificationNeedsManualFallback(existingSignatory?.verificationErrorCode ?? null)
             }
             onStartVerification={() => { void handleStartVerification() }}
-            onUseManualFallback={() => setManualFallback(true)}
             blockedDeclared={blockedDeclared}
             // Déclarer, c'est aussi quitter le dépôt : sans ça, revenir en arrière
             // depuis la sortie de secours retomberait sur le formulaire de fichier.
