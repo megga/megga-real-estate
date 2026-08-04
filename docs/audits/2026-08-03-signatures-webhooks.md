@@ -105,7 +105,7 @@ Note mineure : `/^[0-9a-f-]{36}$/i` (L97) n'est pas un validateur d'UUID — 36 
 passent. La colonne étant `uuid`, l'insert échoue proprement ; c'est un 500 gratuit, pas
 une faille.
 
-### 4.2 — `whatsapp-webhook` : l'appelant choisit le secret qu'il doit forger · **ÉLEVÉ (à confirmer)**
+### 4.2 — `whatsapp-webhook` : l'appelant choisit le secret qu'il doit forger · **ÉLEVÉ — CONFIRMÉ**
 
 La branche de vérification est choisie **par l'en-tête que l'appelant envoie** (L56) :
 
@@ -128,10 +128,22 @@ Ce que la branche protège n'est pas anodin : le pipeline entrant atteint
 `whatsapp-actions.ts` — mise à jour de pipeline, envoi de lien KYC, e-mail client,
 publication/retrait portails, **suppression de contact**.
 
-⚠ **À confirmer avant de trancher la sévérité :** `WHATSAPP_WEBHOOK_SECRET` est-il encore
-posé ? S'il l'est → chemin d'authentification parallèle bien vivant sur un provider
-mort, à supprimer. S'il ne l'est pas → la branche rend 500 et le risque est latent, mais
-le code reste un piège pour le prochain lecteur. La sonde est décrite au §6.
+✅ **CONFIRMÉ le 04.08.2026, sans sonde et sans toucher la production.**
+`WHATSAPP_WEBHOOK_SECRET` **est posé** : il apparaît dans la liste des secrets Edge
+Functions du tableau de bord Supabase, avec son condensat SHA-256 et sa date de mise à
+jour. Un secret absent n'y figurerait pas du tout — la présence de la ligne suffit, la
+valeur n'a pas eu à être révélée. C'est la vérification la moins chère de tout ce
+rapport, et elle ne laisse aucune trace.
+
+Verdict : **chemin d'authentification parallèle bien vivant sur un provider mort.** La
+sévérité passe de « élevé sous réserve » à élevé tout court, et le correctif devient une
+suppression plutôt qu'une refonte — retirer la branche OpenWA, exiger un provider connu
+au lieu d'y retomber par défaut, puis révoquer le secret.
+
+⚠ Reste à vérifier, et ça compte : la **date de mise à jour** du secret. S'il n'a pas
+bougé depuis la Phase 1, c'est un identifiant partagé jamais tourné, rattaché à une
+intégration abandonnée — exactement le profil de celui dont une fuite ne serait
+remarquée par personne.
 
 ### 4.3 — `esign-webhook` : jeton de capacité statique, en clair dans l'URL · **MOYEN**
 
@@ -154,7 +166,7 @@ signé. Au mieux il force une réconciliation, ou provoque l'écriture de `last_
 (L123). D'où **moyen** et non élevé.
 
 Sous-constat : la ligne `signature_requests` est lue (L70-74) **avant** la validation du
-jeton, sur un `srId` non validé. Lecture seule, `service_single`, échec propre si l'UUID est
+jeton, sur un `srId` non validé. Lecture seule, `service_role`, échec propre si l'UUID est
 malformé — pas un trou, mais l'ordre gagnerait à être inversé.
 
 ### 4.4 — `stripe-webhook` : pas de registre d'événements, pas de garde d'ordre · **MOYEN**
@@ -206,22 +218,34 @@ vivent pas dans les helpers : ils vivent dans l'**ordre** et le **branchement** 
 
 ---
 
-## 6. Ce qui reste à confirmer à l'exécution
+## 6. Vérification des secrets — et la leçon de méthode
 
 Trois secrets décident de la sévérité réelle et ne sont pas lisibles depuis le dépôt.
 Aucun n'apparaît dans l'inventaire de `CLAUDE.md` §8 — mais cet inventaire est
 incomplet de son propre aveu (`MEGGA_MAGIC_LINK_HMAC_SECRET` y manquait aussi).
 
-| Secret | Si absent | Si présent |
+| Secret | État | Conséquence |
 |---|---|---|
-| `WHATSAPP_WEBHOOK_SECRET` | branche OpenWA → 500, risque latent | **§4.2 confirmé élevé** |
-| `META_APP_SECRET` | branche Meta → 500 | nominal |
-| `AUTH_EVENT_SALT_SECRET` | `log-auth-event` → 500 partout, inerte | **§4.1 confirmé élevé** |
+| `WHATSAPP_WEBHOOK_SECRET` | ✅ **posé** (constaté 04.08.2026) | **§4.2 confirmé élevé** |
+| `META_APP_SECRET` | à vérifier, même méthode | absent → branche Meta en 500 |
+| `AUTH_EVENT_SALT_SECRET` | à vérifier, même méthode | absent → `log-auth-event` inerte (500 partout) |
 
-**Sonde** (même méthode que l'oracle `MEGGA_MAGIC_LINK_HMAC_SECRET` de `CLAUDE.md`) : un
-POST sans en-tête de signature sur `whatsapp-webhook` sort **500 « Server misconfigured »**
-si le secret manque, **401 « Invalid signature »** s'il est posé. Le contrôle précède toute
-écriture — la sonde ne mute rien.
+**La méthode qui a tranché : lire la LISTE des secrets, pas leur valeur.** Le tableau de
+bord Supabase (Project Settings › Edge Functions › Secrets) affiche chaque secret posé
+avec son condensat SHA-256 et sa date de mise à jour. Un secret absent n'y figure pas du
+tout — donc **la présence de la ligne répond à la question**, sans révéler quoi que ce
+soit et sans émettre une seule requête vers la production.
+
+C'est la vérification la moins chère du rapport, et elle rend inutile la sonde qui était
+proposée ici : un POST sans en-tête de signature sur `whatsapp-webhook`, qui distingue
+500 « Server misconfigured » (secret absent) de 401 « Invalid signature » (secret posé).
+La sonde reste correcte — le contrôle précède toute écriture, elle ne mute rien — mais
+elle touche la production et laisse une trace dans les journaux pour apprendre une chose
+qu'une page de réglages donne gratuitement.
+
+⚠ **Généralisable :** avant de sonder un service pour deviner sa configuration, vérifier
+si un plan de contrôle l'expose déjà. Le condensat est fait pour ça — il permet aussi de
+comparer deux environnements (test vs réel) sans jamais manipuler la valeur.
 
 ---
 
@@ -229,12 +253,17 @@ si le secret manque, **401 « Invalid signature »** s'il est posé. Le contrôl
 
 Un correctif par PR, dans cet ordre — le premier est le plus rentable et le plus isolé.
 
-1. **§4.1** — fermer `log-auth-event` : secret partagé côté client, ou HMAC sur le corps,
-   ou limitation de débit par IP réelle. À arbitrer avec le fait que l'appel légitime est
-   pré-authentification (`signin.failure`), donc un porteur de secret côté navigateur est
-   un secret public : la limitation de débit est probablement la seule réponse honnête.
-2. **§4.2** — supprimer la branche OpenWA, ou exiger explicitement un provider connu au
-   lieu de retomber dessus par défaut. Révoquer `WHATSAPP_WEBHOOK_SECRET` s'il est posé.
+1. ~~**§4.1** — fermer `log-auth-event`~~ · ✅ **FAIT** ([#1154](https://github.com/megga/megga-real-estate/pull/1154), fusionnée le 04.08.2026).
+   L'arbitrage annoncé ici s'est confirmé : l'appel légitime étant pré-authentification
+   (`signin.failure`), tout secret côté navigateur serait public, et la limitation de
+   débit était bien la seule réponse honnête. 60/minute et 600/heure par `ip_hash`,
+   comptage et insertion en un seul aller (`log_auth_event_limited`), plus la résolution
+   d'IP corrigée — `x-forwarded-for` se lit désormais depuis la DROITE, et
+   `cf-connecting-ip` n'est plus cru.
+2. **§4.2** — **c'est maintenant le plus rentable.** Le secret étant confirmé posé (§6),
+   c'est une **suppression**, pas une refonte : retirer la branche OpenWA, exiger un
+   provider connu au lieu d'y retomber par défaut, puis révoquer
+   `WHATSAPP_WEBHOOK_SECRET`.
 3. **§4.4** — table `stripe_events(event_id primary key)` en garde d'idempotence, et
    comparaison de `event.created` avant écriture d'état.
 4. **§4.3** — nettoyer `webhook_token` à la finalisation ; envisager l'en-tête plutôt que
