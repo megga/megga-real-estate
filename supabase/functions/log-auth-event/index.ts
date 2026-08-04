@@ -28,9 +28,15 @@
 // Auth : --no-verify-jwt because we accept anonymous calls too
 //        (signin.failure happens BEFORE the user is authenticated).
 //        We still write via service_role so RLS doesn't get in the way.
+//
+//        Ce point d'entrée doit donc rester ANONYME — un secret expédié au
+//        navigateur pour le signer serait un secret public. Ce qui le borne est
+//        une limitation de débit par IP, appliquée dans log_auth_event_limited
+//        (migration 20260804101347). Voir docs/audits/2026-08-03-signatures-webhooks.md §4.1.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { trustedClientIp } from '../_shared/client-ip.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,23 +70,27 @@ async function hashIp(ip: string, masterSecret: string): Promise<string> {
   return await sha256Hex(`${ip}|${salt}`)
 }
 
-// ─── Extract IP from request headers ─────────────────────────────────────
+// ─── Client IP ───────────────────────────────────────────────────────────
+// La résolution vit dans _shared/client-ip.ts (testée) ; il ne reste ici que
+// le repli.
 
-function extractClientIp(req: Request): string {
-  // Order matters: Cloudflare → Supabase Edge → fallback xff
-  const cfIp = req.headers.get('cf-connecting-ip')
-  if (cfIp) return cfIp.trim()
-  const realIp = req.headers.get('x-real-ip')
-  if (realIp) return realIp.trim()
-  const xff = req.headers.get('x-forwarded-for')
-  if (xff) return xff.split(',')[0].trim()
-  return 'unknown'
-}
+/**
+ * Sceau appliqué quand aucune IP n'est attribuable (voir `trustedClientIp`).
+ *
+ * Ces appels partagent alors UN SEUL budget de débit. C'est délibéré : laisser
+ * passer l'inattribuable rouvrirait le trou (il suffirait de ne rien envoyer),
+ * et refuser sec perdrait des événements légitimes si la chaîne de proxys
+ * changeait un jour. Un budget commun borne l'abus tout en rendant la panne
+ * bruyante — une pile de lignes sous ce hash veut dire « la résolution d'IP ne
+ * marche plus », pas « un attaquant ».
+ */
+const UNATTRIBUTED_IP = 'unattributed'
 
 // ─── Validation ──────────────────────────────────────────────────────────
 
 const ACTION_REGEX = /^(signin|signup|magic_link|password|oauth|signout)\.[a-z_]+$/
 const SEVERITIES = new Set(['info', 'warn', 'error'])
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type Body = {
   action?: unknown
@@ -94,7 +104,10 @@ function validate(body: Body): { ok: true; data: { action: string; user_id: stri
     return { ok: false, error: 'invalid_action' }
   }
   const user_id =
-    typeof body.user_id === 'string' && /^[0-9a-f-]{36}$/i.test(body.user_id)
+    // Vraie forme d'UUID, et pas « 36 caractères pris dans [0-9a-f-] » : la
+    // version large laissait passer 36 tirets, que la colonne `uuid` rejetait
+    // ensuite en 500. Un corps malformé mérite un 400, pas une erreur serveur.
+    typeof body.user_id === 'string' && UUID_REGEX.test(body.user_id)
       ? body.user_id
       : null
   const detail =
@@ -145,7 +158,7 @@ serve(async (req) => {
     })
   }
 
-  const ip = extractClientIp(req)
+  const ip = trustedClientIp(req) ?? UNATTRIBUTED_IP
   const ipHash = await hashIp(ip, masterSecret)
   const userAgent = (req.headers.get('user-agent') ?? '').slice(0, 256)
 
@@ -153,19 +166,42 @@ serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  const { error } = await supabase.from('auth_events').insert({
-    user_id: v.data.user_id,
-    action: v.data.action,
-    severity: v.data.severity,
-    ip_hash: ipHash,
-    user_agent: userAgent,
-    detail: v.data.detail,
+  // Le comptage et l'insertion sont faits en UN aller (migration 20260804101347) :
+  // pas de fenêtre entre la décision et l'écriture, et un échec ne peut pas
+  // laisser passer la ligne — il n'y a donc pas de fail-open à arbitrer.
+  const { data: outcome, error } = await supabase.rpc('log_auth_event_limited', {
+    p_ip_hash: ipHash,
+    p_action: v.data.action,
+    p_severity: v.data.severity,
+    p_user_id: v.data.user_id,
+    p_user_agent: userAgent,
+    p_detail: v.data.detail,
   })
 
   if (error) {
     return new Response(
       JSON.stringify({ ok: false, error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
+  }
+
+  if (outcome === 'throttled') {
+    // L'ip_hash n'est PAS journalisé : c'est une donnée personnelle pseudonymisée,
+    // et le motif suffit à diagnostiquer. Les lignes déjà écrites dans la fenêtre
+    // sont la trace de l'abus.
+    console.warn('[log-auth-event] rate limit atteint pour une IP')
+    return new Response(
+      JSON.stringify({ ok: false, error: 'rate_limited' }),
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          // La fenêtre courte est la minute ; inutile d'envoyer le client
+          // attendre une heure alors que le budget se rouvre bien avant.
+          'Retry-After': '60',
+        },
+      },
     )
   }
 
