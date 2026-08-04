@@ -22,7 +22,7 @@ import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 

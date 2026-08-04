@@ -8,7 +8,7 @@ import { readDocument } from '../_shared/vision.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 }
 
 // 10 MB cap on base64 payload (Gemini inline PDF tops out around there too,

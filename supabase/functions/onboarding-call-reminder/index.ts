@@ -19,7 +19,7 @@ import { buildReminderEmail } from '../_shared/onboarding-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 }
 
 const HOUR_MS = 60 * 60 * 1000

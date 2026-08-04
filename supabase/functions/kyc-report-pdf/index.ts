@@ -9,7 +9,7 @@ import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 }
 
 // Comparaison à temps constant (anti timing-attack) — identique kyc-screening.

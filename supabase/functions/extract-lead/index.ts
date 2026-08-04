@@ -39,7 +39,7 @@ function buildCorsHeaders(originHeader: string | null): Record<string, string> {
     : 'null'
   return {
     'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
     'Vary': 'Origin',
   }
 }

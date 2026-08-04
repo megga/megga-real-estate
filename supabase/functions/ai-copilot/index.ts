@@ -56,7 +56,7 @@ import { fetchHotContactBlock, distillCrmTurn } from '../_shared/contact-memory.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 }
 
 const DEEPSEEK_URL = 'https://api.deepseek.com/v1/chat/completions'
