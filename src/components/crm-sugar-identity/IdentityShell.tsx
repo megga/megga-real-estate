@@ -76,6 +76,7 @@ import { useNavigate } from 'react-router-dom'
 import { SG_IDENTITY_STEPS } from './tokens'
 import { switchLanguage } from '@/i18n'
 import { MeggaX, MxButton, MxLink } from '@/components/megga-x'
+import LabGuardBanner from '@/components/layout/LabGuardBanner'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import {
@@ -1257,6 +1258,20 @@ export default function IdentityShell() {
           seule la zone d'étape le fait. Voir le point 7 de megga-x-additions.css
           pour les mesures qui l'ont motivé. */}
       <div className="page-wrapper full-height-page mx-appshell">
+        {/* L'état du dossier EN PREMIER, au-dessus même du logo : c'est la première
+            chose qu'un dirigeant doit lire quand son dossier lui revient corrigé, avant
+            de chercher où reprendre. Sous l'en-tête, il se lisait comme un sous-titre du
+            parcours ; au-dessus, il le qualifie.
+
+            Et toujours DANS la coquille, jamais par-dessus : `.mx-appshell` réclame
+            `100dvh`, donc tout ce qui s'empile au-dessus d'elle pousse le pied d'actions
+            sous le bord de la fenêtre — c'est le défaut du 04.08.2026. Ici le bandeau
+            partage cette hauteur au lieu de s'y ajouter.
+
+            Rend `null` dans le cas courant : une agence dont le dossier n'est pas bloqué
+            ne voit rien du tout. */}
+        <LabGuardBanner />
+
         {/* Même en-tête que l'écran d'arrivée et que les pages d'authentification de
             la vitrine : l'agent ne doit pas sentir de rupture entre le lien reçu par
             e-mail et la saisie. Logo non cliquable — il est connecté, la vitrine

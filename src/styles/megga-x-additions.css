@@ -47,6 +47,9 @@
  * 15. Plancher de hauteur d'une carte d'étape — la vitrine n'a aucun écran dont
  *     le contenu tienne en une carte et un bouton : ses sections sont toujours
  *     remplies, il n'y avait donc jamais rien à répartir.
+ * 16. Bandeau d'état du dossier — la vitrine vend, elle ne suit aucun dossier :
+ *     ni bandeau persistant, ni gradation de gravité entre « à faire »,
+ *     « en attente » et « refusé ».
  *
  * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
  * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
@@ -968,4 +971,46 @@
    inline laisse sous lui (il s'aligne sur la ligne de base du texte). */
 .megga-x .mx-idcard__glyph {
   line-height: 0;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 16. Bandeau d'état du dossier. La vitrine n'annonce jamais l'état d'un
+ *    dossier en cours : elle vend, elle ne suit rien. Elle n'a donc ni bandeau
+ *    persistant ni gradation de gravité — `.error-message` est un pavé rouge
+ *    plein, taillé pour un refus de formulaire, et il hurlerait ici.
+ *
+ *    Posé DANS la coquille (`.mx-appshell`), jamais au-dessus : c'est la leçon
+ *    du défaut corrigé le 04.08.2026. Empilé par-dessus, il ajoutait sa hauteur
+ *    à une coquille qui réclame déjà `100dvh` et poussait le pied d'actions sous
+ *    le bord de la fenêtre. Ici il PARTAGE cette hauteur — le débord ne peut
+ *    plus revenir, il n'y a plus rien à empiler.
+ *
+ *    La gravité passe par la COULEUR DU TITRE et rien d'autre. Pas de pastille,
+ *    pas de liseré, pas de fond teinté : aucun n'existe dans la vitrine, et
+ *    chacun aurait demandé d'inventer une géométrie que ce fichier s'interdit.
+ *    Les trois teintes sont celles de la peau, telles quelles.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-notice {
+  border-bottom: 1px solid var(--neutral-colors--400);
+  background-color: var(--neutral-colors--200);
+}
+
+.megga-x .mx-notice__row {
+  padding-top: var(--main-spacers--3x-extra-small);
+  padding-bottom: var(--main-spacers--3x-extra-small);
+}
+
+/* Ambre : l'agence a la main, il y a quelque chose à faire. */
+.megga-x .mx-notice--todo .mx-notice__title {
+  color: var(--system-colors--yellow-400);
+}
+
+/* Bleu : la balle est dans NOTRE camp, l'agence n'a rien à faire qu'attendre. */
+.megga-x .mx-notice--waiting .mx-notice__title {
+  color: var(--system-colors--blue-400);
+}
+
+/* Rouge, et lui seul : un verdict, pas une étape. */
+.megga-x .mx-notice--refused .mx-notice__title {
+  color: var(--system-colors--red-400);
 }
