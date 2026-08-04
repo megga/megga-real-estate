@@ -7,6 +7,9 @@
  *
  * Aucune couleur, aucune classe : ces quatre fonctions ont survécu telles quelles au
  * passage de l'habillage Sugar à MEGGA X (4 août 2026), qui n'a touché qu'au rendu.
+ * `bookedWhenLabel` les a rejointes le même jour, pour la même raison qu'elles sont
+ * ici : elle était née dans OcBookedCard.tsx, à côté du composant, et la règle ne
+ * pardonne pas — c'est ELLE qui doit déménager, pas la règle qu'on désactive.
  */
 
 /**
@@ -55,4 +58,25 @@ export function monthGrid(month: Date): (string | null)[] {
 /** Clé `YYYY-MM` du mois, utilisée pour des clés de rendu stables. */
 export function monthKey(month: Date): string {
   return `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`
+}
+
+/**
+ * Date longue d'un rendez-vous confirmé, dans le fuseau du visiteur :
+ * « lundi 11 août, 09:00 ».
+ *
+ * Un instant complet (`timestamptz`), donc `new Date()` puis `format` est ici CORRECT —
+ * à la différence des dates-seules du wizard (date de naissance, péremption d'une pièce),
+ * qui n'ont pas d'instant et que le fuseau décale d'un jour. Le `timeZone` explicite est
+ * ce qui garantit qu'un agent en déplacement lit l'heure à laquelle il doit être là.
+ *
+ * Rendue en minuscule par `Intl` : c'est à l'appelant de capitaliser (classe
+ * `capitalize`), la vitrine capitalisant ses intitulés sans jamais les mettre en
+ * majuscules (règle §3 du CLAUDE.md).
+ */
+export function bookedWhenLabel(iso: string, timezone: string): string {
+  return new Intl.DateTimeFormat('fr-CH', {
+    timeZone: timezone,
+    weekday: 'long', day: 'numeric', month: 'long',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(new Date(iso))
 }

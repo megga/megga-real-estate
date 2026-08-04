@@ -925,13 +925,13 @@
   "audit.family.kyb": "KYB",
   "onboardingCalls": {
     "title": "Chiamate di benvenuto",
-    "subtitle": "L'agenda del team MEGGA e gli orari degli host.",
+    "subtitle": "Il calendario del team MEGGA e gli orari dei referenti.",
     "error": "Lettura impossibile.",
     "searchLabel": "Cercare una chiamata",
-    "searchPlaceholder": "Agenzia, host, contatto…",
+    "searchPlaceholder": "Agenzia, referente, contatto…",
     "tabs": {
       "calls": "Appuntamenti",
-      "hosts": "Host"
+      "hosts": "Referenti"
     },
     "stats": {
       "upcoming": "In arrivo",
@@ -955,7 +955,7 @@
     "table": {
       "agency": "Agenzia",
       "when": "Quando",
-      "host": "Host",
+      "host": "Referente",
       "status": "Stato",
       "actions": "Azioni",
       "rescheduled": "riprogrammata {{count}} volte",
@@ -985,24 +985,24 @@
       "activate": "Attivare",
       "deactivate": "Disattivare",
       "table": {
-        "host": "Host",
+        "host": "Referente",
         "hours": "Orari",
         "upcoming": "In arrivo",
         "state": "Stato",
         "hoursMore": "+{{n}} altri giorni"
       },
       "empty": {
-        "title": "Nessun host",
-        "hint": "Senza host attivo, nessuna agenzia può prenotare."
+        "title": "Nessun referente",
+        "hint": "Senza referente attivo, nessuna agenzia può prenotare."
       },
-      "provisioningNote": "Senza host attivo, la schermata di prenotazione annuncia onestamente che nessun orario è aperto.",
-      "addHost": "Aggiungere un host",
+      "provisioningNote": "Senza referente attivo, la schermata di prenotazione annuncia onestamente che nessun orario è aperto.",
+      "addHost": "Aggiungere un referente",
       "editHost": "Modificare",
       "form": {
-        "addTitle": "Nuovo host",
-        "editTitle": "Modificare l'host",
+        "addTitle": "Nuovo referente",
+        "editTitle": "Modificare il referente",
         "close": "Chiudere",
-        "email": "E-mail dell'account MEGGA",
+        "email": "E-mail del conto MEGGA",
         "displayName": "Nome mostrato al cliente",
         "timezone": "Fuso orario",
         "weekly": "Fasce settimanali",
@@ -1017,16 +1017,16 @@
         "noLimit": "senza limite",
         "save": "Salvare",
         "errors": {
-          "unknownEmail": "Nessun account porta questa e-mail.",
+          "unknownEmail": "Nessun conto porta questa e-mail.",
           "nameRequired": "Il nome mostrato è obbligatorio.",
           "badSlice": "Una fascia è malformata: la fine deve seguire l'inizio.",
-          "generic": "L'host non è stato salvato."
+          "generic": "Il referente non è stato salvato."
         }
       }
     },
     "cancelConfirm": {
       "title": "Annullare questa chiamata di benvenuto?",
-      "message": "{{agency}} sarà avvisata per e-mail e l'orario del {{when}} sarà liberato nell'agenda dell'host.",
+      "message": "{{agency}} sarà avvisata per e-mail e l'orario del {{when}} sarà liberato nel calendario del referente.",
       "confirm": "Annullare la chiamata",
       "busy": "Annullamento…"
     }

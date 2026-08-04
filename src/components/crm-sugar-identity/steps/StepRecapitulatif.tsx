@@ -50,7 +50,7 @@ import {
   type IdentityDocumentPreview, type IdentityDocumentType, type IdentityVerificationStatus,
 } from '@/hooks/useAgencyIdentity'
 import type { OnboardingCallRow } from '@/hooks/useOnboardingCall'
-import { bookedWhenLabel } from '@/components/onboarding-call/OcBookedCard'
+import { bookedWhenLabel } from '@/components/onboarding-call/ocDates'
 import type { KybIdReadRecord } from '@/types/kybIdRead'
 import { IdentityReadNotice } from './StepPieceIdentite'
 import type { SignataireDraft, AgencyDraft } from '../IdentityShell'

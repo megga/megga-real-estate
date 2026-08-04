@@ -925,16 +925,16 @@
   "audit.family.kyb": "KYB",
   "onboardingCalls": {
     "title": "Willkommensgespräche",
-    "subtitle": "Das Terminbuch des MEGGA Teams und die Zeiten der Gastgeber.",
+    "subtitle": "Der Terminkalender des MEGGA Teams und die Zeiten der Gastgeber.",
     "error": "Lesen nicht möglich.",
-    "searchLabel": "Gespräch suchen",
+    "searchLabel": "Termin suchen",
     "searchPlaceholder": "Agentur, Gastgeber, Kontakt…",
     "tabs": {
       "calls": "Termine",
       "hosts": "Gastgeber"
     },
     "stats": {
-      "upcoming": "Anstehend",
+      "upcoming": "Bevorstehend",
       "done": "Gehalten",
       "noShow": "Nicht erschienen",
       "cancelled": "Abgesagt"
@@ -958,7 +958,7 @@
       "host": "Gastgeber",
       "status": "Status",
       "actions": "Aktionen",
-      "rescheduled": "{{count}} Mal umgebucht",
+      "rescheduled": "{{count}} mal umgebucht",
       "openMeeting": "Videokonferenz öffnen"
     },
     "actions": {
@@ -967,7 +967,7 @@
       "cancel": "Absagen"
     },
     "empty": {
-      "title": "Keine Gespräche",
+      "title": "Keine Termine",
       "hint": "Termine, die während des Onboardings gebucht werden, erscheinen hier."
     },
     "hosts": {
@@ -987,7 +987,7 @@
       "table": {
         "host": "Gastgeber",
         "hours": "Zeiten",
-        "upcoming": "Anstehend",
+        "upcoming": "Bevorstehend",
         "state": "Status",
         "hoursMore": "+{{n}} weitere Tage"
       },
@@ -1003,23 +1003,23 @@
         "editTitle": "Gastgeber bearbeiten",
         "close": "Schliessen",
         "email": "E-Mail des MEGGA Kontos",
-        "displayName": "Name für den Kunden",
+        "displayName": "Dem Kunden angezeigter Name",
         "timezone": "Zeitzone",
         "weekly": "Wöchentliche Zeitfenster",
         "addSlice": "Zeitfenster hinzufügen",
         "removeSlice": "Dieses Zeitfenster entfernen",
         "duration": "Dauer (Min.)",
-        "slot": "Raster (Min.)",
+        "slot": "Schritt (Min.)",
         "buffer": "Puffer danach (Min.)",
         "notice": "Vorlauf (Std.)",
-        "horizon": "Horizont (Tage)",
+        "horizon": "Horizont (T.)",
         "maxPerDay": "Max. pro Tag",
-        "noLimit": "ohne Limit",
+        "noLimit": "ohne Grenze",
         "save": "Speichern",
         "errors": {
           "unknownEmail": "Kein Konto mit dieser E-Mail.",
           "nameRequired": "Der angezeigte Name ist erforderlich.",
-          "badSlice": "Ein Zeitfenster ist fehlerhaft: das Ende muss nach dem Beginn liegen.",
+          "badSlice": "Ein Zeitfenster ist fehlerhaft: das Ende muss nach dem Anfang liegen.",
           "generic": "Der Gastgeber konnte nicht gespeichert werden."
         }
       }
@@ -1027,7 +1027,7 @@
     "cancelConfirm": {
       "title": "Dieses Willkommensgespräch absagen?",
       "message": "{{agency}} wird per E-Mail benachrichtigt und der Termin am {{when}} wird im Kalender des Gastgebers frei.",
-      "confirm": "Gespräch absagen",
+      "confirm": "Termin absagen",
       "busy": "Wird abgesagt…"
     }
   },

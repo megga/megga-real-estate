@@ -11,6 +11,7 @@
  * HABILLAGE : MEGGA X. Suppose d'être rendu dans un conteneur `<MeggaX>`.
  */
 import { useTranslation } from 'react-i18next'
+import { bookedWhenLabel } from './ocDates'
 
 export interface OcBookedCardProps {
   scheduledAt: string
@@ -22,22 +23,6 @@ export interface OcBookedCardProps {
   note?: string
   /** Action secondaire optionnelle (replanifier, annuler), rendue sous la carte. */
   children?: React.ReactNode
-}
-
-/**
- * Date longue dans le fuseau du visiteur : « lundi 11 août, 09:00 ».
- *
- * Un instant complet (`timestamptz`), donc `new Date()` puis `format` est ici CORRECT —
- * à la différence des dates-seules du wizard (date de naissance, péremption d'une pièce),
- * qui n'ont pas d'instant et que le fuseau décale d'un jour. Le `timeZone` explicite est
- * ce qui garantit qu'un agent en déplacement lit l'heure à laquelle il doit être là.
- */
-export function bookedWhenLabel(iso: string, timezone: string): string {
-  return new Intl.DateTimeFormat('fr-CH', {
-    timeZone: timezone,
-    weekday: 'long', day: 'numeric', month: 'long',
-    hour: '2-digit', minute: '2-digit', hour12: false,
-  }).format(new Date(iso))
 }
 
 export default function OcBookedCard({
