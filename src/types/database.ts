@@ -5151,6 +5151,27 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_events: {
+        Row: {
+          event_created: string
+          event_id: string
+          event_type: string
+          received_at: string
+        }
+        Insert: {
+          event_created: string
+          event_id: string
+          event_type: string
+          received_at?: string
+        }
+        Update: {
+          event_created?: string
+          event_id?: string
+          event_type?: string
+          received_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           agency_id: string
@@ -5162,6 +5183,7 @@ export type Database = {
           id: string
           interval: string | null
           last_invoice_status: string | null
+          last_stripe_event_at: string | null
           mrr_chf: number | null
           plan: string
           price: number | null
@@ -5182,6 +5204,7 @@ export type Database = {
           id?: string
           interval?: string | null
           last_invoice_status?: string | null
+          last_stripe_event_at?: string | null
           mrr_chf?: number | null
           plan?: string
           price?: number | null
@@ -5202,6 +5225,7 @@ export type Database = {
           id?: string
           interval?: string | null
           last_invoice_status?: string | null
+          last_stripe_event_at?: string | null
           mrr_chf?: number | null
           plan?: string
           price?: number | null
