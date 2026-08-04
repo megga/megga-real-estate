@@ -100,12 +100,11 @@
     },
     "pieceIdentite": {
       "title": "Vérifiez l'identité du signataire",
-      "subtitle": "La vérification en ligne accepte le passeport et la carte d'identité : vous photographiez votre pièce et votre visage chez notre prestataire. Le dépôt de votre pièce reste possible, et accepte aussi le titre de séjour. Un membre de notre équipe conformité examine le dossier.",
+      "subtitle": "La personne habilitée à engager votre agence photographie sa pièce et son visage chez notre prestataire. Notre équipe conformité examine ensuite le dossier.",
       "missingSignataire": "Le signataire doit d'abord être renseigné à l'étape précédente.",
       "verification": {
         "title": "Vérifiez votre identité",
-        "body": "Photographiez votre pièce et votre visage. La vérification se fait chez notre prestataire : la photo de votre pièce ne nous est jamais transmise.",
-        "accepted": "La vérification en ligne accepte le passeport et la carte d'identité. Pour un titre de séjour, déposez votre pièce ci-dessous.",
+        "body": "Passeport ou carte d'identité. La photo ne nous est jamais transmise.",
         "cta": "Vérifier mon identité",
         "retryCta": "Reprendre la vérification",
         "pendingTitle": "Vérification en cours",
@@ -113,7 +112,6 @@
         "doneTitle": "Identité vérifiée",
         "doneBody": "Votre pièce a été vérifiée et votre visage comparé à sa photo. Notre équipe conformité examine ensuite le dossier.",
         "useManual": "Déposer ma pièce à la place",
-        "privacy": "Notre prestataire conserve la pièce pour son contrôle ; MEGGA ne reçoit que le résultat et la date d'expiration.",
         "errors": {
           "consent_declined": "Vous avez refusé la vérification. Vous pouvez la reprendre, ou déposer votre pièce à la place.",
           "under_supported_age": "La vérification en ligne ne couvre pas les personnes de moins de 16 ans.",

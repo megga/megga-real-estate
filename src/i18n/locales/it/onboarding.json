@@ -100,12 +100,11 @@
     },
     "pieceIdentite": {
       "title": "Verifichi l'identità del firmatario",
-      "subtitle": "La verifica online accetta il passaporto e la carta d'identità: fotografa il suo documento e il suo viso presso il nostro fornitore. Il caricamento del documento resta possibile e accetta anche il permesso di soggiorno. Un membro del nostro team di conformità esamina il dossier.",
+      "subtitle": "La persona abilitata a impegnare la sua agenzia fotografa il documento e il volto presso il nostro fornitore. Il nostro team conformità esamina poi il dossier.",
       "missingSignataire": "Il firmatario deve prima essere indicato nel passaggio precedente.",
       "verification": {
         "title": "Verifichi la sua identità",
-        "body": "Fotografi il documento e il suo volto. La verifica avviene presso il nostro fornitore: la foto del documento non ci viene mai trasmessa.",
-        "accepted": "La verifica online accetta passaporto e carta d'identità. Per un permesso di soggiorno, carichi il suo documento qui sotto.",
+        "body": "Passaporto o carta d'identità. La foto non ci viene mai trasmessa.",
         "cta": "Verificare la mia identità",
         "retryCta": "Riprendere la verifica",
         "pendingTitle": "Verifica in corso",
@@ -113,7 +112,6 @@
         "doneTitle": "Identità verificata",
         "doneBody": "Il documento è stato verificato e il suo volto confrontato con la foto. Il nostro team di conformità esamina poi il fascicolo.",
         "useManual": "Caricare invece il documento",
-        "privacy": "Il nostro fornitore conserva il documento per il controllo; MEGGA riceve solo l'esito e la data di scadenza.",
         "errors": {
           "consent_declined": "Ha rifiutato la verifica. Può riprenderla, oppure caricare il suo documento.",
           "under_supported_age": "La verifica online non copre le persone sotto i 16 anni.",

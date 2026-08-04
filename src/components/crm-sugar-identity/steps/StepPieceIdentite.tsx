@@ -73,7 +73,6 @@ interface StepPieceIdentiteProps {
    */
   blockedDeclared: boolean
   onStartVerification: () => void
-  onUseManualFallback: () => void
   onReturnToVerification: () => void
   onDeclareBlocked: () => void
   onUndeclareBlocked: () => void
@@ -183,7 +182,7 @@ export function StepPieceIdentite({
   verificationStatus, verificationErrorCode, startingVerification, manualFallback, blockedDeclared,
   onDeclareBlocked, onUndeclareBlocked,
   startFailure, canReturnToVerification,
-  onStartVerification, onUseManualFallback, onReturnToVerification,
+  onStartVerification, onReturnToVerification,
   documentType, recto, verso, isLoading, uploadingSide, savingDocumentType,
   identityRead, identityReading, error, loadError, disabled, onSelectType, onSelectFile,
 }: StepPieceIdentiteProps) {
@@ -237,7 +236,6 @@ export function StepPieceIdentite({
           errorCode={verificationErrorCode}
           starting={startingVerification}
           onStart={onStartVerification}
-          onUseManual={onUseManualFallback}
           onDeclareBlocked={onDeclareBlocked}
         />
       ) : (
@@ -413,13 +411,12 @@ function IdentityBlockedCard({ onUndeclare }: { onUndeclare: () => void }) {
 }
 
 function IdentityVerificationCard({
-  status, errorCode, starting, onStart, onUseManual, onDeclareBlocked,
+  status, errorCode, starting, onStart, onDeclareBlocked,
 }: {
   status: IdentityVerificationStatus | null
   errorCode: string | null
   starting: boolean
   onStart: () => void
-  onUseManual: () => void
   onDeclareBlocked: () => void
 }) {
   const { t } = useTranslation('onboarding')
@@ -440,22 +437,6 @@ function IdentityVerificationCard({
             </p>
           </div>
 
-          {/* Quels documents ce chemin-ci accepte — AVANT le clic, pas après.
-              Le sous-titre de l'étape annonce « passeport, carte d'identité ou titre
-              de séjour », ce qui est vrai du dépôt manuel mais faux de la vérification
-              en ligne : `allowed_types` ne connaît que `passport` et `id_card`, aucun
-              titre de séjour n'existe chez le prestataire (cf. l'en-tête de
-              _shared/kyb-identity-stripe.ts). Sans cette ligne, un dirigeant au livret
-              B/C lit qu'il peut, clique, et se cogne à l'autre bout — à Genève ce n'est
-              pas un cas marginal. La phrase ne retire rien au sous-titre : elle dit
-              quelle porte prend quoi, et renvoie l'autre vers le dépôt. */}
-          {!done && !pending && (
-            <div className="mg-top-4x-extra-small">
-              <p className="paragraph-small text-color-neutral-600">
-                {t('wizard.pieceIdentite.verification.accepted')}
-              </p>
-            </div>
-          )}
 
           {/* Le motif du refus, dans la langue de l'agent. Le code brut de Stripe
               (`selfie_document_missing_photo`) n'a aucun sens pour un dirigeant : tout
@@ -478,24 +459,20 @@ function IdentityVerificationCard({
             </div>
           )}
 
-          {/* Second recours, jamais mis en avant mais jamais caché non plus. */}
-          {!done && (
-            <div className="mg-top-4x-extra-small">
-              <button type="button" className="link-single display-1 medium" onClick={onUseManual}>
-                {t('wizard.pieceIdentite.verification.useManual')}
-              </button>
-            </div>
-          )}
 
-          {/* LA SORTIE DE SECOURS — pour ce que le prestataire ne peut PAS traiter.
-              Trois cas qu'aucun réessai ne lève et qu'aucun dépôt ne règle mieux : un
-              pays émetteur hors de la liste, une nationalité que les conditions du
-              prestataire lui interdisent de vérifier, une pièce qu'il ne reconnaît pas.
-              Sans elle, ces dirigeants ne sont pas seulement bloqués sur cette étape :
-              le gate d'identité les y renvoie indéfiniment, donc ils n'entrent JAMAIS
-              dans le CRM. Elle ne réclame aucun fichier — c'est tout son intérêt : la
-              revue humaine s'ouvre sans que MEGGA détienne quoi que ce soit. */}
-          {!done && (
+          {/* LA SORTIE DE SECOURS — pour ce que le prestataire ne peut PAS traiter :
+              pays émetteur hors liste, nationalité que ses conditions excluent, pièce
+              non reconnue. Sans elle, ces dirigeants ne sont pas seulement bloqués sur
+              cette étape : le gate d'identité les y renvoie indéfiniment, donc ils
+              n'entrent JAMAIS dans le CRM.
+
+              ⚠ Elle n'apparaît qu'APRÈS un refus (`retry`), et c'est le point du
+              nettoyage du 05.08.2026 : l'écran d'accueil doit porter UNE action, pas
+              trois. Proposée d'emblée, elle mettait au même rang « je vérifie » et « ça
+              ne marchera pas », ce qui invitait à contourner la vérification avant même
+              de l'avoir tentée. Offerte au moment où le prestataire vient de refuser,
+              elle répond à une question que l'utilisateur se pose déjà. */}
+          {retry && (
             <div className="mg-top-4x-extra-small">
               <button type="button" className="link-single display-1 medium" onClick={onDeclareBlocked}>
                 {t('wizard.pieceIdentite.verification.blocked.link')}
@@ -503,11 +480,6 @@ function IdentityVerificationCard({
             </div>
           )}
 
-          <div className="mg-top-4x-extra-small">
-            <p className="paragraph-small text-color-neutral-600">
-              {t('wizard.pieceIdentite.verification.privacy')}
-            </p>
-          </div>
         </div>
       </div>
     </div>

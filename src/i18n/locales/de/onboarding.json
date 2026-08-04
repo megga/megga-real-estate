@@ -100,12 +100,11 @@
     },
     "pieceIdentite": {
       "title": "Identität der zeichnungsberechtigten Person prüfen",
-      "subtitle": "Die Online-Prüfung akzeptiert Reisepass und Identitätskarte: Sie fotografieren Ihr Dokument und Ihr Gesicht bei unserem Anbieter. Das Hochladen Ihres Dokuments bleibt möglich und akzeptiert auch den Aufenthaltstitel. Ein Mitglied unseres Compliance-Teams prüft das Dossier.",
+      "subtitle": "Die zur Vertretung Ihrer Agentur befugte Person fotografiert ihren Ausweis und ihr Gesicht bei unserem Dienstleister. Anschliessend prüft unser Compliance-Team das Dossier.",
       "missingSignataire": "Die unterzeichnende Person muss zuerst im vorherigen Schritt angegeben werden.",
       "verification": {
         "title": "Bestätigen Sie Ihre Identität",
-        "body": "Fotografieren Sie Ihren Ausweis und Ihr Gesicht. Die Prüfung läuft bei unserem Dienstleister: das Foto Ihres Ausweises wird uns nie übermittelt.",
-        "accepted": "Die Online-Prüfung akzeptiert Reisepass und Identitätskarte. Für einen Aufenthaltstitel laden Sie Ihr Dokument unten hoch.",
+        "body": "Reisepass oder Personalausweis. Das Foto wird uns nie übermittelt.",
         "cta": "Identität bestätigen",
         "retryCta": "Prüfung fortsetzen",
         "pendingTitle": "Prüfung läuft",
@@ -113,7 +112,6 @@
         "doneTitle": "Identität bestätigt",
         "doneBody": "Ihr Ausweis wurde geprüft und Ihr Gesicht mit dem Foto verglichen. Danach prüft unser Compliance-Team das Dossier.",
         "useManual": "Stattdessen Ausweis hochladen",
-        "privacy": "Unser Dienstleister behält den Ausweis für seine Prüfung; MEGGA erhält nur das Ergebnis und das Ablaufdatum.",
         "errors": {
           "consent_declined": "Sie haben die Prüfung abgelehnt. Sie können sie erneut starten oder stattdessen Ihren Ausweis hochladen.",
           "under_supported_age": "Die Online-Prüfung gilt nicht für Personen unter 16 Jahren.",

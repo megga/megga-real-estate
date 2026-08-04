@@ -100,12 +100,11 @@
     },
     "pieceIdentite": {
       "title": "Verify the signatory's identity",
-      "subtitle": "Online verification accepts passports and identity cards: you photograph your document and your face at our provider. Uploading your document is still possible, and also accepts residence permits. A member of our compliance team reviews the file.",
+      "subtitle": "The person authorised to bind your agency photographs their document and their face at our provider. Our compliance team then reviews the file.",
       "missingSignataire": "The signatory must be entered in the previous step first.",
       "verification": {
         "title": "Verify your identity",
-        "body": "Photograph your document and your face. The verification runs at our provider: the photo of your document is never sent to us.",
-        "accepted": "Online verification accepts passports and identity cards. For a residence permit, upload your document below instead.",
+        "body": "Passport or identity card. The photo is never passed on to us.",
         "cta": "Verify my identity",
         "retryCta": "Resume verification",
         "pendingTitle": "Verification in progress",
@@ -113,7 +112,6 @@
         "doneTitle": "Identity verified",
         "doneBody": "Your document was verified and your face compared with its photo. Our compliance team then reviews the file.",
         "useManual": "Upload my document instead",
-        "privacy": "Our provider keeps the document for its check; MEGGA only receives the result and the expiry date.",
         "errors": {
           "consent_declined": "You declined the verification. You can start it again, or upload your document instead.",
           "under_supported_age": "Online verification does not cover people under 16.",

@@ -48,7 +48,7 @@ const REFUS_DEFINITIFS = ['country_not_supported', 'under_supported_age']
 const REFUS_REJOUABLES = ['consent_declined', 'document_expired', 'selfie_face_mismatch']
 
 const LANGUES = { fr: lFr, de: lDe, en: lEn, it: lIt } as Record<string, {
-  wizard: { pieceIdentite: { verification: { accepted: string; errors: Record<string, string> } } }
+  wizard: { pieceIdentite: { verification: { errors: Record<string, string> } } }
 }>
 
 /** Le catalogue traduit d'une langue, tel que le composant le lit. */
@@ -111,13 +111,5 @@ describe('les quatre langues portent les phrases lues depuis le dépôt manuel',
       }
     })
 
-    it(`${langue} — la nature des pièces acceptées en ligne est annoncée avant le clic`, () => {
-      // `accepted` répond au fait que le sous-titre de l'étape annonce le titre de
-      // séjour, que Stripe n'accepte pas : sans cette phrase, un dirigeant au livret
-      // B/C part chez le prestataire pour se cogner à l'autre bout.
-      const phrase = LANGUES[langue].wizard.pieceIdentite.verification.accepted
-      expect(phrase, langue).toBeTruthy()
-      expect(phrase.trim().length, langue).toBeGreaterThan(0)
-    })
   }
 })

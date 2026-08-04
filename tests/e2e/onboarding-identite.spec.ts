@@ -438,11 +438,24 @@ async function fillPieceIdentiteStep(
 ): Promise<void> {
   const idFile = { name: 'piece-identite.png', mimeType: 'image/png', buffer: Buffer.from(TINY_PNG_BASE64, 'base64') }
 
-  // Depuis le 03.08.2026, l'écran propose D'ABORD la vérification chez le prestataire :
-  // le dépôt de fichier est le chemin de SECOURS, et il faut le demander. Ce test suit
-  // exprès ce chemin-là — la vérification Stripe sort de l'app (domaine verify.stripe.com)
-  // et ne peut pas être conduite depuis un test de bout en bout du produit.
-  await page.getByRole('button', { name: 'Déposer ma pièce à la place' }).click()
+  // Depuis le 05.08.2026 le dépôt n'est PLUS un choix offert : l'écran ne porte qu'une
+  // action, et le dépôt n'apparaît que comme repli décidé par le SYSTÈME. Ce test
+  // emprunte donc le chemin réel d'un utilisateur — il clique « Vérifier mon identité »
+  // — et c'est l'échec d'ouverture qui fait apparaître le dépôt.
+  //
+  // L'échec est GARANTI ici, et c'est ce qui rend l'attente déterministe : cet
+  // environnement n'a pas de clé Stripe, donc kyb-identity-verify répond 503
+  // (verification_unavailable, contrôle posé avant toute authentification). Le jour où
+  // une clé serait injectée dans ce banc, ce helper cesserait de fonctionner — et c'est
+  // le bon comportement : il faudrait alors éprouver le vrai parcours, pas le repli.
+  //
+  // La vérification elle-même sort de l'app (domaine du prestataire) et reste hors de
+  // portée d'un test de bout en bout du produit.
+  await page.getByRole('button', { name: 'Vérifier mon identité' }).click()
+
+  // Le repli est asynchrone (aller-retour vers l'edge) : attendre le formulaire plutôt
+  // qu'un délai fixe. Sa présence EST la preuve que la bascule automatique a eu lieu.
+  await expect(page.getByText('Nature de la pièce')).toBeVisible({ timeout: 15_000 })
 
   // Le radio natif est masqué (`opacity: 0`, MxRadio) : le clic passe par son
   // étiquette, comme partout ailleurs dans ce fichier.
