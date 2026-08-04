@@ -64,9 +64,19 @@ interface StepPieceIdentiteProps {
   startFailure: VerificationStartFailure | null
   /** false sur un refus définitif : y revenir ne rendrait que le même refus. */
   canReturnToVerification: boolean
+  /**
+   * true quand le dirigeant a déclaré que sa pièce ne peut PAS être vérifiée en ligne
+   * (pays émetteur hors liste, nationalité que les conditions du prestataire excluent,
+   * pièce non reconnue). L'étape devient alors franchissable SANS aucun fichier : le
+   * dossier part en revue humaine à la soumission, comme un dépôt l'aurait fait, mais
+   * sans que MEGGA détienne la pièce — c'est tout l'intérêt de cette sortie.
+   */
+  blockedDeclared: boolean
   onStartVerification: () => void
   onUseManualFallback: () => void
   onReturnToVerification: () => void
+  onDeclareBlocked: () => void
+  onUndeclareBlocked: () => void
   /** Nature déclarée, null tant qu'elle n'a pas été choisie — les cases n'apparaissent qu'après. */
   documentType: IdentityDocumentType | null
   recto: IdentityDocumentPreview | null
@@ -170,7 +180,8 @@ const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,application/pdf'
 
 /** Étape 3 du wizard identité : recto/verso de la pièce d'identité du signataire. */
 export function StepPieceIdentite({
-  verificationStatus, verificationErrorCode, startingVerification, manualFallback,
+  verificationStatus, verificationErrorCode, startingVerification, manualFallback, blockedDeclared,
+  onDeclareBlocked, onUndeclareBlocked,
   startFailure, canReturnToVerification,
   onStartVerification, onUseManualFallback, onReturnToVerification,
   documentType, recto, verso, isLoading, uploadingSide, savingDocumentType,
@@ -213,6 +224,11 @@ export function StepPieceIdentite({
         <MxStateMessage variant="error" role="alert">
           {t('wizard.pieceIdentite.errors.loadFailed')}
         </MxStateMessage>
+      ) : blockedDeclared ? (
+        // SORTIE DE SECOURS — déclarée par le dirigeant, jamais déduite. Elle passe
+        // AVANT les deux autres branches : quelqu'un qui vient de dire « ma pièce n'est
+        // pas acceptée » ne doit pas retrouver l'écran qu'il vient de quitter.
+        <IdentityBlockedCard onUndeclare={onUndeclareBlocked} />
       ) : !manualFallback ? (
         // CHEMIN PRINCIPAL — la vérification chez le prestataire. Aucun fichier ne
         // transite par MEGGA, ce qui est tout l'intérêt du changement du 3 août 2026.
@@ -222,6 +238,7 @@ export function StepPieceIdentite({
           starting={startingVerification}
           onStart={onStartVerification}
           onUseManual={onUseManualFallback}
+          onDeclareBlocked={onDeclareBlocked}
         />
       ) : (
         <>
@@ -352,14 +369,58 @@ export function StepPieceIdentite({
  * silencieusement les détenteurs de livret B/C — soit une part notable des dirigeants
  * d'agence à Genève.
  */
+/**
+ * Ce que voit le dirigeant dont la pièce ne peut PAS passer la vérification en ligne.
+ *
+ * L'écran ne réclame RIEN. C'est délibéré, et c'est ce qui distingue cette sortie du
+ * dépôt manuel : le dossier part en revue humaine avec la ligne `id_document /
+ * pending_manual_review` que submit_agency_identity() pose déjà, et l'équipe conformité
+ * établit l'identité par un autre canal. MEGGA ne détient aucune copie — le but même du
+ * passage au prestataire.
+ *
+ * Le retour reste ouvert : la déclaration est un choix de l'utilisateur, pas un verdict
+ * du système, et se reprendre ne doit jamais coûter un rechargement de page (défaut
+ * corrigé le 04.08.2026 sur `manualFallback`, qu'on ne réintroduit pas ici).
+ */
+function IdentityBlockedCard({ onUndeclare }: { onUndeclare: () => void }) {
+  const { t } = useTranslation('onboarding')
+  return (
+    <div className="mg-top-medium">
+      <div className="card">
+        <div className="pd---content-inside-card">
+          <p className="display-1 medium">{t('wizard.pieceIdentite.verification.blocked.title')}</p>
+          <div className="mg-top-4x-extra-small">
+            <p className="paragraph-small text-color-neutral-600">
+              {t('wizard.pieceIdentite.verification.blocked.body')}
+            </p>
+          </div>
+          {/* Information, jamais le pavé rouge : rien n'a échoué du fait du dirigeant —
+              même règle que la branche `disabled` en tête de fichier. */}
+          <div className="mg-top-3x-extra-small">
+            <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
+              {t('wizard.pieceIdentite.verification.blocked.declared')}
+            </p>
+          </div>
+          <div className="mg-top-4x-extra-small">
+            <button type="button" className="link-single display-1 medium" onClick={onUndeclare}>
+              {t('wizard.pieceIdentite.verification.blocked.back')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function IdentityVerificationCard({
-  status, errorCode, starting, onStart, onUseManual,
+  status, errorCode, starting, onStart, onUseManual, onDeclareBlocked,
 }: {
   status: IdentityVerificationStatus | null
   errorCode: string | null
   starting: boolean
   onStart: () => void
   onUseManual: () => void
+  onDeclareBlocked: () => void
 }) {
   const { t } = useTranslation('onboarding')
   const done = status === 'verified'
@@ -422,6 +483,22 @@ function IdentityVerificationCard({
             <div className="mg-top-4x-extra-small">
               <button type="button" className="link-single display-1 medium" onClick={onUseManual}>
                 {t('wizard.pieceIdentite.verification.useManual')}
+              </button>
+            </div>
+          )}
+
+          {/* LA SORTIE DE SECOURS — pour ce que le prestataire ne peut PAS traiter.
+              Trois cas qu'aucun réessai ne lève et qu'aucun dépôt ne règle mieux : un
+              pays émetteur hors de la liste, une nationalité que les conditions du
+              prestataire lui interdisent de vérifier, une pièce qu'il ne reconnaît pas.
+              Sans elle, ces dirigeants ne sont pas seulement bloqués sur cette étape :
+              le gate d'identité les y renvoie indéfiniment, donc ils n'entrent JAMAIS
+              dans le CRM. Elle ne réclame aucun fichier — c'est tout son intérêt : la
+              revue humaine s'ouvre sans que MEGGA détienne quoi que ce soit. */}
+          {!done && (
+            <div className="mg-top-4x-extra-small">
+              <button type="button" className="link-single display-1 medium" onClick={onDeclareBlocked}>
+                {t('wizard.pieceIdentite.verification.blocked.link')}
               </button>
             </div>
           )}

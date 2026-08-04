@@ -132,7 +132,15 @@
           "unavailable": "Online verification is temporarily unavailable. Upload your document below and our team will review it.",
           "unexpected": "Online verification could not be opened. Upload your document below, or try verification again."
         },
-        "backToVerification": "Back to online verification"
+        "backToVerification": "Back to online verification",
+        "blocked": {
+          "link": "My document is not accepted",
+          "title": "Manual verification",
+          "body": "Some documents cannot pass the online check: a residence permit, a passport from a country that is not covered, or a refusal you cannot fix yourself. Request a manual verification: our compliance team will contact you to establish your identity, without you having to upload any document here.",
+          "confirm": "Request a manual verification",
+          "declared": "Manual verification requested. Carry on: our compliance team will get in touch once your file is submitted.",
+          "back": "Back to online verification"
+        }
       },
       "documentType": {
         "label": "Type of document",

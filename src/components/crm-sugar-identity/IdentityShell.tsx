@@ -232,7 +232,20 @@ export const EMPTY_PIECE_IDENTITE_DRAFT: PieceIdentiteDraft = {
  * une étape n'est jamais réputée finie parce qu'une question n'a pas été posée.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isAgencyStepComplete.
-export function isPieceIdentiteStepComplete(draft: PieceIdentiteDraft): boolean {
+export function isPieceIdentiteStepComplete(draft: PieceIdentiteDraft, blockedDeclared = false): boolean {
+  // SORTIE DE SECOURS — le dirigeant a déclaré que sa pièce ne peut pas être vérifiée
+  // en ligne (pays émetteur hors liste, nationalité que les conditions du prestataire
+  // excluent, pièce non reconnue). L'étape est franchissable SANS aucun fichier : le
+  // dossier part en revue humaine à la soumission, avec la même ligne de check qu'un
+  // dépôt aurait produite — mais MEGGA ne détient rien. Sans cette sortie, ces
+  // dirigeants ne sont pas bloqués sur l'étape : le gate d'identité les y renvoie
+  // indéfiniment, donc ils n'entrent JAMAIS dans le CRM.
+  if (blockedDeclared) return true
+  return isPieceIdentiteStepCompleteFromDocuments(draft)
+}
+
+/** La complétude par la vérification ou par les fichiers — inchangée, isolée pour la lisibilité. */
+function isPieceIdentiteStepCompleteFromDocuments(draft: PieceIdentiteDraft): boolean {
   // Chemin PRINCIPAL — la vérification par le prestataire. Elle se suffit à elle-même :
   // le document a été présenté, authentifié et confronté à un selfie chez Stripe, et
   // rien n'a été déposé ici. Demander un fichier en plus reviendrait à réintroduire
@@ -297,10 +310,11 @@ export function canAdvanceFromIdentityStep(
   signataire: SignataireDraft,
   agency: AgencyDraft,
   pieceIdentite: PieceIdentiteDraft = EMPTY_PIECE_IDENTITE_DRAFT,
+  blockedDeclared = false,
 ): boolean {
   if (step === 0) return isSignataireStepComplete(signataire)
   if (step === 1) return isAgencyStepComplete(agency)
-  if (step === 2) return isPieceIdentiteStepComplete(pieceIdentite)
+  if (step === 2) return isPieceIdentiteStepComplete(pieceIdentite, blockedDeclared)
   return false
 }
 
@@ -929,6 +943,14 @@ export default function IdentityShell() {
    */
   const [manualFallback, setManualFallback] = useState(false)
   /**
+   * Le dirigeant a déclaré que sa pièce ne peut pas être vérifiée en ligne. Un état
+   * local et non une colonne : ce n'est pas un verdict sur son identité, seulement le
+   * chemin qu'il emprunte pour cette visite. Ce que la base retiendra, c'est la ligne
+   * de check `pending_manual_review` posée à la soumission — la même que le dépôt
+   * aurait produite, sans la pièce.
+   */
+  const [blockedDeclared, setBlockedDeclared] = useState(false)
+  /**
    * Pourquoi la vérification n'a pas pu s'ouvrir, quand c'est un ÉCHEC qui a produit la
    * bascule et non le choix du dirigeant. `null` sur un passage volontaire au dépôt :
    * il n'y a alors rien à expliquer. Effacé au retour vers la carte, sinon la phrase
@@ -1096,7 +1118,7 @@ export default function IdentityShell() {
     }
   }
 
-  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, pieceIdentiteDraft)
+  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, pieceIdentiteDraft, blockedDeclared)
 
   /** Enveloppe commune à chaque étape persistable : bascule saving/error autour de
    *  l'opération d'écriture réelle (savePerson ou saveAgency selon l'étape).
@@ -1161,7 +1183,7 @@ export default function IdentityShell() {
       // durablement dans Storage au moment où l'utilisateur clique Continuer — cette
       // étape ne fait que revérifier sa complétude, comme canNext l'a déjà fait pour
       // activer le bouton (garde défensive redondante, même style que les étapes 0 et 1).
-      return isPieceIdentiteStepComplete(pieceIdentiteDraft)
+      return isPieceIdentiteStepComplete(pieceIdentiteDraft, blockedDeclared)
     }
     // Étape 4 (récapitulatif) : rien à persister en QUITTANT l'étape — l'attestation
     // n'est pas un brouillon à écrire en base, et la soumission elle-même est une
@@ -1383,6 +1405,11 @@ export default function IdentityShell() {
             }
             onStartVerification={() => { void handleStartVerification() }}
             onUseManualFallback={() => setManualFallback(true)}
+            blockedDeclared={blockedDeclared}
+            // Déclarer, c'est aussi quitter le dépôt : sans ça, revenir en arrière
+            // depuis la sortie de secours retomberait sur le formulaire de fichier.
+            onDeclareBlocked={() => { setBlockedDeclared(true); setManualFallback(false) }}
+            onUndeclareBlocked={() => setBlockedDeclared(false)}
             onReturnToVerification={() => { setManualFallback(false); setStartFailure(null) }}
             documentType={pieceIdentiteDraft.documentType}
             recto={identityDocuments?.recto ?? null}

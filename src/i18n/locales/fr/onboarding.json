@@ -132,7 +132,15 @@
           "unavailable": "La vérification en ligne est momentanément indisponible. Déposez votre pièce ci-dessous, notre équipe l'examinera.",
           "unexpected": "La vérification en ligne n'a pas pu s'ouvrir. Déposez votre pièce ci-dessous, ou réessayez la vérification."
         },
-        "backToVerification": "Revenir à la vérification en ligne"
+        "backToVerification": "Revenir à la vérification en ligne",
+        "blocked": {
+          "link": "Ma pièce n'est pas acceptée",
+          "title": "Vérification manuelle",
+          "body": "Certaines pièces ne passent pas la vérification en ligne : titre de séjour, passeport d'un pays non couvert, ou vérification refusée pour une raison que vous ne pouvez pas corriger. Demandez une vérification manuelle : notre équipe conformité vous contactera pour établir votre identité, sans que vous ayez à déposer de document ici.",
+          "confirm": "Demander une vérification manuelle",
+          "declared": "Vérification manuelle demandée. Continuez : notre équipe conformité reprendra contact après l'envoi de votre dossier.",
+          "back": "Revenir à la vérification en ligne"
+        }
       },
       "documentType": {
         "label": "Nature de la pièce",

@@ -132,7 +132,15 @@
           "unavailable": "La verifica online è momentaneamente non disponibile. Carichi il suo documento qui sotto, il nostro team lo esaminerà.",
           "unexpected": "Non è stato possibile aprire la verifica online. Carichi il suo documento qui sotto, oppure riprovi la verifica."
         },
-        "backToVerification": "Torna alla verifica online"
+        "backToVerification": "Torna alla verifica online",
+        "blocked": {
+          "link": "Il mio documento non è accettato",
+          "title": "Verifica manuale",
+          "body": "Alcuni documenti non superano la verifica online: permesso di soggiorno, passaporto di un paese non coperto, o un rifiuto che non può correggere. Richieda una verifica manuale: il nostro team conformità la contatterà per stabilire la sua identità, senza che debba caricare alcun documento qui.",
+          "confirm": "Richiedere una verifica manuale",
+          "declared": "Verifica manuale richiesta. Prosegua: il nostro team conformità la contatterà dopo l'invio del suo dossier.",
+          "back": "Tornare alla verifica online"
+        }
       },
       "documentType": {
         "label": "Tipo di documento",
