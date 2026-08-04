@@ -52,6 +52,8 @@
  *     « en attente » et « refusé ».
  * 17. Prise de rendez-vous en deux temps — la vitrine ne prend aucun
  *     rendez-vous : ni volet d'hôte, ni confirmation en deux écrans.
+ * 18. Vignette de marque du volet hôte — le produit de référence y met une photo
+ *     d'hôte ; l'appel est pris avec une ÉQUIPE, pas une personne nommée.
  *
  * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
  * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
@@ -1047,12 +1049,8 @@
 
 /* Le filet ne descend qu'en deux colonnes : empilé, il couperait le volet gauche
    en travers au lieu de le border. */
-@media screen and (min-width: 768px) {
-  .megga-x .mx-book__host {
-    border-right: 1px solid var(--neutral-colors--400);
-    padding-right: var(--main-spacers--medium);
-  }
-}
+/* Plus de filet vertical : le volet porte désormais son propre fond, et une bordure
+   par-dessus ferait deux séparations pour une seule frontière. */
 
 .megga-x .mx-book__logo img {
   height: 28px;
@@ -1087,24 +1085,92 @@
 /* Fuseau et format d'heure côte à côte, sous le mois (point 17). Empilés, la bascule
    passait sous le bord de la zone qui défile : deux réglages qu'on lit ensemble ne
    doivent pas demander de faire défiler pour découvrir le second. */
+/* ⚠ FLEX qui se replie, jamais une grille à deux colonnes figées. Mesuré : dans le
+   volet droit du plan à deux volets, la grille ne cédait pas — l'étiquette « Fuseau
+   horaire » se coupait en deux lignes et l'interrupteur passait PAR-DESSUS son propre
+   libellé. Une requête de média sur la largeur de FENÊTRE n'y pouvait rien : c'est le
+   conteneur qui est étroit, pas l'écran. Le repli par le contenu, lui, marche partout. */
 .megga-x .mx-slotpicker__prefs {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   gap: var(--main-spacers--5x-extra-small);
 }
 
-/* Aligné sur la ligne de base du champ voisin, pas sur son étiquette. */
-.megga-x .mx-slotpicker__prefs-toggle {
-  padding-bottom: 10px;
-  white-space: nowrap;
+/* Le champ prend la place disponible et impose son propre plancher : sous ~220 px, un
+   nom de fuseau comme « America/Argentina/Buenos_Aires » ne se lit plus. */
+.megga-x .mx-slotpicker__prefs > *:first-child {
+  flex: 1 1 220px;
+  min-width: 0;
 }
 
+/* Aligné sur la ligne de base du champ voisin, pas sur son étiquette. `flex: none`
+   pour que l'interrupteur ne se comprime jamais sur son libellé. */
+.megga-x .mx-slotpicker__prefs-toggle {
+  flex: none;
+  padding-bottom: 10px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 18. Vignette de marque du volet hôte (point 17). Le produit de référence pose
+ *    là une photo d'hôte ; nous n'en avons pas — l'appel est pris « avec l'équipe
+ *    MEGGA », pas avec une personne nommée. D'où le monogramme sur le dégradé.
+ *
+ *    Le dégradé est CELUI DU FOOTER de la vitrine, pas une approximation : même
+ *    fichier, réduit de 3159×633 à 400×80 (294 Ko -> 40 Ko) parce qu'une vignette
+ *    de 112 px n'a aucun besoin des trois mille pixels d'origine. Les couleurs
+ *    n'ont pas été retouchées.
+ *
+ *    ⚠ `background-size: 100% 72%` et non `cover` : le dégradé fait presque 5:1.
+ *    `cover` sur un carré rognerait tout sauf son centre — on perdrait le passage
+ *    du bleu au magenta, qui EST le motif. Et `100% auto` ne rendait qu'une bande
+ *    de 22 px : la largeur entière se lisait, mais la lueur ne montait pas. Étiré
+ *    en hauteur et ancré en bas, on retrouve la moitié basse qui s'allume — ce que
+ *    fait le footer sur toute la largeur de la page. Un dégradé souple ne souffre
+ *    pas d'être étiré ; une photo, si.
+ *
+ *    ⚠ Le monogramme est un tracé NOIR (public/megga-gg.svg) : sans le filtre
+ *    d'inversion — celui-là même que la vitrine applique à son logo d'en-tête —
+ *    il serait invisible sur ce fond.
+ * ───────────────────────────────────────────────────────────────────────── */
+/* Le volet SORT du rembourrage de la carte pour venir mourir sur ses bords : marges
+   négatives à gauche, en haut et en bas (32 px, la valeur de `.pd---content-inside-card`
+   mesurée), et les deux coins gauches reprennent le rayon de la carte (24 px). Sans ça,
+   le dégradé flottait dans un rectangle posé à l'intérieur — on voyait la carte AUTOUR
+   de lui, ce qui le faisait lire comme une vignette et non comme le fond du volet.
+
+   `background-position: 0% 100%` : ancré en bas À GAUCHE, pas centré — la lueur épouse
+   l'angle arrondi au lieu de flotter au milieu. `120%` de large la fait déborder par la
+   droite, donc sa partie la plus intense reste dans le volet plutôt que d'être coupée
+   en deux par son bord. */
+.megga-x .mx-book__host {
+  position: relative;
+  overflow: hidden;
+  margin: -32px 0 -32px -32px;
+  padding: 32px;
+  border-radius: 24px 0 0 24px;
+  background-image: url("/megga-x/images/gradient-bottom.png");
+  background-position: 0% 100%;
+  background-repeat: no-repeat;
+  background-size: 120% 42%;
+}
+
+/* Empilé (sous 767 px), le volet passe AU-DESSUS : il reprend alors les coins hauts et
+   rend ses marges latérales, sinon il déborderait de la carte des deux côtés. */
 @media screen and (max-width: 767px) {
-  .megga-x .mx-slotpicker__prefs {
-    grid-template-columns: minmax(0, 1fr);
+  .megga-x .mx-book__host {
+    margin: -32px -32px 0;
+    border-radius: 24px 24px 0 0;
   }
-  .megga-x .mx-slotpicker__prefs-toggle {
-    padding-bottom: 0;
-  }
+}
+
+.megga-x .mx-book__mark {
+  display: flex;
+  justify-content: center;
+}
+
+.megga-x .mx-book__mark img {
+  width: 96px;
+  height: auto;
+  filter: brightness(0) invert(1);
 }

@@ -264,7 +264,6 @@
   "call": {
     "intro": {
       "title": "Réservez votre appel d'accueil",
-      "body": "Avant de terminer, prenons 30 minutes ensemble pour faire le tour de votre installation et répondre à vos questions.",
       "bodyStandalone": "Votre dossier est parti en revue. Prenons 30 minutes ensemble pour faire le tour de votre installation et répondre à vos questions."
     },
     "picker": {
@@ -289,14 +288,12 @@
     },
     "form": {
       "phone": "Téléphone (facultatif)",
-      "phonePlaceholder": "+41 22 000 00 00",
       "note": "Un mot sur vos priorités (facultatif)",
       "notePlaceholder": "Ce que vous aimeriez voir en premier",
       "firstName": "Prénom",
       "lastName": "Nom",
       "email": "E-mail",
-      "whatsapp": "Numéro WhatsApp",
-      "whatsappHelp": "La confirmation et le rappel vous arrivent sur WhatsApp."
+      "whatsapp": "Numéro WhatsApp"
     },
     "actions": {
       "confirm": "Confirmer le rendez-vous",

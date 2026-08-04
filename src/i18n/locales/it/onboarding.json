@@ -264,7 +264,6 @@
   "call": {
     "intro": {
       "title": "Prenoti la sua chiamata di benvenuto",
-      "body": "Prima di concludere, prendiamoci 30 minuti per esaminare la sua configurazione e rispondere alle sue domande.",
       "bodyStandalone": "Il suo dossier è in revisione. Prendiamoci 30 minuti per esaminare la sua configurazione e rispondere alle sue domande."
     },
     "picker": {
@@ -289,14 +288,12 @@
     },
     "form": {
       "phone": "Telefono (facoltativo)",
-      "phonePlaceholder": "+41 22 000 00 00",
       "note": "Una parola sulle sue priorità (facoltativo)",
       "notePlaceholder": "Cosa vorrebbe vedere per primo",
       "firstName": "Nome",
       "lastName": "Cognome",
       "email": "E-mail",
-      "whatsapp": "Numero WhatsApp",
-      "whatsappHelp": "La conferma e il promemoria Le arrivano su WhatsApp."
+      "whatsapp": "Numero WhatsApp"
     },
     "actions": {
       "confirm": "Confermare l'appuntamento",

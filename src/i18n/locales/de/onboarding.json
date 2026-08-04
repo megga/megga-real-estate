@@ -264,7 +264,6 @@
   "call": {
     "intro": {
       "title": "Buchen Sie Ihr Willkommensgespräch",
-      "body": "Bevor Sie abschliessen, nehmen wir uns 30 Minuten Zeit, um Ihre Einrichtung durchzugehen und Ihre Fragen zu beantworten.",
       "bodyStandalone": "Ihr Dossier ist in Prüfung. Nehmen wir uns 30 Minuten Zeit, um Ihre Einrichtung durchzugehen und Ihre Fragen zu beantworten."
     },
     "picker": {
@@ -289,14 +288,12 @@
     },
     "form": {
       "phone": "Telefon (optional)",
-      "phonePlaceholder": "+41 22 000 00 00",
       "note": "Ein Wort zu Ihren Prioritäten (optional)",
       "notePlaceholder": "Was Sie zuerst sehen möchten",
       "firstName": "Vorname",
       "lastName": "Nachname",
       "email": "E-Mail",
-      "whatsapp": "WhatsApp-Nummer",
-      "whatsappHelp": "Bestätigung und Erinnerung erhalten Sie über WhatsApp."
+      "whatsapp": "WhatsApp-Nummer"
     },
     "actions": {
       "confirm": "Termin bestätigen",

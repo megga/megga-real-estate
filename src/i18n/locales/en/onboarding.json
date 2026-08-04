@@ -264,7 +264,6 @@
   "call": {
     "intro": {
       "title": "Book your welcome call",
-      "body": "Before you finish, let us take 30 minutes to walk through your setup and answer your questions.",
       "bodyStandalone": "Your file is under review. Let us take 30 minutes to walk through your setup and answer your questions."
     },
     "picker": {
@@ -289,14 +288,12 @@
     },
     "form": {
       "phone": "Phone (optional)",
-      "phonePlaceholder": "+41 22 000 00 00",
       "note": "A word on your priorities (optional)",
       "notePlaceholder": "What you would like to see first",
       "firstName": "First name",
       "lastName": "Last name",
       "email": "Email",
-      "whatsapp": "WhatsApp number",
-      "whatsappHelp": "The confirmation and the reminder reach you on WhatsApp."
+      "whatsapp": "WhatsApp number"
     },
     "actions": {
       "confirm": "Confirm the appointment",

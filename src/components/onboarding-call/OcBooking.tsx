@@ -184,21 +184,6 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
     )
   }
 
-  // Rien à réserver : le dire honnêtement plutôt que d'afficher un calendrier vide,
-  // que le visiteur passerait à fouiller mois après mois.
-  if (nothingToBook) {
-    return (
-      <div className="card">
-        <div className="pd---content-inside-card">
-          <p className="paragraph-large text-paragraph">
-            {t(poolEmpty ? 'call.empty.noHost' : 'call.empty.noSlot')}
-          </p>
-          {secondaryAction && <div className="mg-top-small">{secondaryAction}</div>}
-        </div>
-      </div>
-    )
-  }
-
   // Les cinq questions. Déclarées ici et non en dur dans le JSX : le jour où Gregory
   // les arbitrera, c'est cette liste qu'on édite, et l'écran suit sans être retouché.
   const QUESTIONS = [
@@ -215,7 +200,19 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
      ressemble pas à un changement de page mais à un pas de plus. */
   const voletHote = (
     <div className="mx-book__host">
-      <div className="mx-book__logo"><img src="/megga-logo.svg" alt="MEGGA" /></div>
+      {/* Le monogramme, centré sur le dégradé qui habille tout le volet. Il tient la
+          place que le produit de référence donne à la photo de l'hôte — nous n'en
+          avons pas : l'appel est pris avec une ÉQUIPE, et le visage d'une personne
+          promettrait de parler à celle-là.
+
+          Le wordmark MEGGA qui le surmontait a été RETIRÉ : `/megga-logo.svg` est un
+          tracé noir, invisible sur ce fond, et il redisait ce que « Avec l'équipe
+          MEGGA » écrit deux lignes plus bas.
+
+          `aria-hidden` : décoratif, le nom de l'équipe est juste dessous. */}
+      <div className="mx-book__mark" aria-hidden="true">
+        <img src="/megga-gg.svg" alt="" />
+      </div>
       <div className="mg-top-small">
         <p className="paragraph-small text-color-neutral-600">{t('call.book.hostedBy')}</p>
         <p className="display-2 semi-bold mg-top-5x-extra-small">{t('call.book.title')}</p>
@@ -251,6 +248,18 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
           {etape === 'creneau' ? (
             <div>
               <p className="display-2 semi-bold">{t('call.book.pickTitle')}</p>
+
+              {/* Rien à réserver ? On le DIT, on ne ferme pas la porte. Cet état
+                  remplaçait tout le calendrier par un pavé de texte : le visiteur
+                  perdait la navigation par mois, donc le seul geste qui pouvait
+                  encore aboutir — regarder plus loin. Un calendrier vide se lit ;
+                  un écran sans calendrier ne se parcourt pas. */}
+              {nothingToBook && (
+                <p className="paragraph-small text-color-neutral-600 mg-top-4x-extra-small" role="status" aria-live="polite">
+                  {t(poolEmpty ? 'call.empty.noHost' : 'call.empty.noSlot')}
+                </p>
+              )}
+
               <div className="mg-top-small">
                 <OcSlotPicker
                   slots={slots}
@@ -295,9 +304,9 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
               {/* Le SEUL champ qui n'est pas prérempli : le profil ne porte pas de numéro
                   WhatsApp, et supposer que le téléphone du compte en est un enverrait les
                   confirmations dans le vide. */}
-              <MxField className="mg-top-4x-extra-small" label={t('call.form.whatsapp')} help={t('call.form.whatsappHelp')}>
+              <MxField className="mg-top-4x-extra-small" label={t('call.form.whatsapp')}>
                 {(id) => (
-                  <MxInput id={id} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('call.form.phonePlaceholder')} />
+                  <MxInput id={id} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 )}
               </MxField>
 

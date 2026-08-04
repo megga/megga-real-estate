@@ -47,7 +47,6 @@ export function StepRendezVous({ onStateChange }: StepRendezVousProps) {
       <h1 className="display-6 mg-top-3x-extra-small mg-bottom-2x-extra-small">
         {t('call.intro.title')}
       </h1>
-      <p className="paragraph-large text-paragraph">{t('call.intro.body')}</p>
 
       <div className="mg-top-medium">
         <OcBooking onStateChange={onStateChange} />
