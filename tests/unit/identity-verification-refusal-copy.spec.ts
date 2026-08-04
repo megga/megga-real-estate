@@ -33,8 +33,19 @@ import lDe from '@/i18n/locales/de/onboarding.json'
 import lEn from '@/i18n/locales/en/onboarding.json'
 import lIt from '@/i18n/locales/it/onboarding.json'
 
-/** Les trois codes que Stripe rend et sur lesquels réessayer est inutile. */
-const REFUS_DEFINITIFS = ['consent_declined', 'country_not_supported', 'under_supported_age']
+/**
+ * Les codes sur lesquels réessayer est inutile — ceux qui font basculer l'écran.
+ *
+ * ⛔ `consent_declined` n'en fait PLUS partie depuis le 04.08.2026 : Stripe ne déclare
+ * aucun code de refus terminal, et refuser le consentement est un geste rejouable.
+ * Il garde sa phrase au catalogue (il s'affiche dans la carte sur `requires_input`),
+ * mais il ne doit plus enlever le bouton « Réessayer ». Ce déplacement est éprouvé
+ * plus bas, pas seulement commenté.
+ */
+const REFUS_DEFINITIFS = ['country_not_supported', 'under_supported_age']
+
+/** Rejouables : une phrase leur est due, mais l'écran ne doit PAS basculer. */
+const REFUS_REJOUABLES = ['consent_declined', 'document_expired', 'selfie_face_mismatch']
 
 const LANGUES = { fr: lFr, de: lDe, en: lEn, it: lIt } as Record<string, {
   wizard: { pieceIdentite: { verification: { accepted: string; errors: Record<string, string> } } }
@@ -56,6 +67,24 @@ describe('refus définitifs — la liste et le catalogue ne doivent pas diverger
     }
   })
 
+  it('un refus REJOUABLE ne fait pas basculer l\'écran — le bouton « Réessayer » reste', () => {
+    // L'invariant inverse, et le seul qui aurait attrapé le défaut corrigé le
+    // 04.08.2026 : `consent_declined` était traité comme définitif, ce qui retirait le
+    // bouton « Réessayer » à quelqu'un dont le seul geste avait été de cliquer
+    // « Refuser » chez Stripe. Réessayer y est pourtant le geste EXACT à faire.
+    for (const code of REFUS_REJOUABLES) {
+      expect(verificationNeedsManualFallback(code), code).toBe(false)
+    }
+  })
+
+  it('un refus rejouable garde sa phrase au catalogue (il s\'affiche dans la carte)', () => {
+    // Sortir un code de la bascule ne doit pas le sortir du catalogue : il reste rendu
+    // par la carte sur `requires_input`, et sans phrase il retomberait sur `unknown`.
+    for (const code of REFUS_REJOUABLES) {
+      expect(KNOWN_VERIFICATION_ERRORS, code).toContain(code)
+    }
+  })
+
   it('chaque code définitif a sa propre entrée au catalogue, jamais le repli `unknown`', () => {
     for (const code of REFUS_DEFINITIFS) {
       expect(KNOWN_VERIFICATION_ERRORS, code).toContain(code)
@@ -74,9 +103,9 @@ describe('refus définitifs — la liste et le catalogue ne doivent pas diverger
 
 describe('les quatre langues portent les phrases lues depuis le dépôt manuel', () => {
   for (const langue of Object.keys(LANGUES)) {
-    it(`${langue} — les trois refus définitifs et le repli \`unknown\` sont traduits et non vides`, () => {
+    it(`${langue} — refus sans recours, refus rejouables et repli \`unknown\` sont traduits et non vides`, () => {
       const catalogue = messages(langue)
-      for (const code of [...REFUS_DEFINITIFS, 'unknown']) {
+      for (const code of [...REFUS_DEFINITIFS, ...REFUS_REJOUABLES, 'unknown']) {
         expect(catalogue[code], `${langue}/${code}`).toBeTruthy()
         expect(catalogue[code].trim().length, `${langue}/${code}`).toBeGreaterThan(0)
       }

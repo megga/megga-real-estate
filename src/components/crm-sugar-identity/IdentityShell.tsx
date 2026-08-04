@@ -72,6 +72,7 @@ import {
   useAgencyIdentity, useIdentityDocuments, validateIdentityDocumentFile, identityDocumentSidesFor,
   isIdentityVerificationSufficient, verificationNeedsManualFallback,
   type IdentityDocumentSide, type IdentityDocumentType, type IdentityVerificationStatus,
+  type VerificationStartFailure,
 } from '@/hooks/useAgencyIdentity'
 import { ONBOARDING_CALL_ROUTE } from '@/hooks/useOnboardingCall'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
@@ -231,7 +232,20 @@ export const EMPTY_PIECE_IDENTITE_DRAFT: PieceIdentiteDraft = {
  * une étape n'est jamais réputée finie parce qu'une question n'a pas été posée.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isAgencyStepComplete.
-export function isPieceIdentiteStepComplete(draft: PieceIdentiteDraft): boolean {
+export function isPieceIdentiteStepComplete(draft: PieceIdentiteDraft, blockedDeclared = false): boolean {
+  // SORTIE DE SECOURS — le dirigeant a déclaré que sa pièce ne peut pas être vérifiée
+  // en ligne (pays émetteur hors liste, nationalité que les conditions du prestataire
+  // excluent, pièce non reconnue). L'étape est franchissable SANS aucun fichier : le
+  // dossier part en revue humaine à la soumission, avec la même ligne de check qu'un
+  // dépôt aurait produite — mais MEGGA ne détient rien. Sans cette sortie, ces
+  // dirigeants ne sont pas bloqués sur l'étape : le gate d'identité les y renvoie
+  // indéfiniment, donc ils n'entrent JAMAIS dans le CRM.
+  if (blockedDeclared) return true
+  return isPieceIdentiteStepCompleteFromDocuments(draft)
+}
+
+/** La complétude par la vérification ou par les fichiers — inchangée, isolée pour la lisibilité. */
+function isPieceIdentiteStepCompleteFromDocuments(draft: PieceIdentiteDraft): boolean {
   // Chemin PRINCIPAL — la vérification par le prestataire. Elle se suffit à elle-même :
   // le document a été présenté, authentifié et confronté à un selfie chez Stripe, et
   // rien n'a été déposé ici. Demander un fichier en plus reviendrait à réintroduire
@@ -296,10 +310,11 @@ export function canAdvanceFromIdentityStep(
   signataire: SignataireDraft,
   agency: AgencyDraft,
   pieceIdentite: PieceIdentiteDraft = EMPTY_PIECE_IDENTITE_DRAFT,
+  blockedDeclared = false,
 ): boolean {
   if (step === 0) return isSignataireStepComplete(signataire)
   if (step === 1) return isAgencyStepComplete(agency)
-  if (step === 2) return isPieceIdentiteStepComplete(pieceIdentite)
+  if (step === 2) return isPieceIdentiteStepComplete(pieceIdentite, blockedDeclared)
   return false
 }
 
@@ -927,6 +942,21 @@ export default function IdentityShell() {
    * `ou` au moment du rendu plutôt que recopié ici, pour ne pas avoir deux vérités.
    */
   const [manualFallback, setManualFallback] = useState(false)
+  /**
+   * Le dirigeant a déclaré que sa pièce ne peut pas être vérifiée en ligne. Un état
+   * local et non une colonne : ce n'est pas un verdict sur son identité, seulement le
+   * chemin qu'il emprunte pour cette visite. Ce que la base retiendra, c'est la ligne
+   * de check `pending_manual_review` posée à la soumission — la même que le dépôt
+   * aurait produite, sans la pièce.
+   */
+  const [blockedDeclared, setBlockedDeclared] = useState(false)
+  /**
+   * Pourquoi la vérification n'a pas pu s'ouvrir, quand c'est un ÉCHEC qui a produit la
+   * bascule et non le choix du dirigeant. `null` sur un passage volontaire au dépôt :
+   * il n'y a alors rien à expliquer. Effacé au retour vers la carte, sinon la phrase
+   * survivrait à la situation qu'elle décrit.
+   */
+  const [startFailure, setStartFailure] = useState<VerificationStartFailure | null>(null)
   const [identityRead, setIdentityRead] = useState<KybIdReadRecord | null>(null)
   const [identityReading, setIdentityReading] = useState(false)
 
@@ -954,19 +984,28 @@ export default function IdentityShell() {
    * domaine Stripe, pas une route de l'app. Le retour se fait par `return_url`, et le
    * VERDICT par webhook — l'utilisateur peut abandonner en route sans rien casser.
    *
-   * Une indisponibilité (clé absente, compte non activé, refus de création) n'affiche
-   * pas d'erreur : elle bascule sur le dépôt manuel, qui existe précisément pour les
-   * cas que le prestataire ne sait pas traiter. Un bouton mort serait pire qu'un
-   * chemin plus long.
+   * Un échec ne rend pas d'erreur rouge : il bascule sur le dépôt manuel, qui existe
+   * précisément pour les cas que le prestataire ne sait pas traiter. Un bouton mort
+   * serait pire qu'un chemin plus long.
+   *
+   * ⚠ Mais la bascule ne se fait plus en SILENCE. Sans un mot, l'écran remplace le
+   * bouton qu'on vient d'actionner par un formulaire de fichier, et le dirigeant en
+   * conclut que la vérification n'existe pas — constaté le 04.08.2026, sur un échec
+   * réseau qui n'avait rien à voir avec le produit. La cause est donc mémorisée
+   * (`startFailure`), dite à l'écran, et le retour vers la carte reste ouvert.
    */
   const handleStartVerification = async (): Promise<void> => {
     if (!signatoryId) return
     setStartingVerification(true)
     try {
-      const url = await startIdentityVerification(signatoryId)
-      if (url) { window.location.href = url; return }
+      const started = await startIdentityVerification(signatoryId)
+      if (started.url) { window.location.href = started.url; return }
+      setStartFailure(started.failure)
       setManualFallback(true)
     } catch {
+      // Rejet imprévu (hors du contrat du hook) : même traitement que la requête qui
+      // n'est jamais partie, c'est ce que l'utilisateur constate de toute façon.
+      setStartFailure('unexpected')
       setManualFallback(true)
     } finally {
       setStartingVerification(false)
@@ -1079,7 +1118,7 @@ export default function IdentityShell() {
     }
   }
 
-  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, pieceIdentiteDraft)
+  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, pieceIdentiteDraft, blockedDeclared)
 
   /** Enveloppe commune à chaque étape persistable : bascule saving/error autour de
    *  l'opération d'écriture réelle (savePerson ou saveAgency selon l'étape).
@@ -1144,7 +1183,7 @@ export default function IdentityShell() {
       // durablement dans Storage au moment où l'utilisateur clique Continuer — cette
       // étape ne fait que revérifier sa complétude, comme canNext l'a déjà fait pour
       // activer le bouton (garde défensive redondante, même style que les étapes 0 et 1).
-      return isPieceIdentiteStepComplete(pieceIdentiteDraft)
+      return isPieceIdentiteStepComplete(pieceIdentiteDraft, blockedDeclared)
     }
     // Étape 4 (récapitulatif) : rien à persister en QUITTANT l'étape — l'attestation
     // n'est pas un brouillon à écrire en base, et la soumission elle-même est une
@@ -1358,8 +1397,20 @@ export default function IdentityShell() {
             // Stripe donnerait le même refus, et l'étape deviendrait un cul-de-sac.
             manualFallback={manualFallback
               || verificationNeedsManualFallback(existingSignatory?.verificationErrorCode ?? null)}
+            startFailure={startFailure}
+            // Le retour n'est offert que si le repli vient d'un choix ou d'un échec —
+            // JAMAIS d'un refus définitif, où la carte ne rendrait que le même refus.
+            canReturnToVerification={
+              !verificationNeedsManualFallback(existingSignatory?.verificationErrorCode ?? null)
+            }
             onStartVerification={() => { void handleStartVerification() }}
             onUseManualFallback={() => setManualFallback(true)}
+            blockedDeclared={blockedDeclared}
+            // Déclarer, c'est aussi quitter le dépôt : sans ça, revenir en arrière
+            // depuis la sortie de secours retomberait sur le formulaire de fichier.
+            onDeclareBlocked={() => { setBlockedDeclared(true); setManualFallback(false) }}
+            onUndeclareBlocked={() => setBlockedDeclared(false)}
+            onReturnToVerification={() => { setManualFallback(false); setStartFailure(null) }}
             documentType={pieceIdentiteDraft.documentType}
             recto={identityDocuments?.recto ?? null}
             verso={identityDocuments?.verso ?? null}

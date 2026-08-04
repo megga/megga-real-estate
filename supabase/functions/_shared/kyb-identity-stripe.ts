@@ -222,5 +222,10 @@ export function knownErrorCode(code: string | null | undefined): StripeIdentityE
  * l'utilisateur relance une vérification que le vendeur refusera à l'identique.
  */
 export function requiresManualFallback(code: string | null | undefined): boolean {
-  return code === 'consent_declined' || code === 'country_not_supported' || code === 'under_supported_age'
+  // ⛔ `consent_declined` retiré le 04.08.2026 : Stripe ne déclare AUCUN code terminal
+  // (seul `canceled` l'est, et c'est l'intégrateur qui le produit). Refuser le
+  // consentement est un geste rejouable, pas un refus définitif. Miroir de
+  // verificationNeedsManualFallback (src/hooks/useAgencyIdentity.ts) — les deux listes
+  // doivent rester identiques.
+  return code === 'country_not_supported' || code === 'under_supported_age'
 }

@@ -73,6 +73,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { Sentry } from '@/lib/sentry'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings, type AgencySettingsData } from '@/hooks/useAgencySettings'
 import { useLegalForms, type LegalFormOption, type LegalFormCategory } from '@/hooks/useLegalForms'
@@ -188,15 +189,16 @@ export interface UseAgencyIdentityReturn {
    * Ouvre (ou reprend) une vérification Stripe Identity pour cette personne et rend
    * l'URL de la page hébergée, vers laquelle l'appelant doit NAVIGUER.
    *
-   * Rend `null` quand la vérification n'est pas disponible — clé Stripe absente, compte
-   * non activé, refus de création. Ce n'est pas une erreur à afficher comme telle :
-   * c'est le signal qu'il faut proposer le dépôt manuel, qui reste le chemin de secours
-   * (le titre de séjour n'existe pas chez Stripe, cf. l'edge function).
+   * Sans URL, dit POURQUOI (cf. IdentityVerificationStart) : le prestataire refuse
+   * d'ouvrir (clé absente, compte non activé) ou la requête n'est jamais partie. Dans
+   * les deux cas l'appelant propose le dépôt manuel — mais il doit pouvoir le DIRE, et
+   * dire quoi. Une bascule muette a fait conclure à un dirigeant que la vérification
+   * n'existait pas (04.08.2026).
    *
    * Le résultat de la vérification n'arrive JAMAIS par cet appel : il vient du webhook
    * `identity.verification_session.*`. L'utilisateur peut fermer l'onglet chez Stripe.
    */
-  startIdentityVerification: (relatedPersonId: string) => Promise<string | null>
+  startIdentityVerification: (relatedPersonId: string) => Promise<IdentityVerificationStart>
   /**
    * Retire une face déjà déposée. Sert au seul cas où une pièce déposée cesse d'être
    * demandée : passer la nature à `passport`, qui n'a pas de verso. Sans ce retrait,
@@ -490,13 +492,66 @@ export function isIdentityVerificationSufficient(status: IdentityVerificationSta
 }
 
 /**
- * Refus DÉFINITIFS de Stripe : réessayer ne changera rien, il faut ouvrir le dépôt
+ * Pourquoi l'ouverture d'une vérification n'a pas abouti.
+ *
+ * `unavailable` : le prestataire a RÉPONDU non (clé absente, compte non activé, refus
+ * de création, personne hors agence). C'est un état prévu du parcours.
+ * `unexpected` : la requête n'est jamais arrivée jusqu'à lui (réseau, blocage côté
+ * poste). Rien ne dit que la vérification serait indisponible pour un autre visiteur,
+ * donc l'écran doit proposer de RÉESSAYER en plus du dépôt.
+ *
+ * La distinction n'est pas cosmétique : elle décide de la phrase affichée ET de la
+ * journalisation. Une bascule muette vers le dépôt a fait conclure à un dirigeant que
+ * la vérification n'existait pas dans le produit (04.08.2026).
+ */
+export type VerificationStartFailure = 'unavailable' | 'unexpected'
+
+/**
+ * Résultat de startIdentityVerification : une URL où aller, ou la raison du refus.
+ *
+ * Un enregistrement plat et non une union discriminée : sur une union, `url: string |
+ * null` ne rétrécit pas au test de vérité (une chaîne vide est fausse sans être `null`),
+ * et l'appelant devait ruser pour lire `failure`. Ici les deux champs existent toujours,
+ * exactement l'un des deux est renseigné, et l'appelant lit ce qu'il veut sans garde.
+ */
+export interface IdentityVerificationStart {
+  /** L'URL de la page hébergée du prestataire, ou `null` si rien n'a pu s'ouvrir. */
+  url: string | null
+  /** Renseigné si et seulement si `url` est `null`. */
+  failure: VerificationStartFailure | null
+}
+
+/**
+ * Range l'erreur de `functions.invoke` dans l'une des deux causes.
+ *
+ * `FunctionsFetchError` est le seul cas où supabase-js dit que la requête n'a pas
+ * abouti (réseau, DNS, blocage). Tout le reste — statut non-2xx, relais — signifie que
+ * le serveur a été atteint et a répondu non. Pure et testée directement, même motif que
+ * les autres règles de ce fichier.
+ */
+export function classifyVerificationStartError(error: unknown): VerificationStartFailure {
+  return (error as { name?: string })?.name === 'FunctionsFetchError' ? 'unexpected' : 'unavailable'
+}
+
+/**
+ * Refus SANS RECOURS de Stripe : réessayer ne changera rien, il faut ouvrir le dépôt
  * manuel. Miroir de requiresManualFallback (kyb-identity-stripe.ts) — insister sur ces
- * trois codes enfermerait l'utilisateur dans une boucle.
+ * codes enfermerait l'utilisateur dans une boucle.
+ *
+ * ⛔ `consent_declined` en est SORTI le 04.08.2026, après vérification à la source.
+ * Stripe ne déclare aucun code de refus terminal (le seul état terminal est `canceled`,
+ * produit par l'intégrateur) : refuser le consentement est un GESTE de l'utilisateur sur
+ * l'écran de Stripe, parfaitement rejouable, et notre edge sait déjà REPRENDRE une
+ * session `requires_input`. Le traiter comme définitif privait donc du bouton
+ * « Réessayer » quelqu'un dont le seul tort était d'avoir cliqué « Refuser » — et le
+ * poussait vers un dépôt de pièce qu'il ne voulait peut-être pas faire.
+ *
+ * Restent deux codes réellement sans recours : `country_not_supported` (la liste des
+ * pays émetteurs compte 110 entrées, Kosovo/Bosnie/Monténégro absents) et
+ * `under_supported_age`. Aucun réessai ne les lève.
  */
 export function verificationNeedsManualFallback(errorCode: string | null): boolean {
-  return errorCode === 'consent_declined'
-    || errorCode === 'country_not_supported'
+  return errorCode === 'country_not_supported'
     || errorCode === 'under_supported_age'
 }
 
@@ -875,17 +930,33 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
   }
 
   /** Voir le contrat dans UseAgencyIdentityReturn. */
-  const startIdentityVerification = async (relatedPersonId: string): Promise<string | null> => {
+  const startIdentityVerification = async (relatedPersonId: string): Promise<IdentityVerificationStart> => {
     const { data, error } = await supabase.functions.invoke<{ url?: unknown }>('kyb-identity-verify', {
       body: { related_person_id: relatedPersonId },
     })
-    // Une indisponibilité (503) n'est pas une panne à remonter en rouge : l'appelant
-    // en fait un basculement vers le dépôt manuel. D'où `null` plutôt qu'un `throw`.
-    if (error) return null
+    // Aucune erreur remontée en rouge : dans tous les cas l'appelant bascule sur le
+    // dépôt manuel. Mais il doit savoir LAQUELLE des deux situations il annonce.
+    if (error) {
+      const failure = classifyVerificationStartError(error)
+      // Journalisé pour le cas INATTENDU seulement : une indisponibilité annoncée par
+      // le serveur est un état prévu du parcours, pas un incident. Sans cette trace,
+      // un échec de départ ne laissait rien nulle part (constat du 04.08.2026).
+      if (failure === 'unexpected') {
+        Sentry.captureMessage('kyb-identity-verify: la requête n\'est jamais partie', {
+          level: 'warning',
+          extra: { errorName: (error as { name?: string })?.name ?? null },
+        })
+      }
+      return { url: null, failure }
+    }
     // L'edge a noté l'identifiant de session sur la personne : la relire garde le
     // wizard cohérent si l'utilisateur revient sans passer par le return_url.
     await queryClient.invalidateQueries({ queryKey: personsQueryKey })
-    return typeof data?.url === 'string' ? data.url : null
+    // Une réponse 2xx sans URL ne devrait pas exister ; la traiter comme une
+    // indisponibilité laisse le parcours continuer plutôt que de rendre un bouton mort.
+    return typeof data?.url === 'string'
+      ? { url: data.url, failure: null }
+      : { url: null, failure: 'unavailable' }
   }
 
   /** Voir le contrat dans UseAgencyIdentityReturn. */

@@ -372,13 +372,21 @@ describe('isIdentityVerificationStatus / isIdentityVerificationSufficient — mi
 })
 
 describe('verificationNeedsManualFallback — quand insister chez le prestataire enfermerait l\'utilisateur', () => {
-  it('les trois refus DÉFINITIFS ouvrent le dépôt manuel', () => {
-    expect(verificationNeedsManualFallback('consent_declined')).toBe(true)
+  it('les deux refus SANS RECOURS ouvrent le dépôt manuel', () => {
+    // `country_not_supported` : la liste des pays émetteurs de Stripe compte 110
+    // entrées, aucun réessai n'y ajoute le sien. `under_supported_age` : idem.
     expect(verificationNeedsManualFallback('country_not_supported')).toBe(true)
     expect(verificationNeedsManualFallback('under_supported_age')).toBe(true)
   })
 
   it('un refus REPRENABLE ne bascule pas : une photo floue ou un selfie raté se refont', () => {
+    // ⛔ `consent_declined` est passé DE l'autre liste À celle-ci le 04.08.2026, après
+    // vérification à la source : Stripe ne déclare aucun code de refus terminal (seul
+    // `canceled` l'est, et c'est l'intégrateur qui le produit). Refuser le consentement
+    // est un geste rejouable — le classer définitif retirait le bouton « Réessayer » à
+    // quelqu'un dont c'était précisément le geste à refaire, et le poussait vers un
+    // dépôt de pièce qu'il n'avait pas demandé.
+    expect(verificationNeedsManualFallback('consent_declined')).toBe(false)
     expect(verificationNeedsManualFallback('document_unverified_other')).toBe(false)
     expect(verificationNeedsManualFallback('selfie_face_mismatch')).toBe(false)
     expect(verificationNeedsManualFallback(null)).toBe(false)

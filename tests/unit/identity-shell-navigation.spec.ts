@@ -239,6 +239,23 @@ describe('isPieceIdentiteStepComplete — gate le bouton Continuer de l\'étape 
     expect(isPieceIdentiteStepComplete(EMPTY_PIECE_IDENTITE_DRAFT)).toBe(false)
   })
 
+  it('SORTIE DE SECOURS déclarée -> l\'étape est franchissable SANS aucun fichier', () => {
+    // Le cœur du dispositif : un dirigeant que le prestataire ne peut pas vérifier
+    // (pays émetteur hors liste, nationalité exclue par les conditions du prestataire,
+    // pièce non reconnue) franchit l'étape sans rien déposer. Le dossier part en revue
+    // humaine à la soumission — même ligne de check qu'un dépôt, sans que MEGGA
+    // détienne la pièce. Sans cette sortie, ces dirigeants n'entrent JAMAIS dans le
+    // CRM : le gate d'identité les renvoie indéfiniment sur cette étape.
+    expect(isPieceIdentiteStepComplete(EMPTY_PIECE_IDENTITE_DRAFT, true)).toBe(true)
+  })
+
+  it('sans déclaration, un brouillon vide reste incomplet — la sortie n\'est jamais implicite', () => {
+    // L'invariant inverse, et le seul qui rende le test précédent non creux : c'est la
+    // DÉCLARATION qui ouvre l'étape, jamais l'absence de pièce. Passer `false` (ou rien)
+    // doit laisser la garde exactement où elle était.
+    expect(isPieceIdentiteStepComplete(EMPTY_PIECE_IDENTITE_DRAFT, false)).toBe(false)
+  })
+
   it('les deux faces présentes mais AUCUNE nature déclarée -> incomplet : une étape n\'est jamais réputée finie parce qu\'une question n\'a pas été posée', () => {
     expect(isPieceIdentiteStepComplete({ verificationStatus: null, documentType: null, recto: RECTO, verso: VERSO })).toBe(false)
   })
@@ -334,6 +351,15 @@ describe('canAdvanceFromIdentityStep — étape 3 (pièce d\'identité, tâche 6
 
   it('carte d\'identité, recto ET verso téléversés -> navigable', () => {
     expect(canAdvanceFromIdentityStep(2, completeSignataire, completeAgency, completePieceIdentite)).toBe(true)
+  })
+
+  it('étape 2 — la sortie de secours déclarée ouvre le bouton Continuer sur un brouillon VIDE', () => {
+    // Le pied de page doit suivre la même règle que la garde de complétude : sans ça, le
+    // dirigeant lirait « demande enregistrée » à l'écran avec un bouton Continuer mort,
+    // et resterait enfermé exactement comme avant.
+    expect(canAdvanceFromIdentityStep(2, completeSignataire, completeAgency, EMPTY_PIECE_IDENTITE_DRAFT, true)).toBe(true)
+    // Non creux : le 5e argument à false laisse la garde inchangée.
+    expect(canAdvanceFromIdentityStep(2, completeSignataire, completeAgency, EMPTY_PIECE_IDENTITE_DRAFT, false)).toBe(false)
   })
 
   it('passeport, page de données seule -> navigable : la garde suit la nature déclarée, comme l\'écran', () => {

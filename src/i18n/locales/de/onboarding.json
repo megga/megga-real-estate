@@ -99,8 +99,8 @@
       }
     },
     "pieceIdentite": {
-      "title": "Laden Sie das Ausweisdokument der unterzeichnenden Person hoch",
-      "subtitle": "Ein gültiger Ausweis: Pass, Identitätskarte oder Aufenthaltstitel. Geben Sie die Art an und fotografieren Sie die verlangten Seiten. Eine Person unseres Compliance-Teams prüft das Dokument.",
+      "title": "Identität der zeichnungsberechtigten Person prüfen",
+      "subtitle": "Die Online-Prüfung akzeptiert Reisepass und Identitätskarte: Sie fotografieren Ihr Dokument und Ihr Gesicht bei unserem Anbieter. Das Hochladen Ihres Dokuments bleibt möglich und akzeptiert auch den Aufenthaltstitel. Ein Mitglied unseres Compliance-Teams prüft das Dossier.",
       "missingSignataire": "Die unterzeichnende Person muss zuerst im vorherigen Schritt angegeben werden.",
       "verification": {
         "title": "Bestätigen Sie Ihre Identität",
@@ -115,7 +115,7 @@
         "useManual": "Stattdessen Ausweis hochladen",
         "privacy": "Unser Dienstleister behält den Ausweis für seine Prüfung; MEGGA erhält nur das Ergebnis und das Ablaufdatum.",
         "errors": {
-          "consent_declined": "Sie haben die Prüfung abgelehnt. Laden Sie Ihren Ausweis unten hoch, unser Team prüft ihn.",
+          "consent_declined": "Sie haben die Prüfung abgelehnt. Sie können sie erneut starten oder stattdessen Ihren Ausweis hochladen.",
           "under_supported_age": "Die Online-Prüfung gilt nicht für Personen unter 16 Jahren.",
           "country_not_supported": "Ihr Land wird von der Online-Prüfung nicht abgedeckt. Laden Sie Ihren Ausweis unten hoch.",
           "document_expired": "Der vorgelegte Ausweis ist abgelaufen. Versuchen Sie es mit einem gültigen Ausweis.",
@@ -127,6 +127,19 @@
           "selfie_unverified_other": "Das Gesicht konnte nicht geprüft werden. Wiederholen Sie die Prüfung.",
           "abandoned": "Die Prüfung wurde abgebrochen. Sie können sie fortsetzen.",
           "unknown": "Die Prüfung wurde nicht abgeschlossen. Sie können es erneut versuchen oder Ihren Ausweis unten hochladen."
+        },
+        "startFailed": {
+          "unavailable": "Die Online-Prüfung ist vorübergehend nicht verfügbar. Laden Sie Ihr Dokument unten hoch, unser Team prüft es.",
+          "unexpected": "Die Online-Prüfung konnte nicht geöffnet werden. Laden Sie Ihr Dokument unten hoch oder versuchen Sie die Prüfung erneut."
+        },
+        "backToVerification": "Zurück zur Online-Prüfung",
+        "blocked": {
+          "link": "Mein Ausweis wird nicht akzeptiert",
+          "title": "Manuelle Prüfung",
+          "body": "Manche Ausweise bestehen die Online-Prüfung nicht: Aufenthaltstitel, Reisepass eines nicht abgedeckten Landes oder eine Ablehnung, die Sie nicht beheben können. Fordern Sie eine manuelle Prüfung an: Unser Compliance-Team meldet sich bei Ihnen, um Ihre Identität festzustellen, ohne dass Sie hier ein Dokument hochladen müssen.",
+          "confirm": "Manuelle Prüfung anfordern",
+          "declared": "Manuelle Prüfung angefordert. Fahren Sie fort: Unser Compliance-Team meldet sich nach dem Einreichen Ihres Dossiers.",
+          "back": "Zurück zur Online-Prüfung"
         }
       },
       "documentType": {

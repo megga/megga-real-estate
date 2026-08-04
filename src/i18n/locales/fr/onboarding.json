@@ -99,8 +99,8 @@
       }
     },
     "pieceIdentite": {
-      "title": "Téléversez la pièce d'identité du signataire",
-      "subtitle": "Une pièce en cours de validité : passeport, carte d'identité ou titre de séjour. Indiquez sa nature, puis photographiez les faces demandées. Un membre de notre équipe conformité l'examine.",
+      "title": "Vérifiez l'identité du signataire",
+      "subtitle": "La vérification en ligne accepte le passeport et la carte d'identité : vous photographiez votre pièce et votre visage chez notre prestataire. Le dépôt de votre pièce reste possible, et accepte aussi le titre de séjour. Un membre de notre équipe conformité examine le dossier.",
       "missingSignataire": "Le signataire doit d'abord être renseigné à l'étape précédente.",
       "verification": {
         "title": "Vérifiez votre identité",
@@ -115,7 +115,7 @@
         "useManual": "Déposer ma pièce à la place",
         "privacy": "Notre prestataire conserve la pièce pour son contrôle ; MEGGA ne reçoit que le résultat et la date d'expiration.",
         "errors": {
-          "consent_declined": "Vous avez refusé la vérification. Déposez votre pièce ci-dessous, notre équipe l'examinera.",
+          "consent_declined": "Vous avez refusé la vérification. Vous pouvez la reprendre, ou déposer votre pièce à la place.",
           "under_supported_age": "La vérification en ligne ne couvre pas les personnes de moins de 16 ans.",
           "country_not_supported": "Votre pays n'est pas couvert par la vérification en ligne. Déposez votre pièce ci-dessous.",
           "document_expired": "La pièce présentée est expirée. Reprenez avec une pièce en cours de validité.",
@@ -127,6 +127,19 @@
           "selfie_unverified_other": "Le visage n'a pas pu être vérifié. Reprenez la vérification.",
           "abandoned": "La vérification a été interrompue. Vous pouvez la reprendre.",
           "unknown": "La vérification n'a pas abouti. Vous pouvez la reprendre ou déposer votre pièce ci-dessous."
+        },
+        "startFailed": {
+          "unavailable": "La vérification en ligne est momentanément indisponible. Déposez votre pièce ci-dessous, notre équipe l'examinera.",
+          "unexpected": "La vérification en ligne n'a pas pu s'ouvrir. Déposez votre pièce ci-dessous, ou réessayez la vérification."
+        },
+        "backToVerification": "Revenir à la vérification en ligne",
+        "blocked": {
+          "link": "Ma pièce n'est pas acceptée",
+          "title": "Vérification manuelle",
+          "body": "Certaines pièces ne passent pas la vérification en ligne : titre de séjour, passeport d'un pays non couvert, ou vérification refusée pour une raison que vous ne pouvez pas corriger. Demandez une vérification manuelle : notre équipe conformité vous contactera pour établir votre identité, sans que vous ayez à déposer de document ici.",
+          "confirm": "Demander une vérification manuelle",
+          "declared": "Vérification manuelle demandée. Continuez : notre équipe conformité reprendra contact après l'envoi de votre dossier.",
+          "back": "Revenir à la vérification en ligne"
         }
       },
       "documentType": {
