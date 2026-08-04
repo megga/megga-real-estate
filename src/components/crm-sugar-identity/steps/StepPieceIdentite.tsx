@@ -1,39 +1,27 @@
 /**
- * Wizard « Identité légale » (KYB) — étape 3, la pièce d'identité du signataire.
+ * Wizard « Identité légale » (KYB) — étape 3, l'identité du signataire.
  *
- * Peau MEGGA X (transcription verbatim de la vitrine megga.ch, scopée `.megga-x`) :
- * l'écran ne pose plus aucune valeur de couleur, taille, rayon ou ombre — tout vient
- * des classes de la vitrine et des composants de src/components/megga-x/. La coquille
- * (IdentityShell) enveloppe le contenu dans <MeggaX>, c'est elle qui porte le fond et
- * la police ; cette étape ne rend que son contenu.
+ * Peau MEGGA X (transcription verbatim de la vitrine, scopée `.megga-x`) : l'écran ne
+ * pose aucune valeur de couleur, taille, rayon ou ombre. La coquille (IdentityShell)
+ * l'enveloppe dans <MeggaX> ; cette étape ne rend que son contenu.
  *
- * L'écran demande D'ABORD la nature de la pièce (passeport / carte d'identité /
- * titre de séjour), et c'est elle qui décide combien de faces sont réclamées :
- * identityDocumentSidesFor (useAgencyIdentity.ts), la même fonction que celle qui
- * gate le bouton Continuer. Un passeport n'a qu'une page de données — l'exiger en
- * deux faces faisait photographier une couverture vierge. La réponse est écrite dans
- * `agency_related_persons.id_document_type`, colonne posée dès l'origine
- * (migration 20260729150200) et restée vide jusqu'au 3 août 2026.
+ * ⛔ UN SEUL CHEMIN depuis le 05.08.2026 : la vérification chez le prestataire. Le
+ * dépôt de pièce a été RETIRÉ — pas seulement retiré de l'offre, retiré tout court :
+ * aucun état de cet écran ne peut plus faire apparaître un champ de fichier. C'était
+ * la condition pour que le retrait soit réel ; ne plus le proposer laissait un échec
+ * d'ouverture y ramener, et c'est ce que le dirigeant constatait.
  *
- * Téléversement recto/verso avec aperçu et remplacement — mais contrairement aux
- * étapes précédentes (texte tenu en brouillon React, écrit seulement au clic sur
- * Continuer), un fichier choisi est téléversé IMMÉDIATEMENT vers Storage (même motif
- * que le logo d'agence, AgencyFocusSection.tsx) : fermer l'onglet juste après avoir
- * choisi un fichier ne doit jamais le perdre, cf. la règle de persistance de
- * IdentityShell (son en-tête, « Persistance »). Il n'y a donc rien à « sauvegarder »
- * de plus au changement d'étape — persistCurrentStep (IdentityShell) ne fait ici que
- * vérifier la complétude.
+ * Ce que le prestataire ne sait pas traiter — pays émetteur hors de sa liste,
+ * nationalité que ses conditions excluent, pièce qu'il ne reconnaît pas — passe par
+ * IdentityBlockedCard : une demande de vérification manuelle qui ne réclame AUCUN
+ * document. Le dossier part en revue humaine avec la même ligne de check qu'un dépôt
+ * aurait produite, mais MEGGA ne détient rien. C'est tout l'objet de la décision.
  *
- * Purement contrôlée par IdentityShell, comme StepSignataire/StepAgence/
- * les étapes précédentes : aucun accès Supabase direct ici, seulement des props (aperçus
- * déjà résolus + callback de sélection) — IdentityShell détient
- * useIdentityDocuments()/uploadIdentityDocument() (useAgencyIdentity.ts, tâche 6).
+ * ⚠ Un refus SANS RECOURS ouvre cette sortie de lui-même (cf. le point d'appel dans
+ * IdentityShell) : attendre que le dirigeant déclare ce que le système sait déjà
+ * ferait de l'étape un cul-de-sac, le gate d'identité le maintenant hors du CRM.
  *
- * Aucun champ ici n'écrit dans agency_person_verification_checks : cette ligne de
- * check (check_type='id_document', source='manual', result='pending_manual_review')
- * ne peut être posée que par submit_agency_identity() (RPC SECURITY DEFINER, garde
- * 42501 sur les tables de checks) — l'étape 4 (récapitulatif, tâche 7) l'appellera au
- * moment de la soumission finale.
+ * Purement contrôlée par IdentityShell : aucun accès Supabase ici, seulement des props.
  */
 import { useTranslation } from 'react-i18next'
 import { MxButton } from '@/components/megga-x'

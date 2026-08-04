@@ -168,24 +168,6 @@ export interface UseAgencyIdentityReturn {
    */
   uploadIdentityDocument: (relatedPersonId: string, side: IdentityDocumentSide, file: File) => Promise<string>
   /**
-   * Écrit la NATURE de la pièce (`agency_related_persons.id_document_type`) pour
-   * `relatedPersonId`. Écriture immédiate, comme le fichier lui-même et pour la même
-   * raison (cf. en-tête de StepPieceIdentite.tsx) : l'étape 3 ne tient aucun
-   * brouillon, fermer l'onglet juste après avoir répondu ne doit rien perdre.
-   */
-  saveIdentityDocumentType: (relatedPersonId: string, type: IdentityDocumentType) => Promise<void>
-  /**
-   * Fait LIRE la pièce déposée (edge `kyb-identity-read`, Gemini) et rend le verdict de
-   * sa comparaison avec l'identité déclarée à l'étape 1 — jamais le contenu lu.
-   *
-   * Indicatif, jamais bloquant : rien de ce que rend cette lecture n'entre dans
-   * `verification_score` ni dans un véto. Le seul check de la pièce reste
-   * `id_document`/`pending_manual_review`, tranché par un humain. Rejouable sans effet
-   * de bord (l'edge réécrit les deux mêmes colonnes). `null` si la réponse ne porte pas
-   * un verdict de la forme attendue.
-   */
-  readIdentityDocument: (relatedPersonId: string) => Promise<KybIdReadRecord | null>
-  /**
    * Ouvre (ou reprend) une vérification Stripe Identity pour cette personne et rend
    * l'URL de la page hébergée, vers laquelle l'appelant doit NAVIGUER.
    *
@@ -199,15 +181,6 @@ export interface UseAgencyIdentityReturn {
    * `identity.verification_session.*`. L'utilisateur peut fermer l'onglet chez Stripe.
    */
   startIdentityVerification: (relatedPersonId: string) => Promise<IdentityVerificationStart>
-  /**
-   * Retire une face déjà déposée. Sert au seul cas où une pièce déposée cesse d'être
-   * demandée : passer la nature à `passport`, qui n'a pas de verso. Sans ce retrait,
-   * le verso d'une carte resterait dans Storage — une PII que plus rien ne réclame,
-   * que le récapitulatif et la console du relecteur continueraient d'afficher (les
-   * deux lisent Storage, pas une liste attendue), et qu'aucune purge ne connaît.
-   * No-op silencieux si ce côté n'a rien : rien à retirer n'est pas une erreur.
-   */
-  removeIdentityDocument: (relatedPersonId: string, side: IdentityDocumentSide) => Promise<void>
   /**
    * Appelle submit_agency_identity() (RPC, tâche 1, étendue par la tâche 6 puis câblée
    * par la tâche 7). `relatedPersonId` DOIT être LE signataire dont la pièce d'identité
@@ -901,17 +874,6 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     return path
   }
 
-  /** Voir le contrat dans UseAgencyIdentityReturn. */
-  const readIdentityDocument = async (relatedPersonId: string): Promise<KybIdReadRecord | null> => {
-    const { data, error } = await supabase.functions.invoke<{ read?: unknown }>('kyb-identity-read', {
-      body: { related_person_id: relatedPersonId },
-    })
-    if (error) throw error
-    // La personne relue porte désormais le verdict et l'échéance : invalider pour que
-    // le récapitulatif et la console les voient sans second appel.
-    await queryClient.invalidateQueries({ queryKey: personsQueryKey })
-    return isKybIdReadRecord(data?.read) ? data.read : null
-  }
 
   /** Voir le contrat dans UseAgencyIdentityReturn. */
   const startIdentityVerification = async (relatedPersonId: string): Promise<IdentityVerificationStart> => {
@@ -943,37 +905,7 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
       : { url: null, failure: 'unavailable' }
   }
 
-  /** Voir le contrat dans UseAgencyIdentityReturn. */
-  const saveIdentityDocumentType = async (
-    relatedPersonId: string,
-    type: IdentityDocumentType,
-  ): Promise<void> => {
-    const { error } = await supabase
-      .from('agency_related_persons')
-      .update({ id_document_type: type })
-      .eq('id', relatedPersonId)
-    if (error) throw error
-    await queryClient.invalidateQueries({ queryKey: personsQueryKey })
-  }
 
-  /** Voir le contrat dans UseAgencyIdentityReturn. */
-  const removeIdentityDocument = async (
-    relatedPersonId: string,
-    side: IdentityDocumentSide,
-  ): Promise<void> => {
-    if (!agencyId) throw new Error('Agence non chargée')
-
-    const folder = identityDocumentFolder(agencyId, relatedPersonId)
-    const { data: files, error: listError } = await supabase.storage.from('documents').list(folder)
-    if (listError) throw listError
-
-    const path = findIdentityDocumentPath(files ?? [], folder, side)
-    if (!path) return
-
-    const { error } = await supabase.storage.from('documents').remove([path])
-    if (error) throw error
-    await queryClient.invalidateQueries({ queryKey: identityDocumentsQueryKey(agencyId, relatedPersonId) })
-  }
 
   const submit = async (relatedPersonId: string | null): Promise<void> => {
     const { error } = await supabase.rpc('submit_agency_identity', buildSubmitAgencyIdentityArgs(relatedPersonId))
@@ -1006,9 +938,6 @@ export function useAgencyIdentity(): UseAgencyIdentityReturn {
     savePerson,
     removePerson,
     uploadIdentityDocument,
-    saveIdentityDocumentType,
-    removeIdentityDocument,
-    readIdentityDocument,
     startIdentityVerification,
     submit,
     saveAgency,

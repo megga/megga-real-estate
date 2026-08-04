@@ -542,14 +542,15 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       expect(signatoryRowErr).toBeNull()
       const signatoryId = signatoryRow!.id as string
 
-      // La nature déclarée à l'étape 2 est bien ARRIVÉE en base (saveIdentityDocumentType,
-      // écriture immédiate au clic). Sans elle, le relecteur ne saurait pas combien de
-      // faces attendre — et la colonne, posée dès l'origine (20260729150200), est restée
-      // vide jusqu'au 03.08.2026 précisément parce qu'aucun écran ne la remplissait.
+      // ⛔ INVERSÉ le 05.08.2026, avec le retrait du dépôt de pièce : plus aucune nature
+      // n'est demandée, donc la colonne DOIT rester vide. Elle n'est plus écrite par le
+      // parcours — seule la console admin la lit encore, pour les dossiers hérités.
+      // L'affirmer dans ce sens ferme le chemin d'écriture au lieu de le documenter :
+      // un écran qui redemanderait la nature ferait rougir ce test.
       expect(
         signatoryRow!.id_document_type,
-        'la nature choisie à l\'étape pièce d\'identité doit être écrite dans agency_related_persons',
-      ).toBe('id_card')
+        'la nature de pièce ne doit plus être écrite : le parcours ne la demande plus',
+      ).toBeNull()
 
       const { data: idDocumentCheck, error: idDocumentCheckErr } = await serviceRoleClient()
         .from('agency_person_verification_checks')
@@ -559,9 +560,11 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       expect(idDocumentCheckErr).toBeNull()
       expect(
         idDocumentCheck?.check_type,
-        'submit_agency_identity doit poser une ligne agency_person_verification_checks pour le signataire dont la pièce a été déposée',
+        'submit_agency_identity doit poser une ligne agency_person_verification_checks pour le signataire, que la vérification ait abouti ou qu\'elle ait été déclarée impossible',
       ).toBe('id_document')
-      expect(idDocumentCheck?.source, 'aucun prestataire automatique à ce stade : source=manual').toBe('manual')
+      // `manual` reste la source tant que le verdict du prestataire n'alimente pas ce
+      // check — branchement prévu (valeur `id_vendor` réservée), pas encore livré.
+      expect(idDocumentCheck?.source, 'le verdict reste humain : source=manual').toBe('manual')
       expect(idDocumentCheck?.result, 'en attente de revue humaine, jamais un verdict automatique').toBe('pending_manual_review')
 
       // ⛔ L'INVERSE de ce que ce test affirmait jusqu'au 05.08.2026 : plus AUCUN
