@@ -924,30 +924,30 @@
   "audit.family.ops": "Betrieb",
   "audit.family.kyb": "KYB",
   "onboardingCalls": {
-    "title": "Willkommensgesprache",
-    "subtitle": "Der Terminkalender des MEGGA Teams und die Zeiten der Gastgeber.",
-    "error": "Lesen nicht moglich.",
-    "searchLabel": "Termin suchen",
-    "searchPlaceholder": "Agentur, Gastgeber, Kontakt...",
+    "title": "Willkommensgespräche",
+    "subtitle": "Das Terminbuch des MEGGA Teams und die Zeiten der Gastgeber.",
+    "error": "Lesen nicht möglich.",
+    "searchLabel": "Gespräch suchen",
+    "searchPlaceholder": "Agentur, Gastgeber, Kontakt…",
     "tabs": {
       "calls": "Termine",
       "hosts": "Gastgeber"
     },
     "stats": {
-      "upcoming": "Bevorstehend",
+      "upcoming": "Anstehend",
       "done": "Gehalten",
       "noShow": "Nicht erschienen",
       "cancelled": "Abgesagt"
     },
     "filters": {
       "all": "Alle",
-      "confirmed": "Bestatigt",
+      "confirmed": "Bestätigt",
       "done": "Gehalten",
       "no_show": "Nicht erschienen",
       "cancelled": "Abgesagt"
     },
     "status": {
-      "confirmed": "Bestatigt",
+      "confirmed": "Bestätigt",
       "done": "Gehalten",
       "no_show": "Nicht erschienen",
       "cancelled": "Abgesagt"
@@ -958,8 +958,8 @@
       "host": "Gastgeber",
       "status": "Status",
       "actions": "Aktionen",
-      "rescheduled": "{{count}} mal umgebucht",
-      "openMeeting": "Videokonferenz offnen"
+      "rescheduled": "{{count}} Mal umgebucht",
+      "openMeeting": "Videokonferenz öffnen"
     },
     "actions": {
       "markDone": "Gehalten",
@@ -967,8 +967,8 @@
       "cancel": "Absagen"
     },
     "empty": {
-      "title": "Keine Termine",
-      "hint": "Termine aus dem Identitatsassistenten erscheinen hier."
+      "title": "Keine Gespräche",
+      "hint": "Termine, die während des Onboardings gebucht werden, erscheinen hier."
     },
     "hosts": {
       "dayNames": [
@@ -987,48 +987,48 @@
       "table": {
         "host": "Gastgeber",
         "hours": "Zeiten",
-        "upcoming": "Bevorstehend",
+        "upcoming": "Anstehend",
         "state": "Status",
-        "rules": "{{duration}} Min., Puffer {{buffer}} Min., Vorlauf {{notice}} Std., Horizont {{horizon}} T."
+        "hoursMore": "+{{n}} weitere Tage"
       },
       "empty": {
         "title": "Keine Gastgeber",
         "hint": "Ohne aktiven Gastgeber kann keine Agentur buchen."
       },
       "provisioningNote": "Ohne aktiven Gastgeber meldet der Buchungsbildschirm ehrlich, dass kein Termin offen ist.",
-      "addHost": "Gastgeber hinzufugen",
+      "addHost": "Gastgeber hinzufügen",
       "editHost": "Bearbeiten",
       "form": {
         "addTitle": "Neuer Gastgeber",
         "editTitle": "Gastgeber bearbeiten",
         "close": "Schliessen",
         "email": "E-Mail des MEGGA Kontos",
-        "displayName": "Dem Kunden angezeigter Name",
+        "displayName": "Name für den Kunden",
         "timezone": "Zeitzone",
-        "weekly": "Wochentliche Zeitfenster",
-        "addSlice": "Zeitfenster hinzufugen",
+        "weekly": "Wöchentliche Zeitfenster",
+        "addSlice": "Zeitfenster hinzufügen",
         "removeSlice": "Dieses Zeitfenster entfernen",
         "duration": "Dauer (Min.)",
-        "slot": "Schritt (Min.)",
+        "slot": "Raster (Min.)",
         "buffer": "Puffer danach (Min.)",
         "notice": "Vorlauf (Std.)",
-        "horizon": "Horizont (T.)",
+        "horizon": "Horizont (Tage)",
         "maxPerDay": "Max. pro Tag",
-        "noLimit": "ohne Grenze",
+        "noLimit": "ohne Limit",
         "save": "Speichern",
         "errors": {
           "unknownEmail": "Kein Konto mit dieser E-Mail.",
           "nameRequired": "Der angezeigte Name ist erforderlich.",
-          "badSlice": "Ein Zeitfenster ist fehlerhaft : das Ende muss nach dem Anfang liegen.",
+          "badSlice": "Ein Zeitfenster ist fehlerhaft: das Ende muss nach dem Beginn liegen.",
           "generic": "Der Gastgeber konnte nicht gespeichert werden."
         }
       }
     },
     "cancelConfirm": {
-      "title": "Dieses Willkommensgesprach absagen ?",
+      "title": "Dieses Willkommensgespräch absagen?",
       "message": "{{agency}} wird per E-Mail benachrichtigt und der Termin am {{when}} wird im Kalender des Gastgebers frei.",
-      "confirm": "Termin absagen",
-      "busy": "Wird abgesagt..."
+      "confirm": "Gespräch absagen",
+      "busy": "Wird abgesagt…"
     }
   },
   "dashboard.pulse.noFunctionError": "kein Funktionsfehler gemeldet",

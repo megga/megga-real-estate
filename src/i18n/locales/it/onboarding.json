@@ -25,6 +25,7 @@
       "signataire": "Firmatario",
       "agence": "Agenzia",
       "pieceIdentite": "Documento d'identità",
+      "rendezVous": "Appuntamento",
       "recapitulatif": "Riepilogo"
     },
     "header": {
@@ -49,21 +50,26 @@
       "exit": "Continui più tardi"
     },
     "signataire": {
-      "title": "Chi è autorizzato a firmare per l'agenzia?",
-      "subtitle": "La persona autorizzata a impegnare la Sua agenzia. Raccogliamo queste informazioni ai sensi della legge svizzera antiriciclaggio (LRD).",
+      "title": "Chi compila questo dossier?",
+      "subtitle": "La Sua identità e il Suo ruolo nell'agenzia. Raccogliamo queste informazioni ai sensi della legge svizzera antiriciclaggio (LRD).",
       "fields": {
         "firstName": "Nome",
         "lastName": "Cognome",
         "dateOfBirth": "Data di nascita",
         "nationality": "Nazionalità",
         "nationalityPlaceholder": "Selezioni un Paese",
-        "signaturePower": "Potere di firma"
+        "agencyRole": "Il Suo ruolo nell'agenzia"
       },
-      "signaturePower": {
-        "individual": "Firma individuale",
-        "individualHint": "Questa persona può impegnare da sola l'agenzia.",
-        "joint": "Firma collettiva",
-        "jointHint": "Questa persona firma congiuntamente a un'altra persona autorizzata."
+      "agencyRole": {
+        "admin": "Admin",
+        "adminHint": "Accesso completo: impostazioni, fatturazione, gestione del team.",
+        "manager": "Manager",
+        "managerHint": "Gestione degli agenti, supervisione delle transazioni e della pipeline.",
+        "agent": "Agente",
+        "agentHint": "Gestione dei propri contatti, immobili e transazioni.",
+        "assistant": "Assistente",
+        "assistantHint": "Accesso in lettura, supporto amministrativo.",
+        "lastAdminNotice": "È l'unico amministratore: il Suo account manterrà i suoi diritti."
       }
     },
     "agence": {
@@ -184,6 +190,13 @@
         "verified": "Identità verificata presso il nostro fornitore",
         "processing": "Verifica in corso di elaborazione"
       },
+      "rendezVous": {
+        "whenLabel": "Data",
+        "hostLabel": "Con",
+        "durationLabel": "Durata",
+        "duration": "{{minutes}} min",
+        "none": "Nessun appuntamento per ora. Le scriveremo appena si libera un orario."
+      },
       "attestation": "Attesto che le informazioni sopra riportate sono esatte e complete, per quanto a mia conoscenza.",
       "errors": {
         "legalName": "Ragione sociale mancante. Completi il passaggio Agenzia.",
@@ -253,7 +266,8 @@
   "call": {
     "intro": {
       "title": "Prenoti la sua chiamata di benvenuto",
-      "body": "Il suo dossier e in revisione. Prendiamoci 30 minuti per esaminare la sua configurazione e rispondere alle sue domande."
+      "body": "Prima di concludere, prendiamoci 30 minuti per esaminare la sua configurazione e rispondere alle sue domande.",
+      "bodyStandalone": "Il suo dossier è in revisione. Prendiamoci 30 minuti per esaminare la sua configurazione e rispondere alle sue domande."
     },
     "picker": {
       "weekdays": [
@@ -268,40 +282,43 @@
       "prevMonth": "Mese precedente",
       "nextMonth": "Mese successivo",
       "slotsTitle": "Orari",
+      "loadingSlots": "Caricamento degli orari…",
       "pickDayFirst": "Scelga un giorno nel calendario per vedere gli orari liberi.",
       "noSlotThatDay": "Niente di libero quel giorno.",
-      "timezoneHint": "Orari nel suo fuso orario : {{timezone}}"
+      "timezoneHint": "Orari nel suo fuso orario: {{timezone}}"
     },
     "form": {
       "phone": "Telefono (facoltativo)",
       "phonePlaceholder": "+41 22 000 00 00",
-      "note": "Una parola sulle sue priorita (facoltativo)",
+      "note": "Una parola sulle sue priorità (facoltativo)",
       "notePlaceholder": "Cosa vorrebbe vedere per primo"
     },
     "actions": {
       "confirm": "Confermare l'appuntamento",
-      "later": "Piu tardi",
+      "confirming": "Prenotazione…",
+      "later": "Più tardi",
       "continue": "Continua verso il mio spazio"
     },
     "confirmed": {
       "title": "Prenotato",
+      "details": "{{duration}} min con {{host}}",
       "join": "Partecipare alla videoconferenza",
-      "emailSent": "Un'e-mail di conferma la attende, con il link e la possibilita di riprogrammare.",
+      "emailSent": "Un'e-mail di conferma la attende, con il link e la possibilità di riprogrammare.",
       "toDashboard": "Vai al mio spazio"
     },
     "empty": {
       "noHost": "Nessun orario disponibile al momento. La ricontatteremo per e-mail appena possibile.",
-      "noSlot": "Niente piu di libero in questo periodo. Provi il mese successivo, oppure continui : le scriveremo."
+      "noSlot": "Niente più di libero in questo periodo. Provi il mese successivo, oppure continui: le scriveremo."
     },
     "errors": {
-      "slot_taken": "Questo orario e appena stato preso. Ne scelga un altro.",
-      "already_booked": "La sua agenzia ha gia un appuntamento prenotato.",
-      "no_host_available": "Nessuno e disponibile al momento.",
-      "slot_in_past": "Questo orario e gia passato.",
-      "call_in_past": "Questo appuntamento e gia passato.",
-      "call_not_active": "Questo appuntamento non e piu attivo.",
-      "reschedule_limit_reached": "Limite di riprogrammazioni raggiunto. Ci scriva per trovare un altra data.",
-      "generic": "L'appuntamento non e stato salvato. Riprovi tra un istante."
+      "slot_taken": "Questo orario è appena stato preso. Ne scelga un altro.",
+      "already_booked": "La sua agenzia ha già un appuntamento prenotato.",
+      "no_host_available": "Nessuno è disponibile al momento.",
+      "slot_in_past": "Questo orario è già passato.",
+      "call_in_past": "Questo appuntamento è già passato.",
+      "call_not_active": "Questo appuntamento non è più attivo.",
+      "reschedule_limit_reached": "Limite di riprogrammazioni raggiunto. Ci scriva per trovare un'altra data.",
+      "generic": "L'appuntamento non è stato salvato. Riprovi tra un istante."
     },
     "banner": {
       "pending": {
@@ -315,25 +332,25 @@
       }
     },
     "public": {
-      "loading": "Caricamento del suo appuntamento...",
+      "loading": "Caricamento del suo appuntamento…",
       "title": "La sua chiamata di benvenuto MEGGA",
       "invalid": {
         "title": "Link non trovato",
-        "body": "Questo link non e piu valido. Verifichi l'indirizzo ricevuto per e-mail, oppure ci scriva."
+        "body": "Questo link non è più valido. Verifichi l'indirizzo ricevuto per e-mail, oppure ci scriva."
       },
-      "notActive": "Questo appuntamento e stato annullato o e gia passato.",
-      "tooLate": "Questo appuntamento e molto vicino : non puo piu essere modificato qui.",
+      "notActive": "Questo appuntamento è stato annullato o è già passato.",
+      "tooLate": "Questo appuntamento è molto vicino: non può più essere modificato qui.",
       "reschedule": "Riprogrammare",
       "cancel": "Annullare l'appuntamento",
       "back": "Indietro",
       "confirmReschedule": "Confermare la nuova data",
       "cancelled": {
         "title": "Appuntamento annullato",
-        "body": "Preso nota. Puo prenotarne uno nuovo dal suo spazio MEGGA."
+        "body": "Preso nota. Può prenotarne uno nuovo dal suo spazio MEGGA."
       },
       "rescheduled": {
         "title": "Nuova data salvata",
-        "body": "Un'e-mail di conferma con la data aggiornata e in arrivo."
+        "body": "Un'e-mail di conferma con la data aggiornata è in arrivo."
       }
     }
   }

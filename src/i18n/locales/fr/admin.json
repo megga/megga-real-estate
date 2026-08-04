@@ -925,41 +925,41 @@
   "audit.family.kyb": "KYB",
   "onboardingCalls": {
     "title": "Appels d'accueil",
-    "subtitle": "Le carnet de l'equipe MEGGA et les horaires des hotes.",
+    "subtitle": "Le carnet de l'équipe MEGGA et les horaires des hôtes.",
     "error": "Lecture impossible.",
     "searchLabel": "Rechercher un appel",
-    "searchPlaceholder": "Agence, hote, contact...",
+    "searchPlaceholder": "Agence, hôte, contact…",
     "tabs": {
       "calls": "Rendez-vous",
-      "hosts": "Hotes"
+      "hosts": "Hôtes"
     },
     "stats": {
-      "upcoming": "A venir",
+      "upcoming": "À venir",
       "done": "Tenus",
       "noShow": "Absences",
-      "cancelled": "Annules"
+      "cancelled": "Annulés"
     },
     "filters": {
       "all": "Tous",
-      "confirmed": "Confirmes",
+      "confirmed": "Confirmés",
       "done": "Tenus",
       "no_show": "Absences",
-      "cancelled": "Annules"
+      "cancelled": "Annulés"
     },
     "status": {
-      "confirmed": "Confirme",
+      "confirmed": "Confirmé",
       "done": "Tenu",
       "no_show": "Absence",
-      "cancelled": "Annule"
+      "cancelled": "Annulé"
     },
     "table": {
       "agency": "Agence",
       "when": "Quand",
-      "host": "Hote",
+      "host": "Hôte",
       "status": "Statut",
       "actions": "Actions",
-      "rescheduled": "replanifie {{count}} fois",
-      "openMeeting": "Ouvrir la visioconference"
+      "rescheduled": "replanifié {{count}} fois",
+      "openMeeting": "Ouvrir la visioconférence"
     },
     "actions": {
       "markDone": "Tenu",
@@ -968,7 +968,7 @@
     },
     "empty": {
       "title": "Aucun appel",
-      "hint": "Les rendez-vous pris a la sortie du wizard d'identite apparaitront ici."
+      "hint": "Les rendez-vous pris pendant l'onboarding apparaîtront ici."
     },
     "hosts": {
       "dayNames": [
@@ -983,52 +983,52 @@
       "active": "Actif",
       "inactive": "Inactif",
       "activate": "Activer",
-      "deactivate": "Desactiver",
+      "deactivate": "Désactiver",
       "table": {
-        "host": "Hote",
+        "host": "Hôte",
         "hours": "Horaires",
-        "upcoming": "A venir",
-        "state": "Etat",
-        "rules": "{{duration}} min, tampon {{buffer}} min, preavis {{notice}} h, horizon {{horizon}} j"
+        "upcoming": "À venir",
+        "state": "État",
+        "hoursMore": "+{{n}} autres jours"
       },
       "empty": {
-        "title": "Aucun hote",
-        "hint": "Sans hote actif, aucune agence ne peut reserver."
+        "title": "Aucun hôte",
+        "hint": "Sans hôte actif, aucune agence ne peut réserver."
       },
-      "provisioningNote": "Sans hote actif, l'ecran de reservation annonce honnetement qu'aucun creneau n'est ouvert.",
-      "addHost": "Ajouter un hote",
+      "provisioningNote": "Sans hôte actif, l'écran de réservation annonce honnêtement qu'aucun créneau n'est ouvert.",
+      "addHost": "Ajouter un hôte",
       "editHost": "Modifier",
       "form": {
-        "addTitle": "Nouvel hote",
-        "editTitle": "Modifier l'hote",
+        "addTitle": "Nouvel hôte",
+        "editTitle": "Modifier l'hôte",
         "close": "Fermer",
         "email": "E-mail du compte MEGGA",
-        "displayName": "Nom affiche au client",
+        "displayName": "Nom affiché au client",
         "timezone": "Fuseau horaire",
         "weekly": "Plages hebdomadaires",
         "addSlice": "Ajouter une plage",
         "removeSlice": "Retirer cette plage",
-        "duration": "Duree (min)",
+        "duration": "Durée (min)",
         "slot": "Pas (min)",
-        "buffer": "Tampon apres (min)",
-        "notice": "Preavis (h)",
+        "buffer": "Tampon après (min)",
+        "notice": "Préavis (h)",
         "horizon": "Horizon (j)",
         "maxPerDay": "Max par jour",
         "noLimit": "sans limite",
         "save": "Enregistrer",
         "errors": {
           "unknownEmail": "Aucun compte ne porte cet e-mail.",
-          "nameRequired": "Le nom affiche est requis.",
-          "badSlice": "Une plage est mal formee : la fin doit suivre le debut.",
-          "generic": "L'hote n'a pas pu etre enregistre."
+          "nameRequired": "Le nom affiché est requis.",
+          "badSlice": "Une plage est mal formée : la fin doit suivre le début.",
+          "generic": "L'hôte n'a pas pu être enregistré."
         }
       }
     },
     "cancelConfirm": {
       "title": "Annuler cet appel d'accueil ?",
-      "message": "{{agency}} sera prevenue par e-mail et le creneau du {{when}} sera libere dans l'agenda de l'hote.",
+      "message": "{{agency}} sera prévenue par e-mail et le créneau du {{when}} sera libéré dans l'agenda de l'hôte.",
       "confirm": "Annuler l'appel",
-      "busy": "Annulation..."
+      "busy": "Annulation…"
     }
   },
   "dashboard.pulse.noFunctionError": "aucune erreur de fonction remontée",

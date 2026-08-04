@@ -22,13 +22,23 @@
  * vérité ; aucun stockage local parallèle (le brouillon d'étape en cours vit en
  * mémoire React le temps de la saisie, rien d'autre).
  *
- * QUATRE étapes, toutes avec un écran réel : 0 (StepSignataire), 1 (StepAgence),
- * 2 (StepPieceIdentite) et 3 (StepRecapitulatif — relecture de tout ce qui a été
- * saisi, attestation d'exactitude, soumission finale). La soumission (handleSubmit,
- * plus bas) N'EST PAS un bloc de persistCurrentStep comme les précédents : c'est une
- * action explicite distincte, déclenchée par le bouton Soumettre du pied de page,
- * jamais par next()/prev()/goToStep() — voir le dernier cas de persistCurrentStep
- * (étape 3 : rien à y persister) et le commentaire d'en-tête de handleSubmit.
+ * CINQ étapes, toutes avec un écran réel : 0 (StepSignataire), 1 (StepAgence),
+ * 2 (StepPieceIdentite), 3 (StepRendezVous) et 4 (StepRecapitulatif — relecture de
+ * tout ce qui a été saisi, attestation d'exactitude, soumission finale). La soumission
+ * (handleSubmit, plus bas) N'EST PAS un bloc de persistCurrentStep comme les
+ * précédents : c'est une action explicite distincte, déclenchée par le bouton Soumettre
+ * du pied de page, jamais par next()/prev()/goToStep() — voir le dernier cas de
+ * persistCurrentStep (étape 4 : rien à y persister) et le commentaire d'en-tête de
+ * handleSubmit.
+ *
+ * ⚠ L'étape « rendez-vous » a été AJOUTÉE le 4 août 2026, en avant-dernière position.
+ * Elle est la seule du parcours à n'avoir AUCUN brouillon : la réservation est engagée
+ * en base au clic sur Confirmer, par l'edge function, pas au changement d'étape (cf.
+ * l'en-tête d'OcBooking). Elle est aussi la seule dont le franchissement dépend d'un
+ * état SERVEUR plutôt que de champs saisis — d'où `rendezVous`, le verdict qu'elle
+ * remonte à cette coquille (isRendezVousStepComplete). C'est aussi ce jour-là que la
+ * question du « pouvoir de signature » a laissé place à « quel est votre rôle » à
+ * l'étape 0 (cf. SignataireDraft plus bas).
  *
  * L'étape 2 diffère des deux précédentes sur un point : elle ne porte AUCUN
  * brouillon local à sauvegarder au clic sur Continuer. Le fichier recto/verso est
@@ -71,23 +81,36 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   useAgencyIdentity, identityDocumentSidesFor,
   isIdentityVerificationSufficient, verificationNeedsManualFallback,
-  type IdentityDocumentType, type IdentityVerificationStatus,
+  type AgencyDeclaredRole, type IdentityDocumentType, type IdentityVerificationStatus,
   type VerificationStartFailure,
 } from '@/hooks/useAgencyIdentity'
-import { ONBOARDING_CALL_ROUTE } from '@/hooks/useOnboardingCall'
+import { useTeamMembers } from '@/hooks/useTeam'
+import { useMyOnboardingCall, browserTimezone } from '@/hooks/useOnboardingCall'
+import type { OcBookingState } from '@/components/onboarding-call/OcBooking'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
 import { StepSignataire } from './steps/StepSignataire'
 import { StepAgence } from './steps/StepAgence'
 import { StepPieceIdentite } from './steps/StepPieceIdentite'
+import { StepRendezVous } from './steps/StepRendezVous'
 import { StepRecapitulatif } from './steps/StepRecapitulatif'
 
-/** Brouillon local de l'étape 1, contrôlé par IdentityShell (cf. en-tête de StepSignataire). */
+/**
+ * Brouillon local de l'étape 1, contrôlé par IdentityShell (cf. en-tête de StepSignataire).
+ *
+ * ⚠ `signaturePower` a été REMPLACÉ par `agencyRole` le 4 août 2026 (décision client).
+ * Les deux ne disent pas la même chose : le premier était un fait de conformité — cette
+ * personne engage-t-elle l'agence seule ou conjointement —, le second est sa place dans
+ * l'organisation, prise dans les quatre rôles que le CRM connaît déjà. La colonne
+ * `agency_person_roles.signature_power` n'est pas supprimée pour autant : le wizard
+ * cesse de la renseigner, la console admin continue de la relire sur les dossiers
+ * antérieurs (cf. migration 20260804170000).
+ */
 export interface SignataireDraft {
   firstName: string
   lastName: string
   dateOfBirth: string | null
   nationality: string | null
-  signaturePower: 'individual' | 'joint' | null
+  agencyRole: AgencyDeclaredRole | null
 }
 
 /** Brouillon vide — état initial avant hydratation depuis une personne déjà persistée. */
@@ -97,14 +120,14 @@ export const EMPTY_SIGNATAIRE_DRAFT: SignataireDraft = {
   lastName: '',
   dateOfBirth: null,
   nationality: null,
-  signaturePower: null,
+  agencyRole: null,
 }
 
 /**
  * true si les 5 champs de l'étape signataire sont renseignés. Gate le bouton
  * Continuer ET la tentative de sauvegarde (persistCurrentStep) : les colonnes DB
- * sont nullable, mais un signataire sans pouvoir de signature ni date de
- * naissance n'est pas une saisie complète du point de vue du parcours KYB.
+ * sont nullable, mais une personne sans rôle ni date de naissance n'est pas une
+ * saisie complète du point de vue du parcours KYB.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que useIdentityGate.ts.
 export function isSignataireStepComplete(draft: SignataireDraft): boolean {
@@ -113,7 +136,7 @@ export function isSignataireStepComplete(draft: SignataireDraft): boolean {
     && draft.lastName.trim() !== ''
     && draft.dateOfBirth != null
     && draft.nationality != null
-    && draft.signaturePower != null
+    && draft.agencyRole != null
   )
 }
 
@@ -279,14 +302,36 @@ export function clampIdentityStep(step: number, stepCount: number): number {
 }
 
 /**
+ * L'étape « rendez-vous » (index 3) est-elle franchissable ?
+ *
+ * BLOQUANTE PAR DÉFAUT (décision client du 4 août 2026) : on n'avance qu'une fois le
+ * rendez-vous d'accueil pris. Mais jamais un CUL-DE-SAC : quand il n'y a rien à
+ * réserver — aucun hôte actif dans le pool, ou plus aucun créneau libre sur l'horizon —
+ * l'exigence tombe. Sans cette réserve, l'étape enfermerait aujourd'hui même chaque
+ * nouvelle agence hors du CRM : `onboarding_hosts` est vide en production et aucun
+ * agenda n'y est connecté. L'exigence porte sur ce que le dirigeant PEUT faire, jamais
+ * sur ce que notre configuration lui permet d'atteindre.
+ *
+ * `null` = l'écran n'a pas encore rendu son verdict (première lecture des créneaux en
+ * cours). On bloque alors, plutôt que de laisser passer par défaut : une étape ne doit
+ * pas être réputée franchie parce que la question n'a pas encore de réponse — c'est la
+ * même règle qu'à la pièce d'identité (cf. isPieceIdentiteStepComplete).
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
+export function isRendezVousStepComplete(state: OcBookingState | null): boolean {
+  if (state == null) return false
+  return state.booked || state.nothingToBook
+}
+
+/**
  * true si l'étape `step` autorise une navigation avant (bouton Continuer du pied de
- * page). Les étapes 0 (StepSignataire), 1 (StepAgence) et 2 (StepPieceIdentite) ont un
- * écran réel — gate sur leur complétude respective. L'étape 3 (récapitulatif,
- * StepRecapitulatif) renvoie toujours `false` ici pour une raison différente : c'est la
- * DERNIÈRE étape, il n'existe pas de « suivante » vers laquelle avancer — le pied de
- * page n'y affiche d'ailleurs jamais de bouton Continuer (cf. le rendu du footer plus
- * bas), seulement Soumettre, qui gate sur l'attestation d'exactitude et non sur ce
- * booléen (canSubmitIdentity, plus bas).
+ * page). Les étapes 0 (StepSignataire), 1 (StepAgence), 2 (StepPieceIdentite) et 3
+ * (StepRendezVous) ont un écran réel — gate sur leur complétude respective. L'étape 4
+ * (récapitulatif, StepRecapitulatif) renvoie toujours `false` ici pour une raison
+ * différente : c'est la DERNIÈRE étape, il n'existe pas de « suivante » vers laquelle
+ * avancer — le pied de page n'y affiche d'ailleurs jamais de bouton Continuer (cf. le
+ * rendu du footer plus bas), seulement Soumettre, qui gate sur l'attestation
+ * d'exactitude et non sur ce booléen (canSubmitIdentity, plus bas).
  *
  * Revue tâche 3 : `canNext` valait `true` sans condition dès step > 0 — le bouton
  * Continuer du pied de page restait cliquable sur ces paliers vides jusqu'au
@@ -294,13 +339,13 @@ export function clampIdentityStep(step: number, stepCount: number): number {
  * déjà la règle (goToStep refuse toute cible > step, cf. plus bas), mais le rapport de
  * la tâche affirmait à tort que c'était vrai aussi du bouton du pied de page.
  *
- * `pieceIdentite` est un paramètre optionnel à défaut vide, pour que les appels
- * antérieurs restent valides sans le 4e argument — mais un brouillon vide y est
- * INCOMPLET (isPieceIdentiteStepComplete), jamais une réponse légitime : recto et verso
- * sont tous deux exigés pour avancer.
+ * `pieceIdentite` et `rendezVous` sont des paramètres optionnels à défaut vide/nul, pour
+ * que les appels antérieurs restent valides — mais un brouillon vide y est INCOMPLET,
+ * jamais une réponse légitime.
  *
- * L'étape « bénéficiaires effectifs » occupait l'index 2 jusqu'au 3 août 2026 ; les
- * indices 2 et 3 désignent depuis la pièce d'identité et le récapitulatif (cf. le
+ * L'étape « bénéficiaires effectifs » occupait l'index 2 jusqu'au 3 août 2026, et
+ * l'étape « rendez-vous » a été insérée en index 3 le 4 août 2026 : les indices 2, 3 et
+ * 4 désignent depuis la pièce d'identité, le rendez-vous et le récapitulatif (cf. le
  * commentaire de SG_IDENTITY_STEPS, tokens.ts).
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete/clampIdentityStep.
@@ -310,15 +355,17 @@ export function canAdvanceFromIdentityStep(
   agency: AgencyDraft,
   pieceIdentite: PieceIdentiteDraft = EMPTY_PIECE_IDENTITE_DRAFT,
   blockedDeclared = false,
+  rendezVous: OcBookingState | null = null,
 ): boolean {
   if (step === 0) return isSignataireStepComplete(signataire)
   if (step === 1) return isAgencyStepComplete(agency)
   if (step === 2) return isPieceIdentiteStepComplete(pieceIdentite, blockedDeclared)
+  if (step === 3) return isRendezVousStepComplete(rendezVous)
   return false
 }
 
 /**
- * Étape 4 (récapitulatif, tâche 7) : causes de refus reconnues dans le message brut
+ * Étape 5 (récapitulatif, tâche 7) : causes de refus reconnues dans le message brut
  * renvoyé par submit_agency_identity() (`raise exception '%', v_error`, un texte
  * distinct par cause — migration 20260728108000). Repris en camelCase : `legalName`
  * désigne la CAUSE de refus (raison sociale manquante), à ne pas confondre avec `legal`,
@@ -804,7 +851,7 @@ export default function IdentityShell() {
   // et BootSplash, c'est un couloir d'entrée, pas une surface du CRM. Le CRM
   // reprend la main (et le thème) dès la soumission, au retour sur /dashboard.
 
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
   const navigate = useNavigate()
   /** LA sortie du parcours — en-tête ET écran d'attente. `/login` redirige vers la
    *  vitrine (VitrineLoginRedirect) : c'est le seul départ que le gate ne rattrape
@@ -868,6 +915,19 @@ export default function IdentityShell() {
     [persons],
   )
 
+  /**
+   * L'agence a-t-elle un AUTRE administrateur que la personne qui saisit ?
+   *
+   * Décide de la réserve affichée sur les cartes de rôle (cf. l'en-tête de
+   * StepSignataire) : sans autre admin, le rôle déclaré est retenu dans le dossier mais
+   * pas appliqué au compte, garde-fou de submit_agency_identity. Tant que la liste
+   * n'est pas chargée on répond « seul admin » — c'est le cas de toute agence solo,
+   * donc de presque tout onboarding, et c'est la réponse prudente : mieux vaut annoncer
+   * une réserve qui ne s'appliquera pas que taire celle qui s'appliquera.
+   */
+  const { data: teamMembers } = useTeamMembers()
+  const isOnlyAdmin = !(teamMembers ?? []).some((m) => m.id !== user?.id && m.role === 'admin')
+
   const [signataire, setSignataireRaw] = useState<SignataireDraft>(EMPTY_SIGNATAIRE_DRAFT)
   const setSignataire = (patch: Partial<SignataireDraft>) => setSignataireRaw((prev) => ({ ...prev, ...patch }))
 
@@ -882,7 +942,12 @@ export default function IdentityShell() {
         lastName: existingSignatory.lastName,
         dateOfBirth: existingSignatory.dateOfBirth,
         nationality: existingSignatory.nationality,
-        signaturePower: existingSignatory.roles.find((r) => r.role === 'signatory')?.signaturePower ?? null,
+        // Relu depuis la PERSONNE et non depuis son rôle de conformité : le rôle
+        // d'organisation vit sur agency_related_persons, pas sur agency_person_roles
+        // (cf. migration 20260804170000). Un dossier saisi avant le 4 août 2026 le
+        // porte vide et se relit donc sans rôle — l'étape redemande alors la question,
+        // ce qui est juste puisqu'elle n'a jamais été posée.
+        agencyRole: existingSignatory.agencyRole,
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -981,7 +1046,27 @@ export default function IdentityShell() {
 
 
 
-  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, pieceIdentiteDraft, blockedDeclared)
+  /**
+   * Verdict de l'étape rendez-vous, remonté par OcBooking : un rendez-vous est-il pris,
+   * et y a-t-il seulement quelque chose à réserver ? `null` tant que l'étape n'a pas
+   * rendu (première lecture des créneaux en cours) — l'avancement est alors bloqué,
+   * cf. isRendezVousStepComplete.
+   *
+   * Un état de la COQUILLE et non de l'étape, pour la même raison que tous les autres
+   * brouillons de ce fichier : c'est lui qui gate le bouton Continuer du pied de page,
+   * lequel vit ici. L'étape, elle, ne détient rien.
+   */
+  const [rendezVous, setRendezVous] = useState<OcBookingState | null>(null)
+
+  // Le rendez-vous tel qu'il est EN BASE, pour la relecture du récapitulatif. Distinct
+  // de `rendezVous` ci-dessus, qui n'est qu'un verdict de franchissement : ici il faut
+  // la date, la durée et l'hôte. Même requête (clé ['onboarding-call', agencyId]) que
+  // celle d'OcBooking à l'étape 3, donc servie par le cache et déjà à jour au moment où
+  // le récapitulatif s'affiche — la réservation invalide cette clé.
+  const bookedCall = useMyOnboardingCall()
+  const rendezVousTimezone = useMemo(() => browserTimezone(), [])
+
+  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, pieceIdentiteDraft, blockedDeclared, rendezVous)
 
   /** Enveloppe commune à chaque étape persistable : bascule saving/error autour de
    *  l'opération d'écriture réelle (savePerson ou saveAgency selon l'étape).
@@ -1020,10 +1105,18 @@ export default function IdentityShell() {
           lastName: signataire.lastName,
           dateOfBirth: signataire.dateOfBirth,
           nationality: signataire.nationality,
+          agencyRole: signataire.agencyRole,
         },
         [{
           role: 'signatory',
-          signaturePower: signataire.signaturePower,
+          // Le rôle de CONFORMITÉ reste écrit — la RPC de soumission exige un
+          // signataire actif — mais sans pouvoir de signature depuis le 4 août 2026 :
+          // la question n'est plus posée, et la colonne est nullable. Écrire `null`
+          // plutôt que d'omettre la clé est délibéré : buildRolePayload étale le
+          // payload sur la ligne existante, donc une clé absente laisserait en place
+          // un pouvoir saisi lors d'un passage antérieur, que plus aucun écran
+          // n'affiche ni ne permet de corriger.
+          signaturePower: null,
           ownershipPct: null,
           // Non demandé à cette étape (le PEP se déclare pour les bénéficiaires
           // effectifs, étape 3 / tâche 5) — la colonne défaut déjà à false.
@@ -1048,7 +1141,15 @@ export default function IdentityShell() {
       // activer le bouton (garde défensive redondante, même style que les étapes 0 et 1).
       return isPieceIdentiteStepComplete(pieceIdentiteDraft, blockedDeclared)
     }
-    // Étape 4 (récapitulatif) : rien à persister en QUITTANT l'étape — l'attestation
+    if (step === 3) {
+      // Rien à écrire ici non plus, et pour une raison plus forte qu'à l'étape 2 : la
+      // réservation est déjà DANS la base, engagée au clic sur Confirmer par l'edge
+      // function (ligne, e-mails, événement d'agenda de l'hôte d'un bloc — cf. l'en-tête
+      // de OcBooking). Il n'existe aucun brouillon local à sauver au passage à l'étape
+      // suivante. Garde défensive redondante avec canNext, même style que l'étape 2.
+      return isRendezVousStepComplete(rendezVous)
+    }
+    // Étape 5 (récapitulatif) : rien à persister en QUITTANT l'étape — l'attestation
     // n'est pas un brouillon à écrire en base, et la soumission elle-même est une
     // action explicite distincte (handleSubmit, plus bas), jamais déclenchée par
     // next()/prev()/goToStep(). C'est pourquoi prev() depuis le récapitulatif n'envoie
@@ -1093,10 +1194,14 @@ export default function IdentityShell() {
     setError(null)
     try {
       await submit(signatoryId)
-      // Suite du parcours plutôt que le dashboard : l'agence sort d'ici avec un
-      // dossier en revue, et personne chez MEGGA ne la contacterait sans ce détour.
-      // L'écran est passable, il ne remplace pas le dashboard, il le précède.
-      navigate(ONBOARDING_CALL_ROUTE)
+      // Le dashboard, désormais — et non plus l'écran de réservation. Ce détour
+      // existait parce qu'une agence qui venait de soumettre son dossier atterrissait
+      // dans un CRM vide sans que personne chez MEGGA ne la contacte ; depuis le 4 août
+      // 2026 le rendez-vous est une ÉTAPE du parcours (index 3), pris avant le
+      // récapitulatif et relu dedans. Y renvoyer après coup ferait redemander ce qui
+      // vient d'être fait. La route survit pour les agences passées avant, cf. l'en-tête
+      // de OnboardingCallPage.tsx.
+      navigate('/dashboard')
     } catch (e) {
       const rawMessage = e instanceof Error ? e.message : ''
       const code = identitySubmissionErrorCode(rawMessage)
@@ -1248,7 +1353,7 @@ export default function IdentityShell() {
               ) : showExitScreen ? (
           <ExitPendingScreen onResume={() => setShowExitScreen(false)} onLogout={handleLogout} />
         ) : step === 0 ? (
-          <StepSignataire value={signataire} onChange={setSignataire} />
+          <StepSignataire value={signataire} onChange={setSignataire} isOnlyAdmin={isOnlyAdmin} />
         ) : step === 1 ? (
           <StepAgence value={agencyDraft} onChange={setAgencyDraft} />
         ) : step === 2 ? (
@@ -1272,6 +1377,10 @@ export default function IdentityShell() {
             onUndeclareBlocked={() => setBlockedDeclared(false)}
           />
         ) : step === 3 ? (
+          // `setRendezVous` est stable (setter de useState) : OcBooking peut donc
+          // l'appeler dans un effet sans risque de boucle, cf. son en-tête.
+          <StepRendezVous onStateChange={setRendezVous} />
+        ) : step === 4 ? (
           <StepRecapitulatif
             signataire={signataire}
             agencyDraft={agencyDraft}
@@ -1282,6 +1391,11 @@ export default function IdentityShell() {
             identityRead={existingSignatory?.idDocumentRead ?? null}
             identityDocumentsLoading={false}
             identityDocumentsError={false}
+            // Relu depuis la BASE et non depuis l'état de l'étape 3 : c'est la source
+            // de vérité (la réservation y est déjà écrite), et c'est ce qui fait qu'un
+            // dirigeant qui rouvre son wizard le lendemain relit son rendez-vous.
+            rendezVous={bookedCall.data ?? null}
+            rendezVousTimezone={rendezVousTimezone}
             attestationChecked={attestationChecked}
             onAttestationChange={setAttestationChecked}
             onEditStep={(target) => { void goToStep(target) }}

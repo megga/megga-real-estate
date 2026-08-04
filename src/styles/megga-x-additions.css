@@ -41,6 +41,9 @@
  *     champ ; son seul formulaire est un contact à quatre champs.
  * 13. Colonnes réellement égales — `1fr` vaut `minmax(auto, 1fr)` et cède
  *     devant la largeur intrinsèque d'un `<input>`.
+ * 14. Colonne des heures d'un sélecteur de créneau — la vitrine ne prend aucun
+ *     rendez-vous. Le CALENDRIER, lui, n'est pas réécrit : celui du point 11
+ *     sert tel quel, seule la colonne à sa droite est neuve.
  *
  * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
  * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
@@ -652,6 +655,70 @@
    subsiste. */
 .megga-x .mx-choice-card .radio-button {
   display: none;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 14. Sélecteur de créneau. La vitrine ne prend aucun rendez-vous : rien à
+ *     transcrire. Mais le CALENDRIER, lui, existe déjà ici — c'est celui du
+ *     point 11 (`.mx-datepicker__grid/__day/__weekdays/__head/__nav`), et il
+ *     est réutilisé TEL QUEL par OcSlotPicker, sans une ligne de plus. Les
+ *     jours sans créneau y sont `:disabled`, ce que le point 11 grise déjà, et
+ *     le jour retenu porte le même liseré d'accent que partout ailleurs.
+ *
+ *     Ne restait donc à écrire que ce qu'un calendrier de date n'a pas : la
+ *     COLONNE DES HEURES à sa droite. Ses pastilles reprennent délibérément la
+ *     grammaire de `__day` — fond transparent, liseré d'accent quand la case
+ *     est retenue — pour que les deux moitiés se lisent comme un seul contrôle
+ *     et non comme deux composants accolés.
+ *
+ *     La colonne est plafonnée en hauteur et défile : un hôte qui ouvre sa
+ *     journée entière produit une quinzaine de créneaux, et sans plafond la
+ *     colonne dictait la hauteur du bloc, poussant le pied d'actions du wizard
+ *     hors de l'écran (c'est ce que le point 7 vient précisément de clouer).
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-slotpicker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: var(--main-spacers--small);
+}
+
+/* Sous 767 px (point de rupture tablette de la vitrine), les heures passent
+   SOUS le calendrier : à 200 px de colonne fixe, le mois tombait à ~110 px de
+   large, soit 15 px par jour. */
+@media screen and (max-width: 767px) {
+  .megga-x .mx-slotpicker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.megga-x .mx-slotpicker__list {
+  display: grid;
+  gap: var(--main-spacers--5x-extra-small);
+  max-height: 264px;
+  overflow-y: auto;
+}
+
+.megga-x .mx-slotpicker__slot {
+  padding: 8px 12px;
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: var(--main-border-radius--br-small);
+  background: var(--transparent);
+  color: var(--neutral-colors--1000);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color .2s, background-color .2s;
+}
+
+.megga-x .mx-slotpicker__slot:hover {
+  background-color: var(--neutral-colors--400);
+}
+
+/* Créneau retenu : même liseré d'accent que `.mx-datepicker__day--selected` et
+   que les cartes de choix. L'état choisi se ceint, il ne se remplit pas. */
+.megga-x .mx-slotpicker__slot--selected {
+  border-color: var(--primary-colors--100);
+  font-weight: 600;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────

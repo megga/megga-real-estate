@@ -925,10 +925,10 @@
   "audit.family.kyb": "KYB",
   "onboardingCalls": {
     "title": "Welcome calls",
-    "subtitle": "The MEGGA team schedule and the hosts availability.",
-    "error": "Could not read.",
+    "subtitle": "The MEGGA team's diary and the hosts' hours.",
+    "error": "Could not load.",
     "searchLabel": "Search a call",
-    "searchPlaceholder": "Agency, host, contact...",
+    "searchPlaceholder": "Agency, host, contact…",
     "tabs": {
       "calls": "Appointments",
       "hosts": "Hosts"
@@ -936,20 +936,20 @@
     "stats": {
       "upcoming": "Upcoming",
       "done": "Held",
-      "noShow": "No shows",
+      "noShow": "No-shows",
       "cancelled": "Cancelled"
     },
     "filters": {
       "all": "All",
       "confirmed": "Confirmed",
       "done": "Held",
-      "no_show": "No shows",
+      "no_show": "No-shows",
       "cancelled": "Cancelled"
     },
     "status": {
       "confirmed": "Confirmed",
       "done": "Held",
-      "no_show": "No show",
+      "no_show": "No-show",
       "cancelled": "Cancelled"
     },
     "table": {
@@ -963,12 +963,12 @@
     },
     "actions": {
       "markDone": "Held",
-      "markNoShow": "No show",
+      "markNoShow": "No-show",
       "cancel": "Cancel"
     },
     "empty": {
-      "title": "No call",
-      "hint": "Appointments booked at the end of the identity wizard will show up here."
+      "title": "No calls",
+      "hint": "Appointments booked during onboarding will appear here."
     },
     "hosts": {
       "dayNames": [
@@ -989,46 +989,46 @@
         "hours": "Hours",
         "upcoming": "Upcoming",
         "state": "State",
-        "rules": "{{duration}} min, buffer {{buffer}} min, notice {{notice}} h, horizon {{horizon}} d"
+        "hoursMore": "+{{n}} more days"
       },
       "empty": {
-        "title": "No host",
-        "hint": "With no active host, no agency can book."
+        "title": "No hosts",
+        "hint": "Without an active host, no agency can book."
       },
-      "provisioningNote": "With no active host, the booking screen honestly states that no slot is open.",
+      "provisioningNote": "Without an active host, the booking screen says plainly that no slot is open.",
       "addHost": "Add a host",
       "editHost": "Edit",
       "form": {
         "addTitle": "New host",
-        "editTitle": "Edit host",
+        "editTitle": "Edit the host",
         "close": "Close",
         "email": "MEGGA account email",
         "displayName": "Name shown to the client",
         "timezone": "Timezone",
-        "weekly": "Weekly ranges",
-        "addSlice": "Add a range",
-        "removeSlice": "Remove this range",
+        "weekly": "Weekly windows",
+        "addSlice": "Add a window",
+        "removeSlice": "Remove this window",
         "duration": "Duration (min)",
         "slot": "Step (min)",
         "buffer": "Buffer after (min)",
         "notice": "Notice (h)",
-        "horizon": "Horizon (d)",
+        "horizon": "Horizon (days)",
         "maxPerDay": "Max per day",
         "noLimit": "no limit",
         "save": "Save",
         "errors": {
           "unknownEmail": "No account carries this email.",
           "nameRequired": "The displayed name is required.",
-          "badSlice": "A range is malformed : the end must follow the start.",
+          "badSlice": "A window is malformed: the end must follow the start.",
           "generic": "The host could not be saved."
         }
       }
     },
     "cancelConfirm": {
-      "title": "Cancel this welcome call ?",
-      "message": "{{agency}} will be notified by email and the {{when}} slot will be freed in the host calendar.",
+      "title": "Cancel this welcome call?",
+      "message": "{{agency}} will be notified by email and the {{when}} slot will be freed in the host's calendar.",
       "confirm": "Cancel the call",
-      "busy": "Cancelling..."
+      "busy": "Cancelling…"
     }
   },
   "dashboard.pulse.noFunctionError": "no function error reported",

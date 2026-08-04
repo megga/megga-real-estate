@@ -1,5 +1,5 @@
 /**
- * Wizard « Identité légale » (KYB) — étape 4, le récapitulatif et la soumission.
+ * Wizard « Identité légale » (KYB) — étape 5, le récapitulatif et la soumission.
  *
  * Peau MEGGA X depuis la refonte visuelle de l'onboarding : l'étape ne compose plus
  * qu'avec des classes de la vitrine (`card`, `pd---content-inside-card`, `display-*`,
@@ -9,12 +9,18 @@
  * Aucune valeur (couleur, taille, rayon, ombre) n'est posée en style inline : ce qui
  * n'existe pas dans la vitrine n'est pas inventé ici, il est signalé au handoff.
  *
- * Relit tout ce qui a été saisi aux trois étapes précédentes, section par section,
+ * Relit tout ce qui a été saisi aux QUATRE étapes précédentes, section par section,
  * avec un bouton « Modifier » vers chacune (onEditStep délègue à goToStep,
  * IdentityShell.tsx). Ce qui est affiché ici DOIT correspondre à ce qui part : les
  * valeurs viennent des MÊMES brouillons (signataire, agencyDraft) que ceux que
  * persistCurrentStep a déjà écrits en base à chaque changement d'étape, jamais
- * un résumé recalculé séparément. Purement contrôlée par IdentityShell, comme les
+ * un résumé recalculé séparément.
+ *
+ * La section « Rendez-vous » a été ajoutée le 4 août 2026 avec l'étape du même nom :
+ * l'appel d'accueil se prenait jusque-là APRÈS la soumission, donc hors de toute
+ * relecture. Elle suit la même règle que les autres — ce qui s'y lit est ce qui est en
+ * base — à ceci près qu'elle relit une ligne (`onboarding_calls`) et non un brouillon,
+ * la réservation étant déjà engagée au moment où on l'affiche. Purement contrôlée par IdentityShell, comme les
  * trois étapes précédentes : aucun accès Supabase direct ici, aucun état propre — y
  * compris la case d'attestation (attestationChecked/onAttestationChange), qui gate le
  * bouton Soumettre du pied de page (canSubmitIdentity, IdentityShell.tsx) tout en
@@ -43,6 +49,8 @@ import {
   identityDocumentSidesFor, isIdentityVerificationSufficient,
   type IdentityDocumentPreview, type IdentityDocumentType, type IdentityVerificationStatus,
 } from '@/hooks/useAgencyIdentity'
+import type { OnboardingCallRow } from '@/hooks/useOnboardingCall'
+import { bookedWhenLabel } from '@/components/onboarding-call/OcBookedCard'
 import type { KybIdReadRecord } from '@/types/kybIdRead'
 import { IdentityReadNotice } from './StepPieceIdentite'
 import type { SignataireDraft, AgencyDraft } from '../IdentityShell'
@@ -62,9 +70,17 @@ interface StepRecapitulatifProps {
   identityDocumentsLoading: boolean
   /** true si useIdentityDocuments() a échoué — état d'erreur dédié, jamais une absence de document affichée à tort. */
   identityDocumentsError: boolean
+  /**
+   * Le rendez-vous d'accueil pris à l'étape 4, relu depuis la BASE par IdentityShell —
+   * `null` quand aucun n'a été pris (l'étape a été franchie parce qu'il n'y avait rien à
+   * réserver : aucun hôte actif, ou aucun créneau libre sur l'horizon).
+   */
+  rendezVous: OnboardingCallRow | null
+  /** Fuseau dans lequel l'heure du rendez-vous est relue — celui du navigateur. */
+  rendezVousTimezone: string
   attestationChecked: boolean
   onAttestationChange: (checked: boolean) => void
-  /** Ramène au step index donné (0 signataire, 1 agence, 2 pièce d'identité) — délègue à goToStep, IdentityShell.tsx. */
+  /** Ramène au step index donné (0 signataire, 1 agence, 2 pièce d'identité, 3 rendez-vous) — délègue à goToStep, IdentityShell.tsx. */
   onEditStep: (step: number) => void
 }
 
@@ -105,6 +121,7 @@ export function birthDate(iso: string | null): string {
 export function StepRecapitulatif({
   signataire, agencyDraft, documentType, identityRead, verificationStatus,
   recto, verso, identityDocumentsLoading, identityDocumentsError,
+  rendezVous, rendezVousTimezone,
   attestationChecked, onAttestationChange, onEditStep,
 }: StepRecapitulatifProps) {
   const { t } = useTranslation('onboarding')
@@ -127,8 +144,8 @@ export function StepRecapitulatif({
           <RecapRow label={t('wizard.signataire.fields.dateOfBirth')} value={birthDate(signataire.dateOfBirth)} />
           <RecapRow label={t('wizard.signataire.fields.nationality')} value={countryName(signataire.nationality)} />
           <RecapRow
-            label={t('wizard.signataire.fields.signaturePower')}
-            value={signataire.signaturePower ? t(`wizard.signataire.signaturePower.${signataire.signaturePower}`) : ''}
+            label={t('wizard.signataire.fields.agencyRole')}
+            value={signataire.agencyRole ? t(`wizard.signataire.agencyRole.${signataire.agencyRole}`) : ''}
           />
         </RecapSection>
 
@@ -195,6 +212,43 @@ export function StepRecapitulatif({
           )}
         </RecapSection>
 
+        {/* Le rendez-vous d'accueil, relu comme le reste avant d'attester — c'est tout
+            l'objet de son déplacement dans le parcours (il se prenait après la
+            soumission jusqu'au 4 août 2026). Relu dans la grammaire du récapitulatif,
+            en paires libellé/valeur, et non via OcBookedCard : la carte de confirmation
+            porte un bouton « Rejoindre » et une ligne d'e-mail qui n'ont rien à faire
+            dans une relecture, et son titre ferait doublon avec celui de la section. */}
+        <RecapSection title={t('wizard.steps.rendezVous')} onEdit={() => onEditStep(3)}>
+          {rendezVous ? (
+            <>
+              {/* `capitalize` : `Intl` rend « lundi 11 août » en minuscule. */}
+              <RecapRow
+                label={t('wizard.recap.rendezVous.whenLabel')}
+                value={bookedWhenLabel(rendezVous.scheduled_at, rendezVousTimezone)}
+                capitalizeValue
+              />
+              <RecapRow
+                label={t('wizard.recap.rendezVous.hostLabel')}
+                value={rendezVous.host_display_name}
+              />
+              <RecapRow
+                label={t('wizard.recap.rendezVous.durationLabel')}
+                // `minutes` et non `count` : ce dernier déclencherait la pluralisation
+                // d'i18next, qui exigerait des clés `_one`/`_other` dans les quatre
+                // langues pour une valeur qui ne s'accorde jamais (« 30 min »).
+                value={t('wizard.recap.rendezVous.duration', { minutes: rendezVous.duration_minutes })}
+              />
+            </>
+          ) : (
+            // Pas une erreur, et surtout pas en rouge : l'étape a été franchie parce
+            // qu'il n'y avait rien à réserver. Le dire, plutôt que de laisser une
+            // section vide que le dirigeant lirait comme un oubli de sa part.
+            <p className="paragraph-small text-color-neutral-600">
+              {t('wizard.recap.rendezVous.none')}
+            </p>
+          )}
+        </RecapSection>
+
         <div className="card">
           <div className="pd---content-inside-card">
             <MxCheckbox
@@ -231,12 +285,19 @@ function RecapSection({ title, onEdit, children }: { title: string; onEdit: () =
   )
 }
 
-/** Une paire libellé/valeur en lecture seule — jamais un input, cette étape ne fait que relire. */
-function RecapRow({ label, value }: { label: string; value: string }) {
+/**
+ * Une paire libellé/valeur en lecture seule — jamais un input, cette étape ne fait que
+ * relire.
+ *
+ * `capitalizeValue` sert les valeurs rendues par `Intl` (dates longues, « lundi 11 août
+ * »), que la locale met en minuscule alors que la vitrine capitalise ses intitulés.
+ * Jamais d'UPPERCASE (règle §3 du CLAUDE.md) : la capitale initiale suffit.
+ */
+function RecapRow({ label, value, capitalizeValue = false }: { label: string; value: string; capitalizeValue?: boolean }) {
   return (
     <div className="flex-horizontal space-between gap-16px">
       <span className="display-1 text-color-neutral-600">{label}</span>
-      <span className="display-1 medium text-color-neutral-600">{value}</span>
+      <span className={cn('display-1 medium text-color-neutral-600', capitalizeValue && 'capitalize')}>{value}</span>
     </div>
   )
 }

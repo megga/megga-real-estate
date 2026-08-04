@@ -925,13 +925,13 @@
   "audit.family.kyb": "KYB",
   "onboardingCalls": {
     "title": "Chiamate di benvenuto",
-    "subtitle": "Il calendario del team MEGGA e gli orari dei referenti.",
+    "subtitle": "L'agenda del team MEGGA e gli orari degli host.",
     "error": "Lettura impossibile.",
     "searchLabel": "Cercare una chiamata",
-    "searchPlaceholder": "Agenzia, referente, contatto...",
+    "searchPlaceholder": "Agenzia, host, contatto…",
     "tabs": {
       "calls": "Appuntamenti",
-      "hosts": "Referenti"
+      "hosts": "Host"
     },
     "stats": {
       "upcoming": "In arrivo",
@@ -955,7 +955,7 @@
     "table": {
       "agency": "Agenzia",
       "when": "Quando",
-      "host": "Referente",
+      "host": "Host",
       "status": "Stato",
       "actions": "Azioni",
       "rescheduled": "riprogrammata {{count}} volte",
@@ -968,15 +968,15 @@
     },
     "empty": {
       "title": "Nessuna chiamata",
-      "hint": "Gli appuntamenti presi all'uscita del wizard d'identita appariranno qui."
+      "hint": "Gli appuntamenti presi durante l'onboarding appariranno qui."
     },
     "hosts": {
       "dayNames": [
-        "Lunedi",
-        "Martedi",
-        "Mercoledi",
-        "Giovedi",
-        "Venerdi",
+        "Lunedì",
+        "Martedì",
+        "Mercoledì",
+        "Giovedì",
+        "Venerdì",
         "Sabato",
         "Domenica"
       ],
@@ -985,24 +985,24 @@
       "activate": "Attivare",
       "deactivate": "Disattivare",
       "table": {
-        "host": "Referente",
+        "host": "Host",
         "hours": "Orari",
         "upcoming": "In arrivo",
         "state": "Stato",
-        "rules": "{{duration}} min, margine {{buffer}} min, preavviso {{notice}} h, orizzonte {{horizon}} g"
+        "hoursMore": "+{{n}} altri giorni"
       },
       "empty": {
-        "title": "Nessun referente",
-        "hint": "Senza referente attivo, nessuna agenzia puo prenotare."
+        "title": "Nessun host",
+        "hint": "Senza host attivo, nessuna agenzia può prenotare."
       },
-      "provisioningNote": "Aggiungere un referente o modificarne gli orari passa dalla RPC admin_upsert_onboarding_host. Questa schermata permette di attivarlo o disattivarlo.",
-      "addHost": "Aggiungere un referente",
+      "provisioningNote": "Senza host attivo, la schermata di prenotazione annuncia onestamente che nessun orario è aperto.",
+      "addHost": "Aggiungere un host",
       "editHost": "Modificare",
       "form": {
-        "addTitle": "Nuovo referente",
-        "editTitle": "Modificare il referente",
+        "addTitle": "Nuovo host",
+        "editTitle": "Modificare l'host",
         "close": "Chiudere",
-        "email": "E-mail del conto MEGGA",
+        "email": "E-mail dell'account MEGGA",
         "displayName": "Nome mostrato al cliente",
         "timezone": "Fuso orario",
         "weekly": "Fasce settimanali",
@@ -1017,18 +1017,18 @@
         "noLimit": "senza limite",
         "save": "Salvare",
         "errors": {
-          "unknownEmail": "Nessun conto porta questa e-mail.",
-          "nameRequired": "Il nome mostrato e obbligatorio.",
-          "badSlice": "Una fascia e malformata : la fine deve seguire l inizio.",
-          "generic": "Il referente non e stato salvato."
+          "unknownEmail": "Nessun account porta questa e-mail.",
+          "nameRequired": "Il nome mostrato è obbligatorio.",
+          "badSlice": "Una fascia è malformata: la fine deve seguire l'inizio.",
+          "generic": "L'host non è stato salvato."
         }
       }
     },
     "cancelConfirm": {
-      "title": "Annullare questa chiamata di benvenuto ?",
-      "message": "{{agency}} sara avvisata per e-mail e l'orario del {{when}} sara liberato nel calendario dell'host.",
+      "title": "Annullare questa chiamata di benvenuto?",
+      "message": "{{agency}} sarà avvisata per e-mail e l'orario del {{when}} sarà liberato nell'agenda dell'host.",
       "confirm": "Annullare la chiamata",
-      "busy": "Annullamento..."
+      "busy": "Annullamento…"
     }
   },
   "dashboard.pulse.noFunctionError": "nessun errore di funzione segnalato",

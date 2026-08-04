@@ -1,9 +1,12 @@
 /**
  * Helpers de date du sélecteur de créneau.
  *
- * Séparés d'`OcPicker.tsx` pour satisfaire `react-refresh/only-export-components` :
+ * Séparés d'`OcSlotPicker.tsx` pour satisfaire `react-refresh/only-export-components` :
  * un fichier qui exporte un composant ET une fonction casse le rafraîchissement à
  * chaud. Même découpe que `adminKit.tsx` / `adminKitCore.ts`.
+ *
+ * Aucune couleur, aucune classe : ces quatre fonctions ont survécu telles quelles au
+ * passage de l'habillage Sugar à MEGGA X (4 août 2026), qui n'a touché qu'au rendu.
  */
 
 /**

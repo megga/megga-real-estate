@@ -771,6 +771,7 @@ export type Database = {
       agency_related_persons: {
         Row: {
           agency_id: string
+          agency_role: string | null
           created_at: string
           date_of_birth: string | null
           first_name: string
@@ -790,6 +791,7 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          agency_role?: string | null
           created_at?: string
           date_of_birth?: string | null
           first_name: string
@@ -809,6 +811,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          agency_role?: string | null
           created_at?: string
           date_of_birth?: string | null
           first_name?: string

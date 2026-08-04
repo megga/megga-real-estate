@@ -1,40 +1,57 @@
 /**
- * Wizard « Identité légale » (KYB) — étape 1, le signataire.
+ * Wizard « Identité légale » (KYB) — étape 1, la personne qui saisit le dossier.
  *
- * Saisit l'identité de la personne autorisée à engager l'agence (prénom, nom,
- * date de naissance, nationalité) et son pouvoir de signature. Contrôlée par
- * IdentityShell (value/onChange) : cette étape ne détient aucun état propre et
- * n'écrit rien elle-même — IdentityShell persiste le brouillon via
+ * Saisit son identité (prénom, nom, date de naissance, nationalité) et son RÔLE dans
+ * l'agence. Contrôlée par IdentityShell (value/onChange) : cette étape ne détient aucun
+ * état propre et n'écrit rien elle-même — IdentityShell persiste le brouillon via
  * useAgencyIdentity().savePerson() au changement d'étape (cf. son en-tête).
  *
- * Peau MEGGA X (et non plus Sugar v2) : l'étape ne pose plus aucun style, elle
- * n'assemble que des classes de la vitrine (`card sign-in-card`,
- * `pd---content-inside-card`, `grid-2-columns`, `mg-top-*` / `mg-bottom-*`) et
- * les composants `Mx*`. Elle suppose donc d'être rendue à l'intérieur du
- * conteneur `.megga-x` que monte IdentityShell — hors de ce scope, aucune de
- * ces classes n'existe.
+ * ⚠ « QUEL EST VOTRE RÔLE » A REMPLACÉ « POUVOIR DE SIGNATURE » le 4 août 2026
+ * (décision client). Les deux questions ne se recouvrent pas : l'ancienne demandait si
+ * la personne peut engager l'agence SEULE ou conjointement — un fait de conformité —,
+ * la nouvelle demande sa place dans l'organisation, avec les quatre rôles que le CRM
+ * connaît déjà (Réglages › Équipe). La qualité de signataire, elle, n'a pas disparu :
+ * IdentityShell continue d'écrire le rôle de conformité `signatory`, que la RPC de
+ * soumission exige, simplement sans pouvoir de signature (colonne déjà nullable).
+ *
+ * Le rôle choisi ici est appliqué au COMPTE (profiles.role) à la soumission du dossier,
+ * jamais avant, et jamais s'il retirait à l'agence son dernier administrateur — les
+ * trois raisons du délai et le garde-fou sont dans la migration 20260804170100. La carte
+ * concernée porte cette réserve à l'écran (`lastAdminNotice`), au moment du choix : une
+ * réserve découverte après coup serait une promesse trahie.
+ *
+ * Peau MEGGA X : l'étape ne pose aucun style, elle n'assemble que des classes de la
+ * vitrine (`card sign-in-card`, `pd---content-inside-card`, `grid-2-columns`,
+ * `mg-top-*` / `mg-bottom-*`) et les composants `Mx*`. Elle suppose donc d'être rendue à
+ * l'intérieur du conteneur `.megga-x` que monte IdentityShell — hors de ce scope, aucune
+ * de ces classes n'existe.
  *
  * Champs à fournir avant de pouvoir avancer (gate : IdentityShell.isSignataireStepComplete) :
- * prénom, nom, date de naissance, nationalité, pouvoir de signature.
+ * prénom, nom, date de naissance, nationalité, rôle.
  */
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { MxDatePicker, MxField, MxInput, MxSelect, MxRadio } from '@/components/megga-x'
 import { COUNTRIES } from '@/lib/countries'
+import { AGENCY_DECLARED_ROLES, type AgencyDeclaredRole } from '@/hooks/useAgencyIdentity'
 import { SG_IDENTITY_DATE_LABELS, identityMaxBirthDate } from '../tokens'
 import type { SignataireDraft } from '../IdentityShell'
 
 interface StepSignataireProps {
   value: SignataireDraft
   onChange: (patch: Partial<SignataireDraft>) => void
+  /**
+   * true si l'agence n'a pas d'AUTRE administrateur que la personne qui saisit — cas
+   * de toute agence solo, donc de presque tout onboarding. Les rôles autres qu'Admin
+   * portent alors une réserve : le dossier retiendra le rôle déclaré, le compte gardera
+   * ses droits d'administrateur (garde-fou de submit_agency_identity).
+   */
+  isOnlyAdmin: boolean
 }
 
-/** Les deux pouvoirs de signature possibles, dérivés du brouillon pour ne pas les redéclarer. */
-type SignaturePower = NonNullable<SignataireDraft['signaturePower']>
-
-/** Étape 1 du wizard identité : formulaire du signataire autorisé. */
-export function StepSignataire({ value, onChange }: StepSignataireProps) {
+/** Étape 1 du wizard identité : identité et rôle de la personne qui saisit le dossier. */
+export function StepSignataire({ value, onChange, isOnlyAdmin }: StepSignataireProps) {
   const { t } = useTranslation('onboarding')
 
   // ~200 pays : sans mémoïsation la liste entière serait reconstruite à chaque
@@ -115,27 +132,29 @@ export function StepSignataire({ value, onChange }: StepSignataireProps) {
           </div>
 
           {/* MxField en nœud simple, pas en fonction : le groupe porte son propre
-              étiquetage (aria-label), un `for` unique n'aurait aucune cible. */}
-          <MxField className="mg-top-small" label={t('wizard.signataire.fields.signaturePower')}>
+              étiquetage (aria-label), un `for` unique n'aurait aucune cible.
+              Quatre cartes sur `grid-2-columns` : deux rangées de deux, sans qu'aucune
+              option ne se retrouve seule sur sa ligne. */}
+          <MxField className="mg-top-small" label={t('wizard.signataire.fields.agencyRole')}>
             <div
               className="grid-2-columns"
               role="radiogroup"
-              aria-label={t('wizard.signataire.fields.signaturePower')}
+              aria-label={t('wizard.signataire.fields.agencyRole')}
             >
-              <SignaturePowerCard
-                power="individual"
-                selected={value.signaturePower === 'individual'}
-                label={t('wizard.signataire.signaturePower.individual')}
-                hint={t('wizard.signataire.signaturePower.individualHint')}
-                onSelect={(power) => onChange({ signaturePower: power })}
-              />
-              <SignaturePowerCard
-                power="joint"
-                selected={value.signaturePower === 'joint'}
-                label={t('wizard.signataire.signaturePower.joint')}
-                hint={t('wizard.signataire.signaturePower.jointHint')}
-                onSelect={(power) => onChange({ signaturePower: power })}
-              />
+              {AGENCY_DECLARED_ROLES.map((role) => (
+                <AgencyRoleCard
+                  key={role}
+                  role={role}
+                  selected={value.agencyRole === role}
+                  label={t(`wizard.signataire.agencyRole.${role}`)}
+                  hint={t(`wizard.signataire.agencyRole.${role}Hint`)}
+                  // La réserve ne concerne QUE les rôles qui retireraient le dernier
+                  // administrateur : la porter aussi sur la carte Admin ferait lire
+                  // un avertissement à qui ne change rien.
+                  notice={isOnlyAdmin && role !== 'admin' ? t('wizard.signataire.agencyRole.lastAdminNotice') : null}
+                  onSelect={(next) => onChange({ agencyRole: next })}
+                />
+              ))}
             </div>
           </MxField>
         </div>
@@ -145,10 +164,10 @@ export function StepSignataire({ value, onChange }: StepSignataireProps) {
 }
 
 /**
- * Une des deux options de pouvoir de signature, en carte.
+ * Un des quatre rôles d'agence, en carte.
  *
  * Radio réel et non bouton `aria-pressed` : le choix est exclusif, et seul un
- * groupe radio l'annonce comme tel (« 1 sur 2 ») et se parcourt aux flèches.
+ * groupe radio l'annonce comme tel (« 1 sur 4 ») et se parcourt aux flèches.
  *
  * L'état sélectionné se lit sur un LISERÉ d'accent qui ceint la carte entière
  * (`mx-choice-card--selected`), et sur lui seul : la pastille du radio est
@@ -170,34 +189,44 @@ export function StepSignataire({ value, onChange }: StepSignataireProps) {
  * que l'`overflow: hidden` de la carte rognerait. Vérifié au clavier le
  * 03.08.2026 : anneau indigo de 2 px sur la carte tabulée.
  */
-function SignaturePowerCard({
-  power, selected, label, hint, onSelect,
+function AgencyRoleCard({
+  role, selected, label, hint, notice, onSelect,
 }: {
-  power: SignaturePower
+  role: AgencyDeclaredRole
   selected: boolean
   label: string
   hint: string
-  onSelect: (power: SignaturePower) => void
+  /** Réserve du garde-fou « dernier administrateur », ou null quand elle ne s'applique pas. */
+  notice: string | null
+  onSelect: (role: AgencyDeclaredRole) => void
 }) {
   return (
     // Classe explicite plutôt qu'un `:has(input:checked)` en CSS : une règle
-    // structurelle attraperait aussi la carte du bénéficiaire de l'étape 3, dont
-    // les radios PEP ne sont PAS dans une sous-carte — le liseré s'y poserait
-    // autour de la fiche entière dès qu'on répond à la question.
+    // structurelle attraperait toute carte contenant un radio coché, y compris
+    // celles dont les radios ne sont PAS dans une sous-carte — le liseré s'y
+    // poserait autour de la fiche entière dès qu'on répond à la question.
     <div className={cn('card mx-choice-card', selected && 'mx-choice-card--selected')}>
       <MxRadio
         className="pd---content-inside-card"
-        name="signature-power"
-        value={power}
+        name="agency-role"
+        value={role}
         checked={selected}
-        onSelect={() => onSelect(power)}
-        // Titre ET précision dans le libellé : c'est le <label> du radio qui rend
-        // la carte entière cliquable, sortir la précision la réduirait au titre.
+        onSelect={() => onSelect(role)}
+        // Titre, précision ET réserve dans le libellé : c'est le <label> du radio qui
+        // rend la carte entière cliquable, en sortir un morceau le rendrait inerte.
+        // La réserve est dans le libellé pour la même raison qu'elle est visible avant
+        // le choix — un lecteur d'écran l'entend en parcourant les options, pas après.
         label={(
           <>
             <span className="display-2 semi-bold">{label}</span>
             <br />
             <span className="paragraph-small text-color-neutral-600">{hint}</span>
+            {notice && (
+              <>
+                <br />
+                <span className="paragraph-small text-color-neutral-600">{notice}</span>
+              </>
+            )}
           </>
         )}
       />
