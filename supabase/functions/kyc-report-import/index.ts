@@ -14,7 +14,7 @@ import { KYC_REPORT_PROMPT, normalizeKycReport, parseKycOcr } from '../_shared/k
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 }
 
 // 10 Mo cap sur le payload base64 (aligné extract-property-pdf).

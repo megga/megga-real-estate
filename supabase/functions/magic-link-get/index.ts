@@ -23,7 +23,7 @@ import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
 // l'écran KYC n'obtient alors qu'une erreur CORS opaque.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-magic-link-token',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage, x-magic-link-token',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 

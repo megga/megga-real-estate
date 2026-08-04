@@ -22,7 +22,7 @@ import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
 // la soumission finale du dossier deviendrait une erreur CORS opaque.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-magic-link-token',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage, x-magic-link-token',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
