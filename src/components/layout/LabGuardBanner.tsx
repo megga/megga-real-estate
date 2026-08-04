@@ -19,7 +19,9 @@
  *
  * Ne rend RIEN non plus sur les routes gardées par KycLabGuard (correctif
  * revue, point mineur) : cet écran plein dit déjà tout, répéter le bandeau
- * au-dessus double le message sans rien ajouter.
+ * au-dessus double le message sans rien ajouter. Ni sur /dashboard/identite,
+ * pour la même raison — et là s'ajoute un coût de mise en page, détaillé au
+ * garde correspondant.
  */
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -55,10 +57,22 @@ export default function LabGuardBanner() {
   // pages non gardées), pas ici.
   if (location.pathname.startsWith(KYC_LAB_GUARD_ROUTE_PREFIX)) return null
 
+  // Ni sur la page d'identité elle-même, pour la MÊME raison : le wizard EST le
+  // message. Le bandeau y disait « complétez la vérification » à quelqu'un qui est
+  // précisément en train de la faire, et son bouton s'y masquait déjà (il n'allait
+  // nulle part) — la moitié du constat était donc dans le fichier depuis le début.
+  // OnboardingCallBanner, qui déclare suivre la même grammaire, se tait ici depuis
+  // toujours ; ce garde-ci manquait.
+  //
+  // ⚠ Ce n'est pas qu'une redondance : le bandeau prenait 59 px de HAUT DE FENÊTRE
+  // que le wizard ne peut pas céder. IdentityShell pose `.mx-appshell` en
+  // `height: 100dvh` (megga-x-additions.css §8) — la fenêtre ENTIÈRE, mesurée sans
+  // rien retrancher de ce qui la surmonte. Empilés, 59 + 929 = 988 px pour 929 px
+  // visibles : le pied d'actions passait sous le bord et le bouton « Continuer »
+  // s'affichait coupé en deux tant qu'on n'avait pas défilé.
+  if (location.pathname === IDENTITY_GATE_ROUTE) return null
+
   const canAct = profile != null && canActOnLabGuard(profile.role)
-  // Jamais proposer de naviguer vers la page d'identité depuis la page d'identité
-  // elle-même — même motif que shouldRedirectToIdentityGate (useIdentityGate.ts).
-  const onIdentityPage = location.pathname === IDENTITY_GATE_ROUTE
   const { icon: Icon, color } = SEVERITY[status]
 
   // Un i18n key par statut (LAB_GUARD_LABEL_KEY, pfKit voisin) plutôt qu'une chaîne de
@@ -80,7 +94,7 @@ export default function LabGuardBanner() {
           <p className="text-sm font-medium text-theme-primary">{title}</p>
           <p className="text-xs text-theme-secondary mt-0.5">{body}</p>
         </div>
-        {(status === 'blocked_not_submitted' || status === 'blocked_correction_requested') && canAct && !onIdentityPage && (
+        {(status === 'blocked_not_submitted' || status === 'blocked_correction_requested') && canAct && (
           <button
             type="button"
             onClick={() => navigate(IDENTITY_GATE_ROUTE)}
