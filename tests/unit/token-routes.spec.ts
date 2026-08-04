@@ -31,6 +31,7 @@ const TOKENISEES = [
   '/reception/abc123',
   '/accept-invite/abc123',
   '/rendez-vous/abc123', // gestion de RDV KYC — jeton dans le CHEMIN (appointment-book)
+  '/rendez-vous-accueil/abc123', // appel d'accueil MEGGA — jeton dans le CHEMIN (onboarding-call-book)
   '/visit/9c2/edit',
   '/visit/9c2/feedback',
   '/visite/9c2/modifier', // alias FR : redirigé au bord, mais servi par le SPA en dev
@@ -74,6 +75,11 @@ describe('scrubSecretUrl', () => {
 
   it("ne se laisse pas avoir par `kyc-report`, que la branche `kyc` seule ne couvre pas", () => {
     expect(scrubSecretUrl('https://app.megga.ch/kyc-report/9c2f')).toBe('https://app.megga.ch/kyc-report/[redacted]')
+  })
+
+  it("ne se laisse pas avoir par `rendez-vous-accueil`, que la branche `rendez-vous` seule ne couvre pas", () => {
+    expect(scrubSecretUrl('https://app.megga.ch/rendez-vous-accueil/9c2f'))
+      .toBe('https://app.megga.ch/rendez-vous-accueil/[redacted]')
   })
 
   it('coupe la query ET le fragment — c\'est ce qui couvre les pages de visite et /auth/callback', () => {

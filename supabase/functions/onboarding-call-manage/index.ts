@@ -133,7 +133,7 @@ serve(async (req: Request) => {
   if (currentStartMs <= nowMs) return json({ error: 'call_in_past' }, 409)
 
   const parties = await loadParties(db, call)
-  const manageUrl = `${appOrigin(req)}/rendez-vous/${call.manage_token}`
+  const manageUrl = `${appOrigin(req)}/rendez-vous-accueil/${call.manage_token}`
   const locale = body.locale === 'en' ? 'en' : 'fr'
   const timezone = typeof body.timezone === 'string' && body.timezone ? body.timezone : parties.hostTimezone
 
