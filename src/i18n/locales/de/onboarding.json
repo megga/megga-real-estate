@@ -158,13 +158,6 @@
         "verso": "Rückseite",
         "dataPage": "Datenseite"
       },
-      "dropHint": "Klicken Sie, um eine Datei auszuwählen",
-      "formatHint": "JPG, PNG, WEBP oder PDF, maximal 8 MB",
-      "replaceHint": "Klicken Sie, um zu ersetzen",
-      "zoomOpen": "{{side}} vergrössern",
-      "zoomClose": "Schliessen",
-      "zoomHint": "Prüfen Sie, ob das Dokument scharf ist und alle vier Ecken sichtbar sind. Andernfalls ersetzen Sie es.",
-      "openPdf": "PDF öffnen",
       "read": {
         "running": "Der Ausweis wird gelesen…",
         "verdict": {
@@ -176,12 +169,6 @@
         "expired": "Dieser Ausweis scheint seit dem {{date}} abgelaufen zu sein.",
         "typeDiffers": "Der Ausweis scheint nicht der zu sein, den Sie angegeben haben.",
         "disclaimer": "Automatische Lesung, nur als Hinweis: unser Compliance-Team prüft das Dokument."
-      },
-      "errors": {
-        "format": "Zulässiges Format: JPG, PNG, WEBP oder PDF.",
-        "size": "Maximale Grösse: 8 MB.",
-        "generic": "Der Upload ist fehlgeschlagen. Versuchen Sie es erneut.",
-        "loadFailed": "Die Dokumente konnten nicht geladen werden. Versuchen Sie es erneut."
       }
     },
     "recap": {
