@@ -989,7 +989,12 @@
         "hours": "Orari",
         "upcoming": "In arrivo",
         "state": "Stato",
-        "hoursMore": "+{{n}} altri giorni"
+        "hoursMore": "+{{n}} altri giorni",
+        "calendar": "Calendario",
+        "sourceWorkspace": "MEGGA",
+        "sourceProfile": "Membro",
+        "sourceNone": "Nessuno",
+        "sourceNoneTitle": "Nessun calendario collegato: la disponibilità si limita agli appuntamenti già presi e non sarà prodotto alcun link Meet."
       },
       "empty": {
         "title": "Nessun referente",
@@ -1020,9 +1025,32 @@
           "unknownEmail": "Nessun conto porta questa e-mail.",
           "nameRequired": "Il nome mostrato è obbligatorio.",
           "badSlice": "Una fascia è malformata: la fine deve seguire l'inizio.",
-          "generic": "Il referente non è stato salvato."
+          "generic": "Il referente non è stato salvato.",
+          "badMailbox": "L'indirizzo della casella Workspace non è valido."
+        },
+        "calendarSource": "Calendario dell'ospite",
+        "modeWorkspace": "Calendario MEGGA",
+        "modeProfile": "Calendario di un membro",
+        "modeWorkspaceHint": "Una casella Google Workspace del dominio megga.ch. Il backend agisce direttamente per suo conto: nulla da collegare, nulla da rinnovare, e il calendario sopravvive a chi lo ha configurato.",
+        "modeProfileHint": "L'account CRM di un membro che ha collegato il proprio calendario dalla schermata agente. La disponibilità dell'intera piattaforma dipende allora dal suo token personale.",
+        "mailbox": "Casella Google Workspace",
+        "probe": "Prova la connessione",
+        "probing": "Prova in corso…",
+        "probeOk": "Calendario raggiungibile (fuso {{tz}}).",
+        "workspaceMissingSecret": "Il segreto GOOGLE_WORKSPACE_SA_KEY non è impostato: il backend non può autenticarsi presso alcuna casella. L'ospite sarà salvato, ma senza calendario e senza link Meet.",
+        "delegationHint": "Da autorizzare una volta nella console Workspace (Sicurezza › Controlli API › Delega a livello di dominio): ID client {{client}}, ambito {{scope}}.",
+        "probeErrors": {
+          "not_configured": "Nessuna chiave di account di servizio: imposta il segreto GOOGLE_WORKSPACE_SA_KEY.",
+          "bad_key": "La chiave dell'account di servizio è illeggibile: il JSON o la sua chiave privata è danneggiata.",
+          "no_subject": "Indica la casella per cui agire.",
+          "unauthorized_client": "Delega rifiutata: autorizza l'ID client qui sotto nella console Workspace, con esattamente l'ambito indicato.",
+          "invalid_grant": "Questa casella è sconosciuta al dominio, oppure è sospesa.",
+          "calendar_api_disabled": "L'API Google Calendar non è attiva nel progetto Google Cloud dell'account di servizio.",
+          "network": "Google non ha risposto. Riprova.",
+          "google_error": "Google ha rifiutato la richiesta."
         }
-      }
+      },
+      "workspaceMissing": "Il segreto GOOGLE_WORKSPACE_SA_KEY non è impostato: nessun ospite basato su una casella MEGGA può leggere il proprio calendario né produrre un link Meet."
     },
     "cancelConfirm": {
       "title": "Annullare questa chiamata di benvenuto?",

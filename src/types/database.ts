@@ -3811,6 +3811,7 @@ export type Database = {
       onboarding_hosts: {
         Row: {
           buffer_after_minutes: number
+          calendar_email: string | null
           created_at: string
           display_name: string
           duration_minutes: number
@@ -3819,7 +3820,7 @@ export type Database = {
           is_active: boolean
           max_per_day: number | null
           min_notice_hours: number
-          profile_id: string
+          profile_id: string | null
           slot_minutes: number
           timezone: string
           updated_at: string
@@ -3827,6 +3828,7 @@ export type Database = {
         }
         Insert: {
           buffer_after_minutes?: number
+          calendar_email?: string | null
           created_at?: string
           display_name: string
           duration_minutes?: number
@@ -3835,7 +3837,7 @@ export type Database = {
           is_active?: boolean
           max_per_day?: number | null
           min_notice_hours?: number
-          profile_id: string
+          profile_id?: string | null
           slot_minutes?: number
           timezone?: string
           updated_at?: string
@@ -3843,6 +3845,7 @@ export type Database = {
         }
         Update: {
           buffer_after_minutes?: number
+          calendar_email?: string | null
           created_at?: string
           display_name?: string
           duration_minutes?: number
@@ -3851,7 +3854,7 @@ export type Database = {
           is_active?: boolean
           max_per_day?: number | null
           min_notice_hours?: number
-          profile_id?: string
+          profile_id?: string | null
           slot_minutes?: number
           timezone?: string
           updated_at?: string
@@ -6942,12 +6945,14 @@ export type Database = {
       admin_upsert_onboarding_host: {
         Args: {
           p_buffer_after_minutes?: number
+          p_calendar_email?: string
           p_display_name: string
           p_duration_minutes?: number
           p_horizon_days?: number
+          p_host_id?: string
           p_max_per_day?: number
           p_min_notice_hours?: number
-          p_profile_id: string
+          p_profile_id?: string
           p_slot_minutes?: number
           p_timezone?: string
           p_weekly_hours?: Json
@@ -7464,13 +7469,15 @@ export type Database = {
           created_at: string
           display_name: string
           duration_minutes: number
+          calendar_email: string | null
+          calendar_source: string
           horizon_days: number
           id: string
           is_active: boolean
           max_per_day: number
           min_notice_hours: number
           profile_email: string
-          profile_id: string
+          profile_id: string | null
           slot_minutes: number
           timezone: string
           upcoming_calls: number

@@ -20,7 +20,10 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 export interface HostRow {
   id: string
-  profile_id: string
+  /** Nul pour un hôte Workspace : sa seule identité est son agenda. */
+  profile_id: string | null
+  /** Boîte Google Workspace de MEGGA, quand l'agenda est celui de la plateforme. */
+  calendar_email: string | null
   display_name: string
   timezone: string
   weekly_hours: unknown
@@ -58,7 +61,7 @@ export async function loadAvailability(
 ): Promise<AvailabilitySnapshot> {
   const { data: hostRows } = await db
     .from('onboarding_hosts')
-    .select('id, profile_id, display_name, timezone, weekly_hours, slot_minutes, duration_minutes, buffer_after_minutes, min_notice_hours, horizon_days, max_per_day')
+    .select('id, profile_id, calendar_email, display_name, timezone, weekly_hours, slot_minutes, duration_minutes, buffer_after_minutes, min_notice_hours, horizon_days, max_per_day')
     .eq('is_active', true)
 
   const hosts = (hostRows ?? []) as HostRow[]
@@ -128,7 +131,13 @@ export async function loadAvailability(
   const externalBusy = await Promise.all(
     hosts.map(async (h) => ({
       hostId: h.id,
-      result: await readHostBusy(db, h.profile_id, h.timezone, windowFromMs - DAY_MS, windowToMs + DAY_MS),
+      result: await readHostBusy(
+        db,
+        { profileId: h.profile_id, calendarEmail: h.calendar_email },
+        h.timezone,
+        windowFromMs - DAY_MS,
+        windowToMs + DAY_MS,
+      ),
     })),
   )
 

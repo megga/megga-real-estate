@@ -9,6 +9,17 @@
 // jeton d'agenda, et ne doit surtout pas en avoir. Le rafraîchissement de jeton et les
 // deux API sont donc repris ici, appelables en service_role pour le compte de l'hôte.
 //
+// TROIS SOURCES D'AGENDA, dans cet ordre de priorité :
+//   1. `calendar_email` — une boîte Google Workspace de MEGGA, incarnée par délégation
+//      à l'échelle du domaine (`google-workspace.ts`). C'est la voie de la plateforme :
+//      aucun jeton personnel, aucun consentement à renouveler, rien qui s'arrête quand
+//      quelqu'un quitte l'équipe.
+//   2. `profile_id` + Google OAuth — l'agenda personnel qu'un membre a connecté depuis
+//      le CRM.
+//   3. `profile_id` + Outlook OAuth — idem, côté Microsoft.
+// La Workspace passe DEVANT parce qu'elle est la seule que MEGGA contrôle vraiment : un
+// hôte qui aurait les deux doit voir ses rendez-vous atterrir dans l'agenda d'équipe.
+//
 // Ces fonctions ne lèvent pas. Un hôte sans agenda connecté n'est pas une erreur : ses
 // seules occupations sont ses rendez-vous déjà pris, et le moteur de créneaux s'en
 // contente. Un agenda injoignable non plus, mais il vaut alors mieux proposer trop peu
@@ -16,6 +27,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { BusyInterval } from './onboarding-slots.ts'
+import { workspaceAccessToken } from './google-workspace.ts'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_CALENDAR_API = 'https://www.googleapis.com/calendar/v3'
@@ -26,7 +38,24 @@ const MS_SCOPE = 'https://graph.microsoft.com/Calendars.ReadWrite offline_access
 /** Marge de sécurité avant expiration, alignée sur les deux fonctions existantes. */
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000
 
-export type CalendarProvider = 'google' | 'outlook'
+/**
+ * `workspace` est un agenda Google comme un autre — mais PAS le même identifiant, et
+ * c'est tout l'intérêt de la distinction : déplacer ou retirer un événement exige la
+ * même clé que celle qui l'a créé. Ranger les deux sous `google` obligerait à redeviner
+ * la source à chaque geste, et se tromperait le jour où un hôte change de voie.
+ */
+export type CalendarProvider = 'google' | 'outlook' | 'workspace'
+
+/**
+ * De quoi retrouver l'agenda d'un hôte, sans le charger deux fois.
+ *
+ * Les appelants tiennent déjà la ligne `onboarding_hosts` ; passer le couple plutôt
+ * qu'un identifiant évite une requête par hôte et par geste.
+ */
+export interface HostCalendarRef {
+  profileId: string | null
+  calendarEmail: string | null
+}
 
 export interface HostBusyResult {
   provider: CalendarProvider | null
@@ -44,6 +73,17 @@ export interface HostEventInput {
   /** Identifiant stable, pour que Google ne crée pas deux visioconférences. */
   requestId: string
   withMeetLink: boolean
+  /**
+   * Invité à porter sur l'événement.
+   *
+   * ⚠ Ce n'est pas une politesse, c'est ce qui fait que le lien Meet MARCHE. Une
+   * visioconférence créée par une boîte Workspace n'admet directement que les invités
+   * de l'événement : un participant absent de la liste tombe sur « demander à
+   * rejoindre » et attend qu'on lui ouvre. L'e-mail de confirmation, lui, part par
+   * Resend — d'où `sendUpdates=none` plus bas, pour que Google ne double pas l'envoi.
+   */
+  attendeeEmail?: string | null
+  attendeeName?: string | null
 }
 
 export interface HostEventResult {
@@ -145,6 +185,68 @@ async function outlookAccessToken(db: SupabaseClient, userId: string): Promise<s
   return data.access_token ?? null
 }
 
+/**
+ * Quelle clé pour quel agenda, une fois pour toutes.
+ *
+ * Rend `null` quand l'hôte n'a aucun agenda branché — ce qui N'EST PAS une panne : ses
+ * occupations se réduisent alors à ses rendez-vous déjà pris, que le moteur connaît par
+ * la base. `degraded` distingue ce cas de celui, bien plus dangereux, d'un agenda
+ * déclaré mais injoignable.
+ */
+type HostCredential =
+  | { provider: 'workspace'; token: string; mailbox: string }
+  | { provider: 'google' | 'outlook'; token: string }
+
+async function resolveHostCredential(
+  db: SupabaseClient,
+  ref: HostCalendarRef,
+): Promise<{ credential: HostCredential | null; degraded: boolean }> {
+  const mailbox = ref.calendarEmail?.trim()
+  if (mailbox) {
+    const { token, reason } = await workspaceAccessToken(mailbox)
+    if (token) return { credential: { provider: 'workspace', token, mailbox }, degraded: false }
+    // Une boîte Workspace est DÉCLARÉE sur l'hôte : ne pas pouvoir s'y authentifier est
+    // une panne de configuration, jamais « pas d'agenda ». On le signale, et on ne
+    // retombe surtout pas sur l'agenda personnel : le rendez-vous atterrirait ailleurs
+    // que là où l'équipe le cherche.
+    console.error('[host-freebusy] workspace credential unavailable', { mailbox, reason })
+    return { credential: null, degraded: true }
+  }
+
+  if (!ref.profileId) return { credential: null, degraded: false }
+
+  const googleToken = await googleAccessToken(db, ref.profileId)
+  if (googleToken) return { credential: { provider: 'google', token: googleToken }, degraded: false }
+
+  const outlookToken = await outlookAccessToken(db, ref.profileId)
+  if (outlookToken) return { credential: { provider: 'outlook', token: outlookToken }, degraded: false }
+
+  return { credential: null, degraded: false }
+}
+
+/**
+ * Clé pour un geste sur un événement DÉJÀ POSÉ (déplacer, retirer).
+ *
+ * On ne rejoue pas la résolution par priorité : c'est la voie qui a CRÉÉ l'événement
+ * qu'il faut, et elle est enregistrée sur la ligne. Repasser par `resolveHostCredential`
+ * enverrait le geste au mauvais agenda dès qu'un hôte a changé de source — l'ancien
+ * événement resterait alors affiché, orphelin, à l'heure abandonnée.
+ */
+async function credentialForProvider(
+  db: SupabaseClient,
+  ref: HostCalendarRef,
+  provider: CalendarProvider,
+): Promise<string | null> {
+  if (provider === 'workspace') {
+    if (!ref.calendarEmail) return null
+    return (await workspaceAccessToken(ref.calendarEmail)).token
+  }
+  if (!ref.profileId) return null
+  return provider === 'google'
+    ? await googleAccessToken(db, ref.profileId)
+    : await outlookAccessToken(db, ref.profileId)
+}
+
 // ── Lecture des occupations ─────────────────────────────────────────────────
 
 type Json = Record<string, unknown>
@@ -243,7 +345,7 @@ function zoneSuffix(dayKey: string, timezone: string): string {
  */
 export async function readHostBusy(
   db: SupabaseClient,
-  userId: string,
+  ref: HostCalendarRef,
   timezone: string,
   fromMs: number,
   toMs: number,
@@ -251,8 +353,47 @@ export async function readHostBusy(
   const timeMin = new Date(fromMs).toISOString()
   const timeMax = new Date(toMs).toISOString()
 
-  const googleToken = await googleAccessToken(db, userId)
-  if (googleToken) {
+  const { credential, degraded } = await resolveHostCredential(db, ref)
+  if (degraded) return { provider: 'workspace', busy: [], degraded: true }
+  if (!credential) return { provider: null, busy: [], degraded: false }
+
+  if (credential.provider === 'workspace') {
+    // `freeBusy` plutôt que la liste des événements : il rend directement les blocs
+    // occupés, en appliquant lui-même les règles de l'agenda (entrées « disponible »,
+    // invitations refusées, journées entières). Et il ne divulgue AUCUN contenu — ni
+    // titre, ni participant — là où lister les événements ferait transiter l'agenda
+    // entier d'une boîte de MEGGA pour n'en garder que des bornes horaires.
+    const res = await fetch(`${GOOGLE_CALENDAR_API}/freeBusy`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${credential.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        timeMin, timeMax,
+        timeZone: 'UTC',
+        items: [{ id: credential.mailbox }],
+      }),
+    }).catch(() => null)
+
+    if (!res || !res.ok) return { provider: 'workspace', busy: [], degraded: true }
+
+    const data = await res.json().catch(() => null) as
+      | { calendars?: Record<string, { busy?: { start: string; end: string }[]; errors?: unknown[] }> }
+      | null
+    const entry = data?.calendars?.[credential.mailbox]
+    // Un agenda en erreur (`notFound`, `accessDenied`) rend un tableau `busy` VIDE, qui
+    // se lirait comme « libre toute la journée ». Il faut le traiter comme illisible,
+    // sans quoi une mauvaise configuration ouvrirait toutes les heures à la réservation.
+    if (!entry || (entry.errors?.length ?? 0) > 0) {
+      console.error('[host-freebusy] freeBusy refused', { mailbox: credential.mailbox, errors: entry?.errors })
+      return { provider: 'workspace', busy: [], degraded: true }
+    }
+
+    const busy = (entry.busy ?? [])
+      .map((b) => interval(Date.parse(b.start), Date.parse(b.end)))
+      .filter((b): b is BusyInterval => b !== null)
+    return { provider: 'workspace', busy, degraded: false }
+  }
+
+  if (credential.provider === 'google') {
     const params = new URLSearchParams({
       timeMin, timeMax,
       singleEvents: 'true',
@@ -260,7 +401,7 @@ export async function readHostBusy(
       maxResults: '250',
     })
     const res = await fetch(`${GOOGLE_CALENDAR_API}/calendars/primary/events?${params}`, {
-      headers: { Authorization: `Bearer ${googleToken}` },
+      headers: { Authorization: `Bearer ${credential.token}` },
     }).catch(() => null)
 
     if (!res || !res.ok) return { provider: 'google', busy: [], degraded: true }
@@ -274,8 +415,8 @@ export async function readHostBusy(
     return { provider: 'google', busy, degraded: false }
   }
 
-  const outlookToken = await outlookAccessToken(db, userId)
-  if (outlookToken) {
+  {
+    const outlookToken = credential.token
     const params = new URLSearchParams({
       startDateTime: timeMin,
       endDateTime: timeMax,
@@ -306,24 +447,48 @@ export async function readHostBusy(
   return { provider: null, busy: [], degraded: false }
 }
 
+
 // ── Écriture de l'événement ─────────────────────────────────────────────────
+
+/**
+ * Bloc `attendees` de l'API Google, ou rien.
+ *
+ * `responseStatus: 'accepted'` est délibéré : la personne vient de choisir ce créneau
+ * elle-même, lui envoyer une invitation « à accepter » lui redemanderait de confirmer ce
+ * qu'elle vient de confirmer. C'est aussi ce qui la fait entrer dans la visioconférence
+ * sans passer par la salle d'attente.
+ */
+function googleAttendees(input: HostEventInput): Record<string, unknown>[] | undefined {
+  const email = input.attendeeEmail?.trim()
+  if (!email) return undefined
+  return [{
+    email,
+    displayName: input.attendeeName?.trim() || undefined,
+    responseStatus: 'accepted',
+  }]
+}
 
 /** Pose l'événement dans l'agenda de l'hôte. Rend `null` s'il n'en a aucun de branché. */
 export async function createHostEvent(
   db: SupabaseClient,
-  userId: string,
+  ref: HostCalendarRef,
   input: HostEventInput,
 ): Promise<HostEventResult | null> {
   const startIso = new Date(input.startMs).toISOString()
   const endIso = new Date(input.startMs + input.durationMinutes * 60_000).toISOString()
 
-  const googleToken = await googleAccessToken(db, userId)
-  if (googleToken) {
+  const { credential } = await resolveHostCredential(db, ref)
+  if (!credential) return null
+
+  if (credential.provider === 'workspace' || credential.provider === 'google') {
     const body: Record<string, unknown> = {
       summary: input.summary,
       description: input.description,
       start: { dateTime: startIso, timeZone: 'UTC' },
       end: { dateTime: endIso, timeZone: 'UTC' },
+      attendees: googleAttendees(input),
+      // Marque de fabrique : elle permet de retrouver l'événement d'un rendez-vous
+      // depuis l'agenda, et de le distinguer de ce qu'un humain y a posé à la main.
       extendedProperties: { private: { megga_onboarding_call: input.requestId } },
     }
     if (input.withMeetLink) {
@@ -335,58 +500,82 @@ export async function createHostEvent(
       }
     }
 
-    const path = input.withMeetLink
-      ? '/calendars/primary/events?conferenceDataVersion=1'
-      : '/calendars/primary/events'
+    // `sendUpdates=none` : la confirmation part par Resend, avec son `.ics`. Laisser
+    // Google écrire aussi enverrait deux invitations pour un seul rendez-vous, dont une
+    // qui ne ressemble pas à MEGGA.
+    const params = new URLSearchParams({ sendUpdates: 'none' })
+    if (input.withMeetLink) params.set('conferenceDataVersion', '1')
 
-    const res = await fetch(`${GOOGLE_CALENDAR_API}${path}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }).catch(() => null)
+    const res = await fetch(
+      `${GOOGLE_CALENDAR_API}/calendars/primary/events?${params}`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${credential.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    ).catch(() => null)
 
-    if (!res || !res.ok) return null
-    const created = await res.json().catch(() => null)
-    if (!created?.id) return null
-
-    return { provider: 'google', eventId: created.id, meetingUrl: created.hangoutLink ?? null }
-  }
-
-  const outlookToken = await outlookAccessToken(db, userId)
-  if (outlookToken) {
-    const res = await fetch(`${GRAPH_API}/me/events`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${outlookToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        subject: input.summary,
-        body: { contentType: 'Text', content: input.description },
-        // `dateTime` sans suffixe + `timeZone: 'UTC'` : c'est la forme attendue par
-        // Graph. On envoie donc l'ISO amputé de son Z, et non l'heure locale.
-        start: { dateTime: startIso.replace('Z', ''), timeZone: 'UTC' },
-        end: { dateTime: endIso.replace('Z', ''), timeZone: 'UTC' },
-        isOnlineMeeting: input.withMeetLink,
-        ...(input.withMeetLink ? { onlineMeetingProvider: 'teamsForBusiness' } : {}),
-      }),
-    }).catch(() => null)
-
-    if (!res || !res.ok) return null
-    const created = await res.json().catch(() => null)
-    if (!created?.id) return null
-
-    return {
-      provider: 'outlook',
-      eventId: created.id,
-      meetingUrl: created.onlineMeeting?.joinUrl ?? null,
+    if (!res || !res.ok) {
+      console.error('[host-freebusy] event creation refused', {
+        provider: credential.provider,
+        status: res?.status ?? null,
+        detail: res ? await res.text().catch(() => null) : null,
+      })
+      return null
     }
+    const created = await res.json().catch(() => null)
+    if (!created?.id) return null
+
+    // `hangoutLink` n'est pas toujours peuplé dans la réponse de création ; la
+    // visioconférence vit sous `conferenceData.entryPoints`. Sans ce second regard, un
+    // rendez-vous parfaitement créé repartait sans lien, et l'e-mail promettait un
+    // « lien à venir » qui n'arrivait jamais.
+    const meetingUrl: string | null = created.hangoutLink
+      ?? (created.conferenceData?.entryPoints ?? [])
+        .find((e: { entryPointType?: string; uri?: string }) => e.entryPointType === 'video')?.uri
+      ?? null
+
+    return { provider: credential.provider, eventId: created.id, meetingUrl }
   }
 
-  return null
+  const res = await fetch(`${GRAPH_API}/me/events`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${credential.token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      subject: input.summary,
+      body: { contentType: 'Text', content: input.description },
+      // `dateTime` sans suffixe + `timeZone: 'UTC'` : c'est la forme attendue par
+      // Graph. On envoie donc l'ISO amputé de son Z, et non l'heure locale.
+      start: { dateTime: startIso.replace('Z', ''), timeZone: 'UTC' },
+      end: { dateTime: endIso.replace('Z', ''), timeZone: 'UTC' },
+      isOnlineMeeting: input.withMeetLink,
+      ...(input.withMeetLink ? { onlineMeetingProvider: 'teamsForBusiness' } : {}),
+      ...(input.attendeeEmail
+        ? {
+            attendees: [{
+              emailAddress: { address: input.attendeeEmail, name: input.attendeeName ?? undefined },
+              type: 'required',
+            }],
+          }
+        : {}),
+    }),
+  }).catch(() => null)
+
+  if (!res || !res.ok) return null
+  const created = await res.json().catch(() => null)
+  if (!created?.id) return null
+
+  return {
+    provider: 'outlook',
+    eventId: created.id,
+    meetingUrl: created.onlineMeeting?.joinUrl ?? null,
+  }
 }
 
 /** Déplace un événement existant. Replanifier ne doit pas laisser deux entrées. */
 export async function moveHostEvent(
   db: SupabaseClient,
-  userId: string,
+  ref: HostCalendarRef,
   provider: CalendarProvider,
   eventId: string,
   startMs: number,
@@ -395,23 +584,25 @@ export async function moveHostEvent(
   const startIso = new Date(startMs).toISOString()
   const endIso = new Date(startMs + durationMinutes * 60_000).toISOString()
 
-  if (provider === 'google') {
-    const token = await googleAccessToken(db, userId)
-    if (!token) return false
-    const res = await fetch(`${GOOGLE_CALENDAR_API}/calendars/primary/events/${eventId}`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        start: { dateTime: startIso, timeZone: 'UTC' },
-        end: { dateTime: endIso, timeZone: 'UTC' },
-      }),
-    }).catch(() => null)
+  const token = await credentialForProvider(db, ref, provider)
+  if (!token) return false
+
+  if (provider === 'workspace' || provider === 'google') {
+    const res = await fetch(
+      `${GOOGLE_CALENDAR_API}/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=none`,
+      {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          start: { dateTime: startIso, timeZone: 'UTC' },
+          end: { dateTime: endIso, timeZone: 'UTC' },
+        }),
+      },
+    ).catch(() => null)
     return !!res?.ok
   }
 
-  const token = await outlookAccessToken(db, userId)
-  if (!token) return false
-  const res = await fetch(`${GRAPH_API}/me/events/${eventId}`, {
+  const res = await fetch(`${GRAPH_API}/me/events/${encodeURIComponent(eventId)}`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -425,23 +616,22 @@ export async function moveHostEvent(
 /** Retire l'événement. Un échec est sans gravité : le rendez-vous est déjà annulé en base. */
 export async function deleteHostEvent(
   db: SupabaseClient,
-  userId: string,
+  ref: HostCalendarRef,
   provider: CalendarProvider,
   eventId: string,
 ): Promise<boolean> {
-  if (provider === 'google') {
-    const token = await googleAccessToken(db, userId)
-    if (!token) return false
-    const res = await fetch(`${GOOGLE_CALENDAR_API}/calendars/primary/events/${eventId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    }).catch(() => null)
+  const token = await credentialForProvider(db, ref, provider)
+  if (!token) return false
+
+  if (provider === 'workspace' || provider === 'google') {
+    const res = await fetch(
+      `${GOOGLE_CALENDAR_API}/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=none`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } },
+    ).catch(() => null)
     return !!res?.ok
   }
 
-  const token = await outlookAccessToken(db, userId)
-  if (!token) return false
-  const res = await fetch(`${GRAPH_API}/me/events/${eventId}`, {
+  const res = await fetch(`${GRAPH_API}/me/events/${encodeURIComponent(eventId)}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   }).catch(() => null)

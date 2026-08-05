@@ -146,14 +146,18 @@ serve(async (req: Request) => {
   const manageUrl = `${appOrigin(req)}/rendez-vous-accueil/${inserted.manage_token}`
   const { data: agency } = await db
     .from('agencies').select('name').eq('id', profile.agency_id).maybeSingle()
-  const { data: hostProfile } = await db
-    .from('profiles').select('email, full_name').eq('id', host.profile_id).maybeSingle()
+  const { data: hostProfile } = host.profile_id
+    ? await db.from('profiles').select('email, full_name').eq('id', host.profile_id).maybeSingle()
+    : { data: null }
   const { data: bookerProfile } = await db
     .from('profiles').select('email, full_name').eq('id', profile.id).maybeSingle()
 
   const agencyName = agency?.name ?? 'Votre agence'
   const attendeeName = bookerProfile?.full_name ?? ''
   const attendeeEmail = bookerProfile?.email ?? user.email ?? ''
+  // Un hôte Workspace n'a pas de profil : c'est sa boîte qui reçoit l'avis de
+  // réservation, et c'est aussi elle qui organise l'événement dans l'`.ics`.
+  const hostEmail = hostProfile?.email ?? host.calendar_email ?? null
 
   const summary = `Appel d'accueil MEGGA · ${agencyName}`
   const description = [
@@ -165,15 +169,24 @@ serve(async (req: Request) => {
   ].filter(Boolean).join('\n')
 
   let meetingUrl: string | null = null
-  const event = await createHostEvent(db, host.profile_id, {
-    summary,
-    description,
-    startMs: slotMs,
-    durationMinutes: host.duration_minutes,
-    timezone: host.timezone,
-    requestId: `megga-onboarding-${inserted.id}`,
-    withMeetLink: true,
-  })
+  const event = await createHostEvent(
+    db,
+    { profileId: host.profile_id, calendarEmail: host.calendar_email },
+    {
+      summary,
+      description,
+      startMs: slotMs,
+      durationMinutes: host.duration_minutes,
+      timezone: host.timezone,
+      requestId: `megga-onboarding-${inserted.id}`,
+      withMeetLink: true,
+      // Porter le réservant comme invité de l'événement, et pas seulement dans le
+      // corps du texte : sans cela, la visioconférence créée par la boîte Workspace le
+      // laisse frapper à la porte au lieu de le laisser entrer.
+      attendeeEmail,
+      attendeeName,
+    },
+  )
 
   if (event) {
     meetingUrl = event.meetingUrl
@@ -208,7 +221,7 @@ serve(async (req: Request) => {
     description,
     startMs: slotMs,
     durationMinutes: host.duration_minutes,
-    organizerEmail: hostProfile?.email ?? 'noreply@megga.ch',
+    organizerEmail: hostEmail ?? 'noreply@megga.ch',
     attendeeEmail,
     meetingUrl,
     method: 'REQUEST',
@@ -231,8 +244,8 @@ serve(async (req: Request) => {
           }],
         })
       : Promise.resolve({ ok: false, error: 'no attendee email' }),
-    hostProfile?.email
-      ? sendResendEmail({ to: hostProfile.email, subject: hostMail.subject, html: hostMail.html })
+    hostEmail
+      ? sendResendEmail({ to: hostEmail, subject: hostMail.subject, html: hostMail.html })
       : Promise.resolve({ ok: false, error: 'no host email' }),
   ])
 
