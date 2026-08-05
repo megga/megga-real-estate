@@ -210,6 +210,7 @@ serve(async (req) => {
       .from('kyc_cases')
       .update({ pep_status: 'pending', sanctions_status: 'pending' })
       .eq('id', kyc_case_id)
+      .eq('agency_id', callerAgencyId)
 
     // Call dilisense API avec timeout 15s (symétrie avec Sonnet 30s).
     // En cas de timeout, fetch lève une AbortError → catch → rollback.
@@ -242,6 +243,7 @@ serve(async (req) => {
           sanctions_status: previousSanctionsStatus,
         })
         .eq('id', kyc_case_id)
+        .eq('agency_id', callerAgencyId)
       throw dilisenseErr
     }
 
@@ -254,6 +256,7 @@ serve(async (req) => {
       .from('kyc_cases')
       .select('type, completion_pct, transaction_amount')
       .eq('id', kyc_case_id)
+      .eq('agency_id', callerAgencyId)
       .single()
 
     const riskResult = calculateRiskScore({
@@ -294,6 +297,7 @@ serve(async (req) => {
         ai_analysis: aiAnalysis,
       })
       .eq('id', kyc_case_id)
+      .eq('agency_id', callerAgencyId)
 
     if (updateError) throw updateError
 
@@ -302,6 +306,7 @@ serve(async (req) => {
       .from('kyc_cases')
       .select('agency_id')
       .eq('id', kyc_case_id)
+      .eq('agency_id', callerAgencyId)
       .single()
 
     if (kycCase) {
