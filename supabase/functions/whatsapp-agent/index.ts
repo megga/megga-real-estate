@@ -35,6 +35,7 @@ import { composeAgentSystemPrompt } from '../_shared/agent-system-prompt.ts'
 import { redactPII } from '../_shared/pii-redaction.ts'
 import { redactLlmMessages } from '../_shared/wa-agent-redaction.ts'
 import { fetchHotContactBlock } from '../_shared/contact-memory.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -71,9 +72,18 @@ serve(async (req) => {
   // l'active → UNAUTHORIZED_LEGACY_JWT) ; on compare donc le token reçu À NOTRE clé
   // service-role (secret partagé, comparaison à temps constant). Non forgeable sans la clé.
   // Défense en profondeur : l'agence est re-dérivée du lien vérifié ci-dessous.
-  const expectedKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const providedKey = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-  if (!expectedKey || !safeEqual(providedKey, expectedKey)) {
+  // Le client est monté ici, avant la garde, parce que la garde en a besoin pour
+  // lire le secret partagé dans `app_config`. Aucune valeur d'appelant ne
+  // l'atteint avant la décision : la seule requête émise porte une clé constante.
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  )
+
+  // `isServiceSecret` accepte les DEUX secrets de service du projet : celui de
+  // l'env (envoyé par whatsapp-webhook) et celui d'`app_config` (rejoué par
+  // pg_cron). N'en comparer qu'un faisait dépendre la chaîne de leur coïncidence.
+  // Constat : docs/audits/2026-08-04-blast-radius-service-role.md §4.3.
+  if (!(await isServiceSecret(supabase, req))) {
     return json({ error: 'Forbidden' }, 403)
   }
 
@@ -87,10 +97,6 @@ serve(async (req) => {
 
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
   if (!apiKey) return json({ reply: t(lang, 'iaDown'), isError: true }, 200)
-
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  )
 
   // Re-dérivation d'identité : l'agence vient du lien VÉRIFIÉ, pas du body (anti-forge).
   const { data: link } = await supabase
@@ -392,14 +398,6 @@ async function enqueueAsyncJob(
 
 function json(obj: unknown, code: number): Response {
   return new Response(JSON.stringify(obj), { status: code, headers: { 'Content-Type': 'application/json' } })
-}
-
-// Comparaison à temps constant (anti timing-attack sur le secret service-role).
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return diff === 0
 }
 
 async function callDeepSeek(

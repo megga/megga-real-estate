@@ -48,14 +48,18 @@ const BESPOKE_GUARDS = {
   'stripe-webhook': ['constructEventAsync'],    // signature Stripe + tolérance d'horodatage
   'esign-webhook': ['timingSafeEqual'],         // jeton de rappel (64 hex) dans l'URL
   'idx-feed': ['idx_feed_token'],               // jeton de flux par agence, résolu en base
-  'whatsapp-agent': ['safeEqual'],
+  // `whatsapp-agent`, `idx-syndicate` et `kyc-report-pdf` ONT QUITTÉ cette liste
+  // le 05.08.2026 : ils comparaient le secret à la main avec un `safeEqual` local,
+  // et ne reconnaissaient donc QUE la clé de l'env. Ils passent par
+  // `isServiceSecret` (garde partagée), qui accepte aussi le secret d'`app_config`
+  // rejoué par pg_cron. Les laisser ici aurait exigé un marqueur `safeEqual` qui
+  // n'existe plus dans ces fichiers — une entrée qui ne protège plus rien.
+  // Voir docs/audits/2026-08-04-blast-radius-service-role.md §4.3.
   'whatsapp-agent-async': ['safeEqual'],
   'whatsapp-process': ['safeEqual'],
   'whatsapp-morning-brief': ['safeEqual'],
   'learn-agent-style': ['safeEqual'],
   'weekly-digest': ['safeEqual'],
-  'idx-syndicate': ['safeEqual'],
-  'kyc-report-pdf': ['safeEqual'],
   'agency-verification-run': ['safeEqual'],
   'agency-verification-notify': ['safeEqual'],
   // Vérification réelle du JWT par GoTrue (la signature EST contrôlée), suivie
