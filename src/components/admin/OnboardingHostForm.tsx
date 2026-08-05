@@ -342,7 +342,10 @@ export default function OnboardingHostForm({ host, onClose }: OnboardingHostForm
         <AdminSolidBtn onClick={submit} disabled={upsert.isPending}>
           {t('onboardingCalls.hosts.form.save')}
         </AdminSolidBtn>
-        {!host && !resolvedProfile && email.trim() && (
+        {/* `mode === 'profile'` : sans cette garde, un e-mail saisi puis abandonné en
+            basculant vers l'agenda MEGGA laissait « aucun compte ne porte cet e-mail »
+            à côté du bouton — un reproche sur un champ que l'écran n'affiche plus. */}
+        {mode === 'profile' && !host && !resolvedProfile && email.trim() && (
           <span style={{ fontSize: 12, color: sp.soft }}>
             <AdminIc icon={X} size={13} color={sp.soft} /> {t('onboardingCalls.hosts.form.errors.unknownEmail')}
           </span>
