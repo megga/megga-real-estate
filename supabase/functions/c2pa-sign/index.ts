@@ -204,6 +204,7 @@ serve(async (req: Request) => {
           c2pa_verification_method: persistedMethod,
         })
         .eq('id', propertyId)
+        .eq('agency_id', profile.agency_id)
 
       // Audit trail
       await supabase.from('activity_events').insert({
