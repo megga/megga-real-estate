@@ -16,6 +16,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildAgencyIdxFeed } from '../_shared/idx-feed-core.ts'
 import { uploadIdxCsv, type FtpTarget } from '../_shared/idx-ftp.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -25,14 +26,6 @@ const DEFAULT_PORTAL = 'immobilier_ch'
 
 function json(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } })
-}
-
-// Comparaison à temps constant (anti timing-attack sur le secret service-role).
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length || a.length === 0) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return diff === 0
 }
 
 interface SyndConfigRow {
@@ -110,15 +103,24 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return json({ ok: true })
   if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405)
 
-  const auth = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? ''
-  if (!SERVICE_ROLE_KEY || !safeEqual(auth, SERVICE_ROLE_KEY)) {
+  // Le client est monté AVANT la garde parce que la garde en a besoin : lire le
+  // secret partagé dans `app_config` exige un client service-role. Aucune valeur
+  // fournie par l'appelant ne l'atteint avant que la garde ait tranché — la seule
+  // requête émise porte une clé constante.
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+
+  // Cette fonction a DEUX appelants qui n'envoient pas le même secret :
+  // le cron (20260629160000) rejoue `app_config.service_role_key`, tandis que
+  // `_shared/whatsapp-actions.ts` envoie `Deno.env.SUPABASE_SERVICE_ROLE_KEY`.
+  // Ne comparer qu'à l'env faisait donc reposer le chemin cron sur la COÏNCIDENCE
+  // des deux valeurs. `isServiceSecret` accepte les deux, en temps constant.
+  // Constat : docs/audits/2026-08-04-blast-radius-service-role.md §4.3.
+  if (!(await isServiceSecret(supabase, req))) {
     return json({ ok: false, error: 'unauthorized' }, 401)
   }
 
   const body = (await req.json().catch(() => ({}))) as { agency_id?: string }
   const onlyAgency = typeof body.agency_id === 'string' ? body.agency_id : null
-
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 
   // ACK immédiat + push en arrière-plan (l'upload FTP ne doit pas faire attendre
   // le caller — cron ou copilote).
