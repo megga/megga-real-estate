@@ -4,6 +4,19 @@
 `service_role`, les 6 scripts Node qui en lisent la clé, `src/` et la configuration Vite.
 **Nature :** rapport seul — aucun correctif écrit, aucune donnée modifiée, aucun secret lu.
 
+> **État au 5 août 2026 : les cinq constats sont traités et fusionnés.**
+> §4.1 ([#1169](https://github.com/megga/megga-real-estate/pull/1169)),
+> §4.2 ([#1167](https://github.com/megga/megga-real-estate/pull/1167)),
+> §4.3 ([#1171](https://github.com/megga/megga-real-estate/pull/1171)),
+> §4.4 et §4.7 ([#1170](https://github.com/megga/megga-real-estate/pull/1170)),
+> §4.5 ([#1172](https://github.com/megga/megga-real-estate/pull/1172)).
+> §4.6 (`idx-feed`) est **laissé ouvert à dessein** — voir §8.
+> Ce que l'exécution a appris, et que l'audit n'avait pas vu : **§10**.
+>
+> Le corps du rapport est conservé **tel qu'il a été écrit**, y compris là où il s'est
+> trompé (le §8.4 recommandait d'écrire un helper qui existait déjà). Un audit qu'on
+> réécrit après coup ne dit plus ce qu'on savait au moment de décider.
+
 > **Ce que ce lot cherchait, et pourquoi.** Le §4.1 de l'audit précédent
 > ([2026-08-03-signatures-webhooks.md](2026-08-03-signatures-webhooks.md)) était une
 > instance de ce motif : `log-auth-event` écrivait dans `auth_events` via un client
@@ -491,3 +504,64 @@ appliqué. Personne ne le remarquerait avant le prochain audit.
 
 Les §8.1, §8.3, §8.4, §8.5 et §8.6 ne touchent pas la base et n'ont aucune contrainte de
 date.
+
+---
+
+## 10. Ce que l'exécution a appris, et que l'audit n'avait pas vu
+
+Ajouté le 5 août 2026, après fusion des cinq correctifs. Ces points valent pour les
+prochains lots autant que pour celui-ci.
+
+**Le helper recommandé existait déjà.** Le §8.4 proposait d'extraire
+`isTrustedServiceCaller` d'`agency-verification-run` vers `_shared`. Or `isServiceSecret`
+([require-service-secret.ts](../../supabase/functions/_shared/require-service-secret.ts))
+faisait déjà exactement cela, acceptait déjà les deux formats, et comptait déjà **dix
+appelants**. Le correctif est donc devenu une migration au lieu d'un ajout. Lire
+`_shared/` en entier AVANT de recommander du code neuf aurait évité la recommandation ;
+c'est le réflexe à ajouter au prochain audit.
+
+**Un durcissement peut supprimer un signal de sécurité.** Le §4.5 demandait de composer
+`.eq('agency_id', …)` sur les écritures. Appliqué mécaniquement à tous les sites de
+`kyc-screening`, il aurait aussi cloisonné la **lecture de propriété** — celle qui ÉTABLIT
+la propriété. La branche `403 cross-agency` serait devenue inatteignable et un accès
+inter-agences serait sorti en « introuvable ». Plus fermé en apparence, moins lisible en
+pratique : un refus qui ne dit plus ce qu'il refuse. **Classer chaque site en
+lecture-de-contrôle ou écriture avant de patcher**, jamais l'inverse.
+
+**Une mutation qui ne s'applique pas se lit comme un test qui passe.** Trois campagnes de
+mutation ont été menées ; dans deux d'entre elles, un motif `perl -0pi -e` n'a pas
+accroché (fins de ligne CRLF) et la suite affichait un vert parfaitement crédible. Seule
+la trace « (applied) / (not applied) » l'a révélé. **Faire imprimer à la mutation qu'elle
+a bien posé son marqueur** — sinon on mesure la couverture d'un fichier intact.
+
+**La fusion en lot escamote les déploiements.** Six PR fusionnées en quelques minutes ont
+produit **deux exécutions de `deploy.yml`** : la première et la dernière. Les quatre du
+milieu sont `cancelled` — la file de concurrence ne garde qu'un run en attente. Aucune
+perte (le dernier run porte la pointe de `main`), mais **la pastille verte d'une PR du
+milieu ne prouve aucun déploiement**. Vérifier le DERNIER run, et pour une migration,
+vérifier un effet observable en base.
+
+**Le `COMMENT ON TABLE` est un excellent témoin de déploiement.** Les deux `REVOKE` du
+§4.1 avaient été appliqués à la main avant la PR : leur présence ne prouvait donc rien sur
+la CI. Le `COMMENT`, lui, n'avait jamais été posé — le retrouver en base après fusion
+prouve que la CI a réellement exécuté le fichier. **Glisser un effet inédit et inoffensif
+dans une migration idempotente donne une sonde de déploiement gratuite.**
+
+**`supabase_migrations.schema_migrations` n'est pas tenu à jour par ce dépôt.** La
+migration du §4.1 n'y figure pas — ni aucune des migrations du 4 août. `deploy.yml`
+applique le SQL via l'API Management et n'écrit pas ce registre. Ce n'est donc pas un
+indicateur d'application : la dernière entrée date du 3 août alors que la base est à jour.
+Ne pas s'en servir pour diagnostiquer une dérive ; c'est `check-migration-drift.mjs` qui
+compare réellement le dépôt à la production.
+
+**L'outil SQL du plan de contrôle valide chaque instruction.** Une sonde du §4.1, écrite
+pour être annulée, a été **committée en production** : il n'y avait pas de transaction à
+annuler. Pour une sonde qui écrit, il faut un `BEGIN`/`ROLLBACK` explicite **dans le même
+envoi**, ou s'en tenir à des lectures. Et ne jamais annoncer « annulé » avant de l'avoir
+constaté.
+
+**Un statut `succeeded` de `pg_cron` ne dit rien du HTTP.** `net.http_post` est
+asynchrone : `cron.job_run_details.status` ne rapporte que la mise en file. Les 15 tâches
+cron→edge affichaient 100 % de succès, ce qui ne prouvait pas que les gardes
+authentifiaient. Seul `net._http_response` répond — et c'est lui qui a établi que les deux
+secrets du §4.3 coïncident aujourd'hui (0 × 401/403 sur 1 025 appels).
