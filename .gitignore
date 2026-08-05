@@ -29,6 +29,24 @@ dist-admin
 supabase/.temp/
 .claude/worktrees/
 
+# Variables d'environnement — aucune valeur réelle ne doit pouvoir être commitée.
+#
+# Ce qui protégeait `.env.local` jusqu'ici, c'était `*.local` (plus haut) : un
+# effet de bord, pas une règle sur les fichiers d'environnement. `.env`,
+# `.env.production` et `supabase/.env` étaient donc committables — vérifié avec
+# `git check-ignore`. `supabase/.env` mérite d'être nommé : c'est l'emplacement
+# que la CLI Supabase lit pour les secrets d'Edge Functions (`--env-file`), donc
+# le chemin le plus plausible pour qu'une clé service-role atterrisse sur le
+# disque. Constat : docs/audits/2026-08-04-blast-radius-service-role.md §4.4.
+#
+# Les gabarits versionnés sont réintégrés juste après — ils ne portent que des
+# valeurs d'exemple, et ce sont eux qui documentent les variables attendues.
+.env
+.env.*
+supabase/.env
+!.env.example
+!.env.test.example
+
 # Sentry auth token for sourcemap upload
 .env.sentry-build-plugin
 
