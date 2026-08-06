@@ -123,31 +123,37 @@ raisonnement que la PR #1178 sur les deux helpers d'agence.
 Découpage pensé pour que chaque tâche parte en PR séparée et **atteigne `main` le jour même
 où sa migration est horodatée** (voir « contraintes de dépôt »).
 
-### Tâche 1 : le fichier obtient une ligne
+### Tâche 1 : le fichier cesse d'être introuvable — ✅ FAIT (`20260806184824`)
 
-Sans ligne, rien ne peut le trouver — c'est la cause racine de F1, et toutes les autres tâches
-en dépendent.
+> ⚠ **Conception révisée pendant l'implémentation.** Ce plan prévoyait une table-miroir
+> `agency_id_document_files`. En lisant le chemin réel — `{agence}/kyb-identity/{personne}/{côté}.{ext}`
+> — il est apparu que **`storage.objects` EST déjà le registre** : l'agence et la personne y
+> sont écrites. Rien ne manquait en base, il manquait quelqu'un pour REGARDER. Un miroir
+> aurait ajouté une source de vérité concurrente à tenir à jour au dépôt, au remplacement et
+> à la purge — et sa première désynchronisation aurait recréé le défaut qu'on ferme.
 
-Nouvelle table `agency_id_document_files` :
+Livré à la place :
 
-| Colonne | Rôle |
-|---|---|
-| `id` | uuid pk |
-| `agency_id` | fk `agencies` on delete cascade |
-| `related_person_id` | fk `agency_related_persons` on delete cascade |
-| `storage_path` | chemin exact sous `documents/{agence}/kyb-identity/` |
-| `uploaded_at` | horodatage du dépôt |
-| `purge_after` | échéance calculée ; `null` = purge dès verdict terminal |
-| `purged_at` | non nul une fois l'objet Storage réellement supprimé |
-| `purge_reason` | `verdict` \| `expiry` \| `account_deletion` \| `backfill` |
+* **`kyb_identity_files()`** — inventaire DÉRIVÉ (`security definer`, `storage.objects` étant
+  sous RLS). Rend chemin, agence, personne, date de dépôt, verdict courant, exigibilité et
+  motif de purge. Le verdict est départagé par `_latest_person_verification_check`, le **même**
+  point de décision que `submit_agency_identity` et `admin_resolve_agency_id_document` :
+  recopier cet ordre ferait diverger « où en est ce check » entre celui qui juge et celui qui
+  purge, et une pièce pourrait être détruite alors que la revue la croit en attente.
+* **`agency_id_document_purges`** — journal append-only, **sans FK ni cascade**. C'est le seul
+  fait qu'un inventaire dérivé ne peut pas reconstituer, l'objet ayant disparu. Sans cascade
+  parce qu'une preuve de destruction qui s'efface avec son sujet ne prouve plus rien : c'est
+  exactement quand l'agence est supprimée qu'il faut pouvoir montrer que sa pièce l'a été.
+* **`kyb_identity_retention_days()`** — l'arbitrage 3 matérialisé : 90 jours, en un point de
+  réglage unique. Ne s'applique qu'aux pièces SANS verdict ; une pièce tranchée part sans
+  attendre l'échéance.
 
-`purged_at` et `purge_reason` restent APRÈS la purge : la ligne devient la preuve auditable
-qu'un fichier a existé et a été détruit, à telle date, pour tel motif. Purger sans trace
-échangerait un problème de conservation contre un problème de redevabilité.
+Aucun trigger sur `storage.objects` : le dépôt n'en pose aucun aujourd'hui, le privilège n'est
+acquis nulle part, et faire dépendre la conformité d'une écriture qui peut échouer en silence
+serait un mauvais échange.
 
-RLS : révoquer d'abord `anon` et `authenticated`, ouvrir ensuite le strict nécessaire (le
-footgun maison rappelé en tête de `20260803214105`). Lecture super-admin ; l'agence n'a pas
-besoin de voir cette table.
+Pas de changement de comportement — la migration est purement additive et sûre quelle que soit
+la réponse à la question LBA.
 
 ### Tâche 2 : purge au verdict terminal
 
