@@ -20,6 +20,7 @@ import { moveHostEvent, deleteHostEvent, type CalendarProvider } from '../_share
 import { sendResendEmail, toBase64 } from '../_shared/resend.ts'
 import { buildAttendeeEmail, buildHostEmail, buildIcs } from '../_shared/onboarding-email.ts'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
+import { onboardingCallManageUrl } from '../_shared/app-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,11 +61,6 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
-}
-
-function appOrigin(req: Request): string {
-  const origin = req.headers.get('origin') ?? ''
-  return /^https?:\/\//.test(origin) ? origin : 'https://app.megga.ch'
 }
 
 const CALL_COLUMNS =
@@ -133,9 +129,7 @@ serve(async (req: Request) => {
   if (currentStartMs <= nowMs) return json({ error: 'call_in_past' }, 409)
 
   const parties = await loadParties(db, call)
-  // `/rendez-vous-accueil/` — cf. onboarding-call-book pour pourquoi ce n'est pas
-  // `/rendez-vous/`, qui appartient au RDV de vérification KYC.
-  const manageUrl = `${appOrigin(req)}/rendez-vous-accueil/${call.manage_token}`
+  const manageUrl = onboardingCallManageUrl(call.manage_token)
   const locale = body.locale === 'en' ? 'en' : 'fr'
   const timezone = typeof body.timezone === 'string' && body.timezone ? body.timezone : parties.hostTimezone
 
