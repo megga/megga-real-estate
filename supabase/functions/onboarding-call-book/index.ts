@@ -18,6 +18,7 @@ import { pickHostForSlot, recheckWindow } from '../_shared/onboarding-slots.ts'
 import { createHostEvent } from '../_shared/host-freebusy.ts'
 import { sendResendEmail, toBase64 } from '../_shared/resend.ts'
 import { buildAttendeeEmail, buildHostEmail, buildIcs } from '../_shared/onboarding-email.ts'
+import { onboardingCallManageUrl } from '../_shared/app-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,11 +41,6 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
-}
-
-function appOrigin(req: Request): string {
-  const origin = req.headers.get('origin') ?? ''
-  return /^https?:\/\//.test(origin) ? origin : 'https://app.megga.ch'
 }
 
 serve(async (req: Request) => {
@@ -115,12 +111,11 @@ serve(async (req: Request) => {
   }
 
   // ── 3. Tout ce qui suit est best-effort ──
-  // `/rendez-vous-accueil/` et NON `/rendez-vous/` : ce dernier appartient au RDV de
-  // vérification KYC (appointment-book), et sa route est déclarée AVANT dans App.tsx —
-  // le lien atterrissait donc sur l'écran KYC, qui ne connaît pas ce jeton. Corrigé le
-  // 04.08.2026, en même temps que la route et les deux autres fonctions qui bâtissent
-  // cette URL (-manage, -reminder).
-  const manageUrl = `${appOrigin(req)}/rendez-vous-accueil/${inserted.manage_token}`
+  // Le segment `/rendez-vous-accueil/` appartient au constructeur partagé — il est le
+  // piège de ce lien : `/rendez-vous/` appartient au RDV de vérification KYC
+  // (appointment-book), sa route est déclarée AVANT dans App.tsx, et le lien atterrissait
+  // sur l'écran KYC qui ne connaît pas ce jeton.
+  const manageUrl = onboardingCallManageUrl(inserted.manage_token)
   const { data: agency } = await db
     .from('agencies').select('name').eq('id', profile.agency_id).maybeSingle()
   const { data: hostProfile } = await db
