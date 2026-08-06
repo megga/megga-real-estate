@@ -43,10 +43,31 @@ const seed = resolve(root, '.claude-flow/knowledge/megga-memory.seed.json');
 const db = resolve(root, '.swarm/memory.db');
 
 const env = { ...process.env, CLAUDE_FLOW_DISABLE_BRIDGE: '1' };
-const run = (args) =>
-  execFileSync('npx', ['--yes', RUFLO, ...args], { cwd: root, env, stdio: 'inherit' });
-const capture = (args) =>
-  execFileSync('npx', ['--yes', RUFLO, ...args], { cwd: root, env, encoding: 'utf-8' });
+
+// WINDOWS : `npx` n'est pas lançable par execFile — le binaire résolvable est `npx.cmd`,
+// et execFile ne passe par aucun shell (→ « spawnSync npx ENOENT », juste APRÈS la ligne
+// « seed validé » : ça se lit comme un avertissement sans rapport, pas comme un échec).
+// Les deux échappatoires évidentes sont pires que le mal :
+//   - shell:true → Node concatène les arguments SANS les échapper (DEP0190) : « pipeline
+//     flatfox » arrive en DEUX argv, donc les sondes de rappel interrogeraient autre chose
+//     que ce qu'on croit, et un chemin de seed contenant une espace casserait l'import ;
+//   - 'npx.cmd' seul → EINVAL depuis le correctif de la CVE-2024-27980, Node refusant de
+//     spawner un .cmd/.bat sans shell.
+// On lance donc le script JS de npx avec le node courant : aucun shell, arguments préservés
+// mot pour mot, même code que `npx`. Repli sur `npx` hors Windows, où c'est un vrai binaire.
+const npxCli = [
+  resolve(dirname(process.execPath), 'node_modules/npm/bin/npx-cli.js'), // Windows
+  resolve(dirname(process.execPath), '../lib/node_modules/npm/bin/npx-cli.js'), // POSIX
+].find(existsSync);
+if (!npxCli && process.platform === 'win32') {
+  console.error(`[ruflo-seed] npx introuvable près de ${process.execPath} — npm n'est pas installé avec ce node.`);
+  process.exit(1);
+}
+const [launcher, launchPrefix] = npxCli ? [process.execPath, [npxCli]] : ['npx', []];
+const ruflo = (args, opts) =>
+  execFileSync(launcher, [...launchPrefix, '--yes', RUFLO, ...args], { cwd: root, env, ...opts });
+const run = (args) => ruflo(args, { stdio: 'inherit' });
+const capture = (args) => ruflo(args, { encoding: 'utf-8' });
 
 if (!existsSync(seed)) {
   console.error(`[ruflo-seed] missing seed file: ${seed}`);
