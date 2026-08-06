@@ -155,26 +155,42 @@ serait un mauvais échange.
 Pas de changement de comportement — la migration est purement additive et sûre quelle que soit
 la réponse à la question LBA.
 
-### Tâche 2 : purge au verdict terminal
+### Tâches 2 et 3 : la purge entre en service — ✅ FAIT (`20260806191106`)
 
-`admin_resolve_agency_id_document` (20260731121000) pose déjà le verdict. Elle gagne, **en
-dernière instruction**, la suppression de l'objet Storage et le renseignement de
-`purged_at`/`purge_reason='verdict'`.
+> ⚠ **Les deux tâches n'en font qu'une.** Le plan séparait « purge au verdict » et « filet
+> d'échéance ». À l'écriture, la séparation s'est révélée artificielle : `kyb_identity_files()`
+> calcule DÉJÀ `purge_reason` (`verdict` ou `expiry`) à la lecture. Deux jobs auraient lu la
+> même vue pour appliquer le même geste, avec deux planifications à tenir d'accord. Un seul
+> passage traite les deux ; le motif reste distingué dans le journal.
 
-Verdicts terminaux : `match` et `mismatch`. **Pas** `pending_manual_review` (question ouverte),
-**pas** `partial` tant que l'étape 7 le rend remplaçable — une pièce refusée redevient
-déposable, donc purger sur `partial` casserait la boucle de remédiation.
+Livré :
 
-### Tâche 3 : le filet — purge à échéance
+* **`supabase/functions/kyb-identity-purge`** — balayage service-role (`isServiceSecret`),
+  borné à 200 objets par passage.
+* **`kyb-identity-purge-daily`** — `pg_cron` à 05:20 UTC, créneau libre entre
+  `flatfox-sync-daily` (04:00) et `onboarding-call-reminders` (07:00). Identifié par son
+  **jobname**, jamais par son jobid (§7 de CLAUDE.md).
 
-Un dossier abandonné n'atteint aucun verdict. Job `pg_cron` quotidien : purge les objets dont
-`purge_after < now()` et `purged_at is null`, `purge_reason='expiry'`.
+**Pourquoi l'API Storage et pas un `delete from storage.objects`.** Le dépôt porte un précédent
+SQL (`20260706140000_purge_chat_staging_cron.sql`) justifié pour SON cas : une photo dans un
+bucket PUBLIC, où retirer la métadonnée suffit à rendre l'URL 404 — la fin de l'EXPOSITION est
+le but. Ici le but est la fin de la CONSERVATION, et supprimer la ligne `storage.objects`
+laisse l'objet S3 orphelin : injoignable, mais toujours stocké. « Injoignable » ne vaut pas
+« effacé » face à une demande portant sur un scan de passeport.
 
-Échéance par défaut proposée : **90 jours après dépôt**. Assez long pour une revue humaine qui
-traîne, assez court pour ne pas devenir un entrepôt. Valeur portée par la configuration
-(arbitrage 3), pas par une constante.
+**Pourquoi un balayage et pas un appel depuis le verdict.** `admin_resolve_agency_id_document`
+est une fonction SQL : elle ne peut pas appeler l'API Storage. Elle pourrait marquer une ligne
+« à purger », mais ce serait un second registre à tenir — ce que la tâche 1 a précisément
+refusé. Délai assumé : une pièce tranchée part au prochain passage, très en deçà de tout délai
+d'effacement exigible.
 
-⚠ Identifier le job par son `jobname`, jamais par son `jobid` (§7 de CLAUDE.md).
+**Ordre des gestes : retrait D'ABORD, journal ENSUITE.** Si le journal partait en premier et
+que le retrait échouait, le registre affirmerait une destruction qui n'a pas eu lieu — le seul
+des deux échecs qu'on ne peut pas rattraper, faute de savoir qu'il faut y revenir.
+
+Verdicts terminaux : `match` et `mismatch` seulement. **Pas** `pending_manual_review` (question
+ouverte), **pas** `partial` — l'étape 7 rend une pièce refusée à nouveau déposable, purger sous
+elle casserait la boucle de remédiation.
 
 ### Tâche 4 : réconciliation de l'existant
 
@@ -211,11 +227,22 @@ le nom de l'agence, l'hôte, l'horaire et l'URL de réunion.
 Aligner la lecture sur les gestes : au-delà d'une fenêtre après `scheduled_at`, la fonction ne
 rend plus rien. Aucune colonne nouvelle — la borne se calcule sur `scheduled_at`.
 
-### Tâche 8 : refermer le registre
+### Tâche 8 : refermer le registre — ✅ FAIT
 
-`01-registre-activites-traitement.md` porte des champs **À DÉTERMINER** posés le 06.08.2026
-(activité n°13, durée de conservation). Les remplacer par la valeur retenue une fois la tâche 3
-en service, et retirer le point ouvert n°2.
+Activité n°13 : la durée de conservation cesse d'être **À DÉTERMINER** — purge au verdict,
+échéance de sécurité à 90 jours, avec les objets techniques qui l'appliquent. Le droit
+d'effacement passe de « non opérant » à opérant **sur l'image**, attesté par
+`agency_id_document_purges`.
+
+Le point ouvert n°2 n'est pas supprimé mais **réduit à ce qui reste vrai** : (a) la portée LBA,
+qui reste une question juridique — si elle imposait une conservation, c'est
+`kyb_identity_retention_days()` qui change, pas le dispositif ; (b) les données DÉCLARÉES
+(`agency_related_persons` : date de naissance, nationalité, numéro de pièce), toujours sans
+durée ni chemin d'effacement.
+
+⚠ La modification du registre voyage dans la MÊME PR que l'application technique. Un registre
+qui annoncerait une purge avant que le balayage existe serait exactement le défaut reproché au
+README d'avril (« droit à l'effacement fonctionnel » alors qu'il ne l'était pas).
 
 ---
 
