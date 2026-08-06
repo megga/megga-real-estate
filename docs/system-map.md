@@ -17,7 +17,7 @@
 ## 🧠 Le cerveau : comment ça marche & comment le maintenir
 
 Ce document **+** [`.claude-flow/knowledge/megga-memory.seed.json`](../.claude-flow/knowledge/megga-memory.seed.json)
-(~180 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
+(~220 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
 **local** (embeddings ONNX, recherche HNSW) et **gratuit** (0 appel API).
 
 **Ce qui est automatique :**
@@ -59,6 +59,21 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "comment fonctio
 > cerveau vide (3.10.46 tombait, lui, sur le chemin sql.js legacy par défaut, ce qui masquait le
 > problème) ; et l'invoquer **réécrit `.claude/helpers/`** au passage (~900 lignes, 3.25.6 → 3.32.30),
 > un diff parasite à annuler avant de committer.
+
+> ⚠️ **Deuxième cause de « No results found » sur un cerveau plein : la requête est trop courte.**
+> La recherche est **sémantique**, avec un plancher de score : une requête d'un ou deux mots ne le
+> franchit pas, même quand le terme est littéralement dans l'entrée. Mesuré le 06/08/2026 sur les
+> 222 entrées, **flag posé et version épinglée** : `-q "realadvisor"` → **0 résultat**,
+> `-q "resurrection"` → **0 résultat** ; alors que `-q "health check realadvisor regles alerte cron"`
+> rend `megga/realadvisor-health-alerting` à **0,75**, et `-q "alerte seuil mass_removal taux de
+> resurrection"` la même entrée à **0,76**. Aucun résultat sous ~0,72 n'est jamais apparu — plancher
+> **constaté à l'usage, pas lu dans le code amont** (l'implémentation vit dans une dépendance
+> transitive).
+>
+> **Donc : interroger par une phrase topique, jamais par un mot-clé.** Le piège est qu'un
+> `No results found` sur mot unique est indiscernable d'un cerveau qui ignore le sujet — et le
+> réflexe qu'enseigne le bloc ci-dessus (vérifier le flag, vérifier la version) ne mène nulle part
+> ici, les deux étant déjà corrects.
 
 > ⚠️ **Fiabilité** : les entrées reflètent le code à leur date d'écriture. En cas de doute, le **code
 > fait foi** — re-vérifier puis corriger le seed. Plusieurs entrées portent des `NUANCE`/`ATTENTION`
