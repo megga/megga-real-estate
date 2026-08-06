@@ -14,7 +14,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 
 /** Sous-chemins de la console — ceux qui n'existent PAS à la racine du CRM. */
 const ADMIN_SUBPATHS = [
@@ -38,9 +38,21 @@ const ROOTS = ['src/pages/admin', 'src/components/admin']
  */
 const SHELL = 'src/components/admin/AdminShell.tsx'
 
+/**
+ * Chemin à séparateurs POSIX.
+ *
+ * `join` rend des `\` sous Windows, alors que `SHELL` ci-dessus s'écrit avec des `/` :
+ * la comparaison `f !== SHELL` était donc TOUJOURS vraie en local, l'exception du rail
+ * ne s'appliquait jamais, et sa table de chemins nus — le comportement que ce fichier
+ * documente comme légitime — se lisait comme une infraction. Vert en CI (Linux), rouge
+ * sur la machine du développeur. Normaliser à la source vaut mieux que de normaliser à
+ * la comparaison : les messages d'infraction sortent eux aussi en `/`.
+ */
+const posix = (p: string): string => p.split(sep).join('/')
+
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap(entry => {
-    const full = join(dir, entry)
+    const full = posix(join(dir, entry))
     if (statSync(full).isDirectory()) return walk(full)
     return full.endsWith('.tsx') || full.endsWith('.ts') ? [full] : []
   })
@@ -51,7 +63,7 @@ describe('cibles de navigation de la console admin', () => {
     ...ROOTS.flatMap(walk),
     ...readdirSync('src/hooks')
       .filter(f => f.startsWith('useAdmin'))
-      .map(f => join('src/hooks', f)),
+      .map(f => posix(join('src/hooks', f))),
   ]
 
   it('trouve bien les fichiers de la console (sinon le test ne prouve rien)', () => {

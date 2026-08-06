@@ -18,7 +18,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 
 const RACINE = 'supabase/functions'
 
@@ -98,7 +98,11 @@ describe('instrumentation activity_events (étape 6)', () => {
   it('toute écriture dans activity_events pose une `category`', () => {
     const fautifs: string[] = []
     for (const f of tous) {
-      const nom = f.split('/').pop() as string
+      // `basename` et non `split('/')` : `join` rend des `\` sous Windows, où découper
+      // sur `/` renvoyait le chemin ENTIER au lieu du nom de fichier. L'exception ne
+      // matchait donc jamais et ce test échouait en local — vert en CI (Linux), rouge
+      // sur la machine de qui l'exécute vraiment, ce qui est la pire des combinaisons.
+      const nom = basename(f)
       if (nom in SANS_CATEGORIE_ASSUME) continue
       const source = readFileSync(f, 'utf8')
       if (!source.includes('activity_events')) continue
