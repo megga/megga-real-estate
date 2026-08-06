@@ -66,9 +66,11 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "comment fonctio
 > 222 entrées, **flag posé et version épinglée** : `-q "realadvisor"` → **0 résultat**,
 > `-q "resurrection"` → **0 résultat** ; alors que `-q "health check realadvisor regles alerte cron"`
 > rend `megga/realadvisor-health-alerting` à **0,75**, et `-q "alerte seuil mass_removal taux de
-> resurrection"` la même entrée à **0,76**. Aucun résultat sous ~0,72 n'est jamais apparu — plancher
-> **constaté à l'usage, pas lu dans le code amont** (l'implémentation vit dans une dépendance
-> transitive).
+> resurrection"` la même entrée à **0,76**. Les scores qui ressortent s'échelonnent de **0,80 à 0,70**
+> et rien n'a été observé en dessous — plancher **constaté à l'usage, pas lu dans le code amont**
+> (l'implémentation vit dans une dépendance transitive), donc à ne pas citer comme une constante.
+> *(Corrigé le 06/08/2026 : ce bloc annonçait d'abord « rien sous ~0,72 », démenti depuis par un
+> résultat sorti à 0,70.)*
 >
 > **Donc : interroger par une phrase topique, jamais par un mot-clé.** Le piège est qu'un
 > `No results found` sur mot unique est indiscernable d'un cerveau qui ignore le sujet — et le
