@@ -40,9 +40,14 @@
 | 9 | Support client (tickets) | Normal |
 | 10 | Analytics PostHog (avec consentement) | Normal |
 | 11 | Synchronisation calendriers externes (Google, Outlook) | Normal |
-| 12 | Copilote IA (assistance agent via Claude API) | Normal |
+| 12 | Copilote IA (assistance agent via DeepSeek) | Normal |
+| 13 | **Onboarding agence — vérification d'identité du dirigeant (KYB)** | **Élevé** |
 
-Les activités marquées **risque élevé** (#5 et #6) font l'objet d'une **analyse d'impact (DPIA)** séparée (voir `02-dpia-scoring-ia-kyc.md`).
+Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une **analyse d'impact (DPIA)** séparée (voir `02-dpia-scoring-ia-kyc.md`).
+
+> ⚠ **L'activité #13 n'est pas couverte par la DPIA existante**, qui est antérieure (11.04.2026)
+> au dispositif KYB (juillet–août 2026). Elle traite pourtant une pièce d'identité officielle
+> et un contrôle du vivant. DPIA à étendre — voir « Points ouverts » en fin de registre.
 
 ---
 
@@ -73,7 +78,7 @@ Les activités marquées **risque élevé** (#5 et #6) font l'objet d'une **anal
 | **Catégories de données** | Identité (nom, prénom, nationalité), coordonnées (email, téléphone, adresse), critères de recherche immobilière, budget, tags, notes libres saisies par l'agent, scores comportementaux IA (voir activité #6), historique d'interactions |
 | **Destinataires internes** | Agent propriétaire du contact + autres agents de la même agence selon les rôles configurés |
 | **Sous-traitants** | Supabase (hébergement) — eu-west-1 Ireland |
-| **Transferts hors Suisse/UE** | Aucun direct. Le copilote IA (activité #12) peut envoyer un résumé anonymisé à Anthropic (US) — base : SCCs + DPF |
+| **Transferts hors Suisse/UE** | Aucun direct. Le copilote IA (activité #12) envoie un contexte CRM à **DeepSeek (Chine)** — ⚠ **base de transfert non établie**, voir activité #12 |
 | **Durée de conservation** | Tant que la relation commerciale est active. Archivage 5 ans après dernier contact (délai de prescription contractuelle). Au-delà, suppression sauf si un dossier KYC lié est encore soumis à rétention LBA 10 ans. |
 | **Mesures de sécurité** | RLS PostgreSQL (un agent ne voit que les contacts de son agence), audit trail sur chaque création/modification/suppression, chiffrement au repos (Supabase), chiffrement en transit (TLS 1.3) |
 | **Droits des personnes concernées** | Les personnes concernées exercent leurs droits auprès de l'agence utilisatrice (responsable du traitement). MEGGA transmet les demandes reçues à l'agence concernée dans un délai de 5 jours ouvrables. |
@@ -124,7 +129,7 @@ Les activités marquées **risque élevé** (#5 et #6) font l'objet d'une **anal
 | **Catégories de données sensibles (art. 5 let. c nLPD)** | Oui — données relatives à des sanctions et PEP (traitées comme sensibles par assimilation au risque réputationnel et juridique) |
 | **Profilage ou décision automatisée** | Oui — risk scoring automatique 0-100 basé sur 5 facteurs FATF (nationalité, PEP, montant, type PP/PM, complétude dossier). **Le score est une estimation IA, pas une décision** : la validation finale nécessite toujours l'intervention humaine d'un agent (human-in-the-loop, art. 21 nLPD) |
 | **Sous-traitants** | Supabase (DB + Storage bucket `kyc-documents` agency-scoped) — eu-west-1 | **Dilisense** (API screening PEP/Sanctions) — Union Européenne |
-| **Transferts hors Suisse/UE** | Aucun. Une analyse qualitative optionnelle par Claude (Anthropic, US — nom, nationalité, hits PEP/sanctions) est **désactivée par défaut** (flag `KYC_AI_ANALYSIS_ENABLED=false`, edge `kyc-screening`) : seuls le screening factuel Dilisense (UE) et la revue humaine MLRO sont actifs. ⚠ Toute réactivation (à ne faire qu'avec un fournisseur d'inférence hébergé en UE) crée un transfert vers les US et impose la mise à jour de ce registre. |
+| **Transferts hors Suisse/UE** | Aucun. Le screening est assuré par Dilisense (UE) et la revue humaine MLRO. L'analyse qualitative par Claude décrite jusqu'au 06.08.2026 **n'existe plus** : le fournisseur Anthropic a été retiré du dépôt, et le drapeau `KYC_AI_ANALYSIS_ENABLED` n'est plus référencé nulle part (vérifié le 06.08.2026). ⚠ Toute réintroduction d'une inférence sur les données KYC créerait un transfert et imposerait la mise à jour de ce registre. |
 | **Durée de conservation** | **10 ans** à compter de la fin de la relation d'affaires (LBA art. 7 al. 3). Application technique : colonne `documents.retention_until` + trigger `trg_enforce_kyc_retention` qui bloque toute tentative de suppression anticipée. |
 | **Mesures de sécurité spécifiques** | Storage bucket agency-scoped (un agent ne voit que les documents de sa propre agence), audit trail exhaustif de chaque action (création, modification, validation, screening, suppression) avec `actor_id` et `metadata` horodatés, rôles granulaires, chiffrement au repos, transfert TLS 1.3 |
 | **DPIA** | **Obligatoire** — voir `02-dpia-scoring-ia-kyc.md` |
@@ -159,8 +164,8 @@ Les activités marquées **risque élevé** (#5 et #6) font l'objet d'une **anal
 | **Finalité** | Permettre la communication entre l'agent, ses contacts CRM et le copilote MEGGA AI |
 | **Base légale** | Exécution du contrat (service SaaS) + consentement de la personne concernée pour les messages client |
 | **Catégories de données** | Contenu des messages, horodatage, statut de lecture, pièces jointes, identité des interlocuteurs |
-| **Sous-traitants** | Supabase (DB + Realtime) — eu-west-1 | Anthropic (copilote IA) — États-Unis (uniquement pour les conversations IA) |
-| **Transferts hors Suisse/UE** | Anthropic (US) — base : SCCs + DPF. Les messages envoyés au copilote IA sont transmis à Anthropic Claude API. Par défaut, Anthropic ne conserve pas les prompts pour l'entraînement (contrat API commercial). |
+| **Sous-traitants** | Supabase (DB + Realtime) — eu-west-1 | **DeepSeek** (copilote IA) — **Chine** (uniquement pour les conversations IA) |
+| **Transferts hors Suisse/UE** | **DeepSeek (Chine)** — ⚠ **base de transfert non établie**. Les messages envoyés au copilote IA sont transmis à `api.deepseek.com`. La Chine ne bénéficie d'aucune décision d'adéquation, ni du Conseil fédéral (annexe 1 OPDo) ni de la Commission européenne. La politique de rétention et de réutilisation des prompts par le fournisseur n'est pas documentée à ce jour. |
 | **Durée de conservation** | Tant que la conversation est active + 2 ans après le dernier message |
 | **Mesures de sécurité** | RLS Supabase, audit trail via `activity_events` pour les conversations liées à un dossier KYC |
 
@@ -187,8 +192,8 @@ Les activités marquées **risque élevé** (#5 et #6) font l'objet d'une **anal
 | **Finalité** | Répondre aux demandes de support technique et commerciales |
 | **Base légale** | Exécution du contrat de service |
 | **Catégories de données** | Email, nom, contenu du ticket, pièces jointes, historique de conversation |
-| **Sous-traitants** | Supabase (DB) | Resend (notifications email) — US | Anthropic (suggestion IA de réponse) — US |
-| **Transferts hors Suisse/UE** | Resend + Anthropic (US) — base : SCCs + DPF |
+| **Sous-traitants** | Supabase (DB) | Resend (notifications email) — US | **DeepSeek** (suggestion IA de réponse) — **Chine** |
+| **Transferts hors Suisse/UE** | Resend (US) — base : SCCs. **DeepSeek (Chine)** — ⚠ **base de transfert non établie**, voir activité #12 |
 | **Durée de conservation** | 3 ans après clôture du ticket |
 | **Mesures de sécurité** | Accès restreint aux super-admins, audit trail, AI reply en mode suggestion (human-in-the-loop) |
 
@@ -232,10 +237,34 @@ Les activités marquées **risque élevé** (#5 et #6) font l'objet d'une **anal
 | **Base légale** | Exécution du contrat (fonctionnalité SaaS) |
 | **Catégories de données** | Prompt de l'agent, contexte CRM injecté (résumé contact, pipeline), réponse générée |
 | **Profilage ou décision automatisée** | Non — assistance uniquement, l'agent reste décideur |
-| **Sous-traitants** | Supabase (Edge Function `ai-copilot`) — eu-west-1 | Anthropic (Claude API, modèle Sonnet 4) — États-Unis |
-| **Transferts hors Suisse/UE** | Anthropic (US) — base : SCCs + DPF. Anthropic ne conserve pas les prompts pour l'entraînement (contrat API commercial). |
-| **Durée de conservation** | Prompts et réponses : 30 jours côté Supabase (logs), 30 jours maximum côté Anthropic |
+| **Sous-traitants** | Supabase (Edge Function `ai-copilot`) — eu-west-1 | **DeepSeek** (`deepseek-chat`, appel direct `api.deepseek.com`) — **Chine** |
+| **Transferts hors Suisse/UE** | ⚠ **DeepSeek (Chine) — base de transfert NON ÉTABLIE.** La Chine ne figure pas à l'annexe 1 OPDo (États à protection adéquate) et ne bénéficie d'aucune décision d'adéquation européenne. Un transfert vers un État sans adéquation exige l'une des garanties de l'art. 16 al. 2 nLPD (clauses types, règles d'entreprise contraignantes) ou une dérogation de l'art. 17. **Aucune n'est documentée à ce jour, et aucun DPA n'est signé avec ce fournisseur.** À arbitrer — voir « Points ouverts ». |
+| **Durée de conservation** | Prompts et réponses : 30 jours côté Supabase (logs). **Côté DeepSeek : inconnue** — la politique de rétention du fournisseur n'a pas été établie contractuellement. |
 | **Mesures de sécurité** | Audit trail complet (`actor_id = 'ai'`), system prompt verrouillé (interdit à l'IA de valider un KYC ou de contacter un client), mention "estimation IA" sur toute sortie |
+
+---
+
+## Activité n°13 — Onboarding agence : vérification d'identité du dirigeant (KYB)
+
+> Activité ajoutée au registre le **06.08.2026**. Le dispositif KYB est entré en service en
+> juillet–août 2026 ; le registre datait du 11.04.2026 et ne le décrivait pas. Les champs
+> marqués **À DÉTERMINER** appellent un arbitrage de la direction et ne doivent pas être
+> considérés comme conformes en l'état.
+
+| Champ | Valeur |
+|---|---|
+| **Finalité** | Vérifier l'identité du dirigeant d'une agence candidate avant l'ouverture d'un compte, afin de satisfaire aux obligations de diligence et d'écarter les inscriptions frauduleuses |
+| **Base légale (art. 31 nLPD)** | Exécution du contrat (conditions d'entrée en relation d'affaires) + intérêt légitime à prévenir la fraude. ⚠ **À faire valider** : le contrôle du vivant (selfie) peut relever de données biométriques au sens de l'art. 5 let. c ch. 4 nLPD, ce qui déplacerait la base légale vers le consentement explicite |
+| **Catégories de personnes concernées** | Dirigeants et personnes proches des agences candidates (`agency_related_persons`) |
+| **Catégories de données** | Nom, prénom, **date de naissance**, **nationalité**, **type et numéro de pièce d'identité**, **image de la pièce d'identité** (voie de secours), **selfie et contrôle du vivant** (voie Stripe), rôle déclaré, statut et horodatage de vérification |
+| **Catégories de données sensibles (art. 5 let. c nLPD)** | ⚠ **Probablement oui** — le selfie avec détection du vivant traité aux fins d'identifier une personne physique constitue une donnée biométrique. **À faire trancher juridiquement.** |
+| **Profilage ou décision automatisée** | Non. Le verdict de la pièce est posé par un relecteur humain (`admin_resolve_agency_id_document`) ; une vérification Stripe réussie ne valide pas le dossier seule (compliance-enabling, jamais replacing) |
+| **Sous-traitants** | Supabase (DB + Storage) — eu-west-1 | **Stripe Identity** (document authentique + selfie) — États-Unis | **Google LLC — Gemini `gemini-2.5-flash-lite`** : lecture OCR de l'image de la pièce d'identité (`_shared/kyb-id-read.ts`) — États-Unis |
+| **Transferts hors Suisse/UE** | Stripe (US) — base : SCCs + DPF. **Google/Gemini (US) — base : DPF**, mais ⚠ le DPA Google Workspace couvrait jusqu'ici un usage « virtual staging » de photos de biens ; **l'OCR d'une pièce d'identité officielle est un traitement d'une tout autre sensibilité et doit être re-qualifié contractuellement.** |
+| **Durée de conservation** | **Image de la pièce : détruite dès que le relecteur a tranché** (verdict `match` ou `mismatch`). Un dossier resté sans verdict est purgé au bout de **90 jours** (échéance de sécurité, `kyb_identity_retention_days()`). Application technique : inventaire `kyb_identity_files()`, balayage quotidien `kyb-identity-purge` (05:20 UTC), journal append-only `agency_id_document_purges`. — **Données déclarées** (`date_of_birth`, `nationality`, `id_document_type`, `id_document_number`) : ⚠ durée **encore à déterminer**, voir point ouvert n°2. |
+| **Mesures de sécurité** | Préfixe Storage cloisonné par 4 policies dédiées (`documents_kyb_identity_*`), lecture super-admin en SELECT seul, verdict append-only et daté, `id_document_number` en lecture restreinte par RLS |
+| **DPIA** | ⚠ **Obligatoire et manquante** — la DPIA existante (`02-dpia-scoring-ia-kyc.md`, 11.04.2026) ne couvre ni le KYB, ni le contrôle du vivant, ni l'OCR de pièce d'identité |
+| **Droits des personnes concernées** | Accès et rectification via le dirigeant de l'agence. **Effacement de l'image : opérant** — la pièce est détruite au verdict, et sa destruction est attestée par `agency_id_document_purges` (chemin, motif, date), journal sans FK ni cascade pour qu'il survive à la suppression de l'agence. ⚠ **Reste non opérant sur les données déclarées** : `agency_related_persons` n'est atteinte ni par `delete-account` ni par `admin-dsar-export` — voir point ouvert n°2. |
 
 ---
 
@@ -244,11 +273,12 @@ Les activités marquées **risque élevé** (#5 et #6) font l'objet d'une **anal
 | Sous-traitant | Rôle | Localisation | Base du transfert | Contrat |
 |---|---|---|---|---|
 | Supabase | Hébergement DB, Auth, Storage, Edge Functions | Irlande (eu-west-1) | UE — décision d'adéquation | DPA signé |
-| Anthropic | API Claude (copilote IA) | États-Unis | SCCs + DPF | DPA via Terms |
+| **DeepSeek** | API `deepseek-chat` — **toute l'inférence texte** (copilote, WhatsApp, mémoire contact, style agent, alertes) | **Chine** | ⚠ **AUCUNE — à établir** | ⚠ **Aucun DPA signé** |
 | Dilisense | API screening PEP/Sanctions | Union Européenne | UE — décision d'adéquation | DPA signé |
 | Stripe | Traitement des paiements d'abonnement | États-Unis | SCCs + DPF | DPA via Terms |
 | Resend | Envoi d'emails transactionnels | États-Unis | SCCs | DPA via Terms |
-| Google LLC | Google Calendar API, Gemini (staging) | États-Unis | DPF | DPA via Workspace Terms |
+| Google LLC | Google Calendar API, Gemini : virtual staging, extraction PDF, **et OCR des pièces d'identité KYB** | États-Unis | DPF | DPA via Workspace Terms — ⚠ **portée à re-qualifier** (l'OCR de pièce d'identité dépasse l'usage initialement documenté) |
+| Stripe Identity | Vérification de pièce d'identité + contrôle du vivant (selfie) — activité #13 | États-Unis | SCCs + DPF | DPA via Terms |
 | Microsoft | Outlook Calendar / Graph API | États-Unis | DPF | DPA via Services Agreement |
 | Mapbox | Cartographie | États-Unis | SCCs | DPA signé |
 | PostHog | Analytics | Union Européenne (`eu.posthog.com`) | UE — décision d'adéquation | DPA signé |
@@ -279,6 +309,25 @@ Les activités marquées **risque élevé** (#5 et #6) font l'objet d'une **anal
 - Formation annuelle à la protection des données pour les employés
 - Revue semestrielle du registre des traitements
 - DPIA pour les traitements à risque élevé
+
+---
+
+## Points ouverts — relevés le 06.08.2026
+
+Ces quatre points sont des écarts **constatés dans le code**, pas des hypothèses. Ils appellent
+un arbitrage avant d'affirmer la conformité du dispositif à un client ou à un auditeur.
+
+| # | Écart | Effet | Qui tranche |
+|---|---|---|---|
+| 1 | **DeepSeek (Chine) reçoit toute l'inférence texte sans base de transfert ni DPA** | Transfert vers un État sans décision d'adéquation. Concerne les activités #2, #7, #9, #12 | Direction + conseil juridique |
+| 2 | ~~L'image de pièce d'identité KYB n'a ni rétention ni purge~~ → **RÉGLÉ le 06.08.2026** : purge au verdict, échéance de sécurité à 90 jours, destruction attestée. **Reste ouvert** : (a) la portée de la LBA sur l'onboarding d'agence — si elle imposait une conservation, c'est `kyb_identity_retention_days()` qui change, pas le dispositif ; (b) les données DÉCLARÉES (`agency_related_persons`) n'ont toujours ni durée ni chemin d'effacement | (a) conseil juridique · (b) direction puis technique |
+| 3 | **Gemini lit les pièces d'identité sous un DPA qui visait le staging de photos** | Portée contractuelle dépassée pour un traitement bien plus sensible | Direction + Google Workspace |
+| 4 | **La DPIA ne couvre pas le KYB ni le contrôle du vivant** | Traitement à risque élevé sans analyse d'impact, alors que la nLPD l'exige | Direction + conseil juridique |
+
+**Non traité par cette révision** (audit du 06.08.2026, à porter séparément) : `admin-dsar-export`
+et `delete-account` couvrent des ensembles de tables presque disjoints, et ni l'un ni l'autre
+n'atteint `onboarding_calls`, `onboarding_hosts` ni `agency_related_persons` — les droits d'accès
+et d'effacement ne portent donc pas sur le même périmètre de données.
 
 ---
 
