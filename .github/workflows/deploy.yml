@@ -7,12 +7,36 @@ on:
     branches: [main]
   # Manual trigger to re-deploy main on demand — recover a stuck or raced
   # deploy without having to push an empty commit.
+  #
+  # ⚠ Les étapes de déploiement se gardent par `env.DEPLOIE_PROD` (voir plus bas),
+  # PAS par `github.event_name == 'push'` : entre l'ajout de ce déclencheur et le
+  # 07.08.2026, elles l'étaient, et un run manuel sautait donc tout ce qui compte
+  # tout en rendant « success ». Toute nouvelle étape de déploiement doit reprendre
+  # `DEPLOIE_PROD`, sinon ce déclencheur redevient décoratif.
   workflow_dispatch:
 
 # Opt into Node.js 24 for action runners to silence the deprecation
 # warnings and avoid the forced migration on June 2nd 2026.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+  # Faut-il déployer sur cette exécution ? Vrai pour un push sur main ET pour un
+  # workflow_dispatch sur main ; faux pour une PR.
+  #
+  # POURQUOI UNE CONDITION NOMMÉE PLUTÔT QUE QUATRE COPIES. Les quatre étapes qui
+  # déploient réellement (CLI Supabase, migrations, Cloudflare, edge functions)
+  # portaient chacune `github.event_name == 'push' && …`, recopié. Le jour où
+  # `workflow_dispatch` a été ajouté aux déclencheurs — précisément « pour rejouer un
+  # deploy coincé sans pousser un commit vide » — aucune des quatre n'a été mise à
+  # jour. Résultat mesuré le 06.08.2026 : un run manuel saute TOUTES les étapes
+  # utiles et rend « success » en ~40 s. Vert, et strictement inutile — ce qui est
+  # pire qu'un rouge, parce qu'on le lit comme un déploiement réussi. C'est ce qui a
+  # fait croire ce soir-là que deux migrations étaient parties en production alors
+  # que rien n'avait tourné.
+  #
+  # Une seule expression, donc, et quatre étapes qui la consomment : une cinquième
+  # étape de déploiement ajoutée demain ne peut plus hériter d'une copie périmée.
+  DEPLOIE_PROD: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
 
 # Serialize production deploys. Two pushes to main within seconds (e.g. two PRs
 # merged back-to-back) previously launched two concurrent
@@ -78,7 +102,7 @@ jobs:
       # No overlay step is needed here.
 
       - name: Setup Supabase CLI
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: env.DEPLOIE_PROD == 'true'
         # ⚠ VERSION ÉPINGLÉE, ET CE N'EST PAS DU ZÈLE. `version: latest` oblige l'action à
         # résoudre la dernière release via l'API GitHub, SANS authentification : sous charge,
         # l'IP partagée des runners atteint la limite et le job meurt AVANT tout travail utile
@@ -111,7 +135,7 @@ jobs:
       # OR REPLACE), so replaying today's files is safe. We filter by
       # filename prefix so older files are not replayed.
       - name: Apply Supabase migrations (Management API)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: env.DEPLOIE_PROD == 'true'
         env:
           SB_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -198,6 +222,13 @@ jobs:
       # fil du temps. Le vrai filet est `migration-drift.yml`
       # (scripts/check-migration-drift.mjs), qui compare ce que le dépôt déclare à
       # ce que la production contient — et qui, lui, échoue.
+      # ⚠ SEULE étape qui reste volontairement `push` — ne PAS la basculer sur
+      # `DEPLOIE_PROD`. Elle lit les fichiers AJOUTÉS dans la charge utile de
+      # l'événement (`.commits[].added[]`), qui n'existe QUE pour un push. Sur un
+      # workflow_dispatch la liste serait vide et l'étape conclurait « rien à
+      # signaler » — un silence rassurant et faux, exactement ce que son propre
+      # commentaire plus bas s'interdit (« une alerte qui échoue en silence ne vaut
+      # rien »). Mieux vaut qu'elle ne tourne pas du tout que de mentir.
       - name: Migrations sautées par le date-guard (alerte)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
@@ -393,7 +424,7 @@ jobs:
           done <<< "$unconfirmed"
 
       - name: Deploy to Cloudflare Pages
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: env.DEPLOIE_PROD == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -422,7 +453,7 @@ jobs:
           command: pages deploy dist --project-name=megga-real-estate --branch=main --commit-message="deploy ${{ github.sha }}" --commit-dirty=true
 
       - name: Link Supabase project and deploy functions
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: env.DEPLOIE_PROD == 'true'
         # Backstop : si tout le step se bloque (lien réseau, CLI figé), on le
         # tue au bout du délai au lieu de laisser le run pendre des heures.
         # Relevé de 10 à 20 min pour laisser respirer la passe de rattrapage
