@@ -9,9 +9,25 @@ import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 // - Refuses deletion if: KYC cases still in_progress/review, or user is the
 //   sole admin of an agency.
 // - Anonymises profiles, contacts and activity_events (audit trail preserved).
+// - Anonymises the director's KYB identity (agency_related_persons) and the
+//   onboarding call (onboarding_calls) — added 07.08.2026, see below.
 // - Keeps kyc_cases + KYC-linked documents untouched (LBA art. 7 al. 3 — 10y).
 // - Deletes non-KYC documents from Storage + DB.
 // - Deletes the Supabase Auth user via admin API (service role).
+//
+// PÉRIMÈTRE DÉCLARÉ AILLEURS. Ce que MEGGA détient sur une personne, et ce que
+// chacun des deux droits en fait, vit dans `_shared/personal-data-estate.ts`,
+// partagé avec `admin-dsar-export`. Les deux fonctions avaient DIVERGÉ en
+// silence : elles ne se recoupaient plus que sur `profiles` et
+// `activity_events`, si bien qu'on pouvait exporter ce qui n'était jamais
+// effacé, et inversement.
+//
+// ⚠ LES CASCADES NE SAUVENT RIEN ICI. Cette fonction ANONYMISE le profil
+// (étape 6), elle ne supprime jamais sa ligne. Tout `on delete cascade` ou
+// `on delete set null` pointant vers `profiles` reste donc DORMANT : les tables
+// filles doivent être traitées à la main, sans quoi leur PII survit au compte.
+// C'est ce qui laissait la date de naissance et le numéro de pièce du dirigeant
+// intacts après une suppression.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -217,6 +233,53 @@ serve(async (req) => {
           .update({ actor_id: 'deleted_user', metadata: mergedMeta })
           .eq('id', ev.id)
       }
+    }
+
+    // 8b. Identité KYB du dirigeant (agency_related_persons).
+    //
+    // POURQUOI EXPLICITEMENT, alors qu'une FK existe. `profile_id` est
+    // `on delete set null`, mais le compte est ANONYMISÉ et jamais supprimé
+    // (étape 6) : la cascade ne se déclenche donc JAMAIS. Sans ce traitement, la
+    // date de naissance, la nationalité et le NUMÉRO DE PIÈCE survivraient au
+    // compte — et si la cascade se déclenchait un jour, elle les laisserait
+    // intacts en coupant seulement le lien : orphelins, donc pires.
+    //
+    // CE QU'ON RETIRE ET CE QU'ON GARDE. Partent les données de la PIÈCE
+    // (naissance, nationalité, type et numéro) : leur finalité s'éteint quand la
+    // vérification est tranchée — même raisonnement que la purge de l'image
+    // (20260807101554). Restent le nom et le verdict : le dossier KYB de
+    // l'agence doit continuer de dire QUI a été vérifié et avec quelle issue,
+    // sans quoi on efface la conformité de l'agence en même temps que la donnée
+    // du dirigeant. `id_document_read` ne porte que des verdicts de comparaison,
+    // jamais les valeurs lues — rien à y retirer.
+    const { error: kybErr } = await admin
+      .from('agency_related_persons')
+      .update({
+        date_of_birth: null,
+        nationality: null,
+        id_document_type: null,
+        id_document_number: null,
+      })
+      .eq('profile_id', userId)
+    if (kybErr) {
+      console.warn('agency_related_persons anonymisation warning:', kybErr.message)
+    }
+
+    // 8c. Appel d'accueil (onboarding_calls).
+    //
+    // Objet de PLATEFORME (MEGGA ↔ agence), hors tenant : MEGGA en est
+    // responsable, pas sous-traitante. `booked_by` est `on delete cascade` et,
+    // pour la même raison qu'en 8b, la cascade ne joue pas. La migration
+    // d'origine avait déjà minimisé la table — « seuls un téléphone facultatif
+    // et une note libre sont propres au rendez-vous » : ce sont exactement les
+    // deux colonnes à retirer. Le rendez-vous lui-même reste, il appartient à
+    // l'historique de l'agence autant qu'à la personne.
+    const { error: callErr } = await admin
+      .from('onboarding_calls')
+      .update({ attendee_phone: null, attendee_note: null })
+      .eq('booked_by', userId)
+    if (callErr) {
+      console.warn('onboarding_calls anonymisation warning:', callErr.message)
     }
 
     // 9. Touch KYC cases linked to this user — add a retention note, do NOT delete

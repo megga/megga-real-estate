@@ -264,7 +264,7 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 | **Durée de conservation** | **Image de la pièce : détruite dès que le relecteur a tranché** (verdict `match` ou `mismatch`). Un dossier resté sans verdict est purgé au bout de **90 jours** (échéance de sécurité, `kyb_identity_retention_days()`). Application technique : inventaire `kyb_identity_files()`, balayage quotidien `kyb-identity-purge` (05:20 UTC), journal append-only `agency_id_document_purges`. — **Données déclarées** (`date_of_birth`, `nationality`, `id_document_type`, `id_document_number`) : ⚠ durée **encore à déterminer**, voir point ouvert n°2. |
 | **Mesures de sécurité** | Préfixe Storage cloisonné par 4 policies dédiées (`documents_kyb_identity_*`), lecture super-admin en SELECT seul, verdict append-only et daté, `id_document_number` en lecture restreinte par RLS |
 | **DPIA** | ⚠ **Obligatoire et manquante** — la DPIA existante (`02-dpia-scoring-ia-kyc.md`, 11.04.2026) ne couvre ni le KYB, ni le contrôle du vivant, ni l'OCR de pièce d'identité |
-| **Droits des personnes concernées** | Accès et rectification via le dirigeant de l'agence. **Effacement de l'image : opérant** — la pièce est détruite au verdict, et sa destruction est attestée par `agency_id_document_purges` (chemin, motif, date), journal sans FK ni cascade pour qu'il survive à la suppression de l'agence. ⚠ **Reste non opérant sur les données déclarées** : `agency_related_persons` n'est atteinte ni par `delete-account` ni par `admin-dsar-export` — voir point ouvert n°2. |
+| **Droits des personnes concernées** | Accès et rectification via le dirigeant de l'agence. **Effacement de l'image : opérant** — la pièce est détruite au verdict, et sa destruction est attestée par `agency_id_document_purges` (chemin, motif, date), journal sans FK ni cascade pour qu'il survive à la suppression de l'agence. **Données déclarées : désormais opérant aussi** (07.08.2026) — `agency_related_persons` entre dans les deux chemins. L'accès rend naissance, nationalité, type et numéro de pièce ; l'effacement les retire en conservant le nom et le verdict, sans quoi le dossier KYB de l'agence perdrait son sens en même temps que la donnée du dirigeant. ⚠ Reste sans **durée** de conservation tant que le compte vit — voir point ouvert n°2. |
 
 ---
 
@@ -320,14 +320,32 @@ un arbitrage avant d'affirmer la conformité du dispositif à un client ou à un
 | # | Écart | Effet | Qui tranche |
 |---|---|---|---|
 | 1 | **DeepSeek (Chine) reçoit toute l'inférence texte sans base de transfert ni DPA** | Transfert vers un État sans décision d'adéquation. Concerne les activités #2, #7, #9, #12 | Direction + conseil juridique |
-| 2 | ~~L'image de pièce d'identité KYB n'a ni rétention ni purge~~ → **RÉGLÉ le 06.08.2026** : purge au verdict, échéance de sécurité à 90 jours, destruction attestée. **Reste ouvert** : (a) la portée de la LBA sur l'onboarding d'agence — si elle imposait une conservation, c'est `kyb_identity_retention_days()` qui change, pas le dispositif ; (b) les données DÉCLARÉES (`agency_related_persons`) n'ont toujours ni durée ni chemin d'effacement | (a) conseil juridique · (b) direction puis technique |
+| 2 | ~~L'image de pièce d'identité KYB n'a ni rétention ni purge~~ → **RÉGLÉ le 06.08.2026** : purge au verdict, échéance de sécurité à 90 jours, destruction attestée. **Reste ouvert** : (a) la portée de la LBA sur l'onboarding d'agence — si elle imposait une conservation, c'est `kyb_identity_retention_days()` qui change, pas le dispositif ; (b) les données DÉCLARÉES (`agency_related_persons`) ont désormais un chemin d'effacement (07.08.2026) mais toujours **aucune durée** tant que le compte vit — rien ne les périme si personne ne demande rien | (a) conseil juridique · (b) direction (durée) |
 | 3 | **Gemini lit les pièces d'identité sous un DPA qui visait le staging de photos** | Portée contractuelle dépassée pour un traitement bien plus sensible | Direction + Google Workspace |
 | 4 | **La DPIA ne couvre pas le KYB ni le contrôle du vivant** | Traitement à risque élevé sans analyse d'impact, alors que la nLPD l'exige | Direction + conseil juridique |
 
-**Non traité par cette révision** (audit du 06.08.2026, à porter séparément) : `admin-dsar-export`
-et `delete-account` couvrent des ensembles de tables presque disjoints, et ni l'un ni l'autre
-n'atteint `onboarding_calls`, `onboarding_hosts` ni `agency_related_persons` — les droits d'accès
-et d'effacement ne portent donc pas sur le même périmètre de données.
+**Réglé le 07.08.2026** — `admin-dsar-export` et `delete-account` ne se recoupaient plus que sur
+deux tables : on pouvait exporter ce qui n'était jamais effacé, et inversement. Le périmètre est
+désormais déclaré **une seule fois** (`_shared/personal-data-estate.ts`), et un test unitaire
+interdit aux deux fonctions de re-diverger en silence.
+
+La ligne de partage a été reformulée au passage. Elle disait « données du compte vs données
+métier » ; elle dit maintenant **rôle de MEGGA** : responsable du traitement (profil, consentements,
+identité KYB du dirigeant, appel d'accueil, preuve de destruction) → les deux droits s'exercent
+ici ; sous-traitant (contacts CRM, transactions, dossiers KYC des parties) → ils s'exercent auprès
+de l'agence, conformément à l'activité n°2. C'est ce rangement qui laissait la date de naissance et
+le numéro de pièce d'un dirigeant hors des deux chemins.
+
+Le test n'exige pas que les deux listes soient **égales** : certains écarts sont justes et doivent
+le rester — la preuve d'effacement s'exporte mais ne s'efface jamais. Il exige que chaque écart
+soit **écrit**. Deux le sont aujourd'hui sans être résolus : `user_devices` (empreinte, ville, pays
+survivent au compte sans motif de conservation) et `auth_events`. Ils étaient invisibles ; ils sont
+désormais déclarés.
+
+**Restent hors périmètre** : `onboarding_hosts` (données d'agenda des membres de l'équipe MEGGA —
+autre catégorie de personnes concernées, à traiter à part) et les ayants droit économiques sans
+compte CRM (`agency_related_persons.profile_id IS NULL`), qu'aucune suppression de compte ne peut
+atteindre par construction.
 
 ---
 

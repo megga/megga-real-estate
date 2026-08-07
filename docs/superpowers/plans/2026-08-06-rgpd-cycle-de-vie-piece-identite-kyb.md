@@ -202,20 +202,38 @@ Un objet non rapprochable est **signalé, pas supprimé** : un orphelin peut êt
 exemplaire d'une pièce en cours de revue. La destruction sur inférence est le seul geste
 vraiment irréversible de ce plan.
 
-### Tâche 5 : `delete-account` couvre le patrimoine onboarding
+### Tâches 5 et 6 : accès et effacement cessent de diverger — ✅ FAIT (07.08.2026)
 
-Ajouter `agency_related_persons`, `agency_id_document_files` (+ purge Storage effective),
-`onboarding_calls`, `onboarding_hosts`.
+Livré : **`_shared/personal-data-estate.ts`**, déclaration unique lue par les deux fonctions, plus
+`tests/unit/personal-data-estate.spec.ts`.
 
-Attention à `agency_related_persons` : elle porte `date_of_birth`, `nationality`,
-`id_document_type`, `id_document_number` — commentée « PII sensible (LPD) » — aujourd'hui dans
-NI l'un NI l'autre chemin. C'est le gros de F2.
+**La ligne de partage n'était pas la bonne.** L'en-tête de `admin-dsar-export` écartait « les
+données MÉTIER d'agence ». L'intention était juste — les contacts CRM appartiennent à l'agence, qui
+en est responsable, et la personne exerce ses droits auprès d'elle (registre, activité n°2) — mais
+la formulation rangeait du mauvais côté l'identité KYB du DIRIGEANT. Là, MEGGA vérifie pour son
+PROPRE compte avant d'ouvrir l'accès (activité n°13). Le critère est désormais le **rôle de MEGGA**,
+responsable vs sous-traitant, et non « compte vs métier ».
 
-### Tâche 6 : `admin-dsar-export` lit la même liste
+**Les cascades ne sauvaient rien.** `delete-account` ANONYMISE le profil, il ne supprime jamais sa
+ligne : tout `on delete cascade`/`set null` pointant vers `profiles` reste donc **dormant**. Pire
+pour `agency_related_persons`, dont la FK est `on delete set null` — le jour où elle jouerait, elle
+laisserait naissance, nationalité et numéro de pièce intacts en coupant seulement le lien.
+Orphelins, donc pires. Les deux tables sont traitées explicitement.
 
-Même périmètre que la tâche 5, via une constante partagée dans `_shared/`. Un test interdit la
-divergence : toute table du périmètre d'effacement doit apparaître au périmètre d'accès, et
-réciproquement.
+**Ce que l'effacement retire, et ce qu'il garde** : partent les données de la pièce (naissance,
+nationalité, type, numéro) — leur finalité s'éteint avec le verdict, même raisonnement que la purge
+de l'image. Restent le nom et le verdict, sans quoi on effacerait la conformité de l'agence en même
+temps que la donnée du dirigeant. Sur `onboarding_calls`, seuls `attendee_phone` et `attendee_note`
+partent : la migration d'origine avait déjà minimisé le reste.
+
+**Le test n'exige pas l'égalité des deux listes.** Certains écarts sont justes : la preuve
+d'effacement s'exporte et ne s'efface jamais. Il exige que chaque écart soit ÉCRIT (`divergence`
+obligatoire), et il cherche un `.from('x')` RÉEL, pas la mention du nom — les deux fichiers citent
+ces tables en commentaire, et un garde que satisfait un commentaire ne garde rien. Éprouvé par
+retrait délibéré : 7/7 → 2 échecs nommant `onboarding_calls` → 7/7 après restauration.
+
+Deux écarts sont désormais déclarés sans être résolus, là où ils étaient invisibles :
+`user_devices` (empreinte, ville, pays survivent au compte) et `auth_events`.
 
 ### Tâche 7 : borner le jeton d'appel d'accueil (F4)
 
