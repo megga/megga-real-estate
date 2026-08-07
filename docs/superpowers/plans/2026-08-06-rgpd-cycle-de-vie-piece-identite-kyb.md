@@ -192,15 +192,28 @@ Verdicts terminaux : `match` et `mismatch` seulement. **Pas** `pending_manual_re
 ouverte), **pas** `partial` — l'étape 7 rend une pièce refusée à nouveau déposable, purger sous
 elle casserait la boucle de remédiation.
 
-### Tâche 4 : réconciliation de l'existant
+### Tâche 4 : la réconciliation est SANS OBJET — ✅ CLOSE (`20260807121859`)
 
-Les fichiers déjà déposés n'ont pas de ligne. Script `scripts/` (exécutable, pas dans `src/`) :
-lister le préfixe, rapprocher chaque objet de son agence et de sa personne par le chemin,
-insérer la ligne manquante avec `purge_reason='backfill'`.
+> ⚠ **La prémisse est tombée avec la table-miroir.** Cette tâche existait pour insérer les
+> lignes manquantes des pièces déjà déposées. `kyb_identity_files()` DÉRIVE l'inventaire de
+> `storage.objects` : il n'y a pas de ligne à rattraper, et les trois pièces du 03.08 étaient
+> visibles dès la première exécution — vérifié en production.
 
-Un objet non rapprochable est **signalé, pas supprimé** : un orphelin peut être le seul
-exemplaire d'une pièce en cours de revue. La destruction sur inférence est le seul geste
-vraiment irréversible de ce plan.
+Ce qui restait de réel, en revanche, a été livré. Un objet dont le chemin ne correspond pas à
+la forme attendue est **invisible à l'inventaire, donc à la purge** : il resterait
+indéfiniment sans que rien ne le signale — la forme même du défaut F1 qu'on vient de fermer.
+
+* **`kyb_identity_orphans()`** — compte ce que l'inventaire ne voit pas, hors fichiers cachés
+  (dont l'exclusion est délibérée : les compter ferait sonner une alarme permanente, et une
+  alarme qui sonne toujours finit débranchée).
+* Le balayage le remonte dans sa réponse et en `console.warn`. L'échec de ce comptage ne fait
+  **pas** échouer la purge : un compteur muet ne doit pas empêcher un effacement.
+* **Signalé, jamais supprimé.** Un chemin non conforme peut être une pièce qu'on ne sait pas
+  rattacher ; détruire sur inférence est le seul geste vraiment irréversible du dispositif.
+
+Relevé de production au 07.08.2026 : 4 objets sous le préfixe, 3 vus, 1 exclu volontairement,
+**0 orphelin**. Zéro aujourd'hui n'est pas zéro pour toujours — d'où un compteur, et non un
+rattrapage.
 
 ### Tâche 5 : `delete-account` couvre le patrimoine onboarding
 
@@ -217,7 +230,28 @@ Même périmètre que la tâche 5, via une constante partagée dans `_shared/`. 
 divergence : toute table du périmètre d'effacement doit apparaître au périmètre d'accès, et
 réciproquement.
 
-### Tâche 7 : borner le jeton d'appel d'accueil (F4)
+### Tâche 7 : le jeton d'appel d'accueil est borné — ✅ FAIT (`20260807121721`)
+
+`get_onboarding_call_by_token` ne rend plus rien **7 jours après `scheduled_at`**, et se tait
+exactement comme pour un jeton inconnu : un motif « expiré » distinct apprendrait à un tiers
+qu'un jeton a EXISTÉ, ce qui est déjà une information.
+
+Fenêtre **dérivée** de `scheduled_at`, sans colonne `expires_at` : une colonne obligerait à la
+poser à la réservation, à la DÉPLACER à chaque replanification et à ne pas l'oublier à
+l'annulation — trois occasions de désynchroniser une donnée calculable. `scheduled_at` suit la
+replanification tout seul.
+
+Les GESTES étaient déjà bornés des deux côtés (`can_manage`/`can_reschedule`, et
+`call_in_past` dans `onboarding-call-manage:129`) : seule la LECTURE ne finissait jamais.
+La lecture CRM par RLS (`onboarding_calls_select_own_agency`) n'est pas touchée — l'historique
+reste entier côté agent, seule la porte publique se referme. L'écran public dégrade déjà
+proprement sur `!call.data` (carte `call.public.invalid.*`).
+
+Couvert par `L6bis` dans `tests/backend/onboarding-call-loop.spec.ts`, avec un contrôle
+négatif : un rendez-vous de la veille reste lisible, sans quoi le test passerait même si la
+fonction refusait toute date passée.
+
+<details><summary>Rédaction d'origine</summary>
 
 `onboarding_calls.manage_token` est un uuid sans échéance, et
 `get_onboarding_call_by_token` est exécutable par `anon`. `can_manage`/`can_reschedule` bornent
@@ -226,6 +260,8 @@ le nom de l'agence, l'hôte, l'horaire et l'URL de réunion.
 
 Aligner la lecture sur les gestes : au-delà d'une fenêtre après `scheduled_at`, la fonction ne
 rend plus rien. Aucune colonne nouvelle — la borne se calcule sur `scheduled_at`.
+
+</details>
 
 ### Tâche 8 : refermer le registre — ✅ FAIT
 

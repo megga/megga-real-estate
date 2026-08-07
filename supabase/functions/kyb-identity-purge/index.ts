@@ -68,11 +68,24 @@ serve(async (req: Request) => {
     return json({ error: 'inventory_failed' }, 500)
   }
 
+  // Un objet au chemin non conforme est invisible à l'inventaire, donc à la purge :
+  // il resterait indéfiniment sans que rien ne le dise — la forme même du défaut F1.
+  // On le COMPTE, on ne le supprime pas : détruire sur inférence est le seul geste
+  // irréversible du dispositif. L'échec de cette lecture ne fait pas échouer le
+  // balayage — un compteur muet ne doit pas empêcher une purge de s'exécuter.
+  const { data: orphanRows, error: orphanError } = await db.rpc('kyb_identity_orphans')
+  const orphans = orphanError ? null : (orphanRows ?? []).length
+  if (orphanError) {
+    console.error('[kyb-identity-purge] orphan scan failed', orphanError.message)
+  } else if (orphans && orphans > 0) {
+    console.warn(`[kyb-identity-purge] ${orphans} objet(s) hors inventaire — à rattacher a la main`)
+  }
+
   const due = ((data ?? []) as InventoryRow[])
     .filter((row) => row.purge_due && row.purge_reason)
     .slice(0, BATCH_LIMIT)
 
-  if (due.length === 0) return json({ scanned: (data ?? []).length, purged: 0 })
+  if (due.length === 0) return json({ scanned: (data ?? []).length, purged: 0, orphans })
 
   // Retrait D'ABORD, journal ENSUITE — et jamais l'inverse. Si le journal partait en
   // premier et que le retrait échouait, le registre affirmerait une destruction qui n'a
@@ -105,6 +118,7 @@ serve(async (req: Request) => {
   return json({
     scanned: (data ?? []).length,
     purged: due.length,
+    orphans,
     by_reason: due.reduce<Record<string, number>>((acc, row) => {
       const key = row.purge_reason ?? 'unknown'
       acc[key] = (acc[key] ?? 0) + 1
