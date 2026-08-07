@@ -124,7 +124,16 @@ as $$
       -- le chemin est construit côté navigateur : une majuscule y suffirait à exclure le
       -- fichier de l'inventaire, donc de toute purge. Entre les deux façons de se tromper,
       -- on choisit celle qui garde le fichier VISIBLE.
-      and o.name ~* '^[0-9a-f-]{36}/kyb-identity/[0-9a-f-]{36}/[^/]+$'
+      --
+      -- Les fichiers cachés sont EXCLUS (le nom ne peut pas commencer par un point).
+      -- Le préfixe en contient réellement un : `.emptyFolderPlaceholder`, 0 octet, posé
+      -- par Supabase pour matérialiser un dossier vide (relevé en production le
+      -- 06.08.2026, cf. docs/agency-kyb-purge-piece-identite.md §6). Le purger n'aurait
+      -- rien effacé de personnel mais aurait écrit au journal qu'une pièce d'identité
+      -- avait été détruite — un registre de conformité qui compte des fichiers fantômes
+      -- vaut moins que pas de registre. Il ferait de surcroît disparaître le dossier des
+      -- listings Storage que lit l'écran de dépôt.
+      and o.name ~* '^[0-9a-f-]{36}/kyb-identity/[0-9a-f-]{36}/[^/.][^/]*$'
   )
   select
     ob.storage_path,

@@ -1,6 +1,6 @@
 -- RGPD, tâches 2 et 3 : la purge des pièces d'identité KYB entre en service.
 --
--- Tâche 1 (`20260806184824`) a rendu le fichier TROUVABLE — `kyb_identity_files()` dit
+-- Tâche 1 (`20260807101554`) a rendu le fichier TROUVABLE — `kyb_identity_files()` dit
 -- quelles pièces existent, à qui, et lesquelles sont exigibles. Elle ne supprimait rien.
 -- Ce job ferme la boucle.
 --

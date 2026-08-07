@@ -123,7 +123,7 @@ raisonnement que la PR #1178 sur les deux helpers d'agence.
 Découpage pensé pour que chaque tâche parte en PR séparée et **atteigne `main` le jour même
 où sa migration est horodatée** (voir « contraintes de dépôt »).
 
-### Tâche 1 : le fichier cesse d'être introuvable — ✅ FAIT (`20260806184824`)
+### Tâche 1 : le fichier cesse d'être introuvable — ✅ FAIT (`20260807101554`)
 
 > ⚠ **Conception révisée pendant l'implémentation.** Ce plan prévoyait une table-miroir
 > `agency_id_document_files`. En lisant le chemin réel — `{agence}/kyb-identity/{personne}/{côté}.{ext}`
@@ -155,7 +155,7 @@ serait un mauvais échange.
 Pas de changement de comportement — la migration est purement additive et sûre quelle que soit
 la réponse à la question LBA.
 
-### Tâches 2 et 3 : la purge entre en service — ✅ FAIT (`20260806191106`)
+### Tâches 2 et 3 : la purge entre en service — ✅ FAIT (`20260807101631`)
 
 > ⚠ **Les deux tâches n'en font qu'une.** Le plan séparait « purge au verdict » et « filet
 > d'échéance ». À l'écriture, la séparation s'est révélée artificielle : `kyb_identity_files()`

@@ -686,5 +686,3 @@ verify_jwt = false
 verify_jwt = false
 
 # ── GÉNÉRÉ par scripts/check-edge-roster.mjs — fin ──
-
-
