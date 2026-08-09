@@ -44,7 +44,6 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { MxButton, MxCheckbox } from '@/components/megga-x'
 import { countryName as countryLabel } from '@/lib/countries'
-import VerifiedSeal, { VERIFIED_SEAL_ON_DARK } from '@/components/ui/VerifiedSeal'
 import { useLegalForms } from '@/hooks/useLegalForms'
 import {
   identityDocumentSidesFor, isIdentityVerificationSufficient,
@@ -252,7 +251,6 @@ export function StepRecapitulatif({
                   <RecapRow
                     label={t('wizard.recap.pieceIdentite.statusLabel')}
                     value={t(`wizard.recap.pieceIdentite.${verificationStatus === 'verified' ? 'verified' : 'processing'}`)}
-                    seal={verificationStatus === 'verified'}
                   />
                   {verifiedDocumentType != null && (
                     <RecapRow
@@ -394,8 +392,7 @@ function RecapSection({ title, onEdit, children }: { title: string; onEdit: (() 
  * »), que la locale met en minuscule alors que la vitrine capitalise ses intitulés.
  * Jamais d'UPPERCASE (règle §3 du CLAUDE.md) : la capitale initiale suffit.
  */
-function RecapRow({ label, value, capitalizeValue = false, seal = false }: { label: string; value: string; capitalizeValue?: boolean; seal?: boolean }) {
-  const { t } = useTranslation('onboarding')
+function RecapRow({ label, value, capitalizeValue = false }: { label: string; value: string; capitalizeValue?: boolean }) {
   return (
     <div className="flex-horizontal space-between gap-16px">
       {/* Le LIBELLÉ reste gris, la VALEUR passe à l'encre pleine (9 août 2026). Les
@@ -404,12 +401,10 @@ function RecapRow({ label, value, capitalizeValue = false, seal = false }: { lab
           pour vérifier les intitulés — on le parcourt pour repérer ce qui cloche, et
           c'est la valeur qu'on cherche. Le libellé n'est plus qu'un repère de position. */}
       <span className="display-1 text-color-neutral-600">{label}</span>
-      <span className={cn('display-1 semi-bold', capitalizeValue && 'capitalize')} style={seal ? { display: 'inline-flex', alignItems: 'center', gap: 6 } : undefined}>
-        {value}
-        {/* Le même sceau qu'à l'écran de retour du prestataire : le dirigeant l'a déjà
-            vu après sa vérification, il le retrouve ici. */}
-        {seal && <VerifiedSeal size={16} color={VERIFIED_SEAL_ON_DARK} ariaLabel={t('gate.verificationReturn.sealAria')} />}
-      </span>
+      {/* Pas de sceau ici (retrait du 10 août 2026) : « Identité vérifiée chez notre
+          prestataire » est écrit juste à côté, la coche ne faisait que le redire. Le
+          sceau garde son emploi là où il qualifie un NOM — l'écran de retour. */}
+      <span className={cn('display-1 semi-bold', capitalizeValue && 'capitalize')}>{value}</span>
     </div>
   )
 }
