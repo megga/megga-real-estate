@@ -25,7 +25,7 @@ const photoSrc = (p: WizardPhoto): string | undefined => p.previewUrl || p.url
 function RoundBtn({ children, onClick, title, danger }: { children: ReactNode; onClick: () => void; title: string; danger?: boolean }) {
   return (
     <button onClick={(e) => { e.stopPropagation(); onClick() }} title={title} style={{
-      width: 32, height: 32, borderRadius: 999, border: 0, cursor: 'pointer',
+      width: 32, height: 32, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
       background: danger ? 'rgba(142,31,61,0.94)' : 'rgba(255,255,255,0.94)',
       display: 'grid', placeItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.20)',
     }}>{children}</button>
@@ -92,13 +92,13 @@ export function Step4Photos({ data, set }: StepProps) {
         onChange={e => { addFiles(e.target.files); e.target.value = '' }} />
 
       <div style={{ marginBottom: 26, maxWidth: 680 }}>
-        <h1 style={{ margin: '0 0 4px', fontSize: 38, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1 }}>{t('wizard.step4.title')}</h1>
+        <h1 style={{ margin: '0 0 4px', fontSize: 'var(--crm-text-9xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1 }}>{t('wizard.step4.title')}</h1>
       </div>
 
       {photos.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: SugarV2.ink }}>{t('wizard.step4.count', { count: photos.length })}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 13px', borderRadius: 999, background: SugarV2.card, boxShadow: SugarV2.shadowSm, fontSize: 12, fontWeight: 600, color: SugarV2.inkSoft }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', marginBottom: 16, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SugarV2.ink }}>{t('wizard.step4.count', { count: photos.length })}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: SugarV2.card, boxShadow: SugarV2.shadowSm, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.inkSoft }}>
             {photos.length < 8 ? t('wizard.step4.tipFew') : t('wizard.step4.tipMany')}
           </span>
         </div>
@@ -110,18 +110,18 @@ export function Step4Photos({ data, set }: StepProps) {
           onDragOver={e => { e.preventDefault(); setOver(true) }}
           onDragLeave={() => setOver(false)}
           onDrop={e => { e.preventDefault(); setOver(false); if (drag == null) addFiles(e.dataTransfer.files) }}
-          style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 22, overflow: 'hidden', background: SugarV2.cardSubtle, boxShadow: over ? `inset 0 0 0 3px ${SugarV2.black}, ${SugarV2.shadow}` : SugarV2.shadow, marginBottom: 16 }}>
+          style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 'var(--crm-radius-5xl)', overflow: 'hidden', background: SugarV2.cardSubtle, boxShadow: over ? `inset 0 0 0 3px ${SugarV2.black}, ${SugarV2.shadow}` : SugarV2.shadow, marginBottom: 16 }}>
           <img src={photoSrc(cover)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           <div style={{ position: 'absolute', top: 14, left: 14 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: SugarV2.black, color: sgOn(), fontSize: 11.5, fontWeight: 700, letterSpacing: 0.2 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: SugarV2.black, color: sgOn(), fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2 }}>
               {IStar(sgOn(), 12)}{t('wizard.step4.cover')}
             </span>
           </div>
-          <div style={{ position: 'absolute', top: 14, right: 14, display: 'flex', gap: 8 }}>
+          <div style={{ position: 'absolute', top: 14, right: 14, display: 'flex', gap: 'var(--crm-space-md)' }}>
             <RoundBtn title={t('wizard.step4.crop')} onClick={() => setCropId(cover.id)}>{ICrop('#0B0C0E')}</RoundBtn>
             <RoundBtn danger title={t('wizard.step4.delete')} onClick={() => removePhoto(cover.id)}>{ITrash('#fff')}</RoundBtn>
           </div>
-          {cover.label && <div style={{ position: 'absolute', bottom: 14, left: 14, padding: '6px 12px', borderRadius: 999, background: 'rgba(11,12,14,0.55)', color: '#fff', fontSize: 12, fontWeight: 600, backdropFilter: 'blur(6px)', maxWidth: '70%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cover.label}</div>}
+          {cover.label && <div style={{ position: 'absolute', bottom: 14, left: 14, padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(11,12,14,0.55)', color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 600, backdropFilter: 'blur(6px)', maxWidth: '70%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cover.label}</div>}
         </div>
       ) : (
         <div
@@ -129,18 +129,18 @@ export function Step4Photos({ data, set }: StepProps) {
           onDragOver={e => { e.preventDefault(); setOver(true) }}
           onDragLeave={() => setOver(false)}
           onDrop={e => { e.preventDefault(); setOver(false); addFiles(e.dataTransfer.files) }}
-          style={{ cursor: 'pointer', aspectRatio: '16/9', borderRadius: 22, marginBottom: 16, background: over ? SugarV2.cardSubtle : SugarV2.card, boxShadow: over ? `inset 0 0 0 3px ${SugarV2.black}` : `inset 0 0 0 1.5px ${SugarV2.line}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, transition: 'box-shadow .15s, background .15s' }}>
-          <span style={{ width: 60, height: 60, borderRadius: 18, background: SugarV2.black, display: 'grid', placeItems: 'center', boxShadow: '0 10px 24px rgba(11,12,14,0.22)' }}>{IUp(sgOn(), 26)}</span>
+          style={{ cursor: 'pointer', aspectRatio: '16/9', borderRadius: 'var(--crm-radius-5xl)', marginBottom: 16, background: over ? SugarV2.cardSubtle : SugarV2.card, boxShadow: over ? `inset 0 0 0 3px ${SugarV2.black}` : `inset 0 0 0 1.5px ${SugarV2.line}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-3xl)', transition: 'box-shadow .15s, background .15s' }}>
+          <span style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-3xl)', background: SugarV2.black, display: 'grid', placeItems: 'center', boxShadow: '0 10px 24px rgba(11,12,14,0.22)' }}>{IUp(sgOn(), 26)}</span>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: SugarV2.ink }}>{t('wizard.step4.dropTitle')}</div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: SugarV2.muted, marginTop: 4 }}>{t('wizard.step4.dropHint')}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink }}>{t('wizard.step4.dropTitle')}</div>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SugarV2.muted, marginTop: 4 }}>{t('wizard.step4.dropHint')}</div>
           </div>
         </div>
       )}
 
       {/* Pellicule */}
       {photos.length > 0 && (
-        <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', overflowX: 'auto', paddingBottom: 'var(--crm-space-md)' }}>
           {photos.map((p, i) => {
             const isCover = i === 0
             return (
@@ -150,14 +150,14 @@ export function Step4Photos({ data, set }: StepProps) {
                 onDrop={e => { e.preventDefault(); move(drag, i); setDrag(null); setOverIdx(null) }}
                 onDragEnd={() => { setDrag(null); setOverIdx(null) }}
                 style={{
-                  position: 'relative', flex: '0 0 auto', width: 132, aspectRatio: '4/3', borderRadius: 14, overflow: 'hidden', background: SugarV2.cardSubtle, cursor: 'grab',
+                  position: 'relative', flex: '0 0 auto', width: 132, aspectRatio: '4/3', borderRadius: 'var(--crm-radius-xl)', overflow: 'hidden', background: SugarV2.cardSubtle, cursor: 'grab',
                   boxShadow: isCover ? `inset 0 0 0 3px ${SugarV2.black}` : SugarV2.shadowSm,
                   outline: overIdx === i && drag !== i ? `2px dashed ${SugarV2.black}` : 'none', outlineOffset: 2,
                   opacity: drag === i ? 0.5 : 1,
                 }}>
                 <img src={photoSrc(p)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                {isCover && <div style={{ position: 'absolute', top: 6, left: 6, padding: '3px 8px', borderRadius: 999, background: SugarV2.black, color: sgOn(), fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3 }}>{t('wizard.step4.coverShort')}</div>}
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 5, padding: 6, background: 'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.30))' }}>
+                {isCover && <div style={{ position: 'absolute', top: 6, left: 6, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: SugarV2.black, color: sgOn(), fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.3 }}>{t('wizard.step4.coverShort')}</div>}
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-sm)', background: 'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.30))' }}>
                   {!isCover && <RoundBtn title={t('wizard.step4.setCover')} onClick={() => setCover(p.id)}>{IStar('#0B0C0E', 14)}</RoundBtn>}
                   <RoundBtn title={t('wizard.step4.crop')} onClick={() => setCropId(p.id)}>{ICrop('#0B0C0E', 14)}</RoundBtn>
                   <RoundBtn danger title={t('wizard.step4.delete')} onClick={() => removePhoto(p.id)}>{ITrash('#fff', 14)}</RoundBtn>
@@ -165,11 +165,11 @@ export function Step4Photos({ data, set }: StepProps) {
               </div>
             )
           })}
-          <button onClick={pick} style={{ flex: '0 0 auto', width: 132, aspectRatio: '4/3', borderRadius: 14, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: SugarV2.card, boxShadow: `inset 0 0 0 1.5px ${SugarV2.line}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: SugarV2.ink }}>
-            <span style={{ width: 34, height: 34, borderRadius: 10, background: SugarV2.cardSubtle, display: 'grid', placeItems: 'center' }}>
+          <button onClick={pick} style={{ flex: '0 0 auto', width: 132, aspectRatio: '4/3', borderRadius: 'var(--crm-radius-xl)', border: 0, cursor: 'pointer', fontFamily: 'inherit', background: SugarV2.card, boxShadow: `inset 0 0 0 1.5px ${SugarV2.line}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)', color: SugarV2.ink }}>
+            <span style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-md)', background: SugarV2.cardSubtle, display: 'grid', placeItems: 'center' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SugarV2.ink} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             </span>
-            <span style={{ fontSize: 12.5, fontWeight: 700 }}>{t('wizard.step4.add')}</span>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>{t('wizard.step4.add')}</span>
           </button>
         </div>
       )}
@@ -269,26 +269,26 @@ function SgCropModal({ photo, onClose, onApply }: { photo: WizardPhoto; onClose:
   }
   const handle = (pos: string, cursor: string): ReactNode => (
     <div onPointerDown={start(pos)} style={{
-      position: 'absolute', width: 16, height: 16, background: '#fff', borderRadius: 4, boxShadow: '0 1px 4px rgba(0,0,0,0.4)', cursor,
+      position: 'absolute', width: 16, height: 16, background: '#fff', borderRadius: 'var(--crm-radius-xs)', boxShadow: '0 1px 4px rgba(0,0,0,0.4)', cursor,
       ...(pos.includes('n') ? { top: -8 } : { bottom: -8 }), ...(pos.includes('w') ? { left: -8 } : { right: -8 }),
     }} />
   )
 
   return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(11,12,14,0.55)', backdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: SugarV2.card, borderRadius: 28, padding: 26, boxShadow: '0 40px 100px rgba(15,23,42,0.28)', maxWidth: 760, width: '100%', animation: 'sgFadeUp .3s cubic-bezier(.2,.8,.2,1) both' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
-          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>{t('wizard.step4.cropTitle')}</h3>
-          <div style={{ display: 'flex', gap: 6 }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(11,12,14,0.55)', backdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 'var(--crm-space-7xl)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: SugarV2.card, borderRadius: 'var(--crm-radius-6xl)', padding: 26, boxShadow: '0 40px 100px rgba(15,23,42,0.28)', maxWidth: 760, width: '100%', animation: 'sgFadeUp .3s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', marginBottom: 18, flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>{t('wizard.step4.cropTitle')}</h3>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-sm)' }}>
             {SG_CROP_ASPECTS.map(a => {
               const sel = aspect === a.r
-              return <button key={a.k} onClick={() => setA(a.r)} style={{ height: 32, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, background: sel ? SugarV2.black : SugarV2.cardSubtle, color: sel ? sgOn() : SugarV2.inkSoft }}>{a.k === 'free' ? t('wizard.step4.aspectFree') : a.label}</button>
+              return <button key={a.k} onClick={() => setA(a.r)} style={{ height: 32, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, background: sel ? SugarV2.black : SugarV2.cardSubtle, color: sel ? sgOn() : SugarV2.inkSoft }}>{a.k === 'free' ? t('wizard.step4.aspectFree') : a.label}</button>
             })}
           </div>
         </div>
 
-        <div style={{ display: 'grid', placeItems: 'center', background: SugarV2.cardSubtle, borderRadius: 16, padding: 16, marginBottom: 20 }}>
-          <div style={{ position: 'relative', lineHeight: 0, overflow: 'hidden', borderRadius: 8, touchAction: 'none' }}>
+        <div style={{ display: 'grid', placeItems: 'center', background: SugarV2.cardSubtle, borderRadius: 'var(--crm-radius-2xl)', padding: 'var(--crm-space-3xl)', marginBottom: 20 }}>
+          <div style={{ position: 'relative', lineHeight: 0, overflow: 'hidden', borderRadius: 'var(--crm-radius-sm)', touchAction: 'none' }}>
             <img ref={imgRef} src={photoSrc(photo)} alt="" draggable={false} style={{ maxWidth: '100%', maxHeight: '52vh', display: 'block', userSelect: 'none' }} />
             {ready && box && (
               <div onPointerDown={start('move')} style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, boxShadow: '0 0 0 9999px rgba(11,12,14,0.5)', outline: '1.5px solid #fff', cursor: 'move' }}>
@@ -299,11 +299,11 @@ function SgCropModal({ photo, onClose, onApply }: { photo: WizardPhoto; onClose:
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 500, color: SugarV2.muted }}>{t('wizard.step4.cropHint')}</span>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: 'transparent', color: SugarV2.inkSoft }}>{t('common:actions.cancel')}</button>
-            <button onClick={apply} style={{ height: 44, padding: '0 24px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: SugarV2.black, color: sgOn(), boxShadow: '0 8px 22px rgba(11,12,14,0.18)' }}>{t('wizard.step4.crop')}</button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SugarV2.muted }}>{t('wizard.step4.cropHint')}</span>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-lg)' }}>
+            <button onClick={onClose} style={{ height: 44, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: 'transparent', color: SugarV2.inkSoft }}>{t('common:actions.cancel')}</button>
+            <button onClick={apply} style={{ height: 44, padding: '0 var(--crm-space-7xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: SugarV2.black, color: sgOn(), boxShadow: '0 8px 22px rgba(11,12,14,0.18)' }}>{t('wizard.step4.crop')}</button>
           </div>
         </div>
       </div>

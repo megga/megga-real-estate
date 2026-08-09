@@ -54,10 +54,10 @@ function InfoRow({ icon, label, first, children }: {
 }) {
   const { sp, surf } = useAdminSugar()
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 14px', borderTop: first ? undefined : surf.hairline }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderTop: first ? undefined : surf.hairline }}>
       <AdminIc icon={icon} size={15} color={sp.sub} />
-      <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub, width: 76, flexShrink: 0 }}>{label}</span>
-      <span style={{ minWidth: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub, width: 76, flexShrink: 0 }}>{label}</span>
+      <span style={{ minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {children}
       </span>
     </div>
@@ -154,18 +154,18 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
         {!user ? (
           <AdminEmpty title={t('userDrawer.notFound')} />
         ) : (
-          <div style={{ padding: '22px 18px 26px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ padding: '22px 18px 26px', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
             {/* User header */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10, paddingTop: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--crm-space-lg)', paddingTop: 'var(--crm-space-md)' }}>
               <AdminAvatar initials={initialsOf(user.full_name ?? 'Utilisateur')} photo={user.avatar_url} size={64} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: -0.5, color: sp.ink, lineHeight: 1.2 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
+                <h2 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.5, color: sp.ink, lineHeight: 1.2 }}>
                   {user.full_name ?? t('common.noName')}
                 </h2>
                 {user.is_suspended && (
                   <AdminPill label={t('common.status.suspended')} tone="err" />
                 )}
-                <p style={{ margin: 0, fontSize: 12.5, fontWeight: 500, color: sp.sub, wordBreak: 'break-all' }}>{user.email}</p>
+                <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.sub, wordBreak: 'break-all' }}>{user.email}</p>
               </div>
             </div>
 
@@ -201,7 +201,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
             {/* Role selector */}
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: 0.2, color: sp.sub, marginBottom: 7 }}>
+              <label style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.2, color: sp.sub, marginBottom: 7 }}>
                 {t('userDrawer.role')}
               </label>
               <select
@@ -210,9 +210,9 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 disabled={updateRole.isPending}
                 className="audr-sel"
                 style={{
-                  width: '100%', height: 38, padding: '0 11px', boxSizing: 'border-box',
+                  width: '100%', height: 38, padding: '0 var(--crm-space-lg)', boxSizing: 'border-box',
                   borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub,
-                  color: sp.ink, fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                  color: sp.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
                   outline: 'none', cursor: updateRole.isPending ? 'not-allowed' : 'pointer',
                   opacity: updateRole.isPending ? 0.6 : 1,
                 }}
@@ -222,7 +222,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 ))}
               </select>
               {updateRole.isError && (
-                <p style={{ margin: '6px 0 0', fontSize: 11.5, fontWeight: 600, color: tones.err }}>
+                <p style={{ margin: '6px 0 0', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tones.err }}>
                   {t('userDrawer.roleUpdateError')}
                 </p>
               )}
@@ -272,7 +272,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
             {/* Les trois actions sont empilées pleine largeur : à 380 px de
                 panneau, deux colonnes ne tiennent pas « Reset mot de passe »
                 (et encore moins sa traduction allemande) sans débordement. */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 14, borderTop: surf.hairline }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', paddingTop: 'var(--crm-space-2xl)', borderTop: surf.hairline }}>
               <AdminGhostBtn
                 onClick={() => {
                   // Réactiver rend un accès, ce n'est pas destructeur : pas de
@@ -320,7 +320,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 {deleteAccount.isPending ? t('userDrawer.lifecycle.deleting') : t('userDrawer.lifecycle.delete')}
               </AdminGhostBtn>
               {protege && (
-                <div style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub }}>
                   {t('userDrawer.protectedNote')}
                 </div>
               )}
@@ -330,18 +330,18 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 ⛔ Le marketing ne rend JAMAIS « refusé » : aucun chemin
                 d'inscription ne pose de case marketing, donc l'absence de ligne
                 signifie « jamais demandé », pas un refus. */}
-            <div style={{ paddingTop: 14, borderTop: surf.hairline }}>
-              <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
+            <div style={{ paddingTop: 'var(--crm-space-2xl)', borderTop: surf.hairline }}>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
                 {t('userDrawer.consents.title')}
               </div>
               {(() => {
                 const c = consentView(user.consents, user.marketing)
                 return ([['terms', c.terms], ['privacy', c.privacy], ['marketing', c.marketing]] as const).map(([cle, etat]) => (
-                  <div key={cle} style={{ display: 'flex', alignItems: 'baseline', gap: 10, minHeight: 26 }}>
-                    <span style={{ minWidth: 132, fontSize: 12, fontWeight: 600, color: sp.ink }}>
+                  <div key={cle} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)', minHeight: 26 }}>
+                    <span style={{ minWidth: 132, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink }}>
                       {t(`userDrawer.consents.${cle}`)}
                     </span>
-                    <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                    <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub }}>
                       {etat.kind === 'accepted'
                         ? (etat.version
                             ? t('userDrawer.consents.acceptedVersion', { version: etat.version, date: etat.at ? formatDate(etat.at) : '—' })
@@ -357,12 +357,12 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
             {/* Activity timeline */}
             <div>
-              <h3 style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, letterSpacing: 0.2, color: sp.sub }}>
+              <h3 style={{ margin: '0 0 10px', fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.2, color: sp.sub }}>
                 {t('userDrawer.recentActivity')}
               </h3>
 
               {activityLoading ? (
-                <div style={{ display: 'grid', gap: 8 }}>
+                <div style={{ display: 'grid', gap: 'var(--crm-space-md)' }}>
                   {Array.from({ length: 3 }).map((_, i) => (
                     <AdminSkeleton key={i} height={38} />
                   ))}
@@ -370,22 +370,22 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
               ) : !activity || activity.length === 0 ? (
                 <AdminEmpty title={t('userDrawer.noActivity')} />
               ) : (
-                <div style={{ display: 'grid', gap: 2 }}>
+                <div style={{ display: 'grid', gap: 'var(--crm-space-2xs)' }}>
                   {activity.map((event) => (
                     <div
                       key={event.id}
                       className="audr-ev"
-                      style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 11px', borderRadius: ADMIN_RADII.row }}
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: ADMIN_RADII.row }}
                     >
                       <span style={{ width: 6, height: 6, borderRadius: ADMIN_RADII.pill, background: sp.accent, marginTop: 5, flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 12, color: sp.ink, lineHeight: 1.4 }}>
+                        <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', color: sp.ink, lineHeight: 1.4 }}>
                           <span style={{ fontWeight: 700 }}>{event.action}</span>
                           {event.entity_type && (
                             <span style={{ color: sp.sub }}> {t('userDrawer.actionOn')} {event.entity_type}</span>
                           )}
                         </p>
-                        <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 500, color: sp.sub }}>
+                        <p style={{ margin: '2px 0 0', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub }}>
                           {formatRelativeDate(event.created_at)}
                         </p>
                       </div>

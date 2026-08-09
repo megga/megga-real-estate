@@ -115,10 +115,10 @@ export function AdminGroupTitle({ label, tone = 'info', right, level = 2 }: {
   const { sp, tones } = useAdminSugar()
   const Heading = (`h${level}` as const) satisfies 'h2' | 'h3' | 'h4'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 10px 8px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
       <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: toneColor(tone, tones), flexShrink: 0 }} />
-      <Heading style={{ margin: 0, fontSize: 12, fontWeight: 800, letterSpacing: 0.2, color: sp.ink }}>{label}</Heading>
-      {right && <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>{right}</div>}
+      <Heading style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: sp.ink }}>{label}</Heading>
+      {right && <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>{right}</div>}
     </div>
   )
 }
@@ -163,11 +163,11 @@ export function AdminPill({ label, tone = 'neutral', icon, title, style }: {
     <span
       title={title}
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 5,
+        display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)',
         padding: icon ? '5px 12px 5px 9px' : '5px 12px',
         borderRadius: ADMIN_RADII.pill,
         background: bg, color: ink,
-        fontSize: 11.5, fontWeight: 700, letterSpacing: -0.1,
+        fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: -0.1,
         whiteSpace: 'nowrap', flexShrink: 0,
         ...style,
       }}
@@ -219,10 +219,10 @@ export function AdminGhostBtn({ children, onClick, icon, disabled, title, style,
       aria-label={label}
       className={className ? `adm-ghost ${className}` : 'adm-ghost'}
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 7,
-        height: 34, padding: '0 15px', borderRadius: ADMIN_RADII.pill, border: 0,
+        display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
+        height: 34, padding: '0 var(--crm-space-2xl)', borderRadius: ADMIN_RADII.pill, border: 0,
         cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
-        fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
+        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
         color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
         ...style,
       }}
@@ -252,10 +252,10 @@ export function AdminSolidBtn({ children, onClick, icon, disabled, title, style 
     <button
       onClick={onClick} disabled={disabled} title={title}
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 7,
-        height: 34, padding: '0 17px', borderRadius: ADMIN_RADII.pill, border: 0,
+        display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
+        height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: ADMIN_RADII.pill, border: 0,
         cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
-        fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
+        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
         color: sp.accentInk, background: sp.accent, boxShadow: sp.shadowSm,
         ...style,
       }}
@@ -368,18 +368,18 @@ export function AdminStat({ label, value, icon, tone, hint, trend }: {
   const iconColor = tone ? toneColor(tone, tones) : sp.sub
   return (
     <AdminCard padding="14px 16px">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
         {icon && <AdminIc icon={icon} size={16} color={iconColor} />}
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.6, color: sp.ink, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.6, color: sp.ink, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
             {value}
           </div>
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, lineHeight: 1.3, marginTop: 1 }}>{label}</div>
-          {hint && <div style={{ fontSize: 11, color: sp.sub, marginTop: 2 }}>{hint}</div>}
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, lineHeight: 1.3, marginTop: 1 }}>{label}</div>
+          {hint && <div style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, marginTop: 2 }}>{hint}</div>}
         </div>
         {trend != null && trend !== 0 && (
           <span style={{
-            fontSize: 11.5, fontWeight: 700, flexShrink: 0, fontVariantNumeric: 'tabular-nums',
+            fontSize: 'var(--crm-text-sm)', fontWeight: 700, flexShrink: 0, fontVariantNumeric: 'tabular-nums',
             color: trend > 0 ? tones.ok : tones.err,
           }}>
             {trend > 0 ? '+' : ''}{trend}
@@ -401,10 +401,10 @@ export function AdminEmpty({ icon, title, hint, action }: {
 }) {
   const { sp } = useAdminSugar()
   return (
-    <div style={{ display: 'grid', placeItems: 'center', gap: 10, padding: '44px 20px', textAlign: 'center' }}>
+    <div style={{ display: 'grid', placeItems: 'center', gap: 'var(--crm-space-lg)', padding: '44px 20px', textAlign: 'center' }}>
       {icon && <AdminIc icon={icon} size={26} color={sp.sub} />}
-      <div style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{title}</div>
-      {hint && <div style={{ fontSize: 12.5, color: sp.sub, maxWidth: 380, lineHeight: 1.5 }}>{hint}</div>}
+      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{title}</div>
+      {hint && <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, maxWidth: 380, lineHeight: 1.5 }}>{hint}</div>}
       {action}
     </div>
   )
@@ -444,8 +444,8 @@ export function AdminError({ message, onRetry, retryLabel }: {
 }) {
   const { tones } = useAdminSugar()
   return (
-    <div style={{ display: 'grid', placeItems: 'center', gap: 12, padding: '36px 20px', textAlign: 'center' }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: tones.err }}>{message}</div>
+    <div style={{ display: 'grid', placeItems: 'center', gap: 'var(--crm-space-xl)', padding: '36px 20px', textAlign: 'center' }}>
+      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tones.err }}>{message}</div>
       {onRetry && retryLabel && <AdminGhostBtn onClick={onRetry}>{retryLabel}</AdminGhostBtn>}
     </div>
   )
@@ -469,8 +469,8 @@ export function AdminTh({ children, align = 'left', width, bg }: {
   const { sp } = useAdminSugar()
   return (
     <th style={{
-      textAlign: align, width, padding: '9px 12px', whiteSpace: 'nowrap',
-      fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
+      textAlign: align, width, padding: 'var(--crm-space-md) var(--crm-space-xl)', whiteSpace: 'nowrap',
+      fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
       background: bg ?? sp.tableHeadBg, position: 'sticky', top: 0, zIndex: 1,
     }}>
       {children}
@@ -488,7 +488,7 @@ export function AdminTd({ children, align = 'left', numeric, style }: {
   const { sp, dark } = useAdminSugar()
   return (
     <td style={{
-      textAlign: align, padding: '10px 12px', fontSize: 12.5, color: sp.ink,
+      textAlign: align, padding: 'var(--crm-space-lg) var(--crm-space-xl)', fontSize: 'var(--crm-text-md)', color: sp.ink,
       borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)'}`,
       fontVariantNumeric: numeric ? 'tabular-nums' : undefined,
       ...style,
@@ -576,13 +576,13 @@ export function AdminPager({ page, totalPages, total, perPage, onPage }: {
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-      padding: '11px 14px', borderTop: surf.hairline,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)',
+      padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderTop: surf.hairline,
     }}>
-      <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
         {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} {t('common.on')} {total}
       </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xs)' }}>
         <button
           onClick={() => onPage(Math.max(1, page - 1))}
           disabled={page <= 1}
@@ -597,14 +597,14 @@ export function AdminPager({ page, totalPages, total, perPage, onPage }: {
           return (
             <span key={p} style={{ display: 'flex', alignItems: 'center' }}>
               {prev !== undefined && p - prev > 1 && (
-                <span style={{ padding: '0 4px', fontSize: 11.5, fontWeight: 600, color: sp.sub }}>...</span>
+                <span style={{ padding: '0 var(--crm-space-xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub }}>...</span>
               )}
               <button
                 onClick={() => onPage(p)}
                 aria-current={on ? 'page' : undefined}
                 style={{
-                  minWidth: 28, height: 28, padding: '0 8px', borderRadius: ADMIN_RADII.pill,
-                  border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5,
+                  minWidth: 28, height: 28, padding: '0 var(--crm-space-md)', borderRadius: ADMIN_RADII.pill,
+                  border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)',
                   fontWeight: 700, fontVariantNumeric: 'tabular-nums',
                   background: on ? sp.accent : 'transparent',
                   color: on ? sp.accentInk : sp.soft,
@@ -663,7 +663,7 @@ export function AdminSegmentBtn({ on, onClick, children, variant = 'filter', tit
       style={{
         height: tab ? 34 : 32, padding: tab ? '0 15px' : '0 14px',
         borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-        fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
+        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
         background: on ? sp.accent : restBg,
         color: on ? sp.accentInk : sp.soft,
         boxShadow: !on && tab ? sp.shadowSm : 'none',

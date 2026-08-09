@@ -22,7 +22,7 @@ export function CalCircleBtn({ icon, onClick, title, size = 40 }: CalCircleBtnPr
       style={{
         width: size,
         height: size,
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: 'transparent',
         color: SP.inkSoft,
@@ -58,8 +58,8 @@ export function CalViewToggle({ value, onChange }: CalViewToggleProps) {
     <div
       style={{
         display: 'inline-flex',
-        padding: 4,
-        borderRadius: 999,
+        padding: 'var(--crm-space-xs)',
+        borderRadius: 'var(--crm-radius-pill)',
         background: SP.cardSubtle,
         boxShadow: `inset 0 0 0 1px ${SP.line}`,
       }}
@@ -72,12 +72,12 @@ export function CalViewToggle({ value, onChange }: CalViewToggleProps) {
             onClick={() => onChange(o.id)}
             style={{
               height: 36,
-              padding: '0 16px',
-              borderRadius: 999,
+              padding: '0 var(--crm-space-3xl)',
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               background: active ? SP.accent : 'transparent',
               color: active ? SP.onAccent : SP.inkSoft,
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 600,
               cursor: 'pointer',
               fontFamily: 'inherit',

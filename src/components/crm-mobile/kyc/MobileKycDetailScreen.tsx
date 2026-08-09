@@ -165,11 +165,11 @@ export function MobileKycDetailScreen({ demo = false }: { demo?: boolean }) {
 
   if (live && isError && !dossier) {
     return (
-      <div style={{ fontFamily: MOBILE_FONT, padding: '24px 18px' }}>
-        <div role="alert" style={{ textAlign: 'center', padding: '40px 24px', background: tk.card, borderRadius: 20, boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: tk.ink }}>{t('dossier.detail.loadError')}</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: tk.muted, marginTop: 6 }}>{t('dossier.detail.loadErrorHint')}</div>
-          <button type="button" onClick={() => refetch()} style={{ marginTop: 16, height: 44, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{t('dossier.detail.retry')}</button>
+      <div style={{ fontFamily: MOBILE_FONT, padding: 'var(--crm-space-7xl) var(--crm-space-4xl)' }}>
+        <div role="alert" style={{ textAlign: 'center', padding: '40px 24px', background: tk.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
+          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink }}>{t('dossier.detail.loadError')}</div>
+          <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 6 }}>{t('dossier.detail.loadErrorHint')}</div>
+          <button type="button" onClick={() => refetch()} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{t('dossier.detail.retry')}</button>
         </div>
       </div>
     )
@@ -177,7 +177,7 @@ export function MobileKycDetailScreen({ demo = false }: { demo?: boolean }) {
 
   if (!dossier) {
     return (
-      <div style={{ fontFamily: MOBILE_FONT, padding: '60px 18px', textAlign: 'center', color: tk.muted, fontSize: 14, fontWeight: 600 }}>
+      <div style={{ fontFamily: MOBILE_FONT, padding: '60px 18px', textAlign: 'center', color: tk.muted, fontSize: 'var(--crm-text-xl)', fontWeight: 600 }}>
         {t('dossier.detail.loading')}
       </div>
     )
@@ -232,7 +232,7 @@ export function MobileKycDetailScreen({ demo = false }: { demo?: boolean }) {
     <div style={{ fontFamily: MOBILE_FONT, color: tk.ink }}>
       <DetailHeader ctx={ctx} name={name} initials={initials} avatarId={dossier.contact_id} verified={isVerified} done={done} total={total} />
 
-      <div style={{ padding: '14px 18px 4px' }}>
+      <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-4xl) var(--crm-space-xs)' }}>
         <SegTabs ctx={ctx} tab={tab} onChange={setTab} docCount={docs.length} />
       </div>
 
@@ -286,12 +286,12 @@ function Gauge({ done, total, verified, tk, size = 60 }: { done: number; total: 
 function DetailHeader({ ctx, name, initials, avatarId, verified, done, total }: { ctx: Ctx; name: string; initials: string; avatarId: string; verified: boolean; done: number; total: number }) {
   const { tk } = ctx
   return (
-    <div style={{ padding: '4px 18px 0' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 15, padding: '16px 18px', background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 22, boxShadow: tk.shadow }}>
-        <span style={{ width: 56, height: 56, borderRadius: 999, flexShrink: 0, background: avatarColor(avatarId), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800, letterSpacing: -0.3 }}>{initials}</span>
+    <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-3xl) var(--crm-space-4xl)', background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-5xl)', boxShadow: tk.shadow }}>
+        <span style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: avatarColor(avatarId), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.3 }}>{initials}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontSize: 19, fontWeight: 800, color: tk.ink, letterSpacing: -0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name || '—'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
+            <span style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name || '—'}</span>
             {verified ? <ContactSeal size={17} /> : null}
           </div>
         </div>
@@ -311,11 +311,11 @@ function SegTabs({ ctx, tab, onChange, docCount }: { ctx: Ctx; tab: TabId; onCha
     { id: 'audit', label: t('dossier.tabs.audit') },
   ]
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
+    <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
       {tabs.map((tb) => {
         const on = tb.id === tab
         return (
-          <button key={tb.id} type="button" onClick={() => onChange(tb.id)} style={{ flex: 1, height: 38, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.inkSoft, boxShadow: on ? tk.shadow : tk.shadowSm, whiteSpace: 'nowrap' }}>
+          <button key={tb.id} type="button" onClick={() => onChange(tb.id)} style={{ flex: 1, height: 38, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.inkSoft, boxShadow: on ? tk.shadow : tk.shadowSm, whiteSpace: 'nowrap' }}>
             {tb.label}{tb.count != null ? ` ${tb.count}` : ''}
           </button>
         )
@@ -326,11 +326,11 @@ function SegTabs({ ctx, tab, onChange, docCount }: { ctx: Ctx; tab: TabId; onCha
 
 /** Carte générique (fond, bordure, ombre légère) réutilisée par les onglets. */
 function Card({ tk, children, pad = 18 }: { tk: MobileTokens; children: ReactNode; pad?: number }) {
-  return <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 20, boxShadow: tk.shadowSm, padding: pad }}>{children}</div>
+  return <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, padding: pad }}>{children}</div>
 }
 /** Sur-titre en petites capitales espacées, en tête de section. */
 function Eyebrow({ tk, children }: { tk: MobileTokens; children: ReactNode }) {
-  return <div style={{ fontSize: 10.5, fontWeight: 800, color: tk.muted, letterSpacing: 1.1, textTransform: 'uppercase' }}>{children}</div>
+  return <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 1.1, textTransform: 'uppercase' }}>{children}</div>
 }
 
 /** Onglet « Synthèse » : état du dossier (non-bloquant), encart screening, les 5 contrôles et les infos clés. */
@@ -354,27 +354,27 @@ function SyntheseTab({
     { label: t('dossier.synthese.reference'), value: dossier.id },
   ]
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
       {/* État du dossier (non-bloquant) */}
       <Card tk={tk} pad={20}>
         <Eyebrow tk={tk}>{t('dossier.synthese.stateEyebrow')}</Eyebrow>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 8 }}>
           {isVerified ? <MEIcon name="check" size={18} color={tk.goal} strokeWidth={2.4} /> : null}
-          <div style={{ fontSize: 16, fontWeight: 800, color: isVerified ? tk.goal : tk.ink, letterSpacing: -0.3 }}>
+          <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: isVerified ? tk.goal : tk.ink, letterSpacing: -0.3 }}>
             {isVerified ? t('dossier.synthese.stateVerifiedTitle') : t('dossier.synthese.stateUnverifiedTitle')}
           </div>
         </div>
-        <p style={{ margin: '6px 0 0', fontSize: 13, fontWeight: 500, color: tk.muted, lineHeight: 1.5 }}>
+        <p style={{ margin: '6px 0 0', fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tk.muted, lineHeight: 1.5 }}>
           {isVerified ? t('dossier.synthese.stateVerifiedBody') : t('dossier.synthese.stateUnverifiedBody')}
         </p>
         {!isVerified ? (
           <div style={{ marginTop: 16 }}>
-            <button type="button" onClick={onMarkAll} disabled={!canMarkAll || markAllPending} style={{ height: 48, width: '100%', borderRadius: 999, border: 0, cursor: canMarkAll && !markAllPending ? 'pointer' : 'default', background: canMarkAll ? tk.accent : tk.cardSubtle, color: canMarkAll ? tk.accentInk : tk.muted, fontFamily: 'inherit', fontSize: 14, fontWeight: 800, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: canMarkAll ? tk.shadowSm : 'none' }}>
+            <button type="button" onClick={onMarkAll} disabled={!canMarkAll || markAllPending} style={{ height: 48, width: '100%', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: canMarkAll && !markAllPending ? 'pointer' : 'default', background: canMarkAll ? tk.accent : tk.cardSubtle, color: canMarkAll ? tk.accentInk : tk.muted, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)', boxShadow: canMarkAll ? tk.shadowSm : 'none' }}>
               <MEIcon name="check" size={15} color={canMarkAll ? tk.accentInk : tk.muted} strokeWidth={2.4} />
               {markAllPending ? t('dossier.synthese.markingAll') : t('dossier.synthese.markAllVerified')}
             </button>
             {!canMarkAll && markAllBlockedLabel ? (
-              <div style={{ marginTop: 9, fontSize: 11.5, fontWeight: 600, color: tk.muted, textAlign: 'center', lineHeight: 1.45 }}>{markAllBlockedLabel}</div>
+              <div style={{ marginTop: 9, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, textAlign: 'center', lineHeight: 1.45 }}>{markAllBlockedLabel}</div>
             ) : null}
           </div>
         ) : null}
@@ -387,7 +387,7 @@ function SyntheseTab({
       <Card tk={tk}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <Eyebrow tk={tk}>{t('dossier.synthese.checksEyebrow')}</Eyebrow>
-          <button type="button" onClick={goControles} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 800, color: tk.ink }}>
+          <button type="button" onClick={goControles} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 800, color: tk.ink }}>
             {t('dossier.synthese.seeDetail')}<MEIcon name="chevron-right" size={13} color={tk.ink} strokeWidth={2.2} />
           </button>
         </div>
@@ -395,11 +395,11 @@ function SyntheseTab({
           const it = checksByCategory[k]
           const st = checkState(it)
           return (
-            <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', boxShadow: i === CHECK_KEYS.length - 1 ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
-              <span style={{ width: 34, height: 34, borderRadius: 11, flexShrink: 0, display: 'grid', placeItems: 'center', background: st === 'done' ? tk.accent : tk.cardSubtle }}>
+            <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) 0', boxShadow: i === CHECK_KEYS.length - 1 ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
+              <span style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, display: 'grid', placeItems: 'center', background: st === 'done' ? tk.accent : tk.cardSubtle }}>
                 <MEIcon name={CHECK_ICON[k]} size={16} color={st === 'done' ? tk.accentInk : tk.inkSoft} strokeWidth={1.9} />
               </span>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(`check.${k}.title`)}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(`check.${k}.title`)}</span>
               <CheckPill ctx={ctx} state={st} />
             </div>
           )
@@ -411,15 +411,15 @@ function SyntheseTab({
         <Eyebrow tk={tk}>{t('dossier.synthese.infoEyebrow')}</Eyebrow>
         <div style={{ marginTop: 4 }}>
           {infos.map((row, i) => (
-            <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '11px 0', boxShadow: i === infos.length - 1 ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: tk.muted }}>{row.label}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: tk.ink, textAlign: 'right', maxWidth: '60%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.value}</span>
+            <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-lg) 0', boxShadow: i === infos.length - 1 ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
+              <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted }}>{row.label}</span>
+              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.ink, textAlign: 'right', maxWidth: '60%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.value}</span>
             </div>
           ))}
         </div>
       </Card>
 
-      <button type="button" onClick={onSeeContact} style={{ height: 46, width: '100%', borderRadius: 999, border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 800, letterSpacing: -0.2, color: tk.ink, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <button type="button" onClick={onSeeContact} style={{ height: 46, width: '100%', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, color: tk.ink, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}>
         <MEIcon name="user" size={16} color={tk.ink} strokeWidth={1.9} />{t('mobile.detail.seeContact')}
       </button>
     </div>
@@ -431,11 +431,11 @@ function ComplianceNote({ ctx, guard }: { ctx: Ctx; guard: ScreeningGuard }) {
   const { t, tk } = ctx
   if (guard.status === 'match') {
     return (
-      <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '14px 16px', borderRadius: 16, background: tk.riskBg }}>
+      <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-2xl)', background: tk.riskBg }}>
         <MEIcon name="shield" size={16} color={tk.riskFg} strokeWidth={1.9} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: tk.riskFg, lineHeight: 1.5 }}>{guard.kind === 'sanctions' ? t('dossier.alert.matchSanctions') : t('dossier.alert.matchPep')}</div>
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: tk.riskFg, opacity: 0.85, marginTop: 4, lineHeight: 1.45 }}>{t('mobile.detail.examineOnDesktop')}</div>
+          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.riskFg, lineHeight: 1.5 }}>{guard.kind === 'sanctions' ? t('dossier.alert.matchSanctions') : t('dossier.alert.matchPep')}</div>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.riskFg, opacity: 0.85, marginTop: 4, lineHeight: 1.45 }}>{t('mobile.detail.examineOnDesktop')}</div>
         </div>
       </div>
     )
@@ -448,37 +448,37 @@ function CheckPill({ ctx, state }: { ctx: Ctx; state: 'done' | 'na' | 'pending' 
   const { t, tk } = ctx
   const label = state === 'done' ? t('mobile.check.done') : state === 'na' ? t('mobile.check.na') : t('mobile.check.pending')
   const col = state === 'done' ? tk.goal : tk.muted
-  return <span style={{ fontSize: 11.5, fontWeight: 800, color: col, letterSpacing: -0.1, whiteSpace: 'nowrap' }}>{label}</span>
+  return <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: col, letterSpacing: -0.1, whiteSpace: 'nowrap' }}>{label}</span>
 }
 
 /** Onglet « Contrôles » : les 5 contrôles LBA en détail + geste « marquer vérifié » par contrôle. */
 function ControlesTab({ ctx, checksByCategory, markPending, onMark }: { ctx: Ctx; checksByCategory: Record<KycCheckCategory, KycChecklistItem | null>; markPending: boolean; onMark: (k: KycCheckCategory) => void }) {
   const { t, tk } = ctx
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
       <Eyebrow tk={tk}>{t('dossier.detail.fiveChecks')}</Eyebrow>
       {CHECK_KEYS.map((k) => {
         const it = checksByCategory[k]
         const st = checkState(it)
         return (
           <Card key={k} tk={tk} pad={18}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 13 }}>
-              <span style={{ width: 44, height: 44, borderRadius: 14, flexShrink: 0, display: 'grid', placeItems: 'center', background: st === 'done' ? tk.accent : tk.cardSubtle }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-xl)' }}>
+              <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-xl)', flexShrink: 0, display: 'grid', placeItems: 'center', background: st === 'done' ? tk.accent : tk.cardSubtle }}>
                 <MEIcon name={CHECK_ICON[k]} size={20} color={st === 'done' ? tk.accentInk : tk.ink} strokeWidth={1.85} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: tk.ink, letterSpacing: -0.2 }}>{t(`check.${k}.title`)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.2 }}>{t(`check.${k}.title`)}</span>
                   <CheckPill ctx={ctx} state={st} />
                 </div>
-                <div style={{ fontSize: 12.5, fontWeight: 500, color: tk.inkSoft, lineHeight: 1.5, marginTop: 4 }}>{t(`check.${k}.sub`)}</div>
-                {it?.notes ? <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 12, background: tk.cardSubtle, fontSize: 12, fontWeight: 500, color: tk.inkSoft, lineHeight: 1.5 }}>{it.notes}</div> : null}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 12, minHeight: 30 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: tk.muted, lineHeight: 1.4 }}>
+                <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: tk.inkSoft, lineHeight: 1.5, marginTop: 4 }}>{t(`check.${k}.sub`)}</div>
+                {it?.notes ? <div style={{ marginTop: 10, padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-lg)', background: tk.cardSubtle, fontSize: 'var(--crm-text-md)', fontWeight: 500, color: tk.inkSoft, lineHeight: 1.5 }}>{it.notes}</div> : null}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginTop: 12, minHeight: 30 }}>
+                  <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, lineHeight: 1.4 }}>
                     {it?.completed_at ? fmtDateFull(it.completed_at, ctx.lang) : ''}{it?.completed_by ? ` · ${t('mobile.check.completedBy', { name: it.completed_by })}` : ''}
                   </span>
                   {st !== 'done' ? (
-                    <button type="button" onClick={() => onMark(k)} disabled={markPending} style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, cursor: markPending ? 'default' : 'pointer', background: tk.accent, color: tk.accentInk, fontFamily: 'inherit', fontSize: 12, fontWeight: 800, letterSpacing: -0.1, display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: tk.shadowSm, opacity: markPending ? 0.55 : 1, flexShrink: 0 }}>
+                    <button type="button" onClick={() => onMark(k)} disabled={markPending} style={{ height: 40, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: markPending ? 'default' : 'pointer', background: tk.accent, color: tk.accentInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: -0.1, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', boxShadow: tk.shadowSm, opacity: markPending ? 0.55 : 1, flexShrink: 0 }}>
                       <MEIcon name="check" size={13} color={tk.accentInk} strokeWidth={2.4} />{t('mobile.check.markVerified')}
                     </button>
                   ) : null}
@@ -505,20 +505,20 @@ function DocumentsTab({ ctx, docs, live, onPreviewError }: { ctx: Ctx; docs: Kyc
   if (docs.length === 0) {
     return (
       <Card tk={tk} pad={28}>
-        <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 600, color: tk.muted, lineHeight: 1.5 }}>{t('mobile.docs.empty')}</div>
+        <div style={{ textAlign: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, lineHeight: 1.5 }}>{t('mobile.docs.empty')}</div>
       </Card>
     )
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
       {docs.map((doc) => (
-        <button key={doc.id} type="button" onClick={() => void preview(doc)} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', borderRadius: 16, border: `1px solid ${tk.cardBorder}`, background: tk.card, boxShadow: tk.shadowSm, cursor: 'pointer', fontFamily: 'inherit' }}>
-          <span style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: 'grid', placeItems: 'center', background: tk.cardSubtle }}>
+        <button key={doc.id} type="button" onClick={() => void preview(doc)} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-2xl)', border: `1px solid ${tk.cardBorder}`, background: tk.card, boxShadow: tk.shadowSm, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <span style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, display: 'grid', placeItems: 'center', background: tk.cardSubtle }}>
             <MEIcon name="file" size={17} color={tk.inkSoft} strokeWidth={1.9} />
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: tk.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</span>
-            <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: tk.muted, marginTop: 1 }}>{[fmtSize(doc.size_bytes), fmtDateFull(doc.created_at, lang)].filter(Boolean).join(' · ')}</span>
+            <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</span>
+            <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, marginTop: 1 }}>{[fmtSize(doc.size_bytes), fmtDateFull(doc.created_at, lang)].filter(Boolean).join(' · ')}</span>
           </span>
           <MEIcon name="eye" size={16} color={tk.ghost} strokeWidth={1.9} />
         </button>
@@ -549,14 +549,14 @@ function AuditTab({ ctx, events }: { ctx: Ctx; events: KycAuditEvent[] }) {
   }
   return (
     <Card tk={tk}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginBottom: 14 }}>
         <Eyebrow tk={tk}>{t('mobile.audit.title')}</Eyebrow>
         {events.length > 0 ? (
-          <div style={{ display: 'inline-flex', gap: 3, padding: 3, borderRadius: 999, background: tk.cardSubtle }}>
+          <div style={{ display: 'inline-flex', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle }}>
             {(['timeline', 'registre'] as const).map((v) => {
               const on = v === view
               return (
-                <button key={v} type="button" onClick={() => setView(v)} style={{ height: 30, padding: '0 12px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 800, background: on ? tk.accent : 'transparent', color: on ? tk.accentInk : tk.muted, boxShadow: on ? tk.shadowSm : 'none' }}>
+                <button key={v} type="button" onClick={() => setView(v)} style={{ height: 30, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 800, background: on ? tk.accent : 'transparent', color: on ? tk.accentInk : tk.muted, boxShadow: on ? tk.shadowSm : 'none' }}>
                   {v === 'timeline' ? t('mobile.audit.timeline') : t('mobile.audit.registre')}
                 </button>
               )
@@ -566,21 +566,21 @@ function AuditTab({ ctx, events }: { ctx: Ctx; events: KycAuditEvent[] }) {
       </div>
 
       {events.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '20px 8px', fontSize: 12.5, fontWeight: 600, color: tk.muted }}>{t('mobile.audit.empty')}</div>
+        <div style={{ textAlign: 'center', padding: 'var(--crm-space-5xl) var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted }}>{t('mobile.audit.empty')}</div>
       ) : view === 'timeline' ? (
         <div>
           {events.map((ev, i) => {
             const last = i === events.length - 1
             const s = stamp(ev.created_at)
             return (
-              <div key={ev.id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 13, paddingBottom: last ? 0 : 16 }}>
+              <div key={ev.id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'var(--crm-space-xl)', paddingBottom: last ? 0 : 16 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 999, flexShrink: 0, marginTop: 3, background: tk.accent }} />
+                  <span style={{ width: 10, height: 10, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, marginTop: 3, background: tk.accent }} />
                   {!last ? <span style={{ width: 2, flex: 1, minHeight: 16, marginTop: 5, background: tk.hair }} /> : null}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: tk.ink, letterSpacing: -0.15, lineHeight: 1.35 }}>{ev.action}</div>
-                  <div style={{ fontSize: 11.5, fontWeight: 600, color: tk.muted, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{[s.d, s.time].filter(Boolean).join(' · ')} · {actorOf(ev)}</div>
+                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink, letterSpacing: -0.15, lineHeight: 1.35 }}>{ev.action}</div>
+                  <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{[s.d, s.time].filter(Boolean).join(' · ')} · {actorOf(ev)}</div>
                 </div>
               </div>
             )
@@ -592,7 +592,7 @@ function AuditTab({ ctx, events }: { ctx: Ctx; events: KycAuditEvent[] }) {
             <thead>
               <tr>
                 {[t('mobile.audit.colTime'), t('mobile.audit.colAction'), t('mobile.audit.colActor')].map((h) => (
-                  <th key={h} style={{ textAlign: 'left', fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: tk.muted, padding: '0 8px 9px', borderBottom: `1.5px solid ${tk.ink}`, whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'left', fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: tk.muted, padding: '0 var(--crm-space-md) var(--crm-space-md)', borderBottom: `1.5px solid ${tk.ink}`, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -602,12 +602,12 @@ function AuditTab({ ctx, events }: { ctx: Ctx; events: KycAuditEvent[] }) {
                 const s = stamp(ev.created_at)
                 return (
                   <tr key={ev.id}>
-                    <td style={{ padding: '11px 8px', borderBottom: last ? 'none' : `1px solid ${tk.hair}`, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                      <div style={{ fontSize: 11.5, fontWeight: 700, color: tk.inkSoft }}>{s.d}</div>
-                      <div style={{ fontSize: 10.5, fontWeight: 600, color: tk.ghost, marginTop: 1 }}>{s.time}</div>
+                    <td style={{ padding: 'var(--crm-space-lg) var(--crm-space-md)', borderBottom: last ? 'none' : `1px solid ${tk.hair}`, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.inkSoft }}>{s.d}</div>
+                      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.ghost, marginTop: 1 }}>{s.time}</div>
                     </td>
-                    <td style={{ padding: '11px 8px', borderBottom: last ? 'none' : `1px solid ${tk.hair}`, verticalAlign: 'top', fontSize: 12.5, fontWeight: 700, color: tk.ink, letterSpacing: -0.15 }}>{ev.action}</td>
-                    <td style={{ padding: '11px 8px', borderBottom: last ? 'none' : `1px solid ${tk.hair}`, verticalAlign: 'top', fontSize: 11.5, fontWeight: 600, color: tk.inkSoft, whiteSpace: 'nowrap' }}>{actorOf(ev)}</td>
+                    <td style={{ padding: 'var(--crm-space-lg) var(--crm-space-md)', borderBottom: last ? 'none' : `1px solid ${tk.hair}`, verticalAlign: 'top', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.ink, letterSpacing: -0.15 }}>{ev.action}</td>
+                    <td style={{ padding: 'var(--crm-space-lg) var(--crm-space-md)', borderBottom: last ? 'none' : `1px solid ${tk.hair}`, verticalAlign: 'top', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.inkSoft, whiteSpace: 'nowrap' }}>{actorOf(ev)}</td>
                   </tr>
                 )
               })}
@@ -626,18 +626,18 @@ function ConfirmMarkAllOverlay({ ctx, dossier, pending, onCancel, onConfirm }: {
   return createPortal(
     <div role="dialog" aria-modal="true" onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 100, background: tk.overlay, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', fontFamily: MOBILE_FONT, animation: 'kycmFade .2s ease both' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 520, background: tk.card, borderRadius: '24px 24px 0 0', padding: '10px 22px calc(28px + env(safe-area-inset-bottom))', boxShadow: tk.shadowLg, animation: 'kycmUp .32s cubic-bezier(.2,.8,.2,1) both' }}>
-        <div style={{ width: 38, height: 5, borderRadius: 999, background: tk.hair, margin: '0 auto 18px' }} />
+        <div style={{ width: 38, height: 5, borderRadius: 'var(--crm-radius-pill)', background: tk.hair, margin: '0 auto 18px' }} />
         <Eyebrow tk={tk}>{t('dossier.confirm.eyebrow')}</Eyebrow>
-        <h2 style={{ margin: '10px 0 10px', fontSize: 21, fontWeight: 800, color: tk.ink, letterSpacing: -0.5, lineHeight: 1.2 }}>{t('dossier.confirm.title')}</h2>
-        <p style={{ margin: '0 0 16px', fontSize: 13.5, fontWeight: 500, color: tk.inkSoft, lineHeight: 1.55 }}>{t('dossier.confirm.body')}</p>
-        <div style={{ background: tk.cardSubtle, borderRadius: 14, padding: '14px 16px', marginBottom: 20, fontSize: 13, fontWeight: 500, color: tk.inkSoft, lineHeight: 1.7 }}>
+        <h2 style={{ margin: '10px 0 10px', fontSize: 'var(--crm-text-4xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.5, lineHeight: 1.2 }}>{t('dossier.confirm.title')}</h2>
+        <p style={{ margin: '0 0 16px', fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tk.inkSoft, lineHeight: 1.55 }}>{t('dossier.confirm.body')}</p>
+        <div style={{ background: tk.cardSubtle, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', marginBottom: 20, fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tk.inkSoft, lineHeight: 1.7 }}>
           <div><strong style={{ color: tk.ink }}>{t('dossier.confirm.sanctions')}</strong> {statusLabel(dossier.sanctions_status)}</div>
           <div><strong style={{ color: tk.ink }}>{t('dossier.confirm.pep')}</strong> {statusLabel(dossier.pep_status)}</div>
           <div><strong style={{ color: tk.ink }}>{t('dossier.confirm.vigilance')}</strong> {dossier.vigilance === 'renforced' ? t('dossier.confirm.vigilanceEnhanced') : t('dossier.confirm.vigilanceStandard')}</div>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button type="button" onClick={onCancel} style={{ flex: 1, height: 50, borderRadius: 999, border: 0, cursor: 'pointer', background: tk.cardSubtle, color: tk.inkSoft, fontFamily: 'inherit', fontSize: 14.5, fontWeight: 800, letterSpacing: -0.2 }}>{t('dossier.confirm.cancel')}</button>
-          <button type="button" onClick={onConfirm} disabled={pending} style={{ flex: 1, height: 50, borderRadius: 999, border: 0, cursor: pending ? 'default' : 'pointer', background: tk.accent, color: tk.accentInk, fontFamily: 'inherit', fontSize: 14.5, fontWeight: 800, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: tk.shadowSm, opacity: pending ? 0.6 : 1 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-xl)' }}>
+          <button type="button" onClick={onCancel} style={{ flex: 1, height: 50, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: tk.cardSubtle, color: tk.inkSoft, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2 }}>{t('dossier.confirm.cancel')}</button>
+          <button type="button" onClick={onConfirm} disabled={pending} style={{ flex: 1, height: 50, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: pending ? 'default' : 'pointer', background: tk.accent, color: tk.accentInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)', boxShadow: tk.shadowSm, opacity: pending ? 0.6 : 1 }}>
             <MEIcon name="check" size={15} color={tk.accentInk} strokeWidth={2.4} />{t('dossier.confirm.submit')}
           </button>
         </div>

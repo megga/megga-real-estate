@@ -1,7 +1,9 @@
 # Purge de la pièce d'identité KYB — trois mécanismes, une question
 
 > **Pour qui :** Gregory (PO), pour choisir. Julien et qui implémentera.
-> **Écrit le :** 2 août 2026. **État :** en attente d'une décision, rien n'est codé.
+> **Écrit le :** 2 août 2026. **Mis à jour le :** 6 août 2026 (§6 seul — la fenêtre s'est
+> refermée le 03.08, trois pièces réelles sont en production).
+> **État :** en attente d'une décision, rien n'est codé.
 >
 > Ce document répond à **Q2** de
 > [agency-kyb-piece-identite-metadonnees.md](agency-kyb-piece-identite-metadonnees.md) §4 :
@@ -25,7 +27,7 @@ dispositif. La rigueur existe ; elle n'a pas été appliquée au bon objet.
 | Les trois réponses possibles | dépôt du fichier · fin de l'examen · fin de la relation (§3) |
 | Recommandation | **voie 1** maintenant, voie 2 quand un vrai flux existera |
 | Décision transverse, à ne pas oublier | aujourd'hui le dirigeant peut effacer sa pièce **sans laisser de trace** (§5) |
-| Fenêtre de tir | **il n'y a aucune vraie pièce en production** : zéro reprise de stock |
+| Fenêtre de tir | ~~aucune vraie pièce en production~~ → **elle s'est refermée le 03.08.2026** : trois pièces réelles sont déposées (§6) |
 
 ---
 
@@ -174,15 +176,44 @@ elle devrait y figurer.
 
 ---
 
-## 6. La fenêtre
+## 6. La fenêtre — ⚠ REFERMÉE LE 03.08.2026
 
-**Il n'y a aucune vraie pièce d'identité en production à ce jour.** Le bucket `documents` ne
-contient qu'un `.emptyFolderPlaceholder` de 0 octet, et la table `documents` compte zéro
-ligne. Autrement dit : **aucun stock à reprendre, aucune migration de données, aucun
-rattrapage.** Le mécanisme choisi s'appliquera au premier dépôt réel.
+> **Mise à jour du 06.08.2026.** Ce paragraphe affirmait qu'aucune vraie pièce n'existait en
+> production. C'était exact le 02.08, jour de la rédaction. Ça ne l'est plus : les pièces sont
+> arrivées **le lendemain**. La conclusion du document ne change pas — la prémisse de calendrier,
+> si.
 
-Cette fenêtre se referme au premier vrai client. C'est le seul argument de calendrier de ce
-document, et il est solide.
+Relevé dans `storage.objects` (production, 06.08.2026) :
+
+| Fichier | Taille | Type | Déposé le |
+|---|---|---|---|
+| `.emptyFolderPlaceholder` | 0 o | — | 02.08.2026 |
+| `recto.jpg` | 3 166 ko | image/jpeg | **03.08.2026** |
+| `verso.jpg` | 2 336 ko | image/jpeg | **03.08.2026** |
+| `recto.jpg` | 3 166 ko | image/jpeg | **03.08.2026** |
+
+**Trois pièces d'identité réelles**, réparties sur trois dossiers d'agence, 8,7 Mo au total.
+La table `documents` compte toujours zéro ligne : ces fichiers n'existent QUE dans Storage,
+donc aucun des deux triggers des dix ans ne les voit, et le §1 sur l'indexation reste entier.
+
+> Les deux `recto.jpg` portent exactement la même taille au kilo-octet près. Ça ressemble à un
+> même fichier déposé deux fois — dépôts d'essai, probablement. **Ça ne change rien au
+> traitement** : une donnée personnelle d'essai est une donnée personnelle, et rien ici ne
+> distingue un essai d'un vrai dépôt.
+
+**Ce que ça change, et ce que ça ne change pas.**
+
+- Ça ne change **pas** la recommandation. La voie 1 se déclenche sur
+  `storage.objects.created_at`, qui existe déjà sur ces trois fichiers : ils seraient ramassés
+  d'office. Il n'y a donc toujours **aucune migration de données ni rattrapage** à écrire.
+- Ça change la **nature de l'urgence**. Le §6 d'origine était un argument d'anticipation :
+  « agissons avant que ça n'arrive ». Ce n'est plus le cas. Trois pièces d'identité sont en
+  ligne, sans durée de conservation, sans purge, et — cf. §5 — effaçables sans trace par le
+  dirigeant. Le délai ne se compte plus en « avant le premier client » mais en jours écoulés
+  depuis le 03.08.
+- Ça rend le §5 (la protection) plus pressant que la purge elle-même : un fichier qu'on ne sait
+  pas encore effacer proprement est un problème de demain ; un fichier qui peut disparaître
+  aujourd'hui sans laisser de trace est un problème d'aujourd'hui.
 
 ---
 

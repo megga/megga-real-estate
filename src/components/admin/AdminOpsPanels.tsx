@@ -55,9 +55,9 @@ function OpsStat({ label, value, color }: { label: string; value: string | numbe
   const { sp } = useAdminSugar()
   return (
     <div>
-      <p style={{ margin: 0, fontSize: 11, color: sp.soft }}>{label}</p>
+      <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.soft }}>{label}</p>
       <p style={{
-        margin: '2px 0 0', fontSize: 15, fontWeight: 800, letterSpacing: -0.4,
+        margin: '2px 0 0', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.4,
         color: color ?? sp.ink, fontVariantNumeric: 'tabular-nums',
       }}>
         {value}
@@ -78,26 +78,26 @@ export function SyndicationHealthPanel() {
         label={t('monitoring.syndication.title')}
         tone="info"
         right={
-          <span style={{ fontSize: 11, color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
             {t('monitoring.syndication.lastPush')} {formatDateTime(data?.last_push_at ?? null)}
           </span>
         }
       />
 
       {isLoading ? (
-        <div style={{ padding: '0 10px' }}><AdminSkeleton height={64} /></div>
+        <div style={{ padding: '0 var(--crm-space-lg)' }}><AdminSkeleton height={64} /></div>
       ) : isError ? (
         <AdminError message={t('monitoring.syndication.error')} />
       ) : !data || data.by_status.length === 0 ? (
         <AdminEmpty icon={Radio} title={t('monitoring.syndication.empty')} />
       ) : (
-        <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ padding: '0 var(--crm-space-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
           {/* Statuts par portail */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-3xl)' }}>
             {data.by_status.map((row) => (
-              <div key={`${row.portal}-${row.status}`} style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 12.5 }}>
+              <div key={`${row.portal}-${row.status}`} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)' }}>
                 <span style={{
-                  fontSize: 15, fontWeight: 800, letterSpacing: -0.4,
+                  fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.4,
                   color: statusCountColor(row.status, tones, sp), fontVariantNumeric: 'tabular-nums',
                 }}>
                   {row.count}
@@ -105,7 +105,7 @@ export function SyndicationHealthPanel() {
                 <span style={{ color: sp.sub }}>
                   {t(`monitoring.syndication.status.${row.status}`, { defaultValue: row.status })}
                 </span>
-                <span style={{ fontSize: 11, color: sp.soft }}>· {row.portal}</span>
+                <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.soft }}>· {row.portal}</span>
               </div>
             ))}
           </div>
@@ -114,9 +114,9 @@ export function SyndicationHealthPanel() {
           {data.recent_errors.length > 0 && (
             <div>
               <AdminGroupTitle label={t('monitoring.syndication.recentErrors')} tone="err" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
                 {data.recent_errors.map((err, i) => (
-                  <div key={`${err.property_id}-${i}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 11.5 }}>
+                  <div key={`${err.property_id}-${i}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', fontSize: 'var(--crm-text-sm)' }}>
                     <span style={{ color: tones.err, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {err.error ?? '—'}
                     </span>
@@ -133,9 +133,9 @@ export function SyndicationHealthPanel() {
           {data.agencies.length > 0 && (
             <div>
               <AdminGroupTitle label={t('monitoring.syndication.agencies')} tone="neutral" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
                 {data.agencies.map((a) => (
-                  <div key={a.agency_name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 11.5 }}>
+                  <div key={a.agency_name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', fontSize: 'var(--crm-text-sm)' }}>
                     <span style={{ color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.agency_name}</span>
                     <span style={{ flexShrink: 0, color: sp.soft }}>
                       {a.idx_enabled
@@ -172,11 +172,11 @@ export function WhatsAppOpsPanel() {
       <AdminGroupTitle label={t('monitoring.whatsapp.title')} tone="cyan" />
 
       {isLoading ? (
-        <div style={{ padding: '0 10px' }}><AdminSkeleton height={64} /></div>
+        <div style={{ padding: '0 var(--crm-space-lg)' }}><AdminSkeleton height={64} /></div>
       ) : isError ? (
         <AdminError message={t('monitoring.whatsapp.error')} />
       ) : !data ? null : (
-        <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ padding: '0 var(--crm-space-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <OpsStat label={t('monitoring.whatsapp.sent24h')} value={data.sent_24h} />
             <OpsStat
@@ -192,7 +192,7 @@ export function WhatsAppOpsPanel() {
             <OpsStat label={t('monitoring.whatsapp.unmappedInbound')} value={data.unmapped_inbound_7d} />
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 16, rowGap: 4, fontSize: 11, color: sp.soft }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 16, rowGap: 4, fontSize: 'var(--crm-text-sm)', color: sp.soft }}>
             <span>
               {t('monitoring.whatsapp.lastStatusUpdate')}{' '}
               <span style={{ color: webhookStale ? tones.warn : 'inherit', fontVariantNumeric: 'tabular-nums' }}>
@@ -241,9 +241,9 @@ export function WhatsAppOpsPanel() {
           {data.top_errors.length > 0 && (
             <div>
               <AdminGroupTitle label={t('monitoring.whatsapp.topErrors')} tone="err" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
                 {data.top_errors.map((e) => (
-                  <div key={e.error} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 11.5 }}>
+                  <div key={e.error} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', fontSize: 'var(--crm-text-sm)' }}>
                     <span style={{ color: sp.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.error}</span>
                     <span style={{ flexShrink: 0, fontWeight: 700, color: tones.err, fontVariantNumeric: 'tabular-nums' }}>{e.count}</span>
                   </div>
@@ -275,19 +275,19 @@ export function AiCostsSection() {
       <AdminGroupTitle
         label={t('toolUsage.aiCosts.title')}
         tone="cyan"
-        right={<span style={{ fontSize: 11, color: sp.soft }}>{t('toolUsage.aiCosts.subtitle')}</span>}
+        right={<span style={{ fontSize: 'var(--crm-text-sm)', color: sp.soft }}>{t('toolUsage.aiCosts.subtitle')}</span>}
       />
 
       {isLoading ? (
-        <div style={{ padding: '0 10px' }}><AdminSkeleton height={64} /></div>
+        <div style={{ padding: '0 var(--crm-space-lg)' }}><AdminSkeleton height={64} /></div>
       ) : isError ? (
         <AdminError message={t('toolUsage.aiCosts.error')} />
       ) : !data || data.length === 0 ? (
         <AdminEmpty icon={Coins} title={t('toolUsage.aiCosts.empty')} />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
           {/* Tendance mensuelle */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, padding: '0 10px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-4xl)', padding: '0 var(--crm-space-lg)' }}>
             {[...byMonth.entries()].map(([month, total]) => (
               <OpsStat key={month} label={format(new Date(month), 'MM.yyyy')} value={`${total.toFixed(2)} USD`} />
             ))}

@@ -40,14 +40,14 @@ export default function MmSendModal({
 
   return (
     <SgBottomCard open={open} onClose={onCancel} ariaLabel={t('confirm.sendTitle')}>
-      <div style={{ padding: '20px 20px 16px' }}>
-        <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
+      <div style={{ padding: 'var(--crm-space-5xl) var(--crm-space-5xl) var(--crm-space-3xl)' }}>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
           {t('confirm.sendTitle')}
         </div>
         <p
           style={{
             margin: '8px 0 0',
-            fontSize: 13.5,
+            fontSize: 'var(--crm-text-lg)',
             fontWeight: 500,
             lineHeight: 1.45,
             color: tk.inkSoft,
@@ -61,10 +61,10 @@ export default function MmSendModal({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            gap: 'var(--crm-space-xl)',
             marginTop: 14,
-            padding: '11px 12px',
-            borderRadius: 14,
+            padding: 'var(--crm-space-lg) var(--crm-space-xl)',
+            borderRadius: 'var(--crm-radius-xl)',
             background: tk.cardSubtle,
           }}
         >
@@ -72,7 +72,7 @@ export default function MmSendModal({
             style={{
               width: 38,
               height: 38,
-              borderRadius: 10,
+              borderRadius: 'var(--crm-radius-md)',
               background: tk.card,
               boxShadow: tk.shadowSm,
               display: 'grid',
@@ -85,7 +85,7 @@ export default function MmSendModal({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 13.5,
+                fontSize: 'var(--crm-text-lg)',
                 fontWeight: 800,
                 color: tk.ink,
                 letterSpacing: -0.3,
@@ -98,7 +98,7 @@ export default function MmSendModal({
             </div>
             <div
               style={{
-                fontSize: 11.5,
+                fontSize: 'var(--crm-text-sm)',
                 fontWeight: 600,
                 color: tk.muted,
                 marginTop: 1,
@@ -112,7 +112,7 @@ export default function MmSendModal({
           </div>
           <div
             style={{
-              fontSize: 13.5,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 800,
               color: tk.ink,
               letterSpacing: -0.3,
@@ -124,25 +124,25 @@ export default function MmSendModal({
         </div>
 
         {/* canal */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 12 }}>
           <MEIcon name={email ? 'mail' : 'file'} size={15} color={tk.muted} />
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: tk.muted }}>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted }}>
             {email ? t('mobile.channelEmail', { email }) : t('mobile.channelNone')}
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 18 }}>
           <button
             type="button"
             onClick={onCancel}
             style={{
               flex: 1,
               height: 48,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 14.5,
+              fontSize: 'var(--crm-text-xl)',
               fontWeight: 700,
               color: tk.inkSoft,
               background: tk.cardSubtle,
@@ -156,18 +156,18 @@ export default function MmSendModal({
             style={{
               flex: 1.4,
               height: 48,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 14.5,
+              fontSize: 'var(--crm-text-xl)',
               fontWeight: 800,
               color: tk.accentInk,
               background: tk.accent,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
+              gap: 'var(--crm-space-md)',
             }}
           >
             <MEIcon name="send" size={16} strokeWidth={2} color={tk.accentInk} />

@@ -41,9 +41,9 @@ export function BnScoreBadge({ health, sp, size = 'md' }: BnScoreBadgeProps) {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 4,
+        gap: 'var(--crm-space-xs)',
         padding: size === 'sm' ? '2px 7px' : '3px 8px',
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         background: color + '1A', // teinte ~10% — pastille discrète, pas un fond plein
         color,
         fontSize: fs,

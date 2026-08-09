@@ -59,18 +59,18 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
 
   if (!demoData && isLoading) {
     return (
-      <div style={{ fontFamily: MOBILE_FONT, padding: '16px 18px' }}>
-        <div style={{ height: 268, borderRadius: 22, background: tk.cardSubtle }} />
-        <div style={{ height: 28, width: '70%', borderRadius: 8, background: tk.cardSubtle, marginTop: 18 }} />
-        <div style={{ height: 16, width: '50%', borderRadius: 8, background: tk.cardSubtle, marginTop: 12 }} />
+      <div style={{ fontFamily: MOBILE_FONT, padding: 'var(--crm-space-3xl) var(--crm-space-4xl)' }}>
+        <div style={{ height: 268, borderRadius: 'var(--crm-radius-5xl)', background: tk.cardSubtle }} />
+        <div style={{ height: 28, width: '70%', borderRadius: 'var(--crm-radius-sm)', background: tk.cardSubtle, marginTop: 18 }} />
+        <div style={{ height: 16, width: '50%', borderRadius: 'var(--crm-radius-sm)', background: tk.cardSubtle, marginTop: 12 }} />
       </div>
     )
   }
   if (!bien) {
     return (
       <div style={{ fontFamily: MOBILE_FONT, color: tk.ink, textAlign: 'center', padding: '64px 24px' }}>
-        <div style={{ fontSize: 16, fontWeight: 800 }}>{isError ? t('mobile.detailError') : t('detail.notFound')}</div>
-        <button type="button" onClick={() => navigate('/dashboard/listings')} style={{ marginTop: 16, height: 44, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 800, background: tk.accent, color: tk.accentInk }}>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800 }}>{isError ? t('mobile.detailError') : t('detail.notFound')}</div>
+        <button type="button" onClick={() => navigate('/dashboard/listings')} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>
           {t('title')}
         </button>
       </div>
@@ -84,23 +84,23 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
   return (
     <div style={{ fontFamily: MOBILE_FONT, color: tk.ink, position: 'relative' }}>
       {/* En-tête collant */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 40, display: 'flex', alignItems: 'center', gap: 12, padding: 'calc(env(safe-area-inset-top) + 12px) 16px 12px', background: tk.headerBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
-        <button type="button" onClick={() => navigate('/dashboard/listings')} aria-label={t('common:actions.back')} style={{ width: 40, height: 40, borderRadius: 999, border: 0, background: tk.card, boxShadow: tk.shadowSm, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 40, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'calc(env(safe-area-inset-top) + 12px) 16px 12px', background: tk.headerBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+        <button type="button" onClick={() => navigate('/dashboard/listings')} aria-label={t('common:actions.back')} style={{ width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', border: 0, background: tk.card, boxShadow: tk.shadowSm, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
           <MEIcon name="chevron-left" size={20} color={tk.ink} />
         </button>
         <div style={{ flex: 1 }} />
-        <button type="button" onClick={() => setMenuOpen(true)} aria-label={t('common:actions.options')} style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${tk.cardBorder}`, background: tk.card, boxShadow: tk.shadowSm, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+        <button type="button" onClick={() => setMenuOpen(true)} aria-label={t('common:actions.options')} style={{ width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, background: tk.card, boxShadow: tk.shadowSm, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
           <MEIcon name="more-horizontal" size={18} color={tk.ink} />
         </button>
       </header>
 
-      <div style={{ padding: '0 18px 30px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ padding: '0 18px 30px', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
         {/* Hero + filmstrip */}
         <div>
           <button
             type="button"
             onClick={() => photos.length && setLightbox(0)}
-            style={{ position: 'relative', width: '100%', height: 268, borderRadius: 22, overflow: 'hidden', background: tk.cardSubtle, boxShadow: tk.shadow, border: 0, padding: 0, cursor: photos.length ? 'pointer' : 'default', display: 'block' }}
+            style={{ position: 'relative', width: '100%', height: 268, borderRadius: 'var(--crm-radius-5xl)', overflow: 'hidden', background: tk.cardSubtle, boxShadow: tk.shadow, border: 0, padding: 0, cursor: photos.length ? 'pointer' : 'default', display: 'block' }}
           >
             {photos[0] ? (
               <img src={photos[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -110,17 +110,17 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
               </div>
             )}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(11,12,14,0.30) 0%, rgba(11,12,14,0) 32%, rgba(11,12,14,0) 60%, rgba(11,12,14,0.18) 100%)' }} />
-            <div style={{ position: 'absolute', top: 13, left: 13, display: 'flex', gap: 8 }}>
-              <span style={{ padding: '5px 11px', borderRadius: 999, background: statusTone(status), color: '#fff', fontSize: 11, fontWeight: 800, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>{t(`status.${status}`, { defaultValue: status })}</span>
+            <div style={{ position: 'absolute', top: 13, left: 13, display: 'flex', gap: 'var(--crm-space-md)' }}>
+              <span style={{ padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: statusTone(status), color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 800, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>{t(`status.${status}`, { defaultValue: status })}</span>
               {bien.c2pa_verified ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.95)', color: '#0B0C0E', fontSize: 11, fontWeight: 800 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.95)', color: '#0B0C0E', fontSize: 'var(--crm-text-sm)', fontWeight: 800 }}>
                   <MEIcon name="shield" size={13} color="#0E9F6E" />
                   {t('mobile.c2pa')}
                 </span>
               ) : null}
             </div>
             {photos.length ? (
-              <span style={{ position: 'absolute', right: 13, bottom: 13, display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 13px', borderRadius: 999, background: 'rgba(255,255,255,0.95)', color: '#0B0C0E', fontSize: 12, fontWeight: 800 }}>
+              <span style={{ position: 'absolute', right: 13, bottom: 13, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 30, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.95)', color: '#0B0C0E', fontSize: 'var(--crm-text-md)', fontWeight: 800 }}>
                 <MEIcon name="gallery" size={14} color="#0B0C0E" />
                 {t('mobile.photosCount', { count: photos.length })}
               </span>
@@ -128,9 +128,9 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
           </button>
 
           {photos.length > 1 ? (
-            <div style={{ display: 'flex', gap: 7, overflowX: 'auto', marginTop: 10, paddingBottom: 2, scrollbarWidth: 'none' }}>
+            <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', overflowX: 'auto', marginTop: 10, paddingBottom: 'var(--crm-space-2xs)', scrollbarWidth: 'none' }}>
               {photos.slice(0, 12).map((p, i) => (
-                <button key={i} type="button" onClick={() => setLightbox(i)} aria-label={t('mobile.photoIndex', { i: i + 1, total: photos.length })} style={{ flexShrink: 0, width: 66, height: 48, borderRadius: 9, overflow: 'hidden', border: 0, padding: 0, cursor: 'pointer', background: tk.cardSubtle }}>
+                <button key={i} type="button" onClick={() => setLightbox(i)} aria-label={t('mobile.photoIndex', { i: i + 1, total: photos.length })} style={{ flexShrink: 0, width: 66, height: 48, borderRadius: 'var(--crm-radius-sm)', overflow: 'hidden', border: 0, padding: 0, cursor: 'pointer', background: tk.cardSubtle }}>
                   <img src={p} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </button>
               ))}
@@ -140,23 +140,23 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
 
         {/* Identité */}
         <div>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: tk.muted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
             {[bien.canton, t(isRent ? 'mobile.txRent' : 'mobile.txSale'), t(typeKey(frType(bien.type)))].filter(Boolean).join(' · ')}
           </div>
-          <h1 style={{ margin: '8px 0 0', fontSize: 23, fontWeight: 800, color: tk.ink, letterSpacing: -0.7, lineHeight: 1.15 }}>{bien.title}</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+          <h1 style={{ margin: '8px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.7, lineHeight: 1.15 }}>{bien.title}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 6 }}>
             <MEIcon name="location" size={14} color={tk.muted} strokeWidth={1.7} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: tk.muted }}>{[bien.address, bien.city].filter(Boolean).join(', ')}</span>
+            <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted }}>{[bien.address, bien.city].filter(Boolean).join(', ')}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
-            <span style={{ fontSize: 32, fontWeight: 800, color: tk.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums' }}>{priceLabel}</span>
-            {charges ? <span style={{ fontSize: 12.5, fontWeight: 700, color: tk.muted }}>{t('mobile.chargesLine', { value: formatCHF(charges) })}</span> : null}
-            {pricePerM2 ? <span style={{ fontSize: 12.5, fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>{t('mobile.perM2', { value: formatCHF(pricePerM2) })}</span> : null}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)', flexWrap: 'wrap', marginTop: 14 }}>
+            <span style={{ fontSize: 'var(--crm-text-7xl)', fontWeight: 800, color: tk.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums' }}>{priceLabel}</span>
+            {charges ? <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted }}>{t('mobile.chargesLine', { value: formatCHF(charges) })}</span> : null}
+            {pricePerM2 ? <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>{t('mobile.perM2', { value: formatCHF(pricePerM2) })}</span> : null}
           </div>
         </div>
 
         {/* Bande de specs */}
-        <div style={{ display: 'flex', gap: 22, overflowX: 'auto', paddingTop: 16, borderTop: `1px solid ${tk.hair}`, scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-6xl)', overflowX: 'auto', paddingTop: 'var(--crm-space-3xl)', borderTop: `1px solid ${tk.hair}`, scrollbarWidth: 'none' }}>
           <RibbonSpec icon="surface" label={t('mobile.spec.surface')} value={`${num(bien.surface_m2) ?? '—'}`} tk={tk} />
           <RibbonSpec icon="home" label={t('mobile.spec.rooms')} value={`${num(bien.rooms) ?? '—'}`} tk={tk} />
           <RibbonSpec icon="bed" label={t('mobile.spec.beds')} value={`${num(bien.bedrooms) ?? '—'}`} tk={tk} />
@@ -169,11 +169,11 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
         {bien.description ? (
           <Card tk={tk}>
             <Eyebrow tk={tk}>{t('mobile.descriptionTitle')}</Eyebrow>
-            <p style={{ margin: '8px 0 0', fontSize: 13.5, fontWeight: 500, color: tk.inkSoft, lineHeight: 1.6 }}>{bien.description}</p>
+            <p style={{ margin: '8px 0 0', fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tk.inkSoft, lineHeight: 1.6 }}>{bien.description}</p>
             {bien.features?.length ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)', marginTop: 12 }}>
                 {bien.features.map((f) => (
-                  <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 999, background: tk.cardSubtle, color: tk.inkSoft, fontSize: 11.5, fontWeight: 700 }}>
+                  <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, color: tk.inkSoft, fontSize: 'var(--crm-text-sm)', fontWeight: 700 }}>
                     <MEIcon name="check" size={12} color={tk.inkSoft} />
                     {f}
                   </span>
@@ -186,7 +186,7 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
         {/* Performance */}
         <Card tk={tk}>
           <Eyebrow tk={tk}>{t('mobile.performanceTitle')}</Eyebrow>
-          <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 12 }}>
             <Stat tk={tk} icon="eye" label={t('mobile.stat.views')} value={stats?.views ?? 0} />
             <Stat tk={tk} icon="heart" label={t('mobile.stat.favorites')} value={stats?.favorites ?? 0} />
             <Stat tk={tk} icon="calendar" label={t('mobile.stat.visits')} value={stats?.visitRequests ?? 0} />
@@ -209,9 +209,9 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
         {/* Diffusion */}
         <Card tk={tk}>
           <Eyebrow tk={tk}>{t('mobile.diffusionTitle')}</Eyebrow>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 10 }}>
-            <span style={{ width: 9, height: 9, borderRadius: 999, background: bien.published_at ? tk.goal : tk.ghost }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: tk.ink }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 10 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: bien.published_at ? tk.goal : tk.ghost }} />
+            <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.ink }}>
               {bien.published_at ? t('mobile.diffusionOnline', { date: formatDate(bien.published_at) }) : t('mobile.diffusionOffline')}
             </span>
           </div>
@@ -256,38 +256,38 @@ type Tk = ReturnType<typeof useMobileTokens>['tk']
 
 /** Carte de section (fond, bordure, coins arrondis). */
 function Card({ tk, children }: { tk: Tk; children: ReactNode }) {
-  return <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 22, boxShadow: tk.shadowSm, padding: 20 }}>{children}</div>
+  return <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-5xl)', boxShadow: tk.shadowSm, padding: 'var(--crm-space-5xl)' }}>{children}</div>
 }
 /** Sur-titre de section en petites capitales. */
 function Eyebrow({ tk, children }: { tk: Tk; children: ReactNode }) {
-  return <div style={{ fontSize: 10.5, fontWeight: 800, color: tk.muted, letterSpacing: 1.1, textTransform: 'uppercase' }}>{children}</div>
+  return <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 1.1, textTransform: 'uppercase' }}>{children}</div>
 }
 /** Cellule de la bande de specs : icône + valeur + label. */
 function RibbonSpec({ icon, label, value, tk }: { icon: 'surface' | 'home' | 'bed' | 'bath' | 'clock' | 'bolt'; label: string; value: string; tk: Tk }) {
   return (
-    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 52 }}>
+    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)', minWidth: 52 }}>
       <MEIcon name={icon} size={21} color={tk.inkSoft} strokeWidth={1.6} />
-      <span style={{ fontSize: 17, fontWeight: 800, color: tk.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-      <span style={{ fontSize: 10, fontWeight: 800, color: tk.muted, letterSpacing: 0.4, textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.4, textTransform: 'uppercase' }}>{label}</span>
     </div>
   )
 }
 /** Tuile de performance : icône + valeur + label. */
 function Stat({ tk, icon, label, value }: { tk: Tk; icon: 'eye' | 'heart' | 'calendar'; label: string; value: number }) {
   return (
-    <div style={{ flex: 1, background: tk.cardSubtle, borderRadius: 16, padding: '14px 12px' }}>
+    <div style={{ flex: 1, background: tk.cardSubtle, borderRadius: 'var(--crm-radius-2xl)', padding: 'var(--crm-space-2xl) var(--crm-space-xl)' }}>
       <MEIcon name={icon} size={18} color={tk.muted} />
-      <div style={{ fontSize: 24, fontWeight: 800, color: tk.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', marginTop: 8 }}>{value}</div>
-      <div style={{ fontSize: 10.5, fontWeight: 800, color: tk.muted, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', marginTop: 8 }}>{value}</div>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
     </div>
   )
 }
 /** Ligne clé/valeur d'un bloc (mandat…) ; séparateur bas sauf `last`. */
 function Row({ tk, label, value, last }: { tk: Tk; label: string; value: string; last?: boolean }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '11px 0', borderBottom: last ? 'none' : `1px solid ${tk.cardSubtle}` }}>
-      <span style={{ fontSize: 12.5, color: tk.muted, fontWeight: 600 }}>{label}</span>
-      <span style={{ fontSize: 13, color: tk.ink, fontWeight: 700, textAlign: 'right' }}>{value}</span>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-lg) 0', borderBottom: last ? 'none' : `1px solid ${tk.cardSubtle}` }}>
+      <span style={{ fontSize: 'var(--crm-text-md)', color: tk.muted, fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 'var(--crm-text-lg)', color: tk.ink, fontWeight: 700, textAlign: 'right' }}>{value}</span>
     </div>
   )
 }
@@ -318,10 +318,10 @@ function Lightbox({ photos, index, onClose, onIndex, t }: { photos: string[]; in
       onTouchEnd={(e) => { if (touch.current != null) { go(e.changedTouches[0].clientX - touch.current); touch.current = null } }}
     >
       <img src={photos[index]} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-      <button type="button" onClick={(e) => { e.stopPropagation(); onClose() }} aria-label={t('common:actions.cancel')} style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top) + 14px)', right: 16, width: 40, height: 40, borderRadius: 999, border: 0, background: 'rgba(255,255,255,0.14)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); onClose() }} aria-label={t('common:actions.cancel')} style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top) + 14px)', right: 16, width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'rgba(255,255,255,0.14)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
         <MEIcon name="close" size={20} color="#fff" />
       </button>
-      <span style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom) + 18px)', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom) + 18px)', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.85)', fontSize: 'var(--crm-text-lg)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
         {index + 1} / {photos.length}
       </span>
     </div>

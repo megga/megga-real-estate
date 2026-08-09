@@ -24,19 +24,19 @@ export function MobileRelancesIA({ demo = false, onStart }: { demo?: boolean; on
         marginTop: 24,
         background: tk.relanceBg,
         border: `1px solid ${tk.relanceBorder}`,
-        borderRadius: 22,
-        padding: '22px 22px 20px',
+        borderRadius: 'var(--crm-radius-5xl)',
+        padding: 'var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-5xl)',
         boxShadow: tk.shadow,
         color: tk.relanceInk,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: tk.relanceMuted }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', color: tk.relanceMuted }}>
         <MEIcon name="bolt" size={15} color={tk.relanceMuted} />
-        <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
           {t('today.cockpit.tiles.relances')}
         </span>
       </div>
-      <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.6, marginTop: 11 }}>
+      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.6, marginTop: 11 }}>
         {total} {t('today.relances.leadsToFollow')}
       </div>
       <button
@@ -46,18 +46,18 @@ export function MobileRelancesIA({ demo = false, onStart }: { demo?: boolean; on
           marginTop: 16,
           width: '100%',
           height: 48,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           border: 0,
           cursor: 'pointer',
           fontFamily: 'inherit',
-          fontSize: 14.5,
+          fontSize: 'var(--crm-text-xl)',
           fontWeight: 800,
           color: tk.ctaInk,
           background: tk.ctaBg,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 9,
+          gap: 'var(--crm-space-md)',
         }}
       >
         {t('today.relances.startSession')}

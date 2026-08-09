@@ -123,9 +123,9 @@ export function Step5PriceDesc({ data, set }: StepProps) {
     <div style={{ maxWidth: 820, margin: '0 auto', animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
 
       {/* Progression — 7 segments (Prix/Description = 6ᵉ étape sur 7) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 44 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 44 }}>
         {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i} style={{ flex: 1, height: 5, borderRadius: 999, background: i <= 5 ? SugarV2.black : SugarV2.line, transition: 'background .25s' }} />
+          <div key={i} style={{ flex: 1, height: 5, borderRadius: 'var(--crm-radius-pill)', background: i <= 5 ? SugarV2.black : SugarV2.line, transition: 'background .25s' }} />
         ))}
       </div>
 
@@ -134,7 +134,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
         <div style={{ animation: 'sgFadeUp .35s cubic-bezier(.2,.8,.2,1) both' }}>
           {/* Toggle transaction (centré) */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 40 }}>
-            <div style={{ display: 'inline-flex', padding: 5, borderRadius: 999, background: SugarV2.cardSubtle }}>
+            <div style={{ display: 'inline-flex', padding: 'var(--crm-space-xs)', borderRadius: 'var(--crm-radius-pill)', background: SugarV2.cardSubtle }}>
               {[
                 { v: 'vente' as const, l: tr('wizard.step5.txSale') },
                 { v: 'location' as const, l: tr('wizard.step5.txRent') },
@@ -142,10 +142,10 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 const sel = transaction === t.v
                 return (
                   <button key={t.v} onClick={() => setTx(t.v)} style={{
-                    height: 38, padding: '0 24px', borderRadius: 999, border: 0,
+                    height: 38, padding: '0 var(--crm-space-7xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                     background: sel ? SugarV2.black : 'transparent',
                     color: sel ? sgOn() : SugarV2.inkSoft,
-                    fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer',
                     boxShadow: sel ? SugarV2.pillShadow : 'none',
                   }}>{t.l}</button>
                 )
@@ -155,14 +155,14 @@ export function Step5PriceDesc({ data, set }: StepProps) {
 
           {/* Question (centrée) */}
           <div style={{
-            textAlign: 'center', fontSize: 12, fontWeight: 700, color: SugarV2.muted,
+            textAlign: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: SugarV2.muted,
             letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10,
           }}>
             {transaction === 'vente' ? tr('wizard.step5.qSalePrice') : tr('wizard.step5.qMonthlyRent')}
           </div>
 
           {/* Chiffre géant éditable */}
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 'var(--crm-space-2xl)' }}>
             <input
               type="text" inputMode="numeric" autoFocus
               value={display} onChange={e => onPriceChange(e.target.value)} placeholder="0"
@@ -174,23 +174,23 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 textAlign: 'center', fontVariantNumeric: 'tabular-nums',
               }} />
           </div>
-          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 20, fontWeight: 700, color: SugarV2.muted }}>
-            CHF{transaction === 'location' && <span style={{ fontSize: 15 }}>{tr('wizard.perMonth')}</span>}
+          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 'var(--crm-text-4xl)', fontWeight: 700, color: SugarV2.muted }}>
+            CHF{transaction === 'location' && <span style={{ fontSize: 'var(--crm-text-xl)' }}>{tr('wizard.perMonth')}</span>}
           </div>
 
           {/* Charges (location) — éditable */}
           {transaction === 'location' && (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, padding: '10px 12px 10px 20px', borderRadius: 999, background: SugarV2.cardSubtle }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: SugarV2.muted, letterSpacing: 0.5, textTransform: 'uppercase' }}>{tr('wizard.step5.chargesLabel')}</span>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', background: SugarV2.cardSubtle }}>
+                <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: SugarV2.muted, letterSpacing: 0.5, textTransform: 'uppercase' }}>{tr('wizard.step5.chargesLabel')}</span>
                 <input type="text" inputMode="numeric"
                   value={fmtCHF(data.charges)} onChange={e => onChargesChange(e.target.value)} placeholder="350"
                   style={{
-                    width: 84, height: 36, border: 0, outline: 'none', background: SugarV2.card, borderRadius: 999,
-                    textAlign: 'center', fontFamily: 'inherit', fontSize: 16, fontWeight: 700, color: SugarV2.ink,
+                    width: 84, height: 36, border: 0, outline: 'none', background: SugarV2.card, borderRadius: 'var(--crm-radius-pill)',
+                    textAlign: 'center', fontFamily: 'inherit', fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink,
                     boxShadow: SugarV2.shadowSm, fontVariantNumeric: 'tabular-nums',
                   }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: SugarV2.inkSoft }}>CHF</span>
+                <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.inkSoft }}>CHF</span>
               </div>
             </div>
           )}
@@ -203,23 +203,23 @@ export function Step5PriceDesc({ data, set }: StepProps) {
           {/* Rappel prix + retour (centré) */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
             <button onClick={() => setPhase('price')} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 10,
-              height: 42, padding: '0 18px 0 14px', borderRadius: 999, border: 0,
+              display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
+              height: 42, padding: '0 var(--crm-space-4xl) 0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
               background: SugarV2.card, boxShadow: SugarV2.shadowSm, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: SugarV2.ink,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SugarV2.ink,
             }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={SugarV2.inkSoft} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
               {display || '0'} CHF{transaction === 'location' ? tr('wizard.perMonth') : ''}
-              <span style={{ fontSize: 12, fontWeight: 600, color: SugarV2.muted }}>· {tr('wizard.step5.modify')}</span>
+              <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted }}>· {tr('wizard.step5.modify')}</span>
             </button>
           </div>
 
           <div style={{ textAlign: 'center', marginBottom: 26 }}>
-            <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.8 }}>{tr('wizard.step5.descTitle')}</h1>
+            <h1 style={{ margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.8 }}>{tr('wizard.step5.descTitle')}</h1>
           </div>
 
           {/* Éditeur — feuille + toolbar/compteur qualité en bas */}
-          <div style={{ background: SugarV2.card, borderRadius: 22, boxShadow: SugarV2.shadow, overflow: 'hidden' }}>
+          <div style={{ background: SugarV2.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: SugarV2.shadow, overflow: 'hidden' }}>
             <textarea
               value={visibleDesc}
               onChange={e => onManualEdit(e.target.value)}
@@ -228,18 +228,18 @@ export function Step5PriceDesc({ data, set }: StepProps) {
               style={{
                 width: '100%', minHeight: 260, boxSizing: 'border-box', padding: 26,
                 border: 0, outline: 'none', resize: 'vertical', fontFamily: 'inherit',
-                fontSize: 15, lineHeight: 1.65, color: SugarV2.ink, fontWeight: 500,
+                fontSize: 'var(--crm-text-xl)', lineHeight: 1.65, color: SugarV2.ink, fontWeight: 500,
                 letterSpacing: -0.1, background: 'transparent',
               }} />
             <div style={{ padding: aiMenuOpen ? 8 : '10px 14px 10px 18px', background: SugarV2.cardSubtle, transition: 'padding .15s ease' }}>
               {!aiMenuOpen ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)' }}>
                   {/* compteur qualité — ou message d'échec honnête (état d'erreur) */}
                   {aiPhase === 'error' ? (
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: SugarV2.err }}>{tr('wizard.step5.ai.error')}</span>
+                    <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SugarV2.err }}>{tr('wizard.step5.ai.error')}</span>
                   ) : (
                     <span style={{
-                      fontSize: 11.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                      fontSize: 'var(--crm-text-sm)', fontWeight: 700, fontVariantNumeric: 'tabular-nums',
                       color: charCount >= idealChars ? SugarV2.ok : charCount >= minChars ? SugarV2.warn : SugarV2.muted,
                     }}>
                       {charCount === 0
@@ -249,12 +249,12 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                   )}
                   {/* petite étoile MEGGA AI */}
                   <button onClick={() => !busy && setAiMenuOpen(true)} aria-label={tr('wizard.step5.ai.title')} title={tr('wizard.step5.ai.title')} style={{
-                    width: 36, height: 36, borderRadius: 999, border: 0, flexShrink: 0,
+                    width: 36, height: 36, borderRadius: 'var(--crm-radius-pill)', border: 0, flexShrink: 0,
                     background: SugarV2.card, color: SugarV2.ink, display: 'grid', placeItems: 'center',
                     cursor: busy ? 'wait' : 'pointer', boxShadow: SugarV2.shadowSm,
                   }}>
                     {busy ? (
-                      <div style={{ width: 15, height: 15, borderRadius: 999, border: `2px solid ${SugarV2.line}`, borderTopColor: SugarV2.ink, animation: 'sgSpin .8s linear infinite' }} />
+                      <div style={{ width: 15, height: 15, borderRadius: 'var(--crm-radius-pill)', border: `2px solid ${SugarV2.line}`, borderTopColor: SugarV2.ink, animation: 'sgSpin .8s linear infinite' }} />
                     ) : (
                       <AiStar color={SugarV2.ink} />
                     )}
@@ -262,20 +262,20 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 </div>
               ) : (
                 /* Barre de prompt MEGGA AI — étoile + saisie libre + Affiner/Créer */
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: SugarV2.card, borderRadius: 999, padding: '7px 8px 7px 16px', boxShadow: SugarV2.shadowSm }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', background: SugarV2.card, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-sm) var(--crm-space-md) var(--crm-space-sm) var(--crm-space-3xl)', boxShadow: SugarV2.shadowSm }}>
                   <AiStar color={SugarV2.ink} />
                   <input autoFocus value={aiPrompt}
                     onChange={e => setAiPrompt(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') runPrompt(); if (e.key === 'Escape') { setAiMenuOpen(false); setAiPrompt('') } }}
                     placeholder={charCount > 0 ? tr('wizard.step5.ai.promptRefine') : tr('wizard.step5.ai.promptAsk')}
-                    style={{ flex: 1, minWidth: 0, height: 30, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 14, fontWeight: 500, color: SugarV2.ink }} />
+                    style={{ flex: 1, minWidth: 0, height: 30, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 500, color: SugarV2.ink }} />
                   <button onClick={() => { setAiMenuOpen(false); setAiPrompt('') }} style={{
-                    height: 34, padding: '0 12px', borderRadius: 999, border: 0, background: 'transparent',
-                    color: SugarV2.inkSoft, fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+                    height: 34, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent',
+                    color: SugarV2.inkSoft, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer', flexShrink: 0,
                   }}>{tr('common:actions.cancel')}</button>
                   <button onClick={runPrompt} style={{
-                    height: 38, padding: '0 20px', borderRadius: 999, border: 0, flexShrink: 0,
-                    background: SugarV2.black, color: sgOn(), fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+                    height: 38, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, flexShrink: 0,
+                    background: SugarV2.black, color: sgOn(), fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer',
                   }}>{charCount > 0 ? tr('wizard.step5.ai.refine') : tr('wizard.step5.ai.create')}</button>
                 </div>
               )}

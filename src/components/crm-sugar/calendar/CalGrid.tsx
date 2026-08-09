@@ -151,7 +151,7 @@ export const CalEventBlock = memo(function CalEventBlock({
       onClick={ev => { ev.stopPropagation(); onSelect(e.id, ev.currentTarget.getBoundingClientRect()) }}
       style={{
         position: 'absolute', left, width, top: topCss, height: heightCss, minHeight: 20,
-        borderRadius: 9,
+        borderRadius: 'var(--crm-radius-sm)',
         border: ext ? `1.4px dashed ${dk ? 'rgba(255,255,255,0.30)' : '#C4CAD2'}` : 0,
         background: surface, color: titleCol,
         padding: short ? '0 10px' : '5px 11px', textAlign: 'left', fontFamily: 'inherit',
@@ -164,11 +164,11 @@ export const CalEventBlock = memo(function CalEventBlock({
         alignItems: short ? 'center' : 'stretch', gap: short ? 6 : 1,
       }}
     >
-      <span style={{ fontSize: 10, fontWeight: 700, color: timeCol, opacity: dk ? 0.82 : 0.72, flexShrink: 0 }}>
+      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: timeCol, opacity: dk ? 0.82 : 0.72, flexShrink: 0 }}>
         {fmtTime(e.start)}
       </span>
       <span style={{
-        fontSize: 11.5, fontWeight: 800, letterSpacing: -0.2, lineHeight: 1.15, color: titleCol,
+        fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: -0.2, lineHeight: 1.15, color: titleCol,
         textDecoration: hasStatus ? 'line-through' : 'none',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
@@ -176,7 +176,7 @@ export const CalEventBlock = memo(function CalEventBlock({
       </span>
       {roomy && !short && e.location && (
         <span style={{
-          fontSize: 10.5, fontWeight: 600, color: t.ink, opacity: dk ? 0.82 : 0.78, marginTop: 1,
+          fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: t.ink, opacity: dk ? 0.82 : 0.78, marginTop: 1,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {e.location}
@@ -191,7 +191,7 @@ export const CalEventBlock = memo(function CalEventBlock({
           }}
         >
           <div style={{
-            width: 22, height: 3, borderRadius: 999, marginBottom: 2,
+            width: 22, height: 3, borderRadius: 'var(--crm-radius-pill)', marginBottom: 2,
             background: gripCol, opacity: selected || dragging ? 1 : 0.55,
           }} />
         </div>
@@ -243,7 +243,7 @@ export function CalDayColumn({
 
       {isToday && nowFrac >= 0 && nowFrac <= 1 && (
         <div style={{ position: 'absolute', left: 0, right: 0, top: `${nowFrac * 100}%`, height: 0, zIndex: 7, pointerEvents: 'none' }}>
-          <div style={{ position: 'absolute', left: -4, top: -4, width: 9, height: 9, borderRadius: 999, background: SP.nowColor }} />
+          <div style={{ position: 'absolute', left: -4, top: -4, width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: SP.nowColor }} />
           <div style={{ position: 'absolute', left: 0, right: 0, top: -1, height: 2, background: SP.nowColor }} />
         </div>
       )}
@@ -281,7 +281,7 @@ export function CalHourGutter() {
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {Array.from({ length: totalHours }).map((_, i) => (
         <div key={i} style={{ flex: 1, position: 'relative', borderTop: i ? '1px solid transparent' : 0 }}>
-          <div style={{ position: 'absolute', top: -7, right: 10, fontSize: 10, fontWeight: 700, color: SP.muted, letterSpacing: 0.2 }}>
+          <div style={{ position: 'absolute', top: -7, right: 10, fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SP.muted, letterSpacing: 0.2 }}>
             {String(CAL_HOUR_START + i).padStart(2, '0')}:00
           </div>
         </div>
@@ -336,7 +336,7 @@ export function CalAllDayBand({ days, events, selectedId, onSelect }: CalAllDayB
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: `64px repeat(${n}, minmax(0,1fr))`,
-      gridTemplateRows: `repeat(${lanes.length}, 24px)`, rowGap: 3, padding: '7px 10px',
+      gridTemplateRows: `repeat(${lanes.length}, 24px)`, rowGap: 3, padding: 'var(--crm-space-sm) var(--crm-space-lg)',
       borderBottom: `1px solid ${SP.line}`, flexShrink: 0,
     }}>
       {segs.map(seg => {
@@ -353,13 +353,13 @@ export function CalAllDayBand({ days, events, selectedId, onSelect }: CalAllDayB
               margin: '0 3px', height: 22, border: 0, cursor: 'pointer', background: t.bg, color: t.ink,
               borderTopLeftRadius: contFrom ? 0 : 6, borderBottomLeftRadius: contFrom ? 0 : 6,
               borderTopRightRadius: contTo ? 0 : 6, borderBottomRightRadius: contTo ? 0 : 6,
-              display: 'flex', alignItems: 'center', gap: 6, padding: '0 9px',
+              display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: '0 var(--crm-space-md)',
               boxShadow: seg.e.id === selectedId ? `0 0 0 2px ${SP.ring}` : 'none',
               opacity: done ? 0.55 : 1, overflow: 'hidden', fontFamily: 'inherit', textAlign: 'left',
             }}
           >
             <span style={{
-              fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              fontSize: 'var(--crm-text-sm)', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               textDecoration: done ? 'line-through' : 'none',
             }}>
               {seg.e.title}

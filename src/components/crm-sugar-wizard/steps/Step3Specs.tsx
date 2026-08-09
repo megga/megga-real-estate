@@ -59,11 +59,11 @@ const sp4FmtP = (v: number | null): string => v == null ? '' : (v % 1 === 0 ? St
 function Sp4Pill({ active, children, onClick, big }: { active?: boolean; children: ReactNode; onClick?: () => void; big?: boolean }) {
   return (
     <button onClick={onClick} style={{
-      height: big ? 52 : 44, padding: big ? '0 26px' : '0 20px', borderRadius: 999, border: 0, cursor: 'pointer',
+      height: big ? 52 : 44, padding: big ? '0 26px' : '0 20px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
       fontFamily: 'inherit', fontSize: big ? 17 : 14.5, fontWeight: 600, letterSpacing: -0.1,
       background: active ? SugarV2.black : SugarV2.card, color: active ? sgOn() : SugarV2.ink,
       boxShadow: active ? SugarV2.shadow : SugarV2.shadowSm,
-      display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'background .12s',
+      display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', transition: 'background .12s',
       fontVariantNumeric: 'tabular-nums',
     }}>{children}</button>
   )
@@ -71,7 +71,7 @@ function Sp4Pill({ active, children, onClick, big }: { active?: boolean; childre
 
 function Sp4Rooms({ value, onChange, big }: { value: number | null; onChange: (v: number) => void; big?: boolean }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-lg)', justifyContent: 'center' }}>
       {[1.5, 2.5, 3.5, 4.5, 5.5, 6.5].map(o => <Sp4Pill key={o} big={big} active={value === o} onClick={() => onChange(o)}>{sp4FmtP(o)}</Sp4Pill>)}
       <Sp4Pill big={big} active={value != null && value >= 7} onClick={() => onChange(7)}>7+</Sp4Pill>
     </div>
@@ -80,16 +80,16 @@ function Sp4Rooms({ value, onChange, big }: { value: number | null; onChange: (v
 
 function Sp4Dpe({ value, onChange, s = 52 }: { value: WizardData['energy']; onChange: (v: NonNullable<WizardData['energy']>) => void; s?: number }) {
   return (
-    <div style={{ display: 'flex', gap: 9, justifyContent: 'center' }}>
+    <div style={{ display: 'flex', gap: 'var(--crm-space-md)', justifyContent: 'center' }}>
       {DPE_COLORS.map(d => {
         const sel = value === d.v
         return (
           <button key={d.v} onClick={() => onChange(d.v)} style={{
-            width: s, height: s, borderRadius: 14, border: 0, cursor: 'pointer', fontFamily: 'inherit',
+            width: s, height: s, borderRadius: 'var(--crm-radius-xl)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
             // Teinte DPE saturée fixe dans les deux thèmes → texte blanc constant
             // (sgOn() basculerait en sombre en dark et casserait le contraste).
             background: sel ? d.color : SugarV2.card, color: sel ? '#fff' : SugarV2.inkSoft,
-            fontSize: 19, fontWeight: 700, boxShadow: sel ? `0 8px 20px ${d.color}44` : SugarV2.shadowSm,
+            fontSize: 'var(--crm-text-3xl)', fontWeight: 700, boxShadow: sel ? `0 8px 20px ${d.color}44` : SugarV2.shadowSm,
             transition: 'background .12s', fontVariantNumeric: 'tabular-nums',
           }}>{d.v}</button>
         )
@@ -126,28 +126,28 @@ export function Step3Specs({ data, set }: StepProps) {
 
   const bodies: ReactNode[] = [
     // 0 — Type
-    <div key="type" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, maxWidth: 780, margin: '0 auto' }}>
+    <div key="type" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 'var(--crm-space-xl)', maxWidth: 780, margin: '0 auto' }}>
       {SP4_TYPES.map(item => {
         const sel = data.type === item.v
         return (
           <button key={item.v} onClick={() => set({ type: item.v })} style={{
-            padding: '22px 8px', borderRadius: 22, border: 0, cursor: 'pointer', fontFamily: 'inherit',
+            padding: 'var(--crm-space-6xl) var(--crm-space-md)', borderRadius: 'var(--crm-radius-5xl)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
             background: sel ? SugarV2.black : SugarV2.card, color: sel ? sgOn() : SugarV2.ink,
             boxShadow: sel ? SugarV2.shadow : SugarV2.shadowSm,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, transition: 'background .12s',
-          }}>{item.icon(sel ? sgOn() : SugarV2.ink, 26)}<span style={{ fontSize: 13.5, fontWeight: 700 }}>{t(`type.${TYPE_I18N[item.v]}`)}</span></button>
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-lg)', transition: 'background .12s',
+          }}>{item.icon(sel ? sgOn() : SugarV2.ink, 26)}<span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700 }}>{t(`type.${TYPE_I18N[item.v]}`)}</span></button>
         )
       })}
     </div>,
     // 1 — Surface
     <div key="surface" style={{ maxWidth: 440, margin: '0 auto', textAlign: 'center' }}>
-      <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, marginBottom: 24 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)', marginBottom: 24 }}>
         <input type="number" value={data.area ?? ''} placeholder="—" autoFocus min={0} max={5000}
           onChange={e => set({ area: e.target.value === '' ? null : Number(e.target.value) })}
           className="sp4-big" style={{ width: 190, border: 0, outline: 0, background: 'transparent', textAlign: 'center', fontFamily: 'inherit', fontWeight: 700, fontSize: 72, color: SugarV2.ink, letterSpacing: -2, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }} />
-        <span style={{ fontSize: 30, fontWeight: 600, color: SugarV2.muted }}>m²</span>
+        <span style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: SugarV2.muted }}>m²</span>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)', justifyContent: 'center' }}>
         {surfacePresets.map(p => <Sp4Pill key={p} active={data.area === p} onClick={() => set({ area: p })}>{p} m²</Sp4Pill>)}
       </div>
     </div>,
@@ -157,21 +157,21 @@ export function Step3Specs({ data, set }: StepProps) {
     <div key="year" style={{ maxWidth: 320, margin: '0 auto', textAlign: 'center' }}>
       <input type="number" value={data.year ?? ''} placeholder={t('wizard.step3.yearPlaceholder')} autoFocus min={1800} max={2100}
         onChange={e => set({ year: e.target.value === '' ? null : Number(e.target.value) })}
-        style={{ width: 260, boxSizing: 'border-box', height: 72, textAlign: 'center', border: 0, outline: 0, background: SugarV2.card, boxShadow: SugarV2.shadowSm, borderRadius: 18, fontFamily: 'inherit', fontWeight: 700, fontSize: 34, color: SugarV2.ink, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums' }} />
+        style={{ width: 260, boxSizing: 'border-box', height: 72, textAlign: 'center', border: 0, outline: 0, background: SugarV2.card, boxShadow: SugarV2.shadowSm, borderRadius: 'var(--crm-radius-3xl)', fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-8xl)', color: SugarV2.ink, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums' }} />
     </div>,
     // 4 — DPE
     <Sp4Dpe key="dpe" value={data.energy} onChange={v => set({ energy: v })} s={56} />,
     // 5 — Équipements + atouts personnalisés
-    <div key="features" style={{ display: 'flex', flexWrap: 'wrap', gap: 11, justifyContent: 'center', maxWidth: 640, margin: '0 auto' }}>
+    <div key="features" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-lg)', justifyContent: 'center', maxWidth: 640, margin: '0 auto' }}>
       {SP4_FEATURES.map(f => <Sp4Pill key={f} active={features.includes(f)} onClick={() => toggleFeat(f)}>{t(`wizard.step3.feature.${f}`)}</Sp4Pill>)}
       {customs.map(v => (
         <button key={v} onClick={() => removeCustom(v)} title={t('wizard.step3.removeFeature')} style={{
-          height: 44, padding: '0 12px 0 20px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: 14.5, fontWeight: 600, background: SugarV2.black, color: sgOn(), boxShadow: SugarV2.shadow,
-          display: 'inline-flex', alignItems: 'center', gap: 10,
+          height: 44, padding: '0 var(--crm-space-xl) 0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
+          fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: SugarV2.black, color: sgOn(), boxShadow: SugarV2.shadow,
+          display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
         }}>
           {v}
-          <span style={{ display: 'grid', placeItems: 'center', width: 19, height: 19, borderRadius: 999, background: sgAcc(0.18) }}>
+          <span style={{ display: 'grid', placeItems: 'center', width: 19, height: 19, borderRadius: 'var(--crm-radius-pill)', background: sgAcc(0.18) }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={sgOn()} strokeWidth="3" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </span>
         </button>
@@ -181,12 +181,12 @@ export function Step3Specs({ data, set }: StepProps) {
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') addCustom(); if (e.key === 'Escape') { setDraft(''); setAdding(false) } }}
           onBlur={addCustom}
-          style={{ height: 44, width: 220, boxSizing: 'border-box', padding: '0 18px', borderRadius: 999, border: 0, outline: 0, background: SugarV2.card, boxShadow: `inset 0 0 0 2px ${SugarV2.black}`, fontFamily: 'inherit', fontSize: 14.5, fontWeight: 600, color: SugarV2.ink }} />
+          style={{ height: 44, width: 220, boxSizing: 'border-box', padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, outline: 0, background: SugarV2.card, boxShadow: `inset 0 0 0 2px ${SugarV2.black}`, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink }} />
       ) : (
         <button onClick={() => setAdding(true)} style={{
-          height: 44, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: 14.5, fontWeight: 700, background: SugarV2.card, color: SugarV2.ink, boxShadow: `inset 0 0 0 1.5px ${SugarV2.line}`,
-          display: 'inline-flex', alignItems: 'center', gap: 8,
+          height: 44, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
+          fontSize: 'var(--crm-text-xl)', fontWeight: 700, background: SugarV2.card, color: SugarV2.ink, boxShadow: `inset 0 0 0 1.5px ${SugarV2.line}`,
+          display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)',
         }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={SugarV2.ink} strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
           {t('wizard.step3.addFeature')}
@@ -202,9 +202,9 @@ export function Step3Specs({ data, set }: StepProps) {
       <style>{'input.sp4-big::-webkit-outer-spin-button,input.sp4-big::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}input.sp4-big{-moz-appearance:textfield}'}</style>
 
       {/* Progression — 7 segments cliquables (seule nav interne de l'étape). */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 44 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 44 }}>
         {QUESTIONS.map((_, i) => (
-          <div key={i} onClick={() => set({ specsQ: i })} style={{ flex: 1, height: 5, borderRadius: 999, cursor: 'pointer', background: i <= q ? SugarV2.black : SugarV2.line, transition: 'background .25s' }} />
+          <div key={i} onClick={() => set({ specsQ: i })} style={{ flex: 1, height: 5, borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', background: i <= q ? SugarV2.black : SugarV2.line, transition: 'background .25s' }} />
         ))}
       </div>
 

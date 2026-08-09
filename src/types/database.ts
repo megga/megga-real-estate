@@ -563,6 +563,36 @@ export type Database = {
           },
         ]
       }
+      agency_id_document_purges: {
+        Row: {
+          agency_id: string | null
+          id: string
+          purge_reason: string
+          purged_at: string
+          related_person_id: string | null
+          storage_path: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          agency_id?: string | null
+          id?: string
+          purge_reason: string
+          purged_at?: string
+          related_person_id?: string | null
+          storage_path: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          agency_id?: string | null
+          id?: string
+          purge_reason?: string
+          purged_at?: string
+          related_person_id?: string | null
+          storage_path?: string
+          uploaded_at?: string | null
+        }
+        Relationships: []
+      }
       agency_person_roles: {
         Row: {
           created_at: string
@@ -3670,42 +3700,6 @@ export type Database = {
           },
         ]
       }
-      outbox_jobs: {
-        Row: {
-          attempts: number
-          created_at: string
-          id: string
-          kind: string
-          last_error: string | null
-          next_retry_at: string
-          payload: Json
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          attempts?: number
-          created_at?: string
-          id?: string
-          kind: string
-          last_error?: string | null
-          next_retry_at?: string
-          payload?: Json
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          attempts?: number
-          created_at?: string
-          id?: string
-          kind?: string
-          last_error?: string | null
-          next_retry_at?: string
-          payload?: Json
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       onboarding_calls: {
         Row: {
           agency_id: string
@@ -3776,7 +3770,29 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_calls_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_calls_booked_by_fkey"
+            columns: ["booked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_calls_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_hosts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       onboarding_host_exceptions: {
         Row: {
@@ -3806,7 +3822,15 @@ export type Database = {
           reason?: string | null
           slices?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_host_exceptions_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_hosts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       onboarding_hosts: {
         Row: {
@@ -3856,6 +3880,50 @@ export type Database = {
           timezone?: string
           updated_at?: string
           weekly_hours?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_hosts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outbox_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          next_retry_at: string
+          payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          kind: string
+          last_error?: string | null
+          next_retry_at?: string
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          next_retry_at?: string
+          payload?: Json
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -5151,6 +5219,27 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_events: {
+        Row: {
+          event_created: string
+          event_id: string
+          event_type: string
+          received_at: string
+        }
+        Insert: {
+          event_created: string
+          event_id: string
+          event_type: string
+          received_at?: string
+        }
+        Update: {
+          event_created?: string
+          event_id?: string
+          event_type?: string
+          received_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           agency_id: string
@@ -5162,6 +5251,7 @@ export type Database = {
           id: string
           interval: string | null
           last_invoice_status: string | null
+          last_stripe_event_at: string | null
           mrr_chf: number | null
           plan: string
           price: number | null
@@ -5182,6 +5272,7 @@ export type Database = {
           id?: string
           interval?: string | null
           last_invoice_status?: string | null
+          last_stripe_event_at?: string | null
           mrr_chf?: number | null
           plan?: string
           price?: number | null
@@ -5202,6 +5293,7 @@ export type Database = {
           id?: string
           interval?: string | null
           last_invoice_status?: string | null
+          last_stripe_event_at?: string | null
           mrr_chf?: number | null
           plan?: string
           price?: number | null
@@ -6939,6 +7031,10 @@ export type Database = {
         Args: { p_active: boolean; p_host_id: string }
         Returns: Json
       }
+      admin_set_user_role: {
+        Args: { p_role: string; p_user_id: string }
+        Returns: Json
+      }
       admin_upsert_onboarding_host: {
         Args: {
           p_buffer_after_minutes?: number
@@ -6952,10 +7048,6 @@ export type Database = {
           p_timezone?: string
           p_weekly_hours?: Json
         }
-        Returns: Json
-      }
-      admin_set_user_role: {
-        Args: { p_role: string; p_user_id: string }
         Returns: Json
       }
       admin_validate_agency_review: {
@@ -7433,50 +7525,6 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
-      get_admin_onboarding_calls: {
-        Args: { p_limit?: number; p_offset?: number; p_status?: string }
-        Returns: {
-          agency_id: string
-          agency_name: string
-          agency_slug: string
-          attendee_note: string
-          attendee_phone: string
-          booked_by: string
-          booked_by_email: string
-          booked_by_name: string
-          cancel_reason: string
-          created_at: string
-          duration_minutes: number
-          host_id: string
-          host_name: string
-          id: string
-          meeting_url: string
-          rescheduled_count: number
-          scheduled_at: string
-          status: string
-          verification_status: string
-        }[]
-      }
-      get_admin_onboarding_hosts: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          buffer_after_minutes: number
-          created_at: string
-          display_name: string
-          duration_minutes: number
-          horizon_days: number
-          id: string
-          is_active: boolean
-          max_per_day: number
-          min_notice_hours: number
-          profile_email: string
-          profile_id: string
-          slot_minutes: number
-          timezone: string
-          upcoming_calls: number
-          weekly_hours: Json
-        }[]
-      }
       get_admin_agencies: {
         Args: { p_agency_id?: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -7682,6 +7730,50 @@ export type Database = {
           storage_used_mb: number
         }[]
       }
+      get_admin_onboarding_calls: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: {
+          agency_id: string
+          agency_name: string
+          agency_slug: string
+          attendee_note: string
+          attendee_phone: string
+          booked_by: string
+          booked_by_email: string
+          booked_by_name: string
+          cancel_reason: string
+          created_at: string
+          duration_minutes: number
+          host_id: string
+          host_name: string
+          id: string
+          meeting_url: string
+          rescheduled_count: number
+          scheduled_at: string
+          status: string
+          verification_status: string
+        }[]
+      }
+      get_admin_onboarding_hosts: {
+        Args: never
+        Returns: {
+          buffer_after_minutes: number
+          created_at: string
+          display_name: string
+          duration_minutes: number
+          horizon_days: number
+          id: string
+          is_active: boolean
+          max_per_day: number
+          min_notice_hours: number
+          profile_email: string
+          profile_id: string
+          slot_minutes: number
+          timezone: string
+          upcoming_calls: number
+          weekly_hours: Json
+        }[]
+      }
       get_admin_plans_board: { Args: never; Returns: Json }
       get_admin_quota_breaches: {
         Args: never
@@ -7872,10 +7964,7 @@ export type Database = {
       get_market_rent_reference_config: { Args: never; Returns: Json }
       get_my_agency_id: { Args: never; Returns: string }
       get_my_agency_plan: { Args: never; Returns: string }
-      get_onboarding_call_by_token: {
-        Args: { p_token: string }
-        Returns: Json
-      }
+      get_onboarding_call_by_token: { Args: { p_token: string }; Returns: Json }
       get_onboarding_milestones: {
         Args: { agency_ids: string[] }
         Returns: {
@@ -8008,6 +8097,19 @@ export type Database = {
         Returns: boolean
       }
       join_agency: { Args: { p_agency_id: string }; Returns: undefined }
+      kyb_identity_files: {
+        Args: never
+        Returns: {
+          agency_id: string
+          latest_result: string
+          purge_due: boolean
+          purge_reason: string
+          related_person_id: string
+          storage_path: string
+          uploaded_at: string
+        }[]
+      }
+      kyb_identity_retention_days: { Args: never; Returns: number }
       kyc_booking_busy_ranges: {
         Args: {
           p_agent_id: string
@@ -8074,6 +8176,17 @@ export type Database = {
           p_ends_at: string
           p_exclude_id?: string
           p_starts_at: string
+        }
+        Returns: string
+      }
+      log_auth_event_limited: {
+        Args: {
+          p_action: string
+          p_detail?: string
+          p_ip_hash: string
+          p_severity: string
+          p_user_agent?: string
+          p_user_id?: string
         }
         Returns: string
       }

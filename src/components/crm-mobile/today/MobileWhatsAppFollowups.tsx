@@ -34,7 +34,7 @@ function FollowupRow({ row, last, tk }: { row: AgencyFollowupRow; last: boolean;
       type="button" title={label} aria-label={label} disabled={busy}
       onClick={(e) => { e.stopPropagation(); onTap() }}
       style={{
-        width: 32, height: 32, borderRadius: 999, flexShrink: 0, padding: 0,
+        width: 32, height: 32, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, padding: 0,
         display: 'grid', placeItems: 'center', cursor: busy ? 'default' : 'pointer',
         background: tk.cardSubtle, border: `1px solid ${tk.cardBorder}`,
         opacity: busy ? 0.45 : 1,
@@ -49,17 +49,17 @@ function FollowupRow({ row, last, tk }: { row: AgencyFollowupRow; last: boolean;
       onClick={() => navigate(`/dashboard/contacts/${row.contact_id}`)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/dashboard/contacts/${row.contact_id}`) } }}
       style={{
-        display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-        padding: '10px 12px 10px 14px', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', width: '100%',
+        padding: 'var(--crm-space-lg) var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-2xl)', cursor: 'pointer',
         fontFamily: 'inherit', textAlign: 'left', opacity: busy ? 0.55 : 1,
         boxShadow: last ? 'none' : `inset 0 -1px 0 ${tk.hair}`,
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.contact_name}</div>
-        <div style={{ fontSize: 11.5, color: tk.muted, fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.action}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.contact_name}</div>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: tk.muted, fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.action}</div>
       </div>
-      <span style={{ background: pill.bg, color: pill.fg, padding: '3px 9px', borderRadius: 999, fontSize: 10, fontWeight: 800, letterSpacing: 0.2, whiteSpace: 'nowrap', flexShrink: 0 }}>{due.text}</span>
+      <span style={{ background: pill.bg, color: pill.fg, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.2, whiteSpace: 'nowrap', flexShrink: 0 }}>{due.text}</span>
       {/* Actions HITL inline (la ligne reste tappable → fiche). ✓ accepter = vrai rappel · ✕ écarter. */}
       {actionBtn(t('today.waFollowups.accept'), () => accept.mutate(row.id), 'check')}
       {actionBtn(t('today.waFollowups.dismiss'), () => dismiss.mutate(row.id), 'close')}
@@ -89,19 +89,19 @@ export function MobileWhatsAppFollowups() {
 
   return (
     <div style={{ marginTop: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 11, padding: '0 2px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 11, padding: '0 var(--crm-space-2xs)' }}>
         <MEIcon name="message" size={15} color={tk.ink} />
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t('today.waFollowups.title')}</h3>
-        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: tk.muted, flexShrink: 0 }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t('today.waFollowups.title')}</h3>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted, flexShrink: 0 }}>
           {t('today.waFollowups.pending', { count: rows.length, countLabel: `${rows.length}${capped ? '+' : ''}` })}
         </span>
       </div>
-      <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 18, boxShadow: tk.shadowSm, overflow: 'hidden' }}>
+      <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-3xl)', boxShadow: tk.shadowSm, overflow: 'hidden' }}>
         {shown.map((r, i) => (
           <FollowupRow key={r.id} row={r} last={extra === 0 && i === shown.length - 1} tk={tk} />
         ))}
         {extra > 0 && (
-          <div style={{ padding: '9px 14px', fontSize: 11.5, fontWeight: 700, color: tk.muted, textAlign: 'center' }}>
+          <div style={{ padding: 'var(--crm-space-md) var(--crm-space-2xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, textAlign: 'center' }}>
             {t('today.waFollowups.more', { count: extra })}
           </div>
         )}

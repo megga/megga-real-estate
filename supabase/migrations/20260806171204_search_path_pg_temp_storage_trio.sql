@@ -1,0 +1,61 @@
+-- `pg_temp` explicite sur les trois fonctions dont dépendent les politiques Storage.
+--
+-- CONSTAT (audit des politiques Storage et des RPC, 06.08.2026). 96 des 228 fonctions
+-- SECURITY DEFINER du schéma `public` fixent un `search_path` qui ne mentionne PAS
+-- `pg_temp`. Or PostgreSQL, quand `pg_temp` n'est pas listé, le cherche IMPLICITEMENT
+-- EN PREMIER pour les relations. Une fonction SECURITY DEFINER qui lit `profiles` sans
+-- qualifier le schéma lit donc `pg_temp.profiles` dès qu'une table temporaire de ce nom
+-- existe dans la session — une table que l'appelant contrôle entièrement.
+--
+-- MESURÉ, pas cité de mémoire (transaction annulée, 06.08.2026) :
+--   set local search_path to 'public';  -- avec une temp table `profiles` créée
+--   select 'profiles'::regclass = 'pg_temp.profiles'::regclass;  -- → TRUE
+-- Et la condition d'entrée tient : `anon` comme `authenticated` possèdent le privilège
+-- TEMP sur la base (ils n'ont pas CREATE sur `public`, mais ce n'est pas ce qu'il faut).
+--
+-- CE QUE ÇA VAUT AUJOURD'HUI, sans le surjouer : aucun chemin d'exploitation connu.
+-- PostgREST n'émet pas de DDL, donc un utilisateur de l'API ne peut pas créer la table
+-- temporaire qu'il faudrait ; et la seule fonction SECURITY DEFINER appelable par un
+-- utilisateur qui fasse du SQL dynamique (`get_admin_cron_runs`) n'interpole qu'un entier
+-- borné et lie son paramètre texte en `$1`. C'est donc de la défense en profondeur, pas
+-- une brèche ouverte.
+--
+-- POURQUOI CES TROIS-LÀ D'ABORD. Ce sont exactement celles sur lesquelles reposent les
+-- huit politiques du préfixe `kyb-identity` de `storage.objects`, c'est-à-dire la garde
+-- des PIÈCES D'IDENTITÉ : `documents_bucket_*` appelle `get_user_agency_id()`,
+-- `documents_kyb_identity_*` appelle `get_my_agency_id()` et `is_agency_admin()`. Si un
+-- chemin DDL s'ouvrait un jour, c'est ce qui serait derrière. Les 93 autres suivront dans
+-- une PR distincte, une fois ce lot éprouvé.
+--
+-- POURQUOI `ALTER` ET NON `CREATE OR REPLACE`. `CREATE OR REPLACE` remplace la LISTE
+-- ENTIÈRE des `SET`. Douze des 96 fonctions portent aussi un `statement_timeout` posé
+-- délibérément : les réécrire avec un `SET search_path` seul le supprimerait en silence.
+-- `ALTER FUNCTION … SET search_path` ne touche que ce réglage et laisse les autres en
+-- place. Les trois fonctions traitées ici sont en `search_path=public` nu, donc le piège
+-- ne les concerne pas — mais l'idiome est posé ici pour le lot de 93, où il compte.
+--
+-- POURQUOI C'EST SÛR. Ajouter `pg_temp` EN DERNIER est purement restrictif : rien n'est
+-- retiré du chemin, `public` résout toujours en premier, et tout ce qui résout aujourd'hui
+-- résout à l'identique demain. Le seul changement est que `pg_temp` passe d'implicitement
+-- premier à explicitement dernier — donc les objets temporaires cessent de masquer. Le cas
+-- qui casserait (une fonction qui crée et relit SA PROPRE table temporaire sans qualifier)
+-- a été cherché : AUCUNE fonction SECURITY DEFINER de `public` ne contient
+-- `CREATE TEMP TABLE`. Changement de configuration seulement, aucun corps réécrit, donc ni
+-- 42P13 ni faute de recopie ; annulable par un `ALTER … SET search_path TO 'public'`.
+--
+-- IDEMPOTENCE : `ALTER FUNCTION … SET` est un réglage absolu, pas un ajout — le rejouer
+-- écrit la même valeur. Aucun `DROP … IF EXISTS` n'a de sens ici, et aucun objet n'est créé.
+--
+-- ⚠ ORDRE AVEC 20260806164512 (déduplication de `get_user_agency_id`). Cette migration est
+-- horodatée APRÈS elle exprès : cette autre migration fait un `CREATE OR REPLACE` qui
+-- réécrit la liste des `SET` de `get_user_agency_id` avec `search_path=public` seul.
+-- Appliquée dans l'ordre des horodatages, la présente migration passe ensuite et pose le
+-- bon réglage. Le date-guard de `deploy.yml` fait qu'une migration non mergée le jour de
+-- son horodatage n'est JAMAIS appliquée, donc elle ne peut pas revenir plus tard annuler
+-- celle-ci. En revanche, si 20260806164512 devait être RE-DATÉE un autre jour, elle devra
+-- reprendre `'public', 'pg_temp'` dans son propre `SET` — sinon elle rouvrirait le trou
+-- sur `get_user_agency_id` seule, silencieusement.
+
+ALTER FUNCTION public.is_agency_admin()    SET search_path TO 'public', 'pg_temp';
+ALTER FUNCTION public.get_my_agency_id()   SET search_path TO 'public', 'pg_temp';
+ALTER FUNCTION public.get_user_agency_id() SET search_path TO 'public', 'pg_temp';

@@ -80,29 +80,29 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
           type="button"
           onClick={() => openSugarSearch()}
           aria-label={t('common:nav.search')}
-          style={{ width: 38, height: 38, borderRadius: 999, border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}
+          style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}
         >
           <MEIcon name="search" size={18} color={tk.ink} />
         </button>
       </header>
 
-      <div style={{ padding: '4px 18px 0' }}>
-        <h1 style={{ margin: '4px 0 0', fontSize: 28, fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
+      <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
           {t('common:nav.calendar')}
         </h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 7 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: tk.inkSoft }}>{t('views.eventCount', { count: dayVMs.length })}</span>
-          {totalMin > 0 ? <span style={{ fontSize: 13, fontWeight: 600, color: tk.muted }}>· {fmtDur(totalMin, t)}</span> : null}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 7 }}>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.inkSoft }}>{t('views.eventCount', { count: dayVMs.length })}</span>
+          {totalMin > 0 ? <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted }}>· {fmtDur(totalMin, t)}</span> : null}
         </div>
       </div>
 
       {/* Sélecteur de jour */}
-      <div style={{ padding: '14px 18px 0' }}>
+      <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-4xl) 0' }}>
         <AgWeekStrip days={days} selected={selected} onSelect={setSelected} countFor={countFor} />
       </div>
 
       {/* Bascule Liste / Bloc */}
-      <div style={{ display: 'flex', gap: 6, margin: '4px 18px 0', padding: 4, borderRadius: 999, background: tk.cardSubtle, width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', margin: '4px 18px 0', padding: 'var(--crm-space-xs)', borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, width: 'fit-content' }}>
         {(['list', 'block'] as AgView[]).map((v) => {
           const on = v === view
           return (
@@ -110,7 +110,7 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
               key={v}
               type="button"
               onClick={() => setView(v)}
-              style={{ height: 34, padding: '0 16px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.card : 'transparent', color: on ? tk.ink : tk.muted, boxShadow: on ? tk.shadowSm : 'none', display: 'inline-flex', alignItems: 'center', gap: 7 }}
+              style={{ height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.card : 'transparent', color: on ? tk.ink : tk.muted, boxShadow: on ? tk.shadowSm : 'none', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
             >
               <MEIcon name={v === 'list' ? 'menu' : 'layers'} size={15} color={on ? tk.ink : tk.muted} />
               {v === 'list' ? t('mobile.viewList') : t('mobile.viewBlock')}
@@ -120,44 +120,44 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
       </div>
 
       {/* Contenu */}
-      <div style={{ padding: '16px 18px 0' }}>
+      <div style={{ padding: 'var(--crm-space-3xl) var(--crm-space-4xl) 0' }}>
         {showLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
             {[0, 1, 2].map((i) => (
-              <div key={i} style={{ height: 76, borderRadius: 18, background: tk.cardSubtle, boxShadow: tk.shadowSm }} />
+              <div key={i} style={{ height: 76, borderRadius: 'var(--crm-radius-3xl)', background: tk.cardSubtle, boxShadow: tk.shadowSm }} />
             ))}
           </div>
         ) : showError ? (
           <div style={{ textAlign: 'center', padding: '48px 12px' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('page.error.title')}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('page.error.title')}</div>
             <button
               type="button"
               onClick={refetch}
-              style={{ marginTop: 16, height: 44, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 800, background: tk.accent, color: tk.accentInk }}
+              style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}
             >
               {t('mobile.retry')}
             </button>
           </div>
         ) : dayVMs.length === 0 ? (
-          <div style={{ marginTop: 6, padding: '44px 24px', textAlign: 'center', background: tk.card, borderRadius: 18, boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
-            <div style={{ width: 52, height: 52, borderRadius: 999, background: tk.cardSubtle, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
+          <div style={{ marginTop: 6, padding: '44px 24px', textAlign: 'center', background: tk.card, borderRadius: 'var(--crm-radius-3xl)', boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
+            <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
               <MEIcon name="calendar" size={24} color={tk.muted} strokeWidth={1.8} />
             </div>
-            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.4, color: tk.ink, marginTop: 14 }}>{t('mobile.dayFreeTitle')}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: tk.muted, marginTop: 5, maxWidth: 240, marginInline: 'auto', lineHeight: 1.45 }}>{t('mobile.dayFreeDesc')}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, marginTop: 14 }}>{t('mobile.dayFreeTitle')}</div>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 5, maxWidth: 240, marginInline: 'auto', lineHeight: 1.45 }}>{t('mobile.dayFreeDesc')}</div>
           </div>
         ) : view === 'list' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
             {dayVMs.map((v, i) => (
               <div key={v.id}>
                 {i === nowIdx ? (
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
-                    <div style={{ width: 46, flexShrink: 0, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: NOW_RED, fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ display: 'flex', gap: 'var(--crm-space-xl)', alignItems: 'center', marginBottom: 14 }}>
+                    <div style={{ width: 46, flexShrink: 0, textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: NOW_RED, fontVariantNumeric: 'tabular-nums' }}>
                       {`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`}
                     </div>
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                      <span style={{ width: 9, height: 9, borderRadius: 999, background: NOW_RED, flexShrink: 0, boxShadow: '0 0 0 4px rgba(229,77,56,0.16)' }} />
-                      <span style={{ flex: 1, height: 2, background: NOW_RED, borderRadius: 999 }} />
+                      <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: NOW_RED, flexShrink: 0, boxShadow: '0 0 0 4px rgba(229,77,56,0.16)' }} />
+                      <span style={{ flex: 1, height: 2, background: NOW_RED, borderRadius: 'var(--crm-radius-pill)' }} />
                     </div>
                   </div>
                 ) : null}
@@ -176,7 +176,7 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
           type="button"
           onClick={() => { if (!demo) navigate('/dashboard/visits/new') }}
           aria-label={t('createVisit.title')}
-          style={{ position: 'fixed', right: 18, bottom: 'calc(100px + env(safe-area-inset-bottom))', zIndex: 54, width: 56, height: 56, borderRadius: 999, border: 0, cursor: 'pointer', background: tk.accent, color: tk.accentInk, boxShadow: tk.shadowLg, display: 'grid', placeItems: 'center' }}
+          style={{ position: 'fixed', right: 18, bottom: 'calc(100px + env(safe-area-inset-bottom))', zIndex: 54, width: 56, height: 56, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: tk.accent, color: tk.accentInk, boxShadow: tk.shadowLg, display: 'grid', placeItems: 'center' }}
         >
           <MEIcon name="plus" size={24} color={tk.accentInk} strokeWidth={2.2} />
         </button>

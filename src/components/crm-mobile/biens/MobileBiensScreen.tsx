@@ -69,32 +69,32 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
           type="button"
           onClick={() => openSugarSearch()}
           aria-label={t('common:nav.search')}
-          style={{ width: 38, height: 38, borderRadius: 999, border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}
+          style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}
         >
           <MEIcon name="search" size={18} color={tk.ink} />
         </button>
       </header>
 
-      <div style={{ padding: '4px 18px 0' }}>
-        <h1 style={{ margin: '4px 0 0', fontSize: 28, fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
+      <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
           {t('title')}
         </h1>
         <div style={{ marginTop: 7 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: tk.inkSoft }}>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.inkSoft }}>
             {t('mobile.subtitle', { count: filtered.length, total: all.length })}
           </span>
         </div>
       </div>
 
       {/* Recherche */}
-      <div style={{ padding: '14px 18px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 15px', background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 14, boxShadow: tk.shadowSm }}>
+      <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-4xl) 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', height: 46, padding: '0 var(--crm-space-2xl)', background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-xl)', boxShadow: tk.shadowSm }}>
           <MEIcon name="search" size={16} color={tk.muted} strokeWidth={1.9} />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('mobile.searchPlaceholder')}
-            style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: tk.ink }}
+            style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink }}
           />
           {query ? (
             <button type="button" onClick={() => setQuery('')} aria-label={t('common:actions.cancel')} style={{ border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
@@ -105,7 +105,7 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
       </div>
 
       {/* Filtres */}
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '12px 0 0', padding: '2px 18px 4px', scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-md)', overflowX: 'auto', margin: '12px 0 0', padding: 'var(--crm-space-2xs) var(--crm-space-4xl) var(--crm-space-xs)', scrollbarWidth: 'none' }}>
         {FILTERS.map((f) => {
           const on = f === filter
           return (
@@ -113,7 +113,7 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              style={{ flexShrink: 0, height: 38, padding: '0 15px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.ink, boxShadow: on ? tk.shadow : tk.shadowSm, transition: 'background .2s ease' }}
+              style={{ flexShrink: 0, height: 38, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.ink, boxShadow: on ? tk.shadow : tk.shadowSm, transition: 'background .2s ease' }}
             >
               {t(FILTER_KEY[f])}
             </button>
@@ -122,30 +122,30 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
       </div>
 
       {/* Contenu */}
-      <div style={{ padding: '16px 18px 0' }}>
+      <div style={{ padding: 'var(--crm-space-3xl) var(--crm-space-4xl) 0' }}>
         {showLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
             {[0, 1, 2].map((i) => (
-              <div key={i} style={{ height: 240, borderRadius: 22, background: tk.cardSubtle, boxShadow: tk.shadowSm }} />
+              <div key={i} style={{ height: 240, borderRadius: 'var(--crm-radius-5xl)', background: tk.cardSubtle, boxShadow: tk.shadowSm }} />
             ))}
           </div>
         ) : showError ? (
           <div style={{ textAlign: 'center', padding: '48px 12px' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('mobile.errorTitle')}</div>
-            <button type="button" onClick={refetch} style={{ marginTop: 16, height: 44, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 800, background: tk.accent, color: tk.accentInk }}>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('mobile.errorTitle')}</div>
+            <button type="button" onClick={refetch} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>
               {t('mobile.retry')}
             </button>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 24px', background: tk.card, borderRadius: 22, boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
-            <div style={{ width: 52, height: 52, borderRadius: 999, background: tk.cardSubtle, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', padding: '48px 24px', background: tk.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
+            <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
               <MEIcon name="home" size={24} color={tk.muted} strokeWidth={1.8} />
             </div>
-            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.4, color: tk.ink, marginTop: 14 }}>{t('mobile.emptyTitle')}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: tk.muted, marginTop: 5, maxWidth: 240, marginInline: 'auto', lineHeight: 1.45 }}>{t('mobile.emptyDesc')}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, marginTop: 14 }}>{t('mobile.emptyTitle')}</div>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 5, maxWidth: 240, marginInline: 'auto', lineHeight: 1.45 }}>{t('mobile.emptyDesc')}</div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
             {filtered.map((b) => (
               <BienCard key={b.id} b={b} t={t} onOpen={() => { if (!demo) navigate(`/dashboard/listings/${b.id}`) }} onMenu={() => setMenuBien(b)} />
             ))}
@@ -159,7 +159,7 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
           type="button"
           onClick={() => { if (!demo) navigate('/dashboard/listings/new') }}
           aria-label={t('add_button', { defaultValue: 'Ajouter un bien' })}
-          style={{ position: 'fixed', right: 18, bottom: 'calc(100px + env(safe-area-inset-bottom))', zIndex: 54, width: 56, height: 56, borderRadius: 999, border: 0, cursor: 'pointer', background: tk.accent, color: tk.accentInk, boxShadow: tk.shadowLg, display: 'grid', placeItems: 'center' }}
+          style={{ position: 'fixed', right: 18, bottom: 'calc(100px + env(safe-area-inset-bottom))', zIndex: 54, width: 56, height: 56, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: tk.accent, color: tk.accentInk, boxShadow: tk.shadowLg, display: 'grid', placeItems: 'center' }}
         >
           <MEIcon name="plus" size={24} color={tk.accentInk} strokeWidth={2.2} />
         </button>
@@ -189,9 +189,9 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
 /** Puce spec compacte : icône + valeur (surface, pièces…). */
 function Spec({ icon, value, color }: { icon: 'surface' | 'home' | 'bed' | 'bath'; value: string; color: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)' }}>
       <MEIcon name={icon} size={15} color={color} strokeWidth={1.8} />
-      <span style={{ fontSize: 12.5, fontWeight: 700, color }}>{value}</span>
+      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color }}>{value}</span>
     </span>
   )
 }
@@ -206,7 +206,7 @@ function BienCard({ b, t, onOpen, onMenu }: { b: CrmBien; t: TFunction; onOpen: 
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } }}
-      style={{ background: tk.card, borderRadius: 22, boxShadow: tk.shadow, overflow: 'hidden', cursor: 'pointer' }}
+      style={{ background: tk.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: tk.shadow, overflow: 'hidden', cursor: 'pointer' }}
     >
       {/* couverture */}
       <div style={{ position: 'relative', height: 158, background: tk.cardSubtle }}>
@@ -218,39 +218,39 @@ function BienCard({ b, t, onOpen, onMenu }: { b: CrmBien; t: TFunction; onOpen: 
           </div>
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(11,12,14,0.30) 0%, rgba(11,12,14,0) 30%, rgba(11,12,14,0) 55%, rgba(11,12,14,0.42) 100%)' }} />
-        <span style={{ position: 'absolute', top: 12, left: 12, padding: '5px 11px', borderRadius: 999, background: tone, color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: 0.1, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
+        <span style={{ position: 'absolute', top: 12, left: 12, padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.1, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
           {t(`status.${b.status}`, { defaultValue: b.status })}
         </span>
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onMenu() }}
           aria-label={t('common:actions.options')}
-          style={{ position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 999, border: 0, background: 'rgba(11,12,14,0.6)', backdropFilter: 'blur(6px)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+          style={{ position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'rgba(11,12,14,0.6)', backdropFilter: 'blur(6px)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
         >
           <MEIcon name="more-horizontal" size={17} color="#fff" />
         </button>
-        <span style={{ position: 'absolute', left: 14, bottom: 11, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.92)', letterSpacing: 0.2 }}>
+        <span style={{ position: 'absolute', left: 14, bottom: 11, fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: 'rgba(255,255,255,0.92)', letterSpacing: 0.2 }}>
           {b.transaction === 'location' ? t('mobile.txRent') : t('mobile.txSale')}
         </span>
-        <span style={{ position: 'absolute', right: 14, bottom: 11, fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums', textShadow: '0 1px 8px rgba(0,0,0,0.35)' }}>
+        <span style={{ position: 'absolute', right: 14, bottom: 11, fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: '#fff', letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums', textShadow: '0 1px 8px rgba(0,0,0,0.35)' }}>
           {priceLabel(b)}
         </span>
       </div>
 
       {/* corps */}
-      <div style={{ padding: '14px 16px 16px' }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
+      <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-3xl) var(--crm-space-3xl)' }}>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xs)', marginTop: 4 }}>
           <MEIcon name="location" size={13} color={tk.muted} strokeWidth={1.7} />
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: tk.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.addr}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.addr}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 13 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)', flexWrap: 'wrap', marginTop: 13 }}>
           <Spec icon="surface" value={`${b.area} m²`} color={tk.inkSoft} />
           {b.rooms ? <Spec icon="home" value={t('mobile.roomsShort', { count: b.rooms })} color={tk.inkSoft} /> : null}
           {b.beds ? <Spec icon="bed" value={String(b.beds)} color={tk.inkSoft} /> : null}
           {b.baths ? <Spec icon="bath" value={String(b.baths)} color={tk.inkSoft} /> : null}
           {b.health ? (
-            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 800, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
               <MEIcon name="sparkle" size={13} color={tk.muted} />
               {b.health.overall}
             </span>

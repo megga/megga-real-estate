@@ -112,26 +112,26 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate()
 
   const rowBase = {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '10px 12px', borderRadius: ADMIN_RADII.row,
+    display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
+    padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: ADMIN_RADII.row,
     cursor: 'pointer', border: 0, width: '100%',
     fontFamily: 'inherit', textAlign: 'left' as const,
     background: 'transparent',
   }
-  const labelStyle = { flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: sp.ink } as const
+  const labelStyle = { flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink } as const
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, padding: '26px 18px 18px' }}>
       {/* Titre d'écran + repère de contexte (le violet, une seule fois) */}
-      <div style={{ padding: '0 6px', marginBottom: 18 }}>
-        <h1 style={{ margin: 0, fontSize: 31, fontWeight: 800, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>
+      <div style={{ padding: '0 var(--crm-space-sm)', marginBottom: 18 }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>
           {t('nav.adminConsole')}
         </h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 9 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 9 }}>
           <span style={{ width: 7, height: 7, borderRadius: ADMIN_RADII.pill, background: tones.accent, flexShrink: 0 }} />
           {/* Le repère de contexte passe par la clé, pas par un littéral : les 17
               pages la rendaient avant, elle serait devenue orpheline. */}
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: tones.accent, letterSpacing: -0.1 }}>{t('admin:common.adminBadge')}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tones.accent, letterSpacing: -0.1 }}>{t('admin:common.adminBadge')}</span>
         </div>
       </div>
 
@@ -142,12 +142,12 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
       <nav aria-label="Navigation admin" className="adm-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', marginTop: 6 }}>
         {NAV_SECTIONS.map((section) => (
           <div key={section.labelKey}>
-            <div style={{ padding: '14px 12px 5px' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub, userSelect: 'none' }}>
+            <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-xl) var(--crm-space-xs)' }}>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub, userSelect: 'none' }}>
                 {t(section.labelKey)}
               </span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
               {section.items.map((item) => (
                 <NavLink key={item.href} to={`${ADMIN_CONSOLE_PATH}${item.href}`} end={item.end} onClick={onNavigate} className="adm-nav" style={({ isActive }) => ({
                   ...rowBase,
@@ -184,14 +184,14 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
         </a>
 
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, padding: '10px 12px',
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 8, padding: 'var(--crm-space-lg) var(--crm-space-xl)',
           borderRadius: ADMIN_RADII.row, background: surf.cardSub,
         }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: sp.ink, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {profile?.full_name ?? profile?.email ?? '—'}
             </p>
-            <p style={{ margin: 0, fontSize: 11, color: sp.sub, lineHeight: 1.3 }}>{t('nav.adminOverview')}</p>
+            <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub, lineHeight: 1.3 }}>{t('nav.adminOverview')}</p>
           </div>
           <button
             onClick={() => void signOut()}
@@ -307,7 +307,7 @@ export default function AdminShell() {
       <header
         className="adm-mobile-header"
         style={{
-          height: 56, flexShrink: 0, alignItems: 'center', gap: 12, padding: '0 14px',
+          height: 56, flexShrink: 0, alignItems: 'center', gap: 'var(--crm-space-xl)', padding: '0 var(--crm-space-2xl)',
           background: surf.card, boxShadow: sp.shadowSm,
         }}
       >
@@ -318,7 +318,7 @@ export default function AdminShell() {
         >
           <MEIcon name="menu" size={19} color={sp.soft} />
         </button>
-        <Link to={ADMIN_CONSOLE_PATH} style={{ fontSize: 13, fontWeight: 800, color: 'rgb(var(--color-admin-accent))', textDecoration: 'none' }}>
+        <Link to={ADMIN_CONSOLE_PATH} style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: 'rgb(var(--color-admin-accent))', textDecoration: 'none' }}>
           {t('admin:common.adminBadge')}
         </Link>
       </header>

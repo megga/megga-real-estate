@@ -40,7 +40,7 @@ export function MobileTodayScreen({ demo = false }: { demo?: boolean }) {
   const baseQueue = selectFocusQueue({ live: isLive, items: focusItems, isDemo: demo })
 
   return (
-    <div style={{ padding: '0 18px', fontFamily: MOBILE_FONT }}>
+    <div style={{ padding: '0 var(--crm-space-4xl)', fontFamily: MOBILE_FONT }}>
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'calc(env(safe-area-inset-top) + 14px) 2px 6px' }}>
         <MeggaWordmark color={tk.ink} height={22} />
         <button
@@ -50,7 +50,7 @@ export function MobileTodayScreen({ demo = false }: { demo?: boolean }) {
           style={{
             width: 38,
             height: 38,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: `1px solid ${tk.cardBorder}`,
             cursor: 'pointer',
             background: tk.card,
@@ -63,9 +63,9 @@ export function MobileTodayScreen({ demo = false }: { demo?: boolean }) {
         </button>
       </header>
 
-      <div style={{ padding: '8px 2px 0' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: tk.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{headerDate}</div>
-        <h1 style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 800, letterSpacing: -0.8, color: tk.ink, lineHeight: 1.1 }}>{greeting}</h1>
+      <div style={{ padding: 'var(--crm-space-md) var(--crm-space-2xs) 0' }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{headerDate}</div>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, color: tk.ink, lineHeight: 1.1 }}>{greeting}</h1>
       </div>
 
       <MobileFocusHero

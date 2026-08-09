@@ -55,7 +55,7 @@ export function KwStepContact({ data, set }: Props) {
         <h1
           style={{
             margin: '0 0 14px',
-            fontSize: 38,
+            fontSize: 'var(--crm-text-9xl)',
             fontWeight: 700,
             color: sp.ink,
             letterSpacing: -0.8,
@@ -67,7 +67,7 @@ export function KwStepContact({ data, set }: Props) {
         <p
           style={{
             margin: 0,
-            fontSize: 15,
+            fontSize: 'var(--crm-text-xl)',
             color: sp.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
@@ -82,12 +82,12 @@ export function KwStepContact({ data, set }: Props) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
-          padding: '0 22px',
+          gap: 'var(--crm-space-xl)',
+          padding: '0 var(--crm-space-6xl)',
           height: 56,
           background: sp.card,
           border: `1px solid ${sp.cardBorder}`,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           marginBottom: 18,
           boxShadow: sp.shadow,
         }}
@@ -103,7 +103,7 @@ export function KwStepContact({ data, set }: Props) {
             outline: 'none',
             background: 'transparent',
             fontFamily: 'inherit',
-            fontSize: 15,
+            fontSize: 'var(--crm-text-xl)',
             fontWeight: 500,
             color: sp.ink,
           }}
@@ -115,7 +115,7 @@ export function KwStepContact({ data, set }: Props) {
         style={{
           background: sp.card,
           border: `1px solid ${sp.cardBorder}`,
-          borderRadius: 22,
+          borderRadius: 'var(--crm-radius-5xl)',
           boxShadow: sp.shadow,
           maxHeight: 460,
           overflow: 'hidden',
@@ -125,7 +125,7 @@ export function KwStepContact({ data, set }: Props) {
       >
         <div
           className="kw-scroll"
-          style={{ flex: 1, overflowY: 'auto', padding: '12px 8px 12px 12px' }}
+          style={{ flex: 1, overflowY: 'auto', padding: 'var(--crm-space-xl) var(--crm-space-md) var(--crm-space-xl) var(--crm-space-xl)' }}
         >
           {filtered.length === 0 ? (
             <div
@@ -133,7 +133,7 @@ export function KwStepContact({ data, set }: Props) {
                 padding: '40px 20px',
                 textAlign: 'center',
                 color: sp.muted,
-                fontSize: 13,
+                fontSize: 'var(--crm-text-lg)',
                 fontWeight: 500,
               }}
             >
@@ -162,11 +162,11 @@ export function KwStepContact({ data, set }: Props) {
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '44px 1fr auto auto',
-                    gap: 14,
+                    gap: 'var(--crm-space-2xl)',
                     alignItems: 'center',
                     width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: 14,
+                    padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+                    borderRadius: 'var(--crm-radius-xl)',
                     border: 0,
                     outline: 'none',
                     background: selected ? sp.black : 'transparent',
@@ -191,12 +191,12 @@ export function KwStepContact({ data, set }: Props) {
                     style={{
                       width: 44,
                       height: 44,
-                      borderRadius: 999,
+                      borderRadius: 'var(--crm-radius-pill)',
                       background: sp.black,
                       color: sp.onAccent,
                       display: 'grid',
                       placeItems: 'center',
-                      fontSize: 13,
+                      fontSize: 'var(--crm-text-lg)',
                       fontWeight: 700,
                     }}
                   >
@@ -205,7 +205,7 @@ export function KwStepContact({ data, set }: Props) {
                   <div style={{ minWidth: 0 }}>
                     <div
                       style={{
-                        fontSize: 14,
+                        fontSize: 'var(--crm-text-xl)',
                         fontWeight: 700,
                         letterSpacing: -0.2,
                         marginBottom: 2,
@@ -215,7 +215,7 @@ export function KwStepContact({ data, set }: Props) {
                     </div>
                     <div
                       style={{
-                        fontSize: 11.5,
+                        fontSize: 'var(--crm-text-sm)',
                         fontWeight: 500,
                         color: selected ? sp.onAccentSoft : sp.muted,
                       }}
@@ -225,11 +225,11 @@ export function KwStepContact({ data, set }: Props) {
                   </div>
                   <span
                     style={{
-                      padding: '4px 10px',
-                      borderRadius: 999,
+                      padding: 'var(--crm-space-xs) var(--crm-space-lg)',
+                      borderRadius: 'var(--crm-radius-pill)',
                       background: selected ? sp.onAccentFaint : sp.cardSubtle,
                       color: selected ? sp.onAccent : sp.inkSoft,
-                      fontSize: 11,
+                      fontSize: 'var(--crm-text-sm)',
                       fontWeight: 700,
                       letterSpacing: 0.1,
                     }}
@@ -239,11 +239,11 @@ export function KwStepContact({ data, set }: Props) {
                   {has ? (
                     <span
                       style={{
-                        fontSize: 10.5,
+                        fontSize: 'var(--crm-text-xs)',
                         fontWeight: 700,
                         color: sp.muted,
-                        padding: '4px 10px',
-                        borderRadius: 999,
+                        padding: 'var(--crm-space-xs) var(--crm-space-lg)',
+                        borderRadius: 'var(--crm-radius-pill)',
                         background: sp.cardSubtle,
                         letterSpacing: 0.2,
                         whiteSpace: 'nowrap',
@@ -256,7 +256,7 @@ export function KwStepContact({ data, set }: Props) {
                       style={{
                         width: 28,
                         height: 28,
-                        borderRadius: 999,
+                        borderRadius: 'var(--crm-radius-pill)',
                         background: sp.onAccentMid,
                         display: 'grid',
                         placeItems: 'center',

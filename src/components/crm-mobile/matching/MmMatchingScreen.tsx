@@ -302,7 +302,7 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
           }}
         >
           <MeggaWordmark color={tk.ink} height={22} />
-          <div style={{ display: 'flex', gap: 9 }}>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
             <button
               type="button"
               onClick={() => openSugarSearch()}
@@ -322,19 +322,19 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
           </div>
         </header>
 
-        <div style={{ padding: '4px 18px 0' }}>
-          <h1 style={{ margin: '4px 0 0', fontSize: 28, fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
+        <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
+          <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
             {t('common:nav.matching')}
           </h1>
           <div style={{ marginTop: 7 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: tk.inkSoft }}>
+            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.inkSoft }}>
               {t('mobile.activeBuyers', { count: allGroups.length })}
             </span>
           </div>
         </div>
 
         {/* Filtres */}
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '16px 0 0', padding: '2px 18px 4px', scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-md)', overflowX: 'auto', margin: '16px 0 0', padding: 'var(--crm-space-2xs) var(--crm-space-4xl) var(--crm-space-xs)', scrollbarWidth: 'none' }}>
           {TABS.map((f) => {
             if (f !== 'all' && f !== filter && !counts[f]) return null
             const on = f === filter
@@ -347,10 +347,10 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
                   flexShrink: 0,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 7,
+                  gap: 'var(--crm-space-sm)',
                   height: 38,
-                  padding: '0 15px',
-                  borderRadius: 999,
+                  padding: '0 var(--crm-space-2xl)',
+                  borderRadius: 'var(--crm-radius-pill)',
                   border: 0,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
@@ -359,7 +359,7 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
                   transition: 'background .2s ease',
                 }}
               >
-                <span style={{ fontSize: 13, fontWeight: on ? 800 : 700, letterSpacing: -0.2, color: on ? tk.accentInk : tk.ink, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, color: on ? tk.accentInk : tk.ink, whiteSpace: 'nowrap' }}>
                   {t(`tabs.${f}`)}
                 </span>
               </button>
@@ -368,46 +368,46 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
         </div>
 
         {/* Contenu */}
-        <div style={{ padding: '16px 18px 0' }}>
+        <div style={{ padding: 'var(--crm-space-3xl) var(--crm-space-4xl) 0' }}>
           {showLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
               {[0, 1, 2].map((i) => (
-                <div key={i} style={{ height: 216, borderRadius: 22, background: tk.cardSubtle, boxShadow: tk.shadowSm }} />
+                <div key={i} style={{ height: 216, borderRadius: 'var(--crm-radius-5xl)', background: tk.cardSubtle, boxShadow: tk.shadowSm }} />
               ))}
             </div>
           ) : showError ? (
             <div style={{ textAlign: 'center', padding: '48px 12px' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('atelier.error.title')}</div>
-              <div style={{ fontSize: 13.5, fontWeight: 500, color: tk.muted, marginTop: 6, lineHeight: 1.45 }}>{t('atelier.error.desc')}</div>
+              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('atelier.error.title')}</div>
+              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tk.muted, marginTop: 6, lineHeight: 1.45 }}>{t('atelier.error.desc')}</div>
               <button
                 type="button"
                 onClick={refresh}
-                style={{ marginTop: 16, height: 44, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 800, background: tk.accent, color: tk.accentInk }}
+                style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}
               >
                 {t('atelier.error.retry')}
               </button>
             </div>
           ) : showEmpty ? (
             <div style={{ textAlign: 'center', padding: '48px 12px' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('atelier.empty.title')}</div>
-              <div style={{ fontSize: 13.5, fontWeight: 500, color: tk.muted, marginTop: 6, lineHeight: 1.45 }}>{t('atelier.empty.desc')}</div>
+              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('atelier.empty.title')}</div>
+              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tk.muted, marginTop: 6, lineHeight: 1.45 }}>{t('atelier.empty.desc')}</div>
               {!demo ? (
                 <button
                   type="button"
                   onClick={() => void runScan()}
                   disabled={scanning}
-                  style={{ marginTop: 16, height: 44, padding: '0 22px', borderRadius: 999, border: 0, cursor: scanning ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 800, background: tk.accent, color: tk.accentInk, opacity: scanning ? 0.85 : 1 }}
+                  style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: scanning ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk, opacity: scanning ? 0.85 : 1 }}
                 >
                   {scanning ? t('atelier.empty.scanning') : t('atelier.empty.scanCta')}
                 </button>
               ) : null}
             </div>
           ) : visible.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 20px', color: tk.muted, fontSize: 14, fontWeight: 600 }}>
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: tk.muted, fontSize: 'var(--crm-text-xl)', fontWeight: 600 }}>
               {t('mobile.emptyFilter')}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
               {visible.map((g) => (
                 <MmBuyerCard key={g.id} group={g} onOpen={() => openFocus(g)} onMenu={() => setMenuGroup(g)} />
               ))}
@@ -508,7 +508,7 @@ function iconBtn(tk: ReturnType<typeof useMobileTokens>['tk']) {
   return {
     width: 38,
     height: 38,
-    borderRadius: 999,
+    borderRadius: 'var(--crm-radius-pill)',
     border: `1px solid ${tk.cardBorder}`,
     cursor: 'pointer',
     background: tk.card,

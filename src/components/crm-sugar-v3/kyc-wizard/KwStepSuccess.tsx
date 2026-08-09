@@ -33,7 +33,7 @@ export function KwStepSuccess({ data, onOpen, onClose }: Props) {
         style={{
           width: 88,
           height: 88,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           background: '#10B981',
           display: 'grid',
           placeItems: 'center',
@@ -45,7 +45,7 @@ export function KwStepSuccess({ data, onOpen, onClose }: Props) {
       </div>
       <div
         style={{
-          fontSize: 12,
+          fontSize: 'var(--crm-text-md)',
           fontWeight: 600,
           color: sp.muted,
           letterSpacing: 1.2,
@@ -58,7 +58,7 @@ export function KwStepSuccess({ data, onOpen, onClose }: Props) {
       <h1
         style={{
           margin: '0 0 14px',
-          fontSize: 36,
+          fontSize: 'var(--crm-text-8xl)',
           fontWeight: 700,
           color: sp.ink,
           letterSpacing: -0.7,
@@ -70,7 +70,7 @@ export function KwStepSuccess({ data, onOpen, onClose }: Props) {
       <p
         style={{
           margin: '0 0 36px',
-          fontSize: 15,
+          fontSize: 'var(--crm-text-xl)',
           color: sp.inkSoft,
           fontWeight: 500,
           lineHeight: 1.55,
@@ -81,7 +81,7 @@ export function KwStepSuccess({ data, onOpen, onClose }: Props) {
       >
         {t('wizard.success.description')}
       </p>
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-xl)', justifyContent: 'center' }}>
         <KycGhostPill onClick={onClose} size="md">
           {t('wizard.success.close')}
         </KycGhostPill>

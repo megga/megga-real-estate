@@ -29,7 +29,7 @@ export function KwStepVigilance({ data, set }: Props) {
         <h1
           style={{
             margin: '0 0 14px',
-            fontSize: 38,
+            fontSize: 'var(--crm-text-9xl)',
             fontWeight: 700,
             color: sp.ink,
             letterSpacing: -0.8,
@@ -41,7 +41,7 @@ export function KwStepVigilance({ data, set }: Props) {
         <p
           style={{
             margin: 0,
-            fontSize: 15,
+            fontSize: 'var(--crm-text-xl)',
             color: sp.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
@@ -54,7 +54,7 @@ export function KwStepVigilance({ data, set }: Props) {
       <div style={{ marginBottom: 32 }}>
         <div
           style={{
-            fontSize: 12,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
             color: sp.muted,
             letterSpacing: 1,
@@ -67,7 +67,7 @@ export function KwStepVigilance({ data, set }: Props) {
         <div
           role="radiogroup"
           aria-label={t('wizard.vigilance.entityTypeAria')}
-          style={{ display: 'inline-flex', gap: 8, background: sp.cardSubtle, padding: 6, borderRadius: 999 }}
+          style={{ display: 'inline-flex', gap: 'var(--crm-space-md)', background: sp.cardSubtle, padding: 'var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)' }}
         >
           {([
             { value: 'pp', label: t('wizard.vigilance.entityPp'), icon: 'user' },
@@ -85,15 +85,15 @@ export function KwStepVigilance({ data, set }: Props) {
                   border: 0,
                   fontFamily: 'inherit',
                   cursor: 'pointer',
-                  padding: '8px 18px',
-                  borderRadius: 999,
-                  fontSize: 13.5,
+                  padding: 'var(--crm-space-md) var(--crm-space-4xl)',
+                  borderRadius: 'var(--crm-radius-pill)',
+                  fontSize: 'var(--crm-text-lg)',
                   fontWeight: 600,
                   background: isSelected ? sp.black : 'transparent',
                   color: isSelected ? sp.onAccent : sp.inkSoft,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: 'var(--crm-space-md)',
                   transition: 'all .2s ease',
                 }}
               >
@@ -111,7 +111,7 @@ export function KwStepVigilance({ data, set }: Props) {
           <div
             style={{
               marginTop: 10,
-              fontSize: 12,
+              fontSize: 'var(--crm-text-md)',
               color: sp.muted,
               fontWeight: 500,
             }}
@@ -121,7 +121,7 @@ export function KwStepVigilance({ data, set }: Props) {
         )}
       </div>
 
-      <div className="sg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+      <div className="sg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-6xl)' }}>
         <KwGateCard
           selected={data.vigilance === 'standard'}
           icon={

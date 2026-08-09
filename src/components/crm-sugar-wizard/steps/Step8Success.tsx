@@ -55,7 +55,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
       {/* HÉROS */}
       <div style={{
         position: 'relative',
-        textAlign: 'center', marginBottom: 36, paddingTop: 20,
+        textAlign: 'center', marginBottom: 36, paddingTop: 'var(--crm-space-5xl)',
       }}>
         <div style={{
           position: 'absolute', left: '50%', top: 0, transform: 'translate(-50%, -10%)',
@@ -98,7 +98,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
         </div>
 
         <div style={{
-          fontSize: 12, fontWeight: 700, color: SugarV2.muted,
+          fontSize: 'var(--crm-text-md)', fontWeight: 700, color: SugarV2.muted,
           letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12,
         }}>{mode === 'now' ? tr('wizard.step8.eyebrow.now') : mode === 'schedule' ? tr('wizard.step8.eyebrow.schedule') : tr('wizard.step8.eyebrow.draft')}</div>
 
@@ -108,7 +108,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
         }}>{titleByMode[mode]}</h1>
 
         <p style={{
-          margin: 0, fontSize: 16, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.5,
+          margin: 0, fontSize: 'var(--crm-text-2xl)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.5,
           maxWidth: 560, marginInline: 'auto',
         }}>{subByMode[mode]}</p>
 
@@ -117,12 +117,12 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
 
       {/* BENTO carte annonce */}
       <div style={{
-        background: SugarV2.card, borderRadius: 24, padding: 22,
+        background: SugarV2.card, borderRadius: 'var(--crm-radius-5xl)', padding: 'var(--crm-space-6xl)',
         boxShadow: SugarV2.shadow, marginBottom: 18,
-        display: 'grid', gridTemplateColumns: '180px 1fr auto', gap: 18, alignItems: 'center',
+        display: 'grid', gridTemplateColumns: '180px 1fr auto', gap: 'var(--crm-space-4xl)', alignItems: 'center',
       }}>
         <div style={{
-          aspectRatio: '4/3', borderRadius: 14, overflow: 'hidden',
+          aspectRatio: '4/3', borderRadius: 'var(--crm-radius-xl)', overflow: 'hidden',
           background: cover
             ? `repeating-linear-gradient(135deg, ${cover.tone || '#D4DDE3'} 0 12px, ${shade(cover.tone || '#D4DDE3', -0.04)} 12px 24px)`
             : SugarV2.cardSubtle,
@@ -134,20 +134,20 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
               <path d="M3 21V11l9-7 9 7v10"/><path d="M9 21v-7h6v7"/>
             </svg>
           ) : (
-            <div style={{ fontSize: 11, color: SugarV2.muted, fontWeight: 600 }}>{tr('wizard.step8.noCover')}</div>
+            <div style={{ fontSize: 'var(--crm-text-sm)', color: SugarV2.muted, fontWeight: 600 }}>{tr('wizard.step8.noCover')}</div>
           )}
         </div>
 
         <div style={{ minWidth: 0 }}>
           <div style={{
-            fontSize: 11, fontWeight: 700, color: SugarV2.muted,
+            fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SugarV2.muted,
             letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
           }}>{tx === 'vente' ? tr('wizard.txBadge.sale') : tr('wizard.txBadge.rent')} · {data.canton || tr('wizard.country')}</div>
           <div style={{
-            fontSize: 20, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.4, marginBottom: 4,
+            fontSize: 'var(--crm-text-4xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.4, marginBottom: 4,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{data.addr || tr('wizard.step8.noAddress')}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: SugarV2.inkSoft, fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-lg)', color: SugarV2.inkSoft, fontWeight: 500 }}>
             <span style={{ fontWeight: 700, color: SugarV2.ink }}>
               {fmtCHF(price) || '—'} CHF{tx === 'location' ? tr('wizard.perMonthShort') : ''}
             </span>
@@ -158,11 +158,11 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
 
         {mode === 'now' && (
           <a href="#" onClick={e => e.preventDefault()} style={{
-            height: 44, padding: '0 18px', borderRadius: 999,
+            height: 44, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)',
             background: SugarV2.black, color: sgOn(),
-            fontSize: 13, fontWeight: 700, letterSpacing: 0.1,
+            fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: 0.1,
             cursor: 'pointer', textDecoration: 'none',
-            display: 'inline-flex', alignItems: 'center', gap: 8,
+            display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)',
             boxShadow: '0 8px 20px rgba(0,0,0,0.22)',
             transition: 'all .2s ease',
           }}
@@ -179,13 +179,13 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
       {/* URL publique */}
       {mode === 'now' && (
         <div style={{
-          background: SugarV2.card, borderRadius: 18, padding: '14px 18px',
+          background: SugarV2.card, borderRadius: 'var(--crm-radius-3xl)', padding: 'var(--crm-space-2xl) var(--crm-space-4xl)',
           boxShadow: SugarV2.shadowSm, marginBottom: 24,
-          display: 'flex', alignItems: 'center', gap: 12,
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
         }}>
           <div style={{
             display: 'grid', placeItems: 'center',
-            width: 32, height: 32, borderRadius: 8,
+            width: 32, height: 32, borderRadius: 'var(--crm-radius-sm)',
             background: SugarV2.cardSubtle, color: SugarV2.ink,
           }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -195,11 +195,11 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontSize: 10.5, fontWeight: 700, color: SugarV2.muted,
+              fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SugarV2.muted,
               letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2,
             }}>{tr('wizard.step8.publicUrl')}</div>
             <div style={{
-              fontSize: 13.5, fontWeight: 600, color: SugarV2.ink,
+              fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.ink,
               fontFamily: 'ui-monospace, Menlo, monospace',
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{publicUrl}</div>
@@ -212,7 +212,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
 
       {/* ACTIONS NEXT */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24,
+        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--crm-space-xl)', marginBottom: 24,
       }}>
         <NextCard icon="plus" title={tr('wizard.step8.next.createAnother.title')}
           subtitle={tr('wizard.step8.next.createAnother.subtitle')}
@@ -223,7 +223,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
       </div>
 
       <div style={{
-        textAlign: 'center', fontSize: 12, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.6,
+        textAlign: 'center', fontSize: 'var(--crm-text-md)', color: SugarV2.muted, fontWeight: 500, lineHeight: 1.6,
       }}>
         <Trans
           t={tr}
@@ -252,17 +252,17 @@ function NextCard({
   }
   return (
     <button onClick={onClick} style={{
-      padding: 20, borderRadius: 18, border: 0,
+      padding: 'var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-3xl)', border: 0,
       background: SugarV2.card, boxShadow: SugarV2.shadowSm,
       cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-      display: 'flex', flexDirection: 'column', gap: 8,
+      display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)',
       transition: 'all .2s ease',
     }}
     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = SugarV2.shadowHover || SugarV2.shadow }}
     onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = SugarV2.shadowSm }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
         <div style={{
-          width: 36, height: 36, borderRadius: 10,
+          width: 36, height: 36, borderRadius: 'var(--crm-radius-md)',
           background: SugarV2.cardSubtle, color: SugarV2.ink,
           display: 'grid', placeItems: 'center',
         }}>
@@ -272,17 +272,17 @@ function NextCard({
         </div>
         {tag && (
           <span style={{
-            padding: '3px 9px', borderRadius: 999,
+            padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
             background: SugarV2.black, color: sgOn(),
-            fontSize: 10, fontWeight: 700, letterSpacing: 0.4,
+            fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.4,
           }}>{tag}</span>
         )}
       </div>
       <div>
         <div style={{
-          fontSize: 14, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2, marginBottom: 3,
+          fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2, marginBottom: 3,
         }}>{title}</div>
-        <div style={{ fontSize: 12, fontWeight: 500, color: SugarV2.muted, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SugarV2.muted, lineHeight: 1.45 }}>
           {subtitle}
         </div>
       </div>
@@ -298,7 +298,7 @@ function IconBtn({ icon, label }: { icon: 'copy' | 'qr' | 'share'; label: string
   }
   return (
     <button title={label} style={{
-      width: 36, height: 36, borderRadius: 10, border: 0,
+      width: 36, height: 36, borderRadius: 'var(--crm-radius-md)', border: 0,
       background: SugarV2.cardSubtle, color: SugarV2.ink,
       cursor: 'pointer', display: 'grid', placeItems: 'center',
       transition: 'all .15s ease',

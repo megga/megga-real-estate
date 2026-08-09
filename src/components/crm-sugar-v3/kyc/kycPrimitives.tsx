@@ -44,7 +44,7 @@ export function KycBlackPill({
       style={{
         height: h,
         padding: size === 'lg' ? '0 26px' : '0 18px',
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: disabled ? sp.ghost : hover ? sp.blackHover : sp.black,
         color: sp.onAccent,
@@ -55,7 +55,7 @@ export function KycBlackPill({
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 9,
+        gap: 'var(--crm-space-md)',
         whiteSpace: 'nowrap',
         boxShadow: disabled
           ? 'none'
@@ -109,7 +109,7 @@ export function KycGhostPill({
       style={{
         height: h,
         padding: size === 'sm' ? '0 14px' : '0 18px',
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: active ? sp.black : hover ? sp.card : 'transparent',
         color: active ? sp.onAccent : sp.inkSoft,
@@ -154,7 +154,7 @@ export function KycCircleBtn({ icon, onClick, title, size = 44 }: CircleBtnProps
       style={{
         width: size,
         height: size,
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: sp.cardSubtle,
         color: sp.inkSoft,

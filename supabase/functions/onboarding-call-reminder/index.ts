@@ -16,6 +16,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
 import { sendResendEmail } from '../_shared/resend.ts'
 import { buildReminderEmail } from '../_shared/onboarding-email.ts'
+import { onboardingCallManageUrl } from '../_shared/app-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -88,9 +89,7 @@ serve(async (req: Request) => {
       durationMinutes: call.duration_minutes,
       timezone: host?.timezone ?? 'Europe/Zurich',
       meetingUrl: call.meeting_url,
-      // `/rendez-vous-accueil/` — cf. onboarding-call-book pour pourquoi ce n'est pas
-      // `/rendez-vous/`, qui appartient au RDV de vérification KYC.
-      manageUrl: `https://app.megga.ch/rendez-vous-accueil/${call.manage_token}`,
+      manageUrl: onboardingCallManageUrl(call.manage_token),
       locale: 'fr',
     })
 

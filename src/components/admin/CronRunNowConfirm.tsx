@@ -29,17 +29,17 @@ export default function CronRunNowConfirm({ jobname, messageFr, pending, onConfi
 
   return (
     <Modal open onClose={onClose} title={t('monitoring.cronHealth.confirmTitle')} size="sm">
-      <div className="p-5" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: sp.ink }}>
+      <div className="p-5" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', lineHeight: 1.55, color: sp.ink }}>
           {messageFr || t('monitoring.cronHealth.confirmFallback')}
         </p>
         <p style={{
           margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-          fontSize: 12, fontWeight: 700, color: sp.sub,
+          fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.sub,
         }}>
           {jobname}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 9 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--crm-space-md)' }}>
           <AdminGhostBtn onClick={onClose} disabled={pending}>{t('common.cancel')}</AdminGhostBtn>
           <AdminSolidBtn onClick={onConfirm} disabled={pending}>
             {t('monitoring.cronHealth.confirmCta')}

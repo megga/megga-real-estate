@@ -18,11 +18,11 @@ const WA_GREEN = '#25D366'
 
 function Benefit({ icon, sp, children }: { icon: NcvIconName; sp: SugarPalette; children: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-xl)' }}>
       <div style={{ marginTop: 1, lineHeight: 0, flexShrink: 0 }}>
         <NcvIcon name={icon} size={18} stroke={sp.ink} />
       </div>
-      <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.45, color: sp.ink, textWrap: 'pretty' }}>
+      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, lineHeight: 1.45, color: sp.ink, textWrap: 'pretty' }}>
         {children}
       </div>
     </div>
@@ -68,7 +68,7 @@ export default function WhatsAppConnectModal({
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 120, display: 'grid', placeItems: 'center', padding: 24,
+        position: 'fixed', inset: 0, zIndex: 120, display: 'grid', placeItems: 'center', padding: 'var(--crm-space-7xl)',
         background: overlay, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
         animation: 'cfrOv .22s ease both',
       }}
@@ -85,7 +85,7 @@ export default function WhatsAppConnectModal({
           width: 'min(452px, 100%)',
           backgroundColor: sp.pageBg,
           backgroundImage: `linear-gradient(0deg, ${sp.cardBg}, ${sp.cardBg})`,
-          borderRadius: 28,
+          borderRadius: 'var(--crm-radius-6xl)',
           boxShadow: sp.solidShadow,
           padding: '28px 30px 26px',
           boxSizing: 'border-box',
@@ -98,7 +98,7 @@ export default function WhatsAppConnectModal({
           onClick={onClose}
           aria-label={t('waConnect.close')}
           style={{
-            position: 'absolute', top: 18, right: 18, width: 34, height: 34, borderRadius: 999, border: 0,
+            position: 'absolute', top: 18, right: 18, width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', border: 0,
             cursor: 'pointer', background: sp.cardSubBg, color: sp.sub, display: 'grid', placeItems: 'center', fontFamily: 'inherit',
           }}
         >
@@ -110,35 +110,35 @@ export default function WhatsAppConnectModal({
             l'alignent sur le GG, `lineHeight: 0` neutralise la descente du cadratin
             et `marginLeft: -6` compense le blanc à gauche du monogramme (son <g>
             porte translate(3, 8.5) dans un viewBox 32). Valeurs mesurées. */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 4, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-3xl)', marginTop: 4, marginBottom: 20 }}>
           <GgMonogram size={44} color={sp.ink} />
           <span
             aria-hidden="true"
-            style={{ height: 44, display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 500, color: sp.sub, lineHeight: 0, marginLeft: -6 }}
+            style={{ height: 44, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: sp.sub, lineHeight: 0, marginLeft: -6 }}
           >
             ×
           </span>
           <WhatsAppGlyph size={38} color={WA_GREEN} />
         </div>
 
-        <h2 style={{ margin: 0, textAlign: 'center', fontSize: 21, fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>
+        <h2 style={{ margin: 0, textAlign: 'center', fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>
           {verified ? t('waConnect.connectedTitle') : t('waConnect.title')}
         </h2>
-        <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 14, fontWeight: 500, lineHeight: 1.55, color: sp.soft, textWrap: 'pretty' }}>
+        <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 500, lineHeight: 1.55, color: sp.soft, textWrap: 'pretty' }}>
           {verified ? (waNumber || t('waConnect.connectedFallback')) : t('waConnect.subtitle')}
         </p>
 
         {verified ? (
           <div style={{
-            marginTop: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-            height: 46, borderRadius: 14, background: sp.cardSubBg, color: sp.ink, fontSize: 13.5, fontWeight: 700,
+            marginTop: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)',
+            height: 46, borderRadius: 'var(--crm-radius-xl)', background: sp.cardSubBg, color: sp.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 700,
           }}>
             <NcvIcon name="check" size={18} stroke={WA_GREEN} sw={2.2} />
             {t('waConnect.connectedBadge')}
           </div>
         ) : (
           <>
-            <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 15 }}>
+            <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
               <Benefit icon="download" sp={sp}>{t('waConnect.benefit1')}</Benefit>
               <Benefit icon="send" sp={sp}>{t('waConnect.benefit2')}</Benefit>
               <Benefit icon="check" sp={sp}>{t('waConnect.benefit3')}</Benefit>
@@ -146,13 +146,13 @@ export default function WhatsAppConnectModal({
 
             {pairingCode ? (
               <div style={{ marginTop: 22 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: sp.sub, textAlign: 'center' }}>
+                <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: sp.sub, textAlign: 'center' }}>
                   {t('waConnect.codeLabel')}
                 </div>
                 <div style={{
-                  marginTop: 10, height: 56, borderRadius: 14, background: sp.solidBg,
+                  marginTop: 10, height: 56, borderRadius: 'var(--crm-radius-xl)', background: sp.solidBg,
                   display: 'grid', placeItems: 'center', color: sp.ink,
-                  fontSize: 26, fontWeight: 800, letterSpacing: 6, fontVariantNumeric: 'tabular-nums',
+                  fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: 6, fontVariantNumeric: 'tabular-nums',
                 }}>
                   {pairingCode}
                 </div>
@@ -162,9 +162,9 @@ export default function WhatsAppConnectModal({
                 onClick={onConnect}
                 disabled={generateCode.isPending}
                 style={{
-                  marginTop: 24, width: '100%', height: 46, borderRadius: 999, border: 0,
+                  marginTop: 24, width: '100%', height: 46, borderRadius: 'var(--crm-radius-pill)', border: 0,
                   cursor: generateCode.isPending ? 'wait' : 'pointer', fontFamily: 'inherit',
-                  fontSize: 14.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+                  fontSize: 'var(--crm-text-xl)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)',
                   background: sp.ink, color: dark ? '#0B0C0E' : '#FFFFFF', opacity: generateCode.isPending ? 0.7 : 1,
                 }}
               >
@@ -174,9 +174,9 @@ export default function WhatsAppConnectModal({
             )}
 
             {err && (
-              <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#B4293D' }}>{err}</p>
+              <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: '#B4293D' }}>{err}</p>
             )}
-            <p style={{ margin: '12px 0 0', textAlign: 'center', fontSize: 12, fontWeight: 500, color: sp.sub }}>
+            <p style={{ margin: '12px 0 0', textAlign: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.sub }}>
               {t('waConnect.note')}
             </p>
           </>

@@ -87,7 +87,7 @@ function BienThumb({ id }: { id: string }) {
   return (
     <div
       style={{
-        width: 56, height: 56, borderRadius: 12, flexShrink: 0,
+        width: 56, height: 56, borderRadius: 'var(--crm-radius-lg)', flexShrink: 0,
         background: `linear-gradient(135deg, hsl(${hue} 30% 78%), hsl(${(hue + 40) % 360} 25% 65%))`,
         position: 'relative', overflow: 'hidden',
         boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)',
@@ -108,8 +108,8 @@ function activeRowStyle(active: boolean, dark: boolean): CSSProperties {
 }
 
 const ROW_BASE: CSSProperties = {
-  width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12,
-  border: 0, borderRadius: 14, cursor: 'pointer', textAlign: 'left',
+  width: '100%', padding: 'var(--crm-space-lg) var(--crm-space-2xl)', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
+  border: 0, borderRadius: 'var(--crm-radius-xl)', cursor: 'pointer', textAlign: 'left',
   fontFamily: 'inherit', transition: 'background .14s ease',
 }
 
@@ -121,9 +121,9 @@ function Section({ title, count, children, sp, accent, badge }: {
     <div style={{ marginBottom: 14 }}>
       <div
         style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 14px 6px', color: accent || sp.sub,
-          fontSize: 11, fontWeight: 700, letterSpacing: 0.7, textTransform: 'uppercase',
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
+          padding: 'var(--crm-space-lg) var(--crm-space-2xl) var(--crm-space-sm)', color: accent || sp.sub,
+          fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.7, textTransform: 'uppercase',
         }}
       >
         <span style={{ whiteSpace: 'nowrap' }}>{title}</span>
@@ -131,7 +131,7 @@ function Section({ title, count, children, sp, accent, badge }: {
           <span
             style={{
               background: accent ? accent + '18' : sp.cardSubBg, color: accent || sp.sub,
-              padding: '1px 6px', borderRadius: 999, fontSize: 10, fontWeight: 700,
+              padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-xs)', fontWeight: 700,
               fontVariantNumeric: 'tabular-nums',
             }}
           >
@@ -141,11 +141,11 @@ function Section({ title, count, children, sp, accent, badge }: {
         {badge && (
           <span
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto',
-              padding: '1px 7px', borderRadius: 999,
+              display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', marginLeft: 'auto',
+              padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
               background: 'linear-gradient(135deg, rgba(0,65,217,0.10) 0%, rgba(139,92,246,0.10) 100%)',
               border: '1px solid rgba(139,92,246,0.18)',
-              fontSize: 9, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
+              fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
               color: accent || sp.sub,
             }}
           >
@@ -177,16 +177,16 @@ function MeggaConvoRow({ convo, q, sp, dark, lang, active, onHover, onSelect }: 
   active: boolean; onHover: () => void; onSelect: () => void
 }) {
   return (
-    <button onMouseEnter={onHover} onClick={onSelect} style={{ ...ROW_BASE, padding: '12px 14px', gap: 14, color: sp.ink, ...activeRowStyle(active, dark) }}>
+    <button onMouseEnter={onHover} onClick={onSelect} style={{ ...ROW_BASE, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', gap: 'var(--crm-space-2xl)', color: sp.ink, ...activeRowStyle(active, dark) }}>
       <div style={{ width: 16, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
         <IconSpark stroke={active ? sp.ink : sp.sub} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: sp.ink, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           <Hi text={convo.title} q={q} sp={sp} />
         </div>
       </div>
-      <span style={{ fontSize: 11, color: sp.sub, fontWeight: 500, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 500, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
         {relTime(convo.lastMessageAt, lang)}
       </span>
     </button>
@@ -420,7 +420,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
           backdropFilter: 'blur(28px) saturate(160%)',
           WebkitBackdropFilter: 'blur(28px) saturate(160%)',
           border: `1px solid ${panelBorder}`,
-          borderRadius: 24,
+          borderRadius: 'var(--crm-radius-5xl)',
           boxShadow: panelShadow,
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
@@ -428,7 +428,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
         }}
       >
         {/* Champ épuré — aucune icône */}
-        <div style={{ padding: '26px 28px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ padding: '26px 28px 18px', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
           <input
             ref={inputRef}
             className="sugarSearchField"
@@ -438,7 +438,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
             autoFocus
             style={{
               flex: 1, minWidth: 0, background: 'transparent', border: 0, outline: 'none',
-              color: sp.ink, fontSize: 23, fontWeight: 500,
+              color: sp.ink, fontSize: 'var(--crm-text-5xl)', fontWeight: 500,
               fontFamily: 'inherit', letterSpacing: -0.5, caretColor: sp.ink,
               ['--ph-color' as string]: sp.sub,
             }}
@@ -451,8 +451,8 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
               title={tr('search.clearSearch')}
               style={{
                 flexShrink: 0, border: 0, background: 'transparent', cursor: 'pointer',
-                color: sp.sub, fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-                letterSpacing: -0.1, padding: '4px 2px', transition: 'color .15s ease',
+                color: sp.sub, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
+                letterSpacing: -0.1, padding: 'var(--crm-space-xs) var(--crm-space-2xs)', transition: 'color .15s ease',
               }}
             >
               {tr('search.command.clear')}
@@ -461,7 +461,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
         </div>
 
         {/* Pills de portée — sans hint clavier */}
-        <div style={{ padding: '0 28px 16px', display: 'flex', gap: 6, alignItems: 'center', borderBottom: `1px solid ${sp.cardBorder}` }}>
+        <div style={{ padding: '0 28px 16px', display: 'flex', gap: 'var(--crm-space-sm)', alignItems: 'center', borderBottom: `1px solid ${sp.cardBorder}` }}>
           {SCOPES.map(s => {
             const isActive = scope === s.id
             return (
@@ -471,10 +471,10 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = sp.cardSubBg }}
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                 style={{
-                  padding: '7px 16px', borderRadius: 999, border: 0, cursor: 'pointer',
+                  padding: 'var(--crm-space-sm) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
                   background: isActive ? sp.ink : 'transparent',
                   color: isActive ? sp.pageBg : sp.sub,
-                  fontSize: 13, fontWeight: isActive ? 700 : 600,
+                  fontSize: 'var(--crm-text-lg)', fontWeight: isActive ? 700 : 600,
                   fontFamily: 'inherit', letterSpacing: -0.1,
                   transition: 'background .15s ease, color .15s ease',
                 }}
@@ -486,7 +486,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
         </div>
 
         {/* Corps scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px 6px', scrollbarWidth: 'thin' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--crm-space-lg) var(--crm-space-xl) var(--crm-space-sm)', scrollbarWidth: 'thin' }}>
           {/* ── État vide ── */}
           {showEmpty && (
             <>
@@ -512,7 +512,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                       <div style={{ width: 16, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
                         <IconSpark stroke={isActive ? sp.ink : sp.sub} />
                       </div>
-                      <div style={{ flex: 1, fontSize: 13.5, color: sp.ink, fontWeight: 500 }}>{tr(`search.command.aiPrompts.${p}`)}</div>
+                      <div style={{ flex: 1, fontSize: 'var(--crm-text-lg)', color: sp.ink, fontWeight: 500 }}>{tr(`search.command.aiPrompts.${p}`)}</div>
                     </button>
                   )
                 })}
@@ -523,18 +523,18 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
           {/* ── Aucun résultat ── */}
           {!showEmpty && totalResults === 0 && (
             <div style={{ padding: '60px 20px', textAlign: 'center', color: sp.sub }}>
-              <div style={{ width: 56, height: 56, borderRadius: 16, margin: '0 auto 14px', background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
+              <div style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-2xl)', margin: '0 auto 14px', background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
                 <IconSearch stroke={sp.sub} />
               </div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: sp.ink }}>{tr('search.command.empty.title', { query: q })}</div>
-              <div style={{ fontSize: 13, marginTop: 6 }}>{tr('search.command.empty.body')}</div>
+              <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>{tr('search.command.empty.title', { query: q })}</div>
+              <div style={{ fontSize: 'var(--crm-text-lg)', marginTop: 6 }}>{tr('search.command.empty.body')}</div>
               <button
                 onClick={goJulien}
                 style={{
-                  marginTop: 18, padding: '9px 18px', borderRadius: 999, border: 0,
+                  marginTop: 18, padding: 'var(--crm-space-md) var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                   background: 'linear-gradient(135deg, #0041D9 0%, #8B5CF6 100%)', color: '#fff',
-                  fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: '0 8px 20px -8px rgba(60,80,200,0.5)',
+                  fontSize: 'var(--crm-text-lg)', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', boxShadow: '0 8px 20px -8px rgba(60,80,200,0.5)',
                 }}
               >
                 <IconSpark size={14} stroke="#fff" />
@@ -551,14 +551,14 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 onMouseEnter={() => setActiveIdx(offAdmin)}
                 style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(activeIdx === offAdmin, dark) }}
               >
-                <div style={{ width: 38, height: 38, borderRadius: 12, flexShrink: 0, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
+                <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-lg)', flexShrink: 0, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
                   <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={sp.ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" />
                     <path d="M7 7.5h.01M7 16.5h.01" />
                   </svg>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: sp.ink, lineHeight: 1.2 }}>
+                  <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.2 }}>
                     {tr('profile.adminConsole')}
                   </div>
                 </div>
@@ -591,16 +591,16 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase()
                 return (
                   <button key={c.id} onClick={() => { onClose(); navigate(`/dashboard/contacts/${c.id}`) }} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 999, flexShrink: 0, background: '#0041D9', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: '#0041D9', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 700 }}>
                       {initials}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: sp.ink, lineHeight: 1.2 }}>
+                      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.2 }}>
                         <Hi text={`${c.first_name} ${c.last_name}`} q={q} sp={sp} />
                       </div>
                     </div>
                     {typeof score === 'number' && (
-                      <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12, fontWeight: 700, color: score >= 80 ? '#0E9F6E' : score >= 60 ? '#0041D9' : sp.sub, padding: '3px 8px', borderRadius: 999, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}` }}>
+                      <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: score >= 80 ? '#0E9F6E' : score >= 60 ? '#0041D9' : sp.sub, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}` }}>
                         {score}
                       </div>
                     )}
@@ -622,21 +622,21 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                   <button key={b.id} onClick={() => { onClose(); navigate(`/dashboard/listings/${b.id}`) }} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
                     <BienThumb id={b.id} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: sp.ink, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         <Hi text={b.title} q={q} sp={sp} />
                       </div>
-                      <div style={{ fontSize: 12, color: sp.sub, marginTop: 3, display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, marginTop: 3, display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'center' }}>
                         <span>{b.addr || b.canton || '—'}</span>
-                        {b.rooms ? <><span style={{ width: 3, height: 3, borderRadius: 999, background: sp.sub, opacity: 0.5 }} /><span>{tr('search.command.roomsShort', { count: b.rooms })}</span></> : null}
+                        {b.rooms ? <><span style={{ width: 3, height: 3, borderRadius: 'var(--crm-radius-pill)', background: sp.sub, opacity: 0.5 }} /><span>{tr('search.command.roomsShort', { count: b.rooms })}</span></> : null}
                         {b.area ? <span>· {b.area} m²</span> : null}
                       </div>
                     </div>
                     {price ? (
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+                        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
                           {formatCHF(price)}{b.transaction === 'location' ? tr('search.perMonth') : ''}
                         </div>
-                        <div style={{ fontSize: 10.5, color: sp.sub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>{b.transaction}</div>
+                        <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>{b.transaction}</div>
                       </div>
                     ) : null}
                   </button>
@@ -653,14 +653,14 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 const isActive = activeIdx === idx
                 return (
                   <button key={d.id} onClick={() => { onClose(); navigate(`/dashboard/transactions/${d.id}`) }} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
                       <IconPipeline stroke={sp.ink} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: sp.ink }}>
+                      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>
                         <Hi text={d.title} q={q} sp={sp} />
                       </div>
-                      <div style={{ fontSize: 12, color: sp.sub, marginTop: 2 }}>{d.stageLabel}</div>
+                      <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, marginTop: 2 }}>{d.stageLabel}</div>
                     </div>
                     <IconArrowR stroke={isActive ? accentBlue : sp.sub} />
                   </button>
@@ -671,23 +671,23 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
 
           {/* ── CTA « Demander à Megga » (toujours présent dès qu'on tape) ── */}
           {!showEmpty && (
-            <div style={{ padding: '6px 14px 12px' }}>
+            <div style={{ padding: 'var(--crm-space-sm) var(--crm-space-2xl) var(--crm-space-xl)' }}>
               <button
                 onClick={goJulien}
                 style={{
-                  width: '100%', padding: '12px 14px', borderRadius: 14, cursor: 'pointer',
+                  width: '100%', padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-xl)', cursor: 'pointer',
                   background: dark
                     ? 'linear-gradient(135deg, rgba(0,65,217,0.25) 0%, rgba(139,92,246,0.25) 100%)'
                     : 'linear-gradient(135deg, rgba(0,65,217,0.08) 0%, rgba(139,92,246,0.08) 100%)',
                   border: `1px solid ${dark ? 'rgba(139,92,246,0.3)' : 'rgba(139,92,246,0.18)'}`,
-                  display: 'flex', alignItems: 'center', gap: 12, fontFamily: 'inherit', textAlign: 'left',
+                  display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', fontFamily: 'inherit', textAlign: 'left',
                 }}
               >
-                <div style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, background: 'linear-gradient(135deg, #0041D9 0%, #8B5CF6 100%)', display: 'grid', placeItems: 'center' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: 'linear-gradient(135deg, #0041D9 0%, #8B5CF6 100%)', display: 'grid', placeItems: 'center' }}>
                   <IconSpark size={14} stroke="#fff" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>{tr('search.command.askMeggaQuery', { query: q })}</div>
+                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink }}>{tr('search.command.askMeggaQuery', { query: q })}</div>
                 </div>
                 <IconArrowR stroke={sp.sub} />
               </button>

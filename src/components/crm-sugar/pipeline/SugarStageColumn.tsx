@@ -55,30 +55,30 @@ export function SugarStageColumn({
       style={{
         flex: '0 0 252px',
         height: '100%', minHeight: 0,
-        display: 'flex', flexDirection: 'column', gap: 10,
+        display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)',
         position: 'relative',
         background: tint.panel,
-        borderRadius: 20,
-        padding: '14px 12px 12px',
+        borderRadius: 'var(--crm-radius-4xl)',
+        padding: 'var(--crm-space-2xl) var(--crm-space-xl) var(--crm-space-xl)',
         boxSizing: 'border-box',
         boxShadow: dragOver && draggingId ? `0 0 0 2px ${tint.hue} inset` : 'none',
         transition: 'box-shadow .15s, transform .15s',
       }}>
       {/* En-tête — pastille teintée vive + libellé + compteur + « + » */}
-      <div style={{ padding: '0 4px', display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <span style={{ width: 9, height: 9, borderRadius: 999, background: tint.hue, flexShrink: 0 }} />
+      <div style={{ padding: '0 var(--crm-space-xs)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', minWidth: 0 }}>
+          <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: tint.hue, flexShrink: 0 }} />
           <span style={{
-            fontSize: 13.5, fontWeight: 800, letterSpacing: -0.2, color: sp.ink,
+            fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, color: sp.ink,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{label}</span>
           <span style={{
-            marginLeft: 'auto', fontSize: 12, fontWeight: 800, color: tint.tintInk,
+            marginLeft: 'auto', fontSize: 'var(--crm-text-md)', fontWeight: 800, color: tint.tintInk,
             fontVariantNumeric: 'tabular-nums', flexShrink: 0,
           }}>{deals.length}</span>
           {onInlineOpen && (
             <button onClick={onInlineOpen} title={t('board.card.newDealInColumn', { stage: label })} style={{
-              width: 22, height: 22, borderRadius: 999, border: 0, cursor: 'pointer', flexShrink: 0,
+              width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', flexShrink: 0,
               background: dark ? crmStep('s3', 'rgba(255,255,255,.08)') : 'rgba(11,12,14,.06)',
               display: 'grid', placeItems: 'center', fontFamily: 'inherit', padding: 0,
             }}>
@@ -87,7 +87,7 @@ export function SugarStageColumn({
           )}
         </div>
         <div style={{
-          paddingLeft: 17, fontSize: 11, fontWeight: 600, color: sp.sub,
+          paddingLeft: 'var(--crm-space-3xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub,
           fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {stageVal > 0 ? `CHF ${(stageVal / 1e6).toFixed(2)}M` : ''}
@@ -97,17 +97,17 @@ export function SugarStageColumn({
       {/* Cartes — scroll vertical interne */}
       <div style={{
         flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
-        display: 'flex', flexDirection: 'column', gap: 10, margin: '0 -4px', padding: '2px 4px',
+        display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', margin: '0 -4px', padding: 'var(--crm-space-2xs) var(--crm-space-xs)',
       }}>
         {inlineForm}
         {deals.length === 0 && !inlineForm && (
           <div style={{
-            padding: '32px 12px', textAlign: 'center', fontSize: 11.5, fontWeight: 600,
+            padding: '32px 12px', textAlign: 'center', fontSize: 'var(--crm-text-sm)', fontWeight: 600,
             color: dragOver && draggingId ? tint.tintInk : sp.sub,
             border: `1.5px dashed ${dragOver && draggingId ? tint.hue : (dark ? 'rgba(255,255,255,.18)' : 'rgba(11,12,14,.14)')}`,
             // Zone de drop : en sombre le voile blanc à .35 fabriquerait une
             // surface hors échelle — elle prend le palier « card ».
-            borderRadius: 16, background: dragOver && draggingId ? (dark ? crmStep('s2', 'rgba(255,255,255,.35)') : 'rgba(255,255,255,.35)') : 'transparent',
+            borderRadius: 'var(--crm-radius-2xl)', background: dragOver && draggingId ? (dark ? crmStep('s2', 'rgba(255,255,255,.35)') : 'rgba(255,255,255,.35)') : 'transparent',
             transition: 'all .15s',
           }}>{dragOver && draggingId
             ? t('board.dropToStage', { stage: label })

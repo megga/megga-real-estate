@@ -44,7 +44,7 @@ function Segment<T extends string>({
 }) {
   const { tk } = useMobileTokens()
   return (
-    <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: tk.cardSubtle }}>
+    <div style={{ display: 'inline-flex', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs)', borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle }}>
       {options.map((o) => {
         const on = o.id === value
         return (
@@ -54,12 +54,12 @@ function Segment<T extends string>({
             onClick={() => onChange(o.id)}
             style={{
               height: 34,
-              padding: '0 15px',
-              borderRadius: 999,
+              padding: '0 var(--crm-space-2xl)',
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 800,
               letterSpacing: -0.1,
               background: on ? tk.accent : 'transparent',
@@ -104,18 +104,18 @@ export default function MobileMoreScreen() {
       .toUpperCase() || '??'
   const lang = i18n.language.startsWith('en') ? 'en' : 'fr'
 
-  const card: CSSProperties = { background: tk.card, borderRadius: 20, boxShadow: tk.shadowSm, overflow: 'hidden' }
+  const card: CSSProperties = { background: tk.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, overflow: 'hidden' }
   const prefRow: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    padding: '14px 18px',
+    gap: 'var(--crm-space-xl)',
+    padding: 'var(--crm-space-2xl) var(--crm-space-4xl)',
   }
   const prefIcon: CSSProperties = {
     width: 36,
     height: 36,
-    borderRadius: 11,
+    borderRadius: 'var(--crm-radius-md)',
     background: tk.cardSubtle,
     display: 'grid',
     placeItems: 'center',
@@ -123,7 +123,7 @@ export default function MobileMoreScreen() {
   }
 
   return (
-    <div style={{ padding: '0 18px 8px' }}>
+    <div style={{ padding: '0 var(--crm-space-4xl) var(--crm-space-md)' }}>
       {/* En-tête : wordmark + cloche */}
       <header
         style={{
@@ -142,7 +142,7 @@ export default function MobileMoreScreen() {
             position: 'relative',
             width: 40,
             height: 40,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: 0,
             cursor: 'pointer',
             background: 'transparent',
@@ -159,7 +159,7 @@ export default function MobileMoreScreen() {
                 right: 8,
                 width: 8,
                 height: 8,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 background: '#E0533F',
                 boxShadow: `0 0 0 2px ${tk.pageBg}`,
               }}
@@ -176,9 +176,9 @@ export default function MobileMoreScreen() {
           textAlign: 'left',
           display: 'flex',
           alignItems: 'center',
-          gap: 15,
-          padding: '16px 18px',
-          borderRadius: 22,
+          gap: 'var(--crm-space-2xl)',
+          padding: 'var(--crm-space-3xl) var(--crm-space-4xl)',
+          borderRadius: 'var(--crm-radius-5xl)',
           background: tk.card,
           border: 0,
           boxShadow: tk.shadow,
@@ -189,19 +189,19 @@ export default function MobileMoreScreen() {
           style={{
             width: 54,
             height: 54,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             display: 'grid',
             placeItems: 'center',
             background: tk.accent,
             color: tk.accentInk,
-            fontSize: 19,
+            fontSize: 'var(--crm-text-3xl)',
             fontWeight: 800,
             flexShrink: 0,
           }}
         >
           {initials}
         </span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 17.5, fontWeight: 800, letterSpacing: -0.5, color: tk.ink }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.5, color: tk.ink }}>
           {displayName}
         </span>
         <MEIcon name="chevron-right" size={20} color={tk.ghost} />
@@ -210,11 +210,11 @@ export default function MobileMoreScreen() {
       {/* Préférences */}
       <div style={{ ...card, marginTop: 12 }}>
         <div style={prefRow}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', minWidth: 0 }}>
             <span style={prefIcon}>
               <MEIcon name={isDark ? 'moon' : 'sun'} size={18} color={tk.ink} />
             </span>
-            <span style={{ fontSize: 14.5, fontWeight: 700, color: tk.ink, letterSpacing: -0.2 }}>
+            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.ink, letterSpacing: -0.2 }}>
               {t('nav.appearance')}
             </span>
           </div>
@@ -229,11 +229,11 @@ export default function MobileMoreScreen() {
         </div>
         <div style={{ height: 1, background: tk.hair, marginLeft: 66 }} />
         <div style={prefRow}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', minWidth: 0 }}>
             <span style={prefIcon}>
               <MEIcon name="globe" size={18} color={tk.ink} />
             </span>
-            <span style={{ fontSize: 14.5, fontWeight: 700, color: tk.ink, letterSpacing: -0.2 }}>
+            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.ink, letterSpacing: -0.2 }}>
               {t('nav.language')}
             </span>
           </div>
@@ -260,8 +260,8 @@ export default function MobileMoreScreen() {
               textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
-              gap: 14,
-              padding: '15px 18px',
+              gap: 'var(--crm-space-2xl)',
+              padding: 'var(--crm-space-2xl) var(--crm-space-4xl)',
               minHeight: 56,
               border: 0,
               background: 'transparent',
@@ -273,7 +273,7 @@ export default function MobileMoreScreen() {
               style={{
                 width: 40,
                 height: 40,
-                borderRadius: 12,
+                borderRadius: 'var(--crm-radius-lg)',
                 flexShrink: 0,
                 display: 'grid',
                 placeItems: 'center',
@@ -282,7 +282,7 @@ export default function MobileMoreScreen() {
             >
               <MEIcon name={d.icon} size={19} color={d.cta ? tk.accentInk : tk.ink} />
             </span>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 15.5, fontWeight: 700, letterSpacing: -0.3, color: tk.ink }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, color: tk.ink }}>
               {t(d.labelKey)}
             </span>
             <MEIcon name="chevron-right" size={18} color={tk.ghost} />
@@ -299,7 +299,7 @@ export default function MobileMoreScreen() {
           style={{
             width: '100%',
             height: 50,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: 0,
             cursor: 'pointer',
             fontFamily: 'inherit',
@@ -308,11 +308,11 @@ export default function MobileMoreScreen() {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 9,
+            gap: 'var(--crm-space-md)',
           }}
         >
           <MEIcon name="logout" size={18} color={tk.muted} />
-          <span style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: -0.2, color: tk.muted }}>{t('nav.logout')}</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, color: tk.muted }}>{t('nav.logout')}</span>
         </Pressable>
       </div>
 

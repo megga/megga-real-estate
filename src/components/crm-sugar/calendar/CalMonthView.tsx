@@ -79,7 +79,7 @@ export function CalMonthView({
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0,1fr))', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
         {weekdayHeaders.map((d, i) => (
-          <div key={i} style={{ padding: '12px 14px', fontSize: 11, fontWeight: 700, color: SP.muted, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+          <div key={i} style={{ padding: 'var(--crm-space-xl) var(--crm-space-2xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SP.muted, letterSpacing: 0.8, textTransform: 'uppercase' }}>
             {d}
           </div>
         ))}
@@ -95,7 +95,7 @@ export function CalMonthView({
               onClick={() => onCreateAt(new Date(c.d.getFullYear(), c.d.getMonth(), c.d.getDate(), 9, 0))}
               style={{
                 borderTop: `1px solid ${SP.line}`, borderLeft: i % 7 ? `1px solid ${SP.line}` : 0,
-                padding: '7px 8px 8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 5,
+                padding: 'var(--crm-space-sm) var(--crm-space-md) var(--crm-space-md)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)',
                 minWidth: 0, minHeight: 0, opacity: c.mute ? 0.42 : 1, overflow: 'hidden',
               }}
             >
@@ -104,13 +104,13 @@ export function CalMonthView({
                 style={{
                   alignSelf: 'flex-start', border: 0, background: isToday ? SP.accent : 'transparent',
                   color: isToday ? SP.onAccent : SP.ink, cursor: 'pointer', fontFamily: 'inherit',
-                  width: 26, height: 26, borderRadius: 999, display: 'grid', placeItems: 'center',
-                  fontSize: 12.5, fontWeight: 700,
+                  width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center',
+                  fontSize: 'var(--crm-text-md)', fontWeight: 700,
                 }}
               >
                 {c.d.getDate()}
               </button>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', minWidth: 0 }}>
                 {shown.map(e => {
                   const ts = calTypeStyle(e, SP)
                   const ext = !!e.external
@@ -124,18 +124,18 @@ export function CalMonthView({
                       onClick={ev => { ev.stopPropagation(); onSelectEvent(e.id, ev.currentTarget.getBoundingClientRect()) }}
                       style={{
                         border: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
-                        display: 'flex', alignItems: 'center', gap: 6, padding: '3px 7px', borderRadius: 6,
+                        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-xs)',
                         background: filled ? ts.bg : 'transparent', color: ext ? SP.muted : filled ? ts.ink : SP.ink,
-                        fontSize: 10.5, fontWeight: 700, lineHeight: 1.25, opacity: hasStatus ? 0.55 : 1,
+                        fontSize: 'var(--crm-text-xs)', fontWeight: 700, lineHeight: 1.25, opacity: hasStatus ? 0.55 : 1,
                         boxShadow: e.id === selectedId ? `0 0 0 2px ${SP.ring}` : 'none',
                         whiteSpace: 'nowrap', overflow: 'hidden',
                         textDecoration: hasStatus ? 'line-through' : 'none',
                       }}
                     >
                       {ext ? (
-                        <span style={{ width: 6, height: 6, borderRadius: 999, boxShadow: `inset 0 0 0 1.5px ${SP.ghost}`, flexShrink: 0 }} />
+                        <span style={{ width: 6, height: 6, borderRadius: 'var(--crm-radius-pill)', boxShadow: `inset 0 0 0 1.5px ${SP.ghost}`, flexShrink: 0 }} />
                       ) : (
-                        dk && !multi && <span style={{ width: 6, height: 6, borderRadius: 999, background: ts.accent, flexShrink: 0 }} />
+                        dk && !multi && <span style={{ width: 6, height: 6, borderRadius: 'var(--crm-radius-pill)', background: ts.accent, flexShrink: 0 }} />
                       )}
                       <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {multi ? e.title : `${fmtTime(e.start)} · ${e.title}`}
@@ -148,7 +148,7 @@ export function CalMonthView({
                     onClick={e => { e.stopPropagation(); onOpenDay(c.d) }}
                     style={{
                       border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-                      textAlign: 'left', padding: '1px 7px', fontSize: 10.5, color: SP.muted, fontWeight: 700,
+                      textAlign: 'left', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', color: SP.muted, fontWeight: 700,
                     }}
                   >
                     {t('views.moreEvents', { count: dayEvents.length - 3 })}

@@ -2,6 +2,8 @@
 // 1:1 port from the Claude Design bundle (crm-tokens.jsx).
 // Cohérent avec le site public MEGGA, étendu pour outil pro.
 
+import { crmDa, mxCrmPalette, type CrmDa } from '@/components/megga-x-crm/tokens'
+
 export interface CrmTheme {
   bg: string
   surface: string
@@ -342,7 +344,28 @@ export function sugarThemeTokens(dark: boolean, tone: DarkTone = crmDarkTone()):
   return (CRM_TOKENS as Partial<Record<DarkTone, CrmTheme>>)[tone] ?? CRM_TOKENS.graphite
 }
 
-export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = crmDarkTone()): SugarPalette {
+/**
+ * Palette Sugar du thème actif — ou celle de MEGGA X si la direction est basculée.
+ *
+ * La délégation se fait ICI plutôt qu'aux 33 endroits qui construisent la
+ * palette : ceux-ci la passent ensuite en prop, donc toute l'arborescence
+ * bascule sans qu'un seul composant change.
+ *
+ * ⚠ `da` est explicite pour un cas précis : le comparateur de directions doit
+ * pouvoir demander Sugar MÊME quand la préférence est sur MEGGA X, sinon sa
+ * colonne de référence bascule avec le reste et il ne compare plus rien.
+ *
+ * ⚠ L'import de `megga-x-crm/tokens` ne boucle pas : ce module ne remonte vers
+ * celui-ci qu'en `import type`, effacé à la compilation.
+ */
+export function crmSugarPalette(
+  t: CrmTheme,
+  dark: boolean,
+  tone: DarkTone = crmDarkTone(),
+  da: CrmDa = crmDa(),
+): SugarPalette {
+  if (da === 'meggax') return mxCrmPalette(dark)
+
   if (!dark) {
     return {
       pageBg:        '#EEF1F5',

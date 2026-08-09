@@ -105,6 +105,28 @@ export function teamInviteAcceptUrl(token: string): string {
 }
 
 /**
+ * URL de gestion publique d'un appel d'accueil (route `/rendez-vous-accueil/:token`),
+ * celle que porte le bouton « Replanifier / Annuler » des e-mails de l'appel.
+ *
+ * MÊME DÉFAUT QUE `teamInviteAcceptUrl`, RÉAPPARU. `onboarding-call-book` et
+ * `onboarding-call-manage` bâtissaient chacun cette adresse depuis un `appOrigin(req)`
+ * local, lui-même tiré de l'en-tête `Origin` — que l'appelant choisit. Un appelant
+ * postant avec `Origin: https://evil.tld` faisait partir un e-mail MEGGA authentique,
+ * signé DKIM, dont le bouton pointait chez lui, `manage_token` compris. Ce jeton vaut
+ * annulation et replanification du rendez-vous sans aucune autre preuve : hameçonnage
+ * sur notre propre domaine, doublé d'une exfiltration de capacité.
+ *
+ * `onboarding-call-reminder`, lui, figeait `https://app.megga.ch` en dur — juste
+ * aujourd'hui, mais c'était une QUATRIÈME copie de la même adresse, qui aurait survécu
+ * en silence à un changement de domaine. Les trois passent maintenant par ici.
+ *
+ * Épinglé par `tests/unit/invite-link-origin-guard.spec.ts`.
+ */
+export function onboardingCallManageUrl(token: string): string {
+  return `${appBaseUrl()}/rendez-vous-accueil/${token}`
+}
+
+/**
  * URL de la page qui REND le rapport KYC (route `/kyc-report/:token`), celle que
  * Cloudflare Browser Rendering charge pour fabriquer le PDF.
  *

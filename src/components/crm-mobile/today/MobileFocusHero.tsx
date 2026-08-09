@@ -117,7 +117,7 @@ export function MobileFocusHero({
       <div
         style={{
           marginTop: 18,
-          borderRadius: 24,
+          borderRadius: 'var(--crm-radius-5xl)',
           minHeight: 240,
           display: 'grid',
           placeItems: 'center',
@@ -125,7 +125,7 @@ export function MobileFocusHero({
           border: `1px solid ${tk.cardBorder}`,
           boxShadow: tk.shadowLg,
           color: tk.muted,
-          fontSize: 13.5,
+          fontSize: 'var(--crm-text-lg)',
           fontWeight: 600,
         }}
       >
@@ -140,7 +140,7 @@ export function MobileFocusHero({
       <div
         style={{
           position: 'relative',
-          borderRadius: 24,
+          borderRadius: 'var(--crm-radius-5xl)',
           overflow: 'hidden',
           marginTop: 18,
           background: tk.card,
@@ -153,13 +153,13 @@ export function MobileFocusHero({
           alignItems: 'center',
         }}
       >
-        <div style={{ width: 58, height: 58, borderRadius: 999, background: tk.goal, display: 'grid', placeItems: 'center' }}>
+        <div style={{ width: 58, height: 58, borderRadius: 'var(--crm-radius-pill)', background: tk.goal, display: 'grid', placeItems: 'center' }}>
           <MEIcon name="check" size={28} strokeWidth={2.4} color="#FFFFFF" />
         </div>
-        <h2 style={{ margin: '16px 0 0', fontSize: 22, fontWeight: 800, letterSpacing: -0.6, color: tk.ink }}>
+        <h2 style={{ margin: '16px 0 0', fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.6, color: tk.ink }}>
           {t('today.focus.queueDone')}
         </h2>
-        <p style={{ margin: '6px 0 0', fontSize: 13.5, color: tk.muted, fontWeight: 600, maxWidth: 240, lineHeight: 1.45 }}>
+        <p style={{ margin: '6px 0 0', fontSize: 'var(--crm-text-lg)', color: tk.muted, fontWeight: 600, maxWidth: 240, lineHeight: 1.45 }}>
           {t('today.focus.queueDoneSub')}
         </p>
         <button
@@ -169,16 +169,16 @@ export function MobileFocusHero({
             marginTop: 20,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 'var(--crm-space-md)',
             height: 44,
-            padding: '0 20px',
-            borderRadius: 999,
+            padding: '0 var(--crm-space-5xl)',
+            borderRadius: 'var(--crm-radius-pill)',
             border: 0,
             cursor: 'pointer',
             background: tk.cardSubtle,
             color: tk.ink,
             fontFamily: 'inherit',
-            fontSize: 14,
+            fontSize: 'var(--crm-text-xl)',
             fontWeight: 700,
           }}
         >
@@ -200,7 +200,7 @@ export function MobileFocusHero({
     <div
       style={{
         position: 'relative',
-        borderRadius: 24,
+        borderRadius: 'var(--crm-radius-5xl)',
         overflow: 'hidden',
         marginTop: 18,
         minHeight: 430,
@@ -231,24 +231,24 @@ export function MobileFocusHero({
         <div key={item.id} style={{ position: 'absolute', inset: 0, background: '#1A1B22', opacity: vis ? 1 : 0, transition: 'opacity .4s ease' }} />
       )}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,9,12,.58) 0%, rgba(8,9,12,.30) 30%, rgba(8,9,12,.95) 100%)' }} />
-      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', flex: 1, padding: 18 }}>
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', flex: 1, padding: 'var(--crm-space-4xl)' }}>
         {/* progression */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{ display: 'flex', gap: 5, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-xs)', flex: 1 }}>
             {queue.map((_, i) => (
               <span
                 key={i}
                 style={{
                   height: 3,
                   flex: 1,
-                  borderRadius: 999,
+                  borderRadius: 'var(--crm-radius-pill)',
                   background: i < idx ? '#34C796' : i === idx ? '#fff' : 'rgba(255,255,255,.28)',
                   transition: 'background .3s ease',
                 }}
               />
             ))}
           </div>
-          <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,.78)', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: 'rgba(255,255,255,.78)', fontVariantNumeric: 'tabular-nums' }}>
             {idx + 1}
             <span style={{ color: 'rgba(255,255,255,.45)' }}> / {total}</span>
           </span>
@@ -257,18 +257,18 @@ export function MobileFocusHero({
         <div style={{ flex: 1 }} />
 
         {/* badge + heure + estimation */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', ...rise(0) }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', flexWrap: 'wrap', ...rise(0) }}>
           <span
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
-              padding: '4px 11px',
-              borderRadius: 999,
+              gap: 'var(--crm-space-sm)',
+              padding: 'var(--crm-space-xs) var(--crm-space-lg)',
+              borderRadius: 'var(--crm-radius-pill)',
               background: 'rgba(8,8,12,.5)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255,255,255,.18)',
-              fontSize: 11,
+              fontSize: 'var(--crm-text-sm)',
               fontWeight: 800,
               letterSpacing: 0.3,
               color: '#fff',
@@ -283,8 +283,8 @@ export function MobileFocusHero({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 5,
-                fontSize: 11.5,
+                gap: 'var(--crm-space-xs)',
+                fontSize: 'var(--crm-text-sm)',
                 fontWeight: 600,
                 whiteSpace: 'nowrap',
                 color: item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.72)',
@@ -296,24 +296,24 @@ export function MobileFocusHero({
           ) : null}
           <span
             title={t('today.focus.estimatedPriority')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', color: 'rgba(255,255,255,.62)' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap', color: 'rgba(255,255,255,.62)' }}
           >
             <MEIcon name="sparkle" size={12} color="#9b7cf0" />
             {t('today.focus.estimate')} · {item.displayScore}
           </span>
         </div>
 
-        <h2 style={{ margin: '12px 0 0', fontSize: 27, fontWeight: 800, letterSpacing: -0.8, lineHeight: 1.04, ...rise(1) }}>{item.contact}</h2>
-        <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,.84)', lineHeight: 1.42, fontWeight: 500, fontSize: 15, ...rise(2) }}>{item.sub}</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,.66)', marginTop: 6, ...rise(2) }}>
+        <h2 style={{ margin: '12px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, lineHeight: 1.04, ...rise(1) }}>{item.contact}</h2>
+        <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,.84)', lineHeight: 1.42, fontWeight: 500, fontSize: 'var(--crm-text-xl)', ...rise(2) }}>{item.sub}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)', color: 'rgba(255,255,255,.66)', marginTop: 6, ...rise(2) }}>
           <MEIcon name="sparkle" size={12} color="#9b7cf0" />
           <span>{item.reason}</span>
         </div>
 
         {/* prix + actions */}
-        <div style={{ marginTop: 15, paddingTop: 15, borderTop: '1px solid rgba(255,255,255,.18)', ...rise(3) }}>
-          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.4, marginBottom: 12 }}>{item.bien.price}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ marginTop: 15, paddingTop: 'var(--crm-space-2xl)', borderTop: '1px solid rgba(255,255,255,.18)', ...rise(3) }}>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, marginBottom: 12 }}>{item.bien.price}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
             <button
               type="button"
               onClick={onPrimary}
@@ -322,13 +322,13 @@ export function MobileFocusHero({
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 9,
+                gap: 'var(--crm-space-md)',
                 height: 50,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                fontSize: 15,
+                fontSize: 'var(--crm-text-xl)',
                 fontWeight: 800,
                 whiteSpace: 'nowrap',
                 background: calling ? '#0B7A4B' : '#fff',
@@ -340,8 +340,8 @@ export function MobileFocusHero({
               {calling ? (
                 <>
                   <span style={{ position: 'relative', display: 'inline-flex', width: 9, height: 9 }}>
-                    <span style={{ position: 'absolute', inset: 0, borderRadius: 999, background: '#34C796', animation: 'mfHeroPing 1.4s cubic-bezier(0,0,.2,1) infinite' }} />
-                    <span style={{ position: 'relative', width: 9, height: 9, borderRadius: 999, background: '#34C796' }} />
+                    <span style={{ position: 'absolute', inset: 0, borderRadius: 'var(--crm-radius-pill)', background: '#34C796', animation: 'mfHeroPing 1.4s cubic-bezier(0,0,.2,1) infinite' }} />
+                    <span style={{ position: 'relative', width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: '#34C796' }} />
                   </span>
                   <span style={{ fontVariantNumeric: 'tabular-nums' }}>
                     {t('today.focus.finish')} · {mmss}
@@ -361,7 +361,7 @@ export function MobileFocusHero({
               style={{
                 width: 50,
                 height: 50,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 flexShrink: 0,
                 cursor: 'pointer',
                 border: '1px solid rgba(255,255,255,.22)',
@@ -380,7 +380,7 @@ export function MobileFocusHero({
               style={{
                 width: 50,
                 height: 50,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 flexShrink: 0,
                 cursor: 'pointer',
                 border: '1px solid rgba(255,255,255,.22)',

@@ -40,10 +40,10 @@ export function CalDayView({
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       {/* En-tête léger : contexte du jour */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, padding: '11px 22px',
+        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-6xl)',
         borderBottom: `1px solid ${SP.line}`, flexShrink: 0,
       }}>
-        <span style={{ fontSize: 11.5, color: SP.muted, fontWeight: 700 }}>
+        <span style={{ fontSize: 'var(--crm-text-sm)', color: SP.muted, fontWeight: 700 }}>
           {count === 0 ? t('views.dayEmpty') : t('views.timelineCount', { count })}
         </span>
       </div>
@@ -51,7 +51,7 @@ export function CalDayView({
       <CalAllDayBand days={[currentDate]} events={events} selectedId={selectedId} onSelect={onSelectEvent} />
 
       {/* Timeline scrollable */}
-      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 18px 12px' }}>
+      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'var(--crm-space-md) var(--crm-space-4xl) var(--crm-space-xl)' }}>
         <div style={{
           display: 'grid', gridTemplateColumns: '64px minmax(0,1fr)',
           height: '100%', minHeight: MIN_H, position: 'relative',

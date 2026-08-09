@@ -212,26 +212,26 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
     return (
       <div style={{ ...overlayStyle, justifyContent: 'center', alignItems: 'center' }}>
         <div style={{
-          maxWidth: 560, padding: '0 24px', width: '100%', boxSizing: 'border-box',
+          maxWidth: 560, padding: '0 var(--crm-space-7xl)', width: '100%', boxSizing: 'border-box',
           animation: 'sugar-fade-up .45s cubic-bezier(.2,.8,.2,1) both',
         }}>
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             <div style={{
-              width: 72, height: 72, borderRadius: 999, background: nd.green,
+              width: 72, height: 72, borderRadius: 'var(--crm-radius-pill)', background: nd.green,
               margin: '0 auto 22px', display: 'grid', placeItems: 'center',
             }}>
               <MEIcon name="check" size={30} color={nd.onGreen} />
             </div>
             <h1 style={{
-              margin: '0 0 10px', fontSize: 30, fontWeight: 700, color: nd.ink,
+              margin: '0 0 10px', fontSize: 'var(--crm-text-6xl)', fontWeight: 700, color: nd.ink,
               letterSpacing: -0.6, lineHeight: 1.15,
             }}>{t('modal.created')}</h1>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--crm-space-lg)' }}>
             <button onClick={onClose} style={{
-              height: 44, padding: '0 22px', borderRadius: 999, border: 0,
+              height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
               background: nd.black, color: nd.onAccent, fontFamily: 'inherit',
-              fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: nd.shadow,
+              fontWeight: 700, fontSize: 'var(--crm-text-xl)', cursor: 'pointer', boxShadow: nd.shadow,
             }}>{t('modal.seePipeline')}</button>
           </div>
         </div>
@@ -245,32 +245,32 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
     minWidth: 0, minHeight: 0, overflowY: 'auto',
   }
   const colLabel = (txt: string, extra?: React.ReactNode) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexShrink: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 14, flexShrink: 0 }}>
       <span style={{
-        fontSize: 11, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase', color: nd.muted,
+        fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase', color: nd.muted,
       }}>{txt}</span>
       {extra}
     </div>
   )
   const searchInputStyle: React.CSSProperties = {
     width: '100%', height: 44, padding: '0 16px 0 42px',
-    background: nd.cardSubtle, border: 0, borderRadius: 12,
-    fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: nd.ink,
+    background: nd.cardSubtle, border: 0, borderRadius: 'var(--crm-radius-lg)',
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: nd.ink,
     outline: 'none', boxSizing: 'border-box',
   }
   const ghostLinkStyle: React.CSSProperties = {
-    height: 40, padding: '0 16px', borderRadius: 999, border: 0,
+    height: 40, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
     background: 'transparent', color: nd.muted, cursor: 'pointer',
-    fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700,
   }
   const moreLineStyle: React.CSSProperties = {
-    padding: '10px 12px', fontSize: 12, color: nd.muted, fontWeight: 600,
+    padding: 'var(--crm-space-lg) var(--crm-space-xl)', fontSize: 'var(--crm-text-md)', color: nd.muted, fontWeight: 600,
     fontVariantNumeric: 'tabular-nums',
   }
 
   const avatar = (c: CrmContact, size = 38) => (
     <div style={{
-      width: size, height: size, borderRadius: 999, flexShrink: 0,
+      width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0,
       background: c.avatarBg || nd.ink, color: '#fff',
       display: 'grid', placeItems: 'center',
       fontSize: size * 0.36, fontWeight: 700, letterSpacing: -0.3,
@@ -286,8 +286,8 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
     right?: React.ReactNode
   }) => (
     <button key={opts.key} onClick={opts.onClick} style={{
-      width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-      padding: '10px 12px', borderRadius: 14, border: 0, cursor: 'pointer',
+      width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
+      padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)', border: 0, cursor: 'pointer',
       background: opts.selected ? nd.cardSubtle : 'transparent',
       boxShadow: opts.selected ? `inset 0 0 0 2px ${nd.ink}` : 'none',
       fontFamily: 'inherit', textAlign: 'left',
@@ -296,14 +296,14 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
       {opts.left}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 14, fontWeight: 700, color: nd.ink, letterSpacing: -0.2,
+          fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: nd.ink, letterSpacing: -0.2,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{opts.title}</div>
       </div>
       {opts.right}
       {opts.selected && (
         <span style={{
-          width: 22, height: 22, borderRadius: 999, background: nd.ink,
+          width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', background: nd.ink,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
           <MEIcon name="check" size={13} color={nd.onAccent} />
@@ -314,19 +314,19 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
 
   const field = (label: string, val: string, onChange: (v: string) => void, opts?: { type?: string; prefix?: string; span2?: boolean }) => (
     <label style={{ display: 'block', gridColumn: opts?.span2 ? 'span 2' : undefined }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: nd.muted, marginBottom: 7, letterSpacing: 0.2 }}>{label}</div>
+      <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: nd.muted, marginBottom: 7, letterSpacing: 0.2 }}>{label}</div>
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         {opts?.prefix && (
           <span style={{
-            position: 'absolute', left: 14, fontSize: 14, fontWeight: 600,
+            position: 'absolute', left: 14, fontSize: 'var(--crm-text-xl)', fontWeight: 600,
             color: nd.muted, pointerEvents: 'none',
           }}>{opts.prefix}</span>
         )}
         <input value={val} onChange={e => onChange(e.target.value)} type={opts?.type ?? 'text'}
           style={{
             width: '100%', height: 46, padding: opts?.prefix ? '0 16px 0 48px' : '0 16px',
-            background: nd.cardSubtle, border: 0, borderRadius: 12,
-            fontFamily: 'inherit', fontSize: 14.5, fontWeight: 600, color: nd.ink,
+            background: nd.cardSubtle, border: 0, borderRadius: 'var(--crm-radius-lg)',
+            fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: nd.ink,
             outline: 'none', boxSizing: 'border-box',
             boxShadow: `inset 0 0 0 1.5px ${nd.line}`,
             fontVariantNumeric: 'tabular-nums',
@@ -353,16 +353,16 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
         }}>
           {/* En-tête intégré à la surface */}
           <div style={{
-            flexShrink: 0, display: 'flex', alignItems: 'center', gap: 16,
+            flexShrink: 0, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)',
             padding: '20px 26px', borderBottom: hair,
           }}>
             <h1 style={{
-              margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: -0.7,
+              margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.7,
               color: nd.ink, lineHeight: 1,
             }}>{t('new_deal')}</h1>
             <div style={{ flex: 1 }} />
             <button onClick={onClose} title={t('modal.close')} style={{
-              width: 40, height: 40, borderRadius: 999, border: 0, cursor: 'pointer',
+              width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
               background: nd.cardSubtle,
               display: 'grid', placeItems: 'center', flexShrink: 0,
             }}>
@@ -375,16 +375,16 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
             <div style={colPad}>
               {colLabel(t('modal.contact'), (
                 <span style={{ marginLeft: 'auto' }}>
-                  <div style={{ display: 'inline-flex', padding: 4, gap: 4, borderRadius: 999, background: nd.cardSubtle }}>
+                  <div style={{ display: 'inline-flex', padding: 'var(--crm-space-xs)', gap: 'var(--crm-space-xs)', borderRadius: 'var(--crm-radius-pill)', background: nd.cardSubtle }}>
                     {([
                       { v: 'existing' as const, label: t('modal.existing') },
                       { v: 'new' as const, label: t('modal.new') },
                     ]).map(o => (
                       <button key={o.v} onClick={() => setContactMode(o.v)} style={{
-                        height: 36, padding: '0 18px', borderRadius: 999, border: 0,
+                        height: 36, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                         background: contactMode === o.v ? nd.ink : 'transparent',
                         color: contactMode === o.v ? nd.onAccent : nd.inkSoft,
-                        fontFamily: 'inherit', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                        fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-lg)', cursor: 'pointer',
                         transition: 'all .16s ease',
                       }}>{o.label}</button>
                     ))}
@@ -410,10 +410,10 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
                           placeholder={t('modal.searchContact')} autoFocus
                           style={searchInputStyle} />
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
                         {filteredContacts.length === 0 ? (
-                          <div style={{ padding: '14px 12px' }}>
-                            <div style={{ fontSize: 13, color: nd.muted, fontWeight: 500 }}>
+                          <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-xl)' }}>
+                            <div style={{ fontSize: 'var(--crm-text-lg)', color: nd.muted, fontWeight: 500 }}>
                               {allContacts.length === 0 ? t('modal.noContactsYet') : t('modal.noContactFound')}
                             </div>
                             <button
@@ -425,9 +425,9 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
                                 }
                               }}
                               style={{
-                                marginTop: 10, height: 38, padding: '0 16px', borderRadius: 999, border: 0,
+                                marginTop: 10, height: 38, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                                 cursor: 'pointer', background: nd.cardSubtle, color: nd.ink,
-                                fontFamily: 'inherit', fontWeight: 700, fontSize: 12.5,
+                                fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-md)',
                               }}>
                               {allContacts.length === 0 || !contactQuery
                                 ? t('modal.createContact')
@@ -450,7 +450,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
                   )}
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
                   {field(t('modal.firstName'), newContact.firstName, v => setNewContact(p => ({ ...p, firstName: v })))}
                   {field(t('modal.lastName'), newContact.lastName, v => setNewContact(p => ({ ...p, lastName: v })))}
                   {field(t('modal.email'), newContact.email, v => setNewContact(p => ({ ...p, email: v })), { type: 'email', span2: true })}
@@ -474,7 +474,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
                   title: selectedBien.title,
                   right: (
                     <span style={{
-                      fontSize: 13, fontWeight: 700, color: nd.inkSoft,
+                      fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: nd.inkSoft,
                       fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
                     }}>{crmFmtCHF(selectedBien.price || selectedBien.rent || 0)}</span>
                   ),
@@ -489,9 +489,9 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
                       placeholder={t('modal.searchBien')}
                       style={searchInputStyle} />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
                     {filteredBiens.length === 0 && (
-                      <div style={{ padding: '14px 12px', fontSize: 13, color: nd.muted, fontWeight: 500 }}>
+                      <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-xl)', fontSize: 'var(--crm-text-lg)', color: nd.muted, fontWeight: 500 }}>
                         {allBiens.length === 0 ? t('modal.noActiveBiens') : t('modal.noBienFound')}
                       </div>
                     )}
@@ -502,7 +502,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
                       title: b.title,
                       right: (
                         <span style={{
-                          fontSize: 13, fontWeight: 700, color: nd.inkSoft,
+                          fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: nd.inkSoft,
                           fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
                         }}>{crmFmtCHF(b.price || b.rent || 0)}</span>
                       ),
@@ -512,7 +512,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
                     )}
                   </div>
                   <div style={{ flex: 1 }} />
-                  <div style={{ fontSize: 11.5, fontWeight: 500, color: nd.muted, marginTop: 12, flexShrink: 0 }}>
+                  <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: nd.muted, marginTop: 12, flexShrink: 0 }}>
                     {t('modal.valueFromBien')}
                   </div>
                 </>
@@ -522,16 +522,16 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
             {/* Colonne 3 — Étape + Valeur */}
             <div style={{ ...colPad, borderLeft: hair }}>
               {colLabel(t('filter.stage'))}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)' }}>
                 {CRM_STAGE_ORDER.map(sk => {
                   const col = SG_STAGE_HUE[sk]
                   const active = stage === sk
                   return (
                     <button key={sk} onClick={() => setStage(sk)} style={{
-                      height: 36, padding: '0 16px', borderRadius: 999, border: 0, cursor: 'pointer',
+                      height: 36, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
                       background: active ? col : nd.cardSubtle,
                       color: active ? '#fff' : nd.inkSoft,
-                      fontFamily: 'inherit', fontWeight: 700, fontSize: 12.5,
+                      fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-md)',
                       whiteSpace: 'nowrap', letterSpacing: -0.1,
                     }}>
                       {t(`stages.${sk}`)}
@@ -547,23 +547,23 @@ export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
           {/* Pied de surface */}
           <div style={{
             flexShrink: 0, borderTop: hair, padding: '16px 26px',
-            display: 'flex', alignItems: 'center', gap: 14,
+            display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)',
           }}>
             {error && (
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: dark ? '#F26B65' : '#B91C1C', minWidth: 0 }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: dark ? '#F26B65' : '#B91C1C', minWidth: 0 }}>
                 {error}
               </div>
             )}
             <div style={{ flex: 1 }} />
             <button onClick={onClose} style={ghostLinkStyle}>{t('modal.cancel')}</button>
             <button onClick={handleCreate} disabled={!canCreate || creating} style={{
-              height: 44, padding: '0 22px', borderRadius: 999, border: 0,
+              height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
               background: (!canCreate || creating) ? nd.ghost : nd.black,
               color: (!canCreate || creating) ? nd.muted : nd.onAccent,
-              fontFamily: 'inherit', fontWeight: 700, fontSize: 14,
+              fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-xl)',
               cursor: (!canCreate || creating) ? 'not-allowed' : 'pointer',
               boxShadow: (!canCreate || creating) ? 'none' : nd.shadow,
-              display: 'inline-flex', alignItems: 'center', gap: 9,
+              display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)',
               transition: 'all .18s cubic-bezier(.2,.8,.2,1)',
             }}>
               {creating ? t('modal.creating') : t('modal.create')}

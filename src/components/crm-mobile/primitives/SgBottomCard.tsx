@@ -66,7 +66,7 @@ export default function SgBottomCard({ open, onClose, children, ariaLabel, botto
               right: 10,
               bottom: `calc(${bottomGap}px + env(safe-area-inset-bottom))`,
               background: tk.card,
-              borderRadius: 22,
+              borderRadius: 'var(--crm-radius-5xl)',
               boxShadow: tk.shadowLg,
               overflow: 'hidden',
             }}

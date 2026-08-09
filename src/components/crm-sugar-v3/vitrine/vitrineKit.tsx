@@ -330,9 +330,9 @@ export function VxGallery({
     </button>
   )
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1.62fr 1fr', gap: 6, height: 460 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1.62fr 1fr', gap: 'var(--crm-space-sm)', height: 460 }}>
       {tile(0)}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-sm)' }}>
         {tile(1)}
         {tile(2)}
         {tile(3)}
@@ -348,7 +348,7 @@ export function VxGallery({
                 background: 'rgba(8,10,14,.52)',
                 color: '#fff',
                 backdropFilter: 'blur(2px)',
-                fontSize: 17,
+                fontSize: 'var(--crm-text-2xl)',
                 fontWeight: 700,
                 letterSpacing: -0.3,
               }}
@@ -398,7 +398,7 @@ export function VxLightbox({
       style={{
         width: 52,
         height: 52,
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         cursor: 'pointer',
         background: 'rgba(255,255,255,.10)',
@@ -433,7 +433,7 @@ export function VxLightbox({
         style={{ display: 'flex', alignItems: 'center', padding: '20px 26px', color: '#fff', flexShrink: 0 }}
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, letterSpacing: 0.6 }}>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'var(--crm-text-lg)', letterSpacing: 0.6 }}>
           <span style={{ fontWeight: 600 }}>{String(index + 1).padStart(2, '0')}</span>
           <span style={{ opacity: 0.5 }}> / {String(count).padStart(2, '0')}</span>
         </div>
@@ -443,7 +443,7 @@ export function VxLightbox({
           style={{
             width: 44,
             height: 44,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: 0,
             cursor: 'pointer',
             background: 'rgba(255,255,255,.1)',
@@ -456,17 +456,17 @@ export function VxLightbox({
         </button>
       </div>
       <div
-        style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 22, padding: '0 26px', minHeight: 0 }}
+        style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-6xl)', padding: '0 26px', minHeight: 0 }}
         onClick={e => e.stopPropagation()}
       >
         {navBtn('prev', 'chevL')}
-        <div style={{ flex: 1, height: '100%', position: 'relative', borderRadius: 18, overflow: 'hidden', maxWidth: 1180, margin: '0 auto' }}>
+        <div style={{ flex: 1, height: '100%', position: 'relative', borderRadius: 'var(--crm-radius-3xl)', overflow: 'hidden', maxWidth: 1180, margin: '0 auto' }}>
           <VxPhoto src={photos[index]} index={index} dark />
         </div>
         {navBtn('next', 'chevR')}
       </div>
       <div
-        style={{ display: 'flex', gap: 8, padding: '18px 26px 24px', overflowX: 'auto', flexShrink: 0, justifyContent: 'center' }}
+        style={{ display: 'flex', gap: 'var(--crm-space-md)', padding: '18px 26px 24px', overflowX: 'auto', flexShrink: 0, justifyContent: 'center' }}
         onClick={e => e.stopPropagation()}
       >
         {Array.from({ length: count }).map((_, i) => (
@@ -477,7 +477,7 @@ export function VxLightbox({
               position: 'relative',
               width: 84,
               height: 56,
-              borderRadius: 8,
+              borderRadius: 'var(--crm-radius-sm)',
               overflow: 'hidden',
               flexShrink: 0,
               border: 0,
@@ -515,9 +515,9 @@ export function VxStatusPill({ status, dark }: { status: string; dark: boolean }
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        padding: '5px 12px',
-        borderRadius: 999,
-        fontSize: 11.5,
+        padding: 'var(--crm-space-xs) var(--crm-space-xl)',
+        borderRadius: 'var(--crm-radius-pill)',
+        fontSize: 'var(--crm-text-sm)',
         fontWeight: 700,
         letterSpacing: -0.1,
         color: m.on,
@@ -546,11 +546,11 @@ export function VxMetaPill({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 7,
+        gap: 'var(--crm-space-sm)',
         height: 27,
-        padding: '0 13px',
-        borderRadius: 999,
-        fontSize: 12,
+        padding: '0 var(--crm-space-xl)',
+        borderRadius: 'var(--crm-radius-pill)',
+        fontSize: 'var(--crm-text-md)',
         fontWeight: 600,
         color: sp.inkSoft,
         background: sp.cardSub,
@@ -577,15 +577,15 @@ export function VxSectionHead({
 }) {
   const sp = vxPalette(dark)
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 18 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)', marginBottom: 18 }}>
       <div>
         {eyebrow && (
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.muted, letterSpacing: 1.1, textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.muted, letterSpacing: 1.1, textTransform: 'uppercase' }}>
             {eyebrow}
           </div>
         )}
         {title && (
-          <h2 style={{ margin: eyebrow ? '9px 0 0' : 0, fontSize: 19, fontWeight: 700, color: sp.ink, letterSpacing: -0.4 }}>
+          <h2 style={{ margin: eyebrow ? '9px 0 0' : 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 700, color: sp.ink, letterSpacing: -0.4 }}>
             {title}
           </h2>
         )}
@@ -630,7 +630,7 @@ export function VxAvatar({
       style={{
         width: size,
         height: size,
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         flexShrink: 0,
         background: bg || (dark ? '#2A2D38' : '#0B0C0E'),
         color: '#fff',

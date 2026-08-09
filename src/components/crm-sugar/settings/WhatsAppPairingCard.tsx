@@ -65,7 +65,7 @@ function WAHeadTile() {
       style={{
         width: 38,
         height: 38,
-        borderRadius: 11,
+        borderRadius: 'var(--crm-radius-md)',
         flexShrink: 0,
         display: 'grid',
         placeItems: 'center',
@@ -81,12 +81,12 @@ function WAHeadTile() {
 // ── En-tête commun ────────────────────────────────────────────────────────
 function WAHeader({ status, t }: { status?: ReactNode; t: TFunction }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
       <WAHeadTile />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize: 16.5,
+            fontSize: 'var(--crm-text-2xl)',
             fontWeight: 700,
             color: SET.ink,
             letterSpacing: -0.2,
@@ -95,7 +95,7 @@ function WAHeader({ status, t }: { status?: ReactNode; t: TFunction }) {
         >
           {t('integrations.whatsapp.title')}
         </div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: SET.muted, marginTop: 1 }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SET.muted, marginTop: 1 }}>
           {t('integrations.whatsapp.subtitle')}
         </div>
       </div>
@@ -111,8 +111,8 @@ function WALinkedBadge({ t }: { t: TFunction }) {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 6,
-        fontSize: 13,
+        gap: 'var(--crm-space-sm)',
+        fontSize: 'var(--crm-text-lg)',
         fontWeight: 600,
         color: SET.ok,
         letterSpacing: -0.1,
@@ -123,7 +123,7 @@ function WALinkedBadge({ t }: { t: TFunction }) {
         style={{
           width: 7,
           height: 7,
-          borderRadius: 99,
+          borderRadius: 'var(--crm-radius-pill)',
           background: SET.ok,
           boxShadow: `0 0 0 3px ${SET.ok}22`,
         }}
@@ -144,28 +144,28 @@ function WABody() {
     const bar = (w: number | string, h = 13): CSSProperties => ({
       width: w,
       height: h,
-      borderRadius: 7,
+      borderRadius: 'var(--crm-radius-sm)',
       background: SET.cardSubtle,
       boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
     })
     return (
-      <div style={{ display: 'grid', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+      <div style={{ display: 'grid', gap: 'var(--crm-space-3xl)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
           <div
             style={{
               width: 38,
               height: 38,
-              borderRadius: 11,
+              borderRadius: 'var(--crm-radius-md)',
               background: SET.cardSubtle,
               boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
             }}
           />
-          <div style={{ display: 'grid', gap: 7 }}>
+          <div style={{ display: 'grid', gap: 'var(--crm-space-sm)' }}>
             <div style={bar(150)} />
             <div style={bar(110, 11)} />
           </div>
         </div>
-        <div style={{ display: 'grid', gap: 9 }}>
+        <div style={{ display: 'grid', gap: 'var(--crm-space-md)' }}>
           <div style={bar('90%')} />
           <div style={bar('74%')} />
         </div>
@@ -176,15 +176,15 @@ function WABody() {
   // — error —
   if (status.isError) {
     return (
-      <div style={{ display: 'grid', gap: 16 }}>
+      <div style={{ display: 'grid', gap: 'var(--crm-space-3xl)' }}>
         <WAHeader t={t} />
         <div
           style={{
             display: 'flex',
             alignItems: 'flex-start',
-            gap: 12,
-            padding: '13px 14px',
-            borderRadius: 12,
+            gap: 'var(--crm-space-xl)',
+            padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+            borderRadius: 'var(--crm-radius-lg)',
             background: SET.cardSubtle,
             boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
           }}
@@ -193,12 +193,12 @@ function WABody() {
             <SetIcon name="alert" size={18} stroke={SET.err} />
           </span>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: SET.ink, letterSpacing: -0.1 }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SET.ink, letterSpacing: -0.1 }}>
               {t('integrations.whatsapp.error.title')}
             </div>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 'var(--crm-text-lg)',
                 fontWeight: 500,
                 color: SET.inkSoft,
                 lineHeight: 1.45,
@@ -223,16 +223,16 @@ function WABody() {
   if (link?.verified) {
     const examples = t('integrations.whatsapp.examples', { returnObjects: true }) as string[]
     return (
-      <div style={{ display: 'grid', gap: 18 }}>
+      <div style={{ display: 'grid', gap: 'var(--crm-space-4xl)' }}>
         <WAHeader status={<WALinkedBadge t={t} />} t={t} />
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 14,
-            padding: '13px 15px',
-            borderRadius: 12,
+            gap: 'var(--crm-space-2xl)',
+            padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+            borderRadius: 'var(--crm-radius-lg)',
             background: SET.cardSubtle,
             boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
           }}
@@ -240,7 +240,7 @@ function WABody() {
           <div style={{ minWidth: 0 }}>
             <div
               style={{
-                fontSize: 11.5,
+                fontSize: 'var(--crm-text-sm)',
                 fontWeight: 600,
                 color: SET.muted,
                 letterSpacing: 0.2,
@@ -251,7 +251,7 @@ function WABody() {
             </div>
             <div
               style={{
-                fontSize: 15,
+                fontSize: 'var(--crm-text-xl)',
                 fontWeight: 600,
                 color: SET.ink,
                 letterSpacing: -0.1,
@@ -269,22 +269,22 @@ function WABody() {
           </span>
         </div>
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginBottom: 10 }}>
             <SetIcon name="sparkle" size={14} stroke={SET.muted} />
-            <span style={{ fontSize: 12.5, fontWeight: 500, color: SET.muted, whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.muted, whiteSpace: 'nowrap' }}>
               {t('integrations.whatsapp.writeLikeColleague')}
             </span>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)' }}>
             {examples.map(e => (
               <span
                 key={e}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  padding: '7px 12px',
-                  borderRadius: 99,
-                  fontSize: 13,
+                  padding: 'var(--crm-space-sm) var(--crm-space-xl)',
+                  borderRadius: 'var(--crm-radius-pill)',
+                  fontSize: 'var(--crm-text-lg)',
                   fontWeight: 500,
                   color: SET.inkSoft,
                   background: SET.card,
@@ -304,13 +304,13 @@ function WABody() {
   // — waiting : un code a été généré, en attente de vérification webhook —
   if (link?.pairing_code) {
     return (
-      <div style={{ display: 'grid', gap: 18 }}>
+      <div style={{ display: 'grid', gap: 'var(--crm-space-4xl)' }}>
         <WAHeader t={t} />
         {/* Code à 6 chiffres à envoyer */}
         <div
           style={{
-            padding: '18px 16px',
-            borderRadius: 14,
+            padding: 'var(--crm-space-4xl) var(--crm-space-3xl)',
+            borderRadius: 'var(--crm-radius-xl)',
             background: SET.cardSubtle,
             boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
             textAlign: 'center',
@@ -318,7 +318,7 @@ function WABody() {
         >
           <div
             style={{
-              fontSize: 30,
+              fontSize: 'var(--crm-text-6xl)',
               fontWeight: 800,
               color: SET.ink,
               letterSpacing: 8,
@@ -328,7 +328,7 @@ function WABody() {
           >
             {link.pairing_code}
           </div>
-          <div style={{ fontSize: 12.5, color: SET.muted, fontWeight: 500, marginTop: 8, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 500, marginTop: 8, lineHeight: 1.5 }}>
             <Trans
               i18nKey="integrations.whatsapp.waiting.sendCode"
               t={t}
@@ -342,30 +342,30 @@ function WABody() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            padding: '13px 15px',
-            borderRadius: 12,
+            gap: 'var(--crm-space-xl)',
+            padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+            borderRadius: 'var(--crm-radius-lg)',
             background: SET.cardSubtle,
             boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
           }}
         >
           <span style={{ position: 'relative', width: 9, height: 9, flexShrink: 0 }}>
-            <span style={{ position: 'absolute', inset: 0, borderRadius: 99, background: SET.ok }} />
+            <span style={{ position: 'absolute', inset: 0, borderRadius: 'var(--crm-radius-pill)', background: SET.ok }} />
             <span
               style={{
                 position: 'absolute',
                 inset: -3,
-                borderRadius: 99,
+                borderRadius: 'var(--crm-radius-pill)',
                 border: `2px solid ${SET.ok}`,
                 animation: 'setPing 1.4s cubic-bezier(0,0,.2,1) infinite',
               }}
             />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: SET.ink, letterSpacing: -0.1 }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SET.ink, letterSpacing: -0.1 }}>
               {t('integrations.whatsapp.waiting.title')}
             </div>
-            <div style={{ fontSize: 12.5, fontWeight: 500, color: SET.muted, marginTop: 1 }}>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.muted, marginTop: 1 }}>
               {t('integrations.whatsapp.waiting.desc')}
             </div>
           </div>
@@ -385,12 +385,12 @@ function WABody() {
 
   // — unlinked (défaut) —
   return (
-    <div style={{ display: 'grid', gap: 18 }}>
+    <div style={{ display: 'grid', gap: 'var(--crm-space-4xl)' }}>
       <WAHeader t={t} />
       <p
         style={{
           margin: 0,
-          fontSize: 14,
+          fontSize: 'var(--crm-text-xl)',
           fontWeight: 500,
           color: SET.inkSoft,
           lineHeight: 1.55,
@@ -440,17 +440,17 @@ function WAGhostButton({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 9,
+        gap: 'var(--crm-space-md)',
         width: 'fit-content',
         minHeight: 46,
-        padding: '0 18px',
-        borderRadius: 12,
+        padding: '0 var(--crm-space-4xl)',
+        borderRadius: 'var(--crm-radius-lg)',
         border: 0,
         background: hover && !disabled ? SET.cardSubtle : 'transparent',
         boxShadow: `inset 0 0 0 1px ${SET.line}`,
         color: SET.inkSoft,
         fontFamily: 'inherit',
-        fontSize: 15,
+        fontSize: 'var(--crm-text-xl)',
         fontWeight: 600,
         letterSpacing: -0.1,
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -477,8 +477,8 @@ export function WhatsAppPairingCard({ bare = false }: WhatsAppPairingCardProps) 
       style={{
         boxSizing: 'border-box',
         background: SET.card,
-        borderRadius: 24,
-        padding: 24,
+        borderRadius: 'var(--crm-radius-5xl)',
+        padding: 'var(--crm-space-7xl)',
         boxShadow: SET.shadow,
         fontFamily: 'inherit',
       }}

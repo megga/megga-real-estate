@@ -7,9 +7,11 @@
 > copilote IA, marketplace, intégrations, signatures…) existe et doit être utilisée.
 > 1. Carte lisible (point d'entrée) : [docs/system-map.md](docs/system-map.md)
 > 2. Mémoire sémantique locale (0 API) :
->    `CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "<sujet>" -n megga`
+>    `CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "<phrase topique>" -n megga`
 >    (⚠ le flag ET la version épinglée sont nécessaires — sans eux la recherche répond
->    « no results » sur un cerveau plein ; cf. « Maintenir le cerveau » de docs/system-map.md)
+>    « no results » sur un cerveau plein. ⚠ Interroger par une PHRASE, jamais par un mot-clé :
+>    un mot seul passe sous le plancher de score et rend « no results » lui aussi, flag correct
+>    ou non ; cf. « Maintenir le cerveau » de docs/system-map.md)
 > 3. Source de la mémoire : [.claude-flow/knowledge/megga-memory.seed.json](.claude-flow/knowledge/megga-memory.seed.json)
 >
 > **APRÈS avoir livré une feature / un changement d'archi :** mettre le cerveau à jour
@@ -100,6 +102,46 @@ npm run lint         # ESLint
 ## 3. DESIGN SYSTEM
 
 > Patterns détaillés (composants, exemples TSX) : voir [docs/design-system.md](docs/design-system.md)
+
+**🎨 DIRECTION PAR DÉFAUT = MEGGA X (depuis le 9 août 2026, [PR #1191](https://github.com/megga/megga-real-estate/pull/1191)).**
+Le CRM s'aligne sur la vitrine et l'onboarding : plus de rupture visuelle à la
+porte d'entrée. **Sugar reste entièrement résolvable** et choisissable par
+l'agent — Réglages › Apparence › Direction, persisté en LOCAL (`megga.da`), hook
+[useCrmDa.ts](src/hooks/useCrmDa.ts) calqué sur `useDarkTone`. Tout ce qui suit
+sur Sugar Pure et Graphite reste donc VRAI, mais décrit la direction alternative,
+plus le défaut.
+
+Mécanique en trois points, à connaître avant de toucher au style :
+1. **Couleurs** — `crmSugarPalette()` délègue à `mxCrmPalette()`. La délégation
+   est faite LÀ, pas aux 33 points de construction, puisque tous transmettent
+   ensuite la palette en prop : aucun composant ne change. ⚠ Un test d'une
+   propriété de Sugar (échelle Graphite) DOIT épingler `da: 'sugar'` en 4ᵉ
+   argument, sinon il vérifie les surfaces de la vitrine sans le dire.
+2. **Police et grammaire** — variables CSS sur `[data-crm-da="meggax"]`, **sans
+   `:root`** : les propriétés personnalisées héritent, donc le sélecteur vaut
+   sur `<html>` (toute l'app) comme sur un conteneur (une région). ⚠ Corollaire :
+   une région ne revient à Sugar qu'en REDÉCLARANT (`[data-crm-da="sugar"]`).
+3. **Grammaire tokenisée** — rayons, espacements et tailles de texte ne sont
+   plus des littéraux : ~4200 valeurs sont passées en variables CSS sur 161
+   fichiers (`crm-sugar`, `crm-sugar-v3`, `crm-sugar-wizard`, `crm-mobile`,
+   `admin`), échelle normalisée à 13 barreaux de texte. **Écrire un littéral de
+   rayon/espacement/taille dans un composant est désormais une régression.**
+
+**Où vit quoi** — la distinction compte pour ne pas créer une seconde échelle :
+[megga-x-crm/tokens.ts](src/components/megga-x-crm/tokens.ts) ne porte que la
+**couleur** (ce qui alimente `mxCrmPalette()`) ; la **grammaire et la police**
+sont des variables CSS, parce qu'elles doivent pouvoir basculer sur un conteneur.
+[megga-x-crm-tokens.spec.ts](tests/unit/megga-x-crm-tokens.spec.ts) verrouille les
+deux : les couleurs contre les variables de la vitrine, et le bloc CSS lui-même —
+chaque rayon et chaque espacement doit être un barreau réel de la feuille.
+
+⚠ Le **texte** s'en écarte volontairement sur **11 et 13 px**, absents de la
+vitrine (ses tailles sautent 10 → 12 → 14). Le CRM a besoin de ces demi-pas. Le
+test fige cet écart au lieu de l'interdire : en ajouter un demande de l'écrire,
+donc d'en décider.
+
+Les deux routes de décision (`/design-system/da-compare`, `/design-system/pipeline-mx`)
+ont été retirées le 9 août 2026, la direction étant tranchée.
 
 **Direction :** Minimal, transparent, professionnel (Linear/Notion style). Dark/light mode sur dashboard agent.
 

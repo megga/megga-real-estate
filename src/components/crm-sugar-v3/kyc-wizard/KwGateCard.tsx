@@ -43,7 +43,7 @@ export function KwGateCard({
         background: selected ? sp.black : sp.card,
         color: selected ? sp.onAccent : sp.ink,
         border: `1px solid ${sp.cardBorder}`,
-        borderRadius: 28,
+        borderRadius: 'var(--crm-radius-6xl)',
         textAlign: 'left',
         fontFamily: 'inherit',
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -57,7 +57,7 @@ export function KwGateCard({
         transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
+        gap: 'var(--crm-space-2xl)',
       }}
     >
       {recommended && (
@@ -66,11 +66,11 @@ export function KwGateCard({
             position: 'absolute',
             top: 18,
             right: 18,
-            padding: '5px 11px',
-            borderRadius: 999,
+            padding: 'var(--crm-space-xs) var(--crm-space-lg)',
+            borderRadius: 'var(--crm-radius-pill)',
             background: selected ? sp.onAccent : sp.black,
             color: selected ? sp.ink : sp.onAccent,
-            fontSize: 10,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 700,
             letterSpacing: 0.5,
             textTransform: 'uppercase',
@@ -83,7 +83,7 @@ export function KwGateCard({
         style={{
           width: 56,
           height: 56,
-          borderRadius: 18,
+          borderRadius: 'var(--crm-radius-3xl)',
           background: selected ? sp.onAccentFaint : sp.cardSubtle,
           color: selected ? sp.onAccent : sp.black,
           display: 'grid',
@@ -97,7 +97,7 @@ export function KwGateCard({
         <h3
           style={{
             margin: '0 0 6px',
-            fontSize: 19,
+            fontSize: 'var(--crm-text-3xl)',
             fontWeight: 700,
             color: selected ? sp.onAccent : sp.ink,
             letterSpacing: -0.3,
@@ -109,7 +109,7 @@ export function KwGateCard({
         <p
           style={{
             margin: 0,
-            fontSize: 13.5,
+            fontSize: 'var(--crm-text-lg)',
             color: selected ? sp.onAccentSoft : sp.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
@@ -121,12 +121,12 @@ export function KwGateCard({
       <div
         style={{
           marginTop: 'auto',
-          paddingTop: 10,
+          paddingTop: 'var(--crm-space-lg)',
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
+          gap: 'var(--crm-space-md)',
           color: selected ? sp.onAccent : hover ? sp.black : sp.muted,
-          fontSize: 13,
+          fontSize: 'var(--crm-text-lg)',
           fontWeight: 600,
           transition: 'color .2s',
         }}

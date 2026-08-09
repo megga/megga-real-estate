@@ -237,7 +237,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
   if (isPending) {
     return (
       <KypFicheOverlay sp={sp}>
-        <span style={{ color: sp.sub, fontSize: 14, fontWeight: 500 }}>Chargement du dossier…</span>
+        <span style={{ color: sp.sub, fontSize: 'var(--crm-text-xl)', fontWeight: 500 }}>Chargement du dossier…</span>
       </KypFicheOverlay>
     )
   }
@@ -252,11 +252,11 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
     return (
       <KypFicheOverlay sp={sp}>
         <div style={{ maxWidth: 420, textAlign: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: sp.ink }}>Dossier indisponible</h2>
-          <p style={{ margin: '10px 0 0', fontSize: 13.5, lineHeight: 1.55, color: sp.sub }}>
+          <h2 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: sp.ink }}>Dossier indisponible</h2>
+          <p style={{ margin: '10px 0 0', fontSize: 'var(--crm-text-lg)', lineHeight: 1.55, color: sp.sub }}>
             Ce dossier n'a pas pu être ouvert : il n'existe pas, ou il n'est pas accessible depuis votre agence.
           </p>
-          <div style={{ marginTop: 18, display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <div style={{ marginTop: 18, display: 'flex', gap: 'var(--crm-space-lg)', justifyContent: 'center' }}>
             <KypCta sp={sp} onClick={() => void refetch()}>
               Réessayer
             </KypCta>
@@ -267,14 +267,14 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
               // appels à l'action de même poids côte à côte.
               style={{
                 height: 34,
-                padding: '0 15px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-2xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: surf.card,
                 boxShadow: sp.shadowSm,
                 color: sp.ink,
                 fontFamily: KYP_FONT,
-                fontSize: 12.5,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 700,
                 cursor: 'pointer',
               }}
@@ -376,20 +376,20 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        gap: 16,
+        gap: 'var(--crm-space-3xl)',
         overflow: 'hidden',
         fontFamily: KYP_FONT,
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
         <button
           onClick={onClose}
           title="Retour"
           style={{
             width: 42,
             height: 42,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: 0,
             cursor: 'pointer',
             flexShrink: 0,
@@ -404,10 +404,10 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
         </button>
         {contact && <KypAvatar firstName={contact.first_name} lastName={contact.last_name} size={46} ring={sp.pageBg} />}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>
+          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>
             {contact ? `${contact.first_name} ${contact.last_name}` : 'Dossier KYC'}
           </div>
-          <div style={{ fontSize: 12.5, color: sp.sub, fontWeight: 500, marginTop: 3 }}>
+          <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 500, marginTop: 3 }}>
             {dossier.created_at && dossier.dossier_status !== 'none'
               ? `Ouvert le ${fmtDate(dossier.created_at, true)}`
               : 'Dossier non démarré'}
@@ -423,7 +423,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
           flex: 1,
           minHeight: 0,
           background: surf.card,
-          borderRadius: 22,
+          borderRadius: 'var(--crm-radius-5xl)',
           boxShadow: sp.shadow,
           overflow: 'hidden',
           display: 'flex',
@@ -434,9 +434,9 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
           style={{
             display: 'grid',
             gridTemplateColumns: cols,
-            gap: 14,
-            padding: '12px 24px',
-            fontSize: 11,
+            gap: 'var(--crm-space-2xl)',
+            padding: 'var(--crm-space-xl) var(--crm-space-7xl)',
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 700,
             letterSpacing: 0.4,
             textTransform: 'uppercase',
@@ -472,9 +472,9 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                 style={{
                   display: 'grid',
                   gridTemplateColumns: cols,
-                  gap: 14,
+                  gap: 'var(--crm-space-2xl)',
                   alignItems: 'center',
-                  padding: '16px 24px',
+                  padding: 'var(--crm-space-3xl) var(--crm-space-7xl)',
                   borderBottom: i < KYP_CHECK_ORDER.length - 1 ? `1px solid ${surf.hairline}` : '0',
                 }}
               >
@@ -482,7 +482,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                   style={{
                     width: 36,
                     height: 36,
-                    borderRadius: 999,
+                    borderRadius: 'var(--crm-radius-pill)',
                     flexShrink: 0,
                     background: okVisual ? sp.focusBg : surf.cardSub,
                     color: okVisual ? sp.focusInk : sp.ink,
@@ -492,8 +492,8 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                 >
                   <KypCheckIcon category={cat} size={16} sw={1.7} />
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{label}</div>
-                <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{label}</div>
+                <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
                   {rowDocs.map((doc) => (
                     <button
                       key={doc.id}
@@ -502,15 +502,15 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 6,
+                        gap: 'var(--crm-space-sm)',
                         height: 26,
-                        padding: '0 11px',
-                        borderRadius: 999,
+                        padding: '0 var(--crm-space-lg)',
+                        borderRadius: 'var(--crm-radius-pill)',
                         border: 0,
                         background: surf.cardSub,
                         color: sp.ink,
                         fontFamily: KYP_FONT,
-                        fontSize: 11.5,
+                        fontSize: 'var(--crm-text-sm)',
                         fontWeight: 700,
                         whiteSpace: 'nowrap',
                         cursor: 'pointer',
@@ -526,7 +526,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                   ))}
                   <span
                     style={{
-                      fontSize: 12.5,
+                      fontSize: 'var(--crm-text-md)',
                       color: sp.soft,
                       fontWeight: 500,
                       whiteSpace: 'nowrap',
@@ -539,7 +539,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                       : item?.notes || (rowDocs.length ? '' : '—')}
                   </span>
                 </div>
-                <div style={{ fontSize: 12, color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                   {screeningThis
                     ? '—'
                     : item?.completed_at
@@ -550,12 +550,12 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   {screeningThis ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap' }}>
                       <span
                         style={{
                           width: 14,
                           height: 14,
-                          borderRadius: 999,
+                          borderRadius: 'var(--crm-radius-pill)',
                           border: `2px solid ${surf.hairline}`,
                           borderTopColor: sp.ink,
                           animation: 'kypSpin .7s linear infinite',
@@ -582,7 +582,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                       Renseigner
                     </KypCta>
                   ) : (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub, whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub, whiteSpace: 'nowrap' }}>
                       Automatique — en attente
                     </span>
                   )}
@@ -595,22 +595,22 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
         {/* Pied */}
         <div
           style={{
-            padding: '14px 24px',
+            padding: 'var(--crm-space-2xl) var(--crm-space-7xl)',
             borderTop: `1px solid ${surf.hairline}`,
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            gap: 'var(--crm-space-xl)',
             flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: 12, color: sp.sub, fontWeight: 600 }}>
+          <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 600 }}>
             {verified
               ? `Dossier complet — valable jusqu'au ${fmtDate(dossier.expires_at, true)}.`
               : 'Piste d’audit complète disponible dans le Journal.'}
           </span>
           <span
             onClick={() => onNavigate('audit')}
-            style={{ fontSize: 12, fontWeight: 700, color: sp.ink, cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             Ouvrir le Journal ›
           </span>
@@ -620,14 +620,14 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 7,
+              gap: 'var(--crm-space-sm)',
               height: 36,
-              padding: '0 15px',
-              borderRadius: 999,
+              padding: '0 var(--crm-space-2xl)',
+              borderRadius: 'var(--crm-radius-pill)',
               background: surf.cardSub,
               boxShadow: sp.shadowSm,
               color: sp.ink,
-              fontSize: 12.5,
+              fontSize: 'var(--crm-text-md)',
               fontWeight: 700,
               cursor: 'pointer',
             }}
@@ -644,7 +644,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
       </div>
 
       {error && (
-        <div style={{ position: 'absolute', bottom: 16, left: 34, fontSize: 12.5, fontWeight: 600, color: surf.destructive }}>
+        <div style={{ position: 'absolute', bottom: 16, left: 34, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: surf.destructive }}>
           {error}
         </div>
       )}
@@ -772,33 +772,33 @@ function MatchDecisionModal({
           width: 480,
           maxWidth: 'calc(100% - 60px)',
           background: surf.card,
-          borderRadius: 24,
+          borderRadius: 'var(--crm-radius-5xl)',
           boxShadow: '0 40px 100px rgba(15,23,42,0.30), 0 8px 24px rgba(15,23,42,0.14)',
           padding: '26px 26px 22px',
           boxSizing: 'border-box',
           animation: 'kypDocUp .3s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
-        <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
           {isPep ? 'Match PEP à trancher' : 'Alerte sanctions à trancher'}
         </div>
-        <div style={{ background: surf.cardSub, borderRadius: 14, padding: '14px 16px', marginTop: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>{recordName}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+        <div style={{ background: surf.cardSub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', marginTop: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)' }}>
+            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>{recordName}</span>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
               {total} correspondance{total > 1 ? 's' : ''}
             </span>
             <span style={{ flex: 1 }} />
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub }}>Dilisense</span>
+            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub }}>Dilisense</span>
           </div>
-          <p style={{ margin: '9px 0 0', fontSize: 13, color: sp.soft, fontWeight: 500, lineHeight: 1.55 }}>
+          <p style={{ margin: '9px 0 0', fontSize: 'var(--crm-text-lg)', color: sp.soft, fontWeight: 500, lineHeight: 1.55 }}>
             {isPep
               ? 'Correspondance sur les listes de Personnes Exposées Politiquement. Vérifiez l’identité (date de naissance, nationalité) avant de trancher.'
               : 'Correspondance sur les listes de sanctions (OFAC / SECO / ONU / UE). Vérifiez l’identité avant de trancher.'}
           </p>
         </div>
 
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.soft, margin: '14px 0 6px' }}>
+        <label style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.soft, margin: '14px 0 6px' }}>
           Justification (≥ 30 caractères — LBA art. 7) · {justif.trim().length}
         </label>
         <textarea
@@ -809,36 +809,36 @@ function MatchDecisionModal({
           style={{
             width: '100%',
             boxSizing: 'border-box',
-            padding: '10px 12px',
-            borderRadius: 12,
+            padding: 'var(--crm-space-lg) var(--crm-space-xl)',
+            borderRadius: 'var(--crm-radius-lg)',
             border: `1px solid ${surf.hairline}`,
             background: surf.cardSub,
             fontFamily: KYP_FONT,
-            fontSize: 13,
+            fontSize: 'var(--crm-text-lg)',
             color: sp.ink,
             resize: 'vertical',
             minHeight: 72,
           }}
         />
-        <p style={{ margin: '10px 0 0', fontSize: 12, color: sp.sub, fontWeight: 500, lineHeight: 1.5 }}>
+        <p style={{ margin: '10px 0 0', fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 500, lineHeight: 1.5 }}>
           Votre décision est consignée (append-only). « Confirmer le match » place le dossier en « à examiner »
           (communication MROS, LBA art. 9).
         </p>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--crm-space-lg)', marginTop: 18 }}>
           <button
             onClick={() => canDecide && onDecide('true_match', justif.trim())}
             disabled={!canDecide || pending}
             style={{
               height: 40,
-              padding: '0 18px',
-              borderRadius: 999,
+              padding: '0 var(--crm-space-4xl)',
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               cursor: canDecide && !pending ? 'pointer' : 'not-allowed',
               opacity: canDecide ? 1 : 0.5,
               background: surf.cardSub,
               color: sp.ink,
               fontFamily: KYP_FONT,
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 700,
             }}
           >
@@ -849,15 +849,15 @@ function MatchDecisionModal({
             disabled={!canDecide || pending}
             style={{
               height: 40,
-              padding: '0 18px',
-              borderRadius: 999,
+              padding: '0 var(--crm-space-4xl)',
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               cursor: canDecide && !pending ? 'pointer' : 'not-allowed',
               opacity: canDecide ? 1 : 0.5,
               background: sp.focusBg,
               color: sp.focusInk,
               fontFamily: KYP_FONT,
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 700,
             }}
           >
