@@ -136,10 +136,11 @@ export function StepRecapitulatif({
 
   return (
     <div className="inner-container _634px center">
+      {/* Titre seul, comme aux étapes 3 et 4 : le sous-titre disait « Relisez chaque
+          section. Vous pouvez encore modifier une étape. » — la première moitié
+          paraphrasait le titre, la seconde annonçait les quatre boutons « Modifier »
+          qu'on voit déjà. Retiré le 9 août 2026, avec sa clé. */}
       <h1 className="display-6 mg-top-4x-extra-small">{t('wizard.recap.title')}</h1>
-      <div className="mg-top-4x-extra-small">
-        <p className="paragraph-large text-paragraph">{t('wizard.recap.subtitle')}</p>
-      </div>
 
       <div className="mg-top-medium grid-1-column gap-row-2x-extra-small">
         <RecapSection title={t('wizard.steps.signataire')} onEdit={() => onEditStep(0)}>
@@ -300,8 +301,13 @@ function RecapSection({ title, onEdit, children }: { title: string; onEdit: () =
 function RecapRow({ label, value, capitalizeValue = false }: { label: string; value: string; capitalizeValue?: boolean }) {
   return (
     <div className="flex-horizontal space-between gap-16px">
+      {/* Le LIBELLÉ reste gris, la VALEUR passe à l'encre pleine (9 août 2026). Les
+          deux portaient `text-color-neutral-600` : dix-sept lignes du même gris, où
+          « Prénom » pesait autant que « Gregory ». Or on ne relit pas un récapitulatif
+          pour vérifier les intitulés — on le parcourt pour repérer ce qui cloche, et
+          c'est la valeur qu'on cherche. Le libellé n'est plus qu'un repère de position. */}
       <span className="display-1 text-color-neutral-600">{label}</span>
-      <span className={cn('display-1 medium text-color-neutral-600', capitalizeValue && 'capitalize')}>{value}</span>
+      <span className={cn('display-1 semi-bold', capitalizeValue && 'capitalize')}>{value}</span>
     </div>
   )
 }

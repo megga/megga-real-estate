@@ -188,7 +188,6 @@
     },
     "recap": {
       "title": "Review your file before submitting it",
-      "subtitle": "Read through each section. You can still edit a step.",
       "notProvided": "Not provided",
       "pieceIdentite": {
         "uploaded": "Uploaded",
