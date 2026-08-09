@@ -26,10 +26,10 @@
     },
     "submitted": {
       "title": "Your file is on its way",
-      "body": "Our compliance team is reviewing it. We will get back to you by email.",
+      "body": "Our compliance team is reviewing it and will write once it has decided.",
+      "mailConfirmation": "A confirmation email is waiting for you, with the link and the calendar invitation.",
       "copy": "Copy the link",
       "copied": "Link copied",
-      "linkByEmail": "The video call link reaches you by email.",
       "noCall": "No call is booked yet. We will write to you as soon as a slot opens.",
       "enterCta": "Go to my workspace"
     },

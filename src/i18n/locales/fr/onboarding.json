@@ -26,10 +26,10 @@
     },
     "submitted": {
       "title": "Votre dossier est parti",
-      "body": "Notre équipe conformité l'examine. Nous revenons vers vous par e-mail.",
+      "body": "Notre équipe conformité l'examine et vous écrit dès qu'elle a tranché.",
+      "mailConfirmation": "Un e-mail de confirmation vous attend, avec le lien et l'invitation pour votre agenda.",
       "copy": "Copier le lien",
       "copied": "Lien copié",
-      "linkByEmail": "Le lien de visioconférence vous parvient par e-mail.",
       "noCall": "Aucun rendez-vous n'est encore fixé. Nous vous écrirons dès qu'un créneau s'ouvre.",
       "enterCta": "Aller à mon espace"
     },
