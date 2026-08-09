@@ -57,6 +57,9 @@
  * 19. Choix courts en rangée, et leur définition repliée derrière un « i » — la
  *     vitrine n'a aucune question fermée à plus de deux réponses, donc ni
  *     rangée de choix ni aide dépliable à côté d'un libellé.
+ * 20. Champ en lecture seule — la base Webflow le peint en `#eee`, un gris
+ *     pensé pour un fond clair ; sur le canvas noir du parcours, un champ
+ *     verrouillé devenait un pavé blanc.
  *
  * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
  * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
@@ -1287,4 +1290,22 @@
   margin: 0;
 }
 
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 20. Champ en lecture seule.
+ *
+ *     La base Webflow (`.w-input[readonly]`) pose `background-color: #eee` et
+ *     `cursor: not-allowed`. Le curseur est juste ; la couleur ne l'est pas —
+ *     elle est faite pour un formulaire sur fond blanc, et sur le canvas
+ *     `#030303` de ce parcours elle transforme un champ scellé en rectangle
+ *     éclatant, plus voyant que les champs qu'on attend qu'on remplisse.
+ *
+ *     Un champ verrouillé doit se lire comme un champ EN RETRAIT : même pilule
+ *     que les autres, encre atténuée, et le `not-allowed` de la base pour dire
+ *     qu'on n'y écrit pas. Il porte une valeur établie, pas une invitation.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .input[readonly] {
+  background-color: var(--neutral-colors--400);
+  color: var(--neutral-colors--600);
 }

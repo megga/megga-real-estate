@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MxButton, MxField, MxInput, MxLink, MxSelect } from '@/components/megga-x'
 import { useAuth } from '@/hooks/useAuth'
+import { useAgencyIdentity } from '@/hooks/useAgencyIdentity'
 import OcSlotPicker from './OcSlotPicker'
 import OcBookedCard from './OcBookedCard'
 import { dayKeyOf } from './ocDates'
@@ -94,11 +95,32 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
   // et noyait le seul geste qui compte à la première seconde — prendre une date.
   const [etape, setEtape] = useState<'creneau' | 'formulaire'>('creneau')
 
-  // Préremplissage : l'identité du dirigeant est déjà VÉRIFIÉE à ce stade du parcours,
-  // la lui redemander serait du travail qu'on sait faire pour lui. `full_name` est la
-  // seule forme que porte le profil — on le coupe au premier espace, et les deux champs
-  // restent modifiables : un nom composé n'a pas à être deviné juste.
+  /**
+   * Préremplissage du nom, à DEUX sources qui ne se valent pas.
+   *
+   * 1. Le SIGNATAIRE (`agency_related_persons`) quand sa pièce a été vérifiée : c'est
+   *    ce nom-là, et lui seul, que le prestataire a confronté au document. Les champs
+   *    sont alors VERROUILLÉS — le laisser modifiable permettrait de réserver sous un
+   *    nom que rien n'atteste, deux écrans après l'avoir fait attester.
+   * 2. `profile.full_name` sinon, coupé au premier espace, et modifiable. C'est un
+   *    libellé de compte, pas une identité vérifiée : personne ne l'a confronté à quoi
+   *    que ce soit, et un nom composé n'a pas à être deviné juste.
+   *
+   * ⚠ Le verrou suit le STATUT, pas l'écran. Tant que la vérification est `processing`
+   * ou n'a pas abouti, les champs restent ouverts : sceller un nom sur un verdict qui
+   * n'est pas rendu enfermerait le dirigeant dans une faute de frappe sans issue.
+   *
+   * ⚠ Ce n'est pas le nom LU par le prestataire — il n'est stocké nulle part (cf.
+   * l'en-tête d'IdentityVerificationReturnScreen). C'est le nom déclaré, dont la
+   * concordance avec le document a été établie.
+   */
   const { profile } = useAuth()
+  const { persons } = useAgencyIdentity()
+  const signataireVerifie = persons.find(
+    (p) => p.verificationStatus === 'verified' && p.roles.some((r) => r.role === 'signatory'),
+  ) ?? null
+  const identiteVerrouillee = signataireVerifie != null
+
   const [prenom, setPrenom] = useState('')
   const [nom, setNom] = useState('')
   const [email, setEmail] = useState('')
@@ -110,6 +132,15 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
     setEmail((e) => e || profile.email || '')
     setPhone((t) => t || profile.phone || '')
   }, [profile])
+
+  // ÉCRASE le repli dès que le signataire vérifié est connu — `setPrenom(p => p || …)`
+  // ne suffirait pas ici : le profil arrive le premier, et son libellé de compte
+  // resterait en place devant le nom qui a été attesté.
+  useEffect(() => {
+    if (!signataireVerifie) return
+    setPrenom(signataireVerifie.firstName)
+    setNom(signataireVerifie.lastName)
+  }, [signataireVerifie])
 
   // Les réponses calibrent le CRM (Focus, matching) et préparent l'appel. Stockées
   // telles quelles dans `attendee_answers` : ce sont des CHOIX, pas des mesures — les
@@ -300,10 +331,10 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
 
               <div className="grid-2-columns mg-top-small">
                 <MxField label={t('call.form.firstName')}>
-                  {(id) => <MxInput id={id} value={prenom} onChange={(e) => setPrenom(e.target.value)} />}
+                  {(id) => <MxInput id={id} value={prenom} onChange={(e) => setPrenom(e.target.value)} readOnly={identiteVerrouillee} />}
                 </MxField>
                 <MxField label={t('call.form.lastName')}>
-                  {(id) => <MxInput id={id} value={nom} onChange={(e) => setNom(e.target.value)} />}
+                  {(id) => <MxInput id={id} value={nom} onChange={(e) => setNom(e.target.value)} readOnly={identiteVerrouillee} />}
                 </MxField>
               </div>
 

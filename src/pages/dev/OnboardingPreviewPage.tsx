@@ -188,11 +188,13 @@ function makeClient(dossier: Dossier): QueryClient {
   }
   client.setQueryData(['agency-identity-persons', AGENCY_ID], [signataireFixture(dossier === 'verifie')])
   client.setQueryData(['agency-settings', AGENCY_ID], { settings: AGENCY_FIXTURE, plan: 'pro', identitySubmittedAt: null })
-  // Rendez-vous DÉJÀ PRIS sur le seul dossier « Vérifié » : c'est ce qui permet de voir
-  // les deux faces de l'étape 4 depuis le rail. « Rempli » n'en a pas, et montre donc le
-  // calendrier ; le semer partout aurait caché le calendrier derrière la carte de
-  // confirmation, quel que soit le dossier choisi.
-  if (dossier === 'verifie') client.setQueryData(['onboarding-call', AGENCY_ID], CALL_FIXTURE)
+  // ⚠ AUCUN rendez-vous semé, sur aucun dossier. Il l'était sur « Vérifié » pour montrer
+  // la carte de confirmation — mais cette carte remplace TOUT le bloc, calendrier et
+  // formulaire compris, et « Vérifié » est justement le seul dossier où le formulaire a
+  // quelque chose à montrer : le nom verrouillé. Un état statique cachait les deux
+  // surfaces vivantes. `CALL_FIXTURE` reste ici, prête à être resemée si la carte de
+  // confirmation redevient le sujet.
+  void CALL_FIXTURE
   return client
 }
 
@@ -231,7 +233,7 @@ const ECRANS: Ecran[] = [
 const DOSSIERS: { id: Dossier; label: string; aide: string }[] = [
   { id: 'vierge', label: 'Vierge', aide: 'Aucune saisie — champs vides, écran d’arrivée légitime.' },
   { id: 'rempli', label: 'Rempli', aide: 'Signataire et agence saisis, pièce non vérifiée.' },
-  { id: 'verifie', label: 'Vérifié', aide: 'Comme « Rempli », plus la pièce vérifiée et un rendez-vous pris.' },
+  { id: 'verifie', label: 'Vérifié', aide: 'Comme « Rempli », plus la pièce vérifiée : le nom se verrouille à la réservation.' },
 ]
 
 /** Aperçu dev du parcours d'onboarding : un écran à la fois, données simulées. */
