@@ -238,38 +238,42 @@
       "assistant": "Assistant"
     },
     "roleDescriptions": {
-      "admin": "Full access: settings, billing, team management.",
-      "manager": "Manage agents, oversee transactions and pipeline.",
-      "agent": "Manage own contacts, properties and transactions.",
-      "assistant": "Read-only access, administrative support."
+      "admin": "Everything a Manager can do, plus the sensitive actions: IBAN, security, roles and legal identity.",
+      "manager": "Everything an Agent can do, plus subscription and invoices, the team and every agency file.",
+      "agent": "Their own book: their contacts, properties, mandates and pipeline.",
+      "assistant": "Viewing agency files and preparing paperwork, with no client sending and no compliance sign-off."
     },
+    "roleHierarchy": "Roles are cumulative: Admin includes Manager, Manager includes Agent, Agent includes Assistant.",
     "status": {
       "active": "Active",
       "invited": "Invited"
     },
     "permissions": {
       "admin": [
-        "Full access to settings",
-        "Billing management",
-        "Team management",
-        "All contacts and properties"
+        "Agency bank details and IBAN",
+        "Roles, permissions and access security",
+        "Agency legal identity and compliance",
+        "Integrations, data export and deletion",
+        "All Manager permissions"
       ],
       "manager": [
-        "Agent supervision",
-        "Transaction access",
-        "Pipeline management",
-        "Reports and analytics"
+        "Subscription, invoices and payment methods",
+        "Inviting and managing team members",
+        "All agency contacts, properties and transactions",
+        "Pipeline, targets and reports",
+        "All Agent permissions"
       ],
       "agent": [
-        "Manage own contacts",
-        "Manage own properties",
-        "Personal pipeline",
-        "Messaging"
+        "Their contacts, properties and mandates",
+        "Their pipeline and transactions",
+        "Messaging and appointments with their clients",
+        "KYC files for their clients"
       ],
       "assistant": [
-        "Read-only access",
-        "Administrative support",
-        "View files"
+        "Viewing contacts, properties and transactions",
+        "Preparing documents and files",
+        "Uploading paperwork and internal reminders",
+        "No client sending, no compliance sign-off"
       ]
     },
     "actions": {

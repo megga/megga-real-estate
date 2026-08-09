@@ -238,38 +238,42 @@
       "assistant": "Assistant"
     },
     "roleDescriptions": {
-      "admin": "Accès complet : paramètres, facturation, gestion de l'équipe.",
-      "manager": "Gestion des agents, supervision des transactions et du pipeline.",
-      "agent": "Gestion de ses contacts, biens et transactions.",
-      "assistant": "Accès en lecture, support administratif."
+      "admin": "Tous les droits Manager, plus les actions sensibles : IBAN, sécurité, rôles et identité légale.",
+      "manager": "Tous les droits Agent, plus l'abonnement et les factures, l'équipe et tous les dossiers de l'agence.",
+      "agent": "Son portefeuille : ses contacts, ses biens, ses mandats et son pipeline.",
+      "assistant": "Consultation des dossiers de l'agence et préparation administrative, sans envoi ni validation."
     },
+    "roleHierarchy": "Les rôles sont cumulatifs : Admin inclut Manager, qui inclut Agent, qui inclut Assistant.",
     "status": {
       "active": "Actif",
       "invited": "Invité"
     },
     "permissions": {
       "admin": [
-        "Accès complet aux paramètres",
-        "Gestion de la facturation",
-        "Gestion de l'équipe",
-        "Tous les contacts et biens"
+        "Coordonnées bancaires de l'agence et IBAN",
+        "Rôles, permissions et sécurité des accès",
+        "Identité légale et conformité de l'agence",
+        "Intégrations, export et suppression des données",
+        "Tous les droits du rôle Manager"
       ],
       "manager": [
-        "Supervision des agents",
-        "Accès aux transactions",
-        "Gestion du pipeline",
-        "Rapports et analytics"
+        "Abonnement, factures et moyens de paiement",
+        "Invitation et gestion des membres de l'équipe",
+        "Tous les contacts, biens et transactions de l'agence",
+        "Pipeline, objectifs et rapports",
+        "Tous les droits du rôle Agent"
       ],
       "agent": [
-        "Gestion de ses contacts",
-        "Gestion de ses biens",
-        "Pipeline personnel",
-        "Messagerie"
+        "Ses contacts, ses biens et ses mandats",
+        "Son pipeline et ses transactions",
+        "Messagerie et rendez-vous avec ses clients",
+        "Dossiers KYC de ses clients"
       ],
       "assistant": [
-        "Lecture seule",
-        "Support administratif",
-        "Consultation des dossiers"
+        "Consultation des contacts, biens et transactions",
+        "Préparation des documents et des dossiers",
+        "Dépôt de pièces et rappels internes",
+        "Ni envoi client, ni validation de conformité"
       ]
     },
     "actions": {
