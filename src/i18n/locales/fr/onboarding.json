@@ -25,9 +25,9 @@
       "retryCta": "Reprendre la vérification"
     },
     "submitted": {
-      "title": "Votre dossier est parti",
-      "body": "Notre équipe conformité l'examine et vous écrit dès qu'elle a tranché.",
-      "mailConfirmation": "Un e-mail de confirmation vous attend, avec le lien et l'invitation pour votre agenda.",
+      "title": "Votre rendez-vous est confirmé",
+      "titleNoCall": "C'est envoyé",
+      "mailConfirmation": "Une confirmation vous a été envoyée par e-mail.",
       "copy": "Copier le lien",
       "copied": "Lien copié",
       "noCall": "Aucun rendez-vous n'est encore fixé. Nous vous écrirons dès qu'un créneau s'ouvre.",

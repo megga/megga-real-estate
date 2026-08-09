@@ -25,9 +25,9 @@
       "retryCta": "Start verification again"
     },
     "submitted": {
-      "title": "Your file is on its way",
-      "body": "Our compliance team is reviewing it and will write once it has decided.",
-      "mailConfirmation": "A confirmation email is waiting for you, with the link and the calendar invitation.",
+      "title": "Your call is confirmed",
+      "titleNoCall": "Sent",
+      "mailConfirmation": "A confirmation has been sent to you by email.",
       "copy": "Copy the link",
       "copied": "Link copied",
       "noCall": "No call is booked yet. We will write to you as soon as a slot opens.",

@@ -25,9 +25,9 @@
       "retryCta": "Prüfung wieder aufnehmen"
     },
     "submitted": {
-      "title": "Ihr Dossier ist unterwegs",
-      "body": "Unser Compliance-Team prüft es und schreibt Ihnen, sobald es entschieden hat.",
-      "mailConfirmation": "Eine Bestätigung liegt in Ihrem Postfach, mit dem Link und dem Termin für Ihren Kalender.",
+      "title": "Ihr Termin ist bestätigt",
+      "titleNoCall": "Gesendet",
+      "mailConfirmation": "Eine Bestätigung wurde Ihnen per E-Mail gesendet.",
       "copy": "Link kopieren",
       "copied": "Link kopiert",
       "noCall": "Es ist noch kein Termin festgelegt. Wir schreiben Ihnen, sobald ein Zeitfenster frei wird.",

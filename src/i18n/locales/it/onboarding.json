@@ -25,9 +25,9 @@
       "retryCta": "Riprendi la verifica"
     },
     "submitted": {
-      "title": "La Sua pratica è partita",
-      "body": "Il nostro team compliance la esamina e Le scrive appena ha deciso.",
-      "mailConfirmation": "Un'e-mail di conferma L'attende, con il link e l'invito per il Suo calendario.",
+      "title": "Il Suo appuntamento è confermato",
+      "titleNoCall": "Inviato",
+      "mailConfirmation": "Una conferma Le è stata inviata via e-mail.",
       "copy": "Copia il link",
       "copied": "Link copiato",
       "noCall": "Nessun appuntamento è ancora fissato. Le scriveremo appena si libera un orario.",

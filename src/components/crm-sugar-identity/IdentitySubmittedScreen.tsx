@@ -1,10 +1,15 @@
 /**
- * Écran de CONFIRMATION après la soumission du dossier — le dernier du parcours.
+ * Écran de CONFIRMATION DU RENDEZ-VOUS, affiché après la soumission du dossier.
+ *
+ * ⚠ SON SUJET EST L'APPEL, PAS LE DOSSIER. Première version écrite à l'envers le
+ * 10 août 2026 : elle annonçait « Votre dossier est parti » et le suivi de la revue de
+ * conformité, alors que ce que le dirigeant vient chercher ici est la date de son
+ * rendez-vous et le lien pour y entrer. Le sort du dossier se dit ailleurs — par
+ * e-mail à la décision, et dans le CRM.
  *
  * Jusqu'au 10 août 2026, `handleSubmit` menait directement à `/dashboard` : on
- * soumettait son dossier de conformité et on était éjecté dans un CRM vide, sans un
- * mot. Cet écran rend son point final au parcours, et sert deux choses que le tableau
- * de bord ne dit pas : ce que devient le dossier, et où a lieu le rendez-vous.
+ * soumettait et on était éjecté dans un CRM vide, sans un mot, en emportant un
+ * rendez-vous dont on n'avait plus ni l'heure ni le lien.
  *
  * ⚠ LE LIEN DE VISIOCONFÉRENCE PEUT NE PAS EXISTER, et ce n'est pas une erreur. Il est
  * produit par Google Calendar au moment où l'edge pose l'événement DANS L'AGENDA DE
@@ -29,28 +34,22 @@ import type { OnboardingCallRow } from '@/hooks/useOnboardingCall'
 import { bookedWhenLabel } from '@/components/onboarding-call/ocDates'
 
 /**
- * L'emblème de l'écran : un avion de papier, pas une coche.
+ * L'emblème : un calendrier.
  *
- * ⛔ La pastille de la vitrine porte le glyphe U+E805, une COCHE — le même signe qu'à
- * l'écran d'arrivée. Sur « Votre dossier est parti », une coche dit « validé », et
- * c'est faux : la soumission n'est pas une acceptation. Le verdict appartient à
- * l'équipe conformité, qui ne l'a pas encore rendu, et rien de cet écran ne doit le
- * laisser croire (même règle que le sceau de la vérification, qui atteste l'identité
- * et non le dossier).
+ * ⛔ Ni la COCHE de la vitrine, ni l'avion de papier de la première version. La coche
+ * dit « validé » — le dossier ne l'est pas, le verdict appartient à la conformité.
+ * L'avion disait « parti », ce qui décrivait le dossier alors que l'écran parle du
+ * RENDEZ-VOUS. Un calendrier nomme le sujet, et rien d'autre.
  *
- * Un avion de papier dit exactement ce qui s'est passé : c'est PARTI. Le disque
- * dégradé de la vitrine est conservé — il porte l'emphase d'un écran terminal, pas
- * l'idée de succès ; c'est le glyphe qui la portait.
- *
- * Dessiné sur `currentColor`, que la pastille fixe déjà en `--neutral-colors--1000`.
- * `aria-hidden` : le titre juste en dessous dit la même chose, en mieux.
+ * Dessiné sur `currentColor`, que la pastille fixe déjà. `aria-hidden` : le titre
+ * juste en dessous dit la même chose.
  */
-function AvionGlyph() {
+function CalendrierGlyph() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"
       stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21.5 2.5 11 13" />
-      <path d="M21.5 2.5 15 21.5l-4-8.5-8.5-4z" />
+      <rect x="3" y="5" width="18" height="16" rx="3" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
     </svg>
   )
 }
@@ -112,16 +111,19 @@ export default function IdentitySubmittedScreen({ rendezVous, timezone, onEnter 
                 <div className="pd---content-inside-card pd---vertical-side-104px">
                   <div className="inner-container _464px center">
                     <div className="text-center">
-                      {/* Le disque de la vitrine, mais pas son glyphe : cf. AvionGlyph.
+                      {/* Le disque de la vitrine, mais pas son glyphe : cf. CalendrierGlyph.
                           `display: flex` pour centrer un SVG là où la feuille attendait
                           un caractère de police. */}
                       <div className="success-message-icon-top" style={{ display: 'flex' }}>
-                        <AvionGlyph />
+                        <CalendrierGlyph />
                       </div>
-                      <h1 className="display-6">{t('gate.submitted.title')}</h1>
-                      <div className="mg-top-4x-extra-small">
-                        <p className="paragraph-large">{t('gate.submitted.body')}</p>
-                      </div>
+                      {/* Deux titres, parce que l'écran a deux sujets possibles. Avec un
+                          rendez-vous, c'est LUI qu'on confirme. Sans, il ne reste que
+                          l'envoi du dossier — et le dire autrement serait annoncer un
+                          rendez-vous qui n'existe pas. */}
+                      <h1 className="display-6">
+                        {t(`gate.submitted.${rendezVous ? 'title' : 'titleNoCall'}`)}
+                      </h1>
                     </div>
 
                     {rendezVous && (
