@@ -214,7 +214,9 @@ const ECRANS: Ecran[] = [
   { id: 'welcome', label: 'Arrivée', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'welcome' }) },
   { id: 'step0', label: '1. Signataire', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'wizard', step: 0 }) },
   { id: 'step1', label: '2. Agence', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'wizard', step: 1 }) },
-  { id: 'step2', label: '3. Pièce d’identité', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'wizard', step: 2 }) },
+  // « Vérification » et non « Pièce d'identité » : l'étape a été renommée par #1164,
+  // le rail du wizard le dit déjà — ce rail-ci ne doit pas raconter autre chose.
+  { id: 'step2', label: '3. Vérification', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'wizard', step: 2 }) },
   { id: 'step3', label: '4. Rendez-vous', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'wizard', step: 3 }) },
   { id: 'step4', label: '5. Récapitulatif', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'wizard', step: 4 }) },
   { id: 'exit', label: 'Reprendre plus tard', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'exit' }) },
