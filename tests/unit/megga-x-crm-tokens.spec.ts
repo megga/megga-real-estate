@@ -16,8 +16,9 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import {
   MXC_COLOR, MXC_TYPE, MXC_RADIUS, MXC_SPACE, MXC_SYSTEM, MXC_CARD_SHADOW,
-  mxCrmPalette,
+  mxCrmPalette, crmDa, DEFAULT_DA,
 } from '@/components/megga-x-crm/tokens'
+import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
 
 const SHEET = 'src/styles/megga-x.generated.css'
 const css = readFileSync(SHEET, 'utf-8')
@@ -118,6 +119,45 @@ describe('MEGGA X CRM — les tokens sortent bien de la vitrine', () => {
     const m = /\.megga-x \.card-light-mode \{[^}]*box-shadow: *([^;]+);/.exec(css)
     expect(m, '.card-light-mode introuvable ou sans ombre').not.toBeNull()
     expect(MXC_CARD_SHADOW).toBe(m![1].trim())
+  })
+})
+
+describe('MEGGA X CRM — la bascule de direction', () => {
+  // C'est le point de bascule de TOUT le CRM : les 33 endroits qui construisent
+  // la palette passent par cette fonction, et la transmettent ensuite en prop.
+  // Si la délégation casse, rien ne bascule et rien ne le signale.
+  it('crmSugarPalette délègue à MEGGA X quand la direction est basculée', () => {
+    const t = sugarThemeTokens(true)
+    const sugar = crmSugarPalette(t, true, undefined, 'sugar')
+    const meggax = crmSugarPalette(t, true, undefined, 'meggax')
+
+    expect(meggax).toEqual(mxCrmPalette(true))
+    expect(meggax.accent).toBe(MXC_COLOR.accent)
+    expect(sugar.accent).not.toBe(MXC_COLOR.accent)
+  })
+
+  // ⚠ On passe par `window.__meggaDa`, jamais par localStorage : sous ce Node
+  // il n'est pas exposé dans jsdom (`graphite-scale.spec.ts` fait le même
+  // constat). C'est de toute façon la source que `crmDa()` lit EN PREMIER.
+  type WinDa = Window & { __meggaDa?: string }
+
+  // Le comparateur doit pouvoir exiger Sugar même préférence basculée, sinon sa
+  // colonne de référence suit le reste et les trois colonnes deviennent égales.
+  it('la direction demandée explicitement l’emporte sur la préférence active', () => {
+    const t = sugarThemeTokens(false)
+    ;(window as WinDa).__meggaDa = 'meggax'
+    try {
+      expect(crmSugarPalette(t, false, undefined, 'sugar').accent).not.toBe(MXC_COLOR.accent)
+      expect(crmSugarPalette(t, false).accent).toBe(MXC_COLOR.accent)
+    } finally {
+      delete (window as WinDa).__meggaDa
+    }
+  })
+
+  it('Sugar reste le défaut quand rien n’est posé', () => {
+    delete (window as WinDa).__meggaDa
+    expect(crmDa()).toBe(DEFAULT_DA)
+    expect(DEFAULT_DA).toBe('sugar')
   })
 })
 

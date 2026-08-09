@@ -21,7 +21,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import MeggaX from '@/components/megga-x/MeggaX'
 import { SugarDealCard } from '@/components/crm-sugar/pipeline/SugarDealCard'
 import {
-  MXC_FONT, MXC_RADIUS, MXC_SPACE, MXC_TYPE, mxCrmPalette,
+  MXC_COLOR, MXC_FONT, MXC_RADIUS, MXC_SPACE, MXC_TYPE, mxCrmPalette,
 } from '@/components/megga-x-crm/tokens'
 import {
   crmSugarPalette,
@@ -32,21 +32,6 @@ import {
 import type { CrmDeal } from '@/components/crm-sugar/mockData'
 import { SugarStageColumn } from '@/components/crm-sugar/pipeline/SugarStageColumn'
 import { SugarSegmentedView } from '@/components/crm-sugar/pipeline/PipelineFilters'
-
-/** Accent de la vitrine — `--primary-colors--100`. */
-const MX_ACCENT = '#424bfb'
-/** Neutres de la vitrine — `--neutral-colors--100 … --1000`. */
-const MX = {
-  n100: '#030303',
-  n200: '#050505',
-  n300: '#090909',
-  n400: '#181818',
-  n500: '#686868',
-  n600: '#a3a3a3',
-  n700: '#cccccc',
-  n900: '#f9f9f9',
-  n1000: '#ffffff',
-} as const
 
 /** Police de la vitrine. Cascade réellement : 206 des 242 `fontFamily` de
  *  `crm-sugar/` valent `'inherit'`. */
@@ -115,65 +100,19 @@ function paletteFor(direction: Direction, base: SugarPalette, dark: boolean): Su
 
   const withAccent: SugarPalette = {
     ...base,
-    accent: MX_ACCENT,
-    accentInk: MX.n1000,
-    focusBg: MX_ACCENT,
-    focusInk: MX.n1000,
+    accent: MXC_COLOR.accent,
+    accentInk: MXC_COLOR.n1000,
+    focusBg: MXC_COLOR.accent,
+    focusInk: MXC_COLOR.n1000,
   }
   if (direction === 'absorbed') return withAccent
 
-  if (!dark) {
-    return {
-      ...withAccent,
-      ramp: undefined,
-      pageBg: MX.n900,
-      frameBg: MX.n1000,
-      frameBorder: MX.n700,
-      cardBg: MX.n1000,
-      cardBorder: MX.n700,
-      cardSubBg: MX.n900,
-      ink: MX.n100,
-      sub: MX.n500,
-      soft: MX.n600,
-      tableHeadBg: MX.n900,
-      avatarBorder: MX.n700,
-      iconBtnBg: MX.n900,
-      iconRailBg: MX.n1000,
-      dotBorder: MX.n700,
-      kbdBg: MX.n900,
-      solidBg: MX.n1000,
-      solidBgSub: MX.n900,
-      solidBgSub2: MX.n700,
-      solidBorder: MX.n700,
-      // La seule ombre que la source pose sur une carte claire.
-      shadow: '0 2px 6px #15086b21',
-      shadowSm: '0 2px 6px #15086b21',
-    }
-  }
-
-  return {
-    ...withAccent,
-    ramp: undefined, // les surfaces ne suivent plus l'échelle Graphite
-    pageBg: MX.n100,
-    frameBg: MX.n200,
-    frameBorder: MX.n400,
-    cardBg: MX.n300,
-    cardBorder: MX.n400,
-    cardSubBg: MX.n200,
-    ink: MX.n1000,
-    sub: MX.n500,
-    soft: MX.n600,
-    tableHeadBg: MX.n200,
-    avatarBorder: MX.n400,
-    iconBtnBg: MX.n400,
-    iconRailBg: MX.n200,
-    dotBorder: MX.n400,
-    kbdBg: MX.n400,
-    solidBg: MX.n300,
-    solidBgSub: MX.n200,
-    solidBgSub2: MX.n100,
-    solidBorder: MX.n400,
-  }
+  // `literal` = EXACTEMENT ce que l'application rendra une fois la direction
+  // basculée. Cette colonne construisait sa palette à la main jusqu'au 9 août ;
+  // les deux ont divergé sans que rien le signale (elle posait `sub: #686868`
+  // en sombre là où la vraie palette est passée à `#a3a3a3` pour l'AA). Un
+  // comparateur qui montre autre chose que la production ne compare rien.
+  return mxCrmPalette(dark)
 }
 
 /**
@@ -337,9 +276,12 @@ export default function DaComparePage() {
     [],
   )
 
+  // `'sugar'` explicite : la colonne de référence doit rester Sugar même quand
+  // la préférence de direction est basculée sur MEGGA X, sinon les trois
+  // colonnes deviennent identiques et le comparateur ne compare plus rien.
   const base = useMemo(() => {
     const t = sugarThemeTokens(dark)
-    return crmSugarPalette(t, dark)
+    return crmSugarPalette(t, dark, undefined, 'sugar')
   }, [dark])
 
   const stage: StageId = 'searching'
@@ -556,10 +498,10 @@ export default function DaComparePage() {
         }}
       >
         <strong style={{ fontWeight: 600, opacity: 0.9 }}>Où en est la migration.</strong>{' '}
-        <code>crm-sugar/</code> est fait : 61 fichiers, 2698 littéraux devenus variables,
-        échelle normalisée de 18 tailles de police à 11 barreaux. Il reste 11 valeurs
-        hors échelle (34 à 44 px) laissées en littéral, et les paddings de gabarit
-        au-delà de 24 px, qui relèvent de la composition.
+Les 5 dossiers de composants sont faits : 161 fichiers, la grammaire est en
+        variables CSS, l’échelle normalisée à 13 barreaux de texte. La colonne du
+        milieu est une simulation ; celle de droite est ce que l’application rendra,
+        elle lit la même palette. Basculer se fait par la préférence de direction.
       </footer>
     </div>
   )

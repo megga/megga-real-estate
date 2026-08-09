@@ -7,7 +7,8 @@
  * désactivée (pivot CRM-first) : ses routes redirigent vers la vitrine megga.ch.
  * Route racine « / » → /dashboard.
  */
-import { Fragment, lazy, Suspense } from 'react'
+import { Fragment, lazy, Suspense, useEffect } from 'react'
+import { useCrmDa } from '@/hooks/useCrmDa'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import ResponsiveRoute from '@/components/crm-mobile/shell/ResponsiveRoute'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -314,6 +315,21 @@ function VitrineLoginRedirect() {
   return null
 }
 
+/**
+ * Reporte la direction artistique active sur `<html data-crm-da>`.
+ *
+ * Les couleurs n'en ont pas besoin — elles passent par `crmSugarPalette()`, qui
+ * délègue à MEGGA X. Cet attribut ne porte que la police, et plus tard les
+ * barreaux de grammaire : ce qu'une palette ne sait pas dire.
+ */
+function CrmDaAttribute() {
+  const da = useCrmDa()
+  useEffect(() => {
+    document.documentElement.dataset.crmDa = da
+  }, [da])
+  return null
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -604,6 +620,7 @@ export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <StaleBundleDetector />
+      <CrmDaAttribute />
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ToastProvider>

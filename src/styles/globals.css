@@ -268,6 +268,17 @@
 
     /* Largeur de la gouttière d'icône : sert aussi à indenter la 2e ligne. */
     --crm-icon-slot: 26px;
+  }
+
+  /* ─── Direction MEGGA X ────────────────────────────────────────────────
+     Posée par `setCrmDa()` sur <html>. Ne porte QUE ce qu'une palette ne
+     peut pas dire — les couleurs passent par `mxCrmPalette()`.
+     ⚠ Les barreaux de grammaire (rayons, espacements, texte) ne sont PAS
+     surchargés ici : reporter la grammaire resserrée sur les 13 barreaux est
+     un travail de design, pas une substitution. Tant qu'il n'est pas fait,
+     MEGGA X ne change que la couleur et la police. */
+  :root[data-crm-da="meggax"] {
+    --crm-font: "Inter Tight";
 
     /* Logo filter — no filter in light mode (logo is black) */
     --logo-filter: none;
@@ -421,7 +432,10 @@
   body {
     background-color: #ffffff;
     color: #1a1a1a;
-    font-family: "DM Sans", sans-serif;
+    /* La direction MEGGA X change la police ; le repli garde DM Sans si la
+       variable n'est pas posée. 206 des 242 `fontFamily` de crm-sugar valent
+       `inherit`, donc ce seul point suffit à faire cascader la bascule. */
+    font-family: var(--crm-font, "DM Sans"), sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.35s ease, color 0.35s ease;

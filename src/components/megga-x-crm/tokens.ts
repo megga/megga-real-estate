@@ -21,6 +21,33 @@
 
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 
+/** Direction artistique active du CRM. `sugar` reste le défaut tant que la
+ *  direction n'est pas tranchée. */
+export type CrmDa = 'sugar' | 'meggax'
+
+/** Clé de persistance, calquée sur `megga.darkTone`. */
+export const DA_KEY = 'megga.da'
+
+export const DEFAULT_DA: CrmDa = 'sugar'
+
+/**
+ * Direction active — `window.__meggaDa` d'abord (posé à chaque bascule, donc lu
+ * à chaud), puis localStorage, sinon Sugar.
+ *
+ * Lecture PONCTUELLE : ne déclenche aucun rendu. Un composant qui doit se
+ * re-teinter sans rechargement passe par `useCrmDa()`.
+ */
+export function crmDa(): CrmDa {
+  if (typeof window === 'undefined') return DEFAULT_DA
+  const live = (window as Window & { __meggaDa?: CrmDa }).__meggaDa
+  if (live) return live
+  try {
+    return (window.localStorage.getItem(DA_KEY) as CrmDa | null) || DEFAULT_DA
+  } catch {
+    return DEFAULT_DA
+  }
+}
+
 /** Neutres et accents, verbatim des variables de la vitrine. */
 export const MXC_COLOR = {
   n100: '#030303',
