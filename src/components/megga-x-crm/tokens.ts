@@ -73,40 +73,18 @@ export const MXC_COLOR = {
 } as const
 
 /**
- * Couleurs système de la vitrine (`--system-colors--*`) — sémantique d'état, pas
- * de marque. Elles existent bel et bien dans la source : la direction sait dire
- * « en retard », il n'y a rien à emprunter à Sugar ni à inventer.
+ * ⚠ La GRAMMAIRE (tailles de texte, rayons, espacements) et la police ne vivent
+ * PAS ici. Elles sont des variables CSS — `[data-crm-da="meggax"]` dans
+ * `src/styles/globals.css` — parce qu'elles doivent pouvoir basculer sur un
+ * conteneur, ce qu'un objet JS ne sait pas faire.
  *
- * ⚠ Toujours en APLAT avec `systemInk`, jamais en texte sur la surface. Mesuré :
- * `red-400` en texte donne 6,4:1 sur une carte sombre mais **3,1:1 sur blanc** —
- * échec AA. La pilule pleine porte son propre fond, donc le même 6,6:1 dans les
- * deux modes. Les trois autres montent de 8,4 à 12,4.
+ * Elles ont transité par ce module tant que les pages de comparaison les
+ * consommaient ; ces pages retirées, les garder ici aurait produit une seconde
+ * déclaration de la même échelle, libre de diverger de celle qui rend. C'est le
+ * bloc CSS que `tests/unit/megga-x-crm-tokens.spec.ts` vérifie désormais.
+ *
+ * Ce module ne garde donc que ce qui alimente `mxCrmPalette()` — la couleur.
  */
-export const MXC_SYSTEM = {
-  danger: '#fe566b',
-  success: '#74d184',
-  warning: '#efc42c',
-  info: '#64a7ff',
-  /** Encre posée sur ces aplats. Le blanc échoue sur `danger` (3,1:1). */
-  systemInk: '#030303',
-} as const
-
-/**
- * Tailles de texte. Toutes présentes dans la feuille : 12 px est celle de `h6`
- * et de `.badge-light.small`, 14 celle de `.paragraph-small`, 18 celle des
- * boutons pleins. La vitrine descend jusqu'à 6 px — le plancher n'est donc pas
- * 14, contrairement à ce que `.paragraph-small` laisse croire.
- */
-export const MXC_TYPE = { xs: 12, sm: 14, md: 16, lg: 18, xl: 20 } as const
-
-/** Rayons — barreaux `--main-border-radius--br-*`, de `2x-extra-small` à `medium`, plus la pilule. */
-export const MXC_RADIUS = { xs: 8, sm: 12, md: 16, lg: 20, pill: 200 } as const
-
-/** Espacements — barreaux `--main-spacers--*`, de `5x-extra-small` à `small`. */
-export const MXC_SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 } as const
-
-/** Police de la vitrine. */
-export const MXC_FONT = "'Inter Tight', system-ui, sans-serif"
 
 /**
  * L'unique ombre que la vitrine pose sur une carte, et seulement en clair
