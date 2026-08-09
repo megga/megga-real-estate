@@ -287,11 +287,13 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
             <div>
               <MxLink onClick={() => setEtape('creneau')}>{t('call.book.back')}</MxLink>
               <p className="display-2 semi-bold mg-top-4x-extra-small">{t('call.book.formTitle')}</p>
-              {/* POURQUOI on demande tout ça, et ce qui est réellement exigé. Sans cette
-                  ligne, neuf champs après le choix d'un créneau ressemblent à de la
-                  collecte ; avec elle, ce sont des minutes rendues au rendez-vous. Elle
-                  porte aussi la seule mention de facultativité — la répéter sur cinq
-                  étiquettes ferait un bruit que personne ne lit (gate : identiteComplete). */}
+              {/* POURQUOI on demande tout ça. Sans cette ligne, neuf champs après le choix
+                  d'un créneau ressemblent à de la collecte ; avec elle, ce sont des minutes
+                  rendues au rendez-vous.
+
+                  ⚠ Elle ne dit PLUS ce qui est exigé (retrait du 9 août 2026). Le gate reste
+                  `identiteComplete` — prénom, nom, e-mail, téléphone — et les cinq questions
+                  restent libres, mais l'écran ne l'annonce nulle part. */}
               <p className="paragraph-small mx-field__help mg-top-5x-extra-small">
                 {t('call.book.formIntro')}
               </p>
