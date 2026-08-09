@@ -54,6 +54,9 @@
  *     rendez-vous : ni volet d'hôte, ni confirmation en deux écrans.
  * 18. Vignette de marque du volet hôte — le produit de référence y met une photo
  *     d'hôte ; l'appel est pris avec une ÉQUIPE, pas une personne nommée.
+ * 19. Choix courts en rangée, et leur définition repliée derrière un « i » — la
+ *     vitrine n'a aucune question fermée à plus de deux réponses, donc ni
+ *     rangée de choix ni aide dépliable à côté d'un libellé.
  *
  * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
  * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
@@ -844,6 +847,16 @@
   min-height: 0;
 }
 
+/* Le conteneur PREND toute la section, il ne se contente pas de son contenu.
+   Sans ce `flex: 1` il ne s'étirait que sur les étapes assez longues pour l'y
+   forcer : le pied d'actions suivait alors le bas du contenu, à 601 px sur
+   « Rendez-vous » contre 763 sur « Agence » (mesuré à 1280×860 le 9 août 2026).
+   Deux étapes qui se suivent, deux places pour le même bouton — c'est ce
+   déséquilibre-là qu'on voit, plus que la longueur des étapes elles-mêmes. */
+.megga-x .mx-appshell .mx-shellbody > .container-default {
+  flex: 1;
+}
+
 /* Le seul élément qui défile de tout le parcours. `overscroll-behavior` évite
    qu'arrivé en bout de liste, le geste reprenne sur la page derrière. */
 .megga-x .mx-scrollarea {
@@ -1173,4 +1186,105 @@
   width: 96px;
   height: auto;
   filter: brightness(0) invert(1);
+
+ * 19. Choix courts en rangée, et leur définition repliée derrière un « i ».
+ *
+ *     « Votre rôle dans l'agence » posait quatre cartes portant chacune un
+ *     titre ET une phrase de définition, plus — pour un dirigeant seul — la
+ *     réserve du garde-fou RÉPÉTÉE sur trois d'entre elles. Soit une question
+ *     de quatre mots répondue par un pavé de ~500 px qui faisait défiler
+ *     l'étape, alors que les quatre réponses tiennent en un mot chacune.
+ *
+ *     Le remède n'est pas de rétrécir les cartes : c'est de séparer le CHOIX
+ *     (quatre mots, toujours visibles, en rangée) de sa DÉFINITION (quatre
+ *     phrases, dépliées à la demande). Rien n'est perdu — l'aide est à un clic,
+ *     et la réserve, dite une seule fois sous le groupe, se lit AVANT le choix.
+ *
+ *     Le panneau d'aide est DÉPLIÉ DANS LE FLUX, jamais flottant : même
+ *     décision qu'au point 11 pour le calendrier, et pour la même raison — le
+ *     `backdrop-filter` des cartes de ce parcours piège tout `position: fixed`
+ *     dans leur conteneur, une info-bulle flottante y serait rognée.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Le choix, réduit à son nom. Le padding vient du point 10 (`.card`), seule la
+   respiration intérieure change : `--2x-extra-small` au lieu de `--regular`,
+   ce qui fait passer une option de ~96 px de haut à ~48. Centré parce qu'une
+   rangée de quatre étiquettes d'un mot se lit comme un segmenté, pas comme une
+   liste. `min-height` plutôt qu'une hauteur : un composé allemand
+   (« Assistent/in ») doit pouvoir passer à la ligne sans être tranché. */
+.megga-x .mx-choice-card--compact .pd---content-inside-card {
+  padding: var(--main-spacers--2x-extra-small);
+}
+
+.megga-x .mx-choice-card--compact .radio-button-field {
+  justify-content: center;
+  min-height: 24px;
+}
+
+.megga-x .mx-choice-card--compact .w-form-label {
+  text-align: center;
+}
+
+/* Libellé + son « i » sur une ligne. `space-between` et non un simple `gap` :
+   le « i » se pose au bord DROIT du champ, à l'aplomb de la fin de la rangée
+   de choix, où l'œil le retrouve sans le chercher au milieu d'une phrase. */
+.megga-x .mx-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--main-spacers--2x-extra-small);
+}
+
+/* Le « i ». 20 px : la plus petite cible qu'on puisse viser sans la manquer,
+   posée sur une question facultative — l'agrandir en ferait un bouton d'action,
+   ce qu'il n'est pas. La couleur au repos est celle du texte secondaire, et
+   passe à l'encre pleine au survol : présent sans être une invitation. */
+.megga-x .mx-hint-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  padding: 0;
+  border: 1px solid var(--neutral-colors--500);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--neutral-colors--600);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color .2s, border-color .2s;
+}
+
+.megga-x .mx-hint-toggle:hover,
+.megga-x .mx-hint-toggle[aria-expanded='true'] {
+  border-color: var(--neutral-colors--800);
+  color: var(--neutral-colors--800);
+}
+
+/* Le panneau déplié. Sur le fond de la page (`--300`) et non sur celui de la
+   carte qui l'entoure : il doit se lire comme une note posée SUR l'étape, pas
+   comme un cinquième choix — la confusion serait immédiate, il est juste sous
+   quatre options qui portent la même bordure. */
+.megga-x .mx-role-help {
+  background-color: var(--neutral-colors--400);
+}
+
+.megga-x .mx-role-help__list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--main-spacers--5x-extra-small) var(--main-spacers--2x-extra-small);
+  margin: 0;
+  padding: var(--main-spacers--2x-extra-small);
+}
+
+.megga-x .mx-role-help__list dt {
+  margin: 0;
+}
+
+.megga-x .mx-role-help__list dd {
+  margin: 0;
+}
+
 }

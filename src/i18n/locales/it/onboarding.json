@@ -13,6 +13,17 @@
       "body": "Inizieremo identificando la sua agenzia.",
       "startButton": "Identifichi la sua agenzia"
     },
+    "verificationReturn": {
+      "thanks": "Grazie!",
+      "sealAria": "Identità verificata",
+      "body": {
+        "verified": "30 minuti con il nostro team per rivedere insieme la configurazione.",
+        "processing": "La verifica è in corso. Può proseguire, alleghiamo l'esito alla Sua pratica.",
+        "incomplete": "La verifica non si è conclusa. La riprenda per continuare."
+      },
+      "bookCta": "Prenota un orario",
+      "retryCta": "Riprendi la verifica"
+    },
     "pendingNotice": {
       "title": "La Sua compilazione è in pausa",
       "body": "Ogni passaggio confermato è già salvato. Torni quando desidera, ritroverà la Sua compilazione.",
@@ -62,14 +73,14 @@
       },
       "agencyRole": {
         "admin": "Admin",
-        "adminHint": "Accesso completo: impostazioni, fatturazione, gestione del team.",
+        "adminHint": "Impostazioni, fatturazione, team",
         "manager": "Manager",
-        "managerHint": "Gestione degli agenti, supervisione delle transazioni e della pipeline.",
+        "managerHint": "Agenti, transazioni, pipeline",
         "agent": "Agente",
-        "agentHint": "Gestione dei propri contatti, immobili e transazioni.",
+        "agentHint": "Propri contatti, immobili, transazioni",
         "assistant": "Assistente",
-        "assistantHint": "Accesso in lettura, supporto amministrativo.",
-        "lastAdminNotice": "È l'unico amministratore: il Suo account manterrà i suoi diritti."
+        "assistantHint": "Sola lettura, supporto amministrativo",
+        "helpToggle": "Cosa fa ogni ruolo"
       }
     },
     "agence": {

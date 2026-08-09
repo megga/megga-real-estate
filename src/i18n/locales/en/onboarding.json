@@ -13,6 +13,17 @@
       "body": "We will start by identifying your agency.",
       "startButton": "Identify my agency"
     },
+    "verificationReturn": {
+      "thanks": "Thank you!",
+      "sealAria": "Identity verified",
+      "body": {
+        "verified": "30 minutes with our team to walk through your setup.",
+        "processing": "Verification is under way. You can move on, we will attach the result to your file.",
+        "incomplete": "Verification did not complete. Start it again to continue."
+      },
+      "bookCta": "Book a slot",
+      "retryCta": "Start verification again"
+    },
     "pendingNotice": {
       "title": "Your entry is paused",
       "body": "Every step you confirmed is already saved. Come back whenever you want, you will find your entry as you left it.",
@@ -62,14 +73,14 @@
       },
       "agencyRole": {
         "admin": "Admin",
-        "adminHint": "Full access: settings, billing, team management.",
+        "adminHint": "Settings, billing, team",
         "manager": "Manager",
-        "managerHint": "Managing agents, overseeing transactions and the pipeline.",
+        "managerHint": "Agents, transactions, pipeline",
         "agent": "Agent",
-        "agentHint": "Managing their own contacts, properties and transactions.",
+        "agentHint": "Own contacts, properties, transactions",
         "assistant": "Assistant",
-        "assistantHint": "Read access, administrative support.",
-        "lastAdminNotice": "You are the only admin: your account will keep its rights."
+        "assistantHint": "Read-only, administrative support",
+        "helpToggle": "What each role can do"
       }
     },
     "agence": {

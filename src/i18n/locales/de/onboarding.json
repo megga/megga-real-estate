@@ -13,6 +13,17 @@
       "body": "Wir beginnen damit, Ihre Agentur zu identifizieren.",
       "startButton": "Meine Agentur identifizieren"
     },
+    "verificationReturn": {
+      "thanks": "Danke!",
+      "sealAria": "Identität geprüft",
+      "body": {
+        "verified": "30 Minuten mit unserem Team, um Ihre Einrichtung durchzugehen.",
+        "processing": "Die Prüfung läuft. Sie können weitergehen, wir hängen das Ergebnis an Ihr Dossier an.",
+        "incomplete": "Die Prüfung ist nicht abgeschlossen. Nehmen Sie sie wieder auf, um fortzufahren."
+      },
+      "bookCta": "Termin buchen",
+      "retryCta": "Prüfung wieder aufnehmen"
+    },
     "pendingNotice": {
       "title": "Ihre Erfassung ist unterbrochen",
       "body": "Jeder bestätigte Schritt ist bereits gespeichert. Kommen Sie zurück, wann Sie möchten: Ihre Angaben bleiben erhalten.",
@@ -62,14 +73,14 @@
       },
       "agencyRole": {
         "admin": "Admin",
-        "adminHint": "Voller Zugriff: Einstellungen, Abrechnung, Teamverwaltung.",
+        "adminHint": "Einstellungen, Abrechnung, Team",
         "manager": "Manager",
-        "managerHint": "Führung der Agenten, Aufsicht über Transaktionen und Pipeline.",
+        "managerHint": "Agenten, Transaktionen, Pipeline",
         "agent": "Agent",
-        "agentHint": "Verwaltung eigener Kontakte, Objekte und Transaktionen.",
+        "agentHint": "Eigene Kontakte, Objekte, Transaktionen",
         "assistant": "Assistent",
-        "assistantHint": "Lesezugriff, administrative Unterstützung.",
-        "lastAdminNotice": "Sie sind der einzige Admin: Ihr Konto behält seine Rechte."
+        "assistantHint": "Nur Lesezugriff, administrative Unterstützung",
+        "helpToggle": "Was jede Rolle darf"
       }
     },
     "agence": {

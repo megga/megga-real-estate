@@ -362,10 +362,10 @@ async function fillSignataireStep(page: Page, s: SignataireFixture): Promise<voi
   // 04.08.2026 (décision client) : deux cartes sont devenues quatre, et la question
   // porte sur la place dans l'organisation, pas sur la capacité à engager seul.
   // Rôle 'radio' et non 'button' : le choix reste exclusif, rendu par un vrai groupe
-  // de radios (AgencyRoleCard, StepSignataire.tsx). Nom accessible en ancre de DÉBUT
-  // (`^`) : le <label> porte le titre, la précision ET, pour un seul administrateur,
-  // la réserve du garde-fou — une sous-chaîne nue attraperait « Admin » dans
-  // « administrateur » de la carte voisine.
+  // de radios (AgencyRoleChoice, StepSignataire.tsx). L'ancre de DÉBUT (`^`) survit à
+  // la refonte du 09.08.2026 qui a réduit le <label> au seul nom du rôle : elle ne
+  // coûte rien, et c'est elle qui empêchait « Admin » de matcher « administrateur »
+  // du temps où la carte portait aussi la réserve du garde-fou.
   const roleLabel = { admin: /^Admin/, manager: /^Manager/, agent: /^Agent/, assistant: /^Assistant/ }[s.agencyRole]
   await checkByLabel(page, page.getByRole('radio', { name: roleLabel }))
   await page.getByRole('button', { name: 'Continuer' }).click()
@@ -429,7 +429,12 @@ async function fillPieceIdentiteStep(page: Page): Promise<void> {
   // chez le prestataire est le chemin unique, et la seule issue pour ce qu'il ne sait
   // pas traiter est une demande de vérification manuelle — qui ne réclame AUCUN
   // fichier. Ce helper suit donc le parcours réel d'un dirigeant, de bout en bout.
-  await page.getByRole('button', { name: 'Vérifier mon identité' }).click()
+  // « Aller sur Stripe » depuis le 09.08.2026 : le bouton disait « Vérifier mon
+  // identité », soit le troisième énoncé du même acte sur un écran qui en compte
+  // trois lignes. Il nomme désormais le DÉPART, pas le but. Aucune sous-chaîne
+  // commune avec « Continuer » du pied d'actions — `getByRole({name})` cherche une
+  // sous-chaîne, deux libellés qui s'emboîtent feraient tomber le mode strict.
+  await page.getByRole('button', { name: 'Aller sur Stripe' }).click()
 
   // L'échec d'ouverture est GARANTI dans ce banc, et c'est ce qui rend l'attente
   // déterministe : l'environnement n'a pas de clé Stripe, donc kyb-identity-verify
