@@ -44,6 +44,7 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { MxButton, MxCheckbox } from '@/components/megga-x'
 import { countryName as countryLabel } from '@/lib/countries'
+import VerifiedSeal, { VERIFIED_SEAL_ON_DARK } from '@/components/ui/VerifiedSeal'
 import { useLegalForms } from '@/hooks/useLegalForms'
 import {
   identityDocumentSidesFor, isIdentityVerificationSufficient,
@@ -64,6 +65,14 @@ interface StepRecapitulatifProps {
   identityRead: KybIdReadRecord | null
   /** Statut de la vérification chez le prestataire — décide si l'on relit des FICHIERS ou un STATUT. */
   verificationStatus: IdentityVerificationStatus | null
+  /**
+   * Nature de la pièce telle que le PRESTATAIRE l'a lue (`id_document_type`, posée par
+   * le webhook), distincte de `documentType` qui est la nature DÉCLARÉE — nulle sur le
+   * chemin Stripe, où l'on ne demande plus rien avant de partir.
+   */
+  verifiedDocumentType: IdentityDocumentType | null
+  /** Horodatage de la vérification (`identity_verified_at`), posé par le webhook. */
+  verifiedAt: string | null
   recto: IdentityDocumentPreview | null
   verso: IdentityDocumentPreview | null
   /** true tant que useIdentityDocuments() n'a pas encore résolu (même signal qu'à l'étape 3). */
@@ -113,6 +122,21 @@ function countryNameIn(code: string | null, language: string): string {
  * Toute forme inattendue est rendue telle quelle plutôt que réécrite de travers :
  * mieux vaut une date visiblement brute qu'une date plausible et fausse.
  */
+/**
+ * Date de la vérification, dans la langue et le fuseau du lecteur.
+ *
+ * ⚠ À l'INVERSE de `birthDate` ci-dessous : `identity_verified_at` est un
+ * `timestamptz`, donc un INSTANT. Le convertir en heure locale est ici correct, et
+ * c'est même la seule lecture juste — une vérification faite à 00h30 UTC a bien eu
+ * lieu la veille pour qui la relit depuis les Amériques. Une date de naissance, elle,
+ * n'a pas d'instant : c'est ce que le commentaire de `birthDate` explique.
+ */
+function verifiedOn(iso: string, language: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return new Intl.DateTimeFormat(language, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
+}
+
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-recap-birthdate.spec.ts), même motif que isSignataireStepComplete.
 export function birthDate(iso: string | null): string {
   if (!iso) return ''
@@ -124,6 +148,7 @@ export function birthDate(iso: string | null): string {
 /** Étape 4 du wizard identité : relecture complète, attestation, préparation de la soumission. */
 export function StepRecapitulatif({
   signataire, agencyDraft, documentType, identityRead, verificationStatus,
+  verifiedDocumentType, verifiedAt,
   recto, verso, identityDocumentsLoading, identityDocumentsError,
   rendezVous, rendezVousTimezone,
   attestationChecked, onAttestationChange, onEditStep,
@@ -153,7 +178,16 @@ export function StepRecapitulatif({
           `mx-equal-columns` (point 13) : sans lui, `1fr` cède devant la largeur
           intrinsèque du contenu, et l'adresse sur une ligne écraserait sa voisine. */}
       <div className="mg-top-medium grid-2-columns mx-equal-columns">
-        <RecapSection title={t('wizard.steps.signataire')} onEdit={() => onEditStep(0)}>
+        {/* ⚠ Verrouillée elle aussi une fois l'identité vérifiée : ce sont ces champs-là
+            — prénom, nom, date de naissance — que le prestataire a confrontés au document.
+            Les rouvrir après coup permettrait de faire porter une vérification par un nom
+            qui n'est plus celui qu'elle atteste.
+            Effet de bord assumé : le RÔLE dans l'agence, qui vit sur la même carte et que
+            personne n'a vérifié, se ferme avec elle. */}
+        <RecapSection
+          title={t('wizard.steps.signataire')}
+          onEdit={verificationStatus === 'verified' ? null : () => onEditStep(0)}
+        >
           <RecapRow label={t('wizard.signataire.fields.firstName')} value={signataire.firstName} />
           <RecapRow label={t('wizard.signataire.fields.lastName')} value={signataire.lastName} />
           <RecapRow label={t('wizard.signataire.fields.dateOfBirth')} value={birthDate(signataire.dateOfBirth)} />
@@ -175,7 +209,14 @@ export function StepRecapitulatif({
           />
         </RecapSection>
 
-        <RecapSection title={t('wizard.steps.pieceIdentite')} onEdit={() => onEditStep(2)}>
+        {/* ⚠ PAS de « Modifier » quand l'identité est vérifiée : l'étape 3 n'offre alors
+            aucune action — on ne dévérifie pas une pièce, et le bouton ramenait à un
+            écran qui ne fait que constater. Un bouton qui ne peut rien changer est une
+            promesse fausse, sur l'écran où l'on atteste que tout est exact. */}
+        <RecapSection
+          title={t('wizard.steps.pieceIdentite')}
+          onEdit={verificationStatus === 'verified' ? null : () => onEditStep(2)}
+        >
           {identityDocumentsLoading ? (
             // Texte seul, sans roue d'attente : la vitrine n'a aucun indicateur de
             // progression indéterminé, et son écran d'attente équivalent
@@ -202,14 +243,48 @@ export function StepRecapitulatif({
                   ROUGE, sur un dossier dont l'identité venait d'être vérifiée avec
                   succès. Le dirigeant lisait un reproche là où tout allait bien. */}
               {isIdentityVerificationSufficient(verificationStatus) ? (
-                <RecapRow
-                  label={t('wizard.recap.pieceIdentite.statusLabel')}
-                  value={t(`wizard.recap.pieceIdentite.${verificationStatus === 'verified' ? 'verified' : 'processing'}`)}
-                />
+                // Trois faits plutôt qu'une ligne : le statut ne remplissait qu'un tiers
+                // de sa colonne à côté des cinq lignes du signataire, et la relecture d'une
+                // vérification d'identité a plus à dire que « c'est fait ». La nature de la
+                // pièce et la date viennent du prestataire, par le webhook — jamais d'une
+                // déclaration, c'est tout l'intérêt de les relire ici.
+                <>
+                  <RecapRow
+                    label={t('wizard.recap.pieceIdentite.statusLabel')}
+                    value={t(`wizard.recap.pieceIdentite.${verificationStatus === 'verified' ? 'verified' : 'processing'}`)}
+                    seal={verificationStatus === 'verified'}
+                  />
+                  {verifiedDocumentType != null && (
+                    <RecapRow
+                      label={t('wizard.pieceIdentite.documentType.label')}
+                      value={t(`wizard.pieceIdentite.documentType.options.${verifiedDocumentType}`)}
+                    />
+                  )}
+                  {verifiedAt != null && (
+                    <RecapRow
+                      label={t('wizard.recap.pieceIdentite.verifiedAtLabel')}
+                      value={verifiedOn(verifiedAt, i18n.language)}
+                    />
+                  )}
+                </>
               ) : (
                 // Les mêmes faces qu'à l'étape 3, décidées par la même fonction : un
                 // récapitulatif qui réclamerait un verso de passeport contredirait
                 // l'écran qui vient de ne pas le demander.
+                // ⚠ `documentType == null` = AUCUNE pièce n'a jamais été déclarée, donc
+                // aucune déposée : c'est l'état de tout dossier passé par le chemin Stripe,
+                // seul chemin depuis le 05.08.2026. Les tuiles y affichaient « Recto :
+                // Manquant / Verso : Manquant » — un reproche pour un dépôt que l'écran
+                // précédent ne demande même plus. Le test porte donc sur la DÉCLARATION,
+                // pas sur le nombre de faces : `identityDocumentSidesFor(null)` rend deux
+                // faces, pas zéro.
+                // Gris et jamais rouge : rien n'a échoué de son fait, le dossier part en
+                // revue humaine. Même règle que « Aucun rendez-vous » plus bas.
+                documentType == null ? (
+                  <p className="paragraph-small text-color-neutral-600">
+                    {t('wizard.recap.pieceIdentite.manualReview')}
+                  </p>
+                ) : (
                 <div className="flex align-top gap-small">
                   {identityDocumentSidesFor(documentType).map((side) => (
                     <PieceIdentiteRecapRow
@@ -221,6 +296,7 @@ export function StepRecapitulatif({
                     />
                   ))}
                 </div>
+                )
               )}
               <IdentityReadNotice read={identityRead} reading={false} />
             </>
@@ -285,7 +361,7 @@ export function StepRecapitulatif({
 }
 
 /** Carte d'une section relue — même gabarit que les cartes de la vitrine (`card` > `pd---content-inside-card`), avec un bouton Modifier vers l'étape source. */
-function RecapSection({ title, onEdit, children }: { title: string; onEdit: () => void; children: ReactNode }) {
+function RecapSection({ title, onEdit, children }: { title: string; onEdit: (() => void) | null; children: ReactNode }) {
   const { t } = useTranslation('onboarding')
   return (
     <section className="card">
@@ -295,9 +371,14 @@ function RecapSection({ title, onEdit, children }: { title: string; onEdit: () =
           {/* Le petit bouton secondaire est le seul bouton discret de la vitrine :
               elle n'a ni bouton fantôme ni lien-action. Reste un <button>, pas un
               <a href="#"> — l'action ne navigue pas, elle ramène à une étape. */}
-          <MxButton type="button" variant="secondary" size="small" onClick={onEdit}>
-            {t('common:actions.edit')}
-          </MxButton>
+          {/* `null` = section scellée : pas de bouton grisé, pas de bouton du tout. Un
+              contrôle désactivé invite à chercher comment l'activer ; son absence dit
+              simplement qu'il n'y a rien à faire ici. */}
+          {onEdit != null && (
+            <MxButton type="button" variant="secondary" size="small" onClick={onEdit}>
+              {t('common:actions.edit')}
+            </MxButton>
+          )}
         </div>
         <div className="mg-top-2x-extra-small grid-1-column gap-row-3x-extra-small">{children}</div>
       </div>
@@ -313,7 +394,8 @@ function RecapSection({ title, onEdit, children }: { title: string; onEdit: () =
  * »), que la locale met en minuscule alors que la vitrine capitalise ses intitulés.
  * Jamais d'UPPERCASE (règle §3 du CLAUDE.md) : la capitale initiale suffit.
  */
-function RecapRow({ label, value, capitalizeValue = false }: { label: string; value: string; capitalizeValue?: boolean }) {
+function RecapRow({ label, value, capitalizeValue = false, seal = false }: { label: string; value: string; capitalizeValue?: boolean; seal?: boolean }) {
+  const { t } = useTranslation('onboarding')
   return (
     <div className="flex-horizontal space-between gap-16px">
       {/* Le LIBELLÉ reste gris, la VALEUR passe à l'encre pleine (9 août 2026). Les
@@ -322,7 +404,12 @@ function RecapRow({ label, value, capitalizeValue = false }: { label: string; va
           pour vérifier les intitulés — on le parcourt pour repérer ce qui cloche, et
           c'est la valeur qu'on cherche. Le libellé n'est plus qu'un repère de position. */}
       <span className="display-1 text-color-neutral-600">{label}</span>
-      <span className={cn('display-1 semi-bold', capitalizeValue && 'capitalize')}>{value}</span>
+      <span className={cn('display-1 semi-bold', capitalizeValue && 'capitalize')} style={seal ? { display: 'inline-flex', alignItems: 'center', gap: 6 } : undefined}>
+        {value}
+        {/* Le même sceau qu'à l'écran de retour du prestataire : le dirigeant l'a déjà
+            vu après sa vérification, il le retrouve ici. */}
+        {seal && <VerifiedSeal size={16} color={VERIFIED_SEAL_ON_DARK} ariaLabel={t('gate.verificationReturn.sealAria')} />}
+      </span>
     </div>
   )
 }

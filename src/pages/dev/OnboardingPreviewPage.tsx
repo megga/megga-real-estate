@@ -102,6 +102,9 @@ function signataireFixture(verified: boolean): IdentityPersonWithRoles {
     nationality: 'CH',
     agencyRole: 'admin',
     roles: [{ role: 'signatory', signaturePower: null, ownershipPct: null, pepSelfDeclared: false }],
+    // Ce que le WEBHOOK pose après une vérification : la nature de la pièce lue et
+    // l'instant du verdict. Sans eux, la section « Vérification » du récapitulatif se
+    // réduit à une ligne de statut et on ne juge pas la forme réelle de la relecture.
     idDocumentType: verified ? 'passport' : null,
     idDocumentRead: null,
     verificationStatus: verified ? 'verified' : null,

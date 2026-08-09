@@ -195,8 +195,10 @@
         "loading": "Checking the uploaded documents…",
         "loadFailed": "Could not check the uploaded documents. Please try again.",
         "statusLabel": "Verification",
+        "verifiedAtLabel": "Verified on",
         "verified": "Identity verified at our provider",
-        "processing": "Verification being processed"
+        "processing": "Verification being processed",
+        "manualReview": "No completed online verification. Our compliance team will establish your identity."
       },
       "rendezVous": {
         "whenLabel": "Date",

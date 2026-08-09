@@ -195,8 +195,10 @@
         "loading": "Hochgeladene Dokumente werden geprüft…",
         "loadFailed": "Die hochgeladenen Dokumente konnten nicht geprüft werden. Versuchen Sie es erneut.",
         "statusLabel": "Prüfung",
+        "verifiedAtLabel": "Geprüft am",
         "verified": "Identität bei unserem Dienstleister bestätigt",
-        "processing": "Prüfung wird bearbeitet"
+        "processing": "Prüfung wird bearbeitet",
+        "manualReview": "Keine erfolgreiche Online-Prüfung. Unser Compliance-Team stellt Ihre Identität fest."
       },
       "rendezVous": {
         "whenLabel": "Datum",

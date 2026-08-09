@@ -195,8 +195,10 @@
         "loading": "Vérification des documents déposés…",
         "loadFailed": "Impossible de vérifier les documents déposés. Réessayez.",
         "statusLabel": "Vérification",
+        "verifiedAtLabel": "Vérifiée le",
         "verified": "Identité vérifiée chez notre prestataire",
-        "processing": "Vérification en cours de traitement"
+        "processing": "Vérification en cours de traitement",
+        "manualReview": "Aucune vérification en ligne aboutie. Notre équipe conformité établira votre identité."
       },
       "rendezVous": {
         "whenLabel": "Date",

@@ -1522,6 +1522,11 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
             agencyDraft={agencyDraft}
             documentType={null}
             verificationStatus={pieceIdentiteDraft.verificationStatus}
+            // Ce que le PRESTATAIRE a établi, relu depuis la personne : la nature de la
+            // pièce qu'il a lue et l'instant du verdict. Ni l'une ni l'autre n'est
+            // déclarée — c'est ce qui les rend dignes d'une relecture de conformité.
+            verifiedDocumentType={existingSignatory?.idDocumentType ?? null}
+            verifiedAt={existingSignatory?.verifiedAt ?? null}
             recto={null}
             verso={null}
             identityRead={existingSignatory?.idDocumentRead ?? null}
