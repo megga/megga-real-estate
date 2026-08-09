@@ -8,6 +8,7 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { classifyPublicKey, publicKeyRefusalMessage } from '@/lib/publicKeyGuard'
 
 // Typed client — schema in src/types/database.ts is regenerated via:
 //   npx supabase gen types typescript --project-id eayczugyrvmtqnnmvjod > src/types/database.ts
@@ -27,32 +28,22 @@ const DEFAULT_ANON_KEY =
 
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || 'https://eayczugyrvmtqnnmvjod.supabase.co'
 
-// SAFETY CHECK — prevent a service_role key from ever being used as the public client key.
-// service_role bypasses RLS and must NEVER reach the browser.
-function decodeJwtRole(token: string): string | null {
-  try {
-    const payload = token.split('.')[1]
-    if (!payload) return null
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
-    return (JSON.parse(json) as { role?: string }).role ?? null
-  } catch {
-    return null
-  }
-}
-
+// SAFETY CHECK — prevent a non-public key from ever being used as the public
+// client key. service_role bypasses RLS and must NEVER reach the browser.
+//
+// La classification vit dans `publicKeyGuard.ts` : elle est pure, donc testée
+// (tests/unit/public-key-guard.spec.ts). Ce contrôle ne décodait qu'un JWT
+// jusqu'au 04.08.2026 et laissait donc passer le format `sb_secret_…`, que ce
+// projet utilise déjà — voir l'en-tête de ce module pour le détail.
 const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 let supabaseAnonKey = envKey || DEFAULT_ANON_KEY
 
-const role = decodeJwtRole(supabaseAnonKey)
-if (role === 'service_role') {
-  // Refuse to expose a service_role key in the browser.
-  // Fall back to the safe hardcoded anon key and warn loudly.
-   
-  console.error(
-    '[supabase] VITE_SUPABASE_ANON_KEY contains a service_role JWT. ' +
-      'Refusing to use it — falling back to the hardcoded anon key. ' +
-      'Fix your env var configuration IMMEDIATELY and rotate the leaked key.'
-  )
+const verdict = classifyPublicKey(supabaseAnonKey)
+if (!verdict.safe) {
+  // Repli sur l'anon key codée en dur — c'est la vraie clé du projet, donc
+  // l'application continue de fonctionner pendant qu'on corrige la variable.
+
+  console.error(publicKeyRefusalMessage(verdict))
   supabaseAnonKey = DEFAULT_ANON_KEY
 }
 

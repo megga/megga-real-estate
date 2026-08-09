@@ -15,12 +15,27 @@
 //
 // Le contrôle est STATIQUE (lecture des sources) et non comportemental : il n'existe pas de
 // base où observer les émetteurs qui n'ont pas encore tourné.
+//
+// DÉTERMINISME. Le balayage passe par `tests/unit/helpers/fs-scan.ts` : racine ancrée sur le
+// dépôt (et non sur `process.cwd()`), typage des entrées par `withFileTypes`, aléas FS
+// classés en « disparu » (ignoré) vs « illisible » (signalé à part). Le pourquoi de chacun de
+// ces trois points est documenté en tête de ce module.
+//
+// Ce que ça corrige ICI, mesuré : le walk d'origine visitait trois fois le même chemin
+// (readdir → statSync → readFileSync) ; sous un écrivain concurrent, il partait au rouge
+// 9 fois sur 10 avec un `ENOENT` anonyme — aucun fichier nommé, indiscernable d'une vraie
+// infraction d'instrumentation. Le walk durci passe 10 fois sur 10 sous le même churn.
+// Le walk d'origine n'avait par ailleurs aucun try/catch : sous un cwd inattendu il jetait
+// `ENOENT` pendant la collecte (rouge bruyant mais tout aussi anonyme, pas un vert muet).
 
 import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename } from 'node:path'
+import { emptyRoots, readFileSafely, rel, scanRoots, type Scan } from './helpers/fs-scan'
 
 const RACINE = 'supabase/functions'
+
+/** Émetteur historique — la preuve que le scan voit encore l'arbre des edge functions. */
+const EMETTEUR_TEMOIN = 'supabase/functions/matching-engine/index.ts'
 
 /**
  * Émetteurs autorisés à ne PAS poser de catégorie, avec leur raison. Y ajouter une entrée
@@ -32,16 +47,6 @@ const SANS_CATEGORIE_ASSUME: Record<string, string> = {
   // Une panne de fonction n'en est pas une : lui en coller une la ferait apparaître dans
   // une puce à laquelle elle n'appartient pas. Précédent assumé : rls_hardening_applied.
   'audit-edge-error.ts': 'événement d\'infrastructure, sans famille métier',
-}
-
-/** Tous les .ts sous supabase/functions, hors tests. */
-function fichiers(dossier: string, acc: string[] = []): string[] {
-  for (const entree of readdirSync(dossier)) {
-    const chemin = join(dossier, entree)
-    if (statSync(chemin).isDirectory()) fichiers(chemin, acc)
-    else if (entree.endsWith('.ts') && !entree.includes('.test.')) acc.push(chemin)
-  }
-  return acc
 }
 
 /** Retire commentaires de ligne et de bloc — sinon un `// pas de category:` suffirait à
@@ -82,31 +87,88 @@ function ecrituresSansCategorie(source: string): number[] {
   return positions
 }
 
-describe('instrumentation activity_events (étape 6)', () => {
-  const tous = fichiers(RACINE)
+interface Analyse {
+  scan: Scan
+  /** Chemins repo-relatifs des fichiers effectivement lus. */
+  lus: string[]
+  /** Chemins repo-relatifs des fichiers qui touchent à activity_events. */
+  emetteurs: string[]
+  /** `chemin:ligne` pour chaque écriture sans catégorie. */
+  fautifs: string[]
+}
 
+let cache: Analyse | null = null
+
+/**
+ * Lit chaque fichier UNE fois et en tire tout ce dont les tests ont besoin.
+ *
+ * Une seule passe, et non une par test : chaque relecture rouvre une fenêtre de course avec
+ * un écrivain concurrent, et deux tests pourraient alors ne pas voir le même arbre.
+ */
+function analyser(): Analyse {
+  if (cache) return cache
+  const scan = scanRoots([
+    { root: RACINE, keep: (n) => n.endsWith('.ts') && !n.includes('.test.') },
+  ])
+  const lus: string[] = []
+  const emetteurs: string[] = []
+  const fautifs: string[] = []
+
+  for (const chemin of scan.files) {
+    const brut = readFileSafely(chemin)
+    // Disparu entre le listing et l'ouverture (écrivain concurrent) : rien à vérifier.
+    if (brut.status === 'gone') continue
+    if (brut.status === 'unreadable') {
+      scan.unreadable.push(`${rel(chemin)} — ${brut.error}`)
+      continue
+    }
+    const relatif = rel(chemin)
+    lus.push(relatif)
+    const source = brut.value
+    if (!source.includes('activity_events')) continue
+    emetteurs.push(relatif)
+    // `basename` et non `split('/')` : les chemins sont absolus et portent des `\` sous
+    // Windows, où découper sur `/` renvoyait le chemin ENTIER au lieu du nom de fichier.
+    // L'exception ne matchait donc jamais et ce test échouait en local — vert en CI
+    // (Linux), rouge sur la machine de qui l'exécute vraiment : la pire des combinaisons.
+    if (basename(chemin) in SANS_CATEGORIE_ASSUME) continue
+    for (const pos of ecrituresSansCategorie(source)) {
+      const ligne = source.slice(0, pos).split('\n').length
+      fautifs.push(`${relatif}:${ligne}`)
+    }
+  }
+
+  cache = { scan, lus, emetteurs, fautifs }
+  return cache
+}
+
+describe('instrumentation activity_events (étape 6)', () => {
   it('le balayage porte sur un périmètre non vide (garde anti-test creux)', () => {
     // Sans cette assertion, un chemin de racine devenu faux rendrait le test suivant vert
     // sur zéro fichier — le motif exact du vert sans assertion.
-    expect(tous.length, 'aucun fichier balayé : la racine est-elle encore la bonne ?')
+    const { scan, lus, emetteurs } = analyser()
+
+    const vides = emptyRoots(scan)
+    expect(vides, `racine(s) vide(s) — arborescence déplacée ? : ${vides.join(', ')}`).toEqual([])
+
+    expect(lus.length, 'aucun fichier balayé : la racine est-elle encore la bonne ?')
       .toBeGreaterThan(50)
-    const emetteurs = tous.filter((f) => readFileSync(f, 'utf8').includes('activity_events'))
+    expect(lus, `${EMETTEUR_TEMOIN} introuvable — le scan ne descend plus dans l'arbre`)
+      .toContain(EMETTEUR_TEMOIN)
     expect(emetteurs.length, 'aucun émetteur trouvé : le motif de détection ne matche plus')
       .toBeGreaterThan(5)
   })
 
   it('toute écriture dans activity_events pose une `category`', () => {
-    const fautifs: string[] = []
-    for (const f of tous) {
-      const nom = f.split('/').pop() as string
-      if (nom in SANS_CATEGORIE_ASSUME) continue
-      const source = readFileSync(f, 'utf8')
-      if (!source.includes('activity_events')) continue
-      for (const pos of ecrituresSansCategorie(source)) {
-        const ligne = source.slice(0, pos).split('\n').length
-        fautifs.push(`${f}:${ligne}`)
-      }
-    }
+    const { scan, fautifs } = analyser()
+
+    // Distinct du verdict : un chemin illisible dit « je n'ai pas pu vérifier », pas
+    // « un émetteur oublie sa catégorie ». Sans cette séparation, un aléa FS ressemblait
+    // à une infraction d'instrumentation.
+    expect(scan.unreadable,
+      `Lecture FS impossible (aléa d'environnement, PAS une infraction) : ${scan.unreadable.join(' | ')}`)
+      .toEqual([])
+
     expect(fautifs, [
       'Écriture(s) dans activity_events sans `category` :',
       ...fautifs.map((x) => `  · ${x}`),

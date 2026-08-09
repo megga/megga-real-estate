@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
     .from('agency_related_persons')
     .update({ id_document_read: record, id_document_expires_on: record.expiresOn })
     .eq('id', relatedPersonId)
+    .eq('agency_id', profile.agency_id)
   if (writeError) return json({ error: 'write_failed' }, 500)
 
   return json({ read: record })

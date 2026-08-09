@@ -48,14 +48,18 @@ const BESPOKE_GUARDS = {
   'stripe-webhook': ['constructEventAsync'],    // signature Stripe + tolérance d'horodatage
   'esign-webhook': ['timingSafeEqual'],         // jeton de rappel (64 hex) dans l'URL
   'idx-feed': ['idx_feed_token'],               // jeton de flux par agence, résolu en base
-  'whatsapp-agent': ['safeEqual'],
+  // `whatsapp-agent`, `idx-syndicate` et `kyc-report-pdf` ONT QUITTÉ cette liste
+  // le 05.08.2026 : ils comparaient le secret à la main avec un `safeEqual` local,
+  // et ne reconnaissaient donc QUE la clé de l'env. Ils passent par
+  // `isServiceSecret` (garde partagée), qui accepte aussi le secret d'`app_config`
+  // rejoué par pg_cron. Les laisser ici aurait exigé un marqueur `safeEqual` qui
+  // n'existe plus dans ces fichiers — une entrée qui ne protège plus rien.
+  // Voir docs/audits/2026-08-04-blast-radius-service-role.md §4.3.
   'whatsapp-agent-async': ['safeEqual'],
   'whatsapp-process': ['safeEqual'],
   'whatsapp-morning-brief': ['safeEqual'],
   'learn-agent-style': ['safeEqual'],
   'weekly-digest': ['safeEqual'],
-  'idx-syndicate': ['safeEqual'],
-  'kyc-report-pdf': ['safeEqual'],
   'agency-verification-run': ['safeEqual'],
   'agency-verification-notify': ['safeEqual'],
   // Vérification réelle du JWT par GoTrue (la signature EST contrôlée), suivie
@@ -88,10 +92,14 @@ const OPEN_BY_DESIGN = {
     'Lecture seule, aucun client Supabase, aucune table touchée, SSRF bornée par ' +
     '_shared/safe-fetch.ts. Décision documentée dans supabase/config.toml.',
   'log-auth-event':
-    "Appelée depuis l'écran de connexion, donc AVANT toute session. Écrit dans " +
-    'auth_events. ⚠ dette connue : les événements sont forgeables et non limités ' +
-    "en débit — à traiter, mais fermer la fonction casserait la journalisation " +
-    "des échecs de connexion, qui est précisément son objet.",
+    "Appelée depuis l'écran de connexion, donc AVANT toute session — fermer la " +
+    "fonction casserait la journalisation des échecs de connexion, qui est " +
+    'précisément son objet. Écrit dans auth_events. La limitation de débit ' +
+    'annoncée ici comme « à traiter » EST FAITE (log_auth_event_limited, ' +
+    'migration 20260804101347 : 60/min et 600/h par ip_hash) — cf. ' +
+    'docs/audits/2026-08-03-signatures-webhooks.md §4.1. Reste assumé : sans ' +
+    'session, un événement demeure forgeable ; le débit est ce qui borne le ' +
+    'dommage, et aucune logique de verrouillage de compte ne lit cette table.',
 };
 
 const dirs = readdirSync(FUNCTIONS_DIR)

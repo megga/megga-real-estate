@@ -8,6 +8,7 @@ import {
   type DilisenseRecord,
 } from '../_shared/kyc-screening-core.ts'
 import { reportEdgeError } from '../_shared/audit-edge-error.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,14 +35,6 @@ interface DilisenseResponse {
 // ci-dessus + figé par _shared/kyc-screening-core.test.ts). Comportement
 // inchangé — surface compliance LBA.
 
-// Comparaison à temps constant du secret service-role (anti timing-attack).
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return diff === 0
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -67,9 +60,18 @@ serve(async (req) => {
     // (ou ajouter kyc-screening à JWT_PROTECTED) ferait rejeter la clé service-role
     // (UNAUTHORIZED_LEGACY_JWT) et casserait le screening par WhatsApp — sans gain de
     // sécurité (les deux chemins s'auto-authentifient déjà).
+    // Le client service-role est monté d'emblée parce que la garde en a besoin :
+    // `isServiceSecret` lit le secret partagé dans `app_config`, table protégée
+    // par RLS. Aucune valeur d'appelant ne l'atteint avant la décision — la seule
+    // requête émise porte une clé constante.
+    //
+    // Il accepte les DEUX secrets de service du projet : celui d'`app_config`
+    // (rejoué par pg_cron) et celui de l'env (envoyé par `whatsapp-actions.ts`).
+    // N'en comparer qu'un faisait dépendre le chemin service de leur coïncidence.
+    // Constat : docs/audits/2026-08-04-blast-radius-service-role.md §4.3.
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const providedKey = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-    const isServiceCall = serviceKey !== '' && safeEqual(providedKey, serviceKey)
+    const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceKey)
+    const isServiceCall = await isServiceSecret(admin, req)
 
     const { kyc_case_id, entity_type, agency_id: bodyAgencyId } = (await req.json()) as ScreeningRequest & {
       entity_type: 'individual' | 'entity'
@@ -85,7 +87,7 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         )
       }
-      supabaseClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceKey)
+      supabaseClient = admin
       callerAgencyId = bodyAgencyId
     } else {
       const auth = await requireAgentAuth(req, corsHeaders)
@@ -208,6 +210,7 @@ serve(async (req) => {
       .from('kyc_cases')
       .update({ pep_status: 'pending', sanctions_status: 'pending' })
       .eq('id', kyc_case_id)
+      .eq('agency_id', callerAgencyId)
 
     // Call dilisense API avec timeout 15s (symétrie avec Sonnet 30s).
     // En cas de timeout, fetch lève une AbortError → catch → rollback.
@@ -240,6 +243,7 @@ serve(async (req) => {
           sanctions_status: previousSanctionsStatus,
         })
         .eq('id', kyc_case_id)
+        .eq('agency_id', callerAgencyId)
       throw dilisenseErr
     }
 
@@ -252,6 +256,7 @@ serve(async (req) => {
       .from('kyc_cases')
       .select('type, completion_pct, transaction_amount')
       .eq('id', kyc_case_id)
+      .eq('agency_id', callerAgencyId)
       .single()
 
     const riskResult = calculateRiskScore({
@@ -292,6 +297,7 @@ serve(async (req) => {
         ai_analysis: aiAnalysis,
       })
       .eq('id', kyc_case_id)
+      .eq('agency_id', callerAgencyId)
 
     if (updateError) throw updateError
 
@@ -300,6 +306,7 @@ serve(async (req) => {
       .from('kyc_cases')
       .select('agency_id')
       .eq('id', kyc_case_id)
+      .eq('agency_id', callerAgencyId)
       .single()
 
     if (kycCase) {

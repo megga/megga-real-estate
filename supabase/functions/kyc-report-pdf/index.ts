@@ -6,18 +6,11 @@ import { kycReportRenderUrl } from '../_shared/app-url.ts'
 import { uploadMetaMediaDocument } from '../_shared/whatsapp-media.ts'
 import { getProvider } from '../_shared/whatsapp-gateway.ts'
 import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-}
-
-// Comparaison à temps constant (anti timing-attack) — identique kyc-screening.
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return diff === 0
 }
 
 /** Référence "KYC-2026-AB3F" depuis l'UUID + created_at (miroir buildReportData). */
@@ -34,9 +27,17 @@ serve(async (req) => {
 
   try {
     // Auth service-à-service uniquement (appelée par whatsapp-agent).
+    // Le client précède la garde : lire le secret partagé dans `app_config` exige
+    // un client service-role. Rien de ce que fournit l'appelant ne l'atteint avant
+    // la décision — la seule requête émise porte une clé constante.
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const providedKey = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-    if (!serviceKey || !safeEqual(providedKey, serviceKey)) return json({ error: 'forbidden' }, 403)
+    const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceKey)
+
+    // `isServiceSecret` accepte les DEUX secrets de service du projet — celui de
+    // `app_config` (que rejoue pg_cron) et celui de l'env (qu'envoient les autres
+    // edge functions). N'en comparer qu'un faisait dépendre l'appel de leur
+    // coïncidence : docs/audits/2026-08-04-blast-radius-service-role.md §4.3.
+    if (!(await isServiceSecret(supabase, req))) return json({ error: 'forbidden' }, 403)
 
     const { kyc_case_id, agency_id, profile_id, to_phone } = (await req.json()) as {
       kyc_case_id?: string; agency_id?: string; profile_id?: string; to_phone?: string
@@ -44,8 +45,6 @@ serve(async (req) => {
     if (!kyc_case_id || !agency_id || !to_phone) return json({ error: 'kyc_case_id, agency_id, to_phone required' }, 400)
     const toPhone = to_phone.replace(/\D/g, '')
     if (!toPhone) return json({ error: 'invalid to_phone' }, 400)
-
-    const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceKey)
 
     // Garde cross-agency (défense en profondeur) + created_at pour la référence.
     const { data: kc, error: kcErr } = await supabase

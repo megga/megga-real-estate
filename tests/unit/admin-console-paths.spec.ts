@@ -11,10 +11,23 @@
  * Un test statique plutôt qu'un parcours e2e : il ne dépend d'aucune donnée, ne
  * peut pas passer à vide, et couvre les liens que la console ne rend que
  * lorsqu'il y a des lignes à afficher.
+ *
+ * DÉTERMINISME. Le balayage passe par `tests/unit/helpers/fs-scan.ts` : racines
+ * ancrées sur le dépôt (et non sur `process.cwd()`), typage des entrées par
+ * `withFileTypes`, aléas FS classés en « disparu » (ignoré) vs « illisible »
+ * (signalé à part). Le pourquoi de chacun de ces trois points est documenté en
+ * tête de ce module.
+ *
+ * Ce que ça corrige ICI, mesuré : le walk d'origine visitait trois fois le même
+ * chemin (readdir → statSync → readFileSync) ; sous un écrivain concurrent, il
+ * partait au rouge 7 fois sur 10 avec un `ENOENT` anonyme — aucun fichier nommé,
+ * indiscernable d'une vraie cible de navigation à la racine. Le walk durci passe
+ * 10 fois sur 10 sous le même churn. Il n'avait par ailleurs aucun try/catch :
+ * sous un cwd inattendu il jetait `ENOENT` pendant la collecte (rouge bruyant
+ * mais tout aussi anonyme, pas un vert muet).
  */
 import { describe, it, expect } from 'vitest'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { emptyRoots, readFileSafely, rel, repoPath, scanRoots } from './helpers/fs-scan'
 
 /** Sous-chemins de la console — ceux qui n'existent PAS à la racine du CRM. */
 const ADMIN_SUBPATHS = [
@@ -29,50 +42,80 @@ const ADMIN_SUBPATHS = [
 // `${ADMIN_CONSOLE_PATH}` : le `/` n'y suit pas le guillemet, donc il ne matche pas.
 const ROOT_TARGET = new RegExp(`(?:to=|href:|navigate\\()\\s*[{(]?\\s*['"\`]/(?:${ADMIN_SUBPATHS})\\b`)
 
-const ROOTS = ['src/pages/admin', 'src/components/admin']
+const SOURCE = (n: string): boolean => n.endsWith('.tsx') || n.endsWith('.ts')
 
 /**
  * Le rail du shell est la seule exception : sa table de navigation stocke des
  * chemins NUS et les préfixe au rendu. Le test ci-dessous vérifie qu'il le fait
  * toujours — l'exception reste donc vérifiée, elle n'ouvre pas d'angle mort.
+ *
+ * ⚠ La comparaison `f !== SHELL` n'a de sens que si les deux côtés s'écrivent
+ * pareil. `join` rend des `\` sous Windows, alors que cette constante s'écrit
+ * avec des `/` : la comparaison était donc TOUJOURS vraie en local, l'exception
+ * du rail ne s'appliquait jamais, et sa table de chemins nus — le comportement
+ * que ce fichier documente comme légitime — se lisait comme une infraction. Vert
+ * en CI (Linux), rouge sur la machine du développeur. `rel()` normalise à la
+ * source : les messages d'infraction sortent eux aussi en `/`.
  */
 const SHELL = 'src/components/admin/AdminShell.tsx'
 
-function walk(dir: string): string[] {
-  return readdirSync(dir).flatMap(entry => {
-    const full = join(dir, entry)
-    if (statSync(full).isDirectory()) return walk(full)
-    return full.endsWith('.tsx') || full.endsWith('.ts') ? [full] : []
-  })
-}
+const scan = scanRoots([
+  { root: 'src/pages/admin', keep: SOURCE },
+  { root: 'src/components/admin', keep: SOURCE },
+  // Les hooks de la console ne sont pas dans un dossier à eux : on les prend par préfixe.
+  { root: 'src/hooks', keep: (n) => n.startsWith('useAdmin') },
+])
 
 describe('cibles de navigation de la console admin', () => {
-  const files = [
-    ...ROOTS.flatMap(walk),
-    ...readdirSync('src/hooks')
-      .filter(f => f.startsWith('useAdmin'))
-      .map(f => join('src/hooks', f)),
-  ]
-
   it('trouve bien les fichiers de la console (sinon le test ne prouve rien)', () => {
-    expect(files.length).toBeGreaterThan(30)
+    const vides = emptyRoots(scan)
+    expect(vides, `racine(s) vide(s) — arborescence déplacée ? : ${vides.join(', ')}`).toEqual([])
+
+    expect(scan.files.length).toBeGreaterThan(30)
+    // Ancre nommée : un scan qui compte assez de fichiers mais a perdu le shell
+    // ne vérifie plus l'exception du rail juste en dessous.
+    expect(scan.files.map(rel), `${SHELL} hors périmètre — le scan ne voit plus la console`)
+      .toContain(SHELL)
   })
 
   it('le rail du shell préfixe ses chemins nus au rendu', () => {
-    const raw = readFileSync(SHELL, 'utf-8')
+    const raw = readFileSafely(repoPath(SHELL))
+    // Ici l'absence n'est PAS un aléa tolérable : ce fichier est nommé en dur et
+    // le test précédent vient d'en confirmer la présence.
+    expect(raw.status, `${SHELL} illisible : ${raw.status === 'unreadable' ? raw.error : 'absent'}`)
+      .toBe('ok')
     expect(
-      raw.includes('${ADMIN_CONSOLE_PATH}${item.href}'),
+      raw.status === 'ok' && raw.value.includes('${ADMIN_CONSOLE_PATH}${item.href}'),
       `${SHELL} : la table de nav stocke des chemins nus, ils DOIVENT être préfixés au rendu`,
     ).toBe(true)
   })
 
   it('ne contient aucune cible à la racine', () => {
-    const offenders = files.filter(f => f !== SHELL).flatMap(file =>
-      readFileSync(file, 'utf-8')
-        .split('\n')
-        .map((text, i) => ({ file, line: i + 1, text: text.trim() }))
-        .filter(({ text }) => ROOT_TARGET.test(text)),
-    )
+    const unreadable = [...scan.unreadable]
+    const offenders: Array<{ file: string; line: number; text: string }> = []
+
+    for (const path of scan.files) {
+      const file = rel(path)
+      if (file === SHELL) continue
+      const raw = readFileSafely(path)
+      // Disparu entre le listing et l'ouverture (écrivain concurrent) : rien à
+      // vérifier — une cible de navigation ne se cache pas dans un fichier absent.
+      if (raw.status === 'gone') continue
+      if (raw.status === 'unreadable') {
+        unreadable.push(`${file} — ${raw.error}`)
+        continue
+      }
+      raw.value.split('\n').forEach((text, i) => {
+        const trimmed = text.trim()
+        if (ROOT_TARGET.test(trimmed)) offenders.push({ file, line: i + 1, text: trimmed })
+      })
+    }
+
+    // Distinct du verdict : un chemin illisible dit « je n'ai pas pu vérifier »,
+    // pas « il reste une cible à la racine ».
+    expect(unreadable,
+      `Lecture FS impossible (aléa d'environnement, PAS une infraction) : ${unreadable.join(' | ')}`)
+      .toEqual([])
 
     expect(
       offenders,

@@ -13,6 +13,8 @@
 //   L4  le créneau se libère à l'annulation, et redevient réservable.
 //   L5  lecture publique par jeton : forme, et `can_reschedule` sous la limite.
 //   L6  jeton inconnu ou nul : aucune donnée.
+//   L6bis le jeton se ferme 7 jours après le rendez-vous, et se tait comme un jeton
+//         inconnu — avec un contrôle négatif : la veille reste lisible.
 //   L7  issue d'un appel : `done` et `no_show` acceptés, le reste refusé.
 //   L8  isolation : l'agence B ne lit pas l'appel de l'agence A.
 //   L9  audit : `actor_kind='system'`, `actor_id` NULL, `category='onboarding'`.
@@ -217,6 +219,41 @@ describe.skipIf(!HAS_KEYS)('appel d accueil — socle base (live)', () => {
     const nullToken = await svc.rpc('get_onboarding_call_by_token', { p_token: null })
     expect(nullToken.error).toBeNull()
     expect(nullToken.data).toBeNull()
+  })
+
+  it('L6bis — le jeton se ferme 7 jours après le rendez-vous (RGPD, tâche 7)', async () => {
+    // Constat F4 de l'audit du 06.08.2026 : les GESTES étaient bornés
+    // (`can_manage`, et `call_in_past` côté edge), la LECTURE ne finissait jamais.
+    // Un lien fuité restait un oracle permanent sur qui avait réservé, pour quelle
+    // agence et quand.
+    await clearConfirmed()
+    const past = new Date()
+    past.setUTCDate(past.getUTCDate() - 8) // au-delà de la fenêtre de 7 jours
+    const res = await insertCall(setup.agencyAId, setup.agentAId, past.toISOString())
+    if (res.error) throw new Error(`past call: ${res.error.message}`)
+
+    const { data, error } = await svc.rpc('get_onboarding_call_by_token', {
+      p_token: res.data!.manage_token,
+    })
+    expect(error).toBeNull()
+    // Rien, et surtout RIEN DE DISTINCT d'un jeton inconnu (L6) : un motif
+    // « expiré » apprendrait à un tiers que ce jeton a existé.
+    expect(data).toBeNull()
+
+    // Contrôle négatif — la fenêtre ferme sur l'ÂGE, pas sur le fait d'être passé :
+    // un rendez-vous d'hier reste lisible, sans quoi le test ci-dessus passerait
+    // même si la fonction refusait toute date passée.
+    const yesterday = new Date()
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+    await svc.from('onboarding_calls')
+      .update({ scheduled_at: yesterday.toISOString() })
+      .eq('id', res.data!.id)
+    const recent = await svc.rpc('get_onboarding_call_by_token', {
+      p_token: res.data!.manage_token,
+    })
+    expect(recent.error).toBeNull()
+    expect(recent.data).not.toBeNull()
+    expect((recent.data as Record<string, unknown>).can_manage).toBe(false)
   })
 
   it('L7 — issue : done et no_show acceptés, le reste refusé', async () => {

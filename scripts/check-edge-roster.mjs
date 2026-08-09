@@ -16,6 +16,25 @@ import { join } from 'node:path';
 const FUNCTIONS_DIR = 'supabase/functions';
 const ROSTER_FILE = 'src/lib/edgeFunctionRoster.ts';
 
+/**
+ * Lit un fichier en normalisant les fins de ligne, ou rend '' s'il n'existe pas.
+ *
+ * POURQUOI À LA LECTURE ET NON À LA COMPARAISON. Sous Windows le checkout est en CRLF
+ * (`core.autocrlf=true`, aucun `.gitattributes`) alors que le contenu attendu est bâti
+ * ici en `\n` : les deux contrôles échouaient TOUJOURS en local pendant que la CI
+ * (Linux, LF) passait. Normaliser au moment de comparer ne suffit PAS — `splitConfig`
+ * découpe le texte avant, et son `replace(/^\n+/, '')` ne mord pas sur un `\r` de tête,
+ * si bien que `tail` conservait un `\r\n` parasite absent du chemin LF. La différence
+ * est alors structurelle, pas cosmétique. Normaliser à l'entrée fait tourner tout le
+ * reste du script sur exactement le texte que voit la CI.
+ *
+ * `--write` écrit donc en `\n` ; git rétablit la convention locale au checkout.
+ *
+ * Un garde-fou qui rougit sans raison finit ignoré : le 06.08.2026 cette dérive
+ * fantôme a fait conclure à tort que `main` était cassée.
+ */
+const readLf = (file) => (existsSync(file) ? readFileSync(file, 'utf8').replace(/\r\n/g, '\n') : '');
+
 const dirs = readdirSync(FUNCTIONS_DIR)
   .filter((d) => d !== '_shared' && statSync(join(FUNCTIONS_DIR, d)).isDirectory())
   .sort();
@@ -95,7 +114,7 @@ function buildConfig(text) {
   return { expected: `${head}${block}\n${tail ? `\n${tail}` : ''}`, missing, documented };
 }
 
-const configText = existsSync(CONFIG_FILE) ? readFileSync(CONFIG_FILE, 'utf8') : '';
+const configText = readLf(CONFIG_FILE);
 const config = buildConfig(configText);
 
 if (process.argv.includes('--write')) {
@@ -110,7 +129,7 @@ if (process.argv.includes('--write')) {
 
 let failed = false;
 
-const actual = existsSync(ROSTER_FILE) ? readFileSync(ROSTER_FILE, 'utf8') : '';
+const actual = readLf(ROSTER_FILE);
 if (actual === expected) {
   console.log(`✓ Roster edge functions en phase avec le tree (${dirs.length} fonctions).`);
 } else {
