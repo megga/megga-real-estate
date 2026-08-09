@@ -748,9 +748,9 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
 
       // Le parcours d'une raison individuelle est désormais celui de tout le monde :
       // l'agence mène droit à la pièce d'identité, et le rail compte cinq paliers.
-      await expect(page.getByRole('heading', { name: 'Vérifiez l\'identité du signataire' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Vérifiez votre identité' })).toBeVisible()
       await expect(page.getByRole('button', { name: /^\d\.\s/ })).toHaveCount(5)
-      await expect(page.getByRole('button', { name: '3. Pièce d\'identité' })).toBeVisible()
+      await expect(page.getByRole('button', { name: '3. Vérification' })).toBeVisible()
       await expect(page.getByRole('button', { name: '4. Rendez-vous' })).toBeVisible()
       await expect(page.getByRole('button', { name: '5. Récapitulatif' })).toBeVisible()
 

@@ -34,15 +34,19 @@ interface StepRendezVousProps {
 export function StepRendezVous({ onStateChange }: StepRendezVousProps) {
   const { t } = useTranslation('onboarding')
 
+  // PLUS LARGE que les quatre autres étapes (634 px), et c'est délibéré : la prise de
+  // rendez-vous porte deux volets côte à côte — l'hôte à gauche, le calendrier et ses
+  // heures à droite. Mesuré à 634 px : la grille du mois tombe sous 200 px et la colonne
+  // des heures lui passe dessus. Aucune autre étape n'a ce besoin, aucune autre n'est
+  // élargie.
   return (
-    <div className="inner-container _634px center">
+    <div className="inner-container _1050px center">
       {/* Mêmes marges que les trois étapes précédentes, posées sur le <h1> lui-même :
           la feuille de base lui donne un `margin` que `.display-6` ne remet pas à zéro,
           et un wrapper sans bordure FUSIONNE avec ces marges au lieu de s'y ajouter. */}
       <h1 className="display-6 mg-top-3x-extra-small mg-bottom-2x-extra-small">
         {t('call.intro.title')}
       </h1>
-      <p className="paragraph-large text-paragraph">{t('call.intro.body')}</p>
 
       <div className="mg-top-medium">
         <OcBooking onStateChange={onStateChange} />

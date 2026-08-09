@@ -370,10 +370,38 @@ Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel e
 DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MEGGA_MAGIC_LINK_HMAC_SECRET,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
+GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+GOOGLE_WORKSPACE_SA_KEY,
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_IDENTITY_FLOW_ID,
 MAPBOX_TOKEN,
 UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 ```
+
+> ⚠ **`GOOGLE_WORKSPACE_SA_KEY` — l'agenda MEGGA des appels d'accueil (05.08.2026).** C'est le
+> **JSON complet** d'un compte de service Google Cloud (accepté aussi en base64 : le PEM qu'il
+> contient porte de vrais sauts de ligne, que la moitié des interfaces de secrets mangent au
+> collage). Il permet au backend d'agir **au nom d'une boîte Workspace du domaine** —
+> `onboarding_hosts.calendar_email` — pour lire ses occupations, poser l'événement du rendez-vous
+> et produire le lien Meet, sans jeton personnel ni consentement à renouveler.
+>
+> Il ne suffit PAS à lui seul : la délégation doit être accordée **une fois** dans la console
+> d'administration Workspace (Sécurité › Contrôle des API › Délégation à l'échelle du domaine) à
+> l'identifiant client du compte de service, avec **exactement** la portée
+> `https://www.googleapis.com/auth/calendar` — Google compare les chaînes littéralement, et une
+> portée qui dérive d'un caractère échoue en `unauthorized_client` sans dire laquelle manque. Il
+> faut aussi que l'**API Google Calendar** soit activée sur le projet Google Cloud du compte de
+> service (case distincte, et celle qu'on oublie : elle se manifeste en 403 avec un jeton valide).
+>
+> Absent, rien ne casse bruyamment : les hôtes adossés à une boîte MEGGA sortent `degraded`, donc
+> aucun créneau n'est proposé — le symptôme visible est « aucun créneau » chez une agence, à
+> l'autre bout de la plateforme. C'est précisément pourquoi la console porte un bouton
+> « Tester la connexion » (`onboarding-calendar-check`) : trois des quatre pièces du montage vivent
+> chez Google et aucune lecture locale ne peut les voir.
+>
+> ⚠ `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` **manquaient à cet inventaire** alors qu'ils sont
+> lus depuis longtemps (`google-calendar-sync`, `_shared/booking-oauth.ts`,
+> `_shared/host-freebusy.ts`). Ils servent l'OAuth **par utilisateur** (l'agent connecte SON
+> agenda) et sont sans rapport avec la délégation ci-dessus, qui n'en a pas besoin.
 
 > ⚠ **`STRIPE_IDENTITY_FLOW_ID` n'est pas un secret, mais il doit rester hors du dépôt.**
 > C'est l'identifiant (`vf_…`) du flux de vérification configuré dans le tableau de bord

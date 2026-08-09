@@ -295,6 +295,28 @@ d'été rend `null` au lieu d'un créneau décalé). Console : `/dashboard/admin
 l'audit `actor_kind='system'`, catégorie **`onboarding`** ajoutée au CHECK d'`activity_events`.
 Cerveau : `megga/onboarding-call`.
 
+⚠ **L'agenda de l'hôte : boîte Workspace, et non plus jeton personnel (05.08.2026).** Jusque-là
+`onboarding_hosts.profile_id` était `NOT NULL` et l'agenda ne se lisait que par
+`google_calendar_tokens`, alimenté par le bouton « connecter mon agenda » de l'écran agent.
+Conséquence non voulue : pour que MEGGA puisse recevoir une agence, il fallait qu'un membre de
+MEGGA existe comme **utilisateur d'agence** (`profiles.agency_id` est `NOT NULL`) puis se connecte
+et clique — la boîte des rendez-vous devenait locataire de sa propre plateforme, et la
+disponibilité de TOUTES les agences tenait au jeton d'une seule personne.
+`onboarding_hosts.calendar_email` porte désormais une **boîte Google Workspace** que le backend
+incarne par **délégation à l'échelle du domaine** (compte de service, secret
+`GOOGLE_WORKSPACE_SA_KEY`, portée `…/auth/calendar`, module `_shared/google-workspace.ts`) :
+aucun jeton personnel, aucun consentement à renouveler. `profile_id` devient facultatif et reste la
+voie d'un hôte qui préfère son agenda déjà connecté ; **la Workspace passe devant**, et un agenda
+Workspace déclaré mais injoignable rend `degraded` — jamais un repli silencieux sur l'agenda
+personnel, qui ferait atterrir le rendez-vous ailleurs que là où l'équipe le cherche. Trois pièges
+que le code encode : `sub` dans l'assertion JWT (sans lui Google délivre un jeton valide pour le
+compte de service lui-même, dont l'agenda est vide) ; `freeBusy` dont un refus arrive en **200 avec
+`busy` vide et l'erreur à côté** (le lire sans regarder `errors` ouvrirait toutes les heures) ; et
+le **réservant porté comme invité** de l'événement, faute de quoi il reste à la porte du Meet.
+Diagnostic : `onboarding-calendar-check` (super-admin) + bouton « Tester la connexion » du
+formulaire d'hôte — trois des quatre pièces du montage vivent chez Google et aucune lecture locale
+ne les voit.
+
 **Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/sentry-test`.
 
 ### Composants (`src/components/`)

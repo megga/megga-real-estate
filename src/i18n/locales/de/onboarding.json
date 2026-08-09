@@ -5,8 +5,8 @@
     },
     "mobileNotice": {
       "eyebrow": "Obligatorischer Schritt",
-      "title": "Dieser Schritt wird am Computer abgeschlossen",
-      "body": "Diese Erfassung erfordert einen grösseren Bildschirm. Setzen Sie sie an einem Computer fort."
+      "title": "Fahren Sie am Computer fort",
+      "body": "Dieser Schritt benötigt einen breiteren Bildschirm."
     },
     "welcome": {
       "title": "Öffnen wir Ihren Arbeitsbereich",
@@ -24,7 +24,7 @@
       "ariaLabel": "Schritte",
       "signataire": "Unterzeichner",
       "agence": "Agentur",
-      "pieceIdentite": "Ausweisdokument",
+      "pieceIdentite": "Verifizierung",
       "rendezVous": "Termin",
       "recapitulatif": "Zusammenfassung"
     },
@@ -105,12 +105,10 @@
       }
     },
     "pieceIdentite": {
-      "title": "Identität der zeichnungsberechtigten Person prüfen",
-      "subtitle": "Die zur Vertretung Ihrer Agentur befugte Person fotografiert ihren Ausweis und ihr Gesicht bei unserem Dienstleister. Anschliessend prüft unser Compliance-Team das Dossier.",
+      "title": "Bestätigen Sie Ihre Identität",
+      "subtitle": "Reisepass oder Identitätskarte. Das Foto wird uns nie übermittelt.",
       "missingSignataire": "Die unterzeichnende Person muss zuerst im vorherigen Schritt angegeben werden.",
       "verification": {
-        "title": "Bestätigen Sie Ihre Identität",
-        "body": "Reisepass oder Personalausweis. Das Foto wird uns nie übermittelt.",
         "cta": "Identität bestätigen",
         "retryCta": "Prüfung fortsetzen",
         "pendingTitle": "Prüfung läuft",
@@ -266,7 +264,6 @@
   "call": {
     "intro": {
       "title": "Buchen Sie Ihr Willkommensgespräch",
-      "body": "Bevor Sie abschliessen, nehmen wir uns 30 Minuten Zeit, um Ihre Einrichtung durchzugehen und Ihre Fragen zu beantworten.",
       "bodyStandalone": "Ihr Dossier ist in Prüfung. Nehmen wir uns 30 Minuten Zeit, um Ihre Einrichtung durchzugehen und Ihre Fragen zu beantworten."
     },
     "picker": {
@@ -285,13 +282,18 @@
       "loadingSlots": "Uhrzeiten werden geladen…",
       "pickDayFirst": "Wählen Sie einen Tag im Kalender, um freie Zeiten zu sehen.",
       "noSlotThatDay": "An diesem Tag ist nichts mehr frei.",
-      "timezoneHint": "Zeiten in Ihrer Zeitzone: {{timezone}}"
+      "timezoneHint": "Zeiten in Ihrer Zeitzone: {{timezone}}",
+      "timezoneLabel": "Zeitzone",
+      "hour12": "Uhrzeiten als am/pm anzeigen"
     },
     "form": {
       "phone": "Telefon (optional)",
-      "phonePlaceholder": "+41 22 000 00 00",
       "note": "Ein Wort zu Ihren Prioritäten (optional)",
-      "notePlaceholder": "Was Sie zuerst sehen möchten"
+      "notePlaceholder": "Was Sie zuerst sehen möchten",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "email": "E-Mail",
+      "whatsapp": "WhatsApp-Nummer"
     },
     "actions": {
       "confirm": "Termin bestätigen",
@@ -351,6 +353,59 @@
       "rescheduled": {
         "title": "Neues Datum gespeichert",
         "body": "Eine Bestätigungsmail mit dem aktualisierten Datum ist unterwegs."
+      }
+    },
+    "book": {
+      "hostedBy": "Mit dem MEGGA-Team",
+      "title": "Willkommensgespräch",
+      "duration": "{{count}} Min.",
+      "video": "Den Link zur Videokonferenz erhalten Sie mit der Bestätigung.",
+      "about": "Wir gehen Ihre Einrichtung durch, beantworten Ihre Fragen und richten das CRM auf Ihre Arbeitsweise aus.",
+      "pickTitle": "Wählen Sie Datum und Uhrzeit",
+      "next": "Weiter",
+      "back": "Zurück",
+      "formTitle": "Ihre Angaben"
+    },
+    "questions": {
+      "placeholder": "Auswählen…",
+      "portfolio": {
+        "label": "Wie viele Objekte betreuen Sie heute?",
+        "options": {
+          "1-5": "1 bis 5",
+          "6-20": "6 bis 20",
+          "21-50": "21 bis 50",
+          "50+": "Mehr als 50"
+        }
+      },
+      "business": {
+        "label": "Verkauf, Vermietung oder beides?",
+        "options": {
+          "sale": "Verkauf",
+          "rent": "Vermietung",
+          "both": "Beides"
+        }
+      },
+      "team": {
+        "label": "Wie viele Agenten im Team?",
+        "options": {
+          "1": "Ich arbeite allein",
+          "2-5": "2 bis 5",
+          "6-15": "6 bis 15",
+          "15+": "Mehr als 15"
+        }
+      },
+      "priority": {
+        "label": "Ihre Priorität der nächsten drei Monate?",
+        "options": {
+          "mandates": "Mandate gewinnen",
+          "buyers": "Meine Käufer betreuen",
+          "admin": "Verwaltungszeit sparen",
+          "compliance": "GwG/KYC absichern"
+        }
+      },
+      "cantons": {
+        "label": "In welchen Kantonen arbeiten Sie?",
+        "placeholder": "Genf, Waadt…"
       }
     }
   }

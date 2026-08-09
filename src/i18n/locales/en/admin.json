@@ -989,7 +989,12 @@
         "hours": "Hours",
         "upcoming": "Upcoming",
         "state": "State",
-        "hoursMore": "+{{n}} more days"
+        "hoursMore": "+{{n}} more days",
+        "calendar": "Calendar",
+        "sourceWorkspace": "MEGGA",
+        "sourceProfile": "Member",
+        "sourceNone": "None",
+        "sourceNoneTitle": "No calendar connected: availability is limited to bookings already made, and no Meet link will be produced."
       },
       "empty": {
         "title": "No host",
@@ -1020,9 +1025,32 @@
           "unknownEmail": "No account carries this email.",
           "nameRequired": "The displayed name is required.",
           "badSlice": "A range is malformed: the end must follow the start.",
-          "generic": "The host could not be saved."
+          "generic": "The host could not be saved.",
+          "badMailbox": "The Workspace mailbox address is malformed."
+        },
+        "calendarSource": "Host calendar",
+        "modeWorkspace": "MEGGA calendar",
+        "modeProfile": "A member’s calendar",
+        "modeWorkspaceHint": "A Google Workspace mailbox on the megga.ch domain. The backend acts as it directly: nothing to connect, nothing to renew, and the calendar outlives whoever set it up.",
+        "modeProfileHint": "The CRM account of a member who connected their own calendar from the agent screen. Platform-wide availability then depends on their personal token.",
+        "mailbox": "Google Workspace mailbox",
+        "probe": "Test the connection",
+        "probing": "Testing…",
+        "probeOk": "Calendar reachable ({{tz}}).",
+        "workspaceMissingSecret": "The GOOGLE_WORKSPACE_SA_KEY secret is not set: the backend cannot authenticate against any mailbox. The host will be saved, but with no calendar and no Meet link.",
+        "delegationHint": "Authorise once in the Workspace console (Security › API controls › Domain-wide delegation): client ID {{client}}, scope {{scope}}.",
+        "probeErrors": {
+          "not_configured": "No service-account key: set the GOOGLE_WORKSPACE_SA_KEY secret.",
+          "bad_key": "The service-account key is unreadable: the JSON or its private key is damaged.",
+          "no_subject": "Enter the mailbox to impersonate.",
+          "unauthorized_client": "Delegation refused: authorise the client ID below in the Workspace console, with exactly the scope shown.",
+          "invalid_grant": "This mailbox is unknown to the domain, or it is suspended.",
+          "calendar_api_disabled": "The Google Calendar API is not enabled on the service account’s Google Cloud project.",
+          "network": "Google did not respond. Try again.",
+          "google_error": "Google refused the request."
         }
-      }
+      },
+      "workspaceMissing": "The GOOGLE_WORKSPACE_SA_KEY secret is not set: no host backed by a MEGGA mailbox can read its calendar or produce a Meet link."
     },
     "cancelConfirm": {
       "title": "Cancel this welcome call?",

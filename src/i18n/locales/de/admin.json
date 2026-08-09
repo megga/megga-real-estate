@@ -989,7 +989,12 @@
         "hours": "Zeiten",
         "upcoming": "Bevorstehend",
         "state": "Status",
-        "hoursMore": "+{{n}} weitere Tage"
+        "hoursMore": "+{{n}} weitere Tage",
+        "calendar": "Kalender",
+        "sourceWorkspace": "MEGGA",
+        "sourceProfile": "Mitglied",
+        "sourceNone": "Keiner",
+        "sourceNoneTitle": "Kein Kalender verbunden: Die Verfügbarkeit beschränkt sich auf bereits gebuchte Termine, und es entsteht kein Meet-Link."
       },
       "empty": {
         "title": "Keine Gastgeber",
@@ -1020,9 +1025,32 @@
           "unknownEmail": "Kein Konto mit dieser E-Mail.",
           "nameRequired": "Der angezeigte Name ist erforderlich.",
           "badSlice": "Ein Zeitfenster ist fehlerhaft: das Ende muss nach dem Anfang liegen.",
-          "generic": "Der Gastgeber konnte nicht gespeichert werden."
+          "generic": "Der Gastgeber konnte nicht gespeichert werden.",
+          "badMailbox": "Die Adresse des Workspace-Postfachs ist fehlerhaft."
+        },
+        "calendarSource": "Kalender des Gastgebers",
+        "modeWorkspace": "MEGGA-Kalender",
+        "modeProfile": "Kalender eines Mitglieds",
+        "modeWorkspaceHint": "Ein Google-Workspace-Postfach der Domain megga.ch. Das Backend handelt direkt in seinem Namen: nichts zu verbinden, nichts zu erneuern, und der Kalender überdauert die Person, die ihn eingerichtet hat.",
+        "modeProfileHint": "Das CRM-Konto eines Mitglieds, das seinen eigenen Kalender über den Agenten-Bildschirm verbunden hat. Die Verfügbarkeit der gesamten Plattform hängt dann an dessen persönlichem Token.",
+        "mailbox": "Google-Workspace-Postfach",
+        "probe": "Verbindung testen",
+        "probing": "Test läuft…",
+        "probeOk": "Kalender erreichbar (Zeitzone {{tz}}).",
+        "workspaceMissingSecret": "Das Secret GOOGLE_WORKSPACE_SA_KEY ist nicht gesetzt: Das Backend kann sich bei keinem Postfach authentifizieren. Der Gastgeber wird gespeichert, aber ohne Kalender und ohne Meet-Link.",
+        "delegationHint": "Einmalig in der Workspace-Konsole freigeben (Sicherheit › API-Steuerung › domänenweite Delegierung): Client-ID {{client}}, Bereich {{scope}}.",
+        "probeErrors": {
+          "not_configured": "Kein Dienstkonto-Schlüssel: Secret GOOGLE_WORKSPACE_SA_KEY setzen.",
+          "bad_key": "Der Dienstkonto-Schlüssel ist unlesbar: Das JSON oder sein privater Schlüssel ist beschädigt.",
+          "no_subject": "Postfach angeben, in dessen Namen gehandelt wird.",
+          "unauthorized_client": "Delegierung abgelehnt: Client-ID unten in der Workspace-Konsole freigeben, mit genau dem angezeigten Bereich.",
+          "invalid_grant": "Dieses Postfach ist der Domain unbekannt oder gesperrt.",
+          "calendar_api_disabled": "Die Google-Calendar-API ist im Google-Cloud-Projekt des Dienstkontos nicht aktiviert.",
+          "network": "Google hat nicht geantwortet. Bitte erneut versuchen.",
+          "google_error": "Google hat die Anfrage abgelehnt."
         }
-      }
+      },
+      "workspaceMissing": "Das Secret GOOGLE_WORKSPACE_SA_KEY ist nicht gesetzt: Kein Gastgeber mit MEGGA-Postfach kann seinen Kalender lesen oder einen Meet-Link erzeugen."
     },
     "cancelConfirm": {
       "title": "Dieses Willkommensgespräch absagen?",

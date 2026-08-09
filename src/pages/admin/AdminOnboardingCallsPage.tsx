@@ -29,8 +29,10 @@ import {
   useSetOnboardingHostActive,
   useSetOnboardingCallOutcome,
   useAdminCancelOnboardingCall,
+  useWorkspaceCalendarStatus,
   type AdminOnboardingCall,
   type AdminOnboardingHost,
+  type HostCalendarSource,
 } from '@/hooks/useAdminOnboardingCalls'
 
 const PER_PAGE = 15
@@ -60,6 +62,24 @@ const HOURS_DAYS_SHOWN = 2
 
 /** Le fuseau de tous les hôtes en pratique — n'est affiché que lorsqu'il en diffère. */
 const DEFAULT_TIMEZONE = 'Europe/Zurich'
+
+/**
+ * D'où vient l'agenda d'un hôte. `none` porte la teinte d'AVERTISSEMENT et non celle
+ * d'une erreur : l'hôte reste réservable, mais sa disponibilité ignore tout agenda
+ * externe et aucun lien Meet ne sortira — un état qu'on veut voir sans le confondre
+ * avec une panne.
+ */
+const CALENDAR_SOURCE_LABEL: Record<HostCalendarSource, string> = {
+  workspace: 'onboardingCalls.hosts.table.sourceWorkspace',
+  profile: 'onboardingCalls.hosts.table.sourceProfile',
+  none: 'onboardingCalls.hosts.table.sourceNone',
+}
+
+const CALENDAR_SOURCE_TONE: Record<HostCalendarSource, AdminToneName> = {
+  workspace: 'ok',
+  profile: 'info',
+  none: 'warn',
+}
 
 /**
  * Résumé d'un horaire hebdomadaire : les deux premiers jours en clair, le reste compté.
@@ -291,6 +311,7 @@ function HostsTab() {
   const { t } = useTranslation('admin')
   const { sp, surf } = useAdminSugar()
   const { data: hosts, isLoading, isError, refetch } = useAdminOnboardingHosts()
+  const { data: workspace } = useWorkspaceCalendarStatus()
   const setActive = useSetOnboardingHostActive()
   // `null` = fermé ; `'new'` = création ; sinon l'hôte en cours de modification.
   const [editing, setEditing] = useState<AdminOnboardingHost | 'new' | null>(null)
@@ -299,6 +320,13 @@ function HostsTab() {
 
   if (isError) return <AdminError message={t('onboardingCalls.error')} onRetry={() => void refetch()} />
 
+  // Le secret manquant ne se voit nulle part ailleurs : son seul symptôme naturel est
+  // « aucun créneau » sur l'écran d'une agence, à l'autre bout de la plateforme. On ne
+  // le dit toutefois que s'il SERT — sous une liste sans hôte Workspace, l'avertissement
+  // désignerait une pièce dont personne ne dépend.
+  const workspaceBroken = workspace && !workspace.configured
+    && (hosts ?? []).some((h) => h.calendar_source === 'workspace')
+
   return (
     <AdminCard>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
@@ -306,6 +334,12 @@ function HostsTab() {
           {t('onboardingCalls.hosts.addHost')}
         </AdminGhostBtn>
       </div>
+
+      {workspaceBroken && (
+        <p role="alert" style={{ margin: '0 0 12px', fontSize: 12.5, color: '#f59e0b', lineHeight: 1.6 }}>
+          {t('onboardingCalls.hosts.workspaceMissing')}
+        </p>
+      )}
 
       {isLoading && (
         <div style={{ display: 'grid', gap: 8 }}>
@@ -327,6 +361,7 @@ function HostsTab() {
             <thead>
               <tr>
                 <AdminTh>{t('onboardingCalls.hosts.table.host')}</AdminTh>
+                <AdminTh>{t('onboardingCalls.hosts.table.calendar')}</AdminTh>
                 <AdminTh>{t('onboardingCalls.hosts.table.hours')}</AdminTh>
                 <AdminTh align="right">{t('onboardingCalls.hosts.table.upcoming')}</AdminTh>
                 <AdminTh align="right">{t('onboardingCalls.hosts.table.state')}</AdminTh>
@@ -341,12 +376,21 @@ function HostsTab() {
                     <span style={{ fontWeight: 600 }}>{host.display_name}</span>
                     <br />
                     <span style={{ color: sp.soft, fontSize: 12 }}>
-                      {host.profile_email ?? '—'}
+                      {host.calendar_email ?? host.profile_email ?? '—'}
                       {/* Le fuseau seulement quand il SURPREND. Tous les hôtes sont à
                           Europe/Zurich : répété sur chaque rangée, il n'apprenait rien
                           et faisait passer l'e-mail à la ligne. */}
                       {host.timezone !== DEFAULT_TIMEZONE && ` · ${host.timezone}`}
                     </span>
+                  </AdminTd>
+                  <AdminTd>
+                    <AdminPill
+                      label={t(CALENDAR_SOURCE_LABEL[host.calendar_source])}
+                      tone={CALENDAR_SOURCE_TONE[host.calendar_source]}
+                      title={host.calendar_source === 'none'
+                        ? t('onboardingCalls.hosts.table.sourceNoneTitle')
+                        : undefined}
+                    />
                   </AdminTd>
                   <AdminTd>
                     {/* La ligne de règles (« 30 min, tampon 15 min, préavis 12 h,

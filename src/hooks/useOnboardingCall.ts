@@ -116,6 +116,13 @@ export interface BookInput {
   slot: string
   phone?: string
   note?: string
+  /**
+   * Réponses du formulaire de réservation — identité confirmée et questions de
+   * calibration. Transmises telles quelles : ce sont des CHOIX de l'agent, pas des
+   * mesures, et les interpréter ici figerait une lecture que le produit n'a pas
+   * encore arrêtée. Elles atterrissent dans `onboarding_calls.attendee_answers`.
+   */
+  answers?: Record<string, string>
 }
 
 export interface BookResult {
@@ -143,6 +150,7 @@ export function useBookOnboardingCall() {
           slot: input.slot,
           phone: input.phone,
           note: input.note,
+          answers: input.answers,
           timezone: browserTimezone(),
           locale: 'fr',
         },

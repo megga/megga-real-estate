@@ -35,11 +35,24 @@ export interface AdminOnboardingCall {
   created_at: string
 }
 
+/**
+ * D'où vient l'agenda d'un hôte, calculé côté serveur pour que l'écran n'ait pas à
+ * redériver la règle de priorité qu'applique `host-freebusy.ts`.
+ *
+ * `none` n'est pas une panne : l'hôte reste réservable, mais sa disponibilité se limite
+ * alors à ses rendez-vous déjà pris — aucun agenda externe ne vient la resserrer, et
+ * aucun lien Meet ne sera produit.
+ */
+export type HostCalendarSource = 'workspace' | 'profile' | 'none'
+
 export interface AdminOnboardingHost {
   id: string
-  profile_id: string
+  profile_id: string | null
   display_name: string
   profile_email: string | null
+  /** Boîte Google Workspace de MEGGA dont l'agenda fait foi, si c'est cette voie-là. */
+  calendar_email: string | null
+  calendar_source: HostCalendarSource
   timezone: string
   is_active: boolean
   weekly_hours: { dow: number; start: string; end: string }[]
@@ -109,7 +122,11 @@ function unwrap(payload: unknown): Record<string, unknown> {
 }
 
 export interface UpsertHostInput {
-  profileId: string
+  /** Présent en modification : désigne la ligne sans repasser par son identité. */
+  hostId?: string
+  /** L'une des deux voies d'agenda au moins doit être renseignée à la création. */
+  profileId?: string | null
+  calendarEmail?: string | null
   displayName: string
   timezone: string
   weeklyHours: { dow: number; start: string; end: string }[]
@@ -126,7 +143,9 @@ export function useUpsertOnboardingHost() {
   return useMutation({
     mutationFn: async (input: UpsertHostInput) => {
       const { data, error } = await supabase.rpc('admin_upsert_onboarding_host', {
-        p_profile_id: input.profileId,
+        p_host_id: input.hostId ?? undefined,
+        p_profile_id: input.profileId ?? undefined,
+        p_calendar_email: input.calendarEmail ?? undefined,
         p_display_name: input.displayName,
         p_timezone: input.timezone,
         p_weekly_hours: input.weeklyHours,
@@ -191,6 +210,61 @@ export function useAdminCancelOnboardingCall() {
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error)
     },
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['admin-onboarding-calls'] }) },
+  })
+}
+
+// ── Agenda Google Workspace de la plateforme ────────────────────────────────
+
+export interface WorkspaceCalendarStatus {
+  /** Vrai quand `GOOGLE_WORKSPACE_SA_KEY` porte une clé de compte de service lisible. */
+  configured: boolean
+  /** Adresse du compte de service, à recopier dans la console d'administration Workspace. */
+  client_email: string | null
+  /** Portée à autoriser, littéralement — Google compare les chaînes, pas les intentions. */
+  scope: string | null
+}
+
+export interface WorkspaceProbeResult {
+  ok: boolean
+  /**
+   * Motif d'échec, vocabulaire fermé côté serveur : `not_configured`, `bad_key`,
+   * `unauthorized_client` (délégation absente ou portée qui ne correspond pas),
+   * `invalid_grant` (boîte inconnue du domaine), `calendar_api_disabled`, `network`.
+   */
+  reason: string | null
+  calendar_timezone?: string | null
+  calendar_id?: string | null
+}
+
+/**
+ * Le montage est-il en place ? Ne dit PAS s'il fonctionne : seule la sonde le sait,
+ * parce que trois des quatre pièces vivent chez Google et qu'aucune lecture locale ne
+ * peut les voir.
+ */
+export function useWorkspaceCalendarStatus() {
+  return useQuery({
+    queryKey: ['workspace-calendar-status'],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<WorkspaceCalendarStatus> => {
+      const { data, error } = await supabase.functions.invoke('onboarding-calendar-check', {
+        body: { action: 'status' },
+      })
+      if (error) throw error
+      return data as WorkspaceCalendarStatus
+    },
+  })
+}
+
+/** Aller-retour réel sur l'agenda d'une boîte. La seule réponse honnête à « ça marche ? ». */
+export function useProbeWorkspaceCalendar() {
+  return useMutation({
+    mutationFn: async (mailbox: string): Promise<WorkspaceProbeResult> => {
+      const { data, error } = await supabase.functions.invoke('onboarding-calendar-check', {
+        body: { action: 'probe', mailbox },
+      })
+      if (error) throw error
+      return data as WorkspaceProbeResult
+    },
   })
 }
 

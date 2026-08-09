@@ -644,13 +644,18 @@ export function AdminPager({ page, totalPages, total, perPage, onPage }: {
  *     hors bento ;
  *   - `hollow` creuse la pastille dans le corps d'une modale — sur fond blanc,
  *     `filter` la ferait disparaître au repos.
+ *
+ * `disabled` sert le cas d'un choix VERROUILLÉ plutôt que masqué : un segment qu'on
+ * retire de l'écran laisse croire que l'option n'existe pas, alors qu'elle existe et
+ * qu'elle est simplement figée pour cet objet. Le segment retenu reste donc lisible.
  */
-export function AdminSegmentBtn({ on, onClick, children, variant = 'filter', title }: {
+export function AdminSegmentBtn({ on, onClick, children, variant = 'filter', title, disabled }: {
   on: boolean
   onClick: () => void
   children: ReactNode
   variant?: 'filter' | 'tab' | 'hollow'
   title?: string
+  disabled?: boolean
 }) {
   const { sp, surf } = useAdminSugar()
   const tab = variant === 'tab'
@@ -658,15 +663,20 @@ export function AdminSegmentBtn({ on, onClick, children, variant = 'filter', tit
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       aria-pressed={on}
       title={title}
       style={{
         height: tab ? 34 : 32, padding: tab ? '0 15px' : '0 14px',
-        borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+        borderRadius: ADMIN_RADII.pill, border: 0,
+        cursor: disabled ? 'default' : 'pointer',
         fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
         background: on ? sp.accent : restBg,
         color: on ? sp.accentInk : sp.soft,
         boxShadow: !on && tab ? sp.shadowSm : 'none',
+        // Seul le segment NON retenu s'efface : atténuer celui qui porte la valeur
+        // rendrait illisible la seule information que le contrôle donne encore.
+        opacity: disabled && !on ? 0.45 : 1,
       }}
     >
       {children}

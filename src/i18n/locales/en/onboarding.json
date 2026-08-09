@@ -5,8 +5,8 @@
     },
     "mobileNotice": {
       "eyebrow": "Required step",
-      "title": "This step is completed on a computer",
-      "body": "This entry requires a larger screen. Please resume it from a computer."
+      "title": "Continue on a computer",
+      "body": "This step needs a wider screen."
     },
     "welcome": {
       "title": "Let us open your workspace",
@@ -24,7 +24,7 @@
       "ariaLabel": "Steps",
       "signataire": "Signatory",
       "agence": "Agency",
-      "pieceIdentite": "ID document",
+      "pieceIdentite": "Verification",
       "rendezVous": "Appointment",
       "recapitulatif": "Summary"
     },
@@ -105,12 +105,10 @@
       }
     },
     "pieceIdentite": {
-      "title": "Verify the signatory's identity",
-      "subtitle": "The person authorised to bind your agency photographs their document and their face at our provider. Our compliance team then reviews the file.",
+      "title": "Verify your identity",
+      "subtitle": "Passport or identity card. The photo is never passed on to us.",
       "missingSignataire": "The signatory must be entered in the previous step first.",
       "verification": {
-        "title": "Verify your identity",
-        "body": "Passport or identity card. The photo is never passed on to us.",
         "cta": "Verify my identity",
         "retryCta": "Resume verification",
         "pendingTitle": "Verification in progress",
@@ -266,7 +264,6 @@
   "call": {
     "intro": {
       "title": "Book your welcome call",
-      "body": "Before you finish, let us take 30 minutes to walk through your setup and answer your questions.",
       "bodyStandalone": "Your file is under review. Let us take 30 minutes to walk through your setup and answer your questions."
     },
     "picker": {
@@ -285,13 +282,18 @@
       "loadingSlots": "Loading times…",
       "pickDayFirst": "Pick a day in the calendar to see the free times.",
       "noSlotThatDay": "Nothing left that day.",
-      "timezoneHint": "Times shown in your timezone: {{timezone}}"
+      "timezoneHint": "Times shown in your timezone: {{timezone}}",
+      "timezoneLabel": "Time zone",
+      "hour12": "Show times as am/pm"
     },
     "form": {
       "phone": "Phone (optional)",
-      "phonePlaceholder": "+41 22 000 00 00",
       "note": "A word on your priorities (optional)",
-      "notePlaceholder": "What you would like to see first"
+      "notePlaceholder": "What you would like to see first",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "whatsapp": "WhatsApp number"
     },
     "actions": {
       "confirm": "Confirm the appointment",
@@ -351,6 +353,59 @@
       "rescheduled": {
         "title": "New date saved",
         "body": "A confirmation email with the updated date is on its way."
+      }
+    },
+    "book": {
+      "hostedBy": "With the MEGGA team",
+      "title": "Welcome call",
+      "duration": "{{count}} min",
+      "video": "The video link is sent to you with the confirmation.",
+      "about": "We walk through your setup, answer your questions, and tune the CRM to the way you work.",
+      "pickTitle": "Select a date and time",
+      "next": "Next",
+      "back": "Back",
+      "formTitle": "Your details"
+    },
+    "questions": {
+      "placeholder": "Select…",
+      "portfolio": {
+        "label": "How many properties do you manage today?",
+        "options": {
+          "1-5": "1 to 5",
+          "6-20": "6 to 20",
+          "21-50": "21 to 50",
+          "50+": "More than 50"
+        }
+      },
+      "business": {
+        "label": "Sales, lettings, or both?",
+        "options": {
+          "sale": "Sales",
+          "rent": "Lettings",
+          "both": "Both"
+        }
+      },
+      "team": {
+        "label": "How many agents on the team?",
+        "options": {
+          "1": "I work alone",
+          "2-5": "2 to 5",
+          "6-15": "6 to 15",
+          "15+": "More than 15"
+        }
+      },
+      "priority": {
+        "label": "Your priority for the next three months?",
+        "options": {
+          "mandates": "Win mandates",
+          "buyers": "Follow up my buyers",
+          "admin": "Save admin time",
+          "compliance": "Secure AML/KYC"
+        }
+      },
+      "cantons": {
+        "label": "Which cantons do you work in?",
+        "placeholder": "Geneva, Vaud…"
       }
     }
   }

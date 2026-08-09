@@ -57,6 +57,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'magic-link-upload',
   'market-scraper',
   'matching-engine',
+  'onboarding-calendar-check',
   'onboarding-call-book',
   'onboarding-call-manage',
   'onboarding-call-reminder',

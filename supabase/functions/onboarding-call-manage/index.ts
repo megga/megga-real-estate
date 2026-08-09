@@ -71,18 +71,23 @@ async function loadParties(db: SupabaseClient, call: CallRow) {
   const [{ data: agency }, { data: booker }, { data: host }] = await Promise.all([
     db.from('agencies').select('name').eq('id', call.agency_id).maybeSingle(),
     db.from('profiles').select('email, full_name').eq('id', call.booked_by).maybeSingle(),
-    db.from('onboarding_hosts').select('profile_id, timezone').eq('id', call.host_id).maybeSingle(),
+    db.from('onboarding_hosts').select('profile_id, calendar_email, timezone').eq('id', call.host_id).maybeSingle(),
   ])
-  const hostEmail = host?.profile_id
+  const profileEmail = host?.profile_id
     ? (await db.from('profiles').select('email').eq('id', host.profile_id).maybeSingle()).data?.email ?? null
     : null
   return {
     agencyName: agency?.name ?? 'Agence',
     attendeeName: booker?.full_name ?? '',
     attendeeEmail: booker?.email ?? '',
-    hostProfileId: host?.profile_id ?? null,
+    /** Ce qu'attendent `moveHostEvent` / `deleteHostEvent` pour retrouver la bonne clé. */
+    hostCalendar: {
+      profileId: host?.profile_id ?? null,
+      calendarEmail: host?.calendar_email ?? null,
+    },
     hostTimezone: host?.timezone ?? 'Europe/Zurich',
-    hostEmail,
+    // Un hôte Workspace n'a pas de profil : sa boîte est l'adresse de contact.
+    hostEmail: profileEmail ?? host?.calendar_email ?? null,
   }
 }
 
@@ -150,9 +155,9 @@ serve(async (req: Request) => {
       return json({ error: 'cancel failed' }, 500)
     }
 
-    if (call.calendar_provider && call.calendar_event_id && parties.hostProfileId) {
+    if (call.calendar_provider && call.calendar_event_id) {
       await deleteHostEvent(
-        db, parties.hostProfileId,
+        db, parties.hostCalendar,
         call.calendar_provider as CalendarProvider, call.calendar_event_id,
       )
     }
@@ -260,9 +265,9 @@ serve(async (req: Request) => {
 
   // Déplacer, et non recréer : deux entrées dans l'agenda de l'hôte pour un seul
   // rendez-vous, c'est exactement ce que la fonctionnalité doit éviter.
-  if (call.calendar_provider && call.calendar_event_id && parties.hostProfileId) {
+  if (call.calendar_provider && call.calendar_event_id) {
     await moveHostEvent(
-      db, parties.hostProfileId,
+      db, parties.hostCalendar,
       call.calendar_provider as CalendarProvider, call.calendar_event_id,
       slotMs, call.duration_minutes,
     )

@@ -59,14 +59,6 @@ import { useAuth, DEV_BYPASS_AUTH, DEV_BYPASS_AGENCY } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { UserRole } from '@/types/auth'
 
-/** Prefixe des routes que KycLabGuard remplace par son propre ecran de blocage
- *  (kyc, kyc/bienvenue, kyc/:dossierId — App.tsx). Consomme par LabGuardBanner pour
- *  ne pas repeter son propre message au-dessus d'un ecran qui dit deja tout
- *  (correctif revue, point mineur). Vit ici (pas dans KycLabGuard.tsx, charge en
- *  lazy()) pour ne pas tirer ce module dans le chunk du bandeau, monte sur CHAQUE
- *  page du CRM agent. */
-export const KYC_LAB_GUARD_ROUTE_PREFIX = '/dashboard/kyc'
-
 /** Cle de la lecture agence de ce garde (prefixe : l'agencyId suit). Exportee pour
  *  que l'ecran « statut indisponible » puisse relancer la lecture sans dupliquer
  *  la chaine ni redecouvrir l'agencyId. */
