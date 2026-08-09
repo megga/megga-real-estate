@@ -39,7 +39,7 @@ export function PfChip({ name, c, size = 34 }: { name: PfIconName; c: PfColors; 
 
 function PfSeal({ c, label }: { c: PfColors; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 24, padding: '0 10px 0 8px', borderRadius: 999, background: c.blue, color: '#fff', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', height: 24, padding: '0 var(--crm-space-lg) 0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: c.blue, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
       <PfIc name="seal" size={13} stroke="#fff" sw={1.9} />{label}
     </span>
   )
@@ -47,19 +47,19 @@ function PfSeal({ c, label }: { c: PfColors; label: string }) {
 
 function PfTag({ c, label }: { c: PfColors; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 11px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, background: c.orange, color: '#fff' }}>{label}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, background: c.orange, color: '#fff' }}>{label}</span>
   )
 }
 
 function PfGhost({ c, children, onClick }: { c: PfColors; children: ReactNode; onClick?: () => void }) {
   return (
-    <button onClick={onClick} style={{ height: 32, padding: '0 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, color: c.ink, background: c.card, border: c.hair, boxShadow: c.shadowSm }}>{children}</button>
+    <button onClick={onClick} style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, color: c.ink, background: c.card, border: c.hair, boxShadow: c.shadowSm }}>{children}</button>
   )
 }
 
 export function PfAvatar({ c, photo, initials, size = 62 }: { c: PfColors; photo?: string | null; initials: string; size?: number }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: 999, flexShrink: 0, overflow: 'hidden', boxShadow: '0 10px 26px -12px rgba(11,12,14,0.45)',
+    <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, overflow: 'hidden', boxShadow: '0 10px 26px -12px rgba(11,12,14,0.45)',
       background: photo ? `#0B0C0E center/cover no-repeat url("${photo}")` : c.ink, color: c.dark ? '#0B0C0E' : '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 700, letterSpacing: -0.5 }}>
       {photo ? null : initials}
     </div>
@@ -86,40 +86,40 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
     else if (e.key === 'Enter' && !(row.multiline && e.shiftKey)) { e.preventDefault(); onSave() }
   }
   return (
-    <div className="pfx-row" style={{ display: 'flex', alignItems: blockEdit ? 'flex-start' : 'center', gap: 13, padding: '10px 10px', borderRadius: 12, minWidth: 0, background: editing ? c.editBg : 'transparent' }}>
+    <div className="pfx-row" style={{ display: 'flex', alignItems: blockEdit ? 'flex-start' : 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', minWidth: 0, background: editing ? c.editBg : 'transparent' }}>
       <PfChip name={row.icon} c={c} size={34} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.2, textTransform: 'uppercase', color: c.sub }}>{row.label}</div>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, textTransform: 'uppercase', color: c.sub }}>{row.label}</div>
         {editing ? (
           row.multiline ? (
             <textarea ref={inputRef as RefObject<HTMLTextAreaElement>} className="pfx-inp pfx-edit-in" value={draft} placeholder={row.placeholder} rows={4}
               onChange={(e) => setDraft(e.target.value)} onKeyDown={onKey}
-              style={{ width: '100%', marginTop: 6, borderRadius: 12, border: 0, background: c.inputBg, color: c.ink, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 500, lineHeight: 1.5, padding: '10px 12px', outline: 'none', resize: 'vertical', boxShadow: `0 0 0 1.5px ${c.hairSoft} inset` }} />
+              style={{ width: '100%', marginTop: 6, borderRadius: 'var(--crm-radius-lg)', border: 0, background: c.inputBg, color: c.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.5, padding: 'var(--crm-space-lg) var(--crm-space-xl)', outline: 'none', resize: 'vertical', boxShadow: `0 0 0 1.5px ${c.hairSoft} inset` }} />
           ) : row.chips ? (
-            <div className="pfx-edit-in" style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 7 }}>
+            <div className="pfx-edit-in" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)', marginTop: 7 }}>
               {row.chips.map((opt) => {
                 const set = (draft || '').split(',').map((s) => s.trim()).filter(Boolean)
                 const on = set.includes(opt)
                 return (
                   <button key={opt} onClick={() => { const next = on ? set.filter((x) => x !== opt) : [...set, opt]; setDraft(next.join(', ')) }}
-                    style={{ height: 32, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', background: on ? c.ink : c.cardSub, color: on ? c.onInk : c.soft }}>{opt}</button>
+                    style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', background: on ? c.ink : c.cardSub, color: on ? c.onInk : c.soft }}>{opt}</button>
                 )
               })}
             </div>
           ) : row.options ? (
-            <div className="pfx-edit-in" style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 7 }}>
+            <div className="pfx-edit-in" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)', marginTop: 7 }}>
               {row.options.map((o) => {
                 const on = o.id === draft
                 return (
                   <button key={o.id} onClick={() => setDraft(o.id)}
-                    style={{ height: 32, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, textAlign: 'left', background: on ? c.ink : c.cardSub, color: on ? c.onInk : c.soft }}>{o.label}</button>
+                    style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, textAlign: 'left', background: on ? c.ink : c.cardSub, color: on ? c.onInk : c.soft }}>{o.label}</button>
                 )
               })}
             </div>
           ) : (
             <input ref={inputRef as RefObject<HTMLInputElement>} className="pfx-inp pfx-edit-in" value={draft} placeholder={row.placeholder} type="text"
               onChange={(e) => setDraft(e.target.value)} onKeyDown={onKey}
-              style={{ width: '100%', height: 38, marginTop: 4, borderRadius: 10, border: 0, background: c.inputBg, color: c.ink, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, padding: '0 12px', outline: 'none', boxShadow: `0 0 0 1.5px ${c.hairSoft} inset` }} />
+              style={{ width: '100%', height: 38, marginTop: 4, borderRadius: 'var(--crm-radius-md)', border: 0, background: c.inputBg, color: c.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, padding: '0 var(--crm-space-xl)', outline: 'none', boxShadow: `0 0 0 1.5px ${c.hairSoft} inset` }} />
           )
         ) : !empty ? (
           <div style={{ fontSize: row.multiline ? 13 : 14, fontWeight: row.multiline ? 500 : 700, letterSpacing: -0.2, color: row.multiline ? c.sub : c.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: row.multiline ? 3 : 1, maxWidth: row.multiline ? 420 : 'none' }}>
@@ -138,18 +138,18 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
         ) : null}
       </div>
       {editing ? (
-        <div className="pfx-ctrl-in" style={{ display: 'flex', alignItems: 'center', gap: 8, alignSelf: blockEdit ? 'flex-start' : 'center', marginTop: blockEdit ? 6 : 0 }}>
-          <button onClick={onCancel} title={labels.cancel} style={{ width: 34, height: 34, borderRadius: 999, border: 0, cursor: 'pointer', background: c.card, color: c.sub, display: 'grid', placeItems: 'center', boxShadow: c.shadowSm }}>
+        <div className="pfx-ctrl-in" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', alignSelf: blockEdit ? 'flex-start' : 'center', marginTop: blockEdit ? 6 : 0 }}>
+          <button onClick={onCancel} title={labels.cancel} style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: c.card, color: c.sub, display: 'grid', placeItems: 'center', boxShadow: c.shadowSm }}>
             <PfIc name="x" size={15} stroke={c.sub} sw={1.9} />
           </button>
-          <button onClick={onSave} title={labels.save} style={{ width: 34, height: 34, borderRadius: 999, border: 0, cursor: 'pointer', background: c.ink, color: c.onInk, display: 'grid', placeItems: 'center', boxShadow: c.shadowSm }}>
+          <button onClick={onSave} title={labels.save} style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: c.ink, color: c.onInk, display: 'grid', placeItems: 'center', boxShadow: c.shadowSm }}>
             <PfIc name="check" size={16} stroke={c.onInk} sw={2.3} />
           </button>
         </div>
       ) : row.locked ? (
         <span title={row.hint} style={{ display: 'inline-flex' }}><PfIc name="lock" size={15} stroke={c.ghost} /></span>
       ) : saved ? (
-        <span className="pfx-ctrl-in" style={{ display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 14px', borderRadius: 999, background: c.green, color: '#fff', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <span className="pfx-ctrl-in" style={{ display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: c.green, color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
           {labels.saved}
         </span>
       ) : (
@@ -167,11 +167,11 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
 export function PfSwitch({ c, on, onClick }: { c: PfColors; on: boolean; onClick?: () => void }) {
   return (
     <button onClick={onClick} role="switch" aria-checked={on} style={{
-      width: 44, height: 26, borderRadius: 999, border: 0, cursor: 'pointer', flexShrink: 0,
+      width: 44, height: 26, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', flexShrink: 0,
       background: on ? c.ink : (c.dark ? 'rgba(255,255,255,0.16)' : '#D5DAE2'),
       position: 'relative', transition: 'background .22s ease', padding: 0,
     }}>
-      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 999, background: c.dark && on ? '#0B0C0E' : '#fff', transition: 'left .22s cubic-bezier(.2,.8,.2,1)', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} />
+      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: c.dark && on ? '#0B0C0E' : '#fff', transition: 'left .22s cubic-bezier(.2,.8,.2,1)', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} />
     </button>
   )
 }
@@ -260,19 +260,19 @@ export function PfPhotoModal({ c, initial, onCancel, onSave, labels }: {
   }
 
   return (
-    <div onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 500, background: mOverlay, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: mCard, borderRadius: 26, padding: 26, width: 384, maxWidth: '100%', boxShadow: mShadow, animation: 'pfxEditIn .28s cubic-bezier(.2,.8,.2,1) both' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+    <div onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 500, background: mOverlay, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'grid', placeItems: 'center', padding: 'var(--crm-space-5xl)' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: mCard, borderRadius: 'var(--crm-radius-6xl)', padding: 26, width: 384, maxWidth: '100%', boxShadow: mShadow, animation: 'pfxEditIn .28s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', marginBottom: 20 }}>
           <PfIc name="camera" size={24} stroke={c.ink} sw={1.7} />
-          <h3 style={{ flex: 1, margin: 0, fontSize: 18, fontWeight: 800, color: c.ink, letterSpacing: -0.4 }}>{labels.title}</h3>
-          <button onClick={onCancel} style={{ width: 34, height: 34, border: 0, borderRadius: 999, background: mBtnSub, color: c.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+          <h3 style={{ flex: 1, margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: c.ink, letterSpacing: -0.4 }}>{labels.title}</h3>
+          <button onClick={onCancel} style={{ width: 34, height: 34, border: 0, borderRadius: 'var(--crm-radius-pill)', background: mBtnSub, color: c.sub, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
             <PfIc name="x" size={14} stroke={c.sub} sw={2.2} />
           </button>
         </div>
 
         <div style={{ display: 'grid', placeItems: 'center', marginBottom: 20 }}>
           <div onPointerDown={onDown} onClick={() => { if (!src && fileRef.current) fileRef.current.click() }}
-            style={{ position: 'relative', width: D, height: D, borderRadius: 999, overflow: 'hidden', clipPath: 'circle(50% at 50% 50%)', WebkitClipPath: 'circle(50% at 50% 50%)',
+            style={{ position: 'relative', width: D, height: D, borderRadius: 'var(--crm-radius-pill)', overflow: 'hidden', clipPath: 'circle(50% at 50% 50%)', WebkitClipPath: 'circle(50% at 50% 50%)',
               backgroundColor: mView,
               backgroundImage: src ? `url("${src}")` : 'none',
               backgroundRepeat: 'no-repeat',
@@ -281,19 +281,19 @@ export function PfPhotoModal({ c, initial, onCancel, onSave, labels }: {
               cursor: src ? 'grab' : 'pointer', touchAction: 'none' }}>
             {!src && (
               <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-                <span style={{ display: 'grid', placeItems: 'center', gap: 9 }}>
+                <span style={{ display: 'grid', placeItems: 'center', gap: 'var(--crm-space-md)' }}>
                   <PfIc name="camera" size={30} stroke={c.ghost} sw={1.6} />
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: c.sub }}>{labels.choose}</span>
+                  <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: c.sub }}>{labels.choose}</span>
                 </span>
               </div>
             )}
-            <div style={{ position: 'absolute', inset: 0, borderRadius: 999, boxShadow: `0 0 0 3px ${mCard}, 0 0 0 4px ${mRing}`, pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: 'var(--crm-radius-pill)', boxShadow: `0 0 0 3px ${mCard}, 0 0 0 4px ${mRing}`, pointerEvents: 'none' }} />
           </div>
           {src && <img ref={imgRef} src={src} alt="" crossOrigin="anonymous" onLoad={onImgLoad} style={{ display: 'none' }} />}
         </div>
 
         {src && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, padding: '0 4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', marginBottom: 22, padding: '0 var(--crm-space-xs)' }}>
             <PfIc name="image" size={16} stroke={c.sub} sw={1.7} />
             <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(e) => changeZoom(parseFloat(e.target.value))}
               style={{ flex: 1, accentColor: c.ink, height: 4, cursor: 'pointer' }} />
@@ -302,13 +302,13 @@ export function PfPhotoModal({ c, initial, onCancel, onSave, labels }: {
 
         <input ref={fileRef} type="file" accept="image/*" onChange={onFile} style={{ display: 'none' }} />
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)' }}>
           {src ? (
-            <button onClick={() => fileRef.current && fileRef.current.click()} style={{ height: 44, padding: '0 16px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: 'transparent', color: c.sub }}>{labels.change}</button>
+            <button onClick={() => fileRef.current && fileRef.current.click()} style={{ height: 44, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: 'transparent', color: c.sub }}>{labels.change}</button>
           ) : <span />}
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={onCancel} style={{ height: 44, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: mBtnSub, color: c.soft }}>{labels.cancel}</button>
-            <button onClick={commit} disabled={!src} style={{ height: 44, padding: '0 22px', borderRadius: 999, border: 0, cursor: src ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: src ? c.ink : c.ghost, color: c.onInk }}>{labels.save}</button>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-lg)' }}>
+            <button onClick={onCancel} style={{ height: 44, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: mBtnSub, color: c.soft }}>{labels.cancel}</button>
+            <button onClick={commit} disabled={!src} style={{ height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: src ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: src ? c.ink : c.ghost, color: c.onInk }}>{labels.save}</button>
           </div>
         </div>
       </div>

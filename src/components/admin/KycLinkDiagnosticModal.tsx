@@ -132,11 +132,11 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
   }
 
   const champ = {
-    width: '100%', height: 36, padding: '0 11px', borderRadius: ADMIN_RADII.row,
+    width: '100%', height: 36, padding: '0 var(--crm-space-lg)', borderRadius: ADMIN_RADII.row,
     background: surf.cardSub, border: surf.hairline, color: sp.ink,
-    fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
   } as const
-  const libelle = { display: 'block', marginBottom: 5, fontSize: 11.5, fontWeight: 700, color: sp.sub } as const
+  const libelle = { display: 'block', marginBottom: 5, fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.sub } as const
 
   return (
     // ⛔ PAS de `className="megga-admin-console"` ici, et c'est mesuré : la feuille
@@ -154,26 +154,26 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
       description={t('kycDiag.subtitle')}
       size="lg"
     >
-      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ padding: 'var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-5xl)' }}>
 
         {/* ── Temps 1 : le motif ───────────────────────────────────────────── */}
         <div>
-          <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
             {t('kycDiag.step1')}
           </div>
           {agencesEnVol ? (
             <AdminSkeleton height={36} />
           ) : agencesEnEchec ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 12.5, color: tones.err }}>{t('common.loadError')}</span>
-              <AdminGhostBtn onClick={() => void refetch()} style={{ height: 28, fontSize: 11.5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
+              <span style={{ fontSize: 'var(--crm-text-md)', color: tones.err }}>{t('common.loadError')}</span>
+              <AdminGhostBtn onClick={() => void refetch()} style={{ height: 28, fontSize: 'var(--crm-text-sm)' }}>
                 {t('common.retry')}
               </AdminGhostBtn>
             </div>
           ) : agencies.length === 0 ? (
-            <span style={{ fontSize: 12.5, color: sp.sub }}>{t('kycDiag.noAgency')}</span>
+            <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub }}>{t('kycDiag.noAgency')}</span>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
               <div>
                 <label htmlFor={agencyFieldId} style={libelle}>{t('kycDiag.agency')}</label>
                 <select
@@ -203,10 +203,10 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
 
         {/* ── Temps 2 : la recherche ───────────────────────────────────────── */}
         <div style={{ opacity: motifComplet ? 1 : 0.45, pointerEvents: motifComplet ? 'auto' : 'none' }}>
-          <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
             {t('kycDiag.step2')}
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
               <label htmlFor={queryFieldId} style={libelle}>{t('kycDiag.query')}</label>
               <input
@@ -223,7 +223,7 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
               {t('kycDiag.search')}
             </AdminSolidBtn>
           </div>
-          <div style={{ marginTop: 6, fontSize: 11, fontWeight: 500, color: sp.sub }}>
+          <div style={{ marginTop: 6, fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub }}>
             {t('kycDiag.queryHint', { min: KYC_QUERY_MIN })}
           </div>
         </div>
@@ -231,56 +231,56 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
         {/* ── Temps 3 : les correspondances ────────────────────────────────── */}
         {(lookup.isPending || resultat || lookup.isError) && (
           <div>
-            <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
+            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
               {t('kycDiag.step3')}
             </div>
 
             {lookup.isPending ? (
               <AdminSkeleton height={92} />
             ) : lookup.isError ? (
-              <div style={{ fontSize: 12.5, color: tones.err }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', color: tones.err }}>
                 {lookup.error instanceof Error ? lookup.error.message : t('common.loadError')}
               </div>
             ) : resultat?.kind === 'too_many' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', borderRadius: ADMIN_RADII.row, background: surf.cardSub }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: ADMIN_RADII.row, background: surf.cardSub }}>
                 <AdminIc icon={ShieldAlert} size={15} color={tones.warn} />
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: sp.ink }}>
+                <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink }}>
                   {resultat.messageFr} {t('kycDiag.tooManyCount', { count: resultat.count })}
                 </span>
               </div>
             ) : resultat?.kind === 'refused' ? (
               // Le message du serveur, VERBATIM : c'est le seul texte juste, et
               // `admin_error` garantit qu'il n'est pas vide.
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', borderRadius: ADMIN_RADII.row, background: surf.cardSub }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: ADMIN_RADII.row, background: surf.cardSub }}>
                 <AdminIc icon={ShieldAlert} size={15} color={tones.err} />
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: sp.ink }}>{resultat.messageFr}</span>
+                <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink }}>{resultat.messageFr}</span>
               </div>
             ) : resultat && resultat.matches.length === 0 ? (
               <AdminEmpty icon={Search} title={t('kycDiag.noMatch')} hint={t('kycDiag.noMatchHint')} />
             ) : resultat ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
                 {resultat.matches.map(m => {
                   const etape = STATUS_STEP[m.status] ?? -1
                   const reemissionPossible = canRegenerate(m.status)
                   return (
-                    <div key={m.link_id} style={{ padding: '13px 14px', borderRadius: ADMIN_RADII.card, background: surf.cardSub }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+                    <div key={m.link_id} style={{ padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: ADMIN_RADII.card, background: surf.cardSub }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
                           {m.contact ?? t('common.noName')}
                         </span>
                         <AdminPill
                           label={STATUS_LABEL_KEY[m.status] ? t(STATUS_LABEL_KEY[m.status]) : m.status}
                           tone={m.status === 'submitted' ? 'ok' : m.status === 'expired' ? 'err' : 'info'}
                         />
-                        {m.mode && <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub }}>{m.mode}</span>}
+                        {m.mode && <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub }}>{m.mode}</span>}
                       </div>
 
-                      <div style={{ marginTop: 4, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                      <div style={{ marginTop: 4, fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub }}>
                         {[m.email, m.phone, m.agency].filter(Boolean).join(' · ')}
                       </div>
 
                       {/* Frise : l'étape atteinte, jamais une pièce. */}
-                      <div style={{ marginTop: 11, display: 'flex', gap: 6 }}>
+                      <div style={{ marginTop: 11, display: 'flex', gap: 'var(--crm-space-sm)' }}>
                         {STEPS.map((s, i) => (
                           <div key={s} style={{ flex: 1 }}>
                             <div style={{
@@ -288,15 +288,15 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
                               background: etape >= i ? sp.ink : sp.sub,
                               opacity: etape >= i ? 1 : 0.25,
                             }} />
-                            <div style={{ marginTop: 5, fontSize: 10.5, fontWeight: 600, color: etape >= i ? sp.ink : sp.sub }}>
+                            <div style={{ marginTop: 5, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: etape >= i ? sp.ink : sp.sub }}>
                               {t(`kycDiag.step.${s}`)}
                             </div>
                           </div>
                         ))}
                       </div>
 
-                      <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                      <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', flexWrap: 'wrap' }}>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub }}>
                           {m.email_sent_at
                             ? t('kycDiag.emailSentAt', { date: new Date(m.email_sent_at).toLocaleDateString('fr-CH') })
                             : t('kycDiag.emailNeverSent')}
@@ -305,14 +305,14 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
                           <AdminGhostBtn
                             onClick={() => reemettre(m)}
                             disabled={regenerate.isPending}
-                            style={{ height: 30, fontSize: 12 }}
+                            style={{ height: 30, fontSize: 'var(--crm-text-md)' }}
                           >
                             {t('kycDiag.regenerate')}
                           </AdminGhostBtn>
                         ) : (
                           // Désactiver ET dire pourquoi : un bouton grisé sans
                           // raison se lit comme une panne (É3).
-                          <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub }}>
+                          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub }}>
                             {t(`kycDiag.regenBlocked.${m.status}`)}
                           </span>
                         )}
@@ -327,18 +327,18 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
 
         {flash && (
           <div style={{
-            padding: '11px 13px', borderRadius: ADMIN_RADII.row, background: surf.cardSub,
-            fontSize: 12.5, fontWeight: 600, color: flash.tone === 'ok' ? sp.ink : tones.err,
+            padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: ADMIN_RADII.row, background: surf.cardSub,
+            fontSize: 'var(--crm-text-md)', fontWeight: 600, color: flash.tone === 'ok' ? sp.ink : tones.err,
           }}>
             {flash.text}
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4, borderTop: surf.hairline, marginTop: 2 }}>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: 500, color: sp.sub, paddingTop: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', paddingTop: 'var(--crm-space-xs)', borderTop: surf.hairline, marginTop: 2 }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, paddingTop: 'var(--crm-space-xl)' }}>
             {t('kycDiag.audited')}
           </span>
-          <AdminGhostBtn onClick={onGoToJournal} style={{ height: 28, fontSize: 11.5, marginTop: 12 }}>
+          <AdminGhostBtn onClick={onGoToJournal} style={{ height: 28, fontSize: 'var(--crm-text-sm)', marginTop: 12 }}>
             {t('kycDiag.openJournal')}
           </AdminGhostBtn>
         </div>

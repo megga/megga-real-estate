@@ -2,6 +2,22 @@
 
 > Extrait de CLAUDE.md §4. Les règles de base (direction, thème, tokens) sont dans CLAUDE.md.
 
+> ⚠️ **Depuis le 9 août 2026, la direction par DÉFAUT du CRM est MEGGA X**
+> ([PR #1191](https://github.com/megga/megga-real-estate/pull/1191)). Tout ce
+> document reste exact, mais décrit **Sugar** — désormais la direction
+> alternative, toujours entièrement résolvable et choisissable par l'agent
+> (Réglages › Apparence › Direction). Deux conséquences pour qui écrit du style :
+>
+> - **Ne plus écrire de littéral de rayon, d'espacement ou de taille de texte.**
+>   Ces valeurs sont des variables CSS (`--crm-radius-*`, `--crm-space-*`,
+>   `--crm-text-*`, cf. `src/styles/globals.css`) ; un littéral ne suivrait pas
+>   la direction active. Les couleurs, elles, passent par la palette en prop.
+> - **Un test qui éprouve une propriété de Sugar doit épingler la direction** —
+>   `crmSugarPalette(t, dark, tone, 'sugar')`. Sans le 4ᵉ argument il vérifie la
+>   direction active du moment, donc les surfaces de la vitrine.
+>
+> Détail de la mécanique : CLAUDE.md §3.
+
 ## Sugar Pure — Pipeline v2 (handoff juillet 2026)
 
 Grammaire visuelle des surfaces refondues (Pipeline kanban/liste/timeline, modale

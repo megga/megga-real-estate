@@ -42,20 +42,20 @@ function Row({ a, last }: { a: AgendaRow; last: boolean }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 13,
-        padding: '12px 14px',
+        gap: 'var(--crm-space-xl)',
+        padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
         background: a.now ? tk.cardSubtle : 'transparent',
         boxShadow: last ? 'none' : `inset 0 -1px 0 ${tk.hair}`,
       }}
     >
-      <div style={{ width: 42, flexShrink: 0, fontSize: 12.5, fontWeight: 800, color: a.now ? tk.ink : tk.muted, fontVariantNumeric: 'tabular-nums' }}>
+      <div style={{ width: 42, flexShrink: 0, fontSize: 'var(--crm-text-md)', fontWeight: 800, color: a.now ? tk.ink : tk.muted, fontVariantNumeric: 'tabular-nums' }}>
         {a.time}
       </div>
-      <div style={{ width: 8, height: 8, borderRadius: 999, background: a.color, flexShrink: 0, opacity: a.done ? 0.4 : 1 }} />
+      <div style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: a.color, flexShrink: 0, opacity: a.done ? 0.4 : 1 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize: 13.5,
+            fontSize: 'var(--crm-text-lg)',
             fontWeight: 700,
             color: a.done ? tk.muted : tk.ink,
             letterSpacing: -0.2,
@@ -69,14 +69,14 @@ function Row({ a, last }: { a: AgendaRow; last: boolean }) {
           {a.label}
         </div>
         {a.meta ? (
-          <div style={{ fontSize: 11.5, color: tk.muted, fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', color: tk.muted, fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {a.meta}
           </div>
         ) : null}
       </div>
       {a.done ? <MEIcon name="check" size={16} color={tk.ghost} /> : null}
       {a.now ? (
-        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.3, color: tk.accentInk, background: tk.accent, padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.3, color: tk.accentInk, background: tk.accent, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', whiteSpace: 'nowrap' }}>
           {t('today.agenda.nowBadge')}
         </span>
       ) : null}
@@ -117,20 +117,20 @@ export function MobileAgenda({ demo = false, onSeeAll }: { demo?: boolean; onSee
 
   return (
     <div style={{ marginTop: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11, padding: '0 2px' }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t('today.cockpit.tiles.agenda')}</h3>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11, padding: '0 var(--crm-space-2xs)' }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t('today.cockpit.tiles.agenda')}</h3>
         <button
           type="button"
           onClick={onSeeAll}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 4,
+            gap: 'var(--crm-space-xs)',
             border: 0,
             background: 'transparent',
             cursor: 'pointer',
             fontFamily: 'inherit',
-            fontSize: 12.5,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 700,
             color: tk.muted,
             flexShrink: 0,
@@ -145,10 +145,10 @@ export function MobileAgenda({ demo = false, onSeeAll }: { demo?: boolean; onSee
           style={{
             background: tk.card,
             border: `1px solid ${tk.cardBorder}`,
-            borderRadius: 18,
+            borderRadius: 'var(--crm-radius-3xl)',
             boxShadow: tk.shadowSm,
-            padding: '22px 18px',
-            fontSize: 13.5,
+            padding: 'var(--crm-space-6xl) var(--crm-space-4xl)',
+            fontSize: 'var(--crm-text-lg)',
             fontWeight: 600,
             color: tk.muted,
             textAlign: 'center',
@@ -157,7 +157,7 @@ export function MobileAgenda({ demo = false, onSeeAll }: { demo?: boolean; onSee
           {t('today.agenda.empty')}
         </div>
       ) : (
-        <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 18, boxShadow: tk.shadowSm, overflow: 'hidden' }}>
+        <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-3xl)', boxShadow: tk.shadowSm, overflow: 'hidden' }}>
           {rows.map((a, i) => (
             <Row key={i} a={a} last={i === rows.length - 1} />
           ))}

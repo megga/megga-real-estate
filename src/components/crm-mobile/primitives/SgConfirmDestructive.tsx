@@ -35,13 +35,13 @@ export default function SgConfirmDestructive({
 
   return (
     <SgBottomCard open={open} onClose={onCancel} ariaLabel={title}>
-      <div style={{ padding: '20px 20px 16px' }}>
-        <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>{title}</div>
+      <div style={{ padding: 'var(--crm-space-5xl) var(--crm-space-5xl) var(--crm-space-3xl)' }}>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>{title}</div>
         {message ? (
           <p
             style={{
               margin: '8px 0 0',
-              fontSize: 13.5,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 500,
               lineHeight: 1.45,
               color: tk.inkSoft,
@@ -50,18 +50,18 @@ export default function SgConfirmDestructive({
             {message}
           </p>
         ) : null}
-        <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 18 }}>
           <button
             type="button"
             onClick={onCancel}
             style={{
               flex: 1,
               height: 48,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 14.5,
+              fontSize: 'var(--crm-text-xl)',
               fontWeight: 700,
               color: tk.inkSoft,
               background: tk.cardSubtle,
@@ -75,11 +75,11 @@ export default function SgConfirmDestructive({
             style={{
               flex: 1,
               height: 48,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 14.5,
+              fontSize: 'var(--crm-text-xl)',
               fontWeight: 800,
               color: tk.dangerInk,
               background: tk.danger,

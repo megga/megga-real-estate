@@ -82,7 +82,7 @@ export function KwStepImport({ data, set }: Props) {
     <div style={{ maxWidth: 720, margin: '0 auto', animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
       <style>{`@keyframes kwSpin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ marginBottom: 40, textAlign: 'center' }}>
-        <h1 style={{ margin: 0, fontSize: 38, fontWeight: 700, color: sp.ink, letterSpacing: -0.8, lineHeight: 1.1 }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-9xl)', fontWeight: 700, color: sp.ink, letterSpacing: -0.8, lineHeight: 1.1 }}>
           Déposez le rapport externe
         </h1>
       </div>
@@ -106,38 +106,38 @@ export function KwStepImport({ data, set }: Props) {
         }}
       />
 
-      <div style={{ background: sp.card, borderRadius: 22, boxShadow: sp.shadow, padding: '34px 36px', maxWidth: 560, margin: '0 auto', border: `1px solid ${sp.cardBorder}` }}>
+      <div style={{ background: sp.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: sp.shadow, padding: '34px 36px', maxWidth: 560, margin: '0 auto', border: `1px solid ${sp.cardBorder}` }}>
         {!data.importFile && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, textAlign: 'center' }}>
-            <span style={{ width: 64, height: 64, borderRadius: 999, background: sp.cardSubtle, display: 'grid', placeItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-4xl)', textAlign: 'center' }}>
+            <span style={{ width: 64, height: 64, borderRadius: 'var(--crm-radius-pill)', background: sp.cardSubtle, display: 'grid', placeItems: 'center' }}>
               <SgIcon name="upload" size={26} stroke={sp.ink} />
             </span>
             <KycBlackPill onClick={() => inputRef.current?.click()}>Choisir le fichier</KycBlackPill>
-            <div style={{ fontSize: 12, color: sp.muted, fontWeight: 500 }}>PDF Persona ou partenaire · 7 Mo max</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', color: sp.muted, fontWeight: 500 }}>PDF Persona ou partenaire · 7 Mo max</div>
           </div>
         )}
 
         {reading && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center', padding: '14px 0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-3xl)', textAlign: 'center', padding: 'var(--crm-space-2xl) 0' }}>
             <span
               style={{
                 width: 30,
                 height: 30,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 border: `3px solid ${sp.cardSubtle}`,
                 borderTopColor: sp.ink,
                 animation: 'kwSpin .7s linear infinite',
                 boxSizing: 'border-box',
               }}
             />
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: sp.ink }}>MEGGA lit les contrôles…</div>
-            <div style={{ fontSize: 12.5, color: sp.muted, fontWeight: 500 }}>{data.importFile?.name}</div>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>MEGGA lit les contrôles…</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', color: sp.muted, fontWeight: 500 }}>{data.importFile?.name}</div>
           </div>
         )}
 
         {error && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center', padding: '10px 0' }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: sp.errDarker }}>{error}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-2xl)', textAlign: 'center', padding: 'var(--crm-space-lg) 0' }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.errDarker }}>{error}</div>
             <KycBlackPill onClick={() => { set({ importFile: null, importParsed: null }); setError(null); runRef.current = null }}>
               Réessayer
             </KycBlackPill>
@@ -146,24 +146,24 @@ export function KwStepImport({ data, set }: Props) {
 
         {data.importParsed && !error && (
           <div style={{ animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 14, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', paddingBottom: 'var(--crm-space-2xl)', minWidth: 0 }}>
               <SgIcon name="doc" size={14} stroke={sp.inkSoft} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {data.importFile?.name}
               </span>
             </div>
             {data.importParsed.checks.map((c) => (
-              <div key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: `1px solid ${sp.cardSubtle}` }}>
-                <span style={{ width: 24, height: 24, borderRadius: 999, background: sp.black, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <div key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) 0', borderBottom: `1px solid ${sp.cardSubtle}` }}>
+                <span style={{ width: 24, height: 24, borderRadius: 'var(--crm-radius-pill)', background: sp.black, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                   <SgIcon name="check" size={12} stroke={sp.onAccent} sw={2.4} />
                 </span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap' }}>{c.key}</span>
-                <span style={{ fontSize: 12.5, color: sp.muted, fontWeight: 500, marginLeft: 'auto', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap' }}>{c.key}</span>
+                <span style={{ fontSize: 'var(--crm-text-md)', color: sp.muted, fontWeight: 500, marginLeft: 'auto', textAlign: 'right', whiteSpace: 'nowrap' }}>
                   {c.result}
                 </span>
               </div>
             ))}
-            <div style={{ marginTop: 16, fontSize: 12.5, color: sp.muted, fontWeight: 600 }}>
+            <div style={{ marginTop: 16, fontSize: 'var(--crm-text-md)', color: sp.muted, fontWeight: 600 }}>
               Pré-remplis depuis le rapport — à valider. Restent le domicile et la source des fonds.
             </div>
           </div>

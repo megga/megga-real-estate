@@ -212,18 +212,18 @@ function StatusPill({ item, t }: { item: Integration; t: TFunction }) {
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 'var(--crm-space-sm)',
           height: 24,
-          padding: '0 10px',
-          borderRadius: 999,
+          padding: '0 var(--crm-space-lg)',
+          borderRadius: 'var(--crm-radius-pill)',
           background: SET.ok,
           color: '#FFFFFF',
-          fontSize: 11,
+          fontSize: 'var(--crm-text-sm)',
           fontWeight: 700,
           letterSpacing: -0.05,
         }}
       >
-        <span style={{ width: 5, height: 5, borderRadius: 999, background: '#FFFFFF' }} />
+        <span style={{ width: 5, height: 5, borderRadius: 'var(--crm-radius-pill)', background: '#FFFFFF' }} />
         {t('integrations.status.connected')}
       </span>
     )
@@ -234,13 +234,13 @@ function StatusPill({ item, t }: { item: Integration; t: TFunction }) {
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 'var(--crm-space-sm)',
           height: 24,
-          padding: '0 10px',
-          borderRadius: 999,
+          padding: '0 var(--crm-space-lg)',
+          borderRadius: 'var(--crm-radius-pill)',
           background: SET.cardSubtle,
           color: SET.muted,
-          fontSize: 11,
+          fontSize: 'var(--crm-text-sm)',
           fontWeight: 700,
           letterSpacing: -0.05,
         }}
@@ -272,15 +272,15 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
       onMouseLeave={() => setHover(false)}
       style={{
         background: SET.card,
-        borderRadius: 20,
-        padding: 22,
+        borderRadius: 'var(--crm-radius-4xl)',
+        padding: 'var(--crm-space-6xl)',
         boxShadow: hover ? SET.shadowHover : SET.shadow,
         cursor: 'pointer',
         transition: 'all .2s ease',
         transform: hover ? 'translateY(-2px)' : 'translateY(0)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
+        gap: 'var(--crm-space-2xl)',
         minHeight: 184,
         position: 'relative',
       }}
@@ -289,12 +289,12 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
         <StatusPill item={item} t={t} />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
         <IntegrationLogo item={item} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: 10.5,
+              fontSize: 'var(--crm-text-xs)',
               fontWeight: 700,
               color: SET.muted,
               letterSpacing: 0.6,
@@ -305,7 +305,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
           </div>
           <div
             style={{
-              fontSize: 15.5,
+              fontSize: 'var(--crm-text-2xl)',
               fontWeight: 700,
               color: SET.ink,
               letterSpacing: -0.2,
@@ -323,7 +323,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
       <p
         style={{
           margin: 0,
-          fontSize: 13,
+          fontSize: 'var(--crm-text-lg)',
           color: SET.inkSoft,
           fontWeight: 500,
           lineHeight: 1.55,
@@ -343,8 +343,8 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 10,
-          paddingTop: 12,
+          gap: 'var(--crm-space-lg)',
+          paddingTop: 'var(--crm-space-xl)',
           borderTop: `1px solid ${SET.line}`,
         }}
       >
@@ -353,7 +353,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
             <div style={{ minWidth: 0, marginRight: 10 }}>
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: 'var(--crm-text-md)',
                   color: SET.ink,
                   fontWeight: 600,
                   whiteSpace: 'nowrap',
@@ -363,7 +363,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
               >
                 {item.account || t('integrations.card.linkedAccount')}
               </div>
-              <div style={{ fontSize: 11, color: SET.muted, fontWeight: 500 }}>{t('integrations.card.synced')}</div>
+              <div style={{ fontSize: 'var(--crm-text-sm)', color: SET.muted, fontWeight: 500 }}>{t('integrations.card.synced')}</div>
             </div>
             <button
               onClick={e => {
@@ -372,13 +372,13 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
               }}
               style={{
                 height: 32,
-                padding: '0 14px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-2xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: SET.cardSubtle,
                 color: SET.err,
                 fontFamily: 'inherit',
-                fontSize: 12,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 600,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
@@ -390,20 +390,20 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
         ) : item.onRequest ? (
           // État HONNÊTE pour DocuSign / Skribble : aucun backend, pas de faux OAuth.
           <>
-            <span style={{ fontSize: 11.5, color: SET.muted, fontWeight: 500, lineHeight: 1.4, maxWidth: 150 }}>
+            <span style={{ fontSize: 'var(--crm-text-sm)', color: SET.muted, fontWeight: 500, lineHeight: 1.4, maxWidth: 150 }}>
               {t('integrations.card.assistedActivation')}
             </span>
             <button
               onClick={e => e.stopPropagation()}
               style={{
                 height: 32,
-                padding: '0 14px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-2xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: SET.cardSubtle,
                 color: SET.inkSoft,
                 fontFamily: 'inherit',
-                fontSize: 12,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 600,
                 cursor: 'default',
                 whiteSpace: 'nowrap',
@@ -414,7 +414,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
           </>
         ) : (
           <>
-            <span style={{ fontSize: 12, color: SET.muted, fontWeight: 500 }}>{t('integrations.status.notConnected')}</span>
+            <span style={{ fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 500 }}>{t('integrations.status.notConnected')}</span>
             <button
               onClick={e => {
                 e.stopPropagation()
@@ -423,18 +423,18 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
               disabled={connecting}
               style={{
                 height: 32,
-                padding: '0 14px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-2xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: SET.black,
                 color: SET.blackInk,
                 fontFamily: 'inherit',
-                fontSize: 12,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 700,
                 cursor: connecting ? 'wait' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 'var(--crm-space-sm)',
                 whiteSpace: 'nowrap',
                 opacity: connecting ? 0.7 : 1,
               }}
@@ -445,7 +445,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
                     style={{
                       width: 11,
                       height: 11,
-                      borderRadius: 999,
+                      borderRadius: 'var(--crm-radius-pill)',
                       border: `2px solid ${SET.blackInk}4d`,
                       borderTopColor: SET.blackInk,
                       animation: 'setSpin .7s linear infinite',
@@ -477,18 +477,18 @@ const CAL_SYNC_DEFAULT: CalSyncPrefs = { direction: 'two', megga: true, perso: t
 
 function CalSyncSwitch({ on, onClick }: { on: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{ width: 38, height: 22, borderRadius: 999, border: 0, background: on ? SET.black : '#D1D5DB', position: 'relative', cursor: 'pointer', transition: 'background .2s', flexShrink: 0 }}>
-      <span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: 999, background: on ? SET.blackInk : '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+    <button onClick={onClick} style={{ width: 38, height: 22, borderRadius: 'var(--crm-radius-pill)', border: 0, background: on ? SET.black : '#D1D5DB', position: 'relative', cursor: 'pointer', transition: 'background .2s', flexShrink: 0 }}>
+      <span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: 'var(--crm-radius-pill)', background: on ? SET.blackInk : '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
     </button>
   )
 }
 
 function CalSyncRow({ label, meta, on, onToggle, last }: { label: string; meta: string; on: boolean; onToggle: () => void; last?: boolean }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderBottom: last ? 'none' : `1px solid ${SET.line}` }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderBottom: last ? 'none' : `1px solid ${SET.line}` }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, color: SET.ink, fontWeight: 600 }}>{label}</div>
-        <div style={{ fontSize: 11.5, color: SET.muted, fontWeight: 500, marginTop: 1 }}>{meta}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', color: SET.ink, fontWeight: 600 }}>{label}</div>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: SET.muted, fontWeight: 500, marginTop: 1 }}>{meta}</div>
       </div>
       <CalSyncSwitch on={on} onClick={onToggle} />
     </div>
@@ -518,27 +518,27 @@ function CalendarSyncPanel({ provider, t }: { provider: 'google' | 'microsoft'; 
   ]
   return (
     <div style={{ marginBottom: 22 }}>
-      <div style={{ fontSize: 10.5, fontWeight: 700, color: SET.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 }}>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SET.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 }}>
         {t('integrations.calSync.title')}
       </div>
-      <div style={{ display: 'flex', gap: 4, background: SET.cardSubtle, borderRadius: 12, padding: 4, marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-xs)', background: SET.cardSubtle, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-xs)', marginBottom: 12 }}>
         {DIRS.map(dir => {
           const on = sync.direction === dir.k
           return (
-            <button key={dir.k} onClick={() => patch({ direction: dir.k })} style={{ flex: 1, height: 34, borderRadius: 9, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, background: on ? SET.black : 'transparent', color: on ? SET.blackInk : SET.muted, transition: 'background .15s' }}>
+            <button key={dir.k} onClick={() => patch({ direction: dir.k })} style={{ flex: 1, height: 34, borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, background: on ? SET.black : 'transparent', color: on ? SET.blackInk : SET.muted, transition: 'background .15s' }}>
               {dir.l}
             </button>
           )
         })}
       </div>
-      <div style={{ background: SET.cardSubtle, borderRadius: 14, overflow: 'hidden' }}>
+      <div style={{ background: SET.cardSubtle, borderRadius: 'var(--crm-radius-xl)', overflow: 'hidden' }}>
         <CalSyncRow label={t('integrations.calSync.meggaRow')} meta={t('integrations.calSync.meggaMeta')} on={sync.megga} onToggle={() => patch({ megga: !sync.megga })} />
         <CalSyncRow label={t('integrations.calSync.persoRow')} meta={t('integrations.calSync.persoMeta')} on={sync.perso} onToggle={() => patch({ perso: !sync.perso })} />
         <CalSyncRow label={t('integrations.calSync.holidaysRow')} meta={t('integrations.calSync.holidaysMeta')} on={sync.holidays} onToggle={() => patch({ holidays: !sync.holidays })} last />
       </div>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 12, background: SET.cardSubtle, borderRadius: 12, padding: '11px 13px' }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'flex-start', marginTop: 12, background: SET.cardSubtle, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg) var(--crm-space-xl)' }}>
         <SetIcon name="lock" size={15} stroke={SET.muted} />
-        <div style={{ fontSize: 11.5, fontWeight: 500, color: SET.inkSoft, lineHeight: 1.5 }}>{t('integrations.calSync.lbaNote')}</div>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: SET.inkSoft, lineHeight: 1.5 }}>{t('integrations.calSync.lbaNote')}</div>
       </div>
     </div>
   )
@@ -588,7 +588,7 @@ function DetailsModal({
         onClick={e => e.stopPropagation()}
         style={{
           background: SET.card,
-          borderRadius: 24,
+          borderRadius: 'var(--crm-radius-5xl)',
           padding: 32,
           maxWidth: 540,
           width: '92%',
@@ -596,12 +596,12 @@ function DetailsModal({
           animation: 'setScaleIn .25s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)', marginBottom: 22 }}>
           <IntegrationLogo item={item} size={56} />
           <div style={{ flex: 1 }}>
             <div
               style={{
-                fontSize: 11,
+                fontSize: 'var(--crm-text-sm)',
                 fontWeight: 700,
                 color: SET.muted,
                 letterSpacing: 0.6,
@@ -613,7 +613,7 @@ function DetailsModal({
             <h3
               style={{
                 margin: '2px 0 0',
-                fontSize: 22,
+                fontSize: 'var(--crm-text-4xl)',
                 fontWeight: 700,
                 color: SET.ink,
                 letterSpacing: -0.4,
@@ -627,7 +627,7 @@ function DetailsModal({
             style={{
               width: 36,
               height: 36,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               background: SET.cardSubtle,
               cursor: 'pointer',
@@ -640,15 +640,15 @@ function DetailsModal({
           </button>
         </div>
 
-        <p style={{ margin: '0 0 22px', fontSize: 14, color: SET.inkSoft, lineHeight: 1.55 }}>
+        <p style={{ margin: '0 0 22px', fontSize: 'var(--crm-text-xl)', color: SET.inkSoft, lineHeight: 1.55 }}>
           {t(item.descKey)}
         </p>
 
         {item.connected ? (
-          <div style={{ padding: '14px 16px', borderRadius: 14, background: SET.cardSubtle, marginBottom: 18 }}>
+          <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-xl)', background: SET.cardSubtle, marginBottom: 18 }}>
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: 'var(--crm-text-xs)',
                 fontWeight: 700,
                 color: SET.muted,
                 letterSpacing: 0.6,
@@ -658,7 +658,7 @@ function DetailsModal({
             >
               {t('integrations.details.activeConnection')}
             </div>
-            <div style={{ fontSize: 13.5, color: SET.ink, fontWeight: 600 }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', color: SET.ink, fontWeight: 600 }}>
               {item.account || t('integrations.card.linkedAccount')}
             </div>
           </div>
@@ -666,17 +666,17 @@ function DetailsModal({
           // Hint honnête : intégration disponible mais activée manuellement par MEGGA.
           <div
             style={{
-              padding: '14px 16px',
-              borderRadius: 14,
+              padding: 'var(--crm-space-2xl) var(--crm-space-3xl)',
+              borderRadius: 'var(--crm-radius-xl)',
               background: SET.cardSubtle,
               marginBottom: 18,
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 10,
+              gap: 'var(--crm-space-lg)',
             }}
           >
             <SetIcon name="info" size={16} stroke={SET.muted} />
-            <span style={{ fontSize: 12.5, fontWeight: 500, color: SET.inkSoft, lineHeight: 1.5 }}>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.inkSoft, lineHeight: 1.5 }}>
               {t('integrations.details.onRequestHint')}
             </span>
           </div>
@@ -688,7 +688,7 @@ function DetailsModal({
 
         <div
           style={{
-            fontSize: 10.5,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 700,
             color: SET.muted,
             letterSpacing: 0.6,
@@ -707,7 +707,7 @@ function DetailsModal({
             listStyle: 'none',
             display: 'flex',
             flexDirection: 'column',
-            gap: 6,
+            gap: 'var(--crm-space-sm)',
             marginBottom: 22,
           }}
         >
@@ -717,8 +717,8 @@ function DetailsModal({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                fontSize: 13,
+                gap: 'var(--crm-space-md)',
+                fontSize: 'var(--crm-text-lg)',
                 color: SET.inkSoft,
                 fontWeight: 500,
               }}
@@ -729,7 +729,7 @@ function DetailsModal({
           ))}
         </ul>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--crm-space-lg)' }}>
           <SetGhostBtn icon={<SetIcon name="external" size={13} />} onClick={() => {}}>
             {t('integrations.details.documentation')}
           </SetGhostBtn>
@@ -741,13 +741,13 @@ function DetailsModal({
               }}
               style={{
                 height: 44,
-                padding: '0 22px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-6xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: SET.cardSubtle,
                 color: SET.err,
                 fontFamily: 'inherit',
-                fontSize: 13.5,
+                fontSize: 'var(--crm-text-lg)',
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -759,13 +759,13 @@ function DetailsModal({
               disabled
               style={{
                 height: 44,
-                padding: '0 22px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-6xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: SET.cardSubtle,
                 color: SET.muted,
                 fontFamily: 'inherit',
-                fontSize: 13.5,
+                fontSize: 'var(--crm-text-lg)',
                 fontWeight: 600,
                 cursor: 'not-allowed',
               }}
@@ -781,19 +781,19 @@ function DetailsModal({
               }}
               style={{
                 height: 44,
-                padding: '0 22px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-6xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: SET.black,
                 color: SET.blackInk,
                 fontFamily: 'inherit',
-                fontSize: 13.5,
+                fontSize: 'var(--crm-text-lg)',
                 fontWeight: 600,
                 cursor: 'pointer',
                 boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8,
+                gap: 'var(--crm-space-md)',
               }}
             >
               <SetIcon name="link" size={14} stroke={SET.blackInk} />
@@ -823,7 +823,7 @@ function WhatsAppPairModal({ onClose, t }: { onClose: () => void; t: TFunction }
         WebkitBackdropFilter: 'blur(8px)',
         display: 'grid',
         placeItems: 'center',
-        padding: 20,
+        padding: 'var(--crm-space-5xl)',
         animation: 'setFadeIn .2s ease both',
       }}
     >
@@ -833,7 +833,7 @@ function WhatsAppPairModal({ onClose, t }: { onClose: () => void; t: TFunction }
           width: 528,
           maxWidth: '100%',
           background: SET.card,
-          borderRadius: 24,
+          borderRadius: 'var(--crm-radius-5xl)',
           padding: 28,
           boxShadow: '0 40px 100px rgba(11,12,14,0.30)',
           maxHeight: '86vh',
@@ -848,7 +848,7 @@ function WhatsAppPairModal({ onClose, t }: { onClose: () => void; t: TFunction }
             style={{
               width: 34,
               height: 34,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               background: SET.cardSubtle,
               color: SET.inkSoft,
@@ -982,7 +982,7 @@ export function IntegrationsSection() {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 20,
+          gap: 'var(--crm-space-5xl)',
           paddingBottom: 40,
           animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
         }}
@@ -997,11 +997,11 @@ export function IntegrationsSection() {
         <div
           style={{
             display: 'flex',
-            gap: 6,
+            gap: 'var(--crm-space-sm)',
             flexWrap: 'wrap',
             background: SET.card,
-            borderRadius: 22,
-            padding: 8,
+            borderRadius: 'var(--crm-radius-5xl)',
+            padding: 'var(--crm-space-md)',
             boxShadow: SET.shadowSm,
           }}
         >
@@ -1013,13 +1013,13 @@ export function IntegrationsSection() {
                 onClick={() => setFilter(c)}
                 style={{
                   height: 36,
-                  padding: '0 16px',
-                  borderRadius: 999,
+                  padding: '0 var(--crm-space-3xl)',
+                  borderRadius: 'var(--crm-radius-pill)',
                   border: 0,
                   background: active ? SET.black : 'transparent',
                   color: active ? SET.blackInk : SET.inkSoft,
                   fontFamily: 'inherit',
-                  fontSize: 12.5,
+                  fontSize: 'var(--crm-text-md)',
                   fontWeight: active ? 700 : 600,
                   cursor: 'pointer',
                   letterSpacing: -0.05,
@@ -1033,7 +1033,7 @@ export function IntegrationsSection() {
                 }}
               >
                 {c === 'all' ? t('integrations.filters.all') : catLabel(t, c as Category)}
-                <span style={{ marginLeft: 7, fontSize: 11, fontWeight: 700, opacity: 0.6 }}>
+                <span style={{ marginLeft: 7, fontSize: 'var(--crm-text-sm)', fontWeight: 700, opacity: 0.6 }}>
                   {c === 'all' ? items.length : items.filter(i => i.category === c).length}
                 </span>
               </button>
@@ -1046,7 +1046,7 @@ export function IntegrationsSection() {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-            gap: 16,
+            gap: 'var(--crm-space-3xl)',
           }}
         >
           {visible.map(it => (
@@ -1110,7 +1110,7 @@ export function IntegrationsSection() {
               onClick={e => e.stopPropagation()}
               style={{
                 background: SET.card,
-                borderRadius: 24,
+                borderRadius: 'var(--crm-radius-5xl)',
                 padding: 32,
                 maxWidth: 460,
                 width: '90%',
@@ -1121,7 +1121,7 @@ export function IntegrationsSection() {
               <h3
                 style={{
                   margin: '0 0 8px',
-                  fontSize: 20,
+                  fontSize: 'var(--crm-text-4xl)',
                   fontWeight: 700,
                   color: SET.ink,
                   letterSpacing: -0.3,
@@ -1129,22 +1129,22 @@ export function IntegrationsSection() {
               >
                 {t('integrations.disconnectConfirm.title', { name: confirmDisc.name })}
               </h3>
-              <p style={{ margin: '0 0 24px', fontSize: 14, color: SET.inkSoft, lineHeight: 1.55 }}>
+              <p style={{ margin: '0 0 24px', fontSize: 'var(--crm-text-xl)', color: SET.inkSoft, lineHeight: 1.55 }}>
                 {t('integrations.disconnectConfirm.body')}
               </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--crm-space-lg)' }}>
                 <SetGhostBtn onClick={() => setConfirmDisc(null)}>{t('integrations.disconnectConfirm.keep')}</SetGhostBtn>
                 <button
                   onClick={() => disconnect(confirmDisc.id)}
                   style={{
                     height: 44,
-                    padding: '0 22px',
-                    borderRadius: 999,
+                    padding: '0 var(--crm-space-6xl)',
+                    borderRadius: 'var(--crm-radius-pill)',
                     border: 0,
                     background: SET.err,
                     color: '#FFFFFF',
                     fontFamily: 'inherit',
-                    fontSize: 13.5,
+                    fontSize: 'var(--crm-text-lg)',
                     fontWeight: 600,
                     cursor: 'pointer',
                     boxShadow: '0 6px 16px rgba(239,68,68,0.30)',

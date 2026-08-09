@@ -74,11 +74,11 @@ export default function MrNotifSheet({
           cursor: 'pointer',
           fontFamily: 'inherit',
           background: n.read ? 'transparent' : tk.card,
-          borderRadius: 16,
+          borderRadius: 'var(--crm-radius-2xl)',
           boxShadow: n.read ? 'none' : tk.shadowSm,
-          padding: '13px 14px',
+          padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
           display: 'flex',
-          gap: 12,
+          gap: 'var(--crm-space-xl)',
           alignItems: 'flex-start',
           opacity: n.read ? 0.62 : 1,
         }}
@@ -88,7 +88,7 @@ export default function MrNotifSheet({
             position: 'relative',
             width: 40,
             height: 40,
-            borderRadius: 12,
+            borderRadius: 'var(--crm-radius-lg)',
             flexShrink: 0,
             display: 'grid',
             placeItems: 'center',
@@ -104,7 +104,7 @@ export default function MrNotifSheet({
                 right: -3,
                 width: 9,
                 height: 9,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 background: meta.dot,
                 boxShadow: `0 0 0 2.5px ${tk.sheetBg}`,
               }}
@@ -115,7 +115,7 @@ export default function MrNotifSheet({
           <span
             style={{
               display: 'block',
-              fontSize: 14.5,
+              fontSize: 'var(--crm-text-xl)',
               fontWeight: n.read ? 700 : 800,
               letterSpacing: -0.3,
               color: tk.ink,
@@ -126,13 +126,13 @@ export default function MrNotifSheet({
           </span>
           {n.body ? (
             <span
-              style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: tk.muted, marginTop: 3, lineHeight: 1.4 }}
+              style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 3, lineHeight: 1.4 }}
             >
               {n.body}
             </span>
           ) : null}
           <span
-            style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: tk.ghost, marginTop: 6, letterSpacing: -0.1 }}
+            style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.ghost, marginTop: 6, letterSpacing: -0.1 }}
           >
             {n.time}
           </span>
@@ -179,13 +179,13 @@ export default function MrNotifSheet({
             }}
           >
             {/* poignée + en-tête */}
-            <div style={{ flexShrink: 0, padding: '12px 20px 6px' }}>
+            <div style={{ flexShrink: 0, padding: 'var(--crm-space-xl) var(--crm-space-5xl) var(--crm-space-sm)' }}>
               <span
                 aria-hidden="true"
-                style={{ display: 'block', width: 40, height: 5, borderRadius: 999, background: tk.ghost, opacity: 0.5, margin: '0 auto 14px' }}
+                style={{ display: 'block', width: 40, height: 5, borderRadius: 'var(--crm-radius-pill)', background: tk.ghost, opacity: 0.5, margin: '0 auto 14px' }}
               />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: -0.7, color: tk.ink }}>
+                <h2 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.7, color: tk.ink }}>
                   {t('nav.notifications')}
                 </h2>
                 {unreadCount > 0 ? (
@@ -194,12 +194,12 @@ export default function MrNotifSheet({
                     onClick={markAllRead}
                     style={{
                       height: 36,
-                      padding: '0 14px',
-                      borderRadius: 999,
+                      padding: '0 var(--crm-space-2xl)',
+                      borderRadius: 'var(--crm-radius-pill)',
                       border: 0,
                       cursor: 'pointer',
                       fontFamily: 'inherit',
-                      fontSize: 13,
+                      fontSize: 'var(--crm-text-lg)',
                       fontWeight: 700,
                       color: tk.inkSoft,
                       background: tk.card,
@@ -220,17 +220,17 @@ export default function MrNotifSheet({
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 12,
+                    gap: 'var(--crm-space-xl)',
                     padding: '64px 24px',
                     textAlign: 'center',
                   }}
                 >
                   <span
-                    style={{ width: 56, height: 56, borderRadius: 18, display: 'grid', placeItems: 'center', background: tk.card, boxShadow: tk.shadowSm }}
+                    style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-3xl)', display: 'grid', placeItems: 'center', background: tk.card, boxShadow: tk.shadowSm }}
                   >
                     <MEIcon name="bell" size={24} color={tk.muted} />
                   </span>
-                  <span style={{ fontSize: 14.5, fontWeight: 600, color: tk.muted }}>{t('notifications.empty')}</span>
+                  <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.muted }}>{t('notifications.empty')}</span>
                 </div>
               ) : (
                 <>
@@ -240,8 +240,8 @@ export default function MrNotifSheet({
                         position: 'relative',
                         overflow: 'hidden',
                         background: '#0B0C0E',
-                        borderRadius: 20,
-                        padding: '16px 17px 17px',
+                        borderRadius: 'var(--crm-radius-4xl)',
+                        padding: 'var(--crm-space-3xl) var(--crm-space-3xl) var(--crm-space-3xl)',
                         boxShadow: '0 18px 44px rgba(11,12,14,0.4)',
                       }}
                     >
@@ -274,20 +274,20 @@ export default function MrNotifSheet({
                         />
                       </div>
                       <div style={{ position: 'relative', zIndex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ width: 26, height: 26, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,0.14)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
+                          <span style={{ width: 26, height: 26, borderRadius: 'var(--crm-radius-sm)', display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,0.14)' }}>
                             <MEIcon name="sparkle" size={15} color="#FFFFFF" strokeWidth={1.8} />
                           </span>
                           <span
-                            style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)' }}
+                            style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)' }}
                           >
                             {t('notifications.essential')}
                           </span>
                         </div>
-                        <div style={{ fontSize: 14.5, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.5, marginTop: 11 }}>
+                        <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: '#FFFFFF', lineHeight: 1.5, marginTop: 11 }}>
                           {t('notifications.digestPriorities', { count: priorities.length })}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 13 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', marginTop: 13 }}>
                           {priorities.map((p) => {
                             const meta = KIND_META[p.kind]
                             return (
@@ -302,21 +302,21 @@ export default function MrNotifSheet({
                                   cursor: 'pointer',
                                   fontFamily: 'inherit',
                                   background: 'rgba(255,255,255,0.08)',
-                                  borderRadius: 12,
-                                  padding: '10px 12px',
+                                  borderRadius: 'var(--crm-radius-lg)',
+                                  padding: 'var(--crm-space-lg) var(--crm-space-xl)',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: 11,
+                                  gap: 'var(--crm-space-lg)',
                                 }}
                               >
-                                <span style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,0.1)' }}>
+                                <span style={{ width: 28, height: 28, borderRadius: 'var(--crm-radius-sm)', flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(255,255,255,0.1)' }}>
                                   <MEIcon name={meta.icon} size={15} color="#FFFFFF" strokeWidth={1.9} />
                                 </span>
                                 <span
                                   style={{
                                     flex: 1,
                                     minWidth: 0,
-                                    fontSize: 13,
+                                    fontSize: 'var(--crm-text-lg)',
                                     fontWeight: 700,
                                     letterSpacing: -0.2,
                                     color: '#FFFFFF',
@@ -341,11 +341,11 @@ export default function MrNotifSheet({
                     return (
                       <div key={id}>
                         <div
-                          style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: tk.muted, margin: '20px 4px 8px' }}
+                          style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: tk.muted, margin: '20px 4px 8px' }}
                         >
                           {t(labelKey)}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{list.map(renderRow)}</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>{list.map(renderRow)}</div>
                       </div>
                     )
                   })}

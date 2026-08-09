@@ -78,7 +78,7 @@ export function SugarCardQuickActions({
   const btnFg = sp.ink
   const rowHover = dark ? crmStep('s3', '#26272A') : '#F4F5F8'
   const btn = (extra: React.CSSProperties = {}): React.CSSProperties => ({
-    width: 28, height: 28, borderRadius: 999, border: 0,
+    width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', border: 0,
     background: btnBg, color: btnFg, cursor: 'pointer', fontFamily: 'inherit',
     display: 'grid', placeItems: 'center',
     transition: 'background .12s',
@@ -88,22 +88,22 @@ export function SugarCardQuickActions({
   const panelBg = dark ? crmStep('s4', '#17181A') : '#FFFFFF'
   const panelStyle: React.CSSProperties = {
     position: 'absolute', top: 32, right: 0, minWidth: 200,
-    background: panelBg, border: dark ? `1px solid ${panelHair}` : 0, borderRadius: 14,
+    background: panelBg, border: dark ? `1px solid ${panelHair}` : 0, borderRadius: 'var(--crm-radius-xl)',
     boxShadow: sp.solidShadow,
-    padding: 6, zIndex: 10, animation: 'qaFade .14s ease-out',
+    padding: 'var(--crm-space-sm)', zIndex: 10, animation: 'qaFade .14s ease-out',
   }
   const rowStyle: React.CSSProperties = {
-    width: '100%', padding: '8px 10px', borderRadius: 10, border: 0,
+    width: '100%', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-md)', border: 0,
     background: 'transparent', color: sp.ink, cursor: 'pointer', fontFamily: 'inherit',
-    display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontWeight: 600, textAlign: 'left',
+    display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-md)', fontWeight: 600, textAlign: 'left',
   }
   const hoverIn = (e: ReactMouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = rowHover }
   const hoverOut = (e: ReactMouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' }
 
   return (
     <div onClick={stop} style={{
-      position: 'absolute', top: 8, right: 8, display: 'flex', gap: 3, zIndex: 5,
-      padding: 3, borderRadius: 999,
+      position: 'absolute', top: 8, right: 8, display: 'flex', gap: 'var(--crm-space-2xs)', zIndex: 5,
+      padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)',
       background: dark ? crmStep('s4', '#17181A') : '#FFFFFF',
       boxShadow: dark ? '0 6px 20px rgba(0,0,0,.55)' : '0 3px 12px rgba(15,23,42,.16), 0 1px 4px rgba(15,23,42,.08)',
       animation: 'qaFade .14s ease-out',
@@ -119,8 +119,8 @@ export function SugarCardQuickActions({
         {visitOpen && (
           <div style={{ ...panelStyle, minWidth: 210 }}>
             <div style={{
-              fontSize: 10.5, fontWeight: 700, color: sp.sub, letterSpacing: 0.4,
-              textTransform: 'uppercase', padding: '2px 8px 8px',
+              fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: sp.sub, letterSpacing: 0.4,
+              textTransform: 'uppercase', padding: 'var(--crm-space-2xs) var(--crm-space-md) var(--crm-space-md)',
             }}>
               {t('board.card.scheduleVisit')}
             </div>
@@ -133,7 +133,7 @@ export function SugarCardQuickActions({
                 <span style={{ color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>{slot.time}</span>
               </button>
             ))}
-            <div style={{ borderTop: `1px solid ${panelHair}`, marginTop: 6, paddingTop: 6 }}>
+            <div style={{ borderTop: `1px solid ${panelHair}`, marginTop: 6, paddingTop: 'var(--crm-space-sm)' }}>
               <button
                 onClick={() => { setVisitOpen(false); onAskAiVisit(deal.id) }}
                 style={rowStyle} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
@@ -167,15 +167,15 @@ export function SugarCardQuickActions({
         )}
         {menuOpen && reassignOpen && (
           <div style={{ ...panelStyle, minWidth: 220, maxHeight: 300, overflowY: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-xs) var(--crm-space-sm) var(--crm-space-md)' }}>
               <button onClick={() => setReassignOpen(false)} style={{
-                width: 22, height: 22, borderRadius: 999, border: 0, cursor: 'pointer',
+                width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
                 background: rowHover, display: 'grid', placeItems: 'center', fontFamily: 'inherit',
               }}>
                 <MEIcon name="chevron-left" size={11} color={sp.ink} />
               </button>
               <span style={{
-                fontSize: 10.5, fontWeight: 700, color: sp.sub, letterSpacing: 0.4, textTransform: 'uppercase',
+                fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: sp.sub, letterSpacing: 0.4, textTransform: 'uppercase',
               }}>{t('board.card.reassignTo')}</span>
             </div>
             {team.map(m => (
@@ -201,18 +201,18 @@ function SugarAgentItem({ sp, member, onClick, dark }: {
     <button onClick={onClick}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
-        width: '100%', padding: '7px 8px', borderRadius: 10, border: 0,
+        width: '100%', padding: 'var(--crm-space-sm) var(--crm-space-md)', borderRadius: 'var(--crm-radius-md)', border: 0,
         background: hov ? (dark ? crmStep('s3', '#26272A') : '#F4F5F8') : 'transparent',
         color: sp.ink, cursor: 'pointer', fontFamily: 'inherit',
-        display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', textAlign: 'left',
       }}>
       <span style={{
-        width: 26, height: 26, borderRadius: 999, background: '#0041D9', color: '#fff',
-        fontSize: 10, fontWeight: 700, display: 'grid', placeItems: 'center', flexShrink: 0,
+        width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)', background: '#0041D9', color: '#fff',
+        fontSize: 'var(--crm-text-xs)', fontWeight: 700, display: 'grid', placeItems: 'center', flexShrink: 0,
       }}>{initials}</span>
       <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <span style={{
-          fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{member.name}</span>
       </span>
     </button>
@@ -235,10 +235,10 @@ function SugarMenuItem({ sp, icon, label, tone, onClick, dark, chevron }: {
     <button onClick={onClick}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
-        width: '100%', padding: '8px 10px', borderRadius: 10, border: 0,
+        width: '100%', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-md)', border: 0,
         background: hov ? (danger ? 'rgba(242,107,101,0.14)' : (dark ? crmStep('s3', '#26272A') : '#F4F5F8')) : 'transparent',
         color: dangerInk, cursor: 'pointer', fontFamily: 'inherit',
-        display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, fontWeight: 600,
+        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
         textAlign: 'left',
       }}>
       <MEIcon name={icon} size={18} strokeWidth={1.6} color={danger ? dangerInk : sp.soft} />

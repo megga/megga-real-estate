@@ -30,9 +30,9 @@ export default function MobileTabBar() {
         zIndex: 55,
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: 8,
-        borderRadius: 26,
+        gap: 'var(--crm-space-sm)',
+        padding: 'var(--crm-space-md)',
+        borderRadius: 'var(--crm-radius-6xl)',
         background: tk.tabBarBg,
         boxShadow: tk.tabBarShadow,
       }}
@@ -54,9 +54,9 @@ export default function MobileTabBar() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
+              gap: 'var(--crm-space-md)',
               height: 48,
-              borderRadius: 18,
+              borderRadius: 'var(--crm-radius-3xl)',
               flexGrow: on ? 3 : 1,
               flexBasis: 0,
               minWidth: 34,
@@ -75,7 +75,7 @@ export default function MobileTabBar() {
             />
             <span
               style={{
-                fontSize: 13,
+                fontSize: 'var(--crm-text-lg)',
                 fontWeight: 800,
                 letterSpacing: -0.2,
                 whiteSpace: 'nowrap',

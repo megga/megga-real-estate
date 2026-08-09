@@ -247,14 +247,14 @@ function Header({ tk, backLabel, onBack, title }: { tk: MobileTokens; backLabel:
           type="button"
           onClick={onBack}
           aria-label={backLabel}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px 0 8px', borderRadius: 999, border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, fontFamily: 'inherit' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 38, padding: '0 var(--crm-space-2xl) 0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, fontFamily: 'inherit' }}
         >
           <MEIcon name="chevron-left" size={18} color={tk.ink} strokeWidth={2.2} />
-          <span style={{ fontSize: 13.5, fontWeight: 800, color: tk.ink }}>{backLabel}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink }}>{backLabel}</span>
         </button>
       </header>
-      <div style={{ padding: '4px 18px 0' }}>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>{title}</h1>
+      <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>{title}</h1>
       </div>
     </>
   )
@@ -263,10 +263,10 @@ function Header({ tk, backLabel, onBack, title }: { tk: MobileTokens; backLabel:
 /** Carte de section (bento arrondi) avec titre optionnel. */
 function Card({ tk, title, children, pad = 18 }: { tk: MobileTokens; title?: string; children: ReactNode; pad?: number }) {
   return (
-    <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 20, boxShadow: tk.shadowSm, overflow: 'hidden' }}>
+    <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, overflow: 'hidden' }}>
       {title ? (
         <div style={{ padding: `${pad}px ${pad}px 0` }}>
-          <h2 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, letterSpacing: -0.2, color: tk.ink }}>{title}</h2>
+          <h2 style={{ margin: 0, fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, color: tk.ink }}>{title}</h2>
         </div>
       ) : null}
       <div style={{ padding: pad }}>{children}</div>
@@ -284,8 +284,8 @@ function Field({
   const [focus, setFocus] = useState(false)
   return (
     <label style={{ display: 'block', minWidth: 0 }}>
-      <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: tk.muted, marginBottom: 7 }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'center', height: 46, padding: '0 14px', borderRadius: 13, background: tk.cardSubtle, opacity: disabled ? 0.55 : 1, boxShadow: focus ? `0 0 0 2px ${tk.accent}` : `inset 0 0 0 1px ${tk.hair}`, transition: 'box-shadow .18s ease' }}>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: tk.muted, marginBottom: 7 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', height: 46, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)', background: tk.cardSubtle, opacity: disabled ? 0.55 : 1, boxShadow: focus ? `0 0 0 2px ${tk.accent}` : `inset 0 0 0 1px ${tk.hair}`, transition: 'box-shadow .18s ease' }}>
         <input
           type={type}
           inputMode={inputMode}
@@ -295,10 +295,10 @@ function Field({
           onChange={(e) => onChange?.(e.target.value)}
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
-          style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 600, color: tk.ink }}
+          style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink }}
         />
       </div>
-      {hint ? <div style={{ marginTop: 6, fontSize: 11.5, fontWeight: 600, color: tk.muted }}>{hint}</div> : null}
+      {hint ? <div style={{ marginTop: 6, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted }}>{hint}</div> : null}
     </label>
   )
 }
@@ -307,7 +307,7 @@ function Field({
 function Textarea({ tk, value, onChange, placeholder }: { tk: MobileTokens; value: string; onChange?: (v: string) => void; placeholder?: string }) {
   const [focus, setFocus] = useState(false)
   return (
-    <div style={{ padding: '11px 14px', borderRadius: 13, background: tk.cardSubtle, boxShadow: focus ? `0 0 0 2px ${tk.accent}` : `inset 0 0 0 1px ${tk.hair}`, transition: 'box-shadow .18s ease' }}>
+    <div style={{ padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)', background: tk.cardSubtle, boxShadow: focus ? `0 0 0 2px ${tk.accent}` : `inset 0 0 0 1px ${tk.hair}`, transition: 'box-shadow .18s ease' }}>
       <textarea
         value={value}
         rows={5}
@@ -315,7 +315,7 @@ function Textarea({ tk, value, onChange, placeholder }: { tk: MobileTokens; valu
         onChange={(e) => onChange?.(e.target.value)}
         onFocus={() => setFocus(true)}
         onBlur={() => setFocus(false)}
-        style={{ width: '100%', border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: tk.ink, resize: 'none', lineHeight: 1.5 }}
+        style={{ width: '100%', border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, resize: 'none', lineHeight: 1.5 }}
       />
     </div>
   )
@@ -330,9 +330,9 @@ function Toggle({ tk, on, onChange, disabled }: { tk: MobileTokens; on: boolean;
       disabled={disabled}
       role="switch"
       aria-checked={on}
-      style={{ width: 46, height: 28, borderRadius: 999, border: 0, position: 'relative', cursor: disabled ? 'default' : 'pointer', flexShrink: 0, opacity: disabled ? 0.5 : 1, background: on ? tk.accent : tk.ghost, transition: 'background .2s' }}
+      style={{ width: 46, height: 28, borderRadius: 'var(--crm-radius-pill)', border: 0, position: 'relative', cursor: disabled ? 'default' : 'pointer', flexShrink: 0, opacity: disabled ? 0.5 : 1, background: on ? tk.accent : tk.ghost, transition: 'background .2s' }}
     >
-      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22, borderRadius: 999, background: on ? tk.accentInk : '#fff', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', transition: 'left .2s cubic-bezier(.2,.8,.2,1)' }} />
+      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', background: on ? tk.accentInk : '#fff', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', transition: 'left .2s cubic-bezier(.2,.8,.2,1)' }} />
     </button>
   )
 }
@@ -340,7 +340,7 @@ function Toggle({ tk, on, onChange, disabled }: { tk: MobileTokens; on: boolean;
 /** Sélecteur segmenté générique (une seule option active). */
 function Segment<T extends string>({ tk, options, value, onChange }: { tk: MobileTokens; options: { id: T; label: string; icon?: MEIconName }[]; value: T; onChange: (v: T) => void }) {
   return (
-    <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: tk.cardSubtle }}>
+    <div style={{ display: 'inline-flex', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs)', borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle }}>
       {options.map((o) => {
         const on = o.id === value
         return (
@@ -348,7 +348,7 @@ function Segment<T extends string>({ tk, options, value, onChange }: { tk: Mobil
             key={o.id}
             type="button"
             onClick={() => onChange(o.id)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 34, padding: o.icon ? '0 13px 0 11px' : '0 15px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', background: on ? tk.accent : 'transparent', color: on ? tk.accentInk : tk.muted, boxShadow: on ? tk.shadowSm : 'none', transition: 'background .18s, color .18s' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 34, padding: o.icon ? '0 13px 0 11px' : '0 15px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', background: on ? tk.accent : 'transparent', color: on ? tk.accentInk : tk.muted, boxShadow: on ? tk.shadowSm : 'none', transition: 'background .18s, color .18s' }}
           >
             {o.icon ? <MEIcon name={o.icon} size={15} color={on ? tk.accentInk : tk.muted} strokeWidth={2} /> : null}
             {o.label}
@@ -376,7 +376,7 @@ function Ring({ tk, value, size }: { tk: MobileTokens; value: number; size: numb
 /** Pastille ronde d'initiales sur fond accent. */
 function Avatar({ tk, initials, size }: { tk: MobileTokens; initials: string; size: number }) {
   return (
-    <span style={{ width: size, height: size, borderRadius: 999, display: 'grid', placeItems: 'center', background: tk.accent, color: tk.accentInk, fontSize: size * 0.36, fontWeight: 800, flexShrink: 0 }}>
+    <span style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', background: tk.accent, color: tk.accentInk, fontSize: size * 0.36, fontWeight: 800, flexShrink: 0 }}>
       {initials}
     </span>
   )
@@ -389,7 +389,7 @@ function SaveButton({ tk, t, label, onClick, disabled }: { tk: MobileTokens; t: 
       type="button"
       onClick={onClick}
       disabled={disabled}
-      style={{ height: 50, width: '100%', borderRadius: 999, border: 0, cursor: disabled ? 'default' : 'pointer', background: tk.accent, color: tk.accentInk, fontFamily: 'inherit', fontSize: 14.5, fontWeight: 800, letterSpacing: -0.2, opacity: disabled ? 0.45 : 1, boxShadow: tk.shadowSm }}
+      style={{ height: 50, width: '100%', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: disabled ? 'default' : 'pointer', background: tk.accent, color: tk.accentInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, opacity: disabled ? 0.45 : 1, boxShadow: tk.shadowSm }}
     >
       {label || t('settings:profile.save')}
     </button>
@@ -399,9 +399,9 @@ function SaveButton({ tk, t, label, onClick, disabled }: { tk: MobileTokens; t: 
 /** Bandeau d'info affiché quand le backend est absent (édits désactivés). */
 function SignedOutBanner({ tk, t }: { tk: MobileTokens; t: TFunction }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '13px 15px', borderRadius: 16, background: tk.riskBg }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-2xl)', background: tk.riskBg }}>
       <MEIcon name="info" size={15} color={tk.riskFg} strokeWidth={1.9} />
-      <div style={{ fontSize: 12.5, fontWeight: 600, color: tk.riskFg, lineHeight: 1.5 }}>{t('dashboard:mobile.settings.signedOut')}</div>
+      <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.riskFg, lineHeight: 1.5 }}>{t('dashboard:mobile.settings.signedOut')}</div>
     </div>
   )
 }
@@ -411,7 +411,7 @@ function Section({ tk, t, title, onBack, children }: { tk: MobileTokens; t: TFun
   return (
     <div>
       <Header tk={tk} backLabel={t('settings:title')} onBack={onBack} title={title} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 18px 28px' }}>{children}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)', padding: '18px 18px 28px' }}>{children}</div>
     </div>
   )
 }
@@ -454,34 +454,34 @@ function Hub({
         <button
           type="button"
           onClick={() => onGo('profile')}
-          style={{ width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${tk.cardBorder}`, display: 'flex', alignItems: 'center', gap: 15, padding: '16px 18px', borderRadius: 22, background: tk.card, boxShadow: tk.shadow }}
+          style={{ width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${tk.cardBorder}`, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-3xl) var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-5xl)', background: tk.card, boxShadow: tk.shadow }}
         >
           <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
             <div style={{ position: 'absolute', inset: 0 }}><Ring tk={tk} value={pct} size={64} /></div>
             <Avatar tk={tk} initials={initials} size={50} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.4, color: tk.ink, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fullName}</div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: tk.muted, marginTop: 3 }}>{t('dashboard:mobile.settings.completion', { pct })}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fullName}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted, marginTop: 3 }}>{t('dashboard:mobile.settings.completion', { pct })}</div>
           </div>
           <MEIcon name="chevron-right" size={20} color={tk.ghost} strokeWidth={2} />
         </button>
 
         {/* Grille de tuiles */}
-        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
           {tiles.map((tl) => (
             <button
               key={tl.id}
               type="button"
               onClick={() => onGo(tl.id)}
-              style={{ textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${tk.cardBorder}`, display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 16px 15px', borderRadius: 18, minHeight: 118, background: tk.card, boxShadow: tk.shadowSm }}
+              style={{ textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${tk.cardBorder}`, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-3xl) var(--crm-space-3xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-3xl)', minHeight: 118, background: tk.card, boxShadow: tk.shadowSm }}
             >
               <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30 }}>
                 <MEIcon name={tl.icon} size={24} color={tk.ink} strokeWidth={1.85} />
               </span>
               <div style={{ marginTop: 'auto' }}>
-                <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3, color: tk.ink, lineHeight: 1.15 }}>{t(tl.labelKey)}</div>
-                {tl.status ? <div style={{ fontSize: 11.5, fontWeight: 700, color: tk.muted, marginTop: 3 }}>{tl.status}</div> : null}
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink, lineHeight: 1.15 }}>{t(tl.labelKey)}</div>
+                {tl.status ? <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, marginTop: 3 }}>{tl.status}</div> : null}
               </div>
             </button>
           ))}
@@ -491,7 +491,7 @@ function Hub({
         <button
           type="button"
           onClick={onLogout}
-          style={{ width: '100%', marginTop: 16, height: 50, borderRadius: 999, border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 800, letterSpacing: -0.2, color: tk.muted, background: tk.card, boxShadow: tk.shadowSm, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}
+          style={{ width: '100%', marginTop: 16, height: 50, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, color: tk.muted, background: tk.card, boxShadow: tk.shadowSm, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}
         >
           <MEIcon name="logout" size={18} color={tk.muted} strokeWidth={1.9} />
           {t('common:nav.logout')}
@@ -520,18 +520,18 @@ function ProfileSection({
       {signedOut ? <SignedOutBanner tk={tk} t={t} /> : null}
 
       <Card tk={tk} pad={20}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
           <Avatar tk={tk} initials={initials} size={68} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.5, color: tk.ink, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fullName}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: tk.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[form.title, form.agency].filter(Boolean).join(' · ')}</div>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.5, color: tk.ink, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fullName}</div>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[form.title, form.agency].filter(Boolean).join(' · ')}</div>
           </div>
           <Ring tk={tk} value={pct} size={56} />
         </div>
       </Card>
 
       <Card tk={tk} title={t('settings:profile.identityTitle')}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
           <Field tk={tk} label={t('settings:profile.firstName')} value={form.firstName} disabled={!editable} onChange={(v) => onChange({ firstName: v })} />
           <Field tk={tk} label={t('settings:profile.lastName')} value={form.lastName} disabled={!editable} onChange={(v) => onChange({ lastName: v })} />
           <Field tk={tk} label={t('settings:profile.function')} value={form.title} disabled={!editable} onChange={(v) => onChange({ title: v })} />
@@ -540,9 +540,9 @@ function ProfileSection({
       </Card>
 
       <Card tk={tk} title={t('settings:profile.contactTitle')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
           <Field tk={tk} label={t('settings:profile.emailPro')} value={form.email} type="email" disabled hint={t('settings:profile.emailHint')} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
             <Field tk={tk} label={t('settings:profile.mobile')} value={form.mobile} type="tel" inputMode="tel" disabled={!editable} onChange={(v) => onChange({ mobile: v })} />
             <Field tk={tk} label={t('settings:profile.landline')} value={form.phone} type="tel" inputMode="tel" disabled={!editable} onChange={(v) => onChange({ phone: v })} />
           </div>
@@ -582,21 +582,21 @@ function AgencySection({
 
       {/* Identité (logo lecture seule + nom) */}
       <Card tk={tk} pad={20}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 64, height: 64, borderRadius: 18, background: tk.cardSubtle, display: 'grid', placeItems: 'center', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
+          <div style={{ width: 64, height: 64, borderRadius: 'var(--crm-radius-3xl)', background: tk.cardSubtle, display: 'grid', placeItems: 'center', overflow: 'hidden', flexShrink: 0 }}>
             {form.logoUrl ? <img src={form.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <MEIcon name="building" size={28} color={tk.ink} strokeWidth={1.7} />}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: tk.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{form.name || t('settings:agency.nameUndefined')}</div>
-            {[form.city, form.canton].filter(Boolean).length ? <div style={{ fontSize: 12.5, fontWeight: 600, color: tk.muted, marginTop: 3 }}>{[form.city, form.canton].filter(Boolean).join(' · ')}</div> : null}
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{form.name || t('settings:agency.nameUndefined')}</div>
+            {[form.city, form.canton].filter(Boolean).length ? <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 3 }}>{[form.city, form.canton].filter(Boolean).join(' · ')}</div> : null}
           </div>
         </div>
       </Card>
 
       <Card tk={tk} title={t('settings:agency.legalIdentityTitle')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
           <Field tk={tk} label={t('settings:agency.legalName')} value={form.legal} disabled={!editable} onChange={(v) => onChange({ legal: v })} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
             <Field tk={tk} label={t('settings:agency.businessRegistrationNumber')} value={form.businessRegistrationNumber} disabled={!editable} onChange={(v) => onChange({ businessRegistrationNumber: v })} />
             <Field tk={tk} label={t('settings:agency.foundedYear')} value={form.foundedYear} inputMode="numeric" disabled={!editable} onChange={(v) => onChange({ foundedYear: v })} />
           </div>
@@ -605,7 +605,7 @@ function AgencySection({
       </Card>
 
       <Card tk={tk} title={t('settings:agency.publicContactTitle')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
           <Field tk={tk} label={t('settings:agency.phone')} value={form.phone} type="tel" inputMode="tel" disabled={!editable} onChange={(v) => onChange({ phone: v })} />
           <Field tk={tk} label={t('settings:agency.email')} value={form.email} type="email" inputMode="email" disabled={!editable} onChange={(v) => onChange({ email: v })} />
           <Field tk={tk} label={t('settings:agency.website')} value={form.website} disabled={!editable} onChange={(v) => onChange({ website: v })} />
@@ -616,9 +616,9 @@ function AgencySection({
 
       {/* Objectif annuel (RPC audité) */}
       <Card tk={tk} title={t('settings:agency.targets.title')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
           <Field tk={tk} label={t('settings:agency.targets.yearlyLabel')} value={yearly} inputMode="numeric" disabled={!editable} placeholder="0" onChange={onYearly} />
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: tk.muted, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, lineHeight: 1.5 }}>
             {yearlyNum > 0 ? split : t('settings:agency.targets.empty')}
           </div>
           <SaveButton tk={tk} t={t} label={t('settings:agency.targets.save')} onClick={onSaveYearly} disabled={!editable || isSavingTarget} />
@@ -650,27 +650,27 @@ function NotificationsSection({
       {signedOut ? <SignedOutBanner tk={tk} t={t} /> : null}
 
       <Card tk={tk}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ width: 46, height: 46, borderRadius: 14, flexShrink: 0, background: tk.accent, display: 'grid', placeItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
+          <span style={{ width: 46, height: 46, borderRadius: 'var(--crm-radius-xl)', flexShrink: 0, background: tk.accent, display: 'grid', placeItems: 'center' }}>
             <MEIcon name="bell" size={22} color={tk.accentInk} strokeWidth={1.8} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.4, color: tk.ink, lineHeight: 1.1 }}>{t('settings:notifications.title')}</div>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: tk.muted, marginTop: 3 }}>{`${count} ${t('dashboard:mobile.settings.channelWord', { count })}`}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, lineHeight: 1.1 }}>{t('settings:notifications.title')}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 3 }}>{`${count} ${t('dashboard:mobile.settings.channelWord', { count })}`}</div>
           </div>
         </div>
       </Card>
 
       <Card tk={tk} pad={0}>
-        <div style={{ padding: '6px 2px 2px' }}>
+        <div style={{ padding: 'var(--crm-space-sm) var(--crm-space-2xs) var(--crm-space-2xs)' }}>
           {channels.map((c, i) => (
-            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px', boxShadow: i === channels.length - 1 ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
-              <span style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: 'grid', placeItems: 'center', background: tk.cardSubtle }}>
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-3xl)', boxShadow: i === channels.length - 1 ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
+              <span style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, display: 'grid', placeItems: 'center', background: tk.cardSubtle }}>
                 <MEIcon name={c.icon} size={19} color={tk.ink} strokeWidth={1.9} />
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, letterSpacing: -0.2, color: tk.ink }}>{t(`settings:notifications.channels.${c.id}.label`)}</span>
-                <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: tk.muted, marginTop: 2 }}>{t(`settings:notifications.channels.${c.id}.desc`)}</span>
+                <span style={{ display: 'block', fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.2, color: tk.ink }}>{t(`settings:notifications.channels.${c.id}.label`)}</span>
+                <span style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 2 }}>{t(`settings:notifications.channels.${c.id}.desc`)}</span>
               </span>
               <Toggle tk={tk} on={form[c.id]} disabled={!editable} onChange={() => onToggle(c.id)} />
             </div>
@@ -690,19 +690,19 @@ function BillingSection({ ctx, plan, onBack }: { ctx: SectionCtx; plan: AgencyPl
   return (
     <Section tk={tk} t={t} title={t('settings:nav.sections.billing.label')} onBack={onBack}>
       <Card tk={tk} pad={20}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ width: 46, height: 46, borderRadius: 14, flexShrink: 0, background: tk.cardSubtle, display: 'grid', placeItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
+          <span style={{ width: 46, height: 46, borderRadius: 'var(--crm-radius-xl)', flexShrink: 0, background: tk.cardSubtle, display: 'grid', placeItems: 'center' }}>
             <MEIcon name="credit-card" size={22} color={tk.ink} strokeWidth={1.8} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: tk.muted, letterSpacing: 0.2 }}>{t('settings:subscription.currentPlan')}</div>
-            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: tk.ink, marginTop: 2 }}>{plan ? t(PLAN_KEYS[plan]) : t('dashboard:mobile.settings.noPlan')}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted, letterSpacing: 0.2 }}>{t('settings:subscription.currentPlan')}</div>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, marginTop: 2 }}>{plan ? t(PLAN_KEYS[plan]) : t('dashboard:mobile.settings.noPlan')}</div>
           </div>
         </div>
       </Card>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '13px 15px', borderRadius: 16, background: tk.cardSubtle }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-2xl)', background: tk.cardSubtle }}>
         <MEIcon name="info" size={15} color={tk.muted} strokeWidth={1.9} />
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: tk.muted, lineHeight: 1.5 }}>{t('dashboard:mobile.settings.billingDesktop')}</div>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, lineHeight: 1.5 }}>{t('dashboard:mobile.settings.billingDesktop')}</div>
       </div>
     </Section>
   )
@@ -718,12 +718,12 @@ function PreferencesSection({
   ctx: SectionCtx; lang: 'fr' | 'en'; onLang: (v: 'fr' | 'en') => void; onTheme: (v: 'light' | 'dark') => void; onBack: () => void
 }) {
   const { t, tk, isDark } = ctx
-  const row: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }
+  const row: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)' }
   return (
     <Section tk={tk} t={t} title={t('settings:nav.sections.preferences.label')} onBack={onBack}>
       <Card tk={tk} title={t('settings:preferences.region.title')}>
         <div style={row}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: tk.ink }}>{t('settings:preferences.region.language')}</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.ink }}>{t('settings:preferences.region.language')}</span>
           <Segment
             tk={tk}
             value={lang}
@@ -735,7 +735,7 @@ function PreferencesSection({
 
       <Card tk={tk} title={t('settings:preferences.appearance.title')}>
         <div style={row}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: tk.ink }}>{t('settings:preferences.appearance.theme')}</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.ink }}>{t('settings:preferences.appearance.theme')}</span>
           <Segment
             tk={tk}
             value={isDark ? 'dark' : 'light'}

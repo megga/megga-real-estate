@@ -70,8 +70,8 @@ export default function ModerationActionDialog({
   /** Pilule de motif : accent plein quand retenue, surface creuse sinon. */
   function reasonPill(on: boolean) {
     return {
-      height: 32, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-      fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' as const,
+      height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+      fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap' as const,
       background: on ? sp.accent : surf.cardSub,
       color: on ? sp.accentInk : sp.soft,
     }
@@ -79,9 +79,9 @@ export default function ModerationActionDialog({
 
   return (
     <Modal open={open} onClose={handleClose} title={actionLabel} size="md">
-      <div style={{ padding: 22 }}>
+      <div style={{ padding: 'var(--crm-space-6xl)' }}>
         {/* Aperçu du bien */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', marginBottom: 18 }}>
           {propertyPhoto ? (
             <img
               src={propertyPhoto}
@@ -99,7 +99,7 @@ export default function ModerationActionDialog({
             </div>
           )}
           <p style={{
-            margin: 0, minWidth: 0, fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2, color: sp.ink,
+            margin: 0, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {propertyTitle}
@@ -107,10 +107,10 @@ export default function ModerationActionDialog({
         </div>
 
         {/* Motifs */}
-        <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub }}>
+        <p style={{ margin: '0 0 8px', fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub }}>
           {t('moderation.reason')}
         </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)', marginBottom: 12 }}>
           {REASON_KEYS.map((key) => {
             const label = t(key)
             const on = selectedReason === label
@@ -142,9 +142,9 @@ export default function ModerationActionDialog({
             placeholder={t('moderation.customReasonPlaceholder')}
             rows={3}
             style={{
-              width: '100%', boxSizing: 'border-box', marginBottom: 12, padding: '10px 12px',
+              width: '100%', boxSizing: 'border-box', marginBottom: 12, padding: 'var(--crm-space-lg) var(--crm-space-xl)',
               borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub, color: sp.ink,
-              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 500, lineHeight: 1.5,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.5,
               outline: 'none', resize: 'none',
               boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
             }}
@@ -152,7 +152,7 @@ export default function ModerationActionDialog({
         )}
 
         {/* Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 9, marginTop: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--crm-space-md)', marginTop: 16 }}>
           <AdminGhostBtn onClick={handleClose}>{t('common.cancel')}</AdminGhostBtn>
           {/* L'icône est passée en enfant (et non via `icon`) : la prop la peindrait
               en encre, or c'est sa teinte qui porte le signal de l'action. */}

@@ -135,7 +135,7 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
   })
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
       <style>{`
         ${PF_KEYFRAMES}
         .pfx-row { transition: background-color .24s ease; }
@@ -144,19 +144,19 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
         .pfx-inp::placeholder { color: ${c.ghost}; }
       `}</style>
 
-      <div style={{ borderRadius: 22, boxShadow: c.shadow }}>
-        <div style={{ position: 'relative', background: c.card, borderRadius: 22, border: c.hair }}>
+      <div style={{ borderRadius: 'var(--crm-radius-5xl)', boxShadow: c.shadow }}>
+        <div style={{ position: 'relative', background: c.card, borderRadius: 'var(--crm-radius-5xl)', border: c.hair }}>
 
           {/* En-tête : avatar + nom */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '18px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-4xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl)' }}>
             <button onClick={() => setPhotoModal(true)} title={photoLabels.title} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', position: 'relative' }}>
               <PfAvatar c={c} photo={avatarUrl} initials={local.initials || '?'} size={62} />
-              <span style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: 999, background: c.orange, border: `3px solid ${c.card}`, display: 'grid', placeItems: 'center' }}>
+              <span style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: 'var(--crm-radius-pill)', background: c.orange, border: `3px solid ${c.card}`, display: 'grid', placeItems: 'center' }}>
                 <PfIc name={avatarUrl ? 'camera' : 'plus'} size={12} stroke="#fff" sw={2.2} />
               </span>
             </button>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.6, color: c.ink, lineHeight: 1.05 }}>
+              <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.6, color: c.ink, lineHeight: 1.05 }}>
                 {(`${local.firstName} ${local.lastName}`).trim() || t('focus.profile.header')}
               </div>
             </div>
@@ -165,25 +165,25 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
           <div style={{ height: 1, background: c.hairSoft, margin: '0 10px' }} />
 
           {/* Champs groupés (2 colonnes) */}
-          <div style={{ padding: '8px 12px 14px' }}>
+          <div style={{ padding: 'var(--crm-space-md) var(--crm-space-xl) var(--crm-space-2xl)' }}>
             {PF_GROUPS.map((g, gi) => (
-              <div key={g.id} style={{ padding: '6px 0 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 10px 8px' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: c[g.dotKey], flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.2, color: c.ink }}>{t(`focus.profile.groups.${g.id}`)}</span>
+              <div key={g.id} style={{ padding: 'var(--crm-space-sm) 0 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: c[g.dotKey], flexShrink: 0 }} />
+                  <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: c.ink }}>{t(`focus.profile.groups.${g.id}`)}</span>
                   {g.id === 'presentation' && (
                     <div ref={infoRef} style={{ position: 'relative', display: 'inline-flex' }}>
                       <button onClick={() => setInfo((v) => !v)} aria-label={t('focus.profile.info.title')} title={t('focus.profile.info.title')}
-                        style={{ width: 18, height: 18, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer', display: 'grid', placeItems: 'center',
+                        style={{ width: 18, height: 18, borderRadius: 'var(--crm-radius-pill)', border: 0, padding: 0, cursor: 'pointer', display: 'grid', placeItems: 'center',
                           background: info ? c.ink : (dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.06)') }}>
                         <PfIc name="info" size={12} stroke={info ? c.onInk : (dark ? 'rgba(235,240,245,0.9)' : c.sub)} sw={2} />
                       </button>
                       {info && (
                         <div className="pfx-info-in" role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 9px)', left: -6, zIndex: 30,
-                          width: 264, background: dark ? '#1B1D22' : '#FFFFFF', borderRadius: 14, boxShadow: c.shadow, padding: '13px 15px', transformOrigin: 'top left', border: c.hair }}>
-                          <span style={{ position: 'absolute', top: -6, left: 11, width: 11, height: 11, background: dark ? '#1B1D22' : '#FFFFFF', transform: 'rotate(45deg)', borderRadius: 2, borderTop: c.hair, borderLeft: c.hair }} />
-                          <div style={{ position: 'relative', fontSize: 12.5, fontWeight: 800, color: c.ink, letterSpacing: -0.2, marginBottom: 5 }}>{t('focus.profile.info.title')}</div>
-                          <div style={{ position: 'relative', fontSize: 12, lineHeight: 1.5, color: c.soft, fontWeight: 500 }}>
+                          width: 264, background: dark ? '#1B1D22' : '#FFFFFF', borderRadius: 'var(--crm-radius-xl)', boxShadow: c.shadow, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', transformOrigin: 'top left', border: c.hair }}>
+                          <span style={{ position: 'absolute', top: -6, left: 11, width: 11, height: 11, background: dark ? '#1B1D22' : '#FFFFFF', transform: 'rotate(45deg)', borderRadius: 'var(--crm-radius-2xs)', borderTop: c.hair, borderLeft: c.hair }} />
+                          <div style={{ position: 'relative', fontSize: 'var(--crm-text-md)', fontWeight: 800, color: c.ink, letterSpacing: -0.2, marginBottom: 5 }}>{t('focus.profile.info.title')}</div>
+                          <div style={{ position: 'relative', fontSize: 'var(--crm-text-md)', lineHeight: 1.5, color: c.soft, fontWeight: 500 }}>
                             {(() => {
                               const parts = t('focus.profile.info.body').split('{{brand}}')
                               return (<>{parts[0]}<b style={{ color: c.ink, fontWeight: 700 }}>MEGGA</b>{parts[1] ?? ''}</>)

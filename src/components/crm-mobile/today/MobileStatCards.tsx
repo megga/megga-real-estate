@@ -42,7 +42,7 @@ function Ring({ pct, color }: { pct: number; color: string }) {
           inset: 0,
           display: 'grid',
           placeItems: 'center',
-          fontSize: 16,
+          fontSize: 'var(--crm-text-2xl)',
           fontWeight: 800,
           color: tk.ink,
           letterSpacing: -0.4,
@@ -80,42 +80,42 @@ export function MobileStatCards({ demo = false }: { demo?: boolean }) {
   const cardBase = {
     background: tk.card,
     border: `1px solid ${tk.cardBorder}`,
-    borderRadius: 18,
-    padding: '16px 16px 15px',
+    borderRadius: 'var(--crm-radius-3xl)',
+    padding: 'var(--crm-space-3xl) var(--crm-space-3xl) var(--crm-space-2xl)',
     boxShadow: tk.shadowSm,
   } as const
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 14 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)', marginTop: 14 }}>
       {/* Pipeline */}
-      <div style={{ ...cardBase, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: tk.muted }}>
+      <div style={{ ...cardBase, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', color: tk.muted }}>
           <MEIcon name="trending-up" size={15} color={tk.muted} />
-          <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.2 }}>{t('today.cockpit.tiles.pipeline')}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2 }}>{t('today.cockpit.tiles.pipeline')}</span>
         </div>
-        <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -1, color: tk.ink, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+        <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
           {pipeTotal}
         </div>
-        <div style={{ fontSize: 11.5, color: tk.muted, fontWeight: 600 }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: tk.muted, fontWeight: 600 }}>
           {t('today.cockpit.pipelineDeals', { count: dealCount })}
           {atRisk > 0 ? ` · ${t('today.cockpit.pipelineAtRisk', { count: atRisk })}` : ''}
         </div>
       </div>
 
       {/* Objectif */}
-      <div style={{ ...cardBase, display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ ...cardBase, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
         {targetSet ? <Ring pct={projPct} color={tk.goal} /> : null}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: tk.muted, letterSpacing: 0.2 }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, letterSpacing: 0.2 }}>
             {t('today.cockpit.tiles.objectif')}
           </div>
           {targetSet ? (
-            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.4, color: tk.ink, fontVariantNumeric: 'tabular-nums', marginTop: 4, whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, fontVariantNumeric: 'tabular-nums', marginTop: 4, whiteSpace: 'nowrap' }}>
               {realized}
               <span style={{ color: tk.muted, fontWeight: 700 }}> / {target}</span>
             </div>
           ) : (
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: tk.muted, marginTop: 4 }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.muted, marginTop: 4 }}>
               {t('today.cockpit.objectifUnset')}
             </div>
           )}

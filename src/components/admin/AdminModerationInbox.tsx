@@ -39,9 +39,9 @@ function InboxBento({ icon, title, children }: { icon: LucideIcon; title: string
   const { sp } = useAdminSugar()
   return (
     <AdminCard padding={0}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '13px 15px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
         <AdminIc icon={icon} size={16} color={sp.sub} />
-        <h2 style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{title}</h2>
+        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{title}</h2>
       </div>
       <AdminDivider />
       {children}
@@ -53,9 +53,9 @@ function InboxBento({ icon, title, children }: { icon: LucideIcon; title: string
 function useSelectStyle(): CSSProperties {
   const { sp, surf, dark } = useAdminSugar()
   return {
-    height: 32, padding: '0 10px', borderRadius: ADMIN_RADII.row, border: 0,
+    height: 32, padding: '0 var(--crm-space-lg)', borderRadius: ADMIN_RADII.row, border: 0,
     background: surf.cardSub, color: sp.ink, cursor: 'pointer',
-    fontFamily: 'inherit', fontSize: 12, fontWeight: 600, outline: 'none',
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, outline: 'none',
     boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
   }
 }
@@ -124,7 +124,7 @@ export function SellerLeadsInbox() {
   return (
     <InboxBento icon={Inbox} title={t('endUsers.sellerLeads.title')}>
       {isLoading ? (
-        <div style={{ padding: 14 }}><AdminSkeleton height={64} /></div>
+        <div style={{ padding: 'var(--crm-space-2xl)' }}><AdminSkeleton height={64} /></div>
       ) : !leads || leads.length === 0 ? (
         <AdminEmpty icon={Inbox} title={t('endUsers.sellerLeads.empty')} />
       ) : (
@@ -133,15 +133,15 @@ export function SellerLeadsInbox() {
             <div
               key={lead.id}
               style={{
-                display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12,
-                padding: '10px 15px', borderTop: i === 0 ? undefined : surf.hairline,
+                display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--crm-space-xl)',
+                padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderTop: i === 0 ? undefined : surf.hairline,
               }}
             >
               <div style={{ minWidth: 0, flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {lead.contact_name}
                 </p>
-                <p style={{ margin: '1px 0 0', fontSize: 11.5, fontWeight: 500, color: sp.sub, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <p style={{ margin: '1px 0 0', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {lead.contact_email}{lead.contact_phone ? ` · ${lead.contact_phone}` : ''} · {lead.source} · {fmtDateTime(lead.created_at)}
                 </p>
               </div>
@@ -217,19 +217,19 @@ export function ContactMessagesInbox() {
   return (
     <InboxBento icon={Mail} title={t('endUsers.messages.title')}>
       {isLoading ? (
-        <div style={{ padding: 14 }}><AdminSkeleton height={64} /></div>
+        <div style={{ padding: 'var(--crm-space-2xl)' }}><AdminSkeleton height={64} /></div>
       ) : !messages || messages.length === 0 ? (
         <AdminEmpty icon={Mail} title={t('endUsers.messages.empty')} />
       ) : (
         <div>
           {messages.map((msg, i) => (
-            <div key={msg.id} style={{ padding: '10px 15px', borderTop: i === 0 ? undefined : surf.hairline }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+            <div key={msg.id} style={{ padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderTop: i === 0 ? undefined : surf.hairline }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {msg.name} <span style={{ fontWeight: 500, color: sp.sub }}>· {msg.email}</span>
                   </p>
-                  <p style={{ margin: '1px 0 0', fontSize: 11.5, fontWeight: 500, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                  <p style={{ margin: '1px 0 0', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                     {msg.source} · {fmtDateTime(msg.created_at)}
                   </p>
                 </div>
@@ -243,7 +243,7 @@ export function ContactMessagesInbox() {
                   ))}
                 </select>
               </div>
-              <p className="line-clamp-2" style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 500, color: sp.soft, lineHeight: 1.45 }}>
+              <p className="line-clamp-2" style={{ margin: '6px 0 0', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.soft, lineHeight: 1.45 }}>
                 {msg.message}
               </p>
             </div>

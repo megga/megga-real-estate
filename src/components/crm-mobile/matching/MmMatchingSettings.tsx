@@ -95,12 +95,12 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
           <header
             style={{
               paddingTop: 'calc(env(safe-area-inset-top) + 14px)',
-              paddingLeft: 14,
-              paddingRight: 16,
-              paddingBottom: 12,
+              paddingLeft: 'var(--crm-space-2xl)',
+              paddingRight: 'var(--crm-space-3xl)',
+              paddingBottom: 'var(--crm-space-xl)',
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
+              gap: 'var(--crm-space-xl)',
               flexShrink: 0,
             }}
           >
@@ -111,7 +111,7 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
               style={{
                 width: 40,
                 height: 40,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: tk.card,
                 boxShadow: tk.shadowSm,
@@ -123,10 +123,10 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
               <Glyph name="back" size={20} sw={2.1} color={tk.ink} />
             </button>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>
+              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>
                 {t('mobile.settings.title')}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: tk.muted, marginTop: 1 }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 1 }}>
                 {t('mobile.settings.sub')}
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
             <h1
               style={{
                 margin: '0 4px 20px',
-                fontSize: 22,
+                fontSize: 'var(--crm-text-4xl)',
                 fontWeight: 800,
                 letterSpacing: -0.7,
                 color: tk.ink,
@@ -154,7 +154,7 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
               {t('mobile.settings.question')}
             </h1>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
               {modes.map((m) => {
                 const on = m.id === mode
                 return (
@@ -169,31 +169,31 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
                       cursor: 'pointer',
                       fontFamily: 'inherit',
                       background: on ? tk.cardSubtle : tk.card,
-                      borderRadius: 18,
-                      padding: 18,
+                      borderRadius: 'var(--crm-radius-3xl)',
+                      padding: 'var(--crm-space-4xl)',
                       display: 'flex',
-                      gap: 15,
+                      gap: 'var(--crm-space-2xl)',
                       alignItems: 'flex-start',
                       boxShadow: on ? `0 0 0 2px ${tk.ink} inset, ${tk.shadowSm}` : tk.shadowSm,
                       transition: 'box-shadow .18s ease, background .18s ease',
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
+                        <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
                           {t(`mobile.settings.${m.id}`)}
                         </span>
                         {m.reco ? (
                           <span
                             style={{
-                              fontSize: 9.5,
+                              fontSize: 'var(--crm-text-xs)',
                               fontWeight: 800,
                               letterSpacing: 0.5,
                               textTransform: 'uppercase',
                               color: tk.accentInk,
                               background: tk.ink,
-                              padding: '2px 8px',
-                              borderRadius: 999,
+                              padding: 'var(--crm-space-2xs) var(--crm-space-md)',
+                              borderRadius: 'var(--crm-radius-pill)',
                             }}
                           >
                             {t('mobile.settings.recommended')}
@@ -204,7 +204,7 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
                             marginLeft: 'auto',
                             width: 22,
                             height: 22,
-                            borderRadius: 999,
+                            borderRadius: 'var(--crm-radius-pill)',
                             flexShrink: 0,
                             display: 'grid',
                             placeItems: 'center',
@@ -215,7 +215,7 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
                           {on ? <Glyph name="check" size={13} sw={2.6} color={tk.accentInk} /> : null}
                         </span>
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: tk.muted, marginTop: 3 }}>
+                      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 3 }}>
                         {t(`mobile.settings.${m.id}Desc`)}
                       </div>
                     </div>
@@ -241,11 +241,11 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
               style={{
                 width: '100%',
                 height: 50,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                fontSize: 15,
+                fontSize: 'var(--crm-text-xl)',
                 fontWeight: 800,
                 letterSpacing: -0.2,
                 color: tk.accentInk,
@@ -254,7 +254,7 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 9,
+                gap: 'var(--crm-space-md)',
               }}
             >
               <Glyph name="check" size={18} sw={2.4} color={tk.accentInk} />

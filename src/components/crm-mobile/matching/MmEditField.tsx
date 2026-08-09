@@ -21,19 +21,19 @@ export default function MmEditField({ label, value, suffix, span2 }: MmEditField
     minWidth: 0,
     background: tk.card,
     border: `1px solid ${tk.cardBorder}`,
-    borderRadius: 14,
+    borderRadius: 'var(--crm-radius-xl)',
     boxShadow: tk.shadowSm,
-    padding: '10px 12px',
+    padding: 'var(--crm-space-lg) var(--crm-space-xl)',
     display: 'flex',
     flexDirection: 'column',
-    gap: 3,
+    gap: 'var(--crm-space-2xs)',
     ...(span2 ? { gridColumn: '1 / -1' } : null),
   }
   return (
     <div style={wrap}>
       <span
         style={{
-          fontSize: 9.5,
+          fontSize: 'var(--crm-text-xs)',
           fontWeight: 800,
           color: tk.muted,
           letterSpacing: 0.6,
@@ -42,10 +42,10 @@ export default function MmEditField({ label, value, suffix, span2 }: MmEditField
       >
         {label}
       </span>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-2xs)' }}>
         <span
           style={{
-            fontSize: 15,
+            fontSize: 'var(--crm-text-xl)',
             fontWeight: 800,
             color: tk.ink,
             letterSpacing: -0.3,
@@ -58,7 +58,7 @@ export default function MmEditField({ label, value, suffix, span2 }: MmEditField
           {value}
         </span>
         {suffix ? (
-          <span style={{ fontSize: 11, fontWeight: 700, color: tk.muted }}>{suffix}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted }}>{suffix}</span>
         ) : null}
       </div>
     </div>

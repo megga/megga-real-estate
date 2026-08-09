@@ -32,12 +32,12 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
       <header
         style={{
           paddingTop: 'calc(env(safe-area-inset-top) + 12px)',
-          paddingLeft: 14,
-          paddingRight: 16,
-          paddingBottom: 8,
+          paddingLeft: 'var(--crm-space-2xl)',
+          paddingRight: 'var(--crm-space-3xl)',
+          paddingBottom: 'var(--crm-space-md)',
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: 'var(--crm-space-lg)',
           flexShrink: 0,
         }}
       >
@@ -48,7 +48,7 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
           style={{
             width: 40,
             height: 40,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: `1px solid ${tk.cardBorder}`,
             background: tk.card,
             boxShadow: tk.shadowSm,
@@ -73,17 +73,17 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
         }}
       >
         {/* identité acheteur */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
           <span
             style={{
               width: 46,
               height: 46,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               display: 'grid',
               placeItems: 'center',
               background: buyer.av,
               color: '#fff',
-              fontSize: 16,
+              fontSize: 'var(--crm-text-2xl)',
               fontWeight: 800,
               flexShrink: 0,
             }}
@@ -91,10 +91,10 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
             {initials}
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xs)' }}>
               <span
                 style={{
-                  fontSize: 20,
+                  fontSize: 'var(--crm-text-4xl)',
                   fontWeight: 800,
                   letterSpacing: -0.5,
                   color: tk.ink,
@@ -118,7 +118,7 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
           <h3
             style={{
               margin: '0 0 11px',
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 800,
               letterSpacing: 0.3,
               textTransform: 'uppercase',
@@ -127,7 +127,7 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
           >
             {t('atelier.searchProfile')}
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-md)' }}>
             {budget ? <MmEditField label={t('atelier.budget')} value={budget} span2 /> : null}
             {buyer.zones.length ? (
               <MmEditField label={t('atelier.targetZones')} value={buyer.zones.join(' · ')} span2 />
@@ -152,20 +152,20 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
             justifyContent: 'space-between',
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>
+          <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>
             {t('atelier.matchedListings')}
           </h3>
-          <span style={{ fontSize: 13, fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
             {pool.length}
           </span>
         </div>
 
         {pool.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: tk.muted, fontSize: 14, fontWeight: 600 }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: tk.muted, fontSize: 'var(--crm-text-xl)', fontWeight: 600 }}>
             {t('panel.emptyTitle')}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
             {pool.map((m) => (
               <MmMatchCard
                 key={m.matchId}

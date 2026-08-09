@@ -56,9 +56,9 @@ export function AudEventRow({ event, last }: Props) {
       style={{
         display: 'grid',
         gridTemplateColumns: '86px 44px 1.7fr 1fr auto',
-        gap: 18,
+        gap: 'var(--crm-space-4xl)',
         alignItems: 'center',
-        padding: '18px 24px',
+        padding: 'var(--crm-space-4xl) var(--crm-space-7xl)',
         background: hover ? SugarV3.cardSubtle : 'transparent',
         borderBottom: last ? 'none' : `1px solid ${SugarV3.cardSubtle}`,
         transition: 'background .15s ease',
@@ -67,7 +67,7 @@ export function AudEventRow({ event, last }: Props) {
       {/* Date/heure */}
       <div
         style={{
-          fontSize: 12,
+          fontSize: 'var(--crm-text-md)',
           color: SugarV3.muted,
           fontWeight: 500,
           fontVariantNumeric: 'tabular-nums',
@@ -85,13 +85,13 @@ export function AudEventRow({ event, last }: Props) {
         style={{
           width: 36,
           height: 36,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           color: '#fff',
           background: actor.avatarBg,
           display: 'grid',
           placeItems: 'center',
           flexShrink: 0,
-          fontSize: 11,
+          fontSize: 'var(--crm-text-sm)',
           fontWeight: 700,
           letterSpacing: 0.2,
         }}
@@ -109,13 +109,13 @@ export function AudEventRow({ event, last }: Props) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 'var(--crm-space-md)',
             marginBottom: 4,
           }}
         >
           <span
             style={{
-              fontSize: 13.5,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 700,
               color: SugarV3.ink,
               letterSpacing: -0.15,
@@ -127,12 +127,12 @@ export function AudEventRow({ event, last }: Props) {
           {sev !== 'info' && (
             <span
               style={{
-                padding: '2px 8px',
-                borderRadius: 999,
+                padding: 'var(--crm-space-2xs) var(--crm-space-md)',
+                borderRadius: 'var(--crm-radius-pill)',
                 background:
                   sev === 'critical' ? SugarV3.errSoft : SugarV3.warnSoft,
                 color: sev === 'critical' ? SugarV3.errDarker : '#8C5A00',
-                fontSize: 10,
+                fontSize: 'var(--crm-text-xs)',
                 fontWeight: 700,
                 letterSpacing: 0.2,
                 textTransform: 'uppercase',
@@ -144,7 +144,7 @@ export function AudEventRow({ event, last }: Props) {
         </div>
         <div
           style={{
-            fontSize: 12,
+            fontSize: 'var(--crm-text-md)',
             color: SugarV3.muted,
             fontWeight: 500,
             lineHeight: 1.5,
@@ -159,7 +159,7 @@ export function AudEventRow({ event, last }: Props) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: 'var(--crm-space-lg)',
           minWidth: 0,
         }}
       >
@@ -167,7 +167,7 @@ export function AudEventRow({ event, last }: Props) {
           style={{
             width: 32,
             height: 32,
-            borderRadius: 10,
+            borderRadius: 'var(--crm-radius-md)',
             background: SugarV3.cardSubtle,
             display: 'grid',
             placeItems: 'center',
@@ -187,7 +187,7 @@ export function AudEventRow({ event, last }: Props) {
         <div style={{ minWidth: 0 }}>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 'var(--crm-text-sm)',
               fontWeight: 600,
               color: cat.tone,
               letterSpacing: 0.4,
@@ -199,7 +199,7 @@ export function AudEventRow({ event, last }: Props) {
           </div>
           <div
             style={{
-              fontSize: 12.5,
+              fontSize: 'var(--crm-text-md)',
               fontWeight: 700,
               color: SugarV3.ink,
               letterSpacing: -0.1,
@@ -215,11 +215,11 @@ export function AudEventRow({ event, last }: Props) {
       </div>
 
       {/* IP / chevron */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
         {event.ip_address && (
           <span
             style={{
-              fontSize: 10.5,
+              fontSize: 'var(--crm-text-xs)',
               color: SugarV3.muted,
               fontWeight: 500,
               fontVariantNumeric: 'tabular-nums',

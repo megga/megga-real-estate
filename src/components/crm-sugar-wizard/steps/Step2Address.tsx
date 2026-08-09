@@ -137,31 +137,31 @@ export function Step2Address({ data, set }: StepProps) {
 
       <div style={{ marginBottom: 32, maxWidth: 720 }}>
         <div style={{
-          fontSize: 12, fontWeight: 600, color: SugarV2.muted,
+          fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
           letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
         }}>{t('wizard.step2.eyebrow')}</div>
         <h1 style={{
-          margin: '0 0 14px', fontSize: 38, fontWeight: 700,
+          margin: '0 0 14px', fontSize: 'var(--crm-text-9xl)', fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
         }}>{t('wizard.step2.title')}</h1>
-        <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
+        <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
           {t('wizard.step2.subtitle')}
         </p>
 
         {linkedOwner && (
           <div style={{
             marginTop: 18,
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            padding: '8px 14px 8px 8px', borderRadius: 999,
+            display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
+            padding: 'var(--crm-space-md) var(--crm-space-2xl) var(--crm-space-md) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
             background: SugarV2.card, boxShadow: SugarV2.shadowSm,
           }}>
             <div style={{
-              width: 26, height: 26, borderRadius: 999,
+              width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)',
               background: linkedOwner.avatarBg || '#3B82F6',
               color: sgOn(), display: 'grid', placeItems: 'center',
-              fontSize: 10, fontWeight: 700, flexShrink: 0,
+              fontSize: 'var(--crm-text-xs)', fontWeight: 700, flexShrink: 0,
             }}>{(linkedOwner.firstName?.[0] || '') + (linkedOwner.lastName?.[0] || '')}</div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: SugarV2.ink }}>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.ink }}>
               {t('wizard.forOwner', { name: `${linkedOwner.firstName} ${linkedOwner.lastName}` })}
             </span>
           </div>
@@ -171,10 +171,10 @@ export function Step2Address({ data, set }: StepProps) {
       {/* Recherche centrale */}
       <div style={{ position: 'relative', marginBottom: 14 }}>
         <div style={{
-          background: SugarV2.card, borderRadius: 24,
-          padding: '8px 8px 8px 22px',
+          background: SugarV2.card, borderRadius: 'var(--crm-radius-5xl)',
+          padding: 'var(--crm-space-md) var(--crm-space-md) var(--crm-space-md) var(--crm-space-6xl)',
           boxShadow: confirmed ? SugarV2.shadowSm : SugarV2.shadow,
-          display: 'flex', alignItems: 'center', gap: 14,
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)',
           transition: 'all .25s ease',
         }}>
           {confirmed ? (
@@ -194,20 +194,20 @@ export function Step2Address({ data, set }: StepProps) {
             style={{
               flex: 1, height: 56, border: 0, background: 'transparent',
               outline: 'none', fontFamily: 'inherit',
-              fontSize: 17, color: SugarV2.ink, fontWeight: 500, letterSpacing: -0.2,
+              fontSize: 'var(--crm-text-2xl)', color: SugarV2.ink, fontWeight: 500, letterSpacing: -0.2,
             }} />
           {loading && (
             <div style={{
-              width: 16, height: 16, borderRadius: 999,
+              width: 16, height: 16, borderRadius: 'var(--crm-radius-pill)',
               border: `2px solid ${SugarV2.ghost}`, borderTopColor: SugarV2.ink,
               animation: 'sgSpin .8s linear infinite', marginRight: 8,
             }} />
           )}
           {confirmed && (
             <button onClick={reset} style={{
-              height: 36, padding: '0 14px', borderRadius: 999, border: 0,
+              height: 36, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
               background: SugarV2.cardSubtle, color: SugarV2.inkSoft,
-              fontFamily: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, cursor: 'pointer',
               marginRight: 6,
             }}>{t('common:actions.edit')}</button>
           )}
@@ -216,15 +216,15 @@ export function Step2Address({ data, set }: StepProps) {
         {showSuggestions && suggestions.length > 0 && !confirmed && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, right: 0,
-            marginTop: 8, background: SugarV2.card, borderRadius: 18,
-            boxShadow: SugarV2.shadowLg, padding: 6, zIndex: 20,
+            marginTop: 8, background: SugarV2.card, borderRadius: 'var(--crm-radius-3xl)',
+            boxShadow: SugarV2.shadowLg, padding: 'var(--crm-space-sm)', zIndex: 20,
             animation: 'sgFadeUp .25s cubic-bezier(.2,.8,.2,1) both',
           }}>
             {suggestions.map(s => (
               <button key={s.id} onClick={() => chooseSuggestion(s)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                  padding: '12px 14px', borderRadius: 12, border: 0,
+                  display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', width: '100%',
+                  padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)', border: 0,
                   background: 'transparent', color: SugarV2.ink, fontFamily: 'inherit',
                   textAlign: 'left', cursor: 'pointer',
                   transition: 'background .15s',
@@ -236,7 +236,7 @@ export function Step2Address({ data, set }: StepProps) {
                 </svg>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontSize: 14, fontWeight: 600, color: SugarV2.ink,
+                    fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink,
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>{s.place_name}</div>
                 </div>
@@ -249,7 +249,7 @@ export function Step2Address({ data, set }: StepProps) {
       {/* Carte */}
       <div style={{
         position: 'relative', marginTop: 22, marginBottom: 22,
-        borderRadius: 24, overflow: 'hidden',
+        borderRadius: 'var(--crm-radius-5xl)', overflow: 'hidden',
         boxShadow: SugarV2.shadow,
         background: SugarV2.cardSubtle,
         height: 380,
@@ -260,13 +260,13 @@ export function Step2Address({ data, set }: StepProps) {
       {/* Card "Données extraites" + Affiner */}
       {confirmed && (
         <div style={{
-          background: SugarV2.card, borderRadius: 24, padding: 24,
+          background: SugarV2.card, borderRadius: 'var(--crm-radius-5xl)', padding: 'var(--crm-space-7xl)',
           boxShadow: SugarV2.shadow,
           animation: 'sgScaleIn .35s cubic-bezier(.2,.8,.2,1) both',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', marginBottom: 18 }}>
             <div style={{
-              width: 38, height: 38, borderRadius: 11,
+              width: 38, height: 38, borderRadius: 'var(--crm-radius-md)',
               background: 'rgba(16,185,129,0.12)',
               display: 'grid', placeItems: 'center', flexShrink: 0,
             }}>
@@ -275,24 +275,24 @@ export function Step2Address({ data, set }: StepProps) {
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 2 }}>
+                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
                   {t('wizard.step2.confirmedTitle')}
                 </span>
                 <span style={{
-                  padding: '3px 9px', borderRadius: 999,
+                  padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
                   background: SugarV2.black, color: sgOn(),
-                  fontSize: 9.5, fontWeight: 700, letterSpacing: 0.5,
+                  fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5,
                   textTransform: 'uppercase',
                 }}>MEGGA AI</span>
               </div>
-              <div style={{ fontSize: 12, color: SugarV2.muted, fontWeight: 500 }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', color: SugarV2.muted, fontWeight: 500 }}>
                 {t('wizard.step2.confirmedSubtitle')}
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--crm-space-xl)' }}>
             {[
               { label: t('form.fields.postalCodeFull'), value: data.postCode || '—' },
               { label: t('form.fields.city'), value: data.city || '—' },
@@ -300,15 +300,15 @@ export function Step2Address({ data, set }: StepProps) {
               { label: t('wizard.step2.coordinates'), value: coords ? `${coords[1].toFixed(4)}, ${coords[0].toFixed(4)}` : '—' },
             ].map((f, i) => (
               <div key={i} style={{
-                padding: '12px 14px', borderRadius: 12,
+                padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)',
                 background: SugarV2.cardSubtle,
               }}>
                 <div style={{
-                  fontSize: 10, fontWeight: 600, color: SugarV2.muted,
+                  fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.muted,
                   letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4,
                 }}>{f.label}</div>
                 <div style={{
-                  fontSize: 13, fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2,
+                  fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{f.value}</div>
               </div>
@@ -317,10 +317,10 @@ export function Step2Address({ data, set }: StepProps) {
 
           <div style={{ marginTop: 18 }}>
             <button onClick={() => setShowRefine(s => !s)} style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '10px 14px', borderRadius: 12, border: 0,
+              display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
+              padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)', border: 0,
               background: 'transparent', color: SugarV2.ink,
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer',
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={SugarV2.ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 style={{ transform: showRefine ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform .2s ease' }}>
@@ -331,18 +331,18 @@ export function Step2Address({ data, set }: StepProps) {
 
             {showRefine && (
               <div style={{
-                marginTop: 8, padding: 18,
-                borderRadius: 16, background: SugarV2.cardSubtle,
+                marginTop: 8, padding: 'var(--crm-space-4xl)',
+                borderRadius: 'var(--crm-radius-2xl)', background: SugarV2.cardSubtle,
                 animation: 'sgFadeUp .3s cubic-bezier(.2,.8,.2,1) both',
               }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--crm-space-2xl)', marginBottom: 14 }}>
                   <SgInput label={t('wizard.step2.refine.unit')} value={data.unit || ''} onChange={v => set({ unit: v })} placeholder={t('wizard.step2.refine.unitPlaceholder')} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-md)' }}>
                     <SgInput label={t('form.fields.floor')} value={data.floor != null ? String(data.floor) : ''} onChange={v => set({ floor: v ? parseInt(v) : null })} placeholder="3" />
                     <SgInput label={t('wizard.step2.refine.outOf')} value={data.floorsTotal != null ? String(data.floorsTotal) : ''} onChange={v => set({ floorsTotal: v ? parseInt(v) : null })} placeholder="5" />
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--crm-space-2xl)' }}>
                   <SgInput label={t('wizard.step2.refine.cadastral')} value={data.cadastralId || ''} onChange={v => set({ cadastralId: v })} placeholder={t('wizard.step2.refine.cadastralPlaceholder')} />
                   <SgInput label={t('wizard.step2.refine.postalAdjust')} value={data.postCode || ''} onChange={v => set({ postCode: v })} />
                 </div>
@@ -441,9 +441,9 @@ function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; conf
         }}>
           <div style={{
             background: sgAcc(0.85), backdropFilter: 'blur(8px)',
-            padding: '10px 16px', borderRadius: 999,
+            padding: 'var(--crm-space-lg) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-            fontSize: 12, fontWeight: 600, color: SugarV2.muted,
+            fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
             letterSpacing: 0.4, textTransform: 'uppercase',
           }}>{t('wizard.step2.mapPrompt')}</div>
         </div>
@@ -487,7 +487,7 @@ function SgMapFallback({ error, confirmed }: { error: string; confirmed: boolean
           transform: 'translate(-50%, -50%)',
         }}>
           <div style={{
-            width: 22, height: 22, borderRadius: 999,
+            width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)',
             background: '#0B0C0E', border: '4px solid #fff',
             boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
             animation: 'sgPinPulse 2s ease-in-out infinite',
@@ -498,9 +498,9 @@ function SgMapFallback({ error, confirmed }: { error: string; confirmed: boolean
       {error && (
         <div style={{
           position: 'absolute', bottom: 14, left: 14,
-          padding: '7px 12px', borderRadius: 10,
+          padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-md)',
           background: sgAcc(0.9), backdropFilter: 'blur(6px)',
-          fontSize: 11, fontWeight: 500, color: SugarV2.muted,
+          fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: SugarV2.muted,
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
         }}>
           {t('wizard.step2.mapUnavailable')}

@@ -237,13 +237,13 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
           padding: '20px 32px',
           display: 'flex',
           alignItems: 'center',
-          gap: 18,
+          gap: 'var(--crm-space-4xl)',
           position: 'relative',
           zIndex: 10,
         }}
       >
         {!embedded && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)', flexShrink: 0 }}>
             <img
               src="/megga-logo.svg"
               alt="MEGGA"
@@ -262,7 +262,7 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
             <div>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 'var(--crm-text-sm)',
                   fontWeight: 600,
                   color: sp.muted,
                   letterSpacing: 1,
@@ -274,7 +274,7 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
               </div>
               <div
                 style={{
-                  fontSize: 18,
+                  fontSize: 'var(--crm-text-3xl)',
                   fontWeight: 700,
                   color: sp.ink,
                   letterSpacing: -0.3,
@@ -329,11 +329,11 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
             style={{
               maxWidth: 720,
               margin: '24px auto 0',
-              padding: '12px 16px',
+              padding: 'var(--crm-space-xl) var(--crm-space-3xl)',
               background: sp.errSoft,
               color: sp.errDarker,
-              borderRadius: 14,
-              fontSize: 13,
+              borderRadius: 'var(--crm-radius-xl)',
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 600,
               textAlign: 'center',
             }}
@@ -355,7 +355,7 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 16,
+            gap: 'var(--crm-space-3xl)',
             zIndex: 20,
             background: sp.footerFade,
             pointerEvents: 'none',
@@ -371,7 +371,7 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
               </KycGhostPill>
             )}
           </div>
-          <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
             <KycBlackPill
               onClick={next}
               disabled={!canNext || createDossier.isPending}

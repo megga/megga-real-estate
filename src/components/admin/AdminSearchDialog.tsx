@@ -99,7 +99,7 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
         }}
       >
         {/* Search input */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', height: 52, padding: '0 var(--crm-space-4xl)' }}>
           <MEIcon
             name={loading ? 'spinner' : 'search'}
             size={17}
@@ -115,12 +115,12 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
             className="flex-1 placeholder:text-theme-muted"
             style={{
               background: 'transparent', border: 0, outline: 'none', minWidth: 0,
-              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, color: sp.ink,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink,
             }}
           />
           <kbd style={{
-            flexShrink: 0, padding: '3px 9px', borderRadius: ADMIN_RADII.pill,
-            background: surf.cardSub, color: sp.sub, fontFamily: 'inherit', fontSize: 11, fontWeight: 700,
+            flexShrink: 0, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: ADMIN_RADII.pill,
+            background: surf.cardSub, color: sp.sub, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700,
           }}>
             Esc
           </kbd>
@@ -159,17 +159,17 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
                       onClick={() => handleSelect(item)}
                       className="adm-nav"
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                        padding: '9px 16px', border: 0, background: 'transparent',
+                        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', width: '100%',
+                        padding: 'var(--crm-space-md) var(--crm-space-3xl)', border: 0, background: 'transparent',
                         textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                       }}
                     >
                       <MEIcon name={Icon as MEIconName} size={16} color={sp.sub} />
                       <span style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: 'block', fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.title}
                         </span>
-                        <span style={{ display: 'block', fontSize: 11.5, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.subtitle}
                         </span>
                       </span>

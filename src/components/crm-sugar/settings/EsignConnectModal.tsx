@@ -53,8 +53,8 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
 
   return (
     <Modal title={t('integrations.esign.title')} onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <p style={{ margin: 0, fontSize: 13.5, color: SET.inkSoft, lineHeight: 1.55 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', color: SET.inkSoft, lineHeight: 1.55 }}>
           {t('integrations.esign.intro')}
         </p>
 
@@ -77,7 +77,7 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
         <div>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 'var(--crm-text-sm)',
               fontWeight: 700,
               color: SET.muted,
               letterSpacing: 0.6,
@@ -87,7 +87,7 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
           >
             {t('integrations.esign.defaultLevel')}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
             {QUALITIES.map((q) => {
               const active = quality === q.id
               return (
@@ -98,12 +98,12 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
                   style={{
                     flex: 1,
                     height: 44,
-                    borderRadius: 14,
+                    borderRadius: 'var(--crm-radius-xl)',
                     border: 0,
                     background: active ? SET.black : SET.cardSubtle,
                     color: active ? SET.blackInk : SET.inkSoft,
                     fontFamily: 'inherit',
-                    fontSize: 13.5,
+                    fontSize: 'var(--crm-text-lg)',
                     fontWeight: 700,
                     cursor: 'pointer',
                     boxShadow: active ? 'none' : 'inset 0 0 0 1px rgba(15,23,42,0.04)',
@@ -115,7 +115,7 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
               )
             })}
           </div>
-          <div style={{ marginTop: 6, fontSize: 12, color: SET.muted, lineHeight: 1.5 }}>
+          <div style={{ marginTop: 6, fontSize: 'var(--crm-text-md)', color: SET.muted, lineHeight: 1.5 }}>
             {t(QUALITIES.find((q) => q.id === quality)?.subKey ?? '')}
           </div>
         </div>
@@ -125,14 +125,14 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
           style={{
             display: 'flex',
             alignItems: 'flex-start',
-            gap: 10,
-            padding: '12px 14px',
-            borderRadius: 14,
+            gap: 'var(--crm-space-lg)',
+            padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+            borderRadius: 'var(--crm-radius-xl)',
             background: SET.cardSubtle,
           }}
         >
           <SetIcon name="shield" size={15} stroke={SET.ok} sw={2} />
-          <span style={{ fontSize: 12.5, color: SET.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
+          <span style={{ fontSize: 'var(--crm-text-md)', color: SET.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
             {t('integrations.esign.trustNote')}
           </span>
         </div>
@@ -142,8 +142,8 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
             style={{
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 8,
-              fontSize: 13,
+              gap: 'var(--crm-space-md)',
+              fontSize: 'var(--crm-text-lg)',
               color: SET.err,
               fontWeight: 600,
               lineHeight: 1.5,
@@ -154,7 +154,7 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--crm-space-lg)', marginTop: 4 }}>
           <SetGhostBtn onClick={onClose}>{t('common:actions.cancel')}</SetGhostBtn>
           <SetBlackBtn
             onClick={submit}

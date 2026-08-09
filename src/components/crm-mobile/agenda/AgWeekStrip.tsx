@@ -32,7 +32,7 @@ export default function AgWeekStrip({ days, selected, onSelect, countFor }: AgWe
   return (
     <div
       ref={scrollRef}
-      style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -18px', padding: '4px 18px 8px', scrollbarWidth: 'none' }}
+      style={{ display: 'flex', gap: 'var(--crm-space-md)', overflowX: 'auto', margin: '0 -18px', padding: 'var(--crm-space-xs) var(--crm-space-4xl) var(--crm-space-md)', scrollbarWidth: 'none' }}
     >
       {days.map((d) => {
         const on = sameDay(d, selected)
@@ -48,7 +48,7 @@ export default function AgWeekStrip({ days, selected, onSelect, countFor }: AgWe
               flexShrink: 0,
               width: 50,
               height: 70,
-              borderRadius: 16,
+              borderRadius: 'var(--crm-radius-2xl)',
               border: 0,
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -56,7 +56,7 @@ export default function AgWeekStrip({ days, selected, onSelect, countFor }: AgWe
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 5,
+              gap: 'var(--crm-space-xs)',
               background: on ? tk.accent : tk.card,
               boxShadow: on ? tk.shadow : tk.shadowSm,
               transition: 'background .2s ease',
@@ -64,7 +64,7 @@ export default function AgWeekStrip({ days, selected, onSelect, countFor }: AgWe
           >
             <span
               style={{
-                fontSize: 10.5,
+                fontSize: 'var(--crm-text-xs)',
                 fontWeight: 700,
                 letterSpacing: 0.3,
                 textTransform: 'uppercase',
@@ -75,7 +75,7 @@ export default function AgWeekStrip({ days, selected, onSelect, countFor }: AgWe
             </span>
             <span
               style={{
-                fontSize: 19,
+                fontSize: 'var(--crm-text-3xl)',
                 fontWeight: 800,
                 letterSpacing: -0.5,
                 lineHeight: 1,
@@ -85,11 +85,11 @@ export default function AgWeekStrip({ days, selected, onSelect, countFor }: AgWe
             >
               {d.getDate()}
             </span>
-            <span style={{ display: 'flex', gap: 3, height: 5, alignItems: 'center' }}>
+            <span style={{ display: 'flex', gap: 'var(--crm-space-2xs)', height: 5, alignItems: 'center' }}>
               {Array.from({ length: Math.min(count, 3) }).map((_, i) => (
                 <span
                   key={i}
-                  style={{ width: 4, height: 4, borderRadius: 999, background: on ? tk.accentInk : tk.ghost, opacity: on ? 0.9 : 1 }}
+                  style={{ width: 4, height: 4, borderRadius: 'var(--crm-radius-pill)', background: on ? tk.accentInk : tk.ghost, opacity: on ? 0.9 : 1 }}
                 />
               ))}
             </span>

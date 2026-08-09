@@ -50,7 +50,7 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
           width: 430,
           maxWidth: 'calc(100% - 60px)',
           background: dark ? '#202124' : '#FFFFFF',
-          borderRadius: 28,
+          borderRadius: 'var(--crm-radius-6xl)',
           boxShadow: '0 40px 100px rgba(15,23,42,0.20), 0 8px 24px rgba(15,23,42,0.10)',
           padding: '26px 28px',
           boxSizing: 'border-box',
@@ -67,20 +67,20 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
             if (f) setFile(f)
           }}
         />
-        <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>{label}</div>
-        <div style={{ fontSize: 12.5, fontWeight: 500, color: sp.sub, marginTop: 4 }}>{contactName}</div>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>{label}</div>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.sub, marginTop: 4 }}>{contactName}</div>
 
         {!file ? (
           <div
             style={{
               marginTop: 18,
               background: surf.cardSub,
-              borderRadius: 16,
+              borderRadius: 'var(--crm-radius-2xl)',
               padding: '30px 20px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 14,
+              gap: 'var(--crm-space-2xl)',
               textAlign: 'center',
             }}
           >
@@ -88,7 +88,7 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
               style={{
                 width: 52,
                 height: 52,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 background: dark ? 'rgba(255,255,255,0.07)' : '#FFFFFF',
                 boxShadow: sp.shadowSm,
                 display: 'grid',
@@ -98,7 +98,7 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
             >
               <KypIcon name="upload" size={20} sw={1.8} />
             </span>
-            <div style={{ fontSize: 13, fontWeight: 600, color: sp.soft }}>Choisissez un fichier à joindre</div>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.soft }}>Choisissez un fichier à joindre</div>
             <KypCta sp={sp} h={36} onClick={() => inputRef.current?.click()}>
               Choisir un fichier
             </KypCta>
@@ -108,11 +108,11 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
             style={{
               marginTop: 18,
               background: surf.cardSub,
-              borderRadius: 16,
-              padding: '14px 16px',
+              borderRadius: 'var(--crm-radius-2xl)',
+              padding: 'var(--crm-space-2xl) var(--crm-space-3xl)',
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
+              gap: 'var(--crm-space-lg)',
             }}
           >
             <span style={{ color: sp.ink, display: 'inline-flex', flexShrink: 0 }}>
@@ -120,7 +120,7 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
             </span>
             <span
               style={{
-                fontSize: 13,
+                fontSize: 'var(--crm-text-lg)',
                 fontWeight: 700,
                 color: sp.ink,
                 minWidth: 0,
@@ -131,16 +131,16 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
             >
               {file.name}
             </span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
               {humanSize(file.size)}
             </span>
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 14, marginTop: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 'var(--crm-space-2xl)', marginTop: 20 }}>
           <span
             onClick={onCancel}
-            style={{ fontSize: 13, fontWeight: 700, color: sp.soft, cursor: 'pointer', fontFamily: KYP_FONT }}
+            style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.soft, cursor: 'pointer', fontFamily: KYP_FONT }}
           >
             Annuler
           </span>

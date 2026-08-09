@@ -32,7 +32,7 @@ function KypPageDots({ page, onGo, dark }: { page: number; onGo: (i: number) => 
         zIndex: 30,
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 'var(--crm-space-lg)',
         alignItems: 'center',
       }}
     >
@@ -44,7 +44,7 @@ function KypPageDots({ page, onGo, dark }: { page: number; onGo: (i: number) => 
           style={{
             width: 8,
             height: i === page ? 26 : 8,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: 0,
             cursor: 'pointer',
             padding: 0,
@@ -74,15 +74,15 @@ function KypScrollHint({ page, onGo, sp }: { page: number; onGo: (i: number) => 
         zIndex: 60,
         display: 'flex',
         alignItems: 'center',
-        gap: 11,
-        padding: 6,
+        gap: 'var(--crm-space-lg)',
+        padding: 'var(--crm-space-sm)',
         border: 0,
         background: 'transparent',
         fontFamily: 'inherit',
         cursor: 'pointer',
       }}
     >
-      <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 16, fontWeight: 700, lineHeight: 1, color: sp.sub }}>
+      <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, lineHeight: 1, color: sp.sub }}>
         {next ? '↓' : '↑'}
       </span>
       <span
@@ -99,7 +99,7 @@ function KypScrollHint({ page, onGo, sp }: { page: number; onGo: (i: number) => 
           transition: 'max-width .4s cubic-bezier(.76,0,.24,1), opacity .3s ease, transform .4s cubic-bezier(.76,0,.24,1)',
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>{target.label}</span>
+        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink }}>{target.label}</span>
       </span>
     </button>
   )
@@ -307,7 +307,7 @@ export function KycPagerFrame({
         style={{
           position: 'relative',
           height: '100%',
-          borderRadius: 26,
+          borderRadius: 'var(--crm-radius-6xl)',
           overflow: 'hidden',
           border: `1px solid ${sp.frameBorder}`,
           boxShadow: sp.shadow,

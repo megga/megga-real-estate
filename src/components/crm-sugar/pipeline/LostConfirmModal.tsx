@@ -37,30 +37,30 @@ export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm }:
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         width: 400, maxWidth: 'calc(100vw - 48px)',
-        background: dark ? crmStep('s4', '#17181A') : '#FFFFFF', borderRadius: 28,
+        background: dark ? crmStep('s4', '#17181A') : '#FFFFFF', borderRadius: 'var(--crm-radius-6xl)',
         boxShadow: '0 40px 100px rgba(15,23,42,0.20), 0 8px 24px rgba(15,23,42,0.10)',
         padding: '26px 26px 22px',
         fontFamily: '"Inter Tight", system-ui, sans-serif',
         animation: 'sugar-fade-up .3s cubic-bezier(.2,.8,.2,1) both',
       }}>
-        <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
           {t('board.lostConfirm.title')}
         </div>
-        <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 600, color: sp.sub, lineHeight: 1.55 }}>
+        <p style={{ margin: '10px 0 0', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.sub, lineHeight: 1.55 }}>
           {contactName
             ? t('board.lostConfirm.message', { name: contactName })
             : t('board.lostConfirm.messageNoName')}
         </p>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
           <button onClick={onCancel} style={{
-            height: 42, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer',
+            height: 42, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
             background: dark ? crmStep('s3', '#26272A') : '#F1F4F8', color: sp.ink,
-            fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+            fontSize: 'var(--crm-text-lg)', fontWeight: 700, fontFamily: 'inherit',
           }}>{t('board.lostConfirm.cancel')}</button>
           <button onClick={onConfirm} style={{
-            height: 42, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer',
+            height: 42, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
             background: dark ? '#E0738C' : '#8E1F3D', color: '#FFFFFF',
-            fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+            fontSize: 'var(--crm-text-lg)', fontWeight: 700, fontFamily: 'inherit',
           }}>{t('board.lostConfirm.confirm')}</button>
         </div>
       </div>

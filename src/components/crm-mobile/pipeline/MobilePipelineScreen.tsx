@@ -100,7 +100,7 @@ function ProbRing({ pct, color }: { pct: number; color: string }) {
         <circle cx={size / 2} cy={size / 2} r={r} stroke={tk.hair} strokeWidth={3.5} fill="none" />
         <circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={3.5} fill="none" strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" style={{ transition: 'stroke-dashoffset .6s cubic-bezier(.22,1,.36,1)' }} />
       </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 10.5, fontWeight: 800, color: tk.ink, fontVariantNumeric: 'tabular-nums', letterSpacing: -0.3 }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.ink, fontVariantNumeric: 'tabular-nums', letterSpacing: -0.3 }}>
         {pct}
       </div>
     </div>
@@ -161,14 +161,14 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
           type="button"
           onClick={() => { if (!demo) openSugarSearch() }}
           aria-label={t('common:nav.search')}
-          style={{ width: 38, height: 38, borderRadius: 999, border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}
+          style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}
         >
           <MEIcon name="search" size={18} color={tk.ink} />
         </button>
       </header>
 
-      <div style={{ padding: '4px 18px 0' }}>
-        <h1 style={{ margin: '4px 0 0', fontSize: 28, fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
+      <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
           {t('common:nav.pipeline')}
         </h1>
       </div>
@@ -181,13 +181,13 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
         <PipelineState tk={tk} title={t('board.empty')} />
       ) : (
         <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 11, margin: '7px 18px 0', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 14.5, fontWeight: 800, color: tk.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{totalValue}</span>
-        <span style={{ fontSize: 13.5, fontWeight: 600, color: tk.inkSoft }}>{t('dealsCount', { count: totalCount })}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', margin: '7px 18px 0', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{totalValue}</span>
+        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.inkSoft }}>{t('dealsCount', { count: totalCount })}</span>
       </div>
 
       {/* Onglets de stade */}
-      <div style={{ display: 'flex', gap: 9, overflowX: 'auto', padding: '18px 18px 4px', scrollbarWidth: 'none' }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-md)', overflowX: 'auto', padding: 'var(--crm-space-4xl) var(--crm-space-4xl) var(--crm-space-xs)', scrollbarWidth: 'none' }}>
         {CRM_STAGE_ORDER.map((s) => {
           const on = s === active
           return (
@@ -199,10 +199,10 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
                 flexShrink: 0,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8,
+                gap: 'var(--crm-space-md)',
                 height: 40,
-                padding: '0 16px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-3xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
@@ -211,8 +211,8 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
                 transition: 'background .2s ease',
               }}
             >
-              <span style={{ width: 8, height: 8, borderRadius: 999, background: stageColor(s), flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: on ? 800 : 700, letterSpacing: -0.2, color: on ? tk.accentInk : tk.ink, whiteSpace: 'nowrap' }}>
+              <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: stageColor(s), flexShrink: 0 }} />
+              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, color: on ? tk.accentInk : tk.ink, whiteSpace: 'nowrap' }}>
                 {t(`stages.${s}`)}
               </span>
             </button>
@@ -221,26 +221,26 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
       </div>
 
       {/* Sous-titre stade */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '18px 18px 0' }}>
-        <span style={{ width: 9, height: 9, borderRadius: 999, background: stageColor(active) }} />
-        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t(`stages.${active}`)}</h2>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', margin: '18px 18px 0' }}>
+        <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: stageColor(active) }} />
+        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t(`stages.${active}`)}</h2>
       </div>
 
       {/* Liste */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 11, padding: '13px 18px 0' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-xl) var(--crm-space-4xl) 0' }}>
         {visible.map((d) => (
           <div
             key={d.id}
             role="button"
             tabIndex={0}
             onClick={() => { if (!demo) navigate(`/dashboard/transactions/${d.id}`) }}
-            style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 18, boxShadow: tk.shadowSm, padding: '14px 15px 13px', cursor: 'pointer' }}
+            style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-3xl)', boxShadow: tk.shadowSm, padding: 'var(--crm-space-2xl) var(--crm-space-2xl) var(--crm-space-xl)', cursor: 'pointer' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-              <span style={{ width: 36, height: 36, borderRadius: 999, display: 'grid', placeItems: 'center', background: d.av, color: '#fff', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{d.initials}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
+              <span style={{ width: 36, height: 36, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', background: d.av, color: '#fff', fontSize: 'var(--crm-text-lg)', fontWeight: 800, flexShrink: 0 }}>{d.initials}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
-                <div style={{ fontSize: 11.5, color: tk.muted, fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.bienTitle}</div>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
+                <div style={{ fontSize: 'var(--crm-text-sm)', color: tk.muted, fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.bienTitle}</div>
               </div>
               <ProbRing pct={d.prob} color={stageColor(d.stage)} />
               <button
@@ -250,17 +250,17 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
                   setMenuDeal(d)
                 }}
                 aria-label={t('common:actions.options')}
-                style={{ width: 32, height: 32, borderRadius: 999, border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, marginRight: -4, color: tk.muted }}
+                style={{ width: 32, height: 32, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, marginRight: -4, color: tk.muted }}
               >
                 <MEIcon name="more-horizontal" size={18} color={tk.muted} />
               </button>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: tk.ink, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                {d.value == null ? <span style={{ fontSize: 13.5, fontWeight: 700, color: tk.muted, letterSpacing: 0 }}>{t('toEstimate')}</span> : formatCHF(d.value)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 12 }}>
+              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                {d.value == null ? <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.muted, letterSpacing: 0 }}>{t('toEstimate')}</span> : formatCHF(d.value)}
               </div>
               {d.risk !== 'healthy' ? (
-                <span style={{ marginLeft: 'auto', fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, color: tk.riskFg, background: tk.riskBg, padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap', textTransform: 'uppercase' }}>
+                <span style={{ marginLeft: 'auto', fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.3, color: tk.riskFg, background: tk.riskBg, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>
                   {t('board.risk.atRisk')}
                 </span>
               ) : null}
@@ -271,16 +271,16 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
                   marginTop: 11,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 9,
-                  padding: '9px 11px',
-                  borderRadius: 12,
+                  gap: 'var(--crm-space-md)',
+                  padding: 'var(--crm-space-md) var(--crm-space-lg)',
+                  borderRadius: 'var(--crm-radius-lg)',
                   background: d.needsKyc ? (isDark ? 'rgba(14,116,144,.18)' : '#E0F1F5') : tk.cardSubtle,
                 }}
               >
-                <span style={{ width: 22, height: 22, borderRadius: 999, background: d.needsKyc ? 'transparent' : tk.card, display: 'grid', placeItems: 'center', flexShrink: 0, boxShadow: d.needsKyc ? 'none' : tk.shadowSm }}>
+                <span style={{ width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', background: d.needsKyc ? 'transparent' : tk.card, display: 'grid', placeItems: 'center', flexShrink: 0, boxShadow: d.needsKyc ? 'none' : tk.shadowSm }}>
                   <MEIcon name={d.needsKyc ? 'shield' : (NOTE_ICON[d.noteKind] ?? 'clock')} size={12} color={d.needsKyc ? (isDark ? '#7FCFE0' : '#0E7490') : tk.inkSoft} />
                 </span>
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: d.needsKyc ? (isDark ? '#9FD8E6' : '#0E6580') : tk.inkSoft, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ flex: 1, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: d.needsKyc ? (isDark ? '#9FD8E6' : '#0E6580') : tk.inkSoft, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {d.needsKyc ? t('kycSoft') : d.note}
                 </span>
               </div>
@@ -313,11 +313,11 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
 
       {/* Changer d'étape */}
       <SgBottomCard open={stagePick !== null} onClose={() => setStagePick(null)} ariaLabel={t('actions.changeStage')}>
-        <div style={{ padding: '18px 16px 6px' }}>
-          <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t('actions.changeStage')}</div>
-          {stagePick ? <div style={{ fontSize: 13, fontWeight: 600, color: tk.muted, marginTop: 3 }}>{stagePick.name}</div> : null}
+        <div style={{ padding: 'var(--crm-space-4xl) var(--crm-space-3xl) var(--crm-space-sm)' }}>
+          <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t('actions.changeStage')}</div>
+          {stagePick ? <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 3 }}>{stagePick.name}</div> : null}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '4px 8px 12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-xs) var(--crm-space-md) var(--crm-space-xl)' }}>
           {CRM_STAGE_ORDER.map((s) => {
             const cur = stagePick?.stage === s
             return (
@@ -328,12 +328,12 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
                 onClick={() => {
                   if (!cur && stagePick) doMove(stagePick, s)
                 }}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '13px 12px', borderRadius: 14, border: 0, cursor: cur ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left', background: cur ? tk.cardSubtle : 'transparent', opacity: cur ? 0.6 : 1 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', width: '100%', padding: 'var(--crm-space-xl) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)', border: 0, cursor: cur ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left', background: cur ? tk.cardSubtle : 'transparent', opacity: cur ? 0.6 : 1 }}
               >
-                <span style={{ width: 10, height: 10, borderRadius: 999, background: stageColor(s), flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 14.5, fontWeight: 700, letterSpacing: -0.2, color: tk.ink }}>{t(`stages.${s}`)}</span>
+                <span style={{ width: 10, height: 10, borderRadius: 'var(--crm-radius-pill)', background: stageColor(s), flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.2, color: tk.ink }}>{t(`stages.${s}`)}</span>
                 {cur ? (
-                  <span style={{ fontSize: 11, fontWeight: 800, color: tk.muted, letterSpacing: 0.2, textTransform: 'uppercase' }}>{t('stagePick.current')}</span>
+                  <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, letterSpacing: 0.2, textTransform: 'uppercase' }}>{t('stagePick.current')}</span>
                 ) : (
                   <MEIcon name="arrow-right" size={16} color={tk.muted} />
                 )}
@@ -365,9 +365,9 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
 /** Placeholder de chargement — 4 cartes grisées. */
 function PipelineSkeleton({ tk }: { tk: MobileTokens }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 11, padding: '18px 18px 0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-4xl) var(--crm-space-4xl) 0' }}>
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} style={{ height: 96, borderRadius: 18, background: tk.cardSubtle, boxShadow: tk.shadowSm }} />
+        <div key={i} style={{ height: 96, borderRadius: 'var(--crm-radius-3xl)', background: tk.cardSubtle, boxShadow: tk.shadowSm }} />
       ))}
     </div>
   )
@@ -376,11 +376,11 @@ function PipelineSkeleton({ tk }: { tk: MobileTokens }) {
 /** Panneau vide/erreur générique ; affiche un bouton « réessayer » quand `onRetry` est fourni. */
 function PipelineState({ tk, title, body, onRetry, retryLabel }: { tk: MobileTokens; title: string; body?: string; onRetry?: () => void; retryLabel?: string }) {
   return (
-    <div style={{ margin: '22px 18px 0', textAlign: 'center', padding: '40px 24px', background: tk.card, borderRadius: 20, boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
-      <div style={{ fontSize: 15, fontWeight: 800, color: tk.ink }}>{title}</div>
-      {body ? <div style={{ fontSize: 13, fontWeight: 600, color: tk.muted, marginTop: 6, lineHeight: 1.45, maxWidth: 280, marginInline: 'auto' }}>{body}</div> : null}
+    <div style={{ margin: '22px 18px 0', textAlign: 'center', padding: '40px 24px', background: tk.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink }}>{title}</div>
+      {body ? <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 6, lineHeight: 1.45, maxWidth: 280, marginInline: 'auto' }}>{body}</div> : null}
       {onRetry ? (
-        <button type="button" onClick={onRetry} style={{ marginTop: 16, height: 44, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{retryLabel}</button>
+        <button type="button" onClick={onRetry} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{retryLabel}</button>
       ) : null}
     </div>
   )

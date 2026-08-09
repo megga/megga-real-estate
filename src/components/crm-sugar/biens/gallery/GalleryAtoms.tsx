@@ -95,11 +95,11 @@ export function GalStatusPill({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        padding: '5px 12px',
-        borderRadius: 999,
+        padding: 'var(--crm-space-xs) var(--crm-space-xl)',
+        borderRadius: 'var(--crm-radius-pill)',
         background: st.tone,
         color: onTone,
-        fontSize: 11.5,
+        fontSize: 'var(--crm-text-sm)',
         fontWeight: 700,
         whiteSpace: 'nowrap',
         letterSpacing: -0.1,
@@ -138,9 +138,9 @@ export function GalSegmented({
     <div
       style={{
         display: 'inline-flex',
-        gap: 3,
-        padding: 3,
-        borderRadius: 999,
+        gap: 'var(--crm-space-2xs)',
+        padding: 'var(--crm-space-2xs)',
+        borderRadius: 'var(--crm-radius-pill)',
         background: surf.cardSub,
         border: surf.hairline,
       }}
@@ -153,18 +153,18 @@ export function GalSegmented({
             onClick={() => onChange(o.value)}
             style={{
               height: 32,
-              padding: '0 14px',
-              borderRadius: 999,
+              padding: '0 var(--crm-space-2xl)',
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 12.5,
+              fontSize: 'var(--crm-text-md)',
               fontWeight: on ? 700 : 600,
               background: on ? sp.ink : 'transparent',
               color: on ? sp.pageBg : sp.sub,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 7,
+              gap: 'var(--crm-space-sm)',
               whiteSpace: 'nowrap',
               transition: 'background .15s, color .15s',
             }}
@@ -174,11 +174,11 @@ export function GalSegmented({
             {o.count != null && (
               <span
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--crm-text-xs)',
                   fontWeight: 700,
                   fontVariantNumeric: 'tabular-nums',
-                  padding: '1px 6px',
-                  borderRadius: 999,
+                  padding: 'var(--crm-space-2xs) var(--crm-space-sm)',
+                  borderRadius: 'var(--crm-radius-pill)',
                   background: on
                     ? 'rgba(255,255,255,.18)'
                     : dark
@@ -233,19 +233,19 @@ export function GalSortDropdown({
         onClick={() => setOpen(o => !o)}
         style={{
           height: 38,
-          padding: '0 14px',
-          borderRadius: 999,
+          padding: '0 var(--crm-space-2xl)',
+          borderRadius: 'var(--crm-radius-pill)',
           cursor: 'pointer',
           fontFamily: 'inherit',
           background: surf.card,
           border: surf.hairline,
           boxShadow: surf.shadow,
           color: sp.ink,
-          fontSize: 12.5,
+          fontSize: 'var(--crm-text-md)',
           fontWeight: 600,
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 8,
+          gap: 'var(--crm-space-md)',
           whiteSpace: 'nowrap',
         }}
       >
@@ -264,9 +264,9 @@ export function GalSortDropdown({
             zIndex: 100,
             background: sp.solidBg,
             border: `1px solid ${sp.solidBorder}`,
-            borderRadius: 14,
+            borderRadius: 'var(--crm-radius-xl)',
             boxShadow: sp.solidShadow,
-            padding: 6,
+            padding: 'var(--crm-space-sm)',
           }}
         >
           {options.map(o => (
@@ -280,13 +280,13 @@ export function GalSortDropdown({
                 width: '100%',
                 textAlign: 'left',
                 height: 34,
-                padding: '0 12px',
-                borderRadius: 9,
+                padding: '0 var(--crm-space-xl)',
+                borderRadius: 'var(--crm-radius-sm)',
                 background: o.value === value ? sp.solidBgSub : 'transparent',
                 border: 0,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                fontSize: 12.5,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: o.value === value ? 700 : 500,
                 color: sp.ink,
               }}

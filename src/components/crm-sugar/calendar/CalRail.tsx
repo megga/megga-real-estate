@@ -38,17 +38,17 @@ function CalMiniMonth({ currentDate, now, onDateChange, events }: CalMiniMonthPr
   )
 
   const navBtn: React.CSSProperties = {
-    width: 26, height: 26, borderRadius: 999, border: 0, background: 'transparent',
+    width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent',
     cursor: 'pointer', display: 'grid', placeItems: 'center',
   }
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 800, color: SP.ink, letterSpacing: -0.2 }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: SP.ink, letterSpacing: -0.2 }}>
           {months[viewMonth.getMonth()]} {viewMonth.getFullYear()}
         </div>
-        <div style={{ display: 'flex', gap: 2 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-2xs)' }}>
           <button
             style={navBtn}
             onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
@@ -67,12 +67,12 @@ function CalMiniMonth({ currentDate, now, onDateChange, events }: CalMiniMonthPr
           </button>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, marginBottom: 3 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 'var(--crm-space-2xs)', marginBottom: 3 }}>
         {dayLetters.map((d, i) => (
-          <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: SP.muted, padding: '3px 0' }}>{d}</div>
+          <div key={i} style={{ textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SP.muted, padding: 'var(--crm-space-2xs) 0' }}>{d}</div>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 'var(--crm-space-2xs)' }}>
         {cells.map((d, i) => {
           if (d === null) return <div key={i} />
           const dt = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), d)
@@ -88,7 +88,7 @@ function CalMiniMonth({ currentDate, now, onDateChange, events }: CalMiniMonthPr
                 background: isSelected ? '#6F8CFF' : 'transparent',
                 color: isSelected ? '#FFFFFF' : SP.ink,
                 boxShadow: !isSelected && isToday ? `inset 0 0 0 1.5px ${SP.ring}` : 'none',
-                fontSize: 11.5, fontWeight: 700, borderRadius: 999, position: 'relative',
+                fontSize: 'var(--crm-text-sm)', fontWeight: 700, borderRadius: 'var(--crm-radius-pill)', position: 'relative',
                 display: 'grid', placeItems: 'center',
               }}
               onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = SP.cardSubtle }}
@@ -96,7 +96,7 @@ function CalMiniMonth({ currentDate, now, onDateChange, events }: CalMiniMonthPr
             >
               {d}
               {hasEvent && !isSelected && (
-                <span style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 3.5, height: 3.5, borderRadius: 999, background: SP.ink }} />
+                <span style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 3.5, height: 3.5, borderRadius: 'var(--crm-radius-pill)', background: SP.ink }} />
               )}
             </button>
           )
@@ -119,10 +119,10 @@ function CalTypeFilters({ filters, onFilters, events }: CalTypeFiltersProps) {
   const countOf = (id: string) => events.filter(e => e.type === id).length
   return (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 800, color: SP.muted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, paddingLeft: 4 }}>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: SP.muted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, paddingLeft: 'var(--crm-space-xs)' }}>
         {t('panel.eventTypes')}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
         {Object.values(CAL_EVENT_TYPES).map(type => {
           const shown = filters[type.id] !== false
           const dotColor = eventTypeColors(type, SP.isDark).accent
@@ -131,19 +131,19 @@ function CalTypeFilters({ filters, onFilters, events }: CalTypeFiltersProps) {
               key={type.id}
               onClick={() => onFilters({ ...filters, [type.id]: !shown })}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, border: 0,
+                display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-md)', border: 0,
                 background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%',
               }}
               onMouseEnter={e => { e.currentTarget.style.background = SP.cardSubtle }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
             >
               <span style={{
-                width: 13, height: 13, borderRadius: 4, flexShrink: 0,
+                width: 13, height: 13, borderRadius: 'var(--crm-radius-xs)', flexShrink: 0,
                 background: shown ? dotColor : 'transparent',
                 boxShadow: shown ? 'none' : `inset 0 0 0 1.5px ${SP.ghost}`,
               }} />
-              <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: shown ? SP.ink : SP.muted }}>{type.label}</span>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: SP.muted, fontVariantNumeric: 'tabular-nums' }}>{countOf(type.id)}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: shown ? SP.ink : SP.muted }}>{type.label}</span>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SP.muted, fontVariantNumeric: 'tabular-nums' }}>{countOf(type.id)}</span>
             </button>
           )
         })}
@@ -165,7 +165,7 @@ interface CalRailProps {
 export function CalRail({ currentDate, now, onDateChange, events, filters, onFilters }: CalRailProps) {
   const SP = useCalPalette()
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-5xl)' }}>
       <CalMiniMonth currentDate={currentDate} now={now} onDateChange={onDateChange} events={events} />
       <div style={{ height: 1, background: SP.line }} />
       <CalTypeFilters filters={filters} onFilters={onFilters} events={events} />

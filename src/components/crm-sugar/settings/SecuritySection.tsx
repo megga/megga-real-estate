@@ -79,7 +79,7 @@ function PwdField({
         <label
           style={{
             display: 'block',
-            fontSize: 11.5,
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 700,
             color: SET.inkSoft,
             marginBottom: 7,
@@ -93,10 +93,10 @@ function PwdField({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 'var(--crm-space-sm)',
           height: 46,
-          padding: '0 6px 0 13px',
-          borderRadius: 14,
+          padding: '0 var(--crm-space-sm) 0 var(--crm-space-xl)',
+          borderRadius: 'var(--crm-radius-xl)',
           background: foc ? SET.inputFocusBg : SET.cardSubtle,
           boxShadow: `inset 0 0 0 ${ring ? 1.5 : 1}px ${ring || SET.line}`,
           transition: 'box-shadow .15s, background .15s',
@@ -118,7 +118,7 @@ function PwdField({
             outline: 'none',
             background: 'transparent',
             fontFamily: 'inherit',
-            fontSize: 13.5,
+            fontSize: 'var(--crm-text-lg)',
             fontWeight: 600,
             color: SET.ink,
             letterSpacing: value && !show ? 2 : 0,
@@ -131,7 +131,7 @@ function PwdField({
           style={{
             width: 34,
             height: 34,
-            borderRadius: 9,
+            borderRadius: 'var(--crm-radius-sm)',
             border: 0,
             background: 'transparent',
             cursor: 'pointer',
@@ -152,15 +152,15 @@ function Meter({ s }: { s: number }) {
   const { t } = useTranslation('settings')
   const col = PWD_COLORS[s]
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ display: 'flex', gap: 5, flex: 1 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-xs)', flex: 1 }}>
         {[0, 1, 2, 3].map(i => (
           <div
             key={i}
             style={{
               height: 6,
               flex: 1,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               background: i < s ? col : SET.cardSubtle,
               transition: 'background .25s',
             }}
@@ -169,7 +169,7 @@ function Meter({ s }: { s: number }) {
       </div>
       <span
         style={{
-          fontSize: 12,
+          fontSize: 'var(--crm-text-md)',
           fontWeight: 800,
           color: col,
           letterSpacing: -0.1,
@@ -191,18 +191,18 @@ function SaveBtn({ ready, onClick, loading }: { ready: boolean; onClick: () => v
       disabled={!ready || loading}
       style={{
         height: 40,
-        padding: '0 20px',
-        borderRadius: 999,
+        padding: '0 var(--crm-space-5xl)',
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: ready ? SET.black : SET.cardSubtle,
         color: ready ? SET.blackInk : SET.ghost,
         fontFamily: 'inherit',
-        fontSize: 12.5,
+        fontSize: 'var(--crm-text-md)',
         fontWeight: 700,
         cursor: ready && !loading ? 'pointer' : 'not-allowed',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 8,
+        gap: 'var(--crm-space-md)',
         transition: 'background .18s, color .18s',
         boxShadow: ready ? '0 6px 16px rgba(11,12,14,0.18)' : `inset 0 0 0 1px ${SET.line}`,
         whiteSpace: 'nowrap',
@@ -213,7 +213,7 @@ function SaveBtn({ ready, onClick, loading }: { ready: boolean; onClick: () => v
           style={{
             width: 14,
             height: 14,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: `2px solid ${SET.blackInk}4d`,
             borderTopColor: SET.blackInk,
             animation: 'setSpin .7s linear infinite',
@@ -246,7 +246,7 @@ function SuccessCenter({ sub }: { sub: string }) {
           width: 66,
           height: 66,
           flexShrink: 0,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           background: SET.ok,
           display: 'grid',
           placeItems: 'center',
@@ -258,10 +258,10 @@ function SuccessCenter({ sub }: { sub: string }) {
           <path d="m5 13 4 4 10-12" />
         </svg>
       </div>
-      <div style={{ marginTop: 18, fontSize: 17, fontWeight: 700, letterSpacing: -0.3, color: SET.ink }}>
+      <div style={{ marginTop: 18, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, color: SET.ink }}>
         {t('security.password.changedTitle')}
       </div>
-      <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 500, color: SET.muted }}>{sub}</div>
+      <div style={{ marginTop: 6, fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.muted }}>{sub}</div>
     </div>
   )
 }
@@ -337,7 +337,7 @@ function PwdVaultLight() {
 
   const cardStyle: React.CSSProperties = {
     background: SET.card,
-    borderRadius: 24,
+    borderRadius: 'var(--crm-radius-5xl)',
     padding: 28,
     boxShadow: SET.shadow,
     display: 'flex',
@@ -347,12 +347,12 @@ function PwdVaultLight() {
 
   // En-tête partagé (masqué en saved).
   const Header = (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 22 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-2xl)', marginBottom: 22 }}>
       <div
         style={{
           width: 40,
           height: 40,
-          borderRadius: 12,
+          borderRadius: 'var(--crm-radius-lg)',
           flexShrink: 0,
           background: SET.black,
           display: 'grid',
@@ -362,10 +362,10 @@ function PwdVaultLight() {
         <SetIcon name="lock" size={20} stroke={SET.blackInk} sw={1.9} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, letterSpacing: -0.3, color: SET.ink }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, color: SET.ink }}>
           {t('security.password.title')}
         </h3>
-        <p style={{ margin: '5px 0 0', fontSize: 12.5, color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>
+        <p style={{ margin: '5px 0 0', fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>
           {mode === 'view' && t('security.password.descView')}
           {mode === 'edit' && t('security.password.descEdit')}
           {mode === 'forgot' && t('security.password.descForgot')}
@@ -385,9 +385,9 @@ function PwdVaultLight() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              padding: '14px 16px',
-              borderRadius: 14,
+              gap: 'var(--crm-space-xl)',
+              padding: 'var(--crm-space-2xl) var(--crm-space-3xl)',
+              borderRadius: 'var(--crm-radius-xl)',
               background: SET.cardSubtle,
               boxShadow: `inset 0 0 0 1px ${SET.line}`,
             }}
@@ -396,7 +396,7 @@ function PwdVaultLight() {
               style={{
                 flex: 1,
                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                fontSize: 18,
+                fontSize: 'var(--crm-text-3xl)',
                 letterSpacing: 4,
                 color: SET.ink,
               }}
@@ -407,33 +407,33 @@ function PwdVaultLight() {
           <div
             style={{
               marginTop: 'auto',
-              paddingTop: 18,
+              paddingTop: 'var(--crm-space-4xl)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 12,
+              gap: 'var(--crm-space-xl)',
               flexWrap: 'wrap',
             }}
           >
-            <span style={{ fontSize: 12, color: SET.muted, fontWeight: 600 }}>
+            <span style={{ fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 600 }}>
               {t('security.password.encryptedNote')}
             </span>
             <button
               onClick={() => setMode('edit')}
               style={{
                 height: 36,
-                padding: '0 16px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-3xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: SET.black,
                 color: SET.blackInk,
                 fontFamily: 'inherit',
-                fontSize: 12.5,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8,
+                gap: 'var(--crm-space-md)',
                 boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
               }}
             >
@@ -449,7 +449,7 @@ function PwdVaultLight() {
             animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
             display: 'flex',
             flexDirection: 'column',
-            gap: 14,
+            gap: 'var(--crm-space-2xl)',
           }}
         >
           <div>
@@ -465,7 +465,7 @@ function PwdVaultLight() {
                   background: 'transparent',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  fontSize: 11.5,
+                  fontSize: 'var(--crm-text-sm)',
                   fontWeight: 700,
                   color: SET.inkSoft,
                   textDecoration: 'underline',
@@ -498,9 +498,9 @@ function PwdVaultLight() {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 'var(--crm-space-sm)',
                   marginTop: 9,
-                  fontSize: 11.5,
+                  fontSize: 'var(--crm-text-sm)',
                   fontWeight: 700,
                   color: match ? SET.ok : SET.bad,
                 }}
@@ -513,12 +513,12 @@ function PwdVaultLight() {
           <div
             style={{
               marginTop: 4,
-              paddingTop: 16,
+              paddingTop: 'var(--crm-space-3xl)',
               borderTop: `1px solid ${SET.line}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 12,
+              gap: 'var(--crm-space-xl)',
             }}
           >
             <button
@@ -541,16 +541,16 @@ function PwdVaultLight() {
             animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
             display: 'flex',
             flexDirection: 'column',
-            gap: 12,
+            gap: 'var(--crm-space-xl)',
           }}
         >
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              padding: '13px 14px',
-              borderRadius: 14,
+              gap: 'var(--crm-space-xl)',
+              padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+              borderRadius: 'var(--crm-radius-xl)',
               background: SET.cardSubtle,
               boxShadow: `inset 0 0 0 1px ${SET.line}`,
             }}
@@ -559,7 +559,7 @@ function PwdVaultLight() {
               style={{
                 width: 34,
                 height: 34,
-                borderRadius: 10,
+                borderRadius: 'var(--crm-radius-md)',
                 flexShrink: 0,
                 background: SET.black,
                 display: 'grid',
@@ -571,7 +571,7 @@ function PwdVaultLight() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 'var(--crm-text-sm)',
                   fontWeight: 800,
                   color: SET.muted,
                   textTransform: 'uppercase',
@@ -580,7 +580,7 @@ function PwdVaultLight() {
               >
                 {t('security.password.sentTo')}
               </div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: SET.ink, letterSpacing: -0.1, marginTop: 1 }}>
+              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SET.ink, letterSpacing: -0.1, marginTop: 1 }}>
                 {maskEmail(verifiedEmail)}
               </div>
             </div>
@@ -589,8 +589,8 @@ function PwdVaultLight() {
             style={{
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 8,
-              fontSize: 11.5,
+              gap: 'var(--crm-space-md)',
+              fontSize: 'var(--crm-text-sm)',
               fontWeight: 500,
               color: SET.muted,
               lineHeight: 1.5,
@@ -602,12 +602,12 @@ function PwdVaultLight() {
           <div
             style={{
               marginTop: 4,
-              paddingTop: 16,
+              paddingTop: 'var(--crm-space-3xl)',
               borderTop: `1px solid ${SET.line}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 12,
+              gap: 'var(--crm-space-xl)',
             }}
           >
             <button onClick={() => setMode('edit')} style={ghostInline}>
@@ -618,18 +618,18 @@ function PwdVaultLight() {
               disabled={!verifiedEmail}
               style={{
                 height: 40,
-                padding: '0 20px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-5xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: verifiedEmail ? SET.black : SET.cardSubtle,
                 color: verifiedEmail ? SET.blackInk : SET.ghost,
                 fontFamily: 'inherit',
-                fontSize: 12.5,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 700,
                 cursor: verifiedEmail ? 'pointer' : 'not-allowed',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8,
+                gap: 'var(--crm-space-md)',
                 boxShadow: verifiedEmail ? '0 6px 16px rgba(11,12,14,0.18)' : 'none',
               }}
             >
@@ -652,9 +652,9 @@ function PwdVaultLight() {
             style={{
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 13,
-              padding: 16,
-              borderRadius: 16,
+              gap: 'var(--crm-space-xl)',
+              padding: 'var(--crm-space-3xl)',
+              borderRadius: 'var(--crm-radius-2xl)',
               background: `${SET.ok}10`,
               boxShadow: `inset 0 0 0 1px ${SET.ok}28`,
             }}
@@ -663,7 +663,7 @@ function PwdVaultLight() {
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 11,
+                borderRadius: 'var(--crm-radius-md)',
                 flexShrink: 0,
                 background: SET.ok,
                 display: 'grid',
@@ -673,10 +673,10 @@ function PwdVaultLight() {
               <SetIcon name="check" size={19} stroke="#fff" sw={2.4} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: SET.ink, letterSpacing: -0.1 }}>
+              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SET.ink, letterSpacing: -0.1 }}>
                 {t('security.password.checkInbox')}
               </div>
-              <div style={{ fontSize: 11.5, color: SET.muted, fontWeight: 500, marginTop: 3, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 'var(--crm-text-sm)', color: SET.muted, fontWeight: 500, marginTop: 3, lineHeight: 1.5 }}>
                 <Trans
                   i18nKey="security.password.sentBody"
                   ns="settings"
@@ -689,14 +689,14 @@ function PwdVaultLight() {
           <div
             style={{
               marginTop: 'auto',
-              paddingTop: 16,
+              paddingTop: 'var(--crm-space-3xl)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 12,
+              gap: 'var(--crm-space-xl)',
             }}
           >
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: SET.muted }}>
+            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SET.muted }}>
               {t('security.password.nothingReceived')}{' '}
               {cooldown > 0 ? (
                 <span style={{ color: SET.ghost, fontWeight: 700 }}>{t('security.password.resendIn', { count: cooldown })}</span>
@@ -708,7 +708,7 @@ function PwdVaultLight() {
                     background: 'transparent',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
-                    fontSize: 11.5,
+                    fontSize: 'var(--crm-text-sm)',
                     fontWeight: 800,
                     color: SET.ink,
                     textDecoration: 'underline',
@@ -740,13 +740,13 @@ function PwdVaultLight() {
 
 const ghostInline: React.CSSProperties = {
   height: 40,
-  padding: '0 16px',
-  borderRadius: 999,
+  padding: '0 var(--crm-space-3xl)',
+  borderRadius: 'var(--crm-radius-pill)',
   border: 0,
   background: 'transparent',
   color: SET.inkSoft,
   fontFamily: 'inherit',
-  fontSize: 12.5,
+  fontSize: 'var(--crm-text-md)',
   fontWeight: 700,
   cursor: 'pointer',
   boxShadow: `inset 0 0 0 1px ${SET.line}`,
@@ -764,7 +764,7 @@ function HeroSecurity() {
     <div
       style={{
         background: heroBg,
-        borderRadius: 18,
+        borderRadius: 'var(--crm-radius-3xl)',
         padding: '30px 34px 28px',
         color: '#fff',
         boxShadow: isDark() ? SET.shadow : 'none',
@@ -773,11 +773,11 @@ function HeroSecurity() {
       }}
     >
       <div style={{ minWidth: 260 }}>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -0.8 }}>{t('security.hero.title')}</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -0.8 }}>{t('security.hero.title')}</h1>
         <p
           style={{
             margin: '8px 0 0',
-            fontSize: 13.5,
+            fontSize: 'var(--crm-text-lg)',
             color: 'rgba(255,255,255,0.6)',
             fontWeight: 500,
             lineHeight: 1.5,
@@ -856,14 +856,14 @@ function SessionsCard() {
       : t('security.sessions.thisDeviceOnly')
 
   return (
-    <div style={{ background: SET.card, borderRadius: 24, boxShadow: SET.shadow }}>
+    <div style={{ background: SET.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: SET.shadow }}>
       <div style={{ padding: '26px 28px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-3xl)', marginBottom: 20 }}>
           <div
             style={{
               width: 38,
               height: 38,
-              borderRadius: 12,
+              borderRadius: 'var(--crm-radius-lg)',
               flexShrink: 0,
               background: SET.cardSubtle,
               color: SET.ink,
@@ -875,10 +875,10 @@ function SessionsCard() {
             <SetIcon name="keyboard" size={17} stroke={SET.ink} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: SET.ink, letterSpacing: -0.3 }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SET.ink, letterSpacing: -0.3 }}>
               {t('security.sessions.title')}
             </h3>
-            <p style={{ margin: 0, fontSize: 13, color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>{subtitle}</p>
+            <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>{subtitle}</p>
           </div>
         </div>
       </div>
@@ -893,15 +893,15 @@ function SessionsCard() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 14,
-                  padding: '14px 0',
+                  gap: 'var(--crm-space-2xl)',
+                  padding: 'var(--crm-space-2xl) 0',
                   borderTop: i > 0 ? `1px solid ${SET.line}` : 'none',
                 }}
               >
-                <div style={{ width: 38, height: 38, borderRadius: 11, background: SET.cardSubtle, flexShrink: 0 }} />
+                <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-md)', background: SET.cardSubtle, flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ width: '40%', height: 12, borderRadius: 6, background: SET.cardSubtle }} />
-                  <div style={{ width: '60%', height: 10, borderRadius: 6, background: SET.cardSubtle, marginTop: 7 }} />
+                  <div style={{ width: '40%', height: 12, borderRadius: 'var(--crm-radius-xs)', background: SET.cardSubtle }} />
+                  <div style={{ width: '60%', height: 10, borderRadius: 'var(--crm-radius-xs)', background: SET.cardSubtle, marginTop: 7 }} />
                 </div>
               </div>
             ))}
@@ -914,15 +914,15 @@ function SessionsCard() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 11,
-              padding: '14px 0 4px',
+              gap: 'var(--crm-space-lg)',
+              padding: 'var(--crm-space-2xl) 0 var(--crm-space-xs)',
             }}
           >
             <div
               style={{
                 width: 30,
                 height: 30,
-                borderRadius: 9,
+                borderRadius: 'var(--crm-radius-sm)',
                 flexShrink: 0,
                 background: `${SET.muted}18`,
                 color: SET.muted,
@@ -932,7 +932,7 @@ function SessionsCard() {
             >
               <SetIcon name="info" size={15} stroke={SET.muted} sw={2} />
             </div>
-            <div style={{ fontSize: 12, color: SET.muted, fontWeight: 600 }}>
+            <div style={{ fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 600 }}>
               {error ? t('security.sessions.loadError') : t('security.sessions.empty')}
             </div>
           </div>
@@ -949,8 +949,8 @@ function SessionsCard() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 14,
-                  padding: '14px 0',
+                  gap: 'var(--crm-space-2xl)',
+                  padding: 'var(--crm-space-2xl) 0',
                   borderTop: i > 0 ? `1px solid ${SET.line}` : 'none',
                   opacity: closing === d.id ? 0 : 1,
                   transform: closing === d.id ? 'translateX(12px)' : 'none',
@@ -961,7 +961,7 @@ function SessionsCard() {
                   style={{
                     width: 38,
                     height: 38,
-                    borderRadius: 11,
+                    borderRadius: 'var(--crm-radius-md)',
                     flexShrink: 0,
                     background: current ? SET.black : SET.cardSubtle,
                     color: current ? SET.blackInk : SET.ink,
@@ -973,10 +973,10 @@ function SessionsCard() {
                   <SetIcon name={deviceIcon(d)} size={17} stroke={current ? SET.blackInk : SET.ink} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
                     <span
                       style={{
-                        fontSize: 13,
+                        fontSize: 'var(--crm-text-lg)',
                         fontWeight: 700,
                         color: SET.ink,
                         letterSpacing: -0.1,
@@ -993,11 +993,11 @@ function SessionsCard() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           height: 20,
-                          padding: '0 9px',
-                          borderRadius: 999,
+                          padding: '0 var(--crm-space-md)',
+                          borderRadius: 'var(--crm-radius-pill)',
                           background: `${SET.ok}18`,
                           color: SET.ok,
-                          fontSize: 10,
+                          fontSize: 'var(--crm-text-xs)',
                           fontWeight: 800,
                           letterSpacing: 0.3,
                           flexShrink: 0,
@@ -1009,7 +1009,7 @@ function SessionsCard() {
                   </div>
                   <div
                     style={{
-                      fontSize: 11.5,
+                      fontSize: 'var(--crm-text-sm)',
                       color: SET.muted,
                       fontWeight: 500,
                       marginTop: 2,
@@ -1023,7 +1023,7 @@ function SessionsCard() {
                 </div>
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 'var(--crm-text-sm)',
                     color: SET.muted,
                     fontWeight: 600,
                     fontVariantNumeric: 'tabular-nums',
@@ -1038,13 +1038,13 @@ function SessionsCard() {
                     onClick={() => handleRevoke(d.id)}
                     style={{
                       height: 36,
-                      padding: '0 14px',
-                      borderRadius: 999,
+                      padding: '0 var(--crm-space-2xl)',
+                      borderRadius: 'var(--crm-radius-pill)',
                       border: 0,
                       background: 'transparent',
                       color: SET.inkSoft,
                       fontFamily: 'inherit',
-                      fontSize: 12.5,
+                      fontSize: 'var(--crm-text-md)',
                       fontWeight: 700,
                       cursor: 'pointer',
                       flexShrink: 0,
@@ -1064,8 +1064,8 @@ function SessionsCard() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 11,
-              padding: '14px 0 4px',
+              gap: 'var(--crm-space-lg)',
+              padding: 'var(--crm-space-2xl) 0 var(--crm-space-xs)',
               borderTop: `1px solid ${SET.line}`,
             }}
           >
@@ -1073,7 +1073,7 @@ function SessionsCard() {
               style={{
                 width: 30,
                 height: 30,
-                borderRadius: 9,
+                borderRadius: 'var(--crm-radius-sm)',
                 flexShrink: 0,
                 background: `${SET.ok}15`,
                 color: SET.ok,
@@ -1083,7 +1083,7 @@ function SessionsCard() {
             >
               <SetIcon name="check" size={15} stroke={SET.ok} sw={2.2} />
             </div>
-            <div style={{ fontSize: 12, color: SET.muted, fontWeight: 600 }}>
+            <div style={{ fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 600 }}>
               {t('security.sessions.allOthersDisconnected')}
             </div>
           </div>
@@ -1094,16 +1094,16 @@ function SessionsCard() {
           <div
             style={{
               marginTop: 14,
-              padding: '12px 14px',
-              borderRadius: 12,
+              padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+              borderRadius: 'var(--crm-radius-lg)',
               background: SET.cardSubtle,
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 10,
+              gap: 'var(--crm-space-lg)',
             }}
           >
             <SetIcon name="info" size={14} stroke={SET.muted} sw={2} />
-            <div style={{ fontSize: 11.5, color: SET.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
+            <div style={{ fontSize: 'var(--crm-text-sm)', color: SET.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
               {t('security.sessions.revokeNote')}
             </div>
           </div>
@@ -1124,8 +1124,8 @@ export function SecuritySection() {
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
-        paddingBottom: 24,
+        gap: 'var(--crm-space-2xl)',
+        paddingBottom: 'var(--crm-space-7xl)',
         animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
       }}
     >
@@ -1135,7 +1135,7 @@ export function SecuritySection() {
         style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-          gap: 14,
+          gap: 'var(--crm-space-2xl)',
           alignItems: 'stretch',
         }}
       >

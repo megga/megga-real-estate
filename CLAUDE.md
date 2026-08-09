@@ -103,6 +103,36 @@ npm run lint         # ESLint
 
 > Patterns détaillés (composants, exemples TSX) : voir [docs/design-system.md](docs/design-system.md)
 
+**🎨 DIRECTION PAR DÉFAUT = MEGGA X (depuis le 9 août 2026, [PR #1191](https://github.com/megga/megga-real-estate/pull/1191)).**
+Le CRM s'aligne sur la vitrine et l'onboarding : plus de rupture visuelle à la
+porte d'entrée. **Sugar reste entièrement résolvable** et choisissable par
+l'agent — Réglages › Apparence › Direction, persisté en LOCAL (`megga.da`), hook
+[useCrmDa.ts](src/hooks/useCrmDa.ts) calqué sur `useDarkTone`. Tout ce qui suit
+sur Sugar Pure et Graphite reste donc VRAI, mais décrit la direction alternative,
+plus le défaut.
+
+Mécanique en trois points, à connaître avant de toucher au style :
+1. **Couleurs** — `crmSugarPalette()` délègue à `mxCrmPalette()`. La délégation
+   est faite LÀ, pas aux 33 points de construction, puisque tous transmettent
+   ensuite la palette en prop : aucun composant ne change. ⚠ Un test d'une
+   propriété de Sugar (échelle Graphite) DOIT épingler `da: 'sugar'` en 4ᵉ
+   argument, sinon il vérifie les surfaces de la vitrine sans le dire.
+2. **Police et grammaire** — variables CSS sur `[data-crm-da="meggax"]`, **sans
+   `:root`** : les propriétés personnalisées héritent, donc le sélecteur vaut
+   sur `<html>` (toute l'app) comme sur un conteneur (une région). ⚠ Corollaire :
+   une région ne revient à Sugar qu'en REDÉCLARANT (`[data-crm-da="sugar"]`).
+3. **Grammaire tokenisée** — rayons, espacements et tailles de texte ne sont
+   plus des littéraux : ~4200 valeurs sont passées en variables CSS sur 161
+   fichiers (`crm-sugar`, `crm-sugar-v3`, `crm-sugar-wizard`, `crm-mobile`,
+   `admin`), échelle normalisée à 13 barreaux de texte. **Écrire un littéral de
+   rayon/espacement/taille dans un composant est désormais une régression.**
+
+Tokens MEGGA X : [megga-x-crm/tokens.ts](src/components/megga-x-crm/tokens.ts),
+valeurs = barreaux réels de la feuille vitrine, verrouillées par
+[megga-x-crm-tokens.spec.ts](tests/unit/megga-x-crm-tokens.spec.ts).
+Routes de décision temporaires (à retirer une fois la direction stabilisée) :
+`/design-system/da-compare` et `/design-system/pipeline-mx`.
+
 **Direction :** Minimal, transparent, professionnel (Linear/Notion style). Dark/light mode sur dashboard agent.
 
 **⚠ Sugar Pure (Pipeline v2, juillet 2026)** : les surfaces refondues (Pipeline

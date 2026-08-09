@@ -49,35 +49,35 @@ export function NotificationsFocusSection({ sp, surf, dark }: FocusSectionProps)
   const activeCount = Object.values(local).filter(Boolean).length
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
       <style>{`
         ${PF_KEYFRAMES}
         .nfx-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.03)'}; }
         .nfx-saved { animation: pfxCtrlIn .26s cubic-bezier(.2,.9,.3,1) both; }
       `}</style>
 
-      <div style={{ borderRadius: 22, boxShadow: c.shadow }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: c.cardSub, borderRadius: '22px 22px 0 0', border: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: '8px 20px' }}>
+      <div style={{ borderRadius: 'var(--crm-radius-5xl)', boxShadow: c.shadow }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', background: c.cardSub, borderRadius: '22px 22px 0 0', border: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: 'var(--crm-space-md) var(--crm-space-5xl)' }}>
           <PfIc name="info" size={14} stroke={c.sub} sw={1.8} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: c.sub, letterSpacing: -0.1 }}>{t('focus.notifications.banner')}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: c.sub, letterSpacing: -0.1 }}>{t('focus.notifications.banner')}</span>
         </div>
 
-        <div style={{ background: c.card, borderRadius: '0 0 22px 22px', border: c.hair, borderTop: 0, padding: '8px 12px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 10px 8px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 999, background: c.blue, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.2, color: c.ink, flex: 1 }}>{t('focus.notifications.group')}</span>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: c.sub }}>{t('focus.notifications.count', { active: activeCount, total: NF_CHANNELS.length })}</span>
+        <div style={{ background: c.card, borderRadius: '0 0 22px 22px', border: c.hair, borderTop: 0, padding: 'var(--crm-space-md) var(--crm-space-xl) var(--crm-space-2xl)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: c.blue, flexShrink: 0 }} />
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: c.ink, flex: 1 }}>{t('focus.notifications.group')}</span>
+            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: c.sub }}>{t('focus.notifications.count', { active: activeCount, total: NF_CHANNELS.length })}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 24px' }}>
             {NF_CHANNELS.map((ch) => (
-              <div key={ch.id} className="nfx-row" style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '12px 10px', borderRadius: 12, minWidth: 0 }}>
+              <div key={ch.id} className="nfx-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', minWidth: 0 }}>
                 <PfChip name={ch.icon} c={c} size={34} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: -0.2, color: c.ink }}>{t(`notifications.channels.${ch.id}.label`)}</span>
-                    {savedKey === ch.id && <span className="nfx-saved" style={{ fontSize: 10.5, fontWeight: 700, color: c.green }}>{t('focus.common.saved')}</span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
+                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.2, color: c.ink }}>{t(`notifications.channels.${ch.id}.label`)}</span>
+                    {savedKey === ch.id && <span className="nfx-saved" style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: c.green }}>{t('focus.common.saved')}</span>}
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: c.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(`notifications.channels.${ch.id}.desc`)}</div>
+                  <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: c.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(`notifications.channels.${ch.id}.desc`)}</div>
                 </div>
                 <PfSwitch c={c} on={local[ch.id]} onClick={() => toggle(ch.id)} />
               </div>

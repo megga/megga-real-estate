@@ -61,8 +61,8 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
         width: '100%',
         textAlign: 'left',
         border: 0,
-        padding: '18px 18px 16px',
-        borderRadius: 18,
+        padding: 'var(--crm-space-4xl) var(--crm-space-4xl) var(--crm-space-3xl)',
+        borderRadius: 'var(--crm-radius-3xl)',
         background: selected ? SugarV3.black : SugarV3.cardSubtle,
         color: selected ? '#fff' : SugarV3.ink,
         boxShadow: selected
@@ -72,7 +72,7 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 'var(--crm-space-lg)',
         position: 'relative',
         transition: 'all .2s cubic-bezier(.2,.8,.2,1)',
       }}
@@ -83,11 +83,11 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
             position: 'absolute',
             top: 12,
             right: 12,
-            padding: '3px 9px',
-            borderRadius: 999,
+            padding: 'var(--crm-space-2xs) var(--crm-space-md)',
+            borderRadius: 'var(--crm-radius-pill)',
             background: selected ? 'rgba(255,255,255,0.16)' : SugarV3.black,
             color: '#fff',
-            fontSize: 9.5,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 700,
             letterSpacing: 0.6,
             textTransform: 'uppercase',
@@ -97,12 +97,12 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
         </span>
       )}
       <div>
-        <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: -0.3, marginBottom: 4 }}>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, marginBottom: 4 }}>
           {title}
         </div>
         <div
           style={{
-            fontSize: 12.5,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 500,
             color: selected ? 'rgba(255,255,255,0.70)' : SugarV3.muted,
             lineHeight: 1.45,
@@ -114,9 +114,9 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
       <div
         style={{
           display: 'flex',
-          gap: 6,
+          gap: 'var(--crm-space-sm)',
           marginTop: 4,
-          fontSize: 10.5,
+          fontSize: 'var(--crm-text-xs)',
           fontWeight: 600,
           color: selected ? 'rgba(255,255,255,0.88)' : SugarV3.inkSoft,
           fontVariantNumeric: 'tabular-nums',
@@ -124,8 +124,8 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
       >
         <span
           style={{
-            padding: '3px 9px',
-            borderRadius: 999,
+            padding: 'var(--crm-space-2xs) var(--crm-space-md)',
+            borderRadius: 'var(--crm-radius-pill)',
             background: selected ? 'rgba(255,255,255,0.12)' : 'rgba(11,12,14,0.05)',
           }}
         >
@@ -133,8 +133,8 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
         </span>
         <span
           style={{
-            padding: '3px 9px',
-            borderRadius: 999,
+            padding: 'var(--crm-space-2xs) var(--crm-space-md)',
+            borderRadius: 'var(--crm-radius-pill)',
             background: selected ? 'rgba(255,255,255,0.12)' : 'rgba(11,12,14,0.05)',
           }}
         >
@@ -164,8 +164,8 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
         flex: 1,
         textAlign: 'left',
         border: 0,
-        padding: '12px 14px',
-        borderRadius: 14,
+        padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+        borderRadius: 'var(--crm-radius-xl)',
         background: SugarV3.card,
         boxShadow: selected ? SugarV3.shadow : SugarV3.shadowSm,
         outline: selected ? `2px solid ${SugarV3.black}` : 'none',
@@ -175,7 +175,7 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
         opacity: disabled ? 0.5 : 1,
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        gap: 'var(--crm-space-xl)',
         transition: 'all .18s ease',
       }}
     >
@@ -183,7 +183,7 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
         style={{
           width: 18,
           height: 18,
-          borderRadius: 5,
+          borderRadius: 'var(--crm-radius-xs)',
           flexShrink: 0,
           background: selected ? SugarV3.black : 'transparent',
           boxShadow: selected ? 'none' : 'inset 0 0 0 1.5px rgba(11,12,14,0.22)',
@@ -197,7 +197,7 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
         style={{
           width: 32,
           height: 32,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           flexShrink: 0,
           background: SugarV3.cardSubtle,
           display: 'grid',
@@ -207,10 +207,10 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
         <SgIcon name={icon} size={15} stroke={SugarV3.ink} sw={1.7} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink, letterSpacing: -0.1 }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SugarV3.ink, letterSpacing: -0.1 }}>
           {label}
         </div>
-        <div style={{ fontSize: 11, color: SugarV3.muted, fontWeight: 500, marginTop: 1 }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: SugarV3.muted, fontWeight: 500, marginTop: 1 }}>
           {sub}
         </div>
       </div>
@@ -298,7 +298,7 @@ export function MlkAgentModal({
           width: 720,
           maxWidth: 'calc(100vw - 32px)',
           background: SugarV3.card,
-          borderRadius: 28,
+          borderRadius: 'var(--crm-radius-6xl)',
           boxShadow:
             '0 40px 100px rgba(15,23,42,0.20), 0 8px 24px rgba(15,23,42,0.10)',
           fontFamily: SugarV3.font,
@@ -356,7 +356,7 @@ function ModalOverlay({ children, onClose }: { children: ReactNode; onClose: () 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 24,
+        padding: 'var(--crm-space-7xl)',
       }}
     >
       {children}
@@ -414,13 +414,13 @@ function FormView({
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'space-between',
-          gap: 16,
+          gap: 'var(--crm-space-3xl)',
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: 10.5,
+              fontSize: 'var(--crm-text-xs)',
               fontWeight: 700,
               color: SugarV3.muted,
               letterSpacing: 1.4,
@@ -433,7 +433,7 @@ function FormView({
           <h2
             style={{
               margin: 0,
-              fontSize: 26,
+              fontSize: 'var(--crm-text-5xl)',
               fontWeight: 700,
               color: SugarV3.ink,
               letterSpacing: -0.6,
@@ -443,7 +443,7 @@ function FormView({
             {t('wizard.magic.title', { firstName })}
           </h2>
           {contactSummary && (
-            <div style={{ marginTop: 8, fontSize: 13, color: SugarV3.muted, fontWeight: 500 }}>
+            <div style={{ marginTop: 8, fontSize: 'var(--crm-text-lg)', color: SugarV3.muted, fontWeight: 500 }}>
               {contactSummary}
             </div>
           )}
@@ -455,7 +455,7 @@ function FormView({
           style={{
             width: 38,
             height: 38,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: 0,
             background: SugarV3.cardSubtle,
             color: SugarV3.inkSoft,
@@ -474,7 +474,7 @@ function FormView({
         {/* Mode */}
         <div
           style={{
-            fontSize: 10.5,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 700,
             color: SugarV3.muted,
             letterSpacing: 1.2,
@@ -488,7 +488,7 @@ function FormView({
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: 10,
+            gap: 'var(--crm-space-lg)',
             marginBottom: 22,
           }}
         >
@@ -514,7 +514,7 @@ function FormView({
         {/* Channels */}
         <div
           style={{
-            fontSize: 10.5,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 700,
             color: SugarV3.muted,
             letterSpacing: 1.2,
@@ -524,7 +524,7 @@ function FormView({
         >
           {t('wizard.magic.channelLabel')}
         </div>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 22 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginBottom: 22 }}>
           <MlkChannelChip
             icon="mail"
             label={t('wizard.magic.channelEmail')}
@@ -546,7 +546,7 @@ function FormView({
         {/* Custom message */}
         <div
           style={{
-            fontSize: 10.5,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 700,
             color: SugarV3.muted,
             letterSpacing: 1.2,
@@ -566,11 +566,11 @@ function FormView({
           rows={3}
           style={{
             width: '100%',
-            padding: '14px 16px',
-            borderRadius: 14,
+            padding: 'var(--crm-space-2xl) var(--crm-space-3xl)',
+            borderRadius: 'var(--crm-radius-xl)',
             background: SugarV3.cardSubtle,
             color: SugarV3.ink,
-            fontSize: 13,
+            fontSize: 'var(--crm-text-lg)',
             lineHeight: 1.5,
             fontWeight: 500,
             marginBottom: 22,
@@ -588,17 +588,17 @@ function FormView({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
-            padding: '12px 14px',
+            gap: 'var(--crm-space-lg)',
+            padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
             background: SugarV3.cardSubtle,
-            borderRadius: 12,
+            borderRadius: 'var(--crm-radius-lg)',
             marginBottom: 24,
           }}
         >
           <SgIcon name="clock" size={14} stroke={SugarV3.muted} sw={1.8} />
           <span
             style={{
-              fontSize: 11.5,
+              fontSize: 'var(--crm-text-sm)',
               color: SugarV3.muted,
               fontWeight: 500,
               lineHeight: 1.5,
@@ -615,11 +615,11 @@ function FormView({
           <div
             role="alert"
             style={{
-              padding: '12px 14px',
-              borderRadius: 12,
+              padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+              borderRadius: 'var(--crm-radius-lg)',
               background: SugarV3.errSoft,
               color: SugarV3.errDarker,
-              fontSize: 12.5,
+              fontSize: 'var(--crm-text-md)',
               fontWeight: 600,
               marginBottom: 24,
             }}
@@ -637,7 +637,7 @@ function FormView({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 16,
+          gap: 'var(--crm-space-3xl)',
         }}
       >
         <KycGhostPill onClick={onClose}>{t('wizard.magic.cancel')}</KycGhostPill>
@@ -676,7 +676,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
           style={{
             width: 72,
             height: 72,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             margin: '0 auto 22px',
             background: SugarV3.okSoft,
             display: 'grid',
@@ -687,7 +687,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
         </div>
         <div
           style={{
-            fontSize: 10.5,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 700,
             color: SugarV3.muted,
             letterSpacing: 1.4,
@@ -700,7 +700,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
         <h2
           style={{
             margin: '0 0 12px',
-            fontSize: 26,
+            fontSize: 'var(--crm-text-5xl)',
             fontWeight: 700,
             color: SugarV3.ink,
             letterSpacing: -0.6,
@@ -712,7 +712,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
         <p
           style={{
             margin: '0 0 22px',
-            fontSize: 13.5,
+            fontSize: 'var(--crm-text-lg)',
             color: SugarV3.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
@@ -730,16 +730,16 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            padding: '14px 18px',
+            gap: 'var(--crm-space-xl)',
+            padding: 'var(--crm-space-2xl) var(--crm-space-4xl)',
             background: SugarV3.cardSubtle,
-            borderRadius: 14,
+            borderRadius: 'var(--crm-radius-xl)',
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: 'var(--crm-text-xs)',
                 fontWeight: 700,
                 color: SugarV3.muted,
                 letterSpacing: 1.2,
@@ -751,7 +751,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
             </div>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 'var(--crm-text-lg)',
                 color: SugarV3.ink,
                 fontWeight: 600,
                 fontFamily: 'monospace',
@@ -786,7 +786,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          gap: 16,
+          gap: 'var(--crm-space-3xl)',
         }}
       >
         <KycBlackPill size="md" onClick={onClose}>

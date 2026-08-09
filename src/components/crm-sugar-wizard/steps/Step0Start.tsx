@@ -127,7 +127,7 @@ function SgPorteCard({
       style={{
         flex: 1, minWidth: 0,
         background: selected ? SugarV2.cardSubtle : SugarV2.card,
-        borderRadius: 22,
+        borderRadius: 'var(--crm-radius-5xl)',
         boxShadow: selected ? `0 0 0 2px ${SugarV2.black} inset, ${SugarV2.shadow}` : SugarV2.shadow,
         padding: '38px 28px 30px',
         textAlign: 'center',
@@ -138,14 +138,14 @@ function SgPorteCard({
       }}
     >
       {media}
-      <div style={{ fontSize: 18, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3, marginTop: 22 }}>{title}</div>
-      <div style={{ fontSize: 13.5, fontWeight: 500, color: SugarV2.inkSoft, lineHeight: 1.5, marginTop: 8, maxWidth: 260 }}>{sub}</div>
+      <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3, marginTop: 22 }}>{title}</div>
+      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SugarV2.inkSoft, lineHeight: 1.5, marginTop: 8, maxWidth: 260 }}>{sub}</div>
       <span style={{
-        marginTop: 26, height: 42, padding: '0 26px', borderRadius: 999,
+        marginTop: 26, height: 42, padding: '0 26px', borderRadius: 'var(--crm-radius-pill)',
         display: 'inline-flex', alignItems: 'center',
         background: selected ? SugarV2.black : SugarV2.cardSubtle,
         color: selected ? SugarV2.onBlack : SugarV2.ink,
-        fontSize: 13.5, fontWeight: 700,
+        fontSize: 'var(--crm-text-lg)', fontWeight: 700,
         boxShadow: selected ? 'none' : SugarV2.shadowSm,
       }}>{selected ? selectedLabel : ctaLabel}</span>
       {children}
@@ -218,7 +218,7 @@ export function Step0Start({ data, set }: StepProps) {
 
   const iconCircle = (name: 'edit' | 'upload' | 'inbox'): ReactNode => (
     <div style={{
-      width: 64, height: 64, borderRadius: 999,
+      width: 64, height: 64, borderRadius: 'var(--crm-radius-pill)',
       background: SugarV2.cardSubtle, boxShadow: SugarV2.shadowSm,
       display: 'grid', placeItems: 'center', flexShrink: 0,
     }}>
@@ -228,17 +228,17 @@ export function Step0Start({ data, set }: StepProps) {
 
   return (
     <div style={{
-      maxWidth: 1060, margin: '0 auto', paddingTop: 14,
+      maxWidth: 1060, margin: '0 auto', paddingTop: 'var(--crm-space-2xl)',
       animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
     }}>
       <h1 style={{
-        margin: 0, fontSize: 38, fontWeight: 700, textAlign: 'center',
+        margin: 0, fontSize: 'var(--crm-text-9xl)', fontWeight: 700, textAlign: 'center',
         color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
       }}>
         {t('wizard.step0.title')}
       </h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 22, marginTop: 48, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--crm-space-6xl)', marginTop: 48, alignItems: 'start' }}>
         {/* Porte 1 — Saisir manuellement (recommandée) */}
         <SgPorteCard
           media={iconCircle('edit')}
@@ -267,20 +267,20 @@ export function Step0Start({ data, set }: StepProps) {
               <div style={{ display: 'flex', height: 64, alignItems: 'center' }}>
                 {subs.slice(0, 3).map((sub, i) => (
                   <span key={sub.id} style={{
-                    width: 40, height: 40, borderRadius: 999,
+                    width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)',
                     background: sub.accent || '#0041D9', color: '#fff',
                     display: 'grid', placeItems: 'center',
-                    fontSize: 12, fontWeight: 800,
+                    fontSize: 'var(--crm-text-md)', fontWeight: 800,
                     marginLeft: i === 0 ? 0 : -12,
                     boxShadow: `0 0 0 3px ${subSelected ? SugarV2.cardSubtle : SugarV2.card}`,
                   }}>{subInitials(subName(sub))}</span>
                 ))}
                 {subs.length > 3 && (
                   <span style={{
-                    width: 40, height: 40, borderRadius: 999,
+                    width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)',
                     background: subSelected ? SugarV2.card : SugarV2.cardSubtle, color: SugarV2.inkSoft,
                     display: 'grid', placeItems: 'center',
-                    fontSize: 12.5, fontWeight: 800, marginLeft: -12,
+                    fontSize: 'var(--crm-text-md)', fontWeight: 800, marginLeft: -12,
                     boxShadow: `0 0 0 3px ${subSelected ? SugarV2.cardSubtle : SugarV2.card}`,
                   }}>+{subs.length - 3}</span>
                 )}
@@ -301,7 +301,7 @@ export function Step0Start({ data, set }: StepProps) {
         >
           {subSelected && subs.length > 0 && (
             <div style={{
-              width: '100%', display: 'flex', flexDirection: 'column', gap: 6, marginTop: 22,
+              width: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', marginTop: 22,
               maxHeight: 264, overflowY: 'auto',
               animation: 'sgFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
             }}>
@@ -313,8 +313,8 @@ export function Step0Start({ data, set }: StepProps) {
                     key={sub.id}
                     onClick={(e) => { e.stopPropagation(); selectSubmission(sub) }}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '11px 14px', borderRadius: 14, border: 0,
+                      display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
+                      padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-xl)', border: 0,
                       background: sel ? SugarV2.black : SugarV2.card,
                       color: sel ? SugarV2.onBlack : SugarV2.ink,
                       fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer',
@@ -322,14 +322,14 @@ export function Step0Start({ data, set }: StepProps) {
                     }}
                   >
                     <span style={{
-                      width: 30, height: 30, borderRadius: 999,
+                      width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)',
                       background: sub.accent || '#0041D9', color: '#fff',
                       display: 'grid', placeItems: 'center',
-                      fontSize: 10.5, fontWeight: 800, flexShrink: 0,
+                      fontSize: 'var(--crm-text-xs)', fontWeight: 800, flexShrink: 0,
                     }}>{subInitials(name)}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{
-                        display: 'block', fontSize: 13, fontWeight: 700, letterSpacing: -0.2,
+                        display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>{name}</span>
                     </span>
@@ -338,7 +338,7 @@ export function Step0Start({ data, set }: StepProps) {
                 )
               })}
               {subsHidden > 0 && (
-                <div style={{ padding: '9px 14px 3px', fontSize: 12, fontWeight: 600, color: SugarV2.muted, textAlign: 'center' }}>
+                <div style={{ padding: 'var(--crm-space-md) var(--crm-space-2xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted, textAlign: 'center' }}>
                   {t('wizard.step0.submissions.cap', { count: subsHidden })}
                 </div>
               )}

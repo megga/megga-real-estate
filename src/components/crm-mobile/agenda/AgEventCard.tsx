@@ -21,8 +21,8 @@ export default function AgEventCard({ event, past, onTap }: AgEventCardProps) {
   const subtitle = event.contactName ?? event.location ?? event.propertyTitle ?? ''
 
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
-      <div style={{ width: 46, flexShrink: 0, paddingTop: 2, textAlign: 'center', fontSize: 12, fontWeight: 800, letterSpacing: -0.2, color: past ? tk.ghost : tk.ink, fontVariantNumeric: 'tabular-nums' }}>
+    <div style={{ display: 'flex', gap: 'var(--crm-space-xl)', alignItems: 'stretch' }}>
+      <div style={{ width: 46, flexShrink: 0, paddingTop: 'var(--crm-space-2xs)', textAlign: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: -0.2, color: past ? tk.ghost : tk.ink, fontVariantNumeric: 'tabular-nums' }}>
         {fmtTime(event.start)}
       </div>
       <button
@@ -36,34 +36,34 @@ export default function AgEventCard({ event, past, onTap }: AgEventCardProps) {
           cursor: 'pointer',
           fontFamily: 'inherit',
           background: tk.card,
-          borderRadius: 18,
-          padding: 13,
+          borderRadius: 'var(--crm-radius-3xl)',
+          padding: 'var(--crm-space-xl)',
           boxShadow: isDark ? `${tk.shadowSm}, inset 0 0 0 1px ${tk.cardBorder}` : tk.shadowSm,
           display: 'flex',
           alignItems: 'center',
-          gap: 13,
+          gap: 'var(--crm-space-xl)',
           opacity: past ? 0.62 : 1,
         }}
       >
-        <span style={{ width: 50, height: 50, borderRadius: 13, flexShrink: 0, background: tk.cardSubtle, display: 'grid', placeItems: 'center' }}>
+        <span style={{ width: 50, height: 50, borderRadius: 'var(--crm-radius-lg)', flexShrink: 0, background: tk.cardSubtle, display: 'grid', placeItems: 'center' }}>
           <MEIcon name={agIcon(event.type)} size={21} color={tone} strokeWidth={1.9} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: tone }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
+            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: tone }}>
               {t(`eventType.${event.type}`)}
             </span>
             {event.durMin > 0 ? (
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: tk.ghost, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: tk.ghost, fontVariantNumeric: 'tabular-nums' }}>
                 · {fmtDur(event.durMin, t)}
               </span>
             ) : null}
           </div>
-          <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: -0.3, color: past ? tk.muted : tk.ink, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.3, color: past ? tk.muted : tk.ink, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {event.title}
           </div>
           {subtitle ? (
-            <div style={{ fontSize: 12, fontWeight: 600, color: tk.muted, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {subtitle}
             </div>
           ) : null}

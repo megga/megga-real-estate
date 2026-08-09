@@ -24,10 +24,10 @@ export function AudDayGroup({ dateLabel, events }: Props) {
           background: SugarV3.cardSubtle,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
           <span
             style={{
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 700,
               color: SugarV3.ink,
               letterSpacing: -0.1,
@@ -37,10 +37,10 @@ export function AudDayGroup({ dateLabel, events }: Props) {
           </span>
           <span
             style={{
-              padding: '2px 9px',
-              borderRadius: 999,
+              padding: 'var(--crm-space-2xs) var(--crm-space-md)',
+              borderRadius: 'var(--crm-radius-pill)',
               background: SugarV3.card,
-              fontSize: 10.5,
+              fontSize: 'var(--crm-text-xs)',
               fontWeight: 700,
               color: SugarV3.inkSoft,
               fontVariantNumeric: 'tabular-nums',

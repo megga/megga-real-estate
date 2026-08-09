@@ -19,7 +19,7 @@ function CalPopIconBtn({ name, title, onClick, danger }: { name: CalIconName; ti
     <button
       onClick={onClick}
       title={title}
-      style={{ width: 32, height: 32, borderRadius: 999, border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
+      style={{ width: 32, height: 32, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}
       onMouseEnter={e => { e.currentTarget.style.background = SP.cardSubtle }}
       onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
     >
@@ -31,7 +31,7 @@ function CalPopIconBtn({ name, title, onClick, danger }: { name: CalIconName; ti
 function CalMiniRow({ icon, children }: { icon: CalIconName; children: ReactNode }) {
   const SP = useCalPalette()
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, fontWeight: 600, color: SP.inkSoft, lineHeight: 1.4 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SP.inkSoft, lineHeight: 1.4 }}>
       <span style={{ flexShrink: 0, marginTop: 1 }}><CalIcon name={icon} size={15} stroke={SP.muted} sw={1.9} /></span>
       <span style={{ minWidth: 0 }}>{children}</span>
     </div>
@@ -44,9 +44,9 @@ function CalPopAction({ icon, label, onClick }: { icon: CalIconName; label: stri
     <button
       onClick={onClick}
       style={{
-        flex: 1, height: 40, borderRadius: 12, border: 0, background: SP.cardSubtle, color: SP.ink,
-        fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+        flex: 1, height: 40, borderRadius: 'var(--crm-radius-lg)', border: 0, background: SP.cardSubtle, color: SP.ink,
+        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-sm)',
       }}
     >
       <CalIcon name={icon} size={14} stroke={SP.ink} sw={2} />{label}
@@ -153,25 +153,25 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
           position: 'absolute', left: pos.left, top: pos.top, width: W,
           // Popover = surface flottante : palier haut, comme les 3 autres du
           // calendrier. Au palier « card » il se confondait avec la grille.
-          background: SP.popBg, borderRadius: 18, boxShadow: SP.shadowHover || SP.shadow,
-          padding: 18, animation: 'calPopIn .16s cubic-bezier(.2,.8,.2,1) both',
+          background: SP.popBg, borderRadius: 'var(--crm-radius-3xl)', boxShadow: SP.shadowHover || SP.shadow,
+          padding: 'var(--crm-space-4xl)', animation: 'calPopIn .16s cubic-bezier(.2,.8,.2,1) both',
           maxHeight: 'calc(100vh - 28px)', overflowY: 'auto',
         }}
       >
         {/* Barre de titre — poignée de déplacement */}
-        <div onMouseDown={startDrag} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, cursor: 'grab', userSelect: 'none' }}>
+        <div onMouseDown={startDrag} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 12, cursor: 'grab', userSelect: 'none' }}>
           <CalIcon name="grip" size={16} stroke={SP.ghost} sw={2} />
-          <span style={{ width: 11, height: 11, borderRadius: 4, background: ts.accent, flexShrink: 0 }} />
-          <span style={{ fontSize: 10.5, fontWeight: 800, color: SP.muted, letterSpacing: 1, textTransform: 'uppercase' }}>{ts.label}</span>
+          <span style={{ width: 11, height: 11, borderRadius: 'var(--crm-radius-xs)', background: ts.accent, flexShrink: 0 }} />
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: SP.muted, letterSpacing: 1, textTransform: 'uppercase' }}>{ts.label}</span>
           {(done || cancelled) && (
             <span style={{
-              fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: '2px 7px', borderRadius: 999,
+              fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.5, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
               background: done ? '#059669' : '#B33A2A', color: '#FFFFFF', textTransform: 'uppercase',
             }}>
               {done ? t('popover.statusDone') : t('popover.statusCancelled')}
             </span>
           )}
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--crm-space-2xs)' }}>
             {!event.external && <CalPopIconBtn name="edit" title={t('popover.edit')} onClick={() => onEdit(event.id)} />}
             {!event.external && <CalPopIconBtn name="trash" title={t('popover.delete')} danger onClick={() => onDelete(event.id)} />}
             <CalPopIconBtn name="close" title={t('popover.close')} onClick={onClose} />
@@ -180,14 +180,14 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
 
         {/* Titre */}
         <div style={{
-          fontSize: 19, fontWeight: 800, color: SP.ink, letterSpacing: -0.5, lineHeight: 1.2, marginBottom: 12,
+          fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: SP.ink, letterSpacing: -0.5, lineHeight: 1.2, marginBottom: 12,
           textDecoration: done || cancelled ? 'line-through' : 'none',
         }}>
           {event.title}
         </div>
 
         {/* Infos */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
           <CalMiniRow icon="clock">
             {event.allDay ? (
               multiDay ? (
@@ -218,9 +218,9 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
           {event.location && <CalMiniRow icon="pin">{event.location}</CalMiniRow>}
 
           {!event.external && conflicts.length > 0 && (
-            <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: SP.warnBg, borderRadius: 12, padding: '9px 11px', marginTop: 2 }}>
+            <div style={{ display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'flex-start', background: SP.warnBg, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', marginTop: 2 }}>
               <span style={{ flexShrink: 0, marginTop: 1 }}><CalIcon name="warn" size={15} stroke={SP.warnIcon} sw={2.2} /></span>
-              <div style={{ fontSize: 12, fontWeight: 700, color: SP.warnInk, lineHeight: 1.4 }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: SP.warnInk, lineHeight: 1.4 }}>
                 {conflicts.length === 1 ? (
                   <Fragment>
                     {t('popover.conflictOne')} « {conflicts[0].title} »
@@ -237,19 +237,19 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
             const inner = (
               <Fragment>
                 <div style={{
-                  width: 42, height: 42, borderRadius: 10, flexShrink: 0,
+                  width: 42, height: 42, borderRadius: 'var(--crm-radius-md)', flexShrink: 0,
                   background: `repeating-linear-gradient(135deg, ${propTone} 0 8px, ${shadeMix(propTone, -0.05)} 8px 16px)`,
                   display: 'grid', placeItems: 'center', color: 'rgba(11,12,14,0.22)',
                 }}>
                   <CalIcon name="home" size={19} stroke="currentColor" sw={1.4} />
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: SP.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.property!.title}</div>
+                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SP.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.property!.title}</div>
                 </div>
                 {linkBienId && <CalIcon name="chevR" size={16} stroke={SP.muted} sw={2.2} />}
               </Fragment>
             )
-            const base: React.CSSProperties = { display: 'flex', gap: 11, alignItems: 'center', background: SP.cardSubtle, borderRadius: 12, padding: 10, marginTop: 2 }
+            const base: React.CSSProperties = { display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'center', background: SP.cardSubtle, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg)', marginTop: 2 }
             return linkBienId ? (
               <button
                 type="button" onClick={openBien} title={t('popover.openBien')}
@@ -265,10 +265,10 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
           {event.contact && event.contact.name && (() => {
             const inner = (
               <Fragment>
-                <div style={{ width: 38, height: 38, borderRadius: 999, background: SP.accent, color: SP.onAccent, display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{initials}</div>
+                <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', background: SP.accent, color: SP.onAccent, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 800, flexShrink: 0 }}>{initials}</div>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: SP.ink, letterSpacing: -0.2 }}>{event.contact!.name}</div>
-                  <div style={{ fontSize: 11.5, color: SP.muted, fontWeight: 600 }}>{event.contact!.phone || ''}</div>
+                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SP.ink, letterSpacing: -0.2 }}>{event.contact!.name}</div>
+                  <div style={{ fontSize: 'var(--crm-text-sm)', color: SP.muted, fontWeight: 600 }}>{event.contact!.phone || ''}</div>
                 </div>
                 {linkContactId && <CalIcon name="chevR" size={16} stroke={SP.muted} sw={2.2} />}
               </Fragment>
@@ -276,23 +276,23 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
             return linkContactId ? (
               <button
                 type="button" onClick={openContact} title={t('popover.openContact')}
-                style={{ display: 'flex', gap: 11, alignItems: 'center', background: SP.cardSubtle, borderRadius: 12, padding: 10, marginTop: 2, width: '100%', border: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'center', background: SP.cardSubtle, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg)', marginTop: 2, width: '100%', border: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
                 onMouseEnter={e => { e.currentTarget.style.background = SP.cardHover }}
                 onMouseLeave={e => { e.currentTarget.style.background = SP.cardSubtle }}
               >{inner}</button>
             ) : (
-              <div style={{ display: 'flex', gap: 11, alignItems: 'center', marginTop: 2 }}>{inner}</div>
+              <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'center', marginTop: 2 }}>{inner}</div>
             )
           })()}
 
           {event.notes && (
-            <div style={{ fontSize: 12.5, color: SP.inkSoft, fontWeight: 500, lineHeight: 1.5, background: SP.cardSubtle, borderRadius: 12, padding: '9px 11px', marginTop: 2 }}>{event.notes}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', color: SP.inkSoft, fontWeight: 500, lineHeight: 1.5, background: SP.cardSubtle, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', marginTop: 2 }}>{event.notes}</div>
           )}
         </div>
 
         {/* Actions contextuelles */}
         {event.location && (
-          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-md)', marginTop: 14 }}>
             <CalPopAction
               icon="route" label={t('popover.itinerary')}
               onClick={() => { window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location!)}`, '_blank', 'noopener,noreferrer') }}
@@ -302,15 +302,15 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
 
         {/* Statut (RDV MEGGA) — ou mention lecture seule (externe) */}
         {event.external ? (
-          <div style={{ fontSize: 12, fontWeight: 600, color: SP.muted, lineHeight: 1.5, background: SP.cardSubtle, borderRadius: 12, padding: '10px 12px', marginTop: 12 }}>
+          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SP.muted, lineHeight: 1.5, background: SP.cardSubtle, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', marginTop: 12 }}>
             {t('popover.readOnly', { source: ts.label })}
           </div>
         ) : (
           <button
             onClick={() => onStatus(event.id, 'done')}
             style={{
-              width: '100%', marginTop: 10, height: 42, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              width: '100%', marginTop: 10, height: 42, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 'var(--crm-text-lg)', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)',
               background: done ? SP.accent : SP.cardSubtle, color: done ? SP.onAccent : SP.ink,
               boxShadow: done ? SP.shadowSm : 'none',
             }}

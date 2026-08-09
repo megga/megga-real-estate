@@ -72,10 +72,10 @@ export default function AdminConfirm({
 
   return (
     <Modal open={open} onClose={onClose} title={title} size="sm">
-      <div style={{ padding: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div style={{ padding: 'var(--crm-space-6xl)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)' }}>
           <AdminIc icon={AlertTriangle} size={17} color={signal} style={{ marginTop: 1, flexShrink: 0 }} />
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 500, lineHeight: 1.55, color: sp.ink }}>
+          <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.55, color: sp.ink }}>
             {message}
           </p>
         </div>
@@ -84,7 +84,7 @@ export default function AdminConfirm({
           <div style={{ marginTop: 16 }}>
             <label
               htmlFor={inputId}
-              style={{ display: 'block', marginBottom: 6, fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub }}
+              style={{ display: 'block', marginBottom: 6, fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub }}
             >
               {requireTextLabel}
             </label>
@@ -95,16 +95,16 @@ export default function AdminConfirm({
               autoComplete="off"
               spellCheck={false}
               style={{
-                width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px',
+                width: '100%', boxSizing: 'border-box', height: 38, padding: '0 var(--crm-space-xl)',
                 borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub, color: sp.ink,
-                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 500, outline: 'none',
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, outline: 'none',
                 boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
               }}
             />
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 9, marginTop: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--crm-space-md)', marginTop: 18 }}>
           <AdminGhostBtn onClick={onClose} disabled={busy}>{t('common.cancel')}</AdminGhostBtn>
           {/* Icône passée en enfant : la prop `icon` la peindrait en encre, or
               c'est sa teinte qui porte le signal — même choix que la modale de

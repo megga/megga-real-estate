@@ -94,7 +94,7 @@ export function SSOConnectionsCard() {
       <div
         style={{
           background: SET.card,
-          borderRadius: 24,
+          borderRadius: 'var(--crm-radius-5xl)',
           boxShadow: SET.shadow,
           display: 'flex',
           flexDirection: 'column',
@@ -103,12 +103,12 @@ export function SSOConnectionsCard() {
       >
         {/* En-tête */}
         <div style={{ padding: '28px 28px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-3xl)', marginBottom: 20 }}>
             <div
               style={{
                 width: 38,
                 height: 38,
-                borderRadius: 12,
+                borderRadius: 'var(--crm-radius-lg)',
                 flexShrink: 0,
                 background: SET.cardSubtle,
                 color: SET.ink,
@@ -123,7 +123,7 @@ export function SSOConnectionsCard() {
               <h3
                 style={{
                   margin: '0 0 4px',
-                  fontSize: 17,
+                  fontSize: 'var(--crm-text-2xl)',
                   fontWeight: 700,
                   color: SET.ink,
                   letterSpacing: -0.3,
@@ -134,7 +134,7 @@ export function SSOConnectionsCard() {
               <p
                 style={{
                   margin: 0,
-                  fontSize: 13,
+                  fontSize: 'var(--crm-text-lg)',
                   color: SET.muted,
                   fontWeight: 500,
                   lineHeight: 1.5,
@@ -146,7 +146,7 @@ export function SSOConnectionsCard() {
           </div>
         </div>
 
-        <div style={{ padding: '0 28px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: '0 28px 24px', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
           {/* Providers SSO — état réel */}
           {PROVIDERS.map(p => {
             const Logo = p.logo
@@ -159,9 +159,9 @@ export function SSOConnectionsCard() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 13,
-                  padding: '13px 15px',
-                  borderRadius: 14,
+                  gap: 'var(--crm-space-xl)',
+                  padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+                  borderRadius: 'var(--crm-radius-xl)',
                   background: SET.cardSubtle,
                   boxShadow: `inset 0 0 0 1px ${SET.line}`,
                   opacity: isLoading ? 0.6 : 1,
@@ -172,7 +172,7 @@ export function SSOConnectionsCard() {
                   style={{
                     width: 38,
                     height: 38,
-                    borderRadius: 11,
+                    borderRadius: 'var(--crm-radius-md)',
                     background: '#fff',
                     boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.10)',
                     display: 'grid',
@@ -183,12 +183,12 @@ export function SSOConnectionsCard() {
                   <Logo size={20} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: SET.ink, letterSpacing: -0.1 }}>
+                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SET.ink, letterSpacing: -0.1 }}>
                     {p.name}
                   </div>
                   <div
                     style={{
-                      fontSize: 11.5,
+                      fontSize: 'var(--crm-text-sm)',
                       color: SET.muted,
                       fontWeight: 500,
                       marginTop: 1,
@@ -221,15 +221,15 @@ export function SSOConnectionsCard() {
               style={{
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: 9,
-                padding: '11px 13px',
-                borderRadius: 12,
+                gap: 'var(--crm-space-md)',
+                padding: 'var(--crm-space-lg) var(--crm-space-xl)',
+                borderRadius: 'var(--crm-radius-lg)',
                 background: `${SET.warn}12`,
                 boxShadow: `inset 0 0 0 1px ${SET.warn}28`,
               }}
             >
               <SetIcon name="info" size={14} stroke={SET.warn} sw={2} />
-              <div style={{ fontSize: 11.5, color: SET.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 'var(--crm-text-sm)', color: SET.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
                 {error}
               </div>
             </div>
@@ -239,16 +239,16 @@ export function SSOConnectionsCard() {
           <div
             style={{
               marginTop: 4,
-              padding: '12px 14px',
-              borderRadius: 12,
+              padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+              borderRadius: 'var(--crm-radius-lg)',
               background: SET.cardSubtle,
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 10,
+              gap: 'var(--crm-space-lg)',
             }}
           >
             <SetIcon name="info" size={14} stroke={SET.muted} sw={2} />
-            <div style={{ fontSize: 11.5, color: SET.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
+            <div style={{ fontSize: 'var(--crm-text-sm)', color: SET.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
               {t('security.sso.privacyNote')}
             </div>
           </div>

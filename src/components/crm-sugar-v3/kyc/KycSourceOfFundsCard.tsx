@@ -85,7 +85,7 @@ export function SourceOfFundsOverlay({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 24,
+        padding: 'var(--crm-space-7xl)',
         animation: 'sgFadeUp .25s cubic-bezier(.2,.8,.2,1) both',
       }}
     >
@@ -97,7 +97,7 @@ export function SourceOfFundsOverlay({
           maxHeight: '90vh',
           overflowY: 'auto',
           background: sp.card,
-          borderRadius: 22,
+          borderRadius: 'var(--crm-radius-5xl)',
           padding: '28px 30px',
           border: `1px solid ${sp.cardBorder}`,
           boxShadow: sp.shadowLg,
@@ -105,7 +105,7 @@ export function SourceOfFundsOverlay({
       >
         <div
           style={{
-            fontSize: 11,
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 600,
             color: sp.muted,
             letterSpacing: 1.2,
@@ -118,7 +118,7 @@ export function SourceOfFundsOverlay({
         <h2
           style={{
             margin: '0 0 18px',
-            fontSize: 22,
+            fontSize: 'var(--crm-text-4xl)',
             fontWeight: 700,
             color: sp.ink,
             letterSpacing: -0.4,
@@ -130,7 +130,7 @@ export function SourceOfFundsOverlay({
         <label
           style={{
             display: 'block',
-            fontSize: 12,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
             color: sp.inkSoft,
             marginBottom: 6,
@@ -143,12 +143,12 @@ export function SourceOfFundsOverlay({
           onChange={(e) => setSourceType(e.target.value as KycSourceOfFundsType)}
           style={{
             width: '100%',
-            padding: '10px 12px',
-            borderRadius: 12,
+            padding: 'var(--crm-space-lg) var(--crm-space-xl)',
+            borderRadius: 'var(--crm-radius-lg)',
             border: `1px solid ${sp.cardSubtle}`,
             background: sp.cardSubtle,
             fontFamily: 'inherit',
-            fontSize: 14,
+            fontSize: 'var(--crm-text-xl)',
             color: sp.ink,
             marginBottom: 6,
           }}
@@ -162,7 +162,7 @@ export function SourceOfFundsOverlay({
         </select>
         <div
           style={{
-            fontSize: 11.5,
+            fontSize: 'var(--crm-text-sm)',
             color: sp.muted,
             fontWeight: 500,
             marginBottom: 18,
@@ -174,7 +174,7 @@ export function SourceOfFundsOverlay({
         <label
           style={{
             display: 'block',
-            fontSize: 12,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
             color: sp.inkSoft,
             marginBottom: 6,
@@ -195,12 +195,12 @@ export function SourceOfFundsOverlay({
           }
           style={{
             width: '100%',
-            padding: '12px 14px',
-            borderRadius: 12,
+            padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+            borderRadius: 'var(--crm-radius-lg)',
             border: `1px solid ${sp.cardSubtle}`,
             background: sp.cardSubtle,
             fontFamily: 'inherit',
-            fontSize: 13,
+            fontSize: 'var(--crm-text-lg)',
             color: sp.ink,
             marginBottom: 18,
             resize: 'vertical',
@@ -211,7 +211,7 @@ export function SourceOfFundsOverlay({
         <label
           style={{
             display: 'block',
-            fontSize: 12,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
             color: sp.inkSoft,
             marginBottom: 6,
@@ -224,12 +224,12 @@ export function SourceOfFundsOverlay({
           onChange={(e) => setDocId(e.target.value)}
           style={{
             width: '100%',
-            padding: '10px 12px',
-            borderRadius: 12,
+            padding: 'var(--crm-space-lg) var(--crm-space-xl)',
+            borderRadius: 'var(--crm-radius-lg)',
             border: `1px solid ${sp.cardSubtle}`,
             background: sp.cardSubtle,
             fontFamily: 'inherit',
-            fontSize: 13,
+            fontSize: 'var(--crm-text-lg)',
             color: sp.ink,
             marginBottom: 22,
           }}
@@ -242,7 +242,7 @@ export function SourceOfFundsOverlay({
           ))}
         </select>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--crm-space-lg)' }}>
           <KycGhostPill onClick={onCancel}>{t('dossier.funds.cancel')}</KycGhostPill>
           <KycBlackPill
             size="md"

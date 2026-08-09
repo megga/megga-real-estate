@@ -1102,6 +1102,11 @@
         "amicale": "Amichevole",
         "neutre": "Neutro",
         "professionnel": "Professionale"
+      },
+      "crmDa": "Direzione",
+      "crmDas": {
+        "meggax": "MEGGA X",
+        "sugar": "Sugar"
       }
     },
     "toast": {

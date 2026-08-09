@@ -51,7 +51,7 @@ export function SgCircleBtn({
 }) {
   return (
     <button onClick={onClick} title={title} style={{
-      width: size, height: size, borderRadius: 999, border: 0,
+      width: size, height: size, borderRadius: 'var(--crm-radius-pill)', border: 0,
       background: SugarV2.cardSubtle, color: SugarV2.inkSoft,
       cursor: 'pointer', display: 'grid', placeItems: 'center',
       position: 'relative', transition: 'all .18s ease',
@@ -63,7 +63,7 @@ export function SgCircleBtn({
       {icon}
       {badge && <span style={{
         position: 'absolute', top: 8, right: 8,
-        width: 8, height: 8, borderRadius: 999, background: SugarV2.err,
+        width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: SugarV2.err,
         boxShadow: `0 0 0 2px ${SugarV2.cardSubtle}`,
       }} />}
     </button>
@@ -87,13 +87,13 @@ export function SgBlackPill({
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
         height: h, padding: size === 'lg' ? '0 28px' : '0 20px',
-        borderRadius: 999, border: 0,
+        borderRadius: 'var(--crm-radius-pill)', border: 0,
         background: disabled ? SugarV2.ghost : (hover ? SugarV2.blackHover : SugarV2.black),
         color: SugarV2.onBlack,
         fontFamily: 'inherit', fontSize: size === 'lg' ? 14.5 : 13, fontWeight: 600,
         letterSpacing: 0.1,
         cursor: disabled ? 'not-allowed' : 'pointer',
-        display: 'inline-flex', alignItems: 'center', gap: 10,
+        display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
         boxShadow: disabled ? 'none' : (hover ? SugarV2.pillShadowHover : SugarV2.pillShadow),
         transition: 'all .18s ease',
         transform: hover && !disabled ? 'translateY(-1px)' : 'translateY(0)',
@@ -113,11 +113,11 @@ export function SgGhostPill({
     <button onClick={onClick}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
-        height: 50, padding: '0 24px', borderRadius: 999,
+        height: 50, padding: '0 var(--crm-space-7xl)', borderRadius: 'var(--crm-radius-pill)',
         border: 0, background: hover ? SugarV2.card : 'transparent',
         color: SugarV2.inkSoft, fontFamily: 'inherit',
-        fontSize: 14, fontWeight: 600, cursor: 'pointer',
-        display: 'inline-flex', alignItems: 'center', gap: 8,
+        fontSize: 'var(--crm-text-xl)', fontWeight: 600, cursor: 'pointer',
+        display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)',
         boxShadow: hover ? SugarV2.shadow : 'none',
         transition: 'all .18s ease',
       }}>
@@ -142,7 +142,7 @@ export function SgInput({
   return (
     <label style={{ display: 'block' }}>
       <div style={{
-        fontSize: 11, fontWeight: 600, color: SugarV2.muted,
+        fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
         letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
       }}>{label}</div>
       <input type={type} value={value} autoFocus={autoFocus}
@@ -151,10 +151,10 @@ export function SgInput({
         placeholder={placeholder}
         style={{
           width: '100%', boxSizing: 'border-box',
-          height: 48, padding: '0 16px', borderRadius: 14,
+          height: 48, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-xl)',
           border: 0, outline: 'none', fontFamily: 'inherit',
           background: focus ? SugarV2.card : SugarV2.cardSubtle,
-          color: SugarV2.ink, fontSize: 15, fontWeight: 500,
+          color: SugarV2.ink, fontSize: 'var(--crm-text-xl)', fontWeight: 500,
           boxShadow: focus
             ? `0 0 0 2px ${SugarV2.black}, 0 4px 12px rgba(0,0,0,0.05)`
             : `inset 0 0 0 1px ${SugarV2.line}`,
@@ -174,7 +174,7 @@ export function SgAvatar({
   const initials = `${contact.firstName[0] ?? ''}${contact.lastName[0] ?? ''}`.toUpperCase()
   return (
     <div style={{
-      width: size, height: size, borderRadius: 999,
+      width: size, height: size, borderRadius: 'var(--crm-radius-pill)',
       background: contact.avatarBg || '#3B82F6',
       color: '#fff', display: 'grid', placeItems: 'center',
       fontSize: Math.max(11, size * 0.34), fontWeight: 700,
@@ -199,12 +199,12 @@ export function SgKycChip({ status }: { status?: 'verified' | 'pending' | 'none'
   const m = tone[key]
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      padding: '3px 9px', borderRadius: 999,
+      display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
+      padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
       background: m.bg, color: m.color,
-      fontSize: 10.5, fontWeight: 600, letterSpacing: 0.2,
+      fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2,
     }}>
-      <span style={{ width: 5, height: 5, borderRadius: 999, background: m.color }} />
+      <span style={{ width: 5, height: 5, borderRadius: 'var(--crm-radius-pill)', background: m.color }} />
       {t(`wizard.kyc.${key}`)}
     </span>
   )

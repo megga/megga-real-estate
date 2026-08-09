@@ -283,7 +283,7 @@ export function SetInput({
       {label && (
         <div
           style={{
-            fontSize: 11,
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 700,
             color: SET.muted,
             letterSpacing: 0.6,
@@ -299,8 +299,8 @@ export function SetInput({
           display: 'flex',
           alignItems: 'center',
           height: 48,
-          padding: '0 16px',
-          borderRadius: 14,
+          padding: '0 var(--crm-space-3xl)',
+          borderRadius: 'var(--crm-radius-xl)',
           background: focus ? SET.inputFocusBg : SET.cardSubtle,
           boxShadow: focus
             ? `0 0 0 2px ${SET.black}, 0 4px 12px rgba(15,23,42,0.05)`
@@ -312,7 +312,7 @@ export function SetInput({
         {prefix && (
           <span
             style={{
-              fontSize: 14,
+              fontSize: 'var(--crm-text-xl)',
               color: SET.muted,
               fontWeight: 500,
               marginRight: 8,
@@ -336,7 +336,7 @@ export function SetInput({
             outline: 'none',
             background: 'transparent',
             fontFamily: 'inherit',
-            fontSize: 15,
+            fontSize: 'var(--crm-text-xl)',
             fontWeight: 500,
             color: SET.ink,
           }}
@@ -344,7 +344,7 @@ export function SetInput({
         {suffix && (
           <span
             style={{
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               color: SET.muted,
               fontWeight: 500,
               marginLeft: 8,
@@ -355,7 +355,7 @@ export function SetInput({
         )}
       </div>
       {hint && (
-        <div style={{ marginTop: 6, fontSize: 12, color: SET.muted }}>{hint}</div>
+        <div style={{ marginTop: 6, fontSize: 'var(--crm-text-md)', color: SET.muted }}>{hint}</div>
       )}
     </label>
   )
@@ -393,7 +393,7 @@ export function SetBlackBtn({
       style={{
         height: h,
         padding: size === 'lg' ? '0 28px' : size === 'sm' ? '0 16px' : '0 22px',
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: disabled || loading ? SET.ghost : hover ? SET.blackHover : SET.black,
         color: SET.blackInk,
@@ -404,7 +404,7 @@ export function SetBlackBtn({
         cursor: disabled || loading ? 'not-allowed' : 'pointer',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 8,
+        gap: 'var(--crm-space-md)',
         boxShadow: disabled || loading
           ? 'none'
           : hover
@@ -419,7 +419,7 @@ export function SetBlackBtn({
           style={{
             width: 14,
             height: 14,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: `2px solid ${SET.blackInk}4d`,
             borderTopColor: SET.blackInk,
             animation: 'setSpin .7s linear infinite',
@@ -463,7 +463,7 @@ export function SetGhostBtn({
       style={{
         height: h,
         padding: size === 'sm' ? '0 14px' : '0 20px',
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: hover
           ? danger
@@ -478,7 +478,7 @@ export function SetGhostBtn({
         opacity: disabled ? 0.5 : 1,
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 7,
+        gap: 'var(--crm-space-sm)',
         transition: 'all .15s',
       }}
     >
@@ -508,7 +508,7 @@ export function Modal({ title, children, onClose, wide }: ModalProps) {
         WebkitBackdropFilter: 'blur(6px)',
         display: 'grid',
         placeItems: 'center',
-        padding: 20,
+        padding: 'var(--crm-space-5xl)',
         animation: 'setFadeUp .2s ease both',
       }}
     >
@@ -516,7 +516,7 @@ export function Modal({ title, children, onClose, wide }: ModalProps) {
         onClick={e => e.stopPropagation()}
         style={{
           background: SET.card,
-          borderRadius: 24,
+          borderRadius: 'var(--crm-radius-5xl)',
           padding: 28,
           width: wide ? 720 : 480,
           maxWidth: '100%',
@@ -531,7 +531,7 @@ export function Modal({ title, children, onClose, wide }: ModalProps) {
             style={{
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 16,
+              gap: 'var(--crm-space-3xl)',
               marginBottom: 18,
             }}
           >
@@ -539,7 +539,7 @@ export function Modal({ title, children, onClose, wide }: ModalProps) {
               style={{
                 flex: 1,
                 margin: 0,
-                fontSize: 20,
+                fontSize: 'var(--crm-text-4xl)',
                 fontWeight: 700,
                 color: SET.ink,
                 letterSpacing: -0.4,
@@ -553,7 +553,7 @@ export function Modal({ title, children, onClose, wide }: ModalProps) {
                 width: 34,
                 height: 34,
                 border: 0,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 background: SET.cardSubtle,
                 color: SET.inkSoft,
                 cursor: 'pointer',
@@ -597,12 +597,12 @@ export function ConfirmModal({
   const c = toneMap[tone]
   return (
     <Modal title="" onClose={onCancel}>
-      <div style={{ display: 'flex', gap: 16, marginTop: -6, marginBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-3xl)', marginTop: -6, marginBottom: 8 }}>
         <div
           style={{
             width: 48,
             height: 48,
-            borderRadius: 14,
+            borderRadius: 'var(--crm-radius-xl)',
             background: `${c}18`,
             color: c,
             display: 'grid',
@@ -616,7 +616,7 @@ export function ConfirmModal({
           <h3
             style={{
               margin: '4px 0 8px',
-              fontSize: 18,
+              fontSize: 'var(--crm-text-3xl)',
               fontWeight: 700,
               color: SET.ink,
               letterSpacing: -0.3,
@@ -627,7 +627,7 @@ export function ConfirmModal({
           <p
             style={{
               margin: 0,
-              fontSize: 13.5,
+              fontSize: 'var(--crm-text-lg)',
               color: SET.inkSoft,
               fontWeight: 500,
               lineHeight: 1.55,
@@ -641,7 +641,7 @@ export function ConfirmModal({
         style={{
           display: 'flex',
           justifyContent: 'flex-end',
-          gap: 10,
+          gap: 'var(--crm-space-lg)',
           marginTop: 22,
         }}
       >
@@ -651,19 +651,19 @@ export function ConfirmModal({
             onClick={onConfirm}
             style={{
               height: 44,
-              padding: '0 22px',
+              padding: '0 var(--crm-space-6xl)',
               border: 0,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               background: SET.bad,
               color: '#fff',
               fontFamily: 'inherit',
-              fontSize: 13.5,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 700,
               cursor: 'pointer',
               boxShadow: '0 6px 16px rgba(220,38,38,0.30)',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 8,
+              gap: 'var(--crm-space-md)',
             }}
           >
             {danger}
@@ -687,7 +687,7 @@ export function SectionHeader({ kicker, title, sub }: SectionHeaderProps) {
     <div style={{ marginBottom: 4, maxWidth: 760 }}>
       <div
         style={{
-          fontSize: 11,
+          fontSize: 'var(--crm-text-sm)',
           fontWeight: 700,
           color: SET.muted,
           letterSpacing: 1.2,
@@ -700,7 +700,7 @@ export function SectionHeader({ kicker, title, sub }: SectionHeaderProps) {
       <h1
         style={{
           margin: '0 0 12px',
-          fontSize: 32,
+          fontSize: 'var(--crm-text-7xl)',
           fontWeight: 700,
           color: SET.ink,
           letterSpacing: -0.6,
@@ -712,7 +712,7 @@ export function SectionHeader({ kicker, title, sub }: SectionHeaderProps) {
       <p
         style={{
           margin: 0,
-          fontSize: 14.5,
+          fontSize: 'var(--crm-text-xl)',
           color: SET.inkSoft,
           fontWeight: 500,
           lineHeight: 1.55,
@@ -741,13 +741,13 @@ export function Toast({ open, label }: ToastProps) {
         zIndex: 101,
         background: SET.black,
         color: SET.blackInk,
-        borderRadius: 999,
-        padding: '12px 22px',
+        borderRadius: 'var(--crm-radius-pill)',
+        padding: 'var(--crm-space-xl) var(--crm-space-6xl)',
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 'var(--crm-space-lg)',
         boxShadow: '0 24px 60px rgba(11,12,14,0.30)',
-        fontSize: 13.5,
+        fontSize: 'var(--crm-text-lg)',
         fontWeight: 600,
         animation: 'setSlideUp .3s cubic-bezier(.2,.8,.2,1) both',
       }}
@@ -756,7 +756,7 @@ export function Toast({ open, label }: ToastProps) {
         style={{
           width: 20,
           height: 20,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           background: SET.ok,
           display: 'grid',
           placeItems: 'center',

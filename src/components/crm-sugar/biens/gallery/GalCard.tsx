@@ -39,7 +39,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
       onClick={onOpen}
       style={{
         background: surf.card,
-        borderRadius: 18,
+        borderRadius: 'var(--crm-radius-3xl)',
         overflow: 'hidden',
         cursor: 'pointer',
         border: surf.hairline,
@@ -69,7 +69,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
                 style={{
                   width: 40,
                   height: 40,
-                  borderRadius: 999,
+                  borderRadius: 'var(--crm-radius-pill)',
                   background: surf.card,
                   boxShadow: surf.shadow,
                   display: 'grid',
@@ -79,7 +79,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
               >
                 <MEIcon name="plus" size={18} color={sp.sub} />
               </div>
-              <div style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600 }}>{t('biens.photosToAdd')}</div>
+              <div style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600 }}>{t('biens.photosToAdd')}</div>
             </div>
           </div>
         ) : (
@@ -103,11 +103,11 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
       </div>
 
       {/* Contenu */}
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      <div style={{ padding: 'var(--crm-space-3xl)', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
           <div
             style={{
-              fontSize: 15.5,
+              fontSize: 'var(--crm-text-2xl)',
               fontWeight: 700,
               color: sp.ink,
               letterSpacing: -0.3,
@@ -124,7 +124,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
         </div>
         <div
           style={{
-            fontSize: 12.5,
+            fontSize: 'var(--crm-text-md)',
             color: sp.sub,
             marginTop: 3,
             whiteSpace: 'nowrap',
@@ -142,17 +142,17 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
           style={{
             borderTop: surf.hairline,
             marginTop: 14,
-            paddingTop: 14,
+            paddingTop: 'var(--crm-space-2xl)',
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'space-between',
-            gap: 10,
+            gap: 'var(--crm-space-lg)',
           }}
         >
           <div>
             <div
               style={{
-                fontSize: 21,
+                fontSize: 'var(--crm-text-4xl)',
                 fontWeight: 800,
                 color: sp.ink,
                 letterSpacing: -0.7,
@@ -163,7 +163,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
             >
               {price ? galFmtCHF(price) : t('biens.toEstimate')}
               {isRent && price && (
-                <span style={{ fontSize: 12, color: sp.sub, fontWeight: 600 }}>{t('biens.perMonth')}</span>
+                <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 600 }}>{t('biens.perMonth')}</span>
               )}
             </div>
           </div>
@@ -176,19 +176,19 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
               }}
               style={{
                 height: 34,
-                padding: '0 14px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-2xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 background: sp.ink,
                 color: sp.pageBg,
-                fontSize: 12,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 700,
                 whiteSpace: 'nowrap',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 'var(--crm-space-sm)',
                 boxShadow: sp.focusShadow,
               }}
             >
@@ -198,19 +198,19 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
             <div
               style={{
                 display: 'flex',
-                gap: 12,
+                gap: 'var(--crm-space-xl)',
                 alignItems: 'center',
                 color: sp.ink,
-                fontSize: 12,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 600,
                 fontVariantNumeric: 'tabular-nums',
               }}
             >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} title={t('biens.kpi.views')}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)' }} title={t('biens.kpi.views')}>
                 <MEIcon name="eye" size={13} color={sp.ink} /> {galCompact(bien.stats?.views || 0)}
               </span>
               <span
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)' }}
                 title={t('biens.kpi.visitRequests')}
               >
                 <MEIcon name="calendar" size={13} color={sp.ink} /> {bien.stats?.visitRequests || 0}

@@ -90,37 +90,37 @@ export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore }
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', height: 36, padding: '0 12px',
+    width: '100%', height: 36, padding: '0 var(--crm-space-xl)',
     background: dark ? 'rgba(255,255,255,.06)' : '#F1F4F8',
-    border: 0, borderRadius: 10, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
+    border: 0, borderRadius: 'var(--crm-radius-md)', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
     color: sp.ink, outline: 'none', boxSizing: 'border-box',
   }
 
   return (
     <div style={{
-      background: sp.cardBg, borderRadius: 16, padding: 14, flexShrink: 0,
+      background: sp.cardBg, borderRadius: 'var(--crm-radius-2xl)', padding: 'var(--crm-space-2xl)', flexShrink: 0,
       boxShadow: `0 0 0 2px ${sp.ink} inset, ${sp.shadowSm}`,
       animation: 'sugar-fade-up .4s cubic-bezier(.2,.8,.2,1) both',
     }}>
       <style>{`.sgInlineInp::placeholder{color:${dark ? 'rgba(255,255,255,.8)' : '#7A8088'};opacity:1}`}</style>
       <div style={{
-        fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
+        fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
         color: sp.sub, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{t('new_deal')}</div>
       {selected ? (
         <div onClick={() => { setContactId(null); setQ('') }} title={t('inline.changeContact')} style={{
-          display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 11,
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-md)',
           background: dark ? crmStep('s3', 'rgba(255,255,255,.05)') : '#F7F8FA', cursor: 'pointer', minWidth: 0,
         }}>
           <span style={{
-            width: 26, height: 26, borderRadius: 999, background: selected.avatarBg || sp.ink,
-            color: '#fff', display: 'grid', placeItems: 'center', fontSize: 9.5, fontWeight: 800, flexShrink: 0,
+            width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)', background: selected.avatarBg || sp.ink,
+            color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, flexShrink: 0,
           }}>{(selected.firstName[0] || '') + (selected.lastName[0] || '')}</span>
           <span style={{
-            fontSize: 12.5, fontWeight: 800, color: sp.ink, flex: 1, minWidth: 0,
+            fontSize: 'var(--crm-text-md)', fontWeight: 800, color: sp.ink, flex: 1, minWidth: 0,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{selected.firstName} {selected.lastName}</span>
-          <span style={{ fontSize: 14, color: sp.sub, flexShrink: 0, lineHeight: 1 }}>×</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', color: sp.sub, flexShrink: 0, lineHeight: 1 }}>×</span>
         </div>
       ) : (
         <input ref={inputRef} className="sgInlineInp" value={q}
@@ -128,19 +128,19 @@ export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore }
           placeholder={t('inline.searchPlaceholder')} style={inputStyle} />
       )}
       {matches.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', marginTop: 6 }}>
           {matches.map(c => (
             <button key={c.id} onClick={() => setContactId(c.id)} style={{
-              display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 11,
+              display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-md)',
               border: 0, cursor: 'pointer', background: 'transparent', fontFamily: 'inherit',
               textAlign: 'left', minWidth: 0, width: '100%',
             }}>
               <span style={{
-                width: 24, height: 24, borderRadius: 999, background: c.avatarBg || sp.ink,
-                color: '#fff', display: 'grid', placeItems: 'center', fontSize: 9, fontWeight: 800, flexShrink: 0,
+                width: 24, height: 24, borderRadius: 'var(--crm-radius-pill)', background: c.avatarBg || sp.ink,
+                color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, flexShrink: 0,
               }}>{(c.firstName[0] || '') + (c.lastName[0] || '')}</span>
               <span style={{
-                display: 'block', flex: 1, minWidth: 0, fontSize: 12, fontWeight: 700, color: sp.ink,
+                display: 'block', flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{c.firstName} {c.lastName}</span>
             </button>
@@ -153,25 +153,25 @@ export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore }
         style={{ ...inputStyle, marginTop: 8, fontVariantNumeric: 'tabular-nums' }} />
       {selected && val && selected.criteria && String(selected.criteria.budgetMax) === val && (
         <div style={{
-          fontSize: 10, fontWeight: 600, color: sp.sub, marginTop: 5,
+          fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, marginTop: 5,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{t('inline.budgetHint')}</div>
       )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 12 }}>
         <button onClick={() => void create()} disabled={!canCreate} style={{
-          height: 30, padding: '0 14px', borderRadius: 999, border: 0,
+          height: 30, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
           cursor: canCreate ? 'pointer' : 'not-allowed', opacity: canCreate ? 1 : 0.4,
-          background: sp.accent, color: sp.accentInk, fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit',
+          background: sp.accent, color: sp.accentInk, fontSize: 'var(--crm-text-sm)', fontWeight: 700, fontFamily: 'inherit',
         }}>{t('inline.create')}</button>
         <button onClick={() => onMore({ stage, contactId, contactQuery: q, value: val ? Number(val) : null })} style={{
           border: 0, background: 'transparent', cursor: 'pointer', padding: 0,
-          fontSize: 11, fontWeight: 700, color: sp.sub, fontFamily: 'inherit',
+          fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.sub, fontFamily: 'inherit',
           textDecoration: 'underline', textUnderlineOffset: 2, whiteSpace: 'nowrap',
         }}>{t('inline.more')}</button>
         <div style={{ flex: 1 }} />
         <button onClick={onCancel} title={t('inline.cancelTitle')} style={{
           border: 0, background: 'transparent', cursor: 'pointer', color: sp.sub,
-          fontSize: 15, fontFamily: 'inherit', padding: 0, lineHeight: 1,
+          fontSize: 'var(--crm-text-xl)', fontFamily: 'inherit', padding: 0, lineHeight: 1,
         }}>×</button>
       </div>
     </div>

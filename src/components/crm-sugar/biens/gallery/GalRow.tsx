@@ -37,10 +37,10 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
         display: 'grid',
         gridTemplateColumns: '84px 1fr auto auto',
         alignItems: 'center',
-        gap: 18,
+        gap: 'var(--crm-space-4xl)',
         background: surf.card,
-        borderRadius: 14,
-        padding: '12px 16px',
+        borderRadius: 'var(--crm-radius-xl)',
+        padding: 'var(--crm-space-xl) var(--crm-space-3xl)',
         cursor: 'pointer',
         border: surf.hairline,
         boxShadow: hov ? surf.shadowHov : surf.shadow,
@@ -53,7 +53,7 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
           position: 'relative',
           width: 84,
           height: 60,
-          borderRadius: 10,
+          borderRadius: 'var(--crm-radius-md)',
           overflow: 'hidden',
           background: surf.cardSub,
         }}
@@ -68,10 +68,10 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
       </motion.div>
 
       <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
           <span
             style={{
-              fontSize: 14.5,
+              fontSize: 'var(--crm-text-xl)',
               fontWeight: 700,
               color: sp.ink,
               letterSpacing: -0.2,
@@ -86,7 +86,7 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
         </div>
         <div
           style={{
-            fontSize: 12,
+            fontSize: 'var(--crm-text-md)',
             color: sp.sub,
             marginTop: 3,
             whiteSpace: 'nowrap',
@@ -109,12 +109,12 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-start',
-          gap: 5,
+          gap: 'var(--crm-space-xs)',
         }}
       >
         <span
           style={{
-            fontSize: 10.5,
+            fontSize: 'var(--crm-text-xs)',
             color: sp.sub,
             fontWeight: 700,
             textTransform: 'uppercase',
@@ -124,16 +124,16 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
           {t('biens.seller')}
         </span>
         {owner ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
             <div
               style={{
                 width: 22,
                 height: 22,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 flexShrink: 0,
                 background: owner.avatarBg || sp.ink,
                 color: '#fff',
-                fontSize: 9,
+                fontSize: 'var(--crm-text-xs)',
                 fontWeight: 700,
                 display: 'grid',
                 placeItems: 'center',
@@ -141,19 +141,19 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
             >
               {crmInitials(owner.firstName + ' ' + owner.lastName)}
             </div>
-            <span style={{ fontSize: 12.5, color: sp.ink, fontWeight: 600 }}>
+            <span style={{ fontSize: 'var(--crm-text-md)', color: sp.ink, fontWeight: 600 }}>
               {owner.firstName} {owner.lastName[0]}.
             </span>
           </div>
         ) : (
-          <span style={{ fontSize: 12.5, color: sp.sub }}>—</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub }}>—</span>
         )}
       </div>
 
       <div style={{ minWidth: 130, textAlign: 'right' }}>
         <div
           style={{
-            fontSize: 17,
+            fontSize: 'var(--crm-text-2xl)',
             fontWeight: 800,
             color: sp.ink,
             letterSpacing: -0.5,
@@ -164,7 +164,7 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
         >
           {price ? galFmtCHF(price) : t('biens.toEstimate')}
           {isRent && price && (
-            <span style={{ fontSize: 11, color: sp.sub, fontWeight: 600 }}>{t('biens.perMonth')}</span>
+            <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600 }}>{t('biens.perMonth')}</span>
           )}
         </div>
       </div>

@@ -34,18 +34,18 @@ export function PCFilters({
   const { t: tr } = useTranslation('pipeline')
   const pillBase = {
     height: 36,
-    padding: '0 14px',
-    borderRadius: 999,
+    padding: '0 var(--crm-space-2xl)',
+    borderRadius: 'var(--crm-radius-pill)',
     border: 0,
     cursor: 'pointer',
     background: dark ? crmStep('s2', 'rgba(255,255,255,0.06)') : 'rgba(255,255,255,0.6)',
     color: sp.ink,
-    fontSize: 13,
+    fontSize: 'var(--crm-text-lg)',
     fontWeight: 600,
     fontFamily: 'inherit',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 'var(--crm-space-md)',
     boxShadow: sp.shadowSm,
     backdropFilter: 'blur(8px)',
     WebkitBackdropFilter: 'blur(8px)',
@@ -63,15 +63,15 @@ export function PCFilters({
       style={{
         display: 'flex',
         flexWrap: 'wrap',
-        gap: 10,
+        gap: 'var(--crm-space-lg)',
         alignItems: 'center',
       }}
     >
       {/* Stade */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
         <span
           style={{
-            fontSize: 11,
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 700,
             color: sp.sub,
             textTransform: 'uppercase',
@@ -96,7 +96,7 @@ export function PCFilters({
               style={{
                 width: 7,
                 height: 7,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 background: s.color,
               }}
             />
@@ -114,10 +114,10 @@ export function PCFilters({
       />
 
       {/* Urgence */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
         <span
           style={{
-            fontSize: 11,
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 700,
             color: sp.sub,
             textTransform: 'uppercase',
@@ -142,7 +142,7 @@ export function PCFilters({
               style={{
                 width: 7,
                 height: 7,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 background: URGENCY_MAP[u].dot,
               }}
             />
@@ -155,11 +155,11 @@ export function PCFilters({
 
       <span
         style={{
-          fontSize: 12,
+          fontSize: 'var(--crm-text-md)',
           color: sp.sub,
           fontWeight: 600,
-          padding: '6px 12px',
-          borderRadius: 999,
+          padding: 'var(--crm-space-sm) var(--crm-space-xl)',
+          borderRadius: 'var(--crm-radius-pill)',
           background: dark ? crmStep('s2', 'rgba(255,255,255,0.04)') : 'rgba(255,255,255,0.5)',
         }}
       >

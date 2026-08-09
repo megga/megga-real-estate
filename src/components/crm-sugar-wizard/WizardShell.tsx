@@ -360,7 +360,7 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
       <header style={{
         flexShrink: 0,
         padding: '20px 32px',
-        display: 'flex', alignItems: 'center', gap: 18,
+        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-4xl)',
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
         background: (!published && step === 2)
           ? 'transparent'
@@ -413,13 +413,13 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
         position: 'absolute', bottom: 0, left: 0, right: 0,
         padding: '24px 32px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 16, zIndex: 20,
+        gap: 'var(--crm-space-3xl)', zIndex: 20,
         background: dark
           ? `linear-gradient(180deg, transparent 0%, ${SugarV2.bg} 72%)`
           : SugarV2.footerFade,
         pointerEvents: 'none',
       }}>
-        <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
           {step > 0 && (
             <SgGhostPill onClick={prev}
               icon={<SgIcon name="arrowL" size={16} stroke={SugarV2.inkSoft} />}>
@@ -428,26 +428,26 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
           )}
           {/* Indicateur d'autosave (handoff) : pastille verte → coche « Enregistré ». */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            fontSize: 12, fontWeight: 600, letterSpacing: 0.1,
+            display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
+            fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: 0.1,
             color: SugarV2.isDark ? '#34C796' : '#047857',
           }}>
             {justSaved ? (
               <span style={{
-                width: 15, height: 15, borderRadius: 999, display: 'grid', placeItems: 'center', flexShrink: 0,
+                width: 15, height: 15, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', flexShrink: 0,
                 background: SugarV2.isDark ? '#34C796' : '#047857',
                 animation: 'sgSavePop .4s cubic-bezier(.2,.8,.2,1) both',
               }}>
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={SugarV2.isDark ? '#0B0B0C' : '#fff'} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
               </span>
             ) : (
-              <span style={{ width: 7, height: 7, borderRadius: 999, flexShrink: 0, background: SugarV2.isDark ? '#34C796' : '#047857' }} />
+              <span style={{ width: 7, height: 7, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: SugarV2.isDark ? '#34C796' : '#047857' }} />
             )}
             {justSaved ? t('wizard.shell.saved') : t('wizard.shell.autosave')}
           </div>
         </div>
 
-        <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
           {/* Le CTA de publication vit dans le Step 7 (concept E) — le footer ne
               montre « Continuer » que sur les étapes intermédiaires. */}
           {step < SG_STEPS.length - 1 && (
@@ -464,11 +464,11 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
       {publishError && !published && (
         <div role="alert" style={{
           position: 'absolute', bottom: 92, left: 32, right: 32, zIndex: 21,
-          padding: '10px 14px', borderRadius: 12,
+          padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)',
           background: dark ? 'rgba(242,107,101,0.12)' : '#FEF2F2',
           color: SugarV2.err,
           border: `1px solid ${dark ? 'rgba(242,107,101,0.35)' : '#FCA5A5'}`,
-          fontSize: 12.5, fontWeight: 600,
+          fontSize: 'var(--crm-text-md)', fontWeight: 600,
         }}>
           {t('wizard.shell.publishError', { message: publishError })}
         </div>

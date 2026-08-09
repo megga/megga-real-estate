@@ -110,12 +110,12 @@ function omFmt(n: number | string | null | undefined): string {
 const omInputStyle = (pal: OmPalette): CSSProperties => ({
   width: '100%',
   height: 54,
-  padding: '0 18px',
+  padding: '0 var(--crm-space-4xl)',
   background: pal.cardSubtle,
   border: pal.cardBorder ? `1px solid ${pal.cardBorder}` : 0,
-  borderRadius: 14,
+  borderRadius: 'var(--crm-radius-xl)',
   fontFamily: 'inherit',
-  fontSize: 18,
+  fontSize: 'var(--crm-text-3xl)',
   fontWeight: 600,
   color: pal.ink,
   outline: 'none',
@@ -142,7 +142,7 @@ function OmField({
       <label
         style={{
           display: 'block',
-          fontSize: 11.5,
+          fontSize: 'var(--crm-text-sm)',
           fontWeight: 600,
           color: pal.muted,
           textTransform: 'uppercase',
@@ -154,7 +154,7 @@ function OmField({
       </label>
       <div style={{ position: 'relative' }}>{children}</div>
       {hint && (
-        <div style={{ marginTop: 6, fontSize: 11.5, color: pal.muted, fontWeight: 500 }}>
+        <div style={{ marginTop: 6, fontSize: 'var(--crm-text-sm)', color: pal.muted, fontWeight: 500 }}>
           {hint}
         </div>
       )}
@@ -164,16 +164,16 @@ function OmField({
 
 function OmSectionHead({ index, title, pal }: { index: number; title: string; pal: OmPalette }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)', marginBottom: 20 }}>
       <div
         style={{
           width: 30,
           height: 30,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           flexShrink: 0,
           background: pal.ink,
           color: pal.onAccent,
-          fontSize: 12.5,
+          fontSize: 'var(--crm-text-md)',
           fontWeight: 700,
           display: 'grid',
           placeItems: 'center',
@@ -184,7 +184,7 @@ function OmSectionHead({ index, title, pal }: { index: number; title: string; pa
       <h2
         style={{
           margin: 0,
-          fontSize: 24,
+          fontSize: 'var(--crm-text-5xl)',
           fontWeight: 700,
           color: pal.ink,
           letterSpacing: -0.5,
@@ -215,8 +215,8 @@ function OmConditionToggle({
   return (
     <div
       style={{
-        padding: 22,
-        borderRadius: 20,
+        padding: 'var(--crm-space-6xl)',
+        borderRadius: 'var(--crm-radius-4xl)',
         background: active ? pal.card : pal.cardSubtle,
         boxShadow: active
           ? `0 0 0 2px ${pal.ink} inset, ${pal.shadow}`
@@ -227,14 +227,14 @@ function OmConditionToggle({
       }}
     >
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', cursor: 'pointer' }}
         onClick={onToggle}
       >
         <div
           style={{
             width: 40,
             height: 40,
-            borderRadius: 12,
+            borderRadius: 'var(--crm-radius-lg)',
             background: active ? pal.ink : pal.card,
             color: active ? pal.onAccent : pal.inkSoft,
             flexShrink: 0,
@@ -247,13 +247,13 @@ function OmConditionToggle({
           <SgIcon name={icon} size={18} stroke={active ? pal.onAccent : pal.inkSoft} sw={1.8} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14.5, fontWeight: 700, color: pal.ink }}>{title}</div>
+          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: pal.ink }}>{title}</div>
         </div>
         <div
           style={{
             width: 22,
             height: 22,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             flexShrink: 0,
             background: active ? pal.ink : pal.card,
             boxShadow: active ? 'none' : `0 0 0 2px ${pal.cardSubtle} inset`,
@@ -279,18 +279,18 @@ function OmGhostPill({ children, onClick, pal }: { children: ReactNode; onClick:
       onMouseLeave={() => setH(false)}
       style={{
         height: 50,
-        padding: '0 24px',
-        borderRadius: 999,
+        padding: '0 var(--crm-space-7xl)',
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: h ? pal.card : 'transparent',
         color: pal.inkSoft,
         fontFamily: 'inherit',
-        fontSize: 14,
+        fontSize: 'var(--crm-text-xl)',
         fontWeight: 600,
         cursor: 'pointer',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 9,
+        gap: 'var(--crm-space-md)',
         whiteSpace: 'nowrap',
         boxShadow: h ? pal.shadow : 'none',
         transition: 'all .18s ease',
@@ -322,18 +322,18 @@ function OmBlackPill({
       style={{
         height: 50,
         padding: '0 28px',
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: disabled ? pal.ghost : h ? '#1F2024' : '#0B0C0E',
         color: '#FFFFFF',
         fontFamily: 'inherit',
         fontWeight: 600,
-        fontSize: 14.5,
+        fontSize: 'var(--crm-text-xl)',
         letterSpacing: 0.1,
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 9,
+        gap: 'var(--crm-space-md)',
         whiteSpace: 'nowrap',
         boxShadow: disabled ? 'none' : h ? '0 12px 30px rgba(11,12,14,0.25)' : '0 6px 16px rgba(11,12,14,0.18)',
         transform: h && !disabled ? 'translateY(-1px)' : 'translateY(0)',
@@ -511,10 +511,10 @@ export default function OfferModalSugar({
 
       {/* HEADER — titre = bien, bouton fermer à droite (pas d'eyebrow, pas de stepper) */}
       <header
-        style={{ padding: '22px 40px 18px', display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0 }}
+        style={{ padding: '22px 40px 18px', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-5xl)', flexShrink: 0 }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: pal.ink, letterSpacing: -0.4 }}>
+          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 700, color: pal.ink, letterSpacing: -0.4 }}>
             {bien?.title || t('offerModal.header.fallback')}
           </div>
         </div>
@@ -524,7 +524,7 @@ export default function OfferModalSugar({
           style={{
             width: 44,
             height: 44,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: 0,
             background: pal.cardSubtle,
             color: pal.inkSoft,
@@ -560,7 +560,7 @@ export default function OfferModalSugar({
             <div
               style={{
                 background: pal.card,
-                borderRadius: 24,
+                borderRadius: 'var(--crm-radius-5xl)',
                 border: pal.cardBorder ? `1px solid ${pal.cardBorder}` : 'none',
                 boxShadow: pal.shadowLg,
                 padding: 32,
@@ -569,20 +569,20 @@ export default function OfferModalSugar({
               {parentOffer && (
                 <div
                   style={{
-                    padding: 16,
+                    padding: 'var(--crm-space-3xl)',
                     marginBottom: 28,
-                    borderRadius: 16,
+                    borderRadius: 'var(--crm-radius-2xl)',
                     background: pal.cardSubtle,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 14,
+                    gap: 'var(--crm-space-2xl)',
                   }}
                 >
                   <div
                     style={{
                       width: 40,
                       height: 40,
-                      borderRadius: 999,
+                      borderRadius: 'var(--crm-radius-pill)',
                       background: pal.swapBg,
                       color: pal.inkSoft,
                       flexShrink: 0,
@@ -596,7 +596,7 @@ export default function OfferModalSugar({
                   <div style={{ flex: 1 }}>
                     <div
                       style={{
-                        fontSize: 18,
+                        fontSize: 'var(--crm-text-3xl)',
                         fontWeight: 700,
                         color: pal.ink,
                         fontVariantNumeric: 'tabular-nums',
@@ -608,7 +608,7 @@ export default function OfferModalSugar({
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-6xl)' }}>
                 <OmField
                   label={t('offerModal.field.amount')}
                   hint={askingPrice ? t('offerModal.field.askingPriceHint', { price: omFmt(askingPrice) }) : null}
@@ -634,13 +634,13 @@ export default function OfferModalSugar({
                     type="date"
                     value={closingDate}
                     onChange={(e) => setClosingDate(e.target.value)}
-                    style={{ ...omInputStyle(pal), fontSize: 15 }}
+                    style={{ ...omInputStyle(pal), fontSize: 'var(--crm-text-xl)' }}
                   />
                 </OmField>
                 <OmField label={t('offerModal.field.gap')} pal={pal}>
-                  <div style={{ ...omInputStyle(pal), display: 'flex', alignItems: 'center', fontSize: 16, color: ecartColor }}>
+                  <div style={{ ...omInputStyle(pal), display: 'flex', alignItems: 'center', fontSize: 'var(--crm-text-2xl)', color: ecartColor }}>
                     {ecart}
-                    <span style={{ marginLeft: 10, fontSize: 12, color: pal.muted, fontWeight: 500 }}>
+                    <span style={{ marginLeft: 10, fontSize: 'var(--crm-text-md)', color: pal.muted, fontWeight: 500 }}>
                       {t('offerModal.field.gapVsAsking')}
                     </span>
                   </div>
@@ -652,7 +652,7 @@ export default function OfferModalSugar({
           {/* ── 2 · Conditions suspensives ── */}
           <section>
             <OmSectionHead index={2} pal={pal} title={t('offerModal.section.conditions')} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
               <OmConditionToggle
                 active={conditions.financing.active}
                 onToggle={() => toggleCond('financing')}
@@ -660,13 +660,13 @@ export default function OfferModalSugar({
                 title={t('offerModal.condition.financing.title')}
                 pal={pal}
               >
-                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 'var(--crm-space-2xl)' }}>
                   <OmField label={t('offerModal.condition.financing.daysLabel')} pal={pal}>
                     <input
                       type="number"
                       value={conditions.financing.days ?? 45}
                       onChange={(e) => setCondField('financing', 'days', +e.target.value)}
-                      style={{ ...omInputStyle(pal), height: 46, fontSize: 15 }}
+                      style={{ ...omInputStyle(pal), height: 46, fontSize: 'var(--crm-text-xl)' }}
                     />
                   </OmField>
                   <OmField label={t('offerModal.condition.financing.noteLabel')} pal={pal}>
@@ -675,7 +675,7 @@ export default function OfferModalSugar({
                       value={conditions.financing.note ?? ''}
                       placeholder={t('offerModal.condition.financing.notePlaceholder')}
                       onChange={(e) => setCondField('financing', 'note', e.target.value)}
-                      style={{ ...omInputStyle(pal), height: 46, fontSize: 15 }}
+                      style={{ ...omInputStyle(pal), height: 46, fontSize: 'var(--crm-text-xl)' }}
                     />
                   </OmField>
                 </div>
@@ -702,7 +702,7 @@ export default function OfferModalSugar({
                     value={conditions.diagnostic.note ?? ''}
                     placeholder={t('offerModal.condition.diagnostic.notePlaceholder')}
                     onChange={(e) => setCondField('diagnostic', 'note', e.target.value)}
-                    style={{ ...omInputStyle(pal), height: 46, fontSize: 15 }}
+                    style={{ ...omInputStyle(pal), height: 46, fontSize: 'var(--crm-text-xl)' }}
                   />
                 </OmField>
               </OmConditionToggle>
@@ -719,15 +719,15 @@ export default function OfferModalSugar({
                     type="date"
                     value={conditions.occupancy.note ?? ''}
                     onChange={(e) => setCondField('occupancy', 'note', e.target.value)}
-                    style={{ ...omInputStyle(pal), height: 46, fontSize: 15 }}
+                    style={{ ...omInputStyle(pal), height: 46, fontSize: 'var(--crm-text-xl)' }}
                   />
                 </OmField>
               </OmConditionToggle>
 
               <div
                 style={{
-                  padding: 22,
-                  borderRadius: 20,
+                  padding: 'var(--crm-space-6xl)',
+                  borderRadius: 'var(--crm-radius-4xl)',
                   background: pal.card,
                   boxShadow: pal.shadow,
                   border: pal.cardBorder ? `1px solid ${pal.cardBorder}` : 'none',
@@ -742,8 +742,8 @@ export default function OfferModalSugar({
                     style={{
                       ...omInputStyle(pal),
                       height: 'auto',
-                      padding: 16,
-                      fontSize: 14,
+                      padding: 'var(--crm-space-3xl)',
+                      fontSize: 'var(--crm-text-xl)',
                       fontWeight: 500,
                       lineHeight: 1.55,
                       resize: 'vertical',
@@ -761,19 +761,19 @@ export default function OfferModalSugar({
             <div
               style={{
                 background: pal.card,
-                borderRadius: 24,
+                borderRadius: 'var(--crm-radius-5xl)',
                 border: pal.cardBorder ? `1px solid ${pal.cardBorder}` : 'none',
                 boxShadow: pal.shadowLg,
                 padding: 32,
               }}
             >
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-6xl)' }}>
                 <OmField label={t('offerModal.field.expiryDate')} pal={pal}>
                   <input
                     type="date"
                     value={expDate}
                     onChange={(e) => setExpDate(e.target.value)}
-                    style={{ ...omInputStyle(pal), fontSize: 15 }}
+                    style={{ ...omInputStyle(pal), fontSize: 'var(--crm-text-xl)' }}
                   />
                 </OmField>
                 <OmField label={t('offerModal.field.expiryTime')} pal={pal}>
@@ -781,11 +781,11 @@ export default function OfferModalSugar({
                     type="time"
                     value={expTime}
                     onChange={(e) => setExpTime(e.target.value)}
-                    style={{ ...omInputStyle(pal), fontSize: 15 }}
+                    style={{ ...omInputStyle(pal), fontSize: 'var(--crm-text-xl)' }}
                   />
                 </OmField>
               </div>
-              <div style={{ marginTop: 22, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ marginTop: 22, display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
                 {[
                   { l: t('offerModal.delay.h48'), d: 2 },
                   { l: t('offerModal.delay.days', { count: 5 }), d: 5 },
@@ -801,13 +801,13 @@ export default function OfferModalSugar({
                     }}
                     style={{
                       height: 36,
-                      padding: '0 14px',
-                      borderRadius: 999,
+                      padding: '0 var(--crm-space-2xl)',
+                      borderRadius: 'var(--crm-radius-pill)',
                       border: 0,
                       background: pal.cardSubtle,
                       color: pal.inkSoft,
                       fontFamily: 'inherit',
-                      fontSize: 12,
+                      fontSize: 'var(--crm-text-md)',
                       fontWeight: 600,
                       cursor: 'pointer',
                     }}
@@ -821,10 +821,10 @@ export default function OfferModalSugar({
 
           {/* ── Récapitulatif (inversé) ── */}
           <section>
-            <div style={{ background: pal.ink, color: pal.onAccent, borderRadius: 24, padding: 32, boxShadow: pal.shadow }}>
+            <div style={{ background: pal.ink, color: pal.onAccent, borderRadius: 'var(--crm-radius-5xl)', padding: 32, boxShadow: pal.shadow }}>
               <div
                 style={{
-                  fontSize: 11.5,
+                  fontSize: 'var(--crm-text-sm)',
                   fontWeight: 600,
                   color: pal.recapMut,
                   textTransform: 'uppercase',
@@ -835,12 +835,12 @@ export default function OfferModalSugar({
                 {t('offerModal.summary.title')}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18 }}>
-                <div style={{ fontSize: 14, fontWeight: 500, color: pal.recapMut2 }}>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 500, color: pal.recapMut2 }}>
                   {isCounter ? t('offerModal.summary.counterLabel') : t('offerModal.summary.offerLabel')}
                 </div>
                 <div
                   style={{
-                    fontSize: 36,
+                    fontSize: 'var(--crm-text-8xl)',
                     fontWeight: 700,
                     color: pal.onAccent,
                     letterSpacing: -0.8,
@@ -854,8 +854,8 @@ export default function OfferModalSugar({
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 10,
-                  paddingTop: 18,
+                  gap: 'var(--crm-space-lg)',
+                  paddingTop: 'var(--crm-space-4xl)',
                   borderTop: `1px solid ${pal.recapLine}`,
                 }}
               >
@@ -877,8 +877,8 @@ export default function OfferModalSugar({
                   },
                 ].map((r) => (
                   <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <span style={{ fontSize: 13, color: pal.recapMut, fontWeight: 500 }}>{r.l}</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: pal.onAccent, fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ fontSize: 'var(--crm-text-lg)', color: pal.recapMut, fontWeight: 500 }}>{r.l}</span>
+                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: pal.onAccent, fontVariantNumeric: 'tabular-nums' }}>
                       {r.v}
                     </span>
                   </div>
@@ -890,13 +890,13 @@ export default function OfferModalSugar({
       </div>
 
       {/* FOOTER — Annuler (ghost) · Enregistrer (pilule noire, sans icône) */}
-      <footer style={{ padding: '18px 40px 22px', display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+      <footer style={{ padding: '18px 40px 22px', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', flexShrink: 0 }}>
         <OmGhostPill onClick={onClose} pal={pal}>
           {t('offerModal.cta.cancel')}
         </OmGhostPill>
         <div style={{ flex: 1 }} />
         {saveError && (
-          <div role="alert" style={{ fontSize: 12.5, color: pal.err, fontWeight: 600, marginRight: 12 }}>
+          <div role="alert" style={{ fontSize: 'var(--crm-text-md)', color: pal.err, fontWeight: 600, marginRight: 12 }}>
             {saveError.message}
           </div>
         )}

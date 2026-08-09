@@ -21,13 +21,13 @@ function BpgPageDots({ page, onGo, dark, labels }: { page: number; onGo: (i: num
   const activeCol = dark ? '#F2F2F6' : '#0B0C0E'
   const idleCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(11,12,14,.18)'
   return (
-    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', alignItems: 'center' }}>
       {labels.map((label, i) => (
         <button
           key={label}
           onClick={() => onGo(i)}
           title={label}
-          style={{ width: 8, height: i === page ? 26 : 8, borderRadius: 999, border: 0, cursor: 'pointer', padding: 0, background: i === page ? activeCol : idleCol, transition: 'height .5s cubic-bezier(.76,0,.24,1), background .4s ease' }}
+          style={{ width: 8, height: i === page ? 26 : 8, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', padding: 0, background: i === page ? activeCol : idleCol, transition: 'height .5s cubic-bezier(.76,0,.24,1), background .4s ease' }}
         />
       ))}
     </div>
@@ -41,10 +41,10 @@ function BpgScrollHint({ page, onGo, sp, labels }: { page: number; onGo: (i: num
   if (!target) return null
   const dir = nextLabel ? 1 : -1
   return (
-    <button className="bpg-scroll-hint" onClick={() => onGo(page + dir)} aria-label={target} style={{ position: 'absolute', bottom: 18, left: 24, zIndex: 60, display: 'flex', alignItems: 'center', gap: 11, padding: 6, border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer' }}>
-      <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 16, fontWeight: 700, lineHeight: 1, color: sp.sub }}>{nextLabel ? '↓' : '↑'}</span>
+    <button className="bpg-scroll-hint" onClick={() => onGo(page + dir)} aria-label={target} style={{ position: 'absolute', bottom: 18, left: 24, zIndex: 60, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-sm)', border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer' }}>
+      <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, lineHeight: 1, color: sp.sub }}>{nextLabel ? '↓' : '↑'}</span>
       <span className="bpg-hint-label" style={{ display: 'flex', alignItems: 'flex-start', whiteSpace: 'nowrap', maxWidth: 0, overflow: 'hidden', opacity: 0, transform: 'translateX(-6px)', transition: 'max-width .4s cubic-bezier(.76,0,.24,1), opacity .3s ease, transform .4s cubic-bezier(.76,0,.24,1)' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>{target}</span>
+        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink }}>{target}</span>
       </span>
     </button>
   )
@@ -190,7 +190,7 @@ export function BiensPager({
   }, [go])
 
   return (
-    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
       <style>{`
         .bpg-scroll-hint { opacity: .55; transition: opacity .35s ease; }
         .bpg-scroll-hint:hover, .bpg-scroll-hint:focus-visible { opacity: 1; }
@@ -199,7 +199,7 @@ export function BiensPager({
         .bpg-scroll-hint:focus:not(:focus-visible) { outline: none; }
         .bpg-scroll-hint:focus-visible { outline: 2px solid ${dark ? '#8DA4FF' : '#0041D9'}; outline-offset: 2px; border-radius: 10px; }
       `}</style>
-      <div ref={viewportRef} style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow }}>
+      <div ref={viewportRef} style={{ position: 'relative', height: '100%', borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow }}>
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
             {fresh ? (
@@ -245,7 +245,7 @@ export function BiensPager({
 
         {/* Wizard « Créer un bien » embarqué : overlay plein bento. */}
         {wizardOpen && wizardSlot && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 50, borderRadius: 26, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', inset: 0, zIndex: 50, borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden' }}>
             {wizardSlot}
           </div>
         )}

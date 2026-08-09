@@ -97,14 +97,14 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        gap: 18,
+        gap: 'var(--crm-space-4xl)',
         overflow: 'hidden',
         background: sp.pageBg,
       }}
     >
       {/* En-tête */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>KYC</h1>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)' }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>KYC</h1>
         <div style={{ flex: 1 }} />
         <KypCta sp={sp} h={40} onClick={onNewDossier}>
           Nouveau dossier
@@ -112,7 +112,7 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
       </div>
 
       {/* Onglets-filtres */}
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
         {tabs.map((tb) => {
           const on = tb.id === f
           return (
@@ -122,15 +122,15 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 7,
+                gap: 'var(--crm-space-sm)',
                 height: 36,
-                padding: '0 15px',
-                borderRadius: 999,
+                padding: '0 var(--crm-space-2xl)',
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: on ? sp.focusBg : surf.card,
                 color: on ? sp.focusInk : sp.soft,
                 fontFamily: KYP_FONT,
-                fontSize: 13,
+                fontSize: 'var(--crm-text-lg)',
                 fontWeight: 700,
                 cursor: 'pointer',
                 boxShadow: on ? 'none' : sp.shadowSm,
@@ -149,7 +149,7 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
           flex: 1,
           minHeight: 0,
           background: surf.card,
-          borderRadius: 22,
+          borderRadius: 'var(--crm-radius-5xl)',
           boxShadow: sp.shadow,
           overflow: 'hidden',
           display: 'flex',
@@ -160,9 +160,9 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
           style={{
             display: 'grid',
             gridTemplateColumns: cols,
-            gap: 12,
-            padding: '12px 22px',
-            fontSize: 11,
+            gap: 'var(--crm-space-xl)',
+            padding: 'var(--crm-space-xl) var(--crm-space-6xl)',
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 700,
             letterSpacing: 0.4,
             textTransform: 'uppercase',
@@ -178,15 +178,15 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {isLoading && (
-            <div style={{ padding: '40px 22px', fontSize: 13, color: sp.sub, fontWeight: 500 }}>Chargement des dossiers…</div>
+            <div style={{ padding: '40px 22px', fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500 }}>Chargement des dossiers…</div>
           )}
           {isError && !isLoading && (
-            <div style={{ padding: '40px 22px', fontSize: 13, color: surf.destructive, fontWeight: 600 }}>
+            <div style={{ padding: '40px 22px', fontSize: 'var(--crm-text-lg)', color: surf.destructive, fontWeight: 600 }}>
               Impossible de charger les dossiers KYC.
             </div>
           )}
           {!isLoading && !isError && rows.length === 0 && (
-            <div style={{ padding: '40px 22px', fontSize: 13, color: sp.sub, fontWeight: 500 }}>
+            <div style={{ padding: '40px 22px', fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500 }}>
               Aucun dossier dans cette vue.
             </div>
           )}
@@ -197,18 +197,18 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
               style={{
                 display: 'grid',
                 gridTemplateColumns: cols,
-                gap: 12,
+                gap: 'var(--crm-space-xl)',
                 alignItems: 'center',
-                padding: '11px 22px',
+                padding: 'var(--crm-space-lg) var(--crm-space-6xl)',
                 borderBottom: i < rows.length - 1 ? `1px solid ${surf.hairline}` : '0',
                 cursor: 'pointer',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', minWidth: 0 }}>
                 <KypAvatar firstName={d.contact!.first_name} lastName={d.contact!.last_name} size={34} ring={surf.card} />
                 <div
                   style={{
-                    fontSize: 14.5,
+                    fontSize: 'var(--crm-text-xl)',
                     fontWeight: 700,
                     color: sp.ink,
                     whiteSpace: 'nowrap',
@@ -224,7 +224,7 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
               </div>
               <div
                 style={{
-                  fontSize: 12.5,
+                  fontSize: 'var(--crm-text-md)',
                   color: sp.soft,
                   fontWeight: 500,
                   whiteSpace: 'nowrap',
@@ -234,12 +234,12 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
               >
                 {lastEventLabel(d)}
               </div>
-              <div style={{ fontSize: 12.5, color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                 {d.expires_at
                   ? new Date(d.expires_at).toLocaleDateString('fr-CH', { month: 'short', year: 'numeric' })
                   : '—'}
               </div>
-              <div style={{ color: surf.ghost, fontSize: 18, textAlign: 'center' }}>›</div>
+              <div style={{ color: surf.ghost, fontSize: 'var(--crm-text-3xl)', textAlign: 'center' }}>›</div>
             </div>
           ))}
         </div>

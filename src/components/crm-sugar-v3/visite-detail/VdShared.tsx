@@ -19,7 +19,7 @@ export function VdEyebrow({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
-        fontSize: 12,
+        fontSize: 'var(--crm-text-md)',
         fontWeight: 600,
         color: SugarV3.muted,
         letterSpacing: 1.2,
@@ -44,7 +44,7 @@ export function VdCard({
     <div
       style={{
         background: SugarV3.card,
-        borderRadius: 24,
+        borderRadius: 'var(--crm-radius-5xl)',
         boxShadow: SugarV3.shadow,
         padding,
         animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
@@ -86,7 +86,7 @@ export function VdBonPanel({
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: 6,
-          gap: 12,
+          gap: 'var(--crm-space-xl)',
         }}
       >
         <div>
@@ -99,7 +99,7 @@ export function VdBonPanel({
           <h2
             style={{
               margin: '10px 0 0',
-              fontSize: 22,
+              fontSize: 'var(--crm-text-4xl)',
               fontWeight: 700,
               color: SugarV3.ink,
               letterSpacing: -0.4,
@@ -119,7 +119,7 @@ export function VdBonPanel({
         style={{
           marginTop: 22,
           padding: 28,
-          borderRadius: 18,
+          borderRadius: 'var(--crm-radius-3xl)',
           background: '#FAFBFC',
           boxShadow: `inset 0 0 0 1px ${SugarV3.cardSubtle}`,
         }}
@@ -127,7 +127,7 @@ export function VdBonPanel({
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 'var(--crm-text-sm)',
               fontWeight: 700,
               color: SugarV3.ink,
               letterSpacing: 4,
@@ -138,7 +138,7 @@ export function VdBonPanel({
           </div>
           <div
             style={{
-              fontSize: 18,
+              fontSize: 'var(--crm-text-3xl)',
               fontWeight: 700,
               color: SugarV3.ink,
               letterSpacing: -0.3,
@@ -152,19 +152,19 @@ export function VdBonPanel({
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 14,
-            fontSize: 13,
+            gap: 'var(--crm-space-2xl)',
+            fontSize: 'var(--crm-text-lg)',
           }}
         >
           <div
             style={{
-              paddingBottom: 14,
+              paddingBottom: 'var(--crm-space-2xl)',
               borderBottom: `1px dashed ${SugarV3.cardSubtle}`,
             }}
           >
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: 'var(--crm-text-xs)',
                 color: SugarV3.muted,
                 fontWeight: 600,
                 textTransform: 'uppercase',
@@ -175,14 +175,14 @@ export function VdBonPanel({
               {t('visitDetail.bon.fieldProperty')}
             </div>
             <div
-              style={{ fontWeight: 700, color: SugarV3.ink, fontSize: 14 }}
+              style={{ fontWeight: 700, color: SugarV3.ink, fontSize: 'var(--crm-text-xl)' }}
             >
               {visit.property?.title ?? '—'}
             </div>
             <div
               style={{
                 color: SugarV3.inkSoft,
-                fontSize: 12.5,
+                fontSize: 'var(--crm-text-md)',
                 marginTop: 2,
               }}
             >
@@ -191,17 +191,17 @@ export function VdBonPanel({
           </div>
           <div
             style={{
-              paddingBottom: 14,
+              paddingBottom: 'var(--crm-space-2xl)',
               borderBottom: `1px dashed ${SugarV3.cardSubtle}`,
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              gap: 18,
+              gap: 'var(--crm-space-4xl)',
             }}
           >
             <div>
               <div
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--crm-text-xs)',
                   color: SugarV3.muted,
                   fontWeight: 600,
                   textTransform: 'uppercase',
@@ -215,7 +215,7 @@ export function VdBonPanel({
                 style={{
                   fontWeight: 700,
                   color: SugarV3.ink,
-                  fontSize: 13.5,
+                  fontSize: 'var(--crm-text-lg)',
                 }}
               >
                 {visit.bon?.visitorNames?.[0] ??
@@ -227,7 +227,7 @@ export function VdBonPanel({
             <div>
               <div
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--crm-text-xs)',
                   color: SugarV3.muted,
                   fontWeight: 600,
                   textTransform: 'uppercase',
@@ -241,7 +241,7 @@ export function VdBonPanel({
                 style={{
                   fontWeight: 700,
                   color: SugarV3.ink,
-                  fontSize: 13.5,
+                  fontSize: 'var(--crm-text-lg)',
                 }}
               >
                 {visit.agent?.full_name ?? 'Grégory L.'}
@@ -250,13 +250,13 @@ export function VdBonPanel({
           </div>
           <div
             style={{
-              paddingBottom: 14,
+              paddingBottom: 'var(--crm-space-2xl)',
               borderBottom: `1px dashed ${SugarV3.cardSubtle}`,
             }}
           >
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: 'var(--crm-text-xs)',
                 color: SugarV3.muted,
                 fontWeight: 600,
                 textTransform: 'uppercase',
@@ -270,7 +270,7 @@ export function VdBonPanel({
               style={{
                 fontWeight: 700,
                 color: SugarV3.ink,
-                fontSize: 13.5,
+                fontSize: 'var(--crm-text-lg)',
               }}
             >
               {vdDateTime(visit.scheduled_at)}
@@ -278,7 +278,7 @@ export function VdBonPanel({
             <div
               style={{
                 color: SugarV3.muted,
-                fontSize: 11.5,
+                fontSize: 'var(--crm-text-sm)',
                 marginTop: 2,
               }}
             >
@@ -290,7 +290,7 @@ export function VdBonPanel({
           <div>
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: 'var(--crm-text-xs)',
                 color: SugarV3.muted,
                 fontWeight: 600,
                 textTransform: 'uppercase',
@@ -303,7 +303,7 @@ export function VdBonPanel({
             <p
               style={{
                 margin: 0,
-                fontSize: 12,
+                fontSize: 'var(--crm-text-md)',
                 color: SugarV3.inkSoft,
                 lineHeight: 1.6,
                 fontWeight: 500,
@@ -320,7 +320,7 @@ export function VdBonPanel({
             marginTop: 26,
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: 16,
+            gap: 'var(--crm-space-3xl)',
           }}
         >
           {[
@@ -338,8 +338,8 @@ export function VdBonPanel({
             <div
               key={s.l}
               style={{
-                padding: 14,
-                borderRadius: 12,
+                padding: 'var(--crm-space-2xl)',
+                borderRadius: 'var(--crm-radius-lg)',
                 background: SugarV3.card,
                 boxShadow: `inset 0 0 0 1px ${SugarV3.cardSubtle}`,
                 minHeight: 70,
@@ -347,7 +347,7 @@ export function VdBonPanel({
             >
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: 'var(--crm-text-xs)',
                   color: SugarV3.muted,
                   fontWeight: 600,
                   textTransform: 'uppercase',
@@ -362,7 +362,7 @@ export function VdBonPanel({
                   <div
                     style={{
                       fontFamily: "Caveat, 'Brush Script MT', cursive",
-                      fontSize: 22,
+                      fontSize: 'var(--crm-text-4xl)',
                       color: SugarV3.ink,
                       lineHeight: 1,
                     }}
@@ -372,7 +372,7 @@ export function VdBonPanel({
                   <div
                     style={{
                       marginTop: 6,
-                      fontSize: 9.5,
+                      fontSize: 'var(--crm-text-xs)',
                       color: SugarV3.muted,
                       fontWeight: 600,
                     }}
@@ -391,7 +391,7 @@ export function VdBonPanel({
               ) : (
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 'var(--crm-text-sm)',
                     color: SugarV3.ghost,
                     fontWeight: 500,
                   }}
@@ -408,7 +408,7 @@ export function VdBonPanel({
         style={{
           marginTop: 18,
           display: 'flex',
-          gap: 10,
+          gap: 'var(--crm-space-lg)',
           flexWrap: 'wrap',
         }}
       >
@@ -421,18 +421,18 @@ export function VdBonPanel({
             onClick={onSign}
             style={{
               height: 40,
-              padding: '0 18px',
-              borderRadius: 999,
+              padding: '0 var(--crm-space-4xl)',
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               background: SugarV3.black,
               color: '#fff',
               fontFamily: 'inherit',
               fontWeight: 600,
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 9,
+              gap: 'var(--crm-space-md)',
               boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
             }}
           >
@@ -463,7 +463,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
         <h2
           style={{
             margin: '10px 0 16px',
-            fontSize: 22,
+            fontSize: 'var(--crm-text-4xl)',
             fontWeight: 700,
             color: SugarV3.ink,
             letterSpacing: -0.4,
@@ -474,7 +474,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
         <div
           style={{
             padding: 28,
-            borderRadius: 18,
+            borderRadius: 'var(--crm-radius-3xl)',
             background: SugarV3.cardSubtle,
             textAlign: 'center',
           }}
@@ -483,7 +483,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             style={{
               width: 56,
               height: 56,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               margin: '0 auto 14px',
               background: SugarV3.card,
               color: SugarV3.muted,
@@ -496,7 +496,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
           </div>
           <div
             style={{
-              fontSize: 15,
+              fontSize: 'var(--crm-text-xl)',
               fontWeight: 700,
               color: SugarV3.ink,
               marginBottom: 6,
@@ -506,7 +506,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
           </div>
           <div
             style={{
-              fontSize: 12.5,
+              fontSize: 'var(--crm-text-md)',
               color: SugarV3.muted,
               fontWeight: 500,
               lineHeight: 1.5,
@@ -532,7 +532,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: 12,
+          gap: 'var(--crm-space-xl)',
         }}
       >
         <div>
@@ -546,7 +546,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
           <h2
             style={{
               margin: '10px 0 0',
-              fontSize: 22,
+              fontSize: 'var(--crm-text-4xl)',
               fontWeight: 700,
               color: SugarV3.ink,
               letterSpacing: -0.4,
@@ -555,17 +555,17 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             {t('visitDetail.report.title')}
           </h2>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
           <span
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 8,
-              padding: '8px 16px',
-              borderRadius: 999,
+              gap: 'var(--crm-space-md)',
+              padding: 'var(--crm-space-md) var(--crm-space-3xl)',
+              borderRadius: 'var(--crm-radius-pill)',
               background: SugarV3.cardSubtle,
               color: SugarV3.ink,
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 700,
             }}
           >
@@ -573,7 +573,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               style={{
                 width: 8,
                 height: 8,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 background: sent.tone,
               }}
             />
@@ -582,7 +582,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
           <div style={{ textAlign: 'right' }}>
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: 'var(--crm-text-xs)',
                 color: SugarV3.muted,
                 fontWeight: 600,
                 textTransform: 'uppercase',
@@ -593,7 +593,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             </div>
             <div
               style={{
-                fontSize: 22,
+                fontSize: 'var(--crm-text-4xl)',
                 fontWeight: 700,
                 color: SugarV3.ink,
                 lineHeight: 1,
@@ -603,7 +603,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               {r.interestLevel}
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: 'var(--crm-text-lg)',
                   color: SugarV3.muted,
                   fontWeight: 500,
                 }}
@@ -620,13 +620,13 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
           marginTop: 24,
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: 18,
+          gap: 'var(--crm-space-4xl)',
         }}
       >
         <div
           style={{
-            padding: 22,
-            borderRadius: 18,
+            padding: 'var(--crm-space-6xl)',
+            borderRadius: 'var(--crm-radius-3xl)',
             background: SugarV3.cardSubtle,
           }}
         >
@@ -634,9 +634,9 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              gap: 'var(--crm-space-md)',
               marginBottom: 12,
-              fontSize: 11.5,
+              fontSize: 'var(--crm-text-sm)',
               fontWeight: 700,
               color: SugarV3.muted,
               textTransform: 'uppercase',
@@ -653,26 +653,26 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               listStyle: 'none',
               display: 'flex',
               flexDirection: 'column',
-              gap: 8,
+              gap: 'var(--crm-space-md)',
             }}
           >
             {(r.highlights ?? []).map((h, i) => (
               <li
                 key={i}
                 style={{
-                  fontSize: 13,
+                  fontSize: 'var(--crm-text-lg)',
                   color: SugarV3.ink,
                   fontWeight: 500,
                   lineHeight: 1.5,
                   display: 'flex',
-                  gap: 10,
+                  gap: 'var(--crm-space-lg)',
                 }}
               >
                 <span
                   style={{
                     width: 16,
                     height: 16,
-                    borderRadius: 999,
+                    borderRadius: 'var(--crm-radius-pill)',
                     marginTop: 3,
                     background: SugarV3.ink,
                     color: '#fff',
@@ -690,8 +690,8 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
         </div>
         <div
           style={{
-            padding: 22,
-            borderRadius: 18,
+            padding: 'var(--crm-space-6xl)',
+            borderRadius: 'var(--crm-radius-3xl)',
             background: SugarV3.cardSubtle,
           }}
         >
@@ -699,9 +699,9 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              gap: 'var(--crm-space-md)',
               marginBottom: 12,
-              fontSize: 11.5,
+              fontSize: 'var(--crm-text-sm)',
               fontWeight: 700,
               color: SugarV3.muted,
               textTransform: 'uppercase',
@@ -718,26 +718,26 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               listStyle: 'none',
               display: 'flex',
               flexDirection: 'column',
-              gap: 8,
+              gap: 'var(--crm-space-md)',
             }}
           >
             {(r.objections ?? []).map((h, i) => (
               <li
                 key={i}
                 style={{
-                  fontSize: 13,
+                  fontSize: 'var(--crm-text-lg)',
                   color: SugarV3.ink,
                   fontWeight: 500,
                   lineHeight: 1.5,
                   display: 'flex',
-                  gap: 10,
+                  gap: 'var(--crm-space-lg)',
                 }}
               >
                 <span
                   style={{
                     width: 6,
                     height: 6,
-                    borderRadius: 999,
+                    borderRadius: 'var(--crm-radius-pill)',
                     marginTop: 8,
                     background: SugarV3.muted,
                     flexShrink: 0,
@@ -754,14 +754,14 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
       <div
         style={{
           marginTop: 18,
-          padding: 22,
-          borderRadius: 18,
+          padding: 'var(--crm-space-6xl)',
+          borderRadius: 'var(--crm-radius-3xl)',
           background: SugarV3.cardSubtle,
         }}
       >
         <div
           style={{
-            fontSize: 11.5,
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 700,
             color: SugarV3.muted,
             textTransform: 'uppercase',
@@ -773,7 +773,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
         </div>
         <div
           style={{
-            fontSize: 14,
+            fontSize: 'var(--crm-text-xl)',
             color: SugarV3.ink,
             fontWeight: 500,
             lineHeight: 1.6,
@@ -788,20 +788,20 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
         style={{
           marginTop: 18,
           display: 'flex',
-          gap: 12,
+          gap: 'var(--crm-space-xl)',
           flexWrap: 'wrap',
         }}
       >
         {r.voiceNote && (
           <div
             style={{
-              padding: '12px 16px',
-              borderRadius: 14,
+              padding: 'var(--crm-space-xl) var(--crm-space-3xl)',
+              borderRadius: 'var(--crm-radius-xl)',
               background: SugarV3.ink,
               color: '#fff',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 12,
+              gap: 'var(--crm-space-xl)',
               flex: 1,
               minWidth: 280,
             }}
@@ -810,7 +810,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: 'rgba(255,255,255,0.12)',
                 color: '#fff',
@@ -824,7 +824,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: 'var(--crm-text-md)',
                   fontWeight: 700,
                   marginBottom: 2,
                 }}
@@ -839,7 +839,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               </div>
               <div
                 style={{
-                  fontSize: 10.5,
+                  fontSize: 'var(--crm-text-xs)',
                   color: 'rgba(255,255,255,0.6)',
                   fontWeight: 500,
                 }}
@@ -858,12 +858,12 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
         {(r.photos ?? 0) > 0 && (
           <div
             style={{
-              padding: '12px 16px',
-              borderRadius: 14,
+              padding: 'var(--crm-space-xl) var(--crm-space-3xl)',
+              borderRadius: 'var(--crm-radius-xl)',
               background: SugarV3.cardSubtle,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 10,
+              gap: 'var(--crm-space-lg)',
             }}
           >
             <SgIcon
@@ -873,7 +873,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               sw={1.8}
             />
             <span
-              style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink }}
+              style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SugarV3.ink }}
             >
               {t('visitDetail.report.photoCount', { count: r.photos })}
             </span>

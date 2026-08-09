@@ -90,26 +90,26 @@ export function BpTopGallery({
   return (
     <div style={{ position: 'absolute', inset: 0, background: sp.pageBg, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{`
-        .bpg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .bpg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--crm-space-5xl); }
         @media (max-width: 1180px) { .bpg-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 720px) { .bpg-grid { grid-template-columns: 1fr; } }
         .bpg-search::placeholder { color: ${sp.sub}; }
       `}</style>
 
       {/* En-tête + toolbar (épinglés) */}
-      <div style={{ flexShrink: 0, padding: '26px 34px 16px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
-          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('title')}</h1>
+      <div style={{ flexShrink: 0, padding: '26px 34px 16px', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)', flexWrap: 'wrap' }}>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('title')}</h1>
           <div style={{ flex: 1 }} />
           <button
             onClick={onCreate}
-            style={{ height: 42, padding: '0 20px', borderRadius: 999, border: 0, background: sp.ink, color: sp.pageBg, fontWeight: 700, fontSize: 13.5, fontFamily: 'inherit', cursor: 'pointer', boxShadow: sp.focusShadow, display: 'inline-flex', alignItems: 'center' }}
+            style={{ height: 42, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: sp.ink, color: sp.pageBg, fontWeight: 700, fontSize: 'var(--crm-text-lg)', fontFamily: 'inherit', cursor: 'pointer', boxShadow: sp.focusShadow, display: 'inline-flex', alignItems: 'center' }}
           >
             {t('biens.create')}
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
             <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', display: 'grid', placeItems: 'center' }}>
               <MEIcon name="search" size={15} color={sp.sub} />
@@ -119,7 +119,7 @@ export function BpTopGallery({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('biens.searchPlaceholder')}
-              style={{ width: '100%', height: 42, padding: '0 16px 0 42px', borderRadius: 999, outline: 'none', background: surf.card, border: surf.hairline, boxShadow: surf.shadow, color: sp.ink, fontSize: 13.5, fontFamily: 'inherit' }}
+              style={{ width: '100%', height: 42, padding: '0 16px 0 42px', borderRadius: 'var(--crm-radius-pill)', outline: 'none', background: surf.card, border: surf.hairline, boxShadow: surf.shadow, color: sp.ink, fontSize: 'var(--crm-text-lg)', fontFamily: 'inherit' }}
             />
           </div>
           <GalSegmented options={statusOpts} value={fStatus} onChange={setFStatus} sp={sp} surf={surf} dark={dark} />
@@ -131,19 +131,19 @@ export function BpTopGallery({
       {/* Contenu (scrollable) */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '6px 34px 30px' }}>
         {filtered.length === 0 ? (
-          <div style={{ background: surf.card, borderRadius: 20, boxShadow: surf.shadow, border: surf.hairline, padding: '64px 20px', textAlign: 'center' }}>
-            <div style={{ width: 56, height: 56, borderRadius: 999, margin: '0 auto 14px', background: surf.cardSub, display: 'grid', placeItems: 'center' }}>
+          <div style={{ background: surf.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: surf.shadow, border: surf.hairline, padding: '64px 20px', textAlign: 'center' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-pill)', margin: '0 auto 14px', background: surf.cardSub, display: 'grid', placeItems: 'center' }}>
               <MEIcon name={isError ? 'alert' : 'home'} size={22} color={isError ? '#E53935' : sp.sub} />
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>
               {isError ? t('biens.error.title') : isLoading ? t('biens.loading') : t('biens.empty.noMatch')}
             </div>
             {isError && (
               <>
-                <div style={{ fontSize: 12.5, color: sp.sub, marginTop: 6, lineHeight: 1.5 }}>{t('biens.error.message')}</div>
+                <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, marginTop: 6, lineHeight: 1.5 }}>{t('biens.error.message')}</div>
                 <button
                   onClick={() => refetch()}
-                  style={{ marginTop: 14, height: 34, padding: '0 16px', borderRadius: 999, background: surf.card, color: sp.ink, border: surf.hairline, boxShadow: surf.shadow, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  style={{ marginTop: 14, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', background: surf.card, color: sp.ink, border: surf.hairline, boxShadow: surf.shadow, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
                 >
                   <MEIcon name="refresh" size={13} color={sp.soft} /> {t('biens.error.retry')}
                 </button>
@@ -165,7 +165,7 @@ export function BpTopGallery({
             ))}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
             {filtered.map((b) => (
               <GalRow key={b.id} bien={b} sp={sp} surf={surf} dark={dark} onOpen={() => onOpenBien(b.id)} />
             ))}

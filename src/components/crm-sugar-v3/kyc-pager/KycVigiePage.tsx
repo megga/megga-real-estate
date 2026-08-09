@@ -17,11 +17,11 @@ function KypLatePill({ surf }: { surf: KypSurf }) {
         display: 'inline-flex',
         alignItems: 'center',
         height: 20,
-        padding: '0 9px',
-        borderRadius: 999,
+        padding: '0 var(--crm-space-md)',
+        borderRadius: 'var(--crm-radius-pill)',
         background: surf.late,
         color: '#fff',
-        fontSize: 11,
+        fontSize: 'var(--crm-text-sm)',
         fontWeight: 700,
         whiteSpace: 'nowrap',
         flexShrink: 0,
@@ -45,11 +45,11 @@ function KypVigieCard({
   onOpen: (dossierId: string) => void
 }) {
   return (
-    <div style={{ background: surf.cardSub, borderRadius: 14, padding: '13px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={{ background: surf.cardSub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-xl) var(--crm-space-3xl)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
         <span
           style={{
-            fontSize: 14.5,
+            fontSize: 'var(--crm-text-xl)',
             fontWeight: 700,
             color: sp.ink,
             letterSpacing: -0.2,
@@ -65,16 +65,16 @@ function KypVigieCard({
         {it.late ? (
           <KypLatePill surf={surf} />
         ) : (
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, whiteSpace: 'nowrap', flexShrink: 0 }}>
             {it.whenLabel}
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 8, minWidth: 0 }}>
         <KypAvatar firstName={it.firstName} lastName={it.lastName} size={22} ring={surf.cardSub} />
         <span
           style={{
-            fontSize: 12.5,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
             color: sp.soft,
             minWidth: 0,
@@ -89,7 +89,7 @@ function KypVigieCard({
           — {it.meta}
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 11 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--crm-space-lg)', marginTop: 11 }}>
         <KypCta sp={sp} h={28} onClick={() => onOpen(it.dossierId)}>
           {it.cta}
         </KypCta>
@@ -117,17 +117,17 @@ function KypDenseRow({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
-        padding: '9px 12px',
+        gap: 'var(--crm-space-lg)',
+        padding: 'var(--crm-space-md) var(--crm-space-xl)',
         borderBottom: last ? '0' : `1px solid ${surf.hairline}`,
       }}
     >
       <KypAvatar firstName={it.firstName} lastName={it.lastName} size={26} ring={surf.card} />
-      <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap' }}>{it.title}</span>
+      <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-md)' }}>
+        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap' }}>{it.title}</span>
         <span
           style={{
-            fontSize: 12,
+            fontSize: 'var(--crm-text-md)',
             color: sp.sub,
             fontWeight: 500,
             whiteSpace: 'nowrap',
@@ -138,12 +138,12 @@ function KypDenseRow({
           {it.firstName} {it.lastName}
         </span>
       </div>
-      <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, whiteSpace: 'nowrap', flexShrink: 0 }}>
+      <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, whiteSpace: 'nowrap', flexShrink: 0 }}>
         {it.whenLabel}
       </span>
       <span
         onClick={() => onOpen(it.dossierId)}
-        style={{ fontSize: 12, fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0 }}
+        style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0 }}
       >
         {it.cta} ›
       </span>
@@ -173,9 +173,9 @@ function KypVigieCol({
   const hidden = rest.length - shown.length
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
-      <div style={{ margin: '0 4px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>{title}</span>
+      <div style={{ margin: '0 4px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-xs)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
+          <span style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>{title}</span>
           <span
             style={{
               display: 'inline-flex',
@@ -183,11 +183,11 @@ function KypVigieCol({
               justifyContent: 'center',
               minWidth: 26,
               height: 26,
-              padding: '0 8px',
-              borderRadius: 999,
+              padding: '0 var(--crm-space-md)',
+              borderRadius: 'var(--crm-radius-pill)',
               background: sp.focusBg,
               color: sp.focusInk,
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 800,
               fontVariantNumeric: 'tabular-nums',
               lineHeight: 1,
@@ -196,7 +196,7 @@ function KypVigieCol({
             {list.length}
           </span>
         </div>
-        <span style={{ fontSize: 12, color: sp.sub, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+        <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase' }}>
           {sub}
         </span>
       </div>
@@ -205,12 +205,12 @@ function KypVigieCol({
           flex: 1,
           minHeight: 0,
           background: surf.card,
-          borderRadius: 20,
+          borderRadius: 'var(--crm-radius-4xl)',
           boxShadow: sp.shadow,
-          padding: 12,
+          padding: 'var(--crm-space-xl)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 10,
+          gap: 'var(--crm-space-lg)',
           overflow: 'hidden',
         }}
       >
@@ -220,7 +220,7 @@ function KypVigieCol({
               flex: 1,
               display: 'grid',
               placeItems: 'center',
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               color: sp.sub,
               fontWeight: 500,
               textAlign: 'center',
@@ -238,17 +238,17 @@ function KypVigieCol({
               <KypDenseRow key={it.key} it={it} last={i === shown.length - 1 && hidden <= 0} sp={sp} surf={surf} onOpen={onOpen} />
             ))}
             {hidden > 0 && (
-              <div style={{ marginTop: 'auto', paddingTop: 8 }}>
+              <div style={{ marginTop: 'auto', paddingTop: 'var(--crm-space-md)' }}>
                 <span
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     height: 32,
-                    padding: '0 14px',
-                    borderRadius: 999,
+                    padding: '0 var(--crm-space-2xl)',
+                    borderRadius: 'var(--crm-radius-pill)',
                     background: surf.cardSub,
                     color: sp.soft,
-                    fontSize: 12,
+                    fontSize: 'var(--crm-text-md)',
                     fontWeight: 700,
                   }}
                 >
@@ -285,7 +285,7 @@ export function KycVigiePage({ sp, surf, onOpen }: Props) {
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
+        gap: 'var(--crm-space-2xl)',
         overflow: 'hidden',
         background: sp.pageBg,
         fontFamily: KYP_FONT,
@@ -296,7 +296,7 @@ export function KycVigiePage({ sp, surf, onOpen }: Props) {
           <div style={{ textAlign: 'right' }}>
             <div
               style={{
-                fontSize: 32,
+                fontSize: 'var(--crm-text-7xl)',
                 fontWeight: 800,
                 color: surf.late,
                 letterSpacing: -1,
@@ -306,7 +306,7 @@ export function KycVigiePage({ sp, surf, onOpen }: Props) {
             >
               {nLate}
             </div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: sp.sub, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 6 }}>
+            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.sub, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 6 }}>
               en retard
             </div>
           </div>
@@ -318,7 +318,7 @@ export function KycVigiePage({ sp, surf, onOpen }: Props) {
           minHeight: 0,
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: 18,
+          gap: 'var(--crm-space-4xl)',
           paddingTop: heavy ? 0 : 8,
         }}
       >

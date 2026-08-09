@@ -35,14 +35,14 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
               : 'rgba(255,255,255,.62)',
         color: isActive ? sp.focusInk : sp.ink,
         border: isActive ? 0 : `1px solid ${sp.cardBorder}`,
-        borderRadius: 22,
-        padding: '14px 16px 16px',
+        borderRadius: 'var(--crm-radius-5xl)',
+        padding: 'var(--crm-space-2xl) var(--crm-space-3xl) var(--crm-space-3xl)',
         boxShadow: isActive ? sp.focusShadow : hover ? sp.shadow : sp.shadowSm,
         position: 'relative',
         minHeight: 132,
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 'var(--crm-space-lg)',
         cursor: 'pointer',
         transform: hover ? 'translateY(-2px)' : 'translateY(0)',
         transition:
@@ -61,12 +61,12 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
           style={{
             width: 44,
             height: 44,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             background: agent ? agent.avatarBg : '#0B0C0E',
             color: '#fff',
             display: 'grid',
             placeItems: 'center',
-            fontSize: 13,
+            fontSize: 'var(--crm-text-lg)',
             fontWeight: 700,
             border: `2px solid ${
               isActive ? 'rgba(255,255,255,0.18)' : sp.avatarBorder
@@ -76,14 +76,14 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
         >
           {agent ? agent.initials : '+'}
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-sm)' }}>
           <button
             onClick={e => e.stopPropagation()}
             title={tr('journey.task.actions.markDone')}
             style={{
               width: 26,
               height: 26,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               padding: 0,
               cursor: 'pointer',
@@ -116,7 +116,7 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
             style={{
               width: 26,
               height: 26,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               padding: 0,
               cursor: 'pointer',
@@ -133,7 +133,7 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
       <div style={{ marginTop: 'auto' }}>
         <div
           style={{
-            fontSize: 13.5,
+            fontSize: 'var(--crm-text-lg)',
             fontWeight: 700,
             lineHeight: 1.3,
             color: isActive ? sp.focusInk : sp.ink,
@@ -145,7 +145,7 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
         {task.sub && (
           <div
             style={{
-              fontSize: 11,
+              fontSize: 'var(--crm-text-sm)',
               marginTop: 4,
               fontWeight: 500,
               color: isActive ? 'rgba(255,255,255,.7)' : sp.sub,
@@ -164,7 +164,7 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
             left: -8,
             width: 22,
             height: 22,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             background: sp.pageBg,
             display: 'grid',
             placeItems: 'center',
@@ -207,12 +207,12 @@ export function PCMiniRow({ task, agent, sp, dark, onClick }: CardProps) {
               : 'rgba(255,255,255,.6)',
         color: isActive ? sp.focusInk : sp.ink,
         border: isActive ? 0 : `1px solid ${sp.cardBorder}`,
-        borderRadius: 16,
-        padding: '10px 12px',
+        borderRadius: 'var(--crm-radius-2xl)',
+        padding: 'var(--crm-space-lg) var(--crm-space-xl)',
         boxShadow: isActive ? sp.focusShadow : hover ? sp.shadow : 'none',
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 'var(--crm-space-lg)',
         cursor: 'pointer',
         transform: hover ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'transform 200ms cubic-bezier(.22,1,.36,1), box-shadow 200ms ease',
@@ -225,12 +225,12 @@ export function PCMiniRow({ task, agent, sp, dark, onClick }: CardProps) {
           style={{
             width: 28,
             height: 28,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             background: agent.avatarBg,
             color: '#fff',
             display: 'grid',
             placeItems: 'center',
-            fontSize: 10,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 700,
             flexShrink: 0,
           }}
@@ -242,7 +242,7 @@ export function PCMiniRow({ task, agent, sp, dark, onClick }: CardProps) {
           style={{
             width: 28,
             height: 28,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             background: sp.cardSubBg,
             display: 'grid',
             placeItems: 'center',
@@ -255,7 +255,7 @@ export function PCMiniRow({ task, agent, sp, dark, onClick }: CardProps) {
       <div
         style={{
           flex: 1,
-          fontSize: 12.5,
+          fontSize: 'var(--crm-text-md)',
           fontWeight: 600,
           lineHeight: 1.3,
           color: isActive ? sp.focusInk : sp.ink,
@@ -270,13 +270,13 @@ export function PCMiniRow({ task, agent, sp, dark, onClick }: CardProps) {
         style={{
           width: 22,
           height: 22,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           border: 0,
           padding: 0,
           cursor: 'pointer',
           background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
           color: isActive ? sp.focusInk : sp.sub,
-          fontSize: 13,
+          fontSize: 'var(--crm-text-lg)',
           lineHeight: 0.5,
           display: 'grid',
           placeItems: 'center',
@@ -309,12 +309,12 @@ export function PCGridCard({ task, agent, sp, dark, onClick }: CardProps) {
               : 'rgba(255,255,255,.6)',
         color: isActive ? sp.focusInk : sp.ink,
         border: isActive ? 0 : `1px solid ${sp.cardBorder}`,
-        borderRadius: 18,
-        padding: '12px 12px 14px',
+        borderRadius: 'var(--crm-radius-3xl)',
+        padding: 'var(--crm-space-xl) var(--crm-space-xl) var(--crm-space-2xl)',
         boxShadow: isActive ? sp.focusShadow : hover ? sp.shadow : sp.shadowSm,
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        gap: 'var(--crm-space-md)',
         cursor: 'pointer',
         transform: hover ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'transform 200ms cubic-bezier(.22,1,.36,1), box-shadow 200ms ease',
@@ -326,7 +326,7 @@ export function PCGridCard({ task, agent, sp, dark, onClick }: CardProps) {
         style={{
           width: 22,
           height: 22,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           background: isDone
             ? '#0E9F6E'
             : isActive
@@ -337,7 +337,7 @@ export function PCGridCard({ task, agent, sp, dark, onClick }: CardProps) {
           color: '#fff',
           display: 'grid',
           placeItems: 'center',
-          fontSize: 9,
+          fontSize: 'var(--crm-text-xs)',
           fontWeight: 700,
         }}
       >
@@ -362,7 +362,7 @@ export function PCGridCard({ task, agent, sp, dark, onClick }: CardProps) {
       </div>
       <div
         style={{
-          fontSize: 12,
+          fontSize: 'var(--crm-text-md)',
           fontWeight: 700,
           lineHeight: 1.25,
           color: isActive ? sp.focusInk : sp.ink,

@@ -103,24 +103,24 @@ export default function OnboardingHostForm({ host, onClose }: OnboardingHostForm
 
   const field = (label: string, node: React.ReactNode) => (
     <label style={{ display: 'block' }}>
-      <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.sub, marginBottom: 5 }}>{label}</span>
+      <span style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub, marginBottom: 5 }}>{label}</span>
       {node}
     </label>
   )
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', height: 36, borderRadius: 10, padding: '0 10px',
+    width: '100%', height: 36, borderRadius: 'var(--crm-radius-md)', padding: '0 var(--crm-space-lg)',
     background: sp.cardSubBg, color: sp.ink, border: `1px solid ${sp.cardBorder}`,
-    fontSize: 13, outline: 'none',
+    fontSize: 'var(--crm-text-lg)', outline: 'none',
   }
 
   return (
     <div style={{
-      marginTop: 16, padding: 16, borderRadius: ADMIN_RADII.card,
+      marginTop: 16, padding: 'var(--crm-space-3xl)', borderRadius: ADMIN_RADII.card,
       background: sp.cardSubBg, border: surf.hairline,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: sp.ink }}>
+        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>
           {t(host ? 'onboardingCalls.hosts.form.editTitle' : 'onboardingCalls.hosts.form.addTitle')}
         </span>
         <AdminGhostBtn onClick={onClose} icon={X} label={t('onboardingCalls.hosts.form.close')}>
@@ -128,7 +128,7 @@ export default function OnboardingHostForm({ host, onClose }: OnboardingHostForm
         </AdminGhostBtn>
       </div>
 
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))' }}>
+      <div style={{ display: 'grid', gap: 'var(--crm-space-xl)', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))' }}>
         {field(t('onboardingCalls.hosts.form.email'), (
           <input
             type="email"
@@ -150,12 +150,12 @@ export default function OnboardingHostForm({ host, onClose }: OnboardingHostForm
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.sub, marginBottom: 6 }}>
+        <span style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub, marginBottom: 6 }}>
           {t('onboardingCalls.hosts.form.weekly')}
         </span>
-        <div style={{ display: 'grid', gap: 6 }}>
+        <div style={{ display: 'grid', gap: 'var(--crm-space-sm)' }}>
           {slices.map((slice, i) => (
-            <div key={`${slice.dow}-${i}`} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div key={`${slice.dow}-${i}`} style={{ display: 'flex', gap: 'var(--crm-space-sm)', alignItems: 'center' }}>
               <select
                 value={slice.dow}
                 onChange={(e) => setSlices((s) => s.map((x, j) => j === i ? { ...x, dow: Number(e.target.value) } : x))}
@@ -196,7 +196,7 @@ export default function OnboardingHostForm({ host, onClose }: OnboardingHostForm
         </div>
       </div>
 
-      <div style={{ marginTop: 14, display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))' }}>
+      <div style={{ marginTop: 14, display: 'grid', gap: 'var(--crm-space-xl)', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))' }}>
         {field(t('onboardingCalls.hosts.form.duration'), (
           <input type="number" min={5} max={480} value={duration} onChange={(e) => setDuration(Number(e.target.value))} style={inputStyle} />
         ))}
@@ -223,15 +223,15 @@ export default function OnboardingHostForm({ host, onClose }: OnboardingHostForm
       </div>
 
       {error && (
-        <p role="alert" style={{ marginTop: 12, fontSize: 12.5, color: '#ef4444' }}>{error}</p>
+        <p role="alert" style={{ marginTop: 12, fontSize: 'var(--crm-text-md)', color: '#ef4444' }}>{error}</p>
       )}
 
-      <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div style={{ marginTop: 14, display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'center' }}>
         <AdminSolidBtn onClick={submit} disabled={upsert.isPending}>
           {t('onboardingCalls.hosts.form.save')}
         </AdminSolidBtn>
         {!host && !resolvedProfile && email.trim() && (
-          <span style={{ fontSize: 12, color: sp.soft }}>
+          <span style={{ fontSize: 'var(--crm-text-md)', color: sp.soft }}>
             <AdminIc icon={X} size={13} color={sp.soft} /> {t('onboardingCalls.hosts.form.errors.unknownEmail')}
           </span>
         )}

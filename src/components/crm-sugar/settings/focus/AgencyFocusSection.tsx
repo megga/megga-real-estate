@@ -83,7 +83,7 @@ async function uploadAgencyLogo(dataUrl: string, agencyId: string): Promise<stri
 
 function AgLogoTile({ c, url, initials, size = 62 }: { c: PfColors; url: string; initials: string; size?: number }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: 18, flexShrink: 0, overflow: 'hidden', boxShadow: '0 10px 26px -12px rgba(11,12,14,0.45)',
+    <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-3xl)', flexShrink: 0, overflow: 'hidden', boxShadow: '0 10px 26px -12px rgba(11,12,14,0.45)',
       background: url ? `#0B0C0E center/cover no-repeat url("${url}")` : c.ink, color: c.dark ? '#0B0C0E' : '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.34, fontWeight: 800, letterSpacing: -0.5 }}>
       {url ? null : initials}
     </div>
@@ -172,7 +172,7 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
   }
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
       <style>{`
         ${PF_KEYFRAMES}
         .pfx-row { transition: background-color .24s ease; }
@@ -183,33 +183,33 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
 
       <input ref={fileRef} type="file" accept="image/*" onChange={onLogoFile} style={{ display: 'none' }} />
 
-      <div style={{ borderRadius: 22, boxShadow: c.shadow }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: c.cardSub, borderRadius: '22px 22px 0 0', border: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: '8px 20px' }}>
+      <div style={{ borderRadius: 'var(--crm-radius-5xl)', boxShadow: c.shadow }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', background: c.cardSub, borderRadius: '22px 22px 0 0', border: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: 'var(--crm-space-md) var(--crm-space-5xl)' }}>
           <PfIc name="info" size={14} stroke={c.sub} sw={1.8} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: c.sub, letterSpacing: -0.1 }}>{t('focus.agency.banner')}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: c.sub, letterSpacing: -0.1 }}>{t('focus.agency.banner')}</span>
         </div>
 
         <div style={{ position: 'relative', background: c.card, borderRadius: '0 0 22px 22px', border: c.hair, borderTop: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '18px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-4xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl)' }}>
             <button onClick={() => fileRef.current?.click()} title={t('focus.agency.header')} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', position: 'relative' }}>
               <AgLogoTile c={c} url={local.logoUrl} initials={initialsOf(local.name)} size={62} />
-              <span style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: 999, background: c.orange, border: `3px solid ${c.card}`, display: 'grid', placeItems: 'center' }}>
+              <span style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: 'var(--crm-radius-pill)', background: c.orange, border: `3px solid ${c.card}`, display: 'grid', placeItems: 'center' }}>
                 <PfIc name={local.logoUrl ? 'camera' : 'plus'} size={12} stroke="#fff" sw={2.2} />
               </span>
             </button>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.6, color: c.ink, lineHeight: 1.05 }}>{local.name || t('focus.agency.header')}</div>
+              <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.6, color: c.ink, lineHeight: 1.05 }}>{local.name || t('focus.agency.header')}</div>
             </div>
           </div>
 
           <div style={{ height: 1, background: c.hairSoft, margin: '0 10px' }} />
 
-          <div style={{ padding: '8px 12px 14px' }}>
+          <div style={{ padding: 'var(--crm-space-md) var(--crm-space-xl) var(--crm-space-2xl)' }}>
             {AG_GROUPS.map((g, gi) => (
-              <div key={g.id} style={{ padding: '6px 0 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 10px 8px' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: c[g.dotKey], flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.2, color: c.ink, flex: 1 }}>{t(`focus.agency.groups.${g.id}`)}</span>
+              <div key={g.id} style={{ padding: 'var(--crm-space-sm) 0 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: c[g.dotKey], flexShrink: 0 }} />
+                  <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: c.ink, flex: 1 }}>{t(`focus.agency.groups.${g.id}`)}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 24px' }}>
                   {g.rows.map((r) => (

@@ -40,7 +40,7 @@ export default function MmBuyerCard({ group, onOpen, onMenu }: MmBuyerCardProps)
         fontFamily: 'inherit',
         padding: 0,
         background: tk.card,
-        borderRadius: 22,
+        borderRadius: 'var(--crm-radius-5xl)',
         boxShadow: tk.shadow,
         overflow: 'hidden',
         display: 'block',
@@ -80,7 +80,7 @@ export default function MmBuyerCard({ group, onOpen, onMenu }: MmBuyerCardProps)
             right: 12,
             width: 32,
             height: 32,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             border: 0,
             background: 'rgba(8,9,12,0.55)',
             backdropFilter: 'blur(6px)',
@@ -100,29 +100,29 @@ export default function MmBuyerCard({ group, onOpen, onMenu }: MmBuyerCardProps)
             bottom: 13,
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
+            gap: 'var(--crm-space-lg)',
           }}
         >
           <span
             style={{
               width: 38,
               height: 38,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               display: 'grid',
               placeItems: 'center',
               background: group.av,
               color: '#fff',
-              fontSize: 13,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 800,
               flexShrink: 0,
             }}
           >
             {initials}
           </span>
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xs)' }}>
             <span
               style={{
-                fontSize: 16,
+                fontSize: 'var(--crm-text-2xl)',
                 fontWeight: 800,
                 color: '#fff',
                 letterSpacing: -0.3,
@@ -139,8 +139,8 @@ export default function MmBuyerCard({ group, onOpen, onMenu }: MmBuyerCardProps)
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 4,
-              fontSize: 12.5,
+              gap: 'var(--crm-space-xs)',
+              fontSize: 'var(--crm-text-md)',
               fontWeight: 800,
               color: '#fff',
               whiteSpace: 'nowrap',

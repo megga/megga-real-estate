@@ -40,20 +40,20 @@ function KwStepItem({ index, label, current, onJump }: StepItemProps) {
       title={reachable && !active ? `Revenir à « ${label} »` : label}
       style={{
         height: 40,
-        padding: '0 16px',
-        borderRadius: 999,
+        padding: '0 var(--crm-space-3xl)',
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: active ? sp.black : hover ? sp.card : 'transparent',
         color: active ? sp.onAccent : done ? sp.inkSoft : sp.muted,
         fontFamily: 'inherit',
-        fontSize: 13,
+        fontSize: 'var(--crm-text-lg)',
         fontWeight: active ? 700 : 600,
         letterSpacing: -0.1,
         whiteSpace: 'nowrap',
         cursor: reachable && !active ? 'pointer' : 'default',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 9,
+        gap: 'var(--crm-space-md)',
         boxShadow: active ? '0 6px 16px rgba(11,12,14,0.22)' : 'none',
         transition: 'all .2s ease',
         flexShrink: 0,
@@ -63,13 +63,13 @@ function KwStepItem({ index, label, current, onJump }: StepItemProps) {
         style={{
           width: 20,
           height: 20,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           boxSizing: 'border-box',
           flexShrink: 0,
           border: badgeBorder,
           background: badgeBg,
           color: badgeFg,
-          fontSize: 11,
+          fontSize: 'var(--crm-text-sm)',
           fontWeight: 700,
           fontVariantNumeric: 'tabular-nums',
           display: 'grid',
@@ -95,7 +95,7 @@ interface Props {
 
 export function KwStepper({ steps, current, onJump }: Props) {
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
       {steps.map((s, i) => (
         <KwStepItem key={s.id} index={i} label={s.label} current={current} onJump={onJump} />
       ))}

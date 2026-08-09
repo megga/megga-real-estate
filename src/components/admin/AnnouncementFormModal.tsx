@@ -82,23 +82,23 @@ export default function AnnouncementFormModal({ existing, onClose }: {
 
   const labelStyle: CSSProperties = {
     display: 'block', marginBottom: 6,
-    fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub,
+    fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub,
   }
   // Champ Sugar : pas de bordure, une surface creuse et un filet INTÉRIEUR — le
   // trait ne sépare rien, l'ombre du bento s'en charge.
   const fieldStyle: CSSProperties = {
-    width: '100%', height: 38, padding: '0 12px', borderRadius: ADMIN_RADII.row, border: 0,
+    width: '100%', height: 38, padding: '0 var(--crm-space-xl)', borderRadius: ADMIN_RADII.row, border: 0,
     background: surf.cardSub, color: sp.ink,
-    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, outline: 'none',
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, outline: 'none',
     boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
   }
   /** Segment de sélection (sévérité, plans) — accent plein quand actif. */
   const segmentStyle = (on: boolean): CSSProperties => ({
-    height: 32, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
+    height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
     background: on ? sp.accent : surf.cardSub, color: on ? sp.accentInk : sp.soft,
   })
-  const hintStyle: CSSProperties = { margin: '6px 0 0', fontSize: 11.5, color: sp.soft }
+  const hintStyle: CSSProperties = { margin: '6px 0 0', fontSize: 'var(--crm-text-sm)', color: sp.soft }
 
   // Survol des options et couleur du placeholder : deux choses qu'un style inline
   // ne sait pas exprimer, et qui doivent suivre le thème.
@@ -121,13 +121,13 @@ export default function AnnouncementFormModal({ existing, onClose }: {
         <div>
           <label style={labelStyle}>{t('announcements.form.body')}</label>
           <textarea value={body} onChange={e => setBody(e.target.value)} rows={3}
-            style={{ ...fieldStyle, height: 'auto', padding: '10px 12px', lineHeight: 1.5, resize: 'none' }} />
+            style={{ ...fieldStyle, height: 'auto', padding: 'var(--crm-space-lg) var(--crm-space-xl)', lineHeight: 1.5, resize: 'none' }} />
         </div>
 
         {/* Sévérité */}
         <div>
           <label style={labelStyle}>{t('announcements.form.severity')}</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
             {SEVERITIES.map(s => (
               <button key={s} onClick={() => setSeverity(s)} aria-pressed={severity === s} style={segmentStyle(severity === s)}>
                 {t(`announcements.severity.${s}`)}
@@ -139,7 +139,7 @@ export default function AnnouncementFormModal({ existing, onClose }: {
         {/* Ciblage plans */}
         <div>
           <label style={labelStyle}>{t('announcements.form.plans')}</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
             {PLAN_IDS.map(p => (
               <button key={p} onClick={() => togglePlan(p)} aria-pressed={plans.includes(p)} style={segmentStyle(plans.includes(p))}>
                 {t(`common.plan.${p}`)}
@@ -152,12 +152,12 @@ export default function AnnouncementFormModal({ existing, onClose }: {
         {/* Ciblage agences */}
         <div>
           <label style={labelStyle}>{t('announcements.form.agencies')}</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
             {agencyIds.map(id => (
               <span key={id} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 3, height: 28, padding: '0 5px 0 11px',
+                display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', height: 28, padding: '0 var(--crm-space-xs) 0 var(--crm-space-lg)',
                 borderRadius: ADMIN_RADII.pill, background: surf.cardSub, color: sp.ink,
-                fontSize: 11.5, fontWeight: 700, maxWidth: '100%',
+                fontSize: 'var(--crm-text-sm)', fontWeight: 700, maxWidth: '100%',
               }}>
                 <span className="truncate" style={{ maxWidth: 140 }}>{agencies.find(a => a.id === id)?.name ?? id}</span>
                 <button onClick={() => toggleAgency(id)} style={{
@@ -170,9 +170,9 @@ export default function AnnouncementFormModal({ existing, onClose }: {
             ))}
             <div className="relative">
               <button onClick={() => setAgencyOpen(o => !o)} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px',
+                display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 28, padding: '0 var(--crm-space-xl)',
                 borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap',
                 color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
               }}>
                 {t('announcements.form.addAgency')}
@@ -186,14 +186,14 @@ export default function AnnouncementFormModal({ existing, onClose }: {
                       sinon il se confond avec la carte de la modale dessous. */}
                   <AdminCard className="absolute left-0 top-full z-20" padding="7px 0"
                     style={{ marginTop: 6, width: 240, overflow: 'hidden', background: sp.solidBg, boxShadow: sp.solidShadow }}>
-                    <div style={{ padding: '0 8px 6px' }}>
+                    <div style={{ padding: '0 var(--crm-space-md) var(--crm-space-sm)' }}>
                       <input type="text" value={agencySearch} onChange={e => setAgencySearch(e.target.value)}
                         placeholder={t('announcements.form.searchAgency')}
                         className="annf-search"
                         style={{
-                          width: '100%', height: 30, padding: '0 10px', borderRadius: ADMIN_RADII.row, border: 0,
+                          width: '100%', height: 30, padding: '0 var(--crm-space-lg)', borderRadius: ADMIN_RADII.row, border: 0,
                           background: surf.cardSub, color: sp.ink, outline: 'none',
-                          fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
+                          fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
                         }} />
                     </div>
                     <div className="max-h-48 overflow-y-auto scrollbar-hide">
@@ -201,9 +201,9 @@ export default function AnnouncementFormModal({ existing, onClose }: {
                         const on = agencyIds.includes(a.id)
                         return (
                           <button key={a.id} onClick={() => toggleAgency(a.id)} className="annf-opt" style={{
-                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-                            padding: '7px 12px', border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'left',
-                            fontFamily: 'inherit', fontSize: 12, fontWeight: on ? 700 : 600, color: on ? sp.ink : sp.sub,
+                            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-md)',
+                            padding: 'var(--crm-space-sm) var(--crm-space-xl)', border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                            fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, color: on ? sp.ink : sp.sub,
                           }}>
                             <span className="truncate">{a.name}</span>
                             {on && <AdminIc icon={Check} size={13} color={sp.ink} />}
@@ -248,17 +248,17 @@ export default function AnnouncementFormModal({ existing, onClose }: {
         {/* Publication + actions */}
         <div>
           <AdminDivider margin="4px 0 0" />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', paddingTop: 'var(--crm-space-2xl)' }}>
             {/* `<label>` et non `<div>` : `<button>` est un élément « labelable »,
                 donc le libellé nomme l'interrupteur ET lui renvoie le clic — ce que
                 faisait l'ancienne case à cocher enveloppée. D'où l'absence
                 d'`aria-label` sur l'interrupteur : il doublerait l'annonce du même
                 mot (une fois comme nom, une fois comme texte voisin). */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', minWidth: 0, cursor: 'pointer' }}>
               <AdminSwitch on={published} onClick={() => setPublished(!published)} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: sp.ink }}>{t('announcements.form.published')}</span>
+              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{t('announcements.form.published')}</span>
             </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexShrink: 0 }}>
               <AdminGhostBtn onClick={onClose}>{t('common.cancel')}</AdminGhostBtn>
               <AdminSolidBtn onClick={handleSave} disabled={pending}>
                 {pending ? t('common.saving') : t('common.save')}
