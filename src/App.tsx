@@ -144,6 +144,8 @@ const OnboardingCallManagePage = lazy(() => import('@/pages/public/OnboardingCal
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
+const DaComparePage = lazy(() => import('@/pages/dev/DaComparePage'))
+const PipelineMxPage = lazy(() => import('@/pages/dev/PipelineMxPage'))
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
 const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
@@ -447,6 +449,9 @@ function AppRoutes() {
 
               {/* Dev showcase routes (no auth) */}
               <Route path="/design-system/megga-x" element={<MeggaXStyleGuidePage />} />
+              {/* Comparateur de DA — outil de décision temporaire (cf. DaComparePage) */}
+              <Route path="/design-system/da-compare" element={<DaComparePage />} />
+              <Route path="/design-system/pipeline-mx" element={<PipelineMxPage />} />
               {/* Atelier Matching — démo QA visuelle (mocks handoff, zéro écriture) */}
               <Route path="/dev/matching-atelier" element={<MatchingAtelierDemoPage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
