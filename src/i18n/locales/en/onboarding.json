@@ -61,14 +61,6 @@
         "agencyRole": "Your role in the agency"
       },
       "agencyRole": {
-        "admin": "Admin",
-        "adminHint": "Full access: settings, billing, team management.",
-        "manager": "Manager",
-        "managerHint": "Managing agents, overseeing transactions and the pipeline.",
-        "agent": "Agent",
-        "agentHint": "Managing their own contacts, properties and transactions.",
-        "assistant": "Assistant",
-        "assistantHint": "Read access, administrative support.",
         "lastAdminNotice": "You are the only admin: your account will keep its rights."
       }
     },

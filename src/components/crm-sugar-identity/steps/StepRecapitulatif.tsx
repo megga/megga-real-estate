@@ -124,7 +124,10 @@ export function StepRecapitulatif({
   rendezVous, rendezVousTimezone,
   attestationChecked, onAttestationChange, onEditStep,
 }: StepRecapitulatifProps) {
-  const { t } = useTranslation('onboarding')
+  // `settings` en second namespace pour le seul libellé de rôle : il vient de la même
+  // source que les cartes de l'étape 1 (cf. l'en-tête de StepSignataire), sans quoi le
+  // récapitulatif pourrait relire au signataire un rôle nommé autrement qu'à son choix.
+  const { t } = useTranslation(['onboarding', 'settings'])
   // Même requête (clé ['legal-forms', code]) que StepAgence pour ce même pays — déjà
   // chargée par l'étape agence, donc résolue en pratique dès qu'on atteint le récapitulatif.
   const { options: legalFormOptions } = useLegalForms(agencyDraft.country)
@@ -145,7 +148,7 @@ export function StepRecapitulatif({
           <RecapRow label={t('wizard.signataire.fields.nationality')} value={countryName(signataire.nationality)} />
           <RecapRow
             label={t('wizard.signataire.fields.agencyRole')}
-            value={signataire.agencyRole ? t(`wizard.signataire.agencyRole.${signataire.agencyRole}`) : ''}
+            value={signataire.agencyRole ? t(`settings:team.roles.${signataire.agencyRole}`) : ''}
           />
         </RecapSection>
 

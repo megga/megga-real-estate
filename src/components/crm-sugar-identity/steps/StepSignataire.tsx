@@ -14,6 +14,16 @@
  * IdentityShell continue d'écrire le rôle de conformité `signatory`, que la RPC de
  * soumission exige, simplement sans pouvoir de signature (colonne déjà nullable).
  *
+ * ⚠ LES LIBELLÉS ET DESCRIPTIONS DES QUATRE RÔLES SONT LUS DANS `settings`, pas dans
+ * `onboarding` : `team.roles.*`, `team.roleDescriptions.*` et `team.roleHierarchy`. Ce
+ * sont les mêmes quatre rôles que Réglages › Équipe, et ils étaient jusqu'au 09.08.2026
+ * RECOPIÉS dans onboarding.json — huit fichiers à tenir en phase pour une seule
+ * taxonomie, qui avaient déjà divergé (le rôle `agent` s'appelait « Agent » ici et
+ * « Makler » dans les Réglages allemands). Une description de droits qui change selon
+ * l'écran est pire qu'une description imparfaite : elle fait promettre deux choses
+ * différentes au même agent. D'où le namespace unique — et deux namespaces dans
+ * `useTranslation`, patron déjà en place dans la console admin.
+ *
  * Le rôle choisi ici est appliqué au COMPTE (profiles.role) à la soumission du dossier,
  * jamais avant, et jamais s'il retirait à l'agence son dernier administrateur — les
  * trois raisons du délai et le garde-fou sont dans la migration 20260804170100. La carte
@@ -52,7 +62,10 @@ interface StepSignataireProps {
 
 /** Étape 1 du wizard identité : identité et rôle de la personne qui saisit le dossier. */
 export function StepSignataire({ value, onChange, isOnlyAdmin }: StepSignataireProps) {
-  const { t } = useTranslation('onboarding')
+  // Deux namespaces : les libellés ET les descriptions des quatre rôles sont lus dans
+  // `settings`, pas recopiés ici (cf. l'en-tête). `onboarding` reste le namespace par
+  // défaut — tous les `t('wizard.…')` de l'étape sont inchangés.
+  const { t } = useTranslation(['onboarding', 'settings'])
 
   // ~200 pays : sans mémoïsation la liste entière serait reconstruite à chaque
   // frappe dans les champs texte de l'étape.
@@ -135,7 +148,15 @@ export function StepSignataire({ value, onChange, isOnlyAdmin }: StepSignataireP
               étiquetage (aria-label), un `for` unique n'aurait aucune cible.
               Quatre cartes sur `grid-2-columns` : deux rangées de deux, sans qu'aucune
               option ne se retrouve seule sur sa ligne. */}
-          <MxField className="mg-top-small" label={t('wizard.signataire.fields.agencyRole')}>
+          <MxField
+            className="mg-top-small"
+            label={t('wizard.signataire.fields.agencyRole')}
+            // La règle de cumul sous le groupe, pas dans les quatre cartes : c'est ce
+            // qui rend les descriptions lisibles telles qu'elles sont écrites (« tous
+            // les droits Manager, plus… »). Répétée par carte, elle prendrait quatre
+            // fois la place pour dire une seule chose.
+            help={t('settings:team.roleHierarchy')}
+          >
             <div
               className="grid-2-columns"
               role="radiogroup"
@@ -146,8 +167,8 @@ export function StepSignataire({ value, onChange, isOnlyAdmin }: StepSignataireP
                   key={role}
                   role={role}
                   selected={value.agencyRole === role}
-                  label={t(`wizard.signataire.agencyRole.${role}`)}
-                  hint={t(`wizard.signataire.agencyRole.${role}Hint`)}
+                  label={t(`settings:team.roles.${role}`)}
+                  hint={t(`settings:team.roleDescriptions.${role}`)}
                   // La réserve ne concerne QUE les rôles qui retireraient le dernier
                   // administrateur : la porter aussi sur la carte Admin ferait lire
                   // un avertissement à qui ne change rien.

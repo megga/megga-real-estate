@@ -61,14 +61,6 @@
         "agencyRole": "Il Suo ruolo nell'agenzia"
       },
       "agencyRole": {
-        "admin": "Admin",
-        "adminHint": "Accesso completo: impostazioni, fatturazione, gestione del team.",
-        "manager": "Manager",
-        "managerHint": "Gestione degli agenti, supervisione delle transazioni e della pipeline.",
-        "agent": "Agente",
-        "agentHint": "Gestione dei propri contatti, immobili e transazioni.",
-        "assistant": "Assistente",
-        "assistantHint": "Accesso in lettura, supporto amministrativo.",
         "lastAdminNotice": "È l'unico amministratore: il Suo account manterrà i suoi diritti."
       }
     },

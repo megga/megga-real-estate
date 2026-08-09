@@ -238,38 +238,42 @@
       "assistant": "Assistente"
     },
     "roleDescriptions": {
-      "admin": "Accesso completo: impostazioni, fatturazione, gestione del team.",
-      "manager": "Gestione agenti, supervisione transazioni e pipeline.",
-      "agent": "Gestione dei propri contatti, immobili e transazioni.",
-      "assistant": "Accesso in sola lettura, supporto amministrativo."
+      "admin": "Tutti i diritti del Manager, più le azioni sensibili: IBAN, sicurezza, ruoli e identità legale.",
+      "manager": "Tutti i diritti dell'Agente, più abbonamento e fatture, il team e tutte le pratiche dell'agenzia.",
+      "agent": "Il proprio portafoglio: i suoi contatti, immobili, mandati e la sua pipeline.",
+      "assistant": "Consultazione delle pratiche dell'agenzia e preparazione amministrativa, senza invii né convalide."
     },
+    "roleHierarchy": "I ruoli sono cumulativi: Admin include Manager, Manager include Agente, Agente include Assistente.",
     "status": {
       "active": "Attivo",
       "invited": "Invitato"
     },
     "permissions": {
       "admin": [
-        "Accesso completo alle impostazioni",
-        "Gestione fatturazione",
-        "Gestione del team",
-        "Tutti i contatti e immobili"
+        "Coordinate bancarie dell'agenzia e IBAN",
+        "Ruoli, permessi e sicurezza degli accessi",
+        "Identità legale e conformità dell'agenzia",
+        "Integrazioni, esportazione ed eliminazione dei dati",
+        "Tutti i diritti del ruolo Manager"
       ],
       "manager": [
-        "Supervisione agenti",
-        "Accesso alle transazioni",
-        "Gestione pipeline",
-        "Report e analisi"
+        "Abbonamento, fatture e metodi di pagamento",
+        "Invito e gestione dei membri del team",
+        "Tutti i contatti, immobili e transazioni dell'agenzia",
+        "Pipeline, obiettivi e rapporti",
+        "Tutti i diritti del ruolo Agente"
       ],
       "agent": [
-        "Gestione dei propri contatti",
-        "Gestione dei propri immobili",
-        "Pipeline personale",
-        "Messaggistica"
+        "I suoi contatti, immobili e mandati",
+        "La sua pipeline e le sue transazioni",
+        "Messaggi e appuntamenti con i suoi clienti",
+        "Pratiche KYC dei suoi clienti"
       ],
       "assistant": [
-        "Accesso in sola lettura",
-        "Supporto amministrativo",
-        "Consultazione fascicoli"
+        "Consultazione di contatti, immobili e transazioni",
+        "Preparazione di documenti e pratiche",
+        "Caricamento di documenti e promemoria interni",
+        "Nessun invio al cliente, nessuna convalida di conformità"
       ]
     },
     "actions": {

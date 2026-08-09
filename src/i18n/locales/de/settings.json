@@ -238,38 +238,42 @@
       "assistant": "Assistent"
     },
     "roleDescriptions": {
-      "admin": "Voller Zugriff: Einstellungen, Abrechnung, Teamverwaltung.",
-      "manager": "Maklerverwaltung, Transaktions- und Pipeline-Übersicht.",
-      "agent": "Verwaltung eigener Kontakte, Objekte und Transaktionen.",
-      "assistant": "Lesezugriff, administrative Unterstützung."
+      "admin": "Alle Manager-Rechte, dazu die sensiblen Vorgänge: IBAN, Sicherheit, Rollen und Rechtsidentität.",
+      "manager": "Alle Makler-Rechte, dazu Abonnement und Rechnungen, das Team und sämtliche Dossiers der Agentur.",
+      "agent": "Das eigene Portfolio: eigene Kontakte, Objekte, Mandate und Pipeline.",
+      "assistant": "Einsicht in die Dossiers der Agentur und administrative Vorbereitung, ohne Versand und ohne Freigabe."
     },
+    "roleHierarchy": "Die Rollen sind kumulativ: Admin umfasst Manager, Manager umfasst Makler, Makler umfasst Assistent.",
     "status": {
       "active": "Aktiv",
       "invited": "Eingeladen"
     },
     "permissions": {
       "admin": [
-        "Voller Zugriff auf Einstellungen",
-        "Abrechnungsverwaltung",
-        "Teamverwaltung",
-        "Alle Kontakte und Objekte"
+        "Bankverbindung der Agentur und IBAN",
+        "Rollen, Berechtigungen und Zugriffssicherheit",
+        "Rechtsidentität und Compliance der Agentur",
+        "Integrationen, Datenexport und -löschung",
+        "Alle Rechte der Rolle Manager"
       ],
       "manager": [
-        "Maklerüberwachung",
-        "Transaktionszugriff",
-        "Pipeline-Verwaltung",
-        "Berichte und Analysen"
+        "Abonnement, Rechnungen und Zahlungsmittel",
+        "Einladung und Verwaltung der Teammitglieder",
+        "Alle Kontakte, Objekte und Transaktionen der Agentur",
+        "Pipeline, Ziele und Berichte",
+        "Alle Rechte der Rolle Makler"
       ],
       "agent": [
-        "Eigene Kontakte verwalten",
-        "Eigene Objekte verwalten",
-        "Persönliche Pipeline",
-        "Nachrichten"
+        "Eigene Kontakte, Objekte und Mandate",
+        "Eigene Pipeline und Transaktionen",
+        "Nachrichten und Termine mit eigenen Kunden",
+        "KYC-Dossiers der eigenen Kunden"
       ],
       "assistant": [
-        "Nur-Lese-Zugriff",
-        "Administrative Unterstützung",
-        "Akten einsehen"
+        "Einsicht in Kontakte, Objekte und Transaktionen",
+        "Vorbereitung von Dokumenten und Dossiers",
+        "Ablage von Unterlagen und interne Erinnerungen",
+        "Kein Kundenversand, keine Compliance-Freigabe"
       ]
     },
     "actions": {
