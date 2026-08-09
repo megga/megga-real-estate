@@ -304,8 +304,7 @@
       "firstName": "First name",
       "lastName": "Last name",
       "email": "Email",
-      "whatsapp": "WhatsApp number",
-      "whatsappHelp": "For the confirmation and the reminder."
+      "whatsapp": "WhatsApp number"
     },
     "actions": {
       "confirm": "Confirm the appointment",

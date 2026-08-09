@@ -304,8 +304,7 @@
       "firstName": "Prénom",
       "lastName": "Nom",
       "email": "E-mail",
-      "whatsapp": "Numéro WhatsApp",
-      "whatsappHelp": "Pour la confirmation et le rappel."
+      "whatsapp": "Numéro WhatsApp"
     },
     "actions": {
       "confirm": "Confirmer le rendez-vous",
