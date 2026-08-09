@@ -135,14 +135,24 @@ export function StepRecapitulatif({
   const legalFormLabel = legalFormOptions.find((o) => o.id === agencyDraft.legalFormId)?.label ?? agencyDraft.legalFormId
 
   return (
-    <div className="inner-container _634px center">
+    // `_932px` et non `_634px` comme les quatre autres étapes : celle-ci LIT au lieu
+    // de saisir, et c'est la seule dont le contenu tient en deux colonnes. À 634 px de
+    // large, la relecture faisait 1016 px de haut pour une zone de 559 — l'attestation
+    // et « Soumettre » vivaient sous la ligne de flottaison, sur l'écran précis où l'on
+    // engage sa responsabilité. Largeur prise dans l'échelle de la vitrine, pas inventée.
+    <div className="inner-container _932px center">
       {/* Titre seul, comme aux étapes 3 et 4 : le sous-titre disait « Relisez chaque
           section. Vous pouvez encore modifier une étape. » — la première moitié
           paraphrasait le titre, la seconde annonçait les quatre boutons « Modifier »
           qu'on voit déjà. Retiré le 9 août 2026, avec sa clé. */}
       <h1 className="display-6 mg-top-4x-extra-small">{t('wizard.recap.title')}</h1>
 
-      <div className="mg-top-medium grid-1-column gap-row-2x-extra-small">
+      {/* Deux colonnes : Signataire | Agence, puis Vérification | Rendez-vous. Les
+          sections n'ont pas la même hauteur et c'est sans conséquence — `grid-2-columns`
+          aligne en `start`, chacune s'arrête où elle finit.
+          `mx-equal-columns` (point 13) : sans lui, `1fr` cède devant la largeur
+          intrinsèque du contenu, et l'adresse sur une ligne écraserait sa voisine. */}
+      <div className="mg-top-medium grid-2-columns mx-equal-columns">
         <RecapSection title={t('wizard.steps.signataire')} onEdit={() => onEditStep(0)}>
           <RecapRow label={t('wizard.signataire.fields.firstName')} value={signataire.firstName} />
           <RecapRow label={t('wizard.signataire.fields.lastName')} value={signataire.lastName} />
@@ -254,15 +264,20 @@ export function StepRecapitulatif({
           )}
         </RecapSection>
 
-        <div className="card">
-          <div className="pd---content-inside-card">
-            <MxCheckbox
-              className="paragraph-small"
-              checked={attestationChecked}
-              onCheckedChange={onAttestationChange}
-              label={t('wizard.recap.attestation')}
-            />
-          </div>
+      </div>
+
+      {/* HORS de la grille, sur toute la largeur : c'est un engagement juridique et le
+          verrou du bouton Soumettre, pas une cinquième section de relecture. Le mettre
+          en colonne l'aurait rangé à côté d'un contenu qu'on parcourt, alors que c'est
+          la dernière chose qu'on lit. */}
+      <div className="card mg-top-small">
+        <div className="pd---content-inside-card">
+          <MxCheckbox
+            className="paragraph-small"
+            checked={attestationChecked}
+            onCheckedChange={onAttestationChange}
+            label={t('wizard.recap.attestation')}
+          />
         </div>
       </div>
     </div>
