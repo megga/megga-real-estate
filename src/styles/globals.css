@@ -271,14 +271,45 @@
   }
 
   /* ─── Direction MEGGA X ────────────────────────────────────────────────
-     Posée par `setCrmDa()` sur <html>. Ne porte QUE ce qu'une palette ne
-     peut pas dire — les couleurs passent par `mxCrmPalette()`.
-     ⚠ Les barreaux de grammaire (rayons, espacements, texte) ne sont PAS
-     surchargés ici : reporter la grammaire resserrée sur les 13 barreaux est
-     un travail de design, pas une substitution. Tant qu'il n'est pas fait,
-     MEGGA X ne change que la couleur et la police. */
-  :root[data-crm-da="meggax"] {
+     Porte ce qu'une palette ne peut pas dire : la police et les barreaux de
+     grammaire. Les couleurs passent par `mxCrmPalette()`.
+
+     ⚠ Sélecteur volontairement SANS `:root` — il doit s'appliquer à n'importe
+     quel élément. Posé sur <html> par `setCrmDa()`, il bascule toute
+     l'application ; posé sur un conteneur, il bascule cette région seule, ce
+     dont le comparateur a besoin pour montrer les deux grammaires côte à côte.
+     Les propriétés personnalisées héritent, donc un sous-arbre ne « revient »
+     pas à Sugar : c'est bien une bascule descendante, pas un interrupteur. */
+  [data-crm-da="meggax"] {
     --crm-font: "Inter Tight";
+
+    /* Corps de texte : +1 barreau. C'est le trait que Julien a relevé en
+       comparant — le texte de Sugar est plus petit, donc l'écran « donne
+       l'impression qu'il y a plus de texte ». Les tailles d'AFFICHAGE (16 et
+       au-delà) ne bougent pas : les grossir ferait déborder les titres. */
+    --crm-text-xs: 11px;
+    --crm-text-sm: 12px;
+    --crm-text-md: 13px;
+    --crm-text-lg: 14px;
+    --crm-text-xl: 15px;
+
+    /* Rayons : l'échelle de la vitrine est GROSSIÈRE — 8 / 12 / 16 / 20 / 24
+       là où Sugar en distingue onze, dont 10, 11, 14, 18 et 22. On y ramène,
+       ce qui systématise autant que ça arrondit. */
+    --crm-radius-md: 8px;    /* 10 → 8  */
+    --crm-radius-xl: 16px;   /* 14 → 16 */
+    --crm-radius-3xl: 16px;  /* 18 → 16 */
+    --crm-radius-5xl: 20px;  /* 22 → 20 */
+    --crm-radius-6xl: 24px;  /* 28 → 24 */
+
+    /* Espacements : même coarsening sur 4 / 8 / 12 / 16 / 20 / 24. Le gain
+       d'air vient de là, pas des tailles de texte. */
+    --crm-space-2xs: 4px;    /* 2  → 4  */
+    --crm-space-sm: 8px;     /* 6  → 8  */
+    --crm-space-lg: 12px;    /* 10 → 12 */
+    --crm-space-2xl: 16px;   /* 14 → 16 */
+    --crm-space-4xl: 20px;   /* 18 → 20 */
+    --crm-space-6xl: 24px;   /* 22 → 24 */
 
     /* Logo filter — no filter in light mode (logo is black) */
     --logo-filter: none;

@@ -260,7 +260,7 @@ const PANELS: ReadonlyArray<{
   {
     id: 'literal',
     title: 'MEGGA X littéral',
-    note: 'Surfaces de la vitrine. Composants Sugar : grammaire inchangée.',
+    note: 'Palette et grammaire de la vitrine. Ce que l’app rendra, basculée.',
   },
 ]
 
@@ -363,7 +363,13 @@ export default function DaComparePage() {
                 {panel.note}
               </p>
 
+              {/* `data-crm-da` sur la SEULE colonne littérale : les barreaux de
+                  grammaire sont des propriétés personnalisées, donc ils
+                  descendent par héritage. La colonne montre ainsi exactement ce
+                  que l'application rendra — palette ET grammaire —, pendant que
+                  les deux autres restent sur les barreaux de Sugar. */}
               <div
+                data-crm-da={panel.id === 'literal' ? 'meggax' : undefined}
                 style={{
                   background: sp.pageBg,
                   border: `1px solid ${sp.frameBorder}`,
