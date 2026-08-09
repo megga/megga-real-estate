@@ -102,14 +102,6 @@ export default function IdentitySubmittedScreen({ rendezVous, timezone, onEnter 
                             <p className="display-2 semi-bold capitalize">
                               {bookedWhenLabel(rendezVous.scheduled_at, timezone)}
                             </p>
-                            <div className="mg-top-5x-extra-small">
-                              <p className="paragraph-small text-color-neutral-600">
-                                {t('gate.submitted.callWith', {
-                                  host: rendezVous.host_display_name,
-                                  minutes: rendezVous.duration_minutes,
-                                })}
-                              </p>
-                            </div>
 
                             {lien ? (
                               <>
