@@ -3,10 +3,11 @@
  * dépouillé : ni sidebar, ni breadcrumb, ni bottom bar — les pages Sugar portent
  * leur propre chrome. Fournit thème + contexte copilote, la bannière
  * d'impersonation, le « push » du contenu quand le panneau MEGGA AI est ouvert,
- * le gate identité légale (étape 2 KYB) qui redirige vers /dashboard/identite
- * tant que le dirigeant n'a pas soumis l'identité de son agence, et le bandeau
- * du garde LAB (étape 5, tâche 4, LabGuardBanner) qui rappelle sur toutes les
- * pages tant que l'agence n'est pas vérifiée.
+ * et le gate identité légale (étape 2 KYB) qui redirige vers /dashboard/identite
+ * tant que le dirigeant n'a pas soumis l'identité de son agence.
+ *
+ * Ne porte PLUS le bandeau du garde LAB depuis le 04.08.2026 : il est monté dans
+ * IdentityShell, dans la coquille MEGGA X (cf. son en-tête).
  */
 import { useState, useEffect } from 'react'
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
@@ -17,7 +18,6 @@ import { COPILOT_WIDTH } from '@/components/ai-copilot/panel/aiPanel'
 import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
 import { useDarkTone } from '@/hooks/useDarkTone'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
-import LabGuardBanner from '@/components/layout/LabGuardBanner'
 import BootSplash from '@/components/layout/BootSplash'
 import OnboardingCallBanner from '@/components/layout/OnboardingCallBanner'
 import CrmSugarSearchHost from '@/components/crm-sugar/search/CrmSugarSearchHost'
@@ -118,9 +118,11 @@ function AgentSugarInner() {
     // la hauteur, comme avant.
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <ImpersonateBanner />
-      <LabGuardBanner />
-      {/* Après le garde LAB : celui-ci parle d'un dossier bloqué, celui-là d'un
-          rendez-vous à prendre. Le blocage passe d'abord. */}
+      {/* LabGuardBanner ne s'empile PLUS ici (04.08.2026) : il est monté dans
+          IdentityShell, dans la coquille MEGGA X. Deux raisons, détaillées dans son
+          en-tête — la garde d'identité ne le laissait de toute façon lire que sur
+          l'entonnoir, et empilé au-dessus d'une coquille qui réclame `100dvh` il en
+          faisait déborder le pied d'actions. */}
       <OnboardingCallBanner />
       {/* Le panneau MEGGA AI « pousse » le contenu de travail vers la gauche
           quand il est ouvert (COPILOT_WIDTH = panneau + gouttières). */}

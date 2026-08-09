@@ -32,8 +32,26 @@ interface BookRequest {
   slot?: string
   phone?: string
   note?: string
+  answers?: unknown
   timezone?: string
   locale?: string
+}
+
+/**
+ * Ne garde que des paires chaîne -> chaîne, coupées et plafonnées.
+ *
+ * `null` plutôt qu'un objet vide quand il ne reste rien : la colonne distingue alors
+ * « pas de réponses » de « des réponses toutes vides », ce qu'un `{}` effacerait.
+ */
+function sanitizeAnswers(raw: unknown): Record<string, string> | null {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>).slice(0, 20)) {
+    if (typeof v !== 'string') continue
+    const val = v.trim().slice(0, 500)
+    if (val) out[k.slice(0, 60)] = val
+  }
+  return Object.keys(out).length > 0 ? out : null
 }
 
 function json(body: unknown, status = 200): Response {
@@ -95,6 +113,11 @@ serve(async (req: Request) => {
       duration_minutes: host.duration_minutes,
       attendee_phone: typeof body.phone === 'string' ? body.phone.slice(0, 40) || null : null,
       attendee_note: typeof body.note === 'string' ? body.note.slice(0, 2000) || null : null,
+      // Déclaratif, borné, et JAMAIS repris tel quel du corps de la requête : seules
+      // des paires chaîne -> chaîne courtes entrent, au plus 20. Un client peut poster
+      // ce qu'il veut ; sans ce filtre, la colonne accepterait un objet arbitraire —
+      // profondeur incluse — que rien en aval ne saurait lire ni borner.
+      attendee_answers: sanitizeAnswers(body.answers),
     })
     .select('id, manage_token, scheduled_at, duration_minutes')
     .single()

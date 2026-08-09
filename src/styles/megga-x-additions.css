@@ -44,6 +44,16 @@
  * 14. Colonne des heures d'un sélecteur de créneau — la vitrine ne prend aucun
  *     rendez-vous. Le CALENDRIER, lui, n'est pas réécrit : celui du point 11
  *     sert tel quel, seule la colonne à sa droite est neuve.
+ * 15. Plancher de hauteur d'une carte d'étape — la vitrine n'a aucun écran dont
+ *     le contenu tienne en une carte et un bouton : ses sections sont toujours
+ *     remplies, il n'y avait donc jamais rien à répartir.
+ * 16. Bandeau d'état du dossier — la vitrine vend, elle ne suit aucun dossier :
+ *     ni bandeau persistant, ni gradation de gravité entre « à faire »,
+ *     « en attente » et « refusé ».
+ * 17. Prise de rendez-vous en deux temps — la vitrine ne prend aucun
+ *     rendez-vous : ni volet d'hôte, ni confirmation en deux écrans.
+ * 18. Vignette de marque du volet hôte — le produit de référence y met une photo
+ *     d'hôte ; l'appel est pris avec une ÉQUIPE, pas une personne nommée.
  *
  * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
  * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
@@ -922,3 +932,245 @@
   margin-bottom: auto;
 }
 
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 15. Carte de l'étape « Vérification ». La vitrine n'a pas d'écran dont le
+ *    contenu tienne en une carte et un bouton : ses sections sont toujours
+ *    remplies, et rien n'y avait à répartir.
+ *
+ *    Cette étape-ci est la plus COURTE du parcours. Mesuré le
+ *    04.08.2026 à 1495×929 : sa carte faisait 258 px quand celle de l'étape 1
+ *    en fait 495, si bien que le pied d'actions remontait de 223 px et que
+ *    « Continuer » n'était pas au même endroit d'une étape à l'autre — le
+ *    parcours sautait sous l'œil à chaque passage.
+ *
+ *    `30rem` (480 px) n'est pas un chiffre rond posé au hasard : c'est ce qui
+ *    porte le contenu de l'étape au niveau de la zone qui défile (628 px à
+ *    cette taille de fenêtre, titre et chapô compris), donc ce qui remet le
+ *    pied exactement là où les étapes 1 et 2 le posent. En `rem` pour suivre le
+ *    zoom du navigateur.
+ *
+ *    ⚠ `justify-content: center` est ici SANS le danger décrit au point 7
+ *    (« jamais sur un conteneur qui défile ») : ce n'est pas ce conteneur qui
+ *    défile mais `.mx-scrollarea`, et `min-height` — jamais `height` — laisse
+ *    la carte GRANDIR au-delà de 30rem. Le centrage ne répartit donc que du
+ *    mou ; dès qu'il n'y en a plus, il ne fait plus rien et rien n'est masqué.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-idcard {
+  display: flex;
+  min-height: 30rem;
+}
+
+.megga-x .mx-idcard > .pd---content-inside-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Le pictogramme est dessiné sur `currentColor` : il hérite donc de la couleur de
+   texte de la carte. `line-height: 0` évite la bande fantôme qu'un SVG en display
+   inline laisse sous lui (il s'aligne sur la ligne de base du texte). */
+.megga-x .mx-idcard__glyph {
+  line-height: 0;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 16. Bandeau d'état du dossier. La vitrine n'annonce jamais l'état d'un
+ *    dossier en cours : elle vend, elle ne suit rien. Elle n'a donc ni bandeau
+ *    persistant ni gradation de gravité — `.error-message` est un pavé rouge
+ *    plein, taillé pour un refus de formulaire, et il hurlerait ici.
+ *
+ *    Posé DANS la coquille (`.mx-appshell`), jamais au-dessus : c'est la leçon
+ *    du défaut corrigé le 04.08.2026. Empilé par-dessus, il ajoutait sa hauteur
+ *    à une coquille qui réclame déjà `100dvh` et poussait le pied d'actions sous
+ *    le bord de la fenêtre. Ici il PARTAGE cette hauteur — le débord ne peut
+ *    plus revenir, il n'y a plus rien à empiler.
+ *
+ *    La gravité passe par la COULEUR DU TITRE et rien d'autre. Pas de pastille,
+ *    pas de liseré, pas de fond teinté : aucun n'existe dans la vitrine, et
+ *    chacun aurait demandé d'inventer une géométrie que ce fichier s'interdit.
+ *    Les trois teintes sont celles de la peau, telles quelles.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-notice {
+  border-bottom: 1px solid var(--neutral-colors--400);
+  background-color: var(--neutral-colors--200);
+}
+
+.megga-x .mx-notice__row {
+  padding-top: var(--main-spacers--3x-extra-small);
+  padding-bottom: var(--main-spacers--3x-extra-small);
+}
+
+/* Ambre : l'agence a la main, il y a quelque chose à faire. */
+.megga-x .mx-notice--todo .mx-notice__title {
+  color: var(--system-colors--yellow-400);
+}
+
+/* Bleu : la balle est dans NOTRE camp, l'agence n'a rien à faire qu'attendre. */
+.megga-x .mx-notice--waiting .mx-notice__title {
+  color: var(--system-colors--blue-400);
+}
+
+/* Rouge, et lui seul : un verdict, pas une étape. */
+.megga-x .mx-notice--refused .mx-notice__title {
+  color: var(--system-colors--red-400);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 17. Prise de rendez-vous en DEUX temps (MEGGA Calendar). La vitrine ne prend
+ *    aucun rendez-vous : ni panneau d'hôte, ni confirmation en deux écrans.
+ *
+ *    Deux ajouts, et rien d'autre :
+ *
+ *    a) `mx-book` — la mise en page à deux volets : l'hôte à gauche (logo, durée,
+ *       objet, puis le créneau retenu une fois choisi), le geste à droite. Le
+ *       volet gauche ne change pas d'un écran à l'autre : c'est ce qui fait que
+ *       le passage au formulaire ne ressemble pas à une nouvelle page.
+ *
+ *    b) `mx-slotpicker__row` — le créneau retenu cède la moitié de sa largeur à
+ *       « Suivant ». Le choix reste visible et modifiable pendant qu'on confirme,
+ *       au lieu de disparaître sous un bouton posé ailleurs.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .mx-book {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: var(--main-spacers--medium);
+}
+
+/* Même rupture que le sélecteur de créneau : sous 767 px, l'hôte passe au-dessus. */
+@media screen and (max-width: 767px) {
+  .megga-x .mx-book {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Le filet ne descend qu'en deux colonnes : empilé, il couperait le volet gauche
+   en travers au lieu de le border. */
+/* Plus de filet vertical : le volet porte désormais son propre fond, et une bordure
+   par-dessus ferait deux séparations pour une seule frontière. */
+
+.megga-x .mx-book__logo img {
+  height: 28px;
+  width: auto;
+}
+
+/* Une ligne de fait dans le volet hôte : durée, support, créneau, fuseau. */
+.megga-x .mx-book__fact {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--main-spacers--5x-extra-small);
+}
+
+.megga-x .mx-book__fact svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.megga-x .mx-slotpicker__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--main-spacers--5x-extra-small);
+}
+
+/* Le créneau retenu s'efface au profit de « Suivant » : il reste lisible et
+   cliquable (le reclic le déselectionne), mais il ne réclame plus l'œil. */
+.megga-x .mx-slotpicker__slot--picked {
+  background-color: var(--neutral-colors--400);
+  border-color: var(--neutral-colors--400);
+}
+
+/* Fuseau et format d'heure côte à côte, sous le mois (point 17). Empilés, la bascule
+   passait sous le bord de la zone qui défile : deux réglages qu'on lit ensemble ne
+   doivent pas demander de faire défiler pour découvrir le second. */
+/* ⚠ FLEX qui se replie, jamais une grille à deux colonnes figées. Mesuré : dans le
+   volet droit du plan à deux volets, la grille ne cédait pas — l'étiquette « Fuseau
+   horaire » se coupait en deux lignes et l'interrupteur passait PAR-DESSUS son propre
+   libellé. Une requête de média sur la largeur de FENÊTRE n'y pouvait rien : c'est le
+   conteneur qui est étroit, pas l'écran. Le repli par le contenu, lui, marche partout. */
+.megga-x .mx-slotpicker__prefs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--main-spacers--5x-extra-small);
+}
+
+/* Le champ prend la place disponible et impose son propre plancher : sous ~220 px, un
+   nom de fuseau comme « America/Argentina/Buenos_Aires » ne se lit plus. */
+.megga-x .mx-slotpicker__prefs > *:first-child {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+/* Aligné sur la ligne de base du champ voisin, pas sur son étiquette. `flex: none`
+   pour que l'interrupteur ne se comprime jamais sur son libellé. */
+.megga-x .mx-slotpicker__prefs-toggle {
+  flex: none;
+  padding-bottom: 10px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 18. Vignette de marque du volet hôte (point 17). Le produit de référence pose
+ *    là une photo d'hôte ; nous n'en avons pas — l'appel est pris « avec l'équipe
+ *    MEGGA », pas avec une personne nommée. D'où le monogramme sur le dégradé.
+ *
+ *    Le dégradé est CELUI DU FOOTER de la vitrine, pas une approximation : même
+ *    fichier, réduit de 3159×633 à 400×80 (294 Ko -> 40 Ko) parce qu'une vignette
+ *    de 112 px n'a aucun besoin des trois mille pixels d'origine. Les couleurs
+ *    n'ont pas été retouchées.
+ *
+ *    ⚠ `background-size: 100% 72%` et non `cover` : le dégradé fait presque 5:1.
+ *    `cover` sur un carré rognerait tout sauf son centre — on perdrait le passage
+ *    du bleu au magenta, qui EST le motif. Et `100% auto` ne rendait qu'une bande
+ *    de 22 px : la largeur entière se lisait, mais la lueur ne montait pas. Étiré
+ *    en hauteur et ancré en bas, on retrouve la moitié basse qui s'allume — ce que
+ *    fait le footer sur toute la largeur de la page. Un dégradé souple ne souffre
+ *    pas d'être étiré ; une photo, si.
+ *
+ *    ⚠ Le monogramme est un tracé NOIR (public/megga-gg.svg) : sans le filtre
+ *    d'inversion — celui-là même que la vitrine applique à son logo d'en-tête —
+ *    il serait invisible sur ce fond.
+ * ───────────────────────────────────────────────────────────────────────── */
+/* Le volet SORT du rembourrage de la carte pour venir mourir sur ses bords : marges
+   négatives à gauche, en haut et en bas (32 px, la valeur de `.pd---content-inside-card`
+   mesurée), et les deux coins gauches reprennent le rayon de la carte (24 px). Sans ça,
+   le dégradé flottait dans un rectangle posé à l'intérieur — on voyait la carte AUTOUR
+   de lui, ce qui le faisait lire comme une vignette et non comme le fond du volet.
+
+   `background-position: 0% 100%` : ancré en bas À GAUCHE, pas centré — la lueur épouse
+   l'angle arrondi au lieu de flotter au milieu. `120%` de large la fait déborder par la
+   droite, donc sa partie la plus intense reste dans le volet plutôt que d'être coupée
+   en deux par son bord. */
+.megga-x .mx-book__host {
+  position: relative;
+  overflow: hidden;
+  margin: -32px 0 -32px -32px;
+  padding: 32px;
+  border-radius: 24px 0 0 24px;
+  background-image: url("/megga-x/images/gradient-bottom.png");
+  background-position: 0% 100%;
+  background-repeat: no-repeat;
+  background-size: 120% 42%;
+}
+
+/* Empilé (sous 767 px), le volet passe AU-DESSUS : il reprend alors les coins hauts et
+   rend ses marges latérales, sinon il déborderait de la carte des deux côtés. */
+@media screen and (max-width: 767px) {
+  .megga-x .mx-book__host {
+    margin: -32px -32px 0;
+    border-radius: 24px 24px 0 0;
+  }
+}
+
+.megga-x .mx-book__mark {
+  display: flex;
+  justify-content: center;
+}
+
+.megga-x .mx-book__mark img {
+  width: 96px;
+  height: auto;
+  filter: brightness(0) invert(1);
+}
