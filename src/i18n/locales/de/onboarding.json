@@ -299,12 +299,13 @@
     },
     "form": {
       "phone": "Telefon (optional)",
-      "note": "Ein Wort zu Ihren Prioritäten (optional)",
-      "notePlaceholder": "Was Sie zuerst sehen möchten",
+      "note": "Sonst noch etwas?",
+      "notePlaceholder": "Eine Frage, ein Sonderfall…",
       "firstName": "Vorname",
       "lastName": "Nachname",
       "email": "E-Mail",
-      "whatsapp": "WhatsApp-Nummer"
+      "whatsapp": "WhatsApp-Nummer",
+      "whatsappHelp": "Für die Bestätigung und die Erinnerung."
     },
     "actions": {
       "confirm": "Termin bestätigen",
@@ -375,12 +376,13 @@
       "pickTitle": "Wählen Sie Datum und Uhrzeit",
       "next": "Weiter",
       "back": "Zurück",
-      "formTitle": "Ihre Angaben"
+      "formTitle": "Zur Vorbereitung des Gesprächs",
+      "formIntro": "Ihre Antworten ersparen uns, die halbe Zeit mit diesen Fragen zu verbringen. Nur Ihre Kontaktdaten sind erforderlich."
     },
     "questions": {
       "placeholder": "Auswählen…",
       "portfolio": {
-        "label": "Wie viele Objekte betreuen Sie heute?",
+        "label": "Wie viele Objekte in Ihrem Portfolio?",
         "options": {
           "1-5": "1 bis 5",
           "6-20": "6 bis 20",
@@ -389,7 +391,7 @@
         }
       },
       "business": {
-        "label": "Verkauf, Vermietung oder beides?",
+        "label": "Verkauf oder Vermietung?",
         "options": {
           "sale": "Verkauf",
           "rent": "Vermietung",
@@ -399,17 +401,17 @@
       "team": {
         "label": "Wie viele Agenten im Team?",
         "options": {
-          "1": "Ich arbeite allein",
+          "1": "Allein",
           "2-5": "2 bis 5",
           "6-15": "6 bis 15",
           "15+": "Mehr als 15"
         }
       },
       "priority": {
-        "label": "Ihre Priorität der nächsten drei Monate?",
+        "label": "Was möchten Sie zuerst lösen?",
         "options": {
           "mandates": "Mandate gewinnen",
-          "buyers": "Meine Käufer betreuen",
+          "buyers": "Meine Käufer begleiten",
           "admin": "Verwaltungszeit sparen",
           "compliance": "GwG/KYC absichern"
         }

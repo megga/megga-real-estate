@@ -287,6 +287,14 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
             <div>
               <MxLink onClick={() => setEtape('creneau')}>{t('call.book.back')}</MxLink>
               <p className="display-2 semi-bold mg-top-4x-extra-small">{t('call.book.formTitle')}</p>
+              {/* POURQUOI on demande tout ça, et ce qui est réellement exigé. Sans cette
+                  ligne, neuf champs après le choix d'un créneau ressemblent à de la
+                  collecte ; avec elle, ce sont des minutes rendues au rendez-vous. Elle
+                  porte aussi la seule mention de facultativité — la répéter sur cinq
+                  étiquettes ferait un bruit que personne ne lit (gate : identiteComplete). */}
+              <p className="paragraph-small mx-field__help mg-top-5x-extra-small">
+                {t('call.book.formIntro')}
+              </p>
 
               <div className="grid-2-columns mg-top-small">
                 <MxField label={t('call.form.firstName')}>
@@ -304,7 +312,14 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
               {/* Le SEUL champ qui n'est pas prérempli : le profil ne porte pas de numéro
                   WhatsApp, et supposer que le téléphone du compte en est un enverrait les
                   confirmations dans le vide. */}
-              <MxField className="mg-top-4x-extra-small" label={t('call.form.whatsapp')}>
+              <MxField
+                className="mg-top-4x-extra-small"
+                label={t('call.form.whatsapp')}
+                // Le seul champ exigé dont l'usage n'est pas évident : demander un numéro
+                // WhatsApp sans dire ce qu'on en fait, c'est la question qui fait
+                // abandonner un formulaire. Il sert à l'envoi, pas à la lecture.
+                help={t('call.form.whatsappHelp')}
+              >
                 {(id) => (
                   <MxInput id={id} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 )}

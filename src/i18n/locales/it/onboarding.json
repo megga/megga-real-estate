@@ -299,12 +299,13 @@
     },
     "form": {
       "phone": "Telefono (facoltativo)",
-      "note": "Una parola sulle sue priorità (facoltativo)",
-      "notePlaceholder": "Cosa vorrebbe vedere per primo",
+      "note": "Altro da segnalarci?",
+      "notePlaceholder": "Una domanda, un caso particolare…",
       "firstName": "Nome",
       "lastName": "Cognome",
       "email": "E-mail",
-      "whatsapp": "Numero WhatsApp"
+      "whatsapp": "Numero WhatsApp",
+      "whatsappHelp": "Per la conferma e il promemoria."
     },
     "actions": {
       "confirm": "Confermare l'appuntamento",
@@ -375,12 +376,13 @@
       "pickTitle": "Scelga la data e l'ora",
       "next": "Avanti",
       "back": "Indietro",
-      "formTitle": "I Suoi dati"
+      "formTitle": "Per preparare la chiamata",
+      "formIntro": "Le Sue risposte ci evitano di dedicare metà dell'incontro a queste domande. Solo i Suoi recapiti sono necessari."
     },
     "questions": {
       "placeholder": "Selezioni…",
       "portfolio": {
-        "label": "Quanti immobili gestisce oggi?",
+        "label": "Quanti immobili nel Suo portafoglio?",
         "options": {
           "1-5": "Da 1 a 5",
           "6-20": "Da 6 a 20",
@@ -389,7 +391,7 @@
         }
       },
       "business": {
-        "label": "Vendita, locazione o entrambe?",
+        "label": "Vendita o locazione?",
         "options": {
           "sale": "Vendita",
           "rent": "Locazione",
@@ -399,19 +401,19 @@
       "team": {
         "label": "Quanti agenti nel team?",
         "options": {
-          "1": "Lavoro da solo",
+          "1": "Da solo",
           "2-5": "Da 2 a 5",
           "6-15": "Da 6 a 15",
           "15+": "Più di 15"
         }
       },
       "priority": {
-        "label": "La Sua priorità dei prossimi tre mesi?",
+        "label": "Cosa vorrebbe risolvere per primo?",
         "options": {
-          "mandates": "Ottenere mandati",
-          "buyers": "Seguire i miei acquirenti",
+          "mandates": "Trovare mandati",
+          "buyers": "Seguire gli acquirenti",
           "admin": "Guadagnare tempo amministrativo",
-          "compliance": "Mettere in sicurezza LRD/KYC"
+          "compliance": "Mettere in sicurezza LAB/KYC"
         }
       },
       "cantons": {

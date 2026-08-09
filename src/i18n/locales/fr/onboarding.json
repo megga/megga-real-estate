@@ -299,12 +299,13 @@
     },
     "form": {
       "phone": "Téléphone (facultatif)",
-      "note": "Un mot sur vos priorités (facultatif)",
-      "notePlaceholder": "Ce que vous aimeriez voir en premier",
+      "note": "Autre chose à nous dire ?",
+      "notePlaceholder": "Une question, un cas particulier…",
       "firstName": "Prénom",
       "lastName": "Nom",
       "email": "E-mail",
-      "whatsapp": "Numéro WhatsApp"
+      "whatsapp": "Numéro WhatsApp",
+      "whatsappHelp": "Pour la confirmation et le rappel."
     },
     "actions": {
       "confirm": "Confirmer le rendez-vous",
@@ -375,12 +376,13 @@
       "pickTitle": "Choisissez la date et l'heure",
       "next": "Suivant",
       "back": "Retour",
-      "formTitle": "Vos informations"
+      "formTitle": "Pour préparer l'appel",
+      "formIntro": "Vos réponses nous évitent de consacrer la moitié du rendez-vous à ces questions. Seules vos coordonnées sont nécessaires."
     },
     "questions": {
       "placeholder": "Sélectionnez…",
       "portfolio": {
-        "label": "Combien de biens gérez-vous aujourd'hui ?",
+        "label": "Combien de biens dans votre portefeuille ?",
         "options": {
           "1-5": "1 à 5",
           "6-20": "6 à 20",
@@ -389,7 +391,7 @@
         }
       },
       "business": {
-        "label": "Vente, location, ou les deux ?",
+        "label": "Vente ou location ?",
         "options": {
           "sale": "Vente",
           "rent": "Location",
@@ -399,14 +401,14 @@
       "team": {
         "label": "Combien d'agents dans l'équipe ?",
         "options": {
-          "1": "Je travaille seul",
+          "1": "Seul",
           "2-5": "2 à 5",
           "6-15": "6 à 15",
           "15+": "Plus de 15"
         }
       },
       "priority": {
-        "label": "Votre priorité des trois prochains mois ?",
+        "label": "Qu'aimeriez-vous régler en premier ?",
         "options": {
           "mandates": "Trouver des mandats",
           "buyers": "Suivre mes acquéreurs",
@@ -415,7 +417,7 @@
         }
       },
       "cantons": {
-        "label": "Sur quels cantons travaillez-vous ?",
+        "label": "Dans quels cantons travaillez-vous ?",
         "placeholder": "Genève, Vaud…"
       }
     }

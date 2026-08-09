@@ -299,12 +299,13 @@
     },
     "form": {
       "phone": "Phone (optional)",
-      "note": "A word on your priorities (optional)",
-      "notePlaceholder": "What you would like to see first",
+      "note": "Anything else we should know?",
+      "notePlaceholder": "A question, a specific case…",
       "firstName": "First name",
       "lastName": "Last name",
       "email": "Email",
-      "whatsapp": "WhatsApp number"
+      "whatsapp": "WhatsApp number",
+      "whatsappHelp": "For the confirmation and the reminder."
     },
     "actions": {
       "confirm": "Confirm the appointment",
@@ -375,12 +376,13 @@
       "pickTitle": "Select a date and time",
       "next": "Next",
       "back": "Back",
-      "formTitle": "Your details"
+      "formTitle": "To prepare the call",
+      "formIntro": "Your answers save us spending half the call on these questions. Only your contact details are required."
     },
     "questions": {
       "placeholder": "Select…",
       "portfolio": {
-        "label": "How many properties do you manage today?",
+        "label": "How many properties in your portfolio?",
         "options": {
           "1-5": "1 to 5",
           "6-20": "6 to 20",
@@ -389,7 +391,7 @@
         }
       },
       "business": {
-        "label": "Sales, lettings, or both?",
+        "label": "Sales or lettings?",
         "options": {
           "sale": "Sales",
           "rent": "Lettings",
@@ -399,19 +401,19 @@
       "team": {
         "label": "How many agents on the team?",
         "options": {
-          "1": "I work alone",
+          "1": "On my own",
           "2-5": "2 to 5",
           "6-15": "6 to 15",
           "15+": "More than 15"
         }
       },
       "priority": {
-        "label": "Your priority for the next three months?",
+        "label": "What would you like to fix first?",
         "options": {
-          "mandates": "Win mandates",
-          "buyers": "Follow up my buyers",
-          "admin": "Save admin time",
-          "compliance": "Secure AML/KYC"
+          "mandates": "Winning mandates",
+          "buyers": "Following up buyers",
+          "admin": "Saving admin time",
+          "compliance": "Securing AML/KYC"
         }
       },
       "cantons": {
