@@ -359,9 +359,17 @@ describe('MEGGA X CRM — nuancier d’accent', () => {
  * page qu'on ajoute en copiant une voisine.
  */
 describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
+  /**
+   * ⚠ Les COMMENTAIRES sont retirés avant l'analyse. Sans ça, la note qui
+   * explique pourquoi un motif a été retiré le fait rougir : le garde-fou
+   * trébuche sur sa propre documentation. Constaté sur `t.primary`.
+   */
+  const sansCommentaires = (code: string) =>
+    code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+
   const sources = readdirSync('src', { recursive: true, encoding: 'utf-8' })
     .filter((f) => /\.tsx?$/.test(f))
-    .map((f) => ({ path: `src/${f}`, code: readFileSync(`src/${f}`, 'utf-8') }))
+    .map((f) => ({ path: `src/${f}`, code: sansCommentaires(readFileSync(`src/${f}`, 'utf-8')) }))
 
   it('la liste des sources est bien peuplée', () => {
     // Sans ça, un chemin cassé rendrait les deux tests suivants vrais par vacuité.
@@ -390,7 +398,7 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
   it('l’accent hérité de CrmTheme n’a plus aucun lecteur', () => {
     const lecteurs = sources
       .filter((s) => s.path !== 'src/components/crm-sugar/tokens.ts')
-      .filter((s) => /t\.primary/.test(s.code))
+      .filter((s) => /\bt\.primary\b/.test(s.code))
       .map((s) => s.path)
     expect(lecteurs).toEqual([])
   })
