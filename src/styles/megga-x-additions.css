@@ -60,6 +60,8 @@
  * 20. Champ en lecture seule — la base Webflow le peint en `#eee`, un gris
  *     pensé pour un fond clair ; sur le canvas noir du parcours, un champ
  *     verrouillé devenait un pavé blanc.
+ * 21. Case à cocher DÉCOCHÉE — la vitrine la peint de la couleur du canvas, ce
+ *     qui la rend invisible dès qu'elle est posée sur une carte.
  *
  * Plus trois règles de plomberie documentées sur place : mx-grow (gabarit),
  * mx-linkbutton (action à peau de lien) et mx-langpicker (sélecteur de langue
@@ -1308,4 +1310,26 @@
 .megga-x .input[readonly] {
   background-color: var(--neutral-colors--400);
   color: var(--neutral-colors--600);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * 21. Case à cocher décochée.
+ *
+ *     `.checkbox` de la vitrine porte `background-color: var(--neutral-colors--100)`,
+ *     soit `#030303` — la couleur du CANVAS. Sur une page de la vitrine, la case
+ *     est posée sur ce canvas et se lit par son filet. Sur une CARTE (`#090909`),
+ *     ce même remplissage devient un trou noir sur fond presque noir, et le filet
+ *     `--400` (`#181818`) donne 1,1:1 contre la carte : la case disparaît.
+ *
+ *     Constaté le 9 août 2026 sur l'attestation du récapitulatif — la seule case
+ *     du parcours, celle qui déverrouille la soumission, et qu'on ne voyait pas.
+ *
+ *     Remède : le remplissage d'un CHAMP (`--400`) et un filet `--500`, mesuré à
+ *     3,6:1 sur la carte, au-delà du 3:1 qu'exige WCAG 1.4.11 pour la limite d'un
+ *     composant d'interface. L'état COCHÉ n'est pas touché : la vitrine le peint
+ *     déjà en accent plein avec sa coche, parfaitement lisible.
+ * ───────────────────────────────────────────────────────────────────────── */
+.megga-x .checkbox:not(.w--redirected-checked) {
+  background-color: var(--neutral-colors--400);
+  border-color: var(--neutral-colors--500);
 }

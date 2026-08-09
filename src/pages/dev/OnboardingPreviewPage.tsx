@@ -160,7 +160,7 @@ type Dossier = 'vierge' | 'rempli' | 'verifie'
  * `retry: false` sont ce qui garde les fixtures en place : une revalidation partirait
  * sans session, échouerait, et remplacerait un écran rempli par un écran vide.
  */
-function makeClient(dossier: Dossier): QueryClient {
+function makeClient(dossier: Dossier, ecranId: string): QueryClient {
   const client = new QueryClient({
     defaultOptions: { queries: { staleTime: Infinity, retry: false, refetchOnWindowFocus: false } },
   })
@@ -188,13 +188,14 @@ function makeClient(dossier: Dossier): QueryClient {
   }
   client.setQueryData(['agency-identity-persons', AGENCY_ID], [signataireFixture(dossier === 'verifie')])
   client.setQueryData(['agency-settings', AGENCY_ID], { settings: AGENCY_FIXTURE, plan: 'pro', identitySubmittedAt: null })
-  // ⚠ AUCUN rendez-vous semé, sur aucun dossier. Il l'était sur « Vérifié » pour montrer
-  // la carte de confirmation — mais cette carte remplace TOUT le bloc, calendrier et
-  // formulaire compris, et « Vérifié » est justement le seul dossier où le formulaire a
-  // quelque chose à montrer : le nom verrouillé. Un état statique cachait les deux
-  // surfaces vivantes. `CALL_FIXTURE` reste ici, prête à être resemée si la carte de
-  // confirmation redevient le sujet.
-  void CALL_FIXTURE
+  // Rendez-vous semé selon l'ÉCRAN, pas selon le dossier — les deux surfaces qui le
+  // lisent en veulent l'inverse :
+  //   · étape « Rendez-vous » : PAS de réservation, sinon la carte de confirmation
+  //     remplace tout le bloc et masque le calendrier ET le formulaire, les deux
+  //     surfaces qu'on retouche ;
+  //   · « Récapitulatif » : une réservation, sinon la section relit « Aucun rendez-vous »
+  //     et on ne voit jamais la forme normale de cette relecture.
+  if (ecranId !== 'step3') client.setQueryData(['onboarding-call', AGENCY_ID], CALL_FIXTURE)
   return client
 }
 
@@ -244,7 +245,7 @@ export default function OnboardingPreviewPage() {
   // `key` sur le provider (plus bas) autant que sur le client : changer de dossier doit
   // REMONTER l'écran, sinon les brouillons locaux d'IdentityShell (hydratés une seule
   // fois, par `existingSignatory?.id`) garderaient la valeur du dossier précédent.
-  const client = useMemo(() => makeClient(dossier), [dossier])
+  const client = useMemo(() => makeClient(dossier, ecranId), [dossier, ecranId])
   const ecran = ECRANS.find((e) => e.id === ecranId) ?? ECRANS[0]
   const groupes = [...new Set(ECRANS.map((e) => e.groupe))]
 
