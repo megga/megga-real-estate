@@ -29,16 +29,16 @@ function HealthCard({ icon: Icon, title, level, lines }: {
 
   return (
     <AdminCard padding="15px 17px">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 9 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginBottom: 9 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', minWidth: 0 }}>
           <AdminIc icon={Icon} size={16} color={sp.sub} />
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{title}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{title}</span>
         </span>
         <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: dot[level], flexShrink: 0 }} />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
         {lines.map((l, i) => (
-          <p key={i} style={{ margin: 0, fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>{l}</p>
+          <p key={i} style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>{l}</p>
         ))}
       </div>
     </AdminCard>

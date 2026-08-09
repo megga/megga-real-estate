@@ -36,7 +36,7 @@ export default function SgSheet({
   const { tk } = useMobileTokens()
   const panelStyle: CSSProperties = {
     background: tk.card,
-    borderRadius: 22,
+    borderRadius: 'var(--crm-radius-5xl)',
     boxShadow: tk.shadowLg,
     bottom: `calc(${bottomGap}px + env(safe-area-inset-bottom))`,
     maxHeight: `${Math.round(maxHeightVh * 100)}vh`,

@@ -93,7 +93,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '22px 0',
+        padding: 'var(--crm-space-6xl) 0',
         boxSizing: 'border-box',
         animation: 'kypDocFade .25s ease both',
       }}
@@ -106,7 +106,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
           height: '100%',
           minHeight: 0,
           background: surf.card,
-          borderRadius: 22,
+          borderRadius: 'var(--crm-radius-5xl)',
           boxShadow: '0 40px 100px rgba(15,23,42,0.30), 0 8px 24px rgba(15,23,42,0.14)',
           display: 'flex',
           flexDirection: 'column',
@@ -119,8 +119,8 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            padding: '14px 18px',
+            gap: 'var(--crm-space-xl)',
+            padding: 'var(--crm-space-2xl) var(--crm-space-4xl)',
             borderBottom: `1px solid ${surf.hairline}`,
             flexShrink: 0,
           }}
@@ -129,7 +129,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
             style={{
               width: 34,
               height: 34,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               background: surf.cardSub,
               color: sp.ink,
               display: 'grid',
@@ -142,7 +142,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 14,
+                fontSize: 'var(--crm-text-xl)',
                 fontWeight: 700,
                 color: sp.ink,
                 whiteSpace: 'nowrap',
@@ -152,7 +152,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
             >
               {doc.name}
             </div>
-            <div style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>
               {humanSize(doc.size_bytes)}
             </div>
           </div>
@@ -161,14 +161,14 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
+              gap: 'var(--crm-space-sm)',
               height: 32,
-              padding: '0 13px',
-              borderRadius: 999,
+              padding: '0 var(--crm-space-xl)',
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               background: surf.cardSub,
               color: sp.ink,
-              fontSize: 12,
+              fontSize: 'var(--crm-text-md)',
               fontWeight: 700,
               cursor: 'pointer',
               flexShrink: 0,
@@ -183,7 +183,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
             style={{
               width: 34,
               height: 34,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               cursor: 'pointer',
               background: sp.focusBg,
@@ -209,8 +209,8 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
             padding: isPdf ? 0 : 24,
           }}
         >
-          {error && <div style={{ fontSize: 13, color: sp.sub, fontWeight: 500 }}>{error}</div>}
-          {!error && !url && <div style={{ fontSize: 13, color: sp.sub, fontWeight: 500 }}>Chargement de l'aperçu…</div>}
+          {error && <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500 }}>{error}</div>}
+          {!error && !url && <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500 }}>Chargement de l'aperçu…</div>}
           {!error && url && isPdf && (
             <iframe
               title={doc.name}
@@ -222,7 +222,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
             />
           )}
           {!error && url && !isPdf && (
-            <img src={url} alt={doc.name} style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 6 }} />
+            <img src={url} alt={doc.name} style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 'var(--crm-radius-xs)' }} />
           )}
         </div>
       </div>

@@ -66,12 +66,12 @@ function Row({ icon, iconKind = 'crm', label, trail, onClick, sp, danger = false
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        width: '100%', padding: '9px 10px',
+        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
+        width: '100%', padding: 'var(--crm-space-md) var(--crm-space-lg)',
         border: 0, background: hover ? sp.solidBgSub : 'transparent',
         cursor: 'pointer', textAlign: 'left',
         // Concentrique avec la coque : 26 (rayon du pager) − 12 (padding) = 14.
-        borderRadius: 14, fontFamily: 'inherit',
+        borderRadius: 'var(--crm-radius-xl)', fontFamily: 'inherit',
         // ⚠️ pas de transition de fond (bug pastilles noires)
       }}>
       {/* Pas de pastille derrière l'icône : le survol ne colore que la ligne,
@@ -86,7 +86,7 @@ function Row({ icon, iconKind = 'crm', label, trail, onClick, sp, danger = false
         }
       </div>
       <span style={{
-        flex: 1, fontSize: 13.5, fontWeight: 600, color: tint, letterSpacing: -0.1,
+        flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tint, letterSpacing: -0.1,
       }}>{label}</span>
       {trail}
     </button>
@@ -115,28 +115,28 @@ interface ProfileHeaderProps {
 function ProfileHeader({ sp, name, initials, subtitle, planLabel }: ProfileHeaderProps) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: '11px 12px 12px',
+      display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
+      padding: 'var(--crm-space-lg) var(--crm-space-xl) var(--crm-space-xl)',
     }}>
       <div style={{
-        width: 44, height: 44, borderRadius: 999,
+        width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)',
         background: sp.ink, color: sp.solidBg,
         display: 'grid', placeItems: 'center',
-        fontSize: 14.5, fontWeight: 800, letterSpacing: 0.3,
+        fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: 0.3,
         flexShrink: 0,
       }}>{initials}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
           <span style={{
-            fontSize: 14.5, fontWeight: 800, color: sp.ink, letterSpacing: -0.2,
+            fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: sp.ink, letterSpacing: -0.2,
             lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{name}</span>
           {planLabel && (
             <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 3,
-              padding: '2px 7px 2px 5px', borderRadius: 999,
+              display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)',
+              padding: 'var(--crm-space-2xs) var(--crm-space-sm) var(--crm-space-2xs) var(--crm-space-xs)', borderRadius: 'var(--crm-radius-pill)',
               background: sp.ink, color: sp.solidBg,
-              fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
+              fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
               flexShrink: 0, whiteSpace: 'nowrap',
             }}>
               <InlineIco name="spark" size={9} stroke={sp.solidBg} strokeWidth={2} />
@@ -145,7 +145,7 @@ function ProfileHeader({ sp, name, initials, subtitle, planLabel }: ProfileHeade
           )}
         </div>
         <div style={{
-          fontSize: 11.5, color: sp.sub, marginTop: 3,
+          fontSize: 'var(--crm-text-sm)', color: sp.sub, marginTop: 3,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{subtitle}</div>
       </div>
@@ -203,14 +203,14 @@ export default function SugarProfileDropdown({
   return (
     <div style={{
       position: 'absolute', top: 'calc(100% + 10px)', right: 0,
-      width: 304, padding: 12, zIndex: 9000,
+      width: 304, padding: 'var(--crm-space-xl)', zIndex: 9000,
       background: sp.solidBg,
       border: `1px solid ${sp.solidBorder}`,
       // Rayon du pager (viewport 26 px, cf. ContactsPager/BiensPager/CalendarApp) :
       // le popover retombe sur le coin haut-droit du pager, les deux courbures
       // doivent se répondre. Bordure et ombre restent en tokens `solid*` — le
       // popover est OPAQUE et surélevé, il n'emprunte pas le verre du pager.
-      borderRadius: 26,
+      borderRadius: 'var(--crm-radius-6xl)',
       boxShadow: sp.solidShadow,
       animation: 'sugar-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>
@@ -222,8 +222,8 @@ export default function SugarProfileDropdown({
         <>
           <Sep sp={sp} />
           <div style={{
-            padding: '2px 10px 6px',
-            fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2,
+            padding: 'var(--crm-space-2xs) var(--crm-space-lg) var(--crm-space-sm)',
+            fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.2,
             color: sp.sub,
           }}>{t('profile.platformSection')}</div>
           {/* Chevron et non flèche « sortie » : la console est une surface du
@@ -237,7 +237,7 @@ export default function SugarProfileDropdown({
 
       <Sep sp={sp} />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
         <Row sp={sp} icon="settings" label={t('profile.preferences')}
           onClick={wrap(onSettings)} />
         <Row sp={sp} iconKind="inline" icon="shield"

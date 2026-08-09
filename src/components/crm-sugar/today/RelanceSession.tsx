@@ -75,21 +75,21 @@ type RSVariant = 'primary' | 'ok' | 'outline' | 'ghost' | 'ghostDanger'
 function RSBtn({ children, variant = 'ghost', icon, onClick, full = false }: { children: ReactNode; variant?: RSVariant; icon?: ReactNode; onClick?: () => void; full?: boolean }) {
   const [h, setH] = useState(false)
   const base: React.CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-    width: full ? '100%' : 'auto', height: 48, padding: '0 22px', borderRadius: 999, cursor: 'pointer',
-    fontFamily: 'inherit', fontSize: 15, fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)',
+    width: full ? '100%' : 'auto', height: 48, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer',
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap',
     transition: 'all .16s ease', transform: h ? 'translateY(-1px)' : 'none', border: '0',
   }
   const styles: Record<RSVariant, React.CSSProperties> = {
     primary: { background: h ? '#5B63FF' : '#424BFB', color: '#fff', boxShadow: h ? 'none' : '0 8px 20px -8px rgba(66,75,251,.45)' },
     ok: { background: '#16643F', color: '#fff', boxShadow: '0 8px 20px -8px rgba(0,0,0,.5)' },
     outline: { background: h ? TK.cardHi : TK.card, color: TK.ink, border: `1px solid ${h ? TK.borderHi : TK.border}` },
-    ghost: { background: 'transparent', color: TK.sub, border: '1px solid transparent', height: 42, fontSize: 14, ...(h ? { color: TK.inkDim, background: TK.card } : {}) },
-    ghostDanger: { background: 'transparent', color: TK.sub, border: '1px solid transparent', height: 42, fontSize: 14, ...(h ? { color: '#F26B65', background: 'rgba(242,107,101,0.10)' } : {}) },
+    ghost: { background: 'transparent', color: TK.sub, border: '1px solid transparent', height: 42, fontSize: 'var(--crm-text-xl)', ...(h ? { color: TK.inkDim, background: TK.card } : {}) },
+    ghostDanger: { background: 'transparent', color: TK.sub, border: '1px solid transparent', height: 42, fontSize: 'var(--crm-text-xl)', ...(h ? { color: '#F26B65', background: 'rgba(242,107,101,0.10)' } : {}) },
   }
   return (
     <button onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
-      style={{ ...base, ...styles[variant], ...(variant.indexOf('ghost') === 0 ? { padding: '0 14px' } : {}) }}>
+      style={{ ...base, ...styles[variant], ...(variant.indexOf('ghost') === 0 ? { padding: '0 var(--crm-space-2xl)' } : {}) }}>
       {icon}{children}
     </button>
   )
@@ -103,19 +103,19 @@ function RSDraftCard({ lead, subject, draft, onSubject, onDraft, onRegen }: { le
   const grow = (el: HTMLTextAreaElement | null) => { if (!el) return; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' }
   useEffect(() => { grow(taRef.current) }, [draft])
   return (
-    <div style={{ border: `1px solid ${focus ? TK.borderHi : TK.cardBorder}`, borderRadius: 18, background: TK.card, overflow: 'hidden',
+    <div style={{ border: `1px solid ${focus ? TK.borderHi : TK.cardBorder}`, borderRadius: 'var(--crm-radius-3xl)', background: TK.card, overflow: 'hidden',
       transition: 'border-color .16s ease', animation: 'rsRise .4s cubic-bezier(.2,.8,.2,1) both' }}>
       {/* méta destinataire — À en haut, Objet en dessous (logique e-mail) */}
       <div style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${TK.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderBottom: `1px solid ${TK.border}` }}>
-          <span style={{ width: 42, flexShrink: 0, fontSize: 12.5, color: TK.sub, fontWeight: 700 }}>{t('today.relance.draft.to')}</span>
-          <span style={{ fontSize: 13, color: lead.email ? TK.inkDim : TK.faint, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{lead.email || t('today.relance.draft.emailMissing')}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-lg) var(--crm-space-3xl)', borderBottom: `1px solid ${TK.border}` }}>
+          <span style={{ width: 42, flexShrink: 0, fontSize: 'var(--crm-text-md)', color: TK.sub, fontWeight: 700 }}>{t('today.relance.draft.to')}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', color: lead.email ? TK.inkDim : TK.faint, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{lead.email || t('today.relance.draft.emailMissing')}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px' }}>
-          <span style={{ width: 42, flexShrink: 0, fontSize: 12.5, color: TK.sub, fontWeight: 700 }}>{t('today.relance.draft.subject')}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-sm) var(--crm-space-3xl)' }}>
+          <span style={{ width: 42, flexShrink: 0, fontSize: 'var(--crm-text-md)', color: TK.sub, fontWeight: 700 }}>{t('today.relance.draft.subject')}</span>
           <input value={subject} onChange={(e) => onSubject(e.target.value)} spellCheck={false}
             style={{ flex: 1, minWidth: 120, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit',
-              fontSize: 13, color: TK.ink, fontWeight: 700, padding: '4px 6px', borderRadius: 7,
+              fontSize: 'var(--crm-text-lg)', color: TK.ink, fontWeight: 700, padding: 'var(--crm-space-xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-sm)',
               transition: 'background .16s ease' }}
             onFocus={(e) => { e.target.style.background = TK.cardHi }}
             onBlur={(e) => { e.target.style.background = 'transparent' }} />
@@ -125,16 +125,16 @@ function RSDraftCard({ lead, subject, draft, onSubject, onDraft, onRegen }: { le
       <textarea ref={taRef} value={draft} onChange={(e) => { onDraft(e.target.value); grow(e.target) }}
         onFocus={() => setFocus(true)} onBlur={() => setFocus(false)} spellCheck={true}
         style={{ display: 'block', width: '100%', border: 0, outline: 'none', resize: 'none', overflow: 'hidden',
-          boxSizing: 'border-box', padding: '16px 18px', background: 'transparent', fontFamily: 'inherit',
-          fontSize: 14.5, color: TK.inkDim, lineHeight: 1.62 }} />
+          boxSizing: 'border-box', padding: 'var(--crm-space-3xl) var(--crm-space-4xl)', background: 'transparent', fontFamily: 'inherit',
+          fontSize: 'var(--crm-text-xl)', color: TK.inkDim, lineHeight: 1.62 }} />
       {/* barre d'actions du brouillon */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 13px' }}>
-        <button onClick={onRegen} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, background: 'transparent',
-          color: TK.sub, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', padding: '4px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: '0 var(--crm-space-3xl) var(--crm-space-xl)' }}>
+        <button onClick={onRegen} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', border: 0, background: 'transparent',
+          color: TK.sub, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, cursor: 'pointer', padding: 'var(--crm-space-xs) 0' }}>
           <RXIcon name="spark" size={13} sw={2} /> {t('today.relance.draft.regenerate')}
         </button>
         <div style={{ flex: 1 }} />
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: TK.faint, fontWeight: 700 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-sm)', color: TK.faint, fontWeight: 700 }}>
           <RXIcon name="edit" size={12} sw={2} /> {t('today.relance.draft.editable')}
         </span>
       </div>
@@ -379,59 +379,59 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   const overlay = (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center',
       background: 'rgba(8,9,12,.66)', backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)',
-      animation: 'rsFade .25s ease both', padding: 24, boxSizing: 'border-box' }}
+      animation: 'rsFade .25s ease both', padding: 'var(--crm-space-7xl)', boxSizing: 'border-box' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
 
       <div style={{ position: 'relative', width: 'min(760px, 96vw)', maxHeight: '92vh', display: 'flex', flexDirection: 'column',
-        background: TK.frame, border: `1px solid ${TK.borderHi}`, borderRadius: 28, boxShadow: TK.shadowLg,
+        background: TK.frame, border: `1px solid ${TK.borderHi}`, borderRadius: 'var(--crm-radius-6xl)', boxShadow: TK.shadowLg,
         overflow: 'hidden', transformOrigin: 'top right', animation: 'rsPop .42s cubic-bezier(.2,.85,.25,1) both',
         fontFamily: 'Manrope, system-ui, sans-serif', color: TK.ink }}>
 
         {/* HEAD */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderBottom: `1px solid ${TK.border}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-3xl) var(--crm-space-5xl)', borderBottom: `1px solid ${TK.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', flexShrink: 0 }}>
             <RSLogo size={28} />
-            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>{t('today.relance.header.title')}</div>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>{t('today.relance.header.title')}</div>
           </div>
           <div style={{ flex: 1 }} />
           {!done && lead && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
               {/* mini-barre de progression colorée par température (cohérence widget) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)' }}>
                 {leads.map((l, k) => {
                   const c = RS_TEMP[l.temp].color
                   const cur = k === i, past = k < i
                   return (
                     <span key={k} title={`${l.name} · ${t(RS_TEMP[l.temp].labelKey)}`} style={{
-                      width: cur ? 22 : 11, height: 7, borderRadius: 999, background: c,
+                      width: cur ? 22 : 11, height: 7, borderRadius: 'var(--crm-radius-pill)', background: c,
                       opacity: past ? 0.92 : cur ? 1 : 0.26,
                       boxShadow: cur ? `0 0 0 3px ${c}26` : 'none',
                       transition: 'width .3s cubic-bezier(.76,0,.24,1), opacity .3s ease, box-shadow .3s ease' }} />
                   )
                 })}
               </div>
-              <span style={{ fontSize: 11.5, fontWeight: 800, color: TK.sub, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: TK.sub, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                 {i + 1}<span style={{ color: TK.faint }}> / {leads.length}</span>
               </span>
             </div>
           )}
           <button onClick={onClose} title={t('today.relance.header.closeTitle')}
             style={{ marginLeft: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
-              borderRadius: 999, border: `1px solid ${TK.border}`, background: TK.card, color: TK.sub, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 15, flexShrink: 0 }}>
+              borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${TK.border}`, background: TK.card, color: TK.sub, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', flexShrink: 0 }}>
             ✕
           </button>
         </div>
 
         {done ? (
           /* ── ÉCRAN DE FIN ── */
-          <div style={{ padding: '56px 28px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+          <div style={{ padding: '56px 28px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-3xl)',
             animation: 'rsRise .4s cubic-bezier(.2,.8,.2,1) both' }}>
-            <div style={{ width: 64, height: 64, borderRadius: 999, background: '#16643F', color: '#fff', display: 'grid', placeItems: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: 'var(--crm-radius-pill)', background: '#16643F', color: '#fff', display: 'grid', placeItems: 'center' }}>
               <RXIcon name="check" size={30} sw={2.4} />
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5 }}>{t('today.relance.done.title')}</div>
-            <div style={{ fontSize: 15, color: TK.sub, fontWeight: 600, maxWidth: 400, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.5 }}>{t('today.relance.done.title')}</div>
+            <div style={{ fontSize: 'var(--crm-text-xl)', color: TK.sub, fontWeight: 600, maxWidth: 400, lineHeight: 1.5 }}>
               <b style={{ color: TK.inkDim }}>{counts.sent}</b> {t('today.relance.done.contacted', { count: counts.sent })}
               {counts.discarded > 0 && <> · <b style={{ color: TK.inkDim }}>{counts.discarded}</b> {t('today.relance.done.discarded', { count: counts.discarded })}</>}
               {counts.skipped > 0 && <> · <b style={{ color: TK.inkDim }}>{counts.skipped}</b> {t('today.relance.done.postponed', { count: counts.skipped })}</>}.
@@ -441,43 +441,43 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
           </div>
         ) : !lead ? (
           /* ── AUCUN LEAD À RELANCER ── état honnête : ni persona fabriqué, ni envoi */
-          <div style={{ padding: '56px 28px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+          <div style={{ padding: '56px 28px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-2xl)',
             animation: 'rsRise .4s cubic-bezier(.2,.8,.2,1) both' }}>
-            <div style={{ width: 60, height: 60, borderRadius: 999, background: TK.card, border: `1px solid ${TK.border}`, color: TK.sub, display: 'grid', placeItems: 'center' }}>
+            <div style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-pill)', background: TK.card, border: `1px solid ${TK.border}`, color: TK.sub, display: 'grid', placeItems: 'center' }}>
               <RXIcon name="check" size={26} sw={2.2} />
             </div>
-            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.4 }}>
+            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.4 }}>
               {isLoading ? t('today.relance.loading') : t('today.relance.noLeads.title')}
             </div>
             {!isLoading && (
-              <div style={{ fontSize: 14, color: TK.sub, fontWeight: 600, maxWidth: 380, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 'var(--crm-text-xl)', color: TK.sub, fontWeight: 600, maxWidth: 380, lineHeight: 1.5 }}>
                 {t('today.relance.noLeads.body')}
               </div>
             )}
             <div style={{ marginTop: 6 }}><RSBtn variant="primary" onClick={onClose}>{t('today.relance.done.backToDashboard')}</RSBtn></div>
           </div>
         ) : (
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '22px 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'var(--crm-space-6xl) var(--crm-space-7xl) var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
             {/* LEAD */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
               <Av initials={lead.initials} av={lead.av} size={48} ring />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.4 }}>{lead.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.4 }}>{lead.name}</span>
                 </div>
                 {/* pourquoi ce lead maintenant — renforce la confiance dans la suggestion IA */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginTop: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-sm)', marginTop: 5 }}>
                   <span style={{ color: TK.primary, flexShrink: 0, display: 'inline-flex', alignItems: 'center', height: '1.4em' }}><RXIcon name="spark" size={13} sw={2.2} /></span>
-                  <span style={{ fontSize: 13, color: TK.sub, fontWeight: 600, lineHeight: 1.4 }}>{lead.why}</span>
+                  <span style={{ fontSize: 'var(--crm-text-lg)', color: TK.sub, fontWeight: 600, lineHeight: 1.4 }}>{lead.why}</span>
                 </div>
               </div>
             </div>
 
             {/* ZONE MESSAGE */}
             {!asked && !gen && !genError && (
-              <div style={{ border: `1.5px dashed ${TK.borderHi}`, borderRadius: 18, padding: '34px 24px', textAlign: 'center',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, background: TK.card }}>
-                <div style={{ fontSize: 15.5, color: TK.inkDim, fontWeight: 700, lineHeight: 1.4, maxWidth: 360 }}>
+              <div style={{ border: `1.5px dashed ${TK.borderHi}`, borderRadius: 'var(--crm-radius-3xl)', padding: '34px 24px', textAlign: 'center',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-2xl)', background: TK.card }}>
+                <div style={{ fontSize: 'var(--crm-text-2xl)', color: TK.inkDim, fontWeight: 700, lineHeight: 1.4, maxWidth: 360 }}>
                   {t('today.relance.empty.prompt')}<br />{t('today.relance.empty.help')}
                 </div>
                 <RSBtn variant="primary" onClick={ask}>{t('today.relance.empty.cta')}</RSBtn>
@@ -486,9 +486,9 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
 
             {/* Échec de génération — message honnête, pas de faux brouillon */}
             {genError && !gen && (
-              <div style={{ border: `1.5px dashed rgba(242,107,101,0.4)`, borderRadius: 18, padding: '30px 24px', textAlign: 'center',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, background: 'rgba(242,107,101,0.06)' }}>
-                <div style={{ fontSize: 15, color: TK.inkDim, fontWeight: 700, lineHeight: 1.4, maxWidth: 380 }}>
+              <div style={{ border: `1.5px dashed rgba(242,107,101,0.4)`, borderRadius: 'var(--crm-radius-3xl)', padding: '30px 24px', textAlign: 'center',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-2xl)', background: 'rgba(242,107,101,0.06)' }}>
+                <div style={{ fontSize: 'var(--crm-text-xl)', color: TK.inkDim, fontWeight: 700, lineHeight: 1.4, maxWidth: 380 }}>
                   {t('today.relance.genError.title')}<br />{t('today.relance.genError.help')}
                 </div>
                 <RSBtn variant="primary" onClick={ask}>{t('today.relance.genError.retry')}</RSBtn>
@@ -496,14 +496,14 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
             )}
 
             {gen && (
-              <div style={{ border: `1px solid ${TK.cardBorder}`, borderRadius: 18, padding: '22px', background: TK.card,
-                display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: TK.primary }}>
+              <div style={{ border: `1px solid ${TK.cardBorder}`, borderRadius: 'var(--crm-radius-3xl)', padding: 'var(--crm-space-6xl)', background: TK.card,
+                display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', color: TK.primary }}>
                   <RXIcon name="spark" size={15} sw={2.2} />
-                  <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em' }}>{t('today.relance.generating')}</span>
+                  <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: '0.04em' }}>{t('today.relance.generating')}</span>
                 </div>
                 {[92, 86, 94, 60].map((w, k) => (
-                  <div key={k} style={{ height: 11, width: `${w}%`, borderRadius: 6, background: `linear-gradient(90deg, ${TK.cardHi}, ${TK.card}, ${TK.cardHi})`,
+                  <div key={k} style={{ height: 11, width: `${w}%`, borderRadius: 'var(--crm-radius-xs)', background: `linear-gradient(90deg, ${TK.cardHi}, ${TK.card}, ${TK.cardHi})`,
                     backgroundSize: '200% 100%', animation: 'rsShimmer 1.1s linear infinite', animationDelay: `${k * 0.08}s` }} />
                 ))}
               </div>
@@ -517,20 +517,20 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
                   onRegen={regen} />
 
                 {/* ACTIONS — copier = geste central ; envoi MEGGA = chemin intégré */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
                   {sent ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 14,
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-xl)',
                       background: 'rgba(22,100,63,0.16)', border: '1px solid rgba(52,199,150,0.32)', animation: 'rsFade .25s ease both' }}>
-                      <span style={{ width: 34, height: 34, borderRadius: 999, background: '#16643F', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <span style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', background: '#16643F', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                         <RXIcon name="check" size={18} sw={2.4} />
                       </span>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: TK.ink }}>{t('today.relance.sent.title')}</div>
-                        <div style={{ fontSize: 12.5, color: TK.sub, fontWeight: 600 }}>{t('today.relance.sent.tracked', { name: lead.name.split(' ')[0] })}</div>
+                        <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: TK.ink }}>{t('today.relance.sent.title')}</div>
+                        <div style={{ fontSize: 'var(--crm-text-md)', color: TK.sub, fontWeight: 600 }}>{t('today.relance.sent.tracked', { name: lead.name.split(' ')[0] })}</div>
                       </div>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: 11, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'center', flexWrap: 'wrap' }}>
                       {copied
                         ? <RSBtn variant="ok" icon={<RXIcon name="check" size={17} sw={2.4} />}>{t('today.relance.actions.copied')}</RSBtn>
                         : <RSBtn variant="primary" onClick={copy} icon={<RSCopyIcon />}>{t('today.relance.actions.copy')}</RSBtn>}
@@ -542,7 +542,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
                     </div>
                   )}
                   {sendError && (
-                    <div style={{ fontSize: 12.5, color: '#F26B65', fontWeight: 700 }}>{t('today.relance.sendError')}</div>
+                    <div style={{ fontSize: 'var(--crm-text-md)', color: '#F26B65', fontWeight: 700 }}>{t('today.relance.sendError')}</div>
                   )}
                 </div>
               </>
@@ -552,7 +552,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
 
         {/* FOOTER NAV */}
         {!done && lead && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 20px', borderTop: `1px solid ${TK.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-2xl) var(--crm-space-5xl)', borderTop: `1px solid ${TK.border}` }}>
             <RSBtn variant="ghost" onClick={skip}>{t('today.relance.nav.later')}</RSBtn>
             <RSBtn variant="ghostDanger" onClick={notInterested}>{t('today.relance.nav.notInterested')}</RSBtn>
             <div style={{ flex: 1 }} />
@@ -565,12 +565,12 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
         {/* TOAST UNDO — filet de sécurité après « Pas intéressé » */}
         {undo && (
           <div style={{ position: 'absolute', left: '50%', bottom: 84, transform: 'translateX(-50%)', zIndex: 8,
-            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 9px 9px 16px', borderRadius: 999,
+            display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-md) var(--crm-space-md) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)',
             background: TK.frameHi || '#1b1d24', border: `1px solid ${TK.borderHi}`, boxShadow: TK.shadowLg,
             whiteSpace: 'nowrap', animation: 'rsRise .3s cubic-bezier(.2,.8,.2,1) both' }}>
-            <span style={{ fontSize: 13, color: TK.inkDim, fontWeight: 700 }}>{t('today.relance.undo.discarded', { name: undo.name })}</span>
-            <button onClick={undoDiscard} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px',
-              borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 800,
+            <span style={{ fontSize: 'var(--crm-text-lg)', color: TK.inkDim, fontWeight: 700 }}>{t('today.relance.undo.discarded', { name: undo.name })}</span>
+            <button onClick={undoDiscard} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 32, padding: '0 var(--crm-space-2xl)',
+              borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800,
               background: '#F2F2F6', color: '#0A0A0F' }}>
               {t('today.relance.undo.cancel')}
             </button>

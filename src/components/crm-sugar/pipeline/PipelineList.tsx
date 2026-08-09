@@ -47,14 +47,14 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
   return (
     <div style={{
       background: sp.cardBg, border: `1px solid ${sp.cardBorder}`,
-      borderRadius: 22, overflow: 'hidden',
+      borderRadius: 'var(--crm-radius-5xl)', overflow: 'hidden',
       boxShadow: sp.shadow,
     }}>
       <div style={{
-        display: 'grid', gridTemplateColumns: cols, gap: 14,
-        padding: '13px 20px', background: sp.cardBg,
+        display: 'grid', gridTemplateColumns: cols, gap: 'var(--crm-space-2xl)',
+        padding: 'var(--crm-space-xl) var(--crm-space-5xl)', background: sp.cardBg,
         borderBottom: `1px solid ${sp.cardBorder}`,
-        fontSize: 10.5, fontWeight: 700, color: sp.sub,
+        fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: sp.sub,
         letterSpacing: 0.4, textTransform: 'uppercase',
       }}>
         <span style={{ gridColumn: '1 / 3' }}>{t('board.list.dealContact')}</span>
@@ -72,25 +72,25 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
         const di = dueInfo(na)
         return (
           <div key={deal.id} onClick={() => onOpenDeal(deal.id)} style={{
-            display: 'grid', gridTemplateColumns: cols, gap: 14,
-            padding: '13px 20px', alignItems: 'center',
+            display: 'grid', gridTemplateColumns: cols, gap: 'var(--crm-space-2xl)',
+            padding: 'var(--crm-space-xl) var(--crm-space-5xl)', alignItems: 'center',
             borderBottom: i < deals.length - 1 ? `1px solid ${sp.cardBorder}` : 0,
-            fontSize: 13, cursor: 'pointer',
+            fontSize: 'var(--crm-text-lg)', cursor: 'pointer',
             transition: 'background .12s',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = sp.cardSubBg }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
             <div style={{
-              width: 32, height: 32, borderRadius: 999,
+              width: 32, height: 32, borderRadius: 'var(--crm-radius-pill)',
               background: avBg, color: avFg,
-              fontSize: 11, fontWeight: 800, display: 'grid', placeItems: 'center',
+              fontSize: 'var(--crm-text-sm)', fontWeight: 800, display: 'grid', placeItems: 'center',
             }}>{crmInitials(`${c.firstName} ${c.lastName}`)}</div>
             <div style={{
-              fontSize: 13, fontWeight: 800, letterSpacing: -0.2, color: sp.ink,
+              fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, color: sp.ink,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{c.firstName} {c.lastName}</div>
             <div style={{
-              fontSize: 12, fontWeight: 600, color: b ? sp.soft : sp.sub,
+              fontSize: 'var(--crm-text-md)', fontWeight: 600, color: b ? sp.soft : sp.sub,
               fontStyle: b ? 'normal' : 'italic',
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>
@@ -98,29 +98,29 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
             </div>
             <span style={{
               display: 'inline-flex', alignItems: 'center',
-              padding: '4px 11px', borderRadius: 999, background: hue,
-              fontSize: 11, color: '#fff', fontWeight: 700, width: 'fit-content',
+              padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: hue,
+              fontSize: 'var(--crm-text-sm)', color: '#fff', fontWeight: 700, width: 'fit-content',
               whiteSpace: 'nowrap', letterSpacing: -0.1,
             }}>
               {t(`stages.${deal.stage}`, { defaultValue: CRM_STAGES[deal.stage].label })}
             </span>
             <span style={{
-              textAlign: 'right', paddingRight: 56, fontSize: 13, fontWeight: 800,
+              textAlign: 'right', paddingRight: 56, fontSize: 'var(--crm-text-lg)', fontWeight: 800,
               color: sp.ink, fontVariantNumeric: 'tabular-nums',
             }}>
               {fmtVal(deal.value)}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, paddingLeft: 64 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', minWidth: 0, paddingLeft: 64 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', minWidth: 0 }}>
                 {na ? (
                   <span style={{
-                    fontSize: 12.5, fontWeight: 600, color: sp.soft,
+                    fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.soft,
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>{na.note || t(`timeline.kind.${na.kind}`, { defaultValue: t('timeline.kind.fallback') })}</span>
                 ) : null}
                 {di.label && (
                   <span style={{
-                    fontSize: 10, fontWeight: 800, letterSpacing: 0.2, textTransform: 'uppercase',
+                    fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.2, textTransform: 'uppercase',
                     color: di.overdue ? danger : sp.sub, fontVariantNumeric: 'tabular-nums',
                   }}>{di.label}</span>
                 )}
@@ -130,7 +130,7 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
         )
       })}
       {deals.length === 0 && (
-        <div style={{ padding: '40px 24px', textAlign: 'center', color: sp.sub, fontSize: 13 }}>
+        <div style={{ padding: '40px 24px', textAlign: 'center', color: sp.sub, fontSize: 'var(--crm-text-lg)' }}>
           {t('board.list.noMatch')}
         </div>
       )}

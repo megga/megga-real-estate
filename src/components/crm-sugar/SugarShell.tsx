@@ -48,13 +48,13 @@ interface SugarRoundIconBtnProps {
 export function SugarRoundIconBtn({ children, dot, onClick, sp, title }: SugarRoundIconBtnProps) {
   return (
     <button onClick={onClick} title={title} aria-label={title} style={{
-      width: 44, height: 44, borderRadius: 999, border: 0, background: 'transparent',
+      width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent',
       boxShadow: 'none', display: 'grid', placeItems: 'center', cursor: 'pointer',
       position: 'relative', padding: 0,
     }}>
       {children}
       {dot && <span style={{
-        position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 999,
+        position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)',
         // Le liseré détourait la pastille ; sans elle, il se cale sur le fond de page.
         background: '#E53935', border: `2px solid ${sp.pageBg}`,
       }} />}
@@ -219,7 +219,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
     {lifted && <div aria-hidden style={{ height: barBox.h, flexShrink: 0 }} />}
     <div ref={barRef} style={{
       display: 'flex', alignItems: 'center', padding: '24px 24px 14px 33px',
-      gap: 24,
+      gap: 'var(--crm-space-7xl)',
       // Coordonnées `fixed` = coordonnées en flux (la barre est pleine largeur
       // dans les deux cas) → aucun saut visuel au basculement. Dock fermé, on
       // laisse la barre `static` (et non `relative`) : positionner un élément le
@@ -240,21 +240,21 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
           <path fill={sp.ink} d="M511.94,0c43.2,4.34,82.78,21.02,114.61,50.52,6.43,5.96,12.05,11.43,17.39,19.2l-56.72,84.95c-7.57-14.34-16.16-25.96-27.71-36.03-33.9-29.56-83.44-31.58-119.35-4.39-12.97,9.71-22.64,21.92-30.74,35.77l-101.14-.14c10.87-40.77,32.85-75.32,63.12-102.25C402.99,19.45,441.75,4.18,482.95.02h29-.01Z"/>
         </svg>
       </div>
-      <nav style={{ display: 'flex', gap: 4, flex: 1, justifyContent: 'center' }}>
+      <nav style={{ display: 'flex', gap: 'var(--crm-space-xs)', flex: 1, justifyContent: 'center' }}>
         {tabs.map(tab => {
           const isActive = tab.id === active
           return (
             <button key={tab.id} onClick={() => onNavigate && onNavigate(tab.id)} style={{
-              padding: '10px 22px', borderRadius: 999, border: 0, cursor: 'pointer',
+              padding: 'var(--crm-space-lg) var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
               background: isActive ? sp.ink : 'transparent',
               color: isActive ? sp.pageBg : sp.soft,
-              fontWeight: isActive ? 700 : 500, fontSize: 14.5,
+              fontWeight: isActive ? 700 : 500, fontSize: 'var(--crm-text-xl)',
               fontFamily: 'inherit', boxShadow: isActive ? sp.focusShadow : 'none',
             }}>{tab.label}</button>
           )
         })}
       </nav>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
         <SugarRoundIconBtn sp={sp} title={tc('nav.search')} onClick={() => openSugarSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={TOPNAV_ICON} /></SugarRoundIconBtn>
         {/* Aide contextuelle : ouvre l'article Help Center de l'écran courant (ou le
             Centre d'aide à défaut, public si Intercom n'est pas configuré). */}
@@ -268,7 +268,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
           title={tc('nav.aiAgent')}
           aria-expanded={ai.enabled ? ai.isOpen : undefined}
           style={{
-            width: 44, height: 44, borderRadius: 999, border: 0, padding: 0,
+            width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, padding: 0,
             // Seul bouton de la barre à reprendre un aplat, et seulement ACTIF :
             // MEGGA AI ouvert est un mode persistant, pas un survol — il mérite un
             // repère que l'encre seule ne portait pas. Au repos, glyphe nu comme
@@ -287,7 +287,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
             onClick={() => setNotifOpen(o => !o)}
             title={tc('nav.notifications')}
             style={{
-              width: 44, height: 44, borderRadius: 999, border: 0, padding: 0,
+              width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, padding: 0,
               background: 'transparent', boxShadow: 'none',
               display: 'grid', placeItems: 'center', cursor: 'pointer',
               position: 'relative',
@@ -299,10 +299,10 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
                 // Remonté d'un cran (top/right 7 → 4) : le glyphe agrandi occupe
                 // désormais la boîte, la pastille se posait sur son tracé.
                 position: 'absolute', top: 4, right: 4,
-                minWidth: 16, height: 16, borderRadius: 999,
+                minWidth: 16, height: 16, borderRadius: 'var(--crm-radius-pill)',
                 background: '#E53935', color: '#fff',
-                fontSize: 9.5, fontWeight: 800,
-                display: 'grid', placeItems: 'center', padding: '0 4px',
+                fontSize: 'var(--crm-text-xs)', fontWeight: 800,
+                display: 'grid', placeItems: 'center', padding: '0 var(--crm-space-xs)',
                 // Détourage sur le fond de page, la pastille de verre ayant disparu.
                 border: `2px solid ${sp.pageBg}`,
                 fontVariantNumeric: 'tabular-nums',
@@ -337,11 +337,11 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
             aria-expanded={profileOpen}
             title={`${displayName} · ${displayRole}`}
             style={{
-              width: 44, height: 44, borderRadius: 999, border: 0,
+              width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0,
               background: profileOpen ? sp.ink : t.primary,
               color: '#fff',
               display: 'grid', placeItems: 'center',
-              fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              fontSize: 'var(--crm-text-xl)', fontWeight: 700, cursor: 'pointer',
               boxShadow: profileOpen
                 ? '0 6px 20px rgba(11,12,14,0.25)'
                 : sp.shadow,

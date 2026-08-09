@@ -29,7 +29,7 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
       style={{
         border: `1px solid ${tk.cardBorder}`,
         background: tk.card,
-        borderRadius: 18,
+        borderRadius: 'var(--crm-radius-3xl)',
         boxShadow: tk.shadowSm,
         overflow: 'hidden',
       }}
@@ -51,12 +51,12 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
         </div>
       </div>
 
-      <div style={{ padding: '13px 14px 14px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div style={{ padding: 'var(--crm-space-xl) var(--crm-space-2xl) var(--crm-space-2xl)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
-                fontSize: 14.5,
+                fontSize: 'var(--crm-text-xl)',
                 fontWeight: 800,
                 color: tk.ink,
                 letterSpacing: -0.3,
@@ -69,7 +69,7 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
             </div>
             <div
               style={{
-                fontSize: 11.5,
+                fontSize: 'var(--crm-text-sm)',
                 fontWeight: 600,
                 color: tk.muted,
                 marginTop: 2,
@@ -83,7 +83,7 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
           </div>
           <div
             style={{
-              fontSize: 15,
+              fontSize: 'var(--crm-text-xl)',
               fontWeight: 800,
               color: tk.ink,
               letterSpacing: -0.4,
@@ -95,7 +95,7 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 9, marginTop: 13 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-md)', marginTop: 13 }}>
           {canSchedule ? (
             <button
               type="button"
@@ -103,18 +103,18 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
               style={{
                 flex: 1,
                 height: 40,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 border: `1px solid ${isDark ? 'rgba(255,255,255,0.14)' : '#E4E7EC'}`,
                 background: 'transparent',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                fontSize: 12.5,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 700,
                 color: tk.ink,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 7,
+                gap: 'var(--crm-space-sm)',
               }}
             >
               <MEIcon name="calendar" size={15} strokeWidth={2} color={scheduled ? tk.muted : tk.ink} />
@@ -127,18 +127,18 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
             style={{
               flex: 1,
               height: 40,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               border: 0,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 12.5,
+              fontSize: 'var(--crm-text-md)',
               fontWeight: 800,
               background: sent ? tk.cardSubtle : tk.accent,
               color: sent ? tk.muted : tk.accentInk,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 7,
+              gap: 'var(--crm-space-sm)',
             }}
           >
             <MEIcon name={sent ? 'check' : 'arrow-right'} size={15} strokeWidth={2.2} color={sent ? tk.muted : tk.accentInk} />

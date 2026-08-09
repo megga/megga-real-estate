@@ -36,23 +36,23 @@ export default function AdminPage({ title, subtitle, actions, children, width = 
         animation: 'admFadeUp .32s cubic-bezier(.2,.8,.2,1) both',
       }}
     >
-      <header style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 20 }}>
+      <header style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-3xl)', marginBottom: 20 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: -0.6, color: sp.ink, lineHeight: 1.15 }}>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.6, color: sp.ink, lineHeight: 1.15 }}>
             {title}
           </h1>
           {subtitle && (
-            <p style={{ margin: '5px 0 0', fontSize: 13, fontWeight: 500, color: sp.sub, lineHeight: 1.45 }}>
+            <p style={{ margin: '5px 0 0', fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: sp.sub, lineHeight: 1.45 }}>
               {subtitle}
             </p>
           )}
         </div>
         {actions && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>{actions}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexShrink: 0 }}>{actions}</div>
         )}
       </header>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>{children}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>{children}</div>
     </div>
   )
 }

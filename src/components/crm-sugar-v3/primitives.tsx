@@ -44,7 +44,7 @@ export function KycBlackPill({
       style={{
         height: h,
         padding: size === 'lg' ? '0 26px' : '0 18px',
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: disabled
           ? SugarV3.ghost
@@ -59,7 +59,7 @@ export function KycBlackPill({
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 9,
+        gap: 'var(--crm-space-md)',
         whiteSpace: 'nowrap',
         boxShadow: disabled
           ? 'none'
@@ -113,7 +113,7 @@ export function KycGhostPill({
       style={{
         height: h,
         padding: size === 'sm' ? '0 14px' : '0 18px',
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: active ? SugarV3.black : hover ? SugarV3.card : 'transparent',
         color: active ? '#fff' : SugarV3.inkSoft,
@@ -164,7 +164,7 @@ export function KycCircleBtn({
       style={{
         width: size,
         height: size,
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: SugarV3.cardSubtle,
         color: SugarV3.inkSoft,
@@ -193,7 +193,7 @@ export function KycCircleBtn({
             right: 8,
             width: 8,
             height: 8,
-            borderRadius: 999,
+            borderRadius: 'var(--crm-radius-pill)',
             background: SugarV3.err,
             boxShadow: `0 0 0 2px ${SugarV3.cardSubtle}`,
           }}
@@ -220,8 +220,8 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
     <div
       style={{
         background: SugarV3.card,
-        borderRadius: 22,
-        padding: '22px 24px',
+        borderRadius: 'var(--crm-radius-5xl)',
+        padding: 'var(--crm-space-6xl) var(--crm-space-7xl)',
         boxShadow: SugarV3.shadow,
         minHeight: 124,
         display: 'flex',
@@ -231,7 +231,7 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
     >
       <div
         style={{
-          fontSize: 11,
+          fontSize: 'var(--crm-text-sm)',
           fontWeight: 600,
           letterSpacing: 1.1,
           textTransform: 'uppercase',
@@ -244,7 +244,7 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
         style={{
           display: 'flex',
           alignItems: 'baseline',
-          gap: 8,
+          gap: 'var(--crm-space-md)',
           marginTop: 14,
         }}
       >
@@ -265,7 +265,7 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
             style={{
               width: 8,
               height: 8,
-              borderRadius: 999,
+              borderRadius: 'var(--crm-radius-pill)',
               background: accent,
               marginBottom: 6,
             }}
@@ -275,7 +275,7 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
       {sub && (
         <div
           style={{
-            fontSize: 12.5,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 500,
             color: SugarV3.muted,
             marginTop: 8,
@@ -311,7 +311,7 @@ export function KycStepper({ steps, current, onJump }: StepperProps) {
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: active
                   ? SugarV3.black
@@ -320,7 +320,7 @@ export function KycStepper({ steps, current, onJump }: StepperProps) {
                     : SugarV3.card,
                 color: active || done ? '#fff' : SugarV3.muted,
                 fontFamily: 'inherit',
-                fontSize: 12,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 700,
                 cursor: reachable ? 'pointer' : 'default',
                 display: 'grid',

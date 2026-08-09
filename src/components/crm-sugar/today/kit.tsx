@@ -65,7 +65,7 @@ export function Av({ initials, av, size = 38, ring = false }: AvProps) {
   return (
     <div
       style={{
-        width: size, height: size, borderRadius: 999, background: av || '#6F8CFF',
+        width: size, height: size, borderRadius: 'var(--crm-radius-pill)', background: av || '#6F8CFF',
         color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0,
         fontSize: size * 0.36, fontWeight: 700, letterSpacing: -0.2,
         fontVariantNumeric: 'tabular-nums',
@@ -87,7 +87,7 @@ export function Eyebrow({ children, color }: EyebrowProps) {
   return (
     <div
       style={{
-        fontSize: 10.5, fontWeight: 800, letterSpacing: '0.13em', textTransform: 'uppercase',
+        fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: '0.13em', textTransform: 'uppercase',
         color: color || TK.sub,
       }}
     >

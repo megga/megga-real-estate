@@ -28,7 +28,7 @@ export default function MobileHeaderBack({ title, onBack, right }: MobileHeaderB
         zIndex: 40,
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
+        gap: 'var(--crm-space-xl)',
         padding: 'calc(env(safe-area-inset-top) + 12px) 16px 12px',
         background: tk.headerBg,
         backdropFilter: 'blur(12px)',
@@ -41,7 +41,7 @@ export default function MobileHeaderBack({ title, onBack, right }: MobileHeaderB
         style={{
           width: 40,
           height: 40,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           display: 'grid',
           placeItems: 'center',
           background: tk.card,
@@ -54,7 +54,7 @@ export default function MobileHeaderBack({ title, onBack, right }: MobileHeaderB
         <MEIcon name="chevron-left" size={20} color={tk.ink} />
       </Pressable>
       {title ? (
-        <h1 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
           {title}
         </h1>
       ) : null}

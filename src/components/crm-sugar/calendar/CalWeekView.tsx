@@ -57,7 +57,7 @@ export function CalWeekView({
       {/* En-tête des jours */}
       <div style={{
         display: 'grid', gridTemplateColumns: '64px repeat(7, minmax(0,1fr))',
-        padding: '8px 10px 6px', borderBottom: `1px solid ${SP.line}`, flexShrink: 0,
+        padding: 'var(--crm-space-md) var(--crm-space-lg) var(--crm-space-sm)', borderBottom: `1px solid ${SP.line}`, flexShrink: 0,
       }}>
         <div />
         {weekDays.map((d, i) => {
@@ -68,16 +68,16 @@ export function CalWeekView({
               onClick={() => onOpenDay(d)}
               style={{
                 border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer',
-                padding: '4px 0 2px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                padding: 'var(--crm-space-xs) 0 var(--crm-space-2xs)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-2xs)',
               }}
             >
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: SP.muted, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SP.muted, letterSpacing: 0.8, textTransform: 'uppercase' }}>
                 {days[d.getDay()]}
               </span>
               <span style={{
-                width: 34, height: 34, borderRadius: 999, display: 'grid', placeItems: 'center',
+                width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center',
                 background: isToday ? SP.accent : 'transparent', color: isToday ? SP.onAccent : SP.ink,
-                fontSize: 16, fontWeight: 700, letterSpacing: -0.3,
+                fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3,
               }}>
                 {d.getDate()}
               </span>
@@ -89,7 +89,7 @@ export function CalWeekView({
       <CalAllDayBand days={weekDays} events={events} selectedId={selectedId} onSelect={onSelectEvent} />
 
       {/* Corps scrollable */}
-      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 10px 12px' }}>
+      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'var(--crm-space-md) var(--crm-space-lg) var(--crm-space-xl)' }}>
         <div style={{
           display: 'grid', gridTemplateColumns: '64px repeat(7, minmax(0,1fr))',
           height: '100%', minHeight: MIN_H, position: 'relative',

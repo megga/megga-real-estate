@@ -45,11 +45,11 @@ export default function SgActionMenu({
   return (
     <SgBottomCard open={open} onClose={onClose} ariaLabel={ariaLabel ?? title}>
       {hasHeader ? (
-        <div style={{ padding: '15px 17px 11px' }}>
+        <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-3xl) var(--crm-space-lg)' }}>
           {title ? (
             <div
               style={{
-                fontSize: 15,
+                fontSize: 'var(--crm-text-xl)',
                 fontWeight: 800,
                 letterSpacing: -0.3,
                 color: tk.ink,
@@ -62,7 +62,7 @@ export default function SgActionMenu({
             </div>
           ) : null}
           {subtitle ? (
-            <div style={{ fontSize: 12, fontWeight: 600, color: tk.muted, marginTop: 2 }}>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 2 }}>
               {subtitle}
             </div>
           ) : null}
@@ -84,8 +84,8 @@ export default function SgActionMenu({
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 13,
-                padding: '13px 16px',
+                gap: 'var(--crm-space-xl)',
+                padding: 'var(--crm-space-xl) var(--crm-space-3xl)',
                 minHeight: 48,
                 border: 0,
                 background: 'transparent',
@@ -100,7 +100,7 @@ export default function SgActionMenu({
               <span
                 style={{
                   flex: 1,
-                  fontSize: 14,
+                  fontSize: 'var(--crm-text-xl)',
                   fontWeight: 700,
                   letterSpacing: -0.2,
                   color: tone,

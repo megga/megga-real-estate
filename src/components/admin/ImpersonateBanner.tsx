@@ -40,7 +40,7 @@ export default function ImpersonateBanner() {
         className="imp-exit ml-2 h-6 px-2.5 flex items-center gap-1.5"
         style={{
           borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-          color: 'inherit', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
+          color: 'inherit', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700,
         }}
       >
         <MEIcon name="close" size={13} />

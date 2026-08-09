@@ -61,14 +61,14 @@ function CalSyncToast({ data, onDone }: { data: ToastData; onDone: () => void })
   const color = data.toneColor || (pair ? (dk ? pair[1] : pair[0]) : SP.accent)
   return (
     <div style={{ position: 'fixed', left: '50%', bottom: 26, zIndex: 999, transform: 'translateX(-50%)', animation: 'calToastIn .32s cubic-bezier(.2,.8,.2,1) both' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: SP.card, color: SP.ink, borderRadius: 14, padding: '11px 17px 11px 12px', minWidth: 288, maxWidth: 460, boxShadow: dk ? SP.shadowHover : '0 20px 54px rgba(15,23,42,0.18), 0 4px 14px rgba(15,23,42,0.10)' }}>
-        <div style={{ width: 28, height: 28, borderRadius: 999, flexShrink: 0, display: 'grid', placeItems: 'center', background: phase === 'done' ? color : 'transparent' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', background: SP.card, color: SP.ink, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-lg) var(--crm-space-3xl) var(--crm-space-lg) var(--crm-space-xl)', minWidth: 288, maxWidth: 460, boxShadow: dk ? SP.shadowHover : '0 20px 54px rgba(15,23,42,0.18), 0 4px 14px rgba(15,23,42,0.10)' }}>
+        <div style={{ width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, display: 'grid', placeItems: 'center', background: phase === 'done' ? color : 'transparent' }}>
           {phase === 'done'
             ? <CalIcon name="check" size={15} stroke="#FFFFFF" sw={3} />
-            : <div style={{ width: 16, height: 16, borderRadius: 999, border: `2px solid ${dk ? 'rgba(255,255,255,0.16)' : 'rgba(11,12,14,0.12)'}`, borderTopColor: color, animation: 'calSpin .7s linear infinite' }} />}
+            : <div style={{ width: 16, height: 16, borderRadius: 'var(--crm-radius-pill)', border: `2px solid ${dk ? 'rgba(255,255,255,0.16)' : 'rgba(11,12,14,0.12)'}`, borderTopColor: color, animation: 'calSpin .7s linear infinite' }} />}
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
             <span style={{ color, fontWeight: 800 }}>{phase === 'done' ? t('toast.synced') : t('toast.syncing')}</span>
             <span style={{ color: SP.muted }}>{' · ' + data.change}</span>
           </div>
@@ -92,18 +92,18 @@ function CalToolbar({ view, onView, headerLabel, onToday, onPrev, onNext, onCrea
   const SP = useCalPalette()
   const { t } = useTranslation('calendar')
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 20px', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
-      <button onClick={onToday} style={{ height: 38, padding: '0 16px', borderRadius: 999, border: 0, background: SP.cardSubtle, color: SP.ink, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
+      <button onClick={onToday} style={{ height: 38, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.cardSubtle, color: SP.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
         {t('common:time.today', { defaultValue: 'Aujourd\'hui' })}
       </button>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flexShrink: 0 }}>
         <CalCircleBtn icon={<CalIcon name="chevL" size={17} stroke={SP.inkSoft} />} onClick={onPrev} title={t('common:actions.previous', { defaultValue: 'Précédent' })} size={38} />
         <CalCircleBtn icon={<CalIcon name="chevR" size={17} stroke={SP.inkSoft} />} onClick={onNext} title={t('common:actions.next', { defaultValue: 'Suivant' })} size={38} />
       </div>
-      <div style={{ fontSize: 21, fontWeight: 800, color: SP.ink, letterSpacing: -0.5, marginLeft: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{headerLabel}</div>
+      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, color: SP.ink, letterSpacing: -0.5, marginLeft: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{headerLabel}</div>
       <div style={{ flex: 1 }} />
       <CalViewToggle value={view} onChange={onView} />
-      <button onClick={onCreate} style={{ height: 40, padding: '0 18px', borderRadius: 999, border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7, boxShadow: SP.shadowSm, flexShrink: 0 }}>
+      <button onClick={onCreate} style={{ height: 40, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', boxShadow: SP.shadowSm, flexShrink: 0 }}>
         <CalIcon name="plus" size={15} stroke={SP.onAccent} sw={2.6} />{t('page.newEvent')}
       </button>
     </div>
@@ -130,15 +130,15 @@ function CalConnectBanner({ invite }: { invite: CalendarInvite }) {
   const SP = useCalPalette()
   const { t } = useTranslation('calendar')
   const btn: React.CSSProperties = {
-    height: 28, padding: '0 12px', borderRadius: 999, border: `1px solid ${SP.line}`,
+    height: 28, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${SP.line}`,
     background: 'transparent', color: SP.ink, cursor: 'pointer', fontFamily: 'inherit',
-    fontSize: 11.5, fontWeight: 700, flexShrink: 0,
+    fontSize: 'var(--crm-text-sm)', fontWeight: 700, flexShrink: 0,
   }
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: `1px solid ${SP.line}`, color: SP.ink }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, color: SP.ink }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700 }}>{t('onboarding.title')}</div>
-        <div style={{ fontSize: 11.5, color: SP.muted }}>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>{t('onboarding.title')}</div>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: SP.muted }}>
           {invite.error ? t('onboarding.connectFailed', { error: invite.error }) : t('onboarding.privacy')}
         </div>
       </div>
@@ -470,28 +470,28 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           <SugarIconRail active="calendar" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
 
-          <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+          <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
             <div style={{
-              position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
+              position: 'relative', height: '100%', borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden',
               border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.pageBg,
               display: 'grid', gridTemplateColumns: '296px 1fr', gridTemplateRows: '1fr', minHeight: 0,
             }}>
               {/* Rail gauche */}
-              <aside style={{ padding: '24px 22px', overflowY: 'auto', minHeight: 0 }}>
+              <aside style={{ padding: 'var(--crm-space-7xl) var(--crm-space-6xl)', overflowY: 'auto', minHeight: 0 }}>
                 <CalRail currentDate={currentDate} now={liveNow} onDateChange={setCurrentDate} events={railEvents} filters={filters} onFilters={setFilters} />
               </aside>
 
               {/* Carte principale */}
-              <div style={{ padding: '14px 14px 14px 0', minHeight: 0, display: 'flex' }}>
-                <div style={{ flex: 1, minWidth: 0, background: SP.card, borderRadius: 22, boxShadow: sp.shadow, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-2xl) var(--crm-space-2xl) 0', minHeight: 0, display: 'flex' }}>
+                <div style={{ flex: 1, minWidth: 0, background: SP.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: sp.shadow, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   <CalToolbar view={view} onView={setView} headerLabel={headerLabel} onToday={() => setCurrentDate(new Date())} onPrev={() => navDate(-1)} onNext={() => navDate(1)} onCreate={startCreate} />
                   {calendarError && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: `1px solid ${SP.line}`, color: SP.ink }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, color: SP.ink }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 700 }}>{t('page.error.title')}</div>
-                        <div style={{ fontSize: 11.5, color: SP.muted }}>{t('page.error.message')}</div>
+                        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>{t('page.error.title')}</div>
+                        <div style={{ fontSize: 'var(--crm-text-sm)', color: SP.muted }}>{t('page.error.message')}</div>
                       </div>
-                      <button onClick={() => calendarRefetch()} style={{ height: 28, padding: '0 12px', borderRadius: 999, border: `1px solid ${SP.line}`, background: 'transparent', color: SP.ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, flexShrink: 0 }}>
+                      <button onClick={() => calendarRefetch()} style={{ height: 28, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${SP.line}`, background: 'transparent', color: SP.ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, flexShrink: 0 }}>
                         {t('page.error.retry')}
                       </button>
                     </div>

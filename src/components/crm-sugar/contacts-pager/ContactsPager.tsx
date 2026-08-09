@@ -101,7 +101,7 @@ function matchFilter(c: CrmContact, f: Filter): boolean {
 function CtpAvatar({ c, size = 38, sp }: { c: CrmContact; size?: number; sp: SugarPalette }) {
   return (
     <div style={{
-      width: size, height: size, borderRadius: 999, flexShrink: 0,
+      width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0,
       background: c.avatarBg || '#0B0C0E', color: '#fff',
       display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 700,
       letterSpacing: 0.2, boxShadow: `0 0 0 3px ${sp.avatarBorder}`,
@@ -114,9 +114,9 @@ function CtpAvatar({ c, size = 38, sp }: { c: CrmContact; size?: number; sp: Sug
 function CtpTypePill({ aud, label }: { aud: Audience; label: string }) {
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 9px',
-      borderRadius: 999, background: CTP_FN[aud], color: '#fff',
-      fontSize: 11, fontWeight: 700, letterSpacing: 0.1, whiteSpace: 'nowrap',
+      display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 var(--crm-space-md)',
+      borderRadius: 'var(--crm-radius-pill)', background: CTP_FN[aud], color: '#fff',
+      fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.1, whiteSpace: 'nowrap',
     }}>{label}</span>
   )
 }
@@ -128,18 +128,18 @@ function CtpKyc({ status, sp, dark, labels }: {
   labels: { verified: string; verifiedTitle: string; pending: string; stale: string }
 }) {
   if (status === 'verified')
-    return <span title={labels.verifiedTitle} style={{ display: 'inline-flex', alignItems: 'center', color: FN_BUYER_INK(dark), fontSize: 12, fontWeight: 700 }}>{labels.verified}</span>
+    return <span title={labels.verifiedTitle} style={{ display: 'inline-flex', alignItems: 'center', color: FN_BUYER_INK(dark), fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>{labels.verified}</span>
   if (status === 'pending')
-    return <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub }}>{labels.pending}</span>
+    return <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub }}>{labels.pending}</span>
   if (status === 'stale')
-    return <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub }}>{labels.stale}</span>
-  return <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub, opacity: 0.6 }}>{'—'}</span>
+    return <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub }}>{labels.stale}</span>
+  return <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub, opacity: 0.6 }}>{'—'}</span>
 }
 
 function CtpBar({ pct, color, dark }: { pct: number; color: string; dark: boolean }) {
   return (
-    <div style={{ height: 8, borderRadius: 999, background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)', overflow: 'hidden' }}>
-      <div style={{ width: `${Math.max(3, pct)}%`, height: '100%', borderRadius: 999, background: color, transition: 'width .5s cubic-bezier(.22,1,.36,1)' }} />
+    <div style={{ height: 8, borderRadius: 'var(--crm-radius-pill)', background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)', overflow: 'hidden' }}>
+      <div style={{ width: `${Math.max(3, pct)}%`, height: '100%', borderRadius: 'var(--crm-radius-pill)', background: color, transition: 'width .5s cubic-bezier(.22,1,.36,1)' }} />
     </div>
   )
 }
@@ -147,9 +147,9 @@ function CtpBar({ pct, color, dark }: { pct: number; color: string; dark: boolea
 function CtpCta({ children, dark, onClick }: { children: ReactNode; dark: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6, height: 34, padding: '0 15px',
-      borderRadius: 999, background: dark ? '#F2F2F6' : '#0B0C0E', color: dark ? '#0B0C0E' : '#FFFFFF', border: 0,
-      fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
+      display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 34, padding: '0 var(--crm-space-2xl)',
+      borderRadius: 'var(--crm-radius-pill)', background: dark ? '#F2F2F6' : '#0B0C0E', color: dark ? '#0B0C0E' : '#FFFFFF', border: 0,
+      fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
     }}>{children}</button>
   )
 }
@@ -166,16 +166,16 @@ function CtpSkeletonRows({ dark, hairSoft }: { dark: boolean; hairSoft: string }
     '--sk': dark ? 'rgba(255,255,255,.08)' : '#E7EAF0',
     '--skHi': dark ? 'rgba(255,255,255,.17)' : '#F5F7FA',
   } as CSSProperties
-  const bar = (w: number) => ({ width: w, height: 11, borderRadius: 6 })
+  const bar = (w: number) => ({ width: w, height: 11, borderRadius: 'var(--crm-radius-xs)' })
   return (
     <div aria-hidden="true" style={skVars}>
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} style={{
-          display: 'grid', gridTemplateColumns: CTP_GRID, gap: 12, alignItems: 'center',
-          padding: '13px 22px', borderBottom: i < 5 ? `1px solid ${hairSoft}` : '0',
+          display: 'grid', gridTemplateColumns: CTP_GRID, gap: 'var(--crm-space-xl)', alignItems: 'center',
+          padding: 'var(--crm-space-xl) var(--crm-space-6xl)', borderBottom: i < 5 ? `1px solid ${hairSoft}` : '0',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="ctp-sk" style={{ width: 38, height: 38, borderRadius: 999, flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
+            <div className="ctp-sk" style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0 }} />
             <div className="ctp-sk" style={bar(140)} />
           </div>
           <div className="ctp-sk" style={bar(60)} />
@@ -243,49 +243,49 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
   const GRID = CTP_GRID
 
   return (
-    <div style={{ position: 'absolute', inset: 0, padding: '26px 34px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden', background: sp.pageBg }}>
+    <div style={{ position: 'absolute', inset: 0, padding: '26px 34px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', overflow: 'hidden', background: sp.pageBg }}>
       {/* En-tête */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('pager.title')}</h1>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)' }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('pager.title')}</h1>
         <div style={{ flex: 1 }} />
         <CtpCta dark={dark} onClick={onNewContact}>{t('pager.newContact')}</CtpCta>
       </div>
 
       {/* Sous-nav par audience + éventuel filtre issu de la Santé */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
         {tabs.map(tb => {
           const on = !segActive && (filter.type === 'audience' ? filter.value : 'all') === tb.id
           return (
             <button key={tb.id} onClick={() => setFilter({ type: 'audience', value: tb.id })} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 7, height: 36, padding: '0 15px', borderRadius: 999,
+              display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 36, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
               border: on ? '0' : `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(11,12,14,.1)'}`,
               background: on ? (dark ? '#F2F2F6' : '#0B0C0E') : surface,
               color: on ? (dark ? '#0B0C0E' : '#fff') : sp.soft,
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: on ? 'none' : sp.shadowSm,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer', boxShadow: on ? 'none' : sp.shadowSm,
             }}>{tb.label}</button>
           )
         })}
         {segActive && (
           <button onClick={() => setFilter({ type: 'audience', value: 'all' })} title={t('pager.removeFilter')} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, padding: '0 8px 0 14px', borderRadius: 999,
+            display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 36, padding: '0 var(--crm-space-md) 0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
             border: 0, background: dark ? 'rgba(30,91,198,0.22)' : '#E8EFFE', color: FN_BUYER_INK(dark),
-            fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer',
           }}>
             {filter.label}
-            <span style={{ display: 'grid', placeItems: 'center', width: 20, height: 20, borderRadius: 999, background: dark ? 'rgba(255,255,255,.12)' : 'rgba(30,91,198,.14)', fontSize: 13, lineHeight: 1 }}>{'✕'}</span>
+            <span style={{ display: 'grid', placeItems: 'center', width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: dark ? 'rgba(255,255,255,.12)' : 'rgba(30,91,198,.14)', fontSize: 'var(--crm-text-lg)', lineHeight: 1 }}>{'✕'}</span>
           </button>
         )}
       </div>
 
       {/* Liste (scrollable) */}
-      <div style={{ flex: 1, minHeight: 0, background: surface, borderRadius: 22, boxShadow: panelSh, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 12, padding: '12px 22px', fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: sp.sub, borderBottom: `1px solid ${hairStrong}` }}>
+      <div style={{ flex: 1, minHeight: 0, background: surface, borderRadius: 'var(--crm-radius-5xl)', boxShadow: panelSh, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-6xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: sp.sub, borderBottom: `1px solid ${hairStrong}` }}>
           <div>{t('pager.col.contact')}</div><div>{t('pager.col.type')}</div><div>{t('pager.col.budget')}</div><div>{t('pager.col.kyc')}</div><div>{t('pager.col.last')}</div><div />
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {isLoading && <CtpSkeletonRows dark={dark} hairSoft={hairSoft} />}
           {!isLoading && rows.length === 0 && (
-            <div style={{ padding: '48px 22px', textAlign: 'center', color: sp.sub, fontSize: 14, fontWeight: 600 }}>{t('pager.emptyFilter')}</div>
+            <div style={{ padding: '48px 22px', textAlign: 'center', color: sp.sub, fontSize: 'var(--crm-text-xl)', fontWeight: 600 }}>{t('pager.emptyFilter')}</div>
           )}
           {!isLoading && rows.map((c, i) => {
             const aud = audienceOf(c)
@@ -294,18 +294,18 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
               <div key={c.id} className="ctp-row" role="button" tabIndex={0}
                 onClick={() => onOpenContact(c.id)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenContact(c.id) } }}
-                style={{ display: 'grid', gridTemplateColumns: GRID, gap: 12, alignItems: 'center', padding: '13px 22px', borderBottom: i < rows.length - 1 ? `1px solid ${hairSoft}` : '0', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                style={{ display: 'grid', gridTemplateColumns: GRID, gap: 'var(--crm-space-xl)', alignItems: 'center', padding: 'var(--crm-space-xl) var(--crm-space-6xl)', borderBottom: i < rows.length - 1 ? `1px solid ${hairSoft}` : '0', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', minWidth: 0 }}>
                   <CtpAvatar c={c} sp={sp} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 14.5, fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.firstName} {c.lastName}</div>
+                    <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.firstName} {c.lastName}</div>
                   </div>
                 </div>
                 <div><CtpTypePill aud={aud} label={audLabel[aud]} /></div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: budget ? sp.ink : sp.sub, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{budget || '—'}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: budget ? sp.ink : sp.sub, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{budget || '—'}</div>
                 <div><CtpKyc status={kycStatusOf(c)} sp={sp} dark={dark} labels={kycLabels} /></div>
-                <div style={{ fontSize: 13, color: sp.soft, fontWeight: 600 }}>{relLabel(c.lastActivityAt)}</div>
-                <div style={{ color: sp.sub, opacity: 0.6, fontSize: 18, textAlign: 'center' }}>{'›'}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft, fontWeight: 600 }}>{relLabel(c.lastActivityAt)}</div>
+                <div style={{ color: sp.sub, opacity: 0.6, fontSize: 'var(--crm-text-3xl)', textAlign: 'center' }}>{'›'}</div>
               </div>
             )
           })}
@@ -336,8 +336,8 @@ function CtpCard({ title, children, sp, dark }: {
   const surface = dark ? sp.cardBg : '#FFFFFF'
   const panelSh = dark ? `inset 0 0 0 1px ${sp.cardBorder}, ${sp.shadow}` : sp.shadow
   return (
-    <section style={{ background: surface, borderRadius: 22, boxShadow: panelSh, padding: '20px 22px' }}>
-      <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>{title}</h3>
+    <section style={{ background: surface, borderRadius: 'var(--crm-radius-5xl)', boxShadow: panelSh, padding: 'var(--crm-space-5xl) var(--crm-space-6xl)' }}>
+      <h3 style={{ margin: '0 0 16px', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>{title}</h3>
       {children}
     </section>
   )
@@ -358,10 +358,10 @@ function CtpSegRow({ dot, label, count, pct, color, seg, sp, dark, onSegment }: 
     <button className="ctp-seg-row" onClick={() => seg && onSegment(seg)} style={{
       display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: seg ? 'pointer' : 'default', fontFamily: 'inherit',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 999, background: dot }} />
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, flex: 1 }}>{label}</span>
-        <span style={{ fontSize: 12.5, fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 7 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: dot }} />
+        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, flex: 1 }}>{label}</span>
+        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
       </div>
       <CtpBar pct={pct} color={color} dark={dark} />
     </button>
@@ -416,27 +416,27 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
     <div style={{ position: 'absolute', inset: 0, padding: '34px 36px', boxSizing: 'border-box', overflowY: 'auto', background: sp.pageBg, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
       <div style={{ width: '100%', maxWidth: 1000, margin: 'auto 0' }}>
         <div style={{ marginBottom: 22 }}>
-          <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('health.title')}</h1>
-          <div style={{ fontSize: 13.5, color: sp.sub, fontWeight: 500, marginTop: 8 }}>{t('health.intro')}</div>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('health.title')}</h1>
+          <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500, marginTop: 8 }}>{t('health.intro')}</div>
         </div>
 
         {/* Bandeau KPI */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 'var(--crm-space-2xl)', marginBottom: 18 }}>
           {kpis.map(k => (
             <button key={k.label} className="ctp-seg" onClick={() => onSegment(k.seg)} style={{
-              textAlign: 'left', background: surface, borderRadius: 18, boxShadow: panelShSm, padding: '16px 18px',
+              textAlign: 'left', background: surface, borderRadius: 'var(--crm-radius-3xl)', boxShadow: panelShSm, padding: 'var(--crm-space-3xl) var(--crm-space-4xl)',
               border: 0, fontFamily: 'inherit', cursor: 'pointer',
             }}>
-              <div style={{ fontSize: 30, fontWeight: 800, color: sp.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.val}</div>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.sub, letterSpacing: 0.3, textTransform: 'uppercase', marginTop: 8 }}>{k.label}</div>
+              <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 800, color: sp.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.val}</div>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.sub, letterSpacing: 0.3, textTransform: 'uppercase', marginTop: 8 }}>{k.label}</div>
             </button>
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 16, alignItems: 'stretch' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 'var(--crm-space-3xl)', alignItems: 'stretch' }}>
           <div className="ctp-seg">
             <CtpCard title={t('health.byAudience')} sp={sp} dark={dark}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
                 {byAud.map(r => (
                   <CtpSegRow key={r.a} dot={CTP_FN[r.a]} label={audLabel[r.a]} count={r.n} pct={(r.n / n) * 100} color={CTP_FN[r.a]}
                     seg={{ type: 'audience', value: r.a, label: audLabel[r.a] }} sp={sp} dark={dark} onSegment={onSegment} />
@@ -447,7 +447,7 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
 
           <div className="ctp-seg">
             <CtpCard title={t('health.kycCoverage')} sp={sp} dark={dark}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
                 {kyc.map(r => (
                   <CtpSegRow key={r.val} dot={r.col} label={r.k} count={r.n} pct={(r.n / n) * 100} color={r.col}
                     seg={{ type: 'kyc', value: r.val, label: t('health.seg.kyc', { status: r.k }) }} sp={sp} dark={dark} onSegment={onSegment} />
@@ -458,14 +458,14 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
 
           <div className="ctp-seg">
             <CtpCard title={t('health.sources')} sp={sp} dark={dark}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
                 {bySrc.map(r => (
                   <button key={r.k} className="ctp-seg-row" onClick={() => onSegment({ type: 'source', value: r.k, label: t('health.seg.source', { source: srcLabel(r.k) }) })} style={{
-                    display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
                   }}>
-                    <span style={{ width: 96, fontSize: 12.5, fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{srcLabel(r.k)}</span>
+                    <span style={{ width: 96, fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{srcLabel(r.k)}</span>
                     <div style={{ flex: 1 }}><CtpBar pct={(r.n / maxSrc) * 100} color={dark ? 'rgba(255,255,255,.85)' : 'rgba(11,12,14,.82)'} dark={dark} /></div>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums', width: 16, textAlign: 'right' }}>{r.n}</span>
+                    <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums', width: 16, textAlign: 'right' }}>{r.n}</span>
                   </button>
                 ))}
               </div>
@@ -498,15 +498,15 @@ function CtpLoadError({ sp, dark, onRetry, title, message, retryLabel }: {
   return (
     <div role="alert" style={{
       position: 'absolute', inset: 0, background: sp.pageBg, padding: '34px 36px', boxSizing: 'border-box',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-lg)', textAlign: 'center',
     }}>
-      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>{title}</h2>
-      <p style={{ margin: 0, maxWidth: 420, fontSize: 13.5, fontWeight: 500, lineHeight: 1.5, color: sp.sub }}>{message}</p>
+      <h2 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>{title}</h2>
+      <p style={{ margin: 0, maxWidth: 420, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.5, color: sp.sub }}>{message}</p>
       {onRetry && (
         <button className="ctp-seg" onClick={onRetry} style={{
-          marginTop: 8, height: 34, padding: '0 15px', borderRadius: 999, background: 'transparent', color: sp.ink,
+          marginTop: 8, height: 34, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: 'transparent', color: sp.ink,
           border: `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(11,12,14,.1)'}`,
-          fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, cursor: 'pointer',
         }}>{retryLabel}</button>
       )}
     </div>
@@ -529,10 +529,10 @@ function CtpPageDots({ page, onGo, dark, count, labels, goLabel }: {
   const idleCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(11,12,14,.18)'
   if (count < 2) return null
   return (
-    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', alignItems: 'center' }}>
       {Array.from({ length: count }).map((_, i) => (
         <button key={i} onClick={() => onGo(i)} title={labels[i]} aria-label={goLabel(labels[i])} style={{
-          width: 8, height: i === page ? 26 : 8, borderRadius: 999, border: 0, cursor: 'pointer', padding: 0,
+          width: 8, height: i === page ? 26 : 8, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', padding: 0,
           background: i === page ? activeCol : idleCol, transition: 'height .5s cubic-bezier(.76,0,.24,1), background .4s ease',
         }} />
       ))}
@@ -556,16 +556,16 @@ function CtpScrollHint({ page, onGo, sp, labels, count, goLabel }: {
   const dir = nextLabel ? 1 : -1
   return (
     <button className="ctp-scroll-hint" onClick={() => onGo(page + dir)} aria-label={goLabel(target)} style={{
-      position: 'absolute', bottom: 18, left: 24, zIndex: 60, display: 'flex', alignItems: 'center', gap: 11,
-      padding: 6, border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer',
+      position: 'absolute', bottom: 18, left: 24, zIndex: 60, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
+      padding: 'var(--crm-space-sm)', border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer',
     }}>
-      <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 16, fontWeight: 700, lineHeight: 1, color: sp.sub }}>{nextLabel ? '↓' : '↑'}</span>
+      <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, lineHeight: 1, color: sp.sub }}>{nextLabel ? '↓' : '↑'}</span>
       <span className="ctp-hint-label" style={{
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', whiteSpace: 'nowrap',
         maxWidth: 0, overflow: 'hidden', opacity: 0, transform: 'translateX(-6px)',
         transition: 'max-width .4s cubic-bezier(.76,0,.24,1), opacity .3s ease, transform .4s cubic-bezier(.76,0,.24,1)',
       }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>{target}</span>
+        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink }}>{target}</span>
       </span>
     </button>
   )
@@ -731,7 +731,7 @@ export default function ContactsPager({
   }, [go])
 
   return (
-    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
       <style>{`
         .ctp-scroll-hint { opacity: .55; transition: opacity .35s ease; }
         .ctp-scroll-hint:hover, .ctp-scroll-hint:focus-visible { opacity: 1; }
@@ -748,7 +748,7 @@ export default function ContactsPager({
         @media (prefers-reduced-motion: reduce) { .ctp-sk { animation: none; } }
       `}</style>
       <div ref={viewportRef} style={{
-        position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
+        position: 'relative', height: '100%', borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden',
         border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow,
       }}>
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
@@ -767,7 +767,7 @@ export default function ContactsPager({
         </div>
         <CtpPageDots page={page} onGo={goTo} dark={dark} count={pageCount} labels={pageLabels} goLabel={goLabel} />
         {modalOpen && modalSlot && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 45, borderRadius: 26, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', inset: 0, zIndex: 45, borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden' }}>
             {modalSlot}
           </div>
         )}

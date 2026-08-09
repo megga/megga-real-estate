@@ -81,10 +81,10 @@ function Sp4bInput({
 }) {
   const [foc, setFoc] = useState(false)
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
-      <span style={{ fontSize: 12.5, fontWeight: 600, color: SugarV2.muted }}>{label}</span>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', minWidth: 0 }}>
+      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted }}>{label}</span>
       <span style={{
-        display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 16px', borderRadius: 12,
+        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', height: 46, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-lg)',
         background: SugarV2.cardSubtle,
         boxShadow: foc ? `inset 0 0 0 2px ${SugarV2.black}` : 'none', transition: 'box-shadow .12s',
       }}>
@@ -93,9 +93,9 @@ function Sp4bInput({
           onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))}
           style={{
             flex: 1, minWidth: 0, border: 0, outline: 0, background: 'transparent', fontFamily: 'inherit',
-            fontSize: 15.5, fontWeight: 600, color: SugarV2.ink, fontVariantNumeric: 'tabular-nums',
+            fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink, fontVariantNumeric: 'tabular-nums',
           }} />
-        {unit && <span style={{ fontSize: 13, fontWeight: 600, color: SugarV2.muted, flexShrink: 0 }}>{unit}</span>}
+        {unit && <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.muted, flexShrink: 0 }}>{unit}</span>}
       </span>
     </label>
   )
@@ -131,7 +131,7 @@ function Sp4bDateField({
   const nav = (d: number) => setView(v => { const m = v.m + d; return { y: v.y + Math.floor(m / 12), m: ((m % 12) + 12) % 12 } })
   const navBtn = (d: number, path: string) => (
     <button onClick={() => nav(d)} style={{
-      width: 32, height: 32, borderRadius: 999, border: 0, cursor: 'pointer', background: SugarV2.card,
+      width: 32, height: 32, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: SugarV2.card,
       boxShadow: SugarV2.shadowSm, color: SugarV2.ink, display: 'grid', placeItems: 'center', fontFamily: 'inherit',
     }}>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d={path} /></svg>
@@ -141,27 +141,27 @@ function Sp4bDateField({
   const display = isTbd ? t('wizard.step3b.toAgree') : (value || t('wizard.step3b.datePlaceholder'))
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
-      <span style={{ fontSize: 12.5, fontWeight: 600, color: SugarV2.muted }}>{label}</span>
+    <div ref={ref} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', minWidth: 0 }}>
+      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted }}>{label}</span>
       <button onClick={() => setOpen(o => !o)} style={{
-        display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 16px', borderRadius: 12,
+        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', height: 46, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-lg)',
         background: SugarV2.cardSubtle, border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
         boxShadow: open ? `inset 0 0 0 2px ${SugarV2.black}` : 'none', transition: 'box-shadow .12s',
       }}>
-        <span style={{ flex: 1, fontSize: 15.5, fontWeight: 600, color: value ? SugarV2.ink : SugarV2.ghost, fontVariantNumeric: 'tabular-nums' }}>{display}</span>
+        <span style={{ flex: 1, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: value ? SugarV2.ink : SugarV2.ghost, fontVariantNumeric: 'tabular-nums' }}>{display}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={SugarV2.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" /></svg>
       </button>
       {open && (
-        <div style={{ boxSizing: 'border-box', width: '100%', padding: 16, borderRadius: 14, background: SugarV2.cardSubtle, animation: 'sgFadeUp .25s cubic-bezier(.2,.8,.2,1) both' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <div style={{ boxSizing: 'border-box', width: '100%', padding: 'var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-xl)', background: SugarV2.cardSubtle, animation: 'sgFadeUp .25s cubic-bezier(.2,.8,.2,1) both' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 12 }}>
             {navBtn(-1, 'm15 18-6-6 6-6')}
-            <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 700, color: SugarV2.ink }}>{SP4B_MONTHS[view.m]} {view.y}</span>
+            <span style={{ flex: 1, textAlign: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: SugarV2.ink }}>{SP4B_MONTHS[view.m]} {view.y}</span>
             {navBtn(1, 'm9 18 6-6-6-6')}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: 4 }}>
-            {SP4B_WEEKDAYS.map((d, i) => <span key={i} style={{ textAlign: 'center', fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, color: SugarV2.ghost }}>{d}</span>)}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 'var(--crm-space-2xs)', marginBottom: 4 }}>
+            {SP4B_WEEKDAYS.map((d, i) => <span key={i} style={{ textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5, color: SugarV2.ghost }}>{d}</span>)}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 'var(--crm-space-2xs)' }}>
             {cells.map((d, i) => {
               if (d == null) return <span key={i} />
               const dt = new Date(view.y, view.m, d)
@@ -170,23 +170,23 @@ function Sp4bDateField({
               const past = dt < today
               return (
                 <button key={i} disabled={past} onClick={() => { onChange(sp4bFmtDate(dt)); setOpen(false) }} style={{
-                  height: 34, borderRadius: 999, border: 0, cursor: past ? 'default' : 'pointer', fontFamily: 'inherit',
-                  fontSize: 13, fontWeight: isSel ? 700 : 600, fontVariantNumeric: 'tabular-nums',
+                  height: 34, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: past ? 'default' : 'pointer', fontFamily: 'inherit',
+                  fontSize: 'var(--crm-text-lg)', fontWeight: isSel ? 700 : 600, fontVariantNumeric: 'tabular-nums',
                   background: isSel ? SugarV2.black : 'transparent', color: isSel ? ON : past ? SugarV2.ghost : SugarV2.ink,
                   boxShadow: !isSel && isToday ? `inset 0 0 0 1.5px ${SugarV2.black}` : 'none',
                 }}>{d}</button>
               )
             })}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-md)', marginTop: 14 }}>
             <button onClick={() => { onChange(DISPO_TBD); setOpen(false) }} style={{
-              flex: 1, height: 38, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 13, fontWeight: 700, background: isTbd ? SugarV2.black : SugarV2.card,
+              flex: 1, height: 38, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: isTbd ? SugarV2.black : SugarV2.card,
               boxShadow: isTbd ? 'none' : SugarV2.shadowSm, color: isTbd ? ON : SugarV2.inkSoft,
             }}>{t('wizard.step3b.toAgree')}</button>
             {value && <button onClick={() => { onChange(null); setOpen(false) }} style={{
-              height: 38, padding: '0 16px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 13, fontWeight: 600, background: 'transparent', color: SugarV2.muted,
+              height: 38, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: 'transparent', color: SugarV2.muted,
             }}>{t('wizard.step3b.clear')}</button>}
           </div>
         </div>
@@ -198,8 +198,8 @@ function Sp4bDateField({
 function Sp4bChip({ active, onClick, children }: { active?: boolean; onClick?: () => void; children: ReactNode }) {
   return (
     <button onClick={onClick} style={{
-      height: 40, padding: '0 16px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-      fontSize: 13.5, fontWeight: 600, background: active ? SugarV2.black : SugarV2.cardSubtle,
+      height: 40, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
+      fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: active ? SugarV2.black : SugarV2.cardSubtle,
       color: active ? sgOn() : SugarV2.inkSoft, display: 'inline-flex', alignItems: 'center', transition: 'background .12s',
     }}>
       {children}
@@ -210,7 +210,7 @@ function Sp4bChip({ active, onClick, children }: { active?: boolean; onClick?: (
 interface SegOption { value: string; label: string }
 function Sp4bSeg({ options, value, onChange }: { options: SegOption[]; value: string | null | undefined; onChange: (v: string | null) => void }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)' }}>
       {options.map(o => <Sp4bChip key={o.value} active={value === o.value} onClick={() => onChange(value === o.value ? null : o.value)}>{o.label}</Sp4bChip>)}
     </div>
   )
@@ -220,34 +220,34 @@ function Sp4bCount({ label, value, onChange }: { label: string; value: number | 
   const disMinus = value == null || value <= 0
   const btn = (d: number, dis: boolean) => (
     <button disabled={dis} onClick={() => onChange(value == null ? (d > 0 ? 1 : null) : Math.max(0, value + d))} style={{
-      width: 30, height: 30, borderRadius: 999, border: 0, cursor: dis ? 'default' : 'pointer', background: SugarV2.card,
-      boxShadow: SugarV2.shadowSm, color: dis ? SugarV2.ghost : SugarV2.ink, fontSize: 16, fontWeight: 700,
+      width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: dis ? 'default' : 'pointer', background: SugarV2.card,
+      boxShadow: SugarV2.shadowSm, color: dis ? SugarV2.ghost : SugarV2.ink, fontSize: 'var(--crm-text-2xl)', fontWeight: 700,
       display: 'grid', placeItems: 'center', fontFamily: 'inherit',
     }}>{d > 0 ? '+' : '−'}</button>
   )
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 48, padding: '0 9px 0 16px', borderRadius: 12, background: SugarV2.cardSubtle }}>
-      <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: SugarV2.inkSoft }}>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 48, padding: '0 var(--crm-space-md) 0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-lg)', background: SugarV2.cardSubtle }}>
+      <span style={{ flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.inkSoft }}>{label}</span>
       {btn(-1, disMinus)}
-      <span style={{ width: 24, textAlign: 'center', fontSize: 15, fontWeight: 700, color: value == null ? SugarV2.ghost : SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{value == null ? '—' : value}</span>
+      <span style={{ width: 24, textAlign: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: value == null ? SugarV2.ghost : SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{value == null ? '—' : value}</span>
       {btn(1, false)}
     </div>
   )
 }
 
 function Sp4bLbl({ children, first }: { children: ReactNode; first?: boolean }) {
-  return <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: SugarV2.muted, margin: first ? '0 0 10px' : '22px 0 10px' }}>{children}</div>
+  return <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: SugarV2.muted, margin: first ? '0 0 10px' : '22px 0 10px' }}>{children}</div>
 }
 
 function Sp4bRailBtn({ title, done, active, onClick }: { title: string; done: boolean; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      width: '100%', display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 16px', borderRadius: 999,
+      width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', height: 46, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)',
       border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
       background: active ? SugarV2.black : 'transparent', color: active ? sgOn() : SugarV2.inkSoft, transition: 'background .12s',
     }}>
-      <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: active ? 700 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
-      {done && <span style={{ width: 18, height: 18, borderRadius: 999, background: '#059669', display: 'grid', placeItems: 'center', flexShrink: 0 }}><Sp4bCheckIco c="#fff" s={10} /></span>}
+      <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: active ? 700 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
+      {done && <span style={{ width: 18, height: 18, borderRadius: 'var(--crm-radius-pill)', background: '#059669', display: 'grid', placeItems: 'center', flexShrink: 0 }}><Sp4bCheckIco c="#fff" s={10} /></span>}
     </button>
   )
 }
@@ -291,8 +291,8 @@ export function Step3bDetails({ data, set }: StepProps) {
   const detVal = (k: string): unknown => (det as unknown as Record<string, unknown>)[k]
   const cnt = (keys: string[]): number => keys.filter(k => sp4bNN(detVal(k))).length
 
-  const grid2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 } as const
-  const chips = { display: 'flex', flexWrap: 'wrap', gap: 8 } as const
+  const grid2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' } as const
+  const chips = { display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)' } as const
 
   const standingOpts: SegOption[] = STANDING_KEYS.map(k => ({ value: k, label: t(`wizard.step3b.standing.${k}`) }))
   const expoOpts: SegOption[] = EXPO_KEYS.map(k => ({ value: k, label: t(`wizard.step3b.expo.${k}`) }))
@@ -304,11 +304,11 @@ export function Step3bDetails({ data, set }: StepProps) {
   const infoBody = (
     <div>
       <div style={grid2}>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: SugarV2.muted }}>{t('wizard.step3b.reference')}</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 16px', borderRadius: 12, background: SugarV2.cardSubtle }}>
-            <span style={{ flex: 1, fontSize: 15.5, fontWeight: 700, color: SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{det.ref}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: SugarV2.ghost }}>{t('wizard.step3b.auto')}</span>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted }}>{t('wizard.step3b.reference')}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', height: 46, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-lg)', background: SugarV2.cardSubtle }}>
+            <span style={{ flex: 1, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{det.ref}</span>
+            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: SugarV2.ghost }}>{t('wizard.step3b.auto')}</span>
           </span>
         </label>
         <Sp4bDateField label={t('wizard.step3b.availability')} value={det.dispo} onChange={v => setDet({ dispo: v })} />
@@ -334,7 +334,7 @@ export function Step3bDetails({ data, set }: StepProps) {
   )
 
   const piecesBody = (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
       <Sp4bCount label={t('wizard.step3b.pieces.chambres')} value={det.chambres} onChange={v => setDet({ chambres: v })} />
       <Sp4bCount label={t('wizard.step3b.pieces.sdb')} value={det.sdb} onChange={v => setDet({ sdb: v })} />
       <Sp4bCount label={t('wizard.step3b.pieces.wc')} value={det.wc} onChange={v => setDet({ wc: v })} />
@@ -351,7 +351,7 @@ export function Step3bDetails({ data, set }: StepProps) {
 
   const parkBody = (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
         <Sp4bCount label={t('wizard.step3b.park.int')} value={det.pInt} onChange={v => setDet({ pInt: v })} />
         <Sp4bCount label={t('wizard.step3b.park.ext')} value={det.pExt} onChange={v => setDet({ pExt: v })} />
         <Sp4bCount label={t('wizard.step3b.park.garage')} value={det.pGarage} onChange={v => setDet({ pGarage: v })} />
@@ -413,14 +413,14 @@ export function Step3bDetails({ data, set }: StepProps) {
   const cur = sections.find(s => s.id === openId) || sections[0]
 
   return (
-    <div style={{ width: '100%', boxSizing: 'border-box', margin: '0 auto', textAlign: 'left', display: 'grid', gridTemplateColumns: '230px 1fr', gap: 18, alignItems: 'start' }}>
+    <div style={{ width: '100%', boxSizing: 'border-box', margin: '0 auto', textAlign: 'left', display: 'grid', gridTemplateColumns: '230px 1fr', gap: 'var(--crm-space-4xl)', alignItems: 'start' }}>
       <style>{'input.sp4b-num::-webkit-outer-spin-button,input.sp4b-num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}input.sp4b-num[type=number]{-moz-appearance:textfield}'}</style>
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: 10, borderRadius: 22, background: SugarV2.card, boxShadow: SugarV2.shadowSm }}>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-lg)', borderRadius: 'var(--crm-radius-5xl)', background: SugarV2.card, boxShadow: SugarV2.shadowSm }}>
         {sections.map(s => <Sp4bRailBtn key={s.id} title={s.title} done={s.done} active={cur.id === s.id} onClick={() => pick(s.id)} />)}
       </nav>
-      <div style={{ borderRadius: 22, background: SugarV2.card, boxShadow: SugarV2.shadow, height: 520, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ borderRadius: 'var(--crm-radius-5xl)', background: SugarV2.card, boxShadow: SugarV2.shadow, height: 520, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ flexShrink: 0, padding: '22px 26px 0' }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>{cur.title}</span>
+          <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>{cur.title}</span>
         </div>
         <div ref={panelRef} key={cur.id} style={{ flex: 1, overflowY: 'auto', scrollbarGutter: 'stable', padding: '20px 26px 26px', animation: 'sgFadeUp .28s cubic-bezier(.2,.8,.2,1) both' }}>
           {cur.body}

@@ -275,7 +275,7 @@ function DockBtn({ it, isActive, idleIcon, hoverIcon, activeIcon, sp }: DockBtnP
         onMouseEnter={() => { setHover(true); replay() }} // ne relance QUE cette icône
         onMouseLeave={() => setHover(false)}
         style={{
-          position: 'relative', width: 46, height: 46, borderRadius: 999,
+          position: 'relative', width: 46, height: 46, borderRadius: 'var(--crm-radius-pill)',
           border: 0, cursor: 'pointer', background: 'transparent',
           display: 'grid', placeItems: 'center', flexShrink: 0,
           transform: hover && !isActive ? 'scale(1.08)' : 'scale(1)',
@@ -291,7 +291,7 @@ function DockBtn({ it, isActive, idleIcon, hoverIcon, activeIcon, sp }: DockBtnP
       </button>
       {it.dot && !isActive && (
         <span style={{
-          position: 'absolute', top: 6, right: 6, width: 9, height: 9, borderRadius: 999,
+          position: 'absolute', top: 6, right: 6, width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)',
           background: '#F02849', border: `2px solid ${sp.pageBg}`, zIndex: 2,
         }} />
       )}
@@ -388,8 +388,8 @@ export function SugarIconRail({
           // de luminosité ni filtre SVG de réfraction.
           backdropFilter: 'blur(8px) saturate(1.15)',
           WebkitBackdropFilter: 'blur(8px) saturate(1.15)',
-          padding: '14px 10px',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+          padding: 'var(--crm-space-2xl) var(--crm-space-lg)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-xs)',
           animation: 'sugar-fade-up 480ms cubic-bezier(.22,1,.36,1) both',
           ...capsule,
         }}>

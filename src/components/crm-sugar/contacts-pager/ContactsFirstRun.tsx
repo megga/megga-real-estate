@@ -47,21 +47,21 @@ function CfrStep({
 }) {
   const body = (
     <>
-      <span aria-hidden="true" style={{ width: 56, height: 56, borderRadius: 999, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+      <span aria-hidden="true" style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
         {iconNode}
       </span>
-      <span style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: -0.3, color: '#FFFFFF', lineHeight: 1.25, marginTop: 16 }}>{title}</span>
-      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.6)', marginTop: 6, textWrap: 'pretty' }}>{sub}</span>
+      <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, color: '#FFFFFF', lineHeight: 1.25, marginTop: 16 }}>{title}</span>
+      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: 'rgba(255,255,255,0.6)', marginTop: 6, textWrap: 'pretty' }}>{sub}</span>
       <span style={{
-        marginTop: 18, height: 34, padding: '0 16px', borderRadius: 999, display: 'inline-flex', alignItems: 'center',
-        background: 'rgba(255,255,255,0.1)', color: '#FFFFFF', fontSize: 12, fontWeight: 700,
+        marginTop: 18, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', display: 'inline-flex', alignItems: 'center',
+        background: 'rgba(255,255,255,0.1)', color: '#FFFFFF', fontSize: 'var(--crm-text-md)', fontWeight: 700,
       }}>
         {ctaLabel}
       </span>
     </>
   )
   const shell: React.CSSProperties = {
-    background: 'transparent', border: 0, borderRadius: 18, padding: '30px 24px 26px',
+    background: 'transparent', border: 0, borderRadius: 'var(--crm-radius-3xl)', padding: '30px 24px 26px',
     display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
     fontFamily: 'inherit',
   }
@@ -87,28 +87,28 @@ function CfrBuildSkeleton({ sp, dark }: { sp: SugarPalette; dark: boolean }) {
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '18px 26px' }}>
-        <div className="cfr-sk" style={{ width: 36, height: 36, borderRadius: 999 }} />
+        <div className="cfr-sk" style={{ width: 36, height: 36, borderRadius: 'var(--crm-radius-pill)' }} />
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '2px 26px 18px' }}>
-        <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 22 }}>
-          <div className="cfr-build-card" style={{ display: 'flex', justifyContent: 'center', paddingTop: 6, animationDelay: '40ms' }}>
-            <div className="cfr-sk" style={{ width: 360, height: 30, borderRadius: 10 }} />
+        <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-6xl)' }}>
+          <div className="cfr-build-card" style={{ display: 'flex', justifyContent: 'center', paddingTop: 'var(--crm-space-sm)', animationDelay: '40ms' }}>
+            <div className="cfr-sk" style={{ width: 360, height: 30, borderRadius: 'var(--crm-radius-md)' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 'var(--crm-space-xl)' }}>
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
                 className="cfr-build-card"
                 style={{
-                  background: sp.solidBg, borderRadius: 18, boxShadow: sp.shadow, minHeight: 118,
-                  padding: '18px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                  background: sp.solidBg, borderRadius: 'var(--crm-radius-3xl)', boxShadow: sp.shadow, minHeight: 118,
+                  padding: 'var(--crm-space-4xl) var(--crm-space-3xl)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                   animationDelay: `${140 + i * 65}ms`,
                 }}
               >
-                <div className="cfr-sk" style={{ width: 30, height: 30, borderRadius: 9 }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  <div className="cfr-sk" style={{ width: '68%', height: 11, borderRadius: 6 }} />
-                  <div className="cfr-sk" style={{ width: '44%', height: 9, borderRadius: 6 }} />
+                <div className="cfr-sk" style={{ width: 30, height: 30, borderRadius: 'var(--crm-radius-sm)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
+                  <div className="cfr-sk" style={{ width: '68%', height: 11, borderRadius: 'var(--crm-radius-xs)' }} />
+                  <div className="cfr-sk" style={{ width: '44%', height: 9, borderRadius: 'var(--crm-radius-xs)' }} />
                 </div>
               </div>
             ))}
@@ -118,16 +118,16 @@ function CfrBuildSkeleton({ sp, dark }: { sp: SugarPalette; dark: boolean }) {
               key={i}
               className="cfr-build-card"
               style={{
-                background: sp.solidBg, borderRadius: 22, boxShadow: sp.shadow, padding: '22px 24px',
-                display: 'flex', flexDirection: 'column', gap: 14, animationDelay: `${420 + i * 110}ms`,
+                background: sp.solidBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: sp.shadow, padding: 'var(--crm-space-6xl) var(--crm-space-7xl)',
+                display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)', animationDelay: `${420 + i * 110}ms`,
               }}
             >
-              <div className="cfr-sk" style={{ width: 120, height: 12, borderRadius: 6 }} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <div className="cfr-sk" style={{ height: 44, borderRadius: 12 }} />
-                <div className="cfr-sk" style={{ height: 44, borderRadius: 12 }} />
+              <div className="cfr-sk" style={{ width: 120, height: 12, borderRadius: 'var(--crm-radius-xs)' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
+                <div className="cfr-sk" style={{ height: 44, borderRadius: 'var(--crm-radius-lg)' }} />
+                <div className="cfr-sk" style={{ height: 44, borderRadius: 'var(--crm-radius-lg)' }} />
               </div>
-              <div className="cfr-sk" style={{ height: 44, borderRadius: 12 }} />
+              <div className="cfr-sk" style={{ height: 44, borderRadius: 'var(--crm-radius-lg)' }} />
             </div>
           ))}
         </div>
@@ -203,16 +203,16 @@ export default function ContactsFirstRun({
           maxWidth: 920, width: '100%', textAlign: 'center',
           animation: 'cfrFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
         }}>
-          <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700, letterSpacing: -1, lineHeight: 1.1, color: '#FFFFFF', textShadow: '0 0 24px rgba(255,255,255,0.5)' }}>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 700, letterSpacing: -1, lineHeight: 1.1, color: '#FFFFFF', textShadow: '0 0 24px rgba(255,255,255,0.5)' }}>
             {t('firstRun.title')}
           </h1>
           {/* Coupure de ligne volontaire (handoff) : deux clés plutôt qu'une balise en JSON. */}
-          <p style={{ margin: '12px auto 0', maxWidth: 560, fontSize: 14.5, lineHeight: 1.55, fontWeight: 500, color: 'rgba(255,255,255,0.78)', textWrap: 'pretty' }}>
+          <p style={{ margin: '12px auto 0', maxWidth: 560, fontSize: 'var(--crm-text-xl)', lineHeight: 1.55, fontWeight: 500, color: 'rgba(255,255,255,0.78)', textWrap: 'pretty' }}>
             {t('firstRun.subtitleLine1')}<br />{t('firstRun.subtitleLine2')}
           </p>
         </div>
 
-        <div className="cfr-steps" style={{ display: 'grid', gridTemplateColumns: 'auto auto', justifyContent: 'center', gap: 18, width: '100%', marginTop: 40 }}>
+        <div className="cfr-steps" style={{ display: 'grid', gridTemplateColumns: 'auto auto', justifyContent: 'center', gap: 'var(--crm-space-4xl)', width: '100%', marginTop: 40 }}>
           <CfrStep
             iconNode={<img src={WA_BRAND_SRC} alt="" aria-hidden="true" width="42" height="42" style={{ width: 42, height: 42, display: 'block' }} />}
             title={t('firstRun.step1Title')}
@@ -234,8 +234,8 @@ export default function ContactsFirstRun({
           className="cfr-manual"
           onClick={openNew}
           style={{
-            marginTop: 10, background: 'transparent', border: 0, padding: '6px 8px', cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.6)',
+            marginTop: 10, background: 'transparent', border: 0, padding: 'var(--crm-space-sm) var(--crm-space-md)', cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: 'rgba(255,255,255,0.6)',
           }}
         >
           {t('firstRun.manualLink')}

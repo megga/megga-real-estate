@@ -19,12 +19,12 @@ export function PCColumn({ stage, tasks, sp, dark, onTaskClick }: PCColumnProps)
 
   if (isClosing) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: 10,
+            gap: 'var(--crm-space-lg)',
           }}
         >
           {tasks.map(task => (
@@ -48,7 +48,7 @@ export function PCColumn({ stage, tasks, sp, dark, onTaskClick }: PCColumnProps)
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 'var(--crm-space-lg)',
         position: 'relative',
       }}
     >
@@ -56,8 +56,8 @@ export function PCColumn({ stage, tasks, sp, dark, onTaskClick }: PCColumnProps)
         style={{
           background: dark ? crmStep('s2', 'rgba(255,255,255,0.04)') : '#FFFFFF',
           border: `1px solid ${sp.cardBorder}`,
-          borderRadius: 22,
-          padding: '14px 14px',
+          borderRadius: 'var(--crm-radius-5xl)',
+          padding: 'var(--crm-space-2xl) var(--crm-space-2xl)',
           boxShadow: sp.shadowSm,
           display: 'flex',
           flexDirection: 'column',
@@ -93,7 +93,7 @@ function ColLabel({ label, sp }: { label: string; sp: SugarPalette }) {
       style={{
         textAlign: 'center',
         marginTop: 6,
-        fontSize: 12,
+        fontSize: 'var(--crm-text-md)',
         fontWeight: 600,
         color: sp.soft,
         letterSpacing: -0.1,

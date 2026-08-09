@@ -62,14 +62,14 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
 
   const labelStyle: CSSProperties = {
     display: 'block', marginBottom: 6,
-    fontSize: 11, fontWeight: 700, letterSpacing: 0.2, color: sp.sub,
+    fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub,
   }
   // Champ Sugar : pas de bordure, une surface creuse et un filet INTÉRIEUR — le
   // trait ne participe pas à la séparation, l'ombre du bento s'en charge.
   const fieldStyle: CSSProperties = {
-    width: '100%', height: 38, padding: '0 12px', borderRadius: ADMIN_RADII.row, border: 0,
+    width: '100%', height: 38, padding: '0 var(--crm-space-xl)', borderRadius: ADMIN_RADII.row, border: 0,
     background: surf.cardSub, color: sp.ink,
-    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, outline: 'none',
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, outline: 'none',
     boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
   }
 
@@ -102,7 +102,7 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
               qui référence ce libellé via `aria-labelledby` — le groupe a ainsi un
               nom accessible, et chaque bouton garde son `aria-pressed`. */}
           <span id={planLabelId} style={labelStyle}>{t('createAgency.plan')}</span>
-          <div role="group" aria-labelledby={planLabelId} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div role="group" aria-labelledby={planLabelId} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
             {PLAN_IDS.map(p => (
               <AdminSegmentBtn key={p} on={plan === p} onClick={() => setPlan(p)} variant="hollow">
                 {t(`common.plan.${p}`)}
@@ -117,8 +117,8 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
             sur le texte, et ne rejoue RIEN quand le clic vise déjà l'interrupteur
             (pas de double bascule). L'association nomme aussi le switch : lui
             repasser `label` (= `aria-label`) doublerait l'annonce du même libellé. */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: sp.ink }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', cursor: 'pointer' }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>
             {t('createAgency.solo')}
           </span>
           <AdminSwitch on={solo} onClick={() => setSolo(!solo)} />
@@ -130,9 +130,9 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
             placeholder={t('createAgency.notePlaceholder')} style={fieldStyle} />
         </div>
 
-        <p style={{ margin: 0, fontSize: 11.5, color: sp.sub, lineHeight: 1.5 }}>{t('createAgency.inviteHint')}</p>
+        <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub, lineHeight: 1.5 }}>{t('createAgency.inviteHint')}</p>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 9, paddingTop: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 'var(--crm-space-md)', paddingTop: 'var(--crm-space-xs)' }}>
           <AdminGhostBtn onClick={onClose}>{t('common.cancel')}</AdminGhostBtn>
           <AdminSolidBtn onClick={handleCreate} disabled={createAgency.isPending}>
             {createAgency.isPending ? t('common.saving') : t('createAgency.submit')}

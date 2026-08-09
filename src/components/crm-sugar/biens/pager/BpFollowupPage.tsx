@@ -93,7 +93,7 @@ export function BpFollowupPage({
 
   // ── Fonctions de rendu (pas de composants au render) ──────────────────────
   const renderTag = (label: string, urgent?: boolean): ReactNode => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 11px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, letterSpacing: -0.1, whiteSpace: 'nowrap', flexShrink: 0, background: urgent ? orange : surf.cardSub, color: urgent ? '#fff' : sp.soft }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: -0.1, whiteSpace: 'nowrap', flexShrink: 0, background: urgent ? orange : surf.cardSub, color: urgent ? '#fff' : sp.soft }}>
       {label}
     </span>
   )
@@ -121,7 +121,7 @@ export function BpFollowupPage({
     return (
       <button
         onClick={onClick}
-        style={{ height: 32, padding: '0 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, border: isMandat ? 0 : surf.hairline, background: isMandat ? sp.ink : surf.card, color: isMandat ? sp.pageBg : sp.ink, boxShadow: isMandat ? 'none' : surf.shadow }}
+        style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, border: isMandat ? 0 : surf.hairline, background: isMandat ? sp.ink : surf.card, color: isMandat ? sp.pageBg : sp.ink, boxShadow: isMandat ? 'none' : surf.shadow }}
       >
         {actionLabel(bucketId)}
       </button>
@@ -129,13 +129,13 @@ export function BpFollowupPage({
   }
 
   const renderRow = (bucketId: FollowBucketId, row: FollowRow): ReactNode => (
-    <div className="bpf-row" style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '10px 10px', borderRadius: 13, minWidth: 0 }}>
+    <div className="bpf-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', minWidth: 0 }}>
       <button
         onClick={() => onOpenBien(row.b.id)}
-        style={{ display: 'flex', alignItems: 'center', gap: 13, flex: 1, minWidth: 0, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', flex: 1, minWidth: 0, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
       >
         {renderThumb(row.b)}
-        <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.b.title}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.b.title}</div>
       </button>
       {renderTag(rowTagLabel(bucketId, row), row.urgent)}
       {renderActBtn(bucketId, row.b, row.days)}
@@ -145,12 +145,12 @@ export function BpFollowupPage({
   const renderFilt = (icon: MEIconName, label: string, on: boolean, onClick: () => void): ReactNode => (
     <button
       onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%', border: 0, background: on ? surf.card : 'transparent', boxShadow: on ? `0 0 0 1.5px ${sp.ink} inset, ${surf.shadow}` : 'none' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%', border: 0, background: on ? surf.card : 'transparent', boxShadow: on ? `0 0 0 1.5px ${sp.ink} inset, ${surf.shadow}` : 'none' }}
     >
       <span style={{ width: 26, height: 26, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
         <MEIcon name={icon} size={17} color={on ? sp.ink : sp.sub} />
       </span>
-      <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: sp.ink }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink }}>{label}</span>
     </button>
   )
 
@@ -164,14 +164,14 @@ export function BpFollowupPage({
         .bpf-row:hover { background: ${dark ? crmStep('s3', 'rgba(255,255,255,0.05)') : 'rgba(15,23,42,0.035)'}; }
         .bpf-feed::-webkit-scrollbar { width: 9px; }
         .bpf-feed::-webkit-scrollbar-thumb { background: ${dark ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
-        .bpf-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; align-items: start; }
+        .bpf-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--crm-space-3xl); align-items: start; }
         @media (max-width: 1180px) { .bpf-grid { grid-template-columns: 1fr; } }
       `}</style>
 
       {/* Rail — titre + filtres par nature */}
       <aside style={{ padding: '30px 26px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <h1 style={{ margin: '0 0 22px', fontSize: 31, fontWeight: 800, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>{t('biens.followUp.title')}</h1>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <h1 style={{ margin: '0 0 22px', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>{t('biens.followUp.title')}</h1>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
           {renderFilt('dashboard', t('biens.followUp.filter.all'), !filter, () => setFilter(null))}
           {buckets.map((g) => (
             <Fragment key={g.id}>
@@ -182,26 +182,26 @@ export function BpFollowupPage({
       </aside>
 
       {/* Feed — adaptatif au volume */}
-      <div style={{ padding: '14px 14px 14px 0', minHeight: 0, display: 'flex' }}>
+      <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-2xl) var(--crm-space-2xl) 0', minHeight: 0, display: 'flex' }}>
         {dense ? (
-          <div className="bpf-feed" style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: 6, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="bpf-feed" style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingRight: 'var(--crm-space-sm)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
             {bandeau.length > 0 && (
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 2px 10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', margin: '2px 2px 10px' }}>
                   <MEIcon name="bolt" size={14} color={orangeText} />
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', color: orangeText }}>{t('biens.followUp.priority')}</span>
+                  <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', color: orangeText }}>{t('biens.followUp.priority')}</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bandeau.length}, 1fr)`, gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bandeau.length}, 1fr)`, gap: 'var(--crm-space-2xl)' }}>
                   {bandeau.map((row) => (
-                    <div key={row.b.id} style={{ display: 'flex', alignItems: 'center', gap: 13, background: surf.card, borderRadius: 16, boxShadow: surf.shadow, border: surf.hairline, padding: 12, minWidth: 0 }}>
+                    <div key={row.b.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', background: surf.card, borderRadius: 'var(--crm-radius-2xl)', boxShadow: surf.shadow, border: surf.hairline, padding: 'var(--crm-space-xl)', minWidth: 0 }}>
                       {renderThumb(row.b, 64, 50, 11)}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: orangeText, marginBottom: 3 }}>{expiryText(row.days ?? 0)}</div>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.b.title}</div>
+                        <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: orangeText, marginBottom: 3 }}>{expiryText(row.days ?? 0)}</div>
+                        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.b.title}</div>
                       </div>
                       <button
                         onClick={() => setRenew({ b: row.b, days: row.days ?? 0 })}
-                        style={{ height: 32, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, background: sp.ink, color: sp.pageBg }}
+                        style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, background: sp.ink, color: sp.pageBg }}
                       >
                         {t('biens.followUp.action.renew')}
                       </button>
@@ -216,11 +216,11 @@ export function BpFollowupPage({
                 const shownRows = g.rows.slice(0, lim)
                 const more = g.rows.length - shownRows.length
                 return (
-                  <section key={g.id} style={{ background: surf.card, borderRadius: 18, boxShadow: surf.shadow, border: surf.hairline, padding: '14px 12px 8px', minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 800, color: sp.ink, padding: '2px 6px 8px' }}>
-                      <span style={{ width: 8, height: 8, borderRadius: 999, background: BUCKET_META[g.id].dot, flexShrink: 0 }} />
+                  <section key={g.id} style={{ background: surf.card, borderRadius: 'var(--crm-radius-3xl)', boxShadow: surf.shadow, border: surf.hairline, padding: 'var(--crm-space-2xl) var(--crm-space-xl) var(--crm-space-md)', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: 800, color: sp.ink, padding: 'var(--crm-space-2xs) var(--crm-space-sm) var(--crm-space-md)' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: BUCKET_META[g.id].dot, flexShrink: 0 }} />
                       <span style={{ flex: 1, minWidth: 0 }}>{bucketTitle(g.id)}</span>
-                      <span style={{ minWidth: 22, height: 22, padding: '0 7px', borderRadius: 999, display: 'inline-grid', placeItems: 'center', background: sp.ink, color: sp.pageBg, fontSize: 11.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{g.rows.length}</span>
+                      <span style={{ minWidth: 22, height: 22, padding: '0 var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', display: 'inline-grid', placeItems: 'center', background: sp.ink, color: sp.pageBg, fontSize: 'var(--crm-text-sm)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{g.rows.length}</span>
                     </div>
                     {shownRows.map((row, i) => (
                       <Fragment key={row.b.id}>
@@ -231,7 +231,7 @@ export function BpFollowupPage({
                     {(more > 0 || (expanded[g.id] && g.rows.length > 4)) && (
                       <button
                         onClick={() => toggleExp(g.id)}
-                        style={{ margin: '2px 8px 6px', padding: '8px', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: sp.sub }}
+                        style={{ margin: '2px 8px 6px', padding: 'var(--crm-space-md)', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.sub }}
                       >
                         {more > 0 ? t('biens.followUp.viewOthers', { count: more }) : t('biens.followUp.reduce')}
                       </button>
@@ -242,18 +242,18 @@ export function BpFollowupPage({
             </div>
           </div>
         ) : (
-          <div className="bpf-feed" style={{ flex: 1, background: surf.card, borderRadius: 22, boxShadow: surf.shadow, border: surf.hairline, padding: '10px 10px', overflowY: 'auto', minHeight: 0 }}>
+          <div className="bpf-feed" style={{ flex: 1, background: surf.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: surf.shadow, border: surf.hairline, padding: 'var(--crm-space-lg) var(--crm-space-lg)', overflowY: 'auto', minHeight: 0 }}>
             {total === 0 && isError && (
               <div style={{ padding: '56px 20px', textAlign: 'center' }}>
-                <div style={{ width: 52, height: 52, borderRadius: 999, margin: '0 auto 14px', background: surf.cardSub, display: 'grid', placeItems: 'center' }}>
+                <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', margin: '0 auto 14px', background: surf.cardSub, display: 'grid', placeItems: 'center' }}>
                   <MEIcon name="alert" size={22} color="#E53935" />
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>{t('biens.error.title')}</div>
-                <div style={{ fontSize: 13, color: sp.sub, fontWeight: 500, marginTop: 4, lineHeight: 1.5 }}>{t('biens.error.message')}</div>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>{t('biens.error.title')}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500, marginTop: 4, lineHeight: 1.5 }}>{t('biens.error.message')}</div>
                 {onRefetch && (
                   <button
                     onClick={() => onRefetch()}
-                    style={{ marginTop: 14, height: 34, padding: '0 16px', borderRadius: 999, background: surf.card, color: sp.ink, border: surf.hairline, boxShadow: surf.shadow, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    style={{ marginTop: 14, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', background: surf.card, color: sp.ink, border: surf.hairline, boxShadow: surf.shadow, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
                   >
                     <MEIcon name="refresh" size={13} color={sp.soft} /> {t('biens.error.retry')}
                   </button>
@@ -262,35 +262,35 @@ export function BpFollowupPage({
             )}
             {total === 0 && !isError && isLoading && (
               <div style={{ padding: '56px 20px', textAlign: 'center' }}>
-                <div style={{ fontSize: 13, color: sp.sub, fontWeight: 500 }}>{t('biens.loading')}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500 }}>{t('biens.loading')}</div>
               </div>
             )}
             {total === 0 && !isError && !isLoading && (
               <div style={{ padding: '56px 20px', textAlign: 'center' }}>
-                <div style={{ width: 52, height: 52, borderRadius: 999, margin: '0 auto 14px', background: surf.cardSub, display: 'grid', placeItems: 'center' }}>
+                <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', margin: '0 auto 14px', background: surf.cardSub, display: 'grid', placeItems: 'center' }}>
                   <MEIcon name="check" size={22} color={sp.ink} />
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>{t('biens.followUp.empty.title')}</div>
-                <div style={{ fontSize: 13, color: sp.sub, fontWeight: 500, marginTop: 4 }}>{t('biens.followUp.empty.subtitle')}</div>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>{t('biens.followUp.empty.title')}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500, marginTop: 4 }}>{t('biens.followUp.empty.subtitle')}</div>
               </div>
             )}
 
             {hero && (
-              <div style={{ padding: '6px 6px 2px' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: orangeText, margin: '4px 6px 8px' }}>
+              <div style={{ padding: 'var(--crm-space-sm) var(--crm-space-sm) var(--crm-space-2xs)' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: orangeText, margin: '4px 6px 8px' }}>
                   <MEIcon name="bolt" size={13} color={orangeText} />
                   {t('biens.followUp.priorityFirst')}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: surf.cardSub, borderRadius: 16, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', background: surf.cardSub, borderRadius: 'var(--crm-radius-2xl)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
                   {renderThumb(hero.b, 78, 58, 12)}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: sp.sub, marginBottom: 3 }}>{t('biens.followUp.mandateEcheance', { type: hero.b.mandat?.type ?? 'simple' })}</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.3, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{hero.b.title}</div>
+                    <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: sp.sub, marginBottom: 3 }}>{t('biens.followUp.mandateEcheance', { type: hero.b.mandat?.type ?? 'simple' })}</div>
+                    <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{hero.b.title}</div>
                   </div>
                   {renderTag(expiryText(hero.days ?? 0), hero.urgent)}
                   <button
                     onClick={() => setRenew({ b: hero.b, days: hero.days ?? 0 })}
-                    style={{ height: 32, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, background: sp.ink, color: sp.pageBg }}
+                    style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, background: sp.ink, color: sp.pageBg }}
                   >
                     {t('biens.followUp.action.renew')}
                   </button>
@@ -299,9 +299,9 @@ export function BpFollowupPage({
             )}
 
             {shownBuckets.map((g, gi) => (
-              <div key={g.id} style={{ padding: '4px 8px 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 800, letterSpacing: 0.2, color: sp.ink, padding: '10px 6px 6px' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: BUCKET_META[g.id].dot, flexShrink: 0 }} />
+              <div key={g.id} style={{ padding: 'var(--crm-space-xs) var(--crm-space-md) 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: sp.ink, padding: 'var(--crm-space-lg) var(--crm-space-sm) var(--crm-space-sm)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: BUCKET_META[g.id].dot, flexShrink: 0 }} />
                   {bucketTitle(g.id)}
                 </div>
                 {g.rows.map((row, i) => (

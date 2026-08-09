@@ -293,8 +293,8 @@ function CdCta({ children, tone = 'ink', small, P, onClick, disabled }: {
   const ghost = tone === 'ghost'
   return (
     <button onClick={onClick} disabled={disabled} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 7, height: small ? 32 : 40,
-      padding: small ? '0 14px' : '0 17px', borderRadius: 999, cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
+      display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: small ? 32 : 40,
+      padding: small ? '0 14px' : '0 17px', borderRadius: 'var(--crm-radius-pill)', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
       border: 0, fontFamily: 'inherit',
       background: ghost ? P.sub : P.accent, color: ghost ? P.inkSoft : P.accentInk,
       fontSize: small ? 12 : 13, fontWeight: ghost ? 600 : 700,
@@ -305,29 +305,29 @@ function CdCta({ children, tone = 'ink', small, P, onClick, disabled }: {
 
 function CdRoundBtn({ icon, P, onClick }: { icon: string; P: FichePal; onClick?: () => void }) {
   return (
-    <button onClick={onClick} style={{ width: 40, height: 40, borderRadius: 999, background: P.card, boxShadow: P.shadowSm, border: 0, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+    <button onClick={onClick} style={{ width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', background: P.card, boxShadow: P.shadowSm, border: 0, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
       <FcpIcon name={icon} size={16} stroke={P.inkSoft} />
     </button>
   )
 }
 
 function CdGrp({ children, P }: { children: ReactNode; P: FichePal }) {
-  return <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: P.muted }}>{children}</div>
+  return <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: P.muted }}>{children}</div>
 }
 
 function CdChip({ children, on, P }: { children: ReactNode; on?: boolean; P: FichePal }) {
-  return <span style={{ display: 'inline-flex', alignItems: 'center', height: 31, padding: '0 14px', borderRadius: 999, fontSize: 12.5, fontWeight: on ? 700 : 600, background: on ? P.accent : P.sub, color: on ? P.accentInk : P.muted }}>{children}</span>
+  return <span style={{ display: 'inline-flex', alignItems: 'center', height: 31, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, background: on ? P.accent : P.sub, color: on ? P.accentInk : P.muted }}>{children}</span>
 }
 
 function CdPickChip({ on, onClick, children, P }: { on?: boolean; onClick: () => void; children: ReactNode; P: FichePal }) {
-  return <button onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', height: 31, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 600, background: on ? P.accent : P.sub, color: on ? P.accentInk : P.muted, transition: 'background 140ms ease' }}>{children}</button>
+  return <button onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', height: 31, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, background: on ? P.accent : P.sub, color: on ? P.accentInk : P.muted, transition: 'background 140ms ease' }}>{children}</button>
 }
 
 function CdField({ label, value, mono, P }: { label: string; value: ReactNode; mono?: boolean; P: FichePal }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted }}>{label}</div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: P.ink, marginTop: 5, fontVariantNumeric: mono ? 'tabular-nums' : 'normal' }}>{value}</div>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted }}>{label}</div>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: P.ink, marginTop: 5, fontVariantNumeric: mono ? 'tabular-nums' : 'normal' }}>{value}</div>
     </div>
   )
 }
@@ -335,17 +335,17 @@ function CdField({ label, value, mono, P }: { label: string; value: ReactNode; m
 function CdReadRow({ label, value, empty, emptyLabel, mono, P }: { label: string; value: ReactNode; empty?: boolean; emptyLabel: string; mono?: boolean; P: FichePal }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted }}>{label}</div>
-      <div style={{ fontSize: 14, fontWeight: empty ? 500 : 600, color: empty ? P.ghost : P.ink, marginTop: 5, fontVariantNumeric: mono ? 'tabular-nums' : 'normal' }}>{empty ? emptyLabel : value}</div>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted }}>{label}</div>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: empty ? 500 : 600, color: empty ? P.ghost : P.ink, marginTop: 5, fontVariantNumeric: mono ? 'tabular-nums' : 'normal' }}>{empty ? emptyLabel : value}</div>
     </div>
   )
 }
 
 function CdStatePill({ state, label, P }: { state: FicheLoopItem['state']; label: string; P: FichePal }) {
-  return <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 999, background: P[LOOP_STATE[state].key], color: '#fff', fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>{label}</span>
+  return <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: P[LOOP_STATE[state].key], color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>{label}</span>
 }
 
-const cdLbl = (P: FichePal): CSSProperties => ({ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 7 })
+const cdLbl = (P: FichePal): CSSProperties => ({ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 7 })
 
 function CdTextInput({ value, onChange, placeholder, type = 'text', mono, invalid, P }: {
   value: string; onChange: (v: string) => void; placeholder?: string; type?: string; mono?: boolean; invalid?: boolean; P: FichePal
@@ -357,7 +357,7 @@ function CdTextInput({ value, onChange, placeholder, type = 'text', mono, invali
   return (
     <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
       onFocus={() => setF(true)} onBlur={() => setF(false)} aria-invalid={invalid || undefined}
-      style={{ width: '100%', height: 38, padding: '0 12px', boxSizing: 'border-box', background: P.sub, border: 0, borderRadius: 12, color: P.ink, fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', outline: 'none', fontVariantNumeric: mono ? 'tabular-nums' : 'normal', boxShadow: ring ? `inset 0 0 0 2px ${ring}` : 'none', transition: 'box-shadow 140ms ease' }} />
+      style={{ width: '100%', height: 38, padding: '0 var(--crm-space-xl)', boxSizing: 'border-box', background: P.sub, border: 0, borderRadius: 'var(--crm-radius-lg)', color: P.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontFamily: 'inherit', outline: 'none', fontVariantNumeric: mono ? 'tabular-nums' : 'normal', boxShadow: ring ? `inset 0 0 0 2px ${ring}` : 'none', transition: 'box-shadow 140ms ease' }} />
   )
 }
 
@@ -368,8 +368,8 @@ function CdTextInput({ value, onChange, placeholder, type = 'text', mono, invali
  *  `overflow: hidden`, un `position: fixed` enfant y serait clippé. */
 function CdSavedToast({ label }: { label: string }) {
   return createPortal(
-    <div style={{ position: 'fixed', bottom: 30, left: '50%', zIndex: 100, display: 'flex', alignItems: 'center', gap: 9, height: 42, padding: '0 18px 0 14px', borderRadius: 999, background: '#0B0C0E', color: '#FFFFFF', fontSize: 12.5, fontWeight: 700, fontFamily: "'Inter Tight', system-ui, sans-serif", boxShadow: '0 16px 44px rgba(0,0,0,0.35)', animation: 'cdpToast .28s cubic-bezier(.2,.8,.2,1) both', pointerEvents: 'none' }}>
-      <span style={{ width: 20, height: 20, borderRadius: 999, background: '#059669', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+    <div style={{ position: 'fixed', bottom: 30, left: '50%', zIndex: 100, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 42, padding: '0 var(--crm-space-4xl) 0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: '#0B0C0E', color: '#FFFFFF', fontSize: 'var(--crm-text-md)', fontWeight: 700, fontFamily: "'Inter Tight', system-ui, sans-serif", boxShadow: '0 16px 44px rgba(0,0,0,0.35)', animation: 'cdpToast .28s cubic-bezier(.2,.8,.2,1) both', pointerEvents: 'none' }}>
+      <span style={{ width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: '#059669', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
         <FcpIcon name="check" size={11} stroke="#FFFFFF" sw={2.6} />
       </span>
       {label}
@@ -397,7 +397,7 @@ function CdSelect({ value, onChange, options, P }: {
   const [f, setF] = useState(false)
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} onFocus={() => setF(true)} onBlur={() => setF(false)}
-      style={{ width: '100%', height: 38, padding: '0 30px 0 12px', boxSizing: 'border-box', background: P.sub, border: 0, borderRadius: 12, color: P.ink, fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', outline: 'none', appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer', boxShadow: f ? `inset 0 0 0 2px ${P.accent}` : 'none', backgroundImage: chevronUri(P.muted), backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', transition: 'box-shadow 140ms ease' }}>
+      style={{ width: '100%', height: 38, padding: '0 30px 0 12px', boxSizing: 'border-box', background: P.sub, border: 0, borderRadius: 'var(--crm-radius-lg)', color: P.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontFamily: 'inherit', outline: 'none', appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer', boxShadow: f ? `inset 0 0 0 2px ${P.accent}` : 'none', backgroundImage: chevronUri(P.muted), backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', transition: 'box-shadow 140ms ease' }}>
       {options.map((o) => <option key={o.v} value={o.v} style={{ color: '#0B0C0E' }}>{o.l}</option>)}
     </select>
   )
@@ -407,11 +407,11 @@ function CdSeg({ value, onChange, options, P }: {
   value: string; onChange: (v: string) => void; options: { v: string; l: string }[]; P: FichePal
 }) {
   return (
-    <div style={{ display: 'flex', gap: 5, background: P.sub, padding: 4, borderRadius: 12 }}>
+    <div style={{ display: 'flex', gap: 'var(--crm-space-xs)', background: P.sub, padding: 'var(--crm-space-xs)', borderRadius: 'var(--crm-radius-lg)' }}>
       {options.map((o) => {
         const on = value === o.v
         return (
-          <button key={o.v} onClick={() => onChange(o.v)} style={{ flex: 1, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: on ? 700 : 600, background: on ? P.accent : 'transparent', color: on ? P.accentInk : P.muted, boxShadow: on ? P.shadowSm : 'none', transition: 'background 140ms ease, color 140ms ease' }}>{o.l}</button>
+          <button key={o.v} onClick={() => onChange(o.v)} style={{ flex: 1, height: 32, borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, background: on ? P.accent : 'transparent', color: on ? P.accentInk : P.muted, boxShadow: on ? P.shadowSm : 'none', transition: 'background 140ms ease, color 140ms ease' }}>{o.l}</button>
         )
       })}
     </div>
@@ -435,21 +435,21 @@ function CdMenu({ P, dark, onEditId, onEditCoord, onEditCrit, onDelete }: {
     { icon: 'msg', label: t('fiche.menu.editCoord'), act: onEditCoord },
     { icon: 'home', label: t('fiche.menu.editCriteria'), act: onEditCrit },
   ]
-  const rowBase: CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 11px', borderRadius: 11, border: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 120ms ease' }
+  const rowBase: CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-md)', border: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 120ms ease' }
   return (
-    <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 264, background: menuBg, borderRadius: 16, boxShadow: menuShadow, padding: 7, zIndex: 41, transformOrigin: 'top right', animation: 'cdpMenuIn .16s cubic-bezier(.2,.8,.2,1)' }}>
+    <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 264, background: menuBg, borderRadius: 'var(--crm-radius-2xl)', boxShadow: menuShadow, padding: 'var(--crm-space-sm)', zIndex: 41, transformOrigin: 'top right', animation: 'cdpMenuIn .16s cubic-bezier(.2,.8,.2,1)' }}>
       {items.map((it, i) => (
         <button key={it.label} role="menuitem" onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(-1)} onClick={it.act}
           style={{ ...rowBase, background: hi === i ? menuHov : 'transparent' }}>
           <FcpIcon name={it.icon} size={19} stroke={P.inkSoft} />
-          <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: P.ink }}>{it.label}</span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: P.ink }}>{it.label}</span>
         </button>
       ))}
       <div style={{ height: 1, background: P.hairline, margin: '6px 8px' }} />
       <button role="menuitem" onMouseEnter={() => setHi(99)} onMouseLeave={() => setHi(-1)} onClick={onDelete}
         style={{ ...rowBase, background: hi === 99 ? P.danger + (dark ? '22' : '14') : 'transparent' }}>
         <FcpIcon name="trash" size={19} stroke={P.danger} />
-        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: P.danger }}>{t('fiche.menu.delete')}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: P.danger }}>{t('fiche.menu.delete')}</span>
       </button>
     </div>
   )
@@ -472,11 +472,11 @@ function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
   if (done) {
     return createPortal(
       <div style={veil}>
-        <div style={{ width: 360, background: modalBg, borderRadius: 24, boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '32px 30px', textAlign: 'center', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
-          <span style={{ width: 48, height: 48, borderRadius: 999, background: '#059669', display: 'inline-grid', placeItems: 'center' }}>
+        <div style={{ width: 360, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '32px 30px', textAlign: 'center', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+          <span style={{ width: 48, height: 48, borderRadius: 'var(--crm-radius-pill)', background: '#059669', display: 'inline-grid', placeItems: 'center' }}>
             <FcpIcon name="check" size={22} stroke="#FFFFFF" sw={2.4} />
           </span>
-          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 14 }}>{t('fiche.delete.done')}</div>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 14 }}>{t('fiche.delete.done')}</div>
         </div>
       </div>,
       document.body,
@@ -485,20 +485,20 @@ function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
 
   return createPortal(
     <div style={veil}>
-      <div style={{ width: 440, background: modalBg, borderRadius: 24, boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
-        <span style={{ width: 44, height: 44, borderRadius: 999, background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
+      <div style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+        <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
           <FcpIcon name="trash" size={20} stroke={P.danger} sw={2} />
         </span>
-        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.delete.title', { name: name || t('fiche.delete.thisContact') })}</div>
-        <div style={{ fontSize: 13.5, fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.delete.title', { name: name || t('fiche.delete.thisContact') })}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
           <Trans t={t} i18nKey="fiche.delete.body" components={{ 1: <b style={{ color: P.inkSoft, fontWeight: 700 }} /> }} />
         </div>
         {error && (
-          <div role="alert" style={{ marginTop: 16, fontSize: 12, fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
+          <div role="alert" style={{ marginTop: 16, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
         )}
-        <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
-          <button onClick={onConfirm} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.danger, color: '#FFFFFF' }}>{t('fiche.delete.confirm')}</button>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
+          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
+          <button onClick={onConfirm} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: '#FFFFFF' }}>{t('fiche.delete.confirm')}</button>
         </div>
       </div>
     </div>,
@@ -512,28 +512,28 @@ function CdKycWarn({ P, dark, name, onCancel, onConfirm }: { P: FichePal; dark: 
   const [consent, setConsent] = useState(false)
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 90, display: 'grid', placeItems: 'center', background: 'rgba(15,20,30,0.42)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease' }}>
-      <div style={{ width: 440, background: modalBg, borderRadius: 24, boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '30px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
-        <div style={{ width: 46, height: 46, borderRadius: 14, background: P.danger + '24', display: 'grid', placeItems: 'center', marginBottom: 16 }}>
+      <div style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '30px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+        <div style={{ width: 46, height: 46, borderRadius: 'var(--crm-radius-xl)', background: P.danger + '24', display: 'grid', placeItems: 'center', marginBottom: 16 }}>
           <FcpIcon name="shield" size={22} stroke={P.danger} sw={2} />
         </div>
-        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.4, color: P.ink }}>{t('fiche.kycWarn.title')}</div>
-        <div style={{ fontSize: 13.5, fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: P.ink }}>{t('fiche.kycWarn.title')}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
           <Trans t={t} i18nKey="fiche.kycWarn.body" values={{ name: name || t('fiche.delete.thisContact') }} components={{ 1: <b style={{ color: P.inkSoft, fontWeight: 700 }} /> }} />
         </div>
         <label role="checkbox" aria-checked={consent} tabIndex={0}
           onClick={() => setConsent((v) => !v)}
           onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setConsent((v) => !v) } }}
-          style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: 18, padding: '13px 14px', borderRadius: 14, background: P.sub, cursor: 'pointer' }}>
-          <span style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1, display: 'grid', placeItems: 'center', background: consent ? P.accent : 'transparent', boxShadow: consent ? 'none' : `inset 0 0 0 2px ${P.ghost}`, transition: 'background 140ms ease' }}>
+          style={{ display: 'flex', gap: 'var(--crm-space-xl)', alignItems: 'flex-start', marginTop: 18, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-xl)', background: P.sub, cursor: 'pointer' }}>
+          <span style={{ width: 20, height: 20, borderRadius: 'var(--crm-radius-xs)', flexShrink: 0, marginTop: 1, display: 'grid', placeItems: 'center', background: consent ? P.accent : 'transparent', boxShadow: consent ? 'none' : `inset 0 0 0 2px ${P.ghost}`, transition: 'background 140ms ease' }}>
             {consent && <FcpIcon name="check" size={13} stroke={P.accentInk} sw={3} />}
           </span>
-          <span style={{ fontSize: 12.5, fontWeight: 500, color: P.inkSoft, lineHeight: 1.5 }}>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.inkSoft, lineHeight: 1.5 }}>
             <Trans t={t} i18nKey="fiche.kycWarn.consent" components={{ 1: <b style={{ fontWeight: 700, color: P.ink }} /> }} />
           </span>
         </label>
-        <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
-          <button onClick={consent ? onConfirm : undefined} disabled={!consent} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: consent ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.danger, color: '#FFFFFF', opacity: consent ? 1 : 0.45, transition: 'opacity 140ms ease' }}>{t('fiche.kycWarn.confirm')}</button>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 20 }}>
+          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
+          <button onClick={consent ? onConfirm : undefined} disabled={!consent} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: consent ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: '#FFFFFF', opacity: consent ? 1 : 0.45, transition: 'opacity 140ms ease' }}>{t('fiche.kycWarn.confirm')}</button>
         </div>
       </div>
     </div>
@@ -555,9 +555,9 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
   const countryOpts = [{ v: '', l: t('fiche.identity.countryNone') }, ...COUNTRIES.map((c) => ({ v: c.code, l: c.name }))]
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 80, display: 'grid', placeItems: 'center', background: 'rgba(15,20,30,0.42)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease' }}>
-      <div style={{ width: 452, background: modalBg, borderRadius: 24, boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
-        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.4, color: P.ink }}>{t('fiche.identity.title')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 20 }}>
+      <div style={{ width: 452, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: P.ink }}>{t('fiche.identity.title')}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)', marginTop: 20 }}>
           <div>
             <div style={cdLbl(P)}>{t('fiche.identity.firstName')}</div>
             <CdTextInput value={draft.firstName} onChange={(val) => setDraft((s) => ({ ...s, firstName: val }))} placeholder={t('fiche.identity.firstName')} P={P} />
@@ -584,19 +584,19 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
           </div>
         </div>
         {verified && (
-          <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', marginTop: 16, background: P.danger + (dark ? '22' : '14'), borderRadius: 12, padding: '12px 14px' }}>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'flex-start', marginTop: 16, background: P.danger + (dark ? '22' : '14'), borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
             <FcpIcon name="shield" size={16} stroke={P.danger} sw={2} />
-            <div style={{ fontSize: 12, fontWeight: 500, color: P.inkSoft, lineHeight: 1.45 }}>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.inkSoft, lineHeight: 1.45 }}>
               <Trans t={t} i18nKey="fiche.identity.kycWarn" components={{ 1: <b style={{ fontWeight: 700 }} /> }} />
             </div>
           </div>
         )}
         {error && (
-          <div role="alert" style={{ marginTop: 16, fontSize: 12, fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
+          <div role="alert" style={{ marginTop: 16, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
         )}
-        <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
-          <button onClick={onSave} disabled={!canSave} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.accent, color: P.accentInk, opacity: canSave ? 1 : 0.45, transition: 'opacity 140ms ease' }}>{t('cd.save')}</button>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
+          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
+          <button onClick={onSave} disabled={!canSave} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.accent, color: P.accentInk, opacity: canSave ? 1 : 0.45, transition: 'opacity 140ms ease' }}>{t('cd.save')}</button>
         </div>
       </div>
     </div>
@@ -637,17 +637,17 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
   return (
     // Défilement permanent (pas seulement en édition) : les 9 lignes d'identité
     // débordent la colonne dès qu'elles sont renseignées.
-    <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadowSm, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minHeight: 0, overflowY: 'auto' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-6xl) var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)' }}>
         <CdGrp P={P}>{t('detail.contactInfo')}</CdGrp>
         <div style={{ flex: 1 }} />
-        {!editing && <span onClick={start} style={{ fontSize: 11.5, fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('cd.edit')}</span>}
+        {!editing && <span onClick={start} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('cd.edit')}</span>}
       </div>
       {saved && <CdSavedToast label={t('fiche.saved.coord')} />}
 
       {editing ? (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
             <div>
               <div style={cdLbl(P)}>{t('fiche.coord.civility')}</div>
               <CdSelect value={draft.civ} onChange={set('civ')} P={P} options={civOpts} />
@@ -669,7 +669,7 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
             <div style={cdLbl(P)}>{t('fiche.coord.channel')}</div>
             <CdSeg value={draft.canal} onChange={set('canal')} P={P} options={canalOpts} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'auto', paddingTop: 'var(--crm-space-xs)' }}>
             <CdCta tone="ghost" small P={P} onClick={cancel}>{t('cd.cancel')}</CdCta>
             <div style={{ flex: 1 }} />
             <CdCta small P={P} onClick={save}>{t('cd.save')}</CdCta>
@@ -677,7 +677,7 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
         </>
       ) : (
         // Une seule grille 2 colonnes, ordre du handoff : état civil → identité LBA → contact.
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
           <CdReadRow label={t('fiche.coord.civility')} value={form.civ ? t('fiche.civ.' + form.civ) : ''} empty={!form.civ} emptyLabel={emptyLbl} P={P} />
           <CdReadRow label={t('detail.language')} value={form.lang ? t('fiche.lang.' + form.lang) : ''} empty={!form.lang} emptyLabel={emptyLbl} P={P} />
           <CdReadRow label={t('fiche.coord.birth')} value={fiche.birth} empty={!fiche.birth} emptyLabel={emptyLbl} mono P={P} />
@@ -752,11 +752,11 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
   const mustRead = v.mustHave.length ? v.mustHave.map(featLabel).join(' · ') : '—'
 
   return (
-    <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadow, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: editing ? 15 : 20, minHeight: 0, overflowY: editing ? 'auto' : 'visible' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadow, padding: 'var(--crm-space-6xl) var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', gap: editing ? 15 : 20, minHeight: 0, overflowY: editing ? 'auto' : 'visible' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)' }}>
         <CdGrp P={P}>{isSeller ? t('fiche.crit.offers') : t('fiche.crit.wants')}</CdGrp>
         <div style={{ flex: 1 }} />
-        {!editing && <span onClick={start} style={{ fontSize: 11.5, fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('cd.edit')}</span>}
+        {!editing && <span onClick={start} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('cd.edit')}</span>}
       </div>
       {saved && <CdSavedToast label={t('fiche.saved.crit')} />}
 
@@ -767,7 +767,7 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
             {isTenant ? (
               <CdTextInput type="number" value={d.budgetMax} onChange={setF('budgetMax')} placeholder="2500" mono P={P} />
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
                 <CdTextInput type="number" value={d.budgetMin} onChange={setF('budgetMin')} placeholder={t('fiche.crit.minPlaceholder')} mono P={P} />
                 <CdTextInput type="number" value={d.budgetMax} onChange={setF('budgetMax')} placeholder={t('fiche.crit.maxPlaceholder')} mono P={P} />
               </div>
@@ -775,28 +775,28 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
           </div>
           <div>
             <div style={cdLbl(P)}>{t('detail.propertyType')}</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
               {CD_ALL_TYPES.map((tk) => <CdPickChip key={tk} on={d.types.includes(tk)} onClick={() => toggle('types', tk)} P={P}>{typeLabel(tk)}</CdPickChip>)}
             </div>
           </div>
           <div>
             <div style={cdLbl(P)}>{t('fiche.crit.sectors')}</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+            <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap', marginBottom: 10 }}>
               {CD_CANTONS.map((cn) => <CdPickChip key={cn} on={d.cantons.includes(cn)} onClick={() => toggle('cantons', cn)} P={P}>{cn}</CdPickChip>)}
             </div>
             <CdTextInput value={d.cities} onChange={setF('cities')} placeholder={t('fiche.crit.citiesPlaceholder')} P={P} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
             <div><div style={cdLbl(P)}>{t('fiche.crit.roomsMin')}</div><CdTextInput type="number" value={d.roomsMin} onChange={setF('roomsMin')} placeholder="4" mono P={P} /></div>
             <div><div style={cdLbl(P)}>{t('fiche.crit.areaMinEdit')}</div><CdTextInput type="number" value={d.areaMin} onChange={setF('areaMin')} placeholder="90" mono P={P} /></div>
           </div>
           <div>
             <div style={cdLbl(P)}>{t('fiche.crit.mustHave')}</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
               {CD_MUSTHAVE.map((mh) => <CdPickChip key={mh.id} on={d.mustHave.includes(mh.id)} onClick={() => toggle('mustHave', mh.id)} P={P}>{t(mh.k)}</CdPickChip>)}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 2 }}>
             <CdCta tone="ghost" small P={P} onClick={cancel}>{t('cd.cancel')}</CdCta>
             <div style={{ flex: 1 }} />
             <CdCta small P={P} onClick={save}>{t('cd.save')}</CdCta>
@@ -805,23 +805,23 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
       ) : (
         <>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted }}>{budgetLabel}</div>
-            <div style={{ fontSize: 29, fontWeight: 800, letterSpacing: -1, color: P.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{budgetRead}</div>
+            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted }}>{budgetLabel}</div>
+            <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: P.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{budgetRead}</div>
           </div>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 9 }}>{t('detail.propertyType')}</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 9 }}>{t('detail.propertyType')}</div>
+            <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
               {CD_ALL_TYPES.map((tk) => <CdChip key={tk} on={v.types.includes(tk)} P={P}>{typeLabel(tk)}</CdChip>)}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 9 }}>{t('fiche.crit.sectors')}</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 9 }}>{t('fiche.crit.sectors')}</div>
+            <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap', alignItems: 'center' }}>
               {v.cantons.map((cn) => <CdChip key={cn} on P={P}>{cn}</CdChip>)}
-              {v.cities && <span style={{ fontSize: 12.5, fontWeight: 500, color: P.muted }}>{v.cities}</span>}
+              {v.cities && <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{v.cities}</span>}
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 18, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 'var(--crm-space-4xl)', alignItems: 'start' }}>
             <CdField label={t('fiche.crit.roomsMin')} value={v.roomsMin || '—'} mono P={P} />
             <CdField label={t('fiche.crit.areaMin')} value={v.areaMin ? v.areaMin + ' m²' : '—'} mono P={P} />
             <CdField label={t('fiche.crit.mustHave')} value={mustRead} P={P} />
@@ -841,11 +841,11 @@ function CdNote({ P, notes, onSaveNote }: { P: FichePal; notes: string; onSaveNo
   const [foc, setFoc] = useState(false)
   const onChange = (val: string) => { setNote(val); onSaveNote(val) }
   return (
-    <div style={{ background: P.card, borderRadius: 16, boxShadow: P.shadowSm, padding: '13px 15px', display: 'flex', flexDirection: 'column', gap: 11, flex: 1, minHeight: 0 }}>
-      <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: P.muted }}>{t('fiche.note.label')}</span>
+    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-2xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', flex: 1, minHeight: 0 }}>
+      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: P.muted }}>{t('fiche.note.label')}</span>
       <textarea value={note} onChange={(e) => onChange(e.target.value)} placeholder={t('fiche.note.placeholder')}
         onFocus={() => setFoc(true)} onBlur={() => setFoc(false)}
-        style={{ flex: 1, minHeight: 54, width: '100%', boxSizing: 'border-box', resize: 'none', border: 0, outline: 'none', background: P.sub, borderRadius: 12, padding: '11px 13px', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 500, lineHeight: 1.5, color: P.ink, boxShadow: foc ? `inset 0 0 0 2px ${P.accent}` : 'none', transition: 'box-shadow 140ms ease' }} />
+        style={{ flex: 1, minHeight: 54, width: '100%', boxSizing: 'border-box', resize: 'none', border: 0, outline: 'none', background: P.sub, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 500, lineHeight: 1.5, color: P.ink, boxShadow: foc ? `inset 0 0 0 2px ${P.accent}` : 'none', transition: 'box-shadow 140ms ease' }} />
     </div>
   )
 }
@@ -855,10 +855,10 @@ function CdNote({ P, notes, onSaveNote }: { P: FichePal; notes: string; onSaveNo
 // ═══════════════════════════════════════════════════════════════════════
 function CdDots({ page, onGo, P, labels }: { page: number; onGo: (i: number) => void; P: FichePal; labels: string[] }) {
   return (
-    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+    <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', alignItems: 'center' }}>
       {labels.map((label, i) => (
         <button key={label} onClick={() => onGo(i)} title={label} style={{
-          width: 8, height: i === page ? 26 : 8, borderRadius: 999, border: 0, cursor: 'pointer', padding: 0,
+          width: 8, height: i === page ? 26 : 8, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', padding: 0,
           background: i === page ? P.accent : P.hairline, transition: 'height .35s, background .35s',
         }} />
       ))}
@@ -979,42 +979,42 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
   const primaryLabel = isSeller ? t('fiche.cta.viewMandate') : t('fiche.cta.transmit')
 
   return (
-    <div style={{ position: 'absolute', inset: 0, padding: '22px 30px 24px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
+    <div style={{ position: 'absolute', inset: 0, padding: '22px 30px 24px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', overflow: 'hidden' }}>
       {kycWarn && <CdKycWarn P={P} dark={dark} name={nm.firstName} onCancel={() => setKycWarn(false)} onConfirm={() => runApplyId(true)} />}
       {(delOpen || delDone) && <CdDeleteModal P={P} dark={dark} done={delDone} error={delErr} name={(nm.firstName + ' ' + nm.lastName).trim()} onCancel={() => { setDelOpen(false); setDelErr(null) }} onConfirm={() => void confirmDelete()} />}
       {idEdit && <CdIdentityModal P={P} dark={dark} draft={nmDraft} setDraft={setNmDraft} verified={verified} error={idErr} onCancel={() => { setIdEdit(false); setNmDraft(nm) }} onSave={requestSaveId} />}
 
       {/* Retour */}
       <div style={{ display: 'flex' }}>
-        <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 32, padding: '0 13px', borderRadius: 999, background: P.card, boxShadow: P.shadowSm, border: 0, fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: P.inkSoft, cursor: 'pointer' }}>
+        <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 32, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: P.card, boxShadow: P.shadowSm, border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.inkSoft, cursor: 'pointer' }}>
           <FcpIcon name="arrowL" size={13} stroke={P.inkSoft} /> {t('fiche.back')}
         </button>
       </div>
 
       {/* Héro */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div style={{ width: 60, height: 60, borderRadius: 999, background: fiche.photo ? 'transparent' : (fiche.avatarBg || P.buyer), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 19, fontWeight: 700, flexShrink: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
+        <div style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-pill)', background: fiche.photo ? 'transparent' : (fiche.avatarBg || P.buyer), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-3xl)', fontWeight: 700, flexShrink: 0, overflow: 'hidden' }}>
           {fiche.photo ? <img src={fiche.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
         </div>
         <div style={{ minWidth: 0, flex: '0 1 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <h1 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: -0.8, color: P.ink, lineHeight: 1 }}>{nm.firstName} {nm.lastName}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
+            <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, color: P.ink, lineHeight: 1 }}>{nm.firstName} {nm.lastName}</h1>
             {verified && <CdSeal title={t('fiche.seal.title')} ariaLabel={t('fiche.seal.aria')} />}
-            <button onClick={startId} title={t('fiche.menu.editIdentity')} style={{ width: 28, height: 28, borderRadius: 999, border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+            <button onClick={startId} title={t('fiche.menu.editIdentity')} style={{ width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
               <FcpIcon name="pencil" size={14} stroke={P.muted} />
             </button>
           </div>
           {/* NBA — prochaine action estimée (cerveau partagé). Estimation, jamais une obligation. */}
           {nba && (
-            <div title={nba.kycNote ?? undefined} style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8, minWidth: 0 }}>
+            <div title={nba.kycNote ?? undefined} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 8, minWidth: 0 }}>
               <FcpIcon name="sparkle" size={13} stroke={P.accent} />
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: P.inkSoft, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nba.label}</span>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: P.muted, flexShrink: 0 }}>{nba.estimateTag}</span>
+              <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.inkSoft, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nba.label}</span>
+              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: P.muted, flexShrink: 0 }}>{nba.estimateTag}</span>
             </div>
           )}
         </div>
         <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
           <CdCta tone="ghost" P={P} onClick={onOpenKyc}>{t('fiche.kycDossier')}</CdCta>
           <CdCta P={P} onClick={isSeller ? onOpenListings : onOpenMatching}>{primaryLabel}</CdCta>
           <div ref={moreRef} style={{ position: 'relative' }}>
@@ -1031,9 +1031,9 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
       </div>
 
       {/* Corps — 2 colonnes */}
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 'var(--crm-space-3xl)' }}>
         <CdCrit key={'crit-' + fiche.id} P={P} fiche={fiche} editSignal={critSig} freezeRef={freezeRef} onSave={onSaveCriteria} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', minHeight: 0 }}>
           <CdCoord key={'coord-' + fiche.id} P={P} fiche={fiche} editSignal={coordSig} freezeRef={freezeRef} onSave={onSaveCoord} />
           <CdNote key={'note-' + fiche.id} P={P} notes={fiche.notes} onSaveNote={onSaveNote} />
         </div>
@@ -1058,21 +1058,21 @@ function CdRevokeLinkModal({ P, dark, link, busy, error, onCancel, onConfirm }: 
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: "'Inter Tight', system-ui, sans-serif" }}>
       <div role="dialog" aria-modal="true" aria-label={t('fiche.links.confirm.title')}
-        style={{ width: 440, background: modalBg, borderRadius: 24, boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
-        <span style={{ width: 44, height: 44, borderRadius: 999, background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
+        style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+        <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
           <FcpIcon name="shield" size={20} stroke={P.danger} sw={2} />
         </span>
-        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.links.confirm.title')}</div>
-        <div style={{ fontSize: 13.5, fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.links.confirm.title')}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
           {t('fiche.links.confirm.body', { count: link.count })}
         </div>
         {error && (
-          <div role="alert" style={{ marginTop: 16, fontSize: 12, fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
+          <div role="alert" style={{ marginTop: 16, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
         )}
-        <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
+          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
           <button onClick={busy ? undefined : onConfirm} disabled={busy}
-            style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.danger, color: '#FFFFFF', opacity: busy ? 0.55 : 1 }}>
+            style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: '#FFFFFF', opacity: busy ? 0.55 : 1 }}>
             {busy ? t('fiche.links.confirm.busy') : t('fiche.links.confirm.cta')}
           </button>
         </div>
@@ -1115,29 +1115,29 @@ function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
   }
 
   return (
-    <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadowSm, padding: '16px 20px', display: 'flex', flexDirection: 'column', minHeight: 0, flexShrink: 0, maxHeight: '42%', overflowY: 'auto' }}>
+    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-3xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', minHeight: 0, flexShrink: 0, maxHeight: '42%', overflowY: 'auto' }}>
       <CdGrp P={P}>{t('fiche.links.title', { count: links.items.length })}</CdGrp>
       {links.isLoading ? (
-        <div style={{ padding: '16px 2px', fontSize: 12.5, fontWeight: 500, color: P.muted }}>{t('fiche.links.loading')}</div>
+        <div style={{ padding: 'var(--crm-space-3xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{t('fiche.links.loading')}</div>
       ) : links.failed ? (
-        <div role="alert" style={{ padding: '16px 2px', fontSize: 12.5, fontWeight: 600, color: P.danger }}>{t('fiche.links.failed')}</div>
+        <div role="alert" style={{ padding: 'var(--crm-space-3xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger }}>{t('fiche.links.failed')}</div>
       ) : links.items.length === 0 ? (
-        <div style={{ padding: '16px 2px', fontSize: 12.5, fontWeight: 500, color: P.muted }}>{t('fiche.links.empty')}</div>
+        <div style={{ padding: 'var(--crm-space-3xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{t('fiche.links.empty')}</div>
       ) : links.items.map((l, i) => {
         const state = l.status ? LINK_STATE[l.status] : null
         const channel = l.channel === 'whatsapp' ? t('fiche.links.channel.whatsapp')
           : l.channel === 'link' ? t('fiche.links.channel.link')
             : null
         return (
-          <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 2px', opacity: l.active ? 1 : 0.6, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
-            <span style={{ width: 32, height: 32, borderRadius: 10, background: P.sub, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+          <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)', opacity: l.active ? 1 : 0.6, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
+            <span style={{ width: 32, height: 32, borderRadius: 'var(--crm-radius-md)', background: P.sub, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
               <FcpIcon name={l.channel === 'whatsapp' ? 'msg' : 'ext'} size={14} stroke={P.inkSoft} />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: -0.2, color: P.ink }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, letterSpacing: -0.2, color: P.ink }}>
                 {t('fiche.links.selection', { count: l.count })}{channel ? ` · ${channel}` : ''}
               </div>
-              <div style={{ fontSize: 11, fontWeight: 500, color: P.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
                 {t('fiche.links.sentOn', { date: cdDay(l.createdAt) })}
                 {' · '}
                 {/* Sur un lien coupé, la date qui compte est celle de la coupure,
@@ -1147,7 +1147,7 @@ function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
                   : t('fiche.links.expiresOn', { date: cdDay(l.expiresAt) })}
               </div>
             </div>
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 10px', borderRadius: 999, background: state ? P[state.key] : P.ghost, color: '#fff', fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: state ? P[state.key] : P.ghost, color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>
               {state ? t(state.labelK) : t('fiche.links.status.unknown')}
             </span>
             {l.active && (
@@ -1197,16 +1197,16 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
   ]
 
   return (
-    <div style={{ position: 'absolute', inset: 0, padding: '26px 30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
+    <div style={{ position: 'absolute', inset: 0, padding: '26px 30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -1, color: P.ink, lineHeight: 1 }}>{t('fiche.page.loop')}</h1>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: P.ink, lineHeight: 1 }}>{t('fiche.page.loop')}</h1>
         </div>
         <div style={{ flex: 1 }} />
         {counters.map((c) => (
           <div key={c.l} style={{ textAlign: 'center', minWidth: 62 }}>
-            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: c.liked ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
-            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: P.muted, marginTop: 4 }}>{c.l}</div>
+            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: c.liked ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
+            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: P.muted, marginTop: 4 }}>{c.l}</div>
           </div>
         ))}
       </div>
@@ -1214,12 +1214,12 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
       {totallyEmpty ? (
         // Boucle jamais démarrée → invitation à transmettre, pas un cul-de-sac gris.
         <div style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center' }}>
-          <div style={{ maxWidth: 430, textAlign: 'center', background: P.card, borderRadius: 22, boxShadow: P.shadowSm, padding: '34px 32px' }}>
+          <div style={{ maxWidth: 430, textAlign: 'center', background: P.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: P.shadowSm, padding: '34px 32px' }}>
             <span style={{ display: 'inline-grid', placeItems: 'center' }}>
               <FcpIcon name="send" size={30} stroke={P.inkSoft} />
             </span>
-            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.3, color: P.ink, marginTop: 16 }}>{t('fiche.loop.emptyTitle')}</div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 8 }}>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.3, color: P.ink, marginTop: 16 }}>{t('fiche.loop.emptyTitle')}</div>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 8 }}>
               <Trans t={t} i18nKey="fiche.loop.emptyBody" values={{ name: firstName }} components={{ 1: <br /> }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
@@ -1228,24 +1228,24 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
           </div>
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
           {/* À traiter */}
-          <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadow, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 11, minHeight: 0, overflowY: 'auto' }}>
+          <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadow, padding: 'var(--crm-space-4xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', minHeight: 0, overflowY: 'auto' }}>
             <CdGrp P={P}>{t('fiche.loop.toHandleCount', { count: pending.length })}</CdGrp>
             {pending.length === 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: P.sub, borderRadius: 15, padding: '16px 15px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-3xl) var(--crm-space-2xl)' }}>
                 <FcpIcon name="check" size={16} stroke={P.ok} />
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: P.inkSoft }}>{t('fiche.loop.nothingToHandle')}</div>
+                <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.inkSoft }}>{t('fiche.loop.nothingToHandle')}</div>
               </div>
             ) : pending.map((p) => (
-              <div key={p.matchId} style={{ background: P.sub, borderRadius: 15, padding: '14px 15px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 999, background: 'rgba(5,150,105,0.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><FcpIcon name="heart" size={15} stroke={P.ok} fill={P.ok} sw={1.5} /></span>
+              <div key={p.matchId} style={{ background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', background: 'rgba(5,150,105,0.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><FcpIcon name="heart" size={15} stroke={P.ok} fill={P.ok} sw={1.5} /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2, color: P.ink }}>{t('loop.likedTitle', { title: p.title })}</div>
+                    <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: P.ink }}>{t('loop.likedTitle', { title: p.title })}</div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
                   <CdCta small P={P} onClick={() => onProposeVisit(p.matchId)}>{t('loop.proposeVisit')}</CdCta>
                   <CdCta small tone="ghost" P={P} onClick={() => hide(p.matchId)}>{t('loop.later')}</CdCta>
                   <CdCta small tone="ghost" P={P} onClick={() => hide(p.matchId)}>{t('fiche.loop.ignore')}</CdCta>
@@ -1255,25 +1255,25 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
           </div>
 
           {/* Ce qui est parti chez l'acheteur : les biens, puis les liens qui les ouvrent */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minHeight: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)', minHeight: 0 }}>
             {/* Biens transmis — état par bien */}
-            <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadowSm, padding: '18px 20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-4xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
                 <CdGrp P={P}>{t('fiche.loop.transmittedCount', { count: loop.items.length })}</CdGrp>
                 <div style={{ flex: 1 }} />
-                <span onClick={onOpenMatching} style={{ fontSize: 11.5, fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('fiche.loop.openInMatching')}</span>
+                <span onClick={onOpenMatching} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('fiche.loop.openInMatching')}</span>
               </div>
               {loop.items.length === 0 ? (
-                <div style={{ padding: '20px 2px', fontSize: 12.5, fontWeight: 500, color: P.muted }}>{t('loop.empty')}</div>
+                <div style={{ padding: 'var(--crm-space-5xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{t('loop.empty')}</div>
               ) : loop.items.map((m, i) => {
                 const out = m.state === 'dismissed'
                 return (
-                  <div key={m.matchId} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 2px', opacity: out ? 0.55 : 1, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
+                  <div key={m.matchId} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)', opacity: out ? 0.55 : 1, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
                     {m.photo
-                      ? <img src={m.photo} alt="" style={{ width: 44, height: 44, borderRadius: 11, objectFit: 'cover', flexShrink: 0, filter: out ? 'grayscale(.6)' : 'none' }} />
-                      : <div style={{ width: 44, height: 44, borderRadius: 11, flexShrink: 0, background: P.sub, display: 'grid', placeItems: 'center' }}><FcpIcon name="home" size={16} stroke={P.ghost} /></div>}
+                      ? <img src={m.photo} alt="" style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', objectFit: 'cover', flexShrink: 0, filter: out ? 'grayscale(.6)' : 'none' }} />
+                      : <div style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: P.sub, display: 'grid', placeItems: 'center' }}><FcpIcon name="home" size={16} stroke={P.ghost} /></div>}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
                     </div>
                     <CdStatePill state={m.state} label={t(LOOP_STATE[m.state].labelK)} P={P} />
                   </div>
@@ -1390,14 +1390,14 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
   }, [go])
 
   return (
-    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22, background: P.pageBg, fontFamily: "'Inter Tight', system-ui, sans-serif", color: P.ink }}>
+    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)', background: P.pageBg, fontFamily: "'Inter Tight', system-ui, sans-serif", color: P.ink }}>
       <style>{`
         @keyframes cdpMenuIn { from { opacity: 0; transform: translateY(-6px) scale(.97) } to { opacity: 1; transform: none } }
         @keyframes cdpFade { from { opacity: 0 } to { opacity: 1 } }
         @keyframes cdpRise { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
         @keyframes cdpToast { from { opacity: 0; transform: translate(-50%, 10px) } to { opacity: 1; transform: translate(-50%, 0) } }
       `}</style>
-      <div ref={viewportRef} style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow }}>
+      <div ref={viewportRef} style={{ position: 'relative', height: '100%', borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow }}>
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
             <CdInfos P={P} dark={dark} fiche={fiche} nba={nba} freezeRef={freezeRef} onBack={onBack} onOpenKyc={onOpenKyc} onOpenMatching={onOpenMatching} onOpenListings={onOpenListings}

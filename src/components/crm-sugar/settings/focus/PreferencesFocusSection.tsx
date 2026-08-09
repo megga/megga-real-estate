@@ -62,23 +62,23 @@ const PXF_ACCENTS: Accent[] = [
 /* ─── Contrôles ─────────────────────────────────────────────────────────────── */
 function PxfSwitch({ c, on, onClick, accent, knobDark }: { c: PfColors; on: boolean; onClick: () => void; accent: string; knobDark: boolean }) {
   return (
-    <button onClick={onClick} role="switch" aria-checked={on} style={{ width: 44, height: 26, borderRadius: 999, border: 0, cursor: 'pointer', flexShrink: 0,
+    <button onClick={onClick} role="switch" aria-checked={on} style={{ width: 44, height: 26, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', flexShrink: 0,
       background: on ? accent : (c.dark ? 'rgba(255,255,255,0.16)' : '#D5DAE2'), position: 'relative', transition: 'background .22s ease', padding: 0 }}>
-      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 999, background: knobDark && on ? '#0B0C0E' : '#fff', transition: 'left .22s cubic-bezier(.2,.8,.2,1)', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} />
+      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: knobDark && on ? '#0B0C0E' : '#fff', transition: 'left .22s cubic-bezier(.2,.8,.2,1)', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} />
     </button>
   )
 }
 
 function PxfSwatch({ c, dark, value, onChange, labelOf }: { c: PfColors; dark: boolean; value: string; onChange: (v: string) => void; labelOf: (id: string) => string }) {
   return (
-    <div style={{ display: 'inline-flex', gap: 11, flexShrink: 0, alignItems: 'center' }}>
+    <div style={{ display: 'inline-flex', gap: 'var(--crm-space-lg)', flexShrink: 0, alignItems: 'center' }}>
       {PXF_ACCENTS.map((o) => {
         const on = o.id === value
         const col = dark ? o.darkHex : o.hex
         const label = labelOf(o.id)
         return (
           <button key={o.id} onClick={() => onChange(o.id)} title={label} aria-label={label} aria-pressed={on}
-            style={{ width: 30, height: 30, borderRadius: 999, cursor: 'pointer', padding: 0, border: 0, background: col, position: 'relative', flexShrink: 0, display: 'grid', placeItems: 'center',
+            style={{ width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', padding: 0, border: 0, background: col, position: 'relative', flexShrink: 0, display: 'grid', placeItems: 'center',
               boxShadow: on ? `0 0 0 2px ${c.card}, 0 0 0 4px ${col}` : `0 0 0 1.5px ${c.hairSoft} inset`, transition: 'box-shadow .16s' }}>
             {on && <PxfIc name="check" size={15} stroke={o.id === 'black' && dark ? '#0B0C0E' : '#FFFFFF'} sw={2.6} />}
           </button>
@@ -90,11 +90,11 @@ function PxfSwatch({ c, dark, value, onChange, labelOf }: { c: PfColors; dark: b
 
 function PxfSeg({ c, value, onChange, options, accent, onAccent }: { c: PfColors; value: string; onChange: (v: string) => void; options: Opt[]; accent: string; onAccent: string }) {
   return (
-    <div style={{ display: 'inline-flex', gap: 4, background: c.cardSub, borderRadius: 999, padding: 4, flexShrink: 0, boxShadow: `0 0 0 1.5px ${c.hairSoft} inset` }}>
+    <div style={{ display: 'inline-flex', gap: 'var(--crm-space-xs)', background: c.cardSub, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-xs)', flexShrink: 0, boxShadow: `0 0 0 1.5px ${c.hairSoft} inset` }}>
       {options.map((o) => {
         const on = o.id === value
         return (
-          <button key={o.id} onClick={() => onChange(o.id)} style={{ height: 32, padding: '0 15px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
+          <button key={o.id} onClick={() => onChange(o.id)} style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
             background: on ? accent : 'transparent', color: on ? onAccent : c.soft, transition: 'color .15s' }}>{o.label}</button>
         )
       })}
@@ -111,22 +111,22 @@ function PxfSelect({ c, value, onChange, options }: { c: PfColors; value: string
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
       {/* Pas de chevron : la valeur est centrée dans un padding symétrique. */}
-      <button onClick={() => setOpen((o) => !o)} style={{ height: 40, minWidth: 148, padding: '0 15px', borderRadius: 11, border: 0, cursor: 'pointer', background: c.cardSub, color: c.ink, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: `0 0 0 1.5px ${c.hairSoft} inset` }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ height: 40, minWidth: 148, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-md)', border: 0, cursor: 'pointer', background: c.cardSub, color: c.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-lg)', boxShadow: `0 0 0 1.5px ${c.hairSoft} inset` }}>
         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sel?.label}</span>
       </button>
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
-          <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, minWidth: '100%', zIndex: 61, background: menuBg, borderRadius: 12, padding: 6, boxShadow: c.shadow, border: c.hair, maxHeight: 288, overflowY: 'auto', animation: 'pxfMenuIn .15s cubic-bezier(.2,.8,.2,1) both' }}>
+          <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, minWidth: '100%', zIndex: 61, background: menuBg, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-sm)', boxShadow: c.shadow, border: c.hair, maxHeight: 288, overflowY: 'auto', animation: 'pxfMenuIn .15s cubic-bezier(.2,.8,.2,1) both' }}>
             {options.map((o) => {
               const on = o.id === value
               return (
                 <button key={o.id} onClick={() => { onChange(o.id); setOpen(false) }}
                   onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = c.cardSub }}
                   onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = 'transparent' }}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: 0, cursor: 'pointer', background: on ? c.cardSub : 'transparent', color: c.ink, fontFamily: 'inherit',
-                    fontSize: 13, fontWeight: on ? 700 : 500, textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, whiteSpace: 'nowrap' }}>
+                  style={{ width: '100%', padding: 'var(--crm-space-md) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', background: on ? c.cardSub : 'transparent', color: c.ink, fontFamily: 'inherit',
+                    fontSize: 'var(--crm-text-lg)', fontWeight: on ? 700 : 500, textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--crm-space-xl)', whiteSpace: 'nowrap' }}>
                   {o.label}
                   {on && <PxfIc name="check" size={14} stroke={c.green} sw={2.4} />}
                 </button>
@@ -256,18 +256,18 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
   }
 
   const Row = (r: RowDef) => (
-    <div key={r.key} className="pxf-row" style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '12px 10px', borderRadius: 12, minWidth: 0 }}>
+    <div key={r.key} className="pxf-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', minWidth: 0 }}>
       <PxfChip name={r.icon} c={c} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: -0.2, color: c.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(r.labelKey)}</span>
-        {savedKey === r.key && <span className="pxf-saved" style={{ fontSize: 10.5, fontWeight: 700, color: c.green, flexShrink: 0 }}>{t('focus.common.saved')}</span>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.2, color: c.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(r.labelKey)}</span>
+        {savedKey === r.key && <span className="pxf-saved" style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: c.green, flexShrink: 0 }}>{t('focus.common.saved')}</span>}
       </div>
       {control(r)}
     </div>
   )
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
       <style>{`
         ${PF_KEYFRAMES}
         @media (prefers-reduced-motion: no-preference) {
@@ -278,18 +278,18 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
         .pxf-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.03)'}; border-radius: 12px; }
       `}</style>
 
-      <div style={{ borderRadius: 22, boxShadow: c.shadow }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: c.cardSub, borderRadius: '22px 22px 0 0', borderTop: c.hair, borderLeft: c.hair, borderRight: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: '8px 20px' }}>
+      <div style={{ borderRadius: 'var(--crm-radius-5xl)', boxShadow: c.shadow }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', background: c.cardSub, borderRadius: '22px 22px 0 0', borderTop: c.hair, borderLeft: c.hair, borderRight: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: 'var(--crm-space-md) var(--crm-space-5xl)' }}>
           <PxfIc name="info" size={14} stroke={c.sub} sw={1.8} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: c.sub, letterSpacing: -0.1 }}>{t('focus.preferences.banner')}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: c.sub, letterSpacing: -0.1 }}>{t('focus.preferences.banner')}</span>
         </div>
 
-        <div style={{ background: c.card, borderRadius: '0 0 22px 22px', borderLeft: c.hair, borderRight: c.hair, borderBottom: c.hair, padding: '8px 12px 14px' }}>
+        <div style={{ background: c.card, borderRadius: '0 0 22px 22px', borderLeft: c.hair, borderRight: c.hair, borderBottom: c.hair, padding: 'var(--crm-space-md) var(--crm-space-xl) var(--crm-space-2xl)' }}>
           {GROUPS.map((g, gi) => (
-            <div key={g.id} style={{ padding: '6px 0 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 10px 8px' }}>
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: c[g.dot], flexShrink: 0 }} />
-                <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.2, color: c.ink, flex: 1 }}>{t(g.titleKey)}</span>
+            <div key={g.id} style={{ padding: 'var(--crm-space-sm) 0 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: c[g.dot], flexShrink: 0 }} />
+                <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: c.ink, flex: 1 }}>{t(g.titleKey)}</span>
               </div>
               {g.layout === 'grid' ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 24px' }}>{g.rows.map((r) => Row(r))}</div>

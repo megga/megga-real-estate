@@ -80,7 +80,7 @@ export function PCDossierFrame({
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 4,
+            gap: 'var(--crm-space-xs)',
             flexShrink: 0,
             minWidth: 0,
           }}
@@ -88,7 +88,7 @@ export function PCDossierFrame({
           <h2
             style={{
               margin: 0,
-              fontSize: 17,
+              fontSize: 'var(--crm-text-2xl)',
               fontWeight: 700,
               letterSpacing: -0.3,
               color: sp.ink,
@@ -100,7 +100,7 @@ export function PCDossierFrame({
           {dossier.subtitle && (
             <span
               style={{
-                fontSize: 11.5,
+                fontSize: 'var(--crm-text-sm)',
                 color: sp.sub,
                 fontWeight: 500,
               }}
@@ -111,16 +111,16 @@ export function PCDossierFrame({
           <span
             style={{
               marginTop: 4,
-              padding: '3px 9px',
-              borderRadius: 999,
+              padding: 'var(--crm-space-2xs) var(--crm-space-md)',
+              borderRadius: 'var(--crm-radius-pill)',
               background: u.bg,
               color: u.fg,
-              fontSize: 9.5,
+              fontSize: 'var(--crm-text-xs)',
               fontWeight: 700,
               letterSpacing: 0.3,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
+              gap: 'var(--crm-space-sm)',
               textTransform: 'uppercase',
               alignSelf: 'flex-start',
             }}
@@ -129,7 +129,7 @@ export function PCDossierFrame({
               style={{
                 width: 6,
                 height: 6,
-                borderRadius: 999,
+                borderRadius: 'var(--crm-radius-pill)',
                 background: u.dot,
               }}
             />
@@ -146,7 +146,7 @@ export function PCDossierFrame({
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'flex-start',
-            paddingTop: 8,
+            paddingTop: 'var(--crm-space-md)',
           }}
         >
           <div
@@ -183,7 +183,7 @@ export function PCDossierFrame({
                 style={{
                   width: AVATAR,
                   height: AVATAR,
-                  borderRadius: 999,
+                  borderRadius: 'var(--crm-radius-pill)',
                   background: dark ? crmStep('s2', 'rgba(255,255,255,0.04)') : '#FFFFFF',
                   border: `2px dashed ${
                     dark ? 'rgba(255,255,255,0.22)' : 'rgba(15,23,42,0.20)'
@@ -204,10 +204,10 @@ export function PCDossierFrame({
                   transform: 'translateX(-50%)',
                   background: '#D1D5DB',
                   color: '#fff',
-                  fontSize: 10,
+                  fontSize: 'var(--crm-text-xs)',
                   fontWeight: 700,
-                  padding: '2px 7px',
-                  borderRadius: 999,
+                  padding: 'var(--crm-space-2xs) var(--crm-space-sm)',
+                  borderRadius: 'var(--crm-radius-pill)',
                   border: `2px solid ${sp.avatarBorder}`,
                   minWidth: 20,
                   textAlign: 'center',
@@ -223,7 +223,7 @@ export function PCDossierFrame({
         )}
 
         {/* Right actions */}
-        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', flexShrink: 0 }}>
           <RoundBtn sp={sp} title={tr('journey.actions.addTask')}>
             <MEIcon name="plus" size={16} color={sp.soft} />
           </RoundBtn>
@@ -244,7 +244,7 @@ export function PCDossierFrame({
           padding: '0 26px 24px',
           display: 'grid',
           gridTemplateColumns: '1fr 1fr 1fr 1.2fr',
-          gap: 18,
+          gap: 'var(--crm-space-4xl)',
           alignItems: 'start',
         }}
       >
@@ -299,12 +299,12 @@ export function PCBigAvatar({ agent, count, badgeColor, sp }: PCBigAvatarProps) 
         style={{
           width: 50,
           height: 50,
-          borderRadius: 999,
+          borderRadius: 'var(--crm-radius-pill)',
           background: agent.avatarBg,
           color: '#fff',
           display: 'grid',
           placeItems: 'center',
-          fontSize: 14,
+          fontSize: 'var(--crm-text-xl)',
           fontWeight: 700,
           border: `3px solid ${sp.avatarBorder}`,
           boxSizing: 'border-box',
@@ -324,10 +324,10 @@ export function PCBigAvatar({ agent, count, badgeColor, sp }: PCBigAvatarProps) 
           transform: 'translateX(-50%)',
           background: badgeColor || '#D1D5DB',
           color: '#fff',
-          fontSize: 10,
+          fontSize: 'var(--crm-text-xs)',
           fontWeight: 700,
-          padding: '2px 7px',
-          borderRadius: 999,
+          padding: 'var(--crm-space-2xs) var(--crm-space-sm)',
+          borderRadius: 'var(--crm-radius-pill)',
           border: `2px solid ${sp.avatarBorder}`,
           minWidth: 20,
           textAlign: 'center',
@@ -356,7 +356,7 @@ function RoundBtn({
       style={{
         width: 38,
         height: 38,
-        borderRadius: 999,
+        borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         background: sp.iconBtnBg,
         boxShadow: sp.shadowSm,

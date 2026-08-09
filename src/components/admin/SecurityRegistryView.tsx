@@ -87,10 +87,10 @@ export default function SecurityRegistryView() {
   return (
     <>
       {/* Filtres */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', flexWrap: 'wrap' }}>
         {/* Fenêtre — segment Sugar, accent noir sur l'option active */}
         <div style={{
-          display: 'inline-flex', gap: 3, padding: 3, borderRadius: ADMIN_RADII.pill,
+          display: 'inline-flex', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-2xs)', borderRadius: ADMIN_RADII.pill,
           background: surf.cardSub, border: surf.hairline,
         }}>
           {WINDOWS.map(w => {
@@ -100,8 +100,8 @@ export default function SecurityRegistryView() {
                 key={w}
                 onClick={() => change(setWin)(w)}
                 style={{
-                  height: 30, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
+                  height: 30, padding: '0 var(--crm-space-2xl)', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
                   background: on ? sp.accent : 'transparent', color: on ? sp.accentInk : sp.sub,
                   transition: 'background .15s ease, color .15s ease',
                 }}
@@ -120,7 +120,7 @@ export default function SecurityRegistryView() {
             onChange={e => change(setFilter)(e.target.value as JournalFilter)}
             style={{
               height: 34, padding: '0 34px 0 15px', borderRadius: ADMIN_RADII.pill, border: 0, outline: 'none',
-              appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
+              appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700,
               color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
             }}
           >
@@ -151,8 +151,8 @@ export default function SecurityRegistryView() {
 
       <AdminCard padding={0} style={{ overflow: 'hidden' }}>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px',
-          background: sp.tableHeadBg, fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-md) var(--crm-space-2xl)',
+          background: sp.tableHeadBg, fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
         }}>
           <div style={{ width: COL.time, flexShrink: 0 }}>{t('admin:securityAudit.table.timestamp')}</div>
           <div style={{ width: COL.severity, flexShrink: 0 }}>{t('admin:securityAudit.table.severity')}</div>
@@ -164,7 +164,7 @@ export default function SecurityRegistryView() {
         </div>
 
         {isLoading && entries.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
             {Array.from({ length: 8 }).map((_, i) => <AdminSkeleton key={i} height={36} />)}
           </div>
         ) : isError && entries.length === 0 ? (
@@ -189,35 +189,35 @@ export default function SecurityRegistryView() {
                   className="adm-row"
                   onClick={() => setExpanded(open ? null : e.id)}
                   style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px',
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-md) var(--crm-space-2xl)',
                     border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
                   }}
                 >
-                  <div style={{ width: COL.time, flexShrink: 0, fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ width: COL.time, flexShrink: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                     {e.ts}
                   </div>
                   <div style={{ width: COL.severity, flexShrink: 0 }}>
                     <AdminPill label={t(`admin:common.severity.${sev.key}`)} tone={sev.tone} />
                   </div>
-                  <div style={{ width: COL.family, flexShrink: 0, fontSize: 11.5, fontWeight: 600, color: sp.sub, ...TRUNCATE }}>
+                  <div style={{ width: COL.family, flexShrink: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, ...TRUNCATE }}>
                     {t(`admin:audit.family.${e.fam}`)}
                   </div>
-                  <div style={{ width: COL.action, flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, ...TRUNCATE }}>
+                  <div style={{ width: COL.action, flexShrink: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, ...TRUNCATE }}>
                     {e.action}
                   </div>
                   {/* `actor` vaut « Système » pour un geste machine — la base l'impose et
                       refuse tout autre libellé sans acteur. On l'affiche tel quel. */}
-                  <div style={{ width: COL.actor, flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, ...TRUNCATE }}>
+                  <div style={{ width: COL.actor, flexShrink: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, ...TRUNCATE }}>
                     {e.actor || '—'}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: sp.sub, ...TRUNCATE }}>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub, ...TRUNCATE }}>
                     {summarizePairs(e.meta)}
                   </div>
                   {/* ⚠ `||` et non `??` : mesuré sur la production, `entity` vaut la chaîne
                       VIDE (jamais null) quand aucune de ses trois parties n'est renseignée
                       — `admin_security_entity` assemble par `array_to_string`. Un `??`
                       laisserait la colonne blanche au lieu du tiret. */}
-                  <div style={{ width: COL.entity, flexShrink: 0, textAlign: 'right', fontSize: 11.5, color: sp.sub, ...TRUNCATE }}>
+                  <div style={{ width: COL.entity, flexShrink: 0, textAlign: 'right', fontSize: 'var(--crm-text-sm)', color: sp.sub, ...TRUNCATE }}>
                     {e.entity || '—'}
                   </div>
                 </button>
@@ -225,18 +225,18 @@ export default function SecurityRegistryView() {
                 {/* Détail : les PAIRES, dans leur ordre — pas un JSON brut. C'est la forme
                     lisible que le registre produit exprès, et l'ordre y porte du sens. */}
                 {open && (
-                  <div style={{ padding: '12px 14px', background: surf.cardSub }}>
+                  <div style={{ padding: 'var(--crm-space-xl) var(--crm-space-2xl)', background: surf.cardSub }}>
                     {e.meta && e.meta.length > 0 ? (
                       <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'minmax(120px, max-content) 1fr', gap: '6px 16px' }}>
                         {e.meta.map(([l, v], i) => (
                           <div key={`${e.id}-${i}`} style={{ display: 'contents' }}>
-                            <dt style={{ fontSize: 11.5, fontWeight: 700, color: sp.ink }}>{l}</dt>
-                            <dd style={{ margin: 0, fontSize: 11.5, color: sp.sub, wordBreak: 'break-word' }}>{v}</dd>
+                            <dt style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.ink }}>{l}</dt>
+                            <dd style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub, wordBreak: 'break-word' }}>{v}</dd>
                           </div>
                         ))}
                       </dl>
                     ) : (
-                      <span style={{ fontSize: 11.5, color: sp.sub }}>{t('admin:securityAudit.registry.noMeta')}</span>
+                      <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('admin:securityAudit.registry.noMeta')}</span>
                     )}
                   </div>
                 )}

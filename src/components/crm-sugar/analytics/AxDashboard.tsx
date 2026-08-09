@@ -93,11 +93,11 @@ function axEnsureKeyframes() {
 // ── Pilule de delta (statique, couleurs sémantiques) ─────────────────────────
 function AxfDelta({ v, pts, abs }: { v: number; pts?: boolean; abs?: boolean }) {
   const A = useAX()
-  if (v === 0) return <span style={{ fontSize: 11, fontWeight: 700, color: A.muted }}>—</span>
+  if (v === 0) return <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: A.muted }}>—</span>
   const up = v > 0
   const p = up ? A.pillAhead : A.pillBehind
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 999, background: p.bg, color: p.fg, boxShadow: p.sh, fontSize: 10.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', background: p.bg, color: p.fg, boxShadow: p.sh, fontSize: 'var(--crm-text-xs)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>
       <AxIcon name={up ? 'up' : 'down'} size={9} stroke="#fff" sw={3} />
       {up ? '+' : ''}{v}{pts ? ' pt' : abs ? '' : '%'}
     </span>
@@ -121,14 +121,14 @@ function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; on
   const [on, setOn] = useState(false)
   useEffect(() => { const t = window.setTimeout(() => setOn(true), 60); return () => window.clearTimeout(t) }, [])
   return (
-    <div style={{ background: A.card, borderRadius: 26, padding: '24px 28px', boxShadow: A.shadowLg, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 18, minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: '24px 28px', boxShadow: A.shadowLg, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 'var(--crm-space-4xl)', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       <div>
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.3, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.eyebrow')}</div>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 1.3, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.eyebrow')}</div>
         <div style={{ marginTop: 12, fontSize: 'clamp(30px, 2.45vw, 46px)', fontWeight: 800, letterSpacing: -1.6, color: A.ink, lineHeight: 0.96, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
           {axCHF(num)}
         </div>
         <div style={{ marginTop: 12 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: verdict.bg, color: verdict.fg, boxShadow: verdict.sh, fontSize: 12, fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-xs) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: verdict.bg, color: verdict.fg, boxShadow: verdict.sh, fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
             <AxIcon name={pace.ahead ? 'up' : 'down'} size={11} stroke="#fff" sw={2.6} />
             {axCHF(Math.abs(pace.diff))} {pace.ahead ? tr('analytics.hero.aheadShort') : tr('analytics.hero.behindShort')} · {pace.projPct} %
           </span>
@@ -136,29 +136,29 @@ function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; on
       </div>
       {/* colonnes Réalisé / Reste */}
       <div style={{ display: 'flex', alignItems: 'stretch' }}>
-        <div style={{ flex: 1, minWidth: 0, paddingRight: 18 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.realized')}</div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: A.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(d.realizedNow)}</div>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: 'var(--crm-space-4xl)' }}>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.realized')}</div>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: A.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(d.realizedNow)}</div>
         </div>
         <div style={{ width: 1, background: A.hairline, flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0, paddingLeft: 18 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.remaining')}</div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: acc.accent, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
+        <div style={{ flex: 1, minWidth: 0, paddingLeft: 'var(--crm-space-4xl)' }}>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.remaining')}</div>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: acc.accent, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
         </div>
       </div>
       {/* pace bar muette + objectif */}
       <div>
-        <div style={{ position: 'relative', height: 12, borderRadius: 999, background: A.cardSubtle }}>
-          <div style={{ position: 'absolute', inset: 0, borderRadius: 999, overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: on ? `${projPct}%` : 0, background: acc.ghost, borderRadius: 999, transition: 'width .9s cubic-bezier(.2,.8,.2,1) .15s' }} />
-            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: on ? `${realPct}%` : 0, background: acc.accent, borderRadius: 999, transition: 'width .9s cubic-bezier(.2,.8,.2,1)' }} />
+        <div style={{ position: 'relative', height: 12, borderRadius: 'var(--crm-radius-pill)', background: A.cardSubtle }}>
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 'var(--crm-radius-pill)', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: on ? `${projPct}%` : 0, background: acc.ghost, borderRadius: 'var(--crm-radius-pill)', transition: 'width .9s cubic-bezier(.2,.8,.2,1) .15s' }} />
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: on ? `${realPct}%` : 0, background: acc.accent, borderRadius: 'var(--crm-radius-pill)', transition: 'width .9s cubic-bezier(.2,.8,.2,1)' }} />
           </div>
-          <div title={tr('analytics.hero.paceMarkerTitle')} style={{ position: 'absolute', top: -4, bottom: -4, left: `${pacePct}%`, width: 2.5, borderRadius: 2, background: A.ink }} />
+          <div title={tr('analytics.hero.paceMarkerTitle')} style={{ position: 'absolute', top: -4, bottom: -4, left: `${pacePct}%`, width: 2.5, borderRadius: 'var(--crm-radius-2xs)', background: A.ink }} />
         </div>
-        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: A.muted }}>
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted }}>
           <span>{tr('analytics.hero.objectiveLabel')} <strong style={{ color: A.ink, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{axCHF(d.target)}</strong></span>
           {onGoSettings && (
-            <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+            <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
               · {tr('analytics.hero.modify')}
             </button>
           )}
@@ -176,15 +176,15 @@ function AxfSeg({ items, value, onChange, dark }: { items: { id: AxPeriodId; lab
   const idx = Math.max(0, items.findIndex(it => it.id === value))
   const n = items.length
   return (
-    <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, background: A.cardSubtle, borderRadius: 999, padding: 3, boxShadow: dark ? 'inset 0 1px 3px rgba(0,0,0,.35)' : 'inset 0 1px 3px rgba(15,23,42,.07)' }}>
-      <div aria-hidden="true" style={{ position: 'absolute', top: 3, bottom: 3, left: 3, width: `calc((100% - 6px) / ${n})`, transform: `translateX(${idx * 100}%)`, transition: 'transform .38s cubic-bezier(.2,.8,.2,1)', borderRadius: 999, background: A.ink, boxShadow: dark ? '0 2px 8px rgba(0,0,0,.30)' : '0 2px 8px rgba(15,23,42,.18)' }} />
+    <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, background: A.cardSubtle, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-2xs)', boxShadow: dark ? 'inset 0 1px 3px rgba(0,0,0,.35)' : 'inset 0 1px 3px rgba(15,23,42,.07)' }}>
+      <div aria-hidden="true" style={{ position: 'absolute', top: 3, bottom: 3, left: 3, width: `calc((100% - 6px) / ${n})`, transform: `translateX(${idx * 100}%)`, transition: 'transform .38s cubic-bezier(.2,.8,.2,1)', borderRadius: 'var(--crm-radius-pill)', background: A.ink, boxShadow: dark ? '0 2px 8px rgba(0,0,0,.30)' : '0 2px 8px rgba(15,23,42,.18)' }} />
       {items.map(it => {
         const active = it.id === value
         return (
           <button key={it.id} role="tab" aria-selected={active} onClick={() => onChange(it.id)} className="axf-seg-btn" style={{
             position: 'relative', zIndex: 1, border: 0, background: 'transparent', fontFamily: 'inherit',
-            padding: '6px 15px', borderRadius: 999, cursor: active ? 'default' : 'pointer',
-            fontSize: 12.5, fontWeight: active ? 800 : 700, letterSpacing: -0.1, whiteSpace: 'nowrap',
+            padding: 'var(--crm-space-sm) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', cursor: active ? 'default' : 'pointer',
+            fontSize: 'var(--crm-text-md)', fontWeight: active ? 800 : 700, letterSpacing: -0.1, whiteSpace: 'nowrap',
             color: active ? A.onAccent : A.muted,
           }}>{it.label}</button>
         )
@@ -316,16 +316,16 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
           position: 'absolute', top: 6, left: `${(x(hov) / VBW) * 100}%`,
           transform: `translateX(${hov > nSafe * 0.7 ? '-104%' : hov < nSafe * 0.3 ? '4%' : '-50%'})`,
           transition: 'left .16s cubic-bezier(.2,.8,.2,1), transform .16s cubic-bezier(.2,.8,.2,1)',
-          display: 'flex', alignItems: 'center', gap: 8,
-          background: '#1A1C20', borderRadius: 999, padding: '7px 13px',
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
+          background: '#1A1C20', borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-sm) var(--crm-space-xl)',
           boxShadow: '0 10px 28px rgba(0,0,0,0.38)', border: '1px solid rgba(255,255,255,0.10)',
           pointerEvents: 'none', whiteSpace: 'nowrap', fontFamily: 'Manrope',
         }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' }}>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' }}>
             {(d.axisLabels[hov] || `${d.pointWord || tr('analytics.trajectory.pointWordFallback')} ${hov + 1}`)}{hov > s.elapsed ? ` · ${tr('analytics.trajectory.projectedShort')}` : ''}
           </span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{axCHF(hovVal)}</span>
-          <span style={{ fontSize: 12, fontWeight: 800, color: hovDiff >= 0 ? '#3FCF8E' : '#F0A05A', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{axCHF(hovVal)}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: hovDiff >= 0 ? '#3FCF8E' : '#F0A05A', fontVariantNumeric: 'tabular-nums' }}>
             {hovDiff >= 0 ? '▲ +' : '▼ −'}{axCHF(Math.abs(hovDiff)).replace('CHF ', '')}
           </span>
         </div>
@@ -352,14 +352,14 @@ function AxfChartCard({ d, acc, dark, seg }: { d: AxPeriodData; acc: AxfAccent; 
     return () => ro.disconnect()
   }, [])
   return (
-    <div style={{ background: A.card, borderRadius: 26, padding: '20px 26px 12px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', flexShrink: 0 }}>
-        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.chart.title')}</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: A.inkSoft }}>
-            <span style={{ width: 16, height: 3, borderRadius: 2, background: acc.accent }} /> {tr('analytics.chart.realized')}
+    <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: '20px 26px 12px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)', flexWrap: 'wrap', flexShrink: 0 }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.chart.title')}</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)', flexWrap: 'wrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.inkSoft }}>
+            <span style={{ width: 16, height: 3, borderRadius: 'var(--crm-radius-2xs)', background: acc.accent }} /> {tr('analytics.chart.realized')}
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: A.inkSoft }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.inkSoft }}>
             <span style={{ width: 16, height: 0, borderTop: `2px dashed ${A.goal}` }} /> {tr('analytics.chart.target')}
           </span>
           {seg}
@@ -387,14 +387,14 @@ function AxfCompositionCard({ d, acc, dark, onDrill }: { d: AxPeriodData; acc: A
     ? { secured: '#0B0C0E', probable: '#FFFFFF', possible: A.ink }
     : { secured: '#0B0C0E', probable: '#0B0C0E', possible: '#0B0C0E' }
   return (
-    <div style={{ background: A.card, borderRadius: 26, padding: '18px 22px 20px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
-      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.composition.title')}</h3>
+    <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-5xl)', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+      <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.composition.title')}</h3>
       {total === 0 ? (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: A.muted }}>
           {tr('analytics.composition.empty')}
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 14 }}>
           {d.composition.map((c, i) => {
             const pct = Math.round((c.v / total) * 100)
             const big = i === 0
@@ -402,7 +402,7 @@ function AxfCompositionCard({ d, acc, dark, onDrill }: { d: AxPeriodData; acc: A
               <button key={c.k} className="axf-block" onClick={e => onDrill({ bucket: c.k, rect: e.currentTarget.getBoundingClientRect() })} style={{
                 flexGrow: Math.max(0.0001, c.v), flexShrink: 1, flexBasis: '0%', minHeight: 40, border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                 transition: 'flex-grow .65s cubic-bezier(.2,.8,.2,1)',
-                background: colOf[c.k], color: txtOf[c.k], borderRadius: 16,
+                background: colOf[c.k], color: txtOf[c.k], borderRadius: 'var(--crm-radius-2xl)',
                 padding: big ? '13px 16px' : '8px 16px',
                 display: 'flex', flexDirection: big ? 'column' : 'row', justifyContent: 'space-between',
                 alignItems: big ? 'stretch' : 'center', gap: big ? 4 : 10,
@@ -411,16 +411,16 @@ function AxfCompositionCard({ d, acc, dark, onDrill }: { d: AxPeriodData; acc: A
               }}>
                 {big ? (
                   <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
-                      <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{pct} %</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
+                      <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
+                      <span style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{pct} %</span>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.72, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(c.v)}</div>
+                    <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, opacity: 0.72, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(c.v)}</div>
                   </>
                 ) : (
                   <>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
-                    <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{pct} %</span>
+                    <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
+                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{pct} %</span>
                   </>
                 )}
               </button>
@@ -468,32 +468,32 @@ function AxfDrillPopover({ drill, bucket, compValue, onClose, onNavigate }: {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'transparent' }} />
-      <div style={{ position: 'absolute', left, top, width: W, maxHeight: H, background: A.card, borderRadius: 20, boxShadow: A.shadowLg, padding: '18px 20px', display: 'flex', flexDirection: 'column', animation: 'axRise .3s cubic-bezier(.2,.8,.2,1) both' }}>
-        <div style={{ position: 'absolute', [fitsRight ? 'left' : 'right']: -7, top: arrowY, width: 14, height: 14, background: A.card, transform: 'rotate(45deg)', borderRadius: 3 } as CSSProperties} />
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexShrink: 0 }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: A.ink, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bucket.label}</span>
-          {compValue > 0 && <span style={{ fontSize: 15, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{axCHF(compValue)}</span>}
+      <div style={{ position: 'absolute', left, top, width: W, maxHeight: H, background: A.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: A.shadowLg, padding: 'var(--crm-space-4xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', animation: 'axRise .3s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div style={{ position: 'absolute', [fitsRight ? 'left' : 'right']: -7, top: arrowY, width: 14, height: 14, background: A.card, transform: 'rotate(45deg)', borderRadius: 'var(--crm-radius-2xs)' } as CSSProperties} />
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', flexShrink: 0 }}>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: A.ink, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bucket.label}</span>
+          {compValue > 0 && <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{axCHF(compValue)}</span>}
         </div>
         {items.length === 0 ? (
-          <div style={{ marginTop: 12, marginBottom: 6, fontSize: 12.5, fontWeight: 600, color: A.muted, lineHeight: 1.5 }}>
+          <div style={{ marginTop: 12, marginBottom: 6, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.muted, lineHeight: 1.5 }}>
             {bucket.hint ? `${bucket.hint}. ` : ''}{tr('analytics.drill.emptyBucket')}
           </div>
         ) : (
           <>
-            <div style={{ marginTop: 12, fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: A.muted, flexShrink: 0 }}>{tr('analytics.drill.topFiles')}</div>
+            <div style={{ marginTop: 12, fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: A.muted, flexShrink: 0 }}>{tr('analytics.drill.topFiles')}</div>
             <div style={{ marginTop: 4, overflowY: 'auto', minHeight: 0 }}>
               {items.map((x, i) => (
-                <div key={i} className="axf-row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 12, minWidth: 0 }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 800, color: A.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.prop}</span>
-                  <span style={{ padding: '3px 10px', borderRadius: 999, background: tone, color: '#FFFFFF', fontSize: 10.5, fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>{x.state}</span>
-                  <span style={{ fontSize: 12.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{x.comm > 0 ? axCHF(x.comm).replace('CHF ', '') : '—'}</span>
+                <div key={i} className="axf-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', minWidth: 0 }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 800, color: A.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.prop}</span>
+                  <span style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#FFFFFF', fontSize: 'var(--crm-text-xs)', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>{x.state}</span>
+                  <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{x.comm > 0 ? axCHF(x.comm).replace('CHF ', '') : '—'}</span>
                 </div>
               ))}
             </div>
           </>
         )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10, flexShrink: 0 }}>
-          <button onClick={() => { onClose(); onNavigate?.('pipeline') }} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+          <button onClick={() => { onClose(); onNavigate?.('pipeline') }} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 3 }}>
             {tr('analytics.drill.openInPipeline')}
           </button>
         </div>
@@ -517,21 +517,21 @@ function AxfSourcesCard({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
   const [on, setOn] = useState(false)
   useEffect(() => { const t = window.setTimeout(() => setOn(true), 60); return () => window.clearTimeout(t) }, [])
   return (
-    <div style={{ background: A.card, borderRadius: 26, padding: '18px 22px 16px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
-      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.sources.commissionTitle')}</h3>
+    <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-3xl)', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+      <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.sources.commissionTitle')}</h3>
       {chans.length === 0 ? (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: A.muted }}>
           {tr('analytics.sources.commissionEmpty')}
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'stretch', gap: 14, paddingTop: 12 }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'stretch', gap: 'var(--crm-space-2xl)', paddingTop: 'var(--crm-space-xl)' }}>
           {chans.map((s, i) => (
-            <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }} title={`${s.label} · ${axCHF(s.comm)} · ${tr('analytics.sources.wonDeals', { count: s.won ?? 0 })}`}>
-              <span style={{ fontSize: 13.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axShort(s.comm)}</span>
-              <div style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', borderRadius: 10, background: A.cardSubtle, overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: on ? `${Math.max(5, (s.comm / maxComm) * 100)}%` : 0, background: acc.accent, opacity: opac[i] ?? 0.3, borderRadius: 10, transition: `height .8s cubic-bezier(.2,.8,.2,1) ${i * 0.07}s` }} />
+            <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-sm)' }} title={`${s.label} · ${axCHF(s.comm)} · ${tr('analytics.sources.wonDeals', { count: s.won ?? 0 })}`}>
+              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axShort(s.comm)}</span>
+              <div style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', borderRadius: 'var(--crm-radius-md)', background: A.cardSubtle, overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: on ? `${Math.max(5, (s.comm / maxComm) * 100)}%` : 0, background: acc.accent, opacity: opac[i] ?? 0.3, borderRadius: 'var(--crm-radius-md)', transition: `height .8s cubic-bezier(.2,.8,.2,1) ${i * 0.07}s` }} />
               </div>
-              <span style={{ maxWidth: '100%', fontSize: 11, fontWeight: 700, color: A.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span>
+              <span style={{ maxWidth: '100%', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: A.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span>
             </div>
           ))}
         </div>
@@ -563,15 +563,15 @@ function AxfAreaSpark({ data, acc, h = 40 }: { data: number[]; acc: AxfAccent; h
 function AxfKpiGrid({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
   const A = useAX()
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 12, minHeight: 0, minWidth: 0, width: '100%', height: '100%' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-xl)', minHeight: 0, minWidth: 0, width: '100%', height: '100%' }}>
       {d.kpis.map((k, i) => (
-        <div key={i} style={{ position: 'relative', background: A.card, borderRadius: 18, boxShadow: A.shadowSm, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
-          <div style={{ position: 'relative', zIndex: 1, padding: '13px 15px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: A.muted, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={k.label}>{k.label}</span>
+        <div key={i} style={{ position: 'relative', background: A.card, borderRadius: 'var(--crm-radius-3xl)', boxShadow: A.shadowSm, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ position: 'relative', zIndex: 1, padding: 'var(--crm-space-xl) var(--crm-space-2xl) 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={k.label}>{k.label}</span>
               <AxfDelta v={k.delta} pts={k.pts} abs={k.abs} />
             </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: A.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 8 }}>{k.value}</div>
+            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, color: A.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 8 }}>{k.value}</div>
           </div>
           {k.spark.length >= 2 && <AxfAreaSpark data={k.spark} acc={acc} h={40} />}
         </div>
@@ -594,20 +594,20 @@ function AxSk({ h = 14, w = '100%', r = 8, style }: { h?: number; w?: number | s
 function AxSkeleton() {
   const A = useAX()
   const card = (children: ReactNode, extra?: CSSProperties): ReactNode => (
-    <div style={{ background: A.card, borderRadius: 26, boxShadow: A.shadow, padding: '20px 24px', display: 'flex', flexDirection: 'column', minHeight: 0, ...extra }}>{children}</div>
+    <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', boxShadow: A.shadow, padding: 'var(--crm-space-5xl) var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', minHeight: 0, ...extra }}>{children}</div>
   )
   return (
-    <div className="axf-grid" style={{ height: '100%', width: '100%', display: 'flex', gap: 16, animation: 'axSkIn .2s ease both' }}>
-      <div className="axf-col-left" style={{ flex: '0 0 clamp(300px, 27%, 396px)', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="axf-grid" style={{ height: '100%', width: '100%', display: 'flex', gap: 'var(--crm-space-3xl)', animation: 'axSkIn .2s ease both' }}>
+      <div className="axf-col-left" style={{ flex: '0 0 clamp(300px, 27%, 396px)', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
         <div style={{ flex: '0.86 1 0', minHeight: 0, display: 'grid' }}>{card(<><AxSk h={12} w={140} r={6} /><AxSk h={42} w="70%" r={12} style={{ marginTop: 16 }} /><AxSk h={22} w={180} r={999} style={{ marginTop: 16 }} /><AxSk h={12} w="100%" r={999} style={{ marginTop: 'auto' }} /></>, { justifyContent: 'center' })}</div>
-        <div style={{ flex: '1.14 1 0', minHeight: 0, display: 'grid' }}>{card(<><AxSk h={14} w={160} r={6} /><div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}><AxSk h={0} w="100%" r={16} style={{ flex: 58 }} /><AxSk h={0} w="100%" r={16} style={{ flex: 28 }} /><AxSk h={0} w="100%" r={16} style={{ flex: 14 }} /></div></>)}</div>
+        <div style={{ flex: '1.14 1 0', minHeight: 0, display: 'grid' }}>{card(<><AxSk h={14} w={160} r={6} /><div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 14 }}><AxSk h={0} w="100%" r={16} style={{ flex: 58 }} /><AxSk h={0} w="100%" r={16} style={{ flex: 28 }} /><AxSk h={0} w="100%" r={16} style={{ flex: 14 }} /></div></>)}</div>
       </div>
-      <div className="axf-col-right" style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="axf-col-right" style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
         <div style={{ flex: '1.9 1 0', minHeight: 0, display: 'grid' }}>{card(<><div style={{ display: 'flex', justifyContent: 'space-between' }}><AxSk h={16} w={180} r={6} /><AxSk h={28} w={200} r={999} /></div><AxSk h={0} w="100%" r={14} style={{ flex: 1, marginTop: 16 }} /></>)}</div>
-        <div className="axf-strip" style={{ flex: '1 1 0', minHeight: 0, display: 'flex', gap: 16 }}>
-          <div style={{ flex: '1.42 1 0', minWidth: 0, display: 'grid' }}>{card(<><AxSk h={14} w={140} r={6} /><div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: 14 }}>{[100, 68, 44, 27, 15].map((hh, i) => <AxSk key={i} h={0} w="100%" r={10} style={{ flex: 1, alignSelf: 'stretch', minHeight: `${hh}%` }} />)}</div></>)}</div>
-          <div style={{ flex: '1.05 1 0', minWidth: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 12 }}>
-            {[0, 1, 2, 3].map(i => <div key={i} style={{ background: A.card, borderRadius: 18, boxShadow: A.shadowSm, padding: '13px 15px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}><AxSk h={9} w="55%" r={999} /><AxSk h={16} w="72%" r={999} /></div>)}
+        <div className="axf-strip" style={{ flex: '1 1 0', minHeight: 0, display: 'flex', gap: 'var(--crm-space-3xl)' }}>
+          <div style={{ flex: '1.42 1 0', minWidth: 0, display: 'grid' }}>{card(<><AxSk h={14} w={140} r={6} /><div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-xl)', marginTop: 14 }}>{[100, 68, 44, 27, 15].map((hh, i) => <AxSk key={i} h={0} w="100%" r={10} style={{ flex: 1, alignSelf: 'stretch', minHeight: `${hh}%` }} />)}</div></>)}</div>
+          <div style={{ flex: '1.05 1 0', minWidth: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
+            {[0, 1, 2, 3].map(i => <div key={i} style={{ background: A.card, borderRadius: 'var(--crm-radius-3xl)', boxShadow: A.shadowSm, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}><AxSk h={9} w="55%" r={999} /><AxSk h={16} w="72%" r={999} /></div>)}
           </div>
         </div>
       </div>
@@ -660,8 +660,8 @@ export function AxFusionGrid({ d, dark, acc, seg, onNavigate }: {
     : null
   return (
     <>
-      <div className="axf-grid" style={{ height: '100%', width: '100%', display: 'flex', gap: 16 }}>
-        <div className="axf-col-left" style={{ flex: '0 0 clamp(300px, 27%, 396px)', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="axf-grid" style={{ height: '100%', width: '100%', display: 'flex', gap: 'var(--crm-space-3xl)' }}>
+        <div className="axf-col-left" style={{ flex: '0 0 clamp(300px, 27%, 396px)', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
           <div style={{ flex: '0.86 1 0', minHeight: 0, minWidth: 0, display: 'grid' }}>
             <AxfHero d={d} acc={acc} onGoSettings={goSettings} />
           </div>
@@ -669,11 +669,11 @@ export function AxFusionGrid({ d, dark, acc, seg, onNavigate }: {
             <AxfCompositionCard d={d} acc={acc} dark={dark} onDrill={setDrill} />
           </div>
         </div>
-        <div className="axf-col-right" style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="axf-col-right" style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
           <div style={{ flex: '1.9 1 0', minHeight: 0, minWidth: 0, display: 'grid' }}>
             <AxfChartCard d={d} acc={acc} dark={dark} seg={seg} />
           </div>
-          <div className="axf-strip" style={{ flex: '1 1 0', minHeight: 0, minWidth: 0, display: 'flex', gap: 16 }}>
+          <div className="axf-strip" style={{ flex: '1 1 0', minHeight: 0, minWidth: 0, display: 'flex', gap: 'var(--crm-space-3xl)' }}>
             <div style={{ flex: '1.42 1 0', minWidth: 0, minHeight: 0, display: 'grid' }}>
               <AxfSourcesCard d={d} acc={acc} />
             </div>
@@ -723,10 +723,10 @@ export default function AxDashboardBody({ dark = false, onNavigate }: AxDashboar
   let content: ReactNode
   if (isError && !d) {
     content = (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, textAlign: 'center', color: A.ink }}>
-        <div style={{ fontSize: 16, fontWeight: 800 }}>{tr('analytics.error.title')}</div>
-        <div style={{ fontSize: 13, opacity: 0.7, lineHeight: 1.5, maxWidth: 360 }}>{tr('analytics.error.body')}</div>
-        <button onClick={() => refetch()} style={{ height: 40, padding: '0 20px', borderRadius: 999, background: A.ink, color: A.onAccent, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 800 }}>{tr('analytics.error.retry')}</button>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-3xl)', textAlign: 'center', color: A.ink }}>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800 }}>{tr('analytics.error.title')}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', opacity: 0.7, lineHeight: 1.5, maxWidth: 360 }}>{tr('analytics.error.body')}</div>
+        <button onClick={() => refetch()} style={{ height: 40, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', background: A.ink, color: A.onAccent, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800 }}>{tr('analytics.error.retry')}</button>
       </div>
     )
   } else if (isLoading || !d) {

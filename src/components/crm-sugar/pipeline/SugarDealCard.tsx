@@ -110,8 +110,8 @@ function SugarDealCardImpl({
           background: na
             ? (dark ? (hover ? crmStep('s3', 'rgba(255,255,255,.07)') : crmStep('s2', 'rgba(255,255,255,.05)')) : '#FFFFFF')
             : (dark ? crmStep('s1', 'rgba(255,255,255,.03)') : sp.cardSubBg),
-          borderRadius: 18,
-          padding: '12px 14px',
+          borderRadius: 'var(--crm-radius-3xl)',
+          padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
           boxShadow: isDragging ? 'none' : sp.shadowSm,
           cursor: signing ? 'default' : isDragging ? 'grabbing' : 'grab',
           position: 'relative',
@@ -128,17 +128,18 @@ function SugarDealCardImpl({
       >
         {signing && (
           <div style={{
-            position: 'absolute', inset: 0, borderRadius: 18, zIndex: 30,
+            position: 'absolute', inset: 0, borderRadius: 'var(--crm-radius-3xl)', zIndex: 30,
             background: SG_STAGE_HUE.signed,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 9,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 'var(--crm-space-md)',
           }}>
             <span style={{
-              width: 44, height: 44, borderRadius: 999, background: '#FFFFFF',
+              width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', background: '#FFFFFF',
               display: 'grid', placeItems: 'center',
             }}>
               <MEIcon name="check" size={22} color={SG_STAGE_HUE.signed} />
             </span>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#FFFFFF', letterSpacing: -0.2 }}>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: '#FFFFFF', letterSpacing: -0.2 }}>
               {t('board.sign.sealed')}
             </div>
           </div>
@@ -153,41 +154,52 @@ function SugarDealCardImpl({
           />
         )}
         {na ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-              <span style={{ width: 26, height: 26, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', minWidth: 0 }}>
+              <span style={{
+                width: 'var(--crm-icon-slot)', height: 'var(--crm-icon-slot)',
+                flexShrink: 0, display: 'grid', placeItems: 'center',
+              }}>
                 <MEIcon name={nextActionIcon(na.kind)} size={18} color={overdue ? danger : ink} />
               </span>
               <span style={{
-                flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: ink,
+                flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 700, color: ink,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{naNote}</span>
               <span style={{
-                fontSize: 10, fontWeight: 800, color: overdue ? danger : sub,
+                fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: overdue ? danger : sub,
                 fontVariantNumeric: 'tabular-nums', flexShrink: 0,
               }}>{overdue ? t('board.card.overdue') : naDay}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: 35, minWidth: 0 }}>
+            <div style={{
+              display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-md)',
+              // Aligne la 2e ligne sous le texte de la 1re : gouttière + écart.
+              paddingLeft: 'calc(var(--crm-icon-slot) + var(--crm-space-md))',
+              minWidth: 0,
+            }}>
               <span style={{
-                flex: 1, minWidth: 0, fontSize: 11, fontWeight: 600, color: sub,
+                flex: 1, minWidth: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sub,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{c.firstName} {c.lastName}</span>
               {deal.value ? (
                 <span style={{
-                  fontSize: 11.5, fontWeight: 800, color: ink, letterSpacing: -0.2,
+                  fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: ink, letterSpacing: -0.2,
                   fontVariantNumeric: 'tabular-nums', flexShrink: 0,
                 }}>{crmFmtCHF(deal.value)}</span>
               ) : null}
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0, padding: '1px 0' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
+            minWidth: 0, padding: 'var(--crm-space-2xs) 0',
+          }}>
             <span style={{
-              flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 600, color: sub,
+              flex: 1, minWidth: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sub,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{c.firstName} {c.lastName}, {deal.value ? crmFmtCHF(deal.value) : '—'}</span>
             <span style={{
-              fontSize: 11, fontWeight: 800, color: ink, textDecoration: 'underline',
+              fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: ink, textDecoration: 'underline',
               textUnderlineOffset: 2, whiteSpace: 'nowrap', flexShrink: 0,
             }}>{t('board.card.planAction')}</span>
           </div>

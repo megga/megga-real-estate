@@ -27,7 +27,7 @@ export function KwStepStart({ data, set }: Props) {
         <h1
           style={{
             margin: '0 0 14px',
-            fontSize: 38,
+            fontSize: 'var(--crm-text-9xl)',
             fontWeight: 700,
             color: sp.ink,
             letterSpacing: -0.8,
@@ -39,7 +39,7 @@ export function KwStepStart({ data, set }: Props) {
         <p
           style={{
             margin: 0,
-            fontSize: 15,
+            fontSize: 'var(--crm-text-xl)',
             color: sp.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
@@ -54,7 +54,7 @@ export function KwStepStart({ data, set }: Props) {
         style={{
           display: 'grid',
           gridTemplateColumns: '1.15fr 1fr 1fr',
-          gap: 22,
+          gap: 'var(--crm-space-6xl)',
         }}
       >
         <KwGateCard

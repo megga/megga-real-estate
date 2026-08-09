@@ -58,7 +58,7 @@ export default function AnnouncementsTab() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
       <style>{hoverCss}</style>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -68,7 +68,7 @@ export default function AnnouncementsTab() {
       </div>
 
       {isLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
           {Array.from({ length: 2 }).map((_, i) => (
             <AdminSkeleton key={i} height={92} radius={ADMIN_RADII.card} />
           ))}
@@ -86,33 +86,33 @@ export default function AnnouncementsTab() {
           <AdminEmpty icon={Megaphone} title={t('announcements.empty.title')} hint={t('announcements.empty.subtitle')} />
         </AdminCard>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
           {announcements.map(a => (
             <AdminCard key={a.id} className="group" padding="16px 18px">
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-xl)' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 7 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap', marginBottom: 7 }}>
                     <AdminPill
                       label={t(`announcements.severity.${a.severity}`)}
                       tone={severityTone(a.severity)}
-                      style={{ padding: '3px 10px', fontSize: 11 }}
+                      style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)' }}
                     />
                     {/* Métadonnées en `sp.sub`, contenu en `sp.soft` : contre
                         l'intuition des noms, `soft` (#3F4640 en clair) est PLUS
                         contrasté que `sub` (#7A8079). Les intervertir mettait la
                         date plus en avant que le texte de l'annonce. */}
-                    <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                       {formatDate(a.starts_at)}
                     </span>
                     {!a.published && (
                       <AdminPill
                         label={t('announcements.draft')}
                         icon={EyeOff}
-                        style={{ padding: '3px 10px 3px 8px', fontSize: 11 }}
+                        style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg) var(--crm-space-2xs) var(--crm-space-md)', fontSize: 'var(--crm-text-sm)' }}
                       />
                     )}
                     {(a.audience_plans.length > 0 || a.audience_agencies.length > 0) && (
-                      <span style={{ fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                         {t('announcements.targeted', {
                           plans: a.audience_plans.length,
                           agencies: a.audience_agencies.length,
@@ -120,14 +120,14 @@ export default function AnnouncementsTab() {
                       </span>
                     )}
                   </div>
-                  <h3 className="truncate" style={{ margin: 0, fontSize: 14.5, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+                  <h3 className="truncate" style={{ margin: 0, fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
                     {a.title}
                   </h3>
-                  <p className="line-clamp-2" style={{ margin: '6px 0 0', fontSize: 12.5, fontWeight: 500, color: sp.soft, lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+                  <p className="line-clamp-2" style={{ margin: '6px 0 0', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.soft, lineHeight: 1.55, whiteSpace: 'pre-line' }}>
                     {a.body}
                   </p>
                 </div>
-                <div className="ann-actions transition-opacity" style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <div className="ann-actions transition-opacity" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xs)', flexShrink: 0 }}>
                   <button
                     onClick={() => update.mutate({ id: a.id, patch: { published: !a.published } }, { onError: () => toast.error(t('common.actionFailed')) })}
                     aria-label={a.published ? t('announcements.unpublish') : t('announcements.publish')}
