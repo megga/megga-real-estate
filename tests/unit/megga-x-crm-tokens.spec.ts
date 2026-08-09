@@ -15,7 +15,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import {
-  MXC_COLOR, MXC_TYPE, MXC_RADIUS, MXC_SPACE, MXC_SYSTEM, MXC_CARD_SHADOW,
+  MXC_COLOR, MXC_CARD_SHADOW,
   mxCrmPalette, crmDa, DEFAULT_DA,
 } from '@/components/megga-x-crm/tokens'
 import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
@@ -84,41 +84,57 @@ describe('MEGGA X CRM — les tokens sortent bien de la vitrine', () => {
     }
   })
 
-  it('chaque couleur système est la variable de la vitrine', () => {
-    const expected = {
-      danger: 'system-colors--red-400',
-      success: 'system-colors--green-400',
-      warning: 'system-colors--yellow-400',
-      info: 'system-colors--blue-400',
-      systemInk: 'neutral-colors--100',
-    } as const
-    for (const [token, variable] of Object.entries(expected)) {
-      expect(cssVar(variable), `${variable} absente`).not.toBeNull()
-      expect(normalize(MXC_SYSTEM[token as keyof typeof MXC_SYSTEM])).toBe(cssVar(variable))
-    }
-  })
-
-  it('chaque rayon est un barreau de --main-border-radius', () => {
-    const rungs = new Set(pxValues('main-border-radius'))
-    for (const v of Object.values(MXC_RADIUS)) expect(rungs).toContain(v)
-  })
-
-  it('chaque espacement est un barreau de --main-spacers', () => {
-    const rungs = new Set(pxValues('main-spacers'))
-    for (const v of Object.values(MXC_SPACE)) expect(rungs).toContain(v)
-  })
-
-  it('chaque taille de texte existe dans la feuille', () => {
-    const sizes = new Set(
-      [...css.matchAll(/font-size: *([0-9.]+)px/g)].map((m) => Number(m[1])),
-    )
-    for (const v of Object.values(MXC_TYPE)) expect(sizes).toContain(v)
-  })
-
   it('l’ombre de carte est celle de .card-light-mode', () => {
     const m = /\.megga-x \.card-light-mode \{[^}]*box-shadow: *([^;]+);/.exec(css)
     expect(m, '.card-light-mode introuvable ou sans ombre').not.toBeNull()
     expect(MXC_CARD_SHADOW).toBe(m![1].trim())
+  })
+})
+
+/**
+ * La grammaire qui REND vit dans `globals.css`, pas dans un objet JS. Elle a
+ * transité par le module de tokens tant que les pages de comparaison la
+ * consommaient ; elles retirées, ce bloc est la seule déclaration — donc le
+ * seul endroit qui vaille d'être gardé.
+ */
+describe('MEGGA X CRM — la grammaire déclarée en CSS', () => {
+  const globals = readFileSync('src/styles/globals.css', 'utf-8')
+  const bloc = /\[data-crm-da="meggax"\]\s*\{([^}]*)\}/.exec(globals)
+
+  /** Valeurs en px déclarées dans le bloc, par famille de barreau. */
+  function rungs(family: 'text' | 'radius' | 'space'): number[] {
+    const re = new RegExp(`--crm-${family}-[a-z0-9]+: *([0-9.]+)px`, 'g')
+    return [...(bloc?.[1] ?? '').matchAll(re)].map((m) => Number(m[1]))
+  }
+
+  it('le bloc existe et déclare les trois familles', () => {
+    expect(bloc, '[data-crm-da="meggax"] introuvable dans globals.css').not.toBeNull()
+    expect(rungs('text').length).toBeGreaterThan(0)
+    expect(rungs('radius').length).toBeGreaterThan(0)
+    expect(rungs('space').length).toBeGreaterThan(0)
+  })
+
+  it('chaque rayon est un barreau réel de la vitrine', () => {
+    const source = new Set(pxValues('main-border-radius'))
+    for (const v of rungs('radius')) expect(source, `rayon ${v}px`).toContain(v)
+  })
+
+  it('chaque espacement est un barreau réel de la vitrine', () => {
+    const source = new Set(pxValues('main-spacers'))
+    for (const v of rungs('space')) expect(source, `espacement ${v}px`).toContain(v)
+  })
+
+  // ⚠ Le TEXTE, lui, sort volontairement de l'échelle de la vitrine : elle n'a
+  // ni 11 ni 13 px (ses tailles sautent 10 → 12 → 14). Le CRM a besoin de ces
+  // demi-pas pour monter d'un cran sans doubler la hauteur de ses lignes. Ce
+  // test fige donc l'écart au lieu de l'interdire : y ajouter une valeur
+  // demande de l'écrire ici, ce qui en fait une décision et non une dérive.
+  it('le texte ne s’écarte de la vitrine que sur 11 et 13 px', () => {
+    const source = new Set(
+      [...css.matchAll(/font-size: *([0-9.]+)px/g)].map((m) => Number(m[1])),
+    )
+    const hors = rungs('text').filter((v) => !source.has(v)).sort((a, b) => a - b)
+    expect(hors).toEqual([11, 13])
   })
 })
 
@@ -202,16 +218,6 @@ describe('MEGGA X CRM — les encres restent lisibles', () => {
   it('n600 est bien disqualifié en clair — ce n’est pas un réglage arbitraire', () => {
     expect(contrast(MXC_COLOR.n600, MXC_COLOR.n1000)).toBeLessThan(4.5)
     expect(contrast(MXC_COLOR.n600, MXC_COLOR.n300)).toBeGreaterThanOrEqual(4.5)
-  })
-
-  // Le piège inverse du précédent : une couleur système posée en TEXTE plutôt
-  // qu'en aplat. `danger` tombe alors à 3,1:1 sur blanc.
-  it('les couleurs système passent l’AA en aplat, et danger échoue en texte sur blanc', () => {
-    for (const key of ['danger', 'success', 'warning', 'info'] as const) {
-      expect(contrast(MXC_SYSTEM.systemInk, MXC_SYSTEM[key]), `${key} en aplat`)
-        .toBeGreaterThanOrEqual(4.5)
-    }
-    expect(contrast(MXC_SYSTEM.danger, MXC_COLOR.n1000)).toBeLessThan(4.5)
   })
 
   it('en sombre la séparation vient de la bordure, pas d’une ombre', () => {

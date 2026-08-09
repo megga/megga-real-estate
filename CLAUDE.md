@@ -127,11 +127,21 @@ Mécanique en trois points, à connaître avant de toucher au style :
    `admin`), échelle normalisée à 13 barreaux de texte. **Écrire un littéral de
    rayon/espacement/taille dans un composant est désormais une régression.**
 
-Tokens MEGGA X : [megga-x-crm/tokens.ts](src/components/megga-x-crm/tokens.ts),
-valeurs = barreaux réels de la feuille vitrine, verrouillées par
-[megga-x-crm-tokens.spec.ts](tests/unit/megga-x-crm-tokens.spec.ts).
-Routes de décision temporaires (à retirer une fois la direction stabilisée) :
-`/design-system/da-compare` et `/design-system/pipeline-mx`.
+**Où vit quoi** — la distinction compte pour ne pas créer une seconde échelle :
+[megga-x-crm/tokens.ts](src/components/megga-x-crm/tokens.ts) ne porte que la
+**couleur** (ce qui alimente `mxCrmPalette()`) ; la **grammaire et la police**
+sont des variables CSS, parce qu'elles doivent pouvoir basculer sur un conteneur.
+[megga-x-crm-tokens.spec.ts](tests/unit/megga-x-crm-tokens.spec.ts) verrouille les
+deux : les couleurs contre les variables de la vitrine, et le bloc CSS lui-même —
+chaque rayon et chaque espacement doit être un barreau réel de la feuille.
+
+⚠ Le **texte** s'en écarte volontairement sur **11 et 13 px**, absents de la
+vitrine (ses tailles sautent 10 → 12 → 14). Le CRM a besoin de ces demi-pas. Le
+test fige cet écart au lieu de l'interdire : en ajouter un demande de l'écrire,
+donc d'en décider.
+
+Les deux routes de décision (`/design-system/da-compare`, `/design-system/pipeline-mx`)
+ont été retirées le 9 août 2026, la direction étant tranchée.
 
 **Direction :** Minimal, transparent, professionnel (Linear/Notion style). Dark/light mode sur dashboard agent.
 
