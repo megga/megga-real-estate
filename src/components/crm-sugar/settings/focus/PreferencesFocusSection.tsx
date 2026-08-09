@@ -15,6 +15,8 @@ import { useToast } from '@/components/ui/Toast'
 import { useUiPreferences } from '@/hooks/useUiPreferences'
 import { CRM_DARK_TONES, crmStep, type DarkTone } from '@/components/crm-sugar/tokens'
 import { setDarkTone, useDarkTone } from '@/hooks/useDarkTone'
+import { setCrmDa, useCrmDa } from '@/hooks/useCrmDa'
+import type { CrmDa } from '@/components/megga-x-crm/tokens'
 import type { PrefsData } from '../PreferencesSection.types'
 import { pfColors, PF_KEYFRAMES, type FocusSectionProps, type PfColors } from './pfKitCore'
 
@@ -141,9 +143,9 @@ function PxfSelect({ c, value, onChange, options }: { c: PfColors; value: string
 
 /* ─── Structure des groupes (labels résolus via i18n) ───────────────────────── */
 type PrefKey = keyof PrefsData
-/** `darkTone` n'est PAS une préférence serveur (cf. `applyDarkTone`) — d'où une
- *  clé de ligne un peu plus large que `PrefsData`. */
-type RowKey = PrefKey | 'darkTone'
+/** `darkTone` et `crmDa` ne sont PAS des préférences serveur (cf.
+ *  `applyDarkTone`) — d'où une clé de ligne un peu plus large que `PrefsData`. */
+type RowKey = PrefKey | 'darkTone' | 'crmDa'
 type CtrlType = 'select' | 'seg' | 'swatch' | 'toggle'
 interface RowDef { key: RowKey; icon: PxfIconName; labelKey: string; type: CtrlType; options?: Opt[] }
 interface GroupDef { id: string; titleKey: string; dot: 'blue' | 'cyan' | 'orange' | 'green'; layout: 'grid' | 'stack'; rows: RowDef[] }
@@ -162,6 +164,9 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
   useEffect(() => { setLocal(preferences) }, [preferences])
   const [savedKey, setSavedKey] = useState<PrefKey | null>(null)
   const darkTone = useDarkTone()
+  // Même contrat que la teinte : persistée en LOCAL (`megga.da`), pas côté
+  // serveur — `crmSugarPalette()` doit la lire hors React et synchroniquement.
+  const crmDaValue = useCrmDa()
 
   // Garde la pilule Thème synchro si l'utilisateur bascule via le rail (local only).
   useEffect(() => {
@@ -186,6 +191,10 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
       ] },
       { id: 'appearance', titleKey: 'preferences.appearance.title', dot: 'orange', layout: 'stack', rows: [
         { key: 'theme', icon: 'theme', labelKey: 'preferences.appearance.theme', type: 'seg', options: opt(['light', 'dark', 'system'], (id) => `preferences.appearance.themes.${id}.label`) },
+        { key: 'crmDa', icon: 'palette', labelKey: 'focus.preferences.crmDa', type: 'seg', options: [
+          { id: 'meggax', label: t('focus.preferences.crmDas.meggax') },
+          { id: 'sugar', label: t('focus.preferences.crmDas.sugar') },
+        ] },
         { key: 'darkTone', icon: 'theme', labelKey: 'focus.preferences.darkTone', type: 'seg', options: CRM_DARK_TONES.map((x) => ({ id: x.id, label: t(`focus.preferences.darkTones.${x.id}`) })) },
         { key: 'accent', icon: 'palette', labelKey: 'focus.preferences.accent', type: 'swatch' },
       ] },
@@ -245,6 +254,9 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
   const themeSeg = local.theme === 'system' ? 'system' : (dark ? 'dark' : 'light')
 
   const control = (r: RowDef): ReactNode => {
+    if (r.key === 'crmDa') {
+      return <PxfSeg c={c} accent={accentCol} onAccent={onAccent} value={crmDaValue} onChange={(v) => setCrmDa(v as CrmDa)} options={r.options ?? []} />
+    }
     if (r.key === 'darkTone') {
       return <PxfSeg c={c} accent={accentCol} onAccent={onAccent} value={darkTone} onChange={applyDarkTone} options={r.options ?? []} />
     }
