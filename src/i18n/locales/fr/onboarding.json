@@ -379,7 +379,6 @@
       }
     },
     "book": {
-      "hostedBy": "Avec l'équipe MEGGA",
       "title": "Appel d'accueil",
       "duration": "{{count}} min",
       "video": "Le lien de visioconférence vous est envoyé à la confirmation.",

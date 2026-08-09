@@ -379,7 +379,6 @@
       }
     },
     "book": {
-      "hostedBy": "Con il team MEGGA",
       "title": "Chiamata di benvenuto",
       "duration": "{{count}} min",
       "video": "Il link alla videoconferenza Le arriva con la conferma.",

@@ -124,6 +124,17 @@ export default function IdentitySubmittedScreen({ rendezVous, timezone, onEnter 
                       <h1 className="display-6">
                         {t(`gate.submitted.${rendezVous ? 'title' : 'titleNoCall'}`)}
                       </h1>
+                      {/* Sous le titre et AVANT la carte : c'est une suite du titre, pas
+                          une note de bas de carte. Elle rassure avant qu'on lise l'heure,
+                          et dispense de retenir le lien.
+                          Conditionnée au rendez-vous : sans réservation, aucun e-mail de
+                          confirmation n'est parti — c'est `onboarding-call-book` qui
+                          l'envoie, pas la soumission. */}
+                      {rendezVous && (
+                        <div className="mg-top-4x-extra-small">
+                          <p className="paragraph-large">{t('gate.submitted.mailConfirmation')}</p>
+                        </div>
+                      )}
                     </div>
 
                     {rendezVous && (
@@ -152,18 +163,6 @@ export default function IdentitySubmittedScreen({ rendezVous, timezone, onEnter 
                               </>
                             ) : null}
 
-                            {/* L'e-mail de confirmation, dit dans LES DEUX cas — c'est le
-                                même envoi, celui que `onboarding-call-book` déclenche à la
-                                réservation avec le fichier .ics en pièce jointe. Quand le
-                                lien est affiché, cette ligne dit qu'on n'est pas obligé de
-                                le copier maintenant ; quand il ne l'est pas, elle dit où le
-                                trouver. Même phrase que la carte de confirmation de
-                                l'écran de réservation : un seul envoi, un seul vocabulaire. */}
-                            <div className="mg-top-3x-extra-small">
-                              <p className="paragraph-small text-color-neutral-600">
-                                {t('gate.submitted.mailConfirmation')}
-                              </p>
-                            </div>
                           </div>
                         </div>
                       </div>

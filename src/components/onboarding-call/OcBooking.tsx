@@ -290,9 +290,11 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
       <div className="mx-book__mark" aria-hidden="true">
         <img src="/megga-gg.svg" alt="" />
       </div>
+      {/* Le surtitre « Avec l'équipe MEGGA » a été retiré le 10 août 2026 : la vignette
+          juste au-dessus porte déjà la marque, et l'hôte se relit sur la carte de
+          confirmation une fois le créneau pris. */}
       <div className="mg-top-small">
-        <p className="paragraph-small text-color-neutral-600">{t('call.book.hostedBy')}</p>
-        <p className="display-2 semi-bold mg-top-5x-extra-small">{t('call.book.title')}</p>
+        <p className="display-2 semi-bold">{t('call.book.title')}</p>
       </div>
       <div className="mg-top-small">
         <div className="mx-book__fact">

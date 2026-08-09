@@ -379,7 +379,6 @@
       }
     },
     "book": {
-      "hostedBy": "With the MEGGA team",
       "title": "Welcome call",
       "duration": "{{count}} min",
       "video": "The video link is sent to you with the confirmation.",
