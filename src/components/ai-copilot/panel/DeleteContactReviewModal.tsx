@@ -132,7 +132,7 @@ export default function DeleteContactReviewModal({ open, sp, dark, pending, onCl
             style={{
               height: 40, padding: '0 20px', borderRadius: 999, border: 0,
               cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-              background: busy ? (dark ? sp.fillStrong : '#E6E9EE') : DANGER,
+              background: busy ? sp.fillStrong : DANGER,
               color: busy ? sp.sub : '#FFFFFF', display: 'flex', alignItems: 'center', gap: 7,
             }}
             title={`Supprimer ${name}`}

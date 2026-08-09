@@ -17,7 +17,6 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SgIcon, type SgIconName } from '@/components/crm-sugar-v3/icons'
-import { crmStep } from '@/components/crm-sugar/tokens'
 import { useTransaction } from '@/hooks/useTransactions'
 import { useProperty } from '@/hooks/useProperties'
 import { useContact } from '@/hooks/useContacts'
@@ -25,6 +24,7 @@ import { useCreateOffer, suggestedOfferAmount } from '@/hooks/useOffers'
 import { useAuth } from '@/hooks/useAuth'
 import { EMPTY_OFFER_CONDITIONS, countActiveConditions } from '@/types/offer'
 import type { Offer, OfferConditions, OfferKind } from '@/types/offer'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 // ─── Palettes (bento immersif) ──────────────────────────────────────────
 export interface OmPalette {
@@ -78,16 +78,16 @@ const OM_LIGHT: OmPalette = {
 // Surfaces en GETTERS : la palette est montée une fois, les getters la gardent
 // vivante quand la teinte sombre change.
 const OM_DARK: OmPalette = {
-  get bg() { return crmStep('s0', '#0A0B0D') },
-  get card() { return crmStep('s2', '#15161A') },
-  get cardSubtle() { return crmStep('s3', '#1C1D22') },
+  bg: MXC_COLOR.n100,
+  card: MXC_COLOR.n300,
+  cardSubtle: MXC_COLOR.n200,
   cardBorder: 'rgba(255,255,255,0.07)',
   black: '#ECEDF3',
   ink: '#ECEDF3',
   inkSoft: '#B5B7C4',
   muted: '#797D90',
   ghost: '#363646',
-  get onAccent() { return crmStep('s0', '#0A0B0D') },
+  onAccent: MXC_COLOR.n1000,
   shadowSm: '0 1px 2px rgba(0,0,0,.40), 0 6px 18px -10px rgba(0,0,0,.60)',
   shadow: '0 1px 2px rgba(0,0,0,.45), 0 10px 28px -12px rgba(0,0,0,.65)',
   shadowLg: '0 24px 60px rgba(0,0,0,.60), 0 4px 16px rgba(0,0,0,.45)',

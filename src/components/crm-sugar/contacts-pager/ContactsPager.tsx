@@ -18,7 +18,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CrmContact } from '@/components/crm-sugar/mockData'
-import { crmStep, type SugarPalette } from '@/components/crm-sugar/tokens'
+import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmInitials } from '@/components/crm-sugar/tokens'
 
 // ── Couleurs fonctionnelles (données métier — jamais accent UI) ─────────
@@ -102,7 +102,7 @@ function CtpAvatar({ c, size = 38, sp }: { c: CrmContact; size?: number; sp: Sug
   return (
     <div style={{
       width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0,
-      background: c.avatarBg || '#0B0C0E', color: '#fff',
+      background: c.avatarBg || sp.accent, color: sp.accentInk,
       display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 700,
       letterSpacing: 0.2, boxShadow: `0 0 0 3px ${sp.avatarBorder}`,
     }}>
@@ -144,11 +144,11 @@ function CtpBar({ pct, color, dark }: { pct: number; color: string; dark: boolea
   )
 }
 
-function CtpCta({ children, dark, onClick }: { children: ReactNode; dark: boolean; onClick: () => void }) {
+function CtpCta({ children, sp, onClick }: { children: ReactNode; sp: SugarPalette; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
       display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 34, padding: '0 var(--crm-space-2xl)',
-      borderRadius: 'var(--crm-radius-pill)', background: dark ? '#F2F2F6' : '#0B0C0E', color: dark ? '#0B0C0E' : '#FFFFFF', border: 0,
+      borderRadius: 'var(--crm-radius-pill)', background: sp.accent, color: sp.accentInk, border: 0,
       fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
     }}>{children}</button>
   )
@@ -248,7 +248,7 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)' }}>
         <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('pager.title')}</h1>
         <div style={{ flex: 1 }} />
-        <CtpCta dark={dark} onClick={onNewContact}>{t('pager.newContact')}</CtpCta>
+        <CtpCta sp={sp} onClick={onNewContact}>{t('pager.newContact')}</CtpCta>
       </div>
 
       {/* Sous-nav par audience + éventuel filtre issu de la Santé */}
@@ -259,8 +259,8 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
             <button key={tb.id} onClick={() => setFilter({ type: 'audience', value: tb.id })} style={{
               display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 36, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
               border: on ? '0' : `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(11,12,14,.1)'}`,
-              background: on ? (dark ? '#F2F2F6' : '#0B0C0E') : surface,
-              color: on ? (dark ? '#0B0C0E' : '#fff') : sp.soft,
+              background: on ? sp.accent : surface,
+              color: on ? sp.accentInk : sp.soft,
               fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer', boxShadow: on ? 'none' : sp.shadowSm,
             }}>{tb.label}</button>
           )
@@ -516,16 +516,17 @@ function CtpLoadError({ sp, dark, onRetry, title, message, retryLabel }: {
 // ═══════════════════════════════════════════════════════════════════════
 //   POINTS + INDICE
 // ═══════════════════════════════════════════════════════════════════════
-function CtpPageDots({ page, onGo, dark, count, labels, goLabel }: {
+function CtpPageDots({ page, onGo, sp, dark, count, labels, goLabel }: {
   page: number
   onGo: (i: number) => void
+  sp: SugarPalette
   dark: boolean
   count: number
   labels: string[]
   /** Annonce l'interaction ET la destination — un point nu ne dit rien au lecteur d'écran. */
   goLabel: (target: string) => string
 }) {
-  const activeCol = dark ? '#F2F2F6' : '#0B0C0E'
+  const activeCol = sp.accent
   const idleCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(11,12,14,.18)'
   if (count < 2) return null
   return (
@@ -737,11 +738,11 @@ export default function ContactsPager({
         .ctp-scroll-hint:hover, .ctp-scroll-hint:focus-visible { opacity: 1; }
         .ctp-scroll-hint:hover .ctp-hint-label, .ctp-scroll-hint:focus-visible .ctp-hint-label { max-width: 220px !important; opacity: 1 !important; transform: translateX(0) !important; }
         .ctp-row { transition: background .15s ease; }
-        .ctp-row:hover { background: ${dark ? crmStep('s3', 'rgba(255,255,255,.04)') : 'rgba(15,23,42,.03)'}; }
+        .ctp-row:hover { background: ${dark ? 'rgba(255,255,255,.04)' : 'rgba(15,23,42,.03)'}; }
         .ctp-seg, .ctp-seg-row, .ctp-row, .ctp-scroll-hint { -webkit-tap-highlight-color: transparent; }
         /* Pas d'anneau à la souris ; anneau visible au clavier (a11y). */
         .ctp-seg:focus:not(:focus-visible), .ctp-seg-row:focus:not(:focus-visible), .ctp-row:focus:not(:focus-visible), .ctp-scroll-hint:focus:not(:focus-visible) { outline: none; }
-        .ctp-seg:focus-visible, .ctp-seg-row:focus-visible, .ctp-row:focus-visible, .ctp-scroll-hint:focus-visible { outline: 2px solid ${dark ? '#8DA4FF' : '#0041D9'}; outline-offset: 2px; border-radius: 10px; }
+        .ctp-seg:focus-visible, .ctp-seg-row:focus-visible, .ctp-row:focus-visible, .ctp-scroll-hint:focus-visible { outline: 2px solid ${sp.accent}; outline-offset: 2px; border-radius: 10px; }
         @keyframes ctpShimmer { 0% { background-position: -40% 0; } 100% { background-position: 160% 0; } }
         .ctp-sk { background-color: var(--sk); background-image: linear-gradient(90deg, transparent, var(--skHi), transparent);
           background-size: 220% 100%; background-repeat: no-repeat; animation: ctpShimmer 1.25s ease-in-out infinite; }
@@ -765,7 +766,7 @@ export default function ContactsPager({
             </div>
           )}
         </div>
-        <CtpPageDots page={page} onGo={goTo} dark={dark} count={pageCount} labels={pageLabels} goLabel={goLabel} />
+        <CtpPageDots page={page} onGo={goTo} sp={sp} dark={dark} count={pageCount} labels={pageLabels} goLabel={goLabel} />
         {modalOpen && modalSlot && (
           <div style={{ position: 'absolute', inset: 0, zIndex: 45, borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden' }}>
             {modalSlot}

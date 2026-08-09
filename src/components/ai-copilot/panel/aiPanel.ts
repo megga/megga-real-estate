@@ -3,7 +3,8 @@
 // Port fidèle du handoff `crm-copilot-panel.jsx` (chantiers 1,4,5,6), adapté à la
 // vraie stack : zéro `window.*`, tokens issus du vrai `SugarPalette`.
 
-import { crmStep, type SugarPalette } from '@/components/crm-sugar/tokens'
+import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 
 // ── Géométrie ───────────────────────────────────────────────────────────────
 export const PANEL_W = 372
@@ -14,8 +15,11 @@ export const COPILOT_WIDTH = PANEL_W + 32
 
 // ── Bleu identité MEGGA AI (chantier 1) ─────────────────────────────────────
 // ── Palette dérivée du panneau ──────────────────────────────────────────────
-// Étend le SugarPalette de base avec les surfaces propres au panneau (accent
-// noir plein #0B0C0E en clair / surface claire en sombre, canvas, composer…).
+// Étend le SugarPalette de base avec les surfaces propres au panneau (canvas,
+// composer, remplissages). Tout en DÉRIVE désormais : le dock portait son
+// propre accent — l'encre, règle Sugar Pure — et ses surfaces sombres passaient
+// par la forme à 3 arguments de `crmStep`, qui retombait sur ses littéraux
+// historiques (des blancs translucides) faute de rampe sur la palette MEGGA X.
 export interface AiPalette {
   dark: boolean
   ink: string
@@ -23,6 +27,14 @@ export interface AiPalette {
   sub: string
   accent: string
   onAccent: string
+  /**
+   * L'accent en TEXTE ou en icône teintée.
+   *
+   * ⛔ Ce n'est pas `accent` : `#424bfb` tombe à 3,44:1 sur la surface sombre du
+   * dock, illisible. En aplat il tient — c'est l'encre blanche qui porte alors
+   * le contraste. Dès qu'il devient de l'encre, il faut monter d'un barreau.
+   */
+  aiInk: string
   panelBg: string
   panelShadow: string
   /** Remplissages posés SUR le panneau — pastilles d'icône, tuiles de pièce
@@ -36,57 +48,55 @@ export interface AiPalette {
   composerBg: string
   composerShadow: string
   rowHov: string
-  cardInk: string
 }
 
 export function deriveAiPalette(base: SugarPalette, dark: boolean): AiPalette {
   if (dark) {
     return {
       dark: true,
-      ink: base.ink || '#ECEDF3',
+      ink: base.ink,
       soft: base.soft,
       sub: base.sub,
-      accent: base.ink || '#ECEDF3',
-      onAccent: '#0B0C0E',
-      // Le dock prend le palier « cadre » (S1) et se détache du canvas par
-      // l'ombre. Les autres teintes gardent le noir pur historique.
-      panelBg: crmStep(base, 's1', '#0B0C0E'),
+      accent: base.accent,
+      onAccent: base.accentInk,
+      aiInk: MXC_SYSTEM.blue300,
+      // Surface FLOTTANTE : le dock prend le palier des surfaces posées
+      // au-dessus de l'app, et se sépare par son filet — pas par un blanc
+      // translucide, que la direction interdit en remplissage.
+      panelBg: base.solidBg,
       panelShadow:
-        '0 24px 70px -10px rgba(0,0,0,.7), 0 6px 22px -8px rgba(0,0,0,.55)',
-      fill: crmStep(base, 's2', 'rgba(255,255,255,0.07)'),
-      fillStrong: crmStep(base, 's3', 'rgba(255,255,255,0.12)'),
-      cardBg2: crmStep(base, 's2', 'rgba(255,255,255,0.05)'),
+        `0 0 0 1px ${base.solidBorder}, 0 24px 70px -10px rgba(0,0,0,.7), 0 6px 22px -8px rgba(0,0,0,.55)`,
+      fill: base.solidBgSub,
+      fillStrong: base.focusSurface,
+      cardBg2: base.solidBgSub,
       cardShadow: 'none',
-      cardHovShadow: '0 0 0 1px rgba(255,255,255,0.10) inset',
-      // Le composer prend le MÊME palier que le panneau (S1) : il affleure la
-      // surface et ne se lit que par son liseré interne — grammaire Sugar Pure,
-      // pas de remplissage contrasté pour marquer un champ. À S2 il formait une
-      // dalle plus claire au bas du panneau.
-      composerBg: crmStep(base, 's1', 'rgba(255,255,255,0.05)'),
-      composerShadow: 'inset 0 0 0 1px rgba(255,255,255,0.07)',
-      rowHov: crmStep(base, 's2', 'rgba(255,255,255,0.05)'),
-      cardInk: '#16161E',
+      cardHovShadow: `0 0 0 1px ${base.solidBorder} inset`,
+      // Le composer affleure la surface du panneau et ne se lit que par son
+      // liseré : même palier, pas de dalle contrastée au bas du panneau.
+      composerBg: base.solidBg,
+      composerShadow: `inset 0 0 0 1px ${base.solidBorder}`,
+      rowHov: base.solidBgSub,
     }
   }
   return {
     dark: false,
-    ink: '#0B0C0E',
+    ink: base.ink,
     soft: base.soft,
     sub: base.sub,
-    accent: '#0B0C0E',
-    onAccent: '#FFFFFF',
-    panelBg: '#FFFFFF',
+    accent: base.accent,
+    onAccent: base.accentInk,
+    aiInk: base.accent,
+    panelBg: base.solidBg,
     panelShadow:
       '0 28px 80px -16px rgba(15,23,42,.22), 0 8px 26px -12px rgba(15,23,42,.12)',
-    fill: 'rgba(11,12,14,0.05)',
-    fillStrong: 'rgba(11,12,14,0.06)',
-    cardBg2: '#F7F8FA',
-    cardShadow: '0 2px 10px rgba(15,23,42,0.04)',
-    cardHovShadow: '0 10px 26px rgba(15,23,42,0.10)',
-    composerBg: '#F4F6F9',
-    composerShadow: 'inset 0 0 0 1px rgba(15,23,42,0.05)',
-    rowHov: 'rgba(15,23,42,0.04)',
-    cardInk: '#fff',
+    fill: base.cardSubBg,
+    fillStrong: base.focusSurface,
+    cardBg2: base.cardSubBg,
+    cardShadow: base.shadowSm,
+    cardHovShadow: base.shadow,
+    composerBg: base.cardSubBg,
+    composerShadow: `inset 0 0 0 1px ${base.cardBorder}`,
+    rowHov: base.cardSubBg,
   }
 }
 

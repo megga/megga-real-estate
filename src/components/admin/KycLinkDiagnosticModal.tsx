@@ -285,7 +285,7 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
                           <div key={s} style={{ flex: 1 }}>
                             <div style={{
                               height: 3, borderRadius: ADMIN_RADII.pill,
-                              background: etape >= i ? sp.ink : sp.sub,
+                              background: etape >= i ? sp.accent : sp.sub,
                               opacity: etape >= i ? 1 : 0.25,
                             }} />
                             <div style={{ marginTop: 5, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: etape >= i ? sp.ink : sp.sub }}>

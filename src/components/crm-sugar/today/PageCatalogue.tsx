@@ -373,9 +373,9 @@ function CatPriceRow({ icon, label, value, accent, last }: { icon: string; label
 // ─── Galerie photo « épouse la modale » — lightbox hi-fi contenue ───────
 function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; start?: number; title: string; onClose: () => void }) {
   const { t } = useTranslation('dashboard')
+  const lightMode = TK.frameSolid === '#FFFFFF'
   const [i, setI] = useState(start)
   const n = photos.length
-  const lightMode = TK.frameSolid === '#FFFFFF'
   const stripRef = useRef<HTMLDivElement>(null)
   const prev = useCallback(() => setI((x) => (x - 1 + n) % n), [n])
   const next = useCallback(() => setI((x) => (x + 1) % n), [n])
@@ -435,7 +435,7 @@ function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; s
         {photos.map((p, idx) => (
           <button key={idx} data-sel={idx === i} onClick={() => setI(idx)} style={{ flexShrink: 0, width: 120, height: 78,
             borderRadius: 'var(--crm-radius-lg)', overflow: 'hidden', padding: 0, cursor: 'pointer', position: 'relative',
-            border: idx === i ? `2.5px solid ${lightMode ? '#0B0C0E' : '#fff'}` : '2.5px solid transparent',
+            border: idx === i ? `2.5px solid ${TK.accent}` : '2.5px solid transparent',
             opacity: idx === i ? 1 : 0.5, transition: 'opacity .2s, border-color .2s' }}>
             <img src={p} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </button>
@@ -570,7 +570,7 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
                   {/* marqueur pin centré */}
                   <div style={{ position: 'absolute', left: '50%', top: '46%', transform: 'translate(-50%,-100%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <span style={{ width: 34, height: 34, borderRadius: '50% 50% 50% 2px', transform: 'rotate(45deg)', display: 'grid', placeItems: 'center',
-                      background: lightMode ? '#0B0C0E' : '#F2F2F6', boxShadow: '0 6px 16px rgba(0,0,0,.45)' }}>
+                      background: TK.accent, boxShadow: '0 6px 16px rgba(0,0,0,.45)' }}>
                       <span style={{ transform: 'rotate(-45deg)', display: 'grid', placeItems: 'center' }}>
                         <CatDIcon name="pin" size={15} color={lightMode ? '#fff' : '#0A0A0F'} />
                       </span>
@@ -671,7 +671,7 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
             </button>
           )}
           <button onClick={() => onPropose(m)} style={{ height: 48, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-            background: proposed ? '#15643F' : '#424bfb',
+            background: proposed ? TK.ok.bg : TK.accent,
             color: '#FFFFFF',
             fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', whiteSpace: 'nowrap',
             transition: 'background-color .25s ease' }}>
@@ -697,7 +697,7 @@ function CatalogMoreTile({ items, onOpen, delay = 0, shown }: { items: (CatItem 
     : 'linear-gradient(180deg, rgba(8,8,12,.7) 0%, rgba(8,8,12,.92) 100%)'
   const ringCol = lightMode ? '#FFFFFF' : '#14141E'
   const bigCol = lightMode ? TK.ink : '#fff'
-  const pillBg = lightMode ? '#0B0C0E' : '#F2F2F6'
+  const pillBg = TK.accent
   const pillFg = lightMode ? '#FFFFFF' : '#0A0A0F'
   return (
     <div onClick={onOpen} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
@@ -778,7 +778,6 @@ function CatalogGalleryOverlay({ list, proposedSet, sortLabel, onCycleSort, onOp
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
   }, [onClose])
-  const lightMode = TK.frameSolid === '#FFFFFF'
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 30, background: TK.bg, display: 'flex', flexDirection: 'column' }}>
       <Orbs />
@@ -791,7 +790,7 @@ function CatalogGalleryOverlay({ list, proposedSet, sortLabel, onCycleSort, onOp
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
               <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1.2, lineHeight: 1, color: TK.ink }}>{t('today.catalogue.gallery.title')}</h1>
-              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: lightMode ? '#FFFFFF' : '#0A0A0F', background: lightMode ? '#0B0C0E' : '#F2F2F6', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontVariantNumeric: 'tabular-nums' }}>{list.length}</span>
+              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: TK.accentInk, background: TK.accent, padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontVariantNumeric: 'tabular-nums' }}>{list.length}</span>
             </div>
             <div style={{ fontSize: 'var(--crm-text-lg)', color: TK.sub, marginTop: 8 }}>{t('today.catalogue.gallery.subtitle')}</div>
           </div>
@@ -909,7 +908,7 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
                 return (
                   <button key={c.key} onClick={() => setFilter(c.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
                     fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
-                    background: on ? (lightMode ? '#0B0C0E' : '#F2F2F6') : TK.card, color: on ? (lightMode ? '#FFFFFF' : '#0A0A0F') : TK.inkDim,
+                    background: on ? TK.accent : TK.card, color: on ? TK.accentInk : TK.inkDim,
                     boxShadow: on ? 'none' : `inset 0 0 0 1px ${TK.cardBorder}`, transition: 'background .18s, color .18s' }}>
                     {t(c.labelKey)}<span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: on ? (lightMode ? 'rgba(255,255,255,.55)' : '#797D90') : TK.faint, fontVariantNumeric: 'tabular-nums' }}>{n}</span></button>
                 )

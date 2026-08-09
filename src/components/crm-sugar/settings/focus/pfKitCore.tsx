@@ -4,6 +4,7 @@
 
 import type { SugarPalette } from '../../tokens'
 import type { GalSurfaces } from '../../biens/gallery/galHelpers'
+import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 
 /** Props communes aux sections « Focus » (rendues dans le bento des Réglages). */
 export interface FocusSectionProps {
@@ -45,22 +46,78 @@ export const PF_ICONS = {
 export type PfIconName = keyof typeof PF_ICONS
 
 /* ─── Palette dérivée de la palette CRM Sugar ───────────────────────────────── */
+
+/** Élément à REMPLISSAGE plein : la couleur du fond et l'encre qui tient dessus. */
+export interface PfFill { bg: string; ink: string }
+
 export interface PfColors {
   dark: boolean
   card: string; cardSub: string
+  /** Surface FLOTTANTE (menu déroulant, popover) — elle se pose SUR la carte. */
+  solid: string
   editBg: string; inputBg: string
   ink: string; soft: string; sub: string
   ghost: string
   hair: string; hairSoft: string
   shadow: string; shadowSm: string
   onInk: string
+  /**
+   * Échelle de REPÉRAGE — une teinte par groupe de champs (Identité, Contact,
+   * Présentation, Liens). Elle ne suit pas la direction artistique : quatre
+   * teintes distinctes encodent une information, elles ne décorent pas. Même
+   * raison qui a laissé `sgStageTint` en Sugar sur le plateau MEGGA X. Employée
+   * en pastilles de 8 px, donc hors contrainte de contraste de texte.
+   */
   blue: string; cyan: string; orange: string; green: string
+  /** Badge affirmatif « vérifié ». Sous MEGGA X c'est `.badge-light` de la vitrine. */
+  seal: PfFill
+  /**
+   * Chip d'alerte douce « à renseigner ».
+   * ⛔ Ne JAMAIS lui donner l'accent de marque : peint en `accent`, un
+   * avertissement se lit comme une mise en avant — même bleu que le bouton
+   * primaire.
+   */
+  tag: PfFill
+  /** Pilule de confirmation « enregistré ». */
+  saved: PfFill
+  /** Pastille d'action sur l'avatar (changer la photo) — affordance, pas alerte. */
+  affordance: PfFill
+}
+
+/**
+ * Remplissages pleins de la direction MEGGA X.
+ *
+ * ⚠ Les couleurs de système de la vitrine sont PÂLES — elles sont réglées pour
+ * un canvas `#030303`. Mesuré : `yellow-400` ou `green-400` avec une encre
+ * blanche tombent à **1,7–1,9:1**, illisible ; avec l'encre `neutral-100` elles
+ * montent à **11–12:1**. Un remplissage pâle prend donc TOUJOURS l'encre
+ * sombre. Seul l'accent `#424bfb` se porte avec du blanc (5,78:1) — et c'est
+ * exactement ce que fait `.badge-light` dans la feuille de la vitrine.
+ *
+ * Le gain n'est pas que stylistique : les pilules de Sugar Pure passaient sous
+ * l'AA (orange + blanc = 4,37:1, vert + blanc = 3,77:1) alors que le texte y est
+ * petit et gras.
+ */
+function mxFills(dark: boolean): Pick<PfColors, 'seal' | 'tag' | 'saved' | 'affordance'> {
+  const accent: PfFill = { bg: MXC_COLOR.accent, ink: MXC_COLOR.n1000 }
+  return {
+    seal: accent,
+    affordance: accent,
+    tag: { bg: dark ? MXC_SYSTEM.yellow400 : MXC_SYSTEM.yellow300, ink: MXC_COLOR.n100 },
+    saved: { bg: dark ? MXC_SYSTEM.green400 : MXC_SYSTEM.green300, ink: MXC_COLOR.n100 },
+  }
 }
 
 export function pfColors(sp: SugarPalette, surf: GalSurfaces, dark: boolean): PfColors {
+  // Teintes de repérage — communes aux deux directions, cf. JSDoc de `PfColors`.
+  const way = {
+    blue: dark ? '#4C86E8' : '#1E5BC6', cyan: dark ? '#22B8CF' : '#0891B2',
+    orange: dark ? '#E08A2E' : '#C45A00', green: dark ? '#12A574' : '#059669',
+  }
   return {
     dark,
     card: surf.card, cardSub: surf.cardSub,
+    solid: sp.solidBg,
     editBg: dark ? 'rgba(255,255,255,0.05)' : '#EDEFF3',
     inputBg: dark ? 'rgba(0,0,0,0.22)' : '#FFFFFF',
     ink: sp.ink, soft: sp.soft, sub: sp.sub,
@@ -68,9 +125,47 @@ export function pfColors(sp: SugarPalette, surf: GalSurfaces, dark: boolean): Pf
     hair: surf.hairline, hairSoft: dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)',
     shadow: surf.shadow, shadowSm: sp.shadowSm,
     onInk: dark ? '#0B0C0E' : '#FFFFFF',
-    blue: dark ? '#4C86E8' : '#1E5BC6', cyan: dark ? '#22B8CF' : '#0891B2',
-    orange: dark ? '#E08A2E' : '#C45A00', green: dark ? '#12A574' : '#059669',
+    ...way,
+    ...mxFills(dark),
   }
+}
+
+/* ─── Nuancier « Couleur d'accent » (Réglages › Préférences) ───────────────── */
+
+/**
+ * Une pastille du nuancier.
+ *
+ * `ink` est l'encre qui tient SUR la pastille, pas à côté : les teintes de la
+ * vitrine sont pâles et ne supportent pas le blanc (1,7:1), cf. `mxFills`.
+ */
+export interface PfAccent { id: string; hex: string; darkHex: string; ink: string; darkInk: string }
+
+/**
+ * Nuancier de la direction MEGGA X — tiré de la vitrine, rien d'inventé.
+ *
+ * En tête, `direction` : l'accent de la marque. C'est LE défaut, et c'est
+ * voulu. Un réglage hérité de Sugar (`black`, `periwinkle`, `orange`…) n'existe
+ * pas dans cette liste, donc le `find(…) ?? [0]` de la section y retombe :
+ * l'agent qui avait choisi le noir sous Sugar récupère le bleu de la marque en
+ * passant à MEGGA X. C'est la direction qui décide de l'accent ; ce nuancier ne
+ * propose que des écarts.
+ *
+ * Les alternatives sortent des `--primary-colors--*` (le triptyque de marque)
+ * et des `--system-colors--*`. Elles n'ont pas de variante sombre : ce sont des
+ * couleurs de marque, pas des surfaces — seule `encre` s'inverse.
+ */
+const MX_ACCENTS: PfAccent[] = [
+  { id: 'direction', hex: MXC_COLOR.accent, darkHex: MXC_COLOR.accent, ink: MXC_COLOR.n1000, darkInk: MXC_COLOR.n1000 },
+  { id: 'cyan', hex: MXC_COLOR.accentCyan, darkHex: MXC_COLOR.accentCyan, ink: MXC_COLOR.n100, darkInk: MXC_COLOR.n100 },
+  { id: 'green', hex: MXC_COLOR.accentGreen, darkHex: MXC_COLOR.accentGreen, ink: MXC_COLOR.n100, darkInk: MXC_COLOR.n100 },
+  { id: 'yellow', hex: MXC_SYSTEM.yellow400, darkHex: MXC_SYSTEM.yellow400, ink: MXC_COLOR.n100, darkInk: MXC_COLOR.n100 },
+  { id: 'red', hex: MXC_SYSTEM.red400, darkHex: MXC_SYSTEM.red400, ink: MXC_COLOR.n100, darkInk: MXC_COLOR.n100 },
+  { id: 'encre', hex: MXC_COLOR.n100, darkHex: MXC_COLOR.n1000, ink: MXC_COLOR.n1000, darkInk: MXC_COLOR.n100 },
+]
+
+/** Pastilles offertes à l'agent. La première EST le défaut. */
+export function pfAccents(): PfAccent[] {
+  return MX_ACCENTS
 }
 
 /* ─── Types de ligne éditable + libellés kit (fournis traduits par la section) ─ */

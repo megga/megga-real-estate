@@ -13,12 +13,13 @@
  * illisible — le genre de régression qu'une relecture visuelle laisse passer.
  */
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import {
-  MXC_COLOR, MXC_CARD_SHADOW,
-  mxCrmPalette, crmDa, DEFAULT_DA,
+  MXC_COLOR, MXC_CARD_SHADOW, MXC_SYSTEM, mxCrmPalette,
 } from '@/components/megga-x-crm/tokens'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { pfAccents, pfColors } from '@/components/crm-sugar/settings/focus/pfKitCore'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { applySetTheme, isSetDark, SET_PALETTE } from '@/components/crm-sugar/settings/data'
 
 const SHEET = 'src/styles/megga-x.generated.css'
 const css = readFileSync(SHEET, 'utf-8')
@@ -76,10 +77,25 @@ describe('MEGGA X CRM — les tokens sortent bien de la vitrine', () => {
       n700: 'neutral-colors--700', n800: 'neutral-colors--800',
       n900: 'neutral-colors--900', n1000: 'neutral-colors--1000',
       accent: 'primary-colors--100',
+      accentGreen: 'primary-colors--200', accentCyan: 'primary-colors--300',
     }
     for (const [token, variable] of Object.entries(expected)) {
       expect(cssVar(variable), `${variable} absente de la feuille`).not.toBeNull()
       expect(normalize(MXC_COLOR[token as keyof typeof MXC_COLOR]))
+        .toBe(cssVar(variable))
+    }
+  })
+
+  it('chaque couleur de système est la variable de la vitrine', () => {
+    const expected: Record<keyof typeof MXC_SYSTEM, string> = {
+      blue300: 'system-colors--blue-300',
+      yellow300: 'system-colors--yellow-300', yellow400: 'system-colors--yellow-400',
+      green300: 'system-colors--green-300', green400: 'system-colors--green-400',
+      red400: 'system-colors--red-400',
+    }
+    for (const [token, variable] of Object.entries(expected)) {
+      expect(cssVar(variable), `${variable} absente de la feuille`).not.toBeNull()
+      expect(normalize(MXC_SYSTEM[token as keyof typeof MXC_SYSTEM]))
         .toBe(cssVar(variable))
     }
   })
@@ -98,98 +114,69 @@ describe('MEGGA X CRM — les tokens sortent bien de la vitrine', () => {
  * seul endroit qui vaille d'être gardé.
  */
 describe('MEGGA X CRM — la grammaire déclarée en CSS', () => {
+  // Elle vivait dans un bloc `[data-crm-da="meggax"]` qui surchargeait une
+  // échelle Sugar. La direction retirée, elle est déclarée directement dans
+  // `:root` — il n'y a donc plus qu'UN site de déclaration par barreau.
   const globals = readFileSync('src/styles/globals.css', 'utf-8')
-  const bloc = /\[data-crm-da="meggax"\]\s*\{([^}]*)\}/.exec(globals)
 
-  /** Valeurs en px déclarées dans le bloc, par famille de barreau. */
+  /** Valeurs en px déclarées, par famille de barreau. */
   function rungs(family: 'text' | 'radius' | 'space'): number[] {
     const re = new RegExp(`--crm-${family}-[a-z0-9]+: *([0-9.]+)px`, 'g')
-    return [...(bloc?.[1] ?? '').matchAll(re)].map((m) => Number(m[1]))
+    return [...globals.matchAll(re)].map((m) => Number(m[1]))
   }
 
-  it('le bloc existe et déclare les trois familles', () => {
-    expect(bloc, '[data-crm-da="meggax"] introuvable dans globals.css').not.toBeNull()
-    expect(rungs('text').length).toBeGreaterThan(0)
-    expect(rungs('radius').length).toBeGreaterThan(0)
-    expect(rungs('space').length).toBeGreaterThan(0)
+  it('les trois familles sont déclarées, et une seule fois chacune', () => {
+    expect(rungs('text').length).toBe(13)
+    expect(rungs('radius').length).toBe(12)
+    expect(rungs('space').length).toBe(12)
+    // Pas de SÉLECTEUR de direction (la note historique en commentaire reste),
+    // et plus d'alias : ils n'existaient que pour redonner Sugar à un sous-arbre.
+    expect(globals).not.toMatch(/\[data-crm-da="[a-z]+"\]\s*\{/)
+    expect(globals).not.toMatch(/--crm-sugar-[a-z0-9-]+:/)
   })
 
-  it('chaque rayon est un barreau réel de la vitrine', () => {
-    const source = new Set(pxValues('main-border-radius'))
-    for (const v of rungs('radius')) expect(source, `rayon ${v}px`).toContain(v)
-  })
-
-  it('chaque espacement est un barreau réel de la vitrine', () => {
+  /**
+   * Les trois tests qui suivent figent les ÉCARTS plutôt que de les interdire :
+   * en ajouter un demande de l'écrire ici, donc d'en décider. Ils couvrent
+   * désormais l'échelle ENTIÈRE — tant que la grammaire vivait dans un bloc de
+   * surcharge, ils n'en voyaient que les 16 barreaux surchargés.
+   */
+  it('les espacements sortent TOUS de la vitrine', () => {
     const source = new Set(pxValues('main-spacers'))
     for (const v of rungs('space')) expect(source, `espacement ${v}px`).toContain(v)
   })
 
-  // ⚠ Le TEXTE, lui, sort volontairement de l'échelle de la vitrine : elle n'a
-  // ni 11 ni 13 px (ses tailles sautent 10 → 12 → 14). Le CRM a besoin de ces
-  // demi-pas pour monter d'un cran sans doubler la hauteur de ses lignes. Ce
-  // test fige donc l'écart au lieu de l'interdire : y ajouter une valeur
-  // demande de l'écrire ici, ce qui en fait une décision et non une dérive.
-  it('le texte ne s’écarte de la vitrine que sur 11 et 13 px', () => {
+  // Écarts assumés : 2 et 4 px sont des micro-rayons (pastilles, cases à
+  // cocher) que la vitrine n'a pas besoin de nommer, et 999 est la convention
+  // « pilule », pas une mesure.
+  it('les rayons ne s’écartent que sur les micro-rayons et la pilule', () => {
+    const source = new Set(pxValues('main-border-radius'))
+    const hors = rungs('radius').filter((v) => !source.has(v)).sort((a, b) => a - b)
+    expect(hors).toEqual([2, 4, 999])
+  })
+
+  // ⚠ Le TEXTE s'écarte sur 11 et 13 px : la vitrine n'en a ni l'un ni l'autre
+  // (ses tailles sautent 10 → 12 → 14), et le CRM a besoin de ces demi-pas pour
+  // monter d'un cran sans doubler la hauteur de ses lignes. 34 px est un
+  // barreau d'AFFICHAGE ajouté pour 5 emplois répétés — une valeur répétée à
+  // cette fréquence est de la grammaire, pas un cas particulier.
+  it('le texte ne s’écarte que sur 11, 13 et 34 px', () => {
     const source = new Set(
       [...css.matchAll(/font-size: *([0-9.]+)px/g)].map((m) => Number(m[1])),
     )
     const hors = rungs('text').filter((v) => !source.has(v)).sort((a, b) => a - b)
-    expect(hors).toEqual([11, 13])
+    expect(hors).toEqual([11, 13, 34])
   })
 })
 
-describe('MEGGA X CRM — la bascule de direction', () => {
-  // C'est le point de bascule de TOUT le CRM : les 33 endroits qui construisent
-  // la palette passent par cette fonction, et la transmettent ensuite en prop.
-  // Si la délégation casse, rien ne bascule et rien ne le signale.
-  it('crmSugarPalette délègue à MEGGA X quand la direction est basculée', () => {
-    const t = sugarThemeTokens(true)
-    const sugar = crmSugarPalette(t, true, undefined, 'sugar')
-    const meggax = crmSugarPalette(t, true, undefined, 'meggax')
-
-    expect(meggax).toEqual(mxCrmPalette(true))
-    expect(meggax.accent).toBe(MXC_COLOR.accent)
-    expect(sugar.accent).not.toBe(MXC_COLOR.accent)
-  })
-
-  // ⚠ On passe par `window.__meggaDa`, jamais par localStorage : sous ce Node
-  // il n'est pas exposé dans jsdom (`graphite-scale.spec.ts` fait le même
-  // constat). C'est de toute façon la source que `crmDa()` lit EN PREMIER.
-  type WinDa = Window & { __meggaDa?: string }
-
-  // Le comparateur doit pouvoir exiger Sugar même préférence basculée, sinon sa
-  // colonne de référence suit le reste et les trois colonnes deviennent égales.
-  it('la direction demandée explicitement l’emporte sur la préférence active', () => {
-    const t = sugarThemeTokens(false)
-    ;(window as WinDa).__meggaDa = 'meggax'
-    try {
-      expect(crmSugarPalette(t, false, undefined, 'sugar').accent).not.toBe(MXC_COLOR.accent)
-      expect(crmSugarPalette(t, false).accent).toBe(MXC_COLOR.accent)
-    } finally {
-      delete (window as WinDa).__meggaDa
+describe('MEGGA X CRM — la palette du CRM', () => {
+  // 33 endroits construisent la palette et la transmettent en prop. C'est le
+  // point unique : si la dérivation casse, tout le CRM se dépeint d'un coup.
+  it('crmSugarPalette rend exactement MEGGA X', () => {
+    for (const dark of [false, true]) {
+      expect(crmSugarPalette(dark)).toEqual(mxCrmPalette(dark))
     }
-  })
-
-  // Le défaut est passé à MEGGA X le 9 août 2026. Ce test le VERROUILLE : un
-  // retour à Sugar par inadvertance changerait l'apparence de tout le CRM sans
-  // qu'aucune autre garde ne le signale.
-  it('MEGGA X est la direction par défaut', () => {
-    delete (window as WinDa).__meggaDa
-    expect(crmDa()).toBe(DEFAULT_DA)
-    expect(DEFAULT_DA).toBe('meggax')
-  })
-
-  // Sugar doit rester ENTIÈREMENT résolvable : un réglage déjà stocké dessus,
-  // et la colonne de référence du comparateur, en dépendent.
-  it('Sugar reste résolvable après la bascule du défaut', () => {
-    const t = sugarThemeTokens(true)
-    ;(window as WinDa).__meggaDa = 'sugar'
-    try {
-      expect(crmSugarPalette(t, true).accent).not.toBe(MXC_COLOR.accent)
-      expect(crmSugarPalette(t, true).ramp).toBeDefined()
-    } finally {
-      delete (window as WinDa).__meggaDa
-    }
+    expect(crmSugarPalette(false).accent).toBe(MXC_COLOR.accent)
   })
 })
 
@@ -224,5 +211,195 @@ describe('MEGGA X CRM — les encres restent lisibles', () => {
     const p = mxCrmPalette(true)
     expect(p.shadow).toBe('none')
     expect(p.cardBorder).toBe(MXC_COLOR.n400)
+  })
+})
+
+/**
+ * La palette des Réglages — deuxième point de délégation.
+ *
+ * `SET_PALETTE` est le seul jeu de couleurs du CRM que `crmSugarPalette()` ne
+ * couvrait pas : Intégrations, Sécurité, les atomes et les modales le lisent
+ * directement (~280 lectures). Il délègue désormais lui aussi, ce qui déplace
+ * la question du « est-ce que ça bascule » vers « est-ce que ça bascule JUSTE ».
+ */
+describe('MEGGA X CRM — palette des Réglages', () => {
+  it('rend l’accent de la vitrine, jamais le noir de Sugar Pure', () => {
+    for (const dark of [false, true]) {
+      applySetTheme(dark)
+      expect(SET_PALETTE.black).toBe(MXC_COLOR.accent)
+      expect(SET_PALETTE.blackInk).toBe(mxCrmPalette(dark).accentInk)
+      // Le survol doit se distinguer de l'accent sans virer à une autre couleur.
+      expect(SET_PALETTE.blackHover).not.toBe(SET_PALETTE.black)
+    }
+  })
+
+  it('fait voyager la bordure de carte dans l’ombre', () => {
+    // Les cartes montent `boxShadow: SET.shadow` avec `border: 0` : c'est le
+    // seul canal par lequel le filet `#cccccc` de la vitrine peut arriver.
+    applySetTheme(false)
+    expect(SET_PALETTE.shadow).toContain(`inset 0 0 0 1px ${MXC_COLOR.n700}`)
+    expect(SET_PALETTE.shadow).toContain(MXC_CARD_SHADOW)
+
+    applySetTheme(true)
+    expect(SET_PALETTE.shadow).toContain(`inset 0 0 0 1px ${MXC_COLOR.n400}`)
+    // En sombre la vitrine sépare par la bordure SEULE — pas d'ombre à ajouter.
+    expect(SET_PALETTE.shadow).not.toContain(MXC_CARD_SHADOW)
+  })
+
+  it('ne laisse aucune surface Graphite en sombre', () => {
+    applySetTheme(true)
+    const surfaces = [SET_PALETTE.bg, SET_PALETTE.card, SET_PALETTE.cardSubtle, SET_PALETTE.heroBg]
+    const mx = Object.values(MXC_COLOR) as string[]
+    for (const s of surfaces) expect(mx).toContain(s)
+  })
+
+
+  /**
+   * Le piège qui a coûté le héros de Sécurité : `isDark()` y valait
+   * `SET.card === SET_DARK.card`. Ce test d'identité ne tenait que tant que les
+   * palettes possibles étaient deux ; MEGGA X en construit une troisième, dont
+   * aucune valeur ne coïncide avec `SET_DARK` — le témoin rendait donc `false`
+   * en sombre, et le héros repassait au noir de plein jour.
+   */
+  it('expose le thème appliqué sans passer par l’identité des valeurs', () => {
+    applySetTheme(true)
+    expect(isSetDark()).toBe(true)
+    applySetTheme(false)
+    expect(isSetDark()).toBe(false)
+  })
+
+})
+
+/**
+ * Les remplissages pleins du kit « Focus » (badge vérifié, chip à renseigner,
+ * pilule enregistré, pastille d'action sur l'avatar).
+ *
+ * Le point dur n'est pas la teinte, c'est l'ENCRE : les couleurs de la vitrine
+ * sont réglées pour un canvas `#030303`, donc pâles. Sous une encre blanche
+ * elles tombent à 1,7:1. Les tests ci-dessous existent pour qu'un ajout de
+ * remplissage ne puisse pas réintroduire ce couple.
+ */
+describe('MEGGA X CRM — remplissages du kit Focus', () => {
+  const SP = mxCrmPalette(false)
+  const SURF = { card: '#fff', cardSub: '#f9f9f9', hairline: '1px solid #ccc', shadow: 'none' }
+  const colors = (dark: boolean) =>
+    pfColors(dark ? mxCrmPalette(true) : SP, SURF as never, dark)
+  const FILLS = ['seal', 'tag', 'saved', 'affordance'] as const
+
+  it('l’encre tient sur son remplissage, dans les deux modes', () => {
+    for (const dark of [false, true]) {
+      const c = colors(dark)
+      for (const role of FILLS) {
+        expect(
+          contrast(c[role].ink, c[role].bg),
+          `${role} en ${dark ? 'sombre' : 'clair'} (${c[role].ink} sur ${c[role].bg})`,
+        ).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it('le badge affirmatif et l’affordance portent l’accent, l’alerte JAMAIS', () => {
+    for (const dark of [false, true]) {
+      const c = colors(dark)
+      expect(c.seal.bg).toBe(MXC_COLOR.accent)
+      expect(c.affordance.bg).toBe(MXC_COLOR.accent)
+      // Peint en accent, un « à renseigner » se lit comme une mise en avant :
+      // même bleu que le bouton primaire. C'est la leçon du plateau MEGGA X.
+      expect(c.tag.bg).not.toBe(MXC_COLOR.accent)
+      expect(Object.values(MXC_SYSTEM) as string[]).toContain(c.tag.bg)
+    }
+  })
+
+
+})
+
+describe('MEGGA X CRM — nuancier d’accent', () => {
+  it('met l’accent de la direction en tête, donc en défaut', () => {
+    const mx = pfAccents()
+    expect(mx[0].id).toBe('direction')
+    expect(mx[0].hex).toBe(MXC_COLOR.accent)
+    // Un réglage hérité de Sugar n'existe pas dans la liste MEGGA X : le repli
+    // de la section (`find(…) ?? [0]`) rend donc l'accent de la marque.
+    for (const legacy of ['black', 'periwinkle', 'blue', 'orange']) {
+      expect(mx.find((a) => a.id === legacy)).toBeUndefined()
+    }
+  })
+
+  it('chaque pastille porte une encre lisible, dans les deux modes', () => {
+    for (const a of pfAccents()) {
+      expect(contrast(a.ink, a.hex), `${a.id} en clair`).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(a.darkInk, a.darkHex), `${a.id} en sombre`).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('ne propose que des couleurs de la vitrine', () => {
+    const known = [...Object.values(MXC_COLOR), ...Object.values(MXC_SYSTEM)] as string[]
+    for (const a of pfAccents()) {
+      expect(known, `${a.id} hors palette`).toContain(a.hex)
+      expect(known, `${a.id} hors palette (sombre)`).toContain(a.darkHex)
+    }
+  })
+
+
+  // Le piège : une clé i18n absente s'affiche EN CLAIR (`focus.preferences…`).
+  it('chaque pastille a un libellé dans les quatre langues', () => {
+    for (const lang of ['fr', 'en', 'de', 'it']) {
+      const dict = JSON.parse(readFileSync(`src/i18n/locales/${lang}/settings.json`, 'utf-8'))
+      const labels = dict.focus.preferences.accents
+      for (const a of pfAccents()) {
+        expect(labels[a.id], `${lang} · ${a.id}`).toBeTruthy()
+      }
+    }
+  })
+})
+
+/**
+ * Deux valeurs que la délégation ne PEUT pas rattraper, parce qu'elles sont
+ * écrites au-dessus d'elle. Sans garde, chacune se réintroduit à la première
+ * page qu'on ajoute en copiant une voisine.
+ */
+describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
+  /**
+   * ⚠ Les COMMENTAIRES sont retirés avant l'analyse. Sans ça, la note qui
+   * explique pourquoi un motif a été retiré le fait rougir : le garde-fou
+   * trébuche sur sa propre documentation. Constaté sur `t.primary`.
+   */
+  const sansCommentaires = (code: string) =>
+    code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+
+  const sources = readdirSync('src', { recursive: true, encoding: 'utf-8' })
+    .filter((f) => /\.tsx?$/.test(f))
+    .map((f) => ({ path: `src/${f}`, code: sansCommentaires(readFileSync(`src/${f}`, 'utf-8')) }))
+
+  it('la liste des sources est bien peuplée', () => {
+    // Sans ça, un chemin cassé rendrait les deux tests suivants vrais par vacuité.
+    expect(sources.length).toBeGreaterThan(400)
+  })
+
+  /**
+   * ⛔ Une police écrite en dur ÉCRASE `--crm-font`, donc la direction ne peut
+   * plus changer la typographie de cette région. Le défaut est invisible sous
+   * MEGGA X — dont la police EST Inter Tight — et ne se voit qu'en revenant à
+   * Sugar, qui restait en Inter Tight au lieu de DM Sans.
+   */
+  it('aucune police n’est écrite en dur dans un style', () => {
+    const coupables = sources
+      .filter((s) => /fontFamily: *['"`][^'"`]*(Inter Tight|DM Sans)/.test(s.code))
+      .map((s) => s.path)
+    expect(coupables, 'passer par var(--crm-font, …)').toEqual([])
+  })
+
+  /**
+   * ⛔ `CrmTheme.primary` (#0041D9) est l'accent d'AVANT Sugar Pure. Il ne suit
+   * aucune palette. Son dernier lecteur — la pastille d'avatar — est passé à
+   * `sp.accent` avec la suppression de Sugar : il ne doit plus en avoir aucun
+   * hors du module qui construit le thème.
+   */
+  it('l’accent hérité de CrmTheme n’a plus aucun lecteur', () => {
+    const lecteurs = sources
+      .filter((s) => s.path !== 'src/components/crm-sugar/tokens.ts')
+      .filter((s) => /\bt\.primary\b/.test(s.code))
+      .map((s) => s.path)
+    expect(lecteurs).toEqual([])
   })
 })

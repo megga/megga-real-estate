@@ -151,8 +151,8 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-4xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl)' }}>
             <button onClick={() => setPhotoModal(true)} title={photoLabels.title} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', position: 'relative' }}>
               <PfAvatar c={c} photo={avatarUrl} initials={local.initials || '?'} size={62} />
-              <span style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: 'var(--crm-radius-pill)', background: c.orange, border: `3px solid ${c.card}`, display: 'grid', placeItems: 'center' }}>
-                <PfIc name={avatarUrl ? 'camera' : 'plus'} size={12} stroke="#fff" sw={2.2} />
+              <span style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: 'var(--crm-radius-pill)', background: c.affordance.bg, border: `3px solid ${c.card}`, display: 'grid', placeItems: 'center' }}>
+                <PfIc name={avatarUrl ? 'camera' : 'plus'} size={12} stroke={c.affordance.ink} sw={2.2} />
               </span>
             </button>
             <div style={{ flex: 1, minWidth: 0 }}>

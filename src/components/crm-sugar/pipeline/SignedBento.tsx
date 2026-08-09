@@ -11,7 +11,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'motion/react'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { crmStep, type SugarPalette } from '../tokens'
+import { type SugarPalette } from '../tokens'
 
 interface Props {
   sp: SugarPalette
@@ -29,8 +29,8 @@ export function SignedBento({
   sp, dark, firstName, onScheduleAct, onCongrats, onOpenFile, onReopen, onFinish,
 }: Props) {
   const { t } = useTranslation('pipeline')
-  const panelBg = dark ? crmStep('s4', '#17181A') : '#FFFFFF'
-  const rowBg = dark ? crmStep('s3', '#1E1F21') : '#F7F8FA'
+  const panelBg = sp.solidBg
+  const rowBg = sp.solidBgSub
   const hair = dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.07)'
 
   const opt = (icon: MEIconName, label: string, sub: string, onClick: () => void) => (

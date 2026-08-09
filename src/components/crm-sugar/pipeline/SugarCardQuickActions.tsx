@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { crmStep, type SugarPalette } from '../tokens'
+import { type SugarPalette } from '../tokens'
 import type { CrmDeal } from '../mockData'
 import { useTeamMembers } from '@/hooks/useTeam'
 
@@ -73,10 +73,10 @@ export function SugarCardQuickActions({
     .filter(m => m.id !== deal.ownerAgentId)
     .map(m => ({ id: m.id, name: m.full_name }))
 
-  const btnBg = dark ? crmStep('s3', '#26272A') : '#EDF0F4'
-  const btnHover = dark ? crmStep('s2', '#33353A') : '#E1E6EC'
+  const btnBg = sp.solidBgSub
+  const btnHover = sp.focusSurface
   const btnFg = sp.ink
-  const rowHover = dark ? crmStep('s3', '#26272A') : '#F4F5F8'
+  const rowHover = sp.solidBgSub
   const btn = (extra: React.CSSProperties = {}): React.CSSProperties => ({
     width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', border: 0,
     background: btnBg, color: btnFg, cursor: 'pointer', fontFamily: 'inherit',
@@ -85,7 +85,7 @@ export function SugarCardQuickActions({
     ...extra,
   })
   const panelHair = dark ? 'rgba(255,255,255,.07)' : 'rgba(15,23,42,.08)'
-  const panelBg = dark ? crmStep('s4', '#17181A') : '#FFFFFF'
+  const panelBg = sp.solidBg
   const panelStyle: React.CSSProperties = {
     position: 'absolute', top: 32, right: 0, minWidth: 200,
     background: panelBg, border: dark ? `1px solid ${panelHair}` : 0, borderRadius: 'var(--crm-radius-xl)',
@@ -104,7 +104,7 @@ export function SugarCardQuickActions({
     <div onClick={stop} style={{
       position: 'absolute', top: 8, right: 8, display: 'flex', gap: 'var(--crm-space-2xs)', zIndex: 5,
       padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)',
-      background: dark ? crmStep('s4', '#17181A') : '#FFFFFF',
+      background: sp.solidBg,
       boxShadow: dark ? '0 6px 20px rgba(0,0,0,.55)' : '0 3px 12px rgba(15,23,42,.16), 0 1px 4px rgba(15,23,42,.08)',
       animation: 'qaFade .14s ease-out',
     }}>
@@ -179,7 +179,7 @@ export function SugarCardQuickActions({
               }}>{t('board.card.reassignTo')}</span>
             </div>
             {team.map(m => (
-              <SugarAgentItem key={m.id} sp={sp} dark={dark} member={m}
+              <SugarAgentItem key={m.id} sp={sp} member={m}
                 onClick={() => { setMenuOpen(false); onReassign(deal.id, m) }} />
             ))}
           </div>
@@ -189,11 +189,10 @@ export function SugarCardQuickActions({
   )
 }
 
-function SugarAgentItem({ sp, member, onClick, dark }: {
+function SugarAgentItem({ sp, member, onClick }: {
   sp: SugarPalette
   member: { id: string; name: string }
   onClick: () => void
-  dark: boolean
 }) {
   const [hov, setHov] = useState(false)
   const initials = member.name.split(/\s+/).map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
@@ -202,7 +201,7 @@ function SugarAgentItem({ sp, member, onClick, dark }: {
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         width: '100%', padding: 'var(--crm-space-sm) var(--crm-space-md)', borderRadius: 'var(--crm-radius-md)', border: 0,
-        background: hov ? (dark ? crmStep('s3', '#26272A') : '#F4F5F8') : 'transparent',
+        background: hov ? sp.solidBgSub : 'transparent',
         color: sp.ink, cursor: 'pointer', fontFamily: 'inherit',
         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', textAlign: 'left',
       }}>
@@ -236,7 +235,7 @@ function SugarMenuItem({ sp, icon, label, tone, onClick, dark, chevron }: {
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         width: '100%', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-md)', border: 0,
-        background: hov ? (danger ? 'rgba(242,107,101,0.14)' : (dark ? crmStep('s3', '#26272A') : '#F4F5F8')) : 'transparent',
+        background: hov ? (danger ? 'rgba(242,107,101,0.14)' : sp.solidBgSub) : 'transparent',
         color: dangerInk, cursor: 'pointer', fontFamily: 'inherit',
         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
         textAlign: 'left',

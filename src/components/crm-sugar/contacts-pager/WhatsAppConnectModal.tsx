@@ -165,7 +165,7 @@ export default function WhatsAppConnectModal({
                   marginTop: 24, width: '100%', height: 46, borderRadius: 'var(--crm-radius-pill)', border: 0,
                   cursor: generateCode.isPending ? 'wait' : 'pointer', fontFamily: 'inherit',
                   fontSize: 'var(--crm-text-xl)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)',
-                  background: sp.ink, color: dark ? '#0B0C0E' : '#FFFFFF', opacity: generateCode.isPending ? 0.7 : 1,
+                  background: sp.accent, color: sp.accentInk, opacity: generateCode.isPending ? 0.7 : 1,
                 }}
               >
                 <WhatsAppGlyph size={18} color={WA_GREEN} />

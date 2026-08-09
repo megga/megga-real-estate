@@ -1,5 +1,5 @@
 /**
- * MEGGA X CRM — jeu de tokens (proposition, non adoptée).
+ * MEGGA X CRM — les couleurs du CRM. Direction UNIQUE depuis le 9 août 2026.
  *
  * L'ADN de la vitrine porté à la densité du CRM. Le principe tient en une
  * phrase : **on descend d'un cran sur les échelles de la vitrine, on n'en sort
@@ -14,47 +14,12 @@
  * sombre, le reset Webflow complet et ~260 Ko de feuille. Le CRM ne peut pas
  * vivre dedans. On recopie donc les valeurs, et le test garde la copie honnête.
  *
- * Ce module ne remplace rien tant qu'il n'est pas adopté : `mxCrmPalette()` rend
- * une `SugarPalette`, donc il se substitue à `crmSugarPalette()` sans toucher
- * aux composants qui la reçoivent en prop.
+ * `mxCrmPalette()` rend une `SugarPalette` — le nom du TYPE a survécu à la
+ * direction Sugar, parce que 33 points de construction et toute l'arborescence
+ * qui la reçoit en prop s'appuient dessus. Le renommer est un nettoyage à part.
  */
 
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
-
-/** Direction artistique du CRM. */
-export type CrmDa = 'sugar' | 'meggax'
-
-/** Clé de persistance, calquée sur `megga.darkTone`. */
-export const DA_KEY = 'megga.da'
-
-/**
- * Direction par défaut — **MEGGA X depuis le 9 août 2026**.
- *
- * Le CRM s'aligne sur la vitrine et l'onboarding : un agent qui s'inscrit ne
- * traverse plus une rupture visuelle à la porte d'entrée. Sugar reste
- * entièrement résolvable — un réglage stocké sur `sugar` continue de rendre
- * l'ancienne direction, et le comparateur s'en sert pour sa colonne de
- * référence.
- */
-export const DEFAULT_DA: CrmDa = 'meggax'
-
-/**
- * Direction active — `window.__meggaDa` d'abord (posé à chaque bascule, donc lu
- * à chaud), puis localStorage, sinon Sugar.
- *
- * Lecture PONCTUELLE : ne déclenche aucun rendu. Un composant qui doit se
- * re-teinter sans rechargement passe par `useCrmDa()`.
- */
-export function crmDa(): CrmDa {
-  if (typeof window === 'undefined') return DEFAULT_DA
-  const live = (window as Window & { __meggaDa?: CrmDa }).__meggaDa
-  if (live) return live
-  try {
-    return (window.localStorage.getItem(DA_KEY) as CrmDa | null) || DEFAULT_DA
-  } catch {
-    return DEFAULT_DA
-  }
-}
 
 /** Neutres et accents, verbatim des variables de la vitrine. */
 export const MXC_COLOR = {
@@ -70,18 +35,48 @@ export const MXC_COLOR = {
   n1000: '#ffffff',
   /** `--primary-colors--100` — le bleu MEGGA. */
   accent: '#424bfb',
+  /** `--primary-colors--200` et `--300` : le reste du triptyque de marque.
+   *  Pâles — en aplat sous encre sombre uniquement, comme `MXC_SYSTEM`. */
+  accentGreen: '#00d95f',
+  accentCyan: '#1abcfe',
+} as const
+
+/**
+ * Couleurs de SYSTÈME de la vitrine — `--system-colors--{teinte}-{100..400}`.
+ *
+ * Elles disent l'état (succès, avertissement, erreur), ce que les neutres et
+ * l'accent ne savent pas dire. Il n'y a donc rien à emprunter à Sugar pour un
+ * « à renseigner » ou un « enregistré ».
+ *
+ * ⛔ **En APLAT seulement, et avec une encre SOMBRE.** Ces teintes sont réglées
+ * pour le canvas `#030303` de la vitrine : posées sous une encre blanche elles
+ * tombent à 1,7–1,9:1. Sous `n100` elles montent à 11–19:1. Le garde-fou
+ * `megga-x-crm-tokens.spec.ts` fige les deux faits.
+ *
+ * Seuls les barreaux réellement employés sont transcrits — en ajouter un
+ * demande de l'écrire, donc d'en décider.
+ */
+export const MXC_SYSTEM = {
+  /**
+   * ⛔ L'accent `#424bfb` ne passe PAS l'AA en TEXTE sur une surface sombre :
+   * 3,44:1 sur `#090909`. En aplat il tient (c'est l'encre blanche qui porte le
+   * contraste, 5,78:1), mais un libellé ou une icône teintée en accent sur fond
+   * sombre est illisible. `blue300` est le barreau de la vitrine qui répond —
+   * 10,6:1 — et il n'est employé QUE pour ça.
+   */
+  blue300: '#8dc1ff',
+  yellow300: '#fbe080',
+  yellow400: '#efc42c',
+  green300: '#adecbb',
+  green400: '#74d184',
+  red400: '#fe566b',
 } as const
 
 /**
  * ⚠ La GRAMMAIRE (tailles de texte, rayons, espacements) et la police ne vivent
- * PAS ici. Elles sont des variables CSS — `[data-crm-da="meggax"]` dans
- * `src/styles/globals.css` — parce qu'elles doivent pouvoir basculer sur un
- * conteneur, ce qu'un objet JS ne sait pas faire.
- *
- * Elles ont transité par ce module tant que les pages de comparaison les
- * consommaient ; ces pages retirées, les garder ici aurait produit une seconde
- * déclaration de la même échelle, libre de diverger de celle qui rend. C'est le
- * bloc CSS que `tests/unit/megga-x-crm-tokens.spec.ts` vérifie désormais.
+ * PAS ici mais dans le `:root` de `src/styles/globals.css`. Les garder aussi
+ * ici produirait une seconde déclaration de la même échelle, libre de diverger
+ * de celle qui rend. C'est ce bloc CSS que `megga-x-crm-tokens.spec.ts` vérifie.
  *
  * Ce module ne garde donc que ce qui alimente `mxCrmPalette()` — la couleur.
  */

@@ -9,9 +9,9 @@
 
 import { SugarV3 } from '../tokens'
 import { KYC_STATUS_LABELS, KYC_RISK_LABELS } from '../tokens'
-import { crmStep } from '@/components/crm-sugar/tokens'
 import type { KycCheckCategory, KycDossierStatus } from '@/types/kyc'
 import type { KycRiskLevel } from '@/lib/constants'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 /** Police du pager / fiche / wizard (déjà en usage côté KYC). */
 export const KYP_FONT = SugarV3.font
@@ -63,12 +63,12 @@ export interface KypSurf {
 
 export function kypSurf(dark: boolean): KypSurf {
   return {
-    card: dark ? crmStep('s2', '#1C1C1F') : '#FFFFFF',
-    cardSub: dark ? crmStep('s3', 'rgba(255,255,255,0.05)') : '#F7F8FA',
+    card: dark ? MXC_COLOR.n300 : '#FFFFFF',
+    cardSub: dark ? MXC_COLOR.n200 : '#F7F8FA',
     hairline: dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)',
     ghost: dark ? 'rgba(255,255,255,0.28)' : '#B5BAC2',
     late: dark ? '#E08A2E' : '#C45A00',
-    ringAvatar: dark ? crmStep('s2', '#1C1C1F') : '#FFFFFF',
+    ringAvatar: dark ? MXC_COLOR.n300 : '#FFFFFF',
     destructive: dark ? '#E0738C' : '#8E1F3D',
     dark,
   }

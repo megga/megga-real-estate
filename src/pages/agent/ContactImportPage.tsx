@@ -16,8 +16,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { ContactType } from '@/types/contact'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -601,9 +600,7 @@ export default function ContactImportPage() {
   // Chrome Sugar porté ici : cette page vivait sous `AgentLayout` (sidebar
   // legacy). Chaque surface Sugar porte son propre chrome — `AgentSugarLayout`
   // n'en rend aucun — d'où cet échafaudage, identique aux 15 autres.
-  const darkTone = useDarkTone()
-  const t2 = sugarThemeTokens(dark, darkTone)
-  const sp = useMemo(() => crmSugarPalette(t2, dark, darkTone), [t2, dark, darkTone])
+  const sp = useMemo(() => crmSugarPalette(dark), [dark])
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
@@ -627,7 +624,7 @@ export default function ContactImportPage() {
     // son contenu est en classes sémantiques, héritées de la coquille legacy.
     <div style={{ minHeight: '100vh', width: '100%', background: sp.pageBg, ...sugarThemeVars(sp, dark) }}>
       <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active={'contacts' as SugarScreenId} t={t2} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
+      <SugarTopNav active={'contacts' as SugarScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
         <SugarIconRail active={'contacts' as SugarScreenId} onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>

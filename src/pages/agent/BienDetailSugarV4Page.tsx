@@ -7,7 +7,7 @@
 // cadre que Today / Pipeline / Mes biens, en-tête épinglé + corps scrollable,
 // colonne bridée à 1120 px). Route cible : /dashboard/listings/:id
 //
-// Fond : crmSugarPalette(t, dark, darkTone).pageBg — le MÊME que Today/Pipeline
+// Fond : crmSugarPalette(dark).pageBg — le MÊME que Today/Pipeline
 // (correctif clé vs V3 qui utilisait le dégradé local vxPalette.bgGradient).
 //
 // Honnêteté des données (cf. CLAUDE.md) :
@@ -28,9 +28,8 @@ import {
 import { useNavigate, useParams } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
 import {
-  crmSugarPalette, crmStep, sugarThemeTokens,
+  crmSugarPalette, type SugarPalette,
 } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -260,10 +259,10 @@ function BfPortal({
 }
 
 // ─── Toast (contenu dans le root, position absolute) ───────────────────────
-function BfToast({ toast, dark }: { toast: Toast | null; dark: boolean }) {
+function BfToast({ toast, sp, dark }: { toast: Toast | null; sp: SugarPalette; dark: boolean }) {
   if (!toast) return null
   return (
-    <div style={{ position: 'absolute', bottom: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 120, background: dark ? '#22242F' : '#0B0C0E', color: '#fff', borderRadius: 18, padding: '15px 19px', boxShadow: '0 24px 60px rgba(15,23,42,.4)', maxWidth: 440, animation: 'bfUp .3s cubic-bezier(.2,.8,.2,1)' }}>
+    <div style={{ position: 'absolute', bottom: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 120, background: dark ? sp.solidBg : sp.ink, color: '#fff', borderRadius: 18, padding: '15px 19px', boxShadow: '0 24px 60px rgba(15,23,42,.4)', maxWidth: 440, animation: 'bfUp .3s cubic-bezier(.2,.8,.2,1)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: toast.lines.length ? 8 : 0 }}>
         <span style={{ width: 24, height: 24, borderRadius: 999, background: 'rgba(255,255,255,.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           <VxIcon name="check" size={14} stroke="#fff" sw={2.4} />
@@ -279,12 +278,13 @@ function BfToast({ toast, dark }: { toast: Toast | null; dark: boolean }) {
 
 // ─── Modale « Modifier l'annonce » (Sugar, fond sombre opaque #17181A) ─────
 function BfEditModal({
-  open, onClose, bien, isRent, vx, dark, onSave,
+  open, onClose, bien, isRent, vx, sp, dark, onSave,
 }: {
   open: boolean
   onClose: () => void
   bien: Property
   isRent: boolean
+  sp: SugarPalette
   vx: VxPalette
   dark: boolean
   onSave: (d: EditDraft) => void
@@ -302,14 +302,14 @@ function BfEditModal({
   }, [open, onClose])
   if (!open) return null
   const set = <K extends keyof EditDraft>(k: K, v: EditDraft[K]) => setD(p => ({ ...p, [k]: v }))
-  const sub = dark ? crmStep('s3', '#1E1F21') : vx.cardSub
+  const sub = vx.cardSub
   const lbl: CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 700, color: vx.muted, letterSpacing: 0.3, marginBottom: 7 }
   const inp: CSSProperties = { width: '100%', boxSizing: 'border-box', border: 0, outline: 'none', background: sub, color: vx.ink, borderRadius: 12, padding: '12px 14px', fontSize: 14, fontWeight: 600, fontFamily: 'inherit' }
   const ov = dark ? 'rgba(4,6,10,.62)' : 'rgba(24,32,48,.34)'
   return (
     <div onMouseDown={onClose} style={{ position: 'absolute', inset: 0, zIndex: 130, background: ov, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24, animation: 'bfFade .18s ease-out' }}>
       <style>{`.bf-edit-inp:focus{box-shadow:0 0 0 2px ${vx.ink} inset}`}</style>
-      <div onMouseDown={e => e.stopPropagation()} style={{ width: 520, maxWidth: '100%', maxHeight: '92%', overflowY: 'auto', background: dark ? crmStep('s4', '#17181A') : vx.card, borderRadius: 28, boxShadow: '0 40px 100px rgba(15,23,42,.34), 0 8px 24px rgba(15,23,42,.14)', padding: 28, animation: 'bfRise .24s cubic-bezier(.2,.8,.2,1)' }}>
+      <div onMouseDown={e => e.stopPropagation()} style={{ width: 520, maxWidth: '100%', maxHeight: '92%', overflowY: 'auto', background: sp.solidBg, borderRadius: 28, boxShadow: '0 40px 100px rgba(15,23,42,.34), 0 8px 24px rgba(15,23,42,.14)', padding: 28, animation: 'bfRise .24s cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 22 }}>
           <h3 style={{ margin: 0, fontSize: 21, fontWeight: 800, color: vx.ink, letterSpacing: -0.5, flex: 1 }}>{tr('detail.editListing')}</h3>
           <button onClick={onClose} aria-label={tr('cancel')} style={{ width: 34, height: 34, borderRadius: 999, border: 0, background: sub, cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
@@ -341,12 +341,13 @@ function BfEditModal({
 
 // ─── Modale « Planifier une visite » (Sugar, fond sombre opaque #17181A) ───
 function BfVisitModal({
-  open, onClose, title, vx, dark, contacts, onConfirm,
+  open, onClose, title, vx, sp, dark, contacts, onConfirm,
 }: {
   open: boolean
   onClose: () => void
   title: string
   vx: VxPalette
+  sp: SugarPalette
   dark: boolean
   contacts: VisitContact[]
   onConfirm: (date: Date, time: string, contact: VisitContact | null) => void
@@ -372,7 +373,7 @@ function BfVisitModal({
   const ov = dark ? 'rgba(4,6,10,.62)' : 'rgba(24,32,48,.34)'
   return (
     <div onMouseDown={onClose} style={{ position: 'absolute', inset: 0, zIndex: 130, background: ov, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24, animation: 'bfFade .18s ease-out' }}>
-      <div onMouseDown={e => e.stopPropagation()} style={{ width: 462, maxWidth: '100%', maxHeight: '92%', overflowY: 'auto', background: dark ? crmStep('s4', '#17181A') : vx.card, borderRadius: 28, boxShadow: '0 40px 100px rgba(15,23,42,.34), 0 8px 24px rgba(15,23,42,.14)', padding: 28, animation: 'bfRise .24s cubic-bezier(.2,.8,.2,1)' }}>
+      <div onMouseDown={e => e.stopPropagation()} style={{ width: 462, maxWidth: '100%', maxHeight: '92%', overflowY: 'auto', background: sp.solidBg, borderRadius: 28, boxShadow: '0 40px 100px rgba(15,23,42,.34), 0 8px 24px rgba(15,23,42,.14)', padding: 28, animation: 'bfRise .24s cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
           <h3 style={{ margin: 0, fontSize: 21, fontWeight: 800, color: vx.ink, letterSpacing: -0.5 }}>{title}</h3>
           <div style={{ flex: 1 }} />
@@ -441,9 +442,7 @@ export default function BienDetailSugarV4Page() {
   useEffect(() => {
     if (typeof window !== 'undefined') window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
   }, [dark])
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(t, dark, darkTone) // cadre/shell (pageBg = Today/Pipeline)
+  const sp = crmSugarPalette(dark) // cadre/shell (pageBg = Today/Pipeline)
   const vx = vxPalette(dark) // intérieur des cartes (palette vitrine)
 
   // ── Données réelles (identiques à la V3) ──
@@ -757,7 +756,7 @@ export default function BienDetailSugarV4Page() {
         @media (prefers-reduced-motion: reduce){ [style*="bfUp"]{ animation:none !important; opacity:1 !important; transform:none !important; } }
       `}</style>
 
-      <SugarTopNav active="biens" t={t} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
+      <SugarTopNav active="biens" sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <SugarIconRail active="biens" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
@@ -1020,8 +1019,9 @@ export default function BienDetailSugarV4Page() {
       </div>
 
       {/* Modales (contenues dans le root, position absolute · fond sombre opaque) */}
-      <BfEditModal open={editOpen} onClose={() => setEditOpen(false)} bien={bien} isRent={isRent} vx={vx} dark={dark} onSave={saveEdit} />
+      <BfEditModal open={editOpen} onClose={() => setEditOpen(false)} bien={bien} isRent={isRent} vx={vx} sp={sp} dark={dark} onSave={saveEdit} />
       <BfVisitModal
+        sp={sp}
         open={visitOpen}
         onClose={() => setVisitOpen(false)}
         title={bien.title}
@@ -1033,7 +1033,7 @@ export default function BienDetailSugarV4Page() {
           flash(tr('detail.visitModal.scheduledTitle'), [tr('detail.visitModal.scheduledLine', { date: d.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' }), time: tm }), tr('detail.visitModal.scheduledHint')])
         }}
       />
-      <BfToast toast={toast} dark={dark} />
+      <BfToast toast={toast} sp={sp} dark={dark} />
     </div>
   )
 }

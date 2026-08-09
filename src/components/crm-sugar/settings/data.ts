@@ -2,7 +2,8 @@
 // 1:1 port from `crm-screen-settings-sugar.jsx`.
 // i18n : labels de nav (sections/groupes) via getters singleton — cf §6 conventions.
 import i18n from '@/i18n'
-import { crmStep } from '@/components/crm-sugar/tokens'
+import { sgMix } from '@/components/crm-sugar/tokens'
+import { mxCrmPalette, MXC_CARD_SHADOW, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 // 'team' + 'brand' supprimés en PR #455 (BrandSection + TeamSection 100% mock,
 // pas de tables agency_branding ni agency_members en prod). Suivi via les
@@ -121,7 +122,13 @@ export interface SettingsPalette {
   cardSubtle: string
   /** Fond d'un champ quand il a le focus (blanc en light, sous-surface en dark). */
   inputFocusBg: string
-  /** Accent unique : noir pur en light, off-white en dark. */
+  /**
+   * Surface INVERSÉE du héros de Sécurité — volontairement sombre dans les deux
+   * thèmes. Jeton plutôt que littéral : c'est une surface, elle doit sortir de
+   * la palette comme les autres.
+   */
+  heroBg: string
+  /** Accent de la direction — le bleu `#424bfb`. */
   black: string
   blackHover: string
   /** Couleur du texte/icône POSÉ sur l'accent — jamais #fff codé en dur. */
@@ -141,70 +148,104 @@ export interface SettingsPalette {
   bad: string
 }
 
-// Palette « Sugar Pure ». RÈGLE D'ACCENT (non négociable) : l'accent est noir pur
-// #0B0C0E en light et off-white #ECEDF3 en dark ; le texte posé dessus utilise
-// TOUJOURS `blackInk` (#FFFFFF light / #14161C dark) pour rester lisible.
-export const SET_LIGHT: SettingsPalette = {
-  bg: '#EDEFF3',
-  bgGradient:
-    'radial-gradient(ellipse 120% 80% at 50% 100%, #C8D5E0 0%, #E2E5EB 50%, #EDEFF3 100%)',
-  card: '#FFFFFF',
-  cardSubtle: '#F7F8FA',
-  inputFocusBg: '#FFFFFF',
-  black: '#0B0C0E',
-  blackHover: '#1F2024',
-  blackInk: '#FFFFFF',
-  ink: '#0B0C0E',
-  inkSoft: '#3A3D44',
-  muted: '#7A8088',
-  ghost: '#B5BAC2',
-  line: 'rgba(15,23,42,0.06)',
-  shadowSm: '0 4px 16px rgba(15, 23, 42, 0.04)',
-  shadow: '0 12px 40px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.03)',
-  shadowLg: '0 24px 60px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04)',
-  shadowHover: '0 32px 70px rgba(15, 23, 42, 0.10), 0 6px 20px rgba(15, 23, 42, 0.05)',
-  ok: '#10B981',
-  warn: '#F59E0B',
-  err: '#EF4444',
-  bad: '#EF4444',
-}
+/**
+ * Palette des Réglages, dérivée de `mxCrmPalette()`.
+ *
+ * Elle est construite ICI, au point unique, et non aux ~280 lectures de `SET.*`
+ * réparties dans Intégrations, Sécurité, les atomes et les modales — c'est ce
+ * qui a permis de rebrancher tout l'écran sans toucher un composant.
+ *
+ * Trois correspondances méritent d'être justifiées, les autres sont des
+ * synonymes directs :
+ *
+ * 1. **`black` → `sp.accent`.** Le nom vient de Sugar Pure, où l'accent EST le
+ *    noir de Sugar Pure ; il vaut désormais le bleu `#424bfb`. C'était sûr
+ *    parce que les
+ *    15 lectures de `SET.black` sont toutes des emplois d'ACCENT (remplissage
+ *    de bouton, pilule active, interrupteur, anneau de focus) — aucune ne s'en
+ *    sert comme d'une surface sombre. La seule surface volontairement noire de
+ *    l'écran, le héros de Sécurité, ne passe pas par ce jeton.
+ *
+ * 2. **Les ombres portent la BORDURE.** La vitrine sépare ses cartes par un
+ *    filet `#cccccc` en clair et par la bordure seule en sombre, là où Sugar
+ *    Pure sépare par une ombre douce sans bordure. Les cartes montent toutes
+ *    `background: SET.card` + `boxShadow: SET.shadow` avec `border: 0` : passer
+ *    le filet en anneau `inset` le fait donc voyager sans toucher un seul
+ *    appelant. L'anneau est déjà l'idiome du dépôt (rail des Réglages, focus
+ *    des champs) et rend la même chose qu'une bordure sur une surface pleine.
+ *
+ * 3. **`ok` / `warn` / `err` / `bad` ne bougent pas.** Ce sont des couleurs
+ *    SÉMANTIQUES (47 lectures), pas des couleurs de direction : la vitrine n'en
+ *    propose aucune, et les repeindre en bleu supprimerait le signal.
+ *
+ * `bgGradient` est déclaré par le type mais lu nulle part ; il reçoit le canvas
+ * plat, MEGGA X n'ayant pas de dégradé.
+ */
+function settingsPalette(dark: boolean): SettingsPalette {
+  const sp = mxCrmPalette(dark)
+  // Survol de l'accent : la vitrine n'en publie pas (ses `--primary-colors--*`
+  // sont trois teintes de marque distinctes, pas une rampe). On dérive donc,
+  // avec le mélangeur du dépôt — assombri en clair, éclairci en sombre.
+  const accentHover = dark ? sgMix(sp.accent, '#FFFFFF', 0.16) : sgMix(sp.accent, '#000000', 0.14)
+  const ring = `inset 0 0 0 1px ${sp.cardBorder}`
+  const card = dark ? ring : `${ring}, ${MXC_CARD_SHADOW}`
 
-// Surfaces en GETTERS : `applySetTheme` les recopie par `Object.assign` avant
-// chaque rendu de la page, donc elles suivent la teinte sombre active.
-export const SET_DARK: SettingsPalette = {
-  get bg() { return crmStep('s0', '#0A0A0F') },
-  get bgGradient() {
-    return `radial-gradient(ellipse 120% 80% at 50% 100%, ${crmStep('s3', '#1A1C26')} 0%, ${crmStep('s1', '#101019')} 48%, ${crmStep('s0', '#0A0A0F')} 100%)`
-  },
-  get card() { return crmStep('s2', '#16171F') },
-  get cardSubtle() { return crmStep('s3', '#1E1F2A') },
-  get inputFocusBg() { return crmStep('s3', '#1E1F2A') },
-  black: '#ECEDF3',
-  blackHover: '#FFFFFF',
-  blackInk: '#14161C',
-  ink: '#ECEDF3',
-  inkSoft: '#B5B7C4',
-  muted: '#797D90',
-  ghost: '#3A3B47',
-  line: 'rgba(255,255,255,0.09)',
-  shadowSm: '0 1px 2px rgba(0,0,0,.4), 0 6px 18px -10px rgba(0,0,0,.6)',
-  shadow: '0 1px 2px rgba(0,0,0,.45), 0 12px 34px -12px rgba(0,0,0,.65)',
-  shadowLg: '0 1px 2px rgba(0,0,0,.5), 0 24px 60px -16px rgba(0,0,0,.72)',
-  shadowHover: '0 1px 2px rgba(0,0,0,.5), 0 32px 72px -18px rgba(0,0,0,.78)',
-  ok: '#34C796',
-  warn: '#F2B855',
-  err: '#F26B65',
-  bad: '#F26B65',
+  return {
+    bg: sp.pageBg,
+    bgGradient: sp.pageBg,
+    card: sp.cardBg,
+    cardSubtle: sp.cardSubBg,
+    // Un champ au focus se DÉTACHE de sa carte : blanc en clair (la carte l'est
+    // déjà, c'est le filet qui le signale), palier au-dessus en sombre.
+    inputFocusBg: dark ? sp.focusSurface : sp.cardBg,
+    // Même intention que Sugar : noir de la direction en clair, surface de card
+    // en sombre — sur un canvas déjà à `#030303`, un héros plus noir n'existe pas.
+    heroBg: dark ? sp.cardBg : MXC_COLOR.n100,
+    black: sp.accent,
+    blackHover: accentHover,
+    blackInk: sp.accentInk,
+    ink: sp.ink,
+    inkSoft: sp.soft,
+    muted: sp.sub,
+    // Remplissage d'un contrôle désactivé — le neutre de bordure fait l'affaire.
+    ghost: sp.cardBorder,
+    line: sp.cardBorder,
+    shadowSm: card,
+    shadow: card,
+    shadowLg: card,
+    shadowHover: card,
+    ok: dark ? '#34C796' : '#10B981',
+    warn: dark ? '#F2B855' : '#F59E0B',
+    err: dark ? '#F26B65' : '#EF4444',
+    bad: dark ? '#F26B65' : '#EF4444',
+  }
 }
 
 // Objet VIVANT : identité stable, valeurs mutables. atoms.tsx fait `const SET =
 // SET_PALETTE` une seule fois et lit `SET.*` au render ; applySetTheme(dark)
 // réécrit ces valeurs AVANT le rendu de la page → tout l'écran suit le thème
 // sans threading de props. (Pattern fidèle à la maquette `applySetTheme`.)
-export const SET_PALETTE: SettingsPalette = { ...SET_LIGHT }
+export const SET_PALETTE: SettingsPalette = settingsPalette(false)
 
+/** Recharge `SET_PALETTE` pour le thème actif, avant chaque rendu de la page. */
 export function applySetTheme(dark: boolean): void {
-  Object.assign(SET_PALETTE, dark ? SET_DARK : SET_LIGHT)
+  setThemeDark = dark
+  Object.assign(SET_PALETTE, settingsPalette(dark))
+}
+
+let setThemeDark = false
+
+/**
+ * Le thème du dernier `applySetTheme`.
+ *
+ * ⚠ Ne PAS revenir à un test d'identité du genre `SET.card === SET_DARK.card` :
+ * il ne marchait que tant que les palettes possibles étaient exactement deux.
+ * MEGGA X en construit une troisième, dont aucune valeur ne coïncide avec
+ * `SET_DARK` — le test rendait donc `false` en sombre, et le héros de Sécurité
+ * repassait au noir clair sur un canvas déjà noir.
+ */
+export function isSetDark(): boolean {
+  return setThemeDark
 }
 
 export function profileCompletionScore(p: ProfileData): number {

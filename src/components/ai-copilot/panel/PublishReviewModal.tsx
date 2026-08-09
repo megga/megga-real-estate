@@ -70,7 +70,7 @@ export default function PublishReviewModal({ open, sp, dark, pending, onClose, e
   const surface = dark ? '#17181C' : '#FFFFFF'
   const fieldBg = dark ? 'rgba(255,255,255,0.05)' : '#F4F6F9'
   const chipBg = dark ? 'rgba(127,176,255,0.12)' : 'rgba(30,91,198,0.08)'
-  const chipInk = dark ? '#7FB0FF' : '#1E5BC6'
+  const chipInk = sp.aiInk
   const labelStyle = { fontSize: 11, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', color: sp.sub } as const
 
   return createPortal(
@@ -138,7 +138,7 @@ export default function PublishReviewModal({ open, sp, dark, pending, onClose, e
           <button onClick={confirm} disabled={busy} style={{
             height: 40, padding: '0 20px', borderRadius: 999, border: 0,
             cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-            background: busy ? (dark ? sp.fillStrong : '#E6E9EE') : sp.accent,
+            background: busy ? sp.fillStrong : sp.accent,
             color: busy ? sp.sub : sp.onAccent, display: 'flex', alignItems: 'center', gap: 7,
           }}>
             <CpIcon name={busy ? 'draft' : 'check'} size={15} color={busy ? sp.sub : sp.onAccent} sw={2.2} />

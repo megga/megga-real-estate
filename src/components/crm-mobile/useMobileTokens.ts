@@ -1,5 +1,4 @@
 import { useTheme } from '@/hooks/useTheme'
-import { useDarkTone } from '@/hooks/useDarkTone'
 import { MT_DARK, MT_LIGHT, type MobileTokens } from './tokens'
 
 /**
@@ -9,13 +8,11 @@ import { MT_DARK, MT_LIGHT, type MobileTokens } from './tokens'
  * `data-theme` sur <html>). Pas de localStorage parallèle, pas de second
  * contexte — on évite toute désynchronisation avec le ThemeProvider.
  *
- * `useDarkTone()` n'est lu que pour l'abonnement : les surfaces de `MT_DARK`
- * sont des getters sur l'échelle active, donc c'est ce hook qui provoque le
- * re-render à la bascule de teinte — sans lui le mobile garderait l'ancienne.
+ * L'abonnement à la teinte a disparu avec le choix Graphite / Noir pur : les
+ * surfaces de `MT_DARK` restent des getters, mais sur une échelle unique.
  */
 export function useMobileTokens(): { tk: MobileTokens; isDark: boolean } {
   const { theme } = useTheme()
-  useDarkTone()
   const isDark = theme === 'dark'
   return { tk: isDark ? MT_DARK : MT_LIGHT, isDark }
 }

@@ -13,12 +13,8 @@ import { useTranslation } from 'react-i18next'
 import { switchLanguage } from '@/i18n'
 import { useToast } from '@/components/ui/Toast'
 import { useUiPreferences } from '@/hooks/useUiPreferences'
-import { CRM_DARK_TONES, crmStep, type DarkTone } from '@/components/crm-sugar/tokens'
-import { setDarkTone, useDarkTone } from '@/hooks/useDarkTone'
-import { setCrmDa, useCrmDa } from '@/hooks/useCrmDa'
-import type { CrmDa } from '@/components/megga-x-crm/tokens'
 import type { PrefsData } from '../PreferencesSection.types'
-import { pfColors, PF_KEYFRAMES, type FocusSectionProps, type PfColors } from './pfKitCore'
+import { pfAccents, pfColors, PF_KEYFRAMES, type FocusSectionProps, type PfAccent, type PfColors } from './pfKitCore'
 
 /* ─── Icônes propres aux préférences ────────────────────────────────────────── */
 const PXF_ICONS = {
@@ -50,31 +46,23 @@ function PxfChip({ name, c }: { name: PxfIconName; c: PfColors }) {
 }
 
 interface Opt { id: string; label: string }
-interface Accent { id: string; hex: string; darkHex: string }
-
-const PXF_ACCENTS: Accent[] = [
-  { id: 'black', hex: '#0B0C0E', darkHex: '#ECEDF3' },
-  { id: 'periwinkle', hex: '#6F8CFF', darkHex: '#8CA3FF' },
-  { id: 'blue', hex: '#0041D9', darkHex: '#4C7BFF' },
-  { id: 'cyan', hex: '#0891B2', darkHex: '#2CB7D6' },
-  { id: 'green', hex: '#059669', darkHex: '#2FBE8B' },
-  { id: 'orange', hex: '#C45A00', darkHex: '#EE8B36' },
-]
 
 /* ─── Contrôles ─────────────────────────────────────────────────────────────── */
-function PxfSwitch({ c, on, onClick, accent, knobDark }: { c: PfColors; on: boolean; onClick: () => void; accent: string; knobDark: boolean }) {
+function PxfSwitch({ c, on, onClick, accent, onAccent }: { c: PfColors; on: boolean; onClick: () => void; accent: string; onAccent: string }) {
   return (
     <button onClick={onClick} role="switch" aria-checked={on} style={{ width: 44, height: 26, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', flexShrink: 0,
       background: on ? accent : (c.dark ? 'rgba(255,255,255,0.16)' : '#D5DAE2'), position: 'relative', transition: 'background .22s ease', padding: 0 }}>
-      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: knobDark && on ? '#0B0C0E' : '#fff', transition: 'left .22s cubic-bezier(.2,.8,.2,1)', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} />
+      {/* Bouton allumé = l'encre de l'accent. Un blanc d'office disparaîtrait
+          sur les pastilles pâles de MEGGA X (jaune, vert, cyan). */}
+      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: on ? onAccent : '#fff', transition: 'left .22s cubic-bezier(.2,.8,.2,1)', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} />
     </button>
   )
 }
 
-function PxfSwatch({ c, dark, value, onChange, labelOf }: { c: PfColors; dark: boolean; value: string; onChange: (v: string) => void; labelOf: (id: string) => string }) {
+function PxfSwatch({ c, dark, accents, value, onChange, labelOf }: { c: PfColors; dark: boolean; accents: PfAccent[]; value: string; onChange: (v: string) => void; labelOf: (id: string) => string }) {
   return (
     <div style={{ display: 'inline-flex', gap: 'var(--crm-space-lg)', flexShrink: 0, alignItems: 'center' }}>
-      {PXF_ACCENTS.map((o) => {
+      {accents.map((o) => {
         const on = o.id === value
         const col = dark ? o.darkHex : o.hex
         const label = labelOf(o.id)
@@ -82,7 +70,10 @@ function PxfSwatch({ c, dark, value, onChange, labelOf }: { c: PfColors; dark: b
           <button key={o.id} onClick={() => onChange(o.id)} title={label} aria-label={label} aria-pressed={on}
             style={{ width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', padding: 0, border: 0, background: col, position: 'relative', flexShrink: 0, display: 'grid', placeItems: 'center',
               boxShadow: on ? `0 0 0 2px ${c.card}, 0 0 0 4px ${col}` : `0 0 0 1.5px ${c.hairSoft} inset`, transition: 'box-shadow .16s' }}>
-            {on && <PxfIc name="check" size={15} stroke={o.id === 'black' && dark ? '#0B0C0E' : '#FFFFFF'} sw={2.6} />}
+            {/* La coche est POSÉE sur la pastille : elle prend l'encre de la
+                pastille, pas un blanc d'office — les teintes pâles de MEGGA X
+                l'avaleraient (1,7:1). */}
+            {on && <PxfIc name="check" size={15} stroke={dark ? o.darkInk : o.ink} sw={2.6} />}
           </button>
         )
       })}
@@ -107,9 +98,9 @@ function PxfSeg({ c, value, onChange, options, accent, onAccent }: { c: PfColors
 function PxfSelect({ c, value, onChange, options }: { c: PfColors; value: string; onChange: (v: string) => void; options: Opt[] }) {
   const [open, setOpen] = useState(false)
   const sel = options.find((o) => o.id === value)
-  // Surface FLOTTANTE : palier haut de l'échelle, jamais le gris neutre codé en
-  // dur — sinon le menu ne suit pas la teinte sombre choisie par l'agent.
-  const menuBg = c.dark ? crmStep('s4', '#262629') : '#FFFFFF'
+  // Surface FLOTTANTE : le palier des surfaces posées au-dessus de la carte,
+  // jamais un gris neutre codé en dur.
+  const menuBg = c.solid
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
       {/* Pas de chevron : la valeur est centrée dans un padding symétrique. */}
@@ -143,9 +134,9 @@ function PxfSelect({ c, value, onChange, options }: { c: PfColors; value: string
 
 /* ─── Structure des groupes (labels résolus via i18n) ───────────────────────── */
 type PrefKey = keyof PrefsData
-/** `darkTone` et `crmDa` ne sont PAS des préférences serveur (cf.
- *  `applyDarkTone`) — d'où une clé de ligne un peu plus large que `PrefsData`. */
-type RowKey = PrefKey | 'darkTone' | 'crmDa'
+/** Les lignes « Direction » et « Teinte sombre » sont parties avec la direction
+ *  Sugar : chaque ligne correspond désormais à une préférence serveur. */
+type RowKey = PrefKey
 type CtrlType = 'select' | 'seg' | 'swatch' | 'toggle'
 interface RowDef { key: RowKey; icon: PxfIconName; labelKey: string; type: CtrlType; options?: Opt[] }
 interface GroupDef { id: string; titleKey: string; dot: 'blue' | 'cyan' | 'orange' | 'green'; layout: 'grid' | 'stack'; rows: RowDef[] }
@@ -163,11 +154,6 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
   const [local, setLocal] = useState<PrefsData>(preferences)
   useEffect(() => { setLocal(preferences) }, [preferences])
   const [savedKey, setSavedKey] = useState<PrefKey | null>(null)
-  const darkTone = useDarkTone()
-  // Même contrat que la teinte : persistée en LOCAL (`megga.da`), pas côté
-  // serveur — `crmSugarPalette()` doit la lire hors React et synchroniquement.
-  const crmDaValue = useCrmDa()
-
   // Garde la pilule Thème synchro si l'utilisateur bascule via le rail (local only).
   useEffect(() => {
     setLocal((s) => (s.theme === 'system' ? s : { ...s, theme: dark ? 'dark' : 'light' }))
@@ -191,11 +177,6 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
       ] },
       { id: 'appearance', titleKey: 'preferences.appearance.title', dot: 'orange', layout: 'stack', rows: [
         { key: 'theme', icon: 'theme', labelKey: 'preferences.appearance.theme', type: 'seg', options: opt(['light', 'dark', 'system'], (id) => `preferences.appearance.themes.${id}.label`) },
-        { key: 'crmDa', icon: 'palette', labelKey: 'focus.preferences.crmDa', type: 'seg', options: [
-          { id: 'meggax', label: t('focus.preferences.crmDas.meggax') },
-          { id: 'sugar', label: t('focus.preferences.crmDas.sugar') },
-        ] },
-        { key: 'darkTone', icon: 'theme', labelKey: 'focus.preferences.darkTone', type: 'seg', options: CRM_DARK_TONES.map((x) => ({ id: x.id, label: t(`focus.preferences.darkTones.${x.id}`) })) },
         { key: 'accent', icon: 'palette', labelKey: 'focus.preferences.accent', type: 'swatch' },
       ] },
       { id: 'assist', titleKey: 'preferences.editing.title', dot: 'green', layout: 'stack', rows: [
@@ -212,17 +193,6 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
     if (v === 'light') setDark(false)
     else if (v === 'dark') setDark(true)
     else setDark(!!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches))
-  }
-
-  /**
-   * Teinte sombre — persistée en LOCAL (`megga.darkTone`), pas dans les
-   * préférences serveur : `crmStep()` doit pouvoir la lire hors React et de
-   * façon synchrone, et une seconde source côté backend divergerait.
-   */
-  const applyDarkTone = (v: string) => {
-    setDarkTone(v as DarkTone)
-    // Choisir une teinte depuis le clair n'aurait aucun effet visible.
-    if (setDark && !dark) setDark(true)
   }
 
   const commit = async (key: PrefKey, value: string | boolean) => {
@@ -243,10 +213,12 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
     }
   }
 
-  const accentDef = PXF_ACCENTS.find((a) => a.id === local.accent) ?? PXF_ACCENTS[0]
+  // Un réglage hérité d'avant MEGGA X n'a pas de pastille : le repli sur `[0]`
+  // rend alors l'accent de la marque, ce qui est le comportement voulu.
+  const accents = pfAccents()
+  const accentDef = accents.find((a) => a.id === local.accent) ?? accents[0]
   const accentCol = dark ? accentDef.darkHex : accentDef.hex
-  const onAccent = accentDef.id === 'black' ? c.onInk : '#FFFFFF'
-  const knobDark = c.dark && accentDef.id === 'black'
+  const onAccent = dark ? accentDef.darkInk : accentDef.ink
   const accentLabel = (id: string) => t(`focus.preferences.accents.${id}`)
 
   // Thème : la pilule reflète le dark RÉELLEMENT rendu (source de vérité = le shell),
@@ -254,16 +226,13 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
   const themeSeg = local.theme === 'system' ? 'system' : (dark ? 'dark' : 'light')
 
   const control = (r: RowDef): ReactNode => {
-    if (r.key === 'crmDa') {
-      return <PxfSeg c={c} accent={accentCol} onAccent={onAccent} value={crmDaValue} onChange={(v) => setCrmDa(v as CrmDa)} options={r.options ?? []} />
-    }
-    if (r.key === 'darkTone') {
-      return <PxfSeg c={c} accent={accentCol} onAccent={onAccent} value={darkTone} onChange={applyDarkTone} options={r.options ?? []} />
-    }
     const k = r.key as PrefKey
-    if (r.type === 'toggle') return <PxfSwitch c={c} accent={accentCol} knobDark={knobDark} on={Boolean(local[k])} onClick={() => commit(k, !local[k])} />
+    if (r.type === 'toggle') return <PxfSwitch c={c} accent={accentCol} onAccent={onAccent} on={Boolean(local[k])} onClick={() => commit(k, !local[k])} />
     if (r.type === 'seg') return <PxfSeg c={c} accent={accentCol} onAccent={onAccent} value={k === 'theme' ? themeSeg : String(local[k])} onChange={(v) => commit(k, v)} options={r.options ?? []} />
-    if (r.type === 'swatch') return <PxfSwatch c={c} dark={dark} value={String(local[k])} onChange={(v) => commit(k, v)} labelOf={accentLabel} />
+    // `accentDef.id` et non la valeur brute : un réglage hérité n'a pas de
+    // pastille, et l'afficher tel quel ne cochait RIEN — le nuancier semblait
+    // sans sélection. On coche ce qui rend réellement.
+    if (r.type === 'swatch') return <PxfSwatch c={c} dark={dark} accents={accents} value={accentDef.id} onChange={(v) => commit(k, v)} labelOf={accentLabel} />
     return <PxfSelect c={c} value={String(local[k])} onChange={(v) => commit(k, v)} options={r.options ?? []} />
   }
 

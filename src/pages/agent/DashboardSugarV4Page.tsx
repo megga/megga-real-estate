@@ -15,8 +15,7 @@ import {
   SUGAR_KEYFRAMES,
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import AxDashboardBody from '@/components/crm-sugar/analytics/AxDashboard'
 import { AXCtx, AX, AX_DARK } from '@/components/crm-sugar/analytics/tokens'
 
@@ -26,9 +25,7 @@ export default function DashboardSugarV4Page() {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem('megga.sugar.dark') === '1'
   })
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = useMemo(() => crmSugarPalette(t, dark, darkTone), [t, dark, darkTone])
+  const sp = useMemo(() => crmSugarPalette(dark), [dark])
   const axTheme = dark ? AX_DARK : AX
 
   const onNavigate = (id: SugarScreenId | string) => {
@@ -97,7 +94,7 @@ export default function DashboardSugarV4Page() {
 
       <SugarTopNav
         active={'today' as SugarScreenId}
-        t={t}
+       
         sp={sp}
         onNavigate={onNavigate}
         onCmd={onCmd}

@@ -8,11 +8,11 @@
 // UNIQUE — aucune dérivation locale de tokens ailleurs.
 //
 // ⚠ Ne PAS baser les COULEURS D'ACCENT sur src/components/crm-sugar/tokens.ts
-// (accent bleu desktop). Seule l'échelle sombre y est empruntée, via `crmStep` :
+// (accent bleu desktop). Ses surfaces sombres sortent des neutres MEGGA X :
 // sans elle le mobile resterait quasi-noir pendant que le desktop passe en
 // Graphite. L'accent mobile reste défini ici.
 
-import { crmStep } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 export interface MobileTokens {
   mode: 'light' | 'dark'
@@ -104,13 +104,11 @@ export const MT_LIGHT: MobileTokens = {
   kycSeal: '#0041D9',
 }
 
-/** Voile de chrome (en-tête, barre d'onglets) : la teinte du cadre à l'alpha
- *  demandé. Un voile quasi-noir figé se verrait comme une bande sombre posée
- *  sur le graphite ; il doit suivre l'échelle comme le reste. */
-function mtFrameVeil(alpha: number, legacy: string): string {
-  const s1 = crmStep('s1', '')
-  if (!s1) return legacy
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(s1.slice(i, i + 2), 16))
+/** Voile de chrome (en-tête, barre d'onglets) : la teinte du CADRE à l'alpha
+ *  demandé, pas un quasi-noir figé — sinon il se verrait comme une bande posée
+ *  sur la surface au lieu de la prolonger. */
+function mtFrameVeil(alpha: number): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(MXC_COLOR.n200.slice(i, i + 2), 16))
   return `rgba(${r},${g},${b},${alpha})`
 }
 
@@ -119,10 +117,10 @@ function mtFrameVeil(alpha: number, legacy: string): string {
 // cette échelle). Le littéral de repli est la valeur historique du site.
 export const MT_DARK: MobileTokens = {
   mode: 'dark',
-  get canvas() { return crmStep('s0', '#030303') },
-  get pageBg() { return crmStep('s0', '#030303') },
-  get card() { return crmStep('s2', '#17181A') },
-  get cardSubtle() { return crmStep('s3', '#1F2023') },
+  canvas: MXC_COLOR.n100,
+  pageBg: MXC_COLOR.n100,
+  card: MXC_COLOR.n300,
+  cardSubtle: MXC_COLOR.n200,
   ink: '#ECEDF3',
   inkSoft: '#B5B7C4',
   muted: '#878B99',
@@ -130,19 +128,19 @@ export const MT_DARK: MobileTokens = {
   hair: 'rgba(255,255,255,0.08)',
   accent: '#F2F2F6',
   accentInk: '#0B0C0E',
-  get headerBg() { return mtFrameVeil(0.82, 'rgba(15,15,16,0.82)') },
-  get tabBg() { return mtFrameVeil(0.86, 'rgba(17,17,18,0.86)') },
+  get headerBg() { return mtFrameVeil(0.82) },
+  get tabBg() { return mtFrameVeil(0.86) },
   overlay: 'rgba(0,0,4,0.5)',
   // Feuille du bas et barre d'onglets = surfaces FLOTTANTES → palier haut.
-  get sheetBg() { return crmStep('s4', '#0E0F11') },
-  get tabBarBg() { return crmStep('s4', '#17181A') },
+  sheetBg: MXC_COLOR.n300,
+  tabBarBg: MXC_COLOR.n300,
   tabBarShadow: '0 18px 44px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.4)',
   pillBg: '#F2F2F6',
   pillInk: '#0B0C0E',
   shadowSm: '0 2px 10px rgba(0,0,0,0.4)',
   shadow: '0 12px 34px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4)',
   shadowLg: '0 24px 56px rgba(0,0,0,0.62), 0 6px 18px rgba(0,0,0,0.5)',
-  get relanceBg() { return crmStep('s3', '#1F2023') },
+  relanceBg: MXC_COLOR.n200,
   relanceBorder: 'rgba(255,255,255,0.08)',
   relanceInk: '#ECEDF3',
   relanceMuted: '#878B99',

@@ -28,8 +28,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ShieldCheck, ExternalLink } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { useDarkTone } from '@/hooks/useDarkTone'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { LEGAL_URLS, type RequiredConsentType } from '@/lib/consents'
 
 interface PendingConsent {
@@ -67,9 +66,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
   const queryClient = useQueryClient()
 
   const dark = isDarkTheme()
-  const darkTone = useDarkTone()
-  const theme = sugarThemeTokens(dark, darkTone)
-  const sp = useMemo(() => crmSugarPalette(theme, dark, darkTone), [theme, dark, darkTone])
+  const sp = useMemo(() => crmSugarPalette(dark), [dark])
 
   const [checked, setChecked] = useState<Record<string, boolean>>({})
   const [marketing, setMarketing] = useState(false)

@@ -8,7 +8,7 @@
 // pas de changement de signature, donc pas de modif des sites d'appel.
 
 import i18n from '@/i18n'
-import { crmStep, type SugarPalette } from '../../tokens'
+import type { SugarPalette } from '../../tokens'
 
 /** « CHF 850'000 » — apostrophe suisse, valeur pleine (cartes). */
 export function galFmtCHF(n: number | null | undefined): string {
@@ -58,18 +58,23 @@ export interface GalSurfaces {
   shadowHov: string
 }
 
-/** Surfaces Sugar Pure dérivées : blanc pur (clair) / verre subtil (sombre). */
-export function galSurfaces(_sp: SugarPalette, dark: boolean): GalSurfaces {
+/**
+ * Surfaces MEGGA X — dérivées de la palette, séparation par BORDURE.
+ *
+ * En sombre elle abandonne l'écart de luminance de Graphite (1,078:1
+ * canvas↔carte) pour celui de MEGGA X (1,036:1) et compense au filet : ce n'est
+ * pas un échange de couleurs, c'est un changement de mode de séparation.
+ *
+ * Elle a remplacé `galSurfaces`, qui IGNORAIT le `sp` reçu et posait ses propres
+ * surfaces Sugar Pure. Celle-ci n'a plus de consommateur et a été retirée.
+ */
+export function mxSurfaces(sp: SugarPalette): GalSurfaces {
   return {
-    card: dark ? crmStep('s2', 'rgba(255,255,255,0.05)') : '#FFFFFF',
-    // `cardSub` sert aussi les cartes de la page « À suivre ».
-    cardSub: dark ? crmStep('s3', 'rgba(255,255,255,0.04)') : '#F4F6F9',
-    hairline: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(15,23,42,0.05)',
-    shadow: dark
-      ? '0 1px 2px rgba(0,0,0,.4), 0 10px 28px -12px rgba(0,0,0,.6)'
-      : '0 1px 2px rgba(15,23,42,.04), 0 12px 34px -14px rgba(40,55,90,.20)',
-    shadowHov: dark
-      ? '0 1px 2px rgba(0,0,0,.5), 0 24px 50px -16px rgba(0,0,0,.7)'
-      : '0 2px 6px rgba(15,23,42,.05), 0 26px 52px -18px rgba(40,55,90,.32)',
+    card: sp.cardBg,
+    cardSub: sp.cardSubBg,
+    hairline: `1px solid ${sp.cardBorder}`,
+    shadow: sp.shadow,
+    shadowHov: sp.shadow,
   }
 }
+

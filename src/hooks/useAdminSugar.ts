@@ -2,7 +2,7 @@
  * Palette Sugar de la console super-admin, dérivée du thème admin.
  *
  * Les Paramètres du CRM (`SettingsSugarV2Page`) calculent leur palette au
- * render — `sugarThemeTokens(dark)` → `crmSugarPalette(...)` → `galSurfaces(...)`
+ * render — `crmSugarPalette(dark)` → `adminSurfaces(dark)`
  * — puis la font descendre en props. La console, elle, a 17 pages et 27
  * composants : enfiler `sp`/`surf`/`dark` partout serait un carnage d'imports.
  *
@@ -13,8 +13,7 @@
  */
 import { useMemo } from 'react'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
-import { crmSugarPalette, sugarThemeTokens, type SugarPalette } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette, type SugarPalette } from '@/components/crm-sugar/tokens'
 
 /**
  * Surfaces Sugar Pure : blanc opaque en clair, verre subtil en sombre.
@@ -83,11 +82,9 @@ export interface AdminSugar {
  */
 export function useAdminSugar(): AdminSugar {
   const { dark } = useAdminTheme()
-  const darkTone = useDarkTone()
 
   return useMemo(() => {
-    const t = sugarThemeTokens(dark, darkTone)
-    const sp = crmSugarPalette(t, dark, darkTone)
+    const sp = crmSugarPalette(dark)
     const surf = adminSurfaces(dark)
 
     const tones: AdminTones = {
@@ -102,5 +99,5 @@ export function useAdminSugar(): AdminSugar {
     }
 
     return { sp, surf, dark, tones, onTone: '#FFFFFF' }
-  }, [dark, darkTone])
+  }, [dark])
 }

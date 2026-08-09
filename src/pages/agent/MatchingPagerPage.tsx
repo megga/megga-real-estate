@@ -18,8 +18,7 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
@@ -120,9 +119,7 @@ export default function MatchingPagerPage() {
     }
   }, [dark])
 
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(t, dark, darkTone)
+  const sp = crmSugarPalette(dark)
   const lightMode = !dark
 
   const onCmd = () => openSugarSearch()
@@ -303,7 +300,7 @@ export default function MatchingPagerPage() {
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
-      fontFamily: 'Inter Tight, system-ui, sans-serif',
+      fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
       color: sp.ink,
     }}>
       <style>{`
@@ -316,7 +313,7 @@ export default function MatchingPagerPage() {
         .matching-scroll-hint:hover .msh-label, .matching-scroll-hint:focus-visible .msh-label { max-width: 220px !important; opacity: 1 !important; transform: translateX(0) !important; }
       `}</style>
 
-      <SugarTopNav active="matching" t={t} sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
+      <SugarTopNav active="matching" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <SugarIconRail
@@ -335,7 +332,7 @@ export default function MatchingPagerPage() {
                 <MatchingAtelierPage embedded dark={dark} onOpenRecherche={() => goTo(LANDING_PAGE)} />
               </div>
               <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-                <MatchingRechercheHybride t={t} dark={dark} darkTone={darkTone} />
+                <MatchingRechercheHybride dark={dark} />
               </div>
             </div>
             <MatchingPageDots page={page} onGo={goTo} lightMode={lightMode} />

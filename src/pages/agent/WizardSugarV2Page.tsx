@@ -16,8 +16,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import WizardShell from '@/components/crm-sugar-wizard/WizardShell'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
 
 export default function WizardSugarV2Page() {
@@ -26,9 +25,7 @@ export default function WizardSugarV2Page() {
 
   const [dark, setDark] = useState<boolean>(() =>
     typeof window !== 'undefined' && window.localStorage.getItem('megga.sugar.dark') === '1')
-  const darkTone = useDarkTone()
-  const sgT = sugarThemeTokens(dark, darkTone)
-  const sgSp = useMemo(() => crmSugarPalette(sgT, dark, darkTone), [sgT, dark, darkTone])
+  const sgSp = useMemo(() => crmSugarPalette(dark), [dark])
   const onSugarNav = (id: SugarScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
@@ -50,7 +47,7 @@ export default function WizardSugarV2Page() {
   return (
     <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...sugarThemeVars(sgSp, dark) }}>
       <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active={'biens' as SugarScreenId} t={sgT} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
+      <SugarTopNav active={'biens' as SugarScreenId} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
         <SugarIconRail active={'biens' as SugarScreenId} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} setDark={setDark} sp={sgSp} />
         <main style={{ flex: 1, minWidth: 0, padding: '92px 40px 40px' }}>

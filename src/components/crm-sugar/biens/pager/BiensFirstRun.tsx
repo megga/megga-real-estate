@@ -4,15 +4,16 @@
 // masqué en haut-droite). PAS Sugar Pure (exception actée, façon covers
 // Pipeline/Contacts) : fond sombre #0A0B0D permanent, quel que soit le thème.
 
-import { useTranslation } from 'react-i18next'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { useTranslation } from 'react-i18next'
 
 interface BiensFirstRunProps {
   onStart: () => void
+  sp: SugarPalette
 }
 
 /** Couverture premier lancement (page 0 quand l'agence n'a encore aucun bien). */
-export function BiensFirstRun({ onStart }: BiensFirstRunProps) {
+export function BiensFirstRun({ onStart, sp }: BiensFirstRunProps) {
   const { t } = useTranslation('listings')
   const steps = [1, 2, 3] as const
   // Masque du motif : fondu diagonal + haut + droite (intersection des 3).
@@ -74,7 +75,7 @@ export function BiensFirstRun({ onStart }: BiensFirstRunProps) {
             <button
               type="button"
               onClick={onStart}
-              style={{ alignSelf: 'flex-start', height: 46, padding: '0 34px', borderRadius: 'var(--crm-radius-pill)', border: 'none', cursor: 'pointer', background: '#FFFFFF', color: '#0B0C0E', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: 0.5, marginTop: 8 }}
+              style={{ alignSelf: 'flex-start', height: 46, padding: '0 34px', borderRadius: 'var(--crm-radius-pill)', border: 'none', cursor: 'pointer', background: sp.accent, color: sp.accentInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: 0.5, marginTop: 8 }}
             >
               {t('biens.firstRun.start')}
             </button>

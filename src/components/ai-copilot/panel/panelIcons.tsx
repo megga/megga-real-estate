@@ -49,10 +49,12 @@ export function CpIcon({ name, size = 18, color = 'currentColor', sw = 1.7 }: Cp
 // Glyphe MEGGA AI — étoile dans une pastille ronde (accent au choix)
 interface AiGlyphProps {
   size?: number
-  on?: string
+  /** Couleur du glyphe. Obligatoire : elle vient de la palette, pas d'un défaut
+   *  — le défaut portait le noir de Sugar Pure et n'était employé nulle part. */
+  on: string
   bg?: string
 }
-export function AiGlyph({ size = 24, on = '#0B0C0E', bg }: AiGlyphProps) {
+export function AiGlyph({ size = 24, on, bg }: AiGlyphProps) {
   return (
     <span
       style={{

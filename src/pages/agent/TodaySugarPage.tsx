@@ -20,8 +20,7 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
@@ -40,7 +39,8 @@ const TODAY_PAGES = [
 // ─── Points de page (droite) ────────────────────────────────────────────
 function TodayPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: number) => void; lightMode: boolean }) {
   const { t } = useTranslation('dashboard')
-  const activeCol = lightMode ? '#0B0C0E' : '#F2F2F6'
+  // Point de page ACTIF : même règle que partout ailleurs, il porte l'accent.
+  const activeCol = TK.accent
   const idleCol = lightMode ? 'rgba(11,12,14,.18)' : 'rgba(255,255,255,.22)'
   return (
     <div style={{
@@ -119,9 +119,7 @@ export default function TodaySugarPage() {
     }
   }, [dark])
 
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(t, dark, darkTone)
+  const sp = crmSugarPalette(dark)
   // « allume » / éteint tout le cockpit selon l'ambiance (singleton muté en place).
   applyTK(dark)
   const lightMode = TK.frameSolid === '#FFFFFF'
@@ -314,7 +312,7 @@ export default function TodaySugarPage() {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: 'Inter Tight, system-ui, sans-serif',
+        fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
         color: sp.ink,
       }}>
         <style>{`
@@ -334,7 +332,7 @@ export default function TodaySugarPage() {
           @keyframes m2pulse { 0% { transform: scale(1); opacity: .7; } 75%, 100% { transform: scale(2.2); opacity: 0; } }
         `}</style>
 
-        <SugarTopNav active="today" t={t} sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
+        <SugarTopNav active="today" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           <SugarIconRail

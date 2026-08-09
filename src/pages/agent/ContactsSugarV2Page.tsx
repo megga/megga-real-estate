@@ -12,8 +12,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
@@ -55,9 +54,7 @@ export default function ContactsSugarV2Page() {
     if (typeof window !== 'undefined') window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
   }, [dark])
 
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(t, dark, darkTone)
+  const sp = crmSugarPalette(dark)
 
   const { contacts, isLoading, isError, refetch } = useContactsSugar()
   // `fresh` = compte réellement neuf. Un échec de chargement laisse aussi
@@ -164,9 +161,9 @@ export default function ContactsSugarV2Page() {
   return (
     <div style={{
       position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
-      display: 'flex', flexDirection: 'column', fontFamily: 'Inter Tight, system-ui, sans-serif', color: sp.ink,
+      display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
-      <SugarTopNav active="contacts" t={t} sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
+      <SugarTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <SugarIconRail active="contacts" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         <ContactsPager

@@ -10,7 +10,7 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { CRM_STAGE_ORDER, crmStep, SG_STAGE_HUE, type SugarPalette, type StageId } from '../tokens'
+import { CRM_STAGE_ORDER, SG_STAGE_HUE, type SugarPalette, type StageId } from '../tokens'
 
 // ─── Segmented view (Kanban / Liste / Timeline) ───────────────────────
 export type PipelineView = 'kanban' | 'list' | 'timeline'
@@ -69,7 +69,7 @@ export function SugarFilterPill({ sp, label, value, active, children, dark }: Fi
   const isDark = sgFilterIsDark(sp, dark)
   // Surface flottante : bordure et ombre viennent de la palette plutôt que
   // d'être recodées ici — elles suivent alors la teinte comme le fond.
-  const panelBg = isDark ? crmStep('s4', '#17181A') : '#FFFFFF'
+  const panelBg = sp.solidBg
   const panelBorder = isDark ? (sp.solidBorder || 'rgba(255,255,255,.07)') : sp.cardBorder
   const panelShadow = isDark
     ? (sp.solidShadow || '0 16px 40px -12px rgba(0,0,0,.72), 0 2px 10px rgba(0,0,0,.45)')
@@ -125,7 +125,7 @@ export function SugarStageFilter({
 }: { sp: SugarPalette; value: StageId[]; onChange: (v: StageId[]) => void; dark: boolean }) {
   const { t } = useTranslation('pipeline')
   const isDark = sgFilterIsDark(sp, dark)
-  const rowSel = isDark ? crmStep('s3', 'rgba(255,255,255,.08)') : '#F4F5F7'
+  const rowSel = sp.solidBgSub
   const boxBorder = isDark ? 'rgba(255,255,255,.28)' : '#CDD3DB'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
@@ -171,7 +171,7 @@ export function SugarRiskFilter({
 }: { sp: SugarPalette; value: RiskFilterValue; onChange: (v: RiskFilterValue) => void; dark: boolean }) {
   const { t } = useTranslation('pipeline')
   const isDark = sgFilterIsDark(sp, dark)
-  const rowSel = isDark ? crmStep('s3', 'rgba(255,255,255,.08)') : '#F4F5F7'
+  const rowSel = sp.solidBgSub
   const boxBorder = isDark ? 'rgba(255,255,255,.28)' : '#CDD3DB'
   const opts: { k: RiskFilterValue; label: string; dot: string }[] = [
     { k: 'all',      label: t('board.risk.all'),     dot: sp.sub },
@@ -208,7 +208,7 @@ export function SugarPeriodFilter({
 }: { sp: SugarPalette; value: number; onChange: (v: number) => void; dark: boolean }) {
   const { t } = useTranslation('pipeline')
   const isDark = sgFilterIsDark(sp, dark)
-  const rowSel = isDark ? crmStep('s3', 'rgba(255,255,255,.08)') : '#F4F5F7'
+  const rowSel = sp.solidBgSub
   const boxBorder = isDark ? 'rgba(255,255,255,.28)' : '#CDD3DB'
   const opts = [
     { k: 7,  label: t('board.filter.lastDays', { count: 7 }) },
