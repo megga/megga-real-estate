@@ -363,13 +363,13 @@ export default function DaComparePage() {
                 {panel.note}
               </p>
 
-              {/* `data-crm-da` sur la SEULE colonne littérale : les barreaux de
-                  grammaire sont des propriétés personnalisées, donc ils
-                  descendent par héritage. La colonne montre ainsi exactement ce
-                  que l'application rendra — palette ET grammaire —, pendant que
-                  les deux autres restent sur les barreaux de Sugar. */}
+              {/* Chaque colonne déclare SA direction, y compris `sugar`. Depuis
+                  que MEGGA X est le défaut, <html> le porte et les barreaux de
+                  grammaire descendent par héritage : sans redéclaration
+                  explicite, les colonnes de référence basculeraient avec lui et
+                  le comparateur ne comparerait plus rien. */}
               <div
-                data-crm-da={panel.id === 'literal' ? 'meggax' : undefined}
+                data-crm-da={panel.id === 'literal' ? 'meggax' : 'sugar'}
                 style={{
                   background: sp.pageBg,
                   border: `1px solid ${sp.frameBorder}`,

@@ -154,10 +154,26 @@ describe('MEGGA X CRM — la bascule de direction', () => {
     }
   })
 
-  it('Sugar reste le défaut quand rien n’est posé', () => {
+  // Le défaut est passé à MEGGA X le 9 août 2026. Ce test le VERROUILLE : un
+  // retour à Sugar par inadvertance changerait l'apparence de tout le CRM sans
+  // qu'aucune autre garde ne le signale.
+  it('MEGGA X est la direction par défaut', () => {
     delete (window as WinDa).__meggaDa
     expect(crmDa()).toBe(DEFAULT_DA)
-    expect(DEFAULT_DA).toBe('sugar')
+    expect(DEFAULT_DA).toBe('meggax')
+  })
+
+  // Sugar doit rester ENTIÈREMENT résolvable : un réglage déjà stocké dessus,
+  // et la colonne de référence du comparateur, en dépendent.
+  it('Sugar reste résolvable après la bascule du défaut', () => {
+    const t = sugarThemeTokens(true)
+    ;(window as WinDa).__meggaDa = 'sugar'
+    try {
+      expect(crmSugarPalette(t, true).accent).not.toBe(MXC_COLOR.accent)
+      expect(crmSugarPalette(t, true).ramp).toBeDefined()
+    } finally {
+      delete (window as WinDa).__meggaDa
+    }
   })
 })
 

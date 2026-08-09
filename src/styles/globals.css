@@ -217,12 +217,34 @@
        Rayons et gaps suivent la même logique, pour un coût quasi nul
        (2 rayons et 6 gaps bougent d'1 px). */
 
-    /* Texte — 10 barreaux */
-    --crm-text-xs: 10px;
-    --crm-text-sm: 11px;
-    --crm-text-md: 12px;
-    --crm-text-lg: 13px;
-    --crm-text-xl: 14px;
+    /* Les 16 barreaux que MEGGA X surcharge portent AUSSI un alias `-sugar-`.
+       Il permet à un sous-arbre de redemander Sugar (`[data-crm-da="sugar"]`)
+       sans recopier les valeurs — donc sans qu'elles puissent diverger. Le
+       comparateur en dépend : depuis que MEGGA X est le défaut, <html> le
+       porte, et ses colonnes de référence en hériteraient sans ça. */
+    --crm-sugar-text-xs: 10px;
+    --crm-sugar-text-sm: 11px;
+    --crm-sugar-text-md: 12px;
+    --crm-sugar-text-lg: 13px;
+    --crm-sugar-text-xl: 14px;
+    --crm-sugar-radius-md: 10px;
+    --crm-sugar-radius-xl: 14px;
+    --crm-sugar-radius-3xl: 18px;
+    --crm-sugar-radius-5xl: 22px;
+    --crm-sugar-radius-6xl: 28px;
+    --crm-sugar-space-2xs: 2px;
+    --crm-sugar-space-sm: 6px;
+    --crm-sugar-space-lg: 10px;
+    --crm-sugar-space-2xl: 14px;
+    --crm-sugar-space-4xl: 18px;
+    --crm-sugar-space-6xl: 22px;
+
+    /* Texte — 13 barreaux */
+    --crm-text-xs: var(--crm-sugar-text-xs);
+    --crm-text-sm: var(--crm-sugar-text-sm);
+    --crm-text-md: var(--crm-sugar-text-md);
+    --crm-text-lg: var(--crm-sugar-text-lg);
+    --crm-text-xl: var(--crm-sugar-text-xl);
     --crm-text-2xl: 16px;
     --crm-text-3xl: 18px;
     --crm-text-4xl: 20px;
@@ -240,30 +262,30 @@
     --crm-radius-2xs: 2px;
     --crm-radius-xs: 4px;
     --crm-radius-sm: 8px;
-    --crm-radius-md: 10px;
+    --crm-radius-md: var(--crm-sugar-radius-md);
     --crm-radius-lg: 12px;
-    --crm-radius-xl: 14px;
+    --crm-radius-xl: var(--crm-sugar-radius-xl);
     --crm-radius-2xl: 16px;
-    --crm-radius-3xl: 18px;
+    --crm-radius-3xl: var(--crm-sugar-radius-3xl);
     --crm-radius-4xl: 20px;
-    --crm-radius-5xl: 22px;
-    --crm-radius-6xl: 28px;
+    --crm-radius-5xl: var(--crm-sugar-radius-5xl);
+    --crm-radius-6xl: var(--crm-sugar-radius-6xl);
     --crm-radius-pill: 999px;
 
     /* Espacements — pas régulier de 2 px, jusqu'à 24.
        Au-delà (56, 64…) ce sont des décalages de mise en page propres à une
        composition, pas du rythme réutilisable : ils restent en littéral. */
-    --crm-space-2xs: 2px;
+    --crm-space-2xs: var(--crm-sugar-space-2xs);
     --crm-space-xs: 4px;
-    --crm-space-sm: 6px;
+    --crm-space-sm: var(--crm-sugar-space-sm);
     --crm-space-md: 8px;
-    --crm-space-lg: 10px;
+    --crm-space-lg: var(--crm-sugar-space-lg);
     --crm-space-xl: 12px;
-    --crm-space-2xl: 14px;
+    --crm-space-2xl: var(--crm-sugar-space-2xl);
     --crm-space-3xl: 16px;
-    --crm-space-4xl: 18px;
+    --crm-space-4xl: var(--crm-sugar-space-4xl);
     --crm-space-5xl: 20px;
-    --crm-space-6xl: 22px;
+    --crm-space-6xl: var(--crm-sugar-space-6xl);
     --crm-space-7xl: 24px;
 
     /* Largeur de la gouttière d'icône : sert aussi à indenter la 2e ligne. */
@@ -310,7 +332,33 @@
     --crm-space-2xl: 16px;   /* 14 → 16 */
     --crm-space-4xl: 20px;   /* 18 → 20 */
     --crm-space-6xl: 24px;   /* 22 → 24 */
+  }
 
+  /* Redemander Sugar sur un sous-arbre. Nécessaire depuis que MEGGA X est le
+     défaut : <html> le porte, et les propriétés personnalisées héritent, donc
+     une région ne revient à Sugar qu'en redéclarant. Les alias `--crm-sugar-*`
+     évitent d'en recopier les valeurs — elles ne peuvent pas diverger. */
+  [data-crm-da="sugar"] {
+    --crm-font: "DM Sans";
+    --crm-text-xs: var(--crm-sugar-text-xs);
+    --crm-text-sm: var(--crm-sugar-text-sm);
+    --crm-text-md: var(--crm-sugar-text-md);
+    --crm-text-lg: var(--crm-sugar-text-lg);
+    --crm-text-xl: var(--crm-sugar-text-xl);
+    --crm-radius-md: var(--crm-sugar-radius-md);
+    --crm-radius-xl: var(--crm-sugar-radius-xl);
+    --crm-radius-3xl: var(--crm-sugar-radius-3xl);
+    --crm-radius-5xl: var(--crm-sugar-radius-5xl);
+    --crm-radius-6xl: var(--crm-sugar-radius-6xl);
+    --crm-space-2xs: var(--crm-sugar-space-2xs);
+    --crm-space-sm: var(--crm-sugar-space-sm);
+    --crm-space-lg: var(--crm-sugar-space-lg);
+    --crm-space-2xl: var(--crm-sugar-space-2xl);
+    --crm-space-4xl: var(--crm-sugar-space-4xl);
+    --crm-space-6xl: var(--crm-sugar-space-6xl);
+  }
+
+  :root {
     /* Logo filter — no filter in light mode (logo is black) */
     --logo-filter: none;
 

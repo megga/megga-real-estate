@@ -21,14 +21,22 @@
 
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 
-/** Direction artistique active du CRM. `sugar` reste le défaut tant que la
- *  direction n'est pas tranchée. */
+/** Direction artistique du CRM. */
 export type CrmDa = 'sugar' | 'meggax'
 
 /** Clé de persistance, calquée sur `megga.darkTone`. */
 export const DA_KEY = 'megga.da'
 
-export const DEFAULT_DA: CrmDa = 'sugar'
+/**
+ * Direction par défaut — **MEGGA X depuis le 9 août 2026**.
+ *
+ * Le CRM s'aligne sur la vitrine et l'onboarding : un agent qui s'inscrit ne
+ * traverse plus une rupture visuelle à la porte d'entrée. Sugar reste
+ * entièrement résolvable — un réglage stocké sur `sugar` continue de rendre
+ * l'ancienne direction, et le comparateur s'en sert pour sa colonne de
+ * référence.
+ */
+export const DEFAULT_DA: CrmDa = 'meggax'
 
 /**
  * Direction active — `window.__meggaDa` d'abord (posé à chaque bascule, donc lu

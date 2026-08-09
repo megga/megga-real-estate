@@ -43,7 +43,12 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05)
 }
 
-const graphite = crmSugarPalette(CRM_TOKENS.graphite, true, 'graphite')
+// ⚠ 4ᵉ argument `'sugar'` obligatoire depuis que MEGGA X est la direction par
+// défaut (9 août 2026) : sans lui, `crmSugarPalette()` délègue à MEGGA X et ce
+// fichier n'éprouve plus l'échelle Graphite mais les surfaces de la vitrine.
+// L'échelle Graphite reste une propriété de la direction Sugar — c'est bien
+// elle qu'on veut verrouiller ici, pas la direction active du moment.
+const graphite = crmSugarPalette(CRM_TOKENS.graphite, true, 'graphite', 'sugar')
 
 describe('échelle Graphite', () => {
   it('monte strictement de s0 à s4', () => {
@@ -100,14 +105,14 @@ describe('crmStep', () => {
     // Signature `crmStep(sp, step, fallback)` — lit la palette passée, donc
     // testable sans toucher au localStorage.
     expect(crmStep(graphite, 's3', 'rgba(255,255,255,.08)')).toBe(CRM_GRAPHITE.s3)
-    const noir = crmSugarPalette(CRM_TOKENS.noir, true, 'noir')
+    const noir = crmSugarPalette(CRM_TOKENS.noir, true, 'noir', 'sugar')
     expect(crmStep(noir, 's3', 'rgba(255,255,255,.08)')).toBe('rgba(255,255,255,.08)')
   })
 
   it('ne repose que sur `ramp` pour reconnaître la teinte', () => {
     expect(graphite.ramp).toBe(CRM_GRAPHITE)
-    expect(crmSugarPalette(CRM_TOKENS.noir, true, 'noir').ramp).toBeUndefined()
-    expect(crmSugarPalette(CRM_TOKENS.light, false, 'graphite').ramp).toBeUndefined()
+    expect(crmSugarPalette(CRM_TOKENS.noir, true, 'noir', 'sugar').ramp).toBeUndefined()
+    expect(crmSugarPalette(CRM_TOKENS.light, false, 'graphite', 'sugar').ramp).toBeUndefined()
   })
 })
 
@@ -164,12 +169,12 @@ describe('teintes offertes et repli', () => {
     // Un réglage stocké avant le handoff ne doit pas produire d'écran blanc.
     for (const tone of ['marine', 'meggaAi'] as DarkTone[]) {
       expect(sugarThemeTokens(true, tone)).toBe(CRM_TOKENS.graphite)
-      expect(crmSugarPalette(sugarThemeTokens(true, tone), true, tone).pageBg).toBeTruthy()
+      expect(crmSugarPalette(sugarThemeTokens(true, tone), true, tone, 'sugar').pageBg).toBeTruthy()
     }
   })
 
   it('laisse le thème clair intact', () => {
-    const light = crmSugarPalette(CRM_TOKENS.light, false, 'graphite')
+    const light = crmSugarPalette(CRM_TOKENS.light, false, 'graphite', 'sugar')
     expect(light.pageBg).toBe('#EEF1F5')
     expect(light.solidBg).toBe('#FFFFFF')
     expect(sugarThemeTokens(false, 'graphite')).toBe(CRM_TOKENS.light)
