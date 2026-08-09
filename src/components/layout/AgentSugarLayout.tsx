@@ -14,8 +14,7 @@ import { ThemeProvider } from '@/hooks/useTheme'
 import { CopilotContextProvider } from '@/hooks/useCopilotContext'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { COPILOT_WIDTH } from '@/components/ai-copilot/panel/aiPanel'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import LabGuardBanner from '@/components/layout/LabGuardBanner'
 import BootSplash from '@/components/layout/BootSplash'
@@ -76,8 +75,7 @@ function AgentSugarInner() {
   }, [isOpen])
   // Fond Sugar de la page courante → peint la gouttière réservée par le push
   // (sinon elle laisserait voir le fond `body` blanc, dépareillé en mode sombre).
-  const darkTone = useDarkTone()
-  const pageBg = crmSugarPalette(sugarThemeTokens(dark, darkTone), dark, darkTone).pageBg
+  const pageBg = crmSugarPalette(dark).pageBg
 
   // Gate identité légale (étape 2 KYB) : tant que useIdentityGate() n'a pas
   // positivement résolu l'état à 'required', on NE redirige PAS — garde-fou 1

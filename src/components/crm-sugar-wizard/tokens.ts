@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 Wizard — Design tokens (palette unique, distinct from Today).
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx).
 import i18nSg from '@/i18n' // labels d'étapes i18n (getters SG_STEPS)
-import { CRM_GRAPHITE, crmDarkTone, crmStep } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 //
 // Deux thèmes (light + dark). `SugarV2` n'est PAS un objet figé : c'est un Proxy
 // qui lit le thème actif (`__sgActive`) au moment de l'accès. Le shell réassigne
@@ -78,24 +78,16 @@ const SUGARV2_LIGHT = {
 
 export type SugarV2Palette = typeof SUGARV2_LIGHT
 
-// Surfaces en GETTERS : elles suivent la teinte sombre active. Un objet monté
-// une seule fois figerait la valeur au chargement du module — et comme ce
-// fichier alimente les 8 étapes du wizard, elles se retinteraient toutes de
-// travers. Le littéral passé à `crmStep` est la valeur historique, servie
-// telle quelle en Noir pur : zéro régression sur cette teinte.
+// Surfaces MEGGA X. Elles étaient en GETTERS tant que la teinte sombre était
+// un choix de l'agent ; ce choix retiré, les valeurs sont constantes.
 const SUGARV2_DARK: SugarV2Palette = {
-  get bg() { return crmStep('s0', '#0A0A0F') },
-  get bgGradient() {
-    const G = CRM_GRAPHITE
-    return crmDarkTone() === 'graphite'
-      ? `radial-gradient(ellipse 130% 95% at 50% -12%, ${G.s3} 0%, ${G.s1} 48%, ${G.s0} 100%)`
-      : 'radial-gradient(ellipse 130% 95% at 50% -12%, #1B1C28 0%, #10111B 48%, #08080C 100%)'
-  },
+  bg: MXC_COLOR.n100,
+  bgGradient: `radial-gradient(ellipse 130% 95% at 50% -12%, ${MXC_COLOR.n400} 0%, ${MXC_COLOR.n200} 48%, ${MXC_COLOR.n100} 100%)`,
 
-  get card() { return crmStep('s2', '#15151F') },
-  get cardSubtle() { return crmStep('s3', '#212233') },
-  get rail() { return crmStep('s1', '#15151F') },
-  get railHover() { return crmStep('s2', '#1C1D29') },
+  card: MXC_COLOR.n300,
+  cardSubtle: MXC_COLOR.n200,
+  rail: MXC_COLOR.n200,
+  railHover: MXC_COLOR.n300,
 
   black: '#ECEDF3',             // accent → near-white en dark
   blackHover: '#FFFFFF',
@@ -116,12 +108,7 @@ const SUGARV2_DARK: SugarV2Palette = {
   pillShadow: '0 8px 20px -6px rgba(0,0,0,0.6)',
   pillShadowHover: '0 14px 34px -8px rgba(0,0,0,0.72)',
   ringSoft: 'rgba(255,255,255,0.10)',
-  get footerFade() {
-    const G = CRM_GRAPHITE
-    return crmDarkTone() === 'graphite'
-      ? `linear-gradient(180deg, transparent 0%, ${G.s0}D1 55%, ${G.s0} 100%)`
-      : 'linear-gradient(180deg, transparent 0%, rgba(10,10,15,0.82) 55%, rgba(8,8,12,1) 100%)'
-  },
+  footerFade: `linear-gradient(180deg, transparent 0%, ${MXC_COLOR.n100}D1 55%, ${MXC_COLOR.n100} 100%)`,
 
   ok:   '#34C796',
   warn: '#F2B855',

@@ -10,7 +10,7 @@
 // re-render sur le changement de `dark`, donc lire le singleton muté au render
 // renvoie toujours l'ambiance courante (comportement identique au proto).
 
-import { crmStep } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 export interface TkTone {
   bg: string
@@ -30,10 +30,13 @@ export interface Tk {
   cardHi: string
   cardBorder: string
   ink: string
-  /** Accent UI unique (CTA pleins, pilules actives, toast). Le proto le résout
-   *  via `window.crmAccent(dark)` ; ce dépôt ne connaît que l'accent « noir »,
-   *  dont les valeurs résolues sont exactement celles écrites ici — même rendu,
-   *  sans le sélecteur. Aligné sur `crmSugarPalette().accent`. */
+  /**
+   * Accent UI unique (CTA pleins, pilules actives, toast) — le bleu MEGGA.
+   *
+   * ⚠ Il ne s'inverse PAS entre les thèmes : il portait l'encre de Sugar Pure
+   * (noir en clair, off-white en sombre), ce qui faisait de « l'élément actif »
+   * une non-couleur. Sous MEGGA X l'actif porte la marque, dans les deux modes.
+   */
   accent: string
   /** Texte posé sur `accent`. */
   accentInk: string
@@ -56,19 +59,19 @@ export interface Tk {
 // rendu du cockpit, donc elles sont relues — la palette suit la teinte active
 // sans figer sa valeur au chargement du module.
 const TK_DARK: Omit<Tk, 'mode'> = {
-  get bg() { return crmStep('s0', '#0A0B0D') },
-  get bgGrad() { return crmStep('s0', '#0A0B0D') },
-  get frame() { return crmStep('s1', '#15161A') },
-  get frameSolid() { return crmStep('s1', '#17181C') },
-  get frameHi() { return crmStep('s2', '#1B1C21') },
+  bg: MXC_COLOR.n100,
+  bgGrad: MXC_COLOR.n100,
+  frame: MXC_COLOR.n200,
+  frameSolid: MXC_COLOR.n200,
+  frameHi: MXC_COLOR.n300,
   border: 'rgba(255,255,255,0.08)',
   borderHi: 'rgba(255,255,255,0.14)',
-  get card() { return crmStep('s2', 'rgba(255,255,255,0.035)') },
-  get cardHi() { return crmStep('s3', 'rgba(255,255,255,0.06)') },
+  card: MXC_COLOR.n300,
+  cardHi: MXC_COLOR.n400,
   cardBorder: 'rgba(255,255,255,0.07)',
   ink: '#ECEDF3',
-  accent: '#ECEDF3',
-  accentInk: '#0B0C0E',
+  accent: MXC_COLOR.accent,
+  accentInk: MXC_COLOR.n1000,
   inkDim: '#B5B7C4',
   sub: '#797D90',
   faint: '#54576A',
@@ -96,8 +99,8 @@ const TK_LIGHT: Omit<Tk, 'mode'> = {
   cardHi: 'rgba(15,23,42,0.055)',
   cardBorder: 'rgba(15,23,42,0.08)',
   ink: '#0B0C0E',
-  accent: '#0B0C0E',
-  accentInk: '#FFFFFF',
+  accent: MXC_COLOR.accent,
+  accentInk: MXC_COLOR.n1000,
   inkDim: '#3A3D44',
   sub: '#6B7079',
   faint: '#9CA1AB',

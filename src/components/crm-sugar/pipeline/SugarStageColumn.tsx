@@ -9,7 +9,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { crmStep, sgStageTint, type SugarPalette, type StageId } from '../tokens'
+import { sgStageTint, type SugarPalette, type StageId } from '../tokens'
 import type { CrmDeal } from '../mockData'
 import { SugarDealCard, type SugarDealCardActions } from './SugarDealCard'
 
@@ -79,7 +79,7 @@ export function SugarStageColumn({
           {onInlineOpen && (
             <button onClick={onInlineOpen} title={t('board.card.newDealInColumn', { stage: label })} style={{
               width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', flexShrink: 0,
-              background: dark ? crmStep('s3', 'rgba(255,255,255,.08)') : 'rgba(11,12,14,.06)',
+              background: dark ? 'rgba(255,255,255,.08)' : 'rgba(11,12,14,.06)',
               display: 'grid', placeItems: 'center', fontFamily: 'inherit', padding: 0,
             }}>
               <MEIcon name="plus" size={10} color={sp.ink} />
@@ -107,7 +107,7 @@ export function SugarStageColumn({
             border: `1.5px dashed ${dragOver && draggingId ? tint.hue : (dark ? 'rgba(255,255,255,.18)' : 'rgba(11,12,14,.14)')}`,
             // Zone de drop : en sombre le voile blanc à .35 fabriquerait une
             // surface hors échelle — elle prend le palier « card ».
-            borderRadius: 'var(--crm-radius-2xl)', background: dragOver && draggingId ? (dark ? crmStep('s2', 'rgba(255,255,255,.35)') : 'rgba(255,255,255,.35)') : 'transparent',
+            borderRadius: 'var(--crm-radius-2xl)', background: dragOver && draggingId ? 'rgba(255,255,255,.35)' : 'transparent',
             transition: 'all .15s',
           }}>{dragOver && draggingId
             ? t('board.dropToStage', { stage: label })

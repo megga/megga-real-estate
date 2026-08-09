@@ -20,8 +20,7 @@ import {
   SUGAR_KEYFRAMES,
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
 import {
   KycPaletteContext,
@@ -47,10 +46,8 @@ export default function KycSugarV3Page() {
     if (saved === '0') return false
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = useMemo(() => crmSugarPalette(t, dark, darkTone), [t, dark, darkTone])
-  const kycSp = useMemo(() => buildKycPalette(dark, sp, t), [dark, sp, t])
+  const sp = useMemo(() => crmSugarPalette(dark), [dark])
+  const kycSp = useMemo(() => buildKycPalette(dark, sp), [dark, sp])
   const surf = useMemo(() => kypSurf(dark), [dark])
 
   // ─── Gate onboarding (empty-state) ────────────────────────────────────
@@ -170,7 +167,7 @@ export default function KycSugarV3Page() {
         <style>{KYC_KEYFRAMES}</style>
         <style>{KYP_KEYFRAMES}</style>
 
-        <SugarTopNav active={'kyc' as SugarScreenId} t={t} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
+        <SugarTopNav active={'kyc' as SugarScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           <SugarIconRail active="kyc" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />

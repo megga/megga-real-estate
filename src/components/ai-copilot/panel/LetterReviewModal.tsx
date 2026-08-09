@@ -133,7 +133,7 @@ export default function LetterReviewModal({ open, sp, dark, letter, onClose }: L
           <button onClick={generate} disabled={!canGenerate} style={{
             height: 40, padding: '0 20px', borderRadius: 999, border: 0,
             cursor: canGenerate ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-            background: canGenerate ? sp.accent : (dark ? sp.fillStrong : '#E6E9EE'),
+            background: canGenerate ? sp.accent : sp.fillStrong,
             color: canGenerate ? sp.onAccent : sp.sub, display: 'flex', alignItems: 'center', gap: 7,
           }}>
             <CpIcon name="draft" size={15} color={canGenerate ? sp.onAccent : sp.sub} sw={2} />

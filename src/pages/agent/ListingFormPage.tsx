@@ -12,8 +12,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { useTranslation, Trans } from 'react-i18next'
@@ -2214,9 +2213,7 @@ export default function ListingFormPage() {
 
   // Chrome Sugar porté ici : cette page vivait sous `AgentLayout` (sidebar
   // legacy). Chaque surface Sugar porte son propre chrome.
-  const darkTone = useDarkTone()
-  const sgT = sugarThemeTokens(dark, darkTone)
-  const sgSp = useMemo(() => crmSugarPalette(sgT, dark, darkTone), [sgT, dark, darkTone])
+  const sgSp = useMemo(() => crmSugarPalette(dark), [dark])
   const onSugarNav = (id: SugarScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
@@ -2830,7 +2827,7 @@ export default function ListingFormPage() {
   return (
     <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...sugarThemeVars(sgSp, dark) }}>
       <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active={'biens' as SugarScreenId} t={sgT} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
+      <SugarTopNav active={'biens' as SugarScreenId} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
         <SugarIconRail active={'biens' as SugarScreenId} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} setDark={setDark} sp={sgSp} />
         <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>

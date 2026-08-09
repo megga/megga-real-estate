@@ -14,8 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { crmStep, crmSugarPalette, type CrmTheme, type DarkTone } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { useToast } from '@/components/ui/Toast'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useAuth } from '@/hooks/useAuth'
@@ -64,31 +63,29 @@ function scoreBien(c: MrhContact, b: MrhBien): MrhScore {
 }
 
 interface Props {
-  t: CrmTheme
   dark: boolean
-  /** Teinte imposée par l'appelant ; à défaut, la teinte active de l'agent. */
-  darkTone?: DarkTone
 }
 
-export default function MatchingRechercheHybride({ t: crmT, dark, darkTone }: Props) {
+export default function MatchingRechercheHybride({ dark }: Props) {
   const { t } = useTranslation('matching')
   const navigate = useNavigate()
   const toast = useToast()
   const { profile } = useAuth()
   const sendSel = useSendReceptionSelection()
   const ai = useAiPanel()
-  const activeTone = useDarkTone()
-  const sp = crmSugarPalette(crmT, dark, darkTone ?? activeTone)
+  const sp = crmSugarPalette(dark)
   const surf: MrhSurf = {
-    card: dark ? crmStep('s2', 'rgba(255,255,255,0.05)') : '#FFFFFF',
+    card: dark ? sp.cardBg : '#FFFFFF',
     // `cardSub` = fond des vignettes photo (et leur repli) → palier « sous-card ».
-    cardSub: dark ? crmStep('s3', 'rgba(255,255,255,0.04)') : '#F4F6F9',
+    cardSub: dark ? sp.cardSubBg : '#F4F6F9',
     hairline: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(15,23,42,0.05)',
     shadow: sp.shadow,
     shadowHov: dark ? '0 1px 2px rgba(0,0,0,.5), 0 18px 44px -14px rgba(0,0,0,.7)' : '0 1px 2px rgba(15,23,42,.06), 0 22px 48px -16px rgba(15,23,42,.2)',
   }
-  const ACC = sp.ink
-  const ONACC = sp.pageBg
+  // Accent de l'écran : il valait l'ENCRE inversée (règle Sugar Pure), donc
+  // une non-couleur. Segments actifs, jetons de recherche et CTA le portent.
+  const ACC = sp.accent
+  const ONACC = sp.accentInk
   const line = dark ? 'rgba(255,255,255,.09)' : 'rgba(15,23,42,.06)'
   const chipBg = dark ? 'rgba(255,255,255,.06)' : '#F4F6F9'
   const popBg = dark ? sp.solidBg : surf.card
@@ -409,7 +406,7 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone }: Pr
 
   return (
     <div className="mrh-root" onMouseDown={() => setDd(false)}
-      style={{ position: 'absolute', inset: 0, background: sp.pageBg, display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'Inter Tight, system-ui, sans-serif', color: sp.ink, fontVariantNumeric: 'tabular-nums', ...rootVars }}>
+      style={{ position: 'absolute', inset: 0, background: sp.pageBg, display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink, fontVariantNumeric: 'tabular-nums', ...rootVars }}>
 
       {/* En-tête */}
       <div style={{ flexShrink: 0, padding: '22px 30px 0' }}>

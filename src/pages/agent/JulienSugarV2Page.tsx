@@ -11,8 +11,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import {
   SugarTopNav, SugarIconRail, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -276,9 +275,7 @@ export default function JulienSugarV2Page() {
     window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
   }, [dark])
 
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(t, dark, darkTone)
+  const sp = crmSugarPalette(dark)
   const s = tok(dark)
 
   const [prevScreen] = useState<PrevScreen>(() => {
@@ -356,7 +353,7 @@ export default function JulienSugarV2Page() {
 
       <SugarTopNav
         active={'julien' as SugarScreenId}
-        t={t} sp={sp} onNavigate={onNavigate} onCmd={onCmd}
+        sp={sp} onNavigate={onNavigate} onCmd={onCmd}
       />
 
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>

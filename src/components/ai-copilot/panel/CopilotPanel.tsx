@@ -10,8 +10,7 @@ import {
   useState, useRef, useEffect, useMemo, useCallback,
   type ReactNode, type KeyboardEvent as ReactKeyboardEvent, type ChangeEvent as ReactChangeEvent,
 } from 'react'
-import { crmSugarPalette, crmFmtCHF, CRM_STAGES, type StageId, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette, crmFmtCHF, CRM_STAGES, type StageId } from '@/components/crm-sugar/tokens'
 import { useCopilot, type PendingActionCard } from '@/hooks/useCopilot'
 import { useUploadChatPhoto } from '@/hooks/useProperties'
 import { useAuth } from '@/hooks/useAuth'
@@ -81,7 +80,7 @@ function CpThinking({ sp, query, phase }: { sp: AiPalette; query?: string; phase
       <span key={label} style={{
         fontSize: 13.5, fontWeight: 600, lineHeight: 1.5,
         color: sp.dark ? 'rgba(255,255,255,0.55)' : '#7A8088',
-        background: `linear-gradient(100deg, ${sp.dark ? 'rgba(255,255,255,0.35)' : '#B5BAC2'} 30%, ${sp.dark ? '#FFFFFF' : '#0B0C0E'} 50%, ${sp.dark ? 'rgba(255,255,255,0.35)' : '#B5BAC2'} 70%)`,
+        background: `linear-gradient(100deg, ${sp.dark ? 'rgba(255,255,255,0.35)' : '#B5BAC2'} 30%, ${sp.ink} 50%, ${sp.dark ? 'rgba(255,255,255,0.35)' : '#B5BAC2'} 70%)`,
         backgroundSize: '200% 100%',
         WebkitBackgroundClip: 'text', backgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
@@ -342,7 +341,7 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter
     return (
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
         <div style={{
-          maxWidth: '82%', background: sp.ink, color: sp.cardInk || '#fff',
+          maxWidth: '82%', background: sp.accent, color: sp.onAccent,
           padding: '11px 15px', borderRadius: '16px 16px 4px 16px',
           fontSize: 14, lineHeight: 1.5, fontWeight: 500,
         }}>{msg.content}</div>
@@ -351,7 +350,7 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter
   }
   return (
     <div style={{ display: 'flex', gap: 10, marginBottom: 18, alignItems: 'flex-start' }}>
-      <AiGlyph size={22} bg="transparent" on={sp.dark ? '#7FB0FF' : '#1E5BC6'} />
+      <AiGlyph size={22} bg="transparent" on={sp.accent} />
       <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
         {msg.loading
           ? <CpThinking sp={sp} query={msg.query} phase={msg.phase} />
@@ -460,10 +459,10 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string, photos?: string
         <button onClick={submit} disabled={!canSend} title="Envoyer" aria-label="Envoyer"
           style={{
             width: 36, height: 36, borderRadius: 999, border: 0, cursor: canSend ? 'pointer' : 'default',
-            background: canSend ? (sp.dark ? '#FFFFFF' : sp.ink) : (sp.dark ? sp.fillStrong : '#E6E9EE'),
+            background: canSend ? sp.accent : sp.fillStrong,
             display: 'grid', placeItems: 'center', transition: 'background .16s',
           }}>
-          <CpIcon name="send" size={18} color={canSend ? (sp.dark ? '#0B0C0E' : '#fff') : (sp.dark ? 'rgba(255,255,255,0.4)' : sp.sub)} sw={2} />
+          <CpIcon name="send" size={18} color={canSend ? sp.onAccent : (sp.dark ? 'rgba(255,255,255,0.4)' : sp.sub)} sw={2} />
         </button>
       </div>
     </div>
@@ -483,7 +482,7 @@ function PanelHeader({ sp, onClose, onReset, hasMsgs }: { sp: AiPalette; onClose
           <span style={{ fontSize: 16, fontWeight: 800, color: sp.ink, letterSpacing: -0.3 }}>MEGGA AI</span>
           <span style={{
             marginLeft: 8, fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2,
-            color: '#FFFFFF', padding: '2px 7px', borderRadius: 999, background: '#1E5BC6',
+            color: sp.onAccent, padding: '2px 7px', borderRadius: 999, background: sp.accent,
           }}>Bêta</span>
         </div>
       </div>
@@ -517,7 +516,7 @@ function EmptyDock({ sp, onSend, screen }: { sp: AiPalette; onSend: (p: string) 
       {/* key={screen} → les suggestions se renouvellent en douceur à chaque page */}
       <div key={screen} style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '0 16px 4px', animation: 'cpCtxIn .4s cubic-bezier(.2,.8,.2,1) both' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 4px 4px' }}>
-          <CpIcon name="sparkle" size={12} color={sp.dark ? '#7FB0FF' : '#1E5BC6'} sw={1.9} />
+          <CpIcon name="sparkle" size={12} color={sp.aiInk} sw={1.9} />
           <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: sp.sub }}>
             Suggestions · {pack.label}
           </span>
@@ -762,11 +761,10 @@ export default function CopilotPanel() {
   const { isOpen, screen, seed, close, consumeSeed } = useAiPanel()
   const { impersonating } = useImpersonate()
   const dark = usePanelDark(isOpen)
-  const darkTone = useDarkTone()
   const sp = useMemo<AiPalette>(() => {
-    const base = crmSugarPalette(sugarThemeTokens(dark, darkTone), dark, darkTone)
+    const base = crmSugarPalette(dark)
     return deriveAiPalette(base, dark)
-  }, [dark, darkTone])
+  }, [dark])
 
   // Monté à la 1re ouverture : aucune requête (usePipelineSugar) tant que MEGGA
   // AI n'a pas été ouvert ; ensuite le contenu reste monté (conversation préservée).
@@ -790,9 +788,10 @@ export default function CopilotPanel() {
 
   const margin = 16
   const navH = 82
-  const cardShadow = dark
-    ? '0 24px 70px -16px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)'
-    : sp.panelShadow
+  // `sp.panelShadow` porte DÉJÀ le filet du dock, et de la bonne couleur. La
+  // surcharge sombre qui vivait ici posait un `rgba(255,255,255,0.06)` — un
+  // blanc translucide, que la direction n'admet plus comme séparateur.
+  const cardShadow = sp.panelShadow
 
   return (
     <>

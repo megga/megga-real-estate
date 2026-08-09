@@ -109,11 +109,11 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
               style={{
                 width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)',
                 display: 'grid', placeItems: 'center',
-                background: menuOpen ? sp.ink : sp.pageBg,
-                color: menuOpen ? sp.pageBg : sp.ink,
+                background: menuOpen ? sp.accent : sp.pageBg,
+                color: menuOpen ? sp.accentInk : sp.ink,
                 boxShadow: '0 1px 4px rgba(15,23,42,0.12)',
               }}>
-              <MEIcon name="more-horizontal" size={16} color={menuOpen ? sp.pageBg : sp.ink} />
+              <MEIcon name="more-horizontal" size={16} color={menuOpen ? sp.accentInk : sp.ink} />
             </span>
           ) : !n.read ? (
             <span style={{ width: 10, height: 10, borderRadius: 'var(--crm-radius-pill)', background: sp.ink }} />

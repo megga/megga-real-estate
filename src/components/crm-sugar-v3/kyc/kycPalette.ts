@@ -18,7 +18,8 @@
 //   ringTrack          → piste de l'anneau de progression.
 
 import { createContext, useContext } from 'react'
-import { crmDarkTone, crmStep, type CrmTheme, type SugarPalette } from '@/components/crm-sugar/tokens'
+import { CRM_TOKENS, type SugarPalette } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 export interface KycPalette {
   // Fond
@@ -115,23 +116,26 @@ export const KYC_LIGHT: KycPalette = {
  *
  * En sombre, on ne garde AUCUNE carte blanche : verre translucide + tour blanc
  * (immersif), accent inversé en pilule claire, encarts d'alerte sur fonds
- * sombres lisibles. Dérivé du `sp` (crmSugarPalette) + `t` (CrmTheme) déjà
+ * sombres lisibles. Dérivé du `sp` (crmSugarPalette) déjà
  * calculés par la page, pour rester cohérent avec le reste du shell CRM.
  */
 export function buildKycPalette(
   dark: boolean,
   sp: SugarPalette,
-  t: CrmTheme,
 ): KycPalette {
+  // Les fonds d'ÉTAT (succès, alerte, erreur) n'ont pas d'équivalent MEGGA X en
+  // version « douce » : ils restent lus sur le thème legacy, seul endroit qui
+  // les porte. Tout le reste vient de `sp`.
+  const t = CRM_TOKENS.graphite
   if (!dark) return KYC_LIGHT
   return {
-    bg: t.bg,
-    bgGradient: t.bg,
-    card: crmStep('s2', 'rgba(255,255,255,0.04)'),
-    cardSubtle: crmStep('s3', 'rgba(255,255,255,0.06)'),
+    bg: sp.pageBg,
+    bgGradient: sp.pageBg,
+    card: MXC_COLOR.n300,
+    cardSubtle: MXC_COLOR.n200,
     // En graphite la card est OPAQUE : le « tour blanc » redescend au filet,
     // sinon la bordure devient le seul relief visible et durcit le bento.
-    cardBorder: crmDarkTone() === 'graphite' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.12)',
+    cardBorder: 'rgba(255,255,255,0.06)',
     black: sp.ink, // pilule claire en sombre
     blackHover: '#FFFFFF',
     onAccent: sp.pageBg, // texte sombre posé sur la pilule claire
@@ -159,7 +163,7 @@ export function buildKycPalette(
     onAccentFaint: 'rgba(11,12,14,0.08)',
     divider: 'rgba(255,255,255,0.12)',
     stepLine: 'rgba(255,255,255,0.16)',
-    footerFade: `linear-gradient(180deg, transparent 0%, ${t.bg} 62%, ${t.bg} 100%)`,
+    footerFade: `linear-gradient(180deg, transparent 0%, ${sp.pageBg} 62%, ${sp.pageBg} 100%)`,
     logoInvert: true,
     scrollThumb: 'rgba(255,255,255,0.22)',
     scrollThumbHover: 'rgba(255,255,255,0.40)',

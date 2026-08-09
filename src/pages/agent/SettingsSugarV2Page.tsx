@@ -3,15 +3,14 @@
 // section active. 4 sections « Focus » (Profil, Agence, Notifications, Préférences)
 // reçoivent {sp, surf, dark, setDark} ; 3 sections conservées (Intégrations,
 // Facturation, Sécurité) restent autonomes et lisent SET_PALETTE (mutée par
-// applySetTheme avant render). Police Inter Tight (chrome CRM). Deep-link ?tab=.
+// applySetTheme avant render). Deep-link ?tab=.
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { crmStep, crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { galSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
+import { mxSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
 import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
 import { SecuritySection } from '@/components/crm-sugar/settings/SecuritySection'
@@ -60,10 +59,8 @@ export default function SettingsSugarV2Page() {
     }
   }, [dark])
 
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(t, dark, darkTone)
-  const surf = galSurfaces(sp, dark)
+  const sp = crmSugarPalette(dark)
+  const surf = mxSurfaces(sp)
 
   // Les sections conservées (Integrations/Billing/Security) lisent SET_PALETTE :
   // on la mute AVANT le render pour qu'elles suivent le thème (pattern maquette).
@@ -120,8 +117,8 @@ export default function SettingsSugarV2Page() {
   // sombre ; le contenu Facturation est transparent pour laisser passer le dégradé.
   const immersive = active === 'billing'
   const BILL_GRAD = '/billing/gradient.png'
-  const spR = immersive ? crmSugarPalette(sugarThemeTokens(true, darkTone), true, darkTone) : sp
-  const surfR = immersive ? galSurfaces(spR, true) : surf
+  const spR = immersive ? crmSugarPalette(true) : sp
+  const surfR = immersive ? mxSurfaces(spR) : surf
   const darkR = dark || immersive
 
   return (
@@ -129,7 +126,12 @@ export default function SettingsSugarV2Page() {
       style={{
         position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
-        fontFamily: '"Inter Tight", system-ui, sans-serif', color: sp.ink,
+        // `var(--crm-font)` et non un littéral : écrire « Inter Tight » ici
+        // ÉCRASAIT la variable de direction. La police tombait juste sous
+        // MEGGA X par coïncidence, et Sugar ne récupérait jamais DM Sans —
+        // mesuré : la variable passait bien à "DM Sans", le `<h1>` restait en
+        // Inter Tight. Le repli garde la page lisible si la variable saute.
+        fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
         fontVariantNumeric: 'tabular-nums',
       }}
     >
@@ -147,39 +149,46 @@ export default function SettingsSugarV2Page() {
         .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
       `}</style>
 
-      <SugarTopNav active={'settings' as SugarScreenId} t={t} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
+      <SugarTopNav active={'settings' as SugarScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <SugarIconRail active="settings" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
 
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
           <div style={{
+            // ⚠ 26 reste un LITTÉRAL, et ce n'est pas un oubli : c'est le rayon
+            // du cadre bento, écrit à l'identique sur 10 pages soeurs. Le passer
+            // à `--crm-radius-6xl` ici seulement le désynchroniserait (28 en
+            // Sugar au lieu de 26). Il se migre avec `src/pages/` en entier.
             position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
             border: `1px solid ${immersive ? 'rgba(255,255,255,0.08)' : sp.frameBorder}`, boxShadow: sp.shadow,
             // Couleur SOUS l'image de dégradé : elle suit le canvas, sinon la
             // facturation garde une zone quasi-noire au milieu du graphite.
-            background: immersive ? `${crmStep('s0', '#0B0C0E')} url("${BILL_GRAD}") no-repeat bottom center / 140% auto` : sp.pageBg,
+            background: immersive ? `${spR.pageBg} url("${BILL_GRAD}") no-repeat bottom center / 140% auto` : sp.pageBg,
             display: 'grid', gridTemplateColumns: '300px 1fr',
           }}>
             {/* RAIL — titre + nav des sections (grammaire « À suivre ») */}
-            <aside className="spg-scroll" style={{ padding: '30px 24px', display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
-              <h1 style={{ margin: '0 0 22px', fontSize: 31, fontWeight: 800, letterSpacing: -1.1, color: spR.ink, lineHeight: 1 }}>{tr('focus.title')}</h1>
-              <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {/* 30 px reste un littéral : au-delà de 24 c'est un décalage de
+                composition, pas un barreau de rythme (même règle que la
+                migration de `crm-sugar/`). */}
+            <aside className="spg-scroll" style={{ padding: '30px var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
+              <h1 style={{ margin: '0 0 var(--crm-space-6xl)', fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1.1, color: spR.ink, lineHeight: 1 }}>{tr('focus.title')}</h1>
+              <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
                 {groups.map(({ g, items }) => (
                   <div key={g} style={{ display: 'contents' }}>
                     {items.map((s) => {
                       const on = s.id === active
                       return (
                         <button key={s.id} className="spg-nav" onClick={() => setActive(s.id)} style={{
-                          display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 14, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)', cursor: 'pointer',
                           fontFamily: 'inherit', textAlign: 'left', width: '100%',
                           background: on ? surfR.card : 'transparent',
                           boxShadow: on ? `0 0 0 1.5px ${spR.ink} inset, ${surfR.shadow}` : 'none',
                         }}>
-                          <span style={{ width: 26, height: 26, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                          <span style={{ width: 'var(--crm-icon-slot)', height: 'var(--crm-icon-slot)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                             <SpgIcon name={s.icon} size={17} stroke={on ? spR.ink : spR.sub} />
                           </span>
-                          <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: spR.ink }}>{s.short || s.label}</span>
+                          <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: spR.ink }}>{s.short || s.label}</span>
                         </button>
                       )
                     })}
@@ -189,7 +198,7 @@ export default function SettingsSugarV2Page() {
             </aside>
 
             {/* BENTO À DROITE — la section active (Facturation = plein cadre immersif) */}
-            <div ref={scrollRef} className="spg-scroll" style={{ minHeight: 0, overflowY: 'auto', padding: immersive ? 0 : '28px 34px 40px 12px' }}>
+            <div ref={scrollRef} className="spg-scroll" style={{ minHeight: 0, overflowY: 'auto', padding: immersive ? 0 : '28px 34px 40px var(--crm-space-xl)' }}>
               <div key={active} style={{ maxWidth: immersive ? 'none' : 1180, height: immersive ? '100%' : undefined, margin: immersive ? 0 : '0 auto', animation: 'setFadeUp .32s cubic-bezier(.2,.8,.2,1) both' }}>
                 {renderContent()}
               </div>

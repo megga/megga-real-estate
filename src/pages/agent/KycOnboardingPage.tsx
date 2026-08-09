@@ -15,8 +15,7 @@ import {
   SUGAR_KEYFRAMES,
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { markKycOnboarded } from '@/lib/kycOnboarding'
 
 
@@ -38,9 +37,7 @@ export default function KycOnboardingPage() {
     if (saved === '0') return false
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = useMemo(() => crmSugarPalette(t, dark, darkTone), [t, dark, darkTone])
+  const sp = useMemo(() => crmSugarPalette(dark), [dark])
 
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {
@@ -92,7 +89,7 @@ export default function KycOnboardingPage() {
         }
       `}</style>
 
-      <SugarTopNav active={'kyc' as SugarScreenId} t={t} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
+      <SugarTopNav active={'kyc' as SugarScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <SugarIconRail active="kyc" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />

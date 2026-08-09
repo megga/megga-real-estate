@@ -6,7 +6,7 @@ import type { ReactNode, MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AnimatedTopIcon } from './LiquidGlassRail'
-import type { CrmTheme, SugarPalette } from './tokens'
+import type { SugarPalette } from './tokens'
 // CRM_AGENT mock retiré — l'avatar lit `useAuth().profile` (vrai utilisateur)
 import SugarNotificationsPopover from './notifications/SugarNotificationsPopover'
 import { useAgentNotifications } from '@/hooks/useAgentNotifications'
@@ -69,19 +69,24 @@ export type SugarScreenId =
 
 interface SugarTopNavProps {
   active?: SugarScreenId
-  t: CrmTheme
   sp: SugarPalette
   onNavigate?: (id: SugarScreenId) => void
   onCmd?: () => void
   dark?: boolean
 }
-export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false }: SugarTopNavProps) {
+export function SugarTopNav({ active = 'today', sp, onNavigate, dark = false }: SugarTopNavProps) {
   const navigate = useNavigate()
   const { t: tc } = useTranslation('common')
   const { signOut, profile, user } = useAuth()
   // MEGGA AI — le bouton ✦ ouvre le panneau docké (via AiPanelProvider). Repli
   // sur la page « Julien » si la nav est rendue hors du provider.
   const ai = useAiPanel()
+  /**
+   * Pastille d'avatar : elle lisait `t.primary` (#0041D9), un bleu d'avant
+   * Sugar Pure que la palette n'atteignait pas. Sugar retiré, elle prend
+   * simplement l'accent de la direction.
+   */
+  const avatarBg = sp.accent
   // Calcule initiales/affichage depuis le vrai profil. Fallback "??" pour
   // les sessions sans profil (devrait être rare — l'AuthGuard route avant).
   const displayName = profile?.full_name?.trim() || user?.email?.split('@')[0] || 'Agent'
@@ -246,8 +251,8 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
           return (
             <button key={tab.id} onClick={() => onNavigate && onNavigate(tab.id)} style={{
               padding: 'var(--crm-space-lg) var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-              background: isActive ? sp.ink : 'transparent',
-              color: isActive ? sp.pageBg : sp.soft,
+              background: isActive ? sp.accent : 'transparent',
+              color: isActive ? sp.accentInk : sp.soft,
               fontWeight: isActive ? 700 : 500, fontSize: 'var(--crm-text-xl)',
               fontFamily: 'inherit', boxShadow: isActive ? sp.focusShadow : 'none',
             }}>{tab.label}</button>
@@ -274,12 +279,12 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
             // repère que l'encre seule ne portait pas. Au repos, glyphe nu comme
             // ses voisins. `sp.ink` est le token d'accent Sugar : noir franc en
             // clair, encre claire en sombre.
-            background: aiActive ? sp.ink : 'transparent',
+            background: aiActive ? sp.accent : 'transparent',
             boxShadow: aiActive ? '0 6px 20px rgba(11,12,14,0.25)' : 'none',
             display: 'grid', placeItems: 'center', cursor: 'pointer',
             transition: 'background .2s ease, box-shadow .2s ease',
           }}>
-          <AnimatedTopIcon name="sparkle" color={aiActive ? sp.pageBg : sp.soft} size={TOPNAV_ICON} active={aiActive} />
+          <AnimatedTopIcon name="sparkle" color={aiActive ? sp.accentInk : sp.soft} size={TOPNAV_ICON} active={aiActive} />
         </button>
         <div ref={notifAnchorRef} style={{ position: 'relative' }}>
           <button
@@ -338,7 +343,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
             title={`${displayName} · ${displayRole}`}
             style={{
               width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0,
-              background: profileOpen ? sp.ink : t.primary,
+              background: profileOpen ? sp.ink : avatarBg,
               color: '#fff',
               display: 'grid', placeItems: 'center',
               fontSize: 'var(--crm-text-xl)', fontWeight: 700, cursor: 'pointer',

@@ -4,8 +4,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -34,9 +33,7 @@ export default function JourneySugarV2Page() {
     }
   }, [dark])
 
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(t, dark, darkTone)
+  const sp = crmSugarPalette(dark)
 
   // Source de vérité : transactions actives Supabase (1 dossier = 1 transaction).
   // Filtre Agent retiré (pas de table profiles/teammates wire) — réintroduit avec RBAC.
@@ -101,7 +98,7 @@ export default function JourneySugarV2Page() {
       <style>{SUGAR_KEYFRAMES}</style>
       <SugarTopNav
         active="parcours"
-        t={t}
+       
         sp={sp}
         onNavigate={onNavigate}
         onCmd={onCmd}

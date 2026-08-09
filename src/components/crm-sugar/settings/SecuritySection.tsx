@@ -18,16 +18,16 @@ import { Trans, useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ui/Toast'
 import { SetIcon } from './atoms'
-import { SET_PALETTE, SET_DARK } from './data'
-import { crmStep } from '@/components/crm-sugar/tokens'
+import { SET_PALETTE, isSetDark } from './data'
 import { SSOConnectionsCard } from './SSOConnectionsCard'
 import { useUserDevices, type UserDevice } from '@/hooks/useUserDevices'
 
 const SET = SET_PALETTE
 
-// Détection dark : SET_PALETTE est muté par applySetTheme avant le render ;
-// la card dark vaut #16171F (signal stable). Sert au fond du hero.
-const isDark = () => SET.card === SET_DARK.card
+// Détection dark : `applySetTheme` mémorise le thème qu'il vient d'appliquer.
+// L'ancien test comparait `SET.card` à `SET_DARK.card` — il supposait qu'il
+// n'existait que deux palettes, ce que la direction MEGGA X a démenti.
+const isDark = isSetDark
 
 // ════════════════════════════════════════════════════════════════════════
 //  Force d'un mot de passe (0–4) — barème de la maquette
@@ -758,8 +758,7 @@ const ghostInline: React.CSSProperties = {
 // ════════════════════════════════════════════════════════════════════════
 function HeroSecurity() {
   const { t } = useTranslation('settings')
-  // En sombre le héro prend la couleur des cards ; le bloc immersif clair reste noir.
-  const heroBg = isDark() ? crmStep('s2', '#16171F') : '#0B0C0E'
+  const heroBg = SET.heroBg
   return (
     <div
       style={{

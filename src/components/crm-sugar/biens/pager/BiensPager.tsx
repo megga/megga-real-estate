@@ -17,8 +17,8 @@ import { BiensFirstRun, BiensFollowEmpty } from './BiensFirstRun'
 
 const PAGE_COUNT = 2
 
-function BpgPageDots({ page, onGo, dark, labels }: { page: number; onGo: (i: number) => void; dark: boolean; labels: string[] }) {
-  const activeCol = dark ? '#F2F2F6' : '#0B0C0E'
+function BpgPageDots({ page, onGo, sp, dark, labels }: { page: number; onGo: (i: number) => void; sp: SugarPalette; dark: boolean; labels: string[] }) {
+  const activeCol = sp.accent
   const idleCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(11,12,14,.18)'
   return (
     <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', alignItems: 'center' }}>
@@ -197,13 +197,13 @@ export function BiensPager({
         .bpg-scroll-hint:hover .bpg-hint-label, .bpg-scroll-hint:focus-visible .bpg-hint-label { max-width: 220px !important; opacity: 1 !important; transform: translateX(0) !important; }
         .bpg-scroll-hint { -webkit-tap-highlight-color: transparent; }
         .bpg-scroll-hint:focus:not(:focus-visible) { outline: none; }
-        .bpg-scroll-hint:focus-visible { outline: 2px solid ${dark ? '#8DA4FF' : '#0041D9'}; outline-offset: 2px; border-radius: 10px; }
+        .bpg-scroll-hint:focus-visible { outline: 2px solid ${sp.accent}; outline-offset: 2px; border-radius: 10px; }
       `}</style>
       <div ref={viewportRef} style={{ position: 'relative', height: '100%', borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow }}>
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
             {fresh ? (
-              <BiensFirstRun onStart={onCreate} />
+              <BiensFirstRun onStart={onCreate} sp={sp} />
             ) : (
               <BpTopGallery
                 biens={biens}
@@ -241,7 +241,7 @@ export function BiensPager({
           </div>
         </div>
 
-        {!wizardOpen && <BpgPageDots page={page} onGo={goTo} dark={dark} labels={pageLabels} />}
+        {!wizardOpen && <BpgPageDots page={page} onGo={goTo} sp={sp} dark={dark} labels={pageLabels} />}
 
         {/* Wizard « Créer un bien » embarqué : overlay plein bento. */}
         {wizardOpen && wizardSlot && (

@@ -1080,33 +1080,23 @@
       "banner": "Queste preferenze sono personali del tuo account, non influiscono sugli altri membri del team.",
       "aiAssistLabel": "Assistenza MEGGA AI",
       "accent": "Colore d'accento",
-      "darkTone": "Tonalità scura",
-      "darkTones": {
-        "graphite": "Grafite",
-        "noir": "Nero"
-      },
       "aiTone": "Tono delle risposte",
       "units": {
         "metric": "m² · m",
         "imperial": "ft² · ft"
       },
       "accents": {
-        "black": "Nero",
-        "periwinkle": "Pervinca",
-        "blue": "Blu",
         "cyan": "Ciano",
         "green": "Verde",
-        "orange": "Arancione"
+        "direction": "Direzione",
+        "yellow": "Giallo",
+        "red": "Rosso",
+        "encre": "Inchiostro"
       },
       "aiTones": {
         "amicale": "Amichevole",
         "neutre": "Neutro",
         "professionnel": "Professionale"
-      },
-      "crmDa": "Direzione",
-      "crmDas": {
-        "meggax": "MEGGA X",
-        "sugar": "Sugar"
       }
     },
     "toast": {

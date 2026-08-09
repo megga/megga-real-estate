@@ -17,7 +17,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmBien } from '@/components/crm-sugar/mockData'
-import { crmStep, type SugarPalette } from '@/components/crm-sugar/tokens'
+import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import type { GalSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { GalPhoto } from '@/components/crm-sugar/biens/gallery/GalleryAtoms'
 import { useUpdateProperty, useDeleteProperty } from '@/hooks/useProperties'
@@ -139,7 +139,7 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
   const mSh = dark
     ? '0 40px 100px rgba(0,0,0,.62), 0 8px 24px rgba(0,0,0,.5)'
     : '0 40px 100px rgba(15,23,42,.24), 0 8px 24px rgba(15,23,42,.12)'
-  const cardBg = dark ? crmStep('s4', '#17181A') : surf.card
+  const cardBg = sp.solidBg
 
   const wrap = (inner: React.ReactNode) =>
     createPortal(

@@ -9,8 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { CalIcon } from './CalIcon'
 import { CalCircleBtn, CalViewToggle, type CalViewId } from './CalToolbar'
@@ -169,10 +168,8 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const { t } = useTranslation('calendar')
   const queryClient = useQueryClient()
 
-  const darkTone = useDarkTone()
-  const tk = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(tk, dark, darkTone)
-  const SP: CalSugarPalette = buildCalPalette(dark, tk)
+  const sp = crmSugarPalette(dark)
+  const SP: CalSugarPalette = buildCalPalette(dark)
 
   // ── Données ──
   const { events, isError: calendarError, refetch: calendarRefetch } = useCalendarSugar()
@@ -465,7 +462,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
           @keyframes calSpin { to { transform: rotate(360deg); } }
         `}</style>
 
-        <SugarTopNav active="calendar" t={tk} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
+        <SugarTopNav active="calendar" sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           <SugarIconRail active="calendar" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />

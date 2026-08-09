@@ -1080,33 +1080,23 @@
       "banner": "Diese Einstellungen gelten nur für Ihr Konto, sie betreffen keine anderen Teammitglieder.",
       "aiAssistLabel": "MEGGA-AI-Unterstützung",
       "accent": "Akzentfarbe",
-      "darkTone": "Dunkler Farbton",
-      "darkTones": {
-        "graphite": "Graphit",
-        "noir": "Schwarz"
-      },
       "aiTone": "Antwortton",
       "units": {
         "metric": "m² · m",
         "imperial": "ft² · ft"
       },
       "accents": {
-        "black": "Schwarz",
-        "periwinkle": "Periwinkle",
-        "blue": "Blau",
         "cyan": "Cyan",
         "green": "Grün",
-        "orange": "Orange"
+        "direction": "Ausrichtung",
+        "yellow": "Gelb",
+        "red": "Rot",
+        "encre": "Tinte"
       },
       "aiTones": {
         "amicale": "Freundlich",
         "neutre": "Neutral",
         "professionnel": "Professionell"
-      },
-      "crmDa": "Ausrichtung",
-      "crmDas": {
-        "meggax": "MEGGA X",
-        "sugar": "Sugar"
       }
     },
     "toast": {

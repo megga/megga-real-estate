@@ -10,8 +10,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { crmSugarPalette, CRM_STAGES, type SugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette, CRM_STAGES, type SugarPalette } from '@/components/crm-sugar/tokens'
 import { useContacts } from '@/hooks/useContacts'
 import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
@@ -226,9 +225,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
     if (saved === '0') return false
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   }, [])
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(t, dark, darkTone)
+  const sp = crmSugarPalette(dark)
   const accentBlue = dark ? '#A5C0FF' : '#0041D9'
 
   const [q, setQ] = useState('')
@@ -472,8 +469,8 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                 style={{
                   padding: 'var(--crm-space-sm) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-                  background: isActive ? sp.ink : 'transparent',
-                  color: isActive ? sp.pageBg : sp.sub,
+                  background: isActive ? sp.accent : 'transparent',
+                  color: isActive ? sp.accentInk : sp.sub,
                   fontSize: 'var(--crm-text-lg)', fontWeight: isActive ? 700 : 600,
                   fontFamily: 'inherit', letterSpacing: -0.1,
                   transition: 'background .15s ease, color .15s ease',

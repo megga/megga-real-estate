@@ -16,8 +16,7 @@ import type { ExternalListing } from '@/hooks/useExternalMatching'
 import { useExternalListingActions } from '@/hooks/useExternalListingActions'
 import { useSendPropertyEmail } from '@/hooks/useSendEmail'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
 
 const TYPE_KEYS: Record<string, string> = {
@@ -61,9 +60,7 @@ export default function ExternalListingDetailPage() {
     typeof window !== 'undefined' && window.localStorage.getItem('megga.sugar.dark') === '1')
 
   // Chrome Sugar porté ici : cette page vivait sous `AgentLayout`.
-  const darkTone = useDarkTone()
-  const sgT = sugarThemeTokens(dark, darkTone)
-  const sgSp = useMemo(() => crmSugarPalette(sgT, dark, darkTone), [sgT, dark, darkTone])
+  const sgSp = useMemo(() => crmSugarPalette(dark), [dark])
   const onSugarNav = (id: SugarScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
@@ -84,7 +81,7 @@ export default function ExternalListingDetailPage() {
   const chromeOpen = (
     <>
       <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active={'matching' as SugarScreenId} t={sgT} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
+      <SugarTopNav active={'matching' as SugarScreenId} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
     </>
   )
   const rail = (

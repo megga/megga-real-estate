@@ -202,49 +202,27 @@
     /* Font size base (customizable) */
     --font-size-base: 14px;
 
-    /* ─── Grammaire CRM — échelle de formes ────────────────────────────────
+    /* ─── Grammaire CRM — échelle de formes (MEGGA X) ──────────────────────
        Substitue les littéraux dispersés dans les composants : les styles en
-       ligne acceptent var(), donc aucune signature ne bouge et une autre
-       grammaire (MEGGA X resserré, cf. src/components/megga-x-crm/tokens.ts)
-       se pose en surchargeant ce bloc sur un conteneur.
+       ligne acceptent var(), donc aucune signature ne bouge.
 
-       ⚠ L'échelle est NORMALISÉE (décision du 9 août 2026). Le pipeline portait
-       18 tailles de police entre 8 et 30 px avec des demi-pas (10/10.5,
-       12/12.5, 13/13.5) : ce n'était pas une échelle, c'était 18 littéraux.
-       Ramené à 10 barreaux, 31 occurrences sur 85 se déplacent — 0,6 px en
-       moyenne. Les étiquettes à 8 et 9 px disparaissent au passage, ce qui est
-       un gain : illisibles dans un CRM qu'on lit toute la journée.
-       Rayons et gaps suivent la même logique, pour un coût quasi nul
-       (2 rayons et 6 gaps bougent d'1 px). */
+       ⚠ Ces valeurs SONT celles de MEGGA X. Elles vivaient dans un bloc
+       `[data-crm-da="meggax"]` qui surchargeait une échelle Sugar ; la
+       direction Sugar retirée, la surcharge et ses alias `--crm-sugar-*` n'ont
+       plus d'objet et l'échelle est déclarée directement.
 
-    /* Les 16 barreaux que MEGGA X surcharge portent AUSSI un alias `-sugar-`.
-       Il permet à un sous-arbre de redemander Sugar (`[data-crm-da="sugar"]`)
-       sans recopier les valeurs — donc sans qu'elles puissent diverger. Le
-       comparateur en dépend : depuis que MEGGA X est le défaut, <html> le
-       porte, et ses colonnes de référence en hériteraient sans ça. */
-    --crm-sugar-text-xs: 10px;
-    --crm-sugar-text-sm: 11px;
-    --crm-sugar-text-md: 12px;
-    --crm-sugar-text-lg: 13px;
-    --crm-sugar-text-xl: 14px;
-    --crm-sugar-radius-md: 10px;
-    --crm-sugar-radius-xl: 14px;
-    --crm-sugar-radius-3xl: 18px;
-    --crm-sugar-radius-5xl: 22px;
-    --crm-sugar-radius-6xl: 28px;
-    --crm-sugar-space-2xs: 2px;
-    --crm-sugar-space-sm: 6px;
-    --crm-sugar-space-lg: 10px;
-    --crm-sugar-space-2xl: 14px;
-    --crm-sugar-space-4xl: 18px;
-    --crm-sugar-space-6xl: 22px;
+       Corps de texte : un cran au-dessus de l'ancienne échelle Sugar (11→15 au
+       lieu de 10→14) ; les tailles d'AFFICHAGE (16 et au-delà) ne bougent pas,
+       les grossir ferait déborder les titres. Rayons et espacements suivent
+       l'échelle GROSSIÈRE de la vitrine (8/12/16/20/24) là où Sugar en
+       distinguait onze. */
 
     /* Texte — 13 barreaux */
-    --crm-text-xs: var(--crm-sugar-text-xs);
-    --crm-text-sm: var(--crm-sugar-text-sm);
-    --crm-text-md: var(--crm-sugar-text-md);
-    --crm-text-lg: var(--crm-sugar-text-lg);
-    --crm-text-xl: var(--crm-sugar-text-xl);
+    --crm-text-xs: 11px;
+    --crm-text-sm: 12px;
+    --crm-text-md: 13px;
+    --crm-text-lg: 14px;
+    --crm-text-xl: 15px;
     --crm-text-2xl: 16px;
     --crm-text-3xl: 18px;
     --crm-text-4xl: 20px;
@@ -262,101 +240,40 @@
     --crm-radius-2xs: 2px;
     --crm-radius-xs: 4px;
     --crm-radius-sm: 8px;
-    --crm-radius-md: var(--crm-sugar-radius-md);
+    --crm-radius-md: 8px;
     --crm-radius-lg: 12px;
-    --crm-radius-xl: var(--crm-sugar-radius-xl);
+    --crm-radius-xl: 16px;
     --crm-radius-2xl: 16px;
-    --crm-radius-3xl: var(--crm-sugar-radius-3xl);
+    --crm-radius-3xl: 16px;
     --crm-radius-4xl: 20px;
-    --crm-radius-5xl: var(--crm-sugar-radius-5xl);
-    --crm-radius-6xl: var(--crm-sugar-radius-6xl);
+    --crm-radius-5xl: 20px;
+    --crm-radius-6xl: 24px;
     --crm-radius-pill: 999px;
 
     /* Espacements — pas régulier de 2 px, jusqu'à 24.
        Au-delà (56, 64…) ce sont des décalages de mise en page propres à une
        composition, pas du rythme réutilisable : ils restent en littéral. */
-    --crm-space-2xs: var(--crm-sugar-space-2xs);
+    --crm-space-2xs: 4px;
     --crm-space-xs: 4px;
-    --crm-space-sm: var(--crm-sugar-space-sm);
+    --crm-space-sm: 8px;
     --crm-space-md: 8px;
-    --crm-space-lg: var(--crm-sugar-space-lg);
+    --crm-space-lg: 12px;
     --crm-space-xl: 12px;
-    --crm-space-2xl: var(--crm-sugar-space-2xl);
+    --crm-space-2xl: 16px;
     --crm-space-3xl: 16px;
-    --crm-space-4xl: var(--crm-sugar-space-4xl);
+    --crm-space-4xl: 20px;
     --crm-space-5xl: 20px;
-    --crm-space-6xl: var(--crm-sugar-space-6xl);
+    --crm-space-6xl: 24px;
     --crm-space-7xl: 24px;
 
     /* Largeur de la gouttière d'icône : sert aussi à indenter la 2e ligne. */
     --crm-icon-slot: 26px;
-  }
 
-  /* ─── Direction MEGGA X ────────────────────────────────────────────────
-     Porte ce qu'une palette ne peut pas dire : la police et les barreaux de
-     grammaire. Les couleurs passent par `mxCrmPalette()`.
-
-     ⚠ Sélecteur volontairement SANS `:root` — il doit s'appliquer à n'importe
-     quel élément. Posé sur <html> par `setCrmDa()`, il bascule toute
-     l'application ; posé sur un conteneur, il bascule cette région seule, ce
-     dont le comparateur a besoin pour montrer les deux grammaires côte à côte.
-     Les propriétés personnalisées héritent, donc un sous-arbre ne « revient »
-     pas à Sugar : c'est bien une bascule descendante, pas un interrupteur. */
-  [data-crm-da="meggax"] {
+    /* Police du CRM. Lue par la règle `body` — un composant qui écrit une
+       police en dur la court-circuite (garde dans megga-x-crm-tokens.spec). */
     --crm-font: "Inter Tight";
-
-    /* Corps de texte : +1 barreau. C'est le trait que Julien a relevé en
-       comparant — le texte de Sugar est plus petit, donc l'écran « donne
-       l'impression qu'il y a plus de texte ». Les tailles d'AFFICHAGE (16 et
-       au-delà) ne bougent pas : les grossir ferait déborder les titres. */
-    --crm-text-xs: 11px;
-    --crm-text-sm: 12px;
-    --crm-text-md: 13px;
-    --crm-text-lg: 14px;
-    --crm-text-xl: 15px;
-
-    /* Rayons : l'échelle de la vitrine est GROSSIÈRE — 8 / 12 / 16 / 20 / 24
-       là où Sugar en distingue onze, dont 10, 11, 14, 18 et 22. On y ramène,
-       ce qui systématise autant que ça arrondit. */
-    --crm-radius-md: 8px;    /* 10 → 8  */
-    --crm-radius-xl: 16px;   /* 14 → 16 */
-    --crm-radius-3xl: 16px;  /* 18 → 16 */
-    --crm-radius-5xl: 20px;  /* 22 → 20 */
-    --crm-radius-6xl: 24px;  /* 28 → 24 */
-
-    /* Espacements : même coarsening sur 4 / 8 / 12 / 16 / 20 / 24. Le gain
-       d'air vient de là, pas des tailles de texte. */
-    --crm-space-2xs: 4px;    /* 2  → 4  */
-    --crm-space-sm: 8px;     /* 6  → 8  */
-    --crm-space-lg: 12px;    /* 10 → 12 */
-    --crm-space-2xl: 16px;   /* 14 → 16 */
-    --crm-space-4xl: 20px;   /* 18 → 20 */
-    --crm-space-6xl: 24px;   /* 22 → 24 */
   }
 
-  /* Redemander Sugar sur un sous-arbre. Nécessaire depuis que MEGGA X est le
-     défaut : <html> le porte, et les propriétés personnalisées héritent, donc
-     une région ne revient à Sugar qu'en redéclarant. Les alias `--crm-sugar-*`
-     évitent d'en recopier les valeurs — elles ne peuvent pas diverger. */
-  [data-crm-da="sugar"] {
-    --crm-font: "DM Sans";
-    --crm-text-xs: var(--crm-sugar-text-xs);
-    --crm-text-sm: var(--crm-sugar-text-sm);
-    --crm-text-md: var(--crm-sugar-text-md);
-    --crm-text-lg: var(--crm-sugar-text-lg);
-    --crm-text-xl: var(--crm-sugar-text-xl);
-    --crm-radius-md: var(--crm-sugar-radius-md);
-    --crm-radius-xl: var(--crm-sugar-radius-xl);
-    --crm-radius-3xl: var(--crm-sugar-radius-3xl);
-    --crm-radius-5xl: var(--crm-sugar-radius-5xl);
-    --crm-radius-6xl: var(--crm-sugar-radius-6xl);
-    --crm-space-2xs: var(--crm-sugar-space-2xs);
-    --crm-space-sm: var(--crm-sugar-space-sm);
-    --crm-space-lg: var(--crm-sugar-space-lg);
-    --crm-space-2xl: var(--crm-sugar-space-2xl);
-    --crm-space-4xl: var(--crm-sugar-space-4xl);
-    --crm-space-6xl: var(--crm-sugar-space-6xl);
-  }
 
   :root {
     /* Logo filter — no filter in light mode (logo is black) */
@@ -511,10 +428,11 @@
   body {
     background-color: #ffffff;
     color: #1a1a1a;
-    /* La direction MEGGA X change la police ; le repli garde DM Sans si la
-       variable n'est pas posée. 206 des 242 `fontFamily` de crm-sugar valent
-       `inherit`, donc ce seul point suffit à faire cascader la bascule. */
-    font-family: var(--crm-font, "DM Sans"), sans-serif;
+    /* Point unique de la police : 206 des 242 `fontFamily` de crm-sugar valent
+       `inherit`, donc cette seule règle habille tout le CRM. Un composant qui
+       écrit une police en dur la court-circuite — garde dans
+       megga-x-crm-tokens.spec.ts. */
+    font-family: var(--crm-font, "Inter Tight"), sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.35s ease, color 0.35s ease;

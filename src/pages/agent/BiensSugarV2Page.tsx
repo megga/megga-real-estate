@@ -9,10 +9,9 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette, sugarThemeTokens } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import type { CrmBien } from '@/components/crm-sugar/mockData'
-import { galSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
+import { mxSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { BiensPager } from '@/components/crm-sugar/biens/pager/BiensPager'
@@ -34,10 +33,8 @@ export default function BiensSugarV2Page() {
     }
   }, [dark])
 
-  const darkTone = useDarkTone()
-  const t = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(t, dark, darkTone)
-  const surf = galSurfaces(sp, dark)
+  const sp = crmSugarPalette(dark)
+  const surf = mxSurfaces(sp)
 
   // Source de vérité : Supabase via useBiensSugar (RLS agency-scopée).
   const { biens, isLoading, isError, refetch } = useBiensSugar()
@@ -87,7 +84,7 @@ export default function BiensSugarV2Page() {
       }}
     >
       <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active="biens" t={t} sp={sp} onNavigate={onNavigate} dark={dark} />
+      <SugarTopNav active="biens" sp={sp} onNavigate={onNavigate} dark={dark} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <SugarIconRail active="biens" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />

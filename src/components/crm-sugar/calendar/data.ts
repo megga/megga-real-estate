@@ -9,7 +9,7 @@ import { createContext, useContext } from 'react'
 // singleton à l'accès → traduit + réactif au changement de langue, sans changer
 // les sites d'appel `CAL_EVENT_TYPES[x].label`). Cf docs/i18n-conventions §6.
 import i18n from '@/i18n'
-import { CRM_GRAPHITE, crmDarkTone, crmStep } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR, mxCrmPalette } from '@/components/megga-x-crm/tokens'
 
 export interface CalEventTypeColors {
   bg: string
@@ -271,10 +271,10 @@ export const CAL_LIGHT: CalSugarPalette = {
   ghost: '#B5BAC2',
   line: 'rgba(11,12,14,0.06)',
   line2: 'rgba(11,12,14,0.10)',
-  accent: '#0B0C0E',
-  onAccent: '#FFFFFF',
-  ring: '#0B0C0E',
-  black: '#0B0C0E',
+  accent: MXC_COLOR.accent,
+  onAccent: MXC_COLOR.n1000,
+  ring: MXC_COLOR.accent,
+  black: MXC_COLOR.accent,
   todayCol: 'rgba(11,12,14,0.015)',
   nowColor: '#E54D38',
   heroBg: '#0B0C0E',
@@ -298,12 +298,7 @@ export const CAL_LIGHT: CalSugarPalette = {
 
 export const CAL_DARK: CalSugarPalette = {
   bg: '#0A0A0F',
-  get bgGradient() {
-    const G = CRM_GRAPHITE
-    return crmDarkTone() === 'graphite'
-      ? `radial-gradient(ellipse 120% 80% at 50% 0%, ${G.s2} 0%, ${G.s1} 55%, ${G.s0} 100%)`
-      : 'radial-gradient(ellipse 120% 80% at 50% 0%, #14141F 0%, #0D0D14 55%, #0A0A0F 100%)'
-  },
+  bgGradient: `radial-gradient(ellipse 120% 80% at 50% 0%, ${MXC_COLOR.n300} 0%, ${MXC_COLOR.n200} 55%, ${MXC_COLOR.n100} 100%)`,
   // Surfaces NEUTRES (gris quasi-noir) alignées sur Matching / Contacts — voir buildCalPalette.
   card: '#17181A',
   popBg: '#1E1F21',
@@ -316,18 +311,13 @@ export const CAL_DARK: CalSugarPalette = {
   ghost: '#52535A',
   line: 'rgba(255,255,255,0.07)',
   line2: 'rgba(255,255,255,0.11)',
-  accent: '#ECEDF3',
-  onAccent: '#0B0C0E',
-  ring: '#ECEDF3',
-  black: '#ECEDF3',
+  accent: MXC_COLOR.accent,
+  onAccent: MXC_COLOR.n1000,
+  ring: MXC_COLOR.accent,
+  black: MXC_COLOR.accent,
   todayCol: 'rgba(255,255,255,0.03)',
   nowColor: '#FF6A52',
-  get heroBg() {
-    const G = CRM_GRAPHITE
-    return crmDarkTone() === 'graphite'
-      ? `linear-gradient(135deg, ${G.s4} 0%, ${G.s2} 100%)`
-      : 'linear-gradient(135deg, #24262C 0%, #181A1F 100%)'
-  },
+  heroBg: `linear-gradient(135deg, ${MXC_COLOR.n400} 0%, ${MXC_COLOR.n300} 100%)`,
   heroInk: '#ECEDF3',
   heroChip: 'rgba(255,255,255,0.06)',
   heroChipStrong: 'rgba(255,255,255,0.10)',
@@ -351,27 +341,23 @@ export const CAL_DARK: CalSugarPalette = {
  * surfaces (gris quasi-noir) et on reprend fond/encre du thème CRM (`t`) pour
  * rester uniforme avec Matching / Contacts (pas de canal bleu surélevé).
  */
-export function buildCalPalette(
-  dark: boolean,
-  t?: { bg?: string; ink?: string; soft?: string; muted?: string },
-): CalSugarPalette {
+export function buildCalPalette(dark: boolean): CalSugarPalette {
   if (!dark) return CAL_LIGHT
-  const p: CalSugarPalette = { ...CAL_DARK }
-  if (t) {
-    if (t.bg) p.bg = t.bg // fond bento = canvas S0
-    // Surfaces OPAQUES alignées sur l'échelle de la teinte active (littéraux
-    // neutres conservés pour Noir pur). On n'utilise PAS `t.surface`/`t.border`,
-    // qui teintaient tout en bleu-violet.
-    p.card = crmStep('s2', '#17181A') // carte grille
-    p.cardSubtle = crmStep('s3', '#1E1F21') // remplis subtils (boutons toolbar…)
-    p.hoverSubtle = crmStep('s3', '#1E1F21')
-    p.cardHover = crmStep('s4', '#26272A')
-    p.popBg = crmStep('s4', '#1E1F21')
-    if (t.ink) p.ink = t.ink
-    if (t.soft) p.inkSoft = t.soft
-    if (t.muted) p.muted = t.muted
+  const mx = mxCrmPalette(true)
+  return {
+    ...CAL_DARK,
+    bg: mx.pageBg,
+    // Surfaces OPAQUES de MEGGA X. On ne dérive PAS d'un thème : il teintait
+    // tout en bleu-violet, et il n'existe plus.
+    card: MXC_COLOR.n300,
+    cardSubtle: MXC_COLOR.n200,
+    hoverSubtle: MXC_COLOR.n400,
+    cardHover: MXC_COLOR.n400,
+    popBg: MXC_COLOR.n300,
+    ink: mx.ink,
+    inkSoft: mx.soft,
+    muted: mx.sub,
   }
-  return p
 }
 
 /** Context palette — les composants lisent `useCalPalette()` (plus d'import statique). */

@@ -17,7 +17,7 @@
 
 import { useMemo, useRef, useState, type CSSProperties, type JSX, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { crmStep, type SugarPalette } from '@/components/crm-sugar/tokens'
+import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import type { CriteriaInput } from '@/lib/contactCriteria'
 import { NcvIcon, type NcvIconName } from '@/components/crm-sugar/contacts-pager/ncvIcon'
 import { COUNTRIES } from '@/lib/countries'
@@ -106,7 +106,7 @@ const TYPE_COLOR: Record<ContactType, string> = {
 
 function buildC(sp: SugarPalette, dark: boolean): NcbC {
   if (!dark) {
-    const accent = '#0B0C0E'
+    const accent = sp.accent
     return {
       white: '#FFFFFF',
       cardSubtle: '#F6F7F9',
@@ -117,7 +117,7 @@ function buildC(sp: SugarPalette, dark: boolean): NcbC {
       ghost: '#B5BAC2',
       line: 'rgba(15,23,42,0.07)',
       accent,
-      onAccent: '#FFFFFF',
+      onAccent: sp.accentInk,
       ctaGhostBorder: 'rgba(11,12,14,.14)',
       pageBg: sp.pageBg,
       frameBorder: sp.frameBorder,
@@ -147,14 +147,14 @@ function buildC(sp: SugarPalette, dark: boolean): NcbC {
   return {
     white: sp.cardBg,
     cardSubtle: sp.cardSubBg,
-    cardSub2: crmStep('s3', 'rgba(255,255,255,0.07)'),
+    cardSub2: sp.cardSubBg,
     ink: sp.ink,
     inkSoft: sp.soft,
     muted: sp.sub,
     ghost: 'rgba(255,255,255,0.28)',
     line: sp.cardBorder,
-    accent: sp.ink,
-    onAccent: sp.pageBg,
+    accent: sp.accent,
+    onAccent: sp.accentInk,
     ctaGhostBorder: sp.cardBorder,
     pageBg: sp.pageBg,
     frameBorder: sp.frameBorder,
@@ -163,13 +163,13 @@ function buildC(sp: SugarPalette, dark: boolean): NcbC {
     shadowLg: '0 24px 60px -12px rgba(0,0,0,.65), 0 8px 22px -10px rgba(0,0,0,.55)',
     ctaShadow: '0 10px 26px -8px rgba(0,0,0,.6)',
     // popovers/menus flottants = surface opaque du palier haut, jamais de verre
-    popoverBg: crmStep('s4', '#2A2A2A'),
+    popoverBg: sp.solidBg,
     popoverBorder: sp.solidBorder,
     popoverShadow: sp.solidShadow,
     typeColor: TYPE_COLOR,
     dark: true,
     // En sombre, la carte fusionnée reprend le noir de page pour se souder au cadre.
-    surfaceBg: sp.pageBg,
+    surfaceBg: sp.solidBg,
     nameInk: '#FFFFFF',
     nameGhost: 'rgba(255,255,255,0.35)',
     metaIcon: 'rgba(255,255,255,0.75)',
@@ -617,7 +617,7 @@ function PreviewColM({
   onClear: () => void
 }) {
   return (
-    <div style={{ width: 316, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 20px 18px', textAlign: 'center', minHeight: 0, background: C.dark ? crmStep('s2', C.surfaceBg) : 'transparent', borderRadius: 'var(--crm-radius-2xl)' }}>
+    <div style={{ width: 316, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 20px 18px', textAlign: 'center', minHeight: 0, background: C.dark ? C.cardSub2 : 'transparent', borderRadius: 'var(--crm-radius-2xl)' }}>
       <NcbPhotoPickerM C={C} photo={photo} initials={initials} color={tint} onPick={onPick} onClear={onClear} addLabel={labels.addPhoto} removeLabel={labels.removePhoto} />
       <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, color: fullName ? C.nameInk : C.nameGhost, marginTop: 14 }}>
         {fullName || labels.namePlaceholder}
@@ -926,7 +926,7 @@ export default function NewContactModal({
       {focusCss}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         {/* Panneau = palier « cadre » ; la colonne d'aperçu se pose un cran au-dessus. */}
-        <div style={{ flex: 1, display: 'flex', padding: 'var(--crm-space-3xl)', gap: 'var(--crm-space-7xl)', minHeight: 0, borderRadius: 'var(--crm-radius-6xl)', background: C.dark ? crmStep('s1', C.surfaceBg) : C.surfaceBg, boxShadow: C.cardShadow }}>
+        <div style={{ flex: 1, display: 'flex', padding: 'var(--crm-space-3xl)', gap: 'var(--crm-space-7xl)', minHeight: 0, borderRadius: 'var(--crm-radius-6xl)', background: C.surfaceBg, boxShadow: C.cardShadow }}>
 
           {/* Aperçu vivant — se remplit pendant la saisie */}
           <PreviewColM

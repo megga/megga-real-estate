@@ -20,9 +20,8 @@ import { useTranslation } from 'react-i18next'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
 import { fmtDateTime } from '@/components/crm-sugar-v3/tokens'
 import {
-  CRM_STAGE_ORDER, crmSugarPalette, sugarThemeTokens, type StageId,
+  CRM_STAGE_ORDER, crmSugarPalette, type StageId,
 } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
 import { mapTransactionStageToStepper } from '@/components/crm-sugar-v3/dealStepper'
 import OfferModalSugar from '@/components/crm-sugar-v3/offer-modal/OfferModalSugar'
 import {
@@ -262,9 +261,7 @@ export default function DealDetailSugarV4Page() {
   }, [dark])
 
   const p = dark ? DsDARK : DsLIGHT
-  const darkTone = useDarkTone()
-  const tk = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(tk, dark, darkTone)
+  const sp = crmSugarPalette(dark)
 
   const { data: deal, isLoading, isError, error } = useTransaction(id)
   const { data: contact } = useContact(deal?.contact_buyer_id ?? undefined)
@@ -350,7 +347,7 @@ export default function DealDetailSugarV4Page() {
         .ds-scroll::-webkit-scrollbar { width: 10px; }
         .ds-scroll::-webkit-scrollbar-thumb { background: ${p.ghost}; border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
       `}</style>
-      <SugarTopNav active="pipeline" t={tk} sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
+      <SugarTopNav active="pipeline" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <SugarIconRail active="pipeline" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         <main style={{

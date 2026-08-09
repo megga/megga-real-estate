@@ -20,9 +20,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette, sugarThemeTokens, type StageId,
+  CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette, type StageId,
 } from '@/components/crm-sugar/tokens'
-import { useDarkTone } from '@/hooks/useDarkTone'
 import { type CrmDeal } from '@/components/crm-sugar/mockData'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useLogAudit } from '@/hooks/useAuditLog'
@@ -83,9 +82,7 @@ export default function PipelineSugarV2Page() {
     }
   }, [dark])
 
-  const darkTone = useDarkTone()
-  const tk = sugarThemeTokens(dark, darkTone)
-  const sp = crmSugarPalette(tk, dark, darkTone)
+  const sp = crmSugarPalette(dark)
 
   const [view, setView] = useState<PipelineView>('kanban')
   const [newDealOpen, setNewDealOpen] = useState(false)
@@ -512,7 +509,7 @@ export default function PipelineSugarV2Page() {
         .sgPipeBoard::-webkit-scrollbar-corner{background:transparent}
       `}</style>
 
-      <SugarTopNav active="pipeline" t={tk} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
+      <SugarTopNav active="pipeline" sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <SugarIconRail active="pipeline" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />

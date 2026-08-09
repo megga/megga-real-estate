@@ -571,7 +571,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
             <span style={{ fontSize: 'var(--crm-text-lg)', color: TK.inkDim, fontWeight: 700 }}>{t('today.relance.undo.discarded', { name: undo.name })}</span>
             <button onClick={undoDiscard} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 32, padding: '0 var(--crm-space-2xl)',
               borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800,
-              background: '#F2F2F6', color: '#0A0A0F' }}>
+              background: TK.accent, color: TK.accentInk }}>
               {t('today.relance.undo.cancel')}
             </button>
           </div>

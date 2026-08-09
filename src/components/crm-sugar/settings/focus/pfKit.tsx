@@ -39,15 +39,15 @@ export function PfChip({ name, c, size = 34 }: { name: PfIconName; c: PfColors; 
 
 function PfSeal({ c, label }: { c: PfColors; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', height: 24, padding: '0 var(--crm-space-lg) 0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: c.blue, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
-      <PfIc name="seal" size={13} stroke="#fff" sw={1.9} />{label}
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', height: 24, padding: '0 var(--crm-space-lg) 0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: c.seal.bg, color: c.seal.ink, fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+      <PfIc name="seal" size={13} stroke={c.seal.ink} sw={1.9} />{label}
     </span>
   )
 }
 
 function PfTag({ c, label }: { c: PfColors; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, background: c.orange, color: '#fff' }}>{label}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, background: c.tag.bg, color: c.tag.ink }}>{label}</span>
   )
 }
 
@@ -149,7 +149,7 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
       ) : row.locked ? (
         <span title={row.hint} style={{ display: 'inline-flex' }}><PfIc name="lock" size={15} stroke={c.ghost} /></span>
       ) : saved ? (
-        <span className="pfx-ctrl-in" style={{ display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: c.green, color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <span className="pfx-ctrl-in" style={{ display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: c.saved.bg, color: c.saved.ink, fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
           {labels.saved}
         </span>
       ) : (
