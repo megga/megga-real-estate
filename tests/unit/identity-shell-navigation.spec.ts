@@ -626,6 +626,18 @@ describe('resolveIdentityScreen - ce que la route rend, sans clignotement', () =
     expect(resolveIdentityScreen(true, false, true, true)).toBe('wizard')
   })
 
+  // Soumission : terminal, passe avant tout — y compris l'écran d'attente.
+  it('dossier soumis -> l\'écran de confirmation, quel que soit le reste', () => {
+    expect(resolveIdentityScreen(null, false, false, false, true)).toBe('submitted')
+    expect(resolveIdentityScreen(true, false, false, true, true)).toBe('submitted')
+    expect(resolveIdentityScreen(true, false, true, false, true)).toBe('submitted')
+  })
+
+  it('sans soumission, le cinquième argument ne change rien (défaut false)', () => {
+    expect(resolveIdentityScreen(true, true, false, false, false)).toBe('wizard')
+    expect(resolveIdentityScreen(true, true, false)).toBe('wizard')
+  })
+
   it('sans retour en cours, le quatrième argument ne change rien (défaut false)', () => {
     expect(resolveIdentityScreen(true, false, false, false)).toBe('welcome')
     expect(resolveIdentityScreen(true, false, false)).toBe('welcome')

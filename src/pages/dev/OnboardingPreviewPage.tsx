@@ -229,6 +229,10 @@ const ECRANS: Ecran[] = [
   // Retour du prestataire d'identité. Le sceau ne s'affiche que sur le dossier
   // « Vérifié » : c'est le statut de la personne, pas l'écran, qui le décide.
   { id: 'retour', label: 'Retour de Stripe', groupe: 'Wizard identité', route: '/dashboard/identite?verification=done', render: wizard({ screen: 'verificationReturn' }) },
+  // ⚠ Le lien Meet de la fixture n'existe PAS en production tant qu'aucun agenda
+  // d'hôte n'est branché (cf. l'en-tête d'IdentitySubmittedScreen) : cet aperçu
+  // montre donc l'écran dans sa forme COMPLÈTE, celle que #1168 rendra atteignable.
+  { id: 'soumis', label: 'Dossier soumis', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'submitted' }) },
   { id: 'mobile', label: 'Invitation ordinateur', groupe: 'Mobile (< 768 px)', route: '/dashboard/identite', render: () => <IdentityMobileNotice /> },
   { id: 'call', label: 'Réserver l’appel d’accueil', groupe: 'Après le wizard', route: '/dashboard/rendez-vous-accueil', render: () => <OnboardingCallPage /> },
   { id: 'kyc', label: 'Première ouverture KYC', groupe: 'Après le wizard', route: '/dashboard/kyc/bienvenue', render: () => <KycOnboardingPage /> },

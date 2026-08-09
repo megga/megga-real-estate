@@ -24,6 +24,16 @@
       "bookCta": "Prenota un orario",
       "retryCta": "Riprendi la verifica"
     },
+    "submitted": {
+      "title": "La Sua pratica è partita",
+      "body": "Il nostro team compliance la esamina. Le scriviamo via e-mail.",
+      "callWith": "{{minutes}} min con {{host}}",
+      "copy": "Copia il link",
+      "copied": "Link copiato",
+      "linkByEmail": "Il link della videoconferenza Le arriva via e-mail.",
+      "noCall": "Nessun appuntamento è ancora fissato. Le scriveremo appena si libera un orario.",
+      "enterCta": "Vai al mio spazio"
+    },
     "pendingNotice": {
       "title": "La Sua compilazione è in pausa",
       "body": "Ogni passaggio confermato è già salvato. Torni quando desidera, ritroverà la Sua compilazione.",

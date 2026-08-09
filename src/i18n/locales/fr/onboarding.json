@@ -24,6 +24,16 @@
       "bookCta": "Réserver un créneau",
       "retryCta": "Reprendre la vérification"
     },
+    "submitted": {
+      "title": "Votre dossier est parti",
+      "body": "Notre équipe conformité l'examine. Nous revenons vers vous par e-mail.",
+      "callWith": "{{minutes}} min avec {{host}}",
+      "copy": "Copier le lien",
+      "copied": "Lien copié",
+      "linkByEmail": "Le lien de visioconférence vous parvient par e-mail.",
+      "noCall": "Aucun rendez-vous n'est encore fixé. Nous vous écrirons dès qu'un créneau s'ouvre.",
+      "enterCta": "Aller à mon espace"
+    },
     "pendingNotice": {
       "title": "Votre saisie est en pause",
       "body": "Chaque étape validée est déjà enregistrée. Revenez quand vous voulez, vous retrouverez votre saisie.",

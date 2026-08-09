@@ -24,6 +24,16 @@
       "bookCta": "Termin buchen",
       "retryCta": "Prüfung wieder aufnehmen"
     },
+    "submitted": {
+      "title": "Ihr Dossier ist unterwegs",
+      "body": "Unser Compliance-Team prüft es. Wir melden uns per E-Mail.",
+      "callWith": "{{minutes}} Min. mit {{host}}",
+      "copy": "Link kopieren",
+      "copied": "Link kopiert",
+      "linkByEmail": "Den Link zur Videokonferenz erhalten Sie per E-Mail.",
+      "noCall": "Es ist noch kein Termin festgelegt. Wir schreiben Ihnen, sobald ein Zeitfenster frei wird.",
+      "enterCta": "Zu meinem Bereich"
+    },
     "pendingNotice": {
       "title": "Ihre Erfassung ist unterbrochen",
       "body": "Jeder bestätigte Schritt ist bereits gespeichert. Kommen Sie zurück, wann Sie möchten: Ihre Angaben bleiben erhalten.",

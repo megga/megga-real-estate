@@ -89,6 +89,7 @@ import {
 import { useMyOnboardingCall, browserTimezone } from '@/hooks/useOnboardingCall'
 import type { OcBookingState } from '@/components/onboarding-call/OcBooking'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
+import IdentitySubmittedScreen from './IdentitySubmittedScreen'
 import IdentityVerificationReturnScreen from './IdentityVerificationReturnScreen'
 import { StepSignataire } from './steps/StepSignataire'
 import { StepAgence } from './steps/StepAgence'
@@ -492,7 +493,7 @@ export function shouldResetAttestationLeavingRecap(previousStep: number, nextSte
  * disparaissait sous elle. Un écran d'attente neutre ne porte aucun des deux
  * repères, donc rien à attraper trop tôt.
  */
-export type IdentityScreen = 'preparing' | 'welcome' | 'wizard' | 'verificationReturn'
+export type IdentityScreen = 'preparing' | 'welcome' | 'wizard' | 'verificationReturn' | 'submitted'
 
 /**
  * La question est-elle seulement posable ? Tant qu'une lecture est en cours —
@@ -517,7 +518,14 @@ export function resolveIdentityScreen(
    * ce qui est l'état de tout chargement ordinaire de la route.
    */
   showVerificationReturn = false,
+  /**
+   * Le dossier vient d'être soumis. TERMINAL : passe avant tout le reste, y compris
+   * l'écran d'attente — une fois la RPC acquittée, plus aucune donnée en cours de
+   * chargement ne peut remettre le parcours en question.
+   */
+  submitted = false,
 ): IdentityScreen {
+  if (submitted) return 'submitted'
   // AVANT l'arrivée, APRÈS l'attente. L'ordre est le fond de la règle : on ne peut pas
   // annoncer un verdict tant que la décision d'écran n'est pas prise (mêmes données non
   // stabilisées, même clignotement que l'incident du 01.08.2026), mais quelqu'un qui
@@ -977,15 +985,18 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
    */
   const [searchParams, setSearchParams] = useSearchParams()
   const [retourConsomme, setRetourConsomme] = useState(false)
+  /** Le dossier est parti. État local et non une route : sortir d'ici rejouerait la boucle P0. */
+  const [soumis, setSoumis] = useState(false)
   const retourVerification = (searchParams.get('verification') === 'done' || preview?.screen === 'verificationReturn')
     && !retourConsomme
+  const soumisAffiche = soumis || preview?.screen === 'submitted'
   const quitterRetour = (target: number) => {
     setRetourConsomme(true)
     setSearchParams({}, { replace: true })
     setStep(clampIdentityStep(target, SG_IDENTITY_STEPS.length))
   }
 
-  const ecran = resolveIdentityScreen(welcomeDecision, welcomeDismissed, showExitScreen, retourVerification)
+  const ecran = resolveIdentityScreen(welcomeDecision, welcomeDismissed, showExitScreen, retourVerification, soumisAffiche)
 
   // Rappel borné du statut tant qu'on attend le webhook (cf. RETOUR_SONDAGE_MS).
   // `invalidateQueries` plutôt qu'un refetch exposé par le hook : la clé est déjà
@@ -1301,6 +1312,12 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
     setError(null)
     try {
       await submit(signatoryId)
+      // Le parcours se ferme sur un écran, plus sur une redirection muette vers
+      // /dashboard (choix du 04.08.2026, renversé le 10.08). Le dirigeant vient de
+      // soumettre un dossier de conformité : lui dire ce qu'il devient, et où a lieu
+      // son rendez-vous, vaut mieux que de l'éjecter dans un CRM vide.
+      setSoumis(true)
+      return
       // Le dashboard, désormais — et non plus l'écran de réservation. Ce détour
       // existait parce qu'une agence qui venait de soumettre son dossier atterrissait
       // dans un CRM vide sans que personne chez MEGGA ne la contacte ; depuis le 4 août
@@ -1345,6 +1362,15 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
   // ni fond Sugar. Il porte la peau de la vitrine (cf. son en-tête), et la bascule
   // vers Sugar se fait au clic sur Commencer. Placé APRÈS tous les hooks — un
   // retour anticipé au-dessus d'eux changerait leur ordre d'un rendu à l'autre.
+  if (ecran === 'submitted') {
+    return (
+      <IdentitySubmittedScreen
+        rendezVous={bookedCall.data ?? null}
+        timezone={rendezVousTimezone}
+        onEnter={() => navigate('/dashboard')}
+      />
+    )
+  }
   if (ecran === 'preparing') return <IdentityPreparingScreen />
   if (ecran === 'verificationReturn') {
     return (
