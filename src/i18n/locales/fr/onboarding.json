@@ -304,7 +304,9 @@
       "firstName": "Prénom",
       "lastName": "Nom",
       "email": "E-mail",
-      "whatsapp": "Numéro WhatsApp"
+      "whatsapp": "Numéro WhatsApp",
+      "dialCode": "Indicatif",
+      "whatsappPlaceholder": "79 874 94 84"
     },
     "actions": {
       "confirm": "Confirmer le rendez-vous",

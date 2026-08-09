@@ -37,7 +37,7 @@ import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { MxDatePicker, MxField, MxInput, MxSelect, MxRadio } from '@/components/megga-x'
-import { COUNTRIES } from '@/lib/countries'
+import { countriesInLanguage } from '@/lib/countries'
 import { AGENCY_DECLARED_ROLES, type AgencyDeclaredRole } from '@/hooks/useAgencyIdentity'
 import { SG_IDENTITY_DATE_LABELS, identityMaxBirthDate } from '../tokens'
 import type { SignataireDraft } from '../IdentityShell'
@@ -49,7 +49,7 @@ interface StepSignataireProps {
 
 /** Étape 1 du wizard identité : identité et rôle de la personne qui saisit le dossier. */
 export function StepSignataire({ value, onChange }: StepSignataireProps) {
-  const { t } = useTranslation('onboarding')
+  const { t, i18n } = useTranslation('onboarding')
   // Ce que fait chaque rôle : replié par défaut. La question se répond sans lire —
   // les quatre rôles sont ceux du CRM, un dirigeant sait lequel est le sien — et
   // les quatre définitions dépliées valaient à elles seules la moitié de l'étape.
@@ -70,9 +70,9 @@ export function StepSignataire({ value, onChange }: StepSignataireProps) {
   const nationalityOptions = useMemo(
     () => [
       { value: '', label: t('wizard.signataire.fields.nationalityPlaceholder') },
-      ...COUNTRIES.map((c) => ({ value: c.code, label: c.name })),
+      ...countriesInLanguage(i18n.language).map((c) => ({ value: c.code, label: c.name })),
     ],
-    [t],
+    [t, i18n.language],
   )
 
   return (

@@ -22,11 +22,12 @@
  *
  * HABILLAGE : MEGGA X. Suppose d'être rendu dans un conteneur `<MeggaX>`.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MxButton, MxField, MxInput, MxLink, MxSelect } from '@/components/megga-x'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencyIdentity } from '@/hooks/useAgencyIdentity'
+import { COUNTRY_DIAL_CODES, PHONE_EXAMPLES, countryForDialCode, dialCodeOptions, splitDialCode } from '@/lib/countries'
 import OcSlotPicker from './OcSlotPicker'
 import OcBookedCard from './OcBookedCard'
 import { dayKeyOf } from './ocDates'
@@ -76,7 +77,7 @@ function monthBounds(month: Date): { from: string; to: string } {
 }
 
 export default function OcBooking({ onStateChange, secondaryAction }: OcBookingProps) {
-  const { t } = useTranslation('onboarding')
+  const { t, i18n } = useTranslation('onboarding')
 
   // Le fuseau du navigateur n'est qu'un POINT DE DÉPART : un dirigeant en déplacement,
   // ou qui reçoit un associé à l'étranger, doit pouvoir lire les créneaux dans le fuseau
@@ -87,7 +88,33 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
   const [month, setMonth] = useState(() => new Date())
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
-  const [phone, setPhone] = useState('')
+  /**
+   * Le numéro WhatsApp, en DEUX contrôles : l'indicatif se choisit, le reste se tape.
+   *
+   * Un champ libre laissait arriver « 079 874 94 84 », « 0041 79… » et « +41 79… » dans
+   * la même colonne — or c'est un numéro d'ENVOI, pas une note : la passerelle attend un
+   * format international, et un zéro de tête suisse ne s'y traduit pas tout seul.
+   *
+   * Suisse par défaut, parce que c'est le marché ; la liste suit l'ordre des pays et non
+   * celui des indicatifs, un dirigeant cherchant son pays par son nom.
+   */
+  const [paysTel, setPaysTel] = useState('CH')
+  const [numeroLocal, setNumeroLocal] = useState('')
+  const indicatif = `+${COUNTRY_DIAL_CODES[paysTel] ?? '41'}`
+  // 195 options traduites et RETRIÉES : sans mémoïsation, la liste entière serait
+  // reconstruite à chaque frappe dans les champs voisins.
+  const optionsIndicatif = useMemo(() => dialCodeOptions(i18n.language), [i18n.language])
+  // Ce qui part à l'edge : la concaténation, jamais les deux morceaux. Le zéro de tête
+  // (079…) est retiré — il n'existe qu'en composition nationale et casserait le numéro
+  // une fois l'indicatif devant.
+  const phone = numeroLocal.trim() === '' ? '' : `${indicatif}${numeroLocal.replace(/\D/g, '').replace(/^0+/, '')}`
+  const setPhone = (valeur: string) => {
+    const { dial, local } = splitDialCode(valeur)
+    const iso = dial ? countryForDialCode(dial) : null
+    if (iso) setPaysTel(iso)
+    setNumeroLocal(local)
+  }
+  const telPrerempli = useRef(false)
   const [note, setNote] = useState('')
 
   // Deux temps, comme le plan de référence : on choisit QUAND, puis on dit QUI.
@@ -142,7 +169,14 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
     setPrenom((p) => p || parts[0] || '')
     setNom((n) => n || parts.slice(1).join(' '))
     setEmail((e) => e || profile.email || '')
-    setPhone((t) => t || profile.phone || '')
+    // `setPhone` n'est plus un setter d'état mais un décomposeur (indicatif + local) :
+    // il ne prend pas de fonction de mise à jour, et lire `numeroLocal` ici ferait de
+    // lui une dépendance de l'effet — donc un préremplissage rejoué à chaque frappe.
+    // Un drapeau de passage, posé une fois : le profil ne remplit QUE le champ vierge.
+    if (profile.phone && !telPrerempli.current) {
+      telPrerempli.current = true
+      setPhone(profile.phone)
+    }
   }, [profile])
 
   // ÉCRASE le repli dès que le signataire vérifié est connu — `setPrenom(p => p || …)`
@@ -359,7 +393,22 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
                   confirmations dans le vide. */}
               <MxField className="mg-top-4x-extra-small" label={t('call.form.whatsapp')}>
                 {(id) => (
-                  <MxInput id={id} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  // `mx-equal-columns` (point 13) : sans lui, `1fr` cède devant la largeur
+                  // intrinsèque du <select>, et la colonne du numéro se fait écraser par
+                  // la plus longue option de la liste.
+                  <div className="grid-2-columns mx-equal-columns" style={{ gridTemplateColumns: 'minmax(0, 11rem) minmax(0, 1fr)' }}>
+                    <MxSelect
+                      value={paysTel}
+                      onChange={(e) => setPaysTel(e.target.value)}
+                      options={optionsIndicatif}
+                      aria-label={t('call.form.dialCode')}
+                    />
+                    {/* L'exemple suit le pays : le groupement des chiffres n'est pas
+                        décoratif, il diffère d'un pays à l'autre et c'est lui qu'on
+                        recopie. Vide pour un pays dont le format n'a pas été vérifié —
+                        cf. PHONE_EXAMPLES, un exemple faux vaut moins que pas d'exemple. */}
+                    <MxInput id={id} type="tel" inputMode="tel" value={numeroLocal} onChange={(e) => setNumeroLocal(e.target.value)} placeholder={PHONE_EXAMPLES[paysTel] ?? ''} />
+                  </div>
                 )}
               </MxField>
 

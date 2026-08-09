@@ -51,7 +51,7 @@ import {
   MxAddressAutocomplete, MxCompanySearch, MxField, MxFrenchAddressField, MxFrenchCompanyField,
   MxInput, MxSelect,
 } from '@/components/megga-x'
-import { COUNTRIES } from '@/lib/countries'
+import { countriesInLanguage } from '@/lib/countries'
 import { CANTONS } from '@/lib/constants'
 import { useLegalForms } from '@/hooks/useLegalForms'
 import { SG_IDENTITY_ADDRESS_LABELS, SG_IDENTITY_COMPANY_LABELS, SG_IDENTITY_FR_COMPANY_LABELS } from '../tokens'
@@ -72,11 +72,11 @@ interface StepAgenceProps {
  * mélangées, suffixées du code pays) — exactement l'ambiguïté que ce hook existe
  * pour éviter.
  */
-const AGENCY_COUNTRIES = COUNTRIES.filter((c) => c.code === 'CH' || c.code === 'FR' || c.code === 'LI')
+const AGENCY_COUNTRY_CODES = ['CH', 'FR', 'LI']
 
 /** Étape 2 du wizard identité : formulaire de l'identité légale de l'agence. */
 export function StepAgence({ value, onChange }: StepAgenceProps) {
-  const { t } = useTranslation('onboarding')
+  const { t, i18n } = useTranslation('onboarding')
 
   // Filtrée par le pays du siège COURANT du brouillon (pas encore persisté tant que
   // l'étape n'est pas complète) — c'est la dépendance d'ordre n°1 du brief.
@@ -120,7 +120,7 @@ export function StepAgence({ value, onChange }: StepAgenceProps) {
   // la vitrine fait de même (contact.html, « Choisissez un sujet… »).
   const countryOptions = [
     { value: '', label: t('wizard.agence.fields.countryPlaceholder') },
-    ...AGENCY_COUNTRIES.map((c) => ({ value: c.code, label: c.name })),
+    ...countriesInLanguage(i18n.language).filter((c) => AGENCY_COUNTRY_CODES.includes(c.code)).map((c) => ({ value: c.code, label: c.name })),
   ]
   const legalFormSelectOptions = [
     {

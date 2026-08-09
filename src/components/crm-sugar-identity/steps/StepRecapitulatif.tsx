@@ -43,7 +43,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { MxButton, MxCheckbox } from '@/components/megga-x'
-import { COUNTRIES } from '@/lib/countries'
+import { countryName as countryLabel } from '@/lib/countries'
 import { useLegalForms } from '@/hooks/useLegalForms'
 import {
   identityDocumentSidesFor, isIdentityVerificationSufficient,
@@ -84,10 +84,14 @@ interface StepRecapitulatifProps {
   onEditStep: (step: number) => void
 }
 
-/** Libellé français du code pays (COUNTRIES) — même limitation « FR seulement » déjà acceptée ailleurs dans ce wizard (cf. en-tête de StepAgence.tsx). Code vide/inconnu -> chaîne vide ou le code lui-même, jamais "undefined" affiché. */
-function countryName(code: string | null): string {
+/**
+ * Libellé du code pays dans la langue de l'agent. Délègue à `countryName` de
+ * lib/countries : français verbatim du design, autres langues via Intl (cf. son
+ * JSDoc). La limitation « FR seulement » notée ici jusqu'au 9 août 2026 est levée.
+ */
+function countryNameIn(code: string | null, language: string): string {
   if (!code) return ''
-  return COUNTRIES.find((c) => c.code === code)?.name ?? code
+  return countryLabel(code, language)
 }
 
 /**
@@ -124,7 +128,7 @@ export function StepRecapitulatif({
   rendezVous, rendezVousTimezone,
   attestationChecked, onAttestationChange, onEditStep,
 }: StepRecapitulatifProps) {
-  const { t } = useTranslation('onboarding')
+  const { t, i18n } = useTranslation('onboarding')
   // Même requête (clé ['legal-forms', code]) que StepAgence pour ce même pays — déjà
   // chargée par l'étape agence, donc résolue en pratique dès qu'on atteint le récapitulatif.
   const { options: legalFormOptions } = useLegalForms(agencyDraft.country)
@@ -142,7 +146,7 @@ export function StepRecapitulatif({
           <RecapRow label={t('wizard.signataire.fields.firstName')} value={signataire.firstName} />
           <RecapRow label={t('wizard.signataire.fields.lastName')} value={signataire.lastName} />
           <RecapRow label={t('wizard.signataire.fields.dateOfBirth')} value={birthDate(signataire.dateOfBirth)} />
-          <RecapRow label={t('wizard.signataire.fields.nationality')} value={countryName(signataire.nationality)} />
+          <RecapRow label={t('wizard.signataire.fields.nationality')} value={countryNameIn(signataire.nationality, i18n.language)} />
           <RecapRow
             label={t('wizard.signataire.fields.agencyRole')}
             value={signataire.agencyRole ? t(`wizard.signataire.agencyRole.${signataire.agencyRole}`) : ''}
@@ -150,7 +154,7 @@ export function StepRecapitulatif({
         </RecapSection>
 
         <RecapSection title={t('wizard.steps.agence')} onEdit={() => onEditStep(1)}>
-          <RecapRow label={t('wizard.agence.fields.country')} value={countryName(agencyDraft.country)} />
+          <RecapRow label={t('wizard.agence.fields.country')} value={countryNameIn(agencyDraft.country, i18n.language)} />
           <RecapRow label={t('wizard.agence.fields.legalFormId')} value={legalFormLabel} />
           <RecapRow label={t('wizard.agence.fields.legalName')} value={agencyDraft.legal} />
           <RecapRow label={t('wizard.agence.fields.businessRegistrationNumber')} value={agencyDraft.businessRegistrationNumber} />

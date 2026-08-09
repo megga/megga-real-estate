@@ -1189,7 +1189,9 @@
   width: 96px;
   height: auto;
   filter: brightness(0) invert(1);
+}
 
+/* ───────────────────────────────────────────────────────────────────────────
  * 19. Choix courts en rangée, et leur définition repliée derrière un « i ».
  *
  *     « Votre rôle dans l'agence » posait quatre cartes portant chacune un
@@ -1288,8 +1290,6 @@
 
 .megga-x .mx-role-help__list dd {
   margin: 0;
-}
-
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
