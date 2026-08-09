@@ -121,6 +121,18 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
   ) ?? null
   const identiteVerrouillee = signataireVerifie != null
 
+  /**
+   * L'e-mail est VERROUILLÉ dès qu'on en tient un : ce n'est pas une saisie, c'est
+   * l'adresse du compte, confirmée à l'inscription et par laquelle le dirigeant est
+   * authentifié à l'instant même. La laisser modifiable permettait d'envoyer la
+   * confirmation ailleurs que là où la session existe.
+   *
+   * ⚠ Conditionné à la présence de l'adresse, et pas seulement au fait d'être connecté.
+   * Le champ est EXIGÉ (identiteComplete) : le verrouiller vide ferait un cul-de-sac —
+   * un bouton Confirmer inerte au-dessus d'un champ qu'on ne peut pas remplir.
+   */
+  const emailVerrouille = (profile?.email ?? '').trim() !== ''
+
   const [prenom, setPrenom] = useState('')
   const [nom, setNom] = useState('')
   const [email, setEmail] = useState('')
@@ -339,7 +351,7 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
               </div>
 
               <MxField className="mg-top-4x-extra-small" label={t('call.form.email')}>
-                {(id) => <MxInput id={id} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />}
+                {(id) => <MxInput id={id} type="email" value={email} onChange={(e) => setEmail(e.target.value)} readOnly={emailVerrouille} />}
               </MxField>
 
               {/* Le SEUL champ qui n'est pas prérempli : le profil ne porte pas de numéro
