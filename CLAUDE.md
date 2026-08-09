@@ -103,29 +103,28 @@ npm run lint         # ESLint
 
 > Patterns détaillés (composants, exemples TSX) : voir [docs/design-system.md](docs/design-system.md)
 
-**🎨 DIRECTION PAR DÉFAUT = MEGGA X (depuis le 9 août 2026, [PR #1191](https://github.com/megga/megga-real-estate/pull/1191)).**
-Le CRM s'aligne sur la vitrine et l'onboarding : plus de rupture visuelle à la
-porte d'entrée. **Sugar reste entièrement résolvable** et choisissable par
-l'agent — Réglages › Apparence › Direction, persisté en LOCAL (`megga.da`), hook
-[useCrmDa.ts](src/hooks/useCrmDa.ts) calqué sur `useDarkTone`. Tout ce qui suit
-sur Sugar Pure et Graphite reste donc VRAI, mais décrit la direction alternative,
-plus le défaut.
+**🎨 DIRECTION UNIQUE = MEGGA X (depuis le 10 août 2026, [PR #1194](https://github.com/megga/megga-real-estate/pull/1194)).**
+**Sugar est SUPPRIMÉE** — il n'y a plus de choix, plus de préférence `megga.da`,
+plus de hook `useCrmDa`, plus d'attribut `<html data-crm-da>`, plus de blocs CSS
+`[data-crm-da="…"]` ni d'alias `--crm-sugar-*`. Tout ce qui parle de Sugar Pure,
+de Graphite ou d'une direction alternative dans ce document ou dans le cerveau
+décrit désormais le PASSÉ.
 
-Mécanique en trois points, à connaître avant de toucher au style :
-1. **Couleurs** — `crmSugarPalette()` délègue à `mxCrmPalette()`. La délégation
-   est faite LÀ, pas aux 33 points de construction, puisque tous transmettent
-   ensuite la palette en prop : aucun composant ne change. ⚠ Un test d'une
-   propriété de Sugar (échelle Graphite) DOIT épingler `da: 'sugar'` en 4ᵉ
-   argument, sinon il vérifie les surfaces de la vitrine sans le dire.
-2. **Police et grammaire** — variables CSS sur `[data-crm-da="meggax"]`, **sans
-   `:root`** : les propriétés personnalisées héritent, donc le sélecteur vaut
-   sur `<html>` (toute l'app) comme sur un conteneur (une région). ⚠ Corollaire :
-   une région ne revient à Sugar qu'en REDÉCLARANT (`[data-crm-da="sugar"]`).
-3. **Grammaire tokenisée** — rayons, espacements et tailles de texte ne sont
-   plus des littéraux : ~4200 valeurs sont passées en variables CSS sur 161
-   fichiers (`crm-sugar`, `crm-sugar-v3`, `crm-sugar-wizard`, `crm-mobile`,
-   `admin`), échelle normalisée à 13 barreaux de texte. **Écrire un littéral de
-   rayon/espacement/taille dans un composant est désormais une régression.**
+Mécanique, à connaître avant de toucher au style :
+1. **Couleurs** — `crmSugarPalette(dark)` rend `mxCrmPalette(dark)`. Le nom a
+   survécu à la direction qu'il servait (33 points de construction et le type
+   `SugarPalette`) ; le renommer est un geste lexical à part.
+2. **Police et grammaire** — variables CSS déclarées dans le `:root` de
+   [globals.css](src/styles/globals.css). Elles étaient une surcharge posée sur
+   un sélecteur de direction ; la direction retirée, elles SONT l'échelle.
+3. **Grammaire tokenisée** — rayons, espacements et tailles de texte ne sont pas
+   des littéraux : ~4200 valeurs en variables CSS sur 161 fichiers, échelle
+   normalisée à 13 barreaux de texte. **Écrire un littéral de rayon/espacement/
+   taille dans un composant est une régression.**
+4. **L'élément ACTIF porte l'accent `#424bfb`** (décision Julien, 10 août 2026).
+   Remplace la règle Sugar Pure « l'accent EST l'encre », qui peignait l'actif en
+   encre inversée — donc en non-couleur. ⚠ Exception : la pastille d'avatar est
+   déjà l'accent, son état ouvert garde `sp.ink` pour contraster.
 
 **Où vit quoi** — la distinction compte pour ne pas créer une seconde échelle :
 [megga-x-crm/tokens.ts](src/components/megga-x-crm/tokens.ts) ne porte que la
@@ -145,45 +144,49 @@ ont été retirées le 9 août 2026, la direction étant tranchée.
 
 **Direction :** Minimal, transparent, professionnel (Linear/Notion style). Dark/light mode sur dashboard agent.
 
-**⚠ Sugar Pure (Pipeline v2, juillet 2026)** : les surfaces refondues (Pipeline
-kanban/liste/timeline, modale Nouveau deal, fiche deal V4) suivent la grammaire
-« Sugar Pure » qui PRIME sur les règles bento ci-dessous : séparation par **ombre
-douce sans bordure décorative**, accent noir unique (`sp.accent`), teintes d'étape
-`SG_STAGE_HUE` + dérivations `sgMix` figées, pilules à fond plein + texte blanc.
-Détails : [docs/design-system.md](docs/design-system.md) §Sugar Pure ; source
-pixel = handoff `design_handoff_pipeline_refonte_v2`.
+**⚠ « Sugar Pure » — HISTORIQUE.** Sa grammaire (ombre douce sans bordure,
+accent noir unique, pilules à fond plein) a régi Pipeline, modale Nouveau deal et
+fiche deal V4 de juillet 2026 au 10 août 2026. Ces surfaces sont passées à
+MEGGA X. Ce qui SUBSISTE d'elle : les teintes d'étape `SG_STAGE_HUE` et les
+dérivations `sgMix`, gardées parce qu'elles **encodent une information** (l'étape
+du deal), pas parce qu'elles décorent.
 
-**🌒 Échelle sombre « Graphite » (défaut produit, handoff du 29 juil. 2026)** —
-le sombre des surfaces Sugar n'empile plus des blancs translucides : c'est une
-échelle de surfaces **OPAQUES** entre `#12161C` et `#21242F`, 5 paliers d'écart
-de luminance constant, source unique `CRM_GRAPHITE`
-([tokens.ts](src/components/crm-sugar/tokens.ts)).
+**🌒 Sombre — échelle MEGGA X.** L'échelle « Graphite » (`#12161C`→`#21242F`,
+5 paliers) ne peint PLUS le CRM : ses 110 appels à `crmStep` ont été repris, et
+`crmStep`, le choix de teinte (Graphite / Noir pur), `useDarkTone` et
+`megga.darkTone` sont supprimés. Le **mode** sombre est conservé.
 
-| Palier | Valeur | Rôle | Token |
-|---|---|---|---|
-| S0 | `#12161C` | canvas — pages, pagers, fiches | `sp.pageBg` |
-| S1 | `#161A21` | cadre bento, rail, top nav | `sp.frameBg` |
-| S2 | `#1A1D26` | cards, colonnes, lignes | `sp.cardBg` |
-| S3 | `#1D212A` | sous-cards, inputs, chips, hover | `sp.cardSubBg` |
-| S4 | `#21242F` | **plafond** — modales, popovers, menus, ⌘K | `sp.solidBg` |
+Correspondance appliquée, **par rôle et non par numéro** — Graphite *montait* ses
+sous-surfaces, MEGGA X les *creuse* :
 
-1. **Jamais de blanc translucide en REMPLISSAGE.** `rgba(255,255,255,α)` ne sert
-   plus que de filet ou de voile SUR l'accent.
-2. **On ne monte jamais au-dessus de S4.** Une sous-surface de modale se CREUSE
-   (`solidBgSub` = S3). Toute surface flottante — menu, popover, tiroir — prend
-   `sp.solidBg` + `sp.solidBorder` + `sp.solidShadow`, jamais le palier « card »
-   ni le canvas.
-3. **Consommer `sp.*` d'abord.** Pour un littéral local, `crmStep('s3', '<valeur
-   historique>')`, uniquement dans une branche déjà gardée par `dark ? … : …`.
-   Pour une palette montée une fois, **un getter** (`get card() { return
-   crmStep('s2', '#17181A') }`) — sinon la valeur se fige au chargement.
-4. **Teinte choisie par l'agent** (Réglages › Préférences › Apparence) :
-   Graphite par défaut, Noir pur conservé ; `useDarkTone()` côté React,
-   `crmDarkTone()` hors React, persistance `localStorage['megga.darkTone']`.
-   `marine`/`meggaAi` sont retirés de l'offre mais restent résolvables.
+| Rôle | Token | Valeur |
+|---|---|---|
+| canvas | `sp.pageBg` | `#030303` |
+| cadre bento, rail, top nav | `sp.frameBg` | `#050505` |
+| carte, colonne, ligne | `sp.cardBg` | `#090909` |
+| sous-carte **creusée** | `sp.cardSubBg` | `#050505` |
+| survol, **élevée** | `sp.focusSurface` | `#181818` |
+| flottante (modale, popover) | `sp.solidBg` | `#090909` |
 
-Garde-fou : [tests/unit/graphite-scale.spec.ts](tests/unit/graphite-scale.spec.ts)
-(plage étanche, AA de `muted`, bascule à chaud des palettes dérivées).
+1. **La séparation vient de la BORDURE**, pas de l'écart de luminance —
+   `sp.shadow` vaut `'none'` en sombre, comme la vitrine. Écart mesuré
+   canvas↔carte : 1,078:1 (Graphite) → **1,036:1** (MEGGA X).
+2. ⛔ **Un élément posé sur une surface TEINTÉE reste un VOILE translucide**, pas
+   un palier opaque. La migration Graphite avait converti mécaniquement les
+   pastilles « + » des colonnes du pipeline en S3 opaque : des blocs gris au
+   milieu de colonnes colorées.
+3. ⛔ **L'accent `#424bfb` ne passe pas l'AA en TEXTE sur sombre** (3,44:1). En
+   aplat il tient (5,78:1, c'est l'encre blanche qui porte). Pour une encre
+   teintée sur sombre : `MXC_SYSTEM.blue300` (#8dc1ff, 10,6:1).
+4. ⛔ **Les couleurs de système de la vitrine sont PÂLES** — réglées pour un
+   canvas `#030303`. Sous encre blanche : 1,7:1. Sous `n100` : 11–19:1. Un
+   remplissage pâle prend TOUJOURS l'encre sombre.
+
+Garde-fous : [megga-x-crm-tokens.spec.ts](tests/unit/megga-x-crm-tokens.spec.ts)
+(couleurs = barreaux réels de la vitrine, seuils AA, aucune police en dur, aucun
+lecteur de `CrmTheme.primary`) et
+[graphite-scale.spec.ts](tests/unit/graphite-scale.spec.ts) (aucune palette
+d'écran n'est restée sur Graphite).
 
 **Règles visuelles clés :**
 - Bentos : `rounded-xl border border-theme-border` — PAS d'ombres
