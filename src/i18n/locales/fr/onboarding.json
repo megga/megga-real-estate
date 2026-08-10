@@ -126,10 +126,11 @@
     },
     "pieceIdentite": {
       "title": "Vérifiez votre identité",
-      "subtitle": "Passeport ou carte d'identité. La photo ne nous est jamais transmise.",
       "missingSignataire": "Le signataire doit d'abord être renseigné à l'étape précédente.",
       "verification": {
-        "cta": "Vérifier mon identité",
+        "title": "Vous allez être redirigé vers Stripe,",
+        "titleLine2": "notre prestataire de vérification",
+        "cta": "Aller sur Stripe",
         "retryCta": "Reprendre la vérification",
         "pendingTitle": "Vérification en cours",
         "pendingBody": "Le résultat arrive dans quelques instants. Vous pouvez continuer, nous le rattacherons à votre dossier.",

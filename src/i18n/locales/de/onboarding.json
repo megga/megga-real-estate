@@ -126,10 +126,11 @@
     },
     "pieceIdentite": {
       "title": "Bestätigen Sie Ihre Identität",
-      "subtitle": "Reisepass oder Identitätskarte. Das Foto wird uns nie übermittelt.",
       "missingSignataire": "Die unterzeichnende Person muss zuerst im vorherigen Schritt angegeben werden.",
       "verification": {
-        "cta": "Identität bestätigen",
+        "title": "Sie werden zu Stripe weitergeleitet,",
+        "titleLine2": "unserem Prüfdienstleister",
+        "cta": "Stripe öffnen",
         "retryCta": "Prüfung fortsetzen",
         "pendingTitle": "Prüfung läuft",
         "pendingBody": "Das Ergebnis kommt in Kürze. Sie können fortfahren, wir hängen es an Ihr Dossier an.",

@@ -169,12 +169,11 @@ export function StepPieceIdentite({
           de la vitrine remet les marges à zéro, et sans cette classe le titre de
           CETTE étape seule démarrait 8 px plus haut que les trois autres — un saut
           visible au changement d'étape, la coquille ne bougeant pas autour. */}
+      {/* Titre SEUL. « Passeport ou carte d'identité. La photo ne nous est jamais
+          transmise. » a été retiré le 09.08.2026 : le prestataire redit les deux sur son
+          propre écran, à l'instant où ça compte. Rétabli par erreur au rebase du 10, puis
+          retiré de nouveau — avec sa clé, pour qu'il ne revienne pas une troisième fois. */}
       <h1 className="display-6 mg-top-4x-extra-small">{t('wizard.pieceIdentite.title')}</h1>
-      <div className="mg-top-4x-extra-small">
-        <p className="paragraph-large text-paragraph">
-          {t('wizard.pieceIdentite.subtitle')}
-        </p>
-      </div>
 
       {disabled ? (
         // Information, pas erreur : une carte neutre, jamais le pavé rouge de la
@@ -324,11 +323,25 @@ function IdentityVerificationCard({
               annoncer. Dans l'état d'accueil, la carte se taisait pour redire le titre
               placé cent pixels plus haut — avec le rail qui affiche déjà « Vérification »,
               cela faisait trois formulations de la même idée l'une sous l'autre. */}
-          {(done || pending) && (
-            <div className="display-2 semi-bold mg-top-3x-extra-small">
-              {t(`wizard.pieceIdentite.verification.${done ? 'doneTitle' : 'pendingTitle'}`)}
-            </div>
-          )}
+          {/* ⚠ La carte parle AUSSI à l'état d'accueil (rétabli le 10 août 2026, perdu
+              lors d'un rebase). Elle n'y redit pas le titre de l'étape : elle dit où l'on
+              VA. Ce bouton fait quitter le site pour un domaine que le dirigeant ne
+              reconnaîtra pas (verify.stripe.com), au moment où on lui demande sa pièce —
+              une redirection non annoncée est là la première cause d'abandon.
+              Coupure explicite entre la destination et son apposition : chaque langue
+              coupe où sa syntaxe le permet, une césure laissée au navigateur tomberait
+              ailleurs à chaque largeur. */}
+          <div className="display-2 semi-bold mg-top-3x-extra-small">
+            {done || pending
+              ? t(`wizard.pieceIdentite.verification.${done ? 'doneTitle' : 'pendingTitle'}`)
+              : (
+                <>
+                  {t('wizard.pieceIdentite.verification.title')}
+                  <br />
+                  {t('wizard.pieceIdentite.verification.titleLine2')}
+                </>
+              )}
+          </div>
           {/* La région vivante est déclarée MÊME VIDE, dès le premier rendu : un lecteur
               d'écran n'annonce de façon fiable que les changements survenus DANS une
               région déjà présente. La créer en même temps que le premier message — un

@@ -126,10 +126,11 @@
     },
     "pieceIdentite": {
       "title": "Verify your identity",
-      "subtitle": "Passport or identity card. The photo is never passed on to us.",
       "missingSignataire": "The signatory must be entered in the previous step first.",
       "verification": {
-        "cta": "Verify my identity",
+        "title": "You will be redirected to Stripe,",
+        "titleLine2": "our verification provider",
+        "cta": "Go to Stripe",
         "retryCta": "Resume verification",
         "pendingTitle": "Verification in progress",
         "pendingBody": "The result arrives shortly. You can continue, we will attach it to your file.",
