@@ -27,13 +27,21 @@ const PASS = 'preview';
  * demandait d'accepter des conditions que le visiteur reçoit en 401 — un
  * consentement à un texte illisible.
  *
- * ⚠ L'ACCUEIL est ouvert depuis le 31 juil. 2026, et ce n'est pas un
- * relâchement du gate : Google exige, pour vérifier l'écran de consentement
- * OAuth (« Continuer avec Google »), une page d'accueil consultable SANS
- * connexion, qui explique l'objet de l'app, porte son nom et lie la politique
- * de confidentialité. Son robot recevait 401 et rejetait la demande sur cinq
- * points d'un coup. Fermer `/` revient donc à casser la connexion Google.
- * Le reste du marketing — tarifs, blog, à-propos, intégrations… — reste gaté.
+ * ⚠ L'ACCUEIL est REFERMÉ depuis le 10 août 2026. Il était la dernière page
+ * marketing lisible sans mot de passe, donc la vitrine entière se laissait voir
+ * depuis n'importe quel poste, en pré-lancement. Plus aucune page de contenu
+ * ne sort du gate : seules restent ouvertes la porte d'entrée du produit
+ * (pages d'auth), les textes qu'elle fait accepter (pages légales), le sitemap
+ * et les dossiers de ressources.
+ *
+ * Ce que cette fermeture coûte, et qu'il faut savoir avant de la défaire ou de
+ * la refaire : `/` avait été ouvert le 31 juil. 2026 parce que Google exige,
+ * pour vérifier l'écran de consentement OAuth (« Continuer avec Google »), une
+ * page d'accueil consultable SANS connexion, qui explique l'objet de l'app,
+ * porte son nom et lie la politique de confidentialité. Son robot recevait 401
+ * et rejetait la demande sur cinq points d'un coup. Tant que `/` est fermé,
+ * cette vérification ne peut pas aboutir. Si elle est relancée, rouvrir `/` le
+ * temps de la passer — la cause sera ici, pas dans la configuration Google.
  *
  * `/sitemap.xml` est ouvert bien qu'il liste des pages encore gatées : un
  * sitemap muré est un sitemap illisible, et il porte les 156 alternates
@@ -43,8 +51,6 @@ const PASS = 'preview';
  * (`robots.txt` passe déjà : Cloudflare Pages le sert avant le worker.)
  */
 const PUBLIC_PAGES = new Set([
-  '/',
-  '/index',
   '/login',
   '/signup',
   '/reset-password',
@@ -85,13 +91,14 @@ const LEGACY_REDIRECTS = new Map([
  * Dossiers de ressources laissés libres. Sans eux les pages d'auth arrivent nues
  * (styles, script de connexion, client Supabase, logo, polices).
  *
- * `mockups/` a rejoint la liste : l'accueil — page PUBLIQUE depuis l'ouverture
- * à Google — embarque deux de ces maquettes en iframe. Gatées, elles arrivaient
- * en 401 au milieu de la page, dans les quatre langues. Ce sont des captures
- * d'interface, pas de la copie marketing. `blog-posts/`, qui en porte, reste
- * derrière le gate.
+ * `mockups/` en est SORTI le 10 août 2026, avec la fermeture de l'accueil : il
+ * n'était ouvert que parce que `/` l'était — `index.html` est le seul fichier
+ * du site à référencer ces maquettes, en iframe. L'accueil gaté, elles le sont
+ * avec lui, et le navigateur joint l'identifiant du gate aux sous-requêtes de
+ * même origine une fois celui-ci franchi. Laisser le préfixe ouvert n'aurait
+ * plus servi aucune page publique : ce n'aurait été que de la surface.
  */
-const PUBLIC_PREFIXES = ['/css/', '/js/', '/images/', '/fonts/', '/mockups/'];
+const PUBLIC_PREFIXES = ['/css/', '/js/', '/images/', '/fonts/'];
 
 /**
  * Chemin décodé, ou `null` s'il cherche à remonter l'arborescence.

@@ -67,14 +67,18 @@ else
 fi
 
 # 5. Liveness check on the production vitrine (megga.ch).
-# On sonde la RACINE : c'est une page PUBLIQUE du gate Basic Auth pré-lancement
-# (sites/megga-vitrine/_worker.js), donc un 200 prouve que la vitrine ET son
-# worker sont en vie. L'ancienne sonde visait /louer, qui n'est plus une page
-# de la vitrine depuis le pivot CRM-first et répond 401 par construction
-# (défaut du gate) — elle criait ⚠ à chaque session sans aucune panne.
+# On sonde la RACINE, et c'est un 401 qu'on ATTEND : depuis le 10 août 2026
+# l'accueil est derrière le gate Basic Auth de pré-lancement
+# (sites/megga-vitrine/_worker.js). Seul le worker émet ce 401 — il prouve donc
+# que la vitrine ET son worker sont en vie, exactement ce que prouvait le 200
+# du temps où la racine était ouverte. C'est le 200 qui devient l'anomalie : il
+# signifierait que le gate est tombé (worker non déployé, ou racine rouverte).
+# L'ancienne sonde visait /louer, qui n'est plus une page de la vitrine depuis
+# le pivot CRM-first — elle criait ⚠ à chaque session sans aucune panne.
 http=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 https://megga.ch/ 2>/dev/null || echo "000")
 case "$http" in
-  200) echo "vitrine    : 200 OK" ;;
+  401) echo "vitrine    : 401 OK (gate actif)" ;;
+  200) echo "vitrine    : 200 — le gate est OUVERT  ⚠" ;;
   000) echo "vitrine    : timeout / no response  ⚠" ;;
   *)   echo "vitrine    : HTTP $http  ⚠" ;;
 esac
