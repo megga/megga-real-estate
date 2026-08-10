@@ -507,6 +507,18 @@ async function passRendezVousStep(page: Page): Promise<void> {
 async function submitRecapitulatif(page: Page): Promise<void> {
   await checkByLabel(page, page.getByRole('checkbox'))
   await page.getByRole('button', { name: 'Soumettre le dossier' }).click()
+
+  // ⚠ La soumission ne navigue PLUS (10.08.2026) : elle affiche un écran de
+  // confirmation du rendez-vous, état local d'IdentityShell, SANS changer d'URL. Le
+  // dirigeant en sort par « Aller à mon espace » — c'est ce clic, désormais, qui mène
+  // au dashboard. Attendre l'URL directement expirait sur /dashboard/identite.
+  //
+  // Le bouton et non le titre : celui-ci vaut « Votre rendez-vous est confirmé » ou
+  // « C'est envoyé » selon qu'un créneau a pu être pris, et il n'y a aucun hôte en
+  // Supabase local. Le bouton, lui, est le même dans les deux cas.
+  const sortie = page.getByRole('button', { name: 'Aller à mon espace' })
+  await expect(sortie).toBeVisible({ timeout: 20_000 })
+  await sortie.click()
 }
 
 /**
@@ -517,6 +529,10 @@ async function submitRecapitulatif(page: Page): Promise<void> {
  * soumission ; il est désormais une ÉTAPE du parcours (index 3), donc y renvoyer
  * ferait redemander ce qui vient d'être fait. Ce que ces tests éprouvent n'a pas
  * bougé : la soumission aboutit et le gate ne reboucle pas.
+ *
+ * ⚠ On n'y arrive plus DIRECTEMENT depuis le 10.08.2026 : un écran de confirmation du
+ * rendez-vous s'intercale, sans changer d'URL, et c'est son bouton qui navigue (cf.
+ * submitRecapitulatif). La destination finale, elle, est la même.
  */
 const APRES_SOUMISSION = /\/dashboard$/
 
