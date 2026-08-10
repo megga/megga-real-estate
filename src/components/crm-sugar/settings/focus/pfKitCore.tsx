@@ -62,13 +62,16 @@ export interface PfColors {
   shadow: string; shadowSm: string
   onInk: string
   /**
-   * Échelle de REPÉRAGE — une teinte par groupe de champs (Identité, Contact,
-   * Présentation, Liens). Elle ne suit pas la direction artistique : quatre
-   * teintes distinctes encodent une information, elles ne décorent pas. Même
-   * raison qui a laissé `sgStageTint` en Sugar sur le plateau MEGGA X. Employée
-   * en pastilles de 8 px, donc hors contrainte de contraste de texte.
+   * Vert de CONFIRMATION — la mention « Enregistré » des lignes de Notifications
+   * et de Préférences, en TEXTE (les pilules, elles, passent par `saved`).
+   *
+   * ⚠ Il restait ici trois voisines — `blue`, `cyan`, `orange` — qui teintaient
+   * une pastille de 8 px par groupe de champs, au motif qu'elles « encodaient »
+   * le groupe. Elles ne l'encodaient pas : le titre posé juste à côté nommait
+   * déjà le groupe, et MEGGA X n'a aucun idiome de pastille catégorielle.
+   * Retirées avec la refonte du 10 août 2026.
    */
-  blue: string; cyan: string; orange: string; green: string
+  green: string
   /** Badge affirmatif « vérifié ». Sous MEGGA X c'est `.badge-light` de la vitrine. */
   seal: PfFill
   /**
@@ -109,12 +112,8 @@ function mxFills(dark: boolean): Pick<PfColors, 'seal' | 'tag' | 'saved' | 'affo
 }
 
 export function pfColors(sp: SugarPalette, surf: GalSurfaces, dark: boolean): PfColors {
-  // Teintes de repérage — communes aux deux directions, cf. JSDoc de `PfColors`.
-  const way = {
-    blue: dark ? '#4C86E8' : '#1E5BC6', cyan: dark ? '#22B8CF' : '#0891B2',
-    orange: dark ? '#E08A2E' : '#C45A00', green: dark ? '#12A574' : '#059669',
-  }
   return {
+    green: dark ? '#12A574' : '#059669',
     dark,
     card: surf.card, cardSub: surf.cardSub,
     solid: sp.solidBg,
@@ -125,7 +124,6 @@ export function pfColors(sp: SugarPalette, surf: GalSurfaces, dark: boolean): Pf
     hair: surf.hairline, hairSoft: dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)',
     shadow: surf.shadow, shadowSm: sp.shadowSm,
     onInk: dark ? '#0B0C0E' : '#FFFFFF',
-    ...way,
     ...mxFills(dark),
   }
 }

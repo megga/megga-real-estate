@@ -283,11 +283,9 @@ export function SetInput({
       {label && (
         <div
           style={{
-            fontSize: 'var(--crm-text-sm)',
-            fontWeight: 700,
+            fontSize: 'var(--crm-text-lg)',
+            fontWeight: 400,
             color: SET.muted,
-            letterSpacing: 0.6,
-            textTransform: 'uppercase',
             marginBottom: 8,
           }}
         >
@@ -540,7 +538,7 @@ export function Modal({ title, children, onClose, wide }: ModalProps) {
                 flex: 1,
                 margin: 0,
                 fontSize: 'var(--crm-text-4xl)',
-                fontWeight: 700,
+                fontWeight: 500,
                 color: SET.ink,
                 letterSpacing: -0.4,
               }}
@@ -617,7 +615,7 @@ export function ConfirmModal({
             style={{
               margin: '4px 0 8px',
               fontSize: 'var(--crm-text-3xl)',
-              fontWeight: 700,
+              fontWeight: 500,
               color: SET.ink,
               letterSpacing: -0.3,
             }}
@@ -658,7 +656,7 @@ export function ConfirmModal({
               color: '#fff',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 700,
+              fontWeight: 500,
               cursor: 'pointer',
               boxShadow: '0 6px 16px rgba(220,38,38,0.30)',
               display: 'inline-flex',
@@ -687,11 +685,9 @@ export function SectionHeader({ kicker, title, sub }: SectionHeaderProps) {
     <div style={{ marginBottom: 4, maxWidth: 760 }}>
       <div
         style={{
-          fontSize: 'var(--crm-text-sm)',
-          fontWeight: 700,
+          fontSize: 'var(--crm-text-lg)',
+          fontWeight: 400,
           color: SET.muted,
-          letterSpacing: 1.2,
-          textTransform: 'uppercase',
           marginBottom: 12,
         }}
       >
@@ -700,8 +696,8 @@ export function SectionHeader({ kicker, title, sub }: SectionHeaderProps) {
       <h1
         style={{
           margin: '0 0 12px',
-          fontSize: 'var(--crm-text-7xl)',
-          fontWeight: 700,
+          fontSize: 'var(--crm-text-9xl)',
+          fontWeight: 500,
           color: SET.ink,
           letterSpacing: -0.6,
           lineHeight: 1.1,
@@ -712,7 +708,7 @@ export function SectionHeader({ kicker, title, sub }: SectionHeaderProps) {
       <p
         style={{
           margin: 0,
-          fontSize: 'var(--crm-text-xl)',
+          fontSize: 'var(--crm-text-3xl)',
           color: SET.inkSoft,
           fontWeight: 500,
           lineHeight: 1.55,

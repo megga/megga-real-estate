@@ -80,7 +80,7 @@ function PwdField({
           style={{
             display: 'block',
             fontSize: 'var(--crm-text-sm)',
-            fontWeight: 700,
+            fontWeight: 500,
             color: SET.inkSoft,
             marginBottom: 7,
             letterSpacing: -0.1,
@@ -170,7 +170,7 @@ function Meter({ s }: { s: number }) {
       <span
         style={{
           fontSize: 'var(--crm-text-md)',
-          fontWeight: 800,
+          fontWeight: 500,
           color: col,
           letterSpacing: -0.1,
           whiteSpace: 'nowrap',
@@ -198,7 +198,7 @@ function SaveBtn({ ready, onClick, loading }: { ready: boolean; onClick: () => v
         color: ready ? SET.blackInk : SET.ghost,
         fontFamily: 'inherit',
         fontSize: 'var(--crm-text-md)',
-        fontWeight: 700,
+        fontWeight: 500,
         cursor: ready && !loading ? 'pointer' : 'not-allowed',
         display: 'inline-flex',
         alignItems: 'center',
@@ -258,7 +258,7 @@ function SuccessCenter({ sub }: { sub: string }) {
           <path d="m5 13 4 4 10-12" />
         </svg>
       </div>
-      <div style={{ marginTop: 18, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, color: SET.ink }}>
+      <div style={{ marginTop: 18, fontSize: 'var(--crm-text-2xl)', fontWeight: 500, letterSpacing: -0.3, color: SET.ink }}>
         {t('security.password.changedTitle')}
       </div>
       <div style={{ marginTop: 6, fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.muted }}>{sub}</div>
@@ -362,7 +362,7 @@ function PwdVaultLight() {
         <SetIcon name="lock" size={20} stroke={SET.blackInk} sw={1.9} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, color: SET.ink }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 500, letterSpacing: -0.3, color: SET.ink }}>
           {t('security.password.title')}
         </h3>
         <p style={{ margin: '5px 0 0', fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>
@@ -429,7 +429,7 @@ function PwdVaultLight() {
                 color: SET.blackInk,
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-md)',
-                fontWeight: 700,
+                fontWeight: 500,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -466,7 +466,7 @@ function PwdVaultLight() {
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                   fontSize: 'var(--crm-text-sm)',
-                  fontWeight: 700,
+                  fontWeight: 500,
                   color: SET.inkSoft,
                   textDecoration: 'underline',
                   textUnderlineOffset: 2,
@@ -501,7 +501,7 @@ function PwdVaultLight() {
                   gap: 'var(--crm-space-sm)',
                   marginTop: 9,
                   fontSize: 'var(--crm-text-sm)',
-                  fontWeight: 700,
+                  fontWeight: 500,
                   color: match ? SET.ok : SET.bad,
                 }}
               >
@@ -571,16 +571,14 @@ function PwdVaultLight() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 'var(--crm-text-sm)',
-                  fontWeight: 800,
+                  fontSize: 'var(--crm-text-lg)',
+                  fontWeight: 400,
                   color: SET.muted,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.6,
                 }}
               >
                 {t('security.password.sentTo')}
               </div>
-              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SET.ink, letterSpacing: -0.1, marginTop: 1 }}>
+              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SET.ink, letterSpacing: -0.1, marginTop: 1 }}>
                 {maskEmail(verifiedEmail)}
               </div>
             </div>
@@ -625,7 +623,7 @@ function PwdVaultLight() {
                 color: verifiedEmail ? SET.blackInk : SET.ghost,
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-md)',
-                fontWeight: 700,
+                fontWeight: 500,
                 cursor: verifiedEmail ? 'pointer' : 'not-allowed',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -673,7 +671,7 @@ function PwdVaultLight() {
               <SetIcon name="check" size={19} stroke="#fff" sw={2.4} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SET.ink, letterSpacing: -0.1 }}>
+              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SET.ink, letterSpacing: -0.1 }}>
                 {t('security.password.checkInbox')}
               </div>
               <div style={{ fontSize: 'var(--crm-text-sm)', color: SET.muted, fontWeight: 500, marginTop: 3, lineHeight: 1.5 }}>
@@ -709,7 +707,7 @@ function PwdVaultLight() {
                     cursor: 'pointer',
                     fontFamily: 'inherit',
                     fontSize: 'var(--crm-text-sm)',
-                    fontWeight: 800,
+                    fontWeight: 500,
                     color: SET.ink,
                     textDecoration: 'underline',
                     textUnderlineOffset: 2,
@@ -747,7 +745,7 @@ const ghostInline: React.CSSProperties = {
   color: SET.inkSoft,
   fontFamily: 'inherit',
   fontSize: 'var(--crm-text-md)',
-  fontWeight: 700,
+  fontWeight: 500,
   cursor: 'pointer',
   boxShadow: `inset 0 0 0 1px ${SET.line}`,
 }
@@ -772,7 +770,7 @@ function HeroSecurity() {
       }}
     >
       <div style={{ minWidth: 260 }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -0.8 }}>{t('security.hero.title')}</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -0.8 }}>{t('security.hero.title')}</h1>
         <p
           style={{
             margin: '8px 0 0',
@@ -874,7 +872,7 @@ function SessionsCard() {
             <SetIcon name="keyboard" size={17} stroke={SET.ink} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SET.ink, letterSpacing: -0.3 }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: SET.ink, letterSpacing: -0.3 }}>
               {t('security.sessions.title')}
             </h3>
             <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>{subtitle}</p>
@@ -976,7 +974,7 @@ function SessionsCard() {
                     <span
                       style={{
                         fontSize: 'var(--crm-text-lg)',
-                        fontWeight: 700,
+                        fontWeight: 500,
                         color: SET.ink,
                         letterSpacing: -0.1,
                         whiteSpace: 'nowrap',
@@ -997,7 +995,7 @@ function SessionsCard() {
                           background: `${SET.ok}18`,
                           color: SET.ok,
                           fontSize: 'var(--crm-text-xs)',
-                          fontWeight: 800,
+                          fontWeight: 500,
                           letterSpacing: 0.3,
                           flexShrink: 0,
                         }}
@@ -1044,7 +1042,7 @@ function SessionsCard() {
                       color: SET.inkSoft,
                       fontFamily: 'inherit',
                       fontSize: 'var(--crm-text-md)',
-                      fontWeight: 700,
+                      fontWeight: 500,
                       cursor: 'pointer',
                       flexShrink: 0,
                       boxShadow: `inset 0 0 0 1px ${SET.line}`,

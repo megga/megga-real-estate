@@ -124,7 +124,7 @@ export function SSOConnectionsCard() {
                 style={{
                   margin: '0 0 4px',
                   fontSize: 'var(--crm-text-2xl)',
-                  fontWeight: 700,
+                  fontWeight: 500,
                   color: SET.ink,
                   letterSpacing: -0.3,
                 }}
@@ -183,7 +183,7 @@ export function SSOConnectionsCard() {
                   <Logo size={20} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SET.ink, letterSpacing: -0.1 }}>
+                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SET.ink, letterSpacing: -0.1 }}>
                     {p.name}
                   </div>
                   <div

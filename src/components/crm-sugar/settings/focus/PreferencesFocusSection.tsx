@@ -87,7 +87,7 @@ function PxfSeg({ c, value, onChange, options, accent, onAccent }: { c: PfColors
       {options.map((o) => {
         const on = o.id === value
         return (
-          <button key={o.id} onClick={() => onChange(o.id)} style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
+          <button key={o.id} onClick={() => onChange(o.id)} style={{ height: 36, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, whiteSpace: 'nowrap',
             background: on ? accent : 'transparent', color: on ? onAccent : c.soft, transition: 'color .15s' }}>{o.label}</button>
         )
       })}
@@ -104,7 +104,7 @@ function PxfSelect({ c, value, onChange, options }: { c: PfColors; value: string
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
       {/* Pas de chevron : la valeur est centrée dans un padding symétrique. */}
-      <button onClick={() => setOpen((o) => !o)} style={{ height: 40, minWidth: 148, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-md)', border: 0, cursor: 'pointer', background: c.cardSub, color: c.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700,
+      <button onClick={() => setOpen((o) => !o)} style={{ height: 40, minWidth: 148, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)', border: 0, cursor: 'pointer', background: c.cardSub, color: c.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-2xl)', fontWeight: 400,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-lg)', boxShadow: `0 0 0 1.5px ${c.hairSoft} inset` }}>
         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sel?.label}</span>
       </button>
@@ -139,7 +139,7 @@ type PrefKey = keyof PrefsData
 type RowKey = PrefKey
 type CtrlType = 'select' | 'seg' | 'swatch' | 'toggle'
 interface RowDef { key: RowKey; icon: PxfIconName; labelKey: string; type: CtrlType; options?: Opt[] }
-interface GroupDef { id: string; titleKey: string; dot: 'blue' | 'cyan' | 'orange' | 'green'; layout: 'grid' | 'stack'; rows: RowDef[] }
+interface GroupDef { id: string; titleKey: string; layout: 'grid' | 'stack'; rows: RowDef[] }
 
 // Endonymes de langue (affichés dans leur propre langue — invariants).
 const LANG_OPTS: Opt[] = [{ id: 'fr', label: 'Français' }, { id: 'en', label: 'English' }, { id: 'de', label: 'Deutsch' }, { id: 'it', label: 'Italiano' }]
@@ -163,7 +163,7 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
   const GROUPS: GroupDef[] = useMemo(() => {
     const opt = (ids: string[], keyer: (id: string) => string): Opt[] => ids.map((id) => ({ id, label: t(keyer(id)) }))
     return [
-      { id: 'region', titleKey: 'preferences.region.title', dot: 'blue', layout: 'grid', rows: [
+      { id: 'region', titleKey: 'preferences.region.title', layout: 'grid', rows: [
         { key: 'language', icon: 'lang', labelKey: 'preferences.region.language', type: 'select', options: LANG_OPTS },
         { key: 'currency', icon: 'currency', labelKey: 'preferences.region.currency', type: 'select', options: opt(['CHF', 'EUR', 'USD'], (id) => `preferences.region.currencyOptions.${id}`) },
         { key: 'units', icon: 'ruler', labelKey: 'preferences.region.units', type: 'select', options: opt(['metric', 'imperial'], (id) => `focus.preferences.units.${id}`) },
@@ -171,15 +171,15 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
           { id: 'dd.MM.yyyy', label: t('preferences.region.dateFormatOptions.ch') }, { id: 'dd/MM/yyyy', label: t('preferences.region.dateFormatOptions.fr') },
           { id: 'MM/dd/yyyy', label: t('preferences.region.dateFormatOptions.us') }, { id: 'yyyy-MM-dd', label: t('preferences.region.dateFormatOptions.iso') }] },
       ] },
-      { id: 'views', titleKey: 'preferences.views.title', dot: 'cyan', layout: 'grid', rows: [
+      { id: 'views', titleKey: 'preferences.views.title', layout: 'grid', rows: [
         { key: 'defaultScreen', icon: 'home', labelKey: 'preferences.views.homeScreen', type: 'select', options: opt(['today', 'pipeline', 'matching', 'contacts', 'biens', 'calendar', 'docs'], (id) => `preferences.views.screens.${id}`) },
         { key: 'defaultPipelineView', icon: 'columns', labelKey: 'preferences.views.defaultPipelineView', type: 'select', options: opt(['kanban', 'list', 'timeline'], (id) => `preferences.views.pipelineViews.${id}`) },
       ] },
-      { id: 'appearance', titleKey: 'preferences.appearance.title', dot: 'orange', layout: 'stack', rows: [
+      { id: 'appearance', titleKey: 'preferences.appearance.title', layout: 'stack', rows: [
         { key: 'theme', icon: 'theme', labelKey: 'preferences.appearance.theme', type: 'seg', options: opt(['light', 'dark', 'system'], (id) => `preferences.appearance.themes.${id}.label`) },
         { key: 'accent', icon: 'palette', labelKey: 'focus.preferences.accent', type: 'swatch' },
       ] },
-      { id: 'assist', titleKey: 'preferences.editing.title', dot: 'green', layout: 'stack', rows: [
+      { id: 'assist', titleKey: 'preferences.editing.title', layout: 'stack', rows: [
         { key: 'spellcheck', icon: 'spellcheck', labelKey: 'preferences.editing.spellcheck.label', type: 'toggle' },
         { key: 'autosave', icon: 'save', labelKey: 'preferences.editing.autosave.label', type: 'toggle' },
         { key: 'aiAssist', icon: 'ai', labelKey: 'focus.preferences.aiAssistLabel', type: 'seg', options: opt(['off', 'balanced', 'proactif'], (id) => `preferences.editing.aiAssist.${id}.label`) },
@@ -240,8 +240,8 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
     <div key={r.key} className="pxf-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', minWidth: 0 }}>
       <PxfChip name={r.icon} c={c} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.2, color: c.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(r.labelKey)}</span>
-        {savedKey === r.key && <span className="pxf-saved" style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: c.green, flexShrink: 0 }}>{t('focus.common.saved')}</span>}
+        <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: c.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(r.labelKey)}</span>
+        {savedKey === r.key && <span className="pxf-saved" style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: c.green, flexShrink: 0 }}>{t('focus.common.saved')}</span>}
       </div>
       {control(r)}
     </div>
@@ -259,18 +259,18 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
         .pxf-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.03)'}; border-radius: 12px; }
       `}</style>
 
-      <div style={{ borderRadius: 'var(--crm-radius-5xl)', boxShadow: c.shadow }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', background: c.cardSub, borderRadius: '22px 22px 0 0', borderTop: c.hair, borderLeft: c.hair, borderRight: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: 'var(--crm-space-md) var(--crm-space-5xl)' }}>
+      <div style={{ borderRadius: 'var(--crm-radius-6xl)', boxShadow: c.shadow }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', background: c.cardSub, borderRadius: 'var(--crm-radius-6xl) var(--crm-radius-6xl) 0 0', borderTop: c.hair, borderLeft: c.hair, borderRight: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: 'var(--crm-space-md) var(--crm-space-5xl)' }}>
           <PxfIc name="info" size={14} stroke={c.sub} sw={1.8} />
-          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: c.sub, letterSpacing: -0.1 }}>{t('focus.preferences.banner')}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 400, color: c.sub }}>{t('focus.preferences.banner')}</span>
         </div>
 
-        <div style={{ background: c.card, borderRadius: '0 0 22px 22px', borderLeft: c.hair, borderRight: c.hair, borderBottom: c.hair, padding: 'var(--crm-space-md) var(--crm-space-xl) var(--crm-space-2xl)' }}>
+        <div style={{ background: c.card, borderRadius: '0 0 var(--crm-radius-6xl) var(--crm-radius-6xl)', borderLeft: c.hair, borderRight: c.hair, borderBottom: c.hair, padding: 'var(--crm-space-md) var(--crm-space-xl) var(--crm-space-2xl)' }}>
           {GROUPS.map((g, gi) => (
             <div key={g.id} style={{ padding: 'var(--crm-space-sm) 0 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
-                <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: c[g.dot], flexShrink: 0 }} />
-                <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: c.ink, flex: 1 }}>{t(g.titleKey)}</span>
+              {/* Titre `display-4`, sans pastille — cf. ProfileFocusSection. */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-6xl) var(--crm-space-lg) var(--crm-space-lg)' }}>
+                <span style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.4, color: c.ink, flex: 1 }}>{t(g.titleKey)}</span>
               </div>
               {g.layout === 'grid' ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 24px' }}>{g.rows.map((r) => Row(r))}</div>

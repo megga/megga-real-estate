@@ -87,7 +87,7 @@ function WAHeader({ status, t }: { status?: ReactNode; t: TFunction }) {
         <div
           style={{
             fontSize: 'var(--crm-text-2xl)',
-            fontWeight: 700,
+            fontWeight: 500,
             color: SET.ink,
             letterSpacing: -0.2,
             lineHeight: 1.25,
@@ -240,11 +240,9 @@ function WABody() {
           <div style={{ minWidth: 0 }}>
             <div
               style={{
-                fontSize: 'var(--crm-text-sm)',
-                fontWeight: 600,
+                fontSize: 'var(--crm-text-lg)',
+                fontWeight: 400,
                 color: SET.muted,
-                letterSpacing: 0.2,
-                textTransform: 'uppercase',
               }}
             >
               {t('integrations.whatsapp.linkedNumber')}
@@ -319,7 +317,7 @@ function WABody() {
           <div
             style={{
               fontSize: 'var(--crm-text-6xl)',
-              fontWeight: 800,
+              fontWeight: 600,
               color: SET.ink,
               letterSpacing: 8,
               fontVariantNumeric: 'tabular-nums',

@@ -77,11 +77,9 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
         <div>
           <div
             style={{
-              fontSize: 'var(--crm-text-sm)',
-              fontWeight: 700,
+              fontSize: 'var(--crm-text-lg)',
+              fontWeight: 400,
               color: SET.muted,
-              letterSpacing: 0.6,
-              textTransform: 'uppercase',
               marginBottom: 8,
             }}
           >
@@ -104,7 +102,7 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
                     color: active ? SET.blackInk : SET.inkSoft,
                     fontFamily: 'inherit',
                     fontSize: 'var(--crm-text-lg)',
-                    fontWeight: 700,
+                    fontWeight: 500,
                     cursor: 'pointer',
                     boxShadow: active ? 'none' : 'inset 0 0 0 1px rgba(15,23,42,0.04)',
                     transition: 'all .15s',

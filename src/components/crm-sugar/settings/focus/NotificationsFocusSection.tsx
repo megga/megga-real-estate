@@ -56,17 +56,16 @@ export function NotificationsFocusSection({ sp, surf, dark }: FocusSectionProps)
         .nfx-saved { animation: pfxCtrlIn .26s cubic-bezier(.2,.9,.3,1) both; }
       `}</style>
 
-      <div style={{ borderRadius: 'var(--crm-radius-5xl)', boxShadow: c.shadow }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', background: c.cardSub, borderRadius: '22px 22px 0 0', border: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: 'var(--crm-space-md) var(--crm-space-5xl)' }}>
+      <div style={{ borderRadius: 'var(--crm-radius-6xl)', boxShadow: c.shadow }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', background: c.cardSub, borderRadius: 'var(--crm-radius-6xl) var(--crm-radius-6xl) 0 0', border: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: 'var(--crm-space-md) var(--crm-space-5xl)' }}>
           <PfIc name="info" size={14} stroke={c.sub} sw={1.8} />
-          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: c.sub, letterSpacing: -0.1 }}>{t('focus.notifications.banner')}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 400, color: c.sub }}>{t('focus.notifications.banner')}</span>
         </div>
 
-        <div style={{ background: c.card, borderRadius: '0 0 22px 22px', border: c.hair, borderTop: 0, padding: 'var(--crm-space-md) var(--crm-space-xl) var(--crm-space-2xl)' }}>
+        <div style={{ background: c.card, borderRadius: '0 0 var(--crm-radius-6xl) var(--crm-radius-6xl)', border: c.hair, borderTop: 0, padding: 'var(--crm-space-md) var(--crm-space-xl) var(--crm-space-2xl)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: c.blue, flexShrink: 0 }} />
-            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: c.ink, flex: 1 }}>{t('focus.notifications.group')}</span>
-            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: c.sub }}>{t('focus.notifications.count', { active: activeCount, total: NF_CHANNELS.length })}</span>
+            <span style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.4, color: c.ink, flex: 1 }}>{t('focus.notifications.group')}</span>
+            <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 400, color: c.sub }}>{t('focus.notifications.count', { active: activeCount, total: NF_CHANNELS.length })}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 24px' }}>
             {NF_CHANNELS.map((ch) => (
@@ -74,10 +73,10 @@ export function NotificationsFocusSection({ sp, surf, dark }: FocusSectionProps)
                 <PfChip name={ch.icon} c={c} size={34} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
-                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.2, color: c.ink }}>{t(`notifications.channels.${ch.id}.label`)}</span>
-                    {savedKey === ch.id && <span className="nfx-saved" style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: c.green }}>{t('focus.common.saved')}</span>}
+                    <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: c.ink }}>{t(`notifications.channels.${ch.id}.label`)}</span>
+                    {savedKey === ch.id && <span className="nfx-saved" style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: c.green }}>{t('focus.common.saved')}</span>}
                   </div>
-                  <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: c.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(`notifications.channels.${ch.id}.desc`)}</div>
+                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 400, color: c.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(`notifications.channels.${ch.id}.desc`)}</div>
                 </div>
                 <PfSwitch c={c} on={local[ch.id]} onClick={() => toggle(ch.id)} />
               </div>
