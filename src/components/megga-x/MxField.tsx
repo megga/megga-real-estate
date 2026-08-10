@@ -31,10 +31,20 @@ interface Props {
   children: ReactNode | ((id: string) => ReactNode)
   /** Précision sous le champ. Toujours visible, ce n'est pas une info-bulle. */
   help?: ReactNode
+  /**
+   * Commande posée à droite du libellé, sur sa ligne — le « i » qui déplie la
+   * définition des choix, aujourd'hui son seul usage (StepSignataire).
+   *
+   * HORS du `<label>` et non dedans : un `<button>` imbriqué dans un `<label>`
+   * est du contenu interactif dans un élément qui capte déjà le clic pour son
+   * contrôle. Le rendre frère laisse les deux gestes distincts — cliquer le
+   * libellé vise le champ, cliquer le « i » ouvre l'aide.
+   */
+  labelAction?: ReactNode
   className?: string
 }
 
-export default function MxField({ label, children, help, className }: Props) {
+export default function MxField({ label, children, help, labelAction, className }: Props) {
   const id = useId()
   // `for` UNIQUEMENT quand un contrôle a reçu cet id (enfant en fonction). En
   // nœud simple — groupe de radios, zone de dépôt — aucun élément ne le porte :
@@ -45,7 +55,16 @@ export default function MxField({ label, children, help, className }: Props) {
   const hasControl = typeof children === 'function'
   return (
     <div className={className}>
-      <label htmlFor={hasControl ? id : undefined}>{label}</label>
+      {labelAction == null ? (
+        <label htmlFor={hasControl ? id : undefined}>{label}</label>
+      ) : (
+        // La marge basse du <label> de la vitrine vit sur le label lui-même : la
+        // ligne qui l'enveloppe ne la réplique pas, elle le laisse la porter.
+        <div className="mx-label-row">
+          <label htmlFor={hasControl ? id : undefined}>{label}</label>
+          {labelAction}
+        </div>
+      )}
       {hasControl ? children(id) : children}
       {help != null && (
         <div className="mg-top-5x-extra-small">

@@ -22,10 +22,12 @@
  *
  * HABILLAGE : MEGGA X. Suppose d'être rendu dans un conteneur `<MeggaX>`.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MxButton, MxField, MxInput, MxLink, MxSelect } from '@/components/megga-x'
 import { useAuth } from '@/hooks/useAuth'
+import { useAgencyIdentity } from '@/hooks/useAgencyIdentity'
+import { COUNTRY_DIAL_CODES, PHONE_EXAMPLES, countryForDialCode, dialCodeOptions, splitDialCode } from '@/lib/countries'
 import OcSlotPicker from './OcSlotPicker'
 import OcBookedCard from './OcBookedCard'
 import { dayKeyOf } from './ocDates'
@@ -75,7 +77,7 @@ function monthBounds(month: Date): { from: string; to: string } {
 }
 
 export default function OcBooking({ onStateChange, secondaryAction }: OcBookingProps) {
-  const { t } = useTranslation('onboarding')
+  const { t, i18n } = useTranslation('onboarding')
 
   // Le fuseau du navigateur n'est qu'un POINT DE DÉPART : un dirigeant en déplacement,
   // ou qui reçoit un associé à l'étranger, doit pouvoir lire les créneaux dans le fuseau
@@ -86,7 +88,33 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
   const [month, setMonth] = useState(() => new Date())
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
-  const [phone, setPhone] = useState('')
+  /**
+   * Le numéro WhatsApp, en DEUX contrôles : l'indicatif se choisit, le reste se tape.
+   *
+   * Un champ libre laissait arriver « 079 874 94 84 », « 0041 79… » et « +41 79… » dans
+   * la même colonne — or c'est un numéro d'ENVOI, pas une note : la passerelle attend un
+   * format international, et un zéro de tête suisse ne s'y traduit pas tout seul.
+   *
+   * Suisse par défaut, parce que c'est le marché ; la liste suit l'ordre des pays et non
+   * celui des indicatifs, un dirigeant cherchant son pays par son nom.
+   */
+  const [paysTel, setPaysTel] = useState('CH')
+  const [numeroLocal, setNumeroLocal] = useState('')
+  const indicatif = `+${COUNTRY_DIAL_CODES[paysTel] ?? '41'}`
+  // 195 options traduites et RETRIÉES : sans mémoïsation, la liste entière serait
+  // reconstruite à chaque frappe dans les champs voisins.
+  const optionsIndicatif = useMemo(() => dialCodeOptions(i18n.language), [i18n.language])
+  // Ce qui part à l'edge : la concaténation, jamais les deux morceaux. Le zéro de tête
+  // (079…) est retiré — il n'existe qu'en composition nationale et casserait le numéro
+  // une fois l'indicatif devant.
+  const phone = numeroLocal.trim() === '' ? '' : `${indicatif}${numeroLocal.replace(/\D/g, '').replace(/^0+/, '')}`
+  const setPhone = (valeur: string) => {
+    const { dial, local } = splitDialCode(valeur)
+    const iso = dial ? countryForDialCode(dial) : null
+    if (iso) setPaysTel(iso)
+    setNumeroLocal(local)
+  }
+  const telPrerempli = useRef(false)
   const [note, setNote] = useState('')
 
   // Deux temps, comme le plan de référence : on choisit QUAND, puis on dit QUI.
@@ -94,11 +122,44 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
   // et noyait le seul geste qui compte à la première seconde — prendre une date.
   const [etape, setEtape] = useState<'creneau' | 'formulaire'>('creneau')
 
-  // Préremplissage : l'identité du dirigeant est déjà VÉRIFIÉE à ce stade du parcours,
-  // la lui redemander serait du travail qu'on sait faire pour lui. `full_name` est la
-  // seule forme que porte le profil — on le coupe au premier espace, et les deux champs
-  // restent modifiables : un nom composé n'a pas à être deviné juste.
+  /**
+   * Préremplissage du nom, à DEUX sources qui ne se valent pas.
+   *
+   * 1. Le SIGNATAIRE (`agency_related_persons`) quand sa pièce a été vérifiée : c'est
+   *    ce nom-là, et lui seul, que le prestataire a confronté au document. Les champs
+   *    sont alors VERROUILLÉS — le laisser modifiable permettrait de réserver sous un
+   *    nom que rien n'atteste, deux écrans après l'avoir fait attester.
+   * 2. `profile.full_name` sinon, coupé au premier espace, et modifiable. C'est un
+   *    libellé de compte, pas une identité vérifiée : personne ne l'a confronté à quoi
+   *    que ce soit, et un nom composé n'a pas à être deviné juste.
+   *
+   * ⚠ Le verrou suit le STATUT, pas l'écran. Tant que la vérification est `processing`
+   * ou n'a pas abouti, les champs restent ouverts : sceller un nom sur un verdict qui
+   * n'est pas rendu enfermerait le dirigeant dans une faute de frappe sans issue.
+   *
+   * ⚠ Ce n'est pas le nom LU par le prestataire — il n'est stocké nulle part (cf.
+   * l'en-tête d'IdentityVerificationReturnScreen). C'est le nom déclaré, dont la
+   * concordance avec le document a été établie.
+   */
   const { profile } = useAuth()
+  const { persons } = useAgencyIdentity()
+  const signataireVerifie = persons.find(
+    (p) => p.verificationStatus === 'verified' && p.roles.some((r) => r.role === 'signatory'),
+  ) ?? null
+  const identiteVerrouillee = signataireVerifie != null
+
+  /**
+   * L'e-mail est VERROUILLÉ dès qu'on en tient un : ce n'est pas une saisie, c'est
+   * l'adresse du compte, confirmée à l'inscription et par laquelle le dirigeant est
+   * authentifié à l'instant même. La laisser modifiable permettait d'envoyer la
+   * confirmation ailleurs que là où la session existe.
+   *
+   * ⚠ Conditionné à la présence de l'adresse, et pas seulement au fait d'être connecté.
+   * Le champ est EXIGÉ (identiteComplete) : le verrouiller vide ferait un cul-de-sac —
+   * un bouton Confirmer inerte au-dessus d'un champ qu'on ne peut pas remplir.
+   */
+  const emailVerrouille = (profile?.email ?? '').trim() !== ''
+
   const [prenom, setPrenom] = useState('')
   const [nom, setNom] = useState('')
   const [email, setEmail] = useState('')
@@ -108,8 +169,24 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
     setPrenom((p) => p || parts[0] || '')
     setNom((n) => n || parts.slice(1).join(' '))
     setEmail((e) => e || profile.email || '')
-    setPhone((t) => t || profile.phone || '')
+    // `setPhone` n'est plus un setter d'état mais un décomposeur (indicatif + local) :
+    // il ne prend pas de fonction de mise à jour, et lire `numeroLocal` ici ferait de
+    // lui une dépendance de l'effet — donc un préremplissage rejoué à chaque frappe.
+    // Un drapeau de passage, posé une fois : le profil ne remplit QUE le champ vierge.
+    if (profile.phone && !telPrerempli.current) {
+      telPrerempli.current = true
+      setPhone(profile.phone)
+    }
   }, [profile])
+
+  // ÉCRASE le repli dès que le signataire vérifié est connu — `setPrenom(p => p || …)`
+  // ne suffirait pas ici : le profil arrive le premier, et son libellé de compte
+  // resterait en place devant le nom qui a été attesté.
+  useEffect(() => {
+    if (!signataireVerifie) return
+    setPrenom(signataireVerifie.firstName)
+    setNom(signataireVerifie.lastName)
+  }, [signataireVerifie])
 
   // Les réponses calibrent le CRM (Focus, matching) et préparent l'appel. Stockées
   // telles quelles dans `attendee_answers` : ce sont des CHOIX, pas des mesures — les
@@ -213,9 +290,11 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
       <div className="mx-book__mark" aria-hidden="true">
         <img src="/megga-gg.svg" alt="" />
       </div>
+      {/* Le surtitre « Avec l'équipe MEGGA » a été retiré le 10 août 2026 : la vignette
+          juste au-dessus porte déjà la marque, et l'hôte se relit sur la carte de
+          confirmation une fois le créneau pris. */}
       <div className="mg-top-small">
-        <p className="paragraph-small text-color-neutral-600">{t('call.book.hostedBy')}</p>
-        <p className="display-2 semi-bold mg-top-5x-extra-small">{t('call.book.title')}</p>
+        <p className="display-2 semi-bold">{t('call.book.title')}</p>
       </div>
       <div className="mg-top-small">
         <div className="mx-book__fact">
@@ -287,18 +366,28 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
             <div>
               <MxLink onClick={() => setEtape('creneau')}>{t('call.book.back')}</MxLink>
               <p className="display-2 semi-bold mg-top-4x-extra-small">{t('call.book.formTitle')}</p>
+              {/* POURQUOI on demande tout ça. Sans cette ligne, neuf champs après le choix
+                  d'un créneau ressemblent à de la collecte ; avec elle, ce sont des minutes
+                  rendues au rendez-vous.
+
+                  ⚠ Elle ne dit PLUS ce qui est exigé (retrait du 9 août 2026). Le gate reste
+                  `identiteComplete` — prénom, nom, e-mail, téléphone — et les cinq questions
+                  restent libres, mais l'écran ne l'annonce nulle part. */}
+              <p className="paragraph-small mx-field__help mg-top-5x-extra-small">
+                {t('call.book.formIntro')}
+              </p>
 
               <div className="grid-2-columns mg-top-small">
                 <MxField label={t('call.form.firstName')}>
-                  {(id) => <MxInput id={id} value={prenom} onChange={(e) => setPrenom(e.target.value)} />}
+                  {(id) => <MxInput id={id} value={prenom} onChange={(e) => setPrenom(e.target.value)} readOnly={identiteVerrouillee} />}
                 </MxField>
                 <MxField label={t('call.form.lastName')}>
-                  {(id) => <MxInput id={id} value={nom} onChange={(e) => setNom(e.target.value)} />}
+                  {(id) => <MxInput id={id} value={nom} onChange={(e) => setNom(e.target.value)} readOnly={identiteVerrouillee} />}
                 </MxField>
               </div>
 
               <MxField className="mg-top-4x-extra-small" label={t('call.form.email')}>
-                {(id) => <MxInput id={id} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />}
+                {(id) => <MxInput id={id} type="email" value={email} onChange={(e) => setEmail(e.target.value)} readOnly={emailVerrouille} />}
               </MxField>
 
               {/* Le SEUL champ qui n'est pas prérempli : le profil ne porte pas de numéro
@@ -306,7 +395,22 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
                   confirmations dans le vide. */}
               <MxField className="mg-top-4x-extra-small" label={t('call.form.whatsapp')}>
                 {(id) => (
-                  <MxInput id={id} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  // `mx-equal-columns` (point 13) : sans lui, `1fr` cède devant la largeur
+                  // intrinsèque du <select>, et la colonne du numéro se fait écraser par
+                  // la plus longue option de la liste.
+                  <div className="grid-2-columns mx-equal-columns" style={{ gridTemplateColumns: 'minmax(0, 11rem) minmax(0, 1fr)' }}>
+                    <MxSelect
+                      value={paysTel}
+                      onChange={(e) => setPaysTel(e.target.value)}
+                      options={optionsIndicatif}
+                      aria-label={t('call.form.dialCode')}
+                    />
+                    {/* L'exemple suit le pays : le groupement des chiffres n'est pas
+                        décoratif, il diffère d'un pays à l'autre et c'est lui qu'on
+                        recopie. Vide pour un pays dont le format n'a pas été vérifié —
+                        cf. PHONE_EXAMPLES, un exemple faux vaut moins que pas d'exemple. */}
+                    <MxInput id={id} type="tel" inputMode="tel" value={numeroLocal} onChange={(e) => setNumeroLocal(e.target.value)} placeholder={PHONE_EXAMPLES[paysTel] ?? ''} />
+                  </div>
                 )}
               </MxField>
 

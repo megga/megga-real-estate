@@ -13,6 +13,26 @@
       "body": "Wir beginnen damit, Ihre Agentur zu identifizieren.",
       "startButton": "Meine Agentur identifizieren"
     },
+    "verificationReturn": {
+      "thanks": "Danke!",
+      "sealAria": "Identität geprüft",
+      "body": {
+        "verified": "30 Minuten mit unserem Team, um Ihre Einrichtung durchzugehen.",
+        "processing": "Die Prüfung läuft. Sie können weitergehen, wir hängen das Ergebnis an Ihr Dossier an.",
+        "incomplete": "Die Prüfung ist nicht abgeschlossen. Nehmen Sie sie wieder auf, um fortzufahren."
+      },
+      "bookCta": "Termin buchen",
+      "retryCta": "Prüfung wieder aufnehmen"
+    },
+    "submitted": {
+      "title": "Ihr Termin ist bestätigt",
+      "titleNoCall": "Gesendet",
+      "mailConfirmation": "Eine Bestätigung wurde Ihnen per E-Mail gesendet.",
+      "copy": "Link kopieren",
+      "copied": "Link kopiert",
+      "noCall": "Es ist noch kein Termin festgelegt. Wir schreiben Ihnen, sobald ein Zeitfenster frei wird.",
+      "enterCta": "Zu meinem Bereich"
+    },
     "pendingNotice": {
       "title": "Ihre Erfassung ist unterbrochen",
       "body": "Jeder bestätigte Schritt ist bereits gespeichert. Kommen Sie zurück, wann Sie möchten: Ihre Angaben bleiben erhalten.",
@@ -62,14 +82,14 @@
       },
       "agencyRole": {
         "admin": "Admin",
-        "adminHint": "Voller Zugriff: Einstellungen, Abrechnung, Teamverwaltung.",
+        "adminHint": "Einstellungen, Abrechnung, Team",
         "manager": "Manager",
-        "managerHint": "Führung der Agenten, Aufsicht über Transaktionen und Pipeline.",
+        "managerHint": "Agenten, Transaktionen, Pipeline",
         "agent": "Agent",
-        "agentHint": "Verwaltung eigener Kontakte, Objekte und Transaktionen.",
+        "agentHint": "Eigene Kontakte, Objekte, Transaktionen",
         "assistant": "Assistent",
-        "assistantHint": "Lesezugriff, administrative Unterstützung.",
-        "lastAdminNotice": "Sie sind der einzige Admin: Ihr Konto behält seine Rechte."
+        "assistantHint": "Nur Lesezugriff, administrative Unterstützung",
+        "helpToggle": "Was jede Rolle darf"
       }
     },
     "agence": {
@@ -106,10 +126,11 @@
     },
     "pieceIdentite": {
       "title": "Bestätigen Sie Ihre Identität",
-      "subtitle": "Reisepass oder Identitätskarte. Das Foto wird uns nie übermittelt.",
       "missingSignataire": "Die unterzeichnende Person muss zuerst im vorherigen Schritt angegeben werden.",
       "verification": {
-        "cta": "Identität bestätigen",
+        "title": "Sie werden zu Stripe weitergeleitet,",
+        "titleLine2": "unserem Prüfdienstleister",
+        "cta": "Stripe öffnen",
         "retryCta": "Prüfung fortsetzen",
         "pendingTitle": "Prüfung läuft",
         "pendingBody": "Das Ergebnis kommt in Kürze. Sie können fortfahren, wir hängen es an Ihr Dossier an.",
@@ -177,7 +198,6 @@
     },
     "recap": {
       "title": "Prüfen Sie Ihre Angaben, bevor Sie sie einreichen",
-      "subtitle": "Lesen Sie jeden Abschnitt noch einmal durch. Sie können einen Schritt noch bearbeiten.",
       "notProvided": "Nicht angegeben",
       "pieceIdentite": {
         "uploaded": "Hochgeladen",
@@ -185,8 +205,10 @@
         "loading": "Hochgeladene Dokumente werden geprüft…",
         "loadFailed": "Die hochgeladenen Dokumente konnten nicht geprüft werden. Versuchen Sie es erneut.",
         "statusLabel": "Prüfung",
+        "verifiedAtLabel": "Geprüft am",
         "verified": "Identität bei unserem Dienstleister bestätigt",
-        "processing": "Prüfung wird bearbeitet"
+        "processing": "Prüfung wird bearbeitet",
+        "manualReview": "Keine erfolgreiche Online-Prüfung. Unser Compliance-Team stellt Ihre Identität fest."
       },
       "rendezVous": {
         "whenLabel": "Datum",
@@ -288,12 +310,14 @@
     },
     "form": {
       "phone": "Telefon (optional)",
-      "note": "Ein Wort zu Ihren Prioritäten (optional)",
-      "notePlaceholder": "Was Sie zuerst sehen möchten",
+      "note": "Sonst noch etwas?",
+      "notePlaceholder": "Eine Frage, ein Sonderfall…",
       "firstName": "Vorname",
       "lastName": "Nachname",
       "email": "E-Mail",
-      "whatsapp": "WhatsApp-Nummer"
+      "whatsapp": "WhatsApp-Nummer",
+      "dialCode": "Vorwahl",
+      "whatsappPlaceholder": "79 874 94 84"
     },
     "actions": {
       "confirm": "Termin bestätigen",
@@ -356,7 +380,6 @@
       }
     },
     "book": {
-      "hostedBy": "Mit dem MEGGA-Team",
       "title": "Willkommensgespräch",
       "duration": "{{count}} Min.",
       "video": "Den Link zur Videokonferenz erhalten Sie mit der Bestätigung.",
@@ -364,12 +387,13 @@
       "pickTitle": "Wählen Sie Datum und Uhrzeit",
       "next": "Weiter",
       "back": "Zurück",
-      "formTitle": "Ihre Angaben"
+      "formTitle": "Zur Vorbereitung des Gesprächs",
+      "formIntro": "Ihre Antworten ersparen uns, die halbe Zeit mit diesen Fragen zu verbringen."
     },
     "questions": {
       "placeholder": "Auswählen…",
       "portfolio": {
-        "label": "Wie viele Objekte betreuen Sie heute?",
+        "label": "Wie viele Objekte in Ihrem Portfolio?",
         "options": {
           "1-5": "1 bis 5",
           "6-20": "6 bis 20",
@@ -378,7 +402,7 @@
         }
       },
       "business": {
-        "label": "Verkauf, Vermietung oder beides?",
+        "label": "Verkauf oder Vermietung?",
         "options": {
           "sale": "Verkauf",
           "rent": "Vermietung",
@@ -388,17 +412,17 @@
       "team": {
         "label": "Wie viele Agenten im Team?",
         "options": {
-          "1": "Ich arbeite allein",
+          "1": "Allein",
           "2-5": "2 bis 5",
           "6-15": "6 bis 15",
           "15+": "Mehr als 15"
         }
       },
       "priority": {
-        "label": "Ihre Priorität der nächsten drei Monate?",
+        "label": "Was möchten Sie zuerst lösen?",
         "options": {
           "mandates": "Mandate gewinnen",
-          "buyers": "Meine Käufer betreuen",
+          "buyers": "Meine Käufer begleiten",
           "admin": "Verwaltungszeit sparen",
           "compliance": "GwG/KYC absichern"
         }

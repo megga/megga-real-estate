@@ -147,6 +147,15 @@ const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
 const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
+// Aperçu du parcours d'onboarding — DEV seulement (cf. sa route plus bas, et son
+// en-tête pour les trois murs qui rendent ce parcours autrement inatteignable).
+// Le ternaire n'est pas décoratif : `import.meta.env.DEV` est remplacé par `false`
+// au build, l'import dynamique tombe dans une branche morte, et le chunk cesse
+// d'être émis. Un `lazy()` inconditionnel, lui, produisait bien un
+// `OnboardingPreviewPage-*.js` dans dist/ — jamais chargé, mais livré.
+const OnboardingPreviewPage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/OnboardingPreviewPage'))
+  : () => null
 // MEGGA AI — panneau docké monté AU-DESSUS de <Routes>, hors de l'arbre de routage
 // pour survivre au remount de navigation : le panneau + la conversation
 // persistent d'une page à l'autre (suivi de contexte, chantier 5).
@@ -451,6 +460,13 @@ function AppRoutes() {
               <Route path="/dev/matching-atelier" element={<MatchingAtelierDemoPage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/mobile" element={<MobileShowcasePage />} />
+              {/* Onboarding — la SEULE de ces routes à être conditionnée au mode dev.
+                  Les autres ne montrent que des maquettes ; celle-ci monte les écrans
+                  réels avec l'écriture entre étapes neutralisée (IdentityShellPreview),
+                  ce qui n'a aucune raison d'exister dans un bundle déployé. */}
+              {import.meta.env.DEV && (
+                <Route path="/dev/onboarding" element={<OnboardingPreviewPage />} />
+              )}
 
 
               {/* Sprint 4.4 — Export PDF dossier KYC (protected, no layout — print-friendly) */}

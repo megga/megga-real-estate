@@ -604,6 +604,44 @@ describe('resolveIdentityScreen - ce que la route rend, sans clignotement', () =
       expect(resolveIdentityScreen(false, dismissed, false)).toBe('wizard')
     }
   })
+
+  // Retour du prestataire d'identité (?verification=done), 4ᵉ écran depuis le 09.08.2026.
+  it('retour de vérification -> l\'écran de retour, quel que soit l\'état de l\'arrivée', () => {
+    for (const decision of [true, false]) {
+      for (const dismissed of [false, true]) {
+        expect(resolveIdentityScreen(decision, dismissed, false, true)).toBe('verificationReturn')
+      }
+    }
+  })
+
+  it('retour de vérification JAMAIS avant que la décision soit prise', () => {
+    // Même règle que l'écran d'arrivée : annoncer un verdict sur des données non
+    // stabilisées, c'est le clignotement qui a fait tomber la suite E2E le 01.08.2026.
+    expect(resolveIdentityScreen(null, false, false, true)).toBe('preparing')
+  })
+
+  it('la sortie de secours prime sur le retour de vérification', () => {
+    // « Reprendre plus tard » est un geste EXPLICITE de l'utilisateur ; le retour, lui,
+    // n'est qu'un paramètre d'URL. Le second ne doit pas défaire le premier.
+    expect(resolveIdentityScreen(true, false, true, true)).toBe('wizard')
+  })
+
+  // Soumission : terminal, passe avant tout — y compris l'écran d'attente.
+  it('dossier soumis -> l\'écran de confirmation, quel que soit le reste', () => {
+    expect(resolveIdentityScreen(null, false, false, false, true)).toBe('submitted')
+    expect(resolveIdentityScreen(true, false, false, true, true)).toBe('submitted')
+    expect(resolveIdentityScreen(true, false, true, false, true)).toBe('submitted')
+  })
+
+  it('sans soumission, le cinquième argument ne change rien (défaut false)', () => {
+    expect(resolveIdentityScreen(true, true, false, false, false)).toBe('wizard')
+    expect(resolveIdentityScreen(true, true, false)).toBe('wizard')
+  })
+
+  it('sans retour en cours, le quatrième argument ne change rien (défaut false)', () => {
+    expect(resolveIdentityScreen(true, false, false, false)).toBe('welcome')
+    expect(resolveIdentityScreen(true, false, false)).toBe('welcome')
+  })
 })
 
 describe('shouldDecideIdentityWelcome - on ne tranche que sur des donnees stabilisees', () => {

@@ -72,7 +72,8 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { SG_IDENTITY_STEPS } from './tokens'
 import { switchLanguage } from '@/i18n'
 import { MeggaX, MxButton, MxLink } from '@/components/megga-x'
@@ -85,10 +86,11 @@ import {
   type AgencyDeclaredRole, type IdentityDocumentType, type IdentityVerificationStatus,
   type VerificationStartFailure,
 } from '@/hooks/useAgencyIdentity'
-import { useTeamMembers } from '@/hooks/useTeam'
 import { useMyOnboardingCall, browserTimezone } from '@/hooks/useOnboardingCall'
 import type { OcBookingState } from '@/components/onboarding-call/OcBooking'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
+import IdentitySubmittedScreen from './IdentitySubmittedScreen'
+import IdentityVerificationReturnScreen from './IdentityVerificationReturnScreen'
 import { StepSignataire } from './steps/StepSignataire'
 import { StepAgence } from './steps/StepAgence'
 import { StepPieceIdentite } from './steps/StepPieceIdentite'
@@ -491,7 +493,7 @@ export function shouldResetAttestationLeavingRecap(previousStep: number, nextSte
  * disparaissait sous elle. Un écran d'attente neutre ne porte aucun des deux
  * repères, donc rien à attraper trop tôt.
  */
-export type IdentityScreen = 'preparing' | 'welcome' | 'wizard'
+export type IdentityScreen = 'preparing' | 'welcome' | 'wizard' | 'verificationReturn' | 'submitted'
 
 /**
  * La question est-elle seulement posable ? Tant qu'une lecture est en cours —
@@ -509,8 +511,28 @@ export function resolveIdentityScreen(
   welcomeDecision: boolean | null,
   welcomeDismissed: boolean,
   showExitScreen: boolean,
+  /**
+   * Le dirigeant revient de chez le prestataire (`?verification=done`) et n'a pas
+   * encore quitté cet écran. Optionnel : le seul appelant le passe, et les cas d'avant
+   * le 9 août 2026 se relisent tels quels — l'omettre, c'est « pas de retour en cours »,
+   * ce qui est l'état de tout chargement ordinaire de la route.
+   */
+  showVerificationReturn = false,
+  /**
+   * Le dossier vient d'être soumis. TERMINAL : passe avant tout le reste, y compris
+   * l'écran d'attente — une fois la RPC acquittée, plus aucune donnée en cours de
+   * chargement ne peut remettre le parcours en question.
+   */
+  submitted = false,
 ): IdentityScreen {
+  if (submitted) return 'submitted'
+  // AVANT l'arrivée, APRÈS l'attente. L'ordre est le fond de la règle : on ne peut pas
+  // annoncer un verdict tant que la décision d'écran n'est pas prise (mêmes données non
+  // stabilisées, même clignotement que l'incident du 01.08.2026), mais quelqu'un qui
+  // revient de chez le prestataire ne doit jamais retomber sur l'écran d'arrivée, qui
+  // lui proposerait de commencer ce qu'il vient de faire.
   if (welcomeDecision === null) return 'preparing'
+  if (showVerificationReturn && !showExitScreen) return 'verificationReturn'
   if (welcomeDecision && !welcomeDismissed && !showExitScreen) return 'welcome'
   return 'wizard'
 }
@@ -843,8 +865,58 @@ function ExitPendingScreen({ onResume, onLogout }: { onResume: () => void; onLog
   )
 }
 
+/**
+ * Réglages d'APERÇU, passés par le seul appelant qui en pose : la page de
+ * prévisualisation dev (`src/pages/dev/OnboardingPreviewPage.tsx`), dont la route
+ * n'est enregistrée que sous `import.meta.env.DEV`. En production, `preview` est
+ * toujours `undefined` et pas une ligne de ce fichier ne change de comportement.
+ *
+ * Elle existe parce que ce parcours est autrement inatteignable pour retoucher son
+ * front : il vit derrière ProtectedRoute, useIdentityGate() EXEMPTE les super-admins
+ * (le seul rôle qu'ait le compte de l'équipe), et il ne se franchit qu'une fois —
+ * `identity_submitted_at` posé, le gate rend 'done' pour toujours et aucun de ces
+ * écrans ne se rouvre. Trois écrans (attente, arrivée, sortie de secours) ne sont par
+ * ailleurs pas des routes : ce sont des états locaux de cette coquille, qu'aucune URL
+ * ne désigne.
+ */
+export interface IdentityShellPreview {
+  /** Écran ouvert au montage. Sans lui, la décision se prend normalement (persons). */
+  screen?: IdentityScreen | 'exit'
+  /** Étape ouverte au montage quand `screen` vaut 'wizard'. */
+  step?: number
+  /**
+   * N'écrit rien en base au changement d'étape. Indispensable, pas confortable :
+   * persistCurrentStep() échoue faute de session, et next() refuse d'avancer sur un
+   * échec de persistance — l'aperçu resterait cloué à l'étape 0.
+   */
+  skipPersist?: boolean
+}
+
+/**
+ * Les deux étapes que l'écran de retour sait rouvrir, nommées plutôt que comptées.
+ * `SG_IDENTITY_STEPS` en est la source : un jour où l'ordre bouge, c'est ici que ça se
+ * lit, pas dans un `setStep(3)` perdu au milieu d'un JSX.
+ */
+const INDEX_ETAPE_PIECE_IDENTITE = SG_IDENTITY_STEPS.findIndex((s) => s.id === 'pieceIdentite')
+const INDEX_ETAPE_RENDEZ_VOUS = SG_IDENTITY_STEPS.findIndex((s) => s.id === 'rendezVous')
+
+/**
+ * Cadence et plafond du rappel de statut sur l'écran de retour.
+ *
+ * Le verdict du prestataire arrive par WEBHOOK, pas dans la réponse au navigateur :
+ * l'onglet revient donc presque toujours avant lui, sur un statut `processing`. Sans ce
+ * rappel, le dirigeant resterait sur « vérification en cours » jusqu'à ce qu'il pense à
+ * recharger — sur l'écran précis où il vient chercher une confirmation.
+ *
+ * Borné, et c'est le point : passé une trentaine de secondes, on cesse d'interroger et
+ * l'écran assume l'attente. Un sondage sans fin sur une route où l'on peut rester
+ * ouvert des minutes coûterait une requête toutes les trois secondes pour rien.
+ */
+const RETOUR_SONDAGE_MS = 3_000
+const RETOUR_SONDAGE_MAX = 10
+
 /** Coquille du wizard identité : chrome, navigation entre étapes, persistance au changement d'étape. */
-export default function IdentityShell() {
+export default function IdentityShell({ preview }: { preview?: IdentityShellPreview } = {}) {
   const { t } = useTranslation('onboarding')
   // Aucune lecture de `useTheme()` ici, et c'est délibéré : ce parcours porte la
   // peau de la vitrine, qui n'existe qu'en une polarité (fond #030303). Il ne
@@ -854,16 +926,17 @@ export default function IdentityShell() {
 
   const { signOut, user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   /** LA sortie du parcours — en-tête ET écran d'attente. `/login` redirige vers la
    *  vitrine (VitrineLoginRedirect) : c'est le seul départ que le gate ne rattrape
    *  pas, rediriger vers /dashboard reproduirait la boucle P0 c830f9a9. */
   const handleLogout = () => { void signOut().then(() => navigate('/login')) }
   const {
-    agency, persons, isLoading, isRevalidating, savePerson, saveAgency,
+    agency, agencyId, persons, isLoading, isRevalidating, savePerson, saveAgency,
     startIdentityVerification, submit,
   } = useAgencyIdentity()
 
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState(preview?.step ?? 0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // Étape 4 (récapitulatif, tâche 7) : case d'attestation d'exactitude, contrôlée ici
@@ -872,7 +945,7 @@ export default function IdentityShell() {
 
   // Sortie de secours (tâche 8) : true -> <main>/<footer> affichent ExitPendingScreen
   // à la place du wizard, SANS jamais changer de route (cf. en-tête du fichier).
-  const [showExitScreen, setShowExitScreen] = useState(false)
+  const [showExitScreen, setShowExitScreen] = useState(preview?.screen === 'exit')
 
   // Bascule de langue en cours (WizardLanguagePicker). Ne devient un squelette
   // qu'au-delà du seuil : une langue déjà en cache bascule sans rien montrer.
@@ -883,17 +956,65 @@ export default function IdentityShell() {
   // de la visite. Rien n'est écrit en base pour s'en souvenir — c'est la présence
   // de données (personsCount) qui fait office de mémoire d'un parcours entamé,
   // cf. shouldShowIdentityWelcome.
-  const [welcomeDismissed, setWelcomeDismissed] = useState(false)
+  const [welcomeDismissed, setWelcomeDismissed] = useState(preview?.screen != null && preview.screen !== 'welcome')
   // Prise UNE fois, sur des données stabilisées, et jamais reposée : `persons`
   // repasse par une liste vide à chaque revalidation, et rejuger à chaque rendu
   // faisait réapparaître l'écran d'arrivée sous les doigts de l'utilisateur.
-  const [welcomeDecision, setWelcomeDecision] = useState<boolean | null>(null)
+  // Un aperçu qui NOMME son écran a déjà tranché : 'preparing' veut précisément la
+  // décision non prise (null), les autres l'imposent. L'effet ci-dessous s'abstient
+  // alors, sans quoi il rejugerait aussitôt sur `persons` et écraserait la consigne.
+  const [welcomeDecision, setWelcomeDecision] = useState<boolean | null>(
+    preview?.screen == null || preview.screen === 'preparing' ? null : preview.screen === 'welcome',
+  )
   useEffect(() => {
+    if (preview?.screen) return
     if (welcomeDecision !== null) return
     if (!shouldDecideIdentityWelcome(isLoading, isRevalidating)) return
     setWelcomeDecision(shouldShowIdentityWelcome(persons.length, isLoading, isRevalidating))
-  }, [welcomeDecision, isLoading, isRevalidating, persons.length])
-  const ecran = resolveIdentityScreen(welcomeDecision, welcomeDismissed, showExitScreen)
+  }, [preview?.screen, welcomeDecision, isLoading, isRevalidating, persons.length])
+  /**
+   * Retour du prestataire d'identité. Le paramètre est POSÉ PAR L'EDGE FUNCTION, pas
+   * par nous : `kyb-identity-verify` envoie Stripe sur `${origin}/dashboard/identite?
+   * verification=done` (sa constante RETURN_PATH). Il existait donc avant cet écran, et
+   * personne ne le lisait.
+   *
+   * `retourConsomme` le referme dès qu'on en part : sans lui, un F5 après avoir cliqué
+   * « Réserver un créneau » ramènerait l'écran de retour à la place de l'étape qu'on
+   * vient d'ouvrir. Le paramètre est aussi effacé de l'URL (`replace`), pour que
+   * l'historique n'en garde pas trace.
+   */
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [retourConsomme, setRetourConsomme] = useState(false)
+  /** Le dossier est parti. État local et non une route : sortir d'ici rejouerait la boucle P0. */
+  const [soumis, setSoumis] = useState(false)
+  const retourVerification = (searchParams.get('verification') === 'done' || preview?.screen === 'verificationReturn')
+    && !retourConsomme
+  const soumisAffiche = soumis || preview?.screen === 'submitted'
+  const quitterRetour = (target: number) => {
+    setRetourConsomme(true)
+    setSearchParams({}, { replace: true })
+    setStep(clampIdentityStep(target, SG_IDENTITY_STEPS.length))
+  }
+
+  const ecran = resolveIdentityScreen(welcomeDecision, welcomeDismissed, showExitScreen, retourVerification, soumisAffiche)
+
+  // Rappel borné du statut tant qu'on attend le webhook (cf. RETOUR_SONDAGE_MS).
+  // `invalidateQueries` plutôt qu'un refetch exposé par le hook : la clé est déjà
+  // publique (`agencyId` l'est aussi), et le contrat de useAgencyIdentity n'a pas à
+  // grandir pour un écran. La boucle s'arrête d'elle-même dès que le statut quitte
+  // `processing`, la condition étant relue à chaque rendu.
+  const statutVerification = persons.find((p) => p.roles.some((r) => r.role === 'signatory'))?.verificationStatus ?? null
+  const [sondages, setSondages] = useState(0)
+  useEffect(() => {
+    if (ecran !== 'verificationReturn') return
+    if (statutVerification !== 'processing' && statutVerification !== null) return
+    if (sondages >= RETOUR_SONDAGE_MAX) return
+    const id = setTimeout(() => {
+      setSondages((n) => n + 1)
+      void queryClient.invalidateQueries({ queryKey: ['agency-identity-persons', agencyId] })
+    }, RETOUR_SONDAGE_MS)
+    return () => { clearTimeout(id) }
+  }, [ecran, statutVerification, sondages, queryClient, agencyId])
 
   // Correctif revue tâche 7, point 1 : réinitialise l'attestation dès qu'on QUITTE le
   // récapitulatif, quel que soit le chemin (goToStep — bouton "Modifier" ET stepper de
@@ -916,18 +1037,12 @@ export default function IdentityShell() {
     [persons],
   )
 
-  /**
-   * L'agence a-t-elle un AUTRE administrateur que la personne qui saisit ?
-   *
-   * Décide de la réserve affichée sur les cartes de rôle (cf. l'en-tête de
-   * StepSignataire) : sans autre admin, le rôle déclaré est retenu dans le dossier mais
-   * pas appliqué au compte, garde-fou de submit_agency_identity. Tant que la liste
-   * n'est pas chargée on répond « seul admin » — c'est le cas de toute agence solo,
-   * donc de presque tout onboarding, et c'est la réponse prudente : mieux vaut annoncer
-   * une réserve qui ne s'appliquera pas que taire celle qui s'appliquera.
-   */
-  const { data: teamMembers } = useTeamMembers()
-  const isOnlyAdmin = !(teamMembers ?? []).some((m) => m.id !== user?.id && m.role === 'admin')
+  // La composition de l'équipe (useTeamMembers) était lue ici pour une seule chose :
+  // avertir un dirigeant SEUL que se déclarer autre qu'admin ne retirerait pas ses
+  // droits (garde-fou de submit_agency_identity). La réserve a été retirée de l'écran
+  // le 9 août 2026 (cf. l'en-tête de StepSignataire), et la lecture avec elle — la
+  // garder aurait fait une requête par ouverture du wizard pour une valeur que plus
+  // personne n'affiche.
 
   const [signataire, setSignataireRaw] = useState<SignataireDraft>(EMPTY_SIGNATAIRE_DRAFT)
   const setSignataire = (patch: Partial<SignataireDraft>) => setSignataireRaw((prev) => ({ ...prev, ...patch }))
@@ -1097,6 +1212,8 @@ export default function IdentityShell() {
    * incomplète (bloque next(), n'empêche jamais prev()).
    */
   const persistCurrentStep = async (): Promise<boolean> => {
+    // Aperçu dev : rien à écrire, et surtout rien à faire échouer (cf. IdentityShellPreview).
+    if (preview?.skipPersist) return true
     if (step === 0) {
       if (!isSignataireStepComplete(signataire)) return false
       return runPersist(() => savePerson(
@@ -1195,6 +1312,12 @@ export default function IdentityShell() {
     setError(null)
     try {
       await submit(signatoryId)
+      // Le parcours se ferme sur un écran, plus sur une redirection muette vers
+      // /dashboard (choix du 04.08.2026, renversé le 10.08). Le dirigeant vient de
+      // soumettre un dossier de conformité : lui dire ce qu'il devient, et où a lieu
+      // son rendez-vous, vaut mieux que de l'éjecter dans un CRM vide.
+      setSoumis(true)
+      return
       // Le dashboard, désormais — et non plus l'écran de réservation. Ce détour
       // existait parce qu'une agence qui venait de soumettre son dossier atterrissait
       // dans un CRM vide sans que personne chez MEGGA ne la contacte ; depuis le 4 août
@@ -1239,7 +1362,31 @@ export default function IdentityShell() {
   // ni fond Sugar. Il porte la peau de la vitrine (cf. son en-tête), et la bascule
   // vers Sugar se fait au clic sur Commencer. Placé APRÈS tous les hooks — un
   // retour anticipé au-dessus d'eux changerait leur ordre d'un rendu à l'autre.
+  if (ecran === 'submitted') {
+    return (
+      <IdentitySubmittedScreen
+        rendezVous={bookedCall.data ?? null}
+        timezone={rendezVousTimezone}
+        onEnter={() => navigate('/dashboard')}
+      />
+    )
+  }
   if (ecran === 'preparing') return <IdentityPreparingScreen />
+  if (ecran === 'verificationReturn') {
+    return (
+      <IdentityVerificationReturnScreen
+        status={existingSignatory?.verificationStatus ?? null}
+        // Le nom DÉCLARÉ, jamais celui lu par le prestataire : il ne nous en reste
+        // aucune trace stockable (cf. l'en-tête de l'écran). Repli sur l'e-mail du
+        // compte plutôt qu'une ligne vide — mieux vaut une adresse qu'un sceau posé
+        // sur rien, sur l'écran qui doit nommer la personne vérifiée.
+        fullName={[existingSignatory?.firstName, existingSignatory?.lastName]
+          .filter(Boolean).join(' ').trim() || (user?.email ?? '')}
+        onBook={() => quitterRetour(INDEX_ETAPE_RENDEZ_VOUS)}
+        onRetryDocument={() => quitterRetour(INDEX_ETAPE_PIECE_IDENTITE)}
+      />
+    )
+  }
   if (ecran === 'welcome') {
     return (
       <IdentityWelcomeScreen
@@ -1368,7 +1515,7 @@ export default function IdentityShell() {
               ) : showExitScreen ? (
           <ExitPendingScreen onResume={() => setShowExitScreen(false)} onLogout={handleLogout} />
         ) : step === 0 ? (
-          <StepSignataire value={signataire} onChange={setSignataire} isOnlyAdmin={isOnlyAdmin} />
+          <StepSignataire value={signataire} onChange={setSignataire} />
         ) : step === 1 ? (
           <StepAgence value={agencyDraft} onChange={setAgencyDraft} />
         ) : step === 2 ? (
@@ -1401,6 +1548,11 @@ export default function IdentityShell() {
             agencyDraft={agencyDraft}
             documentType={null}
             verificationStatus={pieceIdentiteDraft.verificationStatus}
+            // Ce que le PRESTATAIRE a établi, relu depuis la personne : la nature de la
+            // pièce qu'il a lue et l'instant du verdict. Ni l'une ni l'autre n'est
+            // déclarée — c'est ce qui les rend dignes d'une relecture de conformité.
+            verifiedDocumentType={existingSignatory?.idDocumentType ?? null}
+            verifiedAt={existingSignatory?.verifiedAt ?? null}
             recto={null}
             verso={null}
             identityRead={existingSignatory?.idDocumentRead ?? null}

@@ -13,6 +13,26 @@
       "body": "We will start by identifying your agency.",
       "startButton": "Identify my agency"
     },
+    "verificationReturn": {
+      "thanks": "Thank you!",
+      "sealAria": "Identity verified",
+      "body": {
+        "verified": "30 minutes with our team to walk through your setup.",
+        "processing": "Verification is under way. You can move on, we will attach the result to your file.",
+        "incomplete": "Verification did not complete. Start it again to continue."
+      },
+      "bookCta": "Book a slot",
+      "retryCta": "Start verification again"
+    },
+    "submitted": {
+      "title": "Your call is confirmed",
+      "titleNoCall": "Sent",
+      "mailConfirmation": "A confirmation has been sent to you by email.",
+      "copy": "Copy the link",
+      "copied": "Link copied",
+      "noCall": "No call is booked yet. We will write to you as soon as a slot opens.",
+      "enterCta": "Go to my workspace"
+    },
     "pendingNotice": {
       "title": "Your entry is paused",
       "body": "Every step you confirmed is already saved. Come back whenever you want, you will find your entry as you left it.",
@@ -62,14 +82,14 @@
       },
       "agencyRole": {
         "admin": "Admin",
-        "adminHint": "Full access: settings, billing, team management.",
+        "adminHint": "Settings, billing, team",
         "manager": "Manager",
-        "managerHint": "Managing agents, overseeing transactions and the pipeline.",
+        "managerHint": "Agents, transactions, pipeline",
         "agent": "Agent",
-        "agentHint": "Managing their own contacts, properties and transactions.",
+        "agentHint": "Own contacts, properties, transactions",
         "assistant": "Assistant",
-        "assistantHint": "Read access, administrative support.",
-        "lastAdminNotice": "You are the only admin: your account will keep its rights."
+        "assistantHint": "Read-only, administrative support",
+        "helpToggle": "What each role can do"
       }
     },
     "agence": {
@@ -106,10 +126,11 @@
     },
     "pieceIdentite": {
       "title": "Verify your identity",
-      "subtitle": "Passport or identity card. The photo is never passed on to us.",
       "missingSignataire": "The signatory must be entered in the previous step first.",
       "verification": {
-        "cta": "Verify my identity",
+        "title": "You will be redirected to Stripe,",
+        "titleLine2": "our verification provider",
+        "cta": "Go to Stripe",
         "retryCta": "Resume verification",
         "pendingTitle": "Verification in progress",
         "pendingBody": "The result arrives shortly. You can continue, we will attach it to your file.",
@@ -177,7 +198,6 @@
     },
     "recap": {
       "title": "Review your file before submitting it",
-      "subtitle": "Read through each section. You can still edit a step.",
       "notProvided": "Not provided",
       "pieceIdentite": {
         "uploaded": "Uploaded",
@@ -185,8 +205,10 @@
         "loading": "Checking the uploaded documents…",
         "loadFailed": "Could not check the uploaded documents. Please try again.",
         "statusLabel": "Verification",
+        "verifiedAtLabel": "Verified on",
         "verified": "Identity verified at our provider",
-        "processing": "Verification being processed"
+        "processing": "Verification being processed",
+        "manualReview": "No completed online verification. Our compliance team will establish your identity."
       },
       "rendezVous": {
         "whenLabel": "Date",
@@ -288,12 +310,14 @@
     },
     "form": {
       "phone": "Phone (optional)",
-      "note": "A word on your priorities (optional)",
-      "notePlaceholder": "What you would like to see first",
+      "note": "Anything else we should know?",
+      "notePlaceholder": "A question, a specific case…",
       "firstName": "First name",
       "lastName": "Last name",
       "email": "Email",
-      "whatsapp": "WhatsApp number"
+      "whatsapp": "WhatsApp number",
+      "dialCode": "Country code",
+      "whatsappPlaceholder": "79 874 94 84"
     },
     "actions": {
       "confirm": "Confirm the appointment",
@@ -356,7 +380,6 @@
       }
     },
     "book": {
-      "hostedBy": "With the MEGGA team",
       "title": "Welcome call",
       "duration": "{{count}} min",
       "video": "The video link is sent to you with the confirmation.",
@@ -364,12 +387,13 @@
       "pickTitle": "Select a date and time",
       "next": "Next",
       "back": "Back",
-      "formTitle": "Your details"
+      "formTitle": "To prepare the call",
+      "formIntro": "Your answers save us spending half the call on these questions."
     },
     "questions": {
       "placeholder": "Select…",
       "portfolio": {
-        "label": "How many properties do you manage today?",
+        "label": "How many properties in your portfolio?",
         "options": {
           "1-5": "1 to 5",
           "6-20": "6 to 20",
@@ -378,7 +402,7 @@
         }
       },
       "business": {
-        "label": "Sales, lettings, or both?",
+        "label": "Sales or lettings?",
         "options": {
           "sale": "Sales",
           "rent": "Lettings",
@@ -388,19 +412,19 @@
       "team": {
         "label": "How many agents on the team?",
         "options": {
-          "1": "I work alone",
+          "1": "On my own",
           "2-5": "2 to 5",
           "6-15": "6 to 15",
           "15+": "More than 15"
         }
       },
       "priority": {
-        "label": "Your priority for the next three months?",
+        "label": "What would you like to fix first?",
         "options": {
-          "mandates": "Win mandates",
-          "buyers": "Follow up my buyers",
-          "admin": "Save admin time",
-          "compliance": "Secure AML/KYC"
+          "mandates": "Winning mandates",
+          "buyers": "Following up buyers",
+          "admin": "Saving admin time",
+          "compliance": "Securing AML/KYC"
         }
       },
       "cantons": {

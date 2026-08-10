@@ -13,6 +13,26 @@
       "body": "Nous allons commencer par identifier votre agence.",
       "startButton": "Identifier mon agence"
     },
+    "verificationReturn": {
+      "thanks": "Merci !",
+      "sealAria": "Identité vérifiée",
+      "body": {
+        "verified": "30 minutes avec notre équipe pour faire le tour de votre installation.",
+        "processing": "La vérification est en cours. Vous pouvez avancer, nous rattacherons le résultat à votre dossier.",
+        "incomplete": "La vérification n'a pas abouti. Reprenez-la pour continuer."
+      },
+      "bookCta": "Réserver un créneau",
+      "retryCta": "Reprendre la vérification"
+    },
+    "submitted": {
+      "title": "Votre rendez-vous est confirmé",
+      "titleNoCall": "C'est envoyé",
+      "mailConfirmation": "Une confirmation vous a été envoyée par e-mail.",
+      "copy": "Copier le lien",
+      "copied": "Lien copié",
+      "noCall": "Aucun rendez-vous n'est encore fixé. Nous vous écrirons dès qu'un créneau s'ouvre.",
+      "enterCta": "Aller à mon espace"
+    },
     "pendingNotice": {
       "title": "Votre saisie est en pause",
       "body": "Chaque étape validée est déjà enregistrée. Revenez quand vous voulez, vous retrouverez votre saisie.",
@@ -62,14 +82,14 @@
       },
       "agencyRole": {
         "admin": "Admin",
-        "adminHint": "Accès complet : paramètres, facturation, gestion de l'équipe.",
+        "adminHint": "Paramètres, facturation, équipe",
         "manager": "Manager",
-        "managerHint": "Gestion des agents, supervision des transactions et du pipeline.",
+        "managerHint": "Agents, transactions, pipeline",
         "agent": "Agent",
-        "agentHint": "Gestion de ses contacts, biens et transactions.",
+        "agentHint": "Ses contacts, biens et transactions",
         "assistant": "Assistant",
-        "assistantHint": "Accès en lecture, support administratif.",
-        "lastAdminNotice": "Vous êtes le seul administrateur : votre compte gardera ses droits."
+        "assistantHint": "Lecture seule, support administratif",
+        "helpToggle": "Ce que fait chaque rôle"
       }
     },
     "agence": {
@@ -106,10 +126,11 @@
     },
     "pieceIdentite": {
       "title": "Vérifiez votre identité",
-      "subtitle": "Passeport ou carte d'identité. La photo ne nous est jamais transmise.",
       "missingSignataire": "Le signataire doit d'abord être renseigné à l'étape précédente.",
       "verification": {
-        "cta": "Vérifier mon identité",
+        "title": "Vous allez être redirigé vers Stripe,",
+        "titleLine2": "notre prestataire de vérification",
+        "cta": "Aller sur Stripe",
         "retryCta": "Reprendre la vérification",
         "pendingTitle": "Vérification en cours",
         "pendingBody": "Le résultat arrive dans quelques instants. Vous pouvez continuer, nous le rattacherons à votre dossier.",
@@ -177,7 +198,6 @@
     },
     "recap": {
       "title": "Vérifiez votre dossier avant de le soumettre",
-      "subtitle": "Relisez chaque section. Vous pouvez encore modifier une étape.",
       "notProvided": "Non renseigné",
       "pieceIdentite": {
         "uploaded": "Déposé",
@@ -185,8 +205,10 @@
         "loading": "Vérification des documents déposés…",
         "loadFailed": "Impossible de vérifier les documents déposés. Réessayez.",
         "statusLabel": "Vérification",
+        "verifiedAtLabel": "Vérifiée le",
         "verified": "Identité vérifiée chez notre prestataire",
-        "processing": "Vérification en cours de traitement"
+        "processing": "Vérification en cours de traitement",
+        "manualReview": "Aucune vérification en ligne aboutie. Notre équipe conformité établira votre identité."
       },
       "rendezVous": {
         "whenLabel": "Date",
@@ -288,12 +310,14 @@
     },
     "form": {
       "phone": "Téléphone (facultatif)",
-      "note": "Un mot sur vos priorités (facultatif)",
-      "notePlaceholder": "Ce que vous aimeriez voir en premier",
+      "note": "Autre chose à nous dire ?",
+      "notePlaceholder": "Une question, un cas particulier…",
       "firstName": "Prénom",
       "lastName": "Nom",
       "email": "E-mail",
-      "whatsapp": "Numéro WhatsApp"
+      "whatsapp": "Numéro WhatsApp",
+      "dialCode": "Indicatif",
+      "whatsappPlaceholder": "79 874 94 84"
     },
     "actions": {
       "confirm": "Confirmer le rendez-vous",
@@ -356,7 +380,6 @@
       }
     },
     "book": {
-      "hostedBy": "Avec l'équipe MEGGA",
       "title": "Appel d'accueil",
       "duration": "{{count}} min",
       "video": "Le lien de visioconférence vous est envoyé à la confirmation.",
@@ -364,12 +387,13 @@
       "pickTitle": "Choisissez la date et l'heure",
       "next": "Suivant",
       "back": "Retour",
-      "formTitle": "Vos informations"
+      "formTitle": "Pour préparer l'appel",
+      "formIntro": "Vos réponses nous évitent de consacrer la moitié du rendez-vous à ces questions."
     },
     "questions": {
       "placeholder": "Sélectionnez…",
       "portfolio": {
-        "label": "Combien de biens gérez-vous aujourd'hui ?",
+        "label": "Combien de biens dans votre portefeuille ?",
         "options": {
           "1-5": "1 à 5",
           "6-20": "6 à 20",
@@ -378,7 +402,7 @@
         }
       },
       "business": {
-        "label": "Vente, location, ou les deux ?",
+        "label": "Vente ou location ?",
         "options": {
           "sale": "Vente",
           "rent": "Location",
@@ -388,14 +412,14 @@
       "team": {
         "label": "Combien d'agents dans l'équipe ?",
         "options": {
-          "1": "Je travaille seul",
+          "1": "Seul",
           "2-5": "2 à 5",
           "6-15": "6 à 15",
           "15+": "Plus de 15"
         }
       },
       "priority": {
-        "label": "Votre priorité des trois prochains mois ?",
+        "label": "Qu'aimeriez-vous régler en premier ?",
         "options": {
           "mandates": "Trouver des mandats",
           "buyers": "Suivre mes acquéreurs",
@@ -404,7 +428,7 @@
         }
       },
       "cantons": {
-        "label": "Sur quels cantons travaillez-vous ?",
+        "label": "Dans quels cantons travaillez-vous ?",
         "placeholder": "Genève, Vaud…"
       }
     }

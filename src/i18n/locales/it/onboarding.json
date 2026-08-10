@@ -13,6 +13,26 @@
       "body": "Inizieremo identificando la sua agenzia.",
       "startButton": "Identifichi la sua agenzia"
     },
+    "verificationReturn": {
+      "thanks": "Grazie!",
+      "sealAria": "Identità verificata",
+      "body": {
+        "verified": "30 minuti con il nostro team per rivedere insieme la configurazione.",
+        "processing": "La verifica è in corso. Può proseguire, alleghiamo l'esito alla Sua pratica.",
+        "incomplete": "La verifica non si è conclusa. La riprenda per continuare."
+      },
+      "bookCta": "Prenota un orario",
+      "retryCta": "Riprendi la verifica"
+    },
+    "submitted": {
+      "title": "Il Suo appuntamento è confermato",
+      "titleNoCall": "Inviato",
+      "mailConfirmation": "Una conferma Le è stata inviata via e-mail.",
+      "copy": "Copia il link",
+      "copied": "Link copiato",
+      "noCall": "Nessun appuntamento è ancora fissato. Le scriveremo appena si libera un orario.",
+      "enterCta": "Vai al mio spazio"
+    },
     "pendingNotice": {
       "title": "La Sua compilazione è in pausa",
       "body": "Ogni passaggio confermato è già salvato. Torni quando desidera, ritroverà la Sua compilazione.",
@@ -62,14 +82,14 @@
       },
       "agencyRole": {
         "admin": "Admin",
-        "adminHint": "Accesso completo: impostazioni, fatturazione, gestione del team.",
+        "adminHint": "Impostazioni, fatturazione, team",
         "manager": "Manager",
-        "managerHint": "Gestione degli agenti, supervisione delle transazioni e della pipeline.",
+        "managerHint": "Agenti, transazioni, pipeline",
         "agent": "Agente",
-        "agentHint": "Gestione dei propri contatti, immobili e transazioni.",
+        "agentHint": "Propri contatti, immobili, transazioni",
         "assistant": "Assistente",
-        "assistantHint": "Accesso in lettura, supporto amministrativo.",
-        "lastAdminNotice": "È l'unico amministratore: il Suo account manterrà i suoi diritti."
+        "assistantHint": "Sola lettura, supporto amministrativo",
+        "helpToggle": "Cosa fa ogni ruolo"
       }
     },
     "agence": {
@@ -106,10 +126,11 @@
     },
     "pieceIdentite": {
       "title": "Verifichi la sua identità",
-      "subtitle": "Passaporto o carta d'identità. La foto non ci viene mai trasmessa.",
       "missingSignataire": "Il firmatario deve prima essere indicato nel passaggio precedente.",
       "verification": {
-        "cta": "Verificare la mia identità",
+        "title": "Sarà reindirizzato su Stripe,",
+        "titleLine2": "il nostro fornitore di verifica",
+        "cta": "Vai su Stripe",
         "retryCta": "Riprendere la verifica",
         "pendingTitle": "Verifica in corso",
         "pendingBody": "Il risultato arriva tra poco. Può continuare, lo collegheremo al suo fascicolo.",
@@ -177,7 +198,6 @@
     },
     "recap": {
       "title": "Verifichi il Suo fascicolo prima di inviarlo",
-      "subtitle": "Rilegga ogni sezione. Può ancora modificare un passaggio.",
       "notProvided": "Non indicato",
       "pieceIdentite": {
         "uploaded": "Caricato",
@@ -185,8 +205,10 @@
         "loading": "Verifica dei documenti caricati…",
         "loadFailed": "Impossibile verificare i documenti caricati. Riprovi.",
         "statusLabel": "Verifica",
+        "verifiedAtLabel": "Verificata il",
         "verified": "Identità verificata presso il nostro fornitore",
-        "processing": "Verifica in corso di elaborazione"
+        "processing": "Verifica in corso di elaborazione",
+        "manualReview": "Nessuna verifica online conclusa. Il nostro team compliance accerterà la Sua identità."
       },
       "rendezVous": {
         "whenLabel": "Data",
@@ -288,12 +310,14 @@
     },
     "form": {
       "phone": "Telefono (facoltativo)",
-      "note": "Una parola sulle sue priorità (facoltativo)",
-      "notePlaceholder": "Cosa vorrebbe vedere per primo",
+      "note": "Altro da segnalarci?",
+      "notePlaceholder": "Una domanda, un caso particolare…",
       "firstName": "Nome",
       "lastName": "Cognome",
       "email": "E-mail",
-      "whatsapp": "Numero WhatsApp"
+      "whatsapp": "Numero WhatsApp",
+      "dialCode": "Prefisso",
+      "whatsappPlaceholder": "79 874 94 84"
     },
     "actions": {
       "confirm": "Confermare l'appuntamento",
@@ -356,7 +380,6 @@
       }
     },
     "book": {
-      "hostedBy": "Con il team MEGGA",
       "title": "Chiamata di benvenuto",
       "duration": "{{count}} min",
       "video": "Il link alla videoconferenza Le arriva con la conferma.",
@@ -364,12 +387,13 @@
       "pickTitle": "Scelga la data e l'ora",
       "next": "Avanti",
       "back": "Indietro",
-      "formTitle": "I Suoi dati"
+      "formTitle": "Per preparare la chiamata",
+      "formIntro": "Le Sue risposte ci evitano di dedicare metà dell'incontro a queste domande."
     },
     "questions": {
       "placeholder": "Selezioni…",
       "portfolio": {
-        "label": "Quanti immobili gestisce oggi?",
+        "label": "Quanti immobili nel Suo portafoglio?",
         "options": {
           "1-5": "Da 1 a 5",
           "6-20": "Da 6 a 20",
@@ -378,7 +402,7 @@
         }
       },
       "business": {
-        "label": "Vendita, locazione o entrambe?",
+        "label": "Vendita o locazione?",
         "options": {
           "sale": "Vendita",
           "rent": "Locazione",
@@ -388,19 +412,19 @@
       "team": {
         "label": "Quanti agenti nel team?",
         "options": {
-          "1": "Lavoro da solo",
+          "1": "Da solo",
           "2-5": "Da 2 a 5",
           "6-15": "Da 6 a 15",
           "15+": "Più di 15"
         }
       },
       "priority": {
-        "label": "La Sua priorità dei prossimi tre mesi?",
+        "label": "Cosa vorrebbe risolvere per primo?",
         "options": {
-          "mandates": "Ottenere mandati",
-          "buyers": "Seguire i miei acquirenti",
+          "mandates": "Trovare mandati",
+          "buyers": "Seguire gli acquirenti",
           "admin": "Guadagnare tempo amministrativo",
-          "compliance": "Mettere in sicurezza LRD/KYC"
+          "compliance": "Mettere in sicurezza LAB/KYC"
         }
       },
       "cantons": {
