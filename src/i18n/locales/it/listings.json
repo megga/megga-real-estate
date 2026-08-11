@@ -1316,20 +1316,10 @@
       "addressPlaceholder": "Indirizzo da completare",
       "agentLine": "MEGGA · {{canton}} · Presentato dall'agente",
       "contact": "Contatti",
-      "whenPublish": "Quando pubblicare",
       "publishNow": {
         "title": "Pubblica ora",
         "sub": "L'annuncio diventa visibile entro 30 secondi."
       },
-      "schedule": {
-        "title": "Programma",
-        "sub": "Scegli la data e l'ora di pubblicazione."
-      },
-      "draft": {
-        "title": "Salva come bozza",
-        "sub": "Riprendi più tardi. Nessuna data pubblica."
-      },
-      "scheduleDateLabel": "Data e ora (Europe/Zurich)",
       "visibility": {
         "eyebrow": "Visibilità",
         "public": "Public",
@@ -1372,8 +1362,6 @@
       },
       "mandateNote": "Mandato non firmato: l'annuncio apparirà su MEGGA; la diffusione su Immobilier.ch partirà dalla firma.",
       "cta": {
-        "schedule": "Programma la pubblicazione",
-        "draft": "Salva la bozza",
         "private": "Salva in privato",
         "publishIdx": "Pubblica su Immobilier.ch",
         "publishMegga": "Pubblica su MEGGA"
@@ -1395,29 +1383,17 @@
       "featuresLabel": "Dotazioni",
       "agentFallback": "La tua agenzia",
       "optionsTitle": "Opzioni di pubblicazione",
-      "when": {
-        "now": "Ora",
-        "schedule": "Programma",
-        "draft": "Bozza"
-      },
-      "draftNote": "L'immobile resta come bozza in «I miei immobili», nulla viene diffuso."
+      "savedNote": "Questo immobile è già salvato come bozza in I miei immobili. Pubblicare lo rende visibile."
     },
     "step8": {
       "eyebrow": {
-        "now": "Pubblicazione confermata",
-        "schedule": "Programmata",
-        "draft": "Bozza"
+        "now": "Pubblicazione confermata"
       },
       "title": {
-        "now": "Annuncio pubblicato",
-        "schedule": "Pubblicazione programmata",
-        "draft": "Bozza salvata"
+        "now": "Annuncio pubblicato"
       },
       "subtitle": {
-        "now": "Il tuo immobile è ora online su MEGGA.",
-        "schedule": "La pubblicazione avverrà il {{date}}.",
-        "scheduleFallbackDate": "alla data scelta",
-        "draft": "Potrai riprendere dalla tua dashboard."
+        "now": "Il tuo immobile è ora online su MEGGA."
       },
       "noCover": "Nessuna copertina",
       "noAddress": "Immobile senza indirizzo",
@@ -1468,7 +1444,8 @@
       "recommended": "Consigliato",
       "choose": "Scegli",
       "saved": "Salvato",
-      "autosave": "Salvataggio automatico"
+      "saving": "Salvataggio…",
+      "saveFailed": "Non salvato"
     },
     "kyc": {
       "verified": "KYC verificato",

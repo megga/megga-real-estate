@@ -1316,20 +1316,10 @@
       "addressPlaceholder": "Adresse à compléter",
       "agentLine": "MEGGA · {{canton}} · Présentation par l'agent",
       "contact": "Contacter",
-      "whenPublish": "Quand publier",
       "publishNow": {
         "title": "Publier maintenant",
         "sub": "L'annonce devient visible dans les 30 secondes."
       },
-      "schedule": {
-        "title": "Programmer",
-        "sub": "Choisissez la date et l'heure de mise en ligne."
-      },
-      "draft": {
-        "title": "Enregistrer en brouillon",
-        "sub": "Reprenez plus tard. Aucune date publique."
-      },
-      "scheduleDateLabel": "Date et heure (Europe/Zurich)",
       "visibility": {
         "eyebrow": "Visibilité",
         "public": "Public",
@@ -1372,8 +1362,6 @@
       },
       "mandateNote": "Mandat non signé : l'annonce paraîtra sur MEGGA ; la diffusion Immobilier.ch partira dès la signature.",
       "cta": {
-        "schedule": "Programmer la publication",
-        "draft": "Enregistrer le brouillon",
         "private": "Enregistrer en privé",
         "publishIdx": "Publier sur Immobilier.ch",
         "publishMegga": "Publier sur MEGGA"
@@ -1395,29 +1383,17 @@
       "featuresLabel": "Équipements",
       "agentFallback": "Votre agence",
       "optionsTitle": "Options de publication",
-      "when": {
-        "now": "Maintenant",
-        "schedule": "Programmer",
-        "draft": "Brouillon"
-      },
-      "draftNote": "Le bien reste en brouillon dans « Mes biens », rien n'est diffusé."
+      "savedNote": "Ce bien est déjà enregistré en brouillon dans « Mes biens ». Publier le rend visible."
     },
     "step8": {
       "eyebrow": {
-        "now": "Publication confirmée",
-        "schedule": "Programmée",
-        "draft": "Brouillon"
+        "now": "Publication confirmée"
       },
       "title": {
-        "now": "Annonce publiée",
-        "schedule": "Publication programmée",
-        "draft": "Brouillon enregistré"
+        "now": "Annonce publiée"
       },
       "subtitle": {
-        "now": "Votre bien est désormais en ligne sur MEGGA.",
-        "schedule": "La publication aura lieu le {{date}}.",
-        "scheduleFallbackDate": "à la date choisie",
-        "draft": "Vous pourrez reprendre depuis votre tableau de bord."
+        "now": "Votre bien est désormais en ligne sur MEGGA."
       },
       "noCover": "Pas de couverture",
       "noAddress": "Bien sans adresse",
@@ -1468,7 +1444,8 @@
       "recommended": "Recommandé",
       "choose": "Choisir",
       "saved": "Enregistré",
-      "autosave": "Enregistrement automatique"
+      "saving": "Enregistrement…",
+      "saveFailed": "Non enregistré"
     },
     "kyc": {
       "verified": "KYC vérifié",

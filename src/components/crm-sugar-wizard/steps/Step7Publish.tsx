@@ -15,7 +15,8 @@
 
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { SugarV2, sgOn, fmtCHF, shade, type WizardData } from '../tokens'
+import { SugarV2, sgOn, sgAcc, fmtCHF, shade, type WizardData } from '../tokens'
+import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { useAuth } from '@/hooks/useAuth'
 
 interface StepProps {
@@ -29,28 +30,6 @@ interface StepProps {
   publishing?: boolean
 }
 
-// ─── Contrôle segmenté Sugar (statique, aucune animation de survol) ────────
-function SgP7Seg<T extends string>({ options, value, onChange }: {
-  options: { v: T; label: string }[]
-  value: T
-  onChange: (v: T) => void
-}) {
-  return (
-    <div style={{ display: 'inline-flex', background: SugarV2.cardSubtle, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-xs)', gap: 'var(--crm-space-2xs)' }}>
-      {options.map((o) => {
-        const sel = value === o.v
-        return (
-          <button key={o.v} onClick={() => onChange(o.v)} style={{
-            height: 38, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 'var(--crm-text-lg)', fontWeight: 600,
-            background: sel ? SugarV2.black : 'transparent', color: sel ? sgOn() : SugarV2.muted,
-          }}>{o.label}</button>
-        )
-      })}
-    </div>
-  )
-}
-
 export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: StepProps) {
   const { t } = useTranslation('listings')
   const { profile } = useAuth()
@@ -61,10 +40,6 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
   const perM2 = (price && data.area) ? Math.round(price / data.area) : null
 
   const visibility = data.visibility || 'public'
-  const mode = data.publishMode || 'now'
-  const today = new Date().toISOString().slice(0, 10)
-  const schedDate = data.scheduledAt ? new Date(data.scheduledAt).toISOString().slice(0, 10) : ''
-  const canPublishSched = mode !== 'schedule' || !!data.scheduledAt
 
   // ── Checklist « Prêt à publier » (miroir du contrôle backend) ──
   const checks: { ok: boolean; label: string; step: number }[] = [
@@ -75,13 +50,11 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
     { ok: (data.description || '').trim().length > 0, label: t('wizard.step7.check.description'), step: 5 },
   ]
   const missing = checks.filter(c => !c.ok)
-  const publicPublish = visibility === 'public' && mode !== 'draft'
+  const publicPublish = visibility === 'public'
   const blocked = publicPublish && missing.length > 0
   const mandateSigned = !!(data.mandate && data.mandate.signed)
-  const canPublish = canPublishSched && !blocked && !publishing
+  const canPublish = !blocked && !publishing
   const ctaLabel = publishing ? t('wizard.shell.publishing')
-    : mode === 'schedule' ? t('wizard.step7.cta.schedule')
-    : mode === 'draft' ? t('wizard.step7.cta.draft')
     : visibility === 'private' ? t('wizard.step7.cta.private')
     : mandateSigned ? t('wizard.step7.cta.publishIdx') : t('wizard.step7.cta.publishMegga')
 
@@ -295,50 +268,50 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
       <div style={{ background: SugarV2.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: SugarV2.shadow, padding: 26, marginTop: 22 }}>
         <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.3, marginBottom: 20 }}>{t('wizard.step7.optionsTitle')}</div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-6xl)', marginBottom: 20 }}>
-          {/* Visibilité */}
-          <div>
-            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted, marginBottom: 10 }}>{t('wizard.step7.visibility.eyebrow')}</div>
-            <SgP7Seg
-              value={visibility === 'private' ? 'private' : 'public'}
-              onChange={(v) => set({ visibility: v })}
-              options={[
-                { v: 'public', label: t('wizard.step7.visibility.public') },
-                { v: 'private', label: t('wizard.step7.visibility.private') },
-              ]}
-            />
-            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SugarV2.muted, marginTop: 10, lineHeight: 1.45 }}>
-              {visibility === 'private' ? t('wizard.step7.visibility.privateDesc') : t('wizard.step7.visibility.publicDesc')}
-            </div>
-          </div>
-
-          {/* Quand */}
-          <div>
-            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted, marginBottom: 10 }}>{t('wizard.step7.whenPublish')}</div>
-            <SgP7Seg
-              value={mode}
-              onChange={(v) => set({ publishMode: v })}
-              options={[
-                { v: 'now', label: t('wizard.step7.when.now') },
-                { v: 'schedule', label: t('wizard.step7.when.schedule') },
-                { v: 'draft', label: t('wizard.step7.when.draft') },
-              ]}
-            />
-            {mode === 'schedule' && (
-              <input type="date" min={today} value={schedDate}
-                onChange={(e) => set({ scheduledAt: e.target.value ? new Date(`${e.target.value}T12:00:00`).toISOString() : undefined })}
+        {/* Une seule décision reste à prendre ici : qui verra l'annonce.
+            La colonne « Quand publier » a été retirée le 11 août 2026 — ses
+            trois modes n'écrivaient que deux états, et « Programmer » promettait
+            une mise en ligne différée qu'aucun cron n'assure. La visibilité
+            prend donc toute la largeur, en cartes de choix : sa conséquence se
+            lit au lieu de tenir dans une pilule. */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
+          {(['public', 'private'] as const).map((v) => {
+            const sel = (visibility === 'private' ? 'private' : 'public') === v
+            return (
+              <button key={v} type="button" onClick={() => set({ visibility: v })}
+                aria-pressed={sel}
                 style={{
-                  width: '100%', boxSizing: 'border-box', height: 44, marginTop: 12, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)',
-                  border: 0, outline: 'none', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600,
-                  colorScheme: SugarV2.isDark ? 'dark' : 'light', background: SugarV2.cardSubtle,
-                  color: schedDate ? SugarV2.ink : SugarV2.muted, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.04)',
-                }} />
-            )}
-            {mode === 'draft' && (
-              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SugarV2.muted, marginTop: 10, lineHeight: 1.45 }}>{t('wizard.step7.draftNote')}</div>
-            )}
-          </div>
+                  textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                  padding: 'var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-2xl)',
+                  background: sel ? sgAcc(0.08) : SugarV2.cardSubtle,
+                  border: `1.5px solid ${sel ? SugarV2.black : 'transparent'}`,
+                  display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)',
+                  transition: 'background .15s ease, border-color .15s ease',
+                }}>
+                {/* ⛔ L'accent #424bfb ne passe PAS l'AA en TEXTE sur sombre
+                    (3,3:1 sur le fond de carte sélectionnée). `blue300` est le
+                    barreau de la vitrine qui répond — 10,6:1 — et n'existe que
+                    pour ça. En clair l'accent tient (8,6:1 sur blanc). */}
+                <span style={{
+                  fontSize: 'var(--crm-text-2xl)', fontWeight: 600,
+                  color: sel ? (SugarV2.isDark ? MXC_SYSTEM.blue300 : SugarV2.black) : SugarV2.ink,
+                }}>
+                  {v === 'public' ? t('wizard.step7.visibility.public') : t('wizard.step7.visibility.private')}
+                </span>
+                <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SugarV2.muted, lineHeight: 1.45 }}>
+                  {v === 'public' ? t('wizard.step7.visibility.publicDesc') : t('wizard.step7.visibility.privateDesc')}
+                </span>
+              </button>
+            )
+          })}
         </div>
+
+        {/* Remplace l'ancienne note du mode « Brouillon ». Elle est vraie
+            désormais : la ligne existe en base depuis la première adresse. */}
+        <div style={{
+          marginTop: 'var(--crm-space-3xl)', fontSize: 'var(--crm-text-md)',
+          fontWeight: 500, color: SugarV2.muted, lineHeight: 1.45,
+        }}>{t('wizard.step7.savedNote')}</div>
       </div>
 
       {/* Barre d'action — le bouton Publier vit DANS le step */}

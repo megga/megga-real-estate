@@ -1316,20 +1316,10 @@
       "addressPlaceholder": "Address to be completed",
       "agentLine": "MEGGA · {{canton}} · Presented by the agent",
       "contact": "Contact",
-      "whenPublish": "When to publish",
       "publishNow": {
         "title": "Publish now",
         "sub": "The listing goes live within 30 seconds."
       },
-      "schedule": {
-        "title": "Schedule",
-        "sub": "Choose the go-live date and time."
-      },
-      "draft": {
-        "title": "Save as draft",
-        "sub": "Pick up later. No public date."
-      },
-      "scheduleDateLabel": "Date and time (Europe/Zurich)",
       "visibility": {
         "eyebrow": "Visibility",
         "public": "Public",
@@ -1372,8 +1362,6 @@
       },
       "mandateNote": "Mandate not signed: the listing will appear on MEGGA; Immobilier.ch distribution will start once it is signed.",
       "cta": {
-        "schedule": "Schedule publication",
-        "draft": "Save draft",
         "private": "Save privately",
         "publishIdx": "Publish on Immobilier.ch",
         "publishMegga": "Publish on MEGGA"
@@ -1395,29 +1383,17 @@
       "featuresLabel": "Amenities",
       "agentFallback": "Your agency",
       "optionsTitle": "Publishing options",
-      "when": {
-        "now": "Now",
-        "schedule": "Schedule",
-        "draft": "Draft"
-      },
-      "draftNote": "The property stays as a draft in My properties; nothing is distributed."
+      "savedNote": "This property is already saved as a draft in My properties. Publishing makes it visible."
     },
     "step8": {
       "eyebrow": {
-        "now": "Publication confirmed",
-        "schedule": "Scheduled",
-        "draft": "Draft"
+        "now": "Publication confirmed"
       },
       "title": {
-        "now": "Listing published",
-        "schedule": "Publication scheduled",
-        "draft": "Draft saved"
+        "now": "Listing published"
       },
       "subtitle": {
-        "now": "Your property is now live on MEGGA.",
-        "schedule": "Publication will take place on {{date}}.",
-        "scheduleFallbackDate": "the chosen date",
-        "draft": "You can pick up again from your dashboard."
+        "now": "Your property is now live on MEGGA."
       },
       "noCover": "No cover",
       "noAddress": "Property without an address",
@@ -1468,7 +1444,8 @@
       "recommended": "Recommended",
       "choose": "Choose",
       "saved": "Saved",
-      "autosave": "Auto-saved"
+      "saving": "Saving…",
+      "saveFailed": "Not saved"
     },
     "kyc": {
       "verified": "KYC verified",

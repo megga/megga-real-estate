@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 Wizard — Shell.
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx — `CRMWizardSugarV2`).
 
-import { useState, useEffect, useRef, type CSSProperties } from 'react'
+import { useState, useEffect, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   SugarV2, setSugarV2Dark, EMPTY_WIZARD, SG_STEPS, SG_KEYFRAMES, type WizardData,
@@ -9,6 +9,7 @@ import {
 import {
   SgIcon, SgCircleBtn, SgBlackPill, SgGhostPill,
 } from './primitives'
+import { useWizardDraft, wizardPayload, wizardTitre } from './useWizardDraft'
 import { useTheme } from '@/hooks/useTheme'
 import { Step0Start } from './steps/Step0Start'
 import { Step1Vendor } from './steps/Step1Vendor'
@@ -30,25 +31,6 @@ import { useAuth } from '@/hooks/useAuth'
 // `data.ownerContactId` — handlePublish le persiste alors avant de lier la
 // transaction. Un `ownerContactId` sans `_newContact` correspondant = un UUID
 // de contact existant, utilisé tel quel.
-
-// Wizard type (FR, 10 valeurs liste Gregory) → enum DB `property_type` (EN only :
-// apartment|house|villa|commercial|land). Sans ce mapping, tout type non couvert
-// viole l'enum → l'insert échoue (22P02, avalé) et le bien n'est jamais créé. Les
-// variantes d'appartement (attique/duplex/triplex/loft) retombent sur 'apartment',
-// le chalet sur 'house', le commerce sur 'commercial'. Étendre AVEC le type union
-// de WizardData (tokens.ts). Même fix que le wizard mobile (WTYPE_TO_ENUM).
-const TYPE_TO_ENUM: Record<WizardData['type'], 'apartment' | 'house' | 'villa' | 'commercial' | 'land'> = {
-  appartement: 'apartment',
-  attique: 'apartment',
-  duplex: 'apartment',
-  triplex: 'apartment',
-  loft: 'apartment',
-  maison: 'house',
-  villa: 'villa',
-  chalet: 'house',
-  terrain: 'land',
-  commerce: 'commercial',
-}
 
 interface WizardShellProps {
   onClose: () => void
@@ -95,18 +77,12 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
   const [data, setDataRaw] = useState<WizardData>(EMPTY_WIZARD)
   const set = (patch: Partial<WizardData>) => setDataRaw(prev => ({ ...prev, ...patch }))
 
-  // Feedback autosave : flash « Enregistré » à chaque changement de données.
-  // L'indicateur vit dans le footer (comme le handoff), plus dans les steps.
-  const [justSaved, setJustSaved] = useState(false)
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const firstData = useRef(true)
-  useEffect(() => {
-    if (firstData.current) { firstData.current = false; return }
-    setJustSaved(true)
-    if (savedTimer.current) clearTimeout(savedTimer.current)
-    savedTimer.current = setTimeout(() => setJustSaved(false), 1800)
-    return () => { if (savedTimer.current) clearTimeout(savedTimer.current) }
-  }, [data])
+  // Brouillon automatique — le témoin du pied lit l'état RÉEL de l'écriture.
+  // Avant le 11 août 2026 il faisait clignoter « Enregistré » à chaque frappe
+  // sans que rien ne soit persisté : fermer l'onglet perdait tout le parcours.
+  // Suspendu pendant et après la publication, sinon la sauvegarde repasserait
+  // le bien en `draft` juste après l'avoir activé.
+  const { etat: etatBrouillon } = useWizardDraft(data, set, !publishing && !published)
 
   // Le gating de publication vit dans la checklist « Prêt à publier » du Step 7
   // (≥5 photos requis pour une publication PUBLIQUE ; brouillon & « Privé » jamais
@@ -120,29 +96,19 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
   const createContact = useCreateContact()
   const createTransaction = useCreateTransaction()
 
-  // Map the wizard's publishMode to the (status, published_at) pair the
-  // properties table expects. There's no scheduled-publish backend yet,
-  // so 'schedule' is persisted as 'draft' — separate chip to wire a real
-  // cron-based publication when the feature is designed.
+  // Publier = faire passer le bien de `draft` à `active`. Le brouillon existe
+  // déjà (`useWizardDraft` l'a créé à la première adresse) : on le MET À JOUR,
+  // sinon la publication sèmerait une seconde ligne à côté de la première.
+  // `published_at` est posé par le trigger DB au premier passage en `active`.
+  //
+  // ⚠ Il n'y a plus qu'une issue : le mode de publication ('now'/'schedule'/
+  // 'draft') a été retiré le 11 août 2026 — voir la JSDoc de `_draftId`.
   async function handlePublish() {
     if (publishing) return
     setPublishing(true)
     setPublishError(null)
 
-    const status =
-      data.publishMode === 'draft' ? 'draft'
-      : data.publishMode === 'schedule' ? 'draft'
-      : 'active'
-
-    // Build a readable title from the address. The DB column is NOT NULL,
-    // so we synthesize one (the agent can rename later from the listing
-    // detail page).
-    const titleParts = [
-      data.type ? data.type.charAt(0).toUpperCase() + data.type.slice(1) : 'Bien',
-      data.rooms ? `${data.rooms} pièces` : null,
-      data.city || data.addr ? `— ${data.city || data.addr}` : null,
-    ].filter(Boolean)
-    const title = titleParts.join(' ')
+    const title = wizardTitre(data)
 
     try {
       // 1) Resolve the vendor contact_id. If the agent created a new vendor
@@ -184,38 +150,16 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
       const photoFiles = data.photos.map(p => p.file).filter((f): f is File => !!f)
       const existingPhotoUrls = data.photos.map(p => p.url).filter((u): u is string => !!u)
 
-      // 2) Create the property (no direct vendor column — link comes via
-      // a transactions row below). Photos uploadées juste après (besoin de l'id).
-      const created = await createProperty.mutateAsync({
-        title,
-        type: TYPE_TO_ENUM[data.type] ?? 'apartment',
-        transaction_type: data.transaction === 'location' ? 'rent' : 'buy',
-        status,
-        price: data.transaction === 'vente' ? (data.price ?? 0) : (data.rent ?? 0),
-        rooms: data.rooms ?? 0,
-        bedrooms: data.bedrooms ?? 0,
-        bathrooms: data.bathrooms ?? 0,
-        surface_m2: data.area ?? 0,
-        floor: data.floor ?? undefined,
-        total_floors: data.floorsTotal ?? undefined,
-        year_built: data.year ?? undefined,
-        charges_monthly: data.charges ?? undefined,
-        mandate_type: data.mandate?.type,
-        mandate_commission_pct: data.mandate?.commission ?? null,
-        mandate_signed_at: data.mandate?.signed ? new Date().toISOString() : null,
-        mandate_expires_at: data.mandate?.duration && data.mandate?.signed
-          ? new Date(Date.now() + data.mandate.duration * 30 * 24 * 3600 * 1000).toISOString()
-          : null,
-        energy_class: data.energy ?? null,
-        description: data.description || undefined,
-        address: data.addr,
-        city: data.city ?? '',
-        canton: data.cantonShort ?? data.canton,
-        postal_code: data.postCode,
-        photos: existingPhotoUrls,
-        features: data.features,
-        // published_at posé par le trigger DB set_property_published_at (1er passage en 'active')
-      })
+      // 2) Le bien : mise à jour du brouillon si le sauvegarde automatique l'a
+      // déjà créé, création sinon (agent arrivé sans qu'aucune écriture n'ait
+      // abouti). La charge utile vient de `wizardPayload` — la MÊME que celle
+      // du brouillon, sinon les deux chemins divergeraient au premier champ
+      // ajouté et l'agent publierait autre chose que ce qu'il a enregistré.
+      // `photos` s'y ajoute ici seulement : l'upload exige l'id du bien.
+      const charge = { ...wizardPayload(data, 'active'), title, photos: existingPhotoUrls }
+      const created = data._draftId
+        ? await updateProperty.mutateAsync({ id: data._draftId, ...charge })
+        : await createProperty.mutateAsync(charge)
 
       // 2b) Upload des vraies photos maintenant qu'on a l'id, puis persistance
       // de leurs URLs (bucket property-photos + miroir R2, ownership server-side).
@@ -426,25 +370,35 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
               {t('common:actions.previous')}
             </SgGhostPill>
           )}
-          {/* Indicateur d'autosave (handoff) : pastille verte → coche « Enregistré ». */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
-            fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: 0.1,
-            color: SugarV2.isDark ? '#34C796' : '#047857',
-          }}>
-            {justSaved ? (
-              <span style={{
-                width: 15, height: 15, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', flexShrink: 0,
-                background: SugarV2.isDark ? '#34C796' : '#047857',
-                animation: 'sgSavePop .4s cubic-bezier(.2,.8,.2,1) both',
+          {/* Témoin de brouillon — il ne dit QUE ce qui a réellement eu lieu.
+              `inactif` (avant la première adresse) n'affiche rien : il n'y a
+              rien à enregistrer, donc rien à promettre. */}
+          {etatBrouillon !== 'inactif' && (() => {
+            const vert = SugarV2.isDark ? '#34C796' : '#047857'
+            const teinte = etatBrouillon === 'echec' ? SugarV2.err
+              : etatBrouillon === 'enregistrement' ? SugarV2.muted : vert
+            const libelle = etatBrouillon === 'echec' ? t('wizard.shell.saveFailed')
+              : etatBrouillon === 'enregistrement' ? t('wizard.shell.saving')
+              : t('wizard.shell.saved')
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
+                fontSize: 'var(--crm-text-md)', fontWeight: 600, color: teinte,
               }}>
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={SugarV2.isDark ? '#0B0B0C' : '#fff'} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-              </span>
-            ) : (
-              <span style={{ width: 7, height: 7, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: SugarV2.isDark ? '#34C796' : '#047857' }} />
-            )}
-            {justSaved ? t('wizard.shell.saved') : t('wizard.shell.autosave')}
-          </div>
+                {etatBrouillon === 'enregistre' ? (
+                  <span style={{
+                    width: 15, height: 15, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', flexShrink: 0,
+                    background: vert, animation: 'sgSavePop .4s cubic-bezier(.2,.8,.2,1) both',
+                  }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={SugarV2.isDark ? '#0B0B0C' : '#fff'} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                  </span>
+                ) : (
+                  <span style={{ width: 7, height: 7, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: teinte }} />
+                )}
+                {libelle}
+              </div>
+            )
+          })()}
         </div>
 
         <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>

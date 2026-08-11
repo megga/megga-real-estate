@@ -402,10 +402,18 @@ export interface WizardData {
   charges: number | null
   options: WizardOptions
   visibility: 'public' | 'network' | 'private'
-  publishMode: 'now' | 'schedule' | 'draft'
-  scheduledAt?: string
-  /** Reprise de brouillon : id du bien remplacé (retiré à la publication finale). */
-  _resumeBienId?: string
+  /**
+   * Id de la ligne `properties` créée par le brouillon automatique
+   * (`useWizardDraft`), posé dès la première adresse saisie. La publication met
+   * cette ligne à jour au lieu d'en créer une seconde.
+   *
+   * ⚠ Remplace `publishMode` ('now' | 'schedule' | 'draft'), retiré le 11 août
+   * 2026. Deux de ses trois valeurs écrivaient le MÊME `status: 'draft'` :
+   * « Programmer » promettait une mise en ligne différée qu'aucun cron n'a
+   * jamais assurée, et « Brouillon » demandait à l'agent de choisir, à la
+   * dernière étape, l'état dans lequel son travail se trouvait déjà.
+   */
+  _draftId?: string
 }
 
 export const EMPTY_WIZARD: WizardData = {
@@ -418,7 +426,7 @@ export const EMPTY_WIZARD: WizardData = {
   photos: [], description: '', aiAssist: false,
   transaction: 'vente', price: null, rent: null, charges: null,
   options: { featured: false, videoTour: false },
-  visibility: 'public', publishMode: 'now',
+  visibility: 'public',
 }
 
 // ─── Wizard steps definition ────────────────────────────────────────────

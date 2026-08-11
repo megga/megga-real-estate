@@ -1316,20 +1316,10 @@
       "addressPlaceholder": "Adresse ergänzen",
       "agentLine": "MEGGA · {{canton}} · Präsentiert vom Makler",
       "contact": "Kontaktieren",
-      "whenPublish": "Wann veröffentlichen",
       "publishNow": {
         "title": "Jetzt veröffentlichen",
         "sub": "Das Inserat wird innerhalb von 30 Sekunden sichtbar."
       },
-      "schedule": {
-        "title": "Planen",
-        "sub": "Wählen Sie Datum und Uhrzeit der Veröffentlichung."
-      },
-      "draft": {
-        "title": "Als Entwurf speichern",
-        "sub": "Später fortfahren. Kein öffentliches Datum."
-      },
-      "scheduleDateLabel": "Datum und Uhrzeit (Europe/Zurich)",
       "visibility": {
         "eyebrow": "Sichtbarkeit",
         "public": "Public",
@@ -1372,8 +1362,6 @@
       },
       "mandateNote": "Mandat nicht unterzeichnet: Das Inserat erscheint auf MEGGA; die Verbreitung auf Immobilier.ch startet mit der Unterzeichnung.",
       "cta": {
-        "schedule": "Veröffentlichung planen",
-        "draft": "Entwurf speichern",
         "private": "Privat speichern",
         "publishIdx": "Auf Immobilier.ch veröffentlichen",
         "publishMegga": "Auf MEGGA veröffentlichen"
@@ -1395,29 +1383,17 @@
       "featuresLabel": "Ausstattung",
       "agentFallback": "Ihre Agentur",
       "optionsTitle": "Veröffentlichungsoptionen",
-      "when": {
-        "now": "Jetzt",
-        "schedule": "Planen",
-        "draft": "Entwurf"
-      },
-      "draftNote": "Das Objekt bleibt als Entwurf in «Meine Objekte», nichts wird verbreitet."
+      "savedNote": "Diese Immobilie ist bereits als Entwurf in Meine Immobilien gespeichert. Veröffentlichen macht sie sichtbar."
     },
     "step8": {
       "eyebrow": {
-        "now": "Veröffentlichung bestätigt",
-        "schedule": "Geplant",
-        "draft": "Entwurf"
+        "now": "Veröffentlichung bestätigt"
       },
       "title": {
-        "now": "Inserat veröffentlicht",
-        "schedule": "Veröffentlichung geplant",
-        "draft": "Entwurf gespeichert"
+        "now": "Inserat veröffentlicht"
       },
       "subtitle": {
-        "now": "Ihr Objekt ist jetzt auf MEGGA online.",
-        "schedule": "Die Veröffentlichung erfolgt am {{date}}.",
-        "scheduleFallbackDate": "am gewählten Datum",
-        "draft": "Sie können später über Ihr Dashboard weitermachen."
+        "now": "Ihr Objekt ist jetzt auf MEGGA online."
       },
       "noCover": "Kein Titelbild",
       "noAddress": "Objekt ohne Adresse",
@@ -1468,7 +1444,8 @@
       "recommended": "Empfohlen",
       "choose": "Auswählen",
       "saved": "Gespeichert",
-      "autosave": "Automatische Speicherung"
+      "saving": "Wird gespeichert…",
+      "saveFailed": "Nicht gespeichert"
     },
     "kyc": {
       "verified": "KYC verifiziert",

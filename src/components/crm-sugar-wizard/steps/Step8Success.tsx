@@ -32,20 +32,8 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)
   const publicUrl = `megga.ch/annonce/${slug}`
 
-  const mode = data.publishMode || 'now'
-  const titleByMode: Record<string, string> = {
-    now: tr('wizard.step8.title.now'),
-    schedule: tr('wizard.step8.title.schedule'),
-    draft: tr('wizard.step8.title.draft'),
-  }
-  const subByMode: Record<string, string> = {
-    now: tr('wizard.step8.subtitle.now'),
-    schedule: tr('wizard.step8.subtitle.schedule', {
-      date: data.scheduledAt ? formatScheduled(data.scheduledAt) : tr('wizard.step8.subtitle.scheduleFallbackDate'),
-    }),
-    draft: tr('wizard.step8.subtitle.draft'),
-  }
-
+  // Une seule issue depuis le retrait du mode de publication : le bien est
+  // actif. Les variantes « programmée » et « brouillon » sont parties avec lui.
   return (
     <div style={{
       maxWidth: 980, margin: '0 auto',
@@ -100,17 +88,17 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
         <div style={{
           fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
           marginBottom: 12,
-        }}>{mode === 'now' ? tr('wizard.step8.eyebrow.now') : mode === 'schedule' ? tr('wizard.step8.eyebrow.schedule') : tr('wizard.step8.eyebrow.draft')}</div>
+        }}>{tr('wizard.step8.eyebrow.now')}</div>
 
         <h1 style={{
           margin: '0 0 12px', fontSize: 44, fontWeight: 500,
           color: SugarV2.ink, letterSpacing: -1.2, lineHeight: 1.05,
-        }}>{titleByMode[mode]}</h1>
+        }}>{tr('wizard.step8.title.now')}</h1>
 
         <p style={{
           margin: 0, fontSize: 'var(--crm-text-2xl)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.5,
           maxWidth: 560, marginInline: 'auto',
-        }}>{subByMode[mode]}</p>
+        }}>{tr('wizard.step8.subtitle.now')}</p>
 
         {showConfetti && <Confetti />}
       </div>
@@ -156,7 +144,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
           </div>
         </div>
 
-        {mode === 'now' && (
+        {(
           <a href="#" onClick={e => e.preventDefault()} style={{
             height: 44, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)',
             background: SugarV2.black, color: sgOn(),
@@ -177,7 +165,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
       </div>
 
       {/* URL publique */}
-      {mode === 'now' && (
+      {(
         <div style={{
           background: SugarV2.card, borderRadius: 'var(--crm-radius-3xl)', padding: 'var(--crm-space-2xl) var(--crm-space-4xl)',
           boxShadow: SugarV2.shadowSm, marginBottom: 24,
@@ -347,9 +335,3 @@ function Confetti() {
   )
 }
 
-function formatScheduled(iso: string): string {
-  try {
-    const d = new Date(iso)
-    return d.toLocaleString('fr-CH', { dateStyle: 'long', timeStyle: 'short' })
-  } catch { return iso }
-}
