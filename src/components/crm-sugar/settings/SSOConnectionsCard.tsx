@@ -111,7 +111,7 @@ export function SSOConnectionsCard() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <h3
                 style={{
-                  margin: '0 0 4px',
+                  margin: 0,
                   fontSize: 'var(--crm-text-2xl)',
                   fontWeight: 500,
                   color: SET.ink,
@@ -120,17 +120,6 @@ export function SSOConnectionsCard() {
               >
                 {t('security.sso.title')}
               </h3>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 'var(--crm-text-lg)',
-                  color: SET.muted,
-                  fontWeight: 400,
-                  lineHeight: 1.5,
-                }}
-              >
-                {t('security.sso.subtitle')}
-              </p>
             </div>
           </div>
         </div>
@@ -224,23 +213,6 @@ export function SSOConnectionsCard() {
             </div>
           )}
 
-          {/* Note de sécurité */}
-          <div
-            style={{
-              marginTop: 4,
-              padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
-              borderRadius: 'var(--crm-radius-lg)',
-              background: SET.cardSubtle,
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 'var(--crm-space-lg)',
-            }}
-          >
-            <SetIcon name="info" size={14} stroke={SET.muted} sw={2} />
-            <div style={{ fontSize: 'var(--crm-text-lg)', color: SET.inkSoft, fontWeight: 400, lineHeight: 1.55 }}>
-              {t('security.sso.privacyNote')}
-            </div>
-          </div>
         </div>
       </div>
 

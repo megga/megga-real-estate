@@ -379,7 +379,6 @@
       "descEdit": "It must reach the “Good” level.",
       "descForgot": "We'll send you a link to set a new one.",
       "descSent": "Link sent.",
-      "encryptedNote": "Encrypted · never shown in plain text",
       "currentLabel": "Current password",
       "forgotLink": "Forgot your password?",
       "newLabel": "New password",
@@ -416,7 +415,6 @@
       "loadingDevices": "Loading your devices…",
       "activeCount_one": "{{count}} active session on your account.",
       "activeCount_other": "{{count}} active sessions on your account.",
-      "thisDeviceOnly": "This device only. No other active session.",
       "loadError": "Unable to load your devices right now.",
       "empty": "No device registered yet.",
       "thisDevice": "This device",
@@ -480,15 +478,13 @@
     },
     "sso": {
       "title": "Sign-in methods",
-      "subtitle": "Sign in with one click. Your password stays active.",
       "linkedDetail": "{{account}} · Connected",
       "linkedAccount": "Linked account",
       "connect": "Connect",
       "disconnect": "Disconnect",
       "disconnected": "{{name}} disconnected",
       "disconnectConfirmTitle": "Disconnect {{name}}?",
-      "disconnectConfirmDesc": "You won't be able to sign in to MEGGA via {{name}} anymore. Your email + password stay active.",
-      "privacyNote": "MEGGA receives your name, email and photo. Never your password."
+      "disconnectConfirmDesc": "You won't be able to sign in to MEGGA via {{name}} anymore. Your email + password stay active."
     }
   },
   "subscription": {

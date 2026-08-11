@@ -401,20 +401,21 @@ function PwdVaultLight() {
               ••••••••••
             </span>
           </div>
+          {/* `justifyContent: flex-end` et non `space-between` : la mention
+              « Chiffré · jamais affiché en clair » occupait la gauche de cette
+              ligne. Retirée, un `space-between` à enfant unique aurait collé le
+              bouton à GAUCHE de la carte. */}
           <div
             style={{
               marginTop: 'auto',
               paddingTop: 'var(--crm-space-4xl)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-end',
               gap: 'var(--crm-space-xl)',
               flexWrap: 'wrap',
             }}
           >
-            <span style={{ fontSize: 'var(--crm-text-lg)', color: SET.muted, fontWeight: 400 }}>
-              {t('security.password.encryptedNote')}
-            </span>
             <button
               onClick={() => setMode('edit')}
               style={{
@@ -838,11 +839,24 @@ function SessionsCard() {
   }
 
   const others = devices.filter(d => d.id !== currentId).length
+  /**
+   * Sous-titre, ou RIEN.
+   *
+   * Le cas « aucune autre session » ne dit plus rien : il annonçait « Cet
+   * appareil uniquement. Aucune autre session active. » au-dessus d'un corps de
+   * carte qui affiche déjà soit la ligne de cet appareil (marquée « Cet
+   * appareil »), soit « Aucun appareil enregistré pour le moment ». Deux fois la
+   * même information, dont une en trop.
+   *
+   * Les deux autres cas restent : le chargement, sans quoi la carte paraîtrait
+   * vide, et le DÉCOMPTE, qui est la seule information qu'on ne lise nulle part
+   * ailleurs.
+   */
   const subtitle = isLoading
     ? t('security.sessions.loadingDevices')
     : others > 0
       ? t('security.sessions.activeCount', { count: devices.length })
-      : t('security.sessions.thisDeviceOnly')
+      : null
 
   return (
     <div style={{ background: SET.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: SET.shadow }}>
@@ -855,7 +869,9 @@ function SessionsCard() {
             <h3 style={{ margin: '0 0 4px', fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: SET.ink, letterSpacing: -0.3 }}>
               {t('security.sessions.title')}
             </h3>
-            <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>{subtitle}</p>
+            {subtitle && (
+              <p style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-lg)', color: SET.muted, fontWeight: 400, lineHeight: 1.5 }}>{subtitle}</p>
+            )}
           </div>
         </div>
       </div>

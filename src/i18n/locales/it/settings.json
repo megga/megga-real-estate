@@ -379,7 +379,6 @@
       "descEdit": "Deve raggiungere il livello «Buona».",
       "descForgot": "Le inviamo un link per impostarne una nuova.",
       "descSent": "Link inviato.",
-      "encryptedNote": "Crittografata · mai visualizzata in chiaro",
       "currentLabel": "Password attuale",
       "forgotLink": "Password dimenticata?",
       "newLabel": "Nuova password",
@@ -416,7 +415,6 @@
       "loadingDevices": "Caricamento dei Suoi dispositivi…",
       "activeCount_one": "{{count}} sessione attiva sul Suo account.",
       "activeCount_other": "{{count}} sessioni attive sul Suo account.",
-      "thisDeviceOnly": "Solo questo dispositivo. Nessun'altra sessione attiva.",
       "loadError": "Al momento non è possibile caricare i Suoi dispositivi.",
       "empty": "Nessun dispositivo registrato al momento.",
       "thisDevice": "Questo dispositivo",
@@ -480,15 +478,13 @@
     },
     "sso": {
       "title": "Metodi di accesso",
-      "subtitle": "Accedi con un clic. La tua password resta attiva.",
       "linkedDetail": "{{account}} · Collegato",
       "linkedAccount": "Account collegato",
       "connect": "Collega",
       "disconnect": "Scollega",
       "disconnected": "{{name}} scollegato",
       "disconnectConfirmTitle": "Scollegare {{name}}?",
-      "disconnectConfirmDesc": "Non potrai più accedere a MEGGA tramite {{name}}. La tua email + password restano attive.",
-      "privacyNote": "MEGGA riceve il tuo nome, la tua email e la tua foto. Mai la tua password."
+      "disconnectConfirmDesc": "Non potrai più accedere a MEGGA tramite {{name}}. La tua email + password restano attive."
     }
   },
   "subscription": {

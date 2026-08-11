@@ -379,7 +379,6 @@
       "descEdit": "Es muss die Stufe „Gut“ erreichen.",
       "descForgot": "Wir senden Ihnen einen Link, um ein neues festzulegen.",
       "descSent": "Link gesendet.",
-      "encryptedNote": "Verschlüsselt · nie im Klartext angezeigt",
       "currentLabel": "Aktuelles Passwort",
       "forgotLink": "Passwort vergessen?",
       "newLabel": "Neues Passwort",
@@ -416,7 +415,6 @@
       "loadingDevices": "Ihre Geräte werden geladen…",
       "activeCount_one": "{{count}} aktive Sitzung in Ihrem Konto.",
       "activeCount_other": "{{count}} aktive Sitzungen in Ihrem Konto.",
-      "thisDeviceOnly": "Nur dieses Gerät. Keine weitere aktive Sitzung.",
       "loadError": "Ihre Geräte können momentan nicht geladen werden.",
       "empty": "Noch kein Gerät registriert.",
       "thisDevice": "Dieses Gerät",
@@ -480,15 +478,13 @@
     },
     "sso": {
       "title": "Anmeldemethoden",
-      "subtitle": "Melden Sie sich mit einem Klick an. Ihr Passwort bleibt aktiv.",
       "linkedDetail": "{{account}} · Verbunden",
       "linkedAccount": "Verknüpftes Konto",
       "connect": "Verbinden",
       "disconnect": "Trennen",
       "disconnected": "{{name}} getrennt",
       "disconnectConfirmTitle": "{{name}} trennen?",
-      "disconnectConfirmDesc": "Sie können sich dann nicht mehr über {{name}} bei MEGGA anmelden. Ihre E-Mail + Ihr Passwort bleiben aktiv.",
-      "privacyNote": "MEGGA erhält Ihren Namen, Ihre E-Mail-Adresse und Ihr Foto. Niemals Ihr Passwort."
+      "disconnectConfirmDesc": "Sie können sich dann nicht mehr über {{name}} bei MEGGA anmelden. Ihre E-Mail + Ihr Passwort bleiben aktiv."
     }
   },
   "subscription": {
