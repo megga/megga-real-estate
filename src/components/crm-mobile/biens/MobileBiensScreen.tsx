@@ -76,11 +76,11 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
       </header>
 
       <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
-        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
           {t('title')}
         </h1>
         <div style={{ marginTop: 7 }}>
-          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.inkSoft }}>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.inkSoft }}>
             {t('mobile.subtitle', { count: filtered.length, total: all.length })}
           </span>
         </div>
@@ -113,7 +113,7 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              style={{ flexShrink: 0, height: 38, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.ink, boxShadow: on ? tk.shadow : tk.shadowSm, transition: 'background .2s ease' }}
+              style={{ flexShrink: 0, height: 38, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.ink, boxShadow: on ? tk.shadow : tk.shadowSm, transition: 'background .2s ease' }}
             >
               {t(FILTER_KEY[f])}
             </button>
@@ -131,8 +131,8 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
           </div>
         ) : showError ? (
           <div style={{ textAlign: 'center', padding: '48px 12px' }}>
-            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('mobile.errorTitle')}</div>
-            <button type="button" onClick={refetch} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.3 }}>{t('mobile.errorTitle')}</div>
+            <button type="button" onClick={refetch} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>
               {t('mobile.retry')}
             </button>
           </div>
@@ -141,7 +141,7 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
             <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
               <MEIcon name="home" size={24} color={tk.muted} strokeWidth={1.8} />
             </div>
-            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, marginTop: 14 }}>{t('mobile.emptyTitle')}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink, marginTop: 14 }}>{t('mobile.emptyTitle')}</div>
             <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 5, maxWidth: 240, marginInline: 'auto', lineHeight: 1.45 }}>{t('mobile.emptyDesc')}</div>
           </div>
         ) : (
@@ -191,7 +191,7 @@ function Spec({ icon, value, color }: { icon: 'surface' | 'home' | 'bed' | 'bath
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)' }}>
       <MEIcon name={icon} size={15} color={color} strokeWidth={1.8} />
-      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color }}>{value}</span>
+      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color }}>{value}</span>
     </span>
   )
 }
@@ -218,7 +218,7 @@ function BienCard({ b, t, onOpen, onMenu }: { b: CrmBien; t: TFunction; onOpen: 
           </div>
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(11,12,14,0.30) 0%, rgba(11,12,14,0) 30%, rgba(11,12,14,0) 55%, rgba(11,12,14,0.42) 100%)' }} />
-        <span style={{ position: 'absolute', top: 12, left: 12, padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.1, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
+        <span style={{ position: 'absolute', top: 12, left: 12, padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
           {t(`status.${b.status}`, { defaultValue: b.status })}
         </span>
         <button
@@ -229,17 +229,17 @@ function BienCard({ b, t, onOpen, onMenu }: { b: CrmBien; t: TFunction; onOpen: 
         >
           <MEIcon name="more-horizontal" size={17} color="#fff" />
         </button>
-        <span style={{ position: 'absolute', left: 14, bottom: 11, fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: 'rgba(255,255,255,0.92)', letterSpacing: 0.2 }}>
+        <span style={{ position: 'absolute', left: 14, bottom: 11, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: 'rgba(255,255,255,0.92)', letterSpacing: 0.2 }}>
           {b.transaction === 'location' ? t('mobile.txRent') : t('mobile.txSale')}
         </span>
-        <span style={{ position: 'absolute', right: 14, bottom: 11, fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: '#fff', letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums', textShadow: '0 1px 8px rgba(0,0,0,0.35)' }}>
+        <span style={{ position: 'absolute', right: 14, bottom: 11, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: '#fff', letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums', textShadow: '0 1px 8px rgba(0,0,0,0.35)' }}>
           {priceLabel(b)}
         </span>
       </div>
 
       {/* corps */}
       <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-3xl) var(--crm-space-3xl)' }}>
-        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xs)', marginTop: 4 }}>
           <MEIcon name="location" size={13} color={tk.muted} strokeWidth={1.7} />
           <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.addr}</span>
@@ -250,7 +250,7 @@ function BienCard({ b, t, onOpen, onMenu }: { b: CrmBien; t: TFunction; onOpen: 
           {b.beds ? <Spec icon="bed" value={String(b.beds)} color={tk.inkSoft} /> : null}
           {b.baths ? <Spec icon="bath" value={String(b.baths)} color={tk.inkSoft} /> : null}
           {b.health ? (
-            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
               <MEIcon name="sparkle" size={13} color={tk.muted} />
               {b.health.overall}
             </span>

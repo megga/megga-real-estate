@@ -12,8 +12,12 @@
  * ── CLIQUET ──────────────────────────────────────────────────────────────────
  * `ZONES` ne liste que ce qui est PORTÉ. Chaque lot y ajoute sa surface en même
  * temps qu'il la nettoie ; une zone absente n'est pas déclarée propre, elle est
- * déclarée non traitée. Reste à venir sur « Mes biens » :
- * `src/components/crm-mobile/biens` (lot 4).
+ * déclarée non traitée. « Mes biens » est couvert en entier depuis le lot 4.
+ *
+ * ⚠ Le MOBILE de « Mes biens » vit dans TROIS dossiers — `biens` (la liste),
+ * `bien` (la fiche) et `wizard` (la création) —, quand le plan n'en nommait
+ * qu'un. Troisième occurrence du même piège après le calendrier et la fiche
+ * bureau : le nom d'une surface ne dit pas où elle est rangée.
  *
  * ⚠ CE QUE LA VITRINE FAIT, ELLE, DE LA CAPITALE — mesuré le 11.08.2026, et
  * gardé ici parce que la règle du projet s'en écarte SCIEMMENT. Sa feuille
@@ -63,6 +67,9 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   { root: 'src/components/crm-sugar-wizard', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/biens', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar-v3/vitrine', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-mobile/biens', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-mobile/bien', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-mobile/wizard', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
 ]
 
@@ -227,6 +234,9 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar-wizard',
       'src/components/crm-sugar/biens',
       'src/components/crm-sugar-v3/vitrine',
+      'src/components/crm-mobile/biens',
+      'src/components/crm-mobile/bien',
+      'src/components/crm-mobile/wizard',
       'src/pages/agent',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
     // Les deux pages sont bien VUES — un filtre de nom qui ne matche rien

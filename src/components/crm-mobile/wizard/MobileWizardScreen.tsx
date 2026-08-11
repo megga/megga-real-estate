@@ -142,9 +142,9 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
         <div style={{ width: 64, height: 64, borderRadius: 'var(--crm-radius-pill)', background: tk.accent, display: 'grid', placeItems: 'center' }}>
           <MEIcon name="check" size={30} color={tk.accentInk} strokeWidth={2.4} />
         </div>
-        <h1 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.6, color: tk.ink }}>{t('wizardMobile.doneTitle')}</h1>
+        <h1 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 500, letterSpacing: -0.6, color: tk.ink }}>{t('wizardMobile.doneTitle')}</h1>
         <p style={{ margin: '8px 0 0', fontSize: 'var(--crm-text-xl)', fontWeight: 500, color: tk.muted, lineHeight: 1.5 }}>{t('wizardMobile.doneDesc')}</p>
-        <button type="button" onClick={close} style={{ marginTop: 24, height: 50, padding: '0 26px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>
+        <button type="button" onClick={close} style={{ marginTop: 24, height: 50, padding: '0 26px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>
           {t('title')}
         </button>
       </div>
@@ -160,7 +160,7 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
             <MEIcon name="close" size={20} color={tk.ink} />
           </button>
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>{step + 1} / {STEPS}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>{step + 1} / {STEPS}</span>
         </div>
         <div style={{ display: 'flex', gap: 'var(--crm-space-xs)', marginTop: 12 }}>
           {Array.from({ length: STEPS }).map((_, i) => (
@@ -189,7 +189,7 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
             type="button"
             disabled={!canNext}
             onClick={() => setStep((s) => s + 1)}
-            style={{ flex: 1, height: 52, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: canNext ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: canNext ? tk.accent : tk.cardSubtle, color: canNext ? tk.accentInk : tk.muted, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}
+            style={{ flex: 1, height: 52, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: canNext ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: canNext ? tk.accent : tk.cardSubtle, color: canNext ? tk.accentInk : tk.muted, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}
           >
             {t('wizardMobile.continue')}
             <MEIcon name="arrow-right" size={16} color={canNext ? tk.accentInk : tk.muted} strokeWidth={2} />
@@ -199,7 +199,7 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
             type="button"
             disabled={!canPublish || createProperty.isPending}
             onClick={() => void publish()}
-            style={{ flex: 1, height: 52, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: canPublish ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: canPublish ? tk.accent : tk.cardSubtle, color: canPublish ? tk.accentInk : tk.muted, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}
+            style={{ flex: 1, height: 52, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: canPublish ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: canPublish ? tk.accent : tk.cardSubtle, color: canPublish ? tk.accentInk : tk.muted, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}
           >
             {createProperty.isPending ? t('wizardMobile.publishing') : d.publishMode === 'draft' ? t('wizardMobile.saveDraft') : t('wizardMobile.publish')}
           </button>
@@ -217,14 +217,14 @@ interface StepProps { d: WData; set: (p: Partial<WData>) => void; tk: Tk; t: TFu
 function Title({ tk, eyebrow, children }: { tk: Tk; eyebrow: string; children: string }) {
   return (
     <div style={{ marginBottom: 18 }}>
-      <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, letterSpacing: 1.2, textTransform: 'uppercase' }}>{eyebrow}</div>
-      <h1 style={{ margin: '8px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, color: tk.ink, lineHeight: 1.1 }}>{children}</h1>
+      <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted}}>{eyebrow}</div>
+      <h1 style={{ margin: '8px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 500, letterSpacing: -0.8, color: tk.ink, lineHeight: 1.1 }}>{children}</h1>
     </div>
   )
 }
 /** Intitulé de sous-section (label majuscule discret). */
 function SectionLabel({ tk, children }: { tk: Tk; children: string }) {
-  return <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.8, textTransform: 'uppercase', margin: '22px 2px 10px' }}>{children}</div>
+  return <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted, margin: '22px 2px 10px' }}>{children}</div>
 }
 /** Style partagé des champs texte / select du wizard. */
 function field(tk: Tk): CSSProperties {
@@ -233,7 +233,7 @@ function field(tk: Tk): CSSProperties {
 /** Puce sélectionnable (toggle) — état actif = fond accent. */
 function Chip({ tk, on, onClick, children }: { tk: Tk; on: boolean; onClick: () => void; children: string }) {
   return (
-    <button type="button" onClick={onClick} style={{ height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.ink, boxShadow: on ? tk.shadow : tk.shadowSm }}>
+    <button type="button" onClick={onClick} style={{ height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.ink, boxShadow: on ? tk.shadow : tk.shadowSm }}>
       {children}
     </button>
   )
@@ -243,12 +243,12 @@ function Stepper({ tk, label, value, step = 1, onChange }: { tk: Tk; label: stri
   const v = value ?? 0
   return (
     <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-2xl)', boxShadow: tk.shadowSm, padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
-      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.5, textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted}}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
         <button type="button" onClick={() => onChange(Math.max(0, v - step) || null)} aria-label="−" style={{ width: 36, height: 36, borderRadius: 'var(--crm-radius-pill)', border: 0, background: tk.cardSubtle, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
           <MEIcon name="minus" size={16} color={tk.ink} />
         </button>
-        <span style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, color: tk.ink, fontVariantNumeric: 'tabular-nums' }}>{value ?? '—'}</span>
+        <span style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: tk.ink, fontVariantNumeric: 'tabular-nums' }}>{value ?? '—'}</span>
         <button type="button" onClick={() => onChange(v + step)} aria-label="+" style={{ width: 36, height: 36, borderRadius: 'var(--crm-radius-pill)', border: 0, background: tk.cardSubtle, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
           <MEIcon name="plus" size={16} color={tk.ink} />
         </button>
@@ -268,7 +268,7 @@ function StepType({ d, set, tk, t }: StepProps) {
           return (
             <button key={ty.id} type="button" onClick={() => set({ type: ty.id })} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-3xl)', border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.ink, boxShadow: on ? tk.shadow : tk.shadowSm }}>
               <MEIcon name={ty.icon} size={26} color={on ? tk.accentInk : tk.inkSoft} strokeWidth={1.7} />
-              <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2 }}>{t(`type.${ty.id === 'appartement' ? 'apartment' : ty.id === 'maison' ? 'house' : ty.id === 'terrain' ? 'land' : 'villa'}`)}</span>
+              <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2 }}>{t(`type.${ty.id === 'appartement' ? 'apartment' : ty.id === 'maison' ? 'house' : ty.id === 'terrain' ? 'land' : 'villa'}`)}</span>
             </button>
           )
         })}
@@ -311,10 +311,10 @@ function StepSpecs({ d, set, tk, t }: StepProps) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-lg)' }}>
         <Stepper tk={tk} label={t('mobile.spec.rooms')} value={d.rooms} step={0.5} onChange={(v) => set({ rooms: v })} />
         <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-2xl)', boxShadow: tk.shadowSm, padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.5, textTransform: 'uppercase' }}>{t('mobile.spec.surface')}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted}}>{t('mobile.spec.surface')}</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-xs)', marginTop: 8 }}>
-            <input value={d.area ?? ''} onChange={(e) => set({ area: num(e.target.value) })} inputMode="numeric" placeholder="—" aria-label={t('mobile.spec.surface')} style={{ width: '100%', border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-4xl)', fontWeight: 800, color: tk.ink, fontVariantNumeric: 'tabular-nums' }} />
-            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted }}>{t('mobile.surfaceSuffix')}</span>
+            <input value={d.area ?? ''} onChange={(e) => set({ area: num(e.target.value) })} inputMode="numeric" placeholder="—" aria-label={t('mobile.spec.surface')} style={{ width: '100%', border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: tk.ink, fontVariantNumeric: 'tabular-nums' }} />
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted }}>{t('mobile.surfaceSuffix')}</span>
           </div>
         </div>
         <Stepper tk={tk} label={t('mobile.spec.beds')} value={d.bedrooms} onChange={(v) => set({ bedrooms: v })} />
@@ -326,7 +326,7 @@ function StepSpecs({ d, set, tk, t }: StepProps) {
         {ENERGY.map((e) => {
           const on = d.energy === e
           return (
-            <button key={e} type="button" onClick={() => set({ energy: on ? null : e })} style={{ padding: 'var(--crm-space-2xl) 0', borderRadius: 'var(--crm-radius-md)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, background: on ? ENERGY_TONE[e] : tk.card, color: on ? '#fff' : tk.ink, boxShadow: tk.shadowSm }}>
+            <button key={e} type="button" onClick={() => set({ energy: on ? null : e })} style={{ padding: 'var(--crm-space-2xl) 0', borderRadius: 'var(--crm-radius-md)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, background: on ? ENERGY_TONE[e] : tk.card, color: on ? '#fff' : tk.ink, boxShadow: tk.shadowSm }}>
               {e}
             </button>
           )
@@ -348,7 +348,7 @@ function StepPrice({ d, set, tk, t, error }: StepProps & { error: string | null 
     <div>
       <Title tk={tk} eyebrow={t('wizardMobile.step.price')}>{t('wizardMobile.priceTitle')}</Title>
       <div style={{ background: tk.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: tk.shadow, padding: 'var(--crm-space-5xl) var(--crm-space-4xl)' }}>
-        <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+        <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted}}>
           {isRent ? t('wizardMobile.rentLabel') : t('wizardMobile.priceLabel')}
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-md)', marginTop: 8 }}>
@@ -357,15 +357,15 @@ function StepPrice({ d, set, tk, t, error }: StepProps & { error: string | null 
             onChange={(e) => set(isRent ? { rent: num(e.target.value) } : { price: num(e.target.value) })}
             inputMode="numeric"
             placeholder="0"
-            style={{ width: '100%', border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-9xl)', fontWeight: 800, letterSpacing: -1.5, color: tk.ink, fontVariantNumeric: 'tabular-nums' }}
+            style={{ width: '100%', border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-9xl)', fontWeight: 500, letterSpacing: -1.5, color: tk.ink, fontVariantNumeric: 'tabular-nums' }}
           />
-          <span style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, color: tk.muted }}>CHF</span>
+          <span style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: tk.muted }}>CHF</span>
         </div>
         {isRent ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 12 }}>
-            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted }}>{t('wizardMobile.charges')}</span>
-            <input value={d.charges ?? ''} onChange={(e) => set({ charges: num(e.target.value) })} inputMode="numeric" placeholder="0" style={{ width: 90, height: 38, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-md)', border: `1px solid ${tk.cardBorder}`, outline: 'none', background: tk.cardSubtle, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.ink, fontVariantNumeric: 'tabular-nums' }} />
-            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted }}>{t('wizardMobile.chargesUnit')}</span>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted }}>{t('wizardMobile.charges')}</span>
+            <input value={d.charges ?? ''} onChange={(e) => set({ charges: num(e.target.value) })} inputMode="numeric" placeholder="0" style={{ width: 90, height: 38, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-md)', border: `1px solid ${tk.cardBorder}`, outline: 'none', background: tk.cardSubtle, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, fontVariantNumeric: 'tabular-nums' }} />
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted }}>{t('wizardMobile.chargesUnit')}</span>
           </div>
         ) : null}
       </div>
@@ -390,7 +390,7 @@ function StepPrice({ d, set, tk, t, error }: StepProps & { error: string | null 
         <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{t('wizardMobile.photosLater')}</span>
       </div>
 
-      {error ? <div style={{ marginTop: 12, fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.danger }}>{error}</div> : null}
+      {error ? <div style={{ marginTop: 12, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.danger }}>{error}</div> : null}
     </div>
   )
 }
