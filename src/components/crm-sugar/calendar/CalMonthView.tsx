@@ -79,7 +79,7 @@ export function CalMonthView({
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0,1fr))', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
         {weekdayHeaders.map((d, i) => (
-          <div key={i} style={{ padding: 'var(--crm-space-xl) var(--crm-space-2xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SP.muted, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+          <div key={i} style={{ padding: 'var(--crm-space-xl) var(--crm-space-2xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: SP.muted }}>
             {d}
           </div>
         ))}
@@ -105,7 +105,7 @@ export function CalMonthView({
                   alignSelf: 'flex-start', border: 0, background: isToday ? SP.accent : 'transparent',
                   color: isToday ? SP.onAccent : SP.ink, cursor: 'pointer', fontFamily: 'inherit',
                   width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center',
-                  fontSize: 'var(--crm-text-md)', fontWeight: 700,
+                  fontSize: 'var(--crm-text-md)', fontWeight: 500,
                 }}
               >
                 {c.d.getDate()}
@@ -126,7 +126,7 @@ export function CalMonthView({
                         border: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-xs)',
                         background: filled ? ts.bg : 'transparent', color: ext ? SP.muted : filled ? ts.ink : SP.ink,
-                        fontSize: 'var(--crm-text-xs)', fontWeight: 700, lineHeight: 1.25, opacity: hasStatus ? 0.55 : 1,
+                        fontSize: 'var(--crm-text-xs)', fontWeight: 500, lineHeight: 1.25, opacity: hasStatus ? 0.55 : 1,
                         boxShadow: e.id === selectedId ? `0 0 0 2px ${SP.ring}` : 'none',
                         whiteSpace: 'nowrap', overflow: 'hidden',
                         textDecoration: hasStatus ? 'line-through' : 'none',
@@ -148,7 +148,7 @@ export function CalMonthView({
                     onClick={e => { e.stopPropagation(); onOpenDay(c.d) }}
                     style={{
                       border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-                      textAlign: 'left', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', color: SP.muted, fontWeight: 700,
+                      textAlign: 'left', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', color: SP.muted, fontWeight: 500,
                     }}
                   >
                     {t('views.moreEvents', { count: dayEvents.length - 3 })}

@@ -182,7 +182,7 @@ export function calTypeStyle(e: CalEvent, palette: CalSugarPalette): CalResolved
       external: true,
       source: e.source,
       label: e.source === 'microsoft' ? 'Outlook' : 'Google',
-      bg: palette.isDark ? 'rgba(255,255,255,0.03)' : '#F4F6F9',
+      bg: palette.isDark ? 'rgba(255,255,255,0.03)' : palette.cardSubtle,
       ink: palette.muted,
       accent: palette.ghost,
       icon: 'clock',
@@ -216,7 +216,6 @@ export interface CalHotBuyer {
 
 export interface CalSugarPalette {
   bg: string
-  bgGradient: string
   card: string
   /** Surfaces flottantes du calendrier (popovers d'heure/date/recherche,
    *  modale d'événement) : palier haut de l'échelle, jamais le palier « card »
@@ -258,17 +257,16 @@ export interface CalSugarPalette {
 }
 
 export const CAL_LIGHT: CalSugarPalette = {
-  bg: '#EDEFF3',
-  bgGradient: 'radial-gradient(ellipse 120% 80% at 50% 100%, #C8D5E0 0%, #E2E5EB 50%, #EDEFF3 100%)',
-  card: '#FFFFFF',
-  popBg: '#FFFFFF',
-  cardSubtle: '#F4F6F9',
-  cardHover: '#FAFBFD',
-  hoverSubtle: '#EBEEF2',
-  ink: '#0B0C0E',
-  inkSoft: '#3A3D44',
-  muted: '#7A8088',
-  ghost: '#B5BAC2',
+  bg: MXC_COLOR.n900,
+  card: MXC_COLOR.n1000,
+  popBg: MXC_COLOR.n1000,
+  cardSubtle: MXC_COLOR.n900,
+  cardHover: MXC_COLOR.n900,
+  hoverSubtle: MXC_COLOR.n800,
+  ink: MXC_COLOR.n100,
+  inkSoft: MXC_COLOR.n400,
+  muted: MXC_COLOR.n500,
+  ghost: MXC_COLOR.n600,
   line: 'rgba(11,12,14,0.06)',
   line2: 'rgba(11,12,14,0.10)',
   accent: MXC_COLOR.accent,
@@ -277,8 +275,8 @@ export const CAL_LIGHT: CalSugarPalette = {
   black: MXC_COLOR.accent,
   todayCol: 'rgba(11,12,14,0.015)',
   nowColor: '#E54D38',
-  heroBg: '#0B0C0E',
-  heroInk: '#FFFFFF',
+  heroBg: MXC_COLOR.n100,
+  heroInk: MXC_COLOR.n1000,
   heroChip: 'rgba(255,255,255,0.08)',
   heroChipStrong: 'rgba(255,255,255,0.12)',
   heroShadow: '0 16px 36px rgba(11,12,14,0.18)',
@@ -298,7 +296,6 @@ export const CAL_LIGHT: CalSugarPalette = {
 
 export const CAL_DARK: CalSugarPalette = {
   bg: '#0A0A0F',
-  bgGradient: `radial-gradient(ellipse 120% 80% at 50% 0%, ${MXC_COLOR.n300} 0%, ${MXC_COLOR.n200} 55%, ${MXC_COLOR.n100} 100%)`,
   // Surfaces NEUTRES (gris quasi-noir) alignées sur Matching / Contacts — voir buildCalPalette.
   card: '#17181A',
   popBg: '#1E1F21',
@@ -308,7 +305,7 @@ export const CAL_DARK: CalSugarPalette = {
   ink: '#FFFFFF',
   inkSoft: '#C8CCD2',
   muted: '#7E828A',
-  ghost: '#52535A',
+  ghost: MXC_COLOR.n500,
   line: 'rgba(255,255,255,0.07)',
   line2: 'rgba(255,255,255,0.11)',
   accent: MXC_COLOR.accent,
@@ -358,6 +355,20 @@ export function buildCalPalette(dark: boolean): CalSugarPalette {
     inkSoft: mx.soft,
     muted: mx.sub,
   }
+}
+
+/**
+ * La couleur du trait « maintenant », pour les surfaces qui n'ont PAS la palette
+ * du calendrier sous la main — l'agenda mobile, qui vit sur ses propres jetons.
+ *
+ * Elle était recopiée en dur là-bas, sous le nom `NOW_RED`, DEUX fois, et
+ * toujours avec la valeur CLAIRE : le trait restait donc `#E54D38` en thème
+ * sombre, alors que le bureau passe à `#FF6A52` précisément parce que le rouge
+ * sombre ne se détache pas sur un canvas quasi-noir. Un seul point de décision
+ * désormais.
+ */
+export function calNowColor(dark: boolean): string {
+  return (dark ? CAL_DARK : CAL_LIGHT).nowColor
 }
 
 /** Context palette — les composants lisent `useCalPalette()` (plus d'import statique). */

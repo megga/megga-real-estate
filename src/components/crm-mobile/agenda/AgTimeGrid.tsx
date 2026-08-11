@@ -6,11 +6,11 @@
 import { useTranslation } from 'react-i18next'
 import { useMobileTokens } from '../useMobileTokens'
 import { agTone, fmtDur, fmtTime, type AgEventVM } from './vm'
+import { calNowColor } from '@/components/crm-sugar/calendar/data'
 
 const PX_PER_MIN = 1.7
 const MIN_H = 38
 const GUTTER = 50
-const NOW_RED = '#E54D38'
 
 interface AgTimeGridProps {
   events: AgEventVM[]
@@ -44,7 +44,7 @@ export default function AgTimeGrid({ events, isToday, nowMin, onTap }: AgTimeGri
       {/* lignes horaires */}
       {hours.map((m) => (
         <div key={m} style={{ position: 'absolute', left: 0, right: 0, top: yOf(m), display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-          <span style={{ width: GUTTER - 8, textAlign: 'right', paddingRight: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums', transform: 'translateY(-50%)', lineHeight: 1 }}>
+          <span style={{ width: GUTTER - 8, textAlign: 'right', paddingRight: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: tk.muted, fontVariantNumeric: 'tabular-nums', transform: 'translateY(-50%)', lineHeight: 1 }}>
             {pad2(Math.floor(m / 60))}:00
           </span>
           <span style={{ flex: 1, height: 1, background: lineColor }} />
@@ -88,24 +88,24 @@ export default function AgTimeGrid({ events, isToday, nowMin, onTap }: AgTimeGri
           >
             {compact ? (
               <>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 500, letterSpacing: -0.3, color: tk.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {e.title}
                 </span>
-                <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: tk.muted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                   {fmtTime(e.start)}
                 </span>
               </>
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
-                  <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: tone }}>
+                  <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tone }}>
                     {t(`eventType.${e.type}`)}
                   </span>
-                  <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: tk.ghost, fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tk.ghost, fontVariantNumeric: 'tabular-nums' }}>
                     {fmtTime(e.start)} · {fmtDur(e.durMin, t)}
                   </span>
                 </div>
-                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 500, letterSpacing: -0.3, color: tk.ink, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
                   {e.title}
                 </span>
                 {h >= 74 && (e.contactName || e.location) ? (
@@ -122,11 +122,11 @@ export default function AgTimeGrid({ events, isToday, nowMin, onTap }: AgTimeGri
       {/* ligne « maintenant » */}
       {nowVisible ? (
         <div style={{ position: 'absolute', left: 0, right: 2, top: yOf(nowMin), display: 'flex', alignItems: 'center', pointerEvents: 'none', zIndex: 5 }}>
-          <span style={{ width: GUTTER - 8, textAlign: 'right', paddingRight: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: NOW_RED, fontVariantNumeric: 'tabular-nums', transform: 'translateY(-50%)' }}>
+          <span style={{ width: GUTTER - 8, textAlign: 'right', paddingRight: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: calNowColor(tk.mode === 'dark'), fontVariantNumeric: 'tabular-nums', transform: 'translateY(-50%)' }}>
             {pad2(Math.floor(nowMin / 60))}:{pad2(nowMin % 60)}
           </span>
-          <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: NOW_RED, flexShrink: 0, boxShadow: '0 0 0 4px rgba(229,77,56,0.16)', transform: 'translateX(-1px)' }} />
-          <span style={{ flex: 1, height: 2, background: NOW_RED, borderRadius: 'var(--crm-radius-pill)' }} />
+          <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: calNowColor(tk.mode === 'dark'), flexShrink: 0, boxShadow: '0 0 0 4px rgba(229,77,56,0.16)', transform: 'translateX(-1px)' }} />
+          <span style={{ flex: 1, height: 2, background: calNowColor(tk.mode === 'dark'), borderRadius: 'var(--crm-radius-pill)' }} />
         </div>
       ) : null}
     </div>

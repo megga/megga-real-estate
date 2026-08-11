@@ -43,7 +43,7 @@ export function CalDayView({
         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-6xl)',
         borderBottom: `1px solid ${SP.line}`, flexShrink: 0,
       }}>
-        <span style={{ fontSize: 'var(--crm-text-sm)', color: SP.muted, fontWeight: 700 }}>
+        <span style={{ fontSize: 'var(--crm-text-sm)', color: SP.muted, fontWeight: 500 }}>
           {count === 0 ? t('views.dayEmpty') : t('views.timelineCount', { count })}
         </span>
       </div>

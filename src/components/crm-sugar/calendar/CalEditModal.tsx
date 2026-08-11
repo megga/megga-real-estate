@@ -18,7 +18,7 @@ import { formatCHF } from '@/lib/utils'
 import type { ContactType } from '@/types/contact'
 
 export interface CalEditing {
-  mode: 'create' | 'edit'
+  mode: 'create' | 'edit',
   draft: CalEvent
 }
 
@@ -57,7 +57,7 @@ function CalField({ label, children }: { label: string; children: React.ReactNod
   const SP = useCalPalette()
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
-      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: SP.muted, letterSpacing: 0.9, textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 400, color: SP.muted }}>{label}</span>
       {children}
     </label>
   )
@@ -112,7 +112,7 @@ function CalTimeSelect({ value, onChange }: { value: string; onChange: (v: strin
             return (
               <button
                 key={o} type="button" onClick={() => { onChange(o); setOpen(false) }}
-                style={{ width: '100%', textAlign: 'left', border: 0, cursor: 'pointer', fontFamily: 'inherit', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-sm)', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: active ? SP.accent : 'transparent', color: active ? SP.onAccent : SP.ink }}
+                style={{ width: '100%', textAlign: 'left', border: 0, cursor: 'pointer', fontFamily: 'inherit', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-sm)', fontSize: 'var(--crm-text-lg)', fontWeight: 500, background: active ? SP.accent : 'transparent', color: active ? SP.onAccent : SP.ink }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = SP.cardSubtle }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
               >
@@ -194,11 +194,11 @@ function CalDatePicker({ value, onChange }: { value: Date; onChange: (ymd: strin
         <div ref={popRef} style={{ position: 'fixed', left: pos.left, top: pos.top, width: 292, zIndex: 4300, background: SP.popBg, borderRadius: 'var(--crm-radius-2xl)', boxShadow: SP.shadow, padding: 'var(--crm-space-xl)', fontFamily: 'inherit', animation: 'calPopIn .14s cubic-bezier(.2,.8,.2,1) both' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             {navBtn('chevL', () => setViewM(new Date(viewM.getFullYear(), viewM.getMonth() - 1, 1)))}
-            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: SP.ink }}>{months[viewM.getMonth()]} {viewM.getFullYear()}</span>
+            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 500, color: SP.ink }}>{months[viewM.getMonth()]} {viewM.getFullYear()}</span>
             {navBtn('chevR', () => setViewM(new Date(viewM.getFullYear(), viewM.getMonth() + 1, 1)))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 'var(--crm-space-2xs)', marginBottom: 4 }}>
-            {wd.map((w, i) => <div key={i} style={{ textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: SP.muted, textTransform: 'uppercase', letterSpacing: 0.4, padding: 'var(--crm-space-2xs) 0' }}>{w}</div>)}
+            {wd.map((w, i) => <div key={i} style={{ textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: SP.muted , padding: 'var(--crm-space-2xs) 0' }}>{w}</div>)}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 'var(--crm-space-2xs)' }}>
             {cells.map(({ d, mute }, i) => {
@@ -209,7 +209,7 @@ function CalDatePicker({ value, onChange }: { value: Date; onChange: (ymd: strin
                   key={i} type="button" onClick={() => { onChange(calToYmd(d)); setOpen(false) }}
                   style={{
                     height: 34, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
-                    fontSize: 'var(--crm-text-lg)', fontWeight: selected ? 800 : 600,
+                    fontSize: 'var(--crm-text-lg)', fontWeight: selected ? 600 : 500,
                     background: selected ? SP.accent : 'transparent',
                     color: selected ? SP.onAccent : mute ? SP.ghost : SP.ink,
                     boxShadow: isToday && !selected ? `inset 0 0 0 1.5px ${SP.line}` : 'none',
@@ -308,14 +308,14 @@ function CalLinkPicker({
 
   const avatar = (it: LinkItem, size = 34) =>
     it.avatarText != null ? (
-      <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', background: it.avatarBg || SP.accent, color: '#fff', display: 'grid', placeItems: 'center', fontSize: Math.round(size * 0.38), fontWeight: 800, flexShrink: 0 }}>{it.avatarText}</div>
+      <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', background: it.avatarBg || SP.accent, color: '#fff', display: 'grid', placeItems: 'center', fontSize: Math.round(size * 0.38), fontWeight: 500, flexShrink: 0 }}>{it.avatarText}</div>
     ) : (
       <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-sm)', flexShrink: 0, background: it.tone || SP.muted, display: 'grid', placeItems: 'center', color: 'rgba(255,255,255,0.92)' }}><CalIcon name="home" size={Math.round(size * 0.5)} stroke="currentColor" sw={1.6} /></div>
     )
 
   const row = (it: LinkItem) => (
     <span style={{ minWidth: 0, flex: 1 }}>
-      <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SP.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.title}</span>
+      <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SP.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.title}</span>
       {it.subtitle && <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SP.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.subtitle}</span>}
     </span>
   )
@@ -469,7 +469,7 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
     padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', border: 0,
     background: active ? SP.cardSubtle : 'transparent',
     boxShadow: active ? `inset 0 0 0 2px ${SP.ring}` : `inset 0 0 0 1px ${SP.line}`,
-    cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SP.ink, whiteSpace: 'nowrap',
+    cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: SP.ink, whiteSpace: 'nowrap',
   })
 
   // ── Dates début/fin (supporte le multi-jours) ──
@@ -553,7 +553,7 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
         {/* Contenu scrollable */}
         <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: 'var(--crm-space-4xl) var(--crm-space-5xl) var(--crm-space-5xl)' }}>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, color: SP.ink, letterSpacing: -0.5 }}>{isCreate ? t('modal.newEvent') : t('modal.editEvent')}</div>
+            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SP.ink, letterSpacing: -0.5 }}>{isCreate ? t('modal.newEvent') : t('modal.editEvent')}</div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
@@ -566,7 +566,7 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
                   return (
                     <button
                       key={tp.id} onClick={() => set({ type: tp.id })}
-                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: active ? SP.cardSubtle : 'transparent', boxShadow: active ? `inset 0 0 0 2px ${SP.ring}` : `inset 0 0 0 1px ${SP.line}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SP.ink, whiteSpace: 'nowrap' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: active ? SP.cardSubtle : 'transparent', boxShadow: active ? `inset 0 0 0 2px ${SP.ring}` : `inset 0 0 0 1px ${SP.line}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: SP.ink, whiteSpace: 'nowrap' }}
                     >
                       <span style={{ width: 10, height: 10, borderRadius: 'var(--crm-radius-2xs)', background: dot }} />
                       {tp.label}
@@ -692,17 +692,17 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
             {!isCreate && onDelete && (
               <button
                 onClick={() => onDelete(d.id)}
-                style={{ height: 46, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', color: SP.dangerInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
+                style={{ height: 46, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', color: SP.dangerInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
               >
                 <CalIcon name="trash" size={15} stroke={SP.dangerInk} sw={2.2} />{t('modal.delete')}
               </button>
             )}
             <div style={{ flex: 1 }} />
-            <button onClick={onCancel} style={{ height: 46, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', color: SP.inkSoft, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer' }}>{t('modal.cancel')}</button>
+            <button onClick={onCancel} style={{ height: 46, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', color: SP.inkSoft, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer' }}>{t('modal.cancel')}</button>
             <button
               onClick={() => { if (!blockVisitCreate) onSave(calNormalizeDraft(d)) }}
               disabled={blockVisitCreate}
-              style={{ height: 46, padding: '0 var(--crm-space-7xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, cursor: blockVisitCreate ? 'not-allowed' : 'pointer', opacity: blockVisitCreate ? 0.5 : 1, boxShadow: SP.shadowSm, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}
+              style={{ height: 46, padding: '0 var(--crm-space-7xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: blockVisitCreate ? 'not-allowed' : 'pointer', opacity: blockVisitCreate ? 0.5 : 1, boxShadow: SP.shadowSm, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}
             >
               {isCreate ? t('modal.create') : t('modal.save')}
             </button>
