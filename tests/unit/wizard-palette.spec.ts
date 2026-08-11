@@ -290,14 +290,22 @@ describe('Wizard « Créer un bien » — la palette descend de MEGGA X', () => 
   })
 
   /**
-   * Le dégradé de fond survit — contrairement à celui du calendrier, qui était
-   * déclaré et lu par personne. Celui-ci est lu en clair (`WizardShell.tsx:349`,
-   * `dark ? SugarV2.bg : SugarV2.bgGradient`), donc le retirer changerait le
-   * rendu. Il doit descendre de l'échelle, pas en sortir.
+   * ⛔ PLUS AUCUN DÉGRADÉ DE FOND. Le lot 1 l'avait CONSERVÉ — à la différence
+   * de celui du calendrier, mort et supprimé — parce qu'il avait bien un
+   * lecteur (`WizardShell`, branche claire). Avoir un lecteur prouvait qu'il
+   * changeait le rendu, pas qu'il devait rester : il posait une seconde source
+   * de lumière que la direction ne connaît pas, et le fond du wizard ne
+   * ressemblait donc à aucune autre surface du CRM.
+   *
+   * Retiré des deux thèmes le 11 août 2026. Ce test empêche qu'il revienne par
+   * copier-coller depuis un module voisin qui, lui, en a encore un
+   * (`crm-sugar-v3`, `kyc-magic-link`).
    */
-  it('le dégradé de fond a toujours son lecteur', () => {
-    const shell = readFileSync('src/components/crm-sugar-wizard/WizardShell.tsx', 'utf-8')
-    expect(shell).toMatch(/SugarV2\.bgGradient/)
+  it('aucun dégradé de fond ne subsiste', () => {
+    for (const f of ['tokens.ts', 'WizardShell.tsx']) {
+      expect(readFileSync(`src/components/crm-sugar-wizard/${f}`, 'utf-8'),
+        `${f} reparle de bgGradient`).not.toMatch(/bgGradient/)
+    }
   })
 
   /**

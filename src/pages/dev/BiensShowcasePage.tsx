@@ -44,7 +44,20 @@ import { DEMO_LISTING } from './demoFixtures'
 import { ThemeProvider } from '@/hooks/useTheme'
 
 export default function BiensShowcasePage() {
-  const [dark, setDark] = useState(false)
+  // ⚠ Même amorçage que `BiensSugarV2Page` : le CRM porte DEUX clés de thème
+  // sans lien — `megga-theme` (lue par `useTheme`, donc par `data-theme`) et
+  // `megga.sugar.dark` (lue par les surfaces Sugar, basculée par leur rail).
+  // Un harnais qui démarre en dur sur `false` rend donc les bentos CLAIRS dans
+  // une page dont `data-theme` dit « sombre » : on croit voir une incohérence
+  // du wizard alors qu'on regarde un instrument mal réglé. Mesuré : 22 blocs
+  // clairs contre 3 sombres.
+  const [dark, setDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    const saved = window.localStorage.getItem('megga.sugar.dark')
+    if (saved === '1') return true
+    if (saved === '0') return false
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
   const [wizardOpen, setWizardOpen] = useState(false)
   const [surface, setSurface] = useState<'liste' | 'fiche'>('liste')
 

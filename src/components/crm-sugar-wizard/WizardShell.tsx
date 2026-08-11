@@ -290,7 +290,7 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
       position: embedded ? 'absolute' : 'fixed', inset: 0, zIndex: embedded ? 1 : 9000,
       // En dark on pose le wizard sur le noir plat #0A0A0F (= bg du CRM), pas le
       // radial Sugar — il colle ainsi au fond exact de l'app. En clair, radial.
-      background: dark ? SugarV2.bg : SugarV2.bgGradient,
+      background: SugarV2.bg,
       fontFamily: '"Inter Tight", system-ui, sans-serif', color: SugarV2.ink,
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',

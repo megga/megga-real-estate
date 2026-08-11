@@ -44,9 +44,9 @@ const ACCENT_HOVER_LIGHT = sgMix(MXC_COLOR.accent, '#000000', 0.14)
 const ACCENT_HOVER_DARK = sgMix(MXC_COLOR.accent, '#FFFFFF', 0.12)
 
 const SUGARV2_LIGHT = {
-  // Fond — radial doux, même géométrie qu'avant, sur les barreaux de la vitrine
+  // Fond — plat. Le dégradé radial hérité de Sugar a été retiré le 11 août 2026 :
+  // il posait une seconde source de lumière que la direction ne connaît pas.
   bg: MX_LIGHT.pageBg,
-  bgGradient: `radial-gradient(ellipse 120% 80% at 50% 100%, ${MXC_COLOR.n700} 0%, ${MXC_COLOR.n800} 50%, ${MXC_COLOR.n900} 100%)`,
 
   // Surfaces
   card: MX_LIGHT.cardBg,
@@ -109,7 +109,6 @@ export type SugarV2Palette = typeof SUGARV2_LIGHT
 
 const SUGARV2_DARK: SugarV2Palette = {
   bg: MX_DARK.pageBg,
-  bgGradient: `radial-gradient(ellipse 130% 95% at 50% -12%, ${MXC_COLOR.n400} 0%, ${MXC_COLOR.n200} 48%, ${MXC_COLOR.n100} 100%)`,
 
   card: MX_DARK.cardBg,
   cardSubtle: MX_DARK.cardSubBg,
