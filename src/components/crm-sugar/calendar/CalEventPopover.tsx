@@ -147,8 +147,16 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
   const node = (
     <div style={{ position: 'fixed', inset: 0, zIndex: 4000 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0 }} />
+      {/* La bulle n'avait AUCUNE sémantique : ni rôle, ni libellé. Un lecteur
+          d'écran n'y voyait qu'un `div` anonyme, et le bandeau de chevauchement
+          restait donc introuvable même une fois posé en region live.
+          `dialog` sans `aria-modal` : c'est bien une surface non modale, et la
+          seule attente clavier qu'elle porte — Échap ferme — est déjà honorée
+          (cf. l'effet plus haut). On ne déclare donc rien qu'elle ne tienne. */}
       <div
         ref={ref}
+        role="dialog"
+        aria-label={event.title}
         style={{
           position: 'absolute', left: pos.left, top: pos.top, width: W,
           // Popover = surface flottante : palier haut, comme les 3 autres du
@@ -217,8 +225,17 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
 
           {event.location && <CalMiniRow icon="pin">{event.location}</CalMiniRow>}
 
+          {/* `role="status"` : le chevauchement se recalcule PENDANT que la bulle
+              est ouverte — glisser ou redimensionner un bloc change les heures,
+              donc `conflicts`. Sans region live, cette apparition ne s'annonce
+              pas ; le bandeau n'existait que pour l'œil.
+              ⚠ Une region live n'annonce que les CHANGEMENTS survenus après sa
+              création : à l'ouverture de la bulle, le bandeau est monté en même
+              temps qu'elle et ne se dit donc pas tout seul. C'est le `role` et
+              le libellé de la bulle (plus bas) qui le rendent atteignable — et
+              le focus n'y entre toujours pas, ce qui reste à traiter. */}
           {!event.external && conflicts.length > 0 && (
-            <div style={{ display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'flex-start', background: SP.warnBg, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', marginTop: 2 }}>
+            <div role="status" style={{ display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'flex-start', background: SP.warnBg, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', marginTop: 2 }}>
               <span style={{ flexShrink: 0, marginTop: 1 }}><CalIcon name="warn" size={15} stroke={SP.warnIcon} sw={2.2} /></span>
               <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SP.warnInk, lineHeight: 1.4 }}>
                 {conflicts.length === 1 ? (
