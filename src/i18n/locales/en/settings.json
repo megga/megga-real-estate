@@ -5,7 +5,6 @@
     "profile": "Profile",
     "agency": "Agency",
     "team": "Team",
-    "notifications": "Notifications",
     "security": "Security",
     "subscription": "Subscription",
     "applications": "Applications",
@@ -309,67 +308,6 @@
       "wrongAccount": "Sign in with {{email}} to accept this invitation.",
       "error": "An error occurred.",
       "backHome": "Back to home"
-    }
-  },
-  "notifications": {
-    "title": "Notifications",
-    "subtitle": "Choose how and when you want to be notified.",
-    "email": "Email",
-    "push": "Push",
-    "enableAll": "Enable all",
-    "categories": {
-      "leads": {
-        "label": "New leads",
-        "description": "When a new contact is assigned"
-      },
-      "messages": {
-        "label": "Messages received",
-        "description": "When a message is received in the inbox"
-      },
-      "visits": {
-        "label": "Scheduled visits",
-        "description": "Reminders before scheduled visits"
-      },
-      "offers": {
-        "label": "Offers received",
-        "description": "When an offer is submitted on a property"
-      },
-      "kyc": {
-        "label": "KYC files to complete",
-        "description": "When a KYC file requires action"
-      },
-      "calendar": {
-        "label": "Calendar reminders",
-        "description": "Reminders for upcoming events"
-      }
-    },
-    "header": {
-      "kicker": "Notifications",
-      "title": "Choose the channels that alert you",
-      "sub": "MEGGA notifies you on the channels enabled below: new client messages, offers, visits, signatures."
-    },
-    "channels": {
-      "email": {
-        "label": "Email",
-        "desc": "Main notifications by email"
-      },
-      "sms": {
-        "label": "SMS",
-        "desc": "For urgent matters (offers, signatures)"
-      },
-      "whatsapp": {
-        "label": "WhatsApp",
-        "desc": "Client messages received on your business number"
-      },
-      "inapp": {
-        "label": "In the CRM",
-        "desc": "CRM notification bell"
-      }
-    },
-    "toast": {
-      "sessionExpired": "Session expired, sign in again to save",
-      "saved": "Notifications saved",
-      "saveError": "Error while saving"
     }
   },
   "security": {
@@ -772,10 +710,6 @@
         "label": "My agency",
         "short": "Agency"
       },
-      "notifications": {
-        "label": "Notifications",
-        "short": "Notifications"
-      },
       "integrations": {
         "label": "Integrations",
         "short": "Integrations"
@@ -1048,11 +982,6 @@
         "role": "Only an agency director can change the legal identity.",
         "submitted": "Identity submitted for verification: request a correction to change it."
       }
-    },
-    "notifications": {
-      "banner": "MEGGA notifies you on the enabled channels, client messages, offers, viewings, signatures.",
-      "group": "Notification channels",
-      "count": "{{active}} / {{total}} active"
     },
     "preferences": {
       "banner": "These preferences are personal to your account, they don't affect other team members.",

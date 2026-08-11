@@ -1,6 +1,6 @@
 // MEGGA CRM Sugar v2 — Écran « Paramètres » (refonte finale — shell « À suivre »).
 // Shell deux colonnes : rail de nav 300px à gauche + bento à droite qui rend la
-// section active. 4 sections « Focus » (Profil, Agence, Notifications, Préférences)
+// section active. 3 sections « Focus » (Profil, Agence, Préférences)
 // reçoivent {sp, surf, dark, setDark} ; 3 sections conservées (Intégrations,
 // Facturation, Sécurité) restent autonomes et lisent SET_PALETTE (mutée par
 // applySetTheme avant render). Deep-link ?tab=.
@@ -16,19 +16,17 @@ import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
 import { SecuritySection } from '@/components/crm-sugar/settings/SecuritySection'
 import { ProfileFocusSection } from '@/components/crm-sugar/settings/focus/ProfileFocusSection'
 import { AgencyFocusSection } from '@/components/crm-sugar/settings/focus/AgencyFocusSection'
-import { NotificationsFocusSection } from '@/components/crm-sugar/settings/focus/NotificationsFocusSection'
 import { PreferencesFocusSection } from '@/components/crm-sugar/settings/focus/PreferencesFocusSection'
 import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm-sugar/settings/data'
 import { SETTINGS_KEYFRAMES } from '@/components/crm-sugar/settings/atoms'
 
 const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte']
-const ALLOWED: SectionId[] = ['profile', 'agency', 'notifications', 'preferences', 'integrations', 'security', 'billing']
+const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations', 'security', 'billing']
 
 // Icônes du rail (mêmes tracés que le proto SpgIcon).
 const SPG_PATHS: Record<string, ReactNode> = {
   user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
   building: <><path d="M3 21V7l9-4 9 4v14" /><path d="M9 21V12h6v9" /><path d="M9 8h.01M15 8h.01M9 11h.01M15 11h.01" /></>,
-  bell: <><path d="M6 8a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9Z" /><path d="M10 21a2 2 0 0 0 4 0" /></>,
   plug: <><path d="M9 2v6M15 2v6" /><path d="M5 8h14v3a7 7 0 0 1-14 0V8Z" /><path d="M12 18v4" /></>,
   sliders: <><path d="M4 21V14M4 10V3M12 21V12M12 8V3M20 21v-5M20 12V3" /><path d="M2 14h4M10 8h4M18 16h4" /></>,
   card: <><rect x="2" y="6" width="20" height="13" rx="2" /><path d="M2 11h20M6 16h4" /></>,
@@ -99,7 +97,6 @@ export default function SettingsSugarV2Page() {
     switch (active) {
       case 'profile': return <ProfileFocusSection sp={sp} surf={surf} dark={dark} />
       case 'agency': return <AgencyFocusSection sp={sp} surf={surf} dark={dark} />
-      case 'notifications': return <NotificationsFocusSection sp={sp} surf={surf} dark={dark} />
       case 'preferences': return <PreferencesFocusSection sp={sp} surf={surf} dark={dark} setDark={setDark} />
       case 'integrations': return <IntegrationsSection />
       case 'security': return <SecuritySection />

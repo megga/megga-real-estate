@@ -5,7 +5,6 @@
     "profile": "Profil",
     "agency": "Agence",
     "team": "Équipe",
-    "notifications": "Notifications",
     "security": "Sécurité",
     "subscription": "Abonnement",
     "applications": "Applications",
@@ -309,67 +308,6 @@
       "wrongAccount": "Connectez-vous avec le compte {{email}} pour accepter cette invitation.",
       "error": "Une erreur est survenue.",
       "backHome": "Retour à l'accueil"
-    }
-  },
-  "notifications": {
-    "title": "Notifications",
-    "subtitle": "Choisissez comment et quand vous souhaitez être notifié.",
-    "email": "Email",
-    "push": "Push",
-    "enableAll": "Tout activer",
-    "categories": {
-      "leads": {
-        "label": "Nouveaux leads",
-        "description": "Quand un nouveau contact est assigné"
-      },
-      "messages": {
-        "label": "Messages reçus",
-        "description": "Quand un message est reçu dans la messagerie"
-      },
-      "visits": {
-        "label": "Visites planifiées",
-        "description": "Rappels avant les visites programmées"
-      },
-      "offers": {
-        "label": "Offres reçues",
-        "description": "Quand une offre est soumise sur un bien"
-      },
-      "kyc": {
-        "label": "Dossiers KYC à compléter",
-        "description": "Quand un dossier KYC nécessite une action"
-      },
-      "calendar": {
-        "label": "Rappels calendrier",
-        "description": "Rappels pour les événements à venir"
-      }
-    },
-    "header": {
-      "kicker": "Notifications",
-      "title": "Choisissez les canaux qui vous préviennent",
-      "sub": "MEGGA vous notifie sur les canaux activés ci-dessous : nouveaux messages clients, offres, visites, signatures."
-    },
-    "channels": {
-      "email": {
-        "label": "Email",
-        "desc": "Notifications principales par email"
-      },
-      "sms": {
-        "label": "SMS",
-        "desc": "Pour les urgences (offres, signatures)"
-      },
-      "whatsapp": {
-        "label": "WhatsApp",
-        "desc": "Messages clients reçus sur votre numéro pro"
-      },
-      "inapp": {
-        "label": "Dans le CRM",
-        "desc": "Cloche de notifications du CRM"
-      }
-    },
-    "toast": {
-      "sessionExpired": "Session expirée, reconnectez-vous pour enregistrer",
-      "saved": "Notifications enregistrées",
-      "saveError": "Erreur lors de l’enregistrement"
     }
   },
   "security": {
@@ -772,10 +710,6 @@
         "label": "Mon agence",
         "short": "Agence"
       },
-      "notifications": {
-        "label": "Notifications",
-        "short": "Notifications"
-      },
       "integrations": {
         "label": "Intégrations",
         "short": "Intégrations"
@@ -1048,11 +982,6 @@
         "role": "Seul un dirigeant de l'agence modifie l'identité légale.",
         "submitted": "Identité soumise à vérification : demandez une correction pour la modifier."
       }
-    },
-    "notifications": {
-      "banner": "MEGGA vous prévient sur les canaux activés, messages clients, offres, visites, signatures.",
-      "group": "Canaux de notification",
-      "count": "{{active}} / {{total}} actifs"
     },
     "preferences": {
       "banner": "Ces préférences sont personnelles à votre compte, elles n'affectent pas les autres membres de l'équipe.",

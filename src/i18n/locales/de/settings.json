@@ -5,7 +5,6 @@
     "profile": "Profil",
     "agency": "Agentur",
     "team": "Team",
-    "notifications": "Benachrichtigungen",
     "security": "Sicherheit",
     "subscription": "Abonnement",
     "applications": "Anwendungen",
@@ -309,67 +308,6 @@
       "wrongAccount": "Melden Sie sich mit {{email}} an, um diese Einladung anzunehmen.",
       "error": "Ein Fehler ist aufgetreten.",
       "backHome": "Zurück zur Startseite"
-    }
-  },
-  "notifications": {
-    "title": "Benachrichtigungen",
-    "subtitle": "Wählen Sie, wie und wann Sie benachrichtigt werden möchten.",
-    "email": "E-Mail",
-    "push": "Push",
-    "enableAll": "Alle aktivieren",
-    "categories": {
-      "leads": {
-        "label": "Neue Leads",
-        "description": "Wenn ein neuer Kontakt zugewiesen wird"
-      },
-      "messages": {
-        "label": "Eingegangene Nachrichten",
-        "description": "Wenn eine Nachricht im Postfach eingeht"
-      },
-      "visits": {
-        "label": "Geplante Besichtigungen",
-        "description": "Erinnerungen vor geplanten Besichtigungen"
-      },
-      "offers": {
-        "label": "Eingegangene Angebote",
-        "description": "Wenn ein Angebot für ein Objekt eingereicht wird"
-      },
-      "kyc": {
-        "label": "KYC-Dossiers zu vervollständigen",
-        "description": "Wenn ein KYC-Dossier eine Aktion erfordert"
-      },
-      "calendar": {
-        "label": "Kalendererinnerungen",
-        "description": "Erinnerungen für bevorstehende Termine"
-      }
-    },
-    "header": {
-      "kicker": "Notifications",
-      "title": "Wählen Sie die Kanäle, über die Sie benachrichtigt werden",
-      "sub": "MEGGA benachrichtigt Sie über die unten aktivierten Kanäle: neue Kundennachrichten, Angebote, Besichtigungen, Unterschriften."
-    },
-    "channels": {
-      "email": {
-        "label": "Email",
-        "desc": "Hauptbenachrichtigungen per E-Mail"
-      },
-      "sms": {
-        "label": "SMS",
-        "desc": "Für dringende Fälle (Angebote, Signaturen)"
-      },
-      "whatsapp": {
-        "label": "WhatsApp",
-        "desc": "Kundennachrichten, die auf Ihrer Geschäftsnummer eingehen"
-      },
-      "inapp": {
-        "label": "Im CRM",
-        "desc": "Benachrichtigungsglocke des CRM"
-      }
-    },
-    "toast": {
-      "sessionExpired": "Sitzung abgelaufen, melden Sie sich erneut an, um zu speichern",
-      "saved": "Benachrichtigungen gespeichert",
-      "saveError": "Fehler beim Speichern"
     }
   },
   "security": {
@@ -772,10 +710,6 @@
         "label": "Meine Agentur",
         "short": "Agentur"
       },
-      "notifications": {
-        "label": "Notifications",
-        "short": "Notifications"
-      },
       "integrations": {
         "label": "Integrationen",
         "short": "Integrationen"
@@ -1048,11 +982,6 @@
         "role": "Nur eine Geschäftsleitung der Agentur ändert die rechtliche Identität.",
         "submitted": "Identität zur Prüfung eingereicht: fordern Sie eine Korrektur an, um sie zu ändern."
       }
-    },
-    "notifications": {
-      "banner": "MEGGA benachrichtigt Sie über die aktivierten Kanäle, Kundennachrichten, Angebote, Besichtigungen, Unterschriften.",
-      "group": "Benachrichtigungskanäle",
-      "count": "{{active}} / {{total}} aktiv"
     },
     "preferences": {
       "banner": "Diese Einstellungen gelten nur für Ihr Konto, sie betreffen keine anderen Teammitglieder.",
