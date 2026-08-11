@@ -5,7 +5,6 @@
     "profile": "Profil",
     "agency": "Agence",
     "team": "Équipe",
-    "notifications": "Notifications",
     "security": "Sécurité",
     "subscription": "Abonnement",
     "applications": "Applications",
@@ -311,108 +310,31 @@
       "backHome": "Retour à l'accueil"
     }
   },
-  "notifications": {
-    "title": "Notifications",
-    "subtitle": "Choisissez comment et quand vous souhaitez être notifié.",
-    "email": "Email",
-    "push": "Push",
-    "enableAll": "Tout activer",
-    "categories": {
-      "leads": {
-        "label": "Nouveaux leads",
-        "description": "Quand un nouveau contact est assigné"
-      },
-      "messages": {
-        "label": "Messages reçus",
-        "description": "Quand un message est reçu dans la messagerie"
-      },
-      "visits": {
-        "label": "Visites planifiées",
-        "description": "Rappels avant les visites programmées"
-      },
-      "offers": {
-        "label": "Offres reçues",
-        "description": "Quand une offre est soumise sur un bien"
-      },
-      "kyc": {
-        "label": "Dossiers KYC à compléter",
-        "description": "Quand un dossier KYC nécessite une action"
-      },
-      "calendar": {
-        "label": "Rappels calendrier",
-        "description": "Rappels pour les événements à venir"
-      }
-    },
-    "header": {
-      "kicker": "Notifications",
-      "title": "Choisissez les canaux qui vous préviennent",
-      "sub": "MEGGA vous notifie sur les canaux activés ci-dessous : nouveaux messages clients, offres, visites, signatures."
-    },
-    "channels": {
-      "email": {
-        "label": "Email",
-        "desc": "Notifications principales par email"
-      },
-      "sms": {
-        "label": "SMS",
-        "desc": "Pour les urgences (offres, signatures)"
-      },
-      "whatsapp": {
-        "label": "WhatsApp",
-        "desc": "Messages clients reçus sur votre numéro pro"
-      },
-      "inapp": {
-        "label": "Dans le CRM",
-        "desc": "Cloche de notifications du CRM"
-      }
-    },
-    "toast": {
-      "sessionExpired": "Session expirée, reconnectez-vous pour enregistrer",
-      "saved": "Notifications enregistrées",
-      "saveError": "Erreur lors de l’enregistrement"
-    }
-  },
   "security": {
     "password": {
       "title": "Mot de passe",
-      "lastModified": "Dernière modification : {{date}}",
-      "current": "Mot de passe actuel",
-      "new": "Nouveau mot de passe",
-      "newHint": "6 caractères minimum",
-      "confirm": "Confirmer le nouveau mot de passe",
       "confirmHint": "Retapez le mot de passe",
-      "minLength": "Le mot de passe doit contenir au moins 6 caractères.",
-      "mismatch": "Les mots de passe ne correspondent pas.",
-      "update": "Mettre à jour",
-      "changing": "Modification...",
-      "success": "Mot de passe modifié avec succès.",
-      "error": "Erreur lors de la modification du mot de passe.",
-      "descView": "Clé maîtresse de votre compte MEGGA.",
-      "descEdit": "Choisissez une nouvelle clé, au moins 8 caractères.",
-      "descForgot": "Pas besoin de l'ancienne, on vous envoie un lien sécurisé.",
-      "descSent": "Lien de réinitialisation envoyé.",
-      "encryptedNote": "Chiffré · jamais affiché en clair",
+      "descEdit": "Il doit atteindre le niveau « Bon ».",
+      "descForgot": "Nous vous envoyons un lien pour en définir un nouveau.",
+      "descSent": "Lien envoyé.",
       "currentLabel": "Mot de passe actuel",
-      "currentPlaceholder": "Clé actuelle",
       "forgotLink": "Mot de passe oublié ?",
       "newLabel": "Nouveau mot de passe",
-      "newPlaceholder": "Nouvelle clé",
       "confirmLabel": "Confirmer",
-      "confirmPlaceholder": "Répétez la clé",
-      "keysMatch": "Les clés correspondent",
-      "keysMismatch": "Les clés ne correspondent pas",
+      "keysMatch": "Les mots de passe correspondent",
+      "keysMismatch": "Les mots de passe ne correspondent pas",
       "sentTo": "Envoyé à",
-      "forgotInfo": "Le lien expire dans 1 h. Par sécurité, vérifiez vos sessions après réinitialisation.",
+      "forgotInfo": "Le lien expire dans 1 heure.",
       "sendLink": "Envoyer le lien",
       "checkInbox": "Vérifiez votre boîte de réception",
-      "sentBody": "Ouvrez le lien envoyé à <b>{{email}}</b> pour définir une nouvelle clé. Il expire dans 1 h.",
+      "sentBody": "Ouvrez le lien envoyé à <b>{{email}}</b>. Il expire dans 1 heure.",
       "nothingReceived": "Rien reçu ?",
       "resendIn_one": "Renvoyer dans {{count}}s",
       "resendIn_other": "Renvoyer dans {{count}}s",
       "resend": "Renvoyer",
       "done": "Terminé",
       "changedTitle": "Mot de passe modifié",
-      "changedSub": "Chiffré de bout en bout · à l'instant.",
+      "changedSub": "Modifié à l'instant.",
       "show": "Afficher",
       "hide": "Masquer",
       "strengthTooShort": "Trop court",
@@ -431,7 +353,6 @@
       "loadingDevices": "Chargement de vos appareils…",
       "activeCount_one": "{{count}} session active sur votre compte.",
       "activeCount_other": "{{count}} sessions actives sur votre compte.",
-      "thisDeviceOnly": "Cet appareil uniquement. Aucune autre session active.",
       "loadError": "Impossible de charger vos appareils pour le moment.",
       "empty": "Aucun appareil enregistré pour le moment.",
       "thisDevice": "Cet appareil",
@@ -490,22 +411,17 @@
     },
     "failureWith": "Échec : {{message}}",
     "hero": {
-      "title": "Sécurité du compte",
-      "subtitleLine1": "MEGGA traite des données de transaction sensibles.",
-      "subtitleLine2": "Gardez votre compte verrouillé et surveillez son activité."
+      "title": "Sécurité du compte"
     },
     "sso": {
       "title": "Méthodes de connexion",
-      "subtitle": "Identifiez-vous en un clic. Votre e-mail + mot de passe restent toujours actifs.",
       "linkedDetail": "{{account}} · Connecté",
       "linkedAccount": "Compte lié",
-      "connectWith": "Connectez-vous avec votre compte {{name}}",
       "connect": "Connecter",
       "disconnect": "Déconnecter",
       "disconnected": "{{name}} déconnecté",
       "disconnectConfirmTitle": "Déconnecter {{name}} ?",
-      "disconnectConfirmDesc": "Vous ne pourrez plus vous connecter à MEGGA via {{name}}. Votre e-mail + mot de passe restent actifs.",
-      "privacyNote": "MEGGA reçoit uniquement votre nom, e-mail et photo de profil. Aucun mot de passe n'est partagé. Vous pouvez révoquer l'accès ici ou depuis votre compte Google / Microsoft."
+      "disconnectConfirmDesc": "Vous ne pourrez plus vous connecter à MEGGA via {{name}}. Votre e-mail + mot de passe restent actifs."
     }
   },
   "subscription": {
@@ -793,10 +709,6 @@
         "label": "Mon agence",
         "short": "Agence"
       },
-      "notifications": {
-        "label": "Notifications",
-        "short": "Notifications"
-      },
       "integrations": {
         "label": "Intégrations",
         "short": "Intégrations"
@@ -1005,7 +917,6 @@
       "saved": "Enregistré",
       "add": "Ajouter",
       "edit": "Modifier",
-      "toFill": "À renseigner",
       "cancel": "Annuler",
       "save": "Enregistrer"
     },
@@ -1070,11 +981,6 @@
         "role": "Seul un dirigeant de l'agence modifie l'identité légale.",
         "submitted": "Identité soumise à vérification : demandez une correction pour la modifier."
       }
-    },
-    "notifications": {
-      "banner": "MEGGA vous prévient sur les canaux activés, messages clients, offres, visites, signatures.",
-      "group": "Canaux de notification",
-      "count": "{{active}} / {{total}} actifs"
     },
     "preferences": {
       "banner": "Ces préférences sont personnelles à votre compte, elles n'affectent pas les autres membres de l'équipe.",

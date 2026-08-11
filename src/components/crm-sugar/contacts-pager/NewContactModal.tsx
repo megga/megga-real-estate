@@ -717,7 +717,7 @@ const EMPTY: FormState = {
   // « Suisse », mais le bloc « Identité complète » qui les porte est replié par défaut :
   // un défaut y serait persisté comme une donnée d'identification LBA que l'agent n'a
   // jamais vue ni confirmée, et qui alimente le scoring de risque pays (listes FATF).
-  // Une case vide se lit « À renseigner » sur la fiche — l'absence de donnée reste visible.
+  // Une case vide se lit « — » sur la fiche — l'absence de donnée reste visible.
   type: 'buyer', civ: 'mrs', firstName: '', lastName: '', birth: '', nationality: '', residence: '', homeAddress: '',
   email: '', phone: '', lang: 'fr', canal: 'whatsapp', photo: null,
   budgetMin: '', budgetMax: '', rentMax: '', pTypes: ['appartement'], cantons: ['GE', 'VD'], rooms: '', address: '', propType: 'appartement', note: '',

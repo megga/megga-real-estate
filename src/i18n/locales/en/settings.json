@@ -5,7 +5,6 @@
     "profile": "Profile",
     "agency": "Agency",
     "team": "Team",
-    "notifications": "Notifications",
     "security": "Security",
     "subscription": "Subscription",
     "applications": "Applications",
@@ -311,108 +310,31 @@
       "backHome": "Back to home"
     }
   },
-  "notifications": {
-    "title": "Notifications",
-    "subtitle": "Choose how and when you want to be notified.",
-    "email": "Email",
-    "push": "Push",
-    "enableAll": "Enable all",
-    "categories": {
-      "leads": {
-        "label": "New leads",
-        "description": "When a new contact is assigned"
-      },
-      "messages": {
-        "label": "Messages received",
-        "description": "When a message is received in the inbox"
-      },
-      "visits": {
-        "label": "Scheduled visits",
-        "description": "Reminders before scheduled visits"
-      },
-      "offers": {
-        "label": "Offers received",
-        "description": "When an offer is submitted on a property"
-      },
-      "kyc": {
-        "label": "KYC files to complete",
-        "description": "When a KYC file requires action"
-      },
-      "calendar": {
-        "label": "Calendar reminders",
-        "description": "Reminders for upcoming events"
-      }
-    },
-    "header": {
-      "kicker": "Notifications",
-      "title": "Choose the channels that alert you",
-      "sub": "MEGGA notifies you on the channels enabled below: new client messages, offers, visits, signatures."
-    },
-    "channels": {
-      "email": {
-        "label": "Email",
-        "desc": "Main notifications by email"
-      },
-      "sms": {
-        "label": "SMS",
-        "desc": "For urgent matters (offers, signatures)"
-      },
-      "whatsapp": {
-        "label": "WhatsApp",
-        "desc": "Client messages received on your business number"
-      },
-      "inapp": {
-        "label": "In the CRM",
-        "desc": "CRM notification bell"
-      }
-    },
-    "toast": {
-      "sessionExpired": "Session expired, sign in again to save",
-      "saved": "Notifications saved",
-      "saveError": "Error while saving"
-    }
-  },
   "security": {
     "password": {
       "title": "Password",
-      "lastModified": "Last modified: {{date}}",
-      "current": "Current password",
-      "new": "New password",
-      "newHint": "6 characters minimum",
-      "confirm": "Confirm new password",
       "confirmHint": "Re-enter password",
-      "minLength": "Password must be at least 6 characters.",
-      "mismatch": "Passwords do not match.",
-      "update": "Update",
-      "changing": "Updating...",
-      "success": "Password updated successfully.",
-      "error": "Failed to update password.",
-      "descView": "The master key to your MEGGA account.",
-      "descEdit": "Choose a new key, at least 8 characters.",
-      "descForgot": "No need for the old one, we'll send you a secure link.",
-      "descSent": "Reset link sent.",
-      "encryptedNote": "Encrypted · never shown in plain text",
+      "descEdit": "It must reach the “Good” level.",
+      "descForgot": "We'll send you a link to set a new one.",
+      "descSent": "Link sent.",
       "currentLabel": "Current password",
-      "currentPlaceholder": "Current key",
       "forgotLink": "Forgot your password?",
       "newLabel": "New password",
-      "newPlaceholder": "New key",
       "confirmLabel": "Confirm",
-      "confirmPlaceholder": "Repeat the key",
-      "keysMatch": "The keys match",
-      "keysMismatch": "The keys don't match",
+      "keysMatch": "The passwords match",
+      "keysMismatch": "The passwords don't match",
       "sentTo": "Sent to",
-      "forgotInfo": "The link expires in 1 h. For security, review your sessions after resetting.",
+      "forgotInfo": "The link expires in 1 hour.",
       "sendLink": "Send the link",
       "checkInbox": "Check your inbox",
-      "sentBody": "Open the link sent to <b>{{email}}</b> to set a new key. It expires in 1 h.",
+      "sentBody": "Open the link sent to <b>{{email}}</b>. It expires in 1 hour.",
       "nothingReceived": "Nothing received?",
       "resendIn_one": "Resend in {{count}}s",
       "resendIn_other": "Resend in {{count}}s",
       "resend": "Resend",
       "done": "Done",
       "changedTitle": "Password changed",
-      "changedSub": "End-to-end encrypted · just now.",
+      "changedSub": "Changed just now.",
       "show": "Show",
       "hide": "Hide",
       "strengthTooShort": "Too short",
@@ -431,7 +353,6 @@
       "loadingDevices": "Loading your devices…",
       "activeCount_one": "{{count}} active session on your account.",
       "activeCount_other": "{{count}} active sessions on your account.",
-      "thisDeviceOnly": "This device only. No other active session.",
       "loadError": "Unable to load your devices right now.",
       "empty": "No device registered yet.",
       "thisDevice": "This device",
@@ -490,22 +411,17 @@
     },
     "failureWith": "Failed: {{message}}",
     "hero": {
-      "title": "Account security",
-      "subtitleLine1": "MEGGA handles sensitive transaction data.",
-      "subtitleLine2": "Keep your account locked and monitor its activity."
+      "title": "Account security"
     },
     "sso": {
       "title": "Sign-in methods",
-      "subtitle": "Sign in with one click. Your email + password always stay active.",
       "linkedDetail": "{{account}} · Connected",
       "linkedAccount": "Linked account",
-      "connectWith": "Sign in with your {{name}} account",
       "connect": "Connect",
       "disconnect": "Disconnect",
       "disconnected": "{{name}} disconnected",
       "disconnectConfirmTitle": "Disconnect {{name}}?",
-      "disconnectConfirmDesc": "You won't be able to sign in to MEGGA via {{name}} anymore. Your email + password stay active.",
-      "privacyNote": "MEGGA only receives your name, email and profile photo. No password is shared. You can revoke access here or from your Google / Microsoft account."
+      "disconnectConfirmDesc": "You won't be able to sign in to MEGGA via {{name}} anymore. Your email + password stay active."
     }
   },
   "subscription": {
@@ -793,10 +709,6 @@
         "label": "My agency",
         "short": "Agency"
       },
-      "notifications": {
-        "label": "Notifications",
-        "short": "Notifications"
-      },
       "integrations": {
         "label": "Integrations",
         "short": "Integrations"
@@ -1005,7 +917,6 @@
       "saved": "Saved",
       "add": "Add",
       "edit": "Edit",
-      "toFill": "To complete",
       "cancel": "Cancel",
       "save": "Save"
     },
@@ -1070,11 +981,6 @@
         "role": "Only an agency director can change the legal identity.",
         "submitted": "Identity submitted for verification: request a correction to change it."
       }
-    },
-    "notifications": {
-      "banner": "MEGGA notifies you on the enabled channels, client messages, offers, viewings, signatures.",
-      "group": "Notification channels",
-      "count": "{{active}} / {{total}} active"
     },
     "preferences": {
       "banner": "These preferences are personal to your account, they don't affect other team members.",

@@ -1,8 +1,8 @@
 /**
  * Écran de réglages mobile (P9). Le fichier = le composant public
  * `MobileSettingsScreen` (routeur `view` interne + câblage hooks) suivi des
- * atomes de présentation partagés (Header, Card, Field, Toggle, Segment, Ring…)
- * puis d'une section par vue (Hub, Profil, Agence, Notifications, Facturation,
+ * atomes de présentation partagés (Header, Card, Field, Segment, Ring…)
+ * puis d'une section par vue (Hub, Profil, Agence, Facturation,
  * Préférences).
  */
 import { useState, type CSSProperties, type ReactNode } from 'react'
@@ -15,7 +15,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 import { useAgentProfileSugar } from '@/hooks/useAgentProfileSugar'
 import { useAgencySettings, type AgencySettingsData, type AgencyPlan } from '@/hooks/useAgencySettings'
-import { useNotifPreferences, type NotifPreferences } from '@/hooks/useNotifPreferences'
 import { useAgencyTargets } from '@/hooks/useAgencyTargets'
 import { profileCompletionScore, type ProfileData } from '@/components/crm-sugar/settings/data'
 import { formatCHF } from '@/lib/utils'
@@ -24,7 +23,7 @@ import { useSgToast } from '../primitives/useSgToast'
 import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 
-type View = 'hub' | 'profile' | 'agency' | 'notifications' | 'billing' | 'preferences'
+type View = 'hub' | 'profile' | 'agency' | 'billing' | 'preferences'
 
 // ─── Démo (harnais /dev/mobile) — gated, aucun fetch ni write Supabase ────────
 const DEMO_PROFILE: ProfileData = {
@@ -45,7 +44,6 @@ const DEMO_AGENCY: AgencySettingsData = {
   businessRegistrationNumber: 'CHE-409.118.221', tva: 'CHE-409.118.221 TVA',
   foundedYear: '2014', postal: '1204', country: 'Suisse', aboutShort: '',
 }
-const DEMO_NOTIF: NotifPreferences = { email: true, sms: false, whatsapp: true, inapp: true }
 const DEMO_PLAN: AgencyPlan = 'pro'
 const DEMO_YEARLY = 1200000
 
@@ -58,9 +56,9 @@ const PLAN_KEYS: Record<AgencyPlan, string> = {
 /**
  * Réglages mobile (P9) — hub de tuiles → drill-in (router `view` interne), porté
  * du proto `crm-settings-mobile`. Read-first + édits sûrs : Profil, Agence
- * (+ Objectif annuel), Notifications, Facturation (plan lecture seule),
+ * (+ Objectif annuel), Facturation (plan lecture seule),
  * Préférences (thème + langue LIVE). 100 % câblé sur les hooks de réglages
- * (`useAgentProfileSugar`, `useAgencySettings`, `useNotifPreferences`,
+ * (`useAgentProfileSugar`, `useAgencySettings`,
  * `useAgencyTargets`) ; thème/langue via `useTheme` + `i18n` (même canal que le
  * hub Plus). Différés : upload avatar/logo, Sécurité (2FA/sessions), Intégrations
  * OAuth, gestion Stripe — backend non porté ou écriture à effet de bord.
@@ -80,7 +78,6 @@ export function MobileSettingsScreen({ demo = false }: { demo?: boolean }) {
   // Hooks de réglages — gated en démo (pas de fetch ; profileId/agencyId nuls hors auth).
   const prof = useAgentProfileSugar({ enabled: live })
   const ag = useAgencySettings({ enabled: live })
-  const notif = useNotifPreferences({ enabled: live })
   const targets = useAgencyTargets({ enabled: live })
 
   // Formulaires : base (hook ou démo) + couche d'édits locale (les édits priment,
@@ -93,21 +90,16 @@ export function MobileSettingsScreen({ demo = false }: { demo?: boolean }) {
   const [agencyEdits, setAgencyEdits] = useState<Partial<AgencySettingsData>>({})
   const agencyForm: AgencySettingsData = { ...baseAgency, ...agencyEdits }
 
-  const baseNotif = demo ? DEMO_NOTIF : notif.preferences
-  const [notifEdits, setNotifEdits] = useState<Partial<NotifPreferences>>({})
-  const notifForm: NotifPreferences = { ...baseNotif, ...notifEdits }
 
   const baseYearly = demo ? DEMO_YEARLY : targets.targets.yearly
   const [yearlyEdit, setYearlyEdit] = useState<string | null>(null)
   const yearlyForm = yearlyEdit ?? (baseYearly > 0 ? String(baseYearly) : '')
 
   const plan: AgencyPlan | null = demo ? DEMO_PLAN : ag.plan
-  const notifCount = Object.values(notifForm).filter(Boolean).length
 
   // Éditable = démo (no-op visuel) OU backend présent. Saves désactivés sinon.
   const profileEditable = demo || prof.hasBackend
   const agencyEditable = demo || ag.hasBackend
-  const notifEditable = demo || notif.hasBackend
 
   const goMore = () => { if (live) navigate('/dashboard/more') }
   const logout = () => { if (live) void signOut().then(() => navigate('/login')) }
@@ -138,21 +130,6 @@ export function MobileSettingsScreen({ demo = false }: { demo?: boolean }) {
       .catch(() => showToast(t('settings:agency.targets.toastError')))
   }
 
-  const toggleChannel = (k: keyof NotifPreferences) => {
-    if (!notifEditable || notif.isSaving) return
-    const next: NotifPreferences = { ...notifForm, [k]: !notifForm[k] }
-    setNotifEdits((e) => ({ ...e, [k]: next[k] }))
-    if (!live) return
-    void notif.save(next)
-      .then(() => showToast(t('settings:notifications.toast.saved')))
-      .catch(() => {
-        // Échec d'écriture : on annule l'édit optimiste pour retomber sur la
-        // valeur persistée (sinon l'UI + les compteurs dérivés mentent).
-        setNotifEdits((e) => { const rest = { ...e }; delete rest[k]; return rest })
-        showToast(t('settings:notifications.toast.saveError'))
-      })
-  }
-
   const ctx: SectionCtx = { t, tk, isDark }
 
   return (
@@ -162,7 +139,6 @@ export function MobileSettingsScreen({ demo = false }: { demo?: boolean }) {
           <Hub
             ctx={ctx}
             profile={profileForm}
-            notifCount={notifCount}
             plan={plan}
             onBack={goMore}
             onGo={setView}
@@ -194,17 +170,6 @@ export function MobileSettingsScreen({ demo = false }: { demo?: boolean }) {
             onYearly={setYearlyEdit}
             onSave={saveAgency}
             onSaveYearly={saveYearly}
-            onBack={() => setView('hub')}
-          />
-        )}
-        {view === 'notifications' && (
-          <NotificationsSection
-            ctx={ctx}
-            form={notifForm}
-            count={notifCount}
-            editable={notifEditable}
-            signedOut={live && !notif.hasBackend}
-            onToggle={toggleChannel}
             onBack={() => setView('hub')}
           />
         )}
@@ -321,22 +286,6 @@ function Textarea({ tk, value, onChange, placeholder }: { tk: MobileTokens; valu
   )
 }
 
-/** Interrupteur on/off (`role="switch"`). */
-function Toggle({ tk, on, onChange, disabled }: { tk: MobileTokens; on: boolean; onChange: () => void; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onChange}
-      disabled={disabled}
-      role="switch"
-      aria-checked={on}
-      style={{ width: 46, height: 28, borderRadius: 'var(--crm-radius-pill)', border: 0, position: 'relative', cursor: disabled ? 'default' : 'pointer', flexShrink: 0, opacity: disabled ? 0.5 : 1, background: on ? tk.accent : tk.ghost, transition: 'background .2s' }}
-    >
-      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', background: on ? tk.accentInk : '#fff', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', transition: 'left .2s cubic-bezier(.2,.8,.2,1)' }} />
-    </button>
-  )
-}
-
 /** Sélecteur segmenté générique (une seule option active). */
 function Segment<T extends string>({ tk, options, value, onChange }: { tk: MobileTokens; options: { id: T; label: string; icon?: MEIconName }[]; value: T; onChange: (v: T) => void }) {
   return (
@@ -428,9 +377,9 @@ interface Tile {
 
 /** Vue « hub » : hero compte (→ Profil) + grille de tuiles + déconnexion. */
 function Hub({
-  ctx, profile, notifCount, plan, onBack, onGo, onLogout,
+  ctx, profile, plan, onBack, onGo, onLogout,
 }: {
-  ctx: SectionCtx; profile: ProfileData; notifCount: number; plan: AgencyPlan | null
+  ctx: SectionCtx; profile: ProfileData; plan: AgencyPlan | null
   onBack: () => void; onGo: (v: View) => void; onLogout: () => void
 }) {
   const { t, tk } = ctx
@@ -438,10 +387,8 @@ function Hub({
   const fullName = `${profile.firstName} ${profile.lastName}`.trim() || t('dashboard:mobile.settings.unnamed')
   const initials = profile.initials && profile.initials !== '?' ? profile.initials : (`${profile.firstName[0] ?? ''}${profile.lastName[0] ?? ''}`.toUpperCase() || '?')
 
-  const channelsLabel = `${notifCount} ${t('dashboard:mobile.settings.channelWord', { count: notifCount })}`
   const tiles: Tile[] = [
     { id: 'agency', icon: 'building', labelKey: 'settings:nav.sections.agency.label' },
-    { id: 'notifications', icon: 'bell', labelKey: 'settings:nav.sections.notifications.label', status: channelsLabel },
     { id: 'billing', icon: 'credit-card', labelKey: 'settings:nav.sections.billing.label', status: plan ? t(PLAN_KEYS[plan]) : undefined },
     { id: 'preferences', icon: 'globe', labelKey: 'settings:nav.sections.preferences.label' },
   ]
@@ -622,59 +569,6 @@ function AgencySection({
             {yearlyNum > 0 ? split : t('settings:agency.targets.empty')}
           </div>
           <SaveButton tk={tk} t={t} label={t('settings:agency.targets.save')} onClick={onSaveYearly} disabled={!editable || isSavingTarget} />
-        </div>
-      </Card>
-    </Section>
-  )
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  NOTIFICATIONS
-// ════════════════════════════════════════════════════════════════════════════
-/** Section Notifications : bascule par canal (email/SMS/WhatsApp/in-app). */
-function NotificationsSection({
-  ctx, form, count, editable, signedOut, onToggle, onBack,
-}: {
-  ctx: SectionCtx; form: NotifPreferences; count: number; editable: boolean; signedOut: boolean
-  onToggle: (k: keyof NotifPreferences) => void; onBack: () => void
-}) {
-  const { t, tk } = ctx
-  const channels: { id: keyof NotifPreferences; icon: MEIconName }[] = [
-    { id: 'email', icon: 'mail' },
-    { id: 'sms', icon: 'message' },
-    { id: 'whatsapp', icon: 'phone' },
-    { id: 'inapp', icon: 'bell' },
-  ]
-  return (
-    <Section tk={tk} t={t} title={t('settings:notifications.title')} onBack={onBack}>
-      {signedOut ? <SignedOutBanner tk={tk} t={t} /> : null}
-
-      <Card tk={tk}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
-          <span style={{ width: 46, height: 46, borderRadius: 'var(--crm-radius-xl)', flexShrink: 0, background: tk.accent, display: 'grid', placeItems: 'center' }}>
-            <MEIcon name="bell" size={22} color={tk.accentInk} strokeWidth={1.8} />
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, lineHeight: 1.1 }}>{t('settings:notifications.title')}</div>
-            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 3 }}>{`${count} ${t('dashboard:mobile.settings.channelWord', { count })}`}</div>
-          </div>
-        </div>
-      </Card>
-
-      <Card tk={tk} pad={0}>
-        <div style={{ padding: 'var(--crm-space-sm) var(--crm-space-2xs) var(--crm-space-2xs)' }}>
-          {channels.map((c, i) => (
-            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-3xl)', boxShadow: i === channels.length - 1 ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
-              <span style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, display: 'grid', placeItems: 'center', background: tk.cardSubtle }}>
-                <MEIcon name={c.icon} size={19} color={tk.ink} strokeWidth={1.9} />
-              </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.2, color: tk.ink }}>{t(`settings:notifications.channels.${c.id}.label`)}</span>
-                <span style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 2 }}>{t(`settings:notifications.channels.${c.id}.desc`)}</span>
-              </span>
-              <Toggle tk={tk} on={form[c.id]} disabled={!editable} onChange={() => onToggle(c.id)} />
-            </div>
-          ))}
         </div>
       </Card>
     </Section>

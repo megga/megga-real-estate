@@ -178,7 +178,7 @@ function PlanCard({ plan, period, isCurrent, onPortal, onUpgrade, busy }: PlanCa
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
         <img src={plan.icon} alt="" width={44} height={44} style={{ flexShrink: 0, objectFit: 'contain' }} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 700, color: V.head, letterSpacing: -0.4, lineHeight: 1.15 }}>{t(plan.nameKey)}</div>
+          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: V.head, letterSpacing: -0.4, lineHeight: 1.15 }}>{t(plan.nameKey)}</div>
           <div style={{ fontSize: 'var(--crm-text-lg)', color: V.mut, fontWeight: 500, marginTop: 1 }}>{t(plan.taglineKey)}</div>
         </div>
       </div>
@@ -193,7 +193,7 @@ function PlanCard({ plan, period, isCurrent, onPortal, onUpgrade, busy }: PlanCa
 
       {/* Features */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', flex: 1 }}>
-        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: V.head, letterSpacing: 0.1 }}>{t('billing.whatsIncluded')}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: V.head, letterSpacing: 0.1 }}>{t('billing.whatsIncluded')}</div>
         {plan.featureKeys.map((fk) => (
           <div key={fk} style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-xl)', color: V.text, fontWeight: 500, lineHeight: 1.4 }}>
             <CheckDot pro={pro} />{t(fk)}

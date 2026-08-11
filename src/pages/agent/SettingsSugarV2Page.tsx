@@ -1,6 +1,6 @@
 // MEGGA CRM Sugar v2 — Écran « Paramètres » (refonte finale — shell « À suivre »).
 // Shell deux colonnes : rail de nav 300px à gauche + bento à droite qui rend la
-// section active. 4 sections « Focus » (Profil, Agence, Notifications, Préférences)
+// section active. 3 sections « Focus » (Profil, Agence, Préférences)
 // reçoivent {sp, surf, dark, setDark} ; 3 sections conservées (Intégrations,
 // Facturation, Sécurité) restent autonomes et lisent SET_PALETTE (mutée par
 // applySetTheme avant render). Deep-link ?tab=.
@@ -16,19 +16,17 @@ import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
 import { SecuritySection } from '@/components/crm-sugar/settings/SecuritySection'
 import { ProfileFocusSection } from '@/components/crm-sugar/settings/focus/ProfileFocusSection'
 import { AgencyFocusSection } from '@/components/crm-sugar/settings/focus/AgencyFocusSection'
-import { NotificationsFocusSection } from '@/components/crm-sugar/settings/focus/NotificationsFocusSection'
 import { PreferencesFocusSection } from '@/components/crm-sugar/settings/focus/PreferencesFocusSection'
 import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm-sugar/settings/data'
 import { SETTINGS_KEYFRAMES } from '@/components/crm-sugar/settings/atoms'
 
 const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte']
-const ALLOWED: SectionId[] = ['profile', 'agency', 'notifications', 'preferences', 'integrations', 'security', 'billing']
+const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations', 'security', 'billing']
 
 // Icônes du rail (mêmes tracés que le proto SpgIcon).
 const SPG_PATHS: Record<string, ReactNode> = {
   user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
   building: <><path d="M3 21V7l9-4 9 4v14" /><path d="M9 21V12h6v9" /><path d="M9 8h.01M15 8h.01M9 11h.01M15 11h.01" /></>,
-  bell: <><path d="M6 8a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9Z" /><path d="M10 21a2 2 0 0 0 4 0" /></>,
   plug: <><path d="M9 2v6M15 2v6" /><path d="M5 8h14v3a7 7 0 0 1-14 0V8Z" /><path d="M12 18v4" /></>,
   sliders: <><path d="M4 21V14M4 10V3M12 21V12M12 8V3M20 21v-5M20 12V3" /><path d="M2 14h4M10 8h4M18 16h4" /></>,
   card: <><rect x="2" y="6" width="20" height="13" rx="2" /><path d="M2 11h20M6 16h4" /></>,
@@ -99,7 +97,6 @@ export default function SettingsSugarV2Page() {
     switch (active) {
       case 'profile': return <ProfileFocusSection sp={sp} surf={surf} dark={dark} />
       case 'agency': return <AgencyFocusSection sp={sp} surf={surf} dark={dark} />
-      case 'notifications': return <NotificationsFocusSection sp={sp} surf={surf} dark={dark} />
       case 'preferences': return <PreferencesFocusSection sp={sp} surf={surf} dark={dark} setDark={setDark} />
       case 'integrations': return <IntegrationsSection />
       case 'security': return <SecuritySection />
@@ -143,7 +140,11 @@ export default function SettingsSugarV2Page() {
            L'anneau vient de la règle \`button:focus-visible\` de globals.css ;
            \`:focus-visible\` fait qu'il n'apparaît pas au clic souris, ce qui était
            le seul motif légitime de couper l'outline. */
-        .spg-nav { -webkit-tap-highlight-color: transparent; border: 0; }
+        /* Pas de \`border: 0\` ici : la ligne active porte désormais le filet 1 px
+           de la carte MEGGA X en style inline, et l'inactive une bordure
+           transparente de même épaisseur — c'est ce qui empêche le texte de
+           sauter d'un pixel au changement de section. */
+        .spg-nav { -webkit-tap-highlight-color: transparent; }
         .spg-nav:hover { background: ${darkR ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'}; }
         .spg-scroll::-webkit-scrollbar { width: 9px; }
         .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
@@ -172,7 +173,12 @@ export default function SettingsSugarV2Page() {
                 composition, pas un barreau de rythme (même règle que la
                 migration de `crm-sugar/`). */}
             <aside className="spg-scroll" style={{ padding: '30px var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
-              <h1 style={{ margin: '0 0 var(--crm-space-6xl)', fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1.1, color: spR.ink, lineHeight: 1 }}>{tr('focus.title')}</h1>
+              {/* Titre en grammaire d'AFFICHAGE de la vitrine : ses `display-*` sont
+                  réglés en 400/500/600, jamais en 800. Le 800 + `-1.1` venait de
+                  Sugar, dont les titres sont des blocs compacts ; MEGGA X pose des
+                  titres larges et peu gras, et c'est ce qui se lit d'abord en
+                  entrant sur l'écran. */}
+              <h1 style={{ margin: '0 0 var(--crm-space-6xl)', fontSize: 'var(--crm-text-9xl)', fontWeight: 500, letterSpacing: -0.8, color: spR.ink, lineHeight: 1.05 }}>{tr('focus.title')}</h1>
               <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
                 {groups.map(({ g, items }) => (
                   <div key={g} style={{ display: 'contents' }}>
@@ -180,15 +186,24 @@ export default function SettingsSugarV2Page() {
                       const on = s.id === active
                       return (
                         <button key={s.id} className="spg-nav" onClick={() => setActive(s.id)} style={{
-                          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-lg)', cursor: 'pointer',
                           fontFamily: 'inherit', textAlign: 'left', width: '100%',
+                          // Ligne active = la CARTE de la vitrine (fond + filet 1 px),
+                          // pas l'anneau noir `inset` de Sugar. C'est l'idiome que la
+                          // vitrine emploie pour sa propre navigation latérale
+                          // (`.utp---sidebar-dropdown-item` : fond `neutral-300`,
+                          // bordure `neutral-400`) — rien d'inventé.
                           background: on ? surfR.card : 'transparent',
-                          boxShadow: on ? `0 0 0 1.5px ${spR.ink} inset, ${surfR.shadow}` : 'none',
+                          border: `1px solid ${on ? spR.cardBorder : 'transparent'}`,
+                          boxShadow: on ? surfR.shadow : 'none',
                         }}>
                           <span style={{ width: 'var(--crm-icon-slot)', height: 'var(--crm-icon-slot)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                             <SpgIcon name={s.icon} size={17} stroke={on ? spR.ink : spR.sub} />
                           </span>
-                          <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: spR.ink }}>{s.short || s.label}</span>
+                          {/* Poids 500 et non 700 : la vitrine ne fait pas porter la
+                              hiérarchie par la graisse mais par la couleur d'encre —
+                              l'item inactif passe en `sub`, l'actif en `ink`. */}
+                          <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: on ? spR.ink : spR.sub }}>{s.short || s.label}</span>
                         </button>
                       )
                     })}

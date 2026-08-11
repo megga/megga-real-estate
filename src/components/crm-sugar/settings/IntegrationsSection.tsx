@@ -219,7 +219,7 @@ function StatusPill({ item, t }: { item: Integration; t: TFunction }) {
           background: SET.ok,
           color: '#FFFFFF',
           fontSize: 'var(--crm-text-sm)',
-          fontWeight: 700,
+          fontWeight: 500,
           letterSpacing: -0.05,
         }}
       >
@@ -241,7 +241,7 @@ function StatusPill({ item, t }: { item: Integration; t: TFunction }) {
           background: SET.cardSubtle,
           color: SET.muted,
           fontSize: 'var(--crm-text-sm)',
-          fontWeight: 700,
+          fontWeight: 500,
           letterSpacing: -0.05,
         }}
       >
@@ -294,11 +294,9 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: 'var(--crm-text-xs)',
-              fontWeight: 700,
+              fontSize: 'var(--crm-text-lg)',
+              fontWeight: 400,
               color: SET.muted,
-              letterSpacing: 0.6,
-              textTransform: 'uppercase',
             }}
           >
             {catLabel(t, item.category)}
@@ -306,7 +304,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
           <div
             style={{
               fontSize: 'var(--crm-text-2xl)',
-              fontWeight: 700,
+              fontWeight: 500,
               color: SET.ink,
               letterSpacing: -0.2,
               marginTop: 2,
@@ -430,7 +428,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
                 color: SET.blackInk,
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-md)',
-                fontWeight: 700,
+                fontWeight: 500,
                 cursor: connecting ? 'wait' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -518,14 +516,14 @@ function CalendarSyncPanel({ provider, t }: { provider: 'google' | 'microsoft'; 
   ]
   return (
     <div style={{ marginBottom: 22 }}>
-      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SET.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 }}>
+      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 400, color: SET.muted, marginBottom: 10 }}>
         {t('integrations.calSync.title')}
       </div>
       <div style={{ display: 'flex', gap: 'var(--crm-space-xs)', background: SET.cardSubtle, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-xs)', marginBottom: 12 }}>
         {DIRS.map(dir => {
           const on = sync.direction === dir.k
           return (
-            <button key={dir.k} onClick={() => patch({ direction: dir.k })} style={{ flex: 1, height: 34, borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, background: on ? SET.black : 'transparent', color: on ? SET.blackInk : SET.muted, transition: 'background .15s' }}>
+            <button key={dir.k} onClick={() => patch({ direction: dir.k })} style={{ flex: 1, height: 34, borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 500, background: on ? SET.black : 'transparent', color: on ? SET.blackInk : SET.muted, transition: 'background .15s' }}>
               {dir.l}
             </button>
           )
@@ -601,11 +599,9 @@ function DetailsModal({
           <div style={{ flex: 1 }}>
             <div
               style={{
-                fontSize: 'var(--crm-text-sm)',
-                fontWeight: 700,
+                fontSize: 'var(--crm-text-lg)',
+                fontWeight: 400,
                 color: SET.muted,
-                letterSpacing: 0.6,
-                textTransform: 'uppercase',
               }}
             >
               {catLabel(t, item.category)}
@@ -614,7 +610,7 @@ function DetailsModal({
               style={{
                 margin: '2px 0 0',
                 fontSize: 'var(--crm-text-4xl)',
-                fontWeight: 700,
+                fontWeight: 500,
                 color: SET.ink,
                 letterSpacing: -0.4,
               }}
@@ -648,11 +644,9 @@ function DetailsModal({
           <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-xl)', background: SET.cardSubtle, marginBottom: 18 }}>
             <div
               style={{
-                fontSize: 'var(--crm-text-xs)',
-                fontWeight: 700,
+                fontSize: 'var(--crm-text-lg)',
+                fontWeight: 400,
                 color: SET.muted,
-                letterSpacing: 0.6,
-                textTransform: 'uppercase',
                 marginBottom: 8,
               }}
             >
@@ -688,11 +682,9 @@ function DetailsModal({
 
         <div
           style={{
-            fontSize: 'var(--crm-text-xs)',
-            fontWeight: 700,
+            fontSize: 'var(--crm-text-lg)',
+            fontWeight: 400,
             color: SET.muted,
-            letterSpacing: 0.6,
-            textTransform: 'uppercase',
             marginBottom: 10,
           }}
         >
@@ -1033,7 +1025,7 @@ export function IntegrationsSection() {
                 }}
               >
                 {c === 'all' ? t('integrations.filters.all') : catLabel(t, c as Category)}
-                <span style={{ marginLeft: 7, fontSize: 'var(--crm-text-sm)', fontWeight: 700, opacity: 0.6 }}>
+                <span style={{ marginLeft: 7, fontSize: 'var(--crm-text-sm)', fontWeight: 500, opacity: 0.6 }}>
                   {c === 'all' ? items.length : items.filter(i => i.category === c).length}
                 </span>
               </button>
@@ -1122,7 +1114,7 @@ export function IntegrationsSection() {
                 style={{
                   margin: '0 0 8px',
                   fontSize: 'var(--crm-text-4xl)',
-                  fontWeight: 700,
+                  fontWeight: 500,
                   color: SET.ink,
                   letterSpacing: -0.3,
                 }}

@@ -28,10 +28,10 @@ interface RowDef {
   /** Ligne à choix unique alimentée par un référentiel (au lieu d'une saisie libre). */
   optionsSource?: 'legalForms'
 }
-interface GroupDef { id: 'legal' | 'coord' | 'presentation'; dotKey: 'blue' | 'cyan' | 'orange'; rows: RowDef[] }
+interface GroupDef { id: 'legal' | 'coord' | 'presentation'; rows: RowDef[] }
 
 const AG_GROUPS: GroupDef[] = [
-  { id: 'legal', dotKey: 'blue', rows: [
+  { id: 'legal', rows: [
     { key: 'legal', icon: 'building' },
     // Libellé inchangé (« Forme juridique ») : c'est la valeur qui passe d'un texte
     // libre à une FK, pas le concept.
@@ -39,7 +39,7 @@ const AG_GROUPS: GroupDef[] = [
     { key: 'businessRegistrationNumber', icon: 'hash' },
     { key: 'tva', icon: 'receipt' },
   ] },
-  { id: 'coord', dotKey: 'cyan', rows: [
+  { id: 'coord', rows: [
     { key: 'address', icon: 'mapPin' },
     { key: 'postal', icon: 'mapPin' },
     { key: 'city', icon: 'building' },
@@ -48,7 +48,7 @@ const AG_GROUPS: GroupDef[] = [
     { key: 'email', icon: 'mail' },
     { key: 'website', icon: 'globe' },
   ] },
-  { id: 'presentation', dotKey: 'orange', rows: [
+  { id: 'presentation', rows: [
     { key: 'aboutShort', icon: 'globe', labelKey: 'about', multiline: true },
   ] },
 ]
@@ -84,7 +84,7 @@ async function uploadAgencyLogo(dataUrl: string, agencyId: string): Promise<stri
 function AgLogoTile({ c, url, initials, size = 62 }: { c: PfColors; url: string; initials: string; size?: number }) {
   return (
     <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-3xl)', flexShrink: 0, overflow: 'hidden', boxShadow: '0 10px 26px -12px rgba(11,12,14,0.45)',
-      background: url ? `#0B0C0E center/cover no-repeat url("${url}")` : c.ink, color: c.dark ? '#0B0C0E' : '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.34, fontWeight: 800, letterSpacing: -0.5 }}>
+      background: url ? `#0B0C0E center/cover no-repeat url("${url}")` : c.ink, color: c.dark ? '#0B0C0E' : '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.34, fontWeight: 500, letterSpacing: -0.5 }}>
       {url ? null : initials}
     </div>
   )
@@ -109,7 +109,7 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
 
   const editLabels: PfEditLabels = useMemo(() => ({
     saved: t('focus.common.saved'), add: t('focus.common.add'), edit: t('focus.common.edit'),
-    toFill: t('focus.common.toFill'), cancel: t('focus.common.cancel'), save: t('focus.common.save'),
+    cancel: t('focus.common.cancel'), save: t('focus.common.save'),
   }), [t])
 
   const startEdit = (key: RowKey) => { setEditKey(key); setDraft(local[key] ?? '') }
@@ -177,19 +177,21 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
         ${PF_KEYFRAMES}
         .pfx-row { transition: background-color .24s ease; }
         .pfx-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.03)'}; }
-        .pfx-inp:focus { box-shadow: 0 0 0 2px ${c.ink} inset !important; }
+        /* Anneau de focus = l'ACCENT, pas l'encre : c'est la couleur que
+           MEGGA X donne à tout état actif. */
+        .pfx-inp:focus { box-shadow: 0 0 0 2px ${c.seal.bg} inset !important; }
         .pfx-inp::placeholder { color: ${c.ghost}; }
       `}</style>
 
       <input ref={fileRef} type="file" accept="image/*" onChange={onLogoFile} style={{ display: 'none' }} />
 
-      <div style={{ borderRadius: 'var(--crm-radius-5xl)', boxShadow: c.shadow }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', background: c.cardSub, borderRadius: '22px 22px 0 0', border: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: 'var(--crm-space-md) var(--crm-space-5xl)' }}>
+      <div style={{ borderRadius: 'var(--crm-radius-6xl)', boxShadow: c.shadow }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', background: c.cardSub, borderRadius: 'var(--crm-radius-6xl) var(--crm-radius-6xl) 0 0', border: c.hair, borderBottom: `1px solid ${c.hairSoft}`, padding: 'var(--crm-space-md) var(--crm-space-5xl)' }}>
           <PfIc name="info" size={14} stroke={c.sub} sw={1.8} />
           <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: c.sub, letterSpacing: -0.1 }}>{t('focus.agency.banner')}</span>
         </div>
 
-        <div style={{ position: 'relative', background: c.card, borderRadius: '0 0 22px 22px', border: c.hair, borderTop: 0 }}>
+        <div style={{ position: 'relative', background: c.card, borderRadius: '0 0 var(--crm-radius-6xl) var(--crm-radius-6xl)', border: c.hair, borderTop: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-4xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl)' }}>
             <button onClick={() => fileRef.current?.click()} title={t('focus.agency.header')} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', position: 'relative' }}>
               <AgLogoTile c={c} url={local.logoUrl} initials={initialsOf(local.name)} size={62} />
@@ -198,7 +200,7 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
               </span>
             </button>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.6, color: c.ink, lineHeight: 1.05 }}>{local.name || t('focus.agency.header')}</div>
+              <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -0.6, color: c.ink, lineHeight: 1.1 }}>{local.name || t('focus.agency.header')}</div>
             </div>
           </div>
 
@@ -207,9 +209,10 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
           <div style={{ padding: 'var(--crm-space-md) var(--crm-space-xl) var(--crm-space-2xl)' }}>
             {AG_GROUPS.map((g, gi) => (
               <div key={g.id} style={{ padding: 'var(--crm-space-sm) 0 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: c[g.dotKey], flexShrink: 0 }} />
-                  <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: c.ink, flex: 1 }}>{t(`focus.agency.groups.${g.id}`)}</span>
+                {/* Même bascule que Profil : titre `display-4` sans pastille — cf.
+                    le commentaire de ProfileFocusSection pour le pourquoi. */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-6xl) var(--crm-space-lg) var(--crm-space-lg)' }}>
+                  <span style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.4, color: c.ink, flex: 1 }}>{t(`focus.agency.groups.${g.id}`)}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 24px' }}>
                   {g.rows.map((r) => (

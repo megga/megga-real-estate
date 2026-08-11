@@ -65,7 +65,6 @@ export const MXC_SYSTEM = {
    * 10,6:1 — et il n'est employé QUE pour ça.
    */
   blue300: '#8dc1ff',
-  yellow300: '#fbe080',
   yellow400: '#efc42c',
   green300: '#adecbb',
   green400: '#74d184',

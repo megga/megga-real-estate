@@ -12,7 +12,7 @@ import { mxCrmPalette, MXC_CARD_SHADOW, MXC_COLOR } from '@/components/megga-x-c
 //   - #456 Wire TeamSection back: agency_members + RBAC + Resend invites
 export type SectionId =
   | 'profile' | 'agency'
-  | 'notifications' | 'integrations'
+  | 'integrations'
   | 'billing' | 'security' | 'preferences'
 
 export interface SettingsSection {
@@ -24,7 +24,7 @@ export interface SettingsSection {
 }
 
 export type SettingsIconName =
-  | 'user' | 'building' | 'users' | 'palette' | 'bell' | 'plug'
+  | 'user' | 'building' | 'users' | 'palette' | 'plug'
   | 'card' | 'lock' | 'shield' | 'sliders' | 'check' | 'camera'
   | 'pen' | 'arrowR' | 'chevR' | 'x' | 'info'
   | 'mail' | 'sms' | 'app' | 'moon' | 'keyboard' | 'globe' | 'sparkle'
@@ -38,7 +38,6 @@ export type SettingsIconName =
 // Visible :
 //   - Profile       → useAgentProfileSugar (profiles + agent_profiles)
 //   - Agency        → useAgencySettings (agencies table)
-//   - Notifications → useNotifPreferences (profiles.preferences.notifications)
 //   - Preferences   → useUiPreferences (profiles.preferences.ui)
 //   - Integrations  → useGoogleCalendar + useOutlookCalendar (real OAuth)
 //   - Privacy       → delete-account Edge Function + mailto DSAR (PR #453)
@@ -49,9 +48,16 @@ export type SettingsIconName =
 // Team + Brand : composants supprimés en PR #455 (suivi via issues GitHub
 // #455 Brand + #456 Team — réintroduits quand agency_branding /
 // agency_members existent en DB).
-// Ordre canonique de la maquette « Sugar Pure » (7 sections) :
-// profile, agency, notifications, integrations, billing, security, preferences.
-// Bandeau pill → 5 premières en pilules, le reste (security, preferences) sous « Plus ».
+// Ordre canonique (6 sections) :
+// profile, agency, integrations, billing, security, preferences.
+//
+// « Notifications » a été RETIRÉE le 11 août 2026. Ses quatre interrupteurs
+// (e-mail, SMS, WhatsApp, dans le CRM) écrivaient `profiles.preferences.
+// notifications`, une clé JSON qu'AUCUN lecteur ne consultait — ni edge
+// function, ni SQL, vérifié par grep sur tout le dépôt. Couper WhatsApp n'a
+// jamais arrêté un seul message : l'écran promettait un réglage que le produit
+// n'honorait pas. Le jour où l'envoi lira une préférence, la section se
+// réintroduit AVEC son lecteur, pas avant.
 // (Confidentialité retirée — absente de la maquette Claude Design. Le câblage
 //  delete-account + export DSAR/nLPD reste dans PrivacySection.tsx, non monté.)
 // i18n : label/short en getters (lus via l'instance i18n singleton à l'accès →
@@ -60,7 +66,6 @@ export type SettingsIconName =
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'profile', get label() { return i18n.t('settings:nav.sections.profile.label') }, get short() { return i18n.t('settings:nav.sections.profile.short') }, icon: 'user', group: 'moi' },
   { id: 'agency', get label() { return i18n.t('settings:nav.sections.agency.label') }, get short() { return i18n.t('settings:nav.sections.agency.short') }, icon: 'building', group: 'moi' },
-  { id: 'notifications', get label() { return i18n.t('settings:nav.sections.notifications.label') }, get short() { return i18n.t('settings:nav.sections.notifications.short') }, icon: 'bell', group: 'produit' },
   { id: 'integrations', get label() { return i18n.t('settings:nav.sections.integrations.label') }, get short() { return i18n.t('settings:nav.sections.integrations.short') }, icon: 'plug', group: 'produit' },
   { id: 'preferences', get label() { return i18n.t('settings:nav.sections.preferences.label') }, get short() { return i18n.t('settings:nav.sections.preferences.short') }, icon: 'sliders', group: 'produit' },
   { id: 'billing', get label() { return i18n.t('settings:nav.sections.billing.label') }, get short() { return i18n.t('settings:nav.sections.billing.short') }, icon: 'card', group: 'compte' },

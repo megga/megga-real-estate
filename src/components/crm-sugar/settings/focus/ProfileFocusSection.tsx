@@ -25,29 +25,29 @@ const DIRECTORY_KEYS: RowKey[] = ['bio', 'languages', 'specialties', 'website', 
 
 // Squelette des groupes (libellés résolus via i18n au render). `labelKey` par défaut = key.
 interface RowDef { key: RowKey; icon: PfRow['icon']; labelKey?: string; multiline?: boolean; chips?: string[]; placeholder?: string; locked?: boolean; hintKey?: string }
-interface GroupDef { id: 'identity' | 'contact' | 'presentation' | 'links'; dotKey: 'blue' | 'cyan' | 'orange' | 'green'; rows: RowDef[] }
+interface GroupDef { id: 'identity' | 'contact' | 'presentation' | 'links'; rows: RowDef[] }
 
 const LANG_CHIPS = ['Français', 'Anglais', 'Allemand', 'Italien', 'Espagnol', 'Portugais']
 const SPEC_CHIPS = ['Résidentiel haut de gamme', 'Mandats exclusifs', 'Appartements', 'Villas', 'PPE', 'Immeubles de rendement', 'Terrains & promotion', 'Commercial']
 
 const PF_GROUPS: GroupDef[] = [
-  { id: 'identity', dotKey: 'blue', rows: [
+  { id: 'identity', rows: [
     { key: 'firstName', icon: 'user' },
     { key: 'lastName', icon: 'user' },
     { key: 'title', icon: 'briefcase', labelKey: 'role' },
   ] },
-  { id: 'contact', dotKey: 'cyan', rows: [
+  { id: 'contact', rows: [
     { key: 'email', icon: 'mail', locked: true, hintKey: 'emailHint' },
     { key: 'mobile', icon: 'smartphone' },
     { key: 'phone', icon: 'phone' },
     { key: 'agency', icon: 'building', locked: true, hintKey: 'agencyHint' },
   ] },
-  { id: 'presentation', dotKey: 'orange', rows: [
+  { id: 'presentation', rows: [
     { key: 'bio', icon: 'globe', multiline: true },
     { key: 'languages', icon: 'lang', chips: LANG_CHIPS },
     { key: 'specialties', icon: 'star', chips: SPEC_CHIPS },
   ] },
-  { id: 'links', dotKey: 'green', rows: [
+  { id: 'links', rows: [
     { key: 'website', icon: 'link', placeholder: 'https://…' },
     { key: 'linkedin', icon: 'linkedin', placeholder: 'linkedin.com/in/…' },
   ] },
@@ -81,7 +81,7 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
 
   const editLabels: PfEditLabels = useMemo(() => ({
     saved: t('focus.common.saved'), add: t('focus.common.add'), edit: t('focus.common.edit'),
-    toFill: t('focus.common.toFill'), cancel: t('focus.common.cancel'), save: t('focus.common.save'),
+    cancel: t('focus.common.cancel'), save: t('focus.common.save'),
   }), [t])
   const photoLabels = useMemo(() => ({
     title: t('focus.photo.title'), choose: t('focus.photo.choose'), change: t('focus.photo.change'),
@@ -140,12 +140,14 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
         ${PF_KEYFRAMES}
         .pfx-row { transition: background-color .24s ease; }
         .pfx-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.03)'}; }
-        .pfx-inp:focus { box-shadow: 0 0 0 2px ${c.ink} inset !important; }
+        /* Anneau de focus = l'ACCENT, pas l'encre : c'est la couleur que
+           MEGGA X donne à tout état actif. */
+        .pfx-inp:focus { box-shadow: 0 0 0 2px ${c.seal.bg} inset !important; }
         .pfx-inp::placeholder { color: ${c.ghost}; }
       `}</style>
 
-      <div style={{ borderRadius: 'var(--crm-radius-5xl)', boxShadow: c.shadow }}>
-        <div style={{ position: 'relative', background: c.card, borderRadius: 'var(--crm-radius-5xl)', border: c.hair }}>
+      <div style={{ borderRadius: 'var(--crm-radius-6xl)', boxShadow: c.shadow }}>
+        <div style={{ position: 'relative', background: c.card, borderRadius: 'var(--crm-radius-6xl)', border: c.hair }}>
 
           {/* En-tête : avatar + nom */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-4xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl)' }}>
@@ -156,7 +158,7 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
               </span>
             </button>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.6, color: c.ink, lineHeight: 1.05 }}>
+              <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -0.6, color: c.ink, lineHeight: 1.1 }}>
                 {(`${local.firstName} ${local.lastName}`).trim() || t('focus.profile.header')}
               </div>
             </div>
@@ -168,9 +170,14 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
           <div style={{ padding: 'var(--crm-space-md) var(--crm-space-xl) var(--crm-space-2xl)' }}>
             {PF_GROUPS.map((g, gi) => (
               <div key={g.id} style={{ padding: 'var(--crm-space-sm) 0 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: c[g.dotKey], flexShrink: 0 }} />
-                  <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: c.ink }}>{t(`focus.profile.groups.${g.id}`)}</span>
+                {/* Titre de groupe en `display-4` de la vitrine (20 px / 500), SANS
+                    pastille de couleur. Les quatre teintes prétendaient encoder
+                    le groupe, mais le titre à côté le dit déjà en toutes lettres :
+                    elles ne distinguaient rien qu'il ne distingue. Et MEGGA X n'a
+                    aucun idiome de pastille catégorielle — c'est le dernier reste
+                    de grammaire Sugar sur cet écran. */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-6xl) var(--crm-space-lg) var(--crm-space-lg)' }}>
+                  <span style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.4, color: c.ink }}>{t(`focus.profile.groups.${g.id}`)}</span>
                   {g.id === 'presentation' && (
                     <div ref={infoRef} style={{ position: 'relative', display: 'inline-flex' }}>
                       <button onClick={() => setInfo((v) => !v)} aria-label={t('focus.profile.info.title')} title={t('focus.profile.info.title')}
@@ -182,11 +189,11 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
                         <div className="pfx-info-in" role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 9px)', left: -6, zIndex: 30,
                           width: 264, background: dark ? '#1B1D22' : '#FFFFFF', borderRadius: 'var(--crm-radius-xl)', boxShadow: c.shadow, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', transformOrigin: 'top left', border: c.hair }}>
                           <span style={{ position: 'absolute', top: -6, left: 11, width: 11, height: 11, background: dark ? '#1B1D22' : '#FFFFFF', transform: 'rotate(45deg)', borderRadius: 'var(--crm-radius-2xs)', borderTop: c.hair, borderLeft: c.hair }} />
-                          <div style={{ position: 'relative', fontSize: 'var(--crm-text-md)', fontWeight: 800, color: c.ink, letterSpacing: -0.2, marginBottom: 5 }}>{t('focus.profile.info.title')}</div>
+                          <div style={{ position: 'relative', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: c.ink, letterSpacing: -0.2, marginBottom: 5 }}>{t('focus.profile.info.title')}</div>
                           <div style={{ position: 'relative', fontSize: 'var(--crm-text-md)', lineHeight: 1.5, color: c.soft, fontWeight: 500 }}>
                             {(() => {
                               const parts = t('focus.profile.info.body').split('{{brand}}')
-                              return (<>{parts[0]}<b style={{ color: c.ink, fontWeight: 700 }}>MEGGA</b>{parts[1] ?? ''}</>)
+                              return (<>{parts[0]}<b style={{ color: c.ink, fontWeight: 600 }}>MEGGA</b>{parts[1] ?? ''}</>)
                             })()}
                           </div>
                         </div>

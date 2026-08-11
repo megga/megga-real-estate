@@ -80,7 +80,7 @@ function PwdField({
           style={{
             display: 'block',
             fontSize: 'var(--crm-text-sm)',
-            fontWeight: 700,
+            fontWeight: 500,
             color: SET.inkSoft,
             marginBottom: 7,
             letterSpacing: -0.1,
@@ -170,7 +170,7 @@ function Meter({ s }: { s: number }) {
       <span
         style={{
           fontSize: 'var(--crm-text-md)',
-          fontWeight: 800,
+          fontWeight: 500,
           color: col,
           letterSpacing: -0.1,
           whiteSpace: 'nowrap',
@@ -198,7 +198,7 @@ function SaveBtn({ ready, onClick, loading }: { ready: boolean; onClick: () => v
         color: ready ? SET.blackInk : SET.ghost,
         fontFamily: 'inherit',
         fontSize: 'var(--crm-text-md)',
-        fontWeight: 700,
+        fontWeight: 500,
         cursor: ready && !loading ? 'pointer' : 'not-allowed',
         display: 'inline-flex',
         alignItems: 'center',
@@ -258,7 +258,7 @@ function SuccessCenter({ sub }: { sub: string }) {
           <path d="m5 13 4 4 10-12" />
         </svg>
       </div>
-      <div style={{ marginTop: 18, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, color: SET.ink }}>
+      <div style={{ marginTop: 18, fontSize: 'var(--crm-text-2xl)', fontWeight: 500, letterSpacing: -0.3, color: SET.ink }}>
         {t('security.password.changedTitle')}
       </div>
       <div style={{ marginTop: 6, fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.muted }}>{sub}</div>
@@ -347,30 +347,27 @@ function PwdVaultLight() {
 
   // En-tête partagé (masqué en saved).
   const Header = (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-2xl)', marginBottom: 22 }}>
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 'var(--crm-radius-lg)',
-          flexShrink: 0,
-          background: SET.black,
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        <SetIcon name="lock" size={20} stroke={SET.blackInk} sw={1.9} />
-      </div>
+    // Le glyphe NU, agrandi et teinté — plus de pastille pleine. Le carré bleu
+    // de 40 px pesait autant que le titre qu'il accompagnait, et il n'avait rien
+    // à dire que le cadenas ne disait déjà. `alignItems: center` : sans la
+    // pastille, un glyphe seul aligné en haut flotte au-dessus du titre.
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', marginBottom: 22 }}>
+      <SetIcon name="lock" size={30} stroke={SET.black} sw={1.7} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, color: SET.ink }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 500, letterSpacing: -0.3, color: SET.ink }}>
           {t('security.password.title')}
         </h3>
-        <p style={{ margin: '5px 0 0', fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>
-          {mode === 'view' && t('security.password.descView')}
-          {mode === 'edit' && t('security.password.descEdit')}
-          {mode === 'forgot' && t('security.password.descForgot')}
-          {mode === 'sent' && t('security.password.descSent')}
-        </p>
+        {/* Rien en lecture : la ligne y disait « Clé maîtresse de votre compte
+            MEGGA », une métaphore qui n'apprenait rien et employait un mot
+            (« clé ») que le reste de l'écran ne dit plus. L'état est porté par
+            les points masqués et par « Chiffré · jamais affiché en clair ». */}
+        {mode !== 'view' && (
+          <p style={{ margin: '5px 0 0', fontSize: 'var(--crm-text-lg)', color: SET.muted, fontWeight: 400, lineHeight: 1.5 }}>
+            {mode === 'edit' && t('security.password.descEdit')}
+            {mode === 'forgot' && t('security.password.descForgot')}
+            {mode === 'sent' && t('security.password.descSent')}
+          </p>
+        )}
       </div>
     </div>
   )
@@ -404,20 +401,21 @@ function PwdVaultLight() {
               ••••••••••
             </span>
           </div>
+          {/* `justifyContent: flex-end` et non `space-between` : la mention
+              « Chiffré · jamais affiché en clair » occupait la gauche de cette
+              ligne. Retirée, un `space-between` à enfant unique aurait collé le
+              bouton à GAUCHE de la carte. */}
           <div
             style={{
               marginTop: 'auto',
               paddingTop: 'var(--crm-space-4xl)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: 'flex-end',
               gap: 'var(--crm-space-xl)',
               flexWrap: 'wrap',
             }}
           >
-            <span style={{ fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 600 }}>
-              {t('security.password.encryptedNote')}
-            </span>
             <button
               onClick={() => setMode('edit')}
               style={{
@@ -429,15 +427,13 @@ function PwdVaultLight() {
                 color: SET.blackInk,
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-md)',
-                fontWeight: 700,
+                fontWeight: 500,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 'var(--crm-space-md)',
-                boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
               }}
             >
-              <SetIcon name="key" size={13} stroke={SET.blackInk} sw={2.2} /> {t('common:actions.edit')}
+              {t('common:actions.edit')}
             </button>
           </div>
         </>
@@ -453,7 +449,7 @@ function PwdVaultLight() {
           }}
         >
           <div>
-            <PwdField label={t('security.password.currentLabel')} value={cur} onChange={setCur} placeholder={t('security.password.currentPlaceholder')} autoFocus />
+            <PwdField label={t('security.password.currentLabel')} value={cur} onChange={setCur} autoFocus />
             <div style={{ marginTop: 8, textAlign: 'right' }}>
               <button
                 onClick={() => {
@@ -466,7 +462,7 @@ function PwdVaultLight() {
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                   fontSize: 'var(--crm-text-sm)',
-                  fontWeight: 700,
+                  fontWeight: 500,
                   color: SET.inkSoft,
                   textDecoration: 'underline',
                   textUnderlineOffset: 2,
@@ -478,7 +474,7 @@ function PwdVaultLight() {
             </div>
           </div>
           <div>
-            <PwdField label={t('security.password.newLabel')} value={nw} onChange={setNw} placeholder={t('security.password.newPlaceholder')} />
+            <PwdField label={t('security.password.newLabel')} value={nw} onChange={setNw} />
             {nw && (
               <div style={{ marginTop: 10 }}>
                 <Meter s={s} />
@@ -490,7 +486,6 @@ function PwdVaultLight() {
               label={t('security.password.confirmLabel')}
               value={cf}
               onChange={setCf}
-              placeholder={t('security.password.confirmPlaceholder')}
               tone={ko ? SET.bad : match ? SET.ok : null}
             />
             {(match || ko) && (
@@ -501,7 +496,7 @@ function PwdVaultLight() {
                   gap: 'var(--crm-space-sm)',
                   marginTop: 9,
                   fontSize: 'var(--crm-text-sm)',
-                  fontWeight: 700,
+                  fontWeight: 500,
                   color: match ? SET.ok : SET.bad,
                 }}
               >
@@ -571,16 +566,14 @@ function PwdVaultLight() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
-                  fontSize: 'var(--crm-text-sm)',
-                  fontWeight: 800,
+                  fontSize: 'var(--crm-text-lg)',
+                  fontWeight: 400,
                   color: SET.muted,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.6,
                 }}
               >
                 {t('security.password.sentTo')}
               </div>
-              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SET.ink, letterSpacing: -0.1, marginTop: 1 }}>
+              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SET.ink, letterSpacing: -0.1, marginTop: 1 }}>
                 {maskEmail(verifiedEmail)}
               </div>
             </div>
@@ -625,7 +618,7 @@ function PwdVaultLight() {
                 color: verifiedEmail ? SET.blackInk : SET.ghost,
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-md)',
-                fontWeight: 700,
+                fontWeight: 500,
                 cursor: verifiedEmail ? 'pointer' : 'not-allowed',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -673,7 +666,7 @@ function PwdVaultLight() {
               <SetIcon name="check" size={19} stroke="#fff" sw={2.4} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SET.ink, letterSpacing: -0.1 }}>
+              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SET.ink, letterSpacing: -0.1 }}>
                 {t('security.password.checkInbox')}
               </div>
               <div style={{ fontSize: 'var(--crm-text-sm)', color: SET.muted, fontWeight: 500, marginTop: 3, lineHeight: 1.5 }}>
@@ -709,7 +702,7 @@ function PwdVaultLight() {
                     cursor: 'pointer',
                     fontFamily: 'inherit',
                     fontSize: 'var(--crm-text-sm)',
-                    fontWeight: 800,
+                    fontWeight: 500,
                     color: SET.ink,
                     textDecoration: 'underline',
                     textUnderlineOffset: 2,
@@ -747,7 +740,7 @@ const ghostInline: React.CSSProperties = {
   color: SET.inkSoft,
   fontFamily: 'inherit',
   fontSize: 'var(--crm-text-md)',
-  fontWeight: 700,
+  fontWeight: 500,
   cursor: 'pointer',
   boxShadow: `inset 0 0 0 1px ${SET.line}`,
 }
@@ -764,29 +757,19 @@ function HeroSecurity() {
       style={{
         background: heroBg,
         borderRadius: 'var(--crm-radius-3xl)',
-        padding: '30px 34px 28px',
+        padding: 'var(--crm-space-6xl) 34px',
         color: '#fff',
         boxShadow: isDark() ? SET.shadow : 'none',
         position: 'relative',
         overflow: 'hidden',
       }}
     >
+      {/* Le titre seul. Le sous-titre listait « votre mot de passe, vos méthodes
+          de connexion et vos appareils » — c'est-à-dire les intitulés des trois
+          cartes posées juste dessous. Il annonçait un sommaire que l'écran
+          affiche en entier sans défiler. */}
       <div style={{ minWidth: 260 }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -0.8 }}>{t('security.hero.title')}</h1>
-        <p
-          style={{
-            margin: '8px 0 0',
-            fontSize: 'var(--crm-text-lg)',
-            color: 'rgba(255,255,255,0.6)',
-            fontWeight: 500,
-            lineHeight: 1.5,
-            maxWidth: 440,
-          }}
-        >
-          {t('security.hero.subtitleLine1')}
-          <br />
-          {t('security.hero.subtitleLine2')}
-        </p>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -0.8 }}>{t('security.hero.title')}</h1>
       </div>
     </div>
   )
@@ -848,36 +831,39 @@ function SessionsCard() {
   }
 
   const others = devices.filter(d => d.id !== currentId).length
+  /**
+   * Sous-titre, ou RIEN.
+   *
+   * Le cas « aucune autre session » ne dit plus rien : il annonçait « Cet
+   * appareil uniquement. Aucune autre session active. » au-dessus d'un corps de
+   * carte qui affiche déjà soit la ligne de cet appareil (marquée « Cet
+   * appareil »), soit « Aucun appareil enregistré pour le moment ». Deux fois la
+   * même information, dont une en trop.
+   *
+   * Les deux autres cas restent : le chargement, sans quoi la carte paraîtrait
+   * vide, et le DÉCOMPTE, qui est la seule information qu'on ne lise nulle part
+   * ailleurs.
+   */
   const subtitle = isLoading
     ? t('security.sessions.loadingDevices')
     : others > 0
       ? t('security.sessions.activeCount', { count: devices.length })
-      : t('security.sessions.thisDeviceOnly')
+      : null
 
   return (
     <div style={{ background: SET.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: SET.shadow }}>
       <div style={{ padding: '26px 28px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-3xl)', marginBottom: 20 }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 'var(--crm-radius-lg)',
-              flexShrink: 0,
-              background: SET.cardSubtle,
-              color: SET.ink,
-              display: 'grid',
-              placeItems: 'center',
-              boxShadow: `inset 0 0 0 1px ${SET.line}`,
-            }}
-          >
-            <SetIcon name="keyboard" size={17} stroke={SET.ink} />
-          </div>
+        {/* Troisième et dernière carte de l'écran : même glyphe nu que ses deux
+            voisines. En garder une encadrée se lisait comme un oubli. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', marginBottom: 20 }}>
+          <SetIcon name="keyboard" size={30} stroke={SET.black} sw={1.7} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SET.ink, letterSpacing: -0.3 }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: SET.ink, letterSpacing: -0.3 }}>
               {t('security.sessions.title')}
             </h3>
-            <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>{subtitle}</p>
+            {subtitle && (
+              <p style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-lg)', color: SET.muted, fontWeight: 400, lineHeight: 1.5 }}>{subtitle}</p>
+            )}
           </div>
         </div>
       </div>
@@ -976,7 +962,7 @@ function SessionsCard() {
                     <span
                       style={{
                         fontSize: 'var(--crm-text-lg)',
-                        fontWeight: 700,
+                        fontWeight: 500,
                         color: SET.ink,
                         letterSpacing: -0.1,
                         whiteSpace: 'nowrap',
@@ -997,7 +983,7 @@ function SessionsCard() {
                           background: `${SET.ok}18`,
                           color: SET.ok,
                           fontSize: 'var(--crm-text-xs)',
-                          fontWeight: 800,
+                          fontWeight: 500,
                           letterSpacing: 0.3,
                           flexShrink: 0,
                         }}
@@ -1044,7 +1030,7 @@ function SessionsCard() {
                       color: SET.inkSoft,
                       fontFamily: 'inherit',
                       fontSize: 'var(--crm-text-md)',
-                      fontWeight: 700,
+                      fontWeight: 500,
                       cursor: 'pointer',
                       flexShrink: 0,
                       boxShadow: `inset 0 0 0 1px ${SET.line}`,

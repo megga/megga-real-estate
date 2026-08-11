@@ -752,8 +752,6 @@
     "settings": {
       "completion": "Profil complété à {{pct}} %",
       "unnamed": "Sans nom",
-      "channelWord_one": "canal actif",
-      "channelWord_other": "canaux actifs",
       "billingDesktop": "Gestion de l’abonnement disponible sur le bureau.",
       "signedOut": "Connectez-vous pour modifier vos réglages.",
       "noPlan": "Aucun plan actif"
