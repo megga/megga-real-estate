@@ -67,8 +67,8 @@ function CalSyncToast({ data, onDone }: { data: ToastData; onDone: () => void })
             : <div style={{ width: 16, height: 16, borderRadius: 'var(--crm-radius-pill)', border: `2px solid ${dk ? 'rgba(255,255,255,0.16)' : 'rgba(11,12,14,0.12)'}`, borderTopColor: color, animation: 'calSpin .7s linear infinite' }} />}
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
-            <span style={{ color, fontWeight: 800 }}>{phase === 'done' ? t('toast.synced') : t('toast.syncing')}</span>
+          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ color, fontWeight: 500 }}>{phase === 'done' ? t('toast.synced') : t('toast.syncing')}</span>
             <span style={{ color: SP.muted }}>{' · ' + data.change}</span>
           </div>
         </div>
@@ -92,17 +92,17 @@ function CalToolbar({ view, onView, headerLabel, onToday, onPrev, onNext, onCrea
   const { t } = useTranslation('calendar')
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
-      <button onClick={onToday} style={{ height: 38, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.cardSubtle, color: SP.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+      <button onClick={onToday} style={{ height: 38, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.cardSubtle, color: SP.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
         {t('common:time.today', { defaultValue: 'Aujourd\'hui' })}
       </button>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flexShrink: 0 }}>
         <CalCircleBtn icon={<CalIcon name="chevL" size={17} stroke={SP.inkSoft} />} onClick={onPrev} title={t('common:actions.previous', { defaultValue: 'Précédent' })} size={38} />
         <CalCircleBtn icon={<CalIcon name="chevR" size={17} stroke={SP.inkSoft} />} onClick={onNext} title={t('common:actions.next', { defaultValue: 'Suivant' })} size={38} />
       </div>
-      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, color: SP.ink, letterSpacing: -0.5, marginLeft: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{headerLabel}</div>
+      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SP.ink, letterSpacing: -0.5, marginLeft: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{headerLabel}</div>
       <div style={{ flex: 1 }} />
       <CalViewToggle value={view} onChange={onView} />
-      <button onClick={onCreate} style={{ height: 40, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', boxShadow: SP.shadowSm, flexShrink: 0 }}>
+      <button onClick={onCreate} style={{ height: 40, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', boxShadow: SP.shadowSm, flexShrink: 0 }}>
         <CalIcon name="plus" size={15} stroke={SP.onAccent} sw={2.6} />{t('page.newEvent')}
       </button>
     </div>
@@ -131,15 +131,17 @@ function CalConnectBanner({ invite }: { invite: CalendarInvite }) {
   const btn: React.CSSProperties = {
     height: 28, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${SP.line}`,
     background: 'transparent', color: SP.ink, cursor: 'pointer', fontFamily: 'inherit',
-    fontSize: 'var(--crm-text-sm)', fontWeight: 700, flexShrink: 0,
+    fontSize: 'var(--crm-text-sm)', fontWeight: 500, flexShrink: 0,
   }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, color: SP.ink }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>{t('onboarding.title')}</div>
-        <div style={{ fontSize: 'var(--crm-text-sm)', color: SP.muted }}>
-          {invite.error ? t('onboarding.connectFailed', { error: invite.error }) : t('onboarding.privacy')}
-        </div>
+      {/* Une seule ligne. Le titre disait « Connectez votre agenda » au-dessus de
+          deux boutons intitulés « Connecter Google » et « Connecter Outlook » :
+          il redisait ce qu'ils annoncent. Ce qui reste ne se lit nulle part
+          ailleurs — la garantie de confidentialité, et, le cas échéant, la
+          raison d'un échec de connexion (le slot porte les DEUX). */}
+      <div style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', color: invite.error ? SP.dangerInk : SP.muted }}>
+        {invite.error ? t('onboarding.connectFailed', { error: invite.error }) : t('onboarding.privacy')}
       </div>
       <button onClick={invite.onConnectGoogle} style={btn}>{t('onboarding.connectGoogle')}</button>
       <button onClick={invite.onConnectOutlook} style={btn}>{t('onboarding.connectOutlook')}</button>
@@ -485,10 +487,10 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
                   {calendarError && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, color: SP.ink }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>{t('page.error.title')}</div>
+                        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500 }}>{t('page.error.title')}</div>
                         <div style={{ fontSize: 'var(--crm-text-sm)', color: SP.muted }}>{t('page.error.message')}</div>
                       </div>
-                      <button onClick={() => calendarRefetch()} style={{ height: 28, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${SP.line}`, background: 'transparent', color: SP.ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, flexShrink: 0 }}>
+                      <button onClick={() => calendarRefetch()} style={{ height: 28, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${SP.line}`, background: 'transparent', color: SP.ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 500, flexShrink: 0 }}>
                         {t('page.error.retry')}
                       </button>
                     </div>

@@ -71,13 +71,13 @@ export function CalWeekView({
                 padding: 'var(--crm-space-xs) 0 var(--crm-space-2xs)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-2xs)',
               }}
             >
-              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SP.muted, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: SP.muted }}>
                 {days[d.getDay()]}
               </span>
               <span style={{
                 width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center',
                 background: isToday ? SP.accent : 'transparent', color: isToday ? SP.onAccent : SP.ink,
-                fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3,
+                fontSize: 'var(--crm-text-2xl)', fontWeight: 500, letterSpacing: -0.3,
               }}>
                 {d.getDate()}
               </span>

@@ -45,7 +45,7 @@ function CalPopAction({ icon, label, onClick }: { icon: CalIconName; label: stri
       onClick={onClick}
       style={{
         flex: 1, height: 40, borderRadius: 'var(--crm-radius-lg)', border: 0, background: SP.cardSubtle, color: SP.ink,
-        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, cursor: 'pointer',
+        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 500, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-sm)',
       }}
     >
@@ -162,11 +162,11 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
         <div onMouseDown={startDrag} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 12, cursor: 'grab', userSelect: 'none' }}>
           <CalIcon name="grip" size={16} stroke={SP.ghost} sw={2} />
           <span style={{ width: 11, height: 11, borderRadius: 'var(--crm-radius-xs)', background: ts.accent, flexShrink: 0 }} />
-          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: SP.muted, letterSpacing: 1, textTransform: 'uppercase' }}>{ts.label}</span>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: SP.muted }}>{ts.label}</span>
           {(done || cancelled) && (
             <span style={{
-              fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.5, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
-              background: done ? '#059669' : '#B33A2A', color: '#FFFFFF', textTransform: 'uppercase',
+              fontSize: 'var(--crm-text-xs)', fontWeight: 500, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
+              background: done ? '#059669' : '#B33A2A', color: '#FFFFFF'
             }}>
               {done ? t('popover.statusDone') : t('popover.statusCancelled')}
             </span>
@@ -180,7 +180,7 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
 
         {/* Titre */}
         <div style={{
-          fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: SP.ink, letterSpacing: -0.5, lineHeight: 1.2, marginBottom: 12,
+          fontSize: 'var(--crm-text-3xl)', fontWeight: 500, color: SP.ink, letterSpacing: -0.5, lineHeight: 1.2, marginBottom: 12,
           textDecoration: done || cancelled ? 'line-through' : 'none',
         }}>
           {event.title}
@@ -220,7 +220,7 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
           {!event.external && conflicts.length > 0 && (
             <div style={{ display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'flex-start', background: SP.warnBg, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', marginTop: 2 }}>
               <span style={{ flexShrink: 0, marginTop: 1 }}><CalIcon name="warn" size={15} stroke={SP.warnIcon} sw={2.2} /></span>
-              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: SP.warnInk, lineHeight: 1.4 }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SP.warnInk, lineHeight: 1.4 }}>
                 {conflicts.length === 1 ? (
                   <Fragment>
                     {t('popover.conflictOne')} « {conflicts[0].title} »
@@ -244,7 +244,7 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
                   <CalIcon name="home" size={19} stroke="currentColor" sw={1.4} />
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SP.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.property!.title}</div>
+                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SP.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.property!.title}</div>
                 </div>
                 {linkBienId && <CalIcon name="chevR" size={16} stroke={SP.muted} sw={2.2} />}
               </Fragment>
@@ -265,9 +265,9 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
           {event.contact && event.contact.name && (() => {
             const inner = (
               <Fragment>
-                <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', background: SP.accent, color: SP.onAccent, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 800, flexShrink: 0 }}>{initials}</div>
+                <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', background: SP.accent, color: SP.onAccent, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 500, flexShrink: 0 }}>{initials}</div>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SP.ink, letterSpacing: -0.2 }}>{event.contact!.name}</div>
+                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SP.ink, letterSpacing: -0.2 }}>{event.contact!.name}</div>
                   <div style={{ fontSize: 'var(--crm-text-sm)', color: SP.muted, fontWeight: 600 }}>{event.contact!.phone || ''}</div>
                 </div>
                 {linkContactId && <CalIcon name="chevR" size={16} stroke={SP.muted} sw={2.2} />}
@@ -310,7 +310,7 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
             onClick={() => onStatus(event.id, 'done')}
             style={{
               width: '100%', marginTop: 10, height: 42, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 'var(--crm-text-lg)', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)',
+              fontSize: 'var(--crm-text-lg)', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)',
               background: done ? SP.accent : SP.cardSubtle, color: done ? SP.onAccent : SP.ink,
               boxShadow: done ? SP.shadowSm : 'none',
             }}

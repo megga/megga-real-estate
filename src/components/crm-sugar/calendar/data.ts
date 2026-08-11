@@ -357,6 +357,20 @@ export function buildCalPalette(dark: boolean): CalSugarPalette {
   }
 }
 
+/**
+ * La couleur du trait « maintenant », pour les surfaces qui n'ont PAS la palette
+ * du calendrier sous la main — l'agenda mobile, qui vit sur ses propres jetons.
+ *
+ * Elle était recopiée en dur là-bas, sous le nom `NOW_RED`, DEUX fois, et
+ * toujours avec la valeur CLAIRE : le trait restait donc `#E54D38` en thème
+ * sombre, alors que le bureau passe à `#FF6A52` précisément parce que le rouge
+ * sombre ne se détache pas sur un canvas quasi-noir. Un seul point de décision
+ * désormais.
+ */
+export function calNowColor(dark: boolean): string {
+  return (dark ? CAL_DARK : CAL_LIGHT).nowColor
+}
+
 /** Context palette — les composants lisent `useCalPalette()` (plus d'import statique). */
 export const CalPaletteContext = createContext<CalSugarPalette>(CAL_LIGHT)
 export const useCalPalette = (): CalSugarPalette => useContext(CalPaletteContext)

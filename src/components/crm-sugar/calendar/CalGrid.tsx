@@ -39,7 +39,7 @@ interface CalEventBlockProps {
 }
 
 interface DragState {
-  mode: 'move' | 'resize'
+  mode: 'move' | 'resize',
   startY: number
   pxPerMin: number
   origStartMin: number
@@ -164,11 +164,11 @@ export const CalEventBlock = memo(function CalEventBlock({
         alignItems: short ? 'center' : 'stretch', gap: short ? 6 : 1,
       }}
     >
-      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: timeCol, opacity: dk ? 0.82 : 0.72, flexShrink: 0 }}>
+      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: timeCol, opacity: dk ? 0.82 : 0.72, flexShrink: 0 }}>
         {fmtTime(e.start)}
       </span>
       <span style={{
-        fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: -0.2, lineHeight: 1.15, color: titleCol,
+        fontSize: 'var(--crm-text-sm)', fontWeight: 500, letterSpacing: -0.2, lineHeight: 1.15, color: titleCol,
         textDecoration: hasStatus ? 'line-through' : 'none',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
@@ -281,7 +281,7 @@ export function CalHourGutter() {
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {Array.from({ length: totalHours }).map((_, i) => (
         <div key={i} style={{ flex: 1, position: 'relative', borderTop: i ? '1px solid transparent' : 0 }}>
-          <div style={{ position: 'absolute', top: -7, right: 10, fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SP.muted, letterSpacing: 0.2 }}>
+          <div style={{ position: 'absolute', top: -7, right: 10, fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: SP.muted, letterSpacing: 0.2 }}>
             {String(CAL_HOUR_START + i).padStart(2, '0')}:00
           </div>
         </div>
@@ -359,7 +359,7 @@ export function CalAllDayBand({ days, events, selectedId, onSelect }: CalAllDayB
             }}
           >
             <span style={{
-              fontSize: 'var(--crm-text-sm)', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              fontSize: 'var(--crm-text-sm)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               textDecoration: done ? 'line-through' : 'none',
             }}>
               {seg.e.title}

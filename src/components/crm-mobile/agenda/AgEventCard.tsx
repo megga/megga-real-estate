@@ -22,7 +22,7 @@ export default function AgEventCard({ event, past, onTap }: AgEventCardProps) {
 
   return (
     <div style={{ display: 'flex', gap: 'var(--crm-space-xl)', alignItems: 'stretch' }}>
-      <div style={{ width: 46, flexShrink: 0, paddingTop: 'var(--crm-space-2xs)', textAlign: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: -0.2, color: past ? tk.ghost : tk.ink, fontVariantNumeric: 'tabular-nums' }}>
+      <div style={{ width: 46, flexShrink: 0, paddingTop: 'var(--crm-space-2xs)', textAlign: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 500, letterSpacing: -0.2, color: past ? tk.ghost : tk.ink, fontVariantNumeric: 'tabular-nums' }}>
         {fmtTime(event.start)}
       </div>
       <button
@@ -50,16 +50,16 @@ export default function AgEventCard({ event, past, onTap }: AgEventCardProps) {
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
-            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: tone }}>
+            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tone }}>
               {t(`eventType.${event.type}`)}
             </span>
             {event.durMin > 0 ? (
-              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: tk.ghost, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tk.ghost, fontVariantNumeric: 'tabular-nums' }}>
                 · {fmtDur(event.durMin, t)}
               </span>
             ) : null}
           </div>
-          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.3, color: past ? tk.muted : tk.ink, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 500, letterSpacing: -0.3, color: past ? tk.muted : tk.ink, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {event.title}
           </div>
           {subtitle ? (

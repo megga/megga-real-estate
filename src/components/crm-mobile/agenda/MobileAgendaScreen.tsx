@@ -12,9 +12,9 @@ import AgEventCard from './AgEventCard'
 import AgTimeGrid from './AgTimeGrid'
 import AgEventSheet from './AgEventSheet'
 import { calEventToVM, demoEvents, fmtDur, minutesOf, sameDay, type AgEventVM } from './vm'
+import { calNowColor } from '@/components/crm-sugar/calendar/data'
 
 type AgView = 'list' | 'block'
-const NOW_RED = '#E54D38'
 
 /** Minuit local du jour de `d` — borne pour les comparaisons jour à jour. */
 function startOfDay(d: Date): Date {
@@ -87,11 +87,11 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
       </header>
 
       <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
-        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
           {t('common:nav.calendar')}
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 7 }}>
-          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.inkSoft }}>{t('views.eventCount', { count: dayVMs.length })}</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 500, color: tk.inkSoft }}>{t('views.eventCount', { count: dayVMs.length })}</span>
           {totalMin > 0 ? <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted }}>· {fmtDur(totalMin, t)}</span> : null}
         </div>
       </div>
@@ -110,7 +110,7 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
               key={v}
               type="button"
               onClick={() => setView(v)}
-              style={{ height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.card : 'transparent', color: on ? tk.ink : tk.muted, boxShadow: on ? tk.shadowSm : 'none', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
+              style={{ height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: on ? 600 : 500, letterSpacing: -0.2, background: on ? tk.card : 'transparent', color: on ? tk.ink : tk.muted, boxShadow: on ? tk.shadowSm : 'none', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
             >
               <MEIcon name={v === 'list' ? 'menu' : 'layers'} size={15} color={on ? tk.ink : tk.muted} />
               {v === 'list' ? t('mobile.viewList') : t('mobile.viewBlock')}
@@ -129,11 +129,11 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
           </div>
         ) : showError ? (
           <div style={{ textAlign: 'center', padding: '48px 12px' }}>
-            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('page.error.title')}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: tk.ink, letterSpacing: -0.3 }}>{t('page.error.title')}</div>
             <button
               type="button"
               onClick={refetch}
-              style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}
+              style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 500, background: tk.accent, color: tk.accentInk }}
             >
               {t('mobile.retry')}
             </button>
@@ -143,7 +143,7 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
             <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
               <MEIcon name="calendar" size={24} color={tk.muted} strokeWidth={1.8} />
             </div>
-            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, marginTop: 14 }}>{t('mobile.dayFreeTitle')}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 500, letterSpacing: -0.4, color: tk.ink, marginTop: 14 }}>{t('mobile.dayFreeTitle')}</div>
             <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 5, maxWidth: 240, marginInline: 'auto', lineHeight: 1.45 }}>{t('mobile.dayFreeDesc')}</div>
           </div>
         ) : view === 'list' ? (
@@ -152,12 +152,12 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
               <div key={v.id}>
                 {i === nowIdx ? (
                   <div style={{ display: 'flex', gap: 'var(--crm-space-xl)', alignItems: 'center', marginBottom: 14 }}>
-                    <div style={{ width: 46, flexShrink: 0, textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: NOW_RED, fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ width: 46, flexShrink: 0, textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: calNowColor(tk.mode === 'dark'), fontVariantNumeric: 'tabular-nums' }}>
                       {`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`}
                     </div>
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-                      <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: NOW_RED, flexShrink: 0, boxShadow: '0 0 0 4px rgba(229,77,56,0.16)' }} />
-                      <span style={{ flex: 1, height: 2, background: NOW_RED, borderRadius: 'var(--crm-radius-pill)' }} />
+                      <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: calNowColor(tk.mode === 'dark'), flexShrink: 0, boxShadow: '0 0 0 4px rgba(229,77,56,0.16)' }} />
+                      <span style={{ flex: 1, height: 2, background: calNowColor(tk.mode === 'dark'), borderRadius: 'var(--crm-radius-pill)' }} />
                     </div>
                   </div>
                 ) : null}
