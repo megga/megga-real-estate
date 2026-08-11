@@ -55,11 +55,25 @@ export function calSetBodyDrag(cursor: string | null): void {
   document.body.style.cursor = cursor ?? ''
 }
 
+/**
+ * Éclaircit (`amt > 0`) ou assombrit une couleur, en canal RGB.
+ *
+ * ⚠ C'est un PARSEUR D'OCTETS, pas un utilitaire de style : il attend un
+ * hexadécimal à SIX chiffres et rien d'autre. Sans la garde ci-dessous, un hex
+ * court (`#abc`), un `rgba(…)` ou un nom CSS produisait `rgb(NaN, NaN, NaN)` —
+ * que le navigateur ignore, donc un élément INVISIBLE plutôt qu'une couleur
+ * fausse. Le défaut ne s'était jamais déclaré parce que l'unique appelant
+ * (CalEventPopover, sur `property.tone`) reçoit toujours un hex à 6 chiffres ;
+ * il attendait la première teinte qui n'en serait pas une.
+ *
+ * En cas d'entrée non reconnue on rend la couleur TELLE QUELLE : pas de
+ * nuance, mais l'élément reste visible. Une dégradation qui se voit vaut mieux
+ * qu'une disparition qui ne se voit pas.
+ */
 export function shadeMix(hex: string, amt: number): string {
-  const c = hex.replace('#', '')
-  const r = parseInt(c.slice(0, 2), 16)
-  const g = parseInt(c.slice(2, 4), 16)
-  const b = parseInt(c.slice(4, 6), 16)
+  const c = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim())
+  if (!c) return hex
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(c[1].slice(i, i + 2), 16))
   const adj = (v: number) => Math.max(0, Math.min(255, Math.round(v + 255 * amt)))
   return `rgb(${adj(r)}, ${adj(g)}, ${adj(b)})`
 }
