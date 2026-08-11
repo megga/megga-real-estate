@@ -103,22 +103,11 @@ export function SSOConnectionsCard() {
       >
         {/* En-tête */}
         <div style={{ padding: '28px 28px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-3xl)', marginBottom: 20 }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 'var(--crm-radius-lg)',
-                flexShrink: 0,
-                background: SET.cardSubtle,
-                color: SET.ink,
-                display: 'grid',
-                placeItems: 'center',
-                boxShadow: `inset 0 0 0 1px ${SET.line}`,
-              }}
-            >
-              <SetIcon name="link" size={17} stroke={SET.ink} />
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', marginBottom: 20 }}>
+            {/* Même traitement que la carte « Mot de passe » : le glyphe seul,
+                agrandi et teinté. Les deux cartes sont côte à côte — en habiller
+                une et pas l'autre se lit comme un défaut d'alignement. */}
+            <SetIcon name="link" size={30} stroke={SET.black} sw={1.7} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <h3
                 style={{
@@ -136,7 +125,7 @@ export function SSOConnectionsCard() {
                   margin: 0,
                   fontSize: 'var(--crm-text-lg)',
                   color: SET.muted,
-                  fontWeight: 500,
+                  fontWeight: 400,
                   lineHeight: 1.5,
                 }}
               >
@@ -186,21 +175,21 @@ export function SSOConnectionsCard() {
                   <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SET.ink, letterSpacing: -0.1 }}>
                     {p.name}
                   </div>
-                  <div
-                    style={{
-                      fontSize: 'var(--crm-text-sm)',
-                      color: SET.muted,
-                      fontWeight: 500,
-                      marginTop: 1,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {linked
-                      ? t('security.sso.linkedDetail', { account: email ?? t('security.sso.linkedAccount') })
-                      : t('security.sso.connectWith', { name: p.name })}
-                  </div>
+                  {linked && (
+                    <div
+                      style={{
+                        fontSize: 'var(--crm-text-sm)',
+                        color: SET.muted,
+                        fontWeight: 400,
+                        marginTop: 1,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {t('security.sso.linkedDetail', { account: email ?? t('security.sso.linkedAccount') })}
+                    </div>
+                  )}
                 </div>
                 {linked ? (
                   <SetGhostBtn size="sm" onClick={() => setConfirmDisc(p.id)} disabled={pending}>
@@ -248,7 +237,7 @@ export function SSOConnectionsCard() {
             }}
           >
             <SetIcon name="info" size={14} stroke={SET.muted} sw={2} />
-            <div style={{ fontSize: 'var(--crm-text-sm)', color: SET.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', color: SET.inkSoft, fontWeight: 400, lineHeight: 1.55 }}>
               {t('security.sso.privacyNote')}
             </div>
           </div>

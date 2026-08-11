@@ -347,30 +347,27 @@ function PwdVaultLight() {
 
   // En-tête partagé (masqué en saved).
   const Header = (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-2xl)', marginBottom: 22 }}>
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 'var(--crm-radius-lg)',
-          flexShrink: 0,
-          background: SET.black,
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        <SetIcon name="lock" size={20} stroke={SET.blackInk} sw={1.9} />
-      </div>
+    // Le glyphe NU, agrandi et teinté — plus de pastille pleine. Le carré bleu
+    // de 40 px pesait autant que le titre qu'il accompagnait, et il n'avait rien
+    // à dire que le cadenas ne disait déjà. `alignItems: center` : sans la
+    // pastille, un glyphe seul aligné en haut flotte au-dessus du titre.
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', marginBottom: 22 }}>
+      <SetIcon name="lock" size={30} stroke={SET.black} sw={1.7} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 500, letterSpacing: -0.3, color: SET.ink }}>
           {t('security.password.title')}
         </h3>
-        <p style={{ margin: '5px 0 0', fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>
-          {mode === 'view' && t('security.password.descView')}
-          {mode === 'edit' && t('security.password.descEdit')}
-          {mode === 'forgot' && t('security.password.descForgot')}
-          {mode === 'sent' && t('security.password.descSent')}
-        </p>
+        {/* Rien en lecture : la ligne y disait « Clé maîtresse de votre compte
+            MEGGA », une métaphore qui n'apprenait rien et employait un mot
+            (« clé ») que le reste de l'écran ne dit plus. L'état est porté par
+            les points masqués et par « Chiffré · jamais affiché en clair ». */}
+        {mode !== 'view' && (
+          <p style={{ margin: '5px 0 0', fontSize: 'var(--crm-text-lg)', color: SET.muted, fontWeight: 400, lineHeight: 1.5 }}>
+            {mode === 'edit' && t('security.password.descEdit')}
+            {mode === 'forgot' && t('security.password.descForgot')}
+            {mode === 'sent' && t('security.password.descSent')}
+          </p>
+        )}
       </div>
     </div>
   )
@@ -415,7 +412,7 @@ function PwdVaultLight() {
               flexWrap: 'wrap',
             }}
           >
-            <span style={{ fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 600 }}>
+            <span style={{ fontSize: 'var(--crm-text-lg)', color: SET.muted, fontWeight: 400 }}>
               {t('security.password.encryptedNote')}
             </span>
             <button
@@ -433,11 +430,9 @@ function PwdVaultLight() {
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 'var(--crm-space-md)',
-                boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
               }}
             >
-              <SetIcon name="key" size={13} stroke={SET.blackInk} sw={2.2} /> {t('common:actions.edit')}
+              {t('common:actions.edit')}
             </button>
           </div>
         </>
@@ -453,7 +448,7 @@ function PwdVaultLight() {
           }}
         >
           <div>
-            <PwdField label={t('security.password.currentLabel')} value={cur} onChange={setCur} placeholder={t('security.password.currentPlaceholder')} autoFocus />
+            <PwdField label={t('security.password.currentLabel')} value={cur} onChange={setCur} autoFocus />
             <div style={{ marginTop: 8, textAlign: 'right' }}>
               <button
                 onClick={() => {
@@ -478,7 +473,7 @@ function PwdVaultLight() {
             </div>
           </div>
           <div>
-            <PwdField label={t('security.password.newLabel')} value={nw} onChange={setNw} placeholder={t('security.password.newPlaceholder')} />
+            <PwdField label={t('security.password.newLabel')} value={nw} onChange={setNw} />
             {nw && (
               <div style={{ marginTop: 10 }}>
                 <Meter s={s} />
@@ -490,7 +485,6 @@ function PwdVaultLight() {
               label={t('security.password.confirmLabel')}
               value={cf}
               onChange={setCf}
-              placeholder={t('security.password.confirmPlaceholder')}
               tone={ko ? SET.bad : match ? SET.ok : null}
             />
             {(match || ko) && (
@@ -774,16 +768,14 @@ function HeroSecurity() {
         <p
           style={{
             margin: '8px 0 0',
-            fontSize: 'var(--crm-text-lg)',
+            fontSize: 'var(--crm-text-3xl)',
             color: 'rgba(255,255,255,0.6)',
-            fontWeight: 500,
+            fontWeight: 400,
             lineHeight: 1.5,
-            maxWidth: 440,
+            maxWidth: 520,
           }}
         >
-          {t('security.hero.subtitleLine1')}
-          <br />
-          {t('security.hero.subtitleLine2')}
+          {t('security.hero.subtitle')}
         </p>
       </div>
     </div>
@@ -855,22 +847,10 @@ function SessionsCard() {
   return (
     <div style={{ background: SET.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: SET.shadow }}>
       <div style={{ padding: '26px 28px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-3xl)', marginBottom: 20 }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 'var(--crm-radius-lg)',
-              flexShrink: 0,
-              background: SET.cardSubtle,
-              color: SET.ink,
-              display: 'grid',
-              placeItems: 'center',
-              boxShadow: `inset 0 0 0 1px ${SET.line}`,
-            }}
-          >
-            <SetIcon name="keyboard" size={17} stroke={SET.ink} />
-          </div>
+        {/* Troisième et dernière carte de l'écran : même glyphe nu que ses deux
+            voisines. En garder une encadrée se lisait comme un oubli. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', marginBottom: 20 }}>
+          <SetIcon name="keyboard" size={30} stroke={SET.black} sw={1.7} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3 style={{ margin: '0 0 4px', fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: SET.ink, letterSpacing: -0.3 }}>
               {t('security.sessions.title')}
