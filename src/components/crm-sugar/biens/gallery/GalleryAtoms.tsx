@@ -100,7 +100,7 @@ export function GalStatusPill({
         background: st.tone,
         color: onTone,
         fontSize: 'var(--crm-text-sm)',
-        fontWeight: 700,
+        fontWeight: 600,
         whiteSpace: 'nowrap',
         letterSpacing: -0.1,
         ...style,
@@ -159,7 +159,7 @@ export function GalSegmented({
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-md)',
-              fontWeight: on ? 700 : 600,
+              fontWeight: 600,
               background: on ? sp.accent : 'transparent',
               color: on ? sp.accentInk : sp.sub,
               display: 'inline-flex',
@@ -175,7 +175,7 @@ export function GalSegmented({
               <span
                 style={{
                   fontSize: 'var(--crm-text-xs)',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   fontVariantNumeric: 'tabular-nums',
                   padding: 'var(--crm-space-2xs) var(--crm-space-sm)',
                   borderRadius: 'var(--crm-radius-pill)',
@@ -287,7 +287,7 @@ export function GalSortDropdown({
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-md)',
-                fontWeight: o.value === value ? 700 : 500,
+                fontWeight: o.value === value ? 600 : 500,
                 color: sp.ink,
               }}
             >

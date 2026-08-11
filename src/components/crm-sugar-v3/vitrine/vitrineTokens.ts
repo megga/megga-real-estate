@@ -4,9 +4,30 @@
 // Un fichier mixte composants + constantes casse le Fast Refresh de Vite —
 // toute édition recharge la page au lieu de préserver l'état (galerie ouverte,
 // lightbox, scroll de la fiche).
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { sgMix } from '@/components/crm-sugar/tokens'
 
 // ─── Palettes (light/dark) ───────────────────────────────────────────────
+//
+// Les DEUX thèmes descendent de `mxCrmPalette()` depuis le 11 août 2026. Avant,
+// même asymétrie que le wizard : le SOMBRE dérivait ses surfaces de `MXC_COLOR`
+// mais gardait quatre encres bleutées hors échelle, et le CLAIR était resté
+// Sugar de bout en bout — accent compris, `black` valant `#0B0C0E` sous la règle
+// « l'accent EST l'encre » que la décision du 10 août a remplacée.
+//
+// ⚠ Ce module ne se voit pas depuis `BienDetailSugarV4Page.tsx` : la page ne
+// porte que 2 littéraux, la palette en porte 39. La fiche en est l'unique
+// consommateur. Garde-fou : `tests/unit/bien-palette.spec.ts`.
+
+const MX_LIGHT = mxCrmPalette(false)
+const MX_DARK = mxCrmPalette(true)
+
+// Survol de l'accent : la vitrine n'en publie aucun barreau (son
+// `.primary-button:hover` grandit au lieu de changer de teinte). Dérivé de
+// l'accent, comme aux Réglages et au wizard — 0,12 en sombre et non 0,16, tout
+// éclaircissement coûtant du contraste à l'encre blanche posée dessus.
+const ACCENT_HOVER_LIGHT = sgMix(MXC_COLOR.accent, '#000000', 0.14)
+const ACCENT_HOVER_DARK = sgMix(MXC_COLOR.accent, '#FFFFFF', 0.12)
 export interface VxPalette {
   bg: string
   bgGradient: string
@@ -33,20 +54,22 @@ export interface VxPalette {
 }
 
 export const VxSP_LIGHT: VxPalette = {
-  bg: '#EDEFF3',
+  bg: MX_LIGHT.pageBg,
   bgGradient:
-    'radial-gradient(ellipse 120% 80% at 50% 100%, #C8D5E0 0%, #E2E5EB 50%, #EDEFF3 100%)',
-  card: '#FFFFFF',
-  cardSub: '#F4F6F9',
-  cardSub2: '#EBEEF3',
-  ink: '#0B0C0E',
-  inkSoft: '#3A3D44',
-  muted: '#7A8088',
-  ghost: '#B5BAC2',
-  hairline: 'rgba(15,23,42,0.06)',
-  black: '#0B0C0E',
-  blackHover: '#22242C',
-  onAccent: '#FFFFFF',
+    `radial-gradient(ellipse 120% 80% at 50% 100%, ${MXC_COLOR.n700} 0%, ${MXC_COLOR.n800} 50%, ${MXC_COLOR.n900} 100%)`,
+  card: MX_LIGHT.cardBg,
+  cardSub: MX_LIGHT.cardSubBg,
+  cardSub2: MX_LIGHT.focusSurface,
+  ink: MX_LIGHT.ink,
+  inkSoft: MX_LIGHT.soft,
+  muted: MX_LIGHT.sub,
+  // `ghost` = trait et encre FAIBLE. Il doit rester distinct de `muted`, sinon
+  // la hiérarchie des gris s'effondre de trois niveaux à deux.
+  ghost: MXC_COLOR.n600,
+  hairline: 'rgba(3,3,3,0.06)',
+  black: MX_LIGHT.accent,
+  blackHover: ACCENT_HOVER_LIGHT,
+  onAccent: MX_LIGHT.accentInk,
   shadowSm: '0 1px 2px rgba(15,23,42,.05), 0 6px 18px -10px rgba(40,55,90,.18)',
   shadow: '0 1px 2px rgba(15,23,42,.04), 0 14px 38px -16px rgba(40,55,90,.24)',
   shadowHov: '0 2px 6px rgba(15,23,42,.06), 0 28px 56px -20px rgba(40,55,90,.34)',
@@ -62,19 +85,19 @@ export const VxSP_LIGHT: VxPalette = {
 // ⚠ `cardSub2` empile au PLAFOND s4 : si un bloc de la fiche paraît trop clair
 // face à une modale ouverte par-dessus, le redescendre à s3 (noté au handoff).
 export const VxSP_DARK: VxPalette = {
-  bg: MXC_COLOR.n100,
+  bg: MX_DARK.pageBg,
   bgGradient: `radial-gradient(ellipse 120% 80% at 50% 100%, ${MXC_COLOR.n400} 0%, ${MXC_COLOR.n200} 55%, ${MXC_COLOR.n100} 100%)`,
-  card: MXC_COLOR.n300,
-  cardSub: MXC_COLOR.n200,
-  cardSub2: MXC_COLOR.n400,
-  ink: '#F4F6F8',
-  inkSoft: '#C4C8D2',
-  muted: '#878D9A',
-  ghost: '#4A4E59',
+  card: MX_DARK.cardBg,
+  cardSub: MX_DARK.cardSubBg,
+  cardSub2: MX_DARK.focusSurface,
+  ink: MX_DARK.ink,
+  inkSoft: MX_DARK.soft,
+  muted: MX_DARK.sub,
+  ghost: MXC_COLOR.n500,
   hairline: 'rgba(255,255,255,0.08)',
-  black: '#F2F3F6',
-  blackHover: '#FFFFFF',
-  onAccent: '#0B0C0E',
+  black: MX_DARK.accent,
+  blackHover: ACCENT_HOVER_DARK,
+  onAccent: MX_DARK.accentInk,
   shadowSm: '0 1px 2px rgba(0,0,0,.4), 0 6px 18px -10px rgba(0,0,0,.55)',
   shadow: '0 1px 2px rgba(0,0,0,.45), 0 16px 40px -18px rgba(0,0,0,.65)',
   shadowHov: '0 2px 6px rgba(0,0,0,.5), 0 30px 60px -20px rgba(0,0,0,.75)',

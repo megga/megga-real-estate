@@ -3,6 +3,7 @@
 // ombres douces, accent noir, la PHOTO porte le design (galerie immersive +
 // lightbox plein écran). Câblé sur de VRAIES photos quand elles existent.
 
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { crmInitials } from '@/components/crm-sugar/tokens'
@@ -349,7 +350,7 @@ export function VxGallery({
                 color: '#fff',
                 backdropFilter: 'blur(2px)',
                 fontSize: 'var(--crm-text-2xl)',
-                fontWeight: 700,
+                fontWeight: 600,
                 letterSpacing: -0.3,
               }}
             >
@@ -433,7 +434,7 @@ export function VxLightbox({
         style={{ display: 'flex', alignItems: 'center', padding: '20px 26px', color: '#fff', flexShrink: 0 }}
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'var(--crm-text-lg)', letterSpacing: 0.6 }}>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'var(--crm-text-lg)'}}>
           <span style={{ fontWeight: 600 }}>{String(index + 1).padStart(2, '0')}</span>
           <span style={{ opacity: 0.5 }}> / {String(count).padStart(2, '0')}</span>
         </div>
@@ -518,7 +519,7 @@ export function VxStatusPill({ status, dark }: { status: string; dark: boolean }
         padding: 'var(--crm-space-xs) var(--crm-space-xl)',
         borderRadius: 'var(--crm-radius-pill)',
         fontSize: 'var(--crm-text-sm)',
-        fontWeight: 700,
+        fontWeight: 600,
         letterSpacing: -0.1,
         color: m.on,
         background: m.tone,
@@ -580,12 +581,12 @@ export function VxSectionHead({
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)', marginBottom: 18 }}>
       <div>
         {eyebrow && (
-          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.muted, letterSpacing: 1.1, textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.muted}}>
             {eyebrow}
           </div>
         )}
         {title && (
-          <h2 style={{ margin: eyebrow ? '9px 0 0' : 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 700, color: sp.ink, letterSpacing: -0.4 }}>
+          <h2 style={{ margin: eyebrow ? '9px 0 0' : 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.4 }}>
             {title}
           </h2>
         )}
@@ -632,11 +633,11 @@ export function VxAvatar({
         height: size,
         borderRadius: 'var(--crm-radius-pill)',
         flexShrink: 0,
-        background: bg || (dark ? '#2A2D38' : '#0B0C0E'),
+        background: bg || (dark ? MXC_COLOR.n400 : MXC_COLOR.n100),
         color: '#fff',
         display: 'grid',
         placeItems: 'center',
-        fontWeight: 700,
+        fontWeight: 600,
         fontSize: size * 0.34,
       }}
     >

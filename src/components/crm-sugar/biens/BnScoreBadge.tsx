@@ -47,7 +47,7 @@ export function BnScoreBadge({ health, sp, size = 'md' }: BnScoreBadgeProps) {
         background: color + '1A', // teinte ~10% — pastille discrète, pas un fond plein
         color,
         fontSize: fs,
-        fontWeight: 700,
+        fontWeight: 600,
         lineHeight: 1,
         whiteSpace: 'nowrap',
         fontVariantNumeric: 'tabular-nums',

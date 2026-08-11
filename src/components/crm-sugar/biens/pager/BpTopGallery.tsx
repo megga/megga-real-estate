@@ -99,11 +99,11 @@ export function BpTopGallery({
       {/* En-tête + toolbar (épinglés) */}
       <div style={{ flexShrink: 0, padding: '26px 34px 16px', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)', flexWrap: 'wrap' }}>
-          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('title')}</h1>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 500, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('title')}</h1>
           <div style={{ flex: 1 }} />
           <button
             onClick={onCreate}
-            style={{ height: 42, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: sp.ink, color: sp.pageBg, fontWeight: 700, fontSize: 'var(--crm-text-lg)', fontFamily: 'inherit', cursor: 'pointer', boxShadow: sp.focusShadow, display: 'inline-flex', alignItems: 'center' }}
+            style={{ height: 42, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: sp.ink, color: sp.pageBg, fontWeight: 600, fontSize: 'var(--crm-text-lg)', fontFamily: 'inherit', cursor: 'pointer', boxShadow: sp.focusShadow, display: 'inline-flex', alignItems: 'center' }}
           >
             {t('biens.create')}
           </button>
@@ -135,7 +135,7 @@ export function BpTopGallery({
             <div style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-pill)', margin: '0 auto 14px', background: surf.cardSub, display: 'grid', placeItems: 'center' }}>
               <MEIcon name={isError ? 'alert' : 'home'} size={22} color={isError ? '#E53935' : sp.sub} />
             </div>
-            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>
               {isError ? t('biens.error.title') : isLoading ? t('biens.loading') : t('biens.empty.noMatch')}
             </div>
             {isError && (
@@ -143,7 +143,7 @@ export function BpTopGallery({
                 <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, marginTop: 6, lineHeight: 1.5 }}>{t('biens.error.message')}</div>
                 <button
                   onClick={() => refetch()}
-                  style={{ marginTop: 14, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', background: surf.card, color: sp.ink, border: surf.hairline, boxShadow: surf.shadow, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
+                  style={{ marginTop: 14, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', background: surf.card, color: sp.ink, border: surf.hairline, boxShadow: surf.shadow, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
                 >
                   <MEIcon name="refresh" size={13} color={sp.soft} /> {t('biens.error.retry')}
                 </button>

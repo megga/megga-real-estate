@@ -72,7 +72,7 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
           <span
             style={{
               fontSize: 'var(--crm-text-xl)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: sp.ink,
               letterSpacing: -0.2,
               whiteSpace: 'nowrap',
@@ -116,9 +116,7 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
           style={{
             fontSize: 'var(--crm-text-xs)',
             color: sp.sub,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: 0.5,
+            fontWeight: 600,
           }}
         >
           {t('biens.seller')}
@@ -134,7 +132,7 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
                 background: owner.avatarBg || sp.ink,
                 color: '#fff',
                 fontSize: 'var(--crm-text-xs)',
-                fontWeight: 700,
+                fontWeight: 600,
                 display: 'grid',
                 placeItems: 'center',
               }}
@@ -154,7 +152,7 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
         <div
           style={{
             fontSize: 'var(--crm-text-2xl)',
-            fontWeight: 800,
+            fontWeight: 600,
             color: sp.ink,
             letterSpacing: -0.5,
             lineHeight: 1,

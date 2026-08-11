@@ -13,8 +13,16 @@
  * `ZONES` ne liste que ce qui est PORTÉ. Chaque lot y ajoute sa surface en même
  * temps qu'il la nettoie ; une zone absente n'est pas déclarée propre, elle est
  * déclarée non traitée. Reste à venir sur « Mes biens » :
- * `src/components/crm-sugar/biens` + `BienDetailSugarV4Page` (lot 3),
  * `src/components/crm-mobile/biens` (lot 4).
+ *
+ * ⚠ CE QUE LA VITRINE FAIT, ELLE, DE LA CAPITALE — mesuré le 11.08.2026, et
+ * gardé ici parce que la règle du projet s'en écarte SCIEMMENT. Sa feuille
+ * uppercase à 5 endroits, tous des BADGES (`.utp---badge`,
+ * `.badge-bg-secondary.v2`) ou l'utilitaire d'opt-in `.text-uppercase`
+ * (`.06em`) — jamais un libellé, un sur-titre ni un titre. Les Réglages, le
+ * Calendrier et les lots 2-3 sont allés à ZÉRO, badges compris. Réintroduire
+ * l'idiome de badge serait donc un geste sur QUATRE surfaces migrées, pas une
+ * exception locale : il se décide, il ne se glisse pas dans un lot.
  *
  * ── CE QUE LA RÈGLE DIT, ET D'OÙ ELLE SORT ───────────────────────────────────
  * Mesuré sur `src/styles/megga-x.generated.css`, la feuille de la vitrine :
@@ -36,8 +44,27 @@
 import { describe, it, expect } from 'vitest'
 import { emptyRoots, readFileSafely, rel, scanRoots } from './helpers/fs-scan'
 
-/** Surfaces PORTÉES. Un lot qui nettoie une zone l'ajoute ici, pas avant. */
-const ZONES = ['src/components/crm-sugar-wizard'] as const
+/**
+ * Surfaces PORTÉES. Un lot qui nettoie une zone l'ajoute ici, pas avant.
+ *
+ * ⚠ `crm-sugar-v3/vitrine` est la palette ET le kit de la FICHE bien, dont
+ * `BienDetailSugarV4Page` est l'unique consommateur. Le plan de refonte ne la
+ * listait pas — il rangeait la fiche avec la liste, sur la foi d'un grep qui ne
+ * voyait que le fichier de page. Une surface n'est pas un dossier.
+ *
+ * ⚠ Les PAGES passent par leur dossier parent avec un filtre de nom :
+ * `scanRoots` parcourt des répertoires, et une racine qui désigne un fichier
+ * rendrait zéro — donc une zone verte par vacuité. `emptyRoots` l'attraperait,
+ * mais mieux vaut ne pas poser le piège.
+ */
+const PAGES = new Set(['BienDetailSugarV4Page.tsx', 'BiensSugarV2Page.tsx'])
+
+const ZONES: { root: string; keep: (n: string) => boolean }[] = [
+  { root: 'src/components/crm-sugar-wizard', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar/biens', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar-v3/vitrine', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
+]
 
 /** La preuve que le scan voit encore l'arbre — sinon tout passe par vacuité. */
 const TEMOIN = 'src/components/crm-sugar-wizard/steps/Step7Publish.tsx'
@@ -72,6 +99,11 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
   { motif: /fontSize:\s*72\b/, raison: '72 px — la saisie chiffrée en grand, au-dessus du barreau' },
   { motif: /fontSize:\s*q === 6 \? 32 : 40\b/, raison: '32/40 px — un même titre à deux densités' },
   { motif: /fontSize:\s*44\b/, raison: '44 px — le titre de confirmation, au-dessus du barreau' },
+  { motif: /fontSize:\s*40\b/, raison: '40 px — le titre du premier lancement, au-dessus du barreau' },
+  {
+    motif: /fontSize:\s*size \* 0\.34/,
+    raison: 'calculée : l’initiale d’un avatar suit le diamètre de sa pastille',
+  },
 ]
 
 /**
@@ -84,7 +116,7 @@ function sansCommentaires(code: string): string {
   return code.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ')
 }
 
-const scan = scanRoots(ZONES.map((root) => ({ root, keep: (n: string) => /\.tsx?$/.test(n) })))
+const scan = scanRoots(ZONES)
 const sources = scan.files.map((abs) => {
   const lu = readFileSafely(abs)
   return { chemin: rel(abs), code: lu.status === 'ok' ? sansCommentaires(lu.value) : '' }
@@ -190,6 +222,17 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
    * les tests ci-dessus en silence, et le fichier resterait vert.
    */
   it('le cliquet ne recule pas', () => {
-    expect(ZONES).toContain('src/components/crm-sugar-wizard')
+    const racines = ZONES.map((z) => z.root)
+    for (const acquise of [
+      'src/components/crm-sugar-wizard',
+      'src/components/crm-sugar/biens',
+      'src/components/crm-sugar-v3/vitrine',
+      'src/pages/agent',
+    ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
+    // Les deux pages sont bien VUES — un filtre de nom qui ne matche rien
+    // laisserait la racine non vide (le dossier en contient d'autres) tout en
+    // ne gardant aucune des deux.
+    const vues = sources.map((s) => s.chemin.split('/').pop())
+    for (const p of PAGES) expect(vues, `page non balayée : ${p}`).toContain(p)
   })
 })

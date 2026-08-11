@@ -110,8 +110,8 @@ function BfBlackBtn({
         background: h ? vx.blackHover : vx.black,
         color: vx.onAccent,
         fontFamily: 'inherit',
-        fontWeight: 700,
-        fontSize: size === 'lg' ? 14 : 13,
+        fontWeight: 600,
+        fontSize: size === 'lg' ? 'var(--crm-text-lg)' : 'var(--crm-text-md)',
         cursor: 'pointer',
         whiteSpace: 'nowrap',
         display: 'inline-flex',
@@ -150,7 +150,7 @@ function BfGhostBtn({
         background: h ? vx.cardSub2 : vx.cardSub,
         color: vx.inkSoft,
         border: 0,
-        fontSize: 12.5,
+        fontSize: 'var(--crm-text-md)',
         fontWeight: 600,
         cursor: 'pointer',
         whiteSpace: 'nowrap',
@@ -208,8 +208,8 @@ function BfSpec({ icon, label, value, vx }: { icon: VxIconName; label: string; v
         <VxIcon name={icon} size={28} stroke={vx.ink} sw={1.6} />
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: vx.ink, letterSpacing: -0.4, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{value}</div>
-        <div style={{ fontSize: 10.5, fontWeight: 700, color: vx.muted, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 5, whiteSpace: 'nowrap' }}>{label}</div>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: vx.ink, letterSpacing: -0.4, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{value}</div>
+        <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: vx.muted, marginTop: 5, whiteSpace: 'nowrap' }}>{label}</div>
       </div>
     </div>
   )
@@ -221,9 +221,9 @@ function BfStat({ icon, label, value, vx }: { icon: VxIconName; label: string; v
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: vx.muted, marginBottom: 7 }}>
         <VxIcon name={icon} size={13} stroke={vx.muted} sw={1.8} />
-        <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</span>
+        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600}}>{label}</span>
       </div>
-      <div style={{ fontSize: 24, fontWeight: 800, color: vx.ink, letterSpacing: -0.7, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 500, color: vx.ink, letterSpacing: -0.7, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
     </div>
   )
 }
@@ -242,17 +242,17 @@ function BfPortal({
   const { t: tr } = useTranslation('listings')
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', borderRadius: 13, background: vx.cardSub }}>
-      <div style={{ width: 30, height: 30, borderRadius: 8, background: vx.card, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: vx.ink, boxShadow: vx.shadowSm }}>{name[0]}</div>
-      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: vx.ink }}>{name}</span>
+      <div style={{ width: 30, height: 30, borderRadius: 8, background: vx.card, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: vx.ink, boxShadow: vx.shadowSm }}>{name[0]}</div>
+      <span style={{ flex: 1, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: vx.ink }}>{name}</span>
       {online ? (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: vx.ok, whiteSpace: 'nowrap' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: vx.ok, whiteSpace: 'nowrap' }}>
           <span style={{ width: 6, height: 6, borderRadius: 9, background: vx.ok }} />
           {label ?? tr('detail.distributionSection.online')}
         </span>
       ) : action ? (
         <BfGhostBtn vx={vx} onClick={onAction}>{action}</BfGhostBtn>
       ) : (
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: vx.muted }}>{label ?? tr('detail.distributionSection.offline')}</span>
+        <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: vx.muted }}>{label ?? tr('detail.distributionSection.offline')}</span>
       )}
     </div>
   )
@@ -267,10 +267,10 @@ function BfToast({ toast, sp, dark }: { toast: Toast | null; sp: SugarPalette; d
         <span style={{ width: 24, height: 24, borderRadius: 999, background: 'rgba(255,255,255,.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           <VxIcon name="check" size={14} stroke="#fff" sw={2.4} />
         </span>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>{toast.title}</span>
+        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>{toast.title}</span>
       </div>
       {toast.lines.map((l, i) => (
-        <div key={i} style={{ fontSize: 12.5, color: 'rgba(255,255,255,.72)', paddingLeft: 34, lineHeight: 1.5 }}>{l}</div>
+        <div key={i} style={{ fontSize: 'var(--crm-text-md)', color: 'rgba(255,255,255,.72)', paddingLeft: 34, lineHeight: 1.5 }}>{l}</div>
       ))}
     </div>
   )
@@ -303,15 +303,15 @@ function BfEditModal({
   if (!open) return null
   const set = <K extends keyof EditDraft>(k: K, v: EditDraft[K]) => setD(p => ({ ...p, [k]: v }))
   const sub = vx.cardSub
-  const lbl: CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 700, color: vx.muted, letterSpacing: 0.3, marginBottom: 7 }
-  const inp: CSSProperties = { width: '100%', boxSizing: 'border-box', border: 0, outline: 'none', background: sub, color: vx.ink, borderRadius: 12, padding: '12px 14px', fontSize: 14, fontWeight: 600, fontFamily: 'inherit' }
+  const lbl: CSSProperties = { display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: vx.muted, letterSpacing: 0.3, marginBottom: 7 }
+  const inp: CSSProperties = { width: '100%', boxSizing: 'border-box', border: 0, outline: 'none', background: sub, color: vx.ink, borderRadius: 12, padding: '12px 14px', fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontFamily: 'inherit' }
   const ov = dark ? 'rgba(4,6,10,.62)' : 'rgba(24,32,48,.34)'
   return (
     <div onMouseDown={onClose} style={{ position: 'absolute', inset: 0, zIndex: 130, background: ov, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24, animation: 'bfFade .18s ease-out' }}>
       <style>{`.bf-edit-inp:focus{box-shadow:0 0 0 2px ${vx.ink} inset}`}</style>
       <div onMouseDown={e => e.stopPropagation()} style={{ width: 520, maxWidth: '100%', maxHeight: '92%', overflowY: 'auto', background: sp.solidBg, borderRadius: 28, boxShadow: '0 40px 100px rgba(15,23,42,.34), 0 8px 24px rgba(15,23,42,.14)', padding: 28, animation: 'bfRise .24s cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 22 }}>
-          <h3 style={{ margin: 0, fontSize: 21, fontWeight: 800, color: vx.ink, letterSpacing: -0.5, flex: 1 }}>{tr('detail.editListing')}</h3>
+          <h3 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: vx.ink, letterSpacing: -0.5, flex: 1 }}>{tr('detail.editListing')}</h3>
           <button onClick={onClose} aria-label={tr('cancel')} style={{ width: 34, height: 34, borderRadius: 999, border: 0, background: sub, cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
             <VxIcon name="close" size={15} stroke={vx.inkSoft} sw={1.9} />
           </button>
@@ -323,7 +323,7 @@ function BfEditModal({
             <div>
               <label style={lbl}>{tr('detail.salePriceLabel')}</label>
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, fontWeight: 700, color: vx.muted }}>CHF</span>
+                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: vx.muted }}>CHF</span>
                 <input className="bf-edit-inp" type="number" value={d.price} onChange={e => set('price', e.target.value)} style={{ ...inp, paddingLeft: 52, fontVariantNumeric: 'tabular-nums' }} />
               </div>
             </div>
@@ -331,8 +331,8 @@ function BfEditModal({
           <div><label style={lbl}>{tr('detail.description.eyebrow')}</label><textarea className="bf-edit-inp" value={d.description} onChange={e => set('description', e.target.value)} rows={6} style={{ ...inp, lineHeight: 1.65, fontWeight: 500, resize: 'vertical' }} /></div>
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
-          <button onClick={onClose} style={{ flex: '0 0 auto', height: 46, padding: '0 22px', borderRadius: 999, border: 0, background: sub, color: vx.inkSoft, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{tr('cancel')}</button>
-          <button onClick={() => onSave(d)} style={{ flex: 1, height: 46, borderRadius: 999, border: 0, background: vx.black, color: vx.onAccent, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{tr('detail.saveAndPublish')}</button>
+          <button onClick={onClose} style={{ flex: '0 0 auto', height: 46, padding: '0 22px', borderRadius: 999, border: 0, background: sub, color: vx.inkSoft, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer' }}>{tr('cancel')}</button>
+          <button onClick={() => onSave(d)} style={{ flex: 1, height: 46, borderRadius: 999, border: 0, background: vx.black, color: vx.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer' }}>{tr('detail.saveAndPublish')}</button>
         </div>
       </div>
     </div>
@@ -375,39 +375,39 @@ function BfVisitModal({
     <div onMouseDown={onClose} style={{ position: 'absolute', inset: 0, zIndex: 130, background: ov, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24, animation: 'bfFade .18s ease-out' }}>
       <div onMouseDown={e => e.stopPropagation()} style={{ width: 462, maxWidth: '100%', maxHeight: '92%', overflowY: 'auto', background: sp.solidBg, borderRadius: 28, boxShadow: '0 40px 100px rgba(15,23,42,.34), 0 8px 24px rgba(15,23,42,.14)', padding: 28, animation: 'bfRise .24s cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 21, fontWeight: 800, color: vx.ink, letterSpacing: -0.5 }}>{title}</h3>
+          <h3 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: vx.ink, letterSpacing: -0.5 }}>{title}</h3>
           <div style={{ flex: 1 }} />
           <BfCircleBtn icon="close" onClick={onClose} vx={vx} />
         </div>
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: vx.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>{tr('detail.visitModal.day')}</div>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: vx.muted, marginBottom: 9}}>{tr('detail.visitModal.day')}</div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
           {days.map((dd, i) => {
             const on = i === day
             return (
               <button key={i} onClick={() => setDay(i)} style={{ flex: 1, minWidth: 56, padding: '9px 6px', borderRadius: 13, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: on ? vx.black : vx.cardSub, color: on ? vx.onAccent : vx.inkSoft, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', opacity: 0.7 }}>{dd.toLocaleDateString('fr-CH', { weekday: 'short' })}</div>
-                <div style={{ fontSize: 17, fontWeight: 800, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{dd.getDate()}</div>
+                <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, opacity: 0.7 }}>{dd.toLocaleDateString('fr-CH', { weekday: 'short' })}</div>
+                <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{dd.getDate()}</div>
               </button>
             )
           })}
         </div>
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: vx.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>{tr('detail.visitModal.time')}</div>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: vx.muted, marginBottom: 9}}>{tr('detail.visitModal.time')}</div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
           {times.map(tm => {
             const on = tm === time
-            return <button key={tm} onClick={() => setTime(tm)} style={{ padding: '8px 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', background: on ? vx.black : vx.cardSub, color: on ? vx.onAccent : vx.inkSoft }}>{tm}</button>
+            return <button key={tm} onClick={() => setTime(tm)} style={{ padding: '8px 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', background: on ? vx.black : vx.cardSub, color: on ? vx.onAccent : vx.inkSoft }}>{tm}</button>
           })}
         </div>
         {contacts.length > 0 && (
           <>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: vx.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>{tr('detail.visitModal.visitor')}</div>
+            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: vx.muted, marginBottom: 9}}>{tr('detail.visitModal.visitor')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
               {contacts.map(c => {
                 const on = c.id === who
                 return (
                   <button key={c.id} onClick={() => setWho(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 12px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', background: vx.cardSub, border: 0, textAlign: 'left', boxShadow: on ? '0 0 0 2px ' + vx.ink + ' inset' : 'none' }}>
                     <VxAvatar name={c.firstName + ' ' + c.lastName} size={32} dark={dark} />
-                    <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: vx.ink }}>{c.firstName} {c.lastName}</span>
+                    <span style={{ flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: vx.ink }}>{c.firstName} {c.lastName}</span>
                     {on && <VxIcon name="check" size={16} stroke={vx.ink} sw={2.2} />}
                   </button>
                 )
@@ -766,7 +766,7 @@ export default function BienDetailSugarV4Page() {
             {/* En-tête épinglé */}
             <div style={{ flexShrink: 0, padding: '20px 34px 14px' }}>
               <div style={{ maxWidth: BF_MAXW, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <button onClick={() => onNavigate('biens')} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 34, padding: '0 14px', borderRadius: 999, background: vx.card, boxShadow: vx.shadowSm, border: 0, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, color: vx.inkSoft, cursor: 'pointer' }}>
+                <button onClick={() => onNavigate('biens')} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 34, padding: '0 14px', borderRadius: 999, background: vx.card, boxShadow: vx.shadowSm, border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: vx.inkSoft, cursor: 'pointer' }}>
                   <VxIcon name="arrowL" size={13} stroke={vx.inkSoft} /> {tr('title')}
                 </button>
                 <div style={{ flex: 1 }} />
@@ -791,22 +791,22 @@ export default function BienDetailSugarV4Page() {
                           {offMarket && <VxMetaPill icon="lock" dark={dark}>{tr('fiche.offMarket')}</VxMetaPill>}
                           {bien.c2pa_verified && <VxMetaPill icon="shieldCheck" dark={dark}>{tr('detail.c2paVerified')}</VxMetaPill>}
                         </div>
-                        <h1 style={{ margin: '0 0 8px', fontSize: 32, fontWeight: 800, color: vx.ink, letterSpacing: -0.9, lineHeight: 1.1, textWrap: 'balance' }}>
+                        <h1 style={{ margin: '0 0 8px', fontSize: 'var(--crm-text-7xl)', fontWeight: 500, color: vx.ink, letterSpacing: -0.9, lineHeight: 1.1, textWrap: 'balance' }}>
                           {bien.title}
                         </h1>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: vx.muted, fontSize: 14, fontWeight: 500 }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: vx.muted, fontSize: 'var(--crm-text-lg)', fontWeight: 500 }}>
                           <VxIcon name="map" size={15} stroke={vx.muted} sw={1.8} />
                           {bien.address}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: vx.muted, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>{isRent ? tr('detail.rentLabel') : tr('detail.salePriceLabel')}</div>
-                        <div style={{ fontSize: 38, fontWeight: 800, color: vx.ink, letterSpacing: -1.4, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: vx.muted, marginBottom: 4 }}>{isRent ? tr('detail.rentLabel') : tr('detail.salePriceLabel')}</div>
+                        <div style={{ fontSize: 'var(--crm-text-9xl)', fontWeight: 500, color: vx.ink, letterSpacing: -1.4, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                           {vxFmtCHF(price)}
-                          {isRent && <span style={{ fontSize: 15, color: vx.muted, fontWeight: 600 }}>{tr('detail.perMonth')}</span>}
+                          {isRent && <span style={{ fontSize: 'var(--crm-text-xl)', color: vx.muted, fontWeight: 600 }}>{tr('detail.perMonth')}</span>}
                         </div>
                         {bien.charges_monthly ? (
-                          <div style={{ marginTop: 7, fontSize: 13, color: vx.muted, fontWeight: 500 }}>{tr('detail.chargesLine', { amount: bien.charges_monthly, suffix: isRent ? tr('detail.perMonth') : '' })}</div>
+                          <div style={{ marginTop: 7, fontSize: 'var(--crm-text-md)', color: vx.muted, fontWeight: 500 }}>{tr('detail.chargesLine', { amount: bien.charges_monthly, suffix: isRent ? tr('detail.perMonth') : '' })}</div>
                         ) : null}
                       </div>
                     </div>
@@ -828,11 +828,11 @@ export default function BienDetailSugarV4Page() {
                   {/* Description + équipements */}
                   <div style={{ padding: '26px 28px' }}>
                     <VxSectionHead dark={dark} eyebrow={tr('detail.description.eyebrow')} title={tr('detail.description.publicTitle')} />
-                    <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.75, color: vx.inkSoft, fontWeight: 400, textWrap: 'pretty' }}>{publicDesc}</p>
+                    <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', lineHeight: 1.75, color: vx.inkSoft, fontWeight: 400, textWrap: 'pretty' }}>{publicDesc}</p>
                     {features.length > 0 && (
                       <div style={{ marginTop: 18, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {features.map(f => (
-                          <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 30, padding: '0 13px', borderRadius: 999, background: vx.cardSub, color: vx.inkSoft, fontSize: 12.5, fontWeight: 600 }}>
+                          <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 30, padding: '0 13px', borderRadius: 999, background: vx.cardSub, color: vx.inkSoft, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
                             <VxIcon name="check" size={12} stroke={vx.ok} sw={2.4} />{f}
                           </span>
                         ))}
@@ -843,12 +843,12 @@ export default function BienDetailSugarV4Page() {
 
                   {/* Performance — bandeau pleine largeur (Vues/Favoris/Demandes RÉELS) */}
                   <div style={{ padding: '18px 28px', display: 'flex', alignItems: 'center', gap: 30, flexWrap: 'wrap' }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: vx.muted, letterSpacing: 1.1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{tr('detail.performance.eyebrow')}</div>
+                    <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: vx.muted, whiteSpace: 'nowrap' }}>{tr('detail.performance.eyebrow')}</div>
                     <BfStat icon="eye" label={tr('detail.performance.views')} value={vxFmtNum(stats.views)} vx={vx} />
                     <BfStat icon="heart" label={tr('detail.performance.favorites')} value={vxFmtNum(stats.favorites)} vx={vx} />
                     <BfStat icon="cal" label={tr('detail.performance.requests')} value={vxFmtNum(stats.visitRequests)} vx={vx} />
                     <div style={{ flex: '1.4 1 160px', minWidth: 160 }}><VxSpark points={[210, 260, 240, 320, 360, 410, 480]} color={vx.ok} /></div>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: vx.ok, whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: vx.ok, whiteSpace: 'nowrap' }}>
                       <VxIcon name="trend" size={13} stroke={vx.ok} sw={2} /> {tr('fiche.performance.trendShort', { percent: 18 })}
                     </span>
                   </div>
@@ -860,8 +860,8 @@ export default function BienDetailSugarV4Page() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                       {specCells.map(s => (
                         <div key={s.k} style={{ padding: 15, borderRadius: 15, background: vx.cardSub }}>
-                          <div style={{ fontSize: 11, color: vx.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3 }}>{s.l}</div>
-                          <div style={{ marginTop: 7, fontSize: 16, fontWeight: 700, color: vx.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+                          <div style={{ fontSize: 'var(--crm-text-xs)', color: vx.muted, fontWeight: 600, letterSpacing: 0.3 }}>{s.l}</div>
+                          <div style={{ marginTop: 7, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: vx.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
                         </div>
                       ))}
                     </div>
@@ -878,7 +878,7 @@ export default function BienDetailSugarV4Page() {
                     />
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                       {dealsForBien.length === 0 && bienMatches.length === 0 && (
-                        <div style={{ padding: '16px 4px', fontSize: 13.5, color: vx.muted, fontWeight: 500 }}>{tr('fiche.buyers.empty')}</div>
+                        <div style={{ padding: '16px 4px', fontSize: 'var(--crm-text-lg)', color: vx.muted, fontWeight: 500 }}>{tr('fiche.buyers.empty')}</div>
                       )}
                       {dealsForBien.map(d => {
                         const c = d.contact_buyer_id ? contactsById.get(d.contact_buyer_id) : null
@@ -888,7 +888,7 @@ export default function BienDetailSugarV4Page() {
                             <div style={{ flex: 1, minWidth: 0 }}>
                               {/* Verbatim maquette : nom de l'acheteur seul (l'étape/offre du deal
                                   ne s'affiche pas ici — la fiche renvoie au deal au clic). */}
-                              <div style={{ fontSize: 14, fontWeight: 700, color: vx.ink }}>{c ? c.first_name + ' ' + c.last_name : tr('detail.buyers.buyerFallback')}</div>
+                              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: vx.ink }}>{c ? c.first_name + ' ' + c.last_name : tr('detail.buyers.buyerFallback')}</div>
                             </div>
                             <VxIcon name="chevR" size={16} stroke={vx.muted} sw={1.8} />
                           </button>
@@ -898,8 +898,8 @@ export default function BienDetailSugarV4Page() {
                         <div key={m.id} style={{ padding: '12px 15px', borderRadius: 16, background: vx.cardSub, display: 'inline-flex', alignItems: 'center', gap: 13, maxWidth: '100%' }}>
                           <VxAvatar name={m.contactName} size={36} dark={dark} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13.5, fontWeight: 700, color: vx.ink }}>{m.contactName}</div>
-                            <div style={{ fontSize: 12, color: vx.muted, fontWeight: 500, marginTop: 1 }}>{tr('detail.buyers.matchAffinity', { score: m.score })}</div>
+                            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: vx.ink }}>{m.contactName}</div>
+                            <div style={{ fontSize: 'var(--crm-text-sm)', color: vx.muted, fontWeight: 500, marginTop: 1 }}>{tr('detail.buyers.matchAffinity', { score: m.score })}</div>
                           </div>
                           <BfGhostBtn vx={vx} icon="send" onClick={() => onNavigate('matching')}>{tr('detail.buyers.propose')}</BfGhostBtn>
                         </div>
@@ -908,7 +908,7 @@ export default function BienDetailSugarV4Page() {
                     {needsKyc && (
                       <div style={{ marginTop: 14, padding: '13px 15px', borderRadius: 16, background: vx.cardSub, display: 'inline-flex', gap: 12, alignItems: 'center', maxWidth: '100%' }}>
                         <VxIcon name="shield" size={22} stroke={vx.ink} sw={1.6} />
-                        <div style={{ flex: 1, fontSize: 12.5, color: vx.inkSoft, lineHeight: 1.5 }}>
+                        <div style={{ flex: 1, fontSize: 'var(--crm-text-md)', color: vx.inkSoft, lineHeight: 1.5 }}>
                           <Trans i18nKey="detail.buyers.kycNotice" t={tr}>
                             <b style={{ color: vx.ink }}>KYC à compléter</b> pour un acheteur, optionnel à ce stade, requis avant signature.
                           </Trans>
@@ -928,14 +928,14 @@ export default function BienDetailSugarV4Page() {
                       return (
                         <div>
                           <VxSectionHead dark={dark} eyebrow={tr('detail.nextVisit.eyebrow')} />
-                          <div style={{ fontSize: 21, fontWeight: 800, color: vx.ink, letterSpacing: -0.5, textTransform: 'capitalize', lineHeight: 1.15 }}>{vd.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: vx.inkSoft, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{nextVisit.time}</div>
+                          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: vx.ink, letterSpacing: -0.5, textTransform: 'capitalize', lineHeight: 1.15 }}>{vd.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                          <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: vx.inkSoft, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{nextVisit.time}</div>
                           {vc && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 14, padding: 12, borderRadius: 14, background: vx.cardSub }}>
                               <VxAvatar name={vc.first_name + ' ' + vc.last_name} size={36} dark={dark} />
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 13.5, fontWeight: 700, color: vx.ink }}>{vc.first_name} {vc.last_name}</div>
-                                <div style={{ fontSize: 11.5, color: vx.muted, fontWeight: 500 }}>{tr('detail.nextVisit.visitor')}</div>
+                                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: vx.ink }}>{vc.first_name} {vc.last_name}</div>
+                                <div style={{ fontSize: 'var(--crm-text-sm)', color: vx.muted, fontWeight: 500 }}>{tr('detail.nextVisit.visitor')}</div>
                               </div>
                             </div>
                           )}
@@ -948,7 +948,7 @@ export default function BienDetailSugarV4Page() {
                     })() : (
                       <div>
                         <VxSectionHead dark={dark} eyebrow={tr('fiche.visits.eyebrow')} />
-                        <div style={{ fontSize: 14, fontWeight: 600, color: vx.inkSoft, lineHeight: 1.5 }}>{tr('fiche.visits.none')}</div>
+                        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: vx.inkSoft, lineHeight: 1.5 }}>{tr('fiche.visits.none')}</div>
                         <div style={{ marginTop: 14 }}><BfBlackBtn vx={vx} icon="cal" onClick={() => setVisitOpen(true)}>{tr('detail.scheduleVisit')}</BfBlackBtn></div>
                       </div>
                     )}
@@ -956,13 +956,13 @@ export default function BienDetailSugarV4Page() {
                     {/* Mandat + vendeur */}
                     <div>
                       <VxSectionHead dark={dark} eyebrow={tr('detail.mandate.eyebrow')} />
-                      <h3 style={{ margin: '-8px 0 16px', fontSize: 18, fontWeight: 800, color: vx.ink, letterSpacing: -0.4, textTransform: 'capitalize' }}>{tr('detail.mandate.heading', { type: mandateTypeLabel(bien.mandate_type) })}</h3>
+                      <h3 style={{ margin: '-8px 0 16px', fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: vx.ink, letterSpacing: -0.4, textTransform: 'capitalize' }}>{tr('detail.mandate.heading', { type: mandateTypeLabel(bien.mandate_type) })}</h3>
                       {owner && (
                         <button onClick={() => navigate(`/dashboard/contacts/${owner.id}`)} style={{ width: '100%', textAlign: 'left', padding: 13, background: vx.cardSub, border: 0, borderRadius: 15, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                           <VxAvatar name={owner.first_name + ' ' + owner.last_name} size={40} dark={dark} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13.5, fontWeight: 700, color: vx.ink }}>{owner.first_name} {owner.last_name}</div>
-                            <div style={{ fontSize: 11.5, color: vx.muted, fontWeight: 500 }}>{tr('detail.mandate.sellerViewProfile')}</div>
+                            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: vx.ink }}>{owner.first_name} {owner.last_name}</div>
+                            <div style={{ fontSize: 'var(--crm-text-sm)', color: vx.muted, fontWeight: 500 }}>{tr('detail.mandate.sellerViewProfile')}</div>
                           </div>
                           <VxIcon name="chevR" size={16} stroke={vx.muted} sw={1.8} />
                         </button>
@@ -970,10 +970,10 @@ export default function BienDetailSugarV4Page() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
                         {mandatRows.map(r => (
                           <div key={r.l} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                            <span style={{ fontSize: 13, color: vx.muted, fontWeight: 500, whiteSpace: 'nowrap' }}>{r.l}</span>
-                            <span style={{ fontSize: 13.5, color: vx.ink, fontWeight: 700, fontVariantNumeric: 'tabular-nums', display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: 'var(--crm-text-md)', color: vx.muted, fontWeight: 500, whiteSpace: 'nowrap' }}>{r.l}</span>
+                            <span style={{ fontSize: 'var(--crm-text-lg)', color: vx.ink, fontWeight: 600, fontVariantNumeric: 'tabular-nums', display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
                               {r.v}
-                              {r.note && <span style={{ fontSize: 11, fontWeight: 700, color: r.warn ? vx.warn : vx.muted, padding: '2px 8px', borderRadius: 999, background: r.warn ? vx.warnBg : vx.cardSub }}>{r.note}</span>}
+                              {r.note && <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: r.warn ? vx.warn : vx.muted, padding: '2px 8px', borderRadius: 999, background: r.warn ? vx.warnBg : vx.cardSub }}>{r.note}</span>}
                             </span>
                           </div>
                         ))}
@@ -1000,7 +1000,7 @@ export default function BienDetailSugarV4Page() {
                       </div>
                       <button
                         onClick={() => flash(tr('fiche.diffusion.previewToastTitle'), [idxOnline ? tr('fiche.diffusion.previewOnlineLine') : tr('fiche.diffusion.previewOfflineLine')])}
-                        style={{ marginTop: 12, width: '100%', height: 40, borderRadius: 13, border: 0, background: vx.cardSub, color: vx.ink, fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                        style={{ marginTop: 12, width: '100%', height: 40, borderRadius: 13, border: 0, background: vx.cardSub, color: vx.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                       >
                         <VxIcon name="external" size={14} stroke={vx.ink} sw={1.8} /> {tr('fiche.diffusion.publicPreview')}
                       </button>

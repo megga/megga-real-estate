@@ -93,7 +93,7 @@ export function BpFollowupPage({
 
   // ── Fonctions de rendu (pas de composants au render) ──────────────────────
   const renderTag = (label: string, urgent?: boolean): ReactNode => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: -0.1, whiteSpace: 'nowrap', flexShrink: 0, background: urgent ? orange : surf.cardSub, color: urgent ? '#fff' : sp.soft }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.1, whiteSpace: 'nowrap', flexShrink: 0, background: urgent ? orange : surf.cardSub, color: urgent ? '#fff' : sp.soft }}>
       {label}
     </span>
   )
@@ -121,7 +121,7 @@ export function BpFollowupPage({
     return (
       <button
         onClick={onClick}
-        style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, border: isMandat ? 0 : surf.hairline, background: isMandat ? sp.accent : surf.card, color: isMandat ? sp.accentInk : sp.ink, boxShadow: isMandat ? 'none' : surf.shadow }}
+        style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, border: isMandat ? 0 : surf.hairline, background: isMandat ? sp.accent : surf.card, color: isMandat ? sp.accentInk : sp.ink, boxShadow: isMandat ? 'none' : surf.shadow }}
       >
         {actionLabel(bucketId)}
       </button>
@@ -135,7 +135,7 @@ export function BpFollowupPage({
         style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', flex: 1, minWidth: 0, border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
       >
         {renderThumb(row.b)}
-        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.b.title}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.b.title}</div>
       </button>
       {renderTag(rowTagLabel(bucketId, row), row.urgent)}
       {renderActBtn(bucketId, row.b, row.days)}
@@ -150,7 +150,7 @@ export function BpFollowupPage({
       <span style={{ width: 26, height: 26, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
         <MEIcon name={icon} size={17} color={on ? sp.ink : sp.sub} />
       </span>
-      <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{label}</span>
     </button>
   )
 
@@ -170,7 +170,7 @@ export function BpFollowupPage({
 
       {/* Rail — titre + filtres par nature */}
       <aside style={{ padding: '30px 26px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <h1 style={{ margin: '0 0 22px', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>{t('biens.followUp.title')}</h1>
+        <h1 style={{ margin: '0 0 22px', fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>{t('biens.followUp.title')}</h1>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
           {renderFilt('dashboard', t('biens.followUp.filter.all'), !filter, () => setFilter(null))}
           {buckets.map((g) => (
@@ -189,19 +189,19 @@ export function BpFollowupPage({
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', margin: '2px 2px 10px' }}>
                   <MEIcon name="bolt" size={14} color={orangeText} />
-                  <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', color: orangeText }}>{t('biens.followUp.priority')}</span>
+                  <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: orangeText }}>{t('biens.followUp.priority')}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bandeau.length}, 1fr)`, gap: 'var(--crm-space-2xl)' }}>
                   {bandeau.map((row) => (
                     <div key={row.b.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', background: surf.card, borderRadius: 'var(--crm-radius-2xl)', boxShadow: surf.shadow, border: surf.hairline, padding: 'var(--crm-space-xl)', minWidth: 0 }}>
                       {renderThumb(row.b, 64, 50, 11)}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: orangeText, marginBottom: 3 }}>{expiryText(row.days ?? 0)}</div>
-                        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.b.title}</div>
+                        <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: orangeText, marginBottom: 3 }}>{expiryText(row.days ?? 0)}</div>
+                        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.b.title}</div>
                       </div>
                       <button
                         onClick={() => setRenew({ b: row.b, days: row.days ?? 0 })}
-                        style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, background: sp.ink, color: sp.pageBg }}
+                        style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: sp.ink, color: sp.pageBg }}
                       >
                         {t('biens.followUp.action.renew')}
                       </button>
@@ -217,10 +217,10 @@ export function BpFollowupPage({
                 const more = g.rows.length - shownRows.length
                 return (
                   <section key={g.id} style={{ background: surf.card, borderRadius: 'var(--crm-radius-3xl)', boxShadow: surf.shadow, border: surf.hairline, padding: 'var(--crm-space-2xl) var(--crm-space-xl) var(--crm-space-md)', minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: 800, color: sp.ink, padding: 'var(--crm-space-2xs) var(--crm-space-sm) var(--crm-space-md)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, padding: 'var(--crm-space-2xs) var(--crm-space-sm) var(--crm-space-md)' }}>
                       <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: BUCKET_META[g.id].dot, flexShrink: 0 }} />
                       <span style={{ flex: 1, minWidth: 0 }}>{bucketTitle(g.id)}</span>
-                      <span style={{ minWidth: 22, height: 22, padding: '0 var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', display: 'inline-grid', placeItems: 'center', background: sp.ink, color: sp.pageBg, fontSize: 'var(--crm-text-sm)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{g.rows.length}</span>
+                      <span style={{ minWidth: 22, height: 22, padding: '0 var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', display: 'inline-grid', placeItems: 'center', background: sp.ink, color: sp.pageBg, fontSize: 'var(--crm-text-sm)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{g.rows.length}</span>
                     </div>
                     {shownRows.map((row, i) => (
                       <Fragment key={row.b.id}>
@@ -231,7 +231,7 @@ export function BpFollowupPage({
                     {(more > 0 || (expanded[g.id] && g.rows.length > 4)) && (
                       <button
                         onClick={() => toggleExp(g.id)}
-                        style={{ margin: '2px 8px 6px', padding: 'var(--crm-space-md)', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.sub }}
+                        style={{ margin: '2px 8px 6px', padding: 'var(--crm-space-md)', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub }}
                       >
                         {more > 0 ? t('biens.followUp.viewOthers', { count: more }) : t('biens.followUp.reduce')}
                       </button>
@@ -248,12 +248,12 @@ export function BpFollowupPage({
                 <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', margin: '0 auto 14px', background: surf.cardSub, display: 'grid', placeItems: 'center' }}>
                   <MEIcon name="alert" size={22} color="#E53935" />
                 </div>
-                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>{t('biens.error.title')}</div>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>{t('biens.error.title')}</div>
                 <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500, marginTop: 4, lineHeight: 1.5 }}>{t('biens.error.message')}</div>
                 {onRefetch && (
                   <button
                     onClick={() => onRefetch()}
-                    style={{ marginTop: 14, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', background: surf.card, color: sp.ink, border: surf.hairline, boxShadow: surf.shadow, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
+                    style={{ marginTop: 14, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', background: surf.card, color: sp.ink, border: surf.hairline, boxShadow: surf.shadow, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
                   >
                     <MEIcon name="refresh" size={13} color={sp.soft} /> {t('biens.error.retry')}
                   </button>
@@ -270,27 +270,27 @@ export function BpFollowupPage({
                 <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', margin: '0 auto 14px', background: surf.cardSub, display: 'grid', placeItems: 'center' }}>
                   <MEIcon name="check" size={22} color={sp.ink} />
                 </div>
-                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>{t('biens.followUp.empty.title')}</div>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>{t('biens.followUp.empty.title')}</div>
                 <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500, marginTop: 4 }}>{t('biens.followUp.empty.subtitle')}</div>
               </div>
             )}
 
             {hero && (
               <div style={{ padding: 'var(--crm-space-sm) var(--crm-space-sm) var(--crm-space-2xs)' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: orangeText, margin: '4px 6px 8px' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: orangeText, margin: '4px 6px 8px' }}>
                   <MEIcon name="bolt" size={13} color={orangeText} />
                   {t('biens.followUp.priorityFirst')}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', background: surf.cardSub, borderRadius: 'var(--crm-radius-2xl)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
                   {renderThumb(hero.b, 78, 58, 12)}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: sp.sub, marginBottom: 3 }}>{t('biens.followUp.mandateEcheance', { type: hero.b.mandat?.type ?? 'simple' })}</div>
-                    <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{hero.b.title}</div>
+                    <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, marginBottom: 3 }}>{t('biens.followUp.mandateEcheance', { type: hero.b.mandat?.type ?? 'simple' })}</div>
+                    <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{hero.b.title}</div>
                   </div>
                   {renderTag(expiryText(hero.days ?? 0), hero.urgent)}
                   <button
                     onClick={() => setRenew({ b: hero.b, days: hero.days ?? 0 })}
-                    style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, background: sp.ink, color: sp.pageBg }}
+                    style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: sp.ink, color: sp.pageBg }}
                   >
                     {t('biens.followUp.action.renew')}
                   </button>
@@ -300,7 +300,7 @@ export function BpFollowupPage({
 
             {shownBuckets.map((g, gi) => (
               <div key={g.id} style={{ padding: 'var(--crm-space-xs) var(--crm-space-md) 0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: sp.ink, padding: 'var(--crm-space-lg) var(--crm-space-sm) var(--crm-space-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: 0.2, color: sp.ink, padding: 'var(--crm-space-lg) var(--crm-space-sm) var(--crm-space-sm)' }}>
                   <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: BUCKET_META[g.id].dot, flexShrink: 0 }} />
                   {bucketTitle(g.id)}
                 </div>

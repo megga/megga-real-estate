@@ -108,7 +108,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
           <div
             style={{
               fontSize: 'var(--crm-text-2xl)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: sp.ink,
               letterSpacing: -0.3,
               whiteSpace: 'nowrap',
@@ -153,7 +153,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
             <div
               style={{
                 fontSize: 'var(--crm-text-4xl)',
-                fontWeight: 800,
+                fontWeight: 500,
                 color: sp.ink,
                 letterSpacing: -0.7,
                 lineHeight: 1,
@@ -184,7 +184,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
                 background: sp.ink,
                 color: sp.pageBg,
                 fontSize: 'var(--crm-text-md)',
-                fontWeight: 700,
+                fontWeight: 600,
                 whiteSpace: 'nowrap',
                 display: 'inline-flex',
                 alignItems: 'center',

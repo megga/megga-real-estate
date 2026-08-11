@@ -189,7 +189,7 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
         <div style={{ width: 62, height: 62, borderRadius: 'var(--crm-radius-pill)', background: red, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
           <MEIcon name="check" size={28} color="#fff" strokeWidth={2.2} />
         </div>
-        <h2 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
+        <h2 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.4, color: sp.ink }}>
           {t('biens.deleteFlow.deletedTitle')}
         </h2>
         <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500, marginTop: 9, lineHeight: 1.5 }}>
@@ -203,7 +203,7 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
   if (confirmDel) {
     return wrap(
       <div style={{ padding: '34px 30px 26px' }}>
-        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
+        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.4, color: sp.ink }}>
           {t('biens.deleteFlow.confirmTitle')}
         </h2>
         <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500, marginTop: 10, lineHeight: 1.55 }}>
@@ -214,14 +214,14 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
           <button
             onClick={() => setConfirmDel(false)}
             disabled={busy}
-            style={{ height: 46, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, background: surf.cardSub, color: sp.soft }}
+            style={{ height: 46, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: surf.cardSub, color: sp.soft }}
           >
             {t('biens.deleteFlow.cancel')}
           </button>
           <button
             onClick={submitDelete}
             disabled={busy}
-            style={{ height: 46, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, background: red, color: '#fff', opacity: busy ? 0.7 : 1 }}
+            style={{ height: 46, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: red, color: '#fff', opacity: busy ? 0.7 : 1 }}
           >
             {busy ? t('biens.deleteFlow.deleting') : t('biens.deleteFlow.confirm')}
           </button>
@@ -236,7 +236,7 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
         <div style={{ width: 62, height: 62, borderRadius: 'var(--crm-radius-pill)', background: accent, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
           <MEIcon name="check" size={28} color={onInk} strokeWidth={2.2} />
         </div>
-        <h2 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
+        <h2 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.4, color: sp.ink }}>
           {t('biens.renewModal.successTitle')}
         </h2>
         <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500, marginTop: 9, lineHeight: 1.5 }}>
@@ -257,7 +257,7 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
         >
           <MEIcon name="close" size={16} color={sp.soft} strokeWidth={1.9} />
         </button>
-        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>
+        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.5, color: sp.ink }}>
           {t('biens.renewModal.title')}
         </h2>
       </div>
@@ -274,18 +274,18 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.3, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.3, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {b.title}
           </div>
         </div>
-        <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: orange, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: orange, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
           {t(`biens.followUp.${expiry.key}`, { count: expiry.count })}
         </span>
       </div>
 
       {/* Durée de reconduction */}
       <div style={{ padding: '20px 26px 0' }}>
-        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.soft, marginBottom: 9 }}>{t('biens.renewModal.duration')}</div>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.soft, marginBottom: 9 }}>{t('biens.renewModal.duration')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--crm-space-md)' }}>
           {[3, 6, 12].map((m) => {
             const on = dur === m
@@ -293,7 +293,7 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
               <button
                 key={m}
                 onClick={() => setDur(m)}
-                style={{ height: 44, borderRadius: 'var(--crm-radius-lg)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: on ? accent : surf.cardSub, color: on ? onInk : sp.soft }}
+                style={{ height: 44, borderRadius: 'var(--crm-radius-lg)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: on ? accent : surf.cardSub, color: on ? onInk : sp.soft }}
               >
                 {t('biens.renewModal.months', { count: m })}
               </button>
@@ -308,21 +308,21 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
           <MEIcon name="calendar" size={15} color={sp.sub} />
           {t('biens.renewModal.newExpiry')}
         </span>
-        <span style={{ fontSize: 'var(--crm-text-lg)', color: sp.ink, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{newDateLabel}</span>
+        <span style={{ fontSize: 'var(--crm-text-lg)', color: sp.ink, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{newDateLabel}</span>
       </div>
 
       {/* Commission */}
       <div style={{ padding: '16px 26px 0' }}>
-        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.soft, marginBottom: 9 }}>{t('biens.renewModal.commission')}</div>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.soft, marginBottom: 9 }}>{t('biens.renewModal.commission')}</div>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <input
             className="bp-inp"
             value={comm}
-            onChange={(e) => setComm(e.target.value.replace(/[^\d.,]/g, ''))}
+            onChange={(e) => setComm(e.target.value.replace(/[^\d.]/g, ''))}
             inputMode="decimal"
-            style={{ width: '100%', height: 46, borderRadius: 'var(--crm-radius-lg)', border: 0, background: surf.cardSub, color: sp.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, padding: '0 40px 0 15px', outline: 'none', transition: 'box-shadow .12s ease' }}
+            style={{ width: '100%', height: 46, borderRadius: 'var(--crm-radius-lg)', border: 0, background: surf.cardSub, color: sp.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, padding: '0 40px 0 15px', outline: 'none', transition: 'box-shadow .12s ease' }}
           />
-          <span style={{ position: 'absolute', right: 16, fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.sub, pointerEvents: 'none' }}>%</span>
+          <span style={{ position: 'absolute', right: 16, fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.sub, pointerEvents: 'none' }}>%</span>
         </div>
       </div>
 
@@ -333,7 +333,7 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
         <button
           onClick={submitRenew}
           disabled={busy}
-          style={{ width: '100%', height: 48, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, background: accent, color: onInk, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)', opacity: busy ? 0.7 : 1 }}
+          style={{ width: '100%', height: 48, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: accent, color: onInk, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)', opacity: busy ? 0.7 : 1 }}
         >
           <MEIcon name="send" size={16} color={onInk} />
           {t('biens.renewModal.send')}
@@ -341,7 +341,7 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
         <button
           onClick={() => setConfirmDel(true)}
           disabled={busy}
-          style={{ width: '100%', height: 40, marginTop: 8, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: 'transparent', color: red }}
+          style={{ width: '100%', height: 40, marginTop: 8, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: 'transparent', color: red }}
         >
           {t('biens.renewModal.delete')}
         </button>
@@ -360,7 +360,7 @@ function doneBtn(accent: string, onInk: string): React.CSSProperties {
     cursor: 'pointer',
     fontFamily: 'inherit',
     fontSize: 'var(--crm-text-xl)',
-    fontWeight: 700,
+    fontWeight: 600,
     background: accent,
     color: onInk,
   }
