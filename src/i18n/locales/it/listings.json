@@ -1428,7 +1428,6 @@
           "subtitle": "Dashboard e pipeline."
         }
       },
-      "confirmationEmail": "Riceverai un'email di conferma a <strong>{{email}}</strong>.",
       "c2paNote": "Tutte le immagini generate sono firmate <strong>C2PA</strong> · provenienza verificabile dall'acquirente."
     },
     "shell": {

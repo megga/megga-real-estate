@@ -1428,7 +1428,6 @@
           "subtitle": "Tableau de bord et pipeline."
         }
       },
-      "confirmationEmail": "Vous recevrez un email de confirmation à <strong>{{email}}</strong>.",
       "c2paNote": "Toutes les images générées sont signées <strong>C2PA</strong> · provenance vérifiable par l'acheteur."
     },
     "shell": {

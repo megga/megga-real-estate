@@ -929,7 +929,7 @@ export default function BienDetailSugarV4Page({ demoData }: BienDetailProps = {}
                         <VxIcon name="shield" size={22} stroke={vx.ink} sw={1.6} />
                         <div style={{ flex: 1, fontSize: 'var(--crm-text-md)', color: vx.inkSoft, lineHeight: 1.5 }}>
                           <Trans i18nKey="detail.buyers.kycNotice" t={tr}>
-                            <b style={{ color: vx.ink }}>KYC à compléter</b> pour un acheteur, optionnel à ce stade, requis avant signature.
+                            <span style={{ color: vx.ink, fontWeight: 600 }}>KYC à compléter</span> pour un acheteur, optionnel à ce stade, requis avant signature.
                           </Trans>
                         </div>
                         <BfGhostBtn vx={vx} onClick={() => onNavigate('kyc')}>{tr('detail.buyers.startKyc')}</BfGhostBtn>

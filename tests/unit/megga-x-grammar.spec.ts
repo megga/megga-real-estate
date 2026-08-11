@@ -180,6 +180,25 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
   })
 
   /**
+   * ⛔ L'ANGLE MORT DE LA GARDE PRÉCÉDENTE : une graisse que la SOURCE ne
+   * déclare pas.
+   *
+   * `<strong>` et `<b>` héritent du preflight Tailwind — `b, strong
+   * { font-weight: bolder }` — qui, sur un parent réglé à 500, résout à **700**
+   * au rendu. Aucun `fontWeight:` n'apparaît alors dans le code : le test
+   * ci-dessus est vert, et l'écran est faux. Trouvé en mesurant l'étape 8 dans
+   * le navigateur, pas en lisant le fichier.
+   *
+   * On interdit donc la BALISE dans les zones portées. Pour de l'emphase, poser
+   * un `<span>` avec sa graisse explicite — la seule façon d'être sûr de ce qui
+   * sera rendu.
+   */
+  it('aucune balise qui hérite d’une graisse du preflight', () => {
+    const fautifs = sites((l) => /<(strong|b)[\s>]/.test(l))
+    expect(fautifs, `balises à graisse héritée :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  /**
    * Seul l'interlettrage POSITIF est visé, et à partir de 0,4. En dessous il ne
    * se voit pas ; au-dessus de zéro il n'existe que pour aérer des capitales, et
    * appliqué à de la casse normale il disloque le mot. Le négatif est laissé :

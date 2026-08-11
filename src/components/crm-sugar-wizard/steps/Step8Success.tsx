@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step8.jsx).
 
 import { useState, useEffect, useMemo, type ReactNode, type CSSProperties } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, fmtCHF, shade, type WizardData } from '../tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
@@ -209,17 +209,6 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
         <NextCard icon="dashboard" title={tr('wizard.step8.next.backToCrm.title')}
           subtitle={tr('wizard.step8.next.backToCrm.subtitle')}
           onClick={onBackToCRM} />
-      </div>
-
-      <div style={{
-        textAlign: 'center', fontSize: 'var(--crm-text-md)', color: SugarV2.muted, fontWeight: 500, lineHeight: 1.6,
-      }}>
-        <Trans
-          t={tr}
-          i18nKey="wizard.step8.confirmationEmail"
-          values={{ email: 'gregory@megga.ch' }}
-          components={{ strong: <strong style={{ color: SugarV2.ink }} /> }}
-        />
       </div>
     </div>
   )
