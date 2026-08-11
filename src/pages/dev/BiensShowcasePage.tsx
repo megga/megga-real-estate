@@ -18,6 +18,12 @@
  * purement présentationnel (il reçoit `biens` en prop), donc ce harnais
  * l'alimente directement, sans toucher `useBiensSugar`.
  *
+ * ⚠ Le harnais fournit `ThemeProvider`. `WizardShell` reçoit pourtant `dark` en
+ * prop — mais il appelle `useTheme()` AVANT de l'appliquer (`darkOverride ??
+ * theme === 'dark'`), et un hook ne peut pas être conditionnel : le prop
+ * n'exempte donc pas du contexte. Sans lui, ouvrir le wizard depuis ce harnais
+ * lève l'ErrorBoundary — mesuré.
+ *
  * ⚠ Le chemin ne contient PAS `/dashboard` : le script d'amorçage d'`index.html`
  * ne pose `data-theme="dark"` que si l'URL le contient. Le thème se pilote donc
  * ici, par le bouton du rail — la page ne dépend pas de l'amorçage.
@@ -33,6 +39,7 @@ import { mxSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { BiensPager } from '@/components/crm-sugar/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-sugar-wizard/WizardShell'
+import { ThemeProvider } from '@/hooks/useTheme'
 
 export default function BiensShowcasePage() {
   const [dark, setDark] = useState(false)
@@ -50,6 +57,7 @@ export default function BiensShowcasePage() {
   }
 
   return (
+    <ThemeProvider>
     <div style={{
       position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
@@ -88,5 +96,6 @@ export default function BiensShowcasePage() {
         />
       </div>
     </div>
+    </ThemeProvider>
   )
 }
