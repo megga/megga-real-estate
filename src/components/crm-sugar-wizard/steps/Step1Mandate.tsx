@@ -122,10 +122,10 @@ export function Step1Mandate({ data, set }: StepProps) {
       <div style={{ marginBottom: 28, maxWidth: 720 }}>
         <div style={{
           fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
-          letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
+          marginBottom: 14,
         }}>{tr('wizard.step1.mandate.eyebrow')}</div>
         <h1 style={{
-          margin: '0 0 14px', fontSize: 'var(--crm-text-9xl)', fontWeight: 700,
+          margin: '0 0 14px', fontSize: 'var(--crm-text-9xl)', fontWeight: 500,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
         }}>{tr('wizard.step1.mandate.title')}</h1>
         <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
@@ -146,7 +146,7 @@ export function Step1Mandate({ data, set }: StepProps) {
               width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)',
               background: linkedOwner.avatarBg || '#3B82F6',
               color: sgOn(), display: 'grid', placeItems: 'center',
-              fontSize: 'var(--crm-text-xs)', fontWeight: 700, flexShrink: 0,
+              fontSize: 'var(--crm-text-xs)', fontWeight: 600, flexShrink: 0,
             }}>{(linkedOwner.firstName?.[0] || '') + (linkedOwner.lastName?.[0] || '')}</div>
             <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.ink }}>
               {tr('wizard.forOwner', { name: `${linkedOwner.firstName} ${linkedOwner.lastName}` })}
@@ -191,14 +191,13 @@ export function Step1Mandate({ data, set }: StepProps) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 4 }}>
-              <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
+              <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2 }}>
                 {tr('wizard.step1.mandate.import.title')}
               </span>
               <span style={{
                 padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
                 background: SugarV2.black, color: sgOn(),
-                fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5,
-                textTransform: 'uppercase',
+                fontSize: 'var(--crm-text-xs)', fontWeight: 600,
               }}>MEGGA AI</span>
             </div>
             <div style={{ fontSize: 'var(--crm-text-lg)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
@@ -241,7 +240,7 @@ export function Step1Mandate({ data, set }: StepProps) {
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2, marginBottom: 2 }}>
+              <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2, marginBottom: 2 }}>
                 {importMode === 'uploading' ? tr('wizard.step1.mandate.reading') : tr('wizard.step1.mandate.analyzing')}
               </div>
               <div style={{ fontSize: 'var(--crm-text-md)', color: SugarV2.muted, fontWeight: 500 }}>
@@ -258,10 +257,10 @@ export function Step1Mandate({ data, set }: StepProps) {
                 background: SugarV2.cardSubtle,
                 animation: 'sgFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
               }}>
-                <span style={{ color: SugarV2.ok, fontSize: 'var(--crm-text-xl)', fontWeight: 700 }}>✓</span>
+                <span style={{ color: SugarV2.ok, fontSize: 'var(--crm-text-xl)', fontWeight: 600 }}>✓</span>
                 <span style={{
                   fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
-                  letterSpacing: 0.4, textTransform: 'uppercase', minWidth: 130,
+                  minWidth: 130,
                 }}>{f.label}</span>
                 <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, flex: 1 }}>
                   {f.value}
@@ -300,14 +299,13 @@ export function Step1Mandate({ data, set }: StepProps) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 2 }}>
-                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
+                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2 }}>
                   {tr('wizard.step1.mandate.importedTitle')}
                 </span>
                 <span style={{
                   padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
                   background: SugarV2.black, color: sgOn(),
-                  fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5,
-                  textTransform: 'uppercase',
+                  fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                 }}>MEGGA AI</span>
               </div>
               <div style={{ fontSize: 'var(--crm-text-md)', color: SugarV2.muted, fontWeight: 500 }}>{fileName}</div>
@@ -334,7 +332,7 @@ export function Step1Mandate({ data, set }: StepProps) {
               }}>
                 <div style={{
                   fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.muted,
-                  letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 6,
+                  marginBottom: 6,
                 }}>{f.label}</div>
                 <div style={{
                   fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: f.accent || SugarV2.ink,
@@ -370,7 +368,6 @@ export function Step1Mandate({ data, set }: StepProps) {
             <div style={{ flex: 1, height: 1, background: SugarV2.ghost }} />
             <span style={{
               fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
-              letterSpacing: 1, textTransform: 'uppercase',
             }}>{tr('wizard.step1.mandate.orManual')}</span>
             <div style={{ flex: 1, height: 1, background: SugarV2.ghost }} />
           </div>
@@ -403,11 +400,10 @@ export function Step1Mandate({ data, set }: StepProps) {
                       padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)',
                       background: sel ? sgAcc(0.15) : SugarV2.cardSubtle,
                       color: sel ? sgOn() : SugarV2.inkSoft,
-                      fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5,
-                      textTransform: 'uppercase',
+                      fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                     }}>{t.hint}</span>
                   )}
-                  <h3 style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 700, letterSpacing: -0.3 }}>{t.title}</h3>
+                  <h3 style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.3 }}>{t.title}</h3>
                   <p style={{
                     margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.5,
                     color: sel ? sgAcc(0.75) : SugarV2.inkSoft,
@@ -418,7 +414,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                     color: sel ? sgAcc(0.6) : SugarV2.muted,
                   }}>
                     <span>{tr('wizard.step1.mandate.proposedCommission')}</span>
-                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sel ? sgOn() : SugarV2.ink }}>{t.defaultCom}%</span>
+                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sel ? sgOn() : SugarV2.ink }}>{t.defaultCom}%</span>
                   </div>
                 </button>
               )
@@ -435,9 +431,9 @@ export function Step1Mandate({ data, set }: StepProps) {
               <div style={{ marginBottom: 22 }}>
                 <div style={{
                   fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
-                  letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
+                  marginBottom: 6,
                 }}>{tr('wizard.step1.mandate.settings')}</div>
-                <h3 style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>
+                <h3 style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.3 }}>
                   {tr('wizard.step1.mandate.settingsTitle')}
                 </h3>
               </div>
@@ -447,7 +443,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                 <div>
                   <div style={{
                     fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
-                    letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 12,
+                    marginBottom: 12,
                   }}>{tr('wizard.step1.mandate.field.duration')}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)' }}>
                     {[3, 6, 9, 12].map(d => (
@@ -468,9 +464,8 @@ export function Step1Mandate({ data, set }: StepProps) {
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{
                       fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
-                      letterSpacing: 0.6, textTransform: 'uppercase',
                     }}>{tr('wizard.step1.mandate.field.commission')}</span>
-                    <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>
+                    <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.3 }}>
                       {m.commission.toFixed(1)}%
                     </span>
                   </div>
@@ -489,7 +484,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                 <div>
                   <div style={{
                     fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
-                    letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 12,
+                    marginBottom: 12,
                   }}>{tr('wizard.step1.mandate.field.fees')}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
                     {[
@@ -535,7 +530,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                     }}
                     components={{
                       base: <span style={{ color: SugarV2.ink, fontWeight: 600 }} />,
-                      amountStrong: <span style={{ color: SugarV2.ink, fontWeight: 700 }} />,
+                      amountStrong: <span style={{ color: SugarV2.ink, fontWeight: 600 }} />,
                     }}
                   />
                 </div>

@@ -138,14 +138,14 @@ function SgPorteCard({
       }}
     >
       {media}
-      <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3, marginTop: 22 }}>{title}</div>
+      <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.3, marginTop: 22 }}>{title}</div>
       <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SugarV2.inkSoft, lineHeight: 1.5, marginTop: 8, maxWidth: 260 }}>{sub}</div>
       <span style={{
         marginTop: 26, height: 42, padding: '0 26px', borderRadius: 'var(--crm-radius-pill)',
         display: 'inline-flex', alignItems: 'center',
         background: selected ? SugarV2.black : SugarV2.cardSubtle,
         color: selected ? SugarV2.onBlack : SugarV2.ink,
-        fontSize: 'var(--crm-text-lg)', fontWeight: 700,
+        fontSize: 'var(--crm-text-lg)', fontWeight: 600,
         boxShadow: selected ? 'none' : SugarV2.shadowSm,
       }}>{selected ? selectedLabel : ctaLabel}</span>
       {children}
@@ -232,7 +232,7 @@ export function Step0Start({ data, set }: StepProps) {
       animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
     }}>
       <h1 style={{
-        margin: 0, fontSize: 'var(--crm-text-9xl)', fontWeight: 700, textAlign: 'center',
+        margin: 0, fontSize: 'var(--crm-text-9xl)', fontWeight: 500, textAlign: 'center',
         color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
       }}>
         {t('wizard.step0.title')}
@@ -270,7 +270,7 @@ export function Step0Start({ data, set }: StepProps) {
                     width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)',
                     background: sub.accent || '#0041D9', color: '#fff',
                     display: 'grid', placeItems: 'center',
-                    fontSize: 'var(--crm-text-md)', fontWeight: 800,
+                    fontSize: 'var(--crm-text-md)', fontWeight: 600,
                     marginLeft: i === 0 ? 0 : -12,
                     boxShadow: `0 0 0 3px ${subSelected ? SugarV2.cardSubtle : SugarV2.card}`,
                   }}>{subInitials(subName(sub))}</span>
@@ -280,7 +280,7 @@ export function Step0Start({ data, set }: StepProps) {
                     width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)',
                     background: subSelected ? SugarV2.card : SugarV2.cardSubtle, color: SugarV2.inkSoft,
                     display: 'grid', placeItems: 'center',
-                    fontSize: 'var(--crm-text-md)', fontWeight: 800, marginLeft: -12,
+                    fontSize: 'var(--crm-text-md)', fontWeight: 600, marginLeft: -12,
                     boxShadow: `0 0 0 3px ${subSelected ? SugarV2.cardSubtle : SugarV2.card}`,
                   }}>+{subs.length - 3}</span>
                 )}
@@ -325,11 +325,11 @@ export function Step0Start({ data, set }: StepProps) {
                       width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)',
                       background: sub.accent || '#0041D9', color: '#fff',
                       display: 'grid', placeItems: 'center',
-                      fontSize: 'var(--crm-text-xs)', fontWeight: 800, flexShrink: 0,
+                      fontSize: 'var(--crm-text-xs)', fontWeight: 600, flexShrink: 0,
                     }}>{subInitials(name)}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{
-                        display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2,
+                        display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>{name}</span>
                     </span>

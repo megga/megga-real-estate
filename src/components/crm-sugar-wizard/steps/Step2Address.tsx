@@ -138,10 +138,10 @@ export function Step2Address({ data, set }: StepProps) {
       <div style={{ marginBottom: 32, maxWidth: 720 }}>
         <div style={{
           fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
-          letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
+          marginBottom: 14,
         }}>{t('wizard.step2.eyebrow')}</div>
         <h1 style={{
-          margin: '0 0 14px', fontSize: 'var(--crm-text-9xl)', fontWeight: 700,
+          margin: '0 0 14px', fontSize: 'var(--crm-text-9xl)', fontWeight: 500,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
         }}>{t('wizard.step2.title')}</h1>
         <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
@@ -159,7 +159,7 @@ export function Step2Address({ data, set }: StepProps) {
               width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)',
               background: linkedOwner.avatarBg || '#3B82F6',
               color: sgOn(), display: 'grid', placeItems: 'center',
-              fontSize: 'var(--crm-text-xs)', fontWeight: 700, flexShrink: 0,
+              fontSize: 'var(--crm-text-xs)', fontWeight: 600, flexShrink: 0,
             }}>{(linkedOwner.firstName?.[0] || '') + (linkedOwner.lastName?.[0] || '')}</div>
             <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.ink }}>
               {t('wizard.forOwner', { name: `${linkedOwner.firstName} ${linkedOwner.lastName}` })}
@@ -276,14 +276,13 @@ export function Step2Address({ data, set }: StepProps) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 2 }}>
-                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
+                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2 }}>
                   {t('wizard.step2.confirmedTitle')}
                 </span>
                 <span style={{
                   padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
                   background: SugarV2.black, color: sgOn(),
-                  fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5,
-                  textTransform: 'uppercase',
+                  fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                 }}>MEGGA AI</span>
               </div>
               <div style={{ fontSize: 'var(--crm-text-md)', color: SugarV2.muted, fontWeight: 500 }}>
@@ -305,7 +304,7 @@ export function Step2Address({ data, set }: StepProps) {
               }}>
                 <div style={{
                   fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.muted,
-                  letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4,
+                  marginBottom: 4,
                 }}>{f.label}</div>
                 <div style={{
                   fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2,
@@ -444,7 +443,6 @@ function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; conf
             padding: 'var(--crm-space-lg) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
             fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
-            letterSpacing: 0.4, textTransform: 'uppercase',
           }}>{t('wizard.step2.mapPrompt')}</div>
         </div>
       )}

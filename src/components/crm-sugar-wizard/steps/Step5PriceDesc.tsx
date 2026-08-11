@@ -145,7 +145,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                     height: 38, padding: '0 var(--crm-space-7xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                     background: sel ? SugarV2.black : 'transparent',
                     color: sel ? sgOn() : SugarV2.inkSoft,
-                    fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer',
                     boxShadow: sel ? SugarV2.pillShadow : 'none',
                   }}>{t.l}</button>
                 )
@@ -155,8 +155,8 @@ export function Step5PriceDesc({ data, set }: StepProps) {
 
           {/* Question (centrée) */}
           <div style={{
-            textAlign: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: SugarV2.muted,
-            letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10,
+            textAlign: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
+            marginBottom: 10,
           }}>
             {transaction === 'vente' ? tr('wizard.step5.qSalePrice') : tr('wizard.step5.qMonthlyRent')}
           </div>
@@ -170,11 +170,11 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 width: Math.max(200, Math.min(680, (display.length || 1) * 58 + 40)),
                 maxWidth: '100%', height: 122, padding: 0,
                 border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit',
-                fontSize: 104, fontWeight: 800, color: SugarV2.ink, letterSpacing: -4, lineHeight: 1,
+                fontSize: 104, fontWeight: 500, color: SugarV2.ink, letterSpacing: -4, lineHeight: 1,
                 textAlign: 'center', fontVariantNumeric: 'tabular-nums',
               }} />
           </div>
-          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 'var(--crm-text-4xl)', fontWeight: 700, color: SugarV2.muted }}>
+          <div style={{ textAlign: 'center', marginTop: 12, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SugarV2.muted }}>
             CHF{transaction === 'location' && <span style={{ fontSize: 'var(--crm-text-xl)' }}>{tr('wizard.perMonth')}</span>}
           </div>
 
@@ -182,12 +182,12 @@ export function Step5PriceDesc({ data, set }: StepProps) {
           {transaction === 'location' && (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', background: SugarV2.cardSubtle }}>
-                <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: SugarV2.muted, letterSpacing: 0.5, textTransform: 'uppercase' }}>{tr('wizard.step5.chargesLabel')}</span>
+                <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted}}>{tr('wizard.step5.chargesLabel')}</span>
                 <input type="text" inputMode="numeric"
                   value={fmtCHF(data.charges)} onChange={e => onChargesChange(e.target.value)} placeholder="350"
                   style={{
                     width: 84, height: 36, border: 0, outline: 'none', background: SugarV2.card, borderRadius: 'var(--crm-radius-pill)',
-                    textAlign: 'center', fontFamily: 'inherit', fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink,
+                    textAlign: 'center', fontFamily: 'inherit', fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink,
                     boxShadow: SugarV2.shadowSm, fontVariantNumeric: 'tabular-nums',
                   }} />
                 <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.inkSoft }}>CHF</span>
@@ -206,7 +206,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
               display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
               height: 42, padding: '0 var(--crm-space-4xl) 0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
               background: SugarV2.card, boxShadow: SugarV2.shadowSm, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SugarV2.ink,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.ink,
             }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={SugarV2.inkSoft} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
               {display || '0'} CHF{transaction === 'location' ? tr('wizard.perMonth') : ''}
@@ -215,7 +215,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
           </div>
 
           <div style={{ textAlign: 'center', marginBottom: 26 }}>
-            <h1 style={{ margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.8 }}>{tr('wizard.step5.descTitle')}</h1>
+            <h1 style={{ margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 500, color: SugarV2.ink, letterSpacing: -0.8 }}>{tr('wizard.step5.descTitle')}</h1>
           </div>
 
           {/* Éditeur — feuille + toolbar/compteur qualité en bas */}
@@ -236,10 +236,10 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)' }}>
                   {/* compteur qualité — ou message d'échec honnête (état d'erreur) */}
                   {aiPhase === 'error' ? (
-                    <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SugarV2.err }}>{tr('wizard.step5.ai.error')}</span>
+                    <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.err }}>{tr('wizard.step5.ai.error')}</span>
                   ) : (
                     <span style={{
-                      fontSize: 'var(--crm-text-sm)', fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                      fontSize: 'var(--crm-text-sm)', fontWeight: 600, fontVariantNumeric: 'tabular-nums',
                       color: charCount >= idealChars ? SugarV2.ok : charCount >= minChars ? SugarV2.warn : SugarV2.muted,
                     }}>
                       {charCount === 0
@@ -275,7 +275,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                   }}>{tr('common:actions.cancel')}</button>
                   <button onClick={runPrompt} style={{
                     height: 38, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, flexShrink: 0,
-                    background: SugarV2.black, color: sgOn(), fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer',
+                    background: SugarV2.black, color: sgOn(), fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer',
                   }}>{charCount > 0 ? tr('wizard.step5.ai.refine') : tr('wizard.step5.ai.create')}</button>
                 </div>
               )}

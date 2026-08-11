@@ -98,12 +98,12 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
         </div>
 
         <div style={{
-          fontSize: 'var(--crm-text-md)', fontWeight: 700, color: SugarV2.muted,
-          letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12,
+          fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
+          marginBottom: 12,
         }}>{mode === 'now' ? tr('wizard.step8.eyebrow.now') : mode === 'schedule' ? tr('wizard.step8.eyebrow.schedule') : tr('wizard.step8.eyebrow.draft')}</div>
 
         <h1 style={{
-          margin: '0 0 12px', fontSize: 44, fontWeight: 700,
+          margin: '0 0 12px', fontSize: 44, fontWeight: 500,
           color: SugarV2.ink, letterSpacing: -1.2, lineHeight: 1.05,
         }}>{titleByMode[mode]}</h1>
 
@@ -140,15 +140,15 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
 
         <div style={{ minWidth: 0 }}>
           <div style={{
-            fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SugarV2.muted,
-            letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
+            fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
+            marginBottom: 6,
           }}>{tx === 'vente' ? tr('wizard.txBadge.sale') : tr('wizard.txBadge.rent')} · {data.canton || tr('wizard.country')}</div>
           <div style={{
-            fontSize: 'var(--crm-text-4xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.4, marginBottom: 4,
+            fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SugarV2.ink, letterSpacing: -0.4, marginBottom: 4,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{data.addr || tr('wizard.step8.noAddress')}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-lg)', color: SugarV2.inkSoft, fontWeight: 500 }}>
-            <span style={{ fontWeight: 700, color: SugarV2.ink }}>
+            <span style={{ fontWeight: 600, color: SugarV2.ink }}>
               {fmtCHF(price) || '—'} CHF{tx === 'location' ? tr('wizard.perMonthShort') : ''}
             </span>
             <span style={{ color: SugarV2.muted }}>·</span>
@@ -160,7 +160,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
           <a href="#" onClick={e => e.preventDefault()} style={{
             height: 44, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)',
             background: SugarV2.black, color: sgOn(),
-            fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: 0.1,
+            fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: 0.1,
             cursor: 'pointer', textDecoration: 'none',
             display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)',
             boxShadow: '0 8px 20px rgba(0,0,0,0.22)',
@@ -195,8 +195,8 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SugarV2.muted,
-              letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2,
+              fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.muted,
+              marginBottom: 2,
             }}>{tr('wizard.step8.publicUrl')}</div>
             <div style={{
               fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.ink,
@@ -274,13 +274,13 @@ function NextCard({
           <span style={{
             padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
             background: SugarV2.black, color: sgOn(),
-            fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.4,
+            fontSize: 'var(--crm-text-xs)', fontWeight: 600,
           }}>{tag}</span>
         )}
       </div>
       <div>
         <div style={{
-          fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2, marginBottom: 3,
+          fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2, marginBottom: 3,
         }}>{title}</div>
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SugarV2.muted, lineHeight: 1.45 }}>
           {subtitle}

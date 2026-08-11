@@ -60,7 +60,8 @@ function Sp4Pill({ active, children, onClick, big }: { active?: boolean; childre
   return (
     <button onClick={onClick} style={{
       height: big ? 52 : 44, padding: big ? '0 26px' : '0 20px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-      fontFamily: 'inherit', fontSize: big ? 17 : 14.5, fontWeight: 600, letterSpacing: -0.1,
+      fontFamily: 'inherit', fontWeight: 600, letterSpacing: -0.1,
+      fontSize: big ? 'var(--crm-text-3xl)' : 'var(--crm-text-lg)',
       background: active ? SugarV2.black : SugarV2.card, color: active ? sgOn() : SugarV2.ink,
       boxShadow: active ? SugarV2.shadow : SugarV2.shadowSm,
       display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', transition: 'background .12s',
@@ -89,7 +90,7 @@ function Sp4Dpe({ value, onChange, s = 52 }: { value: WizardData['energy']; onCh
             // Teinte DPE saturée fixe dans les deux thèmes → texte blanc constant
             // (sgOn() basculerait en sombre en dark et casserait le contraste).
             background: sel ? d.color : SugarV2.card, color: sel ? '#fff' : SugarV2.inkSoft,
-            fontSize: 'var(--crm-text-3xl)', fontWeight: 700, boxShadow: sel ? `0 8px 20px ${d.color}44` : SugarV2.shadowSm,
+            fontSize: 'var(--crm-text-3xl)', fontWeight: 600, boxShadow: sel ? `0 8px 20px ${d.color}44` : SugarV2.shadowSm,
             transition: 'background .12s', fontVariantNumeric: 'tabular-nums',
           }}>{d.v}</button>
         )
@@ -135,7 +136,7 @@ export function Step3Specs({ data, set }: StepProps) {
             background: sel ? SugarV2.black : SugarV2.card, color: sel ? sgOn() : SugarV2.ink,
             boxShadow: sel ? SugarV2.shadow : SugarV2.shadowSm,
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-lg)', transition: 'background .12s',
-          }}>{item.icon(sel ? sgOn() : SugarV2.ink, 26)}<span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700 }}>{t(`type.${TYPE_I18N[item.v]}`)}</span></button>
+          }}>{item.icon(sel ? sgOn() : SugarV2.ink, 26)}<span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>{t(`type.${TYPE_I18N[item.v]}`)}</span></button>
         )
       })}
     </div>,
@@ -144,7 +145,7 @@ export function Step3Specs({ data, set }: StepProps) {
       <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)', marginBottom: 24 }}>
         <input type="number" value={data.area ?? ''} placeholder="—" autoFocus min={0} max={5000}
           onChange={e => set({ area: e.target.value === '' ? null : Number(e.target.value) })}
-          className="sp4-big" style={{ width: 190, border: 0, outline: 0, background: 'transparent', textAlign: 'center', fontFamily: 'inherit', fontWeight: 700, fontSize: 72, color: SugarV2.ink, letterSpacing: -2, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }} />
+          className="sp4-big" style={{ width: 190, border: 0, outline: 0, background: 'transparent', textAlign: 'center', fontFamily: 'inherit', fontWeight: 500, fontSize: 72, color: SugarV2.ink, letterSpacing: -2, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }} />
         <span style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: SugarV2.muted }}>m²</span>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)', justifyContent: 'center' }}>
@@ -157,7 +158,7 @@ export function Step3Specs({ data, set }: StepProps) {
     <div key="year" style={{ maxWidth: 320, margin: '0 auto', textAlign: 'center' }}>
       <input type="number" value={data.year ?? ''} placeholder={t('wizard.step3.yearPlaceholder')} autoFocus min={1800} max={2100}
         onChange={e => set({ year: e.target.value === '' ? null : Number(e.target.value) })}
-        style={{ width: 260, boxSizing: 'border-box', height: 72, textAlign: 'center', border: 0, outline: 0, background: SugarV2.card, boxShadow: SugarV2.shadowSm, borderRadius: 'var(--crm-radius-3xl)', fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-8xl)', color: SugarV2.ink, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums' }} />
+        style={{ width: 260, boxSizing: 'border-box', height: 72, textAlign: 'center', border: 0, outline: 0, background: SugarV2.card, boxShadow: SugarV2.shadowSm, borderRadius: 'var(--crm-radius-3xl)', fontFamily: 'inherit', fontWeight: 500, fontSize: 'var(--crm-text-8xl)', color: SugarV2.ink, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums' }} />
     </div>,
     // 4 — DPE
     <Sp4Dpe key="dpe" value={data.energy} onChange={v => set({ energy: v })} s={56} />,
@@ -185,7 +186,7 @@ export function Step3Specs({ data, set }: StepProps) {
       ) : (
         <button onClick={() => setAdding(true)} style={{
           height: 44, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: 'var(--crm-text-xl)', fontWeight: 700, background: SugarV2.card, color: SugarV2.ink, boxShadow: `inset 0 0 0 1.5px ${SugarV2.line}`,
+          fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: SugarV2.card, color: SugarV2.ink, boxShadow: `inset 0 0 0 1.5px ${SugarV2.line}`,
           display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)',
         }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={SugarV2.ink} strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -210,7 +211,7 @@ export function Step3Specs({ data, set }: StepProps) {
 
       {/* Question active — Q7 (accordéon) ancrée en haut : la hauteur varie sans recentrage. */}
       <div key={q} style={{ minHeight: 300, display: 'flex', flexDirection: 'column', justifyContent: q === 6 ? 'flex-start' : 'center', animation: 'sgFadeUp .35s cubic-bezier(.2,.8,.2,1) both' }}>
-        <h1 style={{ margin: q === 6 ? '0 0 30px' : '0 0 42px', fontSize: q === 6 ? 32 : 40, fontWeight: 700, color: SugarV2.ink, letterSpacing: -1, lineHeight: 1.08, textAlign: 'center' }}>{QUESTIONS[q]}</h1>
+        <h1 style={{ margin: q === 6 ? '0 0 30px' : '0 0 42px', fontSize: q === 6 ? 32 : 40, fontWeight: 500, color: SugarV2.ink, letterSpacing: -1, lineHeight: 1.08, textAlign: 'center' }}>{QUESTIONS[q]}</h1>
         {bodies[q]}
       </div>
     </div>

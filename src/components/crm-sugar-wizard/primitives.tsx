@@ -90,7 +90,8 @@ export function SgBlackPill({
         borderRadius: 'var(--crm-radius-pill)', border: 0,
         background: disabled ? SugarV2.ghostSolid : (hover ? SugarV2.blackHover : SugarV2.black),
         color: SugarV2.onBlack,
-        fontFamily: 'inherit', fontSize: size === 'lg' ? 14.5 : 13, fontWeight: 600,
+        fontFamily: 'inherit', fontWeight: 600,
+        fontSize: size === 'lg' ? 'var(--crm-text-lg)' : 'var(--crm-text-md)',
         letterSpacing: 0.1,
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
@@ -141,9 +142,12 @@ export function SgInput({
   const [focus, setFocus] = useState(false)
   return (
     <label style={{ display: 'block' }}>
+      {/* Libellé de champ : casse normale, 16 px, poids 400 — la règle portée sur
+          les Réglages, où ils étaient en 12-13 px UPPERCASE poids 700. C'est le
+          seul point d'appui du wizard : tous ses champs passent par ici. */}
       <div style={{
-        fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
-        letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
+        fontSize: 'var(--crm-text-2xl)', fontWeight: 400, color: SugarV2.inkSoft,
+        marginBottom: 8,
       }}>{label}</div>
       <input type={type} value={value} autoFocus={autoFocus}
         onChange={e => onChange(e.target.value)}
@@ -177,7 +181,7 @@ export function SgAvatar({
       width: size, height: size, borderRadius: 'var(--crm-radius-pill)',
       background: contact.avatarBg || '#3B82F6',
       color: '#fff', display: 'grid', placeItems: 'center',
-      fontSize: Math.max(11, size * 0.34), fontWeight: 700,
+      fontSize: Math.max(11, size * 0.34), fontWeight: 600,
       flexShrink: 0,
       boxShadow: `0 0 0 4px ${contact.avatarBg ? contact.avatarBg + '26' : 'rgba(59,130,246,0.15)'}`,
     }}>{initials}</div>

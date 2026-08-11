@@ -155,11 +155,11 @@ function Sp4bDateField({
         <div style={{ boxSizing: 'border-box', width: '100%', padding: 'var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-xl)', background: SugarV2.cardSubtle, animation: 'sgFadeUp .25s cubic-bezier(.2,.8,.2,1) both' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 12 }}>
             {navBtn(-1, 'm15 18-6-6 6-6')}
-            <span style={{ flex: 1, textAlign: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: SugarV2.ink }}>{SP4B_MONTHS[view.m]} {view.y}</span>
+            <span style={{ flex: 1, textAlign: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink }}>{SP4B_MONTHS[view.m]} {view.y}</span>
             {navBtn(1, 'm9 18 6-6-6-6')}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 'var(--crm-space-2xs)', marginBottom: 4 }}>
-            {SP4B_WEEKDAYS.map((d, i) => <span key={i} style={{ textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5, color: SugarV2.ghost }}>{d}</span>)}
+            {SP4B_WEEKDAYS.map((d, i) => <span key={i} style={{ textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.ghost }}>{d}</span>)}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 'var(--crm-space-2xs)' }}>
             {cells.map((d, i) => {
@@ -171,7 +171,7 @@ function Sp4bDateField({
               return (
                 <button key={i} disabled={past} onClick={() => { onChange(sp4bFmtDate(dt)); setOpen(false) }} style={{
                   height: 34, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: past ? 'default' : 'pointer', fontFamily: 'inherit',
-                  fontSize: 'var(--crm-text-lg)', fontWeight: isSel ? 700 : 600, fontVariantNumeric: 'tabular-nums',
+                  fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontVariantNumeric: 'tabular-nums',
                   background: isSel ? SugarV2.black : 'transparent', color: isSel ? ON : past ? SugarV2.ghost : SugarV2.ink,
                   boxShadow: !isSel && isToday ? `inset 0 0 0 1.5px ${SugarV2.black}` : 'none',
                 }}>{d}</button>
@@ -181,7 +181,7 @@ function Sp4bDateField({
           <div style={{ display: 'flex', gap: 'var(--crm-space-md)', marginTop: 14 }}>
             <button onClick={() => { onChange(DISPO_TBD); setOpen(false) }} style={{
               flex: 1, height: 38, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: isTbd ? SugarV2.black : SugarV2.card,
+              fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: isTbd ? SugarV2.black : SugarV2.card,
               boxShadow: isTbd ? 'none' : SugarV2.shadowSm, color: isTbd ? ON : SugarV2.inkSoft,
             }}>{t('wizard.step3b.toAgree')}</button>
             {value && <button onClick={() => { onChange(null); setOpen(false) }} style={{
@@ -221,7 +221,7 @@ function Sp4bCount({ label, value, onChange }: { label: string; value: number | 
   const btn = (d: number, dis: boolean) => (
     <button disabled={dis} onClick={() => onChange(value == null ? (d > 0 ? 1 : null) : Math.max(0, value + d))} style={{
       width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: dis ? 'default' : 'pointer', background: SugarV2.card,
-      boxShadow: SugarV2.shadowSm, color: dis ? SugarV2.ghost : SugarV2.ink, fontSize: 'var(--crm-text-2xl)', fontWeight: 700,
+      boxShadow: SugarV2.shadowSm, color: dis ? SugarV2.ghost : SugarV2.ink, fontSize: 'var(--crm-text-2xl)', fontWeight: 600,
       display: 'grid', placeItems: 'center', fontFamily: 'inherit',
     }}>{d > 0 ? '+' : '−'}</button>
   )
@@ -229,14 +229,14 @@ function Sp4bCount({ label, value, onChange }: { label: string; value: number | 
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 48, padding: '0 var(--crm-space-md) 0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-lg)', background: SugarV2.cardSubtle }}>
       <span style={{ flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.inkSoft }}>{label}</span>
       {btn(-1, disMinus)}
-      <span style={{ width: 24, textAlign: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: value == null ? SugarV2.ghost : SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{value == null ? '—' : value}</span>
+      <span style={{ width: 24, textAlign: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: value == null ? SugarV2.ghost : SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{value == null ? '—' : value}</span>
       {btn(1, false)}
     </div>
   )
 }
 
 function Sp4bLbl({ children, first }: { children: ReactNode; first?: boolean }) {
-  return <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: SugarV2.muted, margin: first ? '0 0 10px' : '22px 0 10px' }}>{children}</div>
+  return <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted, margin: first ? '0 0 10px' : '22px 0 10px' }}>{children}</div>
 }
 
 function Sp4bRailBtn({ title, done, active, onClick }: { title: string; done: boolean; active: boolean; onClick: () => void }) {
@@ -246,7 +246,7 @@ function Sp4bRailBtn({ title, done, active, onClick }: { title: string; done: bo
       border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
       background: active ? SugarV2.black : 'transparent', color: active ? sgOn() : SugarV2.inkSoft, transition: 'background .12s',
     }}>
-      <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: active ? 700 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
       {done && <span style={{ width: 18, height: 18, borderRadius: 'var(--crm-radius-pill)', background: '#059669', display: 'grid', placeItems: 'center', flexShrink: 0 }}><Sp4bCheckIco c="#fff" s={10} /></span>}
     </button>
   )
@@ -307,8 +307,8 @@ export function Step3bDetails({ data, set }: StepProps) {
         <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
           <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted }}>{t('wizard.step3b.reference')}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', height: 46, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-lg)', background: SugarV2.cardSubtle }}>
-            <span style={{ flex: 1, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{det.ref}</span>
-            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: SugarV2.ghost }}>{t('wizard.step3b.auto')}</span>
+            <span style={{ flex: 1, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{det.ref}</span>
+            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.ghost }}>{t('wizard.step3b.auto')}</span>
           </span>
         </label>
         <Sp4bDateField label={t('wizard.step3b.availability')} value={det.dispo} onChange={v => setDet({ dispo: v })} />
@@ -420,7 +420,7 @@ export function Step3bDetails({ data, set }: StepProps) {
       </nav>
       <div style={{ borderRadius: 'var(--crm-radius-5xl)', background: SugarV2.card, boxShadow: SugarV2.shadow, height: 520, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ flexShrink: 0, padding: '22px 26px 0' }}>
-          <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>{cur.title}</span>
+          <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2 }}>{cur.title}</span>
         </div>
         <div ref={panelRef} key={cur.id} style={{ flex: 1, overflowY: 'auto', scrollbarGutter: 'stable', padding: '20px 26px 26px', animation: 'sgFadeUp .28s cubic-bezier(.2,.8,.2,1) both' }}>
           {cur.body}

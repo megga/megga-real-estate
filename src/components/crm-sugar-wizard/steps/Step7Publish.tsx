@@ -42,7 +42,7 @@ function SgP7Seg<T extends string>({ options, value, onChange }: {
         return (
           <button key={o.v} onClick={() => onChange(o.v)} style={{
             height: 38, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 'var(--crm-text-lg)', fontWeight: sel ? 700 : 600,
+            fontSize: 'var(--crm-text-lg)', fontWeight: 600,
             background: sel ? SugarV2.black : 'transparent', color: sel ? sgOn() : SugarV2.muted,
           }}>{o.label}</button>
         )
@@ -119,7 +119,7 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
       </div>
 
       <div style={{ textAlign: 'center', marginBottom: 26 }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.8 }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 500, color: SugarV2.ink, letterSpacing: -0.8 }}>
           {t('wizard.step7.readyTitle')}
         </h1>
       </div>
@@ -127,7 +127,7 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
       {/* ── CHECKLIST « PRÊT À PUBLIER » (publication publique uniquement) ── */}
       {publicPublish && missing.length > 0 && (
         <div style={{ background: SugarV2.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: SugarV2.shadowLg, padding: '22px 26px', marginBottom: 22 }}>
-          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: SugarV2.ink, letterSpacing: -0.3 }}>
+          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.3 }}>
             {t('wizard.step7.checklist.heading', { count: missing.length })}
           </div>
           <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SugarV2.muted, marginTop: 4, lineHeight: 1.45 }}>
@@ -148,13 +148,13 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
                     : <span style={{ width: 7, height: 7, borderRadius: 'var(--crm-radius-pill)', background: SugarV2.isDark ? '#E0738C' : '#8E1F3D' }} />}
                 </span>
                 <span style={{
-                  flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: c.ok ? 500 : 700, color: c.ok ? SugarV2.muted : SugarV2.ink,
+                  flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: c.ok ? 500 : 600, color: c.ok ? SugarV2.muted : SugarV2.ink,
                   letterSpacing: -0.2, textDecoration: c.ok ? 'line-through' : 'none', fontVariantNumeric: 'tabular-nums',
                 }}>{c.label}</span>
                 {!c.ok && onGoStep && (
                   <button onClick={() => onGoStep(c.step)} style={{
                     height: 30, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, background: SugarV2.cardSubtle, color: SugarV2.ink,
+                    fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, background: SugarV2.cardSubtle, color: SugarV2.ink,
                   }}>{t('wizard.step7.checklist.complete')}</button>
                 )}
               </div>
@@ -205,7 +205,7 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
             {photos.length > 4 && (
               <div style={{
                 width: 76, height: 54, borderRadius: 'var(--crm-radius-md)', background: SugarV2.card,
-                display: 'grid', placeItems: 'center', color: SugarV2.muted, fontSize: 'var(--crm-text-md)', fontWeight: 700,
+                display: 'grid', placeItems: 'center', color: SugarV2.muted, fontSize: 'var(--crm-text-md)', fontWeight: 600,
               }}>+{photos.length - 4}</div>
             )}
           </div>
@@ -215,10 +215,10 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
           {/* Titre + prix */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--crm-space-4xl)', marginBottom: 20 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SugarV2.muted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted, marginBottom: 6 }}>
                 {tx === 'vente' ? t('wizard.txBadge.sale') : t('wizard.txBadge.rent')} · {data.canton || t('wizard.country')}
               </div>
-              <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.5, lineHeight: 1.2 }}>
+              <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 500, color: SugarV2.ink, letterSpacing: -0.5, lineHeight: 1.2 }}>
                 {typeLabel(data.type, t)}{data.rooms ? ` ${data.rooms} ${t('wizard.step7.roomsWord')}` : ''}{data.addr ? ` — ${data.addr}` : ''}
               </div>
               <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SugarV2.muted, marginTop: 4 }}>
@@ -226,8 +226,8 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
               </div>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 800, color: SugarV2.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums' }}>{fmtCHF(price) || '—'}</div>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SugarV2.muted, letterSpacing: 0.5, marginTop: 2 }}>
+              <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 500, color: SugarV2.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums' }}>{fmtCHF(price) || '—'}</div>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted, marginTop: 2 }}>
                 CHF{tx === 'location' ? t('wizard.perMonth') : perM2 ? ` · ${fmtCHF(perM2)}.-/m²` : ''}
               </div>
             </div>
@@ -240,9 +240,9 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
           }}>
             {specs.map((s, i) => (
               <div key={i} style={{ background: SugarV2.card, padding: 'var(--crm-space-2xl) var(--crm-space-3xl)' }}>
-                <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SugarV2.muted, letterSpacing: '.06em', textTransform: 'uppercase' }}>{s.l}</div>
+                <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.muted}}>{s.l}</div>
                 <div style={{
-                  fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums',
+                  fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums',
                   display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
                 }}>
                   {s.dpe && <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: '#5AA469' }} />}
@@ -255,7 +255,7 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
           {/* Description */}
           {data.description && (
             <>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SugarV2.muted, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted, marginBottom: 8 }}>
                 {t('wizard.step7.descriptionLabel')}
               </div>
               <p style={{ margin: '0 0 22px', fontSize: 'var(--crm-text-lg)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.65 }}>{data.description}</p>
@@ -265,7 +265,7 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
           {/* Équipements */}
           {featLabels.length > 0 && (
             <>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SugarV2.muted, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted, marginBottom: 10 }}>
                 {t('wizard.step7.featuresLabel')}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)', marginBottom: 24 }}>
@@ -278,14 +278,14 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
 
           {/* Agent (utilisateur connecté réel) */}
           <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-xl)', background: SugarV2.cardSubtle, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', background: SugarV2.black, color: sgOn(), display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 700 }}>{agentInitials}</div>
+            <div style={{ width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', background: SugarV2.black, color: sgOn(), display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>{agentInitials}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SugarV2.ink }}>{agentName}</div>
+              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.ink }}>{agentName}</div>
               <div style={{ fontSize: 'var(--crm-text-sm)', color: SugarV2.muted, fontWeight: 500 }}>{t('wizard.step7.agentLine', { canton: data.canton || t('wizard.country') })}</div>
             </div>
             <button disabled style={{
               height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
-              background: SugarV2.black, color: sgOn(), fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, cursor: 'default',
+              background: SugarV2.black, color: sgOn(), fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, cursor: 'default',
             }}>{t('wizard.step7.contact')}</button>
           </div>
         </div>
@@ -293,12 +293,12 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
 
       {/* ── OPTIONS DE PUBLICATION ── */}
       <div style={{ background: SugarV2.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: SugarV2.shadow, padding: 26, marginTop: 22 }}>
-        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3, marginBottom: 20 }}>{t('wizard.step7.optionsTitle')}</div>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.3, marginBottom: 20 }}>{t('wizard.step7.optionsTitle')}</div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-6xl)', marginBottom: 20 }}>
           {/* Visibilité */}
           <div>
-            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SugarV2.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 }}>{t('wizard.step7.visibility.eyebrow')}</div>
+            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted, marginBottom: 10 }}>{t('wizard.step7.visibility.eyebrow')}</div>
             <SgP7Seg
               value={visibility === 'private' ? 'private' : 'public'}
               onChange={(v) => set({ visibility: v })}
@@ -314,7 +314,7 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
 
           {/* Quand */}
           <div>
-            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: SugarV2.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 }}>{t('wizard.step7.whenPublish')}</div>
+            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted, marginBottom: 10 }}>{t('wizard.step7.whenPublish')}</div>
             <SgP7Seg
               value={mode}
               onChange={(v) => set({ publishMode: v })}
@@ -351,7 +351,7 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
         )}
         <button onClick={publish} disabled={!canPublish} style={{
           height: 52, padding: '0 28px', borderRadius: 'var(--crm-radius-pill)', border: 0,
-          background: canPublish ? SugarV2.black : SugarV2.ghostSolid, color: sgOn(), fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700,
+          background: canPublish ? SugarV2.black : SugarV2.ghostSolid, color: sgOn(), fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600,
           cursor: canPublish ? 'pointer' : 'not-allowed', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
           boxShadow: canPublish ? '0 12px 30px rgba(0,0,0,0.28)' : 'none',
         }}>

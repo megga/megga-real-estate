@@ -78,10 +78,10 @@ export function Step1Vendor({ data, set }: StepProps) {
       <div style={{ marginBottom: 36, maxWidth: 720 }}>
         <div style={{
           fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
-          letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
+          marginBottom: 14,
         }}>{t('wizard.step1.vendor.eyebrow')}</div>
         <h1 style={{
-          margin: '0 0 14px', fontSize: 'var(--crm-text-9xl)', fontWeight: 700,
+          margin: '0 0 14px', fontSize: 'var(--crm-text-9xl)', fontWeight: 500,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
         }}>{t('wizard.step1.vendor.title')}</h1>
         <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
@@ -101,7 +101,7 @@ export function Step1Vendor({ data, set }: StepProps) {
           <SgAvatar contact={selected} size={56} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginBottom: 4, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>
+              <span style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.3 }}>
                 {selected.firstName} {selected.lastName}
               </span>
               <SgKycChip status={selected.kyc?.status} />
@@ -153,7 +153,6 @@ export function Step1Vendor({ data, set }: StepProps) {
             {q.length === 0 && sellers.length > 0 && (
               <div style={{
                 fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
-                letterSpacing: 1, textTransform: 'uppercase',
                 padding: 'var(--crm-space-sm) var(--crm-space-xs)',
               }}>{t('wizard.step1.vendor.recentSellers')}</div>
             )}
@@ -189,14 +188,13 @@ export function Step1Vendor({ data, set }: StepProps) {
                   <SgAvatar contact={c} size={44} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 2, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: SugarV2.ink }}>
+                      <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink }}>
                         {c.firstName} {c.lastName}
                       </span>
                       {c.type === 'seller' && (
                         <span style={{
-                          fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: SugarV2.inkSoft,
+                          fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.inkSoft,
                           padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', background: SugarV2.cardSubtle,
-                          letterSpacing: 0.4, textTransform: 'uppercase',
                         }}>{t('wizard.step1.vendor.sellerTag')}</span>
                       )}
                       <SgKycChip status={c.kyc?.status} />
@@ -223,9 +221,9 @@ export function Step1Vendor({ data, set }: StepProps) {
           <div style={{ marginBottom: 20 }}>
             <div style={{
               fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
-              letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
+              marginBottom: 6,
             }}>{t('wizard.step1.vendor.newSeller')}</div>
-            <h3 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>
+            <h3 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SugarV2.ink, letterSpacing: -0.3 }}>
               {t('wizard.step1.vendor.quickInfo')}
             </h3>
           </div>
