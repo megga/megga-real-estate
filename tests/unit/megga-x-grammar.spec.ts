@@ -70,6 +70,14 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   { root: 'src/components/crm-mobile/biens', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-mobile/bien', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-mobile/wizard', keep: (n) => /\.tsx?$/.test(n) },
+  // ⚠ CHROME PARTAGÉ, pas une surface de « Mes biens ». `SugarShell` porte la
+  // barre supérieure et le rail de TOUTE l'app agent — 30 fichiers le montent,
+  // de Today aux Réglages. Il entre dans le cliquet parce qu'il est rendu EN
+  // PERMANENCE sur les écrans portés, et qu'il est mesuré propre : 0 capitale,
+  // 0 graisse ≥ 700, 0 interlettrage, 0 taille en dur, 0 noir Sugar. Son seul
+  // hex hors échelle est `#e53935`, le compteur de notifications — sémantique,
+  // même famille que `err`.
+  { root: 'src/components/crm-sugar', keep: (n) => n === 'SugarShell.tsx' },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
 ]
 
@@ -334,6 +342,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-mobile/biens',
       'src/components/crm-mobile/bien',
       'src/components/crm-mobile/wizard',
+      'src/components/crm-sugar',
       'src/pages/agent',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
     // Les deux pages sont bien VUES — un filtre de nom qui ne matche rien

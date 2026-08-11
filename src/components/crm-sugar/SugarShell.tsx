@@ -253,7 +253,7 @@ export function SugarTopNav({ active = 'today', sp, onNavigate, dark = false }: 
               padding: 'var(--crm-space-lg) var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
               background: isActive ? sp.accent : 'transparent',
               color: isActive ? sp.accentInk : sp.soft,
-              fontWeight: isActive ? 700 : 500, fontSize: 'var(--crm-text-xl)',
+              fontWeight: isActive ? 600 : 500, fontSize: 'var(--crm-text-xl)',
               fontFamily: 'inherit', boxShadow: isActive ? sp.focusShadow : 'none',
             }}>{tab.label}</button>
           )
@@ -280,7 +280,7 @@ export function SugarTopNav({ active = 'today', sp, onNavigate, dark = false }: 
             // ses voisins. `sp.ink` est le token d'accent Sugar : noir franc en
             // clair, encre claire en sombre.
             background: aiActive ? sp.accent : 'transparent',
-            boxShadow: aiActive ? '0 6px 20px rgba(11,12,14,0.25)' : 'none',
+            boxShadow: aiActive ? '0 6px 20px rgba(3,3,3,0.25)' : 'none',
             display: 'grid', placeItems: 'center', cursor: 'pointer',
             transition: 'background .2s ease, box-shadow .2s ease',
           }}>
@@ -306,7 +306,7 @@ export function SugarTopNav({ active = 'today', sp, onNavigate, dark = false }: 
                 position: 'absolute', top: 4, right: 4,
                 minWidth: 16, height: 16, borderRadius: 'var(--crm-radius-pill)',
                 background: '#E53935', color: '#fff',
-                fontSize: 'var(--crm-text-xs)', fontWeight: 800,
+                fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                 display: 'grid', placeItems: 'center', padding: '0 var(--crm-space-xs)',
                 // Détourage sur le fond de page, la pastille de verre ayant disparu.
                 border: `2px solid ${sp.pageBg}`,
@@ -346,9 +346,9 @@ export function SugarTopNav({ active = 'today', sp, onNavigate, dark = false }: 
               background: profileOpen ? sp.ink : avatarBg,
               color: '#fff',
               display: 'grid', placeItems: 'center',
-              fontSize: 'var(--crm-text-xl)', fontWeight: 700, cursor: 'pointer',
+              fontSize: 'var(--crm-text-xl)', fontWeight: 600, cursor: 'pointer',
               boxShadow: profileOpen
-                ? '0 6px 20px rgba(11,12,14,0.25)'
+                ? '0 6px 20px rgba(3,3,3,0.25)'
                 : sp.shadow,
               transition: 'background 200ms ease, box-shadow 200ms ease',
             }}>{displayInitials}</button>
