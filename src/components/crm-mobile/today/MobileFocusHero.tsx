@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { focusTagKey, focusTy, type FocusItem, type FocusTypeDef } from '@/components/crm-sugar/today/focusQueue'
 import { useMobileTokens } from '../useMobileTokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 // Icônes des types Focus (RXIcon desktop) → MEIcon (source unique mobile).
 const FOCUS_ICON: Record<string, MEIconName> = {
@@ -332,7 +333,7 @@ export function MobileFocusHero({
                 fontWeight: 800,
                 whiteSpace: 'nowrap',
                 background: calling ? '#0B7A4B' : '#fff',
-                color: calling ? '#fff' : '#0B0C0E',
+                color: calling ? MXC_COLOR.n1000 : MXC_COLOR.n100,
                 boxShadow: '0 10px 26px -10px rgba(0,0,0,.55)',
                 transition: 'background .25s ease',
               }}
@@ -349,7 +350,7 @@ export function MobileFocusHero({
                 </>
               ) : (
                 <>
-                  <MEIcon name={typeIcon} size={18} strokeWidth={2} color="#0B0C0E" />
+                  <MEIcon name={typeIcon} size={18} strokeWidth={2} color={MXC_COLOR.n100} />
                   {primaryLabel}
                 </>
               )}

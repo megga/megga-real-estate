@@ -32,7 +32,7 @@ export default function MmVerdict({ score, big = false, onPhoto = false }: MmVer
         fontWeight: 800,
         letterSpacing: -0.1,
         ...(onPhoto
-          ? { background: 'rgba(11,12,14,0.78)', backdropFilter: 'blur(8px)', color: '#fff' }
+          ? { background: 'rgba(3,3,3,0.78)', backdropFilter: 'blur(8px)', color: '#fff' }
           : { background: tk.cardSubtle, color: tk.ink }),
       }}
     >

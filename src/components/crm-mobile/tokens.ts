@@ -1,18 +1,29 @@
-// MEGGA CRM — Tokens « Sugar Pure » mobile (clair + sombre).
+// MEGGA CRM — Jetons du CRM mobile (clair + sombre).
 //
-// Source de vérité : MT_LIGHT/MT_DARK promus depuis la maquette
-// docs/handoff/crm-mobile/crm-mobile-today.jsx (déjà Sugar Pure : accent noir
-// #0B0C0E, surfaces blanches pures, ombres douces seules, zéro bordure déco).
-// Consolidations vs maquettes : un seul jeu de phases pipeline (MT_PHASES),
-// tokens destructifs (danger), sceau KYC (kycSeal). Ce module est le point
-// UNIQUE — aucune dérivation locale de tokens ailleurs.
+// Point UNIQUE de la couleur mobile : seize dossiers d'écrans en dépendent —
+// Today, Pipeline, Contacts, Agenda, Matching, KYC, Réglages, « Mes biens »…
+// Aucune dérivation locale ailleurs.
 //
-// ⚠ Ne PAS baser les COULEURS D'ACCENT sur src/components/crm-sugar/tokens.ts
-// (accent bleu desktop). Ses surfaces sombres sortent des neutres MEGGA X :
-// sans elle le mobile resterait quasi-noir pendant que le desktop passe en
-// Graphite. L'accent mobile reste défini ici.
+// ── Direction ────────────────────────────────────────────────────────────
+// Les DEUX thèmes descendent de `mxCrmPalette()` depuis le 11 août 2026. Avant,
+// ce fichier était le dernier reste de Sugar Pure du CRM : en clair, tout y
+// était Sugar — canvas `#EEF1F5` en dégradé radial, encre `#0B0C0E`, et surtout
+// `accent: '#0B0C0E'`, l'accent qui EST l'encre ; en sombre, un hybride dont
+// les sept surfaces venaient déjà de `MXC_COLOR` mais dont les encres restaient
+// bleutées et l'accent s'inversait en near-white `#F2F2F6`.
+//
+// ⚠ Une note d'origine interdisait ici de prendre l'accent du desktop. Elle
+// datait de l'époque où cet accent était le NOIR de Sugar et où le mobile
+// aurait pu se retrouver sur une autre échelle sombre. Les deux raisons ont
+// disparu : l'accent est `#424bfb` partout, et les surfaces sombres sont déjà
+// celles de MEGGA X.
+//
+// Garde-fou : `tests/unit/mobile-palette.spec.ts`.
 
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+
+const MX_LIGHT = mxCrmPalette(false)
+const MX_DARK = mxCrmPalette(true)
 
 export interface MobileTokens {
   mode: 'light' | 'dark'
@@ -65,34 +76,40 @@ export interface MobileTokens {
 
 export const MT_LIGHT: MobileTokens = {
   mode: 'light',
-  canvas: 'radial-gradient(ellipse 120% 65% at 50% 0%, #CFDAE4 0%, #DFE3EA 46%, #EEF0F3 100%)',
-  pageBg: '#EEF1F5',
-  card: '#FFFFFF',
-  cardSubtle: '#F6F7F9',
-  ink: '#0B0C0E',
-  inkSoft: '#3A3D44',
-  muted: '#7A8088',
-  ghost: '#AEB3BC',
-  hair: '#ECEEF1',
-  accent: '#0B0C0E',
-  accentInk: '#FFFFFF',
+  // Fond PLAT : le dégradé radial hérité de Sugar posait une seconde source de
+  // lumière que la direction ne connaît pas. Retiré le même jour que celui du
+  // wizard, pour la même raison.
+  canvas: MX_LIGHT.pageBg,
+  pageBg: MX_LIGHT.pageBg,
+  card: MX_LIGHT.cardBg,
+  cardSubtle: MX_LIGHT.cardSubBg,
+  ink: MX_LIGHT.ink,
+  inkSoft: MX_LIGHT.soft,
+  muted: MX_LIGHT.sub,
+  ghost: MXC_COLOR.n600,
+  hair: MXC_COLOR.n800,
+  accent: MX_LIGHT.accent,
+  accentInk: MX_LIGHT.accentInk,
   headerBg: 'rgba(255,255,255,0.92)',
   tabBg: 'rgba(255,255,255,0.92)',
-  overlay: 'rgba(11,12,14,0.32)',
-  sheetBg: '#EDEFF2',
-  tabBarBg: '#FFFFFF',
+  overlay: 'rgba(3,3,3,0.32)',
+  sheetBg: MX_LIGHT.cardSubBg,
+  tabBarBg: MX_LIGHT.cardBg,
   tabBarShadow: '0 18px 44px rgba(15,23,42,0.16), 0 4px 14px rgba(15,23,42,0.07)',
-  pillBg: '#0B0C0E',
-  pillInk: '#FFFFFF',
+  pillBg: MX_LIGHT.accent,
+  pillInk: MX_LIGHT.accentInk,
   shadowSm: '0 4px 16px rgba(15,23,42,0.05)',
   shadow: '0 12px 34px rgba(15,23,42,0.07), 0 2px 8px rgba(15,23,42,0.04)',
   shadowLg: '0 22px 50px rgba(15,23,42,0.12), 0 6px 18px rgba(15,23,42,0.06)',
-  relanceBg: '#0B0C0E',
+  // Bloc de relance : bento IMMERSIF sombre dans les DEUX thèmes — idiome
+  // accepté (cf. le bento Facturation gardé aux Réglages). Il descend de
+  // l'échelle sans cesser d'être sombre.
+  relanceBg: MXC_COLOR.n100,
   relanceBorder: 'transparent',
-  relanceInk: '#FFFFFF',
-  relanceMuted: '#9CA0AC',
-  ctaBg: '#FFFFFF',
-  ctaInk: '#0B0C0E',
+  relanceInk: MXC_COLOR.n1000,
+  relanceMuted: MXC_COLOR.n600,
+  ctaBg: MXC_COLOR.n1000,
+  ctaInk: MXC_COLOR.n100,
   riskBg: '#FAEAD7',
   riskFg: '#B4570A',
   goal: '#059669',
@@ -117,35 +134,35 @@ function mtFrameVeil(alpha: number): string {
 // cette échelle). Le littéral de repli est la valeur historique du site.
 export const MT_DARK: MobileTokens = {
   mode: 'dark',
-  canvas: MXC_COLOR.n100,
-  pageBg: MXC_COLOR.n100,
-  card: MXC_COLOR.n300,
-  cardSubtle: MXC_COLOR.n200,
-  ink: '#ECEDF3',
-  inkSoft: '#B5B7C4',
-  muted: '#878B99',
-  ghost: '#54576A',
+  canvas: MX_DARK.pageBg,
+  pageBg: MX_DARK.pageBg,
+  card: MX_DARK.cardBg,
+  cardSubtle: MX_DARK.cardSubBg,
+  ink: MX_DARK.ink,
+  inkSoft: MX_DARK.soft,
+  muted: MX_DARK.sub,
+  ghost: MXC_COLOR.n500,
   hair: 'rgba(255,255,255,0.08)',
-  accent: '#F2F2F6',
-  accentInk: '#0B0C0E',
+  accent: MX_DARK.accent,
+  accentInk: MX_DARK.accentInk,
   get headerBg() { return mtFrameVeil(0.82) },
   get tabBg() { return mtFrameVeil(0.86) },
   overlay: 'rgba(0,0,4,0.5)',
   // Feuille du bas et barre d'onglets = surfaces FLOTTANTES → palier haut.
-  sheetBg: MXC_COLOR.n300,
-  tabBarBg: MXC_COLOR.n300,
+  sheetBg: MX_DARK.cardBg,
+  tabBarBg: MX_DARK.cardBg,
   tabBarShadow: '0 18px 44px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.4)',
-  pillBg: '#F2F2F6',
-  pillInk: '#0B0C0E',
+  pillBg: MX_DARK.accent,
+  pillInk: MX_DARK.accentInk,
   shadowSm: '0 2px 10px rgba(0,0,0,0.4)',
   shadow: '0 12px 34px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4)',
   shadowLg: '0 24px 56px rgba(0,0,0,0.62), 0 6px 18px rgba(0,0,0,0.5)',
   relanceBg: MXC_COLOR.n200,
   relanceBorder: 'rgba(255,255,255,0.08)',
-  relanceInk: '#ECEDF3',
-  relanceMuted: '#878B99',
-  ctaBg: '#F2F2F6',
-  ctaInk: '#0B0C0E',
+  relanceInk: MXC_COLOR.n1000,
+  relanceMuted: MXC_COLOR.n600,
+  ctaBg: MXC_COLOR.n1000,
+  ctaInk: MXC_COLOR.n100,
   riskBg: 'rgba(180,87,10,0.20)',
   riskFg: '#F0B27A',
   goal: '#34C796',

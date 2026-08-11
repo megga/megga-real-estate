@@ -11,6 +11,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { KIND_META, type NotifGroup, type SugarNotif } from '@/components/crm-sugar/notifications/data'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 interface MrNotifSheetProps {
   open: boolean
@@ -239,10 +240,10 @@ export default function MrNotifSheet({
                       style={{
                         position: 'relative',
                         overflow: 'hidden',
-                        background: '#0B0C0E',
+                        background: MXC_COLOR.n100,
                         borderRadius: 'var(--crm-radius-4xl)',
                         padding: 'var(--crm-space-3xl) var(--crm-space-3xl) var(--crm-space-3xl)',
-                        boxShadow: '0 18px 44px rgba(11,12,14,0.4)',
+                        boxShadow: '0 18px 44px rgba(3,3,3,0.4)',
                       }}
                     >
                       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>

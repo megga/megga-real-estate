@@ -134,7 +134,7 @@ function Card({ d, t, tk, onOpen }: { d: ParcoursDossier; t: TFunction; tk: Mobi
       {task ? (
         <div style={{ marginTop: 15, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)', background: tk.accent, color: tk.accentInk }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase', color: tk.mode === 'dark' ? 'rgba(11,12,14,.55)' : 'rgba(255,255,255,.6)', whiteSpace: 'nowrap' }}>{t('mobile.journey.inProgress', { defaultValue: 'En cours' })} · {stage ? stage.label : ''}</div>
+            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase', color: tk.mode === 'dark' ? 'rgba(3,3,3,.55)' : 'rgba(255,255,255,.6)', whiteSpace: 'nowrap' }}>{t('mobile.journey.inProgress', { defaultValue: 'En cours' })} · {stage ? stage.label : ''}</div>
             <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.label}</div>
           </div>
           <MEIcon name="chevron-right" size={18} color={tk.accentInk} strokeWidth={2.2} />

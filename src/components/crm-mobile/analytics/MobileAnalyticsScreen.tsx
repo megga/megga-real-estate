@@ -13,6 +13,7 @@ import { useAxDashboardData } from '@/hooks/useAxDashboardData'
 import { axCHF, axPace, type AxPeriodData, type AxPeriodId } from '@/components/crm-sugar/analytics/tokens'
 import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 const PERIODS: AxPeriodId[] = ['month', 'quarter', 'year']
 const noCHF = (s: string) => s.replace('CHF ', '')
@@ -259,7 +260,7 @@ function Trajectory({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTok
         <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, whiteSpace: 'nowrap' }}>{d.granularity}</span>
       </div>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block', height: 132 }} role="img" aria-label={t('analytics.chart.title')}>
-        <path d={area} fill={tk.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(11,12,14,0.05)'} stroke="none" />
+        <path d={area} fill={tk.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(3,3,3,0.05)'} stroke="none" />
         {d.target ? <path d={toPath(goalPts)} fill="none" stroke={tk.goal} strokeWidth={1.6} strokeDasharray="4 4" strokeLinecap="round" /> : null}
         <path d={toPath(realPts)} fill="none" stroke={tk.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
         {projPts.length > 1 ? <path d={toPath(projPts)} fill="none" stroke={tk.ink} strokeWidth={2.4} strokeDasharray="2 5" strokeLinecap="round" opacity={0.55} /> : null}
@@ -368,7 +369,7 @@ function Composition({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTo
   const total = d.composition.reduce((s, c) => s + c.v, 0)
   const ramp: Record<string, string> = tk.mode === 'dark'
     ? { secured: '#F3F4F6', probable: '#878D98', possible: '#41454D' }
-    : { secured: '#0B0C0E', probable: '#7B828C', possible: '#CDD1D7' }
+    : { secured: MXC_COLOR.n100, probable: MXC_COLOR.n500, possible: MXC_COLOR.n700 }
   return (
     <div style={{ marginTop: 24 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginBottom: 11, padding: '0 var(--crm-space-2xs)' }}>

@@ -163,7 +163,7 @@ export function MobileTodayHScreen() {
             <div style={{ position: 'relative', aspectRatio: '16 / 7.5', overflow: 'hidden' }}>
               <img src={sel.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
               {sel.price && (
-                <span style={{ position: 'absolute', left: 12, bottom: 10, padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(11,12,14,0.78)', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ position: 'absolute', left: 12, bottom: 10, padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(3,3,3,0.78)', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
                   {sel.price}{sel.place ? ` · ${sel.place}` : ''}
                 </span>
               )}

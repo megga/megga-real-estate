@@ -36,6 +36,7 @@ import {
   sourceLabel,
   timelineCat,
 } from './detailShared'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 type DocRow = { id: string; name: string; created_at: string }
 type TabId = 'overview' | 'activity' | 'matching' | 'docs'
@@ -315,8 +316,8 @@ function OverviewTab({ contact, t, tk, i18nLang, onRefine }: { contact: Contact;
               <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', flexWrap: 'wrap' }}>{features.map((f) => <GlassChip key={f}>{f}</GlassChip>)}</div>
             </div>
           ) : null}
-          <button type="button" onClick={onRefine} style={{ width: '100%', marginTop: 16, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: '#fff', color: '#0B0C0E', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}>
-            {t('mobile.detail.criteria.refine')} <MEIcon name="arrow-right" size={16} color="#0B0C0E" strokeWidth={2} />
+          <button type="button" onClick={onRefine} style={{ width: '100%', marginTop: 16, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: MXC_COLOR.n1000, color: MXC_COLOR.n100, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}>
+            {t('mobile.detail.criteria.refine')} <MEIcon name="arrow-right" size={16} color={MXC_COLOR.n100} strokeWidth={2} />
           </button>
         </div>
       ) : null}
