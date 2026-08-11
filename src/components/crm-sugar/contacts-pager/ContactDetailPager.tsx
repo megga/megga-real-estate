@@ -6,8 +6,8 @@
 // Molette (accumulateur) / flèches + PageUp-Down / swipe / points latéraux.
 // Gel du pager (freezeRef) pendant une édition inline ou une modale ouverte.
 //
-// Beta v1 : le bloc Coordonnées porte l'identité LBA (9 lignes, « À renseigner » si
-// vide) et la modale d'identité édite les 6 champs correspondants — toute
+// Beta v1 : le bloc Coordonnées porte l'identité LBA (9 lignes, « — » si vide)
+// et la modale d'identité édite les 6 champs correspondants — toute
 // modification d'un d'eux invalide un KYC vérifié (cf. lib/contactIdentity).
 //
 // Conventions : inline styles (PAS de Tailwind), 'Inter Tight', composants au
@@ -332,11 +332,29 @@ function CdField({ label, value, mono, P }: { label: string; value: ReactNode; m
   )
 }
 
-function CdReadRow({ label, value, empty, emptyLabel, mono, P }: { label: string; value: ReactNode; empty?: boolean; emptyLabel: string; mono?: boolean; P: FichePal }) {
+/**
+ * Une ligne en lecture du bloc Coordonnées.
+ *
+ * Le vide se dit par un TIRET CADRATIN, plus par la phrase « À renseigner ».
+ * Neuf lignes sur la même grille : sur une fiche neuve, la phrase se répétait
+ * neuf fois et pesait plus lourd que les valeurs des fiches remplies, qu'elle
+ * côtoie dans la même colonne.
+ *
+ * Un tiret plutôt que RIEN, et ce n'est pas cosmétique : la valeur est le seul
+ * contenu de la seconde ligne du bloc. Vide, le `<div>` retombe à zéro, la
+ * cellule perd sa hauteur, et la grille à deux colonnes se désaligne dès qu'un
+ * champ sur deux est renseigné. C'est aussi l'idiome du dépôt pour l'absence de
+ * donnée — `formatCHF()` rend `CHF —`.
+ *
+ * L'information de conformité ne se perd pas : le tiret reste peint en `ghost`
+ * quand la valeur, elle, est en `ink`. C'est le CONTRASTE qui signale le trou,
+ * comme avant ; seul le libellé disparaît.
+ */
+function CdReadRow({ label, value, empty, mono, P }: { label: string; value: ReactNode; empty?: boolean; mono?: boolean; P: FichePal }) {
   return (
     <div>
       <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted }}>{label}</div>
-      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: empty ? 500 : 600, color: empty ? P.ghost : P.ink, marginTop: 5, fontVariantNumeric: mono ? 'tabular-nums' : 'normal' }}>{empty ? emptyLabel : value}</div>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: empty ? 500 : 600, color: empty ? P.ghost : P.ink, marginTop: 5, fontVariantNumeric: mono ? 'tabular-nums' : 'normal' }}>{empty ? '—' : value}</div>
     </div>
   )
 }
@@ -632,7 +650,6 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
   const civOpts = [{ v: '', l: t('fiche.civ.none') }, ...CD_CIV.map((v) => ({ v, l: t('fiche.civ.' + v) }))]
   const langOpts = CD_LANGS.map((v) => ({ v, l: t('fiche.lang.' + v) }))
   const canalOpts = CD_CANALS.map((v) => ({ v, l: t('fiche.canal.' + v) }))
-  const emptyLbl = t('fiche.toFill')
 
   return (
     // Défilement permanent (pas seulement en édition) : les 9 lignes d'identité
@@ -678,15 +695,15 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
       ) : (
         // Une seule grille 2 colonnes, ordre du handoff : état civil → identité LBA → contact.
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
-          <CdReadRow label={t('fiche.coord.civility')} value={form.civ ? t('fiche.civ.' + form.civ) : ''} empty={!form.civ} emptyLabel={emptyLbl} P={P} />
-          <CdReadRow label={t('detail.language')} value={form.lang ? t('fiche.lang.' + form.lang) : ''} empty={!form.lang} emptyLabel={emptyLbl} P={P} />
-          <CdReadRow label={t('fiche.coord.birth')} value={fiche.birth} empty={!fiche.birth} emptyLabel={emptyLbl} mono P={P} />
-          <CdReadRow label={t('fiche.coord.nationality')} value={countryName(fiche.nationality)} empty={!fiche.nationality} emptyLabel={emptyLbl} P={P} />
-          <CdReadRow label={t('fiche.coord.residence')} value={countryName(fiche.residence)} empty={!fiche.residence} emptyLabel={emptyLbl} P={P} />
-          <CdReadRow label={t('fiche.coord.address')} value={fiche.homeAddress} empty={!fiche.homeAddress} emptyLabel={emptyLbl} P={P} />
-          <CdReadRow label={t('detail.email')} value={form.email} empty={!form.email} emptyLabel={emptyLbl} P={P} />
-          <CdReadRow label={t('detail.phone')} value={form.phone} empty={!form.phone} emptyLabel={emptyLbl} mono P={P} />
-          <CdReadRow label={t('fiche.coord.channel')} value={form.canal ? t('fiche.canal.' + form.canal) : ''} empty={!form.canal} emptyLabel={emptyLbl} P={P} />
+          <CdReadRow label={t('fiche.coord.civility')} value={form.civ ? t('fiche.civ.' + form.civ) : ''} empty={!form.civ} P={P} />
+          <CdReadRow label={t('detail.language')} value={form.lang ? t('fiche.lang.' + form.lang) : ''} empty={!form.lang} P={P} />
+          <CdReadRow label={t('fiche.coord.birth')} value={fiche.birth} empty={!fiche.birth} mono P={P} />
+          <CdReadRow label={t('fiche.coord.nationality')} value={countryName(fiche.nationality)} empty={!fiche.nationality} P={P} />
+          <CdReadRow label={t('fiche.coord.residence')} value={countryName(fiche.residence)} empty={!fiche.residence} P={P} />
+          <CdReadRow label={t('fiche.coord.address')} value={fiche.homeAddress} empty={!fiche.homeAddress} P={P} />
+          <CdReadRow label={t('detail.email')} value={form.email} empty={!form.email} P={P} />
+          <CdReadRow label={t('detail.phone')} value={form.phone} empty={!form.phone} mono P={P} />
+          <CdReadRow label={t('fiche.coord.channel')} value={form.canal ? t('fiche.canal.' + form.canal) : ''} empty={!form.canal} P={P} />
         </div>
       )}
     </div>

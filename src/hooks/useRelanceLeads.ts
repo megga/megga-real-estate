@@ -68,7 +68,7 @@ function contactToLead(c: {
     last: c.last_name,
     avatarBg: PALETTE[idx % PALETTE.length],
     score,
-    bien: 'À renseigner',
+    bien: '—',
     bienPrice: '—',
     budget: '—',
     kyc,
