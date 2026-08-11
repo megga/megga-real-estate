@@ -263,7 +263,7 @@ export function Step1Vendor({ data, set }: StepProps) {
               disabled={!newContact.firstName || !newContact.lastName}
               style={{
                 height: 40, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
-                background: (!newContact.firstName || !newContact.lastName) ? SugarV2.ghost : SugarV2.black,
+                background: (!newContact.firstName || !newContact.lastName) ? SugarV2.ghostSolid : SugarV2.black,
                 color: sgOn(), fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-lg)', fontWeight: 600,
                 cursor: (!newContact.firstName || !newContact.lastName) ? 'not-allowed' : 'pointer',

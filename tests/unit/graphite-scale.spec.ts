@@ -133,9 +133,22 @@ describe('palettes d’écran dérivées', () => {
     expect(MT_DARK.headerBg).toBe('rgba(5,5,5,0.82)')
   })
 
-  it('garde le wizard en clair intact', () => {
+  /**
+   * Le wizard en clair descend de MEGGA X, et pas de Graphite.
+   *
+   * Cette assertion figeait `'#FFFFFF'` en littéral, pour vérifier que la
+   * bascule Graphite — qui ne visait que le SOMBRE — n'avait pas débordé sur la
+   * branche claire du wizard. Le 11 août 2026 cette branche a été migrée
+   * exprès : elle vaut la même couleur, mais elle la tient désormais de
+   * `mxCrmPalette`. Le littéral ne disait plus d'où venait la valeur, seulement
+   * qu'elle coïncidait. Ce que la palette du wizard doit respecter est
+   * verrouillé par `wizard-palette.spec.ts` ; ici on garde ce que ce fichier-ci
+   * a pour rôle de dire — aucune surface n'est restée sur Graphite.
+   */
+  it('le wizard en clair descend de MEGGA X, pas de Graphite', () => {
     setSugarV2Dark(false)
-    expect(SugarV2.card).toBe('#FFFFFF')
+    expect(SugarV2.card).toBe(mxCrmPalette(false).cardBg)
+    expect(Object.values(CRM_GRAPHITE) as string[]).not.toContain(SugarV2.card)
     setSugarV2Dark(null)
   })
 

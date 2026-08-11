@@ -1,7 +1,8 @@
-// MEGGA CRM Sugar v2 Wizard — Design tokens (palette unique, distinct from Today).
-// 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx).
+// MEGGA CRM — Wizard « Créer un bien » — jetons de palette.
+// Port d'origine : le bundle Claude Design (crm-wizard-sugar-v2.jsx).
 import i18nSg from '@/i18n' // labels d'étapes i18n (getters SG_STEPS)
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { sgMix } from '@/components/crm-sugar/tokens'
 //
 // Deux thèmes (light + dark). `SugarV2` n'est PAS un objet figé : c'est un Proxy
 // qui lit le thème actif (`__sgActive`) au moment de l'accès. Le shell réassigne
@@ -13,90 +14,117 @@ import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 // `{ SugarV2 }` garde la même référence quel que soit le thème actif, donc aucune
 // capture (`const SP = SugarV2`) ne se retrouve figée sur l'ancien objet.
 //
-// Light : fond gris radial → bleu pâle, cards blanches, ombres douces, accent NOIR pur.
-// Dark  : surfaces prises sur l'échelle sombre active (Graphite S0→S3 par défaut,
-//   littéraux historiques en Noir pur), accent NEAR-WHITE #ECEDF3.
-//   ⚠ Inversion clé : en dark l'accent `black` devient near-white, donc tout ce qui
-//   est « posé sur l'accent » (texte d'un CTA, ✓ d'une case) passe en `onBlack` sombre.
-//   Ne jamais hardcoder `#fff` sur l'accent → utiliser `sgOn()` / `onBlack`.
+// ─── Direction ───────────────────────────────────────────────────────────
+// Les DEUX thèmes descendent de `mxCrmPalette()`. Avant le 11 août 2026 ce
+// fichier était le dernier jeu de jetons AUTONOME du CRM : le clair rendait le
+// gris bleuté de Sugar et un accent NOIR — `#424bfb` n'apparaissait pas une
+// fois dans les 4 832 lignes du wizard —, et le sombre ne dérivait que ses
+// SURFACES, ses quatre encres restant bleutées hors échelle.
+//
+// ⚠ `black` est un nom HISTORIQUE. Sous Sugar Pure l'accent ÉTAIT l'encre : noir
+// le jour, near-white la nuit. Il vaut désormais `#424bfb` dans les deux thèmes
+// (règle du 10 août 2026, cf. `CLAUDE.md` §3). Ce qui est posé dessus est donc
+// TOUJOURS blanc — d'où `sgOn()` devenue constante, plus bas.
+//
+// Garde-fou : `tests/unit/wizard-palette.spec.ts`.
+
+const MX_LIGHT = mxCrmPalette(false)
+const MX_DARK = mxCrmPalette(true)
+
+// Survol de l'accent : la vitrine n'en publie aucun barreau — son
+// `.primary-button:hover` ne change pas de teinte, il grandit
+// (`transform: scale3d(1.04…)`). On le dérive donc de l'accent lui-même, comme
+// les Réglages (`settings/data.ts`), plutôt que d'inventer une couleur.
+//
+// ⚠ En sombre on éclaircit de 0,12 et non de 0,16 comme les Réglages : tout
+// éclaircissement de l'accent coûte du contraste à l'encre BLANCHE posée dessus.
+// Mesuré — 0,16 rend 4,30:1, sous l'AA ; 0,12 rend 4,64:1. Le plafond est
+// intrinsèque (l'accent nu est déjà à 5,78:1), pas un réglage libre.
+const ACCENT_HOVER_LIGHT = sgMix(MXC_COLOR.accent, '#000000', 0.14)
+const ACCENT_HOVER_DARK = sgMix(MXC_COLOR.accent, '#FFFFFF', 0.12)
 
 const SUGARV2_LIGHT = {
-  // Fond — radial doux du clair vers bleu-gris pâle
-  bg: '#EDEFF3',
-  bgGradient: 'radial-gradient(ellipse 120% 80% at 50% 100%, #C8D5E0 0%, #E2E5EB 50%, #EDEFF3 100%)',
+  // Fond — radial doux, même géométrie qu'avant, sur les barreaux de la vitrine
+  bg: MX_LIGHT.pageBg,
+  bgGradient: `radial-gradient(ellipse 120% 80% at 50% 100%, ${MXC_COLOR.n700} 0%, ${MXC_COLOR.n800} 50%, ${MXC_COLOR.n900} 100%)`,
 
   // Surfaces
-  card: '#FFFFFF',
-  cardSubtle: '#F7F8FA',
-  rail: '#FFFFFF',
-  railHover: '#F0F2F6',
+  card: MX_LIGHT.cardBg,
+  cardSubtle: MX_LIGHT.cardSubBg,
+  rail: MX_LIGHT.frameBg,
+  railHover: MX_LIGHT.focusSurface,
 
   // Accent unique
-  black: '#0B0C0E',
-  blackHover: '#1F2024',
-  onBlack: '#FFFFFF',           // texte / icône POSÉ SUR l'accent
+  black: MX_LIGHT.accent,
+  blackHover: ACCENT_HOVER_LIGHT,
+  onBlack: MX_LIGHT.accentInk,  // texte / icône POSÉ SUR l'accent
 
   // Texte
-  ink: '#0B0C0E',
-  inkSoft: '#3A3D44',
-  muted: '#7A8088',
-  ghost: '#B5BAC2',
+  ink: MX_LIGHT.ink,
+  inkSoft: MX_LIGHT.soft,
+  muted: MX_LIGHT.sub,
+  // `ghost` = trait ou encre FAIBLE (filet, bordure pointillée, piste de
+  // spinner, libellé désactivé). ⚠ Il ne sert PAS de remplissage : voir
+  // `ghostSolid`, qui doit porter une encre blanche.
+  //
+  // `as string` élargit : `MXC_COLOR` est `as const`, donc sans lui le type de
+  // la palette serait le LITTÉRAL `'#a3a3a3'` et la branche sombre ne pourrait
+  // pas prendre un autre barreau. Les autres jetons passent par `mxCrmPalette()`,
+  // dont le retour est déjà élargi.
+  ghost: MXC_COLOR.n600 as string,
+  // Remplissage d'un contrôle DÉSACTIVÉ, sous encre blanche (5,57:1). Avant le
+  // 11 août 2026 les trois boutons concernés reprenaient `ghost` : blanc sur
+  // `#B5BAC2`, soit 2,0:1. Un barreau ne peut pas servir les deux rôles.
+  ghostSolid: MXC_COLOR.n500 as string,
 
   // Hairline / divider structurel
-  line: 'rgba(11,12,14,0.08)',
+  line: 'rgba(3,3,3,0.08)',
 
-  // Ombres signature Sugar
+  // Ombres — la profondeur relève de la GRAMMAIRE, portée par le lot suivant.
   shadowSm: '0 4px 16px rgba(15, 23, 42, 0.04)',
   shadow:   '0 12px 40px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.03)',
   shadowLg: '0 24px 60px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04)',
   shadowHover: '0 32px 70px rgba(15, 23, 42, 0.10), 0 6px 20px rgba(15, 23, 42, 0.05)',
   pillShadow: '0 6px 16px rgba(11,12,14,0.18)',
   pillShadowHover: '0 12px 30px rgba(11,12,14,0.25)',
-  ringSoft: 'rgba(11,12,14,0.06)',
-  footerFade: 'linear-gradient(180deg, transparent 0%, rgba(237,239,243,0.9) 60%, rgba(237,239,243,1) 100%)',
+  footerFade: `linear-gradient(180deg, transparent 0%, ${MXC_COLOR.n900}E6 60%, ${MXC_COLOR.n900} 100%)`,
 
-  // États (utilitaires uniquement, jamais décoratifs)
+  // États — employés en ENCRE sur surface claire. Les teintes de `MXC_SYSTEM`
+  // sont réglées pour le canvas `#030303` de la vitrine et n'y répondent pas.
   ok:   '#10B981',
   warn: '#F59E0B',
   err:  '#EF4444',
 
-  // Avatars / pastilles d'équipe
+  // Avatars / pastilles d'équipe — `pop1` est écrit dans la DONNÉE du contact
+  // (`avatarBg`) : il encode une identité, il ne décore pas.
   pop1: '#3B82F6',
   pop2: '#EF4444',
   pop3: '#FBBF24',
   pop4: '#10B981',
-
-  // Voiles translucides POSÉS SUR l'accent (light : l'accent est noir → voile blanc)
-  onAcc04: 'rgba(255,255,255,0.04)', onAcc08: 'rgba(255,255,255,0.08)', onAcc10: 'rgba(255,255,255,0.10)',
-  onAcc12: 'rgba(255,255,255,0.12)', onAcc15: 'rgba(255,255,255,0.15)', onAcc16: 'rgba(255,255,255,0.16)',
-  onAcc18: 'rgba(255,255,255,0.18)', onAcc30: 'rgba(255,255,255,0.30)', onAcc40: 'rgba(255,255,255,0.40)',
-  onAcc55: 'rgba(255,255,255,0.55)', onAcc65: 'rgba(255,255,255,0.65)', onAcc70: 'rgba(255,255,255,0.70)',
-  onAcc75: 'rgba(255,255,255,0.75)', onAcc80: 'rgba(255,255,255,0.80)',
 
   isDark: false,
 }
 
 export type SugarV2Palette = typeof SUGARV2_LIGHT
 
-// Surfaces MEGGA X. Elles étaient en GETTERS tant que la teinte sombre était
-// un choix de l'agent ; ce choix retiré, les valeurs sont constantes.
 const SUGARV2_DARK: SugarV2Palette = {
-  bg: MXC_COLOR.n100,
+  bg: MX_DARK.pageBg,
   bgGradient: `radial-gradient(ellipse 130% 95% at 50% -12%, ${MXC_COLOR.n400} 0%, ${MXC_COLOR.n200} 48%, ${MXC_COLOR.n100} 100%)`,
 
-  card: MXC_COLOR.n300,
-  cardSubtle: MXC_COLOR.n200,
-  rail: MXC_COLOR.n200,
-  railHover: MXC_COLOR.n300,
+  card: MX_DARK.cardBg,
+  cardSubtle: MX_DARK.cardSubBg,
+  rail: MX_DARK.frameBg,
+  railHover: MX_DARK.focusSurface,
 
-  black: '#ECEDF3',             // accent → near-white en dark
-  blackHover: '#FFFFFF',
-  onBlack: '#0A0A0F',           // texte / icône SUR l'accent near-white → sombre
+  black: MX_DARK.accent,
+  blackHover: ACCENT_HOVER_DARK,
+  onBlack: MX_DARK.accentInk,
 
-  ink: '#ECEDF3',
-  inkSoft: '#B7B9C6',
-  muted: '#7C8094',
-  ghost: '#3A3B4A',
+  ink: MX_DARK.ink,
+  inkSoft: MX_DARK.soft,
+  muted: MX_DARK.sub,
+  ghost: MXC_COLOR.n500,
+  ghostSolid: MXC_COLOR.n500,
 
   line: 'rgba(255,255,255,0.09)',
 
@@ -107,7 +135,6 @@ const SUGARV2_DARK: SugarV2Palette = {
   shadowHover: '0 36px 84px -18px rgba(0,0,0,.8), 0 10px 28px -12px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.08)',
   pillShadow: '0 8px 20px -6px rgba(0,0,0,0.6)',
   pillShadowHover: '0 14px 34px -8px rgba(0,0,0,0.72)',
-  ringSoft: 'rgba(255,255,255,0.10)',
   footerFade: `linear-gradient(180deg, transparent 0%, ${MXC_COLOR.n100}D1 55%, ${MXC_COLOR.n100} 100%)`,
 
   ok:   '#34C796',
@@ -115,13 +142,6 @@ const SUGARV2_DARK: SugarV2Palette = {
   err:  '#F26B65',
 
   pop1: '#6F8CFF', pop2: '#F26B65', pop3: '#F2B855', pop4: '#34C796',
-
-  // Voiles translucides SUR l'accent (dark : l'accent est near-white → voile sombre)
-  onAcc04: 'rgba(11,12,14,0.05)', onAcc08: 'rgba(11,12,14,0.08)', onAcc10: 'rgba(11,12,14,0.10)',
-  onAcc12: 'rgba(11,12,14,0.12)', onAcc15: 'rgba(11,12,14,0.16)', onAcc16: 'rgba(11,12,14,0.16)',
-  onAcc18: 'rgba(11,12,14,0.18)', onAcc30: 'rgba(11,12,14,0.32)', onAcc40: 'rgba(11,12,14,0.42)',
-  onAcc55: 'rgba(11,12,14,0.55)', onAcc65: 'rgba(11,12,14,0.62)', onAcc70: 'rgba(11,12,14,0.66)',
-  onAcc75: 'rgba(11,12,14,0.72)', onAcc80: 'rgba(11,12,14,0.78)',
 
   isDark: true,
 }
@@ -170,11 +190,43 @@ export const SugarV2: SugarV2Palette = new Proxy({} as SugarV2Palette, {
   }),
 })
 
-// ─── Helpers thème-aware pour les littéraux qui étaient codés en dur ───────
-// `sgOn()`  : couleur d'un texte / icône POSÉ SUR l'accent (jamais `#fff` en dur).
-// `sgAcc(a)`: voile translucide POSÉ SUR l'accent (blanc en light, sombre en dark).
-export const sgOn = (): string => sgActive().onBlack
-export const sgAcc = (a: number): string =>
+// ─── Helpers : ce qu'on pose SUR l'accent, et ce qu'on pose SUR une surface ──
+//
+// Ces deux-là s'inversaient avec le thème tant que l'accent s'inversait lui-même
+// (noir le jour, near-white la nuit). L'accent vaut `#424bfb` dans les deux
+// thèmes depuis le 10 août 2026 : ce qui repose dessus ne bascule plus.
+
+/**
+ * Couleur d'un texte / d'une icône POSÉ SUR l'accent — jamais `#fff` en dur.
+ *
+ * ⛔ Constante, et c'est délibéré. La fonction reste parce qu'elle nomme une
+ * RELATION — « l'encre posée sur l'accent » — et que c'est ce que veulent dire
+ * ses 45 appels ; qu'elle se résolve aujourd'hui en une seule valeur est une
+ * conséquence MESURÉE de l'invariance de l'accent (blanc sur `#424bfb` = 5,78:1),
+ * pas une raison d'effacer leur intention. Si l'accent sombre devait un jour
+ * passer à `MXC_SYSTEM.blue300` — le seul barreau qui tienne en encre sur fond
+ * sombre —, la question redeviendrait vivante ici, en un seul point.
+ *
+ * Elle lisait `document.documentElement[data-theme]` à chaque appel : la rendre
+ * constante retire 45 lectures du DOM par render.
+ */
+export const sgOn = (): string => MXC_COLOR.n1000
+
+/** Voile translucide POSÉ SUR l'accent — blanc, pour la raison ci-dessus. */
+export const sgAcc = (a: number): string => `rgba(255,255,255,${a})`
+
+/**
+ * Voile translucide POSÉ SUR UNE SURFACE (carte, canvas, tuile de carte
+ * géographique) — celui-là suit le thème, parce que la surface le suit.
+ *
+ * ⚠ Séparé de `sgAcc` le 11 août 2026. Les deux coïncidaient tant que l'accent
+ * s'inversait : en clair « voile sur l'accent noir » et « voile sur le canvas
+ * clair » valaient tous deux du blanc, en sombre tous deux du sombre. L'accent
+ * devenu invariant, la coïncidence tombe — et les deux pastilles posées sur la
+ * carte de l'étape Adresse, qui portent `SugarV2.muted` en encre, seraient
+ * devenues du gris sur du blanc au milieu d'une carte sombre.
+ */
+export const sgVeil = (a: number): string =>
   sgActive().isDark ? `rgba(11,12,14,${a})` : `rgba(255,255,255,${a})`
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -429,14 +481,14 @@ export const SG_KEYFRAMES = `
   .sg-range::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 24px; height: 24px; border-radius: 999px;
-    background: var(--sg-accent, #0B0C0E); cursor: pointer;
+    background: var(--sg-accent, #424bfb); cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     transition: transform .15s ease;
   }
   .sg-range::-webkit-slider-thumb:hover { transform: scale(1.15); }
   .sg-range::-moz-range-thumb {
     width: 24px; height: 24px; border-radius: 999px;
-    background: var(--sg-accent, #0B0C0E); cursor: pointer; border: 0;
+    background: var(--sg-accent, #424bfb); cursor: pointer; border: 0;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
 `

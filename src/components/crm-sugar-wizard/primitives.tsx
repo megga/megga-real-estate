@@ -88,7 +88,7 @@ export function SgBlackPill({
       style={{
         height: h, padding: size === 'lg' ? '0 28px' : '0 20px',
         borderRadius: 'var(--crm-radius-pill)', border: 0,
-        background: disabled ? SugarV2.ghost : (hover ? SugarV2.blackHover : SugarV2.black),
+        background: disabled ? SugarV2.ghostSolid : (hover ? SugarV2.blackHover : SugarV2.black),
         color: SugarV2.onBlack,
         fontFamily: 'inherit', fontSize: size === 'lg' ? 14.5 : 13, fontWeight: 600,
         letterSpacing: 0.1,

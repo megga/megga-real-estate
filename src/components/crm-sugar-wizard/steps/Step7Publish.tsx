@@ -351,7 +351,7 @@ export function Step7Publish({ data, set, onPublish, onGoStep, publishing }: Ste
         )}
         <button onClick={publish} disabled={!canPublish} style={{
           height: 52, padding: '0 28px', borderRadius: 'var(--crm-radius-pill)', border: 0,
-          background: canPublish ? SugarV2.black : SugarV2.ghost, color: sgOn(), fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700,
+          background: canPublish ? SugarV2.black : SugarV2.ghostSolid, color: sgOn(), fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700,
           cursor: canPublish ? 'pointer' : 'not-allowed', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
           boxShadow: canPublish ? '0 12px 30px rgba(0,0,0,0.28)' : 'none',
         }}>

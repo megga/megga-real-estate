@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SugarV2, sgOn, sgAcc, cantonShortFromName, type WizardData } from '../tokens'
+import { SugarV2, sgOn, sgVeil, cantonShortFromName, type WizardData } from '../tokens'
 import { SgInput } from '../primitives'
 import { crmContactById } from '@/components/crm-sugar/mockData'
 
@@ -440,7 +440,7 @@ function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; conf
           pointerEvents: 'none',
         }}>
           <div style={{
-            background: sgAcc(0.85), backdropFilter: 'blur(8px)',
+            background: sgVeil(0.85), backdropFilter: 'blur(8px)',
             padding: 'var(--crm-space-lg) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
             fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
@@ -499,7 +499,7 @@ function SgMapFallback({ error, confirmed }: { error: string; confirmed: boolean
         <div style={{
           position: 'absolute', bottom: 14, left: 14,
           padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-md)',
-          background: sgAcc(0.9), backdropFilter: 'blur(6px)',
+          background: sgVeil(0.9), backdropFilter: 'blur(6px)',
           fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: SugarV2.muted,
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
         }}>
