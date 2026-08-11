@@ -227,7 +227,7 @@ export const sgAcc = (a: number): string => `rgba(255,255,255,${a})`
  * devenues du gris sur du blanc au milieu d'une carte sombre.
  */
 export const sgVeil = (a: number): string =>
-  sgActive().isDark ? `rgba(11,12,14,${a})` : `rgba(255,255,255,${a})`
+  sgActive().isDark ? `rgba(3,3,3,${a})` : `rgba(255,255,255,${a})`
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 export function fmtCHF(n: number | string | null | undefined): string {
