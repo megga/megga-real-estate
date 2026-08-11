@@ -1,5 +1,5 @@
 // MEGGA CRM — Atomes composants du kit « Focus » des Réglages (port 1:1 du design).
-// Partagé par ProfileFocusSection / AgencyFocusSection / NotificationsFocusSection.
+// Partagé par ProfileFocusSection / AgencyFocusSection.
 // Édition EN LIGNE (Entrée = enregistrer, Échap = annuler, mention « Enregistré »).
 // Sans dépendance i18n : les libellés UI sont fournis traduits par la section (props
 // `labels`). Constantes/palette/types dans pfKitCore.tsx (règle react-refresh).
@@ -29,7 +29,7 @@ export function PfIc({ name, size = 16, stroke = 'currentColor', sw = 1.7, solid
   )
 }
 
-export function PfChip({ name, c, size = 34 }: { name: PfIconName; c: PfColors; size?: number }) {
+function PfChip({ name, c, size = 34 }: { name: PfIconName; c: PfColors; size?: number }) {
   return (
     <span style={{ width: size, height: size, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
       <PfIc name={name} size={name === 'linkedin' ? 20 : 22} stroke={c.ink} solid={name === 'linkedin'} />
@@ -180,25 +180,6 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
         </>
       )}
     </div>
-  )
-}
-
-/* ─── Interrupteur ──────────────────────────────────────────────────────────────
- * Allumé = l'ACCENT de la marque. Il valait `c.ink` — le noir de Sugar Pure —,
- * ce qui donnait deux interrupteurs de couleurs différentes sur le même écran :
- * noirs dans Notifications (celui-ci) et bleus dans Préférences (PxfSwitch, qui
- * lit l'accent choisi par l'agent). Le bouton prend l'encre de l'accent et non
- * un blanc d'office, pour la même raison que là-bas : les teintes pâles du
- * nuancier MEGGA X avalent le blanc (1,7:1). */
-export function PfSwitch({ c, on, onClick }: { c: PfColors; on: boolean; onClick?: () => void }) {
-  return (
-    <button onClick={onClick} role="switch" aria-checked={on} style={{
-      width: 44, height: 26, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', flexShrink: 0,
-      background: on ? c.seal.bg : (c.dark ? 'rgba(255,255,255,0.16)' : '#D5DAE2'),
-      position: 'relative', transition: 'background .22s ease', padding: 0,
-    }}>
-      <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: on ? c.seal.ink : '#fff', transition: 'left .22s cubic-bezier(.2,.8,.2,1)', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} />
-    </button>
   )
 }
 

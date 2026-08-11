@@ -1,6 +1,8 @@
 // MEGGA CRM Sugar v2 — Préférences UI agent (langue, fuseau, thème, etc.).
 // Lit/écrit le sous-objet `ui` dans `profiles.preferences` (JSON).
-// Coexiste avec `notifications` (useNotifPreferences) et tout futur sous-objet.
+// Coexiste avec tout futur sous-objet de `profiles.preferences` — et avec
+// `notifications`, resté en base après le retrait de sa section (11 août 2026)
+// puisque plus aucun code ne l'écrit ni ne le lit.
 
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
