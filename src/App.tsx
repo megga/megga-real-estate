@@ -147,6 +147,7 @@ const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
 const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
+const BiensShowcasePage = lazy(() => import('@/pages/dev/BiensShowcasePage'))
 // Aperçu du parcours d'onboarding — DEV seulement (cf. sa route plus bas, et son
 // en-tête pour les trois murs qui rendent ce parcours autrement inatteignable).
 // Le ternaire n'est pas décoratif : `import.meta.env.DEV` est remplacé par `false`
@@ -460,6 +461,8 @@ function AppRoutes() {
               <Route path="/dev/matching-atelier" element={<MatchingAtelierDemoPage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/mobile" element={<MobileShowcasePage />} />
+              {/* Mes biens sans session : ProtectedRoute renvoie sinon vers la PRODUCTION. */}
+              <Route path="/dev/biens" element={<BiensShowcasePage />} />
               {/* Onboarding — la SEULE de ces routes à être conditionnée au mode dev.
                   Les autres ne montrent que des maquettes ; celle-ci monte les écrans
                   réels avec l'écriture entre étapes neutralisée (IdentityShellPreview),
