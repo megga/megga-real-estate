@@ -411,8 +411,7 @@
     },
     "failureWith": "Fehlgeschlagen: {{message}}",
     "hero": {
-      "title": "Kontosicherheit",
-      "subtitle": "Ihr Passwort, Ihre Anmeldemethoden und Ihre Geräte."
+      "title": "Kontosicherheit"
     },
     "sso": {
       "title": "Anmeldemethoden",

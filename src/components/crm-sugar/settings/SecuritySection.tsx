@@ -757,27 +757,19 @@ function HeroSecurity() {
       style={{
         background: heroBg,
         borderRadius: 'var(--crm-radius-3xl)',
-        padding: '30px 34px 28px',
+        padding: 'var(--crm-space-6xl) 34px',
         color: '#fff',
         boxShadow: isDark() ? SET.shadow : 'none',
         position: 'relative',
         overflow: 'hidden',
       }}
     >
+      {/* Le titre seul. Le sous-titre listait « votre mot de passe, vos méthodes
+          de connexion et vos appareils » — c'est-à-dire les intitulés des trois
+          cartes posées juste dessous. Il annonçait un sommaire que l'écran
+          affiche en entier sans défiler. */}
       <div style={{ minWidth: 260 }}>
         <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -0.8 }}>{t('security.hero.title')}</h1>
-        <p
-          style={{
-            margin: '8px 0 0',
-            fontSize: 'var(--crm-text-3xl)',
-            color: 'rgba(255,255,255,0.6)',
-            fontWeight: 400,
-            lineHeight: 1.5,
-            maxWidth: 520,
-          }}
-        >
-          {t('security.hero.subtitle')}
-        </p>
       </div>
     </div>
   )

@@ -411,8 +411,7 @@
     },
     "failureWith": "Operazione non riuscita: {{message}}",
     "hero": {
-      "title": "Sicurezza dell'account",
-      "subtitle": "La tua password, i tuoi metodi di accesso e i tuoi dispositivi."
+      "title": "Sicurezza dell'account"
     },
     "sso": {
       "title": "Metodi di accesso",

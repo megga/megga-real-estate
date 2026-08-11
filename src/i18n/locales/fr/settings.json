@@ -411,8 +411,7 @@
     },
     "failureWith": "Échec : {{message}}",
     "hero": {
-      "title": "Sécurité du compte",
-      "subtitle": "Votre mot de passe, vos méthodes de connexion et vos appareils."
+      "title": "Sécurité du compte"
     },
     "sso": {
       "title": "Méthodes de connexion",
