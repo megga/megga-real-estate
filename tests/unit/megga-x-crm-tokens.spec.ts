@@ -89,7 +89,7 @@ describe('MEGGA X CRM — les tokens sortent bien de la vitrine', () => {
   it('chaque couleur de système est la variable de la vitrine', () => {
     const expected: Record<keyof typeof MXC_SYSTEM, string> = {
       blue300: 'system-colors--blue-300',
-      yellow300: 'system-colors--yellow-300', yellow400: 'system-colors--yellow-400',
+      yellow400: 'system-colors--yellow-400',
       green300: 'system-colors--green-300', green400: 'system-colors--green-400',
       red400: 'system-colors--red-400',
     }
@@ -284,7 +284,10 @@ describe('MEGGA X CRM — remplissages du kit Focus', () => {
   const SURF = { card: '#fff', cardSub: '#f9f9f9', hairline: '1px solid #ccc', shadow: 'none' }
   const colors = (dark: boolean) =>
     pfColors(dark ? mxCrmPalette(true) : SP, SURF as never, dark)
-  const FILLS = ['seal', 'tag', 'saved', 'affordance'] as const
+  // `tag` — la pilule jaune « À renseigner » — a été retiré le 11 août 2026 :
+  // il doublait le verbe du bouton d'à côté (« Ajouter » ne s'affiche que sur un
+  // champ vide). Ce qu'il gardait ici reste vrai des trois autres.
+  const FILLS = ['seal', 'saved', 'affordance'] as const
 
   it('l’encre tient sur son remplissage, dans les deux modes', () => {
     for (const dark of [false, true]) {
@@ -298,15 +301,27 @@ describe('MEGGA X CRM — remplissages du kit Focus', () => {
     }
   })
 
-  it('le badge affirmatif et l’affordance portent l’accent, l’alerte JAMAIS', () => {
+  it('le badge affirmatif et l’affordance portent l’accent', () => {
     for (const dark of [false, true]) {
       const c = colors(dark)
       expect(c.seal.bg).toBe(MXC_COLOR.accent)
       expect(c.affordance.bg).toBe(MXC_COLOR.accent)
-      // Peint en accent, un « à renseigner » se lit comme une mise en avant :
-      // même bleu que le bouton primaire. C'est la leçon du plateau MEGGA X.
-      expect(c.tag.bg).not.toBe(MXC_COLOR.accent)
-      expect(Object.values(MXC_SYSTEM) as string[]).toContain(c.tag.bg)
+    }
+  })
+
+  /**
+   * Le pendant de l'assertion précédente : `saved` dit un ÉTAT, pas une mise en
+   * avant. Peint en accent, il deviendrait indiscernable du bouton primaire.
+   *
+   * Cette garde tenait auparavant sur `tag` (« À renseigner »), retiré ; elle se
+   * reporte sur `saved`, qui est désormais le seul remplissage sémantique du kit
+   * — sans quoi le retrait de la pilule emporterait la règle avec elle.
+   */
+  it('la confirmation reste sémantique, jamais l’accent', () => {
+    for (const dark of [false, true]) {
+      const c = colors(dark)
+      expect(c.saved.bg).not.toBe(MXC_COLOR.accent)
+      expect(Object.values(MXC_SYSTEM) as string[]).toContain(c.saved.bg)
     }
   })
 

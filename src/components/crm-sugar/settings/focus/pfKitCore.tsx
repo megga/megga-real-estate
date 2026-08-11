@@ -74,13 +74,6 @@ export interface PfColors {
   green: string
   /** Badge affirmatif « vérifié ». Sous MEGGA X c'est `.badge-light` de la vitrine. */
   seal: PfFill
-  /**
-   * Chip d'alerte douce « à renseigner ».
-   * ⛔ Ne JAMAIS lui donner l'accent de marque : peint en `accent`, un
-   * avertissement se lit comme une mise en avant — même bleu que le bouton
-   * primaire.
-   */
-  tag: PfFill
   /** Pilule de confirmation « enregistré ». */
   saved: PfFill
   /** Pastille d'action sur l'avatar (changer la photo) — affordance, pas alerte. */
@@ -101,12 +94,11 @@ export interface PfColors {
  * l'AA (orange + blanc = 4,37:1, vert + blanc = 3,77:1) alors que le texte y est
  * petit et gras.
  */
-function mxFills(dark: boolean): Pick<PfColors, 'seal' | 'tag' | 'saved' | 'affordance'> {
+function mxFills(dark: boolean): Pick<PfColors, 'seal' | 'saved' | 'affordance'> {
   const accent: PfFill = { bg: MXC_COLOR.accent, ink: MXC_COLOR.n1000 }
   return {
     seal: accent,
     affordance: accent,
-    tag: { bg: dark ? MXC_SYSTEM.yellow400 : MXC_SYSTEM.yellow300, ink: MXC_COLOR.n100 },
     saved: { bg: dark ? MXC_SYSTEM.green400 : MXC_SYSTEM.green300, ink: MXC_COLOR.n100 },
   }
 }
@@ -187,7 +179,7 @@ export interface PfRow {
 }
 
 export interface PfEditLabels {
-  saved: string; add: string; edit: string; toFill: string; cancel: string; save: string
+  saved: string; add: string; edit: string; cancel: string; save: string
 }
 
 export interface PfPhotoLabels { title: string; choose: string; change: string; cancel: string; save: string }

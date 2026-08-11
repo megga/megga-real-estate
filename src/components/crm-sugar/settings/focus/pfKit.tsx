@@ -49,15 +49,19 @@ function PfSeal({ c, label }: { c: PfColors; label: string }) {
   )
 }
 
-function PfTag({ c, label }: { c: PfColors; label: string }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-lg)', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0, background: c.tag.bg, color: c.tag.ink }}>{label}</span>
-  )
-}
-
-/** Action secondaire d'une ligne (« Ajouter » / « Modifier »). Bouton PILULE à
- *  hauteur de doigt, comme les boutons secondaires de la vitrine — l'ancien
- *  32 px venait de la densité Sugar. */
+/**
+ * Action secondaire d'une ligne — et le SEUL marqueur de champ vide.
+ *
+ * Une pilule jaune « À renseigner » doublait ce bouton : elle ne s'affichait
+ * qu'à côté d'un « Ajouter », et « Ajouter » ne s'affiche que sur un champ vide
+ * (« Modifier » sinon). Deux marques pour un seul état, dont la plus voyante de
+ * l'écran — sur un profil neuf, douze pastilles jaunes couvraient la section et
+ * criaient plus fort que les libellés. Retirée le 11 août 2026 ; rien n'est
+ * perdu, le verbe du bouton porte l'information.
+ *
+ * Bouton PILULE à hauteur de doigt, comme les boutons secondaires de la
+ * vitrine — l'ancien 32 px venait de la densité Sugar.
+ */
 function PfGhost({ c, children, onClick }: { c: PfColors; children: ReactNode; onClick?: () => void }) {
   return (
     <button onClick={onClick} style={{ height: 40, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0, color: c.ink, background: c.card, border: c.hair, boxShadow: c.shadowSm }}>{children}</button>
@@ -172,7 +176,6 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
       ) : (
         <>
           {row.verified && row.verifiedLabel && <PfSeal c={c} label={row.verifiedLabel} />}
-          {empty && <PfTag c={c} label={labels.toFill} />}
           <PfGhost c={c} onClick={onEdit}>{empty ? labels.add : labels.edit}</PfGhost>
         </>
       )}

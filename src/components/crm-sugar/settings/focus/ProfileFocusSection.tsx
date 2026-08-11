@@ -81,7 +81,7 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
 
   const editLabels: PfEditLabels = useMemo(() => ({
     saved: t('focus.common.saved'), add: t('focus.common.add'), edit: t('focus.common.edit'),
-    toFill: t('focus.common.toFill'), cancel: t('focus.common.cancel'), save: t('focus.common.save'),
+    cancel: t('focus.common.cancel'), save: t('focus.common.save'),
   }), [t])
   const photoLabels = useMemo(() => ({
     title: t('focus.photo.title'), choose: t('focus.photo.choose'), change: t('focus.photo.change'),
