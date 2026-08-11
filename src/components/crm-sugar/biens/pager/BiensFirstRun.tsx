@@ -102,7 +102,7 @@ export function BiensFollowEmpty({ sp, onCreate }: BiensFollowEmptyProps) {
         <button
           type="button"
           onClick={onCreate}
-          style={{ marginTop: 24, height: 46, padding: '0 30px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: sp.ink, color: sp.pageBg, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600 }}
+          style={{ marginTop: 24, height: 46, padding: '0 30px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: sp.accent, color: sp.accentInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600 }}
         >
           {t('biens.create')}
         </button>

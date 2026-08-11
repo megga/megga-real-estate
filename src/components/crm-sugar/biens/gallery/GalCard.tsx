@@ -181,7 +181,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
                 border: 0,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                background: sp.ink,
+                background: sp.accent,
                 color: sp.pageBg,
                 fontSize: 'var(--crm-text-md)',
                 fontWeight: 600,

@@ -225,6 +225,39 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
   })
 
   /**
+   * ⛔ UN ÉLÉMENT CLIQUABLE NE SE PEINT PAS EN ENCRE.
+   *
+   * C'est la survivance la plus discrète de Sugar Pure, et AUCUN scan de
+   * couleur ne peut l'attraper : le jeton employé est parfaitement légitime
+   * (`sp.ink` descend bien de `mxCrmPalette`), c'est son RÔLE qui est faux. La
+   * règle du 10 août 2026 dit que l'élément actif porte l'accent `#424bfb` ;
+   * peindre un bouton primaire en encre, c'est appliquer l'ancienne règle
+   * « l'accent EST l'encre » avec les jetons de la nouvelle.
+   *
+   * Trouvé à l'écran, pas par un test : sur « Mes biens », le CTA « Créer un
+   * bien » sortait en `#030303` quand la pastille de filtre juste à côté sortait
+   * en `#424bfb` — deux affordances primaires, deux couleurs, sur la même barre.
+   * Défaut identique à celui des Réglages, où `PfSwitch` était noir pendant que
+   * `PxfSwitch` était déjà bleu.
+   *
+   * ⚠ Heuristique textuelle assumée : on regarde si un `background: …ink` a un
+   * `<button` ou un `cursor: 'pointer'` dans son voisinage immédiat. Un COMPTEUR
+   * en encre reste donc permis — il informe, il ne s'actionne pas.
+   */
+  it('aucun élément cliquable peint en encre', () => {
+    const fautifs: string[] = []
+    for (const { chemin, code } of sources) {
+      const lignes = code.split('\n')
+      lignes.forEach((ligne, i) => {
+        if (!/background:\s*\w+\.ink\b/.test(ligne)) return
+        const voisinage = lignes.slice(Math.max(0, i - 6), i + 7).join(' ')
+        if (/<button|cursor:\s*'pointer'/.test(voisinage)) fautifs.push(`${chemin}:${i + 1}`)
+      })
+    }
+    expect(fautifs, `encre en fond d'un élément actionnable :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  /**
    * Le cliquet doit RESTER un cliquet : une zone retirée de `ZONES` désarmerait
    * les tests ci-dessus en silence, et le fichier resterait vert.
    */

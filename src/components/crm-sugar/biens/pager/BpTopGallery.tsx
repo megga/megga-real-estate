@@ -103,7 +103,7 @@ export function BpTopGallery({
           <div style={{ flex: 1 }} />
           <button
             onClick={onCreate}
-            style={{ height: 42, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: sp.ink, color: sp.pageBg, fontWeight: 600, fontSize: 'var(--crm-text-lg)', fontFamily: 'inherit', cursor: 'pointer', boxShadow: sp.focusShadow, display: 'inline-flex', alignItems: 'center' }}
+            style={{ height: 42, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: sp.accent, color: sp.accentInk, fontWeight: 600, fontSize: 'var(--crm-text-lg)', fontFamily: 'inherit', cursor: 'pointer', boxShadow: sp.focusShadow, display: 'inline-flex', alignItems: 'center' }}
           >
             {t('biens.create')}
           </button>

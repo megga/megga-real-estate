@@ -201,7 +201,7 @@ export function BpFollowupPage({
                       </div>
                       <button
                         onClick={() => setRenew({ b: row.b, days: row.days ?? 0 })}
-                        style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: sp.ink, color: sp.pageBg }}
+                        style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: sp.accent, color: sp.accentInk }}
                       >
                         {t('biens.followUp.action.renew')}
                       </button>
@@ -290,7 +290,7 @@ export function BpFollowupPage({
                   {renderTag(expiryText(hero.days ?? 0), hero.urgent)}
                   <button
                     onClick={() => setRenew({ b: hero.b, days: hero.days ?? 0 })}
-                    style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: sp.ink, color: sp.pageBg }}
+                    style={{ height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: sp.accent, color: sp.accentInk }}
                   >
                     {t('biens.followUp.action.renew')}
                   </button>
