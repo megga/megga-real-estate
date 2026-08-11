@@ -39,11 +39,14 @@ import { mxSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { BiensPager } from '@/components/crm-sugar/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-sugar-wizard/WizardShell'
+import BienDetailSugarV4Page from '@/pages/agent/BienDetailSugarV4Page'
+import { DEMO_LISTING } from './demoFixtures'
 import { ThemeProvider } from '@/hooks/useTheme'
 
 export default function BiensShowcasePage() {
   const [dark, setDark] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [surface, setSurface] = useState<'liste' | 'fiche'>('liste')
 
   const sp = crmSugarPalette(dark)
   const surf = mxSurfaces(sp)
@@ -74,27 +77,56 @@ export default function BiensShowcasePage() {
         Aperçu · données de démonstration
       </div>
 
-      <SugarTopNav active="biens" sp={sp} onNavigate={onNavigate} dark={dark} />
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="biens" onNavigate={onNavigate} onCmd={() => {}} dark={dark} setDark={setDark} sp={sp} />
-        <BiensPager
-          biens={CRM_BIENS}
-          sp={sp}
-          surf={surf}
-          dark={dark}
-          now={now}
-          fresh={false}
-          isLoading={false}
-          isError={false}
-          refetch={() => {}}
-          idxEnabled={false}
-          onOpenBien={() => {}}
-          onCreate={() => setWizardOpen(true)}
-          onResumeDraft={() => {}}
-          wizardOpen={wizardOpen}
-          wizardSlot={<WizardShell embedded dark={dark} onClose={() => setWizardOpen(false)} />}
-        />
+      <div style={{
+        position: 'fixed', bottom: 14, right: 14, zIndex: 9500, display: 'inline-flex',
+        background: sp.cardBg, borderRadius: 'var(--crm-radius-pill)',
+        padding: 'var(--crm-space-2xs)', gap: 'var(--crm-space-2xs)',
+        border: `1px solid ${sp.cardBorder}`,
+      }}>
+        {(['liste', 'fiche'] as const).map((s2) => (
+          <button key={s2} type="button" onClick={() => setSurface(s2)} aria-pressed={surface === s2}
+            style={{
+              border: 0, cursor: 'pointer', fontFamily: 'inherit',
+              padding: 'var(--crm-space-xs) var(--crm-space-2xl)',
+              borderRadius: 'var(--crm-radius-pill)',
+              fontSize: 'var(--crm-text-md)', fontWeight: 600,
+              background: surface === s2 ? sp.accent : 'transparent',
+              color: surface === s2 ? sp.accentInk : sp.sub,
+            }}>{s2 === 'liste' ? 'Liste' : 'Fiche'}</button>
+        ))}
       </div>
+
+      {/* ⚠ La FICHE apporte sa propre barre supérieure et son propre rail : c'est
+          une page complète, pas un panneau. La coiffer du chrome du harnais
+          affichait DEUX barres l'une sous l'autre. Elle remplace donc tout, et
+          le harnais ne garde que sa pastille et son sélecteur. */}
+      {surface === 'fiche' ? (
+        <BienDetailSugarV4Page demoData={DEMO_LISTING} />
+      ) : (
+        <>
+          <SugarTopNav active="biens" sp={sp} onNavigate={onNavigate} dark={dark} />
+          <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+            <SugarIconRail active="biens" onNavigate={onNavigate} onCmd={() => {}} dark={dark} setDark={setDark} sp={sp} />
+            <BiensPager
+              biens={CRM_BIENS}
+              sp={sp}
+              surf={surf}
+              dark={dark}
+              now={now}
+              fresh={false}
+              isLoading={false}
+              isError={false}
+              refetch={() => {}}
+              idxEnabled={false}
+              onOpenBien={() => setSurface('fiche')}
+              onCreate={() => setWizardOpen(true)}
+              onResumeDraft={() => {}}
+              wizardOpen={wizardOpen}
+              wizardSlot={<WizardShell embedded dark={dark} onClose={() => setWizardOpen(false)} />}
+            />
+          </div>
+        </>
+      )}
     </div>
     </ThemeProvider>
   )

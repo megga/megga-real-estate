@@ -426,8 +426,24 @@ function BfVisitModal({
 // ═══════════════════════════════════════════════════════════════════════════
 //   ÉCRAN — Fiche bien Sugar Pure V4 (mono-page, bento)
 // ═══════════════════════════════════════════════════════════════════════════
-export default function BienDetailSugarV4Page() {
-  const { id } = useParams<{ id: string }>()
+interface BienDetailProps {
+  /**
+   * Bien de DÉMONSTRATION, pour un aperçu sans session (`/dev/biens`).
+   *
+   * Fourni, il court-circuite les hooks : `useProperty(undefined)` désactive sa
+   * requête (`enabled: !!id`), donc rien n'est lu en base — ce n'est pas un
+   * échafaudage posé dans un hook, c'est le hook qu'on n'interroge pas. Idiome
+   * repris de `MobileBienVitrineScreen`, qui porte le même prop depuis le P7.
+   *
+   * ⛔ Les écritures (publication, édition, audit) sont neutralisées quand il
+   * est là : un banc d'essai visuel ne doit toucher à rien.
+   */
+  demoData?: Property
+}
+
+export default function BienDetailSugarV4Page({ demoData }: BienDetailProps = {}) {
+  const { id: idRoute } = useParams<{ id: string }>()
+  const id = demoData ? undefined : idRoute
   const navigate = useNavigate()
   const { t: tr } = useTranslation('listings')
 
@@ -446,7 +462,8 @@ export default function BienDetailSugarV4Page() {
   const vx = vxPalette(dark) // intérieur des cartes (palette vitrine)
 
   // ── Données réelles (identiques à la V3) ──
-  const { data: bien, isLoading, isError, error } = useProperty(id)
+  const { data: bienLive, isLoading, isError, error } = useProperty(id)
+  const bien = demoData ?? bienLive
   const { stats } = usePropertyStats(id)
   const { mutate: updateProperty } = useUpdateProperty()
   const { mutate: logAudit } = useLogAudit()
@@ -558,7 +575,7 @@ export default function BienDetailSugarV4Page() {
   }
 
   // ── États transitoires (fond = pageBg Sugar, PAS le dégradé vitrine) ──
-  if (isLoading) {
+  if (!demoData && isLoading) {
     return <div style={{ minHeight: '100vh', background: sp.pageBg, display: 'grid', placeItems: 'center', color: vx.muted, fontFamily: "'Inter Tight', system-ui, sans-serif" }}>{tr('detail.loading')}</div>
   }
   if (isError) {
@@ -651,6 +668,7 @@ export default function BienDetailSugarV4Page() {
       if (p != null) patch.price = p
     }
     if (wasDraft) patch.status = 'active' // published_at posé par le trigger DB
+    if (demoData) return // aperçu : aucune écriture
     updateProperty(patch, {
       onSuccess: () => {
         logAudit({
@@ -680,6 +698,7 @@ export default function BienDetailSugarV4Page() {
   const publishBien = () => {
     const patch: { id: string } & Partial<CreatePropertyInput> & { status?: string } = { id: bien.id }
     if (bien.status === 'draft') patch.status = 'active'
+    if (demoData) return // aperçu : aucune écriture
     updateProperty(patch, {
       onSuccess: () => {
         logAudit({
