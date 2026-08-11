@@ -76,7 +76,7 @@ export default function MobileTabBar() {
             <span
               style={{
                 fontSize: 'var(--crm-text-lg)',
-                fontWeight: 800,
+                fontWeight: 600,
                 letterSpacing: -0.2,
                 whiteSpace: 'nowrap',
                 maxWidth: on ? 120 : 0,

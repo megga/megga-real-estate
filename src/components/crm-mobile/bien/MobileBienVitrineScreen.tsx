@@ -16,6 +16,7 @@ import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import SgActionMenu from '../primitives/SgActionMenu'
 import { statusTone, typeKey, type BienType } from './shared'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 interface MobileBienVitrineScreenProps {
   /** Donnée figée (harnais /dev/mobile, no-auth) — bypasse useProperty. */
@@ -109,19 +110,19 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
                 <MEIcon name="home" size={48} color={tk.ghost} />
               </div>
             )}
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(11,12,14,0.30) 0%, rgba(11,12,14,0) 32%, rgba(11,12,14,0) 60%, rgba(11,12,14,0.18) 100%)' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(3,3,3,0.30) 0%, rgba(3,3,3,0) 32%, rgba(3,3,3,0) 60%, rgba(3,3,3,0.18) 100%)' }} />
             <div style={{ position: 'absolute', top: 13, left: 13, display: 'flex', gap: 'var(--crm-space-md)' }}>
               <span style={{ padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: statusTone(status), color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>{t(`status.${status}`, { defaultValue: status })}</span>
               {bien.c2pa_verified ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.95)', color: '#0B0C0E', fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.95)', color: MXC_COLOR.n100, fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
                   <MEIcon name="shield" size={13} color="#0E9F6E" />
                   {t('mobile.c2pa')}
                 </span>
               ) : null}
             </div>
             {photos.length ? (
-              <span style={{ position: 'absolute', right: 13, bottom: 13, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 30, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.95)', color: '#0B0C0E', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
-                <MEIcon name="gallery" size={14} color="#0B0C0E" />
+              <span style={{ position: 'absolute', right: 13, bottom: 13, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 30, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.95)', color: MXC_COLOR.n100, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
+                <MEIcon name="gallery" size={14} color={MXC_COLOR.n100} />
                 {t('mobile.photosCount', { count: photos.length })}
               </span>
             ) : null}

@@ -4,6 +4,7 @@
 import { useState, useEffect, useMemo, type ReactNode, type CSSProperties } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, fmtCHF, shade, type WizardData } from '../tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 interface SuccessProps {
   data: WizardData
@@ -303,7 +304,7 @@ function IconBtn({ icon, label }: { icon: 'copy' | 'qr' | 'share'; label: string
 function Confetti() {
   const items = useMemo(() => {
     return Array.from({ length: 24 }, (_, i) => {
-      const colors = ['#0B0C0E', '#0B0C0E', '#0B0C0E', '#3C4148', '#A8B5BF', '#D4D8DC']
+      const colors = [MXC_COLOR.accent, MXC_COLOR.accent, MXC_COLOR.n100, MXC_COLOR.n400, MXC_COLOR.n600, MXC_COLOR.n700]
       return {
         id: i,
         left: Math.random() * 100,

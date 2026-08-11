@@ -120,7 +120,13 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
  * (`megga-x-crm-tokens.spec.ts`).
  */
 function sansCommentaires(code: string): string {
-  return code.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ')
+  return code
+    // ⚠ Un bloc `/* … */` de N lignes doit rendre N sauts de ligne, pas une
+    // espace : sinon tout ce qui suit REMONTE, et chaque `fichier:ligne` que ce
+    // spec rapporte désigne la mauvaise ligne. Une garde qui envoie au mauvais
+    // endroit coûte plus de temps qu'elle n'en fait gagner.
+    .replace(/\/\*[\s\S]*?\*\//g, (bloc) => '\n'.repeat((bloc.match(/\n/g) ?? []).length))
+    .replace(/\/\/[^\n]*/g, ' ')
 }
 
 const scan = scanRoots(ZONES)
@@ -255,6 +261,45 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       })
     }
     expect(fautifs, `encre en fond d'un élément actionnable :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ LE NOIR DE SUGAR, SOUS SES DEUX ALPHABETS.
+   *
+   * Les gardes de palette (`wizard-palette`, `bien-palette`) n'inspectent que
+   * les OBJETS de jetons. Aucune n'ouvre un fichier de composant — et c'est là
+   * que `#0B0C0E` avait survécu 37 fois : le marqueur de carte de l'étape
+   * Adresse, la pastille « vendu », les voiles posés sur les photos, les
+   * confettis de l'écran de confirmation.
+   *
+   * ⚠ Le motif lit `#rrggbb` ET `rgba(r,g,b,…)`. Onze de ces occurrences
+   * étaient en décimal — `rgba(11,12,14,…)`, exactement la même couleur sous un
+   * autre alphabet. Un garde-fou de couleur qui ne connaît qu'une notation ne
+   * garde rien, et c'est ainsi que le voile de `sgVeil()` a passé la relecture.
+   *
+   * Les teintes SÉMANTIQUES restent permises et sont nommées : elles encodent
+   * une information que l'échelle ne sait pas porter (statut d'annonce, teinte
+   * d'avatar, hue de groupe). Comme partout ici, on fige l'écart au lieu de
+   * l'interdire.
+   */
+  it('aucun noir Sugar ne subsiste dans les composants', () => {
+    const NOIRS = /#0B0C0E\b|#0A0A0F\b|#0A0B0D\b|rgba?\(\s*11\s*,\s*12\s*,\s*14\b/gi
+    const fautifs = sites((l) => NOIRS.test(l))
+    expect(fautifs, `noir Sugar vivant :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ UN ALIAS SUFFIT À CONTOURNER LA GARDE PRÉCÉDENTE.
+   *
+   * `BpRenewModal.tsx` faisait `const accent = sp.ink`, puis peignait son
+   * bouton de validation, ses trois pastilles de durée et deux « Terminé » avec
+   * `background: accent`. La garde cherchait `background: …ink` : elle était
+   * VERTE dans un fichier qu'elle balayait. Nommer une variable ne change pas
+   * ce qu'elle contient.
+   */
+  it('aucun alias ne renomme l’encre en accent', () => {
+    const fautifs = sites((l) => /\b(?:const|let)\s+\w*[Aa]ccent\w*\s*=\s*\w+\.ink\b/.test(l))
+    expect(fautifs, `l'encre déguisée en accent :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 
   /**

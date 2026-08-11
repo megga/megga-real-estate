@@ -59,7 +59,7 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
   // Accent Sugar = noir (clair) / quasi-blanc (sombre) via ink/pageBg — PAS focusBg
   // (qui est le primary périwinkle en sombre). Cf. CLAUDE.md « accent UI unique = noir ».
   const onInk = sp.pageBg
-  const accent = sp.ink
+  const accent = sp.accent
 
   // Nouvelle échéance = échéance courante SI encore future, sinon aujourd'hui,
   // + N mois. Un mandat déjà expiré est toujours reconduit VERS L'AVANT (jamais

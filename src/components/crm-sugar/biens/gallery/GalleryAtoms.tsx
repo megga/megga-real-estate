@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../../tokens'
 import { galStatus, type GalSurfaces } from './galHelpers'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 // ─── Vignette photo : image réelle si dispo, sinon placeholder déterministe ──
 interface GalPhotoProps {
@@ -89,7 +90,7 @@ export function GalStatusPill({
   style?: CSSProperties
 }) {
   const st = galStatus(status, dark)
-  const onTone = status === 'sold' && dark ? '#0B0C0E' : '#fff'
+  const onTone = status === 'sold' && dark ? MXC_COLOR.n100 : MXC_COLOR.n1000
   return (
     <span
       style={{

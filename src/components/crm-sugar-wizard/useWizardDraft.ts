@@ -118,15 +118,28 @@ export function useWizardDraft(
   const version = useRef<string | null>(null)
   /** Empêche deux écritures concurrentes (la création surtout, qui doublerait la ligne). */
   const enVol = useRef(false)
+  /**
+   * ⛔ Une passe est arrivée pendant qu'une écriture était en vol.
+   *
+   * La première version faisait `if (enVol.current) return` — et cette passe
+   * était perdue DÉFINITIVEMENT : rien ne la reprogrammait. Comme le témoin
+   * gardait l'état `enregistre` de l'écriture précédente, il affichait
+   * « Enregistré » sur des données jamais écrites. C'est-à-dire exactement le
+   * défaut que ce fichier existe pour corriger, en plus discret : un témoin qui
+   * dit vrai la plupart du temps est plus trompeur qu'un témoin qui ment
+   * toujours, parce qu'on cesse de le vérifier.
+   */
+  const enAttente = useRef(false)
   /** Lu dans le timer sans le relancer à chaque frappe. */
   const dernier = useRef(data)
   dernier.current = data
 
-  const ecrire = useCallback(async () => {
-    if (enVol.current) return
+  const ecrire = useCallback(async function ecrireImpl(): Promise<void> {
+    if (enVol.current) { enAttente.current = true; return }
     const d = dernier.current
     if (!d.addr?.trim()) return
     enVol.current = true
+    enAttente.current = false
     setEtat('enregistrement')
     try {
       if (!d._draftId) {
@@ -149,6 +162,9 @@ export function useWizardDraft(
       setEtat('echec')
     } finally {
       enVol.current = false
+      // La frappe survenue pendant l'écriture n'est pas perdue : on repart
+      // aussitôt, avec `dernier.current` qui porte déjà la valeur à jour.
+      if (enAttente.current) { enAttente.current = false; void ecrireImpl() }
     }
   }, [createProperty, updateProperty, set])
 

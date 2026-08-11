@@ -9,6 +9,7 @@
 
 import i18n from '@/i18n'
 import type { SugarPalette } from '../../tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 /** « CHF 850'000 » — apostrophe suisse, valeur pleine (cartes). */
 export function galFmtCHF(n: number | null | undefined): string {
@@ -44,7 +45,7 @@ export function galStatus(s: string, dark: boolean): GalStatusMeta {
     reserved: dark ? '#D97A1E' : '#C45A00',
     draft: '#6B7280',
     paused: dark ? '#7C8593' : '#7A8088',
-    sold: dark ? '#E5E7EB' : '#0B0C0E',
+    sold: dark ? MXC_COLOR.n800 : MXC_COLOR.n100,
   }
   const tone = tones[s] ?? tones.draft
   return { label: i18n.t('listings:status.' + s, { defaultValue: s }), tone }

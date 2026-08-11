@@ -217,7 +217,7 @@ function BienCard({ b, t, onOpen, onMenu }: { b: CrmBien; t: TFunction; onOpen: 
             <MEIcon name="home" size={40} color={tk.ghost} />
           </div>
         )}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(11,12,14,0.30) 0%, rgba(11,12,14,0) 30%, rgba(11,12,14,0) 55%, rgba(11,12,14,0.42) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(3,3,3,0.30) 0%, rgba(3,3,3,0) 30%, rgba(3,3,3,0) 55%, rgba(3,3,3,0.42) 100%)' }} />
         <span style={{ position: 'absolute', top: 12, left: 12, padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
           {t(`status.${b.status}`, { defaultValue: b.status })}
         </span>
@@ -225,7 +225,7 @@ function BienCard({ b, t, onOpen, onMenu }: { b: CrmBien; t: TFunction; onOpen: 
           type="button"
           onClick={(e) => { e.stopPropagation(); onMenu() }}
           aria-label={t('common:actions.options')}
-          style={{ position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'rgba(11,12,14,0.6)', backdropFilter: 'blur(6px)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+          style={{ position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'rgba(3,3,3,0.6)', backdropFilter: 'blur(6px)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}
         >
           <MEIcon name="more-horizontal" size={17} color="#fff" />
         </button>

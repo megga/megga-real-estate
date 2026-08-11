@@ -416,7 +416,7 @@ function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; conf
     const el = document.createElement('div')
     el.style.cssText = `
       width: 22px; height: 22px; border-radius: 999px;
-      background: #0B0C0E; border: 4px solid #fff;
+      background: ${SugarV2.black}; border: 4px solid ${SugarV2.onBlack};
       box-shadow: 0 8px 24px rgba(0,0,0,0.4);
       animation: sgPinPulse 2s ease-in-out infinite;
     `
@@ -486,7 +486,7 @@ function SgMapFallback({ error, confirmed }: { error: string; confirmed: boolean
         }}>
           <div style={{
             width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)',
-            background: '#0B0C0E', border: '4px solid #fff',
+            background: SugarV2.black, border: `4px solid ${SugarV2.onBlack}`,
             boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
             animation: 'sgPinPulse 2s ease-in-out infinite',
           }} />

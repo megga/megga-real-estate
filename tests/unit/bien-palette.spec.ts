@@ -46,10 +46,22 @@ const SEMANTIQUES = new Set([
   'ok', 'okBg', 'warn', 'warnBg', 'info', 'infoBg',
   'hairline',
   'shadowSm', 'shadow', 'shadowHov',
+  // Survol de l'accent dérivé par `sgMix` : aucun barreau de vitrine ne le publie.
+  'blackHover',
 ])
 
+/**
+ * Les couleurs sous LEURS DEUX notations. Une première version ne lisait que
+ * `#rrggbb` et était donc aveugle à `rgba(11,12,14,…)` — le noir de Sugar en
+ * décimal, la même couleur sous un autre alphabet. Les canaux alpha sont
+ * ignorés : seule la teinte d'un voile doit descendre sur l'échelle.
+ */
 function hexOf(value: string): string[] {
-  return (value.match(/#[0-9A-Fa-f]{6}\b/g) ?? []).map((h) => h.toLowerCase())
+  const hex = (value.match(/#[0-9A-Fa-f]{6}\b/g) ?? []).map((h) => h.toLowerCase())
+  const rgb = [...value.matchAll(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/g)].map(
+    (m) => '#' + [1, 2, 3].map((i) => Number(m[i]).toString(16).padStart(2, '0')).join(''),
+  )
+  return [...hex, ...rgb]
 }
 
 /** Accepte `#rrggbb` ET `rgb(r, g, b)` — `blackHover` est dérivé par `sgMix`. */

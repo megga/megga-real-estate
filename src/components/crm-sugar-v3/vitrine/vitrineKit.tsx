@@ -507,7 +507,7 @@ export function VxStatusPill({ status, dark }: { status: string; dark: boolean }
     reserved: { tone: dark ? '#D97A1E' : '#C45A00', on: '#fff' },
     draft: { tone: '#6B7280', on: '#fff' },
     paused: { tone: dark ? '#7C8593' : '#7A8088', on: '#fff' },
-    sold: { tone: dark ? '#E5E7EB' : '#0B0C0E', on: dark ? '#0B0C0E' : '#fff' },
+    sold: { tone: dark ? MXC_COLOR.n800 : MXC_COLOR.n100, on: dark ? MXC_COLOR.n100 : MXC_COLOR.n1000 },
   }
   const m = map[status] || map.draft
   const labelKey = map[status] ? status : 'draft'

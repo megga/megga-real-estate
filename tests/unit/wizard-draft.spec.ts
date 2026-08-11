@@ -63,6 +63,27 @@ describe('Wizard — le brouillon automatique existe vraiment', () => {
   })
 
   /**
+   * ⛔ UNE FRAPPE ARRIVÉE PENDANT UNE ÉCRITURE NE DOIT PAS ÊTRE PERDUE.
+   *
+   * La première version sortait sur `if (enVol.current) return` sans rien
+   * reprogrammer : la passe était perdue définitivement, et comme le témoin
+   * gardait l'état `enregistre` de l'écriture précédente, il affichait
+   * « Enregistré » sur des données jamais écrites. Un témoin qui dit vrai la
+   * plupart du temps est plus trompeur qu'un témoin qui ment toujours.
+   *
+   * On vérifie ici que le garde-fou de concurrence MÉMORISE au lieu d'abandonner
+   * et qu'il relance après coup — pas seulement qu'il existe.
+   */
+  it('le brouillon ne perd pas une frappe survenue pendant une écriture', () => {
+    const src = sansCommentaires(lire('useWizardDraft.ts'))
+    expect(src, 'la passe concurrente est abandonnée sans être mémorisée')
+      .not.toMatch(/if\s*\(\s*enVol\.current\s*\)\s*return/)
+    expect(src).toMatch(/enAttente\.current\s*=\s*true/)
+    // …et le `finally` doit relancer, sinon la mémorisation ne sert à rien.
+    expect(src).toMatch(/finally[\s\S]{0,240}enAttente\.current[\s\S]{0,80}ecrireImpl\(\)/)
+  })
+
+  /**
    * ⛔ La charge utile est PARTAGÉE entre le brouillon et la publication. Deux
    * constructions parallèles divergeraient au premier champ ajouté, et l'agent
    * publierait alors autre chose que ce qu'il a vu enregistré. C'est déjà

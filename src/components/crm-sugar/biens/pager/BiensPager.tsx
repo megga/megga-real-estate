@@ -19,7 +19,7 @@ const PAGE_COUNT = 2
 
 function BpgPageDots({ page, onGo, sp, dark, labels }: { page: number; onGo: (i: number) => void; sp: SugarPalette; dark: boolean; labels: string[] }) {
   const activeCol = sp.accent
-  const idleCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(11,12,14,.18)'
+  const idleCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(3,3,3,.18)'
   return (
     <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', alignItems: 'center' }}>
       {labels.map((label, i) => (

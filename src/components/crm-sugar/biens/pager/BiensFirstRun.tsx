@@ -6,6 +6,7 @@
 
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { useTranslation } from 'react-i18next'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 interface BiensFirstRunProps {
   onStart: () => void
@@ -26,7 +27,7 @@ export function BiensFirstRun({ onStart, sp }: BiensFirstRunProps) {
       style={{
         position: 'absolute',
         inset: 0,
-        background: '#0A0B0D',
+        background: MXC_COLOR.n100,
         overflow: 'hidden',
         fontFamily: '"Inter Tight", system-ui, sans-serif',
         color: '#FFFFFF',

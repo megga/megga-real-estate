@@ -50,7 +50,7 @@ export default function SgActionMenu({
             <div
               style={{
                 fontSize: 'var(--crm-text-xl)',
-                fontWeight: 800,
+                fontWeight: 600,
                 letterSpacing: -0.3,
                 color: tk.ink,
                 whiteSpace: 'nowrap',
@@ -101,7 +101,7 @@ export default function SgActionMenu({
                 style={{
                   flex: 1,
                   fontSize: 'var(--crm-text-xl)',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   letterSpacing: -0.2,
                   color: tone,
                   whiteSpace: 'nowrap',

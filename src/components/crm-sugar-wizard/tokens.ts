@@ -85,8 +85,8 @@ const SUGARV2_LIGHT = {
   shadow:   '0 12px 40px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.03)',
   shadowLg: '0 24px 60px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04)',
   shadowHover: '0 32px 70px rgba(15, 23, 42, 0.10), 0 6px 20px rgba(15, 23, 42, 0.05)',
-  pillShadow: '0 6px 16px rgba(11,12,14,0.18)',
-  pillShadowHover: '0 12px 30px rgba(11,12,14,0.25)',
+  pillShadow: '0 6px 16px rgba(3,3,3,0.18)',
+  pillShadowHover: '0 12px 30px rgba(3,3,3,0.25)',
   footerFade: `linear-gradient(180deg, transparent 0%, ${MXC_COLOR.n900}E6 60%, ${MXC_COLOR.n900} 100%)`,
 
   // États — employés en ENCRE sur surface claire. Les teintes de `MXC_SYSTEM`
@@ -466,8 +466,8 @@ export const SG_KEYFRAMES = `
     50%     { transform: scale(0.92); opacity: 0.85; }
   }
   @keyframes sgPinPulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(11,12,14,0.4), 0 0 0 0 rgba(11,12,14,0.4); }
-    50%      { transform: scale(1.06); box-shadow: 0 8px 24px rgba(11,12,14,0.4), 0 0 0 12px rgba(11,12,14,0); }
+    0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(3,3,3,0.4), 0 0 0 0 rgba(3,3,3,0.4); }
+    50%      { transform: scale(1.06); box-shadow: 0 8px 24px rgba(3,3,3,0.4), 0 0 0 12px rgba(3,3,3,0); }
   }
   @keyframes sgRingPulse {
     0%   { transform: scale(1); opacity: 0.5; }

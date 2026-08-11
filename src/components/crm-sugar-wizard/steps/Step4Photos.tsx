@@ -118,10 +118,10 @@ export function Step4Photos({ data, set }: StepProps) {
             </span>
           </div>
           <div style={{ position: 'absolute', top: 14, right: 14, display: 'flex', gap: 'var(--crm-space-md)' }}>
-            <RoundBtn title={t('wizard.step4.crop')} onClick={() => setCropId(cover.id)}>{ICrop('#0B0C0E')}</RoundBtn>
+            <RoundBtn title={t('wizard.step4.crop')} onClick={() => setCropId(cover.id)}>{ICrop(SugarV2.ink)}</RoundBtn>
             <RoundBtn danger title={t('wizard.step4.delete')} onClick={() => removePhoto(cover.id)}>{ITrash('#fff')}</RoundBtn>
           </div>
-          {cover.label && <div style={{ position: 'absolute', bottom: 14, left: 14, padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(11,12,14,0.55)', color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 600, backdropFilter: 'blur(6px)', maxWidth: '70%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cover.label}</div>}
+          {cover.label && <div style={{ position: 'absolute', bottom: 14, left: 14, padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(3,3,3,0.55)', color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 600, backdropFilter: 'blur(6px)', maxWidth: '70%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cover.label}</div>}
         </div>
       ) : (
         <div
@@ -130,7 +130,7 @@ export function Step4Photos({ data, set }: StepProps) {
           onDragLeave={() => setOver(false)}
           onDrop={e => { e.preventDefault(); setOver(false); addFiles(e.dataTransfer.files) }}
           style={{ cursor: 'pointer', aspectRatio: '16/9', borderRadius: 'var(--crm-radius-5xl)', marginBottom: 16, background: over ? SugarV2.cardSubtle : SugarV2.card, boxShadow: over ? `inset 0 0 0 3px ${SugarV2.black}` : `inset 0 0 0 1.5px ${SugarV2.line}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-3xl)', transition: 'box-shadow .15s, background .15s' }}>
-          <span style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-3xl)', background: SugarV2.black, display: 'grid', placeItems: 'center', boxShadow: '0 10px 24px rgba(11,12,14,0.22)' }}>{IUp(sgOn(), 26)}</span>
+          <span style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-3xl)', background: SugarV2.black, display: 'grid', placeItems: 'center', boxShadow: '0 10px 24px rgba(3,3,3,0.22)' }}>{IUp(sgOn(), 26)}</span>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink }}>{t('wizard.step4.dropTitle')}</div>
             <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: SugarV2.muted, marginTop: 4 }}>{t('wizard.step4.dropHint')}</div>
@@ -158,8 +158,8 @@ export function Step4Photos({ data, set }: StepProps) {
                 <img src={photoSrc(p)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 {isCover && <div style={{ position: 'absolute', top: 6, left: 6, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: SugarV2.black, color: sgOn(), fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.3 }}>{t('wizard.step4.coverShort')}</div>}
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-sm)', background: 'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.30))' }}>
-                  {!isCover && <RoundBtn title={t('wizard.step4.setCover')} onClick={() => setCover(p.id)}>{IStar('#0B0C0E', 14)}</RoundBtn>}
-                  <RoundBtn title={t('wizard.step4.crop')} onClick={() => setCropId(p.id)}>{ICrop('#0B0C0E', 14)}</RoundBtn>
+                  {!isCover && <RoundBtn title={t('wizard.step4.setCover')} onClick={() => setCover(p.id)}>{IStar(SugarV2.ink, 14)}</RoundBtn>}
+                  <RoundBtn title={t('wizard.step4.crop')} onClick={() => setCropId(p.id)}>{ICrop(SugarV2.ink, 14)}</RoundBtn>
                   <RoundBtn danger title={t('wizard.step4.delete')} onClick={() => removePhoto(p.id)}>{ITrash('#fff', 14)}</RoundBtn>
                 </div>
               </div>
@@ -275,7 +275,7 @@ function SgCropModal({ photo, onClose, onApply }: { photo: WizardPhoto; onClose:
   )
 
   return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(11,12,14,0.55)', backdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 'var(--crm-space-7xl)' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(3,3,3,0.55)', backdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 'var(--crm-space-7xl)' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: SugarV2.card, borderRadius: 'var(--crm-radius-6xl)', padding: 26, boxShadow: '0 40px 100px rgba(15,23,42,0.28)', maxWidth: 760, width: '100%', animation: 'sgFadeUp .3s cubic-bezier(.2,.8,.2,1) both' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', marginBottom: 18, flexWrap: 'wrap' }}>
           <h3 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SugarV2.ink, letterSpacing: -0.3 }}>{t('wizard.step4.cropTitle')}</h3>
@@ -291,7 +291,7 @@ function SgCropModal({ photo, onClose, onApply }: { photo: WizardPhoto; onClose:
           <div style={{ position: 'relative', lineHeight: 0, overflow: 'hidden', borderRadius: 'var(--crm-radius-sm)', touchAction: 'none' }}>
             <img ref={imgRef} src={photoSrc(photo)} alt="" draggable={false} style={{ maxWidth: '100%', maxHeight: '52vh', display: 'block', userSelect: 'none' }} />
             {ready && box && (
-              <div onPointerDown={start('move')} style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, boxShadow: '0 0 0 9999px rgba(11,12,14,0.5)', outline: '1.5px solid #fff', cursor: 'move' }}>
+              <div onPointerDown={start('move')} style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, boxShadow: '0 0 0 9999px rgba(3,3,3,0.5)', outline: '1.5px solid #fff', cursor: 'move' }}>
                 <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)', backgroundSize: '33.33% 33.33%', pointerEvents: 'none' }} />
                 {handle('nw', 'nwse-resize')}{handle('ne', 'nesw-resize')}{handle('sw', 'nesw-resize')}{handle('se', 'nwse-resize')}
               </div>
@@ -303,7 +303,7 @@ function SgCropModal({ photo, onClose, onApply }: { photo: WizardPhoto; onClose:
           <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SugarV2.muted }}>{t('wizard.step4.cropHint')}</span>
           <div style={{ display: 'flex', gap: 'var(--crm-space-lg)' }}>
             <button onClick={onClose} style={{ height: 44, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: 'transparent', color: SugarV2.inkSoft }}>{t('common:actions.cancel')}</button>
-            <button onClick={apply} style={{ height: 44, padding: '0 var(--crm-space-7xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: SugarV2.black, color: sgOn(), boxShadow: '0 8px 22px rgba(11,12,14,0.18)' }}>{t('wizard.step4.crop')}</button>
+            <button onClick={apply} style={{ height: 44, padding: '0 var(--crm-space-7xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: SugarV2.black, color: sgOn(), boxShadow: '0 8px 22px rgba(3,3,3,0.18)' }}>{t('wizard.step4.crop')}</button>
           </div>
         </div>
       </div>

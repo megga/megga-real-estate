@@ -53,6 +53,11 @@ const ECHELLE = new Set(
  * - `line` : un VOILE (rgba), pas une couleur. Il se pose sur la surface au lieu
  *   de la remplacer, ce qu'aucun barreau opaque ne sait faire.
  * - `shadow*` / `pillShadow*` / `ringSoft` : des ombres, pas des couleurs.
+ * - `blackHover` : le survol de l'accent. La vitrine n'en publie AUCUN barreau
+ *   — son `.primary-button:hover` grandit au lieu de changer de teinte —, donc
+ *   il est dérivé de l'accent par `sgMix`. ⚠ Il n'apparaissait pas ici tant que
+ *   `hexOf` ignorait `rgb()` : c'est la garde renforcée qui l'a fait surgir, pas
+ *   une régression. Son contraste est verrouillé par un test dédié plus bas.
  *
  * ⚠ `bgGradient` n'est PAS exempté, à la différence du calendrier — là-bas il
  * était mort et a été supprimé, ici il est LU (`WizardShell.tsx:349`, branche
@@ -64,11 +69,27 @@ const SEMANTIQUES = new Set([
   'line',
   'shadowSm', 'shadow', 'shadowLg', 'shadowHover',
   'pillShadow', 'pillShadowHover', 'ringSoft',
+  'blackHover',
 ])
 
-/** Les hex d'une valeur de jeton — une valeur peut en contenir plusieurs. */
+/**
+ * Les couleurs d'une valeur de jeton, sous LEURS DEUX notations.
+ *
+ * ⚠ Une première version ne lisait que `#rrggbb`. Elle était donc aveugle à
+ * `rgba(11,12,14,…)` — le noir de Sugar en décimal, exactement la même couleur
+ * sous un autre alphabet. Quinze occurrences vivantes lui échappaient, dont le
+ * voile de `sgVeil()` dans le fichier de jetons lui-même. Un garde-fou de
+ * couleur qui ne connaît qu'une notation ne garde rien.
+ *
+ * Les canaux ALPHA sont ignorés : un voile translucide n'a pas à descendre sur
+ * l'échelle des opaques, seule sa TEINTE compte.
+ */
 function hexOf(value: string): string[] {
-  return (value.match(/#[0-9A-Fa-f]{6}\b/g) ?? []).map((h) => h.toLowerCase())
+  const hex = (value.match(/#[0-9A-Fa-f]{6}\b/g) ?? []).map((h) => h.toLowerCase())
+  const rgb = [...value.matchAll(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/g)].map(
+    (m) => '#' + [1, 2, 3].map((i) => Number(m[i]).toString(16).padStart(2, '0')).join(''),
+  )
+  return [...hex, ...rgb]
 }
 
 /**
