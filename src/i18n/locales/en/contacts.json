@@ -1125,7 +1125,7 @@
     "matchesToSend": "Propose a selection ({{count}} matching listings)",
     "neverContacted": "Make a first contact (never contacted yet)",
     "dormant": "Follow up (no exchange for {{days}} d)",
-    "estimateTag": "estimate",
+    "estimateTag": "Estimate",
     "kycNote": "KYC file to finalise (optional, never blocking)"
   }
 }

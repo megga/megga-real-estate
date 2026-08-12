@@ -386,6 +386,60 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
     .filter((f) => /\.tsx?$/.test(f))
     .map((f) => ({ path: `src/${f}`, code: sansCommentaires(readFileSync(`src/${f}`, 'utf-8')) }))
 
+  /**
+   * Polices en dur CONNUES — l'inventaire, pas une autorisation.
+   *
+   * ⛔ ELLES N'ONT PAS ÉTÉ INTRODUITES ICI. Elles étaient là avant, et la garde
+   * les laissait TOUTES passer : son motif exigeait le nom de la police juste
+   * après le guillemet ouvrant, or le dépôt écrit soit
+   * `fontFamily: "'Inter Tight', …"` soit `fontFamily: '"Inter Tight", …'` —
+   * un guillemet s'intercale dans les deux cas. Mesuré le 12.08.2026 en
+   * réparant le motif : 29 fichiers, dont `BienDetailSugarV4Page` et
+   * `BiensSugarV2Page`, qui sont pourtant DANS le cliquet de grammaire depuis
+   * le lot 4 de « Mes biens ». La garde n'attrapait rien du tout.
+   *
+   * Les nommer les COMPTE le temps que leur surface soit portée. Sans cette
+   * liste, réparer le motif rendait la garde rouge sur 29 fichiers hors
+   * périmètre, et le réflexe aurait été de re-desserrer le motif — c'est-à-dire
+   * de refaire le trou.
+   *
+   * ⚠ Cette liste est un CLIQUET À L'ENVERS : elle ne doit que rétrécir. Le
+   * test qui suit refuse toute entrée devenue inutile, donc un fichier nettoyé
+   * doit en sortir. Les trois de `contacts-pager/` partent aux lots 3-4 du
+   * chantier Contacts, qui traitent précisément les polices en dur.
+   */
+  const POLICES_ASSUMEES = new Set([
+    'src/components/admin/AdminShell.tsx',
+    'src/components/admin/UserDrawer.tsx',
+    'src/components/ai-copilot/panel/AnnonceReviewModal.tsx',
+    'src/components/ai-copilot/panel/CopilotPanel.tsx',
+    'src/components/ai-copilot/panel/DeleteContactReviewModal.tsx',
+    'src/components/ai-copilot/panel/EmailReviewModal.tsx',
+    'src/components/ai-copilot/panel/LetterReviewModal.tsx',
+    'src/components/ai-copilot/panel/PublishReviewModal.tsx',
+    'src/components/crm-sugar-v3/offer-modal/OfferModalSugar.tsx',
+    'src/components/crm-sugar-wizard/WizardShell.tsx',
+    'src/components/crm-sugar/biens/pager/BiensFirstRun.tsx',
+    'src/components/crm-sugar/biens/pager/BpRenewModal.tsx',
+    'src/components/crm-sugar/calendar/CalendarApp.tsx',
+    'src/components/crm-sugar/contacts-pager/ContactsFirstRun.tsx',
+    'src/components/crm-sugar/contacts-pager/NewContactModal.tsx',
+    'src/components/crm-sugar/contacts-pager/WhatsAppConnectModal.tsx',
+    'src/components/crm-sugar/pipeline/LostConfirmModal.tsx',
+    'src/components/crm-sugar/pipeline/NewDealModal.tsx',
+    'src/components/crm-sugar/pipeline/SignedBento.tsx',
+    'src/components/crm-sugar/settings/BillingSection.tsx',
+    'src/components/matching-atelier/MatchingFirstRun.tsx',
+    'src/pages/agent/BienDetailSugarV4Page.tsx',
+    'src/pages/agent/BiensSugarV2Page.tsx',
+    'src/pages/agent/DealDetailSugarV4Page.tsx',
+    'src/pages/agent/JourneySugarV2Page.tsx',
+    'src/pages/agent/JulienSugarV2Page.tsx',
+    'src/pages/agent/KycExportPage.tsx',
+    'src/pages/agent/PipelineSugarV2Page.tsx',
+    'src/pages/dev/BiensShowcasePage.tsx',
+  ])
+
   it('la liste des sources est bien peuplée', () => {
     // Sans ça, un chemin cassé rendrait les deux tests suivants vrais par vacuité.
     expect(sources.length).toBeGreaterThan(400)
@@ -397,11 +451,47 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    * MEGGA X — dont la police EST Inter Tight — et ne se voit qu'en revenant à
    * Sugar, qui restait en Inter Tight au lieu de DM Sans.
    */
+  /**
+   * ⛔ CETTE GARDE ÉTAIT VERTE SUR ONZE FICHIERS FAUTIFS — mesuré le 12.08.2026.
+   *
+   * Son motif exigeait le nom de la police JUSTE APRÈS le guillemet ouvrant :
+   * `fontFamily: *['"`][^'"`]*(Inter Tight|DM Sans)`. Il attrape bien
+   * `fontFamily: 'Inter Tight, system-ui'` — mais PAS
+   * `fontFamily: "'Inter Tight', system-ui, sans-serif"`, où un guillemet
+   * simple s'intercale. Or c'est cette seconde forme que le dépôt écrit
+   * partout : la classe `[^'"`]*` s'arrête sur elle, et la garde passait.
+   *
+   * Une garde qui ne connaît qu'une notation ne garde rien — même défaut que le
+   * noir de Sugar, qui avait survécu onze fois en `rgba(11,12,14,…)` sous un
+   * motif qui ne lisait que l'hexadécimal.
+   *
+   * On cherche donc le nom de la police N'IMPORTE OÙ dans la valeur, et on
+   * exempte ce qui passe par la variable — `var(--crm-font, "Inter Tight")` est
+   * la forme CORRECTE : le nom n'y est qu'un repli.
+   */
   it('aucune police n’est écrite en dur dans un style', () => {
     const coupables = sources
-      .filter((s) => /fontFamily: *['"`][^'"`]*(Inter Tight|DM Sans)/.test(s.code))
+      .filter((s) => {
+        const sansJeton = s.code.replace(/var\(--crm-font[^)]*\)/g, 'VAR')
+        return /fontFamily:[^,;}\n]*(Inter Tight|DM Sans)/.test(sansJeton)
+      })
       .map((s) => s.path)
+      .filter((p) => !POLICES_ASSUMEES.has(p))
     expect(coupables, 'passer par var(--crm-font, …)').toEqual([])
+  })
+
+  /**
+   * Une exemption qui ne correspond plus à rien est un mensonge silencieux :
+   * elle laisse croire qu'un écart est surveillé alors que le fichier est propre
+   * — ou a disparu. Même idiome que `TAILLES_ASSUMEES` du cliquet de grammaire.
+   */
+  it('chaque police assumée correspond encore à du code', () => {
+    const mortes = [...POLICES_ASSUMEES].filter((p) => {
+      const s = sources.find((x) => x.path === p)
+      if (!s) return true
+      return !/fontFamily:[^,;}\n]*(Inter Tight|DM Sans)/.test(s.code.replace(/var\(--crm-font[^)]*\)/g, 'VAR'))
+    })
+    expect(mortes, `exemptions sans code :\n  ${mortes.join('\n  ')}`).toEqual([])
   })
 
   /**

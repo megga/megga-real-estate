@@ -27,8 +27,9 @@ import { COUNTRIES, countryName } from '@/lib/countries'
 import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/lib/contactIdentity'
 import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmFmtCHF } from '@/components/crm-sugar/tokens'
-import { encreSur } from '@/components/megga-x-crm/tokens'
+import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { creerNotePlanner } from '@/components/crm-sugar/contacts-pager/notePlanner'
+import { CTP_FN } from '@/components/crm-sugar/contacts-pager/ctpTokens'
 
 // ═══════════════════════════════════════════════════════════════════════
 //   API PUBLIQUE
@@ -299,7 +300,7 @@ function CdCta({ children, tone = 'ink', small, P, onClick, disabled }: {
       padding: small ? '0 14px' : '0 17px', borderRadius: 'var(--crm-radius-pill)', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
       border: 0, fontFamily: 'inherit',
       background: ghost ? P.sub : P.accent, color: ghost ? P.inkSoft : P.accentInk,
-      fontSize: small ? 12 : 13, fontWeight: ghost ? 600 : 700,
+      fontSize: small ? 'var(--crm-text-sm)' : 'var(--crm-text-md)', fontWeight: 600,
       boxShadow: ghost ? 'none' : P.shadowSm, opacity: disabled ? 0.45 : 1,
     }}>{children}</button>
   )
@@ -314,21 +315,21 @@ function CdRoundBtn({ icon, P, onClick }: { icon: string; P: FichePal; onClick?:
 }
 
 function CdGrp({ children, P }: { children: ReactNode; P: FichePal }) {
-  return <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: P.muted }}>{children}</div>
+  return <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: P.muted }}>{children}</div>
 }
 
 function CdChip({ children, on, P }: { children: ReactNode; on?: boolean; P: FichePal }) {
-  return <span style={{ display: 'inline-flex', alignItems: 'center', height: 31, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, background: on ? P.accent : P.sub, color: on ? P.accentInk : P.muted }}>{children}</span>
+  return <span style={{ display: 'inline-flex', alignItems: 'center', height: 31, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-md)', fontWeight: 600, background: on ? P.accent : P.sub, color: on ? P.accentInk : P.muted }}>{children}</span>
 }
 
 function CdPickChip({ on, onClick, children, P }: { on?: boolean; onClick: () => void; children: ReactNode; P: FichePal }) {
-  return <button onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', height: 31, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, background: on ? P.accent : P.sub, color: on ? P.accentInk : P.muted, transition: 'background 140ms ease' }}>{children}</button>
+  return <button onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', height: 31, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, background: on ? P.accent : P.sub, color: on ? P.accentInk : P.muted, transition: 'background 140ms ease' }}>{children}</button>
 }
 
 function CdField({ label, value, mono, P }: { label: string; value: ReactNode; mono?: boolean; P: FichePal }) {
   return (
     <div>
-      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted }}>{label}</div>
+      <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{label}</div>
       <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: P.ink, marginTop: 5, fontVariantNumeric: mono ? 'tabular-nums' : 'normal' }}>{value}</div>
     </div>
   )
@@ -355,7 +356,7 @@ function CdField({ label, value, mono, P }: { label: string; value: ReactNode; m
 function CdReadRow({ label, value, empty, mono, P }: { label: string; value: ReactNode; empty?: boolean; mono?: boolean; P: FichePal }) {
   return (
     <div>
-      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted }}>{label}</div>
+      <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{label}</div>
       <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: empty ? 500 : 600, color: empty ? P.ghost : P.ink, marginTop: 5, fontVariantNumeric: mono ? 'tabular-nums' : 'normal' }}>{empty ? '—' : value}</div>
     </div>
   )
@@ -369,10 +370,27 @@ function CdReadRow({ label, value, empty, mono, P }: { label: string; value: Rea
  */
 function CdStatePill({ state, label, P }: { state: FicheLoopItem['state']; label: string; P: FichePal }) {
   const aplat = P[LOOP_STATE[state].key]
-  return <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: aplat, color: encreSur(aplat), fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>{label}</span>
+  return <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: aplat, color: encreSur(aplat), fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>{label}</span>
 }
 
-const cdLbl = (P: FichePal): CSSProperties => ({ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 7 })
+/**
+ * Libellé de champ — 13 px / 500, casse normale.
+ *
+ * ⚠ ÉCART ASSUMÉ VIS-À-VIS DES RÉGLAGES, qui font jurisprudence ici : ils ont
+ * porté leurs libellés à 16 px / 400. La fiche contact est bien plus DENSE —
+ * `cdLbl` sert 17 libellés, dont neuf empilés dans le seul bloc Coordonnées —
+ * et 16 px y déborderaient. On monte donc de 11 à 13 px seulement, et on
+ * compense d'un cran de graisse : à 13 px, 500 pèse ce que 400 pèse à 16.
+ *
+ * Le geste des Réglages est respecté sur ce qui compte — plus de capitale, plus
+ * d'interlettrage, plus de graisse de titre sur un libellé. Ce qui change est le
+ * couple taille/graisse, pas la règle. `CdField` et `CdReadRow` suivent.
+ *
+ * ⚠ Lisibilité vérifiée, pas supposée : `P.muted` mesure 4,74:1 en clair et
+ * 7,89:1 en sombre sur le fond de carte. La graisse ne change pas le contraste ;
+ * l'écart 400/500 est perceptuel, et c'est à ce titre qu'il se décide.
+ */
+const cdLbl = (P: FichePal): CSSProperties => ({ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted, marginBottom: 7 })
 
 function CdTextInput({ value, onChange, placeholder, type = 'text', mono, invalid, P }: {
   value: string; onChange: (v: string) => void; placeholder?: string; type?: string; mono?: boolean; invalid?: boolean; P: FichePal
@@ -393,10 +411,23 @@ function CdTextInput({ value, onChange, placeholder, type = 'text', mono, invali
 // ═══════════════════════════════════════════════════════════════════════
 /** Pilule de confirmation. Montée en PORTAL : le viewport du pager est en
  *  `overflow: hidden`, un `position: fixed` enfant y serait clippé. */
-function CdSavedToast({ label }: { label: string }) {
+/**
+ * ⚠ Il portait QUATRE écarts sur une seule ligne : le noir de Sugar `#0B0C0E`,
+ * un `#FFFFFF` figé, une graisse 800 et une police écrite en dur qui écrasait
+ * `--crm-font`. Il n'avait aucune palette — c'est ce qui les expliquait tous —
+ * d'où le `P` que ses trois appelants ont déjà sous la main.
+ *
+ * Le témoin reste INVERSÉ, comme avant : `P.ink` vaut `#030303` en clair et
+ * `#ffffff` en sombre, donc la pilule s'oppose à son canvas dans les deux
+ * thèmes. Ce n'était pas la dette ; la dette était de l'écrire à la main.
+ *
+ * ⚠ La pastille verte garde `CTP_FN.ok` : c'est une teinte SÉMANTIQUE, et son
+ * glyphe blanc tient son seuil non-texte (3,77:1 pour 3:1 exigé).
+ */
+function CdSavedToast({ label, P }: { label: string; P: FichePal }) {
   return createPortal(
-    <div style={{ position: 'fixed', bottom: 30, left: '50%', zIndex: 100, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 42, padding: '0 var(--crm-space-4xl) 0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: '#0B0C0E', color: '#FFFFFF', fontSize: 'var(--crm-text-md)', fontWeight: 700, fontFamily: "'Inter Tight', system-ui, sans-serif", boxShadow: '0 16px 44px rgba(0,0,0,0.35)', animation: 'cdpToast .28s cubic-bezier(.2,.8,.2,1) both', pointerEvents: 'none' }}>
-      <span style={{ width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: '#059669', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+    <div style={{ position: 'fixed', bottom: 30, left: '50%', zIndex: 100, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 42, padding: '0 var(--crm-space-4xl) 0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: P.ink, color: encreSur(P.ink), fontSize: 'var(--crm-text-md)', fontWeight: 600, boxShadow: '0 16px 44px rgba(0,0,0,0.35)', animation: 'cdpToast .28s cubic-bezier(.2,.8,.2,1) both', pointerEvents: 'none' }}>
+      <span style={{ width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: CTP_FN.ok, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
         <FcpIcon name="check" size={11} stroke="#FFFFFF" sw={2.6} />
       </span>
       {label}
@@ -425,7 +456,12 @@ function CdSelect({ value, onChange, options, P }: {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} onFocus={() => setF(true)} onBlur={() => setF(false)}
       style={{ width: '100%', height: 38, padding: '0 30px 0 12px', boxSizing: 'border-box', background: P.sub, border: 0, borderRadius: 'var(--crm-radius-lg)', color: P.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontFamily: 'inherit', outline: 'none', appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer', boxShadow: f ? `inset 0 0 0 2px ${P.accent}` : 'none', backgroundImage: chevronUri(P.muted), backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', transition: 'box-shadow 140ms ease' }}>
-      {options.map((o) => <option key={o.v} value={o.v} style={{ color: '#0B0C0E' }}>{o.l}</option>)}
+      {/* ⚠ L'encre des <option> ne suit PAS le thème, et c'est voulu : la liste
+          déroulante native est peinte par le SYSTÈME, sur sa propre surface —
+          la faire passer à `P.ink` la rendrait blanche sur blanc en sombre.
+          Elle reste donc fixe, mais sur un barreau de l'échelle (`n100`) au
+          lieu du noir de Sugar qu'elle portait. */}
+      {options.map((o) => <option key={o.v} value={o.v} style={{ color: MXC_COLOR.n100 }}>{o.l}</option>)}
     </select>
   )
 }
@@ -438,7 +474,7 @@ function CdSeg({ value, onChange, options, P }: {
       {options.map((o) => {
         const on = value === o.v
         return (
-          <button key={o.v} onClick={() => onChange(o.v)} style={{ flex: 1, height: 32, borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, background: on ? P.accent : 'transparent', color: on ? P.accentInk : P.muted, boxShadow: on ? P.shadowSm : 'none', transition: 'background 140ms ease, color 140ms ease' }}>{o.l}</button>
+          <button key={o.v} onClick={() => onChange(o.v)} style={{ flex: 1, height: 32, borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, background: on ? P.accent : 'transparent', color: on ? P.accentInk : P.muted, boxShadow: on ? P.shadowSm : 'none', transition: 'background 140ms ease, color 140ms ease' }}>{o.l}</button>
         )
       })}
     </div>
@@ -494,7 +530,7 @@ function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
 }) {
   const { t } = useTranslation('contacts')
   const modalBg = P.sp.solidBg
-  const veil: CSSProperties = { position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: "'Inter Tight', system-ui, sans-serif" }
+  const veil: CSSProperties = { position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif' }
 
   if (done) {
     return createPortal(
@@ -503,7 +539,7 @@ function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
           <span style={{ width: 48, height: 48, borderRadius: 'var(--crm-radius-pill)', background: '#059669', display: 'inline-grid', placeItems: 'center' }}>
             <FcpIcon name="check" size={22} stroke="#FFFFFF" sw={2.4} />
           </span>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 14 }}>{t('fiche.delete.done')}</div>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, letterSpacing: -0.4, color: P.ink, marginTop: 14 }}>{t('fiche.delete.done')}</div>
         </div>
       </div>,
       document.body,
@@ -516,16 +552,16 @@ function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
         <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
           <FcpIcon name="trash" size={20} stroke={P.danger} sw={2} />
         </span>
-        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.delete.title', { name: name || t('fiche.delete.thisContact') })}</div>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.delete.title', { name: name || t('fiche.delete.thisContact') })}</div>
         <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
-          <Trans t={t} i18nKey="fiche.delete.body" components={{ 1: <b style={{ color: P.inkSoft, fontWeight: 700 }} /> }} />
+          <Trans t={t} i18nKey="fiche.delete.body" components={{ 1: <span style={{ color: P.inkSoft, fontWeight: 600 }} /> }} />
         </div>
         {error && (
           <div role="alert" style={{ marginTop: 16, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
         )}
         <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
-          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
-          <button onClick={onConfirm} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: encreSur(P.danger) }}>{t('fiche.delete.confirm')}</button>
+          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
+          <button onClick={onConfirm} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.danger, color: encreSur(P.danger) }}>{t('fiche.delete.confirm')}</button>
         </div>
       </div>
     </div>,
@@ -543,9 +579,9 @@ function CdKycWarn({ P, name, onCancel, onConfirm }: { P: FichePal; name: string
         <div style={{ width: 46, height: 46, borderRadius: 'var(--crm-radius-xl)', background: P.danger + '24', display: 'grid', placeItems: 'center', marginBottom: 16 }}>
           <FcpIcon name="shield" size={22} stroke={P.danger} sw={2} />
         </div>
-        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: P.ink }}>{t('fiche.kycWarn.title')}</div>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, letterSpacing: -0.4, color: P.ink }}>{t('fiche.kycWarn.title')}</div>
         <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
-          <Trans t={t} i18nKey="fiche.kycWarn.body" values={{ name: name || t('fiche.delete.thisContact') }} components={{ 1: <b style={{ color: P.inkSoft, fontWeight: 700 }} /> }} />
+          <Trans t={t} i18nKey="fiche.kycWarn.body" values={{ name: name || t('fiche.delete.thisContact') }} components={{ 1: <span style={{ color: P.inkSoft, fontWeight: 600 }} /> }} />
         </div>
         <label role="checkbox" aria-checked={consent} tabIndex={0}
           onClick={() => setConsent((v) => !v)}
@@ -555,12 +591,12 @@ function CdKycWarn({ P, name, onCancel, onConfirm }: { P: FichePal; name: string
             {consent && <FcpIcon name="check" size={13} stroke={P.accentInk} sw={3} />}
           </span>
           <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.inkSoft, lineHeight: 1.5 }}>
-            <Trans t={t} i18nKey="fiche.kycWarn.consent" components={{ 1: <b style={{ fontWeight: 700, color: P.ink }} /> }} />
+            <Trans t={t} i18nKey="fiche.kycWarn.consent" components={{ 1: <span style={{ fontWeight: 600, color: P.ink }} /> }} />
           </span>
         </label>
         <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 20 }}>
-          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
-          <button onClick={consent ? onConfirm : undefined} disabled={!consent} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: consent ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: encreSur(P.danger), opacity: consent ? 1 : 0.45, transition: 'opacity 140ms ease' }}>{t('fiche.kycWarn.confirm')}</button>
+          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
+          <button onClick={consent ? onConfirm : undefined} disabled={!consent} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: consent ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.danger, color: encreSur(P.danger), opacity: consent ? 1 : 0.45, transition: 'opacity 140ms ease' }}>{t('fiche.kycWarn.confirm')}</button>
         </div>
       </div>
     </div>
@@ -583,7 +619,7 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 80, display: 'grid', placeItems: 'center', background: 'rgba(15,20,30,0.42)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease' }}>
       <div style={{ width: 452, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
-        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: P.ink }}>{t('fiche.identity.title')}</div>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, letterSpacing: -0.4, color: P.ink }}>{t('fiche.identity.title')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)', marginTop: 20 }}>
           <div>
             <div style={cdLbl(P)}>{t('fiche.identity.firstName')}</div>
@@ -614,7 +650,7 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
           <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'flex-start', marginTop: 16, background: P.danger + (dark ? '22' : '14'), borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
             <FcpIcon name="shield" size={16} stroke={P.danger} sw={2} />
             <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.inkSoft, lineHeight: 1.45 }}>
-              <Trans t={t} i18nKey="fiche.identity.kycWarn" components={{ 1: <b style={{ fontWeight: 700 }} /> }} />
+              <Trans t={t} i18nKey="fiche.identity.kycWarn" components={{ 1: <span style={{ fontWeight: 600 }} /> }} />
             </div>
           </div>
         )}
@@ -622,8 +658,8 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
           <div role="alert" style={{ marginTop: 16, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
         )}
         <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
-          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
-          <button onClick={onSave} disabled={!canSave} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.accent, color: P.accentInk, opacity: canSave ? 1 : 0.45, transition: 'opacity 140ms ease' }}>{t('cd.save')}</button>
+          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
+          <button onClick={onSave} disabled={!canSave} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.accent, color: P.accentInk, opacity: canSave ? 1 : 0.45, transition: 'opacity 140ms ease' }}>{t('cd.save')}</button>
         </div>
       </div>
     </div>
@@ -669,7 +705,7 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
         <div style={{ flex: 1 }} />
         {!editing && <span onClick={start} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('cd.edit')}</span>}
       </div>
-      {saved && <CdSavedToast label={t('fiche.saved.coord')} />}
+      {saved && <CdSavedToast P={P} label={t('fiche.saved.coord')} />}
 
       {editing ? (
         <>
@@ -784,7 +820,7 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
         <div style={{ flex: 1 }} />
         {!editing && <span onClick={start} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('cd.edit')}</span>}
       </div>
-      {saved && <CdSavedToast label={t('fiche.saved.crit')} />}
+      {saved && <CdSavedToast P={P} label={t('fiche.saved.crit')} />}
 
       {editing ? (
         <>
@@ -831,17 +867,17 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
       ) : (
         <>
           <div>
-            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted }}>{budgetLabel}</div>
-            <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: P.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{budgetRead}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{budgetLabel}</div>
+            <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 600, letterSpacing: -1, color: P.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{budgetRead}</div>
           </div>
           <div>
-            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 9 }}>{t('detail.propertyType')}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted, marginBottom: 9 }}>{t('detail.propertyType')}</div>
             <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
               {CD_ALL_TYPES.map((tk) => <CdChip key={tk} on={v.types.includes(tk)} P={P}>{typeLabel(tk)}</CdChip>)}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 9 }}>{t('fiche.crit.sectors')}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted, marginBottom: 9 }}>{t('fiche.crit.sectors')}</div>
             <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap', alignItems: 'center' }}>
               {v.cantons.map((cn) => <CdChip key={cn} on P={P}>{cn}</CdChip>)}
               {v.cities && <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{v.cities}</span>}
@@ -904,13 +940,13 @@ function CdNote({ P, notes, onSaveNote }: { P: FichePal; notes: string; onSaveNo
   return (
     <div style={{ background: P.card, borderRadius: 'var(--crm-radius-2xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', flex: 1, minHeight: 0 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
-        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: P.muted }}>{t('fiche.note.label')}</span>
+        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: P.muted }}>{t('fiche.note.label')}</span>
         {echec && <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.danger, textAlign: 'right' }}>{t('fiche.note.saveError')}</span>}
       </div>
       <textarea value={note} onChange={(e) => onChange(e.target.value)} placeholder={t('fiche.note.placeholder')}
         onFocus={() => setFoc(true)} onBlur={onBlur}
         style={{ flex: 1, minHeight: 54, width: '100%', boxSizing: 'border-box', resize: 'none', border: 0, outline: 'none', background: P.sub, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 500, lineHeight: 1.5, color: P.ink, boxShadow: foc ? `inset 0 0 0 2px ${P.accent}` : 'none', transition: 'box-shadow 140ms ease' }} />
-      {saved && <CdSavedToast label={t('fiche.saved.note')} />}
+      {saved && <CdSavedToast P={P} label={t('fiche.saved.note')} />}
     </div>
   )
 }
@@ -1063,12 +1099,12 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
             ne l'a PAS signalé — la fiche de démonstration porte justement la
             seule teinte qui passait (#0041D9). Un banc ne prouve que ce qu'il
             montre ; c'est la garde de source qui tient celui-ci. */}
-        <div style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-pill)', background: fiche.photo ? 'transparent' : (fiche.avatarBg || P.buyer), color: encreSur(fiche.avatarBg || P.buyer), display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-3xl)', fontWeight: 700, flexShrink: 0, overflow: 'hidden' }}>
+        <div style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-pill)', background: fiche.photo ? 'transparent' : (fiche.avatarBg || P.buyer), color: encreSur(fiche.avatarBg || P.buyer), display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-3xl)', fontWeight: 600, flexShrink: 0, overflow: 'hidden' }}>
           {fiche.photo ? <img src={fiche.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
         </div>
         <div style={{ minWidth: 0, flex: '0 1 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
-            <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, color: P.ink, lineHeight: 1 }}>{nm.firstName} {nm.lastName}</h1>
+            <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 500, letterSpacing: -0.8, color: P.ink, lineHeight: 1 }}>{nm.firstName} {nm.lastName}</h1>
             {verified && <CdSeal title={t('fiche.seal.title')} ariaLabel={t('fiche.seal.aria')} />}
             <button onClick={startId} title={t('fiche.menu.editIdentity')} style={{ width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
               <FcpIcon name="pencil" size={14} stroke={P.muted} />
@@ -1079,7 +1115,7 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
             <div title={nba.kycNote ?? undefined} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 8, minWidth: 0 }}>
               <FcpIcon name="sparkle" size={13} stroke={P.accent} />
               <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.inkSoft, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nba.label}</span>
-              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: P.muted, flexShrink: 0 }}>{nba.estimateTag}</span>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, flexShrink: 0 }}>{nba.estimateTag}</span>
             </div>
           )}
         </div>
@@ -1126,13 +1162,13 @@ function CdRevokeLinkModal({ P, dark, link, busy, error, onCancel, onConfirm }: 
   const { t } = useTranslation('contacts')
   const modalBg = P.sp.solidBg
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: "'Inter Tight', system-ui, sans-serif" }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif' }}>
       <div role="dialog" aria-modal="true" aria-label={t('fiche.links.confirm.title')}
         style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
         <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
           <FcpIcon name="shield" size={20} stroke={P.danger} sw={2} />
         </span>
-        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.links.confirm.title')}</div>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.links.confirm.title')}</div>
         <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
           {t('fiche.links.confirm.body', { count: link.count })}
         </div>
@@ -1140,9 +1176,9 @@ function CdRevokeLinkModal({ P, dark, link, busy, error, onCancel, onConfirm }: 
           <div role="alert" style={{ marginTop: 16, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
         )}
         <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
-          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
+          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
           <button onClick={busy ? undefined : onConfirm} disabled={busy}
-            style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: encreSur(P.danger), opacity: busy ? 0.55 : 1 }}>
+            style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.danger, color: encreSur(P.danger), opacity: busy ? 0.55 : 1 }}>
             {busy ? t('fiche.links.confirm.busy') : t('fiche.links.confirm.cta')}
           </button>
         </div>
@@ -1204,7 +1240,7 @@ function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
               <FcpIcon name={l.channel === 'whatsapp' ? 'msg' : 'ext'} size={14} stroke={P.inkSoft} />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, letterSpacing: -0.2, color: P.ink }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: P.ink }}>
                 {t('fiche.links.selection', { count: l.count })}{channel ? ` · ${channel}` : ''}
               </div>
               <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
@@ -1220,7 +1256,7 @@ function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
             {/* ⚠ Même règle que CdStatePill : l'encre suit l'aplat. « Échu »,
                 « Retiré » et « Statut inconnu » partagent `ghost`, mesuré à
                 1,95:1 sous le blanc figé d'avant. */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: state ? P[state.key] : P.ghost, color: encreSur(state ? P[state.key] : P.ghost), fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: state ? P[state.key] : P.ghost, color: encreSur(state ? P[state.key] : P.ghost), fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>
               {state ? t(state.labelK) : t('fiche.links.status.unknown')}
             </span>
             {l.active && (
@@ -1273,13 +1309,13 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
     <div style={{ position: 'absolute', inset: 0, padding: '26px 30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: P.ink, lineHeight: 1 }}>{t('fiche.page.loop')}</h1>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1, color: P.ink, lineHeight: 1 }}>{t('fiche.page.loop')}</h1>
         </div>
         <div style={{ flex: 1 }} />
         {counters.map((c) => (
           <div key={c.l} style={{ textAlign: 'center', minWidth: 62 }}>
-            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: c.liked ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
-            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: P.muted, marginTop: 4 }}>{c.l}</div>
+            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5, lineHeight: 1, color: c.liked ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
+            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 4 }}>{c.l}</div>
           </div>
         ))}
       </div>
@@ -1291,7 +1327,7 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
             <span style={{ display: 'inline-grid', placeItems: 'center' }}>
               <FcpIcon name="send" size={30} stroke={P.inkSoft} />
             </span>
-            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.3, color: P.ink, marginTop: 16 }}>{t('fiche.loop.emptyTitle')}</div>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, letterSpacing: -0.3, color: P.ink, marginTop: 16 }}>{t('fiche.loop.emptyTitle')}</div>
             <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 8 }}>
               <Trans t={t} i18nKey="fiche.loop.emptyBody" values={{ name: firstName }} components={{ 1: <br /> }} />
             </div>
@@ -1315,7 +1351,7 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
                   <span style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', background: 'rgba(5,150,105,0.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><FcpIcon name="heart" size={15} stroke={P.ok} fill={P.ok} sw={1.5} /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: P.ink }}>{t('loop.likedTitle', { title: p.title })}</div>
+                    <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: P.ink }}>{t('loop.likedTitle', { title: p.title })}</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
@@ -1346,7 +1382,7 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
                       ? <img src={m.photo} alt="" style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', objectFit: 'cover', flexShrink: 0, filter: out ? 'grayscale(.6)' : 'none' }} />
                       : <div style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: P.sub, display: 'grid', placeItems: 'center' }}><FcpIcon name="home" size={16} stroke={P.ghost} /></div>}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
                     </div>
                     <CdStatePill state={m.state} label={t(LOOP_STATE[m.state].labelK)} P={P} />
                   </div>
@@ -1463,7 +1499,7 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
   }, [go])
 
   return (
-    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)', background: P.pageBg, fontFamily: "'Inter Tight', system-ui, sans-serif", color: P.ink }}>
+    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)', background: P.pageBg, fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: P.ink }}>
       <style>{`
         @keyframes cdpMenuIn { from { opacity: 0; transform: translateY(-6px) scale(.97) } to { opacity: 1; transform: none } }
         @keyframes cdpFade { from { opacity: 0 } to { opacity: 1 } }

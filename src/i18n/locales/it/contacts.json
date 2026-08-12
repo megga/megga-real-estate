@@ -1125,7 +1125,7 @@
     "matchesToSend": "Proporre una selezione ({{count}} immobili pertinenti)",
     "neverContacted": "Stabilire un primo contatto (mai contattato)",
     "dormant": "Ricontattare (nessuno scambio da {{days}} g)",
-    "estimateTag": "stima",
+    "estimateTag": "Stima",
     "kycNote": "Dossier KYC da finalizzare (facoltativo, mai bloccante)"
   }
 }

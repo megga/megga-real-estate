@@ -63,6 +63,20 @@ import { emptyRoots, readFileSafely, rel, scanRoots } from './helpers/fs-scan'
  */
 const PAGES = new Set(['BienDetailSugarV4Page.tsx', 'BiensSugarV2Page.tsx'])
 
+/**
+ * « Contacts » entre PAR FICHIER, pas par dossier — le lot 2 n'a porté que les
+ * deux pagers. Les quatre autres fichiers de `contacts-pager` (la modale de
+ * création, la modale WhatsApp, l'écran de premier lancement, les glyphes)
+ * portent encore 54 marqueurs et attendent les lots 3-4 ; les ajouter ici
+ * maintenant ferait rougir la garde sur du code que personne n'a encore touché.
+ *
+ * Ce filtre est le compteur du chantier : chaque lot y inscrit ses fichiers en
+ * même temps qu'il les nettoie. Une zone absente n'est pas déclarée propre, elle
+ * est déclarée non traitée — c'est tout l'intérêt du cliquet, et c'est aussi
+ * pourquoi un `keep` qui laisserait passer tout le dossier serait un mensonge.
+ */
+const CONTACTS = new Set(['ContactsPager.tsx', 'ContactDetailPager.tsx'])
+
 const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   { root: 'src/components/crm-sugar-wizard', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/biens', keep: (n) => /\.tsx?$/.test(n) },
@@ -80,6 +94,9 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   // hex hors échelle est `#e53935`, le compteur de notifications — sémantique,
   // même famille que `err`.
   { root: 'src/components/crm-sugar', keep: (n) => n === 'SugarShell.tsx' },
+  // Les DEUX pagers de « Contacts » (lot 2 du 12 août 2026). Le reste du dossier
+  // arrive aux lots 3-4 — voir `CONTACTS`.
+  { root: 'src/components/crm-sugar/contacts-pager', keep: (n) => CONTACTS.has(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
 ]
 
@@ -342,8 +359,14 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar-v3/vitrine',
       'src/components/crm-mobile',
       'src/components/crm-sugar',
+      'src/components/crm-sugar/contacts-pager',
       'src/pages/agent',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
+    // Les deux pagers sont bien VUS — un filtre qui cesserait de les matcher
+    // laisserait la racine non vide (le dossier en contient quatre autres) tout
+    // en ne gardant aucun des deux : la zone serait verte par vacuité.
+    const nomsVus = sources.map((s) => s.chemin.split('/').pop())
+    for (const f of CONTACTS) expect(nomsVus, `pager non balayé : ${f}`).toContain(f)
     // Les deux pages sont bien VUES — un filtre de nom qui ne matche rien
     // laisserait la racine non vide (le dossier en contient d'autres) tout en
     // ne gardant aucune des deux.

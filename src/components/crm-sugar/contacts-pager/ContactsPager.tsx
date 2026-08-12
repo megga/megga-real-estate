@@ -97,7 +97,7 @@ function CtpAvatar({ c, size = 38, sp }: { c: CrmContact; size?: number; sp: Sug
     <div style={{
       width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0,
       background: aplat, color: encreSur(aplat),
-      display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 700,
+      display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 600,
       letterSpacing: 0.2, boxShadow: `0 0 0 3px ${sp.avatarBorder}`,
     }}>
       {crmInitials(`${c.firstName} ${c.lastName}`)}
@@ -118,7 +118,7 @@ function CtpTypePill({ aud, label }: { aud: Audience; label: string }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 var(--crm-space-md)',
       borderRadius: 'var(--crm-radius-pill)', background: aplat, color: encreSur(aplat),
-      fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.1, whiteSpace: 'nowrap',
+      fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, whiteSpace: 'nowrap',
     }}>{label}</span>
   )
 }
@@ -130,7 +130,7 @@ function CtpKyc({ status, sp, dark, labels }: {
   labels: { verified: string; verifiedTitle: string; pending: string; stale: string }
 }) {
   if (status === 'verified')
-    return <span title={labels.verifiedTitle} style={{ display: 'inline-flex', alignItems: 'center', color: FN_BUYER_INK(dark), fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>{labels.verified}</span>
+    return <span title={labels.verifiedTitle} style={{ display: 'inline-flex', alignItems: 'center', color: FN_BUYER_INK(dark), fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{labels.verified}</span>
   if (status === 'pending')
     return <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub }}>{labels.pending}</span>
   if (status === 'stale')
@@ -151,7 +151,7 @@ function CtpCta({ children, sp, onClick }: { children: ReactNode; sp: SugarPalet
     <button onClick={onClick} style={{
       display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 34, padding: '0 var(--crm-space-2xl)',
       borderRadius: 'var(--crm-radius-pill)', background: sp.accent, color: sp.accentInk, border: 0,
-      fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer',
+      fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer',
     }}>{children}</button>
   )
 }
@@ -248,7 +248,7 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
     <div style={{ position: 'absolute', inset: 0, padding: '26px 34px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', overflow: 'hidden', background: sp.pageBg }}>
       {/* En-tête */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('pager.title')}</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 500, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('pager.title')}</h1>
         <div style={{ flex: 1 }} />
         <CtpCta sp={sp} onClick={onNewContact}>{t('pager.newContact')}</CtpCta>
       </div>
@@ -260,10 +260,10 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
           return (
             <button key={tb.id} onClick={() => setFilter({ type: 'audience', value: tb.id })} style={{
               display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 36, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
-              border: on ? '0' : `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(11,12,14,.1)'}`,
+              border: on ? '0' : `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(3,3,3,.1)'}`,
               background: on ? sp.accent : surface,
               color: on ? sp.accentInk : sp.soft,
-              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer', boxShadow: on ? 'none' : sp.shadowSm,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer', boxShadow: on ? 'none' : sp.shadowSm,
             }}>{tb.label}</button>
           )
         })}
@@ -271,7 +271,7 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
           <button onClick={() => setFilter({ type: 'audience', value: 'all' })} title={t('pager.removeFilter')} style={{
             display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 36, padding: '0 var(--crm-space-md) 0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
             border: 0, background: dark ? 'rgba(30,91,198,0.22)' : '#E8EFFE', color: FN_BUYER_INK(dark),
-            fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer',
           }}>
             {filter.label}
             <span style={{ display: 'grid', placeItems: 'center', width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: dark ? 'rgba(255,255,255,.12)' : 'rgba(30,91,198,.14)', fontSize: 'var(--crm-text-lg)', lineHeight: 1 }}>{'✕'}</span>
@@ -281,7 +281,7 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
 
       {/* Liste (scrollable) */}
       <div style={{ flex: 1, minHeight: 0, background: surface, borderRadius: 'var(--crm-radius-5xl)', boxShadow: panelSh, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-6xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: sp.sub, borderBottom: `1px solid ${hairStrong}` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-6xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, borderBottom: `1px solid ${hairStrong}` }}>
           <div>{t('pager.col.contact')}</div><div>{t('pager.col.type')}</div><div>{t('pager.col.budget')}</div><div>{t('pager.col.kyc')}</div><div>{t('pager.col.last')}</div><div />
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
@@ -300,11 +300,11 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', minWidth: 0 }}>
                   <CtpAvatar c={c} sp={sp} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.firstName} {c.lastName}</div>
+                    <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.firstName} {c.lastName}</div>
                   </div>
                 </div>
                 <div><CtpTypePill aud={aud} label={audLabel[aud]} /></div>
-                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: budget ? sp.ink : sp.sub, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{budget || '—'}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: budget ? sp.ink : sp.sub, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{budget || '—'}</div>
                 <div><CtpKyc status={kycStatusOf(c)} sp={sp} dark={dark} labels={kycLabels} /></div>
                 <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft, fontWeight: 600 }}>{relLabel(c.lastActivityAt)}</div>
                 <div style={{ color: sp.sub, opacity: 0.6, fontSize: 'var(--crm-text-3xl)', textAlign: 'center' }}>{'›'}</div>
@@ -339,7 +339,7 @@ function CtpCard({ title, children, sp, dark }: {
   const panelSh = dark ? `inset 0 0 0 1px ${sp.cardBorder}, ${sp.shadow}` : sp.shadow
   return (
     <section style={{ background: surface, borderRadius: 'var(--crm-radius-5xl)', boxShadow: panelSh, padding: 'var(--crm-space-5xl) var(--crm-space-6xl)' }}>
-      <h3 style={{ margin: '0 0 16px', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>{title}</h3>
+      <h3 style={{ margin: '0 0 16px', fontSize: 'var(--crm-text-xl)', fontWeight: 500, letterSpacing: -0.2, color: sp.ink }}>{title}</h3>
       {children}
     </section>
   )
@@ -362,8 +362,8 @@ function CtpSegRow({ dot, label, count, pct, color, seg, sp, dark, onSegment }: 
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 7 }}>
         <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: dot }} />
-        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, flex: 1 }}>{label}</span>
-        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, flex: 1 }}>{label}</span>
+        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
       </div>
       <CtpBar pct={pct} color={color} dark={dark} />
     </button>
@@ -418,7 +418,7 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
     <div style={{ position: 'absolute', inset: 0, padding: '34px 36px', boxSizing: 'border-box', overflowY: 'auto', background: sp.pageBg, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
       <div style={{ width: '100%', maxWidth: 1000, margin: 'auto 0' }}>
         <div style={{ marginBottom: 22 }}>
-          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('health.title')}</h1>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 500, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('health.title')}</h1>
           <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500, marginTop: 8 }}>{t('health.intro')}</div>
         </div>
 
@@ -429,8 +429,8 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
               textAlign: 'left', background: surface, borderRadius: 'var(--crm-radius-3xl)', boxShadow: panelShSm, padding: 'var(--crm-space-3xl) var(--crm-space-4xl)',
               border: 0, fontFamily: 'inherit', cursor: 'pointer',
             }}>
-              <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 800, color: sp.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.val}</div>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.sub, letterSpacing: 0.3, textTransform: 'uppercase', marginTop: 8 }}>{k.label}</div>
+              <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: sp.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.val}</div>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, marginTop: 8 }}>{k.label}</div>
             </button>
           ))}
         </div>
@@ -465,9 +465,9 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
                   <button key={r.k} className="ctp-seg-row" onClick={() => onSegment({ type: 'source', value: r.k, label: t('health.seg.source', { source: srcLabel(r.k) }) })} style={{
                     display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', width: '100%', textAlign: 'left', border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
                   }}>
-                    <span style={{ width: 96, fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{srcLabel(r.k)}</span>
-                    <div style={{ flex: 1 }}><CtpBar pct={(r.n / maxSrc) * 100} color={dark ? 'rgba(255,255,255,.85)' : 'rgba(11,12,14,.82)'} dark={dark} /></div>
-                    <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums', width: 16, textAlign: 'right' }}>{r.n}</span>
+                    <span style={{ width: 96, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{srcLabel(r.k)}</span>
+                    <div style={{ flex: 1 }}><CtpBar pct={(r.n / maxSrc) * 100} color={dark ? 'rgba(255,255,255,.85)' : 'rgba(3,3,3,.82)'} dark={dark} /></div>
+                    <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums', width: 16, textAlign: 'right' }}>{r.n}</span>
                   </button>
                 ))}
               </div>
@@ -502,13 +502,13 @@ function CtpLoadError({ sp, dark, onRetry, title, message, retryLabel }: {
       position: 'absolute', inset: 0, background: sp.pageBg, padding: '34px 36px', boxSizing: 'border-box',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-lg)', textAlign: 'center',
     }}>
-      <h2 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>{title}</h2>
+      <h2 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.5, color: sp.ink }}>{title}</h2>
       <p style={{ margin: 0, maxWidth: 420, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.5, color: sp.sub }}>{message}</p>
       {onRetry && (
         <button className="ctp-seg" onClick={onRetry} style={{
           marginTop: 8, height: 34, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: 'transparent', color: sp.ink,
-          border: `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(11,12,14,.1)'}`,
-          fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, cursor: 'pointer',
+          border: `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(3,3,3,.1)'}`,
+          fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, cursor: 'pointer',
         }}>{retryLabel}</button>
       )}
     </div>
@@ -529,7 +529,7 @@ function CtpPageDots({ page, onGo, sp, dark, count, labels, goLabel }: {
   goLabel: (target: string) => string
 }) {
   const activeCol = sp.accent
-  const idleCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(11,12,14,.18)'
+  const idleCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(3,3,3,.18)'
   if (count < 2) return null
   return (
     <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', alignItems: 'center' }}>
@@ -562,13 +562,13 @@ function CtpScrollHint({ page, onGo, sp, labels, count, goLabel }: {
       position: 'absolute', bottom: 18, left: 24, zIndex: 60, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
       padding: 'var(--crm-space-sm)', border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer',
     }}>
-      <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, lineHeight: 1, color: sp.sub }}>{nextLabel ? '↓' : '↑'}</span>
+      <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, lineHeight: 1, color: sp.sub }}>{nextLabel ? '↓' : '↑'}</span>
       <span className="ctp-hint-label" style={{
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', whiteSpace: 'nowrap',
         maxWidth: 0, overflow: 'hidden', opacity: 0, transform: 'translateX(-6px)',
         transition: 'max-width .4s cubic-bezier(.76,0,.24,1), opacity .3s ease, transform .4s cubic-bezier(.76,0,.24,1)',
       }}>
-        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink }}>{target}</span>
+        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{target}</span>
       </span>
     </button>
   )
