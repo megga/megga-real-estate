@@ -76,7 +76,7 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
           </>
         )}
         {score != null && (
-          <div style={{ position: 'absolute', top: 12, right: 12, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 10px', borderRadius: 999, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 'var(--crm-text-sm)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', boxShadow: '0 2px 10px rgba(15,23,42,.22)' }}>
+          <div style={{ position: 'absolute', top: 12, right: 12, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 10px', borderRadius: 999, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 'var(--crm-text-sm)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', boxShadow: '0 2px 10px rgba(3,3,3,.22)' }}>
             {score}<span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>%</span>
           </div>
         )}

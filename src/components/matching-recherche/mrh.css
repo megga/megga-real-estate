@@ -56,9 +56,9 @@
 .mrh-map-chrome-up .mapboxgl-ctrl-bottom-right { bottom: var(--mrh-map-chrome-inset, 0px); }
 
 .mrh-scroll::-webkit-scrollbar { width: 9px; }
-.mrh-scroll::-webkit-scrollbar-thumb { background: var(--mrh-line, rgba(15,23,42,.1)); border-radius: 9px; }
+.mrh-scroll::-webkit-scrollbar-thumb { background: var(--mrh-line, #cccccc); border-radius: 8px; }
 
-.mrh-root input::placeholder { color: var(--mrh-soft, #7A8088); opacity: 1; }
+.mrh-root input::placeholder { color: var(--mrh-soft, #686868); opacity: 1; }
 
 /* Accessibilité — anneau de focus clavier visible (masqué au clic souris). */
 .mrh-root button:focus-visible,

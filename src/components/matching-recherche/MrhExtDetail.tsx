@@ -120,7 +120,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
   const portalLabel = bien.source_portal === 'flatfox' ? 'Flatfox' : bien.source_portal === 'realadvisor' ? 'RealAdvisor' : (bien.source_portal || t('recherche.detail.portalFallback'))
   const openPortal = () => { const u = bien.source_url || ''; if (u) window.open(/^https?:/i.test(u) ? u : 'https://' + u, '_blank', 'noopener') }
   const subBg = dark ? 'rgba(255,255,255,.045)' : '#F7F8FA'
-  const dot = dark ? 'rgba(255,255,255,.22)' : 'rgba(15,23,42,.22)'
+  const dot = dark ? 'rgba(255,255,255,.22)' : 'rgba(3,3,3,.22)'
   const ppm2 = bien.price_per_m2 || (price && bien.area ? Math.round(price / bien.area) : null)
   const priceOrig = bien.price_original
   const dropPct = priceOrig && price && priceOrig > price ? Math.round((1 - price / priceOrig) * 100) : null
@@ -128,7 +128,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
   const agencyName = bien.agency || '—'
   const agencyInit = agencyName.split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
   const mapBg = dark ? '#12151B' : '#E7ECF2'
-  const mapLine = dark ? 'rgba(255,255,255,.05)' : 'rgba(15,23,42,.06)'
+  const mapLine = dark ? 'rgba(255,255,255,.05)' : 'rgba(3,3,3,.06)'
   const photos = bien.photos
   const hasCoords = bien.lat != null && bien.lng != null
 
@@ -210,7 +210,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
     const box = chipsBox(big)
     return (
       <div style={{ position: 'absolute', left: box.edge, right: box.edge, bottom: box.edge, zIndex: 2, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', height: box.h, padding: big ? '0 15px' : '0 13px', borderRadius: 999, maxWidth: '100%', background: dark ? 'rgba(3,3,3,.8)' : 'rgba(255,255,255,.94)', color: sp.ink, fontSize: big ? 'var(--crm-text-md)' : 'var(--crm-text-sm)', fontWeight: 600, boxShadow: '0 2px 8px rgba(15,23,42,.12)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bien.addr}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', height: box.h, padding: big ? '0 15px' : '0 13px', borderRadius: 999, maxWidth: '100%', background: dark ? 'rgba(3,3,3,.8)' : 'rgba(255,255,255,.94)', color: sp.ink, fontSize: big ? 'var(--crm-text-md)' : 'var(--crm-text-sm)', fontWeight: 600, boxShadow: '0 2px 8px rgba(3,3,3,.12)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bien.addr}</span>
         {hasCoords && (
           <span style={{ display: 'inline-flex', alignItems: 'center', height: box.h - 4, padding: big ? '0 13px' : '0 11px', borderRadius: 999, background: dark ? 'rgba(3,3,3,.66)' : 'rgba(255,255,255,.85)', color: sp.sub, fontSize: 'var(--crm-text-xs)', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
             {(bien.lat as number).toFixed(4) + ', ' + (bien.lng as number).toFixed(4)}
@@ -257,12 +257,12 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
         <div style={{ maxWidth: 1180, margin: '0 auto' }}>
 
           {/* ── Bento 1 · Affiche (collage photo + identité + prix) ── */}
-          <div style={{ background: surf.card, borderRadius: 26, boxShadow: dark ? surf.shadow : '0 24px 60px rgba(15,23,42,0.10), 0 6px 18px rgba(15,23,42,0.06)', padding: 14 }}>
+          <div style={{ background: surf.card, borderRadius: 26, boxShadow: dark ? surf.shadow : '0 24px 60px rgba(3,3,3,0.10), 0 6px 18px rgba(3,3,3,0.06)', padding: 14 }}>
             <div className="mrh-gallery" style={{ display: 'grid', gridTemplateColumns: galCols, gridTemplateRows: galRows, gap: 8, height: 420 }}>
               <button className="mrh-gal-main" onClick={() => photos.length && setLb(0)} title={t('recherche.detail.seePhotos')} style={{ gridColumn: '1', gridRow: galMainRow, position: 'relative', border: 0, cursor: photos.length ? 'zoom-in' : 'default', padding: 0, borderRadius: 16, overflow: 'hidden', background: subBg }}>
                 <MrhPhoto url={photos[0]} dark={dark} alt={bien.title} fallbackBg={subBg} fallbackInk={sp.sub} />
                 {bien.status === 'price_reduced' && (
-                  <span style={{ position: 'absolute', top: 16, left: 16, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 13px', borderRadius: 999, background: '#C45A00', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>{t('recherche.card.priceDrop')}</span>
+                  <span style={{ position: 'absolute', top: 16, left: 16, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 13px', borderRadius: 999, background: '#C45A00', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, boxShadow: '0 2px 8px rgba(3,3,3,.18)' }}>{t('recherche.card.priceDrop')}</span>
                 )}
                 {photos.length > 0 && (
                   <span style={{ position: 'absolute', bottom: 16, right: 16, display: 'inline-flex', alignItems: 'center', gap: 7, height: 30, padding: '0 13px', borderRadius: 999, background: 'rgba(3,3,3,.72)', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
@@ -434,7 +434,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
             )}
           </div>
           <button onClick={() => setMapOpen(false)} title={t('recherche.detail.close')}
-            style={{ position: 'absolute', top: 18, right: 18, zIndex: 2, width: 42, height: 42, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? 'rgba(3,3,3,.72)' : 'rgba(255,255,255,.94)', boxShadow: '0 4px 14px rgba(15,23,42,.2)' }}>
+            style={{ position: 'absolute', top: 18, right: 18, zIndex: 2, width: 42, height: 42, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? 'rgba(3,3,3,.72)' : 'rgba(255,255,255,.94)', boxShadow: '0 4px 14px rgba(3,3,3,.2)' }}>
             <RechIcon name="close" size={18} stroke={dark ? '#fff' : '#030303'} />
           </button>
         </div>,

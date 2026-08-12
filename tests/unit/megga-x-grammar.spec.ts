@@ -64,6 +64,10 @@ import { emptyRoots, readFileSafely, rel, scanRoots } from './helpers/fs-scan'
 const PAGES = new Set([
   'BienDetailSugarV4Page.tsx', 'BiensSugarV2Page.tsx',
   'ContactDetailSugarV3Page.tsx', 'ContactsSugarV2Page.tsx',
+  // Le pager Matching et son conteneur d'atelier — les deux dernières surfaces
+  // du périmètre bureau. `MatchingAtelierPage` était déjà propre (0 marqueur) ;
+  // l'entrer quand même est ce qui empêche qu'il cesse de l'être.
+  'MatchingPagerPage.tsx', 'MatchingAtelierPage.tsx',
 ])
 
 /**

@@ -61,6 +61,58 @@ const ECHELLE = new Set(Object.values(MXC_COLOR).map((v) => v.toLowerCase()))
 /** Barreaux de rayon de la grammaire (`globals.css`). */
 const RAYONS = new Set([2, 4, 8, 12, 16, 20, 24, 999])
 
+/**
+ * ⛔ LA SECONDE FEUILLE DU PÉRIMÈTRE, que personne ne lisait non plus.
+ * `mrh.css` (93 lignes) est petite, et c'est exactement pour ça qu'elle passait
+ * sous le radar : elle n'a pas de bloc de jetons, seulement quelques replis de
+ * `var()` et un rayon. Un fichier qu'aucune garde n'ouvre ne devient pas propre
+ * en étant court.
+ */
+const MRH = 'src/components/matching-recherche/mrh.css'
+const mrh = readFileSync(MRH, 'utf-8').replace(/\/\*[\s\S]*?\*\//g, ' ')
+
+describe('mrh.css — la seconde feuille du périmètre', () => {
+  it('la garde voit bien la feuille', () => {
+    expect(mrh).toContain('.mrh-root')
+  })
+
+  /**
+   * ⛔ LE GRIS-BLEU. `rgba(15,23,42,…)` est le slate-900 de Tailwind (B−R = 27).
+   * `atelier.css` portait déjà, dans son propre en-tête, la note « jamais de
+   * gris-bleu » et l'avait neutralisé chez lui — il avait survécu dans le
+   * dossier VOISIN, 17 fois. Un correctif qui ne traverse qu'un des deux
+   * dossiers d'un même écran : cinquième occurrence documentée.
+   */
+  it('aucun gris-bleu', () => {
+    const restes = mrh.match(/rgba?\(\s*15\s*,\s*23\s*,\s*42/g) ?? []
+    expect(restes, `slate-900 vivant : ${restes.length}`).toEqual([])
+  })
+
+  it('tous les rayons sont des barreaux de l’échelle', () => {
+    const hors = [...mrh.matchAll(/border-radius\s*:\s*([0-9.]+)px/g)]
+      .map((m) => Number(m[1]))
+      .filter((v) => !RAYONS.has(v))
+    expect(hors, `rayons hors échelle : ${hors.join(', ')}`).toEqual([])
+  })
+
+  /**
+   * Les replis de `var(--x, repli)` ne sont pas décoratifs : ils PEIGNENT dès que
+   * l'appelant oublie de poser la variable, et c'est le cas le moins surveillé
+   * qui soit. Ils doivent donc sortir de l'échelle comme le reste.
+   *
+   * ⚠ Le halo conique de MEGGA AI est exempté NOMMÉMENT : ses quatre teintes
+   * SONT la signature de la marque, pas une décoration neutre.
+   */
+  it('les replis de var() sortent de l’échelle', () => {
+    const HALO = new Set(['#7c63f0', '#c44fb8', '#2a6fdb', '#0891b2'])
+    const FOCUS = new Set(['#0041d9', '#8da4ff'])
+    const hors = [...mrh.matchAll(/var\(--[a-z-]+,\s*(#[0-9a-fA-F]{6})\s*\)/g)]
+      .map((m) => m[1].toLowerCase())
+      .filter((h) => !ECHELLE.has(h) && !HALO.has(h) && !FOCUS.has(h))
+    expect(hors, `replis hors échelle : ${hors.join(', ')}`).toEqual([])
+  })
+})
+
 describe('atelier.css — la feuille suit MEGGA X', () => {
   it('la garde voit bien la feuille et ses deux blocs', () => {
     expect(code.length, 'feuille vide ou illisible').toBeGreaterThan(10_000)

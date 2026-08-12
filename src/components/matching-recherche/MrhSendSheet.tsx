@@ -26,7 +26,7 @@ export default function MrhSendSheet({ result, buyerName, ctx, onClose }: Props)
   const hasPhone = !!(result.phone && result.phone.trim())
   const first = result.firstName || buyerName.split(' ')[0] || buyerName
   const subBg = dark ? sp.solidBg : '#F4F6F9'
-  const subLine = 'inset 0 0 0 1px ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(15,23,42,.06)')
+  const subLine = 'inset 0 0 0 1px ' + (dark ? 'rgba(255,255,255,.08)' : 'rgba(3,3,3,.06)')
 
   const onWhatsApp = () => {
     if (!hasPhone) return
@@ -42,7 +42,7 @@ export default function MrhSendSheet({ result, buyerName, ctx, onClose }: Props)
   return createPortal(
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-      style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(15,23,42,.42)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'grid', placeItems: 'center', padding: 20, fontFamily: 'inherit' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(3,3,3,.42)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'grid', placeItems: 'center', padding: 20, fontFamily: 'inherit' }}
     >
       <div style={{ width: 440, maxWidth: '94vw', background: cardSolid, borderRadius: 18, boxShadow: surf.shadow, border: surf.hairline, overflow: 'hidden', animation: 'sgFadeUp .18s cubic-bezier(.2,.8,.2,1) both' }} ref={refPiegeFocus} role="dialog" aria-modal="true" aria-label={t('sendSheet.title', { name: buyerName })}>
         <div style={{ padding: '20px 22px 10px' }}>

@@ -96,15 +96,15 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
     card: dark ? sp.cardBg : '#FFFFFF',
     // `cardSub` = fond des vignettes photo (et leur repli) → palier « sous-card ».
     cardSub: dark ? sp.cardSubBg : '#F4F6F9',
-    hairline: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(15,23,42,0.05)',
+    hairline: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(3,3,3,0.05)',
     shadow: sp.shadow,
-    shadowHov: dark ? '0 1px 2px rgba(0,0,0,.5), 0 18px 44px -14px rgba(0,0,0,.7)' : '0 1px 2px rgba(15,23,42,.06), 0 22px 48px -16px rgba(15,23,42,.2)',
+    shadowHov: dark ? '0 1px 2px rgba(0,0,0,.5), 0 18px 44px -14px rgba(0,0,0,.7)' : '0 1px 2px rgba(3,3,3,.06), 0 22px 48px -16px rgba(3,3,3,.2)',
   }
   // Accent de l'écran : il valait l'ENCRE inversée (règle Sugar Pure), donc
   // une non-couleur. Segments actifs, jetons de recherche et CTA le portent.
   const ACC = sp.accent
   const ONACC = sp.accentInk
-  const line = dark ? 'rgba(255,255,255,.09)' : 'rgba(15,23,42,.06)'
+  const line = dark ? 'rgba(255,255,255,.09)' : 'rgba(3,3,3,.06)'
   const chipBg = dark ? 'rgba(255,255,255,.06)' : '#F4F6F9'
   const popBg = dark ? sp.solidBg : surf.card
 
@@ -620,7 +620,7 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
       {buyer && sel.length > 0 && (
         <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}>
           <button onClick={onSendSelection} disabled={sendSel.isPending}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 10, height: 48, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: ACC, color: ONACC, fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', boxShadow: dark ? '0 16px 44px rgba(0,0,0,.5)' : '0 16px 40px rgba(15,23,42,.28), 0 4px 12px rgba(15,23,42,.14)', animation: 'sgFadeUp .4s cubic-bezier(.2,.8,.2,1) both' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 10, height: 48, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: ACC, color: ONACC, fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', boxShadow: dark ? '0 16px 44px rgba(0,0,0,.5)' : '0 16px 40px rgba(3,3,3,.28), 0 4px 12px rgba(3,3,3,.14)', animation: 'sgFadeUp .4s cubic-bezier(.2,.8,.2,1) both' }}>
             <RechIcon name="send" size={15} stroke={ONACC} /> {t('recherche.send', { count: sel.length, name: buyer.firstName })}
           </button>
         </div>

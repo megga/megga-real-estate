@@ -25,6 +25,7 @@ import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
 import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 const MATCHING_PAGES = [
   { id: 'score', labelKey: 'pager.score' },
@@ -41,8 +42,12 @@ const LANDING_PAGE = Math.max(0, MATCHING_PAGES.findIndex((p) => p.id === 'reche
 // ─── Points de page (droite) ────────────────────────────────────────────
 function MatchingPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: number) => void; lightMode: boolean }) {
   const { t } = useTranslation('matching')
-  const activeCol = lightMode ? '#0B0C0E' : '#F2F2F6'
-  const idleCol = lightMode ? 'rgba(11,12,14,.18)' : 'rgba(255,255,255,.22)'
+  // Le point de la page COURANTE est l'exemple même d'un élément actif : il ne
+  // fait rien d'autre que dire où l'on est. Il portait l'encre inversée
+  // (#0B0C0E clair / #F2F2F6 sombre), c'est-à-dire la règle « l'accent EST
+  // l'encre » retirée le 10 août 2026.
+  const activeCol = MXC_COLOR.accent
+  const idleCol = lightMode ? 'rgba(3,3,3,.18)' : 'rgba(255,255,255,.22)'
   return (
     <div style={{
       position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 80,
@@ -85,7 +90,7 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
       <span className="msh-mouse" style={{
         display: 'grid', placeItems: 'center', flex: 'none',
         width: 22, height: 22,
-        fontSize: 16, fontWeight: 700, lineHeight: 1, color: sub,
+        fontSize: 'var(--crm-text-2xl)', fontWeight: 600, lineHeight: 1, color: sub,
         transition: 'color .35s ease',
       }}>
         {next ? '↓' : '↑'}
@@ -97,7 +102,7 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
         transform: 'translateX(-6px)',
         transition: 'max-width .4s cubic-bezier(.76,0,.24,1), opacity .3s ease, transform .4s cubic-bezier(.76,0,.24,1)',
       }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: ink }}>{targetLabel}</span>
+        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: ink }}>{targetLabel}</span>
       </span>
     </button>
   )
