@@ -236,8 +236,8 @@ export interface SugarPalette {
   /**
    * Le thème que cette palette rend, pour les rares jetons qu'elle ne peut PAS
    * porter : les couleurs SÉMANTIQUES d'un composant, qui disent un état que la
-   * palette ne connaît pas (les paliers de score de `BnScoreBadge`, par
-   * exemple) et dont la valeur lisible diffère selon le fond.
+   * palette ne connaît pas et dont la valeur lisible diffère selon le fond —
+   * les teintes d'événement du calendrier, par exemple.
    *
    * ⚠ Ce n'est pas une invitation à brancher du style sur un booléen : tout ce
    * qui peut descendre d'un jeton doit en descendre. Il existe parce que la

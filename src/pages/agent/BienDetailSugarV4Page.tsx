@@ -808,7 +808,6 @@ export default function BienDetailSugarV4Page({ demoData }: BienDetailProps = {}
                         <div style={{ display: 'flex', gap: 8, marginBottom: 13, flexWrap: 'wrap' }}>
                           <VxStatusPill status={bien.status} dark={dark} />
                           {offMarket && <VxMetaPill icon="lock" dark={dark}>{tr('fiche.offMarket')}</VxMetaPill>}
-                          {bien.c2pa_verified && <VxMetaPill icon="shieldCheck" dark={dark}>{tr('detail.c2paVerified')}</VxMetaPill>}
                         </div>
                         <h1 style={{ margin: '0 0 8px', fontSize: 'var(--crm-text-7xl)', fontWeight: 500, color: vx.ink, letterSpacing: -0.9, lineHeight: 1.1, textWrap: 'balance' }}>
                           {bien.title}

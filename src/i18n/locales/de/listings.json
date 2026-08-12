@@ -462,14 +462,6 @@
       "baths": "Bad",
       "epc": "GEAK"
     },
-    "score": {
-      "chaud": "Heiss",
-      "a_animer": "Zu beleben",
-      "en_veille": "Ruhend",
-      "fallback": "Schätzung",
-      "tooltip": "Objekt-Score, Schätzung",
-      "tooltipLimited": "Objekt-Score, Schätzung · begrenzte Daten"
-    },
     "submissions": {
       "bannerTitle_one": "{{count}} neue Verkäufereinreichung",
       "bannerTitle_other": "{{count}} neue Verkäufereinreichungen",
@@ -629,7 +621,6 @@
     "onlineOn": "Inserat online auf {{portals}}",
     "notPublishedYet": "Objekt noch nicht veröffentlicht",
     "viewPhotos": "Alle {{count}} Fotos ansehen",
-    "c2paVerified": "Herkunft verifiziert · C2PA",
     "transactionRent": "Miete",
     "transactionSale": "Verkauf",
     "rentLabel": "Mietzins",

@@ -12,7 +12,6 @@ import { crmInitials, type SugarPalette } from '../../tokens'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import { galFmtCHF, type GalSurfaces } from './galHelpers'
 import { GalPhoto, GalStatusPill } from './GalleryAtoms'
-import { BnScoreBadge } from '../BnScoreBadge'
 
 interface GalRowProps {
   bien: CrmBien
@@ -97,11 +96,6 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
         >
           {bien.addr}
         </div>
-        {bien.health && (
-          <div style={{ marginTop: 6 }}>
-            <BnScoreBadge health={bien.health} sp={sp} size="sm" />
-          </div>
-        )}
       </div>
 
       <div

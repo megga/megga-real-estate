@@ -102,12 +102,12 @@ function luminance(hex: string): number {
  * Encre lisible SUR un aplat : celle des deux extrémités de l'échelle qui
  * contraste le plus avec lui.
  *
- * ⛔ POURQUOI C'EST CALCULÉ, ET NON CHOISI. Quatre composants posaient du blanc
- * sur tous leurs aplats, avec des exceptions écrites à la main quand le résultat
- * devenait invisible. Mesuré le 12 août 2026 : les pilules de statut échouaient
- * l'AA sur SIX des neuf combinaisons (« Réservé » en sombre, 3,11:1 pour 12 px),
- * la pilule « urgent » du bloc à-suivre sur les deux thèmes (4,37 / 3,11), et
- * CINQ des huit couleurs d'avatar (`#F59E0B` : 2,15:1).
+ * ⛔ POURQUOI C'EST CALCULÉ, ET NON CHOISI. Plusieurs composants posaient du
+ * blanc sur tous leurs aplats, avec des exceptions écrites à la main quand le
+ * résultat devenait invisible. Mesuré le 12 août 2026 : les pilules de statut
+ * échouaient l'AA sur SIX des neuf combinaisons (« Réservé » en sombre, 3,11:1
+ * pour 12 px), la pilule « urgent » du bloc à-suivre sur les deux thèmes
+ * (4,37 / 3,11), et CINQ des huit couleurs d'avatar (`#F59E0B` : 2,15:1).
  *
  * Ajouter une exception de plus aurait reproduit le défaut à la teinte suivante.
  * Dériver l'encre de l'aplat le rend impossible : changer un ton ne peut plus
@@ -118,8 +118,7 @@ function luminance(hex: string): number {
  * mécaniquement plutôt que de mémoire.
  *
  * ⚠ Vaut pour un aplat OPAQUE. Sur un voile translucide, le fond réel est le
- * mélange avec la surface au-dessous : c'est ce que mesure la pastille de score
- * (`biens-contraste.spec.ts`), et cette fonction s'y tromperait.
+ * MÉLANGE avec la surface au-dessous, et cette fonction s'y tromperait.
  */
 export function encreSur(aplat: string): string {
   const t = luminance(aplat)

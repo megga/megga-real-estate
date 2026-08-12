@@ -1,27 +1,31 @@
 /**
- * Garde-fou : la pastille de SCORE DE BIEN reste lisible dans les deux thèmes.
+ * Garde-fou : sur « Mes biens », l'encre posée sur un aplat reste lisible.
  *
- * ⛔ CE QUI A MOTIVÉ CE FICHIER. `BnScoreBadge` pose sa teinte de palier en
- * ENCRE sur un fond qui n'est que cette même teinte à 10 % — le contraste ne
- * dépend donc pas de la couleur choisie mais du THÈME sous elle. Un jeu unique
- * servait les deux : mesuré le 12 août 2026, il rendait **2,41 / 2,51 /
- * 2,80:1** en clair, quand le seuil du texte est 4,5. La pastille qui porte le
- * score du bien était l'élément le moins lisible de sa propre carte.
+ * ⛔ CE QUI A MOTIVÉ CE FICHIER. Quatre composants peignaient leurs libellés en
+ * blanc sur un aplat coloré, avec des exceptions écrites à la main là où le
+ * résultat devenait franchement invisible. Mesuré le 12 août 2026 : les pilules
+ * de statut échouaient l'AA sur SIX des neuf combinaisons (« Réservé » en
+ * sombre, 3,11:1 pour un libellé de 12 px), et CINQ des huit couleurs d'avatar
+ * (`#F59E0B` : 2,15:1).
  *
- * Pourquoi personne ne l'avait vu : en SOMBRE les mêmes valeurs tenaient
- * (6,74 / 6,48 / 5,81). Le défaut n'existait que dans le thème par défaut, et
- * les captures de la refonte avaient été prises en sombre.
+ * Pourquoi personne ne l'avait vu : le défaut n'existait que dans le thème par
+ * DÉFAUT, et les captures de la refonte avaient été prises en sombre.
  *
- * ⚠ CE TEST NE PORTE PAS SUR L'ÉCHELLE. Ces trois teintes sont SÉMANTIQUES —
- * elles disent le palier (chaud / à animer / en veille), ce que les neutres et
- * l'accent ne savent pas dire — et sortent donc légitimement des barreaux de la
- * vitrine, comme `danger` ou `goal` côté mobile. Ce qui se vérifie ici est leur
- * LISIBILITÉ, pas leur provenance : deux questions distinctes, et c'est d'avoir
- * confondu les deux que le défaut a survécu à la migration.
+ * ⚠ CE TEST NE PORTE PAS SUR L'ÉCHELLE. Les tons de statut sont SÉMANTIQUES —
+ * ils disent un état que les neutres et l'accent ne savent pas dire — et
+ * sortent donc légitimement des barreaux de la vitrine, comme `danger` ou
+ * `goal` côté mobile. Ce qui se vérifie ici est leur LISIBILITÉ, pas leur
+ * provenance : deux questions distinctes, et c'est d'avoir confondu les deux
+ * que le défaut a survécu à la migration.
+ *
+ * ⚠ Une troisième famille vivait ici — les trois paliers de la pastille de
+ * score, mesurés à 2,41 / 2,51 / 2,80:1 en clair. La pastille a été RETIRÉE de
+ * l'interface le 12 août (décision Julien), donc ses tests sont partis avec
+ * elle : un garde-fou sur un composant qui n'existe plus est du bruit qui
+ * finit par se périmer en silence.
  */
 import { describe, it, expect } from 'vitest'
-import { TIER_COLORS } from '@/components/crm-sugar/biens/scoreTiers'
-import { encreSur, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { galStatus } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { pickAvatarBg } from '@/lib/sugarAdapters'
 
@@ -42,56 +46,23 @@ function contraste(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05)
 }
 
-/**
- * Le fond RÉEL de la pastille : `background: color + '1A'`, soit la teinte à
- * 26/255 par-dessus la carte. Mesurer l'encre contre la carte NUE surestimerait
- * le contraste — le voile remonte le fond vers la teinte, donc le réduit.
- */
-function fondPastille(teinte: string, carte: string): string {
-  const a = 26 / 255
-  const [t, c] = [canal(teinte), canal(carte)]
-  return '#' + t.map((v, i) => Math.round(v * a + c[i] * (1 - a)).toString(16).padStart(2, '0')).join('')
-}
-
 const AA = 4.5
 
-describe('Pastille de score — lisible dans les deux thèmes', () => {
-  // Sans ça, une table vidée rendrait le test suivant vrai par vacuité.
-  it('les deux jeux couvrent les trois paliers', () => {
-    for (const jeu of ['light', 'dark'] as const) {
-      expect(Object.keys(TIER_COLORS[jeu]).sort()).toEqual(['a_animer', 'chaud', 'en_veille'])
-    }
-  })
-
-  it.each([false, true])('chaque palier passe l’AA sur son propre voile (sombre=%s)', (dark) => {
-    const carte = mxCrmPalette(dark).cardBg
-    const jeu = TIER_COLORS[dark ? 'dark' : 'light']
-    const faibles: string[] = []
-    for (const [palier, teinte] of Object.entries(jeu)) {
-      const r = contraste(teinte, fondPastille(teinte, carte))
-      if (r < AA) faibles.push(`${palier} (${teinte}) = ${r.toFixed(2)}:1`)
-    }
-    expect(faibles, `paliers sous ${AA}:1 :\n  ${faibles.join('\n  ')}`).toEqual([])
-  })
-
+describe('La pastille de score n’est pas revenue', () => {
   /**
-   * Les deux jeux doivent RESTER deux. Les fusionner ramènerait le défaut : une
-   * teinte qui tient sur `#090909` ne tient pas sur `#ffffff`, et inversement.
+   * Elle a été retirée le 12 août 2026 (décision Julien) : elle affichait une
+   * ESTIMATION en tête de carte, là où l'agent cherche le titre et le prix. Son
+   * composant et sa table de teintes sont supprimés ; ce test empêche qu'un
+   * copier-coller la réintroduise sans qu'on en redécide.
    */
-  it('le clair et le sombre ne convergent pas', () => {
-    for (const palier of Object.keys(TIER_COLORS.light)) {
-      expect(TIER_COLORS.light[palier], `${palier} a le même ton dans les deux thèmes`)
-        .not.toBe(TIER_COLORS.dark[palier])
+  it('son composant et ses jetons restent supprimés', async () => {
+    const { existsSync } = await import('node:fs')
+    for (const f of [
+      'src/components/crm-sugar/biens/BnScoreBadge.tsx',
+      'src/components/crm-sugar/biens/scoreTiers.ts',
+    ]) {
+      expect(existsSync(f), `${f} est revenu`).toBe(false)
     }
-  })
-
-  /**
-   * La palette porte le thème ; sans ce drapeau la pastille devrait le deviner
-   * depuis la luminance d'une surface, ou importer le proxy du wizard.
-   */
-  it('la palette dit son thème', () => {
-    expect(mxCrmPalette(false).isDark).toBe(false)
-    expect(mxCrmPalette(true).isDark).toBe(true)
   })
 })
 
@@ -111,11 +82,6 @@ describe('Pastille de score — lisible dans les deux thèmes', () => {
  * relue par un humain.
  */
 describe('L’encre suit l’aplat', () => {
-  const contraste = (a: string, b: string) => {
-    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
-    return (hi + 0.05) / (lo + 0.05)
-  }
-
   it.each([false, true])('les cinq statuts sont lisibles (sombre=%s)', (dark) => {
     const faibles: string[] = []
     for (const s of ['active', 'reserved', 'draft', 'paused', 'sold']) {

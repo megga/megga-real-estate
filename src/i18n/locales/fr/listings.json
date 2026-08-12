@@ -462,14 +462,6 @@
       "baths": "sdb",
       "epc": "DPE"
     },
-    "score": {
-      "chaud": "Chaud",
-      "a_animer": "À animer",
-      "en_veille": "En veille",
-      "fallback": "Estimation",
-      "tooltip": "Score de bien, estimation",
-      "tooltipLimited": "Score de bien, estimation · données limitées"
-    },
     "submissions": {
       "bannerTitle_one": "{{count}} nouvelle soumission vendeur",
       "bannerTitle_other": "{{count}} nouvelles soumissions vendeurs",
@@ -629,7 +621,6 @@
     "onlineOn": "Annonce en ligne sur {{portals}}",
     "notPublishedYet": "Bien non encore publié",
     "viewPhotos": "Voir les {{count}} photos",
-    "c2paVerified": "Provenance vérifiée · C2PA",
     "transactionRent": "Location",
     "transactionSale": "Vente",
     "rentLabel": "Loyer",

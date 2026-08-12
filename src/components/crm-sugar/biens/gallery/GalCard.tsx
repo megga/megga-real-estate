@@ -12,7 +12,6 @@ import type { CrmBien } from '../../mockData'
 import type { SugarPalette } from '../../tokens'
 import { galFmtCHF, galCompact, type GalSurfaces } from './galHelpers'
 import { GalPhoto, GalStatusPill } from './GalleryAtoms'
-import { BnScoreBadge } from '../BnScoreBadge'
 
 interface GalCardProps {
   bien: CrmBien
@@ -120,7 +119,6 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
           >
             {bien.title}
           </div>
-          {bien.health && <BnScoreBadge health={bien.health} sp={sp} size="md" />}
         </div>
         <div
           style={{

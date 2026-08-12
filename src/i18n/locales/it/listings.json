@@ -462,14 +462,6 @@
       "baths": "bagni",
       "epc": "CECE"
     },
-    "score": {
-      "chaud": "Caldo",
-      "a_animer": "Da rilanciare",
-      "en_veille": "In pausa",
-      "fallback": "Stima",
-      "tooltip": "Punteggio immobile, stima",
-      "tooltipLimited": "Punteggio immobile, stima · dati limitati"
-    },
     "submissions": {
       "bannerTitle_one": "{{count}} nuova richiesta venditore",
       "bannerTitle_other": "{{count}} nuove richieste venditori",
@@ -629,7 +621,6 @@
     "onlineOn": "Annuncio online su {{portals}}",
     "notPublishedYet": "Immobile non ancora pubblicato",
     "viewPhotos": "Vedi tutte le {{count}} foto",
-    "c2paVerified": "Provenienza verificata · C2PA",
     "transactionRent": "Affitto",
     "transactionSale": "Vendita",
     "rentLabel": "Pigione",

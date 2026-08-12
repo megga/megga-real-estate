@@ -185,12 +185,6 @@ export const CRM_BIENS: CrmBien[] = [
     visibility: 'public', publishedTo: ['MEGGA', 'Homegate', 'ImmoScout'],
     stats: { views: 1245, favorites: 38, visitRequests: 7 },
     photoCount: 18, signedPhotoCount: 18,
-    // Les trois paliers de score sont représentés sur b-101 / b-102 / b-105,
-    // sans quoi `/dev/biens` ne montre AUCUNE pastille : `BnScoreBadge` ne rend
-    // rien sur `health` absent, et le harnais cachait donc l'élément le plus
-    // fragile de la carte — celui dont les teintes claires ne passaient pas
-    // l'AA jusqu'au 12 août 2026.
-    health: { overall: 82, label: 'chaud', dataCompleteness: 0.9 },
     accent: '#0041D9' },
 
   { id: 'b-102', ref: 'MG-2026-102', status: 'active',
@@ -202,7 +196,6 @@ export const CRM_BIENS: CrmBien[] = [
     visibility: 'public', publishedTo: ['MEGGA', 'Homegate'],
     stats: { views: 892, favorites: 24, visitRequests: 5 },
     photoCount: 14, signedPhotoCount: 14,
-    health: { overall: 54, label: 'a_animer', dataCompleteness: 0.6 },
     accent: '#10B981' },
 
   { id: 'b-103', ref: 'MG-2026-103', status: 'active',
@@ -236,9 +229,6 @@ export const CRM_BIENS: CrmBien[] = [
     visibility: 'private',
     stats: { views: 0, favorites: 0, visitRequests: 0 },
     photoCount: 0, signedPhotoCount: 0,
-    // `dataCompleteness` bas : c'est la variante « données limitées », dont le
-    // tooltip diffère. Sans elle le harnais ne montrerait qu'une des deux.
-    health: { overall: 21, label: 'en_veille', dataCompleteness: 0.2 },
     accent: '#7A8079' },
 
   { id: 'b-106', ref: 'MG-2026-106', status: 'active',

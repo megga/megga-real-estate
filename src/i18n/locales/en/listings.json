@@ -462,14 +462,6 @@
       "baths": "ba",
       "epc": "EPC"
     },
-    "score": {
-      "chaud": "Hot",
-      "a_animer": "To nurture",
-      "en_veille": "Idle",
-      "fallback": "Estimate",
-      "tooltip": "Property score, estimate",
-      "tooltipLimited": "Property score, estimate · limited data"
-    },
     "submissions": {
       "bannerTitle_one": "{{count}} new seller submission",
       "bannerTitle_other": "{{count}} new seller submissions",
@@ -629,7 +621,6 @@
     "onlineOn": "Listing live on {{portals}}",
     "notPublishedYet": "Property not published yet",
     "viewPhotos": "View {{count}} photos",
-    "c2paVerified": "Verified provenance · C2PA",
     "transactionRent": "Rental",
     "transactionSale": "Sale",
     "rentLabel": "Rent",
