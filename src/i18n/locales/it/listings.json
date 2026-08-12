@@ -871,7 +871,10 @@
         "phone": "Telefono",
         "phonePlaceholder": "+41 79 …",
         "kycNote": "Il KYC potrà essere avviato dopo la firma del mandato. MEGGA può inviare la procedura al venditore, è facoltativo.",
-        "createContact": "Crea il contatto"
+        "createContact": "Crea il contatto",
+        "submissions_one": "1 richiesta in attesa",
+        "submissions_other": "{{count}} richieste in attesa",
+        "unknownVendor": "Venditore sconosciuto"
       },
       "mandate": {
         "title": "Che tipo di mandato?",

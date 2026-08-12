@@ -871,7 +871,10 @@
         "phone": "Phone",
         "phonePlaceholder": "+41 79 …",
         "kycNote": "KYC can be started after the mandate is signed. MEGGA can send the procedure to the seller, it's optional.",
-        "createContact": "Create contact"
+        "createContact": "Create contact",
+        "submissions_one": "1 pending submission",
+        "submissions_other": "{{count}} pending submissions",
+        "unknownVendor": "Unknown vendor"
       },
       "mandate": {
         "title": "What type of mandate?",

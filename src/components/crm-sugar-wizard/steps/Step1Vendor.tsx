@@ -7,8 +7,21 @@ import { SugarV2, sgOn, type WizardData } from '../tokens'
 import { SgAvatar, SgKycChip, SgInput } from '../primitives'
 import { type CrmContact } from '@/components/crm-sugar/mockData'
 import { useContactsSugar } from '@/hooks/useContactsSugar'
+import { useSellerLeads, type SellerLeadRow } from '@/hooks/useSellerLeads'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
+
+/** Type libre d'une soumission publique → type du wizard. */
+function typeDeSoumission(brut: string): WizardData['type'] {
+  const t = (brut || '').toLowerCase()
+  if (t.includes('villa')) return 'villa'
+  if (t.includes('house') || t.includes('maison')) return 'maison'
+  if (t.includes('land') || t.includes('terrain')) return 'terrain'
+  return 'appartement'
+}
+
+/** Cinq au plus, les plus récentes — le reste se traite depuis « Aujourd'hui ». */
+const PLAFOND_SOUMISSIONS = 5
 
 export function Step1Vendor({ data, set }: StepProps) {
   const { t } = useTranslation('listings')
@@ -67,6 +80,52 @@ export function Step1Vendor({ data, set }: StepProps) {
       _ownerContact: null,
     })
     setCreating(false)
+  }
+
+  /**
+   * Reprendre une soumission — l'entrée qui a survécu au retrait de l'étape
+   * « Démarrer » (12 août 2026).
+   *
+   * ⚠ ELLE NE S'AFFICHE QUE S'IL Y EN A. C'est tout l'intérêt : là-bas elle
+   * occupait un tiers d'un écran pour dire « aucune soumission » — `seller_leads`
+   * n'a qu'une ligne, du 29 mars, et plus d'écrivain depuis que `/sell` redirige
+   * vers la vitrine. Ici elle est invisible tant que la table est vide, et se
+   * rallume seule le jour où un formulaire public la remplit à nouveau.
+   */
+  const { data: leads = [] } = useSellerLeads('new', PLAFOND_SOUMISSIONS)
+  const [soumissionsOuvertes, setSoumissionsOuvertes] = useState(false)
+
+  const reprendre = (lead: SellerLeadRow) => {
+    const morceaux = lead.contact_name.trim().split(/\s+/)
+    const identite = {
+      firstName: morceaux[0] || '',
+      lastName: morceaux.slice(1).join(' ') || '',
+      email: lead.contact_email,
+      phone: lead.contact_phone ?? '',
+    }
+    // Un lead sans `contact_id` n'a pas encore de contact en base : on pose un
+    // brouillon `c-from-…` que `handlePublish` persistera. Avec `contact_id`, on
+    // lie l'UUID réel et on fige le snapshot d'affichage — les étapes aval ne
+    // savent pas re-résoudre un contact par id.
+    const brouillon = !lead.contact_id
+    const id = lead.contact_id ?? `c-from-${lead.id}`
+    const pd = lead.property_data
+    set({
+      ownerContactId: id,
+      _newContact: brouillon ? { ...identite, id, type: 'seller', kyc: { status: 'none' }, avatarBg: SugarV2.pop1 } : null,
+      _ownerContact: brouillon ? null : { ...identite, id, type: 'seller', kyc: { status: 'none' }, avatarBg: SugarV2.pop1 },
+      type: typeDeSoumission(pd.type),
+      transaction: 'vente',
+      addr: pd.address, canton: pd.canton, postCode: pd.postalCode, city: pd.city,
+      area: pd.surface,
+      rooms: Math.floor(Number.parseFloat(pd.rooms) || 0),
+      description: lead.motivation || '',
+      // ⚠ L'estimation est une ESTIMATION, pas un prix décidé. Elle pré-remplit
+      // le champ que l'agent verra et pourra corriger à l'étape Prix ; elle ne
+      // publie rien toute seule.
+      price: lead.estimation_median ?? lead.estimation_max ?? lead.estimation_min ?? null,
+    })
+    setSoumissionsOuvertes(false)
   }
 
   return (
@@ -141,6 +200,53 @@ export function Step1Vendor({ data, set }: StepProps) {
               }}>{t('wizard.step1.vendor.newButton')}</button>
             )}
           </div>
+
+          {/* Soumissions en attente — masqué tant qu'il n'y en a pas. */}
+          {q.trim().length === 0 && leads.length > 0 && (
+            <div style={{ marginBottom: 'var(--crm-space-2xl)' }}>
+              <button
+                type="button"
+                onClick={() => setSoumissionsOuvertes(o => !o)}
+                aria-expanded={soumissionsOuvertes}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)',
+                  height: 38, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)',
+                  border: `1px solid ${SugarV2.line}`, background: SugarV2.card,
+                  fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
+                  color: SugarV2.ink, cursor: 'pointer',
+                }}
+              >
+                {t('wizard.step1.vendor.submissions', { count: leads.length })}
+              </button>
+
+              {soumissionsOuvertes && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-xl)' }}>
+                  {leads.map(lead => (
+                    <button
+                      key={lead.id}
+                      type="button"
+                      onClick={() => reprendre(lead)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)',
+                        padding: 'var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-3xl)',
+                        border: `1px solid ${SugarV2.line}`, background: SugarV2.card,
+                        fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer', width: '100%',
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.ink }}>
+                          {lead.contact_name || t('wizard.step1.vendor.unknownVendor')}
+                        </div>
+                        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SugarV2.muted }}>
+                          {lead.property_data.type} · {lead.property_data.city}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
             {q.length === 0 && sellers.length > 0 && (

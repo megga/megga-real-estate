@@ -871,7 +871,10 @@
         "phone": "Telefon",
         "phonePlaceholder": "+41 79 …",
         "kycNote": "Das KYC kann nach der Unterzeichnung des Mandats gestartet werden. MEGGA kann das Verfahren an den Verkäufer senden, das ist optional.",
-        "createContact": "Kontakt erstellen"
+        "createContact": "Kontakt erstellen",
+        "submissions_one": "1 offene Einreichung",
+        "submissions_other": "{{count}} offene Einreichungen",
+        "unknownVendor": "Unbekannter Verkäufer"
       },
       "mandate": {
         "title": "Welche Art von Mandat?",
