@@ -1,3 +1,4 @@
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 // Icônes line (stroke) de la refonte Contacts — porté 1:1 de `nc-refonte-shared.jsx`
 // (NCV_PATHS + NcvIcon). Format SVG stroke, viewBox 24, strokeWidth ~1.8.
 // Quelques glyphes ajoutés au set d'origine pour la modale WhatsApp / premier
@@ -41,7 +42,7 @@ const NCV_PATHS: Record<NcvIconName, string> = {
 export function NcvIcon({
   name,
   size = 16,
-  stroke = '#0B0C0E',
+  stroke = MXC_COLOR.n100,
   sw = 1.8,
 }: {
   name: NcvIconName

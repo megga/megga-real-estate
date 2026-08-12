@@ -107,7 +107,7 @@ export default function ContactDetailSugarV3Page() {
 
   if (isLoading && !contact) {
     return shell(
-      <main style={{ flex: 1, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 14, fontWeight: 600 }}>
+      <main style={{ flex: 1, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 'var(--crm-text-lg)', fontWeight: 500 }}>
         {tr('cd.loading')}
       </main>,
     )
@@ -118,10 +118,10 @@ export default function ContactDetailSugarV3Page() {
     return shell(
       <main style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: sp.ink }}>{tr('detail.notFound')}</div>
+          <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: sp.ink }}>{tr('detail.notFound')}</div>
           <button onClick={() => navigate('/dashboard/contacts')} style={{
             marginTop: 14, height: 36, padding: '0 16px', borderRadius: 999, border: 0, cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: sp.ink, color: sp.pageBg,
+            fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, background: sp.accent, color: sp.accentInk,
           }}>{tr('detail.backToContacts')}</button>
         </div>
       </main>,

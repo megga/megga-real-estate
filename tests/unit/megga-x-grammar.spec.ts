@@ -61,25 +61,25 @@ import { emptyRoots, readFileSafely, rel, scanRoots } from './helpers/fs-scan'
  * rendrait zéro — donc une zone verte par vacuité. `emptyRoots` l'attraperait,
  * mais mieux vaut ne pas poser le piège.
  */
-const PAGES = new Set(['BienDetailSugarV4Page.tsx', 'BiensSugarV2Page.tsx'])
+const PAGES = new Set([
+  'BienDetailSugarV4Page.tsx', 'BiensSugarV2Page.tsx',
+  'ContactDetailSugarV3Page.tsx', 'ContactsSugarV2Page.tsx',
+])
 
 /**
- * « Contacts » entre PAR FICHIER, pas par dossier — les lots avancent un
- * fichier à la fois. Les deux pagers au lot 2, la modale de création au lot 3.
- * Les trois qui restent (`WhatsAppConnectModal`, `ContactsFirstRun`, les
- * glyphes) portent encore 13 marqueurs et attendent le lot 4 ; les ajouter ici
- * maintenant ferait rougir la garde sur du code que personne n'a encore touché.
+ * « Contacts » est couvert EN ENTIER depuis le lot 4 (12 août 2026) : le
+ * dossier a été porté fichier par fichier — les deux pagers au lot 2, la modale
+ * de création au lot 3, la modale WhatsApp, l'écran de premier lancement et les
+ * glyphes au lot 4 — et le filtre nommé qui servait de compteur pendant le
+ * chantier a disparu avec le dernier fichier.
  *
- * Ce filtre est le compteur du chantier : chaque lot y inscrit ses fichiers en
- * même temps qu'il les nettoie. Une zone absente n'est pas déclarée propre, elle
- * est déclarée non traitée — c'est tout l'intérêt du cliquet, et c'est aussi
- * pourquoi un `keep` qui laisserait passer tout le dossier serait un mensonge.
- *
- * ⚠ `ContactsFirstRun` est mono-thème PAR DÉCISION (fond noir, textes blancs en
- * dur, comme `BiensFirstRun` et la couverture Pipeline). L'exception couvre ses
- * COULEURS, pas sa grammaire : ses graisses 700 restent à corriger au lot 4.
+ * ⚠ `ContactsFirstRun` est mono-thème PAR DÉCISION (fond sombre permanent,
+ * textes blancs en dur quel que soit le thème, comme `BiensFirstRun` et la
+ * couverture Pipeline). L'exception couvre ses COULEURS, pas sa grammaire : ses
+ * graisses sont descendues comme partout ailleurs, et son fond a seulement
+ * changé d'ALPHABET — `#0A0B0D` → `MXC_COLOR.n100`, le geste exact de
+ * `BiensFirstRun`. Il reste fixe ; il ne suit toujours pas le thème.
  */
-const CONTACTS = new Set(['ContactsPager.tsx', 'ContactDetailPager.tsx', 'NewContactModal.tsx'])
 
 const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   { root: 'src/components/crm-sugar-wizard', keep: (n) => /\.tsx?$/.test(n) },
@@ -98,9 +98,8 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   // hex hors échelle est `#e53935`, le compteur de notifications — sémantique,
   // même famille que `err`.
   { root: 'src/components/crm-sugar', keep: (n) => n === 'SugarShell.tsx' },
-  // « Contacts » (12 août 2026) : les deux pagers au lot 2, la modale de
-  // création au lot 3. Le reste du dossier arrive au lot 4 — voir `CONTACTS`.
-  { root: 'src/components/crm-sugar/contacts-pager', keep: (n) => CONTACTS.has(n) },
+  // « Contacts » EN ENTIER depuis le lot 4 — voir la note au-dessus de `PAGES`.
+  { root: 'src/components/crm-sugar/contacts-pager', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
 ]
 
@@ -128,6 +127,25 @@ const TEMOIN = 'src/components/crm-sugar-wizard/steps/Step7Publish.tsx'
  * 2. **Calculées.** Une taille qui suit son conteneur ne peut, par construction,
  *    pas être un barreau.
  */
+/**
+ * Interlettrages positifs assumés, EXPRESSION PAR EXPRESSION.
+ *
+ * La règle vise l'interlettrage qui accompagnait la micro-capitale : sur un mot
+ * en casse normale, il le disloque. Mais DISLOQUER est parfois précisément ce
+ * qu'on veut — un code qu'on lit caractère par caractère pour le recopier n'est
+ * pas un mot, et le resserrer le rendrait plus dur à transcrire.
+ *
+ * ⚠ Cette liste ne doit accueillir que des suites de CARACTÈRES INDÉPENDANTS
+ * (codes, empreintes). Un libellé, un sur-titre ou un titre n'y a rien à faire :
+ * pour eux, l'interlettrage était la survivance, et il part.
+ */
+const INTERLETTRAGES_ASSUMES: { motif: RegExp; raison: string }[] = [
+  {
+    motif: /letterSpacing: 6, fontVariantNumeric: 'tabular-nums'/,
+    raison: 'le code d’appairage WhatsApp, lu et recopié caractère par caractère',
+  },
+]
+
 const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
   {
     // ⚠ UNE seule entrée pour toute la famille. Plusieurs coefficients existent
@@ -243,6 +261,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
    */
   it('aucun interlettrage de micro-capitale', () => {
     const fautifs = sites((l) => {
+      if (INTERLETTRAGES_ASSUMES.some(({ motif }) => motif.test(l))) return false
       for (const m of l.matchAll(/letterSpacing:\s*'?(-?\.?[\d.]+)(em)?'?/g)) {
         const v = Number(m[1])
         if (Number.isNaN(v)) continue
@@ -251,6 +270,16 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       return false
     })
     expect(fautifs, `interlettrage positif ≥ 0,4 :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * Une exemption qui ne correspond plus à rien laisse croire qu'un écart est
+   * surveillé alors que la ligne a disparu. Même idiome que les tailles.
+   */
+  it('chaque exemption d’interlettrage correspond encore à du code', () => {
+    const tout = sources.map((s) => s.code).join('\n')
+    const mortes = INTERLETTRAGES_ASSUMES.filter(({ motif }) => !motif.test(tout)).map((e) => e.raison)
+    expect(mortes, `exemptions sans code :\n  ${mortes.join('\n  ')}`).toEqual([])
   })
 
   /**
@@ -373,11 +402,6 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar/contacts-pager',
       'src/pages/agent',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
-    // Les deux pagers sont bien VUS — un filtre qui cesserait de les matcher
-    // laisserait la racine non vide (le dossier en contient quatre autres) tout
-    // en ne gardant aucun des deux : la zone serait verte par vacuité.
-    const nomsVus = sources.map((s) => s.chemin.split('/').pop())
-    for (const f of CONTACTS) expect(nomsVus, `pager non balayé : ${f}`).toContain(f)
     // Les deux pages sont bien VUES — un filtre de nom qui ne matche rien
     // laisserait la racine non vide (le dossier en contient d'autres) tout en
     // ne gardant aucune des deux.

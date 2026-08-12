@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { NcvIcon } from '@/components/crm-sugar/contacts-pager/ncvIcon'
 import WhatsAppConnectModal from '@/components/crm-sugar/contacts-pager/WhatsAppConnectModal'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 /** Illustration plein cadre de la couverture. `null` ⇒ fond plat #0A0B0D. */
 const COVER_SRC: string | null = '/contacts/contacts-cover.svg'
@@ -50,11 +51,11 @@ function CfrStep({
       <span aria-hidden="true" style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
         {iconNode}
       </span>
-      <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, color: '#FFFFFF', lineHeight: 1.25, marginTop: 16 }}>{title}</span>
+      <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: '#FFFFFF', lineHeight: 1.25, marginTop: 16 }}>{title}</span>
       <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: 'rgba(255,255,255,0.6)', marginTop: 6, textWrap: 'pretty' }}>{sub}</span>
       <span style={{
         marginTop: 18, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', display: 'inline-flex', alignItems: 'center',
-        background: 'rgba(255,255,255,0.1)', color: '#FFFFFF', fontSize: 'var(--crm-text-md)', fontWeight: 700,
+        background: 'rgba(255,255,255,0.1)', color: '#FFFFFF', fontSize: 'var(--crm-text-md)', fontWeight: 600,
       }}>
         {ctaLabel}
       </span>
@@ -167,8 +168,8 @@ export default function ContactsFirstRun({
     <div
       className="cfr-root"
       style={{
-        position: 'absolute', inset: 0, background: '#0A0B0D', overflowY: 'auto', overflowX: 'hidden',
-        fontFamily: "'Inter Tight', system-ui, sans-serif", color: '#FFFFFF', fontVariantNumeric: 'tabular-nums',
+        position: 'absolute', inset: 0, background: MXC_COLOR.n100, overflowY: 'auto', overflowX: 'hidden',
+        fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: '#FFFFFF', fontVariantNumeric: 'tabular-nums',
       }}
     >
       <style>{`
@@ -203,7 +204,7 @@ export default function ContactsFirstRun({
           maxWidth: 920, width: '100%', textAlign: 'center',
           animation: 'cfrFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
         }}>
-          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 700, letterSpacing: -1, lineHeight: 1.1, color: '#FFFFFF', textShadow: '0 0 24px rgba(255,255,255,0.5)' }}>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 500, letterSpacing: -1, lineHeight: 1.1, color: '#FFFFFF', textShadow: '0 0 24px rgba(255,255,255,0.5)' }}>
             {t('firstRun.title')}
           </h1>
           {/* Coupure de ligne volontaire (handoff) : deux clés plutôt qu'une balise en JSON. */}

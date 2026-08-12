@@ -9,6 +9,7 @@
 //   selon le thème — porté 1:1 de `CfrGGMark`.
 
 import type { CSSProperties } from 'react'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 export function WhatsAppGlyph({
   size = 18,
@@ -26,7 +27,7 @@ export function WhatsAppGlyph({
   )
 }
 
-export function GgMonogram({ size = 30, color = '#0B0C0E' }: { size?: number; color?: string }) {
+export function GgMonogram({ size = 30, color = MXC_COLOR.n100 }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill={color} aria-hidden="true">
       <g transform="translate(3, 8.5) scale(0.0374)">
