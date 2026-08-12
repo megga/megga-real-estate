@@ -27,7 +27,7 @@ import { useTranslation } from 'react-i18next'
 import { MxButton, MxField, MxInput, MxLink, MxSelect } from '@/components/megga-x'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencyIdentity } from '@/hooks/useAgencyIdentity'
-import { COUNTRY_DIAL_CODES, PHONE_EXAMPLES, countryForDialCode, dialCodeOptions, splitDialCode } from '@/lib/countries'
+import { PHONE_EXAMPLES, composePhone, countryForDialCode, dialCodeOptions, splitDialCode } from '@/lib/countries'
 import OcSlotPicker from './OcSlotPicker'
 import OcBookedCard from './OcBookedCard'
 import { dayKeyOf } from './ocDates'
@@ -100,14 +100,13 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
    */
   const [paysTel, setPaysTel] = useState('CH')
   const [numeroLocal, setNumeroLocal] = useState('')
-  const indicatif = `+${COUNTRY_DIAL_CODES[paysTel] ?? '41'}`
   // 195 options traduites et RETRIÉES : sans mémoïsation, la liste entière serait
   // reconstruite à chaque frappe dans les champs voisins.
   const optionsIndicatif = useMemo(() => dialCodeOptions(i18n.language), [i18n.language])
   // Ce qui part à l'edge : la concaténation, jamais les deux morceaux. Le zéro de tête
   // (079…) est retiré — il n'existe qu'en composition nationale et casserait le numéro
   // une fois l'indicatif devant.
-  const phone = numeroLocal.trim() === '' ? '' : `${indicatif}${numeroLocal.replace(/\D/g, '').replace(/^0+/, '')}`
+  const phone = composePhone(paysTel, numeroLocal)
   const setPhone = (valeur: string) => {
     const { dial, local } = splitDialCode(valeur)
     const iso = dial ? countryForDialCode(dial) : null

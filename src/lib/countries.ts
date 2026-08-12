@@ -366,6 +366,26 @@ export function dialCodeOptions(language: string): { value: string; label: strin
 }
 
 /**
+ * Compose un numéro international à partir d'un pays et d'un numéro LOCAL.
+ *
+ * ⚠ Un numéro local vide rend une chaîne VIDE, jamais l'indicatif seul : sans
+ * ça, un formulaire non renseigné enverrait « +41 » comme numéro de téléphone.
+ *
+ * ⚠ Le zéro de tête part. Il n'existe qu'en composition NATIONALE (079…) et,
+ * placé derrière un indicatif, il casse le numéro — or c'est un numéro d'ENVOI :
+ * la passerelle WhatsApp attend un format international.
+ *
+ * Écrite ici parce que DEUX surfaces la portent — la réservation d'appel
+ * d'onboarding et la création de contact du CRM. Sur ce dépôt, une règle
+ * recopiée a toujours fini par diverger.
+ */
+export function composePhone(iso: string, local: string): string {
+  if (local.trim() === '') return ''
+  const indicatif = COUNTRY_DIAL_CODES[iso] ?? '41'
+  return `+${indicatif}${local.replace(/\D/g, '').replace(/^0+/, '')}`
+}
+
+/**
  * Sépare un numéro international en indicatif + reste. L'indicatif le PLUS LONG
  * gagne : +1 est un préfixe de rien, mais +37 le serait de +376 (Andorre) si on
  * comparait dans l'autre sens, et un Andorran se verrait attribuer un autre pays.

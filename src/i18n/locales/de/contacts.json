@@ -892,7 +892,6 @@
     "email": "Email",
     "emailPlaceholder": "name@beispiel.ch",
     "phone": "Telefon",
-    "phonePlaceholder": "+41 79 …",
     "lang": "Sprache",
     "langOpt": {
       "fr": "Französisch",
@@ -951,7 +950,8 @@
       "rentMax": "Max. Miete",
       "propertyAddress": "Adresse des Objekts"
     },
-    "birthError": "Ungültiges Geburtsdatum: Format TT.MM.JJJJ."
+    "birthError": "Ungültiges Geburtsdatum: Format TT.MM.JJJJ.",
+    "dialCode": "Ländervorwahl"
   },
   "fiche": {
     "back": "Contacts",

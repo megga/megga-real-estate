@@ -21,7 +21,7 @@ import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import type { CriteriaInput } from '@/lib/contactCriteria'
 import { NcvIcon, type NcvIconName } from '@/components/crm-sugar/contacts-pager/ncvIcon'
 import { encreSur } from '@/components/megga-x-crm/tokens'
-import { COUNTRIES } from '@/lib/countries'
+import { COUNTRIES, composePhone, dialCodeOptions } from '@/lib/countries'
 import { identityToColumns, isInvalidSwissDate } from '@/lib/contactIdentity'
 import { formatCHF, formatRent } from '@/lib/utils'
 
@@ -56,7 +56,6 @@ type ContactType = NewContactData['type']
 interface NcbC {
   white: string
   cardSubtle: string
-  cardSub2: string
   ink: string
   inkSoft: string
   muted: string
@@ -78,7 +77,9 @@ interface NcbC {
   dark: boolean
   // ── Valeurs propres à l'aperçu vivant (le handoff les code en dur ; on les
   //    dérive ici pour éviter des ternaires `dark ? … : …` dispersés dans le JSX).
-  /** Fond de la carte fusionnée et de la colonne d'aperçu (noir de page en sombre). */
+  /** Fond du bento fusionné. ⚠ Ses deux colonnes étant opaques et couvrant
+   *  toute sa boîte, il ne peint plus rien — il reste le repli si l'une d'elles
+   *  redevenait transparente. La colonne d'aperçu, elle, lit `white`. */
   surfaceBg: string
   /** Nom complet renseigné / vide. */
   nameInk: string
@@ -111,7 +112,6 @@ function buildC(sp: SugarPalette, dark: boolean): NcbC {
     return {
       white: '#FFFFFF',
       cardSubtle: '#F6F7F9',
-      cardSub2: '#F0F2F5',
       ink: sp.ink,
       inkSoft: sp.soft,
       muted: sp.sub,
@@ -154,7 +154,6 @@ function buildC(sp: SugarPalette, dark: boolean): NcbC {
   return {
     white: sp.cardBg,
     cardSubtle: sp.cardSubBg,
-    cardSub2: sp.cardSubBg,
     ink: sp.ink,
     inkSoft: sp.soft,
     muted: sp.sub,
@@ -626,7 +625,7 @@ function PreviewColM({
   onClear: () => void
 }) {
   return (
-    <div style={{ width: 316, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 20px 18px', textAlign: 'center', minHeight: 0, background: C.dark ? C.cardSub2 : 'transparent', borderRadius: 'var(--crm-radius-2xl)' }}>
+    <div style={{ width: 316, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 20px 18px', textAlign: 'center', minHeight: 0, background: C.white }}>
       <NcbPhotoPickerM C={C} photo={photo} initials={initials} color={tint} onPick={onPick} onClear={onClear} addLabel={labels.addPhoto} removeLabel={labels.removePhoto} />
       <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.5, color: fullName ? C.nameInk : C.nameGhost, marginTop: 14 }}>
         {fullName || labels.namePlaceholder}
@@ -765,7 +764,34 @@ export default function NewContactModal({
   onOpenKyc?: () => void
   onOpenFiche?: () => void
 }): JSX.Element {
-  const { t } = useTranslation('contacts')
+  const { t, i18n } = useTranslation('contacts')
+  /**
+   * ⚠ LE TÉLÉPHONE EN DEUX CONTRÔLES — l'indicatif se CHOISIT, le reste se tape.
+   * Même système que l'onboarding (`OcBooking`), et pour la même raison mesurée
+   * là-bas : un champ libre laissait arriver « 079 874 94 84 », « 0041 79… » et
+   * « +41 79… » dans la même colonne. C'est un numéro d'ENVOI — la passerelle
+   * WhatsApp attend un format international, et un zéro de tête suisse ne s'y
+   * traduit pas tout seul.
+   *
+   * Suisse par défaut (c'est le marché) ; la liste suit l'ordre des PAYS et non
+   * celui des indicatifs, un agent cherchant son pays par son nom.
+   *
+   * ⚠ Un numéro local VIDE rend un téléphone VIDE, jamais l'indicatif seul :
+   * sans ça un formulaire non renseigné enverrait « +41 » comme numéro.
+   */
+  const [paysTel, setPaysTel] = useState('CH')
+  const [numeroLocal, setNumeroLocal] = useState('')
+  // 195 options traduites et retriées : sans mémoïsation, la liste entière serait
+  // reconstruite à chaque frappe dans les champs voisins.
+  const optionsIndicatif = useMemo(() => dialCodeOptions(i18n.language), [i18n.language])
+  const majPaysTel = (iso: string) => {
+    setPaysTel(iso)
+    setF((s) => ({ ...s, phone: composePhone(iso, numeroLocal) }))
+  }
+  const majNumeroLocal = (local: string) => {
+    setNumeroLocal(local)
+    setF((s) => ({ ...s, phone: composePhone(paysTel, local) }))
+  }
   const C = useMemo(() => buildC(sp, dark), [sp, dark])
 
   const [f, setF] = useState<FormState>(EMPTY)
@@ -933,8 +959,21 @@ export default function NewContactModal({
     <div role="dialog" aria-modal="true" aria-label={t('newContactPager.expressCard')} className={C.dark ? 'ncbm-dark' : undefined} style={shellStyle}>
       {focusCss}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        {/* Panneau = palier « cadre » ; la colonne d'aperçu se pose un cran au-dessus. */}
-        <div style={{ flex: 1, display: 'flex', padding: 'var(--crm-space-3xl)', gap: 'var(--crm-space-7xl)', minHeight: 0, borderRadius: 'var(--crm-radius-6xl)', background: C.surfaceBg, boxShadow: C.cardShadow }}>
+        {/* ⚠ BENTO FUSIONNÉ : ni padding ni gap. Les deux colonnes touchent le
+            cadre et se touchent entre elles — c'est la SEULE façon qu'elles
+            lisent comme une surface unique et non comme deux cartes posées
+            dedans. Le rayon vit ici, et `overflow: hidden` le fait porter aux
+            deux colonnes : leur donner chacune le leur rouvrirait la couture.
+
+            ⚠ SANS GAP, C'EST UN FILET QUI SÉPARE — pas un écart de ton. Premier
+            essai : donner à chaque colonne un palier différent. Mesuré, ça ne
+            sépare RIEN — 1,024:1 en sombre, quand `CLAUDE.md` §3 cite justement
+            1,036:1 comme l'écart qui ne se voit pas, sous le titre « la
+            séparation vient de la BORDURE, pas de l'écart de luminance ». Le
+            ton reste juste par son RÔLE (aperçu = colonne `cardBg`, formulaire
+            = sous-carte creusée), mais c'est le `borderLeft` du formulaire qui
+            fait le travail. Même geste que `NewDealModal` avec son `hair`. */}
+        <div style={{ flex: 1, display: 'flex', minHeight: 0, borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden', background: C.surfaceBg, boxShadow: C.cardShadow }}>
 
           {/* Aperçu vivant — se remplit pendant la saisie */}
           <PreviewColM
@@ -968,7 +1007,7 @@ export default function NewContactModal({
           />
 
           {/* Fiche express — panneau soudé, seul élément scrollable */}
-          <div style={{ flex: 1, minWidth: 0, background: C.cardSubtle, borderRadius: 'var(--crm-radius-2xl)', padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)', overflowY: 'auto' }}>
+          <div style={{ flex: 1, minWidth: 0, background: C.cardSubtle, borderLeft: `1px solid ${C.line}`, padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
               <div style={{ flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: C.ink }}>{t('newContactPager.expressCard')}</div>
               <NcbCloseM C={C} onClick={onClose} label={t('newContactPager.close')} />
@@ -1006,10 +1045,10 @@ export default function NewContactModal({
                 </select>
               </NcvFieldM>
               <NcvFieldM C={C} label={t('newContactPager.firstName')} required>
-                <input className="ncbm-in" value={f.firstName} onChange={onField('firstName')} placeholder={t('newContactPager.firstName')} style={inpW(C, tried && !f.firstName.trim())} />
+                <input className="ncbm-in" value={f.firstName} onChange={onField('firstName')} style={inpW(C, tried && !f.firstName.trim())} />
               </NcvFieldM>
               <NcvFieldM C={C} label={t('newContactPager.lastName')} required>
-                <input className="ncbm-in" value={f.lastName} onChange={onField('lastName')} placeholder={t('newContactPager.lastName')} style={inpW(C, tried && !f.lastName.trim())} />
+                <input className="ncbm-in" value={f.lastName} onChange={onField('lastName')} style={inpW(C, tried && !f.lastName.trim())} />
               </NcvFieldM>
             </div>
 
@@ -1068,7 +1107,17 @@ export default function NewContactModal({
                 <input className="ncbm-in" value={f.email} onChange={onField('email')} placeholder={t('newContactPager.emailPlaceholder')} style={inpW(C, tried && !emailOk)} />
               </NcvFieldM>
               <NcvFieldM C={C} label={t('newContactPager.phone')}>
-                <input className="ncbm-in" value={f.phone} onChange={onField('phone')} placeholder={t('newContactPager.phonePlaceholder')} style={{ ...inpW(C), ...MONO }} />
+                {/* ⚠ Colonne d'indicatif à largeur BORNÉE : un `<select>` prend la
+                    largeur de sa plus longue option, et « Îles Salomon +677 »
+                    écraserait la colonne du numéro. */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 8.5rem) minmax(0, 1fr)', gap: 'var(--crm-space-sm)' }}>
+                  <select className="ncbm-in" value={paysTel} onChange={(e) => majPaysTel(e.target.value)}
+                          aria-label={t('newContactPager.dialCode')} style={selW(C)}>
+                    {optionsIndicatif.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <input className="ncbm-in" type="tel" inputMode="tel" value={numeroLocal}
+                         onChange={(e) => majNumeroLocal(e.target.value)} style={{ ...inpW(C), ...MONO }} />
+                </div>
               </NcvFieldM>
             </div>
             <NcvFieldM C={C} label={t('newContactPager.canal')}>
