@@ -13,8 +13,7 @@
  * `ContactDetailPager` sont purement présentationnels (le conteneur porte les
  * requêtes et les callbacks), donc ce harnais les alimente directement : ni
  * `ContactsSugarV2Page` ni `ContactDetailSugarV3Page` n'ont besoin d'une prop de
- * démonstration. `ContactImportPage`, elle, apporte son propre chrome et ne
- * dépend d'aucune donnée chargée — elle se monte telle quelle.
+ * démonstration.
  *
  * ⚠ Le harnais lit `megga.sugar.dark` ('1' / '0', **pas** 'true'), la clé que
  * basculent les rails Sugar. Un harnais démarrant en dur sur `false` rendrait
@@ -39,18 +38,16 @@ import ContactsFirstRun from '@/components/crm-sugar/contacts-pager/ContactsFirs
 import NewContactModal from '@/components/crm-sugar/contacts-pager/NewContactModal'
 import WhatsAppConnectModal from '@/components/crm-sugar/contacts-pager/WhatsAppConnectModal'
 import ContactDetailPager from '@/components/crm-sugar/contacts-pager/ContactDetailPager'
-import ContactImportPage from '@/pages/agent/ContactImportPage'
 import {
   DEMO_CONTACTS, DEMO_FICHE, DEMO_FICHE_LINKS, DEMO_FICHE_LOOP, DEMO_FICHE_NBA,
 } from './demoFixtures'
 
-type Surface = 'liste' | 'fiche' | 'premier' | 'import'
+type Surface = 'liste' | 'fiche' | 'premier'
 
 const SURFACES: { id: Surface; label: string }[] = [
   { id: 'liste', label: 'Liste' },
   { id: 'fiche', label: 'Fiche' },
   { id: 'premier', label: 'Premier lancement' },
-  { id: 'import', label: 'Import' },
 ]
 
 /** Les callbacks de persistance du pager : le banc n'écrit nulle part. */
@@ -142,13 +139,7 @@ export default function ContactsShowcasePage() {
     </div>
   )
 
-  // ⚠ L'IMPORT apporte sa propre barre supérieure et son propre rail : c'est une
-  // page complète, pas un panneau. La coiffer du chrome du harnais afficherait
-  // DEUX barres l'une sous l'autre — défaut déjà payé sur la fiche de
-  // `/dev/biens`. Elle remplace donc tout le corps.
-  const corps = surface === 'import' ? (
-    <ContactImportPage />
-  ) : (
+  const corps = (
     <div style={{
       position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
       display: 'flex', flexDirection: 'column',

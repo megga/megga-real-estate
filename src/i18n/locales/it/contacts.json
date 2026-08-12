@@ -61,13 +61,6 @@
     "activity": "Attività"
   },
   "import": {
-    "csv_label": "CSV / Excel",
-    "csv_desc": "Importare da un file .csv o .tsv",
-    "vcard_label": "vCard (.vcf)",
-    "vcard_desc": "Da iPhone, Android, Outlook, Gmail",
-    "text_label": "Testo libero (IA)",
-    "text_desc": "Incollare un'email o un messaggio, MEGGA AI estrae le informazioni",
-    "manual_label": "Inserimento manuale",
     "urgency": {
       "high": "Elevata",
       "medium": "Moderata",
@@ -179,62 +172,6 @@
         "viewPipelineDesc": "Apri la scheda del deal",
         "viewContact": "Vedi la scheda contatto →",
         "viewContactDesc": "Recapiti, KYC, cronologia"
-      }
-    },
-    "batch": {
-      "title": "Importare contatti",
-      "methodPrompt": "Come desidera aggiungere i Suoi contatti?",
-      "manual_desc": "Aggiungere un contatto manualmente",
-      "importing": "Importazione in corso…",
-      "importCount_one": "Importa {{count}} contatto",
-      "importCount_other": "Importa {{count}} contatti",
-      "foundCount_one": "{{count}} contatto trovato",
-      "foundCount_other": "{{count}} contatti trovati",
-      "field": {
-        "ignore": "Ignora",
-        "firstName": "Nome",
-        "lastName": "Cognome",
-        "email": "Email",
-        "phone": "Telefono",
-        "type": "Type",
-        "notes": "Notes",
-        "source": "Source"
-      },
-      "csv": {
-        "title": "Importare da un CSV",
-        "uploadPrompt": "Trascina o seleziona il tuo file",
-        "mapPrompt_one": "{{count}} contatto trovato, mappa le colonne",
-        "mapPrompt_other": "{{count}} contatti trovati, mappa le colonne",
-        "dropTitle": "Trascina qui il tuo file CSV",
-        "dropHint": "oppure clicca per selezionare (.csv, .tsv)",
-        "previewLabel": "Anteprima:"
-      },
-      "vcard": {
-        "title": "Importare da vCard",
-        "subtitle": "Esportazione da iPhone, Android, Outlook o Gmail",
-        "dropTitle": "Trascina qui il tuo file .vcf",
-        "dropHint": "oppure clicca per selezionare"
-      },
-      "text": {
-        "title": "Estrazione IA",
-        "subtitle": "Incolla un'email, un messaggio o qualsiasi testo che contenga dei recapiti",
-        "placeholder": "Es.: Buongiorno, sono Marie Dupont, raggiungibile allo 079 123 45 67 o marie.dupont@gmail.com. Cerco un 4 locali a Ginevra…",
-        "extract": "Estrai i contatti",
-        "analyzing": "MEGGA AI sta analizzando il testo…",
-        "identifiedCount_one": "{{count}} contatto identificato",
-        "identifiedCount_other": "{{count}} contatti identificati",
-        "errorNotFound": "Nessun contatto trovato nel testo",
-        "errorNone": "Nessun contatto identificato",
-        "errorExtract": "Errore di estrazione"
-      },
-      "result": {
-        "importedCount_one": "{{count}} contatto importato",
-        "importedCount_other": "{{count}} contatti importati",
-        "skippedCount_one": "{{count}} ignorato (incompleto)",
-        "skippedCount_other": "{{count}} ignorati (incompleti)",
-        "duplicatesCount_one": "{{count}} duplicato ignorato",
-        "duplicatesCount_other": "{{count}} duplicati ignorati",
-        "goToContacts": "Vedi i miei contatti"
       }
     }
   },

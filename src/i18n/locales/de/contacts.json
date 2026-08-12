@@ -61,13 +61,6 @@
     "activity": "Aktivität"
   },
   "import": {
-    "csv_label": "CSV / Excel",
-    "csv_desc": "Aus einer .csv- oder .tsv-Datei importieren",
-    "vcard_label": "vCard (.vcf)",
-    "vcard_desc": "Von iPhone, Android, Outlook, Gmail",
-    "text_label": "Freitext (KI)",
-    "text_desc": "E-Mail oder Nachricht einfügen, MEGGA AI extrahiert die Infos",
-    "manual_label": "Manuelle Eingabe",
     "urgency": {
       "high": "Hoch",
       "medium": "Mittel",
@@ -179,62 +172,6 @@
         "viewPipelineDesc": "Die Deal-Karte öffnen",
         "viewContact": "Kontaktprofil ansehen →",
         "viewContactDesc": "Kontaktdaten, KYC, Verlauf"
-      }
-    },
-    "batch": {
-      "title": "Kontakte importieren",
-      "methodPrompt": "Wie möchten Sie Ihre Kontakte hinzufügen?",
-      "manual_desc": "Einen Kontakt manuell hinzufügen",
-      "importing": "Import läuft…",
-      "importCount_one": "{{count}} Kontakt importieren",
-      "importCount_other": "{{count}} Kontakte importieren",
-      "foundCount_one": "{{count}} Kontakt gefunden",
-      "foundCount_other": "{{count}} Kontakte gefunden",
-      "field": {
-        "ignore": "Ignorieren",
-        "firstName": "Vorname",
-        "lastName": "Nachname",
-        "email": "Email",
-        "phone": "Telefon",
-        "type": "Type",
-        "notes": "Notes",
-        "source": "Source"
-      },
-      "csv": {
-        "title": "Aus einer CSV importieren",
-        "uploadPrompt": "Ziehen Sie Ihre Datei hierher oder wählen Sie sie aus",
-        "mapPrompt_one": "{{count}} Kontakt gefunden, ordnen Sie die Spalten zu",
-        "mapPrompt_other": "{{count}} Kontakte gefunden, ordnen Sie die Spalten zu",
-        "dropTitle": "Ziehen Sie Ihre CSV-Datei hierher",
-        "dropHint": "oder klicken Sie zum Auswählen (.csv, .tsv)",
-        "previewLabel": "Vorschau:"
-      },
-      "vcard": {
-        "title": "Aus vCard importieren",
-        "subtitle": "Export von iPhone, Android, Outlook oder Gmail",
-        "dropTitle": "Ziehen Sie Ihre .vcf-Datei hierher",
-        "dropHint": "oder klicken Sie zum Auswählen"
-      },
-      "text": {
-        "title": "KI-Extraktion",
-        "subtitle": "Fügen Sie eine E-Mail, eine Nachricht oder einen beliebigen Text mit Kontaktdaten ein",
-        "placeholder": "Z. B.: Guten Tag, ich bin Marie Dupont, erreichbar unter 079 123 45 67 oder marie.dupont@gmail.com. Ich suche eine 4-Zimmer-Wohnung in Genf…",
-        "extract": "Kontakte extrahieren",
-        "analyzing": "MEGGA AI analysiert den Text…",
-        "identifiedCount_one": "{{count}} Kontakt identifiziert",
-        "identifiedCount_other": "{{count}} Kontakte identifiziert",
-        "errorNotFound": "Keine Kontakte im Text gefunden",
-        "errorNone": "Keine Kontakte identifiziert",
-        "errorExtract": "Extraktionsfehler"
-      },
-      "result": {
-        "importedCount_one": "{{count}} Kontakt importiert",
-        "importedCount_other": "{{count}} Kontakte importiert",
-        "skippedCount_one": "{{count}} ignoriert (unvollständig)",
-        "skippedCount_other": "{{count}} ignoriert (unvollständig)",
-        "duplicatesCount_one": "{{count}} Duplikat ignoriert",
-        "duplicatesCount_other": "{{count}} Duplikate ignoriert",
-        "goToContacts": "Meine Kontakte ansehen"
       }
     }
   },

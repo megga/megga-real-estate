@@ -104,7 +104,6 @@ const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 
 // Lazy-loaded agent pages
 const DashboardSugarV4Page = lazy(() => import('@/pages/agent/DashboardSugarV4Page'))
-const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
 const ContactDetailSugarV3Page = lazy(() => import('@/pages/agent/ContactDetailSugarV3Page'))
 const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page'))
 const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page'))
@@ -509,7 +508,6 @@ function AppRoutes() {
                 {/* Création contact — mobile only (desktop : modale dans le pager). */}
                 <Route path="contacts/new" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/contacts" replace />} mobile={<MobileNewContactPage />} />} />
                 {/* Import de contacts — porté sous Sugar (chrome auto-porté). */}
-                <Route path="contacts/import" element={<ContactImportPage />} />
                 {/* Portées depuis AgentLayout : elles épousent le pager Sugar. */}
                 <Route path="market/:externalId" element={<ByParam><ExternalListingDetailPage /></ByParam>} />
                 <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />

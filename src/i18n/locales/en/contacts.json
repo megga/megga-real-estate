@@ -61,13 +61,6 @@
     "activity": "Activity"
   },
   "import": {
-    "csv_label": "CSV / Excel",
-    "csv_desc": "Import from a .csv or .tsv file",
-    "vcard_label": "vCard (.vcf)",
-    "vcard_desc": "From iPhone, Android, Outlook, Gmail",
-    "text_label": "Free text (AI)",
-    "text_desc": "Paste an email or message, MEGGA AI extracts the info",
-    "manual_label": "Manual entry",
     "urgency": {
       "high": "High",
       "medium": "Medium",
@@ -179,62 +172,6 @@
         "viewPipelineDesc": "Open the deal card",
         "viewContact": "View contact record →",
         "viewContactDesc": "Contact details, KYC, history"
-      }
-    },
-    "batch": {
-      "title": "Import contacts",
-      "methodPrompt": "How would you like to add your contacts?",
-      "manual_desc": "Add a contact manually",
-      "importing": "Importing…",
-      "importCount_one": "Import {{count}} contact",
-      "importCount_other": "Import {{count}} contacts",
-      "foundCount_one": "{{count}} contact found",
-      "foundCount_other": "{{count}} contacts found",
-      "field": {
-        "ignore": "Ignore",
-        "firstName": "First name",
-        "lastName": "Last name",
-        "email": "Email",
-        "phone": "Phone",
-        "type": "Type",
-        "notes": "Notes",
-        "source": "Source"
-      },
-      "csv": {
-        "title": "Import from a CSV",
-        "uploadPrompt": "Drag or select your file",
-        "mapPrompt_one": "{{count}} contact found, map the columns",
-        "mapPrompt_other": "{{count}} contacts found, map the columns",
-        "dropTitle": "Drop your CSV file here",
-        "dropHint": "or click to select (.csv, .tsv)",
-        "previewLabel": "Preview:"
-      },
-      "vcard": {
-        "title": "Import from vCard",
-        "subtitle": "Export from iPhone, Android, Outlook or Gmail",
-        "dropTitle": "Drop your .vcf file here",
-        "dropHint": "or click to select"
-      },
-      "text": {
-        "title": "AI extraction",
-        "subtitle": "Paste an email, a message, or any text containing contact details",
-        "placeholder": "E.g. Hello, I'm Marie Dupont, reachable at 079 123 45 67 or marie.dupont@gmail.com. I'm looking for a 4-room flat in Geneva…",
-        "extract": "Extract contacts",
-        "analyzing": "MEGGA AI is analysing the text…",
-        "identifiedCount_one": "{{count}} contact identified",
-        "identifiedCount_other": "{{count}} contacts identified",
-        "errorNotFound": "No contact found in the text",
-        "errorNone": "No contact identified",
-        "errorExtract": "Extraction error"
-      },
-      "result": {
-        "importedCount_one": "{{count}} contact imported",
-        "importedCount_other": "{{count}} contacts imported",
-        "skippedCount_one": "{{count}} skipped (incomplete)",
-        "skippedCount_other": "{{count}} skipped (incomplete)",
-        "duplicatesCount_one": "{{count}} duplicate skipped",
-        "duplicatesCount_other": "{{count}} duplicates skipped",
-        "goToContacts": "View my contacts"
       }
     }
   },
