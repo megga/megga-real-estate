@@ -16,6 +16,7 @@ import { CRM_CONTACTS, type CrmContact } from '@/components/crm-sugar/mockData'
 import type {
   FicheContact, FicheLoopItem, FicheNba, FicheReceptionLink,
 } from '@/components/crm-sugar/contacts-pager/ContactDetailPager'
+import type { KycCase, KycDocument } from '@/types/kyc'
 
 export const DEMO_LISTING: Property = {
   id: 'p3', agency_id: 'ag', title: 'Villa contemporaine', description: 'Villa lumineuse de 240 m² avec piscine, vue dégagée, finitions haut de gamme. Quartier résidentiel calme à Cologny, proche des écoles internationales.',
@@ -139,3 +140,94 @@ export const DEMO_FICHE_NBA: FicheNba = {
   label: 'Proposer une visite pour l’attique de Plainpalais',
   kycNote: null,
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fixtures du banc des modales (`/dev/modales`).
+//
+// ⚠ Elles n'existent QUE pour éprouver un piège de focus et un rendu. Aucune
+// ne doit se mettre à ressembler à un jeu de données réaliste : dès qu'une
+// fixture devient crédible, quelqu'un finit par lire son contenu comme un fait.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Brouillon d'e-mail relu par `EmailReviewModal` (l'agent valide avant envoi). */
+export const DEMO_AI_EMAIL = {
+  subject: 'Suite à votre visite de l’attique de Plainpalais',
+  body: 'Bonjour Marie,\n\nMerci pour votre visite de mardi. Comme convenu, je vous joins le dossier complet du bien : plans, charges détaillées et procès-verbal de la dernière assemblée.\n\nJe reste à disposition pour une seconde visite.\n\nBien à vous,\nGregory Lyonnet',
+}
+
+/** Texte d'annonce relu par `AnnonceReviewModal` avant enregistrement sur le bien. */
+export const DEMO_AI_ANNONCE =
+  'Attique de 4,5 pièces au dernier étage d’un immeuble de 2019, à deux pas de la plaine de Plainpalais. ' +
+  'Séjour traversant ouvert sur une terrasse de 28 m² exposée sud-ouest, cuisine entièrement équipée, ' +
+  'trois chambres dont une suite parentale. Cave et place de parc en sous-sol comprises.'
+
+/** Courrier relu par `LetterReviewModal` (lettre papier, pas d'envoi automatisé). */
+export const DEMO_AI_LETTER =
+  'Genève, le 12 août 2026\n\nMadame, Monsieur,\n\n' +
+  'Faisant suite à notre entretien téléphonique, je vous confirme la mise en vente du bien sis ' +
+  'route de Chêne 44, et vous prie de trouver ci-joint le mandat de courtage pour signature.\n\n' +
+  'Veuillez agréer, Madame, Monsieur, mes salutations distinguées.\n\nGregory Lyonnet'
+
+/**
+ * Carte d'action en attente, telle que le copilote la produit. `kind` décide du
+ * verbe du bouton (« Publier » / « Retirer »), d'où deux fixtures et non une.
+ */
+export const DEMO_AI_PENDING_PUBLISH = {
+  id: 'demo-pending-1', kind: 'publish', title: 'Attique · Plainpalais',
+  portals: ['Homegate', 'ImmoScout24'],
+  preview: 'Attique de 4,5 pièces, 118 m², terrasse 28 m² — CHF 1’950’000',
+}
+export const DEMO_AI_PENDING_DELETE = {
+  id: 'demo-pending-2', kind: 'delete_contact', title: 'Marie Bertrand',
+  portals: [],
+  preview: 'Acheteuse · aucun deal ouvert · dernière activité il y a 8 mois',
+}
+
+/** Lien de réception minté, tel que `MrhSendSheet` le reçoit après l'envoi. */
+export const DEMO_SEND_RESULT = {
+  url: 'https://app.megga.ch/r/demo-token-de-banc',
+  token: 'demo-token-de-banc',
+  phone: '+41798749484',
+  firstName: 'Marie',
+  count: 3,
+}
+
+/**
+ * Dossier LAB/KYC minimal — il n'alimente que `SourceOfFundsOverlay`, qui n'en
+ * lit QUE les trois champs « source des fonds ». Le reste est là parce que le
+ * type l'exige, pas parce que l'écran s'en sert : ne pas y chercher un dossier
+ * cohérent.
+ */
+export const DEMO_KYC_CASE: KycCase = {
+  id: 'demo-kyc-banc', agency_id: 'demo-ag', transaction_id: 'demo-tx', contact_id: 'demo-c1',
+  type: 'buyer_pp', risk_level: 'medium', status: 'in_progress', completion_pct: 60,
+  validated_by: null, validated_at: null, created_at: '2026-07-01T09:00:00.000Z',
+  pep_status: 'clear', pep_details: null, sanctions_status: 'clear', sanctions_details: null,
+  last_screening_at: '2026-07-02T09:00:00.000Z', contact_nationality: 'CH',
+  transaction_amount: 1950000, risk_score: 42, risk_factors: null, notes: null,
+  vigilance: 'standard', expires_at: null, dossier_status: 'pending',
+  source_of_funds_type: null, source_of_funds_description: null, source_of_funds_doc_id: null,
+  ai_analysis: null,
+}
+
+/**
+ * ⚠ DEUX documents, et un seul éligible. L'aperçu filtre sur
+ * `document_category` (`financial` | `compliance`) : avec une liste homogène,
+ * un filtre cassé rendrait exactement le même écran qu'un filtre correct.
+ */
+export const DEMO_KYC_DOCS: KycDocument[] = [
+  {
+    id: 'demo-doc-fin', agency_id: 'demo-ag', kyc_case_id: 'demo-kyc-banc', transaction_id: null,
+    contact_id: 'demo-c1', property_id: null, name: 'Attestation de vente — étude Vermeil.pdf',
+    type: 'pdf', storage_path: 'demo/attestation.pdf', size_bytes: 184320, uploaded_by: null,
+    status: 'validated', created_at: '2026-07-03T10:00:00.000Z', issued_at: null, expires_at: null,
+    document_category: 'financial', sha256_hash: null,
+  },
+  {
+    id: 'demo-doc-id', agency_id: 'demo-ag', kyc_case_id: 'demo-kyc-banc', transaction_id: null,
+    contact_id: 'demo-c1', property_id: null, name: 'Passeport.pdf',
+    type: 'pdf', storage_path: 'demo/passeport.pdf', size_bytes: 92160, uploaded_by: null,
+    status: 'validated', created_at: '2026-07-03T10:05:00.000Z', issued_at: null, expires_at: null,
+    document_category: 'identity', sha256_hash: null,
+  },
+]

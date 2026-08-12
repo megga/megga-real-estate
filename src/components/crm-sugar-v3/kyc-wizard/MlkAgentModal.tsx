@@ -12,7 +12,7 @@
 //   3. Submit → useCreateMagicLink → Edge function magic-link-create
 //   4. Affichage du résultat : URL + bouton "Copier" + bouton "Fermer"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useId } from 'react'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
@@ -291,8 +291,15 @@ export function MlkAgentModal({
 
   const errorMessage = createLink.error instanceof Error ? createLink.error.message : null
 
+  // ⚠ Le dialogue est nommé par SON TITRE VISIBLE, pas par une chaîne recopiée :
+  // les deux vues (formulaire, succès) portent des titres différents et une
+  // seule est montée à la fois, donc l'identifiant désigne toujours celui qui
+  // est à l'écran. Une chaîne en dur aurait divergé du titre au premier
+  // remaniement, et personne ne l'aurait vu — un nom accessible ne s'affiche pas.
+  const titreId = useId()
+
   return (
-    <ModalOverlay onClose={onClose}>
+    <ModalOverlay onClose={onClose} titreId={titreId}>
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -310,6 +317,7 @@ export function MlkAgentModal({
       >
         {createdLink ? (
           <SuccessView
+            titreId={titreId}
             link={createdLink}
             contactName={contactName}
             copyState={copyState}
@@ -318,6 +326,7 @@ export function MlkAgentModal({
           />
         ) : (
           <FormView
+            titreId={titreId}
             contactName={contactName}
             contactSummary={contactSummary}
             contactEmail={contactEmail}
@@ -343,7 +352,7 @@ export function MlkAgentModal({
 
 // ─── Overlay wrapper (fond semi-transparent + clic backdrop ferme) ────────
 
-function ModalOverlay({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+function ModalOverlay({ children, onClose, titreId }: { children: ReactNode; onClose: () => void; titreId: string }) {
   // ⚠ Le piège vit dans la COQUILLE, pas dans son contenu : c'est elle qui
   // porte `role="dialog"`, et elle enveloppe tout ce que la modale affiche.
   const refPiegeFocus = useFocusTrap(true, onClose)
@@ -352,6 +361,7 @@ function ModalOverlay({ children, onClose }: { children: ReactNode; onClose: () 
       ref={refPiegeFocus}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titreId}
       onClick={onClose}
       style={{
         position: 'fixed',
@@ -372,6 +382,8 @@ function ModalOverlay({ children, onClose }: { children: ReactNode; onClose: () 
 // ─── Form view (édition initiale) ─────────────────────────────────────────
 
 interface FormViewProps {
+  /** Identifiant posé sur le titre : c'est lui qui NOMME le dialogue. */
+  titreId: string
   contactName: string
   contactSummary?: string
   contactEmail?: string | null
@@ -391,6 +403,7 @@ interface FormViewProps {
 }
 
 function FormView({
+  titreId,
   contactName,
   contactSummary,
   contactEmail,
@@ -436,6 +449,7 @@ function FormView({
             {t('wizard.magic.eyebrow')}
           </div>
           <h2
+            id={titreId}
             style={{
               margin: 0,
               fontSize: 'var(--crm-text-5xl)',
@@ -664,6 +678,8 @@ function FormView({
 // ─── Success view (après création) ────────────────────────────────────────
 
 interface SuccessViewProps {
+  /** Identifiant posé sur le titre : c'est lui qui NOMME le dialogue. */
+  titreId: string
   link: CreateMagicLinkResponse
   contactName: string
   copyState: 'idle' | 'copied'
@@ -671,7 +687,7 @@ interface SuccessViewProps {
   onClose: () => void
 }
 
-function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessViewProps) {
+function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }: SuccessViewProps) {
   const { t } = useTranslation('kyc')
   const firstName = contactName.split(' ')[0]
   return (
@@ -703,6 +719,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
           {t('wizard.magic.success.eyebrow')}
         </div>
         <h2
+          id={titreId}
           style={{
             margin: '0 0 12px',
             fontSize: 'var(--crm-text-5xl)',

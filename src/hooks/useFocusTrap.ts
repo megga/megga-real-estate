@@ -26,6 +26,10 @@ const FOCUSABLE_SELECTOR =
  * ⚠ Échap est ignoré si un gestionnaire INTERNE l'a déjà consommé
  * (`defaultPrevented`). Sans ça, fermer une liste déroulante à l'intérieur de
  * la modale fermerait aussi la modale — mesuré sur le sélecteur de cantons.
+ *
+ * ⚠ Un conteneur SANS descendant focalisable est piégé quand même : il reçoit
+ * `tabindex="-1"` et le focus. C'est le cas qui rendait ce hook silencieusement
+ * inopérant — voir le commentaire du repli, et `focus-trap.spec.ts`.
  */
 export function useFocusTrap(active: boolean, onEscape?: () => void) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -46,6 +50,15 @@ export function useFocusTrap(active: boolean, onEscape?: () => void) {
     const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
     if (focusable.length > 0) {
       focusable[0].focus()
+    } else {
+      // ⛔ AUCUN DESCENDANT FOCALISABLE — le cas qui rendait ce hook INOPÉRANT
+      // en silence. Sans ce repli, rien n'est focalisé : le focus RESTE sur le
+      // déclencheur, donc DEHORS, et la première tabulation part dans la page
+      // derrière la modale. Mesuré sur deux surfaces (`ui/Sheet`, la feuille de
+      // notifications mobile) : elles déclaraient `aria-modal`, affichaient un
+      // voile plein écran, et ne piégeaient rien.
+      container.setAttribute('tabindex', '-1')
+      container.focus()
     }
 
     function handleKeyDown(e: KeyboardEvent) {
@@ -57,7 +70,22 @@ export function useFocusTrap(active: boolean, onEscape?: () => void) {
       if (e.key !== 'Tab' || !container) return
 
       const focusableEls = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-      if (focusableEls.length === 0) return
+
+      // ⚠ Le filet qui rend le piège correct PAR CONSTRUCTION. Les deux tests
+      // ci-dessous ne rattrapent le focus qu'aux extrémités exactes de la
+      // liste ; dès qu'il est ailleurs qu'à l'intérieur — conteneur vide, nœud
+      // retiré sous le curseur, focus posé par du code tiers — aucune branche
+      // ne matche et la tabulation sort. On le ramène d'abord, on cycle ensuite.
+      if (!container.contains(document.activeElement)) {
+        e.preventDefault()
+        if (focusableEls.length > 0) focusableEls[0].focus()
+        else container.focus()
+        return
+      }
+      if (focusableEls.length === 0) {
+        e.preventDefault()
+        return
+      }
 
       const first = focusableEls[0]
       const last = focusableEls[focusableEls.length - 1]

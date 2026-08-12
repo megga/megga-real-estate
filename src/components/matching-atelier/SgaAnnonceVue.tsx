@@ -147,6 +147,7 @@ export default function SgaAnnonceVue({ L, buyer, onClose, onPropose }: SgaAnnon
       className={'sgi-stage' + (closing ? ' is-closing' : '')}
       ref={refPiegeFocus}
       role="dialog"
+      aria-modal="true"
       aria-label={t('atelier.fullListing')}
     >
       {/* ── photo pleine page (clic = photo suivante) ── */}

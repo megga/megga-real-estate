@@ -121,6 +121,7 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
         onClick={(e) => e.stopPropagation()}
         ref={refPiegeFocus}
         role="dialog"
+        aria-modal="true"
         aria-label="Envoyer l'email"
         style={{
           width: 'min(520px, 100%)', maxHeight: '86vh', overflowY: 'auto',

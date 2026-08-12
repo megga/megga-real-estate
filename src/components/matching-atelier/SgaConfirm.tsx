@@ -49,6 +49,7 @@ export default function SgaConfirm({ b, L, relance, onClose, onConfirm }: SgaCon
         style={{ width: 440, maxWidth: '92vw' }}
         ref={refPiegeFocus}
         role="dialog"
+        aria-modal="true"
         aria-label={relance ? t('confirm.followUpTitle') : t('confirm.sendTitle')}
       >
         {done ? (

@@ -316,6 +316,7 @@ function Lightbox({ photos, index, onClose, onIndex, t }: { photos: string[]; in
       ref={refPiegeFocus}
       role="dialog"
       aria-modal="true"
+      aria-label={t('mobile.photoViewer')}
       onClick={onClose}
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,2,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onTouchStart={(e) => { touch.current = e.touches[0].clientX }}

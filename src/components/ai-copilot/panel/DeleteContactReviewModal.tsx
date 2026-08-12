@@ -85,6 +85,7 @@ export default function DeleteContactReviewModal({ open, sp, dark, pending, onCl
         onClick={(e) => e.stopPropagation()}
         ref={refPiegeFocus}
         role="dialog"
+        aria-modal="true"
         aria-label="Supprimer le contact"
         style={{
           width: 'min(540px, 100%)', maxHeight: '86vh', overflowY: 'auto',

@@ -69,7 +69,7 @@ export default function SgaSendSheet({ b, L, onClose, onSent }: Props) {
 
   return (
     <div className="sga-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="sga-modal" style={{ width: 460, maxWidth: '92vw' }} ref={refPiegeFocus} role="dialog" aria-label={t('sendSheet.title', { name })}>
+      <div className="sga-modal" style={{ width: 460, maxWidth: '92vw' }} ref={refPiegeFocus} role="dialog" aria-modal="true" aria-label={t('sendSheet.title', { name })}>
         <div className="sga-modal-h">
           <div className="av" style={{ width: 44, height: 44, background: b.av, fontSize: 15 }}>{sgaInitials(b.first, b.last)}</div>
           <div style={{ flex: 1, minWidth: 0 }}>

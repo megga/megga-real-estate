@@ -2,7 +2,7 @@
  * Écran de détail d'un dossier KYC (mobile, P9) : surface compliance
  * read-focused + un seul geste d'écriture, monté par MobileKycDetailPage.
  */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -624,13 +624,15 @@ function AuditTab({ ctx, events }: { ctx: Ctx; events: KycAuditEvent[] }) {
 function ConfirmMarkAllOverlay({ ctx, dossier, pending, onCancel, onConfirm }: { ctx: Ctx; dossier: KycCaseWithChecklist; pending: boolean; onCancel: () => void; onConfirm: () => void }) {
   const { t, tk } = ctx
   const refPiegeFocus = useFocusTrap(true, onCancel)
+  // Nommé par son titre visible, pas par une chaîne recopiée.
+  const titreId = useId()
   const statusLabel = (s: string) => (s === 'clear' ? t('dossier.confirm.clear') : t(`dossier.confirm.status.${s}`, { defaultValue: s }))
   return createPortal(
-    <div ref={refPiegeFocus} role="dialog" aria-modal="true" onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 100, background: tk.overlay, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', fontFamily: MOBILE_FONT, animation: 'kycmFade .2s ease both' }}>
+    <div ref={refPiegeFocus} role="dialog" aria-modal="true" aria-labelledby={titreId} onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 100, background: tk.overlay, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', fontFamily: MOBILE_FONT, animation: 'kycmFade .2s ease both' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 520, background: tk.card, borderRadius: '24px 24px 0 0', padding: '10px 22px calc(28px + env(safe-area-inset-bottom))', boxShadow: tk.shadowLg, animation: 'kycmUp .32s cubic-bezier(.2,.8,.2,1) both' }}>
         <div style={{ width: 38, height: 5, borderRadius: 'var(--crm-radius-pill)', background: tk.hair, margin: '0 auto 18px' }} />
         <Eyebrow tk={tk}>{t('dossier.confirm.eyebrow')}</Eyebrow>
-        <h2 style={{ margin: '10px 0 10px', fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: tk.ink, letterSpacing: -0.5, lineHeight: 1.2 }}>{t('dossier.confirm.title')}</h2>
+        <h2 id={titreId} style={{ margin: '10px 0 10px', fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: tk.ink, letterSpacing: -0.5, lineHeight: 1.2 }}>{t('dossier.confirm.title')}</h2>
         <p style={{ margin: '0 0 16px', fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tk.inkSoft, lineHeight: 1.55 }}>{t('dossier.confirm.body')}</p>
         <div style={{ background: tk.cardSubtle, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', marginBottom: 20, fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tk.inkSoft, lineHeight: 1.7 }}>
           <div><span style={{ color: tk.ink, fontWeight: 600 }}>{t('dossier.confirm.sanctions')}</span> {statusLabel(dossier.sanctions_status)}</div>

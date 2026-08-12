@@ -44,7 +44,7 @@ export default function MrhSendSheet({ result, buyerName, ctx, onClose }: Props)
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
       style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(15,23,42,.42)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'grid', placeItems: 'center', padding: 20, fontFamily: 'inherit' }}
     >
-      <div style={{ width: 440, maxWidth: '94vw', background: cardSolid, borderRadius: 18, boxShadow: surf.shadow, border: surf.hairline, overflow: 'hidden', animation: 'sgFadeUp .18s cubic-bezier(.2,.8,.2,1) both' }} ref={refPiegeFocus} role="dialog" aria-label={t('sendSheet.title', { name: buyerName })}>
+      <div style={{ width: 440, maxWidth: '94vw', background: cardSolid, borderRadius: 18, boxShadow: surf.shadow, border: surf.hairline, overflow: 'hidden', animation: 'sgFadeUp .18s cubic-bezier(.2,.8,.2,1) both' }} ref={refPiegeFocus} role="dialog" aria-modal="true" aria-label={t('sendSheet.title', { name: buyerName })}>
         <div style={{ padding: '20px 22px 10px' }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: sp.ink, letterSpacing: -0.3 }}>{t('sendSheet.title', { name: buyerName })}</div>
           <div style={{ fontSize: 13, fontWeight: 600, color: sp.sub, marginTop: 6 }}>{t('panel.sentCount', { count: result.count })}</div>

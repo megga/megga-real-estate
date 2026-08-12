@@ -90,6 +90,7 @@ export default function AnnonceReviewModal({ open, sp, dark, annonce, listingId,
         onClick={(e) => e.stopPropagation()}
         ref={refPiegeFocus}
         role="dialog"
+        aria-modal="true"
         aria-label="Enregistrer l'annonce sur le bien"
         style={{
           width: 'min(540px, 100%)', maxHeight: '86vh', overflowY: 'auto',

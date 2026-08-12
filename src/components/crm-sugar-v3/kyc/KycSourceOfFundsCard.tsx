@@ -3,7 +3,7 @@
 // Red-team Léa #1 + #5 : sans cette UI, crypto / mixed étaient invisibles
 // comme red flag. Ici on documente, on associe une pièce, on logge.
 
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { KycBlackPill, KycGhostPill } from './kycPrimitives'
@@ -56,6 +56,9 @@ export function SourceOfFundsOverlay({
 }: OverlayProps) {
   const sp = useKycPalette()
   const refPiegeFocus = useFocusTrap(true, onCancel)
+  // Le dialogue est nommé par son titre visible plutôt que par une chaîne
+  // recopiée : les deux ne peuvent pas diverger.
+  const titreId = useId()
   const { t } = useTranslation('kyc')
   const sourceLabels = buildSourceLabels(t)
   const [sourceType, setSourceType] = useState<KycSourceOfFundsType>(
@@ -79,6 +82,7 @@ export function SourceOfFundsOverlay({
       ref={refPiegeFocus}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titreId}
       onClick={onCancel}
       style={{
         position: 'fixed',
@@ -119,6 +123,7 @@ export function SourceOfFundsOverlay({
           {t('dossier.funds.overlayEyebrow')}
         </div>
         <h2
+          id={titreId}
           style={{
             margin: '0 0 18px',
             fontSize: 'var(--crm-text-4xl)',

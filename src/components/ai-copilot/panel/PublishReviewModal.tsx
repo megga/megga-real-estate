@@ -91,6 +91,7 @@ export default function PublishReviewModal({ open, sp, dark, pending, onClose, e
         onClick={(e) => e.stopPropagation()}
         ref={refPiegeFocus}
         role="dialog"
+        aria-modal="true"
         aria-label={heading}
         style={{
           width: 'min(540px, 100%)', maxHeight: '86vh', overflowY: 'auto',

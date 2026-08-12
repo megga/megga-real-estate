@@ -1653,6 +1653,7 @@
       "expiresAt": "Läuft ab am"
     },
     "photoIndex": "Foto {{i}} / {{total}}",
+    "photoViewer": "Fotos des Objekts",
     "surfaceSuffix": "m²"
   },
   "wizardMobile": {

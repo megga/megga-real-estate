@@ -148,6 +148,7 @@ const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDe
 const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
 const BiensShowcasePage = lazy(() => import('@/pages/dev/BiensShowcasePage'))
 const ContactsShowcasePage = lazy(() => import('@/pages/dev/ContactsShowcasePage'))
+const ModalesShowcasePage = lazy(() => import('@/pages/dev/ModalesShowcasePage'))
 // Aperçu du parcours d'onboarding — DEV seulement (cf. sa route plus bas, et son
 // en-tête pour les trois murs qui rendent ce parcours autrement inatteignable).
 // Le ternaire n'est pas décoratif : `import.meta.env.DEV` est remplacé par `false`
@@ -463,8 +464,11 @@ function AppRoutes() {
               <Route path="/dev/mobile" element={<MobileShowcasePage />} />
               {/* Mes biens sans session : ProtectedRoute renvoie sinon vers la PRODUCTION. */}
               <Route path="/dev/biens" element={<BiensShowcasePage />} />
-              {/* Contacts — même raison, même idiome (liste, fiche, premier lancement, import). */}
+              {/* Contacts — même raison, même idiome (liste, fiche, premier lancement). */}
               <Route path="/dev/contacts" element={<ContactsShowcasePage />} />
+              {/* Modales qu'aucun geste n'ouvre sans session : elles ne seraient
+                  JAMAIS rendues hors production, donc jamais éprouvées. */}
+              <Route path="/dev/modales" element={<ModalesShowcasePage />} />
               {/* Onboarding — la SEULE de ces routes à être conditionnée au mode dev.
                   Les autres ne montrent que des maquettes ; celle-ci monte les écrans
                   réels avec l'écriture entre étapes neutralisée (IdentityShellPreview),

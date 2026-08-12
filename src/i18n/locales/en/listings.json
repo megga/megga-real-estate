@@ -1653,6 +1653,7 @@
       "expiresAt": "Expires on"
     },
     "photoIndex": "Photo {{i}} / {{total}}",
+    "photoViewer": "Property photos",
     "surfaceSuffix": "m²"
   },
   "wizardMobile": {
