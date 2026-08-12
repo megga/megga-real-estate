@@ -87,7 +87,7 @@ export default function SgaWhy({ b, poolCount, onSend, onSkip, onLater, onRelanc
   return (
     <div className="sga-why-anim" key={b.matchId}>
       <div className="sga-why-head">
-        <div className="av" style={{ width: 52, height: 52, background: b.av, color: encreSur(b.av), fontSize: 17, boxShadow: `0 0 0 4px ${b.av}22` }}>
+        <div className="av" style={{ width: 52, height: 52, background: b.av, color: encreSur(b.av), fontSize: 'var(--crm-text-2xl)', boxShadow: `0 0 0 4px ${b.av}22` }}>
           {sgaInitials(b.first, b.last)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>

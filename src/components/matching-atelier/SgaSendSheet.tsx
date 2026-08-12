@@ -72,7 +72,7 @@ export default function SgaSendSheet({ b, L, onClose, onSent }: Props) {
     <div className="sga-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="sga-modal" style={{ width: 460, maxWidth: '92vw' }} ref={refPiegeFocus} role="dialog" aria-modal="true" aria-label={t('sendSheet.title', { name })}>
         <div className="sga-modal-h">
-          <div className="av" style={{ width: 44, height: 44, background: b.av, color: encreSur(b.av), fontSize: 15 }}>{sgaInitials(b.first, b.last)}</div>
+          <div className="av" style={{ width: 44, height: 44, background: b.av, color: encreSur(b.av), fontSize: 'var(--crm-text-xl)' }}>{sgaInitials(b.first, b.last)}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="t4 semi" style={{ color: 'var(--ink)' }}>{t('sendSheet.title', { name })}</div>
           </div>
@@ -97,7 +97,7 @@ export default function SgaSendSheet({ b, L, onClose, onSent }: Props) {
           <button className="btn btn-ghost" onClick={onClose}>{t('common:actions.cancel')}</button>
           <div style={{ flex: 1 }} />
           <button onClick={onPreview} disabled={busy}
-            style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--ink-muted)', padding: '6px 4px' }}>
+            style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: 'var(--ink-muted)', padding: '6px 4px' }}>
             {t('sendSheet.preview')}
           </button>
         </div>

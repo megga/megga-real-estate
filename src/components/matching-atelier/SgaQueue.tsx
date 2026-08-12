@@ -63,7 +63,7 @@ function SgaQueueRow({ b, selected, exiting, onClick }: SgaQueueRowProps) {
   return (
     <div className={'sga-row' + (exiting ? ` exit-${exiting}` : '')} data-sel={selected} onClick={onClick}>
       <span className="flash" />
-      <div className="av" style={{ width: 38, height: 38, background: b.av, color: encreSur(b.av), fontSize: 13.5 }}>
+      <div className="av" style={{ width: 38, height: 38, background: b.av, color: encreSur(b.av), fontSize: 'var(--crm-text-md)' }}>
         {sgaInitials(b.first, b.last)}
       </div>
       <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -242,7 +242,7 @@ export default function SgaQueue({
                         onClick={() => (onReschedule ? onReschedule(b.matchId) : onWake(b.matchId))}
                         title={onReschedule ? t('atelier.changeDate') : t('atelier.reactivateNow')}
                       >
-                        <div className="av" style={{ width: 32, height: 32, background: b.av, color: encreSur(b.av), fontSize: 11.5 }}>
+                        <div className="av" style={{ width: 32, height: 32, background: b.av, color: encreSur(b.av), fontSize: 'var(--crm-text-xs)' }}>
                           {sgaInitials(b.first, b.last)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>

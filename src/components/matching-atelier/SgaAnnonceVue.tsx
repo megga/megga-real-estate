@@ -66,7 +66,7 @@ function SgiRefPill({ refCode }: { refCode: string }) {
  * change ici, c'est seulement que son encre est DÉRIVÉE — de sorte que le jour
  * où l'aplat bougera, la lisibilité suivra sans qu'on ait à y penser.
  */
-const AGENT_AV = '#0B0C0E'
+const AGENT_AV = '#030303'
 
 /** Régie qui commercialise — uniquement sur une annonce de la veille marché. */
 function SgiAgence({ L }: { L: AtelierListing }) {
@@ -78,7 +78,7 @@ function SgiAgence({ L }: { L: AtelierListing }) {
     <div className="sgn-card">
       <span className="eyebrow">{t('atelier.marketing')}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div className="av" style={{ width: 42, height: 42, background: AGENT_AV, color: encreSur(AGENT_AV), fontSize: 13.5 }}>{init}</div>
+        <div className="av" style={{ width: 42, height: 42, background: AGENT_AV, color: encreSur(AGENT_AV), fontSize: 'var(--crm-text-md)' }}>{init}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="t2 semi sgn-ell" style={{ color: 'var(--ink)' }}>{name}</div>
           {L.agency.phone && <div className="t1 muted nums" style={{ marginTop: 2 }}>{L.agency.phone}</div>}
@@ -277,7 +277,7 @@ export default function SgaAnnonceVue({ L, buyer, onClose, onPropose }: SgaAnnon
             <SgaIcon d="chevron-right" size={15} style={{ transform: 'rotate(180deg)' }} />
           </button>
           <span className="mp nums">{sgaFmtCHF(L.price)}</span>
-          <button className="btn btn-primary" style={{ padding: '10px 18px', fontSize: 13.5 }} onClick={propose}>
+          <button className="btn btn-primary" style={{ padding: '10px 18px', fontSize: 'var(--crm-text-md)' }} onClick={propose}>
             {t('atelier.propose')}
           </button>
         </div>

@@ -156,7 +156,7 @@ export default function SgaCockpit({
             {remaining > 0 ? (
               <>
                 <span className="sgk-frac nums">
-                  <b>{done}</b><i>&nbsp;/&nbsp;{t('cockpit.processed', { total })}</i>
+                  <span style={{ fontWeight: 600 }}>{done}</span><i>&nbsp;/&nbsp;{t('cockpit.processed', { total })}</i>
                 </span>
                 <div className="sgk-track" style={{ width: 84 }}>
                   <div className="sgk-fill" style={{ width: `${pct}%` }} />

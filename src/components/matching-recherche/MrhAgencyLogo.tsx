@@ -58,7 +58,7 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line }: Props) {
   }
 
   return (
-    <span title={label} style={{ flexShrink: 0, maxWidth: 120, fontSize: 11.5, color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+    <span title={label} style={{ flexShrink: 0, maxWidth: 120, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       {label}
     </span>
   )

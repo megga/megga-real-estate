@@ -61,11 +61,11 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
         {photos.length > 1 && (
           <>
             <button onClick={(e) => goPhoto(e, -1)} title={t('recherche.card.prevPhoto')} aria-label={t('recherche.card.prevPhoto')}
-              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 30, height: 30, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(11,12,14,.55)', opacity: hov ? 1 : 0, transition: 'opacity .18s' }}>
+              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 30, height: 30, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(3,3,3,.55)', opacity: hov ? 1 : 0, transition: 'opacity .18s' }}>
               <RechIcon name="chevronL" size={15} stroke="#fff" />
             </button>
             <button onClick={(e) => goPhoto(e, 1)} title={t('recherche.card.nextPhoto')} aria-label={t('recherche.card.nextPhoto')}
-              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 30, height: 30, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(11,12,14,.55)', opacity: hov ? 1 : 0, transition: 'opacity .18s' }}>
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 30, height: 30, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(3,3,3,.55)', opacity: hov ? 1 : 0, transition: 'opacity .18s' }}>
               <RechIcon name="chevronR" size={15} stroke="#fff" />
             </button>
             <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4, alignItems: 'center', opacity: hov ? 1 : 0, transition: 'opacity .18s' }}>
@@ -76,20 +76,20 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
           </>
         )}
         {score != null && (
-          <div style={{ position: 'absolute', top: 12, right: 12, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 10px', borderRadius: 999, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 12, fontWeight: 800, fontVariantNumeric: 'tabular-nums', boxShadow: '0 2px 10px rgba(15,23,42,.22)' }}>
-            {score}<span style={{ fontSize: 10, fontWeight: 700, color: sp.sub }}>%</span>
+          <div style={{ position: 'absolute', top: 12, right: 12, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '4px 10px', borderRadius: 999, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 'var(--crm-text-sm)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', boxShadow: '0 2px 10px rgba(15,23,42,.22)' }}>
+            {score}<span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>%</span>
           </div>
         )}
       </div>
       <div style={{ padding: '13px 16px 15px', display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: sp.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.title}</div>
-        <div style={{ fontSize: 12.5, color: sp.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.addr}</div>
+        <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.title}</div>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.addr}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
-          <span style={{ minWidth: 0, flex: 1, fontSize: 11.5, color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.postedAt}</span>
+          <span style={{ minWidth: 0, flex: 1, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.postedAt}</span>
           <MrhAgencyLogo name={bien.agency} logoUrl={bien.agency_logo_url} sp={sp} line={line} />
         </div>
         {reasonText && (
-          <div style={{ marginTop: 8, fontSize: 11.5, color: sp.sub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+          <div style={{ marginTop: 8, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden' }}>
             <RechIcon name={useMiss ? 'info' : 'spark'} size={12} stroke={sp.sub} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{reasonText}</span>
           </div>
@@ -97,16 +97,16 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
         <div style={{ flex: 1, minHeight: 10 }} />
         <div style={{ borderTop: '1px solid ' + line, marginTop: 12, paddingTop: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 18.5, fontWeight: 800, color: sp.ink, letterSpacing: -0.6, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.6, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               {price ? formatCHF(price) : t('recherche.card.estimate')}
-              {isRent && price ? <span style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600 }}> {t('recherche.card.perMonth')}</span> : null}
+              {isRent && price ? <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600 }}> {t('recherche.card.perMonth')}</span> : null}
               {dropPct != null && dropPct >= 2 ? (
-                <span title={t('recherche.card.priceDrop')} style={{ fontSize: 11.5, fontWeight: 800, color: '#C45A00', marginLeft: 7, letterSpacing: 0 }}>
+                <span title={t('recherche.card.priceDrop')} style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: '#C45A00', marginLeft: 7, letterSpacing: 0 }}>
                   {'−' + dropPct + ' %'}
                 </span>
               ) : null}
             </div>
-            <div style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600, marginTop: 5, fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, marginTop: 5, fontVariantNumeric: 'tabular-nums' }}>
               {t('recherche.card.roomsArea', { rooms: bien.rooms ?? '—', area: bien.area ?? '—' })}
             </div>
           </div>

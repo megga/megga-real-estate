@@ -101,6 +101,16 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   // « Contacts » EN ENTIER depuis le lot 4 — voir la note au-dessus de `PAGES`.
   { root: 'src/components/crm-sugar/contacts-pager', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
+  // ⛔ « Matching · Recherche » entre SANS `MrhMapView.tsx`. La carte est GELÉE
+  // par décision (13 août 2026) : le jeton Mapbox est absent du build, donc la
+  // branche qui rend réellement est la carte SCHÉMATIQUE — fond dessiné,
+  // pastilles de prix positionnées depuis les bornes, survol avec aperçu. Ce
+  // n'est pas un carré gris, c'est la surface que l'agent utilise, avec ses
+  // couleurs propres (#0F131A / #E9EDF2, eau et parcs en rgba) qui ne sortent
+  // d'aucun système de jetons. L'exclure ici est ce qui rend le gel VÉRIFIABLE :
+  // une exemption écrite, pas un oubli qu'on relèverait à la relecture.
+  { root: 'src/components/matching-recherche', keep: (n) => /\.tsx?$/.test(n) && n !== 'MrhMapView.tsx' },
+  { root: 'src/components/matching-atelier', keep: (n) => /\.tsx?$/.test(n) },
 ]
 
 /** La preuve que le scan voit encore l'arbre — sinon tout passe par vacuité. */
@@ -401,6 +411,8 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar',
       'src/components/crm-sugar/contacts-pager',
       'src/pages/agent',
+      'src/components/matching-recherche',
+      'src/components/matching-atelier',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
     // Les deux pages sont bien VUES — un filtre de nom qui ne matche rien
     // laisserait la racine non vide (le dossier en contient d'autres) tout en
