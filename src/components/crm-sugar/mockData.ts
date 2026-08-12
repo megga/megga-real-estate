@@ -44,14 +44,6 @@ export interface CrmContact {
   avatarBg: string
 }
 
-/** Score de bien (santé/chaleur) — attaché par useBiensSugar depuis property_scores
- * (RLS agence). ESTIMATION déterministe, jamais garantie. null = pas encore calculé. */
-export interface BienHealth {
-  overall: number                 // overall_score 0-100
-  label: string                   // 'chaud' | 'a_animer' | 'en_veille'
-  dataCompleteness: number | null // 0-1 (richesse réelle des signaux)
-}
-
 export interface CrmBien {
   id: string
   ref: string
@@ -81,8 +73,6 @@ export interface CrmBien {
   signedPhotoCount: number
   /** URL de la photo de couverture (1re photo réelle) — galerie Mes biens. */
   coverPhoto?: string | null
-  /** Score de bien (estimation) attaché depuis property_scores ; null si non calculé. */
-  health?: BienHealth | null
   accent: string
 }
 

@@ -20,10 +20,10 @@ const FILTER_KEY: Record<StatusFilter, string> = { all: 'tab.all', active: 'tab.
 // Photos de démo (harnais /dev/mobile) — aucune donnée réelle.
 const U = (id: string) => `https://images.unsplash.com/${id}?w=900&q=80`
 const DEMO: CrmBien[] = [
-  { id: 'p1', ref: 'MG-001', status: 'active', type: 'maison', transaction: 'vente', title: 'Maison familiale', addr: 'Av. Cardinal-Mermillod 22, Carouge', canton: 'GE', price: 1850000, charges: null, area: 180, rooms: 6, beds: 4, baths: 2, year: 2008, energy: 'B', ownerContactId: null, mandat: { type: 'exclusif' }, visibility: 'agency', stats: { views: 240, favorites: 18, visitRequests: 5 }, photoCount: 12, signedPhotoCount: 12, coverPhoto: U('photo-1568605114967-8130f3a36994'), health: { overall: 88, label: 'chaud', dataCompleteness: 0.8 }, accent: '#0041D9' },
-  { id: 'p2', ref: 'MG-002', status: 'active', type: 'appartement', transaction: 'location', title: '3 pièces meublé', addr: 'Rue de Berne 4, Pâquis', canton: 'GE', price: null, rent: 3200, charges: 220, area: 75, rooms: 3, beds: 2, baths: 1, year: 1995, energy: 'C', ownerContactId: null, mandat: { type: 'simple' }, visibility: 'agency', stats: { views: 130, favorites: 9, visitRequests: 3 }, photoCount: 8, signedPhotoCount: 8, coverPhoto: U('photo-1502672260266-1c1ef2d93688'), health: { overall: 71, label: 'a_animer', dataCompleteness: 0.6 }, accent: '#0891B2' },
-  { id: 'p3', ref: 'MG-003', status: 'reserved', type: 'villa', transaction: 'vente', title: 'Villa contemporaine', addr: 'Route de la Capite, Cologny', canton: 'GE', price: 3850000, charges: null, area: 240, rooms: 7, beds: 5, baths: 3, year: 2019, energy: 'A', ownerContactId: null, mandat: { type: 'exclusif' }, visibility: 'agency', stats: { views: 410, favorites: 32, visitRequests: 11 }, photoCount: 20, signedPhotoCount: 20, coverPhoto: U('photo-1512917774080-9991f1c4c750'), health: { overall: 94, label: 'chaud', dataCompleteness: 0.9 }, accent: '#C45A00' },
-  { id: 'p4', ref: 'MG-004', status: 'draft', type: 'appartement', transaction: 'vente', title: '4 pièces à rénover', addr: 'Rue de la Servette 90, Genève', canton: 'GE', price: 720000, charges: null, area: 95, rooms: 4, beds: 2, baths: 1, year: 1972, energy: 'E', ownerContactId: null, mandat: { type: 'recherche' }, visibility: 'private', stats: { views: 0, favorites: 0, visitRequests: 0 }, photoCount: 0, signedPhotoCount: 0, coverPhoto: null, health: null, accent: '#6366F1' },
+  { id: 'p1', ref: 'MG-001', status: 'active', type: 'maison', transaction: 'vente', title: 'Maison familiale', addr: 'Av. Cardinal-Mermillod 22, Carouge', canton: 'GE', price: 1850000, charges: null, area: 180, rooms: 6, beds: 4, baths: 2, year: 2008, energy: 'B', ownerContactId: null, mandat: { type: 'exclusif' }, visibility: 'agency', stats: { views: 240, favorites: 18, visitRequests: 5 }, photoCount: 12, signedPhotoCount: 12, coverPhoto: U('photo-1568605114967-8130f3a36994'), accent: '#0041D9' },
+  { id: 'p2', ref: 'MG-002', status: 'active', type: 'appartement', transaction: 'location', title: '3 pièces meublé', addr: 'Rue de Berne 4, Pâquis', canton: 'GE', price: null, rent: 3200, charges: 220, area: 75, rooms: 3, beds: 2, baths: 1, year: 1995, energy: 'C', ownerContactId: null, mandat: { type: 'simple' }, visibility: 'agency', stats: { views: 130, favorites: 9, visitRequests: 3 }, photoCount: 8, signedPhotoCount: 8, coverPhoto: U('photo-1502672260266-1c1ef2d93688'), accent: '#0891B2' },
+  { id: 'p3', ref: 'MG-003', status: 'reserved', type: 'villa', transaction: 'vente', title: 'Villa contemporaine', addr: 'Route de la Capite, Cologny', canton: 'GE', price: 3850000, charges: null, area: 240, rooms: 7, beds: 5, baths: 3, year: 2019, energy: 'A', ownerContactId: null, mandat: { type: 'exclusif' }, visibility: 'agency', stats: { views: 410, favorites: 32, visitRequests: 11 }, photoCount: 20, signedPhotoCount: 20, coverPhoto: U('photo-1512917774080-9991f1c4c750'), accent: '#C45A00' },
+  { id: 'p4', ref: 'MG-004', status: 'draft', type: 'appartement', transaction: 'vente', title: '4 pièces à rénover', addr: 'Rue de la Servette 90, Genève', canton: 'GE', price: 720000, charges: null, area: 95, rooms: 4, beds: 2, baths: 1, year: 1972, energy: 'E', ownerContactId: null, mandat: { type: 'recherche' }, visibility: 'private', stats: { views: 0, favorites: 0, visitRequests: 0 }, photoCount: 0, signedPhotoCount: 0, coverPhoto: null, accent: '#6366F1' },
 ]
 
 /** Libellé de prix : loyer si location, sinon prix de vente. */
@@ -249,12 +249,6 @@ function BienCard({ b, t, onOpen, onMenu }: { b: CrmBien; t: TFunction; onOpen: 
           {b.rooms ? <Spec icon="home" value={t('mobile.roomsShort', { count: b.rooms })} color={tk.inkSoft} /> : null}
           {b.beds ? <Spec icon="bed" value={String(b.beds)} color={tk.inkSoft} /> : null}
           {b.baths ? <Spec icon="bath" value={String(b.baths)} color={tk.inkSoft} /> : null}
-          {b.health ? (
-            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
-              <MEIcon name="sparkle" size={13} color={tk.muted} />
-              {b.health.overall}
-            </span>
-          ) : null}
         </div>
       </div>
     </div>
