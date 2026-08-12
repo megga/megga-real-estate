@@ -4,7 +4,7 @@
  * ⚠ Dans son propre module, et non dans `BnScoreBadge.tsx` : un fichier de
  * composant qui exporte aussi une constante casse le rafraîchissement à chaud
  * (`react-refresh/only-export-components`). Le garde-fou
- * `biens-score-badge.spec.ts` lit cette table pour en mesurer le contraste, il
+ * `biens-contraste.spec.ts` lit cette table pour en mesurer le contraste, il
  * lui faut donc un export.
  *
  * ⛔ DEUX JEUX, PARCE QUE LA PASTILLE EST DU TEXTE. La teinte sert d'encre sur

@@ -21,7 +21,9 @@
  */
 import { describe, it, expect } from 'vitest'
 import { TIER_COLORS } from '@/components/crm-sugar/biens/scoreTiers'
-import { mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { encreSur, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { galStatus } from '@/components/crm-sugar/biens/gallery/galHelpers'
+import { pickAvatarBg } from '@/lib/sugarAdapters'
 
 const canal = (hex: string): [number, number, number] =>
   [0, 2, 4].map((i) => parseInt(hex.replace('#', '').slice(i, i + 2), 16)) as [number, number, number]
@@ -90,5 +92,68 @@ describe('Pastille de score — lisible dans les deux thèmes', () => {
   it('la palette dit son thème', () => {
     expect(mxCrmPalette(false).isDark).toBe(false)
     expect(mxCrmPalette(true).isDark).toBe(true)
+  })
+})
+
+/**
+ * ── L'ENCRE SUR UN APLAT ─────────────────────────────────────────────────────
+ *
+ * ⛔ CE QUI A MOTIVÉ CE BLOC. Quatre composants de « Mes biens » posaient du
+ * blanc sur leurs aplats, avec des exceptions écrites à la main là où le
+ * résultat devenait franchement invisible. Mesuré le 12 août 2026 : les pilules
+ * de statut échouaient l'AA sur SIX des neuf combinaisons, la pilule « urgent »
+ * du bloc à-suivre sur les DEUX thèmes, et CINQ des huit couleurs d'avatar.
+ *
+ * La correction n'a pas été de choisir cinq nouvelles encres — c'eût été
+ * reproduire le défaut à la teinte suivante — mais de la DÉRIVER de l'aplat.
+ * Ces tests vérifient la règle sur les vrais aplats du produit : les tons de
+ * statut et la palette d'avatar, qui vient de la donnée et n'est donc jamais
+ * relue par un humain.
+ */
+describe('L’encre suit l’aplat', () => {
+  const contraste = (a: string, b: string) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+    return (hi + 0.05) / (lo + 0.05)
+  }
+
+  it.each([false, true])('les cinq statuts sont lisibles (sombre=%s)', (dark) => {
+    const faibles: string[] = []
+    for (const s of ['active', 'reserved', 'draft', 'paused', 'sold']) {
+      const { tone, ink } = galStatus(s, dark)
+      const r = contraste(ink, tone)
+      if (r < AA) faibles.push(`${s} : ${ink} sur ${tone} = ${r.toFixed(2)}:1`)
+    }
+    expect(faibles, `statuts sous ${AA}:1 :\n  ${faibles.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * La palette d'avatar est indexée par un hachage de l'id du contact : aucun
+   * humain ne relit la couleur d'un avatar avant qu'elle s'affiche. Si une
+   * teinte n'est lisible que sous une encre, c'est en production qu'on
+   * l'apprend.
+   */
+  it('les huit couleurs d’avatar sont lisibles sous l’encre dérivée', () => {
+    // On passe par `pickAvatarBg` plutôt que par la table : c'est le chemin réel,
+    // et il couvre la palette entière dès qu'on lui donne assez d'ids.
+    const teintes = new Set(Array.from({ length: 200 }, (_, i) => pickAvatarBg(`c-${i}`)))
+    expect(teintes.size, 'le hachage ne couvre pas toute la palette').toBeGreaterThanOrEqual(8)
+    const faibles: string[] = []
+    for (const t of teintes) {
+      const r = contraste(encreSur(t), t)
+      if (r < AA) faibles.push(`${t} = ${r.toFixed(2)}:1`)
+    }
+    expect(faibles, `avatars sous ${AA}:1 :\n  ${faibles.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * Contrôle de la règle elle-même : elle doit BASCULER, pas rendre du blanc
+   * partout. Un `encreSur` qui répondrait toujours la même chose passerait les
+   * deux tests ci-dessus sur une palette assez sombre, et rien ne le dirait.
+   */
+  it('la règle bascule bien selon l’aplat', () => {
+    expect(encreSur('#030303')).toBe('#ffffff')
+    expect(encreSur('#ffffff')).toBe('#030303')
+    expect(encreSur('#F59E0B')).toBe('#030303')  // 2,15:1 sous blanc, 9,60 sous encre sombre
+    expect(encreSur('#0041D9')).toBe('#ffffff')  // 7,61:1 sous blanc
   })
 })

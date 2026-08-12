@@ -17,6 +17,7 @@ import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { CrmBien } from '@/components/crm-sugar/mockData'
 import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import type { GalSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { GalPhoto } from '@/components/crm-sugar/biens/gallery/GalleryAtoms'
 import { BpRenewModal } from './BpRenewModal'
 import { deriveFollowBuckets, expiryLabelKey, type FollowBucket, type FollowBucketId, type FollowRow } from './followupData'
@@ -63,8 +64,19 @@ export function BpFollowupPage({
     [biens, now, idxEnabled],
   )
 
+  // Aplat de la pilule « urgent ». Son encre est DÉRIVÉE de lui (`encreSur`) et
+  // non figée à blanc : mesuré le 12 août 2026, le blanc rendait 4,37:1 en clair
+  // et 3,11:1 en sombre, sous le seuil du texte. Même correctif que la pilule de
+  // statut de la galerie, dont ce bloc partage la règle.
   const orange = dark ? '#D97A1E' : '#C45A00'
-  const orangeText = dark ? '#E08A2E' : '#C45A00'
+  /**
+   * ENCRE, elle, posée sur la surface de la carte — donc soumise au même seuil
+   * mais pas au même calcul. En clair `#C45A00` rendait 4,37:1 sur la carte
+   * blanche et 4,15:1 sur la page : sous l'AA des deux côtés, pour les libellés
+   * « À traiter en priorité » et « Expire dans N j ». `#AD4E00` monte à 5,43 et
+   * 5,16 sans changer de famille. Le sombre tenait déjà (7,44:1).
+   */
+  const orangeText = dark ? '#E08A2E' : '#AD4E00'
 
   const total = buckets.reduce((s, g) => s + g.rows.length, 0)
   const mandatBucket = buckets.find((g) => g.id === 'mandates')
@@ -93,7 +105,7 @@ export function BpFollowupPage({
 
   // ── Fonctions de rendu (pas de composants au render) ──────────────────────
   const renderTag = (label: string, urgent?: boolean): ReactNode => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.1, whiteSpace: 'nowrap', flexShrink: 0, background: urgent ? orange : surf.cardSub, color: urgent ? '#fff' : sp.soft }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.1, whiteSpace: 'nowrap', flexShrink: 0, background: urgent ? orange : surf.cardSub, color: urgent ? encreSur(orange) : sp.soft }}>
       {label}
     </span>
   )

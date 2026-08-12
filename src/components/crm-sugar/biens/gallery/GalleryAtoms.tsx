@@ -8,7 +8,6 @@ import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../../tokens'
 import { galStatus, type GalSurfaces } from './galHelpers'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 // ─── Vignette photo : image réelle si dispo, sinon placeholder déterministe ──
 interface GalPhotoProps {
@@ -89,8 +88,10 @@ export function GalStatusPill({
   dark: boolean
   style?: CSSProperties
 }) {
+  // L'encre vient de `galStatus`, dérivée de l'aplat. Elle était choisie ici —
+  // blanc partout, plus une exception pour `sold` en sombre — et échouait l'AA
+  // sur six des neuf combinaisons.
   const st = galStatus(status, dark)
-  const onTone = status === 'sold' && dark ? MXC_COLOR.n100 : MXC_COLOR.n1000
   return (
     <span
       style={{
@@ -99,7 +100,7 @@ export function GalStatusPill({
         padding: 'var(--crm-space-xs) var(--crm-space-xl)',
         borderRadius: 'var(--crm-radius-pill)',
         background: st.tone,
-        color: onTone,
+        color: st.ink,
         fontSize: 'var(--crm-text-sm)',
         fontWeight: 600,
         whiteSpace: 'nowrap',

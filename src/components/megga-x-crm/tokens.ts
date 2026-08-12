@@ -88,6 +88,47 @@ export const MXC_SYSTEM = {
  */
 export const MXC_CARD_SHADOW = '0 2px 6px #15086b21'
 
+/** Luminance relative WCAG d'un `#rrggbb`. */
+function luminance(hex: string): number {
+  return [0, 2, 4]
+    .map((i) => {
+      const c = parseInt(hex.replace('#', '').slice(i, i + 2), 16) / 255
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+    })
+    .reduce((acc, c, i) => acc + [0.2126, 0.7152, 0.0722][i] * c, 0)
+}
+
+/**
+ * Encre lisible SUR un aplat : celle des deux extrémités de l'échelle qui
+ * contraste le plus avec lui.
+ *
+ * ⛔ POURQUOI C'EST CALCULÉ, ET NON CHOISI. Quatre composants posaient du blanc
+ * sur tous leurs aplats, avec des exceptions écrites à la main quand le résultat
+ * devenait invisible. Mesuré le 12 août 2026 : les pilules de statut échouaient
+ * l'AA sur SIX des neuf combinaisons (« Réservé » en sombre, 3,11:1 pour 12 px),
+ * la pilule « urgent » du bloc à-suivre sur les deux thèmes (4,37 / 3,11), et
+ * CINQ des huit couleurs d'avatar (`#F59E0B` : 2,15:1).
+ *
+ * Ajouter une exception de plus aurait reproduit le défaut à la teinte suivante.
+ * Dériver l'encre de l'aplat le rend impossible : changer un ton ne peut plus
+ * casser sa lisibilité, il déplace l'encre avec lui.
+ *
+ * C'est la règle que la direction pose déjà — « un remplissage pâle prend
+ * TOUJOURS l'encre sombre » (CLAUDE.md §3) — appliquée dans les DEUX sens, et
+ * mécaniquement plutôt que de mémoire.
+ *
+ * ⚠ Vaut pour un aplat OPAQUE. Sur un voile translucide, le fond réel est le
+ * mélange avec la surface au-dessous : c'est ce que mesure la pastille de score
+ * (`biens-contraste.spec.ts`), et cette fonction s'y tromperait.
+ */
+export function encreSur(aplat: string): string {
+  const t = luminance(aplat)
+  const ratio = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+  return ratio(luminance(MXC_COLOR.n1000), t) >= ratio(luminance(MXC_COLOR.n100), t)
+    ? MXC_COLOR.n1000
+    : MXC_COLOR.n100
+}
+
 /**
  * Palette CRM dérivée de la vitrine, compatible `SugarPalette`.
  *

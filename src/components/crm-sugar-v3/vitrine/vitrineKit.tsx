@@ -3,10 +3,10 @@
 // ombres douces, accent noir, la PHOTO porte le design (galerie immersive +
 // lightbox plein écran). Câblé sur de VRAIES photos quand elles existent.
 
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
-import { useTranslation } from 'react-i18next'
 import { crmInitials } from '@/components/crm-sugar/tokens'
+import { galStatus } from '@/components/crm-sugar/biens/gallery/galHelpers'
 // Palette + formatters déplacés dans vitrineTokens.ts (contrainte Fast
 // Refresh : ce fichier n'exporte que des composants). Voir son en-tête.
 import { vxPalette } from './vitrineTokens'
@@ -498,19 +498,18 @@ export function VxLightbox({
   )
 }
 
-// ─── Pilule de statut (façon KYC : fond plein opaque + texte blanc) ───────
-// Libellé via i18n (listings:status.*) ; tonalités conservées telles quelles.
+// ─── Pilule de statut (fond plein opaque, encre dérivée de l'aplat) ───────
+/**
+ * ⚠ LA TABLE DES TONS VIT DANS `galHelpers`, PAS ICI. Elle existait en double —
+ * une copie pour la galerie, une pour la fiche —, et la seconde avait figé son
+ * encre à `#fff` sur TOUS les paliers : mesuré le 12 août 2026, « Actif » rendait
+ * 3,39:1 en sombre. La galerie a reçu son correctif le même jour ; la fiche
+ * serait restée derrière, comme le calendrier et le wizard mobile avant elle.
+ *
+ * `galStatus` rend désormais le libellé, le ton ET l'encre lisible sur ce ton.
+ */
 export function VxStatusPill({ status, dark }: { status: string; dark: boolean }) {
-  const { t: tr } = useTranslation('listings')
-  const map: Record<string, { tone: string; on: string }> = {
-    active: { tone: dark ? '#0E9F6E' : '#059669', on: '#fff' },
-    reserved: { tone: dark ? '#D97A1E' : '#C45A00', on: '#fff' },
-    draft: { tone: '#6B7280', on: '#fff' },
-    paused: { tone: dark ? '#7C8593' : '#7A8088', on: '#fff' },
-    sold: { tone: dark ? MXC_COLOR.n800 : MXC_COLOR.n100, on: dark ? MXC_COLOR.n100 : MXC_COLOR.n1000 },
-  }
-  const m = map[status] || map.draft
-  const labelKey = map[status] ? status : 'draft'
+  const m = galStatus(status, dark)
   return (
     <span
       style={{
@@ -521,12 +520,12 @@ export function VxStatusPill({ status, dark }: { status: string; dark: boolean }
         fontSize: 'var(--crm-text-sm)',
         fontWeight: 600,
         letterSpacing: -0.1,
-        color: m.on,
+        color: m.ink,
         background: m.tone,
         whiteSpace: 'nowrap',
       }}
     >
-      {tr(`status.${labelKey}`)}
+      {m.label}
     </span>
   )
 }
@@ -634,7 +633,10 @@ export function VxAvatar({
         borderRadius: 'var(--crm-radius-pill)',
         flexShrink: 0,
         background: bg || (dark ? MXC_COLOR.n400 : MXC_COLOR.n100),
-        color: '#fff',
+        // Même raison qu'à la galerie : `bg` vient de la donnée du contact, et
+        // cinq des huit couleurs de la palette d'avatar sont trop pâles pour du
+        // blanc. L'encre suit l'aplat au lieu d'être figée.
+        color: encreSur(bg || (dark ? MXC_COLOR.n400 : MXC_COLOR.n100)),
         display: 'grid',
         placeItems: 'center',
         fontWeight: 600,

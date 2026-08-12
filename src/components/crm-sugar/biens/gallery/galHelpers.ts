@@ -9,7 +9,7 @@
 
 import i18n from '@/i18n'
 import type { SugarPalette } from '../../tokens'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 /** « CHF 850'000 » — apostrophe suisse, valeur pleine (cartes). */
 export function galFmtCHF(n: number | null | undefined): string {
@@ -35,9 +35,11 @@ export function galCompact(n: number | null | undefined): string {
 export interface GalStatusMeta {
   label: string
   tone: string
+  /** Encre à poser SUR `tone` — dérivée de lui, jamais du thème. */
+  ink: string
 }
 
-/** Statut → libellé + ton (couleur fonctionnelle, adaptatif clair/sombre). */
+/** Statut → libellé + ton (couleur fonctionnelle, adaptatif clair/sombre) + encre. */
 export function galStatus(s: string, dark: boolean): GalStatusMeta {
   // Tons fonctionnels stables ; le libellé est traduit via listings:status.*.
   const tones: Record<string, string> = {
@@ -48,7 +50,7 @@ export function galStatus(s: string, dark: boolean): GalStatusMeta {
     sold: dark ? MXC_COLOR.n800 : MXC_COLOR.n100,
   }
   const tone = tones[s] ?? tones.draft
-  return { label: i18n.t('listings:status.' + s, { defaultValue: s }), tone }
+  return { label: i18n.t('listings:status.' + s, { defaultValue: s }), tone, ink: encreSur(tone) }
 }
 
 export interface GalSurfaces {

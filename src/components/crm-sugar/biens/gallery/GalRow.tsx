@@ -9,6 +9,7 @@ import { motion } from 'motion/react'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { crmContactById, type CrmBien } from '../../mockData'
 import { crmInitials, type SugarPalette } from '../../tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { galFmtCHF, type GalSurfaces } from './galHelpers'
 import { GalPhoto, GalStatusPill } from './GalleryAtoms'
 import { BnScoreBadge } from '../BnScoreBadge'
@@ -130,7 +131,10 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
                 borderRadius: 'var(--crm-radius-pill)',
                 flexShrink: 0,
                 background: owner.avatarBg || sp.ink,
-                color: '#fff',
+                // `avatarBg` vient de la DONNÉE (palette déterministe par id) :
+                // cinq de ses huit couleurs échouaient l'AA sous encre blanche,
+                // `#F59E0B` à 2,15:1. L'encre descend donc de l'aplat.
+                color: encreSur(owner.avatarBg || sp.ink),
                 fontSize: 'var(--crm-text-xs)',
                 fontWeight: 600,
                 display: 'grid',

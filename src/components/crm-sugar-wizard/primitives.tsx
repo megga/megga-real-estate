@@ -3,6 +3,7 @@
 
 import { useState, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { SugarV2 } from './tokens'
 
 // ─── Icons (line-style, Sugar) ──────────────────────────────────────────
@@ -180,7 +181,9 @@ export function SgAvatar({
     <div style={{
       width: size, height: size, borderRadius: 'var(--crm-radius-pill)',
       background: contact.avatarBg || '#3B82F6',
-      color: '#fff', display: 'grid', placeItems: 'center',
+      // L'encre descend de l'aplat : `avatarBg` vient de la donnée du contact,
+      // et cinq des huit couleurs de la palette échouaient l'AA sous blanc.
+      color: encreSur(contact.avatarBg || '#3B82F6'), display: 'grid', placeItems: 'center',
       fontSize: Math.max(11, size * 0.34), fontWeight: 600,
       flexShrink: 0,
       boxShadow: `0 0 0 4px ${contact.avatarBg ? contact.avatarBg + '26' : 'rgba(59,130,246,0.15)'}`,
