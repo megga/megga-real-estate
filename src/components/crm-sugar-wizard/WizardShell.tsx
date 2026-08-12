@@ -56,6 +56,63 @@ interface WizardShellProps {
   dark?: boolean
 }
 
+/**
+ * Progression du wizard — barre segmentée, un segment par étape.
+ *
+ * ⛔ POURQUOI ELLE EXISTE. Jusqu'au 12 août 2026 la progression se disait en
+ * toutes lettres, dans un sur-titre par écran : « Étape 2 sur 8 · Vendeur
+ * (1/2) ». Ces sur-titres ont été retirés (ils encombraient trois écrans sur
+ * sept), et rien ne les remplaçait : `SG_STEPS` ne sert qu'aux bornes de
+ * navigation, la coquille ne rendait aucun stepper. Le wizard MOBILE portait
+ * déjà cette barre ; c'est donc un port, pas une invention.
+ *
+ * ⚠ ELLE N'EST PAS QUE DÉCORATIVE, contrairement à celle du mobile. Elle
+ * remplace un TEXTE : la porter en pixels seuls aurait rendu la progression
+ * invisible à un lecteur d'écran — on aurait troqué un encombrement visuel
+ * contre une perte d'information pour ceux qui n'ont pas le visuel. D'où
+ * `role="progressbar"` et son `aria-valuetext`, qui redisent exactement ce que
+ * le sur-titre disait.
+ *
+ * ⚠ Le dénominateur est `SG_STEPS.length`, soit SEPT. Les anciens sur-titres
+ * annonçaient « sur 8 » — ils comptaient l'écran de succès, qui n'est pas une
+ * étape que l'agent remplit.
+ */
+function ProgressionWizard({ etape, total }: { etape: number; total: number }) {
+  const { t } = useTranslation('listings')
+  const libelle = t('wizard.progress', {
+    n: etape + 1,
+    total,
+    label: SG_STEPS[etape]?.label ?? '',
+  })
+  return (
+    <div
+      role="progressbar"
+      aria-valuemin={1}
+      aria-valuemax={total}
+      aria-valuenow={etape + 1}
+      aria-valuetext={libelle}
+      aria-label={libelle}
+      style={{ display: 'flex', gap: 'var(--crm-space-xs)' }}
+    >
+      {Array.from({ length: total }).map((_, i) => (
+        <span
+          key={i}
+          style={{
+            flex: 1,
+            height: 4,
+            borderRadius: 'var(--crm-radius-pill)',
+            // ⚠ `black` EST l'accent `#424bfb` : le nom du jeton a survécu à la
+            // règle Sugar Pure qui le rendait noir, comme `SugarPalette` a
+            // survécu à Sugar. `line` est le filet structurel — un segment non
+            // atteint est un TRAIT, pas une surface.
+            background: i <= etape ? SugarV2.black : SugarV2.line,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 export default function WizardShell({ onClose, embedded = false, dark: darkOverride }: WizardShellProps) {
   const { t } = useTranslation('listings')
   // Le wizard suit le mode clair/sombre du CRM via useTheme → `data-theme`
@@ -304,18 +361,23 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
       <header style={{
         flexShrink: 0,
         padding: '20px 32px',
-        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-4xl)',
+        display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)',
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
         background: (!published && step === 2)
           ? 'transparent'
           : `linear-gradient(180deg, ${SugarV2.bg} 58%, ${SugarV2.bg}00 100%)`,
       }}>
-        <div style={{ flex: 1 }} />
-        <SgCircleBtn
-          icon={<SgIcon name="close" size={18} stroke={SugarV2.ink} />}
-          onClick={onClose}
-          title={t('common:actions.close')}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-4xl)' }}>
+          <div style={{ flex: 1 }} />
+          <SgCircleBtn
+            icon={<SgIcon name="close" size={18} stroke={SugarV2.ink} />}
+            onClick={onClose}
+            title={t('common:actions.close')}
+          />
+        </div>
+        {!published && (
+          <ProgressionWizard etape={step} total={SG_STEPS.length} />
+        )}
       </header>
 
       {/* BODY — padding haut 96 pour dégager le header flottant ; l'étape Adresse

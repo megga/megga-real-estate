@@ -1648,7 +1648,8 @@
     "porte": {
       "choose": "Choisir",
       "selected": "Sélectionné"
-    }
+    },
+    "progress": "Étape {{n}} sur {{total}} · {{label}}"
   },
   "gallery": {
     "sort": "Trier"

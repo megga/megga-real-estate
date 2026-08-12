@@ -1648,7 +1648,8 @@
     "porte": {
       "choose": "Choose",
       "selected": "Selected"
-    }
+    },
+    "progress": "Step {{n}} of {{total}} · {{label}}"
   },
   "gallery": {
     "sort": "Sort"
