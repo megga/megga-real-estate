@@ -1,19 +1,11 @@
 // MEGGA CRM Sugar v2 Wizard — Step 1b : Mandat
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step1.jsx — `SgStepMandate`).
 
-import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, sgAcc, type WizardData } from '../tokens'
 import { crmContactById } from '@/components/crm-sugar/mockData'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
-
-interface ExtractedField {
-  key: string
-  label: string
-  value: string
-  apply: () => void
-}
 
 export function Step1Mandate({ data, set }: StepProps) {
   // `t` est déjà utilisé localement (const t = TYPES.find…) → alias `tr`.
@@ -21,76 +13,7 @@ export function Step1Mandate({ data, set }: StepProps) {
   const m = data.mandate
   const setM = (patch: Partial<typeof m>) => set({ mandate: { ...m, ...patch } })
 
-  const [importMode, setImportMode] = useState<'manual' | 'uploading' | 'extracting' | 'imported'>(m.importedFile ? 'imported' : 'manual')
-  const [fileName, setFileName] = useState<string>(m.importedFile || '')
-  const [extractedFields, setExtractedFields] = useState<ExtractedField[]>([])
-  const [extractStep, setExtractStep] = useState(0)
-  const [dragOver, setDragOver] = useState(false)
 
-  const triggerFilePicker = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'application/pdf'
-    input.style.position = 'fixed'
-    input.style.top = '-999px'
-    input.style.left = '-999px'
-    input.style.opacity = '0'
-    document.body.appendChild(input)
-    input.addEventListener('change', e => {
-      const f = (e.target as HTMLInputElement).files?.[0]
-      if (f) handleFile(f)
-      document.body.removeChild(input)
-    })
-    input.click()
-  }
-
-  // Valeurs = données de démonstration simulées (extraction MEGGA AI) → NON traduites.
-  // Seuls les libellés de champ (UI) sont i18n.
-  const MOCK_EXTRACTION: ExtractedField[] = [
-    { key: 'type',       label: tr('wizard.step1.mandate.field.type'),       value: 'Mandat exclusif',         apply: () => setM({ type: 'exclusive', commission: 3.5 }) },
-    { key: 'duration',   label: tr('wizard.step1.mandate.field.duration'),   value: '6 mois',                  apply: () => setM({ duration: 6 }) },
-    { key: 'commission', label: tr('wizard.step1.mandate.field.commission'), value: '3,5 %',                   apply: () => setM({ commission: 3.5 }) },
-    { key: 'fees',       label: tr('wizard.step1.mandate.field.fees'),       value: 'À charge du vendeur',     apply: () => setM({ fees: 'owner' }) },
-    { key: 'signedAt',   label: tr('wizard.step1.mandate.field.signedAt'),   value: '14 mars 2026',            apply: () => setM({ signed: true, signedAt: '2026-03-14' }) },
-    { key: 'vendor',     label: tr('wizard.step1.mandate.field.vendor'),     value: 'Jean-Marc Aebischer',     apply: () => {} },
-  ]
-
-  const handleFile = (file: File) => {
-    if (!file) return
-    setFileName(file.name)
-    setImportMode('uploading')
-    setTimeout(() => {
-      setImportMode('extracting')
-      setExtractStep(0)
-      MOCK_EXTRACTION.forEach((field, idx) => {
-        setTimeout(() => {
-          field.apply()
-          setExtractedFields(prev => [...prev, field])
-          setExtractStep(idx + 1)
-          if (idx === MOCK_EXTRACTION.length - 1) {
-            setTimeout(() => {
-              setImportMode('imported')
-              set({
-                mandate: {
-                  ...m, importedFile: file.name,
-                  extractedFields: MOCK_EXTRACTION.map(f => ({ key: f.key, label: f.label, value: f.value })),
-                  type: 'exclusive', duration: 6, commission: 3.5, fees: 'owner', signed: true, signedAt: '2026-03-14',
-                },
-              })
-            }, 350)
-          }
-        }, 350 + idx * 280)
-      })
-    }, 400)
-  }
-
-  const cancelImport = () => {
-    setImportMode('manual')
-    setFileName('')
-    setExtractedFields([])
-    setExtractStep(0)
-    set({ mandate: { ...m, importedFile: null, extractedFields: null } })
-  }
 
   const TYPES = [
     { v: 'exclusive' as const, title: tr('wizard.step1.mandate.type.exclusive.title'),
@@ -124,16 +47,10 @@ export function Step1Mandate({ data, set }: StepProps) {
           margin: 0, fontSize: 'var(--crm-text-9xl)', fontWeight: 500,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
         }}>{tr('wizard.step1.mandate.title')}</h1>
-        {/* ⚠ Le SEUL sous-titre gardé du wizard, et il ne décrit pas l'écran : il
-            dit que les valeurs affichées ont été EXTRAITES par MEGGA AI et qu'il
-            faut les vérifier. Sans lui, des champs pré-remplis par une machine
-            passeraient pour des champs saisis — la validation humaine ne se
-            demande plus nulle part. */}
-        {importMode === 'imported' && (
-          <p style={{ margin: '14px 0 0', fontSize: 'var(--crm-text-xl)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-            {tr('wizard.step1.mandate.subtitleImported')}
-          </p>
-        )}
+        {/* Le sous-titre « MEGGA AI a extrait les informations de votre mandat »
+            part avec l'import : plus rien n'extrait, donc plus rien à vérifier.
+            Il était le seul sous-titre gardé du wizard, précisément parce qu'il
+            signalait des champs remplis par une machine. */}
 
         {linkedOwner && (
           <div style={{
@@ -159,219 +76,29 @@ export function Step1Mandate({ data, set }: StepProps) {
         )}
       </div>
 
-      {/* ZONE IMPORT */}
-      {importMode === 'manual' && (
-        <div
-          onClick={triggerFilePicker}
-          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={e => {
-            e.preventDefault(); setDragOver(false)
-            const f = e.dataTransfer.files?.[0]
-            if (f) handleFile(f)
-          }}
-          style={{
-            background: dragOver ? sgOn() : SugarV2.card,
-            borderRadius: 'var(--crm-radius-5xl)', padding: '28px 32px',
-            boxShadow: dragOver ? `0 0 0 2px ${SugarV2.black}, 0 24px 60px rgba(0,0,0,0.18)` : SugarV2.shadow,
-            marginBottom: 28,
-            display: 'flex', alignItems: 'center', gap: 'var(--crm-space-6xl)',
-            transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
-            transform: dragOver ? 'scale(1.01)' : 'scale(1)',
-            cursor: 'pointer',
-          }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 'var(--crm-radius-3xl)',
-            background: SugarV2.cardSubtle,
-            display: 'grid', placeItems: 'center', flexShrink: 0,
-          }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={SugarV2.ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <path d="M14 2v6h6M9 13h6M9 17h4"/>
-            </svg>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 4 }}>
-              <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2 }}>
-                {tr('wizard.step1.mandate.import.title')}
-              </span>
-              <span style={{
-                padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
-                background: SugarV2.black, color: sgOn(),
-                fontSize: 'var(--crm-text-xs)', fontWeight: 600,
-              }}>MEGGA AI</span>
-            </div>
-            <div style={{ fontSize: 'var(--crm-text-lg)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
-              {tr('wizard.step1.mandate.import.hint')}
-            </div>
-          </div>
-          <button onClick={e => { e.stopPropagation(); triggerFilePicker() }} style={{
-            height: 46, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)',
-            background: SugarV2.black, color: sgOn(),
-            display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)',
-            fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer',
-            border: 0,
-            boxShadow: '0 6px 16px rgba(0,0,0,0.18)', flexShrink: 0,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={sgOn()} strokeWidth="2" strokeLinecap="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-            </svg>
-            {tr('wizard.step1.mandate.import.choosePdf')}
-          </button>
-        </div>
-      )}
+      {/* 3 TUILES + PARAMÈTRES
+          ⛔ L'IMPORT DE MANDAT PAR PDF A ÉTÉ RETIRÉ le 12 août 2026. Il ne
+          lisait aucun PDF : il jouait une animation d'extraction puis appliquait
+          six valeurs ÉCRITES EN DUR — mandat exclusif, 6 mois, 3,5 %, à charge
+          du vendeur, « signé le 14 mars 2026 », vendeur « Jean-Marc Aebischer » —
+          affichées à côté du VRAI nom du fichier déposé par l'agent. À la
+          publication, `wizardPayload` porte `mandate_type`,
+          `mandate_commission_pct` et `mandate_signed_at` dans `properties` : la
+          fabrication atteignait la base.
 
-      {/* EN COURS */}
-      {(importMode === 'uploading' || importMode === 'extracting') && (
-        <div style={{
-          background: SugarV2.card, borderRadius: 'var(--crm-radius-5xl)', padding: 32,
-          boxShadow: SugarV2.shadow, marginBottom: 28,
-          animation: 'sgScaleIn .35s cubic-bezier(.2,.8,.2,1) both',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)', marginBottom: 22 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 'var(--crm-radius-lg)',
-              background: SugarV2.black, color: sgOn(),
-              display: 'grid', placeItems: 'center',
-              boxShadow: '0 8px 22px rgba(0,0,0,0.25)',
-              animation: 'sgPulse 1.4s ease-in-out infinite',
-            }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={sgOn()} strokeWidth="1.8" strokeLinecap="round">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-              </svg>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2, marginBottom: 2 }}>
-                {importMode === 'uploading' ? tr('wizard.step1.mandate.reading') : tr('wizard.step1.mandate.analyzing')}
-              </div>
-              <div style={{ fontSize: 'var(--crm-text-md)', color: SugarV2.muted, fontWeight: 500 }}>
-                {fileName}
-              </div>
-            </div>
-          </div>
+          C'est exactement ce que l'étape 0 refuse depuis toujours — sa porte
+          « Importer un mandat » est désactivée avec ce motif écrit dans son
+          en-tête. La porte honnête était fermée, celle qui fabriquait ouverte.
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
-            {extractedFields.map(f => (
-              <div key={f.key} style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
-                padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)',
-                background: SugarV2.cardSubtle,
-                animation: 'sgFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
-              }}>
-                <span style={{ color: SugarV2.ok, fontSize: 'var(--crm-text-xl)', fontWeight: 600 }}>✓</span>
-                <span style={{
-                  fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
-                  minWidth: 130,
-                }}>{f.label}</span>
-                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, flex: 1 }}>
-                  {f.value}
-                </span>
-              </div>
-            ))}
-            {extractStep < MOCK_EXTRACTION.length && (
-              <div style={{
-                padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)',
-                background: 'transparent', border: `1px dashed ${SugarV2.ghost}`,
-                fontSize: 'var(--crm-text-md)', color: SugarV2.muted, fontStyle: 'italic',
-              }}>
-                {tr('wizard.step1.mandate.searchingNextField')}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+          ⚠ NE PAS LE « RÉTABLIR » EN BRANCHANT `extract-property-pdf` TEL QUEL :
+          cette fonction extrait le BIEN (prix, pièces, adresse) et `mandate_type`,
+          mais ni la commission, ni la durée, ni les honoraires, ni la date de
+          signature — cinq des six champs que le mock inventait. La brancher
+          demande de décider ce qu'on fait des champs qu'elle ne rend pas.
 
-      {/* IMPORTÉ */}
-      {importMode === 'imported' && (
-        <div style={{
-          background: SugarV2.card, borderRadius: 'var(--crm-radius-5xl)', padding: 28,
-          boxShadow: SugarV2.shadow, marginBottom: 28,
-          animation: 'sgScaleIn .35s cubic-bezier(.2,.8,.2,1) both',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)', marginBottom: 22 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 'var(--crm-radius-lg)',
-              background: 'rgba(16,185,129,0.12)',
-              display: 'grid', placeItems: 'center', flexShrink: 0,
-            }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={SugarV2.ok} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6 9 17l-5-5"/>
-              </svg>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 2 }}>
-                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, letterSpacing: -0.2 }}>
-                  {tr('wizard.step1.mandate.importedTitle')}
-                </span>
-                <span style={{
-                  padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
-                  background: SugarV2.black, color: sgOn(),
-                  fontSize: 'var(--crm-text-xs)', fontWeight: 600,
-                }}>MEGGA AI</span>
-              </div>
-              <div style={{ fontSize: 'var(--crm-text-md)', color: SugarV2.muted, fontWeight: 500 }}>{fileName}</div>
-            </div>
-            <button onClick={cancelImport} style={{
-              height: 36, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
-              background: SugarV2.cardSubtle, color: SugarV2.inkSoft,
-              fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, cursor: 'pointer',
-            }}>{tr('wizard.step1.mandate.enterManually')}</button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--crm-space-xl)' }}>
-            {[
-              { label: tr('wizard.step1.mandate.field.type'), value: ({ exclusive: tr('wizard.step1.mandate.type.exclusive.title'), simple: tr('wizard.step1.mandate.type.simple.title'), co: tr('wizard.step1.mandate.type.co.title') } as Record<string, string>)[m.type] || m.type },
-              { label: tr('wizard.step1.mandate.field.duration'), value: tr('wizard.step1.mandate.months', { count: m.duration }) },
-              { label: tr('wizard.step1.mandate.field.commission'), value: `${m.commission.toFixed(1)} %` },
-              { label: tr('wizard.step1.mandate.field.fees'), value: m.fees === 'owner' ? tr('wizard.step1.mandate.feesOwner') : tr('wizard.step1.mandate.feesBuyer') },
-              { label: tr('wizard.step1.mandate.field.signedAt'), value: '14 mars 2026' },
-              { label: tr('wizard.step1.mandate.statusLabel'), value: m.signed ? tr('wizard.step1.mandate.signed') : tr('wizard.step1.mandate.notSigned'), accent: m.signed ? SugarV2.ok : SugarV2.warn },
-            ].map((f, i) => (
-              <div key={i} style={{
-                padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-xl)',
-                background: SugarV2.cardSubtle,
-              }}>
-                <div style={{
-                  fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.muted,
-                  marginBottom: 6,
-                }}>{f.label}</div>
-                <div style={{
-                  fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: f.accent || SugarV2.ink,
-                  letterSpacing: -0.2, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
-                }}>
-                  {f.accent && <span style={{ width: 7, height: 7, borderRadius: 'var(--crm-radius-pill)', background: f.accent }} />}
-                  {f.value}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{
-            marginTop: 18, fontSize: 'var(--crm-text-md)', color: SugarV2.muted,
-            display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
-          }}>
-            <span>{tr('wizard.step1.mandate.editHint')}</span>
-            <button onClick={cancelImport} style={{
-              border: 0, background: 'transparent', color: SugarV2.ink,
-              fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
-              textDecoration: 'underline', cursor: 'pointer', padding: 0,
-            }}>{tr('wizard.step1.mandate.enterManuallyQuoted')}</button>
-          </div>
-        </div>
-      )}
-
-      {/* 3 TUILES + PARAMÈTRES (manuels) */}
-      {importMode === 'manual' && (
-        <>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', margin: '4px 0 22px',
-          }}>
-            <div style={{ flex: 1, height: 1, background: SugarV2.ghost }} />
-            <span style={{
-              fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SugarV2.muted,
-            }}>{tr('wizard.step1.mandate.orManual')}</span>
-            <div style={{ flex: 1, height: 1, background: SugarV2.ghost }} />
-          </div>
+          Le séparateur « ou configurez à la main » part avec l'import : il ne
+          séparait plus de rien. */}
+      <>
 
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
@@ -563,8 +290,7 @@ export function Step1Mandate({ data, set }: StepProps) {
               </div>
             </div>
           )}
-        </>
-      )}
+      </>
     </div>
   )
 }

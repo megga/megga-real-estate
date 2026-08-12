@@ -907,14 +907,10 @@
       },
       "mandate": {
         "title": "Welche Art von Mandat?",
-        "subtitleImported": "MEGGA AI hat die Angaben aus Ihrem Mandat extrahiert. Prüfen und bei Bedarf anpassen.",
         "field": {
-          "type": "Mandatstyp",
           "duration": "Dauer",
           "commission": "Commission",
-          "fees": "Honorar",
-          "signedAt": "Unterschriftsdatum",
-          "vendor": "Verkäufer identifiziert"
+          "fees": "Honorar"
         },
         "type": {
           "exclusive": {
@@ -931,18 +927,6 @@
           }
         },
         "recommended": "Empfohlen",
-        "import": {
-          "title": "Unterzeichnetes Mandat importieren",
-          "hint": "Ihr PDF hierher ziehen. MEGGA AI extrahiert automatisch Typ, Dauer, Provision und Unterschriftsdatum.",
-          "choosePdf": "PDF auswählen"
-        },
-        "reading": "Datei wird gelesen…",
-        "analyzing": "MEGGA AI analysiert Ihr Mandat",
-        "searchingNextField": "Nächstes Feld wird gesucht…",
-        "importedTitle": "Mandat importiert und analysiert",
-        "enterManually": "Manuell eingeben",
-        "enterManuallyQuoted": "«Manuell eingeben»",
-        "editHint": "Um diese Werte zu ändern, klicken Sie auf",
         "months": "{{count}} Monate",
         "feesOwner": "Zulasten des Verkäufers",
         "feesBuyer": "Zulasten des Käufers",
@@ -951,7 +935,6 @@
         "statusLabel": "Status",
         "signed": "Unterzeichnet",
         "notSigned": "Nicht unterzeichnet",
-        "orManual": "oder manuell einrichten",
         "proposedCommission": "Vorgeschlagene Provision",
         "settings": "Einstellungen",
         "settingsTitle": "Mandatsbedingungen anpassen",

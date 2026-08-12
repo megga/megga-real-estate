@@ -907,14 +907,10 @@
       },
       "mandate": {
         "title": "What type of mandate?",
-        "subtitleImported": "MEGGA AI has extracted the details from your mandate. Review and adjust if needed.",
         "field": {
-          "type": "Mandate type",
           "duration": "Duration",
           "commission": "Commission",
-          "fees": "Fees",
-          "signedAt": "Signature date",
-          "vendor": "Seller identified"
+          "fees": "Fees"
         },
         "type": {
           "exclusive": {
@@ -931,18 +927,6 @@
           }
         },
         "recommended": "Recommended",
-        "import": {
-          "title": "Import a signed mandate",
-          "hint": "Drop your PDF here. MEGGA AI automatically extracts the type, duration, commission and signature date.",
-          "choosePdf": "Choose PDF"
-        },
-        "reading": "Reading file…",
-        "analyzing": "MEGGA AI is analysing your mandate",
-        "searchingNextField": "Looking for the next field…",
-        "importedTitle": "Mandate imported and analysed",
-        "enterManually": "Enter manually",
-        "enterManuallyQuoted": "\"Enter manually\"",
-        "editHint": "To edit these values, click",
         "months": "{{count}} months",
         "feesOwner": "Paid by the seller",
         "feesBuyer": "Paid by the buyer",
@@ -951,7 +935,6 @@
         "statusLabel": "Status",
         "signed": "Signed",
         "notSigned": "Not signed",
-        "orManual": "or set it up manually",
         "proposedCommission": "Suggested commission",
         "settings": "Settings",
         "settingsTitle": "Adjust the mandate terms",

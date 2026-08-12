@@ -907,14 +907,10 @@
       },
       "mandate": {
         "title": "Che tipo di mandato?",
-        "subtitleImported": "MEGGA AI ha estratto le informazioni dal tuo mandato. Verifica e correggi se necessario.",
         "field": {
-          "type": "Tipo di mandato",
           "duration": "Durata",
           "commission": "Commission",
-          "fees": "Onorari",
-          "signedAt": "Data della firma",
-          "vendor": "Venditore identificato"
+          "fees": "Onorari"
         },
         "type": {
           "exclusive": {
@@ -931,18 +927,6 @@
           }
         },
         "recommended": "Consigliato",
-        "import": {
-          "title": "Importa un mandato firmato",
-          "hint": "Trascina qui il tuo PDF. MEGGA AI estrae automaticamente il tipo, la durata, la commissione e la data della firma.",
-          "choosePdf": "Scegli il PDF"
-        },
-        "reading": "Lettura del file…",
-        "analyzing": "MEGGA AI analizza il tuo mandato",
-        "searchingNextField": "Ricerca del campo successivo…",
-        "importedTitle": "Mandato importato e analizzato",
-        "enterManually": "Inserisci manualmente",
-        "enterManuallyQuoted": "«Inserisci manualmente»",
-        "editHint": "Per modificare questi valori, clicca su",
         "months": "{{count}} mesi",
         "feesOwner": "A carico del venditore",
         "feesBuyer": "A carico dell'acquirente",
@@ -951,7 +935,6 @@
         "statusLabel": "Stato",
         "signed": "Firmato",
         "notSigned": "Non firmato",
-        "orManual": "oppure configura a mano",
         "proposedCommission": "Commissione proposta",
         "settings": "Impostazioni",
         "settingsTitle": "Regola le condizioni del mandato",

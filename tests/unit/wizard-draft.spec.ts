@@ -137,6 +137,63 @@ describe('Wizard — le brouillon automatique existe vraiment', () => {
 })
 
 /**
+ * ── LE MANDAT NE SE FABRIQUE PAS ─────────────────────────────────────────────
+ *
+ * ⛔ CE QUI A MOTIVÉ CE BLOC. L'étape Mandat proposait « Importer un mandat
+ * signé · MEGGA AI · Choisir le PDF ». Le bouton était ACTIF et ne lisait aucun
+ * PDF : il jouait une animation d'extraction, puis appliquait six valeurs
+ * écrites en dur — mandat exclusif, 6 mois, 3,5 %, à charge du vendeur, « signé
+ * le 14 mars 2026 », vendeur « Jean-Marc Aebischer » — affichées à côté du VRAI
+ * nom du fichier déposé par l'agent, ce qui les faisait passer pour lues dans
+ * son document.
+ *
+ * Ces champs ne restaient pas à l'écran : `wizardPayload` porte `mandate_type`,
+ * `mandate_commission_pct` et `mandate_signed_at` dans `properties`. Une
+ * commission et une date de signature inventées atteignaient la base, sur un
+ * produit dont la raison d'être est la conformité.
+ *
+ * ⚠ L'ÉTAPE 0 REFUSAIT DÉJÀ CE CHEMIN, avec le motif écrit dans son en-tête :
+ * « l'ancien chemin injectait un mandat FICTIF en base (fabrication compliance
+ * interdite) ». Sa porte « Importer un mandat » est désactivée depuis. La porte
+ * honnête était fermée et celle qui fabriquait, ouverte — à un écran d'écart.
+ */
+describe('Mandat — aucune valeur fabriquée', () => {
+  const MANDAT = 'src/components/crm-sugar-wizard/steps/Step1Mandate.tsx'
+  const src = () => sansCommentaires(readFileSync(MANDAT, 'utf-8'))
+
+  it('l’extraction simulée ne revient pas', () => {
+    expect(src()).not.toMatch(/MOCK_EXTRACTION|extractedFields|importedFile/)
+  })
+
+  /**
+   * Les six valeurs du mock, une par une. Un test sur le seul nom de la
+   * constante laisserait passer une réintroduction sous un autre nom.
+   */
+  it('aucune condition de mandat n’est écrite en dur', () => {
+    const s = src()
+    for (const litteral of ['2026-03-14', 'Jean-Marc Aebischer', '14 mars 2026']) {
+      expect(s, `${litteral} est de retour`).not.toContain(litteral)
+    }
+    // `signed: true` posé sans geste de l'agent : c'est la signature qui compte,
+    // les autres champs se corrigent, une signature inventée engage.
+    expect(s).not.toMatch(/signed:\s*true/)
+  })
+
+  /**
+   * ⚠ Le jour où l'import reviendra pour de bon, il devra passer par une
+   * fonction qui LIT le document. `extract-property-pdf` existe (Gemini) mais
+   * rend le BIEN et `mandate_type` — ni commission, ni durée, ni honoraires, ni
+   * date de signature : cinq des six champs manquent encore.
+   */
+  it('si un import revient, il lit un document', () => {
+    const s = src()
+    const parleDImport = /choosePdf|import\.title|application\/pdf/.test(s)
+    if (!parleDImport) return
+    expect(s, 'un import qui n’appelle aucune extraction').toMatch(/functions\.invoke|extract-property-pdf/)
+  })
+})
+
+/**
  * ── LE WIZARD MOBILE ─────────────────────────────────────────────────────────
  *
  * ⛔ CE QUI A MOTIVÉ CE BLOC. Le lot « Mes biens » du 11 août a donné au wizard

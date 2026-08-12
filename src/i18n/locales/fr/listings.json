@@ -907,14 +907,10 @@
       },
       "mandate": {
         "title": "Quel type de mandat ?",
-        "subtitleImported": "MEGGA AI a extrait les informations de votre mandat. Vérifiez et ajustez si nécessaire.",
         "field": {
-          "type": "Type de mandat",
           "duration": "Durée",
           "commission": "Commission",
-          "fees": "Honoraires",
-          "signedAt": "Date de signature",
-          "vendor": "Vendeur identifié"
+          "fees": "Honoraires"
         },
         "type": {
           "exclusive": {
@@ -931,18 +927,6 @@
           }
         },
         "recommended": "Recommandé",
-        "import": {
-          "title": "Importer un mandat signé",
-          "hint": "Glissez votre PDF ici. MEGGA AI extrait automatiquement le type, la durée, la commission et la date de signature.",
-          "choosePdf": "Choisir le PDF"
-        },
-        "reading": "Lecture du fichier…",
-        "analyzing": "MEGGA AI analyse votre mandat",
-        "searchingNextField": "Recherche du champ suivant…",
-        "importedTitle": "Mandat importé et analysé",
-        "enterManually": "Saisir manuellement",
-        "enterManuallyQuoted": "« Saisir manuellement »",
-        "editHint": "Pour modifier ces valeurs, cliquez sur",
         "months": "{{count}} mois",
         "feesOwner": "À charge du vendeur",
         "feesBuyer": "À charge de l'acheteur",
@@ -951,7 +935,6 @@
         "statusLabel": "Statut",
         "signed": "Signé",
         "notSigned": "Non signé",
-        "orManual": "ou configurez à la main",
         "proposedCommission": "Commission proposée",
         "settings": "Paramètres",
         "settingsTitle": "Ajustez les conditions du mandat",
