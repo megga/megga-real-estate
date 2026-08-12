@@ -380,13 +380,30 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
         )}
       </header>
 
-      {/* BODY — padding haut 96 pour dégager le header flottant ; l'étape Adresse
-          (carte) ne scrolle pas ; animation d'entrée sgPage au changement d'étape. */}
+      {/* BODY — le header FLOTTE (absolute), donc ce padding haut est la seule
+          chose qui empêche le contenu de passer dessous. Il doit valoir la
+          hauteur du header PLUS de l'air.
+
+          ⚠ 140 quand la barre est là, 96 sans elle. La barre a fait passer le
+          header de 80 à 100 px : à 96 le titre démarrait 4 px SOUS son bord, et
+          ne respirait plus que de 16 px sous les segments — assez pour se lire
+          comme collé à eux. Toucher au header demande de revenir ici.
+
+          ⛔ L'ÉTAPE ADRESSE SCROLLE MAINTENANT COMME LES AUTRES. Elle portait
+          `overflowY: hidden`, hérité d'un montage où la carte était en fond
+          perdu ; elle ne l'est plus — elle vit dans la colonne, à 380 px de
+          haut. Mesuré sur une fenêtre de 800 px (un portable courant), son bas
+          tombait 58 px SOUS le cadre, et `hidden` rendait ces 58 px
+          inatteignables. Le défaut préexistait, à 14 px ; le dégagement du
+          header l'a rendu voyant. Interdire le scroll d'un contenu qui déborde
+          ne le fait pas rentrer, ça le cache.
+
+          Animation sgPage au changement d'étape. */}
       <main key={(published ? 'success' : step + '-' + subStep)} style={{
         flex: 1,
-        overflowY: (!published && step === 2) ? 'hidden' : 'auto',
-        scrollbarGutter: (!published && step === 2) ? 'auto' : 'stable both-edges',
-        padding: published ? '96px 32px 80px' : '96px 32px 140px',
+        overflowY: 'auto',
+        scrollbarGutter: 'stable both-edges',
+        padding: published ? '96px 32px 80px' : '140px 32px 140px',
         position: 'relative', zIndex: 5,
         animation: 'sgPage .45s cubic-bezier(.2,.8,.2,1) both',
       }}>
