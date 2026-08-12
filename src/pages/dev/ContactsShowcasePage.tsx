@@ -31,6 +31,7 @@
  */
 import { useState } from 'react'
 import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { encreSur, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { SugarTopNav, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import ContactsPager from '@/components/crm-sugar/contacts-pager/ContactsPager'
@@ -56,6 +57,9 @@ const SURFACES: { id: Surface; label: string }[] = [
 const NOOP = () => {}
 const NOOP_ASYNC = async () => {}
 
+/** Refus d'écriture simulé — alimente les témoins d'échec (voir `ecritureCasse`). */
+const REFUS = async () => { throw new Error('écriture refusée (banc d’essai)') }
+
 export default function ContactsShowcasePage() {
   // ⚠ Même amorçage que `ContactsSugarV2Page`. Le CRM porte DEUX clés de thème
   // sans lien — `megga-theme` (lue par `useTheme`) et `megga.sugar.dark` (lue
@@ -71,6 +75,12 @@ export default function ContactsShowcasePage() {
   const [surface, setSurface] = useState<Surface>('liste')
   const [modalOpen, setModalOpen] = useState(false)
   const [waOpen, setWaOpen] = useState(false)
+  // ⛔ L'ÉCHEC D'ÉCRITURE EST UN ÉTAT FRAGILE, donc le banc doit pouvoir le
+  // montrer. Sans cet interrupteur, `onSaveNote` résout toujours et le témoin
+  // d'échec de la note — la raison même de son correctif — reste invisible :
+  // exactement le défaut de `/dev/biens`, qui cachait la pastille de score
+  // faute de donnée pour la déclencher.
+  const [ecritureCasse, setEcritureCasse] = useState(false)
 
   const sp = crmSugarPalette(dark)
 
@@ -108,6 +118,16 @@ export default function ContactsShowcasePage() {
           fontSize: 'var(--crm-text-md)', fontWeight: 600,
           background: 'transparent', color: sp.sub,
         }}>WhatsApp</button>
+      <button type="button" onClick={() => setEcritureCasse((v) => !v)} aria-pressed={ecritureCasse}
+        title="Fait échouer les écritures — pour voir les témoins d’échec"
+        style={{
+          border: 0, cursor: 'pointer', fontFamily: 'inherit',
+          padding: 'var(--crm-space-xs) var(--crm-space-2xl)',
+          borderRadius: 'var(--crm-radius-pill)',
+          fontSize: 'var(--crm-text-md)', fontWeight: 600,
+          background: ecritureCasse ? MXC_SYSTEM.red400 : 'transparent',
+          color: ecritureCasse ? encreSur(MXC_SYSTEM.red400) : sp.sub,
+        }}>Écriture en échec</button>
     </div>
   )
 
@@ -152,7 +172,7 @@ export default function ContactsShowcasePage() {
             onInvalidateKyc={NOOP_ASYNC}
             onSaveCoord={NOOP_ASYNC}
             onSaveCriteria={NOOP_ASYNC}
-            onSaveNote={NOOP}
+            onSaveNote={ecritureCasse ? REFUS : NOOP_ASYNC}
             onDelete={NOOP_ASYNC}
             onOpenKyc={NOOP}
             onOpenMatching={NOOP}

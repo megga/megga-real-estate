@@ -11,7 +11,7 @@
 // relances, docs, score de contact) restent dans src/hooks/* — sans caller UI
 // desktop pour l'instant — prêts à re-câbler si on ré-expose ces surfaces.
 
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
@@ -72,8 +72,6 @@ export default function ContactDetailSugarV3Page() {
   // les mutations cache-helpers n'invalident PAS → on la rafraîchit à la main
   // après chaque écriture (sinon suppression = ligne fantôme, édition non reflétée).
   const refreshList = () => { void qc.invalidateQueries({ queryKey: ['contacts-sugar'] }) }
-  // Note : sauvegarde auto débouncée (le textarea émet à chaque frappe).
-  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const onCmd = () => openSugarSearch()
   const onNavigate = (screen: SugarScreenId | string) => {
@@ -241,11 +239,13 @@ export default function ContactDetailSugarV3Page() {
         }
         refreshList()
       }}
-      onSaveNote={(note) => {
-        if (noteTimer.current) clearTimeout(noteTimer.current)
-        noteTimer.current = setTimeout(() => {
-          void update.mutateAsync({ id, notes: note.trim() || null }).then(refreshList)
-        }, 600)
+      // Écriture NUE : ni délai, ni report. Le pager porte le débounce (il sait
+      // quand la frappe s'arrête) et remonte le verdict à l'agent. La page
+      // gardait auparavant un `setTimeout` que rien ne nettoyait, et avalait
+      // l'échec — cf. `notePlanner.ts`.
+      onSaveNote={async (note) => {
+        await update.mutateAsync({ id, notes: note.trim() || null })
+        refreshList()
       }}
       // Pas de navigate ici : le pager affiche « Contact supprimé » puis appelle
       // onBack (naviguer tout de suite démonterait la carte avant qu'on la voie).

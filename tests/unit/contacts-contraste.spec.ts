@@ -27,6 +27,7 @@ import { readFileSync } from 'node:fs'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import { CTP_FN } from '@/components/crm-sugar/contacts-pager/ctpTokens'
 import { pickAvatarBg } from '@/lib/sugarAdapters'
+import { corpsDeFonction } from './helpers/ts-source'
 
 const canal = (hex: string): [number, number, number] =>
   [0, 2, 4].map((i) => parseInt(hex.replace('#', '').slice(i, i + 2), 16)) as [number, number, number]
@@ -248,20 +249,6 @@ describe('L’encre suit l’aplat — le code l’applique', () => {
     { quoi: 'avatar', fn: 'CtpAvatar', aplat: /background:\s*\w+/ },
     { quoi: 'pilule de type', fn: 'CtpTypePill', aplat: /background:\s*\w+/ },
   ]
-
-  /** Corps de `function <nom>(`, accolades équilibrées. */
-  function corpsDeFonction(code: string, nom: string): string | null {
-    const debut = code.indexOf(`function ${nom}(`)
-    if (debut === -1) return null
-    const ouvrante = code.indexOf('{', code.indexOf(')', debut))
-    if (ouvrante === -1) return null
-    let profondeur = 0
-    for (let i = ouvrante; i < code.length; i++) {
-      if (code[i] === '{') profondeur++
-      else if (code[i] === '}' && --profondeur === 0) return code.slice(ouvrante, i + 1)
-    }
-    return null
-  }
 
   it.each(ATOMES)('l’encre de $quoi est dérivée de son aplat', ({ quoi, fn, aplat }) => {
     const corps = corpsDeFonction(liste, fn)

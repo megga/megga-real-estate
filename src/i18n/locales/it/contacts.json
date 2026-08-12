@@ -1058,7 +1058,8 @@
     },
     "note": {
       "label": "Note",
-      "placeholder": "Contesto, preferenze, storico della relazione…"
+      "placeholder": "Contesto, preferenze, storico della relazione…",
+      "saveError": "Impossibile salvare la nota. Riprova."
     },
     "page": {
       "infos": "Informazioni sul contatto",
@@ -1109,7 +1110,8 @@
     },
     "saved": {
       "coord": "Recapiti salvati",
-      "crit": "Criteri salvati"
+      "crit": "Criteri salvati",
+      "note": "Nota salvata"
     }
   },
   "nba": {

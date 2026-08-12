@@ -28,6 +28,7 @@ import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/
 import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmFmtCHF } from '@/components/crm-sugar/tokens'
 import { encreSur } from '@/components/megga-x-crm/tokens'
+import { creerNotePlanner } from '@/components/crm-sugar/contacts-pager/notePlanner'
 
 // ═══════════════════════════════════════════════════════════════════════
 //   API PUBLIQUE
@@ -112,7 +113,7 @@ export interface ContactDetailPagerProps {
   onInvalidateKyc: () => Promise<void>
   onSaveCoord: (v: { civ: string; email: string; phone: string; lang: string; canal: string }) => Promise<void>
   onSaveCriteria: (c: CriteriaInput) => Promise<void>
-  onSaveNote: (note: string) => void
+  onSaveNote: (note: string) => Promise<void>
   /** Doit résoudre APRÈS la suppression réelle : la carte « Contact supprimé » n'est
    *  montrée qu'ensuite, et c'est `onBack` (pas ce callback) qui ramène à la liste. */
   onDelete: () => Promise<void>
@@ -860,17 +861,56 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
 // ═══════════════════════════════════════════════════════════════════════
 //   NOTE (sauvegarde auto façon Apple Notes — parent débounce)
 // ═══════════════════════════════════════════════════════════════════════
-function CdNote({ P, notes, onSaveNote }: { P: FichePal; notes: string; onSaveNote: (v: string) => void }) {
+/**
+ * ⚠ LA NOTE S'ENREGISTRE COMME LES DEUX AUTRES BLOCS — promesse attendue,
+ * verdict à l'écran. Elle était le seul `(v: string) => void` de la fiche : un
+ * échec d'écriture ne se voyait NULLE PART. L'agent tapait, et croyait que
+ * c'était parti.
+ *
+ * ⚠ Le délai vit ICI et non plus dans la page. Une promesse par caractère n'a
+ * pas de sens — seule la dernière frappe écrit —, alors que le composant, lui,
+ * sait quand la frappe se termine et peut en montrer l'issue.
+ *
+ * ⚠ DEUX chemins chassent l'écriture en attente : la perte de FOCUS, qui rend
+ * son verdict à l'écran, et le DÉMONTAGE, qui ne le peut plus mais écrit quand
+ * même. Annuler au démontage — le geste réflexe — perdrait la frappe : voir
+ * `notePlanner.ts`, dont c'est la raison d'être.
+ */
+function CdNote({ P, notes, onSaveNote }: { P: FichePal; notes: string; onSaveNote: (v: string) => Promise<void> }) {
   const { t } = useTranslation('contacts')
   const [note, setNote] = useState(notes || '')
   const [foc, setFoc] = useState(false)
-  const onChange = (val: string) => { setNote(val); onSaveNote(val) }
+  const [saved, flashSaved] = useSavedFlash()
+  const [echec, setEchec] = useState(false)
+  // Initialisateur paresseux : un seul planificateur pour toute la vie du bloc.
+  const [planner] = useState(creerNotePlanner)
+
+  const ecrire = (val: string) => {
+    setEchec(false)
+    void onSaveNote(val).then(flashSaved, () => setEchec(true))
+  }
+
+  const onChange = (val: string) => { setNote(val); planner.frapper(val, ecrire) }
+  // Perte de focus : on n'attend pas les 600 ms restantes pour dire à l'agent
+  // si sa note est partie.
+  const onBlur = () => { setFoc(false); planner.chasser() }
+
+  // ⚠ Au démontage on CHASSE, on n'annule pas. Le verdict, lui, est perdu — il
+  // n'y a plus d'écran pour le porter ; les `setState` qui suivent sont des
+  // non-opérations (React 18). Écrire sans témoin reste très préférable à ne
+  // pas écrire.
+  useEffect(() => () => { planner.chasser() }, [planner])
+
   return (
     <div style={{ background: P.card, borderRadius: 'var(--crm-radius-2xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', flex: 1, minHeight: 0 }}>
-      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: P.muted }}>{t('fiche.note.label')}</span>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
+        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: P.muted }}>{t('fiche.note.label')}</span>
+        {echec && <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.danger, textAlign: 'right' }}>{t('fiche.note.saveError')}</span>}
+      </div>
       <textarea value={note} onChange={(e) => onChange(e.target.value)} placeholder={t('fiche.note.placeholder')}
-        onFocus={() => setFoc(true)} onBlur={() => setFoc(false)}
+        onFocus={() => setFoc(true)} onBlur={onBlur}
         style={{ flex: 1, minHeight: 54, width: '100%', boxSizing: 'border-box', resize: 'none', border: 0, outline: 'none', background: P.sub, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 500, lineHeight: 1.5, color: P.ink, boxShadow: foc ? `inset 0 0 0 2px ${P.accent}` : 'none', transition: 'box-shadow 140ms ease' }} />
+      {saved && <CdSavedToast label={t('fiche.saved.note')} />}
     </div>
   )
 }

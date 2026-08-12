@@ -1058,7 +1058,8 @@
     },
     "note": {
       "label": "Note",
-      "placeholder": "Context, preferences, relationship history…"
+      "placeholder": "Context, preferences, relationship history…",
+      "saveError": "The note could not be saved. Try again."
     },
     "page": {
       "infos": "Their information",
@@ -1109,7 +1110,8 @@
     },
     "saved": {
       "coord": "Contact details saved",
-      "crit": "Criteria saved"
+      "crit": "Criteria saved",
+      "note": "Note saved"
     }
   },
   "nba": {

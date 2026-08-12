@@ -1058,7 +1058,8 @@
     },
     "note": {
       "label": "Note",
-      "placeholder": "Contexte, préférences, historique de la relation…"
+      "placeholder": "Contexte, préférences, historique de la relation…",
+      "saveError": "La note n'a pas pu être enregistrée. Réessayez."
     },
     "page": {
       "infos": "Ses informations",
@@ -1109,7 +1110,8 @@
     },
     "saved": {
       "coord": "Coordonnées enregistrées",
-      "crit": "Critères enregistrés"
+      "crit": "Critères enregistrés",
+      "note": "Note enregistrée"
     }
   },
   "nba": {

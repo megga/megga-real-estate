@@ -1058,7 +1058,8 @@
     },
     "note": {
       "label": "Note",
-      "placeholder": "Kontext, Vorlieben, Verlauf der Beziehung…"
+      "placeholder": "Kontext, Vorlieben, Verlauf der Beziehung…",
+      "saveError": "Die Notiz konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
     "page": {
       "infos": "Informationen zum Kontakt",
@@ -1109,7 +1110,8 @@
     },
     "saved": {
       "coord": "Kontaktdaten gespeichert",
-      "crit": "Kriterien gespeichert"
+      "crit": "Kriterien gespeichert",
+      "note": "Notiz gespeichert"
     }
   },
   "nba": {
