@@ -314,6 +314,23 @@ function CdRoundBtn({ icon, P, onClick }: { icon: string; P: FichePal; onClick?:
   )
 }
 
+/**
+ * Sur-titre de BLOC — 14 px / 600, casse normale. Cinq emplois : Coordonnées,
+ * Ce qu'elle cherche, À traiter, Biens transmis, Liens envoyés (plus le bloc
+ * Note, qui porte le même style en ligne).
+ *
+ * Il valait 11 px / 800 en micro-capitales avec un interlettrage de 1 — l'idiome
+ * de sur-titre de Sugar, dont MEGGA X n'a aucun équivalent.
+ *
+ * ⚠ 600 est le PLAFOND de la famille, posé ici sur un texte secondaire en
+ * `P.muted`, là où les Réglages posent 400 sur un rôle voisin. C'est plus lourd
+ * que le précédent, et c'est voulu : un sur-titre de bloc ORDONNE la page, il ne
+ * légende pas un champ. Retirer la capitale sans rien mettre à la place aurait
+ * aplati la fiche en une seule strate.
+ *
+ * ✅ TRANCHÉ (Julien, 12.08.2026). Les libellés de champ, eux, restent à 500 —
+ * voir `cdLbl` : les deux barreaux se lisent l'un contre l'autre.
+ */
 function CdGrp({ children, P }: { children: ReactNode; P: FichePal }) {
   return <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: P.muted }}>{children}</div>
 }
@@ -377,10 +394,15 @@ function CdStatePill({ state, label, P }: { state: FicheLoopItem['state']; label
  * Libellé de champ — 13 px / 500, casse normale.
  *
  * ⚠ ÉCART ASSUMÉ VIS-À-VIS DES RÉGLAGES, qui font jurisprudence ici : ils ont
- * porté leurs libellés à 16 px / 400. La fiche contact est bien plus DENSE —
- * `cdLbl` sert 17 libellés, dont neuf empilés dans le seul bloc Coordonnées —
- * et 16 px y déborderaient. On monte donc de 11 à 13 px seulement, et on
- * compense d'un cran de graisse : à 13 px, 500 pèse ce que 400 pèse à 16.
+ * porté leurs libellés à 16 px / 400 (et `SecuritySection` / `IntegrationsSection`
+ * à 14 px / 400 — le précédent est déjà double). La fiche contact est bien plus
+ * DENSE — `cdLbl` sert 17 libellés, dont neuf empilés dans le seul bloc
+ * Coordonnées — et 16 px y déborderaient. On monte donc de 11 à 13 px seulement,
+ * et on compense d'un cran de graisse : à 13 px, 500 pèse ce que 400 pèse à 16.
+ *
+ * ✅ TRANCHÉ (Julien, 12.08.2026) : 13/500 devient le barreau de libellé des
+ * surfaces DENSES du CRM. C'est bien une troisième valeur, et elle est assumée
+ * comme telle — `NewContactModal` l'a reprise au lot 3.
  *
  * Le geste des Réglages est respecté sur ce qui compte — plus de capitale, plus
  * d'interlettrage, plus de graisse de titre sur un libellé. Ce qui change est le

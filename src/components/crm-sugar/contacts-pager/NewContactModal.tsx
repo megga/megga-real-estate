@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import type { CriteriaInput } from '@/lib/contactCriteria'
 import { NcvIcon, type NcvIconName } from '@/components/crm-sugar/contacts-pager/ncvIcon'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { COUNTRIES } from '@/lib/countries'
 import { identityToColumns, isInvalidSwissDate } from '@/lib/contactIdentity'
 import { formatCHF, formatRent } from '@/lib/utils'
@@ -118,13 +119,13 @@ function buildC(sp: SugarPalette, dark: boolean): NcbC {
       line: 'rgba(15,23,42,0.07)',
       accent,
       onAccent: sp.accentInk,
-      ctaGhostBorder: 'rgba(11,12,14,.14)',
+      ctaGhostBorder: 'rgba(3,3,3,.14)',
       pageBg: sp.pageBg,
       frameBorder: sp.frameBorder,
       cardShadow: sp.shadow,
       shadowSm: '0 4px 16px rgba(15,23,42,0.04)',
       shadowLg: '0 24px 60px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04)',
-      ctaShadow: '0 8px 20px rgba(11,12,14,0.20)',
+      ctaShadow: '0 8px 20px rgba(3,3,3,0.20)',
       popoverBg: sp.solidBg,
       popoverBorder: sp.solidBorder,
       popoverShadow: sp.solidShadow,
@@ -226,7 +227,7 @@ function NcvFieldM({ label, required, C, children }: { label?: string; required?
   return (
     <div>
       {label && (
-        <label style={{ display: 'block', fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 7 }}>
+        <label style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: C.muted, marginBottom: 7 }}>
           {label}{required && <span style={{ color: C.inkSoft }}> *</span>}
         </label>
       )}
@@ -260,7 +261,7 @@ function NcbCtaM({ C, tone = 'ink', icon, onClick, disabled, children }: {
       disabled={off}
       style={{
         height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', cursor: off ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-        fontSize: 'var(--crm-text-lg)', fontWeight: 700, whiteSpace: 'nowrap',
+        fontSize: 'var(--crm-text-lg)', fontWeight: 600, whiteSpace: 'nowrap',
         border: ink ? 0 : `1px solid ${C.ctaGhostBorder}`,
         background: off ? C.cardSubtle : ink ? C.accent : 'transparent',
         color: off ? C.ghost : ink ? C.onAccent : C.inkSoft,
@@ -276,7 +277,7 @@ function NcbCtaM({ C, tone = 'ink', icon, onClick, disabled, children }: {
 
 function NcbTypePillM({ C, type, label }: { C: NcbC; type: ContactType; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: C.typeColor[type], color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: C.typeColor[type], color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap' }}>
       {label}
     </span>
   )
@@ -310,7 +311,7 @@ function NcvChipM({ C, active, onClick, check = true, onWhite = false, children 
 
 function NcvAvatarM({ initials, color, size }: { initials: string; color: string; size: number }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: color, color: '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 700, letterSpacing: 0.3, boxShadow: `0 6px 18px ${color}55` }}>
+    <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: color, color: encreSur(color), display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 600, letterSpacing: 0.3, boxShadow: `0 6px 18px ${color}55` }}>
       {initials}
     </div>
   )
@@ -346,7 +347,7 @@ function NcbPhotoPickerM({ C, photo, initials, color, onPick, onClear, addLabel,
         {photo
           ? <img src={photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : initials
-            ? <span style={{ color: '#fff', fontWeight: 700, fontSize: S * 0.34, letterSpacing: 0.3 }}>{initials}</span>
+            ? <span style={{ color: encreSur(color), fontWeight: 600, fontSize: S * 0.34, letterSpacing: 0.3 }}>{initials}</span>
             : <NcvIcon name="user" size={S * 0.42} stroke={C.ghost} sw={1.7} />}
       </button>
       <span onClick={open} style={{ position: 'absolute', right: -2, bottom: -2, width: 27, height: 27, borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', background: C.white, boxShadow: C.shadowSm, display: 'grid', placeItems: 'center' }}>
@@ -439,7 +440,7 @@ function NcbCropEditorM({ C, src, onCancel, onDone, title, hint, cancelLabel, va
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'grid', placeItems: 'center', background: tint ? `${tint}59` : 'rgba(20,28,45,0.34)', backdropFilter: 'blur(2px)' }}>
       <div style={{ width: 340, background: C.popoverBg, border: `1px solid ${C.popoverBorder}`, borderRadius: 'var(--crm-radius-5xl)', boxShadow: C.popoverShadow, padding: 'var(--crm-space-7xl) var(--crm-space-7xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: C.ink, alignSelf: 'flex-start' }}>{title}</div>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: C.ink, alignSelf: 'flex-start' }}>{title}</div>
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: C.muted, alignSelf: 'flex-start', marginTop: 3, marginBottom: 16 }}>{hint}</div>
         <div
           onPointerDown={onPointerDown}
@@ -520,10 +521,10 @@ function NcbCantonAutoM({ C, value, onChange, placeholder }: { C: NcbC; value: s
         }}
       >
         {value.map((c) => (
-          <span key={c} title={nameFor(c)} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', height: 26, padding: '0 var(--crm-space-xs) 0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: C.accent, color: C.onAccent, fontSize: 'var(--crm-text-sm)', fontWeight: 700 }}>
+          <span key={c} title={nameFor(c)} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', height: 26, padding: '0 var(--crm-space-xs) 0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: C.accent, color: C.onAccent, fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
             {c}
             <span onClick={(e) => { e.stopPropagation(); remove(c) }} style={{ display: 'grid', placeItems: 'center', width: 15, height: 15, cursor: 'pointer' }}>
-              <NcvIcon name="x" size={10} stroke={C.dark ? 'rgba(11,12,14,0.55)' : 'rgba(255,255,255,0.7)'} sw={2.2} />
+              <NcvIcon name="x" size={10} stroke={C.dark ? 'rgba(3,3,3,0.55)' : 'rgba(255,255,255,0.7)'} sw={2.2} />
             </span>
           </span>
         ))}
@@ -533,7 +534,7 @@ function NcbCantonAutoM({ C, value, onChange, placeholder }: { C: NcbC; value: s
           onFocus={() => setOpen(true)}
           onKeyDown={onKey}
           placeholder={value.length ? '' : placeholder}
-          style={{ flex: 1, minWidth: 90, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', color: C.ink, fontWeight: 600, height: 28, textTransform: 'uppercase' }}
+          style={{ flex: 1, minWidth: 90, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', color: C.ink, fontWeight: 600, height: 28 }}
         />
       </div>
       {open && matches.length > 0 && (
@@ -548,7 +549,7 @@ function NcbCantonAutoM({ C, value, onChange, placeholder }: { C: NcbC; value: s
                 onMouseDown={(e) => { e.preventDefault(); add(c) }}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-md)', border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: i === hi ? C.cardSubtle : 'transparent' }}
               >
-                <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: C.ink, width: 24 }}>{c}</span>
+                <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: C.ink, width: 24 }}>{c}</span>
                 <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: C.muted, flex: 1 }}>{n}</span>
                 {on && <NcvIcon name="check" size={13} stroke={C.ink} sw={2.4} />}
               </button>
@@ -619,7 +620,7 @@ function PreviewColM({
   return (
     <div style={{ width: 316, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 20px 18px', textAlign: 'center', minHeight: 0, background: C.dark ? C.cardSub2 : 'transparent', borderRadius: 'var(--crm-radius-2xl)' }}>
       <NcbPhotoPickerM C={C} photo={photo} initials={initials} color={tint} onPick={onPick} onClear={onClear} addLabel={labels.addPhoto} removeLabel={labels.removePhoto} />
-      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, color: fullName ? C.nameInk : C.nameGhost, marginTop: 14 }}>
+      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.5, color: fullName ? C.nameInk : C.nameGhost, marginTop: 14 }}>
         {fullName || labels.namePlaceholder}
       </div>
       <div style={{ marginTop: 9 }}><NcbTypePillM C={C} type={type} label={typeLabel} /></div>
@@ -639,7 +640,7 @@ function PreviewColM({
           disabled={!canSubmit}
           style={{
             height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: canSubmit ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
-            fontSize: 'var(--crm-text-lg)', fontWeight: 700,
+            fontSize: 'var(--crm-text-lg)', fontWeight: 600,
             background: canSubmit ? C.ctaOnBg : C.ctaOffBg,
             color: canSubmit ? C.ctaOnInk : C.ctaOffInk,
             boxShadow: canSubmit && !C.dark ? C.ctaShadow : 'none',
@@ -651,7 +652,7 @@ function PreviewColM({
           type="button"
           onClick={onCancel}
           style={{
-            height: 44, borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700,
+            height: 44, borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
             border: `1px solid ${C.dark ? 'rgba(255,255,255,0.22)' : C.ctaGhostBorder}`,
             background: 'transparent', color: C.ctaGhostInk,
           }}
@@ -675,7 +676,7 @@ function SecTileM({ C, icon, title, sub, onClick }: { C: NcbC; icon: NcvIconName
         <NcvIcon name={icon} size={18} stroke={C.inkSoft} sw={1.9} />
       </span>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: C.ink }}>{title}</div>
+        <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: C.ink }}>{title}</div>
         <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: C.muted, marginTop: 2 }}>{sub}</div>
       </div>
     </button>
@@ -837,12 +838,11 @@ export default function NewContactModal({
 
   const shellStyle: CSSProperties = {
     width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column',
-    background: C.pageBg, color: C.ink, fontFamily: "'Inter Tight', system-ui, sans-serif",
+    background: C.pageBg, color: C.ink, fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
   }
   const focusCss = (
     <style>{`
-      .ncbm-in:focus { box-shadow: inset 0 0 0 2px #0B0C0E; }
-      .ncbm-dark .ncbm-in:focus { box-shadow: inset 0 0 0 2px #ECEDF3; }
+      .ncbm-in:focus { box-shadow: inset 0 0 0 2px ${C.accent}; }
       @keyframes sgFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
     `}</style>
   )
@@ -850,9 +850,9 @@ export default function NewContactModal({
   // ══════════════════ Écran de confirmation « héros » ══════════════════
   if (created) {
     const GREEN = C.typeColor.landlord
-    const heroVeil = C.dark ? 'rgba(11,12,14,0.10)' : 'rgba(255,255,255,0.12)'
-    const heroSub = C.dark ? 'rgba(11,12,14,0.60)' : 'rgba(255,255,255,0.72)'
-    const heroChev = C.dark ? 'rgba(11,12,14,0.70)' : 'rgba(255,255,255,0.85)'
+    const heroVeil = C.dark ? 'rgba(3,3,3,0.10)' : 'rgba(255,255,255,0.12)'
+    const heroSub = C.dark ? 'rgba(3,3,3,0.60)' : 'rgba(255,255,255,0.72)'
+    const heroChev = C.dark ? 'rgba(3,3,3,0.70)' : 'rgba(255,255,255,0.85)'
     return (
       <div className={C.dark ? 'ncbm-dark' : undefined} style={shellStyle}>
         {focusCss}
@@ -861,21 +861,21 @@ export default function NewContactModal({
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', marginBottom: 20 }}>
               <NcbAvatarM photo={f.photo} initials={initials} color={tc} size={46} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', color: GREEN }}>{t('newContactPager.created.eyebrow')}</div>
-                <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, color: C.ink, marginTop: 1 }}>{fullName}</div>
+                <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: GREEN }}>{t('newContactPager.created.eyebrow')}</div>
+                <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.5, color: C.ink, marginTop: 1 }}>{fullName}</div>
               </div>
               <NcbTypePillM C={C} type={f.type} label={typeLabel(f.type)} />
             </div>
             <button
               type="button"
               onClick={onOpenMatching}
-              style={{ fontFamily: 'inherit', cursor: 'pointer', border: 0, textAlign: 'left', background: C.accent, borderRadius: 'var(--crm-radius-4xl)', padding: 'var(--crm-space-6xl) var(--crm-space-7xl)', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-4xl)', boxShadow: C.dark ? '0 20px 44px rgba(0,0,0,0.5)' : '0 20px 44px rgba(11,12,14,0.26)' }}
+              style={{ fontFamily: 'inherit', cursor: 'pointer', border: 0, textAlign: 'left', background: C.accent, borderRadius: 'var(--crm-radius-4xl)', padding: 'var(--crm-space-6xl) var(--crm-space-7xl)', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-4xl)', boxShadow: C.dark ? '0 20px 44px rgba(0,0,0,0.5)' : '0 20px 44px rgba(3,3,3,0.26)' }}
             >
               <span style={{ width: 48, height: 48, borderRadius: 'var(--crm-radius-xl)', flexShrink: 0, display: 'grid', placeItems: 'center', background: heroVeil }}>
                 <NcvIcon name="sparkle" size={24} stroke={C.onAccent} sw={1.9} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: C.onAccent, letterSpacing: -0.3 }}>{t('newContactPager.created.heroTitle')}</div>
+                <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 500, color: C.onAccent, letterSpacing: -0.3 }}>{t('newContactPager.created.heroTitle')}</div>
                 <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: heroSub, marginTop: 3 }}>{t('newContactPager.created.heroSub')}</div>
               </div>
               <span style={{ display: 'grid', placeItems: 'center', transform: 'rotate(-90deg)' }}>
@@ -962,7 +962,7 @@ export default function NewContactModal({
           {/* Fiche express — panneau soudé, seul élément scrollable */}
           <div style={{ flex: 1, minWidth: 0, background: C.cardSubtle, borderRadius: 'var(--crm-radius-2xl)', padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
-              <div style={{ flex: 1, fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase', color: C.ink }}>{t('newContactPager.expressCard')}</div>
+              <div style={{ flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: C.ink }}>{t('newContactPager.expressCard')}</div>
               <NcbCloseM C={C} onClick={onClose} label={t('newContactPager.close')} />
             </div>
 
@@ -978,7 +978,7 @@ export default function NewContactModal({
                     onClick={() => setF((s) => ({ ...s, type: id }))}
                     style={{
                       flex: 1, height: 38, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
-                      fontSize: 'var(--crm-text-md)', fontWeight: on ? 800 : 600,
+                      fontSize: 'var(--crm-text-md)', fontWeight: 600,
                       background: on ? col : C.white, color: on ? '#fff' : C.inkSoft,
                       boxShadow: on ? 'none' : C.shadowSm,
                     }}
@@ -1029,7 +1029,7 @@ export default function NewContactModal({
               <span style={{ display: 'grid', placeItems: 'center', transform: moreId ? 'rotate(180deg)' : 'none', transition: 'transform 160ms ease' }}>
                 <NcvIcon name="chevron" size={14} stroke={C.muted} sw={2} />
               </span>
-              <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: C.inkSoft }}>{t('newContactPager.moreIdentity')}</span>
+              <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: C.inkSoft }}>{t('newContactPager.moreIdentity')}</span>
               {!moreId && <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: C.muted }}>{t('newContactPager.moreIdentityHint')}</span>}
             </button>
             {moreId && (
@@ -1072,7 +1072,7 @@ export default function NewContactModal({
                       key={cv}
                       type="button"
                       onClick={() => setF((s) => ({ ...s, canal: cv }))}
-                      style={{ flex: 1, height: 32, borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: on ? 700 : 600, background: on ? C.accent : 'transparent', color: on ? C.onAccent : C.muted }}
+                      style={{ flex: 1, height: 32, borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, background: on ? C.accent : 'transparent', color: on ? C.onAccent : C.muted }}
                     >
                       {t(`newContactPager.canalOpt.${cv}`)}
                     </button>
@@ -1082,7 +1082,7 @@ export default function NewContactModal({
             </NcvFieldM>
 
             {/* Critères / bien — adapté au type */}
-            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase', color: C.ink, marginTop: 4 }}>{critTitle}</div>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: C.ink, marginTop: 4 }}>{critTitle}</div>
             {isBuyer ? (
               <>
                 {f.type === 'tenant' ? (
@@ -1135,7 +1135,7 @@ export default function NewContactModal({
 
             {/* Note — absorbe la hauteur résiduelle du panneau (soude la mise en page) */}
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
-              <label style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6 }}>{t('newContactPager.note')}</label>
+              <label style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: C.muted }}>{t('newContactPager.note')}</label>
               <textarea
                 className="ncbm-in"
                 value={f.note}

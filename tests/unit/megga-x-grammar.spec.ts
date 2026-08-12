@@ -64,18 +64,22 @@ import { emptyRoots, readFileSafely, rel, scanRoots } from './helpers/fs-scan'
 const PAGES = new Set(['BienDetailSugarV4Page.tsx', 'BiensSugarV2Page.tsx'])
 
 /**
- * « Contacts » entre PAR FICHIER, pas par dossier — le lot 2 n'a porté que les
- * deux pagers. Les quatre autres fichiers de `contacts-pager` (la modale de
- * création, la modale WhatsApp, l'écran de premier lancement, les glyphes)
- * portent encore 54 marqueurs et attendent les lots 3-4 ; les ajouter ici
+ * « Contacts » entre PAR FICHIER, pas par dossier — les lots avancent un
+ * fichier à la fois. Les deux pagers au lot 2, la modale de création au lot 3.
+ * Les trois qui restent (`WhatsAppConnectModal`, `ContactsFirstRun`, les
+ * glyphes) portent encore 13 marqueurs et attendent le lot 4 ; les ajouter ici
  * maintenant ferait rougir la garde sur du code que personne n'a encore touché.
  *
  * Ce filtre est le compteur du chantier : chaque lot y inscrit ses fichiers en
  * même temps qu'il les nettoie. Une zone absente n'est pas déclarée propre, elle
  * est déclarée non traitée — c'est tout l'intérêt du cliquet, et c'est aussi
  * pourquoi un `keep` qui laisserait passer tout le dossier serait un mensonge.
+ *
+ * ⚠ `ContactsFirstRun` est mono-thème PAR DÉCISION (fond noir, textes blancs en
+ * dur, comme `BiensFirstRun` et la couverture Pipeline). L'exception couvre ses
+ * COULEURS, pas sa grammaire : ses graisses 700 restent à corriger au lot 4.
  */
-const CONTACTS = new Set(['ContactsPager.tsx', 'ContactDetailPager.tsx'])
+const CONTACTS = new Set(['ContactsPager.tsx', 'ContactDetailPager.tsx', 'NewContactModal.tsx'])
 
 const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   { root: 'src/components/crm-sugar-wizard', keep: (n) => /\.tsx?$/.test(n) },
@@ -94,8 +98,8 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   // hex hors échelle est `#e53935`, le compteur de notifications — sémantique,
   // même famille que `err`.
   { root: 'src/components/crm-sugar', keep: (n) => n === 'SugarShell.tsx' },
-  // Les DEUX pagers de « Contacts » (lot 2 du 12 août 2026). Le reste du dossier
-  // arrive aux lots 3-4 — voir `CONTACTS`.
+  // « Contacts » (12 août 2026) : les deux pagers au lot 2, la modale de
+  // création au lot 3. Le reste du dossier arrive au lot 4 — voir `CONTACTS`.
   { root: 'src/components/crm-sugar/contacts-pager', keep: (n) => CONTACTS.has(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
 ]
@@ -126,10 +130,17 @@ const TEMOIN = 'src/components/crm-sugar-wizard/steps/Step7Publish.tsx'
  */
 const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
   {
-    // ⚠ UNE seule entrée pour toute la famille. Trois coefficients existent
-    // (0,26 · 0,34 · 0,36) parce que trois pastilles ont trois diamètres ; les
-    // lister un par un ferait grossir la liste sans rien décider de plus.
-    motif: /fontSize:\s*(?:Math\.max\(\d+,\s*)?size \* 0\.\d+/,
+    // ⚠ UNE seule entrée pour toute la famille. Plusieurs coefficients existent
+    // (0,26 · 0,34 · 0,36 · 0,42) parce que les pastilles ont plusieurs
+    // diamètres ; les lister un par un ferait grossir la liste sans rien
+    // décider de plus.
+    //
+    // ⚠ Le motif ancrait sur le NOM `size`, et ratait donc `S * 0.34` —
+    // l'avatar de `NewContactModal`, dont la prop s'appelle `S`. Une exemption
+    // qui dépend du nom d'une variable locale n'exempte pas une famille, elle
+    // exempte un fichier par accident. C'est la FORME qui définit la famille :
+    // une taille qui suit son conteneur ne peut pas être un barreau.
+    motif: /fontSize:\s*(?:Math\.max\(\d+,\s*)?\w+ \* 0\.\d+/,
     raison: 'calculée : une initiale suit le diamètre de sa pastille',
   },
   { motif: /fontSize:\s*104\b/, raison: '104 px — le prix en grand, au-dessus du dernier barreau' },

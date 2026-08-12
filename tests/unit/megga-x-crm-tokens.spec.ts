@@ -394,7 +394,7 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    * après le guillemet ouvrant, or le dépôt écrit soit
    * `fontFamily: "'Inter Tight', …"` soit `fontFamily: '"Inter Tight", …'` —
    * un guillemet s'intercale dans les deux cas. Mesuré le 12.08.2026 en
-   * réparant le motif : 29 fichiers, dont `BienDetailSugarV4Page` et
+   * réparant le motif : 29 fichiers (26 après les lots 2-3 de « Contacts »), dont `BienDetailSugarV4Page` et
    * `BiensSugarV2Page`, qui sont pourtant DANS le cliquet de grammaire depuis
    * le lot 4 de « Mes biens ». La garde n'attrapait rien du tout.
    *
@@ -423,7 +423,6 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
     'src/components/crm-sugar/biens/pager/BpRenewModal.tsx',
     'src/components/crm-sugar/calendar/CalendarApp.tsx',
     'src/components/crm-sugar/contacts-pager/ContactsFirstRun.tsx',
-    'src/components/crm-sugar/contacts-pager/NewContactModal.tsx',
     'src/components/crm-sugar/contacts-pager/WhatsAppConnectModal.tsx',
     'src/components/crm-sugar/pipeline/LostConfirmModal.tsx',
     'src/components/crm-sugar/pipeline/NewDealModal.tsx',
