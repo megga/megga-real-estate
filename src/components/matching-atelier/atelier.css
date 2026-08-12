@@ -15,7 +15,19 @@
      La base était rgb(15,23,42) — le slate-900 de Tailwind, B−R = 27 — héritée du
      portage initial. Elle teintait filets, ombres et sous-surfaces, et la fusion des
      panneaux l'a rendue structurelle (les filets SONT les séparateurs). Neutralisée. */
-  --ink:#0B0C0E; --ink-soft:#3C3C40; --ink-muted:#7E7E84; --ink-dim:#B7B7BC;
+  /* ⛔ QUATRE NOMS, TROIS PALIERS LISIBLES — et c'est l'échelle qui le décide.
+     `--ink-muted` (#7E7E84) rendait 4,03:1 sur la surface et 3,61:1 sur la
+     sous-carte ; `--ink-dim` (#B7B7BC) tombait à 1,79:1. Les deux portent de
+     l'information — sur-titres de la file, détail des raisons, prix, libellés
+     de progression, placeholder de champ —, donc ils DESCENDENT sur l'échelle
+     au lieu de rester alignés sur une hiérarchie décorative : même arbitrage
+     que l'encre du VIDE de l'aperçu de Contacts.
+     MEGGA X clair n'offre que trois barreaux lisibles sur blanc — n100
+     (#030303), n400 (#181818) et n500 (#686868, 5,21:1) ; n600 y tombe à 2,5:1.
+     `--ink-muted` et `--ink-dim` coïncident donc, et la hiérarchie qu'ils
+     portaient passe à la graisse et à la taille. Leur cible définitive relève du
+     reciblage d'ensemble ; ici on ne corrige que la lisibilité. */
+  --ink:#0B0C0E; --ink-soft:#3C3C40; --ink-muted:#686868; --ink-dim:#686868;
   --black:#0B0C0E; --black-hover:#1F1F21;
   --surface:#FFFFFF; --surface-2:#F4F4F5; --cardsub:#F2F2F3;
   /* Surface OPAQUE garantie (contre-texte des pastilles pleines). Ici identique à
@@ -36,7 +48,12 @@
   /* Sombre = gris NEUTRE opaque, valeurs de CLAUDE.md (#17181A surface,
      #1E1F21 sous-surface, #26272A survol). Remplace #1A1C22/#14161B/#212430,
      dont le #212430 tirait franchement au bleu (B−R = 15). */
-  --ink:#F3F3F5; --ink-soft:#CACACE; --ink-muted:#8C8C92; --ink-dim:#5E5E64;
+  /* `--ink-muted` passe déjà (4,90:1 sur la sous-carte) ; `--ink-dim` (#5E5E64)
+     plafonnait à 2,56:1. Le monter au barreau suivant (n600 #a3a3a3) le rendrait
+     PLUS clair que `--ink-muted`, donc plus présent que le palier au-dessus de
+     lui : sur fond sombre, plus clair = plus fort. Il rejoint donc `--ink-muted`,
+     comme en clair. */
+  --ink:#F3F3F5; --ink-soft:#CACACE; --ink-muted:#8C8C92; --ink-dim:#8C8C92;
   --surface:#17181A; --surface-2:#121213; --cardsub:#1E1F21;
   --surface-solid:#17181A;
   --hairline:rgba(255,255,255,.07); --hairline-2:rgba(255,255,255,.05);
@@ -93,7 +110,11 @@
   color:var(--ink); font-size:14px; line-height:1.25; transition:box-shadow .2s; outline:none; }
 .sga .field::placeholder{ color:var(--ink-dim); }
 .sga .field:focus{ box-shadow:inset 0 0 0 1.5px var(--ink); }
-.sga .av{ border-radius:var(--r-pill); display:grid; place-items:center; color:#fff; font-weight:700; flex-shrink:0; letter-spacing:0; }
+/* ⛔ PAS d'encre ici. L'aplat de l'avatar vient de la DONNÉE (hachage de l'id du
+   contact sur AV_PALETTE, 12 teintes) : une encre choisie ne peut pas suivre.
+   Mesuré sous le blanc figé d'avant, les DOUZE teintes échouaient l'AA — de
+   1,88:1 (#74d184) à 4,39:1 (#c0566b). Chaque site la DÉRIVE par encreSur(). */
+.sga .av{ border-radius:var(--r-pill); display:grid; place-items:center; font-weight:700; flex-shrink:0; letter-spacing:0; }
 
 /* ════════════════════ STAGE & TOP BAR ══════════════════════════════ */
 /* Fond = surface OPAQUE, pas un canvas contrasté : le triptyque est une seule

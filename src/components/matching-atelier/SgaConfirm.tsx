@@ -9,6 +9,7 @@ import SgaIcon from './SgaIcon'
 import { sgaFmtCHF, sgaInitials } from './format'
 import type { AtelierBuyer, AtelierListing } from './types'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 
 interface SgaConfirmProps {
   b: AtelierBuyer
@@ -69,7 +70,7 @@ export default function SgaConfirm({ b, L, relance, onClose, onConfirm }: SgaCon
         ) : (
           <>
             <div className="sga-modal-h">
-              <div className="av" style={{ width: 44, height: 44, background: b.av, fontSize: 15 }}>
+              <div className="av" style={{ width: 44, height: 44, background: b.av, color: encreSur(b.av), fontSize: 15 }}>
                 {sgaInitials(b.first, b.last)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

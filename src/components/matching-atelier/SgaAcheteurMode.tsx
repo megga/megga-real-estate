@@ -13,6 +13,7 @@ import { fmtM, sgaFmtCHF, sgaInitials, sgaReturnDate, sgaScoreColor } from './fo
 import { isSnoozed } from '@/hooks/useAtelierMatching'
 import type { AtelierBuyer, AtelierPoolMatch, TriageKind } from './types'
 import type { AtelierGestes, PendingHandle } from './pendingTriage'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 
 /* ── Col 1 · rangée bien ─────────────────────────────────────────────── */
 function SgbLRow({ m, selected, exiting, onClick }: {
@@ -52,7 +53,7 @@ function SgbProfile({ b }: { b: AtelierBuyer }) {
     <section className="sga-panel sga-enter d1" aria-label={t('atelier.searchProfile')}>
       <div className="sgb-pivot-scroll">
         <div className="sgb-id">
-          <div className="av" style={{ width: 72, height: 72, background: b.av, fontSize: 24, boxShadow: `0 0 0 6px ${b.av}1c` }}>
+          <div className="av" style={{ width: 72, height: 72, background: b.av, color: encreSur(b.av), fontSize: 24, boxShadow: `0 0 0 6px ${b.av}1c` }}>
             {sgaInitials(b.first, b.last)}
           </div>
           <div>

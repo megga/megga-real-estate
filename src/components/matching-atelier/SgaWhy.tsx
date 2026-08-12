@@ -21,6 +21,7 @@ import SgaIcon from './SgaIcon'
 import { SGA_ENGAGE_TONE, SGA_KYC } from './constants'
 import { sgaInitials } from './format'
 import type { AtelierBuyer, AtelierReason } from './types'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 
 // Sceau festonné, coche détourée en négatif (evenodd) → la coche ressort quel que
 // soit le fond du sceau. Bleu de marque : c'est un glyphe, pas une surface.
@@ -86,7 +87,7 @@ export default function SgaWhy({ b, poolCount, onSend, onSkip, onLater, onRelanc
   return (
     <div className="sga-why-anim" key={b.matchId}>
       <div className="sga-why-head">
-        <div className="av" style={{ width: 52, height: 52, background: b.av, fontSize: 17, boxShadow: `0 0 0 4px ${b.av}22` }}>
+        <div className="av" style={{ width: 52, height: 52, background: b.av, color: encreSur(b.av), fontSize: 17, boxShadow: `0 0 0 4px ${b.av}22` }}>
           {sgaInitials(b.first, b.last)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>

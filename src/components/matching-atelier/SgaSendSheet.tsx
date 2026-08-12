@@ -11,6 +11,7 @@ import { useCreateReceptionLink } from '@/hooks/useCreateReceptionLink'
 import { buildWaMeUrl } from '@/lib/waMeUrl'
 import type { AtelierBuyer, AtelierListing } from './types'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 
 interface Props {
   b: AtelierBuyer
@@ -71,7 +72,7 @@ export default function SgaSendSheet({ b, L, onClose, onSent }: Props) {
     <div className="sga-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="sga-modal" style={{ width: 460, maxWidth: '92vw' }} ref={refPiegeFocus} role="dialog" aria-modal="true" aria-label={t('sendSheet.title', { name })}>
         <div className="sga-modal-h">
-          <div className="av" style={{ width: 44, height: 44, background: b.av, fontSize: 15 }}>{sgaInitials(b.first, b.last)}</div>
+          <div className="av" style={{ width: 44, height: 44, background: b.av, color: encreSur(b.av), fontSize: 15 }}>{sgaInitials(b.first, b.last)}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="t4 semi" style={{ color: 'var(--ink)' }}>{t('sendSheet.title', { name })}</div>
           </div>

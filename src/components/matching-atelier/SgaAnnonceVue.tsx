@@ -23,6 +23,7 @@ import SgaIcon from './SgaIcon'
 import { sgaFmtCHF } from './format'
 import type { AtelierBuyer, AtelierListing } from './types'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 
 /** Cellules « L'essentiel » — les champs nuls sont filtrés, jamais rendus « null ». */
 function sgiSpecCells(L: AtelierListing, t: (k: string, o?: Record<string, unknown>) => string) {
@@ -56,6 +57,17 @@ function SgiRefPill({ refCode }: { refCode: string }) {
   )
 }
 
+/**
+ * Aplat de la pastille de régie — la seule du dossier qui ne vienne PAS de la
+ * donnée (une régie n'a pas de teinte attribuée).
+ *
+ * ⚠ Sa VALEUR est le noir de Sugar, que la grammaire MEGGA X proscrit : elle
+ * relève du reciblage d'ensemble d'`atelier.css`, pas de ce lot-ci. Ce qui
+ * change ici, c'est seulement que son encre est DÉRIVÉE — de sorte que le jour
+ * où l'aplat bougera, la lisibilité suivra sans qu'on ait à y penser.
+ */
+const AGENT_AV = '#0B0C0E'
+
 /** Régie qui commercialise — uniquement sur une annonce de la veille marché. */
 function SgiAgence({ L }: { L: AtelierListing }) {
   const { t } = useTranslation('matching')
@@ -66,7 +78,7 @@ function SgiAgence({ L }: { L: AtelierListing }) {
     <div className="sgn-card">
       <span className="eyebrow">{t('atelier.marketing')}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div className="av" style={{ width: 42, height: 42, background: '#0B0C0E', fontSize: 13.5 }}>{init}</div>
+        <div className="av" style={{ width: 42, height: 42, background: AGENT_AV, color: encreSur(AGENT_AV), fontSize: 13.5 }}>{init}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="t2 semi sgn-ell" style={{ color: 'var(--ink)' }}>{name}</div>
           {L.agency.phone && <div className="t1 muted nums" style={{ marginTop: 2 }}>{L.agency.phone}</div>}
