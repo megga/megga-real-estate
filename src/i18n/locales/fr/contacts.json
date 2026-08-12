@@ -1125,7 +1125,6 @@
     "matchesToSend": "Proposer une sélection ({{count}} biens pertinents)",
     "neverContacted": "Prendre un premier contact (jamais recontacté)",
     "dormant": "Relancer (sans échange depuis {{days}} j)",
-    "estimateTag": "Estimation",
     "kycNote": "Dossier KYC à finaliser (facultatif, ne bloque rien)"
   }
 }

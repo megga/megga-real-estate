@@ -173,7 +173,6 @@ export default function ContactDetailSugarV3Page() {
   const nba: FicheNba | null = nbaI
     ? {
         label: tr(nbaI.key, nbaI.params as Record<string, string | number>),
-        estimateTag: tr('nba.estimateTag'),
         kycNote: nbaRaw?.hasKycNote ? tr('nba.kycNote') : null,
       }
     : null

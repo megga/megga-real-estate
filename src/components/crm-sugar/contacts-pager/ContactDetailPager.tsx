@@ -93,10 +93,15 @@ export type FicheRevokeResult = 'ok' | 'refused' | 'failed'
 
 /** Prochaine action estimée (NBA déterministe, cerveau partagé WhatsApp ⇄ copilote) —
  *  chaînes DÉJÀ traduites par le parent (le pager reste présentation pure, sans i18n
- *  de données). Absent/null → aucun rendu (ajout additif, façon BnScoreBadge). */
+ *  de données). Absent/null → aucun rendu (ajout additif, façon BnScoreBadge).
+ *
+ *  ⚠ La mention « Estimation » qui suivait le libellé a été RETIRÉE (Julien,
+ *  12.08.2026). Ce que `CLAUDE.md` exige d'une sortie IA — qu'elle se signale —
+ *  reste porté par l'ÉTINCELLE devant la ligne, l'autre moitié de la même règle ;
+ *  et une prochaine action n'est pas un score. Ne pas la réintroduire sans
+ *  redécider : elle a été enlevée, pas oubliée. */
 export interface FicheNba {
   label: string
-  estimateTag: string
   kycNote: string | null
 }
 
@@ -1146,7 +1151,6 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
             <div title={nba.kycNote ?? undefined} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 8, minWidth: 0 }}>
               <FcpIcon name="sparkle" size={13} stroke={P.accent} />
               <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.inkSoft, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nba.label}</span>
-              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, flexShrink: 0 }}>{nba.estimateTag}</span>
             </div>
           )}
         </div>

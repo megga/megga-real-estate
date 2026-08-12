@@ -1125,7 +1125,6 @@
     "matchesToSend": "Auswahl vorschlagen ({{count}} passende Objekte)",
     "neverContacted": "Erstkontakt aufnehmen (noch nie kontaktiert)",
     "dormant": "Nachfassen (seit {{days}} T. kein Austausch)",
-    "estimateTag": "Schätzung",
     "kycNote": "KYC-Dossier abschliessen (optional, nie blockierend)"
   }
 }

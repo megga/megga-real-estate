@@ -137,6 +137,5 @@ export const DEMO_FICHE_LINKS: { items: FicheReceptionLink[]; isLoading: boolean
 /** Prochaine action estimée — bloc additif, absent si `null` : le banc le montre. */
 export const DEMO_FICHE_NBA: FicheNba = {
   label: 'Proposer une visite pour l’attique de Plainpalais',
-  estimateTag: 'Estimation',
   kycNote: null,
 }
