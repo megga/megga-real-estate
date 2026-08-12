@@ -155,4 +155,39 @@ describe('CRM mobile — la palette descend de MEGGA X', () => {
       expect(p.canvas, `${nom} garde un dégradé`).not.toMatch(/gradient/)
     }
   })
+
+  /**
+   * ⛔ `ghost` ÉCHOUE L'AA DANS LES DEUX THÈMES — c'est un TRAIT, pas une encre.
+   *
+   * Mesuré sur les surfaces de carte : `#a3a3a3` sur `#ffffff` rend 2,52:1 en
+   * clair, `#686868` sur `#090909` rend 3,57:1 en sombre. Le seuil du texte
+   * courant est 4,5. `muted` — l'autre bout de la même échelle, `#686868` en
+   * clair et `#a3a3a3` en sombre — rend 5,57 et 7,89 : c'est LUI le jeton du
+   * texte secondaire.
+   *
+   * Huit composants mobiles l'employaient en encre, dont la gouttière d'heures
+   * de l'agenda : exactement le défaut que la refonte du calendrier avait
+   * corrigé côté BUREAU (#1199) en laissant le mobile derrière. Deuxième fois
+   * que ce correctif ne traverse qu'un des deux dossiers de la même surface.
+   *
+   * ⚠ Ce test ne peut pas distinguer un contrôle DÉSACTIVÉ, que la WCAG exempte
+   * du seuil (1.4.3) et où `ghost` reste le bon jeton — le grisé EST le signal.
+   * Il n'interdit donc `ghost` en encre que là où aucun `disabled` ne
+   * l'accompagne.
+   */
+  it('ghost ne sert jamais d’encre à du contenu lisible', async () => {
+    const { readdirSync, readFileSync } = await import('node:fs')
+    const racine = 'src/components/crm-mobile'
+    const fichiers = readdirSync(racine, { recursive: true, encoding: 'utf-8' })
+      .filter((f) => f.endsWith('.tsx'))
+    const fautifs: string[] = []
+    for (const f of fichiers) {
+      readFileSync(`${racine}/${f}`, 'utf-8').split('\n').forEach((ligne, i) => {
+        if (!/\b(?:color|stroke|fill):[^,}\n]*\btk\.ghost\b/.test(ligne)) return
+        if (/disabled/.test(ligne)) return
+        fautifs.push(`${f}:${i + 1}`)
+      })
+    }
+    expect(fautifs.length, `contenu lisible en ghost :\n  ${fautifs.join('\n  ')}`).toBe(0)
+  })
 })

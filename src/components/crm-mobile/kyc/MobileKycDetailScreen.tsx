@@ -604,7 +604,7 @@ function AuditTab({ ctx, events }: { ctx: Ctx; events: KycAuditEvent[] }) {
                   <tr key={ev.id}>
                     <td style={{ padding: 'var(--crm-space-lg) var(--crm-space-md)', borderBottom: last ? 'none' : `1px solid ${tk.hair}`, verticalAlign: 'top', whiteSpace: 'nowrap' }}>
                       <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.inkSoft }}>{s.d}</div>
-                      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.ghost, marginTop: 1 }}>{s.time}</div>
+                      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted, marginTop: 1 }}>{s.time}</div>
                     </td>
                     <td style={{ padding: 'var(--crm-space-lg) var(--crm-space-md)', borderBottom: last ? 'none' : `1px solid ${tk.hair}`, verticalAlign: 'top', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.ink, letterSpacing: -0.15 }}>{ev.action}</td>
                     <td style={{ padding: 'var(--crm-space-lg) var(--crm-space-md)', borderBottom: last ? 'none' : `1px solid ${tk.hair}`, verticalAlign: 'top', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.inkSoft, whiteSpace: 'nowrap' }}>{actorOf(ev)}</td>

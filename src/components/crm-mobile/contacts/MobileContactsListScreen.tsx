@@ -184,7 +184,7 @@ function Row({ c, t, last, onOpen, onMenu }: { c: CrmContact; t: TFunction; last
           </div>
         </div>
       </button>
-      <button type="button" onClick={onMenu} aria-label={t('common:actions.options')} style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, color: tk.ghost }}>
+      <button type="button" onClick={onMenu} aria-label={t('common:actions.options')} style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, color: tk.muted }}>
         <MEIcon name="more-horizontal" size={18} color={tk.ghost} />
       </button>
     </div>

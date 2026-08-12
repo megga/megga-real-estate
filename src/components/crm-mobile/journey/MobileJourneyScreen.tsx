@@ -163,7 +163,7 @@ function Stepper({ activeIdx, tk }: { activeIdx: number; tk: MobileTokens }) {
                 <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: col }} />
               ) : null}
             </span>
-            <span style={{ marginTop: 7, fontSize: 'var(--crm-text-xs)', fontWeight: status === 'active' ? 800 : 600, color: status === 'todo' ? tk.ghost : status === 'active' ? tk.ink : tk.muted, whiteSpace: 'nowrap', letterSpacing: -0.1, textAlign: 'center' }}>{s.label.split(' ').pop()}</span>
+            <span style={{ marginTop: 7, fontSize: 'var(--crm-text-xs)', fontWeight: status === 'active' ? 800 : 600, color: status === 'todo' ? tk.muted : status === 'active' ? tk.ink : tk.muted, whiteSpace: 'nowrap', letterSpacing: -0.1, textAlign: 'center' }}>{s.label.split(' ').pop()}</span>
           </div>
         )
       })}

@@ -148,7 +148,7 @@ function Sp4bDateField({
         background: SugarV2.cardSubtle, border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
         boxShadow: open ? `inset 0 0 0 2px ${SugarV2.black}` : 'none', transition: 'box-shadow .12s',
       }}>
-        <span style={{ flex: 1, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: value ? SugarV2.ink : SugarV2.ghost, fontVariantNumeric: 'tabular-nums' }}>{display}</span>
+        <span style={{ flex: 1, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: value ? SugarV2.ink : SugarV2.muted, fontVariantNumeric: 'tabular-nums' }}>{display}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={SugarV2.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" /></svg>
       </button>
       {open && (
@@ -159,7 +159,7 @@ function Sp4bDateField({
             {navBtn(1, 'm9 18 6-6-6-6')}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 'var(--crm-space-2xs)', marginBottom: 4 }}>
-            {SP4B_WEEKDAYS.map((d, i) => <span key={i} style={{ textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.ghost }}>{d}</span>)}
+            {SP4B_WEEKDAYS.map((d, i) => <span key={i} style={{ textAlign: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.muted }}>{d}</span>)}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 'var(--crm-space-2xs)' }}>
             {cells.map((d, i) => {
@@ -229,7 +229,7 @@ function Sp4bCount({ label, value, onChange }: { label: string; value: number | 
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 48, padding: '0 var(--crm-space-md) 0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-lg)', background: SugarV2.cardSubtle }}>
       <span style={{ flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV2.inkSoft }}>{label}</span>
       {btn(-1, disMinus)}
-      <span style={{ width: 24, textAlign: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: value == null ? SugarV2.ghost : SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{value == null ? '—' : value}</span>
+      <span style={{ width: 24, textAlign: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: value == null ? SugarV2.muted : SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{value == null ? '—' : value}</span>
       {btn(1, false)}
     </div>
   )
@@ -308,7 +308,7 @@ export function Step3bDetails({ data, set }: StepProps) {
           <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted }}>{t('wizard.step3b.reference')}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', height: 46, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-lg)', background: SugarV2.cardSubtle }}>
             <span style={{ flex: 1, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: SugarV2.ink, fontVariantNumeric: 'tabular-nums' }}>{det.ref}</span>
-            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.ghost }}>{t('wizard.step3b.auto')}</span>
+            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: SugarV2.muted }}>{t('wizard.step3b.auto')}</span>
           </span>
         </label>
         <Sp4bDateField label={t('wizard.step3b.availability')} value={det.dispo} onChange={v => setDet({ dispo: v })} />

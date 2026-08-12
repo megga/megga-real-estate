@@ -22,7 +22,7 @@ export default function AgEventCard({ event, past, onTap }: AgEventCardProps) {
 
   return (
     <div style={{ display: 'flex', gap: 'var(--crm-space-xl)', alignItems: 'stretch' }}>
-      <div style={{ width: 46, flexShrink: 0, paddingTop: 'var(--crm-space-2xs)', textAlign: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 500, letterSpacing: -0.2, color: past ? tk.ghost : tk.ink, fontVariantNumeric: 'tabular-nums' }}>
+      <div style={{ width: 46, flexShrink: 0, paddingTop: 'var(--crm-space-2xs)', textAlign: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 500, letterSpacing: -0.2, color: past ? tk.muted : tk.ink, fontVariantNumeric: 'tabular-nums' }}>
         {fmtTime(event.start)}
       </div>
       <button
@@ -54,7 +54,7 @@ export default function AgEventCard({ event, past, onTap }: AgEventCardProps) {
               {t(`eventType.${event.type}`)}
             </span>
             {event.durMin > 0 ? (
-              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tk.ghost, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
                 · {fmtDur(event.durMin, t)}
               </span>
             ) : null}

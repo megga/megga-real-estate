@@ -326,7 +326,7 @@ export function MobileDealDetailScreen({ demoData }: { demoData?: DealData }) {
         ) : (
           <button type="button" onClick={() => { setDraft(vm.notes); setNotesEditing(true) }} style={{ width: '100%', textAlign: 'left', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
             <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: vm.notes ? tk.inkSoft : tk.muted, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{vm.notes || t('deal.notes_empty')}</div>
-            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.ghost, marginTop: 8 }}>{t('deal.never_visible_client')}</div>
+            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, marginTop: 8 }}>{t('deal.never_visible_client')}</div>
           </button>
         )}
       </div>

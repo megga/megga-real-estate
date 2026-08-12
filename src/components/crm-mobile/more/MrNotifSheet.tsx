@@ -133,7 +133,7 @@ export default function MrNotifSheet({
             </span>
           ) : null}
           <span
-            style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.ghost, marginTop: 6, letterSpacing: -0.1 }}
+            style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, marginTop: 6, letterSpacing: -0.1 }}
           >
             {n.time}
           </span>

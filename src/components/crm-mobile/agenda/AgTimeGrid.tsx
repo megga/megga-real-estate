@@ -101,7 +101,7 @@ export default function AgTimeGrid({ events, isToday, nowMin, onTap }: AgTimeGri
                   <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tone }}>
                     {t(`eventType.${e.type}`)}
                   </span>
-                  <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tk.ghost, fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
                     {fmtTime(e.start)} · {fmtDur(e.durMin, t)}
                   </span>
                 </div>
