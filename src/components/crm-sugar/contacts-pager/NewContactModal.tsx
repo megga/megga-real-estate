@@ -342,6 +342,7 @@ function NcbPhotoPickerM({ C, photo, initials, color, onPick, onClear, addLabel,
     <div style={{ position: 'relative', width: S, height: S }}>
       <button
         type="button"
+        className="ncbm-ico"
         onClick={open}
         aria-label={addLabel}
         style={{
@@ -357,13 +358,28 @@ function NcbPhotoPickerM({ C, photo, initials, color, onPick, onClear, addLabel,
             ? <span style={{ color: encreSur(color), fontWeight: 600, fontSize: S * 0.34, letterSpacing: 0.3 }}>{initials}</span>
             : <NcvIcon name="user" size={S * 0.42} stroke={C.ghost} sw={1.7} />}
       </button>
-      <span onClick={open} style={{ position: 'absolute', right: -2, bottom: -2, width: 27, height: 27, borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', background: C.white, boxShadow: C.shadowSm, display: 'grid', placeItems: 'center' }}>
+      {/* ⚠ REDONDANT, et c'est voulu : le bouton qu'il coiffe déclenche déjà
+          `open`. En faire un second bouton donnerait DEUX arrêts de tabulation
+          pour un seul geste. Il reste cliquable à la souris (il déborde du
+          cercle, un clic dessus n'atteindrait pas le bouton) mais sort de
+          l'arbre d'accessibilité. */}
+      <span onClick={open} aria-hidden="true" style={{ position: 'absolute', right: -2, bottom: -2, width: 27, height: 27, borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', background: C.white, boxShadow: C.shadowSm, display: 'grid', placeItems: 'center' }}>
         <NcvIcon name="camera" size={14} stroke={C.inkSoft} sw={1.8} />
       </span>
+      {/* ⛔ SEUL CHEMIN VERS `onClear` — vérifié, il n'a pas d'autre appelant. En
+          `<span onClick>` il n'était ni focusable ni actionnable au clavier :
+          on pouvait AJOUTER une photo sans jamais pouvoir l'enlever. */}
       {photo && (
-        <span onClick={onClear} title={removeLabel} style={{ position: 'absolute', right: -2, top: -2, width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', background: C.white, boxShadow: C.shadowSm, display: 'grid', placeItems: 'center' }}>
+        <button
+          type="button"
+          className="ncbm-ico"
+          onClick={onClear}
+          aria-label={removeLabel}
+          title={removeLabel}
+          style={{ position: 'absolute', right: -2, top: -2, width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', border: 0, padding: 0, cursor: 'pointer', background: C.white, boxShadow: C.shadowSm, display: 'grid', placeItems: 'center' }}
+        >
           <NcvIcon name="x" size={11} stroke={C.inkSoft} sw={2.2} />
-        </span>
+        </button>
       )}
       <input ref={inputRef} type="file" accept="image/*" onChange={onPick} style={{ display: 'none' }} />
     </div>
@@ -877,6 +893,10 @@ export default function NewContactModal({
   const focusCss = (
     <style>{`
       .ncbm-in:focus { box-shadow: inset 0 0 0 2px ${C.accent}; }
+      /* ⚠ outline et non box-shadow : ces deux boutons posent déjà une ombre EN
+         LIGNE, qui l'emporterait sur la règle. Et :focus-visible, pour ne pas
+         cercler la pastille à chaque clic de souris. */
+      .ncbm-ico:focus-visible { outline: 2px solid ${C.accent}; outline-offset: 2px; }
       @keyframes sgFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
     `}</style>
   )
