@@ -260,12 +260,13 @@ export function Step1Vendor({ data, set }: StepProps) {
                 background: SugarV2.card, borderRadius: 'var(--crm-radius-4xl)', padding: 28,
                 boxShadow: SugarV2.shadowSm, textAlign: 'center',
               }}>
-                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, marginBottom: 6 }}>
+                {/* 16 et non 6 : le sous-titre retiré portait cet écart, le
+                    titre le reprend pour ne pas coller au bouton. */}
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: SugarV2.ink, marginBottom: 16 }}>
                   {t('wizard.step1.vendor.noMatchTitle', { query: q })}
                 </div>
-                <div style={{ fontSize: 'var(--crm-text-lg)', color: SugarV2.muted, marginBottom: 16 }}>
-                  {t('wizard.step1.vendor.noMatchBody')}
-                </div>
+                {/* « Créez un nouveau contact vendeur. » disait le verbe du
+                    bouton juste dessous. */}
                 <button onClick={startCreate} style={{
                   height: 42, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                   background: SugarV2.black, color: sgOn(),

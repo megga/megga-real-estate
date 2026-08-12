@@ -488,8 +488,7 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
           {/* Le CTA de publication vit dans le Step 7 (concept E) — le footer ne
               montre « Continuer » que sur les étapes intermédiaires. */}
           {step < SG_STEPS.length - 1 && (
-            <SgBlackPill onClick={next} disabled={!canNext}
-              icon={<SgIcon name="arrowR" size={16} stroke={SugarV2.onBlack} />}>
+            <SgBlackPill onClick={next} disabled={!canNext}>
               {t('wizard.shell.continue')}
             </SgBlackPill>
           )}
