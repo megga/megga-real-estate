@@ -112,7 +112,14 @@ export const MT_LIGHT: MobileTokens = {
   ctaInk: MXC_COLOR.n100,
   riskBg: '#FAEAD7',
   riskFg: '#B4570A',
-  goal: '#059669',
+  // ⚠ ENCRE, pas seulement un aplat : `goal` peint le libellé « Vérifié » du
+  // KYC, la probabilité d'achat de la fiche deal et le témoin de brouillon du
+  // wizard, en plus des jauges. À `#059669` il rendait **3,58:1** sur la page
+  // claire — sous les 4,5:1 exigés d'un texte. `#047857` monte à 5,21:1 (5,48
+  // sur une carte blanche) et c'est le vert que le témoin du wizard BUREAU
+  // emploie déjà : un seul vert pour les deux appareils, pas une seconde
+  // valeur à faire vivre. En sombre `#34C796` tenait déjà (9,58:1), inchangé.
+  goal: '#047857',
   cardBorder: 'transparent',
   danger: '#8E1F3D',
   dangerInk: '#FFFFFF',

@@ -190,4 +190,52 @@ describe('CRM mobile — la palette descend de MEGGA X', () => {
     }
     expect(fautifs.length, `contenu lisible en ghost :\n  ${fautifs.join('\n  ')}`).toBe(0)
   })
+
+  /**
+   * Les jetons SÉMANTIQUES qui servent d'ENCRE passent l'AA sur les trois
+   * surfaces où le CRM mobile les pose.
+   *
+   * `SEMANTIQUES` (plus haut) exempte ces jetons de l'échelle MEGGA X parce
+   * qu'ils disent un état que la vitrine ne sait pas dire. Cette exemption
+   * portait sur la PROVENANCE de la couleur, et rien ne vérifiait qu'elle
+   * restait LISIBLE — deux questions distinctes qu'un seul test couvrait à
+   * moitié.
+   *
+   * ⛔ Ce qu'il a trouvé le 12 août 2026 : `goal` valait `#059669`, soit
+   * **3,58:1** sur la page claire, quand le seuil du texte courant est 4,5. Il
+   * ne peint pas qu'une jauge — il peint le libellé « Vérifié » du KYC, la
+   * probabilité d'achat de la fiche deal et le témoin de brouillon du wizard.
+   * Porté à `#047857`, le vert que le témoin du wizard BUREAU emploie déjà, il
+   * rend 5,21:1.
+   *
+   * ⚠ Le seuil est celui du TEXTE (4,5), pas celui des grands caractères (3,0)
+   * ni des objets graphiques : ces jetons peignent des libellés de 11 à 13 px.
+   * Un jeton qui ne servirait QUE de remplissage n'a rien à faire dans cette
+   * liste — l'y mettre lui imposerait une contrainte que la WCAG ne lui pose
+   * pas, et la première correction ferait perdre la teinte pour rien.
+   */
+  it('les jetons sémantiques employés en encre passent l’AA', () => {
+    /** Jetons posés en `color` / `stroke` / `fill` sur du contenu lisible. */
+    const ENCRES = ['goal', 'riskFg', 'dangerFg', 'danger', 'kycSeal'] as const
+    /** Les trois surfaces sur lesquelles le mobile pose du texte. */
+    const SURFACES = ['pageBg', 'card', 'cardSubtle'] as const
+    const AA = 4.5
+
+    const faibles: string[] = []
+    for (const [nom, p] of PALETTES) {
+      for (const encre of ENCRES) {
+        for (const surface of SURFACES) {
+          const r = contraste(p[encre], p[surface])
+          if (r < AA) faibles.push(`${nom} · ${encre} (${p[encre]}) sur ${surface} (${p[surface]}) = ${r.toFixed(2)}:1`)
+        }
+      }
+      // Le bento de relance est sombre dans les DEUX thèmes : ses encres se
+      // mesurent sur LUI, jamais sur la page.
+      for (const encre of ['relanceInk', 'relanceMuted'] as const) {
+        const r = contraste(p[encre], p.relanceBg)
+        if (r < AA) faibles.push(`${nom} · ${encre} (${p[encre]}) sur relanceBg = ${r.toFixed(2)}:1`)
+      }
+    }
+    expect(faibles.length, `encres sous ${AA}:1 :\n  ${faibles.join('\n  ')}`).toBe(0)
+  })
 })

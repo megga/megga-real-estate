@@ -82,7 +82,7 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
   // sans que rien ne soit persisté : fermer l'onglet perdait tout le parcours.
   // Suspendu pendant et après la publication, sinon la sauvegarde repasserait
   // le bien en `draft` juste après l'avoir activé.
-  const { etat: etatBrouillon } = useWizardDraft(data, set, !publishing && !published)
+  const { etat: etatBrouillon } = useWizardDraft(data, set, !publishing && !published, wizardPayload)
 
   // Le gating de publication vit dans la checklist « Prêt à publier » du Step 7
   // (≥5 photos requis pour une publication PUBLIQUE ; brouillon & « Privé » jamais

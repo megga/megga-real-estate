@@ -3,12 +3,18 @@
  * UI (Title, SectionLabel, field, Chip, Stepper) + les 4 étapes (StepType,
  * StepLocation, StepSpecs, StepPrice).
  */
-import { useState, type CSSProperties } from 'react'
+import { useCallback, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { useCreateProperty } from '@/hooks/useProperties'
+import {
+  TYPE_TO_ENUM,
+  useWizardDraft,
+  wizardTitre,
+  type EtatBrouillon,
+} from '@/components/crm-sugar-wizard/useWizardDraft'
+import { useCreateProperty, useUpdateProperty, type CreatePropertyInput } from '@/hooks/useProperties'
 import { CANTONS } from '@/lib/constants'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
@@ -36,13 +42,24 @@ interface WData {
   charges: number | null
   description: string
   mandateType: '' | 'exclusive' | 'simple'
-  publishMode: 'now' | 'draft'
+  /**
+   * Id de la ligne `properties` posée par le brouillon automatique dès la
+   * première adresse. La publication met CETTE ligne à jour au lieu d'en semer
+   * une seconde.
+   *
+   * ⚠ Remplace `publishMode` ('now' | 'draft'), retiré le 12 août 2026 — le
+   * bureau l'avait perdu la veille pour la même raison. Le choix ne se pose
+   * plus : tout parcours est déjà un brouillon en base, et « Publier » le fait
+   * passer en `active`. Les deux pastilles demandaient à l'agent de trancher
+   * quelque chose que l'enregistrement automatique avait déjà tranché.
+   */
+  _draftId?: string
 }
 
 const EMPTY: WData = {
   type: null, transaction: 'vente', addr: '', postCode: '', city: '', canton: '',
   area: null, rooms: null, bedrooms: null, bathrooms: null, year: null, energy: null,
-  features: [], price: null, rent: null, charges: null, description: '', mandateType: '', publishMode: 'now',
+  features: [], price: null, rent: null, charges: null, description: '', mandateType: '',
 }
 
 const TYPES: { id: WType; icon: MEIconName }[] = [
@@ -57,10 +74,6 @@ const ENERGY_TONE: Record<Energy, string> = { A: '#0E9F6E', B: '#4CAF50', C: '#8
 const FEATURES = ['Balcon', 'Terrasse', 'Jardin', 'Garage', 'Place de parc', 'Cave', 'Ascenseur', 'Piscine']
 const STEPS = 4
 
-// WType (FR) → enum DB `property_type` (EN only : apartment|house|villa|commercial|land).
-// Sans ce mapping, 3 tuiles sur 4 violent l'enum et l'insert échoue.
-const WTYPE_TO_ENUM: Record<WType, string> = { appartement: 'apartment', maison: 'house', villa: 'villa', terrain: 'land' }
-
 /** Parse une saisie libre en nombre (ne garde que chiffres/point) ; null si vide ou invalide. */
 const num = (s: string): number | null => {
   const cleaned = s.replace(/[^\d.]/g, '')
@@ -69,68 +82,91 @@ const num = (s: string): number | null => {
 }
 
 /**
+ * Charge utile `properties` dérivée de l'état mobile — la MÊME pour le
+ * brouillon et pour la publication, comme au bureau : deux constructions
+ * parallèles divergeraient au premier champ ajouté, et l'agent publierait
+ * autre chose que ce qu'il a vu enregistré.
+ *
+ * ⚠ Définie au niveau module, pas dans le composant : `useWizardDraft` la
+ * garde dans les dépendances de son écriture.
+ *
+ * Le mapping de type vient de `TYPE_TO_ENUM` (bureau). Il existait ici une
+ * copie locale, `WTYPE_TO_ENUM`, et les deux avaient déjà divergé sur `villa` —
+ * un type qui tombait sur `house` d'un côté et sur `villa` de l'autre selon
+ * l'appareil qui créait le bien.
+ */
+const mobileWizardPayload = (d: WData, status: 'draft' | 'active'): CreatePropertyInput => ({
+  title: wizardTitre(d),
+  type: d.type ? TYPE_TO_ENUM[d.type] : 'apartment',
+  transaction_type: d.transaction === 'location' ? 'rent' : 'buy',
+  status,
+  price: (d.transaction === 'vente' ? d.price : d.rent) ?? 0,
+  rooms: d.rooms ?? 0,
+  bedrooms: d.bedrooms ?? 0,
+  bathrooms: d.bathrooms ?? 0,
+  surface_m2: d.area ?? 0,
+  year_built: d.year ?? undefined,
+  charges_monthly: d.transaction === 'location' ? (d.charges ?? undefined) : undefined,
+  mandate_type: d.mandateType || undefined,
+  energy_class: d.energy ?? null,
+  description: d.description || undefined,
+  address: d.addr,
+  city: d.city,
+  canton: d.canton,
+  postal_code: d.postCode,
+  features: d.features,
+})
+
+/**
  * Wizard de création de bien (mobile, /dashboard/listings/new) — flux d'ÉCRITURE
- * réel : 4 étapes (type+tx, localisation, caractéristiques, prix+publication) →
- * `useCreateProperty` (insert `properties`, agency_id/created_by injectés par le
- * hook ; titre synthétisé + statut depuis le mode, mapping identique au desktop
- * handlePublish). Différés (plan §6.2) : photos (à ajouter depuis la fiche),
- * extraction IA, staging payant, programmation, lien vendeur (transaction).
- * `demo` (harnais) n'écrit jamais.
+ * réel : 4 étapes (type+tx, localisation, caractéristiques, prix) → brouillon
+ * automatique dès la première adresse (`useWizardDraft`, partagé avec le
+ * bureau), puis publication qui fait passer CETTE ligne de `draft` à `active`.
+ * Différés (plan §6.2) : photos (à ajouter depuis la fiche), extraction IA,
+ * staging payant, lien vendeur (transaction). `demo` (harnais) n'écrit jamais.
  */
 export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
   const navigate = useNavigate()
   const { t } = useTranslation('listings')
   const { tk } = useMobileTokens()
   const createProperty = useCreateProperty()
+  const updateProperty = useUpdateProperty()
 
   const [step, setStep] = useState(0)
   const [d, setD] = useState<WData>(EMPTY)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
-  const set = (patch: Partial<WData>) => setD((prev) => ({ ...prev, ...patch }))
+  // Stable : `useWizardDraft` la garde dans les dépendances de son écriture.
+  const set = useCallback((patch: Partial<WData>) => setD((prev) => ({ ...prev, ...patch })), [])
+
+  const publishing = createProperty.isPending || updateProperty.isPending
+  // Brouillon automatique — même hook que le bureau, donc même verrou optimiste
+  // et même reprise de la passe arrivée pendant une écriture. Suspendu pendant
+  // et après la publication (sinon il repasserait le bien en `draft` juste
+  // après l'avoir activé), et dans le harnais, qui n'écrit jamais.
+  const { etat: etatBrouillon } = useWizardDraft(d, set, !demo && !publishing && !done, mobileWizardPayload)
 
   const canNext =
     step === 0 ? !!d.type :
     step === 1 ? d.addr.trim().length > 0 && d.city.trim().length > 0 :
     true
   const priceField = d.transaction === 'vente' ? d.price : d.rent
-  const canPublish = d.publishMode === 'draft' || (priceField ?? 0) > 0
+  // Le prix conditionne la PUBLICATION, plus l'enregistrement : un parcours
+  // sans prix reste en base comme brouillon, il ne part simplement pas en ligne.
+  const canPublish = (priceField ?? 0) > 0
 
   const close = () => navigate('/dashboard/listings')
 
   async function publish() {
-    if (createProperty.isPending) return
+    if (publishing) return
     setError(null)
-    const status = d.publishMode === 'draft' ? 'draft' : 'active'
-    const titleParts = [
-      d.type ? d.type.charAt(0).toUpperCase() + d.type.slice(1) : 'Bien',
-      d.rooms ? `${d.rooms} pièces` : null,
-      d.city || d.addr ? `— ${d.city || d.addr}` : null,
-    ].filter(Boolean) as string[]
     if (demo) { setDone(true); return }
     try {
-      const created = await createProperty.mutateAsync({
-        title: titleParts.join(' '),
-        type: d.type ? WTYPE_TO_ENUM[d.type] : 'apartment',
-        transaction_type: d.transaction === 'location' ? 'rent' : 'buy',
-        status,
-        price: (d.transaction === 'vente' ? d.price : d.rent) ?? 0,
-        rooms: d.rooms ?? 0,
-        bedrooms: d.bedrooms ?? 0,
-        bathrooms: d.bathrooms ?? 0,
-        surface_m2: d.area ?? 0,
-        year_built: d.year ?? undefined,
-        charges_monthly: d.transaction === 'location' ? (d.charges ?? undefined) : undefined,
-        mandate_type: d.mandateType || undefined,
-        energy_class: d.energy ?? null,
-        description: d.description || undefined,
-        address: d.addr,
-        city: d.city,
-        canton: d.canton,
-        postal_code: d.postCode,
-        features: d.features,
-      })
-      navigate(`/dashboard/listings/${created.id}`)
+      const charge = mobileWizardPayload(d, 'active')
+      const bien = d._draftId
+        ? await updateProperty.mutateAsync({ id: d._draftId, ...charge })
+        : await createProperty.mutateAsync(charge)
+      navigate(`/dashboard/listings/${bien.id}`)
     } catch {
       setError(t('wizardMobile.publishError'))
     }
@@ -159,7 +195,9 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
           <button type="button" onClick={close} aria-label={t('common:actions.cancel')} style={{ width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', border: 0, background: tk.card, boxShadow: tk.shadowSm, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
             <MEIcon name="close" size={20} color={tk.ink} />
           </button>
-          <div style={{ flex: 1 }} />
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <Temoin tk={tk} etat={etatBrouillon} t={t} />
+          </div>
           <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>{step + 1} / {STEPS}</span>
         </div>
         <div style={{ display: 'flex', gap: 'var(--crm-space-xs)', marginTop: 12 }}>
@@ -197,11 +235,11 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
         ) : (
           <button
             type="button"
-            disabled={!canPublish || createProperty.isPending}
+            disabled={!canPublish || publishing}
             onClick={() => void publish()}
             style={{ flex: 1, height: 52, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: canPublish ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: canPublish ? tk.accent : tk.cardSubtle, color: canPublish ? tk.accentInk : tk.muted, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}
           >
-            {createProperty.isPending ? t('wizardMobile.publishing') : d.publishMode === 'draft' ? t('wizardMobile.saveDraft') : t('wizardMobile.publish')}
+            {publishing ? t('wizardMobile.publishing') : t('wizardMobile.publish')}
           </button>
         )}
       </footer>
@@ -212,6 +250,33 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
 // ─── helpers UI ──────────────────────────────────────────────────────────
 type Tk = ReturnType<typeof useMobileTokens>['tk']
 interface StepProps { d: WData; set: (p: Partial<WData>) => void; tk: Tk; t: TFunction }
+
+/**
+ * Témoin de brouillon — il ne dit QUE ce qui a réellement eu lieu.
+ *
+ * `inactif` (avant la première adresse) n'affiche rien : il n'y a rien
+ * d'enregistré, donc rien à promettre. C'est le défaut que le bureau portait
+ * jusqu'au 11 août — « Enregistré » clignotait à chaque frappe pendant que rien
+ * ne s'écrivait — et le mobile n'avait, lui, aucun témoin du tout.
+ *
+ * Il vit dans l'EN-TÊTE et non dans le pied comme au bureau : le pied mobile
+ * tient deux boutons pleine largeur, il n'y a pas la place d'une troisième
+ * information, et le compteur d'étapes est déjà l'endroit où l'œil va chercher
+ * l'état du parcours.
+ */
+function Temoin({ tk, etat, t }: { tk: Tk; etat: EtatBrouillon; t: TFunction }) {
+  if (etat === 'inactif') return null
+  const teinte = etat === 'echec' ? tk.dangerFg : etat === 'enregistrement' ? tk.muted : tk.goal
+  const libelle = etat === 'echec' ? t('wizard.shell.saveFailed')
+    : etat === 'enregistrement' ? t('wizard.shell.saving')
+    : t('wizard.shell.saved')
+  return (
+    <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: teinte, minWidth: 0 }}>
+      <span style={{ width: 7, height: 7, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: teinte }} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{libelle}</span>
+    </div>
+  )
+}
 
 /** En-tête d'étape : sur-titre (eyebrow) discret + titre. */
 function Title({ tk, eyebrow, children }: { tk: Tk; eyebrow: string; children: string }) {
@@ -377,12 +442,6 @@ function StepPrice({ d, set, tk, t, error }: StepProps & { error: string | null 
       <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
         <Chip tk={tk} on={d.mandateType === 'exclusive'} onClick={() => set({ mandateType: d.mandateType === 'exclusive' ? '' : 'exclusive' })}>{t('wizardMobile.mandateExclusive')}</Chip>
         <Chip tk={tk} on={d.mandateType === 'simple'} onClick={() => set({ mandateType: d.mandateType === 'simple' ? '' : 'simple' })}>{t('wizardMobile.mandateSimple')}</Chip>
-      </div>
-
-      <SectionLabel tk={tk}>{t('wizardMobile.publishWhen')}</SectionLabel>
-      <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
-        <Chip tk={tk} on={d.publishMode === 'now'} onClick={() => set({ publishMode: 'now' })}>{t('wizardMobile.publishNow')}</Chip>
-        <Chip tk={tk} on={d.publishMode === 'draft'} onClick={() => set({ publishMode: 'draft' })}>{t('wizardMobile.draft')}</Chip>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 16, color: tk.muted }}>

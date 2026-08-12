@@ -135,3 +135,79 @@ describe('Wizard — le brouillon automatique existe vraiment', () => {
     expect(wizardPayload(PLEIN, 'draft').type).toBe('villa')
   })
 })
+
+/**
+ * ── LE WIZARD MOBILE ─────────────────────────────────────────────────────────
+ *
+ * ⛔ CE QUI A MOTIVÉ CE BLOC. Le lot « Mes biens » du 11 août a donné au wizard
+ * BUREAU un brouillon réel et lui a retiré son mode de publication. Le wizard
+ * MOBILE — même geste, même table, autre dossier — est resté un jour de plus
+ * sur l'ancien fonctionnement : deux pastilles « Publier maintenant / Brouillon »
+ * et AUCUNE persistance. Un agent qui commençait une annonce dans le train et
+ * fermait l'application perdait tout, sans même le témoin trompeur du bureau
+ * pour le prévenir — il n'y avait pas de témoin du tout.
+ *
+ * C'est la QUATRIÈME fois sur cette surface qu'un correctif ne traverse qu'un
+ * des deux dossiers d'un même écran (après le calendrier, la fiche bien et
+ * `ghost` en encre). D'où des tests qui posent au mobile les mêmes questions
+ * qu'au bureau, dans le même fichier : côte à côte, un oubli se voit.
+ */
+describe('Wizard mobile — le même brouillon que le bureau', () => {
+  const MOBILE = 'src/components/crm-mobile/wizard/MobileWizardScreen.tsx'
+  const ecran = () => readFileSync(MOBILE, 'utf-8')
+
+  it('l’écran mobile persiste, au lieu de ne rien écrire avant « Publier »', () => {
+    const src = sansCommentaires(ecran())
+    expect(src).toMatch(/useWizardDraft\(/)
+    expect(src).toMatch(/mobileWizardPayload/)
+  })
+
+  /**
+   * La mécanique d'écriture — verrou optimiste, reprise de la passe arrivée en
+   * vol, création à la première adresse — n'existe QU'UNE fois. Un second hook
+   * mobile dupliquerait précisément la partie où les bugs se logent.
+   */
+  it('la mécanique d’écriture n’est pas recopiée', () => {
+    const src = ecran()
+    expect(src).toMatch(/from '@\/components\/crm-sugar-wizard\/useWizardDraft'/)
+    expect(src).not.toMatch(/expected_updated_at/)
+  })
+
+  it('aucun mode de publication ne revient', () => {
+    expect(sansCommentaires(ecran())).not.toMatch(/publishMode|scheduledAt/)
+  })
+
+  /**
+   * La carte des types vivait en double, et les deux copies avaient déjà
+   * divergé sur `villa` : le même bien devenait une maison ou une villa selon
+   * l'appareil qui l'avait créé.
+   */
+  it('la carte des types n’existe plus qu’au bureau', () => {
+    // `sansCommentaires` : la JSDoc de `mobileWizardPayload` NOMME la copie
+    // retirée pour dire pourquoi elle l'a été. Sans ça le garde-fou rougit sur
+    // sa propre documentation — troisième fois dans ce dépôt.
+    const src = sansCommentaires(ecran())
+    expect(src).not.toMatch(/WTYPE_TO_ENUM/)
+    expect(src).toMatch(/TYPE_TO_ENUM/)
+  })
+
+  it('la publication met à jour le brouillon au lieu d’en créer un second', () => {
+    expect(ecran()).toMatch(/_draftId[\s\S]{0,140}updateProperty\.mutateAsync/)
+  })
+
+  /**
+   * Le harnais `/dev/mobile` monte cet écran ; s'il écrivait, chaque visite
+   * sèmerait un brouillon dans « Mes biens » de l'agence.
+   */
+  it('le harnais n’écrit jamais', () => {
+    expect(ecran()).toMatch(/useWizardDraft\(\s*d,\s*set,\s*!demo\b/)
+  })
+
+  /**
+   * Le témoin ne dit rien tant que rien n'est enregistré. C'est la règle du
+   * bureau, et la seule qui empêche un « Enregistré » de porter sur le vide.
+   */
+  it('le témoin se tait avant la première écriture', () => {
+    expect(ecran()).toMatch(/etat === 'inactif'\s*\)\s*return null/)
+  })
+})

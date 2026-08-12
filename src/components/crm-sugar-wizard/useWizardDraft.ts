@@ -18,6 +18,15 @@
  * fiche a bougé ailleurs (autre onglet, édition depuis `/:id/edit`), la
  * requête ne matche aucune ligne et l'écriture échoue au lieu d'écraser :
  * l'état passe à `echec`, et le témoin le dit.
+ *
+ * ⚠ LE HOOK EST GÉNÉRIQUE, la charge utile ne l'est pas. Deux wizards écrivent
+ * dans `properties` — celui du bureau (7 étapes, `WizardData`) et celui du
+ * mobile (4 étapes, `WData`) — et leurs états n'ont ni les mêmes champs ni les
+ * mêmes noms. Ce qui doit rester UNIQUE, c'est la mécanique d'écriture : le
+ * verrou optimiste, la reprise de la passe arrivée en vol, le moment de la
+ * première création. Chaque appelant apporte donc son `payload` ; le reste est
+ * partagé. Écrire un second hook aurait dupliqué précisément la partie où les
+ * bugs se logent.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCreateProperty, useUpdateProperty, type CreatePropertyInput } from '@/hooks/useProperties'
@@ -35,11 +44,13 @@ const REPOS_MS = 1200
  * couvert viole l'enum → l'insert échoue (22P02, avalé) et le bien n'est jamais
  * créé. Étendre AVEC le type union de `WizardData` (tokens.ts).
  *
- * ⚠ Vit ICI et nulle part ailleurs. Il existait en double — une copie dans
- * `WizardShell`, une dans le wizard mobile (`WTYPE_TO_ENUM`) — et les deux
- * avaient déjà divergé sur `villa`.
+ * ⚠ Vit ICI et nulle part ailleurs. Il existait en TRIPLE — une copie dans
+ * `WizardShell`, une dans le wizard mobile (`WTYPE_TO_ENUM`) — et elles avaient
+ * déjà divergé sur `villa`. Les deux copies sont parties (bureau le 11 août,
+ * mobile le 12) ; le mobile importe désormais celle-ci, ses quatre types étant
+ * un sous-ensemble des dix.
  */
-const TYPE_TO_ENUM: Record<WizardData['type'], CreatePropertyInput['type']> = {
+export const TYPE_TO_ENUM: Record<WizardData['type'], CreatePropertyInput['type']> = {
   appartement: 'apartment', attique: 'apartment', duplex: 'apartment',
   triplex: 'apartment', loft: 'apartment', maison: 'house', villa: 'villa',
   chalet: 'house', terrain: 'land', commerce: 'commercial',
@@ -48,8 +59,18 @@ const TYPE_TO_ENUM: Record<WizardData['type'], CreatePropertyInput['type']> = {
 /**
  * Titre d'affichage synthétisé depuis les données saisies. La colonne est NOT
  * NULL ; l'agent renomme depuis la fiche s'il le souhaite.
+ *
+ * ⚠ Signature STRUCTURELLE, pas `WizardData` : le wizard mobile appelle la même
+ * fonction avec son propre état, dont le `type` peut être nul (ses quatre
+ * tuiles commencent non choisies). C'était la troisième copie de ces trois
+ * lignes ; la garder en aurait fait une quatrième.
  */
-export function wizardTitre(data: WizardData): string {
+export function wizardTitre(data: {
+  type: WizardData['type'] | null
+  rooms: number | null
+  city?: string
+  addr: string
+}): string {
   return [
     data.type ? data.type.charAt(0).toUpperCase() + data.type.slice(1) : 'Bien',
     data.rooms ? `${data.rooms} pièces` : null,
@@ -98,17 +119,32 @@ export function wizardPayload(data: WizardData, status: 'draft' | 'active'): Cre
 }
 
 /**
+ * Ce qu'un état de wizard doit porter pour être persistable : l'adresse, qui
+ * déclenche la première écriture, et l'id de la ligne créée.
+ */
+export interface WizardDraftable {
+  addr: string
+  _draftId?: string
+}
+
+/**
  * Persiste l'état du wizard en brouillon, et rend ce que le témoin peut dire.
  *
- * @param data  état courant du wizard
- * @param set   applique un patch sur cet état (pour y ranger `_draftId`)
- * @param actif faux pendant la publication et après — sinon la sauvegarde
- *              repasserait le bien en `draft` juste après l'avoir activé.
+ * @param data    état courant du wizard
+ * @param set     applique un patch sur cet état (pour y ranger `_draftId`)
+ * @param actif   faux pendant la publication et après — sinon la sauvegarde
+ *                repasserait le bien en `draft` juste après l'avoir activé.
+ *                Faux aussi dans les harnais de démonstration, qui n'écrivent
+ *                jamais.
+ * @param payload construit la charge `properties` depuis l'état. DOIT être
+ *                défini au niveau module : une lambda recréée à chaque rendu
+ *                changerait l'identité de `ecrire` sans raison.
  */
-export function useWizardDraft(
-  data: WizardData,
-  set: (patch: Partial<WizardData>) => void,
+export function useWizardDraft<T extends WizardDraftable>(
+  data: T,
+  set: (patch: Partial<T>) => void,
   actif: boolean,
+  payload: (d: T, status: 'draft' | 'active') => CreatePropertyInput,
 ): { etat: EtatBrouillon } {
   const createProperty = useCreateProperty()
   const updateProperty = useUpdateProperty()
@@ -143,14 +179,16 @@ export function useWizardDraft(
     setEtat('enregistrement')
     try {
       if (!d._draftId) {
-        const cree = await createProperty.mutateAsync(wizardPayload(d, 'draft'))
+        const cree = await createProperty.mutateAsync(payload(d, 'draft'))
         version.current = cree.updated_at
-        set({ _draftId: cree.id })
+        // `T` garantit `_draftId?: string`, mais TS ne sait pas prouver qu'un
+        // littéral le satisfait pour un T quelconque.
+        set({ _draftId: cree.id } as Partial<T>)
       } else {
         const maj = await updateProperty.mutateAsync({
           id: d._draftId,
           ...(version.current ? { expected_updated_at: version.current } : {}),
-          ...wizardPayload(d, 'draft'),
+          ...payload(d, 'draft'),
         })
         version.current = (maj as { updated_at?: string })?.updated_at ?? null
       }
@@ -166,7 +204,7 @@ export function useWizardDraft(
       // aussitôt, avec `dernier.current` qui porte déjà la valeur à jour.
       if (enAttente.current) { enAttente.current = false; void ecrireImpl() }
     }
-  }, [createProperty, updateProperty, set])
+  }, [createProperty, updateProperty, set, payload])
 
   useEffect(() => {
     if (!actif || !data.addr?.trim()) return
