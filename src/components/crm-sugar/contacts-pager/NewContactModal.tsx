@@ -133,10 +133,16 @@ function buildC(sp: SugarPalette, dark: boolean): NcbC {
       dark: false,
       surfaceBg: '#FFFFFF',
       nameInk: sp.ink,
-      nameGhost: '#B5BAC2',
+      // ⚠ L'encre du VIDE, pas une décoration. Elle distingue « pas encore
+      // saisi » de « saisi » dans l'aperçu vivant — c'est le seul repère de
+      // progression de la carte. Elle valait #B5BAC2, mesuré à 1,95:1 : le
+      // repère existait mais ne se lisait pas. Elle descend sur l'échelle
+      // (`sub`, 5,57:1) et reste très en retrait de l'encre pleine, qui est
+      // `soft` (#181818). L'écart de rôle survit, la lisibilité arrive.
+      nameGhost: sp.sub,
       metaIcon: sp.soft,
       metaText: sp.soft,
-      metaGhost: '#B5BAC2',
+      metaGhost: sp.sub,
       errText: '#B4293D',
       ctaOnBg: accent,
       ctaOnInk: '#FFFFFF',
@@ -172,10 +178,12 @@ function buildC(sp: SugarPalette, dark: boolean): NcbC {
     // En sombre, la carte fusionnée reprend le noir de page pour se souder au cadre.
     surfaceBg: sp.solidBg,
     nameInk: '#FFFFFF',
-    nameGhost: 'rgba(255,255,255,0.35)',
+    nameGhost: 'rgba(255,255,255,0.55)',
     metaIcon: 'rgba(255,255,255,0.75)',
     metaText: 'rgba(255,255,255,0.82)',
-    metaGhost: 'rgba(255,255,255,0.35)',
+    // Même geste en sombre : 35 % donnait 3,12:1 sur la carte, 55 % donne
+    // 6,24:1 — et reste bien en dessous des 82 % de l'encre pleine.
+    metaGhost: 'rgba(255,255,255,0.55)',
     errText: '#E0738C',
     ctaOnBg: '#FFFFFF',
     ctaOnInk: sp.pageBg,

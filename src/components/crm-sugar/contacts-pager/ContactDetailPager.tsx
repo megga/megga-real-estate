@@ -719,9 +719,18 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
   const canalOpts = CD_CANALS.map((v) => ({ v, l: t('fiche.canal.' + v) }))
 
   return (
-    // Défilement permanent (pas seulement en édition) : les 9 lignes d'identité
-    // débordent la colonne dès qu'elles sont renseignées.
-    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-6xl) var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+    // ⚠ `flex: '0 1 auto'` et non `flex: 1`. Ce bloc partageait la colonne à
+    // PARTS ÉGALES avec la note, alors que les deux n'ont pas la même nature :
+    // Coordonnées porte un contenu FIXE — neuf champs, toujours les mêmes —
+    // quand la note est élastique. Mesuré : 224 px de hauteur pour 407 px de
+    // contenu, et la dernière ligne coupée au milieu de ses glyphes. Le bloc
+    // prend maintenant sa hauteur naturelle et la note absorbe le reste.
+    //
+    // `overflowY: 'auto'` reste, en SOUPAPE : sur un écran trop court le bloc
+    // redevient défilant au lieu de pousser la note hors de la colonne. C'est
+    // aussi ce qui couvre le mode ÉDITION, où les champs sont plus hauts que
+    // les lignes en lecture.
+    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-6xl) var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', flex: '0 0 auto', minHeight: 0, overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)' }}>
         <CdGrp P={P}>{t('detail.contactInfo')}</CdGrp>
         <div style={{ flex: 1 }} />
@@ -960,7 +969,7 @@ function CdNote({ P, notes, onSaveNote }: { P: FichePal; notes: string; onSaveNo
   useEffect(() => () => { planner.chasser() }, [planner])
 
   return (
-    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-2xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', flex: 1, minHeight: 0 }}>
+    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-2xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', flex: 1, minHeight: 148 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
         <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: P.muted }}>{t('fiche.note.label')}</span>
         {echec && <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.danger, textAlign: 'right' }}>{t('fiche.note.saveError')}</span>}
@@ -1161,7 +1170,12 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
       {/* Corps — 2 colonnes */}
       <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 'var(--crm-space-3xl)' }}>
         <CdCrit key={'crit-' + fiche.id} P={P} fiche={fiche} editSignal={critSig} freezeRef={freezeRef} onSave={onSaveCriteria} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', minHeight: 0 }}>
+        {/* ⚠ La colonne DÉFILE, et c'est elle qui absorbe le trop-plein — pas ses
+            cartes. Coordonnées porte neuf champs d'identité LBA : contenu fixe,
+            hauteur naturelle. La note est élastique mais garde un plancher
+            utilisable (148 px) — sans lui elle tombait à 54 px et passait sous
+            le pli. Le pager cède déjà la molette à un enfant défilant. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', minHeight: 0, overflowY: 'auto' }}>
           <CdCoord key={'coord-' + fiche.id} P={P} fiche={fiche} editSignal={coordSig} freezeRef={freezeRef} onSave={onSaveCoord} />
           <CdNote key={'note-' + fiche.id} P={P} notes={fiche.notes} onSaveNote={onSaveNote} />
         </div>
