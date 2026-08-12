@@ -120,19 +120,20 @@ export function Step1Mandate({ data, set }: StepProps) {
 
       {/* Header */}
       <div style={{ marginBottom: 28, maxWidth: 720 }}>
-        <div style={{
-          fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
-          marginBottom: 14,
-        }}>{tr('wizard.step1.mandate.eyebrow')}</div>
         <h1 style={{
-          margin: '0 0 14px', fontSize: 'var(--crm-text-9xl)', fontWeight: 500,
+          margin: 0, fontSize: 'var(--crm-text-9xl)', fontWeight: 500,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
         }}>{tr('wizard.step1.mandate.title')}</h1>
-        <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          {importMode === 'imported'
-            ? tr('wizard.step1.mandate.subtitleImported')
-            : tr('wizard.step1.mandate.subtitle')}
-        </p>
+        {/* ⚠ Le SEUL sous-titre gardé du wizard, et il ne décrit pas l'écran : il
+            dit que les valeurs affichées ont été EXTRAITES par MEGGA AI et qu'il
+            faut les vérifier. Sans lui, des champs pré-remplis par une machine
+            passeraient pour des champs saisis — la validation humaine ne se
+            demande plus nulle part. */}
+        {importMode === 'imported' && (
+          <p style={{ margin: '14px 0 0', fontSize: 'var(--crm-text-xl)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
+            {tr('wizard.step1.mandate.subtitleImported')}
+          </p>
+        )}
 
         {linkedOwner && (
           <div style={{

@@ -886,9 +886,7 @@
     },
     "step1": {
       "vendor": {
-        "eyebrow": "Étape 2 sur 8 · Vendeur (1/2)",
         "title": "Qui est le propriétaire ?",
-        "subtitle": "Liez ce bien à un contact existant ou créez-en un nouveau.",
         "change": "Changer",
         "searchPlaceholder": "Tapez le nom, l'email ou le téléphone du vendeur…",
         "newButton": "+ Nouveau",
@@ -908,9 +906,7 @@
         "createContact": "Créer le contact"
       },
       "mandate": {
-        "eyebrow": "Étape 2 sur 8 · Mandat (2/2)",
         "title": "Quel type de mandat ?",
-        "subtitle": "Importez un mandat signé pour gagner du temps, ou configurez-le manuellement.",
         "subtitleImported": "MEGGA AI a extrait les informations de votre mandat. Vérifiez et ajustez si nécessaire.",
         "field": {
           "type": "Type de mandat",
@@ -967,9 +963,7 @@
       }
     },
     "step2": {
-      "eyebrow": "Étape 3 sur 8 · Adresse",
       "title": "Où se situe le bien ?",
-      "subtitle": "Tapez une adresse, MEGGA AI complète le code postal, le canton et les coordonnées.",
       "searchPlaceholder": "Rue, numéro, ville…",
       "confirmedTitle": "Adresse confirmée",
       "confirmedSubtitle": "Code postal, canton et coordonnées détectés automatiquement.",
@@ -1082,9 +1076,7 @@
     "photosCount_one": "{{count}} photo",
     "photosCount_other": "{{count}} photos",
     "step4": {
-      "eyebrow": "Étape 5 sur 8 · Photos",
       "title": "Ajoutez les photos du bien",
-      "intro": "Les annonces avec 8 à 12 photos reçoivent <strong>3× plus de demandes</strong>. La première photo sera la couverture sur MEGGA.",
       "mode": {
         "pc": "Depuis cet ordinateur",
         "mobile": "Depuis votre téléphone",
@@ -1377,9 +1369,6 @@
       "savedNote": "Ce bien est déjà enregistré en brouillon dans « Mes biens ». Publier le rend visible."
     },
     "step8": {
-      "eyebrow": {
-        "now": "Publication confirmée"
-      },
       "title": {
         "now": "Annonce publiée"
       },

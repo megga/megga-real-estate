@@ -86,11 +86,8 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
           )}
         </div>
 
-        <div style={{
-          fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
-          marginBottom: 12,
-        }}>{tr('wizard.step8.eyebrow.now')}</div>
-
+        {/* Le sur-titre « Publication confirmée » disait pour la troisième fois
+            ce que le titre et le sous-titre disent déjà. */}
         <h1 style={{
           margin: '0 0 12px', fontSize: 44, fontWeight: 500,
           color: SugarV2.ink, letterSpacing: -1.2, lineHeight: 1.05,

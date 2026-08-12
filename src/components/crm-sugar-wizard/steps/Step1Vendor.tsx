@@ -76,17 +76,10 @@ export function Step1Vendor({ data, set }: StepProps) {
     }}>
       {/* Header */}
       <div style={{ marginBottom: 36, maxWidth: 720 }}>
-        <div style={{
-          fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.muted,
-          marginBottom: 14,
-        }}>{t('wizard.step1.vendor.eyebrow')}</div>
         <h1 style={{
-          margin: '0 0 14px', fontSize: 'var(--crm-text-9xl)', fontWeight: 500,
+          margin: 0, fontSize: 'var(--crm-text-9xl)', fontWeight: 500,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
         }}>{t('wizard.step1.vendor.title')}</h1>
-        <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          {t('wizard.step1.vendor.subtitle')}
-        </p>
       </div>
 
       {/* Sélectionné */}

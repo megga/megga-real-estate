@@ -886,9 +886,7 @@
     },
     "step1": {
       "vendor": {
-        "eyebrow": "Passaggio 2 di 8 · Venditore (1/2)",
         "title": "Chi è il proprietario?",
-        "subtitle": "Collega questo immobile a un contatto esistente o creane uno nuovo.",
         "change": "Cambia",
         "searchPlaceholder": "Digita il nome, l'email o il telefono del venditore…",
         "newButton": "+ Nuovo",
@@ -908,9 +906,7 @@
         "createContact": "Crea il contatto"
       },
       "mandate": {
-        "eyebrow": "Passaggio 2 di 8 · Mandato (2/2)",
         "title": "Che tipo di mandato?",
-        "subtitle": "Importa un mandato firmato per risparmiare tempo, oppure configuralo manualmente.",
         "subtitleImported": "MEGGA AI ha estratto le informazioni dal tuo mandato. Verifica e correggi se necessario.",
         "field": {
           "type": "Tipo di mandato",
@@ -967,9 +963,7 @@
       }
     },
     "step2": {
-      "eyebrow": "Passo 3 di 8 · Indirizzo",
       "title": "Dove si trova l'immobile?",
-      "subtitle": "Digita un indirizzo, MEGGA AI completa NPA, cantone e coordinate.",
       "searchPlaceholder": "Via, numero, città…",
       "confirmedTitle": "Indirizzo confermato",
       "confirmedSubtitle": "NPA, cantone e coordinate rilevati automaticamente.",
@@ -1082,9 +1076,7 @@
     "photosCount_one": "{{count}} photo",
     "photosCount_other": "{{count}} photos",
     "step4": {
-      "eyebrow": "Passaggio 5 di 8 · Foto",
       "title": "Aggiungi le foto dell'immobile",
-      "intro": "Gli annunci che hanno da 8 a 12 foto ricevono <strong>3× più richieste</strong>. La prima foto sarà la copertina su MEGGA.",
       "mode": {
         "pc": "Da questo computer",
         "mobile": "Dal tuo telefono",
@@ -1377,9 +1369,6 @@
       "savedNote": "Questo immobile è già salvato come bozza in I miei immobili. Pubblicare lo rende visibile."
     },
     "step8": {
-      "eyebrow": {
-        "now": "Pubblicazione confermata"
-      },
       "title": {
         "now": "Annuncio pubblicato"
       },

@@ -886,9 +886,7 @@
     },
     "step1": {
       "vendor": {
-        "eyebrow": "Step 2 of 8 · Seller (1/2)",
         "title": "Who is the owner?",
-        "subtitle": "Link this property to an existing contact or create a new one.",
         "change": "Change",
         "searchPlaceholder": "Type the seller's name, email or phone…",
         "newButton": "+ New",
@@ -908,9 +906,7 @@
         "createContact": "Create contact"
       },
       "mandate": {
-        "eyebrow": "Step 2 of 8 · Mandate (2/2)",
         "title": "What type of mandate?",
-        "subtitle": "Import a signed mandate to save time, or set it up manually.",
         "subtitleImported": "MEGGA AI has extracted the details from your mandate. Review and adjust if needed.",
         "field": {
           "type": "Mandate type",
@@ -967,9 +963,7 @@
       }
     },
     "step2": {
-      "eyebrow": "Step 3 of 8 · Address",
       "title": "Where is the property located?",
-      "subtitle": "Type an address and MEGGA AI fills in the postal code, canton and coordinates.",
       "searchPlaceholder": "Street, number, city…",
       "confirmedTitle": "Address confirmed",
       "confirmedSubtitle": "Postal code, canton and coordinates detected automatically.",
@@ -1082,9 +1076,7 @@
     "photosCount_one": "{{count}} photo",
     "photosCount_other": "{{count}} photos",
     "step4": {
-      "eyebrow": "Step 5 of 8 · Photos",
       "title": "Add the property photos",
-      "intro": "Listings with 8 to 12 photos receive <strong>3× more enquiries</strong>. The first photo will be the cover on MEGGA.",
       "mode": {
         "pc": "From this computer",
         "mobile": "From your phone",
@@ -1377,9 +1369,6 @@
       "savedNote": "This property is already saved as a draft in My properties. Publishing makes it visible."
     },
     "step8": {
-      "eyebrow": {
-        "now": "Publication confirmed"
-      },
       "title": {
         "now": "Listing published"
       },

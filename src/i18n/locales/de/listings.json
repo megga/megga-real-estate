@@ -886,9 +886,7 @@
     },
     "step1": {
       "vendor": {
-        "eyebrow": "Schritt 2 von 8 · Verkäufer (1/2)",
         "title": "Wer ist der Eigentümer?",
-        "subtitle": "Dieses Objekt mit einem bestehenden Kontakt verknüpfen oder einen neuen erstellen.",
         "change": "Ändern",
         "searchPlaceholder": "Name, E-Mail oder Telefon des Verkäufers eingeben…",
         "newButton": "+ Neu",
@@ -908,9 +906,7 @@
         "createContact": "Kontakt erstellen"
       },
       "mandate": {
-        "eyebrow": "Schritt 2 von 8 · Mandat (2/2)",
         "title": "Welche Art von Mandat?",
-        "subtitle": "Ein unterzeichnetes Mandat importieren, um Zeit zu sparen, oder es manuell einrichten.",
         "subtitleImported": "MEGGA AI hat die Angaben aus Ihrem Mandat extrahiert. Prüfen und bei Bedarf anpassen.",
         "field": {
           "type": "Mandatstyp",
@@ -967,9 +963,7 @@
       }
     },
     "step2": {
-      "eyebrow": "Schritt 3 von 8 · Adresse",
       "title": "Wo befindet sich das Objekt?",
-      "subtitle": "Geben Sie eine Adresse ein, MEGGA AI ergänzt PLZ, Kanton und Koordinaten.",
       "searchPlaceholder": "Strasse, Nummer, Ort…",
       "confirmedTitle": "Adresse bestätigt",
       "confirmedSubtitle": "PLZ, Kanton und Koordinaten automatisch erkannt.",
@@ -1082,9 +1076,7 @@
     "photosCount_one": "{{count}} photo",
     "photosCount_other": "{{count}} photos",
     "step4": {
-      "eyebrow": "Schritt 5 von 8 · Fotos",
       "title": "Fügen Sie die Fotos des Objekts hinzu",
-      "intro": "Inserate mit 8 bis 12 Fotos erhalten <strong>3× mehr Anfragen</strong>. Das erste Foto wird das Titelbild auf MEGGA.",
       "mode": {
         "pc": "Von diesem Computer",
         "mobile": "Von Ihrem Telefon",
@@ -1377,9 +1369,6 @@
       "savedNote": "Diese Immobilie ist bereits als Entwurf in Meine Immobilien gespeichert. Veröffentlichen macht sie sichtbar."
     },
     "step8": {
-      "eyebrow": {
-        "now": "Veröffentlichung bestätigt"
-      },
       "title": {
         "now": "Inserat veröffentlicht"
       },
