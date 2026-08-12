@@ -28,6 +28,7 @@ import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/
 import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmFmtCHF } from '@/components/crm-sugar/tokens'
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { creerNotePlanner } from '@/components/crm-sugar/contacts-pager/notePlanner'
 import { CTP_FN } from '@/components/crm-sugar/contacts-pager/ctpTokens'
 
@@ -311,9 +312,11 @@ function CdCta({ children, tone = 'ink', small, P, onClick, disabled }: {
   )
 }
 
-function CdRoundBtn({ icon, P, onClick }: { icon: string; P: FichePal; onClick?: () => void }) {
+/** ⚠ `label` n'est pas décoratif : ce bouton n'a QUE son icône. Sans nom
+ *  accessible il s'annonce « bouton » et rien d'autre. */
+function CdRoundBtn({ icon, P, onClick, label }: { icon: string; P: FichePal; onClick?: () => void; label?: string }) {
   return (
-    <button onClick={onClick} style={{ width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', background: P.card, boxShadow: P.shadowSm, border: 0, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+    <button onClick={onClick} aria-label={label} style={{ width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', background: P.card, boxShadow: P.shadowSm, border: 0, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
       <FcpIcon name={icon} size={16} stroke={P.inkSoft} />
     </button>
   )
@@ -552,17 +555,26 @@ function CdMenu({ P, dark, onEditId, onEditCoord, onEditCrit, onDelete }: {
  *  la liste est temporisé par l'appelant, sinon l'état ne serait jamais visible).
  *  Palette neutre Beta v1 (#17181A / voile noir) — les deux autres modales gardent
  *  la teinte bleutée d'origine, le changement est isolé au geste destructif. */
+/** ⚠ DEUX portails : la carte « supprimé » et la confirmation. Chacun a besoin
+ *  de son piège — celui qui n'est pas rendu ne piège rien. */
 function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
   P: FichePal; dark: boolean; name: string; done?: boolean; error: string | null; onCancel: () => void; onConfirm: () => void
 }) {
   const { t } = useTranslation('contacts')
   const modalBg = P.sp.solidBg
+  // ⚠ DEUX pièges parce qu'il y a DEUX portails — la carte « supprimé » et la
+  // confirmation. Un hook ne peut pas être conditionnel ; celui dont la carte
+  // n'est pas rendue ne piège rien, son conteneur étant simplement absent.
+  // ⚠ Seule la confirmation ferme sur Échap : la carte « supprimé » n'a pas de
+  // geste d'annulation, c'est `onBack` qui ramène à la liste.
+  const refDone = useFocusTrap(!!done)
+  const refConfirm = useFocusTrap(!done, onCancel)
   const veil: CSSProperties = { position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif' }
 
   if (done) {
     return createPortal(
       <div style={veil}>
-        <div style={{ width: 360, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '32px 30px', textAlign: 'center', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+        <div ref={refDone} role="dialog" aria-modal="true" aria-label={t('fiche.delete.done')} style={{ width: 360, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '32px 30px', textAlign: 'center', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
           <span style={{ width: 48, height: 48, borderRadius: 'var(--crm-radius-pill)', background: '#059669', display: 'inline-grid', placeItems: 'center' }}>
             <FcpIcon name="check" size={22} stroke="#FFFFFF" sw={2.4} />
           </span>
@@ -575,7 +587,7 @@ function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
 
   return createPortal(
     <div style={veil}>
-      <div style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+      <div ref={refConfirm} role="dialog" aria-modal="true" aria-label={t('fiche.delete.title', { name: name || t('fiche.delete.thisContact') })} style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
         <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
           <FcpIcon name="trash" size={20} stroke={P.danger} sw={2} />
         </span>
@@ -600,9 +612,10 @@ function CdKycWarn({ P, name, onCancel, onConfirm }: { P: FichePal; name: string
   const { t } = useTranslation('contacts')
   const modalBg = P.sp.solidBg
   const [consent, setConsent] = useState(false)
+  const refPiege = useFocusTrap(true, onCancel)
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 90, display: 'grid', placeItems: 'center', background: 'rgba(15,20,30,0.42)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease' }}>
-      <div style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '30px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+      <div ref={refPiege} role="dialog" aria-modal="true" aria-label={t('fiche.kycWarn.title')} style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '30px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ width: 46, height: 46, borderRadius: 'var(--crm-radius-xl)', background: P.danger + '24', display: 'grid', placeItems: 'center', marginBottom: 16 }}>
           <FcpIcon name="shield" size={22} stroke={P.danger} sw={2} />
         </div>
@@ -640,12 +653,13 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
 }) {
   const { t } = useTranslation('contacts')
   const modalBg = P.sp.solidBg
+  const refPiege = useFocusTrap(true, onCancel)
   const birthKo = isInvalidSwissDate(draft.birth)
   const canSave = !!draft.firstName.trim() && !!draft.lastName.trim() && !birthKo
   const countryOpts = [{ v: '', l: t('fiche.identity.countryNone') }, ...COUNTRIES.map((c) => ({ v: c.code, l: c.name }))]
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 80, display: 'grid', placeItems: 'center', background: 'rgba(15,20,30,0.42)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease' }}>
-      <div style={{ width: 452, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+      <div ref={refPiege} role="dialog" aria-modal="true" aria-label={t('fiche.identity.title')} style={{ width: 452, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, letterSpacing: -0.4, color: P.ink }}>{t('fiche.identity.title')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)', marginTop: 20 }}>
           <div>
@@ -1159,7 +1173,7 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
           <CdCta tone="ghost" P={P} onClick={onOpenKyc}>{t('fiche.kycDossier')}</CdCta>
           <CdCta P={P} onClick={isSeller ? onOpenListings : onOpenMatching}>{primaryLabel}</CdCta>
           <div ref={moreRef} style={{ position: 'relative' }}>
-            <CdRoundBtn icon="more" P={P} onClick={() => setMenuOpen((o) => !o)} />
+            <CdRoundBtn icon="more" P={P} label={t('fiche.menu.more')} onClick={() => setMenuOpen((o) => !o)} />
             {menuOpen && (
               <CdMenu P={P} dark={dark}
                 onEditId={() => { setMenuOpen(false); startId() }}
@@ -1201,9 +1215,10 @@ function CdRevokeLinkModal({ P, dark, link, busy, error, onCancel, onConfirm }: 
 }) {
   const { t } = useTranslation('contacts')
   const modalBg = P.sp.solidBg
+  const refPiege = useFocusTrap(true, onCancel)
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif' }}>
-      <div role="dialog" aria-modal="true" aria-label={t('fiche.links.confirm.title')}
+      <div ref={refPiege} role="dialog" aria-modal="true" aria-label={t('fiche.links.confirm.title')}
         style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
         <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
           <FcpIcon name="shield" size={20} stroke={P.danger} sw={2} />

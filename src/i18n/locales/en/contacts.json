@@ -905,7 +905,8 @@
       "editIdentity": "Edit identity",
       "editCoord": "Edit contact details",
       "editCriteria": "Edit criteria",
-      "delete": "Delete contact"
+      "delete": "Delete contact",
+      "more": "More actions"
     },
     "delete": {
       "title": "Delete {{name}}?",

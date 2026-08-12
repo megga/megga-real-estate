@@ -13,6 +13,7 @@ import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { WhatsAppGlyph, GgMonogram } from '@/components/crm-sugar/contacts-pager/glyphs'
 import { NcvIcon, type NcvIconName } from '@/components/crm-sugar/contacts-pager/ncvIcon'
 import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 const WA_GREEN = '#25D366'
 
@@ -42,6 +43,10 @@ export default function WhatsAppConnectModal({
 }): JSX.Element | null {
   const { t } = useTranslation('contacts')
   const { status, generateCode } = useWhatsAppPairing()
+  // ⚠ AVANT le retour anticipé `if (!open)` — un hook ne peut pas être
+  // conditionnel. Son drapeau est `open` : le piège s'arme à l'ouverture et
+  // rend le focus au bouton d'origine à la fermeture.
+  const refPiege = useFocusTrap(open, onClose)
   const [code, setCode] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
@@ -78,9 +83,11 @@ export default function WhatsAppConnectModal({
         @keyframes cfrPop { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
       `}</style>
       <div
+        ref={refPiege}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
+        aria-label={t('waConnect.title')}
         style={{
           width: 'min(452px, 100%)',
           backgroundColor: sp.pageBg,

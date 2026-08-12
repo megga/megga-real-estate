@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import type { CriteriaInput } from '@/lib/contactCriteria'
 import { NcvIcon, type NcvIconName } from '@/components/crm-sugar/contacts-pager/ncvIcon'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import { COUNTRIES, composePhone, dialCodeOptions } from '@/lib/countries'
 import { identityToColumns, isInvalidSwissDate } from '@/lib/contactIdentity'
@@ -526,7 +527,9 @@ function NcbCantonAutoM({ C, value, onChange, placeholder }: { C: NcbC; value: s
     } else if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); setHi((h) => Math.min(h + 1, matches.length - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)) }
     else if (e.key === 'Backspace' && q === '' && value.length) { remove(value[value.length - 1]) }
-    else if (e.key === 'Escape') { setOpen(false) }
+    // ⚠ On MARQUE l'événement : sans ça, le piège de focus de la modale verrait
+    // le même Échap et fermerait la modale entière en plus de la liste.
+    else if (e.key === 'Escape' && open) { e.preventDefault(); setOpen(false) }
   }
 
   return (
@@ -795,6 +798,11 @@ export default function NewContactModal({
    * ⚠ Un numéro local VIDE rend un téléphone VIDE, jamais l'indicatif seul :
    * sans ça un formulaire non renseigné enverrait « +41 » comme numéro.
    */
+  // ⚠ La modale declarait `aria-modal` SANS piéger le focus : 53 elements
+  // focusables la precedaient dans l'ordre de tabulation — la barre, le rail et
+  // les lignes de la liste QUI SONT DERRIERE ELLE. `aria-modal` annonce aux
+  // lecteurs d'ecran que le reste est inerte : sans piege, il MENT.
+  const refPiege = useFocusTrap(true, onClose)
   const [paysTel, setPaysTel] = useState('CH')
   const [numeroLocal, setNumeroLocal] = useState('')
   // 195 options traduites et retriées : sans mémoïsation, la liste entière serait
@@ -976,7 +984,7 @@ export default function NewContactModal({
   // Beta v1 supprime le titre héros (D7) : sans lui la modale n'a plus aucun nom
   // accessible. Le libellé du panneau sert de nom, sans rien ajouter à l'écran.
   return (
-    <div role="dialog" aria-modal="true" aria-label={t('newContactPager.expressCard')} className={C.dark ? 'ncbm-dark' : undefined} style={shellStyle}>
+    <div ref={refPiege} role="dialog" aria-modal="true" aria-label={t('newContactPager.expressCard')} className={C.dark ? 'ncbm-dark' : undefined} style={shellStyle}>
       {focusCss}
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         {/* ⚠ BENTO FUSIONNÉ : ni padding ni gap. Les deux colonnes touchent le
