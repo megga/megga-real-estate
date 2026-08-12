@@ -27,6 +27,7 @@ import { COUNTRIES, countryName } from '@/lib/countries'
 import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/lib/contactIdentity'
 import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmFmtCHF } from '@/components/crm-sugar/tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 
 // ═══════════════════════════════════════════════════════════════════════
 //   API PUBLIQUE
@@ -359,8 +360,15 @@ function CdReadRow({ label, value, empty, mono, P }: { label: string; value: Rea
   )
 }
 
+/**
+ * ⚠ L'encre est DÉRIVÉE de l'aplat, jamais choisie. Sous le blanc figé qui était
+ * écrit ici, la pilule « Écarté » sortait à 1,95:1 en clair (`ghost` #B5BAC2) —
+ * mesuré au rendu, pas dans le source : c'est la sonde de contraste qui l'a
+ * trouvée, la relecture ne l'avait pas vue.
+ */
 function CdStatePill({ state, label, P }: { state: FicheLoopItem['state']; label: string; P: FichePal }) {
-  return <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: P[LOOP_STATE[state].key], color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>{label}</span>
+  const aplat = P[LOOP_STATE[state].key]
+  return <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: aplat, color: encreSur(aplat), fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>{label}</span>
 }
 
 const cdLbl = (P: FichePal): CSSProperties => ({ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 7 })
@@ -516,7 +524,7 @@ function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
         )}
         <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
           <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
-          <button onClick={onConfirm} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: '#FFFFFF' }}>{t('fiche.delete.confirm')}</button>
+          <button onClick={onConfirm} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: encreSur(P.danger) }}>{t('fiche.delete.confirm')}</button>
         </div>
       </div>
     </div>,
@@ -551,7 +559,7 @@ function CdKycWarn({ P, name, onCancel, onConfirm }: { P: FichePal; name: string
         </label>
         <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 20 }}>
           <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
-          <button onClick={consent ? onConfirm : undefined} disabled={!consent} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: consent ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: '#FFFFFF', opacity: consent ? 1 : 0.45, transition: 'opacity 140ms ease' }}>{t('fiche.kycWarn.confirm')}</button>
+          <button onClick={consent ? onConfirm : undefined} disabled={!consent} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: consent ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: encreSur(P.danger), opacity: consent ? 1 : 0.45, transition: 'opacity 140ms ease' }}>{t('fiche.kycWarn.confirm')}</button>
         </div>
       </div>
     </div>
@@ -1010,7 +1018,12 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
 
       {/* Héro */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
-        <div style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-pill)', background: fiche.photo ? 'transparent' : (fiche.avatarBg || P.buyer), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-3xl)', fontWeight: 700, flexShrink: 0, overflow: 'hidden' }}>
+        {/* ⚠ Même avatar, même règle que la liste : la teinte vient d'un hachage
+            de l'id, sept des huit échouaient l'AA sous blanc. La sonde de rendu
+            ne l'a PAS signalé — la fiche de démonstration porte justement la
+            seule teinte qui passait (#0041D9). Un banc ne prouve que ce qu'il
+            montre ; c'est la garde de source qui tient celui-ci. */}
+        <div style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-pill)', background: fiche.photo ? 'transparent' : (fiche.avatarBg || P.buyer), color: encreSur(fiche.avatarBg || P.buyer), display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-3xl)', fontWeight: 700, flexShrink: 0, overflow: 'hidden' }}>
           {fiche.photo ? <img src={fiche.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
         </div>
         <div style={{ minWidth: 0, flex: '0 1 auto' }}>
@@ -1089,7 +1102,7 @@ function CdRevokeLinkModal({ P, dark, link, busy, error, onCancel, onConfirm }: 
         <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
           <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
           <button onClick={busy ? undefined : onConfirm} disabled={busy}
-            style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: '#FFFFFF', opacity: busy ? 0.55 : 1 }}>
+            style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, background: P.danger, color: encreSur(P.danger), opacity: busy ? 0.55 : 1 }}>
             {busy ? t('fiche.links.confirm.busy') : t('fiche.links.confirm.cta')}
           </button>
         </div>
@@ -1164,7 +1177,10 @@ function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
                   : t('fiche.links.expiresOn', { date: cdDay(l.expiresAt) })}
               </div>
             </div>
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: state ? P[state.key] : P.ghost, color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>
+            {/* ⚠ Même règle que CdStatePill : l'encre suit l'aplat. « Échu »,
+                « Retiré » et « Statut inconnu » partagent `ghost`, mesuré à
+                1,95:1 sous le blanc figé d'avant. */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: state ? P[state.key] : P.ghost, color: encreSur(state ? P[state.key] : P.ghost), fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>
               {state ? t(state.labelK) : t('fiche.links.status.unknown')}
             </span>
             {l.active && (

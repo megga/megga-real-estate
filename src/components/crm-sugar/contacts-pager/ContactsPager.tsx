@@ -20,24 +20,10 @@ import { useTranslation } from 'react-i18next'
 import type { CrmContact } from '@/components/crm-sugar/mockData'
 import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmInitials } from '@/components/crm-sugar/tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
+import { CTP_FN, FN_BUYER_INK } from '@/components/crm-sugar/contacts-pager/ctpTokens'
 
-// ── Couleurs fonctionnelles (données métier — jamais accent UI) ─────────
-const CTP_FN = { buyer: '#1E5BC6', seller: '#C45A00', tenant: '#0891B2', ok: '#059669' } as const
 type Audience = 'buyer' | 'seller' | 'tenant'
-
-/**
- * Encre bleue des libellés TEXTE (KYC vérifié, pilule de filtre).
- *
- * Le handoff utilise `CTP_FN.buyer` (#1E5BC6) dans les deux thèmes ; sur fond
- * sombre ce bleu tombe sous le seuil de contraste, d'où le #6F8CFF. C'est un
- * correctif VOLONTAIRE, à conserver — ne pas « réaligner » sur #1E5BC6 en sombre
- * au nom de la fidélité au prototype.
- *
- * Ne s'applique QU'au texte : `CtpTypePill` garde #1E5BC6 en fond plein (texte
- * blanc, contraste déjà bon) pour rester raccord avec le point de couleur de la
- * page Santé (`CTP_FN[r.a]`).
- */
-const FN_BUYER_INK = (dark: boolean): string => (dark ? '#6F8CFF' : CTP_FN.buyer)
 
 /** Grille des colonnes de la liste — partagée par l'en-tête, les lignes et le squelette. */
 const CTP_GRID = '1.7fr .8fr 1fr 1fr 1.1fr 34px'
@@ -98,11 +84,19 @@ function matchFilter(c: CrmContact, f: Filter): boolean {
 // ═══════════════════════════════════════════════════════════════════════
 //   ATOMES (dark-aware via sp)
 // ═══════════════════════════════════════════════════════════════════════
+/**
+ * ⚠ L'encre est DÉRIVÉE de l'aplat, jamais choisie. La teinte vient d'un hachage
+ * de l'id du contact : aucun humain ne la relit avant qu'elle s'affiche, et sept
+ * des huit échouaient l'AA sous le blanc figé qui était posé ici (#F59E0B :
+ * 2,15:1). Choisir sept nouvelles encres à la main aurait reproduit le défaut à
+ * la teinte suivante.
+ */
 function CtpAvatar({ c, size = 38, sp }: { c: CrmContact; size?: number; sp: SugarPalette }) {
+  const aplat = c.avatarBg || sp.accent
   return (
     <div style={{
       width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0,
-      background: c.avatarBg || sp.accent, color: sp.accentInk,
+      background: aplat, color: encreSur(aplat),
       display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 700,
       letterSpacing: 0.2, boxShadow: `0 0 0 3px ${sp.avatarBorder}`,
     }}>
@@ -111,11 +105,19 @@ function CtpAvatar({ c, size = 38, sp }: { c: CrmContact; size?: number; sp: Sug
   )
 }
 
+/**
+ * ⚠ Même règle que l'avatar. Sous le `'#fff'` qui était écrit ici, trois des
+ * quatre teintes échouaient l'AA — `seller` 4,37 · `tenant` 3,68 · `ok` 3,77 ;
+ * seul `buyer` passait (6,24). Les teintes elles-mêmes ne bougent PAS : elles
+ * encodent le type du contact et sont partagées avec le point de couleur de la
+ * page Santé.
+ */
 function CtpTypePill({ aud, label }: { aud: Audience; label: string }) {
+  const aplat = CTP_FN[aud]
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 var(--crm-space-md)',
-      borderRadius: 'var(--crm-radius-pill)', background: CTP_FN[aud], color: '#fff',
+      borderRadius: 'var(--crm-radius-pill)', background: aplat, color: encreSur(aplat),
       fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.1, whiteSpace: 'nowrap',
     }}>{label}</span>
   )
