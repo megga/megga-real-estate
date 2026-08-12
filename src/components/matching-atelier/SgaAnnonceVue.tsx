@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 import SgaIcon from './SgaIcon'
 import { sgaFmtCHF } from './format'
 import type { AtelierBuyer, AtelierListing } from './types'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 /** Cellules « L'essentiel » — les champs nuls sont filtrés, jamais rendus « null ». */
 function sgiSpecCells(L: AtelierListing, t: (k: string, o?: Record<string, unknown>) => string) {
@@ -92,6 +93,7 @@ interface SgaAnnonceVueProps {
 
 export default function SgaAnnonceVue({ L, buyer, onClose, onPropose }: SgaAnnonceVueProps) {
   const { t } = useTranslation('matching')
+  const refPiegeFocus = useFocusTrap(true, onClose)
   const G = L.gallery
   const hasImg = !!G[0]?.url
 
@@ -143,6 +145,7 @@ export default function SgaAnnonceVue({ L, buyer, onClose, onPropose }: SgaAnnon
   return (
     <div
       className={'sgi-stage' + (closing ? ' is-closing' : '')}
+      ref={refPiegeFocus}
       role="dialog"
       aria-label={t('atelier.fullListing')}
     >

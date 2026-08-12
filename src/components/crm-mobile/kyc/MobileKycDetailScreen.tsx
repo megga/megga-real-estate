@@ -31,6 +31,7 @@ import SgToast from '../primitives/SgToast'
 import { useSgToast } from '../primitives/useSgToast'
 import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 // 5 contrôles LBA art. 3-7 (ordre fixe, miroir desktop).
 const CHECK_KEYS: KycCheckCategory[] = ['id', 'address', 'pep', 'sanctions', 'funds']
@@ -622,9 +623,10 @@ function AuditTab({ ctx, events }: { ctx: Ctx; events: KycAuditEvent[] }) {
 /** Feuille de confirmation « tout marquer vérifié » (LBA art. 7) : rappelle les statuts sanctions/PEP/vigilance avant l'écriture. */
 function ConfirmMarkAllOverlay({ ctx, dossier, pending, onCancel, onConfirm }: { ctx: Ctx; dossier: KycCaseWithChecklist; pending: boolean; onCancel: () => void; onConfirm: () => void }) {
   const { t, tk } = ctx
+  const refPiegeFocus = useFocusTrap(true, onCancel)
   const statusLabel = (s: string) => (s === 'clear' ? t('dossier.confirm.clear') : t(`dossier.confirm.status.${s}`, { defaultValue: s }))
   return createPortal(
-    <div role="dialog" aria-modal="true" onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 100, background: tk.overlay, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', fontFamily: MOBILE_FONT, animation: 'kycmFade .2s ease both' }}>
+    <div ref={refPiegeFocus} role="dialog" aria-modal="true" onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 100, background: tk.overlay, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', fontFamily: MOBILE_FONT, animation: 'kycmFade .2s ease both' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 520, background: tk.card, borderRadius: '24px 24px 0 0', padding: '10px 22px calc(28px + env(safe-area-inset-bottom))', boxShadow: tk.shadowLg, animation: 'kycmUp .32s cubic-bezier(.2,.8,.2,1) both' }}>
         <div style={{ width: 38, height: 5, borderRadius: 'var(--crm-radius-pill)', background: tk.hair, margin: '0 auto 18px' }} />
         <Eyebrow tk={tk}>{t('dossier.confirm.eyebrow')}</Eyebrow>

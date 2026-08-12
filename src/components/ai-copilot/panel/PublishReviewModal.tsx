@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/Toast'
 import { CpIcon } from './panelIcons'
 import type { AiPalette } from './aiPanel'
 import type { PendingActionCard } from '@/hooks/useCopilot'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 const PORTAL_LABELS: Record<string, string> = { immobilier_ch: 'immobilier.ch' }
 const portalLabel = (p: string) => PORTAL_LABELS[p] ?? p
@@ -29,6 +30,7 @@ interface PublishReviewModalProps {
 
 export default function PublishReviewModal({ open, sp, dark, pending, onClose, executePending, onExecuted }: PublishReviewModalProps) {
   const toast = useToast()
+  const refPiegeFocus = useFocusTrap(open, onClose)
   const [busy, setBusy] = useState(false)
 
   if (!open || !pending) return null
@@ -87,6 +89,7 @@ export default function PublishReviewModal({ open, sp, dark, pending, onClose, e
       <style>{`@keyframes prvFade{from{opacity:0}to{opacity:1}}@keyframes prvUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
       <div
         onClick={(e) => e.stopPropagation()}
+        ref={refPiegeFocus}
         role="dialog"
         aria-label={heading}
         style={{

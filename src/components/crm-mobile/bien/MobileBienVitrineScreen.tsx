@@ -17,6 +17,7 @@ import { useMobileTokens } from '../useMobileTokens'
 import SgActionMenu from '../primitives/SgActionMenu'
 import { statusTone, typeKey, type BienType } from './shared'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface MobileBienVitrineScreenProps {
   /** Donnée figée (harnais /dev/mobile, no-auth) — bypasse useProperty. */
@@ -296,6 +297,7 @@ function Row({ tk, label, value, last }: { tk: Tk; label: string; value: string;
 /** Visionneuse photo plein écran : swipe tactile, flèches clavier, Échap pour fermer. */
 function Lightbox({ photos, index, onClose, onIndex, t }: { photos: string[]; index: number; onClose: () => void; onIndex: (i: number) => void; t: TFunction }) {
   const touch = useRef<number | null>(null)
+  const refPiegeFocus = useFocusTrap(true, onClose)
   const go = (dx: number) => {
     if (dx < -40) onIndex((index + 1) % photos.length)
     else if (dx > 40) onIndex((index - 1 + photos.length) % photos.length)
@@ -311,6 +313,7 @@ function Lightbox({ photos, index, onClose, onIndex, t }: { photos: string[]; in
   }, [index, photos.length, onClose, onIndex])
   return (
     <div
+      ref={refPiegeFocus}
       role="dialog"
       aria-modal="true"
       onClick={onClose}

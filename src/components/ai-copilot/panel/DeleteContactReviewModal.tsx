@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast'
 import { CpIcon } from './panelIcons'
 import type { AiPalette } from './aiPanel'
 import type { PendingActionCard } from '@/hooks/useCopilot'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 // Rouge destructif fixe (hors palette d'accent) : signale l'irréversibilité en clair et
 // vishue identique en clair/sombre. Le survol s'assombrit légèrement.
@@ -33,6 +34,7 @@ interface DeleteContactReviewModalProps {
 
 export default function DeleteContactReviewModal({ open, sp, dark, pending, onClose, executePending, onExecuted }: DeleteContactReviewModalProps) {
   const toast = useToast()
+  const refPiegeFocus = useFocusTrap(open, onClose)
   const [busy, setBusy] = useState(false)
 
   if (!open || !pending) return null
@@ -81,6 +83,7 @@ export default function DeleteContactReviewModal({ open, sp, dark, pending, onCl
       <style>{`@keyframes prvFade{from{opacity:0}to{opacity:1}}@keyframes prvUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
       <div
         onClick={(e) => e.stopPropagation()}
+        ref={refPiegeFocus}
         role="dialog"
         aria-label="Supprimer le contact"
         style={{

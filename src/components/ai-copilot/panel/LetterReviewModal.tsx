@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom'
 import { useToast } from '@/components/ui/Toast'
 import { CpIcon } from './panelIcons'
 import type { AiPalette } from './aiPanel'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface LetterReviewModalProps {
   open: boolean
@@ -45,6 +46,7 @@ function buildLetterHtml(body: string, dateStr: string): string {
 
 export default function LetterReviewModal({ open, sp, dark, letter, onClose }: LetterReviewModalProps) {
   const toast = useToast()
+  const refPiegeFocus = useFocusTrap(open, onClose)
   const [body, setBody] = useState(letter)
 
   useEffect(() => {
@@ -89,6 +91,7 @@ export default function LetterReviewModal({ open, sp, dark, letter, onClose }: L
       <style>{`@keyframes ltrFade{from{opacity:0}to{opacity:1}}@keyframes ltrUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
       <div
         onClick={(e) => e.stopPropagation()}
+        ref={refPiegeFocus}
         role="dialog"
         aria-label="Générer le PDF de la lettre"
         style={{

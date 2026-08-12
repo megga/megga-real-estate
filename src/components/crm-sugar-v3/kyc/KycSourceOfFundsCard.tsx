@@ -14,6 +14,7 @@ import type {
   KycDocument,
   KycSourceOfFundsType,
 } from '@/types/kyc'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 /** Libellés des types d'origine des fonds. `isRedFlag` est une donnée métier
  * (LBA), pas du texte — seuls `label`/`hint` sont traduits via `t`. */
@@ -54,6 +55,7 @@ export function SourceOfFundsOverlay({
   onSubmit,
 }: OverlayProps) {
   const sp = useKycPalette()
+  const refPiegeFocus = useFocusTrap(true, onCancel)
   const { t } = useTranslation('kyc')
   const sourceLabels = buildSourceLabels(t)
   const [sourceType, setSourceType] = useState<KycSourceOfFundsType>(
@@ -74,6 +76,7 @@ export function SourceOfFundsOverlay({
 
   return (
     <div
+      ref={refPiegeFocus}
       role="dialog"
       aria-modal="true"
       onClick={onCancel}

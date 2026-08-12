@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useUpdateProperty } from '@/hooks/useProperties'
 import { CpIcon } from './panelIcons'
 import type { AiPalette } from './aiPanel'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface AnnonceReviewModalProps {
   open: boolean
@@ -26,6 +27,7 @@ interface AnnonceReviewModalProps {
 
 export default function AnnonceReviewModal({ open, sp, dark, annonce, listingId, onClose, onSaved }: AnnonceReviewModalProps) {
   const toast = useToast()
+  const refPiegeFocus = useFocusTrap(open, onClose)
   const updateProperty = useUpdateProperty()
   const [body, setBody] = useState(annonce)
 
@@ -86,6 +88,7 @@ export default function AnnonceReviewModal({ open, sp, dark, annonce, listingId,
       <style>{`@keyframes anrFade{from{opacity:0}to{opacity:1}}@keyframes anrUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
       <div
         onClick={(e) => e.stopPropagation()}
+        ref={refPiegeFocus}
         role="dialog"
         aria-label="Enregistrer l'annonce sur le bien"
         style={{

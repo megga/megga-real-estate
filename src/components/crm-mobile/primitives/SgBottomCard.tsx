@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useMobileTokens } from '../useMobileTokens'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface SgBottomCardProps {
   open: boolean
@@ -26,6 +27,7 @@ const CARD_SPRING = { type: 'spring' as const, stiffness: 380, damping: 34, mass
  */
 export default function SgBottomCard({ open, onClose, children, ariaLabel, bottomGap = 12 }: SgBottomCardProps) {
   const reducedMotion = useReducedMotion()
+  const refPiegeFocus = useFocusTrap(open, onClose)
   const { tk } = useMobileTokens()
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function SgBottomCard({ open, onClose, children, ariaLabel, botto
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[110]" role="dialog" aria-modal="true" aria-label={ariaLabel}>
+        <div className="fixed inset-0 z-[110]" ref={refPiegeFocus} role="dialog" aria-modal="true" aria-label={ariaLabel}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

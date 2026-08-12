@@ -12,6 +12,7 @@ import { KIND_META, type NotifGroup, type SugarNotif } from '@/components/crm-su
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface MrNotifSheetProps {
   open: boolean
@@ -55,6 +56,7 @@ export default function MrNotifSheet({
   markAllRead,
 }: MrNotifSheetProps) {
   const reducedMotion = useReducedMotion()
+  const refPiegeFocus = useFocusTrap(open, onClose)
   const { t } = useTranslation('common')
   const { tk, isDark } = useMobileTokens()
 
@@ -147,6 +149,7 @@ export default function MrNotifSheet({
       {open && (
         <div
           className="fixed inset-0 z-[100]"
+          ref={refPiegeFocus}
           role="dialog"
           aria-modal="true"
           aria-label={t('nav.notifications')}

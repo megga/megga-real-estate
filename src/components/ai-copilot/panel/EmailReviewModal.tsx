@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useSendAgentEmail } from '@/hooks/useSendAgentEmail'
 import { CpIcon } from './panelIcons'
 import type { AiPalette } from './aiPanel'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 export interface EmailDraft {
   subject: string
@@ -32,6 +33,7 @@ const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 
 export default function EmailReviewModal({ open, sp, dark, draft, contactId, onClose, onSent }: EmailReviewModalProps) {
   const toast = useToast()
+  const refPiegeFocus = useFocusTrap(open, onClose)
   const sendEmail = useSendAgentEmail()
   const [to, setTo] = useState('')
   const [subject, setSubject] = useState(draft.subject)
@@ -117,6 +119,7 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
       <style>{`@keyframes emrFade{from{opacity:0}to{opacity:1}}@keyframes emrUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
       <div
         onClick={(e) => e.stopPropagation()}
+        ref={refPiegeFocus}
         role="dialog"
         aria-label="Envoyer l'email"
         style={{

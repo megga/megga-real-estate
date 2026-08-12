@@ -24,6 +24,7 @@ import type {
   MagicLinkMode,
   CreateMagicLinkResponse,
 } from '@/types/magicLink'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface Props {
   kycCaseId: string
@@ -343,8 +344,12 @@ export function MlkAgentModal({
 // ─── Overlay wrapper (fond semi-transparent + clic backdrop ferme) ────────
 
 function ModalOverlay({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+  // ⚠ Le piège vit dans la COQUILLE, pas dans son contenu : c'est elle qui
+  // porte `role="dialog"`, et elle enveloppe tout ce que la modale affiche.
+  const refPiegeFocus = useFocusTrap(true, onClose)
   return (
     <div
+      ref={refPiegeFocus}
       role="dialog"
       aria-modal="true"
       onClick={onClose}

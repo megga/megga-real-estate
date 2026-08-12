@@ -10,6 +10,7 @@ import { sgaFmtCHF, sgaInitials } from './format'
 import { useCreateReceptionLink } from '@/hooks/useCreateReceptionLink'
 import { buildWaMeUrl } from '@/lib/waMeUrl'
 import type { AtelierBuyer, AtelierListing } from './types'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface Props {
   b: AtelierBuyer
@@ -21,6 +22,7 @@ interface Props {
 
 export default function SgaSendSheet({ b, L, onClose, onSent }: Props) {
   const { t } = useTranslation('matching')
+  const refPiegeFocus = useFocusTrap(true, onClose)
   const create = useCreateReceptionLink()
   const urlRef = useRef<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -67,7 +69,7 @@ export default function SgaSendSheet({ b, L, onClose, onSent }: Props) {
 
   return (
     <div className="sga-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="sga-modal" style={{ width: 460, maxWidth: '92vw' }} role="dialog" aria-label={t('sendSheet.title', { name })}>
+      <div className="sga-modal" style={{ width: 460, maxWidth: '92vw' }} ref={refPiegeFocus} role="dialog" aria-label={t('sendSheet.title', { name })}>
         <div className="sga-modal-h">
           <div className="av" style={{ width: 44, height: 44, background: b.av, fontSize: 15 }}>{sgaInitials(b.first, b.last)}</div>
           <div style={{ flex: 1, minWidth: 0 }}>

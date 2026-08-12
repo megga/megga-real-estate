@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import SgaIcon from './SgaIcon'
 import { sgaFmtCHF, sgaInitials } from './format'
 import type { AtelierBuyer, AtelierListing } from './types'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface SgaConfirmProps {
   b: AtelierBuyer
@@ -19,6 +20,7 @@ interface SgaConfirmProps {
 
 export default function SgaConfirm({ b, L, relance, onClose, onConfirm }: SgaConfirmProps) {
   const { t } = useTranslation('matching')
+  const refPiegeFocus = useFocusTrap(true, onClose)
   const [done, setDone] = useState(false)
   const doneRef = useRef(false)
   const name = `${b.first} ${b.last}`
@@ -45,6 +47,7 @@ export default function SgaConfirm({ b, L, relance, onClose, onConfirm }: SgaCon
       <div
         className="sga-modal"
         style={{ width: 440, maxWidth: '92vw' }}
+        ref={refPiegeFocus}
         role="dialog"
         aria-label={relance ? t('confirm.followUpTitle') : t('confirm.sendTitle')}
       >

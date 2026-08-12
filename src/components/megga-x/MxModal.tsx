@@ -20,7 +20,8 @@
 // retrouverait rogné à la taille du conteneur. `.link-item-image-wrapper` de la
 // vitrine porte `transform: translate(0)` — cas réel rencontré ici.
 
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useEffect, useId, type ReactNode } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface Props {
   /** Titre du dialogue. Nomme la modale pour les lecteurs d'écran (aria-labelledby). */
@@ -35,7 +36,9 @@ interface Props {
 
 export default function MxModal({ title, onClose, children, closeLabel, wide }: Props) {
   const titleId = useId()
-  const dialogRef = useRef<HTMLDivElement>(null)
+  // ⚠ Pas d'`onEscape` ici : ce composant ferme DÉJÀ sur Échap juste en
+  // dessous. Le passer au piège appellerait `onClose` deux fois.
+  const dialogRef = useFocusTrap(true)
 
   // Échap ferme, et le fond ne défile pas pendant ce temps — les deux gestes de
   // la modale vitrine (js/megga-auth.js), portés ici sur le cycle de vie React.
@@ -52,7 +55,6 @@ export default function MxModal({ title, onClose, children, closeLabel, wide }: 
 
   // Le focus entre dans le dialogue à l'ouverture : sans ça, Tab continuerait
   // dans la page derrière le voile, que l'utilisateur ne voit plus.
-  useEffect(() => { dialogRef.current?.focus() }, [])
 
   return (
     <div className="mx-modal" role="presentation">
