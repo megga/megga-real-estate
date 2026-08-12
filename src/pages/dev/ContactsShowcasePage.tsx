@@ -205,10 +205,10 @@ export default function ContactsShowcasePage() {
     </div>
   )
 
-  // ⚠ La modale WhatsApp vit HORS du corps, sinon la surface Import — qui
-  // remplace tout — la démonterait, et son bouton resterait visible sans rien
-  // faire. C'est le piège du banc qui cache l'élément qu'il doit montrer,
-  // rencontré ici même en le construisant.
+  // ⚠ La modale WhatsApp vit HORS du corps : un changement de surface ne doit
+  // pas la démonter, sinon son bouton reste visible sans rien faire. Le piège a
+  // été rencontré ici même, du temps où la surface « Import » remplaçait tout le
+  // corps — elle a été retirée depuis, la règle reste.
   return (
     <>
       {corps}
