@@ -102,6 +102,7 @@ export function mxCrmPalette(dark: boolean): SugarPalette {
 
   if (!dark) {
     return {
+      isDark: false,
       pageBg: C.n900,
       frameBg: C.n1000,
       frameBorder: C.n700,
@@ -134,6 +135,7 @@ export function mxCrmPalette(dark: boolean): SugarPalette {
   }
 
   return {
+    isDark: true,
     pageBg: C.n100,
     frameBg: C.n200,
     frameBorder: C.n400,

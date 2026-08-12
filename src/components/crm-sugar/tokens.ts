@@ -233,6 +233,21 @@ export function crmInitials(name: string): string {
 // historiques (marine / meggaAi / noir) gardent leurs cadres translucides et
 // une encre claire pour rester lisibles sur le verre.
 export interface SugarPalette {
+  /**
+   * Le thème que cette palette rend, pour les rares jetons qu'elle ne peut PAS
+   * porter : les couleurs SÉMANTIQUES d'un composant, qui disent un état que la
+   * palette ne connaît pas (les paliers de score de `BnScoreBadge`, par
+   * exemple) et dont la valeur lisible diffère selon le fond.
+   *
+   * ⚠ Ce n'est pas une invitation à brancher du style sur un booléen : tout ce
+   * qui peut descendre d'un jeton doit en descendre. Il existe parce que la
+   * seule alternative était de deviner le thème depuis la luminance de
+   * `cardBg`, ou de laisser chaque composant importer le proxy `SugarV2` du
+   * wizard — qui n'est pas monté hors du wizard.
+   *
+   * `MobileTokens.mode` joue le même rôle côté mobile.
+   */
+  isDark: boolean
   pageBg: string
   frameBg: string
   frameBorder: string

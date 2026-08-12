@@ -10,13 +10,11 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { BienHealth } from '../mockData'
 import type { SugarPalette } from '../tokens'
+import { TIER_COLORS } from './scoreTiers'
 
-// Couleurs par palier (stables) ; le libellé est traduit via listings:biens.score.*.
-const TIER_COLORS: Record<string, string> = {
-  chaud: '#2FB389',
-  a_animer: '#D98A2B',
-  en_veille: '#8A93A6',
-}
+// Les teintes de palier vivent dans `scoreTiers.ts` — leur y laisser un export
+// depuis ce fichier casserait le rafraîchissement à chaud. Le libellé, lui, est
+// traduit via `listings:biens.score.*`.
 
 interface BnScoreBadgeProps {
   health: BienHealth | null | undefined
@@ -28,13 +26,24 @@ interface BnScoreBadgeProps {
 export function BnScoreBadge({ health, sp, size = 'md' }: BnScoreBadgeProps) {
   const { t } = useTranslation('listings')
   if (!health) return null
-  const text = TIER_COLORS[health.label]
+  const paliers = TIER_COLORS[sp.isDark ? 'dark' : 'light']
+  const text = paliers[health.label]
     ? t('biens.score.' + health.label)
     : t('biens.score.fallback')
-  const color = TIER_COLORS[health.label] ?? sp.sub
+  const color = paliers[health.label] ?? sp.sub
   const limited = health.dataCompleteness != null && health.dataCompleteness <= 0.34
   const title = limited ? t('biens.score.tooltipLimited') : t('biens.score.tooltip')
-  const fs = size === 'sm' ? 10.5 : 11
+  /**
+   * L'échelle de texte du CRM s'arrête à 11 px (`--crm-text-xs`) ; `sm` valait
+   * 10,5 — un demi-pas sous le plancher, que le cliquet exemptait au lieu de le
+   * corriger. Les deux tailles se rejoignent donc sur le barreau réel, et c'est
+   * le RENFONCEMENT qui distingue encore la rangée compacte de la carte.
+   *
+   * ⚠ `ICONE` reste un nombre : `MEIcon` prend une dimension graphique, pas un
+   * barreau de l'échelle typographique. La faire descendre de `--crm-text-xs`
+   * demanderait de lire la variable au rendu pour la même valeur.
+   */
+  const ICONE = 11
   return (
     <span
       title={title}
@@ -46,14 +55,14 @@ export function BnScoreBadge({ health, sp, size = 'md' }: BnScoreBadgeProps) {
         borderRadius: 'var(--crm-radius-pill)',
         background: color + '1A', // teinte ~10% — pastille discrète, pas un fond plein
         color,
-        fontSize: fs,
+        fontSize: 'var(--crm-text-xs)',
         fontWeight: 600,
         lineHeight: 1,
         whiteSpace: 'nowrap',
         fontVariantNumeric: 'tabular-nums',
       }}
     >
-      <MEIcon name="sparkle" size={fs} color={color} />
+      <MEIcon name="sparkle" size={ICONE} color={color} />
       {text}
       <span style={{ opacity: 0.7, fontWeight: 600 }}>· {Math.round(health.overall)}</span>
     </span>
