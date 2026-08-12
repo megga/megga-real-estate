@@ -30,7 +30,7 @@ import MrhLightbox from './MrhLightbox'
 import { useMarketListingDetail } from '@/hooks/useMatchingRecherche'
 import { formatCHF, formatDate } from '@/lib/utils'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
-import { floorLabelKey, type MrhBien, type MrhContact } from './types'
+import { floorLabelKey, type MrhBien, type MrhBienDetail, type MrhContact } from './types'
 import type { MrhSurf } from './mrhCtx'
 
 // Carte réelle isolée + lazy → mapbox-gl ne charge qu'à l'ouverture d'une fiche avec token.
@@ -76,15 +76,26 @@ interface Props {
   on: boolean
   onToggle: () => void
   onClose: () => void
+  /**
+   * Banc d'essai : champs de fiche fournis au lieu d'être lus par clé primaire.
+   * Sans ça, la moitié basse de la fiche — description, étage, charges,
+   * disponibilité — reste vide au banc, et c'est justement la partie la plus
+   * dense du plus gros fichier du périmètre.
+   */
+  detailDemo?: MrhBienDetail
 }
 
-export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, ONACC, buyer, on, onToggle, onClose }: Props) {
+export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, ONACC, buyer, on, onToggle, onClose, detailDemo }: Props) {
   const { t } = useTranslation('matching')
   // `isPending`/`isError` ne sont pas décoratifs : la description s'insère AU-DESSUS
   // des caractéristiques, donc sans place réservée toute la fiche saute quand la
   // requête revient. Et un échec rendu comme une absence ferait affirmer à l'écran
   // que le portail n'a rien publié, sans l'avoir vérifié.
-  const { data: detail, isPending: detailPending, isError: detailError } = useMarketListingDetail(bien.id)
+  // ⚠ `null` en id désactive la query — le banc ne doit pas interroger la base.
+  const live = useMarketListingDetail(detailDemo ? null : bien.id)
+  const detail = detailDemo ?? live.data
+  const detailPending = detailDemo ? false : live.isPending
+  const detailError = detailDemo ? false : live.isError
 
   const [lb, setLb] = useState(-1)
   const [mapOpen, setMapOpen] = useState(false)

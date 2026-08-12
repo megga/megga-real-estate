@@ -144,7 +144,7 @@ const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
-const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
+const MatchingShowcasePage = lazy(() => import('@/pages/dev/MatchingShowcasePage'))
 const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
 const BiensShowcasePage = lazy(() => import('@/pages/dev/BiensShowcasePage'))
 const ContactsShowcasePage = lazy(() => import('@/pages/dev/ContactsShowcasePage'))
@@ -458,8 +458,11 @@ function AppRoutes() {
 
               {/* Dev showcase routes (no auth) */}
               <Route path="/design-system/megga-x" element={<MeggaXStyleGuidePage />} />
-              {/* Atelier Matching — démo QA visuelle (mocks handoff, zéro écriture) */}
-              <Route path="/dev/matching-atelier" element={<MatchingAtelierDemoPage />} />
+              {/* Matching — QA visuelle du PAGER entier (chrome, 2 pages, bascule
+                  de thème, états d'exception). Mocks du handoff, zéro écriture.
+                  Le chemin garde son nom d'origine : il est cité tel quel dans le
+                  cerveau comme le banc où s'éprouvent les modales de l'atelier. */}
+              <Route path="/dev/matching-atelier" element={<MatchingShowcasePage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/mobile" element={<MobileShowcasePage />} />
               {/* Mes biens sans session : ProtectedRoute renvoie sinon vers la PRODUCTION. */}

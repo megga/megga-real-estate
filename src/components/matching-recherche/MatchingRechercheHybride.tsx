@@ -28,6 +28,10 @@ import MrhSendSheet from './MrhSendSheet'
 import { useMatchingSearch, useMatchingSearchTotal, useMatchingBuyers, useCitySuggest, type SearchTx } from '@/hooks/useMatchingRecherche'
 import { typeLabelFr, type MrhBien, type MrhContact } from './types'
 import type { MrhCtx, MrhScore, MrhSurf } from './mrhCtx'
+import {
+  MRH_DEMO_BIENS, MRH_DEMO_BUYERS, MRH_DEMO_CITIES, MRH_DEMO_DETAIL, MRH_DEMO_SEND,
+  MRH_DEMO_TOTAL, type MrhDemoEtat,
+} from './mrhDemo'
 import { parseQuery, norm } from './omniParse'
 import './mrh.css'
 
@@ -64,9 +68,23 @@ function scoreBien(c: MrhContact, b: MrhBien): MrhScore {
 
 interface Props {
   dark: boolean
+  /**
+   * Banc d'essai (`/dev/matching-atelier`) : les cinq requêtes de cet écran sont
+   * remplacées par les fixtures de `mrhDemo.ts`, et aucun geste n'écrit.
+   *
+   * ⚠ Ce composant est le SEUL du périmètre bureau qui porte ses propres hooks —
+   * `AtelierStage` est présentationnel et se nourrit par ses props. Sans ce mode,
+   * la moitié la plus lourde de l'écran Matching n'a aucun banc : toutes ses
+   * requêtes sont gatées sur la session, donc sans session elle ne rend qu'un
+   * état bloqué. Idiome repris de `MobileMatchingScreen demo`, pas inventé ici.
+   *
+   * La valeur choisit l'ÉTAT à montrer (`ok` · `vide` · `erreur` · `bloque`) —
+   * les trois derniers ne s'atteignent pas par hasard en production.
+   */
+  demo?: MrhDemoEtat
 }
 
-export default function MatchingRechercheHybride({ dark }: Props) {
+export default function MatchingRechercheHybride({ dark, demo }: Props) {
   const { t } = useTranslation('matching')
   const navigate = useNavigate()
   const toast = useToast()
@@ -107,7 +125,11 @@ export default function MatchingRechercheHybride({ dark }: Props) {
   useEffect(() => { try { localStorage.setItem('megga-rech-view', view) } catch { /* ignore */ } }, [view])
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const { data: buyers = [] } = useMatchingBuyers()
+  // ⚠ Les hooks restent appelés INCONDITIONNELLEMENT — le mode démo substitue
+  // leur RÉSULTAT, il ne saute pas l'appel. Sans session ils sont de toute façon
+  // désactivés et aucune requête ne part.
+  const { data: liveBuyers = [] } = useMatchingBuyers()
+  const buyers = demo ? MRH_DEMO_BUYERS : liveBuyers
 
   // ── params serveur (filtre DUR) dérivés des jetons + transaction + acheteur ──
   const serverParams = useMemo(() => {
@@ -134,11 +156,14 @@ export default function MatchingRechercheHybride({ dark }: Props) {
   //   (a) bloquée  — n'a pas pu partir : le dire, et proposer de réessayer
   //   (b) en vol   — chargement légitime
   //   (c) résolue  — seul cas où l'on a le droit d'affirmer « aucune annonce »
-  const { data: biens = [], status, fetchStatus, isError, refetch, blocked } = useMatchingSearch(serverParams)
-  const isFetchingFirst = status === 'pending' && fetchStatus === 'fetching'
+  const live = useMatchingSearch(serverParams)
+  const biens: MrhBien[] = demo ? (demo === 'ok' ? MRH_DEMO_BIENS : []) : live.data ?? []
+  const refetch = demo ? () => {} : live.refetch
+  const isFetchingFirst = demo ? false : live.status === 'pending' && live.fetchStatus === 'fetching'
   // `blocked` (gate faux) OU `pending` sans requête en vol (query en pause).
-  const isBlocked = blocked || (status === 'pending' && !isFetchingFirst)
-  const isSettled = status === 'success'
+  const isBlocked = demo ? demo === 'bloque' : live.blocked || (live.status === 'pending' && !isFetchingFirst)
+  const isError = demo ? demo === 'erreur' : live.isError
+  const isSettled = demo ? demo === 'ok' || demo === 'vide' : live.status === 'success'
 
   // Chien de garde : au-delà de 15 s, une requête « en cours » n'est plus un
   // chargement, c'est un incident. On le dit plutôt que de faire tourner le
@@ -151,7 +176,8 @@ export default function MatchingRechercheHybride({ dark }: Props) {
   }, [isFetchingFirst])
   // Total RÉEL du marché filtré — sert à ne jamais présenter la taille de la
   // tranche chargée comme un nombre de marché.
-  const { data: marketTotal } = useMatchingSearchTotal(serverParams)
+  const { data: liveTotal } = useMatchingSearchTotal(serverParams)
+  const marketTotal = demo ? (demo === 'ok' ? MRH_DEMO_TOTAL : 0) : liveTotal
 
   // ── filtres client (texte libre + jetons pièces/quartier) + scoring ──
   const clientTokens = useMemo(() => tokens.filter((tk) => tk.field === 'rooms' || tk.field === 'text' || tk.field === 'surface'), [tokens])
@@ -259,7 +285,16 @@ export default function MatchingRechercheHybride({ dark }: Props) {
   // Envoi de la sélection à l'acheteur : crée les matches marché (RPC idempotente)
   // + mint le lien de réception, puis ouvre la feuille de partage (WhatsApp / copier).
   const onSendSelection = () => {
-    if (!buyer || !profile?.agency_id || !sel.length || sendSel.isPending) return
+    if (!buyer || !sel.length) return
+    // La feuille d'envoi ne s'ouvre QUE par ce geste : sans branche de démo elle
+    // resterait invisible au banc, faute d'`agency_id`. Une modale qu'aucun banc
+    // n'atteint n'est pas une modale vérifiée.
+    if (demo) {
+      setSentLink({ ...MRH_DEMO_SEND, firstName: buyer.firstName, count: sel.length })
+      setSel([])
+      return
+    }
+    if (!profile?.agency_id || sendSel.isPending) return
     const items = sel
       .map((id) => biens.find((b) => b.id === id))
       .filter((b): b is MrhBien => !!b)
@@ -282,7 +317,13 @@ export default function MatchingRechercheHybride({ dark }: Props) {
 
   // ── suggestions typées ── villes via search_cities (TOUTES les villes) + acheteurs + annonces locales
   const searchTx: SearchTx = trans === 'vente' ? 'buy' : trans === 'location' ? 'rent' : null
-  const { data: rawCityHits = [] } = useCitySuggest(q, searchTx)
+  // ⚠ `useCitySuggest` est le seul des cinq à ne PAS être gaté sur la session :
+  // sans substitution il partirait vraiment interroger `search_cities` depuis le
+  // banc. On le court-circuite donc, au lieu de compter sur son échec.
+  const { data: liveCityHits = [] } = useCitySuggest(demo ? '' : q, searchTx)
+  const rawCityHits = demo
+    ? MRH_DEMO_CITIES.filter((c) => norm(c.city).startsWith(norm(q.trim())))
+    : liveCityHits
   const navSugg = useRef(false)
   const sugg = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -465,7 +506,10 @@ export default function MatchingRechercheHybride({ dark }: Props) {
               {buyers.length === 0 ? (
                 <div style={{ padding: '2px 12px 12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.55, color: sp.soft }}>{t('recherche.omni.noBuyers')}</div>
-                  <button onClick={() => navigate('/dashboard/contacts')} style={{ height: 40, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, background: ACC, color: ONACC, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  {/* ⚠ Inerte au banc : la cible est une surface protégée, donc
+                      `ProtectedRoute` rebondirait sur la PRODUCTION — le piège
+                      même que ce banc existe pour éviter. */}
+                  <button onClick={() => { if (!demo) navigate('/dashboard/contacts') }} style={{ height: 40, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, background: ACC, color: ONACC, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                     <RechIcon name="plus" size={13} stroke={ONACC} /> {t('recherche.omni.addFirst')}
                   </button>
                 </div>
@@ -600,6 +644,7 @@ export default function MatchingRechercheHybride({ dark }: Props) {
           buyer={buyer} on={sel.includes(extBien.id)}
           onToggle={() => toggleSel(extBien.id)}
           onClose={() => setExtBien(null)}
+          detailDemo={demo ? MRH_DEMO_DETAIL : undefined}
         />
       )}
     </div>

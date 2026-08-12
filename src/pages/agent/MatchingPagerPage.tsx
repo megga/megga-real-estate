@@ -16,6 +16,7 @@
 // Réf. handoff : `crm-screen-matching-proto.jsx` (CRMScreenMatchingProto).
 
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmSugarPalette } from '@/components/crm-sugar/tokens'
@@ -102,7 +103,51 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
   )
 }
 
-export default function MatchingPagerPage() {
+/**
+ * Contenus de substitution du banc `/dev/matching-atelier`, et rien d'autre.
+ *
+ * ⚠ La MÉCANIQUE reste celle de la production — chrome, molette, clavier, points
+ * de page, bascule de thème du rail. C'est elle qu'on vient éprouver : un banc
+ * qui recopierait le pager mesurerait sa copie, et les deux divergeraient au
+ * premier correctif. Seul le CONTENU est fourni de l'extérieur, pour que les
+ * fixtures ne descendent pas dans le bundle de production.
+ *
+ * Sa présence rend aussi la navigation du chrome INERTE : chaque cible mène à
+ * une surface protégée, donc au rebond vers la production que le banc existe
+ * précisément pour éviter.
+ *
+ * ⚠ Des COMPOSANTS, pas des fonctions à appeler. Deux raisons, et la seconde a
+ * mordu :
+ *
+ * 1. Un slot APPELÉ pendant le rendu reçoit `onOpenRecherche`, qui lit le verrou
+ *    de transition (`lock`) : `react-hooks/refs` refuse — à raison, un ref lu au
+ *    rendu ne déclenche pas de nouveau rendu. En JSX, c'est une prop, pas un
+ *    argument, et le grief tombe.
+ * 2. Un slot appelé rendrait `AtelierStage` sous une identité d'élément qui
+ *    change à chaque rendu du banc : la session de triage en cours (onglet,
+ *    sélection, historique d'annulation) serait remise à zéro à chaque clic.
+ *    Les slots doivent donc être STABLES côté banc — définis hors du composant.
+ */
+export interface MatchingPagerBanc {
+  Page0: (p: { dark: boolean; onOpenRecherche: () => void }) => ReactNode
+  Page1: (p: { dark: boolean }) => ReactNode
+  /**
+   * Commandes du banc, rendues à la RACINE du pager — hors du viewport clippé.
+   *
+   * ⚠ Elles ne peuvent pas vivre dans une page : le track porte un `transform`,
+   * qui fait de lui le bloc englobant de tout descendant en `position: fixed` —
+   * les commandes glisseraient avec la page au lieu de rester à l'écran.
+   *
+   * ⚠ Et elles ne peuvent pas non plus vivre dans le banc au-dessus du pager :
+   * c'est le pager qui POSSÈDE le thème (bouton du rail + `megga.sugar.dark`).
+   * Un banc qui relirait la clé pour son compte peindrait ses commandes dans le
+   * thème d'avant la dernière bascule — un banc qui fabrique lui-même une
+   * incohérence de thème, défaut déjà vécu sur `/dev/biens`.
+   */
+  Chrome?: (p: { dark: boolean }) => ReactNode
+}
+
+export default function MatchingPagerPage({ banc }: { banc?: MatchingPagerBanc } = {}) {
   const navigate = useNavigate()
 
   // ─── Thème: dark/light, calé sur le toggle du rail (comme Today) ────────
@@ -125,6 +170,7 @@ export default function MatchingPagerPage() {
   const onCmd = () => openSugarSearch()
 
   const onNavigate = (id: SugarScreenId | string) => {
+    if (banc) return
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -203,6 +249,11 @@ export default function MatchingPagerPage() {
     setPage(i)
     setTimeout(() => { lock.current = false }, 820)
   }, [])
+  // Extrait de la vue : `goTo` lit `lock.current`, et le passer inline à un slot
+  // APPELÉ pendant le rendu déclenche `react-hooks/refs`. Le stabiliser ici règle
+  // le grief à sa source plutôt que de le taire — et évite au passage une
+  // nouvelle fonction par rendu sur la page 0.
+  const openRecherche = useCallback(() => goTo(LANDING_PAGE), [goTo])
 
   // Position initiale (sans animation) + repositionnement au resize.
   useLayoutEffect(() => {
@@ -329,10 +380,12 @@ export default function MatchingPagerPage() {
           }}>
             <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
               <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-                <MatchingAtelierPage embedded dark={dark} onOpenRecherche={() => goTo(LANDING_PAGE)} />
+                {banc
+                  ? <banc.Page0 dark={dark} onOpenRecherche={openRecherche} />
+                  : <MatchingAtelierPage embedded dark={dark} onOpenRecherche={openRecherche} />}
               </div>
               <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-                <MatchingRechercheHybride dark={dark} />
+                {banc ? <banc.Page1 dark={dark} /> : <MatchingRechercheHybride dark={dark} />}
               </div>
             </div>
             <MatchingPageDots page={page} onGo={goTo} lightMode={lightMode} />
@@ -341,6 +394,7 @@ export default function MatchingPagerPage() {
       </div>
 
       <MatchingScrollHint page={page} onGo={goTo} sub={sp.sub} ink={sp.ink} />
+      {banc?.Chrome ? <banc.Chrome dark={dark} /> : null}
     </div>
   )
 }

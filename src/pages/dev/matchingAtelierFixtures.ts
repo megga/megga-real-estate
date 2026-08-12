@@ -1,22 +1,19 @@
-// DEV — Atelier Matching avec les données mock du handoff design (Carouge,
-// acheteurs scorés). QA visuelle hi-fi sans session Supabase — même rôle que
-// l'ancien wrapper de démo du portail vendeur (retiré). Les gestes sont des stubs locaux :
-// AUCUNE écriture (ni base, ni e-mail). Route : /dev/matching-atelier.
-// Référence : design_handoff_matching_atelier/MEGGA Matching Atelier A - Sugar.html
-
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import AtelierStage from '@/components/matching-atelier/AtelierStage'
-import { useSugarDark } from '@/components/matching-atelier/useSugarDark'
-import type { AtelierGestes, PendingHandle } from '@/components/matching-atelier/pendingTriage'
+/**
+ * Fixtures de l'ATELIER (page 0 du pager Matching) pour le banc
+ * `/dev/matching-atelier` — mocks du handoff design (Carouge, acheteurs scorés).
+ *
+ * Extraites de la page de banc, qui couvre désormais le pager ENTIER : y laisser
+ * 200 lignes de données noyait la mécanique du banc (les quatre états de chaque
+ * page) sous le contenu d'une seule d'entre elles.
+ *
+ * ⛔ Rien ne vient de la base, aucune écriture. La moitié « Recherche » a les
+ * siennes dans `matching-recherche/mrhDemo.ts` — elles vivent auprès du
+ * composant parce qu'il les consomme lui-même (mode `demo`), alors que
+ * l'atelier, présentationnel, se nourrit par ses props.
+ */
 import type {
-  AtelierBuyer,
-  AtelierListing,
-  AtelierPivot,
-  AtelierPoolMatch,
-  AtelierReason,
+  AtelierBuyer, AtelierListing, AtelierPivot, AtelierPoolMatch, AtelierReason,
 } from '@/components/matching-atelier/types'
-import '@/components/matching-atelier/atelier.css'
 
 const PHOTO = (id: string, n = 1400) =>
   `https://images.unsplash.com/photo-${id}?w=${n}&q=80&auto=format&fit=crop`
@@ -32,7 +29,7 @@ const ROOM_LABELS = [
   { room: 'Chambres', label: 'Chambre 2' },
 ]
 
-const LISTING: AtelierListing = {
+export const ATELIER_LISTING: AtelierListing = {
   key: 'm:demo-b-103',
   id: 'demo-b-103',
   kind: 'market',
@@ -91,7 +88,7 @@ function buyer(p: {
   }
 }
 
-const BUYERS: AtelierBuyer[] = [
+export const ATELIER_BUYERS: AtelierBuyer[] = [
   buyer({
     id: 'c-001', first: 'Marie', last: 'Bertrand', av: '#5b6cff', type: 'Acheteuse',
     budget: '0,9–1,3M', zone: 'Carouge', kyc: 'verified', status: 'engaged',
@@ -202,10 +199,10 @@ const BUYERS: AtelierBuyer[] = [
   }),
 ]
 
-// Pool « par acheteur » : l'annonce pivot + 2 biens de veille (statique, QA)
+/** Pool « par acheteur » : l'annonce pivot + 2 biens de veille (statique, QA). */
 const POOL_EXTRA: AtelierListing[] = [
   {
-    ...LISTING,
+    ...ATELIER_LISTING,
     key: 'm:demo-p-201', id: 'demo-p-201', ref: 'MG-FL-4831077',
     title: '4 pièces avec terrasse — Carouge',
     addr: 'Rue Jacques-Dalphin 22, 1227 Carouge',
@@ -218,7 +215,7 @@ const POOL_EXTRA: AtelierListing[] = [
     daysOnMarket: 4, qualityScore: 88, agency: { name: 'Naef Immobilier', phone: '+41 22 839 39 39' },
   },
   {
-    ...LISTING,
+    ...ATELIER_LISTING,
     key: 'm:demo-p-204', id: 'demo-p-204', ref: 'MG-FL-4825903',
     title: '5 pièces rénové — Plainpalais',
     addr: 'Boulevard des Philosophes 9, 1205 Genève',
@@ -233,79 +230,39 @@ const POOL_EXTRA: AtelierListing[] = [
   },
 ]
 
-const PIVOT: AtelierPivot = { listing: LISTING, buyers: BUYERS, actionable: BUYERS.length }
+export const ATELIER_PIVOT: AtelierPivot = {
+  listing: ATELIER_LISTING,
+  buyers: ATELIER_BUYERS,
+  actionable: ATELIER_BUYERS.length,
+}
 
-// Gestes stub : fenêtre d'annulation identique, zéro écriture
-const stubHandle = (): PendingHandle => ({
-  cancel: () => undefined,
-  flushNow: () => Promise.resolve(null),
-})
-
-export default function MatchingAtelierDemoPage() {
-  const navigate = useNavigate()
-  const dark = useSugarDark()
-
-  const gestes: AtelierGestes = useMemo(() => ({
-    send: () => stubHandle(),
-    relance: () => stubHandle(),
-    snooze: () => stubHandle(),
-    dismiss: () => stubHandle(),
-    react: () => stubHandle(),
-    wake: () => undefined,
-    visit: () => undefined,
-  }), [])
-
-  const poolFor = (contactId: string): AtelierPoolMatch[] => {
-    const b = BUYERS.find(x => x.id === contactId)
-    if (!b) return []
-    return [
-      { matchId: b.matchId, lid: LISTING.key, L: LISTING, score: b.score, reasons: b.reasons, current: true, snoozedUntil: null, status: 'to-send' as const },
-      {
-        matchId: `demo-pool-1-${contactId}`, lid: POOL_EXTRA[0].key, L: POOL_EXTRA[0], score: 78,
-        reasons: [
-          r('Budget', '0,98M dans sa fourchette', 25, true),
-          r('Quartier', 'Carouge ciblé', 18, true),
-          r('Type', 'Appartement', 15, true),
-          r('Surface', '98 m² — proche du souhait', 12, true),
-          r('Pièces', '4 — minimum demandé', 8, true),
-        ],
-        current: false, snoozedUntil: null, status: 'to-send' as const,
-      },
-      {
-        matchId: `demo-pool-2-${contactId}`, lid: POOL_EXTRA[1].key, L: POOL_EXTRA[1], score: 64,
-        reasons: [
-          r('Surface', '115 m² ≥ souhait', 18, true),
-          r('Type', 'Appartement', 15, true),
-          r('Pièces', '5', 13, true),
-          r('Budget', '1,18M — haut de fourchette', 10, true),
-          r('Quartier', 'Plainpalais hors zones cibles', -6, false),
-        ],
-        current: false, snoozedUntil: null, status: 'to-send' as const,
-      },
-    ].sort((a, z) => z.score - a.score)
-  }
-
-  // Le pivot acheteur de la démo : les deep-links sont simulés par un état local.
-  const [contactId, setContactId] = useState<string | null>(null)
-  const pivotBuyer = contactId ? BUYERS.find(b => b.id === contactId) ?? null : null
-
-  return (
-    <AtelierStage
-      dark={dark}
-      isLoading={false}
-      pivot={PIVOT}
-      /* La démo n'a qu'une annonce : la bascule du cockpit reste donc inerte. */
-      pivots={[PIVOT]}
-      onPickPivot={() => undefined}
-      pivotBuyer={pivotBuyer}
-      pool={pivotBuyer ? poolFor(pivotBuyer.id) : []}
-      poolCountFor={cid => poolFor(cid).length}
-      gestes={gestes}
-      onClose={() => navigate(-1)}
-      onOpenDeal={() => undefined}
-      onOpenBuyerPivot={setContactId}
-      onCloseBuyerPivot={() => setContactId(null)}
-      onStartKyc={() => undefined}
-    />
-  )
+/** Les biens proposés à UN acheteur pivot (mode « Par acheteur »). */
+export function atelierPoolFor(contactId: string): AtelierPoolMatch[] {
+  const b = ATELIER_BUYERS.find((x) => x.id === contactId)
+  if (!b) return []
+  return [
+    { matchId: b.matchId, lid: ATELIER_LISTING.key, L: ATELIER_LISTING, score: b.score, reasons: b.reasons, current: true, snoozedUntil: null, status: 'to-send' as const },
+    {
+      matchId: `demo-pool-1-${contactId}`, lid: POOL_EXTRA[0].key, L: POOL_EXTRA[0], score: 78,
+      reasons: [
+        r('Budget', '0,98M dans sa fourchette', 25, true),
+        r('Quartier', 'Carouge ciblé', 18, true),
+        r('Type', 'Appartement', 15, true),
+        r('Surface', '98 m² — proche du souhait', 12, true),
+        r('Pièces', '4 — minimum demandé', 8, true),
+      ],
+      current: false, snoozedUntil: null, status: 'to-send' as const,
+    },
+    {
+      matchId: `demo-pool-2-${contactId}`, lid: POOL_EXTRA[1].key, L: POOL_EXTRA[1], score: 64,
+      reasons: [
+        r('Surface', '115 m² ≥ souhait', 18, true),
+        r('Type', 'Appartement', 15, true),
+        r('Pièces', '5', 13, true),
+        r('Budget', '1,18M — haut de fourchette', 10, true),
+        r('Quartier', 'Plainpalais hors zones cibles', -6, false),
+      ],
+      current: false, snoozedUntil: null, status: 'to-send' as const,
+    },
+  ].sort((a, z) => z.score - a.score)
 }
