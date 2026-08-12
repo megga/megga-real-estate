@@ -347,10 +347,10 @@ export interface WizardDetails {
 }
 
 export interface WizardData {
-  source: 'manual' | 'import' | 'submission' | null
-  fromSubmissionId: string | null
-  importUrl: string
-  importFile: File | null
+  // ⛔ `source`, `fromSubmissionId`, `importUrl` et `importFile` sont partis avec
+  // l'étape « Démarrer » (12 août 2026) : elle était leur unique écrivain, et
+  // les branches qui les lisaient — raccourcis vers le Mandat, retour arrière
+  // vers la porte d'entrée — n'avaient plus de porte où retourner.
   ownerContactId: string | null
   _newContact: { id: string; firstName: string; lastName: string; email: string; phone: string; type: string; kyc: { status: string }; avatarBg: string } | null
   // Snapshot d'affichage du vendeur EXISTANT sélectionné (nom/avatar/kyc), figé
@@ -416,7 +416,6 @@ export interface WizardData {
 }
 
 export const EMPTY_WIZARD: WizardData = {
-  source: null, fromSubmissionId: null, importUrl: '', importFile: null,
   ownerContactId: null, _newContact: null, _ownerContact: null,
   mandate: { type: 'exclusive', duration: 6, commission: 3.5, signed: false, fees: 'owner' },
   addr: '', canton: 'Vaud', postCode: '', country: 'Suisse',
@@ -431,8 +430,22 @@ export const EMPTY_WIZARD: WizardData = {
 // ─── Wizard steps definition ────────────────────────────────────────────
 // label en getter (i18n singleton) : traduit + réactif, sans changer les
 // appelants `step.label`. Cf docs/i18n-conventions §6. (i18nSg importé ci-dessous.)
+/**
+ * Les étapes du wizard, dans l'ordre. L'INDEX d'une étape se lit par son id
+ * (`ETAPE` dans `WizardShell`), jamais en dur : l'étape « Démarrer » a été
+ * retirée le 12 août 2026 et ce retrait décalait vingt comparaisons numériques,
+ * dont une erreur de 1 aurait été silencieuse.
+ *
+ * ⛔ « Démarrer » proposait trois portes dont DEUX ne s'ouvraient pas :
+ * « Importer un mandat » était désactivée en dur (aucune extraction réelle), et
+ * « Reprendre une soumission » dépendait de `seller_leads` — une seule ligne, du
+ * 29 mars 2026, et plus aucun écrivain depuis que `/sell` redirige vers la
+ * vitrine. Une étape dont le seul geste possible était « Continuer ».
+ *
+ * Les soumissions ne sont pas perdues : le cockpit « Aujourd'hui » les remonte
+ * déjà comme signaux actionnables (`useFocusQueue`).
+ */
 export const SG_STEPS = [
-  { id: 'start',    get label() { return i18nSg.t('listings:wizard.steps.start') } },
   { id: 'mandate',  get label() { return i18nSg.t('listings:wizard.steps.mandate') } },
   { id: 'address',  get label() { return i18nSg.t('listings:wizard.steps.address') } },
   { id: 'specs',    get label() { return i18nSg.t('listings:wizard.steps.specs') } },

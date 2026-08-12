@@ -840,7 +840,6 @@
   },
   "wizard": {
     "steps": {
-      "start": "Inizio",
       "mandate": "Venditore",
       "address": "Indirizzo",
       "specs": "Caratteristiche",
@@ -851,38 +850,7 @@
     },
     "forOwner": "Per {{name}}",
     "ownerVia": {
-      "submission": "tramite invio",
       "linked": "venditore collegato"
-    },
-    "step0": {
-      "eyebrow": "Passo 1 di 8 · Inizio",
-      "title": "Come vuoi creare questo immobile?",
-      "subtitle": "Tre modi per andare veloce. Il contenuto sarà poi affinato passo dopo passo.",
-      "manual": {
-        "title": "Inserisci manualmente",
-        "sub": "Sezione per sezione, mantieni il controllo."
-      },
-      "import": {
-        "title": "Importa un mandato",
-        "sub": "MEGGA AI estrae tutto dal PDF del mandato.",
-        "soon": "Presto"
-      },
-      "autosave": {
-        "title": "Bozza salvata automaticamente",
-        "note": "Puoi chiudere la procedura guidata in qualsiasi momento, i tuoi dati restano."
-      },
-      "submissions": {
-        "title": "Riprendi una proposta",
-        "subtitle": "{{count}} privati hanno proposto il loro immobile. Selezionane uno per precompilare.",
-        "emptyTitle": "Nessuna proposta",
-        "emptyBody": "Nessun privato ha ancora proposto un immobile.",
-        "unknownVendor": "Venditore sconosciuto",
-        "subtitle_one": "1 privato ha proposto il suo immobile.",
-        "subtitle_other": "{{count}} privati hanno proposto il loro immobile.",
-        "selectVendor": "Seleziona un venditore",
-        "cap_one": "Massimo 5 proposte visualizzate; 1 più vecchia in I miei immobili.",
-        "cap_other": "Massimo 5 proposte visualizzate; {{count}} più vecchie in I miei immobili."
-      }
     },
     "step1": {
       "vendor": {

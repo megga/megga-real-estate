@@ -840,7 +840,6 @@
   },
   "wizard": {
     "steps": {
-      "start": "Start",
       "mandate": "Verkäufer",
       "address": "Adresse",
       "specs": "Merkmale",
@@ -851,38 +850,7 @@
     },
     "forOwner": "Für {{name}}",
     "ownerVia": {
-      "submission": "via Einreichung",
       "linked": "verknüpfter Verkäufer"
-    },
-    "step0": {
-      "eyebrow": "Schritt 1 von 8 · Start",
-      "title": "Wie möchten Sie dieses Objekt erstellen?",
-      "subtitle": "Drei schnelle Wege. Der Inhalt wird anschliessend Schritt für Schritt verfeinert.",
-      "manual": {
-        "title": "Manuell erfassen",
-        "sub": "Abschnitt für Abschnitt, Sie behalten die Kontrolle."
-      },
-      "import": {
-        "title": "Mandat importieren",
-        "sub": "MEGGA AI extrahiert alles aus dem Mandats-PDF.",
-        "soon": "Demnächst"
-      },
-      "autosave": {
-        "title": "Entwurf automatisch gespeichert",
-        "note": "Sie können den Assistenten jederzeit schliessen, Ihre Daten bleiben erhalten."
-      },
-      "submissions": {
-        "title": "Einreichung fortsetzen",
-        "subtitle": "{{count}} Privatpersonen haben ihr Objekt eingereicht. Wählen Sie eine aus, um vorauszufüllen.",
-        "emptyTitle": "Keine Einreichung",
-        "emptyBody": "Bisher hat keine Privatperson ein Objekt eingereicht.",
-        "unknownVendor": "Unbekannter Verkäufer",
-        "subtitle_one": "1 Privatperson hat ihr Objekt eingereicht.",
-        "subtitle_other": "{{count}} Privatpersonen haben ihr Objekt eingereicht.",
-        "selectVendor": "Wählen Sie einen Verkäufer",
-        "cap_one": "Maximal 5 Einreichungen angezeigt; 1 ältere unter Meine Objekte.",
-        "cap_other": "Maximal 5 Einreichungen angezeigt; {{count}} ältere unter Meine Objekte."
-      }
     },
     "step1": {
       "vendor": {

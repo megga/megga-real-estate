@@ -11,7 +11,7 @@ import {
 } from './primitives'
 import { useWizardDraft, wizardPayload, wizardTitre } from './useWizardDraft'
 import { useTheme } from '@/hooks/useTheme'
-import { Step0Start } from './steps/Step0Start'
+
 import { Step1Vendor } from './steps/Step1Vendor'
 import { Step1Mandate } from './steps/Step1Mandate'
 import { Step2Address } from './steps/Step2Address'
@@ -26,7 +26,7 @@ import { useCreateTransaction } from '@/hooks/useTransactions'
 import { useAuth } from '@/hooks/useAuth'
 
 // Vendeur brouillon vs existant : un brouillon (créé inline dans Step1Vendor,
-// id `c-new-…`, ou dérivé d'un seller_lead sans contact_id dans Step0Start, id
+// id `c-new-…`, ou dérivé d'un seller_lead sans contact_id dans « Démarrer » (étape retirée), id
 // `c-from-…`) est reconnu par `data._newContact` dont l'`id` égale
 // `data.ownerContactId` — handlePublish le persiste alors avant de lier la
 // transaction. Un `ownerContactId` sans `_newContact` correspondant = un UUID
@@ -57,6 +57,19 @@ interface WizardShellProps {
 }
 
 /**
+ * Index de chaque étape, LU PAR SON ID et non écrit en dur.
+ *
+ * ⛔ La coquille comparait `step` à des nombres — vingt fois. Retirer l'étape
+ * « Démarrer » décalait tous ces nombres de 1, et une erreur de 1 y est
+ * silencieuse : le wizard n'aurait pas planté, il aurait sauté une étape ou
+ * bloqué sur une garde. Dérivé de `SG_STEPS`, un ajout ou un retrait d'étape se
+ * propage tout seul.
+ */
+const ETAPE = Object.fromEntries(
+  SG_STEPS.map((e, i) => [e.id, i]),
+) as Record<(typeof SG_STEPS)[number]['id'], number>
+
+/**
  * Progression du wizard — barre segmentée, un segment par étape.
  *
  * ⛔ POURQUOI ELLE EXISTE. Jusqu'au 12 août 2026 la progression se disait en
@@ -73,9 +86,10 @@ interface WizardShellProps {
  * `role="progressbar"` et son `aria-valuetext`, qui redisent exactement ce que
  * le sur-titre disait.
  *
- * ⚠ Le dénominateur est `SG_STEPS.length`, soit SEPT. Les anciens sur-titres
- * annonçaient « sur 8 » — ils comptaient l'écran de succès, qui n'est pas une
- * étape que l'agent remplit.
+ * ⚠ Le dénominateur est `SG_STEPS.length` — SIX depuis le retrait de l'étape
+ * « Démarrer », sept avant elle. Les sur-titres qu'elle remplace annonçaient
+ * « sur 8 » : ils comptaient l'écran de succès, qui n'est pas une étape que
+ * l'agent remplit. Le compte est dérivé, donc il suit sans qu'on y pense.
  */
 function ProgressionWizard({ etape, total }: { etape: number; total: number }) {
   const { t } = useTranslation('listings')
@@ -176,7 +190,7 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
       let sellerContactId: string | null = null
       if (data._newContact && data.ownerContactId === data._newContact.id) {
         // Vendeur brouillon à persister : créé inline dans Step1Vendor (id
-        // « c-new-… ») OU issu d'un seller_lead sans contact_id dans Step0Start
+        // « c-new-… ») OU issu d'un seller_lead sans contact_id dans « Démarrer » (étape retirée)
         // (id « c-from-… »). On le crée d'abord et on lie l'id RÉEL. Le test
         // d'IDENTITÉ (ownerContactId === _newContact.id), et non de préfixe,
         // couvre les deux origines ET ignore un _newContact résiduel si l'agent
@@ -281,15 +295,10 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
   }
 
   const canNext = (() => {
-    if (step === 0) {
-      if (!data.source) return false
-      if (data.source === 'submission' && !data.fromSubmissionId) return false
-      return true
-    }
-    if (step === 1 && subStep === 0) return !!data.ownerContactId
-    if (step === 1 && subStep === 1) return !!(data.mandate && data.mandate.type)
+    if (step === ETAPE.mandate && subStep === 0) return !!data.ownerContactId
+    if (step === ETAPE.mandate && subStep === 1) return !!(data.mandate && data.mandate.type)
     // Étape Prix & Description : phase 0 (prix) exige une valeur ; phase 1 (desc) libre.
-    if (step === 5) {
+    if (step === ETAPE.desc) {
       if ((data.priceStep || 0) < 1) return !!(data.transaction === 'location' ? data.rent : data.price)
       return true
     }
@@ -297,46 +306,42 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
   })()
 
   const next = () => {
-    if (step === 0 && data.source === 'import') { setStep(1); setSubStep(1); return }
-    if (step === 0 && data.source === 'submission' && data.ownerContactId) { setStep(1); setSubStep(1); return }
-    if (step === 1 && subStep === 0) { setSubStep(1); return }
+    if (step === ETAPE.mandate && subStep === 0) { setSubStep(1); return }
     // Adresse → Caractéristiques : démarre le sous-parcours guidé (Q1)
-    if (step === 2) { set({ specsQ: 0 }); setSubStep(0); setStep(3); return }
+    if (step === ETAPE.address) { set({ specsQ: 0 }); setSubStep(0); setStep(ETAPE.specs); return }
     // Caractéristiques : 7 sous-questions pilotées par data.specsQ (Q7 = accordéon)
-    if (step === 3) {
+    if (step === ETAPE.specs) {
       const cq = data.specsQ || 0
       if (cq < 6) { set({ specsQ: cq + 1 }); return }
-      setSubStep(0); setStep(4); return
+      setSubStep(0); setStep(ETAPE.photos); return
     }
     // Photos → Prix : démarre sur la phase Prix
-    if (step === 4) { set({ priceStep: 0 }); setSubStep(0); setStep(5); return }
+    if (step === ETAPE.photos) { set({ priceStep: 0 }); setSubStep(0); setStep(ETAPE.desc); return }
     // Prix & Description : 2 phases pilotées par data.priceStep
-    if (step === 5) {
+    if (step === ETAPE.desc) {
       if ((data.priceStep || 0) < 1) { set({ priceStep: 1 }); return }
-      setSubStep(0); setStep(6); return
+      setSubStep(0); setStep(ETAPE.publish); return
     }
     setSubStep(0)
     setStep(s => Math.min(s + 1, SG_STEPS.length - 1))
   }
   const prev = () => {
-    if (step === 1 && subStep === 1) {
-      if (data.source === 'import' || data.source === 'submission') {
-        setStep(0); setSubStep(0); return
-      }
-      setSubStep(0); return
-    }
+    // Mandat → Vendeur. Le retour vers « Démarrer » a disparu avec l'étape :
+    // le Mandat n'est plus jamais atteint directement, il suit toujours le
+    // Vendeur.
+    if (step === ETAPE.mandate && subStep === 1) { setSubStep(0); return }
     // Caractéristiques : recule question par question, puis vers Adresse
-    if (step === 3) {
+    if (step === ETAPE.specs) {
       const cq = data.specsQ || 0
       if (cq > 0) { set({ specsQ: cq - 1 }); return }
-      setSubStep(0); setStep(2); return
+      setSubStep(0); setStep(ETAPE.address); return
     }
     // Photos → retour Caractéristiques atterrit sur la dernière question (Q7)
-    if (step === 4) { set({ specsQ: 6 }); setSubStep(0); setStep(3); return }
+    if (step === ETAPE.photos) { set({ specsQ: 6 }); setSubStep(0); setStep(ETAPE.specs); return }
     // Prix & Description : description → prix → Photos
-    if (step === 5) {
+    if (step === ETAPE.desc) {
       if ((data.priceStep || 0) > 0) { set({ priceStep: 0 }); return }
-      setSubStep(0); setStep(4); return
+      setSubStep(0); setStep(ETAPE.photos); return
     }
     setSubStep(0)
     setStep(s => Math.max(s - 1, 0))
@@ -363,7 +368,7 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
         padding: '20px 32px',
         display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)',
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-        background: (!published && step === 2)
+        background: (!published && step === ETAPE.address)
           ? 'transparent'
           : `linear-gradient(180deg, ${SugarV2.bg} 58%, ${SugarV2.bg}00 100%)`,
       }}>
@@ -411,14 +416,13 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
           <Step8Success data={data} onClose={onClose} onBackToCRM={onClose} />
         ) : (
           <>
-            {step === 0 && <Step0Start data={data} set={set} />}
-            {step === 1 && subStep === 0 && <Step1Vendor data={data} set={set} />}
-            {step === 1 && subStep === 1 && <Step1Mandate data={data} set={set} />}
-            {step === 2 && <Step2Address data={data} set={set} />}
-            {step === 3 && <Step3Specs data={data} set={set} />}
-            {step === 4 && <Step4Photos data={data} set={set} />}
-            {step === 5 && <Step5PriceDesc data={data} set={set} />}
-            {step === 6 && (
+            {step === ETAPE.mandate && subStep === 0 && <Step1Vendor data={data} set={set} />}
+            {step === ETAPE.mandate && subStep === 1 && <Step1Mandate data={data} set={set} />}
+            {step === ETAPE.address && <Step2Address data={data} set={set} />}
+            {step === ETAPE.specs && <Step3Specs data={data} set={set} />}
+            {step === ETAPE.photos && <Step4Photos data={data} set={set} />}
+            {step === ETAPE.desc && <Step5PriceDesc data={data} set={set} />}
+            {step === ETAPE.publish && (
               <Step7Publish
                 data={data}
                 set={set}

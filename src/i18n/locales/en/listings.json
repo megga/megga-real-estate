@@ -840,7 +840,6 @@
   },
   "wizard": {
     "steps": {
-      "start": "Start",
       "mandate": "Seller",
       "address": "Address",
       "specs": "Features",
@@ -851,38 +850,7 @@
     },
     "forOwner": "For {{name}}",
     "ownerVia": {
-      "submission": "via submission",
       "linked": "linked seller"
-    },
-    "step0": {
-      "eyebrow": "Step 1 of 8 · Start",
-      "title": "How would you like to create this property?",
-      "subtitle": "Three quick ways to start. You'll refine the content step by step afterwards.",
-      "manual": {
-        "title": "Enter manually",
-        "sub": "Section by section, you stay in control."
-      },
-      "import": {
-        "title": "Import a mandate",
-        "sub": "MEGGA AI extracts everything from the mandate PDF.",
-        "soon": "Soon"
-      },
-      "autosave": {
-        "title": "Draft saved automatically",
-        "note": "You can close the wizard at any time, your data is kept."
-      },
-      "submissions": {
-        "title": "Resume a submission",
-        "subtitle": "{{count}} owners have submitted their property. Select one to pre-fill.",
-        "emptyTitle": "No submissions",
-        "emptyBody": "No individual has submitted a property yet.",
-        "unknownVendor": "Unknown seller",
-        "subtitle_one": "1 individual has submitted their property.",
-        "subtitle_other": "{{count}} individuals have submitted their property.",
-        "selectVendor": "Select a seller",
-        "cap_one": "5 submissions shown at most; 1 older one in My properties.",
-        "cap_other": "5 submissions shown at most; {{count}} older ones in My properties."
-      }
     },
     "step1": {
       "vendor": {

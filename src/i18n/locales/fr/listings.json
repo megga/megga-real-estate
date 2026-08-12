@@ -840,7 +840,6 @@
   },
   "wizard": {
     "steps": {
-      "start": "Démarrer",
       "mandate": "Vendeur",
       "address": "Adresse",
       "specs": "Caractéristiques",
@@ -851,38 +850,7 @@
     },
     "forOwner": "Pour {{name}}",
     "ownerVia": {
-      "submission": "via soumission",
       "linked": "vendeur lié"
-    },
-    "step0": {
-      "eyebrow": "Étape 1 sur 8 · Démarrer",
-      "title": "Comment souhaitez-vous créer ce bien ?",
-      "subtitle": "Trois manières d'aller vite. Le contenu sera ensuite affiné étape par étape.",
-      "manual": {
-        "title": "Saisir manuellement",
-        "sub": "Section par section, vous gardez la main."
-      },
-      "import": {
-        "title": "Importer un mandat",
-        "sub": "MEGGA AI extrait tout du PDF de mandat.",
-        "soon": "Bientôt"
-      },
-      "autosave": {
-        "title": "Brouillon sauvegardé automatiquement",
-        "note": "Vous pouvez fermer le wizard à tout moment, vos données restent."
-      },
-      "submissions": {
-        "title": "Reprendre une soumission",
-        "subtitle": "{{count}} particuliers ont soumis leur bien. Sélectionnez-en un pour pré-remplir.",
-        "emptyTitle": "Aucune soumission",
-        "emptyBody": "Aucun particulier n'a soumis de bien pour le moment.",
-        "unknownVendor": "Vendeur inconnu",
-        "subtitle_one": "1 particulier a soumis son bien.",
-        "subtitle_other": "{{count}} particuliers ont soumis leur bien.",
-        "selectVendor": "Sélectionnez un vendeur",
-        "cap_one": "5 soumissions affichées au maximum ; 1 plus ancienne dans Mes biens.",
-        "cap_other": "5 soumissions affichées au maximum ; {{count}} plus anciennes dans Mes biens."
-      }
     },
     "step1": {
       "vendor": {

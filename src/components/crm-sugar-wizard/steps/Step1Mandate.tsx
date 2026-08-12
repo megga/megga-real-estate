@@ -69,8 +69,10 @@ export function Step1Mandate({ data, set }: StepProps) {
             <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV2.ink }}>
               {tr('wizard.forOwner', { name: `${linkedOwner.firstName} ${linkedOwner.lastName}` })}
             </span>
+            {/* Le vendeur ne peut plus venir que de l'étape précédente : la
+                provenance « soumission » est partie avec l'étape « Démarrer ». */}
             <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: SugarV2.muted }}>
-              · {data.fromSubmissionId ? tr('wizard.ownerVia.submission') : tr('wizard.ownerVia.linked')}
+              · {tr('wizard.ownerVia.linked')}
             </span>
           </div>
         )}
