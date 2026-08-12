@@ -67,9 +67,11 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   { root: 'src/components/crm-sugar-wizard', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/biens', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar-v3/vitrine', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-mobile/biens', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-mobile/bien', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-mobile/wizard', keep: (n) => /\.tsx?$/.test(n) },
+  // Le CRM mobile ENTIER depuis le 12 août 2026 — seize dossiers d'écrans, plus
+  // la coquille et les primitives. Les trois dossiers de « Mes biens » y étaient
+  // entrés seuls au lot 4 ; le reste portait encore 29 capitales, 295 graisses
+  // ≥ 700, 22 interlettrages et 3 balises à graisse héritée.
+  { root: 'src/components/crm-mobile', keep: (n) => /\.tsx?$/.test(n) },
   // ⚠ CHROME PARTAGÉ, pas une surface de « Mes biens ». `SugarShell` porte la
   // barre supérieure et le rail de TOUTE l'app agent — 30 fichiers le montent,
   // de Today aux Réglages. Il entre dans le cliquet parce qu'il est rendu EN
@@ -107,18 +109,17 @@ const TEMOIN = 'src/components/crm-sugar-wizard/steps/Step7Publish.tsx'
  */
 const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
   {
-    motif: /fontSize:\s*Math\.max\(11,\s*size \* 0\.34\)/,
-    raison: 'calculée : l’initiale d’un avatar suit le diamètre de sa pastille',
+    // ⚠ UNE seule entrée pour toute la famille. Trois coefficients existent
+    // (0,26 · 0,34 · 0,36) parce que trois pastilles ont trois diamètres ; les
+    // lister un par un ferait grossir la liste sans rien décider de plus.
+    motif: /fontSize:\s*(?:Math\.max\(\d+,\s*)?size \* 0\.\d+/,
+    raison: 'calculée : une initiale suit le diamètre de sa pastille',
   },
   { motif: /fontSize:\s*104\b/, raison: '104 px — le prix en grand, au-dessus du dernier barreau' },
   { motif: /fontSize:\s*72\b/, raison: '72 px — la saisie chiffrée en grand, au-dessus du barreau' },
   { motif: /fontSize:\s*q === 6 \? 32 : 40\b/, raison: '32/40 px — un même titre à deux densités' },
   { motif: /fontSize:\s*44\b/, raison: '44 px — le titre de confirmation, au-dessus du barreau' },
   { motif: /fontSize:\s*40\b/, raison: '40 px — le titre du premier lancement, au-dessus du barreau' },
-  {
-    motif: /fontSize:\s*size \* 0\.34/,
-    raison: 'calculée : l’initiale d’un avatar suit le diamètre de sa pastille',
-  },
 ]
 
 /**
@@ -339,9 +340,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar-wizard',
       'src/components/crm-sugar/biens',
       'src/components/crm-sugar-v3/vitrine',
-      'src/components/crm-mobile/biens',
-      'src/components/crm-mobile/bien',
-      'src/components/crm-mobile/wizard',
+      'src/components/crm-mobile',
       'src/components/crm-sugar',
       'src/pages/agent',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)

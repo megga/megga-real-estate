@@ -48,7 +48,7 @@ export default function MmKyc({ kyc }: { kyc: AtelierKyc }) {
         background: m.bg,
         color: m.fg,
         fontSize: 'var(--crm-text-sm)',
-        fontWeight: 700,
+        fontWeight: 600,
         whiteSpace: 'nowrap',
         flexShrink: 0,
       }}

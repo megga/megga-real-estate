@@ -100,7 +100,7 @@ function ProbRing({ pct, color }: { pct: number; color: string }) {
         <circle cx={size / 2} cy={size / 2} r={r} stroke={tk.hair} strokeWidth={3.5} fill="none" />
         <circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={3.5} fill="none" strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" style={{ transition: 'stroke-dashoffset .6s cubic-bezier(.22,1,.36,1)' }} />
       </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.ink, fontVariantNumeric: 'tabular-nums', letterSpacing: -0.3 }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.ink, fontVariantNumeric: 'tabular-nums', letterSpacing: -0.3 }}>
         {pct}
       </div>
     </div>
@@ -168,7 +168,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
       </header>
 
       <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
-        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
           {t('common:nav.pipeline')}
         </h1>
       </div>
@@ -182,7 +182,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
       ) : (
         <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', margin: '7px 18px 0', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{totalValue}</span>
+        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{totalValue}</span>
         <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.inkSoft }}>{t('dealsCount', { count: totalCount })}</span>
       </div>
 
@@ -212,7 +212,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
               }}
             >
               <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: stageColor(s), flexShrink: 0 }} />
-              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, color: on ? tk.accentInk : tk.ink, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: on ? tk.accentInk : tk.ink, whiteSpace: 'nowrap' }}>
                 {t(`stages.${s}`)}
               </span>
             </button>
@@ -223,7 +223,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
       {/* Sous-titre stade */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', margin: '18px 18px 0' }}>
         <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: stageColor(active) }} />
-        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t(`stages.${active}`)}</h2>
+        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink }}>{t(`stages.${active}`)}</h2>
       </div>
 
       {/* Liste */}
@@ -237,9 +237,9 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
             style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-3xl)', boxShadow: tk.shadowSm, padding: 'var(--crm-space-2xl) var(--crm-space-2xl) var(--crm-space-xl)', cursor: 'pointer' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
-              <span style={{ width: 36, height: 36, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', background: d.av, color: '#fff', fontSize: 'var(--crm-text-lg)', fontWeight: 800, flexShrink: 0 }}>{d.initials}</span>
+              <span style={{ width: 36, height: 36, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', background: d.av, color: '#fff', fontSize: 'var(--crm-text-lg)', fontWeight: 600, flexShrink: 0 }}>{d.initials}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
                 <div style={{ fontSize: 'var(--crm-text-sm)', color: tk.muted, fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.bienTitle}</div>
               </div>
               <ProbRing pct={d.prob} color={stageColor(d.stage)} />
@@ -256,11 +256,11 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
               </button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 12 }}>
-              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                {d.value == null ? <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.muted, letterSpacing: 0 }}>{t('toEstimate')}</span> : formatCHF(d.value)}
+              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                {d.value == null ? <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, letterSpacing: 0 }}>{t('toEstimate')}</span> : formatCHF(d.value)}
               </div>
               {d.risk !== 'healthy' ? (
-                <span style={{ marginLeft: 'auto', fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.3, color: tk.riskFg, background: tk.riskBg, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>
+                <span style={{ marginLeft: 'auto', fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.3, color: tk.riskFg, background: tk.riskBg, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', whiteSpace: 'nowrap'}}>
                   {t('board.risk.atRisk')}
                 </span>
               ) : null}
@@ -314,7 +314,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
       {/* Changer d'étape */}
       <SgBottomCard open={stagePick !== null} onClose={() => setStagePick(null)} ariaLabel={t('actions.changeStage')}>
         <div style={{ padding: 'var(--crm-space-4xl) var(--crm-space-3xl) var(--crm-space-sm)' }}>
-          <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t('actions.changeStage')}</div>
+          <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink }}>{t('actions.changeStage')}</div>
           {stagePick ? <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 3 }}>{stagePick.name}</div> : null}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-xs) var(--crm-space-md) var(--crm-space-xl)' }}>
@@ -331,9 +331,9 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
                 style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', width: '100%', padding: 'var(--crm-space-xl) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)', border: 0, cursor: cur ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left', background: cur ? tk.cardSubtle : 'transparent', opacity: cur ? 0.6 : 1 }}
               >
                 <span style={{ width: 10, height: 10, borderRadius: 'var(--crm-radius-pill)', background: stageColor(s), flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.2, color: tk.ink }}>{t(`stages.${s}`)}</span>
+                <span style={{ flex: 1, fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, color: tk.ink }}>{t(`stages.${s}`)}</span>
                 {cur ? (
-                  <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, letterSpacing: 0.2, textTransform: 'uppercase' }}>{t('stagePick.current')}</span>
+                  <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, letterSpacing: 0.2}}>{t('stagePick.current')}</span>
                 ) : (
                   <MEIcon name="arrow-right" size={16} color={tk.muted} />
                 )}
@@ -377,10 +377,10 @@ function PipelineSkeleton({ tk }: { tk: MobileTokens }) {
 function PipelineState({ tk, title, body, onRetry, retryLabel }: { tk: MobileTokens; title: string; body?: string; onRetry?: () => void; retryLabel?: string }) {
   return (
     <div style={{ margin: '22px 18px 0', textAlign: 'center', padding: '40px 24px', background: tk.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
-      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink }}>{title}</div>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink }}>{title}</div>
       {body ? <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 6, lineHeight: 1.45, maxWidth: 280, marginInline: 'auto' }}>{body}</div> : null}
       {onRetry ? (
-        <button type="button" onClick={onRetry} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{retryLabel}</button>
+        <button type="button" onClick={onRetry} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>{retryLabel}</button>
       ) : null}
     </div>
   )

@@ -95,12 +95,12 @@ export function MobileKycListScreen({ demo = false }: { demo?: boolean }) {
       <header style={{ display: 'flex', alignItems: 'center', padding: 'calc(env(safe-area-inset-top) + 14px) 18px 4px' }}>
         <button type="button" onClick={() => { if (live) navigate('/dashboard/more') }} aria-label={t('mobile.back', { defaultValue: 'Plus' })} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 38, padding: '0 var(--crm-space-2xl) 0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, fontFamily: 'inherit' }}>
           <MEIcon name="chevron-left" size={18} color={tk.ink} strokeWidth={2.2} />
-          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink }}>{t('mobile.back', { defaultValue: 'Plus' })}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink }}>{t('mobile.back', { defaultValue: 'Plus' })}</span>
         </button>
       </header>
 
       <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
-        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>{t('title')}</h1>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>{t('title')}</h1>
         <p style={{ margin: '8px 0 0', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: tk.muted, lineHeight: 1.5 }}>{t('list.intro')}</p>
       </div>
 
@@ -109,7 +109,7 @@ export function MobileKycListScreen({ demo = false }: { demo?: boolean }) {
         {FILTERS.map((f) => {
           const on = f === filter
           return (
-            <button key={f} type="button" onClick={() => setFilter(f)} style={{ flexShrink: 0, height: 34, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.inkSoft, boxShadow: on ? tk.shadow : tk.shadowSm, whiteSpace: 'nowrap' }}>
+            <button key={f} type="button" onClick={() => setFilter(f)} style={{ flexShrink: 0, height: 34, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.inkSoft, boxShadow: on ? tk.shadow : tk.shadowSm, whiteSpace: 'nowrap' }}>
               {t(filterKey[f], { count: counts[f] })}
             </button>
           )
@@ -123,8 +123,8 @@ export function MobileKycListScreen({ demo = false }: { demo?: boolean }) {
           </div>
         ) : live && isError && dossiers.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '44px 24px', background: tk.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
-            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink }}>{t('list.errorTitle')}</div>
-            <button type="button" onClick={() => refetch()} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{t('list.retry')}</button>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink }}>{t('list.errorTitle')}</div>
+            <button type="button" onClick={() => refetch()} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>{t('list.retry')}</button>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 24px', background: tk.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
@@ -156,7 +156,7 @@ function Ring({ done, total, verified, tk }: { done: number; total: number; veri
         <circle cx={size / 2} cy={size / 2} r={r} stroke={tk.hair} strokeWidth={stroke} fill="none" />
         <circle cx={size / 2} cy={size / 2} r={r} stroke={col} strokeWidth={stroke} fill="none" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} strokeLinecap="round" transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ transition: 'stroke-dashoffset .6s cubic-bezier(.22,1,.36,1)' }} />
       </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 800, color: tk.ink, fontVariantNumeric: 'tabular-nums', letterSpacing: -0.3 }}>{done}/{total}</div>
+      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.ink, fontVariantNumeric: 'tabular-nums', letterSpacing: -0.3 }}>{done}/{total}</div>
     </div>
   )
 }
@@ -169,11 +169,11 @@ function Row({ d, t, tk, onOpen }: { d: KycRow; t: TFunction; tk: MobileTokens; 
   const status = (d.dossier_status ?? 'none') as KycDossierStatus
   return (
     <button type="button" onClick={onOpen} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-3xl)', background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-4xl)', cursor: 'pointer', boxShadow: tk.shadowSm, fontFamily: 'inherit' }}>
-      <span style={{ width: 48, height: 48, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: avatarColor(c.id), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3 }}>{initials}</span>
+      <span style={{ width: 48, height: 48, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: avatarColor(c.id), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3 }}>{initials}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.first_name} {c.last_name}</div>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.first_name} {c.last_name}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 4 }}>
-          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: verified ? tk.goal : tk.muted, letterSpacing: -0.1 }}>{t(`dossierStatus.${status}`)}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: verified ? tk.goal : tk.muted, letterSpacing: -0.1 }}>{t(`dossierStatus.${status}`)}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted }}>
             <span style={{ width: 5, height: 5, borderRadius: 'var(--crm-radius-pill)', background: riskTone(d.risk_level, tk) }} />{t(`riskBadge.${d.risk_level}`)}
           </span>

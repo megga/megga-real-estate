@@ -28,8 +28,8 @@ export default function MmVerdict({ score, big = false, onPhoto = false }: MmVer
         height: big ? 32 : 26,
         padding: big ? '0 15px' : '0 12px',
         borderRadius: 'var(--crm-radius-pill)',
-        fontSize: big ? 13 : 11.5,
-        fontWeight: 800,
+        fontSize: big ? 'var(--crm-text-md)' : 'var(--crm-text-sm)',
+        fontWeight: 600,
         letterSpacing: -0.1,
         ...(onPhoto
           ? { background: 'rgba(3,3,3,0.78)', backdropFilter: 'blur(8px)', color: '#fff' }

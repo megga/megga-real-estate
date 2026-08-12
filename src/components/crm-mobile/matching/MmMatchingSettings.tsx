@@ -123,7 +123,7 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
               <Glyph name="back" size={20} sw={2.1} color={tk.ink} />
             </button>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>
+              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink }}>
                 {t('mobile.settings.title')}
               </div>
               <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 1 }}>
@@ -145,7 +145,7 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
               style={{
                 margin: '0 4px 20px',
                 fontSize: 'var(--crm-text-4xl)',
-                fontWeight: 800,
+                fontWeight: 500,
                 letterSpacing: -0.7,
                 color: tk.ink,
                 lineHeight: 1.2,
@@ -180,16 +180,14 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
-                        <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
+                        <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>
                           {t(`mobile.settings.${m.id}`)}
                         </span>
                         {m.reco ? (
                           <span
                             style={{
                               fontSize: 'var(--crm-text-xs)',
-                              fontWeight: 800,
-                              letterSpacing: 0.5,
-                              textTransform: 'uppercase',
+                              fontWeight: 600,
                               color: tk.accentInk,
                               background: tk.ink,
                               padding: 'var(--crm-space-2xs) var(--crm-space-md)',
@@ -246,7 +244,7 @@ export default function MmMatchingSettings({ open, onClose, onSaved }: MmMatchin
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-xl)',
-                fontWeight: 800,
+                fontWeight: 600,
                 letterSpacing: -0.2,
                 color: tk.accentInk,
                 background: tk.accent,

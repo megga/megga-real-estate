@@ -36,7 +36,7 @@ export default function SgConfirmDestructive({
   return (
     <SgBottomCard open={open} onClose={onCancel} ariaLabel={title}>
       <div style={{ padding: 'var(--crm-space-5xl) var(--crm-space-5xl) var(--crm-space-3xl)' }}>
-        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>{title}</div>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>{title}</div>
         {message ? (
           <p
             style={{
@@ -62,7 +62,7 @@ export default function SgConfirmDestructive({
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-xl)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: tk.inkSoft,
               background: tk.cardSubtle,
             }}
@@ -80,7 +80,7 @@ export default function SgConfirmDestructive({
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-xl)',
-              fontWeight: 800,
+              fontWeight: 600,
               color: tk.dangerInk,
               background: tk.danger,
             }}

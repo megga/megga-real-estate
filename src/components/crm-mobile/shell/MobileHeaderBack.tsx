@@ -54,7 +54,7 @@ export default function MobileHeaderBack({ title, onBack, right }: MobileHeaderB
         <MEIcon name="chevron-left" size={20} color={tk.ink} />
       </Pressable>
       {title ? (
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>
           {title}
         </h1>
       ) : null}

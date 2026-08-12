@@ -64,8 +64,8 @@ export function MobileTodayScreen({ demo = false }: { demo?: boolean }) {
       </header>
 
       <div style={{ padding: 'var(--crm-space-md) var(--crm-space-2xs) 0' }}>
-        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{headerDate}</div>
-        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, color: tk.ink, lineHeight: 1.1 }}>{greeting}</h1>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted}}>{headerDate}</div>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 500, letterSpacing: -0.8, color: tk.ink, lineHeight: 1.1 }}>{greeting}</h1>
       </div>
 
       <MobileFocusHero

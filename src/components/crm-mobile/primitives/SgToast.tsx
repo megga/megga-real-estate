@@ -32,7 +32,7 @@ export default function SgToast({ toast }: { toast: string | null }) {
             color: tk.accentInk,
             fontFamily: MOBILE_FONT,
             fontSize: 'var(--crm-text-lg)',
-            fontWeight: 700,
+            fontWeight: 600,
             letterSpacing: -0.2,
             padding: 'var(--crm-space-lg) var(--crm-space-4xl)',
             borderRadius: 'var(--crm-radius-pill)',

@@ -73,9 +73,9 @@ export function MobileContactsListScreen({ demo = false }: { demo?: boolean }) {
       </header>
 
       <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
-        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>{t('mobile.title')}</h1>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>{t('mobile.title')}</h1>
         <div style={{ marginTop: 7 }}>
-          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.inkSoft }}>{t('mobile.subtitle', { count: filtered.length, total: all.length })}</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.inkSoft }}>{t('mobile.subtitle', { count: filtered.length, total: all.length })}</span>
         </div>
       </div>
 
@@ -97,7 +97,7 @@ export function MobileContactsListScreen({ demo = false }: { demo?: boolean }) {
         {CONTACT_SEGS.map((s) => {
           const on = s === seg
           return (
-            <button key={s} type="button" onClick={() => setSeg(s)} style={{ flexShrink: 0, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.inkSoft, boxShadow: on ? tk.shadow : tk.shadowSm, whiteSpace: 'nowrap' }}>
+            <button key={s} type="button" onClick={() => setSeg(s)} style={{ flexShrink: 0, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.inkSoft, boxShadow: on ? tk.shadow : tk.shadowSm, whiteSpace: 'nowrap' }}>
               {t(SEG_KEY[s])}
             </button>
           )
@@ -112,15 +112,15 @@ export function MobileContactsListScreen({ demo = false }: { demo?: boolean }) {
           </div>
         ) : showError ? (
           <div style={{ textAlign: 'center', padding: '48px 12px' }}>
-            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink }}>{t('mobile.errorTitle')}</div>
-            <button type="button" onClick={refetch} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{t('mobile.retry')}</button>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink }}>{t('mobile.errorTitle')}</div>
+            <button type="button" onClick={refetch} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>{t('mobile.retry')}</button>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 24px', background: tk.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
             <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
               <MEIcon name="users" size={24} color={tk.muted} strokeWidth={1.8} />
             </div>
-            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, marginTop: 14 }}>{t('mobile.emptyTitle')}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink, marginTop: 14 }}>{t('mobile.emptyTitle')}</div>
             <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 5, maxWidth: 240, marginInline: 'auto', lineHeight: 1.45 }}>{t('mobile.emptyDesc')}</div>
           </div>
         ) : (
@@ -168,16 +168,16 @@ function Row({ c, t, last, onOpen, onMenu }: { c: CrmContact; t: TFunction; last
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', paddingRight: 'var(--crm-space-sm)', boxShadow: last ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
       <button type="button" onClick={onOpen} style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-        <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: c.avatarBg || avatarColor(c.id), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 800 }}>{initials}</span>
+        <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: c.avatarBg || avatarColor(c.id), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xl)', fontWeight: 600 }}>{initials}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xs)', minWidth: 0 }}>
-            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.3, color: tk.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.firstName} {c.lastName}</span>
+            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.firstName} {c.lastName}</span>
             {c.kyc?.status === 'verified' ? <ContactSeal size={15} /> : null}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 2 }}>
             <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted }}>{t(typeKey(c.type))}</span>
             {typeof c.score === 'number' ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
                 <MEIcon name="sparkle" size={11} color={tk.muted} />{c.score}
               </span>
             ) : null}

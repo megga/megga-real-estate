@@ -91,7 +91,7 @@ export function MobileAnalyticsScreen({ demo = false }: { demo?: boolean }) {
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'calc(env(safe-area-inset-top) + 14px) 18px 4px' }}>
         <button type="button" onClick={() => { if (live) navigate('/dashboard/more') }} aria-label={t('mobile.analytics.back')} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 38, padding: '0 var(--crm-space-2xl) 0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, fontFamily: 'inherit' }}>
           <MEIcon name="chevron-left" size={18} color={tk.ink} strokeWidth={2.2} />
-          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink }}>{t('mobile.analytics.back')}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink }}>{t('mobile.analytics.back')}</span>
         </button>
         <button type="button" onClick={onRefresh} aria-label={t('analytics.toolbar.refresh')} style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}>
           <span style={{ display: 'inline-flex', transition: 'transform 1s cubic-bezier(.2,.8,.2,1)', transform: spinning ? 'rotate(-360deg)' : 'none' }}>
@@ -101,7 +101,7 @@ export function MobileAnalyticsScreen({ demo = false }: { demo?: boolean }) {
       </header>
 
       <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) var(--crm-space-7xl)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>{t('mobile.analytics.title')}</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>{t('mobile.analytics.title')}</h1>
 
         <Segment period={period} onChange={setPeriod} t={t} tk={tk} />
 
@@ -137,7 +137,7 @@ function Segment({ period, onChange, t, tk }: { period: AxPeriodId; onChange: (p
       {PERIODS.map((p) => {
         const on = p === period
         return (
-          <button key={p} type="button" onClick={() => onChange(p)} style={{ flex: 1, height: 38, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', background: on ? tk.accent : 'transparent', color: on ? tk.accentInk : tk.inkSoft, fontSize: 'var(--crm-text-lg)', fontWeight: on ? 800 : 700, letterSpacing: -0.1, boxShadow: on ? tk.shadowSm : 'none' }}>
+          <button key={p} type="button" onClick={() => onChange(p)} style={{ flex: 1, height: 38, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', background: on ? tk.accent : 'transparent', color: on ? tk.accentInk : tk.inkSoft, fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.1, boxShadow: on ? tk.shadowSm : 'none' }}>
             {t(`analytics.selector.${p}`)}
           </button>
         )
@@ -155,27 +155,27 @@ function Hero({ d, t, tk, onSettings }: { d: AxPeriodData; t: TFunction; tk: Mob
   const pace = targetSet ? axPace(d) : null
   return (
     <div style={{ marginTop: 18, background: tk.relanceBg, border: `1px solid ${tk.relanceBorder}`, borderRadius: 'var(--crm-radius-5xl)', padding: 'var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-5xl)', boxShadow: tk.shadowLg, color: ink }}>
-      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: mut }}>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: mut }}>
         {t('analytics.hero.eyebrow')} · {d.label}
       </div>
-      <div style={{ marginTop: 9, fontSize: 40, fontWeight: 800, letterSpacing: -1.6, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+      <div style={{ marginTop: 9, fontSize: 40, fontWeight: 500, letterSpacing: -1.6, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
         {axCHF(d.projectedEnd)}
       </div>
 
       {targetSet && pace ? (
         <>
           <div style={{ marginTop: 13, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: pace.ahead ? '#15643F' : '#A0521E', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: pace.ahead ? '#15643F' : '#A0521E', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
               <MEIcon name={pace.ahead ? 'arrow-up' : 'arrow-down'} size={11} color="#fff" strokeWidth={2.6} />
               {pace.ahead ? t('analytics.hero.ahead') : t('analytics.hero.behind')} {noCHF(axCHF(Math.abs(pace.diff)))}
             </span>
-            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: mut, whiteSpace: 'nowrap' }}>{t('analytics.hero.vsTempo')}</span>
+            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: mut, whiteSpace: 'nowrap' }}>{t('analytics.hero.vsTempo')}</span>
           </div>
           <PaceBar d={d} ink={ink} mut={mut} t={t} />
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: mut, flexWrap: 'wrap' }}>
             <MEIcon name="lock" size={12} color={mut} strokeWidth={1.9} />
             <span>{t('analytics.hero.targetSetByAgency')} ·</span>
-            <button type="button" onClick={onSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+            <button type="button" onClick={onSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
               {t('analytics.hero.editInSettings')}
             </button>
           </div>
@@ -183,7 +183,7 @@ function Hero({ d, t, tk, onSettings }: { d: AxPeriodData; t: TFunction; tk: Mob
       ) : (
         <div style={{ marginTop: 16 }}>
           <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: mut, lineHeight: 1.5 }}>{t('analytics.hero.noTarget', { period: d.label })}</div>
-          <button type="button" onClick={onSettings} style={{ marginTop: 14, height: 44, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, background: tk.ctaBg, color: tk.ctaInk }}>
+          <button type="button" onClick={onSettings} style={{ marginTop: 14, height: 44, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: tk.ctaBg, color: tk.ctaInk }}>
             {t('analytics.hero.setInSettings')}
           </button>
         </div>
@@ -208,14 +208,14 @@ function PaceBar({ d, ink, mut, t }: { d: AxPeriodData; ink: string; mut: string
         <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${projW}%`, borderRadius: 'var(--crm-radius-pill)', backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.34) 0 5px, transparent 5px 10px)' }} />
         <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${realW}%`, borderRadius: 'var(--crm-radius-pill)', background: ink, transition: 'width .8s cubic-bezier(.2,.8,.2,1)' }} />
         <div style={{ position: 'absolute', left: `${paceX}%`, top: -5, bottom: -5, width: 2, background: mut, transform: 'translateX(-1px)', borderRadius: 'var(--crm-radius-2xs)' }} />
-        <div style={{ position: 'absolute', left: `${paceX}%`, top: -19, transform: 'translateX(-50%)', fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: mut, letterSpacing: 0.6, whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{t('analytics.pace.tempo')}</div>
+        <div style={{ position: 'absolute', left: `${paceX}%`, top: -19, transform: 'translateX(-50%)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: mut, whiteSpace: 'nowrap'}}>{t('analytics.pace.tempo')}</div>
       </div>
       <div style={{ marginTop: 14, display: 'flex', gap: 'var(--crm-space-2xl)', flexWrap: 'wrap' }}>
         {legend.map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
             <span style={{ width: 10, height: 10, borderRadius: 'var(--crm-radius-2xs)', flexShrink: 0, background: l.sw === 'hatch' ? undefined : (l.sw || 'transparent'), backgroundImage: l.sw === 'hatch' ? `repeating-linear-gradient(45deg, ${mut} 0 3px, transparent 3px 6px)` : undefined, boxShadow: l.sw ? 'none' : `inset 0 0 0 1.5px ${mut}` }} />
             <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: mut }}>{l.t}</span>
-            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: ink, fontVariantNumeric: 'tabular-nums' }}>{l.v}</span>
+            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: ink, fontVariantNumeric: 'tabular-nums' }}>{l.v}</span>
           </div>
         ))}
       </div>
@@ -256,8 +256,8 @@ function Trajectory({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTok
   return (
     <div style={{ marginTop: 24, background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-3xl)', padding: 'var(--crm-space-4xl) var(--crm-space-3xl) var(--crm-space-2xl)', boxShadow: tk.shadowSm }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginBottom: 10 }}>
-        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('analytics.chart.title')}</h3>
-        <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, whiteSpace: 'nowrap' }}>{d.granularity}</span>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.3 }}>{t('analytics.chart.title')}</h3>
+        <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, whiteSpace: 'nowrap' }}>{d.granularity}</span>
       </div>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block', height: 132 }} role="img" aria-label={t('analytics.chart.title')}>
         <path d={area} fill={tk.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(3,3,3,0.05)'} stroke="none" />
@@ -281,10 +281,10 @@ function Trajectory({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTok
 // ─── KPI 2×2 ───────────────────────────────────────────────────────────────
 /** Pastille de variation ±% (vert au-dessus / ocre en-dessous) ; `pts` affiche « pt », `abs` masque le suffixe. */
 function Delta({ v, pts, abs, tk }: { v: number; pts?: boolean; abs?: boolean; tk: MobileTokens }) {
-  if (v === 0) return <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted }}>—</span>
+  if (v === 0) return <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted }}>—</span>
   const up = v > 0
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: up ? '#15643F' : '#A0521E', color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: up ? '#15643F' : '#A0521E', color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
       <MEIcon name={up ? 'arrow-up' : 'arrow-down'} size={9} color="#fff" strokeWidth={3} />
       {up ? '+' : ''}{v}{pts ? ' pt' : abs ? '' : '%'}
     </span>
@@ -319,7 +319,7 @@ function Kpis({ d, tk }: { d: AxPeriodData; tk: MobileTokens }) {
             <Delta v={k.delta} pts={k.pts} abs={k.abs} tk={tk} />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--crm-space-sm)' }}>
-            <span style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{k.value}</span>
+            <span style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{k.value}</span>
             <Spark data={k.spark} up={k.delta >= 0} tk={tk} />
           </div>
         </div>
@@ -334,7 +334,7 @@ function Closing({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens
   const deals = d.closing ?? []
   return (
     <div style={{ marginTop: 24 }}>
-      <h3 style={{ margin: '0 0 11px', fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.4, padding: '0 var(--crm-space-2xs)' }}>{t('analytics.closing.title')}</h3>
+      <h3 style={{ margin: '0 0 11px', fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.4, padding: '0 var(--crm-space-2xs)' }}>{t('analytics.closing.title')}</h3>
       {deals.length === 0 ? (
         <EmptyRow text={t('analytics.closing.empty')} tk={tk} />
       ) : (
@@ -342,17 +342,17 @@ function Closing({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens
           {deals.map((dl, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)', boxShadow: i === deals.length - 1 ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
               <div style={{ width: 44, flexShrink: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink, fontVariantNumeric: 'tabular-nums' }}>{dl.prob}%</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink, fontVariantNumeric: 'tabular-nums' }}>{dl.prob}%</div>
                 <div style={{ height: 4, borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, overflow: 'hidden', marginTop: 4 }}>
                   <div style={{ height: '100%', width: `${dl.prob}%`, background: tk.ink, borderRadius: 'var(--crm-radius-pill)' }} />
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[dl.prop, dl.loc].filter(Boolean).join(' · ')}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[dl.prop, dl.loc].filter(Boolean).join(' · ')}</div>
                 <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, marginTop: 1 }}>{[dl.stage, dl.when].filter(Boolean).join(' · ')}</div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{dl.comm > 0 ? noCHF(axCHF(dl.comm)) : 'CHF —'}</div>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{dl.comm > 0 ? noCHF(axCHF(dl.comm)) : 'CHF —'}</div>
                 <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted }}>{t('analytics.deal.commission')}</div>
               </div>
             </div>
@@ -373,8 +373,8 @@ function Composition({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTo
   return (
     <div style={{ marginTop: 24 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginBottom: 11, padding: '0 var(--crm-space-2xs)' }}>
-        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.4 }}>{t('analytics.composition.title')}</h3>
-        {total > 0 ? <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{noCHF(axCHF(total))}</span> : null}
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.4 }}>{t('analytics.composition.title')}</h3>
+        {total > 0 ? <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{noCHF(axCHF(total))}</span> : null}
       </div>
       {total === 0 ? (
         <EmptyRow text={t('analytics.composition.empty')} tk={tk} />
@@ -389,11 +389,11 @@ function Composition({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTo
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-xs)', boxShadow: i === d.composition.length - 1 ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
               <span style={{ width: 11, height: 11, borderRadius: 'var(--crm-radius-xs)', background: ramp[c.k], flexShrink: 0, boxShadow: c.k === 'possible' ? `inset 0 0 0 1px ${tk.ghost}` : 'none' }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.ink }}>{c.label}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink }}>{c.label}</div>
                 <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted }}>{c.hint}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{noCHF(axCHF(c.v))}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{noCHF(axCHF(c.v))}</div>
                 <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>{Math.round((c.v / total) * 100)} %</div>
               </div>
             </div>
@@ -410,7 +410,7 @@ function Sources({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens
   const opac = [1, 0.72, 0.52, 0.38, 0.28]
   return (
     <div style={{ marginTop: 24 }}>
-      <h3 style={{ margin: '0 0 3px', fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.4, padding: '0 var(--crm-space-2xs)' }}>{t('analytics.sources.title')}</h3>
+      <h3 style={{ margin: '0 0 3px', fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.4, padding: '0 var(--crm-space-2xs)' }}>{t('analytics.sources.title')}</h3>
       <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, padding: '0 var(--crm-space-2xs)', marginBottom: 11 }}>{t('mobile.analytics.sourcesSubtitle')}</div>
       {d.sources.length === 0 ? (
         <EmptyRow text={t('analytics.sources.empty')} tk={tk} />
@@ -418,15 +418,15 @@ function Sources({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens
         <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-3xl)', boxShadow: tk.shadowSm, padding: 'var(--crm-space-md) var(--crm-space-2xl)' }}>
           {d.sources.map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) 0', boxShadow: i === d.sources.length - 1 ? 'none' : `inset 0 -1px 0 ${tk.hair}` }}>
-              <span style={{ width: 16, fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{i + 1}</span>
+              <span style={{ width: 16, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{i + 1}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</div>
                 <div style={{ height: 7, borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, overflow: 'hidden', marginTop: 6 }}>
                   <div style={{ height: '100%', width: `${s.pct}%`, background: tk.ink, opacity: opac[i] ?? 0.3, borderRadius: 'var(--crm-radius-pill)', transition: 'width .7s cubic-bezier(.2,.8,.2,1)' }} />
                 </div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 64 }}>
-                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{s.deals}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{s.deals}</div>
                 <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted }}>{t('analytics.sources.leadCount', { count: s.deals })} · {s.pct}%</div>
               </div>
             </div>
@@ -462,9 +462,9 @@ function Skeleton({ tk }: { tk: MobileTokens }) {
 function ErrorCard({ t, tk, onRetry }: { t: TFunction; tk: MobileTokens; onRetry: () => void }) {
   return (
     <div style={{ marginTop: 24, textAlign: 'center', padding: '40px 24px', background: tk.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
-      <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink }}>{t('analytics.error.title')}</div>
+      <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink }}>{t('analytics.error.title')}</div>
       <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 6, lineHeight: 1.45, maxWidth: 280, marginInline: 'auto' }}>{t('analytics.error.body')}</div>
-      <button type="button" onClick={onRetry} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{t('analytics.error.retry')}</button>
+      <button type="button" onClick={onRetry} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>{t('analytics.error.retry')}</button>
     </div>
   )
 }
@@ -478,8 +478,8 @@ function NoData({ t, tk, onRetry }: { t: TFunction; tk: MobileTokens; onRetry: (
       <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
         <MEIcon name="trending-up" size={24} color={tk.muted} strokeWidth={1.8} />
       </div>
-      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink, marginTop: 14 }}>{t('mobile.analytics.noData')}</div>
-      <button type="button" onClick={onRetry} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{t('analytics.error.retry')}</button>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, marginTop: 14 }}>{t('mobile.analytics.noData')}</div>
+      <button type="button" onClick={onRetry} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>{t('analytics.error.retry')}</button>
     </div>
   )
 }

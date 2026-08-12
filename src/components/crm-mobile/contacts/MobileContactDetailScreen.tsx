@@ -136,9 +136,9 @@ export function MobileContactDetailScreen({ demo = false }: { demo?: boolean }) 
   if (live && isError && !contact) {
     return (
       <div style={fullState()}>
-        <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink }}>{t('cd.error.title')}</div>
+        <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink }}>{t('cd.error.title')}</div>
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: tk.muted, marginTop: 6, lineHeight: 1.5 }}>{t('cd.error.message')}</div>
-        <button type="button" onClick={() => refetch()} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{t('cd.error.retry')}</button>
+        <button type="button" onClick={() => refetch()} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>{t('cd.error.retry')}</button>
       </div>
     )
   }
@@ -189,9 +189,9 @@ function Hero({ contact, verified, t, tk }: { contact: Contact; verified: boolea
   return (
     <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-5xl)', boxShadow: tk.shadowLg, padding: 'var(--crm-space-5xl)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
-        <span style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: avatarColor(contact.id), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-4xl)', fontWeight: 800 }}>{initialsOf(contact)}</span>
+        <span style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: avatarColor(contact.id), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-4xl)', fontWeight: 500 }}>{initialsOf(contact)}</span>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.6, lineHeight: 1.05, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 500, color: tk.ink, letterSpacing: -0.6, lineHeight: 1.05, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
             <span style={{ minWidth: 0, flexShrink: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.first_name} {contact.last_name}</span>
             {verified ? <ContactSeal size={18} /> : null}
           </h1>
@@ -211,8 +211,8 @@ function Hero({ contact, verified, t, tk }: { contact: Contact; verified: boolea
             href={f.value ? (f.num ? `tel:${f.value}` : `mailto:${f.value}`) : undefined}
             style={{ padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)', background: tk.cardSubtle, minWidth: 0, textDecoration: 'none', display: 'block', pointerEvents: f.value ? 'auto' : 'none' }}
           >
-            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 5 }}>{t(f.labelKey)}</div>
-            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: f.value ? tk.ink : tk.muted, letterSpacing: -0.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: f.num ? 'tabular-nums' : 'normal' }}>{f.value || '—'}</div>
+            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted, marginBottom: 5 }}>{t(f.labelKey)}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: f.value ? tk.ink : tk.muted, letterSpacing: -0.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: f.num ? 'tabular-nums' : 'normal' }}>{f.value || '—'}</div>
           </a>
         ))}
       </div>
@@ -222,7 +222,7 @@ function Hero({ contact, verified, t, tk }: { contact: Contact; verified: boolea
 
 /** Pastille arrondie neutre (source, zone ou tag). */
 function Pill({ children, tk }: { children: ReactNode; tk: MobileTokens }) {
-  return <span style={{ display: 'inline-flex', alignItems: 'center', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, color: tk.ink, fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.1, whiteSpace: 'nowrap' }}>{children}</span>
+  return <span style={{ display: 'inline-flex', alignItems: 'center', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, color: tk.ink, fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, whiteSpace: 'nowrap' }}>{children}</span>
 }
 
 /** Rappel KYC inline, jamais bloquant : progression des vérifications + CTA « vérifier ». */
@@ -237,21 +237,21 @@ function KycInline({ dossier, onOpen, t, tk }: { dossier: KycDossierSummary | nu
   return (
     <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-5xl)', boxShadow: tk.shadow, overflow: 'hidden' }}>
       <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-5xl) 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, letterSpacing: 0.8, textTransform: 'uppercase' }}>{t('mobile.detail.kyc.title')}</span>
+        <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted}}>{t('mobile.detail.kyc.title')}</span>
         {total > 0 && !m.verified ? (
-          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>{t('mobile.detail.kyc.progress', { done, total })}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>{t('mobile.detail.kyc.progress', { done, total })}</span>
         ) : null}
       </div>
       <div style={{ background: band, padding: 'var(--crm-space-3xl) var(--crm-space-5xl)', margin: '15px 0 0', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
         <MEIcon name="shield" size={22} color={ink} strokeWidth={1.8} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: ink, letterSpacing: -0.2 }}>{t(m.labelKey)}</div>
+          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: ink, letterSpacing: -0.2 }}>{t(m.labelKey)}</div>
           <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: subInk, marginTop: 2 }}>{m.verified ? t('mobile.detail.kyc.compliant') : t('mobile.detail.kyc.lba')}</div>
         </div>
         {m.verified ? (
           <MEIcon name="check" size={20} color={ink} strokeWidth={2.6} />
         ) : (
-          <button type="button" onClick={onOpen} style={{ flexShrink: 0, height: 32, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: tk.ctaBg, color: tk.ctaInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: -0.1 }}>{t('mobile.detail.kyc.verify')}</button>
+          <button type="button" onClick={onOpen} style={{ flexShrink: 0, height: 32, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: tk.ctaBg, color: tk.ctaInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.1 }}>{t('mobile.detail.kyc.verify')}</button>
         )}
       </div>
     </div>
@@ -271,7 +271,7 @@ function Segmented({ tab, setTab, t, tk }: { tab: TabId; setTab: (id: TabId) => 
       {TABS.map((tb) => {
         const on = tb.id === tab
         return (
-          <button key={tb.id} type="button" onClick={() => setTab(tb.id)} style={{ flex: 1, height: 38, border: 0, cursor: 'pointer', borderRadius: 'var(--crm-radius-pill)', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, color: on ? tk.accentInk : tk.inkSoft, background: on ? tk.accent : tk.card, boxShadow: on ? tk.shadow : tk.shadowSm }}>
+          <button key={tb.id} type="button" onClick={() => setTab(tb.id)} style={{ flex: 1, height: 38, border: 0, cursor: 'pointer', borderRadius: 'var(--crm-radius-pill)', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: on ? tk.accentInk : tk.inkSoft, background: on ? tk.accent : tk.card, boxShadow: on ? tk.shadow : tk.shadowSm }}>
             {t(tb.key)}
           </button>
         )
@@ -284,7 +284,7 @@ const CV_MEGGA_GRAD = 'radial-gradient(100% 88% at 13% 110%, #7C63F0 0%, rgba(12
 
 /** Pastille translucide posée sur le dégradé de la carte critères. */
 function GlassChip({ children }: { children: ReactNode }) {
-  return <span style={{ display: 'inline-flex', alignItems: 'center', padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.13)', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.1, whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' }}>{children}</span>
+  return <span style={{ display: 'inline-flex', alignItems: 'center', padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.13)', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' }}>{children}</span>
 }
 
 /** Onglet Aperçu : critères de recherche (carte dégradée) + bloc informations. */
@@ -305,18 +305,18 @@ function OverviewTab({ contact, t, tk, i18nLang, onRefine }: { contact: Contact;
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)', marginTop: 12 }}>
       {hasCriteria(sc) ? (
         <div style={{ position: 'relative', borderRadius: 'var(--crm-radius-5xl)', overflow: 'hidden', padding: 'var(--crm-space-4xl)', color: '#fff', background: CV_MEGGA_GRAD, boxShadow: tk.shadow }}>
-          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)' }}>{t('mobile.detail.criteria.eyebrow')}</span>
-          <h3 style={{ margin: '14px 0 0', fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: '#fff', letterSpacing: -0.4 }}>{t('mobile.detail.criteria.title')}</h3>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>{t('mobile.detail.criteria.eyebrow')}</span>
+          <h3 style={{ margin: '14px 0 0', fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: '#fff', letterSpacing: -0.4 }}>{t('mobile.detail.criteria.title')}</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)', marginTop: 14 }}>
             {chips.map((ch, i) => <GlassChip key={i}>{ch.key ? t(ch.key) : ch.text}</GlassChip>)}
           </div>
           {features.length ? (
             <div style={{ marginTop: 13 }}>
-              <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 8 }}>{t('mobile.detail.criteria.indispensable')}</div>
+              <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>{t('mobile.detail.criteria.indispensable')}</div>
               <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', flexWrap: 'wrap' }}>{features.map((f) => <GlassChip key={f}>{f}</GlassChip>)}</div>
             </div>
           ) : null}
-          <button type="button" onClick={onRefine} style={{ width: '100%', marginTop: 16, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: MXC_COLOR.n1000, color: MXC_COLOR.n100, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}>
+          <button type="button" onClick={onRefine} style={{ width: '100%', marginTop: 16, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: MXC_COLOR.n1000, color: MXC_COLOR.n100, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}>
             {t('mobile.detail.criteria.refine')} <MEIcon name="arrow-right" size={16} color={MXC_COLOR.n100} strokeWidth={2} />
           </button>
         </div>
@@ -324,12 +324,12 @@ function OverviewTab({ contact, t, tk, i18nLang, onRefine }: { contact: Contact;
 
       {infos.length ? (
         <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-5xl)', boxShadow: tk.shadow, padding: 'var(--crm-space-4xl)' }}>
-          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 12 }}>{t('mobile.detail.infos.title')}</div>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, marginBottom: 12 }}>{t('mobile.detail.infos.title')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-md)' }}>
             {infos.map((r) => (
               <div key={r.labelKey} style={{ padding: 'var(--crm-space-lg) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)', background: tk.cardSubtle, minWidth: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 5 }}>{t(r.labelKey)}</div>
-                <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.ink, letterSpacing: -0.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.value}</div>
+                <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted, marginBottom: 5 }}>{t(r.labelKey)}</div>
+                <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.ink, letterSpacing: -0.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.value}</div>
               </div>
             ))}
           </div>
@@ -357,10 +357,10 @@ function ActivityTab({ events, loading, t, tk, i18nLang }: { events: TimelineEve
         return (
           <div key={ev.id} style={{ background: tk.cardSubtle, borderRadius: 'var(--crm-radius-2xl)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginBottom: 9 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.1, whiteSpace: 'nowrap' }}>{t(cat.labelKey)}</span>
-              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtDay(ev.created_at, i18nLang)}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, whiteSpace: 'nowrap' }}>{t(cat.labelKey)}</span>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtDay(ev.created_at, i18nLang)}</span>
             </div>
-            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.ink, letterSpacing: -0.2 }}>{prettifyAction(ev.action)}</div>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.2 }}>{prettifyAction(ev.action)}</div>
             {who ? <div style={{ fontSize: 'var(--crm-text-md)', color: tk.inkSoft, fontWeight: 500, lineHeight: 1.5, marginTop: 3 }}>{who}</div> : null}
           </div>
         )
@@ -376,7 +376,7 @@ function MatchingTab({ matches, loading, t, tk, onOpen, onAtelier }: { matches: 
     return (
       <div style={{ marginTop: 12 }}>
         <EmptyState icon="home" title={t('mobile.detail.matching.empty')} desc={t('mobile.detail.matching.emptyDesc')} tk={tk} />
-        <button type="button" onClick={onAtelier} style={{ marginTop: 12, width: '100%', height: 46, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{t('mobile.detail.matching.openAtelier')}</button>
+        <button type="button" onClick={onAtelier} style={{ marginTop: 12, width: '100%', height: 46, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>{t('mobile.detail.matching.openAtelier')}</button>
       </div>
     )
   }
@@ -384,7 +384,7 @@ function MatchingTab({ matches, loading, t, tk, onOpen, onAtelier }: { matches: 
     <div style={{ marginTop: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', margin: '0 2px 11px' }}>
         <MEIcon name="sparkle" size={14} color={tk.muted} />
-        <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, letterSpacing: 0.8, textTransform: 'uppercase' }}>{t('mobile.detail.matching.eyebrow')}</span>
+        <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted}}>{t('mobile.detail.matching.eyebrow')}</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
         {matches.map((m) => {
@@ -396,13 +396,13 @@ function MatchingTab({ matches, loading, t, tk, onOpen, onAtelier }: { matches: 
             <button key={m.id} type="button" onClick={() => onOpen(m)} disabled={!navigable} style={{ display: 'block', width: '100%', textAlign: 'left', padding: 0, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-3xl)', overflow: 'hidden', background: tk.card, boxShadow: tk.shadow, cursor: navigable ? 'pointer' : 'default', fontFamily: 'inherit' }}>
               <div style={{ position: 'relative', height: 150, background: tk.cardSubtle }}>
                 {photo ? <img src={photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}><MEIcon name="home" size={30} color={tk.ghost} /></div>}
-                <span style={{ position: 'absolute', top: 11, left: 11, display: 'inline-flex', alignItems: 'center', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.1 }}>{t(st.labelKey)}</span>
-                <span style={{ position: 'absolute', top: 11, right: 11, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(8,9,12,0.74)', color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', backdropFilter: 'blur(4px)' }}><MEIcon name="sparkle" size={12} color="#fff" />{m.score}</span>
+                <span style={{ position: 'absolute', top: 11, left: 11, display: 'inline-flex', alignItems: 'center', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1 }}>{t(st.labelKey)}</span>
+                <span style={{ position: 'absolute', top: 11, right: 11, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(8,9,12,0.74)', color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', backdropFilter: 'blur(4px)' }}><MEIcon name="sparkle" size={12} color="#fff" />{m.score}</span>
               </div>
               <div style={{ padding: 'var(--crm-space-xl) var(--crm-space-2xl) var(--crm-space-2xl)' }}>
-                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.listing.title}</div>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.listing.title}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 5, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums' }}>{formatCHF(m.listing.price)}</span>
+                  <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums' }}>{formatCHF(m.listing.price)}</span>
                   <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted }}>{[m.listing.city, m.listing.rooms ? t('mobile.detail.matching.rooms', { n: m.listing.rooms }) : null, m.listing.surface_m2 ? `${m.listing.surface_m2} m²` : null].filter(Boolean).join(' · ')}</span>
                 </div>
               </div>
@@ -419,7 +419,7 @@ function DocsTab({ docs, loading, t, tk, i18nLang }: { docs: DocRow[]; loading: 
   if (loading) return <SkeletonList tk={tk} />
   return (
     <div style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: tk.muted, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 2px 11px' }}>{t('mobile.detail.docs.title')}</div>
+      <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, margin: '0 2px 11px' }}>{t('mobile.detail.docs.title')}</div>
       {!docs.length ? (
         <EmptyState icon="file" title={t('mobile.detail.docs.empty')} desc={t('mobile.detail.docs.emptyDesc')} tk={tk} />
       ) : (
@@ -430,7 +430,7 @@ function DocsTab({ docs, loading, t, tk, i18nLang }: { docs: DocRow[]; loading: 
                 <MEIcon name="file" size={20} color={tk.inkSoft} strokeWidth={1.7} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</div>
                 <div style={{ fontSize: 'var(--crm-text-sm)', color: tk.muted, fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fmtDay(d.created_at, i18nLang)}</div>
               </div>
             </div>
@@ -448,7 +448,7 @@ function EmptyState({ icon, title, desc, tk }: { icon: MEIconName; title: string
       <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, display: 'grid', placeItems: 'center', margin: '0 auto' }}>
         <MEIcon name={icon} size={24} color={tk.muted} strokeWidth={1.8} />
       </div>
-      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink, marginTop: 14 }}>{title}</div>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink, marginTop: 14 }}>{title}</div>
       {desc ? <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 5, maxWidth: 250, marginInline: 'auto', lineHeight: 1.45 }}>{desc}</div> : null}
     </div>
   )

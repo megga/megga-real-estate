@@ -215,11 +215,11 @@ function Header({ tk, backLabel, onBack, title }: { tk: MobileTokens; backLabel:
           style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 38, padding: '0 var(--crm-space-2xl) 0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, fontFamily: 'inherit' }}
         >
           <MEIcon name="chevron-left" size={18} color={tk.ink} strokeWidth={2.2} />
-          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: tk.ink }}>{backLabel}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink }}>{backLabel}</span>
         </button>
       </header>
       <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>{title}</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>{title}</h1>
       </div>
     </>
   )
@@ -231,7 +231,7 @@ function Card({ tk, title, children, pad = 18 }: { tk: MobileTokens; title?: str
     <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 'var(--crm-radius-4xl)', boxShadow: tk.shadowSm, overflow: 'hidden' }}>
       {title ? (
         <div style={{ padding: `${pad}px ${pad}px 0` }}>
-          <h2 style={{ margin: 0, fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, color: tk.ink }}>{title}</h2>
+          <h2 style={{ margin: 0, fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, color: tk.ink }}>{title}</h2>
         </div>
       ) : null}
       <div style={{ padding: pad }}>{children}</div>
@@ -249,7 +249,7 @@ function Field({
   const [focus, setFocus] = useState(false)
   return (
     <label style={{ display: 'block', minWidth: 0 }}>
-      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: tk.muted, marginBottom: 7 }}>{label}</div>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted, marginBottom: 7 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'center', height: 46, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-lg)', background: tk.cardSubtle, opacity: disabled ? 0.55 : 1, boxShadow: focus ? `0 0 0 2px ${tk.accent}` : `inset 0 0 0 1px ${tk.hair}`, transition: 'box-shadow .18s ease' }}>
         <input
           type={type}
@@ -297,7 +297,7 @@ function Segment<T extends string>({ tk, options, value, onChange }: { tk: Mobil
             key={o.id}
             type="button"
             onClick={() => onChange(o.id)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 34, padding: o.icon ? '0 13px 0 11px' : '0 15px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', background: on ? tk.accent : 'transparent', color: on ? tk.accentInk : tk.muted, boxShadow: on ? tk.shadowSm : 'none', transition: 'background .18s, color .18s' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 34, padding: o.icon ? '0 13px 0 11px' : '0 15px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.1, whiteSpace: 'nowrap', background: on ? tk.accent : 'transparent', color: on ? tk.accentInk : tk.muted, boxShadow: on ? tk.shadowSm : 'none', transition: 'background .18s, color .18s' }}
           >
             {o.icon ? <MEIcon name={o.icon} size={15} color={on ? tk.accentInk : tk.muted} strokeWidth={2} /> : null}
             {o.label}
@@ -325,7 +325,7 @@ function Ring({ tk, value, size }: { tk: MobileTokens; value: number; size: numb
 /** Pastille ronde d'initiales sur fond accent. */
 function Avatar({ tk, initials, size }: { tk: MobileTokens; initials: string; size: number }) {
   return (
-    <span style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', background: tk.accent, color: tk.accentInk, fontSize: size * 0.36, fontWeight: 800, flexShrink: 0 }}>
+    <span style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', display: 'grid', placeItems: 'center', background: tk.accent, color: tk.accentInk, fontSize: size * 0.36, fontWeight: 600, flexShrink: 0 }}>
       {initials}
     </span>
   )
@@ -338,7 +338,7 @@ function SaveButton({ tk, t, label, onClick, disabled }: { tk: MobileTokens; t: 
       type="button"
       onClick={onClick}
       disabled={disabled}
-      style={{ height: 50, width: '100%', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: disabled ? 'default' : 'pointer', background: tk.accent, color: tk.accentInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, opacity: disabled ? 0.45 : 1, boxShadow: tk.shadowSm }}
+      style={{ height: 50, width: '100%', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: disabled ? 'default' : 'pointer', background: tk.accent, color: tk.accentInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, opacity: disabled ? 0.45 : 1, boxShadow: tk.shadowSm }}
     >
       {label || t('settings:profile.save')}
     </button>
@@ -408,8 +408,8 @@ function Hub({
             <Avatar tk={tk} initials={initials} size={50} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fullName}</div>
-            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted, marginTop: 3 }}>{t('dashboard:mobile.settings.completion', { pct })}</div>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fullName}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 3 }}>{t('dashboard:mobile.settings.completion', { pct })}</div>
           </div>
           <MEIcon name="chevron-right" size={20} color={tk.ghost} strokeWidth={2} />
         </button>
@@ -427,8 +427,8 @@ function Hub({
                 <MEIcon name={tl.icon} size={24} color={tk.ink} strokeWidth={1.85} />
               </span>
               <div style={{ marginTop: 'auto' }}>
-                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink, lineHeight: 1.15 }}>{t(tl.labelKey)}</div>
-                {tl.status ? <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, marginTop: 3 }}>{tl.status}</div> : null}
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink, lineHeight: 1.15 }}>{t(tl.labelKey)}</div>
+                {tl.status ? <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, marginTop: 3 }}>{tl.status}</div> : null}
               </div>
             </button>
           ))}
@@ -438,7 +438,7 @@ function Hub({
         <button
           type="button"
           onClick={onLogout}
-          style={{ width: '100%', marginTop: 16, height: 50, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, color: tk.muted, background: tk.card, boxShadow: tk.shadowSm, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}
+          style={{ width: '100%', marginTop: 16, height: 50, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, color: tk.muted, background: tk.card, boxShadow: tk.shadowSm, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)' }}
         >
           <MEIcon name="logout" size={18} color={tk.muted} strokeWidth={1.9} />
           {t('common:nav.logout')}
@@ -470,7 +470,7 @@ function ProfileSection({
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
           <Avatar tk={tk} initials={initials} size={68} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.5, color: tk.ink, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fullName}</div>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.5, color: tk.ink, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fullName}</div>
             <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[form.title, form.agency].filter(Boolean).join(' · ')}</div>
           </div>
           <Ring tk={tk} value={pct} size={56} />
@@ -534,7 +534,7 @@ function AgencySection({
             {form.logoUrl ? <img src={form.logoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <MEIcon name="building" size={28} color={tk.ink} strokeWidth={1.7} />}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{form.name || t('settings:agency.nameUndefined')}</div>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{form.name || t('settings:agency.nameUndefined')}</div>
             {[form.city, form.canton].filter(Boolean).length ? <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, marginTop: 3 }}>{[form.city, form.canton].filter(Boolean).join(' · ')}</div> : null}
           </div>
         </div>
@@ -589,8 +589,8 @@ function BillingSection({ ctx, plan, onBack }: { ctx: SectionCtx; plan: AgencyPl
             <MEIcon name="credit-card" size={22} color={tk.ink} strokeWidth={1.8} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted, letterSpacing: 0.2 }}>{t('settings:subscription.currentPlan')}</div>
-            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, marginTop: 2 }}>{plan ? t(PLAN_KEYS[plan]) : t('dashboard:mobile.settings.noPlan')}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, letterSpacing: 0.2 }}>{t('settings:subscription.currentPlan')}</div>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink, marginTop: 2 }}>{plan ? t(PLAN_KEYS[plan]) : t('dashboard:mobile.settings.noPlan')}</div>
           </div>
         </div>
       </Card>
@@ -617,7 +617,7 @@ function PreferencesSection({
     <Section tk={tk} t={t} title={t('settings:nav.sections.preferences.label')} onBack={onBack}>
       <Card tk={tk} title={t('settings:preferences.region.title')}>
         <div style={row}>
-          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.ink }}>{t('settings:preferences.region.language')}</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink }}>{t('settings:preferences.region.language')}</span>
           <Segment
             tk={tk}
             value={lang}
@@ -629,7 +629,7 @@ function PreferencesSection({
 
       <Card tk={tk} title={t('settings:preferences.appearance.title')}>
         <div style={row}>
-          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.ink }}>{t('settings:preferences.appearance.theme')}</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink }}>{t('settings:preferences.appearance.theme')}</span>
           <Segment
             tk={tk}
             value={isDark ? 'dark' : 'light'}

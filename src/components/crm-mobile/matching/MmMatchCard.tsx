@@ -57,7 +57,7 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
             <div
               style={{
                 fontSize: 'var(--crm-text-xl)',
-                fontWeight: 800,
+                fontWeight: 600,
                 color: tk.ink,
                 letterSpacing: -0.3,
                 whiteSpace: 'nowrap',
@@ -84,7 +84,7 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
           <div
             style={{
               fontSize: 'var(--crm-text-xl)',
-              fontWeight: 800,
+              fontWeight: 600,
               color: tk.ink,
               letterSpacing: -0.4,
               fontVariantNumeric: 'tabular-nums',
@@ -109,7 +109,7 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-md)',
-                fontWeight: 700,
+                fontWeight: 600,
                 color: tk.ink,
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -132,7 +132,7 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-md)',
-              fontWeight: 800,
+              fontWeight: 600,
               background: sent ? tk.cardSubtle : tk.accent,
               color: sent ? tk.muted : tk.accentInk,
               display: 'inline-flex',

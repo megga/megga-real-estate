@@ -323,11 +323,11 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
         </header>
 
         <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-4xl) 0' }}>
-          <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
+          <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
             {t('common:nav.matching')}
           </h1>
           <div style={{ marginTop: 7 }}>
-            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.inkSoft }}>
+            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.inkSoft }}>
               {t('mobile.activeBuyers', { count: allGroups.length })}
             </span>
           </div>
@@ -359,7 +359,7 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
                   transition: 'background .2s ease',
                 }}
               >
-                <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: on ? 800 : 700, letterSpacing: -0.2, color: on ? tk.accentInk : tk.ink, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: on ? tk.accentInk : tk.ink, whiteSpace: 'nowrap' }}>
                   {t(`tabs.${f}`)}
                 </span>
               </button>
@@ -377,26 +377,26 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
             </div>
           ) : showError ? (
             <div style={{ textAlign: 'center', padding: '48px 12px' }}>
-              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('atelier.error.title')}</div>
+              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.3 }}>{t('atelier.error.title')}</div>
               <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tk.muted, marginTop: 6, lineHeight: 1.45 }}>{t('atelier.error.desc')}</div>
               <button
                 type="button"
                 onClick={refresh}
-                style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}
+                style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}
               >
                 {t('atelier.error.retry')}
               </button>
             </div>
           ) : showEmpty ? (
             <div style={{ textAlign: 'center', padding: '48px 12px' }}>
-              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3 }}>{t('atelier.empty.title')}</div>
+              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.3 }}>{t('atelier.empty.title')}</div>
               <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tk.muted, marginTop: 6, lineHeight: 1.45 }}>{t('atelier.empty.desc')}</div>
               {!demo ? (
                 <button
                   type="button"
                   onClick={() => void runScan()}
                   disabled={scanning}
-                  style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: scanning ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk, opacity: scanning ? 0.85 : 1 }}
+                  style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: scanning ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk, opacity: scanning ? 0.85 : 1 }}
                 >
                   {scanning ? t('atelier.empty.scanning') : t('atelier.empty.scanCta')}
                 </button>

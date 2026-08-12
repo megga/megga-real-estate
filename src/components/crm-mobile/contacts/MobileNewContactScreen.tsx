@@ -65,9 +65,9 @@ export function MobileNewContactScreen({ demo = false }: { demo?: boolean }) {
         <div style={{ width: 64, height: 64, borderRadius: 'var(--crm-radius-pill)', background: tk.accent, display: 'grid', placeItems: 'center' }}>
           <MEIcon name="check" size={30} color={tk.accentInk} strokeWidth={2.4} />
         </div>
-        <h1 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, color: tk.ink }}>{t('mobile.new.doneTitle')}</h1>
+        <h1 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.5, color: tk.ink }}>{t('mobile.new.doneTitle')}</h1>
         <p style={{ margin: '8px 0 0', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, maxWidth: 250, lineHeight: 1.5 }}>{t('mobile.new.doneDesc', { name: `${firstName.trim()} ${lastName.trim()}` })}</p>
-        <button type="button" onClick={() => (done.id ? navigate(`/dashboard/contacts/${done.id}`) : close())} style={{ marginTop: 24, height: 48, padding: '0 26px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>
+        <button type="button" onClick={() => (done.id ? navigate(`/dashboard/contacts/${done.id}`) : close())} style={{ marginTop: 24, height: 48, padding: '0 26px', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>
           {done.id ? t('mobile.new.openContact') : t('mobile.title')}
         </button>
       </div>
@@ -84,11 +84,11 @@ export function MobileNewContactScreen({ demo = false }: { demo?: boolean }) {
       </header>
 
       <main style={{ flex: 1, overflowY: 'auto', padding: 'var(--crm-space-md) var(--crm-space-4xl) var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, color: tk.ink }}>{t('mobile.new.title')}</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 500, letterSpacing: -0.8, color: tk.ink }}>{t('mobile.new.title')}</h1>
 
         {/* avatar aperçu */}
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span style={{ width: 76, height: 76, borderRadius: 'var(--crm-radius-pill)', background: valid ? '#0041D9' : tk.ghost, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-6xl)', fontWeight: 700, letterSpacing: -0.4 }}>{initials}</span>
+          <span style={{ width: 76, height: 76, borderRadius: 'var(--crm-radius-pill)', background: valid ? '#0041D9' : tk.ghost, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -0.4 }}>{initials}</span>
         </div>
 
         {/* identité */}
@@ -101,7 +101,7 @@ export function MobileNewContactScreen({ demo = false }: { demo?: boolean }) {
           {NEW_TYPES.map((ty) => {
             const on = ty === type
             return (
-              <button key={ty} type="button" onClick={() => setType(ty)} style={{ flex: 1, height: 38, borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 800 : 700, background: on ? tk.accent : 'transparent', color: on ? tk.accentInk : tk.muted }}>
+              <button key={ty} type="button" onClick={() => setType(ty)} style={{ flex: 1, height: 38, borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, background: on ? tk.accent : 'transparent', color: on ? tk.accentInk : tk.muted }}>
                 {t(`mobile.type.${ty}`)}
               </button>
             )
@@ -119,12 +119,12 @@ export function MobileNewContactScreen({ demo = false }: { demo?: boolean }) {
           {SOURCES.map((s) => <option key={s} value={s}>{t(`mobile.new.sources.${s}`)}</option>)}
         </select>
 
-        {error ? <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.danger }}>{error}</div> : null}
+        {error ? <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.danger }}>{error}</div> : null}
       </main>
 
       <footer style={{ flexShrink: 0, display: 'flex', gap: 'var(--crm-space-lg)', padding: '11px 16px calc(18px + env(safe-area-inset-bottom))', background: tk.canvas }}>
-        <button type="button" onClick={close} style={{ height: 50, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, background: tk.cardSubtle, color: tk.inkSoft }}>{t('common:actions.cancel')}</button>
-        <button type="button" disabled={!valid || createContact.isPending} onClick={() => void submit()} style={{ flex: 1, height: 50, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: valid ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: valid ? tk.accent : tk.cardSubtle, color: valid ? tk.accentInk : tk.muted }}>
+        <button type="button" onClick={close} style={{ height: 50, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.cardSubtle, color: tk.inkSoft }}>{t('common:actions.cancel')}</button>
+        <button type="button" disabled={!valid || createContact.isPending} onClick={() => void submit()} style={{ flex: 1, height: 50, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: valid ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: valid ? tk.accent : tk.cardSubtle, color: valid ? tk.accentInk : tk.muted }}>
           {createContact.isPending ? t('mobile.new.creating') : t('mobile.new.create')}
         </button>
       </footer>
@@ -135,11 +135,11 @@ export function MobileNewContactScreen({ demo = false }: { demo?: boolean }) {
 type Tk = ReturnType<typeof useMobileTokens>['tk']
 /** Style d'un champ plein (input/select) : hauteur 46, fond subtil, sans bordure. */
 function field(tk: Tk): CSSProperties {
-  return { height: 46, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-lg)', border: 0, outline: 'none', background: tk.cardSubtle, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.2, color: tk.ink }
+  return { height: 46, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-lg)', border: 0, outline: 'none', background: tk.cardSubtle, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, color: tk.ink }
 }
 /** Style d'un input nu (transparent, sans bordure) posé dans un `Field`. */
 function inputBare(tk: Tk): CSSProperties {
-  return { flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, letterSpacing: -0.2, color: tk.ink }
+  return { flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, color: tk.ink }
 }
 /** Rangée de champ avec icône de tête (téléphone, e-mail) enveloppant un `inputBare`. */
 function Field({ tk, icon, children }: { tk: Tk; icon: MEIconName; children: ReactNode }) {
@@ -152,5 +152,5 @@ function Field({ tk, icon, children }: { tk: Tk; icon: MEIconName; children: Rea
 }
 /** Intertitre de section en petites capitales (identité, coordonnées, origine). */
 function SectionLabel({ tk, children }: { tk: Tk; children: string }) {
-  return <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.6, textTransform: 'uppercase', margin: '4px 2px -6px' }}>{children}</div>
+  return <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted, margin: '4px 2px -6px' }}>{children}</div>
 }

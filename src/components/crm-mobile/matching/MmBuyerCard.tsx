@@ -113,7 +113,7 @@ export default function MmBuyerCard({ group, onOpen, onMenu }: MmBuyerCardProps)
               background: group.av,
               color: '#fff',
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 800,
+              fontWeight: 600,
               flexShrink: 0,
             }}
           >
@@ -123,7 +123,7 @@ export default function MmBuyerCard({ group, onOpen, onMenu }: MmBuyerCardProps)
             <span
               style={{
                 fontSize: 'var(--crm-text-2xl)',
-                fontWeight: 800,
+                fontWeight: 600,
                 color: '#fff',
                 letterSpacing: -0.3,
                 whiteSpace: 'nowrap',
@@ -141,7 +141,7 @@ export default function MmBuyerCard({ group, onOpen, onMenu }: MmBuyerCardProps)
               alignItems: 'center',
               gap: 'var(--crm-space-xs)',
               fontSize: 'var(--crm-text-md)',
-              fontWeight: 800,
+              fontWeight: 600,
               color: '#fff',
               whiteSpace: 'nowrap',
               flexShrink: 0,

@@ -56,10 +56,10 @@ function FollowupRow({ row, last, tk }: { row: AgencyFollowupRow; last: boolean;
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.contact_name}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.contact_name}</div>
         <div style={{ fontSize: 'var(--crm-text-sm)', color: tk.muted, fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.action}</div>
       </div>
-      <span style={{ background: pill.bg, color: pill.fg, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.2, whiteSpace: 'nowrap', flexShrink: 0 }}>{due.text}</span>
+      <span style={{ background: pill.bg, color: pill.fg, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2, whiteSpace: 'nowrap', flexShrink: 0 }}>{due.text}</span>
       {/* Actions HITL inline (la ligne reste tappable → fiche). ✓ accepter = vrai rappel · ✕ écarter. */}
       {actionBtn(t('today.waFollowups.accept'), () => accept.mutate(row.id), 'check')}
       {actionBtn(t('today.waFollowups.dismiss'), () => dismiss.mutate(row.id), 'close')}
@@ -91,8 +91,8 @@ export function MobileWhatsAppFollowups() {
     <div style={{ marginTop: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 11, padding: '0 var(--crm-space-2xs)' }}>
         <MEIcon name="message" size={15} color={tk.ink} />
-        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t('today.waFollowups.title')}</h3>
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted, flexShrink: 0 }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink }}>{t('today.waFollowups.title')}</h3>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, flexShrink: 0 }}>
           {t('today.waFollowups.pending', { count: rows.length, countLabel: `${rows.length}${capped ? '+' : ''}` })}
         </span>
       </div>
@@ -101,7 +101,7 @@ export function MobileWhatsAppFollowups() {
           <FollowupRow key={r.id} row={r} last={extra === 0 && i === shown.length - 1} tk={tk} />
         ))}
         {extra > 0 && (
-          <div style={{ padding: 'var(--crm-space-md) var(--crm-space-2xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, textAlign: 'center' }}>
+          <div style={{ padding: 'var(--crm-space-md) var(--crm-space-2xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, textAlign: 'center' }}>
             {t('today.waFollowups.more', { count: extra })}
           </div>
         )}

@@ -41,7 +41,7 @@ export default function MmSendModal({
   return (
     <SgBottomCard open={open} onClose={onCancel} ariaLabel={t('confirm.sendTitle')}>
       <div style={{ padding: 'var(--crm-space-5xl) var(--crm-space-5xl) var(--crm-space-3xl)' }}>
-        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>
           {t('confirm.sendTitle')}
         </div>
         <p
@@ -86,7 +86,7 @@ export default function MmSendModal({
             <div
               style={{
                 fontSize: 'var(--crm-text-lg)',
-                fontWeight: 800,
+                fontWeight: 600,
                 color: tk.ink,
                 letterSpacing: -0.3,
                 whiteSpace: 'nowrap',
@@ -113,7 +113,7 @@ export default function MmSendModal({
           <div
             style={{
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 800,
+              fontWeight: 600,
               color: tk.ink,
               letterSpacing: -0.3,
               whiteSpace: 'nowrap',
@@ -143,7 +143,7 @@ export default function MmSendModal({
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-xl)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: tk.inkSoft,
               background: tk.cardSubtle,
             }}
@@ -161,7 +161,7 @@ export default function MmSendModal({
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-xl)',
-              fontWeight: 800,
+              fontWeight: 600,
               color: tk.accentInk,
               background: tk.accent,
               display: 'inline-flex',

@@ -48,7 +48,7 @@ function Row({ a, last }: { a: AgendaRow; last: boolean }) {
         boxShadow: last ? 'none' : `inset 0 -1px 0 ${tk.hair}`,
       }}
     >
-      <div style={{ width: 42, flexShrink: 0, fontSize: 'var(--crm-text-md)', fontWeight: 800, color: a.now ? tk.ink : tk.muted, fontVariantNumeric: 'tabular-nums' }}>
+      <div style={{ width: 42, flexShrink: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: a.now ? tk.ink : tk.muted, fontVariantNumeric: 'tabular-nums' }}>
         {a.time}
       </div>
       <div style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: a.color, flexShrink: 0, opacity: a.done ? 0.4 : 1 }} />
@@ -56,7 +56,7 @@ function Row({ a, last }: { a: AgendaRow; last: boolean }) {
         <div
           style={{
             fontSize: 'var(--crm-text-lg)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: a.done ? tk.muted : tk.ink,
             letterSpacing: -0.2,
             textDecoration: a.done ? 'line-through' : 'none',
@@ -76,7 +76,7 @@ function Row({ a, last }: { a: AgendaRow; last: boolean }) {
       </div>
       {a.done ? <MEIcon name="check" size={16} color={tk.ghost} /> : null}
       {a.now ? (
-        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.3, color: tk.accentInk, background: tk.accent, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.3, color: tk.accentInk, background: tk.accent, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', whiteSpace: 'nowrap' }}>
           {t('today.agenda.nowBadge')}
         </span>
       ) : null}
@@ -118,7 +118,7 @@ export function MobileAgenda({ demo = false, onSeeAll }: { demo?: boolean; onSee
   return (
     <div style={{ marginTop: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11, padding: '0 var(--crm-space-2xs)' }}>
-        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t('today.cockpit.tiles.agenda')}</h3>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink }}>{t('today.cockpit.tiles.agenda')}</h3>
         <button
           type="button"
           onClick={onSeeAll}
@@ -131,7 +131,7 @@ export function MobileAgenda({ demo = false, onSeeAll }: { demo?: boolean; onSee
             cursor: 'pointer',
             fontFamily: 'inherit',
             fontSize: 'var(--crm-text-md)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: tk.muted,
             flexShrink: 0,
           }}
