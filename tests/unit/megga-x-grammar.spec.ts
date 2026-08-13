@@ -68,7 +68,31 @@ const PAGES = new Set([
   // du périmètre bureau. `MatchingAtelierPage` était déjà propre (0 marqueur) ;
   // l'entrer quand même est ce qui empêche qu'il cesse de l'être.
   'MatchingPagerPage.tsx', 'MatchingAtelierPage.tsx',
+  // Les trois pages du Pipeline (lot 3, 13 août 2026). `OfferModalSugarV3Page`
+  // était déjà propre — 44 lignes qui ne font que monter la modale ; l'entrer
+  // quand même est ce qui empêche qu'il cesse de l'être.
+  'PipelineSugarV2Page.tsx', 'DealDetailSugarV4Page.tsx', 'OfferModalSugarV3Page.tsx',
 ])
+
+/**
+ * ⛔ LE CLIQUET NE COUVRAIT PAS `PAGES`, et un contrôle négatif l'a montré.
+ *
+ * « le cliquet ne recule pas » vérifiait les racines de `ZONES`, puis affirmait
+ * que chaque entrée de `PAGES` est bien BALAYÉE — en itérant `PAGES` elle-même.
+ * Retirer une page de l'ensemble faisait donc disparaître à la fois la surface
+ * ET son assertion : tout restait vert. Une page pouvait quitter le cliquet en
+ * silence, ce qui est exactement le mode d'échec que le cliquet existe pour
+ * empêcher côté dossiers.
+ *
+ * Cette liste est écrite À PART, en dur : elle ne peut pas rétrécir avec
+ * `PAGES`. Même idiome que la liste des racines acquises.
+ */
+const PAGES_ACQUISES = [
+  'BienDetailSugarV4Page.tsx', 'BiensSugarV2Page.tsx',
+  'ContactDetailSugarV3Page.tsx', 'ContactsSugarV2Page.tsx',
+  'MatchingPagerPage.tsx', 'MatchingAtelierPage.tsx',
+  'PipelineSugarV2Page.tsx', 'DealDetailSugarV4Page.tsx', 'OfferModalSugarV3Page.tsx',
+]
 
 /**
  * « Contacts » est couvert EN ENTIER depuis le lot 4 (12 août 2026) : le
@@ -418,10 +442,17 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/matching-recherche',
       'src/components/matching-atelier',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
-    // Les deux pages sont bien VUES — un filtre de nom qui ne matche rien
-    // laisserait la racine non vide (le dossier en contient d'autres) tout en
-    // ne gardant aucune des deux.
+    // Les pages sont bien VUES — un filtre de nom qui ne matche rien laisserait
+    // la racine non vide (le dossier en contient d'autres) tout en ne gardant
+    // aucune d'elles.
+    //
+    // ⚠ On itère `PAGES_ACQUISES`, PAS `PAGES` : itérer l'ensemble qu'on
+    // surveille le fait rétrécir avec lui. C'est ce que le contrôle négatif a
+    // montré — retirer une page passait au vert.
     const vues = sources.map((s) => s.chemin.split('/').pop())
-    for (const p of PAGES) expect(vues, `page non balayée : ${p}`).toContain(p)
+    for (const p of PAGES_ACQUISES) {
+      expect(PAGES, `page retirée du cliquet : ${p}`).toContain(p)
+      expect(vues, `page non balayée : ${p}`).toContain(p)
+    }
   })
 })

@@ -35,6 +35,7 @@ import {
   CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette, type StageId,
 } from '@/components/crm-sugar/tokens'
 import { type CrmDeal } from '@/components/crm-sugar/mockData'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useLogAudit } from '@/hooks/useAuditLog'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
@@ -575,17 +576,17 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
       boxShadow: sp.shadow, padding: '34px 46px', maxWidth: 380,
       animation: 'sugar-fade-up .4s cubic-bezier(.2,.8,.2,1) both',
     }}>
-      <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
+      <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.4, color: sp.ink }}>
         {pipeHasAnyActive ? t('board.emptyState.filtered.title') : t('board.emptyState.none.title')}
       </div>
-      <p style={{ margin: '9px 0 0', fontSize: 13, fontWeight: 500, color: sp.ink, lineHeight: 1.55 }}>
+      <p style={{ margin: '9px 0 0', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.ink, lineHeight: 1.55 }}>
         {pipeHasAnyActive ? t('board.emptyState.filtered.body') : t('board.emptyState.none.body')}
       </p>
       <button
         onClick={pipeHasAnyActive ? resetFilters : () => { setNewDealPrefill(null); setNewDealOpen(true) }}
         style={{
           marginTop: 20, height: 42, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer',
-          background: sp.accent, color: sp.accentInk, fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+          background: sp.accent, color: sp.accentInk, fontWeight: 600, fontSize: 'var(--crm-text-md)', fontFamily: 'inherit',
         }}>{pipeHasAnyActive ? t('board.emptyState.filtered.cta') : t('new_deal')}</button>
     </div>
   )
@@ -625,7 +626,7 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
               {/* En-tête : titre · recherche · Filtres · vues · Nouveau deal */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexShrink: 0 }}>
                 <h1 style={{
-                  margin: 0, fontSize: 34, fontWeight: 800, letterSpacing: -1.1,
+                  margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 600, letterSpacing: -1.1,
                   color: sp.ink, lineHeight: 1, marginRight: 4,
                 }}>{t('title')}</h1>
                 <div style={{ flex: 1 }} />
@@ -640,13 +641,13 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
                     placeholder={t('board.searchPlaceholder')}
                     style={{
                       flex: 1, minWidth: 0, background: 'transparent', border: 0, outline: 'none',
-                      color: sp.ink, fontSize: 13, fontFamily: 'inherit',
+                      color: sp.ink, fontSize: 'var(--crm-text-md)', fontFamily: 'inherit',
                     }}
                   />
                   {search && (
                     <button onClick={() => setSearch('')} style={{
                       background: 'none', border: 0, cursor: 'pointer',
-                      color: sp.sub, fontFamily: 'inherit', fontSize: 16,
+                      color: sp.sub, fontFamily: 'inherit', fontSize: 'var(--crm-text-2xl)',
                     }}>×</button>
                   )}
                 </div>
@@ -659,19 +660,19 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
                   }}>
                     <div>
                       <div style={{
-                        fontSize: 10, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase',
+                        fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                         color: sp.sub, padding: '2px 4px 8px',
                       }}>{t('filter.stage')}</div>
                       <SugarStageFilter sp={sp} dark={dark} value={filterStages} onChange={setFilterStages} />
                     </div>
                     <div>
                       <div style={{
-                        fontSize: 10, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase',
+                        fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                         color: sp.sub, padding: '2px 4px 8px',
                       }}>{t('board.filter.riskHeader')}</div>
                       <SugarRiskFilter sp={sp} dark={dark} value={filterRisk} onChange={setFilterRisk} />
                       <div style={{
-                        fontSize: 10, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase',
+                        fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                         color: sp.sub, padding: '16px 4px 8px',
                       }}>{t('board.filter.periodHeader')}</div>
                       <SugarPeriodFilter sp={sp} dark={dark} value={filterPeriod} onChange={setFilterPeriod} />
@@ -680,7 +681,7 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
                   {activeFilters > 0 && (
                     <button onClick={resetFilters} style={{
                       marginTop: 10, padding: '8px 4px', borderRadius: 10, border: 0, cursor: 'pointer',
-                      background: 'transparent', color: sp.sub, fontWeight: 700, fontSize: 12, fontFamily: 'inherit',
+                      background: 'transparent', color: sp.sub, fontWeight: 600, fontSize: 'var(--crm-text-sm)', fontFamily: 'inherit',
                       textDecoration: 'underline', textUnderlineOffset: 2,
                     }}>{t('board.filter.resetAll')}</button>
                   )}
@@ -688,7 +689,7 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
                 <SugarSegmentedView sp={sp} value={view} onChange={setView} />
                 <button onClick={() => { setNewDealPrefill(null); setNewDealOpen(true) }} style={{
                   height: 40, padding: '0 20px', borderRadius: 999, border: 0,
-                  background: sp.accent, color: sp.accentInk, fontWeight: 700, fontSize: 13,
+                  background: sp.accent, color: sp.accentInk, fontWeight: 600, fontSize: 'var(--crm-text-md)',
                   fontFamily: 'inherit', cursor: 'pointer', boxShadow: sp.focusShadow,
                   display: 'flex', alignItems: 'center', whiteSpace: 'nowrap',
                 }}>{t('new_deal')}</button>
@@ -701,15 +702,15 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
                   background: sp.cardBg, boxShadow: sp.shadowSm, color: sp.ink, marginBottom: 12, flexShrink: 0,
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{t('board.error.title')}</div>
-                    <div style={{ fontSize: 12, color: sp.sub, marginTop: 2 }}>{t('board.error.message')}</div>
+                    <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{t('board.error.title')}</div>
+                    <div style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, marginTop: 2 }}>{t('board.error.message')}</div>
                   </div>
                   <button
                     onClick={() => pipelineRefetch()}
                     style={{
                       height: 30, padding: '0 14px', borderRadius: 999, background: 'transparent',
                       color: sp.ink, border: `1px solid ${sp.cardBorder}`, cursor: 'pointer',
-                      fontFamily: 'inherit', fontSize: 12, fontWeight: 700, flexShrink: 0,
+                      fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, flexShrink: 0,
                     }}>{t('board.error.retry')}</button>
                 </div>
               )}
@@ -836,16 +837,22 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
       {pipeToast && (
         <div style={{
           position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-          background: '#0B0C0E', color: '#fff', padding: '13px 16px 13px 20px', borderRadius: 999,
-          fontSize: 13, fontWeight: 600, zIndex: 240,
+          // ⛔ Le toast est une SURFACE FLOTTANTE INVERSÉE : il garde l'encre,
+          // il ne prend pas l'accent — même arbitrage que sur le Matching et que
+          // sur la fiche deal. Mais l'encre est un JETON : `#0B0C0E` écrit à la
+          // main ne suivait pas le thème, et son `#fff` pariait sur un fond que
+          // personne ne mesurait.
+          background: sp.ink, color: encreSur(sp.ink), padding: '13px 16px 13px 20px', borderRadius: 999,
+          fontSize: 'var(--crm-text-md)', fontWeight: 600, zIndex: 240,
           display: 'flex', alignItems: 'center', gap: 16,
-          boxShadow: '0 12px 40px rgba(0,0,0,.28)', animation: 'sugar-toast .2s ease-out',
+          boxShadow: sp.shadow, animation: 'sugar-toast .2s ease-out',
         }}>
           <span>{pipeToast.message}</span>
           {pipeToast.undo && (
             <button onClick={pipeToast.undo} style={{
-              background: 'rgba(255,255,255,.14)', color: '#fff', border: 0, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, padding: '6px 14px', borderRadius: 999,
+              background: sp.isDark ? 'rgba(3,3,3,.14)' : 'rgba(255,255,255,.14)',
+              color: encreSur(sp.ink), border: 0, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, padding: '6px 14px', borderRadius: 999,
             }}>{t('board.toast.undo')}</button>
           )}
         </div>

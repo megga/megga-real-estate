@@ -48,7 +48,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
-import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { CRM_STAGE_ORDER, crmSugarPalette, sgStagePillBg, sgStageTint } from '@/components/crm-sugar/tokens'
 import { AVATAR_PALETTE } from '@/lib/sugarAdapters'
 import { dsPalette } from '@/components/crm-sugar-v3/dealTokens'

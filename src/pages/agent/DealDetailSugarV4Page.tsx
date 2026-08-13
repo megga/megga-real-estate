@@ -50,7 +50,7 @@ const dsFmt = (n: number | null | undefined) =>
 
 function DsEyebrow({ children, p }: { children: ReactNode; p: DsPal }) {
   return (
-    <div style={{ fontSize: 11, fontWeight: 600, color: p.muted, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+    <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: p.muted }}>
       {children}
     </div>
   )
@@ -59,7 +59,7 @@ function DsChip({ children, p }: { children: ReactNode; p: DsPal }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', padding: '6px 13px', borderRadius: 999,
-      background: p.chip, color: p.soft, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+      background: p.chip, color: p.soft, fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap',
     }}>{children}</span>
   )
 }
@@ -69,7 +69,7 @@ function DsBlack({ children, onClick, p }: { children: ReactNode; onClick: () =>
     <button onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{
       height: 44, padding: '0 22px', borderRadius: 999, border: 0,
       background: h ? p.accentHover : p.accent, color: p.accentInk, fontFamily: 'inherit',
-      fontWeight: 700, fontSize: 13.5, cursor: 'pointer',
+      fontWeight: 600, fontSize: 'var(--crm-text-md)', cursor: 'pointer',
       display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap',
     }}>{children}</button>
   )
@@ -80,7 +80,7 @@ function DsGhost({ children, onClick, p }: { children: ReactNode; onClick: () =>
     <button onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{
       height: 40, padding: '0 18px', borderRadius: 999, border: 0,
       background: h ? p.sub : 'transparent', color: p.soft, fontFamily: 'inherit',
-      fontSize: 13, fontWeight: 600, cursor: 'pointer',
+      fontSize: 'var(--crm-text-md)', fontWeight: 600, cursor: 'pointer',
       display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap',
     }}>{children}</button>
   )
@@ -105,9 +105,9 @@ function DsStageBar2({ stage, label, p, t }: {
         ))}
       </div>
       <div style={{ marginTop: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: isLost ? p.err : p.ink }}>{label}</span>
+        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: isLost ? p.err : p.ink }}>{label}</span>
         {!isLost && stage !== 'signed' && (
-          <span style={{ fontSize: 11, fontWeight: 600, color: p.muted, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: p.muted, fontVariantNumeric: 'tabular-nums' }}>
             {t('deal.step_counter', { index: idx + 1, total: CRM_STAGE_ORDER.length })}
           </span>
         )}
@@ -153,18 +153,18 @@ function DsMatchRow({ b, pct, top, p, onOpen }: {
     }}>
       {pct != null && (
         <span style={{
-          flexShrink: 0, padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 800,
+          flexShrink: 0, padding: '3px 9px', borderRadius: 999, fontSize: 'var(--crm-text-xs)', fontWeight: 600,
           background: top ? p.ink : p.chip, color: top ? p.onInk : p.ink, fontVariantNumeric: 'tabular-nums',
         }}>{pct}%</span>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 13.5, fontWeight: 700, color: p.ink,
+          fontSize: 'var(--crm-text-md)', fontWeight: 600, color: p.ink,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{b.title}</div>
       </div>
       <span style={{
-        fontSize: 13.5, fontWeight: 700, color: p.ink, fontVariantNumeric: 'tabular-nums', flexShrink: 0,
+        fontSize: 'var(--crm-text-md)', fontWeight: 600, color: p.ink, fontVariantNumeric: 'tabular-nums', flexShrink: 0,
       }}>{dsFmt(b.transaction === 'location' ? b.rent : b.price)}</span>
     </button>
   )
@@ -179,7 +179,7 @@ function DsOfferRow2({ o, current, p, t }: {
   const pill = (bg: string, fg: string, label: string) => (
     <span style={{
       padding: '2px 9px', borderRadius: 999, background: bg, color: fg,
-      fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
+      fontSize: 'var(--crm-text-xs)', fontWeight: 600,
     }}>{label}</span>
   )
   const conds = [
@@ -202,22 +202,22 @@ function DsOfferRow2({ o, current, p, t }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
           <span style={{
-            fontSize: 10.5, fontWeight: 700, color: p.muted, textTransform: 'uppercase', letterSpacing: 0.6,
+            fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: p.muted,
           }}>{counter ? t('deal.offer_row.counter') : t('deal.offer_row.offer')}</span>
           {o.status === 'accepted' ? pill(p.ok, encreSur(p.ok), t('deal.offer_status.accepted'))
             : o.status === 'rejected' ? pill(p.err, encreSur(p.err), t('deal.offer_status.rejected'))
             : o.status === 'expired' ? pill(p.muted, encreSur(p.muted), t('deal.offer_status.expired'))
             : current ? pill(p.ink, p.onInk, t('deal.offer_status.current')) : null}
-          <span style={{ marginLeft: 'auto', fontSize: 11, color: p.muted, fontWeight: 500, whiteSpace: 'nowrap' }}>
+          <span style={{ marginLeft: 'auto', fontSize: 'var(--crm-text-xs)', color: p.muted, fontWeight: 500, whiteSpace: 'nowrap' }}>
             {fmtDateTime(o.created_at)}
           </span>
         </div>
         <div style={{
-          marginTop: 7, fontSize: 24, fontWeight: 700, color: p.ink, letterSpacing: -0.6,
+          marginTop: 7, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: p.ink, letterSpacing: -0.6,
           lineHeight: 1, fontVariantNumeric: 'tabular-nums',
         }}>{dsFmt(o.amount)}</div>
         {conds.length > 0 && (
-          <div style={{ marginTop: 8, fontSize: 11.5, color: p.muted, fontWeight: 500, lineHeight: 1.5 }}>
+          <div style={{ marginTop: 8, fontSize: 'var(--crm-text-xs)', color: p.muted, fontWeight: 500, lineHeight: 1.5 }}>
             {conds.join(' · ')}
           </div>
         )}
@@ -443,9 +443,9 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
 
   const contactRow = (label: string, value: string | null | undefined) => value ? (
     <div style={{ display: 'flex', gap: 12 }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: p.muted, width: 84, flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: p.muted, width: 84, flexShrink: 0 }}>{label}</span>
       <span style={{
-        fontSize: 12.5, fontWeight: 600, color: p.soft, minWidth: 0,
+        fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: p.soft, minWidth: 0,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>{value}</span>
     </div>
@@ -473,16 +473,16 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 18 }}>
               <div style={{
                 width: 56, height: 56, borderRadius: 999, background: p.sub, color: p.ink,
-                display: 'grid', placeItems: 'center', flexShrink: 0, fontWeight: 700, fontSize: 17,
+                display: 'grid', placeItems: 'center', flexShrink: 0, fontWeight: 600, fontSize: 'var(--crm-text-2xl)',
               }}>
                 {initials}
               </div>
               <div style={{ minWidth: 0 }}>
                 <h1 style={{
-                  margin: 0, fontSize: 26, fontWeight: 700, color: p.ink, letterSpacing: -0.8, lineHeight: 1.1,
+                  margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: p.ink, letterSpacing: -0.8, lineHeight: 1.1,
                 }}>{contactName}</h1>
                 {langLabel && (
-                  <div style={{ fontSize: 12, color: p.muted, fontWeight: 500, marginTop: 4 }}>{langLabel}</div>
+                  <div style={{ fontSize: 'var(--crm-text-sm)', color: p.muted, fontWeight: 500, marginTop: 4 }}>{langLabel}</div>
                 )}
               </div>
             </div>
@@ -516,7 +516,7 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
                     border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                   }}>
                   <SgIcon name="shield" size={16} stroke={p.muted} sw={1.8} />
-                  <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: p.soft }}>
+                  <span style={{ flex: 1, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: p.soft }}>
                     {t('deal.kyc_to_complete')} <span style={{ color: p.muted, fontWeight: 500 }}>· {t('deal.optional')}</span>
                   </span>
                   <SgIcon name="arrowR" size={14} stroke={p.muted} />
@@ -544,9 +544,9 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontSize: 10, fontWeight: 600, color: p.muted, letterSpacing: 1.1, textTransform: 'uppercase',
+                    fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: p.muted,
                   }}>{t('deal.next_action')}</div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: p.ink, marginTop: 5, lineHeight: 1.35 }}>
+                  <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: p.ink, marginTop: 5, lineHeight: 1.35 }}>
                     {nextAction.note || t(`timeline.kind.${nextAction.kind}`, { defaultValue: t('timeline.kind.fallback') })}
                   </div>
                 </div>
@@ -558,17 +558,17 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
                 <div style={{
                   display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 26,
                 }}>
-                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: p.ink, letterSpacing: -0.4 }}>
+                  <h2 style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: p.ink, letterSpacing: -0.4 }}>
                     {t('deal.matches_title')}
                   </h2>
-                  <span style={{ fontSize: 12, color: p.muted, fontWeight: 600 }}>
+                  <span style={{ fontSize: 'var(--crm-text-sm)', color: p.muted, fontWeight: 600 }}>
                     {t('deal.matches_count', { count: matches.length })}
                   </span>
                 </div>
                 {matches.length === 0 ? (
                   <div style={{
                     marginTop: 16, padding: '24px 18px', textAlign: 'center',
-                    fontSize: 12.5, color: p.muted, fontWeight: 500,
+                    fontSize: 'var(--crm-text-sm)', color: p.muted, fontWeight: 500,
                   }}>{t('deal.no_matches')}</div>
                 ) : (
                   <div style={{ marginTop: 8 }}>
@@ -597,10 +597,10 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        fontSize: 14.5, fontWeight: 700, color: p.ink,
+                        fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: p.ink,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>{property.title}</div>
-                      <div style={{ fontSize: 11.5, color: p.muted, fontWeight: 500, marginTop: 3 }}>
+                      <div style={{ fontSize: 'var(--crm-text-xs)', color: p.muted, fontWeight: 500, marginTop: 3 }}>
                         {t('deal.property_line', {
                           addr: property.address ?? property.city ?? '',
                           area: property.surface_m2 ?? 0,
@@ -609,28 +609,28 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
                       </div>
                     </div>
                     <span style={{
-                      fontSize: 17, fontWeight: 700, color: p.ink,
+                      fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: p.ink,
                       fontVariantNumeric: 'tabular-nums', flexShrink: 0,
                     }}>{dsFmt(dealValue)}</span>
                   </button>
                 )}
                 <div style={{ height: 1, background: p.hair, margin: '22px 0' }} />
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: p.ink, letterSpacing: -0.4 }}>
+                  <h2 style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: p.ink, letterSpacing: -0.4 }}>
                     {t('deal.negotiation')}
                   </h2>
                   {offers.length > 0 && (
-                    <span style={{ fontSize: 12, color: p.muted, fontWeight: 600 }}>
+                    <span style={{ fontSize: 'var(--crm-text-sm)', color: p.muted, fontWeight: 600 }}>
                       {t('deal.rounds', { count: offers.length })}
                     </span>
                   )}
                 </div>
                 {offers.length === 0 ? (
                   <div style={{ marginTop: 16, padding: '26px 18px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: p.ink, marginBottom: 6 }}>
+                    <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: p.ink, marginBottom: 6 }}>
                       {t('deal.no_offer_title')}
                     </div>
-                    <div style={{ fontSize: 12.5, color: p.muted, marginBottom: 18 }}>{t('deal.no_offer_hint')}</div>
+                    <div style={{ fontSize: 'var(--crm-text-sm)', color: p.muted, marginBottom: 18 }}>{t('deal.no_offer_hint')}</div>
                     {!isTerminal && (
                       <DsBlack p={p} onClick={() => { setOfferModalKind('offer'); setOfferModalOpen(true) }}>
                         {t('deal.record_offer')}
@@ -660,7 +660,7 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
                     {last && last.status === 'rejected' && deal.stage !== 'lost' && (
                       <div style={{ marginTop: 14, paddingTop: 16, borderTop: `1px solid ${p.hair}` }}>
                         <div style={{
-                          fontSize: 12.5, color: p.muted, fontWeight: 500, marginBottom: 12, lineHeight: 1.5,
+                          fontSize: 'var(--crm-text-sm)', color: p.muted, fontWeight: 500, marginBottom: 12, lineHeight: 1.5,
                         }}>{t('deal.rejected_note')}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <DsBlack p={p} onClick={() => { setOfferModalKind('counter'); setOfferModalOpen(true) }}>
@@ -669,7 +669,7 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
                           <button onClick={markLost} style={{
                             height: 40, padding: '0 18px', borderRadius: 999, border: 0,
                             background: 'transparent', color: p.err, fontFamily: 'inherit',
-                            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            fontSize: 'var(--crm-text-md)', fontWeight: 600, cursor: 'pointer',
                           }}>{t('deal.mark_lost')}</button>
                         </div>
                       </div>
@@ -704,7 +704,7 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
         <div style={{
           position: 'absolute', left: '50%', bottom: 28, transform: 'translateX(-50%)', zIndex: 60,
           display: 'inline-flex', alignItems: 'center', gap: 10, padding: '13px 20px', borderRadius: 999,
-          background: p.ink, color: p.onInk, fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap',
+          background: p.ink, color: p.onInk, fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
           boxShadow: '0 18px 44px rgba(0,0,0,0.30), 0 4px 14px rgba(0,0,0,0.20)',
           animation: 'sugar-fade-up .3s cubic-bezier(.2,.8,.2,1) both',
         }}>{toast}</div>
