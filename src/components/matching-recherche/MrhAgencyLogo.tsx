@@ -88,7 +88,7 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
         display: 'inline-grid', placeItems: 'center',
         ...(gabarit === 'fiche'
           ? { minHeight: 64, maxWidth: '100%', borderRadius: 12, padding: '10px 14px' }
-          : { flexShrink: 0, height: 56, borderRadius: 10, padding: '0 12px' }),
+          : { flexShrink: 0, height: 72, borderRadius: 12, padding: '0 14px' }),
         background: LOGO_PLATE_BG,
         boxShadow: 'inset 0 0 0 1px ' + line,
       }}>
@@ -102,7 +102,7 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
           onError={() => setFailedUrl(logoUrl)}
           style={gabarit === 'fiche'
             ? { maxHeight: 44, maxWidth: 240, objectFit: 'contain', display: 'block' }
-            : { height: 40, maxWidth: 190, objectFit: 'contain', display: 'block' }}
+            : { height: 56, maxWidth: 200, objectFit: 'contain', display: 'block' }}
         />
       </span>
     )
