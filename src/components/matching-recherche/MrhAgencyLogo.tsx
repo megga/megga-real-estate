@@ -78,17 +78,21 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
   // ⚠ Le gabarit `fiche` est CARRÉ (40 px) : il prend la place exacte du
   // monogramme, sinon la ligne d'à côté — nom + portail + date — se décalerait
   // selon que la régie a un logo ou non.
-  // ⚠ Le gabarit `fiche` n'est plus CARRÉ : la plaque y remplace le nom ET le
-  // monogramme, donc elle a toute la largeur de la colonne (340 px) pour se
-  // déployer. Un logo est un dessin — le contraindre à un carré de 40 px le
-  // rendait décoratif plutôt que reconnaissable.
+  // ⛔ UNE SEULE TAILLE DE PLAQUE POUR LES DEUX EMPLACEMENTS. La fiche et la carte
+  // en portaient deux (image 44 contre 56, plaque à hauteur mini contre hauteur
+  // fixe) : deux nombres pour une seule intention, donc deux nombres qui
+  // dérivent. Ils sont fondus ici. Ce que le `gabarit` distingue encore est REEL
+  // — le REPLI, pas la taille : une carte retombe sur le nom en toutes lettres,
+  // la fiche sur le monogramme ET le nom.
+  //
+  // ⚠ La plaque ÉPOUSE le logo (`inline-grid`, largeur au contenu). Elle a barré
+  // la carte sur toute sa largeur le temps d'un essai : en sombre, la bande
+  // blanche pesait alors autant que la photo du bien.
   const plaque = logoUrl && failedUrl !== logoUrl
     ? (
       <span style={{
-        display: 'inline-grid', placeItems: 'center',
-        ...(gabarit === 'fiche'
-          ? { minHeight: 64, maxWidth: '100%', borderRadius: 12, padding: '10px 14px' }
-          : { flexShrink: 0, height: 72, borderRadius: 12, padding: '0 14px' }),
+        display: 'inline-grid', placeItems: 'center', flexShrink: 0,
+        height: 72, maxWidth: '100%', borderRadius: 12, padding: '0 14px',
         background: LOGO_PLATE_BG,
         boxShadow: 'inset 0 0 0 1px ' + line,
       }}>
@@ -100,9 +104,7 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
           loading="lazy"
           decoding="async"
           onError={() => setFailedUrl(logoUrl)}
-          style={gabarit === 'fiche'
-            ? { maxHeight: 44, maxWidth: 240, objectFit: 'contain', display: 'block' }
-            : { height: 56, maxWidth: 200, objectFit: 'contain', display: 'block' }}
+          style={{ height: 56, maxWidth: 200, objectFit: 'contain', display: 'block' }}
         />
       </span>
     )
