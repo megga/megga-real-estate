@@ -59,6 +59,11 @@ const css = readFileSync(FEUILLE, 'utf-8')
  * encre figée. Une garde qui ne balaye que l'endroit où le défaut a été REMARQUÉ
  * mesure l'anecdote, pas la règle : on balaye donc le dossier.
  */
+/** Les composants de la Recherche, carte GELÉE exclue (voir le cliquet). */
+const RECHERCHE = readdirSync('src/components/matching-recherche')
+  .filter((n) => n.endsWith('.tsx') && n !== 'MrhMapView.tsx')
+  .map((n) => ({ nom: `src/components/matching-recherche/${n}`, code: readFileSync(`src/components/matching-recherche/${n}`, 'utf-8') }))
+
 const AVATARS = readdirSync('src/components/matching-atelier')
   .filter((n) => n.endsWith('.tsx'))
   .map((n) => ({ nom: `src/components/matching-atelier/${n}`, code: readFileSync(`src/components/matching-atelier/${n}`, 'utf-8') }))
@@ -302,6 +307,47 @@ describe('Matching — l’encre reste lisible, et la garde lit le CSS', () => {
     const feuille = readFileSync('src/components/matching-atelier/atelier.css', 'utf-8')
     const sys = /--sys-yellow\s*:\s*(#[0-9a-fA-F]{6})/.exec(feuille)?.[1]?.toLowerCase()
     expect(sys, '--sys-yellow diverge de MRH_PRICE_DROP').toBe(teinte)
+  })
+
+  /**
+   * ⛔ UNE ENCRE TRANSLUCIDE N'EST PAS UNE ENCRE FAIBLE, C'EST UNE ENCRE QU'ON NE
+   * MESURE PAS.
+   *
+   * `MrhExtDetail` déclarait `dot = dark ? 'rgba(255,255,255,.22)' : …` pour un
+   * séparateur « · » — 1,68:1 en clair, 1,89:1 en sombre. Le motif est le même
+   * que celui de `--ink-dim` : un jeton qui n'existe QUE pour être plus faible
+   * que ses voisins, et « plus faible » finit toujours sous le plancher.
+   *
+   * ⚠ La garde compose l'ALPHA sur la surface — une valeur lue nue mentirait,
+   * c'est le piège (b) du catalogue de sondes. Et elle ne vise que ce qui sert
+   * d'ENCRE : `line` et `mapLine` sont des FILETS, ils n'ont pas à passer un
+   * seuil de texte.
+   */
+  it('aucune encre translucide sous l’AA', () => {
+    const compose = (rgba: string, fond: string): string => {
+      const m = /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+))?\s*\)/.exec(rgba)
+      if (!m) return rgba
+      const a = m[4] === undefined ? 1 : Number(m[4])
+      const f = canal(fond)
+      const v = [1, 2, 3].map((i, k) => Math.round(Number(m[i]) * a + f[k] * (1 - a)))
+      return '#' + v.map((x) => x.toString(16).padStart(2, '0')).join('')
+    }
+    const faibles: string[] = []
+    for (const { nom, code } of RECHERCHE.concat(AVATARS)) {
+      for (const m of code.matchAll(/const (\w+) = dark \? '(rgba\([^']+\))' : '(rgba\([^']+\))'/g)) {
+        const [, id, sombre, clair] = m
+        // Seulement si la variable est employée comme ENCRE quelque part.
+        if (!new RegExp(`color:\\s*${id}\\b`).test(code)) continue
+        for (const [theme, valeur, surface] of [
+          ['clair', clair, '#ffffff'],
+          ['sombre', sombre, '#090909'],
+        ] as const) {
+          const r = contraste(compose(valeur, surface), surface)
+          if (r < AA) faibles.push(`${nom} — ${id} (${theme}) = ${r.toFixed(2)}:1`)
+        }
+      }
+    }
+    expect(faibles, `encre translucide sous ${AA}:1 :\n  ${faibles.join('\n  ')}`).toEqual([])
   })
 
   /**

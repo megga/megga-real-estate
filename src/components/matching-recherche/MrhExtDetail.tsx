@@ -121,7 +121,6 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
   const portalLabel = bien.source_portal === 'flatfox' ? 'Flatfox' : bien.source_portal === 'realadvisor' ? 'RealAdvisor' : (bien.source_portal || t('recherche.detail.portalFallback'))
   const openPortal = () => { const u = bien.source_url || ''; if (u) window.open(/^https?:/i.test(u) ? u : 'https://' + u, '_blank', 'noopener') }
   const subBg = dark ? 'rgba(255,255,255,.045)' : '#F7F8FA'
-  const dot = dark ? 'rgba(255,255,255,.22)' : 'rgba(3,3,3,.22)'
   const ppm2 = bien.price_per_m2 || (price && bien.area ? Math.round(price / bien.area) : null)
   const priceOrig = bien.price_original
   const dropPct = priceOrig && price && priceOrig > price ? Math.round((1 - price / priceOrig) * 100) : null
@@ -368,7 +367,14 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                     <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agencyName}</div>
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7, fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600, marginTop: 2 }}>
                       <span>{portalLabel}</span>
-                      {bien.postedAt ? <><span style={{ color: dot }}>·</span><span>{bien.postedAt}</span></> : null}
+                      {/* ⛔ Le séparateur n'a plus de teinte à lui. `dot` existait pour être PLUS
+                          FAIBLE que la ligne qu'il ponctue — 1,67:1 en clair, 1,89:1 en sombre —
+                          et « plus faible » finit toujours sous le plancher : même motif que
+                          `--ink-dim`. Il hérite donc de `sp.sub`, comme le texte qu'il sépare ;
+                          l'écart visuel est déjà porté par le `gap` du conteneur.
+                          `aria-hidden` parce que c'est de la ponctuation VISUELLE : les deux
+                          faits sont déjà deux éléments distincts pour un lecteur d'écran. */}
+                      {bien.postedAt ? <><span aria-hidden="true">·</span><span>{bien.postedAt}</span></> : null}
                     </div>
                   </div>
                 </div>
