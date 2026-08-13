@@ -353,6 +353,29 @@ order by a.city, a.address;
 -- `registry_lookup` — un dossier visiblement incomplet, au lieu d'un verdict
 -- adossé à la mauvaise personne morale, qui lui a l'air valide.
 --
+-- ═══ BILAN DE L'AUDIT DES 93 (clos le 13.08.2026) ═════════════════════════
+--   55  le registre porte exactement notre nom
+--   13  nom différent mais ADRESSE IDENTIQUE ⇒ libellé de portail, aucune erreur
+--        (« AGENCE REMICOM GENEVE » = *REMICOM IMMOBILIER SA*, 584 annonces ;
+--         « Regimo Zürich » = *Regimo AG*, 242 ; « Bernard Nicod Lausanne
+--         Gérance » = *Bernard Nicod SA*, 64)
+--    7  rue différente, même commune ⇒ siège inscrit vs bureau, ou `c/o`
+--    6  CORRIGÉES vers la bonne société · 3 VIDÉES faute de candidat crédible
+--    2  aucune erreur après vérification · 7 laissées à l'arbitrage humain
+-- ⇒ La grande majorité des « écarts de nom » ne sont PAS des erreurs. Ne jamais
+--    corriger sur le seul écart de raison sociale.
+--
+-- ✅ MOTIF POSITIF À RECONNAÎTRE — même nom inscrit, DEUX IDE, deux rues :
+-- « Rosset Fribourg » et « Rosset Lausanne » mènent toutes deux à *Rosset SA
+-- agence immobilière*, chacune à SA propre adresse et avec un CHE distinct.
+-- C'est une société principale et sa succursale, correctement séparées : deux
+-- lignes qui pointent le même NOM ne sont pas forcément un doublon.
+--
+-- ⚠ NORMALISER LES ABRÉVIATIONS DE VOIRIE avant de comparer deux adresses.
+-- Ma comparaison a opposé « Rte de la Clochatte » à « Route de la Clochatte »
+-- comme deux rues différentes. Traiter au moins Rte/Route, Av./Avenue,
+-- Ch./Chemin, Pl./Place, str./strasse.
+--
 -- ⚠ TROIS PIÈGES DE CETTE ÉNUMÉRATION :
 --  1. **chercher sur NOTRE nom, pas sur celui du registre.** J'ai interrogé
 --     « residence immobilien » (le nom inscrit) et conclu qu'il n'y avait pas
