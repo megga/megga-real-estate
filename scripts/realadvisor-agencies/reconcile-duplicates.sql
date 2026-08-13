@@ -265,6 +265,43 @@ order by a.city, a.address;
 --    SIÈGE tout en gardant les jumelles — chaque bureau éclaté en deux parents.
 -- 4. RELIRE LA LISTE AVANT D'ÉCRIRE. C'est ce qui a rattrapé les quatre fois.
 
+-- ═══ « QU'EST-CE QUE CETTE LIGNE ? » — LA SOURCE EST LE PORTAIL ════════════
+-- À faire AVANT toute décision sur une ligne au nom opaque (« Bern », « Zug »,
+-- « Jessica — Gabbani »). ⛔ Ne PAS partir chercher sur le site de l'entreprise
+-- présumée : la ligne ne vient pas de là. Elle vient d'un portail, et c'est le
+-- portail qui dit ce qu'elle est. Mesuré sur « Bern » (Laupenstrasse 19), que
+-- trois recherches web contradictoires n'avaient pas tranché :
+--
+--   1. récupérer une annonce encore vivante de la ligne (requête ci-dessous) ;
+--   2. l'ouvrir : son bloc « Annonceur » porte un lien vers la fiche
+--      d'ORGANISATION du portail — ici `/fr/wincasa/listings/` ;
+--   3. cette fiche donne la raison sociale — « Wincasa AG ». Tranché.
+--   4. recouper avec le `logo_url` : même fichier = même organisation.
+--
+-- ⚠ Sur Flatfox, quand l'organisation n'a pas de nom, le bloc annonceur affiche
+-- son ADRESSE à la place — d'où les lignes nommées « Laupenstrasse 19 3001 Bern »
+-- ou, après troncature, « Bern ». Le nom opaque EST le symptôme, pas un mystère.
+-- Remplacer le `name` par celui de la ligne à identifier ; l'exemple est la ligne
+-- qui a servi de cas d'école (elle s'appelait « Bern » avant d'être tranchée).
+select m.source_url, m.agency_name, m.city, m.canton
+from public.market_listings m
+join public.agency_profiles a on a.id = m.agency_profile_id
+where a.name = 'Wincasa AG — Bern'
+  and m.source_url is not null
+order by m.updated_at desc nulls last
+limit 3;
+
+-- ⛔ CE QUI NE MARCHE PAS, mesuré le 13.08.2026 — ne pas y repasser :
+-- • **le site de l'entreprise** : wincasa.ch rend ses adresses côté client, sa
+--   charge RSC n'en contient AUCUNE, la carte est derrière un mur de consentement
+--   (qu'on n'accepte pas sans l'accord de Julien) et son robots.txt interdit
+--   `/api/`, d'où elles viennent. Sa page de contact ne donne qu'une case postale.
+-- • **le registre du commerce** : Wincasa n'a QU'UNE inscription
+--   (CHE-106.840.111, Theaterstrasse 17, 8400 Winterthur) et ZÉRO succursale.
+--   Le RC ne connaît pas les bureaux, il ne tranchera jamais une question
+--   d'implantation. Il tranche en revanche le SIÈGE, et vaut mieux que n'importe
+--   quel annuaire pour ça.
+
 -- ═══ ⛔ « GÈRE CET IMMEUBLE » ≠ « A UN BUREAU ICI » ═════════════════════════
 -- Distinction qui décide si une ligne est une agence, et que trois vérifications
 -- sur quatre ont d'abord manquée. Un gestionnaire administre des centaines
