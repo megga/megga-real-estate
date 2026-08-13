@@ -3,15 +3,19 @@
 // repli sur le NOM quand la colonne est vide ou que l'image ne charge pas.
 //
 // Choix non évidents :
-//  · Le nom est TOUJOURS écrit ; le logo est une plaque qui le PRÉCÈDE quand la
-//    base en a un. La maquette prévoyait un monogramme seul, mais elle a été
-//    dessinée sur un jeu de démo où chaque annonce avait un logo : mesuré le
-//    13.08.2026, 40 452 annonces actives sur 77 632 n'en ont pas (68,0 % de
-//    couverture côté Flatfox, 31,3 % côté RealAdvisor). Un logo SEUL ferait donc
-//    disparaître « qui commercialise ce bien » de la majorité de la grille, et un
-//    monogramme seul le rendrait indéchiffrable.
-//  · C'est le NOM qui cède à l'ellipse, jamais la plaque : une marque à moitié
-//    rognée ne se reconnaît plus, un nom tronqué se lit encore.
+//  · Sur une CARTE, la marque est le logo SEUL quand la base en a un, et le nom en
+//    toutes lettres sinon. Jamais les deux : la plaque et le nom disent la même
+//    chose, et les empiler mange la largeur d'une rangée qui porte déjà la date.
+//  · ⛔ LE REPLI N'EST PAS UN CAS DE BORD, et c'est ce qui interdit de retirer le
+//    nom. Mesuré le 13.08.2026 APRÈS la reprise de `agency_profiles` : 61,2 % des
+//    76 648 annonces actives ont un logo (contre 47,9 % avant). Des 29 730 qui
+//    n'en ont pas, 17 496 portent un NOM — presque toutes chez RealAdvisor. Les
+//    laisser sans marque effacerait « qui commercialise ce bien » de 23 % du
+//    marché actif. Les 11 185 restantes (Flatfox pour l'essentiel) n'ont ni logo
+//    ni nom : il n'y a rien à afficher, le composant rend `null`.
+//  · Le logo est résolu à DEUX niveaux : la colonne de l'annonce d'abord, puis
+//    l'embed `agency_profile` (cf. `CARD_COLS`) — c'est ce second niveau qu'a
+//    rempli la reprise des agences, et il arrive jusqu'ici sans code nouveau.
 //  · `no-referrer` : l'URL pointe un CDN tiers, on ne lui envoie pas l'URL de l'app.
 //  · `loading="lazy"` OBLIGATOIRE, comme MrhPhoto : la grille de résultats monte
 //    jusqu'à 400 cartes sans virtualisation, dont ~145 portent un logo (76 URL
@@ -72,14 +76,14 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
         flexShrink: 0,
         ...(carre
           ? { width: 40, height: 40, borderRadius: 12, padding: 4 }
-          : { height: 22, borderRadius: 6, padding: '0 5px' }),
+          : { height: 34, borderRadius: 8, padding: '0 8px' }),
         display: 'grid', placeItems: 'center',
         background: LOGO_PLATE_BG,
         boxShadow: 'inset 0 0 0 1px ' + line,
       }}>
         <img
           src={logoUrl}
-          alt={carre ? label : ''}
+          alt={label}
           title={label}
           referrerPolicy="no-referrer"
           loading="lazy"
@@ -87,7 +91,7 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
           onError={() => setFailedUrl(logoUrl)}
           style={carre
             ? { maxHeight: 32, maxWidth: 32, objectFit: 'contain', display: 'block' }
-            : { height: 15, maxWidth: 74, objectFit: 'contain', display: 'block' }}
+            : { height: 24, maxWidth: 116, objectFit: 'contain', display: 'block' }}
         />
       </span>
     )
@@ -97,18 +101,15 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
   // défaut c'est le monogramme fourni par l'appelant.
   if (carre) return plaque ?? <>{monogramme}</>
 
-  // Sur une CARTE, la plaque PRÉCÈDE le nom au lieu de s'y substituer. ⚠ `alt`
-  // est vide sur cette variante : le nom qui suit porte déjà l'information, et un
-  // `alt` la ferait annoncer deux fois.
+  // Sur une CARTE : le logo SEUL s'il existe, le nom sinon.
+  if (plaque) return plaque
+
+  // ⚠ 120 px de plafond. Des régies portent 86 à 95 caractères — des agences
+  // générales d'assurance — et sans borne le nom mangerait la date de
+  // publication, qui partage la rangée.
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-      {plaque}
-      {/* ⚠ 120 px de plafond, conservés de la version « nom seul ». Des régies
-          portent 86 à 95 caractères (des agences générales d'assurance, qui ont
-          un logo) : sans borne, le nom mangerait la date de publication. */}
-      <span title={label} style={{ minWidth: 0, maxWidth: 120, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {label}
-      </span>
+    <span title={label} style={{ flexShrink: 0, maxWidth: 120, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      {label}
     </span>
   )
 }
