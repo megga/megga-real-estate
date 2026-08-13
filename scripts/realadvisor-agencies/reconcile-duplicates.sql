@@ -290,6 +290,39 @@ order by lieu, a.name;
 -- ⇒ Et si on remonte une telle adresse vers le parent, EXIGER qu'elle concorde
 --    avec la commune déjà déclarée du parent — sans quoi on pose une adresse
 --    argovienne sur une société zurichoise.
+--
+-- ⚠ CELA DIT LA MISE EN GARDE CI-DESSUS EST TROP LARGE, et voici sa mesure :
+-- sur les **1213** lignes flatfox ayant une adresse ET des annonces, **1090
+-- portent bien l'adresse de l'AGENCE** ; seules **123 (10 %)** reprennent celle
+-- d'une de leurs annonces. L'adresse flatfox est donc utilisable la plupart du
+-- temps — il faut simplement la TESTER au lieu de la croire ou de la rejeter.
+--
+-- ✅ ET LE TEST EST GRATUIT : **comparer l'adresse de la ligne à celles de SES
+-- PROPRES annonces.**
+--   • elle n'apparaît dans AUCUNE ⇒ c'est l'adresse de l'AGENCE, exploitable ;
+--   • elle coïncide avec celle d'une annonce ⇒ suspecte, elle en vient sans doute.
+-- Mesuré le 13.08.2026 : « Koch Immobilien » porte `Birgistrasse` alors que ses
+-- 4 annonces sont toutes à Hertistrasse 29/31 ⇒ adresse d'agence, et le registre
+-- inscrit *KOCH Group AG* à **Birgistrasse 3, Wallisellen** ⇒ **l'IDE détenu était
+-- BON**, le doute levé dans le sens du maintien. Idem « Niederer AG Immobilien und
+-- Verwaltungen » (Unterdorfstrasse 5 ; annonces à Bern, Ittigen, Worblaufen,
+-- Zollikofen). À l'inverse « ImmoSky AG - Dübendorf » portait tour à tour deux
+-- adresses d'annonces ⇒ inexploitable.
+select a.name, a.address as adresse_ligne,
+       not exists (select 1 from public.market_listings m
+                   where m.agency_profile_id = a.id and m.address is not null
+                     and lower(regexp_replace(m.address,'[^a-z0-9]','','gi'))
+                       like lower(regexp_replace(a.address,'[^a-z0-9]','','gi')) || '%')
+       as adresse_est_celle_de_l_agence
+from public.agency_profiles a
+where a.source = 'flatfox' and coalesce(a.address,'') <> ''
+  and exists (select 1 from public.market_listings m where m.agency_profile_id = a.id);
+
+-- ⚠ `market_listings.agency_name` n'est pas qu'un moyen de DÉFAIRE : c'est une
+-- PREUVE. « Groupe Prisme » détenait l'IDE de *Prisme Immobilier SA* alors que
+-- 2 de ses 3 libellés d'annonce disent « Groupe Prisme S.A. » / « Groupe Prisme
+-- SA » — nom que le registre inscrit (CHE-105.698.572). La source se nomme
+-- elle-même ; c'est plus fort qu'un rapprochement calculé.
 select p.name as parent, s.name as sous_ligne,
        (select count(*) from public.market_listings m where m.agency_profile_id=s.id) as ann,
        not exists (
