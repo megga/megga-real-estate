@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type StageId, type SugarPalette } from '../tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { useAuth } from '@/hooks/useAuth'
 import { useContactsSugar } from '@/hooks/useContactsSugar'
 import { useCreateTransaction } from '@/hooks/useTransactions'
@@ -123,7 +124,8 @@ export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore, 
         }}>
           <span style={{
             width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)', background: selected.avatarBg || sp.ink,
-            color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, flexShrink: 0,
+            color: encreSur(selected.avatarBg || sp.ink),
+            display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, flexShrink: 0,
           }}>{(selected.firstName[0] || '') + (selected.lastName[0] || '')}</span>
           <span style={{
             fontSize: 'var(--crm-text-md)', fontWeight: 800, color: sp.ink, flex: 1, minWidth: 0,
@@ -146,7 +148,8 @@ export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore, 
             }}>
               <span style={{
                 width: 24, height: 24, borderRadius: 'var(--crm-radius-pill)', background: c.avatarBg || sp.ink,
-                color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, flexShrink: 0,
+                color: encreSur(c.avatarBg || sp.ink),
+                display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, flexShrink: 0,
               }}>{(c.firstName[0] || '') + (c.lastName[0] || '')}</span>
               <span style={{
                 display: 'block', flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink,

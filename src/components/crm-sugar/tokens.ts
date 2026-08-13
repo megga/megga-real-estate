@@ -188,7 +188,21 @@ export const SG_STAGE_HUE: Record<StageId, string> = {
 
 /** Mélange un hex vers une cible (#000/#fff) d'un facteur `amt` — dérive des
  *  tons lisibles depuis les teintes d'étape saturées. Facteurs figés par le
- *  handoff : ne pas les changer. */
+ *  handoff : ne pas les changer.
+ *
+ * ⛔ REND UN `#rrggbb`, ET C'EST UN CORRECTIF, PAS UN GOÛT. Cette fonction
+ * rendait `rgb(r, g, b)`. Les deux notations sont valides en CSS, donc rien ne
+ * cassait à l'écran — mais `encreSur()`, qui DÉRIVE une encre lisible d'un
+ * aplat, ne lit que l'hexadécimal : nourrie d'un `rgb()`, sa luminance vaut
+ * `NaN` et elle rend l'encre INVERSE sans erreur ni type faux. Mesuré :
+ * `encreSur('#414da1')` → `#ffffff`, `encreSur('rgb(65, 77, 161)')` → `#030303`,
+ * pour la MÊME couleur.
+ *
+ * Le défaut ne pouvait donc apparaître qu'au moment où l'on branche `encreSur`
+ * sur une teinte d'étape — c'est-à-dire dans le correctif de contraste. Il
+ * aurait inversé l'encre des pilules en clair, toutes portes vertes. Uniformiser
+ * la notation ici est ce qui rend le reste mesurable ; `encreSur` a par ailleurs
+ * appris les deux notations, ceinture et bretelles. */
 export function sgMix(hex: string, target: string, amt: number): string {
   const h = (hex || '#000000').replace('#', '')
   const t = (target || '#000000').replace('#', '')
@@ -196,7 +210,7 @@ export function sgMix(hex: string, target: string, amt: number): string {
   const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16)
   const tr = parseInt(t.slice(0, 2), 16), tg = parseInt(t.slice(2, 4), 16), tb = parseInt(t.slice(4, 6), 16)
   const m = (a: number, bb: number) => Math.round(a + (bb - a) * amt)
-  return `rgb(${m(r, tr)}, ${m(g, tg)}, ${m(b, tb)})`
+  return '#' + [m(r, tr), m(g, tg), m(b, tb)].map((v) => v.toString(16).padStart(2, '0')).join('')
 }
 
 /** Teinte dérivée d'une colonne kanban : fond pastel (`panel`) + libellé de

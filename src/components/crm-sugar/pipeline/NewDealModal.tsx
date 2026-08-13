@@ -20,6 +20,7 @@ import {
   CRM_STAGE_ORDER, SG_STAGE_HUE, crmFmtCHF,
   type StageId, type SugarPalette,
 } from '../tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import type { CrmContact, CrmBien } from '../mockData'
 import { useAuth } from '@/hooks/useAuth'
 import { useContactsSugar } from '@/hooks/useContactsSugar'
@@ -83,7 +84,7 @@ function ndPalette(dark: boolean, sp: SugarPalette): NdPalette {
       bg: '#EDEFF3',
       card: '#FFFFFF', cardSubtle: '#F7F8FA',
       black: sp.accent, blackHover: '#1F2024',
-      ink: '#0B0C0E', inkSoft: '#3A3D44', muted: '#7A8088', ghost: '#B5BAC2',
+      ink: '#0B0C0E', inkSoft: '#3A3D44', muted: '#686868', ghost: '#B5BAC2',
       line: 'rgba(11,12,14,0.07)',
       onAccent: sp.accentInk,
       green: '#0FA968', onGreen: '#FFFFFF',
@@ -96,7 +97,7 @@ function ndPalette(dark: boolean, sp: SugarPalette): NdPalette {
     card: 'rgba(255,255,255,0.05)', cardSubtle: 'rgba(255,255,255,0.04)',
     cardBorder: 'rgba(255,255,255,0.08)',
     black: sp.accent, blackHover: '#FFFFFF',
-    ink: '#ECEDF3', inkSoft: '#B5B7C4', muted: '#797D90', ghost: '#363646',
+    ink: '#ECEDF3', inkSoft: '#B5B7C4', muted: '#8A909B', ghost: '#363646',
     line: 'rgba(255,255,255,0.08)',
     onAccent: sp.accentInk,
     green: '#34C796', onGreen: '#08130E',
@@ -285,14 +286,21 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
     fontVariantNumeric: 'tabular-nums',
   }
 
-  const avatar = (c: CrmContact, size = 38) => (
-    <div style={{
-      width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0,
-      background: c.avatarBg || nd.ink, color: '#fff',
-      display: 'grid', placeItems: 'center',
-      fontSize: size * 0.36, fontWeight: 700, letterSpacing: -0.3,
-    }}>{((c.firstName || '?')[0] + (c.lastName || '')[0]).toUpperCase()}</div>
-  )
+  // ⛔ L'aplat vient du HACHAGE DE L'ID (`AVATAR_PALETTE`) : personne ne le relit
+  // avant qu'il s'affiche, donc l'encre ne peut pas être choisie une fois pour
+  // toutes. Mesuré sur les huit teintes sous blanc : 2,15:1 à 4,47:1, cinq sous
+  // l'AA. `encreSur` la DÉRIVE de l'aplat réellement employé.
+  const avatar = (c: CrmContact, size = 38) => {
+    const av = c.avatarBg || nd.ink
+    return (
+      <div style={{
+        width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0,
+        background: av, color: encreSur(av),
+        display: 'grid', placeItems: 'center',
+        fontSize: size * 0.36, fontWeight: 700, letterSpacing: -0.3,
+      }}>{((c.firstName || '?')[0] + (c.lastName || '')[0]).toUpperCase()}</div>
+    )
+  }
 
   const pickRow = (opts: {
     key?: string
@@ -575,8 +583,12 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
             <button onClick={onClose} style={ghostLinkStyle}>{t('modal.cancel')}</button>
             <button onClick={handleCreate} disabled={!canCreate || creating} style={{
               height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
+              // ⛔ L'état DÉSACTIVÉ pose une encre secondaire sur un aplat
+              // `ghost` : 2,86:1 en clair et 3,69:1 en sombre — sous l'AA dans
+              // les DEUX thèmes. Un bouton désactivé reste lu (c'est lui qui dit
+              // ce qui manque) ; son encre se dérive de son propre fond.
               background: (!canCreate || creating) ? nd.ghost : nd.black,
-              color: (!canCreate || creating) ? nd.muted : nd.onAccent,
+              color: (!canCreate || creating) ? encreSur(nd.ghost) : nd.onAccent,
               fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-xl)',
               cursor: (!canCreate || creating) ? 'not-allowed' : 'pointer',
               boxShadow: (!canCreate || creating) ? 'none' : nd.shadow,

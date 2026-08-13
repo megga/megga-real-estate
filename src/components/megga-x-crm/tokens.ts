@@ -88,11 +88,25 @@ export const MXC_SYSTEM = {
  */
 export const MXC_CARD_SHADOW = '0 2px 6px #15086b21'
 
-/** Luminance relative WCAG d'un `#rrggbb`. */
-function luminance(hex: string): number {
-  return [0, 2, 4]
-    .map((i) => {
-      const c = parseInt(hex.replace('#', '').slice(i, i + 2), 16) / 255
+/**
+ * Luminance relative WCAG d'un `#rrggbb` OU d'un `rgb(r, g, b)`.
+ *
+ * ⛔ ELLE NE CONNAISSAIT QU'UNE NOTATION, et le mode d'échec était silencieux :
+ * `parseInt('rg', 16)` vaut `NaN`, donc la luminance vaut `NaN`, donc `encreSur`
+ * compare deux `NaN` et rend une encre — la mauvaise — sans lever d'erreur.
+ * Mesuré : `encreSur('rgb(65, 77, 161)')` rendait l'encre SOMBRE sur un bleu
+ * foncé. `sgMix` rendait précisément ce format. Même famille que la n° 1 de
+ * `megga/gardes-vacuites` (le motif qui ne connaît qu'une notation), mais côté
+ * production : ici ça ne rate pas un défaut, ça en fabrique un.
+ */
+function luminance(couleur: string): number {
+  const rgb = couleur.match(/rgba?\(([^)]+)\)/)
+  const p = rgb
+    ? rgb[1].split(',').slice(0, 3).map((s) => parseFloat(s.trim()))
+    : [0, 2, 4].map((i) => parseInt(couleur.replace('#', '').slice(i, i + 2), 16))
+  return p
+    .map((v) => {
+      const c = v / 255
       return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
     })
     .reduce((acc, c, i) => acc + [0.2126, 0.7152, 0.0722][i] * c, 0)

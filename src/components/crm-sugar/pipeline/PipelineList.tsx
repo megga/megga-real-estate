@@ -8,6 +8,7 @@
 
 import { useTranslation } from 'react-i18next'
 import { CRM_STAGES, crmInitials, sgStagePillBg, type SugarPalette } from '../tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { crmContactById, crmBienById, type CrmDeal } from '../mockData'
 
 interface Props {
@@ -99,7 +100,11 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
             <span style={{
               display: 'inline-flex', alignItems: 'center',
               padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: hue,
-              fontSize: 'var(--crm-text-sm)', color: '#fff', fontWeight: 700, width: 'fit-content',
+              // ⛔ L'aplat vient de l'ÉTAPE du deal, donc de la donnée. `sgStagePillBg`
+              // ne l'assombrit qu'en CLAIR : en sombre elle rend la teinte brute, sur
+              // laquelle l'encre blanche tombait à 2,34:1 (« Intérêt confirmé »), et
+              // sept étapes sur huit passaient sous l'AA. L'encre se DÉRIVE.
+              fontSize: 'var(--crm-text-sm)', color: encreSur(hue), fontWeight: 700, width: 'fit-content',
               whiteSpace: 'nowrap', letterSpacing: -0.1,
             }}>
               {t(`stages.${deal.stage}`, { defaultValue: CRM_STAGES[deal.stage].label })}

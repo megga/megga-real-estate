@@ -11,6 +11,7 @@
 
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { motion } from 'motion/react'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { SG_STAGE_HUE, crmFmtCHF, type SugarPalette } from '../tokens'
@@ -139,7 +140,13 @@ function SugarDealCardImpl({
             }}>
               <MEIcon name="check" size={22} color={SG_STAGE_HUE.signed} />
             </span>
-            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: '#FFFFFF', letterSpacing: -0.2 }}>
+            {/* ⛔ Blanc sur l'orange de « Signé » (#E8892A) rend 2,61:1 — sous
+                l'AA même au seuil de GRAND texte. L'aplat est figé, mais rien
+                n'oblige à parier sur son encre : elle se dérive comme partout. */}
+            <div style={{
+              fontSize: 'var(--crm-text-xl)', fontWeight: 800,
+              color: encreSur(SG_STAGE_HUE.signed), letterSpacing: -0.2,
+            }}>
               {t('board.sign.sealed')}
             </div>
           </div>

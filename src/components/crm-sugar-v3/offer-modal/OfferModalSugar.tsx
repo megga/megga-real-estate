@@ -26,7 +26,7 @@ import { EMPTY_OFFER_CONDITIONS, countActiveConditions } from '@/types/offer'
 import type { Offer, OfferConditions, OfferKind } from '@/types/offer'
 import type { Contact } from '@/types/contact'
 import type { Property } from '@/types/listing'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, encreSur } from '@/components/megga-x-crm/tokens'
 
 // ─── Palettes (bento immersif) ──────────────────────────────────────────
 export interface OmPalette {
@@ -61,7 +61,7 @@ const OM_LIGHT: OmPalette = {
   black: '#0B0C0E',
   ink: '#0B0C0E',
   inkSoft: '#3A3D44',
-  muted: '#7A8088',
+  muted: '#686868',
   ghost: '#B5BAC2',
   onAccent: '#FFFFFF',
   shadowSm: '0 4px 16px rgba(15,23,42,0.04)',
@@ -315,6 +315,7 @@ function OmBlackPill({
   pal: OmPalette
 }) {
   const [h, setH] = useState(false)
+  const fondCta = disabled ? pal.ghost : h ? '#1F2024' : '#0B0C0E'
   return (
     <button
       onClick={onClick}
@@ -326,8 +327,12 @@ function OmBlackPill({
         padding: '0 28px',
         borderRadius: 'var(--crm-radius-pill)',
         border: 0,
-        background: disabled ? pal.ghost : h ? '#1F2024' : '#0B0C0E',
-        color: '#FFFFFF',
+        // ⛔ L'état DÉSACTIVÉ change de fond sans changer d'encre : blanc sur
+        // `pal.ghost` (#B5BAC2) rend 1,95:1 en clair — le pire site du
+        // périmètre. Aucune sonde de rendu ne l'a vu, le bouton n'étant
+        // désactivé qu'avant saisie. L'encre suit désormais le fond réel.
+        background: fondCta,
+        color: encreSur(fondCta),
         fontFamily: 'inherit',
         fontWeight: 600,
         fontSize: 'var(--crm-text-xl)',

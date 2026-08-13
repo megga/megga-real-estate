@@ -9,6 +9,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { type SugarPalette } from '../tokens'
 
 interface Props {
@@ -59,7 +60,10 @@ export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm }:
           }}>{t('board.lostConfirm.cancel')}</button>
           <button onClick={onConfirm} style={{
             height: 42, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-            background: dark ? '#E0738C' : '#8E1F3D', color: '#FFFFFF',
+            // ⛔ Le rouge SOMBRE (#E0738C) est pâle : sous encre blanche il rend
+            // 3,00:1. C'est la règle de CLAUDE.md §3 — « un remplissage pâle
+            // prend TOUJOURS l'encre sombre » — appliquée mécaniquement.
+            background: dark ? '#E0738C' : '#8E1F3D', color: encreSur(dark ? '#E0738C' : '#8E1F3D'),
             fontSize: 'var(--crm-text-lg)', fontWeight: 700, fontFamily: 'inherit',
           }}>{t('board.lostConfirm.confirm')}</button>
         </div>

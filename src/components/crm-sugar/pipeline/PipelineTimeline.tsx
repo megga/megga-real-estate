@@ -16,6 +16,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CRM_STAGES, SG_STAGE_HUE, crmFmtCHF, crmInitials, type SugarPalette } from '../tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { crmContactById, type CrmContact, type CrmDeal } from '../mockData'
 
 interface Props {
@@ -37,7 +38,15 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
   const weekdayFmt = useMemo(() => new Intl.DateTimeFormat(i18n.language, { weekday: 'short' }), [i18n.language])
   const monthFmt = useMemo(() => new Intl.DateTimeFormat(i18n.language, { month: 'short' }), [i18n.language])
   const todayLine = dark ? 'rgba(255,255,255,0.55)' : '#0B0C0E'
-  const axisText = dark ? 'rgba(255,255,255,0.34)' : '#B5BAC2'
+  // ⛔ QUATRIÈME OCCURRENCE DU MÊME MOTIF, après --ink-muted, --ink-dim et le
+  // séparateur « · » du Matching : un jeton qui n'existe QUE pour être plus
+  // faible que ses voisins finit toujours sous le plancher, parce que rien ne
+  // l'arrête en chemin. Mesuré sur les deux en-têtes qu'il peint (« Contact »,
+  // « Échéance ») : 1,85:1 en clair (#B5BAC2) et 2,93:1 en sombre une fois son
+  // alpha de 0,34 COMPOSÉ — lu nu il aurait paru blanc. Ce sont des en-têtes de
+  // colonne, pas de la ponctuation : ils rejoignent le palier au-dessus, et la
+  // hiérarchie reste portée par la taille et la graisse.
+  const axisText = sp.sub
 
   const withDates = useMemo<TlDeal[]>(
     () => deals
@@ -189,7 +198,8 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
         }}>
           <div style={{
             width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', background: deal.c.avatarBg || '#0B0C0E',
-            color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 700, display: 'grid', placeItems: 'center', flexShrink: 0,
+            color: encreSur(deal.c.avatarBg || '#0B0C0E'),
+            fontSize: 'var(--crm-text-sm)', fontWeight: 700, display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>{crmInitials(`${deal.c.firstName} ${deal.c.lastName}`)}</div>
           <div style={{ minWidth: 0 }}>
             <div style={{
@@ -351,7 +361,8 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
                   {g.rows.slice(0, 4).map((d, i) => (
                     <span key={d.id} style={{
                       width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', background: d.c.avatarBg || '#0B0C0E',
-                      color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 700, display: 'grid', placeItems: 'center',
+                      color: encreSur(d.c.avatarBg || '#0B0C0E'),
+                      fontSize: 'var(--crm-text-xs)', fontWeight: 700, display: 'grid', placeItems: 'center',
                       boxShadow: `0 0 0 2px ${stickyBg}`, marginLeft: i ? -6 : 0,
                     }}>{crmInitials(`${d.c.firstName} ${d.c.lastName}`)}</span>
                   ))}

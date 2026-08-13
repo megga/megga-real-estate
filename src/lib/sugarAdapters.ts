@@ -63,7 +63,7 @@ export function mapCriteria(c: SearchCriteria | null): CrmContact['criteria'] {
 }
 
 // ─── Couleur avatar déterministe par contact.id ────────────────────────
-const AVATAR_PALETTE = [
+export const AVATAR_PALETTE = [
   '#0041D9', '#8B5CF6', '#10B981', '#F59E0B',
   '#06B6D4', '#E53935', '#6366F1', '#EC4899',
 ]

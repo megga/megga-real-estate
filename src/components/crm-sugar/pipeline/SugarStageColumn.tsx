@@ -87,7 +87,14 @@ export function SugarStageColumn({
           )}
         </div>
         <div style={{
-          paddingLeft: 'var(--crm-space-3xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub,
+          // ⛔ Le total est posé sur le VOILE de l'étape, pas sur la carte : il
+          // prend donc l'encre du panneau (`tintInk`, celle du compteur juste
+          // au-dessus), pas l'encre secondaire générique. Mesuré : `sp.sub`
+          // plafonne à 4,39:1 sur l'indigo et 4,49:1 sur le bleu — les deux
+          // teintes les plus froides — quand `tintInk` tient 5,22:1 au pire des
+          // huit, dans les DEUX thèmes. Ce n'étaient pas deux colonnes
+          // malchanceuses : la famille entière tenait dans 0,4 du plancher.
+          paddingLeft: 'var(--crm-space-3xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tint.tintInk,
           fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {stageVal > 0 ? `CHF ${(stageVal / 1e6).toFixed(2)}M` : ''}

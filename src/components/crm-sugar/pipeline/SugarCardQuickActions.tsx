@@ -10,6 +10,7 @@
 
 import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { type SugarPalette } from '../tokens'
 import type { CrmDeal } from '../mockData'
@@ -206,7 +207,8 @@ function SugarAgentItem({ sp, member, onClick }: {
         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', textAlign: 'left',
       }}>
       <span style={{
-        width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)', background: '#0041D9', color: '#fff',
+        width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)',
+        background: '#0041D9', color: encreSur('#0041D9'),
         fontSize: 'var(--crm-text-xs)', fontWeight: 700, display: 'grid', placeItems: 'center', flexShrink: 0,
       }}>{initials}</span>
       <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>

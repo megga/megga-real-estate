@@ -50,7 +50,7 @@ interface DsPal {
   hair: string; shadow: string; err: string; ok: string
 }
 const DsLIGHT: DsPal = {
-  card: '#FFFFFF', sub: '#F7F8FA', ink: '#0B0C0E', soft: '#3A3D44', muted: '#7A8088', ghost: '#B5BAC2',
+  card: '#FFFFFF', sub: '#F7F8FA', ink: '#0B0C0E', soft: '#3A3D44', muted: '#686868', ghost: '#B5BAC2',
   black: '#0B0C0E', blackHover: '#1F2024', onBlack: '#FFFFFF', chip: 'rgba(11,12,14,0.05)',
   hair: 'rgba(15,23,42,0.07)',
   shadow: '0 12px 40px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.03)',
