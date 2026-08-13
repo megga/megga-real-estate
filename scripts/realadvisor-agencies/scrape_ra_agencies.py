@@ -253,8 +253,11 @@ def download_logos(records: list[dict], out: Path, delay: float) -> int:
         url = rec.get("logo_url")
         if not url:
             continue
+        # RealAdvisor sert aussi de l'AVIF : forcer `.png` par défaut donnait des
+        # fichiers à extension mensongère, qu'aucun outil n'ouvrait ensuite.
         ext = re.sub(r"[?#].*$", "", url).rsplit(".", 1)[-1].lower()
-        if ext not in {"png", "jpg", "jpeg", "webp", "gif", "svg"}:
+        if ext not in {"png", "jpg", "jpeg", "webp", "gif", "svg", "avif",
+                       "heic", "bmp", "ico", "tif", "tiff"}:
             ext = "png"
         dest = logos / f"{rec['slug']}.{ext}"
         if dest.exists() and dest.stat().st_size > 0:
@@ -279,13 +282,32 @@ def download_logos(records: list[dict], out: Path, delay: float) -> int:
 # l'agence et son logo. Les indicateurs de performance — transactions, ventes sur
 # 24 mois, notes, avis, équipe — sont volontairement hors livrable.
 #
-# ⚠ La page les rend de toute façon : les retirer ne fait rien gagner au crawl,
-# et `agencies.jsonl` (fichier de reprise, pas livrable) garde la capture brute.
-# C'est ce qui permettra d'en rajouter un jour SANS tout recollecter.
+# ⚠ La page les rend de toute façon : les retirer ne ferait rien gagner au crawl.
+# Ils transitent donc par `agencies.jsonl`, que `--purge-raw` efface ensuite (choix
+# de Julien) — au prix connu et accepté qu'élargir le livrable demandera alors un
+# recrawl complet, la reprise reposant sur ce même fichier.
 SCALARS = ["slug", "agency_id", "name", "website", "has_phone",
            "address_full", "route", "street_number", "postcode", "locality",
            "canton", "canton_code", "hide_exact_address", "years_experience",
            "logo_url", "logo_file", "source_url"]
+
+
+def purge_raw(jsonl: Path, enabled: bool) -> None:
+    """Efface la capture brute, sur demande explicite.
+
+    Volontairement APRÈS l'écriture du livrable et jamais avant : le CSV et les
+    logos se dérivent de ce fichier. Un garde-fou minimal — refuser de purger si
+    le livrable n'existe pas — évite de tout perdre sur un run interrompu.
+    """
+    if not enabled or not jsonl.exists():
+        return
+    deliverable = jsonl.with_name("agencies.csv")
+    if not deliverable.exists() or deliverable.stat().st_size == 0:
+        print("  purge ANNULÉE : agencies.csv absent ou vide", file=sys.stderr)
+        return
+    jsonl.unlink()
+    print(f"  capture brute purgée ({jsonl.name}) — la reprise repartira de zéro",
+          file=sys.stderr)
 
 
 def write_outputs(records: list[dict], out: Path) -> None:
@@ -305,6 +327,10 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--delay", type=float, default=1.0, help="pause entre fiches (s)")
     ap.add_argument("--logos-only", action="store_true")
+    ap.add_argument("--purge-raw", action="store_true",
+                    help="supprime agencies.jsonl une fois le livrable écrit "
+                         "(⚠ c'est le fichier de reprise : un run suivant "
+                         "repart de zéro, et tout champ non livré est perdu)")
     args = ap.parse_args()
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -314,6 +340,7 @@ def main() -> None:
         records = [json.loads(l) for l in jsonl.read_text().splitlines() if l.strip()]
         print(f"logos : {download_logos(records, args.out, args.delay/4)}/{len(records)}")
         write_outputs(records, args.out)
+        purge_raw(jsonl, args.purge_raw)
         return
 
     seen = set()
@@ -354,6 +381,7 @@ def main() -> None:
     records = [json.loads(l) for l in jsonl.read_text().splitlines() if l.strip()]
     print(f"logos : {download_logos(records, args.out, args.delay/4)}/{len(records)}")
     write_outputs(records, args.out)
+    purge_raw(jsonl, args.purge_raw)
     print(f"OK — {len(records)} agences dans {args.out}")
 
 

@@ -23,9 +23,31 @@ CANTONS = {"ZH", "BE", "LU", "UR", "SZ", "OW", "NW", "GL", "ZG", "FR", "SO",
 # En-têtes de fichiers image : un logo « téléchargé » qui est en fait une page
 # d'erreur HTML passerait tous les contrôles de taille.
 MAGIC = {b"\x89PNG": "png", b"\xff\xd8\xff": "jpeg", b"GIF8": "gif",
-         b"RIFF": "webp", b"<svg": "svg", b"<?xm": "svg"}
+         b"RIFF": "webp", b"<svg": "svg", b"<?xm": "svg", b"BM": "bmp",
+         b"\x00\x00\x01\x00": "ico"}
 
-rows = [json.loads(l) for l in (OUT / "agencies.jsonl").read_text().splitlines() if l.strip()]
+
+def looks_like_image(head: bytes) -> bool:
+    # AVIF/HEIC sont des conteneurs ISO-BMFF : leur signature n'est pas en tête
+    # mais à l'octet 4 (`ftyp`). Les chercher au début rendait « pas une image »
+    # sur des logos parfaitement valides.
+    if head[4:8] == b"ftyp":
+        return True
+    return any(head.startswith(m) for m in MAGIC)
+
+# La capture brute est purgée en fin de run (--purge-raw) : le contrôle doit
+# donc savoir tourner sur le seul livrable. Les tests qui exigent les champs
+# imbriqués (agents) se désactivent alors d'eux-mêmes plutôt que de mentir.
+raw = OUT / "agencies.jsonl"
+if raw.exists():
+    rows = [json.loads(l) for l in raw.read_text().splitlines() if l.strip()]
+    source, deep = "capture brute", True
+else:
+    import csv as _csv
+    rows = [{k: (v or None) for k, v in r.items()}
+            for r in _csv.DictReader((OUT / "agencies.csv").open())]
+    source, deep = "livrable CSV", False
+
 n = len(rows)
 problems: list[str] = []
 
@@ -36,7 +58,7 @@ def flag(cond: bool, msg: str) -> None:
         problems.append(msg)
 
 
-print(f"\n═══ {n} fiches\n")
+print(f"\n═══ {n} fiches · source : {source}\n")
 
 print("Unicité et complétude")
 slugs = [r["slug"] for r in rows]
@@ -67,11 +89,12 @@ slipped = [r["slug"] for r in rows if r.get("locality")
            and re.fullmatch(r"\d{4}", str(r["locality"]))]
 flag(bool(slipped), f"NPA glissé dans locality : {slipped[:5] or 'aucun'}")
 
-print("\nAgents (le flux RSC éclate une entité en objets partiels)")
-dup_agents = [r["slug"] for r in rows
-              if len({a["agent_slug"] for a in r.get("agents") or []})
-              != len(r.get("agents") or [])]
-flag(bool(dup_agents), f"agents dupliqués dans une fiche : {dup_agents[:5] or 'aucun'}")
+if deep:
+    print("\nAgents (le flux RSC éclate une entité en objets partiels)")
+    dup_agents = [r["slug"] for r in rows
+                  if len({a["agent_slug"] for a in r.get("agents") or []})
+                  != len(r.get("agents") or [])]
+    flag(bool(dup_agents), f"agents dupliqués dans une fiche : {dup_agents[:5] or 'aucun'}")
 
 print("\nLogos")
 logos = OUT / "logos"
@@ -82,10 +105,9 @@ flag(bool(missing), f"logos annoncés mais absents : {len(missing)} {missing[:4]
 
 empty, notimg = [], []
 for slug, path in files.items():
-    head = path.read_bytes()[:4]
     if path.stat().st_size == 0:
         empty.append(slug)
-    elif not any(head.startswith(m) for m in MAGIC):
+    elif not looks_like_image(path.read_bytes()[:16]):
         notimg.append(slug)
 flag(bool(empty), f"logos vides : {empty[:5] or 'aucun'}")
 flag(bool(notimg), f"logos qui ne sont pas des images : {notimg[:5] or 'aucun'}")

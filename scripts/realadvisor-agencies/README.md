@@ -38,8 +38,18 @@ uv pip install --python .venv/bin/python "scrapling[fetchers]"
 ```
 
 Reprise automatique : `agencies.jsonl` est relu au démarrage, les fiches déjà
-collectées sont sautées. `--logos-only` rejoue les téléchargements et les CSV
+collectées sont sautées. `--logos-only` rejoue les téléchargements et le CSV
 sans recrawler.
+
+`--purge-raw` efface `agencies.jsonl` une fois le livrable écrit. ⚠ C'est aussi
+le fichier de reprise : après purge, un run suivant repart de zéro, et tout champ
+absent du CSV demande un recrawl complet (~1 h 20). La purge est refusée si
+`agencies.csv` manque ou est vide, pour qu'un run interrompu ne détruise rien.
+
+Contrôle du jeu de données : `python qa_check.py out`. Il cherche ce qui est
+FAUX, pas ce qui est présent — NPA glissé d'un champ, code canton hors des 26,
+logo qui est en fait une page d'erreur, logos partagés entre agences. Il sait
+tourner sur le seul CSV quand la capture brute a été purgée.
 
 ## Sorties (`--out`, par défaut `out/`)
 
