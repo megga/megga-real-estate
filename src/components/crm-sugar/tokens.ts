@@ -224,6 +224,25 @@ export function sgStageTint(stage: StageId, dark: boolean): { hue: string; panel
   }
 }
 
+/**
+ * Voile d'ENCRE, à l'opacité demandée — le seul rôle que la palette ne nommait
+ * pas, et par lequel le noir Sugar rentrait.
+ *
+ * ⛔ POURQUOI IL EXISTE. Le dossier du Pipeline écrivait onze paires
+ * `dark ? 'rgba(255,255,255,α)' : 'rgba(15,23,42,α)'` à la main — pistes de la
+ * timeline, voile de modale, filets de panneau. Chacune redit la même intention
+ * (« un voile de ce qui s'oppose à la surface ») avec, côté clair, soit le
+ * gris-bleu slate-900 (B−R = 27), soit le noir Sugar en décimal. Les deux
+ * teintes que les gardes du dépôt interdisent, entrées par la porte des
+ * fractions d'opacité, là où aucun `#hex` ne se voit.
+ *
+ * ⚠ Ce n'est PAS une surface : un palier opaque descend de `SugarPalette`. Ceci
+ * ne sert qu'aux voiles — ce qui se pose PAR-DESSUS sans devenir un palier.
+ */
+export function sgVoileEncre(dark: boolean, alpha: number): string {
+  return dark ? `rgba(255,255,255,${alpha})` : `rgba(3,3,3,${alpha})`
+}
+
 /** Fond des pilules d'étape à texte blanc : teinte assombrie en clair
  *  (contraste ≥ 4.5:1), teinte vive inchangée en sombre. Réservé aux aplats
  *  portant du texte — pastilles 8-9 px et barres restent en SG_STAGE_HUE pur. */

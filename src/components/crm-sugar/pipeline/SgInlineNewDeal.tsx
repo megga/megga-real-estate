@@ -114,7 +114,7 @@ export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore, 
     }}>
       <style>{`.sgInlineInp::placeholder{color:${dark ? 'rgba(255,255,255,.8)' : '#7A8088'};opacity:1}`}</style>
       <div style={{
-        fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
+        fontSize: 'var(--crm-text-xs)', fontWeight: 600,
         color: sp.sub, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{t('new_deal')}</div>
       {selected ? (
@@ -125,10 +125,10 @@ export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore, 
           <span style={{
             width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)', background: selected.avatarBg || sp.ink,
             color: encreSur(selected.avatarBg || sp.ink),
-            display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, flexShrink: 0,
+            display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600, flexShrink: 0,
           }}>{(selected.firstName[0] || '') + (selected.lastName[0] || '')}</span>
           <span style={{
-            fontSize: 'var(--crm-text-md)', fontWeight: 800, color: sp.ink, flex: 1, minWidth: 0,
+            fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, flex: 1, minWidth: 0,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{selected.firstName} {selected.lastName}</span>
           <span style={{ fontSize: 'var(--crm-text-xl)', color: sp.sub, flexShrink: 0, lineHeight: 1 }}>×</span>
@@ -149,10 +149,10 @@ export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore, 
               <span style={{
                 width: 24, height: 24, borderRadius: 'var(--crm-radius-pill)', background: c.avatarBg || sp.ink,
                 color: encreSur(c.avatarBg || sp.ink),
-                display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 800, flexShrink: 0,
+                display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600, flexShrink: 0,
               }}>{(c.firstName[0] || '') + (c.lastName[0] || '')}</span>
               <span style={{
-                display: 'block', flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink,
+                display: 'block', flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{c.firstName} {c.lastName}</span>
             </button>
@@ -173,11 +173,11 @@ export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore, 
         <button onClick={() => void create()} disabled={!canCreate} style={{
           height: 30, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
           cursor: canCreate ? 'pointer' : 'not-allowed', opacity: canCreate ? 1 : 0.4,
-          background: sp.accent, color: sp.accentInk, fontSize: 'var(--crm-text-sm)', fontWeight: 700, fontFamily: 'inherit',
+          background: sp.accent, color: sp.accentInk, fontSize: 'var(--crm-text-sm)', fontWeight: 600, fontFamily: 'inherit',
         }}>{t('inline.create')}</button>
         <button onClick={() => onMore({ stage, contactId, contactQuery: q, value: val ? Number(val) : null })} style={{
           border: 0, background: 'transparent', cursor: 'pointer', padding: 0,
-          fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.sub, fontFamily: 'inherit',
+          fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, fontFamily: 'inherit',
           textDecoration: 'underline', textUnderlineOffset: 2, whiteSpace: 'nowrap',
         }}>{t('inline.more')}</button>
         <div style={{ flex: 1 }} />

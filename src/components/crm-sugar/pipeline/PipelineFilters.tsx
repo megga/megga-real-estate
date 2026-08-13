@@ -33,7 +33,7 @@ export function SugarSegmentedView({
           padding: 'var(--crm-space-md) var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
           background: value === v.k ? sp.accent : 'transparent',
           color: value === v.k ? sp.accentInk : sp.soft,
-          fontWeight: value === v.k ? 700 : 500, fontSize: 'var(--crm-text-lg)',
+          fontWeight: value === v.k ? 600 : 500, fontSize: 'var(--crm-text-lg)',
           fontFamily: 'inherit',
           boxShadow: value === v.k ? sp.focusShadow : 'none',
         }}>{v.label}</button>
@@ -95,7 +95,7 @@ export function SugarFilterPill({ sp, label, value, active, children, dark }: Fi
         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', cursor: 'pointer', fontFamily: 'inherit',
       }}>
         <span style={{ fontSize: 'var(--crm-text-sm)', color: active ? mutedOnAccent : sp.sub, fontWeight: 600 }}>{label}</span>
-        <span style={{ fontSize: 'var(--crm-text-md)', color: active ? sp.accentInk : sp.ink, fontWeight: 700 }}>{value}</span>
+        <span style={{ fontSize: 'var(--crm-text-md)', color: active ? sp.accentInk : sp.ink, fontWeight: 600 }}>{value}</span>
         <MEIcon name="chevron-down" size={11} color={active ? sp.accentInk : sp.sub} />
       </button>
       {open && (
@@ -110,7 +110,7 @@ export function SugarFilterPill({ sp, label, value, active, children, dark }: Fi
           <div style={{ borderTop: `1px solid ${panelBorder}`, marginTop: 8, paddingTop: 'var(--crm-space-md)' }}>
             <button onClick={() => setOpen(false)} style={{
               width: '100%', padding: 'var(--crm-space-md) 0', borderRadius: 'var(--crm-radius-md)', border: 0, cursor: 'pointer',
-              background: sp.focusBg, color: sp.focusInk, fontWeight: 700, fontSize: 'var(--crm-text-md)', fontFamily: 'inherit',
+              background: sp.focusBg, color: sp.focusInk, fontWeight: 600, fontSize: 'var(--crm-text-md)', fontFamily: 'inherit',
             }}>{t('board.filter.apply')}</button>
           </div>
         </div>
@@ -148,7 +148,7 @@ export function SugarStageFilter({
               {sel && <svg width="9" height="9" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5 4-4" stroke={sp.focusInk} strokeWidth="1.6" strokeLinecap="round" fill="none"/></svg>}
             </span>
             <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: SG_STAGE_HUE[s], flexShrink: 0 }} />
-            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: sel ? 700 : 500, color: sp.ink }}>{t(`stages.${s}`)}</span>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: sel ? 600 : 500, color: sp.ink }}>{t(`stages.${s}`)}</span>
           </button>
         )
       })}
@@ -195,7 +195,7 @@ export function SugarRiskFilter({
             {value === o.k && <span style={{ width: 6, height: 6, borderRadius: 'var(--crm-radius-pill)', background: sp.focusBg }} />}
           </span>
           <span style={{ width: 8, height: 8, borderRadius: 'var(--crm-radius-pill)', background: o.dot, flexShrink: 0 }} />
-          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: value === o.k ? 700 : 500, color: sp.ink }}>{o.label}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: value === o.k ? 600 : 500, color: sp.ink }}>{o.label}</span>
         </button>
       ))}
     </div>
@@ -232,7 +232,7 @@ export function SugarPeriodFilter({
           }}>
             {value === o.k && <span style={{ width: 6, height: 6, borderRadius: 'var(--crm-radius-pill)', background: sp.focusBg }} />}
           </span>
-          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: value === o.k ? 700 : 500, color: sp.ink }}>{o.label}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: value === o.k ? 600 : 500, color: sp.ink }}>{o.label}</span>
         </button>
       ))}
     </div>

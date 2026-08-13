@@ -15,7 +15,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CRM_STAGES, SG_STAGE_HUE, crmFmtCHF, crmInitials, type SugarPalette } from '../tokens'
+import { CRM_STAGES, SG_STAGE_HUE, crmFmtCHF, crmInitials, type SugarPalette, sgVoileEncre } from '../tokens'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import { crmContactById, type CrmContact, type CrmDeal } from '../mockData'
 
@@ -37,7 +37,7 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
   const surface = dark ? sp.cardBg : '#FFFFFF'
   const weekdayFmt = useMemo(() => new Intl.DateTimeFormat(i18n.language, { weekday: 'short' }), [i18n.language])
   const monthFmt = useMemo(() => new Intl.DateTimeFormat(i18n.language, { month: 'short' }), [i18n.language])
-  const todayLine = dark ? 'rgba(255,255,255,0.55)' : '#0B0C0E'
+  const todayLine = sp.ink
   // ⛔ QUATRIÈME OCCURRENCE DU MÊME MOTIF, après --ink-muted, --ink-dim et le
   // séparateur « · » du Matching : un jeton qui n'existe QUE pour être plus
   // faible que ses voisins finit toujours sous le plancher, parce que rien ne
@@ -119,8 +119,8 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
     const j = jj(di)
     return j < 0 ? t('board.card.overdue') : j === 0 ? t('board.card.today') : t('timeline.jMinus', { count: j })
   }
-  const pastTrack = dark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.08)'
-  const pastZone = dark ? 'rgba(255,255,255,0.025)' : 'rgba(15,23,42,0.022)'
+  const pastTrack = sgVoileEncre(dark, dark ? 0.10 : 0.08)
+  const pastZone = sgVoileEncre(dark, dark ? 0.025 : 0.022)
   const [tlClosed, setTlClosed] = useState<Record<string, boolean>>({})
   const stickyBg = sp.pageBg
 
@@ -197,13 +197,13 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
           paddingRight: 'var(--crm-space-2xl)', minWidth: 0, zIndex: 1,
         }}>
           <div style={{
-            width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', background: deal.c.avatarBg || '#0B0C0E',
-            color: encreSur(deal.c.avatarBg || '#0B0C0E'),
-            fontSize: 'var(--crm-text-sm)', fontWeight: 700, display: 'grid', placeItems: 'center', flexShrink: 0,
+            width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', background: deal.c.avatarBg || sp.ink,
+            color: encreSur(deal.c.avatarBg || sp.ink),
+            fontSize: 'var(--crm-text-sm)', fontWeight: 600, display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>{crmInitials(`${deal.c.firstName} ${deal.c.lastName}`)}</div>
           <div style={{ minWidth: 0 }}>
             <div style={{
-              fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink,
+              fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{deal.c.firstName} {deal.c.lastName}</div>
             {deal.value ? (
@@ -235,7 +235,7 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
           {isDrag && (
             <div style={{
               position: 'absolute', top: -4, bottom: -4, left: pct(tlDrag.day), width: 1,
-              background: dark ? 'rgba(255,255,255,0.25)' : 'rgba(15,23,42,0.25)',
+              background: sgVoileEncre(dark, 0.25),
             }} />
           )}
           {over ? (
@@ -254,14 +254,14 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
               }}>
               <span style={{
                 width: 13, height: 13, borderRadius: 'var(--crm-radius-pill)', background: surface,
-                boxShadow: `inset 0 0 0 3px ${sColor}${isDrag ? `, 0 0 0 4px ${dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.08)'}` : ''}`,
+                boxShadow: `inset 0 0 0 3px ${sColor}${isDrag ? `, 0 0 0 4px ${sgVoileEncre(dark, dark ? 0.12 : 0.08)}` : ''}`,
               }} />
               {isDrag && (
                 <span style={{
                   position: 'absolute', bottom: 26, left: '50%', transform: 'translateX(-50%)',
-                  fontSize: 'var(--crm-text-xs)', fontWeight: 800, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
-                  background: dark ? 'rgba(255,255,255,0.92)' : '#0B0C0E',
-                  color: dark ? '#0B0C0E' : '#fff', whiteSpace: 'nowrap',
+                  fontSize: 'var(--crm-text-xs)', fontWeight: 600, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
+                  background: sp.ink,
+                  color: encreSur(sp.ink), whiteSpace: 'nowrap',
                 }}>{dayMonth(tlDrag.day)}</span>
               )}
             </div>
@@ -270,11 +270,11 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
         {/* Échéance : distance + action */}
         <div style={{ width: ACT, flexShrink: 0, paddingLeft: 'var(--crm-space-3xl)', textAlign: 'right', minWidth: 0, zIndex: 1 }}>
           <span style={{
-            display: 'inline-block', fontSize: 'var(--crm-text-sm)', fontWeight: 800, padding: 'var(--crm-space-2xs) var(--crm-space-lg)',
+            display: 'inline-block', fontSize: 'var(--crm-text-sm)', fontWeight: 600, padding: 'var(--crm-space-2xs) var(--crm-space-lg)',
             borderRadius: 'var(--crm-radius-pill)', fontVariantNumeric: 'tabular-nums',
             ...(j <= 0
-              ? { background: todayLine, color: dark ? '#0B0C0E' : '#fff' }
-              : { background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)', color: sp.ink }),
+              ? { background: todayLine, color: encreSur(sp.ink) }
+              : { background: sgVoileEncre(dark, dark ? 0.08 : 0.06), color: sp.ink }),
           }}>{jLabel(effDi)}</span>
           <div style={{
             fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, marginTop: 3,
@@ -301,7 +301,7 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
       }}>
         <div style={{ width: WHO, flexShrink: 0 }}>
           <span style={{
-            fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase', color: axisText,
+            fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: axisText,
           }}>{t('timeline.axis.contact')}</span>
         </div>
         <div style={{ flex: 1, position: 'relative', height: 34 }}>
@@ -311,8 +311,8 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-xs)',
             }}>
               <span style={{
-                fontSize: 'var(--crm-text-xs)', fontWeight: 800, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
-                background: todayLine, color: dark ? '#0B0C0E' : '#fff', whiteSpace: 'nowrap',
+                fontSize: 'var(--crm-text-xs)', fontWeight: 600, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
+                background: todayLine, color: encreSur(sp.ink), whiteSpace: 'nowrap',
               }}>{t('timeline.todayChip', { date: todayLabel })}</span>
               <span style={{ width: 1.5, height: 8, background: todayLine }} />
             </div>
@@ -320,7 +320,7 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
         </div>
         <div style={{ width: ACT, flexShrink: 0, textAlign: 'right' }}>
           <span style={{
-            fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase', color: axisText,
+            fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: axisText,
           }}>{t('timeline.axis.due')}</span>
         </div>
       </div>
@@ -347,12 +347,12 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
                 <path d="M2.5 4.5L6 8l3.5-3.5" fill="none" stroke={sp.ink}
                   strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: sp.ink }}>{g.l}</span>
+              <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink }}>{g.l}</span>
               <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                 {t('timeline.dealsCount', { count: g.rows.length })}
               </span>
               {groupValue > 0 && (
-                <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                   {crmFmtCHF(groupValue)}
                 </span>
               )}
@@ -360,15 +360,15 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
                 <span style={{ display: 'flex', marginLeft: 4 }}>
                   {g.rows.slice(0, 4).map((d, i) => (
                     <span key={d.id} style={{
-                      width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', background: d.c.avatarBg || '#0B0C0E',
-                      color: encreSur(d.c.avatarBg || '#0B0C0E'),
-                      fontSize: 'var(--crm-text-xs)', fontWeight: 700, display: 'grid', placeItems: 'center',
+                      width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', background: d.c.avatarBg || sp.ink,
+                      color: encreSur(d.c.avatarBg || sp.ink),
+                      fontSize: 'var(--crm-text-xs)', fontWeight: 600, display: 'grid', placeItems: 'center',
                       boxShadow: `0 0 0 2px ${stickyBg}`, marginLeft: i ? -6 : 0,
                     }}>{crmInitials(`${d.c.firstName} ${d.c.lastName}`)}</span>
                   ))}
                   {g.rows.length > 4 && (
                     <span style={{
-                      fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: sp.sub, marginLeft: 6,
+                      fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, marginLeft: 6,
                       alignSelf: 'center', fontVariantNumeric: 'tabular-nums',
                     }}>+{g.rows.length - 4}</span>
                   )}

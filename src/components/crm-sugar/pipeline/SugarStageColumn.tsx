@@ -9,7 +9,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { sgStageTint, type SugarPalette, type StageId } from '../tokens'
+import { sgStageTint, type SugarPalette, type StageId, sgVoileEncre } from '../tokens'
 import type { CrmDeal } from '../mockData'
 import { SugarDealCard, type SugarDealCardActions } from './SugarDealCard'
 
@@ -69,17 +69,17 @@ export function SugarStageColumn({
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', minWidth: 0 }}>
           <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: tint.hue, flexShrink: 0 }} />
           <span style={{
-            fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, color: sp.ink,
+            fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{label}</span>
           <span style={{
-            marginLeft: 'auto', fontSize: 'var(--crm-text-md)', fontWeight: 800, color: tint.tintInk,
+            marginLeft: 'auto', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tint.tintInk,
             fontVariantNumeric: 'tabular-nums', flexShrink: 0,
           }}>{deals.length}</span>
           {onInlineOpen && (
             <button onClick={onInlineOpen} title={t('board.card.newDealInColumn', { stage: label })} style={{
               width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', flexShrink: 0,
-              background: dark ? 'rgba(255,255,255,.08)' : 'rgba(11,12,14,.06)',
+              background: sgVoileEncre(dark, dark ? 0.08 : 0.06),
               display: 'grid', placeItems: 'center', fontFamily: 'inherit', padding: 0,
             }}>
               <MEIcon name="plus" size={10} color={sp.ink} />
@@ -111,7 +111,7 @@ export function SugarStageColumn({
           <div style={{
             padding: '32px 12px', textAlign: 'center', fontSize: 'var(--crm-text-sm)', fontWeight: 600,
             color: dragOver && draggingId ? tint.tintInk : sp.sub,
-            border: `1.5px dashed ${dragOver && draggingId ? tint.hue : (dark ? 'rgba(255,255,255,.18)' : 'rgba(11,12,14,.14)')}`,
+            border: `1.5px dashed ${dragOver && draggingId ? tint.hue : sgVoileEncre(dark, dark ? 0.18 : 0.14)}`,
             // Zone de drop : en sombre le voile blanc à .35 fabriquerait une
             // surface hors échelle — elle prend le palier « card ».
             borderRadius: 'var(--crm-radius-2xl)', background: dragOver && draggingId ? 'rgba(255,255,255,.35)' : 'transparent',

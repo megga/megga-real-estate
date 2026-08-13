@@ -144,7 +144,7 @@ function SugarDealCardImpl({
                 l'AA même au seuil de GRAND texte. L'aplat est figé, mais rien
                 n'oblige à parier sur son encre : elle se dérive comme partout. */}
             <div style={{
-              fontSize: 'var(--crm-text-xl)', fontWeight: 800,
+              fontSize: 'var(--crm-text-xl)', fontWeight: 600,
               color: encreSur(SG_STAGE_HUE.signed), letterSpacing: -0.2,
             }}>
               {t('board.sign.sealed')}
@@ -170,11 +170,11 @@ function SugarDealCardImpl({
                 <MEIcon name={nextActionIcon(na.kind)} size={18} color={overdue ? danger : ink} />
               </span>
               <span style={{
-                flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 700, color: ink,
+                flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: ink,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{naNote}</span>
               <span style={{
-                fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: overdue ? danger : sub,
+                fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: overdue ? danger : sub,
                 fontVariantNumeric: 'tabular-nums', flexShrink: 0,
               }}>{overdue ? t('board.card.overdue') : naDay}</span>
             </div>
@@ -190,7 +190,7 @@ function SugarDealCardImpl({
               }}>{c.firstName} {c.lastName}</span>
               {deal.value ? (
                 <span style={{
-                  fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: ink, letterSpacing: -0.2,
+                  fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: ink, letterSpacing: -0.2,
                   fontVariantNumeric: 'tabular-nums', flexShrink: 0,
                 }}>{crmFmtCHF(deal.value)}</span>
               ) : null}
@@ -206,7 +206,7 @@ function SugarDealCardImpl({
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{c.firstName} {c.lastName}, {deal.value ? crmFmtCHF(deal.value) : '—'}</span>
             <span style={{
-              fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: ink, textDecoration: 'underline',
+              fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: ink, textDecoration: 'underline',
               textUnderlineOffset: 2, whiteSpace: 'nowrap', flexShrink: 0,
             }}>{t('board.card.planAction')}</span>
           </div>

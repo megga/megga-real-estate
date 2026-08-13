@@ -11,7 +11,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'motion/react'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { type SugarPalette } from '../tokens'
+import { type SugarPalette, sgVoileEncre } from '../tokens'
 
 interface Props {
   sp: SugarPalette
@@ -31,7 +31,7 @@ export function SignedBento({
   const { t } = useTranslation('pipeline')
   const panelBg = sp.solidBg
   const rowBg = sp.solidBgSub
-  const hair = dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.07)'
+  const hair = sp.cardBorder
 
   const opt = (icon: MEIconName, label: string, sub: string, onClick: () => void) => (
     <button onClick={onClick} style={{
@@ -43,7 +43,7 @@ export function SignedBento({
         <MEIcon name={icon} size={22} color={sp.ink} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink }}>{label}</span>
+        <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{label}</span>
         {sub && <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, marginTop: 2 }}>{sub}</span>}
       </span>
       <MEIcon name="chevron-right" size={15} color={sp.sub} />
@@ -53,7 +53,7 @@ export function SignedBento({
   return createPortal(
     <div onClick={onFinish} style={{
       position: 'fixed', inset: 0, zIndex: 150,
-      background: dark ? 'rgba(6,7,9,.55)' : 'rgba(15,23,42,.28)',
+      background: sgVoileEncre(dark, dark ? 0.55 : 0.28),
       backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
       display: 'grid', placeItems: 'center', animation: 'sgSignVeil .25s ease-out both',
     }}>
@@ -64,7 +64,7 @@ export function SignedBento({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: 420, maxWidth: 'calc(100vw - 48px)', background: panelBg, borderRadius: 'var(--crm-radius-6xl)',
-          boxShadow: '0 40px 100px rgba(15,23,42,0.28), 0 8px 24px rgba(15,23,42,0.14)',
+          boxShadow: sp.solidShadow,
           padding: '28px 26px 22px',
           fontFamily: '"Inter Tight", system-ui, sans-serif',
         }}
@@ -76,12 +76,12 @@ export function SignedBento({
           }}>
             <MEIcon name="check" size={24} color="#fff" />
           </span>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.4, color: sp.ink }}>
             {t('board.sign.sealed')}
           </div>
         </div>
         <div style={{
-          fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase',
+          fontSize: 'var(--crm-text-xs)', fontWeight: 600,
           color: sp.sub, margin: '22px 4px 10px',
         }}>{t('board.sign.eyebrow')}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
@@ -95,12 +95,12 @@ export function SignedBento({
         }}>
           <button onClick={onReopen} style={{
             height: 42, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-            background: 'transparent', color: sp.sub, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700,
+            background: 'transparent', color: sp.sub, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
           }}>{t('board.sign.reopen')}</button>
           <div style={{ flex: 1 }} />
           <button onClick={onFinish} style={{
             height: 44, padding: '0 var(--crm-space-7xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-            background: sp.accent, color: sp.accentInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700,
+            background: sp.accent, color: sp.accentInk, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
           }}>{t('board.sign.finish')}</button>
         </div>
       </motion.div>

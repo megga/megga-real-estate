@@ -21,8 +21,9 @@ interface Props {
 export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
   const { t } = useTranslation('pipeline')
   const danger = dark ? '#E0738C' : '#8E1F3D'
-  const avBg = dark ? '#F2F3F5' : '#0B0C0E'
-  const avFg = dark ? '#0B0C0E' : '#FFFFFF'
+  // Plaque monochrome : l'encre du thème, et l'encre qui s'y pose.
+  const avBg = sp.ink
+  const avFg = encreSur(sp.ink)
   const p2 = (n: number) => String(n).padStart(2, '0')
   const isoDay = (ms: number) => {
     const d = new Date(ms)
@@ -55,8 +56,7 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
         display: 'grid', gridTemplateColumns: cols, gap: 'var(--crm-space-2xl)',
         padding: 'var(--crm-space-xl) var(--crm-space-5xl)', background: sp.cardBg,
         borderBottom: `1px solid ${sp.cardBorder}`,
-        fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: sp.sub,
-        letterSpacing: 0.4, textTransform: 'uppercase',
+        fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub,
       }}>
         <span style={{ gridColumn: '1 / 3' }}>{t('board.list.dealContact')}</span>
         <span>{t('column.property')}</span>
@@ -84,10 +84,10 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
             <div style={{
               width: 32, height: 32, borderRadius: 'var(--crm-radius-pill)',
               background: avBg, color: avFg,
-              fontSize: 'var(--crm-text-sm)', fontWeight: 800, display: 'grid', placeItems: 'center',
+              fontSize: 'var(--crm-text-sm)', fontWeight: 600, display: 'grid', placeItems: 'center',
             }}>{crmInitials(`${c.firstName} ${c.lastName}`)}</div>
             <div style={{
-              fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, color: sp.ink,
+              fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{c.firstName} {c.lastName}</div>
             <div style={{
@@ -104,13 +104,13 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
               // ne l'assombrit qu'en CLAIR : en sombre elle rend la teinte brute, sur
               // laquelle l'encre blanche tombait à 2,34:1 (« Intérêt confirmé »), et
               // sept étapes sur huit passaient sous l'AA. L'encre se DÉRIVE.
-              fontSize: 'var(--crm-text-sm)', color: encreSur(hue), fontWeight: 700, width: 'fit-content',
+              fontSize: 'var(--crm-text-sm)', color: encreSur(hue), fontWeight: 600, width: 'fit-content',
               whiteSpace: 'nowrap', letterSpacing: -0.1,
             }}>
               {t(`stages.${deal.stage}`, { defaultValue: CRM_STAGES[deal.stage].label })}
             </span>
             <span style={{
-              textAlign: 'right', paddingRight: 56, fontSize: 'var(--crm-text-lg)', fontWeight: 800,
+              textAlign: 'right', paddingRight: 56, fontSize: 'var(--crm-text-lg)', fontWeight: 600,
               color: sp.ink, fontVariantNumeric: 'tabular-nums',
             }}>
               {fmtVal(deal.value)}
@@ -125,7 +125,7 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
                 ) : null}
                 {di.label && (
                   <span style={{
-                    fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.2, textTransform: 'uppercase',
+                    fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2,
                     color: di.overdue ? danger : sp.sub, fontVariantNumeric: 'tabular-nums',
                   }}>{di.label}</span>
                 )}

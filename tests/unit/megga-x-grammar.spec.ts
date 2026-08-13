@@ -128,6 +128,11 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   { root: 'src/components/crm-sugar', keep: (n) => n === 'SugarShell.tsx' },
   // « Contacts » EN ENTIER depuis le lot 4 — voir la note au-dessus de `PAGES`.
   { root: 'src/components/crm-sugar/contacts-pager', keep: (n) => /\.tsx?$/.test(n) },
+  // Le Pipeline EN ENTIER depuis le lot 4 du chantier MEGGA X (13 août 2026).
+  // ⚠ Sa dette était l'INVERSE de celle des pages : 62 graisses ≥ 700 et ZÉRO
+  // taille littérale, quand les deux pages portaient 51 tailles. Un lot qui
+  // recopierait l'ordre du chantier précédent chercherait la mauvaise chose.
+  { root: 'src/components/crm-sugar/pipeline', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
   // ⛔ « Matching · Recherche » entre SANS `MrhMapView.tsx`. La carte est GELÉE
   // par décision (13 août 2026) : le jeton Mapbox est absent du build, donc la
@@ -438,6 +443,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-mobile',
       'src/components/crm-sugar',
       'src/components/crm-sugar/contacts-pager',
+      'src/components/crm-sugar/pipeline',
       'src/pages/agent',
       'src/components/matching-recherche',
       'src/components/matching-atelier',

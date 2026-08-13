@@ -85,7 +85,7 @@ export function SugarCardQuickActions({
     transition: 'background .12s',
     ...extra,
   })
-  const panelHair = dark ? 'rgba(255,255,255,.07)' : 'rgba(15,23,42,.08)'
+  const panelHair = sp.solidBorder
   const panelBg = sp.solidBg
   const panelStyle: React.CSSProperties = {
     position: 'absolute', top: 32, right: 0, minWidth: 200,
@@ -106,7 +106,7 @@ export function SugarCardQuickActions({
       position: 'absolute', top: 8, right: 8, display: 'flex', gap: 'var(--crm-space-2xs)', zIndex: 5,
       padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)',
       background: sp.solidBg,
-      boxShadow: dark ? '0 6px 20px rgba(0,0,0,.55)' : '0 3px 12px rgba(15,23,42,.16), 0 1px 4px rgba(15,23,42,.08)',
+      boxShadow: sp.solidShadow,
       animation: 'qaFade .14s ease-out',
     }}>
       <div style={{ position: 'relative' }}>
@@ -120,8 +120,7 @@ export function SugarCardQuickActions({
         {visitOpen && (
           <div style={{ ...panelStyle, minWidth: 210 }}>
             <div style={{
-              fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: sp.sub, letterSpacing: 0.4,
-              textTransform: 'uppercase', padding: 'var(--crm-space-2xs) var(--crm-space-md) var(--crm-space-md)',
+              fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, padding: 'var(--crm-space-2xs) var(--crm-space-md) var(--crm-space-md)',
             }}>
               {t('board.card.scheduleVisit')}
             </div>
@@ -176,7 +175,7 @@ export function SugarCardQuickActions({
                 <MEIcon name="chevron-left" size={11} color={sp.ink} />
               </button>
               <span style={{
-                fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: sp.sub, letterSpacing: 0.4, textTransform: 'uppercase',
+                fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub,
               }}>{t('board.card.reassignTo')}</span>
             </div>
             {team.map(m => (
@@ -209,7 +208,7 @@ function SugarAgentItem({ sp, member, onClick }: {
       <span style={{
         width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)',
         background: '#0041D9', color: encreSur('#0041D9'),
-        fontSize: 'var(--crm-text-xs)', fontWeight: 700, display: 'grid', placeItems: 'center', flexShrink: 0,
+        fontSize: 'var(--crm-text-xs)', fontWeight: 600, display: 'grid', placeItems: 'center', flexShrink: 0,
       }}>{initials}</span>
       <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <span style={{

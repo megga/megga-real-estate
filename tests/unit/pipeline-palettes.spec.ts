@@ -25,6 +25,7 @@
  * surface où on la pose.
  */
 import { describe, it, expect } from 'vitest'
+import { readdirSync, readFileSync } from 'node:fs'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { dsPalette } from '@/components/crm-sugar-v3/dealTokens'
@@ -133,6 +134,38 @@ describe('Pipeline — les palettes d’écran ne portent que des barreaux MEGGA
       .filter(([hex]) => !employees.has(hex))
       .map(([hex, raison]) => `${hex} — ${raison}`)
     expect(mortes, `sémantiques sans emploi :\n  ${mortes.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ LE GRIS-BLEU SLATE-900 N'EST GARDÉ NULLE PART DANS LES COMPOSANTS.
+   *
+   * `megga-x-grammar` interdit le noir Sugar sous ses deux alphabets, mais pas
+   * `rgba(15,23,42,…)` — le slate-900 de Tailwind, B−R = 27. Il a survécu à deux
+   * campagnes de retrait sur le Matching, et il était ici en ONZE exemplaires :
+   * ombres de panneau flottant, filets, pistes de la timeline, voile de modale.
+   *
+   * ⚠ Il entre TOUJOURS par la même porte : une fraction d'opacité. Personne ne
+   * relit `rgba(15,23,42,0.022)` en cherchant une couleur — c'est un réglage de
+   * transparence à l'œil, et la teinte passe avec. D'où une garde qui lit la
+   * FAMILLE de notations, pas un hex.
+   */
+  it('aucun gris-bleu slate-900 dans les composants du périmètre', () => {
+    const fautifs: string[] = []
+    for (const dossier of ['src/components/crm-sugar/pipeline']) {
+      for (const nom of readdirSync(dossier).filter((n) => /\.tsx?$/.test(n))) {
+        const chemin = `${dossier}/${nom}`
+        readFileSync(chemin, 'utf-8')
+          // La note qui EXPLIQUE le retrait ne doit pas faire rougir la garde.
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          .replace(/\/\/[^\n]*/g, '')
+          .split('\n')
+          .forEach((l, i) => {
+            if (GRIS_BLEU.test(l)) fautifs.push(`${chemin}:${i + 1}`)
+            if (NOIR_SUGAR.test(l)) fautifs.push(`${chemin}:${i + 1} (noir Sugar)`)
+          })
+      }
+    }
+    expect(fautifs, `teintes proscrites :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 
   /**

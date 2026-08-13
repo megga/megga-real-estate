@@ -195,7 +195,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
               <MEIcon name="check" size={30} color={nd.onGreen} />
             </div>
             <h1 style={{
-              margin: '0 0 10px', fontSize: 'var(--crm-text-6xl)', fontWeight: 700, color: nd.ink,
+              margin: '0 0 10px', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: nd.ink,
               letterSpacing: -0.6, lineHeight: 1.15,
             }}>{t('modal.created')}</h1>
           </div>
@@ -203,7 +203,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
             <button onClick={onClose} style={{
               height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
               background: nd.accent, color: nd.accentInk, fontFamily: 'inherit',
-              fontWeight: 700, fontSize: 'var(--crm-text-xl)', cursor: 'pointer', boxShadow: nd.shadow,
+              fontWeight: 600, fontSize: 'var(--crm-text-xl)', cursor: 'pointer', boxShadow: nd.shadow,
             }}>{t('modal.seePipeline')}</button>
           </div>
         </div>
@@ -219,7 +219,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
   const colLabel = (txt: string, extra?: React.ReactNode) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 14, flexShrink: 0 }}>
       <span style={{
-        fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase', color: nd.muted,
+        fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: nd.muted,
       }}>{txt}</span>
       {extra}
     </div>
@@ -233,7 +233,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
   const ghostLinkStyle: React.CSSProperties = {
     height: 40, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
     background: 'transparent', color: nd.muted, cursor: 'pointer',
-    fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700,
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
   }
   const moreLineStyle: React.CSSProperties = {
     padding: 'var(--crm-space-lg) var(--crm-space-xl)', fontSize: 'var(--crm-text-md)', color: nd.muted, fontWeight: 600,
@@ -251,7 +251,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
         width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0,
         background: av, color: encreSur(av),
         display: 'grid', placeItems: 'center',
-        fontSize: size * 0.36, fontWeight: 700, letterSpacing: -0.3,
+        fontSize: size * 0.36, fontWeight: 600, letterSpacing: -0.3,
       }}>{((c.firstName || '?')[0] + (c.lastName || '')[0]).toUpperCase()}</div>
     )
   }
@@ -275,7 +275,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
       {opts.left}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: nd.ink, letterSpacing: -0.2,
+          fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: nd.ink, letterSpacing: -0.2,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{opts.title}</div>
       </div>
@@ -293,7 +293,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
 
   const field = (label: string, val: string, onChange: (v: string) => void, opts?: { type?: string; prefix?: string; span2?: boolean }) => (
     <label style={{ display: 'block', gridColumn: opts?.span2 ? 'span 2' : undefined }}>
-      <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: nd.muted, marginBottom: 7, letterSpacing: 0.2 }}>{label}</div>
+      <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: nd.muted, marginBottom: 7, letterSpacing: 0.2 }}>{label}</div>
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         {opts?.prefix && (
           <span style={{
@@ -336,7 +336,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
             padding: '20px 26px', borderBottom: hair,
           }}>
             <h1 style={{
-              margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.7,
+              margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.7,
               color: nd.ink, lineHeight: 1,
             }}>{t('new_deal')}</h1>
             <div style={{ flex: 1 }} />
@@ -363,7 +363,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
                         height: 36, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                         background: contactMode === o.v ? nd.ink : 'transparent',
                         color: contactMode === o.v ? nd.accentInk : nd.inkSoft,
-                        fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-lg)', cursor: 'pointer',
+                        fontFamily: 'inherit', fontWeight: 600, fontSize: 'var(--crm-text-lg)', cursor: 'pointer',
                         transition: 'all .16s ease',
                       }}>{o.label}</button>
                     ))}
@@ -406,7 +406,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
                               style={{
                                 marginTop: 10, height: 38, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                                 cursor: 'pointer', background: nd.cardSubtle, color: nd.ink,
-                                fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-md)',
+                                fontFamily: 'inherit', fontWeight: 600, fontSize: 'var(--crm-text-md)',
                               }}>
                               {allContacts.length === 0 || !contactQuery
                                 ? t('modal.createContact')
@@ -453,7 +453,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
                   title: selectedBien.title,
                   right: (
                     <span style={{
-                      fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: nd.inkSoft,
+                      fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: nd.inkSoft,
                       fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
                     }}>{crmFmtCHF(selectedBien.price || selectedBien.rent || 0)}</span>
                   ),
@@ -481,7 +481,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
                       title: b.title,
                       right: (
                         <span style={{
-                          fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: nd.inkSoft,
+                          fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: nd.inkSoft,
                           fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
                         }}>{crmFmtCHF(b.price || b.rent || 0)}</span>
                       ),
@@ -510,7 +510,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
                       height: 36, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
                       background: active ? col : nd.cardSubtle,
                       color: active ? '#fff' : nd.inkSoft,
-                      fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-md)',
+                      fontFamily: 'inherit', fontWeight: 600, fontSize: 'var(--crm-text-md)',
                       whiteSpace: 'nowrap', letterSpacing: -0.1,
                     }}>
                       {t(`stages.${sk}`)}
@@ -543,7 +543,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
               // ce qui manque) ; son encre se dérive de son propre fond.
               background: (!canCreate || creating) ? nd.ghost : nd.accent,
               color: (!canCreate || creating) ? encreSur(nd.ghost) : nd.accentInk,
-              fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-xl)',
+              fontFamily: 'inherit', fontWeight: 600, fontSize: 'var(--crm-text-xl)',
               cursor: (!canCreate || creating) ? 'not-allowed' : 'pointer',
               boxShadow: (!canCreate || creating) ? 'none' : nd.shadow,
               display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)',
