@@ -280,18 +280,37 @@ order by a.city, a.address;
 -- geste. Compter les GROUPES, pas les paires, avant d'annoncer un volume.
 
 -- ═══ Vérifier un uid_che contre le registre ════════════════════════════════
+-- LA SEULE MÉTHODE QUI MARCHE, en une phrase : **demander au registre ce qu'il
+-- inscrit sous NOTRE numéro, et comparer au nôtre.** Sens IDE→nom, rapide
+-- (~53 ms), exact, sans candidat ni score. `VALUES ?ident { "CHE…" "CHE…" }` en
+-- résout 25 par requête ; les 93 tiennent en 4 lots.
 -- ⚠ FORMATS INCOMPATIBLES : la base stocke `CHE-XXX.XXX.XXX` (594/594 lignes),
--- LINDAS rend `CHEXXXXXXXXX`. Convertir avant toute comparaison, sinon 0 résultat.
--- Le sens IDE→nom est RAPIDE (~53 ms) contrairement à nom→IDE : une seule requête
--- SPARQL avec `VALUES ?ident { "CHE…" "CHE…" }` en résout 25 d'un coup.
+-- LINDAS rend `CHEXXXXXXXXX`. Convertir, sinon 0 résultat et fausse quiétude.
 --
--- Mesuré le 13.08.2026 sur 25 lignes tirées au hasard : **25/25 concordantes**.
--- L'enrichissement Zefix de juillet n'est donc PAS globalement faux. Les 3 erreurs
--- connues sont d'une classe précise — lignes dont le nom est un LIBELLÉ DE GROUPE
--- (« Tarchini Group » portait le CHE de Tarchini Real Estate SA) ou une VARIANTE
--- D'ÉCRITURE, là où l'appariement par nom avait plusieurs candidats. Auditer cette
--- classe, pas les 594 : la requête ci-dessous en isole **93** (mesuré), soit
--- 4 lots LINDAS.
+-- Résultat du 13.08.2026 sur les 93 : **55 portent exactement le nom inscrit,
+-- 38 diffèrent**, dont **7 avec la signature de l'erreur Tarchini** — une ligne
+-- d'exploitation qui détient l'IDE de sa maison mère, ou l'inverse (« Naef
+-- Immobilier Genève » → *Naef Holding SA*, « keller real estate » → *Keller
+-- Holding AG*, « Koch Immobilien » → *KOCH Group AG*…). Une société suisse n'a
+-- qu'UN IDE : l'un des deux ment. Livré dans `uid-che-a-verifier.csv`.
+--
+-- ⛔ TROIS MÉTHODES ESSAYÉES AVANT, TOUTES FAUSSES — ne pas les refaire :
+--  1. « le nom du registre ressemble-t-il au nôtre ? » (recouvrement de tokens)
+--     → rend 93/93 concordants, **y compris sur l'erreur Tarchini** : « Tarchini
+--     Group » et « Tarchini Real Estate SA » partagent leur unique token
+--     distinctif. Un test aveugle à la classe qu'il vise est un VERT CREUX.
+--     ⇒ Éprouver tout audit sur une erreur CONNUE avant de croire son résultat.
+--  2. « quels concurrents portent le token distinctif ? » → sondait sur le token
+--     le plus LONG, donc « lausanne » plutôt que « nicod », « genevoise » plutôt
+--     qu'« alliance » : les toponymes gagnent en longueur. Et `LIMIT 30`
+--     tronquait — 16 des 19 « suspects » affichaient exactement 30 candidats,
+--     donc une liste arbitraire. Un plafond atteint ⇒ INDÉCIDABLE, pas « absent ».
+--  3. conjonction de tous les tokens, accents pliés **de notre côté seulement** :
+--     le registre garde les siens. Mesuré — `madorin` rend **0**, `madörin` rend
+--     **51** ; `kappeli` 9, `käppeli` 231. Six « suspects » n'étaient que ça.
+--
+-- La requête ci-dessous isole la classe à risque (93 lignes) : nom sans forme
+-- juridique en suffixe, ou portant « group »/« holding ».
 select a.name, a.uid_che, replace(replace(a.uid_che,'-',''),'.','') as ide_pour_lindas
 from public.agency_profiles a
 where a.uid_che is not null
