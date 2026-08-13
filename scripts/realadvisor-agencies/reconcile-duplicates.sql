@@ -209,6 +209,8 @@ order by lieu, a.name;
 -- l'ADRESSE PROPRE, et deux signaux objectifs qui ne lisent pas le suffixe :
 --   • **adresse propre ⇒ implantation réelle, GARDER** (53 lignes ; ce sont
 --     massivement les entrées d'annuaire RA, avec 0 annonce pour l'instant) ;
+--     ⛔⛔ MAIS SEULEMENT SI L'ADRESSE VIENT DE L'ANNUAIRE. Voir juste dessous :
+--     sur une ligne de source FLATFOX, l'adresse n'appartient pas à la ligne.
 --   • **aucune adresse + annonces sur ≥ 5 CANTONS ⇒ ce n'est pas un bureau de
 --     ville**, quel que soit son nom. « PREMIUM HOMES AG - Gerlafingen » couvre
 --     23 cantons, « - Wallisellen » 20 : des flux, pas des agences ;
@@ -273,6 +275,21 @@ order by lieu, a.name;
 -- (Corollaire rassurant : 9 des 11 lignes conservées ne sont PAS confinées —
 -- elles ouvrent des communes que le parent n'a pas. Les deux verdicts concordent
 -- donc dans 9 cas sur 11.)
+--
+-- ⛔⛔ QUELLES ADRESSES SONT « DÉCLARÉES » — la nuance qui manquait ci-dessus.
+-- **Sur une ligne de source FLATFOX, `address` N'EST PAS un attribut de la ligne :
+-- c'est l'adresse d'UNE de ses annonces, prise au hasard de la synchro.** Mesuré
+-- le 13.08.2026 sur « ImmoSky AG - Dübendorf » : le MÊME libellé d'annonceur,
+-- sous l'organisation `immosky-zurich`, porte « Ringstrasse 18b, 8600 Dübendorf »
+-- sur une annonce et « Spittelweg 2, 5034 Suhr » sur une autre — cette dernière
+-- étant précisément l'adresse que l'ANNUAIRE donne à « ImmoSky AG - Standort
+-- Suhr AG ». Un seul libellé couvre donc plusieurs bureaux.
+-- ⇒ « adresse propre ⇒ implantation » ne vaut QUE pour les adresses issues de
+--    l'ANNUAIRE RA (déclarées sur une fiche d'agence). Sur du flatfox, l'adresse
+--    ne prouve rien et cette ligne-là a été fusionnée (493 annonces).
+-- ⇒ Et si on remonte une telle adresse vers le parent, EXIGER qu'elle concorde
+--    avec la commune déjà déclarée du parent — sans quoi on pose une adresse
+--    argovienne sur une société zurichoise.
 select p.name as parent, s.name as sous_ligne,
        (select count(*) from public.market_listings m where m.agency_profile_id=s.id) as ann,
        not exists (
