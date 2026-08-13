@@ -260,29 +260,55 @@ un alpha en cherchant une couleur. `sgVoileEncre(dark, alpha)`
 
 ## §3 — Les questions à trancher AVANT de coder
 
-⚠ La troisième est déjà tranchée (14 août) ; les deux premières restent ouvertes.
+✅ **Les trois sont TRANCHÉES le 14 août 2026.** Elles restent écrites avec
+leurs options, parce que le raisonnement qui a mené à chacune compte autant que
+la réponse — et parce qu'une décision dont on a perdu le motif se rouvre.
 
-### 1. `AdminKybReviewPage` — Tailwind ou style en ligne ?
+### 1. ✅ TRANCHÉE — `AdminKybReviewPage` passe au style en ligne
 
-| Option | Ce que ça coûte |
-|---|---|
-| **A · La migrer en style inline** (`useAdminSugar`, comme les 18 autres) | 1 503 lignes, 154 `className`. Le plus gros geste du chantier. Mais la page rejoint le cliquet, et la console n'a plus qu'une grammaire |
-| **B · La garder en Tailwind, étendre le cliquet au `className`** | Le cliquet devrait apprendre un second langage. Il ne le sait pas faire aujourd'hui, et il faudrait le lui apprendre pour UN fichier |
-| **C · La geler, exemption écrite** | Le geste de `MrhMapView` sur le Matching. Honnête, chiffrable — mais elle reste peinte par Graphite via les classes sémantiques |
+**Décision Julien, 14 août 2026.** Les 154 `className` deviennent des styles en
+ligne nourris par `useAdminSugar()`, comme les 18 autres pages. La console
+n'aura plus qu'une grammaire, et la page rejoint le cliquet.
 
-⚠ **A est probablement la bonne**, mais elle double le coût du lot 3. **À
-trancher, pas à découvrir en route.**
+⚠ Ce que la décision coûte, à accepter d'emblée : **1 503 lignes**, la plus
+grosse page du périmètre, et elle rend aujourd'hui **0 marqueur**. Après
+migration elle en portera — c'est le but : ils deviennent VISIBLES. Ne pas
+s'alarmer de voir le total du chantier monter au lot 3.
 
-### 2. L'accent de la console : violet ou `#424bfb` ?
+⚠ Et un risque propre à cette migration : les classes sémantiques
+(`text-theme-tertiary`, `bg-theme-card`…) sont peintes par `admin-console.css`.
+La migrer AVANT le lot 2 la ferait passer de Graphite à MEGGA X d'un coup, sans
+qu'on sache lequel des deux gestes a changé quoi. **La migrer APRÈS le lot 2**,
+quand la feuille est déjà reciblée : les deux sources auront alors la même
+valeur, et le diff visuel sera nul. C'est la seule façon de la vérifier.
 
-La console porte `#8B5CF6` (violet), le CRM `#424bfb`. `CLAUDE.md` §8 dit
-« accent violet **réservé au repère de contexte du rail** » — c'est-à-dire un
-signal qui dit *tu es dans la console*, pas une décoration.
+### 2. ✅ TRANCHÉE — le violet reste au RAIL, le reste passe à l'accent
 
-⛔ **C'est une question de SENS, pas de teinte.** Si le violet dit le contexte,
-il reste et le reste passe à `#424bfb`. S'il ne dit plus rien, il part. Comme
-les sept `--black` du Matching : **trancher usage par usage**, il n'y en a que
-deux.
+**Décision Julien, 14 août 2026 : « garde le violet pour le rail ».** Le violet
+`#8B5CF6` dit *tu es dans la console* ; il ne décore pas. Décliné site par site,
+comme les sept `--black` du Matching — il n'y en a que cinq :
+
+| Site | Rôle | Décision |
+|---|---|---|
+| `AdminShell.tsx:131` — pastille 7×7 | repère de contexte | **violet** |
+| `AdminShell.tsx:134` — badge « ADMIN » | repère de contexte | **violet** |
+| `AdminShell.tsx:321` — titre / lien racine | repère de contexte | **violet** |
+| `adminKit.tsx:136` — ton `'accent'` du kit | teinte offerte à N composants, pas le rail | **`#424bfb`** |
+| `admin-console.css:129` — anneau de focus | marque l'élément ACTIF | **`#424bfb`** |
+
+⚠ **L'anneau de focus est le seul des cinq que je re-soumettrais à l'écran.**
+La règle du 10 août dit que l'élément ACTIF porte `#424bfb`, et un anneau de
+focus marque bien l'actif — mais c'est aussi le chrome de la console, et le
+passer au bleu la rend indiscernable du CRM au clavier. Le plan applique la
+règle ; **à confirmer sur une capture**, pas sur un raisonnement.
+
+⛔ Et ne pas y toucher sans relire `project_sugar_outline_none_a11y_trap` :
+c'est `outline: none` qui avait privé le rail, ⌘K et les listes de tout repère
+de focus au clavier. On change la COULEUR de l'anneau, jamais son existence.
+
+⚠ Noter que la console MÉLANGE déjà les deux accents : `AdminShell.tsx:283`
+peint le focus de la recherche avec `sp.accent` (le bleu MEGGA X), pas avec le
+violet. Le chantier ne crée donc pas la cohabitation — il la rend lisible.
 
 ### 3. ✅ TRANCHÉE — le banc couvre les 19 pages
 
@@ -359,7 +385,12 @@ Garde écrite **AVANT** le correctif, éprouvée par **contrôle négatif**.
    `matching-atelier-css.spec.ts` : chaque valeur est un barreau MEGGA X ou une
    teinte sémantique **nommée**.
 
-### Lot 3 — Les pages (303 marqueurs)
+### Lot 3 — Les pages (303 marqueurs, plus celles qu'AdminKybReview révélera)
+
+⛔ **APRÈS le lot 2, et ce n'est pas un confort** — voir §3.1 : migrer
+`AdminKybReviewPage` avant que la feuille soit reciblée la ferait passer de
+Graphite à MEGGA X en même temps qu'elle change de grammaire, et on ne saurait
+pas lequel des deux gestes a changé quoi.
 
 Dette de **taille** (208). Règle établie et réutilisable : **barreau le plus
 proche, égalité vers le bas** ; sous le plancher de l'échelle (11 px) on monte.
